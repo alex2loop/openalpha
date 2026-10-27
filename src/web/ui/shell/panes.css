@@ -37,13 +37,23 @@
   align-self: stretch;
 }
 
-.panes.is-focus .stage {
-  display: none;
+/* The panel floats over the stage in focus mode and on a narrow screen's information pane: both
+   sit in the stage's cell, the chat docked beside. */
+.panes.is-focus,
+:root:not([data-layout="wide"]) .panes[data-pane="info"] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.panes.is-focus > :is(.stage, .panel),
+:root:not([data-layout="wide"]) .panes[data-pane="info"] > :is(.stage, .panel) {
+  grid-area: 1 / 1;
 }
 
 /* The stage stays mounted when hidden, so the scene keeps its state across pane switches. */
 :root:not([data-layout="wide"]) .panes[data-pane="office"] > :not(.stage),
-:root:not([data-layout="wide"]) .panes[data-pane="info"] > :not(.panel),
+:root:not([data-layout="wide"]) .panes[data-pane="info"] > :not(.stage, .panel),
 :root:not([data-layout="wide"]) .panes[data-pane="chat"] > :not(.chat-panel) {
   display: none;
 }

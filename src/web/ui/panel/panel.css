@@ -6,9 +6,62 @@
   border-left: 1px solid var(--border);
 }
 
-.panes.is-focus .panel {
-  flex: 1;
+/* Floating over the office: glass in the stage's cell, denser than a chip since it carries text. The
+   head, tabs and margins are the glass; each block keeps its solid surface for the figures. */
+.panel.is-float,
+.panel.is-sheet {
+  --glassAlpha: var(--glassFocusA);
+  z-index: var(--zStageBar);
   width: auto;
+  border-left: 0;
+  border-radius: var(--islandRadius);
+  overflow: hidden;
+  animation: panel-float-in var(--sheetMs) ease-out;
+}
+
+.panel.is-float {
+  justify-self: end;
+  width: min(var(--panelW), calc(100% - var(--s2)));
+  margin: calc(var(--stageTopH) + var(--s1)) var(--s2) var(--s2) 0;
+}
+
+.panel.is-sheet {
+  align-self: end;
+  height: var(--sheetH);
+  margin: var(--s2);
+}
+
+@keyframes panel-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--s2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel.is-float,
+  .panel.is-sheet {
+    animation: none;
+  }
+}
+
+/* The grab handle: a tap hides the sheet, the pane bar brings it back. */
+.sheet-handle {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  padding: var(--s1) 0 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.sheet-grip {
+  width: var(--gripW);
+  height: var(--gripH);
+  border-radius: var(--gripH);
+  background: var(--ink3);
+  opacity: 0.5;
 }
 
 /* The tabs on a sunken track, the collapse arrow at the end, and the way back under them. */
@@ -86,6 +139,14 @@
   margin-inline: auto;
 }
 
+.panel.glass .panel-head {
+  border-bottom-color: var(--glassSeam);
+}
+
+.panel.glass .panel-body {
+  text-shadow: none;
+}
+
 .panel-view.is-entering {
   animation: panel-enter 250ms ease-out;
 }
@@ -138,12 +199,6 @@
 }
 
 /* The pane bar takes the collapse arrow's place. */
-:root:not([data-layout="wide"]) .panel {
-  flex: 1;
-  width: auto;
-  border-left: 0;
-}
-
 :root:not([data-layout="wide"]) .panel-collapse {
   display: none;
 }

@@ -1,8 +1,10 @@
 import { breakpoint } from '@/web/state/breakpoints'
+import { showPane } from '@/web/state/pane'
 import {
   backStack,
   collapsed,
   isFocus,
+  isFocused,
   PANEL_ELEMENT_ID,
   type PanelView,
   panelView,
@@ -24,19 +26,24 @@ import { Today } from '@/web/ui/today/today'
 import './panel.css'
 
 /** The info panel: tabs, the way back, and the view. It folds into a rail on a wide screen, except
- *  in focus mode. */
+ *  in focus mode, where it floats over the office as glass; on a narrow screen it is a glass bottom
+ *  sheet over the office, its handle closing it. */
 export function Panel() {
   if (collapsed.value && !isFocus.value && breakpoint.value === 'wide') {
     return <Rail />
   }
 
+  const isSheet = breakpoint.value !== 'wide'
+  const kind = isSheet ? 'panel glass is-sheet' : 'panel glass is-float'
+
   return (
     <aside
       id={PANEL_ELEMENT_ID}
-      class="panel chrome-glass"
+      class={isFocused.value || isSheet ? kind : 'panel chrome-glass'}
       aria-label={tr('ui.office.panel.label')}
       tabIndex={-1}
     >
+      {isSheet && <SheetHandle />}
       <div class="panel-head">
         <Tabs />
         {!isFocus.value && (
@@ -59,6 +66,20 @@ export function Panel() {
         <PanelPage />
       </div>
     </aside>
+  )
+}
+
+function SheetHandle() {
+  return (
+    <button
+      type="button"
+      class="sheet-handle"
+      title={tr('ui.office.panel.sheetHide')}
+      aria-label={tr('ui.office.panel.sheetHide')}
+      onClick={() => showPane('office')}
+    >
+      <span class="sheet-grip" aria-hidden="true" />
+    </button>
   )
 }
 
