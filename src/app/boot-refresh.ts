@@ -28,7 +28,7 @@ export async function refreshMarketDataOnBoot(options: BootRefreshOptions): Prom
   const { app, logger, signal } = options
   const settled = app
     .resolve('tradingServices')
-    .refreshMarketData({ signal })
+    .refreshMarketData({ signal, scheduled: true })
     .then((results) => {
       const degradations = refreshDegradations(results)
 

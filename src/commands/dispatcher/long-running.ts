@@ -1,21 +1,29 @@
 import { randomUUID } from 'node:crypto'
 
+import type { ChannelId } from '@/core/channels'
 import type { BusEventMap, EventBus } from '@/core/events'
-import type { RunId } from '@/core/ids'
+import type { RunId, SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type {
   ProgressReporter,
+  ScheduledRequest,
+  ScheduledRun,
+  ScheduledRunner,
   SlashCommand,
   SlashContext,
   SlashResult,
 } from '@/core/types/command'
 import '@/commands/events'
+import { SCHEDULE_CHANNEL } from '@/core/channels'
 import { isAbortError, RunHalted } from '@/core/errors'
-import { runId } from '@/core/ids'
+import { runId, sessionId } from '@/core/ids'
 
 import { toSlashResult } from './result'
 
 const MAX_ACTIVE_COMMANDS = 200
+/** A run the daemon starts on its own answers in no chat and belongs to no conversation. */
+const SCHEDULE_CHAT_ID = 'schedule'
+const SCHEDULE_SESSION_ID = sessionId('schedule')
 
 const noop = (): void => undefined
 
@@ -30,6 +38,8 @@ export interface CommandRuns {
   /** Runs `command` as a long-running command: mints its run id, publishes its lifecycle on the
    *  bus and registers it so `abortCommand` can stop it. Returns the validated result. */
   withCommandEvents(context: SlashContext, command: SlashCommand): Promise<SlashResult>
+  /** Runs work the daemon starts on its own the same way, on the schedule's channel. */
+  readonly runScheduled: ScheduledRunner
   abortCommand(id: RunId): boolean
   activeCommands(): readonly RunId[]
 }
@@ -38,6 +48,28 @@ interface CommandRunState {
   readonly bus: EventBus
   readonly active: Map<RunId, AbortController>
   track(id: RunId, controller: AbortController): void
+}
+
+interface RunStart {
+  readonly id: RunId
+  readonly name: string
+  readonly channel: ChannelId
+  readonly chatId: string
+  readonly sessionId: SessionId
+  readonly signal: AbortSignal
+  /** The surface's own reporter, told each stage before the bus is. */
+  readonly progress?: ProgressReporter
+}
+
+interface TrackedRun extends ScheduledRun {
+  readonly runId: RunId
+}
+
+interface RunBody<T> {
+  work(run: TrackedRun): Promise<T>
+  /** The reply the finish carries, read in-process only. */
+  resultOf(value: T): SlashResult | undefined
+  isIdle?(value: T): boolean
 }
 
 export function createCommandRuns(deps: CommandRunsDeps): CommandRuns {
@@ -62,6 +94,7 @@ export function createCommandRuns(deps: CommandRunsDeps): CommandRuns {
 
   return {
     withCommandEvents: (context, command) => runWithEvents(state, context, command),
+    runScheduled: (request) => runScheduled(state, request),
     abortCommand(id) {
       const controller = active.get(id)
 
@@ -83,35 +116,70 @@ async function runWithEvents(
   context: SlashContext,
   command: SlashCommand
 ): Promise<SlashResult> {
-  const id = context.runId ?? runId(randomUUID())
-  const child = new AbortController()
-  const unlink = linkAbort(context.signal, child)
-  const { bus } = state
-  let outcome: CommandOutcome = 'error'
-  let result: SlashResult | undefined
-
-  state.track(id, child)
-  bus.emit('command_started', {
-    runId: id,
+  const start: RunStart = {
+    id: context.runId ?? runId(randomUUID()),
     name: command.name,
     channel: context.channel,
     chatId: context.chatId,
     sessionId: context.sessionId,
-    startedAt: Date.now(),
+    signal: context.signal,
+    ...(context.progress === undefined ? {} : { progress: context.progress }),
+  }
+
+  return await trackRun(state, start, {
+    work: async (run) => {
+      const raw = await command.run({ ...context, ...run })
+
+      // A command that swallows its abort and returns normally reports completed.
+      return toSlashResult(command, raw)
+    },
+    resultOf: (result) => result,
   })
+}
+
+function runScheduled<T>(state: CommandRunState, request: ScheduledRequest<T>): Promise<T> {
+  const scheduled: RunStart = {
+    name: request.name,
+    signal: request.signal,
+    id: runId(randomUUID()),
+    channel: SCHEDULE_CHANNEL,
+    chatId: SCHEDULE_CHAT_ID,
+    sessionId: SCHEDULE_SESSION_ID,
+  }
+
+  return trackRun(state, scheduled, {
+    work: (run) => request.work(run),
+    resultOf: () => undefined,
+    isIdle: (value) => request.isIdle?.(value) === true,
+  })
+}
+
+/** One owner of a command run's lifecycle: registers the run so `abortCommand` can
+ *  stop it, and publishes its start, its stages and how it ended on the bus. */
+async function trackRun<T>(state: CommandRunState, start: RunStart, body: RunBody<T>): Promise<T> {
+  const { id, channel } = start
+  const child = new AbortController()
+  const unlink = linkAbort(start.signal, child)
+  const { bus } = state
+  let outcome: CommandOutcome = 'error'
+  let result: SlashResult | undefined
+  let idle = false
+
+  state.track(id, child)
+  announceStart(bus, start)
 
   try {
-    const raw = await command.run({
-      ...context,
+    const value = await body.work({
       runId: id,
       signal: child.signal,
-      progress: reportProgress(bus, context, id),
+      progress: reportProgress(bus, start),
     })
-    // A command that swallows its abort and returns normally reports completed.
-    result = toSlashResult(command, raw)
+
+    result = body.resultOf(value)
+    idle = body.isIdle?.(value) === true
     outcome = 'completed'
 
-    return result
+    return value
   } catch (err: unknown) {
     if (isCancellation(err)) {
       outcome = 'aborted'
@@ -122,20 +190,32 @@ async function runWithEvents(
     state.active.delete(id)
     bus.emit('command_finished', {
       runId: id,
-      channel: context.channel,
+      channel,
       outcome,
       ...(result === undefined ? {} : { result }),
+      ...(idle ? { idle: true } : {}),
     })
   }
 }
 
+function announceStart(bus: EventBus, start: RunStart): void {
+  bus.emit('command_started', {
+    runId: start.id,
+    name: start.name,
+    channel: start.channel,
+    chatId: start.chatId,
+    sessionId: start.sessionId,
+    startedAt: Date.now(),
+  })
+}
+
 // Forwards to the surface's own reporter, then publishes the same stage on the bus.
-function reportProgress(bus: EventBus, context: SlashContext, id: RunId): ProgressReporter {
+function reportProgress(bus: EventBus, start: RunStart): ProgressReporter {
   return (key, params) => {
-    context.progress?.(key, params)
+    start.progress?.(key, params)
     bus.emit('command_progress', {
-      runId: id,
-      channel: context.channel,
+      runId: start.id,
+      channel: start.channel,
       message: { key, ...(params === undefined ? {} : { params }), mode: 'transient' },
     })
   }

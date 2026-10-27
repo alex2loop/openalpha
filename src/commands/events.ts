@@ -24,6 +24,8 @@ declare module '@/core/events' {
       readonly outcome: 'completed' | 'aborted' | 'error'
       // Present on `completed`; read in-process only and never put on the wire.
       readonly result?: SlashResult
+      /** The work found nothing to do, so no activity row keeps the run. */
+      readonly idle?: true
     }
   }
 }

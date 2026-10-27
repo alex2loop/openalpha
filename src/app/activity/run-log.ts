@@ -105,7 +105,7 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
       })
     ),
     bus.on('command_finished', (e) => {
-      if (e.result?.kind === 'agent') {
+      if (e.result?.kind === 'agent' || e.idle === true) {
         open.delete(e.runId)
 
         return

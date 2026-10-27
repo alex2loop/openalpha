@@ -4,6 +4,7 @@ import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { locale, state } from '@/web/state/session'
 import { formatChildrenLine } from '@/web/text/activity'
+import { childOutcomeKey } from '@/web/text/child-outcome'
 import { formatUsd } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { commandOf, formatRunName } from '@/web/text/run-name'
@@ -58,7 +59,9 @@ function ActivityList({ day }: { readonly day: string | undefined }) {
       {activity.value.rows.map((row) => (
         <div key={row.runId} class="activity-entry">
           <ActivityItem row={row} />
-          <RunCalls runId={row.runId} isRunning={false} command={commandOf(row)} />
+          {row.unbilled !== true && (
+            <RunCalls runId={row.runId} isRunning={false} command={commandOf(row)} />
+          )}
         </div>
       ))}
     </div>
@@ -93,7 +96,12 @@ function ActivityItem({ row }: { readonly row: ActivityRowWire }) {
 
 export function ActivityLine({ row }: { readonly row: ActivityRowWire }) {
   const timeZone = state.value?.timeZone
-  const facts = [...(row.agentId === undefined ? [] : [row.agentId]), sourceLabel(row.channelId)]
+  const unfinished = childOutcomeKey(row.outcome)
+  const facts = [
+    ...(row.agentId === undefined ? [] : [row.agentId]),
+    sourceLabel(row.channelId),
+    ...(unfinished === undefined ? [] : [tr(unfinished)]),
+  ]
 
   return (
     <div class="activity-line">
@@ -105,7 +113,8 @@ export function ActivityLine({ row }: { readonly row: ActivityRowWire }) {
         <p class="meta">{joinInline(facts)}</p>
         {row.summary !== undefined && <p class="activity-summary">{row.summary}</p>}
       </div>
-      <span class="activity-cost">{formatUsd(row.costUsd)}</span>
+      {/* Kept empty for a run with no model call, so every row's columns still line up. */}
+      <span class="activity-cost">{row.unbilled === true ? '' : formatUsd(row.costUsd)}</span>
     </div>
   )
 }

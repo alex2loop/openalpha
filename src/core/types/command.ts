@@ -89,6 +89,25 @@ export type ProgressReporter = (
   params?: Readonly<Record<string, string | number | LocalizedMessageParam>>
 ) => void
 
+/** What work the daemon starts on its own runs under once it shows as a command run. */
+export interface ScheduledRun {
+  readonly signal: AbortSignal
+  readonly progress: ProgressReporter
+}
+
+export interface ScheduledRequest<T> {
+  /** The command the run shows as. */
+  readonly name: string
+  readonly signal: AbortSignal
+  work(run: ScheduledRun): Promise<T>
+  /** True when the work found nothing to do: the run then leaves no row in the activity log. */
+  isIdle?(value: T): boolean
+}
+
+/** Shows work the daemon starts on its own as a command run, the way a typed command shows: live
+ *  with its stages, stoppable, and in the activity log once it ends. */
+export type ScheduledRunner = <T>(request: ScheduledRequest<T>) => Promise<T>
+
 export interface SlashContext {
   readonly channel: ChannelId
   /** Stable per-inbound-request id; used as the idempotency key for non-idempotent commands. */

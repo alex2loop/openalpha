@@ -340,6 +340,7 @@
     "office.jobs.from.cli": "CLI",
     "office.jobs.from.cron": "lịch",
     "office.jobs.from.other": "kênh {channel}",
+    "office.run.scheduled.refresh": "Làm mới dữ liệu · tự động",
     "office.jobs.stopAsk": "Dừng {what}?",
     "office.jobs.stopBody": "{who} dừng ở bước hiện tại. Các bước đã xong được giữ trong nhật ký, nhưng kết quả sẽ không được lưu.",
     "office.jobs.rerun": "Chạy lại",

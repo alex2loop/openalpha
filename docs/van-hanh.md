@@ -60,6 +60,13 @@ Lúc khởi động, lần làm mới đầu tiên chạy trước các phần k
 lỗi nhà cung cấp, lưu trữ hay kênh thì chỉ là một cảnh báo (`daemon.boot_refresh_failed`), dù lỗi đến
 trong 60 giây hay sau đó, và daemon vẫn khởi động; lỗi nào khác thì dừng khởi động.
 
+Mỗi lượt như vậy, kể cả lượt lúc khởi động, hiện trên trang văn phòng giống hệt khi bạn gõ
+`/refresh`: Thủ kho làm việc trong Kho dữ liệu với tiến độ trên màn hình tường, thanh đầu trang tính
+nó là một việc đang chạy, và khi xong thì mục Hoạt động ghi "Làm mới dữ liệu · tự động" (kèm "dừng"
+hoặc "lỗi" nếu lượt đó không xong). Lượt này không gọi mô hình nên dòng của nó không ghi chi phí và
+không có lệnh gọi AI. Lượt không có thị trường nào đang dùng thì không hiện gì, còn lượt thấy dữ liệu
+mọi thị trường vẫn mới thì không để lại dòng nào trong mục Hoạt động.
+
 Lượt nào để bất kỳ loại dữ liệu nào ở trạng thái `unavailable` (không lấy được gì) sẽ thử lại sau 2,
 4, 8 và 16 phút, không bao giờ quá mốc kế tiếp. Lần hỏng thứ năm trả việc về cho mốc, và chuỗi thử
 lại bắt đầu lại. Lượt chỉ thiếu một phần (`partial`) thì chờ mốc kế tiếp; các mã bị sót được vá lại
@@ -497,7 +504,7 @@ Thẻ Thị trường có ba phần. *Thị trường* hiện đầy đủ số 
 
 ### Văn phòng
 
-Hai tầng, chuyển ở hàng ngay trên dải giá của khung cảnh. Tầng **Văn phòng** là đội có sẵn trong các phòng của họ: Kho dữ liệu (Thủ kho làm mới dữ liệu), Thư viện (nhóm tìm tin, lập kế hoạch, tổng hợp, rà soát và phân tích chủ đề làm nghiên cứu), Phòng họp (bàn tranh luận sau `/suggest`), Sảnh (lịch hôm nay và bản tin trong ngày), Quầy cảnh báo (người trực theo dõi cảnh báo giá và mức cắt lỗ), Phòng trợ lý và Bàn của bạn. Tầng **Agent của bạn** là tầng đội riêng: mỗi agent của bạn một bàn, kèm thẻ cho biết nó đang chạy, tạm dừng hay rảnh, lịch của nó, đề xuất gần nhất và hôm nay nó đã tiêu bao nhiêu. Chưa có agent nào thì tầng này gợi ý ba cách bắt đầu và một mẫu trống, còn bàn trống kế tiếp mang nút "+ Thêm agent".
+Hai tầng, chuyển ở hàng ngay trên dải giá của khung cảnh. Tầng **Văn phòng** là đội có sẵn trong các phòng của họ: Kho dữ liệu (Thủ kho làm mới dữ liệu, cả khi bạn gõ `/refresh` lẫn các lượt tự động theo lịch của daemon), Thư viện (nhóm tìm tin, lập kế hoạch, tổng hợp, rà soát và phân tích chủ đề làm nghiên cứu), Phòng họp (bàn tranh luận sau `/suggest`), Sảnh (lịch hôm nay và bản tin trong ngày), Quầy cảnh báo (người trực theo dõi cảnh báo giá và mức cắt lỗ), Phòng trợ lý và Bàn của bạn. Tầng **Agent của bạn** là tầng đội riêng: mỗi agent của bạn một bàn, kèm thẻ cho biết nó đang chạy, tạm dừng hay rảnh, lịch của nó, đề xuất gần nhất và hôm nay nó đã tiêu bao nhiêu. Chưa có agent nào thì tầng này gợi ý ba cách bắt đầu và một mẫu trống, còn bàn trống kế tiếp mang nút "+ Thêm agent".
 
 Cách đọc khung cảnh:
 
