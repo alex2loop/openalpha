@@ -143,7 +143,8 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
   }
 }
 
-// What waits for a restart, with the way to do it; with nothing pending, how saving works.
+// What waits for a restart, with the way to do it; with nothing pending, how saving works and a
+// plain restart.
 function SettingsFooter() {
   const rows = pendingRestart.value
 
@@ -153,6 +154,9 @@ function SettingsFooter() {
         <div class="dialog-foot-left">
           <span class="dialog-note">{tr('ui.office.settings.footNote')}</span>
         </div>
+        <Button onClick={() => openRestartDialog({ onBack: reopen })}>
+          {tr('ui.office.restart.title')}
+        </Button>
         <Button onClick={closeModal}>{tr('ui.office.common.close')}</Button>
       </>
     )

@@ -146,7 +146,7 @@
   --flashMs: 0.6s;
   --popoverGutter: 8px;
   --focusRing: var(--ink);
-  /* What the AI costs: one calm colour for every cost figure and bar, never a market move's. */
+  /* The AI cost chart's bars: one calm colour, never a market move's. */
   --spend: var(--tc-violet);
   --zPopover: 26;
   --zModal: 30;

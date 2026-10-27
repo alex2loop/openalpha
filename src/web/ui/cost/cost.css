@@ -5,7 +5,6 @@
 }
 
 .cost-figure {
-  color: var(--spend);
   font-variant-numeric: tabular-nums;
 }
 
@@ -48,7 +47,6 @@
 
 .cost-row-figure {
   flex: none;
-  color: var(--spend);
   font-variant-numeric: tabular-nums;
 }
 
