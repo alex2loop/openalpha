@@ -43,7 +43,7 @@ import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
 import { isOnFloor, nextAmbientAt } from '@/web/scene/sim/actors/poses'
 import { isChildActorId } from '@/web/scene/sim/actors/roster'
 import { isLampNight, isRoomLit, noteLitRooms } from '@/web/scene/sim/lamps'
-import { lampGlowOf } from '@/web/scene/sim/life/presence'
+import { napGlowOf } from '@/web/scene/sim/life/presence'
 import { createSimLoop } from '@/web/scene/sim/loop'
 import { homePhase, isClosedPhase, moment } from '@/web/scene/sim/rhythm'
 import { createSims, disposeSims, type Sims } from '@/web/scene/sims'
@@ -282,9 +282,9 @@ function buildSimView(parts: Sims, alpha: number): SimView {
     alpha,
     ...office,
     actors: [...actors, ...parts.team.actors()],
-    props: { lit, lampGlow: lampGlowOf(), isClosed: isClosedPhase(homePhase.value) },
     light: parts.sky.view(performance.now(), reducedMotion.value),
     windowLight: parts.sky.windowLight(parts.street.view().weather),
+    props: { lit, lampGlow: parts.sky.glow(napGlowOf()), isClosed: isClosedPhase(homePhase.value) },
     weather: parts.street.view().weather,
     life,
     team: parts.team.view(performance.now()),

@@ -1,20 +1,16 @@
 import type { SunView, WindowLight } from '@/web/scene/sky-types'
 import { BLIND_CUT, GLASS_SIDES, windowLightOf } from '@/web/scene/clock/window-light'
+import { easeToward } from '@/web/scene/sim/ease'
 
-// The mockup's easing: a share of the way to the target each frame, 1 - e^(-dt / tau), the frame
-// gap capped, a value this near its target landing on it.
 const BLIND_TAU_MS = 900
 const PATCH_TAU_MS = 600
-const MAX_DT_MS = 100
-const SETTLED = 0.003
 
 /** The window light the renderers draw, eased on the sky's clock: what `windowLightOf` asks for, with the blinds easing
  *  to their closure and the patches to their strength, at once under reduced motion. `view`
  *  fills one object in place. */
 interface WindowEase {
   view(at: {
-    readonly nowMs: number
-    readonly isReduced: boolean
+    readonly dtMs: number
     readonly sun: SunView
     readonly cloud: number
     readonly rain: number
@@ -29,29 +25,20 @@ export function createWindowEase(): WindowEase {
     patch: { w: 0, e: 0, n: 0, s: 0 },
     depth: { w: 0, e: 0, n: 0, s: 0 },
   }
-  let lastMs: number | undefined
   let isMoving = false
 
   return {
-    view({ nowMs, isReduced, sun, cloud, rain }) {
+    view({ dtMs, sun, cloud, rain }) {
       const target = windowLightOf(sun, { cloud, rain })
-      const dtMs =
-        isReduced || lastMs === undefined
-          ? Number.POSITIVE_INFINITY
-          : Math.min(MAX_DT_MS, nowMs - lastMs)
       let isSettling = false
       const ease = (from: number, to: number, tauMs: number): number => {
-        const next =
-          dtMs === Number.POSITIVE_INFINITY || Math.abs(to - from) < SETTLED
-            ? to
-            : from + (to - from) * (1 - Math.exp(-dtMs / tauMs))
+        const next = easeToward(from, to, { dtMs, tauMs })
 
         isSettling ||= next !== to
 
         return next
       }
 
-      lastMs = nowMs
       shown.blind.w = ease(shown.blind.w, target.blind.w, BLIND_TAU_MS)
       shown.blind.e = ease(shown.blind.e, target.blind.e, BLIND_TAU_MS)
 
