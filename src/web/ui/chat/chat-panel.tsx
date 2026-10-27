@@ -22,7 +22,7 @@ export function ChatPanel() {
   const viewed = viewedSession.value
 
   return (
-    <aside class="chat-panel" aria-label={tr('ui.office.chat.title')}>
+    <aside class="chat-panel chrome-glass" aria-label={tr('ui.office.chat.title')}>
       <ChatHead />
       {viewed === undefined ? <MessageList /> : <SessionView session={viewed} />}
     </aside>
@@ -34,7 +34,7 @@ function ChatHead() {
     breakpoint.value === 'wide' ? tr('ui.office.chat.hide') : tr('ui.office.pane.chatBack')
 
   return (
-    <div class="chat-head glass">
+    <div class="chat-head">
       <h2>{tr('ui.office.chat.title')}</h2>
       <Button kind="ghost" size="small" onClick={openSessionsDialog}>
         <HistoryIcon />

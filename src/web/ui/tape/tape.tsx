@@ -68,6 +68,7 @@ function TapeCell({ row, note, isCopy }: TapeCellProps) {
   const { flash, clearFlash } = useFlash(row.price)
   const classes = [
     'tape-cell',
+    `is-${toneOfPercent(row.changePct)}`,
     note === 'breach' ? 'is-breach' : '',
     flash ? `is-flash-${flash}` : '',
   ]
@@ -78,14 +79,12 @@ function TapeCell({ row, note, isCopy }: TapeCellProps) {
         <TickerLink ticker={row.ticker} market={row.market} isHidden={isCopy} />
       </b>
       <span class="tape-price">{formatPrice(row.price, row.display)}</span>
-      <span class={`is-${toneOfPercent(row.changePct)}-text`}>
-        {joinInline([formatSignedPercent(row.changePct), ...noteOf(note)])}
-      </span>
+      <span>{joinInline([formatSignedPercent(row.changePct), ...noteOf(note)])}</span>
     </span>
   )
 }
 
-// The mark a breach or a fresh call adds after the move, in the move's own colour.
+// The mark a breach or a fresh call adds after the move, in the pill's own colour.
 function noteOf(note: Note): readonly string[] {
   if (note === undefined) {
     return []

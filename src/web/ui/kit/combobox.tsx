@@ -169,7 +169,7 @@ function OptionList({ id, label, list, onPick }: OptionListProps) {
     <div
       ref={box}
       id={id}
-      class="combobox-list"
+      class="combobox-list chrome-glass is-menu"
       role="listbox"
       aria-label={label}
       onPointerDown={(event) => event.preventDefault()}

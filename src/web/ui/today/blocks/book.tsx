@@ -61,7 +61,7 @@ function BookFigures({ book }: { readonly book: TradingPortfolioResponse }) {
         })}
       </p>
       {breaches > 0 && (
-        <p class="meta is-down-text">
+        <p class="meta is-problem-text">
           {tr(
             pluralKey(
               breaches,

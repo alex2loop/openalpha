@@ -23,7 +23,7 @@ export function PaneBar() {
   const current = pane.value
 
   return (
-    <div class="pane-bar">
+    <div class="pane-bar chrome-glass">
       <fieldset class="seg">
         <legend class="sr">{tr('ui.office.pane.group')}</legend>
         {PANES.map(({ id, key }) => (

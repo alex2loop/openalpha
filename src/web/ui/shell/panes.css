@@ -2,7 +2,6 @@
   position: relative;
   display: flex;
   min-height: 0;
-  background: var(--stage);
 }
 
 .stage {
@@ -10,6 +9,7 @@
   flex: 1;
   flex-direction: column;
   min-width: 0;
+  background: var(--stage);
 }
 
 .panes.is-focus .stage {

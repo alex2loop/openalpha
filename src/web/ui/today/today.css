@@ -254,14 +254,9 @@ a.news-item:hover b {
   font-weight: 600;
 }
 
-.regime-tag.is-risk-on {
-  background: var(--upTint);
-  color: var(--up);
-}
-
 .regime-tag.is-risk-off {
-  background: var(--downTint);
-  color: var(--down);
+  background: var(--cautionBg);
+  color: var(--caution);
 }
 
 .steps {

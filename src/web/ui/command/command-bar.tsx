@@ -50,7 +50,7 @@ export function CommandBar() {
     isChatOpen.value && viewed !== undefined && viewed.channel !== APP_CHANNEL ? viewed : undefined
 
   return (
-    <footer class="command-bar glass">
+    <footer class="command-bar chrome-glass">
       {readOnly === undefined ? <Composer /> : <ReadOnlyLine session={readOnly} />}
       {!isChatOnly.value && <ChatToggle />}
     </footer>

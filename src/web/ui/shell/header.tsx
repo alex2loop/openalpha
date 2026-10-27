@@ -34,7 +34,7 @@ export function Header() {
   useLayoutEffect(() => closePopover, [])
 
   return (
-    <header class="header glass">
+    <header class="header chrome-glass">
       <div class="header-brand">
         <span class="logo header-logo" aria-hidden="true" />
         {brand.value}
