@@ -6,7 +6,7 @@ import type { ActorId, ActorView, FloorId, Point, Rect, RoomId } from '@/web/sce
 import type { PropDef } from '@/web/scene/world/props'
 import type { Run } from '@/web/state/live'
 import { hostOf, seriesKeyOf } from '@/web/scene/data/desk-reads'
-import { runContentOf, terminalLinesOf, tickerOf } from '@/web/scene/overlay/screen-lines'
+import { runContentOf, terminalLinesOf, tickerOf } from '@/web/scene/data/screen-lines'
 import { ROSTER } from '@/web/scene/sim/actors/roster'
 import { CRAWLERS, scoutOf } from '@/web/scene/sim/vocabulary'
 import { computerAt, flatScreenOf } from '@/web/scene/world/desk-spots'

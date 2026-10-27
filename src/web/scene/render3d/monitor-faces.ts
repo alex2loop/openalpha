@@ -9,16 +9,17 @@ import {
 } from 'three'
 
 import type { MessageKey } from '@/i18n'
-import type { DeskScreenView } from '@/web/scene/overlay-types'
+import type { DeskScreenView, ScreenLine } from '@/web/scene/overlay-types'
 import type { Screen } from '@/web/scene/render3d/desk-dressing'
 import type { FloorProps } from '@/web/scene/render3d/props'
 import type { FloorId, Point, RoomId } from '@/web/scene/types'
-import type { Run } from '@/web/state/live'
+import { ambientMsOf } from '@/web/scene/budgets'
 import { pageMinute } from '@/web/scene/clock/clock'
+import { charsTypedIn, terminalLinesOf } from '@/web/scene/data/screen-lines'
 import { flatPoseOf } from '@/web/scene/render3d/seated'
 import { toUnits } from '@/web/scene/render3d/space'
 import { zeroCanvas } from '@/web/scene/renderer'
-import { FONT } from '@/web/scene/sprites/face-text'
+import { clip, FONT, MONO } from '@/web/scene/sprites/face-text'
 import { roomAt } from '@/web/scene/world/rooms'
 import { findRun } from '@/web/state/live'
 import { formatHourOfDay } from '@/web/text/time'
@@ -28,7 +29,9 @@ import { tr } from '@/web/text/tr'
 // The mockup's monitor screen: a 160 by 100 logical window drawn at twice that, with a menu bar,
 // a title bar with three dots, typed lines and a status bar.
 const SCREEN = Object.freeze({ w: 160, h: 100, res: 2, bar: 4, menu: 10, title: 12, status: 10 })
-const LINE = Object.freeze({ px: 7.5, lead: 11, rows: 4, pad: 4 })
+// The terminal's rows, as the mockup sets them: 15 px mono lines 17 apart, as many as fit between
+// the title bar and the status bar.
+const LINE = Object.freeze({ px: 15, lead: 17, rows: 3, pad: 4 })
 const TONE = Object.freeze({
   rim: '#262B3D',
   edge: '#3A4260',
@@ -38,14 +41,16 @@ const TONE = Object.freeze({
   menuInk: '#E9ECF8',
   clock: '#C9D3F0',
   titleInk: '#B9C4EE',
-  text: '#DCE3FA',
   status: '#8FA0C8',
-  cursor: '#6FE3D6',
+  cursor: '#D7E0F5',
+})
+// A line's colour by what it is: the command, a step done, the step under way.
+const LINE_TONE: Readonly<Record<ScreenLine['kind'], string>> = Object.freeze({
+  command: '#8DB4FF',
+  done: '#6FE3D6',
+  step: '#F2C46C',
 })
 const DOTS = ['#FF6259', '#F2C46C', '#6FE3D6'] as const
-// The mockup types a few characters per tick; a new step types afresh.
-const TYPE_TICK_MS = 65
-const CHARS_PER_TICK = 2
 const FACE_LIFT_PX = 0.06
 // A lit desk screen's bottom stands within this of its computer's foot.
 const SLOT_MATCH_PX = 6
@@ -75,9 +80,8 @@ interface MonitorFace {
   isFlat: boolean
   readonly canvas: HTMLCanvasElement
   readonly texture: CanvasTexture
-  target: string
-  typed: number
-  tickAt: number
+  /** The line being typed and the ambient beat it began on; a new line types afresh. */
+  typing: { key: string; startMs: number }
   key: string
 }
 
@@ -163,9 +167,7 @@ function createFace(
     isFlat: true,
     canvas,
     texture,
-    target: '',
-    typed: 0,
-    tickAt: 0,
+    typing: { key: '', startMs: 0 },
     key: '',
   }
 
@@ -206,8 +208,8 @@ function placeFace(face: MonitorFace, isFlat: boolean): boolean {
   return true
 }
 
-// The worker's run on the screen: a new step starts typing again; the face is drawn again only when
-// what it shows moved.
+// The worker's run on the screen, as a terminal: a new line starts typing again, a beat at a
+// time; the face is drawn again only when what it shows moved.
 function paintFace(
   face: MonitorFace,
   at: {
@@ -218,40 +220,41 @@ function paintFace(
   }
 ): boolean {
   const run = at.runId === undefined ? undefined : findRun(at.runId)
-  const target = run?.progress?.text ?? ''
+  const lines = run === undefined ? [] : terminalLinesOf(run, at.host)
+  const last = lines.at(-1)
+  const key = `${run?.runId}|${last?.id}`
+  const beatMs = ambientMsOf(at.now)
 
-  if (target !== face.target) {
-    face.target = target
-    face.typed = 0
-    face.tickAt = at.now
+  if (key !== face.typing.key) {
+    face.typing = { key, startMs: beatMs }
   }
 
-  const ticks = Math.floor((at.now - face.tickAt) / TYPE_TICK_MS)
-
-  if (at.isReduced) {
-    face.typed = target.length
-  } else if (ticks > 0 && face.typed < target.length) {
-    face.typed = Math.min(target.length, face.typed + ticks * CHARS_PER_TICK)
-    face.tickAt += ticks * TYPE_TICK_MS
-  }
-
+  const typed =
+    last === undefined || at.isReduced
+      ? (last?.text.length ?? 0)
+      : charsTypedIn(last.text, beatMs - face.typing.startMs)
   const clock = formatHourOfDay(pageMinute.value.minute / MINUTES_PER_HOUR)
-  const key = [
+  const shown = [
     run?.runId,
     run?.title,
-    run?.persistent.length,
-    target,
-    face.typed,
     clock,
     at.host,
+    typed,
+    ...lines.map((line) => line.text),
   ].join('|')
 
-  if (key === face.key) {
+  if (shown === face.key) {
     return false
   }
 
-  face.key = key
-  drawScreen(face, { run, clock, title: at.host ?? run?.title ?? run?.name ?? '' })
+  face.key = shown
+  drawScreen(face, {
+    lines,
+    typed,
+    clock,
+    name: run?.name,
+    title: at.host ?? run?.title ?? run?.name ?? '',
+  })
   face.texture.needsUpdate = true
 
   return true
@@ -259,7 +262,13 @@ function paintFace(
 
 function drawScreen(
   face: MonitorFace,
-  at: { readonly run: Run | undefined; readonly clock: string; readonly title: string }
+  at: {
+    readonly lines: readonly ScreenLine[]
+    readonly typed: number
+    readonly clock: string
+    readonly name: string | undefined
+    readonly title: string
+  }
 ): void {
   const c = face.canvas.getContext('2d')
 
@@ -283,7 +292,7 @@ function drawScreen(
   c.fillStyle = TONE.title
   c.fillRect(bar, bar + menu, inner, title)
   drawChrome(c, { face, title: at.title, clock: at.clock })
-  drawLines(c, face, at.run)
+  drawLines(c, at)
 }
 
 function drawChrome(
@@ -316,30 +325,45 @@ function drawChrome(
   c.fillText(at.title, bar + 27, titleY, w - bar * 2 - 30)
 }
 
-// The run's last finished lines, then its step as typed so far with a cursor after it.
-function drawLines(c: CanvasRenderingContext2D, face: MonitorFace, run: Run | undefined): void {
+// The terminal's last rows, the line under way typed so far with a cursor after it, and the run's
+// name in the status bar.
+function drawLines(
+  c: CanvasRenderingContext2D,
+  at: {
+    readonly lines: readonly ScreenLine[]
+    readonly typed: number
+    readonly name: string | undefined
+  }
+): void {
   const { w, h, bar, menu, title, status } = SCREEN
-  const done = (run?.persistent ?? []).slice(-(LINE.rows - 1)).map((line) => line.text)
-  const typing = face.target.slice(0, face.typed)
-  const rows = [...done, typing]
+  const rows = at.lines.slice(-LINE.rows)
   const top = bar + menu + title + 3 + LINE.lead / 2
-  const maxW = w - (bar + LINE.pad) * 2
+  const left = bar + LINE.pad
+  const maxW = w - left * 2
+  let endX = left
 
-  c.font = `500 ${LINE.px}px ${FONT}`
+  c.font = `500 ${LINE.px}px ${MONO}`
   c.textAlign = 'left'
 
-  for (const [i, text] of rows.entries()) {
-    c.fillStyle = i === rows.length - 1 ? TONE.text : TONE.status
-    c.fillText(text, bar + LINE.pad, top + i * LINE.lead, maxW)
+  for (const [i, line] of rows.entries()) {
+    const text = i === rows.length - 1 ? line.text.slice(0, at.typed) : line.text
+    const fitted = clip(c, text, maxW)
+
+    c.fillStyle = LINE_TONE[line.kind]
+    c.fillText(fitted, left, top + i * LINE.lead)
+    endX = left + c.measureText(fitted).width
   }
 
-  const cursorX = Math.min(bar + LINE.pad + c.measureText(typing).width + 1, w - bar - LINE.pad)
-
   c.fillStyle = TONE.cursor
-  c.fillRect(cursorX, top + (rows.length - 1) * LINE.lead - 3.5, 3, 7)
+  c.fillRect(
+    Math.min(endX + 1, w - left - LINE.pad),
+    top + (rows.length - 1) * LINE.lead - LINE.lead / 2 + 3,
+    c.measureText('M').width,
+    LINE.lead - 6
+  )
   c.font = `500 6.5px ${FONT}`
   c.fillStyle = TONE.status
-  c.fillText(run?.name ?? '', bar + 4, h - bar - status / 2 + 0.3, w * 0.55)
+  c.fillText(at.name ?? '', bar + 4, h - bar - status / 2 + 0.3, w * 0.55)
 }
 
 // The page a scout reads on this monitor, the host in its title bar as the overlay showed it.
