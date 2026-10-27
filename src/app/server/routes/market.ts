@@ -29,7 +29,14 @@ import {
   readJsonBody,
 } from '@/app/server/routes/params'
 import { cachedScreen } from '@/app/server/routes/screen-cache'
-import { alertId, marketRef, region, SURFACE_LIMITS, TYPED_PRICES } from '@/trading/api'
+import {
+  alertId,
+  disabledSegments,
+  marketRef,
+  region,
+  SURFACE_LIMITS,
+  TYPED_PRICES,
+} from '@/trading/api'
 
 /** The kinds a screen can be narrowed to; the host refuses a market that holds no such kind. */
 const SCREEN_KINDS: ReadonlySet<string> = new Set<InstrumentKind>(['equity', 'etf', 'crypto'])
@@ -92,8 +99,12 @@ async function handleInstrumentSearch(req: Request, ctx: ApiRouteContext): Promi
   return json(toSearchWire(matches))
 }
 
-async function handleMarkets(_req: Request, ctx: ApiRouteContext): Promise<Response> {
-  return json(toMarketsWire(hostOf(ctx).describeMarkets(Date.now())) satisfies MarketsResponse)
+async function handleMarkets(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const host = hostOf(ctx)
+  const profile = await host.getProfile(req.signal)
+  const view = host.describeMarkets(Date.now())
+
+  return json(toMarketsWire(view, disabledSegments(profile.caps)) satisfies MarketsResponse)
 }
 
 /** The home region's markets lead; the rest keep the daemon's order. */

@@ -250,6 +250,9 @@ export interface MarketWire {
   readonly ownsRegion: boolean
   /** The profile segment it fills. */
   readonly segment: string
+  /** The operator has that segment switched on. A market that is registered but off still trades
+   *  and is listed here; world gold, read for reference only, is always off. */
+  readonly enabled: boolean
   readonly label: string
   readonly segmentLabel: string
   readonly regionLabel: string

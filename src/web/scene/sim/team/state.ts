@@ -110,7 +110,7 @@ export function isWorking(state: TeamState, member: Member): boolean {
 }
 
 /** The person is in today: everyone on a trading day; on a rest day only an agent with a run
- *  under way or one whose focus names a market that trades that day (crypto). */
+ *  under way or one whose focus names a market the operator has on that trades that day (crypto). */
 export function isOnDuty(state: TeamState, member: Member): boolean {
   const { agentId } = member
 
@@ -127,7 +127,7 @@ export function isOnDuty(state: TeamState, member: Member): boolean {
   return (markets ?? []).some((id) => {
     const held = marketList.value.find((market) => market.market === id)
 
-    return held !== undefined && (held.session?.tradesToday ?? true)
+    return held?.enabled === true && (held.session?.tradesToday ?? true)
   })
 }
 
