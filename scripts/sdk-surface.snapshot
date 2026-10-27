@@ -16,6 +16,7 @@ cli:Command
 cli:CommandDef
 cli:ConfigProbe
 cli:DoctorInput
+cli:EXIT_TERMINATED
 cli:EditorExit
 cli:EnvFileLoad
 cli:GlobalFlags

@@ -2,10 +2,12 @@ import type { ServerWebSocket, WebSocketHandler } from 'bun'
 
 import { z } from 'zod'
 
+import type { ExecTerminal } from '@/app/server/exec/terminal'
 import type { ChatBody } from '@/app/server/wire/chat'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { ClientFrame } from '@/app/server/wire/socket'
 import type { SlashDispatcher } from '@/commands/api'
+import type { App } from '@/core/container'
 import type { EventBus } from '@/core/events'
 import type { SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
@@ -86,6 +88,7 @@ export interface WsServices {
 }
 
 export interface WsData {
+  readonly kind: 'feed'
   readonly services: WsServices
   /** The browser session that opened the socket; absent for a bearer-token client. */
   readonly browserSessionId?: string
@@ -99,6 +102,22 @@ export interface WsData {
   closed: boolean
   off?: () => void
 }
+
+/** A `/v1/exec` socket: one CLI command the daemon runs for a terminal. */
+export interface ExecSocketData {
+  readonly kind: 'exec'
+  readonly app: App
+  /** Armed at open, cleared by the first frame or the close, so a peer that never sends `exec`
+   *  cannot hold a seat. */
+  firstFrameTimer?: ReturnType<typeof setTimeout>
+  /** Present once `exec` was accepted. */
+  terminal?: ExecTerminal
+  /** Only the first unreadable frame after `accepted` is logged. */
+  frameFailureLogged: boolean
+  closed: boolean
+}
+
+export type SocketData = WsData | ExecSocketData
 
 // Process-local: these are this process's live sockets, capped at MAX_SOCKETS.
 const sockets = new Set<ServerWebSocket<WsData>>()
@@ -117,7 +136,7 @@ export function hasSocketRoom(): boolean {
   return sockets.size < MAX_SOCKETS
 }
 
-export const wsHandlers: WebSocketHandler<WsData> = {
+export const wsHandlers = {
   open(ws): void {
     if (!hasSocketRoom()) {
       ws.close(1013, 'too_many_streams')
@@ -205,7 +224,7 @@ export const wsHandlers: WebSocketHandler<WsData> = {
   close(ws): void {
     closeSocket(ws)
   },
-}
+} satisfies WebSocketHandler<WsData>
 
 async function handleMessage(ws: ServerWebSocket<WsData>, raw: string | Buffer): Promise<void> {
   // Binary frames carry nothing: dictation is transcribed on the device and sent as text.

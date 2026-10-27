@@ -7,14 +7,14 @@ this document — neither imports the other.
 - **TS types** (canonical, machine-checked): [`wire/`](wire/) — `system.ts`, `config.ts`,
   `sign-in.ts`, `chat.ts`, `events.ts`, `live.ts`, `activity.ts`, `notices.ts`, `trading.ts`, `track-record.ts`, `debate.ts`, `digest.ts`, `market.ts`, `money.ts`,
   `orders.ts`, `agents.ts`, `jobs.ts`, `tasks.ts`, `models.ts`, `outbound.ts`, `watchlist.ts`, `portfolio-shares.ts`,
-  `errors.ts`, `socket.ts`, `vocab.ts`. Route handlers MUST NOT redefine
+  `errors.ts`, `socket.ts`, `exec.ts`, `vocab.ts`. Route handlers MUST NOT redefine
   these shapes. The folder is self-contained: a file in it imports only its siblings and
   `core/types`, so a client can compile it alone (`scripts/check-dag.ts` enforces this), and
   `vocab.ts` holds the closed vocabularies written out, checked against the daemon's own.
 - **Client mirror**: a client in another language hand-syncs its own types to `wire/`, verified by
   decoding the fixtures below (no daemon needed).
 - **Fixtures** (canonical byte-level examples): [`fixtures/`](fixtures/) — one per endpoint, one
-  sample per feed kind (`event.samples.json`), and the chat frames. Both sides decode these through their real decoders; a
+  sample per feed kind (`event.samples.json`), the chat frames and the exec frames. Both sides decode these through their real decoders; a
   malformed or drifted shape fails at decode time. This is the drift check.
 
 > **MUST / SHOULD / MAY** per RFC 2119.
@@ -23,9 +23,11 @@ this document — neither imports the other.
 
 ## 1. Transport
 
-- **Two surfaces, one server:** **HTTP** for request/response (snapshots + `POST /v1/respond`); **one
-  WebSocket** at `GET /v1/ws` for everything realtime (the `wire_event` feed, chat, mid-stream
-  steering, and binary dictation audio). No SSE.
+- **Two surfaces, one server:** **HTTP** for request/response (snapshots + `POST /v1/respond`); a
+  **WebSocket** at `GET /v1/ws` for everything realtime (the `wire_event` feed, chat, mid-stream
+  steering, and binary dictation audio). A second WebSocket, `GET /v1/exec`, runs one CLI command
+  in the daemon for the operator's own terminal; it admits only a loopback peer with the bearer
+  token, no `Origin` and no proxy header (section 6). No SSE.
 - **Bind:** `127.0.0.1` only (loopback). The `/v1` HTTP routes also verify the request **peer** is
   loopback (defense in depth); `GET /`, its chunks and the `/v1/ws` handshake are answered before
   that check, so the bind alone guards them (the handshake adds the Origin allow-list below). A
@@ -191,6 +193,7 @@ this document — neither imports the other.
 | GET | `/v1/sessions` | yes | — | `BrowserSessionList` (`sessions`: the signed-in browsers, last used first; `label` is "<browser>, <os>" from the User-Agent, `''` when neither is known; `current` marks the browser that asked) | `sessions.json` |
 | DELETE | `/v1/sessions/:id` | yes | — | `BrowserSessionEndResult` `{ ended }`: the session is removed and its sockets closed; false for an unknown id | — |
 | GET | `/v1/ws` | yes (header or cookie) | WebSocket upgrade | 101 → §4 (feed) + §5 (chat) | `event.samples.json`, `chat.frames.json`, `chat.done.json`, `chat.error.json` |
+| GET | `/v1/exec` | yes (header only, loopback only) | WebSocket upgrade | 101 → §6 (CLI forwarding) | `exec.frames.json` |
 
 The trading shapes are in `wire/trading.ts`. The realtime feed and chat are **not** HTTP routes —
 they are messages on the single `/v1/ws` socket (§4, §5). The `event.samples.json` / `chat.*.json`
@@ -426,7 +429,7 @@ The daemon replies with `ServerFrame`s tagged `type: 'chat'`:
 - `{ type: 'chat', kind: 'progress', text, id? }` — a long slash command's current step in the operator's
   words; each replaces the last, and the turn ends with `done`.
 - `{ type: 'chat', kind: 'done', reason, id?, runId?, sessionId?, haltCode?, haltDetail? }` — turn finished (`reason: 'slash'` when dispatcher-handled). `runId` is the run the answer came from: the command's run, or the agent turn's engine run (the `runId` of its `run_started` / `run_finished` events). `sessionId` is the session it belongs to, so a client that sent none learns the one the turn opened. A halted run adds `haltCode` (`budget`, ...) and, when the halt has one, `haltDetail`: a budget ceiling (`run_budget`, `daily_cap`, `monthly_cap`, `agent_daily_cap`, `ledger_unavailable`) or a provider error code on an `llm_error` halt, so an app can say which ceiling or failure stopped it.
-- `{ type: 'chat', kind: 'error', code, message, id? }` — turn failed. `code` is an `ApiErrorCode` (section 6);
+- `{ type: 'chat', kind: 'error', code, message, id? }` — turn failed. `code` is an `ApiErrorCode` (section 7);
   `message` is a sentence in the daemon's language, never the error's own text.
 
 **Command lane.** The self-contained commands (`/suggest`, `/screen`, `/rebalance`, `/brief`, `/refresh`,
@@ -449,7 +452,77 @@ running turn. Shutdown starts by closing admission: no new connection, no new HT
 'unavailable' }`; requests already running finish. A run already going still settles in the drain
 window, and the sockets close after it.
 
-## 6. Errors
+## 6. `/v1/exec` — CLI forwarding
+
+One connection runs one CLI command inside the daemon, for a terminal on the same machine: the
+daemon runs the command against the connection as its terminal, and the terminal only relays bytes,
+size, raw mode, signals, edits and the exit code. Closing the connection cancels the command.
+Frames are JSON text (`ExecClientFrame` / `ExecServerFrame`, `wire/exec.ts`); every string is
+UTF-8 text.
+
+**Admission**, checked in this order before the upgrade; the first that fails answers over HTTP:
+
+1. The daemon is shutting down → `503 unavailable`.
+2. Any proxy header (`X-Forwarded-For`, `Forwarded`, `X-Forwarded-Host`, `X-Forwarded-Proto`,
+   `X-Real-IP`, `Via`, `CF-Connecting-IP`, `True-Client-IP`) → `403 forbidden`, with or without
+   `public_url`.
+3. An `Origin` header (a browser always sends one) → `403 forbidden`.
+4. A peer that is not loopback → `403 forbidden`.
+5. `Host` other than exactly `127.0.0.1:<[api] port>` → `403 forbidden`. A reverse proxy or
+   `tailscale serve` on the same machine presents a loopback peer, so this and the proxy check are
+   what keep a remote caller out.
+6. `Authorization: Bearer <token>` only; the session cookie is never read. A missing token is
+   `401 unauthorized`; a wrong one is `401` and counts toward the shared lockout (§1), a locked
+   peer is `403 forbidden`.
+7. The exec sockets have their own cap (separate from `/v1/ws`); over it → `503 too_many_streams`.
+
+A refusal after the upgrade closes with **4400** (`EXEC_REFUSED_CLOSE_CODE`) and one of these
+reasons; nothing has run, so the terminal MAY run the command itself:
+
+- `too_many_streams`: two handshakes raced to the last seat.
+- `invalid_frame`: the first frame is not a valid `exec`, or no frame came within 10 s of the
+  upgrade (an authenticated peer that never speaks cannot hold a seat).
+- `contract <N> required`: `exec.contractVersion` is not the daemon's (`N`, prefix
+  `CONTRACT_REFUSED_REASON_PREFIX` in `wire/socket.ts`).
+- `unavailable`: the daemon started shutting down after the upgrade.
+
+Terminal → daemon:
+
+- `{ type: 'exec', argv, terminal, env, quiet, verbose, noColor, contractVersion }` — the first
+  frame. `argv` is the command line after the global flags. `terminal` says whether stdin, stdout
+  and stderr are TTYs and gives `columns` and `rows` (read only for a TTY stream; send `0` for a
+  stream with no size). `env` carries the terminal's `NO_COLOR`, `FORCE_COLOR`, `TERM`, `CI`,
+  `LANG`, `LC_ALL`, `LC_CTYPE`, `VISUAL` and `EDITOR`, for rendering and editing only; the daemon
+  drops any other name. The command runs with the daemon's own config, key file and environment.
+- `{ type: 'input', data }` — stdin text; `{ type: 'input_end' }` when piped stdin reaches its end.
+- `{ type: 'resize', columns, rows }` — the terminal's new size.
+- `{ type: 'signal', signal: 'interrupt' | 'terminate' }` — Ctrl+C, or the terminal is going away.
+  The command handles it as it does in-process; when nothing in it listens, the daemon ends it
+  with `exit` 130 (interrupt) or 143 (terminate).
+- `{ type: 'edited', kind: 'exited', code, text? }` — the editor exited with `code`; `text` is the
+  file as it left it. The daemon keeps the text only when `code` is 0 and it changed.
+  `{ type: 'edited', kind: 'failed', message }` — the editor could not start; `message` is shown as
+  the editor's failure.
+
+Daemon → terminal:
+
+- `{ type: 'accepted' }` — the command started. **From here on the client never falls back:** any
+  close that is not after `exit` means the daemon went away while the command ran, and it is not
+  run again.
+- `{ type: 'output', stream: 'out' | 'err', data }` — output, in order, at most 65,536 characters
+  a frame.
+- `{ type: 'raw', on }` — switch stdin's raw mode; sent only on a change.
+- `{ type: 'edit', editor, fileName, text }` — open `editor` on a file named `fileName` holding
+  `text`, then answer `edited`. One edit is open at a time.
+- `{ type: 'exit', code }` — the command's exit code; the daemon then closes with 1000.
+
+Daemon shutdown closes every exec socket with 1001 `shutdown` and aborts its command. A frame
+after `accepted` that does not parse, or is larger than the frame cap, is ignored (the daemon logs
+the first). Binary frames carry nothing. The WS layer's pings keep an idle command (a REPL at its
+prompt) open. The daemon logs each command's path (`schedule add`), exit code and duration, never
+its arguments, input, edits or output.
+
+## 7. Errors
 
 Every non-2xx response body is **`ApiError`** = `{ "error": { "code": ApiErrorCode, "message"? } }` — a
 stable code, never a leaked internal message. `message` is set only when the runtime refused with a
@@ -460,7 +533,7 @@ language; show it as is. Codes and statuses are `wire/errors.ts` (`API_ERROR_STA
 typed price, the market's latest price and the day it stands for. Fixtures: `error.unauthorized.json`,
 `error.price-unconfirmed.json`, `error.fields.json`.
 
-## 7. Independent-development workflow
+## 8. Independent-development workflow
 
 1. **Daemon team** implements against `wire/` (import the types; never redefine) and
    verifies handlers with `curl` + by emitting the fixtures.

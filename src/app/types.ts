@@ -76,6 +76,9 @@ declare module '@/core/container' {
     /** The key file the entry loaded before boot: where `/v1/credentials` writes, and which names
      *  it set in the environment. */
     keyFile: KeyFile
+    /** The commands the entry grafted beside the built-in ones (the server's own and the host's), so
+     *  a command forwarded to the daemon resolves against the same tree as in-process. */
+    extraCliCommands: readonly (Command | Group)[]
   }
 }
 

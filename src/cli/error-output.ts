@@ -29,6 +29,8 @@ const EXIT_TIMEOUT = 12
 const EXIT_CHANNEL = 13
 const EXIT_TOOL = 14
 const EXIT_CONFLICT = 15
+/** 128 + SIGTERM: a command asked to terminate while nothing in it listened. */
+export const EXIT_TERMINATED = 143
 const TERMINAL_CAUSE_LIMIT = 4
 const TERMINAL_TEXT_LIMIT = 32_000
 

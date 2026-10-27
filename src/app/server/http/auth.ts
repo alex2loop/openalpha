@@ -17,6 +17,18 @@ const MAX_LOCKOUT_MS = 3_600_000
 const MAX_PEERS = 1024
 const SECRET_BYTES = 32
 
+export const LOOPBACK_HOST = '127.0.0.1'
+// Headers a reverse proxy adds; without `public_url` the daemon refuses to be fronted by one.
+export const PROXY_HEADERS: readonly string[] = [
+  'x-forwarded-for',
+  'forwarded',
+  'x-forwarded-host',
+  'x-forwarded-proto',
+  'x-real-ip',
+  'via',
+  'cf-connecting-ip',
+  'true-client-ip',
+]
 const LOOPBACK_ADDRESSES: readonly string[] = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
 const LOOPBACK_HOSTNAMES: readonly string[] = ['127.0.0.1', 'localhost', '[::1]']
 const PAGE_PROTOCOL = 'http:'

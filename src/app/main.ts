@@ -263,7 +263,10 @@ async function runBoot(options: RunBootOptions): Promise<number> {
       shutdownSignal: shutdown?.signal ?? NEVER_ABORTING_SIGNAL,
       ...pathFlags(flags),
       err: writers.err,
-      features: [...(mainOptions?.features ?? []), keyFileProvider(options.keyFile)],
+      features: [
+        ...(mainOptions?.features ?? []),
+        entryProvider({ keyFile: options.keyFile, extraCommands }),
+      ],
       ...(mainOptions?.bootGate === undefined ? {} : { bootGate: mainOptions.bootGate }),
       onLoggerResource: (resource) => fatalBoundary.bind(resource),
     })
@@ -289,11 +292,18 @@ async function runBoot(options: RunBootOptions): Promise<number> {
   }
 }
 
-/** The key file this process loaded, for the API surface that writes keys on the server. */
-function keyFileProvider(keyFile: CliApp['keyFile']): ServiceProvider {
+/** What the entry holds before boot: the key file this process loaded, for the API surface that
+ *  writes keys on the server, and the grafted commands, for a command forwarded to the daemon. */
+function entryProvider(entry: {
+  readonly keyFile: CliApp['keyFile']
+  readonly extraCommands: readonly (Command | Group)[]
+}): ServiceProvider {
   return {
-    name: 'key-file',
-    register: (bind) => bind('keyFile', () => keyFile),
+    name: 'entry',
+    register: (bind) => {
+      bind('keyFile', () => entry.keyFile)
+      bind('extraCliCommands', () => entry.extraCommands)
+    },
   }
 }
 

@@ -50,7 +50,7 @@ export {
   reportKeyFile,
   writeEnvFileValue,
 } from '@/cli/env-file'
-export { formatTerminalError, printError, usage } from '@/cli/error-output'
+export { EXIT_TERMINATED, formatTerminalError, printError, usage } from '@/cli/error-output'
 export { preflightCommand, resolveCliCommands, resolveCommandPath, runCli } from '@/cli/main'
 export { type KeyEnvGroup, keyEnvGroups } from '@/cli/missing-keys'
 export { formatArgIssue } from '@/cli/parsing/arg-issue'
