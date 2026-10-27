@@ -89,11 +89,25 @@
   --glassFocusA: 0.62;
   --glassHaloA: 0.75;
   --glassFilter: blur(8px) saturate(1.9) brightness(1.06);
+  --glassSheenFill: radial-gradient(120% 90% at 20% 0%, var(--glassSheen), transparent 55%);
   --glassRim: rgba(255, 255, 255, 0.95);
   --glassHi: rgba(255, 255, 255, 0.9);
   --glassLo: rgba(27, 27, 41, 0.08);
   --glassSheen: rgba(255, 255, 255, 0.45);
   --glassDrop: rgba(20, 20, 40, 0.2);
+  --glassShadow:
+    inset 0 1px 1px var(--glassHi), inset 0 -8px 16px -10px var(--glassLo),
+    0 10px 26px -8px var(--glassDrop);
+  --glassRimFill: linear-gradient(
+    135deg,
+    var(--glassRim),
+    transparent 35%,
+    transparent 65%,
+    var(--glassRim)
+  );
+  /* A popup that sits over text stays solid and shares the glass rim, radius and shadow. */
+  --popRadius: var(--islandRadius);
+  --scrimFilter: blur(4px);
   --glassSeam: rgb(var(--glassTint) / 0.5);
   --glassFocusRim: color-mix(in srgb, var(--focusRing) 30%, transparent);
   --glassFocusGlow: color-mix(in srgb, var(--focusRing) 35%, transparent);

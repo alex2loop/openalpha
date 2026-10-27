@@ -69,23 +69,25 @@ export function SuggestPopover({ id, options, activeIndex, onPick }: SuggestPopo
   return (
     <div
       id={id}
-      class="suggest-popover"
+      class="suggest-popover glass is-strong"
       role="listbox"
       aria-label={tr('ui.office.command.suggestions')}
     >
-      {options.length > 0 && options[0]?.section === 'suggestions' && (
-        <p class="meta suggest-hint">{tr('ui.office.command.hint')}</p>
-      )}
-      {options.map((option, index) => (
-        <SuggestRow
-          key={option.key}
-          option={option}
-          title={index === 0 || options[index - 1]?.section !== option.section}
-          isActive={index === activeIndex}
-          onPick={onPick}
-        />
-      ))}
-      <p class="meta suggest-keys">{tr('ui.office.command.keys')}</p>
+      <div class="suggest-scroll">
+        {options.length > 0 && options[0]?.section === 'suggestions' && (
+          <p class="meta suggest-hint">{tr('ui.office.command.hint')}</p>
+        )}
+        {options.map((option, index) => (
+          <SuggestRow
+            key={option.key}
+            option={option}
+            title={index === 0 || options[index - 1]?.section !== option.section}
+            isActive={index === activeIndex}
+            onPick={onPick}
+          />
+        ))}
+        <p class="meta suggest-keys">{tr('ui.office.command.keys')}</p>
+      </div>
     </div>
   )
 }

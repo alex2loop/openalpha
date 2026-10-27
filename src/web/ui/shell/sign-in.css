@@ -5,7 +5,6 @@
   height: 100%;
   overflow: auto;
   padding: var(--s3);
-  background: radial-gradient(ellipse at 50% 40%, var(--stageHi) 0%, var(--stage) 75%);
 }
 
 .sign-in-card {
@@ -14,9 +13,7 @@
   width: min(420px, 100%);
   margin: auto;
   padding: 26px;
-  border-radius: 16px;
-  background: var(--surface);
-  box-shadow: var(--pop);
+  border-radius: var(--popRadius);
 }
 
 .sign-in-logo {

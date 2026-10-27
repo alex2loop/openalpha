@@ -15,7 +15,7 @@ export function SceneTwin() {
   }
 
   return (
-    <section class="scene-twin" aria-labelledby={TITLE_ID}>
+    <section class="scene-twin glass is-strong" aria-labelledby={TITLE_ID}>
       <h2 id={TITLE_ID}>{tr('ui.office.a11y.twinTitle')}</h2>
       <ul>
         {rows.map((row) => (

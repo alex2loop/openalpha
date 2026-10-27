@@ -79,11 +79,11 @@ function ReaderView({ source }: { readonly source: ReaderSource }) {
   }, [])
 
   return (
-    <div class="reader" onPointerDown={dismissOnScrim}>
+    <div class="reader scrim" onPointerDown={dismissOnScrim}>
       <div
         ref={paper}
         id={PAPER_ID}
-        class="reader-paper"
+        class="reader-paper solid-pop"
         role="dialog"
         aria-modal="true"
         aria-labelledby={TITLE_ID}

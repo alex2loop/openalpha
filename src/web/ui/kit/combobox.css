@@ -17,9 +17,6 @@
   max-height: 220px;
   overflow: auto;
   padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--controlRadius);
-  box-shadow: var(--pop);
 }
 
 .combobox-option {

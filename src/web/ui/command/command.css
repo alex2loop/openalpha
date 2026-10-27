@@ -32,6 +32,49 @@
   font-size: var(--sizeBody);
 }
 
+/* Where the browser lets a select style its own list, the agent picker opens as glass: a rim as a
+   gradient border, as a pseudo-element cannot be added to the list. */
+@supports (appearance: base-select) {
+  .who-chip select,
+  .who-chip select::picker(select) {
+    appearance: base-select;
+  }
+
+  .who-chip select::picker-icon,
+  .who-chip option::checkmark {
+    display: none;
+  }
+
+  .who-chip select::picker(select) {
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: var(--popRadius);
+    background:
+      var(--glassSheenFill) padding-box,
+      linear-gradient(
+        rgb(var(--glassTint) / var(--glassStrongA)),
+        rgb(var(--glassTint) / var(--glassStrongA))
+      )
+      padding-box,
+      var(--glassRimFill) border-box;
+    background-origin: border-box;
+    backdrop-filter: var(--glassFilter);
+    box-shadow: var(--glassShadow);
+    color: var(--ink);
+  }
+
+  .who-chip option {
+    padding: 5px 8px;
+    border-radius: var(--controlSmRadius);
+    font-size: var(--sizeBody);
+  }
+
+  .who-chip option:hover,
+  .who-chip option:focus-visible {
+    background: var(--sunken);
+  }
+}
+
 .command-box {
   position: relative;
   display: flex;
@@ -89,13 +132,14 @@
   bottom: calc(100% + 6px);
   left: 0;
   z-index: var(--zPopover);
+  border-radius: var(--popRadius);
+}
+
+/* The rim belongs to the popover, so only this part scrolls. */
+.suggest-scroll {
   max-height: 50vh;
   overflow: auto;
   padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: var(--pop);
 }
 
 .suggest-hint {

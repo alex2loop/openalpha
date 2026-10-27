@@ -120,10 +120,10 @@ function ModalView({ entry }: { readonly entry: OpenModal }) {
   useEffect(focusFirst, [])
 
   return (
-    <div class="modal" onPointerDown={(event) => dismissOnScrim(entry, event)}>
+    <div class="modal scrim" onPointerDown={(event) => dismissOnScrim(entry, event)}>
       <div
         id={DIALOG_ID}
-        class={wide === true ? 'modal-dialog is-wide' : 'modal-dialog'}
+        class={wide === true ? 'modal-dialog solid-pop is-wide' : 'modal-dialog solid-pop'}
         role="dialog"
         aria-modal="true"
         aria-labelledby={TITLE_ID}

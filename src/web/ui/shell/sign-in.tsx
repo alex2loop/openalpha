@@ -12,7 +12,7 @@ export function SignIn() {
 
   return (
     <div class="sign-in">
-      <div class="sign-in-card">
+      <div class="sign-in-card glass is-strong">
         <SignInIntro>
           {failureText !== undefined && (
             <p class="sign-in-failure" role="alert">

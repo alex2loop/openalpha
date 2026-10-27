@@ -9,10 +9,7 @@
   width: 400px;
   max-height: calc(100vh - var(--headerH) - var(--s4));
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 12px;
   color: var(--ink);
-  box-shadow: var(--pop);
 }
 
 .popover-head {

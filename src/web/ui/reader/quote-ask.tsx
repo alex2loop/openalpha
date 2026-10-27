@@ -44,7 +44,7 @@ export function QuoteAsk({ scroller, onAsk }: QuoteAskProps) {
   return (
     // The press must not collapse the selection it quotes.
     <div
-      class="quote-ask"
+      class="quote-ask solid-pop"
       style={`left:${picked.left}px;top:${picked.top}px`}
       onPointerDown={(event) => event.preventDefault()}
     >
