@@ -75,6 +75,18 @@ export function formatQuantity(value: number | undefined): string {
   return buildFormatter('quantity', { maximumFractionDigits: QUANTITY_DIGITS_MAX }).format(value)
 }
 
+/** A quantity in a list: the decimals a price of its size keeps, no trailing zeros. A coin's
+ *  `68,14119198` reads `68,14`; `formatQuantity` stays the exact figure. */
+export function formatShortQuantity(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) {
+    return ABSENT_CELL
+  }
+
+  const digits = unscaledDigits(value)
+
+  return buildFormatter(`quantity:${digits}`, { maximumFractionDigits: digits }).format(value)
+}
+
 /** A stored figure as a form field starts with it: the page's decimal mark, no grouping, up to a
  *  satoshi; empty when absent. One a thousands reading could misread ("2,125") takes a trailing
  *  zero, so the field reads back as the same number. */

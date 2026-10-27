@@ -43,20 +43,37 @@ export function BlockFrame<T>(props: BlockFrameProps<T>) {
 
   return (
     <section class="block">
-      <h2 class="block-head">
-        <span class="tile" style={`--c: var(--tc-${colour})`}>
-          {icon}
-        </span>
-        {title}
-        <span class="block-grow" />
+      <BlockHead title={title} colour={colour} icon={icon}>
         {reading.state !== 'absent' && action}
-      </h2>
+      </BlockHead>
       {reading.state === 'absent' ? (
         <p class="meta">{tr('ui.office.today.absent', { what: title })}</p>
       ) : (
         <BlockBody {...props}>{children}</BlockBody>
       )}
     </section>
+  )
+}
+
+interface BlockHeadProps {
+  readonly title: string
+  readonly colour: TileColour
+  readonly icon: ComponentChildren
+  /** A link or button at the right. */
+  readonly children?: ComponentChildren
+}
+
+/** A card's title on its colour tile, as every block in the panel heads itself. */
+export function BlockHead({ title, colour, icon, children }: BlockHeadProps) {
+  return (
+    <h2 class="block-head">
+      <span class="tile" style={`--c: var(--tc-${colour})`}>
+        {icon}
+      </span>
+      {title}
+      <span class="block-grow" />
+      {children}
+    </h2>
   )
 }
 

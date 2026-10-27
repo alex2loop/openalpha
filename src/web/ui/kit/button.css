@@ -27,7 +27,7 @@
   height: var(--controlSmH);
   padding: 0 var(--controlSmPadX);
   border-radius: var(--controlSmRadius);
-  font-size: 12px;
+  font-size: var(--controlSmFont);
 }
 
 .btn:not(:disabled):hover {

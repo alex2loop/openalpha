@@ -15,8 +15,10 @@ import { useLedger } from '@/web/ui/book/use-ledger'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
 import { Button } from '@/web/ui/kit/button'
+import { HistoryIcon } from '@/web/ui/kit/icons'
 import { Pager } from '@/web/ui/kit/pager'
 import { Skeleton } from '@/web/ui/kit/skeleton'
+import { BlockHead } from '@/web/ui/today/block-frame'
 
 const LEDGER_PAGE = 6
 // The row just saved stays marked this long, which covers the read that brings it in.
@@ -54,7 +56,7 @@ export function History() {
 
   return (
     <section class="block">
-      <h2 class="block-head">{tr('ui.office.book.history')}</h2>
+      <BlockHead title={tr('ui.office.book.history')} colour="gray" icon={<HistoryIcon />} />
       <div class="step-actions">
         <Button size="small" onClick={() => openTradeDialog()}>
           {tr('ui.office.common.recordTrade')}
@@ -85,6 +87,7 @@ function FilterMenu({
 }) {
   return (
     <select
+      class="is-small"
       aria-label={tr('ui.office.book.filterKind')}
       title={tr('ui.office.book.filterKind')}
       value={filter.value}

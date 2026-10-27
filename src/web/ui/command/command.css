@@ -16,7 +16,7 @@
   height: var(--controlH);
   padding: 0 6px 0 4px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--controlRadius);
   background: var(--surface);
   cursor: pointer;
 }

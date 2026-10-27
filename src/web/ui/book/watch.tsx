@@ -129,7 +129,7 @@ function AddName({ failure }: { readonly failure: Signal<string | undefined> }) 
           name.value = event.currentTarget.value
         }}
       />
-      <Button type="submit" size="small" disabled={isBusy.value}>
+      <Button type="submit" disabled={isBusy.value}>
         {tr('ui.office.book.addName')}
       </Button>
     </form>

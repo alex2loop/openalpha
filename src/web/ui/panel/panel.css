@@ -35,8 +35,8 @@
 .panel-tab {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
+  gap: 4px;
+  padding: 5px var(--s1);
   border: 0;
   border-radius: var(--controlSmRadius);
   background: none;
@@ -62,8 +62,8 @@
   color: var(--ink);
 }
 
-/* Under the width the four labelled tabs and the count take (they fit the default panel), each tab
-   keeps its icon and the label stays its title. */
+/* Under the width the four labelled tabs and the count take (they fit the default panel in both
+   languages), each tab keeps its icon and the label stays its title. */
 @container (width < 376px) {
   .panel-tab-label {
     display: none;
@@ -87,7 +87,7 @@
 
 .panel-collapse {
   margin-left: auto;
-  padding: 6px;
+  padding: 4px;
   border: 0;
   background: none;
   color: var(--ink3);

@@ -4,8 +4,8 @@
   --s2: 12px;
   --s3: 16px;
   --s4: 24px;
-  /* The mockup's control sizes: a field or button on a row is 30 px, a small one inside a row
-     26 px, the header's chips and buttons 32 px. */
+  /* The control sizes: a field, menu, button or segmented row is 30 px, a small one inside a
+     row 26 px, the header's chips and buttons 32 px. Controls side by side share one size. */
   --controlH: 30px;
   --controlSmH: 26px;
   --headerControlH: 32px;
@@ -15,6 +15,7 @@
   --controlSmPadX: 9px;
   --fieldPadX: 8px;
   --controlFont: 12.5px;
+  --controlSmFont: 12px;
   --fieldFont: 13px;
   --canvas: #f2f2f6;
   --surface: #ffffff;

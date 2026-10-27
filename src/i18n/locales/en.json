@@ -592,6 +592,7 @@
     "office.book.total": "Total assets",
     "office.book.holding": "Holding",
     "office.book.bySegment": "By segment",
+    "office.book.segmentShare": "Now {weight} · target {target}",
     "office.book.pricedAt": "Priced at {time}",
     "office.book.sinceStart": "Since the start of the year",
     "office.book.pnl": "Profit / loss",
