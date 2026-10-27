@@ -272,16 +272,13 @@ function drawFrame(stage: Stage, sim: SimView, now: number): DrawnFrame {
   const isNewFloor = syncFloor(stage, sim)
   const scene = syncScene(stage, { sim, now, dtMs, isReduced })
   const street = syncStreetPlanes(stage.street, { frame: sim.street, now })
+  // Read every frame: last in the chain below, a moving camera skipped it.
+  const isRecoloured = syncStageColor(stage)
 
   stage.lastAt = now
 
   const isChanged =
-    isResized ||
-    camera.isMoved ||
-    isNewFloor ||
-    scene.isChanged ||
-    street.isChanged ||
-    syncStageColor(stage)
+    isResized || camera.isMoved || isNewFloor || scene.isChanged || street.isChanged || isRecoloured
 
   if (isChanged) {
     stage.renderer.render(stage.scene, stage.camera)
@@ -403,7 +400,7 @@ function syncCrewPieces(stage: Stage, sim: SimView): boolean {
   return isLifted || isSigned
 }
 
-// The screen faces and cork boards, and the lamps' lights nearest the camera's centre.
+// The screen faces and cork boards, and the lamps' lights.
 function syncFacesAndLamps(stage: Stage, sim: SimView): boolean {
   const isFaceChanged = syncScreenFaces(stage.faces, {
     floor: sim.floor,
@@ -416,7 +413,6 @@ function syncFacesAndLamps(stage: Stage, sim: SimView): boolean {
     props: stage.floor?.props,
     lit: sim.props.lit,
     lampGlow: sim.props.lampGlow,
-    focus: stage.shot?.center,
   })
 
   return isFaceChanged || isLampChanged

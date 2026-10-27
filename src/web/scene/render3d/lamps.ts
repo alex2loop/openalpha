@@ -3,6 +3,9 @@ import { Color, PointLight, type Scene } from 'three'
 import type { FloorProps } from '@/web/scene/render3d/props'
 import type { Point, RoomId } from '@/web/scene/types'
 import { toUnits } from '@/web/scene/render3d/space'
+import { WORLD } from '@/web/scene/types'
+import { view } from '@/web/scene/view'
+import { roomById } from '@/web/scene/world/rooms'
 
 /** The lamps' warm point lights; a spare one stays in the scene with no intensity, so the count
  *  every material compiled for never changes. `shown` is the lamp each light sits on and `glow`
@@ -27,13 +30,11 @@ interface Lamp {
 
 type LampLight = NonNullable<FloorProps['deskLamps'][number]['light']>
 
-/** What the lamps follow: the floor's lamps, the rooms lit and how bright, and the camera's
- *  centre on the floor. */
+/** What the lamps follow: the floor's lamps, and the rooms lit and how bright. */
 interface LampSpec {
   readonly props: FloorProps | undefined
   readonly lit: ReadonlySet<RoomId>
   readonly lampGlow: number
-  readonly focus: Point | undefined
 }
 
 // More point lights cost every lit fragment; the nearest lit rooms take them.
@@ -46,6 +47,8 @@ const LAMP_LIGHT: LampLight = Object.freeze({
   heightPx: 51.2,
 })
 const DECAY = 1.5
+// The point the pick measures from, reused every frame.
+const focus = { x: 0, y: 0 }
 
 export function createLamps(scene: Scene): Lamps {
   const lights = Array.from(
@@ -66,15 +69,15 @@ export function createLamps(scene: Scene): Lamps {
   }
 }
 
-/** Lights the lamps of the lit rooms nearest the camera's centre, dimmed with the lamps; true
- *  when a light moved or changed. Allocates nothing. */
+/** Lights the lamps of the lit rooms nearest the room zoomed into, else the floor's middle,
+ *  dimmed with the lamps; true when a light moved or changed. Allocates nothing. */
 export function syncLamps(lamps: Lamps, spec: LampSpec): boolean {
   if (lamps.source !== spec.props) {
     lamps.source = spec.props
     lamps.candidates = candidatesOf(spec.props)
   }
 
-  pickNearest(lamps, spec)
+  pickNearest(lamps, spec.lit)
 
   if (lamps.glow === spec.lampGlow && isSamePick(lamps)) {
     return false
@@ -114,20 +117,31 @@ function candidatesOf(props: FloorProps | undefined): readonly Lamp[] {
   return [...floorLamps, ...deskLamps]
 }
 
+// Never the gliding camera's centre: a pick that followed it moved lights between rooms through
+// a zoom or pan, and the floor and walls flickered.
+function placeFocus(): void {
+  const held = view.value.room
+  const rect = held === undefined ? undefined : roomById(held)?.rect
+
+  focus.x = rect === undefined ? WORLD.w / 2 : rect.x + rect.w / 2
+  focus.y = rect === undefined ? WORLD.h / 2 : rect.y + rect.h / 2
+}
+
 // Keeps the nearest lit lamps in `near`, nearest first; a tie keeps the props' order.
-function pickNearest(lamps: Lamps, spec: LampSpec): void {
+function pickNearest(lamps: Lamps, lit: ReadonlySet<RoomId>): void {
   const { near, gaps } = lamps
-  const { focus } = spec
+
+  placeFocus()
 
   near.fill(undefined)
   gaps.fill(Number.POSITIVE_INFINITY)
 
   for (const lamp of lamps.candidates) {
-    if (!spec.lit.has(lamp.room)) {
+    if (!lit.has(lamp.room)) {
       continue
     }
 
-    const gap = focus === undefined ? 0 : Math.hypot(lamp.at.x - focus.x, lamp.at.y - focus.y)
+    const gap = Math.hypot(lamp.at.x - focus.x, lamp.at.y - focus.y)
     let slot = MAX_POINT_LIGHTS
 
     while (slot > 0 && gap < (gaps[slot - 1] ?? Number.POSITIVE_INFINITY)) {
