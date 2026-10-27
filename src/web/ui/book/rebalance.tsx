@@ -1,16 +1,13 @@
 import type { RebalanceResponse, RebalanceTextWire } from '@/app/server/wire/money'
 import { ROUTES } from '@/web/api/routes'
 import { readBlock, useBlock } from '@/web/state/block'
-import { fillInput } from '@/web/state/command'
 import { holdingsBlock } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
 import { SegmentBars } from '@/web/ui/book/segment-bars'
-import { Button } from '@/web/ui/kit/button'
 import { BulbIcon, PieIcon } from '@/web/ui/kit/icons'
 import { ReportNotes } from '@/web/ui/markdown/report-notes'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
-const REBALANCE_COMMAND = '/rebalance'
 // The plan moves with the book and the market read, not by the minute.
 const REBALANCE_REFRESH_MS = 300_000
 
@@ -61,11 +58,6 @@ function Steps({ plan }: { readonly plan: RebalanceResponse }) {
       {plan.status === 'ready' && <Orders text={text} />}
       <ReportNotes lines={text.notes} />
       <p class="meta">{tr('ui.office.book.rebalanceNote')}</p>
-      <div class="step-actions">
-        <Button size="small" onClick={() => fillInput(REBALANCE_COMMAND)}>
-          {tr('ui.office.book.runRebalance')}
-        </Button>
-      </div>
     </>
   )
 }
