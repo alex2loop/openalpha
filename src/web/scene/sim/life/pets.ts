@@ -1,5 +1,6 @@
 import type { FishView, PetKind, PetPose, PetView, Point } from '@/web/scene/types'
 import { isAmbientBout, nextAmbientAt } from '@/web/scene/sim/actors/poses'
+import { createFish, fishDueAt, fishViewOf, stepFish } from '@/web/scene/sim/life/fish'
 import {
   isPersonNear,
   isPersonOnLine,
@@ -39,21 +40,16 @@ interface PetState {
   prev: Point
 }
 
-interface FishState {
-  readonly pool: string
-  readonly depth: number
-  u: number
-  bob: number
-}
-
 /** What a pet's step reads: where the office's people stand, the office being quiet (the corgi
- *  sleeps), the cat woken, and reduced motion (everyone keeps still at home). */
+ *  sleeps), the cat woken, a run working (the fish swim faster), and reduced motion (everyone
+ *  keeps still at home). */
 interface PetWorld {
   readonly nowMs: number
   readonly dtMs: number
   readonly people: readonly Point[]
   readonly isQuiet: boolean
   readonly isCatAwake: boolean
+  readonly isWorking: boolean
   readonly isReduced: boolean
 }
 
@@ -62,9 +58,9 @@ export interface Pets {
   /** True while a pet walks or jumps. */
   step(world: PetWorld): boolean
   /** A fish swims now: small motion, drawn at the capped rate. */
-  isSwimming(world: PetWorld): boolean
+  isSwimming(): boolean
   views(world: PetWorld): readonly PetView[]
-  fish(): readonly FishView[]
+  fish(world: PetWorld): readonly FishView[]
   /** The next leg or bout to begin, a `performance.now()` instant; a pet keeping still asks for
    *  none. */
   nextDueAt(world: PetWorld): number
@@ -89,21 +85,12 @@ const MAX_DRAWS = 1_000_000
 const PERSON_CLEAR_PX = 8
 const JUMP_ARC_PX = 6
 const PET_POOL = 'pet'
-const FISH_POOL = 'fish'
-const FISH_DEPTHS = [0.25, 0.5, 0.75] as const
-// One sweep across the tank and back is two units of `u`.
-const FISH_SWEEP_PER_MS = 1 / 6_000
-const FISH_BOB_MS = 700
-const FISH_BOB_DEPTH = 0.06
+// A jump tilts the pet this many steps, nose up on the way up, down on the way down.
+const JUMP_PITCH_STEPS = 2
 
 export function createPets(nowMs: number): Pets {
   const pets = (['cat', 'corgi'] as const).map((kind) => createPetState(kind, nowMs))
-  const fish: FishState[] = FISH_DEPTHS.map((depth, i) => ({
-    pool: `${FISH_POOL}:${i}`,
-    depth,
-    u: i * 0.6,
-    bob: 0,
-  }))
+  const fish = createFish()
 
   return {
     step: (world) => {
@@ -113,17 +100,15 @@ export function createPets(nowMs: number): Pets {
 
       return pets.map((pet) => stepPet(pet, world)).some(Boolean)
     },
-    isSwimming: (world) =>
-      !world.isReduced && fish.some((one) => isAmbientBout(one.pool, world.nowMs)),
+    isSwimming: () => fish.some((one) => one.isOn),
     views: (world) => pets.map((pet) => toPetView(pet, world)),
-    fish: () => fish.map(toFishView),
+    fish: (world) => fish.map((one) => fishViewOf(one, world)),
     nextDueAt: (world) => {
       const petDues = pets
-        .filter((pet) => !isStill(pet, world) && pet.end > world.nowMs)
-        .map((pet) => pet.end)
-      const fishDues = world.isReduced
-        ? []
-        : fish.map((one) => nextAmbientAt(one.pool, world.nowMs))
+        .filter((pet) => !isStill(pet, world))
+        .flatMap((pet) => [pet.end, nextAmbientAt(poolOf(pet.kind), world.nowMs)])
+        .filter((due) => due > world.nowMs)
+      const fishDues = world.isReduced ? [] : fish.map((one) => fishDueAt(one, world.nowMs))
 
       return Math.min(...petDues, ...fishDues, Number.POSITIVE_INFINITY)
     },
@@ -388,7 +373,17 @@ function toPetView(pet: PetState, world: PetWorld): PetView {
     const home = NODES[HOMES[pet.kind]]
     const pose = pet.kind === 'corgi' ? 'sleep' : restOrAwake(pet, REST_POSES.cat, world)
 
-    return { kind: pet.kind, prev: home, at: home, lift: 0, pose, isFlipped: false }
+    return {
+      kind: pet.kind,
+      prev: home,
+      at: home,
+      lift: 0,
+      pose,
+      isFlipped: false,
+      isLive: false,
+      air: 0,
+      pitch: 0,
+    }
   }
 
   const leg = legAt(pet, world.nowMs)
@@ -397,6 +392,7 @@ function toPetView(pet: PetState, world: PetWorld): PetView {
   const arc = leg.kind === 'jump' ? 4 * u * (1 - u) * JUMP_ARC_PX : 0
   const at = { x: lerp(leg.from.x, leg.to.x, u), y: lerp(leg.from.y, leg.to.y, u) }
   const pose = leg.kind === 'idle' ? restOrAwake(pet, leg.pose, world) : leg.pose
+  const jump = leg.kind === 'jump' ? jumpOf(u) : { air: 0, pitch: 0 }
 
   return {
     kind: pet.kind,
@@ -405,6 +401,16 @@ function toPetView(pet: PetState, world: PetWorld): PetView {
     lift: lerp(leg.from.lift, leg.to.lift, u) + arc,
     pose,
     isFlipped: leg.isFlipped,
+    isLive: isAmbientBout(poolOf(pet.kind), world.nowMs),
+    ...jump,
+  }
+}
+
+// Nose up on the way up, down on the way down, level at the top.
+function jumpOf(u: number): { readonly air: number; readonly pitch: number } {
+  return {
+    air: u < 0.5 ? 1 : -1,
+    pitch: Math.round(JUMP_PITCH_STEPS * Math.cos(Math.PI * u)),
   }
 }
 
@@ -429,22 +435,6 @@ function legAt(pet: PetState, nowMs: number): Leg {
       isFlipped: pet.isFlipped,
     }
   )
-}
-
-function stepFish(fish: FishState, world: PetWorld): void {
-  if (world.isReduced || !isAmbientBout(fish.pool, world.nowMs)) {
-    return
-  }
-
-  fish.u = (fish.u + world.dtMs * FISH_SWEEP_PER_MS) % 2
-  fish.bob = (fish.bob + world.dtMs) % (FISH_BOB_MS * 2)
-}
-
-function toFishView(fish: FishState): FishView {
-  const isBack = fish.u >= 1
-  const bob = Math.sin((fish.bob / FISH_BOB_MS) * Math.PI) * FISH_BOB_DEPTH
-
-  return { k: isBack ? 2 - fish.u : fish.u, depth: fish.depth + bob, isFlipped: isBack }
 }
 
 function restPose(pet: PetState, draw: number): PetPose {

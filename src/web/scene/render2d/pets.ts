@@ -1,11 +1,14 @@
+import type { AmbientFx } from '@/web/scene/render2d/ambient-fx'
 import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
 import type { FishView, PetView, Rect } from '@/web/scene/types'
 import type { PropDef } from '@/web/scene/world/props'
 import { fill, INK } from '@/web/scene/render2d/building'
+import { fishMotionOf, petMotionOf } from '@/web/scene/sim/life/animal-motion'
 import { ANIMAL_UNIT, animalSprite, blitAnimal } from '@/web/scene/sprites/animal-sprite'
 import { FISH_LOOKS } from '@/web/scene/sprites/fish-shape'
 import { DARKWOOD, SHADOW } from '@/web/scene/sprites/palette'
+import { reducedMotion } from '@/web/state/prefs'
 
 const PET_SHADOW = Object.freeze({ w: 10, h: 2 })
 // The tank's water starts this far under its drawn box's top, below the hood.
@@ -39,21 +42,25 @@ const FISH_EDGE_PX = 1.4
 const FISH_TOP_PX = 10
 const FISH_DEPTH_PX = 5.6
 const FISH_Z_SHARE = 0.3
-// A sixteenth-turn count: half a turn faces the fish the other way.
-const HALF_TURN = 8
 const FISH_KINDS = ['gold', 'pale', 'koi'] as const
 const FISH_SWIM = Object.freeze({ gold: { z: -2 }, pale: { z: 1 }, koi: { z: 3 } })
 const WALK_STEPS = [0, 1, 0, -1] as const
 const STEP_PX = 3
-// Where a sleeper's "z" sits over its feet.
+// Where a sleeper's "z" sits over its feet, and how long it shows and hides while the pet is live.
 const SLEEP_Z = Object.freeze({ cat: { dx: 2, rise: 14 }, corgi: { dx: 8, rise: 15 } })
+const SLEEP_Z_BEAT_MS = 1_800
 
-/** One pet between its last two steps, the mockup's ellipsoid sprite over its shadow; a sleeper
- *  carries its "z". */
+/** One pet between its last two steps, the mockup's ellipsoid sprite over its shadow, breathing,
+ *  flicking and wagging on the ambient clock; a sleeper carries its "z", which blinks while the pet
+ *  is live. */
 export function paintPet(
   g: CanvasRenderingContext2D,
   pet: PetView,
-  at: { readonly alpha: number; readonly level: DetailLevel }
+  at: {
+    readonly alpha: number
+    readonly level: DetailLevel
+    readonly fx: AmbientFx | undefined
+  }
 ): void {
   const x = Math.round(pet.prev.x + (pet.at.x - pet.prev.x) * at.alpha)
   const y = Math.round(pet.prev.y + (pet.at.y - pet.prev.y) * at.alpha)
@@ -63,6 +70,7 @@ export function paintPet(
     pose === 'walk' || pet.pose === 'walk'
       ? (WALK_STEPS[Math.floor((x + y) / STEP_PX) % 4] ?? 0)
       : 0
+  const ms = at.fx?.ms ?? 0
 
   g.fillStyle = SHADOW
   g.fillRect(x - PET_SHADOW.w / 2, y - 1, PET_SHADOW.w, PET_SHADOW.h)
@@ -72,15 +80,34 @@ export function paintPet(
       kind: pet.kind,
       pose,
       level: at.level,
-      motion: { step, yaw: 0, tail: 0 },
+      motion: petMotionOf({
+        kind: pet.kind,
+        pose,
+        level: at.level,
+        ms,
+        isLive: pet.isLive && at.fx !== undefined,
+        step,
+        air: pet.air,
+        pitch: pet.pitch,
+      }),
       isDim: false,
     }),
     { x, y: y - pet.lift, isFlipped: pet.isFlipped }
   )
 
-  if (pose === 'sleep') {
+  if (pose === 'sleep' && isSleepZShown(pet, ms)) {
     paintSleepZ(g, { x: x + SLEEP_Z[pet.kind].dx, y: y - SLEEP_Z[pet.kind].rise - pet.lift })
   }
+}
+
+// A sleeper's "z" stays up while it rests and blinks while it is live; under reduced motion it is
+// not drawn.
+function isSleepZShown(pet: PetView, ms: number): boolean {
+  if (reducedMotion.value) {
+    return false
+  }
+
+  return !pet.isLive || Math.floor(ms / SLEEP_Z_BEAT_MS) % 2 === 1
 }
 
 // The mockup's poses: a cat walks, sits or sleeps; a corgi stands (walking too), lies or sleeps.
@@ -164,7 +191,7 @@ function paintFish(
       kind,
       pose: 'swim',
       level: spec.level,
-      motion: { step: 0, yaw: fish.isFlipped ? HALF_TURN : 0, tail: 0 },
+      motion: fishMotionOf(fish),
       isDim: spec.isDim,
     })
 

@@ -362,7 +362,7 @@ function buildPieces(g: CanvasRenderingContext2D, job: FloorJob): Piece[] {
         }),
     }))
 
-  const life = buildLifePieces(g, { sim: job.sim, scale: job.scene.scale })
+  const life = buildLifePieces(g, { sim: job.sim, scale: job.scene.scale, fx: job.scene.fx })
   const team = job.sim.floor === TEAM_FLOOR ? buildTeamPieces(g, job.sim.team) : []
 
   return [
