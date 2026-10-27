@@ -17,6 +17,8 @@ const ALERTS_POLL_MS = 60_000
 // The answer carries the active count of the whole book; the page's rows name the markets watched,
 // up to the daemon's own cap.
 const ALERTS_PAGE_LIMIT = 100
+// A stop this close to its holding's mark, in percent, is near breach.
+const NEAR_STOP_PCT = 3
 // The command or agent behind a run, and the room its crew works in.
 const RUN_ROOMS: Readonly<Record<string, RoomId>> = Object.freeze({
   refresh: 'store',
@@ -55,6 +57,8 @@ export type BreachedStop = StopRow['instrument']
 interface AlertCounts {
   readonly alerts?: number
   readonly stops?: number
+  /** Held names whose mark stands within `NEAR_STOP_PCT` of their stop, or through it. */
+  readonly nearStops?: number
   /** The markets the alerts and planned stops are on. */
   readonly markets?: ReadonlySet<string>
 }
@@ -164,12 +168,19 @@ async function loadCounts(abortSignal: AbortSignal): Promise<void> {
     counts.value = {
       alerts: alerts.activeCount,
       stops: planned.length,
+      nearStops: planned.filter(isNearStop).length,
       markets: new Set([...active, ...planned].map((row) => row.instrument.market)),
     }
     breached.value = stops.stops.filter(isBreached).map((stop) => stop.instrument)
   } catch {
     // The last good counts stay; before the first read the desk names none.
   }
+}
+
+function isNearStop(stop: StopRow): boolean {
+  return (
+    !stop.review && stop.distanceToStopPct !== undefined && stop.distanceToStopPct <= NEAR_STOP_PCT
+  )
 }
 
 function isBreached(stop: StopRow): boolean {

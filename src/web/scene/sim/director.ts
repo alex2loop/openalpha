@@ -3,7 +3,7 @@ import { effect, type ReadonlySignal, untracked } from '@preact/signals'
 import type { PendingWire } from '@/app/server/wire/live'
 import type { ActorDef } from '@/web/scene/sim/actors/roster'
 import type { WalkerState } from '@/web/scene/sim/actors/walk'
-import type { Beat, BeatTarget } from '@/web/scene/sim/beats'
+import type { Beat } from '@/web/scene/sim/beats'
 import type { Lift } from '@/web/scene/sim/lift'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type {
@@ -17,13 +17,13 @@ import type {
 } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
-import { pageMinute, pageNow } from '@/web/scene/clock/clock'
+import { pageMinute } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
 import { actorViewsOf } from '@/web/scene/sim/actor-views'
 import { ASSISTANT, CREW, isCrewId, ROSTER } from '@/web/scene/sim/actors/roster'
 import { createWalker, isWalking, placeWalker } from '@/web/scene/sim/actors/walk'
-import { endTrip, isAssistantOwed, startTrip } from '@/web/scene/sim/assistant'
-import { subscribeBeats } from '@/web/scene/sim/beats'
+import { isAssistantOwed } from '@/web/scene/sim/assistant'
+import { beatsOf } from '@/web/scene/sim/director-beats'
 import { enterPerson } from '@/web/scene/sim/entrance'
 import { mergeMotion, SIM_STEP_MS, type StepMotion } from '@/web/scene/sim/loop'
 import { createPapers, type Papers } from '@/web/scene/sim/papers'
@@ -37,7 +37,6 @@ import {
   playBeat,
   resumePeople,
   setWanted,
-  stampSheet,
   stepPerson,
   tickPeople,
 } from '@/web/scene/sim/people'
@@ -47,9 +46,7 @@ import { goalsFor, orphansOf } from '@/web/scene/sim/vocabulary'
 import { view as sceneView } from '@/web/scene/view'
 import { isInRange } from '@/web/scene/world/regions'
 import { seedOf } from '@/web/scene/world/rng'
-import { TRAY_AT } from '@/web/scene/world/seats'
 import { APPROVAL_KIND } from '@/web/state/live'
-import { reducedMotion } from '@/web/state/prefs'
 
 /** Where a person is between the office and the street: on the way out, past the street door, or
  *  on the way in. Absent while they are simply in. */
@@ -156,7 +153,7 @@ export function createDirector(deps: DirectorDeps): Director {
 
     untracked(() => setWanted(people, update, performance.now()))
   })
-  const offBeats = subscribeBeats(deps.hub, toBeatTarget(people))
+  const offBeats = beatsOf({ hub: deps.hub, runs: deps.runs }, people)
   const poses: { marks: PoseMarks } = { marks: new Map() }
   const errands = createErrandsOf(people)
   const away = new Map<ActorId, AwayStage>()
@@ -184,25 +181,6 @@ export function createDirector(deps: DirectorDeps): Director {
         papers.clear()
       }
     },
-  }
-}
-
-function toBeatTarget(people: People): BeatTarget {
-  return {
-    actorsOfRun: (runId) => actorsOfRun(people, runId),
-    deskActorOf: (requestId) =>
-      people.desk.waits.get(requestId) ?? people.desk.answered.get(requestId),
-    play: (actor, beat) => playBeat(people, actor, { ...beat, atMs: performance.now() }),
-    sendToTray: (actor) => sendToTray(people, actor),
-    stamp: (actor, action) => stampSheet(people, { actor, action }),
-    startTrip: (runId, at) => {
-      const ownRunId = people.wanted.get(ASSISTANT)?.runId
-      const read = { runId, at, ...(ownRunId === undefined ? {} : { ownRunId }) }
-
-      startTrip(people.walks, read, performance.now())
-    },
-    endTrip: (runId) => endTrip(people.walks, runId),
-    pageNow,
   }
 }
 
@@ -348,17 +326,6 @@ function stepAll(
 /** Office hours by the page clock and the home region's pack. */
 export function isOfficeOpen(): boolean {
   return isInRange(pageMinute.value.minute, regionPack.value.officeHours)
-}
-
-function sendToTray(people: People, actor: ActorId): void {
-  const person = people.byId.get(actor)
-
-  if (person !== undefined && !reducedMotion.value) {
-    people.papers.launch(
-      { floor: person.floor, from: person.walker.pos, to: TRAY_AT },
-      performance.now()
-    )
-  }
 }
 
 // One sheet per waiting approval and unread notice, less the ones still flying in; reading the

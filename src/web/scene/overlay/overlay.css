@@ -222,6 +222,15 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* An idle desk's watched name over its line. */
+.desk-screen .desk-quote {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* The mockup's terminal: a window bar with its three dots, then the run's lines in its colours.
    Text sets them in flow; bars set every piece by pixel of the flat screen. */
 .desk-screen.is-terminal {

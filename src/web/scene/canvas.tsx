@@ -20,6 +20,7 @@ import { AgentCards } from '@/web/scene/overlay/agent-card'
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
 import { EmptyTeam } from '@/web/scene/overlay/empty-team'
 import { sceneHandOff } from '@/web/scene/overlay/hand-off'
+import { withLiveScreens } from '@/web/scene/overlay/live-screens'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
 import { SceneOverlay } from '@/web/scene/overlay/overlay'
 import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/overlay/overlay-pass'
@@ -289,7 +290,7 @@ function buildSimView(parts: Sims, alpha: number): SimView {
     team: parts.team.view(performance.now()),
     street: parts.painter.paint(parts.street.view(), visibleRect(), pageMinute.value),
     lift: parts.lift.view(),
-    ...sceneHandOff.value,
+    ...withLiveScreens(sceneHandOff.value, life.deskItems),
   }
 }
 

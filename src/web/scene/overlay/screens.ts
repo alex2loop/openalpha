@@ -21,10 +21,11 @@ const LAPTOP_W = 14
 const LAPTOP_H = 9
 const LAPTOP_RISE = 52
 
-/** A desk screen lit by its person's run; `rect` is the screen in world px. */
+/** A desk screen lit by its person's run, or by a reading while they sit idle (no `runId`);
+ *  `rect` is the screen in world px. */
 export interface LitScreen {
   readonly actor: ActorId
-  readonly runId: string
+  readonly runId?: string
   readonly floor: FloorId
   readonly room: RoomId
   readonly rect: Rect
@@ -158,7 +159,7 @@ function workRunOf(actor: ActorId, input: Pick<ScreenInput, 'goals' | 'runs'>): 
 // A person's screen is the computer they sit in line with, so one two people share lights only for
 // the one at it; the analyst's is the laptop in front of the seat. Someone with no computer to sit
 // at has none.
-function screenRectOf(def: ActorDef): Rect | undefined {
+export function screenRectOf(def: ActorDef): Rect | undefined {
   if (def.id === ANALYST) {
     return {
       x: def.seat.at.x - LAPTOP_W / 2,

@@ -164,10 +164,11 @@ function place(laptop: Laptop, seat: { readonly x: number; readonly y: number })
   )
 }
 
-// The ticker over its closes, the line in the move's direction colour.
+// The ticker (an idle desk's watched name with its price and move) over its closes, the line in
+// the move's direction colour.
 function paintLine(
   canvas: HTMLCanvasElement,
-  line: { readonly closes: readonly number[]; readonly ticker: string }
+  line: { readonly closes: readonly number[]; readonly ticker: string; readonly label?: string }
 ): void {
   const c = canvas.getContext('2d')
 
@@ -187,7 +188,7 @@ function paintLine(
   c.fillStyle = PANEL.ink
   c.font = `700 ${h * 0.14}px ${FONT}`
   c.textBaseline = 'top'
-  c.fillText(line.ticker, pad, pad)
+  c.fillText(line.label ?? line.ticker, pad, pad, w - 2 * pad)
   c.strokeStyle = stampToneOf(last >= first ? 'buy' : 'reduce')
   c.lineWidth = 4
   c.lineJoin = 'round'

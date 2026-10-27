@@ -20,6 +20,9 @@ const BLINK_GAP_MAX_MS = 6_000
 const BREATH_MS = 1_100
 // A fidget at the seat: a glance aside, a look down, hands behind the head.
 const FIDGET_POSES: readonly [PoseId, ...PoseId[]] = ['glance', 'look-down', 'lean-back']
+// Now and then a fidget is a sip from a cup or a look at the phone instead: this share of them.
+const SIP_OR_PHONE_POSES: readonly [PoseId, ...PoseId[]] = ['sip', 'phone-read']
+const SIP_OR_PHONE_SHARE = 0.15
 const POSE_POOL = 'pose'
 
 /** Where the arms are; `down` hangs them, swinging with the gait. */
@@ -220,9 +223,11 @@ export function inHandOf(actor: ActorView, pose: PoseFrame): InHand {
   }
 }
 
-/** The fidget `seed` picks. */
+/** The fidget `seed` picks: now and then a sip or a look at the phone. */
 export function fidgetPoseOf(seed: number): PoseId {
-  return createRng(seed).pick(FIDGET_POSES)
+  const rng = createRng(seed)
+
+  return rng.next() < SIP_OR_PHONE_SHARE ? rng.pick(SIP_OR_PHONE_POSES) : rng.pick(FIDGET_POSES)
 }
 
 /** Whether the pose moves on its own, so it asks for frames while it shows. */
