@@ -443,7 +443,7 @@ lực. Môi trường của terminal chỉ đi theo để dựng màu, bề rộ
 Nhấn Ctrl+C một lần là ngắt lệnh như khi chạy ở terminal. Nhấn lần hai trước khi lệnh trả lời sẽ đóng kết
 nối, daemon dừng mọi thứ lệnh đã bắt đầu, và CLI thoát `130`.
 
-Nếu daemon dừng khi một lệnh đang chạy (khởi động lại, sập, hoặc im lặng khoảng sáu phút), CLI sẽ nói rõ
+Nếu daemon dừng khi một lệnh đang chạy (khởi động lại, sập, hoặc im lặng khoảng sáu phút), hoặc không nhận lệnh trong vài giây sau khi kết nối mở, CLI sẽ nói rõ
 và thoát `17` (`daemon_lost`). Nó không bao giờ chạy lại lệnh đó ở đây, nên không có gì bị làm hai lần.
 Hãy xem nó đã làm tới đâu rồi mới thử lại: `openalpha history list` với một cuộc chat, rồi
 `openalpha chat --continue` để nối tiếp; với lệnh khác thì xem lệnh liệt kê của chính nó.

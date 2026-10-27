@@ -339,7 +339,7 @@ nhận đúng terminal của bạn trên cùng máy. Mọi điều kiện sau đ
 
 Reverse proxy hoặc `tailscale serve` chạy trên cùng máy đều hiện ra như một đầu loopback, nên chính các
 phép kiểm `Host` và tiêu đề mới là thứ giữ người gọi từ xa ở ngoài. Socket có mức trần riêng là 8, tách
-khỏi các luồng của trang, và socket nào im lặng 10 giây sẽ bị đóng.
+khỏi các luồng của trang, và socket nào không gửi lệnh nào trong 10 giây sẽ bị đóng.
 
 Lệnh được chuyển chỉ làm được đúng những gì lệnh đó làm ở terminal của bạn, không hơn. Phê duyệt vẫn
 được hỏi ngay ở terminal đó, trang không trả lời thay được, và hai terminal không bao giờ thấy phê duyệt
@@ -347,6 +347,7 @@ của nhau. Các lệnh nhận bí mật (`key set`, `onboard`, `auth login`) v�
 lệnh, mã thoát và thời gian của mỗi lệnh, không bao giờ ghi đối số, câu trả lời, văn bản đã sửa hay đầu
 ra.
 
+## Hành vi khi hỏng
 
 | Điều kiện | Kết quả |
 | --- | --- |

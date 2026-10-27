@@ -455,7 +455,7 @@ Ctrl+C once interrupts the command as it does in the terminal. A second Ctrl+C b
 closes the connection, the daemon stops everything the command started, and the CLI exits `130`.
 
 If the daemon stops while a command is running (a restart, a crash, or it stops answering for about
-six minutes), the CLI says so and exits `17` (`daemon_lost`). It never runs the command again here, so
+six minutes), or does not take the command within a few seconds of the connection opening, the CLI says so and exits `17` (`daemon_lost`). It never runs the command again here, so
 nothing happens twice. Check how far it got before you retry: `openalpha history list` for a chat,
 then `openalpha chat --continue` to pick it up; for other commands, their own `list`.
 

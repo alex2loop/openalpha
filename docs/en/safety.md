@@ -335,13 +335,14 @@ connection upgrades:
 
 A reverse proxy or `tailscale serve` on the same machine presents a loopback peer, so the `Host` and
 header checks are what keep a remote caller out. The socket has its own cap of 8, apart from the
-page's streams, and one that stays silent for 10 seconds is closed.
+page's streams, and one that sends no command within 10 seconds is closed.
 
 A forwarded command can do what the same command does in your terminal, no more. Approvals are still
 asked in that terminal, the page cannot answer them, and two terminals never see each other's. Commands
 that take a secret (`key set`, `onboard`, `auth login`) stay local. The daemon logs each command's name,
 exit code and duration, never its arguments, your answers, edited text or output.
 
+## Failure behaviour
 
 | Condition | Result |
 | --- | --- |
