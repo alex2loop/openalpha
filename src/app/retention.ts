@@ -7,7 +7,7 @@ import { reportPass } from '@/core/container'
 import { pruneRemovedAgentLogs } from '@/core/logging/retention'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
-import { pruneExpiredWorkspaceTmp } from '@/engine/api'
+import { pruneExpiredRunCaches, pruneExpiredWorkspaceTmp } from '@/engine/api'
 import {
   BACKUPS_SUBDIR,
   backupAndPrune,
@@ -16,6 +16,7 @@ import {
   optimizeSqlite,
   runRetention,
 } from '@/persistence/api'
+import { HISTORY_FLOOR_DAYS } from '@/trading/api'
 
 const RETENTION_INTERVAL_MS = 6 * MS_PER_HOUR
 const DAILY_BACKUPS_SUBDIR = 'daily'
@@ -67,6 +68,7 @@ async function runRetentionSweep(app: App, logger: Logger): Promise<void> {
       retentionDays: app.config.retention.days,
       historyRetentionDays: app.config.retention.historyDays,
       inboxRetentionDays: app.config.retention.inboxDays,
+      historyFloors: HISTORY_FLOOR_DAYS,
     },
     logger,
   }).catch((err: unknown) => {
@@ -74,6 +76,7 @@ async function runRetentionSweep(app: App, logger: Logger): Promise<void> {
   })
 
   await runWorkspaceTmpRetention(app, logger, cutoffAt)
+  await runRunCacheRetention(app, logger, cutoffAt)
 
   const logResult = await pruneRemovedAgentLogs({
     dataDir: app.config.paths.dataDir,
@@ -167,7 +170,17 @@ export async function runWorkspaceTmpRetention(
   }
 }
 
-function summarizeWorkspaceResult(result: WorkspaceCleanupResult): {
+async function runRunCacheRetention(app: App, logger: Logger, cutoffAt: number): Promise<void> {
+  try {
+    const results = await pruneExpiredRunCaches({ dataDir: app.config.paths.dataDir, cutoffAt })
+
+    logger.info('workspace.run_cache_retention', summarizeWorkspaceResult(...results))
+  } catch (err: unknown) {
+    logger.warn('workspace.run_cache_retention_failed', { err: formatErrForLog(err) })
+  }
+}
+
+function summarizeWorkspaceResult(...results: readonly WorkspaceCleanupResult[]): {
   readonly removedFiles: number
   readonly removedBytes: number
   readonly failures: number
@@ -176,7 +189,7 @@ function summarizeWorkspaceResult(result: WorkspaceCleanupResult): {
   let removedBytes = 0
   let failures = 0
 
-  for (const agent of result.agents.values()) {
+  for (const agent of results.flatMap((result) => [...result.agents.values()])) {
     removedFiles += agent.removedFiles
     removedBytes += agent.removedBytes
     failures += agent.failures

@@ -10,7 +10,13 @@ import {
   deleteNoticesSql,
   deleteRunsSql,
 } from '@/persistence/retention-activity'
-import { countPaged, EMPTY_PAGED_COUNTS, toPagedScopes } from '@/persistence/retention-history'
+import { countEvidence, evidenceFilter, trimEvidence } from '@/persistence/retention-evidence'
+import {
+  countPaged,
+  EMPTY_PAGED_COUNTS,
+  toPagedCutoffs,
+  toPagedScopes,
+} from '@/persistence/retention-history'
 import { buildPageDelete, countRows, deleteCount, drainPages } from '@/persistence/retention-pages'
 import { SESSION_ROUTE_KEY_PREFIX } from '@/persistence/stores/channel/chat-binding'
 import { detachAttemptsSql } from '@/persistence/stores/session/sql'
@@ -35,6 +41,7 @@ const EMPTY_COUNTS = Object.freeze({
   llmAttempts: 0,
   runs: 0,
   notices: 0,
+  suggestionEvidence: 0,
   ...EMPTY_PAGED_COUNTS,
 })
 
@@ -51,6 +58,8 @@ export interface RetentionCounts extends Readonly<Record<PagedScopeName, number>
   readonly llmAttempts: number
   readonly runs: number
   readonly notices: number
+  /** Scored calls whose factor source stamps were emptied, not deleted. */
+  readonly suggestionEvidence: number
 }
 
 interface RetentionOptions {
@@ -90,6 +99,7 @@ export async function countRetention(
     llmAttempts: await countLlmAttempts(tx, dialect, times.now - LLM_ATTEMPTS_RETENTION_MS),
     runs: await countRuns(tx, dialect, times.general),
     notices: await countNotices(tx, dialect, times.general),
+    suggestionEvidence: await countEvidence(tx, evidenceFilter(dialect, times.general)),
   }))
 }
 
@@ -115,6 +125,13 @@ export async function runRetention(
 
     counts[scope.name] = await runScope(scope.name, run, options.logger)
   }
+
+  // After the deletes, so a row about to go is not rewritten first.
+  counts.suggestionEvidence = await runScope(
+    'suggestionEvidence',
+    () => trimEvidence(db, dialect, evidenceFilter(dialect, times.general)),
+    options.logger
+  )
 
   options.logger.info('retention.pruned', counts)
 
@@ -163,9 +180,7 @@ async function runScope(
 function cutoffs(config: RetentionConfig): RetentionCutoffs {
   const now = Date.now()
   return {
-    now,
-    general: now - config.retentionDays * MS_PER_DAY,
-    history: now - config.historyRetentionDays * MS_PER_DAY,
+    ...toPagedCutoffs(config, now),
     inbox: now - config.inboxRetentionDays * MS_PER_DAY,
   }
 }

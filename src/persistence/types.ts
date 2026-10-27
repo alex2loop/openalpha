@@ -351,4 +351,16 @@ export interface RetentionConfig {
   /** Track-record and calibration rows; never shorter than `retentionDays`. */
   readonly historyRetentionDays: number
   readonly inboxRetentionDays: number
+  /** How far back each history scope's readers look; a scope keeps at least that much whatever
+   *  `historyRetentionDays` says. */
+  readonly historyFloors: HistoryFloorDays
+}
+
+export interface HistoryFloorDays {
+  /** The track record and factor attribution: suggestions, factor_log, theme_outcomes. */
+  readonly trackRecord: number
+  /** The macro year-over-year read: series_points, series_provenance. */
+  readonly macroSeries: number
+  /** The macro extract's backfill: macro_documents. */
+  readonly macroDocuments: number
 }

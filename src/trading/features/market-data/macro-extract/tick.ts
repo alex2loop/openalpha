@@ -19,6 +19,10 @@ import { region } from '@/trading/kernel/instrument'
 import { recentMonths, toMonth, toMonthEnd, toPreviousMonth } from '@/trading/kernel/market/month'
 
 const BACKFILL_MONTHS = 24
+const LONGEST_MONTH_DAYS = 31
+/** The farthest a backfill month starts from today: the window ends last month, so it reaches one
+ *  month past its own length. A document swept inside it would be read, and paid for, again. */
+export const MACRO_BACKFILL_DAYS = (BACKFILL_MONTHS + 1) * LONGEST_MONTH_DAYS
 const PRESS_WINDOW_DAYS = 45
 /** A release reports the month before it, sometimes two. */
 const PRESS_PERIOD_MONTHS = 3

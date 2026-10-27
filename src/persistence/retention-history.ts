@@ -1,18 +1,16 @@
 import type { Dialect, Transaction } from '@/core/types/storage'
 import type { RetentionStatement } from '@/persistence/retention-pages'
 import type { DbTable } from '@/persistence/tables'
+import type { HistoryFloorDays, RetentionConfig } from '@/persistence/types'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { buildPageCount, countRows } from '@/persistence/retention-pages'
 import { dbTable } from '@/persistence/tables'
 
 /** The exit plan reads back through a name's newest ten buy and hold rows, and every other read by
  *  name takes its newest row, so the newest ten per name, focus and action outlive any window. */
-const SUGGESTIONS_KEEP_PER_NAME = 10
+export const SUGGESTIONS_KEEP_PER_NAME = 10
 /** The theme report compares each theme's last two runs. */
 const THEME_RUNS_KEEP_PER_THEME = 2
-/** Past the macro extract's 24-month backfill: a month swept inside it would be read, and paid
- *  for, again. */
-const MACRO_DOCUMENTS_MINIMUM_MS = 800 * MS_PER_DAY
 
 export const EMPTY_PAGED_COUNTS = Object.freeze({
   restingExits: 0,
@@ -30,10 +28,35 @@ export const EMPTY_PAGED_COUNTS = Object.freeze({
 
 export type PagedScopeName = keyof typeof EMPTY_PAGED_COUNTS
 
-export interface PagedCutoffs {
+export interface PagedCutoffs extends Readonly<Record<keyof HistoryFloorDays, number>> {
   readonly now: number
   readonly general: number
   readonly history: number
+}
+
+export function toPagedCutoffs(config: RetentionConfig, now: number): PagedCutoffs {
+  const floored = effectiveHistoryDays(config)
+  const before = (days: number): number => now - days * MS_PER_DAY
+
+  return {
+    now,
+    general: before(config.retentionDays),
+    history: before(config.historyRetentionDays),
+    trackRecord: before(floored.trackRecord),
+    macroSeries: before(floored.macroSeries),
+    macroDocuments: before(floored.macroDocuments),
+  }
+}
+
+/** Each floored scope's window: the configured history window, or longer where its readers need it. */
+export function effectiveHistoryDays(config: RetentionConfig): HistoryFloorDays {
+  const { historyRetentionDays: days, historyFloors: floors } = config
+
+  return {
+    trackRecord: Math.max(days, floors.trackRecord),
+    macroSeries: Math.max(days, floors.macroSeries),
+    macroDocuments: Math.max(days, floors.macroDocuments),
+  }
 }
 
 /** One table's expired rows: deleted a page at a time, each page in its own transaction. */
@@ -45,7 +68,6 @@ interface PagedScope {
 
 export function toPagedScopes(dialect: Dialect, times: PagedCutoffs): readonly PagedScope[] {
   const p = dialect.param
-  const macroBefore = Math.min(times.history, times.now - MACRO_DOCUMENTS_MINIMUM_MS)
 
   return [
     scope('restingExits', 'resting_exits', {
@@ -55,9 +77,12 @@ export function toPagedScopes(dialect: Dialect, times: PagedCutoffs): readonly P
     scope('spentJobs', 'jobs', { sql: spentJobWhere(dialect), params: [times.general] }),
     scope('suggestions', 'suggestions', {
       sql: suggestionWhere(dialect),
-      params: [SUGGESTIONS_KEEP_PER_NAME, times.history],
+      params: [SUGGESTIONS_KEEP_PER_NAME, times.trackRecord],
     }),
-    scope('factorLog', 'factor_log', { sql: `resolved_at < ${p(1)}`, params: [times.history] }),
+    scope('factorLog', 'factor_log', {
+      sql: `resolved_at < ${p(1)}`,
+      params: [times.trackRecord],
+    }),
     ...themeScopes(dialect, times),
     scope('navSnapshots', 'nav_snapshots', {
       sql: `recorded_at < ${p(1)}`,
@@ -65,15 +90,15 @@ export function toPagedScopes(dialect: Dialect, times: PagedCutoffs): readonly P
     }),
     scope('seriesPoints', 'series_points', {
       sql: `fetched_at < ${p(1)}`,
-      params: [times.history],
+      params: [times.macroSeries],
     }),
     scope('seriesProvenance', 'series_provenance', {
       sql: `extracted_at < ${p(1)}`,
-      params: [times.history],
+      params: [times.macroSeries],
     }),
     scope('macroDocuments', 'macro_documents', {
       sql: `extracted_at < ${p(1)}`,
-      params: [macroBefore],
+      params: [times.macroDocuments],
     }),
   ]
 }
@@ -85,7 +110,7 @@ function themeScopes(dialect: Dialect, times: PagedCutoffs): readonly PagedScope
   return [
     scope('themeOutcomes', 'theme_outcomes', {
       sql: `resolved_at < ${dialect.param(1)}`,
-      params: [times.history],
+      params: [times.trackRecord],
     }),
     scope('themeReads', 'theme_reads', {
       sql: `run_id IN (SELECT id FROM theme_runs WHERE ${expiredRunWhere(dialect)})`,
@@ -140,11 +165,19 @@ function suggestionWhere(dialect: Dialect): string {
   const before = dialect.param(2)
 
   return (
-    'id IN (SELECT ranked.id FROM (SELECT id, action, created_at, resolved_at, ' +
+    `id IN (${olderSuggestionsSql(dialect.param(1))} AND ranked.created_at < ${before} ` +
+    `AND (ranked.action = 'hold' OR ranked.resolved_at < ${before}))`
+  )
+}
+
+/** The ids past each name's newest `keep` rows per focus and action, ranked over every row; a caller
+ *  narrows them further on `ranked`. */
+export function olderSuggestionsSql(keep: string): string {
+  return (
+    'SELECT ranked.id FROM (SELECT id, action, created_at, resolved_at, ' +
     'ROW_NUMBER() OVER (PARTITION BY market, ticker, focus_key, action ' +
     'ORDER BY created_at DESC, id DESC) AS rn FROM suggestions) ranked ' +
-    `WHERE ranked.rn > ${dialect.param(1)} AND ranked.created_at < ${before} ` +
-    `AND (ranked.action = 'hold' OR ranked.resolved_at < ${before}))`
+    `WHERE ranked.rn > ${keep}`
   )
 }
 

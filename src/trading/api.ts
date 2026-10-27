@@ -44,6 +44,7 @@ export { listSourceHosts } from '@/trading/wiring/composition/source-hosts'
 export { unavailableSources } from '@/trading/wiring/composition/source-registry'
 export { auditVenueKeys } from '@/trading/wiring/composition/venue-keys'
 export { resolveTradingConfig, TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
+export { HISTORY_FLOOR_DAYS } from '@/trading/wiring/config-defaults'
 
 // ── Daemon support ───────────────────────────────────────────────────────────
 
