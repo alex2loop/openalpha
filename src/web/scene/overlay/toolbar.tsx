@@ -16,12 +16,12 @@ const FLOORS: readonly {
   { id: 'team', key: 'ui.office.common.yourAgents' },
 ])
 
-/** The row over the office column, above the tape: the floor switch and where you are. */
+/** The glass island over the scene's top, above the tape: the floor switch and where you are. */
 export function FloorRow() {
   const shown = view.value
 
   return (
-    <div class="scene-floorrow">
+    <div class="scene-floorrow glass is-strong">
       <FloorSwitch floor={shown.floor} />
       <Crumb floor={shown.floor} room={shown.room} />
     </div>
@@ -42,7 +42,7 @@ export function Toolbar() {
     <>
       <ZoomStack />
       {(isZoomed || (!isWide && isPannable())) && (
-        <p class="scene-hint glass">
+        <p class="scene-hint glass is-strong">
           {isWide ? tr('ui.office.floor.hint') : tr('ui.office.floor.hintNear')}
         </p>
       )}
@@ -57,7 +57,7 @@ function isPannable(): boolean {
 
 function FloorSwitch({ floor }: { readonly floor: FloorId }) {
   return (
-    <fieldset class="scene-floors glass">
+    <fieldset class="scene-floors">
       {FLOORS.map(({ id, key }) => (
         <button
           key={id}
@@ -84,7 +84,7 @@ function Crumb({ floor, room }: { readonly floor: FloorId; readonly room: RoomId
 
   return (
     <div class="scene-crumb">
-      <button type="button" class="scene-tool glass" onClick={leaveRoom}>
+      <button type="button" class="scene-tool" onClick={leaveRoom}>
         {PREVIOUS_GLYPH} {tr('ui.office.floor.leave')}
         <kbd>{ESCAPE_KEY_CAP}</kbd>
       </button>

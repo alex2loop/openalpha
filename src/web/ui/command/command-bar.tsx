@@ -26,12 +26,15 @@ import {
 import { WhoChip } from '@/web/ui/command/who-chip'
 import { Button } from '@/web/ui/kit/button'
 import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
-import { ChatIcon, SlashIcon } from '@/web/ui/kit/icons'
+import { ChatIcon, SendIcon, SlashIcon } from '@/web/ui/kit/icons'
 
 import './command.css'
 
 const LIST_ID = 'command-suggestions'
 const COMMAND_PREFIX = '/'
+// A floating bar's islands: glass, the field denser since it carries the text.
+const ISLAND = 'command-island glass'
+const FIELD_ISLAND = `${ISLAND} is-strong`
 
 /** The popover's state: which row the arrows chose, whether Tab listed every command, and whether
  *  Esc closed it until the next keystroke. */
@@ -43,21 +46,30 @@ interface ListState {
 
 /** The box at the bottom: who receives it, what is typed, what it would do, and the chat toggle. A
  *  chat tab keeps only the box: it reads no agent roster, and its chat never closes. While another
- *  channel's session is open in the chat, a line says it is read-only here instead. */
-export function CommandBar() {
+ *  channel's session is open in the chat, a line says it is read-only here instead. Floating over
+ *  the stage, each piece is a glass island, and the side ones shrink to their icon while typing. */
+export function CommandBar({ isFloating = false }: { readonly isFloating?: boolean }) {
   const viewed = viewedSession.value
   const readOnly =
     isChatOpen.value && viewed !== undefined && viewed.channel !== APP_CHANNEL ? viewed : undefined
 
   return (
-    <footer class="command-bar chrome-glass">
-      {readOnly === undefined ? <Composer /> : <ReadOnlyLine session={readOnly} />}
-      {!isChatOnly.value && <ChatToggle />}
+    <footer class={isFloating ? 'command-bar is-floating' : 'command-bar chrome-glass'}>
+      {readOnly === undefined && <Composer isFloating={isFloating} />}
+      {readOnly !== undefined &&
+        (isFloating ? (
+          <div class={`${FIELD_ISLAND} command-readonly`}>
+            <ReadOnlyLine session={readOnly} />
+          </div>
+        ) : (
+          <ReadOnlyLine session={readOnly} />
+        ))}
+      {!isChatOnly.value && <ChatToggle isFloating={isFloating} />}
     </footer>
   )
 }
 
-function Composer() {
+function Composer({ isFloating }: { readonly isFloating: boolean }) {
   const input = useRef<HTMLInputElement>(null)
   const list: ListState = {
     activeIndex: useSignal(undefined),
@@ -70,7 +82,7 @@ function Composer() {
 
   return (
     <>
-      {!isChatOnly.value && <WhoChip />}
+      {!isChatOnly.value && <WhoChip island={isFloating ? ISLAND : undefined} />}
       <div class="command-box">
         {list.isOpen.value && options.length > 0 && (
           <SuggestPopover
@@ -80,29 +92,54 @@ function Composer() {
             onPick={(option) => pick(option, list)}
           />
         )}
-        <div class="command-field">
+        <div class={isFloating ? `command-field ${FIELD_ISLAND}` : 'command-field'}>
           <SlashIcon class="command-mark" />
           <CommandInput inputRef={input} list={list} options={options} />
           <kbd class="command-key">{COMMAND_PREFIX}</kbd>
         </div>
         {isNotSent.value && (
-          <p class="command-not-sent" role="alert">
+          <p
+            class={isFloating ? 'command-not-sent glass is-strong' : 'command-not-sent'}
+            role="alert"
+          >
             {tr('ui.office.command.notSent')}
           </p>
         )}
       </div>
-      {breakpoint.value === 'phone' && <SendButton list={list} />}
+      {breakpoint.value === 'phone' && <SendButton list={list} isFloating={isFloating} />}
     </>
   )
 }
 
-// A phone has no Enter key on every keyboard, so it keeps a button for the same send.
-function SendButton({ list }: { readonly list: ListState }) {
+interface SendButtonProps {
+  readonly list: ListState
+  readonly isFloating: boolean
+}
+
+// A phone has no Enter key on every keyboard, so it keeps a button for the same send; floating, it
+// is an icon island named by its label.
+function SendButton({ list, isFloating }: SendButtonProps) {
   const typed = inputText.value.trim()
+  const label = typed.startsWith(COMMAND_PREFIX) ? tr('ui.office.command.run') : resolveSendLabel()
+
+  if (isFloating) {
+    return (
+      <button
+        type="button"
+        class={`${ISLAND} command-send`}
+        aria-label={label}
+        title={label}
+        disabled={typed === ''}
+        onClick={() => send(list)}
+      >
+        <SendIcon />
+      </button>
+    )
+  }
 
   return (
     <Button kind="commit" disabled={typed === ''} onClick={() => send(list)}>
-      {typed.startsWith(COMMAND_PREFIX) ? tr('ui.office.command.run') : resolveSendLabel()}
+      {label}
     </Button>
   )
 }
@@ -137,17 +174,17 @@ function CommandInput({ inputRef, list, options }: CommandInputProps) {
   )
 }
 
-function ChatToggle() {
+function ChatToggle({ isFloating }: { readonly isFloating: boolean }) {
   return (
     <button
       type="button"
-      class="btn btn-secondary btn-regular command-chat"
+      class={isFloating ? `${ISLAND} command-chat` : 'btn btn-secondary btn-regular command-chat'}
       title={tr('ui.office.chat.toggle')}
       aria-pressed={isChatOpen.value}
       onClick={() => setChatOpen(!isChatOpen.value)}
     >
       <ChatIcon />
-      {tr('ui.office.chat.title')}
+      <span class="command-island-text">{tr('ui.office.chat.title')}</span>
       {unread.value && <span class="chat-unread" aria-hidden="true" />}
     </button>
   )

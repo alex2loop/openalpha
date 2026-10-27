@@ -61,6 +61,14 @@ export function ChatIcon({ class: className }: IconProps) {
   )
 }
 
+export function SendIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <path d="m5 12 7-7 7 7M12 19V5" />
+    </svg>
+  )
+}
+
 export function HistoryIcon({ class: className }: IconProps) {
   return (
     <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>

@@ -1,11 +1,10 @@
 .scene-floorrow {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--s1);
-  padding: var(--s1) var(--s2);
-  border-bottom: 1px solid var(--border);
-  background: var(--canvas);
+  min-height: var(--controlH);
+  padding: 0 var(--s2) 0 3px;
+  border-radius: var(--islandRadius);
 }
 
 .scene-floors {
@@ -60,7 +59,7 @@
 
 .scene-hint {
   position: absolute;
-  bottom: var(--s3);
+  bottom: var(--stageBottomH);
   left: 50%;
   padding: 4px 12px;
   border-radius: 999px;
@@ -83,4 +82,8 @@ fieldset.scene-floors {
 
 :root[data-layout="phone"] .scene-crumb {
   display: none;
+}
+
+:root[data-layout="phone"] .scene-floorrow {
+  padding-right: 3px;
 }

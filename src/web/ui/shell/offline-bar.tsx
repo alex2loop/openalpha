@@ -31,7 +31,7 @@ export function OfflineBar() {
   }
 
   return (
-    <div class="offline-bar" role="status">
+    <div class="offline-bar glass is-strong" role="status">
       <strong>{tr('ui.office.offline.title')}</strong>
       {retryAt === undefined ? <RunningNote /> : <ArmedRetry retryAt={retryAt} />}
     </div>
@@ -67,7 +67,7 @@ function ArmedRetry({ retryAt }: { readonly retryAt: number }) {
 
 function OutdatedLine() {
   return (
-    <div class="offline-bar" role="alert">
+    <div class="offline-bar glass is-strong" role="alert">
       <span>{tr('ui.office.offline.outdated')}</span>
       <Button size="small" onClick={() => location.reload()}>
         {tr('ui.office.offline.reload')}

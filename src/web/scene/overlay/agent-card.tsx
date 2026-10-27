@@ -53,7 +53,7 @@ function AgentCard({ place }: { readonly place: CardPlace }) {
   return (
     <button
       type="button"
-      class="agent-card glass"
+      class="agent-card glass is-strong"
       style={{
         left: `${place.rect.x}px`,
         top: `${place.rect.y}px`,

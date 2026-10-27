@@ -132,7 +132,7 @@ function Board({ at, renderer, onClick, isOdometer, isRinging, isNote, children 
   const style = { left: `${point.x}px`, top: `${point.y}px` }
   const classes = [
     'board-line',
-    isNote === true ? 'board-note' : 'glass',
+    isNote === true ? 'board-note' : 'glass is-strong',
     isOdometer === true ? 'board-odometer' : '',
     isRinging === true ? 'board-rings' : '',
   ]

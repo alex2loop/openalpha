@@ -5,11 +5,36 @@
 }
 
 .stage {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
   min-width: 0;
   background: var(--stage);
+}
+
+/* The floor row over the tape, floating on the scene's skyline; only their islands take the
+   pointer. */
+.stage-top {
+  position: absolute;
+  top: var(--s1);
+  right: var(--s1);
+  left: var(--s1);
+  z-index: var(--zStageBar);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s1);
+  pointer-events: none;
+}
+
+.stage-top > * {
+  max-width: 100%;
+  pointer-events: auto;
+}
+
+.stage-top > .tape {
+  align-self: stretch;
 }
 
 .panes.is-focus .stage {

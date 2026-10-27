@@ -4,12 +4,9 @@
   align-items: center;
   gap: 10px;
   padding: var(--s1) var(--s2);
-  border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--surface);
   color: var(--ink);
   font-size: var(--sizeBody);
-  box-shadow: var(--pop);
 }
 
 .undo-bar > span {

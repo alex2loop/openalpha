@@ -23,7 +23,7 @@ export function ViewNote() {
   const kind = note.value
 
   return kind === undefined ? null : (
-    <p class="view-note glass" role="status">
+    <p class="view-note glass is-strong" role="status">
       {tr(NOTE_KEYS[kind])}
     </p>
   )

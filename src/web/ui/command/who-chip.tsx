@@ -11,10 +11,14 @@ import { Portrait } from '@/web/ui/kit/portrait'
 const ASSISTANT_VALUE = ''
 const WHO_PORTRAIT_PX = 24
 
-/** Who receives what is typed: the assistant or one of the operator's own agents. */
-export function WhoChip() {
+/** Who receives what is typed: the assistant or one of the operator's own agents. `island` is the
+ *  floating bar's glass classes. */
+export function WhoChip({ island }: { readonly island?: string | undefined }) {
   return (
-    <label class="who-chip" title={tr('ui.office.who.tip')}>
+    <label
+      class={island === undefined ? 'who-chip' : `who-chip ${island}`}
+      title={tr('ui.office.who.tip')}
+    >
       <span class="sr">{tr('ui.office.who.tip')}</span>
       <Portrait look={lookOfPicked()} size={WHO_PORTRAIT_PX} />
       <select value={selectedAgentId.value ?? ASSISTANT_VALUE} onChange={onPick}>

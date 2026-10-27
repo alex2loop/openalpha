@@ -57,7 +57,7 @@ export function EmptyTeam() {
 
   if (!agentsRead.value) {
     return agentsFailed.value ? (
-      <section class="empty-team glass">
+      <section class="empty-team glass is-strong">
         <p class="failure-line" role="alert">
           {tr('ui.office.team.readFailed')}
         </p>
@@ -83,7 +83,7 @@ function Templates({ isDismissed }: { readonly isDismissed: Signal<boolean> }) {
   )
 
   return (
-    <section ref={panel} class="empty-team glass">
+    <section ref={panel} class="empty-team glass is-strong">
       <h3>{tr('ui.office.team.emptyTitle')}</h3>
       <div class="empty-team-templates">
         {TEMPLATES.map((template) => (

@@ -75,7 +75,7 @@ export function NameTags({ tags }: { readonly tags: readonly PlacedTag[] }) {
       {tags.map((tag) => (
         <span
           key={tag.actor}
-          class={tag.isSelected ? 'name-tag glass is-selected' : 'name-tag glass'}
+          class={tag.isSelected ? 'name-tag glass is-flat is-selected' : 'name-tag glass is-flat'}
           style={{ left: `${tag.rect.x}px`, top: `${tag.rect.y}px` }}
         >
           {tag.text}
