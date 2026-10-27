@@ -2,14 +2,16 @@ import type { StreetFrame } from '@/web/scene/street-types'
 import type { Rect } from '@/web/scene/types'
 import { STREET_RECT } from '@/web/scene/view'
 
-/** Draws the street behind the floor, under `g`'s world transform: the static canvas, then the
- *  moving one over its rect, each only where it meets the pane. */
+/** Draws the street behind the floor, under `g`'s world transform: the static canvas, its sharp
+ *  copy over its rect at a close zoom, then the moving one over its rect, each only where it meets
+ *  the pane. */
 export function blitStreet(g: CanvasRenderingContext2D, frame: StreetFrame): void {
   const { a, d, e, f } = g.getTransform()
   const seen: Rect = { x: -e / a, y: -f / d, w: g.canvas.width / a, h: g.canvas.height / d }
 
   g.imageSmoothingEnabled = true
   blitPart(g, { canvas: frame.staticCanvas, rect: STREET_RECT, seen })
+  blitPart(g, { canvas: frame.sharpCanvas, rect: frame.sharpRect, seen })
   blitPart(g, { canvas: frame.movingCanvas, rect: frame.movingRect, seen })
 }
 

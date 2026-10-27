@@ -17,6 +17,13 @@ import { FRONTAGE_PART } from '@/web/scene/render2d/street/frontage'
 import { releaseLedFaces } from '@/web/scene/render2d/street/led-board'
 import { MOVERS_PART } from '@/web/scene/render2d/street/movers'
 import { PARK_PART } from '@/web/scene/render2d/street/park'
+import {
+  createSharpLayer,
+  isSharpCurrent,
+  releaseSharp,
+  type SharpLayer,
+  syncSharp,
+} from '@/web/scene/render2d/street/sharp'
 import { SHELTERS_PART } from '@/web/scene/render2d/street/shelters'
 import { SHOPS_PART } from '@/web/scene/render2d/street/shops'
 import { SIGNALS_PART } from '@/web/scene/render2d/street/signals'
@@ -27,7 +34,7 @@ import { type SkyNow, skyNow } from '@/web/scene/sim/sky'
 import { hasStreetEntities } from '@/web/scene/sim/street/street'
 import { type LightRow, lightOf } from '@/web/scene/sprites/daylight'
 import { FRAME_RECT, movingRectOf, projection, STREET_RECT } from '@/web/scene/view'
-import { reducedMotion } from '@/web/state/prefs'
+import { reducedMotion, sceneView } from '@/web/state/prefs'
 import { locale } from '@/web/state/session'
 
 const MAX_MOVING_CANVAS_PX = 2048
@@ -103,6 +110,7 @@ interface PainterState {
   light: LightRow
   readonly staticCanvas: HTMLCanvasElement
   readonly movingCanvas: HTMLCanvasElement
+  readonly sharp: SharpLayer
   staticKey: string
   detail: StreetDetail | undefined
   staticVersion: number
@@ -116,41 +124,56 @@ export function createStreetPainter(): StreetPainter {
   const state = createPainterState()
 
   return {
-    paint(view, visible, minute) {
-      const devicePx = projection.value.scale * devicePixelRatio
-
-      syncStatic(
-        state,
-        toStreetMinute(state, {
-          minute,
-          detail: detailOfPx(devicePx),
-          isRevealed: isRevealedBy(visible),
-        })
-      )
-      syncMoving(state, { view, visible, devicePx })
-
-      return {
-        staticCanvas: state.staticCanvas,
-        movingCanvas: state.movingCanvas,
-        movingRect: state.movingRect,
-        staticVersion: state.staticVersion,
-        movingVersion: state.movingVersion,
-      }
-    },
+    paint: (view, visible, minute) => paintStreet(state, { view, visible, minute }),
     isCurrent: (visible) =>
       state.detail === detailOfPx(projection.value.scale * devicePixelRatio) &&
       state.moving.minute.isRevealed === isRevealedBy(visible) &&
+      isSharpCurrent(state.sharp, sharpJobOf(state, visible)) &&
       (state.movingCanvas.width === 0 || isSameRect(movingRectOf(visible), state.movingRect)),
     paintMs: () => state.paintMs,
     release() {
       zeroCanvas(state.staticCanvas)
       zeroCanvas(state.movingCanvas)
+      releaseSharp(state.sharp)
       releaseStreetSprites()
       releaseLedFaces()
       state.staticKey = ''
       state.movingKey = ''
       state.detail = undefined
     },
+  }
+}
+
+// The static canvas when its minute or look changed, its sharp copy for a close 2D zoom, then the
+// moving canvas over the visible rect.
+function paintStreet(
+  state: PainterState,
+  job: { readonly view: StreetView; readonly visible: Rect; readonly minute: ClockParts }
+): StreetFrame {
+  const { view, visible, minute } = job
+  const devicePx = projection.value.scale * devicePixelRatio
+
+  syncStatic(
+    state,
+    toStreetMinute(state, {
+      minute,
+      detail: detailOfPx(devicePx),
+      isRevealed: isRevealedBy(visible),
+    })
+  )
+  syncSharp(state.sharp, sharpJobOf(state, visible), (g) =>
+    paintParts(g, state.moving.pack, state.moving.minute)
+  )
+  syncMoving(state, { view, visible, devicePx })
+
+  return {
+    staticCanvas: state.staticCanvas,
+    movingCanvas: state.movingCanvas,
+    movingRect: state.movingRect,
+    sharpCanvas: state.sharp.canvas,
+    sharpRect: state.sharp.rect,
+    staticVersion: state.staticVersion,
+    movingVersion: state.movingVersion,
   }
 }
 
@@ -176,6 +199,7 @@ function createPainterState(): PainterState {
     light: lightOf(skyNow.peek().light),
     staticCanvas: document.createElement('canvas'),
     movingCanvas: document.createElement('canvas'),
+    sharp: createSharpLayer(),
     staticKey: '',
     detail: undefined,
     staticVersion: 0,
@@ -249,13 +273,28 @@ function syncStatic(state: PainterState, minute: StreetMinute): void {
   g.setTransform(px, 0, 0, px, -STREET_RECT.x * px, -STREET_RECT.y * px)
   g.clearRect(STREET_RECT.x, STREET_RECT.y, STREET_RECT.w, STREET_RECT.h)
 
-  for (const part of PAINT_PARTS) {
-    part.paintStatic(g, pack, minute)
-  }
-
+  paintParts(g, pack, minute)
   state.staticKey = key
   state.staticVersion++
   state.paintMs = performance.now() - startedAt
+}
+
+function paintParts(g: CanvasRenderingContext2D, pack: RegionPack, minute: StreetMinute): void {
+  for (const part of PAINT_PARTS) {
+    part.paintStatic(g, pack, minute)
+  }
+}
+
+// The sharp copy is for the 2D view only; 3D lays the static canvas on its ground.
+function sharpJobOf(state: PainterState, visible: Rect) {
+  const devicePx = projection.value.scale * devicePixelRatio
+
+  return {
+    visible,
+    devicePx: sceneView.value === '2d' ? devicePx : 0,
+    staticPx: staticPxOf(detailOfPx(devicePx)),
+    staticVersion: state.staticVersion,
+  }
 }
 
 // Cleared and redrawn over the visible rect after each step that moved something; zero-sized
