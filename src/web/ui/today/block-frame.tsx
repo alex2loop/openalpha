@@ -7,6 +7,7 @@ import { joinInline } from '@/web/text/glyphs'
 import { formatClock } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
+import { CautionsContext } from '@/web/ui/kit/cautions'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { openSettings } from '@/web/ui/settings/settings'
 
@@ -83,27 +84,29 @@ function BlockBody<T>(props: BlockFrameProps<T>) {
   const { data } = reading
 
   return (
-    <>
-      {data !== undefined && showReadLine && (
-        <ReadLine readAt={reading.readAt} dataTo={dataTo} readKey={readKey} />
-      )}
-      {reading.cautions.map((text) => (
-        <p key={text} class="strip is-caution">
-          {text}
-        </p>
-      ))}
-      {reading.state === 'failed' && (
-        <FailedStrip title={title} reading={reading} failedText={failedText} />
-      )}
-      {data === undefined
-        ? reading.state === 'loading' && (
-            <>
-              <Skeleton shape="rows" />
-              {loadingText !== undefined && <p class="meta">{loadingText}</p>}
-            </>
-          )
-        : children(data)}
-    </>
+    <CautionsContext.Provider value={reading.cautions}>
+      <div class="flow">
+        {data !== undefined && showReadLine && (
+          <ReadLine readAt={reading.readAt} dataTo={dataTo} readKey={readKey} />
+        )}
+        {reading.cautions.map((text) => (
+          <p key={text} class="strip is-caution">
+            {text}
+          </p>
+        ))}
+        {reading.state === 'failed' && (
+          <FailedStrip title={title} reading={reading} failedText={failedText} />
+        )}
+        {data === undefined
+          ? reading.state === 'loading' && (
+              <>
+                <Skeleton shape="rows" />
+                {loadingText !== undefined && <p class="meta">{loadingText}</p>}
+              </>
+            )
+          : children(data)}
+      </div>
+    </CautionsContext.Provider>
   )
 }
 

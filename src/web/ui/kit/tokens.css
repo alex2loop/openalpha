@@ -1,5 +1,6 @@
 /* The desktop app's tokens (its DESIGN.md), as the office mockup carries them. */
 :root {
+  --s0: 4px;
   --s1: 8px;
   --s2: 12px;
   --s3: 16px;

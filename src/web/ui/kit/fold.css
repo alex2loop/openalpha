@@ -3,6 +3,10 @@
   border-top: 1px solid var(--border);
 }
 
+:is(.flow, .stack) > .fold {
+  margin-top: 0;
+}
+
 .fold > summary {
   padding: 6px 0;
   color: var(--ink2);

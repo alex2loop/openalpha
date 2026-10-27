@@ -85,12 +85,12 @@ function WorthList({ verdict }: { readonly verdict: readonly string[] }) {
 // The brief's verdict: its first line as the headline, the figures under it muted.
 function Verdict({ lines }: { readonly lines: readonly string[] }) {
   return (
-    <>
+    <div class="stack">
       {lines.map((line, index) => (
-        <p key={line} class={index === 0 ? 'worth-head' : 'worth-line'}>
+        <p key={line} class={index === 0 ? 'lead' : 'meta'}>
           {line}
         </p>
       ))}
-    </>
+    </div>
   )
 }

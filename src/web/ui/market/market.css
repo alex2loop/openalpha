@@ -29,8 +29,16 @@
 
 .macro-drivers th,
 .macro-drivers td {
-  padding: 4px 6px 4px 0;
+  padding: var(--s0) var(--s1) var(--s0) 0;
   vertical-align: middle;
+}
+
+.macro-drivers th {
+  white-space: nowrap;
+}
+
+.macro-drivers td:first-child {
+  width: 100%;
 }
 
 .macro-drivers .num {
@@ -59,7 +67,7 @@
 }
 
 .theme-row {
-  padding: 6px 0;
+  padding: var(--s1) 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -82,48 +90,33 @@
 }
 
 .outline-fold > summary {
-  padding: 8px 0;
-  color: var(--title);
-  font: var(--typeCardTitle);
+  padding: var(--s1) 0;
+  font: var(--typeBody);
   cursor: pointer;
-}
-
-.outline-fold.is-note > summary {
-  padding: 6px 0;
 }
 
 .outline-body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--s0);
   padding-bottom: var(--s2);
   font-size: var(--sizeBody);
   font-variant-numeric: tabular-nums;
 }
 
 .outline-label {
-  margin-top: 4px;
-  color: var(--ink);
-  font-weight: var(--weightSemibold);
+  margin-top: var(--s0);
 }
 
 .outline-kids {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--s0);
   padding-left: 10px;
   border-left: 2px solid var(--sunken);
 }
 
 .outline-line {
   color: var(--ink2);
-  line-height: 1.45;
   overflow-wrap: anywhere;
-}
-
-.outline-note {
-  margin: 4px 0;
-  color: var(--ink2);
-  font-size: var(--sizeBody);
-  line-height: 1.45;
 }

@@ -8,8 +8,8 @@
 .block-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: var(--s1);
+  margin-bottom: var(--s2);
   color: var(--title);
   font: var(--typeCardTitle);
 }
@@ -23,17 +23,21 @@
 }
 
 .block-read {
-  margin: -6px 0 10px;
+  margin-top: calc(var(--s0) * -1);
 }
 
 .strip {
   display: flex;
   align-items: center;
   gap: var(--s1);
-  margin: -2px 0 10px;
+  margin-bottom: var(--s2);
   padding: 7px 10px;
   border-radius: 8px;
   font-size: var(--sizeBody);
+}
+
+.flow > .strip {
+  margin: 0;
 }
 
 .strip > span {
@@ -54,13 +58,8 @@
   flex-direction: column;
   align-items: stretch;
   gap: 2px;
-  margin-bottom: var(--s2);
   background: var(--sunken);
   color: var(--ink2);
-}
-
-.session-line {
-  margin-bottom: 10px;
 }
 
 .session-line b {
@@ -153,25 +152,6 @@
   gap: 0 var(--s1);
 }
 
-.worth-head {
-  margin: 0 0 4px;
-  color: var(--title);
-  font-weight: var(--weightSemibold);
-  line-height: 1.4;
-}
-
-.worth-line {
-  margin: 0;
-  color: var(--ink2);
-  font-size: var(--sizeBody);
-  line-height: 1.5;
-  font-variant-numeric: tabular-nums;
-}
-
-.worth-line:last-of-type {
-  margin-bottom: var(--s1);
-}
-
 .todo .tile {
   width: 26px;
   height: 26px;
@@ -212,12 +192,7 @@
   color: var(--ink2);
 }
 
-.market-section > .sub-head {
-  margin-top: 0;
-}
-
 .market-section + .market-section {
-  margin-top: var(--s3);
   padding-top: var(--s2);
   border-top: 1px solid var(--border);
 }
@@ -249,7 +224,7 @@ a.news-item:hover b {
 
 .regime-tag {
   display: inline-block;
-  margin-bottom: 4px;
+  justify-self: start;
   padding: 2px 8px;
   border-radius: 10px;
   background: var(--sunken);

@@ -100,18 +100,17 @@
 }
 
 .steps-line {
-  margin-bottom: 4px;
   white-space: pre-line;
 }
 
 .steps-list {
-  margin: 0 0 var(--s1);
+  margin: 0;
   padding-left: 18px;
   white-space: pre-line;
 }
 
 .steps-list li {
-  padding: 3px 0;
+  padding: var(--s0) 0;
 }
 
 .ledger {
