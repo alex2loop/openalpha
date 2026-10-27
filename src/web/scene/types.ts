@@ -199,10 +199,8 @@ interface PropsView {
 export type PetKind = 'cat' | 'corgi'
 export type PetPose = 'sleep' | 'sit' | 'walk' | 'stand' | 'lie'
 
-/** A pet as the renderers draw it: `prev` and `at` its feet at the last two sim steps, `lift` how
- *  far above the floor (a perch, a jump), `isFlipped` facing left, `isLive` inside its ambient
- *  bout (it breathes, flicks and glances), and in a jump `air` (1 rising, -1 falling) with the
- *  body's `pitch` in steps. */
+/** A pet as drawn: feet at the last two steps, `lift` above the floor, `isFlipped` facing left,
+ *  `isLive` in its ambient bout, `air` (1 rising, -1 falling) and `pitch` in a jump. */
 export interface PetView {
   readonly kind: PetKind
   readonly prev: Point
@@ -215,9 +213,7 @@ export interface PetView {
   readonly pitch: number
 }
 
-/** One fish in the tank: how far along its sweep (0 to 1), its height in the water (0 to 1), its
- *  heading in sixteenths of a circle (0 swimming right, 8 left, the steps between a turn), and its
- *  tail's beat (-2 to 2). */
+/** One fish: sweep and height (0 to 1), heading in sixteenths (0 right, 8 left), tail beat (-2 to 2). */
 export interface FishView {
   readonly k: number
   readonly depth: number
