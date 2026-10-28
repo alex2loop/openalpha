@@ -1,6 +1,6 @@
 # Việc lặp lại - bên trong
 
-Dành cho người đóng góp mã. Trang này nói các vòng lặp của daemon, bộ lập lịch việc và heartbeat chạy
+Dành cho người đóng góp mã. Trang này nói các vòng lặp của dịch vụ nền (daemon), bộ lập lịch việc và heartbeat chạy
 thế nào bên dưới. Phần dành cho operator ở [Việc lặp lại](../van-hanh.md).
 
 ## Cơ chế vòng lặp
@@ -41,7 +41,7 @@ giây thì gộp thành một lượt.
 Khi khởi động, lần làm mới đầu chạy trước các hệ con khác, chờ tối đa 60 giây rồi hoàn tất ở chế độ
 nền kèm cảnh báo. Lỗi ranh giới (`isBoundaryFailure`) từ nó chỉ cảnh báo `daemon.boot_refresh_failed` dù ở
 trong hay sau 60 giây và khởi động vẫn tiếp tục; lỗi khác là chí mạng, ném về nơi gọi trong ngân sách thời
-gian và qua bộ theo dõi tác vụ daemon sau đó. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
+gian và qua bộ theo dõi tác vụ dịch vụ nền sau đó. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
 chạy thì nó nhập vào đó, và nếu máy khởi động không có mạng, chính nhịp này là lượt chờ có mạng rồi đi
 vào chuỗi thử lại.
 
@@ -62,7 +62,7 @@ thì chờ neo kế tiếp.
 
 Lớp cách ly (`withQuarantine`) ghi `trading.loop_quarantined` ở mức error và gửi operator một thông báo
 gọi tên vòng đó. Nó chạy lại vòng sau một giờ, tối đa ba lần. Vòng nào chạy trọn một ngày rồi mới lỗi
-lại thì được cấp lại đủ số lần; nếu không, lỗi kế tiếp để nó dừng đến khi daemon khởi động lại, và
+lại thì được cấp lại đủ số lần; nếu không, lỗi kế tiếp để nó dừng đến khi dịch vụ nền khởi động lại, và
 thông báo nói rõ điều đó. Các vòng và kênh khác không bị ảnh hưởng.
 
 Vòng cảnh báo là một nhịp ba bước: gửi (`alerts.tick`), rồi lượt dựng cảnh báo thoát, rồi lượt dựng cảnh báo
@@ -106,9 +106,9 @@ nguyên nhịp lịch. Chỉ dòng `failed`, hoặc dòng `running` có lease đ
 có lần kế tiếp, nên một lần mất được tính là lỗi.
 
 `run-now` dùng lần nhận việc riêng. Nó ghi một lần chạy mà không đẩy lịch và không chạm bộ đếm lỗi, và
-bị từ chối khi một lần chạy theo lịch của cùng việc đang giữ lease còn hạn, dù từ CLI hay từ daemon. Lần
+bị từ chối khi một lần chạy theo lịch của cùng việc đang giữ lease còn hạn, dù từ CLI hay từ dịch vụ nền. Lần
 nhận này bị coi là cũ sau thời gian chờ phê duyệt cộng trần thời lượng của việc cộng 60 giây. Lúc khởi
-động, các dòng `running` cũ chuyển thành hỏng với lý do daemon khởi động lại, và các lần nhận run-now bị
+động, các dòng `running` cũ chuyển thành hỏng với lý do dịch vụ nền khởi động lại, và các lần nhận run-now bị
 bỏ rơi được giải phóng sau lượt quét đó.
 
 Việc thử lại dùng chung một chính sách với heartbeat (`scheduler/backoff.ts`), tối đa 30 phút:
@@ -189,7 +189,7 @@ hoàn tất đã xóa.
 - Lớp cách ly: [`trading/wiring/quarantine.ts`](../../src/trading/wiring/quarantine.ts)
 - Các neo của refresh: [`trading/features/market-data/ops/refresh-schedule.ts`](../../src/trading/features/market-data/ops/refresh-schedule.ts)
 - Đối chiếu lệnh thoát: [`trading/features/order/exit-tick.ts`](../../src/trading/features/order/exit-tick.ts)
-- Khởi động daemon và lưu giữ: [`app/daemon.ts`](../../src/app/daemon.ts)
+- Khởi động dịch vụ nền và lưu giữ: [`app/daemon.ts`](../../src/app/daemon.ts)
 - Vòng đời bộ lập lịch: [`scheduler/runner.ts`](../../src/scheduler/runner.ts); thực thi: [`scheduler/job/execution.ts`](../../src/scheduler/job/execution.ts); khoảng chờ: [`scheduler/backoff.ts`](../../src/scheduler/backoff.ts)
 - Bộ phân tích cron: [`core/utils/cron.ts`](../../src/core/utils/cron.ts)
 - Bộ phân tích, giao thức và bộ chạy heartbeat: [`scheduler/heartbeat/`](../../src/scheduler/heartbeat)

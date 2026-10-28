@@ -122,7 +122,7 @@ bài vừa duyệt bằng bài kiểm tra xác minh, chỉ agent đang chạy m�
 
 ## Khi mạng đổi skill
 
-Mỗi ngày daemon tải skill của từng mạng đã ghim và so sánh. Chỗ khác biệt được xếp cạnh bản đã duyệt và
+Mỗi ngày dịch vụ nền (daemon) tải skill của từng mạng đã ghim và so sánh. Chỗ khác biệt được xếp cạnh bản đã duyệt và
 bạn nhận một thông báo. Agent đọc được gì không đổi: `social_skill` vẫn phục vụ các tệp đã ghim cho tới
 khi bạn xem.
 

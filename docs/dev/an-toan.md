@@ -161,10 +161,10 @@ mục đó khi ngữ nghĩa khớp; mã dừng có kiểu được ưu tiên.
 | `turn_limit` | 6 | Chạm số lượt tối đa |
 | `length_limit` | 7 | Không nén nổi ngữ cảnh trong các giới hạn |
 | `content_filter` | 8 | Nhà cung cấp hoặc chính sách an toàn chặn nội dung |
-| `queue_full` | 9 | Hàng đợi của phiên chat từ chối việc mới |
+| `queue_full` | 9 | Hàng đợi của cuộc trò chuyện từ chối việc mới |
 | `no_agents` | 10 | Không có hồ sơ agent đủ điều kiện |
 | `hook_failed` | 11 | Một hook bắt buộc đã hỏng |
-| `session_busy` | 12 | Phiên chat đã có một phiên chạy đang diễn ra |
+| `session_busy` | 12 | Cuộc trò chuyện đã có một phiên chạy đang diễn ra |
 | `loop` | 15 | Phát hiện hành vi công cụ/trợ lý lặp lại |
 | `agent_paused` | 16 | Agent sở hữu phiên chạy đang tạm dừng |
 | `shutdown` | 0 | Runtime dừng bình thường |

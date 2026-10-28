@@ -309,7 +309,7 @@ Bằng chứng và giá có thể kết thúc ở hai phiên khác nhau, nên m�
 
 Các số đọc mà dòng không hiện vẫn nằm trong phép tính. Thị trường nào có yếu tố mà danh sách chưa có dòng thì giữ bảng yếu tố.
 
-**Trạng thái thị trường VN giữ nguyên cho tới khi điểm rời hẳn nó.** Vào một trạng thái ở +-0,25 và chỉ rời khi điểm quay lại trong +-0,15, nên một chỉ số tổng hợp lởn vởn trên ngưỡng không làm dịch triển khai mỗi ngày. `macro.regime-held` báo khi dải giữ được chỗ mà điểm trần lẽ ra đã lật. Trí nhớ là lần đọc đã xếp hạng gần nhất đã lưu trong vòng năm phiên; cũ hơn nghĩa là daemon đã tắt, không phải thị trường lặng. Nó chỉ áp với VN, thị trường duy nhất lưu các số đọc của mình.
+**Trạng thái thị trường VN giữ nguyên cho tới khi điểm rời hẳn nó.** Vào một trạng thái ở +-0,25 và chỉ rời khi điểm quay lại trong +-0,15, nên một chỉ số tổng hợp lởn vởn trên ngưỡng không làm dịch triển khai mỗi ngày. `macro.regime-held` báo khi dải giữ được chỗ mà điểm trần lẽ ra đã lật. Trí nhớ là lần đọc đã xếp hạng gần nhất đã lưu trong vòng năm phiên; cũ hơn nghĩa là dịch vụ nền (daemon) đã tắt, không phải thị trường lặng. Nó chỉ áp với VN, thị trường duy nhất lưu các số đọc của mình.
 
 **Quỹ ETF VN được đọc qua chỉ số mà nó mô phỏng.** Hai yếu tố của quỹ đọc chính chỉ số đó. Khi cây nến mới nhất của chỉ số cũ hơn của quỹ, cả hai mang `factor.input-stale`. Những điểm khác so với cổ phiếu:
 
@@ -395,7 +395,7 @@ Một lời gọi phạm vi đọc như một ý kiến thứ hai. Nó mở bằ
 
 Các đề xuất được chốt dựa trên các nến sau đó: `target`, `stop` hoặc `expired`, kèm lợi suất và, nếu có chuẩn so sánh, lợi suất của chuẩn trong cùng cửa sổ. Chuẩn đọc từ bộ đệm cũ, hoặc dừng sớm hơn phiên thoát quá một phiên, thì không được so sánh, thay vì so trên một quãng ngắn hơn.
 
-**Cửa sổ.** Một lời gọi được đọc ở cuối cửa sổ nắm giữ của chính nó. Lời gọi nằm chờ trong lúc daemon tắt quá mốc nhìn lại một năm vẫn được chấm như lẽ ra lúc đó. Nếu không còn nến của cửa sổ ấy, lời gọi đóng với không có kết quả (không phải `expired` phẳng) và nằm ngoài mọi phép đếm có chấm điểm. `/reflect` đếm nó cùng các dòng đóng vì lịch sử giá bị viết lại.
+**Cửa sổ.** Một lời gọi được đọc ở cuối cửa sổ nắm giữ của chính nó. Lời gọi nằm chờ trong lúc dịch vụ nền tắt quá mốc nhìn lại một năm vẫn được chấm như lẽ ra lúc đó. Nếu không còn nến của cửa sổ ấy, lời gọi đóng với không có kết quả (không phải `expired` phẳng) và nằm ngoài mọi phép đếm có chấm điểm. `/reflect` đếm nó cùng các dòng đóng vì lịch sử giá bị viết lại.
 
 Một giá in nằm trong biên độ của chính phiên nó. Nếu nến phiên của một lời gọi không còn bao được giá mà nó được định, thì một đợt cổ tức hay chia tách đã điều chỉnh chuỗi bên dưới, và lời gọi đóng theo cách đó thay vì chấm các mức giá trên một thang mà chuỗi đã rời.
 
@@ -428,7 +428,7 @@ Một lần khớp vàng VN được ghi theo đơn vị của cửa hàng trong
 
 #### Thành tích của chính bảng giá
 
-Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Mỗi phiên đã settle, daemon ghi lại toàn bộ bảng của từng thị trường, mỗi loại mã một bảng, nên quỹ ETF VN được ghi bên cạnh cổ phiếu (chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng) và chấm mỗi dòng theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn nếu thị trường có nêu chuẩn. Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách sau đó không làm dịch cái nào. Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch. Mỗi dòng ghi tên nguồn, nên những phiên phải dùng nguồn dự phòng có thể đo riêng, và ở thị trường có nhiều bảng thì ghi cả loại mã của bảng, nên có thể đo riêng chỉ số tổng hợp của quỹ và của cổ phiếu; các dòng ghi trước thay đổi này không có hai thông tin đó.
+Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Mỗi phiên đã settle, dịch vụ nền ghi lại toàn bộ bảng của từng thị trường, mỗi loại mã một bảng, nên quỹ ETF VN được ghi bên cạnh cổ phiếu (chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng) và chấm mỗi dòng theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn nếu thị trường có nêu chuẩn. Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách sau đó không làm dịch cái nào. Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch. Mỗi dòng ghi tên nguồn, nên những phiên phải dùng nguồn dự phòng có thể đo riêng, và ở thị trường có nhiều bảng thì ghi cả loại mã của bảng, nên có thể đo riêng chỉ số tổng hợp của quỹ và của cổ phiếu; các dòng ghi trước thay đổi này không có hai thông tin đó.
 
 `/reflect` in nó thành khối quy kết thứ hai. Đó là mẫu mà các trọng số yếu tố và dải mức tin cậy được khớp theo khi nó lớn dần. Mỗi yếu tố được chấm theo phiên bản chiến lược, hai bản mới nhất mỗi thị trường, vì đổi phiên bản làm yếu tố đo thứ khác.
 
@@ -555,7 +555,7 @@ Chi phí của lần đọc nằm dưới một đường kẻ ở tận cuối,
 
 **Thời điểm.** Giờ gửi mặc định là 08:15 theo múi giờ **của thị trường** (08:15 ở TP.HCM, không phải 08:15 UTC và không phải ở nơi bạn đang ngồi). Bản tin chỉ được gửi khi phiên còn trước giờ mở (thị trường giao dịch suốt ngày, hoặc ngày thị trường nghỉ, vẫn tính là trước giờ mở), nên không bao giờ dựng hay gửi giữa phiên hoặc sau giờ đóng, và một phép kiểm trước khi chạy xác nhận phiên trước đã tạo ra một cây nến trước khi tốn token nào.
 
-Sau thời gian ngừng hoạt động, các buổi sáng đã lỡ không được phát lại. Một ngày đã lên lịch mà đã qua bị bỏ qua với cảnh báo `trading.brief_stale_day_skipped` và lịch chuyển sang hôm nay. Bản tin hôm nay vẫn được gửi muộn nếu daemon khởi động sau giờ gửi nhưng trước giờ mở. Nếu daemon khởi động sau giờ mở, hoặc một lần gửi lại rơi vào sau giờ mở, bản tin hôm nay bị bỏ qua với cảnh báo `trading.brief_past_open_skipped`, chat nhận một dòng báo điều này, và bản tin sáng hôm sau là bản kế tiếp. Bản tin bắt đầu dựng trước giờ mở nhưng xong sau đó vẫn được gửi, kèm dòng đầu báo giá đã chạy từ lúc viết.
+Sau thời gian ngừng hoạt động, các buổi sáng đã lỡ không được phát lại. Một ngày đã lên lịch mà đã qua bị bỏ qua với cảnh báo `trading.brief_stale_day_skipped` và lịch chuyển sang hôm nay. Bản tin hôm nay vẫn được gửi muộn nếu dịch vụ nền khởi động sau giờ gửi nhưng trước giờ mở. Nếu dịch vụ nền khởi động sau giờ mở, hoặc một lần gửi lại rơi vào sau giờ mở, bản tin hôm nay bị bỏ qua với cảnh báo `trading.brief_past_open_skipped`, chat nhận một dòng báo điều này, và bản tin sáng hôm sau là bản kế tiếp. Bản tin bắt đầu dựng trước giờ mở nhưng xong sau đó vẫn được gửi, kèm dòng đầu báo giá đã chạy từ lúc viết.
 
 Một ngày mà cả ba lần gửi đều hỏng thì bị bỏ, không phải bỏ đăng ký. Lịch chuyển sang ngày mai, `trading.brief_day_abandoned` được ghi log, và một thông báo cho biết bản tin hôm nay đã bị bỏ (gửi theo kiểu cố gắng hết sức qua đúng kênh vừa hỏng, nên có thể không tới). Chỉ `/brief disable` mới tắt bản tin sáng.
 
@@ -569,7 +569,7 @@ Một ngày mà cả ba lần gửi đều hỏng thì bị bỏ, không phải 
 
 Kết quả đề xuất đã chấm, tin về mã bạn giữ và việc chỉ số của khu vực giảm mạnh vào chuông trong ứng dụng mà không tới chat nào, để ngày yên ắng thì điện thoại cũng yên ắng. Thêm loại tin
 vào `[notices] chat` trong `config.toml` nếu muốn nhận cả ở chat: `call-scored`, `held-news` hoặc `index-drop` (tên nào
-khác làm daemon dừng ngay lúc khởi động, kèm danh sách hợp lệ). Mọi thứ khác daemon gửi tới chat vẫn như cũ.
+khác làm dịch vụ nền dừng ngay lúc khởi động, kèm danh sách hợp lệ). Mọi thứ khác dịch vụ nền gửi tới chat vẫn như cũ.
 
 - **Một lời gọi đã được chấm.** Khi bảng thành tích đóng một lời gọi bạn đã nhận, ở mục tiêu, mức cắt lỗ hoặc lúc hết hạn,
   bạn được báo một lần: kết quả sau phí, cạnh mức chuẩn của chính thị trường đó trong cùng quãng, nếu thị trường có nêu
@@ -578,7 +578,7 @@ khác làm daemon dừng ngay lúc khởi động, kèm danh sách hợp lệ). 
   của một agent có phạm vi riêng chỉ hiện trực tiếp trên trang văn phòng, ở chỗ agent đó. Thẻ của lời gọi đó có đủ
   bức tranh.
 - **Tin về mã bạn đang giữ.** Mỗi mã đang giữ có một thông báo mỗi ngày, kèm tiêu đề và nguồn. Nó chỉ gồm những mã
-  daemon đã đọc: tiêu đề được lưu lại khi một `/suggest` hay một cuộc chat về mã đó đọc đến chúng, và không có gì đi lấy
+  dịch vụ nền đã đọc: tiêu đề được lưu lại khi một `/suggest` hay một cuộc chat về mã đó đọc đến chúng, và không có gì đi lấy
   tin cho các mã bạn giữ theo lịch. Sau khi khởi động lại, nó không lặp lại tiêu đề của ngày hôm đó.
 - **Chỉ số giảm mạnh.** Khi chỉ số của khu vực giảm ít nhất 1,5% trong một phiên, mỗi phiên một lần, kiểm tra vài phút
   một lần trong lúc phiên đang chạy. Thông báo nói bao nhiêu mã bạn giữ trên thị trường của chỉ số đó đang giảm và có mã nào thủng mức cắt lỗ chưa.
@@ -643,7 +643,7 @@ Chuyên viên phân tích chủ đề dùng `[[model_tiers.themes]]` khi đượ
 
 ### Các tác vụ nền
 
-Chúng chạy trong daemon, thêm nữa khi một sàn có khóa giao dịch. Mỗi tác vụ chạy ở nhịp mặc định dựng sẵn và không làm gì khi không có gì đủ điều kiện. Cách xử lý khi hỏng nằm ở [các việc dựng sẵn](van-hanh.md).
+Chúng chạy trong dịch vụ nền, thêm nữa khi một sàn có khóa giao dịch. Mỗi tác vụ chạy ở nhịp mặc định dựng sẵn và không làm gì khi không có gì đủ điều kiện. Cách xử lý khi hỏng nằm ở [các việc dựng sẵn](van-hanh.md).
 
 | Tác vụ | Mỗi | Lô | Đăng ký | Làm gì |
 |---|---|---|---|---|
@@ -702,7 +702,7 @@ Không cái nào đổi điểm. Một đề xuất trên mã đang hiện một
 - Funding và độ lệch long/short là ngược chiều đám đông: bên đang trả tiền để ở lại, và đám đông đã vào rồi, còn ít thứ để mua hơn.
 - Độ lệch là tỷ lệ tài khoản long/short toàn cầu của Binance, lưu cùng dòng funding. Không có cài đặt cho nó.
 
-**Khởi động.** Lượt refresh đầu tiên chạy dưới **ngân sách 60 giây** rồi được tách ra. Kho ấm settle trong ngân sách. Kho nguội thì hết giờ, daemon bắt đầu nhận việc, và lượt quét hoàn tất ở nền: tươi dần dần, đúng đắn luôn luôn. Không gì dừng lượt quét ở hạn chót, vì một phạm vi bị dừng không ghi dòng thử nào và nhịp sau sẽ làm lại toàn bộ.
+**Khởi động.** Lượt refresh đầu tiên chạy dưới **ngân sách 60 giây** rồi được tách ra. Kho ấm settle trong ngân sách. Kho nguội thì hết giờ, dịch vụ nền bắt đầu nhận việc, và lượt quét hoàn tất ở nền: tươi dần dần, đúng đắn luôn luôn. Không gì dừng lượt quét ở hạn chót, vì một phạm vi bị dừng không ghi dòng thử nào và nhịp sau sẽ làm lại toàn bộ.
 
 ### Chi phí và giới hạn
 
@@ -1015,11 +1015,11 @@ Khi có khoản nắm nào chưa định giá được, NAV bị giữ lại và
 
 `/portfolio nav [1m|3m|6m|1y|all]` (mặc định `3m`) cho thấy cuốn sổ đã đi thế nào theo thời gian. Nó được dựng từ một snapshot mỗi ngày:
 
-- **Một snapshot mỗi ngày.** Sau mỗi lượt `trading.refresh`, daemon định giá cuốn sổ đúng như `/portfolio` và giữ một dòng cho ngày đó; lượt cuối của ngày thắng. Lịch sử bắt đầu từ khi bạn nâng cấp. Không gì được dựng lại từ sổ lệnh, vì giá đóng VN đã lưu được điều chỉnh ngược còn khối lượng trong sổ lệnh thì không.
+- **Một snapshot mỗi ngày.** Sau mỗi lượt `trading.refresh`, dịch vụ nền định giá cuốn sổ đúng như `/portfolio` và giữ một dòng cho ngày đó; lượt cuối của ngày thắng. Lịch sử bắt đầu từ khi bạn nâng cấp. Không gì được dựng lại từ sổ lệnh, vì giá đóng VN đã lưu được điều chỉnh ngược còn khối lượng trong sổ lệnh thì không.
 - **Lợi suất trọng số thời gian.** Một khoản nạp hay rút làm đổi giá trị cuốn sổ mà không phải là lãi, nên nó bị trừ khỏi ngày nó rơi vào. Cổ tức, phí và loss vẫn nằm trong lợi suất.
 - **Sụt giảm từ đỉnh.** Mức sụt sâu nhất và hiện bạn đang thấp hơn đỉnh bao nhiêu, cả hai trên cùng một chỉ số.
 - **Một thước đo từ cơ cấu mục tiêu của chính bạn.** Mỗi nhóm bạn đã đặt mục tiêu ăn theo chỉ số chuẩn của thị trường nó, và tiền mặt thì không sinh gì. Một nhóm mà thị trường của nó không có chuẩn bị bỏ ra và phần còn lại được co về đủ một; hiện tại vàng không có chuẩn. Câu trả lời nêu tên các chân. Nếu không nhóm nào bạn đặt mục tiêu có chuẩn, thì không có thước đo và câu trả lời nói vậy. Nếu một chỉ số không có giá phủ toàn cửa sổ (không có từ snapshot đầu tiên, hoặc không có gần snapshot cuối), thước đo bị bỏ chứ không tính từ một phần của nó.
-- **Khoảng trống.** Một ngày có khoản nắm nào chưa có giá thì không ghi dòng nào và log `trading.nav_snapshot_skipped` nêu tên các công cụ; dòng trước đó của ngày ấy được giữ. Ngày daemon tắt thì không có điểm, nhưng lợi suất qua khoảng trống vẫn chính xác, vì các khoản nạp được đọc từ sổ lệnh. Một cuốn sổ rỗng không ghi gì.
+- **Khoảng trống.** Một ngày có khoản nắm nào chưa có giá thì không ghi dòng nào và log `trading.nav_snapshot_skipped` nêu tên các công cụ; dòng trước đó của ngày ấy được giữ. Ngày dịch vụ nền tắt thì không có điểm, nhưng lợi suất qua khoảng trống vẫn chính xác, vì các khoản nạp được đọc từ sổ lệnh. Một cuốn sổ rỗng không ghi gì.
 
 Đây là các con số của chính bạn. Chúng chỉ hiện trên các lệnh gạch chéo và API loopback (`GET /v1/portfolio/nav`), không bao giờ tới một mô hình hay một công cụ MCP.
 
@@ -1412,7 +1412,7 @@ Các trần được đọc **lại** bên trong cửa sổ đó. Một lệnh m
 
 Mỗi bước là một kiểu hỏng riêng mà thiết kế này sinh ra để ngăn. Các bước đầu giúp bạn khỏi phải chẩn đoán một lỗi chữ ký khi tiền đang chạy.
 
-- [ ] **Thiếu thông tin đăng nhập** - bỏ đặt một biến: log nêu tên nó, `/trade` là unknown, daemon vẫn khởi động.
+- [ ] **Thiếu thông tin đăng nhập** - bỏ đặt một biến: log nêu tên nó, `/trade` là unknown, dịch vụ nền vẫn khởi động.
 - [ ] **Chữ ký** - tới được lời nhắc là đã chứng minh dấu thời gian, digest, đường dẫn đã ký và body đều đúng. Chúng hỏng giống hệt nhau, nên hãy tách cái này trước.
 - [ ] **Xác nhận trong một phút**, cùng chat, cùng người dùng - nó đặt, thay vì lặng lẽ không làm gì.
 - [ ] **Cỡ theo đơn vị gốc** - một lệnh thị trường mua `0.001 BTC` khớp khoảng 0,001 BTC. Đọc biên nhận, không đọc yêu cầu.
@@ -1447,7 +1447,7 @@ Mỗi bước là một kiểu hỏng riêng mà thiết kế này sinh ra để
 - [ ] **Lối thoát Binance nổ** - treo một lối thoát có chốt lời nằm ngay trên giá cuối. Khi nó kích hoạt, nhịp đối soát kế tiếp (khoảng 60s) ghi lệnh bán. **Một dòng sổ, không phải hai.**
 - [ ] **Sync Binance** - `/record sync binance` ghi các lần khớp demo và kết thúc bằng dòng nói nó kiểm từng coin, ở cả hai ngôn ngữ.
 - [ ] **Kiểm toán khóa** - `openalpha doctor venues --online` trên một khóa thật cảnh báo khi Withdrawals đang bật hoặc chưa ghim IP.
-- [ ] **Dừng** - `/trade halt`, rồi xác nhận một lệnh mua đã dàn dựng: bị từ chối. Một lệnh bán vẫn đặt được. Khởi động lại daemon và `/trade` vẫn cho thấy việc mua đang tắt.
+- [ ] **Dừng** - `/trade halt`, rồi xác nhận một lệnh mua đã dàn dựng: bị từ chối. Một lệnh bán vẫn đặt được. Khởi động lại dịch vụ nền và `/trade` vẫn cho thấy việc mua đang tắt.
 
 Hai trong số này thăm dò các mã lỗi lấy từ một client bên thứ ba chứ không phải tài liệu tham chiếu của chính OKX: các mã cuộc đua hủy ở **Treo và hủy**, và mã not-found ở **Không tự hủy**, nơi một lần tra cứu bị đọc nhầm là "đã mất" sẽ đóng một lối thoát vẫn đang sống. Cả hai đều hỏng ồn ào, nên một phỏng đoán sai hiện ra như một lỗi, không bao giờ như một cuốn sổ sai.
 

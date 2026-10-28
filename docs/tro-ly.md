@@ -36,11 +36,11 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
 được.
 
 - Ở tầng *Agent của bạn*, "+ Thêm agent" mở biểu mẫu (khi chưa có agent nào, ba mẫu khởi đầu điền sẵn để bạn sửa, và có cả một mẫu trống). Biểu mẫu hỏi tên (mã định danh được tạo từ tên, trừ khi bạn tự gõ, và không đổi được sau khi agent đã có), việc nó làm bằng lời của bạn, các thị trường và ngành nó theo dõi, ngân sách mỗi ngày (`0` nghĩa là chỉ theo ngân sách chung), mô hình, có cho nó tự tạo agent con không và tối đa bao nhiêu mỗi lần gọi, cùng ngoại hình. Không tick thị trường nào thì agent dùng chung góc nhìn với bạn, nên đề xuất của nó tác động lên danh mục thật; tick thị trường thì nó thành ý kiến thứ hai (xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng)).
-- Bộ chọn ngoại hình có bốn phần, kèm ảnh chân dung đổi theo từng lựa chọn: thân (màu da: sáng, vừa hoặc đậm), tóc (ngắn, dài, bob, búi hoặc mũ lưỡi trai), áo (xanh ngọc, xanh dương, xanh da trời, vàng nghệ, cam, hồng, xám xanh hoặc màu cát) và phụ kiện (không, sách, bìa kẹp, cà vạt, kính hoặc khăn). Phần nào bạn bỏ qua thì theo mã của agent, nên agent nào cũng có ngoại hình ngay từ đầu. Đó là bảng `[look]` trong tệp; daemon chỉ giữ nó và không bao giờ đọc nó trong một phiên chạy.
+- Bộ chọn ngoại hình có bốn phần, kèm ảnh chân dung đổi theo từng lựa chọn: thân (màu da: sáng, vừa hoặc đậm), tóc (ngắn, dài, bob, búi hoặc mũ lưỡi trai), áo (xanh ngọc, xanh dương, xanh da trời, vàng nghệ, cam, hồng, xám xanh hoặc màu cát) và phụ kiện (không, sách, bìa kẹp, cà vạt, kính hoặc khăn). Phần nào bạn bỏ qua thì theo mã của agent, nên agent nào cũng có ngoại hình ngay từ đầu. Đó là bảng `[look]` trong tệp; dịch vụ nền (daemon) chỉ giữ nó và không bao giờ đọc nó trong một phiên chạy.
 - Bấm vào một agent (bàn của nó, hoặc thẻ của nó ở tầng đội riêng) thì thẻ của nó mở ra: *Tiến độ* (các bước đang chạy và agent con nếu có), *Kết quả*, *Hồ sơ* và *Việc*, kèm nút tạm dừng hoặc tiếp tục. Agent tạm dừng từ chối mọi phiên chạy của nó cho tới khi bạn cho chạy lại, đúng như `agent pause`, và bàn của nó ghi rõ điều đó. Nút sửa hồ sơ mở biểu mẫu, và biểu mẫu đó cũng có nút xóa agent.
-- Khi một phiên chạy chia việc cho agent con, thẻ Tiến độ liệt kê từng agent con, cho biết đang chạy bao nhiêu trong số tối đa một lần gọi được phép khởi động, chúng đi sâu mấy tầng, và thời gian dài nhất một agent con được chạy. Con số cuối là giới hạn mỗi lần gọi cho agent con của chính daemon (mức chặt hơn giữa trần thời gian của phiên chạy và của `spawn` trong `[loop]`), đọc từ daemon, nên luôn là con số thật. Chi phí của chúng tính vào phiên chạy của agent cha, và một nút dừng cả phiên chạy, gồm cả các agent con.
+- Khi một phiên chạy chia việc cho agent con, thẻ Tiến độ liệt kê từng agent con, cho biết đang chạy bao nhiêu trong số tối đa một lần gọi được phép khởi động, chúng đi sâu mấy tầng, và thời gian dài nhất một agent con được chạy. Con số cuối là giới hạn mỗi lần gọi cho agent con của chính dịch vụ nền (mức chặt hơn giữa trần thời gian của phiên chạy và của `spawn` trong `[loop]`), đọc từ dịch vụ nền, nên luôn là con số thật. Chi phí của chúng tính vào phiên chạy của agent cha, và một nút dừng cả phiên chạy, gồm cả các agent con.
 - Dưới câu trả lời của một phiên chạy đã xong, thẻ *Kết quả* có một khối "Lệnh gọi AI" đang đóng, giống khối trên dòng của một việc và dưới câu trả lời chat đã xong: các lệnh gọi mô hình của phiên chạy đó và agent con của nó, kèm chi phí từng lệnh gọi và kết thúc ra sao (xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng)).
-- Agent mới hay vừa sửa được kiểm tra như daemon kiểm tra một tệp lúc khởi động: dạng tệp, mã, phạm vi, mức trần
+- Agent mới hay vừa sửa được kiểm tra như dịch vụ nền kiểm tra một tệp lúc khởi động: dạng tệp, mã, phạm vi, mức trần
   ngân sách, bước quét prompt và bậc mô hình. Bị từ chối thì lý do hiện bằng lời thường và không có gì được ghi.
 - Trang tạo tối đa 50 agent của riêng bạn, tính cả tệp nạp lỗi; quá mức đó nó yêu cầu bạn xóa bớt một agent trước.
 - Agent trả lời ở tin nhắn kế tiếp, không cần khởi động lại. Phiên chạy đang diễn ra giữ nguyên định nghĩa lúc bắt
@@ -52,9 +52,9 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
   lượt, token và thời gian, `hosts`, `skills`, `delegates` và `reasoning`. Agent có sẵn và agent của plugin đọc được ở
   đó nhưng không sửa hay xóa được.
 - Xóa một agent là gỡ thư mục của nó và tạm dừng mọi lịch đang bật của nó, để không lịch nào còn bắn vào một cái tên
-  không còn tồn tại; chuông báo đã tạm dừng bao nhiêu. Bộ nhớ, phiên chat, chi tiêu và bảng thành tích của nó vẫn còn.
+  không còn tồn tại; chuông báo đã tạm dừng bao nhiêu. Bộ nhớ, cuộc trò chuyện, chi tiêu và bảng thành tích của nó vẫn còn.
   Agent đang tham gia một mạng xã hội thì bị từ chối cho đến khi nó rời đi.
-- Tệp bạn sửa tay khi daemon đang chạy được nhận lại khi trang đọc lại thư mục. Tệp nạp lỗi bị bỏ qua kèm lý do nói bằng lời thường (nguyên nhân chính xác nằm trong nhật ký daemon, `logs`) và nằm
+- Tệp bạn sửa tay khi dịch vụ nền đang chạy được nhận lại khi trang đọc lại thư mục. Tệp nạp lỗi bị bỏ qua kèm lý do nói bằng lời thường (nguyên nhân chính xác nằm trong nhật ký dịch vụ nền, `logs`) và nằm
   ngoài danh sách đang chạy cho đến khi bạn sửa xong và đọc lại. Nếu không đọc được cả thư mục, các agent đang chạy
   giữ nguyên như cũ.
 
@@ -92,7 +92,7 @@ quyền bạn đã cấp.
 | `max_duration_ms` | số nguyên dương | `[loop].max_duration_ms` từ config | Trần thời gian thực mỗi phiên chạy. Hạ được giá trị `[loop]`, không nâng được. |
 | `max_daily_usd` | số | không có | Phần của hôm nay dưới `[budget] max_daily_usd`. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
 | `[focus]` | bảng | không có | Agent nhìn vào đâu. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
-| `[look]` | bảng | không có | Diện mạo nhân vật của agent trên trang văn phòng: vài phần ngắn, mỗi phần là một từ viết thường (hoặc nối bằng gạch ngang) (`hair = "short"`). Daemon chỉ lưu lại và từ chối phần nào không có dạng đó; trang quyết định giá trị nào vẽ được và tự chọn phần bạn bỏ trống theo mã của agent. Biểu mẫu cho chọn `body`, `hair`, `shirt` và `prop` (xem [Từ trang văn phòng](#từ-trang-văn-phòng)). |
+| `[look]` | bảng | không có | Diện mạo nhân vật của agent trên trang văn phòng: vài phần ngắn, mỗi phần là một từ viết thường (hoặc nối bằng gạch ngang) (`hair = "short"`). Dịch vụ nền chỉ lưu lại và từ chối phần nào không có dạng đó; trang quyết định giá trị nào vẽ được và tự chọn phần bạn bỏ trống theo mã của agent. Biểu mẫu cho chọn `body`, `hair`, `shirt` và `prop` (xem [Từ trang văn phòng](#từ-trang-văn-phòng)). |
 | `model_tier` | chuỗi | không có | Một nhóm trong `[model_tiers]` mà mọi mục đều hỗ trợ công cụ. Agent của bạn đặt được; agent plugin không đáng tin thì không. |
 | `reasoning` | enum | `'default'` | **Chỉ agent đáng tin:** agent có sẵn và agent của plugin đi kèm. |
 | `[capabilities]` | bảng | xem dưới | Trần bảo mật; mọi trường chỉ thu hẹp quyền. |
@@ -126,13 +126,13 @@ và mọi mục trong nó phải hỗ trợ gọi công cụ khi agent có công
 `reasoning` vẫn chỉ dành cho agent đáng tin. Một `model_tier` mâu thuẫn với nhóm mà phần ghép
 (composition) ưu tiên thì bị từ chối, không bị bỏ qua.
 
-`/model` trong kênh có phạm vi một phiên chat: nó đổi mô hình cho đúng phiên đó, chọn từ chuỗi `[[models]]` toàn
+`/model` trong kênh có phạm vi một cuộc trò chuyện: nó đổi mô hình cho đúng cuộc trò chuyện đó, chọn từ chuỗi `[[models]]` toàn
 cục, giữ các mục còn lại làm dự phòng, không chọn được nhóm, và không lưu lại. `openalpha provider list` và
 `openalpha provider models` cho biết đang có những gì.
 
 ### Khi nạp tệp thất bại
 
-Một agent lỗi không bao giờ chặn daemon khởi động. Mỗi tệp hỏng riêng và bị bỏ qua:
+Một agent lỗi không bao giờ chặn dịch vụ nền khởi động. Mỗi tệp hỏng riêng và bị bỏ qua:
 
 - TOML sai cú pháp, vi phạm schema, `id` lệch tên thư mục, công cụ lạ trong `tools`, `reasoning` trên agent của
   bạn, `model_tier` trỏ tới nhóm không có hoặc có mục không hỗ trợ công cụ, `max_daily_usd` cao hơn mức trần `[budget]` của bạn, hoặc `system_prompt` bị bộ quét chặn -
@@ -191,7 +191,7 @@ chọn trên cùng mã, cùng ngày. Quy tắc, cùng cỡ mẫu tối thiểu �
 **Tạm dừng.** `openalpha agent pause <id>` tắt một agent của bạn và `agent resume` bật lại ([Lệnh](lenh.md)). Persona
 tranh luận không tạm dừng được: làm vậy sẽ hỏng mọi đề xuất.
 
-- Việc tạm dừng được đọc ở mỗi phiên chạy, nên nó tới một daemon đang chạy ngay lập tức, không cần khởi động lại.
+- Việc tạm dừng được đọc ở mỗi phiên chạy, nên nó tới một dịch vụ nền đang chạy ngay lập tức, không cần khởi động lại.
 - Phiên chạy đang diễn ra vẫn xong. Sau đó tin nhắn chat kế tiếp, heartbeat và tác vụ theo lịch của agent bị từ chối
   bằng câu "agent này đang tạm dừng", và CLI thoát với mã `16`.
 - Tác vụ theo lịch bị bỏ qua mà không tính là một lần lỗi. Tác vụ chạy một lần chờ đến khi `resume`.
@@ -227,7 +227,7 @@ một cuộc chat vạn năng.
 Agent con dùng đúng danh sách công cụ của chính nó: nó có thể dùng công cụ mà cha không gọi trực tiếp được, và công
 cụ vắng mặt ở con thì bị chặn, trước cả khâu phê duyệt.
 
-Phiên chạy con dùng chung tín hiệu hủy và ngân sách của cha. Phiên chat của con là mới, riêng tư, tạm thời và không
+Phiên chạy con dùng chung tín hiệu hủy và ngân sách của cha. Cuộc trò chuyện của con là mới, riêng tư, tạm thời và không
 bao giờ ghi vào bản ghi hội thoại bền vững. Con không thấy bản ghi của cha, không nói chuyện với nhau, và không chia
 sẻ trạng thái tranh luận. Chỉ agent điều phối ghép kết quả lại. Về tiền, xem
 [ngân sách trên một cây phiên chạy](ngan-sach.md#ngân-sách-trên-một-cây-phiên-chạy).
@@ -291,7 +291,7 @@ ký tự, khi bạn muốn mỗi câu trả lời về dưới dạng JSON đã 
   đánh dấu là thất bại. Agent con bị dừng cùng agent cha thì thất bại và không có lý do.
 - Với `output_schema`, mỗi agent con được dặn kết thúc bằng đúng một tài liệu JSON khớp schema. Agent con đã xong mà câu trả lời
   đọc được và khớp thì trả về chính JSON đó; câu trả lời không khớp thì agent con thất bại, kèm chỗ lệch đầu tiên. Agent con bị
-  cắt giữa chừng vẫn mang về bản tóm tắt thường, không kiểm tra. Một schema mà daemon không dùng được sẽ từ chối cả lời gọi
+  cắt giữa chừng vẫn mang về bản tóm tắt thường, không kiểm tra. Một schema mà dịch vụ nền không dùng được sẽ từ chối cả lời gọi
   trước khi có agent con nào chạy.
 - Các agent con dùng chung phần ngân sách, hạn ngạch `[loop] max_delegations` và `[loop] delegation_depth` của agent cha,
   chi phí tính vào agent cha. Dừng agent cha là dừng mọi agent con.
@@ -303,7 +303,7 @@ ký tự, khi bạn muốn mỗi câu trả lời về dưới dạng JSON đã 
 
 ### Phê duyệt không bao giờ di truyền
 
-Không gì được mang sang cho con: không phải chế độ bypass của cha, không phải một phê duyệt đã nhớ trong phiên chat của
+Không gì được mang sang cho con: không phải chế độ bypass của cha, không phải một phê duyệt đã nhớ trong cuộc trò chuyện của
 cha, không phải phê duyệt của một client MCP trực tiếp. Một lời gọi con được duyệt không cấp phép cho lời gọi kế tiếp.
 Quy tắc: [an toàn](an-toan.md).
 
@@ -448,7 +448,7 @@ theo từng chat, và nó sống qua khởi động lại:
 /agent default         # quay về mặc định của kênh
 ```
 
-Đổi ràng buộc sẽ hủy phần việc đang chờ và đang chạy của phiên chat cũ rồi mở phiên chat mới cho agent mới, nên đổi
+Đổi ràng buộc sẽ hủy phần việc đang chờ và đang chạy của cuộc trò chuyện cũ rồi mở cuộc trò chuyện mới cho agent mới, nên đổi
 giữa chừng không để lại một phiên chạy mồ côi vẫn đang tiêu ngân sách của bạn.
 
 ### Agent của plugin nằm ở đâu
@@ -602,7 +602,7 @@ api_key_env = "OPENROUTER_API_KEY"
 phải khai một mô hình. [Cấu hình](cau-hinh.md) liệt kê mọi khóa, kể cả các khóa thử lại, nghỉ và tần suất dưới `[llm]`.
 
 Bộ chọn của một mục là `alias` của nó, hoặc `<provider>:<model>` khi không có alias. Các bộ chọn phải duy nhất. Biến môi
-trường nêu trong `api_key_env` chứa khóa (chưa đặt thì mục đó đứng ngoài: daemon vẫn chạy và cảnh báo, còn việc nào
+trường nêu trong `api_key_env` chứa khóa (chưa đặt thì mục đó đứng ngoài: dịch vụ nền vẫn chạy và cảnh báo, còn việc nào
 cần mô hình sẽ nói rõ phải đặt biến nào; xem [Cấu hình](cau-hinh.md)); khóa dạng văn bản thuần không được chấp nhận
 trong cấu hình mô hình. Một server chạy trên chính máy này (`base_url` loopback, như Ollama hay LM Studio) không cần
 `api_key_env`.
@@ -735,7 +735,7 @@ phiên chạy dừng với lý do `rate` trước khi gọi nhà cung cấp.
 | Điều kiện | Kết quả |
 | --- | --- |
 | Chuỗi mô hình rỗng hoặc mơ hồ | Khởi động hỏng với lỗi cấu hình. |
-| Chưa đặt biến môi trường chứa khóa của một mô hình | Daemon và lệnh CLI vẫn chạy, `start` in một dòng cảnh báo. Chuỗi bỏ qua mô hình đó, và khi không còn mô hình nào thì lúc gọi AI (chat, `/suggest`, bản tin sáng, công việc định kỳ cần AI) sẽ báo cần đặt biến nào; việc không cần AI vẫn chạy. |
+| Chưa đặt biến môi trường chứa khóa của một mô hình | Dịch vụ nền và lệnh CLI vẫn chạy, `start` in một dòng cảnh báo. Chuỗi bỏ qua mô hình đó, và khi không còn mô hình nào thì lúc gọi AI (chat, `/suggest`, bản tin sáng, công việc định kỳ cần AI) sẽ báo cần đặt biến nào; việc không cần AI vẫn chạy. |
 | Bộ chọn ưu tiên chưa được cấu hình | Khâu kiểm agent hỏng; không lặng lẽ thay bằng mô hình khác. |
 | Giới hạn tần suất đầy | Phiên chạy dừng với lý do `rate` trước khi gọi nhà cung cấp. |
 | Lỗi thử lại được xảy ra trước khi có đầu ra | Thử lại cùng mục, rồi thử các mục dự phòng đủ điều kiện. |

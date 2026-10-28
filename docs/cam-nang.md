@@ -101,7 +101,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."   # key của nhà cung cấp LLM bạn ch
 
 openalpha onboard      # thiết lập lần đầu, hoặc chạy lại để đổi mô hình, bot Telegram, mức chi, ngôn ngữ
 openalpha doctor       # kiểm tra nhanh, không cần mạng
-openalpha status       # tổng quan: daemon, kênh, phiên chat gần đây, chi tiêu hôm nay
+openalpha status       # tổng quan: dịch vụ nền, kênh, cuộc trò chuyện gần đây, chi tiêu hôm nay
 ```
 
 Key đọc từ biến môi trường, mặc định **không** nằm trong file cấu hình, để bạn không vô tình commit
@@ -489,12 +489,12 @@ Binance (OKX: bỏ quyền Trade của key) - cách này chặn cả lệnh bán
 |---|---|
 | `/help` | Liệt kê mọi lệnh đang có; `/help <tên>` cho cách dùng một lệnh |
 | `/stop` | Dừng việc đang chạy trong chat này (chỉ có trên Telegram/Zalo) |
-| `/cost` | Chi tiêu LLM hôm nay, cùng số token và chi phí của phiên chat này |
+| `/cost` | Chi tiêu LLM hôm nay, cùng số token và chi phí của cuộc trò chuyện này |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách, kênh đang chạy |
 | `/model` | Xem hoặc đổi mô hình |
 | `/memory` | Xem, tìm, ghi, xóa ghi nhớ |
 | `/research` | `/research [quick\|standard\|thorough] <câu hỏi>` - nghiên cứu có trích nguồn (**tốn LLM**) |
-| `/new` | Bắt đầu phiên chat mới (lịch sử phiên trước vẫn được giữ) |
+| `/new` | Bắt đầu cuộc trò chuyện mới (lịch sử cuộc trò chuyện trước vẫn được giữ) |
 | `/continue` | Chạy tiếp một lượt bị dừng giữa chừng |
 | `/schedule` | Xem và điều khiển các việc chạy tự động |
 | `/health` | Trạng thái hệ thống |
@@ -505,8 +505,8 @@ Binance (OKX: bỏ quyền Trade của key) - cách này chặn cả lệnh bán
 ### 4.4 Lệnh terminal hay dùng
 
 ```bash
-openalpha chat                 # mở phiên chat; /exit, /quit hoặc Ctrl+D để thoát
-openalpha start|stop|restart   # daemon (bản tin, cảnh báo, tự nạp dữ liệu); start chạy ngay tại cửa sổ này, thêm --background để chạy nền
+openalpha chat                 # mở cuộc trò chuyện; /exit, /quit hoặc Ctrl+D để thoát
+openalpha start|stop|restart   # dịch vụ nền (bản tin, cảnh báo, tự nạp dữ liệu); start chạy ngay tại cửa sổ này, thêm --background để chạy nền
 openalpha status               # tổng quan
 openalpha cost                 # chi phí LLM
 openalpha config show|edit|validate
@@ -542,7 +542,7 @@ Hệ thống cố tình chỉ có **một** lượt nặng mỗi ngày: bản ti
 **Thiết lập một lần:**
 
 ```bash
-openalpha start --background         # bật daemon để bản tin và cảnh báo tự chạy
+openalpha start --background         # bật dịch vụ nền để bản tin và cảnh báo tự chạy
 > /brief enable 08:15                # tự gửi bản tin mỗi sáng
 > /watchlist add FPT HPG MWG VNM
 ```
@@ -557,7 +557,7 @@ openalpha start --background         # bật daemon để bản tin và cảnh b
 | 4 | `/market` | Giá mã bạn đang nắm và đang theo dõi |
 | 5 | `/suggest <mã>` | **Chỉ khi** bước 1-4 cho thấy một mã đáng chú ý. Đây là lệnh tốn tiền |
 
-Daemon không chạy và dữ liệu có vẻ cũ thì gõ `/refresh` trước bước 1 để nạp phần còn thiếu của phiên
+Dịch vụ nền (daemon) không chạy và dữ liệu có vẻ cũ thì gõ `/refresh` trước bước 1 để nạp phần còn thiếu của phiên
 gần nhất. Nó chỉ nạp các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn còn giữ
 mã, theo dõi mã hay chờ chấm điểm gợi ý cũ. `/refresh crypto` nạp riêng thị trường đó, kể cả khi đã
 tắt; `/refresh force` nạp lại toàn bộ, chỉ dùng khi nghi dữ liệu sai.
@@ -566,7 +566,7 @@ tắt; `/refresh force` nạp lại toàn bộ, chỉ dùng khi nghi dữ liệu
 
 - Đặt lệnh thật bằng app công ty chứng khoán (hoặc `/trade` nếu đã khai khóa sàn).
 - Khớp xong, ghi ngay: `/record buy vps equity-vn:FPT 100 62000 VND 9300 2026-08-19`.
-- Muốn được nhắc khi giá chạm mốc: `/alert create FPT above 100000`. Daemon kiểm tra mỗi phút.
+- Muốn được nhắc khi giá chạm mốc: `/alert create FPT above 100000`. Dịch vụ nền kiểm tra mỗi phút.
 
 **Sau giờ đóng cửa: không làm gì.** Đây là chủ ý, không phải thiếu tính năng.
 
@@ -616,7 +616,7 @@ Khu vực nhà hiện chỉ nhận `vn`, nên khi sàng lọc crypto bạn cứ 
 | | Cổ phiếu VN | Crypto |
 |---|---|---|
 | Bản tin sáng `/brief` | có | **không có** - dùng `/overview` + `/screen crypto` |
-| `/refresh` | nạp dữ liệu VN | nạp bảng xếp hạng vốn hóa và nến crypto; daemon cũng tự nạp mỗi khi nến ngày UTC đóng |
+| `/refresh` | nạp dữ liệu VN | nạp bảng xếp hạng vốn hóa và nến crypto; dịch vụ nền cũng tự nạp mỗi khi nến ngày UTC đóng |
 | Thanh toán | T+2 | tức thì, `/record` ngay ngày khớp |
 
 Muốn vẫn có bản tin sáng? Để khu vực nhà là `vn` rồi thêm coin vào danh sách theo dõi: bản tin có
@@ -645,7 +645,7 @@ Một lần `/rebalance` xét mọi thị trường cùng lúc, không cần ch�
 | Xuất sổ ra tệp | `openalpha db export --out ./export` | Một tệp cho mỗi bảng; mặc định chỉ lấy phần không nạp lại được từ mạng ([Lưu trữ](luu-tru.md)). Thêm `--format csv` để mở bằng Excel (csv chỉ để đọc) |
 | Nạp sổ trở lại | `openalpha db import --in ./export` | Cách giữ sổ khi phải `db reset`: `db backup` khôi phục cả schema cũ, còn export/import chỉ chuyển dữ liệu |
 | Rà lại hồ sơ | `> /profile show` | Khẩu vị rủi ro có còn đúng với hoàn cảnh hiện tại không |
-| Dọn dữ liệu (mỗi quý) | `openalpha db cleanup --older-than 90d` | Xóa phiên chat và bộ nhớ cũ để giải phóng đĩa. Dừng daemon trước; thêm `--dry-run` để xem trước |
+| Dọn dữ liệu (mỗi quý) | `openalpha db cleanup --older-than 90d` | Xóa cuộc trò chuyện và bộ nhớ cũ để giải phóng đĩa. Dừng dịch vụ nền trước; thêm `--dry-run` để xem trước |
 
 **Không cần nhớ việc soi thành tích.** Nếu đang bật bản tin sáng, mỗi tháng dương lịch bản tin tự
 chèn một **bảng điểm tháng** đúng một lần ([6.6](#66-bảng-điểm-tháng)). Coi đó là lời nhắc gõ
@@ -828,7 +828,7 @@ Một mục hỏng **không bao giờ** làm mất các mục còn lại: bản 
 - Danh sách theo dõi bị cắt ở **20 mã cổ phiếu VN và 20 mã tài sản chéo**: để 60 mã thì chỉ 20 mã đầu
   mỗi nhóm vào bản tin.
 - Bản tin chỉ có ở `equity-vn`, và chỉ chạy khi khu vực nhà trong cấu hình là `vn`.
-- Cần daemon đang chạy (`openalpha start`) mới tự giao đúng giờ. Không có daemon vẫn gõ `/brief` thủ
+- Cần dịch vụ nền đang chạy (`openalpha start`) mới tự giao đúng giờ. Không có dịch vụ nền vẫn gõ `/brief` thủ
   công được.
 
 ### 6.6 Bảng điểm tháng
@@ -939,7 +939,7 @@ cổ phiếu VN.
   Mục "Cơ hội cổ phiếu" chỉ in 5 mã điểm cao nhất trên mọi chủ đề, nên một chủ đề có mã xếp dưới vẫn
   thấy được mã của mình ở đây.
 - **Một mã nằm dưới hai chủ đề chỉ hiện một lần**, ở điểm cao nhất, kèm dòng "Cũng nằm trong chủ đề".
-- **Điểm có đúng không, hệ thống tự kiểm.** Daemon so mỗi mã với VN-Index sau 3, 6 và 12 tháng. Cuối
+- **Điểm có đúng không, hệ thống tự kiểm.** Dịch vụ nền so mỗi mã với VN-Index sau 3, 6 và 12 tháng. Cuối
   báo cáo, mục "Điểm số các lần trước đúng đến đâu" cho biết nhóm điểm từ 80, 60-80 và dưới 60 đã
   thắng hay thua VN-Index. Nhóm nào chưa đủ 20 nhận định thì chỉ in số đếm. Bảng chỉ tính những lần
   chấm theo cách tính điểm hiện tại, nên khi trọng số đổi thì bảng bắt đầu lại. **Trước khi bảng này nói
@@ -976,7 +976,7 @@ cổ phiếu VN.
 | Đặt tỷ trọng mục tiêu không ăn | `/profile set segment-target <nhóm> <tỷ lệ>` (0 tới 1 hoặc 0% tới 100%, nhóm đang bật); `/profile show` để xem lại |
 | Dữ liệu VN có vẻ cũ | `/refresh equity-vn`, hoặc `/refresh equity-vn force` để nạp lại toàn bộ |
 | Không rõ đang tốn bao nhiêu | `/cost` trong chat, hoặc `openalpha cost` |
-| Đĩa đầy | Dừng daemon rồi `openalpha db cleanup --older-than 90d` (thêm `--dry-run` để xem trước); xem thêm `openalpha db --help` |
+| Đĩa đầy | Dừng dịch vụ nền rồi `openalpha db cleanup --older-than 90d` (thêm `--dry-run` để xem trước); xem thêm `openalpha db --help` |
 | Quên lệnh | `/help` hoặc `/help <tên>` trong chat, `openalpha help` hoặc `openalpha help <lệnh>` ở terminal |
 
 Muốn đọc sâu hơn về dữ liệu, nguồn và luồng xử lý: [Giao dịch](giao-dich.md),

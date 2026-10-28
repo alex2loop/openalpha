@@ -13,7 +13,7 @@ Trang này là tấm bản đồ. Muốn biết chính xác cú pháp của bả
 - [Danh mục lệnh](#danh-mục-lệnh)
 - [Chat](#chat)
 - [Nghiên cứu](#nghiên-cứu)
-- [Daemon và chẩn đoán](#daemon-và-chẩn-đoán)
+- [Dịch vụ nền và chẩn đoán](#dịch-vụ-nền-và-chẩn-đoán)
 - [Cấu hình và khởi tạo](#cấu-hình-và-khởi-tạo)
 - [Đăng nhập nhà cung cấp](#đăng-nhập-nhà-cung-cấp)
 - [Agent, plugin, kỹ năng](#agent-plugin-kỹ-năng)
@@ -47,7 +47,7 @@ Trang này là tấm bản đồ. Muốn biết chính xác cú pháp của bả
 | `--data-dir <đường dẫn>` | Đổi thư mục dữ liệu gốc và vị trí cấu hình mặc định |
 | `--log-level <mức>` | `debug`, `info`, `warn`, `error` hoặc `fatal` |
 | `--no-color` | Tắt màu ANSI |
-| `--local` | Chạy ngay trong tiến trình này dù daemon đang chạy (`--log-level` kéo theo cờ này) |
+| `--local` | Chạy ngay trong tiến trình này dù dịch vụ nền (daemon) đang chạy (`--log-level` kéo theo cờ này) |
 
 Mức log lấy theo thứ tự: cờ, `OPENALPHA_LOG_LEVEL`, TOML, rồi mặc định. `NO_COLOR` tắt hẳn màu;
 `FORCE_COLOR` chỉ có tác dụng khi bạn chưa chủ động tắt màu.
@@ -73,11 +73,11 @@ cho kênh; `14` cho công cụ; `15` khi một lần ghi bị xung đột với 
 mã liệt kê ở [An toàn](an-toan.md), nên `11` cũng là `hook_failed` và `12` cũng là `session_busy`.
 `doctor` thoát `1` khi có phép kiểm nào hỏng.
 
-`17` không phải một lý do dừng của phiên chạy: daemon đã dừng khi một lệnh được chuyển cho nó đang chạy,
-và lệnh đó không bị chạy lại. Xem [Lệnh chạy trong daemon](van-hanh.md#lệnh-chạy-trong-daemon).
+`17` không phải một lý do dừng của phiên chạy: dịch vụ nền đã dừng khi một lệnh được chuyển cho nó đang chạy,
+và lệnh đó không bị chạy lại. Xem [Lệnh chạy trong dịch vụ nền](van-hanh.md#lệnh-chạy-trong-dịch-vụ-nền).
 
 REPL tương tác là ngoại lệ: nó in lỗi của từng lượt ngay tại chỗ và thoát bình thường khi bạn rời đi,
-vì một lượt hỏng không phải một phiên chat hỏng.
+vì một lượt hỏng không phải một cuộc trò chuyện hỏng.
 
 ## Danh mục lệnh
 
@@ -85,9 +85,9 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 |---|---|---|
 | `chat` | Chat với agent, tương tác hoặc một phát | không có |
 | `start` | Chạy kênh và bộ lập lịch | không có; `--background`/`-b` để tách nền |
-| `stop` | Dừng daemon | không có |
-| `restart` | Khởi động lại daemon | không có; `--now` không chờ việc đang chạy, `--background`/`-b` để dừng rồi chạy lại ở nền |
-| `status` | Tổng quan daemon, kênh và chi tiêu | không có |
+| `stop` | Dừng dịch vụ nền | không có |
+| `restart` | Khởi động lại dịch vụ nền | không có; `--now` không chờ việc đang chạy, `--background`/`-b` để dừng rồi chạy lại ở nền |
+| `status` | Tổng quan dịch vụ nền, kênh và chi tiêu | không có |
 | `version` | In phiên bản và báo nếu đã có bản mới; `--version` và `-v` cũng được | không có |
 | `help` | In trợ giúp: `help` cho danh sách, `help <lệnh> [lệnh con]` cho một lệnh | không có; tên lệnh |
 | `upgrade` | Cài bản phát hành mới nhất | không có; `--check` chỉ báo, `--rollback` quay về bản cài trước |
@@ -107,7 +107,7 @@ vì một lượt hỏng không phải một phiên chat hỏng.
 | `plugin` | Plugin đã cài | `list`, `install` (`--yes`), `update`, `uninstall` |
 | `skill` | Kỹ năng đã tìm thấy | `list`, `install` (`--force`) |
 | `memory` | Bộ nhớ của agent | `store`, `recall`, `search`, `list`, `remove` |
-| `history` | Lịch sử phiên chat | `list`, `show`, `delete`, `clear` |
+| `history` | Lịch sử cuộc trò chuyện | `list`, `show`, `delete`, `clear` |
 | `cost` | Chi tiêu trong một khoảng | không có; cờ chu kỳ hoặc ngày, `--breakdown` |
 | `pair` | Ghép nối kênh | `list`, `approve`, `deny`, `revoke` |
 | `schedule` | Việc theo lịch | `list`, `show`, `add`, `edit`, `remove`, `pause`, `resume`, `run-now` |
@@ -129,7 +129,7 @@ Bỏ `--message` thì vào REPL. Có `--message` thì chạy một phát. Một 
 là terminal. Với stdin qua pipe hoặc rỗng thì không có ai để hỏi, nên ở chế độ thủ công, một lời gọi
 nguy hiểm bị chặn do không có ai phê duyệt, chứ không được duyệt ngầm. `--mode bypass` luôn phải tự gõ.
 
-`--continue` tiếp tục phiên chat trước của CLI, và từ chối một `--agent` khác với agent của phiên đó.
+`--continue` tiếp tục cuộc trò chuyện trước của CLI, và từ chối một `--agent` khác với agent của cuộc trò chuyện đó.
 Các cờ giới hạn lượt và chi phí chỉ **thu hẹp** được một phiên chạy, không nới ra; hạn mức theo ngày và
 tháng vẫn luôn áp dụng.
 
@@ -146,10 +146,10 @@ menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và tr
 | `/health` | Xem các mã sức khỏe của runtime và kênh |
 | `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại; `/upgrade confirm` (hoặc nút bấm) cài bản mới ngay từ Telegram/Zalo |
 | `/memory` | Gọi lại một mục theo khóa (`/memory <khóa>`), tìm (`find <từ khóa>`), ghi nhớ (`remember <khóa> <giá trị>`) hoặc xóa (`forget <khóa>`) |
-| `/cost` | Xem lượng dùng của phiên chat này và chi tiêu hôm nay so với hạn mức |
+| `/cost` | Xem lượng dùng của cuộc trò chuyện này và chi tiêu hôm nay so với hạn mức |
 | `/schedule` | Liệt kê, xem, tạm dừng, chạy lại, chạy ngay hoặc xóa một việc của bạn (`/schedule remove <id>` xóa hẳn). Nó chỉ liệt kê các việc tạo từ chat này, mỗi việc theo id và nội dung. Việc tạo ở terminal hay trên trang văn phòng không thuộc chat nào nên không hiện ở đây: quản lý nó bằng `schedule` ở terminal hoặc trên trang, nơi việc chờ một cảnh báo thay vì chờ giờ hiện cảnh báo nó chờ (`khi FPT thủng mức cắt lỗ`) thay cho giờ |
 | `/config` | Xem ngôn ngữ, mô hình, ngân sách và kênh đang chạy |
-| `/new` | Chuyển sang một phiên chat mới (chat trên trang văn phòng cũng chuyển theo); các câu lệnh đang chờ trong hàng của cuộc chat bị bỏ và những câu đang chạy bị dừng |
+| `/new` | Chuyển sang một cuộc trò chuyện mới (chat trên trang văn phòng cũng chuyển theo); các câu lệnh đang chờ trong hàng của cuộc chat bị bỏ và những câu đang chạy bị dừng |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
 
@@ -260,7 +260,7 @@ các khoảng trống và phần tóm tắt nguồn, với URL hiện đầy đ�
 độ vào một dòng trạng thái trực tiếp; kênh khác nhận vài tin nhắn mốc. Câu trả lời cuối đến như một câu
 trả lời thường.
 
-## Daemon và chẩn đoán
+## Dịch vụ nền và chẩn đoán
 
 ```text
 openalpha start [--background]
@@ -271,46 +271,46 @@ openalpha doctor [check] [--online]
 ```
 
 `start` trần chạy ở tiền cảnh, và Ctrl-C sẽ dừng nó. `--background`/`-b` chạy lại đúng dòng lệnh đó ở
-nền và chờ tới khi daemon thật sự sẵn sàng: đã tải xong dữ liệu thị trường và mở xong các kênh chat,
-thường khoảng một phút. Chỉ khi đó nó mới báo thành công, in pid và đường dẫn đầu ra. Daemon chết giữa
+nền và chờ tới khi dịch vụ nền thật sự sẵn sàng: đã tải xong dữ liệu thị trường và mở xong các kênh chat,
+thường khoảng một phút. Chỉ khi đó nó mới báo thành công, in pid và đường dẫn đầu ra. Dịch vụ nền chết giữa
 chừng khi khởi động (ví dụ cổng API đã có tiến trình khác dùng) thì được báo ngay kèm chính thông báo lỗi của nó và
-mã thoát, rồi lệnh thoát với mã khác 0. Chờ quá 90 giây mà daemon vẫn chạy nhưng chưa sẵn sàng (nguồn dữ
-liệu chậm) thì lệnh để nó chạy tiếp, báo cách theo dõi và thoát với mã 0; daemon không chạy lên được thì
+mã thoát, rồi lệnh thoát với mã khác 0. Chờ quá 90 giây mà dịch vụ nền vẫn chạy nhưng chưa sẵn sàng (nguồn dữ
+liệu chậm) thì lệnh để nó chạy tiếp, báo cách theo dõi và thoát với mã 0; dịch vụ nền không chạy lên được thì
 thoát với mã khác 0. `stop` và `status` hoạt động như nhau ở cả hai chế độ. `start` in phiên bản đang
 chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật `[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh
 được cấu hình, nó còn báo bot chỉ bắt đầu trả lời sau khi dữ liệu thị trường tải xong; nhật ký ghi lại lúc
-các kênh mở. `restart` khi đã có daemon chạy thì nhờ chính daemon đó khởi động lại tại chỗ (cùng pid, cùng cửa sổ
+các kênh mở. `restart` khi đã có dịch vụ nền chạy thì nhờ chính dịch vụ nền đó khởi động lại tại chỗ (cùng pid, cùng cửa sổ
 terminal), chờ nó sẵn sàng rồi in kết quả. Nó chờ việc đang chạy xong (tối đa khoảng hai phút); `--now` thì không chờ.
-Daemon dừng theo cách thông thường: yêu cầu phê duyệt còn chờ bị từ chối. `restart --background`, hoặc khi chưa có
-daemon nào chạy, thì dừng (nếu có) rồi chạy lại từ shell này, với các biến của shell đó, ở nền hoặc ngay trong cửa sổ này.
-Trên Windows daemon không khởi động lại tại chỗ được nên `restart` luôn dừng rồi chạy lại. `kill -USR2 <pid>` cũng khởi
-động lại daemon ngay, như `--now`.
+Dịch vụ nền dừng theo cách thông thường: yêu cầu phê duyệt còn chờ bị từ chối. `restart --background`, hoặc khi chưa có
+dịch vụ nền nào chạy, thì dừng (nếu có) rồi chạy lại từ shell này, với các biến của shell đó, ở nền hoặc ngay trong cửa sổ này.
+Trên Windows dịch vụ nền không khởi động lại tại chỗ được nên `restart` luôn dừng rồi chạy lại. `kill -USR2 <pid>` cũng khởi
+động lại dịch vụ nền ngay, như `--now`.
 
 Thiếu khóa không chặn `start`. Biến môi trường của khóa AI (mô hình chính, các tầng và dự phòng), của
 tìm kiếm web hay của một máy chủ MCP chưa đặt, hoặc bot token Telegram/Zalo chưa đặt hay bị nền tảng từ
-chối, đều chỉ làm phần cần đến nó chưa chạy: daemon in mỗi mục một dòng cảnh báo (dấu `!`, ra stderr) nói
+chối, đều chỉ làm phần cần đến nó chưa chạy: dịch vụ nền in mỗi mục một dòng cảnh báo (dấu `!`, ra stderr) nói
 việc gì đang chờ và cách sửa. Ở tiền cảnh, dòng về biến môi trường hiện ngay dưới phần tóm tắt; dòng về kênh
 hiện khi các kênh mở, sau khi tải xong dữ liệu thị trường. Với `--background`, các dòng đó nằm dưới dòng
 báo thành công. Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ lệnh và các việc không cần
 AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn lưu khóa bằng `openalpha key set <NAME>` rồi
 `restart --background`; kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường. Lỗi
-cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có daemon khác chạy và lỗi lưu trữ
+cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có dịch vụ nền khác chạy và lỗi lưu trữ
 vẫn chặn `start`.
 
-`status` cho biết daemon đang chạy bản nào. Chạy lại script cài đặt thì daemon chạy nền được bật lại trên
-bản mới; cài bản chọn sẵn bằng `OPENALPHA_VERSION` thì daemon vẫn chạy bản cũ tới khi bạn tự khởi
+`status` cho biết dịch vụ nền đang chạy bản nào. Chạy lại script cài đặt thì dịch vụ nền chạy ở chế độ nền được bật lại trên
+bản mới; cài bản chọn sẵn bằng `OPENALPHA_VERSION` thì dịch vụ nền vẫn chạy bản cũ tới khi bạn tự khởi
 động lại, và `status` nhắc chạy `stop` rồi `start --background` để chuyển sang bản đó.
-Khi daemon đang chạy mà thiếu khóa, `status` liệt kê lại đúng các dòng cảnh báo lúc `start`: kênh nào bị
+Khi dịch vụ nền đang chạy mà thiếu khóa, `status` liệt kê lại đúng các dòng cảnh báo lúc `start`: kênh nào bị
 bỏ qua và vì sao, khóa nào chưa đặt và việc gì đang chờ nó, kể cả sau khi máy khởi động lại. Khóa sàn và
 khóa của nguồn dữ liệu phụ nằm riêng dưới "khóa tùy chọn": thiếu chúng thì bạn vẫn ghi lệnh bằng tay, và
 `start` không cảnh báo. App desktop đọc cùng danh sách đó từ `/v1/state`.
-`upgrade` tự bật lại daemon chạy nền trên bản mới.
+`upgrade` tự bật lại dịch vụ nền chạy ở chế độ nền trên bản mới.
 
 `doctor` luôn chỉ đọc. Chạy offline thì nó chỉ kiểm phần nhìn được ở máy; `--online` thêm các phép thử
 thật tới PostgreSQL, nhà cung cấp, token kênh, tìm kiếm web và khóa sàn. Phép thử nhà cung cấp gửi cho
 mô hình đầu tiên của mỗi nhà cung cấp một tin ngắn, và nói rõ khi máy chủ chạy trên máy bạn chưa bật. Nhãn mỗi dòng theo `[locale] language`
 của bạn. Dòng đánh dấu `i` là trạng thái chưa cần làm gì, không phải cảnh báo: cơ sở dữ liệu, thư mục log hay thư mục dữ liệu mà lần chạy đầu sẽ tạo,
-daemon chưa được bật, và nguồn dữ liệu tùy chọn chưa đặt khóa. Dòng nguồn dữ liệu nói rõ khóa đó sẽ thêm được gì. `doctor models` còn nêu tên
+dịch vụ nền chưa được bật, và nguồn dữ liệu tùy chọn chưa đặt khóa. Dòng nguồn dữ liệu nói rõ khóa đó sẽ thêm được gì. `doctor models` còn nêu tên
 các biến tài khoản đám mây mà một mục Vertex hay Azure không có khóa vẫn cần. `doctor trading` dựng thử hệ
 thống y như `chat` nhưng không khởi chạy hay migrate gì, nên khu vực chính không sàn nào giao dịch hay
 `default_for` trỏ nhầm sàn sẽ lộ ra ngay ở đây. Nó chờ tới khi đã có cơ sở dữ liệu.
@@ -328,7 +328,7 @@ Khóa demo thì không bị kiểm.
 
 Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả lệnh: có gì mới, bạn đang chậm bao nhiêu bản và có bản nào quan trọng không. Trong chat riêng với người vận hành, bot nhắc mỗi tuần, hoặc mỗi ngày khi có bản quan trọng đang chờ.
 
-`upgrade` tải tệp chạy của bản mới cho đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới thay tệp. Daemon bật bằng `start --background` được tạm dừng trong lúc thay rồi tự bật lại trên bản mới, với cùng tệp cấu hình và thư mục dữ liệu; nếu nó không khởi động được, `upgrade` quay về bản đã chạy, báo cho bạn và giữ lỗi khởi động của bản mới trong `daemon.stderr.failed.log`. Daemon chạy trong cửa sổ terminal hoặc do dịch vụ hệ thống quản lý vẫn chạy bản cũ tới khi bạn tự khởi động lại, và `upgrade` in sẵn lệnh cần chạy; riêng Windows không thay được tệp đang chạy, nên daemon bị dừng trong lúc thay và bạn bật lại. Thư mục dữ liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và daemon đã dừng được bật lại, hoặc thông báo chỉ cách bật. Tải đứt giữa chừng, sai mã kiểm tra hay bấm Ctrl-C đều dừng trước bước thay tệp, nên bản cũ vẫn nguyên và daemon vẫn chạy.
+`upgrade` tải tệp chạy của bản mới cho đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới thay tệp. Dịch vụ nền bật bằng `start --background` được tạm dừng trong lúc thay rồi tự bật lại trên bản mới, với cùng tệp cấu hình và thư mục dữ liệu; nếu nó không khởi động được, `upgrade` quay về bản đã chạy, báo cho bạn và giữ lỗi khởi động của bản mới trong `daemon.stderr.failed.log`. Dịch vụ nền chạy trong cửa sổ terminal hoặc do dịch vụ hệ thống quản lý vẫn chạy bản cũ tới khi bạn tự khởi động lại, và `upgrade` in sẵn lệnh cần chạy; riêng Windows không thay được tệp đang chạy, nên dịch vụ nền bị dừng trong lúc thay và bạn bật lại. Thư mục dữ liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và dịch vụ nền đã dừng được bật lại, hoặc thông báo chỉ cách bật. Tải đứt giữa chừng, sai mã kiểm tra hay bấm Ctrl-C đều dừng trước bước thay tệp, nên bản cũ vẫn nguyên và dịch vụ nền vẫn chạy.
 
 Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old` (trên Windows là `openalpha.exe.old`), và `upgrade --rollback` đổi ngược về nó. Nếu bản mới đã thay đổi cơ sở dữ liệu, `--rollback` sẽ đưa nó về dạng bản cũ đọc được trước, bằng `db migrate down --to`. Lệnh hỏi bạn trước khi làm, và với SQLite sẽ lưu một bản sao vào `backups/pre-rollback/` trước. Trả lời không thì không có gì thay đổi. Khi `upgrade` đã bật bản mới mà bản đó không khởi động được, bước này chạy luôn không cần hỏi; còn bản vẫn đang khởi động sau 90 giây, thường do đang cập nhật một cơ sở dữ liệu lớn, thì được để chạy tiếp chứ không bị quay về. Bản cài bằng script cài đặt, kể cả khi cài lại đúng bản đang dùng, không có ghi nhận này, nên sau khi quay về, bản cũ sẽ từ chối khởi động trên schema mới, nói rõ lý do và chỉ cách xử lý. `upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
 
@@ -376,28 +376,28 @@ openalpha connect
 ```
 
 `api token` in mã API mà app và các ứng dụng `/v1` khác gửi kèm. `api rotate` thay mã mới, in mã đó ra và
-đăng xuất mọi trình duyệt, rồi khởi động lại daemon đang chạy ngay, không chờ việc đang làm, để mã cũ hết dùng
+đăng xuất mọi trình duyệt, rồi khởi động lại dịch vụ nền đang chạy ngay, không chờ việc đang làm, để mã cũ hết dùng
 được. Nếu khởi động lại không thành, lệnh sẽ báo: bạn chạy `openalpha restart`. Khi đặt `[api] token_env`,
 mã là giá trị của biến đó và `rotate` không đụng tới nó. Khi `[api]` đang tắt, `api token` và `api rotate`
 báo là đang tắt thay vì in ra gì cả.
 
-`web` mở trang văn phòng. Lệnh cần daemon đang chạy và `[api]` đang bật, rồi xin daemon một liên kết dùng
+`web` mở trang văn phòng. Lệnh cần dịch vụ nền đang chạy và `[api]` đang bật, rồi xin dịch vụ nền một liên kết dùng
 một lần, chỉ có hiệu lực một lần trong 5 phút. Nó không bao giờ in mã API. Bạn thấy gì tùy nơi chạy lệnh:
 
 - Trên chính màn hình của máy (macOS, hoặc Linux có màn hình), nó mở trình duyệt và in liên kết phòng khi
   trình duyệt không bật lên.
 - Qua SSH, nó in lệnh đường hầm để bạn chạy trên máy của mình, rồi in liên kết để mở. Đường hầm dùng cổng
-  của máy chủ cộng 10000 (18765 cho 8765; trừ đi, nếu vượt cổng 55535), nên không bao giờ rơi vào daemon bạn chạy ở máy mình, và nếu
+  của máy chủ cộng 10000 (18765 cho 8765; trừ đi, nếu vượt cổng 55535), nên không bao giờ rơi vào dịch vụ nền bạn chạy ở máy mình, và nếu
   cổng đó đã bận thì `ssh` dừng với lỗi chứ không lặng lẽ dùng cổng khác. Nếu không biết địa chỉ bạn SSH
   tới, nó dùng tên máy chủ và nói rõ điều đó; hãy thay bằng địa chỉ bạn thật sự dùng.
 - Khi đã đặt `[api] public_url`, nó chỉ in liên kết `https://`, chạy ở đâu cũng vậy.
 
 Cần liên kết mới thì chạy lại: liên kết đã dùng hoặc đã hết hạn sẽ bị từ chối. Sau vài lần đăng nhập sai,
-daemon tạm dừng đăng nhập từ máy đó một lúc; `web` sẽ nói điều này.
+dịch vụ nền tạm dừng đăng nhập từ máy đó một lúc; `web` sẽ nói điều này.
 
 `connect` dành cho ứng dụng desktop. Nó in địa chỉ và token trên hai dòng riêng: địa chỉ là `public_url` nếu đã
 đặt, nếu không thì một dòng `openalpha+ssh://user@server?api=<cổng>` để ứng dụng mở qua SSH. Lệnh không cần
-daemon đang chạy, nhưng cần `[api]` đang bật. Hãy đưa địa chỉ và token cho ứng dụng, đừng dán vào trình duyệt:
+dịch vụ nền đang chạy, nhưng cần `[api]` đang bật. Hãy đưa địa chỉ và token cho ứng dụng, đừng dán vào trình duyệt:
 token là chìa khóa vào máy chủ của bạn, nên hãy giữ kín.
 
 ## Đăng nhập nhà cung cấp
@@ -467,7 +467,7 @@ còn giữ tư cách thành viên. Chi tiết ở [Mạng xã hội](mang-xa-hoi
 Mọi thao tác với bộ nhớ đều qua các kiểm tra về bí mật, tiêm prompt, kích thước, phạm vi và thời gian
 sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>` chỉ giữ các khóa bắt đầu bằng chữ đó.
 
-`history clear` xóa mọi phiên chat, hoặc mọi phiên chat của một agent. Hãy đọc phần trợ giúp và câu hỏi
+`history clear` xóa mọi cuộc trò chuyện, hoặc mọi cuộc trò chuyện của một agent. Hãy đọc phần trợ giúp và câu hỏi
 xác nhận trước khi chạy.
 
 `cost` nhận `--period day|week|month` (`week` tính từ thứ Hai, như `/transactions week`), hoặc một khoảng ngày ISO `--from`/`--to` (gồm cả hai đầu). Nó đọc
@@ -496,7 +496,7 @@ openalpha zalo login [--profile <tên>]
 Liên kết tài khoản Zalo cá nhân cho kênh `zalo_personal`. Lệnh lưu một ảnh mã QR và in ra đường dẫn. Bạn
 quét bằng ứng dụng Zalo rồi xác nhận trên điện thoại. Cứ khoảng hai phút có mã mới thay thế, và sau năm
 phút lệnh thôi chờ. Lần đăng nhập được cất theo `--profile`, hoặc theo `profile` của kênh khi bạn bỏ
-trống, và ảnh QR bị xóa khi xong. Daemon đang chạy sẽ nhận đăng nhập mới ở lần nối lại kế tiếp.
+trống, và ảnh QR bị xóa khi xong. Dịch vụ nền đang chạy sẽ nhận đăng nhập mới ở lần nối lại kế tiếp.
 
 ## Lịch chạy và workflow
 
@@ -516,7 +516,7 @@ phí. Chưa có workflow nào là bình thường, không phải lỗi.
 ## Bảo trì cơ sở dữ liệu và thư mục làm việc
 
 Các lệnh ghi vào cơ sở dữ liệu (`db migrate`, `cleanup`, `import`, `restore`, `reset`) chỉ chạy khi
-daemon đã dừng. `restore`, `reset` và việc lùi một migration sẽ hỏi xác nhận, trừ khi bạn đưa `--yes`.
+dịch vụ nền đã dừng. `restore`, `reset` và việc lùi một migration sẽ hỏi xác nhận, trừ khi bạn đưa `--yes`.
 Với SQLite, `reset` hỏi trước có sao lưu không (Enter là có): bản sao nằm trong `backups/` giống
 `db backup`, nên lỡ tay thì `db restore` lại được. `--yes` trả lời câu này theo mặc định, tức là
 vẫn sao lưu trước.
@@ -528,7 +528,7 @@ lần `db reset`, nằm ở [Lưu trữ](luu-tru.md).
 
 `workspace cleanup` chỉ chạm tới `run/` và `tmp/` bên trong các thư mục làm việc của agent bạn chọn bằng
 `--agent <id>` hoặc `--all` (bắt buộc chọn đúng một). `--older-than`, `--dry-run` và `--yes` dùng như ở
-các lệnh khác, và daemon phải đã dừng. Lệnh này không xóa tệp bền vững ở gốc thư mục làm việc hay log của
+các lệnh khác, và dịch vụ nền phải đã dừng. Lệnh này không xóa tệp bền vững ở gốc thư mục làm việc hay log của
 agent. Như mọi khi: thư mục làm việc chỉ là nơi xuất phát an toàn, không phải vùng cách ly của hệ điều
 hành.
 
@@ -547,12 +547,12 @@ một agent, và mốc bắt đầu (mốc ISO hoặc khoảng thời gian). Đ�
 - `--agent` giới hạn vào một agent.
 - `--older-than` chặn theo tuổi (bỏ trống để xóa bất kể tuổi; tối thiểu `1d` khi khai).
 - `--dry-run` xem trước số lượng và dung lượng mà không xóa.
-- `--daemon` chuyển đích sang log chung của daemon cùng các tệp đã xoay vòng, chặn theo tuổi của tệp mới
+- `--daemon` chuyển đích sang log chung của dịch vụ nền cùng các tệp đã xoay vòng, chặn theo tuổi của tệp mới
   nhất. Không dùng chung được với `--agent`.
 
-Lệnh cần daemon đã dừng và sẽ hỏi lại trừ khi bạn đưa `--yes`.
+Lệnh cần dịch vụ nền đã dừng và sẽ hỏi lại trừ khi bạn đưa `--yes`.
 
-Lệnh này khác với khâu quét tự động của daemon, vốn chỉ xóa log của những agent không còn trong cấu hình
+Lệnh này khác với khâu quét tự động của dịch vụ nền, vốn chỉ xóa log của những agent không còn trong cấu hình
 (xem [`[retention]`](cau-hinh.md#retention)). Khi không có `--daemon`, `logs clear` xóa mọi thứ khớp
 phạm vi, kể cả log của agent đang cấu hình (bộ ghi log sẽ tạo lại chúng ở lần chạy sau), và không bao giờ
 chạm tới log chung đang hoạt động, vốn bị giới hạn bởi `[log].max_file_mb` và `[log].max_files`. Thư mục
@@ -649,9 +649,9 @@ chat nào để gửi tới thì lệnh bị từ chối.
 Với bất cứ thứ gì chưa có lệnh riêng - nến, tin tức, sức mạnh ngành, dòng tiền ngoại, soát danh mục,
 bảng thành tích - cứ hỏi bằng lời. Agent sẽ gọi đúng các công cụ giao dịch tương ứng.
 
-Chỉ `/price`, `/overview`, `/screen` và `/themes` ghi câu trả lời vào phiên chat, nên tin nhắn kế tiếp
+Chỉ `/price`, `/overview`, `/screen` và `/themes` ghi câu trả lời vào cuộc trò chuyện, nên tin nhắn kế tiếp
 hỏi về chúng được. Câu trả lời của `/portfolio`, `/rebalance`, `/transactions`, `/market`, `/brief`,
-`/suggest` và `/reflect` chỉ được hiển thị, phiên chat không nhớ.
+`/suggest` và `/reflect` chỉ được hiển thị, cuộc trò chuyện không nhớ.
 
 Lệnh gạch chéo lấy đích gửi từ chính chat terminal hay kênh mà nó chạy. Một lần ghi hồ sơ không kèm số
 phiên bản. Nếu hai chat sửa cùng lúc thì lần sửa sau thắng, không bên nào bị từ chối; với một operator
@@ -829,7 +829,7 @@ phiên chạy con được ủy quyền.
 
 Bề mặt được phục vụ có bộ hướng dẫn riêng - kỷ luật bằng chứng, chỉ gợi ý chứ không bao giờ đặt lệnh, và
 nơi cảnh báo cùng bản tin thật sự được gửi tới - thay vì system prompt của agent chat, vốn nhắc tới những
-công cụ bề mặt này giữ lại và những quy tắc chỉ áp dụng cho phiên chat tương tác.
+công cụ bề mặt này giữ lại và những quy tắc chỉ áp dụng cho cuộc trò chuyện tương tác.
 
 Các công cụ sau bị giữ lại, kèm lý do:
 

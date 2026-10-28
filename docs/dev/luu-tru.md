@@ -1,7 +1,7 @@
-# Bên trong lưu trữ: dialect, migration, sổ đăng ký bảng, phiên chat
+# Bên trong lưu trữ: dialect, migration, sổ đăng ký bảng, cuộc trò chuyện
 
-Dành cho người đóng góp mã. Phần operator dùng cơ sở dữ liệu và phiên chat nằm ở
-[Lưu trữ và phiên chat](../luu-tru.md).
+Dành cho người đóng góp mã. Phần operator dùng cơ sở dữ liệu và cuộc trò chuyện nằm ở
+[Lưu trữ và cuộc trò chuyện](../luu-tru.md).
 
 ## Các tầng lưu trữ
 
@@ -153,7 +153,7 @@ Vậy nếu một bảng nghiệp vụ biến mất sau khi reset, nghĩa là mi
   hai lần làm đổi mọi trung vị, ATR và khoảng nhìn lại.
 - `resting_exits.first_missed_at` là mốc thời gian chứ không phải bộ đếm, có chủ ý: đếm số lần bị phủ
   nhận chỉ đo số lượt đối chiếu chứ không đo thời gian, và ý nghĩa của nó đổi theo nhịp vòng lặp.
-- `llm_attempts` là nguồn sự thật của chi phí. Tổng theo phiên chat được cộng từ đó (`loadTotals`),
+- `llm_attempts` là nguồn sự thật của chi phí. Tổng theo cuộc trò chuyện được cộng từ đó (`loadTotals`),
   không bao giờ lưu sẵn.
 
 ## Lưu giữ
@@ -165,13 +165,13 @@ nhìn lại (`HISTORY_FLOOR_DAYS` của trading: `MAXIMUM_OUTCOME_LOOKBACK_DAYS`
 `MACRO_BACKFILL_DAYS`), `effectiveHistoryDays` lấy số lớn hơn giữa nó và `historyRetentionDays`.
 `persistence/retention-evidence.ts` làm rỗng `factorScores[].provenance` của gợi ý đã chấm quá cửa sổ
 chung, ngoài mười dòng mới nhất của mỗi mã, theo trang 200 dòng đọc và ghi lại dưới dạng JSON thô.
-Daemon dọn một lần lúc khởi động rồi theo chu kỳ; `db cleanup` chạy tay đúng chính sách đó. `runRetention` chạy câu xóa của từng phạm vi (`toScopes`) trong giao dịch riêng,
+Dịch vụ nền (daemon) dọn một lần lúc khởi động rồi theo chu kỳ; `db cleanup` chạy tay đúng chính sách đó. `runRetention` chạy câu xóa của từng phạm vi (`toScopes`) trong giao dịch riêng,
 nên một phạm vi chậm hoặc hỏng không giữ kết nối SQLite suốt cả lượt dọn và không làm PostgreSQL hoàn tác
 các phạm vi khác khi hết `statement_timeout`; phạm vi hỏng log `retention.scope_failed` và trả 0 trong
 `RetentionCounts` giữ nguyên hình dạng. Lệnh `SELECT changes()` vẫn nằm trong giao dịch của phạm vi, cùng
 kết nối với câu xóa.
 
-## Kho phiên chat
+## Kho cuộc trò chuyện
 
 `SessionStore` (`persistence/types.ts`), do `createSessionStore(db, dialect)` hiện thực trong
 `persistence/stores/session/store.ts`; câu SQL đến từ `buildSessionSql(dialect)`.
@@ -181,16 +181,16 @@ kết nối với câu xóa.
   (trả `false`, lộ ra thành `session_busy`). Bên đang giữ mà hoạt động cuối cũ hơn
   `leaseExpiresBefore` thì mất lease. Mốc đó là `now - (loop.maxDurationMs + RUN_LEASE_SLACK_MS)`, với
   `RUN_LEASE_SLACK_MS` = 300.000.
-- **Đường ghi.** `appendMessages` là sink phiên chat của engine: chỉ ghi thêm, ghi mỗi lượt xong bởi
+- **Đường ghi.** `appendMessages` là sink cuộc trò chuyện của engine: chỉ ghi thêm, ghi mỗi lượt xong bởi
   `engine/hooks/persistence.ts`. `appendCommandExchange` ghi hai dòng mà một lệnh slash đóng góp (không
-  phiên chạy nào sở hữu chúng). `finalizeRun(id, runId, outcome)` khép phiên chat lại và ném
+  phiên chạy nào sở hữu chúng). `finalizeRun(id, runId, outcome)` khép cuộc trò chuyện lại và ném
   `ConflictError` trừ khi đúng phiên chạy đó đang giữ nó.
-- **Stale.** `markStaleRuns(leaseExpiresBefore)` chạy một lần lúc daemon khởi động
+- **Stale.** `markStaleRuns(leaseExpiresBefore)` chạy một lần lúc dịch vụ nền khởi động
   (`app/startup-state.ts`), trước khi bất kỳ hệ con nào mở được phiên chạy, và đánh dấu `stale` mọi
-  phiên chat `active` mà không ai giữ lease còn sống.
-- **Xóa.** `remove(id)` đọc trạng thái ngay trong giao dịch và từ chối phiên chat `active` (`'active'`;
+  cuộc trò chuyện `active` mà không ai giữ lease còn sống.
+- **Xóa.** `remove(id)` đọc trạng thái ngay trong giao dịch và từ chối cuộc trò chuyện `active` (`'active'`;
   lần ghi kế tiếp của nó sẽ hỏng vì xóa dây chuyền). Còn lại thì xóa dòng tuyến trước, rồi tin nhắn, đặt
-  `llm_attempts.session_id` thành null, rồi xóa phiên chat. `clear(agentId?)` làm tương tự cho nhiều
+  `llm_attempts.session_id` thành null, rồi xóa cuộc trò chuyện. `clear(agentId?)` làm tương tự cho nhiều
   phiên và từ chối nếu có phiên nào đang `active`. Khóa tuyến dùng `SESSION_ROUTE_KEY_PREFIX`.
 - **Tra theo tiền tố.** `resolveIdPrefix` trả `found | not_found | ambiguous`; mã khớp đúng nguyên văn
   thắng một khớp dài hơn.
@@ -200,11 +200,11 @@ kết nối với câu xóa.
 
 ### Hàng đợi và rào chắn tuyến
 
-`core/session-queue.ts` tuần tự hóa việc theo từng phiên chat trên một đuôi promise với
+`core/session-queue.ts` tuần tự hóa việc theo từng cuộc trò chuyện trên một đuôi promise với
 `MAX_QUEUE_DEPTH` = 10; vượt mức đó thì người gọi nhận `RunHalted('queue_full')`. Một lần đổi tuyến
 (`/new`) đi qua rào chắn tuyến với một thế hệ (generation) riêng cho mỗi tuyến: nó chờ các lease đang
 giữ, vô hiệu hóa việc đã xếp hàng, cập nhật tuyến đã lưu, rồi mới nhận việc cho thế hệ mới, nên một tin
-nhắn nhận cho phiên chat cũ không chạy nhầm dưới tuyến mới.
+nhắn nhận cho cuộc trò chuyện cũ không chạy nhầm dưới tuyến mới.
 
 ### Khâu nén và khôi phục danh sách việc
 
@@ -231,9 +231,9 @@ nhắn nhận cho phiên chat cũ không chạy nhầm dưới tuyến mới.
 - Sổ đăng ký bảng: [`persistence/tables.ts`](../../src/persistence/tables.ts), được canh bởi [`scripts/check-table-registry.ts`](../../scripts/check-table-registry.ts); cổng rollback: [`scripts/check-migration-rollback.ts`](../../scripts/check-migration-rollback.ts)
 - Sao lưu và khôi phục SQLite: [`persistence/backup.ts`](../../src/persistence/backup.ts)
 - CLI cơ sở dữ liệu: [`cli/commands/db/db.ts`](../../src/cli/commands/db/db.ts), [`export.ts`](../../src/cli/commands/db/export.ts), [`import.ts`](../../src/cli/commands/db/import.ts), [`migrate.ts`](../../src/cli/commands/db/migrate.ts)
-- Hợp đồng kho phiên chat: [`persistence/types.ts`](../../src/persistence/types.ts) - kho: [`persistence/stores/session/store.ts`](../../src/persistence/stores/session/store.ts)
+- Hợp đồng kho cuộc trò chuyện: [`persistence/types.ts`](../../src/persistence/types.ts) - kho: [`persistence/stores/session/store.ts`](../../src/persistence/stores/session/store.ts)
 - Ghi bản ghi hội thoại: [`engine/hooks/persistence.ts`](../../src/engine/hooks/persistence.ts)
-- Hàng đợi phiên chat và rào chắn tuyến: [`core/session-queue.ts`](../../src/core/session-queue.ts)
+- Hàng đợi cuộc trò chuyện và rào chắn tuyến: [`core/session-queue.ts`](../../src/core/session-queue.ts)
 - Nén ngữ cảnh: [`engine/compact/compactor.ts`](../../src/engine/compact/compactor.ts) - [`message-repair.ts`](../../src/engine/compact/message-repair.ts)
 - Khôi phục danh sách việc: [`engine/loop/todo.ts`](../../src/engine/loop/todo.ts)
 - CLI lịch sử: [`cli/commands/history.ts`](../../src/cli/commands/history.ts)
