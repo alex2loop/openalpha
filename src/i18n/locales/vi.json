@@ -695,7 +695,6 @@
     "office.common.sourcesReadOne": "Nguồn đã đọc ({count})",
     "office.ideas.screenFunnel": "Sàng {universe} mã, còn {kept}",
     "office.ideas.screenNote": "Điểm chỉ là thứ hạng, không phải lời khuyên mua. Muốn có đề xuất, chọn một mã.",
-    "office.ideas.screenSuggest": "Phân tích mã này",
     "office.ideas.screenRerun": "Lọc lại",
     "office.record.hits": "{hit}/{count} chạm mục tiêu trước mức cắt lỗ",
     "office.record.hitsOne": "{hit}/{count} chạm mục tiêu trước mức cắt lỗ",

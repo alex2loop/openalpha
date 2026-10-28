@@ -695,7 +695,6 @@
     "office.common.sourcesReadOne": "Sources read ({count})",
     "office.ideas.screenFunnel": "Screened {universe} names, {kept} left",
     "office.ideas.screenNote": "The score is a rank, not a buy call. For a call, pick a name.",
-    "office.ideas.screenSuggest": "Analyze this name",
     "office.ideas.screenRerun": "Screen again",
     "office.record.hits": "{hit}/{count} reached the target before the stop",
     "office.record.hitsOne": "{hit}/{count} reached the target before the stop",

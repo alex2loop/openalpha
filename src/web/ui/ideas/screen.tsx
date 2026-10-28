@@ -2,7 +2,7 @@ import type { ScreenResponse } from '@/app/server/wire/market'
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
-import { FORCE_ARG, runCommand, SUGGEST_COMMAND } from '@/web/state/command'
+import { runCommand } from '@/web/state/command'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
@@ -13,6 +13,7 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
+import { AnalyzeButton } from '@/web/ui/ticker/analyze-button'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const SCREEN_COMMAND = '/screen'
@@ -172,17 +173,11 @@ function Opportunity({
         ))}
       </div>
       <div class="opportunity-ask">
-        <Button kind="ai" size="small" onClick={() => runCommand(`${SUGGEST_COMMAND} ${row.key}`)}>
-          {tr('ui.office.ideas.screenSuggest')}
-        </Button>
-        {ticker !== undefined && analyzed.has(ticker) && (
-          <Button
-            size="small"
-            onClick={() => runCommand(`${SUGGEST_COMMAND} ${row.key} ${FORCE_ARG}`)}
-          >
-            {tr('ui.office.common.suggestFresh')}
-          </Button>
-        )}
+        <AnalyzeButton
+          name={row.key}
+          isAnalyzed={ticker !== undefined && analyzed.has(ticker)}
+          size="small"
+        />
       </div>
     </div>
   )
