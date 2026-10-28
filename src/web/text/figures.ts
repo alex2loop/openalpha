@@ -16,6 +16,10 @@ const PRICE_DIGITS_MAX = 10
 const QUANTITY_DIGITS_MAX = 8
 // From here a cash amount prints whole units: cents on a million are noise.
 const AMOUNT_WHOLE_FROM = 1_000
+// A compact total keeps three significant digits: `76,5 tỷ`, `850 triệu`. Vietnamese spells its units
+// out, because the short form (`76,5 T`) reads as a thousand times itself.
+const COMPACT_SIGNIFICANT_DIGITS = 3
+const COMPACT_DISPLAY = Object.freeze({ vi: 'long', en: 'short' } as const)
 const ZERO_TEXT = /^[^1-9]*$/
 const ISO_CURRENCY = /^[A-Z]{3}$/
 
@@ -132,6 +136,32 @@ export function formatAmount(value: number | undefined): string {
   return Math.abs(value) >= AMOUNT_WHOLE_FROM
     ? formatPrice(value, WHOLE_DISPLAY)
     : formatPrice(value, undefined)
+}
+
+/** A money total at a glance in the page's language (`76,5 tỷ`, `1.2T`), with no currency; a missing
+ *  one prints `ABSENT_CELL`. */
+export function formatCompactAmount(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) {
+    return ABSENT_CELL
+  }
+
+  return buildFormatter('compact', {
+    notation: 'compact',
+    compactDisplay: COMPACT_DISPLAY[locale.value],
+    maximumSignificantDigits: COMPACT_SIGNIFICANT_DIGITS,
+  }).format(value)
+}
+
+/** As `formatCompactAmount`, led by the direction of a net figure: `▲ 310 tỷ`, `▼ -520 tỷ`; zero
+ *  carries no mark. */
+export function formatSignedCompactAmount(value: number | undefined): string {
+  const text = formatCompactAmount(value)
+
+  if (value === undefined || value === 0 || !Number.isFinite(value)) {
+    return text
+  }
+
+  return `${value > 0 ? UP_GLYPH : DOWN_GLYPH} ${text}`
 }
 
 /** A price on its board's scale (`/v1/markets` `priceDisplay`); a money total passes

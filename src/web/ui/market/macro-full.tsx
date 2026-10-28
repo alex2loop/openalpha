@@ -3,7 +3,14 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { isAdvanced } from '@/web/state/prefs'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
-import { formatFixed, formatFixedFraction, PERCENT } from '@/web/text/figures'
+import {
+  formatFixed,
+  formatFixedFraction,
+  formatPercent,
+  formatPrice,
+  PERCENT,
+  WHOLE_DISPLAY,
+} from '@/web/text/figures'
 import { joinInline, joinList } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Fold } from '@/web/ui/kit/fold'
@@ -14,6 +21,8 @@ import { MACRO_POLL_MS, MacroReading } from '@/web/ui/today/blocks/macro'
 const SCORE_DIGITS = 2
 const LEVEL_DIGITS = 2
 const INFO_SEVERITY = 'info'
+const DEPOSIT_RATE_SERIES = 'deposit-rate-12m'
+const USD_VND_SERIES = 'usd-vnd'
 // Where a driver with no band between its two ends sits.
 const MIDDLE_POSITION = 0.5
 
@@ -65,6 +74,7 @@ function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
   return (
     <>
       <div class="stack meta">
+        <RatesLine readings={macro.readings} />
         {reading.length > 0 && <p>{joinInline(reading)}</p>}
         {isAdvanced.value && (
           <p>
@@ -81,6 +91,22 @@ function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
       {isAdvanced.value && <DriverTable drivers={macro.drivers} />}
     </>
   )
+}
+
+// The deposit rate and the exchange rate the region's read carried, each left out when it has none.
+function RatesLine({ readings }: { readonly readings: ReadyMacro['readings'] }) {
+  const depositRate = readings[DEPOSIT_RATE_SERIES]
+  const usdVnd = readings[USD_VND_SERIES]
+  const rates = [
+    ...(depositRate === undefined
+      ? []
+      : [tr('ui.office.market.depositRate', { rate: formatPercent(depositRate) })]),
+    ...(usdVnd === undefined
+      ? []
+      : [tr('ui.office.market.usdVnd', { rate: formatPrice(usdVnd, WHOLE_DISPLAY) })]),
+  ]
+
+  return rates.length === 0 ? null : <p>{joinInline(rates)}</p>
 }
 
 function DriverTable({ drivers }: { readonly drivers: ReadyMacro['drivers'] }) {

@@ -20,9 +20,11 @@ import { FailureStrip } from '@/web/ui/book/failure-strip'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
+import { Flows } from '@/web/ui/market/flows'
 import { MacroFull } from '@/web/ui/market/macro-full'
 import { NewsList } from '@/web/ui/market/news-list'
 import { RefreshButton } from '@/web/ui/market/refresh-button'
+import { Sectors } from '@/web/ui/market/sectors'
 import { Session } from '@/web/ui/market/session'
 import { Themes } from '@/web/ui/market/themes'
 import { BlockFrame } from '@/web/ui/today/block-frame'
@@ -105,6 +107,8 @@ function MarketView({ region }: { readonly region: string }) {
     <>
       <MacroFull region={region} />
       <RegionPrices region={region} />
+      <Flows region={region} />
+      <Sectors region={region} />
       <Session region={region} />
       <MoreMarkets region={region} />
     </>

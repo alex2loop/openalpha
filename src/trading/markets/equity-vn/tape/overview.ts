@@ -190,27 +190,44 @@ function latestSession(entries: readonly OverviewEntry[]): TradingDay | undefine
  */
 function toLeaders(names: readonly NameEvidence[], session: TradingDay): MarketLeaders | undefined {
   const turnoverTotal = sessionTotal(names, session, sessionTurnover) ?? 0
-  const flows = rankNames(names, session, sessionForeignNet)
-  const buyers = flows.filter((entry) => entry.value > 0)
-  const sellers = flows.filter((entry) => entry.value < 0)
-  const foreignBuys = buyers.slice(0, VN_OVERVIEW_LEADERS)
-  const foreignSells = sellers.slice(-VN_OVERVIEW_LEADERS).reverse()
+  const foreign = netLeaders(names, session, sessionForeignNet)
+  const proprietary = netLeaders(names, session, sessionProprietaryNet)
   const mostTraded = rankNames(names, session, sessionTurnover).slice(0, VN_OVERVIEW_LEADERS)
 
-  if (foreignBuys.length === 0 && foreignSells.length === 0 && mostTraded.length === 0) {
+  if (
+    foreign.buys.length === 0 &&
+    foreign.sells.length === 0 &&
+    proprietary.buys.length === 0 &&
+    proprietary.sells.length === 0 &&
+    mostTraded.length === 0
+  ) {
     return undefined
   }
 
   return {
     window: 'session',
     sessions: OVERVIEW_LEADER_SESSIONS,
-    ...(foreignBuys.length === 0
-      ? {}
-      : { foreignBuys: withShare(foreignBuys, grossValue(buyers)) }),
-    ...(foreignSells.length === 0
-      ? {}
-      : { foreignSells: withShare(foreignSells, grossValue(sellers)) }),
+    ...(foreign.buys.length === 0 ? {} : { foreignBuys: foreign.buys }),
+    ...(foreign.sells.length === 0 ? {} : { foreignSells: foreign.sells }),
+    ...(proprietary.buys.length === 0 ? {} : { proprietaryBuys: proprietary.buys }),
+    ...(proprietary.sells.length === 0 ? {} : { proprietarySells: proprietary.sells }),
     ...(mostTraded.length === 0 ? {} : { mostTraded: withShare(mostTraded, turnoverTotal) }),
+  }
+}
+
+/** The biggest net buyers and net sellers of one flow, each with its share of its own side's gross. */
+function netLeaders(
+  names: readonly NameEvidence[],
+  session: TradingDay,
+  of: SessionValue
+): { readonly buys: readonly MarketLeader[]; readonly sells: readonly MarketLeader[] } {
+  const ranked = rankNames(names, session, of)
+  const buyers = ranked.filter((entry) => entry.value > 0)
+  const sellers = ranked.filter((entry) => entry.value < 0)
+
+  return {
+    buys: withShare(buyers.slice(0, VN_OVERVIEW_LEADERS), grossValue(buyers)),
+    sells: withShare(sellers.slice(-VN_OVERVIEW_LEADERS).reverse(), grossValue(sellers)),
   }
 }
 

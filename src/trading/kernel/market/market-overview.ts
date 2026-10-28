@@ -143,6 +143,10 @@ export interface MarketLeaders {
   readonly sessions?: number
   readonly foreignBuys?: readonly MarketLeader[]
   readonly foreignSells?: readonly MarketLeader[]
+  /** The market's proprietary desks, as the foreign lists are drawn; a desk's figure lands hours
+   *  after the foreign one, so these are absent while the session's has not. */
+  readonly proprietaryBuys?: readonly MarketLeader[]
+  readonly proprietarySells?: readonly MarketLeader[]
   readonly mostTraded?: readonly MarketLeader[]
 }
 

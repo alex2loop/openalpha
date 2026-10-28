@@ -25,6 +25,7 @@ import type {
   InstrumentMatch,
   InvestmentGoal,
   InvestmentHorizon,
+  MacroRiskView,
   MarketDataOverview,
   MarketEventKind,
   MarketView,
@@ -233,14 +234,22 @@ function toOverviewBlockWire(block: MarketDataOverview, locale: Locale): Overvie
 }
 
 function toLeadersWire(leaders: OverviewLeaders): OverviewLeadersWire {
-  const { window, sessions, foreignBuys, foreignSells, mostTraded } = leaders
+  const { window, sessions, foreignBuys, foreignSells, proprietaryBuys, proprietarySells } = leaders
 
   return {
     window,
     ...(sessions === undefined ? {} : { sessions }),
     ...(foreignBuys === undefined ? {} : { foreignBuys: foreignBuys.map(toLeaderWire) }),
     ...(foreignSells === undefined ? {} : { foreignSells: foreignSells.map(toLeaderWire) }),
-    ...(mostTraded === undefined ? {} : { mostTraded: mostTraded.map(toLeaderWire) }),
+    ...(proprietaryBuys === undefined
+      ? {}
+      : { proprietaryBuys: proprietaryBuys.map(toLeaderWire) }),
+    ...(proprietarySells === undefined
+      ? {}
+      : { proprietarySells: proprietarySells.map(toLeaderWire) }),
+    ...(leaders.mostTraded === undefined
+      ? {}
+      : { mostTraded: leaders.mostTraded.map(toLeaderWire) }),
   }
 }
 
@@ -295,23 +304,31 @@ export function toMacroWire(view: TradingMacroView, locale: Locale): MacroRespon
     ...(view.lean === undefined ? {} : { lean: view.lean }),
     scoreRange: { ...MACRO_SCORE_RANGE },
     coverage: macro.coverage,
-    drivers: macro.drivers.map((driver) => ({
-      id: driver.id,
-      label: view.labels[driver.id] ?? driver.id,
-      unit: driver.unit,
-      value: driver.value,
-      asOf: driver.asOf,
-      weight: driver.weight,
-      bearishAt: driver.bearishAt,
-      bullishAt: driver.bullishAt,
-      contribution: driver.contribution,
-    })),
+    readings: macro.readings,
+    drivers: macro.drivers.map((driver) => toMacroDriverWire(driver, view.labels)),
     missing: macro.missing.map((driver) => ({
       id: driver.id,
       label: view.labels[driver.id] ?? driver.id,
       reason: driver.reason,
     })),
     caveats: toCaveatWires([...macro.caveats, ...result.caveats], locale),
+  }
+}
+
+function toMacroDriverWire(
+  driver: MacroRiskView['drivers'][number],
+  labels: TradingMacroView['labels']
+) {
+  return {
+    id: driver.id,
+    label: labels[driver.id] ?? driver.id,
+    unit: driver.unit,
+    value: driver.value,
+    asOf: driver.asOf,
+    weight: driver.weight,
+    bearishAt: driver.bearishAt,
+    bullishAt: driver.bullishAt,
+    contribution: driver.contribution,
   }
 }
 
