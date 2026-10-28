@@ -20,7 +20,7 @@ export function Movers({ movers, currency }: MoversProps) {
 
   const note = joinInline([
     ...(movers.window === 'rolling-24h' ? [tr('ui.office.today.window24h')] : []),
-    currency,
+    tr('ui.office.market.amountsIn', { currency }),
   ])
   const rowsOf = (list: OverviewMoversWire['gainers']) =>
     list.slice(0, MOVERS_SHOWN).map((row) => ({

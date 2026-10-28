@@ -69,7 +69,10 @@ function MarketFlows({ block }: { readonly block: OverviewBlock }) {
     return null
   }
 
-  const note = joinInline([...windowNotes(leaders), block.currency])
+  const note = joinInline([
+    ...windowNotes(leaders),
+    tr('ui.office.market.amountsIn', { currency: block.currency }),
+  ])
   const proprietaryNote = joinInline([...proprietaryDayNotes(leaders), note])
 
   return (
