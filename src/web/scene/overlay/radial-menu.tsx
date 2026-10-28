@@ -74,6 +74,8 @@ interface OpenMenu {
 
 const opened = signal<OpenMenu | undefined>(undefined)
 let menuSeq = 0
+// The ring that took focus: one that unmounts and mounts again never pulls it back.
+let focusedSeq = 0
 
 /** The person whose ring is open, for the overlay to place it round them. */
 export const menuActor: ReadonlySignal<ActorId | undefined> = computed(() => opened.value?.actor)
@@ -196,7 +198,8 @@ function MenuRing({ menu, figure }: { readonly menu: OpenMenu; readonly figure: 
   const count = menu.actions.length
 
   useEffect(() => {
-    if (menu.isFocused) {
+    if (menu.isFocused && focusedSeq !== menu.seq) {
+      focusedSeq = menu.seq
       host.current?.querySelector('button')?.focus({ preventScroll: true })
     }
   }, [menu.seq])

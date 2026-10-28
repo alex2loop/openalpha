@@ -92,7 +92,8 @@ export function syncSharp(layer: SharpLayer, job: SharpJob, frame: SharpFrame): 
 
   if (stepRun(next.run, frame.until)) {
     layer.rect = next.rect
-    layer.key = next.key
+    // A copy missing a sprite it had no time to build is shown, and the next frame paints it again.
+    layer.key = next.run.isPartial ? '' : next.key
     layer.version++
     layer.next = undefined
   }

@@ -3,6 +3,7 @@ import { computed, signal } from '@preact/signals'
 import type { StatePayload } from '@/app/server/wire/system'
 import type { ConnectionStatus } from '@/web/api/socket'
 import { noteSignedIn } from '@/web/api/auth-state'
+import { nextDelayMs } from '@/web/api/backoff'
 import { ApiFailure, getJson, setSlowRequestMs } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { signInWithCode } from '@/web/api/sign-in'
@@ -30,7 +31,7 @@ const browserLocale = resolveBrowserLocale()
 
 /** The product name from `GET /v1/health`, known before sign-in. */
 export const brand = signal<string | undefined>(undefined)
-/** `GET /v1/health` failed: the daemon that served this page has stopped. */
+/** `GET /v1/health` failed: the daemon that served this page is down; the page keeps asking. */
 export const isUnreachable = signal(false)
 /** `GET /v1/health` answered `starting`: the daemon is still coming up. */
 export const isStarting = signal(false)
@@ -52,29 +53,35 @@ export const isFirstRun = computed(() => {
 })
 
 /** Trades a sign-in `code` first when the address carried one, then loads brand and session, again
- *  every `STARTING_RETRY_MS` while the daemon is starting, at most `STARTING_RETRY_LIMIT` times. */
+ *  every `STARTING_RETRY_MS` while the daemon is starting, at most `STARTING_RETRY_LIMIT` times, and
+ *  on the backoff for as long as it cannot be reached. */
 export async function loadUntilReady(abortSignal: AbortSignal, code?: string): Promise<void> {
   if (code !== undefined) {
     await signInWithCode(code, abortSignal)
   }
 
-  for (let attempt = 0; attempt <= STARTING_RETRY_LIMIT; attempt++) {
-    if (attempt > 0) {
-      await waitFor(STARTING_RETRY_MS, abortSignal)
-    }
+  let startingTries = 0
+  let unreachableTries = 0
 
-    if (abortSignal.aborted) {
-      return
-    }
-
+  while (!abortSignal.aborted) {
     await Promise.all([loadBrand(abortSignal), loadSession(abortSignal)])
+
+    if (isUnreachable.value) {
+      await waitFor(nextDelayMs(unreachableTries++, Math.random), abortSignal)
+      continue
+    }
 
     if (!isStarting.value) {
       return
     }
-  }
 
-  isStarting.value = false
+    if (startingTries++ >= STARTING_RETRY_LIMIT) {
+      isStarting.value = false
+      return
+    }
+
+    await waitFor(STARTING_RETRY_MS, abortSignal)
+  }
 }
 
 /** Keeps the last good values when a load fails; a 401 flips `authState` in the client. */

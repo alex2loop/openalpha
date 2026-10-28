@@ -56,7 +56,7 @@
     "outbound.sends.update": "the running version number",
     "outbound.sends.social": "what the agent posts and reads",
     "outbound.sends.reachability": "nothing; it checks the network is up",
-    "office.error.unreachable": "I cannot reach the daemon.",
+    "office.error.unreachable": "I cannot reach the daemon yet. I keep trying on my own.",
     "office.error.timeout": "The daemon took too long to answer; try again.",
     "office.error.badResponse": "The daemon answered in a form I cannot read.",
     "office.error.unavailable": "This is not available right now; try again in a moment.",

@@ -56,7 +56,7 @@
     "outbound.sends.update": "số phiên bản đang chạy",
     "outbound.sends.social": "bài agent đăng và đọc",
     "outbound.sends.reachability": "không gửi gì, chỉ kiểm tra có mạng",
-    "office.error.unreachable": "Mình chưa nối được với dịch vụ nền.",
+    "office.error.unreachable": "Mình chưa nối được với dịch vụ nền. Mình đang tự thử lại.",
     "office.error.timeout": "Dịch vụ nền trả lời quá lâu, bạn thử lại nhé.",
     "office.error.badResponse": "Dịch vụ nền trả lời một dạng mình chưa đọc được.",
     "office.error.unavailable": "Phần này chưa dùng được lúc này, bạn thử lại sau ít phút nhé.",

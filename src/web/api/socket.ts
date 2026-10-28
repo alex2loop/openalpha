@@ -29,7 +29,7 @@ interface FeedSocketDeps {
 export interface FeedSocket {
   /** False unless the socket is `live`. */
   send(frame: ClientFrame): boolean
-  /** Connects at once while a retry waits; on a live socket, drops it and reconnects on the backoff. */
+  /** Connects at once while a retry waits; otherwise does nothing. */
   retryNow(): void
   close(): void
 }
@@ -189,12 +189,6 @@ function send(state: SocketState, frame: ClientFrame): boolean {
 }
 
 function retryNow(state: SocketState): void {
-  if (state.status === 'live') {
-    // `drop` catches every probe failure and nothing else in it throws, so it never rejects.
-    drop(state).catch(() => undefined)
-    return
-  }
-
   if (state.retryTimer === undefined) {
     return
   }

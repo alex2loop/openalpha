@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks'
 
 import { thread } from '@/web/state/chat'
-import { history, isOpenedGone, loadOlder } from '@/web/state/chat-history'
+import { history, isOpenedGone, loadEarlier } from '@/web/state/chat-history'
 import { toFailureText, tr } from '@/web/text/tr'
 import { ApprovalInline } from '@/web/ui/chat/approval-inline'
 import { HistoryMessage } from '@/web/ui/chat/history-message'
@@ -58,9 +58,9 @@ export function MessageList() {
 function HistoryHead() {
   const { status, failure } = history.value
 
-  // `loadOlder` keeps its own failure in `history`, so it never rejects.
+  // `loadEarlier` keeps its own failure in `history`, so it never rejects.
   const older = (
-    <Button size="small" onClick={() => loadOlder().catch(() => undefined)}>
+    <Button size="small" onClick={() => loadEarlier().catch(() => undefined)}>
       {tr('ui.office.chat.older')}
     </Button>
   )

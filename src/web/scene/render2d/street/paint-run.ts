@@ -1,5 +1,6 @@
 import type { Rect } from '@/web/scene/types'
 import { zeroCanvas } from '@/web/scene/renderer'
+import { spriteBuildSkips } from '@/web/scene/sprites/sprite-cache'
 
 /** One piece of a repaint, in world px. */
 export type PaintStep = (g: CanvasRenderingContext2D) => void
@@ -22,6 +23,8 @@ export interface PaintRun {
   readonly g: CanvasRenderingContext2D
   readonly steps: readonly PaintStep[]
   done: number
+  /** A step left out a sprite it had no time to build, so the finished picture lacks it. */
+  isPartial: boolean
 }
 
 /** Readies the scratch canvas for `spec`'s rect at its px; undefined when it gives no context. */
@@ -47,17 +50,21 @@ export function startRun(spec: RunSpec): PaintRun | undefined {
 
   g.setTransform(px, 0, 0, px, -rect.x * px, -rect.y * px)
 
-  return { shown: spec.shown, scratch, g, steps: spec.steps, done: 0 }
+  return { shown: spec.shown, scratch, g, steps: spec.steps, done: 0, isPartial: false }
 }
 
 /** Paints steps until `until` (a `performance.now` time) passes. Once every step is done it
  *  copies the picture onto the shown canvas, frees the scratch one and returns true. A step that
  *  throws is tried again by the next call. */
 export function stepRun(run: PaintRun, until: number): boolean {
+  const skipsBefore = spriteBuildSkips()
+
   while (run.done < run.steps.length && performance.now() < until) {
     run.steps[run.done]?.(run.g)
     run.done++
   }
+
+  run.isPartial ||= spriteBuildSkips() !== skipsBefore
 
   if (run.done < run.steps.length) {
     return false
