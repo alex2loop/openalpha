@@ -15,12 +15,14 @@ blocked call never reaches the executor.
   (`trading/features/order/execute.ts`).
 - **Danger.** A call is dangerous when the tool's `capability` is `write` or `shell`, when
   `isExternal` is set (MCP server, untrusted plugin), or when `requiresApproval(input, context)` says
-  so. `requiresApproval` receives normalised, schema-valid input, so a read-capable tool like
-  `schedule` or `memory_store` can gate only its mutations. Its `CallApprovalContext`
-  (`engine/hooks/approval-context.ts`) counts this tool's calls in the run and answers `hasSeen`
-  against the operator's own words (forwarded `<pasted_content>` removed) and non-error results of
-  `net` tools, never text the model wrote. `web_fetch` asks for a URL in neither, for extra headers,
-  and past `[loop] max_unasked_fetches`.
+  so.
+  - `requiresApproval` receives normalised, schema-valid input, so a read-capable tool like
+    `schedule` or `memory_store` can gate only its mutations.
+  - Its `CallApprovalContext`
+    (`engine/hooks/approval-context.ts`) counts this tool's calls in the run and answers `hasSeen`
+    against the operator's own words (forwarded `<pasted_content>` removed) and non-error results of
+    `net` tools, never text the model wrote.
+  - `web_fetch` asks for a URL in neither, for extra headers, and past `[loop] max_unasked_fetches`.
 - **Remember.** `oneTimeApproval: true` on a tool offers no remember arm. `order_place` sets it with
   `requiresApproval: () => true`.
 - **Decisions.** `decisionsFor(scope, oneTime)` is the one map from scope to offered choices.

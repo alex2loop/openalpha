@@ -15,12 +15,15 @@ gọi bị chặn không bao giờ tới được bộ thực thi.
   (`trading/features/order/execute.ts`).
 - **Nguy hiểm.** Một lời gọi nguy hiểm khi `capability` của công cụ là `write` hoặc `shell`, khi có
   `isExternal` (server MCP, plugin không đáng tin), hoặc khi `requiresApproval(input, context)` trả về
-  đúng. `requiresApproval` nhận đầu vào đã chuẩn hóa và hợp lệ theo schema, nên một công cụ chỉ đọc như
-  `schedule` hay `memory_store` có thể chỉ chặn các thao tác ghi. `CallApprovalContext`
-  (`engine/hooks/approval-context.ts`) đếm số lần gọi công cụ đó trong phiên chạy và trả lời `hasSeen`
-  dựa trên lời của chính người vận hành (đã bỏ phần `<pasted_content>` chuyển tiếp) và kết quả không
-  lỗi của các công cụ `net`, không bao giờ dựa trên chữ mô hình tự viết. `web_fetch` hỏi khi URL không
-  nằm ở hai nguồn đó, khi có header thêm, và khi vượt `[loop] max_unasked_fetches`.
+  đúng.
+  - `requiresApproval` nhận đầu vào đã chuẩn hóa và hợp lệ theo schema, nên một công cụ chỉ đọc như
+    `schedule` hay `memory_store` có thể chỉ chặn các thao tác ghi.
+  - `CallApprovalContext`
+    (`engine/hooks/approval-context.ts`) đếm số lần gọi công cụ đó trong phiên chạy và trả lời `hasSeen`
+    dựa trên lời của chính người vận hành (đã bỏ phần `<pasted_content>` chuyển tiếp) và kết quả không
+    lỗi của các công cụ `net`, không bao giờ dựa trên chữ mô hình tự viết.
+  - `web_fetch` hỏi khi URL không nằm ở hai nguồn đó, khi có header thêm, và khi vượt
+    `[loop] max_unasked_fetches`.
 - **Ghi nhớ.** `oneTimeApproval: true` trên công cụ thì không đưa ra lựa chọn ghi nhớ. `order_place`
   đặt cờ này cùng với `requiresApproval: () => true`.
 - **Quyết định.** `decisionsFor(scope, oneTime)` là bản đồ duy nhất từ phạm vi sang các lựa chọn được
