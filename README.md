@@ -2,7 +2,8 @@
 <h3 align="center">Khi TradingAgents gặp OpenClaw 👀</h3>
 
 <p align="center">
-  <strong>Một hội đồng AI tranh luận trước mỗi đề xuất như TradingAgents, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như OpenClaw.<br/>Đó là OpenAlpha, nhà phân tích đầu tư AI mã nguồn mở.</strong>
+  <strong>Một hội đồng AI tranh luận trước mỗi đề xuất như TradingAgents, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như OpenClaw.</strong><br/>
+  OpenAlpha là nhà phân tích đầu tư AI mã nguồn mở: AI phân tích, còn đặt lệnh hay không vẫn do bạn quyết.
 </p>
 
 <p align="center">
