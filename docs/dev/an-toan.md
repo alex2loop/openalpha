@@ -95,13 +95,15 @@ lại - và hai cái ánh xạ sang hai mã trạng thái khác nhau ở ranh gi
 nó ngay cả khi không có `--verbose`, vì thông báo đó mang số phiên bản mà operator cần để thử lại.
 
 Lỗi thiết lập mà operator sửa được thì ném `OperatorConfigError` với thông báo `errors.*` có khóa.
-`toInvalidConfigError(err, schema, section?)` diễn đạt một lỗi schema với mọi vấn đề trong một tham số
-danh sách (giới hạn số lượng, phần dư báo "và còn K chỗ nữa"); khóa lạ là một mục riêng cho từng khóa,
-kèm tên gần nhất mà `schema` nhận ở chỗ đó (`closestName`, `core/utils/text`, cho phép số lần sửa bằng một phần ba độ dài từ, nên từ ngắn không
-được gợi ý gì). Một mục cấp cao nhất không ai nhận được gợi ý mục gần nhất theo cách tương tự.
-`ConfigError` trần chỉ dùng nội bộ: bề mặt in một dòng chung đã bản địa hóa và giữ bản tiếng Anh cho
-`--verbose`. `ConfigError` cố tình chỉ có một mã; hãy dùng `path` để nêu trường bị từ chối.
-`StorageError` cũng chỉ có một mã và giữ nguyên nguyên nhân gốc.
+
+- `toInvalidConfigError(err, schema, section?)` diễn đạt một lỗi schema với mọi vấn đề trong một tham
+  số danh sách (giới hạn số lượng, phần dư báo "và còn K chỗ nữa").
+- Khóa lạ là một mục riêng cho từng khóa, kèm tên gần nhất mà `schema` nhận ở chỗ đó (`closestName`,
+  `core/utils/text`). Nó cho phép số lần sửa bằng một phần ba độ dài từ, nên từ ngắn không được gợi ý
+  gì. Một mục cấp cao nhất không ai nhận được gợi ý mục gần nhất theo cách tương tự.
+- `ConfigError` trần chỉ dùng nội bộ: bề mặt in một dòng chung đã bản địa hóa và giữ bản tiếng Anh cho
+  `--verbose`. `ConfigError` cố tình chỉ có một mã; hãy dùng `path` để nêu trường bị từ chối.
+- `StorageError` cũng chỉ có một mã và giữ nguyên nguyên nhân gốc.
 
 ### Lỗi đặt lệnh
 
@@ -140,17 +142,22 @@ Ghi chú:
 ### Mã dừng phiên chạy
 
 `HALT_SPEC` ánh xạ mỗi `HaltCode` sang mã thoát CLI, khóa thông báo, khóa gợi ý tùy chọn và emoji.
-`HALT_DETAIL_SPEC` mang văn bản riêng cho những chi tiết dừng cần nó: trần chi tiêu đứng sau một lần dừng
-ngân sách, và các mã của nhà cung cấp làm đổi việc người dùng phải làm tiếp (`auth`, `billing`, `not_found`,
-`rate`). `failureSpecOf(result)` chọn văn bản của chi tiết thay cho văn bản của mã dừng khi chi tiết có văn
-bản riêng; CLI diễn đạt một `LLMError` trơn theo cùng cách. Các mã `auth`, `billing`, `not_found` chỉ đọc như phán quyết của nhà
-cung cấp khi chính nhà cung cấp gửi nó: `classifyHttpError` đánh dấu lỗi (`answeredByProvider`) và
-`haltDetailOf` bỏ mã khỏi mọi `LLMError` khác (lỗi đăng nhập, nhà cung cấp không có trong danh mục), để
-chúng giữ chẩn đoán riêng hoặc đọc là `llm_error` chung. Một lần dừng `budget` mang `BudgetHaltDetail`
-(`run_budget`, `daily_cap`, `monthly_cap`, `agent_daily_cap`, `ledger_unavailable`); một lần dừng
-`llm_error` mang `LLMErrorCode` của nhà cung cấp khi `haltDetailOf` cho phép. `RUN_FAILURE_SPEC` ánh xạ các lý do phiên chạy chưa
-hoàn tất ở mức rộng hơn (`aborted`, `budget`, `turn_limit`, `loop`, `timeout`, `error`) sang cùng các
-mục đó khi ngữ nghĩa khớp; mã dừng có kiểu được ưu tiên.
+
+- `HALT_DETAIL_SPEC` mang văn bản riêng cho những chi tiết dừng cần nó: trần chi tiêu đứng sau một
+  lần dừng ngân sách, và các mã của nhà cung cấp làm đổi việc người dùng phải làm tiếp (`auth`,
+  `billing`, `not_found`, `rate`).
+- `failureSpecOf(result)` chọn văn bản của chi tiết thay cho văn bản của mã dừng khi chi tiết có văn
+  bản riêng; CLI diễn đạt một `LLMError` trơn theo cùng cách.
+- Các mã `auth`, `billing`, `not_found` chỉ đọc như phán quyết của nhà cung cấp khi chính nhà cung cấp
+  gửi nó. `classifyHttpError` đánh dấu lỗi (`answeredByProvider`), và `haltDetailOf` bỏ mã khỏi mọi
+  `LLMError` khác (lỗi đăng nhập, nhà cung cấp không có trong danh mục). Lỗi đó giữ chẩn đoán riêng
+  hoặc đọc là `llm_error` chung.
+- Một lần dừng `budget` mang `BudgetHaltDetail` (`run_budget`, `daily_cap`, `monthly_cap`,
+  `agent_daily_cap`, `ledger_unavailable`); một lần dừng `llm_error` mang `LLMErrorCode` của nhà cung
+  cấp khi `haltDetailOf` cho phép.
+- `RUN_FAILURE_SPEC` ánh xạ các lý do phiên chạy chưa hoàn tất ở mức rộng hơn (`aborted`, `budget`,
+  `turn_limit`, `loop`, `timeout`, `error`) sang cùng các mục đó khi ngữ nghĩa khớp; mã dừng có kiểu
+  được ưu tiên.
 
 | Mã | Mã thoát | Ý nghĩa |
 |---|---:|---|
