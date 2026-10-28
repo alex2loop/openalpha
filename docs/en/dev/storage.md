@@ -45,15 +45,20 @@ each fill part of.
 - **SQLite** (`persistence/engines/sqlite.ts`, `bun:sqlite`). Pragmas in order: `busy_timeout`
   5000 ms first (switching to WAL takes a lock, so the wait must already be set), `journal_mode =
   WAL`, `synchronous = NORMAL`, `temp_store = MEMORY`, `cache_size` 4000 KiB, `mmap_size` 8 MiB,
-  `foreign_keys = ON`. The retention sweep also runs `PRAGMA optimize` every 6 hours on SQLite
-  (`optimizeSqlite` in `persistence/upkeep.ts`, failures log `retention.optimize_failed`); there is no
-  engine timer. Backup uses `VACUUM INTO` (`persistence/backup.ts`): written into a
-  `mkdtemp` staging folder (`.staging-*`, `0700`) beside the target, `chmod 0600`, fsynced, renamed into place and the parent directory fsynced (an fsync failure fails the backup),
-  because `VACUUM INTO` honours the umask and the copy must never be readable by others while it is
-  written. `backupAndPrune` writes a copy then clears orphaned staging folders and drops the oldest past `keep`
-  (`KEEP_BACKUPS`, 7, unless the caller passes a count). The retention sweep calls it for `backups/daily/`
-  when `newestBackupAt` is missing, in the future or at least a day less one sweep interval old, with
-  `[retention] daily_backups` as the count; SQLite only, failures log `retention.backup_failed`.
+  `foreign_keys = ON`.
+  - **Optimize.** The retention sweep also runs `PRAGMA optimize` every 6 hours on SQLite
+    (`optimizeSqlite` in `persistence/upkeep.ts`; failures log `retention.optimize_failed`). There is
+    no engine timer.
+  - **Backup.** Backup uses `VACUUM INTO` (`persistence/backup.ts`). The copy is written into a
+    `mkdtemp` staging folder (`.staging-*`, `0700`) beside the target, then `chmod 0600`, fsynced,
+    renamed into place, and the parent directory fsynced (an fsync failure fails the backup). This is
+    because `VACUUM INTO` honours the umask, and the copy must never be readable by others while it is
+    written.
+  - **Pruning.** `backupAndPrune` writes a copy, then clears orphaned staging folders and drops the
+    oldest past `keep` (`KEEP_BACKUPS`, 7, unless the caller passes a count). The retention sweep calls
+    it for `backups/daily/` when `newestBackupAt` is missing, in the future, or at least a day less one
+    sweep interval old, with `[retention] daily_backups` as the count. SQLite only; failures log
+    `retention.backup_failed`.
 - **PostgreSQL** (`persistence/engines/postgres.ts`). `ensureSchema` runs `CREATE SCHEMA IF NOT
   EXISTS` first: `search_path` names a schema but never creates it, and a missing entry is skipped
   silently, which would land every migration in `public`.
@@ -168,12 +173,15 @@ So a domain table missing after a reset means its migration was not registered a
 look back (trading's `HISTORY_FLOOR_DAYS`: `MAXIMUM_OUTCOME_LOOKBACK_DAYS`, `MACRO_WINDOW_DAYS`,
 `MACRO_BACKFILL_DAYS`), which `effectiveHistoryDays` takes the larger of with `historyRetentionDays`.
 `persistence/retention-evidence.ts` empties `factorScores[].provenance` on scored calls past the
-general window outside each name's newest ten, in pages of 200 read and rewritten as raw JSON. The
-daemon sweeps once at start, then on a schedule; the manual `db cleanup` runs the same policy. `runRetention` runs each scope's delete (`toScopes`) in its own
-transaction, so one slow or failing scope neither holds the SQLite connection for the whole sweep nor
-rolls the others back on PostgreSQL's statement timeout; a failed scope logs `retention.scope_failed`
-and returns 0 in the unchanged `RetentionCounts`. The `SELECT changes()` read stays inside the scope's
-transaction, on the same connection as its delete.
+general window, outside each name's newest ten. It works in pages of 200, read and rewritten as raw
+JSON.
+
+The daemon sweeps once at start, then on a schedule; the manual `db cleanup` runs the same policy.
+`runRetention` runs each scope's delete (`toScopes`) in its own transaction. So one slow or failing
+scope neither holds the SQLite connection for the whole sweep nor rolls the others back on
+PostgreSQL's statement timeout. A failed scope logs `retention.scope_failed` and returns 0 in the
+unchanged `RetentionCounts`. The `SELECT changes()` read stays inside the scope's transaction, on the
+same connection as its delete.
 
 ## Session store
 

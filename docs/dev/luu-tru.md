@@ -45,15 +45,19 @@ mỗi bên điền một phần.
 - **SQLite** (`persistence/engines/sqlite.ts`, `bun:sqlite`). Thứ tự pragma: `busy_timeout` 5000 ms
   đứng đầu (chuyển sang WAL cần một khóa, nên thời gian chờ phải được đặt trước), `journal_mode = WAL`,
   `synchronous = NORMAL`, `temp_store = MEMORY`, `cache_size` 4000 KiB, `mmap_size` 8 MiB,
-  `foreign_keys = ON`. Lượt quét lưu giữ còn chạy `PRAGMA optimize` mỗi 6 giờ trên SQLite
-  (`optimizeSqlite` trong `persistence/upkeep.ts`, lỗi log `retention.optimize_failed`); không có timer của
-  engine. Sao lưu dùng `VACUUM INTO` (`persistence/backup.ts`): ghi vào một thư mục
-  tạm `mkdtemp` (`.staging-*`, `0700`) cạnh đích, `chmod 0600`, fsync, rename vào chỗ rồi fsync thư mục cha (fsync lỗi thì bản sao lưu lỗi), vì `VACUUM INTO` theo umask
-  chứ không theo đối số quyền và bản sao không được để người khác đọc được lúc đang ghi. `backupAndPrune`
-  ghi một bản, xóa các thư mục tạm mồ côi và bỏ các bản cũ nhất quá `keep` (`KEEP_BACKUPS` là 7 nếu nơi gọi
-  không truyền số). Lượt quét lưu giữ gọi nó cho `backups/daily/` khi `newestBackupAt` không có, nằm
-  ở tương lai hoặc đã cũ ít nhất một ngày trừ một chu kỳ quét, với số bản là `[retention] daily_backups`;
-  chỉ SQLite, lỗi log `retention.backup_failed`.
+  `foreign_keys = ON`.
+  - **Optimize.** Lượt quét lưu giữ còn chạy `PRAGMA optimize` mỗi 6 giờ trên SQLite
+    (`optimizeSqlite` trong `persistence/upkeep.ts`; lỗi log `retention.optimize_failed`). Không có
+    timer của engine.
+  - **Sao lưu.** Sao lưu dùng `VACUUM INTO` (`persistence/backup.ts`). Bản sao được ghi vào một thư
+    mục tạm `mkdtemp` (`.staging-*`, `0700`) cạnh đích, rồi `chmod 0600`, fsync, rename vào chỗ, và
+    fsync thư mục cha (fsync lỗi thì bản sao lưu lỗi). Lý do: `VACUUM INTO` theo umask chứ không theo
+    đối số quyền, và bản sao không được để người khác đọc được lúc đang ghi.
+  - **Dọn bản cũ.** `backupAndPrune` ghi một bản, rồi xóa các thư mục tạm mồ côi và bỏ các bản cũ
+    nhất quá `keep` (`KEEP_BACKUPS` là 7 nếu nơi gọi không truyền số). Lượt quét lưu giữ gọi nó cho
+    `backups/daily/` khi `newestBackupAt` không có, nằm ở tương lai, hoặc đã cũ ít nhất một ngày trừ
+    một chu kỳ quét, với số bản là `[retention] daily_backups`. Chỉ SQLite; lỗi log
+    `retention.backup_failed`.
 - **PostgreSQL** (`persistence/engines/postgres.ts`). `ensureSchema` chạy `CREATE SCHEMA IF NOT EXISTS`
   trước tiên: `search_path` nêu tên schema nhưng không bao giờ tạo nó, và mục thiếu bị bỏ qua lặng lẽ,
   khiến mọi migration rơi vào `public`.
@@ -163,13 +167,16 @@ Vậy nếu một bảng nghiệp vụ biến mất sau khi reset, nghĩa là mi
 `retentionDays` và `inboxRetentionDays`, cùng `historyFloors`: số ngày nơi đọc của từng phạm vi lịch sử
 nhìn lại (`HISTORY_FLOOR_DAYS` của trading: `MAXIMUM_OUTCOME_LOOKBACK_DAYS`, `MACRO_WINDOW_DAYS`,
 `MACRO_BACKFILL_DAYS`), `effectiveHistoryDays` lấy số lớn hơn giữa nó và `historyRetentionDays`.
-`persistence/retention-evidence.ts` làm rỗng `factorScores[].provenance` của gợi ý đã chấm quá cửa sổ
-chung, ngoài mười dòng mới nhất của mỗi mã, theo trang 200 dòng đọc và ghi lại dưới dạng JSON thô.
-Dịch vụ nền (daemon) dọn một lần lúc khởi động rồi theo chu kỳ; `db cleanup` chạy tay đúng chính sách đó. `runRetention` chạy câu xóa của từng phạm vi (`toScopes`) trong giao dịch riêng,
-nên một phạm vi chậm hoặc hỏng không giữ kết nối SQLite suốt cả lượt dọn và không làm PostgreSQL hoàn tác
-các phạm vi khác khi hết `statement_timeout`; phạm vi hỏng log `retention.scope_failed` và trả 0 trong
-`RetentionCounts` giữ nguyên hình dạng. Lệnh `SELECT changes()` vẫn nằm trong giao dịch của phạm vi, cùng
-kết nối với câu xóa.
+`persistence/retention-evidence.ts` làm rỗng `factorScores[].provenance` của đề xuất đã chấm quá cửa
+sổ chung, ngoài mười dòng mới nhất của mỗi mã. Nó chạy theo trang 200 dòng, đọc và ghi lại dưới dạng
+JSON thô.
+
+Dịch vụ nền (daemon) dọn một lần lúc khởi động rồi theo chu kỳ; `db cleanup` chạy tay đúng chính sách
+đó. `runRetention` chạy câu xóa của từng phạm vi (`toScopes`) trong giao dịch riêng. Nhờ vậy một phạm
+vi chậm hoặc hỏng không giữ kết nối SQLite suốt cả lượt dọn, và không làm PostgreSQL hoàn tác các phạm
+vi khác khi hết `statement_timeout`. Phạm vi hỏng log `retention.scope_failed` và trả 0 trong
+`RetentionCounts` giữ nguyên hình dạng. Lệnh `SELECT changes()` vẫn nằm trong giao dịch của phạm vi,
+cùng kết nối với câu xóa.
 
 ## Kho cuộc trò chuyện
 
