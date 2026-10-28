@@ -41,11 +41,7 @@ import type {
   TypedPrice,
 } from '@/trading/api'
 import { toCaveatWires, toInstrumentWire } from '@/app/server/mappers/trading'
-import {
-  changeAgainstClose,
-  MACRO_SCORE_RANGE,
-  parseExitLevel,
-} from '@/trading/api'
+import { changeAgainstClose, MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
 
 // A closed vocabulary the wire copies in `wire/vocab.ts` must match its trading source both ways, so
 // a value added on either side fails typecheck here.
