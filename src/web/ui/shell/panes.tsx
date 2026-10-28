@@ -3,7 +3,7 @@ import { computed } from '@preact/signals'
 import { SceneCanvas } from '@/web/scene/canvas'
 import { FloorRow } from '@/web/scene/overlay/toolbar'
 import { breakpoint } from '@/web/state/breakpoints'
-import { pane } from '@/web/state/pane'
+import { isInfoOnly, pane } from '@/web/state/pane'
 import { isFocused } from '@/web/state/panel'
 import { SceneTwin } from '@/web/ui/a11y/scene-twin'
 import { ChatPanel } from '@/web/ui/chat/chat-panel'
@@ -14,16 +14,29 @@ import { Tape } from '@/web/ui/tape/tape'
 import './panes.css'
 
 /** True while the stage is on screen: the command bar then floats over the scene's foot. */
-export const isStageShown = computed(() => breakpoint.value === 'wide' || pane.value === 'office')
+export const isStageShown = computed(() =>
+  breakpoint.value === 'wide' ? !isInfoOnly.value : pane.value === 'office'
+)
 
 /** Where each part of the office mounts: the stage (the scene, with the floor row and the tape
  *  floating over its top and the command bar over its foot), the info panel and the chat docked
- *  right. In focus mode the panel floats over the stage, above the command bar; on a narrow screen
- *  the information pane is a bottom sheet over it.
- *  Below the narrow width the pane bar picks the one shown; focus mode is a wide-screen choice. */
+ *  right. In Full office the panel floats over the stage, above the command bar; in Info only the
+ *  stage and the scene twin are not mounted at all and the panel fills the page; on a narrow screen
+ *  the information pane is a bottom sheet over the stage.
+ *  Below the narrow width the pane bar picks the one shown; the layouts are a wide-screen choice. */
 export function Panes() {
   return (
     <main class={isFocused.value ? 'panes is-focus' : 'panes'} data-pane={pane.value}>
+      {!isInfoOnly.value && <Stage />}
+      <Panel />
+      <ChatPanel />
+    </main>
+  )
+}
+
+function Stage() {
+  return (
+    <>
       <div class="stage">
         <SceneCanvas />
         <div class="stage-top">
@@ -33,8 +46,6 @@ export function Panes() {
         {isStageShown.value && <CommandBar isFloating />}
       </div>
       <SceneTwin />
-      <Panel />
-      <ChatPanel />
-    </main>
+    </>
   )
 }

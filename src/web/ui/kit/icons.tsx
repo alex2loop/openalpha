@@ -130,11 +130,31 @@ export function CollapseIcon({ class: className }: IconProps) {
   )
 }
 
-export function FocusIcon({ class: className }: IconProps) {
+// The three page layouts, drawn as the page: the office and the panel side by side, the panel over
+// the office, the panel alone.
+export function DockedIcon({ class: className }: IconProps) {
   return (
     <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
       <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M9 4v16" />
+      <path d="M14 4v16" />
+    </svg>
+  )
+}
+
+export function FullOfficeIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <rect x="13" y="8" width="5" height="8" rx="1" />
+    </svg>
+  )
+}
+
+export function InfoOnlyIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M7 9h10M7 13h10M7 17h6" />
     </svg>
   )
 }

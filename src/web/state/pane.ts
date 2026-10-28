@@ -2,6 +2,7 @@ import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import { breakpoint } from '@/web/state/breakpoints'
 import { isChatOpen, setChatOpen } from '@/web/state/chat'
+import { officeLayout, setOfficeLayout } from '@/web/state/prefs'
 
 export type Pane = 'office' | 'info' | 'chat'
 
@@ -13,6 +14,11 @@ const chatOnly = signal(false)
 
 /** True on a tab opened for one chat: the chat pane alone, always open. */
 export const isChatOnly: ReadonlySignal<boolean> = chatOnly
+
+/** Info only as the page lays it out: a wide-screen choice. The scene is not mounted then. */
+export const isInfoOnly: ReadonlySignal<boolean> = computed(
+  () => officeLayout.value === 'info' && breakpoint.value === 'wide'
+)
 
 /** The one pane on screen below the narrow width: the chat while it is open, else the office or
  *  the information it was left on, so closing the chat goes back to the pane before it. */
@@ -26,7 +32,8 @@ export function setChatOnly(): void {
   setChatOpen(true)
 }
 
-/** Brings `next` forward. On a wide screen the chat stays docked beside whatever is chosen. */
+/** Brings `next` forward. On a wide screen the chat stays docked beside whatever is chosen, and
+ *  the office, when asked for, leaves Info only. */
 export function showPane(next: Pane): void {
   if (next === 'chat') {
     setChatOpen(true)
@@ -37,5 +44,7 @@ export function showPane(next: Pane): void {
 
   if (breakpoint.peek() !== 'wide') {
     setChatOpen(false)
+  } else if (next === 'office' && isInfoOnly.peek()) {
+    setOfficeLayout('docked')
   }
 }

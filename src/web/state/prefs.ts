@@ -13,6 +13,7 @@ const LIGHT_BY_HOUR_KEY = 'office.lightByHour'
 const LAMPS_OFF_KEY = 'office.lampsOff'
 const SCENE_VIEW_KEY = 'office.sceneView'
 const DETAIL_LEVEL_KEY = 'office.detailLevel'
+const OFFICE_LAYOUT_KEY = 'office.layout'
 const CHIME_KEY = 'office.chime'
 const NOTIFY_KEY = 'office.notify'
 const STORED_ON = '1'
@@ -22,6 +23,7 @@ export const THEMES = ['system', 'light', 'dark'] as const
 export const COLOUR_PAIRS = ['green-up', 'red-up'] as const
 export const MOTIONS = ['system', 'reduced', 'full'] as const
 export const SCENE_VIEWS = ['2d', '3d'] as const
+export const OFFICE_LAYOUTS = ['docked', 'full', 'info'] as const
 // Advanced first: it is the default, and today's reader loses nothing.
 export const DETAIL_LEVELS = ['advanced', 'simple'] as const
 
@@ -29,6 +31,7 @@ export type Theme = (typeof THEMES)[number]
 export type ColourPair = (typeof COLOUR_PAIRS)[number]
 export type Motion = (typeof MOTIONS)[number]
 export type SceneView = (typeof SCENE_VIEWS)[number]
+export type OfficeLayout = (typeof OFFICE_LAYOUTS)[number]
 export type DetailLevel = (typeof DETAIL_LEVELS)[number]
 type ColorScheme = 'light' | 'dark'
 
@@ -42,6 +45,7 @@ const themeChoice = signal<Theme>(readChoice(THEME_KEY, THEMES))
 const colourChoice = signal<ColourPair>(readChoice(COLOURS_KEY, COLOUR_PAIRS))
 const motionChoice = signal<Motion>(readChoice(MOTION_KEY, MOTIONS))
 const sceneViewChoice = signal<SceneView>(readChoice(SCENE_VIEW_KEY, SCENE_VIEWS))
+const layoutChoice = signal<OfficeLayout>(readChoice(OFFICE_LAYOUT_KEY, OFFICE_LAYOUTS))
 const detailChoice = signal<DetailLevel>(readChoice(DETAIL_LEVEL_KEY, DETAIL_LEVELS))
 const lightByHourChoice = signal(readStorage('local', LIGHT_BY_HOUR_KEY) !== STORED_OFF)
 const switchedOff = signal<ReadonlySet<string>>(readLampsOff())
@@ -73,6 +77,8 @@ export const colourPair: ReadonlySignal<ColourPair> = colourChoice
 export const motion: ReadonlySignal<Motion> = motionChoice
 /** How the office is drawn: flat 2D, or the 3D view; blocked or unknown reads as 2D. */
 export const sceneView: ReadonlySignal<SceneView> = sceneViewChoice
+/** How a wide page lays out the office and the information; blocked or unknown reads as docked. */
+export const officeLayout: ReadonlySignal<OfficeLayout> = layoutChoice
 /** How much the page spells out: simple leaves the scores, sources and technical detail folded away. */
 export const detailLevel: ReadonlySignal<DetailLevel> = detailChoice
 export const isAdvanced: ReadonlySignal<boolean> = computed(() => detailChoice.value === 'advanced')
@@ -108,6 +114,10 @@ export function setMotion(value: Motion): void {
 
 export function setSceneView(value: SceneView): void {
   keep(sceneViewChoice, SCENE_VIEW_KEY, value)
+}
+
+export function setOfficeLayout(value: OfficeLayout): void {
+  keep(layoutChoice, OFFICE_LAYOUT_KEY, value)
 }
 
 export function setDetailLevel(value: DetailLevel): void {

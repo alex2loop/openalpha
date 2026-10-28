@@ -31,13 +31,17 @@
   flex: 1;
 }
 
+.layout-switch .seg-label {
+  display: none;
+}
+
 .header-keys {
   font-size: 14px;
   font-weight: 600;
 }
 
-/* The pane bar takes the focus toggle's place, and the cost chip drops its "AI today". */
-:root:not([data-layout="wide"]) :is(.header-focus, .header-cost-label) {
+/* The pane bar takes the layout switch's place, and the cost chip drops its "AI today". */
+:root:not([data-layout="wide"]) :is(.layout-switch, .header-cost-label) {
   display: none;
 }
 
