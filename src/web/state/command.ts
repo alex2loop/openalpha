@@ -41,15 +41,16 @@ export function fillInput(text: string, opts: { readonly agentId?: string } = {}
   focusInput()
 }
 
-/** Sends `text` as if typed and sent: a button's own command. Offline, it stays in the box and
- *  `isNotSent` says why. */
+/** Sends a button's own command, leaving what is typed in the box alone. Offline, the command
+ *  takes the box instead and `isNotSent` says why. */
 export function runCommand(text: string, opts: { readonly agentId?: string } = {}): void {
   if (opts.agentId !== undefined) {
     selectAgent(opts.agentId)
   }
 
-  setInput(text)
-  sendFromInput()
+  if (!send(text)) {
+    inputText.value = text
+  }
 }
 
 export function focusInput(): void {
@@ -67,17 +68,9 @@ export function setInput(text: string): void {
 export function sendFromInput(): void {
   const text = inputText.value.trim()
 
-  if (text === '') {
-    return
+  if (text !== '' && send(text)) {
+    setInput('')
   }
-
-  if (!sendMessage(text)) {
-    isNotSent.value = true
-    return
-  }
-
-  sent.value = [...sent.value.filter((held) => held !== text), text].slice(-HISTORY_MAX)
-  setInput('')
 }
 
 /** True while up and down walk the history: the box is empty or holds a recalled line. */
@@ -101,4 +94,16 @@ export function recall(direction: 'older' | 'newer'): void {
 
   inputText.value = sent.value[count - 1 - index] ?? ''
   recallIndex = index
+}
+
+// What was sent joins the recall history; a refused send marks the box not sent.
+function send(text: string): boolean {
+  if (!sendMessage(text)) {
+    isNotSent.value = true
+    return false
+  }
+
+  sent.value = [...sent.value.filter((held) => held !== text), text].slice(-HISTORY_MAX)
+
+  return true
 }

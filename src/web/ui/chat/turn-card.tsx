@@ -276,8 +276,8 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
   )
 }
 
-// The first name the answer reported on: suggest it, unless this turn already was the suggestion,
-// or set an alert on it. Both only fill the box.
+// The first name the answer reported on: analyze it, unless this turn already did, or start an
+// alert on it, which waits in the box for its price.
 function NextSteps({ turn }: { readonly turn: Turn }) {
   const ticker = turn.tickers?.[0]
 
