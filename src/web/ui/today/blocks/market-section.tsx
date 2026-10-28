@@ -17,7 +17,7 @@ type OverviewBlock = OverviewResponse['markets'][number]
 /** Every market of a block, or its empty line. */
 export function MarketSections({ blocks }: { readonly blocks: OverviewResponse['markets'] }) {
   if (blocks.length === 0) {
-    return <p class="meta">{tr('ui.office.today.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
   return blocks.map((block) => <MarketSection key={block.market} block={block} />)

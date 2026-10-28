@@ -112,10 +112,14 @@ export interface ChatBody {
 
 export const CHAT_CLIENT_ID_MAX = 64
 
-/** GET /v1/chat/history/:sessionId — one prior transcript message (display text). */
+/** GET /v1/chat/history/:sessionId — one prior transcript message (display text). A slash
+ *  command's turn is its line (`user`, starting with `/`) and its answer, as the chat showed them. */
 export interface ChatHistoryMessage {
   readonly role: string
   readonly content: string
+  /** On an answer: the run that wrote it (an agent turn's run, or a long-running command's), whose
+   *  model calls `GET /v1/runs/:id/calls` lists. Absent on the operator's own lines. */
+  readonly runId?: string
 }
 
 /** Page oldest-first, the newest page first; `?limit=` (default 30) + `?before=<idx>` scroll back. `nextBefore` is the

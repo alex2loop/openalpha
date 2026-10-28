@@ -195,7 +195,9 @@ same connection as its delete.
   `now - (loop.maxDurationMs + RUN_LEASE_SLACK_MS)`, with `RUN_LEASE_SLACK_MS` = 300,000.
 - **Write path.** `appendMessages` is the engine's session sink: append-only, flushed per completed
   turn by `engine/hooks/persistence.ts`. `appendCommandExchange` writes the two rows a slash command
-  contributes (no run owns them). `finalizeRun(id, runId, outcome)` closes the session out and throws
+  contributes (they name the command's run when it ran as one; no attempt is linked). The dispatcher
+  records every command answer through it: an echoed `text` answer as model context, every other one
+  with `display_only = 1`, kept for the history page and left out of `loadHistory` and `lastMessageAt`. `finalizeRun(id, runId, outcome)` closes the session out and throws
   `ConflictError` unless that run holds it.
 - **Stale.** `markStaleRuns(leaseExpiresBefore)` runs once at daemon boot (`app/startup-state.ts`),
   before any subsystem can open a run, and marks every `active` session nobody holds a live lease on

@@ -4,6 +4,8 @@ import { LLM_ATTEMPT_COLUMNS } from '@/persistence/stores/llm-attempt'
 // One owner of the session store's SQL text: lifecycle, transcript, attempt-linking, and route
 // cleanup statements. Callers bind parameters in the order each statement declares them.
 const PAYLOAD_COLS = 'role, content, tool_call_id, reasoning_blocks, is_error'
+// A display-only row is a slash command's turn kept for the reader; nothing the model reads sees it.
+const MODEL_ROWS = 'AND display_only = 0'
 // Every attempt against a model, billed whether or not it came back; an `external` row is a vendor
 // fee rather than a call. (COUNT(*) FILTER is not portable; the CASE form runs on both dialects.)
 const MODEL_CALLS_CASE = `CASE WHEN kind <> 'external' THEN 1 ELSE 0 END`
@@ -90,12 +92,13 @@ export function buildSessionSql(d: Dialect): SessionSql {
     loadAttempts: `SELECT ${LLM_ATTEMPT_COLUMNS.join(', ')} FROM llm_attempts WHERE session_id = ${d.param(1)} ORDER BY settled_at, id`,
     loadTotals: `SELECT ${TOTALS_FOLD_COLS} FROM llm_attempts WHERE session_id = ${d.param(1)}`,
     insertMessage:
-      `INSERT INTO session_messages (session_id, idx, run_id, ${PAYLOAD_COLS}, created_at) ` +
-      `VALUES (${d.paramList(9)})`,
+      `INSERT INTO session_messages (session_id, idx, run_id, ${PAYLOAD_COLS}, display_only, ` +
+      `created_at) VALUES (${d.paramList(10)})`,
     nextIdx: `SELECT MAX(idx) + 1 AS next FROM session_messages WHERE session_id = ${d.param(1)}`,
-    // The primary key is (session_id, idx), so the newest row is one index step.
+    // The primary key is (session_id, idx), so the newest row is one index step. It dates what the
+    // model last saw, so a command's display row does not move it.
     lastMessageAt:
-      `SELECT created_at FROM session_messages WHERE session_id = ${d.param(1)} ` +
+      `SELECT created_at FROM session_messages WHERE session_id = ${d.param(1)} ${MODEL_ROWS} ` +
       `ORDER BY idx DESC LIMIT 1`,
     linkAttempt:
       `UPDATE llm_attempts SET message_idx = ${d.param(1)} ` +
@@ -130,17 +133,23 @@ type TranscriptSql = Pick<
   | 'loadTranscriptRun'
 >
 
-// Display pages read user/assistant rows newest first; the caller asks for one row past the page.
+// The model's payloads leave display-only rows out; display pages read user/assistant rows, those
+// included, newest first, and the caller asks for one row past the page.
 function buildTranscriptSql(d: Dialect): TranscriptSql {
-  const head = `SELECT idx, ${PAYLOAD_COLS} FROM session_messages WHERE session_id = ${d.param(1)} `
+  const head =
+    `SELECT idx, run_id, ${PAYLOAD_COLS} FROM session_messages ` +
+    `WHERE session_id = ${d.param(1)} `
   const roles = `AND role IN ('user', 'assistant') `
 
   return {
-    loadPayloads: `SELECT ${PAYLOAD_COLS} FROM session_messages WHERE session_id = ${d.param(1)} ORDER BY idx`,
+    loadPayloads:
+      `SELECT ${PAYLOAD_COLS} FROM session_messages WHERE session_id = ${d.param(1)} ` +
+      `${MODEL_ROWS} ORDER BY idx`,
     // Newest rows only, back in order: the subquery picks them, the outer sort restores idx order.
     loadPayloadTail:
       `SELECT ${PAYLOAD_COLS} FROM (SELECT idx, ${PAYLOAD_COLS} FROM session_messages ` +
-      `WHERE session_id = ${d.param(1)} ORDER BY idx DESC LIMIT ${d.param(2)}) AS tail ORDER BY idx`,
+      `WHERE session_id = ${d.param(1)} ${MODEL_ROWS} ORDER BY idx DESC LIMIT ${d.param(2)}) ` +
+      `AS tail ORDER BY idx`,
     loadTranscriptNewest: `${head}${roles}ORDER BY idx DESC LIMIT ${d.param(2)}`,
     loadTranscriptBefore: `${head}${roles}AND idx < ${d.param(2)} ORDER BY idx DESC LIMIT ${d.param(3)}`,
     loadTranscriptRun: `${head}AND role = 'assistant' AND run_id = ${d.param(2)} ORDER BY idx DESC LIMIT ${d.param(3)}`,

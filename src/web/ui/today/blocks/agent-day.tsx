@@ -34,7 +34,7 @@ export function AgentDay() {
     >
       {(today) =>
         today.rows.length === 0 ? (
-          <p class="meta">{tr('ui.office.jobs.none')}</p>
+          <p class="empty-note">{tr('ui.office.jobs.none')}</p>
         ) : (
           <>
             {today.rows.slice(0, AGENT_DAY_SHOWN).map((row) => (

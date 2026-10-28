@@ -262,8 +262,9 @@ carries its lead. A burst of messages batched into one run keeps only the reply 
 
 ### Quiet-gap note
 
-The gap is measured from the newest `session_messages` row (`SessionActivity.lastMessageAt`), never
-`sessions.last_activity_at`, which slash commands also touch. When that row is older than
+The gap is measured from the newest `session_messages` row the model reads
+(`SessionActivity.lastMessageAt`, display-only rows left out), never `sessions.last_activity_at`, which
+slash commands also touch. When that row is older than
 `gap_note_ms`, the lead opens with one line saying how long the chat was quiet and that earlier prices
 may be out of date. A failed read logs `channel.gap_note_lookup_failed` and skips the note, so it never fails
 the turn. The key is in `deliveryFields` but not in `SAFE_DELIVERY_OVERRIDE_FIELDS`, so a declarative plugin

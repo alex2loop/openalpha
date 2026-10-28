@@ -32,6 +32,7 @@ export type {
   SessionStore,
   SessionSummary,
   StoredSessionMessage,
+  TranscriptMessage,
 } from '@/persistence/types'
 export {
   BACKUPS_SUBDIR,

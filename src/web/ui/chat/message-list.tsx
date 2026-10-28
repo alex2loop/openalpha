@@ -4,7 +4,8 @@ import { thread } from '@/web/state/chat'
 import { history, isOpenedGone, loadEarlier } from '@/web/state/chat-history'
 import { toFailureText, tr } from '@/web/text/tr'
 import { ApprovalInline } from '@/web/ui/chat/approval-inline'
-import { HistoryMessage } from '@/web/ui/chat/history-message'
+import { HistoryMessages } from '@/web/ui/chat/history-message'
+import { useOlderPages } from '@/web/ui/chat/older-pages'
 import { TurnCard } from '@/web/ui/chat/turn-card'
 import { Button } from '@/web/ui/kit/button'
 
@@ -19,6 +20,7 @@ export function MessageList() {
 
   const isPinned = useRef(true)
   const newestId = useRef(turns.at(-1)?.localId)
+  const onScrollOlder = useEarlierPages(list)
 
   // A turn just sent always brings the list to the bottom; a streamed delta keeps the newest line in
   // view only while the reader is already there.
@@ -45,20 +47,32 @@ export function MessageList() {
 
         isPinned.current =
           element.scrollHeight - element.scrollTop - element.clientHeight <= PIN_SLACK_PX
+        onScrollOlder()
       }}
     >
       {isOpenedGone.value && <p class="meta chat-start">{tr('ui.office.sessions.unknown')}</p>}
       <HistoryHead />
-      {earlier.map((message, index) => (
-        // Counted from the newest, so an older page prepended never shifts a key.
-        <HistoryMessage key={earlier.length - index} message={message} />
-      ))}
+      <HistoryMessages messages={earlier} />
       {turns.map((turn) => (
         <TurnCard key={turn.localId} turn={turn} />
       ))}
       <ApprovalInline />
     </div>
   )
+}
+
+// `loadEarlier` keeps its own failure in `history` and ignores a call while a page loads.
+function useEarlierPages(list: { readonly current: HTMLElement | null }): () => void {
+  const { messages, status } = history.value
+
+  return useOlderPages({
+    list,
+    oldest: messages[0],
+    canLoad: status === 'more',
+    loadOlder: () => {
+      loadEarlier().catch(() => undefined)
+    },
+  })
 }
 
 function HistoryHead() {

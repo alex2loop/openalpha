@@ -30,7 +30,7 @@ function OverviewBody({ book }: { readonly book: TradingPortfolioResponse }) {
   if (heldPositions.value.length === 0) {
     return (
       <>
-        <p class="meta">{tr('ui.office.book.empty')}</p>
+        <p class="empty-note">{tr('ui.office.book.empty')}</p>
         <EmptyBookActions />
       </>
     )

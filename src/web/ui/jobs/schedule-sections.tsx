@@ -37,7 +37,7 @@ export function UpcomingSection({ schedules, tasks }: SectionProps) {
   return (
     <>
       <h3 class="sub-head">{tr('ui.office.jobs.upcoming')}</h3>
-      {items.length === 0 && <p class="meta">{tr('ui.office.jobs.none')}</p>}
+      {items.length === 0 && <p class="empty-note">{tr('ui.office.jobs.none')}</p>}
       {items.map((item) => (
         <div key={item.key} class="job-row">
           <span class="job-time">

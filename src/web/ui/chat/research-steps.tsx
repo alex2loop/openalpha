@@ -11,7 +11,7 @@ import { commandWordOf } from '@/web/ui/chat/command-link'
 import { Button } from '@/web/ui/kit/button'
 import { openReader } from '@/web/ui/reader/reader'
 
-const RESEARCH_COMMAND = '/research'
+export const RESEARCH_COMMAND = '/research'
 
 /** How many of the newest reports a run is looked up among. */
 export const RESEARCH_LOOKUP = 20

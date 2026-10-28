@@ -3,9 +3,9 @@ import { readReconcile } from '@/web/state/orders'
 import { state } from '@/web/state/session'
 import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
-import { FailureStrip } from '@/web/ui/book/failure-strip'
 import { ReconcileVenue } from '@/web/ui/book/reconcile-venue'
 import { Button } from '@/web/ui/kit/button'
+import { FailureStrip } from '@/web/ui/kit/failure-strip'
 import { openModal } from '@/web/ui/kit/modal'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 
@@ -42,7 +42,7 @@ function ReconcileBody() {
       </div>
       {error !== undefined && <FailureStrip failure={error} retry={reading.retry} />}
       {data.text.matched !== null && <p>{data.text.matched}</p>}
-      {data.venues.length === 0 && <p class="meta">{tr('ui.office.reconcile.none')}</p>}
+      {data.venues.length === 0 && <p class="empty-note">{tr('ui.office.reconcile.none')}</p>}
       {data.venues.map((venue) => (
         <ReconcileVenue key={venue.venue} venue={venue} recheck={reading.retry} />
       ))}

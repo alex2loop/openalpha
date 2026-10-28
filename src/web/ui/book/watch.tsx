@@ -49,7 +49,7 @@ function WatchList({ profile }: { readonly profile: TradingProfileResponse }) {
   return (
     <>
       {profile.watchlist.length === 0 ? (
-        <p class="meta">{tr('ui.office.book.watchEmpty')}</p>
+        <p class="empty-note">{tr('ui.office.book.watchEmpty')}</p>
       ) : (
         <div class="row-list">
           {profile.watchlist.map((instrument) => (
@@ -175,7 +175,7 @@ function AlertList({ alerts }: { readonly alerts: readonly AlertWire[] }) {
   const mine = alerts.filter((alert) => alert.source === 'you' && alert.state !== 'disabled')
 
   if (mine.length === 0) {
-    return <p class="meta">{tr('ui.office.book.alertsEmpty')}</p>
+    return <p class="empty-note">{tr('ui.office.book.alertsEmpty')}</p>
   }
 
   return (

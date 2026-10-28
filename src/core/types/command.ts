@@ -74,10 +74,14 @@ export type SlashResult =
 
 /** What a slash command adds to its session transcript: the line the operator ran, and the text it
  *  answered with. Recorded as a user row and an assistant row so the next turn reads a normal
- *  exchange. */
+ *  exchange, or, when `displayOnly`, so only the session's history shows it. */
 export interface CommandExchange {
   readonly invocation: string
   readonly output: string
+  /** The command's run, when it ran as one. */
+  readonly runId?: RunId
+  /** Kept for the reader of the session's history; never read back as model context. */
+  readonly displayOnly?: true
 }
 
 /** A long-running command reports the locale key of its current stage through this; the surface

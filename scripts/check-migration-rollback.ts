@@ -22,6 +22,8 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const DISPLAY_ONLY_MIGRATION_ID = '2026_10_28_223300_add_session_messages_display_only'
+const SESSION_MESSAGES_TABLE = 'session_messages'
 const RUNS_ENRICHMENT_MIGRATION_ID = '2026_10_27_080926_add_runs_tickers_questions'
 const RUNS_ENRICHMENT_COLUMNS = ['tickers', 'questions_done', 'questions_total'] as const
 const BROWSER_SESSIONS_MIGRATION_ID = '2026_10_26_132705_add_browser_sessions'
@@ -192,6 +194,30 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   )
 
   return new Set(rows.map((row) => row.name))
+}
+
+/** The flag is the only thing the migration adds; rolling back leaves the transcript's table without
+ *  it. */
+async function assertDisplayOnlyRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, SESSION_MESSAGES_TABLE, 'display_only'),
+    'display_only migration did not add the column'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: DISPLAY_ONLY_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'display_only rollback did not complete')
+  assertState(
+    await hasTable(db, SESSION_MESSAGES_TABLE),
+    'display_only rollback dropped the table'
+  )
+  assertState(
+    !(await hasColumn(db, SESSION_MESSAGES_TABLE, 'display_only')),
+    'display_only rollback kept the column'
+  )
 }
 
 /** The columns are the only thing the migration adds, so rolling back must leave the run log's table
@@ -374,6 +400,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertDisplayOnlyRollback(db)
     await assertRunsEnrichmentRollback(db)
     await assertBrowserSessionsRollback(db)
     await assertDebateModelsRollback(db)

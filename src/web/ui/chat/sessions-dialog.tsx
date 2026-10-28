@@ -128,7 +128,7 @@ function EmptyList({ search, pages }: EmptyProps) {
   }
 
   return (
-    <p class="meta">
+    <p class="empty-note">
       {search === undefined
         ? tr('ui.office.sessions.none')
         : tr('ui.office.sessions.noMatch', { query: search })}

@@ -5,6 +5,7 @@ import type {
   SlashCommand,
   SlashResult,
 } from '@/core/types/command'
+import type { Locale } from '@/core/types/locale'
 import type {
   CostRange,
   DaySpend,
@@ -12,7 +13,7 @@ import type {
   RunCalls,
   SpendBreakdownRow,
 } from '@/core/types/usage'
-import { formatUsd } from '@/core/utils/cost'
+import { formatSpendUsd, formatTokenCount, sentTokensOf } from '@/core/utils/cost'
 
 const MESSAGE_KEYS: readonly CommandMessageKey[] = [
   'slash.costTitle',
@@ -76,14 +77,18 @@ export function createCostCommand(deps: SpendCommandDeps): SlashCommand {
       return {
         kind: 'message',
         title: { key: 'slash.costTitle' },
-        messages: [toDailyLine(spent, deps.maxDailyUsd), toSessionLine(session)],
+        messages: [
+          toDailyLine(ctx.locale, spent, deps.maxDailyUsd),
+          toSessionLine(ctx.locale, session),
+        ],
       }
     },
   }
 }
 
-function toDailyLine(spent: number, maxDailyUsd: number): CommandMessage {
-  const spentUsd = formatUsd(spent)
+// Money and token counts read as the run footer prints them, in the reader's digit separators.
+function toDailyLine(locale: Locale, spent: number, maxDailyUsd: number): CommandMessage {
+  const spentUsd = formatSpendUsd(locale, spent)
 
   if (maxDailyUsd <= 0) {
     return { key: 'slash.costLineUncapped', values: { spent: spentUsd } }
@@ -93,19 +98,19 @@ function toDailyLine(spent: number, maxDailyUsd: number): CommandMessage {
     key: 'slash.costLine',
     values: {
       spent: spentUsd,
-      max: formatUsd(maxDailyUsd),
+      max: formatSpendUsd(locale, maxDailyUsd),
       pct: Math.round((spent / maxDailyUsd) * 100),
     },
   }
 }
 
-function toSessionLine(session: LLMUsageTotals): CommandMessage {
+function toSessionLine(locale: Locale, session: LLMUsageTotals): CommandMessage {
   return {
     key: 'slash.costSession',
     values: {
-      input: session.inputTokens,
-      output: session.outputTokens,
-      cost: formatUsd(session.costUsd),
+      input: formatTokenCount(locale, sentTokensOf(session)),
+      output: formatTokenCount(locale, session.outputTokens),
+      cost: formatSpendUsd(locale, session.costUsd),
     },
   }
 }

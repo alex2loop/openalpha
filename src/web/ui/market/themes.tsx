@@ -15,10 +15,14 @@ import { BulbIcon } from '@/web/ui/kit/icons'
 import { Outline } from '@/web/ui/market/outline'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
-// A bare `/themes` is the run that re-reads every tracked theme and looks for new ones.
+// A bare `/themes` is the run that re-reads every tracked theme and looks for new ones; `run <id>`
+// re-reads one.
 const THEMES_COMMAND = 'themes'
 const RUN_TEXT = `/${THEMES_COMMAND}`
+const RUN_ONE_TEXT = `${RUN_TEXT} run`
 const PROPOSED = 'proposed'
+// Met a condition that ends it: it waits to be retired, and a run refuses it.
+const INVALIDATED = 'invalidated'
 // Themes read the Vietnam market only.
 const THEMES_REGION = 'vn'
 
@@ -38,7 +42,7 @@ interface MoveContext {
 }
 
 /** Chủ đề: proposals to decide, themes followed, and `/themes show` for them. The page moves a
- *  theme; Chạy lại runs `/themes` at once. */
+ *  theme; Chạy lại runs `/themes` at once, or `/themes run <id>` on a followed theme. */
 export function Themes() {
   const reading = useBlock(ROUTES.themes)
   const answer = useSignal<MoveAnswer | undefined>(undefined)
@@ -58,7 +62,7 @@ export function Themes() {
           <VnOnlyNote />
           {answer.value?.isRefused === false && <p class="meta">{answer.value.text}</p>}
           {data.themes.length === 0 ? (
-            <p class="meta">{tr('ui.office.themes.none')}</p>
+            <p class="empty-note">{tr('ui.office.themes.none')}</p>
           ) : (
             <ThemeLists data={data} context={{ answer, reread: reading.retry }} />
           )}
@@ -155,6 +159,11 @@ function ThemeRow({ theme, context }: ThemeRowProps) {
 // One move at a time: the buttons stay off from the click to the daemon's answer.
 function ThemeActions({ theme, context }: ThemeRowProps) {
   const isBusy = useSignal(false)
+
+  if (theme.status !== PROPOSED) {
+    return <TrackedActions theme={theme} context={context} />
+  }
+
   const move = async (transition: ThemeTransitionWire): Promise<void> => {
     isBusy.value = true
 
@@ -165,14 +174,6 @@ function ThemeActions({ theme, context }: ThemeRowProps) {
     } finally {
       isBusy.value = false
     }
-  }
-
-  if (theme.status !== PROPOSED) {
-    return (
-      <Button size="small" disabled={isBusy.value} onClick={() => askStop(theme, context)}>
-        {tr('ui.office.themes.stop')}
-      </Button>
-    )
   }
 
   return (
@@ -190,6 +191,22 @@ function ThemeActions({ theme, context }: ThemeRowProps) {
         onClick={() => move('reject').catch(() => undefined)}
       >
         {tr('ui.office.themes.skip')}
+      </Button>
+    </>
+  )
+}
+
+// A followed theme re-reads on its own; an invalidated one only waits to be stopped.
+function TrackedActions({ theme, context }: ThemeRowProps) {
+  return (
+    <>
+      {theme.status !== INVALIDATED && (
+        <Button kind="ai" size="small" onClick={() => runCommand(`${RUN_ONE_TEXT} ${theme.id}`)}>
+          {tr('ui.office.themes.rerun')}
+        </Button>
+      )}
+      <Button size="small" onClick={() => askStop(theme, context)}>
+        {tr('ui.office.themes.stop')}
       </Button>
     </>
   )

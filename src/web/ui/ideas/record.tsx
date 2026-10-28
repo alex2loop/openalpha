@@ -33,7 +33,7 @@ function RecordBody({ record }: { readonly record: TradingTrackRecordResponse })
   const { summary, text } = record
 
   if (summary.resolvedCount === 0) {
-    return <p class="meta">{tr('ui.office.record.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.record.empty')}</p>
   }
 
   return (

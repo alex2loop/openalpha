@@ -16,7 +16,7 @@ import {
 } from '@/web/state/market-tab'
 import { isSegmentOn } from '@/web/state/profile'
 import { tr } from '@/web/text/tr'
-import { FailureStrip } from '@/web/ui/book/failure-strip'
+import { FailureStrip } from '@/web/ui/kit/failure-strip'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'

@@ -29,7 +29,7 @@ function PnlRows({ book }: { readonly book: TradingPortfolioResponse }) {
   if (held.length === 0) {
     return (
       <>
-        <p class="meta">{tr('ui.office.book.empty')}</p>
+        <p class="empty-note">{tr('ui.office.book.empty')}</p>
         <EmptyBookActions />
       </>
     )

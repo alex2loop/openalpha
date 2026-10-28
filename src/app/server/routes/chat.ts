@@ -9,7 +9,7 @@ import type {
 } from '@/app/server/wire/chat'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { SessionId } from '@/core/ids'
-import type { LLMMessage } from '@/core/llm'
+import type { TranscriptMessage } from '@/persistence/api'
 import { API_CHANNEL, isApiChannel } from '@/app/server/channel'
 import { CHAT_ID_RE } from '@/app/server/chat-id'
 import { ENGINE_DECISION } from '@/app/server/decision'
@@ -117,7 +117,9 @@ function parseIndex(value: string | null): number | undefined {
 }
 
 // An assistant turn is a block array; only its text blocks are display content (a tool call is not).
-function toHistoryMessage(message: LLMMessage): readonly ChatHistoryMessage[] {
+// An answer names the run that wrote it, so its model calls can be read.
+function toHistoryMessage(row: TranscriptMessage): readonly ChatHistoryMessage[] {
+  const { message, runId } = row
   const content =
     typeof message.content === 'string'
       ? message.content.trim()
@@ -126,7 +128,17 @@ function toHistoryMessage(message: LLMMessage): readonly ChatHistoryMessage[] {
           .join('')
           .trim()
 
-  return content === '' ? [] : [{ role: message.role, content: scrubCredentials(content) }]
+  if (content === '') {
+    return []
+  }
+
+  return [
+    {
+      role: message.role,
+      content: scrubCredentials(content),
+      ...(message.role === 'assistant' && runId !== undefined ? { runId } : {}),
+    },
+  ]
 }
 
 /** The conversations of every channel, or of the ones named, newest first. A search shorter than

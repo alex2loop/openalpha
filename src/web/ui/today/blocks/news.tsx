@@ -32,7 +32,7 @@ export function News() {
     >
       {(news) =>
         news.items.length === 0 ? (
-          <p class="meta">{tr('ui.office.today.empty')}</p>
+          <p class="empty-note">{tr('ui.office.today.empty')}</p>
         ) : (
           news.items.slice(0, NEWS_LIMIT).map((item) => <NewsItem key={item.url} item={item} />)
         )

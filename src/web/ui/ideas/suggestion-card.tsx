@@ -75,7 +75,7 @@ function CardBody({ call }: { readonly call: SuggestionWire }) {
   const { card } = result.value
 
   return card === null ? (
-    <p class="meta">{tr('ui.office.today.empty')}</p>
+    <p class="empty-note">{tr('ui.office.today.empty')}</p>
   ) : (
     <CardText call={call} card={card} />
   )

@@ -61,7 +61,7 @@ interface PlanListProps {
 
 function PlanList({ calls, unseen }: PlanListProps) {
   if (calls.length === 0) {
-    return <p class="meta">{tr('ui.office.ideas.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.ideas.empty')}</p>
   }
 
   return (

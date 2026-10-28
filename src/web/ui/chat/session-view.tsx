@@ -12,7 +12,8 @@ import { ABSENT_CELL } from '@/web/text/glyphs'
 import { sourceLabel } from '@/web/text/source'
 import { formatWhen } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
-import { HistoryMessage } from '@/web/ui/chat/history-message'
+import { HistoryMessages } from '@/web/ui/chat/history-message'
+import { useOlderPages } from '@/web/ui/chat/older-pages'
 import { Button } from '@/web/ui/kit/button'
 
 /** Oldest first; `nextBefore` absent once the first message is in view or the view holds all it
@@ -31,6 +32,7 @@ const FIRST_PAGE: Pages = Object.freeze({ messages: [], isLoading: true })
 export function SessionView({ session }: { readonly session: ChatSession }) {
   const pages = useSignal<Pages>(FIRST_PAGE)
   const lifetime = useRef<AbortController | undefined>(undefined)
+  const list = useRef<HTMLDivElement>(null)
   const loadMore = (): void => {
     const abortSignal = lifetime.current?.signal
 
@@ -39,6 +41,18 @@ export function SessionView({ session }: { readonly session: ChatSession }) {
       loadPage(session.sessionId, pages, abortSignal).catch(() => undefined)
     }
   }
+  const held = pages.value
+  const onScroll = useOlderPages({
+    list,
+    oldest: held.messages[0],
+    canLoad: !held.isLoading && held.nextBefore !== undefined && held.failure === undefined,
+    // Not inside `loadMore`: the first page is asked for while `pages` already says loading.
+    loadOlder: () => {
+      if (!pages.value.isLoading) {
+        loadMore()
+      }
+    },
+  })
 
   useEffect(() => {
     const controller = new AbortController()
@@ -51,22 +65,20 @@ export function SessionView({ session }: { readonly session: ChatSession }) {
   }, [session.sessionId])
 
   return (
-    <div class="chat-messages" role="log" aria-live="polite">
+    <div ref={list} class="chat-messages" role="log" aria-live="polite" onScroll={onScroll}>
       <ReadingBanner session={session} />
-      <PagesHead pages={pages.value} onOlder={loadMore} />
-      {pages.value.messages.map((message, index) => (
-        // Counted from the newest, so an older page prepended never shifts a key.
-        <HistoryMessage key={pages.value.messages.length - index} message={message} />
-      ))}
-      <p class="meta chat-start">
-        {tr(
-          pluralKey(session.messageCount, 'ui.office.sessions.endOne', 'ui.office.sessions.end'),
-          {
-            count: session.messageCount,
-          }
-        )}
-      </p>
+      <PagesHead pages={held} onOlder={loadMore} />
+      <HistoryMessages messages={held.messages} />
+      <EndNote count={session.messageCount} />
     </div>
+  )
+}
+
+function EndNote({ count }: { readonly count: number }) {
+  return (
+    <p class="meta chat-start">
+      {tr(pluralKey(count, 'ui.office.sessions.endOne', 'ui.office.sessions.end'), { count })}
+    </p>
   )
 }
 

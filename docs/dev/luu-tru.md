@@ -189,8 +189,10 @@ cùng kết nối với câu xóa.
   `leaseExpiresBefore` thì mất lease. Mốc đó là `now - (loop.maxDurationMs + RUN_LEASE_SLACK_MS)`, với
   `RUN_LEASE_SLACK_MS` = 300.000.
 - **Đường ghi.** `appendMessages` là sink cuộc trò chuyện của engine: chỉ ghi thêm, ghi mỗi lượt xong bởi
-  `engine/hooks/persistence.ts`. `appendCommandExchange` ghi hai dòng mà một lệnh slash đóng góp (không
-  phiên chạy nào sở hữu chúng). `finalizeRun(id, runId, outcome)` khép cuộc trò chuyện lại và ném
+  `engine/hooks/persistence.ts`. `appendCommandExchange` ghi hai dòng mà một lệnh slash đóng góp (chúng mang
+  phiên chạy của lệnh khi lệnh chạy như một phiên chạy; không gắn lần gọi nào). Bộ điều phối ghi mọi câu
+  trả lời của lệnh qua đây: câu trả lời `text` được echo thành ngữ cảnh cho mô hình, mọi câu khác mang
+  `display_only = 1`, giữ cho trang lịch sử và bị loại khỏi `loadHistory` và `lastMessageAt`. `finalizeRun(id, runId, outcome)` khép cuộc trò chuyện lại và ném
   `ConflictError` trừ khi đúng phiên chạy đó đang giữ nó.
 - **Stale.** `markStaleRuns(leaseExpiresBefore)` chạy một lần lúc dịch vụ nền khởi động
   (`app/startup-state.ts`), trước khi bất kỳ hệ con nào mở được phiên chạy, và đánh dấu `stale` mọi

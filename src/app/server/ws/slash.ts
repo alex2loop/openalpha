@@ -301,11 +301,11 @@ async function dispatchSlash(run: SlashRun): ReturnType<SlashDispatcher['dispatc
   const { ws, line, ctx, resolved } = run
   const { services } = ws.data
 
+  await openSession(services, ctx.sessionId)
+
   if (resolved === null) {
     return services.slashDispatcher.dispatch(line, ctx)
   }
-
-  await openSession(services, ctx.sessionId)
 
   return services.slashDispatcher.dispatchResolved(resolved, ctx)
 }

@@ -51,7 +51,7 @@ function ActivityList({ day }: { readonly day: string | undefined }) {
   }
 
   if (activity.value.rows.length === 0) {
-    return <p class="meta">{tr('ui.office.jobs.none')}</p>
+    return <p class="empty-note">{tr('ui.office.jobs.none')}</p>
   }
 
   return (

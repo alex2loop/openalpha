@@ -15,6 +15,7 @@ import * as migrationAddJobEventTriggers from '@/persistence/migrations/2026_10_
 import * as migrationAddSuggestionDebateModels from '@/persistence/migrations/2026_10_24_083308_add_suggestion_debate_models'
 import * as migrationAddBrowserSessions from '@/persistence/migrations/2026_10_26_132705_add_browser_sessions'
 import * as migrationAddRunsTickersQuestions from '@/persistence/migrations/2026_10_27_080926_add_runs_tickers_questions'
+import * as migrationAddSessionMessagesDisplayOnly from '@/persistence/migrations/2026_10_28_223300_add_session_messages_display_only'
 
 export const MIGRATIONS = [
   { id: '2026_07_10_000001_initial_schema', reversibility: 'irreversible', up: migrationInitialSchema.up },
@@ -30,4 +31,5 @@ export const MIGRATIONS = [
   { id: '2026_10_24_083308_add_suggestion_debate_models', reversibility: 'reversible', up: migrationAddSuggestionDebateModels.up, down: migrationAddSuggestionDebateModels.down },
   { id: '2026_10_26_132705_add_browser_sessions', reversibility: 'reversible', up: migrationAddBrowserSessions.up, down: migrationAddBrowserSessions.down },
   { id: '2026_10_27_080926_add_runs_tickers_questions', reversibility: 'reversible', up: migrationAddRunsTickersQuestions.up, down: migrationAddRunsTickersQuestions.down },
+  { id: '2026_10_28_223300_add_session_messages_display_only', reversibility: 'reversible', up: migrationAddSessionMessagesDisplayOnly.up, down: migrationAddSessionMessagesDisplayOnly.down },
 ] as const satisfies readonly Migration[]

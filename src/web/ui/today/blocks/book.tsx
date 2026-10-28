@@ -42,7 +42,7 @@ function BookFigures({ book }: { readonly book: TradingPortfolioResponse }) {
   if (held === 0) {
     return (
       <>
-        <p class="meta">{tr('ui.office.today.bookEmpty')}</p>
+        <p class="empty-note">{tr('ui.office.today.bookEmpty')}</p>
         <EmptyBookActions />
       </>
     )

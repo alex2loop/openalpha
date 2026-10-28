@@ -363,9 +363,73 @@ kbd {
   color: var(--problemText);
 }
 
-.failure-line {
-  color: var(--dangerText);
+/* A failure line wears the problem strip's tint, so every error on the page reads the same. */
+.failure-line,
+.strip {
+  padding: 7px 10px;
+  border-radius: 8px;
   font-size: var(--sizeBody);
+}
+
+.failure-line,
+.strip.is-problem {
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+/* WarningIcon's shape, drawn in the text colour ahead of every error. */
+.failure-line::before,
+.strip.is-problem::before {
+  content: "";
+  display: inline-block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  mask:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3'/%3E%3Cpath d='M12 9v4M12 17h.01'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.failure-line::before {
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
+/* Nothing to show yet, or nothing matched: quiet, centred, with room around it. */
+.empty-note {
+  padding: var(--s3) var(--s2);
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+  text-align: center;
+}
+
+.strip {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin-bottom: var(--s2);
+}
+
+.flow > .strip {
+  margin: 0;
+}
+
+.strip > span {
+  flex: 1;
+}
+
+.strip.is-caution {
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.strip.is-grey {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  background: var(--sunken);
+  color: var(--ink2);
 }
 
 /* A run under way. */

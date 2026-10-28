@@ -9,15 +9,16 @@ import { ConflictError, StorageError } from '@/core/errors'
 import { withRetry } from '@/core/utils/retry'
 import { toLlmAttempt } from '@/persistence/stores/llm-attempt'
 import {
-  type IndexedPayloadRow,
   type MessagePayloadRow,
   type SessionRow,
   type StoredMessageRow,
   type TotalsRow,
+  type TranscriptRow,
   toMessage,
   toSessionDetails,
   toStoredMessage,
   toTotals,
+  toTranscriptMessage,
 } from '@/persistence/stores/session/mapping'
 
 const APPEND_MAX_ATTEMPTS = 3
@@ -29,10 +30,12 @@ type AssistantWrite = Extract<
   { readonly message: { readonly role: 'assistant' } }
 >
 
-/** What the insert needs from either writer: the row's run, when one owns it, and the message. */
+/** What the insert needs from either writer: the row's run, when one owns it, the message, and
+ *  whether only the reader sees it. */
 interface TailWrite {
   readonly runId: RunId | null
   readonly message: LLMMessage
+  readonly displayOnly?: true
 }
 
 export interface StoreDeps {
@@ -63,7 +66,7 @@ export async function loadSessionHistoryPage(
   const page = rows.slice(0, limit).reverse()
 
   return {
-    messages: page.map(toMessage),
+    messages: page.map(toTranscriptMessage),
     hasMore,
     nextBefore: hasMore ? (page[0]?.idx ?? null) : null,
   }
@@ -74,16 +77,16 @@ function readTranscriptRows(
   store: StoreDeps,
   id: SessionId,
   query: HistoryPageQuery
-): Promise<readonly IndexedPayloadRow[]> {
+): Promise<readonly TranscriptRow[]> {
   const { before, limit, runId } = query
 
   if (runId !== undefined) {
-    return store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptRun, [id, runId, limit + 1])
+    return store.db.query<TranscriptRow>(store.sql.loadTranscriptRun, [id, runId, limit + 1])
   }
 
   return before === undefined
-    ? store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptNewest, [id, limit + 1])
-    : store.db.query<IndexedPayloadRow>(store.sql.loadTranscriptBefore, [id, before, limit + 1])
+    ? store.db.query<TranscriptRow>(store.sql.loadTranscriptNewest, [id, limit + 1])
+    : store.db.query<TranscriptRow>(store.sql.loadTranscriptBefore, [id, before, limit + 1])
 }
 
 export async function loadSessionDetails(
@@ -134,18 +137,21 @@ export async function appendSessionMessages(
   )
 }
 
-/** A slash command's own exchange. No run produced it, so the rows name none, no attempt group is
- *  linked, and the holder check does not apply — a command may record while a run holds the
- *  session. */
+/** A slash command's own exchange. No agent turn produced it: the rows name the command's run
+ *  when it ran as one, no attempt group is linked, and the holder check does not apply — a command
+ *  may record while a run holds the session. */
 export async function appendCommandExchange(
   store: StoreDeps,
   id: SessionId,
   exchange: CommandExchange
 ): Promise<void> {
   const now = Date.now()
+  const runId = exchange.runId ?? null
+  const shared: Omit<TailWrite, 'message'> =
+    exchange.displayOnly === true ? { runId, displayOnly: true } : { runId }
   const writes: readonly TailWrite[] = [
-    { runId: null, message: { role: 'user', content: exchange.invocation } },
-    { runId: null, message: { role: 'assistant', content: exchange.output } },
+    { ...shared, message: { role: 'user', content: exchange.invocation } },
+    { ...shared, message: { role: 'assistant', content: exchange.output } },
   ]
 
   await withAppendRetry(() =>
@@ -288,6 +294,7 @@ function toMessageParams(
     message.toolCallId ?? null,
     message.reasoningBlocks ? JSON.stringify(message.reasoningBlocks) : null,
     message.isError === true ? 1 : 0,
+    write.displayOnly === true ? 1 : 0,
     at.now,
   ]
 }

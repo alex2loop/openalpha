@@ -52,10 +52,16 @@ export interface SessionDetails {
 
 export interface StoredSessionMessage {
   readonly idx: number
-  /** Absent on a row a slash command contributed: no run produced it. */
+  /** Absent on a row a slash command contributed outside a run. */
   readonly runId?: RunId
   readonly message: LLMMessage
   readonly createdAt: number
+}
+
+/** One row of the display transcript and the run that wrote it, when one did. */
+export interface TranscriptMessage {
+  readonly message: LLMMessage
+  readonly runId?: RunId
 }
 
 // A stored LLM-usage fact: history deletion detaches the session (null) instead of deleting
@@ -120,8 +126,8 @@ export interface HistoryPageQuery {
 }
 
 export interface HistoryPage {
-  /** User and assistant rows only, oldest first. */
-  readonly messages: readonly LLMMessage[]
+  /** User and assistant rows only, a slash command's display-only rows included, oldest first. */
+  readonly messages: readonly TranscriptMessage[]
   readonly hasMore: boolean
   /** `idx` of the oldest returned row, the next page's `before`; null when nothing older remains. */
   readonly nextBefore: number | null
@@ -162,8 +168,8 @@ export interface SessionStore extends SessionActivity {
   create(record: OpenedSession): Promise<void>
   /** Take ownership of the session for one run. False when a live run already holds it. */
   claimRun(claim: SessionClaim): Promise<boolean>
-  /** Ordered transcript payloads for a resumed run. With `limit`, only the newest that many rows,
-   *  still in order; the whole transcript otherwise. */
+  /** Ordered transcript payloads for a resumed run, display-only rows left out. With `limit`, only
+   *  the newest that many rows, still in order; the whole transcript otherwise. */
   loadHistory(id: SessionId, limit?: number): Promise<readonly LLMMessage[]>
   /** One page of the display transcript (user/assistant rows), cut in SQL. */
   loadHistoryPage(id: SessionId, query: HistoryPageQuery): Promise<HistoryPage>
@@ -181,7 +187,8 @@ export interface SessionStore extends SessionActivity {
   loadTotals(id: SessionId): Promise<LLMUsageTotals>
   /** Append-only write of the messages a run produced since its last flush (engine's SessionSink). */
   appendMessages(id: SessionId, writes: readonly SessionMessageWrite[]): Promise<void>
-  /** The two rows a slash command contributes: no run owns them, so none is named or linked. */
+  /** The two rows a slash command contributes: they name the command's run, when it ran as one,
+   *  and no attempt is linked to them. */
   appendCommandExchange(id: SessionId, exchange: CommandExchange): Promise<void>
   /** Close the session out with its outcome. Only the holding run may; the other half of SessionSink. */
   finalizeRun(id: SessionId, runId: RunId, outcome: SessionOutcome): Promise<void>

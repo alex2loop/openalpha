@@ -24,7 +24,7 @@ export function Opportunities() {
   const market = markets.find((held) => held.market === screenMarket.value) ?? markets[0]
 
   if (market === undefined) {
-    return <p class="meta">{tr('ui.office.today.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
   return (
@@ -74,7 +74,7 @@ function BoardBody({ board }: { readonly board: ScreenResponse }) {
   const { card } = board
 
   if (card.rows.length === 0) {
-    return <p class="meta">{tr('ui.office.today.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
   return (
