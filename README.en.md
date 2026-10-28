@@ -221,6 +221,11 @@ Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/br
 
 ## The office page
 
+<p><img src="assets/readme/new.en.svg" height="24" alt="New" /></p>
+
+> [!TIP]
+> 🔥 **New:** your whole AI team works in a pixel office right in your browser. See who is doing what, click a person to hand them work, and glance at the market panel beside it. Open it with `openalpha web`.
+
 <p align="center">
   <img src="assets/readme/office.en.gif" alt="The OpenAlpha office page: a top-down pixel office with a data store, library, meeting room, lobby, alert desk and assistant room; the staff move as the daemon's real runs start and finish, a price tape scrolls across the top and a command box sits at the bottom" width="100%" />
 </p>
