@@ -46,9 +46,19 @@ still works.
 
   Leave every market unticked and the agent shares your own view, so its calls drive the real book.
   Tick markets and it becomes a second opinion (see [Focus, spend and pause](#focus-spend-and-pause)).
-- The look picker offers four parts, with a live portrait: body (a skin tone: light, medium or deep), hair (short, long, bob, bun or cap), shirt (teal, blue, sky, amber, orange, pink, slate or sand) and accessory (none, book, clipboard, tie, glasses or scarf). A part you leave alone follows the agent's id, so every agent has a look from the start. It is the `[look]` table in the file; the daemon keeps it and never reads it during a run.
-- Clicking an agent (its desk, or its card on the team floor) opens its tab: *Progress* (the live steps and any child agents), *Result*, *Profile* and *Work*, with a button to pause or resume it. A paused agent refuses every run it owns until you resume it, exactly as `agent pause` does, and its desk says so. The profile's edit button opens the form, which also holds the delete button.
-- When a run hands work to child agents, the Progress tab lists each child, shows how many are running out of the most one call may start, how many levels deep they go, and the longest one child may run. That last figure is the daemon's own per-call limit for children (the tighter of the run and spawn time caps in `[loop]`), read from the daemon, so it is always the real one. Their cost counts to the parent run, and one button stops the whole run, children included.
+- The look picker offers four parts, with a portrait that updates as you choose:
+  - body (a skin tone: light, medium or deep);
+  - hair (short, long, bob, bun or cap);
+  - shirt (teal, blue, sky, amber, orange, pink, slate or sand);
+  - accessory (none, book, clipboard, tie, glasses or scarf).
+
+  A part you leave alone follows the agent's id, so every agent has a look from the start. It is the `[look]` table in the file; the daemon keeps it and never reads it during a run.
+- Clicking an agent (its desk, or its card on the team floor) opens its tab: *Progress* (the live steps and any child agents), *Result*, *Profile* and *Work*, with a button to pause or resume it.
+  - A paused agent refuses every run it owns until you resume it, exactly as `agent pause` does, and its desk says so.
+  - The profile's edit button opens the form, which also holds the delete button.
+- When a run hands work to child agents, the Progress tab lists each child. It shows how many are running out of the most one call may start, how many levels deep they go, and the longest one child may run.
+  - That last figure is the daemon's own per-call limit for children (the tighter of the run and spawn time caps in `[loop]`). It is read from the daemon, so it is always the real one.
+  - Their cost counts to the parent run, and one button stops the whole run, children included.
 - Under a finished run's answer, *Result* carries a closed "AI calls" fold, the same one a job's row and a finished chat answer have: the model calls that run and its child agents made, with what each cost and how it ended (see [Budgets](budgets.md#in-the-office-page)).
 - A new or edited agent is checked the way the daemon checks a file at start: the file shape, the id, the focus,
   the budget cap, the prompt scan and the model tier. A refusal comes back in plain words and nothing is written.
@@ -676,7 +686,7 @@ next entry.
 `auth` commands do not boot the runtime and need no config file. Without one, tokens land in the default data
 directory; pass `--data-dir` to put them elsewhere.
 
-The office page signs in too: Settings > Providers > "+ Add provider" > "Sign in to ChatGPT" shows a code and a link to enter it at, and saves the same login file once you finish. Sign out there asks once. While `[api] public_url` is set the page cannot sign in; do it on the server with `openalpha auth login chatgpt`.
+The office page can sign in too. Go to Settings > Providers > "+ Add provider" > "Sign in to ChatGPT": it shows a code and a link where you enter it, and saves the same login file once you finish. Signing out there asks you to confirm once. While `[api] public_url` is set, the page cannot sign in; do it on the server with `openalpha auth login chatgpt`.
 
 Subscription turns are priced at `$0`, with `pricing_subscription` as the cost source. Tokens are still counted and
 turn and duration limits still apply, but the spend never counts against daily, monthly or per-run caps.

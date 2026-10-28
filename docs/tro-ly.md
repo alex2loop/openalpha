@@ -48,8 +48,16 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
   Không tick thị trường nào thì agent dùng chung góc nhìn với bạn, nên đề xuất của nó tác động lên danh
   mục thật. Tick thị trường thì nó thành ý kiến thứ hai (xem
   [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng)).
-- Bộ chọn ngoại hình có bốn phần, kèm ảnh chân dung đổi theo từng lựa chọn: thân (màu da: sáng, vừa hoặc đậm), tóc (ngắn, dài, bob, búi hoặc mũ lưỡi trai), áo (xanh ngọc, xanh dương, xanh da trời, vàng nghệ, cam, hồng, xám xanh hoặc màu cát) và phụ kiện (không, sách, bìa kẹp, cà vạt, kính hoặc khăn). Phần nào bạn bỏ qua thì theo mã của agent, nên agent nào cũng có ngoại hình ngay từ đầu. Đó là bảng `[look]` trong tệp; dịch vụ nền (daemon) chỉ giữ nó và không bao giờ đọc nó trong một phiên chạy.
-- Bấm vào một agent (bàn của nó, hoặc thẻ của nó ở tầng đội riêng) thì thẻ của nó mở ra: *Tiến độ* (các bước đang chạy và agent con nếu có), *Kết quả*, *Hồ sơ* và *Việc*, kèm nút tạm dừng hoặc tiếp tục. Agent tạm dừng từ chối mọi phiên chạy của nó cho tới khi bạn cho chạy lại, đúng như `agent pause`, và bàn của nó ghi rõ điều đó. Nút sửa hồ sơ mở biểu mẫu, và biểu mẫu đó cũng có nút xóa agent.
+- Bộ chọn ngoại hình có bốn phần, kèm ảnh chân dung đổi theo từng lựa chọn:
+  - thân (màu da: sáng, vừa hoặc đậm);
+  - tóc (ngắn, dài, bob, búi hoặc mũ lưỡi trai);
+  - áo (xanh ngọc, xanh dương, xanh da trời, vàng nghệ, cam, hồng, xám xanh hoặc màu cát);
+  - phụ kiện (không, sách, bìa kẹp, cà vạt, kính hoặc khăn).
+
+  Phần nào bạn bỏ qua thì theo mã của agent, nên agent nào cũng có ngoại hình ngay từ đầu. Đó là bảng `[look]` trong tệp; dịch vụ nền (daemon) chỉ giữ nó và không bao giờ đọc nó trong một phiên chạy.
+- Bấm vào một agent (bàn của nó, hoặc thẻ của nó ở tầng đội riêng) thì thẻ của nó mở ra: *Tiến độ* (các bước đang chạy và agent con nếu có), *Kết quả*, *Hồ sơ* và *Việc*, kèm nút tạm dừng hoặc tiếp tục.
+  - Agent tạm dừng từ chối mọi phiên chạy của nó cho tới khi bạn cho chạy lại, đúng như `agent pause`, và bàn của nó ghi rõ điều đó.
+  - Nút sửa hồ sơ mở biểu mẫu, và biểu mẫu đó cũng có nút xóa agent.
 - Khi một phiên chạy chia việc cho agent con, thẻ Tiến độ liệt kê từng agent con. Nó cho biết đang
   chạy bao nhiêu trong số tối đa một lần gọi được phép khởi động, chúng đi sâu mấy tầng, và thời gian
   dài nhất một agent con được chạy. Con số cuối là giới hạn mỗi lần gọi cho agent con của chính dịch vụ
@@ -677,7 +685,7 @@ mã tài khoản và thông tin gói đọc từ chính token. Token tự làm m
 Các lệnh `auth` không khởi động runtime và không cần tệp cấu hình. Không có cấu hình thì token nằm ở thư mục dữ liệu mặc
 định; dùng `--data-dir` để đặt chỗ khác.
 
-Trang văn phòng cũng đăng nhập được: Cài đặt > Nhà cung cấp > "+ Thêm nhà cung cấp" > "Đăng nhập ChatGPT" hiện một mã và liên kết để nhập mã đó, và lưu đúng tệp đăng nhập ấy khi bạn xong. Đăng xuất ở đó hỏi lại một lần. Khi đã đặt `[api] public_url`, trang không đăng nhập được; hãy làm trên máy chủ bằng `openalpha auth login chatgpt`.
+Trang văn phòng cũng đăng nhập được. Vào Cài đặt > Nhà cung cấp > "+ Thêm nhà cung cấp" > "Đăng nhập ChatGPT": trang hiện một mã và liên kết để nhập mã đó, rồi lưu đúng tệp đăng nhập ấy khi bạn xong. Đăng xuất ở đó sẽ hỏi bạn xác nhận một lần. Khi đã đặt `[api] public_url`, trang không đăng nhập được; hãy làm trên máy chủ bằng `openalpha auth login chatgpt`.
 
 Phiên chạy theo thuê bao được tính giá `$0`, với `pricing_subscription` làm nguồn giá. Số token vẫn được ghi và các giới
 hạn lượt, thời lượng vẫn áp, nhưng khoản chi đó không bao giờ tính vào hạn mức ngày, tháng hay mỗi phiên chạy.

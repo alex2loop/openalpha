@@ -131,7 +131,9 @@ In a private chat with the operator, the bot mentions a new release at most once
 
 `/upgrade` shows what is new, and `/upgrade confirm` (or the "Update now" button) installs it. The bot goes quiet for about a minute while it restarts, then messages you that it is back on the new version. If the new release will not start, it goes back to the old one by itself and tells you.
 
-This works only for a daemon started with `start --background`, and only once the bot has no answer, research run, approval, brief or data refresh in progress; otherwise it asks you to try again. Only the operator may use it, as for `/trade`: without `operator_user_ids`, everyone the bot admits counts as the operator in their own private chat, so anyone sharing the bot should set it.
+This works only for a daemon started with `start --background`, and only when nothing is in progress: no answer, research run, approval, brief or data refresh. Otherwise the bot asks you to try again later.
+
+Only the operator may use it, as with `/trade`. Without `operator_user_ids`, everyone the bot lets in counts as the operator in their own private chat, so if you share the bot with others, set it.
 
 ## Approvals and plan reviews on Zalo
 
