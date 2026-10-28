@@ -1,8 +1,8 @@
+import type { BriefTextWire } from '@/app/server/wire/brief'
 import type { BriefScheduleWire } from '@/app/server/wire/system'
 import type {
   BriefSectionWire,
   BriefSnapshotWire,
-  BriefTextWire,
   ScreenDeltaRowWire,
 } from '@/app/server/wire/trading'
 import type { Locale } from '@/core/types/locale'
@@ -101,7 +101,8 @@ export function toBriefTextWire(text: BriefText): BriefTextWire {
   return {
     title: text.title,
     verdict: [...text.verdict],
-    story: [...text.story],
+    readingLines: text.readingLines,
+    story: text.story.map((line) => ({ ...line })),
     sections: text.sections.map((section) => ({ ...section, lines: [...section.lines] })),
     caveats: [...text.caveats],
   }

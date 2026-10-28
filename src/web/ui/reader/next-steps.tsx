@@ -1,20 +1,20 @@
 import { knownTickers } from '@/web/state/known-tickers'
 import { linkTickers } from '@/web/text/ticker-links'
 import { tr } from '@/web/text/tr'
-import { plainTextOf, type ReportDoc } from '@/web/ui/markdown/parse'
 import { SuggestChip } from '@/web/ui/ticker/suggest-chip'
 
 const NAMES_MAX = 6
 
 interface NextStepsProps {
-  readonly doc: ReportDoc
+  /** Every word of the page. */
+  readonly text: string
   /** Runs just before a chip fills the box. */
   readonly onFill: () => void
 }
 
 /** A "/suggest" chip for each name the report mentions that the page knows. */
-export function NextSteps({ doc, onFill }: NextStepsProps) {
-  const names = linkTickers(plainTextOf(doc), knownTickers.value)
+export function NextSteps({ text, onFill }: NextStepsProps) {
+  const names = linkTickers(text, knownTickers.value)
     .flatMap((part) => ('ticker' in part ? [part.ticker] : []))
     .slice(0, NAMES_MAX)
 

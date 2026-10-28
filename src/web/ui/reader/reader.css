@@ -9,70 +9,157 @@
   background: var(--readerScrim);
 }
 
+/* The header is the dialog's own row, so the close button never sits over the contents beside the
+   text. */
 .reader-paper {
-  position: relative;
   display: flex;
-  gap: var(--s4);
-  width: min(780px, 100%);
+  flex-direction: column;
+  width: min(800px, 100%);
   max-height: 86vh;
-  padding: 22px 28px;
 }
 
 .reader-paper:focus {
   outline: none;
 }
 
-.reader-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+.reader-head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4) var(--s2);
+  border-bottom: 1px solid var(--border);
+}
+
+.reader-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.reader-heading h2 {
+  font-size: var(--sizeHero);
+  font-weight: var(--weightSemibold);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.reader-body {
+  display: flex;
+  flex: 1;
+  gap: var(--s4);
+  min-height: 0;
+  padding: 0 var(--s4);
 }
 
 .reader-main {
   flex: 1;
   min-width: 0;
-  min-height: 0;
   overflow: auto;
-  padding-right: var(--s1);
-  font-size: 14px;
-  line-height: 1.65;
+  padding: var(--s3) var(--s1) var(--s4) 0;
+  font: var(--typeReading);
+  line-height: 1.55;
 }
 
-.reader-main h2 {
-  margin-bottom: 2px;
-  padding-right: 28px;
-  font-size: 19px;
-  line-height: 1.3;
+/* Reading width: about seventy characters, whatever the dialog allows. */
+.reader-main > * {
+  max-width: 70ch;
 }
 
-.reader-main .md {
+.reader-main > * + * {
+  margin-top: var(--s3);
+}
+
+.reader-main :is(.sub-head, .md-heading):focus {
+  outline: none;
+}
+
+.reader-main .sub-head {
+  font: var(--typeTitle);
+}
+
+.reader-main .lead {
+  font: var(--typeReading);
+  font-weight: var(--weightMedium);
+}
+
+.reader-main h3.md-heading {
+  margin-top: var(--s3);
+  font: var(--typeTitle);
+}
+
+.reader-main h4.md-heading {
   margin-top: var(--s2);
-  max-width: 62ch;
 }
 
+.reader-brief > .lead:first-child {
+  font-size: var(--sizeTitle);
+}
+
+.stack.reader-figures {
+  gap: var(--s0);
+}
+
+.reader-figure {
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+  font-variant-numeric: tabular-nums;
+}
+
+.reader-group-head {
+  margin-top: var(--s1);
+  color: var(--ink2);
+  font: var(--typeHeading);
+}
+
+.reader-note {
+  padding-left: var(--s2);
+  border-left: 2px solid var(--border);
+  color: var(--ink2);
+}
+
+.reader-cautions {
+  margin: 0;
+  padding: var(--s2);
+  border-radius: 8px;
+  background: var(--cautionBg);
+  color: var(--caution);
+  font-size: var(--sizeBody);
+  list-style: none;
+}
+
+/* The contents sit below the header and scroll on their own when they outgrow it. */
 .reader-toc {
   display: flex;
   flex: none;
   flex-direction: column;
   align-self: flex-start;
-  width: 170px;
-  padding: 10px;
+  width: 200px;
+  max-height: 100%;
+  margin-top: var(--s3);
+  padding: var(--s2) var(--s2) var(--s1);
+  overflow: auto;
   border-radius: 8px;
   background: var(--canvas);
   font-size: var(--sizeBody);
 }
 
 .reader-toc-head {
-  margin-bottom: 4px;
+  margin-bottom: var(--s0);
   color: var(--ink3);
 }
 
 .reader-toc-item {
-  padding: 2px 0 2px calc(var(--depth, 0) * 10px);
+  display: block;
+  width: 100%;
+  padding: 3px 0 3px calc(var(--s1) + var(--depth, 0) * var(--s2));
+  overflow: hidden;
   border: 0;
+  border-left: 2px solid transparent;
   background: none;
   color: var(--ink2);
   text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -80,13 +167,14 @@
   color: var(--ink);
 }
 
-.reader-toc-item.is-sources {
-  margin-top: 6px;
-  color: var(--ink3);
+.reader-toc-item[aria-current="location"] {
+  border-left-color: var(--ink);
+  color: var(--ink);
+  font-weight: var(--weightMedium);
 }
 
 .reader-next {
-  margin-top: var(--s3);
+  margin-top: var(--s4);
 }
 
 .reader-chips {
@@ -107,6 +195,6 @@
   display: none;
 }
 
-:root:not([data-layout="wide"]) .reader-paper {
-  padding: 18px var(--s3);
+:root:not([data-layout="wide"]) :is(.reader-head, .reader-body) {
+  padding-inline: var(--s3);
 }

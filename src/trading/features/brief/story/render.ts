@@ -39,13 +39,24 @@ interface StoryView {
   readonly context: RenderContext
 }
 
+/** What a line of the story is, for a surface that lays it out: a block's title, the heading of a
+ *  group under it, the sentence that opens a block, a figure or watch, the reading the story draws
+ *  from them, or where its numbers come from. */
+type StoryLineRole = 'title' | 'heading' | 'lead' | 'row' | 'note' | 'source'
+
+export interface StoryLine {
+  readonly role: StoryLineRole
+  readonly text: string
+}
+
 /** The review of earlier stories, one block each, then today's story or the quiet line. Every
- *  sentence is a catalog key chosen by a stored code; every number reaches it through a formatter. */
-export function renderStoryBlocks(
+ *  sentence is a catalog key chosen by a stored code; every number reaches it through a formatter.
+ *  Each line carries its role. */
+export function renderStoryLines(
   locale: Locale,
   sections: readonly BriefSectionResult[],
   context: RenderContext
-): readonly (readonly string[])[] {
+): readonly (readonly StoryLine[])[] {
   const story = readyOf(sections, 'story')
   const reviews = sections.flatMap((section) =>
     section.kind === 'thesis-review' && section.status === 'ready' ? [section] : []
@@ -80,7 +91,7 @@ function readyOf(sections: readonly BriefSectionResult[], kind: 'story'): ReadyS
 }
 
 /** One tracked story: its head row, then one row per watch. */
-function renderThesis(view: StoryView): readonly string[] {
+function renderThesis(view: StoryView): readonly StoryLine[] {
   const { locale } = view
   const [head, ...watches] = view.section.rows
   const code = memberOf(STORY_CODES, head?.story)
@@ -101,41 +112,74 @@ function renderThesis(view: StoryView): readonly string[] {
   ]
 
   return [
-    renderBlockRule(SECTION_ICONS.thesisReview, t(locale, 'trading.brief.section.thesis-review')),
-    `${INDENT[1]}${summary.join(INLINE_SEPARATOR)}`,
+    storyLine(
+      'title',
+      renderBlockRule(SECTION_ICONS.thesisReview, t(locale, 'trading.brief.section.thesis-review'))
+    ),
+    storyLine('lead', `${INDENT[1]}${summary.join(INLINE_SEPARATOR)}`),
     ...(typeof head.sessions === 'number'
       ? [
-          `${INDENT[1]}${t(locale, 'trading.brief.thesis.run', {
-            count: formatCount(locale, head.sessions),
-          })}`,
+          storyLine(
+            'lead',
+            `${INDENT[1]}${t(locale, 'trading.brief.thesis.run', {
+              count: formatCount(locale, head.sessions),
+            })}`
+          ),
         ]
       : []),
     ...watches.flatMap((row) => renderReviewWatch(view, row)),
   ]
 }
 
-function renderReviewWatch(view: StoryView, row: BriefSectionRow): readonly string[] {
+function renderReviewWatch(view: StoryView, row: BriefSectionRow): readonly StoryLine[] {
   const mark = memberOf(WATCH_MARKS, row.mark)
   const sentence = renderWatch(view, row)
 
   return mark === undefined || sentence === undefined
     ? []
-    : [`${INDENT[2]}${WATCH_MARK_GLYPHS[mark]} ${sentence}`]
+    : [storyLine('row', `${INDENT[2]}${WATCH_MARK_GLYPHS[mark]} ${sentence}`)]
 }
 
-function renderStory(view: StoryView, reviewed: ReadonlySet<string>): readonly string[] {
+function renderStory(view: StoryView, reviewed: ReadonlySet<string>): readonly StoryLine[] {
   const { locale, section } = view
   const [head] = section.rows
   const code = memberOf(STORY_CODES, head?.story)
 
   if (code === undefined) {
-    const line = noNewStoryLine(locale, section.rows, reviewed)
-
-    return line === undefined ? [] : [renderEmptyLine(SECTION_ICONS.story, line)]
+    return renderNoStory(view, reviewed)
   }
 
   const facts = section.rows.flatMap((row) => factOf(row))
-  const params = {
+  const params = hookParams(locale, facts)
+
+  return [
+    storyLine(
+      'title',
+      renderBlockRule(SECTION_ICONS.story, t(locale, 'trading.brief.section.story'))
+    ),
+    storyLine('lead', `${INDENT[1]}${t(locale, `trading.brief.story.hook.${code}`, params)}`),
+    ...labelled(view, 'facts', factLines(view, facts, 'supports')),
+    ...renderSession(view),
+    ...labelled(view, 'insight', [
+      storyLine('note', `${INDENT[2]}${t(locale, `trading.brief.story.insight.${code}`, params)}`),
+    ]),
+    ...labelled(view, 'counterpoint', [
+      storyLine(
+        'note',
+        `${INDENT[2]}${t(locale, `trading.brief.story.counterpoint.${code}`, params)}`
+      ),
+      ...factLines(view, facts, 'contradicts'),
+    ]),
+    ...labelled(
+      view,
+      'watch',
+      section.rows.flatMap((row) => renderStoryWatch(view, row))
+    ),
+  ]
+}
+
+function hookParams(locale: Locale, facts: readonly FactRow[]): Record<string, string> {
+  return {
     sector: sectorOf(
       locale,
       facts.map((fact) => fact.row)
@@ -145,25 +189,12 @@ function renderStory(view: StoryView, reviewed: ReadonlySet<string>): readonly s
       facts.map((fact) => fact.row.sessions).find((value) => value !== undefined)
     ),
   }
+}
 
-  return [
-    renderBlockRule(SECTION_ICONS.story, t(locale, 'trading.brief.section.story')),
-    `${INDENT[1]}${t(locale, `trading.brief.story.hook.${code}`, params)}`,
-    ...labelled(view, 'facts', factLines(view, facts, 'supports')),
-    ...renderSession(view),
-    ...labelled(view, 'insight', [
-      `${INDENT[2]}${t(locale, `trading.brief.story.insight.${code}`, params)}`,
-    ]),
-    ...labelled(view, 'counterpoint', [
-      `${INDENT[2]}${t(locale, `trading.brief.story.counterpoint.${code}`, params)}`,
-      ...factLines(view, facts, 'contradicts'),
-    ]),
-    ...labelled(
-      view,
-      'watch',
-      section.rows.flatMap((row) => renderStoryWatch(view, row))
-    ),
-  ]
+function renderNoStory(view: StoryView, reviewed: ReadonlySet<string>): readonly StoryLine[] {
+  const quiet = noNewStoryLine(view.locale, view.section.rows, reviewed)
+
+  return quiet === undefined ? [] : [storyLine('lead', renderEmptyLine(SECTION_ICONS.story, quiet))]
 }
 
 /** No new story. Quiet only when nothing fired at all. A told run still going on is named, with its
@@ -209,11 +240,14 @@ function ongoingTitle(locale: Locale, row: BriefSectionRow): readonly string[] {
 function labelled(
   view: StoryView,
   label: 'facts' | 'insight' | 'counterpoint' | 'watch',
-  lines: readonly string[]
-): readonly string[] {
+  lines: readonly StoryLine[]
+): readonly StoryLine[] {
   return lines.length === 0
     ? []
-    : [`${INDENT[1]}${t(view.locale, `trading.brief.story.label.${label}`)}`, ...lines]
+    : [
+        storyLine('heading', `${INDENT[1]}${t(view.locale, `trading.brief.story.label.${label}`)}`),
+        ...lines,
+      ]
 }
 
 interface FactRow {
@@ -227,7 +261,11 @@ function factOf(row: BriefSectionRow): readonly FactRow[] {
   return role === undefined ? [] : [{ row, role }]
 }
 
-function factLines(view: StoryView, facts: readonly FactRow[], role: StoryRole): readonly string[] {
+function factLines(
+  view: StoryView,
+  facts: readonly FactRow[],
+  role: StoryRole
+): readonly StoryLine[] {
   const unit = view.section.currency === undefined ? {} : { currency: view.section.currency }
 
   // A figure under the counterpoint argues against the reading, so it says so before the number.
@@ -236,23 +274,25 @@ function factLines(view: StoryView, facts: readonly FactRow[], role: StoryRole):
 
   return facts
     .filter((fact) => fact.role === role)
-    .map((fact) => `${INDENT[2]}${lead}${renderLabelledRow(view.locale, fact.row, unit)}`)
+    .map((fact) =>
+      storyLine('row', `${INDENT[2]}${lead}${renderLabelledRow(view.locale, fact.row, unit)}`)
+    )
 }
 
 /** Where the numbers come from and which session they describe, once for the whole story. */
-function renderSession(view: StoryView): readonly string[] {
+function renderSession(view: StoryView): readonly StoryLine[] {
   const { locale, section, context } = view
-  const [line] = renderProvenanceLine(locale, section.provenance, context.timezone)
+  const [provenance] = renderProvenanceLine(locale, section.provenance, context.timezone)
 
-  return line === undefined || section.asOf === undefined
+  return provenance === undefined || section.asOf === undefined
     ? []
-    : [`${line}${renderAsOf(locale, section.asOf)}`]
+    : [storyLine('source', `${provenance}${renderAsOf(locale, section.asOf)}`)]
 }
 
-function renderStoryWatch(view: StoryView, row: BriefSectionRow): readonly string[] {
+function renderStoryWatch(view: StoryView, row: BriefSectionRow): readonly StoryLine[] {
   const sentence = renderWatch(view, row)
 
-  return sentence === undefined ? [] : [`${INDENT[2]}${sentence}`]
+  return sentence === undefined ? [] : [storyLine('row', `${INDENT[2]}${sentence}`)]
 }
 
 /** The watch's sentence and what reaching it would mean. The threshold prints in its metric's own
@@ -274,6 +314,10 @@ function renderWatch(view: StoryView, row: BriefSectionRow): string | undefined 
   })
 
   return `${sentence} ${EFFECT_ARROW} ${t(locale, `trading.brief.story.effect.${effect}`)}`
+}
+
+function storyLine(role: StoryLineRole, text: string): StoryLine {
+  return { role, text }
 }
 
 /** A sector reads the way every other section prints it. Empty for a story that is not about one. */

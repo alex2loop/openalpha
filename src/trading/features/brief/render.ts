@@ -6,7 +6,7 @@ import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/oper
 import type { RenderContext } from '@/trading/render/format'
 import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, t } from '@/i18n'
-import { renderStoryBlocks } from '@/trading/features/brief/story/render'
+import { renderStoryLines } from '@/trading/features/brief/story/render'
 import { renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { renderCaveatLines } from '@/trading/render/caveat'
@@ -109,7 +109,7 @@ export function renderBriefText(
 
   return joinSections([
     [title(locale, snapshot, context.timezone)],
-    ...renderStoryBlocks(locale, stories, context),
+    ...renderStoryLines(locale, stories, context).map((block) => block.map((entry) => entry.text)),
     renderVerdictBlock(locale, readable, context),
     // Right under the verdict that counts them, with no header of their own: what to do first.
     ...nextActions.map((section) => toBriefSectionText(locale, section, context).lines),

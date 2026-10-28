@@ -2,25 +2,20 @@ import type { TargetedMouseEvent } from 'preact'
 import { signal, useSignal } from '@preact/signals'
 import { useLayoutEffect, useRef } from 'preact/hooks'
 
-import { pluralKey } from '@/i18n'
-import { fillInput } from '@/web/state/command'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { ESCAPE_KEY, trapFocus } from '@/web/ui/kit/focus-trap'
-import { CloseIcon } from '@/web/ui/kit/icons'
 import { closePopover, resolveFocusReturn } from '@/web/ui/kit/popover'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
-import { ReportView } from '@/web/ui/markdown/markdown'
-import { loadReport, type ReaderContent, type ReaderSource } from '@/web/ui/reader/load-report'
-import { NextSteps } from '@/web/ui/reader/next-steps'
-import { QuoteAsk } from '@/web/ui/reader/quote-ask'
-import { Toc } from '@/web/ui/reader/toc'
+import { BriefPage } from '@/web/ui/reader/brief-page'
+import { loadReport, type ReaderSource } from '@/web/ui/reader/load-report'
+import { ReaderFrame, TITLE_ID } from '@/web/ui/reader/page'
+import { ReportPage } from '@/web/ui/reader/report-page'
 
 import './reader.css'
 
 const PAPER_ID = 'reader-paper'
-const TITLE_ID = 'reader-title'
 
 interface OpenReader {
   readonly source: ReaderSource
@@ -89,14 +84,6 @@ function ReaderView({ source }: { readonly source: ReaderSource }) {
         aria-labelledby={TITLE_ID}
         tabIndex={-1}
       >
-        <button
-          type="button"
-          class="icon-button reader-close"
-          aria-label={tr('ui.office.common.close')}
-          onClick={closeReader}
-        >
-          <CloseIcon />
-        </button>
         <ReaderBody
           key={attempt.value}
           source={source}
@@ -139,67 +126,38 @@ function ReaderBody({ source, onRetry }: ReaderBodyProps) {
 
   if (result.status === 'loading') {
     return (
-      <div class="reader-main">
-        <h2 id={TITLE_ID}>{tr('ui.office.reader.loading')}</h2>
-        <Skeleton lines={6} />
-      </div>
+      <ReaderFrame title={tr('ui.office.reader.loading')} onClose={closeReader}>
+        <div class="reader-main">
+          <Skeleton lines={6} />
+        </div>
+      </ReaderFrame>
     )
   }
 
   if (result.status === 'failed') {
     return (
-      <div class="reader-main">
-        <h2 id={TITLE_ID}>{tr('ui.office.reader.missing')}</h2>
-        <div class="strip is-problem" role="alert">
-          <span>{toFailureText(result.failure)}</span>
-          <Button size="small" onClick={onRetry}>
-            {tr('ui.office.common.retry')}
-          </Button>
+      <ReaderFrame title={tr('ui.office.reader.missing')} onClose={closeReader}>
+        <div class="reader-main">
+          <div class="strip is-problem" role="alert">
+            <span>{toFailureText(result.failure)}</span>
+            <Button size="small" onClick={onRetry}>
+              {tr('ui.office.common.retry')}
+            </Button>
+          </div>
         </div>
-      </div>
+      </ReaderFrame>
     )
   }
 
-  return result.value === undefined ? <Missing /> : <ReportPage content={result.value} />
-}
+  const content = result.value
 
-function Missing() {
-  return (
-    <div class="reader-main">
-      <h2 id={TITLE_ID}>{tr('ui.office.reader.missing')}</h2>
-    </div>
-  )
-}
+  if (content === undefined) {
+    return <ReaderFrame title={tr('ui.office.reader.missing')} onClose={closeReader} />
+  }
 
-function ReportPage({ content }: { readonly content: ReaderContent }) {
-  const column = useRef<HTMLDivElement>(null)
-  const { title, doc, canAsk } = content
-  const count = doc.sources.length
-
-  return (
-    <>
-      <div ref={column} class="reader-main">
-        <h2 id={TITLE_ID}>{title}</h2>
-        {count > 0 && (
-          <p class="meta">
-            {tr(pluralKey(count, 'ui.office.common.sourcesOne', 'ui.office.common.sources'), {
-              count,
-            })}
-          </p>
-        )}
-        <ReportView doc={doc} isAnchored />
-        <NextSteps doc={doc} onFill={closeReader} />
-      </div>
-      <Toc doc={doc} />
-      {canAsk && (
-        <QuoteAsk
-          scroller={column}
-          onAsk={(quote) => {
-            closeReader()
-            fillInput(`${tr('ui.office.reader.quote', { quote, title })} `)
-          }}
-        />
-      )}
-    </>
+  return content.kind === 'brief' ? (
+    <BriefPage content={content} onClose={closeReader} />
+  ) : (
+    <ReportPage content={content} onClose={closeReader} />
   )
 }
