@@ -66,9 +66,10 @@ function Ratios({ valuation }: { readonly valuation: Valuation }) {
         </Ratio>
         <Ratio
           label={tr('ui.office.market.valuation.roe')}
-          hint={tr('ui.office.market.valuation.roeHint')}
           value={`${formatFixed(valuation.roePct, PERCENT_DIGITS)}%`}
-        />
+        >
+          {tr('ui.office.market.valuation.roeHint')}
+        </Ratio>
         {dividendYieldPct !== undefined && (
           <Ratio
             label={tr('ui.office.market.valuation.dividendYield')}
@@ -91,17 +92,13 @@ function Ratios({ valuation }: { readonly valuation: Valuation }) {
 interface RatioProps {
   readonly label: string
   readonly value: string
-  /** What the label stands for, where it is not what the provider publishes. */
-  readonly hint?: string
   readonly children?: ComponentChildren
 }
 
-function Ratio({ label, value, hint, children }: RatioProps) {
+function Ratio({ label, value, children }: RatioProps) {
   return (
     <div class="ratio-row">
-      <b class={hint === undefined ? undefined : 'has-hint'} title={hint}>
-        {label}
-      </b>
+      <b>{label}</b>
       <span class="row-price">{value}</span>
       <span class="row-note">{children}</span>
     </div>

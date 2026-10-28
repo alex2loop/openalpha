@@ -13,6 +13,9 @@ import { openSettings } from '@/web/ui/settings/settings'
 
 import './today.css'
 
+/** The daemon's sentence ends in its own full stop; the strip's sentence adds the next one. */
+const SENTENCE_END = /[.!?]+$/
+
 /** A block's hue, from the `--tc-*` tokens. */
 type TileColour = 'yellow' | 'green' | 'blue' | 'pink' | 'peach' | 'teal' | 'gray'
 
@@ -128,7 +131,7 @@ function FailedStrip<T>({ title, reading, failedText }: FailedStripProps<T>) {
 
 function failureSentence<T>(title: string, reading: BlockReading<T>): string {
   const { error, readAt } = reading
-  const reason = error === undefined ? '' : toFailureText(error)
+  const reason = error === undefined ? '' : toFailureText(error).replace(SENTENCE_END, '')
   const timeZone = state.value?.timeZone
 
   if (readAt === undefined || timeZone === undefined) {

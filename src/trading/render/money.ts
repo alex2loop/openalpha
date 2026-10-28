@@ -212,12 +212,6 @@ export function formatFlowIn(locale: Locale, value: number, currency?: CurrencyC
     : `${formatFlow(locale, value)} ${currency}`
 }
 
-/** The same with a direction mark, for a net figure whose sign is the point: foreign investors'
- *  net buying, where a sell reads as the outflow it was. */
-export function formatSignedFlowIn(locale: Locale, value: number, currency: CurrencyCode): string {
-  return withGlyph(value, (magnitude) => formatFlowIn(locale, magnitude, currency))
-}
-
 /** The same price where the surface may know none of the convention, some of it, or all: a level
  *  under a market the registry no longer lists prints bare, a board-scaled one prints in points,
  *  and a quoted one carries its currency and measure. One branch, so no surface re-derives it. */

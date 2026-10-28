@@ -1,6 +1,6 @@
 import type { CostReport } from '@/app/server/wire/system'
 import { pluralKey } from '@/i18n'
-import { formatUsd } from '@/web/text/figures'
+import { formatUsdCents } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { formatAgentName, formatRunName } from '@/web/text/run-name'
 import { tr } from '@/web/text/tr'
@@ -85,7 +85,9 @@ function BreakdownRow({
         <b>{name}</b>
         {facts.length > 0 && <p class="meta">{joinInline(facts)}</p>}
       </div>
-      <span class="cost-row-figure">{formatUsd(costUsd)}</span>
+      <span class="cost-row-figure">
+        {tr('ui.office.cost.amount', { usd: formatUsdCents(costUsd) })}
+      </span>
     </div>
   )
 }

@@ -26,7 +26,7 @@ export function Unrealized({ book }: { readonly book: TradingPortfolioResponse }
     <p>
       {tr('ui.office.today.bookPnl')}{' '}
       <b class={`is-${toneOfPercent(percent)}-text`}>
-        {formatPrice(profit, WHOLE_DISPLAY)} ({formatSignedPercent(percent)})
+        {formatPrice(profit, WHOLE_DISPLAY)} {book.baseCurrency} ({formatSignedPercent(percent)})
       </b>
     </p>
   )

@@ -6,7 +6,7 @@ import { ROUTES } from '@/web/api/routes'
 import { cost, costFailure } from '@/web/state/cost'
 import { state } from '@/web/state/session'
 import { formatChildrenLine } from '@/web/text/activity'
-import { formatUsd } from '@/web/text/figures'
+import { formatUsdCents } from '@/web/text/figures'
 import { formatRunName } from '@/web/text/run-name'
 import { formatClock } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
@@ -160,7 +160,9 @@ function CostRow({ row }: { readonly row: ActivityRowWire }) {
         {row.agentId !== undefined && <p class="meta">{row.agentId}</p>}
         {children.length > 0 && <p class="meta">{formatChildrenLine(children)}</p>}
       </div>
-      <span class="cost-row-figure">{formatUsd(row.costUsd)}</span>
+      <span class="cost-row-figure">
+        {tr('ui.office.cost.amount', { usd: formatUsdCents(row.costUsd) })}
+      </span>
     </div>
   )
 }

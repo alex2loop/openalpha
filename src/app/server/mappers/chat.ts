@@ -4,6 +4,7 @@ import type { ChatSessionsResponse } from '@/app/server/wire/chat'
 import type { SessionListing } from '@/persistence/api'
 import { scrubCredentials } from '@/core/security/credentials'
 import { truncate } from '@/core/utils/text'
+import { withoutResearchDepth } from '@/engine/api'
 
 const SESSION_SNIPPET_MAX_CHARS = 200
 
@@ -28,7 +29,7 @@ export function toChatSessionsWire(
 }
 
 function toChatSessionWire(listing: SessionListing): ChatSessionsResponse['sessions'][number] {
-  const title = toSnippet(listing.firstUserContent)
+  const title = toSnippet(listing.firstUserContent, withoutResearchDepth)
   const lastReply = toSnippet(listing.lastAssistantContent)
 
   return {
@@ -44,9 +45,13 @@ function toChatSessionWire(listing: SessionListing): ChatSessionsResponse['sessi
   }
 }
 
-/** The text of a stored message, credentials scrubbed and cut short; absent when it holds none. */
-function toSnippet(stored: string | null): string | undefined {
-  const text = stored === null ? '' : scrubCredentials(textOf(stored)).trim()
+/** The text of a stored message, credentials scrubbed and cut short; absent when it holds none.
+ *  `tidy` drops what the page shows no reader. */
+function toSnippet(
+  stored: string | null,
+  tidy: (text: string) => string = (text) => text
+): string | undefined {
+  const text = stored === null ? '' : tidy(scrubCredentials(textOf(stored))).trim()
 
   return text === '' ? undefined : truncate(text, SESSION_SNIPPET_MAX_CHARS)
 }
