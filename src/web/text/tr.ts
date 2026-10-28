@@ -7,6 +7,7 @@ const FAILURE_KEYS: Readonly<Partial<Record<ApiFailure['code'], MessageKey>>> = 
   timeout: 'ui.office.error.timeout',
   bad_response: 'ui.office.error.badResponse',
   unavailable: 'ui.office.error.unavailable',
+  stopping: 'ui.office.error.stopping',
   upstream_failed: 'ui.office.error.upstreamFailed',
 })
 

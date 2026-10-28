@@ -48,6 +48,7 @@ import { napGlowOf } from '@/web/scene/sim/life/presence'
 import { createSimLoop } from '@/web/scene/sim/loop'
 import { homePhase, isOfficeClosed, moment } from '@/web/scene/sim/rhythm'
 import { createSims, disposeSims, type Sims } from '@/web/scene/sims'
+import { withinBuildSlice } from '@/web/scene/sprites/sprite-cache'
 import { tapeBoard } from '@/web/scene/sprites/tape-face'
 import {
   bringIntoView,
@@ -217,7 +218,7 @@ function createSceneLoop(parts: LoopParts): {
 
       return isSeen ? 'seen' : directed
     },
-    draw: (alpha, now) => {
+    draw: withinBuildSlice((alpha: number, now: number) => {
       drawn = buildSimView(parts, alpha)
       dropGoneSelection(drawn)
       input.current?.frame(drawn)
@@ -229,7 +230,7 @@ function createSceneLoop(parts: LoopParts): {
 
       // The street was painted for the camera before this draw placed it: once more if it moved.
       return isAnimating || parts.sky.isEasing(now) || !parts.painter.isCurrent(visibleRect())
-    },
+    }),
     resume: () => {
       director.resume()
       life.resume()

@@ -21,6 +21,7 @@ const API_ERROR_CODES = Object.freeze({
   upstream_failed: true,
   too_many_streams: true,
   unavailable: true,
+  stopping: true,
   timeout: true,
   internal: true,
 } satisfies Record<ApiErrorCode, true>)

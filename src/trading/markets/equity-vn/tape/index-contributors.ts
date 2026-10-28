@@ -21,7 +21,7 @@ import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 
 /** How many names each side lists. */
 const CONTRIBUTORS_PER_SIDE = 5
-/** How long a list read while the session trades stands before the next request asks again. */
+/** How long a list read while the session trades stands, from the provider's answer. */
 const LIVE_CONTRIBUTORS_TTL_MS = MS_PER_MINUTE
 /** The wait behind the pacer plus the provider's one attempt; the transport's own limit ends it
  *  sooner, this only bounds a read nobody can cancel because several callers share it. */
@@ -32,18 +32,22 @@ const CONTRIBUTORS_READ_TIMEOUT_MS = 10 * MS_PER_SECOND
 interface ReadWindow {
   readonly key: string
   readonly asOf: IndexContributorsReading['asOf']
+  /** How long a list read in this window stands; absent for the settled list, held all window. */
+  readonly ttlMs?: number
 }
 
 interface Slot {
   readonly key: string
+  readonly readAt: number
   readonly reading: IndexContributorsReading
   readonly provenance: readonly SourceProvenance[]
 }
 
 /** The feed serves the session running and, once it has finished, that session's final list until
- *  the next one opens. While it trades a list is good for a minute; after the close it is read
- *  once and kept until then. Callers asking together share one read, and a read that fails answers
- *  with the last list held, or with the failure when none is. One slot per index, so nothing grows. */
+ *  the next one opens. While it trades a list is good for a minute from its read; after the close
+ *  it is read once and kept until then. Callers asking together share one read, and a read that
+ *  fails answers with the last list held, or with the failure when none is. One slot per index,
+ *  so nothing grows. */
 export function createIndexContributors(
   deps: MarketDeps,
   calendar: TradingCalendar
@@ -58,7 +62,7 @@ export function createIndexContributors(
       const window = readWindow(calendar, request.now)
       const held = slots.get(index)
 
-      if (held?.key === window.key) {
+      if (held !== undefined && isHeld(held, window, request.now)) {
         return available(held.reading, held.provenance)
       }
 
@@ -70,6 +74,7 @@ export function createIndexContributors(
 
       const slot = {
         key: window.key,
+        readAt: fetchedAt(result.provenance) ?? request.now,
         reading: rankContributions(result.value, window.asOf),
         provenance: result.provenance,
       }
@@ -79,6 +84,16 @@ export function createIndexContributors(
       return available(slot.reading, slot.provenance, result.caveats)
     },
   }
+}
+
+/** When the provider answered: a minute's hold runs from there, so a caller asking a minute after
+ *  the last one lands inside it. */
+function fetchedAt(provenance: readonly SourceProvenance[]): number | undefined {
+  return provenance.length === 0 ? undefined : Math.max(...provenance.map((one) => one.fetchedAt))
+}
+
+function isHeld(held: Slot, window: ReadWindow, now: number): boolean {
+  return held.key === window.key && (window.ttlMs === undefined || now - held.readAt < window.ttlMs)
 }
 
 /** One read per index at a time, run under its own timeout rather than any caller's signal: it is
@@ -126,7 +141,11 @@ function readWindow(calendar: TradingCalendar, now: number): ReadWindow {
 
   return isTapeServing(calendar, settled, now)
     ? { key: `settled:${settled}`, asOf: settled }
-    : { key: `live:${Math.floor(now / LIVE_CONTRIBUTORS_TTL_MS)}`, asOf: calendar.dayAt(now) }
+    : {
+        key: `live:${calendar.dayAt(now)}`,
+        asOf: calendar.dayAt(now),
+        ttlMs: LIVE_CONTRIBUTORS_TTL_MS,
+      }
 }
 
 function rankContributions(

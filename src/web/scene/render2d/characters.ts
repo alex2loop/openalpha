@@ -11,7 +11,6 @@ import {
   SPRITE_H,
   SPRITE_W,
 } from '@/web/scene/render2d/pixel-grid'
-import { zeroCanvas } from '@/web/scene/renderer'
 import {
   inHandOf,
   isActorWalking,
@@ -32,6 +31,7 @@ import {
   WORK_RIM,
 } from '@/web/scene/sprites/palette'
 import { type Look, lookOf, PANTS_OF } from '@/web/scene/sprites/parts'
+import { createSpriteCache } from '@/web/scene/sprites/sprite-cache'
 import { seedOf } from '@/web/scene/world/rng'
 
 // Enough for every person on a busy floor in every frame they cycle through, with room to spare.
@@ -63,7 +63,10 @@ const SKIN_DETAILS: ReadonlySet<Material> = new Set([
 
 type Band = 0 | 1 | 2
 
-const sprites = new Map<string, HTMLCanvasElement>()
+const sprites = createSpriteCache<HTMLCanvasElement>({
+  max: MAX_SPRITES,
+  canvasOf: (sprite) => sprite,
+})
 
 /** Whether the people's small motion runs this frame, and whether the operator asked for less. */
 interface CharacterMotion {
@@ -88,6 +91,11 @@ export function drawCharacter(
   frame: CharacterFrame
 ): void {
   const image = characterSprite(lookOf(actor.id, actor.role, actor.look), toFrameSpec(actor, frame))
+
+  if (image === undefined) {
+    return
+  }
+
   const x = Math.round(actor.prev.x + (actor.at.x - actor.prev.x) * frame.alpha)
   const y = Math.round(actor.prev.y + (actor.at.y - actor.prev.y) * frame.alpha)
 
@@ -141,41 +149,14 @@ function disc(
   g.fill()
 }
 
-/** One 24 by 32 sprite of `look` in `frame`, from a bounded cache: the least recently drawn goes
- *  first. */
-export function characterSprite(look: Look, frame: FrameSpec): CanvasImageSource {
-  const key = spriteKey(look, frame)
-  const held = sprites.get(key)
-
-  if (held !== undefined) {
-    sprites.delete(key)
-    sprites.set(key, held)
-
-    return held
-  }
-
-  const canvas = buildSprite(look, frame)
-
-  sprites.set(key, canvas)
-
-  for (const [oldest, sprite] of sprites) {
-    if (sprites.size <= MAX_SPRITES) {
-      break
-    }
-
-    zeroCanvas(sprite)
-    sprites.delete(oldest)
-  }
-
-  return canvas
+/** One 24 by 32 sprite of `look` in `frame`, from a bounded cache; absent while a frame has no
+ *  time left to build it. */
+export function characterSprite(look: Look, frame: FrameSpec): CanvasImageSource | undefined {
+  return sprites.obtain(spriteKey(look, frame), () => buildSprite(look, frame))
 }
 
 /** Zeroes and drops the cached sprites; the next draw rebuilds them. */
 export function releaseCharacterSprites(): void {
-  for (const sprite of sprites.values()) {
-    zeroCanvas(sprite)
-  }
-
   sprites.clear()
 }
 

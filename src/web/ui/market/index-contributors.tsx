@@ -3,14 +3,15 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { printDisplayOf } from '@/web/state/market'
 import { formatFixed, formatPrice } from '@/web/text/figures'
+import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { RankedList, RankedLists } from '@/web/ui/market/ranked-list'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
-/** The daemon holds a list for about a minute while the session trades; asking at that pace keeps a
- *  tab left open current without the page ever being the one that spends a provider read. */
+/** The daemon holds a list for a minute from its read while the session trades, so a poll landing
+ *  inside that minute, or a second tab asking, is answered without a provider read. */
 const CONTRIBUTORS_POLL_MS = 60_000
 const POINT_DIGITS = 2
 
@@ -23,26 +24,24 @@ interface IndexContributorsProps {
 }
 
 /** Mã dẫn dắt chỉ số: the names that lifted and the names that weighed on the index this session.
- *  Nothing to show reads as no section; a failed read says why in the daemon's words. */
+ *  A read with no list, whether it failed or answered without one, says why in the daemon's words. */
 export function IndexContributors({ market, index }: IndexContributorsProps) {
   const reading = useBlock(ROUTES.indexContributors, {
     query: { market, index: index.code },
     everyMs: CONTRIBUTORS_POLL_MS,
   })
-  const contributors = reading.data?.contributors
-
-  if (reading.state === 'ready' && contributors === undefined) {
-    return null
-  }
+  const answer = reading.data
+  const title = tr('ui.office.market.contributors.title', { index: index.label })
+  const isWithoutList = answer !== undefined && answer.contributors === undefined
 
   return (
     <BlockFrame
-      title={tr('ui.office.market.contributors.title', { index: index.label })}
+      title={title}
       colour="blue"
       icon={<TrendIcon />}
-      reading={reading}
-      dataTo={contributors?.asOf}
-      showReadLine={false}
+      reading={isWithoutList ? { ...reading, state: 'failed', cautions: [] } : reading}
+      dataTo={answer?.contributors?.asOf}
+      failedText={isWithoutList ? withoutListText(title, answer.caveats) : undefined}
     >
       {(data) =>
         data.contributors !== undefined && <Sides market={market} {...data.contributors} />
@@ -90,6 +89,17 @@ function toRankedRow(row: Contributor, market: string) {
       tone: row.point > 0 ? ('up' as const) : ('down' as const),
     },
   }
+}
+
+/** The daemon's own reason for answering without a list, whatever its severity. */
+function withoutListText(title: string, caveats: IndexContributorsResponse['caveats']): string {
+  return tr('ui.office.today.failedNone', {
+    what: title,
+    reason:
+      caveats.length === 0
+        ? tr('ui.office.error.generic')
+        : joinInline(caveats.map((caveat) => caveat.text)),
+  })
 }
 
 /** Index points with their sign, which is the whole of what the figure says. */

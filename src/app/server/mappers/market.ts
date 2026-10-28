@@ -41,7 +41,11 @@ import type {
   TypedPrice,
 } from '@/trading/api'
 import { toCaveatWires, toInstrumentWire } from '@/app/server/mappers/trading'
-import { MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
+import {
+  changeAgainstClose,
+  MACRO_SCORE_RANGE,
+  parseExitLevel,
+} from '@/trading/api'
 
 // A closed vocabulary the wire copies in `wire/vocab.ts` must match its trading source both ways, so
 // a value added on either side fails typecheck here.
@@ -169,15 +173,18 @@ export function toSearchWire(matches: readonly InstrumentMatch[]): InstrumentSea
   }
 }
 
-/** A live reading wins while the market trades; otherwise the settled close stands. */
+/** A live reading wins while the market trades, its move measured against the settled close as
+ *  every surface measures it; otherwise the settled close stands. */
 function toOverviewRowWire(row: OverviewRow): OverviewResponse['markets'][number]['rows'][number] {
   const instrument = toInstrumentWire(row.instrument)
 
   if (row.live !== undefined) {
+    const changePct = changeAgainstClose(row.live.price, row.quote?.price, row.live.changePct)
+
     return {
       instrument,
       price: row.live.price,
-      ...(row.live.changePct === undefined ? {} : { changePct: row.live.changePct }),
+      ...(changePct === undefined ? {} : { changePct }),
       observedAt: row.live.observedAt,
     }
   }

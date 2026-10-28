@@ -5,7 +5,8 @@ import type { InstrumentRefWire } from '@/app/server/wire/trading'
 // brittle status+string. One source of truth for "which code → which HTTP status".
 
 /** The codes actually emitted (no dead codes). Each maps to a call site: forbidden=loopback guard,
- *  unauthorized=auth guard, not_found=dispatch miss, too_many_streams=/v1/ws socket cap;
+ *  unauthorized=auth guard, not_found=dispatch miss, too_many_streams=/v1/ws socket cap,
+ *  stopping=a read the daemon dropped because it is stopping or restarting;
  *  the rest are body/symbol/upstream validation. */
 export type ApiErrorCode =
   | 'unauthorized'
@@ -17,6 +18,7 @@ export type ApiErrorCode =
   | 'upstream_failed'
   | 'too_many_streams'
   | 'unavailable'
+  | 'stopping'
   | 'timeout'
   | 'internal'
 
@@ -63,6 +65,7 @@ export const API_ERROR_STATUS: Readonly<Record<ApiErrorCode, number>> = {
   upstream_failed: 502,
   too_many_streams: 503,
   unavailable: 503,
+  stopping: 503,
   timeout: 504,
   internal: 500,
 }

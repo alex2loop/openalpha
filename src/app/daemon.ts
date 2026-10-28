@@ -1,6 +1,7 @@
 import type { DeliveryHub } from '@/app/delivery'
 import type { App, DaemonStartOptions, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import type { NoticeRow } from '@/persistence/api'
 import { refreshMarketDataOnBoot } from '@/app/boot-refresh'
 import {
   type DaemonTaskState,
@@ -21,6 +22,9 @@ import { formatInstant } from '@/trading/api'
 /** How long a stop waits for the runs in flight before it disposes. */
 export const SHUTDOWN_DRAIN_MS = 5_000
 const SHUTDOWN_TOTAL_MS = 30_000
+/** How many of the newest bell rows a new restart line looks through for the ones it replaces. */
+const RESTART_NOTICE_SCAN = 50
+const RESTART_DONE = 'restart-done'
 
 declare module '@/core/container' {
   interface Services {
@@ -264,16 +268,48 @@ function reportUpgradeOutcome(app: App, logger: Logger): void {
  *  daemon mode too and would take it first. */
 function announceRestart(app: App, logger: Logger): void {
   takeRestartMarker(app.config.paths.dataDir, Date.now())
-    .then((restarted) => {
+    .then(async (restarted) => {
       if (restarted) {
+        await readEarlierRestartNotices(app).catch((err: unknown) => {
+          logger.warn('daemon.restart_notices_read_failed', { err: formatErrForLog(err) })
+        })
         app.resolve('bus').emit('daemon_notice', {
           text: t(app.config.locale.language, 'ui.restartDone'),
           at: Date.now(),
-          kind: 'restart-done',
+          kind: RESTART_DONE,
         })
       }
     })
     .catch((err: unknown) => {
       logger.warn('daemon.restart_marker_failed', { err: formatErrForLog(err) })
     })
+}
+
+/** Every restart files the same sentence, so the newest one stands for the earlier ones still
+ *  unread instead of stacking them in the bell. */
+async function readEarlierRestartNotices(app: App): Promise<void> {
+  const store = app.resolve('noticeStore')
+  const rows = await store.list(undefined, RESTART_NOTICE_SCAN)
+  const ids = rows
+    .filter((row) => row.readAt === undefined && isRestartDone(row))
+    .map((row) => row.id)
+
+  if (ids.length > 0) {
+    await store.markRead(ids, Date.now())
+  }
+}
+
+function isRestartDone(row: NoticeRow): boolean {
+  if (row.kind !== 'daemon_notice') {
+    return false
+  }
+
+  const event: unknown = JSON.parse(row.event)
+
+  return (
+    typeof event === 'object' &&
+    event !== null &&
+    'noticeKind' in event &&
+    event.noticeKind === RESTART_DONE
+  )
 }

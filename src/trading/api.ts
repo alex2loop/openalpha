@@ -242,5 +242,6 @@ export { formatSignedFixedFraction, resolveRenderContext } from '@/trading/rende
 export { formatPriceIn, quotedInOf } from '@/trading/render/money'
 export { renderLoopQuarantineNotice } from '@/trading/render/quarantine'
 export { renderRestatementNotice } from '@/trading/render/restatement'
+export { changeAgainstClose } from '@/trading/sources/rows/normalization'
 export { SURFACE_LIMITS } from '@/trading/surface-limits'
 export { TRADING_SKILLS } from '@/trading/wiring/catalog/skills'

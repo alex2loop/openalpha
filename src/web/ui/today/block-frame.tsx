@@ -144,10 +144,11 @@ function failureSentence<T>(title: string, reading: BlockReading<T>): string {
 interface ReadLineProps {
   readonly readAt: number | undefined
   readonly dataTo: string | undefined
-  readonly readKey: MessageKey | undefined
+  readonly readKey?: MessageKey | undefined
 }
 
-function ReadLine({ readAt, dataTo, readKey = 'ui.office.today.readAt' }: ReadLineProps) {
+/** "Dữ liệu đến … · Đọc lúc …" under a card's title; nothing before the first read. */
+export function ReadLine({ readAt, dataTo, readKey = 'ui.office.today.readAt' }: ReadLineProps) {
   const timeZone = state.value?.timeZone
 
   if (readAt === undefined || timeZone === undefined) {

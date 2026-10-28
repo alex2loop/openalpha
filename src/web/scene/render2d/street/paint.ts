@@ -33,6 +33,7 @@ import { zeroCanvas } from '@/web/scene/renderer'
 import { type SkyNow, skyNow } from '@/web/scene/sim/sky'
 import { hasStreetEntities } from '@/web/scene/sim/street/street'
 import { type LightRow, lightOf } from '@/web/scene/sprites/daylight'
+import { spriteBuildSkips } from '@/web/scene/sprites/sprite-cache'
 import { FRAME_RECT, movingRectOf, projection } from '@/web/scene/view'
 import { sceneView } from '@/web/state/prefs'
 import { locale } from '@/web/state/session'
@@ -107,6 +108,8 @@ export interface PainterState {
   paintMs: number
   /** The last frame painted a step of a repaint, so one more must follow. */
   isPainting: boolean
+  /** The moving canvas left out a sprite it had no time to build, so one more paint must follow. */
+  isMovingPartial: boolean
 }
 
 export function createStreetPainter(): StreetPainter {
@@ -117,6 +120,7 @@ export function createStreetPainter(): StreetPainter {
     isCurrent: (visible) =>
       state.detail === detailOfPx(projection.value.scale * devicePixelRatio) &&
       !state.isPainting &&
+      !state.isMovingPartial &&
       state.moving.minute.isRevealed === isRevealedBy(visible) &&
       isSharpCurrent(state.sharp, sharpJobOf(state, visible)) &&
       (state.movingCanvas.width === 0 || isSameRect(movingRectOf(visible), state.movingRect)),
@@ -132,6 +136,7 @@ export function createStreetPainter(): StreetPainter {
       state.staticRun = undefined
       state.staticKey = ''
       state.movingKey = ''
+      state.isMovingPartial = false
       state.detail = undefined
     },
   }
@@ -221,6 +226,7 @@ function createPainterState(): PainterState {
     movingRect: NO_RECT,
     paintMs: 0,
     isPainting: false,
+    isMovingPartial: false,
   }
 }
 
@@ -301,13 +307,16 @@ function syncMoving(
 
   state.moving.rect = rect
   state.moving.px = px
+  const skipsBefore = spriteBuildSkips()
 
   for (const paintMoving of MOVING_PAINTS) {
     paintMoving(g, job.view, state.moving)
   }
 
+  // A sprite the frame had no time to build is left out, and the next frame paints it.
+  state.isMovingPartial = spriteBuildSkips() !== skipsBefore
   state.movingRect = rect
-  state.movingKey = key
+  state.movingKey = state.isMovingPartial ? '' : key
   state.movingVersion++
 }
 
@@ -333,6 +342,7 @@ function clearMoving(state: PainterState): void {
   zeroCanvas(state.movingCanvas)
   state.movingRect = NO_RECT
   state.movingKey = ''
+  state.isMovingPartial = false
   state.movingVersion++
 }
 
