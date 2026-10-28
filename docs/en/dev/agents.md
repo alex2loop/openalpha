@@ -97,27 +97,42 @@ own entry.
 
 ### `spawn` - temporary children
 
-Input is `role` plus `goal` (one child) or `items` (one child per item), with optional `context` and `output_schema` (a JSON Schema object, at most `MAX_OUTPUT_SCHEMA_CHARS`). The child profile is
-the parent's with its id kept (logs, the per-agent cap and log routing stay the parent's), `tools` cut to the
-`SPAWN_TOOL_NAMES` read allowlist, no roster, `[loop] max_spawn_turns` and `max_spawn_duration_ms` as caps (each cut to the `[loop]` max_turns and max_duration_ms), and the
-`delegate` tier when declared. `RunOptions.profile` carries it: `runOnce` accepts one only with the configured
-agent's id and a tool list inside the configured agent's, else `ValidationError`. `RunOptions.title` names the run
-(`<role>: <goal>`, scrubbed, cut at `RUN_TITLE_MAX_CHARS`) and its `run_finished` on the bus carries `summary`, the scrubbed first
-`CHILD_SUMMARY_MAX_CHARS` characters of its text, which the run log stores and `/v1/activity` shows; the wire event leaves it out.
+Input is `role` plus `goal` (one child) or `items` (one child per item), with optional `context` and `output_schema` (a JSON Schema object, at most `MAX_OUTPUT_SCHEMA_CHARS`).
 
-`maxSpawn` caps one call, not the run tree: the first `maxSpawn` children of a call start and the rest come back as
-failed "not started" entries saying the call asked for more than the agent may start at once, with the keyed line
-`tools.spawn.full` (`count` is the number started; `tools.spawn.fullOne` when it is 1), shown as a persistent progress line when the cap is applied,
-before the accepted children start, and each entry names the goal it did not start. Children still draw on the
-run tree's `DelegationQuota` fan-out quota. Each result is
-`{ role, status: done | partial | failed, reason?: timeout | turns | budget | error, text?, json? }`: `turn_limit` is `turns`
-(line `tools.spawn.reason.turns`, `{turns}`), and an aborted child is failed with no reason and no reason line. `role` is
-scrubbed on entry. `resolveToolGrant` drops `spawn` from `tools = "*"` when `max_spawn` is 0. Budget is a slice of `AGENT_BUDGET_FRACTION` and
-child usage rolls into the parent. The group line (`progress.spawnLine`, or `progress.spawnLineOne` for a single child) goes through the parent's progress, so
-channels and the terminal print it; per-child tool, model and reason lines go to the bus only. Params are strings and
-numbers: `kind: 'spawn'`, `role`, `parentRunId`.
+The child profile is the parent's, with these changes:
 
-`output_schema` is compiled once before any child starts (`z.fromJSONSchema`, in [tools/delegation/spawn-output.ts](../../../src/tools/delegation/spawn-output.ts)); an oversize or unusable one is `invalid_input`. A provider drops the output contract whenever tools are exposed, so the schema travels in each child's system prompt and is checked after the run: a `done` child's final text is parsed (a whole-text code fence is tolerated) and validated, and a match replaces `text` with the parsed `json`. A mismatch is `failed` with `reason: error`, a short English `text` naming the first issue, and the same keyed `tools.spawn.reason.error` line as any error. `partial` and `failed` children are not checked: their text is a running summary, not the document.
+- its id is kept, so logs, the per-agent cap and log routing stay the parent's;
+- `tools` is cut to the `SPAWN_TOOL_NAMES` read allowlist, and there is no roster;
+- `[loop] max_spawn_turns` and `max_spawn_duration_ms` are the caps (each cut to the `[loop]` max_turns and max_duration_ms);
+- it runs on the `delegate` tier when declared.
+
+`RunOptions.profile` carries it. `runOnce` accepts one only with the configured agent's id and a tool list inside the configured agent's, else `ValidationError`. `RunOptions.title` names the run (`<role>: <goal>`, scrubbed, cut at `RUN_TITLE_MAX_CHARS`). Its `run_finished` on the bus carries `summary`, the scrubbed first `CHILD_SUMMARY_MAX_CHARS` characters of its text, which the run log stores and `/v1/activity` shows; the wire event leaves it out.
+
+`maxSpawn` caps one call, not the run tree. The first `maxSpawn` children of a call start, and the rest come back as
+failed "not started" entries saying the call asked for more than the agent may start at once.
+
+- The keyed line is `tools.spawn.full` (`count` is the number started; `tools.spawn.fullOne` when it is 1). It shows
+  as a persistent progress line when the cap is applied, before the accepted children start, and each entry names
+  the goal it did not start.
+- Children still draw on the run tree's `DelegationQuota` fan-out quota.
+
+Each result is `{ role, status: done | partial | failed, reason?: timeout | turns | budget | error, text?, json? }`.
+
+- `turn_limit` is `turns` (line `tools.spawn.reason.turns`, `{turns}`). An aborted child is failed with no reason and
+  no reason line.
+- `role` is scrubbed on entry. `resolveToolGrant` drops `spawn` from `tools = "*"` when `max_spawn` is 0.
+- Budget is a slice of `AGENT_BUDGET_FRACTION`, and child usage rolls into the parent.
+- The group line (`progress.spawnLine`, or `progress.spawnLineOne` for a single child) goes through the parent's
+  progress, so channels and the terminal print it. Per-child tool, model and reason lines go to the bus only.
+  Params are strings and numbers: `kind: 'spawn'`, `role`, `parentRunId`.
+
+`output_schema` is compiled once before any child starts (`z.fromJSONSchema`, in [tools/delegation/spawn-output.ts](../../../src/tools/delegation/spawn-output.ts)); an oversize or unusable one is `invalid_input`.
+
+A provider drops the output contract whenever tools are exposed, so the schema travels in each child's system prompt and is checked after the run:
+
+- a `done` child's final text is parsed (a whole-text code fence is tolerated) and validated, and a match replaces `text` with the parsed `json`;
+- a mismatch is `failed` with `reason: error`, a short English `text` naming the first issue, and the same keyed `tools.spawn.reason.error` line as any error;
+- `partial` and `failed` children are not checked: their text is a running summary, not the document.
 
 A delegated child that ends on a timeout, error, turn limit, loop or abort now settles as failed (`isError`); only a
 completed run settles as completed.

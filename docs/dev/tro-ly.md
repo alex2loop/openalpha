@@ -96,26 +96,41 @@ ngân sách, phê duyệt và runner vẫn hiện ra, và một lần từ chố
 
 ### `spawn` - agent con tạm thời
 
-Đầu vào là `role` cùng `goal` (một agent con) hoặc `items` (mỗi mục một agent con), thêm `context` và `output_schema` tùy chọn (một đối tượng JSON Schema, dài tối đa `MAX_OUTPUT_SCHEMA_CHARS`). Profile của agent
-con là profile của agent cha giữ nguyên `id` (nhật ký, trần theo agent và định tuyến log vẫn là của agent cha), `tools` cắt
-còn danh sách đọc `SPAWN_TOOL_NAMES`, không có danh sách ủy quyền, trần `[loop] max_spawn_turns` và `max_spawn_duration_ms` (mỗi trần bị cắt theo max_turns và max_duration_ms của `[loop]`),
-và nhóm `delegate` nếu có khai báo. `RunOptions.profile` mang nó vào: `runOnce` chỉ nhận một profile khi nó cùng `id` với agent
-đã cấu hình và danh sách công cụ nằm trong danh sách của agent đó, không thì ném `ValidationError`. `RunOptions.title` đặt tên
-phiên chạy (`<role>: <goal>`, đã lọc thông tin xác thực, cắt ở `RUN_TITLE_MAX_CHARS`) và `run_finished` của nó trên bus mang `summary`,
-là `CHILD_SUMMARY_MAX_CHARS` ký tự đầu của câu trả lời đã lọc, được nhật ký phiên chạy lưu lại và `/v1/activity` hiển thị; sự kiện trên dây bỏ nó.
+Đầu vào là `role` cùng `goal` (một agent con) hoặc `items` (mỗi mục một agent con), thêm `context` và `output_schema` tùy chọn (một đối tượng JSON Schema, dài tối đa `MAX_OUTPUT_SCHEMA_CHARS`).
 
-`maxSpawn` giới hạn một lời gọi, không giới hạn cả cây phiên chạy: `maxSpawn` agent con đầu tiên của lời gọi khởi động, phần còn
-lại trả về là các mục thất bại "chưa bắt đầu" nói rằng lời gọi xin nhiều hơn mức agent được khởi động cùng lúc, cùng dòng có khóa
-`tools.spawn.full` (`count` là số đã khởi động; `tools.spawn.fullOne` khi chỉ có 1), hiện thành một dòng tiến độ bền ngay khi áp giới hạn, trước khi các
-agent con được nhận bắt đầu, và mỗi mục nêu rõ mục tiêu chưa được bắt đầu. Các agent con vẫn dùng hạn ngạch nhánh của
-`DelegationQuota` trên cây phiên chạy. Mỗi kết quả là `{ role,
-status: done | partial | failed, reason?: timeout | turns | budget | error, text?, json? }`: `turn_limit` là `turns` (dòng
-`tools.spawn.reason.turns`, `{turns}`), agent con bị hủy thì thất bại, không có lý do và không có dòng lý do. `role` được lọc
-thông tin xác thực khi vào. `resolveToolGrant` bỏ `spawn` khỏi `tools = "*"` khi `max_spawn` là 0. Ngân sách là một phần `AGENT_BUDGET_FRACTION` và mức dùng của agent con
-được cộng vào agent cha. Dòng nhóm (`progress.spawnLine`, hoặc `progress.spawnLineOne` khi chỉ có một agent con) đi qua tiến độ của agent cha nên kênh chat và terminal in ra; các
-dòng công cụ, mô hình và lý do của từng agent con chỉ đi vào bus. Tham số là chuỗi và số: `kind: 'spawn'`, `role`, `parentRunId`.
+Profile của agent con là profile của agent cha, với các thay đổi sau:
 
-`output_schema` được biên dịch một lần trước khi có agent con nào chạy (`z.fromJSONSchema`, trong [tools/delegation/spawn-output.ts](../../src/tools/delegation/spawn-output.ts)); schema quá dài hoặc không dùng được là `invalid_input`. Nhà cung cấp bỏ ràng buộc đầu ra mỗi khi có công cụ, nên schema đi trong system prompt của từng agent con và được kiểm tra sau khi chạy: câu trả lời cuối của agent con `done` được đọc (chấp nhận khối code bao trọn) và kiểm tra, khớp thì `text` được thay bằng `json` đã đọc. Không khớp là `failed` với `reason: error`, `text` tiếng Anh ngắn nêu lỗi đầu tiên, và cùng dòng khóa `tools.spawn.reason.error` như mọi lỗi khác. Agent con `partial` và `failed` không bị kiểm tra: text của chúng là bản tóm tắt đang chạy, không phải tài liệu.
+- giữ nguyên `id`, nên nhật ký, trần theo agent và định tuyến log vẫn là của agent cha;
+- `tools` cắt còn danh sách đọc `SPAWN_TOOL_NAMES`, và không có danh sách ủy quyền;
+- trần là `[loop] max_spawn_turns` và `max_spawn_duration_ms` (mỗi trần bị cắt theo max_turns và max_duration_ms của `[loop]`);
+- chạy trên nhóm `delegate` nếu có khai báo.
+
+`RunOptions.profile` mang nó vào. `runOnce` chỉ nhận một profile khi nó cùng `id` với agent đã cấu hình và danh sách công cụ nằm trong danh sách của agent đó, không thì ném `ValidationError`. `RunOptions.title` đặt tên phiên chạy (`<role>: <goal>`, đã lọc thông tin xác thực, cắt ở `RUN_TITLE_MAX_CHARS`). `run_finished` của nó trên bus mang `summary`, là `CHILD_SUMMARY_MAX_CHARS` ký tự đầu của câu trả lời đã lọc, được nhật ký phiên chạy lưu lại và `/v1/activity` hiển thị; sự kiện trên dây bỏ nó.
+
+`maxSpawn` giới hạn một lần gọi, không giới hạn cả cây phiên chạy. `maxSpawn` agent con đầu tiên của lần gọi khởi động, phần còn
+lại trả về là các mục thất bại "chưa bắt đầu", nói rằng lần gọi xin nhiều hơn mức agent được khởi động cùng lúc.
+
+- Dòng có khóa là `tools.spawn.full` (`count` là số đã khởi động; `tools.spawn.fullOne` khi chỉ có 1). Nó hiện thành một dòng
+  tiến độ bền ngay khi áp giới hạn, trước khi các agent con được nhận bắt đầu, và mỗi mục nêu rõ mục tiêu chưa được bắt đầu.
+- Các agent con vẫn dùng hạn ngạch nhánh của `DelegationQuota` trên cây phiên chạy.
+
+Mỗi kết quả là `{ role, status: done | partial | failed, reason?: timeout | turns | budget | error, text?, json? }`.
+
+- `turn_limit` là `turns` (dòng `tools.spawn.reason.turns`, `{turns}`). Agent con bị hủy thì thất bại, không có lý do và không
+  có dòng lý do.
+- `role` được lọc thông tin xác thực khi vào. `resolveToolGrant` bỏ `spawn` khỏi `tools = "*"` khi `max_spawn` là 0.
+- Ngân sách là một phần `AGENT_BUDGET_FRACTION`, và mức dùng của agent con được cộng vào agent cha.
+- Dòng nhóm (`progress.spawnLine`, hoặc `progress.spawnLineOne` khi chỉ có một agent con) đi qua tiến độ của agent cha, nên kênh
+  chat và terminal in ra. Các dòng công cụ, mô hình và lý do của từng agent con chỉ đi vào bus. Tham số là chuỗi và số:
+  `kind: 'spawn'`, `role`, `parentRunId`.
+
+`output_schema` được biên dịch một lần trước khi có agent con nào chạy (`z.fromJSONSchema`, trong [tools/delegation/spawn-output.ts](../../src/tools/delegation/spawn-output.ts)); schema quá dài hoặc không dùng được là `invalid_input`.
+
+Nhà cung cấp bỏ ràng buộc đầu ra mỗi khi có công cụ, nên schema đi trong system prompt của từng agent con và được kiểm tra sau khi chạy:
+
+- câu trả lời cuối của agent con `done` được đọc (chấp nhận khối code bao trọn) và kiểm tra, khớp thì `text` được thay bằng `json` đã đọc;
+- không khớp là `failed` với `reason: error`, `text` tiếng Anh ngắn nêu lỗi đầu tiên, và cùng dòng khóa `tools.spawn.reason.error` như mọi lỗi khác;
+- agent con `partial` và `failed` không bị kiểm tra: text của chúng là bản tóm tắt đang chạy, không phải tài liệu.
 
 Một agent con `delegate` kết thúc vì hết giờ, lỗi, hết lượt, vòng lặp hoặc bị hủy giờ được xếp là thất bại (`isError`); chỉ
 phiên chạy hoàn tất mới được xếp là hoàn tất.
