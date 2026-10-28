@@ -565,7 +565,7 @@ Point at a person for their name and one live line: what they are running and fr
 - *Profile*: the profile of your own agents.
 - *Follow*, for everyone: the camera follows them (below).
 
-Their answer stands clear of the ring, above, beside or below it, inside the view. Arrow keys move around the ring, Esc closes it, and so does moving focus away. A person waiting at your desk opens the approval in the bell instead.
+Their answer sits right next to the ring without covering it: over its top item, else beside the item nearest them, inside the view. Arrow keys move around the ring, Esc closes it, and so does moving focus away. A person waiting at your desk opens the approval in the bell instead.
 
 **Following someone.** Double-click a person with a mouse, or choose "Follow" in their ring, and the camera keeps them centred, across floors and the lift, until you move the camera yourself (drag, scroll, zoom or the arrow keys), press Esc, click empty floor, step to someone else with the keyboard, or switch between 2D and 3D.
 

@@ -7,6 +7,7 @@ import type { MenuBounds } from '@/web/scene/overlay/placement'
 import type { ActorId, Rect, Size } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { overlayView } from '@/web/scene/overlay/overlay'
+import { pillWidthOf } from '@/web/scene/overlay/placement'
 import { isCrewId, ownAgentIdOf, takesWork } from '@/web/scene/sim/actors/roster'
 import { projection } from '@/web/scene/view'
 import { selectAgent } from '@/web/state/agents'
@@ -20,7 +21,8 @@ import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
 
 import './radial-menu.css'
 
-// The ring's half width and height round the person, and a pill's half size, in CSS px.
+// The ring's half width and height round the person, and the half size kept clear for a pill at the
+// pane's edge, in CSS px.
 const RING_RX_PX = 96
 const RING_RY_PX = 60
 const PILL_HALF_W_PX = 64
@@ -118,27 +120,24 @@ export function menuPillRects(
   actor: ActorId | undefined
 ): readonly Rect[] {
   const figure = actor === undefined ? undefined : figures.get(actor)
-  const count = opened.peek()?.actions.length ?? 0
+  const actions = opened.peek()?.actions ?? []
+  const count = actions.length
   const { pane } = projection.value
 
   if (figure === undefined) {
     return []
   }
 
-  return Array.from({ length: count }, (_, index) => {
+  return actions.map((action, index) => {
     const at = pillCenterOf(ringCenterOf(figure, pane), { index, count, pane })
+    const w = pillWidthOf(tr(ACTION_KEYS[action.id]))
 
-    return {
-      x: at.x - PILL_HALF_W_PX,
-      y: at.y - PILL_HALF_H_PX,
-      w: PILL_HALF_W_PX * 2,
-      h: PILL_HALF_H_PX * 2,
-    }
+    return { x: at.x - w / 2, y: at.y - PILL_HALF_H_PX, w, h: PILL_HALF_H_PX * 2 }
   })
 }
 
-/** The box round the open ring's pills and the pane it stands in, for its person's bubble to
- *  stand clear of. */
+/** The open ring's pills and the pane it stands in, for its person's bubble to stand close to but
+ *  clear of. */
 export function menuRingOf(
   figures: ReadonlyMap<ActorId, Rect>,
   actor: ActorId | undefined
@@ -149,13 +148,7 @@ export function menuRingOf(
     return {}
   }
 
-  const left = Math.min(...pills.map((pill) => pill.x))
-  const top = Math.min(...pills.map((pill) => pill.y))
-  const right = Math.max(...pills.map((pill) => pill.x + pill.w))
-  const bottom = Math.max(...pills.map((pill) => pill.y + pill.h))
-  const ring = { x: left, y: top, w: right - left, h: bottom - top }
-
-  return { menu: { actor, ring, pane: projection.value.pane } }
+  return { menu: { actor, pills, pane: projection.value.pane } }
 }
 
 /** Opens the ring round `actor`; a person with nothing to do now gets none. */
