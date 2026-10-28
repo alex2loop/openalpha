@@ -65,42 +65,44 @@ export class OperatorConfigError extends ConfigError {
 
 /** What a key switches off, as a catalog key under `errors.keyEffect`: named in the operator's
  *  sentence, so the reader learns what waits for it and not only which variable is unset. */
-export type KeyEffect = 'model' | 'fallback' | 'search'
+export type KeyEffect = 'model' | 'fallback' | 'search' | 'storage' | 'mcp'
 
 interface MissingEnvLocation {
   readonly path: ConfigPath
-  /** What the key switches off. Absent for a setting the whole owner depends on. */
-  readonly effect?: KeyEffect
+  /** What the key switches off. */
+  readonly effect: KeyEffect
+  /** What the effect sentence names, for an effect that is about one named thing (an MCP server). */
+  readonly name?: string
 }
 
 export class MissingEnvError extends OperatorConfigError {
   readonly env: string
-  readonly effect?: KeyEffect
+  readonly effect: KeyEffect
 
+  /** `owner` is the English diagnostic for the log; the operator's sentence names the owner
+   *  through `effect`, in their own language. */
   constructor(env: string, owner: string, location: MissingEnvLocation) {
-    const { path, effect } = location
+    const { path, effect, name } = location
     const command = setEnvCommand(env)
 
     super(
       `${owner}: env var "${env}" is not set; set it with \`${command}\``,
-      effect === undefined
-        ? { key: 'errors.configEnvMissing', params: { env, owner, command, brand: BRAND.name } }
-        : {
-            key: 'errors.configEnvMissingEffect',
-            params: {
-              env,
-              command,
-              brand: BRAND.name,
-              effect: { key: `errors.keyEffect.${effect}` },
-            },
+      {
+        key: 'errors.configEnvMissingEffect',
+        params: {
+          env,
+          command,
+          brand: BRAND.name,
+          effect: {
+            key: `errors.keyEffect.${effect}`,
+            ...(name === undefined ? {} : { params: { name } }),
           },
+        },
+      },
       { path }
     )
     this.env = env
-
-    if (effect !== undefined) {
-      this.effect = effect
-    }
+    this.effect = effect
   }
 }
 
