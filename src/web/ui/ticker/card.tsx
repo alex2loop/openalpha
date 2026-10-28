@@ -34,7 +34,7 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
       <PastCalls ticker={ticker} market={market} />
       <CardAlerts ticker={ticker} market={market} />
       <EventsBlock ticker={ticker} market={market} />
-      <CardActions ticker={ticker} market={market} />
+      <CardActions ticker={ticker} market={market} hasPlan={standing !== undefined} />
     </>
   )
 }
