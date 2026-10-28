@@ -15,7 +15,7 @@ interface CardActionsProps {
   readonly market: string
 }
 
-/** What the operator can do with this name. "Đề xuất lại" only fills the box, so the AI cost is
+/** What the operator can do with this name. "Phân tích lại" only fills the box, so the AI cost is
  *  theirs to confirm; "Theo dõi" is free and changes the list at once; the alert and the trade
  *  open their forms. */
 export function CardActions({ ticker, market }: CardActionsProps) {
