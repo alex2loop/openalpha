@@ -18,6 +18,7 @@ import { LLMError } from '@/core/errors'
 import { httpRequest } from '@/core/http-client'
 import { silentLogger } from '@/core/logging/logger'
 import { NetworkPolicy } from '@/core/ssrf/network-policy'
+import { withoutTrailingSlashes } from '@/core/utils/url'
 import { t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
@@ -34,7 +35,6 @@ const UNREACHABLE_CODES: ReadonlySet<LLMErrorCode> = new Set(['transient', 'time
 // Both bot APIs answer `GET /bot<token>/getMe` with an `{ ok }` envelope.
 const BOT_API_HOSTS = { telegram: TELEGRAM_API_BASE, zalo: ZALO_API_BASE } as const
 const DUCKDUCKGO_HOST = 'https://html.duckduckgo.com'
-const TRAILING_SLASH_RE = /\/+$/
 
 const botConfigSchema = z.looseObject({
   enabled: z.boolean().optional(),
@@ -251,7 +251,7 @@ async function probeSearchProvider(options: WebSearchProbeOptions): Promise<Doct
 
     return online
       ? reachProbe({
-          host: search.baseUrl.replace(TRAILING_SLASH_RE, ''),
+          host: withoutTrailingSlashes(search.baseUrl),
           path: '/search',
           query: { q: 'ping', format: 'json' },
           locale,
