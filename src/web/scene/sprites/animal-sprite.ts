@@ -1,14 +1,14 @@
 import type { AnimalMotion } from '@/web/scene/sim/life/animal-motion'
 import type { AnimalKind, AnimalPart, Ellipsoid } from '@/web/scene/sprites/animal-parts'
-import { zeroCanvas } from '@/web/scene/renderer'
 import { partTurnOf } from '@/web/scene/sim/life/animal-motion'
 import { animalShape } from '@/web/scene/sprites/animal-shapes'
+import { createSpriteCache } from '@/web/scene/sprites/sprite-cache'
 
 /** World px per model cm. */
 export const ANIMAL_UNIT = 0.2
 // Sprite px per world px at each detail level.
 const LEVEL_RES = [1, 2, 4] as const
-// Sprites kept at most; past it the cache empties and rebuilds what is drawn.
+// Sprites kept at most; past it the least recently drawn goes.
 const MAX_SPRITES = 640
 const PAD_PX = 2
 // A pixel at least this opaque is solid; the rest is clear, then outlined.
@@ -46,54 +46,48 @@ interface Placed {
   readonly sc: readonly (readonly [number, number])[]
 }
 
-const sprites = new Map<string, AnimalSprite>()
+const sprites = createSpriteCache<AnimalSprite>({
+  max: MAX_SPRITES,
+  canvasOf: (sprite) => sprite.canvas,
+})
 
 /** The sprite of `kind` in `pose` at detail `level`, moved as `motion`, dimmed in an unlit tank;
- *  built once and cached. */
+ *  built once and cached; absent while a frame has no time left to build it. */
 export function animalSprite(spec: {
   readonly kind: AnimalKind
   readonly pose: string
   readonly level: number
   readonly motion: AnimalMotion
   readonly isDim: boolean
-}): AnimalSprite {
+}): AnimalSprite | undefined {
   const { kind, pose, level, motion } = spec
   const key = `${kind}|${pose}|${level}|${Object.values(motion).join(',')}|${spec.isDim}`
-  const held = sprites.get(key)
 
-  if (held !== undefined) {
-    return held
-  }
+  return sprites.obtain(key, () => {
+    const placed = placeParts(animalShape(kind, pose, level), (name) =>
+      partTurnOf(kind, name, motion)
+    )
 
-  if (sprites.size >= MAX_SPRITES) {
-    releaseAnimalSprites()
-  }
-
-  const placed = placeParts(animalShape(kind, pose, level), (name) =>
-    partTurnOf(kind, name, motion)
-  )
-  const sprite = raster(placed, { res: LEVEL_RES[level] ?? 1, isDim: spec.isDim })
-
-  sprites.set(key, sprite)
-
-  return sprite
+    return raster(placed, { res: LEVEL_RES[level] ?? 1, isDim: spec.isDim })
+  })
 }
 
 /** Zeroes and drops every cached animal sprite. */
 export function releaseAnimalSprites(): void {
-  for (const sprite of sprites.values()) {
-    zeroCanvas(sprite.canvas)
-  }
-
   sprites.clear()
 }
 
-/** Draws `sprite` with its model origin at world (`x`, `y`), mirrored when `isFlipped`. */
+/** Draws `sprite` with its model origin at world (`x`, `y`), mirrored when `isFlipped`; nothing
+ *  for a sprite not built yet. */
 export function blitAnimal(
   g: CanvasRenderingContext2D,
-  sprite: AnimalSprite,
+  sprite: AnimalSprite | undefined,
   at: { readonly x: number; readonly y: number; readonly isFlipped: boolean }
 ): void {
+  if (sprite === undefined) {
+    return
+  }
+
   const w = sprite.canvas.width / sprite.res
   const h = sprite.canvas.height / sprite.res
   const left = at.isFlipped ? at.x + sprite.ox / sprite.res - w : at.x - sprite.ox / sprite.res

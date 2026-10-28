@@ -1,6 +1,6 @@
 import type { OverviewLeadersWire, OverviewResponse } from '@/app/server/wire/market'
 import { formatDay, type MessageKey } from '@/i18n'
-import { findMarket, selectRegionOverview } from '@/web/state/market'
+import { findMarket, overviewBlock, selectRegionOverview } from '@/web/state/market'
 import { locale } from '@/web/state/session'
 import { formatCompactAmount, formatSignedCompactAmount } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
@@ -8,7 +8,7 @@ import { tr } from '@/web/text/tr'
 import { CoinIcon } from '@/web/ui/kit/icons'
 import { RankedList, RankedLists } from '@/web/ui/market/ranked-list'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
-import { BlockHead } from '@/web/ui/today/block-frame'
+import { BlockHead, ReadLine } from '@/web/ui/today/block-frame'
 
 const LEADERS_SHOWN = 5
 
@@ -50,10 +50,16 @@ export function Flows({ region }: { readonly region: string }) {
     return null
   }
 
+  const days = new Set(blocks.map((block) => block.asOf))
+
   return (
     <section class="block">
       <BlockHead title={tr('ui.office.market.flows')} colour="teal" icon={<CoinIcon />} />
       <div class="flow">
+        <ReadLine
+          readAt={overviewBlock.view.value.readAt}
+          dataTo={days.size === 1 ? blocks[0]?.asOf : undefined}
+        />
         {blocks.map((block) => (
           <MarketFlows key={block.market} block={block} />
         ))}

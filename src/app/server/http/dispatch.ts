@@ -146,6 +146,13 @@ async function runHandler(
       throw err
     }
 
+    // A stop or restart cut the read short: expected, and the caller reads again once it is back.
+    if (app.signal.aborted) {
+      app.resolve('logger').info('api.handler_stopped', { method: route.method, path: route.path })
+
+      return apiError('stopping')
+    }
+
     const code = toErrorCode(err)
 
     // A refusal the handler meant to send is the caller's answer, not a failure of ours.

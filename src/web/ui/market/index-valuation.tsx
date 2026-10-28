@@ -3,7 +3,8 @@ import type { ComponentChildren } from 'preact'
 import type { IndexValuationResponse } from '@/app/server/wire/index-reading'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
-import { formatFixed } from '@/web/text/figures'
+import { useRereadAfterRefresh } from '@/web/state/refresh'
+import { formatFixed, formatFixedFraction } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { PieIcon } from '@/web/ui/kit/icons'
 import { BlockFrame } from '@/web/ui/today/block-frame'
@@ -28,6 +29,8 @@ export function IndexValuation({ market, index }: IndexValuationProps) {
   const reading = useBlock(ROUTES.indexValuation, { query: { market, index: index.code } })
   const valuation = reading.data?.valuation
 
+  useRereadAfterRefresh(reading.retry)
+
   if (reading.state === 'ready' && valuation === undefined) {
     return null
   }
@@ -39,14 +42,15 @@ export function IndexValuation({ market, index }: IndexValuationProps) {
       icon={<PieIcon />}
       reading={reading}
       dataTo={valuation?.asOf}
-      showReadLine={false}
     >
-      {(data) => data.valuation !== undefined && <Ratios valuation={data.valuation} />}
+      {(data) =>
+        data.valuation !== undefined && <Ratios valuation={data.valuation} index={index.label} />
+      }
     </BlockFrame>
   )
 }
 
-function Ratios({ valuation }: { readonly valuation: Valuation }) {
+function Ratios({ valuation, index }: { readonly valuation: Valuation; readonly index: string }) {
   const { aboveMa50Pct, aboveMa200Pct, dividendYieldPct } = valuation
 
   return (
@@ -79,8 +83,9 @@ function Ratios({ valuation }: { readonly valuation: Valuation }) {
       {aboveMa50Pct !== undefined && aboveMa200Pct !== undefined && (
         <p class="meta">
           {tr('ui.office.market.valuation.aboveMa', {
-            ma50: formatFixed(aboveMa50Pct, 0),
-            ma200: formatFixed(aboveMa200Pct, 0),
+            index,
+            ma50: formatFixedFraction(aboveMa50Pct / PERCENT),
+            ma200: formatFixedFraction(aboveMa200Pct / PERCENT),
           })}
         </p>
       )}

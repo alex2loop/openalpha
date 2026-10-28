@@ -13,6 +13,9 @@ export const STREET_PAINT_BUDGET_MS = 8
 /** How long a frame goes on starting steps of a repaint: a step may end past it, so it stays well
  *  under the budget. */
 export const STREET_PAINT_SLICE_MS = 2
+/** How long a 2D frame goes on building sprites it holds no copy of; the rest wait for the next
+ *  frame, so the first frames of a load stay under the street paint budget. */
+export const SPRITE_BUILD_SLICE_MS = 3
 /** Frames a second of the 2D floor's ambient effects (dust, ribbons, the rack, the approval light,
  *  bubbles) while nothing else moves; one clock for all of them. The LED strip, the StandBy
  *  stands and the screensavers run inside their own ambient windows (`sim/ambient-windows.ts`). */

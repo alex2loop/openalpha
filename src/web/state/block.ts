@@ -1,4 +1,4 @@
-import { type ReadonlySignal, signal } from '@preact/signals'
+import { effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 import { useEffect, useMemo } from 'preact/hooks'
 
 import type { Capabilities } from '@/app/server/wire/system'
@@ -6,8 +6,10 @@ import type { RouteDef } from '@/web/api/routes'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { createSingleFlight } from '@/web/api/single-flight'
-import { state } from '@/web/state/session'
+import { connection, state } from '@/web/state/session'
 import { mergeCautions } from '@/web/text/caution-text'
+
+const STOPPING = 'stopping'
 
 type BlockQuery = Readonly<Record<string, string | number>>
 
@@ -64,6 +66,7 @@ function createBlock<T>(
 ): Block<T> {
   const view = signal<BlockView<T>>({ state: 'loading', cautions: [] })
   let refresh: (() => Promise<void>) | undefined
+  const daemonWait = createDaemonWait()
 
   async function load(abort: AbortSignal): Promise<void> {
     if (isAbsent(options.capability)) {
@@ -75,7 +78,9 @@ function createBlock<T>(
       view.value = toReadView(await read(abort))
     } catch (error: unknown) {
       // Anything but an `ApiFailure` is this block's own abort.
-      if (error instanceof ApiFailure) {
+      if (error instanceof ApiFailure && error.code === STOPPING) {
+        daemonWait.note()
+      } else if (error instanceof ApiFailure) {
         view.value = { ...view.value, state: 'failed', error }
       }
     }
@@ -85,6 +90,9 @@ function createBlock<T>(
     const lifetime = new AbortController()
     const flight = createSingleFlight(load, lifetime.signal)
     const stopPoll = everyMs === undefined ? undefined : startPoll(() => flight(), everyMs)
+
+    // `load` records its own failure, so the flight never rejects.
+    const stopWait = daemonWait.watch(() => flight().catch(() => undefined))
 
     refresh = flight
 
@@ -96,6 +104,7 @@ function createBlock<T>(
     return () => {
       lifetime.abort()
       stopPoll?.()
+      stopWait()
 
       if (refresh === flight) {
         refresh = undefined
@@ -109,6 +118,32 @@ function createBlock<T>(
   }
 
   return { view, start, retry }
+}
+
+interface DaemonWait {
+  /** The daemon dropped a read because it is stopping or restarting. */
+  note(): void
+  /** Runs `rerun` once the socket is back after a noted drop; the returned stop ends the watch. */
+  watch(rerun: () => void): () => void
+}
+
+/** A read dropped by a restart is not a failure: the view stands and the read runs again once the
+ *  daemon is back. */
+function createDaemonWait(): DaemonWait {
+  let isAwaiting = false
+
+  return {
+    note() {
+      isAwaiting = true
+    },
+    watch: (rerun) =>
+      effect(() => {
+        if (connection.value.status === 'live' && isAwaiting) {
+          isAwaiting = false
+          untracked(rerun)
+        }
+      }),
+  }
 }
 
 /** A block over one route: its query is fixed for the block's life. */

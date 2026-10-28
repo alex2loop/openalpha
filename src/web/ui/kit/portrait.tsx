@@ -28,8 +28,13 @@ export function Portrait({ look, size }: { readonly look: Look; readonly size: n
       return
     }
 
+    const image = characterSprite(look, PORTRAIT_FRAME)
+
     g.clearRect(0, 0, FIGURE.w, FIGURE.h)
-    g.drawImage(characterSprite(look, PORTRAIT_FRAME), 0, 0)
+
+    if (image !== undefined) {
+      g.drawImage(image, 0, 0)
+    }
   }, [look])
 
   return (

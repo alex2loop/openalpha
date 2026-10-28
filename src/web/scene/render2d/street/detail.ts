@@ -1,5 +1,5 @@
 import type { Point } from '@/web/scene/types'
-import { zeroCanvas } from '@/web/scene/renderer'
+import { createSpriteCache } from '@/web/scene/sprites/sprite-cache'
 
 // Device px per world px where the street's detail steps up: flat colours below the first, signs
 // and wordmarks from it, fine detail from the second.
@@ -28,8 +28,10 @@ interface SpriteBox {
   readonly pxPerWorld: number
 }
 
-// Oldest first: past the cap the first entry goes.
-const sprites = new Map<string, StreetSprite>()
+const sprites = createSpriteCache<StreetSprite>({
+  max: MAX_STREET_SPRITES,
+  canvasOf: (sprite) => sprite.canvas,
+})
 
 export function detailOfPx(devicePxPerWorld: number): StreetDetail {
   if (devicePxPerWorld >= DETAIL_STEPS[1]) {
@@ -50,8 +52,9 @@ export function drawSprite(
   spec: { readonly key: string; readonly box: SpriteBox; readonly at: Point },
   paint: (sprite: CanvasRenderingContext2D) => void
 ): void {
-  const key = spriteKeyOf(spec.key, spec.box.pxPerWorld)
-  const sprite = sprites.get(key) ?? createSprite(key, spec.box, paint)
+  const sprite = sprites.obtain(spriteKeyOf(spec.key, spec.box.pxPerWorld), () =>
+    createSprite(spec.box, paint)
+  )
 
   if (sprite !== undefined) {
     blitSprite(g, sprite, spec.at)
@@ -81,15 +84,10 @@ function blitSprite(g: CanvasRenderingContext2D, sprite: StreetSprite, at: Point
 
 /** Zeroes every cached sprite's pixels and empties the cache. */
 export function releaseStreetSprites(): void {
-  for (const sprite of sprites.values()) {
-    zeroCanvas(sprite.canvas)
-  }
-
   sprites.clear()
 }
 
 function createSprite(
-  key: string,
   box: SpriteBox,
   paint: (sprite: CanvasRenderingContext2D) => void
 ): StreetSprite | undefined {
@@ -106,23 +104,5 @@ function createSprite(
   g.translate(box.anchor.x, box.anchor.y)
   paint(g)
 
-  const sprite = { canvas, anchor: box.anchor, w: box.w, h: box.h }
-
-  sprites.set(key, sprite)
-  evictOldest()
-
-  return sprite
-}
-
-function evictOldest(): void {
-  if (sprites.size <= MAX_STREET_SPRITES) {
-    return
-  }
-
-  const [oldestKey, oldest] = sprites.entries().next().value ?? []
-
-  if (oldestKey !== undefined && oldest !== undefined) {
-    zeroCanvas(oldest.canvas)
-    sprites.delete(oldestKey)
-  }
+  return { canvas, anchor: box.anchor, w: box.w, h: box.h }
 }
