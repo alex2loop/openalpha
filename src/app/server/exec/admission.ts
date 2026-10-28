@@ -3,6 +3,7 @@ import type { ServerWebSocket } from 'bun'
 import type { ExecSocketData } from '@/app/server/ws/socket'
 import type { ApiRouteContext } from '@/app/types'
 import {
+  isAuthLocked,
   isLoopback,
   LOOPBACK_HOST,
   PROXY_HEADERS,
@@ -54,8 +55,13 @@ export function admitExec(
   }
 
   // The bearer header only, never the page's cookie; a wrong token counts toward the shared lockout.
-  const credential = resolveBearerCredential(headers.get('authorization'), ctx.token)
-  const refusal = toAuthRefusal(resolveAuthOutcome(ctx.ip, credential, Date.now()))
+  const now = Date.now()
+  const credential = resolveBearerCredential(
+    headers.get('authorization'),
+    ctx.token,
+    isAuthLocked(ctx.ip, now)
+  )
+  const refusal = toAuthRefusal(resolveAuthOutcome(ctx.ip, credential, now))
 
   if (refusal !== null) {
     return refusal

@@ -37,6 +37,8 @@ interface CallerDeps {
   readonly pageOrigin: string
   readonly cookieName: string
   readonly now: number
+  /** The lockout holds, so a bearer token is refused without being compared. */
+  readonly locked: boolean
   readonly logger: Logger
 }
 
@@ -55,7 +57,7 @@ export function toSessionCookieName(pageOrigin: string, publicUrl: string | unde
  *  `absent`, so it never counts toward the lockout. A store read that throws is not caught: the
  *  request fails closed. */
 export async function resolveCaller(req: Request, deps: CallerDeps): Promise<Caller> {
-  const bearer = resolveBearerCredential(req.headers.get('authorization'), deps.token)
+  const bearer = resolveBearerCredential(req.headers.get('authorization'), deps.token, deps.locked)
 
   if (bearer !== 'absent') {
     return { credential: bearer }

@@ -9,7 +9,7 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
-import { isLoopback, resolveAuthOutcome } from '@/app/server/http/auth'
+import { isAuthLocked, isLoopback, resolveAuthOutcome } from '@/app/server/http/auth'
 import { resolveCaller, SET_COOKIE } from '@/app/server/http/caller'
 import { buildCapabilities } from '@/app/server/http/capabilities'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
@@ -250,6 +250,7 @@ export async function resolveAuthorizedCaller(
     pageOrigin: ctx.pageOrigin,
     cookieName: ctx.cookieName,
     now,
+    locked: isAuthLocked(ctx.ip, now),
     logger: ctx.app.resolve('logger'),
   })
 

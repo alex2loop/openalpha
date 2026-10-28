@@ -386,8 +386,9 @@ openalpha connect
 ```
 
 `api token` prints the bearer token the app and other `/v1` clients send. `api rotate` replaces it,
-prints the new one and signs every browser out; the daemon needs a restart before the old token
-stops working. With `[api] token_env` set, the token is that variable and `rotate` leaves it alone.
+prints the new one, signs every browser out and restarts a running daemon at once, without waiting
+for work in progress, so the old token stops working. If that restart fails, it says so: run
+`openalpha restart`. With `[api] token_env` set, the token is that variable and `rotate` leaves it alone.
 While `[api]` is off, `api token` and `api rotate` say so instead of printing anything.
 
 `web` opens the office page. It needs the daemon running and `[api]` on, and asks the daemon for a

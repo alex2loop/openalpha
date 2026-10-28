@@ -5,6 +5,7 @@ import { Button } from '@/web/ui/kit/button'
 import { CopyButton } from '@/web/ui/kit/copy-button'
 import { openModal } from '@/web/ui/kit/modal'
 import { Skeleton } from '@/web/ui/kit/skeleton'
+import { toSafeHref } from '@/web/ui/markdown/inline'
 
 import '@/web/ui/dialogs/dialogs.css'
 import './settings.css'
@@ -34,6 +35,8 @@ function UpdateBody() {
     return <p class="meta">{tr('ui.office.update.latest')}</p>
   }
 
+  const pageHref = answer.url === null ? undefined : toSafeHref(answer.url)
+
   return (
     <div class="dialog-form">
       <Notes answer={answer} />
@@ -43,8 +46,8 @@ function UpdateBody() {
         <CopyButton text={answer.upgradeCommand} label={tr('ui.office.update.copy')} />
       </div>
       <p class="meta">{tr('ui.office.update.keeps')}</p>
-      {answer.url !== null && (
-        <a href={answer.url} target="_blank" rel="noopener noreferrer">
+      {pageHref !== undefined && (
+        <a href={pageHref} target="_blank" rel="noopener noreferrer">
           {tr('ui.office.update.page')}
         </a>
       )}

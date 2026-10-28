@@ -15,6 +15,8 @@ const LOCKOUT_MS = 30_000
 /** Exponential-backoff ceiling: 1h. */
 const MAX_LOCKOUT_MS = 3_600_000
 const MAX_PEERS = 1024
+// The lockout key of a request whose peer address is unknown.
+const UNKNOWN_PEER = '?'
 const SECRET_BYTES = 32
 
 export const LOOPBACK_HOST = '127.0.0.1'
@@ -48,8 +50,6 @@ export class ApiTokenError extends OperatorConfigError {}
 // process-wide security state, not per-run state. Bounded by MAX_PEERS (see prunePeers).
 const peers = new Map<string, PeerState>()
 
-type AuthBackoffState = 'ok' | 'locked'
-
 export function isLoopback(ip: string | null): boolean {
   return ip !== null && LOOPBACK_ADDRESSES.includes(ip)
 }
@@ -64,12 +64,20 @@ function isTokenEqual(got: string, token: string): boolean {
 }
 
 /** What a request offered: a matching token or code, a live browser session, a token or code that
- *  does not match, or nothing at all. */
-export type Credential = 'valid' | 'session' | 'wrong' | 'absent'
+ *  does not match, one left unchecked because the lockout holds, or nothing at all. */
+export type Credential = 'valid' | 'session' | 'wrong' | 'locked' | 'absent'
 
-export function resolveBearerCredential(header: string | null, token: string): Credential {
+export function resolveBearerCredential(
+  header: string | null,
+  token: string,
+  locked: boolean
+): Credential {
   if (header?.startsWith(BEARER_PREFIX) !== true) {
     return 'absent'
+  }
+
+  if (locked) {
+    return 'locked'
   }
 
   return isTokenEqual(header.slice(BEARER_PREFIX.length), token) ? 'valid' : 'wrong'
@@ -78,15 +86,20 @@ export function resolveBearerCredential(header: string | null, token: string): C
 export type AuthOutcome = 'ok' | 'locked' | 'unauthorized'
 
 // One lockout accounting for HTTP, WS and the code exchange. Every peer is loopback, so the lockout
-// is one shared key: a valid token, code or session is never refused because of it, only a valid
-// token or code clears it (a session cookie proves nothing about who is guessing), and only a wrong
-// token or a wrong or used code counts toward it.
+// is one shared key: while it holds, a token or code is refused before it is compared, so no guess
+// is checked. A session is never refused by it, only a valid token or code clears it (a session
+// cookie proves nothing about who is guessing), and only a wrong token or a wrong or used code
+// counts toward it.
 export function resolveAuthOutcome(
   ip: string | null,
   credential: Credential,
   now: number
 ): AuthOutcome {
-  const addr = ip ?? '?'
+  const addr = toPeerKey(ip)
+
+  if (credential === 'locked') {
+    return 'locked'
+  }
 
   if (credential === 'valid') {
     peers.delete(addr)
@@ -100,10 +113,6 @@ export function resolveAuthOutcome(
 
   if (credential === 'absent') {
     return 'unauthorized'
-  }
-
-  if (authBackoff(addr, now) === 'locked') {
-    return 'locked'
   }
 
   recordFailure(addr, now)
@@ -162,10 +171,15 @@ function toHostUrl(protocol: string, host: string): URL | undefined {
   return URL.canParse(url) ? new URL(url) : undefined
 }
 
-function authBackoff(ip: string, now: number): AuthBackoffState {
-  const entry = peers.get(ip)
+/** Asked before a token or code is compared, so a guess sent during the lockout is never checked. */
+export function isAuthLocked(ip: string | null, now: number): boolean {
+  const entry = peers.get(toPeerKey(ip))
 
-  return entry !== undefined && entry.until > now ? 'locked' : 'ok'
+  return entry !== undefined && entry.until > now
+}
+
+function toPeerKey(ip: string | null): string {
+  return ip ?? UNKNOWN_PEER
 }
 
 function recordFailure(ip: string, now: number): void {

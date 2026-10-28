@@ -2,14 +2,16 @@ import { randomBytes } from 'node:crypto'
 import { unlink } from 'node:fs/promises'
 
 import type { CliApp, Group } from '@/cli/api'
-import { printApiDisabled, withApiToken } from '@/app/server/cli/api-token'
+import { printApiDisabled, readApiToken, withApiToken } from '@/app/server/cli/api-token'
+import { restartDaemonWith } from '@/app/server/cli/restart-client'
 import { apiTokenPath } from '@/app/server/http/auth'
-import { createCommand, createGroup, hint } from '@/cli/api'
+import { createCommand, createGroup, fail, hint, liveDaemon, success } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 import { t } from '@/i18n'
 
 const TOKEN_BYTES = 32
+const EXIT_FAILED = 1
 
 const authTokenCommand = createCommand({
   name: 'token',
@@ -51,6 +53,8 @@ async function rotateToken(app: CliApp): Promise<number> {
     return 0
   }
 
+  // Read before the file changes: the running daemon only takes the token it started with.
+  const previous = await readApiToken(app)
   const path = apiTokenPath(app.config.paths.dataDir)
 
   await unlink(path).catch(() => undefined)
@@ -67,7 +71,26 @@ async function rotateToken(app: CliApp): Promise<number> {
   const signedOut = await app.resolve('browserSessionStore').removeAll()
 
   app.out(t(locale, 'cli.apiRotateSignedOut', { count: signedOut }))
-  app.out(hint(t(locale, 'cli.authTokenRestart', { brand: BRAND.name })))
 
-  return 0
+  const daemon = await liveDaemon(app)
+
+  if (daemon === null) {
+    app.out(hint(t(locale, 'cli.authTokenRestart', { brand: BRAND.name })))
+
+    return 0
+  }
+
+  const restarted = previous.ok
+    ? await restartDaemonWith(app, daemon, { token: previous.token, when: 'now' })
+    : undefined
+
+  if (restarted === 0) {
+    app.out(success(t(locale, 'cli.apiRotateOldTokenEnded')))
+
+    return 0
+  }
+
+  app.err(fail(t(locale, 'cli.apiRotateRestartFailed', { brand: BRAND.name })))
+
+  return restarted ?? EXIT_FAILED
 }

@@ -35,14 +35,7 @@ export async function readJsonBody(
   req: Request,
   maxBytes = DEFAULT_MAX_BODY_BYTES
 ): Promise<unknown> {
-  const text = await req.text()
-
-  if (Buffer.byteLength(text) > maxBytes) {
-    throw new ValidationError(`request body is over ${maxBytes} bytes`, {
-      key: 'errors.bodyTooLarge',
-      params: { limit: Math.floor(maxBytes / BYTES_PER_KB) },
-    })
-  }
+  const text = await readCappedText(req, maxBytes)
 
   if (text === '') {
     return undefined
@@ -53,6 +46,38 @@ export async function readJsonBody(
   } catch {
     return null
   }
+}
+
+/** Stops reading at `maxBytes`, so an unauthenticated route never takes in more than its cap. */
+async function readCappedText(req: Request, maxBytes: number): Promise<string> {
+  if (req.body === null) {
+    return ''
+  }
+
+  const reader = req.body.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+
+  try {
+    for (let read = await reader.read(); !read.done; read = await reader.read()) {
+      size += read.value.byteLength
+
+      if (size > maxBytes) {
+        await reader.cancel()
+
+        throw new ValidationError(`request body is over ${maxBytes} bytes`, {
+          key: 'errors.bodyTooLarge',
+          params: { limit: Math.floor(maxBytes / BYTES_PER_KB) },
+        })
+      }
+
+      chunks.push(read.value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  return Buffer.concat(chunks).toString('utf8')
 }
 
 /** A body field's name as the operator reads it, keyed by where it sits in the body; a path the

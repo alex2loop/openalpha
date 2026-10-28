@@ -376,7 +376,8 @@ openalpha connect
 ```
 
 `api token` in mã API mà app và các ứng dụng `/v1` khác gửi kèm. `api rotate` thay mã mới, in mã đó ra và
-đăng xuất mọi trình duyệt; daemon cần khởi động lại thì mã cũ mới hết dùng được. Khi đặt `[api] token_env`,
+đăng xuất mọi trình duyệt, rồi khởi động lại daemon đang chạy ngay, không chờ việc đang làm, để mã cũ hết dùng
+được. Nếu khởi động lại không thành, lệnh sẽ báo: bạn chạy `openalpha restart`. Khi đặt `[api] token_env`,
 mã là giá trị của biến đó và `rotate` không đụng tới nó. Khi `[api]` đang tắt, `api token` và `api rotate`
 báo là đang tắt thay vì in ra gì cả.
 
