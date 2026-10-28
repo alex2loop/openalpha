@@ -1,9 +1,13 @@
 # Lệnh
 
-Hai cách dùng, một danh mục lệnh. `openalpha <lệnh>` là CLI. `/lệnh` chạy trong chat terminal và trong
-mọi kênh đã cấu hình. Phần giao dịch chỉ có lệnh gạch chéo, không có lệnh CLI riêng.
+Có hai cách gõ lệnh, và cả hai dùng chung một danh sách lệnh:
 
-Trang này là tấm bản đồ. Muốn biết chính xác cú pháp của bản bạn đang cài, chạy `openalpha help`,
+- `openalpha <lệnh>` là CLI, gõ trong terminal.
+- `/lệnh` chạy trong chat ở terminal và trong mọi kênh bạn đã cấu hình.
+
+Phần giao dịch chỉ có lệnh gạch chéo. Nó không có lệnh CLI riêng.
+
+Hãy xem trang này như một tấm bản đồ. Muốn biết chính xác cú pháp của bản bạn đang cài, chạy `openalpha help`,
 `openalpha help <lệnh>` hoặc `openalpha <lệnh> --help`.
 
 **Mục lục**
@@ -125,18 +129,23 @@ openalpha chat [-m <nội dung>] [-a <agent>] [--mode manual|bypass]
              [-c] [--max-turns <n>] [--max-cost-usd <usd>]
 ```
 
-Bỏ `--message` thì vào REPL. Có `--message` thì chạy một phát. Một phát chỉ hỏi phê duyệt được khi stdin
-là terminal. Với stdin qua pipe hoặc rỗng thì không có ai để hỏi, nên ở chế độ thủ công, một lời gọi
-nguy hiểm bị chặn do không có ai phê duyệt, chứ không được duyệt ngầm. `--mode bypass` luôn phải tự gõ.
+Bỏ `--message` thì vào REPL, tức một cuộc trò chuyện liên tục. Có `--message` thì chạy một phát: hỏi
+một câu, nhận một câu trả lời.
 
-`--continue` tiếp tục cuộc trò chuyện trước của CLI, và từ chối một `--agent` khác với agent của cuộc trò chuyện đó.
-Các cờ giới hạn lượt và chi phí chỉ **thu hẹp** được một phiên chạy, không nới ra; hạn mức theo ngày và
-tháng vẫn luôn áp dụng.
+Chạy một phát chỉ hỏi bạn phê duyệt được khi stdin là terminal. Với stdin qua pipe hoặc rỗng thì không
+có ai để hỏi. Vì vậy ở chế độ thủ công, một lời gọi nguy hiểm bị chặn do không có ai phê duyệt. Nó
+không bao giờ được duyệt ngầm. `--mode bypass` luôn phải do chính bạn gõ.
+
+`--continue` tiếp tục cuộc trò chuyện trước của CLI. Nó từ chối một `--agent` khác với agent của cuộc
+trò chuyện đó.
+
+Các cờ giới hạn lượt và chi phí chỉ **thu hẹp** được một phiên chạy, không nới ra. Hạn mức theo ngày
+và tháng vẫn luôn áp dụng.
 
 ### Lệnh gạch chéo
 
-Một danh mục duy nhất quyết định phần trợ giúp, phân quyền, thời gian chờ, nơi nào chạy được lệnh nào và
-menu Telegram, nên một lệnh hành xử giống hệt nhau trong REPL và trong nhóm chat.
+Một danh mục duy nhất quyết định phần trợ giúp, ai được chạy lệnh nào, thời gian chờ, nơi nào chạy được
+lệnh nào và menu Telegram. Nhờ vậy một lệnh hành xử giống hệt nhau trong REPL và trong nhóm chat.
 
 | Lệnh | Mục đích |
 |---|---|
@@ -169,18 +178,21 @@ một câu hỏi phê duyệt; REPL báo ngay để bạn gõ lại.
 
 Các câu lệnh tự chạy được - `/suggest`, `/screen`, `/rebalance`, `/brief`, `/refresh`, `/price`, `/overview`,
 `/market`, `/portfolio`, `/reconcile`, `/themes`, `/schedule run` và các workflow của plugin - không phải đợi sau
-lượt chat của bạn. Mỗi cuộc chat chạy tối đa ba câu lệnh cùng lúc, và tối đa mười câu lệnh nữa xếp hàng chờ theo
-thứ tự. Trên kênh chat, câu lệnh phải chờ sẽ báo nó đứng thứ mấy trong hàng và tự chạy khi có chỗ trống; câu lệnh
-vượt quá hàng chờ bị từ chối kèm lời nhờ gửi lại sau một chút. `/new` và `/stop` đều bỏ các câu lệnh đang
-chờ mà không báo gì và dừng cả những câu lệnh đang chạy. Tin nhắn chat thường vẫn chờ câu trả
-lời đứng trước nó.
+lượt chat của bạn.
 
-Hai quy ước giải thích đầu ra bạn thấy:
+- Mỗi cuộc chat chạy tối đa ba câu lệnh cùng lúc. Tối đa mười câu lệnh nữa xếp hàng chờ theo thứ tự.
+- Trên kênh chat, câu lệnh phải chờ sẽ báo nó đứng thứ mấy trong hàng. Có chỗ trống là nó tự chạy.
+- Câu lệnh vượt quá hàng chờ bị từ chối, kèm lời nhờ bạn gửi lại sau một chút.
+- `/new` và `/stop` đều bỏ các câu lệnh đang chờ mà không báo gì, và dừng cả những câu lệnh đang chạy.
 
-- Lệnh nào phải chờ mạng thì hiện một dòng tiến độ khi chạy và một dòng cuối khi xong. Khi đầu ra không phải terminal (qua pipe, hoặc `chat -m "/refresh"` chạy một lần), tiến độ hiện thành các dòng thuần trên stderr, chỉ khi lệnh chạy lâu hơn một chút và tối đa mười giây một dòng, nên stdout chỉ chứa câu trả lời và lệnh trả lời ngay không in gì. Lệnh trả lời từ
+Tin nhắn chat thường vẫn chờ câu trả lời đứng trước nó.
+
+Hai thói quen của đầu ra nên biết:
+
+- Lệnh nào phải chờ mạng thì hiện một dòng tiến độ khi chạy và một dòng cuối khi xong. Khi đầu ra không phải terminal (qua pipe, hoặc `chat -m "/refresh"` chạy một lần), tiến độ hiện thành các dòng thuần trên stderr. Các dòng này chỉ hiện khi lệnh đã chạy lâu hơn một chút, và tối đa mười giây một dòng. Nhờ vậy stdout chỉ chứa câu trả lời, và lệnh trả lời ngay thì không in gì. Lệnh trả lời từ
   dữ liệu cục bộ (`/profile`, `/sources`) không có cả hai.
 - Nếu phiên chạy phải đổi nhà cung cấp, một dòng ngay phía trên dòng cuối nói rõ chuyển từ đâu, sang
-  đâu, vì sao - mỗi lần đổi một dòng. Dòng này giải thích vì sao dòng cuối không nêu tên mô hình, và
+  đâu, vì sao - mỗi lần đổi một dòng. Dòng này giải thích vì sao dòng cuối không nêu tên mô hình. Nó
   tính cả các phiên chạy con của lệnh gạch chéo lẫn các lời gọi của chính lượt chat.
 
 Phần giao dịch thêm `/setup`, `/record`, `/update`, `/delete`, `/transactions`, `/portfolio`,
@@ -191,7 +203,9 @@ bên dưới, và ở [Cẩm nang sử dụng](cam-nang.md) theo góc nhìn ngư
 
 ### Ô câu lệnh trên trang văn phòng
 
-Ô ở cuối [trang văn phòng](van-hanh.md#trang-văn-phòng) nhận mọi thứ mà chat nhận: câu hỏi thường, mã cổ phiếu và các câu lệnh gạch chéo ở trên. Một chip bên trái cho biết ai nhận câu bạn gõ, trợ lý hay một agent của bạn (agent đang tạm dừng được đánh dấu); Enter là gửi (trên điện thoại còn có nút Gửi), và danh sách mở trên ô có dòng gửi ở cuối, đọc là "Gửi cho <agent>" khi đã chọn một agent và "Chạy câu lệnh" khi chữ bắt đầu bằng `/`.
+Ô ở cuối [trang văn phòng](van-hanh.md#trang-văn-phòng) nhận mọi thứ mà chat nhận: câu hỏi thường, mã cổ phiếu và các câu lệnh gạch chéo ở trên.
+
+Một chip bên trái cho biết ai nhận câu bạn gõ: trợ lý, hay một agent của bạn (agent đang tạm dừng được đánh dấu). Enter là gửi, trên điện thoại còn có nút Gửi. Danh sách mở trên ô có một dòng gửi ở cuối. Dòng đó đọc là "Gửi cho <agent>" khi đã chọn một agent, và "Chạy câu lệnh" khi chữ bắt đầu bằng `/`.
 
 - **Gõ.** Chữ thường là một câu hỏi. Một mã cổ phiếu thì được tra. Gõ `/`, hoặc nhấn Tab khi ô đang trống, để xem các câu lệnh; Tab khi đã có chữ thì hoàn tất mã hoặc câu lệnh khớp đầu tiên. Mũi tên lên xuống chọn một dòng (khi ô trống, mũi tên lên gọi lại những gì bạn đã gửi), Enter gửi, Esc đóng danh sách. Nếu mất kết nối, chữ vẫn nằm trong ô và một dòng báo là chưa gửi được.
 - **Lệnh con và đối số.** Sau tên một câu lệnh và một dấu cách, danh sách đưa ra những gì câu lệnh đó nhận tiếp theo, chính là các từ mà Tab hoàn tất trong terminal (ví dụ `add` và `remove` sau `/watchlist`, hoặc tên các agent sau `/agent`), thu hẹp dần khi bạn gõ; Tab, Enter hoặc bấm chuột sẽ điền từ đó kèm một dấu cách. Một dòng mờ ở đầu hiện cách dùng của câu lệnh, như `/alert create <mã> above|below <giá>`, kể cả khi không có từ nào để gợi ý. Một mã cũng nằm trong gợi ý chỉ được liệt kê một lần. Nếu không đọc được gợi ý, ô vẫn gửi đúng những gì bạn đã gõ.
@@ -270,51 +284,77 @@ openalpha status
 openalpha doctor [check] [--online]
 ```
 
-`start` trần chạy ở tiền cảnh, và Ctrl-C sẽ dừng nó. `--background`/`-b` chạy lại đúng dòng lệnh đó ở
-nền và chờ tới khi dịch vụ nền thật sự sẵn sàng: đã tải xong dữ liệu thị trường và mở xong các kênh chat,
-thường khoảng một phút. Chỉ khi đó nó mới báo thành công, in pid và đường dẫn đầu ra. Dịch vụ nền chết giữa
-chừng khi khởi động (ví dụ cổng API đã có tiến trình khác dùng) thì được báo ngay kèm chính thông báo lỗi của nó và
-mã thoát, rồi lệnh thoát với mã khác 0. Chờ quá 90 giây mà dịch vụ nền vẫn chạy nhưng chưa sẵn sàng (nguồn dữ
-liệu chậm) thì lệnh để nó chạy tiếp, báo cách theo dõi và thoát với mã 0; dịch vụ nền không chạy lên được thì
-thoát với mã khác 0. `stop` và `status` hoạt động như nhau ở cả hai chế độ. `start` in phiên bản đang
-chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật `[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh
-được cấu hình, nó còn báo bot chỉ bắt đầu trả lời sau khi dữ liệu thị trường tải xong; nhật ký ghi lại lúc
-các kênh mở. `restart` khi đã có dịch vụ nền chạy và `[api]` đang bật thì nhờ chính dịch vụ nền đó khởi động lại tại chỗ (cùng pid, cùng cửa sổ
-terminal), chờ nó sẵn sàng rồi in kết quả. Nó chờ việc đang chạy xong (tối đa khoảng hai phút); `--now` thì không chờ.
-Dịch vụ nền dừng theo cách thông thường: yêu cầu phê duyệt còn chờ bị từ chối. `restart --background`, hoặc khi chưa có
-dịch vụ nền nào chạy, thì dừng (nếu có) rồi chạy lại từ shell này, với các biến của shell đó, ở nền hoặc ngay trong cửa sổ này.
-`restart` thường cũng làm vậy khi `[api]` tắt hoặc không hỏi được dịch vụ nền (không đọc được token, hoặc token không được
-chấp nhận), và khi đó `--now` không có tác dụng gì. Trên Windows dịch vụ nền không khởi động lại tại chỗ được nên `restart`
-luôn dừng rồi chạy lại. `kill -USR2 <pid>` khởi động lại dịch vụ nền tại chỗ ngay, như `--now`, dù `[api]` bật hay tắt.
+**Khởi động.** `start` trần chạy ở tiền cảnh, và Ctrl-C sẽ dừng nó. `--background`/`-b` chạy lại đúng
+dòng lệnh đó ở nền. Nó chờ tới khi dịch vụ nền thật sự sẵn sàng: đã tải xong dữ liệu thị trường và mở
+xong các kênh chat. Việc này thường mất khoảng một phút. Chỉ khi đó nó mới báo thành công, in pid và
+đường dẫn đầu ra.
 
-Thiếu khóa không chặn `start`. Biến môi trường của khóa AI (mô hình chính, các tầng và dự phòng), của
-tìm kiếm web hay của một máy chủ MCP chưa đặt, hoặc bot token Telegram/Zalo chưa đặt hay bị nền tảng từ
-chối, đều chỉ làm phần cần đến nó chưa chạy: dịch vụ nền in mỗi mục một dòng cảnh báo (dấu `!`, ra stderr) nói
-việc gì đang chờ và cách sửa. Ở tiền cảnh, dòng về biến môi trường hiện ngay dưới phần tóm tắt; dòng về kênh
-hiện khi các kênh mở, sau khi tải xong dữ liệu thị trường. Với `--background`, các dòng đó nằm dưới dòng
-báo thành công. Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ lệnh và các việc không cần
-AI. Chat qua kênh, `/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn lưu khóa bằng `openalpha key set <NAME>` rồi
-`restart --background`; kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường. Lỗi
-cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có dịch vụ nền khác chạy và lỗi lưu trữ
-vẫn chặn `start`.
+- Dịch vụ nền chết giữa chừng khi khởi động (ví dụ cổng API đã có tiến trình khác dùng) thì được báo
+  ngay, kèm chính thông báo lỗi và mã thoát của nó. Lệnh thoát với mã khác 0.
+- Chờ quá 90 giây mà dịch vụ nền vẫn chạy nhưng chưa sẵn sàng (nguồn dữ liệu chậm) thì lệnh để nó chạy
+  tiếp, báo cách theo dõi và thoát với mã 0. Dịch vụ nền không chạy lên được thì thoát với mã khác 0.
+- `stop` và `status` hoạt động như nhau ở cả hai chế độ.
 
-`status` cho biết dịch vụ nền đang chạy bản nào. Chạy lại script cài đặt thì dịch vụ nền chạy ở chế độ nền được bật lại trên
-bản mới; cài bản chọn sẵn bằng `OPENALPHA_VERSION` thì dịch vụ nền vẫn chạy bản cũ tới khi bạn tự khởi
-động lại, và `status` nhắc chạy `stop` rồi `start --background` để chuyển sang bản đó.
-Khi dịch vụ nền đang chạy mà thiếu khóa, `status` liệt kê lại đúng các dòng cảnh báo lúc `start`: kênh nào bị
-bỏ qua và vì sao, khóa nào chưa đặt và việc gì đang chờ nó, kể cả sau khi máy khởi động lại. Khóa sàn và
-khóa của nguồn dữ liệu phụ nằm riêng dưới "khóa tùy chọn": thiếu chúng thì bạn vẫn ghi lệnh bằng tay, và
-`start` không cảnh báo. App desktop đọc cùng danh sách đó từ `/v1/state`.
-`upgrade` tự bật lại dịch vụ nền chạy ở chế độ nền trên bản mới.
+`start` in phiên bản đang chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật
+`[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh được cấu hình, nó còn báo bot chỉ bắt đầu trả lời
+sau khi dữ liệu thị trường tải xong. Nhật ký ghi lại lúc các kênh mở.
 
-`doctor` luôn chỉ đọc. Chạy offline thì nó chỉ kiểm phần nhìn được ở máy; `--online` thêm các phép thử
-thật tới PostgreSQL, nhà cung cấp, token kênh, tìm kiếm web và khóa sàn. Phép thử nhà cung cấp gửi cho
-mô hình đầu tiên của mỗi nhà cung cấp một tin ngắn, và nói rõ khi máy chủ chạy trên máy bạn chưa bật. Nhãn mỗi dòng theo `[locale] language`
-của bạn. Dòng đánh dấu `i` là trạng thái chưa cần làm gì, không phải cảnh báo: cơ sở dữ liệu, thư mục log hay thư mục dữ liệu mà phiên chạy đầu sẽ tạo,
-dịch vụ nền chưa được bật, và nguồn dữ liệu tùy chọn chưa đặt khóa. Dòng nguồn dữ liệu nói rõ khóa đó sẽ thêm được gì. `doctor models` còn nêu tên
-các biến tài khoản đám mây mà một mục Vertex hay Azure không có khóa vẫn cần. `doctor trading` dựng thử hệ
-thống y như `chat` nhưng không khởi chạy hay migrate gì, nên khu vực chính không sàn nào giao dịch hay
-`default_for` trỏ nhầm sàn sẽ lộ ra ngay ở đây. Nó chờ tới khi đã có cơ sở dữ liệu.
+**Khởi động lại.** Khi đã có dịch vụ nền chạy và `[api]` đang bật, `restart` nhờ chính dịch vụ nền đó
+khởi động lại tại chỗ (cùng pid, cùng cửa sổ terminal). Nó chờ dịch vụ nền sẵn sàng rồi in kết quả.
+
+- Nó chờ việc đang chạy xong, tối đa khoảng hai phút. `--now` thì không chờ.
+- Dịch vụ nền dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối.
+- `restart --background`, hoặc `restart` khi chưa có dịch vụ nền nào chạy, thì dừng (nếu có) rồi chạy
+  lại từ shell này, với các biến của shell đó, ở nền hoặc ngay trong cửa sổ này.
+- `restart` thường cũng làm vậy khi `[api]` tắt hoặc không hỏi được dịch vụ nền (không đọc được token,
+  hoặc token không được chấp nhận). Khi đó `--now` không có tác dụng gì.
+- Trên Windows dịch vụ nền không khởi động lại tại chỗ được, nên `restart` luôn dừng rồi chạy lại.
+- `kill -USR2 <pid>` khởi động lại dịch vụ nền tại chỗ ngay, như `--now`, dù `[api]` bật hay tắt.
+
+**Thiếu khóa không chặn `start`.** Mỗi trường hợp dưới đây chỉ làm phần cần đến nó chưa chạy:
+
+- biến môi trường của khóa AI (mô hình chính, các tầng và dự phòng), của tìm kiếm web hay của một máy
+  chủ MCP chưa đặt;
+- bot token Telegram/Zalo chưa đặt, hoặc bị nền tảng từ chối.
+
+Dịch vụ nền in mỗi mục một dòng cảnh báo (dấu `!`, ra stderr), nói việc gì đang chờ và cách sửa. Ở tiền
+cảnh, dòng về biến môi trường hiện ngay dưới phần tóm tắt. Dòng về kênh hiện khi các kênh mở, sau khi tải
+xong dữ liệu thị trường. Với `--background`, các dòng đó nằm dưới dòng báo thành công.
+
+Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ lệnh và các việc không cần AI. Chat qua kênh,
+`/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn lưu khóa bằng `openalpha key set <NAME>`
+rồi `restart --background`. Kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như
+một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường.
+
+Một số lỗi vẫn chặn `start`: lỗi cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có
+dịch vụ nền khác chạy, và lỗi lưu trữ.
+
+**Trạng thái.** `status` cho biết dịch vụ nền đang chạy bản nào.
+
+- Chạy lại script cài đặt thì dịch vụ nền chạy ở chế độ nền được bật lại trên bản mới.
+- Cài bản chọn sẵn bằng `OPENALPHA_VERSION` thì dịch vụ nền vẫn chạy bản cũ tới khi bạn tự khởi động
+  lại. `status` nhắc chạy `stop` rồi `start --background` để chuyển sang bản đó.
+- Khi dịch vụ nền đang chạy mà thiếu khóa, `status` liệt kê lại đúng các dòng cảnh báo lúc `start`: kênh
+  nào bị bỏ qua và vì sao, khóa nào chưa đặt và việc gì đang chờ nó. Kể cả sau khi máy khởi động lại.
+- Khóa sàn và khóa của nguồn dữ liệu phụ nằm riêng dưới "khóa tùy chọn". Thiếu chúng thì bạn vẫn ghi
+  lệnh bằng tay, và `start` không cảnh báo.
+
+App desktop đọc cùng danh sách đó từ `/v1/state`. `upgrade` tự bật lại dịch vụ nền chạy ở chế độ nền
+trên bản mới.
+
+**Chẩn đoán.** `doctor` luôn chỉ đọc. Chạy offline thì nó chỉ kiểm phần nhìn được ở máy. `--online` thêm
+các phép thử thật tới PostgreSQL, nhà cung cấp, token kênh, tìm kiếm web và khóa sàn. Phép thử nhà cung
+cấp gửi cho mô hình đầu tiên của mỗi nhà cung cấp một tin ngắn. Nó nói rõ khi máy chủ chạy trên máy bạn
+chưa bật.
+
+Nhãn mỗi dòng theo `[locale] language` của bạn. Dòng đánh dấu `i` là trạng thái chưa cần làm gì, không
+phải cảnh báo. Ví dụ: cơ sở dữ liệu, thư mục log hay thư mục dữ liệu mà phiên chạy đầu sẽ tạo; dịch vụ
+nền chưa được bật; nguồn dữ liệu tùy chọn chưa đặt khóa. Dòng nguồn dữ liệu nói rõ khóa đó sẽ thêm được gì.
+
+`doctor models` còn nêu tên các biến tài khoản đám mây mà một mục Vertex hay Azure không có khóa vẫn cần.
+`doctor trading` dựng thử hệ thống y như `chat` nhưng không khởi chạy hay migrate gì. Nhờ vậy khu vực
+chính không sàn nào giao dịch, hay `default_for` trỏ nhầm sàn, sẽ lộ ra ngay ở đây. Nó chờ tới khi đã
+có cơ sở dữ liệu.
 
 `doctor version` đọc câu trả lời gần nhất từ GitHub (cũ nhất một ngày); `doctor version --online` hỏi
 lại ngay. Chậm phiên bản chỉ là cảnh báo, không bao giờ là lỗi.
@@ -327,13 +367,42 @@ Khóa demo thì không bị kiểm.
 
 ### Luôn dùng bản mới
 
-Khi có bản mới, CLI báo mỗi ngày một lần, ngay dưới kết quả lệnh: có gì mới, bạn đang chậm bao nhiêu bản và có bản nào quan trọng không. Trong chat riêng với người vận hành, bot nhắc mỗi tuần, hoặc mỗi ngày khi có bản quan trọng đang chờ.
+Khi có bản mới, CLI báo bạn mỗi ngày một lần, ngay dưới kết quả lệnh. Nó nói có gì mới, bạn đang chậm
+bao nhiêu bản, và có bản nào quan trọng không. Trong chat riêng với người vận hành, bot nhắc mỗi tuần,
+hoặc mỗi ngày khi có bản quan trọng đang chờ.
 
-`upgrade` tải tệp chạy của bản mới cho đúng máy bạn về cạnh bản đang cài và đối chiếu với SHA256SUMS của bản phát hành. Xong bước đó nó mới thay tệp. Dịch vụ nền bật bằng `start --background` được tạm dừng trong lúc thay rồi tự bật lại trên bản mới, với cùng tệp cấu hình và thư mục dữ liệu; nếu nó không khởi động được, `upgrade` quay về bản đã chạy, báo cho bạn và giữ lỗi khởi động của bản mới trong `daemon.stderr.failed.log`. Dịch vụ nền chạy trong cửa sổ terminal hoặc do dịch vụ hệ thống quản lý vẫn chạy bản cũ tới khi bạn tự khởi động lại, và `upgrade` in sẵn lệnh cần chạy; riêng Windows không thay được tệp đang chạy, nên dịch vụ nền bị dừng trong lúc thay và bạn bật lại. Thư mục dữ liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và dịch vụ nền đã dừng được bật lại, hoặc thông báo chỉ cách bật. Tải đứt giữa chừng, sai mã kiểm tra hay bấm Ctrl-C đều dừng trước bước thay tệp, nên bản cũ vẫn nguyên và dịch vụ nền vẫn chạy.
+`upgrade` tải tệp chạy của bản mới cho đúng máy bạn về cạnh bản đang cài, rồi đối chiếu với
+SHA256SUMS của bản phát hành. Xong bước đó nó mới thay tệp. Dịch vụ nền đang chạy sẽ ra sao tùy cách
+bạn bật nó:
 
-Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old` (trên Windows là `openalpha.exe.old`), và `upgrade --rollback` đổi ngược về nó. Nếu bản mới đã thay đổi cơ sở dữ liệu, `--rollback` sẽ đưa nó về dạng bản cũ đọc được trước, bằng `db migrate down --to`. Lệnh hỏi bạn trước khi làm, và với SQLite sẽ lưu một bản sao vào `backups/pre-rollback/` trước. Trả lời không thì không có gì thay đổi. Khi `upgrade` đã bật bản mới mà bản đó không khởi động được, bước này chạy luôn không cần hỏi; còn bản vẫn đang khởi động sau 90 giây, thường do đang cập nhật một cơ sở dữ liệu lớn, thì được để chạy tiếp chứ không bị quay về. Bản cài bằng script cài đặt, kể cả khi cài lại đúng bản đang dùng, không có ghi nhận này, nên sau khi quay về, bản cũ sẽ từ chối khởi động trên schema mới, nói rõ lý do và chỉ cách xử lý. `upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
+- Bật bằng `start --background`: được tạm dừng trong lúc thay, rồi tự bật lại trên bản mới, với cùng
+  tệp cấu hình và thư mục dữ liệu. Nếu nó không khởi động được, `upgrade` quay về bản đã chạy, báo
+  cho bạn, và giữ lỗi khởi động của bản mới trong `daemon.stderr.failed.log`.
+- Chạy trong cửa sổ terminal hoặc do dịch vụ hệ thống quản lý: vẫn chạy bản cũ tới khi bạn tự khởi
+  động lại. `upgrade` in sẵn lệnh cần chạy.
+- Riêng Windows không thay được tệp đang chạy: dịch vụ nền bị dừng trong lúc thay, và bạn bật lại.
 
-Trên máy Windows chip ARM, trình cài tự chọn bản ARM chạy thẳng trên máy; bản x64 cài trước đó vẫn nâng cấp theo x64 cho tới khi bạn chạy lại lệnh cài, lúc đó nó chuyển sang bản ARM.
+Thư mục dữ liệu và cấu hình không bị đụng tới. Nếu bước thay tệp lỗi, bản cũ vẫn nguyên và dịch vụ
+nền đã dừng được bật lại, hoặc thông báo chỉ cách bật. Tải đứt giữa chừng, sai mã kiểm tra hay bấm
+Ctrl-C đều dừng trước bước thay tệp. Bản cũ vì vậy vẫn nguyên, và dịch vụ nền vẫn chạy.
+
+Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old` (trên Windows là `openalpha.exe.old`),
+và `upgrade --rollback` đổi ngược về nó.
+
+Nếu bản mới đã thay đổi cơ sở dữ liệu, `--rollback` sẽ đưa nó về dạng bản cũ đọc được trước, bằng
+`db migrate down --to`. Lệnh hỏi bạn trước khi làm, và với SQLite sẽ lưu một bản sao vào
+`backups/pre-rollback/` trước. Trả lời không thì không có gì thay đổi.
+
+- Khi `upgrade` đã bật bản mới mà bản đó không khởi động được, bước này chạy luôn, không cần hỏi.
+- Bản vẫn đang khởi động sau 90 giây, thường do đang cập nhật một cơ sở dữ liệu lớn, thì được để chạy
+  tiếp chứ không bị quay về.
+- Bản cài bằng script cài đặt, kể cả khi cài lại đúng bản đang dùng, không có ghi nhận này. Nên sau
+  khi quay về, bản cũ sẽ từ chối khởi động trên schema mới, nói rõ lý do và chỉ cách xử lý.
+
+`upgrade --check` chỉ báo, không cài. Bản chạy từ mã nguồn thì cập nhật bằng `git pull`.
+
+Trên máy Windows chip ARM, trình cài tự chọn bản ARM chạy thẳng trên máy. Bản x64 cài trước đó vẫn
+nâng cấp theo x64 cho tới khi bạn chạy lại lệnh cài; lúc đó nó chuyển sang bản ARM.
 
 ## Cấu hình và khởi tạo
 
@@ -346,25 +415,36 @@ openalpha config validate
 openalpha config edit
 ```
 
-`show` che thông tin bí mật, và `get` từ chối mọi đường dẫn đi qua một khóa bí mật. `validate` chạy đủ
-các bước kiểm tra lúc khởi động, kể cả `[trading]`, nên một cấu hình nó chấp nhận là một cấu hình khởi
-động được; nếu không, nó thoát `1` và liệt kê mọi lý do một lượt, kể cả tên nhà cung cấp gõ sai và biến
-môi trường của khóa còn thiếu. `config get` nhận đường dẫn vào cấu hình đã phân giải, viết
-kiểu camelCase (`budget.maxDailyUsd`). `edit` dùng `VISUAL`, không có thì `EDITOR`, rồi đến `nano`; giá
-trị trống coi như chưa đặt. Giá trị được đọc như git đọc, nên có thể kèm cờ hoặc đường dẫn đặt trong
-dấu nháy (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
+- `show` che thông tin bí mật, và `get` từ chối mọi đường dẫn đi qua một khóa bí mật.
+- `validate` chạy đủ các bước kiểm tra lúc khởi động, kể cả `[trading]`. Nên một cấu hình nó chấp
+  nhận là một cấu hình khởi động được. Nếu không chấp nhận, nó thoát `1` và liệt kê mọi lý do một
+  lượt, kể cả tên nhà cung cấp gõ sai và biến môi trường của khóa còn thiếu.
+- `config get` nhận đường dẫn vào cấu hình đã phân giải, viết kiểu camelCase (`budget.maxDailyUsd`).
+- `edit` dùng `VISUAL`, không có thì `EDITOR`, rồi đến `nano`; giá trị trống coi như chưa đặt. Giá trị
+  được đọc như git đọc, nên có thể kèm cờ hoặc đường dẫn đặt trong dấu nháy
+  (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
 
-`onboard` dẫn bạn qua lần thiết lập đầu: ngôn ngữ, nhà cung cấp AI và mô hình, URL endpoint nếu nhà cung
-cấp cần, tên biến môi trường chứa key, mức chi tối đa mỗi ngày ($2 nếu bạn không đổi) và, nếu muốn, một bot
-Telegram. Câu có danh sách thì bạn chọn bằng phím ↑ ↓ rồi nhấn Enter, và ← quay lại câu danh sách trước đó với đáp án cũ vẫn được đánh dấu; muốn một giá trị không có sẵn (tiền
-tệ, mô hình hay nhà cung cấp khác) thì chọn dòng cuối rồi gõ vào. Không chạy trong terminal thì danh sách được
-đánh số và bạn gõ số. Trả lời sai thì nó hỏi lại chứ không dừng cả quá trình. Nếu key đã được đặt, nó gửi thử một tin
-ngắn tới mô hình; nếu bạn chọn gói ChatGPT, nó mời bạn đăng nhập ngay; cuối cùng nó in danh sách đánh số
-những việc còn lại.
+`onboard` dẫn bạn qua lần thiết lập đầu: ngôn ngữ, nhà cung cấp AI và mô hình, URL endpoint nếu nhà
+cung cấp cần, tên biến môi trường chứa key, mức chi tối đa mỗi ngày ($2 nếu bạn không đổi) và, nếu
+muốn, một bot Telegram.
 
-Chạy lại khi đã có cấu hình để đổi từng phần: mô hình, bot Telegram, mức chi hoặc ngôn ngữ. Lưu xong một phần thì menu hiện lại để bạn đổi tiếp, tới khi chọn "Xong, thoát"; ← ở câu danh sách đầu tiên của một phần đưa bạn về menu. Lần ghi lại này
-làm mất các dòng chú thích trong tệp, nên tệp cũ được sao lưu trước, nằm cạnh nó với tên
-`config.toml.<thời-điểm>.bak`. Mỗi lần đổi để lại một bản sao lưu riêng, và giữ 5 bản mới nhất; bản cũ hơn được tự xóa. Khi chưa có cấu hình, gõ `openalpha` trần hoặc bất kỳ lệnh nào cần cấu hình
+- Câu có danh sách thì bạn chọn bằng phím ↑ ↓ rồi nhấn Enter. ← quay lại câu danh sách trước đó, với
+  đáp án cũ vẫn được đánh dấu.
+- Muốn một giá trị không có sẵn (tiền tệ, mô hình hay nhà cung cấp khác) thì chọn dòng cuối rồi gõ
+  vào.
+- Không chạy trong terminal thì danh sách được đánh số và bạn gõ số.
+- Trả lời sai thì nó hỏi lại chứ không dừng cả quá trình.
+
+Nếu key đã được đặt, nó gửi thử một tin ngắn tới mô hình. Nếu bạn chọn gói ChatGPT, nó mời bạn đăng
+nhập ngay. Cuối cùng nó in danh sách đánh số những việc còn lại.
+
+Chạy lại khi đã có cấu hình để đổi từng phần: mô hình, bot Telegram, mức chi hoặc ngôn ngữ. Lưu xong
+một phần thì menu hiện lại để bạn đổi tiếp, tới khi chọn "Xong, thoát". ← ở câu danh sách đầu tiên
+của một phần đưa bạn về menu.
+
+Lần ghi lại này làm mất các dòng chú thích trong tệp, nên tệp cũ được sao lưu trước, nằm cạnh nó với
+tên `config.toml.<thời-điểm>.bak`. Mỗi lần đổi để lại một bản sao lưu riêng. Hệ thống giữ 5 bản mới
+nhất và tự xóa bản cũ hơn. Khi chưa có cấu hình, gõ `openalpha` trần hoặc bất kỳ lệnh nào cần cấu hình
 đều sẽ mời bạn bắt đầu thiết lập.
 
 `setup write` ghi cùng tệp khởi điểm cho ứng dụng desktop, bật thêm `[api]`, và không ghi đè cấu hình đã có.
@@ -376,21 +456,25 @@ openalpha web
 openalpha connect
 ```
 
-`api token` in mã API mà app và các ứng dụng `/v1` khác gửi kèm. `api rotate` thay mã mới, in mã đó ra và
-đăng xuất mọi trình duyệt, rồi khởi động lại dịch vụ nền đang chạy ngay, không chờ việc đang làm, để mã cũ hết dùng
-được. Nếu khởi động lại không thành, lệnh sẽ báo: bạn chạy `openalpha restart`. Khi đặt `[api] token_env`,
-mã là giá trị của biến đó và `rotate` không đụng tới nó. Khi `[api]` đang tắt, `api token` và `api rotate`
-báo là đang tắt thay vì in ra gì cả.
+`api token` in mã API mà app và các ứng dụng `/v1` khác gửi kèm.
+
+`api rotate` thay mã mới và in mã đó ra. Nó cũng đăng xuất mọi trình duyệt, rồi khởi động lại dịch
+vụ nền đang chạy ngay, không chờ việc đang làm, để mã cũ hết dùng được. Nếu khởi động lại không thành,
+lệnh sẽ báo: bạn chạy `openalpha restart`.
+
+Khi đặt `[api] token_env`, mã là giá trị của biến đó và `rotate` không đụng tới nó. Khi `[api]` đang
+tắt, `api token` và `api rotate` báo là đang tắt thay vì in ra gì cả.
 
 `web` mở trang văn phòng. Lệnh cần dịch vụ nền đang chạy và `[api]` đang bật, rồi xin dịch vụ nền một liên kết dùng
 một lần, chỉ có hiệu lực một lần trong 5 phút. Nó không bao giờ in mã API. Bạn thấy gì tùy nơi chạy lệnh:
 
 - Trên chính màn hình của máy (macOS, hoặc Linux có màn hình), nó mở trình duyệt và in liên kết phòng khi
   trình duyệt không bật lên.
-- Qua SSH, nó in lệnh đường hầm để bạn chạy trên máy của mình, rồi in liên kết để mở. Đường hầm dùng cổng
-  của máy chủ cộng 10000 (18765 cho 8765; trừ đi, nếu vượt cổng 55535), nên không bao giờ rơi vào dịch vụ nền bạn chạy ở máy mình, và nếu
-  cổng đó đã bận thì `ssh` dừng với lỗi chứ không lặng lẽ dùng cổng khác. Nếu không biết địa chỉ bạn SSH
-  tới, nó dùng tên máy chủ và nói rõ điều đó; hãy thay bằng địa chỉ bạn thật sự dùng.
+- Qua SSH, nó in lệnh đường hầm để bạn chạy trên máy của mình, rồi in liên kết để mở. Đường hầm dùng
+  cổng của máy chủ cộng 10000 (18765 cho 8765; trừ đi, nếu vượt cổng 55535). Nhờ vậy nó không bao giờ
+  rơi vào dịch vụ nền bạn chạy ở máy mình. Nếu cổng đó đã bận, `ssh` dừng với lỗi chứ không lặng lẽ
+  dùng cổng khác. Nếu không biết địa chỉ bạn SSH tới, nó dùng tên máy chủ và nói rõ điều đó; hãy thay
+  bằng địa chỉ bạn thật sự dùng.
 - Khi đã đặt `[api] public_url`, nó chỉ in liên kết `https://`, chạy ở đâu cũng vậy.
 
 Cần liên kết mới thì chạy lại: liên kết đã dùng hoặc đã hết hạn sẽ bị từ chối. Sau vài lần đăng nhập sai,
@@ -409,11 +493,15 @@ openalpha auth status [nhà cung cấp]
 openalpha auth logout <nhà cung cấp>
 ```
 
-Dành cho các nhà cung cấp xác thực bằng gói thuê bao thay vì khóa API. `login` mặc định đăng nhập qua
-trình duyệt: nó in URL ủy quyền, chờ ở một listener loopback tại `127.0.0.1:1455` (nếu cổng đó bận thì
-dùng `:1457`), và đối chiếu đúng `state` nó đã phát. `--paste` bỏ listener và đọc mã bạn dán vào, mã trần
-hoặc cả URL chuyển hướng. `--device` dùng luồng device-code ở nhà cung cấp có hỗ trợ: in một mã người
-dùng và một URL để bạn mở ở thiết bị khác. Cả ba đều hết hạn sau 15 phút.
+Các lệnh này dành cho nhà cung cấp xác thực bằng gói thuê bao thay vì khóa API.
+
+- `login` mặc định đăng nhập qua trình duyệt. Nó in URL ủy quyền, chờ ở một listener loopback tại
+  `127.0.0.1:1455` (nếu cổng đó bận thì dùng `:1457`), và đối chiếu đúng `state` nó đã phát.
+- `--paste` bỏ listener và đọc mã bạn dán vào, mã trần hoặc cả URL chuyển hướng.
+- `--device` dùng luồng device-code ở nhà cung cấp có hỗ trợ. Nó in một mã người dùng và một URL để
+  bạn mở ở thiết bị khác.
+
+Cả ba đều hết hạn sau 15 phút.
 
 `status` không kèm tham số sẽ báo mọi nhà cung cấp hỗ trợ đăng nhập. Các lệnh này không khởi động runtime
 và chạy được trước khi có tệp cấu hình. Cách lưu token, làm mới và tính chi phí nằm ở [Agent](tro-ly.md).
@@ -435,9 +523,9 @@ openalpha skill install <nguồn>
 ```
 
 Việc cài plugin và kỹ năng đều kiểm mã, đường dẫn và mức tin cậy của nguồn. Plugin lấy `id` từ
-`plugin.toml`; không có thì plugin từ URL git lấy tên kho (bỏ `.git`) còn thư mục cục bộ lấy tên của
-chính nó, nên cài lại cùng một nguồn là thay plugin chứ không thêm một bản sao. Một phiên chạy agent chỉ
-thấy công cụ chỉ-đọc `skill_view`; việc quản lý gói nằm trên CLI.
+`plugin.toml`. Không có thì plugin từ URL git lấy tên kho (bỏ `.git`), còn thư mục cục bộ lấy tên của
+chính nó. Vì vậy cài lại cùng một nguồn là thay plugin, chứ không thêm một bản sao. Một phiên chạy agent
+chỉ thấy công cụ chỉ-đọc `skill_view`; việc quản lý gói nằm trên CLI.
 
 ### Tạm dừng agent
 
@@ -471,10 +559,12 @@ sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>`
 `history clear` xóa mọi cuộc trò chuyện, hoặc mọi cuộc trò chuyện của một agent. Hãy đọc phần trợ giúp và câu hỏi
 xác nhận trước khi chạy.
 
-`cost` nhận `--period day|week|month` (`week` tính từ thứ Hai, như `/transactions week`), hoặc một khoảng ngày ISO `--from`/`--to` (gồm cả hai đầu). Nó đọc
-số liệu từng lần gọi đã lưu thay vì ước lượng từ nội dung hội thoại, nên khớp với hóa đơn của nhà cung
-cấp. `--breakdown` tách đúng khoảng đó theo agent và mô hình - số lời gọi, số lần hỏng, thời gian trả
-lời điển hình, token đến từ cache, token tiêu cho suy nghĩ - đắt nhất trước.
+`cost` nhận `--period day|week|month` (`week` tính từ thứ Hai, như `/transactions week`), hoặc một
+khoảng ngày ISO `--from`/`--to` (gồm cả hai đầu). Nó đọc số liệu từng lần gọi đã lưu thay vì ước lượng
+từ nội dung hội thoại, nên khớp với hóa đơn của nhà cung cấp.
+
+`--breakdown` tách đúng khoảng đó theo agent và mô hình, đắt nhất trước: số lời gọi, số lần hỏng, thời
+gian trả lời điển hình, token đến từ cache, và token tiêu cho suy nghĩ.
 
 ## Ghép nối
 
@@ -501,10 +591,12 @@ trống, và ảnh QR bị xóa khi xong. Dịch vụ nền đang chạy sẽ nh
 
 ## Lịch chạy và workflow
 
-Lịch chạy hỗ trợ cron hoặc chu kỳ cố định, đích gửi do bạn chỉ định, tạm dừng và chạy lại, chạy ngay, và
-giới hạn công cụ cho từng việc qua `--allow-tools`. `--agent` mặc định là `chat`. Việc theo cron lưu kèm
-một múi giờ IANA; việc theo chu kỳ thì không nhận múi giờ. Khi một việc theo lịch gọi công cụ nguy hiểm,
-yêu cầu phê duyệt đi qua kênh nếu đích của việc đó có người duyệt; nếu không thì lời gọi bị từ chối.
+Lịch chạy hỗ trợ cron hoặc chu kỳ cố định, đích gửi do bạn chỉ định, tạm dừng và chạy lại, chạy ngay,
+và giới hạn công cụ cho từng việc qua `--allow-tools`. `--agent` mặc định là `chat`. Việc theo cron lưu
+kèm một múi giờ IANA; việc theo chu kỳ thì không nhận múi giờ.
+
+Khi một việc theo lịch gọi công cụ nguy hiểm, yêu cầu phê duyệt đi qua kênh nếu đích của việc đó có
+người duyệt. Nếu không, lời gọi bị từ chối.
 
 ```text
 openalpha workflow list
@@ -517,11 +609,13 @@ phí. Chưa có workflow nào là bình thường, không phải lỗi.
 ## Bảo trì cơ sở dữ liệu và thư mục làm việc
 
 Các lệnh ghi vào cơ sở dữ liệu (`db migrate`, `cleanup`, `import`, `restore`, `reset`) chỉ chạy khi
-dịch vụ nền đã dừng. `restore`, `reset` và việc lùi một migration sẽ hỏi xác nhận, trừ khi bạn đưa `--yes`.
-Với SQLite, `reset` hỏi trước có sao lưu không (Enter là có): bản sao nằm trong `backups/` giống
-`db backup`, nên lỡ tay thì `db restore` lại được. `--yes` trả lời câu này theo mặc định, tức là
-vẫn sao lưu trước.
-`db cleanup` cần `--older-than` (tối thiểu `1d`); `--dry-run` cho xem trước những gì nó sẽ dọn.
+dịch vụ nền đã dừng.
+
+- `restore`, `reset` và việc lùi một migration sẽ hỏi xác nhận, trừ khi bạn đưa `--yes`.
+- Với SQLite, `reset` hỏi trước có sao lưu không (Enter là có). Bản sao nằm trong `backups/` giống
+  `db backup`, nên lỡ tay thì `db restore` lại được. `--yes` trả lời câu này theo mặc định, tức là
+  vẫn sao lưu trước.
+- `db cleanup` cần `--older-than` (tối thiểu `1d`); `--dry-run` cho xem trước những gì nó sẽ dọn.
 
 `db integrity`, `db stats`, `db export` và `db backup` chỉ khởi động tầng lưu trữ, nên chạy được khi chưa
 cấu hình khóa mô hình nào. Sao lưu và khôi phục, xuất và nhập, cùng việc mỗi cách giữ được gì qua một
@@ -530,8 +624,8 @@ lần `db reset`, nằm ở [Lưu trữ](luu-tru.md).
 `workspace cleanup` chỉ chạm tới `run/` và `tmp/` bên trong các thư mục làm việc của agent bạn chọn bằng
 `--agent <id>` hoặc `--all` (bắt buộc chọn đúng một). `--older-than`, `--dry-run` và `--yes` dùng như ở
 các lệnh khác, và dịch vụ nền phải đã dừng. Lệnh này không xóa tệp bền vững ở gốc thư mục làm việc hay log của
-agent. Như mọi khi: thư mục làm việc chỉ là nơi xuất phát an toàn, không phải vùng cách ly của hệ điều
-hành.
+agent. Như mọi khi: thư mục làm việc chỉ là chỗ bắt đầu an toàn, không phải một vùng khóa kín do hệ
+điều hành bảo vệ.
 
 ## Log
 
@@ -572,7 +666,7 @@ ghi sổ và `/trade`.
 |---|---|
 | `/setup` | `/setup` - trợ lý làm gì và cách thiết lập |
 | `/record` | Ghi một dòng vào sổ. Xem [Sổ lệnh](#sổ-lệnh) |
-| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa trực tiếp một mục, kể cả sàn; mã trần được dò như `/record`, mọi trường khác phải ghi đủ; câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto` khi tỷ giá có tác dụng; dòng trả từ số USDT sàn đã giữ thì không dùng tỷ giá. Khi sửa phải tự ghi rõ khối lượng và phí: chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ làm xê dịch một con số đã chốt mà không ai nhắc lại. Ghi chú của dòng và, với lệnh bán, nhãn chân thoát đã khớp (dừng lỗ hay chạm mục tiêu) được giữ nguyên, vì dòng `/record` không ghi được chúng |
+| `/update` | `/update <mã bút toán> <đủ cả dòng /record>` - sửa trực tiếp một mục, kể cả sàn. Mã trần được dò như `/record`; mọi trường khác phải ghi đủ. Câu trả lời cho xem dòng như trước khi sửa, rồi tới xác nhận. Dòng bằng đồng khác VND phải ghi `fx <giá>` hoặc `fx auto` khi tỷ giá có tác dụng; dòng trả từ số USDT sàn đã giữ thì không dùng tỷ giá. Khi sửa phải tự ghi rõ khối lượng và phí. Chỉ `/record` mới ghi `all` hoặc để phí tính theo tỷ lệ, vì tính lại một trong hai theo một cuốn sổ về sau hay một tỷ lệ đã đổi sẽ lặng lẽ làm xê dịch một con số đã chốt. Ghi chú của dòng và, với lệnh bán, nhãn chân thoát đã khớp (dừng lỗ hay chạm mục tiêu) được giữ nguyên, vì dòng `/record` không ghi được chúng |
 | `/delete` | `/delete <mã bút toán>` - xem một mục; `/delete <mã bút toán> confirm` mới xóa |
 | `/transactions` | `/transactions [số dòng] [khoảng ngày] [mã bút toán]` - các giao dịch đã ghi, mới nhất trước, mỗi dòng kèm mã bút toán mà `/update` và `/delete` nhận. Trong chat mặc định là 10 dòng gần nhất (terminal giữ 100), và nút trang kế giữ nguyên cỡ đó. Khoảng ngày là `a..b`, `a..`, `..b`, một ngày, `today`, `week`, `month`, hoặc `7d`/`30d`; đưa một mã bút toán để đọc tiếp lùi từ đó |
 | `/portfolio` | `/portfolio` - giá trị và phân bổ, mỗi dòng nói rõ vị thế đang cách mức dừng bao xa. Xem [Mức dừng dự kiến không phải một lệnh đang treo](#mức-dừng-dự-kiến-không-phải-một-lệnh-đang-treo) |
@@ -608,9 +702,9 @@ lưu lại. Thứ bạn đang nắm luôn được tính. Không có mã nào th
 theo dõi đã lưu. Viết `thị-trường:mã` khi một tên trần mơ hồ.
 
 Các dòng được tính để thu hẹp khoảng cách tới mục tiêu trong ngân sách của nhóm, mức trần mỗi mã và lô
-chẵn. Không cân nhắc bằng chứng nào và không gọi mô hình, nên một khối có lệnh mua kết thúc bằng việc nêu
-`/suggest <mã>` - lệnh nhân cùng mức trần đó theo mức tin tưởng và có thể từ chối một mã mà kế hoạch liệt
-kê.
+chẵn. Lệnh không cân nhắc bằng chứng nào và không gọi mô hình. Vì vậy một khối có lệnh mua kết thúc bằng
+việc nêu `/suggest <mã>`: lệnh đó nhân cùng mức trần theo mức tin tưởng, và có thể từ chối một mã mà kế
+hoạch liệt kê.
 
 Một mã đang nắm mà lần soát gần nhất vẫn nghiêng về bán bớt thì không được mua thêm, và cũng không
 được tính khi kế hoạch báo còn bao nhiêu mã mua được.
@@ -627,9 +721,10 @@ tin không có danh sách theo dõi chỉ ngắn hơn chứ không trống hơn.
 
 Trước khi bạn ghi giao dịch đầu tiên, bản tin bỏ những phần chỉ sổ mới điền được: khối tiền mặt dự
 phòng, khối kỷ luật và hai nút `/rebalance`, `/transactions`. Việc nên làm đầu tiên là ghi giao dịch bằng
-`/record`. Câu chuyện thị trường và các khối thị trường vẫn hiện như thường. Có mã chưa lấy được giá
-không có nghĩa là sổ trống: bản tin vẫn giữ đủ các phần trên, chỉ báo rằng sáng nay chưa tính được
-tổng tài sản.
+`/record`. Câu chuyện thị trường và các khối thị trường vẫn hiện như thường.
+
+Có mã chưa lấy được giá không có nghĩa là sổ trống. Bản tin vẫn giữ đủ các phần trên, chỉ báo rằng sáng
+nay chưa tính được tổng tài sản.
 
 #### Về tên trong `/watchlist`
 
@@ -660,10 +755,12 @@ duy nhất, "áp dụng đúng sửa đổi của tôi" là câu trả lời h�
 
 ### Sổ lệnh
 
-Mỗi dòng nêu tên một công cụ cũng nêu tên sàn đang giữ nó: cùng một đồng coin ở hai nơi giữ là hai vị
-thế với hai giá vốn. Dòng đó nêu thị trường ngay trong cùng token với mã (`equity-vn:FPT`), hoặc bỏ đi
-khi các danh sách đã lưu chỉ có đúng một thị trường cho mã đó. Thị trường không bao giờ được đoán qua
-mạng, và lời xác nhận luôn ghi rõ nó, vì một dòng sổ làm đổi gốc của mọi số đọc sau đó từ sổ.
+Mỗi dòng nêu tên một công cụ cũng nêu tên sàn đang giữ nó. Cùng một đồng coin ở hai nơi giữ là hai vị
+thế với hai giá vốn.
+
+Dòng đó nêu thị trường ngay trong cùng token với mã (`equity-vn:FPT`), hoặc bỏ đi khi các danh sách đã
+lưu chỉ có đúng một thị trường cho mã đó. Thị trường không bao giờ được đoán qua mạng, và lời xác nhận
+luôn ghi rõ nó. Điều này quan trọng vì một dòng sổ làm đổi mọi số đọc sau đó từ sổ.
 
 ```text
 /record deposit|withdrawal|fee|loss <sàn> <số tiền> <tiền tệ> <ngày>
@@ -679,25 +776,27 @@ mạng, và lời xác nhận luôn ghi rõ nó, vì một dòng sổ làm đổ
 Mọi dòng có tiền (kể cả nạp, rút, chuyển tiền) có thể kết thúc bằng `fx <giá>` hoặc `fx auto`. Đây là
 tỷ giá quy ra VND của đồng tiền ghi trên dòng đó, và chỉ dùng khi dòng ghi bằng đồng khác VND, ví dụ USDT.
 
-Gõ sai một ô (mã thiếu thị trường, ngày sai, số âm, `fx` không đọc được) thì dòng không được ghi, và
-câu trả lời nêu đúng ô đó cùng dạng nó cần, rồi nhắc gõ `/record` không kèm gì để xem đủ cú pháp. Sai cả
-hình dạng dòng (thiếu hay thừa ô) thì in luôn cách dùng. `/update` cũng vậy.
+Gõ sai một ô (mã thiếu thị trường, ngày sai, số âm, `fx` không đọc được) thì dòng không được ghi.
+Câu trả lời nêu đúng ô đó cùng dạng nó cần, rồi nhắc gõ `/record` không kèm gì để xem đủ cú pháp. Sai
+cả hình dạng dòng (thiếu hay thừa ô) thì in luôn cách dùng. `/update` cũng vậy.
 
 Số viết liền, không dấu ngăn hàng nghìn: `100000000`, không phải `100.000.000`. Dấu chấm là dấu thập phân
 (`0.5`, `1.250` USDT). Số có dấu ngăn kiểu `100.000.000` hay `1,000,000` bị từ chối kèm dạng viết liền của
-nó, chứ không bị đoán. Với đồng tiền không có số lẻ như VND, giá, số tiền, phí và cả khối lượng dạng
-`58.400` hay `1.000` cũng bị từ chối như vậy: không có giá 58,4 đồng, và `1.000` có thể là một nghìn cổ
-phiếu hay một lượng vàng. Tỷ giá sau `fx` trong sổ tính bằng đồng cũng vậy, và số cổ phiếu tăng thêm khi
-chia tách hay phân phối thì bị từ chối ở mọi thị trường. Lời nhắn chỉ cách viết `1000` cho một nghìn, hoặc
-`1.5` cho số lẻ.
+nó, chứ không bị đoán.
 
-Giá lệch giá gần nhất của mã từ mười lần trở lên thì chưa được lưu ngay: câu trả lời đưa ra cả
-hai con số và hỏi lại. Bấm nút, hoặc gửi lại đúng dòng đó với `confirm` ở cuối, để lưu như bạn gõ.
+Với đồng tiền không có số lẻ như VND, giá, số tiền, phí và cả khối lượng dạng `58.400` hay `1.000` cũng
+bị từ chối như vậy. Không có giá 58,4 đồng, và `1.000` có thể là một nghìn cổ phiếu hay một lượng vàng.
+Tỷ giá sau `fx` trong sổ tính bằng đồng cũng vậy, và số cổ phiếu tăng thêm khi chia tách hay phân phối
+thì bị từ chối ở mọi thị trường. Lời nhắn chỉ cách viết `1000` cho một nghìn, hoặc `1.5` cho số lẻ.
+
+Giá lệch giá gần nhất của mã từ mười lần trở lên thì chưa được lưu ngay. Câu trả lời đưa ra cả hai con
+số và hỏi lại. Bấm nút, hoặc gửi lại đúng dòng đó với `confirm` ở cuối, để lưu như bạn gõ.
 `/update` và `/alert create` cũng hỏi như vậy. Chi tiết ở [Giao dịch](giao-dich.md).
-Dòng đúng dạng nhưng có một chỗ không đọc được, như khối lượng `-1`, ngưỡng `0` hay điều kiện
-khác `above` và `below`, sẽ được chỉ ra đúng chỗ đó thay vì in lại cả cách dùng.
 
-**Mua và bán.** Lệnh bán có thể ghi `all` thay cho một con số, và sổ tính thành khối lượng đã thanh toán
+Dòng đúng dạng nhưng có một chỗ không đọc được, như khối lượng `-1`, ngưỡng `0` hay điều kiện khác
+`above` và `below`, sẽ được chỉ ra đúng chỗ đó thay vì in lại cả cách dùng.
+
+**Mua và bán.** Lệnh bán có thể ghi `all` thay cho một con số. Sổ đổi nó thành khối lượng đã thanh toán
 đang nắm *ở sàn đó* vào ngày đó. Có thể bỏ trống phí, khi đó tỷ lệ `fees` của sàn trong
 `[trading.venues.<id>]` sẽ tính giá. Một khoản phí bạn đã nêu thì không bao giờ bị thay.
 
@@ -705,29 +804,42 @@ khác `above` và `below`, sẽ được chỉ ra đúng chỗ đó thay vì in 
 Một sàn mang khóa giao dịch thì lấy dòng từ lệnh khớp duy nhất phù hợp. Lý do, và cách khớp lệnh đó, nằm
 ở [Giao dịch](giao-dich.md).
 
-**Dòng ngắn.** Bỏ sàn khi đúng một sàn giữ thị trường đó, bỏ tiền tệ để dùng tiền của thị trường, bỏ ngày để
-lấy hôm nay. Mã đứng một mình chỉ được tìm trong các danh sách đã lưu, trong các thị trường mà một sàn giữ
-(chỉ sàn được nêu, nếu có nêu), không gửi yêu cầu mạng nào, và chỉ được nhận khi đúng một thị trường khớp;
-nếu không, câu trả lời nêu các dạng `thị-trường:mã` để gõ. Mọi xác nhận đều in thị trường cạnh mã. Dòng được
-mở rộng ra dạng đầy đủ trước khi đọc bất kỳ con số nào, nên số có dấu nhóm như `58.400` bị từ chối y như dạng
-đầy đủ. Ví dụ: `/record buy FPT 100 58400`.
+**Dòng ngắn.** Bạn có thể bỏ ba thứ:
+
+- sàn, khi đúng một sàn giữ thị trường đó;
+- tiền tệ, để dùng tiền của chính thị trường;
+- ngày, để lấy hôm nay.
+
+Mã đứng một mình chỉ được tìm trong các danh sách đã lưu, trong các thị trường mà một sàn giữ (chỉ sàn
+được nêu, nếu có nêu). Không có yêu cầu mạng nào được gửi. Mã chỉ được nhận khi đúng một thị trường
+khớp; nếu không, câu trả lời nêu các dạng `thị-trường:mã` để gõ. Mọi xác nhận đều in thị trường cạnh mã.
+
+Dòng được mở rộng ra dạng đầy đủ trước khi đọc bất kỳ con số nào. Nên số có dấu nhóm như `58.400` bị từ
+chối y như dạng đầy đủ. Ví dụ: `/record buy FPT 100 58400`.
 
 **Các loại dòng khác.** Phát hành quyền mua không được môi giới theo mức phí chuẩn, nên nó luôn tự nêu
 phí. `transfer` chuyển tiền giữa hai sàn của chính bạn mà không đụng tới tiền nạp ròng. Một lần chia tách
 2:1 của mã nắm ở hai công ty môi giới là hai dòng, không phải một dòng áp theo tỷ lệ.
 
-**Tỷ giá (`fx`).** `fx <giá>` ghi dòng theo giá bạn thật sự trả cho mỗi đơn vị tiền tệ, và nguồn của tỷ giá
-được lưu là `operator`. `fx auto` ghi theo tỷ giá thị trường của ngày đó mà không hỏi lại. Dòng bằng đồng
-khác VND mà không có `fx` thì chưa được ghi: trợ lý hiện bản xem trước (tỷ giá thị trường sẽ dùng, tiền mặt
-thay đổi bao nhiêu, vì sao giá P2P có thể khác) rồi chờ. Gõ `/record confirm` để ghi đúng như bản xem
-trước, hoặc gõ lại lệnh kèm `fx <giá>`.
+**Tỷ giá (`fx`).**
+
+- `fx <giá>` ghi dòng theo giá bạn thật sự trả cho mỗi đơn vị tiền tệ. Nguồn của tỷ giá được lưu là
+  `operator`.
+- `fx auto` ghi theo tỷ giá thị trường của ngày đó mà không hỏi lại.
+- Dòng bằng đồng khác VND mà không có `fx` thì chưa được ghi. Trợ lý hiện bản xem trước (tỷ giá thị
+  trường sẽ dùng, tiền mặt thay đổi bao nhiêu, vì sao giá P2P có thể khác) rồi chờ. Gõ
+  `/record confirm` để ghi đúng như bản xem trước, hoặc gõ lại lệnh kèm `fx <giá>`.
 
 - Dòng chờ xác nhận giữ 10 phút. Mỗi cuộc trò chuyện giữ một dòng, dòng mới thay dòng cũ.
 - Một lệnh `/record` khác gõ đúng cú pháp thì bỏ dòng đang chờ và báo cho bạn biết. Gõ sai cú pháp thì dòng
   vẫn được giữ.
 - `/record confirm` khi không có gì đang chờ thì cho biết và không ghi gì.
-- `/update` một dòng bằng đồng khác VND chỉ bắt buộc ghi `fx <giá>` hoặc `fx auto` khi tỷ giá làm đổi sổ (đúng các dòng `/record confirm` hỏi); dòng trả từ tiền tệ sàn đã giữ thì không dùng tỷ giá. Nó không bao giờ giữ dòng.
-- `/record confirm` chỉ hỏi khi tỷ giá làm đổi sổ: khi nạp hoặc rút, và khi mua bán ở sàn chưa giữ đồng tiền đó. Sàn đã giữ USDT thì lệnh USDT ở đó trả theo giá vốn của USDT nên không bị hỏi. `/reconcile` giờ so cả số USDT của sàn.
+- `/update` một dòng bằng đồng khác VND chỉ bắt buộc ghi `fx <giá>` hoặc `fx auto` khi tỷ giá làm đổi
+  sổ (đúng các dòng `/record confirm` hỏi). Dòng trả từ tiền tệ sàn đã giữ thì không dùng tỷ giá. Nó
+  không bao giờ giữ dòng.
+- `/record confirm` chỉ hỏi khi tỷ giá làm đổi sổ: khi nạp hoặc rút, và khi mua bán ở sàn chưa giữ đồng
+  tiền đó. Sàn đã giữ USDT thì lệnh USDT ở đó trả theo giá vốn của USDT, nên không bị hỏi. `/reconcile`
+  giờ so cả số USDT của sàn.
 - `/record sync` không bao giờ hỏi: nó ghi theo tỷ giá thị trường từng ngày, và cuối câu trả lời có một dòng
   cho mỗi đồng tiền đã ghi như vậy để bạn sửa bằng `/update` nếu đã mua qua P2P.
 
@@ -747,8 +859,8 @@ khớp.
 - Một lệnh khớp trùng một dòng của bạn ở *mọi thứ trừ* ngày thì được báo chứ không ghi. Sửa ngày ở dòng
   đó rồi chạy lại.
 - Nếu một lệnh khớp nào của một mã không ghi được thì không lệnh nào của mã đó được ghi. Lịch sử nửa chừng
-  của một mã là một vị thế chưa từng tồn tại và một giá vốn không gì sau này sửa được, nên phiên chạy báo
-  tên mã và để sổ của bạn nguyên như cũ.
+  của một mã sẽ là một vị thế chưa từng tồn tại, với một giá vốn không gì sau này sửa được. Vì vậy phiên
+  chạy báo tên mã và để sổ của bạn nguyên như cũ.
 
 ### Đề xuất
 
@@ -760,11 +872,12 @@ khớp.
 Tùy chọn đứng theo thứ tự bất kỳ sau mã; dùng `thị-trường:mã` khi một tên trần mơ hồ. Lệnh này tiêu ngân
 sách LLM, nên được dựng để khỏi tiêu hai lần.
 
-Câu trả lời hôm nay được dùng lại miễn phí - ở thị trường chạy liên tục, là mọi câu trả lời trong 4 giờ
-gần nhất - cho tới khi có giá đóng cửa mới hơn phiên nó đã đọc: đề xuất làm lúc phiên đang chạy sẽ
-chạy lại sau khi `/refresh` nạp xong phiên đó. `force` chạy lại bất chấp cửa sổ đó và cả thời gian nghỉ, ở độ sâu đầy đủ trừ khi bạn gõ một
-chế độ. Một mã mà sổ đang nắm ở đúng mức mục tiêu mặc định chạy `lean`, vì câu hỏi tốn kém ở đó đã có
-lời đáp.
+Câu trả lời hôm nay được dùng lại miễn phí (ở thị trường chạy liên tục, là mọi câu trả lời trong 4 giờ
+gần nhất) cho tới khi có giá đóng cửa mới hơn phiên nó đã đọc. Nên đề xuất làm lúc phiên đang chạy sẽ
+chạy lại sau khi `/refresh` nạp xong phiên đó.
+
+`force` chạy lại bất chấp cửa sổ đó và cả thời gian nghỉ, ở độ sâu đầy đủ trừ khi bạn gõ một chế độ. Một
+mã mà sổ đang nắm ở đúng mức mục tiêu mặc định chạy `lean`, vì câu hỏi tốn kém ở đó đã có lời đáp.
 
 Khi một `/suggest` cho một mã đang chạy, cùng yêu cầu đó cho mã ấy từ bất kỳ cuộc chat hay từ ứng dụng sẽ nối vào
 lượt đang chạy và dùng kết quả của nó, khỏi tốn thêm một phiên tranh luận; chỉ yêu cầu khởi đầu bị tính phí. Yêu
@@ -808,10 +921,10 @@ bán đã chính là đường ra.
 Tiền tố `sàn:` là tùy chọn và chỉ cần khi có nhiều hơn một sàn có thể khớp. Một lệnh mơ hồ bị từ chối kèm
 các ứng viên được nêu tên, không bao giờ bị định tuyến theo cách đoán.
 
-`/trade` chỉ đặt được lệnh khi một sàn đã đăng ký mang khóa giao dịch. Trước đó nó trả lời bằng tên các
-biến mà từng sàn còn chờ và nhắc bạn ghi sổ bằng `/record`; `/trade help` (hoặc một dòng gõ sai) vẫn in đủ cú pháp
-để bạn làm quen trước. Cách định tuyến, thiết lập và phiên chạy đầu
-nằm ở [Giao dịch](giao-dich.md).
+`/trade` chỉ đặt được lệnh khi một sàn đã đăng ký mang khóa giao dịch. Trước đó, nó trả lời bằng tên các
+biến mà từng sàn còn chờ và nhắc bạn ghi sổ bằng `/record`. `/trade help` (hoặc một dòng gõ sai) vẫn in
+đủ cú pháp để bạn làm quen trước. Cách định tuyến, thiết lập và phiên chạy đầu nằm ở
+[Giao dịch](giao-dich.md).
 
 ## MCP
 
@@ -828,9 +941,9 @@ phiên chạy con được ủy quyền.
 
 ### Server công bố gì, giữ lại gì
 
-Bề mặt được phục vụ có bộ hướng dẫn riêng - kỷ luật bằng chứng, chỉ gợi ý chứ không bao giờ đặt lệnh, và
-nơi cảnh báo cùng bản tin thật sự được gửi tới - thay vì system prompt của agent chat, vốn nhắc tới những
-công cụ bề mặt này giữ lại và những quy tắc chỉ áp dụng cho cuộc trò chuyện tương tác.
+Bề mặt được phục vụ có bộ hướng dẫn riêng: kỷ luật bằng chứng, chỉ gợi ý chứ không bao giờ đặt lệnh, và
+nơi cảnh báo cùng bản tin thật sự được gửi tới. Nó không dùng system prompt của agent chat, vì prompt đó
+nhắc tới những công cụ bề mặt này giữ lại và những quy tắc chỉ áp dụng cho cuộc trò chuyện tương tác.
 
 Các công cụ sau bị giữ lại, kèm lý do:
 
@@ -849,8 +962,8 @@ Các công cụ sau bị giữ lại, kèm lý do:
 Công cụ đã bị giữ lại thì vẫn bị giữ lại khi client gọi thẳng tên nó, qua stdio cũng như qua API HTTP:
 lời gọi nhận câu trả lời là không có công cụ đó.
 
-Công cụ do plugin và MCP khác đóng góp cũng bị giữ lại: quảng bá lại chúng là đặt công cụ của một server
-khác dưới cái tên của server này, trong khi host hoàn toàn kết nối thẳng tới server kia được. Các thao tác
+Công cụ do plugin và MCP khác đóng góp cũng bị giữ lại. Quảng bá lại chúng là đặt công cụ của một server
+khác dưới cái tên của server này, trong khi host vẫn kết nối thẳng tới server kia được. Các thao tác
 ghi thuộc lĩnh vực giao dịch vẫn được công bố, vì chính server này kiểm tra chúng. Các lệnh gạch chéo như
 `/refresh` và `/trade` không phải công cụ, nên không có bản MCP tương ứng.
 
@@ -867,11 +980,12 @@ Các công cụ được công bố:
 | Yêu cầu mô hình | `model_request_view`, `model_answer`, `model_resume` |
 
 **Độ sâu và độ tươi.** `suggestion_run` và `brief_build` nhận `force: true` để chạy mới và thay thế đề xuất
-hay bản tin của hôm nay, không cần phê duyệt (không có tiền nào chuyển đi, và phần lớn client không trả
-lời được một lời nhắc phê duyệt). Mô hình truyền cờ này khi bạn yêu cầu chạy mới, và với `suggestion_run`
-thì còn truyền khi bạn yêu cầu phân tích sâu, kỹ hay chi tiết, bằng bất kỳ ngôn ngữ nào bạn viết.
-`suggestion_run` mặc định chạy cả cuộc tranh luận đầy đủ. Mô hình chỉ truyền `mode: "lean"` - một vai
-phân tích cộng một lượt đối chiếu, chờ khoảng một nửa - khi bạn yêu cầu một phân tích nhanh hay ngắn.
+hay bản tin của hôm nay. Cờ này không cần phê duyệt: không có tiền nào chuyển đi, và phần lớn client không
+trả lời được một lời nhắc phê duyệt. Mô hình truyền cờ này khi bạn yêu cầu chạy mới. Với `suggestion_run`,
+nó còn truyền khi bạn yêu cầu phân tích sâu, kỹ hay chi tiết, bằng bất kỳ ngôn ngữ nào bạn viết.
+
+`suggestion_run` mặc định chạy cả cuộc tranh luận đầy đủ. Mô hình chỉ truyền `mode: "lean"` (một vai phân
+tích cộng một lượt đối chiếu, chờ khoảng một nửa) khi bạn yêu cầu một phân tích nhanh hay ngắn.
 
 **Mô hình của client được phép thấy gì.** Các công cụ được phục vụ trả về số liệu tương đối - tỷ trọng,
 kết cục đề xuất, `sizePctNav` - cộng đúng **một** con số tuyệt đối: khối lượng lệnh (`units`) trên một đề
@@ -893,25 +1007,27 @@ bạn - nên mô hình giải thích vì sao thay vì đọc các mức giá c�
 **Thao tác ghi và phê duyệt.** Các nhánh ghi của `alert_manage` và `brief_manage` cần phê duyệt, nên một
 client không hỗ trợ elicitation chỉ liệt kê và xem được.
 
-**Yêu cầu mô hình.** Các công cụ này nằm **bên cạnh** bề mặt: mô hình của client đã kết nối trả lời mọi
-lời gọi mô hình, mỗi lần một vòng tranh luận. `mcp install --host claude-code` còn ghi
-`~/.claude/agents/openalpha-analyst.md`, một subagent chỉ có các công cụ yêu cầu và không có CLAUDE.md,
-nên mỗi vai được trả lời trong một ngữ cảnh nhỏ của riêng nó và câu trả lời cuối của một vòng trao lại
-vòng kế tiếp. Một host không có subagent - hoặc có mô hình từ chối gọi subagent, như gói miễn phí của
-opencode - trả lời nội tuyến: một lời gọi `model_answer` mỗi vòng mang mọi câu trả lời và nhận về trọn
-vòng kế tiếp.
+**Yêu cầu mô hình.** Các công cụ này nằm **bên cạnh** bề mặt. Mô hình của client đã kết nối trả lời mọi
+lời gọi mô hình, mỗi lần một vòng tranh luận.
+
+- `mcp install --host claude-code` còn ghi `~/.claude/agents/openalpha-analyst.md`, một subagent chỉ có
+  các công cụ yêu cầu và không có CLAUDE.md. Nhờ vậy mỗi vai được trả lời trong một ngữ cảnh nhỏ của riêng
+  nó, và câu trả lời cuối của một vòng trao lại vòng kế tiếp.
+- Một host không có subagent, hoặc có mô hình từ chối gọi subagent (như gói miễn phí của opencode), trả
+  lời nội tuyến. Một lời gọi `model_answer` mỗi vòng mang mọi câu trả lời và nhận về trọn vòng kế tiếp.
 
 Các câu trả lời được gửi theo lô, hoặc tất cả hoặc không gì cả. Khi vòng còn yêu cầu đang mở,
 `model_answer` trả về `answered`. Lời gọi trả lời yêu cầu cuối cùng thì chờ bước kế tiếp và trả về nó:
-vòng kế tiếp, `working` hay `finished`. Một subagent trao lại `finished` và kết quả khi đó chờ ở
-`model_resume`; ở chế độ nội tuyến (`inline: true` trên mỗi lời gọi), câu trả lời đóng vòng trả về chính
+vòng kế tiếp, `working` hay `finished`. Một subagent trao lại `finished`, và kết quả khi đó chờ ở
+`model_resume`. Ở chế độ nội tuyến (`inline: true` trên mỗi lời gọi), câu trả lời đóng vòng trả về chính
 kết quả.
 
-Không lời gọi nào được phục vụ chờ quá 45 giây. Quá mức đó nó trả về `working` và client gọi
-`model_resume` để chờ tiếp; một lời gọi đã trả về không bao giờ hủy công việc của nó. Một công việc hết
-hạn khi một yêu cầu không được trả lời quá giới hạn đặt ở [`[loop]`](cau-hinh.md#loop). Một cuộc tranh
-luận do client viết ghi mô hình của nó là `client:<mô hình>`, nên các lời gọi đó nằm riêng trong bảng
-thành tích so với cùng mô hình ấy khi đi qua một nhà cung cấp đã cấu hình.
+Không lời gọi nào được phục vụ chờ quá 45 giây. Quá mức đó nó trả về `working`, và client gọi
+`model_resume` để chờ tiếp. Một lời gọi đã trả về không bao giờ hủy công việc của nó. Một công việc hết
+hạn khi một yêu cầu không được trả lời quá giới hạn đặt ở [`[loop]`](cau-hinh.md#loop).
+
+Một cuộc tranh luận do client viết ghi mô hình của nó là `client:<mô hình>`. Nhờ vậy các lời gọi đó nằm
+riêng trong bảng thành tích, tách khỏi cùng mô hình ấy khi đi qua một nhà cung cấp đã cấu hình.
 
 ### Các câu trả lời được viết thế nào
 

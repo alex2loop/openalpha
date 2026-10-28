@@ -1,9 +1,13 @@
 # Commands
 
-Two ways in, one catalog. `openalpha <command>` is the CLI. `/command` works in terminal chat and in
-every configured channel. Trading has slash commands only, no CLI command of its own.
+There are two ways in, and one list of commands behind both:
 
-This page is the map. For the exact syntax of the version you installed, run `openalpha help`,
+- `openalpha <command>` is the CLI, typed in a terminal.
+- `/command` works in terminal chat and in every channel you set up.
+
+Trading has slash commands only. It has no CLI command of its own.
+
+Treat this page as a map. For the exact syntax of the version you installed, run `openalpha help`,
 `openalpha help <command>` or `openalpha <command> --help`.
 
 **Contents**
@@ -124,19 +128,23 @@ openalpha chat [-m <text>] [-a <agent>] [--mode manual|bypass]
              [-c] [--max-turns <n>] [--max-cost-usd <usd>]
 ```
 
-Without `--message` you get the REPL. With it you get one shot. A one shot can ask for approval only
-while stdin is a terminal. With piped or empty stdin there is nobody to ask, so a dangerous call in
-manual mode is blocked as approval-unavailable instead of silently approved. `--mode bypass` always
-has to be typed.
+Without `--message` you get the REPL, an ongoing conversation. With it you get one shot: one question,
+one answer.
 
-`--continue` resumes the CLI's previous chat session, and refuses an `--agent` that names a different
-agent than that session used. The turn and cost flags can only narrow a run, never widen it; the
-global daily and monthly caps always apply.
+A one shot can ask you to approve something only while stdin is a terminal. With piped or empty stdin
+there is nobody to ask. So in manual mode a dangerous call is blocked as approval-unavailable. It is
+never approved quietly. `--mode bypass` always has to be typed by you.
+
+`--continue` picks up the CLI's previous chat session. It refuses an `--agent` that names a different
+agent from the one that session used.
+
+The turn and cost flags can only make a run smaller, never larger. The global daily and monthly caps
+always apply.
 
 ### Slash commands
 
-One catalog decides help, authorization, cooldowns, where each command works and the Telegram menu,
-so a command behaves the same in the REPL and in a group chat.
+One catalog decides the help text, who may run what, cooldowns, where each command works and the
+Telegram menu. So a command behaves the same in the REPL and in a group chat.
 
 | Command | Purpose |
 |---|---|
@@ -169,21 +177,25 @@ so it cannot answer an approval prompt by accident; the REPL says so at once.
 
 Commands that run on their own - `/suggest`, `/screen`, `/rebalance`, `/brief`, `/refresh`, `/price`,
 `/overview`, `/market`, `/portfolio`, `/reconcile`, `/themes`, `/schedule run` and plugin workflows - do not wait
-behind your chat. Each chat runs up to three at once and up to ten more wait in order. In a channel, a command that
-has to wait says where it stands in line and starts when a slot frees; one past the end of the line is refused with
-a request to resend in a moment. `/new` and `/stop` both drop the waiting commands without a
-word and stop the ones already running. A plain chat message still waits for the answer in front of it.
+behind your chat.
 
-Two conventions explain the output you see:
+- Each chat runs up to three at once. Up to ten more wait in order.
+- In a channel, a command that has to wait tells you its place in line. It starts when a slot frees up.
+- A command past the end of the line is refused, and you are asked to send it again in a moment.
+- `/new` and `/stop` both drop the waiting commands without a word, and stop the ones already running.
+
+A plain chat message still waits for the answer in front of it.
+
+Two habits of the output are worth knowing:
 
 - A command that waits on the network shows a progress line while it runs and a footer when it
   finishes. A command that answers from local data (`/profile`, `/sources`)
   has neither. When the output is not a terminal (piped, or a one-shot `chat -m "/refresh"`), the
-  progress shows as plain lines on stderr, only once the command has run a moment and at most one
-  every ten seconds, so stdout carries only the answer and an instant reply prints nothing.
+  progress shows as plain lines on stderr. They appear only once the command has run a moment, and at
+  most one every ten seconds. So stdout carries only the answer, and an instant reply prints nothing.
 - If a run switched providers, one line above the footer says what it moved from, to, and why - one
-  line per distinct switch. It explains a footer with no model name, and covers a slash command's
-  child runs as well as the chat turn's own calls.
+  line per distinct switch. That line explains a footer with no model name. It covers a slash
+  command's child runs as well as the chat turn's own calls.
 
 Trading adds `/setup`, `/record`, `/update`, `/delete`, `/transactions`, `/portfolio`, `/profile`,
 `/watchlist`, `/price`, `/market`, `/overview`, `/screen`, `/sources`, `/suggest`, `/themes`,
@@ -192,7 +204,9 @@ orders once a venue has exchange keys. They are under [Trading chat](#trading-ch
 
 ### The command bar in the office page
 
-The box at the bottom of the [office page](operations.md#the-office-page) takes everything the chat takes: plain questions, tickers and the slash commands above. A chip on its left says who receives what you type, the assistant or one of your own agents (a paused agent is marked); Enter sends it (a phone also shows a Send button), and the list that opens over the box ends with a send row that reads "Send to <agent>" when an agent is picked and "Run the command" once the text starts with `/`.
+The box at the bottom of the [office page](operations.md#the-office-page) takes everything the chat takes: plain questions, tickers and the slash commands above.
+
+A chip on its left says who receives what you type: the assistant, or one of your own agents (a paused agent is marked). Enter sends it, and a phone also shows a Send button. The list that opens over the box ends with a send row. It reads "Send to <agent>" when an agent is picked, and "Run the command" once the text starts with `/`.
 
 - **Typing.** Plain words ask a question. A ticker looks it up. Type `/`, or press Tab on an empty box, to see the commands; Tab on text completes the first ticker or command that matches. Up and Down choose a row (on an empty box, Up recalls what you sent before), Enter sends, Esc closes the list. If the connection is down the text stays in the box and a line says it was not sent.
 - **Sub-commands and arguments.** After a command name and a space, the list offers what that command accepts next, the same words Tab completes in the terminal (for example `add` and `remove` after `/watchlist`, or the agent names after `/agent`), narrowed as you type; Tab, Enter or a click fills the word and a space. A faint line at the top shows the command's usage, such as `/alert create <ticker> above|below <price>`, even when it has no words to offer. A ticker that is also on offer is listed once. If the suggestions cannot be read, the box still sends what you typed.
@@ -272,58 +286,81 @@ openalpha status
 openalpha doctor [check] [--online]
 ```
 
-Bare `start` runs in the foreground and Ctrl-C stops it. `--background`/`-b` runs the same command
-detached and waits until the daemon is actually ready: market data loaded and chat channels open,
-usually about a minute. Only then does it report success with the pid and the output path. A daemon
-that dies while starting (the API port already in use, say) is reported at once with its own
-error message and exit code, and the command exits non-zero. After 90 seconds a daemon that is
-running but not ready yet (a slow data source) is left running: the command says how to follow it
-and exits zero; one that never came up exits non-zero. `stop` and `status` work the same in both
-modes. A start prints the version it runs, the model, the channels it opens, the API port and a
-line naming `web` when `[api]` is on, and the log file. In the foreground with a channel configured it also says the bot
-starts answering once market data has loaded; the log records when the channels open.
-When a daemon is running and `[api]` is on, `restart` asks that daemon to restart itself in place (same pid, same terminal),
-waits until it is ready and prints the result. It waits for running work to finish (about two minutes at most);
-`--now` does not. The daemon stops the usual way, so an approval still waiting is refused. `restart --background`,
-or `restart` when no daemon runs, stops it (if it runs) and starts it again from this shell, with this
-shell's variables, in the background or in this window. A plain `restart` does the same when `[api]` is off or
-the daemon cannot be asked (its token cannot be read or is not accepted), and `--now` then changes nothing. On
-Windows a daemon cannot restart in place, so `restart` always stops and starts again. `kill -USR2 <pid>` restarts
-the daemon in place at once, like `--now`, whether `[api]` is on or not.
+**Starting.** Bare `start` runs in the foreground, and Ctrl-C stops it. `--background`/`-b` runs the
+same command detached. It then waits until the daemon is actually ready: market data loaded and chat
+channels open. That usually takes about a minute. Only then does it report success, with the pid and
+the output path.
 
-A missing key does not stop `start`. An unset key variable for a model (the main one, a tier or a
-fallback), for web search or for an MCP server, and a Telegram or Zalo bot token that is unset or that
-the platform rejects, each take down only what needs them: one warning line per item (marked `!`, on
-stderr) says what waits and how to fix it. In the foreground the variable warnings print right under
-the summary and the channel warnings when the channels open, after market data has loaded; with
-`--background` they sit under the success line. Everything else keeps running: data refresh, price
-alerts, the ledger and every job that needs no model. Chat over a channel, `/suggest`, research and the
-brief's model sections wait until you save the key with `openalpha key set <NAME>` and `restart --background`, and a channel without a token accepts
-no messages from anyone. `doctor` still reports a missing key as a failure on its models row, and runs every other check as usual. A configuration error
-(bad TOML, an invalid value), an API port already taken, a daemon already running and a storage
-failure still stop `start`.
+- A daemon that dies while starting (say the API port is already in use) is reported at once, with
+  its own error message and exit code. The command exits non-zero.
+- After 90 seconds, a daemon that is running but not ready yet (a slow data source) is left running.
+  The command says how to follow it and exits zero. One that never came up exits non-zero.
+- `stop` and `status` work the same in both modes.
 
-`status` names the version the running daemon was started from. Re-running the install script
-restarts a background daemon on the new binary; an install pinned with `OPENALPHA_VERSION` keeps
-the daemon on its old release until you restart it, and `status` flags it, with the `stop` and
-`start --background` that switch it over. When the
-running daemon started without some keys, `status` repeats the `start` warnings: which channels were
-skipped and why, which keys are unset and what waits for them, even after a reboot. Exchange keys
-and the keys of optional data sources are listed apart under "optional keys": without them you
-record trades by hand, and `start` does not warn. The desktop app reads the same list from
-`/v1/state`. `upgrade` brings a background daemon back up on the new release itself.
+A start prints the version it runs, the model, the channels it opens, the API port and a
+line naming `web` when `[api]` is on, and the log file. In the foreground with a channel configured, it
+also tells you the bot starts answering once market data has loaded. The log records when the
+channels open.
 
-`doctor` is always read-only. Offline it checks only what it can see locally; `--online` adds live
-probes of PostgreSQL, providers, channel tokens, web search and exchange keys. The provider probe
-sends the first model of each provider one short message, and says so plainly when a server on your machine is not
-running. Rows are labelled in your `[locale] language`. A row marked `i` is a state that needs no
-action yet, never a warning: a database, log folder or data folder that the first run creates, a
-daemon that has not been started, and an optional data source whose key is unset. The source row
-says what the key would add. `doctor models` also names the cloud-account variables a keyless Vertex
-or Azure entry still needs. `doctor trading`
-composes the app the way `chat` would, without starting or migrating anything, so a home region no
-venue trades or a `default_for` on the wrong venue shows up here first. It waits until the database
-exists.
+**Restarting.** When a daemon is running and `[api]` is on, `restart` asks that daemon to restart
+itself in place (same pid, same terminal). It waits until the daemon is ready and prints the result.
+
+- It waits for running work to finish, about two minutes at most. `--now` does not wait.
+- The daemon stops the usual way, so an approval still waiting is refused.
+- `restart --background`, or `restart` when no daemon runs, stops it (if it runs) and starts it again
+  from this shell, with this shell's variables, in the background or in this window.
+- A plain `restart` does the same when `[api]` is off or the daemon cannot be asked (its token cannot
+  be read or is not accepted). `--now` then changes nothing.
+- On Windows a daemon cannot restart in place, so `restart` always stops and starts again.
+- `kill -USR2 <pid>` restarts the daemon in place at once, like `--now`, whether `[api]` is on or not.
+
+**A missing key does not stop `start`.** Each of these takes down only the parts that need it:
+
+- an unset key variable for a model (the main one, a tier or a fallback), for web search or for an
+  MCP server;
+- a Telegram or Zalo bot token that is unset, or that the platform rejects.
+
+You get one warning line per item (marked `!`, on stderr) saying what waits and how to fix it. In the
+foreground, the variable warnings print right under the summary. The channel warnings print when the
+channels open, after market data has loaded. With `--background` they sit under the success line.
+
+Everything else keeps running: data refresh, price alerts, the ledger and every job that needs no
+model. Chat over a channel, `/suggest`, research and the brief's model sections wait until you save
+the key with `openalpha key set <NAME>` and `restart --background`. A channel without a token accepts
+no messages from anyone. `doctor` still reports a missing key as a failure on its models row, and runs
+every other check as usual.
+
+Some problems do still stop `start`: a configuration error (bad TOML, an invalid value), an API port
+already taken, a daemon already running, and a storage failure.
+
+**Status.** `status` names the version the running daemon was started from.
+
+- Re-running the install script restarts a background daemon on the new binary.
+- An install pinned with `OPENALPHA_VERSION` keeps the daemon on its old release until you restart it.
+  `status` flags it, with the `stop` and `start --background` that switch it over.
+- When the running daemon started without some keys, `status` repeats the `start` warnings: which
+  channels were skipped and why, which keys are unset and what waits for them. It does this even after
+  a reboot.
+- Exchange keys and the keys of optional data sources are listed apart under "optional keys". Without
+  them you record trades by hand, and `start` does not warn.
+
+The desktop app reads the same list from `/v1/state`. `upgrade` brings a background daemon back up on
+the new release itself.
+
+**Doctor.** `doctor` is always read-only. Offline, it checks only what it can see locally. `--online`
+adds live probes of PostgreSQL, providers, channel tokens, web search and exchange keys. The provider
+probe sends the first model of each provider one short message. It tells you plainly when a server on
+your machine is not running.
+
+Rows are labelled in your `[locale] language`. A row marked `i` is a state that needs no action yet,
+never a warning. Examples: a database, log folder or data folder that the first run creates; a daemon
+that has not been started; an optional data source whose key is unset. The source row says what the
+key would add.
+
+`doctor models` also names the cloud-account variables a keyless Vertex or Azure entry still needs.
+`doctor trading` composes the app the way `chat` would, without starting or migrating anything. So a
+home region no venue trades, or a `default_for` on the wrong venue, shows up here first. It waits until
+the database exists.
 
 `doctor version` reads the last answer GitHub gave (at most a day old); `doctor version --online`
 asks again. Being behind is a warning, never a failure.
@@ -336,13 +373,46 @@ switched off. A demo key is not audited.
 
 ### Staying up to date
 
-When a newer release is out, the CLI says so once a day, under the command's output: what changed, how many releases you are behind and whether one of them is important. In a private chat with the operator the bot says it weekly, or daily while an important release is waiting.
+When a newer release is out, the CLI tells you once a day, under the command's output. It says what
+changed, how many releases you are behind, and whether one of them is important. In a private chat
+with the operator, the bot tells you weekly, or daily while an important release is waiting.
 
-`upgrade` downloads the release binary for your machine next to the installed one and checks it against the release's SHA256SUMS. Only then does it swap the binary in. A daemon started with `start --background` is paused for the swap and started again on the new release by itself, from the same config file and data folder; if it will not start, `upgrade` goes back to the release that ran, says so, and keeps the new release's startup error in `daemon.stderr.failed.log`. A daemon running in a terminal window or under a service keeps running the old release until you restart it, and `upgrade` prints the commands; on Windows, which cannot replace a running binary, it is stopped for the swap and you start it again. Your data folder and config are never touched. If the swap itself fails, the old version stays in place and the stopped daemon is started again, or the message says how to. A cut download, a checksum mismatch or Ctrl-C all end before the swap, so your current version stays and a running daemon keeps running.
+`upgrade` downloads the release binary for your machine next to the installed one and checks it
+against the release's SHA256SUMS. Only then does it swap the binary in. What happens to a running
+daemon depends on how you started it:
 
-The release you replaced stays next to the new one as `openalpha.old` (`openalpha.exe.old` on Windows), and `upgrade --rollback` swaps back to it. If the newer release changed the database, `--rollback` first takes it back to what the older release reads, with `db migrate down --to`. It asks before doing so, and on SQLite saves a copy in `backups/pre-rollback/` first. Say no and nothing changes. When `upgrade` started the newer release and it would not start, the same step runs without asking; one that is still starting after 90 seconds, often busy updating a large database, is left running rather than rolled back. A release installed by the install script, a reinstall of the same release included, has no such record, so after its rollback the older release refuses to start on the newer schema, says why, and names the way back. `upgrade --check` only reports. A source checkout updates with `git pull`.
+- Started with `start --background`: it is paused for the swap, then started again on the new release
+  by itself, from the same config file and data folder. If it will not start, `upgrade` goes back to
+  the release that ran, says so, and keeps the new release's startup error in
+  `daemon.stderr.failed.log`.
+- Running in a terminal window or under a service: it keeps running the old release until you restart
+  it. `upgrade` prints the commands.
+- On Windows, which cannot replace a running binary: it is stopped for the swap, and you start it
+  again.
 
-On a Windows machine with an ARM chip, the installer picks the native ARM build; an older x64 install keeps upgrading as x64 until you re-run the install command, which moves it to the native one.
+Your data folder and config are never touched. If the swap itself fails, the old version stays in
+place and the stopped daemon is started again, or the message says how to. A cut download, a checksum
+mismatch or Ctrl-C all end before the swap. So your current version stays, and a running daemon keeps
+running.
+
+The release you replaced stays next to the new one as `openalpha.old` (`openalpha.exe.old` on
+Windows), and `upgrade --rollback` swaps back to it.
+
+If the newer release changed the database, `--rollback` first takes it back to what the older release
+reads, with `db migrate down --to`. It asks before doing so, and on SQLite it saves a copy in
+`backups/pre-rollback/` first. Say no and nothing changes.
+
+- When `upgrade` started the newer release and it would not start, the same step runs without asking.
+- A release that is still starting after 90 seconds, often busy updating a large database, is left
+  running rather than rolled back.
+- A release installed by the install script, a reinstall of the same release included, has no such
+  record. So after its rollback, the older release refuses to start on the newer schema. It says why
+  and names the way back.
+
+`upgrade --check` only reports. A source checkout updates with `git pull`.
+
+On a Windows machine with an ARM chip, the installer picks the native ARM build. An older x64 install
+keeps upgrading as x64 until you re-run the install command, which moves it to the native one.
 
 ## Configuration and onboarding
 
@@ -355,27 +425,37 @@ openalpha config validate
 openalpha config edit
 ```
 
-`show` masks secrets, and `get` refuses any path through a secret key. `validate` runs every check
-boot does, `[trading]` included, so a config it accepts is a config that boots; when it does not, it
-exits `1` and lists every reason in one pass, a mistyped provider name and an unset key variable
-included. `config get` takes a path into the resolved config, which is camelCase
-(`budget.maxDailyUsd`). `edit` uses `VISUAL`, then `EDITOR`, then `nano`; a blank value counts as
-unset. The value is read the way git reads it, so it may carry flags or a quoted path
-(`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
+- `show` masks secrets, and `get` refuses any path through a secret key.
+- `validate` runs every check boot does, `[trading]` included. So a config it accepts is a config that
+  boots. When it does not accept it, it exits `1` and lists every reason in one pass, a mistyped
+  provider name and an unset key variable included.
+- `config get` takes a path into the resolved config, which is camelCase (`budget.maxDailyUsd`).
+- `edit` uses `VISUAL`, then `EDITOR`, then `nano`; a blank value counts as unset. The value is read
+  the way git reads it, so it may carry flags or a quoted path
+  (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
 
-`onboard` walks through a first setup: language, AI provider and model, an endpoint URL for a
+`onboard` walks you through a first setup: language, AI provider and model, an endpoint URL for a
 provider that needs one, the environment variable that holds your key, a daily spending cap ($2
-unless you change it) and, if you want, a Telegram bot. A list is answered with ↑ and ↓ and Enter, and ← goes back to the list question before it with your earlier answer still marked;
-a value it does not hold (another currency, model or provider) is its last line, which then asks you
-to type it. Without a terminal the list is numbered and you type the number. A wrong answer is asked
-again instead of ending the setup. When the key is already set it sends the model one short test message, it offers
-the ChatGPT sign-in when you picked that plan, and it ends with a numbered list of what is left.
+unless you change it) and, if you want, a Telegram bot.
 
-Run it again on an existing config to change one part at a time: the model, the Telegram bot, the budget or
-the language. After each save the menu comes back so you can change another, until you pick "Done, exit";
-← on a part's first list question takes you back to the menu. That rewrite drops the file's comments, so the old file is saved first beside it as
-`config.toml.<time>.bak`. Each change leaves its own backup, and the newest 5 are kept; older ones are deleted for you. When no config exists, a bare `openalpha` and any command that needs one
-offer to start the setup.
+- You answer a list with ↑ and ↓ and Enter. ← goes back to the list question before it, with your
+  earlier answer still marked.
+- A value the list does not hold (another currency, model or provider) is its last line, which then
+  asks you to type it.
+- Without a terminal, the list is numbered and you type the number.
+- A wrong answer is asked again instead of ending the setup.
+
+When the key is already set, it sends the model one short test message. It offers the ChatGPT sign-in
+when you picked that plan. It ends with a numbered list of what is left.
+
+Run it again on an existing config to change one part at a time: the model, the Telegram bot, the
+budget or the language. After each save the menu comes back so you can change another, until you pick
+"Done, exit". ← on a part's first list question takes you back to the menu.
+
+That rewrite drops the file's comments, so the old file is saved first beside it as
+`config.toml.<time>.bak`. Each change leaves its own backup. The newest 5 are kept, and older ones are
+deleted for you. When no config exists, a bare `openalpha` and any command that needs one offer to
+start the setup.
 
 `setup write` writes the same starter file for the desktop app, turns on `[api]`, and refuses to
 replace an existing config.
@@ -387,11 +467,14 @@ openalpha web
 openalpha connect
 ```
 
-`api token` prints the bearer token the app and other `/v1` clients send. `api rotate` replaces it,
-prints the new one, signs every browser out and restarts a running daemon at once, without waiting
-for work in progress, so the old token stops working. If that restart fails, it says so: run
-`openalpha restart`. With `[api] token_env` set, the token is that variable and `rotate` leaves it alone.
-While `[api]` is off, `api token` and `api rotate` say so instead of printing anything.
+`api token` prints the bearer token the app and other `/v1` clients send.
+
+`api rotate` replaces it and prints the new one. It also signs every browser out and restarts a
+running daemon at once, without waiting for work in progress, so the old token stops working. If that
+restart fails, it says so: run `openalpha restart`.
+
+With `[api] token_env` set, the token is that variable and `rotate` leaves it alone. While `[api]` is
+off, `api token` and `api rotate` say so instead of printing anything.
 
 `web` opens the office page. It needs the daemon running and `[api]` on, and asks the daemon for a
 one-time link that works once, within 5 minutes. It never prints the token. What you see depends
@@ -400,10 +483,10 @@ on where you run it:
 - On the machine's own screen (macOS, or Linux with a display), it opens your browser and prints the
   link in case that did not work.
 - Over SSH, it prints the tunnel command to run on your own machine, then the link to open. The
-  tunnel uses the server's port plus 10000 (18765 for 8765; minus, past port 55535), so it never lands on a daemon you run
-  locally, and `ssh` stops with an error if that port is taken instead of quietly using another.
-  If it cannot tell the address you SSH to, it uses the server's host name and says so; swap in the
-  address you actually use.
+  tunnel uses the server's port plus 10000 (18765 for 8765; minus, past port 55535). So it never lands
+  on a daemon you run locally. If that port is taken, `ssh` stops with an error instead of quietly
+  using another. If it cannot tell the address you SSH to, it uses the server's host name and says so;
+  swap in the address you actually use.
 - With `[api] public_url` set, it prints only the `https://` link, wherever you run it.
 
 Run it again whenever you need a new link: a used or expired one is refused. After a few wrong tries
@@ -423,12 +506,15 @@ openalpha auth status [provider]
 openalpha auth logout <provider>
 ```
 
-For providers that authenticate with a subscription rather than an API key. `login` defaults to a
-browser round trip: it prints the authorization URL, waits on a loopback listener at `127.0.0.1:1455`
-(or `:1457` when that port is taken), and checks the `state` it issued. `--paste` skips the listener
-and reads the code you paste in, bare or as the whole redirect URL. `--device` uses the device-code
-flow where the provider offers it, printing a user code and a URL to open on another device. All three
-time out after 15 minutes.
+These are for providers that authenticate with a subscription rather than an API key.
+
+- `login` defaults to a browser round trip. It prints the authorization URL, waits on a loopback
+  listener at `127.0.0.1:1455` (or `:1457` when that port is taken), and checks the `state` it issued.
+- `--paste` skips the listener and reads the code you paste in, bare or as the whole redirect URL.
+- `--device` uses the device-code flow where the provider offers it. It prints a user code and a URL
+  to open on another device.
+
+All three time out after 15 minutes.
 
 `status` with no argument reports every provider that supports login. These commands do not boot the
 runtime and work before a config file exists. Token storage, refresh and cost treatment are in
@@ -451,10 +537,10 @@ openalpha skill install <source>
 ```
 
 Plugin and skill installs validate ids, paths and source trust. A plugin takes its `id` from its
-`plugin.toml`; without one, a plugin from a git URL takes the repository name (without `.git`) and a
-local folder takes its own name, so installing the same source again replaces the plugin instead of
-adding a copy. An agent run sees only the read-only
-`skill_view` tool; package management stays on the CLI.
+`plugin.toml`. Without one, a plugin from a git URL takes the repository name (without `.git`), and a
+local folder takes its own name. So installing the same source again replaces the plugin instead of
+adding a copy. An agent run sees only the read-only `skill_view` tool; package management stays on the
+CLI.
 
 ### Pausing agents
 
@@ -488,10 +574,12 @@ full-text index. `memory list --prefix <text>` keeps only the keys that start wi
 `history clear` deletes every session, or every session of one agent. Read its help and confirmation
 prompt before you run it.
 
-`cost` takes `--period day|week|month` (`week` starts on Monday, like `/transactions week`) or an inclusive `--from`/`--to` ISO-day range. It reads the
-stored per-call records instead of estimating from transcripts, so it agrees with your provider's
-invoice. `--breakdown` lists the same window per assistant and model - calls, failures, typical answer
-time, tokens from cache, tokens spent thinking - most expensive first.
+`cost` takes `--period day|week|month` (`week` starts on Monday, like `/transactions week`) or an
+inclusive `--from`/`--to` ISO-day range. It reads the stored per-call records instead of estimating
+from transcripts, so it agrees with your provider's invoice.
+
+`--breakdown` lists the same window per assistant and model, most expensive first: calls, failures,
+typical answer time, tokens from cache, and tokens spent thinking.
 
 ## Pairing
 
@@ -521,9 +609,10 @@ up on its next reconnect.
 
 Schedules support cron or fixed intervals, delivery targets you choose, pause and resume, immediate
 runs, and per-job tool limits via `--allow-tools`. `--agent` defaults to `chat`. A cron job stores an
-IANA timezone with it; an interval job does not accept one. When a scheduled job makes a dangerous
-call, approval goes through the channel if the job's target has an approver, and the call is refused
-otherwise.
+IANA timezone with it; an interval job does not accept one.
+
+When a scheduled job makes a dangerous call, approval goes through the channel if the job's target has
+an approver. Otherwise the call is refused.
 
 ```text
 openalpha workflow list
@@ -536,11 +625,13 @@ and cost. Having no workflows is normal, not an error.
 ## Database and workspace maintenance
 
 Commands that write to the database (`db migrate`, `cleanup`, `import`, `restore`, `reset`) run only
-while the daemon is stopped. `restore`, `reset` and a migration rollback ask for confirmation unless
-you pass `--yes`. On SQLite, `reset` first offers a backup (Enter means yes): the copy lands in
-`backups/` like `db backup`, so a mistake can be undone with `db restore`. `--yes` answers that
-question with its default, so the backup is still taken. `db cleanup` needs `--older-than` (at least `1d`); `--dry-run` previews what it
-would prune.
+while the daemon is stopped.
+
+- `restore`, `reset` and a migration rollback ask for confirmation unless you pass `--yes`.
+- On SQLite, `reset` first offers a backup (Enter means yes). The copy lands in `backups/` like
+  `db backup`, so a mistake can be undone with `db restore`. `--yes` answers that question with its
+  default, so the backup is still taken.
+- `db cleanup` needs `--older-than` (at least `1d`); `--dry-run` previews what it would prune.
 
 `db integrity`, `db stats`, `db export` and `db backup` start only the storage layer, so they run
 with no model credentials configured. Backup and restore, export and import, and what each keeps
@@ -549,7 +640,8 @@ through a `db reset` are in [Storage](storage.md).
 `workspace cleanup` visits only `run/` and `tmp/` inside the agent workspaces you select with
 `--agent <id>` or `--all` (exactly one is required). `--older-than`, `--dry-run` and `--yes` work as
 elsewhere, and the daemon must be stopped. It does not delete durable workspace-root files or agent
-logs. As always, the workspace is a safe starting directory, not OS confinement.
+logs. As always, the workspace is a safe place to start in, not a locked box enforced by the operating
+system.
 
 ## Logs
 
@@ -589,7 +681,7 @@ The rest fit in a line.
 |---|---|
 | `/setup` | `/setup` - what the assistant does and how to set it up |
 | `/record` | Writes a ledger row. See [The ledger](#the-ledger) |
-| `/update` | `/update <handle> <the full /record line>` - edit one entry in place, venue included; a bare ticker is found as `/record` finds it, every other field is written out; the reply shows the row as it was, then the confirmation. A row in a currency other than VND needs `fx <rate>` or `fx auto` where the rate applies; a row paid from USDT the venue already holds takes none. An edit states its own quantity and fee: only `/record` writes `all` or leaves the fee to a rate, because re-resolving either against a later book or a changed rate would move a settled figure nobody restated. The row's note and, on a sale, which exit leg filled (stopped out or target hit) carry over, since no `/record` line can state them |
+| `/update` | `/update <handle> <the full /record line>` - edit one entry in place, venue included. A bare ticker is found as `/record` finds it; every other field is written out. The reply shows the row as it was, then the confirmation. A row in a currency other than VND needs `fx <rate>` or `fx auto` where the rate applies; a row paid from USDT the venue already holds takes none. An edit states its own quantity and fee. Only `/record` writes `all` or leaves the fee to a rate, because working either out again against a later book or a changed rate would quietly move a settled figure. The row's note and, on a sale, which exit leg filled (stopped out or target hit) carry over, since no `/record` line can state them |
 | `/delete` | `/delete <handle>` - show one entry; `/delete <handle> confirm` removes it |
 | `/transactions` | `/transactions [count] [days] [handle]` - recorded transactions, newest first, each with the handle `/update` and `/delete` take. In a chat the default is the last 10 rows (the terminal keeps 100), and the next-page button keeps the same size. `days` is `a..b`, `a..`, `..b`, one date, `today`, `week`, `month`, or `7d`/`30d`; pass a handle to keep reading back from there |
 | `/portfolio` | `/portfolio` - value and allocation, each row stating how far the holding sits from its stop. See [A planned stop is not a resting order](#a-planned-stop-is-not-a-resting-order) |
@@ -625,9 +717,9 @@ you hold is always sized. With no names, holdings plus the saved watchlist are u
 `market:ticker` where a bare name is ambiguous.
 
 Rows are sized to close the gap to target under the segment budget, the per-name cap and the board
-lot. No evidence is weighed and no model is called, so a block containing a buy ends by naming
-`/suggest <ticker>`, which scales the same ceiling by confidence and can decline a name the plan
-lists.
+lot. No evidence is weighed and no model is called. So a block containing a buy ends by naming
+`/suggest <ticker>`: that command scales the same ceiling by confidence, and can decline a name the
+plan lists.
 
 A held name whose latest read still leans toward selling some is not added to, and is not counted
 when the plan says how many names are left to buy.
@@ -642,11 +734,12 @@ without a watchlist is shorter, not emptier.
 
 #### A brief with no book
 
-Before your first recorded trade the brief leaves out what only a book can fill: the cash-reserve
+Before your first recorded trade, the brief leaves out what only a book can fill: the cash-reserve
 block, the discipline block and the `/rebalance` and `/transactions` buttons. Its first action asks
 you to record your trades with `/record`. The market story and every market block read as usual.
-A holding with no price yet is not an empty book: the brief keeps everything above and only says
-it cannot total the book this morning.
+
+A holding with no price yet is not an empty book. The brief keeps everything above, and only says it
+cannot total the book this morning.
 
 #### On /watchlist names
 
@@ -677,11 +770,13 @@ for a single operator, "apply my edit" is the right answer.
 
 ### The ledger
 
-Every row that names an instrument also names the venue holding it: the same coin at two custodians
-is two positions with two cost bases. It names the market in the same token as the ticker
-(`equity-vn:FPT`), or leaves it out when the lists already stored name exactly one market for that
-ticker. The market is never guessed over the network, and the confirmation names it, because a ledger
-row re-bases every later reading of the book.
+Every row that names an instrument also names the venue holding it. The same coin at two custodians
+is two positions with two cost bases.
+
+A row names the market in the same token as the ticker (`equity-vn:FPT`), or leaves it out when the
+lists already stored name exactly one market for that ticker. The market is never guessed over the
+network, and the confirmation names it. That matters because a ledger row changes every later reading
+of the book.
 
 ```text
 /record deposit|withdrawal|fee|loss <venue> <amount> <currency> <day>
@@ -699,25 +794,27 @@ Any row that moves money, cash deposits, withdrawals and transfers included, may
 than VND, such as USDT.
 
 A mistyped field (a ticker without its market, a bad date, a negative number, an unreadable `fx`)
-writes nothing; the reply names that field and the form it expects, then points at `/record` on its own
-for the full syntax. A line of the wrong shape (too few or too many fields) prints the usage. `/update`
-does the same.
+writes nothing. The reply names that field and the form it expects, then points at `/record` on its
+own for the full syntax. A line of the wrong shape (too few or too many fields) prints the usage.
+`/update` does the same.
 
 Write numbers without thousands separators: `100000000`, not `100.000.000`. The dot is the decimal
 point (`0.5`, `1.250` USDT). A grouped number such as `100.000.000` or `1,000,000` is refused with its
-plain form, never guessed. In a currency with no minor units, such as VND, a price, amount, fee or
-quantity written `58.400` or `1.000` is refused the same way: there is no 58.4 đồng, and `1.000` could
-be a thousand shares or one tael of gold. The same goes for a rate after `fx` in a đồng book, and for
-the share change of a split or distribution in any market. The reply says to write `1000` for a
-thousand, or `1.5` for a decimal.
+plain form, never guessed.
 
-A price ten times or more away from the name's latest price is not saved straight away: the reply
+In a currency with no minor units, such as VND, a price, amount, fee or quantity written `58.400` or
+`1.000` is refused the same way. There is no 58.4 đồng, and `1.000` could be a thousand shares or one
+tael of gold. The same goes for a rate after `fx` in a đồng book, and for the share change of a split
+or distribution in any market. The reply says to write `1000` for a thousand, or `1.5` for a decimal.
+
+A price ten times or more away from the name's latest price is not saved straight away. The reply
 shows both and asks. Tap the button, or send the same line again ending in `confirm`, to save it as
 typed. `/update` and `/alert create` ask the same way. Details: [Trading](trading.md).
-A line with the right shape but one unreadable token, such as a quantity of `-1`, a threshold of
-`0` or a condition other than `above` or `below`, names that token rather than reprinting the usage.
 
-**Buy and sell.** A sale may write `all` instead of a count; the ledger resolves it to the settled
+A line with the right shape but one unreadable token, such as a quantity of `-1`, a threshold of `0`
+or a condition other than `above` or `below`, names that token rather than reprinting the usage.
+
+**Buy and sell.** A sale may write `all` instead of a count. The ledger turns it into the settled
 quantity held *at that venue* on that day. You may leave out the fee, and the venue's `fees` rate in
 `[trading.venues.<id>]` prices it. A fee you state is never replaced.
 
@@ -725,28 +822,42 @@ quantity held *at that venue* on that day. You may leave out the fee, and the ve
 venue with exchange credentials takes the row from the one matching fill instead. Why, and how the
 fill is matched, is in [Trading](trading.md).
 
-**Short lines.** Leave out the venue when exactly one holds the market, the currency to use the market's, and
-the day for today. A bare ticker is looked up only in the lists already stored, among the markets a venue
-holds (only the named venue's, when one is named), with no network request, and is accepted only when exactly
-one market matches; otherwise the reply names the `market:ticker` forms to type. Every confirmation prints
-the market beside the ticker. The line expands to the full form before any number is read, so a grouped
-number such as `58.400` is refused exactly as in the full form. Example: `/record buy FPT 100 58400`.
+**Short lines.** You can leave out three things:
+
+- the venue, when exactly one holds the market;
+- the currency, to use the market's own;
+- the day, for today.
+
+A bare ticker is looked up only in the lists already stored, among the markets a venue holds (only the
+named venue's, when one is named). No network request is made. It is accepted only when exactly one
+market matches; otherwise the reply names the `market:ticker` forms to type. Every confirmation prints
+the market beside the ticker.
+
+The line expands to the full form before any number is read. So a grouped number such as `58.400` is
+refused exactly as in the full form. Example: `/record buy FPT 100 58400`.
 
 **Other row types.** A rights issue is not brokered at the standard rate, so it always states its
 fee. A `transfer` moves cash between two of your own venues without touching net deposits. A 2:1
 split on a name held at two brokers is two rows, not one applied pro rata.
 
-**Exchange rate (`fx`).** `fx <rate>` books the row at what you actually paid per unit of the currency, and
-the rate's source is stored as `operator`. `fx auto` books it at that day's market rate with no question
-asked. A row in a currency other than VND with no `fx` is not recorded yet: the assistant shows a preview
-(the market rate it would use, the cash change, and why P2P can differ) and waits. Type `/record confirm`
-to record it exactly as previewed, or type the command again with `fx <rate>`.
+**Exchange rate (`fx`).**
+
+- `fx <rate>` books the row at what you actually paid per unit of the currency. The rate's source is
+  stored as `operator`.
+- `fx auto` books it at that day's market rate with no question asked.
+- A row in a currency other than VND with no `fx` is not recorded yet. The assistant shows a preview
+  (the market rate it would use, the cash change, and why P2P can differ) and waits. Type
+  `/record confirm` to record it exactly as previewed, or type the command again with `fx <rate>`.
 
 - A row waiting for confirmation is held for 10 minutes. Each chat holds one, and a new one replaces it.
 - Any other `/record` that parses drops the held row and says so. One that fails to parse keeps it.
 - `/record confirm` with nothing waiting says so and writes nothing.
-- `/update` of a row in a currency other than VND requires `fx <rate>` or `fx auto` only where the rate changes the book (the same rows `/record confirm` asks about); a row paid from currency cash the venue holds takes none. It never holds a row.
-- `/record confirm` asks only where the rate changes the book: deposits and withdrawals, and trades at a venue holding none of that currency. A venue that already holds USDT pays its USDT trades from it at cost, so they are not asked. `/reconcile` now compares a venue's USDT too.
+- `/update` of a row in a currency other than VND requires `fx <rate>` or `fx auto` only where the
+  rate changes the book (the same rows `/record confirm` asks about). A row paid from currency cash
+  the venue holds takes none. It never holds a row.
+- `/record confirm` asks only where the rate changes the book: deposits and withdrawals, and trades at
+  a venue holding none of that currency. A venue that already holds USDT pays its USDT trades from it
+  at cost, so they are not asked. `/reconcile` now compares a venue's USDT too.
 - `/record sync` never asks: it books at each day's market rate and ends with one line per currency booked
   that way, so you can fix a row with `/update` if you bought over P2P.
 
@@ -764,9 +875,9 @@ it is synced for the part that filled.
   alone. Running it twice books nothing the second time, and the reply says how many it recognised.
 - A fill matching one of your rows on everything *but* the date is reported, not booked. Fix the date
   on that row and run it again.
-- If any fill for a name cannot be booked, none of that name's are. Half a name's history is a
-  position that never existed and a cost basis nothing later can correct, so the run reports the name
-  and leaves your book exactly as it was.
+- If any fill for a name cannot be booked, none of that name's are. Half a name's history would be a
+  position that never existed, with a cost basis nothing later can correct. So the run reports the
+  name and leaves your book exactly as it was.
 
 ### Suggestions
 
@@ -778,11 +889,12 @@ it is synced for the part that filled.
 Options go in any order after the ticker; use `market:ticker` where a bare name is ambiguous. This
 spends LLM budget, so it is built to avoid spending it twice.
 
-Today's answer is reused for free - on a continuous market, any answer under 4 hours old - until a
-newer close is stored than the one it read: a call made while the session traded runs again after
-`/refresh` loads that session. `force`
-re-runs past that and past the cooldown, at full depth unless you type a mode. A name the book already
-holds at target runs `lean` by default, because the expensive question is already answered.
+Today's answer is reused for free (on a continuous market, any answer under 4 hours old) until a
+newer close is stored than the one it read. So a call made while the session traded runs again after
+`/refresh` loads that session.
+
+`force` re-runs past that and past the cooldown, at full depth unless you type a mode. A name the book
+already holds at target runs `lean` by default, because the expensive question is already answered.
 
 While a `/suggest` for a name is running, the same request for it from any chat or the app joins that run and
 shows its result, instead of paying for a second debate. Only the request that started it is billed. A request for
@@ -829,10 +941,10 @@ only - a sell is the way out already.
 The `venue:` prefix is optional and needed only when more than one venue could answer. An ambiguous
 order is refused with the candidates named, never routed by guess.
 
-`/trade` places orders only once a registered venue carries exchange credentials. Until then it
-answers with the variables each exchange is waiting for and points you to `/record`; `/trade help` (or a
-mistyped line) still prints the full syntax so you can learn it first. Routing, setup
-and the first run are in [Trading](trading.md).
+`/trade` places orders only once a registered venue carries exchange credentials. Until then, it
+answers with the variables each exchange is waiting for and points you to `/record`. `/trade help` (or
+a mistyped line) still prints the full syntax, so you can learn it first. Routing, setup and the first
+run are in [Trading](trading.md).
 
 ## MCP
 
@@ -848,9 +960,9 @@ tools stay approval-gated at top level and are unavailable to delegated child ru
 
 ### What the server exposes, and what it withholds
 
-The served surface has its own instructions - evidence discipline, suggests-never-executes, and where
-alerts and briefs actually deliver - instead of the chat agent's system prompt, which names tools this
-surface withholds and rules that apply only to an interactive session.
+The served surface has its own instructions: evidence discipline, suggests-never-executes, and where
+alerts and briefs actually deliver. It does not use the chat agent's system prompt, because that prompt
+names tools this surface withholds and rules that apply only to an interactive session.
 
 These tools are withheld, and why:
 
@@ -869,8 +981,8 @@ These tools are withheld, and why:
 A withheld tool stays withheld when a client calls it by name, over stdio and over the HTTP API alike:
 the call answers that no such tool exists.
 
-Tools contributed by plugins or other MCP servers are withheld too: re-advertising them would put
-another server's tools behind this one's name, and a host can connect that server directly. Domain
+Tools contributed by plugins or other MCP servers are withheld too. Re-advertising them would put
+another server's tools behind this one's name, and a host can connect that server directly anyway. Domain
 writes stay exposed, because this server validates them itself. Slash commands such as `/refresh` and
 `/trade` are not tools, so they have no MCP counterpart.
 
@@ -887,11 +999,12 @@ Exposed tools:
 | Model requests | `model_request_view`, `model_answer`, `model_resume` |
 
 **Depth and freshness.** `suggestion_run` and `brief_build` take `force: true` for a fresh run that
-replaces today's suggestion or brief, with no approval (no money moves, and most clients cannot answer
-an approval prompt). The model passes it when you ask for a fresh run, and on `suggestion_run` also
-for a deep, thorough or detailed analysis, in whatever language you write. `suggestion_run` argues the
-full debate by default. The model passes `mode: "lean"` - one analyst and a claim check, about half
-the wait - only when you ask for a quick or short analysis.
+replaces today's suggestion or brief. It needs no approval: no money moves, and most clients cannot
+answer an approval prompt. The model passes it when you ask for a fresh run. On `suggestion_run` it
+also passes it when you ask for a deep, thorough or detailed analysis, in whatever language you write.
+
+`suggestion_run` argues the full debate by default. The model passes `mode: "lean"` (one analyst and a
+claim check, about half the wait) only when you ask for a quick or short analysis.
 
 **What the client's model may see.** The served tools return relative figures - weights, suggestion
 outcomes, `sizePctNav` - plus exactly one absolute figure: the order quantity (`units`) on a
@@ -913,24 +1026,26 @@ explains why instead of reading the hold's levels as an order.
 **Writes and approval.** The write arms of `alert_manage` and `brief_manage` need approval, so a
 client without elicitation can only list and show.
 
-**Model requests.** These tools sit beside the surface: the connected client's model answers every
-model call, one round of the debate at a time. `mcp install --host claude-code` also writes
-`~/.claude/agents/openalpha-analyst.md`, a subagent with only the request tools and no CLAUDE.md, so
-each role is answered in a small context of its own and the round's last answer hands back the next
-round. A host without subagents - or whose model refuses subagent calls, like opencode's free tier -
-answers inline: one `model_answer` call per round carries every answer and returns the next round
-whole.
+**Model requests.** These tools sit beside the surface. The connected client's model answers every
+model call, one round of the debate at a time.
+
+- `mcp install --host claude-code` also writes `~/.claude/agents/openalpha-analyst.md`, a subagent
+  with only the request tools and no CLAUDE.md. So each role is answered in a small context of its
+  own, and the round's last answer hands back the next round.
+- A host without subagents, or whose model refuses subagent calls (like opencode's free tier), answers
+  inline. One `model_answer` call per round carries every answer and returns the next round whole.
 
 Answers go in as a batch, all or nothing. While requests of the round are still open, `model_answer`
 returns `answered`. The call that answers the last one waits for the next step and returns it: the
-next round, `working` or `finished`. A subagent hands back `finished` and the result then waits for
-`model_resume`; inline (`inline: true` on each call), the closing answer returns the result itself.
+next round, `working` or `finished`. A subagent hands back `finished`, and the result then waits for
+`model_resume`. Inline (`inline: true` on each call), the closing answer returns the result itself.
 
-No served call waits more than 45 s. Past that it returns `working` and the client calls
-`model_resume` to keep waiting; a call that has returned never cancels its job. A job expires when a
-request goes unanswered past the limit set under [`[loop]`](configuration.md#loop). A debate the
-client wrote records its model as `client:<model>`, so its calls stay apart in the track record from
-the same model reached through a configured provider.
+No served call waits more than 45 s. Past that it returns `working`, and the client calls
+`model_resume` to keep waiting. A call that has returned never cancels its job. A job expires when a
+request goes unanswered past the limit set under [`[loop]`](configuration.md#loop).
+
+A debate the client wrote records its model as `client:<model>`. So its calls stay apart in the track
+record from the same model reached through a configured provider.
 
 ### How replies are written
 

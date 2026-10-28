@@ -61,8 +61,9 @@ openalpha db backup      # sao lưu sổ
 
 ## 1. OpenAlpha là gì
 
-OpenAlpha là trợ lý phân tích giao dịch chạy trên máy bạn: đọc dữ liệu thị trường, tính toán, cho
-hai phe tranh luận thuận - nghịch, rồi **gợi ý kèm lý do**. Bấm nút mua bán luôn là việc của bạn.
+OpenAlpha là trợ lý phân tích giao dịch chạy ngay trên máy bạn. Nó đọc dữ liệu thị trường, tính
+toán, cho hai phe thuận và nghịch tranh luận, rồi **gợi ý kèm lý do**. Còn bấm nút mua bán thì luôn
+là việc của bạn.
 
 Ba nguyên tắc:
 
@@ -71,8 +72,8 @@ Ba nguyên tắc:
    sổ riêng của bạn, không chạm sàn. Xem [mục 4.2](#42-trade---đường-duy-nhất-ra-sàn).
 2. **Trợ lý gợi ý, bạn quyết định.** Mỗi đề xuất kèm lý do, mức tin cậy và lưu ý.
 3. **Số liệu do công thức tính, LLM chỉ diễn giải.** Điểm yếu tố, giá vào, cắt lỗ, chốt lời, tỷ
-   trọng: cùng đầu vào luôn cho cùng đầu ra. LLM không được bịa giá hay chỉ số, và vai rủi ro chỉ
-   được **hạ** mức tin cậy, không bao giờ nâng.
+   trọng đều ra từ công thức: cùng đầu vào thì luôn cùng đầu ra. LLM không được bịa giá hay chỉ số.
+   Vai rủi ro chỉ được **hạ** mức tin cậy, không bao giờ nâng.
 
 ### Sáu từ cần hiểu trước
 
@@ -203,14 +204,14 @@ giá vốn khác nhau.
 > /record dividend vps equity-vn:FPT 500000 VND 2026-08-12
 ```
 
-**Sàn crypto trừ phí bằng chính đồng bạn mua.** Đặt 3 DASH thì OKX chỉ cộng 2,997; phần thiếu là
-phí. Sổ cộng thẳng khối lượng vào vị thế nên số ghi phải là số sàn **thật sự cộng vào**. Phí 0,08%
-hay 0,1% tùy kiểu khớp, chỉ sàn biết, nên sổ **hỏi thẳng sàn**:
+**Sàn crypto trừ phí bằng chính đồng bạn mua.** Ví dụ bạn đặt mua 3 DASH, OKX chỉ cộng vào 2,997;
+phần thiếu chính là phí. Sổ cộng thẳng khối lượng vào vị thế, nên số bạn ghi phải là số sàn **thật sự
+cộng vào**. Phí là 0,08% hay 0,1% còn tùy kiểu khớp, và chỉ sàn biết. Vì vậy sổ **hỏi thẳng sàn**:
 
-- Đã khai khóa API cho sàn đó: sổ tra các lệnh khớp trong ngày, cùng chiều, cùng mã. Có **đúng
-  một** lệnh lệch không quá 1% so với số bạn gõ thì sổ lấy khối lượng, giá và phí của sàn.
-- Không tra được: sổ giữ số bạn gõ - hãy ghi **đúng số sàn hiển thị**, không ghi số đã đặt, kẻo
-  danh mục báo nhiều hơn số bạn có.
+- Đã khai khóa API cho sàn đó: sổ tra các lệnh khớp trong ngày, cùng chiều, cùng mã. Nếu có **đúng
+  một** lệnh lệch không quá 1% so với số bạn gõ, sổ lấy khối lượng, giá và phí của sàn.
+- Không tra được: sổ giữ số bạn gõ. Hãy ghi **đúng số sàn hiển thị**, đừng ghi số đã đặt, kẻo
+  danh mục báo nhiều hơn số bạn thật sự có.
 - Phí bạn tự gõ thì sổ không đè. Dòng xác nhận luôn nói con số đến từ sàn hay từ bạn.
 - Lệnh bán không gặp chuyện này: phí đã trừ vào tiền về.
 
@@ -223,10 +224,13 @@ Bốn điều cần nhớ:
   ([mục 3](#3-các-thị-trường)), không phải tên sàn như HOSE.
 - Ngày là **ngày giao dịch thật**, nên ghi bù lệnh cũ vẫn đúng: sổ tự sắp lại theo ngày. Lệnh mua
   cổ phiếu VN tự đóng dấu thanh toán T+2.
-- Ghi nhầm? `/transactions` nhóm bút toán theo ngày và in mã ngắn cuối mỗi dòng, ví dụ `0f9838`. Sửa
-  bằng `/update 0f9838 <đủ cả dòng /record>` (phải ghi rõ khối lượng và phí, không dùng `all`
-  hay bỏ trống phí), xóa bằng `/delete 0f9838 confirm` (gõ `/delete 0f9838` trước để xem lại dòng). Nói bằng lời cũng được. Sổ không lưu dấu vết chỉnh
-  sửa, và sửa một bút toán sẽ tính lại cả những đề xuất cũ.
+- Ghi nhầm? `/transactions` nhóm bút toán theo ngày và in một mã ngắn cuối mỗi dòng, ví dụ
+  `0f9838`.
+  - Sửa: `/update 0f9838 <đủ cả dòng /record>`. Phải ghi rõ khối lượng và phí, không dùng `all` hay
+    bỏ trống phí.
+  - Xóa: gõ `/delete 0f9838` trước để xem lại dòng, rồi `/delete 0f9838 confirm`.
+  - Nói bằng lời cũng được. Sổ không lưu dấu vết chỉnh sửa, và sửa một bút toán sẽ tính lại cả những
+    đề xuất cũ.
 
 #### Crypto qua P2P: từng bước cho người mới
 
@@ -250,13 +254,26 @@ các lệnh mua bán sau đó sổ tự tính theo giá ấy.
 > /record withdrawal binance 500 USDT 2026-09-20 fx 26900
 ```
 
-Không thêm `fx` thì trợ lý chưa ghi vội. Nó cho bạn xem tỷ giá thị trường của ngày đó và tiền mặt sẽ
-thay đổi bao nhiêu, rồi chờ: gõ `/record confirm` nếu thấy giá đó đúng, hoặc gõ lại lệnh kèm `fx`.
-Lệnh chờ 10 phút, mỗi cuộc trò chuyện giữ một lệnh. Muốn dùng thẳng tỷ giá thị trường mà không bị hỏi
-thì thêm `fx auto`. `/record sync` không bao giờ hỏi, nhưng nói rõ dòng nào đã ghi theo giá thị trường
-để bạn sửa bằng `/update <mã bút toán>`, đủ cả dòng, rồi `fx <giá>`.
+Nếu bạn không thêm `fx`, trợ lý chưa ghi vội. Nó cho bạn xem tỷ giá thị trường hôm đó và tiền mặt
+sẽ thay đổi bao nhiêu, rồi chờ bạn:
 
-Từ khi sàn giữ USDT, nó giữ luôn cả giá vốn. Nạp 1.000 USDT ở 26.600 thì sổ ghi 1.000 USDT với giá vốn 26,6 triệu. Mua 0,01 BTC giá 60.000 (phí 0,6) dùng hết 600,6 USDT, tức 15.975.960 đồng giá vốn, và còn lại 399,4 USDT. Sau này rút 399,4 USDT lúc tỷ giá 27.000 thì lãi đã chốt thêm đúng phần chênh +159.760 đồng, tức khoảng 400 đồng cho mỗi USDT. `/portfolio` cho thấy phần chênh đó ngay từ lúc còn giữ USDT, ở dòng "Chênh tỷ giá trên ngoại tệ đang giữ".
+- Thấy giá đó đúng thì gõ `/record confirm`.
+- Muốn dùng giá khác thì gõ lại lệnh kèm `fx`.
+
+Lệnh chờ 10 phút, và mỗi cuộc trò chuyện chỉ giữ một lệnh chờ. Muốn dùng thẳng tỷ giá thị trường mà
+không bị hỏi thì thêm `fx auto`. `/record sync` không bao giờ hỏi. Nhưng nó nói rõ dòng nào đã ghi
+theo giá thị trường, để bạn sửa bằng `/update <mã bút toán>`, đủ cả dòng, rồi `fx <giá>`.
+
+Khi USDT đã nằm trên sàn, sàn giữ luôn cả giá vốn của nó. Một ví dụ cụ thể:
+
+- Nạp 1.000 USDT ở 26.600: sổ ghi 1.000 USDT với giá vốn 26,6 triệu.
+- Mua 0,01 BTC giá 60.000 (phí 0,6): dùng hết 600,6 USDT, tức 15.975.960 đồng giá vốn, còn lại 399,4
+  USDT.
+- Sau này rút 399,4 USDT lúc tỷ giá 27.000: lãi đã chốt thêm đúng phần chênh +159.760 đồng, tức khoảng
+  400 đồng cho mỗi USDT.
+
+`/portfolio` cho bạn thấy phần chênh đó ngay từ lúc còn giữ USDT, ở dòng
+"Chênh tỷ giá trên ngoại tệ đang giữ".
 
 **Sàn đã có sẵn USDT hoặc coin khi bắt đầu dùng sổ.** Ghi số dư hiện tại, ngày hôm nay, không cần
 ghi lại lịch sử:
@@ -534,8 +551,9 @@ hủy bút toán, hồ sơ, danh sách theo dõi). Những câu này đều hợ
 
 ## 5. Nhịp vận hành theo kiểu nhà đầu tư
 
-Hệ thống cố tình chỉ có **một** lượt nặng mỗi ngày: bản tin trước giờ mở cửa. Không có lượt sau giờ
-đóng cửa, để tránh nhiễu và tránh kích thích giao dịch quá tay. Chọn đúng một mục theo kiểu của bạn.
+Hệ thống cố tình chỉ có **một** lượt nặng mỗi ngày: bản tin trước giờ mở cửa. Không có lượt nào sau
+giờ đóng cửa. Lý do: bớt nhiễu, và bớt cám dỗ giao dịch quá tay. Bạn chỉ cần đọc đúng một mục dưới
+đây, mục hợp với kiểu đầu tư của mình.
 
 ### 5.1 Chỉ chơi cổ phiếu VN
 
@@ -557,10 +575,12 @@ openalpha start --background         # bật dịch vụ nền để bản tin v
 | 4 | `/market` | Giá mã bạn đang nắm và đang theo dõi |
 | 5 | `/suggest <mã>` | **Chỉ khi** bước 1-4 cho thấy một mã đáng chú ý. Đây là lệnh tốn tiền |
 
-Dịch vụ nền (daemon) không chạy và dữ liệu có vẻ cũ thì gõ `/refresh` trước bước 1 để nạp phần còn thiếu của phiên
-gần nhất. Nó chỉ nạp các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn còn giữ
-mã, theo dõi mã hay chờ chấm điểm gợi ý cũ. `/refresh crypto` nạp riêng thị trường đó, kể cả khi đã
-tắt; `/refresh force` nạp lại toàn bộ, chỉ dùng khi nghi dữ liệu sai.
+Nếu dịch vụ nền (daemon) không chạy và dữ liệu có vẻ cũ, gõ `/refresh` trước bước 1 để nạp phần còn
+thiếu của phiên gần nhất. Nó chỉ nạp các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi
+bạn còn giữ mã, theo dõi mã hay đang chờ chấm điểm gợi ý cũ.
+
+- `/refresh crypto` nạp riêng thị trường đó, kể cả khi nó đã tắt.
+- `/refresh force` nạp lại toàn bộ. Chỉ dùng khi bạn nghi dữ liệu sai.
 
 **Trong phiên:**
 
@@ -670,25 +690,27 @@ Phần này cho ai muốn hiểu vì sao con số ra như vậy. Bỏ qua vẫn 
 
 Mỗi thị trường có đúng một mô hình yếu tố. Sàng lọc có hai bước: **cổng loại**, rồi **xếp hạng**.
 
-- **Cổng loại chạy trước**, kiểm tra rẻ và cơ bản nhất đi đầu. Mã bị loại chỉ ghi đúng một lý do:
+- **Cổng loại chạy trước.** Phép kiểm rẻ và cơ bản nhất đi đầu. Mã bị loại chỉ ghi đúng một lý do:
   thiếu lịch sử, thanh khoản dưới sàn, trạng thái giao dịch bất thường, kịch trần, biến động quá
-  trần, dao động nhiễu. Riêng crypto loại sẵn stablecoin, coin gương, cổ phiếu mã hóa, coin vốn hóa
-  dưới 250 triệu USD hoặc khối lượng ngày dưới 10 triệu USD **trước khi** tốn lệnh gọi dữ liệu nào.
-- **Mã qua cổng xếp theo điểm tổng hợp** của chính thị trường đó; bằng điểm thì cổ phiếu VN xếp theo
-  giá trị giao dịch rồi tới chữ cái, crypto xếp theo chữ cái, để mỗi phiên chạy ra cùng một kết quả.
+  trần, dao động nhiễu. Riêng crypto, hệ thống loại sẵn stablecoin, coin gương, cổ phiếu mã hóa, coin
+  vốn hóa dưới 250 triệu USD hoặc khối lượng ngày dưới 10 triệu USD **trước khi** tốn lệnh gọi dữ
+  liệu nào.
+- **Mã qua cổng được xếp theo điểm tổng hợp** của chính thị trường đó. Nếu bằng điểm, cổ phiếu VN xếp
+  theo giá trị giao dịch rồi tới chữ cái, crypto xếp theo chữ cái. Nhờ vậy mỗi phiên chạy ra cùng một
+  kết quả.
 
-**Không có bảng trọng số thứ hai.** Điểm `/screen` xếp hạng chính là điểm quy trình đề xuất dùng, nên
-"đứng đầu bảng" và "đủ mạnh để gợi ý" không mâu thuẫn. Top mã chỉ để tham khảo; không gì tự chạy theo
-nó.
+**Không có bảng trọng số thứ hai.** Điểm `/screen` dùng để xếp hạng cũng chính là điểm mà quy trình
+đề xuất dùng. Vì vậy "đứng đầu bảng" và "đủ mạnh để gợi ý" không mâu thuẫn nhau. Top mã chỉ để tham
+khảo; không có gì tự chạy theo nó.
 
 Chỉ `equity-vn` và `crypto` có sàng lọc. Với `gold` và `gold-vn`, hỏi giá trực tiếp (`/price XAUUSD`,
 `/price SJC`) hoặc `/suggest` theo mã.
 
 ### 6.2 Chế độ rủi ro vĩ mô
 
-Mỗi nhóm có trạng thái thị trường riêng, chấm từ những yếu tố hợp với thị trường đó. Mỗi yếu tố quy về
-thang [-1, 1] theo dải định sẵn, rồi cộng có trọng số (chia cho tổng trọng số của các yếu tố đã có
-dữ liệu):
+Mỗi nhóm có trạng thái thị trường riêng, chấm từ những yếu tố hợp với thị trường đó. Cách tính đơn
+giản: mỗi yếu tố được quy về thang [-1, 1] theo một dải định sẵn, rồi cộng lại có trọng số (chia cho
+tổng trọng số của các yếu tố đã có dữ liệu):
 
 | Chế độ của | Các yếu tố và trọng số |
 |---|---|
@@ -696,82 +718,94 @@ dữ liệu):
 | `equity-vn` | xu hướng VN-Index 0.30, độ rộng thị trường 0.20, lãi suất tiền gửi 12 tháng 0.20, lãi suất thực Mỹ 0.10, chỉ số USD 0.10, VIX 0.10 |
 | `crypto` | xu hướng Bitcoin 0.5, độ rộng altcoin 0.3, ETH so với BTC 0.2 |
 
-Từ 0.25 trở lên là `risk-on`, từ -0.25 trở xuống là `risk-off`, còn lại `neutral`. Riêng
-`equity-vn`, đã ở `risk-on` hay `risk-off` thì giữ nguyên cho tới khi điểm lùi sâu thêm 0.1 qua
-ngưỡng, để điểm lởn vởn quanh vạch không làm trạng thái đổi hằng ngày.
+Từ 0.25 trở lên là `risk-on`, từ -0.25 trở xuống là `risk-off`, còn lại là `neutral`. Riêng
+`equity-vn`: khi đã ở `risk-on` hay `risk-off`, trạng thái giữ nguyên cho tới khi điểm lùi sâu thêm
+0.1 qua ngưỡng. Nhờ vậy, điểm lởn vởn quanh vạch không làm trạng thái đổi qua đổi lại mỗi ngày.
 
-**Thiếu dữ liệu không phải trung tính.** Các yếu tố đã có dữ liệu chiếm dưới 60% tổng trọng số thì
-trạng thái là `risk-off`: một nguồn sập không được mở đường giải ngân tối đa.
+**Thiếu dữ liệu không có nghĩa là trung tính.** Nếu các yếu tố đã có dữ liệu chiếm dưới 60% tổng
+trọng số, trạng thái là `risk-off`. Một nguồn dữ liệu sập không được phép mở đường cho việc giải ngân
+tối đa.
 
-`equity-vn` có thêm lớp phủ chỉ được **hạ** trạng thái, không bao giờ nâng: mỗi tín hiệu căng thẳng (áp
-lực vay ký quỹ, khối ngoại bán ròng, đồng mất giá) và thiên hướng tin chính sách tăng lãi suất hạ thêm
-một bậc. Tin chính sách đếm theo **bản tin gốc**, không theo số trang báo: cần ít nhất hai bản tin
-khác nhau và nhiều hơn số tin giảm lãi suất; một bản tin hãng thông tấn đăng lại ở năm nơi vẫn là
-một.
+`equity-vn` có thêm một lớp phủ chỉ được **hạ** trạng thái, không bao giờ nâng:
 
-Chế độ được dùng ở bốn chỗ: `/overview`, bản tin sáng, bộ bằng chứng các vai tranh luận đọc, và thang
-co cỡ vị thế (`risk-on` 1, `neutral` 0.85, `risk-off` 0.6 - chỉ co, không bao giờ phóng to quá trần
-của chính bạn).
+- Mỗi tín hiệu căng thẳng (áp lực vay ký quỹ, khối ngoại bán ròng, đồng mất giá) hạ thêm một bậc.
+- Tin chính sách nghiêng về tăng lãi suất cũng hạ thêm một bậc. Tin được đếm theo **bản tin gốc**,
+  không theo số trang báo: cần ít nhất hai bản tin khác nhau, và nhiều hơn số tin giảm lãi suất. Một
+  bản tin của hãng thông tấn đăng lại ở năm nơi vẫn chỉ tính là một.
+
+Trạng thái này được dùng ở bốn chỗ: `/overview`, bản tin sáng, bộ bằng chứng mà các vai tranh luận
+đọc, và thang co cỡ vị thế (`risk-on` 1, `neutral` 0.85, `risk-off` 0.6). Thang này chỉ co, không bao
+giờ phóng to quá trần của chính bạn.
 
 ### 6.3 `/rebalance` - một lần tính, hai câu trả lời
 
-`/rebalance` chạy đúng **một** lượt tư vấn bằng công thức, không dùng LLM, và trả về cùng lúc: danh
-mục *nên* đứng ở đâu (theo nhóm) và hôm nay *đổi* gì (theo từng mã).
+`/rebalance` chạy đúng **một** lượt tư vấn bằng công thức, không dùng LLM. Nó trả lời cùng lúc hai
+câu: danh mục *nên* đứng ở đâu (theo nhóm), và hôm nay *đổi* gì (theo từng mã).
 
-1. **Chụp một lần**: sổ được tính thành vị thế, định giá và đọc cùng lúc với hồ sơ, để phát hiện và
-   lời khuyên dựa trên cùng một cuốn sổ.
+1. **Chụp một lần**: sổ được tính thành vị thế, định giá, và đọc cùng lúc với hồ sơ. Nhờ vậy điều
+   hệ thống phát hiện và lời khuyên đưa ra dựa trên cùng một cuốn sổ.
 2. **Ứng viên** = mã đang nắm cộng danh sách theo dõi, trừ danh sách loại trừ.
 3. **Cổng sẵn sàng**: chưa định giá đủ, NAV bằng 0, hoặc có mã nắm giữ không định cỡ được thì trả lời
    "chưa thể tư vấn" kèm lý do, không in con số sai.
-4. **Chia tỷ trọng**: mục tiêu của từng nhóm chia **tỷ lệ thuận với điểm yếu tố dương trên mỗi
-   đơn vị biến động hằng ngày** (mã dao động mạnh thì nhận ít hơn), giới hạn bởi trần chặt nhất
-   trong các trần: trần vị thế của hồ sơ, trần của chính mã, phần còn lại của trần ngành trên toàn
-   danh mục, trần thanh khoản và, với quỹ ETF, trần ETF của nhóm. Phần tràn từ mã chạm trần chia lại cho mã còn chỗ;
-   phần **không ai hấp thụ được thì ở lại tiền mặt** kèm lưu ý - không bao giờ nhồi quá trần.
-5. **Chỉ đề xuất khi lệch đủ lớn** (biên 5/25): lấy **ngưỡng chặt hơn** trong hai ngưỡng - 5 điểm
-   phần trăm NAV, hoặc 25% mục tiêu của nhóm đó. Hai ngưỡng cắt nhau ở mục tiêu 20%.
-6. **Kèm theo**: dòng tiền mặt (phần dự trữ giữ thanh khoản, phần dư đủ điều kiện gửi kỳ hạn) và cờ
+4. **Chia tỷ trọng**: mục tiêu của từng nhóm được chia **tỷ lệ thuận với điểm yếu tố dương trên mỗi
+   đơn vị biến động hằng ngày**. Nói gọn: mã dao động mạnh thì nhận ít hơn. Mỗi mã bị giới hạn bởi
+   trần chặt nhất trong các trần: trần vị thế của hồ sơ, trần của chính mã, phần còn lại của trần
+   ngành trên toàn danh mục, trần thanh khoản và, với quỹ ETF, trần ETF của nhóm.
+   - Phần tràn từ mã đã chạm trần được chia lại cho mã còn chỗ.
+   - Phần **không ai nhận được thì ở lại tiền mặt**, kèm một lưu ý. Hệ thống không bao giờ nhồi quá
+     trần.
+5. **Chỉ đề xuất khi lệch đủ lớn** (biên 5/25). Hệ thống lấy **ngưỡng chặt hơn** trong hai ngưỡng: 5
+   điểm phần trăm NAV, hoặc 25% mục tiêu của nhóm đó. Hai ngưỡng gặp nhau ở mục tiêu 20%.
+6. **Kèm theo**: dòng tiền mặt (phần dự trữ giữ thanh khoản, phần dư đủ điều kiện gửi kỳ hạn), và cờ
    mã-nắm-giữ-yếu (điểm của chính thị trường từ -0.3 trở xuống).
 
 Lệnh không nhận tham số tỷ trọng là chủ ý: mục tiêu nằm trong hồ sơ, chỉ ở một nơi.
 
 ### 6.4 `/suggest` - quy trình đề xuất theo giai đoạn
 
-Đường đi cố định: **nhận diện -> kiểm trùng và thời gian chờ -> đọc danh mục -> yếu tố -> các cổng
-chặn -> tranh luận -> cổng giao dịch và rủi ro -> chốt -> lưu**. Giai đoạn nào chặn thì kết quả là
-"giữ nguyên" kèm mã lý do. Mức tin cậy chỉ hạ, không bao giờ nâng.
+Đường đi luôn cố định: **nhận diện -> kiểm trùng và thời gian chờ -> đọc danh mục -> yếu tố -> các
+cổng chặn -> tranh luận -> cổng giao dịch và rủi ro -> chốt -> lưu**. Giai đoạn nào chặn thì kết quả
+là "giữ nguyên", kèm mã lý do. Mức tin cậy chỉ hạ, không bao giờ nâng.
 
 1. **Phần cứng (công thức tính)**: điểm yếu tố, mức vào, cắt lỗ, chốt lời. Các vai LLM tranh luận
-   *quanh* nó, không sửa được số.
-2. **Cổng chặn chạy trước tranh luận** - cổng chi phí: ứng viên đằng nào cũng hỏng thì dừng, không
-   tốn lệnh gọi LLM nào.
-3. **Tranh luận** (chế độ `full`): phe bò và phe gấu chạy song song, gom bằng chứng ngược chiều (mỗi
-   dẫn chứng kèm nguồn); vai quản lý danh mục chọn luận điểm từ cả hai phía; vai trader đề xuất kế
-   hoạch vào lệnh; vai rủi ro được quyền chặn hoặc **hạ** mức tin cậy; vai đối chiếu kiểm từng khẳng
-   định với bằng chứng. Chế độ `lean` chạy một vai phân tích rồi đối chiếu.
-4. **Ngân sách theo vai**: mỗi vai một phần, cắt từ 80% ngân sách còn lại của phiên chạy. Cạn ngân sách
-   thì kết quả đổ về "giữ nguyên", không báo lỗi giữa chừng.
+   *quanh* những con số này, nhưng không sửa được chúng.
+2. **Cổng chặn chạy trước tranh luận.** Đây là cổng tiết kiệm chi phí: ứng viên đằng nào cũng hỏng
+   thì dừng luôn, không tốn lệnh gọi LLM nào.
+3. **Tranh luận** (chế độ `full`):
+   - Phe bò và phe gấu chạy song song, gom bằng chứng ngược chiều nhau (mỗi dẫn chứng kèm nguồn).
+   - Vai quản lý danh mục chọn luận điểm từ cả hai phía.
+   - Vai trader đề xuất kế hoạch vào lệnh.
+   - Vai rủi ro được quyền chặn, hoặc **hạ** mức tin cậy.
+   - Vai đối chiếu kiểm từng khẳng định với bằng chứng.
+
+   Chế độ `lean` chỉ chạy một vai phân tích rồi đối chiếu.
+4. **Ngân sách theo vai**: mỗi vai một phần, cắt từ 80% ngân sách còn lại của phiên chạy. Cạn ngân
+   sách thì kết quả đổ về "giữ nguyên", không báo lỗi giữa chừng.
 5. **Định cỡ**: theo rủi ro mỗi lệnh trong hồ sơ, kẹp bởi trần vị thế, tiền mặt khả dụng, lô giao
    dịch và thang trạng thái vĩ mô (chỉ co).
 6. **Lưu**: đề xuất lưu kèm phiên bản chiến lược và phiên bản công thức.
 
-Một phiên chạy kết thúc theo một trong bốn cách: có đề xuất; mã chưa được hỗ trợ (không thị trường nào
-nhận mã đó, hoặc hai thị trường cùng nhận và bạn phải chỉ rõ); mã đang trong thời gian chờ; hoặc lỗi
-lúc lưu - chạy lại an toàn, không tạo bản trùng.
+Một phiên chạy kết thúc theo một trong bốn cách:
+
+- Có đề xuất.
+- Mã chưa được hỗ trợ: không thị trường nào nhận mã đó, hoặc hai thị trường cùng nhận và bạn phải chỉ
+  rõ.
+- Mã đang trong thời gian chờ.
+- Lỗi lúc lưu. Chạy lại vẫn an toàn, không tạo bản trùng.
 
 **"Giữ nguyên" là một câu trả lời thật**, kèm các mã lý do - không phải đề xuất thất bại.
 
-**Cổ phiếu VN có bảng "Nhìn nhanh".** Thay bảng điểm từng yếu tố, đề xuất chia các yếu tố thành ba
-nhóm: điểm cộng, điểm trừ và thông tin thêm (tăng trưởng, cùng các yếu tố có điểm gần 0). Trong mỗi
-nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng có vạch điểm (`▲` cộng, `▼` trừ, càng nhiều vạch càng rõ)
-cùng vài con số chính như P/E, P/B, ROE, nợ xấu. Không có ngưỡng cứng kiểu "ROE > 15%": điểm đã so
-với chính ngành của mã.
+**Cổ phiếu VN có bảng "Nhìn nhanh".** Thay vì bảng điểm từng yếu tố, đề xuất chia các yếu tố thành ba
+nhóm: điểm cộng, điểm trừ, và thông tin thêm (tăng trưởng, cùng các yếu tố có điểm gần 0). Trong mỗi
+nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng có vạch điểm (`▲` cộng, `▼` trừ, càng nhiều vạch càng rõ),
+cùng vài con số chính như P/E, P/B, ROE, nợ xấu. Không có ngưỡng cứng kiểu "ROE > 15%", vì điểm đã
+được so với chính ngành của mã.
 
 **Bản in nói luôn phí.** Dưới dòng quy mô lệnh có một dòng dạng *"Phí trọn vòng mua-bán khoảng 141 VND
-(0,4% giá trị lệnh); giá phải lên 35,46 mới hòa vốn"*, tỷ lệ lấy từ `fees` của sàn mặc định. Với mã
-đang nắm, mốc dời cắt lỗ về hòa vốn và lợi nhuận cạnh mỗi mục tiêu đã trừ phí của chính lần bán đó,
-nên con số trên bảng là con số bạn thật sự cầm được. Thị trường chưa khai biểu phí thì không in dòng
-phí.
+(0,4% giá trị lệnh); giá phải lên 35,46 mới hòa vốn"*. Tỷ lệ phí lấy từ `fees` của sàn mặc định. Với
+mã đang nắm, mốc dời cắt lỗ về hòa vốn và lợi nhuận cạnh mỗi mục tiêu đều đã trừ phí của chính lần bán
+đó. Con số trên bảng vì vậy là con số bạn thật sự cầm được. Thị trường chưa khai biểu phí thì không in
+dòng phí.
 
 ### 6.5 `/brief` - bản tin sáng
 
@@ -802,13 +836,16 @@ làm gì".
 | **Chi phí và việc cần làm** | chi phí nghiên cứu, đề xuất cho mã đang giữ và theo dõi, đề xuất liên thị trường, **việc tiếp theo**, kỷ luật đang áp dụng | Bản tin này tốn bao nhiêu, và giờ tôi nên bấm gì? |
 
 Nhóm **từng thị trường** dùng chung một khuôn, và mỗi thị trường chỉ đăng mục nó có dữ liệu. Nhờ vậy
-một con số không bị báo hai lần dưới hai tiêu đề: mức chênh vàng trong nước thuộc khối `gold-vn`, vị
-thế phái sinh thuộc khối `gold`.
+một con số không bị báo hai lần dưới hai tiêu đề. Ví dụ: mức chênh vàng trong nước thuộc khối
+`gold-vn`, còn vị thế phái sinh thuộc khối `gold`.
 
-Các mục **đề xuất** chạy **sau cùng** vì đắt nhất, và dùng lát ngân sách riêng: cạn ngân sách chỉ mất
-các mục đó, không mất cả bản tin. Mục **việc tiếp theo** chạy cuối vì đọc kết quả thật của các mục
-trước: chỉ nhắc `/rebalance` khi thật sự lệch tỷ trọng, chỉ nhắc xem gợi ý khi có gợi ý, chỉ nhắc xem
-cảnh báo khi có cảnh báo nổ.
+Các mục **đề xuất** chạy **sau cùng** vì đắt nhất, và dùng một lát ngân sách riêng. Cạn ngân sách thì
+chỉ mất các mục đó, không mất cả bản tin. Mục **việc tiếp theo** chạy cuối cùng vì nó đọc kết quả thật
+của các mục trước:
+
+- chỉ nhắc `/rebalance` khi thật sự lệch tỷ trọng,
+- chỉ nhắc xem gợi ý khi có gợi ý,
+- chỉ nhắc xem cảnh báo khi có cảnh báo nổ.
 
 #### Một mục vắng mặt không có nghĩa là hỏng
 
@@ -906,20 +943,26 @@ phiên bản hoặc xem báo cáo đầy đủ:
 "thành tích của các gợi ý ở phiên bản chiến lược hiện tại?"
 ```
 
-Đóng góp lũy kế chỉ là **xấp xỉ**: nó cộng tuần tự theo thứ tự ra đề xuất, cố tình bỏ qua việc các vị
-thế chồng lấn và phần tiền mặt nhàn rỗi. Hệ thống tự ghi lưu ý này - đừng đọc nó như đường vốn thật.
+Đóng góp lũy kế chỉ là **xấp xỉ**. Nó cộng dồn theo thứ tự ra đề xuất, và cố tình bỏ qua việc các vị
+thế chồng lấn nhau cũng như phần tiền mặt nhàn rỗi. Hệ thống tự ghi lưu ý này. Đừng đọc nó như đường
+vốn thật.
 
 ### 6.8 `/themes` - chủ đề đầu tư
 
-`/themes` đọc từ trên xuống: vĩ mô, chính sách, giá hàng hóa và tin tức đang đổi gì, thành chủ đề đầu
-tư nào, chủ đề lan tới ngành nào, và doanh nghiệp nào thật sự đổi lợi nhuận vì nó. Chỉ áp dụng cho
-cổ phiếu VN.
+`/themes` đọc từ trên xuống, theo bốn câu hỏi:
 
-- **Bạn quyết danh sách.** Phiên chạy đầu chỉ đề xuất chủ đề. Mỗi đề xuất phải nêu được ngành nào hưởng
-  lợi, nên bạn biết trước duyệt nó dẫn tới đâu; áp lực chi phí hay sức cầu yếu mà không có bên thắng
-  rõ ràng thì không được đề xuất. `/themes approve <id>` để theo dõi, `reject <id>` để bỏ, `retire
-  <id>` khi không muốn theo nữa. Hệ thống tự chuyển một chủ đề sang "đang yếu đi" hoặc "đã kết thúc"
-  khi bằng chứng đổi, nhưng chỉ bạn mới duyệt hoặc gỡ một chủ đề.
+- Vĩ mô, chính sách, giá hàng hóa và tin tức đang đổi gì?
+- Điều đó thành chủ đề đầu tư nào?
+- Chủ đề lan tới ngành nào?
+- Doanh nghiệp nào thật sự đổi lợi nhuận vì nó?
+
+Chỉ áp dụng cho cổ phiếu VN.
+
+- **Bạn quyết danh sách.** Phiên chạy đầu chỉ đề xuất chủ đề. Mỗi đề xuất phải nêu được ngành nào
+  hưởng lợi, nên bạn biết trước duyệt nó sẽ dẫn tới đâu. Áp lực chi phí hay sức cầu yếu mà không có
+  bên thắng rõ ràng thì không được đề xuất. `/themes approve <id>` để theo dõi, `reject <id>` để bỏ,
+  `retire <id>` khi không muốn theo nữa. Hệ thống tự chuyển một chủ đề sang "đang yếu đi" hoặc
+  "đã kết thúc" khi bằng chứng đổi. Nhưng chỉ bạn mới duyệt hoặc gỡ một chủ đề.
 - **Chủ đề đang yếu đi thì tạm không soát ngành và mã.** Luận điểm và điểm của nó vẫn được cập nhật,
   nhưng hệ thống không tốn tiền đọc lại doanh nghiệp cho một câu chuyện đang nhạt dần, và báo cáo ghi
   rõ một dòng như vậy. Khi chủ đề mạnh lại, ngành và mã được soát tiếp.

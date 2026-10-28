@@ -1,7 +1,7 @@
 # Việc lặp lại
 
-Có ba loại việc tự lặp lại. Hãy biết việc nào thuộc loại nào trước khi tìm hiểu vì sao nó chạy hay
-không chạy.
+Có ba loại việc tự lặp lại. Khi một việc chạy hay không chạy, trước hết hãy xem nó thuộc loại nào.
+Câu trả lời thường nằm ngay đó.
 
 | Loại | Ai tạo | Nằm ở đâu |
 |---|---|---|
@@ -9,17 +9,17 @@ không chạy.
 | **Việc theo lịch** | Bạn, bằng `schedule add` | Cơ sở dữ liệu, nên còn nguyên sau khi khởi động lại |
 | **Heartbeat** | Tệp `HEARTBEAT.md` trong thư mục làm việc của agent | Một tệp dịch vụ nền quét |
 
-Cả ba chạy qua engine agent thông thường, cùng ngân sách, giới hạn mô hình và công cụ. Khác nhau ở
-khâu phê duyệt: việc theo lịch có đích là kênh thì hỏi được bạn; heartbeat thì không bao giờ, vì
-không có ai đang ngồi xem.
+Cả ba chạy qua engine agent thông thường, cùng ngân sách, giới hạn mô hình và công cụ. Chỗ khác
+nhau là phê duyệt. Việc theo lịch có đích là một kênh thì dừng lại hỏi bạn được. Heartbeat thì không
+bao giờ hỏi, vì không có ai đang ngồi xem.
 
 ---
 
 ## Vòng lặp có sẵn
 
-Chúng chạy khi `openalpha start` dựng dịch vụ nền và dừng khi `openalpha stop` tắt nó. Mỗi vòng chạy xong
-rồi mới tính lần chờ kế tiếp, nên một lượt chậm không bao giờ chồng lên chính nó. Lượt nào không có
-việc thì thoát ngay.
+Chúng chạy khi `openalpha start` dựng dịch vụ nền và dừng khi `openalpha stop` tắt nó. Mỗi vòng chờ,
+chạy, rồi mới tính lần chờ kế tiếp. Nhờ vậy một lượt chậm không bao giờ chồng lên chính nó. Lượt nào
+không có việc thì thoát ngay.
 
 | Việc | Nhịp | Làm gì |
 | --- | --- | --- |
@@ -37,11 +37,16 @@ việc thì thoát ngay.
 | nhịp heartbeat | 30 giây | Quét `HEARTBEAT.md` của từng thư mục làm việc. |
 | nhịp lập lịch | 30 giây | Tìm các việc theo lịch đã đến hạn. |
 
-Khi API bật, ứng dụng liệt kê các vòng này, cùng vòng nào plugin thêm, thành một bảng việc dịch vụ nền đang làm ngầm: tên
-vòng bằng lời thường, bao lâu chạy một lần nếu nó có nhịp cố định, phiên chạy gần nhất bắt đầu lúc nào, lỗi cuối cùng
-nếu lần đó hỏng (phiên chạy tốt kế tiếp xóa lỗi), phiên chạy tới là khi nào và nó có đang làm việc không. Bản tin sáng
-và báo cáo trong ngày cho biết khi nào đến hạn lần kế. Bảng này nằm trong bộ nhớ, nên sau khi khởi động lại mỗi vòng
-chưa hiện gì cho đến phiên chạy kế tiếp của nó.
+Khi API bật, ứng dụng gom các vòng này, cùng vòng nào plugin thêm, vào một bảng việc chạy ngầm. Với
+mỗi vòng bạn thấy:
+
+- tên vòng bằng lời thường;
+- bao lâu chạy một lần, nếu nó có nhịp cố định;
+- phiên chạy gần nhất bắt đầu lúc nào, và lỗi cuối cùng nếu lần đó hỏng (phiên chạy tốt kế tiếp xóa lỗi);
+- phiên chạy tới là khi nào, và lúc này nó có đang làm việc không.
+
+Bản tin sáng và báo cáo trong ngày cho biết khi nào đến hạn lần kế. Bảng này nằm trong bộ nhớ, nên
+sau khi khởi động lại mỗi vòng chưa hiện gì cho đến phiên chạy kế tiếp của nó.
 
 ### Dữ liệu thị trường được làm mới khi nào
 
@@ -55,32 +60,38 @@ chưa hiện gì cho đến phiên chạy kế tiếp của nó.
 Thị trường không bao giờ đóng cửa như crypto thì làm mới lúc sang ngày UTC. Hai mốc cách nhau dưới 60
 giây thì gộp làm một lượt.
 
-Lúc khởi động, lần làm mới đầu tiên chạy trước các phần khác, chờ tối đa 60 giây rồi hoàn tất ở chế
-độ nền kèm một cảnh báo. Khởi động mà không có mạng thì vòng lặp chờ có mạng. Lần làm mới đầu mà gặp
-lỗi nhà cung cấp, lưu trữ hay kênh thì chỉ là một cảnh báo (`daemon.boot_refresh_failed`), dù lỗi đến
-trong 60 giây hay sau đó, và dịch vụ nền vẫn khởi động; lỗi nào khác thì dừng khởi động.
+Lúc khởi động, lần làm mới đầu tiên chạy trước các phần khác:
 
-Mỗi lượt như vậy, kể cả lượt lúc khởi động, hiện trên trang văn phòng giống như khi bạn gõ
-`/refresh`: Thủ kho vào Kho dữ liệu làm việc, tiến độ hiện trên màn hình tường, đầu trang đếm nó vào
-số việc đang chạy, và khi xong thì mục Hoạt động ghi "Làm mới dữ liệu", nguồn "lịch" (kèm "dừng"
-hoặc "lỗi" nếu lượt đó không xong). Lượt này không gọi mô hình nên dòng của nó không ghi chi phí và
-không có lệnh gọi AI. Lượt chỉ hiện từ lần tải đầu tiên, nên lượt không có thị trường nào đang dùng,
-hay lượt thấy dữ liệu mọi thị trường vẫn mới, thì không hiện gì cả.
+- Nó chờ tối đa 60 giây, rồi hoàn tất ở chế độ nền kèm một cảnh báo.
+- Khởi động mà không có mạng thì vòng lặp chờ có mạng.
+- Lần làm mới đầu mà gặp lỗi nhà cung cấp, lưu trữ hay kênh thì chỉ là một cảnh báo
+  (`daemon.boot_refresh_failed`), dù lỗi đến trong 60 giây hay sau đó. Dịch vụ nền vẫn khởi động.
+  Lỗi nào khác thì dừng khởi động.
 
-Lượt nào để bất kỳ loại dữ liệu nào ở trạng thái `unavailable` (không lấy được gì) sẽ thử lại sau 2,
-4, 8 và 16 phút, không bao giờ quá mốc kế tiếp. Lần hỏng thứ năm trả việc về cho mốc, và chuỗi thử
-lại bắt đầu lại. Lượt chỉ thiếu một phần (`partial`) thì chờ mốc kế tiếp; các mã bị sót được vá lại
-theo thời gian chờ riêng.
+Mỗi lượt như vậy, kể cả lượt lúc khởi động, hiện trên trang văn phòng y như khi bạn gõ `/refresh`.
+Thủ kho vào Kho dữ liệu làm việc, tiến độ hiện trên màn hình tường. Đầu trang đếm nó vào số việc đang
+chạy. Khi xong, mục Hoạt động ghi "Làm mới dữ liệu", nguồn "lịch" (kèm "dừng" hoặc "lỗi" nếu lượt đó
+không xong). Lượt này không gọi mô hình, nên dòng của nó không ghi chi phí và không có lệnh gọi AI.
+
+Một lượt chỉ hiện từ lần tải đầu tiên. Vì vậy lượt không có thị trường nào đang dùng, hay lượt thấy
+dữ liệu mọi thị trường vẫn mới, thì không hiện gì cả.
+
+Nếu một lượt để bất kỳ loại dữ liệu nào ở trạng thái `unavailable` (không lấy được gì), nó thử lại
+sau 2, 4, 8 và 16 phút, không bao giờ quá mốc kế tiếp. Lần hỏng thứ năm trả việc về cho mốc, và chuỗi
+thử lại bắt đầu lại. Lượt chỉ thiếu một phần (`partial`) thì cứ chờ mốc kế tiếp. Các mã bị sót được
+vá lại theo thời gian chờ riêng.
 
 Mỗi lượt ghi một dòng log `trading.market_data_refreshed` cho biết từng thị trường mất bao lâu. Thị
 trường tải nhiều loại dữ liệu còn ghi thời gian của từng loại, nên một lượt chậm tự chỉ ra chỗ chậm.
 
 ### Bạn chỉnh được gì
 
-Một nhịp: `[trading.refresh] interval_ms`, mặc định là trần 12 giờ ở trên. Thời hạn lưu giữ là
-`days`, `history_days` và `inbox_days` trong `[retention]`. Mọi thứ khác là cố định. Khóa và giá trị mặc định ở
-[Cấu hình](cau-hinh.md#trading). Mỗi lượt xử lý 50 dòng, riêng `trading.macro-extract` là 3 vì mỗi
-mục ở đó là một lời gọi mô hình. Đổi gì ở đây cũng cần khởi động lại dịch vụ nền.
+- Một nhịp: `[trading.refresh] interval_ms`, mặc định là trần 12 giờ ở trên.
+- Thời hạn lưu giữ: `days`, `history_days` và `inbox_days` trong `[retention]`.
+
+Mọi thứ khác là cố định. Khóa và giá trị mặc định ở [Cấu hình](cau-hinh.md#trading). Mỗi lượt xử lý
+50 dòng, riêng `trading.macro-extract` là 3 vì mỗi mục ở đó là một lời gọi mô hình. Đổi gì ở đây cũng
+cần khởi động lại dịch vụ nền.
 
 ### Khi một phiên chạy báo lỗi
 
@@ -99,27 +110,46 @@ nơi để gửi tới.
 ### Khi thiếu khóa
 
 `openalpha start` vẫn khởi động khi thiếu khóa AI, khóa tìm kiếm web, biến của máy chủ MCP, token API
-hay bot token của kênh, và in mỗi mục một dòng cảnh báo (xem [Lệnh](lenh.md#dịch-vụ-nền-và-chẩn-đoán)). Làm
-mới dữ liệu, cảnh báo giá, sổ lệnh và mọi vòng không cần AI vẫn chạy. Việc cần mô hình thì chờ:
-vòng đọc số liệu vĩ mô ghi `trading.tick_key_missing` (warn) một lần rồi vẫn thử ở mỗi lượt; bản tin sáng
-vẫn gửi các mục không cần AI, còn hôm nào không dựng được thì bạn nhận một tin nêu tên biến và cách đặt;
-một công việc theo lịch cần AI thì bỏ qua lượt đó mà không tính là lỗi, nên không bao giờ bị tắt vì thiếu
-khóa. `status` liệt kê những gì đang chờ khóa. Lưu khóa bằng `openalpha key set <NAME>` rồi `restart --background` là mọi thứ chạy lại.
+hay bot token của kênh. Mỗi mục thiếu được in một dòng cảnh báo (xem
+[Lệnh](lenh.md#dịch-vụ-nền-và-chẩn-đoán)).
+
+Làm mới dữ liệu, cảnh báo giá, sổ lệnh và mọi vòng không cần AI vẫn chạy. Việc cần mô hình thì chờ:
+
+- Vòng đọc số liệu vĩ mô ghi `trading.tick_key_missing` (warn) một lần rồi vẫn thử ở mỗi lượt.
+- Bản tin sáng vẫn gửi các mục không cần AI. Hôm nào không dựng được, bạn nhận một tin nêu tên biến
+  và cách đặt.
+- Việc theo lịch cần AI thì bỏ qua lượt đó mà không tính là lỗi. Nhờ vậy nó không bao giờ bị tắt vì
+  thiếu khóa.
+
+`status` liệt kê những gì đang chờ khóa. Lưu khóa bằng `openalpha key set <NAME>`, chạy
+`restart --background`, và mọi thứ chạy lại.
 
 ### Khi dịch vụ nền dừng hoặc lỡ bản tin
 
-Dịch vụ nền chết mà chưa dừng đàng hoàng (sập, `kill -9`, mất điện) để lại tệp pid, và `status` khi đó in
-`daemon: đã dừng đột ngột (khởi động lúc <giờ>)` kèm gợi ý xem `openalpha logs`, thay vì dòng "chưa chạy"
-trơn. Lần khởi động kế tiếp cũng nhắn chat của bạn một lần, nói cảnh báo và bản tin đã tạm ngưng tới giờ.
-Nếu bản tin không gửi được trước giờ mở cửa (dịch vụ nền tắt, hoặc mọi lần gửi đều hỏng), bản tin hôm đó bị
-bỏ và chat nhận một dòng báo điều này; bản tin sau vẫn theo lịch. Bản tin bắt đầu dựng trước giờ mở cửa
-nhưng xong sau đó vẫn được gửi, kèm một dòng đầu báo giá đã chạy từ lúc viết.
+Đôi khi dịch vụ nền chết mà chưa kịp dừng đàng hoàng: sập, `kill -9`, mất điện. Khi đó nó để lại tệp
+pid. `status` in `daemon: đã dừng đột ngột (khởi động lúc <giờ>)` kèm gợi ý xem `openalpha logs`, thay
+vì dòng "chưa chạy" trơn. Lần khởi động kế tiếp cũng nhắn vào cuộc trò chuyện của bạn một lần, báo
+cảnh báo và bản tin đã tạm ngưng tới giờ.
 
-Kênh chat mất kết nối lâu cũng được báo. Cứ năm phút dịch vụ nền xem từng kênh một lần, kênh nào mất kết nối đã 15
-phút thì được báo đúng một lần, trên một kênh khác đang chạy, kèm lý do: token bot bị từ chối, đăng nhập Zalo hết
-hạn, tài khoản đang mở ở nơi khác, hoặc kết nối liên tục bị ngắt. Có lại thì bạn nhận một dòng "đã kết nối lại".
-`status` ghi kênh đó là `mất kết nối: <lý do>` trong lúc ấy. Không có kênh nào khác để báo thì chỉ ghi log
-(`channel.watch_no_route`). Khởi động lại thì quên hết, nên kênh còn mất kết nối sau đó sẽ được báo thêm một lần.
+Bản tin sáng phải đi trước giờ mở cửa:
+
+- Nếu không gửi được (dịch vụ nền tắt, hoặc mọi lần gửi đều hỏng), bản tin hôm đó bị bỏ và cuộc trò
+  chuyện nhận một dòng báo điều này. Bản tin sau vẫn theo lịch.
+- Bản tin bắt đầu dựng trước giờ mở cửa nhưng xong sau đó vẫn được gửi. Dòng đầu báo giá đã chạy từ
+  lúc viết.
+
+Kênh chat mất kết nối lâu cũng được báo. Cứ năm phút dịch vụ nền xem từng kênh một lần. Kênh nào mất
+kết nối (hoặc vẫn nối mà liên tục lỗi) đã 15 phút thì được báo đúng một lần, trên một kênh khác đang
+chạy, kèm lý do:
+
+- token bot bị từ chối;
+- đăng nhập Zalo hết hạn;
+- tài khoản đang mở ở nơi khác;
+- kết nối liên tục bị ngắt.
+
+Có lại thì bạn nhận một dòng "đã kết nối lại". Trong lúc mất kết nối, `status` ghi kênh đó là
+`mất kết nối: <lý do>`. Không có kênh nào khác để báo thì chỉ ghi log (`channel.watch_no_route`).
+Khởi động lại thì quên hết, nên kênh còn mất kết nối sau đó sẽ được báo thêm một lần.
 
 ---
 
@@ -147,22 +177,40 @@ openalpha schedule list | show <id> | pause <id> | resume <id> | run-now <id> | 
 Lệnh chạy được cả khi dịch vụ nền đang chạy và chỉ ghi các trường bạn đổi, nên phiên chạy đến hạn hay đang
 thử lại không bị ảnh hưởng.
 
-Prompt bắt đầu bằng `/` là một lệnh, chạy như khi bạn gõ, không dùng mô hình trừ khi chính lệnh đó cần
-(`/suggest`, `/research`): `--prompt "/health"` không tốn gì. Chỉ dòng đầu là lệnh, và kết quả được gửi
-như mọi câu trả lời khác, vào chuông khi không có trang nào đang mở để trang mở sau đó đọc được. Mỗi phiên chạy
-như vậy để lại một dòng trong nhật ký hoạt động. Lệnh thay đổi cài đặt, lệnh đặt hoặc sổ của bạn (như `/trade`, `/record sync`
-hay `/refresh`) cần bạn duyệt, nên `schedule add` và `schedule edit` từ chối, trang văn phòng và công cụ
-lập lịch của agent cũng vậy. Từ sau dấu `/` mà không phải lệnh nào cũng bị từ chối như vậy, và một việc đã lưu mà giờ sẽ bị từ chối thì cũng bị từ chối khi đến hạn chạy.
+Prompt bắt đầu bằng `/` là một lệnh. Nó chạy như khi bạn gõ, không dùng mô hình trừ khi chính lệnh
+đó cần (`/suggest`, `/research`). Vì vậy `--prompt "/health"` không tốn gì.
+
+- Chỉ dòng đầu là lệnh.
+- Kết quả được gửi như mọi câu trả lời khác. Khi không có trang nào đang mở, nó vào chuông để trang
+  mở sau đó đọc được.
+- Mỗi phiên chạy như vậy để lại một dòng trong nhật ký hoạt động.
+
+Lệnh thay đổi cài đặt, lệnh đặt hoặc sổ của bạn (như `/trade`, `/record sync` hay `/refresh`) cần
+bạn duyệt. Vì vậy `schedule add` và `schedule edit` từ chối, trang văn phòng và công cụ lập lịch của
+agent cũng vậy. Từ sau dấu `/` mà không phải lệnh nào cũng bị từ chối như thế. Một việc đã lưu mà giờ
+sẽ bị từ chối thì cũng bị từ chối khi đến hạn chạy.
 
 `--allow-tools` giới hạn việc đó vào những công cụ có ở **cả hai** danh sách: công cụ agent được phép
 và công cụ của việc. `schedule show` in tập hiệu lực kèm `(restricted)` hoặc `(all)`.
 
-Một việc có thể chờ một cảnh báo thay vì chờ giờ; gọi đó là việc theo sự kiện. Trang văn phòng tạo loại này: việc chạy khi mã bạn đang
-giữ thủng mức cắt lỗ hoặc chạm mức chốt lời, khi một mã biến động mạnh trong phiên, hay khi giá bạn
-đặt được chạm. Việc chạy tối đa một lần mỗi khoảng chờ, quãng nghỉ mà việc mang theo để một mã ồn ào không kích nó chạy liên tục, và vẫn bật sau khi chạy,
-trừ việc theo giá: một lần chạm là hết; tự bấm chạy ngay thì chưa chạm gì nên việc vẫn chờ. `schedule list` ghi nó là `khi FPT chạm mức giá bạn đặt`
-thay cho giờ, `schedule edit` không đặt giờ cho nó được, `schedule remove` gỡ luôn cảnh báo giá nó
-đã đặt, còn `schedule resume` từ chối việc theo giá mà cảnh báo đã chạm. Một phiên chạy hỏng của việc theo sự kiện không tính vào việc tự tắt, nên việc cứ hỏng mãi vẫn bật và báo lỗi ở mỗi lần cảnh báo chạm, tối đa một lần mỗi khoảng chờ.
+Một việc có thể chờ một cảnh báo thay vì chờ giờ. Gọi đó là việc theo sự kiện. Trang văn phòng tạo
+loại này. Việc chạy khi:
+
+- mã bạn đang giữ thủng mức cắt lỗ hoặc chạm mức chốt lời;
+- một mã biến động mạnh trong phiên;
+- giá bạn đặt được chạm.
+
+Việc chạy tối đa một lần mỗi khoảng chờ. Khoảng chờ là quãng nghỉ việc mang theo, để một mã ồn ào
+không kích nó chạy liên tục. Việc vẫn bật sau khi chạy, trừ việc theo giá: một lần chạm là hết. Tự
+bấm chạy ngay thì chưa chạm gì, nên việc vẫn chờ.
+
+- `schedule list` ghi nó là `khi FPT chạm mức giá bạn đặt` thay cho giờ.
+- `schedule edit` không đặt giờ cho nó được.
+- `schedule remove` gỡ luôn cảnh báo giá nó đã đặt.
+- `schedule resume` từ chối việc theo giá mà cảnh báo đã chạm.
+
+Một phiên chạy hỏng của việc theo sự kiện không tính vào việc tự tắt. Vì vậy việc cứ hỏng mãi vẫn
+bật, và báo lỗi ở mỗi lần cảnh báo chạm, tối đa một lần mỗi khoảng chờ.
 
 Cron nhận năm trường, hỗ trợ ký tự đại diện, khoảng, bước (`*/15`, `1-5/2`) và danh sách ngăn bằng dấu
 phẩy. Khi cả ngày-trong-tháng lẫn thứ-trong-tuần đều bị giới hạn, khớp **một trong hai** là đủ; trường
@@ -176,8 +224,10 @@ trường thì cứ chạy theo đồng hồ.
 ### Một phiên chạy cư xử thế nào
 
 - Một việc không bao giờ chạy hai lần cùng lúc, và không chạy hai lần cho cùng một mốc đã lên lịch.
-- `run-now` ghi lại một phiên chạy nhưng không đẩy lịch tới và không chạm vào bộ đếm lỗi. Ngoại lệ duy nhất là việc chạy một lần: `run-now` thành công chính là phiên chạy của nó, nên sau đó việc ấy xong và bị tắt. Nó bị từ chối
-  khi một phiên chạy theo lịch của cùng việc vẫn đang chạy, dù gọi từ CLI hay từ dịch vụ nền.
+- `run-now` ghi lại một phiên chạy nhưng không đẩy lịch tới và không chạm vào bộ đếm lỗi. Ngoại lệ
+  duy nhất là việc chạy một lần: `run-now` thành công chính là phiên chạy của nó, nên sau đó việc ấy
+  xong và bị tắt. `run-now` bị từ chối khi một phiên chạy theo lịch của cùng việc vẫn đang chạy, dù gọi
+  từ CLI hay từ dịch vụ nền.
 - Phiên chạy chết giữa chừng (ví dụ dịch vụ nền bị kill) được đóng lại ở trạng thái hỏng và lịch đi tiếp,
   không chạy lại lần đã tiêu. Việc chạy một lần không có lần kế tiếp, nên một lần mất được tính là lỗi:
   nó đến hạn lại sau khoảng chờ thử lại bên dưới, và bị tắt kèm thông báo ở lần thứ ba.
@@ -189,10 +239,11 @@ tự tắt. Phiên chạy hỏng được thử lại với khoảng chờ tăng
 đa 30 phút: một phút sau lần hỏng đầu, hai phút sau lần thứ hai, rồi **tắt hẳn ở lần hỏng liên tiếp
 thứ ba**. Một lần thành công đặt lại bộ đếm.
 
-Thiếu khóa cũng không tính: một phiên chạy hỏng vì biến môi trường của khóa AI chưa đặt được bỏ qua kèm một
-cảnh báo trong nhật ký, việc vẫn bật và chạy lại ở lần tới, nên lưu khóa bằng `openalpha key set <NAME>` rồi `restart --background` là xong, không cần
-`schedule resume`. Bản tin sáng cũng vậy: hôm đó bạn nhận một tin nói thiếu biến nào và cách đặt, thay cho
-câu "gửi không được sau nhiều lần thử".
+Thiếu khóa cũng không tính. Một phiên chạy hỏng vì biến môi trường của khóa AI chưa đặt được bỏ qua,
+kèm một cảnh báo trong nhật ký. Việc vẫn bật và chạy lại ở lần tới. Nên lưu khóa bằng
+`openalpha key set <NAME>` rồi `restart --background` là xong, không cần `schedule resume`. Bản tin sáng
+cũng vậy: hôm đó bạn nhận một tin nói thiếu biến nào và cách đặt, thay cho câu
+"gửi không được sau nhiều lần thử".
 
 Hết ngân sách cũng không tính. Khi hạn mức ngày, tháng hay hạn mức riêng của agent chặn một phiên chạy,
 việc nhảy sang lần kế tiếp theo lịch, còn việc chạy một lần thì được hỏi lại sau 30 phút. Phiên chạy bị
@@ -316,14 +367,22 @@ log `fatal` của một lần sập được ghi ra terminal thay vào đó.
 
 ## Tự chạy khi đăng nhập
 
-Trên máy để bàn, `openalpha autostart enable` đăng ký `start --background` chạy mỗi lần đăng nhập, nên bản
-tin sáng và cảnh báo vẫn đến sau khi khởi động lại máy: một launchd agent trên macOS, một unit người dùng
-của systemd trên Linux (trên máy chủ không ai đăng nhập, chạy thêm `loginctl enable-linger $USER`) và một
-mục trong khóa Run trên Windows. `openalpha autostart` cho biết đã bật chưa, và `autostart disable` gỡ nó
-(dịch vụ nền đang chạy vẫn tiếp tục). Lệnh cần bản cài đặt, không dùng được với bản chạy từ mã nguồn, và có hiệu
-lực từ lần đăng nhập tới. Phiên chạy lúc đăng nhập không thấy biến chỉ export trong shell, nên hãy lưu khóa
-bằng `openalpha key set`; `enable` nêu tên mọi khóa mà cấu hình của bạn đọc nhưng chỉ đặt trong shell, kể cả khóa nguồn dữ liệu như `FRED_API_KEY`. Unit nó ghi tên là
-`openalpha-autostart`, tách khỏi dịch vụ viết tay bên dưới, vốn vẫn là cách chạy một máy chủ API.
+Trên máy để bàn, `openalpha autostart enable` đăng ký `start --background` chạy mỗi lần đăng nhập. Nhờ
+vậy bản tin sáng và cảnh báo vẫn đến sau khi khởi động lại máy. Thứ được đăng ký tùy hệ điều hành:
+
+- macOS: một launchd agent.
+- Linux: một unit người dùng của systemd. Trên máy chủ không ai đăng nhập, chạy thêm
+  `loginctl enable-linger $USER`.
+- Windows: một mục trong khóa Run.
+
+`openalpha autostart` cho biết đã bật chưa, và `autostart disable` gỡ nó (dịch vụ nền đang chạy vẫn tiếp
+tục). Lệnh cần bản cài đặt, không dùng được với bản chạy từ mã nguồn, và có hiệu lực từ lần đăng nhập
+tới.
+
+Phiên chạy lúc đăng nhập không thấy biến chỉ export trong shell, nên hãy lưu khóa bằng
+`openalpha key set`. `enable` nêu tên mọi khóa mà cấu hình của bạn đọc nhưng chỉ đặt trong shell, kể cả
+khóa nguồn dữ liệu như `FRED_API_KEY`. Unit nó ghi tên là `openalpha-autostart`. Unit này tách khỏi dịch
+vụ viết tay bên dưới, vốn vẫn là cách chạy một máy chủ API.
 
 ## Chạy API trên máy chủ
 
@@ -358,16 +417,20 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
    ```
 
    Chạy `systemctl --user enable --now openalpha`, rồi `loginctl enable-linger $USER` để nó vẫn chạy
-   khi bạn đăng xuất. `systemctl --user reload openalpha` khởi động lại dịch vụ nền tại chỗ, giữ nguyên pid, và khởi động lại từ trang văn phòng cũng làm như vậy. Để nâng cấp, chạy `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
-   dịch vụ nền do dịch vụ quản lý thì `upgrade` không tự khởi động lại.
+   khi bạn đăng xuất. `systemctl --user reload openalpha` khởi động lại dịch vụ nền tại chỗ, giữ nguyên
+   pid. Khởi động lại từ trang văn phòng cũng làm như vậy. Để nâng cấp, chạy
+   `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`. Dịch vụ nền
+   do dịch vụ quản lý thì `upgrade` không tự khởi động lại.
 4. **Mở trang văn phòng.** Chạy `openalpha web` trên máy chủ (dịch vụ nền phải đang chạy). Trên chính màn hình của
    máy chủ, nó mở trình duyệt cho bạn. Qua SSH, nó in hai thứ thay vào đó: một lệnh đường hầm để chạy trên máy của
    bạn, chẳng hạn `ssh -N -o ExitOnForwardFailure=yes -L 18765:127.0.0.1:8765 user@server`, và một liên kết
-   (`http://127.0.0.1:18765/#code=...`) để mở khi đường hầm đã lên. Cổng đầu máy bạn của đường hầm là cổng của
-   máy chủ cộng 10000 (trừ đi, nếu vượt cổng 55535), nên không đụng dịch vụ nền đang chạy trên máy bạn, và nếu cổng đó đã bận thì `ssh` dừng với
-   lỗi. Liên kết chỉ dùng được một lần, trong 5 phút; cần liên kết mới thì chạy lại `openalpha web`. Với ứng dụng
-   desktop, chạy `openalpha connect`: nó in địa chỉ và token trên hai dòng riêng. Hãy đưa cho ứng dụng địa chỉ và token
-   đó, đừng dán vào trình duyệt, và giữ kín token.
+   (`http://127.0.0.1:18765/#code=...`) để mở khi đường hầm đã lên. Cổng đầu máy bạn của đường hầm là
+   cổng của máy chủ cộng 10000 (trừ đi, nếu vượt cổng 55535). Nhờ vậy nó không đụng dịch vụ nền đang chạy
+   trên máy bạn, và nếu cổng đó đã bận thì `ssh` dừng với lỗi. Liên kết chỉ dùng được một lần, trong 5
+   phút; cần liên kết mới thì chạy lại `openalpha web`.
+
+   Với ứng dụng desktop, chạy `openalpha connect`. Nó in địa chỉ và token trên hai dòng riêng. Hãy đưa
+   cho ứng dụng địa chỉ và token đó, đừng dán vào trình duyệt, và giữ kín token.
 5. **Nối từ bên ngoài.** API chỉ nghe trên `127.0.0.1` của máy chủ, nên đường hầm SSH ở trên không cần gì thêm.
    Muốn nối mà không qua đường hầm, chọn một cách theo thứ tự này:
    - **SSH**, không cần tên miền: không phải cài gì. `openalpha web` in sẵn đường hầm.
@@ -376,21 +439,30 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
    - **Caddy** với tên miền: `alpha.example.com { reverse_proxy 127.0.0.1:8765 }`, rồi đặt
      `[api] public_url = "https://alpha.example.com"` và khởi động lại dịch vụ nền.
 
-   Bất cứ thứ gì đứng trước dịch vụ nền (proxy, đường hầm, tên miền) đều cần `public_url`: chính nó bật các giới
-   hạn bên dưới và cookie đăng nhập `__Host-`. Khi chưa đặt, dịch vụ nền chỉ bắt được proxy gửi `X-Forwarded-For`
-   hoặc `Forwarded`, hay một `Host` không phải tên cục bộ, và từ chối chúng kèm một câu nêu tên `public_url`.
-   Proxy không gửi cả hai thì trông như yêu cầu cục bộ. Một `proxy_pass` nginx trần là trường hợp đó: nó gửi
-   `Host: 127.0.0.1:<cổng>` và không có tiêu đề chuyển tiếp nào. Vì vậy hãy đặt `public_url` trước khi mở
-   dịch vụ nền ra ngoài, và cho nginx gửi `proxy_set_header Host $host;` cùng
-   `proxy_set_header X-Forwarded-For $remote_addr;`. Ngoài ra dịch vụ nền chỉ trả lời yêu cầu gửi tới `127.0.0.1`,
-   `localhost` hoặc `[::1]` (cổng nào cũng được, nên đường hầm SSH dùng như cũ), để chặn trang web giở trò
-   DNS rebinding. Khi đã đặt `public_url`, `openalpha web` in liên kết `https://` thay vì đường hầm. Năm lần
-   sai mã API hoặc mã đăng nhập sẽ tạm dừng nơi gửi đó trong 30 giây, mỗi lần dừng sau tăng gấp đôi, tối đa
-   một giờ; một giờ không sai lần nào thì tính lại từ đầu. Yêu cầu qua `public_url` được phân biệt theo địa chỉ
-   cuối cùng trong `X-Forwarded-For` (địa chỉ do proxy của bạn thêm vào), nên người đoán mã trên internet không bao giờ làm dừng terminal hay CLI
-   của bạn trên cùng máy. Trong khoảng dừng mọi mã từ nơi gửi đó đều bị từ chối, đúng hay sai, nên không lần
-   đoán nào được kiểm; trình duyệt đã đăng nhập vẫn dùng bình thường. Hết khoảng dừng, một mã đúng sẽ xóa số
-   lần sai.
+   Bất cứ thứ gì đứng trước dịch vụ nền (proxy, đường hầm, tên miền) đều cần `public_url`. Chính nó bật
+   các giới hạn bên dưới và cookie đăng nhập `__Host-`.
+
+   Khi chưa đặt, dịch vụ nền chỉ bắt được proxy gửi `X-Forwarded-For` hoặc `Forwarded`, hay một `Host`
+   không phải tên cục bộ. Nó từ chối chúng kèm một câu nêu tên `public_url`. Proxy không gửi cả hai thì
+   trông như yêu cầu cục bộ. Một `proxy_pass` nginx trần là trường hợp đó: nó gửi
+   `Host: 127.0.0.1:<cổng>` và không có tiêu đề chuyển tiếp nào. Vì vậy hãy đặt `public_url` trước khi
+   mở dịch vụ nền ra ngoài, và cho nginx gửi `proxy_set_header Host $host;` cùng
+   `proxy_set_header X-Forwarded-For $remote_addr;`.
+
+   Ngoài ra, dịch vụ nền chỉ trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]` (cổng nào cũng
+   được, nên đường hầm SSH dùng như cũ). Điều này chặn trang web giở trò DNS rebinding. Khi đã đặt
+   `public_url`, `openalpha web` in liên kết `https://` thay vì đường hầm.
+
+   Đoán sai sẽ bị làm chậm lại:
+
+   - Năm lần sai mã API hoặc mã đăng nhập sẽ tạm dừng nơi gửi đó trong 30 giây. Mỗi lần dừng sau tăng
+     gấp đôi, tối đa một giờ. Một giờ không sai lần nào thì tính lại từ đầu.
+   - Yêu cầu qua `public_url` được phân biệt theo địa chỉ cuối cùng trong `X-Forwarded-For` (địa chỉ do
+     proxy của bạn thêm vào). Nên người đoán mã trên internet không bao giờ làm dừng terminal hay CLI của
+     bạn trên cùng máy.
+   - Trong khoảng dừng, mọi mã từ nơi gửi đó đều bị từ chối, đúng hay sai, nên không lần đoán nào được
+     kiểm. Trình duyệt đã đăng nhập vẫn dùng bình thường.
+   - Hết khoảng dừng, một mã đúng sẽ xóa số lần sai.
 6. **Nối ứng dụng khách.** Đưa cho ứng dụng địa chỉ và mã API; mọi yêu cầu gửi kèm mã dưới dạng
    `Authorization: Bearer <mã>`. Tối đa 8 luồng ứng dụng (`/v1/ws`) mở cùng lúc; lần bắt tay thứ chín bị từ
    chối với 503 `too_many_streams`.
@@ -410,26 +482,86 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
 Khóa sàn cũng nên cẩn thận như vậy: chỉ cấp quyền giao dịch, không bao giờ cho rút tiền, và gắn với địa chỉ
 IP của máy chủ trên sàn, để khóa lộ ra cũng không rút được tiền đi.
 
-**Nâng cấp.** Nếu bạn đang chạy Caddy với `header_up Host`, hãy xóa dòng đó và đặt `public_url`: proxy giờ chuyển
-đúng tên công khai như mặc định. Sau đó ai cũng chạy `openalpha api rotate` một lần; lệnh này khởi động lại dịch vụ nền,
-để mã mà trang cũ đã lưu trong trình duyệt trở nên vô dụng. Sau khi khởi động lại, `openalpha web` đăng nhập lại
-từng trình duyệt.
+**Nâng cấp.** Nếu bạn đang chạy Caddy với `header_up Host`, hãy xóa dòng đó và đặt `public_url`. Proxy giờ
+chuyển đúng tên công khai, như mặc định. Sau đó ai cũng chạy `openalpha api rotate` một lần. Lệnh này khởi
+động lại dịch vụ nền, để mã mà trang cũ đã lưu trong trình duyệt hết dùng được. Sau khi khởi động lại,
+`openalpha web` đăng nhập lại từng trình duyệt.
 
-Khi đã nối, trang văn phòng được cho thấy dịch vụ nền đang làm gì ngay lúc nó diễn ra: từng câu trả lời và câu lệnh chạy
-lâu đang chạy cùng bước mới nhất của nó, mọi yêu cầu phê duyệt và câu hỏi còn chờ trên bất kỳ kênh nào, một
-lần khớp lệnh (lệnh cắt lỗ hoặc chốt lời đang treo được bán, hoặc một lần khớp của `/trade`), từng công cụ mà một phiên chạy bắt đầu và kết thúc, lời của từng vai trong cuộc tranh biện sau khi một `/suggest` được kiểm chứng (chỉ hiện trong trang văn phòng, không bao giờ gửi tới chat), một agent mới gia nhập, lúc chạm hạn mức chi tiêu, và lần cuối kiểm tra cảnh
-báo. Những tin này vào chuông mà không tới chat nào trừ khi `[notices] chat` liệt kê: một đề xuất đã có kết quả, tin về mã bạn đang giữ, và chỉ số giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã dịch vụ nền đã đọc, vì không có gì đi lấy tin cho các mã bạn giữ theo lịch. Trang văn phòng nối muộn thì hỏi bức tranh hiện tại trước, rồi theo dõi luồng. Yêu cầu hỏi trên Telegram hay kênh
-khác vẫn hiện trong trang văn phòng nhưng được trả lời ở nơi nó được hỏi; trang văn phòng nói rõ điều đó thay vì trả lời hộ. Trang văn phòng dừng được mọi phiên chạy bạn thấy, kể cả phiên bắt đầu từ Telegram: dừng chỉ là báo cho nó dừng, và nó kết thúc ở trạng thái đã dừng, dù là một câu trả lời đang chạy hay một câu lệnh. Phiên chạy đã xong thì được báo là không còn nữa. Trang văn phòng cũng liệt kê các chat đã ghép nối trên từng kênh và bỏ ghép nối được một chat, kết quả giống `pair revoke`: tin kế tiếp của chat đó lại bị hỏi mã ghép nối.
+Khi đã nối, trang văn phòng cho bạn thấy dịch vụ nền đang làm gì ngay lúc nó diễn ra:
 
-Trang văn phòng còn đọc được những gì dịch vụ nền biết mà không cần câu lệnh nào: lịch sử mọi cuộc chat, kể cả Telegram, tìm kiếm được nhưng chỉ nói tiếp được ở những chat do chính trang văn phòng mở; từng nguồn dữ liệu và lần gần nhất nó trả lời; các máy chủ dịch vụ nền có thể gọi tới và thứ gì được gửi tới từng nơi; các mô hình đang dùng cùng giá và chi phí thường lệ của một phiên chạy trên mỗi mô hình; sức mạnh ngành theo thị trường; và danh sách theo dõi của bạn, mà trang văn phòng sửa được.
+- từng câu trả lời và câu lệnh chạy lâu đang chạy, cùng bước mới nhất của nó;
+- mọi yêu cầu phê duyệt và câu hỏi còn chờ trên bất kỳ kênh nào;
+- một lần khớp lệnh (lệnh cắt lỗ hoặc chốt lời đang treo được bán, hoặc một lần khớp của `/trade`);
+- từng công cụ mà một phiên chạy bắt đầu và kết thúc;
+- lời của từng vai trong cuộc tranh biện sau khi một `/suggest` được kiểm chứng (chỉ hiện trong trang
+  văn phòng, không bao giờ gửi tới chat);
+- một agent mới gia nhập;
+- lúc chạm hạn mức chi tiêu;
+- lần cuối kiểm tra cảnh báo.
 
-Khi dịch vụ nền dừng, API ngừng nhận kết nối và yêu cầu trước tiên, trước khi các phiên chạy được chờ xong; yêu
-cầu đang chạy vẫn hoàn tất. Chat hay lệnh gửi qua một luồng đang mở được trả lời bằng lỗi `unavailable`,
-phiên chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các luồng đóng sau đó.
+Ba loại tin vào chuông mà không tới chat nào trừ khi `[notices] chat` liệt kê: một đề xuất đã có kết quả,
+tin về mã bạn đang giữ, và chỉ số giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã dịch vụ nền
+đã đọc, vì không có gì đi lấy tin cho các mã bạn giữ theo lịch.
 
-Trang văn phòng cũng khởi động lại được dịch vụ nền dù nó chạy ở đâu: trong cửa sổ terminal, ở nền hay dưới một dịch vụ (macOS và Linux). Chọn khởi động lại khi không còn gì đang chạy (chờ tối đa khoảng hai phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Dịch vụ nền dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và phiên chạy nào không xong trong khoảng ân hạn lúc dừng thì bị ngắt; trang văn phòng báo các yêu cầu phê duyệt đó trước. Sau đó nó chạy lại ngay trong cùng tiến trình: cùng pid, cùng cửa sổ terminal, cùng dòng lệnh và cùng môi trường, khóa lưu bằng `openalpha key set` được đọc lại (biến bạn export trong shell đã bật dịch vụ nền thì giữ giá trị cũ). Ở terminal, nhật ký tiếp tục ngay trong cửa sổ đó. Khi dịch vụ nền chạy lại, chuông hiện "Đã khởi động lại dịch vụ nền." (dòng mới thay cho các dòng cùng nội dung còn chưa đọc) và không có gì gửi tới chat. Nếu phiên chạy mới không khởi động được (tệp chạy bị di chuyển hoặc xóa chẳng hạn), dịch vụ nền vẫn dừng và báo ngay trên terminal của nó, hoặc trong nhật ký lỗi nếu nó chạy nền; bạn bật lại bằng `openalpha start`.
+Trang văn phòng nối muộn thì hỏi bức tranh hiện tại trước, rồi theo dõi luồng. Yêu cầu hỏi trên Telegram
+hay kênh khác vẫn hiện trong trang văn phòng, nhưng được trả lời ở nơi nó được hỏi; trang văn phòng nói rõ
+điều đó thay vì trả lời hộ.
 
-Cũng có thể làm trên dòng lệnh: `openalpha restart` nhờ dịch vụ nền đang chạy tự khởi động lại, chờ nó chạy lại rồi in kết quả, và `restart --now` không chờ việc đang chạy. Muốn nhờ được thì `[api]` phải bật và lệnh phải đọc được token; thiếu một trong hai, `restart` dừng dịch vụ nền rồi chạy lại từ shell của bạn, như `--background`. Dù vậy `kill -USR2 <pid>` vẫn khởi động lại tại chỗ ngay, như `--now`; unit systemd dùng được nó làm `ExecReload`. `restart --background` vẫn dừng dịch vụ nền rồi chạy lại ở nền từ shell của bạn, với các biến của shell đó. Trên Windows dịch vụ nền không tự khởi động lại tại chỗ được: trang văn phòng chỉ khởi động lại dịch vụ nền bật bằng `--background`, qua một tiến trình phụ (nếu thất bại, dịch vụ nền vẫn chạy như cũ và chuông chỉ dẫn xem nhật ký restart trong thư mục dữ liệu), còn dịch vụ nền chạy trong terminal thì dừng bằng Ctrl+C rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay dịch vụ nền đang dừng, thì yêu cầu mới bị từ chối.
+Trang văn phòng dừng được mọi phiên chạy bạn thấy, kể cả phiên bắt đầu từ Telegram. Dừng chỉ là báo cho
+nó dừng, và nó kết thúc ở trạng thái đã dừng, dù là một câu trả lời đang chạy hay một câu lệnh. Phiên chạy
+đã xong thì được báo là không còn nữa. Trang văn phòng cũng liệt kê các chat đã ghép nối trên từng kênh và
+bỏ ghép nối được một chat. Kết quả giống `pair revoke`: tin kế tiếp của chat đó lại bị hỏi mã ghép nối.
+
+Trang văn phòng còn đọc được những gì dịch vụ nền biết mà không cần câu lệnh nào:
+
+- lịch sử mọi cuộc chat, kể cả Telegram, tìm kiếm được nhưng chỉ nói tiếp được ở những chat do chính
+  trang văn phòng mở;
+- từng nguồn dữ liệu và lần gần nhất nó trả lời;
+- các máy chủ dịch vụ nền có thể gọi tới và thứ gì được gửi tới từng nơi;
+- các mô hình đang dùng, cùng giá và chi phí thường lệ của một phiên chạy trên mỗi mô hình;
+- sức mạnh ngành theo thị trường;
+- danh sách theo dõi của bạn, mà trang văn phòng sửa được.
+
+Khi dịch vụ nền dừng, API ngừng nhận kết nối và yêu cầu trước tiên, trước khi các phiên chạy được chờ
+xong. Yêu cầu đang chạy vẫn hoàn tất. Chat hay lệnh gửi qua một luồng đang mở được trả lời bằng lỗi
+`unavailable`. Phiên chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các luồng đóng sau đó.
+
+Trang văn phòng cũng khởi động lại được dịch vụ nền dù nó chạy ở đâu: trong cửa sổ terminal, ở nền hay
+dưới một dịch vụ (macOS và Linux). Bạn chọn lúc nào:
+
+- khi không còn gì đang chạy (chờ tối đa khoảng hai phút, hết hạn thì vẫn khởi động lại), hoặc
+- ngay lập tức.
+
+Dịch vụ nền dừng theo cách thông thường. Nên yêu cầu phê duyệt còn chờ bị từ chối, và phiên chạy nào
+không xong trong khoảng ân hạn lúc dừng thì bị ngắt. Trang văn phòng báo các yêu cầu phê duyệt đó trước.
+
+Sau đó nó chạy lại ngay trong cùng tiến trình: cùng pid, cùng cửa sổ terminal, cùng dòng lệnh và cùng môi
+trường. Khóa lưu bằng `openalpha key set` được đọc lại (biến bạn export trong shell đã bật dịch vụ nền thì
+giữ giá trị cũ). Ở terminal, nhật ký tiếp tục ngay trong cửa sổ đó. Khi dịch vụ nền chạy lại, chuông hiện
+"Đã khởi động lại dịch vụ nền." (dòng mới thay cho các dòng cùng nội dung còn chưa đọc), và không có gì
+gửi tới chat.
+
+Nếu phiên chạy mới không khởi động được (tệp chạy bị di chuyển hoặc xóa chẳng hạn), dịch vụ nền vẫn dừng
+và báo ngay trên terminal của nó, hoặc trong nhật ký lỗi nếu nó chạy nền. Bạn bật lại bằng
+`openalpha start`.
+
+Cũng có thể làm trên dòng lệnh:
+
+- `openalpha restart` nhờ dịch vụ nền đang chạy tự khởi động lại, chờ nó chạy lại rồi in kết quả.
+- `restart --now` không chờ việc đang chạy.
+- Muốn nhờ được thì `[api]` phải bật và lệnh phải đọc được token. Thiếu một trong hai, `restart` dừng
+  dịch vụ nền rồi chạy lại từ shell của bạn, như `--background`.
+- Dù vậy `kill -USR2 <pid>` vẫn khởi động lại tại chỗ ngay, như `--now`. Unit systemd dùng được nó làm
+  `ExecReload`.
+- `restart --background` vẫn dừng dịch vụ nền rồi chạy lại ở nền từ shell của bạn, với các biến của
+  shell đó.
+
+Trên Windows dịch vụ nền không tự khởi động lại tại chỗ được. Trang văn phòng chỉ khởi động lại dịch vụ
+nền bật bằng `--background`, qua một tiến trình phụ. Nếu thất bại, dịch vụ nền vẫn chạy như cũ và chuông
+chỉ dẫn xem nhật ký restart trong thư mục dữ liệu. Dịch vụ nền chạy trong terminal thì dừng bằng Ctrl+C
+rồi bật lại.
+
+Đang có một lần khởi động lại hoặc cập nhật, hay dịch vụ nền đang dừng, thì yêu cầu mới bị từ chối.
 
 ### Lệnh chạy trong dịch vụ nền
 
@@ -495,12 +627,55 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 - **Đầu trang.** Chip việc đang chạy (cái gì đang chạy và cái gì tiếp theo: dừng một phiên chạy, hoặc chạy lại một việc theo lịch), công tắc 2D | 3D, nút Chỉ thông tin (không hiện trên màn hình hẹp), chip chi phí AI, đồng hồ văn phòng, chuông thông báo, nút "?" liệt kê các phím tắt và Cài đặt.
 - **Dải giá.** Nổi trên phần đầu khung cảnh văn phòng, ngay dưới nút chuyển tầng, chỉ số chuẩn (VN-Index, BTC) của từng thị trường bạn giao dịch và danh sách theo dõi chạy ngang qua. Mã thủng cắt lỗ và đề xuất mua mới được đánh dấu.
 - **Văn phòng.** Khung cảnh, chiếm cả trang với bảng thông tin nổi phía bên phải; mô tả ở dưới.
-- **Bảng thông tin.** Bốn thẻ. *Hôm nay* mở đầu bằng một dòng về phiên của thị trường nhà (sàn của nó, như HOSE, đang giao dịch hay chưa, tới mấy giờ, và giá đọc lúc nào), rồi tới những gì cần bạn (việc chờ duyệt, mã thủng cắt lỗ; bấm "Mở" để xem trong chuông), những gì đáng xem, danh mục của bạn với nút "Xem danh mục" (giá trị, đang giữ gì, mã thủng cắt lỗ và các lệnh chốt lời đang chờ ở sàn), thị trường Việt Nam và các thị trường khác (mỗi thị trường kèm các mã tăng mạnh nhất và giảm mạnh nhất của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch), sự kiện sắp tới, tin nổi bật, và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang; khối vĩ mô và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví dụ chưa có khóa API của sàn, nằm ở cuối thẻ. *Danh mục* gồm tổng quan, hiệu quả, lịch sử, cân bằng lại và danh sách theo dõi cùng cảnh báo giá, thêm thẻ *Lệnh* khi có sàn đặt lệnh được; mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và có hoàn tác, còn Lịch sử đối chiếu sổ với các sàn của bạn (xem [Giao dịch](giao-dich.md#trên-trang-văn-phòng)). *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên gần nhất đã chốt, tin tức và các chủ đề của bạn (ở dưới). *Đề xuất* gồm các kế hoạch đang mở, màn hình cơ hội, thành tích và kết quả nghiên cứu, kèm số đề xuất mới bạn chưa xem. Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng mã đó), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng các mức của kế hoạch, mã bạn đang giữ, "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì. Bấm một agent của bạn trong văn phòng thì thẻ của nó mở ra (xem [Agent](tro-ly.md#từ-trang-văn-phòng)). Hàng quay lại đưa bạn về chỗ vừa xem, và bảng thu gọn được thành một dải biểu tượng.
+- **Bảng thông tin.** Bốn thẻ, cộng một thẻ riêng cho thứ bạn bấm vào.
+  - *Hôm nay* mở đầu bằng một dòng về phiên của thị trường nhà: sàn của nó, như HOSE, đang giao dịch
+    hay chưa, tới mấy giờ, và giá đọc lúc nào. Tiếp theo, theo thứ tự: những gì cần bạn (việc chờ
+    duyệt, mã thủng cắt lỗ; bấm "Mở" để xem trong chuông); những gì đáng xem; danh mục của bạn với nút
+    "Xem danh mục" (giá trị, đang giữ gì, mã thủng cắt lỗ và các lệnh chốt lời đang chờ ở sàn); thị
+    trường Việt Nam và các thị trường khác (mỗi thị trường kèm các mã tăng mạnh nhất và giảm mạnh nhất
+    của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch); sự kiện sắp
+    tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
+    và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví
+    dụ chưa có khóa API của sàn, nằm ở cuối thẻ.
+  - *Danh mục* gồm tổng quan, hiệu quả, lịch sử, cân bằng lại và danh sách theo dõi cùng cảnh báo giá,
+    thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
+    có hoàn tác, còn Lịch sử đối chiếu sổ với các sàn của bạn (xem
+    [Giao dịch](giao-dich.md#trên-trang-văn-phòng)).
+  - *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên gần nhất đã chốt, tin tức và các chủ đề của bạn (ở
+    dưới).
+  - *Đề xuất* gồm các kế hoạch đang mở, màn hình cơ hội, thành tích và kết quả nghiên cứu, kèm số đề
+    xuất mới bạn chưa xem.
+  - Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng
+    mã đó), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng các mức của kế hoạch, mã bạn đang
+    giữ, "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
+  - Bấm một agent của bạn trong văn phòng thì thẻ của nó mở ra (xem
+    [Agent](tro-ly.md#từ-trang-văn-phòng)).
+  - Hàng quay lại đưa bạn về chỗ vừa xem, và bảng thu gọn được thành một dải biểu tượng.
 - **Trò chuyện.** Cuộc trò chuyện với trợ lý, nằm bên phải. Các cuộc trò chuyện trước, kể cả của Telegram, tìm được (cuộc trò chuyện chưa có lời nào thì không được liệt kê), chia thành hôm nay, 7 ngày qua và cũ hơn (theo ngày của dịch vụ nền, không theo trình duyệt), và tải thêm cuộc trò chuyện cũ khi bạn cần; chỉ những cuộc chat do trang mở mới nói tiếp được; khi đang mở cuộc trò chuyện của kênh khác, ô gõ ở cuối trang báo điều đó và cho bạn tiếp tục trong cuộc trò chuyện mới. Menu của mỗi dòng mở cuộc trò chuyện đó ở một thẻ riêng, trong thẻ chỉ có khung chat, và xóa được cuộc trò chuyện do trang mở: dòng biến mất ngay và một thanh ở cuối trang cho bạn Hoàn tác trong vài giây (đồng hồ dừng khi thẻ bị ẩn; đóng thẻ trước thì không xóa gì). Cuộc trò chuyện còn câu trả lời đang chạy thì không xóa được, và cuộc trò chuyện Telegram không bao giờ bị xóa ở đây. Câu trả lời `/research` hiện các bước khi đang chạy và nguồn đánh số dưới câu trả lời (xem [Nghiên cứu sâu](nghien-cuu.md#trên-trang-văn-phòng)).
 - **Ô câu lệnh.** Nổi trên phần chân khung cảnh văn phòng, hoặc ở cuối trang khi khung cảnh không hiện: ai nhận câu bạn gõ và ô nhập (Enter là gửi; trên điện thoại còn có nút Gửi). Khi bạn gõ, chip agent và nút Trò chuyện thu lại chỉ còn biểu tượng; trên điện thoại chip agent và nút Gửi luôn chỉ là biểu tượng. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng).
 - **Chuông và việc đang chạy.** Chuông liệt kê thông báo và các yêu cầu đang chờ bạn. Yêu cầu duyệt hỏi từ trang này được trả lời ngay trong chuông: duyệt một lần, ghi nhớ hoặc từ chối. Đồng hồ đếm lùi cho biết khi nào hết hạn, và yêu cầu hết giờ mà chưa trả lời thì bị từ chối. Mỗi yêu cầu chỉ được trả lời một lần: nếu nó hiện ở cả chuông lẫn khung chat thì chỉ một câu trả lời được gửi đi, và thẻ còn lại hiện đúng câu trả lời đó, kèm dòng "đã được trả lời" nếu bạn chọn khác ở thẻ này. Yêu cầu hỏi trên Telegram hay kênh khác vẫn được liệt kê nhưng trả lời ở nơi nó được hỏi. Danh sách việc cho thấy cái đang chạy (dừng được, sau một bước xác nhận), cái sắp chạy, cái đang chờ một sự kiện (kiểm tra theo chu kỳ, không tốn AI) và các việc bảo trì tự chạy, kèm cách sửa việc nào đang lỗi; nút "Thêm lịch" đặt một việc cho trợ lý.
 - **Chi phí.** Chip cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày; bấm để xem cả tháng, chi phí theo từng việc và dòng ngân sách, còn "Xem đủ báo cáo" mở báo cáo cho hôm nay, 7 hoặc 30 ngày qua, hay tháng này. Xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng).
-- **Cài đặt.** Biểu tượng bánh răng: hồ sơ đầu tư, bộ nhớ, lịch và theo dõi, agent và AI, kênh nhắn tin, nhà cung cấp, sàn giao dịch, công cụ, dữ liệu và kết nối, hiển thị, và nâng cao, nơi có ô sửa `config.toml` thô. Ô sửa hiện mọi giá trị bí mật (giá trị `env` của máy chủ MCP, mọi token, secret, mật khẩu hay khóa API ghi thẳng trong file) là `********`; cứ để nguyên thì giá trị đã lưu được giữ. Những mục quyết định dịch vụ nền chạy gì, dùng file nào hay gửi khóa đi đâu chỉ đổi được bằng câu lệnh hoặc sửa thẳng trong `config.toml`: plugin, câu lệnh khởi chạy, tham số, `env`, địa chỉ và cách kết nối của máy chủ MCP, mọi khóa `*_env` cùng mọi mục khác ghi tên biến môi trường (`[trading.sources]`, `[trading.venues.<id>] credentials`), `base_url` và `fallback_base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` và `[trading.orders] allow_unattended`. Khi đã đặt `[api] public_url`, `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng kênh cũng chỉ đổi được trên máy chủ. Khi kiểm tra hay lưu một thay đổi ở những mục như vậy, trang sẽ từ chối và nêu tên từng mục; ô chọn mô hình vẫn đổi được nhà cung cấp, khi đó nó đặt biến chứa khóa của chính nhà cung cấp đó và bỏ địa chỉ cũ. Mỗi dòng nói rõ lưu xong có hiệu lực ngay hay cần khởi động lại; bánh răng đếm các thay đổi đang chờ khởi động lại, và chân trang Cài đặt luôn có nút "Khởi động lại dịch vụ nền" (xem ở trên), kể cả khi không có gì đang chờ. Bản thân các khóa thì nhập ở Nhà cung cấp, Sàn giao dịch và Công cụ (ở dưới); những mục ghi tên biến chứa khóa và các địa chỉ `base_url` vẫn chỉ đổi được bằng câu lệnh, như danh sách ở trên.
+- **Cài đặt.** Biểu tượng bánh răng mở ra: hồ sơ đầu tư, bộ nhớ, lịch và theo dõi, agent và AI, kênh
+  nhắn tin, nhà cung cấp, sàn giao dịch, công cụ, dữ liệu và kết nối, hiển thị, và nâng cao, nơi có ô
+  sửa `config.toml` thô.
+  - Ô sửa hiện mọi giá trị bí mật (giá trị `env` của máy chủ MCP, mọi token, secret, mật khẩu hay khóa
+    API ghi thẳng trong file) là `********`. Cứ để nguyên thì giá trị đã lưu được giữ.
+  - Một số mục chỉ đổi được bằng câu lệnh hoặc sửa thẳng trong `config.toml`, vì chúng quyết định
+    dịch vụ nền chạy gì, dùng file nào hay gửi khóa đi đâu: plugin, câu lệnh khởi chạy, tham số,
+    `env`, địa chỉ và cách kết nối của máy chủ MCP, mọi khóa `*_env` cùng mọi mục khác ghi tên biến
+    môi trường (`[trading.sources]`, `[trading.venues.<id>] credentials`), `base_url` và
+    `fallback_base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` và
+    `[trading.orders] allow_unattended`.
+  - Khi đã đặt `[api] public_url`, `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của
+    từng kênh cũng chỉ đổi được trên máy chủ.
+  - Khi kiểm tra hay lưu một thay đổi ở những mục như vậy, trang sẽ từ chối và nêu tên từng mục. Ô chọn
+    mô hình vẫn đổi được nhà cung cấp: khi đó nó đặt biến chứa khóa của chính nhà cung cấp đó và bỏ
+    địa chỉ cũ.
+  - Mỗi dòng nói rõ lưu xong có hiệu lực ngay hay cần khởi động lại. Bánh răng đếm các thay đổi đang
+    chờ khởi động lại, và chân trang Cài đặt luôn có nút "Khởi động lại dịch vụ nền" (xem ở trên), kể
+    cả khi không có gì đang chờ.
+  - Bản thân các khóa thì nhập ở Nhà cung cấp, Sàn giao dịch và Công cụ (ở dưới). Những mục ghi tên
+    biến chứa khóa và các địa chỉ `base_url` vẫn chỉ đổi được bằng câu lệnh, như danh sách ở trên.
 
 ### Những mục cài đặt nên biết
 
@@ -515,7 +690,56 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 
 ### Thị trường, tin tức và chủ đề
 
-Thẻ Thị trường có ba phần. *Thị trường* mở đầu bằng nút "Cập nhật dữ liệu" cạnh ô chọn vùng: nút gửi `/refresh` cho từng thị trường của vùng đang xem mà bạn còn theo dõi, không bao giờ kèm `force`, nên thị trường đã đủ dữ liệu chỉ tốn một phiên chạy nhanh. Một lượt có thể dùng mô hình để đọc báo cáo vĩ mô; khi các lượt trước đủ để ước tính một chi phí lớn hơn 0, dòng chú thích cạnh nút ghi chi phí đó; phiên chạy hiện ở chip đang chạy, kho dữ liệu trong văn phòng và khung chat như `/refresh` gõ tay, nút tắt khi còn một lượt đang chạy, và các khối bên dưới đọc lại khi lượt xong. Thẻ hiện đầy đủ số đọc vĩ mô của vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này): trạng thái và chiều nghiêng, một dòng lãi suất tiền gửi 12 tháng và tỷ giá USD/VND (phần nào chưa có số thì bỏ), những thành phần bị để ngoài vì chưa có số đọc, phần mô hình đã có dữ liệu, và ở mức Nâng cao thì thêm thang đo cùng bảng các thành phần tạo nên con số, lực kéo mạnh nhất đứng đầu. Bên dưới là giá của vùng đó, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng), rồi khối Dòng tiền theo mã: năm mã khối ngoại mua ròng và bán ròng nhiều nhất, năm mã tự doanh mua ròng và bán ròng nhiều nhất (nhà cung cấp công bố trễ khoảng một phiên, nên khi chưa có thì danh sách lấy từ phiên gần nhất đã có số liệu, kèm ngày bên cạnh tiêu đề) và năm mã giao dịch nhiều nhất, giá trị rút gọn (như 76,5 tỷ) và ghi rõ khoảng thời gian đo khi không phải một phiên; khối Sức mạnh ngành xếp các ngành từ mạnh đến yếu, kèm biến động hôm nay, hiện năm ngành mạnh nhất và năm ngành yếu nhất, phần còn lại nằm sau "Xem tất cả" khi thị trường có hơn mười ngành (chỉ có cho thị trường có phân ngành); các khối này đọc lại cùng lúc với phần còn lại, không theo chu kỳ riêng; với Việt Nam, một ô chọn VN-Index, VN30 hoặc HNX cùng năm mã kéo lên và năm mã kéo xuống chỉ số đó trong phiên (mỗi mã kèm giá và số điểm nó góp, có dấu, rồi một dòng cộng tổng phần các mã trong danh sách góp, không phải toàn bộ biến động của chỉ số) và phần định giá của nó (P/E và P/B, mỗi số đặt cạnh trung bình năm năm của nó, ROE suy ra từ hai số đó kèm một dòng nói cách suy, tỷ suất cổ tức, và tỷ lệ mã trong rổ chỉ số nằm trên trung bình 50 và 200 phiên; danh sách được đọc khi mở thẻ và lặp lại mỗi phút, dịch vụ nền giữ mỗi danh sách một phút kể từ lần đọc nên hỏi lại trong phút đó không tốn lượt đọc nguồn; còn định giá là số lượt làm mới gần nhất đã lưu và được đọc lại khi một lượt làm mới xong; các khối này và Dòng tiền theo mã ghi dưới tiêu đề dữ liệu đến ngày nào và đọc lúc nào), phần nào không có gì để hiện thì bị bỏ và phần nào không đọc được thì nói rõ vì sao; và phiên gần nhất đã chốt đúng như `/market` viết (dòng về bản cập nhật định kỳ chỉ có ở vùng nhà), được đọc khi bạn mở và khi bấm Làm mới, không bao giờ theo chu kỳ. *Tin tức* liệt kê tin theo từng ngày theo múi giờ của dịch vụ nền, kèm ô lọc trên những tin đã tải; khi không đọc được nguồn tin, trang nói rõ thay vì hiện một danh sách trống. *Chủ đề* (chỉ có cho Việt Nam) liệt kê những chủ đề đang chờ bạn quyết, với Theo dõi và Bỏ qua, cùng những chủ đề bạn đang theo dõi, với Dừng theo dõi sau một bước xác nhận. "Chạy lại" đặt `/themes` vào ô câu lệnh kèm chi phí ước tính; chưa có gì chạy cho tới khi bạn gửi.
+Thẻ Thị trường có ba phần: *Thị trường*, *Tin tức* và *Chủ đề*.
+
+**Thị trường.** Phần này mở đầu bằng nút "Cập nhật dữ liệu" cạnh ô chọn vùng.
+
+- Nút gửi `/refresh` cho từng thị trường của vùng đang xem mà bạn còn theo dõi, không bao giờ kèm
+  `force`. Nên thị trường đã đủ dữ liệu chỉ tốn một phiên chạy nhanh.
+- Một lượt có thể dùng mô hình để đọc báo cáo vĩ mô. Nên khi các lượt trước đủ để ước tính một chi phí
+  lớn hơn 0, dòng chú thích cạnh nút ghi chi phí đó.
+- Phiên chạy hiện ở chip đang chạy, kho dữ liệu trong văn phòng và khung chat, như `/refresh` gõ tay.
+  Nút tắt khi còn một lượt đang chạy, và các khối bên dưới đọc lại khi lượt xong.
+
+Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này), thẻ hiện:
+
+- **Đầy đủ số đọc vĩ mô**: trạng thái và chiều nghiêng; một dòng lãi suất tiền gửi 12 tháng và tỷ giá
+  USD/VND (phần nào chưa có số thì bỏ); những thành phần bị để ngoài vì chưa có số đọc; phần mô hình
+  đã có dữ liệu; và ở mức Nâng cao thì thêm thang đo cùng bảng các thành phần tạo nên con số, lực kéo
+  mạnh nhất đứng đầu.
+- **Giá của vùng đó**, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động
+  mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng).
+- **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
+  và bán ròng nhiều nhất; và năm mã giao dịch nhiều nhất. Giá trị rút gọn (như 76,5 tỷ), và ghi rõ
+  khoảng thời gian đo khi không phải một phiên. Nhà cung cấp công bố số tự doanh trễ khoảng một phiên,
+  nên khi chưa có thì danh sách lấy từ phiên gần nhất đã có số liệu, kèm ngày bên cạnh tiêu đề.
+- **Sức mạnh ngành** xếp các ngành từ mạnh đến yếu, kèm biến động hôm nay. Khối hiện năm ngành mạnh
+  nhất và năm ngành yếu nhất, phần còn lại nằm sau "Xem tất cả" khi thị trường có hơn mười ngành (chỉ
+  có cho thị trường có phân ngành). Các khối này đọc lại cùng lúc với phần còn lại, không theo chu kỳ
+  riêng.
+- **Với Việt Nam, một ô chọn chỉ số** VN-Index, VN30 hoặc HNX:
+  - năm mã kéo lên và năm mã kéo xuống chỉ số đó trong phiên, mỗi mã kèm giá và số điểm nó góp, có
+    dấu, rồi một dòng cộng tổng phần các mã trong danh sách góp (không phải toàn bộ biến động của chỉ
+    số);
+  - phần định giá của nó: P/E và P/B, mỗi số đặt cạnh trung bình năm năm của nó; ROE suy ra từ hai số
+    đó, kèm một dòng nói cách suy; tỷ suất cổ tức; và tỷ lệ mã trong rổ chỉ số nằm trên trung bình 50
+    và 200 phiên.
+
+  Danh sách được đọc khi mở thẻ và lặp lại mỗi phút. Dịch vụ nền giữ mỗi danh sách một phút kể từ lần
+  đọc, nên hỏi lại trong phút đó không tốn lượt đọc nguồn. Còn định giá là số lượt làm mới gần nhất đã
+  lưu, và được đọc lại khi một lượt làm mới xong. Các khối này và Dòng tiền theo mã ghi dưới tiêu đề
+  dữ liệu đến ngày nào và đọc lúc nào.
+- **Phiên gần nhất đã chốt** đúng như `/market` viết (dòng về bản cập nhật định kỳ chỉ có ở vùng nhà).
+  Phần này được đọc khi bạn mở và khi bấm Làm mới, không bao giờ theo chu kỳ.
+
+Phần nào không có gì để hiện thì bị bỏ, và phần nào không đọc được thì nói rõ vì sao.
+
+**Tin tức** liệt kê tin theo từng ngày theo múi giờ của dịch vụ nền, kèm ô lọc trên những tin đã tải.
+Khi không đọc được nguồn tin, trang nói rõ thay vì hiện một danh sách trống.
+
+**Chủ đề** (chỉ có cho Việt Nam) liệt kê những chủ đề đang chờ bạn quyết, với Theo dõi và Bỏ qua, cùng
+những chủ đề bạn đang theo dõi, với Dừng theo dõi sau một bước xác nhận. "Chạy lại" đặt `/themes` vào ô
+câu lệnh kèm chi phí ước tính; chưa có gì chạy cho tới khi bạn gửi.
 
 ### Văn phòng
 

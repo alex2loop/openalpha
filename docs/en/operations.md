@@ -1,7 +1,7 @@
 # Recurring work
 
-Three kinds of work repeat on their own. Know which is which before you ask why something did or did
-not run.
+Three kinds of work repeat on their own. When something did or did not run, first work out which
+kind it was. The answer is usually right there.
 
 | Kind | Who creates it | Where it lives |
 |---|---|---|
@@ -9,17 +9,17 @@ not run.
 | **Scheduled jobs** | You, with `schedule add` | The database, so they survive restarts |
 | **Heartbeats** | A `HEARTBEAT.md` in an agent workspace | A file the daemon scans |
 
-All three run through the normal agent engine with the same budgets, model limits and tools. They
-differ on approval: a scheduled job with a channel target can ask you; a heartbeat never can, because
-nobody is watching.
+All three run through the normal agent engine, with the same budgets, model limits and tools. The
+difference is approval. A scheduled job with a channel target can stop and ask you. A heartbeat never
+can, because nobody is watching.
 
 ---
 
 ## Built-in loops
 
 They start when `openalpha start` brings the daemon up and stop when `openalpha stop` takes it down.
-Each loop waits, runs, then works out its next wait, so a slow run never overlaps itself. A run with
-nothing to do returns at once.
+Each loop waits, runs, and only then works out its next wait. So a slow run never overlaps itself. A
+run with nothing to do returns at once.
 
 | Job | Cadence | What it does |
 | --- | --- | --- |
@@ -37,11 +37,16 @@ nothing to do returns at once.
 | heartbeat check | 30 s | Scans each workspace's `HEARTBEAT.md`. |
 | schedule check | 30 s | Looks for scheduled jobs that are due. |
 
-With the API on, the app lists these loops, and any a plugin adds, as one board of what the daemon is doing in the
-background: its name in plain words, how often it runs where it keeps a fixed pace, when its last pass began, the
-last error if that pass failed (the next good pass clears it), when it runs next and whether it is working now. The
-morning brief and the intraday report show when they are next due. The board lives in memory, so after a restart
-each loop shows nothing until its next pass.
+With the API on, the app shows these loops, plus any a plugin adds, on one board of background work.
+For each loop you see:
+
+- its name in plain words;
+- how often it runs, where it keeps a fixed pace;
+- when its last pass began, and the last error if that pass failed (the next good pass clears it);
+- when it runs next, and whether it is working now.
+
+The morning brief and the intraday report show when they are next due. The board lives in memory, so
+after a restart each loop shows nothing until its next pass.
 
 ### When market data refreshes
 
@@ -55,21 +60,25 @@ each loop shows nothing until its next pass.
 A market that never closes, such as crypto, refreshes at the UTC day rollover. Anchors within 60
 seconds of each other merge into one run.
 
-At boot the first refresh runs before other parts start. It waits up to 60 seconds, then finishes in
-the background with a warning. With no network at boot, the loop waits for it. A provider, storage or
-channel failure in that refresh is a warning (`daemon.boot_refresh_failed`) whether it lands inside the
-60 seconds or after them, and the daemon boots on; any other error stops the boot.
+At boot, the first refresh runs before other parts start:
 
-Each of these passes, the boot one included, shows on the office page as a typed `/refresh` does:
-the stock keeper works in the data store with its progress on the wall monitor, the header counts it
-as running, and once it ends Activity lists it as "Data refresh", from "a schedule" (marked stopped or
-failed when it did not finish). It calls no model, so its row shows no cost and no AI calls. It
-shows from its first fetch, so a pass with no market in use, or one that finds every market's data
-still fresh, shows nothing at all.
+- It waits up to 60 seconds, then finishes in the background with a warning.
+- With no network at boot, the loop waits for the network.
+- A provider, storage or channel failure in that refresh is only a warning
+  (`daemon.boot_refresh_failed`), whether it lands inside the 60 seconds or after them. The daemon
+  boots on. Any other error stops the boot.
 
-A run that leaves any data kind `unavailable` (nothing fetched at all) retries after 2, 4, 8 and 16
-minutes, never past the next anchor. A fifth failure hands back to the anchor and the ladder starts
-over. A run that only fell short (`partial`) waits for the next anchor; the missing names are
+Each of these passes, the boot one included, shows on the office page just as a typed `/refresh`
+does. The stock keeper works in the data store, with progress on the wall monitor. The header counts
+it as running. Once it ends, Activity lists it as "Data refresh", from "a schedule" (marked stopped or
+failed when it did not finish). It calls no model, so its row shows no cost and no AI calls.
+
+A pass shows from its first fetch. So a pass with no market in use, or one that finds every market's
+data still fresh, shows nothing at all.
+
+If a run leaves any data kind `unavailable` (nothing fetched at all), it retries after 2, 4, 8 and 16
+minutes, never past the next anchor. A fifth failure hands back to the anchor, and the ladder starts
+over. A run that only fell short (`partial`) just waits for the next anchor. The missing names are
 repaired on their own cooldown.
 
 Every run logs one `trading.market_data_refreshed` line with how long each market took. A market
@@ -77,10 +86,12 @@ that loads several kinds also gives the time of each kind, so a slow refresh poi
 
 ### What you can tune
 
-One cadence: `[trading.refresh] interval_ms`, defaulting to the 12-hour ceiling above. Retention is
-`days`, `history_days` and `inbox_days` under `[retention]`. Everything else is fixed. Keys and defaults:
-[Configuration](configuration.md#trading). Each run handles 50 rows, except `trading.macro-extract`
-at 3, because each of its items is a model call. Restart the daemon after changing any of these.
+- One cadence: `[trading.refresh] interval_ms`, defaulting to the 12-hour ceiling above.
+- Retention: `days`, `history_days` and `inbox_days` under `[retention]`.
+
+Everything else is fixed. Keys and defaults: [Configuration](configuration.md#trading). Each run
+handles 50 rows, except `trading.macro-extract` at 3, because each of its items is a model call.
+Restart the daemon after changing any of these.
 
 ### When a run throws
 
@@ -99,30 +110,47 @@ go.
 ### When a key is missing
 
 `openalpha start` still starts without an AI key, a web search key, an MCP server's variable, the API
-token or a channel's bot token, and prints one warning per item (see
-[Commands](commands.md#daemon-and-diagnostics)). Data refresh, price alerts, the ledger and every loop
-that needs no model keep running. Work that needs the model waits: the macro-figure loop logs
-`trading.tick_key_missing` (warn) once and keeps trying each run; the morning brief still sends the
-sections that need no model, and on a day it cannot build you get one message naming the variable and
-how to set it; a scheduled job that needs the model skips that run without counting it as a failure,
-so it is never switched off for a missing key. `status` lists what is waiting for a key. Save the key with
-`openalpha key set <NAME>` and `restart --background`, and everything runs again.
+token or a channel's bot token. It prints one warning per missing item (see
+[Commands](commands.md#daemon-and-diagnostics)).
+
+Data refresh, price alerts, the ledger and every loop that needs no model keep running. Work that
+needs the model waits:
+
+- The macro-figure loop logs `trading.tick_key_missing` (warn) once and keeps trying each run.
+- The morning brief still sends the sections that need no model. On a day it cannot build, you get
+  one message naming the variable and how to set it.
+- A scheduled job that needs the model skips that run without counting it as a failure. So it is
+  never switched off for a missing key.
+
+`status` lists what is waiting for a key. Save the key with `openalpha key set <NAME>`, run
+`restart --background`, and everything runs again.
 
 ### When the daemon stops, or misses a brief
 
-A daemon that dies without stopping cleanly (a crash, a `kill -9`, a power cut) leaves its pid file behind,
-and `status` then prints `daemon: stopped unexpectedly (started <time>)` with a pointer to `openalpha logs`
-instead of the plain "not running". The next start also messages your chat once, saying alerts and the brief
-were paused until now. If the brief could not go out before the open (the daemon was down, or every try
-failed), the day's brief is skipped and the chat gets one line saying so; the next one stays on schedule. A brief whose build starts before the open but finishes after it is still sent, with a line first
-saying prices have moved since it was written.
+Sometimes the daemon dies without stopping cleanly: a crash, a `kill -9`, a power cut. It then leaves
+its pid file behind. `status` prints `daemon: stopped unexpectedly (started <time>)` with a pointer to
+`openalpha logs`, instead of the plain "not running". The next start also messages your chat once,
+saying alerts and the brief were paused until now.
 
-A chat channel that stays down is reported too. Every five minutes the daemon looks at each channel, and one
-that has been down (or connected-but-failing) for 15 minutes is announced once, on another channel that is up,
-with the reason: a refused bot token, an expired Zalo login, the account open somewhere else, or a connection
-that keeps dropping. When it is back, you get one "is back" line. `status` lists the channel as `down: <reason>`
-while it is. With no other channel to tell, it is logged only (`channel.watch_no_route`). A restart forgets it,
-so a channel still down afterwards is announced once more.
+The morning brief has to go out before the open:
+
+- If it could not (the daemon was down, or every try failed), the day's brief is skipped and the chat
+  gets one line saying so. The next one stays on schedule.
+- A brief whose build starts before the open but finishes after it is still sent. A first line says
+  prices have moved since it was written.
+
+A chat channel that stays down is reported too. Every five minutes the daemon looks at each channel.
+One that has been down (or connected-but-failing) for 15 minutes is announced once, on another channel
+that is up, with the reason:
+
+- a refused bot token;
+- an expired Zalo login;
+- the account open somewhere else;
+- a connection that keeps dropping.
+
+When it is back, you get one "is back" line. While it is down, `status` lists the channel as
+`down: <reason>`. With no other channel to tell, it is logged only (`channel.watch_no_route`). A
+restart forgets it, so a channel still down afterwards is announced once more.
 
 ---
 
@@ -150,21 +178,40 @@ can replace the prompt, schedule, timezone or target; to change the agent, remov
 again. It works while the daemon runs and writes only the fields you changed, so a run that is due or
 retrying is not disturbed.
 
-A prompt that starts with `/` is a command, run the way you would type it, with no model unless the
-command itself needs one (`/suggest`, `/research`): `--prompt "/health"` costs nothing. Only the first
-line is the command, and a result is delivered like any other answer, to the bell when no page is open, so the next page to open reads it. Each such run leaves a row in the activity log. A command that changes your
-settings, orders or book (such as `/trade`, `/record sync` or `/refresh`) needs you to approve it, so `schedule add` and
-`schedule edit` refuse it, and so do the office page and an agent's schedule tool. A word after the `/` that is no command is refused the same way, and so is a stored job that would now be refused when it comes due.
+A prompt that starts with `/` is a command. It runs the way you would type it, with no model unless
+the command itself needs one (`/suggest`, `/research`). So `--prompt "/health"` costs nothing.
+
+- Only the first line is the command.
+- The result is delivered like any other answer. When no page is open it goes to the bell, so the
+  next page to open reads it.
+- Each such run leaves a row in the activity log.
+
+A command that changes your settings, orders or book (such as `/trade`, `/record sync` or `/refresh`)
+needs you to approve it. So `schedule add` and `schedule edit` refuse it, and so do the office page
+and an agent's schedule tool. A word after the `/` that is no command is refused the same way. So is
+a stored job that would now be refused, when it comes due.
 
 `--allow-tools` restricts the job to the tools on *both* lists: the agent's allowed tools and the
 job's. `schedule show` prints the effective set with `(restricted)` or `(all)`.
 
-A job can wait for an alert instead of a time; call it an event job. The office page creates these: the job runs when a held
-name breaks its stop or reaches its take-profit, when a name moves sharply in the session, or when a
-price you set is hit. It runs at most once per cooldown, a pause the job carries so a noisy name cannot run it again and again, and it
-stays on after a run, except a price job, which its one crossing spends; running it by hand crosses nothing, so it stays armed. `schedule list` shows it as `when FPT hit the
-price you set` where other jobs show a time, `schedule edit` cannot give it a time, and `schedule
-remove` also removes the price alert it armed, and `schedule resume` refuses a price job whose alert has already fired. A failed run of an event job is not counted toward switching it off, so one that keeps failing stays on and sends a failure notice at each crossing, at most once per cooldown.
+A job can wait for an alert instead of a time. Call it an event job. The office page creates these.
+The job runs when:
+
+- a held name breaks its stop or reaches its take-profit;
+- a name moves sharply in the session;
+- a price you set is hit.
+
+It runs at most once per cooldown. The cooldown is a pause the job carries, so a noisy name cannot
+run it again and again. The job stays on after a run, except a price job: its one crossing spends it.
+Running it by hand crosses nothing, so it stays armed.
+
+- `schedule list` shows it as `when FPT hit the price you set` where other jobs show a time.
+- `schedule edit` cannot give it a time.
+- `schedule remove` also removes the price alert it armed.
+- `schedule resume` refuses a price job whose alert has already fired.
+
+A failed run of an event job does not count toward switching it off. So one that keeps failing stays
+on, and sends a failure notice at each crossing, at most once per cooldown.
 
 Cron takes five fields with wildcards, ranges, steps (`*/15`, `1-5/2`) and comma lists. When both
 day-of-month and weekday are restricted, **either** match is enough; a day field that starts with `*`
@@ -178,8 +225,10 @@ afterwards. A job with `*` in either field simply follows the clock.
 ### How a run behaves
 
 - A job never runs twice at once, and never twice for the same scheduled moment.
-- `run-now` records a run but does not move the schedule or touch the failure count. The one exception is a one-time job: a successful `run-now` is its run, so the job is then done and disabled. It is refused
-  while a scheduled run of the same job is still live, from the CLI as much as from the daemon.
+- `run-now` records a run but does not move the schedule or touch the failure count. The one
+  exception is a one-time job: a successful `run-now` is its run, so the job is then done and
+  disabled. `run-now` is refused while a scheduled run of the same job is still live, from the CLI as
+  much as from the daemon.
 - A run that died without finishing (the daemon was killed, say) is closed out as failed and the
   schedule moves on rather than re-running it. A one-time job has no next run, so a lost run counts as
   a failure: it comes due again after the retry delay below, and is disabled with a notice on the
@@ -192,11 +241,11 @@ disables itself. A failed run retries with a doubling delay, `60 s x 2^(failures
 minutes: one minute after the first failure, two after the second, then **disabled on the third
 consecutive failure**. A success resets the count.
 
-A missing key does not count either: a run that fails because an AI key variable is unset is
-skipped with one warning in the log, and the job stays on and runs at its next time, so setting the
-key and restarting is enough, with no `schedule resume`. The morning brief works the same way: that
-day you get a message naming the variable and how to set it, instead of "didn't get through after
-several tries".
+A missing key does not count either. A run that fails because an AI key variable is unset is skipped
+with one warning in the log. The job stays on and runs at its next time. So setting the key and
+restarting is enough, with no `schedule resume`. The morning brief works the same way: that day you
+get a message naming the variable and how to set it, instead of "didn't get through after several
+tries".
 
 A spent budget does not count either. When the daily or monthly cap, or an agent's own cap, stops a
 run, the job skips to its next time, and a one-time job is asked again in 30 minutes. A run stopped
@@ -322,14 +371,22 @@ dropped, and a `fatal` crash line goes to the terminal instead.
 
 ## Start at login
 
-On a desktop, `openalpha autostart enable` registers `start --background` to run at every login, so the
-morning brief and alerts keep coming after a restart: a launchd agent on macOS, a systemd user unit on
-Linux (on a server with nobody logged in, also run `loginctl enable-linger $USER`) and a Run-key entry on
-Windows. `openalpha autostart` shows whether it is on, and `autostart disable` removes it (a daemon running
-now keeps running). It needs the installed binary, not a source checkout, and takes effect from the next
-login. A login launch does not see variables exported only in your shell, so save keys with
-`openalpha key set`; `enable` names every key your setup reads that is set only in the shell, a data source key such as `FRED_API_KEY` included. The unit it writes is `openalpha-autostart`, apart from
-the hand-written service below, which stays the way to run an API server.
+On a desktop, `openalpha autostart enable` registers `start --background` to run at every login. So
+the morning brief and alerts keep coming after a restart. What it registers depends on the system:
+
+- macOS: a launchd agent.
+- Linux: a systemd user unit. On a server with nobody logged in, also run
+  `loginctl enable-linger $USER`.
+- Windows: a Run-key entry.
+
+`openalpha autostart` shows whether it is on, and `autostart disable` removes it (a daemon running now
+keeps running). It needs the installed binary, not a source checkout, and takes effect from the next
+login.
+
+A login launch does not see variables exported only in your shell, so save keys with
+`openalpha key set`. `enable` names every key your setup reads that is set only in the shell, a data
+source key such as `FRED_API_KEY` included. The unit it writes is `openalpha-autostart`. It is separate
+from the hand-written service below, which stays the way to run an API server.
 
 ## Run the API on a server
 
@@ -364,19 +421,21 @@ Run the daemon on a server you own and point a client app at it.
    ```
 
    Run `systemctl --user enable --now openalpha`, then `loginctl enable-linger $USER` so it outlives
-   your login. `systemctl --user reload openalpha` restarts the daemon in place, keeping its pid, and a
-   restart from the office page does the same. To upgrade, run `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`:
-   a daemon the service owns is never restarted by `upgrade` itself.
+   your login. `systemctl --user reload openalpha` restarts the daemon in place, keeping its pid. A
+   restart from the office page does the same. To upgrade, run
+   `systemctl --user stop openalpha; openalpha upgrade; systemctl --user start openalpha`. A daemon
+   the service owns is never restarted by `upgrade` itself.
 4. **Open the office page.** Run `openalpha web` on the server (the daemon must be running). On the
    server's own screen it opens the browser. Over SSH it prints two things instead: a tunnel command
    to run on your own machine, such as
    `ssh -N -o ExitOnForwardFailure=yes -L 18765:127.0.0.1:8765 user@server`, and a link
    (`http://127.0.0.1:18765/#code=...`) to open once the tunnel is up. The tunnel's local port is the
-   server's port plus 10000 (minus, past port 55535), so it stays clear of a daemon on your own machine, and `ssh` stops with
-   an error if that port is taken. The link works once and for 5 minutes; run `openalpha web` again
-   for a new one. For the desktop app, run `openalpha connect`: it prints the
-   address and the token on two separate lines. Give the app that address and token, never a browser,
-   and keep the token private.
+   server's port plus 10000 (minus, past port 55535). So it stays clear of a daemon on your own
+   machine, and `ssh` stops with an error if that port is taken. The link works once and for 5
+   minutes; run `openalpha web` again for a new one.
+
+   For the desktop app, run `openalpha connect`. It prints the address and the token on two separate
+   lines. Give the app that address and token, never a browser, and keep the token private.
 5. **Reach it from outside.** The API listens on the server's `127.0.0.1` only, so the SSH tunnel
    above needs nothing more. To reach it without a tunnel, pick one in this order:
    - **SSH**, no domain needed: nothing to set up. `openalpha web` prints the tunnel.
@@ -385,21 +444,29 @@ Run the daemon on a server you own and point a client app at it.
    - **Caddy** with a domain: `alpha.example.com { reverse_proxy 127.0.0.1:8765 }`, then set
      `[api] public_url = "https://alpha.example.com"` and restart the daemon.
 
-   Anything in front of the daemon (a proxy, a tunnel, a domain) needs `public_url`: it is what turns on
-   the exposure limits below and the `__Host-` sign-in cookie. Without it the daemon only catches a proxy
-   that sends `X-Forwarded-For` or `Forwarded`, or a `Host` that is not a local name, and refuses those
-   with a line naming `public_url`. A proxy that passes neither looks local. A bare nginx `proxy_pass`
-   is one: it sends `Host: 127.0.0.1:<port>` and no forwarded header. So set `public_url` before you
-   expose the daemon, and have nginx send `proxy_set_header Host $host;` and
-   `proxy_set_header X-Forwarded-For $remote_addr;`. The daemon otherwise answers only a request
-   addressed to `127.0.0.1`, `localhost` or `[::1]` (any port, so a tunnel works as is), which stops a
-   DNS-rebinding page. With `public_url` set, `openalpha web` prints the `https://` link instead of a
-   tunnel. Five wrong tokens or sign-in codes pause that caller for 30 seconds, and each pause after
-   that doubles, up to an hour; an hour with no wrong try starts it over. A caller through `public_url`
-   is told apart by the last address in `X-Forwarded-For` (the one your proxy added), so a guesser on the internet never pauses
-   your terminal or the CLI on the same machine. During a pause every token and code from that caller
-   is refused, right or wrong, so no guess is checked; a browser already signed in carries on. Once it
-   ends, a right token or code clears the count.
+   Anything in front of the daemon (a proxy, a tunnel, a domain) needs `public_url`. It is what turns
+   on the exposure limits below and the `__Host-` sign-in cookie.
+
+   Without it, the daemon only catches a proxy that sends `X-Forwarded-For` or `Forwarded`, or a
+   `Host` that is not a local name. It refuses those with a line naming `public_url`. A proxy that
+   passes neither looks local. A bare nginx `proxy_pass` is one: it sends `Host: 127.0.0.1:<port>` and
+   no forwarded header. So set `public_url` before you expose the daemon, and have nginx send
+   `proxy_set_header Host $host;` and `proxy_set_header X-Forwarded-For $remote_addr;`.
+
+   Otherwise, the daemon answers only a request addressed to `127.0.0.1`, `localhost` or `[::1]` (any
+   port, so a tunnel works as is). That stops a DNS-rebinding page. With `public_url` set,
+   `openalpha web` prints the `https://` link instead of a tunnel.
+
+   Wrong guesses are slowed down:
+
+   - Five wrong tokens or sign-in codes pause that caller for 30 seconds. Each pause after that
+     doubles, up to an hour. An hour with no wrong try starts it over.
+   - A caller through `public_url` is told apart by the last address in `X-Forwarded-For` (the one
+     your proxy added). So a guesser on the internet never pauses your terminal or the CLI on the same
+     machine.
+   - During a pause every token and code from that caller is refused, right or wrong, so no guess is
+     checked. A browser already signed in carries on.
+   - Once the pause ends, a right token or code clears the count.
 6. **Connect the client.** Give the app the address and the token; every request carries the token
    as `Authorization: Bearer <token>`. At most 8 app streams (`/v1/ws`) are open at once; a ninth
    handshake is refused with 503 `too_many_streams`.
@@ -419,26 +486,86 @@ less, so setting `public_url` also:
 Exchange keys deserve the same care: make them trading-only, never allow withdrawals, and pin them to
 the server's IP address on the exchange, so a leaked key cannot move money out.
 
-**Upgrading.** If you ran Caddy with `header_up Host`, remove that line and set `public_url`: the
-proxy now passes the public name as it does by default. Everyone then runs `openalpha api rotate`
-once; it restarts the daemon, so a token an older page saved in a browser stops working. After the
+**Upgrading.** If you ran Caddy with `header_up Host`, remove that line and set `public_url`. The
+proxy now passes the public name, as it does by default. Everyone then runs `openalpha api rotate`
+once. It restarts the daemon, so a token an older page saved in a browser stops working. After the
 restart, `openalpha web` signs each browser in again.
 
-Once connected, the office page is shown what the daemon is doing as it happens: each answer and long command that is
-running with its latest step, every approval and question still waiting on any channel, a fill (a resting
-stop or take-profit selling, or a `/trade` fill), each tool a run starts and finishes, what each debate role said once a `/suggest` is verified (shown on the office page only, never sent to a chat), a new agent joining, the moment a spend cap is reached, and when the alerts were last checked. These go to the bell and to no chat unless `[notices] chat` lists them: a call scored, news on a name you hold, and the index falling hard in a session. News on a holding covers only names the daemon has already read, since nothing fetches it for your holdings on a schedule. A page that
-connects late asks for the picture as it stands, then follows the stream. A request asked on Telegram or another
-channel appears on the office page but is answered where it was asked; the office page says so instead of answering it. The office page can stop any run you see, including one started on Telegram: stopping only tells it to stop, and it ends as stopped, whether it was an answer in progress or a command. A run that has already finished answers that it is gone. The office page also lists the chats paired on each channel and can unpair one, which does what `pair revoke` does: that chat is asked for a pairing code again on its next message.
+Once connected, the office page shows what the daemon is doing as it happens:
 
-The office page also reads what the daemon knows without a command: the history of every chat, Telegram's included, which it can search but only continue for chats it started itself; each data source and when it last answered; the hosts the daemon can reach and what is sent to each; the models in use with their prices and what a run on each usually costs; sector strength by market; and your watchlist, which it can edit.
+- each answer and long command that is running, with its latest step;
+- every approval and question still waiting on any channel;
+- a fill (a resting stop or take-profit selling, or a `/trade` fill);
+- each tool a run starts and finishes;
+- what each debate role said once a `/suggest` is verified (shown on the office page only, never sent
+  to a chat);
+- a new agent joining;
+- the moment a spend cap is reached;
+- when the alerts were last checked.
 
-When the daemon stops, the API stops accepting connections and requests first, before the runs drain;
-requests already running finish. A chat or command sent on an open stream is answered with an
-`unavailable` error, a run already going settles in the drain window, and the streams close after it.
+Three notices go to the bell and to no chat unless `[notices] chat` lists them: a call scored, news on
+a name you hold, and the index falling hard in a session. News on a holding covers only names the
+daemon has already read, since nothing fetches it for your holdings on a schedule.
 
-The office page can also restart the daemon wherever it runs: in a terminal, in the background or under a service (macOS and Linux). Choose to restart once nothing is working (it waits a couple of minutes at most, then restarts anyway) or right now. The daemon stops the usual way, so an approval still waiting is refused and a run that cannot finish within the grace it gets while stopping is cut off, and the office page warns about the approvals first. It then starts again in the same process: the same pid, terminal, command line and environment, with the keys saved by `openalpha key set` read again (a variable exported in the shell that started it keeps the value it had). In a terminal the log carries on in the same window. When the daemon is back, the bell shows "The daemon restarted." (the new line stands for any earlier unread ones) and nothing goes to a chat. If the new run cannot start (the binary was moved or removed, say), the daemon stays stopped and says so on its terminal, or in its error log when it runs in the background; start it again with `openalpha start`.
+A page that connects late asks for the picture as it stands, then follows the stream. A request asked
+on Telegram or another channel appears on the office page, but is answered where it was asked; the
+office page says so instead of answering it.
 
-The same restart is on the command line: `openalpha restart` asks the running daemon, waits for it to come back and prints the result, and `restart --now` does not wait for running work. Asking needs `[api]` on and a token the command can read; without them `restart` stops the daemon and starts it again from your shell, as `--background` does. `kill -USR2 <pid>` restarts it in place at once, like `--now`, either way; a systemd unit can use it as `ExecReload`. `restart --background` still stops the daemon and starts it again in the background from your shell, with your shell's variables. On Windows a daemon cannot restart itself in place: the office page restarts only one started with `--background`, through a helper process (if that fails, the daemon keeps running and the bell points to the restart log in the data folder), and one in a terminal is stopped with Ctrl+C and started again. A restart or update already under way, or a daemon that is shutting down, refuses another request.
+The office page can stop any run you see, including one started on Telegram. Stopping only tells it to
+stop, and it ends as stopped, whether it was an answer in progress or a command. A run that has
+already finished answers that it is gone. The office page also lists the chats paired on each channel
+and can unpair one. That does what `pair revoke` does: the chat is asked for a pairing code again on
+its next message.
+
+The office page also reads what the daemon knows without a command:
+
+- the history of every chat, Telegram's included, which it can search but only continue for chats it
+  started itself;
+- each data source and when it last answered;
+- the hosts the daemon can reach and what is sent to each;
+- the models in use, with their prices and what a run on each usually costs;
+- sector strength by market;
+- your watchlist, which it can edit.
+
+When the daemon stops, the API stops accepting connections and requests first, before the runs drain.
+Requests already running finish. A chat or command sent on an open stream is answered with an
+`unavailable` error. A run already going settles in the drain window, and the streams close after it.
+
+The office page can also restart the daemon wherever it runs: in a terminal, in the background or
+under a service (macOS and Linux). You choose when:
+
+- once nothing is working (it waits a couple of minutes at most, then restarts anyway), or
+- right now.
+
+The daemon stops the usual way. So an approval still waiting is refused, and a run that cannot finish
+within the grace it gets while stopping is cut off. The office page warns about the approvals first.
+
+It then starts again in the same process: the same pid, terminal, command line and environment. The
+keys saved by `openalpha key set` are read again (a variable exported in the shell that started it
+keeps the value it had). In a terminal, the log carries on in the same window. When the daemon is
+back, the bell shows "The daemon restarted." (the new line stands for any earlier unread ones), and
+nothing goes to a chat.
+
+If the new run cannot start (the binary was moved or removed, say), the daemon stays stopped and says
+so on its terminal, or in its error log when it runs in the background. Start it again with
+`openalpha start`.
+
+The same restart is on the command line:
+
+- `openalpha restart` asks the running daemon, waits for it to come back and prints the result.
+- `restart --now` does not wait for running work.
+- Asking needs `[api]` on and a token the command can read. Without them, `restart` stops the daemon
+  and starts it again from your shell, as `--background` does.
+- `kill -USR2 <pid>` restarts it in place at once, like `--now`, either way. A systemd unit can use it
+  as `ExecReload`.
+- `restart --background` still stops the daemon and starts it again in the background from your
+  shell, with your shell's variables.
+
+On Windows a daemon cannot restart itself in place. The office page restarts only one started with
+`--background`, through a helper process. If that fails, the daemon keeps running and the bell points
+to the restart log in the data folder. One in a terminal is stopped with Ctrl+C and started again.
+
+A restart or update already under way, or a daemon that is shutting down, refuses another request.
 
 ### Commands run in the daemon
 
@@ -505,12 +632,55 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
 - **Header.** The running chip (what is running and what is next: stop a run, or run a scheduled job again), the 2D | 3D switch, the Info only toggle (not shown on narrow screens), the AI cost chip, the office clock, the bell, a "?" button that lists the keyboard shortcuts, and Settings.
 - **Tape.** Floating over the top of the office scene, under the floor switch, the benchmark (VN-Index, BTC) of each market you trade and your watchlist scroll past. A name past its stop and a fresh buy call are marked.
 - **The office.** The scene, filling the page with the information panel floating over its right side; described below.
-- **Information panel.** Four tabs. *Today* opens with one line on your home market's day (whether its exchange, such as HOSE, is trading and until when, and when the prices were read), then what needs you (approvals waiting, names past their stop; Open shows them in the bell), then what is worth a look, your book with "See the portfolio" (its value, what it holds, names past their stop, and the take-profit orders waiting at the exchange), the Vietnamese and other markets (each with its top gainers and losers of the session, or of the last 24 hours for a market that never closes, with their turnover), upcoming events, top headlines, and what the agents did today, including work that ran while the page was closed; the macro and news blocks carry "See the full reading", which opens the Market tab. Anything the daemon started without, such as a missing exchange key, closes the tab. *Portfolio* holds overview, performance, history, rebalance and the watchlist with its price alerts, plus *Orders* where a venue can place orders; every kind of ledger row is recorded, edited and deleted here, with undo, and History checks the ledger against your venues (see [Trading](trading.md#on-the-office-page)). *Market* holds the full macro reading, the last closed session, the news and your themes (below). *Ideas* holds open plans, the opportunities screen, the track record and research results, with a count of new calls you have not seen. Click a ticker anywhere and its card opens: price (with "Refresh price", which reads that one name live), the last sessions charted on price and date axes with the plan levels, your holding, "Why?" for the reasoning behind a call, earlier calls and what your own agents think. Click one of your agents in the office and its tab opens (see [Agents](agents.md#from-the-office-page)). A back row returns to where you were, and the panel collapses to an icon strip.
+- **Information panel.** Four tabs, plus a card for whatever you click.
+  - *Today* opens with one line on your home market's day: whether its exchange, such as HOSE, is
+    trading and until when, and when the prices were read. Then come, in order: what needs you
+    (approvals waiting, names past their stop; Open shows them in the bell); what is worth a look;
+    your book with "See the portfolio" (its value, what it holds, names past their stop, and the
+    take-profit orders waiting at the exchange); the Vietnamese and other markets (each with its top
+    gainers and losers of the session, or of the last 24 hours for a market that never closes, with
+    their turnover); upcoming events; top headlines; and what the agents did today, including work
+    that ran while the page was closed. The macro and news blocks carry "See the full reading", which
+    opens the Market tab. Anything the daemon started without, such as a missing exchange key, closes
+    the tab.
+  - *Portfolio* holds overview, performance, history, rebalance and the watchlist with its price
+    alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
+    and deleted here, with undo, and History checks the ledger against your venues (see
+    [Trading](trading.md#on-the-office-page)).
+  - *Market* holds the full macro reading, the last closed session, the news and your themes (below).
+  - *Ideas* holds open plans, the opportunities screen, the track record and research results, with a
+    count of new calls you have not seen.
+  - Click a ticker anywhere and its card opens: price (with "Refresh price", which reads that one name
+    live), the last sessions charted on price and date axes with the plan levels, your holding, "Why?"
+    for the reasoning behind a call, earlier calls and what your own agents think.
+  - Click one of your agents in the office and its tab opens (see
+    [Agents](agents.md#from-the-office-page)).
+  - A back row returns to where you were, and the panel collapses to an icon strip.
 - **Chat.** The conversation with the assistant, docked on the right. Earlier sessions, Telegram's included, are searchable (a session nothing was said in is not listed), grouped into today, the last 7 days and older (by the daemon's day, not your browser's), and load older ones on demand; only chats the page started can be continued; while another channel's chat is open, the box at the bottom says so and offers to continue in a new session. Each row's menu opens the chat in a tab of its own, with nothing but the chat in it, and deletes a chat the page started: the row goes at once and a bar at the bottom offers Undo for a few seconds (the clock pauses while the tab is hidden; closing the tab first deletes nothing). A chat whose answer is still running cannot be deleted, and a Telegram chat is never deleted here. A `/research` answer shows its steps while it runs and numbered sources under the answer (see [Deep research](research.md#on-the-office-page)).
 - **Command bar.** Floating over the foot of the office scene, or at the bottom of the page while the scene is not shown: who receives what you type, and the box (Enter sends; a phone also shows Send). While you type, the agent chip and the Chat button shrink to their icons; a phone always shows the chip and Send as icons. See [Commands](commands.md#the-command-bar-in-the-office-page).
 - **Bell and jobs.** The bell lists notices and the requests waiting for you. An approval asked from this page is answered right in the bell: approve once, remember, or deny. A countdown shows when it times out, and a request that times out unanswered is refused. A request is answered once: if it shows in both the bell and the chat, only one answer is sent, and the other card shows that answer and says it was already answered if you chose differently there. One asked on Telegram or another channel is listed but answered where it was asked. The jobs list shows what is running (stop it, after a confirm), what is coming up, what is waiting for an event (checked on a timer at no AI cost) and the automatic upkeep jobs, with a way to fix one that is failing; "Add a schedule" files a job for the assistant.
 - **Cost.** The chip shows today's spend against the daily cap; click for the month, the split by job and the budget row, and "See the full report" for today, the last 7 or 30 days, or this month. See [Budgets](budgets.md#in-the-office-page).
-- **Settings.** The gear: investor profile, memory, schedules and watching, agents and AI, messaging channels, providers, exchanges, tools, data and connections, display, and advanced, which holds a raw `config.toml` editor. The editor shows each secret (an MCP server's `env` values, any token, secret, password or API key written in the file) as `********`; leave it as it is and the saved value stays. What decides what the daemon runs, which files it uses or where a key goes changes only from the CLI or in `config.toml` itself: plugins, an MCP server's command, arguments, `env`, address and transport, every `*_env` key and every other field naming an environment variable (`[trading.sources]`, `[trading.venues.<id>] credentials`), `base_url` and `fallback_base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` and `[trading.orders] allow_unattended`. While `[api] public_url` is set, a channel's `allowed_ids`, `operator_user_ids`, `pairing` and `dm_policy` change only on the server too. Checking or saving a change to one is refused with a line naming each such field; the model picker can still switch provider, which sets that provider's own key variable and drops the old address. Each row says whether saving applies at once or needs a restart; the gear counts the changes waiting for one, and the Settings footer always has "Restart the daemon" (see above), with nothing waiting too. The keys themselves are set under Providers, Exchanges and Tools (below); the fields that name a key's variable and the `base_url` addresses stay CLI-only, as listed above.
+- **Settings.** The gear opens: investor profile, memory, schedules and watching, agents and AI,
+  messaging channels, providers, exchanges, tools, data and connections, display, and advanced, which
+  holds a raw `config.toml` editor.
+  - The editor shows each secret (an MCP server's `env` values, any token, secret, password or API key
+    written in the file) as `********`. Leave it as it is and the saved value stays.
+  - Some fields change only from the CLI or in `config.toml` itself, because they decide what the
+    daemon runs, which files it uses or where a key goes: plugins, an MCP server's command,
+    arguments, `env`, address and transport, every `*_env` key and every other field naming an
+    environment variable (`[trading.sources]`, `[trading.venues.<id>] credentials`), `base_url` and
+    `fallback_base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` and
+    `[trading.orders] allow_unattended`.
+  - While `[api] public_url` is set, a channel's `allowed_ids`, `operator_user_ids`, `pairing` and
+    `dm_policy` change only on the server too.
+  - Checking or saving a change to one of those is refused, with a line naming each such field. The
+    model picker can still switch provider: that sets that provider's own key variable and drops the
+    old address.
+  - Each row says whether saving applies at once or needs a restart. The gear counts the changes
+    waiting for one, and the Settings footer always has "Restart the daemon" (see above), with nothing
+    waiting too.
+  - The keys themselves are set under Providers, Exchanges and Tools (below). The fields that name a
+    key's variable and the `base_url` addresses stay CLI-only, as listed above.
 
 ### Settings worth knowing
 
@@ -525,7 +695,57 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
 
 ### Market, news and themes
 
-The Market tab has three parts. *Market* opens with "Refresh data" beside the region picker: it sends `/refresh` for each market of the region in view that you still read, never `force`, so a market whose data is already current costs one quick pass. A pass can read macro reports with the model, so once past runs quote a cost above zero, the note beside the button gives it; the run shows in the running chip, the office's data store and the chat like a typed `/refresh`, the button stays off while one runs, and the blocks below read again when it ends. It shows the macro reading in full for the region you pick (the home one first, kept in this browser): the regime and lean, one line with the 12-month deposit rate and the USD/VND rate (a part with no reading is left out), the drivers left out because they have no reading yet, how much of the model has data, and, in Advanced, the scale and a table of what makes the number, strongest pull first. Under it are the region's prices, with each market's top gainers and losers (the five strongest moves above its liquidity floor, side by side on a wide panel), then Money flow by name: the five names foreigners bought and sold most on net, the five the proprietary desks bought and sold most on net (the provider publishes them about a session late, so until then the list is the latest session that has them, with its date beside the title), and the five most traded, in compact amounts (like 76.5B) and with the span measured when it is not one session; Sector strength ranks the sectors from strongest to weakest with today's move, showing the five strongest and the five weakest with the rest behind "Show all" when a market files more than ten (only for a market that files sectors); these blocks read again together with the rest, never on a timer of their own; for Vietnam, a picker for VN-Index, VN30 or HNX with the five names that lifted and the five that weighed on that index this session (each with its price and the points it added, signed, then a line with what the listed names added up to, not the index's whole move) and its valuation (P/E and P/B, each set against its five-year average, ROE derived from them with a line saying how, the dividend yield, and the share of the index's stocks above their 50- and 200-session averages; the list is read when the tab opens and again each minute, and the daemon holds each list for a minute from its read so a second ask inside it costs no provider read; the valuation is what the last refresh stored and reads again when a refresh ends; each of these blocks and Money flow says under its title which day its data is up to and when it was read), a part with nothing to show left out and one that could not be read saying why; and the last closed session as `/market` writes it (the line about scheduled updates only for the home region), read when you open it and on Refresh, never on a timer. *News* lists the headlines grouped by day in the daemon's zone, with a filter over what is loaded; when the sources cannot be read it says so instead of showing an empty list. *Themes* (Vietnam only) lists the themes waiting for you, with Follow and Skip, and the ones you follow, with Stop following after a confirm. "Run again" puts `/themes` in the command box with its estimated cost; nothing runs until you send it.
+The Market tab has three parts: *Market*, *News* and *Themes*.
+
+**Market.** It opens with "Refresh data" beside the region picker.
+
+- The button sends `/refresh` for each market of the region in view that you still read, never
+  `force`. So a market whose data is already current costs one quick pass.
+- A pass can read macro reports with the model. So once past runs quote a cost above zero, the note
+  beside the button gives it.
+- The run shows in the running chip, the office's data store and the chat, like a typed `/refresh`.
+  The button stays off while one runs, and the blocks below read again when it ends.
+
+Then, for the region you pick (the home one first, kept in this browser), the tab shows:
+
+- **The macro reading in full**: the regime and lean; one line with the 12-month deposit rate and the
+  USD/VND rate (a part with no reading is left out); the drivers left out because they have no
+  reading yet; how much of the model has data; and, in Advanced, the scale and a table of what makes
+  the number, strongest pull first.
+- **The region's prices**, with each market's top gainers and losers (the five strongest moves above
+  its liquidity floor, side by side on a wide panel).
+- **Money flow by name**: the five names foreigners bought and sold most on net; the five the
+  proprietary desks bought and sold most on net; and the five most traded. Amounts are compact (like
+  76.5B), with the span measured when it is not one session. The provider publishes the
+  proprietary-desk figures about a session late, so until then the list is the latest session that
+  has them, with its date beside the title.
+- **Sector strength** ranks the sectors from strongest to weakest with today's move. It shows the five
+  strongest and the five weakest, with the rest behind "Show all" when a market files more than ten
+  (only for a market that files sectors). These blocks read again together with the rest, never on a
+  timer of their own.
+- **For Vietnam, an index picker** for VN-Index, VN30 or HNX:
+  - the five names that lifted and the five that weighed on that index this session, each with its
+    price and the points it added, signed, then a line with what the listed names added up to (not
+    the index's whole move);
+  - its valuation: P/E and P/B, each set against its five-year average; ROE derived from them, with a
+    line saying how; the dividend yield; and the share of the index's stocks above their 50- and
+    200-session averages.
+
+  The list is read when the tab opens and again each minute. The daemon holds each list for a minute
+  from its read, so a second ask inside it costs no provider read. The valuation is what the last
+  refresh stored, and reads again when a refresh ends. Each of these blocks, and Money flow, says
+  under its title which day its data is up to and when it was read.
+- **The last closed session** as `/market` writes it (the line about scheduled updates only for the
+  home region). It is read when you open it and on Refresh, never on a timer.
+
+A part with nothing to show is left out, and one that could not be read says why.
+
+**News** lists the headlines grouped by day in the daemon's zone, with a filter over what is loaded.
+When the sources cannot be read, it says so instead of showing an empty list.
+
+**Themes** (Vietnam only) lists the themes waiting for you, with Follow and Skip, and the ones you
+follow, with Stop following after a confirm. "Run again" puts `/themes` in the command box with its
+estimated cost; nothing runs until you send it.
 
 ### The office
 
