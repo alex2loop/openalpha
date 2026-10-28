@@ -5,7 +5,7 @@ import type { Marker } from '@/web/scene/overlay/markers'
 import type { PlacedTag } from '@/web/scene/overlay/name-tags'
 import type { LitScreen } from '@/web/scene/overlay/screens'
 import type { SceneRenderer } from '@/web/scene/renderer'
-import type { ActorId, Rect, RoomId, SimView, Size } from '@/web/scene/types'
+import type { ActorId, Rect, SimView, Size } from '@/web/scene/types'
 import { ambientMsOf } from '@/web/scene/budgets'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { requestSeries, startDeskReads } from '@/web/scene/data/desk-reads'
@@ -19,6 +19,7 @@ import { figureOf } from '@/web/scene/overlay/hit'
 import { hoverPlaceOf } from '@/web/scene/overlay/hover-label'
 import { withLiveScreens } from '@/web/scene/overlay/live-screens'
 import { placeMarkers } from '@/web/scene/overlay/markers'
+import { menuClearOf, showMenuLabels, syncMenuLabels } from '@/web/scene/overlay/menu-clear'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
 import {
   EMPTY_OVERLAY,
@@ -30,15 +31,16 @@ import {
   showOverlay,
 } from '@/web/scene/overlay/overlay'
 import {
+  isTaken,
   layoutOverlay,
   layoutTags,
-  readFixed,
   readOverlayFont,
   releaseMeasure,
   sizeBubble,
   sizeTag,
 } from '@/web/scene/overlay/placement'
 import { menuActor, menuPillRects, menuPlaceOf, menuRingOf } from '@/web/scene/overlay/radial-menu'
+import { isOnScreen, readFixed, roomRects, toScreenRect } from '@/web/scene/overlay/screen-rects'
 import { createScreenTyping, type ScreenTyping } from '@/web/scene/overlay/screen-typing'
 import { analystSeriesOf, buildTeamScreens } from '@/web/scene/overlay/screens'
 import {
@@ -52,7 +54,6 @@ import { syncTwin } from '@/web/scene/overlay/twin'
 import { isOnFloor } from '@/web/scene/sim/actors/poses'
 import { isActorId, isCrewId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { projection, view } from '@/web/scene/view'
-import { roomsOn } from '@/web/scene/world/rooms'
 import { onWireEvent } from '@/web/state/events'
 import { selectedActor } from '@/web/state/focus'
 import { pending, runs } from '@/web/state/live'
@@ -62,8 +63,6 @@ import { tr } from '@/web/text/tr'
 /** However still the inputs, the layout runs again this often while frames are drawn, and once
  *  more this long after its last change (the boards and room tags it avoids settle after it). */
 const OVERLAY_REFRESH_MS = 250
-// A speaker this far past the pane's edge, in CSS px, counts as off screen.
-const OFF_SCREEN_PX = 16
 
 /** Everything the layout reads from one frame. Figures are in CSS px of the scene host. */
 interface PassInput {
@@ -136,6 +135,7 @@ export function startOverlay(deps: PassDeps): OverlayPass {
       syncTwin(undefined, [])
       hoverActor(undefined)
       keyActor(undefined)
+      showMenuLabels(deps.scene.ownerDocument)
       releaseMeasure()
     },
   }
@@ -270,25 +270,22 @@ function signatureOf(input: PassInput): string {
   ].join('|')
 }
 
+// While a radial menu is open its person wears no tag or hover label (the menu names them), and a
+// label or marker the pills or the reply would meet is hidden.
 function layOut(input: PassInput, deps: PassDeps): OverlayView {
-  const markerPlaces = placeMarkers(input.markers, {
-    figures: input.figures,
-    scale: projection.value.scale,
-  })
-  const screenPlaces = input.screens.map((screen) => ({
-    screen,
-    rect: toScreenRect(deps.renderer, screen.rect),
-  }))
+  const { markerPlaces, screenPlaces } = placesOf(input, deps.renderer)
   const team = teamPlacesOf(input, deps.renderer)
+  const chrome = readFixed(deps.scene)
+  const pills = menuPillRects(input.figures, input.menu)
   const fixed = [
-    ...readFixed(deps.scene),
-    ...[...markerPlaces, ...screenPlaces].map((place) => place.rect),
+    ...[...chrome, ...markerPlaces, ...screenPlaces].map((place) => place.rect),
     ...team.cards.map((place) => place.rect),
     ...(team.addDesk === undefined ? [] : [team.addDesk]),
-    ...menuPillRects(input.figures, input.menu),
+    ...pills,
   ]
   const tags = layoutTags(tagAsks(input), { actors: input.figures, taken: fixed })
-  const hover = hoverPlaceOf(input.view, { actor: input.hovered, figures: input.figures })
+  const hovered = input.hovered === input.menu ? undefined : input.hovered
+  const hover = hoverPlaceOf(input.view, { actor: hovered, figures: input.figures })
   const layout = layoutOverlay({
     bubbles: shownBubbles(input).map((bubble) => sizeBubble(bubble, actionsOf(bubble))),
     fixed,
@@ -300,17 +297,37 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     ...menuRingOf(input.figures, input.menu),
   })
   const taken = [...fixed, ...tags.values(), ...layout.placed.map((placed) => placed.rect)]
+  const clear = menuClearOf(pills, { actor: input.menu, placed: layout.placed })
+
+  syncMenuLabels(chrome, clear)
 
   return {
     bubbles: layout.placed,
     tags: withMore(input, { tags, hidden: layout.hidden, taken }),
-    markers: markerPlaces,
+    markers: markerPlaces.filter((place) => !isTaken(place.rect, clear)),
     screens: screenPlaces,
     ...team,
     ...(hover === undefined || layout.hover === undefined
       ? {}
       : { hover: { actor: hover.actor, name: hover.name, rect: layout.hover, now: hover.now } }),
     ...marksOf(input),
+  }
+}
+
+// The hand-off markers over heads and the lit screens, in CSS px of the scene host.
+function placesOf(
+  input: PassInput,
+  renderer: SceneRenderer
+): { markerPlaces: OverlayView['markers']; screenPlaces: OverlayView['screens'] } {
+  return {
+    markerPlaces: placeMarkers(input.markers, {
+      figures: input.figures,
+      scale: projection.value.scale,
+    }),
+    screenPlaces: input.screens.map((screen) => ({
+      screen,
+      rect: toScreenRect(renderer, screen.rect),
+    })),
   }
 }
 
@@ -363,7 +380,11 @@ function actionsOf(bubble: Bubble): string[] {
 function tagAsks(input: PassInput): { actor: ActorId; size: Size; isForced: boolean }[] {
   return [...input.figures.keys()]
     .filter(
-      (actor) => actor !== input.hovered && ownAgentIdOf(actor) === undefined && !isCrewId(actor)
+      (actor) =>
+        actor !== input.hovered &&
+        actor !== input.menu &&
+        ownAgentIdOf(actor) === undefined &&
+        !isCrewId(actor)
     )
     .filter(
       (actor) => input.isZoomed || actor === input.selected || isTeamTagged(input.view, actor)
@@ -405,28 +426,6 @@ function withMore(input: PassInput, set: TagSet): PlacedTag[] {
     isSelected: actor === input.selected,
     isMore: hidden.has(actor),
   }))
-}
-
-function roomRects(sim: SimView, renderer: SceneRenderer): ReadonlyMap<RoomId, Rect> {
-  return new Map(roomsOn(sim.floor).map((room) => [room.id, toScreenRect(renderer, room.rect)]))
-}
-
-function toScreenRect(renderer: SceneRenderer, rect: Rect): Rect {
-  const from = renderer.toScreen({ x: rect.x, y: rect.y })
-  const to = renderer.toScreen({ x: rect.x + rect.w, y: rect.y + rect.h })
-
-  return { x: from.x, y: from.y, w: to.x - from.x, h: to.y - from.y }
-}
-
-function isOnScreen(rect: Rect, pane: Size): boolean {
-  const x = rect.x + rect.w / 2
-
-  return (
-    x >= -OFF_SCREEN_PX &&
-    x <= pane.w + OFF_SCREEN_PX &&
-    rect.y + rect.h >= -OFF_SCREEN_PX &&
-    rect.y <= pane.h + OFF_SCREEN_PX
-  )
 }
 
 function toActorId(id: string | undefined): ActorId | undefined {

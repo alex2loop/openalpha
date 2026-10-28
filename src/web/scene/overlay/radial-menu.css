@@ -27,3 +27,8 @@
     0 10px 26px -8px var(--glassDrop);
   outline: none;
 }
+
+/* A room badge or board note the open menu or its reply would cover. */
+[data-under-menu] {
+  visibility: hidden;
+}

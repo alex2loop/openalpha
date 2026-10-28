@@ -34,10 +34,6 @@ const SHIFT_STEPS = [0, -1, 1, -2, 2] as const
 const SHIFT_STEP = 0.45
 const SPAN_PX = 8
 const TAIL_INSET_PX = 8
-// The boards, room tags and toolbar pieces other overlays draw, and the page's floating panel and
-// command bar over the scene; no bubble covers them.
-const FIXED_SELECTOR =
-  '.room-tag-row, .board-line, .scene-zoombtn, .scene-hint, .panel.is-float, .command-bar.is-floating'
 const PRIORITY: Readonly<Record<BubbleKind, number>> = Object.freeze({
   wait: 0,
   say: 1,
@@ -191,18 +187,6 @@ export function sizeTag(text: string): Size {
 /** A radial menu pill's width from its label. */
 export function pillWidthOf(text: string): number {
   return Math.ceil(measure(text, PILL_FONT)) + PILL_PAD_X_PX * 2
-}
-
-/** The boxes other overlays and the page's floating chrome drew, relative to `scene`; read only
- *  when a layout runs, never per frame. */
-export function readFixed(scene: HTMLElement): Rect[] {
-  const origin = scene.getBoundingClientRect()
-
-  return [...scene.ownerDocument.querySelectorAll(FIXED_SELECTOR)].map((element) => {
-    const box = element.getBoundingClientRect()
-
-    return { x: box.left - origin.left, y: box.top - origin.top, w: box.width, h: box.height }
-  })
 }
 
 /** Takes the font family the page renders the overlay in, once at mount; widths measured in
@@ -429,7 +413,8 @@ function tagRectOf(figure: Rect, size: Size): Rect {
   }
 }
 
-function isTaken(rect: Rect, taken: readonly Rect[]): boolean {
+/** True when `rect` comes within `HIT_GAP_PX` of any box in `taken`. */
+export function isTaken(rect: Rect, taken: readonly Rect[]): boolean {
   return taken.some((held) => isOverlapping(rect, held))
 }
 
