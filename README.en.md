@@ -2,7 +2,7 @@
 <h3 align="center">What if TradingAgents and OpenClaw had a baby? 👀</h3>
 
 <p align="center">
-  <strong>A council of AI analysts that argues before every call, like TradingAgents, running on your machine and chatting over Telegram and Zalo, like OpenClaw.</strong><br/>
+  <strong>A council of AI analysts that argues before every call, like <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, running on your machine and chatting over Telegram and Zalo, like <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
   Meet OpenAlpha, an open-source AI investment analyst: the AI does the analysis, and placing the order is still your call.
 </p>
 
