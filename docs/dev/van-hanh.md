@@ -58,7 +58,7 @@ thì chờ neo kế tiếp.
 | `StorageError`, `ChannelError`, `LLMError`, hoặc `RunHalted` với mã `budget` hay `rate` | Lỗi biên: `trading.tick_failed` ở mức warn, thử lại ở chu kỳ sau. |
 | `MissingEnvError` | Lỗi biên: `trading.tick_key_missing` ở mức warn, một lần mỗi vòng cho tới khi có lỗi khác được ghi, thử lại ở chu kỳ sau. |
 | Mọi lỗi khác | Thoát lên lớp cách ly bọc quanh vòng lặp. Thử lại mãi chỉ che giấu việc mã đang sai. |
-| Hủy | Là lúc tắt máy; vòng lặp thoát bình thường. |
+| Hủy | Là lúc tắt máy khi chính tín hiệu của vòng lặp bị hủy; vòng lặp thoát bình thường. Lệnh hủy khác (bạn dừng phiên chạy của lượt đó trên trang) ghi `trading.tick_stopped` ở mức info và chờ chu kỳ sau. |
 
 Lớp cách ly (`withQuarantine`) ghi `trading.loop_quarantined` ở mức error và gửi operator một thông báo
 gọi tên vòng đó. Nó chạy lại vòng sau một giờ, tối đa ba lần. Vòng nào chạy trọn một ngày rồi mới lỗi

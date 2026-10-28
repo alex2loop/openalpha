@@ -57,7 +57,7 @@ never past the next anchor; a fifth failure hands back to the anchor and the lad
 | `StorageError`, `ChannelError`, `LLMError`, or `RunHalted` with code `budget` or `rate` | Boundary failure: `trading.tick_failed` at warn, retried next interval. |
 | `MissingEnvError` | Boundary failure: `trading.tick_key_missing` at warn once per loop until another failure is logged, retried next interval. |
 | Any other error | Escapes to the quarantine wrapper around the loop. Retrying forever would hide the code being wrong. |
-| Abort | Shutdown; the loop exits normally. |
+| Abort | Shutdown when the loop's own signal fired; the loop exits normally. Any other abort (the operator stopped the pass's run on the page) logs `trading.tick_stopped` at info and waits for the next interval. |
 
 Quarantine (`withQuarantine`) logs `trading.loop_quarantined` at error and sends the operator a
 notice that names the loop. It restarts the loop after one hour, at most three times. A loop that ran

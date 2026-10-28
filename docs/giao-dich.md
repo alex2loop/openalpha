@@ -577,11 +577,12 @@ khác làm dịch vụ nền dừng ngay lúc khởi động, kèm danh sách h�
   không làm chuông ngập kết quả cũ. Chỉ lời gọi thuộc thành tích của chính bạn mới vào chuông hay chat; ý kiến thứ hai
   của một agent có phạm vi riêng chỉ hiện trực tiếp trên trang văn phòng, ở chỗ agent đó. Thẻ của lời gọi đó có đủ
   bức tranh.
-- **Tin về mã bạn đang giữ.** Mỗi mã đang giữ có một thông báo mỗi ngày, kèm tiêu đề và nguồn. Nó chỉ gồm những mã
+- **Tin về mã bạn đang giữ.** Mỗi mã đang giữ có một thông báo mỗi ngày, kèm tiêu đề và nguồn, cho tin đăng trong ngày:
+  tin cũ mà dịch vụ nền mới lưu sau đó thì không được báo. Nó chỉ gồm những mã
   dịch vụ nền đã đọc: tiêu đề được lưu lại khi một `/suggest` hay một cuộc chat về mã đó đọc đến chúng, và không có gì đi lấy
   tin cho các mã bạn giữ theo lịch. Sau khi khởi động lại, nó không lặp lại tiêu đề của ngày hôm đó.
 - **Chỉ số giảm mạnh.** Khi chỉ số của khu vực giảm ít nhất 1,5% trong một phiên, mỗi phiên một lần, kiểm tra vài phút
-  một lần trong lúc phiên đang chạy. Thông báo nói bao nhiêu mã bạn giữ trên thị trường của chỉ số đó đang giảm và có mã nào thủng mức cắt lỗ chưa.
+  một lần trong lúc phiên đang chạy. Thông báo nói bao nhiêu mã bạn giữ trên thị trường của chỉ số đó đang giảm (chỉ tính theo giá trực tiếp của phiên này) và có mã nào thủng mức cắt lỗ chưa.
   Nếu có mã không định giá được, nó nói bao nhiêu mã chưa kiểm tra được, và không bao giờ khẳng định là không có mã nào
   thủng.
 

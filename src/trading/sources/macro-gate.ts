@@ -3,7 +3,12 @@ import type { Region, TradingDay } from '@/trading/kernel/instrument'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { MacroSnapshot } from '@/trading/kernel/market/market-data'
 import type { SourceId } from '@/trading/kernel/source/source-id'
-import type { RegisteredSource, Source, SourceResult } from '@/trading/kernel/source/source-result'
+import type {
+  RegisteredSource,
+  Source,
+  SourceResult,
+  SourceUnavailable,
+} from '@/trading/kernel/source/source-result'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY } from '@/core/utils/time'
@@ -88,7 +93,8 @@ interface StoredRead {
 
 /** Every macro read of a source with a profile goes through here: it is asked at most once a UTC
  *  day, not at all while no new print can exist, and a refused or failed read falls back to what the
- *  last good one stored. The quota behind the sources is shared by every process on the machine, so
+ *  last good one stored. A spent daily quota is remembered until the UTC day turns, so later reads
+ *  that day answer from the store without asking again. The quota behind the sources is shared by every process on the machine, so
  *  a boot or a refresh must never spend it on a figure already in hand. */
 export function gateMacroSource(
   source: RegisteredSource,
@@ -103,7 +109,14 @@ export function gateMacroSource(
   return toRegisteredSource(gatedSource(source, { ...options, id: source.id, profile }))
 }
 
+interface QuotaSpent {
+  readonly day: TradingDay
+  readonly result: SourceUnavailable
+}
+
 function gatedSource(source: Source<'macro'>, gate: Gate): Source<'macro'> {
+  let quotaSpent: QuotaSpent | undefined
+
   return {
     ...source,
     async fetch(context, signal) {
@@ -120,7 +133,9 @@ function gatedSource(source: Source<'macro'>, gate: Gate): Source<'macro'> {
         return cachedResult(gate.id, region, stored)
       }
 
-      const live = await source.fetch(context, signal)
+      const today = utcDayOf(now)
+      const live =
+        quotaSpent?.day === today ? quotaSpent.result : await source.fetch(context, signal)
 
       if (live.kind === 'available') {
         await remember(gate, live.value, signal)
@@ -128,11 +143,19 @@ function gatedSource(source: Source<'macro'>, gate: Gate): Source<'macro'> {
         return live
       }
 
+      if (isQuotaSpent(live)) {
+        quotaSpent = { day: today, result: live }
+      }
+
       return stored !== undefined && canStandIn(stored, gate.profile, now)
         ? cachedResult(gate.id, region, stored)
         : live
     },
   }
+}
+
+function isQuotaSpent(result: SourceUnavailable): boolean {
+  return result.caveats.some((caveat) => caveat.code === 'source.quota-exhausted')
 }
 
 // "Today" is the UTC day: providers publish on one clock and the quota meters on it, whatever

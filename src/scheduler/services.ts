@@ -48,6 +48,8 @@ interface ClaimedJobRun {
   readonly job: Job
   readonly requestId: string
   readonly signal: AbortSignal
+  /** The run a price crossing started, which spends a price job. */
+  readonly crossing: boolean
 }
 
 interface Deferred<T> {
@@ -270,6 +272,7 @@ async function runJobNow(options: RunJobOperation): Promise<SchedulerCommandResu
     job: appendPrompt === undefined ? job : { ...job, prompt: `${job.prompt}\n\n${appendPrompt}` },
     requestId,
     signal,
+    crossing: appendPrompt !== undefined,
     ...(owner === undefined ? {} : { owner }),
   })
 
@@ -332,13 +335,14 @@ function admitThroughController(
   controller: NonNullable<ReturnType<SchedulerCommandDeps['controller']>>,
   options: ClaimedJobRun
 ): Promise<ClaimedJobRunResult | undefined> {
-  const { deps, owner, job, requestId } = options
+  const { deps, owner, job, requestId, crossing } = options
   const admission = controller.admit(job, (signal) =>
     runClaimedScheduledJob({
       job,
       deps: deps.scheduler,
       signal,
       requestId,
+      crossing,
       ...(owner === undefined ? {} : { owner }),
     })
   )
@@ -347,13 +351,14 @@ function admitThroughController(
 }
 
 function runUncontrolledJob(options: ClaimedJobRun): Promise<ClaimedJobRunResult> {
-  const { deps, owner, job, requestId, signal } = options
+  const { deps, owner, job, requestId, signal, crossing } = options
 
   return runClaimedScheduledJob({
     job,
     deps: deps.scheduler,
     signal,
     requestId,
+    crossing,
     ...(owner === undefined ? {} : { owner }),
   })
 }

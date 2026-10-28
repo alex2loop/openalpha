@@ -89,7 +89,7 @@ at 3, because each of its items is a model call. Restart the daemon after changi
 | Storage, channel or LLM error, or a budget or rate stop | Logged as `trading.tick_failed` (warn) and retried on the next run. The outside world being unreachable is what the next run is for. |
 | A model key not set yet | Logged once as `trading.tick_key_missing` (warn), again only after something else was logged, and retried on the next run. |
 | Anything else: a validation failure, a broken invariant, a misconfiguration | That loop is quarantined and the rest keep running. It is logged as `trading.loop_quarantined` (error) and you get a notice naming the loop in plain words. The loop restarts after one hour, at most three times; the next failure leaves it stopped until the daemon restarts, and the notice says so. A loop that runs a full day before failing again gets its three restarts back. |
-| Cancel | You stopped the daemon. Not a failure. |
+| Cancel | You stopped the daemon, or stopped the pass's run on the page. Not a failure. A stopped run ends only that pass; the next one runs on schedule. |
 | No network (a closed laptop's background wake) | The run is skipped, not failed. `trading.tick_offline` (warn) is logged once per offline stretch, then the network is re-checked every minute. Nothing burns a delivery attempt or trips a source breaker; the overdue run goes once the network is back. |
 | Retention sweep fails | Logged as a warning; the next sweep tries again. |
 
@@ -162,7 +162,7 @@ job's. `schedule show` prints the effective set with `(restricted)` or `(all)`.
 A job can wait for an alert instead of a time; call it an event job. The office page creates these: the job runs when a held
 name breaks its stop or reaches its take-profit, when a name moves sharply in the session, or when a
 price you set is hit. It runs at most once per cooldown, a pause the job carries so a noisy name cannot run it again and again, and it
-stays on after a run, except a price job, which its one crossing spends. `schedule list` shows it as `when FPT hit the
+stays on after a run, except a price job, which its one crossing spends; running it by hand crosses nothing, so it stays armed. `schedule list` shows it as `when FPT hit the
 price you set` where other jobs show a time, `schedule edit` cannot give it a time, and `schedule
 remove` also removes the price alert it armed, and `schedule resume` refuses a price job whose alert has already fired. A failed run of an event job is not counted toward switching it off, so one that keeps failing stays on and sends a failure notice at each crossing, at most once per cooldown.
 

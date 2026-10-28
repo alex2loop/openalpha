@@ -89,7 +89,7 @@ mục ở đó là một lời gọi mô hình. Đổi gì ở đây cũng cần
 | Lỗi lưu trữ, kênh hay LLM, hoặc lệnh dừng vì ngân sách/tần suất | Ghi log `trading.tick_failed` (warn) và thử lại ở lượt sau. Thế giới bên ngoài không với tới được chính là lý do có lượt sau. |
 | Chưa đặt khóa của mô hình | Ghi log `trading.tick_key_missing` (warn) một lần, chỉ ghi lại sau khi có lỗi khác, và thử lại ở lượt sau. |
 | Mọi lỗi khác: lỗi kiểm tra, bất biến bị phá, cấu hình sai | Vòng đó bị cách ly, các vòng khác vẫn chạy. Log `trading.loop_quarantined` (error) và bạn nhận thông báo gọi tên vòng đó bằng lời thường. Một giờ sau vòng chạy lại, tối đa ba lần; lỗi kế tiếp thì nó dừng hẳn đến khi dịch vụ nền khởi động lại, và thông báo nói rõ điều này. Vòng nào chạy trọn một ngày rồi mới lỗi lại thì được cấp lại đủ ba lần. |
-| Hủy | Bạn đã tắt dịch vụ nền. Không phải lỗi. |
+| Hủy | Bạn đã tắt dịch vụ nền, hoặc dừng phiên chạy của lượt đó trên trang. Không phải lỗi. Dừng một phiên chạy chỉ kết thúc lượt đó; lượt sau vẫn chạy đúng lịch. |
 | Mất mạng (máy gập nắp tự thức dậy chạy nền) | Lượt đó bị bỏ qua, không tính là lỗi. `trading.tick_offline` (warn) ghi một lần cho mỗi đợt mất mạng, rồi kiểm tra lại mỗi phút. Không lần gửi nào bị trừ lượt thử, không nguồn nào bị ngắt; lượt quá hạn chạy ngay khi có mạng lại. |
 | Lượt quét lưu giữ hỏng | Ghi log cảnh báo; lượt quét sau thử lại. |
 
@@ -160,7 +160,7 @@ và công cụ của việc. `schedule show` in tập hiệu lực kèm `(restri
 Một việc có thể chờ một cảnh báo thay vì chờ giờ; gọi đó là việc theo sự kiện. Trang văn phòng tạo loại này: việc chạy khi mã bạn đang
 giữ thủng mức cắt lỗ hoặc chạm mức chốt lời, khi một mã biến động mạnh trong phiên, hay khi giá bạn
 đặt được chạm. Việc chạy tối đa một lần mỗi khoảng chờ, quãng nghỉ mà việc mang theo để một mã ồn ào không kích nó chạy liên tục, và vẫn bật sau khi chạy,
-trừ việc theo giá: một lần chạm là hết. `schedule list` ghi nó là `khi FPT chạm mức giá bạn đặt`
+trừ việc theo giá: một lần chạm là hết; tự bấm chạy ngay thì chưa chạm gì nên việc vẫn chờ. `schedule list` ghi nó là `khi FPT chạm mức giá bạn đặt`
 thay cho giờ, `schedule edit` không đặt giờ cho nó được, `schedule remove` gỡ luôn cảnh báo giá nó
 đã đặt, còn `schedule resume` từ chối việc theo giá mà cảnh báo đã chạm. Một phiên chạy hỏng của việc theo sự kiện không tính vào việc tự tắt, nên việc cứ hỏng mãi vẫn bật và báo lỗi ở mỗi lần cảnh báo chạm, tối đa một lần mỗi khoảng chờ.
 

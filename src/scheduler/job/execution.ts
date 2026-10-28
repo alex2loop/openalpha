@@ -44,6 +44,8 @@ interface RunClaimedScheduledJobOptions {
   readonly signal: AbortSignal
   readonly requestId: string
   readonly owner?: JobOwner
+  /** Started by a price crossing: only that run spends a price job. */
+  readonly crossing: boolean
 }
 
 interface FinishScheduledExecutionOptions {
@@ -64,6 +66,7 @@ interface FinishRunNowExecutionOptions {
   readonly job: Job
   readonly deps: SchedulerDeps
   readonly runId: number
+  readonly crossing: boolean
   readonly execution: JobExecution
 }
 
@@ -71,6 +74,7 @@ interface FinishRunNowThrownOptions {
   readonly job: Job
   readonly deps: SchedulerDeps
   readonly runId: number
+  readonly crossing: boolean
   readonly err: unknown
 }
 
@@ -237,7 +241,7 @@ export function runClaimedScheduledJob(
 }
 
 async function runClaimedJob(options: RunClaimedScheduledJobOptions): Promise<ClaimedJobRunResult> {
-  const { job, deps, signal, requestId, owner } = options
+  const { job, deps, signal, requestId, owner, crossing } = options
   const startedAt = Date.now()
   let runId: number | undefined
 
@@ -254,11 +258,11 @@ async function runClaimedJob(options: RunClaimedScheduledJobOptions): Promise<Cl
     }
 
     try {
-      const completed = await finishRunNowExecution({ job, deps, runId, execution })
+      const completed = await finishRunNowExecution({ job, deps, runId, crossing, execution })
 
       return { kind: 'finished', completed }
     } catch (err: unknown) {
-      await finishRunNowThrownExecution({ job, deps, runId, err })
+      await finishRunNowThrownExecution({ job, deps, runId, crossing, err })
 
       return { kind: 'finished', completed: false }
     }
@@ -272,7 +276,7 @@ async function runClaimedJob(options: RunClaimedScheduledJobOptions): Promise<Cl
       return { kind: 'rejected' }
     }
 
-    await finishRunNowThrownExecution({ job, deps, runId, err })
+    await finishRunNowThrownExecution({ job, deps, runId, crossing, err })
 
     return { kind: 'finished', completed: false }
   } finally {
@@ -341,7 +345,7 @@ async function finishScheduledThrownExecution(
 }
 
 async function finishRunNowExecution(options: FinishRunNowExecutionOptions): Promise<boolean> {
-  const { job, deps, runId, execution } = options
+  const { job, deps, runId, crossing, execution } = options
   const now = Date.now()
   const outcome = computeOutcome(execution.result, execution.denied, now)
 
@@ -349,10 +353,10 @@ async function finishRunNowExecution(options: FinishRunNowExecutionOptions): Pro
 
   // Run-now leaves the schedule untouched; without this a `once` job fires again when it comes due.
   // A price job is spent by its one crossing whether or not the run succeeded: no later alert will
-  // start it again.
+  // start it again. A manual run crossed nothing, so the job stays armed with its alert.
   if (
-    job.event?.event === 'price' ||
-    (outcome.status === 'success' && job.schedule.kind === 'once')
+    spendsCrossing(job, crossing) ||
+    (outcome.status === 'success' && job.schedule.kind === 'once' && !isPriceJob(job))
   ) {
     await advanceJob(job, deps, now).catch((err: unknown) => {
       deps.logger.warn('scheduler.run_now_advance_failed', {
@@ -377,7 +381,7 @@ async function finishRunNowExecution(options: FinishRunNowExecutionOptions): Pro
 }
 
 async function finishRunNowThrownExecution(options: FinishRunNowThrownOptions): Promise<void> {
-  const { job, deps, runId, err } = options
+  const { job, deps, runId, crossing, err } = options
   const formatted = formatErrForLog(err)
 
   deps.logger.error('scheduler.run_now_failed', { jobId: job.id, err: formatted })
@@ -388,7 +392,7 @@ async function finishRunNowThrownExecution(options: FinishRunNowThrownOptions): 
   })
 
   // The crossing this run was for is spent however the run ended.
-  if (job.event?.event === 'price') {
+  if (spendsCrossing(job, crossing)) {
     await advanceJob(job, deps, Date.now()).catch((advanceErr: unknown) => {
       deps.logger.warn('scheduler.run_now_spend_failed', {
         jobId: job.id,
@@ -396,6 +400,14 @@ async function finishRunNowThrownExecution(options: FinishRunNowThrownOptions): 
       })
     })
   }
+}
+
+function isPriceJob(job: Job): boolean {
+  return job.event?.event === 'price'
+}
+
+function spendsCrossing(job: Job, crossing: boolean): boolean {
+  return crossing && isPriceJob(job)
 }
 
 async function finishRunNow(

@@ -327,6 +327,7 @@ export const REFRESH_STALE_SESSIONS: Readonly<Record<RefreshDataKind, number>> =
   macro: 1,
   accounts: 1,
   premium: 1,
+  'index-ratios': 1,
 })
 
 /** How long a replayed attempt keeps the targets it lost before asking for them again. Short

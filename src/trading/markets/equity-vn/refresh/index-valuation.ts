@@ -1,8 +1,11 @@
-import type { TradingDay, VnIndexTier } from '@/trading/kernel/instrument'
+import type { InstrumentRef, TradingDay, VnIndexTier } from '@/trading/kernel/instrument'
 import type { IndexCode, IndexRatioId } from '@/trading/kernel/market/index-reading'
+import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { VnMacroCrossSection } from '@/trading/markets/equity-vn/evidence/macro-evidence'
+import type { TargetOutcome } from '@/trading/markets/refresh-result'
 import type { TradingCalendar } from '@/trading/markets/types'
+import { isAbortError } from '@/core/errors'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { ticker } from '@/trading/kernel/instrument'
 import {
@@ -12,6 +15,11 @@ import {
 } from '@/trading/kernel/market/index-reading'
 import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 import { aboveMeanRatios } from '@/trading/markets/equity-vn/tape/breadth'
+import {
+  buildRejectedOutcome,
+  emptyKindResult,
+  toKindResult,
+} from '@/trading/markets/refresh-result'
 
 /** Sessions the ratio window opens before the settled day, so a day whose ratios are not out yet
  *  reads as the one before it. */
@@ -33,37 +41,74 @@ interface IndexValuationRefresh {
   readonly signal: AbortSignal
 }
 
+/** An index already read today: nothing asked, nothing written. */
+type IndexSkip = 'read-today'
+
 /** The index ratio series' only writer: one point a day per ratio, kept as the daemon's own
  *  history. The provider is asked at most once an index and UTC day (its quota is shared by every
- *  process on the machine), and a read that fails leaves the series as it stands. */
-export async function refreshIndexValuation(input: IndexValuationRefresh): Promise<void> {
+ *  process on the machine), and a read or a write that fails leaves the series as it stands and
+ *  reports that index missing, never the whole refresh. */
+export async function refreshIndexValuation(
+  input: IndexValuationRefresh
+): Promise<RefreshKindResult> {
   const fromDay = input.calendar.addTradingDays(input.asOf, -INDEX_RATIO_LOOKBACK_SESSIONS)
+  const outcomes = await Promise.all(
+    INDEX_CODES.map((index) => refreshIndexCaught(input, index, fromDay))
+  )
+  const attempted = outcomes.filter((outcome) => outcome !== 'read-today')
 
-  await Promise.all(INDEX_CODES.map((index) => refreshIndex(input, index, fromDay)))
+  if (attempted.length === 0) {
+    return emptyKindResult('index-ratios', 'fresh', [])
+  }
+
+  return toKindResult({
+    kind: 'index-ratios',
+    successStatus: 'upserted',
+    outcomes: attempted,
+    recordCount: attempted.reduce((sum, outcome) => sum + (outcome.value ?? 0), 0),
+  })
 }
 
+async function refreshIndexCaught(
+  input: IndexValuationRefresh,
+  index: IndexCode,
+  fromDay: TradingDay
+): Promise<TargetOutcome<number> | IndexSkip> {
+  try {
+    return await refreshIndex(input, index, fromDay)
+  } catch (err: unknown) {
+    if (isAbortError(err) || input.signal.aborted) {
+      throw err
+    }
+
+    return buildRejectedOutcome(indexRef(index), [])
+  }
+}
+
+/** How many ratio points the read wrote. */
 async function refreshIndex(
   input: IndexValuationRefresh,
   index: IndexCode,
   fromDay: TradingDay
-): Promise<void> {
+): Promise<TargetOutcome<number> | IndexSkip> {
   const { deps, now, signal } = input
 
   if (!input.forced && (await isReadToday(input, index))) {
-    return
+    return 'read-today'
   }
 
   const read = await deps.sources.resolve({
     kind: 'indexValuation',
-    context: { market: VN_MARKET_REF, ticker: ticker(index), fromDay },
+    context: { ...indexRef(index), fromDay },
     signal,
   })
 
   if (read.kind !== 'available') {
-    return
+    return buildRejectedOutcome(indexRef(index), read.caveats)
   }
 
   const ratios = { ...(await basketRatios(input, index, read.value.day)), ...read.value.ratios }
+  let written = 0
 
   for (const id of INDEX_RATIO_IDS) {
     const value = ratios[id]
@@ -78,8 +123,20 @@ async function refreshIndex(
         now,
         signal,
       })
+      written += 1
     }
   }
+
+  return {
+    instrument: indexRef(index),
+    value: written,
+    provenance: read.provenance,
+    caveats: read.caveats,
+  }
+}
+
+function indexRef(index: IndexCode): InstrumentRef {
+  return { market: VN_MARKET_REF, ticker: ticker(index) }
 }
 
 /** What the provider leaves out for an index with a basket: the share of its stored names above

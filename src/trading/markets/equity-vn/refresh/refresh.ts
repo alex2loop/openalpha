@@ -133,15 +133,15 @@ export async function refreshMarketData(
     [{ kind: 'accounts', run: (next) => refreshAccounts(next, options.crossSection) }],
   ])
 
-  await refreshIndexRatios(options)
-
-  return [instruments, ...evidence]
+  return [instruments, ...evidence, await refreshIndexRatios(options)]
 }
 
 // Outside the evidence kinds: a replayed pass must still retry a read that failed, and the refresh
 // asks the provider at most once a UTC day whatever the pass is.
-function refreshIndexRatios(options: RefreshMarketDataInput): Promise<void> {
+function refreshIndexRatios(options: RefreshMarketDataInput): Promise<RefreshKindResult> {
   const { deps, crossSection, manifest, request } = options
+
+  reportRefreshStage(request.progress, { market: VN_MARKET_REF, kind: 'index-ratios' })
 
   return refreshIndexValuation({
     deps,

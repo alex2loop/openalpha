@@ -577,11 +577,12 @@ name stops the daemon at start, with the list). Nothing else the daemon sends to
   upgrade does not flood the bell with old results. Only calls of your own record reach the bell or a chat; a second
   opinion from an agent with its own focus shows only live on the office page, at that agent. The card for that call
   has the full picture.
-- **News on a name you hold.** One notice per held name per day, with the headline and its source. It covers only
+- **News on a name you hold.** One notice per held name per day, with the headline and its source, for a story published
+  that day: an older story the daemon archives later is not announced. It covers only
   names the daemon has already read: headlines are archived when a `/suggest` or a chat about the name reads them,
   and nothing fetches news for your holdings on a schedule. After a restart it does not repeat the day's headlines.
 - **The index falling hard.** When the region's index is down at least 1.5% in a session, once per session, checked
-  every few minutes while that session runs. It says how many of your holdings in that index's market are down and whether any has broken
+  every few minutes while that session runs. It says how many of your holdings in that index's market are down (counted only from a live quote of this session) and whether any has broken
   its stop. If some holdings could not be priced, it says how many it could not check, and never claims none broke.
 
 ### Themes

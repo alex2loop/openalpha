@@ -21,6 +21,8 @@ const NEWS_COLUMNS = [
 ] as const
 const NEWS_ID_HEX_LENGTH = 32
 const NEWS_RETENTION_DAYS = 365
+/** A name binds its market and its ticker. */
+const INSTRUMENT_BINDS = 2
 
 interface NewsRow {
   readonly url: string
@@ -183,26 +185,37 @@ async function listForInstruments(
 ): Promise<readonly InstrumentHeadline[]> {
   assertNotAborted(options.signal)
 
-  if (options.instruments.length === 0) {
-    return []
+  const headlines: InstrumentHeadline[] = []
+
+  // The window bound shares each statement, so a name is counted one bind wider than its pair.
+  for (const chunk of toBindChunks(options.instruments, INSTRUMENT_BINDS + 1)) {
+    headlines.push(...(await listChunkForInstruments(deps, options.sinceMs, chunk)))
   }
 
+  return headlines.sort((left, right) => right.publishedAt - left.publishedAt)
+}
+
+async function listChunkForInstruments(
+  deps: StoreDeps,
+  sinceMs: number,
+  instruments: readonly InstrumentRef[]
+): Promise<readonly InstrumentHeadline[]> {
   // Placeholders are numbered in the order they appear, so a positional dialect binds them right.
   // One story per name, the newest, picked here so a name never loses its story to a busier one.
   const p = deps.dialect.param
-  const matches = options.instruments
-    .map((_, index) => `(market = ${p(2 + index * 2)} AND ticker = ${p(3 + index * 2)})`)
+  const matches = instruments
+    .map(
+      (_, index) =>
+        `(market = ${p(2 + index * INSTRUMENT_BINDS)} AND ticker = ${p(3 + index * INSTRUMENT_BINDS)})`
+    )
     .join(' OR ')
   const rows = await deps.db.query<InstrumentNewsRow>(
     'SELECT url, title, source_id, published_at, market, ticker FROM (' +
       'SELECT url, title, source_id, published_at, market, ticker, ' +
       'ROW_NUMBER() OVER (PARTITION BY market, ticker ORDER BY published_at DESC, id DESC) AS newest_rank ' +
       `FROM news_items WHERE fetched_at >= ${p(1)} AND (${matches})` +
-      ') AS newest WHERE newest_rank = 1 ORDER BY published_at DESC, market, ticker',
-    [
-      options.sinceMs,
-      ...options.instruments.flatMap((instrument) => [instrument.market, instrument.ticker]),
-    ]
+      ') AS newest WHERE newest_rank = 1',
+    [sinceMs, ...instruments.flatMap((instrument) => [instrument.market, instrument.ticker])]
   )
 
   return rows.flatMap((row) =>
@@ -214,7 +227,7 @@ async function listForInstruments(
             url: row.url,
             title: row.title,
             sourceId: row.source_id,
-            publishedAt: row.published_at,
+            publishedAt: Number(row.published_at),
           },
         ]
   )

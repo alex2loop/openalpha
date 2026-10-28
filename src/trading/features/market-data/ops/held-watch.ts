@@ -145,11 +145,12 @@ async function watchOnce(
     return
   }
 
-  const headlines = await deps.news.listForInstruments({
-    instruments: held,
-    sinceMs: state.cursor,
-    signal,
-  })
+  // Archived since the last pass is new to the archive, not new to the world: a name read for the
+  // first time brings its old stories in, so only one published today is news.
+  const today = state.day
+  const headlines = (
+    await deps.news.listForInstruments({ instruments: held, sinceMs: state.cursor, signal })
+  ).filter((headline) => owner.manifest.calendar.dayAt(headline.publishedAt) === today)
 
   const input: PassInput = { now, target, signal, state }
 
@@ -317,7 +318,9 @@ async function readBookAgainstDrop(
   }
 }
 
-/** The quote board reads a bounded number of names at a time, so the book goes in as many reads. */
+/** The quote board reads a bounded number of names at a time, so the book goes in as many reads.
+ *  Only a live quote is this session's move; a name without one is left out, never read as flat or
+ *  as the last session's move. */
 async function countHoldingsDown(
   reads: HeldWatchReads,
   held: readonly InstrumentRef[],
@@ -329,7 +332,11 @@ async function countHoldingsDown(
   for (let from = 0; from < held.length; from += size) {
     const board = await reads.quoteBoard({ instruments: held.slice(from, from + size), signal })
 
-    down += board.items.filter((item) => (quoteBoardMoveOf(item) ?? 0) < 0).length
+    down += board.items.filter((item) => {
+      const movePct = item.observed.kind === 'live' ? quoteBoardMoveOf(item) : undefined
+
+      return movePct !== undefined && movePct < 0
+    }).length
   }
 
   return down

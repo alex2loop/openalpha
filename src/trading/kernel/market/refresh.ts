@@ -25,6 +25,7 @@ export const REFRESH_DATA_KINDS = Object.freeze([
   'macro',
   'accounts',
   'premium',
+  'index-ratios',
 ] as const)
 export type RefreshDataKind = (typeof REFRESH_DATA_KINDS)[number]
 
