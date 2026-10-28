@@ -7,6 +7,10 @@
   "scoreRegime": "neutral",
   "score": 0.09777999999999992,
   "coverage": 0.5,
+  "readings": {
+    "deposit-rate-12m": 5.72,
+    "usd-vnd": 25841
+  },
   "drivers": [
     {
       "id": "us-real-rate",

@@ -26,6 +26,9 @@ export interface MacroRiskView {
   readonly coverage: number
   readonly formulaVersion: string
   readonly drivers: readonly MacroRiskDriver[]
+  /** Every series the read carried, drivers or not, in each series' own unit: the rates and the
+   *  exchange rate sit beside the composite without voting in it. */
+  readonly readings: Readonly<Partial<Record<MacroSeriesId, number>>>
   /** Weighted series with no reading today. Absent from `drivers`, named here with a reason, because
    *  "did not vote" and "voted neutral" are different facts, and so is "no observation today" vs.
    *  "fetch failed". */

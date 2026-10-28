@@ -89,9 +89,31 @@
               "market": "equity-vn",
               "ticker": "HPG"
             },
-            "value": 520000000000,
+            "value": -520000000000,
             "sharePct": 18.7,
             "changePct": -0.49
+          }
+        ],
+        "proprietaryBuys": [
+          {
+            "instrument": {
+              "market": "equity-vn",
+              "ticker": "VCB"
+            },
+            "value": 95000000000,
+            "sharePct": 21.4,
+            "changePct": 0.62
+          }
+        ],
+        "proprietarySells": [
+          {
+            "instrument": {
+              "market": "equity-vn",
+              "ticker": "SSI"
+            },
+            "value": -61000000000,
+            "sharePct": 17.9,
+            "changePct": -1.05
           }
         ],
         "mostTraded": [

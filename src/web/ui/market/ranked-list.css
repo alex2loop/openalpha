@@ -1,0 +1,6 @@
+.ranked-lists {
+  --rankedColumnMin: 170px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--rankedColumnMin), 1fr));
+  gap: var(--s3);
+}

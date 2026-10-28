@@ -226,6 +226,12 @@ function toLeaders(leaders: MarketLeaders, locale: Locale): Record<string, unkno
     ...(leaders.foreignSells === undefined
       ? {}
       : { foreignSells: leaders.foreignSells.map(toEntry) }),
+    ...(leaders.proprietaryBuys === undefined
+      ? {}
+      : { proprietaryBuys: leaders.proprietaryBuys.map(toEntry) }),
+    ...(leaders.proprietarySells === undefined
+      ? {}
+      : { proprietarySells: leaders.proprietarySells.map(toEntry) }),
     ...(leaders.mostTraded === undefined ? {} : { mostTraded: leaders.mostTraded.map(toEntry) }),
   }
 }

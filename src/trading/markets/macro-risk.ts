@@ -150,6 +150,7 @@ export function deriveMacroRisk(input: MacroRiskInput, policy: MacroDriverPolicy
     asOf: input.asOf,
     formulaVersion: MACRO_FORMULA_VERSION,
     missing,
+    readings: input.values,
     provenance: input.provenance,
   }
 

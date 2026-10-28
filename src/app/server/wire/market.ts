@@ -85,6 +85,8 @@ export interface OverviewLeadersWire {
   readonly sessions?: number
   readonly foreignBuys?: readonly OverviewLeaderWire[]
   readonly foreignSells?: readonly OverviewLeaderWire[]
+  readonly proprietaryBuys?: readonly OverviewLeaderWire[]
+  readonly proprietarySells?: readonly OverviewLeaderWire[]
   readonly mostTraded?: readonly OverviewLeaderWire[]
 }
 
@@ -152,6 +154,9 @@ export type MacroResponse =
       }
       /** 0 to 1: share of the model's weight that had a reading. */
       readonly coverage: number
+      /** Every series the read carried by id (`deposit-rate-12m` in percent, `usd-vnd` in dong per
+       *  dollar), drivers or not; a series with no reading is absent. */
+      readonly readings: Readonly<Record<string, number>>
       readonly drivers: readonly {
         readonly id: string
         /** The driver's name in the operator's language. */
