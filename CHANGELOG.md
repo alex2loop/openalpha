@@ -7,6 +7,17 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.1.2] - 2026-10-28
+
+The office page's first-run checklist names the key your configured model reads, not another
+provider's. No database change.
+> Danh sách việc cần làm lần đầu trên trang văn phòng giờ ghi đúng tên khóa mà mô hình bạn cấu hình đọc, không còn ghi tên khóa của nhà cung cấp khác. Không đổi cơ sở dữ liệu.
+
+### Changes
+
+- "Connect an AI model" names the variable the first model in `[[models]]` reads its key from.
+  A model that signs in instead points to Settings > Providers.
+
 ## [1.1.1] - 2026-10-28
 
 The office page now opens with no config edit: the API is on by default, still on `127.0.0.1`
