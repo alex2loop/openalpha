@@ -54,9 +54,9 @@ const TONES = Object.freeze({
 const TILE_JOINT = 'rgba(70,62,52,.075)'
 const STAR = '#FFFFFF'
 
-/** The city itself: the sky and skyline, the north road, both side streets out to the canvas
- *  edge, the plaza south of the building, and the hazy blocks beyond the parks. */
-export const CITY_PART: PaintPart = {
+/** The sky and the stars, the landmark's backdrop and the skyline: a part of its own, so the
+ *  street's paint can pause after it. */
+export const SKY_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
     const scene = citySceneOf(g, pack, minute)
 
@@ -67,6 +67,15 @@ export const CITY_PART: PaintPart = {
       { name: SKYLINE_LAYER, key: skylineKeyOf(scene), rect: skylineRect() },
       paintSkyline
     )
+  },
+}
+
+/** The city itself: the north road, both side streets out to the canvas edge, the plaza south of
+ *  the building, and the hazy blocks beyond the parks. */
+export const CITY_PART: PaintPart = {
+  paintStatic: (g, pack, minute) => {
+    const scene = citySceneOf(g, pack, minute)
+
     paintNorthStreet(scene, pack)
     paintSideStreet(scene, { side: -1, street: pack.road.west })
     paintSideStreet(scene, { side: 1, street: pack.road.east })

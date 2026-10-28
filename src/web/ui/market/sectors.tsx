@@ -6,9 +6,13 @@ import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { formatSignedFraction, PERCENT } from '@/web/text/figures'
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
+import { Fold } from '@/web/ui/kit/fold'
 import { PieIcon } from '@/web/ui/kit/icons'
-import { RankedList } from '@/web/ui/market/ranked-list'
+import { RankedList, type RankedRow } from '@/web/ui/market/ranked-list'
 import { BlockFrame } from '@/web/ui/today/block-frame'
+
+// The strongest and the weakest sectors shown before the rest fold away.
+const SECTORS_PER_END = 5
 
 /** The sector table of each market of the region that files sectors, strongest first. */
 export function Sectors({ region }: { readonly region: string }) {
@@ -43,16 +47,37 @@ function MarketSectors({ market }: { readonly market: string }) {
 }
 
 function SectorTable({ sectors }: { readonly sectors: SectorsResponse['sectors'] }) {
+  const rows = sectors.map(sectorRow)
+
+  if (rows.length <= 2 * SECTORS_PER_END) {
+    return <SectorList rows={rows} />
+  }
+
+  return (
+    <>
+      <SectorList rows={[...rows.slice(0, SECTORS_PER_END), ...rows.slice(-SECTORS_PER_END)]} />
+      <Fold title={tr('ui.office.market.sectorsShowAll')}>
+        <SectorList rows={rows} />
+      </Fold>
+    </>
+  )
+}
+
+function SectorList({ rows }: { readonly rows: readonly RankedRow[] }) {
   return (
     <RankedList
       title={tr('ui.office.market.sectorsRanked')}
       note={tr('ui.office.market.sectorsNote')}
-      rows={sectors.map((entry) => ({
-        key: entry.sector,
-        label: sectorName(entry.sector),
-        figure: entry.score === undefined ? '' : formatSignedFraction(entry.score),
-        changePct: entry.sessionReturn === undefined ? undefined : entry.sessionReturn * PERCENT,
-      }))}
+      rows={rows}
     />
   )
+}
+
+function sectorRow(entry: SectorsResponse['sectors'][number]): RankedRow {
+  return {
+    key: entry.sector,
+    label: sectorName(entry.sector),
+    figure: entry.score === undefined ? '' : formatSignedFraction(entry.score),
+    changePct: entry.sessionReturn === undefined ? undefined : entry.sessionReturn * PERCENT,
+  }
 }

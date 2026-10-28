@@ -1261,6 +1261,7 @@
     "office.market.sectors": "Sức mạnh ngành",
     "office.market.sectorsRanked": "Từ mạnh đến yếu",
     "office.market.sectorsNote": "sức mạnh so với chỉ số · hôm nay",
+    "office.market.sectorsShowAll": "Xem tất cả",
     "office.market.depositRate": "Lãi suất 12 tháng {rate}",
     "office.market.usdVnd": "USD/VND {rate}",
     "office.news.filter": "Lọc tin đã tải",
