@@ -3,6 +3,7 @@ import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
+import { Movers } from '@/web/ui/today/blocks/movers'
 
 const ROWS_SHOWN = 5
 
@@ -34,6 +35,7 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
           />
         ))}
       </div>
+      <Movers movers={block.movers} currency={block.currency} />
       <div class="stack meta">
         {block.breadth !== undefined && (
           <p>
