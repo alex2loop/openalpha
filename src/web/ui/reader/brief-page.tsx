@@ -8,9 +8,11 @@ import {
   briefOutline,
   CAUTIONS_ANCHOR,
   groupCautions,
+  type SectionRow,
   type StoryBlock,
   type StoryLine,
   sectionAnchor,
+  sectionRows,
   sectionTitle,
   storyBlocks,
 } from '@/web/ui/reader/brief-model'
@@ -125,7 +127,30 @@ function Section({ section }: { readonly section: BriefTextWire['sections'][numb
   return (
     <>
       <SubHead id={sectionAnchor(section)} text={sectionTitle(section)} />
-      <Figures lines={section.lines} />
+      <div class="stack reader-figures">
+        {sectionRows(section).map((row, index) => (
+          <SectionRowView key={index} row={row} />
+        ))}
+      </div>
+    </>
+  )
+}
+
+function SectionRowView({ row }: { readonly row: SectionRow }) {
+  return (
+    <>
+      <p class="reader-figure">
+        <InlineMarkdown text={row.text} />
+      </p>
+      {row.details.length > 0 && (
+        <div class="stack reader-figures reader-details">
+          {row.details.map((detail, index) => (
+            <p key={index} class="reader-figure">
+              <InlineMarkdown text={detail} />
+            </p>
+          ))}
+        </div>
+      )}
     </>
   )
 }

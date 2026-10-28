@@ -43,13 +43,19 @@ export interface StoredJob {
   readonly event?: StoredJobEvent
 }
 
+export interface StoredJobEdit {
+  readonly prompt?: string
+  readonly target?: StoredJobTarget
+  readonly schedule?: { readonly schedule: StoredJobSchedule; readonly nextRunAt: number }
+}
+
 export interface StoredJobStore {
   due(nowMs: number, limit: number, runNowClaimStaleBeforeMs: number): Promise<readonly StoredJob[]>
   advance(id: JobId, nextRunAt: number): Promise<void>
   disable(id: JobId): Promise<void>
   deferRetry(id: JobId, failures: number, nextRunAt: number): Promise<void>
   create(job: StoredJob): Promise<boolean>
-  put(job: StoredJob): Promise<void>
+  edit(id: JobId, edit: StoredJobEdit): Promise<boolean>
   list(): Promise<readonly StoredJob[]>
   listEnabledOfAgent(agentId: string): Promise<readonly StoredJob[]>
   find(id: JobId): Promise<StoredJob | undefined>
@@ -113,9 +119,6 @@ export function toJob(row: JobRow): StoredJob {
 }
 
 export function toJobParams(job: StoredJob, now: number): readonly unknown[] {
-  const { schedule } = job
-  const timezone = schedule.kind === 'cron' ? canonicalTimeZone(schedule.timezone) : null
-
   return [
     job.id,
     job.agentId,
@@ -123,11 +126,7 @@ export function toJobParams(job: StoredJob, now: number): readonly unknown[] {
     job.allowedTools !== undefined && job.allowedTools.length > 0
       ? JSON.stringify(job.allowedTools)
       : null,
-    schedule.kind,
-    schedule.kind === 'cron' ? schedule.expr : null,
-    timezone,
-    schedule.kind === 'interval' ? schedule.everyMs : null,
-    schedule.kind === 'once' ? schedule.at : null,
+    ...toScheduleParams(job.schedule),
     job.nextRunAt,
     job.target?.channel ?? null,
     job.target?.chatId ?? null,
@@ -137,6 +136,17 @@ export function toJobParams(job: StoredJob, now: number): readonly unknown[] {
     job.owner?.channel ?? null,
     job.owner?.chatId ?? null,
     now,
+  ]
+}
+
+/** The schedule columns in table order: kind, cron expression, cron timezone, interval, run-at. */
+export function toScheduleParams(schedule: StoredJobSchedule): readonly unknown[] {
+  return [
+    schedule.kind,
+    schedule.kind === 'cron' ? schedule.expr : null,
+    schedule.kind === 'cron' ? canonicalTimeZone(schedule.timezone) : null,
+    schedule.kind === 'interval' ? schedule.everyMs : null,
+    schedule.kind === 'once' ? schedule.at : null,
   ]
 }
 

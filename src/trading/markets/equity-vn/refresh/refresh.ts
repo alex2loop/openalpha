@@ -133,18 +133,25 @@ export async function refreshMarketData(
     [{ kind: 'accounts', run: (next) => refreshAccounts(next, options.crossSection) }],
   ])
 
-  // Outside the evidence kinds: a replayed pass must still retry a read that failed, and the
-  // refresh asks the provider at most once a UTC day whatever the pass is.
-  await refreshIndexValuation({
+  await refreshIndexRatios(options)
+
+  return [instruments, ...evidence]
+}
+
+// Outside the evidence kinds: a replayed pass must still retry a read that failed, and the refresh
+// asks the provider at most once a UTC day whatever the pass is.
+function refreshIndexRatios(options: RefreshMarketDataInput): Promise<void> {
+  const { deps, crossSection, manifest, request } = options
+
+  return refreshIndexValuation({
     deps,
-    calendar: options.manifest.calendar,
-    asOf: resolveSettledDay(options.manifest.calendar, request.now),
+    crossSection,
+    calendar: manifest.calendar,
+    asOf: resolveSettledDay(manifest.calendar, request.now),
     forced: request.forced,
     now: request.now,
     signal: request.signal,
   })
-
-  return [instruments, ...evidence]
 }
 
 /** A stage settles every kind in it before the next starts, so a kind that throws never leaves a

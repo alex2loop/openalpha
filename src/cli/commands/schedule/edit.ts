@@ -1,7 +1,7 @@
 import type { ParsedArgs } from '@/cli/parsing/args'
 import type { ChannelAddress } from '@/core/channels'
 import type { Locale } from '@/core/types/locale'
-import type { Job } from '@/scheduler/api'
+import type { Job, JobEdit } from '@/scheduler/api'
 import { type Command, createCommand } from '@/cli/command'
 import { terminalErrorMessage, usage } from '@/cli/error-output'
 import { flagString } from '@/cli/parsing/args'
@@ -15,7 +15,7 @@ import { findJob } from './show'
 
 interface EditApplied {
   readonly kind: 'value'
-  readonly job: Job
+  readonly edit: JobEdit
 }
 
 interface EditError {
@@ -39,7 +39,6 @@ export const scheduleEditCommand: Command = createCommand({
       agent: { type: 'string', describe: { key: 'cliHelp.flagScheduleAgentImmutable' } },
     },
   },
-  needs: { daemon: 'stopped' },
   async run(args, app): Promise<number> {
     const locale = app.config.locale.language
 
@@ -74,7 +73,12 @@ export const scheduleEditCommand: Command = createCommand({
       return usage(app, edited.error)
     }
 
-    await app.resolve('jobStore').put(edited.job)
+    if (!(await app.resolve('jobStore').edit(found.job.id, edited.edit))) {
+      app.err(fail(t(locale, 'cli.scheduleNoJobWithId', { id: rawId })))
+
+      return 1
+    }
+
     app.out(success(t(locale, 'cli.scheduleUpdated', { id: found.job.id })))
 
     return 0
@@ -121,13 +125,12 @@ function applyEdits(options: {
 
   return {
     kind: 'value',
-    job: {
-      ...options.job,
+    edit: {
       ...(prompt === undefined ? {} : { prompt }),
       ...(target.value === undefined ? {} : { target: target.value }),
       ...(scheduled === undefined
         ? {}
-        : { schedule: scheduled.schedule, nextRunAt: scheduled.nextRunAt }),
+        : { schedule: { schedule: scheduled.schedule, nextRunAt: scheduled.nextRunAt } }),
     },
   }
 }

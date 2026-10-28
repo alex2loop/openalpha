@@ -45,7 +45,9 @@ export interface JobSql {
   readonly disable: string
   readonly deferRetry: string
   readonly create: string
-  readonly put: string
+  readonly editPrompt: string
+  readonly editTarget: string
+  readonly editSchedule: string
   readonly list: string
   readonly listEnabledOfAgent: string
   readonly find: string
@@ -86,7 +88,7 @@ export function buildJobSql(dialect: Dialect): JobSql {
     create:
       `INSERT INTO jobs (${['id', ...JOB_COLS].join(', ')}) ` +
       `VALUES (${dialect.paramList(JOB_COLS.length + 1)}) ON CONFLICT (id) DO NOTHING`,
-    put: dialect.upsert('jobs', { keys: ['id'], cols: [...JOB_COLS], rowCount: 1 }),
+    ...buildEditSql(dialect),
     list: `${JOB_SELECT} ORDER BY next_run_at`,
     listEnabledOfAgent:
       `${JOB_SELECT} WHERE jobs.agent_id = ${dialect.param(1)} AND jobs.enabled = ${dialect.param(2)} ` +
@@ -102,6 +104,22 @@ export function buildJobSql(dialect: Dialect): JobSql {
     ...buildOwnedSql(dialect),
     ...buildEventSql(dialect),
     ...buildRunNowSql(dialect),
+  }
+}
+
+type EditSql = Pick<JobSql, 'editPrompt' | 'editTarget' | 'editSchedule'>
+
+// One statement per edited field group, so a field the operator did not touch is never rewritten.
+function buildEditSql(dialect: Dialect): EditSql {
+  return {
+    editPrompt: `UPDATE jobs SET prompt = ${dialect.param(1)} WHERE id = ${dialect.param(2)}`,
+    editTarget:
+      `UPDATE jobs SET target_channel = ${dialect.param(1)}, target_chat_id = ${dialect.param(2)} ` +
+      `WHERE id = ${dialect.param(3)}`,
+    editSchedule:
+      `UPDATE jobs SET schedule_kind = ${dialect.param(1)}, cron_expr = ${dialect.param(2)}, ` +
+      `cron_tz = ${dialect.param(3)}, every_ms = ${dialect.param(4)}, run_at = ${dialect.param(5)}, ` +
+      `next_run_at = ${dialect.param(6)} WHERE id = ${dialect.param(7)}`,
   }
 }
 

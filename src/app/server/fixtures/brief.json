@@ -133,7 +133,8 @@
         "kind": "book-summary",
         "status": "ready",
         "heading": "Danh mục",
-        "lines": ["Tổng tài sản 93.525.900 VND", "1 mã đang gần mức cắt lỗ."]
+        "lines": ["Tổng tài sản 93.525.900 VND", "1 mã đang gần mức cắt lỗ."],
+        "depths": [0, 0]
       },
       {
         "id": "market-prices:equity-vn",
@@ -141,7 +142,15 @@
         "market": "Thị trường chứng khoán Việt Nam",
         "status": "ready",
         "heading": "Giá thị trường",
-        "lines": ["HPG 28.400 ▲ 1,2%", "VCB 89.800 ▼ 0,3%"]
+        "lines": [
+          "HPG",
+          "đóng cửa · 07/10/2026 · 28.400",
+          "▲ 1,2%",
+          "VCB",
+          "đóng cửa · 07/10/2026 · 89.800",
+          "▼ 0,3%"
+        ],
+        "depths": [0, 1, 1, 0, 1, 1]
       },
       {
         "id": "fired-alerts",

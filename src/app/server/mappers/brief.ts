@@ -103,7 +103,11 @@ export function toBriefTextWire(text: BriefText): BriefTextWire {
     verdict: [...text.verdict],
     readingLines: text.readingLines,
     story: text.story.map((line) => ({ ...line })),
-    sections: text.sections.map((section) => ({ ...section, lines: [...section.lines] })),
+    sections: text.sections.map((section) => ({
+      ...section,
+      lines: [...section.lines],
+      depths: [...section.depths],
+    })),
     caveats: [...text.caveats],
   }
 }
