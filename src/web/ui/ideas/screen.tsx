@@ -1,7 +1,8 @@
 import type { ScreenResponse } from '@/app/server/wire/market'
+import type { SuggestionWire } from '@/app/server/wire/trading'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
-import { runCommand, SUGGEST_COMMAND } from '@/web/state/command'
+import { FORCE_ARG, runCommand, SUGGEST_COMMAND } from '@/web/state/command'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
@@ -16,6 +17,9 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const SCREEN_COMMAND = '/screen'
 const MARKET_SEPARATOR = ':'
+// The newest calls of every market (the list filters by name, not by market alone), read to tell
+// which ranked names were already analyzed on the board's day; the most one read returns.
+const DAY_CALLS_READ = 100
 
 /** Cơ hội: the names the daemon ranked best in a market, as it words them. A score is a rank, not
  *  advice, and a call is one tap away. */
@@ -47,6 +51,9 @@ export function Opportunities() {
 // Mounted per market, so its read ends with the tab or the market.
 function Board({ market }: { readonly market: string }) {
   const reading = useBlock(ROUTES.screen, { query: { market } })
+  const calls = useBlock(ROUTES.suggestions, {
+    query: { status: 'all', limit: DAY_CALLS_READ },
+  })
 
   return (
     <BlockFrame
@@ -57,7 +64,12 @@ function Board({ market }: { readonly market: string }) {
       dataTo={reading.data?.dataThroughDay ?? reading.data?.asOf}
       action={<Rerun market={market} />}
     >
-      {(board) => <BoardBody board={board} />}
+      {(board) => (
+        <BoardBody
+          board={board}
+          analyzed={analyzedOn(calls.data?.suggestions ?? [], { market, day: board.asOf })}
+        />
+      )}
     </BlockFrame>
   )
 }
@@ -70,7 +82,24 @@ function Rerun({ market }: { readonly market: string }) {
   )
 }
 
-function BoardBody({ board }: { readonly board: ScreenResponse }) {
+// The names `/suggest` would answer from a call already stored: those analyzed on the board's day.
+function analyzedOn(
+  calls: readonly SuggestionWire[],
+  board: { readonly market: string; readonly day: string }
+): ReadonlySet<string> {
+  return new Set(
+    calls
+      .filter((call) => call.instrument.market === board.market && call.at === board.day)
+      .map((call) => call.instrument.ticker)
+  )
+}
+
+interface BoardBodyProps {
+  readonly board: ScreenResponse
+  readonly analyzed: ReadonlySet<string>
+}
+
+function BoardBody({ board, analyzed }: BoardBodyProps) {
   const { card } = board
 
   if (card.rows.length === 0) {
@@ -86,7 +115,7 @@ function BoardBody({ board }: { readonly board: ScreenResponse }) {
         })}
       </p>
       {card.rows.map((row) => (
-        <Opportunity key={row.key} row={row} />
+        <Opportunity key={row.key} row={row} analyzed={analyzed} />
       ))}
       {card.caveats.map((caveat) => (
         <p key={caveat} class={isInfoLine(caveat) ? 'meta' : 'strip is-caution'}>
@@ -116,7 +145,13 @@ function lineOf(row: Row): string {
   return joinInline(splitInline(row.line).filter((segment) => !segment.startsWith(scoreLead)))
 }
 
-function Opportunity({ row }: { readonly row: Row }) {
+function Opportunity({
+  row,
+  analyzed,
+}: {
+  readonly row: Row
+  readonly analyzed: ReadonlySet<string>
+}) {
   const [market, ticker] = row.key.split(MARKET_SEPARATOR)
   const head = lineOf(row)
 
@@ -140,6 +175,14 @@ function Opportunity({ row }: { readonly row: Row }) {
         <Button kind="ai" size="small" onClick={() => runCommand(`${SUGGEST_COMMAND} ${row.key}`)}>
           {tr('ui.office.ideas.screenSuggest')}
         </Button>
+        {ticker !== undefined && analyzed.has(ticker) && (
+          <Button
+            size="small"
+            onClick={() => runCommand(`${SUGGEST_COMMAND} ${row.key} ${FORCE_ARG}`)}
+          >
+            {tr('ui.office.common.suggestFresh')}
+          </Button>
+        )}
       </div>
     </div>
   )
