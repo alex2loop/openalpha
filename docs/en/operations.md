@@ -242,8 +242,8 @@ minutes: one minute after the first failure, two after the second, then **disabl
 consecutive failure**. A success resets the count.
 
 A missing key does not count either. A run that fails because an AI key variable is unset is skipped
-with one warning in the log. The job stays on and runs at its next time. So setting the key and
-restarting is enough, with no `schedule resume`. The morning brief works the same way: that day you
+with one warning in the log. The job stays on and runs at its next time. So saving the key with
+`openalpha key set <NAME>`, then `restart --background`, is enough, with no `schedule resume`. The morning brief works the same way: that day you
 get a message naming the variable and how to set it, instead of "didn't get through after several
 tries".
 
