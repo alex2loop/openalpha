@@ -25,12 +25,16 @@ export type MarketMethods = Pick<
   | 'readMarketSession'
   | 'describeMarkets'
   | 'getSectors'
+  | 'getIndexContributors'
+  | 'getIndexValuation'
   | 'listSources'
 >
 
 type SeriesMethods = Pick<MarketMethods, 'getOhlcv' | 'getEvents'>
 
 type ListingMethods = Pick<MarketMethods, 'getSectors' | 'listSources'>
+
+type IndexMethods = Pick<MarketMethods, 'getIndexContributors' | 'getIndexValuation'>
 
 type SessionMethods = Pick<MarketMethods, 'readMarketSession'>
 
@@ -187,6 +191,32 @@ function listingMethods(deps: TradingHostDeps): ListingMethods {
   }
 }
 
+/** An index's contributors and valuation. The valuation is stored and the contributors held, so
+ *  neither waits on a provider for long: the ordinary ceiling applies. */
+function indexMethods(deps: TradingHostDeps): IndexMethods {
+  return {
+    getIndexContributors: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.marketData.indexContributors({
+          market: request.market,
+          index: request.index,
+          now: scope.now,
+          signal: scope.signal,
+        })
+      ),
+
+    getIndexValuation: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.marketData.indexValuation({
+          market: request.market,
+          index: request.index,
+          now: scope.now,
+          signal: scope.signal,
+        })
+      ),
+  }
+}
+
 /** What `/market` prints: it reads the sources for a whole session, so it gets the slow ceiling. */
 function sessionMethods(deps: TradingHostDeps): SessionMethods {
   return {
@@ -209,7 +239,11 @@ function boardMethods(
   deps: TradingHostDeps
 ): Omit<
   MarketMethods,
-  keyof PriceMethods | keyof SeriesMethods | keyof ListingMethods | keyof SessionMethods
+  | keyof PriceMethods
+  | keyof SeriesMethods
+  | keyof ListingMethods
+  | keyof IndexMethods
+  | keyof SessionMethods
 > {
   return {
     // An unregistered market is refused inside the service, the one holder of the registry.
@@ -260,6 +294,7 @@ export function marketMethods(deps: TradingHostDeps): MarketMethods {
     ...seriesMethods(deps),
     ...priceMethods(deps),
     ...listingMethods(deps),
+    ...indexMethods(deps),
     ...sessionMethods(deps),
     ...boardMethods(deps),
   }

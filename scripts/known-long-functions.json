@@ -149,7 +149,7 @@
     "src/trading/markets/crypto/overview.ts#runCryptoOverview": 43,
     "src/trading/markets/crypto/refresh.ts#refreshBars": 43,
     "src/trading/markets/crypto/screen-run.ts#scoreUniverse": 42,
-    "src/trading/markets/equity-vn/capabilities.ts#vnCapabilities": 54,
+    "src/trading/markets/equity-vn/capabilities.ts#vnCapabilities": 53,
     "src/trading/markets/equity-vn/evidence/bar-evidence.ts#refreshBars": 48,
     "src/trading/markets/equity-vn/evidence/evidence.ts#refreshFlows": 45,
     "src/trading/markets/equity-vn/refresh/universe.ts#refreshUniverse": 46,

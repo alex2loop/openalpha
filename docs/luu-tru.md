@@ -109,7 +109,7 @@ một gói bằng chứng không thể dựng lại.
 suy ra từ lịch sử đã tải: mỗi lượt bù các ngày còn thiếu của cửa sổ phân vị từ lịch sử bảng giá vàng có
 ngày, giá đóng cửa thế giới và lịch sử tỷ giá. Chuỗi tỷ giá ghi thẳng từ một chuỗi đã tải. Refresh
 thường **không** ghi đè ngày đã có, vì bảng giá không đổi nữa sau khi phiên chốt. Refresh cưỡng bức
-thì thay được, và đó là cách duy nhất để sửa một ngày.
+thì thay được, và đó là cách duy nhất để sửa một ngày. Các tỷ lệ của chỉ số Việt Nam (P/E, P/B, tỷ suất cổ tức, trung bình năm năm của chúng và tỷ lệ mã nằm trên đường trung bình 50 và 200 phiên, cho VN-Index, VN30 và HNX) được lượt làm mới ghi mỗi ngày một lần cho từng chỉ số, mỗi tỷ lệ một dòng mỗi ngày, nên daemon giữ lịch sử định giá của riêng nó; mỗi mã đóng góp bao nhiêu cho một chỉ số thì không bao giờ được lưu.
 
 #### Agent và phạm vi
 

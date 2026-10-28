@@ -84,6 +84,10 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
   // commodity: vndirect's exchange feed is daily, FRED's statistics series monthly.
   commodityPrices: { [ANY_SCOPE]: [sourceId('vndirect'), sourceId('fred-csv')] },
   valuationRatios: { 'equity-vn': [sourceId('vndirect')] },
+  // An index's own breakdown: the ratios are what the daemon stores a day at a time, and the
+  // contributors are read when asked, from the broker's market-watch host.
+  indexValuation: { 'equity-vn': [sourceId('vndirect')] },
+  indexContributors: { 'equity-vn': [sourceId('vndirect-mkw')] },
   sentiment: { crypto: [sourceId('alternative-me')] },
   funding: { crypto: [sourceId('binance-futures')] },
   // CoinMarketCap leads: its keyless listing answers the whole ranked window in one request.

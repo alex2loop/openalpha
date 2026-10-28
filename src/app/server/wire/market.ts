@@ -271,6 +271,8 @@ export interface MarketWire {
   readonly hasBoard: boolean
   readonly hasBrief: boolean
   readonly hasEvents: boolean
+  /** It answers `/v1/index-contributors` and `/v1/index-valuation`. */
+  readonly hasIndexes: boolean
 }
 
 /** `today` is the market's trading day on its own clock and `nextTradingDay` the next one it

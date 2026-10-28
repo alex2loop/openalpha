@@ -15,7 +15,8 @@
       "icon": "🥇",
       "hasBoard": false,
       "hasBrief": false,
-      "hasEvents": false
+      "hasEvents": false,
+      "hasIndexes": false
     },
     {
       "market": "gold-vn",
@@ -40,7 +41,8 @@
       },
       "hasBoard": false,
       "hasBrief": false,
-      "hasEvents": false
+      "hasEvents": false,
+      "hasIndexes": false
     },
     {
       "market": "equity-vn",
@@ -84,7 +86,8 @@
       },
       "hasBoard": true,
       "hasBrief": true,
-      "hasEvents": true
+      "hasEvents": true,
+      "hasIndexes": true
     },
     {
       "market": "crypto",
@@ -104,7 +107,8 @@
       },
       "hasBoard": true,
       "hasBrief": false,
-      "hasEvents": false
+      "hasEvents": false,
+      "hasIndexes": false
     }
   ]
 }

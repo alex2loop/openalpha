@@ -111,7 +111,7 @@ that cannot be rebuilt.
 fetched history: each pass backfills the percentile window's missing days from dated gold board
 history, world closes and FX history. The FX series is written from a fetched one. An ordinary
 refresh does not overwrite a day already recorded, because a board does not change once its session
-has closed. A forced refresh replaces it, and that is the one way to correct a day.
+has closed. A forced refresh replaces it, and that is the one way to correct a day. The Vietnamese index ratios (P/E, P/B, dividend yield, their five-year averages and the share of stocks above their 50- and 200-session mean, for VN-Index, VN30 and HNX) are written once a day per index by the refresh, one row per ratio and day, so the daemon keeps its own valuation history; what each stock contributed to an index is never stored.
 
 #### Agents and focus
 

@@ -21,6 +21,7 @@ import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { Flows } from '@/web/ui/market/flows'
+import { IndexReading } from '@/web/ui/market/index-reading'
 import { MacroFull } from '@/web/ui/market/macro-full'
 import { NewsList } from '@/web/ui/market/news-list'
 import { RefreshButton } from '@/web/ui/market/refresh-button'
@@ -109,6 +110,7 @@ function MarketView({ region }: { readonly region: string }) {
       <RegionPrices region={region} />
       <Flows region={region} />
       <Sectors region={region} />
+      <IndexReading region={region} />
       <Session region={region} />
       <MoreMarkets region={region} />
     </>

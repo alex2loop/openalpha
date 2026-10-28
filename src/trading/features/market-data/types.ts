@@ -15,6 +15,11 @@ import type {
 } from '@/trading/kernel/instrument'
 import type { AccountsHistory } from '@/trading/kernel/market/annual-accounts'
 import type {
+  IndexCode,
+  IndexContributorsReading,
+  IndexValuationReading,
+} from '@/trading/kernel/market/index-reading'
+import type {
   FuturesBasis,
   PreviousCloseOption,
   QuoteBoard,
@@ -87,10 +92,12 @@ export interface MarketDescription {
   readonly benchmark?: InstrumentRef
   /** When it trades; absent for a market that never closes. */
   readonly session?: SessionHours
-  /** Whether it answers a screen board, a morning brief, and corporate events. */
+  /** Whether it answers a screen board, a morning brief, corporate events, and an index's
+   *  contributors and valuation. */
   readonly hasBoard: boolean
   readonly hasBrief: boolean
   readonly hasEvents: boolean
+  readonly hasIndexes: boolean
 }
 
 export interface MarketDataEventsRequest extends MarketDataDayRangeRequest {
@@ -107,6 +114,10 @@ export interface MarketDataFlowsRequest extends MarketDataDayRangeRequest {
 
 export interface MarketDataMarketRequest extends MarketDataRequest {
   readonly market: MarketRef
+}
+
+export interface MarketDataIndexRequest extends MarketDataMarketRequest {
+  readonly index: IndexCode
 }
 
 export interface MarketDataRegionRequest extends MarketDataRequest {
@@ -205,6 +216,10 @@ export interface MarketDataService {
    *  from any market. An exact crypto symbol asks the provider, so a caller debounces typing. */
   searchInstruments(options: InstrumentSearchRequest): Promise<readonly InstrumentMatch[]>
   sectors(options: MarketDataMarketRequest): Promise<SectorStrengthResult>
+  indexContributors(
+    options: MarketDataIndexRequest
+  ): Promise<SourceResult<IndexContributorsReading>>
+  indexValuation(options: MarketDataIndexRequest): Promise<SourceResult<IndexValuationReading>>
   sentiment(options: MarketDataMarketRequest): Promise<SourceResult<SentimentSnapshot>>
   funding(options: MarketDataInstrumentRequest): Promise<SourceResult<FundingSnapshot>>
   recommendations(

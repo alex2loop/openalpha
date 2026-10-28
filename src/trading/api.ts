@@ -25,6 +25,7 @@ export type {
   TradingTrackRecordView,
 } from '@/trading/wiring/host/view-types'
 export { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
+export { isIndexCode } from '@/trading/kernel/market/index-reading'
 export { TYPED_PRICES } from '@/trading/kernel/surface/surface'
 export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
 
@@ -53,6 +54,8 @@ export {
   refreshDegradations,
 } from '@/trading/features/market-data/ops/refresh'
 export { isBoundaryFailure } from '@/trading/wiring/loop'
+
+// ── Contracts ────────────────────────────────────────────────────────────────
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 
@@ -131,6 +134,12 @@ export type {
   Ticker,
   TradingDay,
 } from '@/trading/kernel/instrument'
+export type {
+  IndexCode,
+  IndexContribution,
+  IndexContributorsReading,
+  IndexValuationReading,
+} from '@/trading/kernel/market/index-reading'
 export type {
   QuoteBoard,
   QuoteBoardItem,

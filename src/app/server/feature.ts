@@ -16,6 +16,7 @@ import { CONFIG_ROUTES } from '@/app/server/routes/config'
 import { CREDENTIAL_ROUTES } from '@/app/server/routes/credentials'
 import { DEBATE_ROUTES } from '@/app/server/routes/debate'
 import { DIGEST_ROUTES } from '@/app/server/routes/digest'
+import { INDEX_ROUTES } from '@/app/server/routes/index-reading'
 import { JOB_ROUTES } from '@/app/server/routes/jobs'
 import { MARKET_ROUTES } from '@/app/server/routes/market'
 import { MARKET_EXTRA_ROUTES } from '@/app/server/routes/market-extra'
@@ -62,6 +63,7 @@ const ROUTES = [
   ...DIGEST_ROUTES,
   ...MARKET_ROUTES,
   ...MARKET_EXTRA_ROUTES,
+  ...INDEX_ROUTES,
   ...THEME_ROUTES,
   ...MODEL_ROUTES,
   ...MONEY_ROUTES,
