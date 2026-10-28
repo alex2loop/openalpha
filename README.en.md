@@ -15,6 +15,11 @@
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
 </p>
 
+<p><img src="assets/readme/new.en.svg" height="24" alt="New" /></p>
+
+> [!TIP]
+> Your whole AI team works in a pixel office right in your browser. See who is doing what, click a person to hand them work, and glance at the market panel beside it. Open it with `openalpha web` · [see how](#the-office-page).
+
 <p align="center">
   <img src="assets/readme/hero.en.png" alt="Weak ideas are dropped before they reach you, across six steps: data, evidence, gate, debate, stages, verdict" width="100%" />
 </p>
@@ -222,32 +227,20 @@ Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/br
 
 ## The office page
 
-<p><img src="assets/readme/new.en.svg" height="24" alt="New" /></p>
-
-> [!TIP]
-> 🔥 **New:** your whole AI team works in a pixel office right in your browser. See who is doing what, click a person to hand them work, and glance at the market panel beside it. Open it with `openalpha web`.
-
 <p align="center">
   <img src="assets/readme/office.en.gif" alt="The OpenAlpha office page: a top-down pixel office with a data store, library, meeting room, lobby, alert desk and assistant room; the staff move as the daemon's real runs start and finish, a price tape scrolls across the top and a command box sits at the bottom" width="100%" />
 </p>
 
 The office page is a glass wall into the daemon: your assistant, the research crew and your own agents work in their rooms, and everything that moves is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. Beside it sit your portfolio, suggestions, chat and command box. The page never places an order and never starts an AI run by itself.
 
-To open it, add these two lines to `~/.openalpha/config.toml`:
-
-```toml
-[api]
-enabled = true
-```
-
-then run:
+To open it, run:
 
 ```bash
-openalpha restart --background   # the daemon reads the config again (not running yet? openalpha start --background)
+openalpha start --background     # the daemon serves the page (already running? skip this)
 openalpha web                    # prints a one-time sign-in link (5 minutes) and opens your browser
 ```
 
-The desktop app takes the address and token `openalpha connect` prints. What the page shows, how to use it and how to reach it from another machine: [the office page](docs/en/operations.md#the-office-page) · [run the API on a server](docs/en/operations.md#run-the-api-on-a-server). The same API serves your own app too: see [Advanced](#advanced).
+What the page shows, how to use it and how to reach it from another machine: [the office page](docs/en/operations.md#the-office-page) · [run the API on a server](docs/en/operations.md#run-the-api-on-a-server). The same API serves your own app too: see [Advanced](#advanced).
 
 ## See it in action
 
@@ -443,7 +436,7 @@ Suggestions written that way are scored separately in `/reflect` under `client:<
 <details>
 <summary><b>The office page and your own app (API)</b></summary>
 
-Set `[api] enabled = true` and the daemon serves a local HTTP and WebSocket API on `127.0.0.1`, behind a token. A client app gets your book, quotes, suggestions and chat, plus a live feed of what the daemon is running right now: each run and its steps, approvals and questions waiting on any channel, fills, and spend caps reached. The same address serves the [office page](#the-office-page). Run `openalpha web` for a one-time link that signs your browser in; the desktop app takes the address and token `openalpha connect` prints. The page shows and never decides: it places no orders and starts no AI run on its own. How to turn it on and reach it from another machine: [docs/en/operations.md](docs/en/operations.md#run-the-api-on-a-server). What the page shows and how to use it: [docs/en/operations.md](docs/en/operations.md#the-office-page)
+The daemon serves a local HTTP and WebSocket API on `127.0.0.1`, behind a token (`[api] enabled = false` turns it off). A client app gets your book, quotes, suggestions and chat, plus a live feed of what the daemon is running right now: each run and its steps, approvals and questions waiting on any channel, fills, and spend caps reached. The same address serves the [office page](#the-office-page). Run `openalpha web` for a one-time link that signs your browser in. The page shows and never decides: it places no orders and starts no AI run on its own. How to turn it on and reach it from another machine: [docs/en/operations.md](docs/en/operations.md#run-the-api-on-a-server). What the page shows and how to use it: [docs/en/operations.md](docs/en/operations.md#the-office-page)
 
 </details>
 

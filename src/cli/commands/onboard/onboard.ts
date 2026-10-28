@@ -105,10 +105,13 @@ async function firstSetup(shellCtx: AskContext, configPath: string): Promise<num
   const dailyBudgetUsd = await askBudget(ctx, STARTER_DAILY_BUDGET_USD)
   const telegramTokenEnv = await askTelegram(ctx)
   const telegram = telegramTokenEnv === undefined ? {} : { telegramTokenEnv }
-  const content = starterConfigToml(
-    { model: chosen.starter, language, currency, dailyBudgetUsd, ...telegram },
-    { api: false }
-  )
+  const content = starterConfigToml({
+    model: chosen.starter,
+    language,
+    currency,
+    dailyBudgetUsd,
+    ...telegram,
+  })
 
   ctx.app.out('')
   ctx.app.out(info(t(ctx.locale, 'cli.onboardAboutToWrite')))

@@ -48,12 +48,8 @@ export interface ExistingConfig {
   readonly table: Table
 }
 
-/** The one first-run config: `onboard` writes it for the CLI, `setup write` for the app, which
- *  also turns the API on. */
-export function starterConfigToml(
-  answers: StarterAnswers,
-  options: { readonly api: boolean }
-): string {
+/** The one first-run config: `onboard` writes it for the CLI, `setup write` for the app. */
+export function starterConfigToml(answers: StarterAnswers): string {
   return stringify({
     ...(answers.language === undefined && answers.currency === undefined
       ? {}
@@ -68,7 +64,6 @@ export function starterConfigToml(
     ...(answers.telegramTokenEnv === undefined
       ? {}
       : { channels: { telegram: { token_env: answers.telegramTokenEnv } } }),
-    ...(options.api ? { api: { enabled: true } } : {}),
   })
 }
 

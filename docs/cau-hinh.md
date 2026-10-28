@@ -573,8 +573,8 @@ hỏng 3 lần liên tiếp thì bị bỏ qua 1 phút. Cache giữ 100 mục m�
 
 ### `[api]`
 
-API HTTP/WS (`/v1`) mà các ứng dụng khách dùng. `openalpha start` mở API khi `enabled = true`; một lệnh
-chạy một lần không bao giờ mở cổng.
+API HTTP/WS (`/v1`) mà các ứng dụng khách dùng. `openalpha start` mở API theo mặc định (`enabled = true`);
+đặt `enabled = false` để tắt. Một lệnh chạy một lần không bao giờ mở cổng.
 
 API chỉ nghe trên `127.0.0.1` và từ chối mọi máy khác. Nên máy khác phải nối qua đường hầm SSH hoặc một
 reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ trả lời yêu cầu gửi tới `127.0.0.1`,

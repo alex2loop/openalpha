@@ -1022,7 +1022,7 @@ Use natural-language chat for anything the slash grammar does not cover: bars, c
 
 You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing.
 
-**HTTP** (on this machine only, with a bearer token). `openalpha start` serves a local API when `[api] enabled = true` (see [`[api]`](configuration.md)).
+**HTTP** (on this machine only, with a bearer token). `openalpha start` serves a local API by default (`[api] enabled = false` turns it off) (see [`[api]`](configuration.md)).
 
 Routes return **codes and data, never prose**: a client receives `{ code: 'suggestion.reused-same-day' }` and shows it in the reader's language. Every request acts as the one local operator, fixed at startup, so no request can pick or fake a different user. Route list: [developer page](dev/trading.md).
 

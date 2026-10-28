@@ -397,9 +397,9 @@ Run the daemon on a server you own and point a client app at it.
    command it installs is the path `command -v openalpha` prints (by default
    `~/.local/bin/openalpha`); the unit below must use it.
 2. **Configure.** `openalpha setup write <provider> <model>` writes `~/.openalpha/config.toml` with
-   `[api] enabled = true` and one model (`openalpha setup catalog` lists the providers). Or download
+   one model (`openalpha setup catalog` lists the providers). Or download
    [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
-   there and set `[api] enabled = true` and your model chain yourself. Each model names the
+   there and set your model chain yourself (the API is on by default). Each model names the
    environment variable that holds its key (`api_key_env`); set it on the server.
 3. **Keep it running.** A systemd user unit, with the keys in `~/.openalpha/env` (one `NAME=value`
    per line, mode 0600):

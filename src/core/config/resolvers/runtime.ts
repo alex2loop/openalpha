@@ -206,7 +206,7 @@ export function resolveApi(raw: RawApi | undefined): ResolvedApi {
   const isLocalOnly = publicUrl === undefined
 
   return {
-    enabled: raw?.enabled ?? false,
+    enabled: raw?.enabled ?? true,
     port: raw?.port ?? DEFAULT_API_PORT,
     ...(raw?.token_env === undefined ? {} : { tokenEnv: raw.token_env }),
     orders: raw?.orders ?? isLocalOnly,

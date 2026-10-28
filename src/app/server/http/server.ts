@@ -52,6 +52,8 @@ export function startApi(
       // /v1 HTTP routes only: the page route and the WS upgrade below never reach it.
       hostname: LOOPBACK_HOST,
       port: app.config.api.port,
+      // A second daemon on this port must fail with `cli.apiPortInUse`, not share the socket.
+      reusePort: false,
       maxRequestBodySize: MAX_HTTP_BODY_BYTES,
       idleTimeout: IDLE_TIMEOUT_SECONDS,
       routes: PAGE_ROUTES,
