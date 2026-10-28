@@ -27,7 +27,7 @@ interface OpenRestart {
   handle?: ModalHandle
 }
 
-/** "Khởi động lại daemon": what will apply, what is running, and whether to wait for it. A daemon
+/** "Khởi động lại dịch vụ nền": what will apply, what is running, and whether to wait for it. A daemon
  *  that cannot restart (a terminal on Windows) is told how to instead. */
 export function openRestartDialog(request: RestartRequest): void {
   const open: OpenRestart = {
