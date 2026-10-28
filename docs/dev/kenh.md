@@ -108,11 +108,14 @@ Kênh không có `inlineButtons` không hiện được bàn phím, nên `delive
 số cho mỗi nút (`/4821`), khóa theo chat, và ô xin phê duyệt cùng ô duyệt kế hoạch thêm chúng vào thành các
 dòng. `handleTypedChoice` chạy đầu tiên trong `route`, trước quy tắc nhắc tên, và biến một mã còn sống
 thành đúng `ChannelCallbackQuery` mà một lần bấm tạo ra, qua cùng khâu xét duyệt (`gate.admitCallback`).
-Không gì tiêu mã: resolver giữ câu hỏi trả lời lần gõ lại là "đã trả lời hoặc đã hết hạn", nên một câu
-trả lời nó không nhận (thành viên không phải operator, câu hỏi còn đang gửi) để mã còn nguyên. Mỗi mục
-mang `expiresAt` của chính câu hỏi; quá hạn thì mã được giữ ở trạng thái hết hạn, nên operator gõ lại
-sẽ được báo, còn bốn chữ số chưa từng được cấp trong chat đó đi qua như tin nhắn thường. Mã mới không
-bao giờ trùng mã chat còn nhớ, và LRU chặn bộ nhớ.
+Không gì tiêu mã:
+
+- Resolver giữ câu hỏi trả lời lần gõ lại là "đã trả lời hoặc đã hết hạn", nên một câu trả lời nó
+  không nhận (thành viên không phải operator, câu hỏi còn đang gửi) để mã còn nguyên.
+- Mỗi mục mang `expiresAt` của chính câu hỏi. Quá hạn thì mã được giữ ở trạng thái hết hạn, nên
+  operator gõ lại sẽ được báo, còn bốn chữ số chưa từng được cấp trong chat đó đi qua như tin nhắn
+  thường.
+- Mã mới không bao giờ trùng mã chat còn nhớ, và LRU chặn bộ nhớ.
 
 ### Dữ liệu nút bấm
 
@@ -315,12 +318,19 @@ token để bị từ chối: nó thử đăng nhập lại ở nền (đầu ti
 `startChannels` trả về `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: hàm tắt, ảnh chụp sức khỏe, các kênh bị loại,
 một bộ gửi chiều ra định tuyến tới runtime sở hữu kênh (`AcknowledgedRouter`), và người nhận mặc định
 cho tin chủ động. Người nhận đó là `fallback_chat_id` của kênh, hoặc id được phép duy nhất khi kênh chỉ
-có đúng một, hoặc chat ghép nối duy nhất (`createChannelRecipient`). Mỗi lần gửi đều hỏi `isDeliverable`: chat đã bị
-`pair revoke` (dòng giữ `revoked_at`, không bị xóa) thì bị từ chối với kết quả `revoked`, để cảnh báo và bản tin tắt thay vì thử lại, và `resolveRecipient` không còn trả về nó, nên lượt dựng cảnh báo hệ thống không dựng gì cho chat đó; đọc ghép nối lỗi thì lần gửi báo `unavailable` và chờ lượt thử lại, không tắt gì; chat chưa từng ghép nối, như nhóm được
-nhận qua người vận hành, vẫn gửi được. Chat ghép nối được đọc lúc khởi
-động và đọc lại mỗi khi cổng nhận một chat đã ghép nối chưa phải người nhận, vì `pair approve` ghi từ
-một tiến trình khác. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để một lần dọn hỏng chặn những lần còn
-lại.
+có đúng một, hoặc chat ghép nối duy nhất (`createChannelRecipient`).
+
+Mỗi lần gửi đều hỏi `isDeliverable`:
+
+- Chat đã bị `pair revoke` (dòng giữ `revoked_at`, không bị xóa) thì bị từ chối với kết quả `revoked`,
+  để cảnh báo và bản tin tắt thay vì thử lại. `resolveRecipient` không còn trả về nó, nên lượt dựng
+  cảnh báo hệ thống không dựng gì cho chat đó.
+- Đọc ghép nối lỗi thì lần gửi báo `unavailable` và chờ lượt thử lại, không tắt gì.
+- Chat chưa từng ghép nối, như nhóm được nhận qua người vận hành, vẫn gửi được.
+
+Chat ghép nối được đọc lúc khởi động và đọc lại mỗi khi cổng nhận một chat đã ghép nối chưa phải người
+nhận, vì `pair approve` ghi từ một tiến trình khác. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để
+một lần dọn hỏng chặn những lần còn lại.
 
 ## Thêm một kênh
 
