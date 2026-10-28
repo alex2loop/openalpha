@@ -31,6 +31,10 @@ const SHIFT_STEPS = [0, -1, 1, -2, 2] as const
 const SHIFT_STEP = 0.45
 const SPAN_PX = 8
 const TAIL_INSET_PX = 8
+// The boards, room tags and toolbar pieces other overlays draw, and the page's floating panel and
+// command bar over the scene; no bubble covers them.
+const FIXED_SELECTOR =
+  '.room-tag-row, .board-line, .scene-zoombtn, .scene-hint, .panel.is-float, .command-bar.is-floating'
 const PRIORITY: Readonly<Record<BubbleKind, number>> = Object.freeze({
   wait: 0,
   say: 1,
@@ -51,6 +55,13 @@ export interface Placed {
   readonly tailX: number
 }
 
+/** The open radial menu's person, the box round its pills, and the pane it stands in. */
+export interface MenuBounds {
+  readonly actor: ActorId
+  readonly ring: Rect
+  readonly pane: Size
+}
+
 /** The label of what the pointer is over, at the box of the thing it names. */
 interface HoverLabel {
   readonly anchor: Rect
@@ -68,6 +79,8 @@ interface LayoutInput {
   readonly actors: ReadonlyMap<ActorId, Rect>
   /** The selected person: their bubble goes first and shows even where it must overlap. */
   readonly selected?: ActorId | undefined
+  /** The open radial menu: its person's bubble stands round the ring, inside the pane. */
+  readonly menu?: MenuBounds
 }
 
 interface Layout {
@@ -104,20 +117,19 @@ export function layoutOverlay(input: LayoutInput): Layout {
   const hidden: ActorId[] = []
 
   for (const bubble of sortBubbles(input.bubbles, input)) {
-    const speaker = input.actors.get(bubble.actor)
-    const room = speaker === undefined ? undefined : roomOf(speaker, input.rooms)
+    const around = aroundOf(bubble.actor, input)
     const isSelected = bubble.actor === input.selected
     const spot =
-      speaker === undefined || (placed.length >= MAX_BUBBLES && !isSelected)
+      around === undefined || (placed.length >= MAX_BUBBLES && !isSelected)
         ? undefined
-        : spotOf(candidatesOf(bubble, { speaker, room }), taken, isSelected)
+        : spotOf(candidatesOf(bubble, around), taken, isSelected)
 
-    if (speaker === undefined || spot === undefined) {
+    if (around === undefined || spot === undefined) {
       hidden.push(bubble.actor)
       continue
     }
 
-    placed.push({ bubble, ...spot, tailX: tailOf(spot.rect, speaker) })
+    placed.push({ bubble, ...spot, tailX: tailOf(spot.rect, around.speaker) })
     taken.push(spot.rect)
   }
 
@@ -167,6 +179,18 @@ export function sizeBubble(bubble: Bubble, actions: readonly string[]): Sized<Bu
 
 export function sizeTag(text: string): Size {
   return { w: Math.ceil(measure(text, TAG_FONT)) + TAG_PAD_X_PX * 2, h: TAG_H_PX }
+}
+
+/** The boxes other overlays and the page's floating chrome drew, relative to `scene`; read only
+ *  when a layout runs, never per frame. */
+export function readFixed(scene: HTMLElement): Rect[] {
+  const origin = scene.getBoundingClientRect()
+
+  return [...scene.ownerDocument.querySelectorAll(FIXED_SELECTOR)].map((element) => {
+    const box = element.getBoundingClientRect()
+
+    return { x: box.left - origin.left, y: box.top - origin.top, w: box.width, h: box.height }
+  })
 }
 
 /** Takes the font family the page renders the overlay in, once at mount; widths measured in
@@ -249,6 +273,19 @@ function sortBubbles(
       yOf(a) - yOf(b) ||
       xOf(a) - xOf(b)
   )
+}
+
+// What a bubble stands round: its speaker inside their room, or the open ring inside the pane.
+function aroundOf(actor: ActorId, input: LayoutInput): Around | undefined {
+  const { menu } = input
+
+  if (menu !== undefined && menu.actor === actor) {
+    return { speaker: menu.ring, room: { x: 0, y: 0, ...menu.pane } }
+  }
+
+  const speaker = input.actors.get(actor)
+
+  return speaker === undefined ? undefined : { speaker, room: roomOf(speaker, input.rooms) }
 }
 
 // The room the speaker's feet stand in.

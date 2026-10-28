@@ -359,6 +359,7 @@
     "office.cost.spent": "{spent} / {cap} USD",
     "office.cost.spentUncapped": "{spent} USD",
     "office.cost.amount": "{usd} USD",
+    "office.cost.underCent": "<{cent}",
     "office.cost.todayLabel": "AI today",
     "office.cost.full": "See the full report",
     "office.cost.period.today": "Today",

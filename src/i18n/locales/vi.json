@@ -359,6 +359,7 @@
     "office.cost.spent": "{spent} / {cap} USD",
     "office.cost.spentUncapped": "{spent} USD",
     "office.cost.amount": "{usd} USD",
+    "office.cost.underCent": "<{cent}",
     "office.cost.todayLabel": "AI hôm nay",
     "office.cost.full": "Xem đủ báo cáo",
     "office.cost.period.today": "Hôm nay",

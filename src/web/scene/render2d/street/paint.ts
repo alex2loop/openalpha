@@ -188,6 +188,7 @@ function paintStreet(
     staticVersion: state.staticVersion,
     sharpVersion: state.sharp.version,
     movingVersion: state.movingVersion,
+    isPainting,
   }
 }
 

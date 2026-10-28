@@ -49,6 +49,18 @@ export function withinBuildSlice<A extends unknown[]>(
   }
 }
 
+/** Whether the frame painting now still has time to build something costly; a no is counted as a
+ *  sprite left out, so another frame follows. */
+export function hasBuildTime(): boolean {
+  if (performance.now() <= builds.until) {
+    return true
+  }
+
+  builds.skips++
+
+  return false
+}
+
 /** How many sprites have been left out so far: a count that moved over a paint means it is not
  *  whole. */
 export function spriteBuildSkips(): number {
@@ -78,8 +90,7 @@ export function createSpriteCache<T>(spec: CacheSpec<T>): SpriteCache<T> {
         return sprite
       }
 
-      if (performance.now() > builds.until) {
-        builds.skips++
+      if (!hasBuildTime()) {
         return undefined
       }
 

@@ -2,9 +2,10 @@ import type { PaintScene } from '@/web/scene/render2d/wall-props'
 import type { Point } from '@/web/scene/types'
 import { fill, INK } from '@/web/scene/render2d/building'
 import { paintStandby } from '@/web/scene/render2d/standby'
-import { paintCrispText } from '@/web/scene/sprites/crisp-text'
+import { isCrispTextWarm, paintCrispText } from '@/web/scene/sprites/crisp-text'
 import { DEVICE_TONES, PALETTE } from '@/web/scene/sprites/palette'
 import { paintPixelText, pixelTextWidth } from '@/web/scene/sprites/pixel-font'
+import { hasBuildTime } from '@/web/scene/sprites/sprite-cache'
 import { standingScreenOf } from '@/web/scene/world/desk-spots'
 import { seedOf } from '@/web/scene/world/rng'
 import { formatPercent } from '@/web/text/figures'
@@ -124,7 +125,7 @@ function paintRefreshBars(g: CanvasRenderingContext2D, screen: ScreenBox, progre
 
 // The mockup's refresh screen once its text reads (at least `SCREEN_TEXT_MIN_PX` CSS px): the
 // command, its percent on the right while it runs, and the progress bar under it. False when
-// too small, so the bars show instead.
+// too small, or while its first crisp text waits for a lighter frame, so the bars show instead.
 function paintRefreshText(
   g: CanvasRenderingContext2D,
   at: {
@@ -137,7 +138,11 @@ function paintRefreshText(
   const fontPx = sh * SCREEN_TEXT_SHARE
   const market = at.scene.refreshMarket
 
-  if (fontPx * at.scene.scale < SCREEN_TEXT_MIN_PX || market === undefined) {
+  if (
+    fontPx * at.scene.scale < SCREEN_TEXT_MIN_PX ||
+    market === undefined ||
+    !isScreenTextDue(at.scene)
+  ) {
     return false
   }
 
@@ -174,6 +179,12 @@ function paintRefreshText(
   )
 
   return true
+}
+
+// The first crisp text costs a few ms, so it waits for a frame with no street repaint step and
+// time left in its build slice.
+function isScreenTextDue(scene: PaintScene): boolean {
+  return isCrispTextWarm() || (!scene.isStreetPainting && hasBuildTime())
 }
 
 /** A small silver desktop box with its mark on top and its front ports. */

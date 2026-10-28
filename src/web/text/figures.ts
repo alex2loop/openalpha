@@ -1,6 +1,7 @@
 import { locale } from '@/web/state/session'
 import { isAmbiguousGrouping } from '@/web/text/decimal'
 import { ABSENT_CELL, DOWN_GLYPH, UP_GLYPH } from '@/web/text/glyphs'
+import { tr } from '@/web/text/tr'
 
 /** Percent per whole: a fraction times this is a percent. */
 export const PERCENT = 100
@@ -66,9 +67,15 @@ export function formatUsd(value: number | undefined): string {
 }
 
 /** A USD amount at cent precision whatever its size: the rows of a breakdown, which add up to a
- *  total printed the same way. */
+ *  total printed the same way. A spend that rounds to zero cents reads `<0,01`, never zero. */
 export function formatUsdCents(value: number | undefined): string {
-  return formatFixed(value, USD_DIGITS)
+  const text = formatFixed(value, USD_DIGITS)
+
+  if (value === undefined || !Number.isFinite(value) || value === 0 || !ZERO_TEXT.test(text)) {
+    return text
+  }
+
+  return tr('ui.office.cost.underCent', { cent: formatFixed(USD_CENT, USD_DIGITS) })
 }
 
 /** A number at exactly `digits` decimals in the page's language; a missing one prints

@@ -60,6 +60,7 @@ export function buildPaintScene(input: {
     ...(refreshMarket === undefined ? {} : { refreshMarket }),
     fx: resolveAmbientFx(sim, input.nowMs),
     stretch: input.stretch,
+    isStreetPainting: sim.street.isPainting,
     ...(indexMoveText === undefined ? {} : { indexMoveText }),
   }
 }
