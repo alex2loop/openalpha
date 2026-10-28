@@ -6,7 +6,6 @@ import { sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { runCommand } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
 import { onCommandFinished } from '@/web/state/events'
 import { homeRegion } from '@/web/state/market'
 import { toErrorText, tr } from '@/web/text/tr'
@@ -39,7 +38,7 @@ interface MoveContext {
 }
 
 /** Chủ đề: proposals to decide, themes followed, and `/themes show` for them. The page moves a
- *  theme; Chạy lại runs `/themes` at once, its cost shown beside it. */
+ *  theme; Chạy lại runs `/themes` at once. */
 export function Themes() {
   const reading = useBlock(ROUTES.themes)
   const answer = useSignal<MoveAnswer | undefined>(undefined)
@@ -79,15 +78,10 @@ function VnOnlyNote() {
 }
 
 function RunAgain() {
-  const estimate = estimateText(RUN_TEXT)
-
   return (
-    <>
-      {estimate !== undefined && <span class="meta">{estimate}</span>}
-      <Button kind="ai" size="small" onClick={() => runCommand(RUN_TEXT)}>
-        {tr('ui.office.themes.rerun')}
-      </Button>
-    </>
+    <Button kind="ai" size="small" onClick={() => runCommand(RUN_TEXT)}>
+      {tr('ui.office.themes.rerun')}
+    </Button>
   )
 }
 

@@ -215,7 +215,7 @@ A chip on its left says who receives what you type: the assistant, or one of you
 - **The queue.** Commands that run on their own do not wait behind each other, within the limits above. In the chat column a command that has to wait says its place in line and how many are running at once, and can be dropped from the line. A command that runs beside others says what it runs alongside.
 - **Stopping and adding.** A running answer or command shows "See it in the office" and Stop, which asks you to confirm and keeps the work already done in the log. While an answer (not a command) is in progress you can type a further thought and press "Add to it": the answer reads it at its next step. A line that starts with `/` is a command, never an addition.
 
-A button that names a whole command sends it when you click it, with its usual cost shown beside the button: "/suggest VPB", "Run again" for `/themes`, the brief on the first-run card, a screen, a scheduled job's "Run again", "Dig deeper". Market's "Refresh data" sends `/refresh` for the markets of the region in view (never with `force`). A button that needs more from you, such as Set alert or quoting a report, only fills the box (or picks the receiver) and leaves the rest to you.
+A button that names a whole command sends it when you click it: "/suggest VPB", "Run again" for `/themes`, the brief on the first-run card, a screen, a scheduled job's "Run again", "Dig deeper". Market's "Refresh data" sends `/refresh` for the markets of the region in view (never with `force`). A button that needs more from you, such as Set alert or quoting a report, only fills the box (or picks the receiver) and leaves the rest to you.
 
 ## Research
 

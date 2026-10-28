@@ -1,6 +1,4 @@
 import { runCommand, SUGGEST_COMMAND } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
-import { joinInline } from '@/web/text/glyphs'
 import { Button } from '@/web/ui/kit/button'
 
 interface SuggestChipProps {
@@ -9,10 +7,9 @@ interface SuggestChipProps {
   readonly onRun?: () => void
 }
 
-/** "/suggest TICKER" with what it usually costs, shown before the click that sends it. */
+/** "/suggest TICKER", sent on click. */
 export function SuggestChip({ ticker, onRun }: SuggestChipProps) {
   const suggest = `${SUGGEST_COMMAND} ${ticker}`
-  const estimate = estimateText(SUGGEST_COMMAND)
 
   return (
     <Button
@@ -22,7 +19,7 @@ export function SuggestChip({ ticker, onRun }: SuggestChipProps) {
         runCommand(suggest)
       }}
     >
-      {estimate === undefined ? suggest : joinInline([suggest, estimate])}
+      {suggest}
     </Button>
   )
 }

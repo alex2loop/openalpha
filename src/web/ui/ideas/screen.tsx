@@ -2,7 +2,6 @@ import type { ScreenResponse } from '@/app/server/wire/market'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { runCommand, SUGGEST_COMMAND } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
@@ -63,23 +62,12 @@ function Board({ market }: { readonly market: string }) {
   )
 }
 
-// Sends `/screen <market>`, its cost shown beside the button.
 function Rerun({ market }: { readonly market: string }) {
   return (
-    <>
-      <Estimate command={SCREEN_COMMAND} />
-      <Button kind="ai" size="small" onClick={() => runCommand(`${SCREEN_COMMAND} ${market}`)}>
-        {tr('ui.office.ideas.screenRerun')}
-      </Button>
-    </>
+    <Button kind="ai" size="small" onClick={() => runCommand(`${SCREEN_COMMAND} ${market}`)}>
+      {tr('ui.office.ideas.screenRerun')}
+    </Button>
   )
-}
-
-// What the command usually costs, beside its button; nothing while the daemon has no estimate.
-function Estimate({ command }: { readonly command: string }) {
-  const estimate = estimateText(command)
-
-  return estimate === undefined ? null : <span class="meta">{estimate}</span>
 }
 
 function BoardBody({ board }: { readonly board: ScreenResponse }) {
@@ -152,7 +140,6 @@ function Opportunity({ row }: { readonly row: Row }) {
         <Button kind="ai" size="small" onClick={() => runCommand(`${SUGGEST_COMMAND} ${row.key}`)}>
           {tr('ui.office.ideas.screenSuggest')}
         </Button>
-        <Estimate command={SUGGEST_COMMAND} />
       </div>
     </div>
   )

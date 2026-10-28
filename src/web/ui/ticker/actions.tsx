@@ -2,7 +2,6 @@ import { useSignal } from '@preact/signals'
 
 import { openBook } from '@/web/state/book'
 import { runCommand, SUGGEST_COMMAND } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
 import { keyOf, watchedNames } from '@/web/state/market'
 import { addWatch, qualifyName } from '@/web/state/watch'
 import { toErrorText, tr } from '@/web/text/tr'
@@ -15,8 +14,8 @@ interface CardActionsProps {
   readonly market: string
 }
 
-/** What the operator can do with this name. "Phân tích mã này" runs at once, its AI cost shown beside
- *  it; "Theo dõi" is free and changes the list at once; the alert and the trade
+/** What the operator can do with this name. "Phân tích mã này" runs at once; "Theo dõi" is free
+ *  and changes the list at once; the alert and the trade
  *  open their forms. */
 export function CardActions({ ticker, market }: CardActionsProps) {
   const failure = useSignal<string | undefined>(undefined)
@@ -45,7 +44,6 @@ export function CardActions({ ticker, market }: CardActionsProps) {
       <Button kind="ai" onClick={() => runCommand(`${SUGGEST_COMMAND} ${ticker}`)}>
         {tr('ui.office.ticker.suggestCta')}
       </Button>
-      <span class="meta">{estimateText(SUGGEST_COMMAND)}</span>
       {isWatched ? (
         <Button onClick={() => openBook('watch')}>{tr('ui.office.ticker.watching')}</Button>
       ) : (

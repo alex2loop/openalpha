@@ -612,7 +612,7 @@ or output.
 
 ## The office page
 
-With the API on, the daemon also serves a web page at its own address, `http://127.0.0.1:<port>/` (port 8765 unless you changed it). Think of it as a glass wall into the daemon: a small office where your assistant, the research crew and your own agents work while the daemon works. Everything you see moving is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. The page never places an order and never starts an AI run by itself: a run starts only when you send a command or click a button that names one, such as "/suggest VPB", with its usual cost shown beside it. A button that needs more from you, such as Set alert, puts the command in the box for you to finish and send.
+With the API on, the daemon also serves a web page at its own address, `http://127.0.0.1:<port>/` (port 8765 unless you changed it). Think of it as a glass wall into the daemon: a small office where your assistant, the research crew and your own agents work while the daemon works. Everything you see moving is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. The page never places an order and never starts an AI run by itself: a run starts only when you send a command or click a button that names one, such as "/suggest VPB". A button that needs more from you, such as Set alert, puts the command in the box for you to finish and send.
 
 ### Opening it
 
@@ -701,8 +701,7 @@ The Market tab has three parts: *Market*, *News* and *Themes*.
 
 - The button sends `/refresh` for each market of the region in view that you still read, never
   `force`. So a market whose data is already current costs one quick pass.
-- A pass can read macro reports with the model. So once past runs quote a cost above zero, the note
-  beside the button gives it.
+- A pass can read macro reports with the model, so it may cost a little. `/cost` shows what it spent.
 - The run shows in the running chip, the office's data store and the chat, like a typed `/refresh`.
   The button stays off while one runs, and the blocks below read again when it ends.
 
@@ -744,8 +743,7 @@ A part with nothing to show is left out, and one that could not be read says why
 When the sources cannot be read, it says so instead of showing an empty list.
 
 **Themes** (Vietnam only) lists the themes waiting for you, with Follow and Skip, and the ones you
-follow, with Stop following after a confirm. "Run again" sends `/themes` at once; its estimated cost
-sits beside the button.
+follow, with Stop following after a confirm. "Run again" sends `/themes` at once.
 
 ### The office
 

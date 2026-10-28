@@ -3,7 +3,6 @@ import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { runCommand } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
 import { loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
@@ -140,7 +139,6 @@ function BriefStep({ isModelReady }: { readonly isModelReady: boolean }) {
         <Button size="small" disabled={!isModelReady} onClick={() => runCommand(BRIEF_COMMAND)}>
           {tr('ui.office.firstRun.briefCta')}
         </Button>
-        <span class="meta">{estimateText(BRIEF_COMMAND)}</span>
       </div>
     </Step>
   )
