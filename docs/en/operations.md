@@ -833,7 +833,24 @@ How loudly the page tells you something follows the weight the daemon gives the 
 
 Below 900 px wide the page shows one pane at a time, switched with a bar under the header: Office, Information, Chat. A wider screen keeps the chat docked beside the rest. Opening a card (a ticker, an agent, a tab) brings Information forward; "See" on a run brings the Office forward, zoomed into that run's room; sending a message or choosing Chat brings the chat forward, and its close button goes back to the pane you came from. Nothing switches panes by itself, so a live event never pulls you away. Information opens as a glass bottom sheet over the office (tap its handle to hide it); Info only and its toggle are off at this width.
 
-On a wider screen the office fills the page and the information panel floats over it as glass; the arrow at the panel's head folds it into a strip of icons at its corner, so the whole scene shows, and the strip's own arrow opens it again. The header's Info only toggle (`I`) hides the office entirely so the information fills the page at a comfortable reading width, the chat still docked beside it: the scene is not even loaded or running, which saves processor and graphics work on a small or slow machine, and the 2D | 3D switch, the clock and the weather leave the header with it. Your choice is kept in this browser. Pressing the key or the toggle again brings the office back; "See" on a run does the same and zooms into its room. Below 600 px, on a phone, the header trims to what fits (the brand word and chip icons go, the running chip shortens and the clock stays as a compact button), popovers fill the width, Settings goes full screen and the reader drops its contents column. On any narrow screen the floor is never drawn smaller than one screen pixel per world pixel, so you reach the rest by panning, and a hint says so.
+On a wider screen the office fills the page and the information panel floats over it as glass. The
+panel's blocks are glass too.
+
+- The page opens with the floor centred in the part of the office the panel leaves clear. It stays
+  centred while you resize the window or the panel changes, until you move the camera yourself.
+- The arrow at the panel's head folds it into a strip of icons at its corner, so the whole scene
+  shows. The strip's own arrow opens it again.
+- The header's Info only toggle (`I`) hides the office entirely, so the information fills the page at
+  a comfortable reading width, with the chat still docked beside it. The scene is not even loaded or
+  running, which saves processor and graphics work on a small or slow machine. The 2D | 3D switch, the
+  clock and the weather leave the header with it. Your choice is kept in this browser. Pressing the
+  key or the toggle again brings the office back; "See" on a run does the same and zooms into its
+  room.
+
+Below 600 px, on a phone, the header trims to what fits: the brand word and chip icons go, the running
+chip shortens, and the clock stays as a compact button. Popovers fill the width, Settings goes full
+screen and the reader drops its contents column. On any narrow screen the floor is never drawn
+smaller than one screen pixel per world pixel, so you reach the rest by panning, and a hint says so.
 
 Touch works as a mouse does: drag with one finger to pan and pinch with two to zoom. A first tap on a person, their tag or anything with a tip shows what hover would show, and a person greets; a second tap on the same thing, or a long press on a person, opens the ring. A tap on empty floor closes the label, the ring and a follow. Follow someone from their ring; everything you read on hover has a tap.
 

@@ -827,7 +827,24 @@ Trang báo to hay nhỏ tùy trọng lượng dịch vụ nền gán cho sự ki
 
 Dưới 900 px chiều ngang, trang chỉ hiện một khung mỗi lần, chuyển bằng một thanh dưới đầu trang: Văn phòng, Thông tin, Trò chuyện. Màn hình rộng hơn thì khung chat vẫn nằm cạnh các khung còn lại. Mở một thẻ (một mã, một agent, một thẻ tab) thì đưa khung thông tin lên trước; "Xem" một phiên chạy thì đưa văn phòng lên trước và zoom vào phòng của phiên chạy đó; gửi tin nhắn hoặc chọn Trò chuyện thì đưa khung chat lên trước, và nút đóng của nó quay về khung bạn vừa ở. Không có gì tự chuyển khung, nên một sự kiện trực tiếp không bao giờ kéo bạn đi chỗ khác. Thông tin mở thành một tấm kính kéo từ dưới lên trên văn phòng (chạm tay cầm để ẩn); Chỉ thông tin và nút của nó tắt ở độ rộng này.
 
-Trên màn hình rộng, văn phòng chiếm cả trang và bảng thông tin nổi phía trên như một tấm kính; mũi tên ở đầu bảng thu nó thành một dải biểu tượng ở góc, để thấy trọn khung cảnh, và mũi tên của dải mở lại bảng. Nút Chỉ thông tin (`I`) trên đầu trang ẩn hẳn văn phòng để thông tin chiếm cả trang ở độ rộng dễ đọc, khung chat vẫn nằm cạnh: khung cảnh không được tải hay chạy, nên đỡ tốn bộ xử lý và đồ họa trên máy nhỏ hoặc chậm, và công tắc 2D | 3D, đồng hồ và thời tiết cũng rời đầu trang. Lựa chọn được giữ trong trình duyệt này. Bấm lại phím hoặc nút thì văn phòng quay lại; "Xem" một phiên chạy cũng làm vậy rồi zoom vào phòng của nó. Dưới 600 px, tức trên điện thoại, đầu trang rút gọn cho vừa (bỏ chữ thương hiệu và biểu tượng trên chip, chip việc đang chạy ngắn lại, đồng hồ còn dưới dạng một nút nhỏ), cửa sổ nổi phủ hết chiều ngang, Cài đặt thành toàn màn hình và trình đọc bỏ cột mục lục. Trên mọi màn hình hẹp, sàn không bao giờ được vẽ nhỏ hơn một điểm ảnh màn hình cho mỗi điểm của thế giới, nên phần còn lại xem bằng cách di chuyển, và có một dòng gợi ý nói vậy.
+Trên màn hình rộng, văn phòng chiếm cả trang và bảng thông tin nổi phía trên như một tấm kính. Các khối
+trong bảng cũng là kính.
+
+- Trang mở ra với sàn văn phòng nằm giữa phần văn phòng mà bảng thông tin chừa ra. Sàn giữ ở giữa khi
+  bạn đổi cỡ cửa sổ hay bảng thay đổi, cho tới khi bạn tự di chuyển góc nhìn.
+- Mũi tên ở đầu bảng thu nó thành một dải biểu tượng ở góc, để thấy trọn khung cảnh. Mũi tên của dải mở
+  lại bảng.
+- Nút Chỉ thông tin (`I`) trên đầu trang ẩn hẳn văn phòng, để thông tin chiếm cả trang ở độ rộng dễ
+  đọc, khung chat vẫn nằm cạnh. Khung cảnh không được tải hay chạy, nên đỡ tốn bộ xử lý và đồ họa trên
+  máy nhỏ hoặc chậm. Công tắc 2D | 3D, đồng hồ và thời tiết cũng rời đầu trang. Lựa chọn được giữ trong
+  trình duyệt này. Bấm lại phím hoặc nút thì văn phòng quay lại; "Xem" một phiên chạy cũng làm vậy rồi
+  zoom vào phòng của nó.
+
+Dưới 600 px, tức trên điện thoại, đầu trang rút gọn cho vừa: bỏ chữ thương hiệu và biểu tượng trên chip,
+chip việc đang chạy ngắn lại, đồng hồ còn dưới dạng một nút nhỏ. Cửa sổ nổi phủ hết chiều ngang, Cài đặt
+thành toàn màn hình và trình đọc bỏ cột mục lục. Trên mọi màn hình hẹp, sàn không bao giờ được vẽ nhỏ
+hơn một điểm ảnh màn hình cho mỗi điểm của thế giới, nên phần còn lại xem bằng cách di chuyển, và có một
+dòng gợi ý nói vậy.
 
 Cảm ứng dùng như chuột: một ngón kéo để di chuyển, hai ngón chụm để zoom. Chạm lần đầu vào một người, thẻ tên của họ hay thứ có chú thích thì hiện thứ mà trỏ chuột sẽ hiện, và người đó chào; chạm lần hai vào cùng thứ đó, hoặc nhấn giữ trên một người, mở vòng hành động. Chạm vào sàn trống thì đóng nhãn, vòng hành động và việc đi theo. Đi theo một người thì chọn trong vòng hành động; mọi thứ bạn đọc được khi trỏ chuột đều có cách chạm.
 
