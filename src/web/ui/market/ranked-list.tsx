@@ -4,7 +4,7 @@ import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 
 import './ranked-list.css'
 
-interface RankedRow {
+export interface RankedRow {
   readonly key: string
   readonly label: ComponentChildren
   /** The figure the list is ranked by, as printed. */

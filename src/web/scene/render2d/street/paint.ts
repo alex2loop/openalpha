@@ -1,27 +1,25 @@
+import type { PaintRun } from '@/web/scene/render2d/street/paint-run'
 import type { SunView, WeatherNow } from '@/web/scene/sky-types'
 import type { StreetFrame, StreetView } from '@/web/scene/street-types'
 import type { Rect } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
 import type { ClockParts } from '@/web/text/time'
+import { STREET_PAINT_SLICE_MS } from '@/web/scene/budgets'
 import { regionPack } from '@/web/scene/data/home'
 import { weather } from '@/web/scene/data/weather'
-import { CITY_PART } from '@/web/scene/render2d/street/city'
 import {
   detailOfPx,
   releaseStreetSprites,
   type StreetDetail,
   staticPxOf,
 } from '@/web/scene/render2d/street/detail'
-import { FESTIVE_PART } from '@/web/scene/render2d/street/festive'
-import { FRONTAGE_PART } from '@/web/scene/render2d/street/frontage'
 import {
   createStreetLayers,
   releaseStreetLayers,
   type StreetLayers,
 } from '@/web/scene/render2d/street/layer-cache'
 import { releaseLedFaces } from '@/web/scene/render2d/street/led-board'
-import { MOVERS_PART } from '@/web/scene/render2d/street/movers'
-import { PARK_PART } from '@/web/scene/render2d/street/park'
+import { MOVING_PAINTS, staticStepsOf } from '@/web/scene/render2d/street/parts'
 import {
   createSharpLayer,
   isSharpCurrent,
@@ -30,17 +28,13 @@ import {
   sharpPx3d,
   syncSharp,
 } from '@/web/scene/render2d/street/sharp'
-import { SHELTERS_PART } from '@/web/scene/render2d/street/shelters'
-import { SHOPS_PART } from '@/web/scene/render2d/street/shops'
-import { SIGNALS_PART } from '@/web/scene/render2d/street/signals'
-import { VENDORS_PART } from '@/web/scene/render2d/street/vendors'
-import { WEATHER_PART } from '@/web/scene/render2d/street/weather'
+import { notePaintMs, syncStatic } from '@/web/scene/render2d/street/static-paint'
 import { zeroCanvas } from '@/web/scene/renderer'
 import { type SkyNow, skyNow } from '@/web/scene/sim/sky'
 import { hasStreetEntities } from '@/web/scene/sim/street/street'
 import { type LightRow, lightOf } from '@/web/scene/sprites/daylight'
-import { FRAME_RECT, movingRectOf, projection, STREET_RECT } from '@/web/scene/view'
-import { reducedMotion, sceneView } from '@/web/state/prefs'
+import { FRAME_RECT, movingRectOf, projection } from '@/web/scene/view'
+import { sceneView } from '@/web/state/prefs'
 import { locale } from '@/web/state/session'
 
 const MAX_MOVING_CANVAS_PX = 2048
@@ -80,43 +74,27 @@ export interface PaintPart {
   paintMoving?(g: CanvasRenderingContext2D, view: StreetView, scene: MovingScene): void
 }
 
-type MovingPaint = NonNullable<PaintPart['paintMoving']>
-
-// Every part of the street, in draw order.
-const PAINT_PARTS: readonly PaintPart[] = [
-  CITY_PART,
-  PARK_PART,
-  SHOPS_PART,
-  FRONTAGE_PART,
-  FESTIVE_PART,
-  SIGNALS_PART,
-  SHELTERS_PART,
-  VENDORS_PART,
-  MOVERS_PART,
-  WEATHER_PART,
-]
-const MOVING_PAINTS: readonly MovingPaint[] = PAINT_PARTS.flatMap((part) =>
-  part.paintMoving === undefined ? [] : [part.paintMoving]
-)
-
-/** The one street painter both renderers read: `paint` repaints only what changed and returns
- *  the frame; `paintMs` is the last static repaint's time. */
+/** The one street painter both renderers read: `paint` repaints only what changed, a few steps a
+ *  frame, and returns the frame; `paintMs` is the longest frame the last repaint took. */
 export interface StreetPainter {
   paint(view: StreetView, visible: Rect, minute: ClockParts): StreetFrame
   /** The frame just drawn still fits the camera its draw placed: the detail level, and the
-   *  moving canvas's rect is the one `visible` asks for. False after a zoom or pan the paint ran
-   *  ahead of. */
+   *  moving canvas's rect is the one `visible` asks for, and no repaint is still going. False
+   *  after a zoom or pan the paint ran ahead of. */
   isCurrent(visible: Rect): boolean
   paintMs(): number
   release(): void
 }
 
-interface PainterState {
+export interface PainterState {
   readonly moving: { rect: Rect; px: number; minute: StreetMinute; pack: RegionPack }
   /** The sky the light row was read for, so it is read once a page minute. */
   sky: SkyNow | undefined
   light: LightRow
   readonly staticCanvas: HTMLCanvasElement
+  /** Where the static repaint in `staticRun` paints before it is copied onto `staticCanvas`. */
+  readonly staticScratch: HTMLCanvasElement
+  staticRun: PaintRun | undefined
   readonly movingCanvas: HTMLCanvasElement
   readonly sharp: SharpLayer
   readonly layers: StreetLayers
@@ -127,6 +105,8 @@ interface PainterState {
   movingVersion: number
   movingRect: Rect
   paintMs: number
+  /** The last frame painted a step of a repaint, so one more must follow. */
+  isPainting: boolean
 }
 
 export function createStreetPainter(): StreetPainter {
@@ -136,17 +116,20 @@ export function createStreetPainter(): StreetPainter {
     paint: (view, visible, minute) => paintStreet(state, { view, visible, minute }),
     isCurrent: (visible) =>
       state.detail === detailOfPx(projection.value.scale * devicePixelRatio) &&
+      !state.isPainting &&
       state.moving.minute.isRevealed === isRevealedBy(visible) &&
       isSharpCurrent(state.sharp, sharpJobOf(state, visible)) &&
       (state.movingCanvas.width === 0 || isSameRect(movingRectOf(visible), state.movingRect)),
     paintMs: () => state.paintMs,
     release() {
       zeroCanvas(state.staticCanvas)
+      zeroCanvas(state.staticScratch)
       zeroCanvas(state.movingCanvas)
       releaseSharp(state.sharp)
       releaseStreetLayers(state.layers)
       releaseStreetSprites()
       releaseLedFaces()
+      state.staticRun = undefined
       state.staticKey = ''
       state.movingKey = ''
       state.detail = undefined
@@ -155,26 +138,41 @@ export function createStreetPainter(): StreetPainter {
 }
 
 // The static canvas when its minute or look changed, its sharp copy for a close 2D zoom, then the
-// moving canvas over the visible rect.
+// moving canvas over the visible rect. The first two paint a few steps a frame, within one slice.
 function paintStreet(
   state: PainterState,
   job: { readonly view: StreetView; readonly visible: Rect; readonly minute: ClockParts }
 ): StreetFrame {
   const { view, visible, minute } = job
   const devicePx = projection.value.scale * devicePixelRatio
-
-  syncStatic(
+  const startedAt = performance.now()
+  const until = startedAt + STREET_PAINT_SLICE_MS
+  const isStaticPainted = syncStatic(
     state,
     toStreetMinute(state, {
       minute,
       detail: detailOfPx(devicePx),
       isRevealed: isRevealedBy(visible),
+    }),
+    until
+  )
+  // The copy is of the finished static paint, so it waits for it.
+  const isSharpPainted =
+    state.staticRun === undefined &&
+    syncSharp(state.sharp, sharpJobOf(state, visible), {
+      until,
+      stepsOf: () =>
+        staticStepsOf(state.moving.pack, { ...state.moving.minute, layers: undefined }),
     })
-  )
-  syncSharp(state.sharp, sharpJobOf(state, visible), (g) =>
-    paintParts(g, state.moving.pack, { ...state.moving.minute, layers: undefined })
-  )
-  syncMoving(state, { view, visible, devicePx })
+
+  const isPainting = isStaticPainted || isSharpPainted
+
+  notePaintMs(state, startedAt, isPainting)
+
+  // A frame that painted leaves the moving canvas to the next, so none runs over budget.
+  if (!isPainting) {
+    syncMoving(state, { view, visible, devicePx })
+  }
 
   return {
     staticCanvas: state.staticCanvas,
@@ -210,6 +208,8 @@ function createPainterState(): PainterState {
     sky: undefined,
     light: lightOf(skyNow.peek().light),
     staticCanvas: document.createElement('canvas'),
+    staticScratch: document.createElement('canvas'),
+    staticRun: undefined,
     movingCanvas: document.createElement('canvas'),
     sharp: createSharpLayer(),
     layers: createStreetLayers(),
@@ -220,6 +220,7 @@ function createPainterState(): PainterState {
     movingVersion: 0,
     movingRect: NO_RECT,
     paintMs: 0,
+    isPainting: false,
   }
 }
 
@@ -245,57 +246,6 @@ function toStreetMinute(
     light: state.light,
     sun: sky.light.sun,
     weather: weather.value,
-  }
-}
-
-// Repainted when the minute, the day, the pack, the language, the detail level, the camera's
-// reveal of the sky above the frame, the sky or the weather changes.
-function syncStatic(state: PainterState, minute: StreetMinute): void {
-  const pack = regionPack.value
-  const key = [
-    Math.floor(minute.minute),
-    Math.floor(minute.clock),
-    minute.day,
-    pack.id,
-    locale.value,
-    minute.detail,
-    minute.isRevealed,
-    reducedMotion.value,
-  ].join(KEY_SEPARATOR)
-  const g = state.staticCanvas.getContext('2d')
-  const isSame =
-    key === state.staticKey &&
-    minute.light === state.moving.minute.light &&
-    minute.weather === state.moving.minute.weather
-
-  if (isSame) {
-    return
-  }
-
-  state.detail = minute.detail
-  state.moving.minute = minute
-  state.moving.pack = pack
-
-  if (g === null) {
-    return
-  }
-
-  const startedAt = performance.now()
-  const px = staticPxOf(minute.detail)
-
-  resizeCanvas(state.staticCanvas, { w: STREET_RECT.w * px, h: STREET_RECT.h * px })
-  g.setTransform(px, 0, 0, px, -STREET_RECT.x * px, -STREET_RECT.y * px)
-  g.clearRect(STREET_RECT.x, STREET_RECT.y, STREET_RECT.w, STREET_RECT.h)
-
-  paintParts(g, pack, minute)
-  state.staticKey = key
-  state.staticVersion++
-  state.paintMs = performance.now() - startedAt
-}
-
-function paintParts(g: CanvasRenderingContext2D, pack: RegionPack, minute: StreetMinute): void {
-  for (const part of PAINT_PARTS) {
-    part.paintStatic(g, pack, minute)
   }
 }
 

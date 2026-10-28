@@ -1261,6 +1261,7 @@
     "office.market.sectors": "Sector strength",
     "office.market.sectorsRanked": "Strongest to weakest",
     "office.market.sectorsNote": "strength against the index · today",
+    "office.market.sectorsShowAll": "Show all",
     "office.market.depositRate": "12-month deposit rate {rate}",
     "office.market.usdVnd": "USD/VND {rate}",
     "office.news.filter": "Filter loaded news",
