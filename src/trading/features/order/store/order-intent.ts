@@ -42,6 +42,8 @@ interface UnmirroredRow {
   readonly created_at: number
   readonly order_id: string | null
   readonly failure: string
+  readonly filled_quantity: number | null
+  readonly avg_price: number | null
 }
 
 /** Not the service's claim input: the store is told the cutoff rather than deriving it, because
@@ -220,7 +222,8 @@ async function listUnmirrored(
   assertNotAborted(signal)
 
   const rows = await deps.db.query<UnmirroredRow>(
-    'SELECT token, market, ticker, venue, side, quantity, created_at, order_id, failure ' +
+    'SELECT token, market, ticker, venue, side, quantity, created_at, order_id, failure, ' +
+      'filled_quantity, avg_price ' +
       'FROM order_intents WHERE failure IS NOT NULL ORDER BY created_at'
   )
 
@@ -294,5 +297,7 @@ function toUnmirroredIntent(row: UnmirroredRow): UnmirroredIntent {
     createdAt: row.created_at,
     failure: row.failure,
     ...(row.order_id === null ? {} : { orderId: row.order_id }),
+    ...(row.filled_quantity === null ? {} : { filledQuantity: row.filled_quantity }),
+    ...(row.avg_price === null ? {} : { averagePrice: row.avg_price }),
   }
 }

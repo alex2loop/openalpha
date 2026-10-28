@@ -1321,6 +1321,7 @@
     "office.orders.cancelExit": "Hủy lệnh thoát",
     "office.orders.unguarded": "Chưa có lệnh thoát cho {quantity} {ticker} ở {venue}",
     "office.orders.exitHint": "Muốn đặt hoặc dời lệnh thoát, bạn dùng /trade exit trong chat nhé.",
+    "office.orders.fillPrice": "khớp giá {price}",
     "office.orders.unbooked": "Sàn đã nhận các lệnh này, sổ của bạn chưa có",
     "office.orders.unbookedHint": "Lệnh này sẽ được ghi khi bạn bấm Đồng bộ lệnh khớp ở Lịch sử › Đối chiếu với sàn.",
     "office.orders.unbookedReason": "sàn đã nhận nhưng sổ chưa ghi được",

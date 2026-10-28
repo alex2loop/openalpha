@@ -76,6 +76,8 @@ function toUnmirroredWire(intent: UnmirroredIntent): UnmirroredOrderWire {
     createdAt: intent.createdAt,
     failure: intent.failure,
     ...(intent.orderId === undefined ? {} : { orderId: intent.orderId }),
+    ...(intent.filledQuantity === undefined ? {} : { filledQuantity: intent.filledQuantity }),
+    ...(intent.averagePrice === undefined ? {} : { averagePrice: intent.averagePrice }),
   }
 }
 

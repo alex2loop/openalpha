@@ -1321,6 +1321,7 @@
     "office.orders.cancelExit": "Cancel exit",
     "office.orders.unguarded": "Nothing protects {quantity} {ticker} at {venue}",
     "office.orders.exitHint": "To set or move an exit, use /trade exit in chat.",
+    "office.orders.fillPrice": "filled at {price}",
     "office.orders.unbooked": "The exchange took these, your ledger doesn't have them yet",
     "office.orders.unbookedHint": "This one gets booked by Sync fills under History › Check against venues.",
     "office.orders.unbookedReason": "the exchange took it and the ledger could not record it",

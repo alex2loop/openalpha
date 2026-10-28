@@ -300,7 +300,7 @@ export function renderUnmirroredLines(
   const parts = [
     t(locale, 'trading.order.prompt.line', {
       side: t(locale, `trading.order.side.${intent.side}`),
-      quantity: formatQuantity(locale, intent.quantity),
+      quantity: formatQuantity(locale, intent.filledQuantity ?? intent.quantity),
       ticker: intent.instrument.ticker,
     }),
     renderVenueName(locale, intent.venue),
