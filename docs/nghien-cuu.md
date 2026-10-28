@@ -159,7 +159,16 @@ Reviewer chỉ duyệt khi mọi chiều điểm đạt từ 0,4 trở lên, đi
 
 ### Trên trang văn phòng
 
-Gửi `/research <câu hỏi>` từ ô câu lệnh của [trang văn phòng](van-hanh.md#trang-văn-phòng) thì khung chat liệt kê các bước của phiên chạy ngay khi chúng diễn ra. Nút Dừng hỏi lại trước, nhắc rằng phần AI đã dùng vẫn tính vào hạn mức hôm nay, và dừng luôn các agent con của nó. Câu trả lời cuối cùng chính là báo cáo: mỗi số chú thích nhảy tới nguồn được đánh số ngay dưới câu trả lời đó, và hai câu trả lời nghiên cứu trong cùng một cuộc trò chuyện giữ số của riêng mình. Khi phiên chạy đã có trong danh sách, "Mở dạng báo cáo" mở đúng câu trả lời của phiên chạy đó trong trình đọc, dù sau đó trong chat có nói gì thêm, và thẻ Đề xuất giữ nó cùng các kết quả nghiên cứu khác. Phiên chạy bị dừng hoặc thất bại thì hiện câu của dịch vụ nền (daemon) ở chỗ các bước.
+Gửi `/research <câu hỏi>` từ ô câu lệnh của [trang văn phòng](van-hanh.md#trang-văn-phòng), và khung chat
+liệt kê các bước của phiên chạy ngay khi chúng diễn ra.
+
+- Nút Dừng hỏi lại trước, nhắc rằng phần AI đã dùng vẫn tính vào hạn mức hôm nay, và dừng luôn các
+  agent con của nó.
+- Câu trả lời cuối cùng chính là báo cáo. Mỗi số chú thích nhảy tới nguồn được đánh số ngay dưới câu
+  trả lời đó, và hai câu trả lời nghiên cứu trong cùng một cuộc trò chuyện giữ số của riêng mình.
+- Khi phiên chạy đã có trong danh sách, "Mở dạng báo cáo" mở đúng câu trả lời của phiên chạy đó trong
+  trình đọc, dù sau đó trong chat có nói gì thêm. Thẻ Đề xuất giữ nó cùng các kết quả nghiên cứu khác.
+- Phiên chạy bị dừng hoặc thất bại thì hiện câu của dịch vụ nền (daemon) ở chỗ các bước.
 
 ## Khi nghiên cứu thất bại
 

@@ -34,7 +34,18 @@ With the API on, the office page can create, edit and delete your agents without
 the same `agent.toml` into your agents folder, so `agent list` and `agent show` see the agent and a later hand edit
 still works.
 
-- On the *Your agents* floor, "+ Add an agent" opens the form (with no agent yet, three starting templates fill it in for you to edit, and a blank one is there too). The form asks for a name (the id is made from it, unless you type your own, and cannot change once the agent exists), what it does in your own words, the markets and sectors it follows, a daily budget (`0` means only the overall budget), a model, whether it may start child agents and how many per call, and its look. Leave every market unticked and the agent shares your own view, so its calls drive the real book; tick markets and it becomes a second opinion (see [Focus, spend and pause](#focus-spend-and-pause)).
+- On the *Your agents* floor, "+ Add an agent" opens the form. With no agent yet, three starting
+  templates fill it in for you to edit, and a blank one is there too. The form asks for:
+  - a name (the id is made from it, unless you type your own, and cannot change once the agent exists);
+  - what it does, in your own words;
+  - the markets and sectors it follows;
+  - a daily budget (`0` means only the overall budget);
+  - a model;
+  - whether it may start child agents, and how many per call;
+  - its look.
+
+  Leave every market unticked and the agent shares your own view, so its calls drive the real book.
+  Tick markets and it becomes a second opinion (see [Focus, spend and pause](#focus-spend-and-pause)).
 - The look picker offers four parts, with a live portrait: body (a skin tone: light, medium or deep), hair (short, long, bob, bun or cap), shirt (teal, blue, sky, amber, orange, pink, slate or sand) and accessory (none, book, clipboard, tie, glasses or scarf). A part you leave alone follows the agent's id, so every agent has a look from the start. It is the `[look]` table in the file; the daemon keeps it and never reads it during a run.
 - Clicking an agent (its desk, or its card on the team floor) opens its tab: *Progress* (the live steps and any child agents), *Result*, *Profile* and *Work*, with a button to pause or resume it. A paused agent refuses every run it owns until you resume it, exactly as `agent pause` does, and its desk says so. The profile's edit button opens the form, which also holds the delete button.
 - When a run hands work to child agents, the Progress tab lists each child, shows how many are running out of the most one call may start, how many levels deep they go, and the longest one child may run. That last figure is the daemon's own per-call limit for children (the tighter of the run and spawn time caps in `[loop]`), read from the daemon, so it is always the real one. Their cost counts to the parent run, and one button stops the whole run, children included.

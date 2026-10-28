@@ -90,7 +90,16 @@ Positioning của CFTC là **hằng tuần và có độ trễ**, và báo cáo 
 
 Vĩ mô là loại **duy nhất** gộp dữ liệu thay vì dự phòng cho nhau: không nhà cung cấp nào công bố mọi chuỗi, và khi hai bên cùng công bố một chuỗi thì thứ tự tuyến quyết định bên nào thắng. Cặp không cần khóa `treasury`/`bls` đứng đầu để bản cài không khóa vẫn đọc được vĩ mô Mỹ.
 
-Chỉ số vĩ mô tổng hợp được chuẩn hóa lại khi công bố: chuỗi nào hôm nay không có số đọc thì không bỏ phiếu. Mỗi yếu tố dẫn dắt công bố tỷ phần của nó trên **số phiếu thực sự đã bỏ**, và mức đóng góp được đo so với chính điểm mà nó làm dịch chuyển. Các trọng số công bố cộng lại bằng một, các mức đóng góp cộng lại bằng điểm, và dữ liệu thiếu hiện ra ở `coverage` cùng danh sách thiếu. Khi chỉ còn cách ngưỡng độ phủ tối thiểu đúng một chuỗi, một ghi chú báo rằng mất thêm chuỗi nữa là trạng thái chuyển sang phòng thủ; nếu trạng thái đã là phòng thủ thì không có ghi chú này. Một yếu tố dẫn dắt nêu luôn đơn vị nó được đọc trong đó: các chuỗi lãi suất là phần trăm, còn chỉ số USD (gốc Jan-2006 = 100) và VIX là các mức, in ra không có dấu phần trăm.
+Chỉ số vĩ mô tổng hợp được chuẩn hóa lại khi công bố: chuỗi nào hôm nay không có số đọc thì không bỏ
+phiếu. Mỗi yếu tố dẫn dắt công bố tỷ phần của nó trên **số phiếu thực sự đã bỏ**, và mức đóng góp được
+đo so với chính điểm mà nó làm dịch chuyển.
+
+- Các trọng số công bố cộng lại bằng một, và các mức đóng góp cộng lại bằng điểm.
+- Dữ liệu thiếu hiện ra ở `coverage` cùng danh sách thiếu.
+- Khi chỉ còn cách ngưỡng độ phủ tối thiểu đúng một chuỗi, một ghi chú báo rằng mất thêm chuỗi nữa là
+  trạng thái chuyển sang phòng thủ. Nếu trạng thái đã là phòng thủ thì không có ghi chú này.
+- Một yếu tố dẫn dắt nêu luôn đơn vị của nó: các chuỗi lãi suất là phần trăm, còn chỉ số USD (gốc
+  Jan-2006 = 100) và VIX là các mức, in ra không có dấu phần trăm.
 
 Điều này đúng cả với con số bạn thấy, không chỉ con số đã lưu. Các tỷ phần in dưới tổng mà chúng chia ra được làm tròn **cùng nhau**, nên cột cộng lại đúng trên màn hình. Quy tắc này áp cả với mức đóng góp yếu tố của một đề xuất dưới chỉ số tổng hợp, và với các mục tiêu nhóm trong hồ sơ (chuẩn hóa về một). Chỉ các dòng thật sự in ra một tỷ phần mới tham gia.
 
@@ -249,7 +258,16 @@ Dòng mà sổ đang nắm cũng được miễn bậc độ sâu khi dùng lạ
 
 #### Kiểm tra những gì cuộc tranh luận nói
 
-**Một luận điểm bị dữ liệu bác bỏ chỉ giữ lại đề xuất khi đề xuất đó dựa vào cuộc tranh luận.** Một luận điểm ủng hộ hành động được đề xuất mà bằng chứng nói ngược lại sẽ biến lệnh mua, hay lệnh giảm bớt vì bằng chứng, thành giữ nguyên. Lệnh giảm bớt theo lý do của chính kế hoạch (`over-target`, `weak-signal`, `over-cap`) chưa bao giờ dựa vào lập luận của cuộc tranh luận, nên khi đó luận điểm bị bác bỏ chỉ được nêu ra và hạ mức tin cậy. Với lệnh `over-cap`, các vai được biết trần nào đã bị vượt (mỗi mã, quỹ hay ngành), đo trên toàn danh mục, để phần còn trống dưới một trần khác không bị đọc thành bằng chứng là chưa vượt trần nào.
+**Một luận điểm bị dữ liệu bác bỏ chỉ giữ lại đề xuất khi đề xuất đó dựa vào cuộc tranh luận.**
+
+- Một luận điểm ủng hộ hành động được đề xuất mà bằng chứng nói ngược lại sẽ biến lệnh mua, hay lệnh
+  giảm bớt vì bằng chứng, thành giữ nguyên.
+- Lệnh giảm bớt theo lý do của chính kế hoạch (`over-target`, `weak-signal`, `over-cap`) chưa bao giờ
+  dựa vào lập luận của cuộc tranh luận. Nên khi đó luận điểm bị bác bỏ chỉ được nêu ra và hạ mức tin
+  cậy.
+- Với lệnh `over-cap`, các vai được biết trần nào đã bị vượt (mỗi mã, quỹ hay ngành), đo trên toàn
+  danh mục. Nhờ vậy phần còn trống dưới một trần khác không bị đọc thành bằng chứng là chưa vượt trần
+  nào.
 
 **Một con số mà bằng chứng chưa bao giờ in ra thì bị nêu tên, không bị phán xử.** Sau khâu kiểm chứng, mọi con số trong các khẳng định quan trọng được so theo giá trị với các con số trong bằng chứng. Các đơn vị (`tỷ`, `bn`, `%` và còn lại) được quy đổi, đọc được cả dấu phẩy lẫn dấu chấm thập phân, và một con số khớp nếu lệch không quá nửa chữ số cuối đã in, nên số đã làm tròn vẫn tính. Số đếm nhỏ trần và các năm bị bỏ qua.
 
@@ -279,7 +297,15 @@ Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh.
 
 `structure-broken`, `stale` và `ceiling-close` chỉ được đọc trên nhóm kỳ hạn ngắn. Nhóm dài hạn không bị bán vì một mức thấp mười phiên, một quý đi ngang hay một phiên đóng cửa ở trần.
 
-Khi cả trim lẫn một lý do bằng chứng cùng bật, bên bán nhiều hơn (tính theo lô chẵn) thắng và dòng mang lý do đó; hòa thì lý do bằng chứng thắng. Khi bằng chứng chỉ đòi bán chưa tới một lô chẵn trên vị thế bạn chưa bán bớt, mã được giữ với lý do `sale-below-board-lot`, không bị báo là đã bán rồi. `over-target` bật ở mọi độ lệch vượt một lô chẵn, và một mã đã tăng đúng vào lúc có tín hiệu thoát thì đã lệch xa tới mức đó. Xếp ngược thứ tự sẽ áp cỡ của một lần trim thường lệ lên một cấu trúc mà thị trường đã phá vỡ. Tranh luận hỏi nên giữ hay bán, như với trim, và chỉ có thể từ chối.
+Khi cả trim lẫn một lý do bằng chứng cùng bật, bên bán nhiều hơn (tính theo lô chẵn) thắng và dòng mang
+lý do đó. Hòa thì lý do bằng chứng thắng.
+
+- Khi bằng chứng chỉ đòi bán chưa tới một lô chẵn trên vị thế bạn chưa bán bớt, mã được giữ với lý do
+  `sale-below-board-lot`, không bị báo là đã bán rồi.
+- `over-target` bật ở mọi độ lệch vượt một lô chẵn, và một mã đã tăng đúng vào lúc có tín hiệu thoát
+  thì đã lệch xa tới mức đó. Xếp ngược thứ tự sẽ áp cỡ của một lần trim thường lệ lên một cấu trúc mà
+  thị trường đã phá vỡ.
+- Tranh luận hỏi nên giữ hay bán, như với trim, và chỉ có thể từ chối.
 
 #### Hai phép kiểm chạy trước
 
@@ -364,7 +390,20 @@ Cỡ lệnh được lập ngân sách trên cắt lỗ lúc vào; trạng thái
 
 Hệ số trạng thái thị trường của nhóm giảm cỡ cuối cùng, cùng với mức tin cậy và ý định của trader. Một nhận định phòng thủ nên thu nhỏ lệnh mua kể cả khi tiền mặt không phải trần ràng buộc. `suggestion.size-scaled-by-regime` báo khi trạng thái thị trường là cái chặt nhất trong ba.
 
-Mọi mã trong một lượt `/suggest` đều được tính cỡ trên cùng cuốn sổ như nó đứng trước lượt đó, nên mỗi lệnh mua tự nó vừa với tiền mặt và phần rủi ro mở còn lại. Sau các kết luận, "Nếu bạn thực hiện mọi đề xuất ở trên" liệt kê những gì hai lệnh mua trở lên cùng vượt: trần ngành hoặc nhóm, số tiền mặt sổ có thể chi (và, khi venue của một thị trường chạm tới ít hơn, tiền mặt của thị trường đó), và phần còn lại dưới trần rủi ro mở. Lệnh bán chưa giải phóng tiền mặt hay rủi ro mở cho tới khi nó settle, nên chỉ lệnh mua được tính. Đó là một ghi chú, không phải lời từ chối; con số rủi ro mở đọc cắt lỗ đã lưu của từng lệnh mua, nên một cắt lỗ đã được nâng theo mức đang nắm khiến nó nghiêng về phía im lặng.
+Mọi mã trong một lượt `/suggest` đều được tính cỡ trên cùng cuốn sổ như nó đứng trước lượt đó. Nên mỗi
+lệnh mua tự nó vừa với tiền mặt và phần rủi ro mở còn lại.
+
+Sau các kết luận, "Nếu bạn thực hiện mọi đề xuất ở trên" liệt kê những gì hai lệnh mua trở lên cùng
+vượt:
+
+- trần ngành hoặc nhóm;
+- số tiền mặt sổ có thể chi (và, khi venue của một thị trường chạm tới ít hơn, tiền mặt của thị trường
+  đó);
+- phần còn lại dưới trần rủi ro mở.
+
+Lệnh bán chưa giải phóng tiền mặt hay rủi ro mở cho tới khi nó settle, nên chỉ lệnh mua được tính. Đó
+là một ghi chú, không phải lời từ chối. Con số rủi ro mở đọc cắt lỗ đã lưu của từng lệnh mua, nên một
+cắt lỗ đã được nâng theo mức đang nắm khiến nó nghiêng về phía im lặng.
 
 #### Dùng lại trên thị trường không có ranh giới phiên
 
@@ -409,7 +448,17 @@ Một giá in nằm trong biên độ của chính phiên nó. Nếu nến phiê
 - Lời gọi mà trần chặn suốt cửa sổ đóng là `unfilled`: không giao dịch, không kết quả, nằm ngoài mọi phép đếm có chấm điểm.
 - Mã bạn đang nắm đóng cửa ở giá trần hoặc sát trần được đề xuất giảm bớt một phần ngay phiên mở cửa kế tiếp (`ceiling-close`, trong mục Bán một mã đang nắm).
 
-**Lệnh mua treo.** Lệnh mua treo khớp ở phiên đầu tiên giao dịch dưới limit của nó (chạm chưa phải khớp), ở giá mở cửa phiên đó nếu phiên mở thấp hơn. Trong ngày của chính lời gọi, chỉ mức dịch từ giá tới giá đóng được tính, vì đáy ngày có thể in trước khi lệnh tồn tại. Ở chính phiên khớp, mục tiêu chỉ được tính khi phiên mở thấp hơn limit (khớp lúc mở cửa do giá nhảy); phiên mở bằng hoặc cao hơn limit là khớp giữa chừng, và một nến ngày không nói được đỉnh có in trước hay không, nên mục tiêu được đọc từ phiên kế tiếp. Cắt lỗ vẫn được thử ngay ở phiên khớp, như ở mọi phiên, trước mục tiêu. Limit chưa khớp tới ngày cuối cùng của nó đóng là `unfilled` theo cách tương tự. `/reflect` đếm các lời gọi này riêng khỏi những lời gọi đã diễn ra.
+**Lệnh mua treo.** Lệnh mua treo khớp ở phiên đầu tiên giao dịch dưới limit của nó (chạm chưa phải
+khớp), ở giá mở cửa phiên đó nếu phiên mở thấp hơn.
+
+- Trong ngày của chính lời gọi, chỉ mức dịch từ giá tới giá đóng được tính, vì đáy ngày có thể in
+  trước khi lệnh tồn tại.
+- Ở chính phiên khớp, mục tiêu chỉ được tính khi phiên mở thấp hơn limit (khớp lúc mở cửa do giá
+  nhảy). Phiên mở bằng hoặc cao hơn limit là khớp giữa chừng, và một nến ngày không nói được đỉnh có
+  in trước hay không. Nên mục tiêu được đọc từ phiên kế tiếp.
+- Cắt lỗ vẫn được thử ngay ở phiên khớp, như ở mọi phiên, trước mục tiêu.
+- Limit chưa khớp tới ngày cuối cùng của nó đóng là `unfilled` theo cách tương tự. `/reflect` đếm các
+  lời gọi này riêng khỏi những lời gọi đã diễn ra.
 
 Biên độ được đọc là biên lưu cho phiên đặt lệnh, nên biên ngày đầu rộng hơn của một mã mới niêm yết cũng áp cho các phiên sau, và một khóa trong vài tuần đầu có thể bị bỏ sót.
 
@@ -428,11 +477,35 @@ Một lần khớp vàng VN được ghi theo đơn vị của cửa hàng trong
 
 #### Thành tích của chính bảng giá
 
-Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Mỗi phiên đã settle, dịch vụ nền ghi lại toàn bộ bảng của từng thị trường, mỗi loại mã một bảng, nên quỹ ETF VN được ghi bên cạnh cổ phiếu (chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng) và chấm mỗi dòng theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn nếu thị trường có nêu chuẩn. Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách sau đó không làm dịch cái nào. Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch. Mỗi dòng ghi tên nguồn, nên những phiên phải dùng nguồn dự phòng có thể đo riêng, và ở thị trường có nhiều bảng thì ghi cả loại mã của bảng, nên có thể đo riêng chỉ số tổng hợp của quỹ và của cổ phiếu; các dòng ghi trước thay đổi này không có hai thông tin đó.
+Đề xuất chỉ là vài mã mỗi phiên; màn hình sàng lọc chấm cả trăm. Vì vậy mỗi phiên đã settle, dịch vụ
+nền ghi lại toàn bộ bảng của từng thị trường, mỗi loại mã một bảng. Quỹ ETF VN được ghi bên cạnh cổ
+phiếu, kèm chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng.
+
+- Mỗi dòng được chấm theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn
+  nếu thị trường có nêu chuẩn.
+- Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách
+  sau đó không làm dịch cái nào.
+- Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch.
+- Mỗi dòng ghi tên nguồn, nên những phiên phải dùng nguồn dự phòng có thể đo riêng. Ở thị trường có
+  nhiều bảng thì ghi cả loại mã của bảng, nên có thể đo riêng chỉ số tổng hợp của quỹ và của cổ phiếu.
+  Các dòng ghi trước thay đổi này không có hai thông tin đó.
 
 `/reflect` in nó thành khối quy kết thứ hai. Đó là mẫu mà các trọng số yếu tố và dải mức tin cậy được khớp theo khi nó lớn dần. Mỗi yếu tố được chấm theo phiên bản chiến lược, hai bản mới nhất mỗi thị trường, vì đổi phiên bản làm yếu tố đo thứ khác.
 
-Một script nghiên cứu đo các yếu tố VN trên lịch sử ([trang dành cho lập trình viên](dev/giao-dich.md)). Đo trên 2025-01 tới 2026-07, nó là lý do chỉ số tổng hợp cổ phiếu VN không mang `size` hay `sector-strength`, lý do `quality` được đọc nhưng không có trọng số trong điểm, và lý do các điểm cắt mức tin cậy được khớp trên 75 bảng hằng tuần. Trong giai đoạn đó, một ngành đã chạy trước chọn ra các mã yếu hơn, và các doanh nghiệp chạy tốt nhất không thắng bảng; cả hai kéo các lệnh mua tin cậy trung bình về chỗ lệnh tin cậy thấp đứng. Tập mẫu là các mã niêm yết hôm nay, nên hãy đọc nó như một hình dạng. Chất lượng vẫn in trên các dòng lợi nhuận và sức khỏe, vẫn lập danh sách ngắn cho các mã theo chủ đề, và vẫn quyết định lệnh bán theo luận điểm của một khoản nắm dài hạn khi không có báo cáo năm nào để chấm.
+Một script nghiên cứu đo các yếu tố VN trên lịch sử ([trang dành cho lập trình viên](dev/giao-dich.md)).
+Đo trên 2025-01 tới 2026-07, nó giải thích ba lựa chọn:
+
+- lý do chỉ số tổng hợp cổ phiếu VN không mang `size` hay `sector-strength`;
+- lý do `quality` được đọc nhưng không có trọng số trong điểm;
+- lý do các điểm cắt mức tin cậy được khớp trên 75 bảng hằng tuần.
+
+Trong giai đoạn đó, một ngành đã chạy trước chọn ra các mã yếu hơn, và các doanh nghiệp chạy tốt nhất
+không thắng bảng. Cả hai kéo các lệnh mua tin cậy trung bình về chỗ lệnh tin cậy thấp đứng. Tập mẫu là
+các mã niêm yết hôm nay, nên hãy đọc nó như một hình dạng, không phải một con số chính xác.
+
+Chất lượng vẫn in trên các dòng lợi nhuận và sức khỏe, vẫn lập danh sách ngắn cho các mã theo chủ đề,
+và vẫn quyết định lệnh bán theo luận điểm của một khoản nắm dài hạn khi không có báo cáo năm nào để
+chấm.
 
 Một mã ngừng giao dịch trong khi chuẩn của thị trường vẫn in sẽ được chốt ở giá đóng cuối của nó, đánh dấu là đã dừng, khi chuẩn đã in mười phiên mà không có nó và đã tới cuối cửa sổ. `/reflect` báo bao nhiêu mã. Không gì được điền suy diễn.
 
@@ -501,7 +574,24 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` mỗi bê
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
-Bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí, cùng phần nhìn lại các câu chuyện trước. Phần nhìn lại đối chiếu các điều kiện theo dõi của một câu chuyện đã kể ở phiên trước với số liệu hôm nay và cho biết câu chuyện đó có đúng hướng hay không. Ngay trên phần chốt lại, câu chuyện nêu một điều bất thường mà thị trường Việt Nam vừa làm: một câu dẫn, các số liệu đứng sau, nhận định được ghi rõ là suy luận, điều có thể khiến nhận định sai và điều cần theo dõi tiếp. Mỗi câu chuyện chỉ được kể một lần, vào phiên đầu tiên nó xuất hiện; khi nó còn tiếp diễn, phần nhìn lại sẽ mang nó đi tiếp, và khi phần nhìn lại đã khép nó thì bản tin ghi rằng câu chuyện vẫn đang tiếp diễn, kèm số phiên. Phiên nào không có gì bất thường thì chỉ in một dòng yên ả; phiên nào chỉ có những câu chuyện đã kể thì bản tin ghi là chưa có chuyện mới, và không nói thêm gì khi phần nhìn lại phía trên đã nhắc hết các câu chuyện đó. Câu chuyện chỉ đọc thị trường và phiên đã chốt gần nhất, không bao giờ đọc sổ của bạn hay giá đang chạy, và nó không xuất hiện khi bản tin không có khối thị trường Việt Nam: nhóm này đang tắt và bạn không giữ hay theo dõi mã Việt Nam nào.
+Bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
+cùng phần nhìn lại các câu chuyện trước.
+
+- **Phần nhìn lại** đối chiếu các điều kiện theo dõi của một câu chuyện đã kể ở phiên trước với số liệu
+  hôm nay, và cho biết câu chuyện đó có đúng hướng hay không.
+- **Câu chuyện** nêu một điều bất thường mà thị trường Việt Nam vừa làm. Nó gồm một câu dẫn, các số
+  liệu đứng sau, nhận định được ghi rõ là suy luận, điều có thể khiến nhận định sai và điều cần theo dõi
+  tiếp.
+- Mỗi câu chuyện chỉ được kể một lần, vào phiên đầu tiên nó xuất hiện. Khi nó còn tiếp diễn, phần nhìn
+  lại sẽ mang nó đi tiếp. Khi phần nhìn lại đã khép nó, bản tin ghi rằng câu chuyện vẫn đang tiếp diễn,
+  kèm số phiên.
+- Phiên nào không có gì bất thường thì chỉ in một dòng yên ả. Phiên nào chỉ có những câu chuyện đã kể
+  thì bản tin ghi là chưa có chuyện mới, và không nói thêm gì khi phần nhìn lại phía trên đã nhắc hết
+  các câu chuyện đó.
+
+Câu chuyện chỉ đọc thị trường và phiên đã chốt gần nhất, không bao giờ đọc sổ của bạn hay giá đang
+chạy. Nó không xuất hiện khi bản tin không có khối thị trường Việt Nam: nhóm này đang tắt và bạn không
+giữ hay theo dõi mã Việt Nam nào.
 
 Một bản tin đọc theo thứ tự này: khối **operator** mở đầu bằng cuốn sổ (bạn đang nắm gì, trước mọi bình luận thị trường); mỗi thị trường một khối **thị trường**, đề tên và glyph của chính thị trường đó, chỉ mang các mục thị trường đó công bố; và khối **hành động** ở cuối.
 
@@ -538,7 +628,16 @@ Mỗi thị trường chỉ công bố các mục riêng mà nó có dữ liệu
 
 **Đợt cơ cấu chỉ số kế tiếp.** Bản tin nêu phiên cơ cấu FTSE GEIS hoặc VN30 kế tiếp, tính từ quy tắc rà soát chứ không từ một danh sách được bảo trì. Vào đêm trước, mọi đề xuất VN trên một mã thuộc rổ chỉ số mang ngày đó như một caveat. Đến chính phiên đó, lệnh mua mới bị từ chối và các mã đang nắm đọc caveat thay vào. Không có cài đặt nào: các ngày là của sàn, không phải của bạn.
 
-**Các mục đề xuất chạy sau cùng và tốn nhất**, trên phần ngân sách riêng của bản tin. Nếu hết ngân sách thì mất các mục đó, không bao giờ mất cả bản tin. Mỗi mục chạy một cuộc tranh luận **lean** trên mọi mã đang nắm trong phạm vi của nó trước, rồi tới danh sách theo dõi: `suggestions` cho VN, `cross-asset-suggestions` cho mọi thị trường khác. Mã nào có cuộc tranh luận chưa xong (thiếu key, một vai lỗi, hết ngân sách) thì hiện CHƯA KẾT LUẬN và không kèm mức tin cậy, thay vì CHỜ: chưa có quyết định nào, và kế hoạch đang có vẫn tiếp tục theo dõi mã đó. Đề xuất lấy lại từ lúc sớm hơn trong ngày, mà sổ của bạn đã đổi sau đó, được nêu tên một lần ở cuối bản tin kèm `/suggest <mã> force` để tính lại.
+**Các mục đề xuất chạy sau cùng và tốn nhất**, trên phần ngân sách riêng của bản tin. Nếu hết ngân
+sách thì mất các mục đó, không bao giờ mất cả bản tin.
+
+- Mỗi mục chạy một cuộc tranh luận **lean** trên mọi mã đang nắm trong phạm vi của nó trước, rồi tới
+  danh sách theo dõi: `suggestions` cho VN, `cross-asset-suggestions` cho mọi thị trường khác.
+- Mã nào có cuộc tranh luận chưa xong (thiếu key, một vai lỗi, hết ngân sách) thì hiện CHƯA KẾT LUẬN
+  và không kèm mức tin cậy, thay vì CHỜ. Chưa có quyết định nào, và kế hoạch đang có vẫn tiếp tục theo
+  dõi mã đó.
+- Đề xuất lấy lại từ lúc sớm hơn trong ngày, mà sổ của bạn đã đổi sau đó, được nêu tên một lần ở cuối
+  bản tin kèm `/suggest <mã> force` để tính lại.
 
 Một mã đang nắm không bao giờ bị cắt, vì chính phiên chạy của nó là thứ định giá lại kế hoạch:
 
@@ -555,7 +654,16 @@ Chi phí của lần đọc nằm dưới một đường kẻ ở tận cuối,
 
 **Thời điểm.** Giờ gửi mặc định là 08:15 theo múi giờ **của thị trường** (08:15 ở TP.HCM, không phải 08:15 UTC và không phải ở nơi bạn đang ngồi). Bản tin chỉ được gửi khi phiên còn trước giờ mở (thị trường giao dịch suốt ngày, hoặc ngày thị trường nghỉ, vẫn tính là trước giờ mở), nên không bao giờ dựng hay gửi giữa phiên hoặc sau giờ đóng, và một phép kiểm trước khi chạy xác nhận phiên trước đã tạo ra một cây nến trước khi tốn token nào.
 
-Sau thời gian ngừng hoạt động, các buổi sáng đã lỡ không được phát lại. Một ngày đã lên lịch mà đã qua bị bỏ qua với cảnh báo `trading.brief_stale_day_skipped` và lịch chuyển sang hôm nay. Bản tin hôm nay vẫn được gửi muộn nếu dịch vụ nền khởi động sau giờ gửi nhưng trước giờ mở. Nếu dịch vụ nền khởi động sau giờ mở, hoặc một lần gửi lại rơi vào sau giờ mở, bản tin hôm nay bị bỏ qua với cảnh báo `trading.brief_past_open_skipped`, chat nhận một dòng báo điều này, và bản tin sáng hôm sau là bản kế tiếp. Bản tin bắt đầu dựng trước giờ mở nhưng xong sau đó vẫn được gửi, kèm dòng đầu báo giá đã chạy từ lúc viết.
+Sau thời gian ngừng hoạt động, các buổi sáng đã lỡ không được phát lại.
+
+- Một ngày đã lên lịch mà đã qua bị bỏ qua với cảnh báo `trading.brief_stale_day_skipped`, và lịch
+  chuyển sang hôm nay.
+- Bản tin hôm nay vẫn được gửi muộn nếu dịch vụ nền khởi động sau giờ gửi nhưng trước giờ mở.
+- Nếu dịch vụ nền khởi động sau giờ mở, hoặc một lần gửi lại rơi vào sau giờ mở, bản tin hôm nay bị bỏ
+  qua với cảnh báo `trading.brief_past_open_skipped`. Chat nhận một dòng báo điều này, và bản tin sáng
+  hôm sau là bản kế tiếp.
+- Bản tin bắt đầu dựng trước giờ mở nhưng xong sau đó vẫn được gửi, kèm dòng đầu báo giá đã chạy từ
+  lúc viết.
 
 Một ngày mà cả ba lần gửi đều hỏng thì bị bỏ, không phải bỏ đăng ký. Lịch chuyển sang ngày mai, `trading.brief_day_abandoned` được ghi log, và một thông báo cho biết bản tin hôm nay đã bị bỏ (gửi theo kiểu cố gắng hết sức qua đúng kênh vừa hỏng, nên có thể không tới). Chỉ `/brief disable` mới tắt bản tin sáng.
 
@@ -606,11 +714,33 @@ Các lệnh:
 
 Chuyên viên phân tích chủ đề dùng `[[model_tiers.themes]]` khi được cấu hình, nếu không thì dùng `[[models]]`.
 
-**Mã chấm điểm, mô hình đọc.** Điểm của một chủ đề, một ngành hay một công ty là phép tính số học trên các mức đánh giá của mô hình cùng các con số của phiên chạy, không bao giờ là một con số do mô hình tự đưa ra. Nó mang một độ tin cậy cho biết điểm đứng trên bao nhiêu phần của lần đọc. Một đề xuất chủ đề được xét trên lập luận của chính nó và phải nêu tên các ngành được hưởng lợi; nó liệt kê mọi điều kiện sẽ làm nó kết thúc, nên duyệt nó là duyệt luôn điểm thoát. Khi một lần soát không tới được các ngành của chủ đề đang theo dõi, báo cáo giữ ngành và mã của lần soát trước và nói rõ là lần nào. Cơ hội cổ phiếu chỉ liệt kê mã có mức tin cậy từ trung bình trở lên; mã tin cậy thấp, như mã chưa có P/E để định giá, vẫn hiện dưới ngành của nó, kèm nhãn. Chủ đề đang theo dõi mà lần soát ngành không thấy ngành nào hưởng lợi thì được chấm độ lan tỏa bằng không, chứ không bỏ phần đó ra; lần soát bị lỗi thì mới bỏ ra. Con số "trước đó" cạnh điểm chỉ so với điểm tính cùng một cách, và chủ đề đã kết thúc chỉ hiện lý do kết thúc, không hiện xác suất.
+**Mã chấm điểm, mô hình đọc.** Điểm của một chủ đề, một ngành hay một công ty là phép tính số học trên
+các mức đánh giá của mô hình cùng các con số của phiên chạy, không bao giờ là một con số do mô hình tự
+đưa ra. Nó mang một độ tin cậy cho biết điểm đứng trên bao nhiêu phần của lần đọc.
+
+- Một đề xuất chủ đề được xét trên lập luận của chính nó và phải nêu tên các ngành được hưởng lợi. Nó
+  liệt kê mọi điều kiện sẽ làm nó kết thúc, nên duyệt nó là duyệt luôn điểm thoát.
+- Khi một lần soát không tới được các ngành của chủ đề đang theo dõi, báo cáo giữ ngành và mã của lần
+  soát trước, và nói rõ là lần nào.
+- Cơ hội cổ phiếu chỉ liệt kê mã có mức tin cậy từ trung bình trở lên. Mã tin cậy thấp, như mã chưa có
+  P/E để định giá, vẫn hiện dưới ngành của nó, kèm nhãn.
+- Chủ đề đang theo dõi mà lần soát ngành không thấy ngành nào hưởng lợi thì được chấm độ lan tỏa bằng
+  không, chứ không bỏ phần đó ra. Lần soát bị lỗi thì mới bỏ ra.
+- Con số "trước đó" cạnh điểm chỉ so với điểm tính cùng một cách, và chủ đề đã kết thúc chỉ hiện lý do
+  kết thúc, không hiện xác suất.
 
 **Lợi nhuận được hiện như một kịch bản cơ sở.** Một lần đọc in `kịch bản cơ sở, lãi mỗi cổ phiếu (EPS) {tăng trưởng} trong {số tháng} tháng`, tăng trưởng có dấu, không kèm xác suất. P/E mục tiêu chỉ bị từ chối khi cao hơn đỉnh năm năm của chính mã. Các số đọc trên mức trần cứng 200 bị loại khỏi khoảng.
 
-**Mỗi lần đọc cổ phiếu được chấm sau.** Việc `theme-outcomes` so nó với VN-Index ở 3, 6 và 12 tháng từ các nến đã lưu (không gọi mô hình), và `/themes show` in mỗi dải điểm đã đi thế nào. Một mã hoặc ngành được đọc dưới nhiều chủ đề trong cùng một phiên chạy chỉ tính là một ván cược, ở mức trung bình điểm của nó. Mỗi nhóm điểm in kết quả so với VN-Index khi có đủ 20 lượt đọc; còn việc điểm cao có thắng điểm thấp hay không chỉ được kết luận khi mọi nhóm đều đủ 20. Chỉ những lần đọc chấm theo cách tính điểm hiện tại mới được tính, nên đổi trọng số điểm là bắt đầu một bảng mới. Mã niêm yết chưa đủ một năm vẫn được đo, tính từ giá đóng cửa ngày được đọc.
+**Mỗi lần đọc cổ phiếu được chấm sau.** Việc `theme-outcomes` so nó với VN-Index ở 3, 6 và 12 tháng
+từ các nến đã lưu (không gọi mô hình), và `/themes show` in mỗi dải điểm đã đi thế nào.
+
+- Một mã hoặc ngành được đọc dưới nhiều chủ đề trong cùng một phiên chạy chỉ tính là một ván cược, ở
+  mức trung bình điểm của nó.
+- Mỗi nhóm điểm in kết quả so với VN-Index khi có đủ 20 lượt đọc. Còn việc điểm cao có thắng điểm thấp
+  hay không chỉ được kết luận khi mọi nhóm đều đủ 20.
+- Chỉ những lần đọc chấm theo cách tính điểm hiện tại mới được tính, nên đổi trọng số điểm là bắt đầu
+  một bảng mới.
+- Mã niêm yết chưa đủ một năm vẫn được đo, tính từ giá đóng cửa ngày được đọc.
 
 **Mã giữ cho mô hình trung thực.** Mã dựng gói bằng chứng và cấp mọi id trong đó (`M1`, `C3`, `N12`); mô hình chỉ trích dẫn. Chuyên viên phân tích chủ đề là persona giao dịch duy nhất có công cụ, `research`.
 
@@ -848,7 +978,24 @@ Một dòng ghi ngày sau hôm nay (theo lịch của khu vực chính) cũng b�
 
 Giá luôn ghi đầy đủ, như `58400`, không phải con số trên bảng điện (`58,40`, tức ×1.000 VND). Một giá cổ phiếu Việt Nam thấp hơn 1.000 đồng trong khi mã đang giao dịch trên mức đó bị từ chối, kèm giá đầy đủ để ghi lại. Ngưỡng của `/alert` cũng vậy.
 
-Ở mọi thị trường, giá bạn gõ mà cao hoặc thấp hơn giá gần nhất của mã (giá đóng cửa đã lưu tính tới ngày của nó; với vàng trong nước, hoặc mã chưa có giá đóng cửa nào được lưu, là giá đang giao dịch) từ mười lần trở lên thì chưa được lưu ngay: câu trả lời đưa ra cả hai con số và hỏi bạn có đúng ý không, vì lệch xa cỡ đó gần như luôn là gõ thiếu hoặc thừa vài số 0. Bấm "Đúng giá này, lưu lại", hoặc gửi lại đúng lệnh đó với `confirm` ở cuối, thì giá được lưu như bạn gõ. Không có gì được giữ lại giữa hai bước: bỏ qua câu hỏi thì không có gì được ghi. `/record`, `/update` và `/alert create` đều hỏi như vậy; tiền nạp, rút và phí không có giá để so nên không bao giờ bị hỏi, và mã không có giá nào để so, hoặc giá không về kịp trong 3 giây, thì cũng lưu luôn. Giao dịch lấy giá từ lệnh khớp của sàn (`/trade`, `/record sync`, một lệnh thoát đã khớp) cũng không bị hỏi, và dòng `rights` cũng vậy, vì giá quyền mua do công ty phát hành đặt, thường theo mệnh giá, thấp hơn giá thị trường rất nhiều. Trợ lý AI bị từ chối theo cùng cách và phải hỏi lại bạn trước khi ghi giá. Bội số đặt ở `[trading.typed_prices] confirm_multiple` (mặc định 10). Ứng dụng desktop cũng được kiểm như vậy khi request ghi sổ hoặc đặt cảnh báo gửi kèm `typedPrice`.
+Ở mọi thị trường, giá bạn gõ mà cao hoặc thấp hơn giá gần nhất của mã (giá đóng cửa đã lưu tính tới
+ngày của nó; với vàng trong nước, hoặc mã chưa có giá đóng cửa nào được lưu, là giá đang giao dịch) từ
+mười lần trở lên thì chưa được lưu ngay. Câu trả lời đưa ra cả hai con số và hỏi bạn có đúng ý không,
+vì lệch xa cỡ đó gần như luôn là gõ thiếu hoặc thừa vài số 0.
+
+Bấm "Đúng giá này, lưu lại", hoặc gửi lại đúng lệnh đó với `confirm` ở cuối, thì giá được lưu như bạn
+gõ. Không có gì được giữ lại giữa hai bước: bỏ qua câu hỏi thì không có gì được ghi.
+
+- `/record`, `/update` và `/alert create` đều hỏi như vậy.
+- Tiền nạp, rút và phí không có giá để so nên không bao giờ bị hỏi. Mã không có giá nào để so, hoặc giá
+  không về kịp trong 3 giây, thì cũng lưu luôn.
+- Giao dịch lấy giá từ lệnh khớp của sàn (`/trade`, `/record sync`, một lệnh thoát đã khớp) cũng không
+  bị hỏi. Dòng `rights` cũng vậy, vì giá quyền mua do công ty phát hành đặt, thường theo mệnh giá, thấp
+  hơn giá thị trường rất nhiều.
+- Trợ lý AI bị từ chối theo cùng cách, và phải hỏi lại bạn trước khi ghi giá.
+
+Bội số đặt ở `[trading.typed_prices] confirm_multiple` (mặc định 10). Ứng dụng desktop cũng được kiểm
+như vậy khi request ghi sổ hoặc đặt cảnh báo gửi kèm `typedPrice`.
 
 #### Dòng xác nhận ghi nói gì về phí
 
@@ -886,7 +1033,17 @@ Chúng là hai kiểu khác nhau với các trường khác nhau. Một agent kh
 
 ### Định giá
 
-Một khoản nắm dưới cỡ lệnh tối thiểu của sàn thì không được liệt kê. Sàn sẽ không khớp nó, nên dòng đó sẽ mô tả thứ bạn không bán được cũng không hành động được. Giá trị của nó vẫn tính vào NAV và bảng phân bổ, và mục đó nói đã giữ lại bao nhiêu dòng. Nếu không còn nguồn nào báo giá nó nữa (ví dụ một coin bị gỡ khỏi sàn), nó được tính theo giá vốn kèm một ghi chú, thay vì để trống NAV và chặn mọi lệnh mua. Một tỷ trọng không có gì bên dưới là thứ mà con số đếm đó giải thích. Mọi chỗ khác cũng đối xử với nó như vậy: bản tin không đếm nó là vị thế đang lỗ và không chạy đề xuất cho nó, `/market` và trợ lý chat không liệt kê nó, nó không chiếm chỗ trong `maximum_open_trades`, và riêng nó thì không giữ một thị trường đã tắt lại trong `/refresh`.
+Một khoản nắm dưới cỡ lệnh tối thiểu của sàn thì không được liệt kê. Sàn sẽ không khớp nó, nên dòng đó
+sẽ mô tả thứ bạn không bán được cũng không hành động được.
+
+Giá trị của nó vẫn tính vào NAV và bảng phân bổ, và mục đó nói đã giữ lại bao nhiêu dòng. Nếu không còn
+nguồn nào báo giá nó nữa (ví dụ một coin bị gỡ khỏi sàn), nó được tính theo giá vốn kèm một ghi chú,
+thay vì để trống NAV và chặn mọi lệnh mua. Một tỷ trọng không có gì bên dưới là thứ mà con số đếm đó
+giải thích.
+
+Mọi chỗ khác cũng đối xử với nó như vậy: bản tin không đếm nó là vị thế đang lỗ và không chạy đề xuất
+cho nó, `/market` và trợ lý chat không liệt kê nó, nó không chiếm chỗ trong `maximum_open_trades`, và
+riêng nó thì không giữ một thị trường đã tắt lại trong `/refresh`.
 
 Một vị thế đã định giá thuộc một trong hai loại:
 
@@ -905,7 +1062,15 @@ Giá trị thị trường được quy đổi theo tỷ giá hôm nay của đ�
 
 `USDTVND` chỉ đến từ các nguồn coin. Khi tất cả đều hỏng thì không lùi về `USDVND`, vì một tỷ giá bị lặng lẽ thay thế còn tệ hơn không có. Vị thế đọc là unpriced với `valuation.fx-missing` và NAV bị giữ lại.
 
-Một dòng có thể mang tỷ giá của chính bạn thay vì tỷ giá thị trường: `fx <giá>` ở cuối dòng `/record` lưu đúng giá bạn đã trả, với nguồn ghi là `operator`, còn `fx auto` cố ý lấy tỷ giá thị trường của ngày đó. Dòng tiền mặt giờ cũng có thể ghi bằng đồng tiền mà thị trường của sàn niêm yết, nên `/record deposit binance 1000 USDT 2026-08-14 fx 26600` là một dòng hợp lệ. Không có `fx` thì dòng bằng ngoại tệ được xem trước và giữ lại chờ `/record confirm`, thay vì ghi theo một tỷ giá bạn chưa chọn; `/record sync` ghi theo tỷ giá thị trường và nói rõ đồng tiền nào đã ghi như vậy.
+Một dòng có thể mang tỷ giá của chính bạn thay vì tỷ giá thị trường:
+
+- `fx <giá>` ở cuối dòng `/record` lưu đúng giá bạn đã trả, với nguồn ghi là `operator`.
+- `fx auto` cố ý lấy tỷ giá thị trường của ngày đó.
+- Dòng tiền mặt giờ cũng có thể ghi bằng đồng tiền mà thị trường của sàn niêm yết. Nên
+  `/record deposit binance 1000 USDT 2026-08-14 fx 26600` là một dòng hợp lệ.
+- Không có `fx` thì dòng bằng ngoại tệ được xem trước và giữ lại chờ `/record confirm`, thay vì ghi
+  theo một tỷ giá bạn chưa chọn. `/record sync` ghi theo tỷ giá thị trường và nói rõ đồng tiền nào đã
+  ghi như vậy.
 
 #### Tiền ngoại tệ tại sàn
 
@@ -1106,7 +1271,16 @@ Một câu trả lời unavailable vẫn mang các phát hiện, vì "bạn đan
 
 Một nhóm mà kế hoạch không cấp vốn đủ tới mục tiêu thì nêu một caveat gọi tên nhóm đó. Mỗi nhóm có phần riêng của quỹ có thể triển khai, nếu không một khoản hụt toàn kế hoạch sẽ đổ ngân sách đã cạn của một nhóm bên cạnh lên mã nào tình cờ đứng dưới mục tiêu.
 
-Khi trần chặn lại là trần dùng chung (trần ETF của nhóm hoặc trần một ngành), cảnh báo ghi tên trần đó và nói chỉ mã ngoài trần đó mới lấp được nhóm, kèm các mã gợi ý từ bảng sàng lọc mà trần đó không chạm tới. Nếu thứ chặn là trần ngành, các mã gợi ý sẽ nằm ngoài những ngành đã có trong kế hoạch. Bảng không có mã nào như vậy thì chỉ còn dòng của trần. Một lệnh giảm bớt kế hoạch muốn đặt nhưng không đặt được cũng được nêu ra, thay vì để một mã vượt mức mà không có dòng nào bên cạnh: hoặc phần đã về tài khoản chưa đủ cho một lệnh (T+2), hoặc mã khớp quá ít mỗi phiên để giảm bớt một lần, khi đó nên giảm bớt dần bằng tay.
+Khi trần chặn lại là trần dùng chung (trần ETF của nhóm hoặc trần một ngành), cảnh báo ghi tên trần đó
+và nói chỉ mã ngoài trần đó mới lấp được nhóm, kèm các mã gợi ý từ bảng sàng lọc mà trần đó không chạm
+tới. Nếu thứ chặn là trần ngành, các mã gợi ý sẽ nằm ngoài những ngành đã có trong kế hoạch. Bảng không
+có mã nào như vậy thì chỉ còn dòng của trần.
+
+Một lệnh giảm bớt kế hoạch muốn đặt nhưng không đặt được cũng được nêu ra, thay vì để một mã vượt mức mà
+không có dòng nào bên cạnh. Có hai lý do:
+
+- phần đã về tài khoản chưa đủ cho một lệnh (T+2); hoặc
+- mã khớp quá ít mỗi phiên để giảm bớt một lần. Khi đó nên giảm bớt dần bằng tay.
 
 Trần triển khai được in ra là của cả cuốn sổ, không phải của một nhóm. Quỹ được chia theo tỷ trọng mục tiêu trong hồ sơ và mỗi phần bị giữ ở số đọc vĩ mô của chính nhóm nó, nên một nhóm phòng thủ cạnh một nhóm trung tính cho ra một hỗn hợp không giống cái nào. Mọi màn hình in con số này đều nêu luôn chế độ của từng nhóm đứng sau nó.
 
@@ -1121,7 +1295,24 @@ Một khoảng cách mà kế hoạch không khép được trong một lô thì
 
 Có một kết luận mà kế hoạch không đi vòng qua: một mã đang nắm có kết luận đã lưu mới nhất là `reduce` trên bằng chứng thì không nhận lệnh tăng, dù nó nằm dưới mục tiêu bao xa, và kế hoạch nêu tên nó thay vì để dòng đó lặng lẽ vắng mặt. Một lệnh giảm bớt mang lý do của chính kế hoạch (`over-target`, `weak-signal`, `over-cap`) không phải kết luận đó. Nó là chính quy tắc của kế hoạch này được ghi ngược vào kho, nên hành động theo nó sẽ để kế hoạch tự phủ quyết mình. Không gì khác về kế hoạch đổi: khoảng trống chưa lấp của nhóm vẫn chưa lấp và được báo là tiền mặt.
 
-Một mã đã vượt trần sẽ được giảm bớt, kể cả khi điểm của nó trung tính và nhóm của nó chưa lệch. Khi tỷ trọng một mã vượt trần mỗi mã (hoặc trần của quỹ) quá dải 5/25, kế hoạch giảm bớt nó về đúng mức trần. Trần 10% sẽ hành động ở 12,5% và giảm bớt về 10%, còn phiên chạy sau ở 10,3% không đặt lệnh nào. Một ngành vượt trần thì trả phần dư từ các mã yếu nhất trước. Mã có điểm yếu nằm trong phần cắt thì được giảm bớt hết (mã trong danh sách loại trừ thì chỉ bị cắt như các mã khác), và nếu chỉ riêng các lệnh đó đã đưa ngành về trong dải thì các mã khác giữ nguyên tỷ trọng, đúng như phiên chạy sau cũng sẽ để yên. Quỹ không bị tính vào đó, các mã thuộc nhóm có mục tiêu 0% cũng vậy, vì chúng đằng nào cũng được giảm bớt hết. Lệnh đưa về mức trần, lệch tối đa một lô, và trong một bước, dù số lượng đã về tài khoản và thanh khoản của mã vẫn giới hạn số giảm bớt được trong ngày. Dòng đó đọc "đang vượt trần mỗi mã trong hồ sơ 10% - giảm bớt cho vừa trần, không phải vì điểm yếu" và nằm dưới mục làm trước. Nó không bao giờ đóng mã khỏi `/rebalance`. Mã nằm trong danh sách loại trừ mà bạn vẫn đang nắm cũng được giảm về trần: danh sách đó chặn lệnh mua mới, còn trần là để giới hạn rủi ro. Muốn giữ một mã tập trung có chủ ý thì nâng trần bằng `/profile`.
+Một mã đã vượt trần sẽ được giảm bớt, kể cả khi điểm của nó trung tính và nhóm của nó chưa lệch.
+
+- **Theo từng mã.** Khi tỷ trọng một mã vượt trần mỗi mã (hoặc trần của quỹ) quá dải 5/25, kế hoạch
+  giảm bớt nó về đúng mức trần. Trần 10% sẽ hành động ở 12,5% và giảm bớt về 10%, còn phiên chạy sau ở
+  10,3% không đặt lệnh nào.
+- **Theo ngành.** Một ngành vượt trần thì trả phần dư từ các mã yếu nhất trước. Mã có điểm yếu nằm
+  trong phần cắt thì được giảm bớt hết (mã trong danh sách loại trừ thì chỉ bị cắt như các mã khác).
+  Nếu chỉ riêng các lệnh đó đã đưa ngành về trong dải, các mã khác giữ nguyên tỷ trọng, đúng như phiên
+  chạy sau cũng sẽ để yên. Quỹ không bị tính vào đó, các mã thuộc nhóm có mục tiêu 0% cũng vậy, vì
+  chúng đằng nào cũng được giảm bớt hết.
+- **Giảm bao nhiêu.** Lệnh đưa về mức trần, lệch tối đa một lô, và trong một bước. Số lượng đã về tài
+  khoản và thanh khoản của mã vẫn giới hạn số giảm bớt được trong ngày.
+
+Dòng đó đọc "đang vượt trần mỗi mã trong hồ sơ 10% - giảm bớt cho vừa trần, không phải vì điểm yếu" và
+nằm dưới mục làm trước. Nó không bao giờ đóng mã khỏi `/rebalance`.
+
+Mã nằm trong danh sách loại trừ mà bạn vẫn đang nắm cũng được giảm về trần: danh sách đó chặn lệnh mua
+mới, còn trần là để giới hạn rủi ro. Muốn giữ một mã tập trung có chủ ý thì nâng trần bằng `/profile`.
 
 Một quỹ ETF không bao giờ bị bán vì điểm yếu. Điểm xấu của một chỉ số là nhận định về cả thị trường, và tỷ trọng của nhóm cùng trạng thái thị trường đã lo phần đó, nên một ETF đang nắm có điểm dưới ngưỡng giữ vẫn giữ tỷ trọng. Luật lệch tỷ trọng vẫn có thể cắt bớt nó, và trần vẫn có thể giảm bớt nó. Lõi ETF của nhóm ở lại với quỹ bạn đang nắm cho tới khi một quỹ khác cao điểm hơn 0,15. Các quỹ theo chỉ số trùng nhau đi gần như cùng nhau, nên chênh lệch nhỏ không đáng một vòng phí và thuế.
 
@@ -1166,7 +1357,15 @@ Thẻ Danh mục của [trang văn phòng](van-hanh.md#trang-văn-phòng) ghi đ
 - **Mọi loại dòng.** Biểu mẫu ghi mở sẵn Mua hoặc Bán; mục "Khác" có cổ tức tiền mặt (số tiền thực nhận, theo tiền tệ của thị trường), cổ tức bằng cổ phiếu hay cổ phiếu thưởng (số cổ phiếu nhận thêm), chia tách (số cổ phiếu thêm vào, số âm khi gộp cổ phiếu), mua cổ phiếu quyền (kèm giá mua; để trống phí thì ghi là 0), chuyển tiền (giữa hai sàn của bạn; chọn cùng một sàn ở hai đầu thì bị từ chối trước khi gửi), nạp tiền, rút tiền, phí và lỗ đã thực hiện (khoản lỗ từ trước khi bạn ghi sổ). Một thay đổi số cổ phiếu cho thấy sau khi ghi bạn sẽ nắm bao nhiêu. Lịch sử liệt kê mọi loại, có bộ lọc, và dòng nào cũng sửa hoặc xóa được, có hoàn tác.
 - **Tỷ giá bạn đã trả.** Khi một dòng dùng tiền tệ khác với tiền của sổ và cần tỷ giá, như nạp USDT vào một sổ tính bằng VND hay mua ở một sàn không giữ USDT, ô Tỷ giá hiện ra, điền sẵn giá thị trường ngày đó; hãy sửa thành tỷ giá bạn thực trả. Ô này không được để trống, nên trang không bao giờ lưu một dòng như vậy ở mức giá bạn chưa thấy. Dòng trả bằng USDT mà sàn đã giữ (mua, chuyển tiền, phí) không có ô tỷ giá. Nếu không đọc được giá trong ngày, biểu mẫu nói rõ, cho nút Thử lại và chưa cho lưu. Sửa một dòng thì giữ tỷ giá đã ghi của nó.
 - **Đối chiếu với sàn.** Lịch sử > Đối chiếu với sàn đọc từng sàn đã có khóa, như `/reconcile`: khớp, hoặc sàn đang giữ nhiều hơn hay ít hơn sổ bao nhiêu, kèm một nút mở biểu mẫu ghi điền sẵn phần chênh (giá để bạn tự điền). Sàn chưa có khóa thì nêu tên biến của nó và dẫn tới Cài đặt > Sàn giao dịch; sàn không đọc được số dư, hoặc không trả lời, thì nói vậy. "Đồng bộ lệnh khớp từ <sàn>" làm đúng việc của `/record sync`: đọc các lệnh đã khớp, ghi những lệnh sổ còn thiếu, và không đặt lệnh nào. Nếu trả lời chậm, trang đọc lại sổ chứ không gửi đồng bộ lần hai.
-- **Lệnh.** Khi có sàn đặt lệnh được và `[api] orders` đang bật, Danh mục có thẻ *Lệnh*. Lệnh bạn soạn trong chat bằng `/trade` chờ ở đó để bạn bấm "Đặt lệnh trên <sàn>" (hỏi lại một lần; nút bị khóa cho tới khi sàn trả lời, và không gì được gửi hai lần) hoặc "Không đặt". Nếu không có trả lời kịp, trang nói chưa biết lệnh đã đi chưa và đọc lại danh sách, nên hãy xem lại trước khi soạn lệnh khác. Bên dưới là các lệnh thoát đang chờ trên sàn, mỗi lệnh có Hủy lệnh thoát sau một bước xác nhận, các vị thế không có gì bảo vệ, những lần khớp sàn đã nhận mà sổ chưa ghi được (Đồng bộ lệnh khớp sẽ ghi chúng), và "Cho phép mua", cùng công tắc với `/trade halt`. Đặt hay dời lệnh thoát vẫn dùng `/trade exit` trong chat.
+- **Lệnh.** Khi có sàn đặt lệnh được và `[api] orders` đang bật, Danh mục có thẻ *Lệnh*.
+  - Lệnh bạn soạn trong chat bằng `/trade` chờ ở đó để bạn bấm "Đặt lệnh trên <sàn>" (hỏi lại một lần;
+    nút bị khóa cho tới khi sàn trả lời, và không gì được gửi hai lần) hoặc "Không đặt".
+  - Nếu không có trả lời kịp, trang nói chưa biết lệnh đã đi chưa và đọc lại danh sách. Nên hãy xem lại
+    trước khi soạn lệnh khác.
+  - Bên dưới là các lệnh thoát đang chờ trên sàn, mỗi lệnh có Hủy lệnh thoát sau một bước xác nhận; các
+    vị thế không có gì bảo vệ; những lần khớp sàn đã nhận mà sổ chưa ghi được (Đồng bộ lệnh khớp sẽ ghi
+    chúng); và "Cho phép mua", cùng công tắc với `/trade halt`.
+  - Đặt hay dời lệnh thoát vẫn dùng `/trade exit` trong chat.
 
 ### Sàn, và điều duy nhất cuốn sổ này không làm
 
@@ -1247,7 +1446,16 @@ Bạn đổi tên các biến được ở `credentials` dưới `[trading.venue
 
 Công cụ `order_place` và `order_exits` theo cùng cổng đó, nên một bản cài chưa từng cấu hình sàn thì không có bề mặt đặt lệnh nào.
 
-**Duyệt.** `order_place` hỏi bạn ở mọi lời gọi, không đưa quyết định ghi nhớ, và từ chối thẳng khi chế độ duyệt của phiên chạy là `bypass`, trừ khi đặt `[trading.orders] allow_unattended`. Chốt lời hoặc cắt lỗ chỉ đi kèm lệnh mua: `order_place` từ chối khi có trên lệnh bán, giống `/trade`. Lệnh chỉ được tính cỡ và kiểm tra theo giá trực tiếp; khi giá từ sàn chỉ là giá đóng đã lưu hoặc một lần in đã cũ, lệnh được giữ lại kèm một lời nhắn dễ hiểu để bạn thử lại. Lệnh mua làm một mã, một ngành hay một nhóm vượt mức trần cũng bị `order_place` từ chối, và agent sẽ báo bạn vượt ở đâu; bạn đặt lại bằng `/trade`, nơi mức vượt được hiện ra trước khi bạn xác nhận. Lệnh mua một ETF vào nhóm mà phần ETF không đo được (có khoản nắm ở đó chưa phân loại được) được tính là vượt mọi trần ETF mà nhóm đó đã khai: không kiểm tra được hạn mức thì không cho qua.
+**Duyệt.** `order_place` hỏi bạn ở mọi lời gọi và không đưa quyết định ghi nhớ. Nó từ chối thẳng khi
+chế độ duyệt của phiên chạy là `bypass`, trừ khi đặt `[trading.orders] allow_unattended`.
+
+- Chốt lời hoặc cắt lỗ chỉ đi kèm lệnh mua: `order_place` từ chối khi có trên lệnh bán, giống `/trade`.
+- Lệnh chỉ được tính cỡ và kiểm tra theo giá trực tiếp. Khi giá từ sàn chỉ là giá đóng đã lưu hoặc một
+  lần in đã cũ, lệnh được giữ lại kèm một lời nhắn dễ hiểu để bạn thử lại.
+- Lệnh mua làm một mã, một ngành hay một nhóm vượt mức trần cũng bị `order_place` từ chối, và agent sẽ
+  báo bạn vượt ở đâu. Bạn đặt lại bằng `/trade`, nơi mức vượt được hiện ra trước khi bạn xác nhận.
+- Lệnh mua một ETF vào nhóm mà phần ETF không đo được (có khoản nắm ở đó chưa phân loại được) được tính
+  là vượt mọi trần ETF mà nhóm đó đã khai. Không kiểm tra được hạn mức thì không cho qua.
 
 Khi đã lưu hồ sơ, lệnh mua bị từ chối (`order.book_unpriced`) lúc còn khoản nắm nào chưa có giá, cả ở `/trade` lẫn `order_place`. Thiếu giá một khoản thì không có tổng, nên không đo được trần vị thế, nhóm hay ETF nào, và một lệnh bỏ qua các trần đó sẽ qua hết. `/portfolio` cho biết đó là mã nào; chạy `/refresh` cho thị trường của mã đó để lấy giá, rồi đặt lại lệnh. Lệnh bán, và lệnh mua khi chưa lưu hồ sơ, không bị giữ lại.
 
@@ -1261,7 +1469,15 @@ Khi lệnh bị từ chối vì khối lượng (bán nhiều hơn phần đã v
 - Một phiên chạy bị hủy sau khi sàn đã nhận lệnh vẫn đánh dấu lệnh cho `/trade reconcile` và, với lệnh còn treo, cố hủy nó.
 - Một phiên chạy bị hủy giữa lúc khớp và lúc ghi sổ để lại một dòng chưa ghi với lý do `order.mirror_aborted`, vẫn bị tính vào các trần và được `/trade reconcile` liệt kê.
 
-`/trade reconcile` cũng hỏi mỗi sàn có treo lệnh thoát xem nó đang giữ gì dưới một client id mà bản cài này đã tạo, và liệt kê cái nào không có dòng sống. Phép kiểm lối thoát chỉ đọc các dòng, nên một lối thoát như vậy (một sự cố giữa lúc sàn nhận nó và lúc dòng được ghi, hoặc bất kỳ thứ gì cũ hơn) không bao giờ được kiểm hay trail. Nó chỉ báo cáo. `/trade cancel` không với tới được, nên hãy hủy nó trong app của sàn nếu không cần, và để nguyên cái đang bảo vệ một vị thế. Một sàn không đọc được thì được nêu tên chứ không bị bỏ qua. `POST /v1/trade/reconcile` trả cùng hai danh sách (`orphanExits` và `unreadExitVenues`).
+`/trade reconcile` cũng hỏi mỗi sàn có treo lệnh thoát xem nó đang giữ gì dưới một client id mà bản cài
+này đã tạo, và liệt kê cái nào không có dòng sống. Phép kiểm lối thoát chỉ đọc các dòng, nên một lối
+thoát như vậy (một sự cố giữa lúc sàn nhận nó và lúc dòng được ghi, hoặc bất kỳ thứ gì cũ hơn) không bao
+giờ được kiểm hay trail.
+
+- Nó chỉ báo cáo. `/trade cancel` không với tới được, nên hãy hủy nó trong app của sàn nếu không cần,
+  và để nguyên cái đang bảo vệ một vị thế.
+- Một sàn không đọc được thì được nêu tên chứ không bị bỏ qua.
+- `POST /v1/trade/reconcile` trả cùng hai danh sách (`orphanExits` và `unreadExitVenues`).
 
 Một `/trade exit` gieo client id của lối thoát từ chính yêu cầu, nên một tin nhắn Telegram được gửi lại sau sự cố sẽ tìm thấy lối thoát mà nó đã đặt. CLI và app tạo một id mới cho mỗi lệnh. `POST /v1/trade/exits` nhận header `Idempotency-Key` cho client có thử lại: cùng khóa thì tìm thấy lối thoát mà lời gọi đầu đã đặt, và một lời gọi không kèm khóa là một yêu cầu riêng.
 

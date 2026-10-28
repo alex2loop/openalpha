@@ -141,7 +141,19 @@ operator, and only until the prompt times out; typing it again, or after the tim
 was already answered or has expired. Two prompts open at once get different codes, and answering one
 leaves the other's codes live. A button tapped after its prompt was answered or timed out gets the same reply.
 
-`fallback_chat_id` also decides where an alert or the morning brief armed from the terminal goes: the first configured channel (Telegram, Zalo, Zalo Personal) with a fallback chat, a lone allowed id, or a lone paired chat. Pairing needs nothing more: the daemon picks the chat up from the first message you send after pairing. Revoke it with `pair revoke` and the daemon stops sending to that chat, from the next message on and across restarts. Alerts and the morning brief armed there switch off at their next send, so pairing again does not bring them back: run `/brief enable` again and set the alerts again. A group admitted through your account has no pairing of its own, so `pair revoke` does not reach it: to stop it, turn off the alerts and brief armed there or remove the bot from the group. The app lists the chats paired on each channel and can unpair one, which does the same as `pair revoke`.
+`fallback_chat_id` also decides where an alert or the morning brief armed from the terminal goes: the
+first configured channel (Telegram, Zalo, Zalo Personal) with a fallback chat, a lone allowed id, or a
+lone paired chat.
+
+- **Pairing** needs nothing more. The daemon picks the chat up from the first message you send after
+  pairing.
+- **Revoking** with `pair revoke` makes the daemon stop sending to that chat, from the next message on
+  and across restarts. Alerts and the morning brief armed there switch off at their next send, so
+  pairing again does not bring them back: run `/brief enable` again and set the alerts again.
+- **A group** admitted through your account has no pairing of its own, so `pair revoke` does not reach
+  it. To stop it, turn off the alerts and brief armed there, or remove the bot from the group.
+- **The app** lists the chats paired on each channel and can unpair one, which does the same as
+  `pair revoke`.
 
 A channel that drops and stays down is reported on another one, and `status` lists it; see [Operations](operations.md#when-the-daemon-stops-or-misses-a-brief).
 

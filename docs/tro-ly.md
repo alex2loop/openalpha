@@ -35,10 +35,27 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
 `agent.toml` vào thư mục agent của bạn, nên `agent list` và `agent show` vẫn thấy agent, và sau này bạn sửa tay vẫn
 được.
 
-- Ở tầng *Agent của bạn*, "+ Thêm agent" mở biểu mẫu (khi chưa có agent nào, ba mẫu khởi đầu điền sẵn để bạn sửa, và có cả một mẫu trống). Biểu mẫu hỏi tên (mã định danh được tạo từ tên, trừ khi bạn tự gõ, và không đổi được sau khi agent đã có), việc nó làm bằng lời của bạn, các thị trường và ngành nó theo dõi, ngân sách mỗi ngày (`0` nghĩa là chỉ theo ngân sách chung), mô hình, có cho nó tự tạo agent con không và tối đa bao nhiêu mỗi lần gọi, cùng ngoại hình. Không tick thị trường nào thì agent dùng chung góc nhìn với bạn, nên đề xuất của nó tác động lên danh mục thật; tick thị trường thì nó thành ý kiến thứ hai (xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng)).
+- Ở tầng *Agent của bạn*, "+ Thêm agent" mở biểu mẫu. Khi chưa có agent nào, ba mẫu khởi đầu điền
+  sẵn để bạn sửa, và có cả một mẫu trống. Biểu mẫu hỏi:
+  - tên (mã định danh được tạo từ tên, trừ khi bạn tự gõ, và không đổi được sau khi agent đã có);
+  - việc nó làm, bằng lời của bạn;
+  - các thị trường và ngành nó theo dõi;
+  - ngân sách mỗi ngày (`0` nghĩa là chỉ theo ngân sách chung);
+  - mô hình;
+  - có cho nó tự tạo agent con không, và tối đa bao nhiêu mỗi lần gọi;
+  - ngoại hình.
+
+  Không tick thị trường nào thì agent dùng chung góc nhìn với bạn, nên đề xuất của nó tác động lên danh
+  mục thật. Tick thị trường thì nó thành ý kiến thứ hai (xem
+  [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng)).
 - Bộ chọn ngoại hình có bốn phần, kèm ảnh chân dung đổi theo từng lựa chọn: thân (màu da: sáng, vừa hoặc đậm), tóc (ngắn, dài, bob, búi hoặc mũ lưỡi trai), áo (xanh ngọc, xanh dương, xanh da trời, vàng nghệ, cam, hồng, xám xanh hoặc màu cát) và phụ kiện (không, sách, bìa kẹp, cà vạt, kính hoặc khăn). Phần nào bạn bỏ qua thì theo mã của agent, nên agent nào cũng có ngoại hình ngay từ đầu. Đó là bảng `[look]` trong tệp; dịch vụ nền (daemon) chỉ giữ nó và không bao giờ đọc nó trong một phiên chạy.
 - Bấm vào một agent (bàn của nó, hoặc thẻ của nó ở tầng đội riêng) thì thẻ của nó mở ra: *Tiến độ* (các bước đang chạy và agent con nếu có), *Kết quả*, *Hồ sơ* và *Việc*, kèm nút tạm dừng hoặc tiếp tục. Agent tạm dừng từ chối mọi phiên chạy của nó cho tới khi bạn cho chạy lại, đúng như `agent pause`, và bàn của nó ghi rõ điều đó. Nút sửa hồ sơ mở biểu mẫu, và biểu mẫu đó cũng có nút xóa agent.
-- Khi một phiên chạy chia việc cho agent con, thẻ Tiến độ liệt kê từng agent con, cho biết đang chạy bao nhiêu trong số tối đa một lần gọi được phép khởi động, chúng đi sâu mấy tầng, và thời gian dài nhất một agent con được chạy. Con số cuối là giới hạn mỗi lần gọi cho agent con của chính dịch vụ nền (mức chặt hơn giữa trần thời gian của phiên chạy và của `spawn` trong `[loop]`), đọc từ dịch vụ nền, nên luôn là con số thật. Chi phí của chúng tính vào phiên chạy của agent cha, và một nút dừng cả phiên chạy, gồm cả các agent con.
+- Khi một phiên chạy chia việc cho agent con, thẻ Tiến độ liệt kê từng agent con. Nó cho biết đang
+  chạy bao nhiêu trong số tối đa một lần gọi được phép khởi động, chúng đi sâu mấy tầng, và thời gian
+  dài nhất một agent con được chạy. Con số cuối là giới hạn mỗi lần gọi cho agent con của chính dịch vụ
+  nền (mức chặt hơn giữa trần thời gian của phiên chạy và của `spawn` trong `[loop]`), đọc từ dịch vụ
+  nền, nên luôn là con số thật. Chi phí của chúng tính vào phiên chạy của agent cha, và một nút dừng cả
+  phiên chạy, gồm cả các agent con.
 - Dưới câu trả lời của một phiên chạy đã xong, thẻ *Kết quả* có một khối "Lệnh gọi AI" đang đóng, giống khối trên dòng của một việc và dưới câu trả lời chat đã xong: các lệnh gọi mô hình của phiên chạy đó và agent con của nó, kèm chi phí từng lệnh gọi và kết thúc ra sao (xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng)).
 - Agent mới hay vừa sửa được kiểm tra như dịch vụ nền kiểm tra một tệp lúc khởi động: dạng tệp, mã, phạm vi, mức trần
   ngân sách, bước quét prompt và bậc mô hình. Bị từ chối thì lý do hiện bằng lời thường và không có gì được ghi.
