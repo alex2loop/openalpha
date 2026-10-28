@@ -13,8 +13,8 @@
   border-inline: 1px solid var(--border);
 }
 
-/* Floating over the office: glass in the stage's cell, denser than a chip since it carries text. The
-   head, tabs and margins are the glass; each block keeps its solid surface for the figures. */
+/* Floating over the office: glass in the stage's cell, denser than a chip since it carries text. Each
+   block inside is flat glass: a thin tint, sheen and highlight over the panel's own blur. */
 .panel.is-float,
 .panel.is-sheet {
   --glassAlpha: var(--glassFocusA);
@@ -150,6 +150,11 @@
 
 .panel.glass .panel-body {
   text-shadow: none;
+}
+
+.panel.glass .block {
+  background: var(--glassSheenFill), rgb(var(--glassTint) / var(--glassA));
+  box-shadow: var(--glassShadow);
 }
 
 .panel-view.is-entering {

@@ -24,6 +24,7 @@ import { withLiveScreens } from '@/web/scene/overlay/live-screens'
 import { ObjectTip } from '@/web/scene/overlay/object-tip'
 import { SceneOverlay } from '@/web/scene/overlay/overlay'
 import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/overlay/overlay-pass'
+import { watchPane } from '@/web/scene/overlay/pane-watch'
 import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RadialMenu } from '@/web/scene/overlay/radial-menu'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
@@ -354,46 +355,6 @@ function readSceneInputs(): void {
 
 async function loadRenderer3d(): Promise<() => SceneRenderer> {
   return (await import('./render3d/renderer-3d')).createRenderer3d
-}
-
-// A resize or a move to a screen of another density draws again; the returned stop releases both.
-// A pane hidden by `display: none` measures zero: the loop rests until it has a size again.
-function watchPane(
-  element: HTMLElement,
-  loop: Pick<ReturnType<typeof createSimLoop>, 'wake' | 'show'>
-): () => void {
-  const resize = new ResizeObserver(() => {
-    loop.show(element.clientWidth > 0 && element.clientHeight > 0)
-    loop.wake()
-  })
-  const listeners = new AbortController()
-
-  resize.observe(element)
-  watchResolution(loop.wake, listeners.signal)
-
-  return () => {
-    resize.disconnect()
-    listeners.abort()
-  }
-}
-
-// A move to a screen of another pixel density redraws at the new density; the query is re-armed for
-// the density it lands on.
-function watchResolution(onChange: () => void, signal: AbortSignal): void {
-  if (signal.aborted) {
-    return
-  }
-
-  const query = matchMedia(`(resolution: ${devicePixelRatio}dppx)`)
-
-  query.addEventListener(
-    'change',
-    () => {
-      onChange()
-      watchResolution(onChange, signal)
-    },
-    { signal, once: true }
-  )
 }
 
 // The home market's session zone, else the operator's `[locale] timezone`.

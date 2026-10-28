@@ -12,7 +12,7 @@ import {
   view,
   ZOOM_STEP,
 } from '@/web/scene/view'
-import { fitFloorScale, fitRoomScale, NARROW_MIN_SCALE } from '@/web/scene/world/framing'
+import { fitRoomScale, fittedFloorScale } from '@/web/scene/world/framing'
 import { roomById } from '@/web/scene/world/rooms'
 import { breakpoint } from '@/web/state/breakpoints'
 
@@ -147,7 +147,5 @@ function minScaleOf(base: number, pane: Size): number {
 }
 
 function fitFloor(pane: Size): number {
-  const raw = fitFloorScale(pane)
-
-  return breakpoint.value === 'wide' ? raw : Math.max(NARROW_MIN_SCALE, raw)
+  return fittedFloorScale(pane, breakpoint.value)
 }

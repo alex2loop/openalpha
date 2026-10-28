@@ -1,6 +1,6 @@
 import type { Rect, Size } from '@/web/scene/types'
 import type { Breakpoint } from '@/web/state/breakpoints'
-import { fitFloorScale, fitRoomScale, NARROW_MIN_SCALE } from '@/web/scene/world/framing'
+import { fitRoomScale, fittedFloorScale } from '@/web/scene/world/framing'
 
 // From this density up, quarter steps are too fine to see uneven art pixels.
 const FINE_DPR = 2
@@ -20,9 +20,7 @@ export interface Fit {
  *  is painted at the whole zoom under it and stretched pixel for pixel, so a fraction neither
  *  blurs nor seams. */
 export function fitFloor(viewport: Size, dpr: number, breakpoint: Breakpoint): Fit {
-  const raw = fitFloorScale(viewport)
-
-  return fitAt(breakpoint === 'wide' ? raw : Math.max(NARROW_MIN_SCALE, raw), dpr)
+  return fitAt(fittedFloorScale(viewport, breakpoint), dpr)
 }
 
 /** A room with its walls and a tenth to spare, in whole device steps below `FINE_DPR` so two
