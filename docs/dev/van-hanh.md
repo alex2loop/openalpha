@@ -163,14 +163,18 @@ chắc đã tới nơi. Lời gọi bị từ chối không bao giờ được c
 
 ### Khoảng chờ tăng dần
 
-Phiên chạy không bao giờ tới `completed` để nguyên mốc hoàn tất gần nhất; không có phanh thì tác vụ lại
-đến hạn ngay ở nhịp kế tiếp, mãi mãi. Vì vậy mỗi lần hỏng tăng bộ đếm và hoãn lần nhận việc kế tiếp thêm
-`60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút. Một lượt hoàn tất xóa cả hai. Khoảng chờ chặn ở khâu
-nhận việc: tác vụ không bao giờ bị tắt. Hai đường khác hoãn theo cùng cách qua
-`deferFailedHeartbeatTask` (`heartbeat/lease.ts`): lượt hoàn tất nhưng ghi `completeHeartbeatTask` thất bại
-(`{ kind: 'failed' }`; `lease_lost` giữ nguyên vì đã có bên khác nhận việc), và `runClaimedHeartbeatTask` ném
-lỗi, trừ khi tắt máy đã hủy tín hiệu. Ném lỗi sau khi đã hoàn tất vô hại: ghi lỗi khóa theo token thuê mà
-hoàn tất đã xóa.
+Phiên chạy không bao giờ tới `completed` thì để nguyên mốc hoàn tất gần nhất, nên nếu không có phanh,
+tác vụ sẽ đến hạn lại ở mọi nhịp, mãi mãi. Vì vậy mỗi lần hỏng tăng bộ đếm và hoãn lần nhận việc kế tiếp
+thêm `60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút. Một lượt hoàn tất xóa cả hai. Khoảng chờ chỉ chặn
+ở khâu nhận việc: tác vụ không bao giờ bị tắt.
+
+Hai đường khác hoãn theo cùng cách, qua `deferFailedHeartbeatTask` (`heartbeat/lease.ts`):
+
+- lượt hoàn tất nhưng lần ghi `completeHeartbeatTask` thất bại (`{ kind: 'failed' }`; `lease_lost` giữ
+  nguyên, vì đã có bên khác nhận việc);
+- `runClaimedHeartbeatTask` ném lỗi, trừ khi tắt máy đã hủy tín hiệu.
+
+Ném lỗi sau khi đã hoàn tất là vô hại: lần ghi lỗi khóa theo token thuê mà bước hoàn tất đã xóa.
 
 ### Hành vi khi hỏng
 
