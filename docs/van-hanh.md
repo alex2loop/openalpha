@@ -384,11 +384,13 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
    dịch vụ nền ra ngoài, và cho nginx gửi `proxy_set_header Host $host;` cùng
    `proxy_set_header X-Forwarded-For $remote_addr;`. Ngoài ra dịch vụ nền chỉ trả lời yêu cầu gửi tới `127.0.0.1`,
    `localhost` hoặc `[::1]` (cổng nào cũng được, nên đường hầm SSH dùng như cũ), để chặn trang web giở trò
-   DNS rebinding. Khi đã đặt `public_url`, `openalpha web` in liên kết `https://` thay vì đường hầm. Mọi yêu
-   cầu qua proxy đều đến dịch vụ nền từ `127.0.0.1`, nên năm lần sai mã API hoặc mã đăng nhập sẽ tạm dừng đăng nhập
-   của mọi người trong 30 giây, tăng gấp đôi mỗi lần, tối đa một giờ. Trong khoảng dừng đó mọi mã đều bị từ
-   chối, đúng hay sai, nên không lần đoán nào được kiểm; trình duyệt đã đăng nhập vẫn dùng bình thường. Hết
-   khoảng dừng, một mã đúng sẽ xóa số lần sai.
+   DNS rebinding. Khi đã đặt `public_url`, `openalpha web` in liên kết `https://` thay vì đường hầm. Năm lần
+   sai mã API hoặc mã đăng nhập sẽ tạm dừng nơi gửi đó trong 30 giây, mỗi lần dừng sau tăng gấp đôi, tối đa
+   một giờ; một giờ không sai lần nào thì tính lại từ đầu. Yêu cầu qua `public_url` được phân biệt theo địa chỉ
+   cuối cùng trong `X-Forwarded-For` (địa chỉ do proxy của bạn thêm vào), nên người đoán mã trên internet không bao giờ làm dừng terminal hay CLI
+   của bạn trên cùng máy. Trong khoảng dừng mọi mã từ nơi gửi đó đều bị từ chối, đúng hay sai, nên không lần
+   đoán nào được kiểm; trình duyệt đã đăng nhập vẫn dùng bình thường. Hết khoảng dừng, một mã đúng sẽ xóa số
+   lần sai.
 6. **Nối ứng dụng khách.** Đưa cho ứng dụng địa chỉ và mã API; mọi yêu cầu gửi kèm mã dưới dạng
    `Authorization: Bearer <mã>`. Tối đa 8 luồng ứng dụng (`/v1/ws`) mở cùng lúc; lần bắt tay thứ chín bị từ
    chối với 503 `too_many_streams`.

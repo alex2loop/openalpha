@@ -9,6 +9,7 @@ import {
   PROXY_HEADERS,
   resolveAuthOutcome,
   resolveBearerCredential,
+  resolvePeerKey,
 } from '@/app/server/http/auth'
 import { apiError, toAuthRefusal } from '@/app/server/http/dispatch'
 
@@ -54,14 +55,15 @@ export function admitExec(
     return apiError('forbidden')
   }
 
-  // The bearer header only, never the page's cookie; a wrong token counts toward the shared lockout.
+  // The bearer header only, never the page's cookie; a wrong token counts toward this peer's lockout.
   const now = Date.now()
+  const peer = resolvePeerKey(headers, ctx.ip, false)
   const credential = resolveBearerCredential(
     headers.get('authorization'),
     ctx.token,
-    isAuthLocked(ctx.ip, now)
+    isAuthLocked(peer, now)
   )
-  const refusal = toAuthRefusal(resolveAuthOutcome(ctx.ip, credential, now))
+  const refusal = toAuthRefusal(resolveAuthOutcome(peer, credential, now))
 
   if (refusal !== null) {
     return refusal

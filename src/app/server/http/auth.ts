@@ -15,8 +15,11 @@ const LOCKOUT_MS = 30_000
 /** Exponential-backoff ceiling: 1h. */
 const MAX_LOCKOUT_MS = 3_600_000
 const MAX_PEERS = 1024
-// The lockout key of a request whose peer address is unknown.
+// The lockout key of a request whose peer address or forwarded client is unknown.
 const UNKNOWN_PEER = '?'
+const PROXIED_PEER_PREFIX = 'proxied:'
+const FORWARDED_FOR = 'x-forwarded-for'
+const FORWARDED_FOR_SEPARATOR = ','
 const SECRET_BYTES = 32
 
 export const LOOPBACK_HOST = '127.0.0.1'
@@ -40,6 +43,7 @@ interface PeerState {
   fails: number
   until: number
   violations: number
+  lastFailAt: number
 }
 
 /** The token the operator named cannot serve. The stored one never stands in for it: the API
@@ -85,24 +89,17 @@ export function resolveBearerCredential(
 
 export type AuthOutcome = 'ok' | 'locked' | 'unauthorized'
 
-// One lockout accounting for HTTP, WS and the code exchange. Every peer is loopback, so the lockout
-// is one shared key: while it holds, a token or code is refused before it is compared, so no guess
-// is checked. A session is never refused by it, only a valid token or code clears it (a session
-// cookie proves nothing about who is guessing), and only a wrong token or a wrong or used code
-// counts toward it.
-export function resolveAuthOutcome(
-  ip: string | null,
-  credential: Credential,
-  now: number
-): AuthOutcome {
-  const addr = toPeerKey(ip)
-
+// One lockout accounting for HTTP, WS and the code exchange, per `resolvePeerKey`: while it holds, a
+// token or code is refused before it is compared, so no guess is checked. A session is never
+// refused by it, only a valid token or code clears it (a session cookie proves nothing about who is
+// guessing), and only a wrong token or a wrong or used code counts toward it.
+export function resolveAuthOutcome(peer: string, credential: Credential, now: number): AuthOutcome {
   if (credential === 'locked') {
     return 'locked'
   }
 
   if (credential === 'valid') {
-    peers.delete(addr)
+    peers.delete(peer)
 
     return 'ok'
   }
@@ -115,7 +112,7 @@ export function resolveAuthOutcome(
     return 'unauthorized'
   }
 
-  recordFailure(addr, now)
+  recordFailure(peer, now)
 
   return 'unauthorized'
 }
@@ -171,22 +168,35 @@ function toHostUrl(protocol: string, host: string): URL | undefined {
   return URL.canParse(url) ? new URL(url) : undefined
 }
 
+/** Who a request counts as for the lockout. A caller with no proxy header is keyed by its own peer.
+ *  Through the `public_url` host it is keyed by the last `X-Forwarded-For` hop, the one our proxy
+ *  added, so a remote guesser never locks out a terminal on this machine. Proxy headers on any
+ *  other host are not trusted: that caller shares one proxied key. */
+export function resolvePeerKey(headers: Headers, ip: string | null, isPublicPage: boolean): string {
+  if (!PROXY_HEADERS.some((name) => headers.has(name))) {
+    return ip ?? UNKNOWN_PEER
+  }
+
+  const hop = isPublicPage
+    ? headers.get(FORWARDED_FOR)?.split(FORWARDED_FOR_SEPARATOR).at(-1)?.trim()
+    : undefined
+
+  return `${PROXIED_PEER_PREFIX}${hop === undefined || hop === '' ? UNKNOWN_PEER : hop}`
+}
+
 /** Asked before a token or code is compared, so a guess sent during the lockout is never checked. */
-export function isAuthLocked(ip: string | null, now: number): boolean {
-  const entry = peers.get(toPeerKey(ip))
+export function isAuthLocked(peer: string, now: number): boolean {
+  const entry = peers.get(peer)
 
   return entry !== undefined && entry.until > now
 }
 
-function toPeerKey(ip: string | null): string {
-  return ip ?? UNKNOWN_PEER
-}
-
-function recordFailure(ip: string, now: number): void {
+function recordFailure(peer: string, now: number): void {
   prunePeers(now)
 
-  const entry = peers.get(ip) ?? { fails: 0, until: 0, violations: 0 }
+  const entry = peers.get(peer) ?? { fails: 0, until: 0, violations: 0, lastFailAt: now }
   entry.fails += 1
+  entry.lastFailAt = now
 
   if (entry.fails >= MAX_FAILS) {
     entry.until = now + Math.min(LOCKOUT_MS * 2 ** entry.violations, MAX_LOCKOUT_MS)
@@ -194,16 +204,16 @@ function recordFailure(ip: string, now: number): void {
     entry.violations += 1
   }
 
-  peers.set(ip, entry)
+  peers.set(peer, entry)
 }
 
-// Bound the map: drop entries no longer locked out with no pending fails; if still over cap, evict
-// the oldest (Map iterates in insertion order). Without this, an attacker rotating source IPs grows
-// `peers` without bound.
+// Bound the map: an entry is forgotten, and its backoff with it, only after a full MAX_LOCKOUT_MS
+// with no failure and no lockout; if still over cap, evict the oldest (Map iterates in insertion
+// order). Without this, an attacker rotating keys grows `peers` without bound.
 function prunePeers(now: number): void {
-  for (const [ip, entry] of peers) {
-    if (entry.until <= now && entry.fails === 0) {
-      peers.delete(ip)
+  for (const [peer, entry] of peers) {
+    if (Math.max(entry.until, entry.lastFailAt) + MAX_LOCKOUT_MS <= now) {
+      peers.delete(peer)
     }
   }
 

@@ -5,6 +5,7 @@ import type { SignInCodes } from '@/app/server/http/sign-in-codes'
 import type { ExecSocketData, SocketData, WsData, WsServices } from '@/app/server/ws/socket'
 import type { ApiHandle, ApiRouteContext } from '@/app/types'
 import type { App } from '@/core/container'
+import { SHUTDOWN_DRAIN_MS } from '@/app/daemon'
 import { admitExec, closeExecAdmission } from '@/app/server/exec/admission'
 import { closeAllExecs, execHandlers } from '@/app/server/exec/connection'
 import {
@@ -12,6 +13,7 @@ import {
   LOOPBACK_HOST,
   PROXY_HEADERS,
   resolvePageOrigin,
+  resolvePeerKey,
 } from '@/app/server/http/auth'
 import { SET_COOKIE, toSessionCookieName } from '@/app/server/http/caller'
 import { apiError, handleHttp, resolveAuthorizedCaller } from '@/app/server/http/dispatch'
@@ -28,6 +30,7 @@ import {
 import { BRAND } from '@/core/brand'
 import { isErrno, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { settleWithin } from '@/core/utils/concurrency'
 import { t } from '@/i18n'
 
 const WS_PATH = '/v1/ws'
@@ -85,10 +88,26 @@ export function startApi(
       // Sockets first: a client holding one open would otherwise keep the server from closing.
       closeAllExecs()
       closeAllSockets()
-      // Resolves once in-flight requests finish, so storage is not closed under one.
-      await stopListening()
+      await stopRequests(app, server, stopListening())
     },
   }
+}
+
+// In-flight requests get SHUTDOWN_DRAIN_MS to finish, so storage is not closed under one; a request
+// still open then (a stalled body) is cut so it cannot hold the stop past its deadline.
+async function stopRequests(
+  app: App,
+  server: Server<SocketData>,
+  listening: Promise<void>
+): Promise<void> {
+  if (await settleWithin(listening, SHUTDOWN_DRAIN_MS)) {
+    await listening
+
+    return
+  }
+
+  app.resolve('logger').warn('api.stop_forced', { graceMs: SHUTDOWN_DRAIN_MS })
+  await server.stop(true)
 }
 
 interface RouteDeps {
@@ -131,10 +150,12 @@ function routeRequest(
     return page
   }
 
+  const ip = srv.requestIP(req)?.address ?? null
   const ctx: ApiRouteContext = {
     app,
     ...surface,
-    ip: srv.requestIP(req)?.address ?? null,
+    ip,
+    peer: resolvePeerKey(req.headers, ip, pageOrigin === publicUrl),
     pageOrigin,
     cookieName: toSessionCookieName(pageOrigin, publicUrl),
   }
