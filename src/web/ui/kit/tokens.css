@@ -137,7 +137,7 @@
   --onAi: #ffffff;
   --headerH: 48px;
   --commandBarH: 62px;
-  --chatPanelW: 340px;
+  --chatPanelW: clamp(340px, 28vw, 440px);
   --panelW: 440px;
   --panelRailW: 52px;
   --panelContentMaxW: 720px;
