@@ -1,8 +1,8 @@
 <h1 align="center">OpenAlpha</h1>
+<h3 align="center">Khi TradingAgents gặp OpenClaw 👀</h3>
 
 <p align="center">
-  <strong>Nhà phân tích đầu tư AI mã nguồn mở, chạy ngay trên máy bạn.</strong><br/>
-  Một hội đồng AI tranh luận trước mỗi đề xuất; đặt lệnh hay không vẫn do bạn quyết.
+  <strong>Một hội đồng AI tranh luận trước mỗi đề xuất như TradingAgents, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như OpenClaw.<br/>Đó là OpenAlpha, nhà phân tích đầu tư AI mã nguồn mở.</strong>
 </p>
 
 <p align="center">
@@ -313,8 +313,6 @@ Câu lệnh gọi AI tốn bao nhiêu tùy mô hình bạn chọn: mô hình r�
 Các con số trong README chỉ minh họa cú pháp, không phải gợi ý mua bán. Đủ mọi câu lệnh: `/help` trong cuộc trò chuyện, hoặc [bản đồ lệnh](docs/cam-nang.md#4-bản-đồ-lệnh).
 
 ## Vì sao dùng OpenAlpha
-
-Cứ hình dung TradingAgents gặp OpenClaw: một hội đồng AI tranh luận trước mỗi đề xuất như TradingAgents, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như OpenClaw.
 
 - **Con số do code tính, AI chỉ giải thích.** Giá vào, cắt lỗ, mục tiêu và khối lượng được tính sẵn; AI tranh luận vì sao nên mua và vì sao nên tránh.
 - **Kỷ luật được viết sẵn.** Kế hoạch chốt khi bạn còn tỉnh táo, rồi giữ bạn đi đúng kế hoạch đó, kể cả khi thị trường đi xuống.

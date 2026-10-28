@@ -1,8 +1,8 @@
 <h1 align="center">OpenAlpha</h1>
+<h3 align="center">What if TradingAgents and OpenClaw had a baby? 👀</h3>
 
 <p align="center">
-  <strong>An open-source AI investment analyst that runs on your own machine.</strong><br/>
-  A council of AI analysts argues before every suggestion; placing the order is still your call.
+  <strong>A council of AI analysts that argues before every call, like TradingAgents, running on your machine and chatting over Telegram and Zalo, like OpenClaw.<br/>Meet OpenAlpha, an open-source AI investment analyst.</strong>
 </p>
 
 <p align="center">
@@ -313,8 +313,6 @@ What a command that calls the AI costs depends on the model you pick: a cheaper 
 The figures in this README only illustrate the syntax; they are not trade ideas. Every command: `/help` in chat, or [commands.md](docs/en/commands.md).
 
 ## Why OpenAlpha
-
-Think of it as TradingAgents meeting OpenClaw: a council of AI analysts that argues before every call, like TradingAgents, running on your machine and chatting over Telegram and Zalo, like OpenClaw.
 
 - **Code does the numbers, the AI explains them.** Entry, stop, target and size are computed in advance; the AI argues why to buy and why to stay away.
 - **Discipline, written down in advance.** The plan is fixed while you are calm, then keeps you on it, falling markets included.
