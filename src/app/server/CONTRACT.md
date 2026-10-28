@@ -71,8 +71,10 @@ this document — neither imports the other.
     and pass.
   - **Lockout:** a wrong token (HTTP and WS alike) and a wrong or used sign-in code count toward
     the same per-peer lockout (5 failures → 30s backoff, doubling to 1h). A request with no
-    credentials or an unknown cookie is refused without counting. A valid token, code or session is
-    never refused by the lockout; a valid token or code also clears it, a session does not.
+    credentials or an unknown cookie is refused without counting. While the lockout holds, a token
+    or code is refused with `403 forbidden` before it is compared, right or wrong, and a code is
+    not spent. A session is never refused by the lockout; a valid token or code clears it, a session
+    does not.
 - **Opt-in:** off by default (`[api].enabled = false`). When off, no socket is bound and the daemon is
   byte-for-byte unchanged.
 - **Encoding:** JSON, `camelCase` keys, UTF-8. No snake_case on the wire. WS **text** frames are JSON
@@ -191,7 +193,7 @@ this document — neither imports the other.
 | POST | `/v1/trade/reconcile` | yes (`orders`) | — | `ReconcileOrdersResponse` (`orphanExits`: exits resting at a venue that no row tracks, listed and never cancelled; `unreadExitVenues`: venues whose exits could not be listed, so an empty `orphanExits` says nothing about them) | — |
 | DELETE | `/v1/trade/unmirrored/:token` | yes (`orders`) | — | `TradeActionResponse` | — |
 | POST | `/v1/session/code` | yes (token only) | — | `BrowserSignInCode` `{ code }`: a one-time code for `POST /v1/session`, good for `SIGN_IN_CODE_TTL_MS` (5 minutes); at most 16 wait at once, the oldest dropped first. A browser session is `unauthorized`: only the token mints codes | `session.code.json` |
-| POST | `/v1/session` | no | `BrowserSignInBody` `{ code }` | `BrowserSignInResult` `{ ok: true }` with the session cookie in `Set-Cookie`. A wrong, used or expired code is `unauthorized` and counts toward the lockout; a valid one clears it. At most 20 sessions are kept; a new one drops the least recently used | — |
+| POST | `/v1/session` | no | `BrowserSignInBody` `{ code }` | `BrowserSignInResult` `{ ok: true }` with the session cookie in `Set-Cookie`. A wrong, used or expired code is `unauthorized` and counts toward the lockout; a valid one clears it. While the lockout holds, any code is `forbidden` and stays unspent. At most 20 sessions are kept; a new one drops the least recently used | — |
 | POST | `/v1/session/logout` | yes | — | `BrowserSessionEndResult` `{ ended }` and a `Set-Cookie` that clears the cookie; the calling browser's session is removed and its sockets closed. `ended` is false for the token, which has no session | — |
 | GET | `/v1/sessions` | yes | — | `BrowserSessionList` (`sessions`: the signed-in browsers, last used first; `label` is "<browser>, <os>" from the User-Agent, `''` when neither is known; `current` marks the browser that asked) | `sessions.json` |
 | DELETE | `/v1/sessions/:id` | yes | — | `BrowserSessionEndResult` `{ ended }`: the session is removed and its sockets closed; false for an unknown id | — |
@@ -479,8 +481,8 @@ UTF-8 text.
    `tailscale serve` on the same machine presents a loopback peer, so this and the proxy check are
    what keep a remote caller out.
 6. `Authorization: Bearer <token>` only; the session cookie is never read. A missing token is
-   `401 unauthorized`; a wrong one is `401` and counts toward the shared lockout (§1), a locked
-   peer is `403 forbidden`.
+   `401 unauthorized`; a wrong one is `401` and counts toward the shared lockout (§1). While it
+   holds, any token is `403 forbidden` without being compared.
 7. The exec sockets have their own cap (separate from `/v1/ws`); over it → `503 too_many_streams`.
 
 A refusal after the upgrade closes with **4400** (`EXEC_REFUSED_CLOSE_CODE`) and one of these

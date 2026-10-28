@@ -499,8 +499,8 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # key values themselves (Settings > Providers, Exchanges, Tools) into the same file
 # `openalpha key set` writes.
 # Bearer token at <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with
-# `openalpha api token`, replace it with `openalpha api rotate` (it signs every browser out;
-# restart the daemon to retire the old token). `openalpha web` prints a one-time link that
+# `openalpha api token`, replace it with `openalpha api rotate` (it signs every browser out
+# and restarts a running daemon, which retires the old token). `openalpha web` prints a one-time link that
 # opens the office page, good for 5 minutes; `openalpha connect` prints the line the
 # desktop app pastes. Keep that line as private as the token.
 

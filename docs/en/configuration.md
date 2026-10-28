@@ -578,8 +578,8 @@ The token is the `token_env` variable if set, otherwise the file `auth/api/token
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32
 characters, the API stays closed (the saved token never stands in) and `start` warns while the rest of
 the daemon runs; a port already in use still stops the start. `openalpha api token` prints the token
-and `openalpha api rotate` replaces it; rotating signs every browser out, and the old token stops
-working after the daemon restarts. A browser never holds the token: `openalpha web` prints a
+and `openalpha api rotate` replaces it; rotating signs every browser out and restarts a running
+daemon, so the old token stops working at once. A browser never holds the token: `openalpha web` prints a
 one-time link that signs it in, and `openalpha connect` prints the line the desktop app pastes (see
 [Operations](operations.md#run-the-api-on-a-server)).
 

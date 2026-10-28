@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { z } from 'zod'
 
+import type { Credential } from '@/app/server/http/auth'
 import type {
   BrowserSessionEndResult,
   BrowserSessionList,
@@ -12,7 +13,7 @@ import type {
 } from '@/app/server/wire/sign-in'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { BrowserSessionRow } from '@/persistence/api'
-import { buildSecret, resolveAuthOutcome, toSecretHash } from '@/app/server/http/auth'
+import { buildSecret, isAuthLocked, resolveAuthOutcome, toSecretHash } from '@/app/server/http/auth'
 import {
   buildEndedSessionCookie,
   buildSessionCookie,
@@ -60,8 +61,8 @@ function handleCode(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   return Promise.resolve(json({ code: ctx.codes.issue(Date.now()) } satisfies BrowserSignInCode))
 }
 
-/** A wrong or used code counts toward the lockout like a wrong token; a valid one is never
- *  refused by it and clears it. */
+/** A wrong or used code counts toward the lockout like a wrong token; a valid one clears it. While
+ *  the lockout holds, the code is refused without being taken. */
 async function handleSignIn(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const parsed = SIGN_IN_BODY.safeParse(await readJsonBody(req, MAX_SIGN_IN_BODY_BYTES))
 
@@ -70,7 +71,7 @@ async function handleSignIn(req: Request, ctx: ApiRouteContext): Promise<Respons
   }
 
   const now = Date.now()
-  const credential = ctx.codes.take(parsed.data.code, now) ? 'valid' : 'wrong'
+  const credential = takeCodeCredential(ctx, parsed.data.code, now)
   const refusal = toAuthRefusal(resolveAuthOutcome(ctx.ip, credential, now))
 
   if (refusal !== null) {
@@ -94,6 +95,14 @@ async function handleSignIn(req: Request, ctx: ApiRouteContext): Promise<Respons
     json({ ok: true } satisfies BrowserSignInResult),
     buildSessionCookie(ctx.cookieName, secret, ctx.pageOrigin)
   )
+}
+
+function takeCodeCredential(ctx: ApiRouteContext, code: string, now: number): Credential {
+  if (isAuthLocked(ctx.ip, now)) {
+    return 'locked'
+  }
+
+  return ctx.codes.take(code, now) ? 'valid' : 'wrong'
 }
 
 async function handleLogout(_req: Request, ctx: ApiRouteContext): Promise<Response> {

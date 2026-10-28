@@ -10,6 +10,7 @@ import { askConfirm } from '@/web/ui/kit/confirm'
 import { CopyButton } from '@/web/ui/kit/copy-button'
 import { openModal } from '@/web/ui/kit/modal'
 import { Skeleton } from '@/web/ui/kit/skeleton'
+import { toSafeHref } from '@/web/ui/markdown/inline'
 import { buildServerCommand } from '@/web/ui/settings/credentials/credential-row'
 
 const AUTH_LOGIN_COMMAND = 'auth login'
@@ -145,19 +146,27 @@ function SignInBody({
     )
   }
 
+  return <DeviceCode code={current.code} url={current.url} />
+}
+
+function DeviceCode({ code, url }: { readonly code: string; readonly url: string }) {
+  const pageHref = toSafeHref(url)
+
   return (
     <>
-      <p>{tr('ui.office.chatgpt.code', { code: current.code, url: current.url })}</p>
+      <p>{tr('ui.office.chatgpt.code', { code, url })}</p>
       <div class="setting-actions">
-        <CopyButton text={current.code} label={tr('ui.office.credentials.copy')} />
-        <a
-          class="btn btn-secondary btn-small"
-          href={current.url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {tr('ui.office.chatgpt.openPage')}
-        </a>
+        <CopyButton text={code} label={tr('ui.office.credentials.copy')} />
+        {pageHref !== undefined && (
+          <a
+            class="btn btn-secondary btn-small"
+            href={pageHref}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {tr('ui.office.chatgpt.openPage')}
+          </a>
+        )}
       </div>
       <p class="meta">{tr('ui.office.chatgpt.waiting')}</p>
     </>

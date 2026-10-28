@@ -41,8 +41,26 @@ export async function restartRunningDaemon(
     return undefined
   }
 
-  const when: RestartBody['when'] = flags.now ? 'now' : 'idle'
-  const answer = await requestRestart(app.config.api.port, token.token, when)
+  return await restartDaemonWith(app, daemon, {
+    token: token.token,
+    when: flags.now ? 'now' : 'idle',
+  })
+}
+
+interface RestartAsk {
+  readonly token: string
+  readonly when: RestartBody['when']
+}
+
+/** Asks the running daemon, through the token it holds, to restart in place and waits for it to come
+ *  back. Undefined means it could not be asked: nothing listens, or it does not take this token. */
+export async function restartDaemonWith(
+  app: CliApp,
+  daemon: { readonly startedAt?: number },
+  ask: RestartAsk
+): Promise<number | undefined> {
+  const { token, when } = ask
+  const answer = await requestRestart(app.config.api.port, token, when)
 
   if (answer === undefined) {
     return undefined

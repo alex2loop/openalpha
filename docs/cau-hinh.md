@@ -576,7 +576,7 @@ Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
 không được dùng thay) và `start` in cảnh báo, phần còn lại của daemon vẫn chạy; cổng đã bị dùng thì
 `start` vẫn dừng. `openalpha api token` in mã ra và `openalpha api rotate` thay mã mới; xoay vòng sẽ đăng
-xuất mọi trình duyệt, và mã cũ chỉ hết dùng được sau khi daemon khởi động lại. Trình duyệt không bao giờ
+xuất mọi trình duyệt và khởi động lại daemon đang chạy, nên mã cũ hết dùng được ngay. Trình duyệt không bao giờ
 giữ mã này: `openalpha web` in một liên kết dùng một lần để đăng nhập, còn `openalpha connect` in dòng mà
 ứng dụng desktop dán vào (xem [Vận hành](van-hanh.md#chạy-api-trên-máy-chủ)).
 

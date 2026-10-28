@@ -395,8 +395,9 @@ Run the daemon on a server you own and point a client app at it.
    addressed to `127.0.0.1`, `localhost` or `[::1]` (any port, so a tunnel works as is), which stops a
    DNS-rebinding page. With `public_url` set, `openalpha web` prints the `https://` link instead of a
    tunnel. Every request through a proxy reaches the daemon from `127.0.0.1`, so five wrong tokens or
-   sign-in codes pause sign-ins for everyone for 30 seconds, doubling up to an hour. A right token or
-   code is never refused by that pause and clears it.
+   sign-in codes pause sign-ins for everyone for 30 seconds, doubling up to an hour. During that pause
+   every token and code is refused, right or wrong, so no guess is checked; a browser already signed
+   in carries on. Once it ends, a right token or code clears the count.
 6. **Connect the client.** Give the app the address and the token; every request carries the token
    as `Authorization: Bearer <token>`. At most 8 app streams (`/v1/ws`) are open at once; a ninth
    handshake is refused with 503 `too_many_streams`.
@@ -418,7 +419,7 @@ the server's IP address on the exchange, so a leaked key cannot move money out.
 
 **Upgrading.** If you ran Caddy with `header_up Host`, remove that line and set `public_url`: the
 proxy now passes the public name as it does by default. Everyone then runs `openalpha api rotate`
-once and restarts the daemon, so a token an older page saved in a browser stops working. After the
+once; it restarts the daemon, so a token an older page saved in a browser stops working. After the
 restart, `openalpha web` signs each browser in again.
 
 Once connected, the office page is shown what the daemon is doing as it happens: each answer and long command that is
@@ -491,7 +492,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
 - The link works once and expires after 5 minutes. A used or expired one shows a line asking you to run the command again, and a handful of wrong tries makes the daemon pause sign-ins for a moment.
 - A sign-in lasts 30 days from the last time you used it, and each visit renews it. The browser holds only a sign-in cookie that page scripts cannot read; the API token never reaches it.
 - Settings > Display, under "This page's connection", lists the browsers signed in, with when each signed in and was last seen, and a button to sign any of them out, this one included. A browser signed out this way is dropped from the page at once.
-- `openalpha api rotate` signs every browser out. Restart the daemon afterwards so the old token stops working too, then run `openalpha web` again.
+- `openalpha api rotate` signs every browser out and restarts the daemon, so the old token stops working too. Then run `openalpha web` again.
 - The page refuses to run inside a frame, and in the released binary it may talk only to the daemon that served it.
 - The daemon answers only an address on this machine (`127.0.0.1`, `localhost` or `[::1]`) or your `public_url`, refuses an API call another website starts, and opens the live stream only for the page it served, so another local web app cannot use it.
 - Safari before 16.4 does not send the header the daemon relies on, so the page says this browser blocks cookies for the address even though it does not. Update Safari.
