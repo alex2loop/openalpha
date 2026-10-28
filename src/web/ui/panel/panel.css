@@ -5,11 +5,12 @@
 }
 
 /* Info only: no stage, so the panel takes the main area, its content at a reading width and
-   centred, the chat docked beside; its glass shows the still office behind it. */
+   centred, the chat docked beside, ending above the command bar; its glass shows the still office
+   behind it. */
 .panel.is-reading {
-  flex: 1;
+  width: 100%;
   max-width: calc(var(--panelContentMaxW) + var(--s3) * 2);
-  margin-inline: auto;
+  margin: 0 auto var(--stageBottomH);
   border-inline: 1px solid var(--border);
 }
 

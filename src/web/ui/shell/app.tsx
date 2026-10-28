@@ -19,13 +19,13 @@ import { ReaderHost } from '@/web/ui/reader/reader'
 import { Header } from '@/web/ui/shell/header'
 import { OfflineBar } from '@/web/ui/shell/offline-bar'
 import { PaneBar } from '@/web/ui/shell/pane-bar'
-import { isStageShown, Panes } from '@/web/ui/shell/panes'
+import { isCommandBarFloating, Panes } from '@/web/ui/shell/panes'
 import { SignIn } from '@/web/ui/shell/sign-in'
 import { StatusLine } from '@/web/ui/shell/status-line'
 
 import './app.css'
 
-/** The page grid (header | pane bar when narrow | main | command bar unless the stage floats it),
+/** The page grid (header | pane bar when narrow | main | command bar unless it floats over main),
  *  behind the loading, failure and sign-in screens. A loaded session stays on screen when a later
  *  load fails. A chat tab is its chat pane and the command bar alone: no scene, panel or header
  *  mounts. */
@@ -69,13 +69,13 @@ export function App() {
       <Header />
       <PaneBar />
       <Panes />
-      <PageBottom hasCommandBar={!isStageShown.value} />
+      <PageBottom hasCommandBar={!isCommandBarFloating.value} />
     </div>
   )
 }
 
-// What every page keeps: the hosts that float over the panes, and the box to type in while no
-// stage shows to float it.
+// What every page keeps: the hosts that float over the panes, and the box to type in while it does
+// not float over them.
 function PageBottom({ hasCommandBar }: { readonly hasCommandBar: boolean }) {
   return (
     <>

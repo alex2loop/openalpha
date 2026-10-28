@@ -38,7 +38,9 @@
 }
 
 /* The panel floats over the stage on a wide screen and on a narrow screen's information pane: both
-   sit in the stage's cell, the chat docked beside. */
+   sit in the stage's cell, the chat docked beside, and so does the floating command bar, at its foot.
+   Info only keeps the cell without the stage. The cell names its end lines: an absolute item's auto
+   end would run to the page's edge, under the chat. */
 .panes.is-overlay,
 :root:not([data-layout="wide"]) .panes[data-pane="info"] {
   display: grid;
@@ -46,9 +48,9 @@
   grid-template-rows: minmax(0, 1fr);
 }
 
-.panes.is-overlay > :is(.stage, .panel, .panel-rail),
+.panes.is-overlay > :is(.stage, .panel, .panel-rail, .command-bar),
 :root:not([data-layout="wide"]) .panes[data-pane="info"] > :is(.stage, .panel) {
-  grid-area: 1 / 1;
+  grid-area: 1 / 1 / 2 / 2;
 }
 
 /* The floating panel keeps the stage's right edge, so the zoom dock stands left of it; the panel
@@ -59,7 +61,7 @@
 }
 
 /* The stage stays mounted when hidden, so the scene keeps its state across pane switches. */
-:root:not([data-layout="wide"]) .panes[data-pane="office"] > :not(.stage),
+:root:not([data-layout="wide"]) .panes[data-pane="office"] > :not(.stage, .command-bar),
 :root:not([data-layout="wide"]) .panes[data-pane="info"] > :not(.stage, .panel),
 :root:not([data-layout="wide"]) .panes[data-pane="chat"] > :not(.chat-panel) {
   display: none;
