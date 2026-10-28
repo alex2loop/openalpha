@@ -252,7 +252,7 @@ Mặc định ([core/config/resolvers/runtime.ts](../../src/core/config/resolver
   chung một router, và một lần từ chối từ phía trên không được tắt luôn các mục dự phòng phía sau. Chỉ thông tin đăng nhập
   và thanh toán mới trải lên mọi mô hình sau một nhà cung cấp.
 - Endpoint nào từ chối một trường suy luận hay hợp đồng đầu ra thì được thử thêm một lần không có trường đó
-  (`ai.reasoning_rejected`, `ai.output_contract_rejected`). Cả hai chỉ là phần tối ưu, lượt chạy vẫn đi tiếp được; lần thử
+  (`ai.reasoning_rejected`, `ai.output_contract_rejected`). Cả hai chỉ là phần tối ưu, phiên chạy vẫn đi tiếp được; lần thử
   bị từ chối vẫn tính tiền.
 - Cho nghỉ đánh dấu một mục là không dùng được cho cả lượt kế tiếp, nên chỉ tín hiệu khả dụng thật mới làm điều đó
   (`transient`, `rate`, `timeout` - `ENTRY_COOLDOWN_CODES`). `empty_response` và `output_budget_exhausted` nói về đầu ra của
@@ -308,7 +308,7 @@ ghi vào `llm_attempts`, và đó là thứ khiến sổ chi phí chính xác.
 
 Một phiên chạy chờ tối đa 5 giây cho bảng giá của OpenRouter trước lượt đầu tiên
 ([ai/openrouter-feed.ts](../../src/ai/openrouter-feed.ts)). Bảng giá được tải khi thứ có thể gọi mô hình lần đầu
-dựng chuỗi (`llmChains`, gắn trong `ai/services.ts`) hoặc một lượt chạy lần đầu chờ `pricing.ready()`, chứ không
+dựng chuỗi (`llmChains`, gắn trong `ai/services.ts`) hoặc một phiên chạy lần đầu chờ `pricing.ready()`, chứ không
 phải lúc dựng bảng giá, nên lệnh không gọi mô hình thì không phải chờ nó. Vì vậy cảnh báo mô hình lạ
 (`pricing.unknown_model`) chạy sau lần tải đầu, không phải lúc boot.
 

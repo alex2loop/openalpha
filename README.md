@@ -47,9 +47,9 @@ Gõ `/suggest FPT`, nhận về một kế hoạch: mua ở đâu, cắt lỗ �
   <img src="assets/readme/demo.vi.gif" alt="Gõ /suggest và nhận về kế hoạch: giá vào, cắt lỗ, chốt lời, khối lượng, cách quản lý vị thế" width="100%" />
 </p>
 
-### Một lần chạy thật
+### Một phiên chạy thật
 
-Ngoài kế hoạch, mỗi đề xuất còn cho biết lý do nên mua, lý do nên chờ, và điều gì sẽ chứng minh nó sai. Đây là một lần chạy thật, đã rút gọn, che mã và giá:
+Ngoài kế hoạch, mỗi đề xuất còn cho biết lý do nên mua, lý do nên chờ, và điều gì sẽ chứng minh nó sai. Đây là một phiên chạy thật, đã rút gọn, che mã và giá:
 
 ```
 Bạn:  /suggest XXX
@@ -213,7 +213,7 @@ Vài điều dùng được cho mọi thị trường:
 - **Rút tiền về:** gõ `/record withdrawal` kèm nơi giữ, số tiền, tiền tệ và ngày, ví dụ `/record withdrawal vps 1000000 VND 2026-08-21`. Ngày luôn viết theo kiểu năm-tháng-ngày.
 - **Lỡ ghi nhầm?** Gõ `/transactions` để thấy mã của từng dòng. Sửa bằng `/update <mã bút toán> ...`. Muốn xóa thì gõ `/delete <mã bút toán>` để xem lại cho chắc, rồi `/delete <mã bút toán> confirm`.
 - **Cổ tức, chia tách, chuyển tiền giữa hai nơi:** gõ riêng `/record`, trợ lý sẽ liệt kê đủ các kiểu ghi và cách viết từng kiểu.
-- **Vừa sửa `config.toml`** (ví dụ thêm công ty chứng khoán hay tiệm vàng)? Gõ `/exit` để thoát rồi mở lại `openalpha chat` là xong. Nếu OpenAlpha đang chạy nền thì gõ thêm `openalpha restart --background`.
+- **Vừa sửa `config.toml`** (ví dụ thêm công ty chứng khoán hay tiệm vàng)? Gõ `/exit` để thoát rồi mở lại `openalpha chat` là xong. Nếu OpenAlpha đang chạy nền thì chạy `openalpha restart` thay vào đó: nó giữ thiết lập cũ cho tới khi khởi động lại, và khi `[api]` bật thì chat chạy ngay bên trong nó.
 
 **5. Bật bản tin sáng (không bắt buộc).** Gõ `/exit` để thoát chat, rồi chạy `openalpha start --background` để chương trình chạy nền (dữ liệu cũng tự nạp từ đó); `openalpha autostart enable` để nó tự chạy mỗi lần đăng nhập. Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/brief enable 08:00` trong kênh đó. `openalpha status` cho biết nó còn chạy không, `openalpha stop` để dừng. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
 
@@ -408,7 +408,7 @@ openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, openco
 <details>
 <summary><b>Trang văn phòng và ứng dụng của riêng bạn (API)</b></summary>
 
-Đặt `[api] enabled = true` thì dịch vụ nền (daemon) mở một API HTTP và WebSocket cục bộ trên `127.0.0.1`, có mã truy cập. Ứng dụng khách nhận được sổ giao dịch, giá, đề xuất và chat của bạn, cùng một luồng trực tiếp về những gì dịch vụ nền đang chạy: từng phiên chạy và các bước của nó, phê duyệt và câu hỏi đang chờ trên mọi kênh, các lần khớp lệnh và lúc chạm hạn mức chi tiêu. Cùng địa chỉ đó phục vụ trang văn phòng: một văn phòng nhỏ nơi trợ lý, nhóm nghiên cứu và các agent của bạn làm việc cùng lúc với dịch vụ nền, kèm danh mục, đề xuất, khung chat và ô câu lệnh bên cạnh. Chạy `openalpha web` để lấy liên kết dùng một lần đăng nhập trình duyệt của bạn; ứng dụng desktop dùng dòng mà `openalpha connect` in ra. Trang chỉ cho bạn xem, không quyết định thay bạn: không đặt lệnh và không tự khởi động phiên chạy AI nào. Cách bật và cách nối từ máy khác: [docs/van-hanh.md](docs/van-hanh.md#chạy-api-trên-máy-chủ). Trang cho thấy gì và dùng thế nào: [docs/van-hanh.md](docs/van-hanh.md#trang-văn-phòng)
+Đặt `[api] enabled = true` thì dịch vụ nền (daemon) mở một API HTTP và WebSocket cục bộ trên `127.0.0.1`, có mã truy cập. Ứng dụng khách nhận được sổ giao dịch, giá, đề xuất và chat của bạn, cùng một luồng trực tiếp về những gì dịch vụ nền đang chạy: từng phiên chạy và các bước của nó, phê duyệt và câu hỏi đang chờ trên mọi kênh, các lần khớp lệnh và lúc chạm hạn mức chi tiêu. Cùng địa chỉ đó phục vụ trang văn phòng: một văn phòng nhỏ nơi trợ lý, nhóm nghiên cứu và các agent của bạn làm việc cùng lúc với dịch vụ nền, kèm danh mục, đề xuất, khung chat và ô câu lệnh bên cạnh. Chạy `openalpha web` để lấy liên kết dùng một lần đăng nhập trình duyệt của bạn; ứng dụng desktop dùng địa chỉ và token mà `openalpha connect` in ra. Trang chỉ cho bạn xem, không quyết định thay bạn: không đặt lệnh và không tự khởi động phiên chạy AI nào. Cách bật và cách nối từ máy khác: [docs/van-hanh.md](docs/van-hanh.md#chạy-api-trên-máy-chủ). Trang cho thấy gì và dùng thế nào: [docs/van-hanh.md](docs/van-hanh.md#trang-văn-phòng)
 
 </details>
 

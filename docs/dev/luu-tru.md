@@ -203,7 +203,7 @@ kết nối với câu xóa.
 `core/session-queue.ts` tuần tự hóa việc theo từng cuộc trò chuyện trên một đuôi promise với
 `MAX_QUEUE_DEPTH` = 10; vượt mức đó thì người gọi nhận `RunHalted('queue_full')`. Một lần đổi tuyến
 (`/new`) đi qua rào chắn tuyến với một thế hệ (generation) riêng cho mỗi tuyến: nó chờ các lease đang
-giữ, vô hiệu hóa việc đã xếp hàng, cập nhật tuyến đã lưu, rồi mới nhận việc cho thế hệ mới, nên một tin
+giữ, vô hiệu hóa việc đã xếp hàng, bỏ tuyến đã lưu, rồi mới nhận việc cho thế hệ mới, nên một tin
 nhắn nhận cho cuộc trò chuyện cũ không chạy nhầm dưới tuyến mới.
 
 ### Khâu nén và khôi phục danh sách việc

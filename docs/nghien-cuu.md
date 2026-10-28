@@ -41,7 +41,7 @@ tự.
 Chạy `thorough` ở tầng gốc **cần** một người duyệt kế hoạch tương tác. Không có người duyệt thì nó bị
 hủy trước khi tốn đồng nào, thay vì chạy mức đắt nhất mà không ai soát.
 
-### Một lần chạy thật
+### Một phiên chạy thật
 
 Một lần `quick` thật, đã rút gọn. Không tìm được số 8 tháng thì báo cáo nói chưa có và đưa số gần nhất, kèm cờ ⚠️ cho những nhận định chưa đủ nguồn:
 
@@ -159,11 +159,11 @@ Reviewer chỉ duyệt khi mọi chiều điểm đạt từ 0,4 trở lên, đi
 
 ### Trên trang văn phòng
 
-Gửi `/research <câu hỏi>` từ ô câu lệnh của [trang văn phòng](van-hanh.md#trang-văn-phòng) thì khung chat liệt kê các bước của lần chạy ngay khi chúng diễn ra. Nút Dừng hỏi lại trước, nhắc rằng phần AI đã dùng vẫn tính vào hạn mức hôm nay, và dừng luôn các agent con của nó. Câu trả lời cuối cùng chính là báo cáo: mỗi số chú thích nhảy tới nguồn được đánh số ngay dưới câu trả lời đó, và hai câu trả lời nghiên cứu trong cùng một cuộc trò chuyện giữ số của riêng mình. Khi lần chạy đã có trong danh sách, "Mở dạng báo cáo" mở đúng câu trả lời của lần chạy đó trong trình đọc, dù sau đó trong chat có nói gì thêm, và thẻ Đề xuất giữ nó cùng các kết quả nghiên cứu khác. Lần chạy bị dừng hoặc thất bại thì hiện câu của dịch vụ nền (daemon) ở chỗ các bước.
+Gửi `/research <câu hỏi>` từ ô câu lệnh của [trang văn phòng](van-hanh.md#trang-văn-phòng) thì khung chat liệt kê các bước của phiên chạy ngay khi chúng diễn ra. Nút Dừng hỏi lại trước, nhắc rằng phần AI đã dùng vẫn tính vào hạn mức hôm nay, và dừng luôn các agent con của nó. Câu trả lời cuối cùng chính là báo cáo: mỗi số chú thích nhảy tới nguồn được đánh số ngay dưới câu trả lời đó, và hai câu trả lời nghiên cứu trong cùng một cuộc trò chuyện giữ số của riêng mình. Khi phiên chạy đã có trong danh sách, "Mở dạng báo cáo" mở đúng câu trả lời của phiên chạy đó trong trình đọc, dù sau đó trong chat có nói gì thêm, và thẻ Đề xuất giữ nó cùng các kết quả nghiên cứu khác. Phiên chạy bị dừng hoặc thất bại thì hiện câu của dịch vụ nền (daemon) ở chỗ các bước.
 
 ## Khi nghiên cứu thất bại
 
-Một lần chạy hỏng với `insufficient_evidence` khi không trích đoạn nào được nhận, khi không gì sống sót
+Một phiên chạy hỏng với `insufficient_evidence` khi không trích đoạn nào được nhận, khi không gì sống sót
 qua các phép kiểm, khi không gì rơi vào mục `answer`, hoặc khi câu trả lời không vừa trong 128 KiB. Đây là
 một lần **cố ý từ chối trả lời**, không phải câu trả lời kém chất lượng.
 
@@ -172,7 +172,7 @@ Các lỗi khác cho biết khâu nào đã hỏng:
 | Mã | Ý nghĩa |
 | --- | --- |
 | `aborted` | Bạn đã hủy |
-| `budget_exhausted` | Ngân sách chi phí của lần chạy đã cạn |
+| `budget_exhausted` | Ngân sách chi phí của phiên chạy đã cạn |
 | `capacity_exhausted` | Không còn suất gọi ủy quyền nào cho phần việc cần làm |
 | `planner_failed` | Không có kế hoạch nghiên cứu dùng được |
 | `crawler_failed` | Khâu thu bằng chứng hỏng |
@@ -201,7 +201,7 @@ Các giới hạn dưới đây cố định; không có mục `[research]` tron
 | --- | --- |
 | Số câu hỏi | 7 |
 | Từ khóa tìm kiếm mỗi câu hỏi | 3 |
-| Truy vấn tìm kiếm mỗi lần chạy | 42 |
+| Truy vấn tìm kiếm mỗi phiên chạy | 42 |
 | Số vòng soát | 2 |
 | Điểm duyệt (điểm tổng hợp) | 0,7 |
 | Cỡ mỗi trích đoạn | 4.000 ký tự, cắt ở ranh giới câu |
@@ -238,7 +238,7 @@ Khâu tải trang có nhiều lớp bảo vệ:
 **OpenAlpha không đọc và không tuân theo `robots.txt`.** Trang nào bạn không muốn tải thì phải loại bằng
 cách khác.
 
-Một số trần cứng áp cho mỗi lần chạy, dù cấu hình thế nào: 8 nguồn thu được mỗi câu hỏi, 8 luận điểm mỗi
+Một số trần cứng áp cho mỗi phiên chạy, dù cấu hình thế nào: 8 nguồn thu được mỗi câu hỏi, 8 luận điểm mỗi
 câu hỏi, 3 nguồn mỗi luận điểm, 8 mục trong mỗi mục báo cáo, 12 khoảng trống, 6 vấn đề soát, 64 lần
 truy hồi. Một lần đọc trang dừng ở 1 MiB trước khi rút trích (trang dài hơn bị cắt, không bị từ chối),
 đoạn trích tìm kiếm 400 ký tự, thông báo lỗi 500 ký tự.

@@ -450,8 +450,8 @@ changes the per-chat binding, which survives restarts:
 /agent default         # return to the channel's configured default
 ```
 
-Changing a binding cancels the old session's queued and active work and opens a fresh session for the new agent,
-so a mid-conversation switch never leaves an orphaned run billing your budget.
+Changing a binding cancels the old session's queued and active work, and the next message opens a fresh session
+with the new agent, so a mid-conversation switch never leaves an orphaned run billing your budget.
 
 ### Where plugin agents fit
 

@@ -30,7 +30,7 @@ Không trang nào cần đọc code.
 | [nguon-du-lieu.md](nguon-du-lieu.md) | Nguồn nào trả lời việc gì, cần khóa nào, khi một nguồn lỗi thì sao |
 | [tro-ly.md](tro-ly.md) | Viết một agent, ghép đội, kỹ năng, chọn mô hình |
 | [an-toan.md](an-toan.md) | Phê duyệt, các lớp bảo vệ bạn, các lỗi bạn có thể gặp |
-| [ngan-sach.md](ngan-sach.md) | Hạn mức chi tiêu và xem một lượt chạy tốn bao nhiêu |
+| [ngan-sach.md](ngan-sach.md) | Hạn mức chi tiêu và xem một phiên chạy tốn bao nhiêu |
 | [van-hanh.md](van-hanh.md) | Vòng lặp nền, lịch chạy, heartbeat, chạy API trên máy chủ, trang văn phòng |
 | [luu-tru.md](luu-tru.md) | SQLite hay Postgres, sao lưu, xuất nhập, phiên và lịch sử |
 | [kenh.md](kenh.md) | Telegram và Zalo |

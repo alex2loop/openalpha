@@ -348,8 +348,9 @@ session and loads the stored transcript and usage totals, including after a rest
 Channels route by channel, chat and user. The first accepted message creates a route; later messages
 reuse it.
 
-- `/new` switches the route to a fresh session in one step, so queued work from the old conversation
-  cannot leak into the new one.
+- `/new` drops the chat's route in one step, so queued work from the old conversation cannot leak
+  into the new one. The next message opens the new session, so a chat that goes quiet leaves no
+  empty session behind.
 - `/continue` keeps the current session and sends one short nudge as the next turn, so a run that
   stopped early picks up where it left off without you retyping the request.
 
@@ -407,7 +408,7 @@ Only one run changes a session at a time. Later messages wait in a queue of at m
 tasks; excess work fails with `queue_full` instead of letting memory grow. A failed task does not
 affect the next one.
 
-`/new` and other route changes wait for in-flight work to settle, cancel the queued work, update the
+`/new` and other route changes wait for in-flight work to settle, cancel the queued work, drop the old
 route, and then accept work for the new session. A message accepted for the old session cannot run
 under the new route.
 

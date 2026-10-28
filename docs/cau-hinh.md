@@ -277,8 +277,8 @@ Mọi khóa đều tùy chọn. `[locale]` không nhận khóa nào khác. `curr
 không có gì đọc nó: sửa ở đó không đổi gì, và hồ sơ mà ứng dụng hiện ra báo đúng khóa này.
 
 Phần chữ do mô hình viết, như luận điểm của một đề xuất hay phần đọc một chủ đề, giữ nguyên ngôn
-ngữ của lần chạy đã viết ra nó. Đổi `language`, hoặc nhắn bot bằng ngôn ngữ khác, chỉ đổi phần nhãn
-xung quanh chứ không đổi phần chữ đã lưu; lần chạy sau sẽ viết bằng ngôn ngữ mới.
+ngữ của phiên chạy đã viết ra nó. Đổi `language`, hoặc nhắn bot bằng ngôn ngữ khác, chỉ đổi phần nhãn
+xung quanh chứ không đổi phần chữ đã lưu; phiên chạy sau sẽ viết bằng ngôn ngữ mới.
 
 ### `[paths]`
 
@@ -354,7 +354,7 @@ vào cấu hình bạn xem.
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, lượt chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ, và lịch sử mà ứng dụng đọc: các phiên chạy đã xong sau danh sách hoạt động, và thông báo trong chuông, đã đọc hay chưa. |
+| `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, phiên chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ, và lịch sử mà ứng dụng đọc: các phiên chạy đã xong sau danh sách hoạt động, và thông báo trong chuông, đã đọc hay chưa. |
 | `history_days` | số nguyên | `1095` | Số dương, không nhỏ hơn `days` (đặt nhỏ hơn thì cấu hình bị từ chối khi nạp; bỏ trống thì không bao giờ dưới `days`). Giữ bao lâu kết quả theo dõi: gợi ý đã chấm và lệnh giữ (mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động, gợi ý chưa chấm thì không bao giờ bị xóa), dòng factor log và kết quả chủ đề đã chốt, ảnh chụp NAV, điểm số liệu vĩ mô cùng nguồn của chúng. Tài liệu vĩ mô được giữ ít nhất 800 ngày, để bộ trích xuất không phải trả tiền đọc lại một tháng. |
 | `inbox_days` | số nguyên | `7` | Số dương. Giữ bao lâu các mục inbox đã xong và đã hỏng, gồm cả nội dung. |
 | `daily_backups` | số nguyên | `3` | Từ `0`. Giữ bao nhiêu bản sao lưu SQLite hằng ngày trong `backups/daily/`; `0` là tắt. PostgreSQL bị bỏ qua (dùng `pg_dump`). |
@@ -482,7 +482,7 @@ chẳng được gì.
 | `max_parallel_delegations` | số nguyên | `5` | Số mục agent con tối đa một lời gọi `delegate_parallel` nhận. |
 | `max_spawn_duration_ms` | số nguyên | `600000` | 10 phút: thời gian một agent con do `spawn` tạo làm việc trước khi bị dừng; phần đã đọc được trả về và đánh dấu là một phần. Tối đa 2147483647. |
 | `max_spawn_turns` | số nguyên | `12` | Số lượt mô hình mỗi agent con do `spawn` tạo có. |
-| `max_unasked_fetches` | số nguyên | `10` | Số lần gọi `web_fetch` trong một lần chạy, kể cả lần đã hỏi, trước khi mọi lần sau đều hỏi bạn. `0` là lần nào cũng hỏi. |
+| `max_unasked_fetches` | số nguyên | `10` | Số lần gọi `web_fetch` trong một phiên chạy, kể cả lần đã hỏi, trước khi mọi lần sau đều hỏi bạn. `0` là lần nào cũng hỏi. |
 
 Việc nén phiên là cố định: một phiên được nén khi quá 500 tin nhắn hoặc khi đầy 75% cửa sổ ngữ cảnh,
 tối đa 3 lần mỗi phiên chạy.
@@ -572,12 +572,12 @@ kênh chỉ đổi được trên máy chủ: bằng câu lệnh hoặc trong fi
 Khi đó trang cũng không lưu khóa nào và không bắt đầu đăng nhập ChatGPT: hãy dùng `openalpha key set` và
 `openalpha auth login chatgpt` trên máy chủ.
 
-Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở lần chạy đầu, quyền
+Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở phiên chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
 không được dùng thay) và `start` in cảnh báo, phần còn lại của dịch vụ nền vẫn chạy; cổng đã bị dùng thì
 `start` vẫn dừng. `openalpha api token` in mã ra và `openalpha api rotate` thay mã mới; xoay vòng sẽ đăng
 xuất mọi trình duyệt và khởi động lại dịch vụ nền đang chạy, nên mã cũ hết dùng được ngay. Trình duyệt không bao giờ
-giữ mã này: `openalpha web` in một liên kết dùng một lần để đăng nhập, còn `openalpha connect` in dòng mà
+giữ mã này: `openalpha web` in một liên kết dùng một lần để đăng nhập, còn `openalpha connect` in địa chỉ và token mà
 ứng dụng desktop dán vào (xem [Vận hành](van-hanh.md#chạy-api-trên-máy-chủ)).
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
@@ -971,7 +971,7 @@ API cũng dùng đúng các bước đó. Giá trị cấu hình nêu tên thị
 ký cũng lỗi ngay ở đây, không đợi tới lần dùng đầu tiên. Khóa chưa đặt của một mô hình mà chuỗi của nó vẫn còn
 mô hình khác trả lời được chỉ là cảnh báo, không làm lệnh thất bại.
 
-Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa. Một lần chạy liệt
+Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa. Một phiên chạy liệt
 kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằng một con số), nên bạn sửa một lượt rồi mới
 chạy lại. Khóa gõ sai thì được gợi ý tên gần nhất, ví dụ `max_daly_usd` gợi ý `max_daily_usd`. `config
 validate` cũng đối chiếu tên nhà cung cấp trong `[[models]]` với danh mục, và báo biến môi trường của
