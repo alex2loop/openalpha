@@ -1,8 +1,11 @@
+import { useEffect } from 'preact/hooks'
+
 import type { ScreenResponse } from '@/app/server/wire/market'
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { runCommand } from '@/web/state/command'
+import { onWireEvent } from '@/web/state/events'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
@@ -55,6 +58,9 @@ function Board({ market }: { readonly market: string }) {
   const calls = useBlock(ROUTES.suggestions, {
     query: { status: 'all', limit: DAY_CALLS_READ },
   })
+
+  // A finished run may have stored a call, which turns its row's button into a fresh analysis.
+  useEffect(() => onWireEvent('run_finished', calls.retry), [])
 
   return (
     <BlockFrame

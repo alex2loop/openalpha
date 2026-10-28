@@ -1,7 +1,10 @@
+import { useEffect } from 'preact/hooks'
+
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
+import { onWireEvent } from '@/web/state/events'
 import { CardActions } from '@/web/ui/ticker/actions'
 import { CardAlerts } from '@/web/ui/ticker/alerts'
 import { EventsBlock } from '@/web/ui/ticker/events'
@@ -24,6 +27,9 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
     capability: ROUTES.suggestions.capability,
   })
   const standing: SuggestionWire | undefined = plan.data?.plan
+
+  // A finished run may have stored or closed the plan this card shows.
+  useEffect(() => onWireEvent('run_finished', plan.retry), [])
 
   return (
     <>

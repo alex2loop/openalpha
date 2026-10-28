@@ -209,8 +209,6 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   return new Set(rows.map((row) => row.name))
 }
 
-/** The flag is the only thing the migration adds; rolling back leaves the transcript's table without
- *  it. */
 /** Every dropped column and index comes back, so the previous release writes its rows unchanged. */
 async function assertDroppedColumnsRollback(db: Storage): Promise<void> {
   for (const [table, column] of DROPPED_COLUMNS) {
@@ -238,6 +236,8 @@ async function assertDroppedColumnsRollback(db: Storage): Promise<void> {
   )
 }
 
+/** The flag is the only thing the migration adds; rolling back leaves the transcript's table without
+ *  it. */
 async function assertDisplayOnlyRollback(db: Storage): Promise<void> {
   assertState(
     await hasColumn(db, SESSION_MESSAGES_TABLE, 'display_only'),
