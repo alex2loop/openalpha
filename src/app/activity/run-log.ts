@@ -184,7 +184,6 @@ function toAgentStart(e: BusEventMap['run_started']): OpenRun {
     ...(e.title === undefined ? {} : { title: e.title }),
     agentId: e.agentId,
     channel: e.channel,
-    ...(e.chatId === undefined ? {} : { chatId: e.chatId }),
     sessionId: e.sessionId,
     ...(e.parentRunId === undefined ? {} : { parentRunId: e.parentRunId }),
     startedAt: e.startedAt,
@@ -197,7 +196,6 @@ function toCommandStart(e: BusEventMap['command_started']): OpenRun {
     kind: 'command',
     name: e.name,
     channel: e.channel,
-    chatId: e.chatId,
     sessionId: e.sessionId,
     startedAt: e.startedAt,
   }

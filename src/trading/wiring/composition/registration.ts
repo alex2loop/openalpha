@@ -152,7 +152,6 @@ export function createTradingStoresProvider(config: TradingConfig): ServiceProvi
           dialect: app.resolve('dialect'),
           logger: app.resolve('logger'),
           maximumEntries: config.maximumLedgerEntries,
-          locale: app.config.locale.language,
         })
       )
     },

@@ -22,6 +22,19 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const DROPPED_COLUMNS_MIGRATION_ID = '2026_10_28_234503_drop_unused_columns'
+const DROPPED_COLUMNS: readonly (readonly [table: string, column: string])[] = [
+  ['memory_kv', 'source'],
+  ['memory_kv', 'run_id'],
+  ['memory_kv', 'version'],
+  ['memory_kv', 'last_accessed_at'],
+  ['notices', 'weight'],
+  ['notices', 'wake'],
+  ['notices', 'run_id'],
+  ['runs', 'chat_id'],
+  ['trading_profiles', 'preferred_locale'],
+]
+const DROPPED_INDEXES = ['idx_memory_user_accessed', 'idx_memory_run'] as const
 const DISPLAY_ONLY_MIGRATION_ID = '2026_10_28_223300_add_session_messages_display_only'
 const SESSION_MESSAGES_TABLE = 'session_messages'
 const RUNS_ENRICHMENT_MIGRATION_ID = '2026_10_27_080926_add_runs_tickers_questions'
@@ -198,6 +211,33 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
 
 /** The flag is the only thing the migration adds; rolling back leaves the transcript's table without
  *  it. */
+/** Every dropped column and index comes back, so the previous release writes its rows unchanged. */
+async function assertDroppedColumnsRollback(db: Storage): Promise<void> {
+  for (const [table, column] of DROPPED_COLUMNS) {
+    assertState(
+      !(await hasColumn(db, table, column)),
+      `unused-column migration kept ${table}.${column}`
+    )
+  }
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: DROPPED_COLUMNS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+  const indexes = await indexNames(db)
+
+  assertState(rolledBack.kind === 'rolled_back', 'unused-column rollback did not complete')
+
+  for (const [table, column] of DROPPED_COLUMNS) {
+    assertState(await hasColumn(db, table, column), `unused-column rollback lost ${table}.${column}`)
+  }
+
+  assertState(
+    DROPPED_INDEXES.every((name) => indexes.has(name)),
+    'unused-column rollback did not restore an index'
+  )
+}
+
 async function assertDisplayOnlyRollback(db: Storage): Promise<void> {
   assertState(
     await hasColumn(db, SESSION_MESSAGES_TABLE, 'display_only'),
@@ -420,6 +460,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertDroppedColumnsRollback(db)
     await assertDisplayOnlyRollback(db)
     await assertRunsEnrichmentRollback(db)
     await assertBrowserSessionsRollback(db)

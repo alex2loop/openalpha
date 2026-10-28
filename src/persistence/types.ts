@@ -247,7 +247,6 @@ export interface RunLogRow {
   readonly summary?: string
   readonly agentId?: AgentId
   readonly channel?: ChannelId
-  readonly chatId?: string
   readonly sessionId?: SessionId
   readonly parentRunId?: RunId
   /** The admitted sources a research run ended with. */
@@ -299,9 +298,6 @@ export interface RunLogStore {
 export interface NoticeRow {
   readonly id: string
   readonly kind: string
-  readonly weight: string
-  readonly wake: boolean
-  readonly runId?: string
   readonly deliveredTo: readonly string[]
   readonly event: string
   readonly createdAt: number
