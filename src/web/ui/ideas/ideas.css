@@ -1,0 +1,164 @@
+.ideas-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.idea {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.idea:first-child {
+  border-top: 0;
+}
+
+.idea-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s1);
+}
+
+.idea-fresh {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--sunken);
+  color: var(--ink2);
+  font: var(--typeCaptionStrong);
+}
+
+.idea-toggle {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  gap: var(--s1);
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.idea-action {
+  font-weight: var(--weightSemibold);
+}
+
+.idea-action.is-buy {
+  color: var(--up);
+}
+
+.idea-action.is-reduce {
+  color: var(--down);
+}
+
+.idea-action.is-hold {
+  color: var(--ink2);
+  font-weight: var(--weightRegular);
+}
+
+.idea-conviction {
+  color: var(--ink3);
+  font-size: var(--sizeBody);
+}
+
+.idea-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.idea-body > .md {
+  align-self: stretch;
+}
+
+.claims {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.claims s {
+  color: var(--ink3);
+}
+
+.research-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--s1);
+  width: 100%;
+  padding: 7px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: none;
+  text-align: left;
+}
+
+button.research-row {
+  cursor: pointer;
+}
+
+.research-row:first-of-type {
+  border-top: 0;
+}
+
+.opportunity {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+}
+
+.opportunity:first-of-type {
+  border-top: 0;
+}
+
+.opportunity-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.opportunity-line {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: var(--weightMedium);
+  text-align: left;
+  cursor: pointer;
+}
+
+.opportunity-evidence {
+  margin-top: 2px;
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+}
+
+.funnel {
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+}
+
+.record-closed {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s1);
+  padding: var(--s1) 0;
+  border-top: 1px solid var(--border);
+}
+
+.record-model {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--s1);
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.opportunity-ask {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}

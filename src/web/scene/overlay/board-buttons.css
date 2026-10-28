@@ -1,0 +1,73 @@
+.board-buttons {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.board-line {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  transform: translateY(-100%);
+  pointer-events: auto;
+}
+
+/* A paper note, the mockup's yellow cork style, pinned by its top edge: the day's digest, the new
+   calls. */
+.board-note {
+  --note-paper: #fff7c2;
+  --note-ink: #1b1b29;
+  --note-edge: #2b2433;
+  --note-drop: rgba(43, 36, 51, 0.35);
+
+  padding: 2px 7px;
+  border: 2px solid var(--note-edge);
+  color: var(--note-ink);
+  background: var(--note-paper);
+  box-shadow: 0 2px 0 var(--note-drop);
+  font-weight: 700;
+  transform: none;
+}
+
+button.board-line {
+  cursor: pointer;
+}
+
+.board-odometer {
+  font-variant-numeric: tabular-nums;
+}
+
+.board-rings {
+  animation: board-rings 0.8s ease-out 3;
+}
+
+@keyframes board-rings {
+  from {
+    box-shadow: 0 0 0 0 var(--tc-green);
+  }
+
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-rings {
+    animation: none;
+  }
+}
+
+.digest-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

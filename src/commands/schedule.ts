@@ -1,4 +1,5 @@
 import type {
+  CommandMessage,
   CommandMessageKey,
   SlashCommand,
   SlashContext,
@@ -6,6 +7,7 @@ import type {
 } from '@/core/types/command'
 import type { Job, JobOwner, SchedulerRunNowInput } from '@/scheduler/api'
 
+const USAGE: CommandMessage = { key: 'slash.scheduleUsage' }
 const MESSAGE_KEYS: readonly CommandMessageKey[] = [
   'slash.scheduleActionFail',
   'slash.scheduleAmbiguous',
@@ -19,6 +21,7 @@ const MESSAGE_KEYS: readonly CommandMessageKey[] = [
   'slash.scheduleRunDone',
   'slash.scheduleRunRejected',
   'slash.scheduleTitle',
+  USAGE.key,
 ]
 
 const SCHEDULE_VERBS = Object.freeze(['show', 'pause', 'resume', 'run', 'remove'] as const)
@@ -46,6 +49,7 @@ const COSTLY_POLICY = {
   cooldownMs: MUTATION_COOLDOWN_MS,
   idempotencyKey: (ctx: SlashContext) => ctx.requestId,
   execution: { progressKey: 'slash.scheduleProgress' } as const,
+  selfContained: true as const,
 }
 
 type ScheduleOperation =
@@ -72,12 +76,14 @@ type SchedulerCommandResult =
   | { readonly kind: 'ambiguous' }
   | { readonly kind: 'invalid' }
   | { readonly kind: 'rejected' }
+  | { readonly kind: 'alert_inactive' }
 
 export function createScheduleCommand(commands: SchedulerCommands): SlashCommand {
   return {
     name: 'schedule',
     description: { kind: 'localized', key: 'slash.scheduleHelp' },
     messageKeys: [...MESSAGE_KEYS],
+    usage: () => USAGE,
     policy: READ_POLICY,
     policyFor: (args) => policyForScheduleOperation(parseScheduleOperation(args)),
     // The verb only: a job id is a stored value, and a completer may not read a store.

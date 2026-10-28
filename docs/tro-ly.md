@@ -13,7 +13,7 @@ Trang này nói về việc viết một agent, ghép nhiều agent thành một
 Bắt đầu từ mẫu có chú thích đầy đủ, [agent.sample.toml](../agent.sample.toml).
 
 Agent có sẵn và agent của plugin đi kèm là agent đáng tin. Agent bạn tự viết, đặt ở
-`<data_dir>/agents/<id>/agent.toml`, thì không. Agent không đáng tin không đặt được `model_tier` hay `reasoning`,
+`<data_dir>/agents/<id>/agent.toml`, thì không. Agent của bạn đặt được `model_tier` nhưng không đặt được `reasoning`,
 và `system_prompt` của nó bị quét, bị từ chối nếu khớp một mẫu chỉ dẫn bị chặn.
 
 ### Dựng khung một agent
@@ -25,8 +25,63 @@ openalpha agent edit web-researcher  # mở bằng $EDITOR
 
 Chưa có thư mục `agents/` là chuyện bình thường, không phải lỗi.
 
-`openalpha agent list` và `show <id>` để xem. `remove <id>` xóa một agent của bạn và không chạm được vào agent có
+`openalpha agent list` và `show <id>` để xem; `show` còn in công cụ, danh sách ủy quyền, trần số lượt và số agent con
+mà agent được phép gọi. `remove <id>` xóa một agent của bạn, tạm dừng các lịch chạy đang bật của nó và không chạm được vào agent có
 sẵn. `agent bind`, `unbind` và `bindings` gắn một chat của kênh vào một agent - xem [Lệnh](lenh.md).
+
+### Từ trang văn phòng
+
+Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạn mà không cần chạm vào tệp nào. Trang ghi đúng tệp
+`agent.toml` vào thư mục agent của bạn, nên `agent list` và `agent show` vẫn thấy agent, và sau này bạn sửa tay vẫn
+được.
+
+- Ở tầng *Agent của bạn*, "+ Thêm agent" mở biểu mẫu. Khi chưa có agent nào, ba mẫu khởi đầu điền
+  sẵn để bạn sửa, và có cả một mẫu trống. Biểu mẫu hỏi:
+  - tên (mã định danh được tạo từ tên, trừ khi bạn tự gõ, và không đổi được sau khi agent đã có);
+  - việc nó làm, bằng lời của bạn;
+  - các thị trường và ngành nó theo dõi;
+  - ngân sách mỗi ngày (`0` nghĩa là chỉ theo ngân sách chung);
+  - mô hình;
+  - có cho nó tự tạo agent con không, và tối đa bao nhiêu mỗi lần gọi;
+  - ngoại hình.
+
+  Không tick thị trường nào thì agent dùng chung góc nhìn với bạn, nên đề xuất của nó tác động lên danh
+  mục thật. Tick thị trường thì nó thành ý kiến thứ hai (xem
+  [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng)).
+- Bộ chọn ngoại hình có bốn phần, kèm ảnh chân dung đổi theo từng lựa chọn:
+  - thân (màu da: sáng, vừa hoặc đậm);
+  - tóc (ngắn, dài, bob, búi hoặc mũ lưỡi trai);
+  - áo (xanh ngọc, xanh dương, xanh da trời, vàng nghệ, cam, hồng, xám xanh hoặc màu cát);
+  - phụ kiện (không, sách, bìa kẹp, cà vạt, kính hoặc khăn).
+
+  Phần nào bạn bỏ qua thì theo mã của agent, nên agent nào cũng có ngoại hình ngay từ đầu. Đó là bảng `[look]` trong tệp; dịch vụ nền (daemon) chỉ giữ nó và không bao giờ đọc nó trong một phiên chạy.
+- Bấm vào một agent (bàn của nó, hoặc thẻ của nó ở tầng đội riêng) thì thẻ của nó mở ra: *Tiến độ* (các bước đang chạy và agent con nếu có), *Kết quả*, *Hồ sơ* và *Việc*, kèm nút tạm dừng hoặc tiếp tục.
+  - Agent tạm dừng từ chối mọi phiên chạy của nó cho tới khi bạn cho chạy lại, đúng như `agent pause`, và bàn của nó ghi rõ điều đó.
+  - Nút sửa hồ sơ mở biểu mẫu, và biểu mẫu đó cũng có nút xóa agent.
+- Khi một phiên chạy chia việc cho agent con, thẻ Tiến độ liệt kê từng agent con. Nó cho biết đang
+  chạy bao nhiêu trong số tối đa một lần gọi được phép khởi động, chúng đi sâu mấy tầng, và thời gian
+  dài nhất một agent con được chạy. Con số cuối là giới hạn mỗi lần gọi cho agent con của chính dịch vụ
+  nền (mức chặt hơn giữa trần thời gian của phiên chạy và của `spawn` trong `[loop]`), đọc từ dịch vụ
+  nền, nên luôn là con số thật. Chi phí của chúng tính vào phiên chạy của agent cha, và một nút dừng cả
+  phiên chạy, gồm cả các agent con.
+- Dưới câu trả lời của một phiên chạy đã xong, thẻ *Kết quả* có một khối "Lệnh gọi AI" đang đóng, giống khối trên dòng của một việc và dưới câu trả lời chat đã xong: các lệnh gọi mô hình của phiên chạy đó và agent con của nó, kèm chi phí từng lệnh gọi và kết thúc ra sao (xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng)).
+- Agent mới hay vừa sửa được kiểm tra như dịch vụ nền kiểm tra một tệp lúc khởi động: dạng tệp, mã, phạm vi, mức trần
+  ngân sách, bước quét prompt và bậc mô hình. Bị từ chối thì lý do hiện bằng lời thường và không có gì được ghi.
+- Trang tạo tối đa 50 agent của riêng bạn, tính cả tệp nạp lỗi; quá mức đó nó yêu cầu bạn xóa bớt một agent trước.
+- Agent trả lời ở tin nhắn kế tiếp, không cần khởi động lại. Phiên chạy đang diễn ra giữ nguyên định nghĩa lúc bắt
+  đầu.
+- Công cụ của nó là một bộ cố định: tìm kiếm web, bộ nhớ, đồng hồ và máy tính, cùng các công cụ chỉ đọc về thị trường
+  và đề xuất. Không bao giờ có shell hay ghi tệp. Đặt `max_spawn` thì thêm `spawn` vào bộ đó.
+- Trang sở hữu tên, mô tả, prompt, phạm vi, mức trần theo ngày, bậc mô hình, diện mạo, công cụ và `max_spawn`: một lần
+  sửa thay từng thứ đó, hoặc bỏ nó đi khi trang không gửi lên. Mọi thứ còn lại trong tệp được giữ nguyên, như trần số
+  lượt, token và thời gian, `hosts`, `skills`, `delegates` và `reasoning`. Agent có sẵn và agent của plugin đọc được ở
+  đó nhưng không sửa hay xóa được.
+- Xóa một agent là gỡ thư mục của nó và tạm dừng mọi lịch đang bật của nó, để không lịch nào còn bắn vào một cái tên
+  không còn tồn tại; chuông báo đã tạm dừng bao nhiêu. Bộ nhớ, cuộc trò chuyện, chi tiêu và bảng thành tích của nó vẫn còn.
+  Agent đang tham gia một mạng xã hội thì bị từ chối cho đến khi nó rời đi.
+- Tệp bạn sửa tay khi dịch vụ nền đang chạy được nhận lại khi trang đọc lại thư mục. Tệp nạp lỗi bị bỏ qua kèm lý do nói bằng lời thường (nguyên nhân chính xác nằm trong nhật ký dịch vụ nền, `logs`) và nằm
+  ngoài danh sách đang chạy cho đến khi bạn sửa xong và đọc lại. Nếu không đọc được cả thư mục, các agent đang chạy
+  giữ nguyên như cũ.
 
 ### Nội dung tệp
 
@@ -62,8 +117,9 @@ quyền bạn đã cấp.
 | `max_duration_ms` | số nguyên dương | `[loop].max_duration_ms` từ config | Trần thời gian thực mỗi phiên chạy. Hạ được giá trị `[loop]`, không nâng được. |
 | `max_daily_usd` | số | không có | Phần của hôm nay dưới `[budget] max_daily_usd`. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
 | `[focus]` | bảng | không có | Agent nhìn vào đâu. Xem [Phạm vi, ngân sách và tạm dừng](#phạm-vi-ngân-sách-và-tạm-dừng). |
-| `model_tier` | chuỗi | không có | **Chỉ agent đáng tin.** Chọn một chuỗi `[model_tiers]`. |
-| `reasoning` | enum | `'default'` | **Chỉ agent đáng tin.** |
+| `[look]` | bảng | không có | Diện mạo nhân vật của agent trên trang văn phòng: vài phần ngắn, mỗi phần là một từ viết thường (hoặc nối bằng gạch ngang) (`hair = "short"`). Dịch vụ nền chỉ lưu lại và từ chối phần nào không có dạng đó; trang quyết định giá trị nào vẽ được và tự chọn phần bạn bỏ trống theo mã của agent. Biểu mẫu cho chọn `body`, `hair`, `shirt` và `prop` (xem [Từ trang văn phòng](#từ-trang-văn-phòng)). |
+| `model_tier` | chuỗi | không có | Một nhóm trong `[model_tiers]` mà mọi mục đều hỗ trợ công cụ. Agent của bạn đặt được; agent plugin không đáng tin thì không. |
+| `reasoning` | enum | `'default'` | **Chỉ agent đáng tin:** agent có sẵn và agent của plugin đi kèm. |
 | `[capabilities]` | bảng | xem dưới | Trần bảo mật; mọi trường chỉ thu hẹp quyền. |
 
 Mã định danh (`id`) bắt đầu bằng chữ thường hoặc chữ số, chỉ chứa chữ thường, chữ số, gạch dưới, gạch nối hoặc dấu
@@ -87,30 +143,31 @@ công cụ là trục nguy hiểm nên im lặng nghĩa là không. Danh sách h
 
 ### Chọn mô hình
 
-Agent của bạn luôn chạy chuỗi `[[models]]` chính. Agent không đáng tin không có cách ghi đè mô hình riêng, vì nếu
-được thì một tệp thả vào có thể đổi hướng chi tiêu của bạn.
+Agent của bạn chạy chuỗi `[[models]]` chính, trừ khi nó đặt `model_tier`. Không có khóa `model` riêng cho từng agent,
+nên một tệp thả vào chỉ chọn được nhóm mà chính bạn đã cấu hình.
 
-Agent đáng tin có thể đặt `model_tier` trỏ tới một chuỗi dưới `[model_tiers]`. Nhóm đó phải tồn tại và không rỗng,
-và mọi mục trong nó phải hỗ trợ gọi công cụ khi agent có công cụ. Một `model_tier` mâu thuẫn với nhóm mà phần ghép
+Agent của bạn có thể đặt `model_tier` trỏ tới một chuỗi dưới `[model_tiers]`. Nhóm đó phải tồn tại và không rỗng,
+và mọi mục trong nó phải hỗ trợ gọi công cụ khi agent có công cụ. Agent plugin không đáng tin không đặt được `model_tier`, còn
+`reasoning` vẫn chỉ dành cho agent đáng tin. Một `model_tier` mâu thuẫn với nhóm mà phần ghép
 (composition) ưu tiên thì bị từ chối, không bị bỏ qua.
 
-`/model` trong kênh có phạm vi một phiên chat: nó đổi mô hình cho đúng phiên đó, chọn từ chuỗi `[[models]]` toàn
+`/model` trong kênh có phạm vi một cuộc trò chuyện: nó đổi mô hình cho đúng cuộc trò chuyện đó, chọn từ chuỗi `[[models]]` toàn
 cục, giữ các mục còn lại làm dự phòng, không chọn được nhóm, và không lưu lại. `openalpha provider list` và
 `openalpha provider models` cho biết đang có những gì.
 
 ### Khi nạp tệp thất bại
 
-Một agent lỗi không bao giờ chặn daemon khởi động. Mỗi tệp hỏng riêng và bị bỏ qua:
+Một agent lỗi không bao giờ chặn dịch vụ nền khởi động. Mỗi tệp hỏng riêng và bị bỏ qua:
 
-- TOML sai cú pháp, vi phạm schema, `id` lệch tên thư mục, công cụ lạ trong `tools`, `model_tier` hay `reasoning`
-  trên agent của bạn, `max_daily_usd` cao hơn mức trần `[budget]` của bạn, hoặc `system_prompt` bị bộ quét chặn -
+- TOML sai cú pháp, vi phạm schema, `id` lệch tên thư mục, công cụ lạ trong `tools`, `reasoning` trên agent của
+  bạn, `model_tier` trỏ tới nhóm không có hoặc có mục không hỗ trợ công cụ, `max_daily_usd` cao hơn mức trần `[budget]` của bạn, hoặc `system_prompt` bị bộ quét chặn -
   ghi log `agents.user_load_failed`;
 - trùng mã dành riêng - ghi log `agents.user_id_reserved`.
 
 ### Ranh giới lúc chạy
 
 Mỗi agent chạy với các công cụ tệp đặt gốc tại `<data_dir>/workspaces/<id>/` và phạm vi bộ nhớ riêng. Một shell đã
-được duyệt bắt đầu ở thư mục đó, nhưng đó là thư mục làm việc, không phải sandbox của hệ điều hành.
+được duyệt bắt đầu ở thư mục đó, nhưng đó là thư mục làm việc, không phải sandbox của hệ điều hành. Trang văn phòng liệt kê những gì mỗi agent nhớ, theo từng người nó đã trò chuyện cùng, ở Cài đặt > Bộ nhớ, nơi bạn thêm hoặc quên được một ghi chú (xem [Vận hành](van-hanh.md#những-mục-cài-đặt-nên-biết)).
 
 ### Phạm vi, ngân sách và tạm dừng
 
@@ -125,9 +182,13 @@ danh mục của bạn, y như `/suggest`. Đặt nó thì agent trở thành *�
 markets = ["equity-vn"]   # thị trường danh mục của bạn có giao dịch
 sectors = ["banks"]       # slug ngành của thị trường: banks, oil-gas, ...
 horizon = "long"          # short | long: khung thời gian chấm điểm đề xuất của nó
+goal = "income"           # preserve | income | grow: thứ nó săn tìm (income = cổ tức)
 ```
 
-Phạm vi chỉ thu hẹp:
+`goal` dùng đúng các từ mục tiêu trong hồ sơ của bạn và chỉ đánh dấu agent: trang văn phòng xếp một agent `income`
+làm người săn cổ tức của bạn. Nó không bao giờ đổi hay tách một đề xuất: hai agent chỉ khác nhau ở `goal` dùng chung
+đề xuất, cuộc tranh luận và hồ sơ, còn `[focus]` chỉ có `goal` là phạm vi của chính bạn. Việc săn tìm nằm trong lời
+nhắc của agent. Phần còn lại chỉ thu hẹp:
 
 - `markets` phải là thị trường danh mục của bạn có giao dịch.
 - `sectors` cần một thị trường có dữ liệu ngành (hiện là `equity-vn`). Tên là slug của chính thị trường, do
@@ -155,7 +216,7 @@ chọn trên cùng mã, cùng ngày. Quy tắc, cùng cỡ mẫu tối thiểu �
 **Tạm dừng.** `openalpha agent pause <id>` tắt một agent của bạn và `agent resume` bật lại ([Lệnh](lenh.md)). Persona
 tranh luận không tạm dừng được: làm vậy sẽ hỏng mọi đề xuất.
 
-- Việc tạm dừng được đọc ở mỗi phiên chạy, nên nó tới một daemon đang chạy ngay lập tức, không cần khởi động lại.
+- Việc tạm dừng được đọc ở mỗi phiên chạy, nên nó tới một dịch vụ nền đang chạy ngay lập tức, không cần khởi động lại.
 - Phiên chạy đang diễn ra vẫn xong. Sau đó tin nhắn chat kế tiếp, heartbeat và tác vụ theo lịch của agent bị từ chối
   bằng câu "agent này đang tạm dừng", và CLI thoát với mã `16`.
 - Tác vụ theo lịch bị bỏ qua mà không tính là một lần lỗi. Tác vụ chạy một lần chờ đến khi `resume`.
@@ -184,11 +245,14 @@ một cuộc chat vạn năng.
 | `[loop] delegation_depth` | Số tầng con tối đa từ phiên chạy gốc. Mặc định `3` cho phép độ sâu 1, 2 và 3. |
 | `[loop] max_delegations` | Tổng số con một phiên chạy được khởi động, tính chung cả hai công cụ. |
 | `[loop] max_parallel_delegations` | Số mục tối đa trong một lời gọi `delegate_parallel`. |
+| Công cụ `spawn` | Tạo các agent con ngắn hạn, chỉ đọc, do chính agent mô tả; xem [Agent con tự tạo](#agent-con-tự-tạo). |
+| `[capabilities] max_spawn` | Số agent con tự tạo mà một lời gọi `spawn` được khởi động, từ 1 đến 4. Bỏ trống hoặc `0` là agent không tự tạo được. |
+| `[loop] max_spawn_duration_ms`, `max_spawn_turns` | Thời gian (mặc định 10 phút) và số lượt mô hình (mặc định `12`) mỗi agent con tự tạo có. |
 
 Agent con dùng đúng danh sách công cụ của chính nó: nó có thể dùng công cụ mà cha không gọi trực tiếp được, và công
 cụ vắng mặt ở con thì bị chặn, trước cả khâu phê duyệt.
 
-Phiên chạy con dùng chung tín hiệu hủy và ngân sách của cha. Phiên chat của con là mới, riêng tư, tạm thời và không
+Phiên chạy con dùng chung tín hiệu hủy và ngân sách của cha. Cuộc trò chuyện của con là mới, riêng tư, tạm thời và không
 bao giờ ghi vào bản ghi hội thoại bền vững. Con không thấy bản ghi của cha, không nói chuyện với nhau, và không chia
 sẻ trạng thái tranh luận. Chỉ agent điều phối ghép kết quả lại. Về tiền, xem
 [ngân sách trên một cây phiên chạy](ngan-sach.md#ngân-sách-trên-một-cây-phiên-chạy).
@@ -236,9 +300,35 @@ bởi `[loop] max_delegations` tính trên mọi lời gọi ủy quyền.
 Kết quả có một mục cho mỗi việc, mỗi mục có `agent_id`, `reason` và `text`. Lỗi ngân sách, phê duyệt và runner vẫn hiện
 ra, còn một lỗi ngoài dự tính chỉ gói gọn trong mục của nó chứ không làm hỏng cả lô.
 
+### Agent con tự tạo
+
+Agent có `spawn` trong danh sách công cụ và `max_spawn` lớn hơn `0` có thể tách một câu hỏi thành những phần đọc độc lập,
+ví dụ cổ tức của một công ty và báo cáo quý của nó, rồi tạo mỗi phần một agent con ngắn hạn. Trợ lý chat được tạo tối đa
+`2` agent con trong một lời gọi. Truyền `goal` cho một agent con, hoặc `items` cho mỗi phần một agent con, kèm nhãn `role` và
+`context` mà các agent con cần: chúng không thấy cuộc trò chuyện. Truyền `output_schema`, một JSON Schema dài tối đa 4.000
+ký tự, khi bạn muốn mỗi câu trả lời về dưới dạng JSON đã kiểm tra thay vì văn xuôi.
+
+- Agent con là chính agent cha nhưng bị thu hẹp: chỉ đọc web, thị trường, tin tức và nhớ lại bộ nhớ. Nó không giao dịch,
+  không ghi sổ, không đặt lịch, không gửi tin, không ghi đề xuất, không tạo thêm agent con và không ủy quyền.
+- Nó chạy trên nhóm `delegate` của `[model_tiers]` nếu bạn khai báo, không thì dùng mô hình của agent cha.
+- Nó có `[loop] max_spawn_duration_ms` và `max_spawn_turns`. Agent con hết thời gian, hết lượt hoặc hết ngân sách sẽ mang
+  về phần đã đọc, đánh dấu là dở dang kèm lý do (thời gian, lượt hoặc ngân sách); agent con lỗi trước khi đọc được gì thì
+  đánh dấu là thất bại. Agent con bị dừng cùng agent cha thì thất bại và không có lý do.
+- Với `output_schema`, mỗi agent con được dặn kết thúc bằng đúng một tài liệu JSON khớp schema. Agent con đã xong mà câu trả lời
+  đọc được và khớp thì trả về chính JSON đó; câu trả lời không khớp thì agent con thất bại, kèm chỗ lệch đầu tiên. Agent con bị
+  cắt giữa chừng vẫn mang về bản tóm tắt thường, không kiểm tra. Một schema mà dịch vụ nền không dùng được sẽ từ chối cả lời gọi
+  trước khi có agent con nào chạy.
+- Các agent con dùng chung phần ngân sách, hạn ngạch `[loop] max_delegations` và `[loop] delegation_depth` của agent cha,
+  chi phí tính vào agent cha. Dừng agent cha là dừng mọi agent con.
+- Một lời gọi xin nhiều agent con hơn `max_spawn` thì `max_spawn` agent con đầu tiên khởi động, phần còn lại bị trả về cho
+  mô hình là chưa bắt đầu, không xếp hàng, và màn hình nói rằng lời gọi xin nhiều hơn mức được khởi động cùng lúc.
+- Với agent có `max_spawn` là `0`, `spawn` bị bỏ khỏi `tools = "*"`.
+- Kênh chat và terminal chỉ hiện một dòng cho cả nhóm (`N agent con đang đọc, k/N xong`); bảng trực tiếp liệt kê từng agent
+  con dưới agent cha, còn nhật ký hoạt động giữ phần đầu câu trả lời của nó.
+
 ### Phê duyệt không bao giờ di truyền
 
-Không gì được mang sang cho con: không phải chế độ bypass của cha, không phải một phê duyệt đã nhớ trong phiên chat của
+Không gì được mang sang cho con: không phải chế độ bypass của cha, không phải một phê duyệt đã nhớ trong cuộc trò chuyện của
 cha, không phải phê duyệt của một client MCP trực tiếp. Một lời gọi con được duyệt không cấp phép cho lời gọi kế tiếp.
 Quy tắc: [an toàn](an-toan.md).
 
@@ -259,8 +349,9 @@ hạn `[loop]` chặn đệ quy, nhưng một danh sách bạn không chủ ý t
 2. **Agent điều phối.** Thêm các công cụ ủy quyền vào `[capabilities] tools` và khai mã các agent con trong
    `[capabilities] delegates`.
 3. **Giới hạn.** Đặt `[loop] delegation_depth`, `max_delegations` và `max_parallel_delegations` trong `config.toml`.
-4. **Mô hình.** Agent bạn viết dùng chuỗi `[[models]]` toàn cục. Chỉ agent có sẵn và agent plugin đi kèm mới chọn được
-   `model_tier`.
+   Với `spawn`, đặt thêm `[loop] max_spawn_duration_ms` và `max_spawn_turns`.
+4. **Mô hình.** Agent bạn viết dùng chuỗi `[[models]]` toàn cục, trừ khi nó đặt `model_tier` trỏ tới một
+   `[model_tiers]` của bạn. Agent plugin không đáng tin thì không.
 
 Kết thúc `system_prompt` của mọi agent con bằng đoạn này, để nó thôi viết cho một người không hề đọc:
 
@@ -382,14 +473,14 @@ theo từng chat, và nó sống qua khởi động lại:
 /agent default         # quay về mặc định của kênh
 ```
 
-Đổi ràng buộc sẽ hủy phần việc đang chờ và đang chạy của phiên chat cũ rồi mở phiên chat mới cho agent mới, nên đổi
+Đổi ràng buộc sẽ hủy phần việc đang chờ và đang chạy của cuộc trò chuyện cũ, và tin nhắn kế tiếp mở cuộc trò chuyện mới với agent mới, nên đổi
 giữa chừng không để lại một phiên chạy mồ côi vẫn đang tiêu ngân sách của bạn.
 
 ### Agent của plugin nằm ở đâu
 
 Lúc khởi động, các agent hợp lệ trong `<data_dir>/agents/` được thêm **sau** agent có sẵn và agent plugin. Mã đã tồn
 tại là mã dành riêng và không bị che. Nguồn `agents/<id>/agent.toml` của plugin mở rộng cùng sổ đăng ký theo cùng quy
-tắc, và một agent không đáng tin đặt `model_tier` hay `reasoning` thì bị từ chối.
+tắc, và một agent plugin không đáng tin đặt `model_tier` hay `reasoning` thì bị từ chối.
 
 Công cụ có sẵn đăng ký trước, công cụ của plugin mở rộng thêm, và công cụ MCP đã kết nối được thêm sau cùng mà không
 thay thế một cái tên đã có. Xem [Plugin](dev/mo-rong.md).
@@ -536,7 +627,7 @@ api_key_env = "OPENROUTER_API_KEY"
 phải khai một mô hình. [Cấu hình](cau-hinh.md) liệt kê mọi khóa, kể cả các khóa thử lại, nghỉ và tần suất dưới `[llm]`.
 
 Bộ chọn của một mục là `alias` của nó, hoặc `<provider>:<model>` khi không có alias. Các bộ chọn phải duy nhất. Biến môi
-trường nêu trong `api_key_env` chứa khóa (chưa đặt thì mục đó đứng ngoài: daemon vẫn chạy và cảnh báo, còn việc nào
+trường nêu trong `api_key_env` chứa khóa (chưa đặt thì mục đó đứng ngoài: dịch vụ nền vẫn chạy và cảnh báo, còn việc nào
 cần mô hình sẽ nói rõ phải đặt biến nào; xem [Cấu hình](cau-hinh.md)); khóa dạng văn bản thuần không được chấp nhận
 trong cấu hình mô hình. Một server chạy trên chính máy này (`base_url` loopback, như Ollama hay LM Studio) không cần
 `api_key_env`.
@@ -594,6 +685,8 @@ mã tài khoản và thông tin gói đọc từ chính token. Token tự làm m
 Các lệnh `auth` không khởi động runtime và không cần tệp cấu hình. Không có cấu hình thì token nằm ở thư mục dữ liệu mặc
 định; dùng `--data-dir` để đặt chỗ khác.
 
+Trang văn phòng cũng đăng nhập được. Vào Cài đặt > Nhà cung cấp > "+ Thêm nhà cung cấp" > "Đăng nhập ChatGPT": trang hiện một mã và liên kết để nhập mã đó, rồi lưu đúng tệp đăng nhập ấy khi bạn xong. Đăng xuất ở đó sẽ hỏi bạn xác nhận một lần. Khi đã đặt `[api] public_url`, trang không đăng nhập được; hãy làm trên máy chủ bằng `openalpha auth login chatgpt`.
+
 Phiên chạy theo thuê bao được tính giá `$0`, với `pricing_subscription` làm nguồn giá. Số token vẫn được ghi và các giới
 hạn lượt, thời lượng vẫn áp, nhưng khoản chi đó không bao giờ tính vào hạn mức ngày, tháng hay mỗi phiên chạy.
 
@@ -608,7 +701,7 @@ Hai ràng buộc đến từ chính endpoint ChatGPT, không phải từ OpenAlp
 
 ### Nhóm mô hình (tùy chọn)
 
-Một agent đáng tin chọn một chuỗi dự phòng có tên bằng `model_tier`. Khi nhóm vắng mặt, agent hay tác vụ cần tới nó rơi về
+Một agent chọn một chuỗi dự phòng có tên bằng `model_tier`, nếu nó là agent có sẵn, của plugin đi kèm hoặc do bạn viết. Khi nhóm vắng mặt, agent hay tác vụ cần tới nó rơi về
 chuỗi `[[models]]` toàn cục, và mọi mục trong một nhóm phải hỗ trợ gọi công cụ. Các tên nhóm, vai nào ưu tiên nhóm nào, và
 việc chuỗi nhóm kết thúc ở mục chính của `[[models]]` nằm ở [Cấu hình](cau-hinh.md). Các vai tranh luận giao dịch ưu tiên
 nhóm `debate` khi `[[model_tiers.debate]]` được cấu hình, và chạy trên chuỗi chính nếu không.
@@ -667,7 +760,7 @@ phiên chạy dừng với lý do `rate` trước khi gọi nhà cung cấp.
 | Điều kiện | Kết quả |
 | --- | --- |
 | Chuỗi mô hình rỗng hoặc mơ hồ | Khởi động hỏng với lỗi cấu hình. |
-| Chưa đặt biến môi trường chứa khóa của một mô hình | Daemon và lệnh CLI vẫn chạy, `start` in một dòng cảnh báo. Chuỗi bỏ qua mô hình đó, và khi không còn mô hình nào thì lúc gọi AI (chat, `/suggest`, bản tin sáng, công việc định kỳ cần AI) sẽ báo cần đặt biến nào; việc không cần AI vẫn chạy. |
+| Chưa đặt biến môi trường chứa khóa của một mô hình | Dịch vụ nền và lệnh CLI vẫn chạy, `start` in một dòng cảnh báo. Chuỗi bỏ qua mô hình đó, và khi không còn mô hình nào thì lúc gọi AI (chat, `/suggest`, bản tin sáng, công việc định kỳ cần AI) sẽ báo cần đặt biến nào; việc không cần AI vẫn chạy. |
 | Bộ chọn ưu tiên chưa được cấu hình | Khâu kiểm agent hỏng; không lặng lẽ thay bằng mô hình khác. |
 | Giới hạn tần suất đầy | Phiên chạy dừng với lý do `rate` trước khi gọi nhà cung cấp. |
 | Lỗi thử lại được xảy ra trước khi có đầu ra | Thử lại cùng mục, rồi thử các mục dự phòng đủ điều kiện. |

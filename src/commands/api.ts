@@ -2,7 +2,7 @@
 
 export type { ConfigSummary, ConfigSummaryReader } from '@/commands/config'
 export type { ContinueNudge } from '@/commands/continue'
-export type { SpendCommandDeps, SpendReader } from '@/commands/cost'
+export type { JobsSpend, SpendCommandDeps, SpendReader } from '@/commands/cost'
 export type {
   ChannelHealth,
   HealthCode,
@@ -29,6 +29,7 @@ export type {
   UpgradeRequest,
 } from '@/commands/upgrade'
 export type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
+export { completeArguments, completeLine } from '@/commands/dispatcher/completion'
 export {
   buildHelpSections,
   type CommandHelpOptions,
@@ -44,6 +45,11 @@ export {
 } from '@/commands/dispatcher/registration'
 export { describeCommand, type LocaleLookup, renderMessages } from '@/commands/dispatcher/render'
 export { commandHeadOf, HELP_COMMAND } from '@/commands/dispatcher/resolve'
+export {
+  SCHEDULED_COMMAND_SURFACE,
+  scheduledCommandLine,
+  scheduledCommandRefusal,
+} from '@/commands/dispatcher/scheduled'
 export { createSessionModelSelection } from '@/commands/model'
 export { createCommandsProvider, createCoreCommands } from '@/commands/services'
 export { UPGRADE_CHAT_COMMAND, UPGRADE_CONFIRM_COMMAND } from '@/commands/upgrade'

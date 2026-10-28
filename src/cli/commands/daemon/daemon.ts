@@ -1,8 +1,13 @@
-import type { PidFileClaim } from '@/cli/daemon-guard'
+import type { PidFileClaim, RunningDaemon } from '@/cli/daemon-guard'
 import type { CliApp } from '@/cli/types'
 import type { DaemonStartOptions, DegradedEntry, DegradedItem } from '@/core/container'
 import { type Command, createCommand } from '@/cli/command'
-import { pollUntil, runBackground } from '@/cli/commands/daemon/background'
+import {
+  BACKGROUND_FLAG,
+  pollUntil,
+  runBackground,
+  START_TIMEOUT_MS,
+} from '@/cli/commands/daemon/background'
 import {
   configuredChannels,
   printServed,
@@ -13,6 +18,7 @@ import {
 import {
   clearMalformedPidFile,
   inspectDaemon,
+  liveDaemon,
   liveDaemonPid,
   removePidFile,
   requestDaemonStop,
@@ -20,12 +26,13 @@ import {
   watchStopRequest,
   writePidFile,
 } from '@/cli/daemon-guard'
-import { clearReadyFile, writeReadyFile } from '@/cli/daemon-ready'
+import { clearReadyFile, isDaemonReady, writeReadyFile } from '@/cli/daemon-ready'
+import { canRestartInPlace, RESTART_SIGNAL, requestRestartInPlace } from '@/cli/daemon-restart'
 import { getEnv } from '@/cli/env'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
 import { toKeylessItems } from '@/cli/missing-keys'
-import { flagBool, type ParsedArgs } from '@/cli/parsing/args'
+import { flagBool, type ParsedArgs, parseArgs } from '@/cli/parsing/args'
 import { resolveSelfCommand } from '@/cli/services'
 import { hint, info, style, success, warn } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
@@ -48,6 +55,13 @@ const BACKGROUND_SPEC = {
   },
 } as const
 
+const RESTART_SPEC = {
+  flags: {
+    ...BACKGROUND_SPEC.flags,
+    now: { type: 'boolean', describe: CLI_FLAG_DESCRIPTIONS.restartNow },
+  },
+} as const
+
 /** Whether this start reached ready, which decides what its pid file leaves behind. */
 interface StartRun {
   ready: boolean
@@ -66,14 +80,24 @@ export const stopCommand: Command = createCommand({
   run: (_args, app) => stopDaemon(app),
 })
 
-// The relaunched child runs `restart` again in the foreground; the daemon is already down by then,
-// so its own stop step finds nothing to stop.
+// A running daemon is asked to restart itself before boot; otherwise it is stopped, and the
+// relaunched child runs `restart` again in the foreground, where its own stop step finds nothing
+// to stop.
 export const restartCommand: Command = createCommand({
   ...CLI_COMMAND_METADATA.restart,
-  spec: BACKGROUND_SPEC,
-  needs: { daemon: 'any', bootMode: 'daemon', prepareDaemon: 'stop' },
+  spec: RESTART_SPEC,
+  needs: { daemon: 'any', bootMode: 'daemon', prepareDaemon: 'restart' },
   run: runInChosenMode,
 })
+
+export function readRestartFlags(argv: readonly string[]): {
+  readonly background: boolean
+  readonly now: boolean
+} {
+  const args = parseArgs(argv, RESTART_SPEC)
+
+  return { background: flagBool(args, 'background'), now: flagBool(args, 'now') }
+}
 
 export async function stopDaemonIfRunning(app: CliApp): Promise<number> {
   return (await inspectDaemon(app)) === 'absent' ? 0 : stopDaemon(app)
@@ -96,7 +120,7 @@ function withoutBackgroundFlag(argv: readonly string[]): string[] {
 }
 
 function isBackgroundToken(token: string): boolean {
-  return token === '--background' || token === '-b' || token.startsWith('--background=')
+  return token === BACKGROUND_FLAG || token === '-b' || token.startsWith(`${BACKGROUND_FLAG}=`)
 }
 
 async function runDaemon(app: CliApp): Promise<number> {
@@ -115,17 +139,7 @@ async function runDaemon(app: CliApp): Promise<number> {
   let claim: PidFileClaim | undefined
   let exitCode = 0
 
-  // A second Ctrl-C while the drain is running means the operator is done waiting: leave now.
-  const onSignal = (): void => {
-    if (app.signal.aborted) {
-      process.exit(FORCED_EXIT_CODE)
-    }
-
-    abortDaemon()
-  }
-
-  process.on('SIGINT', onSignal)
-  process.on('SIGTERM', onSignal)
+  const unwatchSignals = watchStopSignals(app, abortDaemon)
   const unwatchStop = watchStopRequest(app, abortDaemon)
 
   try {
@@ -141,8 +155,7 @@ async function runDaemon(app: CliApp): Promise<number> {
     exitCode = 1
   } finally {
     // Every arm comes down together, whichever way we leave: signals, pid file, abort.
-    process.off('SIGINT', onSignal)
-    process.off('SIGTERM', onSignal)
+    unwatchSignals()
     unwatchStop()
     abortDaemon()
     const removed =
@@ -158,6 +171,38 @@ async function runDaemon(app: CliApp): Promise<number> {
   }
 
   return exitCode
+}
+
+/** Ctrl-C and SIGTERM stop the daemon; the restart signal stops it too and asks the entry to start
+ *  it again. A second stop signal while the drain runs means the operator is done waiting: leave
+ *  now, which also drops a pending restart. A stop already under way wins over a restart signal. */
+function watchStopSignals(app: CliApp, abortDaemon: () => void): () => void {
+  const onStop = (): void => {
+    if (app.signal.aborted) {
+      process.exit(FORCED_EXIT_CODE)
+    }
+
+    abortDaemon()
+  }
+  const onRestart = (): void => {
+    if (!app.signal.aborted) {
+      requestRestartInPlace()
+      abortDaemon()
+    }
+  }
+
+  process.on('SIGINT', onStop)
+  process.on('SIGTERM', onStop)
+
+  if (canRestartInPlace()) {
+    process.on(RESTART_SIGNAL, onRestart)
+  }
+
+  return () => {
+    process.off('SIGINT', onStop)
+    process.off('SIGTERM', onStop)
+    process.off(RESTART_SIGNAL, onRestart)
+  }
 }
 
 /** Drops this run's pid file. A start that never got ready puts back the stale file it reclaimed,
@@ -283,6 +328,27 @@ async function stopDaemon(app: CliApp): Promise<number> {
   app.err(style.error(t(locale, 'cli.daemonStopTimeout', { pid, timeout: STOP_TIMEOUT_MS })))
 
   return 1
+}
+
+/** The pid stays the same across a restart in place, so the new run is the one with a later start,
+ *  once it is ready. `waitMs` covers the idle wait the request asked for. */
+export async function waitForRestart(
+  app: CliApp,
+  previous: { readonly startedAt?: number },
+  waitMs: number
+): Promise<RunningDaemon | undefined> {
+  return await pollUntil(
+    async () => {
+      const daemon = await liveDaemon(app)
+
+      return daemon !== null &&
+        daemon.startedAt !== previous.startedAt &&
+        (await isDaemonReady(app, daemon.pid))
+        ? daemon
+        : undefined
+    },
+    waitMs + STOP_TIMEOUT_MS + START_TIMEOUT_MS
+  )
 }
 
 // Polls the pid file until the daemon is `up` or `down`; false when the timeout passes first.

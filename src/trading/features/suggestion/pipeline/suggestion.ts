@@ -33,6 +33,7 @@ import {
   instrumentEvents,
   upcomingEvents,
 } from '@/trading/features/suggestion/pipeline/draft-input'
+import { joinOrStartSuggestion } from '@/trading/features/suggestion/pipeline/flight'
 import { holdFrom } from '@/trading/features/suggestion/pipeline/hold'
 import {
   identityOf,
@@ -67,6 +68,7 @@ type RunPhase =
   | 'stages'
   | 'debate'
   | 'persist'
+  | 'shared'
 
 export async function runSuggestion(options: SuggestionRunOptions): Promise<SuggestionRunResult> {
   const { deps, request } = options
@@ -84,6 +86,18 @@ export async function runSuggestion(options: SuggestionRunOptions): Promise<Sugg
   if (isOutsideFocus(request.focus, resolution.instrument.market, resolution.sector)) {
     return outsideFocus(resolution)
   }
+
+  return joinOrStartSuggestion(options, resolution, {
+    run: (flightRequest) => runResolved({ ...options, request: flightRequest }, resolution),
+    onShared: () => reportStage(options, 'shared'),
+  })
+}
+
+async function runResolved(
+  options: SuggestionRunOptions,
+  resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>
+): Promise<SuggestionRunResult> {
+  const { deps, request } = options
 
   // Identity and cooldown resolve before any portfolio, source, factor, or persona work: a batch
   // over an already-suggested watchlist must not pay for reads it will discard. A forced run skips

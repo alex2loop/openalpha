@@ -109,16 +109,14 @@ async function readOpenRisk(
   }
 }
 
-/** A persist outage (or any other post-guard throw) is that item's own result, never a synthesized
- *  hold and never the whole batch's failure: the other items' completed work must survive. An abort
- *  is not an item failure — cancellation propagates out of the batch untouched. */
 /** The decision provider bills outside the run budget, so the parent is charged once the
- *  concurrent phase is over. A reused row was served from storage and spent nothing. */
+ *  concurrent phase is over. A reused row was served from storage and a shared one
+ *  was paid for by the caller that started its run; neither spent anything here. */
 function decisionSpend(results: readonly SuggestionRunResult[]): number {
   let total = 0
 
   for (const result of results) {
-    if (result.kind === 'completed' && !result.reused) {
+    if (result.kind === 'completed' && !result.reused && result.shared !== true) {
       total += result.suggestion.headlinesRead?.costUsd ?? 0
     }
   }
@@ -126,6 +124,9 @@ function decisionSpend(results: readonly SuggestionRunResult[]): number {
   return total
 }
 
+/** A persist outage (or any other post-guard throw) is that item's own result, never a synthesized
+ *  hold and never the whole batch's failure: the other items' completed work must survive. An abort
+ *  is not an item failure — cancellation propagates out of the batch untouched. */
 function errorResult(
   deps: SuggestionRunDeps,
   item: SuggestionBatchItem,

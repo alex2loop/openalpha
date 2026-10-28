@@ -13,6 +13,6 @@ export function buildCapabilities(app: App): Capabilities {
     quotes: has('/v1/quotes'),
     portfolio: has('/v1/portfolio'),
     suggestions: has('/v1/suggestions'),
-    orders: has('/v1/trade') && app.resolve('tradingHost').ordersEnabled(),
+    orders: has('/v1/trade') && app.resolve('tradingHost').ordersEnabled() && app.config.api.orders,
   }
 }

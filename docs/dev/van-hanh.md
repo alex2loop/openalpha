@@ -1,12 +1,12 @@
 # Việc lặp lại - bên trong
 
-Dành cho người đóng góp mã. Trang này nói các vòng lặp của daemon, bộ lập lịch việc và heartbeat chạy
+Dành cho người đóng góp mã. Trang này nói các vòng lặp của dịch vụ nền (daemon), bộ lập lịch việc và heartbeat chạy
 thế nào bên dưới. Phần dành cho operator ở [Việc lặp lại](../van-hanh.md).
 
 ## Cơ chế vòng lặp
 
 Mọi vòng lặp giao dịch theo kiểu ngủ - chạy - ngủ, không dùng `setInterval`. Khoảng chờ kế tiếp được
-tính sau khi lượt chạy xong, nên một lượt chậm không chồng lên chính nó, và lượt nào không có việc đủ
+tính sau khi phiên chạy xong, nên một lượt chậm không chồng lên chính nó, và lượt nào không có việc đủ
 điều kiện thì thoát ngay. Kích thước lô cố định 50 dòng mỗi lượt; `trading.macro-extract` dùng 3 vì mỗi
 mục là một lời gọi mô hình. Nhịp workflow và nhịp heartbeat là các timer 30 giây do hệ con của chúng
 tự giữ.
@@ -41,7 +41,7 @@ giây thì gộp thành một lượt.
 Khi khởi động, lần làm mới đầu chạy trước các hệ con khác, chờ tối đa 60 giây rồi hoàn tất ở chế độ
 nền kèm cảnh báo. Lỗi ranh giới (`isBoundaryFailure`) từ nó chỉ cảnh báo `daemon.boot_refresh_failed` dù ở
 trong hay sau 60 giây và khởi động vẫn tiếp tục; lỗi khác là chí mạng, ném về nơi gọi trong ngân sách thời
-gian và qua bộ theo dõi tác vụ daemon sau đó. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
+gian và qua bộ theo dõi tác vụ dịch vụ nền sau đó. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
 chạy thì nó nhập vào đó, và nếu máy khởi động không có mạng, chính nhịp này là lượt chờ có mạng rồi đi
 vào chuỗi thử lại.
 
@@ -58,11 +58,11 @@ thì chờ neo kế tiếp.
 | `StorageError`, `ChannelError`, `LLMError`, hoặc `RunHalted` với mã `budget` hay `rate` | Lỗi biên: `trading.tick_failed` ở mức warn, thử lại ở chu kỳ sau. |
 | `MissingEnvError` | Lỗi biên: `trading.tick_key_missing` ở mức warn, một lần mỗi vòng cho tới khi có lỗi khác được ghi, thử lại ở chu kỳ sau. |
 | Mọi lỗi khác | Thoát lên lớp cách ly bọc quanh vòng lặp. Thử lại mãi chỉ che giấu việc mã đang sai. |
-| Hủy | Là lúc tắt máy; vòng lặp thoát bình thường. |
+| Hủy | Là lúc tắt máy khi chính tín hiệu của vòng lặp bị hủy; vòng lặp thoát bình thường. Lệnh hủy khác (bạn dừng phiên chạy của lượt đó trên trang) ghi `trading.tick_stopped` ở mức info và chờ chu kỳ sau. |
 
 Lớp cách ly (`withQuarantine`) ghi `trading.loop_quarantined` ở mức error và gửi operator một thông báo
 gọi tên vòng đó. Nó chạy lại vòng sau một giờ, tối đa ba lần. Vòng nào chạy trọn một ngày rồi mới lỗi
-lại thì được cấp lại đủ số lần; nếu không, lỗi kế tiếp để nó dừng đến khi daemon khởi động lại, và
+lại thì được cấp lại đủ số lần; nếu không, lỗi kế tiếp để nó dừng đến khi dịch vụ nền khởi động lại, và
 thông báo nói rõ điều đó. Các vòng và kênh khác không bị ảnh hưởng.
 
 Vòng cảnh báo là một nhịp ba bước: gửi (`alerts.tick`), rồi lượt dựng cảnh báo thoát, rồi lượt dựng cảnh báo
@@ -95,7 +95,7 @@ flowchart LR
 ```
 
 Lần nhận việc được lưu bền và duy nhất theo **cả** việc **và** mốc thời gian đã lên lịch, nhờ đó các
-lần chạy tự động không bị trùng. Một việc không chồng lên chính nó, và trần toàn cục áp cho tất cả.
+phiên chạy tự động không bị trùng. Một việc không chồng lên chính nó, và trần toàn cục áp cho tất cả.
 Khâu kết thúc ghi kết cục rồi đẩy lịch tới, thử lại hoặc tắt việc, tất cả trong một giao dịch.
 
 Lần nhận việc đi kèm một lease: 5 phút (`OCCURRENCE_LEASE_TTL_MS`), gia hạn mỗi 2 phút theo đồng hồ
@@ -105,16 +105,16 @@ nguyên nhịp lịch. Chỉ dòng `failed`, hoặc dòng `running` có lease đ
 đóng lại ở trạng thái hỏng và nhịp lịch đi tiếp, thay vì chạy lại lần đã tiêu. Việc chạy một lần không
 có lần kế tiếp, nên một lần mất được tính là lỗi.
 
-`run-now` dùng lần nhận việc riêng. Nó ghi một lần chạy mà không đẩy lịch và không chạm bộ đếm lỗi, và
-bị từ chối khi một lần chạy theo lịch của cùng việc đang giữ lease còn hạn, dù từ CLI hay từ daemon. Lần
+`run-now` dùng lần nhận việc riêng. Nó ghi một phiên chạy mà không đẩy lịch và không chạm bộ đếm lỗi, và
+bị từ chối khi một phiên chạy theo lịch của cùng việc đang giữ lease còn hạn, dù từ CLI hay từ dịch vụ nền. Lần
 nhận này bị coi là cũ sau thời gian chờ phê duyệt cộng trần thời lượng của việc cộng 60 giây. Lúc khởi
-động, các dòng `running` cũ chuyển thành hỏng với lý do daemon khởi động lại, và các lần nhận run-now bị
+động, các dòng `running` cũ chuyển thành hỏng với lý do dịch vụ nền khởi động lại, và các lần nhận run-now bị
 bỏ rơi được giải phóng sau lượt quét đó.
 
 Việc thử lại dùng chung một chính sách với heartbeat (`scheduler/backoff.ts`), tối đa 30 phút:
 `60 giây x 2^(số lần hỏng - 1)`. Việc cron bị tắt sau 3 lần hỏng liên tiếp. Các lần dừng không tính là
 hỏng: tắt máy, phê duyệt bị từ chối hoặc quá hạn, agent chạm trần, agent đang tạm dừng. Việc gửi chạy sau khâu kết
-thúc, nên lỗi gửi không bao giờ làm hỏng lần chạy.
+thúc, nên lỗi gửi không bao giờ làm hỏng phiên chạy.
 
 ## Bộ chạy heartbeat
 
@@ -163,14 +163,18 @@ chắc đã tới nơi. Lời gọi bị từ chối không bao giờ được c
 
 ### Khoảng chờ tăng dần
 
-Lượt chạy không bao giờ tới `completed` để nguyên mốc hoàn tất gần nhất; không có phanh thì tác vụ lại
-đến hạn ngay ở nhịp kế tiếp, mãi mãi. Vì vậy mỗi lần hỏng tăng bộ đếm và hoãn lần nhận việc kế tiếp thêm
-`60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút. Một lượt hoàn tất xóa cả hai. Khoảng chờ chặn ở khâu
-nhận việc: tác vụ không bao giờ bị tắt. Hai đường khác hoãn theo cùng cách qua
-`deferFailedHeartbeatTask` (`heartbeat/lease.ts`): lượt hoàn tất nhưng ghi `completeHeartbeatTask` thất bại
-(`{ kind: 'failed' }`; `lease_lost` giữ nguyên vì đã có bên khác nhận việc), và `runClaimedHeartbeatTask` ném
-lỗi, trừ khi tắt máy đã hủy tín hiệu. Ném lỗi sau khi đã hoàn tất vô hại: ghi lỗi khóa theo token thuê mà
-hoàn tất đã xóa.
+Phiên chạy không bao giờ tới `completed` thì để nguyên mốc hoàn tất gần nhất, nên nếu không có phanh,
+tác vụ sẽ đến hạn lại ở mọi nhịp, mãi mãi. Vì vậy mỗi lần hỏng tăng bộ đếm và hoãn lần nhận việc kế tiếp
+thêm `60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút. Một lượt hoàn tất xóa cả hai. Khoảng chờ chỉ chặn
+ở khâu nhận việc: tác vụ không bao giờ bị tắt.
+
+Hai đường khác hoãn theo cùng cách, qua `deferFailedHeartbeatTask` (`heartbeat/lease.ts`):
+
+- lượt hoàn tất nhưng lần ghi `completeHeartbeatTask` thất bại (`{ kind: 'failed' }`; `lease_lost` giữ
+  nguyên, vì đã có bên khác nhận việc);
+- `runClaimedHeartbeatTask` ném lỗi, trừ khi tắt máy đã hủy tín hiệu.
+
+Ném lỗi sau khi đã hoàn tất là vô hại: lần ghi lỗi khóa theo token thuê mà bước hoàn tất đã xóa.
 
 ### Hành vi khi hỏng
 
@@ -189,7 +193,7 @@ hoàn tất đã xóa.
 - Lớp cách ly: [`trading/wiring/quarantine.ts`](../../src/trading/wiring/quarantine.ts)
 - Các neo của refresh: [`trading/features/market-data/ops/refresh-schedule.ts`](../../src/trading/features/market-data/ops/refresh-schedule.ts)
 - Đối chiếu lệnh thoát: [`trading/features/order/exit-tick.ts`](../../src/trading/features/order/exit-tick.ts)
-- Khởi động daemon và lưu giữ: [`app/daemon.ts`](../../src/app/daemon.ts)
+- Khởi động dịch vụ nền và lưu giữ: [`app/daemon.ts`](../../src/app/daemon.ts)
 - Vòng đời bộ lập lịch: [`scheduler/runner.ts`](../../src/scheduler/runner.ts); thực thi: [`scheduler/job/execution.ts`](../../src/scheduler/job/execution.ts); khoảng chờ: [`scheduler/backoff.ts`](../../src/scheduler/backoff.ts)
 - Bộ phân tích cron: [`core/utils/cron.ts`](../../src/core/utils/cron.ts)
 - Bộ phân tích, giao thức và bộ chạy heartbeat: [`scheduler/heartbeat/`](../../src/scheduler/heartbeat)

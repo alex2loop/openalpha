@@ -5,14 +5,9 @@ import { OperatorConfigError } from '@/core/config/resolve'
 import { ValidationError } from '@/core/errors'
 import { translateToolError } from '@/i18n'
 import { OrderError } from '@/trading/features/order/types'
-import { scoped, scopedSlow } from '@/trading/wiring/host/scope'
+import { scoped, scopedSlow, UNABORTED } from '@/trading/wiring/host/scope'
 
 const ORDER_FAILED_KEY = 'slash.tradingTradeFailed'
-
-/** A write to an exchange runs on no caller signal: a client hanging up mid-fill must not
- *  abandon an order the exchange holds or split an exit's placement from the row that records
- *  it. Shutdown and the slow ceiling still bound it. */
-const UNABORTED = new AbortController().signal
 
 export type OrderMethods = Pick<
   TradingHost,

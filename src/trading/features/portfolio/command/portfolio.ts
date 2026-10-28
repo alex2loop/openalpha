@@ -82,6 +82,7 @@ export function createPortfolioCommand(deps: PortfolioCommandDeps): SlashCommand
       role: 'operator',
       action: 'read',
       execution: { progressKey: 'slash.tradingPortfolioProgress' },
+      selfContained: true,
     },
     completeFor: completePortfolioArgs,
     usage: () => ({ key: USAGE, values: buildUsageValues() }),

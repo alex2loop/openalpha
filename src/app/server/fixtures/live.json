@@ -1,0 +1,68 @@
+{
+  "runs": [
+    {
+      "runId": "cmd_4f1a",
+      "kind": "command",
+      "name": "refresh",
+      "channelId": "telegram",
+      "sessionId": "sess_8c2",
+      "startedAt": 1792480000000,
+      "progress": {
+        "key": "trading.progress.refresh.bars",
+        "params": { "market": "equity-vn", "done": 120, "total": 1600 },
+        "text": "equity-vn · Đang tải lịch sử giá - 120/1600 mã…",
+        "mode": "transient",
+        "at": 1792480004000
+      },
+      "persistent": []
+    },
+    {
+      "runId": "run_abc",
+      "kind": "agent",
+      "name": "chat",
+      "title": "Phân tích FPT",
+      "channelId": "api",
+      "sessionId": "sess_91d",
+      "agentId": "chat",
+      "startedAt": 1792480010000,
+      "thinking": "So sánh biên lợi nhuận với nhóm công nghệ",
+      "persistent": [],
+      "tickers": ["FPT", "HPG"]
+    }
+  ],
+  "pending": [
+    {
+      "kind": "approval",
+      "event": {
+        "v": 1,
+        "kind": "approval_requested",
+        "weight": "interrupt",
+        "wake": true,
+        "source": { "channel": "api", "agentId": "chat" },
+        "runId": "run_abc",
+        "requestId": "call_456",
+        "approval": {
+          "toolName": "market_price",
+          "label": "Giá",
+          "argsSummary": "ticker: FPT, days: 365",
+          "expiresAt": 1792483200000,
+          "decisions": ["deny", "approve", "always"],
+          "channelId": "api",
+          "answerable": true,
+          "askedAt": 1792480030000
+        }
+      }
+    },
+    {
+      "kind": "question",
+      "requestId": "ask_77",
+      "runId": "run_9aa",
+      "sessionId": "tg_123456789",
+      "channelId": "telegram",
+      "question": "Which broker account?",
+      "askedAt": 1792479950000,
+      "answerable": false
+    }
+  ],
+  "alertsCheckedAt": 1792480060000
+}

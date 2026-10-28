@@ -54,7 +54,7 @@ export {
   type ZaloPersonalLoginProgress,
 } from '@/channels/adapters/zalo-personal/login'
 export { type ChannelDefinitionInput, createChannel } from '@/channels/define'
-export { formatRunResultBody } from '@/channels/delivery/format'
+export { formatRunResultBody, toResearchMilestone } from '@/channels/delivery/format'
 export { resolveDefaultRecipient } from '@/channels/recipient'
 export {
   assertChannelConfigs,

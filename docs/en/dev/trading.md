@@ -123,8 +123,11 @@ The routes the trading feature adds, served when `[api] enabled = true`. The res
 | `GET /v1/portfolio/nav` | `portfolio` |
 | `GET /v1/suggestions` | `suggestions` |
 | `GET /v1/suggestions/:id/card` | `suggestions` |
+| `GET /v1/suggestions/:id/debate` | `suggestions` |
 | `GET /v1/track-record` | `suggestions` |
 | `GET /v1/brief`, `PATCH /v1/brief` | - |
+
+A stored suggestion keeps the models that argued it in `suggestions.debate_models` (the sorted list joined by `,`, null on a row written before the column) and the claim ids the fact check refuted in its debate block (`refutedIds`, absent on an older row). `GET /v1/track-record` counts per model, over all time, only the scored calls of your own record (the default focus) whose `debate_models` names one model, folded with `independentCalls` and held to `MINIMUM_TRACK_RECORD_SAMPLE` like every rate; a call several models argued, and a row with no stored list, count for none. Each focus row and each agent's `record` also carries `targetCount`, the independent calls that closed on their target.
 
 ## VN factor research
 

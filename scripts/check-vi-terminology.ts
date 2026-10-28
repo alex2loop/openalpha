@@ -100,11 +100,19 @@ const REDUCE_KEYS = Object.freeze([
  *  Vietnamese-speaking trader has confirmed the term is wrong — a guess here is worse than nothing,
  *  because it makes the wrong term look adjudicated. */
 /** `phiên` alone is a trading session - the unit every VN market figure is quoted in, and what
- *  `(20 phiên)` means. Every other sense takes a qualifier: `phiên chat` for the assistant's own
- *  session, `phiên chạy` for one run, `phiên bản` for a version. */
+ *  `(20 phiên)` means. Every other sense takes a qualifier: `phiên chạy` for one run, `phiên bản`
+ *  for a version. The assistant's own session is `cuộc trò chuyện`: `phiên chat` is banned
+ *  everywhere by `CHAT_SESSION_RE`, so the qualifier list here leaves it to that rule. */
 const BARE_SESSION_RE = /\bphiên(?!\s+(?:chat|chạy|bản|đánh giá|định kỳ))/i
 const BARE_SESSION_WHY =
-  'a bare "phiên" reads as a trading session; the assistant\'s own session is "phiên chat" and one run is "phiên chạy"'
+  'a bare "phiên" reads as a trading session; a chat session is "cuộc trò chuyện" and one run is "phiên chạy"'
+const CHAT_SESSION_RE = /\bphiên chat\b/i
+/** The background process is `dịch vụ nền`. `daemon` survives only as a flag (`--daemon`), a
+ *  placeholder (`{daemon}`) or inside backticks. */
+const DAEMON_RE = /(?<![-{\w`.[])daemon(?![\w}\]`-])/i
+/** A model is `mô hình`. `model` survives as a config key (`[[models]] model`, `{model}`), the
+ *  `/model` command and the protocol name "Model Context Protocol". */
+const MODEL_RE = /(?<![-{\w`.[/_])model(?![\w}\]`_-])(?! Context Protocol)/i
 /** `lệnh` is an exchange order. A command the operator types is `câu lệnh`, and the two compounds
  *  that are neither stay whole: `dòng lệnh` is a command line and `lệnh gọi` is a call. */
 const BARE_ORDER_RE = /(?<!câu |dòng )\blệnh(?!\s+gọi)/i
@@ -211,7 +219,7 @@ const GLOBAL_CONFUSIONS: readonly TermRule[] = Object.freeze([
     why: 'margin (ký quỹ) and profit margin (biên lợi nhuận) are unrelated concepts',
   },
   {
-    key: '*',
+    key: EVERY_KEY,
     forbidden: [/(?:lượt|lần) chạy/i],
     why: 'one execution is "phiên chạy"; "lượt" alone is the turn inside it, so "lượt chạy" names the smaller thing with the bigger word',
   },
@@ -219,6 +227,21 @@ const GLOBAL_CONFUSIONS: readonly TermRule[] = Object.freeze([
     key: EVERY_KEY,
     forbidden: [/(?<!\p{L})tôi(?!\p{L})/iu],
     why: 'the assistant calls itself "mình" in Vietnamese; "tôi" reads stiff beside it',
+  },
+  {
+    key: EVERY_KEY,
+    forbidden: [CHAT_SESSION_RE],
+    why: 'a chat session is "cuộc trò chuyện"; "phiên" alone is a trading session',
+  },
+  {
+    key: EVERY_KEY,
+    forbidden: [DAEMON_RE],
+    why: 'the background process is "dịch vụ nền"; keep "daemon" only as a flag, placeholder or command',
+  },
+  {
+    key: EVERY_KEY,
+    forbidden: [MODEL_RE],
+    why: 'a model is "mô hình"; keep "model" only as a config key, placeholder or command',
   },
   {
     key: EVERY_KEY,

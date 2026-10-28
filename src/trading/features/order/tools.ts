@@ -8,7 +8,7 @@ import type { Ticker } from '@/trading/kernel/instrument'
 import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import { createTool } from '@/core/tool'
 import { renderOrderLine } from '@/trading/features/order/render'
-import { exitLevelsOf } from '@/trading/features/order/types'
+import { exitLevelsOf, ORDER_TOOL_NAME } from '@/trading/features/order/types'
 import { isVenueRefShape, venueRef } from '@/trading/kernel/instrument'
 import { fractionToPct, toAgentJson } from '@/trading/kernel/surface/agent-json'
 import { noInput, PRICE_INPUT_UNITS } from '@/trading/kernel/surface/surface'
@@ -28,7 +28,7 @@ export function createOrderPlaceTool(
   tickerSchema: z.ZodType<Ticker>
 ): ToolDefinition {
   return createTool({
-    name: 'order_place',
+    name: ORDER_TOOL_NAME,
     description:
       'Place one spot order on an operator exchange, with a take-profit and a stop-loss. ' +
       'A buy without a stop-loss is refused unless the operator turned `require_stop_loss` off. ' +

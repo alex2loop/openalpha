@@ -2,6 +2,7 @@ import type { AgentId } from '@/core/ids'
 import type { AgentPauseStore } from '@/core/types/agent-pause'
 import type {
   CommandDescription,
+  CommandMessage,
   SlashCommand,
   SlashContext,
   SlashResult,
@@ -14,8 +15,10 @@ const MESSAGE_KEYS = [
   'slash.agentSet',
   'slash.agentPausedSelected',
   'slash.agentTerminalHint',
+  'slash.agentUsage',
 ] as const
 const DEFAULT_AGENT = 'default'
+const USAGE: CommandMessage = { key: 'slash.agentUsage' }
 
 const DESCRIPTION: CommandDescription = { kind: 'localized', key: 'slash.agentHelp' }
 const READ_POLICY = {
@@ -33,6 +36,8 @@ const SELECT_POLICY = {
 
 export interface AgentCommandDeps {
   readonly agents: AgentRegistry
+  /** The agents a chat can be handed to; the built-in roles that only work inside a run are not. */
+  readonly ownAgentIds: () => ReadonlySet<AgentId>
   readonly pausedAgents: Pick<AgentPauseStore, 'isPaused'>
   readonly agentFor: (ctx: SlashContext) => Promise<AgentId>
   readonly selectAgent: (ctx: SlashContext, target: AgentId | 'default') => Promise<void>
@@ -45,7 +50,8 @@ export function createAgentCommand(deps: AgentCommandDeps): SlashCommand {
     messageKeys: [...MESSAGE_KEYS],
     policy: READ_POLICY,
     policyFor: (args) => (args.length > 0 ? SELECT_POLICY : READ_POLICY),
-    completeFor: (args) => (args.length === 1 ? agentTargets(deps.agents) : []),
+    completeFor: (args) => (args.length === 1 ? [DEFAULT_AGENT, ...deps.ownAgentIds()] : []),
+    usage: () => USAGE,
     run: async (ctx: SlashContext): Promise<SlashResult> => runAgentCommand(deps, ctx),
   }
 }

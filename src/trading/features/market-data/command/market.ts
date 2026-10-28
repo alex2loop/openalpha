@@ -4,6 +4,7 @@ import type { IntradayReportDeps } from '@/trading/features/market-data/intraday
 import type { IntradayPlan } from '@/trading/features/market-data/intraday/schedule'
 import type { IntradaySettingsStore } from '@/trading/features/market-data/store/intraday-settings'
 import type { TradingConfig } from '@/trading/kernel/config'
+import type { Region } from '@/trading/kernel/instrument'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { formatDay, t } from '@/i18n'
 import { buildIntradayReport } from '@/trading/features/market-data/intraday/report'
@@ -22,6 +23,14 @@ const USAGE: 'slash.tradingMarketUsage' = 'slash.tradingMarketUsage'
 const ENABLED: 'slash.tradingMarketEnabled' = 'slash.tradingMarketEnabled'
 const DISABLED: 'slash.tradingMarketDisabled' = 'slash.tradingMarketDisabled'
 const ACTIONS = Object.freeze(['enable', 'disable'] as const)
+
+interface MarketShowRequest {
+  readonly region: Region
+  readonly locale: Locale
+  /** Where it is read, which sets its layout and width. */
+  readonly surface: string
+  readonly signal: AbortSignal
+}
 
 interface MarketCommandDeps {
   readonly report: Omit<IntradayReportDeps, 'locale'>
@@ -43,6 +52,7 @@ export function createMarketCommand(deps: MarketCommandDeps): SlashCommand {
       role: 'operator',
       action: 'mutate',
       execution: { progressKey: 'slash.tradingMarketProgress' },
+      selfContained: true,
     },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
     usage: () => ({ key: USAGE }),
@@ -69,28 +79,42 @@ async function run(deps: MarketCommandDeps, ctx: SlashContext): Promise<SlashRes
 }
 
 async function runShow(deps: MarketCommandDeps, ctx: SlashContext): Promise<SlashResult> {
+  const text = await renderMarketShow(deps, {
+    region: deps.config.defaultRegion,
+    locale: ctx.locale,
+    surface: ctx.surface,
+    signal: ctx.signal,
+  })
+
+  return { kind: 'text', text }
+}
+
+/** What `/market` prints for a region: its intraday report, then whether and when the next one is
+ *  sent. The web page reads the same text for any region; the schedule line is the default region's own. */
+export async function renderMarketShow(
+  deps: MarketCommandDeps,
+  request: MarketShowRequest
+): Promise<string> {
   const now = Date.now()
-  const enabled = await deps.settings.isEnabled(ctx.signal)
-  const plan = resolveIntradayPlan(
-    { markets: deps.markets, config: deps.config },
-    deps.config.defaultRegion
-  )
+  const enabled = await deps.settings.isEnabled(request.signal)
+  const plan = resolveIntradayPlan({ markets: deps.markets, config: deps.config }, request.region)
   const report = await buildIntradayReport(
-    { ...deps.report, locale: ctx.locale },
-    { plan, now, signal: ctx.signal }
+    { ...deps.report, locale: request.locale },
+    { plan, now, signal: request.signal }
   )
 
-  return {
-    kind: 'text',
-    text: [
-      renderIntradayText(
-        ctx.locale,
-        report,
-        resolveRenderContext(deps.report.timezone, ctx.surface)
-      ),
-      nextLine(ctx.locale, { plan, now, enabled, timezone: deps.report.timezone }),
-    ].join(BLOCK_SEPARATOR),
-  }
+  const text = renderIntradayText(
+    request.locale,
+    report,
+    resolveRenderContext(deps.report.timezone, request.surface)
+  )
+
+  // The schedule is the default region's: another region's page carries no line about it.
+  return request.region === deps.config.defaultRegion
+    ? [text, nextLine(request.locale, { plan, now, enabled, timezone: deps.report.timezone })].join(
+        BLOCK_SEPARATOR
+      )
+    : text
 }
 
 /** Enabling reports the next fire rather than a bare "done": with an empty `send_times`, "enabled"

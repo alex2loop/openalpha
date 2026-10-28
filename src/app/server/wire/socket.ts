@@ -1,5 +1,5 @@
 // /v1/ws — the unified WebSocket envelope. One socket: the daemon pushes `wire_event` + chat frames
-// (JSON text); the client sends chat/steer/cancel/hello (JSON text). Each text message is a JSON
+// (JSON text); the client sends chat/steer/cancel/drop/hello (JSON text). Each text message is a JSON
 // object discriminated by `type`; payloads are the contract shapes from the sibling files.
 
 import type { ChatBody, ChatDone, ChatError, ChatFrame } from '@/app/server/wire/chat'
@@ -8,6 +8,14 @@ import type { WireEvent } from '@/app/server/wire/events'
 /** Bumped only on a breaking change to any wire type (→ a new /v2 surface). Additive changes within
  *  v1 (a new optional field, WireEventKind, or ApiErrorCode) keep this at 1. */
 export const CONTRACT_VERSION = 1
+
+/** A `hello` naming another contract closes the socket with this code and a reason that starts with
+ *  `CONTRACT_REFUSED_REASON_PREFIX` and names the version the daemon needs (`contract 1 required`). */
+export const CONTRACT_REFUSED_CLOSE_CODE = 1011
+export const CONTRACT_REFUSED_REASON_PREFIX = 'contract '
+
+/** The daemon pings a socket idle this long (Bun's `websocket.idleTimeout`). */
+export const SOCKET_IDLE_TIMEOUT_SECONDS = 120
 
 /** Server → client. Clients MUST ignore an unknown `type`/`kind` rather than error. */
 export type ServerFrame =
@@ -22,4 +30,6 @@ export type ClientFrame =
   | ({ readonly type: 'chat' } & ChatBody)
   | ({ readonly type: 'steer' } & ChatBody)
   | { readonly type: 'cancel'; readonly sessionId: string }
+  /** Takes a command out of the command lane while it waits; the socket that ran it answers `dropped`. */
+  | { readonly type: 'drop'; readonly sessionId: string; readonly id: string }
   | { readonly type: 'hello'; readonly contractVersion: number }

@@ -1,6 +1,15 @@
 // The /v1 system routes: health, state, doctor, commands and cost. camelCase keys, no snake_case
 // on the wire. A contract is replaced rather than deprecated; see CONTRACT.md §2.
 
+import type { JobEventWire } from '@/app/server/wire/jobs'
+import type { RestartWhen } from '@/app/server/wire/vocab'
+import type { CheckName, DoctorStatus } from '@/core/types/doctor'
+import type { Locale } from '@/core/types/locale'
+
+/** How many of the latest runs a cost estimate reads: the command estimate below and the per-run
+ *  price a model shows on `/v1/models`. */
+export const COST_ESTIMATE_SAMPLE = 10
+
 /** Sections whose backing store may not exist yet — the client greys the unbuilt tab instead of
  *  guessing from a 404. Only the sections that actually vary are listed (chat/approve/stream/health
  *  are always on). Echoed by GET /v1/health (unauth) and GET /v1/state. */
@@ -9,7 +18,7 @@ export interface Capabilities {
   readonly quotes: boolean
   readonly portfolio: boolean
   readonly suggestions: boolean
-  /** A venue can place orders: the /v1/trade routes answer. */
+  /** A venue can place orders and `[api] orders` is on: the /v1/trade routes answer. */
   readonly orders: boolean
 }
 
@@ -20,6 +29,8 @@ interface DegradedWire {
   readonly kind: 'channel' | 'api' | 'key' | 'optional-key'
   readonly subject: string
   readonly message: string
+  /** An exchange with no keys (`subject` is the venue id): the unset variables it waits for. */
+  readonly variables?: readonly string[]
 }
 
 /** GET /v1/health — the only unauthenticated route. Liveness + version + capabilities. */
@@ -30,18 +41,22 @@ export interface HealthResponse {
    *  showing "stopped". */
   readonly status?: 'starting' | 'ready'
   readonly version: string
+  /** The product's display name, so a sign-in screen can name it before the token is entered. */
+  readonly brand: string
   /** The `/v1/ws` contract this daemon speaks; a client built for another one cannot use it. */
   readonly contractVersion: number
   readonly capabilities: Capabilities
 }
 
 /** The morning brief's delivery. `sendTime` is HH:mm in the market's timezone and absent when the
- *  brief follows config. `nextDeliveryDay` (`YYYY-MM-DD`) is present while `scheduled`. */
+ *  brief follows config. `nextDeliveryDay` (`YYYY-MM-DD`) and `nextDueAt` (epoch ms, when the
+ *  brief is next due to send) are present while `scheduled`. */
 export interface BriefScheduleWire {
   readonly state: 'scheduled' | 'delivering' | 'disabled'
   readonly channel: string
   readonly sendTime?: string
   readonly nextDeliveryDay?: string
+  readonly nextDueAt?: number
 }
 
 interface HealthSection {
@@ -57,14 +72,26 @@ interface CostSection {
 /** Scheduler rows pass through verbatim; the client reads `id` + whatever fields exist. The exact
  *  columns live in the scheduler store — deliberately open so the schedule shape can grow without a
  *  contract bump. Timestamp fields (e.g. `nextRunAt`) are epoch milliseconds. */
-interface ScheduleRow {
+export interface ScheduleRow {
   readonly id: string | number
   /** When the job fires, as the scheduler stores it; the app words it ("Sun 20:00", "every 2 h"). */
   readonly schedule?:
     | { readonly kind: 'cron'; readonly expr: string; readonly timezone: string }
     | { readonly kind: 'interval'; readonly everyMs: number }
     | { readonly kind: 'once'; readonly at: number }
+  /** Set on a job that runs when an alert fires. Such a job has no `schedule` and no `nextRunAt`. */
+  readonly event?: JobEventWire
   readonly [field: string]: unknown
+}
+
+/** What the app still has to ask of someone on a first run. */
+interface FirstRunWire {
+  /** A model can answer: its key is set or its login is done, or the connected client answers. */
+  readonly modelReady: boolean
+  /** The operator saved a profile; a daemon that never did runs on seeded defaults. */
+  readonly profileSaved: boolean
+  /** The ledger holds no row at all. */
+  readonly bookEmpty: boolean
 }
 
 /** GET /v1/state — the composite snapshot the panel polls. Optional sections are omitted until their
@@ -77,11 +104,41 @@ export interface StatePayload {
   readonly capabilities: Capabilities
   /** The IANA zone the daemon's days are counted in: cost caps, `/v1/cost` days, suggestion days. */
   readonly timeZone: string
+  /** The daemon's `[locale] language`: the language its own text is written in. */
+  readonly locale: Locale
   /** What the daemon started without; empty when everything is configured. Behind auth, since it
    *  names unset variables and channels that are down. */
   readonly degraded: readonly DegradedWire[]
   /** Absent when the brief was never enabled or trading is off. */
   readonly brief?: BriefScheduleWire
+  /** `POST /v1/restart` can restart the daemon: it restarts in place (not on Windows) or runs in the
+   *  background. False in a terminal or under a service on Windows. */
+  readonly restartable: boolean
+  /** The longest a restart with `when: 'idle'` waits for the daemon to go quiet. */
+  readonly restartIdleWaitMs: number
+  /** The grace runs in flight get when the daemon stops, before they are cut. Not the downtime of a
+   *  restart: watch `/v1/health` go down, then up; the `pid` stays after a restart in place. */
+  readonly restartDrainMs: number
+  /** Resolved calls a track record needs before its rates mean anything. */
+  readonly trackRecordMinSample: number
+  /** The longest one child agent an agent spawned may run. */
+  readonly childRunMaxMs: number
+  readonly firstRun: FirstRunWire
+  /** The longest the daemon lets its slow routes run, so a client waits for them that long. */
+  readonly slowRequestMs: number
+  /** `[api] public_url` is set: keys and the ChatGPT sign-in change only on the server. */
+  readonly exposed: boolean
+}
+
+/** POST /v1/restart. */
+export interface RestartBody {
+  readonly when: RestartWhen
+}
+
+/** 202 from POST /v1/restart. The shutdown refuses every approval still waiting, so the app can
+ *  warn before it restarts. */
+export interface RestartAcceptedWire {
+  readonly refusedApprovals: number
 }
 
 interface CostRow {
@@ -101,6 +158,15 @@ interface CostRow {
   readonly averageLatencyMs?: number
 }
 
+interface CostJobWire {
+  readonly kind: 'command' | 'agent'
+  /** The command name, or the agent id. */
+  readonly name: string
+  /** How many top-level runs of this job billed in the range. */
+  readonly runs: number
+  readonly costUsd: number
+}
+
 /** GET /v1/update — whether a newer daemon release is out. `enabled` false: checks are off (config,
  *  or a source checkout that updates with git), and `latest` is null. The feed is read once a day. */
 export interface UpdateResponse {
@@ -112,6 +178,19 @@ export interface UpdateResponse {
   readonly url: string | null
   /** When the feed last answered or failed; 0 before the first check. */
   readonly checkedAt: number
+  /** `latest` is newer than `current`. */
+  readonly newer: boolean
+  /** The releases newer than `current` up to `latest`, newest first; empty while their notes are
+   *  unread. `summary` is in the daemon's language, absent when the release has none in it. */
+  readonly notes: readonly UpdateNoteWire[]
+  /** What to run on the daemon's machine to upgrade. */
+  readonly upgradeCommand: string
+}
+
+interface UpdateNoteWire {
+  readonly version: string
+  readonly important: boolean
+  readonly summary?: string
 }
 
 /** GET /v1/cost?from&to — AI spend over an inclusive range of `YYYY-MM-DD` days, at most 366.
@@ -130,19 +209,36 @@ export interface CostReport {
   /** One total per calendar day, oldest first, zero days included. */
   readonly days: readonly { readonly day: string; readonly costUsd: number }[]
   readonly rows: readonly CostRow[]
+  /** The same calls by the top-level run each belongs to (child runs included), one row per job,
+   *  costliest first. */
+  readonly jobs: readonly CostJobWire[]
+  /** The calls whose top-level run has no run row (none written, still running, or pruned), so
+   *  the jobs and this add up to `totalUsd`. */
+  readonly otherUsd: number
 }
 
-/** GET /v1/doctor — one diagnostic row (config / storage / provider auth) for the More tab. */
+/** The check a doctor row belongs to: the CLI's `doctor <check>` name, or `api` for the API token. */
+export type DoctorCheckId = CheckName | 'api'
+
+/** GET /v1/doctor — one row of a check, worded as the CLI's `doctor` words it. */
 export interface DoctorCheck {
-  /** e.g. 'config', 'database', 'provider: openrouter'. */
+  readonly check: DoctorCheckId
+  /** The row label, in the daemon's language. */
   readonly name: string
+  /** `cliOnly`: a check only `doctor` in a terminal on the server can run; it has no status. */
+  readonly status: DoctorStatus | 'cliOnly'
+  /** `status` is `ok` or `info`. */
   readonly ok: boolean
   /** Short human line; never a stack trace. */
   readonly detail?: string
 }
 
+/** `?online=1` adds the network probes except any model call; `?check=<id>` runs one check. */
 export interface DoctorReport {
   readonly checks: readonly DoctorCheck[]
+  /** When the daemon ran these checks. */
+  readonly checkedAt: number
+  readonly online: boolean
 }
 
 /** GET /v1/commands — one slash command for chat completion. The same registry the CLI and channels
@@ -154,8 +250,24 @@ interface SlashCommandInfo {
   readonly summary: string
   /** Sub-command names for the completion ghost (e.g. schedule: ['add','list','remove']). */
   readonly args?: readonly string[]
+  /** What a run usually costs: the 25th to 75th percentile of the last runs that cost something.
+   *  Absent until enough runs exist. `0` to `0` means it has not cost AI so far, and with `runs` 0 that it cannot. */
+  readonly estimate?: { readonly lowUsd: number; readonly highUsd: number; readonly runs: number }
 }
 
 export interface CommandList {
   readonly commands: readonly SlashCommandInfo[]
 }
+
+/** GET /v1/commands/complete?line=<typed text> — what the argument being typed on a slash command
+ *  accepts, from the command's own completer (the CLI's Tab completion). */
+export interface CommandCompletion {
+  /** Every value valid at the position, starting with the partial token the line ends in. Empty for
+   *  a command that completes nothing there, a name nothing answers to, and a name still typed. */
+  readonly candidates: readonly string[]
+  /** The command's usage text in the daemon's language; absent when it has none. */
+  readonly usage?: string
+}
+
+/** The longest line the daemon completes; a longer one answers nothing. */
+export const MAX_COMPLETION_LINE_CHARS = 500

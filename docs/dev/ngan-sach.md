@@ -51,7 +51,7 @@ Mã: [engine/budget/attempt-settlement.ts](../../src/engine/budget/attempt-settl
 ## Sổ chi phí
 
 `llm_attempts` là cuốn sổ bền vững ([persistence/stores/llm-attempt.ts](../../src/persistence/stores/llm-attempt.ts)). Mỗi
-dòng mang theo phiên chạy và phiên chạy cha (`parent_run_id`), phiên chat tính tiền, agent, `billing_agent_id`, nhà cung cấp,
+dòng mang theo phiên chạy và phiên chạy cha (`parent_run_id`), cuộc trò chuyện tính tiền, agent, `billing_agent_id`, nhà cung cấp,
 mô hình, kết cục, số token, nguồn giá, `cost_nano_usd`, độ trễ và thời điểm quyết toán. Tổng theo ngày, tháng và khoảng đều
 cộng từ các dòng, nên không có tổng hợp nào để lệch.
 
@@ -63,7 +63,7 @@ ngày và tháng cho đến hết tháng của nó, nên khởi động lại kh
 tệp không đọc được hay bị hỏng lúc khởi động, không việc tốn tiền nào được duyệt thêm chừng nào còn đặt hạn mức ngày hoặc
 tháng (`ledger_unavailable`); không có hạn mức thì chỉ là khoảng hở trong báo cáo.
 
-Chính sách lưu giữ xóa phiên chat và tin nhắn cũ nhưng tách rời các dòng lần thử chứ không xóa.
+Chính sách lưu giữ xóa cuộc trò chuyện và tin nhắn cũ nhưng tách rời các dòng lần thử chứ không xóa.
 
 `billing_agent_id` là agent có mức trần được tính khoản chi, không phải lúc nào cũng là agent chạy. Một con ủy quyền, một con
 nghiên cứu và một persona tranh luận do công cụ khởi động đều tính cho agent đã nhờ; một lần đọc tiêu đề trong cuộc tranh
@@ -147,6 +147,7 @@ Các bộ đếm `[loop]` chặn cây độc lập với ngân sách:
 | `delegation_depth` | Số cạnh con tối đa từ phiên chạy gốc, cộng với việc từ chối tự ủy quyền và vòng lặp tổ tiên | không áp dụng |
 | `max_delegations` | Một hạn ngạch dùng chung cho cả cây, giữ chỗ trước khi con khởi động ([engine/budget/delegation-quota.ts](../../src/engine/budget/delegation-quota.ts)) | Không |
 | `max_parallel_delegations` | Số mục tối đa trong một lời gọi `delegate_parallel` | không áp dụng |
+| `max_spawn` (tệp agent) | Số agent con tự tạo một agent được khởi động cùng lúc trong một lời gọi; chúng dùng phần ngân sách và hạn ngạch của agent cha | không áp dụng |
 
 ### Các bất biến
 

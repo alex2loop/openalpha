@@ -16,6 +16,9 @@ import type {
 import type { VenueRef } from '@/trading/kernel/instrument'
 import type { BriefSectionKind } from '@/trading/kernel/operator/brief-section'
 import { MS_PER_HOUR, MS_PER_MINUTE } from '@/core/utils/time'
+import { MACRO_BACKFILL_DAYS } from '@/trading/features/market-data/macro-extract/tick'
+import { MAXIMUM_OUTCOME_LOOKBACK_DAYS } from '@/trading/features/suggestion/pipeline/outcome-window'
+import { MACRO_WINDOW_DAYS } from '@/trading/features/themes/evidence/macro'
 import { currencyCode, marketRef, region, venueRef } from '@/trading/kernel/instrument'
 
 // Starting point for a knob `[trading]` exposes: what an operator gets before they state a
@@ -221,4 +224,12 @@ export const DEFAULT_TRADING_CONFIG: TradingConfig = Object.freeze({
   sourceCredentialEnv: Object.freeze({}),
   costs: DEFAULT_TRADING_COSTS,
   defaultVenues: DEFAULT_VENUE_BY_MARKET,
+})
+
+/** How far back the readers of each history table look, so retention never sweeps what they read:
+ *  the track record's lookback, the macro year-over-year window, the macro extract's backfill. */
+export const HISTORY_FLOOR_DAYS = Object.freeze({
+  trackRecord: MAXIMUM_OUTCOME_LOOKBACK_DAYS,
+  macroSeries: MACRO_WINDOW_DAYS,
+  macroDocuments: MACRO_BACKFILL_DAYS,
 })

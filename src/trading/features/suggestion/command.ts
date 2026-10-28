@@ -71,6 +71,7 @@ export function createSuggestCommand(deps: SuggestCommandDeps): SlashCommand {
       role: 'operator',
       action: 'costly',
       execution: { progressKey: 'slash.tradingSuggestProgress' },
+      selfContained: true,
     },
     // The subject is a ticker and `stops` is its exception, so only the options complete.
     completeFor: (args) => (args.length === 1 ? [] : OPTIONS),
@@ -109,6 +110,7 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
     focus: DEFAULT_RUN_FOCUS,
     ...request,
     ...(mode === null ? {} : { debateMode: mode }),
+    ...(ctx.runId === undefined ? {} : { parentRunId: ctx.runId }),
     force,
     now: Date.now(),
     signal: ctx.signal,
@@ -195,6 +197,7 @@ async function runStops(
     billingSessionId: ctx.sessionId,
     focus: DEFAULT_RUN_FOCUS,
     ...stopsDebateMode(options),
+    ...(ctx.runId === undefined ? {} : { parentRunId: ctx.runId }),
     now,
     signal: ctx.signal,
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),

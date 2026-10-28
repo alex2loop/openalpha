@@ -4,7 +4,12 @@ import type {
 } from '@/trading/features/suggestion/store/call-actions'
 import type { FindLatestExitPlanOptions } from '@/trading/features/suggestion/store/exit-plan'
 import type { SuggestionStoreDeps } from '@/trading/features/suggestion/store/readable-row'
+import type {
+  SuggestionDayOptions,
+  SuggestionDayRead,
+} from '@/trading/features/suggestion/store/suggestion-day'
 import type { SuggestionPageOptions } from '@/trading/features/suggestion/store/suggestion-list'
+import type { ModelCall } from '@/trading/features/suggestion/store/suggestion-model'
 import type {
   ClearRestatedOptions,
   CloseUnscorableOptions,
@@ -32,7 +37,12 @@ import { assertNotAborted, StorageError } from '@/core/errors'
 import { listCallActions } from '@/trading/features/suggestion/store/call-actions'
 import { findLatestExitPlan } from '@/trading/features/suggestion/store/exit-plan'
 import { readableRow } from '@/trading/features/suggestion/store/readable-row'
+import { readSuggestionDay } from '@/trading/features/suggestion/store/suggestion-day'
 import { listSuggestionPage } from '@/trading/features/suggestion/store/suggestion-list'
+import {
+  listScoredByModel,
+  toDebateModelsColumn,
+} from '@/trading/features/suggestion/store/suggestion-model'
 import {
   clearRestated,
   closeUnscorable,
@@ -54,9 +64,23 @@ import { tradingDay } from '@/trading/kernel/instrument'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
 import { toPage } from '@/trading/kernel/store/store-row'
 
-const INSERT_SQL =
-  'INSERT INTO suggestions (id, strategy_id, strategy_version, focus_key, market, ticker, day, ' +
-  'action, conviction, authored_locale, created_at, is_call, payload) VALUES '
+const INSERT_COLUMNS = [
+  'id',
+  'strategy_id',
+  'strategy_version',
+  'focus_key',
+  'market',
+  'ticker',
+  'day',
+  'action',
+  'conviction',
+  'authored_locale',
+  'created_at',
+  'is_call',
+  'debate_models',
+  'payload',
+] as const
+const INSERT_SQL = `INSERT INTO suggestions (${INSERT_COLUMNS.join(', ')}) VALUES `
 
 interface FindRecentSuggestionOptions {
   readonly market: MarketRef
@@ -124,6 +148,11 @@ export interface SuggestionStore {
   listResolved(options: ListResolvedOptions): Promise<readonly ResolvedActionableSuggestion[]>
   /** Every scored call, pooled across versions, whatever the row count; the caller folds repeats. */
   listFocusCalls(signal: AbortSignal): Promise<readonly FocusCall[]>
+  /** The scored calls of the given focuses that a single model argued, pooled across versions; the
+   *  caller folds repeats. */
+  listScoredByModel(options: Parameters<typeof listScoredByModel>[1]): Promise<readonly ModelCall[]>
+  /** What one operator day added to the table (`suggestion-day.ts`). */
+  readDay(options: SuggestionDayOptions): Promise<SuggestionDayRead>
   /** The lean read agreement is measured on: no payload, the newest row per focus, name and day. */
   listCallActions(options: ListCallActionsOptions): Promise<readonly CallAction[]>
 }
@@ -147,6 +176,8 @@ export function createSuggestionStore(deps: SuggestionStoreDeps): SuggestionStor
     resolve: (id, outcome, signal) => resolveOutcome(deps, { id, outcome, signal }),
     listResolved: (options) => listResolved(deps, options),
     listFocusCalls: (signal) => listFocusCalls(deps, signal),
+    listScoredByModel: (options) => listScoredByModel(deps, options),
+    readDay: (options) => readSuggestionDay(deps, options),
     listCallActions: (options) => listCallActions(deps, options),
   }
 }
@@ -312,7 +343,7 @@ async function replace(deps: StoreDeps, options: ReplaceSuggestionOptions): Prom
 }
 
 function buildInsertSql(deps: StoreDeps): string {
-  return `${INSERT_SQL}(${deps.dialect.paramList(13)}) ON CONFLICT DO NOTHING`
+  return `${INSERT_SQL}(${deps.dialect.paramList(INSERT_COLUMNS.length)}) ON CONFLICT DO NOTHING`
 }
 
 function buildInsertParams(suggestion: StoredSuggestion): readonly unknown[] {
@@ -329,6 +360,7 @@ function buildInsertParams(suggestion: StoredSuggestion): readonly unknown[] {
     suggestion.authoredLocale,
     suggestion.createdAt,
     isAnalystCall(suggestion) ? 1 : 0,
+    toDebateModelsColumn(suggestion.debate?.models ?? []),
     JSON.stringify(toPayload(suggestion)),
   ]
 }

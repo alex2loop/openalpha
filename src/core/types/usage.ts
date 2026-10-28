@@ -81,6 +81,18 @@ type LLMAttemptResult =
 type LLMAttemptFields = LLMAttemptBase & LLMAttemptResult
 
 export type LLMAttemptInput = LLMAttemptFields & { readonly sessionId: SessionId | null }
+
+/** One stored attempt as a run's calls list reads it: the fact without its session. */
+export type RunAttempt = LLMAttemptFields
+
+/** The newest attempts of a run and everything beneath it, with the totals of all of them, so a cut
+ *  list never undercounts. */
+export interface RunCalls {
+  readonly calls: readonly RunAttempt[]
+  readonly totalCalls: number
+  readonly totalUsd: number
+}
+
 export interface CostRange {
   readonly fromDay: string
   readonly toDay: string
@@ -89,6 +101,23 @@ export interface CostRange {
 export interface DaySpend {
   readonly day: string
   readonly costUsd: number
+}
+
+/** A range's billed attempts grouped by the top-level run each belongs to, then by that run's job.
+ *  The one row with no `kind` and `name` holds every attempt whose top-level run has no `runs` row
+ *  (none written, still running, or pruned). */
+export interface RootRunCostRow {
+  readonly kind?: 'command' | 'agent'
+  readonly name?: string
+  readonly runs: number
+  readonly costUsd: number
+}
+
+/** What one run costs on one model: the mean over that model's most recent runs. */
+export interface ModelRunCost {
+  readonly provider: string
+  readonly model: string
+  readonly perRunUsd: number
 }
 
 /** One agent's spend on one model over a window. */

@@ -17,10 +17,12 @@ import {
   type ResolvedTelegramConfig,
   TELEGRAM_CHANNEL_ID,
 } from './config'
+import { TELEGRAM_API_BASE } from './protocol'
 
 export const telegramDefinition: ChannelDefinition<ResolvedTelegramConfig> = {
   id: TELEGRAM_CHANNEL_ID,
   safeConfigOverrides: SAFE_DELIVERY_OVERRIDE_FIELDS,
+  apiHosts: [new URL(TELEGRAM_API_BASE).host],
   resolveConfig: parseTelegramConfig,
   isEnabled: (config) => config.configured && config.enabled !== false,
   admission: (config): ChannelAdmission => ({

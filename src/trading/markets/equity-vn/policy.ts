@@ -49,16 +49,19 @@ export const ADMITTED_EXCHANGES: readonly VnExchange[] = Object.freeze(['HOSE', 
  *  09:15-11:30 and 13:00-14:30; the ATC call auction runs to 14:45, which is the last instant a
  *  price is discovered, so that is the calendar's close. HNX matches PLO orders until 15:00, but
  *  only at the closing price already fixed at 14:45, so nothing after the bell moves the reading a
- *  settled session stands for. The 11:30-13:00 lunch gap is the calendar's break — auction phases
- *  are tradeability facts, not calendar states. HNX determines its open by reference price rather
+ *  settled session stands for. The 11:30-13:00 lunch gap is the calendar's break and 14:30 the
+ *  closing auction's start, which HOSE and HNX share; the auction is a window inside the open
+ *  phase, not a phase of its own. HNX determines its open by reference price rather
  *  than an ATO auction; that difference is a per-exchange calendar override in config, never an
  *  assumption baked in here. */
 export const VN_CALENDAR: CalendarPolicy = Object.freeze({
+  exchange: PRIMARY_EXCHANGE,
   timezone: 'Asia/Ho_Chi_Minh',
   sessionOpenLocalTime: '09:00',
   sessionCloseLocalTime: '14:45',
   breakStartLocalTime: '11:30',
   breakEndLocalTime: '13:00',
+  closeAuctionStartLocalTime: '14:30',
   weekendDays: Object.freeze([0, 6]),
   holidays: VN_EXCHANGE_HOLIDAYS,
   continuous: false,
@@ -286,6 +289,10 @@ export const VN_RECOMMENDATION_SESSIONS = 120
 export const VN_OVERVIEW_LEADERS = 5
 
 export const VN_OVERVIEW_SESSIONS = 5
+/** How many flow sessions back the overview looks for proprietary figures when the newest session's
+ *  are not yet published: the desk lands about one session after the foreign one, so a few cover a
+ *  holiday or a late provider without ranking a stale desk as current. */
+export const VN_PROPRIETARY_LOOKBACK_SESSIONS = 5
 /** Sessions the short moving-average breadth compares against — the 20-day mean. */
 export const VN_TURNOVER_REFERENCE_SESSIONS = 20
 /** Reading order for the boards, largest first. Alphabetical puts HNX above HOSE, which is not how
@@ -320,6 +327,7 @@ export const REFRESH_STALE_SESSIONS: Readonly<Record<RefreshDataKind, number>> =
   macro: 1,
   accounts: 1,
   premium: 1,
+  'index-ratios': 1,
 })
 
 /** How long a replayed attempt keeps the targets it lost before asking for them again. Short

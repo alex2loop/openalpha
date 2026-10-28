@@ -40,6 +40,7 @@ export function createOverviewCommand(deps: OverviewCommandDeps): SlashCommand {
       role: 'member',
       action: 'read',
       execution: { progressKey: 'slash.tradingOverviewProgress' },
+      selfContained: true,
       transcript: 'echo',
     },
     usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),

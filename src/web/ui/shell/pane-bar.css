@@ -1,0 +1,24 @@
+.pane-bar {
+  display: flex;
+  padding: var(--s1) var(--s2);
+  border-bottom: 1px solid var(--border);
+}
+
+.pane-bar .seg {
+  flex: 1;
+  flex-wrap: nowrap;
+  margin: 0;
+}
+
+.pane-bar button {
+  position: relative;
+  min-width: 0;
+  padding: 5px var(--s1);
+}
+
+.pane-bar .chat-unread {
+  top: 5px;
+  right: var(--s1);
+  width: 6px;
+  height: 6px;
+}

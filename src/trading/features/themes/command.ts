@@ -1,4 +1,5 @@
 import type {
+  CommandMessage,
   CommandMessageKey,
   SlashCommand,
   SlashContext,
@@ -11,6 +12,7 @@ import type {
   ThemeReport,
   ThemeService,
   ThemeTransition,
+  ThemeTransitionOutcome,
 } from '@/trading/features/themes/types'
 import { t } from '@/i18n'
 import { firstProposedTheme, renderThemeReportText } from '@/trading/features/themes/render/report'
@@ -36,6 +38,7 @@ const RUN_POLICY: SlashInvocationPolicy = Object.freeze({
   role: 'operator',
   action: 'costly',
   execution: { progressKey: 'slash.tradingThemesProgress' as const },
+  selfContained: true,
   transcript: 'echo',
 })
 const SHOW_POLICY: SlashInvocationPolicy = Object.freeze({
@@ -85,6 +88,7 @@ async function runAnalysis(
     locale: ctx.locale,
     channel: ctx.channel,
     billingSessionId: ctx.sessionId,
+    ...(ctx.runId === undefined ? {} : { parentRunId: ctx.runId }),
     signal: ctx.signal,
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),
     ...(id === undefined ? {} : { themeId: id }),
@@ -105,22 +109,40 @@ async function runTransition(
   request: { readonly action: ThemeTransition; readonly id: ThemeId }
 ): Promise<SlashResult> {
   const outcome = await deps.themes.transition({ ...request, now: Date.now(), signal: ctx.signal })
+  const message = toThemeTransitionMessage(request, outcome)
 
+  return usage(message.key, message.values)
+}
+
+/** What a theme move answers, in `/themes`'s words, so the web page says it the same way. */
+export function toThemeTransitionMessage(
+  request: { readonly action: ThemeTransition; readonly id: ThemeId },
+  outcome: ThemeTransitionOutcome
+): CommandMessage {
   return outcome.kind === 'done'
-    ? usage(TRANSITION_DONE[request.action], { id: request.id })
-    : renderLookupFailure(outcome, { id: request.id, notAllowed: NOT_ALLOWED })
+    ? { key: TRANSITION_DONE[request.action], values: { id: request.id } }
+    : toLookupFailureMessage(outcome, { id: request.id, notAllowed: NOT_ALLOWED })
 }
 
 function renderLookupFailure(
   failure: ThemeLookupFailure,
   input: { readonly id: string; readonly notAllowed: CommandMessageKey }
 ): SlashResult {
+  const message = toLookupFailureMessage(failure, input)
+
+  return usage(message.key, message.values)
+}
+
+function toLookupFailureMessage(
+  failure: ThemeLookupFailure,
+  input: { readonly id: string; readonly notAllowed: CommandMessageKey }
+): CommandMessage {
   return failure.kind === 'not-found'
-    ? usage(NOT_FOUND, { id: input.id })
-    : usage(input.notAllowed, {
-        id: input.id,
-        status: { key: `trading.themes.status.${failure.status}` },
-      })
+    ? { key: NOT_FOUND, values: { id: input.id } }
+    : {
+        key: input.notAllowed,
+        values: { id: input.id, status: { key: `trading.themes.status.${failure.status}` } },
+      }
 }
 
 async function run(deps: ThemesCommandDeps, ctx: SlashContext): Promise<SlashResult> {

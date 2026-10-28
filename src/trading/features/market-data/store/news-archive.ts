@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto'
 
-import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, Ticker } from '@/trading/kernel/instrument'
 import type { NewsItem } from '@/trading/kernel/market/market-data'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { marketRef } from '@/trading/kernel/instrument'
+import { marketRef, ticker } from '@/trading/kernel/instrument'
 import { toBindChunks } from '@/trading/kernel/store/store-row'
 
 const NEWS_COLUMNS = [
@@ -21,6 +21,8 @@ const NEWS_COLUMNS = [
 ] as const
 const NEWS_ID_HEX_LENGTH = 32
 const NEWS_RETENTION_DAYS = 365
+/** A name binds its market and its ticker. */
+const INSTRUMENT_BINDS = 2
 
 interface NewsRow {
   readonly url: string
@@ -55,6 +57,32 @@ interface ArchiveNewsOptions {
   readonly signal: AbortSignal
 }
 
+interface InstrumentNewsRow {
+  readonly url: string
+  readonly title: string
+  readonly source_id: string
+  readonly published_at: number
+  readonly market: string | null
+  readonly ticker: string | null
+}
+
+interface ListInstrumentNewsOptions {
+  readonly instruments: readonly InstrumentRef[]
+  /** Inclusive: the stories archived from this instant on. */
+  readonly sinceMs: number
+  readonly signal: AbortSignal
+}
+
+/** A story archived for one instrument: by a read that named that name, never by a feed no market
+ *  owns. */
+export interface InstrumentHeadline {
+  readonly instrument: InstrumentRef
+  readonly url: string
+  readonly title: string
+  readonly sourceId: string
+  readonly publishedAt: number
+}
+
 interface DeleteNewsOptions {
   readonly fetchedBefore: number
   readonly limit: number
@@ -74,6 +102,9 @@ export interface NewsArchiveStore {
   /** Newest published first, of the stories archived from `fromMs` (inclusive) to `toMs`
    *  (exclusive): a story archived late still falls after the reader's last pass. */
   listArchived(options: ListNewsOptions): Promise<readonly ArchivedNewsItem[]>
+  /** The newest published story of each of these instruments archived since `sinceMs`, matched on
+   *  market and ticker, newest first. A name with no story since is absent. */
+  listForInstruments(options: ListInstrumentNewsOptions): Promise<readonly InstrumentHeadline[]>
 }
 
 function toNewsId(url: string): string {
@@ -148,11 +179,66 @@ async function listNews(
   }))
 }
 
+async function listForInstruments(
+  deps: StoreDeps,
+  options: ListInstrumentNewsOptions
+): Promise<readonly InstrumentHeadline[]> {
+  assertNotAborted(options.signal)
+
+  const headlines: InstrumentHeadline[] = []
+
+  // The window bound shares each statement, so a name is counted one bind wider than its pair.
+  for (const chunk of toBindChunks(options.instruments, INSTRUMENT_BINDS + 1)) {
+    headlines.push(...(await listChunkForInstruments(deps, options.sinceMs, chunk)))
+  }
+
+  return headlines.sort((left, right) => right.publishedAt - left.publishedAt)
+}
+
+async function listChunkForInstruments(
+  deps: StoreDeps,
+  sinceMs: number,
+  instruments: readonly InstrumentRef[]
+): Promise<readonly InstrumentHeadline[]> {
+  // Placeholders are numbered in the order they appear, so a positional dialect binds them right.
+  // One story per name, the newest, picked here so a name never loses its story to a busier one.
+  const p = deps.dialect.param
+  const matches = instruments
+    .map(
+      (_, index) =>
+        `(market = ${p(2 + index * INSTRUMENT_BINDS)} AND ticker = ${p(3 + index * INSTRUMENT_BINDS)})`
+    )
+    .join(' OR ')
+  const rows = await deps.db.query<InstrumentNewsRow>(
+    'SELECT url, title, source_id, published_at, market, ticker FROM (' +
+      'SELECT url, title, source_id, published_at, market, ticker, ' +
+      'ROW_NUMBER() OVER (PARTITION BY market, ticker ORDER BY published_at DESC, id DESC) AS newest_rank ' +
+      `FROM news_items WHERE fetched_at >= ${p(1)} AND (${matches})` +
+      ') AS newest WHERE newest_rank = 1',
+    [sinceMs, ...instruments.flatMap((instrument) => [instrument.market, instrument.ticker])]
+  )
+
+  return rows.flatMap((row) =>
+    row.market === null || row.ticker === null
+      ? []
+      : [
+          {
+            instrument: { market: marketRef(row.market), ticker: ticker(row.ticker) },
+            url: row.url,
+            title: row.title,
+            sourceId: row.source_id,
+            publishedAt: Number(row.published_at),
+          },
+        ]
+  )
+}
+
 export function createNewsArchiveStore(deps: StoreDeps): NewsArchiveStore {
   return {
     archive: (options) => archive(deps, options),
     deleteFetchedBefore: (options) => deleteFetchedBefore(deps, options),
     listPublished: (options) => listNews(deps, { ...options, by: 'published_at' }),
     listArchived: (options) => listNews(deps, { ...options, by: 'fetched_at' }),
+    listForInstruments: (options) => listForInstruments(deps, options),
   }
 }

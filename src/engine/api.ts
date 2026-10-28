@@ -12,6 +12,7 @@ export type {
 } from '@/engine/agents/define'
 export type { BuildUserAgentsDeps, UserAgentSource } from '@/engine/agents/user'
 export type { AttemptIdentity, AttemptRecorder } from '@/engine/budget/attempt-settlement'
+export type { RunProgressMessage } from '@/engine/events'
 export type { ApprovalManager } from '@/engine/hooks/approval'
 export type { SessionPersistenceHooks, SessionSink } from '@/engine/hooks/persistence'
 export type { UserPreferencesHooks } from '@/engine/hooks/user-preferences'
@@ -136,6 +137,7 @@ export type {
   WorkspaceCleanupScope,
 } from '@/engine/workspace/types'
 export {
+  AgentLookSchema,
   assertAgentTomlMatchesSourceId,
   assertValidAgentToml,
   collectAgentReferenceIssues,
@@ -151,8 +153,13 @@ export { createBudget, createConfiguredRunBudget } from '@/engine/budget/run-bud
 export { createBudgetSlicesWithin } from '@/engine/budget/slices'
 export {
   AGENT_BUDGET_FRACTION,
+  DELEGATE_MODEL_TIER,
+  MAX_SPAWN_PER_AGENT,
   MCP_CALL_WAIT_MS,
+  RESEARCH_DEPTH_PREFIX,
   RUN_LEASE_SLACK_MS,
+  RUN_TITLE_MAX_CHARS,
+  SPAWN_TOOL_NAME,
   WORKSPACES_DIR_NAME,
 } from '@/engine/constants'
 export { createDelegatedApproval, decisionsFor } from '@/engine/hooks/approval'
@@ -162,9 +169,15 @@ export { canRequireApproval } from '@/engine/hooks/dangerous'
 export { createSessionPersistenceHooks } from '@/engine/hooks/persistence'
 export { languageName, reminderModifier } from '@/engine/hooks/prompt-blocks'
 export { appendSystemBlock } from '@/engine/hooks/system-block'
-export { createUserPreferencesHooks } from '@/engine/hooks/user-preferences'
+export {
+  ASKED_PREFIX,
+  createUserPreferencesHooks,
+  PENDING_PREFIX,
+  PREFS_PREFIX,
+} from '@/engine/hooks/user-preferences'
 export { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
 export { isSpendCapHalt, PAUSED_MESSAGE } from '@/engine/loop/preflight'
+export { withoutResearchDepth } from '@/engine/loop/run-text'
 export {
   formatTodoBlock,
   TODO_GLYPHS,
@@ -188,7 +201,7 @@ export {
   REQUESTS_REPLY_KIND,
   WORKING_REPLY_KIND,
 } from '@/engine/mcp/jobs/tools'
-export { toAdvertisedTools } from '@/engine/mcp/serve-core'
+export { isClientApprovalWithheld, toAdvertisedTools } from '@/engine/mcp/serve-core'
 export { buildHostSkill } from '@/engine/mcp/skill'
 export { toAgentResearchResult } from '@/engine/research/agent-result'
 export { RESEARCH_QUERY_MAX_CHARS } from '@/engine/research/contracts'
@@ -202,6 +215,7 @@ export {
   toResearchTotalsDisplays,
   toResearchWarningDisplay,
 } from '@/engine/research/display/progress'
+export { isResearchProgress } from '@/engine/research/events'
 export { parseResearchJson, toResearchOutputContract } from '@/engine/research/evidence/parse'
 export { composeAbort, TIMEOUT_ABORT } from '@/engine/run-registry'
 export { engineProvider } from '@/engine/services'
@@ -219,5 +233,6 @@ export { runWorkflow, startScheduledWorkflows } from '@/engine/workflows/run'
 export {
   applyWorkspaceScratchCleanup,
   planWorkspaceScratchCleanup,
+  pruneExpiredRunCaches,
   pruneExpiredWorkspaceTmp,
 } from '@/engine/workspace/cleanup'

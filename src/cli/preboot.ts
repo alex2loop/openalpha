@@ -1,15 +1,15 @@
 import type { KeyFile } from '@/cli/env-file'
-import type { CliApp, Writer } from '@/cli/types'
+import type { Terminal } from '@/cli/terminal'
+import type { CliApp } from '@/cli/types'
 import type { LogLevel, ResolvedConfig } from '@/core/config/resolve'
 import type { Services } from '@/core/container'
 import { terminalErrorMessage } from '@/cli/error-output'
+import { toTerminalWriters } from '@/cli/terminal'
 import { probeConfig } from '@/core/config/load'
 import { ConfigError } from '@/core/errors'
 
 export interface PreBootOptions {
-  readonly out: Writer
-  readonly err: Writer
-  readonly write: Writer
+  readonly terminal: Terminal
   readonly configPath?: string
   readonly dataDir?: string
   readonly logLevel?: LogLevel
@@ -35,9 +35,8 @@ export async function preBootApp(options: PreBootOptions): Promise<CliApp> {
     },
     has: () => false,
     signal: AbortSignal.any([]),
-    out: options.out,
-    err: options.err,
-    write: options.write,
+    ...toTerminalWriters(options.terminal),
+    terminal: options.terminal,
     configProbe: {
       configPath: probed.configPath,
       configError:

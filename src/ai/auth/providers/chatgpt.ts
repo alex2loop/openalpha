@@ -21,14 +21,14 @@ import { MS_PER_SECOND } from '@/core/utils/time'
 export const CHATGPT_PROVIDER_ID = 'openai-chatgpt'
 
 const LOGIN_NAME = 'chatgpt'
-const OAUTH_HOST = 'https://auth.openai.com'
+export const CHATGPT_OAUTH_HOST = 'https://auth.openai.com'
 const CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann'
 const AUTHORIZE_PATH = '/oauth/authorize'
 const TOKEN_PATH = '/oauth/token'
 const USERCODE_PATH = '/api/accounts/deviceauth/usercode'
 const DEVICE_TOKEN_PATH = '/api/accounts/deviceauth/token'
-const DEVICE_REDIRECT_URI = `${OAUTH_HOST}/deviceauth/callback`
-const VERIFICATION_URL = `${OAUTH_HOST}/deviceauth`
+const DEVICE_REDIRECT_URI = `${CHATGPT_OAUTH_HOST}/deviceauth/callback`
+const VERIFICATION_URL = `${CHATGPT_OAUTH_HOST}/deviceauth`
 // Both are registered with the OAuth app; the second is what the official client falls back to when
 // the first is taken. `localhost` rather than the loopback literal, because that is what is
 // registered — RFC 8252 prefers the literal, but an unregistered redirect is refused outright.
@@ -56,7 +56,7 @@ export const chatgptAuthProvider: AuthProvider = Object.freeze({
   redirectUri,
 
   authorizationUrl(request: AuthorizationRequest, port: number): string {
-    const url = new URL(`${OAUTH_HOST}${AUTHORIZE_PATH}`)
+    const url = new URL(`${CHATGPT_OAUTH_HOST}${AUTHORIZE_PATH}`)
 
     url.searchParams.set('response_type', 'code')
     url.searchParams.set('client_id', CLIENT_ID)
@@ -94,7 +94,7 @@ export const chatgptAuthProvider: AuthProvider = Object.freeze({
 
   async loginWithDeviceCode(input: DeviceCodeInput): Promise<OAuthTokens> {
     const authorization = await pollDeviceCode({
-      host: OAUTH_HOST,
+      host: CHATGPT_OAUTH_HOST,
       userCodePath: USERCODE_PATH,
       tokenPath: DEVICE_TOKEN_PATH,
       body: { client_id: CLIENT_ID },
@@ -140,7 +140,7 @@ async function exchangeChatgptCode(input: ExchangeInput): Promise<OAuthTokens> {
 async function postTokenForm(body: URLSearchParams, signal?: AbortSignal): Promise<OAuthTokens> {
   try {
     const response = await httpRequest({
-      hosts: [OAUTH_HOST],
+      hosts: [CHATGPT_OAUTH_HOST],
       path: TOKEN_PATH,
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded', ...attributionHeaders() },

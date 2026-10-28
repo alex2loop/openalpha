@@ -1,0 +1,219 @@
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  width: var(--chatPanelW);
+  min-height: 0;
+  container-type: inline-size;
+  border-left: 1px solid var(--border);
+}
+
+.chat-unread {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--s1) 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-head h2 {
+  flex: 1;
+  font: var(--typeCardTitle);
+}
+
+/* Under the width the two labelled actions take in both languages, each keeps its icon and the
+   label stays its title. */
+@container (width < 480px) {
+  .chat-head-label {
+    display: none;
+  }
+}
+
+.chat-messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--s2);
+}
+
+.chat-messages > .btn {
+  align-self: center;
+}
+
+.chat-start {
+  align-self: center;
+  text-align: center;
+}
+
+.chat-user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 7px 10px;
+  border-radius: 12px 12px 4px 12px;
+  background: var(--sunken);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.chat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--lift);
+  overflow-wrap: anywhere;
+}
+
+.chat-card.is-queued {
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
+}
+
+.chat-card.is-caution,
+.chat-caution {
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.chat-caution {
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: var(--sizeBody);
+}
+
+.chat-reply {
+  white-space: pre-wrap;
+}
+
+.chat-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+}
+
+.chat-system {
+  align-self: center;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+.chat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+}
+
+.chat-actions:empty {
+  display: none;
+}
+
+.chat-reading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--sunken);
+}
+
+.sessions-search {
+  width: 100%;
+}
+
+.sessions-list {
+  margin: var(--s2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sessions-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 6px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sessions-row:hover {
+  background: var(--sunken);
+}
+
+.sessions-row b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:root:not([data-layout="wide"]) .chat-panel {
+  flex: 1;
+  width: auto;
+  border-left: 0;
+}
+
+.sessions-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  border-top: 1px solid var(--border);
+}
+
+.sessions-item .sessions-row {
+  flex: 1;
+  min-width: 0;
+  border-top: 0;
+}
+
+/* A row's menu opens under it, inside the dialog, rather than under the header. */
+.popover.sessions-menu {
+  position: static;
+  flex-basis: 100%;
+  width: auto;
+  margin: 0 0 var(--s1);
+  box-shadow: none;
+}
+
+.sessions-menu a,
+.sessions-menu button {
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sessions-menu a:hover,
+.sessions-menu button:hover {
+  background: var(--sunken);
+}
+
+.sessions-group .sessions-list {
+  margin-top: 4px;
+}

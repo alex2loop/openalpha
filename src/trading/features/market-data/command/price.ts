@@ -35,6 +35,7 @@ export function createPriceCommand(deps: PriceCommandDeps): SlashCommand {
       role: 'member',
       action: 'read',
       execution: { progressKey: 'slash.tradingPriceProgress' },
+      selfContained: true,
       transcript: 'echo',
     },
     usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),

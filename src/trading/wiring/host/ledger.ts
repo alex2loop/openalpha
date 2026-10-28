@@ -1,15 +1,32 @@
 import type { z } from 'zod'
 
+import type { VenueRef } from '@/trading/kernel/instrument'
 import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import { ValidationError } from '@/core/errors'
+import { FieldValidationError, toFieldValidationError } from '@/core/field-errors'
+import { toFieldLabel } from '@/trading/features/ledger/fields'
 import { ledgerDraftInput, ledgerEditDraftInput } from '@/trading/features/portfolio/tools/input'
 import { marketInput } from '@/trading/kernel/surface/surface'
-import { bounded, scoped } from '@/trading/wiring/host/scope'
+import { bounded, scoped, scopedSlow, UNABORTED } from '@/trading/wiring/host/scope'
 
 export type LedgerMethods = Pick<
   TradingHost,
-  'listLedger' | 'recordLedger' | 'updateLedgerEntry' | 'deleteLedgerEntry'
+  | 'listLedger'
+  | 'previewLedger'
+  | 'recordLedger'
+  | 'updateLedgerEntry'
+  | 'deleteLedgerEntry'
+  | 'syncLedger'
 >
+
+type DraftSchemas = ReturnType<typeof draftSchemas>
+
+/** The field a whole-book refusal belongs to, so a form marks it there rather than at the top. */
+const REFUSAL_FIELDS: ReadonlyMap<string, string> = new Map([
+  ['errors.ledgerFxRateUnstated', 'operatorFxRate'],
+  ['errors.ledgerCashShort', 'amount'],
+  ['errors.ledgerCurrencyShort', 'amount'],
+])
 
 /** The same draft schemas the ledger tools use, built once: they resolve the venue and currency a
  *  row may omit, so a route that parsed its own would accept rows this one refuses. */
@@ -32,11 +49,7 @@ function parseDraft<T>(schema: z.ZodType<T>, raw: unknown): T {
   const parsed = schema.safeParse(raw)
 
   if (!parsed.success) {
-    const detail = parsed.error.issues
-      .map((issue) => `${issue.path.join('.') || 'draft'}: ${issue.message}`)
-      .join('; ')
-
-    throw new ValidationError(`invalid ledger draft: ${detail}`)
+    throw toFieldValidationError(parsed.error, 'ledger draft', toFieldLabel)
   }
 
   return parsed.data
@@ -58,31 +71,96 @@ export function ledgerMethods(deps: TradingHostDeps): LedgerMethods {
         })
       ),
 
-    recordLedger: (request) =>
-      scoped(deps, request.signal, (scope) =>
-        portfolio.record({
-          draft: parseDraft(schemas.record, request.draft),
-          ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
-          idempotencyKey: request.idempotencyKey,
-          now: scope.now,
-          signal: scope.signal,
-        })
-      ),
+    previewLedger: (request) => previewLedger(deps, schemas, request),
+    recordLedger: (request) => recordLedger(deps, schemas, request),
 
     updateLedgerEntry: (request) =>
       scoped(deps, request.signal, (scope) =>
-        portfolio.update({
-          ref: request.entryId,
-          draft: parseDraft(schemas.edit, request.draft),
-          ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
-          now: scope.now,
-          signal: scope.signal,
-        })
+        withRefusalFields(
+          portfolio.update({
+            ref: request.entryId,
+            draft: parseDraft(schemas.edit, request.draft),
+            ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
+            now: scope.now,
+            signal: scope.signal,
+          })
+        )
       ),
 
     deleteLedgerEntry: (request) =>
       scoped(deps, request.signal, (scope) =>
         portfolio.remove({ ref: request.entryId, now: scope.now, signal: scope.signal })
       ),
+
+    syncLedger: (request) => syncLedger(deps, request.venue),
+  }
+}
+
+/** Unaborted like an order confirm: a client hanging up must not stop the bookings halfway. */
+function syncLedger(deps: TradingHostDeps, venue: VenueRef): ReturnType<TradingHost['syncLedger']> {
+  const known = deps.services.portfolio.venueChoices().some((choice) => choice.venue === venue)
+
+  if (!known) {
+    return Promise.reject(new ValidationError(`venue ${venue} is not registered`))
+  }
+
+  return scopedSlow(deps, UNABORTED, (scope) =>
+    deps.services.syncVenue({ venue, locale: deps.defaultLocale, signal: scope.signal })
+  )
+}
+
+function previewLedger(
+  deps: TradingHostDeps,
+  schemas: DraftSchemas,
+  request: Parameters<TradingHost['previewLedger']>[0]
+): ReturnType<TradingHost['previewLedger']> {
+  return scoped(deps, request.signal, (scope) =>
+    deps.services.portfolio.previewRecord({
+      draft: parseDraft(schemas.record, request.draft),
+      ...(request.entryId === undefined ? {} : { replacing: request.entryId }),
+      now: scope.now,
+      signal: scope.signal,
+    })
+  )
+}
+
+/** A row in another currency that states no rate is refused before it is written: the day's market
+ *  rate would otherwise be booked as what the operator paid, a rate nobody saw. */
+function recordLedger(
+  deps: TradingHostDeps,
+  schemas: DraftSchemas,
+  request: Parameters<TradingHost['recordLedger']>[0]
+): ReturnType<TradingHost['recordLedger']> {
+  const { portfolio } = deps.services
+
+  // Asked inside the write, after its replay lookup: a retried request whose first answer was lost
+  // gets its row back, never a refusal from a book that already holds it.
+  return scoped(deps, request.signal, (scope) =>
+    withRefusalFields(
+      portfolio.record({
+        draft: parseDraft(schemas.record, request.draft),
+        ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
+        idempotencyKey: request.idempotencyKey,
+        requiresStatedRate: true,
+        now: scope.now,
+        signal: scope.signal,
+      })
+    )
+  )
+}
+
+async function withRefusalFields<T>(write: Promise<T>): Promise<T> {
+  try {
+    return await write
+  } catch (error: unknown) {
+    const isPlain = error instanceof ValidationError && !(error instanceof FieldValidationError)
+    const message = isPlain ? error.operator : undefined
+    const path = message === undefined ? undefined : REFUSAL_FIELDS.get(message.key)
+
+    if (!isPlain || message === undefined || path === undefined) {
+      throw error
+    }
+
+    throw new FieldValidationError(error.message, [{ path, message }])
   }
 }

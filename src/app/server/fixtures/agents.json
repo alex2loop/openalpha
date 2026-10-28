@@ -6,11 +6,16 @@
       "paused": false,
       "maxDailyUsd": 0.5,
       "spentTodayUsd": 0.12,
+      "look": {
+        "hair": "short",
+        "outfit": "suit"
+      },
       "focusKey": "default",
       "focusLabel": "Your book (your own focus)",
       "record": {
         "resolvedCount": 11,
         "winCount": 7,
+        "targetCount": 4,
         "winRate": 0.6364
       },
       "agreement": {
@@ -32,6 +37,11 @@
       "spentTodayUsd": 0,
       "focusKey": "f-05a184fec6ab1d83",
       "focusLabel": "Vietnam stock market · Banks · Long term",
+      "focus": {
+        "markets": ["equity-vn"],
+        "sectors": ["banks"],
+        "horizon": "long"
+      },
       "overlapsWith": [],
       "social": [
         {

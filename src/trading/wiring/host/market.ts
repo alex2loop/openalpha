@@ -1,9 +1,15 @@
+import type { Locale } from '@/core/types/locale'
 import type { MarketDescription } from '@/trading/features/market-data/types'
+import type { SourceSummary } from '@/trading/kernel/source/source-result'
 import type { QuoteConvention } from '@/trading/render/money'
-import type { MarketView, TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
-import { renderDeclaredValue } from '@/trading/render/format'
+import type { SourceStatus } from '@/trading/wiring/host/market-types'
+import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
+import type { MarketView } from '@/trading/wiring/host/view-types'
+import { renderDeclaredValue, renderProvidedValue } from '@/trading/render/format'
 import { renderMarketName, renderRegionName } from '@/trading/render/tool-detail'
 import { bounded, profileOf, resolveRegion, scoped, scopedSlow } from '@/trading/wiring/host/scope'
+
+const LINE_BREAK = '\n'
 
 export type MarketMethods = Pick<
   TradingHost,
@@ -16,10 +22,21 @@ export type MarketMethods = Pick<
   | 'screen'
   | 'getOverview'
   | 'getMacroRisk'
+  | 'readMarketSession'
   | 'describeMarkets'
+  | 'getSectors'
+  | 'getIndexContributors'
+  | 'getIndexValuation'
+  | 'listSources'
 >
 
 type SeriesMethods = Pick<MarketMethods, 'getOhlcv' | 'getEvents'>
+
+type ListingMethods = Pick<MarketMethods, 'getSectors' | 'listSources'>
+
+type IndexMethods = Pick<MarketMethods, 'getIndexContributors' | 'getIndexValuation'>
+
+type SessionMethods = Pick<MarketMethods, 'readMarketSession'>
 
 type PriceMethods = Pick<
   MarketMethods,
@@ -58,16 +75,29 @@ function seriesMethods(deps: TradingHostDeps): SeriesMethods {
 function describedMarket(
   deps: TradingHostDeps,
   market: MarketDescription,
-  convention: QuoteConvention
+  { convention, now }: { readonly convention: QuoteConvention; readonly now: number }
 ): MarketView {
   const locale = deps.defaultLocale
+  const day = deps.services.marketData.marketDay(market.market, now)
 
   return {
     ...market,
     ...convention,
+    ...(day === undefined ? {} : { day }),
     label: renderMarketName(locale, market.market),
     segmentLabel: renderDeclaredValue(locale, `trading.segment.${market.segment}`),
     regionLabel: renderRegionName(locale, market.region),
+  }
+}
+
+function toSourceStatus(locale: Locale, summary: SourceSummary): SourceStatus {
+  const { lastFailureCode: code } = summary
+
+  return {
+    ...summary,
+    ...(code === undefined
+      ? {}
+      : { failure: renderProvidedValue(locale, `trading.source.failure.${code}`, code) }),
   }
 }
 
@@ -76,21 +106,20 @@ function priceMethods(deps: TradingHostDeps): PriceMethods {
 
   return {
     // How each market prints a price, so an app prints it the way the CLI does, and its names.
-    describeMarkets: () => ({
+    describeMarkets: (now) => ({
       homeRegion: deps.services.defaultRegion,
       markets: marketData.describeMarkets().flatMap((market) => {
         const convention = marketData.quoteConvention(market.market)
 
-        return convention === undefined ? [] : [describedMarket(deps, market, convention)]
+        return convention === undefined ? [] : [describedMarket(deps, market, { convention, now })]
       }),
     }),
 
-    getQuotes: (signal) =>
+    getQuotes: (signal, instrument) =>
       scoped(deps, signal, async (scope) => {
-        const profile = await profileOf(deps, scope)
-
         return deps.services.marketData.quoteBoard({
-          instruments: profile.watchlist,
+          instruments:
+            instrument === undefined ? (await profileOf(deps, scope)).watchlist : [instrument],
           signal: scope.signal,
         })
       }),
@@ -128,10 +157,94 @@ function priceMethods(deps: TradingHostDeps): PriceMethods {
   }
 }
 
+/** The lists an app draws a table from: one market's sectors, strongest first, and the data
+ *  sources, each named in the operator's language. */
+function listingMethods(deps: TradingHostDeps): ListingMethods {
+  return {
+    // A transport code is an internal name; the operator reads the catalog's words for it.
+    listSources: () =>
+      deps.services.marketData
+        .listSources()
+        .map((summary) => toSourceStatus(deps.defaultLocale, summary)),
+
+    getSectors: (request) =>
+      scopedSlow(deps, request.signal, async (scope) => {
+        const { asOf, sectors, caveats } = await deps.services.marketData.sectors({
+          market: request.market,
+          now: scope.now,
+          signal: scope.signal,
+        })
+
+        return {
+          asOf,
+          sectors: sectors.map((sector) => ({
+            ...sector,
+            label: renderProvidedValue(
+              deps.defaultLocale,
+              `trading.sector.${sector.sector}`,
+              sector.sector
+            ),
+          })),
+          caveats,
+        }
+      }),
+  }
+}
+
+/** An index's contributors and valuation. The valuation is stored and the contributors held, so
+ *  neither waits on a provider for long: the ordinary ceiling applies. */
+function indexMethods(deps: TradingHostDeps): IndexMethods {
+  return {
+    getIndexContributors: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.marketData.indexContributors({
+          market: request.market,
+          index: request.index,
+          now: scope.now,
+          signal: scope.signal,
+        })
+      ),
+
+    getIndexValuation: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.marketData.indexValuation({
+          market: request.market,
+          index: request.index,
+          now: scope.now,
+          signal: scope.signal,
+        })
+      ),
+  }
+}
+
+/** What `/market` prints: it reads the sources for a whole session, so it gets the slow ceiling. */
+function sessionMethods(deps: TradingHostDeps): SessionMethods {
+  return {
+    readMarketSession: (request) =>
+      scopedSlow(deps, request.signal, async (scope) => {
+        const region = resolveRegion(deps, request.region)
+        const text = await deps.services.marketSession({
+          region,
+          locale: request.locale,
+          signal: scope.signal,
+        })
+
+        return { region, text: text.split(LINE_BREAK) }
+      }),
+  }
+}
+
 /** The whole-market reads: each may refresh a cold market first, so each gets the slow ceiling. */
 function boardMethods(
   deps: TradingHostDeps
-): Omit<MarketMethods, keyof PriceMethods | keyof SeriesMethods> {
+): Omit<
+  MarketMethods,
+  | keyof PriceMethods
+  | keyof SeriesMethods
+  | keyof ListingMethods
+  | keyof IndexMethods
+  | keyof SessionMethods
+> {
   return {
     // An unregistered market is refused inside the service, the one holder of the registry.
     screen: (request) =>
@@ -177,5 +290,12 @@ function boardMethods(
 }
 
 export function marketMethods(deps: TradingHostDeps): MarketMethods {
-  return { ...seriesMethods(deps), ...priceMethods(deps), ...boardMethods(deps) }
+  return {
+    ...seriesMethods(deps),
+    ...priceMethods(deps),
+    ...listingMethods(deps),
+    ...indexMethods(deps),
+    ...sessionMethods(deps),
+    ...boardMethods(deps),
+  }
 }

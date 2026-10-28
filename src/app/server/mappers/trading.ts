@@ -28,9 +28,9 @@ import type {
   NavBenchmark,
   NavHistory,
   NewsItem,
+  PortfolioView,
   QuoteBoard,
   QuoteBoardItem,
-  SizedValuedBook,
   SourceProvenance,
   StoredSuggestion,
   SuggestionCard,
@@ -38,6 +38,7 @@ import type {
   UserProfile,
   ValuedPosition,
 } from '@/trading/api'
+import { toByModelWires, toFocusWires } from '@/app/server/mappers/track-record'
 import {
   buildInstrumentKey,
   describeCaveat,
@@ -190,7 +191,7 @@ export function toProfileWire(profile: UserProfile, locale: Locale): TradingProf
   }
 }
 
-export function toPortfolioWire(sized: SizedValuedBook, locale: Locale): TradingPortfolioResponse {
+export function toPortfolioWire(sized: PortfolioView, locale: Locale): TradingPortfolioResponse {
   const book = sized.valued
   const context = { navBase: book.navBase, minimumSizes: sized.minimumSizes, locale }
 
@@ -201,6 +202,7 @@ export function toPortfolioWire(sized: SizedValuedBook, locale: Locale): Trading
     cashBase: book.book.cashBase,
     availableCashBase: book.book.availableCashBase,
     positions: book.positions.map((position) => toPositionWire(position, context)),
+    shares: { segments: sized.shares },
     caveats: toCaveatWires(book.caveats, locale),
   }
 }
@@ -280,15 +282,19 @@ function toPositionWire(
   }
 }
 
-/** Where the plan's stop has risen to, for a chart's stop-raise marks; absent until it rises. */
-function toRaisedStopWire(
+/** What the row kept beside the call: where the plan's stop has risen to, for a chart's stop-raise
+ *  marks, the models that argued it, and whether its lower level is only a review. Each is absent
+ *  until the row has it. */
+function toStoredStateWire(
   suggestion: StoredSuggestion
-): Pick<SuggestionWire, 'trailingStop' | 'raisedStopFrom'> {
-  const { trailingStop, raisedStopFrom } = suggestion
+): Pick<SuggestionWire, 'trailingStop' | 'raisedStopFrom' | 'models' | 'reviewOnly'> {
+  const { trailingStop, raisedStopFrom, debate, reviewOnly } = suggestion
 
   return {
+    ...(reviewOnly === true ? { reviewOnly } : {}),
     ...(trailingStop === undefined ? {} : { trailingStop }),
     ...(raisedStopFrom === undefined ? {} : { raisedStopFrom }),
+    ...(debate === undefined || debate.models.length === 0 ? {} : { models: [...debate.models] }),
   }
 }
 
@@ -310,7 +316,7 @@ export function toSuggestionWire(call: StoredSuggestion, locale: Locale): Sugges
     createdAt: suggestion.createdAt,
     provenance: toProvenanceWires(suggestion.provenance),
     caveats: toCaveatWires(suggestion.caveats, locale),
-    ...toRaisedStopWire(suggestion),
+    ...toStoredStateWire(suggestion),
   }
 
   if (suggestion.action === 'hold') {
@@ -396,12 +402,8 @@ export function toTrackRecordWire(
         resolvedCount: bucket.resolvedCount,
         ...(bucket.winRate === undefined ? {} : { winRate: bucket.winRate }),
       })),
-      focuses: summary.focuses.map((entry) => ({
-        focusKey: entry.focusKey,
-        resolvedCount: entry.resolvedCount,
-        winCount: entry.winCount,
-        ...(entry.winRate === undefined ? {} : { winRate: entry.winRate }),
-      })),
+      focuses: toFocusWires(summary.focuses),
+      byModel: toByModelWires(view.byModel),
       caveats: toCaveatWires(summary.caveats, locale),
     },
     recent: report.recent.map((suggestion) => toSuggestionWire(suggestion, locale)),

@@ -1,4 +1,5 @@
 import type { ParsedArgs } from '@/cli/parsing/args'
+import type { CliApp } from '@/cli/types'
 import type { ChannelAddress } from '@/core/channels'
 import type { AgentId, JobId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
@@ -9,16 +10,14 @@ import { renderLocalized } from '@/cli/help'
 import { flagList, flagString } from '@/cli/parsing/args'
 import { parseDurationFlag } from '@/cli/parsing/duration'
 import { success } from '@/cli/ui/colors'
+import { scheduledCommandRefusal } from '@/commands/api'
 import { parseChannelAddress } from '@/core/channels'
 import { agentId, jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
-import { MS_PER_MINUTE, toCanonicalTimeZone } from '@/core/utils/time'
-import { t } from '@/i18n'
+import { bindLocale, t } from '@/i18n'
+import { assertValidCron, isValidInterval, resolveTimezone, validateJobPrompt } from '@/tools/api'
 
 import type { ScheduleResult } from './types'
-
-// Cron's own granularity: a shorter interval only spends model calls faster.
-const MINIMUM_INTERVAL_MS = MS_PER_MINUTE
 
 export const scheduleAddCommand: Command = createCommand({
   name: 'add',
@@ -69,6 +68,12 @@ export const scheduleAddCommand: Command = createCommand({
       return usage(app, terminalErrorMessage(err, locale))
     }
 
+    const promptError = promptRefusal(app, prompt, locale)
+
+    if (promptError !== undefined) {
+      return usage(app, promptError)
+    }
+
     if (!app.resolve('agents').has(agent)) {
       const validIds = [...app.resolve('agents').keys()].sort().join(', ')
 
@@ -105,6 +110,16 @@ export const scheduleAddCommand: Command = createCommand({
   },
 })
 
+/** What is wrong with a job's prompt, in the operator's language; undefined when it may run. */
+export function promptRefusal(app: CliApp, prompt: string, locale: Locale): string | undefined {
+  const refusal =
+    validateJobPrompt(prompt)[0] ?? scheduledCommandRefusal(app.resolve('slashDispatcher'), prompt)
+
+  return refusal === undefined
+    ? undefined
+    : bindLocale(locale).translate(refusal.operator.key, refusal.operator.params)
+}
+
 export function resolveSchedule(args: ParsedArgs, tz: string, locale: Locale): ScheduleResult {
   const cronExpr = flagString(args, 'cron')
   const everyRaw = flagString(args, 'every')
@@ -136,8 +151,11 @@ export function resolveSchedule(args: ParsedArgs, tz: string, locale: Locale): S
 
 export function resolveCronSchedule(expr: string, tz: string, locale: Locale): ScheduleResult {
   try {
-    const timezone = toCanonicalTimeZone(tz)
+    const timezone = resolveTimezone(tz)
     const now = new Date()
+
+    assertValidCron(expr, now.getTime(), timezone)
+
     const nextRunAt = advanceCron(expr, now, timezone).getTime()
 
     return { kind: 'value', schedule: { kind: 'cron', expr, timezone }, nextRunAt }
@@ -153,7 +171,7 @@ function resolveIntervalSchedule(raw: string, locale: Locale): ScheduleResult {
     return { kind: 'error', error: renderLocalized(locale, parsed.error) }
   }
 
-  if (parsed.ms < MINIMUM_INTERVAL_MS) {
+  if (!isValidInterval(parsed.ms)) {
     return { kind: 'error', error: t(locale, 'cli.scheduleEveryTooShort', { value: raw }) }
   }
 

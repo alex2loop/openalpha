@@ -93,6 +93,8 @@ cấp đã trả lời. Nhà cung cấp nào yêu cầu một dòng ghi nguồn 
   nhân và tổ chức phi lợi nhuận.
 - **Yahoo** - Yahoo! và Yahoo! Finance là nhãn hiệu của Yahoo, Inc. OpenAlpha không liên kết với
   Yahoo và chỉ đọc endpoint biểu đồ công khai của họ cho nghiên cứu cá nhân.
+- **Open-Meteo** - Weather data by [Open-Meteo.com](https://open-meteo.com/), cấp phép CC BY 4.0.
+  Trang văn phòng tự hỏi nó thời tiết từ trình duyệt của bạn và chỉ gửi tọa độ thành phố của bạn.
 
 ## Tên và logo không đi kèm giấy phép
 
@@ -115,6 +117,76 @@ bản dựng nếu một giấy phép copyleft lọt vào cây phụ thuộc, đ
 
 `zca-js` là một client Zalo không chính thức. Kênh Zalo Personal là tùy chọn phải tự bật,
 không phải một tích hợp chính thức, và việc dùng nó là chuyện giữa bạn và Zalo.
+
+Vài biểu tượng nét trên trang văn phòng được chép tay từ [Lucide](https://lucide.dev), theo giấy
+phép ISC:
+
+> ISC License. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of
+> Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+>
+> Permission to use, copy, modify, and/or distribute this software for any purpose with or without
+> fee is hereby granted, provided that the above copyright notice and this permission notice appear
+> in all copies.
+>
+> THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+> SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+> AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+> WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+> NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+> THIS SOFTWARE.
+
+## Dữ liệu bản đồ và ảnh tham khảo
+
+- **Dữ liệu đường phố** - tên phố và bố cục của gói thành phố Việt Nam lấy từ
+  © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), theo Giấy phép
+  Cơ sở dữ liệu Mở (ODbL).
+- **Ảnh tham khảo** - các con phố của văn phòng được vẽ bằng mắt từ ảnh trên Wikimedia Commons,
+  trong đó có ảnh tòa nhà Bitexco Financial Tower. OpenAlpha không kèm ảnh nào; đây là lời ghi
+  công cho những người đã chụp, kèm trang Commons của từng ảnh:
+
+| Người chụp | Giấy phép | Ảnh |
+|---|---|---|
+| Adam Jones | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=134067021) |
+| Andy C | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=8658063) |
+| Biodin | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=28802643) |
+| Busition | CC BY 4.0 | [1](https://commons.wikimedia.org/?curid=176158761) |
+| CaptJayRuffins | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=73653399) |
+| David Ackerman | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=139613687) |
+| David McKelvey | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=105760704) |
+| Diego Delso | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=30089027) [2](https://commons.wikimedia.org/?curid=30089036) |
+| Dietmar Rabich | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=30454359) [2](https://commons.wikimedia.org/?curid=125644831) |
+| Duyenphan0298 | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=106354584) |
+| Elvert Barnes | CC BY-SA 2.0 | [1](https://commons.wikimedia.org/?curid=20214454) |
+| Epicgenius | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=86742880) |
+| Gary Todd | CC0 | [1](https://commons.wikimedia.org/?curid=108935342) |
+| Gigi alt | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=21845395) |
+| Giorgio Galeotti | CC BY 4.0 | [1](https://commons.wikimedia.org/?curid=50934532) |
+| GV | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=93905450) |
+| hijirin | CC BY 3.0 | [1](https://commons.wikimedia.org/?curid=53460841) |
+| Hisi21 | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=31493151) |
+| Jean-Etienne Minh-Duy Poirrier | CC BY-SA 2.0 | [1](https://commons.wikimedia.org/?curid=127208456) |
+| Jean-Marie Hullot | CC BY 3.0 | [1](https://commons.wikimedia.org/?curid=34592371) |
+| Jim.henderson | CC BY 4.0 | [1](https://commons.wikimedia.org/?curid=100093134) |
+| Jim.henderson | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=86879200) |
+| Jim.henderson | Public domain | [1](https://commons.wikimedia.org/?curid=12475969) |
+| Ken Lund | CC BY-SA 2.0 | [1](https://commons.wikimedia.org/?curid=84810017) |
+| King of Hearts | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=21073689) |
+| Lu The Vy | CC0 | [1](https://commons.wikimedia.org/?curid=122475757) |
+| Marc Mongenet | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=192255173) |
+| Martin Furtschegger | CC BY 3.0 | [1](https://commons.wikimedia.org/?curid=54823056) |
+| Metropolitan Transportation Authority of the State of New York | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=33086217) |
+| Mkoff | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=48705102) [2](https://commons.wikimedia.org/?curid=200427125) |
+| Nick-philly | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=84618900) |
+| Phương Huy | CC0 | [1](https://commons.wikimedia.org/?curid=147525102) [2](https://commons.wikimedia.org/?curid=147157032) |
+| RG72 | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=98773046) [2](https://commons.wikimedia.org/?curid=98861245) [3](https://commons.wikimedia.org/?curid=98670489) [4](https://commons.wikimedia.org/?curid=98670910) |
+| Rudolph.A.Furtado | CC0 | [1](https://commons.wikimedia.org/?curid=30723703) |
+| stanislav baranov | CC BY-SA 2.0 | [1](https://commons.wikimedia.org/?curid=139727705) |
+| Steffen Schmitz | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=88858180) |
+| Syced | CC0 | [1](https://commons.wikimedia.org/?curid=134022463) |
+| Timback | CC BY-SA 4.0 | [1](https://commons.wikimedia.org/?curid=86375078) |
+| Tri Nguyen | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=29738457) [2](https://commons.wikimedia.org/?curid=127208419) [3](https://commons.wikimedia.org/?curid=127208428) |
+| trungydang | CC BY 3.0 | [1](https://commons.wikimedia.org/?curid=58727100) [2](https://commons.wikimedia.org/?curid=58812039) [3](https://commons.wikimedia.org/?curid=57962449) [4](https://commons.wikimedia.org/?curid=58914895) [5](https://commons.wikimedia.org/?curid=56705865) [6](https://commons.wikimedia.org/?curid=57666463) [7](https://commons.wikimedia.org/?curid=56918694) |
+| 源義信 | CC BY 4.0 | [1](https://commons.wikimedia.org/?curid=143674772) |
 
 ## Không phải lời khuyên đầu tư
 

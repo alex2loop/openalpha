@@ -1,0 +1,392 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* One thin scrollbar for every scroll container: Firefox and current Chrome read the first two
+   lines, older WebKit the pseudo-elements. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollThumb) var(--scrollTrack);
+}
+
+::-webkit-scrollbar {
+  width: var(--scrollW);
+  height: var(--scrollW);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollTrack);
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: var(--scrollW);
+  background: var(--scrollThumb);
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--pageWall) fixed;
+  color: var(--ink);
+  font: var(--typeReading);
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* Every text field and menu: one height, edge and type, so a row of them lines up with its
+   buttons. `:where` keeps these at no specificity, so a class (the command box) still wins. */
+:where(
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]),
+  select,
+  textarea
+) {
+  min-height: var(--controlH);
+  padding: 0 var(--fieldPadX);
+  border: 1px solid var(--border);
+  border-radius: var(--controlRadius);
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-size: var(--fieldFont);
+  font-weight: var(--weightRegular);
+}
+
+/* A small field sits beside small buttons inside a row. */
+:where(input, select).is-small {
+  min-height: var(--controlSmH);
+  border-radius: var(--controlSmRadius);
+  font-size: var(--controlSmFont);
+}
+
+:where(textarea) {
+  padding-block: 6px;
+  resize: vertical;
+}
+
+/* Its chevron is drawn in the ink colour, the same in every browser. */
+:where(select) {
+  max-width: 100%;
+  padding-right: calc(var(--fieldPadX) + var(--s3));
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink2) 50%),
+    linear-gradient(135deg, var(--ink2) 50%, transparent 50%);
+  background-position:
+    calc(100% - var(--s2) - 5px) 50%,
+    calc(100% - var(--s2)) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  appearance: none;
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+/* The one heading for a block inside a card, popover or dialog: below the card title, clearly
+   above a row. A divider and room above set it apart from the block before it. */
+.sub-head {
+  margin: var(--s3) 0 var(--s1);
+}
+
+:is(.sub-head, .outline-label) {
+  color: var(--title);
+  font: var(--typeHeading);
+}
+
+.sub-head:not(:first-child) {
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
+}
+
+strong {
+  font-weight: var(--weightSemibold);
+}
+
+.sub-head strong {
+  font-weight: inherit;
+}
+
+/* The rhythm inside a card: a flow is a column of groups, a stack the lines of one group closer
+   together, a lead the line that heads a group. A sub-head takes its room from the flow's gap. */
+:is(.flow, .stack) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.flow {
+  gap: var(--s3);
+}
+
+.stack {
+  gap: var(--s1);
+}
+
+.stack:empty {
+  display: none;
+}
+
+.flow > .sub-head {
+  margin: 0 0 calc(var(--s1) * -1);
+}
+
+/* The big amount that leads a card, popover or dialog. */
+.big-figure {
+  font: var(--typeHero);
+  font-variant-numeric: tabular-nums;
+}
+
+.lead {
+  color: var(--ink);
+  font: var(--typeEmphasis);
+}
+
+svg.icon {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+
+kbd {
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--ink3);
+  font: var(--typeCode);
+}
+
+.mono {
+  font-family: var(--fontMono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focusRing);
+  outline-offset: 2px;
+}
+
+/* A field shows focus on its own edge, not a ring around it. */
+:is(input, select, textarea):focus-visible {
+  border-color: var(--ink3);
+  outline: 0;
+}
+
+/* Read by a screen reader, never shown. */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* What floats on the office scene: liquid glass. A thin tint with a sheen at the top left over a
+   light blur, a specular rim brighter at two corners, an inset highlight, a soft drop and a halo
+   behind the text; `is-strong` is the denser tint for text-heavy pieces. Each blur re-samples the
+   scene on every repaint, so a chip that repeats across the floor (room and name tags) is
+   `is-flat`: the strong tint, rim and sheen without the blur. Surface where the browser cannot
+   blur or the operator asked for less transparency. Never glass inside glass: an inner blur sees
+   only its parent. */
+:where(.glass) {
+  position: relative;
+}
+
+.glass {
+  --glassAlpha: var(--glassA);
+  isolation: isolate;
+  background: var(--glassSheenFill), rgb(var(--glassTint) / var(--glassAlpha));
+  backdrop-filter: var(--glassFilter);
+  -webkit-backdrop-filter: var(--glassFilter);
+  box-shadow: var(--glassShadow);
+  text-shadow: 0 0 6px rgb(var(--glassTint) / var(--glassHaloA));
+}
+
+.glass:is(.is-strong, .is-flat) {
+  --glassAlpha: var(--glassStrongA);
+}
+
+.glass.is-flat {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.glass::before {
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--glassRimFill);
+  content: "";
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* A popup over the panel or header text, and every dialog: an opaque surface in the glass
+   family, with the same rim, radius and shadow. */
+.solid-pop {
+  border: 1px solid transparent;
+  border-radius: var(--popRadius);
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--glassRimFill) border-box;
+  background-origin: border-box;
+  box-shadow: var(--glassShadow);
+}
+
+/* The backdrop behind a dialog, lightly blurred. */
+.scrim {
+  backdrop-filter: var(--scrimFilter);
+  -webkit-backdrop-filter: var(--scrimFilter);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--surface);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .scrim {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .glass {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* The page chrome over the wallpaper (header, panel, chat): glass, or Canvas where the
+   browser cannot blur or the operator asked for less transparency. The glass is a layer behind
+   the content rather than the element's own backdrop. */
+:where(.chrome-glass) {
+  position: relative;
+}
+
+.chrome-glass {
+  --glassSolid: var(--canvas);
+  isolation: isolate;
+}
+
+.chrome-glass::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--glassBg);
+  backdrop-filter: var(--glassBlur);
+  -webkit-backdrop-filter: var(--glassBlur);
+  content: "";
+  pointer-events: none;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .chrome-glass::before {
+    background: var(--glassSolid);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .chrome-glass::before {
+    background: var(--glassSolid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+.logo {
+  display: inline-block;
+  flex: none;
+  background: url("../../../../assets/brand/logo.svg") center / contain no-repeat;
+}
+
+/* A small icon tile: colour lives here, text stays Ink and Ink 2. */
+.tile {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) var(--tile-mix), transparent);
+  color: var(--c);
+}
+
+.tile svg.icon {
+  width: 12px;
+  height: 12px;
+}
+
+.meta {
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+}
+
+.is-up-text {
+  color: var(--up);
+}
+
+.is-down-text {
+  color: var(--down);
+}
+
+.is-problem-text {
+  color: var(--problemText);
+}
+
+.failure-line {
+  color: var(--dangerText);
+  font-size: var(--sizeBody);
+}
+
+/* A run under way. */
+.spin {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--ink3);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}

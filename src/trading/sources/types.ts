@@ -8,10 +8,16 @@ export interface SourceRequest {
   readonly path: string
   readonly query?: Readonly<Record<string, string>>
   readonly headers?: Readonly<Record<string, string>>
-  /** Declares placement only. `SourceHttp` reads and injects the resolved raw secret. */
+  /** Declares placement only. `SourceHttp` reads and injects the resolved raw secret; `optional`
+   *  sends the request without one where a provider serves a keyless tier. */
   readonly credential?:
-    | { readonly kind: 'header'; readonly name: string; readonly prefix?: string }
-    | { readonly kind: 'query'; readonly name: string }
+    | {
+        readonly kind: 'header'
+        readonly name: string
+        readonly prefix?: string
+        readonly optional?: true
+      }
+    | { readonly kind: 'query'; readonly name: string; readonly optional?: true }
   /** Allowlisted feed id (RSS). When set, host and path come from the code-owned feed map and
    *  `path`/`query` are ignored; a feed outside the allowlist is never fetched. */
   readonly feedId?: string

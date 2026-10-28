@@ -37,6 +37,8 @@ system can ask for.
 | `statReports` | `StatReport[]` | the statistics office's monthly report |
 | `commodityPrices` | `CommodityHistory` | |
 | `valuationRatios` | `ValuationRatios` | |
+| `indexContributors` | `IndexContributions` | what each name added to one index this session, from a feed that takes no date |
+| `indexValuation` | `IndexRatios` | the newest day of one index's own ratios |
 | `flows` | `FlowSnapshot[]` | |
 | `proprietaryFlows` | `ProprietaryFlow[]` | the proprietary desk alone, from a provider that publishes it sooner than the `flows` provider |
 | `tradeSides` | `DailyTradeSides` | |
@@ -197,11 +199,16 @@ route failover across providers. Each host gets its own attempt deadline, so a p
 its turn. `buildEndpointMaps` keeps the origin (the trusted-host list) and the endpoint's path prefix separately, so
 CoinGecko's `/api/v3` is not lost.
 
-Credentials: `SOURCE_CREDENTIALS` declares, per source, the default variable *name* (`COINGECKO_API_KEY`, `FRED_API_KEY`) and the catalog line saying what setting it adds (`trading.source.credential.<id>`, which `doctor` prints); `SOURCE_CREDENTIAL_ENV` is derived from it.
-`[trading.sources]` may rename a variable, never name a value or a host. A rename aimed at a source that takes no credential is
-a boot-time `OperatorConfigError` (`errors.configSourceNoCredential`). `resolveCredential` (`core/security/credentials.ts`) reads
-the variable, then the same name with the product prefix (`OPENALPHA_FRED_API_KEY`). A request that declares a credential
-placement (`header` with an optional prefix, or `query`) with no secret resolved is an `OperatorConfigError`.
+Credentials: `SOURCE_CREDENTIALS` declares, per source, the default variable *name* (`COINGECKO_API_KEY`, `FRED_API_KEY`, `BLS_API_KEY`) and the catalog line saying what setting it adds (`trading.source.credential.<id>`, which `doctor` prints); `SOURCE_CREDENTIAL_ENV` is derived from it.
+
+- `[trading.sources]` may rename a variable, never name a value or a host. A rename aimed at a source that takes no credential is
+  a boot-time `OperatorConfigError` (`errors.configSourceNoCredential`).
+- `resolveCredential` (`core/security/credentials.ts`) reads the variable, then the same name with the product prefix
+  (`OPENALPHA_FRED_API_KEY`).
+- A request that declares a credential placement (`header` with an optional prefix, or `query`) with no secret resolved is an
+  `OperatorConfigError`, unless it is marked `optional` (`bls` sends `registrationkey` only when `BLS_API_KEY` is set).
+- A source whose facts say `keylessTier` registers either way, and `unavailableSources` still lists it so `doctor` and `key list`
+  name the variable.
 
 A source that needs a key and has none is not registered, so its kind falls through to the next provider. Boot logs one
 `trading.source.skipped` warning naming each skipped source and the variable it wanted. A keyless install is a supported reduced
@@ -289,7 +296,13 @@ the monthly series no free daily feed has.
 - A bank is recognised from its balance sheet, never its sector. The provider zero-fills the codes of other families, so a
   positive customer-loans line (`bsb104`) marks a bank and `isBankLines` (`kernel/market/annual-accounts.ts`) tests for it. The
   optional `NOTE` section costs only the bank lines when absent. Outflow lines are stored sign-flipped (`OUTFLOW_LINES`).
-- `cashFlowToDate` is `cafef-statements`' year-to-date cash-flow table for one quarter. The accounts refresh asks for it only when a non-bank name's newest quarter is the watched one and lacks cash flow, and every earlier quarter of that year is on file with it. The quarter's own figures are the year-to-date figure less those stored quarters (never one CafeF column less another: its earlier columns are the pre-review filing), and they are kept only when the year-to-date pre-tax profit matches the stored quarters' sum within `CASH_FLOW_MATCH_TOLERANCE`. CafeF leaves a zero blank, so a blank cell in a listed row reads as zero, but a blank operating cash flow or pre-tax profit refuses the page, since the fill is built and checked on those two; labels are matched in composed Unicode form, and a column with every cell blank is a quarter not published yet. Any quarter `vietcap-statements` still serves without cash flow keeps what an earlier fill stored while its pre-tax profit is unchanged, whether or not it is still the watched one, so CafeF is asked only when no fill is stored, and a refused answer or a failed check leaves the quarter partial. A quarter with no cash flow, or with CafeF's, is asked again once each settled session while it is the watched one (an interval from the run's start would miss by the minutes the previous fetch took); suggest never calls CafeF. Two caveats say what is missing: `factor.accounts-quarter-partial` and `factor.accounts-quarter-late`. Every accounts caveat reaches the report on the quality line when the name has a current score; these two also come through the accounts capability itself, so a name with no current score still shows them.
+- `cashFlowToDate` is `cafef-statements`' year-to-date cash-flow table for one quarter.
+  - **When it is asked.** The accounts refresh asks for it only when a non-bank name's newest quarter is the watched one and lacks cash flow, and every earlier quarter of that year is on file with it.
+  - **How a quarter is derived.** The quarter's own figures are the year-to-date figure less those stored quarters (never one CafeF column less another: its earlier columns are the pre-review filing), and they are kept only when the year-to-date pre-tax profit matches the stored quarters' sum within `CASH_FLOW_MATCH_TOLERANCE`.
+  - **Blank cells.** CafeF leaves a zero blank, so a blank cell in a listed row reads as zero, but a blank operating cash flow or pre-tax profit refuses the page, since the fill is built and checked on those two; labels are matched in composed Unicode form, and a column with every cell blank is a quarter not published yet.
+  - **Keeping a fill.** Any quarter `vietcap-statements` still serves without cash flow keeps what an earlier fill stored while its pre-tax profit is unchanged, whether or not it is still the watched one, so CafeF is asked only when no fill is stored, and a refused answer or a failed check leaves the quarter partial.
+  - **Re-asking.** A quarter with no cash flow, or with CafeF's, is asked again once each settled session while it is the watched one (an interval from the run's start would miss by the minutes the previous fetch took); suggest never calls CafeF.
+  - **Caveats.** Two caveats say what is missing: `factor.accounts-quarter-partial` and `factor.accounts-quarter-late`. Every accounts caveat reaches the report on the quality line when the name has a current score; these two also come through the accounts capability itself, so a name with no current score still shows them.
 - Two provider lines are deliberately unread: its operating profit, because core operating profit is gross profit less selling
   and admin (`markets/equity-vn/accounts/history.ts`), and its EPS, which is not restated for stock dividends, so shares are
   common capital over `VN_SHARE_PAR_VND`.
@@ -320,15 +333,18 @@ remainder is listed by no routed venue). It is third in `bars` on purpose: the l
 volume is least trustworthy, so it answers only for a name the majors decline. Its bars carry no `takerBuyVolume` (no aggressor
 split), which `Candle` models as absent rather than zero.
 
-**`fx`** is one `ANY_SCOPE` list whose members do not overlap. The coin providers lead and pick their own work: they cover only a
-pair whose base is a coin they can price. `yahoo` and `er-api` split a pair into two ISO codes, so a seven-character `USDTVND`
-fails their `covers`. `coinbase` leads the pair it trades because the crypto book is valued through that rate; `okx` backs it
-because coinbase's book is the deeper one. `fxHistory` is `yahoo` alone: the coin providers quote spot, not dated history, and
-`er-api` publishes today's board only. A fiat pair reaches `yahoo` untouched; a coin's dollar leg (`USDTUSD`, the bridge leg of a
-`USDTVND` rate) reads Yahoo's `USDT-USD` listing, refused unless it answers as a cryptocurrency. Without it a past day's rate
-carried today's peg and moved on every call while naming that day. There is no fallback from
-`USDTVND` to `USDVND`: USDT is a different instrument in a different market, and a substituted rate is worse than the gap
-`valuation.fx-missing` reports.
+**`fx`** is one `ANY_SCOPE` list whose members do not overlap.
+
+- The coin providers lead and pick their own work: they cover only a pair whose base is a coin they can price. `yahoo` and
+  `er-api` split a pair into two ISO codes, so a seven-character `USDTVND` fails their `covers`.
+- `coinbase` leads the pair it trades because the crypto book is valued through that rate; `okx` backs it because coinbase's
+  book is the deeper one.
+- `fxHistory` is `yahoo` alone: the coin providers quote spot, not dated history, and `er-api` publishes today's board only.
+- A fiat pair reaches `yahoo` untouched. A coin's dollar leg (`USDTUSD`, the bridge leg of a `USDTVND` rate) reads Yahoo's
+  `USDT-USD` listing, refused unless it answers as a cryptocurrency. Without it, a past day's rate carried today's peg and moved
+  on every call while naming that day.
+- There is no fallback from `USDTVND` to `USDVND`: USDT is a different instrument in a different market, and a substituted rate
+  is worse than the gap `valuation.fx-missing` reports.
 
 ### Health demotes, it never promotes
 
@@ -367,7 +383,7 @@ unpaced primary was routed first for.
   Most merge because no single provider covers the subject:
 
   - `macro` - no provider publishes every series; the keyless `treasury`/`bls` pair leads so an unkeyed install still reads
-    macro.
+    macro. Each macro source is fronted by one gate (see Macro under Caches).
   - `goldBoard` - no vendor quotes every domestic form, so the first usable board would drop any form only a later vendor
     carries. `giavang` leads because it carries SJC's own quote; the SJC bar `pnj` resells is used only when `giavang` does not
     answer.
@@ -478,14 +494,18 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
 caught there instead of as a 429 in production.
 
 Three figures limit a burst rather than the quota that binds them, because a token bucket cannot express a day or a month: `bls`
-(per day), `er-api` and `coingecko` (per month). None is near its allowance in ordinary use (`bls` is asked once per macro
-refresh; `er-api` is last in the `fx` route). The numbers prevent a breaker storm spending an allowance in an afternoon. Set far
-above the real peak they prevent nothing: a runaway at hundreds of requests a minute empties a monthly quota in an hour, whereas a
-figure near the peak leaves half a day for the breaker and a human to react. `coinmarketcap` (30) publishes no ceiling for its
-keyless subset and answers `1022` once an anonymous caller has used it up (measured recovering within a minute of going idle); the
-figure stops the burst and the next provider covers a refusal. `coingecko` (10) is keyed (`COINGECKO_API_KEY`; the adapter
-targets a Demo plan of 10,000 calls a month), so without the key it is not registered. It sits last on the market-cap route,
-reached only when its key is set and the keyless boards have failed or a coin is past every window.
+(per day), `er-api` and `coingecko` (per month).
+
+- None is near its allowance in ordinary use. `bls` is asked at most once a UTC day and not between releases, by the macro gate;
+  `er-api` is last in the `fx` route.
+- The numbers prevent a breaker storm spending an allowance in an afternoon. Set far above the real peak, they prevent nothing: a
+  runaway at hundreds of requests a minute empties a monthly quota in an hour, whereas a figure near the peak leaves half a day for
+  the breaker and a human to react.
+- `coinmarketcap` (30) publishes no ceiling for its keyless subset and answers `1022` once an anonymous caller has used it up
+  (measured recovering within a minute of going idle). The figure stops the burst, and the next provider covers a refusal.
+- `coingecko` (10) is keyed (`COINGECKO_API_KEY`; the adapter targets a Demo plan of 10,000 calls a month), so without the key it is
+  not registered. It sits last on the market-cap route, reached only when its key is set and the keyless boards have failed or a
+  coin is past every window.
 
 The pacer treats an absent limit as unpaced, not zero. No built-in reaches that path but a plugin can, so a manifest omitting
 `rateLimitPerMinute` gets `PLUGIN_DEFAULT_RATE_LIMIT_PER_MINUTE` (30). A limit of zero is a `ConfigError` (the manifest schema
@@ -599,6 +619,43 @@ in-flight promise, so callers arriving together share one fan-out. It holds two 
 crossing midnight). A failed or aborted read clears its own slot, and so does a read in which any provider did not answer: the
 day's first pass runs before the US series publish, and only a complete read is served to later callers.
 
+**Index reading** (`kernel/market/index-reading.ts`; `vndirect` serves `indexValuation`, `vndirect-mkw` serves `indexContributors`; the VN market publishes both as capabilities, `hasIndexes` on `/v1/markets`).
+
+*Valuation* is stored, never read in a request: `refreshIndexValuation` (`markets/equity-vn/refresh/index-valuation.ts`, run at the end of every VN refresh pass, outside the evidence kinds, so a replayed pass still retries a read that failed; it reports as its own `index-ratios` kind, never stored as an attempt, and a failed read or write marks that index missing instead of failing the refresh) asks the provider at most once per index and UTC day (the write instant of the P/E point is the check; `force` skips it), reads one window of seven ratio codes from `fromDay` (five sessions back) and keeps the newest day that has both multiples.
+
+- One `series_points` row per index, ratio and day, id `index-ratio:<INDEX>:<ratio>`, day the provider's `reportDate`, the daemon's own history from then on; no migration.
+- `series_points` is swept after `history_days` (1095 by default) and never below `HISTORY_FLOOR_DAYS.macroSeries` (about 500), so the default covers a one- and three-year comparison against its own history, and a five-year one needs `history_days` raised (the five-year averages shown today are the provider's, with no backfill).
+- `createIndexValuation` reads the latest stored point of each ratio and builds the reading; a failed refresh leaves the last one, and one older than ten days carries `source.stale-cache`.
+- ROE is `P/B / P/E`, derived.
+- The provider files no above-mean shares for VN30, so the same pass counts the stored VN30 constituents (`indexTier`) above their own 50- and 200-session means on the ratios' day (`aboveMeanRatios`, from the cross-section's bars) and stores them under the same series ids.
+
+*Contributors* are never stored: `createIndexContributors` (`markets/equity-vn/tape/index-contributors.ts`) keeps one slot per index (three in all).
+
+- While the session trades a slot is good for `LIVE_CONTRIBUTORS_TTL_MS`; once the tape has settled (`isTapeServing`) it is read once and kept until the next open, keyed by the settled day.
+- Callers share one in-flight read under its own timeout, because the read must not be tied to whichever caller arrived first; a failed read answers with the held slot and `source.stale-cache`, or the failure when none is held.
+- The feed's `point` is dropped below `MINIMUM_CONTRIBUTION_POINTS` (0.005, as the provider's own widget does), and each side lists the top `CONTRIBUTORS_PER_SIDE`.
+
+**Macro gate** (`sources/macro-gate.ts`) - fronts every `macro` source that declares a `MacroSourceProfile` (`MACRO_SOURCE_PROFILES` in
+`source-facts.ts`: `bls`, `fred`, `treasury`, `vndirect`; a plugin declares none and is read as before). `gateMacroSource` wraps the
+source at registration, so failover (`resolve`) and the merged read (`resolveAll`) both pass it. The last good read is stored per
+source and series in `series_points` under `<source>:<series>` (the observation day, the value and the write instant; no
+migration). On each fetch:
+
+1. Stored and written the same UTC day, or `cadence` is monthly and the stored observation is already the newest period a print can
+   describe by today (`lagMonths` back, one more before `releaseDay`): serve the stored reading, `freshness: 'cached'` with its real
+   `fetchedAt`, no HTTP.
+2. Otherwise fetch. An answer is written back (`replace`); a failed write is logged (`trading.macro_read_unsaved`) and never fails the
+   read, as an unreadable store is (`trading.macro_read_unreadable`).
+3. A refusal or failure serves the stored reading with its observation date and no caveat, while the newest observation is within
+   `staleAfterDays`; with nothing stored or past it the failure stands and its caveat is shown.
+4. A refusal carrying `source.quota-exhausted` is kept in memory until the UTC day turns: later reads that day skip the HTTP
+   call and answer as step 3 does, from the stored reading or with that same refusal. Nothing extra is written to `series_points`.
+
+The profile is the whole per-source surface: `series`, `cadence` (`daily`, or `monthly` with `releaseDay` and `lagMonths`) and
+`staleAfterDays`. `bls` declares monthly, release day 10, lag 1, stale after 120 days; `fred` and `treasury` daily and 10 days (a
+weekend plus a holiday); `vndirect` daily and 180 days (the deposit rate moves a few times a year). A daily allowance spent at `bls`
+answers with the distinct `source.quota-exhausted` code instead of `source.rate-limited`.
+
 **Universe** (`sources/adapters/crypto-universe.ts`) - one ranked board read per hour of work (`UNIVERSE_ROWS_TTL_MS`). A ranked
 board reorders by a few places an hour and every quote and symbol lookup reads the same sweep. Five minutes cost one 750-row
 listing per screen and tripped CoinMarketCap's unstated ceiling in bursts. Rows keep their own observation time, so nothing
@@ -673,7 +730,7 @@ registration order: `/overview` would show domestic gold's global-only macro und
 
 **Stored evidence** goes through a refresh sweep. A market's `refresh` capability resolves its kinds from the registry, validates
 the whole scope and writes it to `MarketDataStore`; features read the store. The swept kinds are `REFRESH_DATA_KINDS`
-(`kernel/market/refresh.ts`): `instruments`, `bars`, `fundamentals`, `flows`, `macro`, `accounts`, `premium`.
+(`kernel/market/refresh.ts`): `instruments`, `bars`, `fundamentals`, `flows`, `macro`, `accounts`, `premium`, `index-ratios`.
 `foreignRoom` and `indexMembership` resolve inside the universe refresh, because they only mean something attached to the listing
 set being replaced. A screen cannot issue one live request per name, and evidence must be stable across a session.
 

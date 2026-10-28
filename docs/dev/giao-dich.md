@@ -39,7 +39,7 @@ resolveSettledDay(calendar, now) // hôm nay nếu đã settle, nếu không th�
 - `isAttemptCurrent` ([refresh của equity-vn](../../src/trading/markets/equity-vn/refresh/refresh.ts)) hỏi `isSettled(calendar, attempt.asOf, attempt.attemptedAt)` trước khi xét tuổi, nên một dấu ghi trong khoảng chờ settle không bao giờ bị đọc là hiện hành;
 - năng lực quote của một thị trường bỏ một số đọc qua `isLiveObservation` và lùi về giá đã lưu qua `liveOrStoredQuote` ([stored-quote.ts](../../src/trading/markets/stored-quote.ts)). Thị trường sở hữu câu hỏi, không bao giờ là bộ nối.
 
-`upsertSeriesPoint` ([kho market-data](../../src/trading/features/market-data/store/market-data.ts)) trả lời dòng có được ghi hay không. Một lượt chạy chỉ đếm những gì nó ghi, và `force` là thứ suy lại một ngày đã lưu. Một ngày mà lịch sử bảng vàng không tìm thấy bảng nào thì không phải một mục `missingTargets`.
+`upsertSeriesPoint` ([kho market-data](../../src/trading/features/market-data/store/market-data.ts)) trả lời dòng có được ghi hay không. Một phiên chạy chỉ đếm những gì nó ghi, và `force` là thứ suy lại một ngày đã lưu. Một ngày mà lịch sử bảng vàng không tìm thấy bảng nào thì không phải một mục `missingTargets`.
 
 ## Khâu sàng lọc và danh sách loại trừ
 
@@ -58,7 +58,7 @@ Ngưỡng là một phần danh tính của cảnh báo thoát, nên một cắt
 
 Bộ nhớ theo phiên của trail (`trailedThrough`) chỉ được đặt sau khi việc nâng đã ngã ngũ: đã ghi, thua một lần nâng đồng thời, hoặc không cần nâng. Một lần ghi hỏng để nó không được đặt, nên nhịp kế tiếp thử lại thay vì chờ một phiên. Cách vòng cảnh báo cô lập lỗi nằm ở [vận hành](van-hanh.md#phân-loại-lỗi-của-một-lượt).
 
-## Bảng thành tích và các lượt chạy hàng loạt
+## Bảng thành tích và các phiên chạy hàng loạt
 
 - `independentCalls` (`pipeline/reporting.ts`) là chỗ duy nhất gộp một lời gọi lặp lại lời gọi còn mở trên cùng mã và cùng chiều. Nó chỉ đọc `FoldableCall` (`at`, `instrument`, `action`, `outcome.exitDay`), nên hồ sơ theo phạm vi gộp các dòng gọn `FocusCall` mà `listFocusCalls` trả về (không payload, không giới hạn số dòng) bằng cùng quy tắc `summarizeTrackRecord` dùng, từng phạm vi một. Không có bản cài đặt thứ hai trong SQL; `LATEST_OF_SAME_CALL_SQL` vẫn giữ dòng mới nhất của một lời gọi cùng ngày qua các phiên bản.
 - Một dòng mà payload không còn đọc được thì bị bỏ khỏi danh sách thay vì làm hỏng cả lần đọc: `readableRow` (`store/readable-row.ts`) bắt `StorageError`, ghi `trading.suggestion_row_unreadable` kèm id dòng và ném lại mọi lỗi khác. Các lần đọc đang chờ, đã chốt, kế hoạch thoát và trang danh sách dùng chung nó. `findLatestExitPlan` khi đó lùi về các dòng cũ hơn trong cửa sổ nhìn lại, nên một dòng mới nhất hỏng không bị đọc thành "không có kế hoạch".
@@ -71,9 +71,9 @@ Một số mục theo từng thị trường (`reading`, `market-prices`, `marke
 
 ## Chấm điểm chủ đề
 
-Các lần đọc chủ đề, ngành và cổ phiếu dùng chung bảng `theme_reads` (một cấp và một chủ thể). Mã chấm mỗi cái 0-100 trong [`features/themes/score/`](../../src/trading/features/themes/score/) từ các trọng số cố định; `SCORE_VERSION` được lưu cùng lượt chạy, và các phần đi trong payload để tính lại được điểm. Bảng thành tích chỉ đọc kết quả của các lượt mang `SCORE_VERSION` hiện tại, nên khi đổi trọng số, thang đo hay quy tắc độ phủ thì phải tăng phiên bản này trong cùng commit. `check-strategy-version` băm toàn bộ các file tính điểm và báo lỗi cho tới khi thay đổi được ghi lại bằng `--write`.
+Các lần đọc chủ đề, ngành và cổ phiếu dùng chung bảng `theme_reads` (một cấp và một chủ thể). Mã chấm mỗi cái 0-100 trong [`features/themes/score/`](../../src/trading/features/themes/score/) từ các trọng số cố định; `SCORE_VERSION` được lưu cùng phiên chạy, và các phần đi trong payload để tính lại được điểm. Bảng thành tích chỉ đọc kết quả của các lượt mang `SCORE_VERSION` hiện tại, nên khi đổi trọng số, thang đo hay quy tắc độ phủ thì phải tăng phiên bản này trong cùng commit. `check-strategy-version` băm toàn bộ các file tính điểm và báo lỗi cho tới khi thay đổi được ghi lại bằng `--write`.
 
-Tin tức của một lượt chạy lấy từ `NewsArchiveStore.listArchived`: các tin vào kho (`fetched_at`) kể từ lần đọc cũ nhất của các chủ thể lượt đó đọc, không phải các tin đăng từ lúc đó, nên tin vào kho muộn vẫn được đọc đúng một lần.
+Tin tức của một phiên chạy lấy từ `NewsArchiveStore.listArchived`: các tin vào kho (`fetched_at`) kể từ lần đọc cũ nhất của các chủ thể lượt đó đọc, không phải các tin đăng từ lúc đó, nên tin vào kho muộn vẫn được đọc đúng một lần.
 
 ## Định giá và cuốn sổ
 
@@ -123,8 +123,11 @@ Các route mà tính năng giao dịch thêm vào, được phục vụ khi `[ap
 | `GET /v1/portfolio/nav` | `portfolio` |
 | `GET /v1/suggestions` | `suggestions` |
 | `GET /v1/suggestions/:id/card` | `suggestions` |
+| `GET /v1/suggestions/:id/debate` | `suggestions` |
 | `GET /v1/track-record` | `suggestions` |
 | `GET /v1/brief`, `PATCH /v1/brief` | - |
+
+Một đề xuất đã lưu giữ các mô hình đã tranh luận nó trong `suggestions.debate_models` (danh sách đã sắp xếp, nối bằng `,`, null ở dòng ghi trước khi có cột) và các mã luận điểm mà bước kiểm chứng bác bỏ trong khối tranh luận (`refutedIds`, vắng ở dòng cũ hơn). `GET /v1/track-record` chỉ đếm theo từng mô hình, trong toàn bộ thời gian, các đề xuất đã chấm điểm của chính bạn (tiêu điểm mặc định) mà `debate_models` ghi đúng một mô hình, gộp bằng `independentCalls` và chịu `MINIMUM_TRACK_RECORD_SAMPLE` như mọi tỷ lệ; đề xuất do nhiều mô hình tranh luận, hay dòng không có danh sách đã lưu, không được tính cho mô hình nào. Mỗi dòng tiêu điểm và `record` của mỗi agent còn có `targetCount`, số lệnh độc lập đã đóng ở mục tiêu.
 
 ## Nghiên cứu yếu tố VN
 

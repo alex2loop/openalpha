@@ -2,6 +2,7 @@ import type { ParsedArgs } from '@/cli/parsing/args'
 import type { CliApp } from '@/cli/types'
 import { createCommand, createGroup, type Group, hasLoadedConfig, type Needs } from '@/cli/command'
 import { resolveLauncher } from '@/cli/commands/autostart/launchers'
+import { BACKGROUND_FLAG } from '@/cli/commands/daemon/background'
 import { getEnv } from '@/cli/env'
 import { readEnvFile } from '@/cli/env-file'
 import { usage } from '@/cli/error-output'
@@ -13,7 +14,7 @@ import { isCompiledBinary } from '@/cli/update/release'
 import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 
-const START_TAIL = ['start', '--background'] as const
+const START_TAIL = ['start', BACKGROUND_FLAG] as const
 const NAME_SEPARATOR = ', '
 const AUTOSTART_NEEDS: Needs = { boot: false, configFile: 'optional', daemon: 'any' }
 

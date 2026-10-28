@@ -48,10 +48,12 @@ mean `db stats` is hiding a failed migration.
 | --- | --- |
 | `sessions`, `session_messages` | Session lifecycle and transcript. No usage total is stored: per-session totals are added up from `llm_attempts` each time they are read, so they cannot drift. |
 | `llm_attempts` | Append-only record of every model attempt, and of global cost. |
+| `runs` | One row per finished long-running command and per agent run whose answer reaches a surface (and the child runs they started): what the activity page lists. A run's cost is read from `llm_attempts`, never copied here. |
+| `notices` | The bell: every notice the daemon raised for you rather than as a passing screen update (alerts, stops, the brief, fills, approvals, spent budgets, its own sentences), with the channels it also went to and whether you read it. |
 | `bindings`, `pairings` | Chat routing aliases and channel pairing state. |
 | `channel_state` | Channel checkpoints: poll offsets and session routes. |
 | `channel_inbox` | Inbound queue and retries; payloads of completed or failed entries; a finished run's answer when its final send failed. |
-| `jobs`, `scheduler_runs`, `heartbeat_task_completions`, `heartbeat_commitments` | Schedules, occurrence history, heartbeat progress and deferred commitments. |
+| `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Schedules, occurrence history, what starts an event job and when it last ran for each name, heartbeat progress and deferred commitments. |
 | `memory_kv` | Agent memory. SQLite adds FTS5 search; PostgreSQL uses its text-search facilities. |
 
 Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots`,
@@ -107,9 +109,15 @@ that cannot be rebuilt.
 
 **Series.** `series_points` holds day-keyed scalar series. The domestic gold premium is derived from
 fetched history: each pass backfills the percentile window's missing days from dated gold board
-history, world closes and FX history. The FX series is written from a fetched one. An ordinary
-refresh does not overwrite a day already recorded, because a board does not change once its session
-has closed. A forced refresh replaces it, and that is the one way to correct a day.
+history, world closes and FX history. The FX series is written from a fetched one.
+
+An ordinary refresh does not overwrite a day already recorded, because a board does not change once
+its session has closed. A forced refresh replaces it, and that is the one way to correct a day.
+
+The Vietnamese index ratios are written once a day per index by the refresh, one row per ratio and
+day. They are P/E, P/B, dividend yield, their five-year averages and the share of stocks above their
+50- and 200-session mean, for VN-Index, VN30 and HNX. So the daemon keeps its own valuation history.
+What each stock contributed to an index is never stored.
 
 #### Agents and focus
 
@@ -120,9 +128,10 @@ All durable:
 | `agent_focuses` | Each focus an agent has made calls under (`agent_id`, `focus_key`, the focus as JSON, first and last seen), so a record survives an edit to `[focus]` |
 | `agent_pauses` | One row per paused agent: a row means paused |
 | `suggestions.focus_key` | The focus a call was made under (`default` for yours); part of the identity index |
+| `suggestions.debate_models` | The models that argued a call, sorted and joined by commas; empty on a call stored before the column existed. The per-model track record counts only calls that one model argued alone |
 | `llm_attempts.billing_agent_id` | Which agent's `max_daily_usd` the spend counts against; empty when the row bills to the agent that ran it |
 
-`db import` fills a missing column with its default (`default` focus, an empty billing agent).
+`db import` fills a missing column with its default (`default` focus, an empty billing agent, no debate models).
 
 #### Social networks
 
@@ -151,12 +160,16 @@ part has its own steps in [Social networks](social.md#moving-to-another-machine)
 
 ### Migrations
 
-Migrations apply at boot, in filename order, as one all-or-nothing batch: if one fails, none of that
-batch is applied and the later ones do not run. `db migrate --status` shows each as applied,
-pending or orphaned. An orphan is an applied migration this version of the code does not know, which
-means a newer release updated the database. This version then refuses to start, and `doctor` fails
-the database check, rather than misreading it. Run `upgrade` to go back to the newer release, or
-restore the copy in `backups/pre-migration/` with `db restore`.
+Migrations apply at boot, in filename order, as one all-or-nothing batch. If one fails, none of that
+batch is applied and the later ones do not run. `db migrate --status` shows each as applied, pending
+or orphaned.
+
+An orphan is an applied migration this version of the code does not know. It means a newer release
+updated the database. This version then refuses to start, and `doctor` fails the database check,
+rather than misreading it. You have two ways out:
+
+- run `upgrade` to go back to the newer release;
+- or restore the copy in `backups/pre-migration/` with `db restore`.
 
 `db migrate` snapshots into `backups/pre-migration/` before applying a pending migration, and
 `db migrate down` into `backups/pre-rollback/` before rolling one back. Neither writes anything when
@@ -169,28 +182,53 @@ no snapshot on either path, and `db migrate down` says so before it asks.
 
 ### Retention
 
-The windows are set by [`[retention]`](configuration.md#retention): `days` is the general window
-and `inbox_days` is the inbox's own. An inbox entry may be claimed 3 times before it is dead-lettered.
+The windows are set by [`[retention]`](configuration.md#retention): `days` is the general window,
+`history_days` the track record's and `inbox_days` the inbox's own. An inbox entry may be claimed 3 times before it is dead-lettered.
 
 | Data | Retention behaviour |
 | --- | --- |
 | Non-active sessions and their messages | Removed after `days`, from end or last-activity time. |
 | Session routes | Follow the session's general window. |
 | `llm_attempts` | Kept when a session is removed; only the link to the session is dropped. Rows settled more than 400 days ago are pruned, so the year `cost` can report stays complete. |
+| `runs` (the log behind the activity page) | Removed after `days`, from the time the run ended. The cost ledger above is not part of it. |
+| `notices` (the bell) | Removed after `days`, from the time the notice was raised, read or not. |
 | Completed or failed inbox entries | Removed after `inbox_days`, payload included. |
 | Pending or processing inbox entries | Not removed by `inbox_days`. Interrupted processing is requeued, up to 3 times. An entry nobody has claimed for more than `days` (usually because its channel was removed) is removed on the general window. |
 | Poll offsets in `channel_state` | Kept indefinitely, like other delivery checkpoints. |
 | Scheduler history | Rows older than `days` are pruned only beyond a job's newest 200 such rows. |
+| `job_event_triggers`, `job_event_fires` | Not swept by `days`: they go with their job, so removing a job removes what it waited for and when it last ran for each name. |
 | Memory | Removed once expired, or once marked deleted for more than `days`. |
 | Pending pairings | Removed after `days`, from creation. |
 | Fired or disabled alerts | Removed after `days`, from the time they fired or were disabled. Live alerts are never pruned. |
 | `brief_snapshots` | Removed after `days`, except the newest snapshot per locale, which always survives. |
+| Scheduler jobs | A one-shot job that ran and was switched off is removed after `days` from its run time, with its run history. A paused one-shot that never ran, and every recurring or event job, stays. |
+| Resting exits | Settled or closed rows are removed after `days` from when they were placed. Live ones are never pruned. |
+| Theme runs and their reads | Removed after `days`, except a run an outcome still cites, each theme's two newest runs, and the newest run and newest full run. |
+| Suggestions | A scored call is removed after `history_days` from when it resolved, a hold after `history_days` from when it was made. An unscored call is never removed, and each name keeps its newest ten rows per action and focus, so the standing plan and exit plan always survive. Suggestions, `factor_log` and `theme_outcomes` are kept at least a year, however short `history_days` is, because the track record looks back that far. |
+| Factor sources on a scored call | Once a scored call resolved more than `days` ago and is not among its name's newest ten, the source stamps under each factor are emptied. Its scores, weights, outcome, thesis, debate and levels stay, and the call still lists its sources once. |
+| `factor_log`, `theme_outcomes` | Resolved rows are removed after `history_days` from when they resolved. Pending rows are never pruned. |
+| `nav_snapshots` | Removed after `history_days`, from when it was recorded. |
+| `series_points`, `series_provenance` | Removed after `history_days`, from when they were fetched or extracted, but kept at least as long as the macro year-on-year read looks back (about 500 days). |
+| `macro_documents` | Removed after `history_days`, but kept at least as long as the report backfill reaches (about 25 months). |
+| Ledger, order intents, live resting exits | Never pruned by age: the ledger is the book of record. An order intent leaves when it expires or settles, or when you clear a failed one. |
 | Market data | Not touched by `db cleanup`. Each market's refresh trims its own old rows by fetch time after a pass that wrote. News ages out the same way, on its own window. |
 
 The daemon applies retention once at startup and then on a schedule. `db cleanup --older-than
-<duration>` runs the same policy by hand, needs the daemon stopped, and with `--dry-run` only
-counts. `--older-than` is required, overrides the general window for that command only and must be
-at least `1d`. Inbox entries still use `inbox_days`, and `llm_attempts` keeps its own 400 days.
+<duration>` runs the same policy by hand.
+
+- It needs the daemon stopped.
+- With `--dry-run` it only counts.
+- `--older-than` is required. It overrides the general window for that command only, and must be at
+  least `1d`.
+- Inbox entries still use `inbox_days`. The track record uses `history_days` (never below
+  `--older-than`). `llm_attempts` keeps its own 400 days.
+- Where a table is kept longer than `history_days` because its readers need it, the command prints
+  that table's window under the history window. It also counts the scored calls whose factor sources
+  it emptied.
+
+Rows are deleted in pages of 5,000, each page its own transaction, so a large backlog never holds
+the write lock for long; one sweep takes at most 20 pages per kind and leaves the rest for the next.
+SQLite reuses the freed pages for new rows, so the file stops growing rather than shrinking.
 
 Each kind of data is pruned in its own transaction. A kind that fails or runs slow is logged as
 `retention.scope_failed` and counted as zero, the other kinds are still pruned, and its rows wait for
@@ -206,10 +244,11 @@ openalpha db import --in ./export
 
 **Export** writes one file per table. Without `--table` it writes the durable set: the ledger, past
 suggestions, the profile, alerts, memory, sessions and their transcripts, jobs, bindings, spend
-history, brief delivery state, intraday settings and every other durable table above. Market data is
-skipped because `refresh` re-derives every row. `--table` still reaches any registered table by
-name. A table the registry names but the database has not created yet (after a schema change, before
-`db reset`) is skipped with a note: it holds nothing to keep.
+history, brief delivery state, intraday settings and every other durable table above.
+
+Market data is skipped, because `refresh` re-derives every row. `--table` still reaches any registered
+table by name. A table the registry names but the database has not created yet (after a schema change,
+before `db reset`) is skipped with a note: it holds nothing to keep.
 
 - Two exports of unchanged rows diff clean. Values go out as stored: nano-USD stays nano-USD, an
   epoch-ms column stays a number.
@@ -228,7 +267,7 @@ empty data directory.
   is written, and a malformed line rolls back every table that already landed. There is no partial
   state, no `--force`, and re-running after fixing the file is always safe.
 - Tables are written in a fixed order so foreign keys hold: `sessions` before `session_messages`
-  and `llm_attempts`, `jobs` before `scheduler_runs`.
+  and `llm_attempts`, `jobs` before `scheduler_runs`, `job_event_triggers` and `job_event_fires`.
 - Column names come from the file and must match an identifier pattern. A well-formed name that
   matches no column is rejected by the engine, which names it.
 
@@ -251,11 +290,13 @@ openalpha db backup --path /safe/place/runtime.sqlite
 openalpha db restore /safe/place/runtime.sqlite --yes
 ```
 
-**Backup** writes a consistent snapshot while the database is live and sets it to `0600`, wherever
-`--path` points. It holds every session, memory and ledger row, so it is never readable by the group
+**Backup** writes a consistent snapshot while the database is live, and sets it to `0600`, wherever
+`--path` points. It holds every session, memory and ledger row. So it is never readable by the group
 or everyone, not even while it is being written: the copy is made in a private `0700` staging folder
-next to the target and moved into place when it is complete. A crash can leave a `.staging-` folder
-behind; the automatic backups folder clears it on the next backup, anywhere else delete it by hand. Automatic backup destinations keep the seven newest files.
+next to the target, and moved into place when it is complete.
+
+A crash can leave a `.staging-` folder behind. The automatic backups folder clears it on the next
+backup; anywhere else, delete it by hand. Automatic backup destinations keep the seven newest files.
 
 The daemon also takes one backup a day by itself, into `backups/daily/`, and keeps the newest three
 (`[retention] daily_backups`, `0` turns it off). The first lands when the daemon starts, and a later
@@ -268,11 +309,14 @@ passes `PRAGMA quick_check`, then keeps the database it replaces in `backups/` u
 name, so restoring twice never loses the original. A previous database that cannot be opened does
 not block the restore: it is moved into `backups/` the same way.
 
-**Moving servers.** You need only the one file; renaming it is fine, and the target needs no
-prepared data directory. Migration state travels inside the file, so the new host reports its
-migrations as already applied. The target must run code that recognises those migrations; if not,
-`db migrate --status` reports an orphan. Both hosts must use SQLite: a SQLite backup cannot be
-loaded into PostgreSQL. To move between engines, use `db export` and `db import`.
+**Moving servers.** You need only the one file. Renaming it is fine, and the target needs no prepared
+data directory. Migration state travels inside the file, so the new host reports its migrations as
+already applied.
+
+- The target must run code that recognises those migrations. If not, `db migrate --status` reports an
+  orphan.
+- Both hosts must use SQLite: a SQLite backup cannot be loaded into PostgreSQL. To move between
+  engines, use `db export` and `db import`.
 
 These commands deliberately do not back up or restore PostgreSQL. Use the database service's own
 backup, point-in-time recovery and access controls.
@@ -325,8 +369,9 @@ session and loads the stored transcript and usage totals, including after a rest
 Channels route by channel, chat and user. The first accepted message creates a route; later messages
 reuse it.
 
-- `/new` switches the route to a fresh session in one step, so queued work from the old conversation
-  cannot leak into the new one.
+- `/new` drops the chat's route in one step, so queued work from the old conversation cannot leak
+  into the new one. The next message opens the new session, so a chat that goes quiet leaves no
+  empty session behind.
 - `/continue` keeps the current session and sends one short nudge as the next turn, so a run that
   stopped early picks up where it left off without you retyping the request.
 
@@ -384,7 +429,7 @@ Only one run changes a session at a time. Later messages wait in a queue of at m
 tasks; excess work fails with `queue_full` instead of letting memory grow. A failed task does not
 affect the next one.
 
-`/new` and other route changes wait for in-flight work to settle, cancel the queued work, update the
+`/new` and other route changes wait for in-flight work to settle, cancel the queued work, drop the old
 route, and then accept work for the new session. A message accepted for the old session cannot run
 under the new route.
 
@@ -392,11 +437,12 @@ under the new route.
 
 Compaction starts when the history approaches the model's context window or exceeds the soft message
 cap. The threshold, the message cap and the maximum number of passes are under
-[`[loop]`](configuration.md#loop). It keeps the system head, summarises the older middle, and keeps
-the ten most recent message groups (a user message, or an assistant message with its tool results),
-so a run driven by one long request still has older content to shrink. A configured fast model is
-preferred for summarising; otherwise the primary model is used. Summary calls are budgeted, priced
-and saved as `compaction` attempts.
+[`[loop]`](configuration.md#loop).
+
+It keeps the system head, summarises the older middle, and keeps the ten most recent message groups (a
+user message, or an assistant message with its tool results). So a run driven by one long request
+still has older content to shrink. A configured fast model is preferred for summarising; otherwise the
+primary model is used. Summary calls are budgeted, priced and saved as `compaction` attempts.
 
 - Each tool call stays together with its result. Orphaned calls and results are dropped, repeated
   results are folded, and integrity is checked before the next provider request.
@@ -413,10 +459,10 @@ and saved as `compaction` attempts.
 ### Todo list restoration
 
 A `todo_write` result is an ordinary tool message, so compaction or the message cap can remove it
-while the agent is still working through the list. The run keeps its own copy outside the transcript
-and re-appends the list before the next model call once no `todo_write` result or earlier
-restoration notice is still visible. A visible list is never duplicated, so a long session pays one
-message per compaction, not one per turn.
+while the agent is still working through the list. To guard against that, the run keeps its own copy
+outside the transcript. Before the next model call, it re-appends the list once no `todo_write` result
+or earlier restoration notice is still visible. A visible list is never duplicated, so a long session
+pays one message per compaction, not one per turn.
 
 Only a `todo_write` result refreshes the copy: a summary that paraphrases the list cannot overwrite
 what the agent wrote. The restoration notice exists only in the prompt. It is never saved to the

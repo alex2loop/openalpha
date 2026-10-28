@@ -136,7 +136,7 @@ or `.../openai/v1`. Claude model ids carry Bedrock's `anthropic.` prefix, such a
 
 ### `[[model_tiers.<name>]]` (optional)
 
-A named fallback chain that trusted agents can select. Each tier is an array of tables under
+A named fallback chain that agents can select: built-in and bundled-plugin agents, and your own. Each tier is an array of tables under
 `model_tiers.<name>`. The first entry is the primary and the rest are tried in order. Entries follow
 the `[[models]]` schema and inherit `[model_defaults]`. Every entry must support tool calls.
 
@@ -151,7 +151,7 @@ api_key_env = "ANTHROPIC_API_KEY"
 ```
 
 A tier name starts with a lowercase letter, then lowercase letters, digits, `_` or `-`. An omitted
-tier is an error only if a trusted agent selects it.
+tier is an error only if an agent selects it.
 
 The debate roles prefer a tier named `debate`. With one configured, every role runs on that chain.
 This is the place for an endpoint pin and tight stream timeouts, while chat keeps the primary chain:
@@ -241,8 +241,9 @@ provider its own `api_key_env`. `reasoning`, `max_tokens` and the two timeouts c
 An agent profile picks one named chain with `model_tier`. This is the only way an agent chooses a
 model chain; there is no per-agent `model` key. The tier must exist under `[[model_tiers.<name>]]`.
 
-Only trusted profiles (built-in and bundled-plugin) may set `model_tier`. A user-written agent or an
-untrusted plugin profile that declares it is rejected.
+Built-in profiles, bundled-plugin profiles and your own agents may set `model_tier`, and every entry in
+the tier must support tool calls. An untrusted plugin profile that declares it is rejected. `reasoning`
+stays trusted-only.
 
 Without `model_tier`, the agent uses the `[[models]]` chain. A built-in role can carry its own
 preference (the research workers prefer `research`), and an explicit `model_tier` cannot override it.
@@ -275,6 +276,9 @@ cap are in [Cost and budgets](budgets.md).
 All keys are optional. `[locale]` accepts no other keys. `currency` and `region` say where you are,
 so trading reads them here rather than keeping copies under `[trading]`.
 
+`[locale] language` is the only language setting. The trading profile keeps an old `preferred-locale` mirror of it
+in storage, but nothing reads it: changing it there changes nothing, and the profile your app shows reports this key.
+
 Text a model writes, such as a suggestion's thesis or a theme read, stays in the language of the run
 that wrote it. Changing `language`, or writing to the bot in another language, changes the labels
 around it, not the stored text; the next run writes in the new language.
@@ -295,6 +299,9 @@ Layout under `data_dir`:
   openalpha.ready                   written once the daemon is up; what it started without
   daemon.stdout.log                 a background daemon's stray output, truncated each start
   daemon.stderr.log                 a background daemon's warnings and errors, truncated each start
+  restart.json                      written just before the daemon starts again, removed when the new daemon announces it
+  restart.stdout.log                Windows only: stray output of a restart from the API, where a failed one says to look
+  restart.stderr.log                Windows only: warnings and errors of that restart
   logs/daemon.log                   default global log (`[log] file`)
   logs/agents/<agentId>/agent.log   per-agent run log, kept
   backups/                          `db backup` files, plus pre-migration/ and pre-rollback/ snapshots
@@ -349,7 +356,8 @@ you see.
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, and brief snapshots past the newest per language. |
+| `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, brief snapshots past the newest per language, and the history the app reads: finished runs behind the activity list, and the notices in the bell, read or not. |
+| `history_days` | int | `1095` | Positive, at least `days` (a shorter one is refused when the config loads; unset, it is never below `days`). How long to keep the track record: scored suggestions and holds (each name keeps its newest ten per action, and an unscored call is never removed), resolved factor-log and theme outcome rows, NAV snapshots, and macro series points with their sources. Macro documents are kept at least 800 days, so the extractor never pays to read a month again. |
 | `inbox_days` | int | `7` | Positive. How long to keep completed and failed inbox entries, payloads included. |
 | `daily_backups` | int | `3` | `0` or more. How many daily SQLite snapshots to keep in `backups/daily/`; `0` turns them off. PostgreSQL is skipped (use `pg_dump`). |
 
@@ -363,6 +371,16 @@ you see.
 It does not apply to active global or per-agent logs (bounded by `[log].max_file_mb` and
 `[log].max_files`), to workspace-root files, or to `workspaces/<agentId>/run/`. To delete per-agent
 logs now, configured agents included, run `openalpha logs clear`. It does not touch the global log.
+
+### `[notices]`
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `chat` | array of strings | `[]` | Notice kinds sent to your chat as well as the bell. Valid kinds: `call-scored`, `held-news`, `index-drop`; any other name stops the daemon at start with the list of valid ones. |
+
+Three readings go to the bell in the app and to no chat, unless you list them here: a call you were given has been scored, news on a name you hold, and the region's index falling hard in a session.
+
+Held-name news covers only names the daemon has already read. Headlines are archived when a `/suggest` or a chat about the name reads them; nothing fetches news for your holdings on a schedule. Everything else the daemon sends to a chat is unchanged.
 
 ### `[log]`
 
@@ -382,7 +400,18 @@ Priority for the level: `--log-level`, then `OPENALPHA_LOG_LEVEL`, then `[log].l
 | `check` | bool | `true` | Ask GitHub twice a day whether a newer release is out. |
 | `auto` | bool | `false` | Install patch releases (1.0.5 to 1.0.6, say) by itself between 00:00 and 06:00 on `[locale] timezone`, when the daemon runs in the background; never while a market you follow is in session, lunch break included (crypto trades around the clock, so it does not count). |
 
-When one is out, the CLI prints a short notice after a command (at most once a day), chat shows it under the welcome, `version` and `doctor version` report it, the daemon logs it, the morning brief sent to a channel ends with it, and the bot mentions it in your private chat. Nothing installs until you run `openalpha upgrade` or `/upgrade confirm`, unless `auto` is on: then a background daemon installs a patch release by itself in that window, messages you when it is back (in the private chat you last wrote to it from), and goes back to the old release if the new one will not start. On a server, set `[locale] timezone` so the window falls at night. A source checkout never checks; under CI only `version` and `doctor --online` do.
+When a new release is out, you hear about it in several places:
+
+- the CLI prints a short notice after a command (at most once a day);
+- chat shows it under the welcome;
+- `version` and `doctor version` report it;
+- the daemon logs it;
+- the morning brief sent to a channel ends with it;
+- the bot mentions it in your private chat.
+
+Nothing installs until you run `openalpha upgrade` or `/upgrade confirm`, unless `auto` is on. When it is on, a background daemon installs a patch release by itself in that window, messages you when it is back (in the private chat you last wrote to it from), and goes back to the old release if the new one will not start. On a server, set `[locale] timezone` so the window falls at night.
+
+A source checkout never checks. Under CI, only `version` and `doctor --online` do.
 
 ### `[channels.telegram]`
 
@@ -465,6 +494,8 @@ buy nothing.
 | `delegation_depth` | int | `3` | Deepest sub-agent nesting. |
 | `max_delegations` | int | `32` | Children a whole run may start, in total. |
 | `max_parallel_delegations` | int | `5` | Most child items one `delegate_parallel` call accepts. |
+| `max_spawn_duration_ms` | int | `600000` | 10 minutes: how long one spawned child agent works before it is stopped; what it had read comes back marked partial. At most 2147483647. |
+| `max_spawn_turns` | int | `12` | Model turns one spawned child agent gets. |
 | `max_unasked_fetches` | int | `10` | `web_fetch` calls in one run, asked or not, before every further one asks you first. `0` asks every time. |
 
 Compaction is fixed: a session compacts past 500 messages or at 75% of the context window, at most 3
@@ -476,7 +507,7 @@ times per run.
 |---|---|---|---|
 | `ttl_days` | int | `90` | Default lifetime of expiring observations. |
 
-A stored memory value is capped at 16 KiB.
+A stored memory value is capped at 16 KiB. The office page lists the notes under Settings > Memory, per agent and per person it talked to, adds one with "+ Remember" and forgets one with undo; a note is forgotten `ttl_days` after its last update.
 
 ### `[web_search]`
 
@@ -512,9 +543,24 @@ the fallback. `ANYSEARCH_API_KEY` is optional; without it you get anonymous acce
 It returns at most 20 results, sends your `[locale] language`, and does not support recency, so a
 requested recency is reported as unverified.
 
-`deepseek` is the budget pick: about $0.75 per 1,000 searches, and an empty search costs nothing. It reads Vietnamese and English sources well, dates its results and honors recency, so "last week" really means last week. It shares `DEEPSEEK_API_KEY` with DeepSeek models; set `cost_per_search_usd = 0.00075` so the spend shows in your totals. DeepSeek takes short queries (128 characters). A long one is trimmed from the end but keeps the sites you chose; only a site list long enough to crowd out the question moves to filtering the results. Excluded sites are always filtered from the results, so you still get only the sites you asked for. DeepSeek takes no language, so a page's machine-translated copies (paths like `/nl/`, `/de/`) are dropped and only pages in your language are kept. Searches are paced to DeepSeek's limit of 5 a second.
+`deepseek` is the budget pick: about $0.75 per 1,000 searches, and an empty search costs nothing. It
+reads Vietnamese and English sources well, dates its results and honors recency, so "last week" really
+means last week. It shares `DEEPSEEK_API_KEY` with DeepSeek models; set
+`cost_per_search_usd = 0.00075` so the spend shows in your totals.
+
+A few limits to know:
+
+- DeepSeek takes short queries (128 characters). A long one is trimmed from the end but keeps the
+  sites you chose. Only a site list long enough to crowd out the question moves to filtering the
+  results.
+- Excluded sites are always filtered from the results, so you still get only the sites you asked for.
+- DeepSeek takes no language. So a page's machine-translated copies (paths like `/nl/`, `/de/`) are
+  dropped, and only pages in your language are kept.
+- Searches are paced to DeepSeek's limit of 5 a second.
 
 Keys come only from the environment variables named by `api_key_env` and `fallback_api_key_env`.
+The office page's Settings > Tools switches `provider` (after a restart) and saves the key itself, but the
+variable names and `base_url` stay in this file.
 A provider call times out after 15 seconds and retries transient failures up to 3 times from an
 800 ms base backoff. A provider that fails 3 times in a row is skipped for 1 minute. The cache holds
 100 entries per TTL, and each result snippet is capped at 400 characters.
@@ -530,21 +576,57 @@ A provider call times out after 15 seconds and retries transient failures up to 
 ### `[api]`
 
 The HTTP/WS API (`/v1`) that client apps talk to. `openalpha start` serves it when `enabled = true`;
-a one-off command never opens the port. It binds `127.0.0.1` only and refuses every other peer, so a
-client on another machine connects through an SSH tunnel or a reverse proxy on the same host (see
-[Operations](operations.md)).
+a one-off command never opens the port.
+
+It binds `127.0.0.1` only and refuses every other peer. So a client on another machine connects
+through an SSH tunnel or a reverse proxy on the same host (see [Operations](operations.md)). It
+answers only a request addressed to `127.0.0.1`, `localhost` or `[::1]`, or to `public_url` when set.
+
+The office page's config editor cannot change plugins, an MCP server's command, every `*_env` key and
+every other field naming an environment variable (`[trading.sources]`,
+`[trading.venues.<id>] credentials`), `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
+`[update]` or `[trading.orders] allow_unattended`; change those here. The key values themselves can be
+saved from Settings > Providers, Exchanges and Tools, which write `<data dir>/env` as
+`openalpha key set` does.
+
+Anything in front of the daemon (a proxy such as Caddy or nginx, `tailscale serve`, a domain) needs
+`public_url` set to the address the browser opens. That is what turns on the exposure limits and the
+`__Host-` sign-in cookie.
+
+Without it, the daemon only catches a proxy that sends `X-Forwarded-For` or `Forwarded`, or a `Host`
+that is not a local name. It refuses those with a line naming `public_url`. A proxy that passes
+neither (a bare nginx `proxy_pass` sends `Host: 127.0.0.1:<port>` and no forwarded header) looks
+local. So set `public_url` before you expose it, and have nginx send `proxy_set_header Host $host;`
+and `proxy_set_header X-Forwarded-For $remote_addr;`.
+
+Setting `public_url` also limits what the app can do, because it is now reachable from outside:
+
+- the API's order routes and `/trade` stay off until `orders = true`;
+- chats from the app cannot run shell commands, write files or use tools from MCP servers or
+  plugins, nor the social network tools;
+- jobs made from the app answer only in the app;
+- pairing approval plus each channel's `allowed_ids`, `operator_user_ids`, `pairing` and
+  `dm_policy` are server-only: they change from the CLI or this file, never from the app.
+
+The page then saves no key and starts no ChatGPT sign-in either: use `openalpha key set` and
+`openalpha auth login chatgpt` on the server.
 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32
 characters, the API stays closed (the saved token never stands in) and `start` warns while the rest of
-the daemon runs; a port already in use still stops the start. `openalpha api token` prints the token; `openalpha api rotate`
-replaces it.
+the daemon runs; a port already in use still stops the start. `openalpha api token` prints the token
+and `openalpha api rotate` replaces it; rotating signs every browser out and restarts a running
+daemon, so the old token stops working at once. A browser never holds the token: `openalpha web` prints a
+one-time link that signs it in, and `openalpha connect` prints the address and token the desktop app pastes (see
+[Operations](operations.md#run-the-api-on-a-server)).
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `enabled` | bool | `false` | Master switch. |
 | `port` | int | `8765` | TCP port, 1024-65535. |
 | `token_env` | string | - | Environment variable holding the bearer token. When set, the file token is ignored. |
+| `orders` | bool | `true`, or `false` once `public_url` is set | Lets the app place, cancel and halt orders. |
+| `public_url` | string | - | The `https://` address the daemon is reached at through a proxy: a host name and, if needed, a port, with no path. `https://<machine>.<tailnet>.ts.net` for `tailscale serve`. |
 
 ### `[[mcp.servers]]`
 
@@ -901,7 +983,7 @@ market-data retention window are not your choice. They are provider facts or int
 they live in code. No config can point a source at another host.
 
 The one thing you can change is the name of the environment variable a source reads its key from.
-Of the built-in sources only `fred` and `coingecko` take a credential, and `[trading.sources]`
+Of the built-in sources only `bls`, `fred` and `coingecko` take a credential, and `[trading.sources]`
 renames the variable for one of them:
 
 ```toml
@@ -928,21 +1010,29 @@ same checks. A config value that names an unregistered market, venue or default 
 too, not on first use. An unset key for a model whose chain still has another model to answer is a
 warning, and the run does not fail on it.
 
-Every error is reported in your `[locale]` language and names the setting to fix. One run lists every
-problem in the file (up to 8, the rest as a count), so you fix them in one pass before running again.
-A misspelt key gets the nearest known name, for example `max_daly_usd` suggests `max_daily_usd`.
-`config validate` also checks each `[[models]]` provider name against the catalog, and reports an
-unset key variable as one item in the same list instead of stopping there. `--verbose` adds the full
-list of schema issues. A missing key variable comes with the command that stores it:
-`openalpha key set NAME`, the same on every platform. It keeps the key in `<data dir>/env`, which every
-command reads at start. A variable set in your environment wins over the file. The file holds service
-keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY` included: names that steer
-OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs start (`PATH`,
-`NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts a comment. The key file follows
-`--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since it is read before the config is. A missing model key stops only what needs the model:
-`status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, and
-`openalpha start` starts with a warning, running everything that needs no model until you save the key
-with `openalpha key set <NAME>` and run `openalpha restart --background`.
+Every error is reported in your `[locale]` language and names the setting to fix.
+
+- One run lists every problem in the file (up to 8, the rest as a count), so you fix them in one pass
+  before running again.
+- A misspelt key gets the nearest known name, for example `max_daly_usd` suggests `max_daily_usd`.
+- `config validate` also checks each `[[models]]` provider name against the catalog. It reports an
+  unset key variable as one item in the same list instead of stopping there.
+- `--verbose` adds the full list of schema issues.
+
+A missing key variable comes with the command that stores it: `openalpha key set NAME`, the same on
+every platform. It keeps the key in `<data dir>/env`, which every command reads at start. A variable
+set in your environment wins over the file.
+
+The file holds service keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY`
+included. Names that steer OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how
+programs start (`PATH`, `NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts
+a comment. The key file follows `--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since
+it is read before the config is.
+
+A missing model key stops only what needs the model. `status`, `stop`, `/price`, `/portfolio`,
+`/record` and the other free commands still run. `openalpha start` starts with a warning, running
+everything that needs no model until you save the key with `openalpha key set <NAME>` and run
+`openalpha restart --background`.
 
 ```text
 config.toml has things to fix:
@@ -950,5 +1040,5 @@ config.toml has things to fix:
 - `budget.max_daly_usd`: that is not a setting I know. Did you mean `max_daily_usd`?
 Correct them, then run again.
 
-ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start yet. Save it with `openalpha key set ANTHROPIC_API_KEY`, then try again.
+ANTHROPIC_API_KEY is not set, so the AI model cannot answer: chat, the written debate in /suggest, /research, /themes and the brief's written parts wait for it, while prices, scores and levels keep working. Save it with `openalpha key set ANTHROPIC_API_KEY`; if OpenAlpha runs in the background, follow with `openalpha restart --background`.
 ```

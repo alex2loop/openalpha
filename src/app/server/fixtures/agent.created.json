@@ -1,0 +1,6 @@
+{
+  "id": "gold-notes",
+  "name": "Gold notes",
+  "systemPrompt": "You keep short notes on the gold price and what moved it.",
+  "editable": true
+}

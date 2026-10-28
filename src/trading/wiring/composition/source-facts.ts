@@ -2,6 +2,7 @@ import type { MessageKey } from '@/i18n'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { RegisteredSource } from '@/trading/kernel/source/source-result'
 import type { SourceAdapterOptions } from '@/trading/sources/define'
+import type { MacroSourceProfile } from '@/trading/sources/macro-gate'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import {
   ALTERNATIVE_ME_DEFAULT_ENDPOINT,
@@ -15,7 +16,11 @@ import {
   createBinanceFuturesSources,
   createBinanceSources,
 } from '@/trading/sources/adapters/binance/sources'
-import { BLS_DEFAULT_ENDPOINT, createBlsSources } from '@/trading/sources/adapters/bls'
+import {
+  BLS_DEFAULT_ENDPOINT,
+  BLS_MACRO_PROFILE,
+  createBlsSources,
+} from '@/trading/sources/adapters/bls'
 import { BYBIT_DEFAULT_ENDPOINT, createBybitSources } from '@/trading/sources/adapters/bybit'
 import { CAFEF_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/cafef/client'
 import { createCafefSources } from '@/trading/sources/adapters/cafef/sources'
@@ -42,7 +47,11 @@ import {
 } from '@/trading/sources/adapters/coinpaprika'
 import { createEntradeSources, ENTRADE_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/entrade'
 import { createErApiSources, ER_API_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/er-api'
-import { createFredSources, FRED_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/fred'
+import {
+  createFredSources,
+  FRED_DEFAULT_ENDPOINT,
+  FRED_MACRO_PROFILE,
+} from '@/trading/sources/adapters/fred'
 import {
   createFredCsvSources,
   FRED_CSV_DEFAULT_ENDPOINT,
@@ -68,13 +77,18 @@ import { createSsiSources, SSI_DEFAULT_ENDPOINT } from '@/trading/sources/adapte
 import {
   createTreasurySources,
   TREASURY_DEFAULT_ENDPOINT,
+  TREASURY_MACRO_PROFILE,
 } from '@/trading/sources/adapters/treasury'
 import {
   VIETCAP_DEFAULT_ENDPOINT,
   VIETCAP_STATEMENTS_ENDPOINT,
 } from '@/trading/sources/adapters/vietcap/client'
 import { createVietcapSources } from '@/trading/sources/adapters/vietcap/sources'
-import { VNDIRECT_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/vndirect/client'
+import {
+  VNDIRECT_DEFAULT_ENDPOINT,
+  VNDIRECT_MKW_DEFAULT_ENDPOINT,
+} from '@/trading/sources/adapters/vndirect/client'
+import { VNDIRECT_MACRO_PROFILE } from '@/trading/sources/adapters/vndirect/macro'
 import { createVndirectSources } from '@/trading/sources/adapters/vndirect/sources'
 import { createVpsSources, VPS_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/vps'
 import { createYahooSources, YAHOO_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/yahoo'
@@ -115,6 +129,7 @@ export const SOURCE_ENDPOINTS = Object.freeze({
   [sourceId('vietcap-chart')]: VIETCAP_DEFAULT_ENDPOINT,
   [sourceId('vietcap-statements')]: VIETCAP_STATEMENTS_ENDPOINT,
   [sourceId('vndirect')]: VNDIRECT_DEFAULT_ENDPOINT,
+  [sourceId('vndirect-mkw')]: VNDIRECT_MKW_DEFAULT_ENDPOINT,
   [sourceId('vps')]: VPS_DEFAULT_ENDPOINT,
   [sourceId('yahoo')]: YAHOO_DEFAULT_ENDPOINT,
 })
@@ -149,6 +164,10 @@ export const SOURCE_ENDPOINTS = Object.freeze({
  *  `cafef-statements` publishes no ceiling. A name costs one page of about 33 KB, asked only for a
  *  name whose newest quarter lacks cash flow, so 60 a minute is far above the peak and still catches
  *  a runaway.
+ *
+ *  `vndirect-mkw` publishes no ceiling. A read is made when the Market tab asks and the daemon holds a
+ *  list for about a minute while the session trades, so 60 a minute is far above the peak and still
+ *  catches a runaway.
  *
  *  `vietcap-statements` publishes no ceiling. A name costs three requests, four for a bank, and a
  *  refresh asks for the board and the book, about 120 names, only when their reports are due, so
@@ -188,9 +207,20 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('vietcap-chart')]: 30,
   [sourceId('vietcap-statements')]: 120,
   [sourceId('vndirect')]: 300,
+  [sourceId('vndirect-mkw')]: 60,
   [sourceId('vps')]: 30,
   [sourceId('yahoo')]: 60,
 })
+
+/** The macro sources the gate fronts, each declaring its own series and release cadence. A plugin
+ *  macro source declares none and is read as it always was. */
+export const MACRO_SOURCE_PROFILES: Readonly<Partial<Record<SourceId, MacroSourceProfile>>> =
+  Object.freeze({
+    [sourceId('bls')]: BLS_MACRO_PROFILE,
+    [sourceId('fred')]: FRED_MACRO_PROFILE,
+    [sourceId('treasury')]: TREASURY_MACRO_PROFILE,
+    [sourceId('vndirect')]: VNDIRECT_MACRO_PROFILE,
+  })
 
 /** The providers that must be told plainly what this process is: FRED's API and its CSV host.
  *  Every other request goes out under `BROWSER_HEADERS`: a bot manager in front of a broker
@@ -211,11 +241,18 @@ interface SourceCredentialFacts {
   /** What setting it adds. Every credentialed source is optional: a keyless provider covers its
    *  kind, so the catalog line says what is lost without it, never that anything is broken. */
   readonly adds: MessageKey
+  /** The source registers and serves without the key, on a smaller allowance. */
+  readonly keylessTier?: true
 }
 
 /** The default variable *name* per source, which `[trading.sources]` may override. The value only
  *  ever comes from the environment, so no key is written to a config file. */
 export const SOURCE_CREDENTIALS: Readonly<Record<string, SourceCredentialFacts>> = Object.freeze({
+  [sourceId('bls')]: {
+    variable: 'BLS_API_KEY',
+    adds: 'trading.source.credential.bls',
+    keylessTier: true,
+  },
   [sourceId('coingecko')]: {
     variable: 'COINGECKO_API_KEY',
     adds: 'trading.source.credential.coingecko',

@@ -265,6 +265,7 @@ function groupByFocus(
       focusKey,
       resolvedCount: group.length,
       winCount: winCount(group),
+      targetCount: group.filter((row) => row.outcome.status === 'target').length,
       ...(rate === undefined ? {} : { winRate: rate }),
     }
   })

@@ -4,24 +4,18 @@ import type { DisplayText } from '@/core/stream-events'
 import type { ScopedNewJobSchedule } from '@/tools/schedule/types'
 import { ToolError } from '@/core/errors'
 import { scrubCredentials } from '@/core/security/credentials'
-import { hasBlockingThreat, scanOutput } from '@/core/security/sanitize'
 import { createTool } from '@/core/tool'
 import { isPlainRecord } from '@/core/utils/collections'
 import { SCHEDULER_MAX_JOBS } from '@/tools/schedule/policy'
+import { buildScope, isScheduleMutationApprovalRequired } from '@/tools/schedule/scope'
+import { formatNextRun } from '@/tools/schedule/time'
 import {
-  assertPromptSize,
-  buildScope,
-  isScheduleMutationApprovalRequired,
-  SCHEDULER_PROMPT_MAX_BYTES,
-} from '@/tools/schedule/scope'
-import {
+  assertJobPrompt,
   assertValidCron,
-  formatNextRun,
-  MAX_EPOCH_MS,
-  MIN_EPOCH_MS,
+  resolveOnceAt,
   resolveTimezone,
-  toEpochMs,
-} from '@/tools/schedule/time'
+  SCHEDULER_PROMPT_MAX_BYTES,
+} from '@/tools/schedule/validate'
 import { toSummaryJson } from '@/tools/summary'
 
 const inputSchema = z
@@ -118,11 +112,7 @@ export const scheduleAddTool = createTool({
   async execute(args, ctx): Promise<string> {
     const scope = buildScope(ctx)
 
-    assertPromptSize(args.prompt)
-
-    if (hasBlockingThreat(scanOutput(args.prompt))) {
-      throw new ToolError('invalid_input', 'cron prompt rejected: injection pattern detected')
-    }
+    assertJobPrompt(args.prompt)
 
     const tz = args.timezone === undefined ? scope.tz : resolveTimezone(args.timezone)
     const schedule = resolveSchedule(args, tz, Date.now())
@@ -134,7 +124,8 @@ export const scheduleAddTool = createTool({
       prompt: scrubCredentials(args.prompt),
       ...(row.cronExpr === undefined ? {} : { cron_expr: row.cronExpr }),
       timezone: tz,
-      next_run: formatNextRun(row.nextRunAt, tz),
+      // An event job has no next run, and this tool never makes one.
+      ...(row.nextRunAt === undefined ? {} : { next_run: formatNextRun(row.nextRunAt, tz) }),
     })
   },
 })
@@ -153,27 +144,7 @@ function resolveSchedule(args: ScheduleAddInput, tz: string, now: number): Scope
     throw new ToolError('invalid_input', 'give cron_expr or at')
   }
 
-  if (typeof at === 'number' && at < MIN_EPOCH_MS) {
-    throw new ToolError(
-      'invalid_input',
-      `${at} looks like epoch seconds - pass milliseconds, or a "YYYY-MM-DD HH:mm" string`
-    )
-  }
-
-  const atMs = typeof at === 'number' ? at : toEpochMs(at, tz)
-
-  if (!Number.isFinite(atMs) || atMs <= now) {
-    throw new ToolError('invalid_input', 'that time is in the past - pick a future date and time')
-  }
-
-  if (atMs > MAX_EPOCH_MS) {
-    throw new ToolError(
-      'invalid_input',
-      'that time is too far away - pick a date before year 10000'
-    )
-  }
-
-  return { kind: 'once', atMs }
+  return { kind: 'once', atMs: resolveOnceAt(at, tz, now) }
 }
 
 function summarizeAddResult(content: string): DisplayText | undefined {

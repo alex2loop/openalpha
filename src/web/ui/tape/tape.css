@@ -1,0 +1,91 @@
+.tape {
+  display: flex;
+  align-items: center;
+  height: var(--tapeH);
+  padding-left: 3px;
+  overflow: hidden;
+  border-radius: var(--islandRadius);
+  color: var(--ink);
+  font-size: var(--sizeBody);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tape.is-empty {
+  display: none;
+}
+
+.tape-track {
+  display: inline-flex;
+  animation: tape-scroll var(--tapeScrollMs) linear infinite;
+}
+
+.tape:hover .tape-track {
+  animation-play-state: paused;
+}
+
+.tape-rows {
+  display: inline-flex;
+  gap: 6px;
+  padding-right: 6px;
+}
+
+/* Each name is a price pill: market colour by the day's move, neutral when flat. */
+.tape-cell {
+  --pillBg: var(--sunken);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: calc(var(--tapeH) - 6px);
+  padding: 0 10px;
+  border-radius: 6px;
+  background: var(--pillBg);
+  color: var(--ink);
+  text-shadow: none;
+}
+
+.tape-cell.is-up {
+  --pillBg: var(--pillUpBg);
+  color: var(--pillUpInk);
+}
+
+.tape-cell.is-down {
+  --pillBg: var(--pillDownBg);
+  color: var(--pillDownInk);
+}
+
+.tape-cell b {
+  font-weight: var(--weightSemibold);
+}
+
+.tape-cell.is-breach {
+  --pillBg: var(--problemTint);
+  color: var(--problemText);
+}
+
+.tape-cell:is(.is-flash-up, .is-flash-down) {
+  animation: tape-flash var(--flashMs) ease-out;
+}
+
+@keyframes tape-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes tape-flash {
+  from {
+    background: color-mix(in srgb, var(--pillBg) 55%, var(--pillFlash));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape {
+    overflow-x: auto;
+  }
+
+  .tape-track,
+  .tape-cell {
+    animation: none;
+  }
+}

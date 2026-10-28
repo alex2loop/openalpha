@@ -1,0 +1,26 @@
+{
+  "themes": [
+    {
+      "id": "public-investment",
+      "title": "Đầu tư công tăng tốc",
+      "status": "active",
+      "maturity": "scaling"
+    },
+    {
+      "id": "data-centres",
+      "title": "Trung tâm dữ liệu",
+      "status": "proposed",
+      "maturity": "emerging"
+    }
+  ],
+  "text": [
+    "🧭 Chủ đề đầu tư",
+    "",
+    "**Đầu tư công tăng tốc** (public-investment)",
+    "62% khả năng trong 12 tháng (trước đó 58%)",
+    "",
+    "**Chủ đề mới chờ bạn quyết**",
+    "**Trung tâm dữ liệu** (data-centres)",
+    "Duyệt một chủ đề đề xuất bằng /themes approve <id> để bắt đầu theo dõi; bỏ một chủ đề bằng /themes reject <id>."
+  ]
+}

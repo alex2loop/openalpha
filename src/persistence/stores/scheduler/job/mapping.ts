@@ -1,8 +1,15 @@
 import type { ChannelId } from '@/core/channels'
 import type { AgentId, JobId, UserId } from '@/core/ids'
+import type {
+  EventRow,
+  StoredEventFire,
+  StoredEventMatch,
+  StoredJobEvent,
+} from '@/persistence/stores/scheduler/job/event'
 import { channelId } from '@/core/channels'
 import { StorageError } from '@/core/errors'
 import { agentId, jobId, userId } from '@/core/ids'
+import { toJobEvent } from '@/persistence/stores/scheduler/job/event'
 
 const ENABLED = 1
 
@@ -33,6 +40,13 @@ export interface StoredJob {
   readonly nextRunAt: number
   readonly consecutiveFailures: number
   readonly owner?: StoredJobOwner
+  readonly event?: StoredJobEvent
+}
+
+export interface StoredJobEdit {
+  readonly prompt?: string
+  readonly target?: StoredJobTarget
+  readonly schedule?: { readonly schedule: StoredJobSchedule; readonly nextRunAt: number }
 }
 
 export interface StoredJobStore {
@@ -41,8 +55,9 @@ export interface StoredJobStore {
   disable(id: JobId): Promise<void>
   deferRetry(id: JobId, failures: number, nextRunAt: number): Promise<void>
   create(job: StoredJob): Promise<boolean>
-  put(job: StoredJob): Promise<void>
+  edit(id: JobId, edit: StoredJobEdit): Promise<boolean>
   list(): Promise<readonly StoredJob[]>
+  listEnabledOfAgent(agentId: string): Promise<readonly StoredJob[]>
   find(id: JobId): Promise<StoredJob | undefined>
   findByPrefix(prefix: string, limit: number): Promise<readonly StoredJob[]>
   remove(id: JobId): Promise<void>
@@ -66,10 +81,12 @@ export interface StoredJobStore {
     claimedAtMs: number
   ): Promise<StoredJob | undefined>
   releaseRunNowClaimOwned(owner: StoredJobOwner, id: JobId, token: string): Promise<void>
+  matchEvent(match: StoredEventMatch): Promise<readonly StoredJob[]>
+  claimEventFire(fire: StoredEventFire): Promise<boolean>
   clearRunNowClaims(claimedBeforeMs: number): Promise<void>
 }
 
-export interface JobRow {
+export interface JobRow extends EventRow {
   readonly id: string
   readonly agent_id: string
   readonly prompt: string
@@ -102,9 +119,6 @@ export function toJob(row: JobRow): StoredJob {
 }
 
 export function toJobParams(job: StoredJob, now: number): readonly unknown[] {
-  const { schedule } = job
-  const timezone = schedule.kind === 'cron' ? canonicalTimeZone(schedule.timezone) : null
-
   return [
     job.id,
     job.agentId,
@@ -112,11 +126,7 @@ export function toJobParams(job: StoredJob, now: number): readonly unknown[] {
     job.allowedTools !== undefined && job.allowedTools.length > 0
       ? JSON.stringify(job.allowedTools)
       : null,
-    schedule.kind,
-    schedule.kind === 'cron' ? schedule.expr : null,
-    timezone,
-    schedule.kind === 'interval' ? schedule.everyMs : null,
-    schedule.kind === 'once' ? schedule.at : null,
+    ...toScheduleParams(job.schedule),
     job.nextRunAt,
     job.target?.channel ?? null,
     job.target?.chatId ?? null,
@@ -126,6 +136,17 @@ export function toJobParams(job: StoredJob, now: number): readonly unknown[] {
     job.owner?.channel ?? null,
     job.owner?.chatId ?? null,
     now,
+  ]
+}
+
+/** The schedule columns in table order: kind, cron expression, cron timezone, interval, run-at. */
+export function toScheduleParams(schedule: StoredJobSchedule): readonly unknown[] {
+  return [
+    schedule.kind,
+    schedule.kind === 'cron' ? schedule.expr : null,
+    schedule.kind === 'cron' ? canonicalTimeZone(schedule.timezone) : null,
+    schedule.kind === 'interval' ? schedule.everyMs : null,
+    schedule.kind === 'once' ? schedule.at : null,
   ]
 }
 
@@ -145,6 +166,7 @@ function toStoredJob(row: JobRow): StoredJob {
     nextRunAt: number
     consecutiveFailures: number
     owner?: StoredJobOwner
+    event?: StoredJobEvent
   } = {
     id: jobId(row.id),
     agentId: agentId(row.agent_id),
@@ -171,6 +193,12 @@ function toStoredJob(row: JobRow): StoredJob {
 
   if (owner !== undefined) {
     job.owner = owner
+  }
+
+  const event = toJobEvent(row)
+
+  if (event !== undefined) {
+    job.event = event
   }
 
   return job

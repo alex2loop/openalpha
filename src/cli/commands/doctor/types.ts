@@ -1,11 +1,11 @@
 import type { ProviderEntry } from '@/ai/api'
-import type { ResolvedModel } from '@/core/config/resolve'
+import type { ResolvedConfig, ResolvedModel } from '@/core/config/resolve'
+import type { CheckName, DoctorStatus } from '@/core/types/doctor'
+import type { Locale } from '@/core/types/locale'
+
+export type { DoctorStatus } from '@/core/types/doctor'
 
 export type DoctorEnvironment = Readonly<Record<string, string | undefined>>
-
-/** `info` is a state that needs no action yet (a fresh install, a daemon not started), so it never
- *  counts against the report. */
-export type DoctorStatus = 'ok' | 'info' | 'warn' | 'fail'
 
 export interface DoctorFinding {
   readonly status: DoctorStatus
@@ -15,6 +15,26 @@ export interface DoctorFinding {
 export interface DoctorProbe extends DoctorFinding {
   /** The row label, already in the operator's language. */
   readonly name: string
+}
+
+/** A row with the check that wrote it. */
+export interface CheckedProbe extends DoctorProbe {
+  readonly check: CheckName
+}
+
+/** Where the report is read: a terminal can pass `--online` and wait on a full database scan; the
+ *  page has Kiểm tra lại and must not stall the daemon it runs in. */
+export type DoctorSurface = 'terminal' | 'page'
+
+/** What the checks any process can run read: no CLI app, so the daemon runs them too.
+ *  `onlineExcept` keeps the named checks offline while `online` is on. */
+export interface DoctorInput {
+  readonly config: ResolvedConfig
+  readonly env: DoctorEnvironment
+  readonly locale: Locale
+  readonly online: boolean
+  readonly onlineExcept: ReadonlySet<CheckName>
+  readonly surface: DoctorSurface
 }
 
 export interface ResolvedProviderModel {

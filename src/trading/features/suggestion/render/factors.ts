@@ -57,9 +57,11 @@ export function renderFactorLines(input: FactorSectionInput): readonly string[] 
   }
 
   const ranked = rankedFactors(suggestion.factorScores)
+  const stamps = ranked.flatMap((entry) => entry.factor.provenance)
+  // Retention empties an old scored call's factor stamps; their union stays on the suggestion.
   const sources = renderProvenanceLine(
     locale,
-    dedupeProvenance(ranked.flatMap((entry) => entry.factor.provenance)),
+    dedupeProvenance(stamps.length > 0 ? stamps : suggestion.provenance),
     input.context.timezone
   )
   const checklist = renderChecklist({

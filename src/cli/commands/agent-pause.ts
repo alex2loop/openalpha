@@ -37,7 +37,7 @@ type Selection =
 // Only the operator's own agents: pausing a debate persona would break every suggestion.
 function selectAgents(action: PauseAction, args: ParsedArgs, app: CliApp): Selection {
   const locale = app.config.locale.language
-  const userIds = app.resolve('userAgentIds')
+  const userIds = app.resolve('userAgentIds')()
   const raw = flagString(args, 'id')
 
   if (flagBool(args, 'all')) {

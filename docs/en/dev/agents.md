@@ -16,9 +16,10 @@ the registry from three places:
 | Plugin | `AgentProfileSource` in a plugin's `agents` contribution | Trusted only for bundled plugins |
 | User | `<data_dir>/agents/<id>/agent.toml` | Untrusted |
 
-Trust decides which fields the loader reads. `model_tier` and `reasoning` are rejected on an untrusted profile,
-and its `system_prompt` is scanned for blocked instruction patterns. The schema is strict on purpose: an ignored
-typo in a capability key would read as a granted permission. Every `[capabilities]` field is a ceiling, never a
+Trust decides which fields the loader reads. `reasoning` is rejected on an untrusted profile, and `model_tier`
+is rejected unless the build context sets `allowModelTier`, which only the user-agents provider does
+([app/providers.ts](../../../src/app/providers.ts)). Plugin agents leave it unset. An untrusted profile's `system_prompt` is scanned for blocked instruction
+patterns. The schema is strict on purpose: an ignored typo in a capability key would read as a granted permission. Every `[capabilities]` field is a ceiling, never a
 floor; no field widens access.
 
 User agents load fail-soft per file ([engine/agents/user.ts](../../../src/engine/agents/user.ts)), logging
@@ -27,7 +28,7 @@ User agents load fail-soft per file ([engine/agents/user.ts](../../../src/engine
 plugin, then user agents; existing ids are reserved. Tools register the same way - built-in, plugin, then
 connected MCP tools last, never replacing an existing name.
 
-A trusted `model_tier` must name a non-empty tier whose entries all support tool calls when the agent has tools.
+A `model_tier` must name a non-empty tier whose entries all support tool calls when the agent has tools.
 One that contradicts the tier the composition prefers is rejected.
 
 ### Persona reasoning
@@ -63,6 +64,9 @@ A team is derived, never stored: the orchestrator's `delegates` roster plus the 
 | `loop.delegation_depth` | `config.toml [loop]` | Max child edges from the top-level run; default `3` permits depths 1, 2, 3. |
 | `loop.max_delegations` | `config.toml [loop]` | Run-tree fan-out: children ever started by both tools. Not refunded. |
 | `loop.max_parallel_delegations` | `config.toml [loop]` | Max items in one `delegate_parallel` call. |
+| `spawn` | [tools/delegation/spawn.ts](../../../src/tools/delegation/spawn.ts) | Temporary read-only children built in code from the parent's profile. |
+| `capabilities.max_spawn` | agent `[capabilities]` | 0 to 4 children started per call; `AgentProfile.maxSpawn`, absent when 0. |
+| `loop.max_spawn_duration_ms`, `loop.max_spawn_turns` | `config.toml [loop]` | Time (default 600000) and turns (default 12) per spawned child. |
 
 The gate checks the child's allowlist, not the parent's: a rostered child may use a tool the parent cannot call
 directly, and a tool absent from the child blocks before approval.
@@ -90,6 +94,48 @@ abort propagation; the model owns none of them.
 `delegate` returns JSON with `agent_id`, halt `reason` and `text`. `delegate_parallel` returns a `children` array
 of the same shape; budget, approval and runner failures stay visible and an unexpected rejection is isolated to its
 own entry.
+
+### `spawn` - temporary children
+
+Input is `role` plus `goal` (one child) or `items` (one child per item), with optional `context` and `output_schema` (a JSON Schema object, at most `MAX_OUTPUT_SCHEMA_CHARS`).
+
+The child profile is the parent's, with these changes:
+
+- its id is kept, so logs, the per-agent cap and log routing stay the parent's;
+- `tools` is cut to the `SPAWN_TOOL_NAMES` read allowlist, and there is no roster;
+- `[loop] max_spawn_turns` and `max_spawn_duration_ms` are the caps (each cut to the `[loop]` max_turns and max_duration_ms);
+- it runs on the `delegate` tier when declared.
+
+`RunOptions.profile` carries it. `runOnce` accepts one only with the configured agent's id and a tool list inside the configured agent's, else `ValidationError`. `RunOptions.title` names the run (`<role>: <goal>`, scrubbed, cut at `RUN_TITLE_MAX_CHARS`). Its `run_finished` on the bus carries `summary`, the scrubbed first `CHILD_SUMMARY_MAX_CHARS` characters of its text, which the run log stores and `/v1/activity` shows; the wire event leaves it out.
+
+`maxSpawn` caps one call, not the run tree. The first `maxSpawn` children of a call start, and the rest come back as
+failed "not started" entries saying the call asked for more than the agent may start at once.
+
+- The keyed line is `tools.spawn.full` (`count` is the number started; `tools.spawn.fullOne` when it is 1). It shows
+  as a persistent progress line when the cap is applied, before the accepted children start, and each entry names
+  the goal it did not start.
+- Children still draw on the run tree's `DelegationQuota` fan-out quota.
+
+Each result is `{ role, status: done | partial | failed, reason?: timeout | turns | budget | error, text?, json? }`.
+
+- `turn_limit` is `turns` (line `tools.spawn.reason.turns`, `{turns}`). An aborted child is failed with no reason and
+  no reason line.
+- `role` is scrubbed on entry. `resolveToolGrant` drops `spawn` from `tools = "*"` when `max_spawn` is 0.
+- Budget is a slice of `AGENT_BUDGET_FRACTION`, and child usage rolls into the parent.
+- The group line (`progress.spawnLine`, or `progress.spawnLineOne` for a single child) goes through the parent's
+  progress, so channels and the terminal print it. Per-child tool, model and reason lines go to the bus only.
+  Params are strings and numbers: `kind: 'spawn'`, `role`, `parentRunId`.
+
+`output_schema` is compiled once before any child starts (`z.fromJSONSchema`, in [tools/delegation/spawn-output.ts](../../../src/tools/delegation/spawn-output.ts)); an oversize or unusable one is `invalid_input`.
+
+A provider drops the output contract whenever tools are exposed, so the schema travels in each child's system prompt and is checked after the run:
+
+- a `done` child's final text is parsed (a whole-text code fence is tolerated) and validated, and a match replaces `text` with the parsed `json`;
+- a mismatch is `failed` with `reason: error`, a short English `text` naming the first issue, and the same keyed `tools.spawn.reason.error` line as any error;
+- `partial` and `failed` children are not checked: their text is a running summary, not the document.
+
+A delegated child that ends on a timeout, error, turn limit, loop or abort now settles as failed (`isError`); only a
+completed run settles as completed.
 
 ### Approval never inherits
 
@@ -153,7 +199,7 @@ chat-role boundary lines from bodies, and applies platform and tool-availability
 The prompt index is built in [engine/hooks/available-skills.ts](../../../src/engine/hooks/available-skills.ts) and
 capped at `SKILL_INDEX_BLOCK_MAX` (8,192 bytes); the first 200 description characters show. `skill_view`
 ([tools/system/skill-view.ts](../../../src/tools/system/skill-view.ts)) looks the name up in the index the agent
-may see, returns the embedded text or the first safe `<dir>/<name>/SKILL.md`, and charges its size to the run's
+may see, and returns the embedded text or the first safe `<dir>/<name>/SKILL.md`. It charges the size to the run's
 budget (`SKILL_VIEW_RUN_BUDGET_BYTES`, 262,144; a child starts its own). Unseen, missing or unsafe gives
 `ToolError('file_not_found')`; an exhausted budget gives `payload_too_large`. A file over `SKILL_MAX_BYTES`
 (1 MiB, [engine/skills/load.ts](../../../src/engine/skills/load.ts)) is never loaded.

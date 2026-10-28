@@ -1,32 +1,46 @@
 import type { AuthOutcome } from '@/app/server/http/auth'
-import type { ApiError, ApiErrorCode, UnconfirmedPriceWire } from '@/app/server/wire/errors'
-import type { ApiRouteSpec } from '@/app/types'
+import type { Caller } from '@/app/server/http/caller'
+import type {
+  ApiError,
+  ApiErrorCode,
+  ApiFieldError,
+  UnconfirmedPriceWire,
+} from '@/app/server/wire/errors'
+import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
-import { isLoopback, resolveAuthOutcome, resolveBearerCredential } from '@/app/server/http/auth'
+import { isAuthLocked, isLoopback, resolveAuthOutcome } from '@/app/server/http/auth'
+import { resolveCaller, SET_COOKIE } from '@/app/server/http/caller'
 import { buildCapabilities } from '@/app/server/http/capabilities'
+import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
 import { missingEnvOf } from '@/core/config/resolve'
 import { ChannelError, ConflictError, ValidationError } from '@/core/errors'
+import { FieldValidationError } from '@/core/field-errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 import { PriceUnconfirmedError } from '@/trading/api'
 
 const PARAM_PREFIX = ':'
+const SERVER_ERROR_STATUS = 500
 
 export function json(data: unknown, status = 200): Response {
   return Response.json(data, { status })
 }
 
-export function apiError(
-  code: ApiErrorCode,
-  message?: string,
-  unconfirmedPrice?: UnconfirmedPriceWire
-): Response {
+interface ApiErrorExtras {
+  readonly unconfirmedPrice?: UnconfirmedPriceWire
+  readonly fields?: readonly ApiFieldError[]
+}
+
+export function apiError(code: ApiErrorCode, message?: string, extras?: ApiErrorExtras): Response {
   const error = {
     code,
     ...(message === undefined ? {} : { message }),
-    ...(unconfirmedPrice === undefined ? {} : { unconfirmedPrice }),
+    ...(extras?.unconfirmedPrice === undefined
+      ? {}
+      : { unconfirmedPrice: extras.unconfirmedPrice }),
+    ...(extras?.fields === undefined ? {} : { fields: extras.fields }),
   }
 
   return Response.json({ error } satisfies ApiError, { status: API_ERROR_STATUS[code] })
@@ -62,10 +76,7 @@ function isCapabilityDenied(app: App, route: ApiRouteSpec): boolean {
   return !buildCapabilities(app)[route.capability]
 }
 
-export async function handleHttp(
-  req: Request,
-  ctx: { readonly app: App; readonly token: string; readonly ip: string | null }
-): Promise<Response> {
+export async function handleHttp(req: Request, ctx: ApiRouteContext): Promise<Response> {
   // Defence in depth: Bun.serve already binds 127.0.0.1, so a non-loopback peer should be impossible.
   if (!isLoopback(ctx.ip)) {
     return apiError('forbidden')
@@ -81,18 +92,41 @@ export async function handleHttp(
   }
 
   if (route.auth) {
-    const refusal = resolveAuthRefusal(req, ctx)
+    return runAuthorized(route, req, ctx)
+  }
 
-    if (refusal !== null) {
-      return refusal
-    }
+  return isCapabilityDenied(ctx.app, route) ? apiError('unavailable') : runHandler(route, req, ctx)
+}
+
+/** A route behind auth: the bearer token or the session cookie, then the capability, then the
+ *  handler with the browser session it came from. */
+async function runAuthorized(
+  route: ApiRouteSpec,
+  req: Request,
+  ctx: ApiRouteContext
+): Promise<Response> {
+  const caller = await resolveAuthorizedCaller(req, ctx)
+
+  if (caller instanceof Response) {
+    return caller
   }
 
   if (isCapabilityDenied(ctx.app, route)) {
     return apiError('unavailable')
   }
 
-  return runHandler(route, req, { app: ctx.app, token: ctx.token })
+  const { browserSessionId, renewCookie } = caller
+  const response = await runHandler(route, req, {
+    ...ctx,
+    ...(browserSessionId === undefined ? {} : { browserSessionId }),
+  })
+
+  // A cookie the handler set (sign-out) is the answer; a renewal would overwrite it.
+  if (renewCookie !== undefined && !response.headers.has(SET_COOKIE)) {
+    response.headers.append(SET_COOKIE, renewCookie)
+  }
+
+  return response
 }
 
 /** The one error boundary for the whole route table. Without it a throwing handler answers with a
@@ -101,27 +135,45 @@ export async function handleHttp(
 async function runHandler(
   route: ApiRouteSpec,
   req: Request,
-  handlerCtx: { readonly app: App; readonly token: string }
+  handlerCtx: ApiRouteContext
 ): Promise<Response> {
   const { app } = handlerCtx
 
   try {
-    return await route.handler(req, { app, token: handlerCtx.token })
+    return await route.handler(req, handlerCtx)
   } catch (err: unknown) {
     if (req.signal.aborted) {
       throw err
     }
 
-    app.resolve('logger').error('api.handler_failed', {
-      method: route.method,
-      path: route.path,
-      err: formatErrForLog(err),
-    })
+    // A stop or restart cut the read short: expected, and the caller reads again once it is back.
+    if (app.signal.aborted) {
+      app.resolve('logger').info('api.handler_stopped', { method: route.method, path: route.path })
+
+      return apiError('stopping')
+    }
+
+    const code = toErrorCode(err)
+
+    // A refusal the handler meant to send is the caller's answer, not a failure of ours.
+    if (API_ERROR_STATUS[code] < SERVER_ERROR_STATUS) {
+      app.resolve('logger').debug('api.handler_refused', {
+        method: route.method,
+        path: route.path,
+        code,
+      })
+    } else {
+      app.resolve('logger').error('api.handler_failed', {
+        method: route.method,
+        path: route.path,
+        err: formatErrForLog(err),
+      })
+    }
 
     return apiError(
-      toErrorCode(err),
+      code,
       operatorText(app.config.locale.language, err),
-      unconfirmedPriceOf(err)
+      toErrorExtras(app.config.locale.language, err)
     )
   }
 }
@@ -136,18 +188,33 @@ export function operatorText(locale: Locale, err: unknown): string | undefined {
     : bindLocale(locale).translate(operator.key, operator.params)
 }
 
-function unconfirmedPriceOf(err: unknown): UnconfirmedPriceWire | undefined {
-  if (!(err instanceof PriceUnconfirmedError)) {
-    return undefined
+/** What a refusal carries beyond its code and sentence: the price it was measured against, or the
+ *  fields it was refused for. */
+function toErrorExtras(locale: Locale, err: unknown): ApiErrorExtras {
+  if (err instanceof PriceUnconfirmedError) {
+    const { instrument, price, latest } = err
+
+    return {
+      unconfirmedPrice: {
+        instrument: toInstrumentWire(instrument),
+        price,
+        latest: { price: latest.price, at: latest.at },
+      },
+    }
   }
 
-  const { instrument, price, latest } = err
+  if (err instanceof FieldValidationError) {
+    const { translate } = bindLocale(locale)
 
-  return {
-    instrument: { market: instrument.market, ticker: instrument.ticker },
-    price,
-    latest: { price: latest.price, at: latest.at },
+    return {
+      fields: err.fields.map(({ path, message }) => ({
+        path,
+        message: translate(message.key, message.params),
+      })),
+    }
   }
+
+  return {}
 }
 
 /** A rejected request is the caller's fault and says so; anything else is ours and stays opaque. */
@@ -175,15 +242,26 @@ export function toErrorCode(err: unknown): ApiErrorCode {
   return err instanceof ChannelError ? 'upstream_failed' : 'internal'
 }
 
-function resolveAuthRefusal(
+/** Who sent the request, or the refusal to answer instead. HTTP and the socket upgrade both ask
+ *  here, so a cookie and a token are judged alike on each. */
+export async function resolveAuthorizedCaller(
   req: Request,
-  ctx: { readonly token: string; readonly ip: string | null }
-): Response | null {
-  // One clock read per request: the lockout window and the failure it records must agree.
+  ctx: Pick<ApiRouteContext, 'app' | 'token' | 'peer' | 'pageOrigin' | 'cookieName'>
+): Promise<Caller | Response> {
+  // One clock read per request: the lockout window, the failure it records and the session's
+  // idle cutoff must agree.
   const now = Date.now()
-  const credential = resolveBearerCredential(req.headers.get('authorization'), ctx.token)
+  const caller = await resolveCaller(req, {
+    token: ctx.token,
+    sessions: ctx.app.resolve('browserSessionStore'),
+    pageOrigin: ctx.pageOrigin,
+    cookieName: ctx.cookieName,
+    now,
+    locked: isAuthLocked(ctx.peer, now),
+    logger: ctx.app.resolve('logger'),
+  })
 
-  return toAuthRefusal(resolveAuthOutcome(ctx.ip, credential, now))
+  return toAuthRefusal(resolveAuthOutcome(ctx.peer, caller.credential, now)) ?? caller
 }
 
 /** The one place an auth verdict becomes a status. HTTP and the WebSocket upgrade refuse alike, so

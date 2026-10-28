@@ -1,11 +1,18 @@
-import type { App, Bind, Extend, ServiceProvider } from '@/core/container'
+import type { App, Bind, Extend, ServiceProvider, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import type { ScheduledRunner } from '@/core/types/command'
 import type { Hooks } from '@/engine/api'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
+import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type {
+  AlertFiredListener,
+  OrderFilledListener,
+  TradingNoticeSender,
+} from '@/trading/kernel/operator/notice'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
@@ -36,7 +43,6 @@ import { createGoldMarket } from '@/trading/markets/gold/market'
 import { createVnGoldMarket } from '@/trading/markets/gold-vn/market'
 import { macroCache } from '@/trading/markets/macro-cache'
 import { createMarketRegistry } from '@/trading/markets/registry'
-import { SURFACE_LIMITS } from '@/trading/surface-limits'
 import { createVenueListings } from '@/trading/venues/listings'
 import { buildTradingAgents, personaVersions } from '@/trading/wiring/catalog/agents'
 import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
@@ -44,6 +50,7 @@ import { toAggregate } from '@/trading/wiring/composition/aggregate'
 import { lazyBriefServices } from '@/trading/wiring/composition/brief-services'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
+import { bindHostSeams } from '@/trading/wiring/composition/host-seams'
 import { buildMacroExtractTick } from '@/trading/wiring/composition/macro-extract'
 import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
 import { buildRefreshCoordinator, buildRefreshTick } from '@/trading/wiring/composition/refresh'
@@ -56,15 +63,7 @@ import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/sou
 import { createTradingStores } from '@/trading/wiring/composition/stores'
 import { buildThemeService } from '@/trading/wiring/composition/themes'
 import { buildVenues } from '@/trading/wiring/composition/venues'
-import { createTradingHost } from '@/trading/wiring/host/host'
 import { createTradingHooks } from '@/trading/wiring/profile-context'
-
-/** How long one host-mediated request may run before its scope aborts. A ceiling on a surface
- *  call, not an operator preference: a stuck upstream must not hold an HTTP connection open. */
-const HOST_REQUEST_TIMEOUT_MS = 30_000
-/** The same ceiling for a screen, a rebalance or an overview: each can refresh a cold market first,
- *  which the boot refresh budgets a minute for. */
-const HOST_SLOW_REQUEST_TIMEOUT_MS = 120_000
 
 /** Only what the container cannot supply. Everything else — the logger, the runner, the locale,
  *  the budget policy — is resolved from `App` inside the lazy factory, so nothing here duplicates
@@ -76,6 +75,20 @@ interface TradingRegistrationOptions {
   readonly env: Readonly<Record<string, string | undefined>>
   /** Built where it binds, with the app in hand: the sender reads services the container supplies. */
   sender(app: App): TradingNoticeSender
+  /** Bound with the app in hand, like the sender: showing a fill needs the bus. */
+  onFilled(app: App): OrderFilledListener
+  /** Bound with the app in hand: starting a job that waits on an alert needs the scheduler. */
+  onAlertFired(app: App): AlertFiredListener
+  /** Bound with the app in hand: telling the page an alert pass finished needs the bus. */
+  onAlertsChecked(app: App): (at: number) => void
+  /** Bound with the app in hand: the page shows each loop's last and next pass. */
+  onTaskPass(app: App): TaskPassListener
+  /** Bound with the app in hand: the page shows a scheduled refresh as the `/refresh` run. */
+  runScheduled(app: App): ScheduledRunner
+  /** Bound with the app in hand: the page shows what each debate role said. */
+  onRoleOutput(app: App): RoleOutputListener
+  /** Bound with the app in hand: the page shows an own agent's call being scored. */
+  onFocusCallScored(app: App): CallScoredNotices['onFocusScored']
   /** Where an unaddressed notice goes. A thunk because channels attach and detach while the daemon
    *  runs, and `app` owns the hub that answers - trading never imports a scheduler type. */
   recipient(): DeliveryAddress | undefined
@@ -83,9 +96,27 @@ interface TradingRegistrationOptions {
   readonly pluginModules: readonly LoadedSourceModule[]
 }
 
-/** The options once the sender is built: everything below the provider reads the sender itself. */
-type BoundOptions = Omit<TradingRegistrationOptions, 'sender'> & {
+/** The options once the sender and the fill listener are built: everything below the provider
+ *  reads them themselves. */
+type BoundOptions = Omit<
+  TradingRegistrationOptions,
+  | 'sender'
+  | 'onFilled'
+  | 'onAlertFired'
+  | 'onAlertsChecked'
+  | 'onTaskPass'
+  | 'runScheduled'
+  | 'onRoleOutput'
+  | 'onFocusCallScored'
+> & {
   readonly sender: TradingNoticeSender
+  readonly onFilled: OrderFilledListener
+  readonly onAlertFired: AlertFiredListener
+  readonly onAlertsChecked: (at: number) => void
+  readonly onTaskPass: TaskPassListener
+  readonly runScheduled: ScheduledRunner
+  readonly onRoleOutput: RoleOutputListener
+  readonly onFocusCallScored: CallScoredNotices['onFocusScored']
 }
 
 declare module '@/core/container' {
@@ -156,19 +187,7 @@ export function createTradingRegistrationProvider(
         return built.services
       })
 
-      // The one trading surface the server sees. Bound here because it is derived purely from the
-      // aggregate above; the operator identity and shutdown signal come from the container.
-      bind('tradingHost', (app) =>
-        createTradingHost({
-          limits: SURFACE_LIMITS,
-          services: app.resolve('tradingServices'),
-          defaultLocale: app.config.locale.language,
-          baseCurrency: options.tradingConfig.baseCurrency,
-          shutdownSignal: app.signal,
-          requestTimeoutMs: HOST_REQUEST_TIMEOUT_MS,
-          slowRequestTimeoutMs: HOST_SLOW_REQUEST_TIMEOUT_MS,
-        })
-      )
+      bindHostSeams(bind, options)
 
       extend('tools', (current, app) =>
         mergeUniqueByKey({
@@ -202,7 +221,7 @@ export function createTradingRegistrationProvider(
 }
 
 function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrading {
-  const options: BoundOptions = { ...provided, sender: provided.sender(app) }
+  const options = bindOptions(app, provided)
   const stores = app.resolve('tradingStores')
   const logger = app.resolve('logger')
   const registries = buildRegistries(app, options)
@@ -216,7 +235,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     logger,
     createSuggestionBudget: budget,
   })
-  const refreshMarketData = buildRefreshTick({
+  const refreshMarketData = buildRefreshTick(options, {
     markets: registries.markets,
     stores,
     book: createTradeableBook({ portfolio: services.portfolio, venues: registries.venues }),
@@ -248,6 +267,20 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
       registries
     ),
     contributions,
+  }
+}
+
+function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptions {
+  return {
+    ...provided,
+    sender: provided.sender(app),
+    onFilled: provided.onFilled(app),
+    onAlertFired: provided.onAlertFired(app),
+    onAlertsChecked: provided.onAlertsChecked(app),
+    onTaskPass: provided.onTaskPass(app),
+    runScheduled: provided.runScheduled(app),
+    onRoleOutput: provided.onRoleOutput(app),
+    onFocusCallScored: provided.onFocusCallScored(app),
   }
 }
 
@@ -304,6 +337,10 @@ function buildServices(
     refresh: parts.refresh,
     logger,
     sender: options.sender,
+    recipient: options.recipient,
+    onFilled: options.onFilled,
+    onAlertFired: options.onAlertFired,
+    onFocusCallScored: options.onFocusCallScored,
     config: options.tradingConfig,
     // Composed here rather than passed in: the debate reads the closed market registry, which does
     // not exist until this function has built it.
@@ -315,6 +352,7 @@ function buildServices(
       // An absent `decisions` tier turns the headline read off rather than binding a dead chain.
       decisionsChain: app.resolve('llmChains').findTier(DECISIONS_MODEL_TIER),
       recordAttempt: app.resolve('attemptRecorder'),
+      onRoleOutput: options.onRoleOutput,
       store: stores.suggestion,
       playbooks: toPlaybookLibrary(TRADING_SKILLS),
     }),
@@ -347,6 +385,7 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
       pluginModules: options.pluginModules,
       credentialEnv: options.tradingConfig.sourceCredentialEnv,
       defaultVenues: options.tradingConfig.defaultVenues,
+      macroReads: stores.marketData,
     }),
     { archive: stores.newsArchive, logger }
   )

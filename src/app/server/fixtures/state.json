@@ -31,6 +31,15 @@
       }
     },
     {
+      "id": "stop-watch",
+      "name": "Re-read a name that breaks its stop",
+      "enabled": true,
+      "event": {
+        "event": "stop",
+        "cooldownMs": 7200000
+      }
+    },
+    {
       "id": "news-sweep",
       "nextRunAt": 1722503000000,
       "schedule": {
@@ -47,6 +56,7 @@
     "orders": false
   },
   "timeZone": "Asia/Ho_Chi_Minh",
+  "locale": "vi",
   "degraded": [
     {
       "kind": "key",
@@ -63,6 +73,19 @@
     "state": "scheduled",
     "channel": "api",
     "sendTime": "07:30",
-    "nextDeliveryDay": "2026-10-09"
-  }
+    "nextDeliveryDay": "2026-10-09",
+    "nextDueAt": 1791505800000
+  },
+  "restartable": true,
+  "restartIdleWaitMs": 120000,
+  "restartDrainMs": 5000,
+  "trackRecordMinSample": 20,
+  "childRunMaxMs": 600000,
+  "firstRun": {
+    "modelReady": true,
+    "profileSaved": true,
+    "bookEmpty": false
+  },
+  "slowRequestMs": 120000,
+  "exposed": false
 }

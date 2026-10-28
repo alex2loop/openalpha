@@ -5,6 +5,7 @@ import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { RegisteredSource } from '@/trading/kernel/source/source-result'
 import type { SourceRegistry } from '@/trading/markets/types'
 import type { SourceAdapterOptions } from '@/trading/sources/define'
+import type { MacroGateOptions, MacroReadStore } from '@/trading/sources/macro-gate'
 import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
 import type { SourceRoutes } from '@/trading/sources/registry'
 import type { SourceFacts } from '@/trading/sources/types'
@@ -13,11 +14,13 @@ import { ConfigError } from '@/core/errors'
 import { formatErrForLog, resolveCredential } from '@/core/security/credentials'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { RSS_FEEDS } from '@/trading/sources/adapters/rss'
+import { gateMacroSource } from '@/trading/sources/macro-gate'
 import { createSourceRegistry, isRoutedSource, mergeSourceRoutes } from '@/trading/sources/registry'
 import { SOURCE_ROUTES, withVenueQuoteLead } from '@/trading/sources/routes'
 import { createSourceHttp } from '@/trading/sources/transport/http'
 import {
   createBuiltInSources,
+  MACRO_SOURCE_PROFILES,
   PLAIN_USER_AGENT_SOURCES,
   SOURCE_CREDENTIAL_ENV,
   SOURCE_CREDENTIALS,
@@ -42,6 +45,8 @@ interface SourceRegistryOptions {
   /** `[trading.sources]`: the operator renaming a variable, never naming a value or a host. */
   readonly credentialEnv: Readonly<Partial<Record<SourceId, string>>>
   readonly defaultVenues: DefaultVenues
+  /** Where a macro source's last good read is kept, so a boot or refresh need not ask again. */
+  readonly macroReads: MacroReadStore
 }
 
 /** Built and closed in one call. Adding a provider is one import plus one spread here — the
@@ -60,22 +65,19 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
   const credentialEnv = { ...declaredEnv, ...options.credentialEnv }
   const credentials = resolveCredentials(options.env, credentialEnv)
   const registry = createSourceRegistry(mergedRoutes, options.logger)
-  const facts: SourceFacts = {
-    endpoints: { ...SOURCE_ENDPOINTS, ...plugin.endpoints },
-    rateLimits: { ...SOURCE_RATE_LIMITS, ...plugin.rateLimits },
-    feeds: RSS_FEEDS,
-    credentials,
-    plainUserAgentSources: PLAIN_USER_AGENT_SOURCES,
-  }
+  const facts = toSourceFacts(plugin, credentials)
+
   assertEveryRoutedSourcePaced(facts.rateLimits)
 
   const adapters = { http: createSourceHttp(facts, Date.now, options.logger) }
   const skipped = new Set<SourceId>()
   const registeredKeys = new Set<string>()
 
+  const macroGate = toMacroGate(options)
+
   for (const source of createBuiltInSources(adapters)) {
     if (isProviderAvailable(credentials, credentialEnv, source.id)) {
-      registry.register(source)
+      registry.register(gateMacroSource(source, macroGate))
       registeredKeys.add(sourceRegistrationKey(source))
     } else {
       skipped.add(source.id)
@@ -100,30 +102,60 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
   return registry
 }
 
+function toSourceFacts(plugin: PluginFacts, credentials: SourceFacts['credentials']): SourceFacts {
+  return {
+    endpoints: { ...SOURCE_ENDPOINTS, ...plugin.endpoints },
+    rateLimits: { ...SOURCE_RATE_LIMITS, ...plugin.rateLimits },
+    feeds: RSS_FEEDS,
+    credentials,
+    plainUserAgentSources: PLAIN_USER_AGENT_SOURCES,
+  }
+}
+
+function toMacroGate(options: SourceRegistryOptions): MacroGateOptions {
+  return {
+    profiles: MACRO_SOURCE_PROFILES,
+    store: options.macroReads,
+    logger: options.logger,
+    now: Date.now,
+  }
+}
+
+type PluginRefusalReason = 'id_owned_by_builtin' | 'id_owned_by_plugin'
+
+interface PluginModuleSplit {
+  readonly usable: readonly LoadedSourceModule[]
+  readonly refused: readonly {
+    readonly module: LoadedSourceModule
+    readonly reason: PluginRefusalReason
+  }[]
+}
+
 /** A plugin claiming an id a built-in owns would inherit that provider's pinned origin, so those
- *  are dropped before their facts merge. */
-function usablePluginModules(options: SourceRegistryOptions): readonly LoadedSourceModule[] {
+ *  are dropped before their facts merge, and so are ids two plugins both claim. */
+export function splitPluginModules(modules: readonly LoadedSourceModule[]): PluginModuleSplit {
   const usable: LoadedSourceModule[] = []
-  const idCounts = pluginIdCounts(options.pluginModules)
+  const refused: { module: LoadedSourceModule; reason: PluginRefusalReason }[] = []
+  const idCounts = pluginIdCounts(modules)
 
-  for (const module of options.pluginModules) {
+  for (const module of modules) {
     if (BUILT_IN_SOURCE_IDS.has(module.manifest.id)) {
-      options.logger.warn('trading.plugin_source_skipped', {
-        plugin: module.pluginId,
-        reason: 'id_owned_by_builtin',
-      })
-      continue
+      refused.push({ module, reason: 'id_owned_by_builtin' })
+    } else if (idCounts.get(module.manifest.id) === 1) {
+      usable.push(module)
+    } else {
+      refused.push({ module, reason: 'id_owned_by_plugin' })
     }
+  }
 
-    if (idCounts.get(module.manifest.id) !== 1) {
-      options.logger.warn('trading.plugin_source_skipped', {
-        plugin: module.pluginId,
-        reason: 'id_owned_by_plugin',
-      })
-      continue
-    }
+  return { usable, refused }
+}
 
-    usable.push(module)
+function usablePluginModules(options: SourceRegistryOptions): readonly LoadedSourceModule[] {
+  const { usable, refused } = splitPluginModules(options.pluginModules)
+
+  for (const { module, reason } of refused) {
+    options.logger.warn('trading.plugin_source_skipped', { plugin: module.pluginId, reason })
   }
 
   return usable
@@ -291,7 +323,7 @@ export function unavailableSources(options: {
     const source = sourceId(id)
     const variable = credentialEnv[source] ?? facts.variable
 
-    if (!isProviderAvailable(credentials, credentialEnv, source)) {
+    if (credentials[source] === undefined) {
       missing.push({ source, variable, adds: facts.adds })
     }
   }
@@ -358,11 +390,16 @@ function assertConfiguredSourcesTakeCredentials(
 }
 
 /** A source that needs a key and has none is never registered, so its kind falls through to the
- *  next provider in the failover order rather than failing every call. */
+ *  next provider in the failover order rather than failing every call. One with a keyless tier
+ *  registers either way. */
 function isProviderAvailable(
   credentials: Readonly<Partial<Record<SourceId, string>>>,
   credentialEnv: Readonly<Partial<Record<SourceId, string>>>,
   id: SourceId
 ): boolean {
-  return credentialEnv[id] === undefined || credentials[id] !== undefined
+  return (
+    credentialEnv[id] === undefined ||
+    credentials[id] !== undefined ||
+    SOURCE_CREDENTIALS[id]?.keylessTier === true
+  )
 }

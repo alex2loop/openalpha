@@ -1,38 +1,36 @@
 import type { DeliveryHub } from '@/app/delivery'
-import type { StartChannelsDeps, StartChannelsResult } from '@/channels/api'
 import type { App, DaemonStartOptions, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import type { NoticeRow } from '@/persistence/api'
 import { refreshMarketDataOnBoot } from '@/app/boot-refresh'
-import { startChannelWatch } from '@/app/channel-watch'
-import { retentionCutoffAt, runWorkspaceTmpRetention, startRetention } from '@/app/retention'
-import { ApiTokenError } from '@/app/server/http/auth'
-import { toAgentRegistry } from '@/app/services'
-import { startSocialUpkeep } from '@/app/social-upkeep'
-import { startUpdateWatch } from '@/app/update/watch'
-import { startChannels } from '@/channels/api'
+import {
+  type DaemonTaskState,
+  startDaemonSubsystems,
+  type Teardown,
+  trackDaemonTask,
+} from '@/app/daemon-subsystems'
+import '@/app/events'
+
+import { retentionCutoffAt, runWorkspaceTmpRetention } from '@/app/retention'
+import { takeRestartMarker } from '@/app/update/restart-marker'
 import { BRAND } from '@/core/brand'
 import { AppError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { startScheduledWorkflows } from '@/engine/api'
 import { t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
-const SHUTDOWN_DRAIN_MS = 5_000
+/** How long a stop waits for the runs in flight before it disposes. */
+export const SHUTDOWN_DRAIN_MS = 5_000
 const SHUTDOWN_TOTAL_MS = 30_000
+/** How many of the newest bell rows a new restart line looks through for the ones it replaces. */
+const RESTART_NOTICE_SCAN = 50
+const RESTART_DONE = 'restart-done'
 
 declare module '@/core/container' {
   interface Services {
     /** The whole daemon as one task: what `start` runs, and the only thing that owns the drain. */
     daemonTask: DaemonTask
   }
-}
-
-type Disposer = () => void | Promise<void>
-
-/** What the way down runs: `admission` closers first and synchronously, `disposers` after the drain. */
-interface Teardown {
-  readonly admission: Array<() => void>
-  readonly disposers: Disposer[]
 }
 
 // The daemon-only half of the process: everything here is started on `start(signal)` and torn down
@@ -109,208 +107,12 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
   }
 }
 
-interface StartDaemonSubsystemsOptions {
-  readonly app: App
-  readonly delivery: DeliveryHub
-  readonly onHealth: DaemonStartOptions['onHealth']
-  readonly startupSignal: AbortSignal
-  readonly startup: AbortController
-  readonly logger: Logger
-  readonly tasks: Array<Promise<void>>
-  readonly state: DaemonTaskState
-  readonly teardown: Teardown
-}
-
-async function startDaemonSubsystems(
-  options: StartDaemonSubsystemsOptions
-): Promise<readonly DegradedItem[]> {
-  const { app, delivery, startupSignal, startup, logger, tasks, state, teardown } = options
-  const { disposers } = teardown
-  const { onHealth } = options
-
-  const channels = await startChannels(channelDeps(app, startupSignal))
-  const tradingTasks = app.resolve('tradingServices').daemonTasks
-  disposers.push(() => channels.stop())
-  disposers.push(
-    startScheduledWorkflows(
-      {
-        workflows: app.resolve('workflows'),
-        logger,
-        runner: app.resolve('runner'),
-        config: app.config,
-      },
-      startupSignal
-    )
-  )
-
-  attachDelivery({ delivery, channels, disposers })
-  // Before `channels.stop()` in the teardown (disposers run in push order, and the channels were
-  // pushed first), so the loop cannot announce a channel that is only being closed.
-  disposers.unshift(
-    startChannelWatch({
-      delivery,
-      locale: app.config.locale.language,
-      logger,
-      ...(onHealth === undefined ? {} : { onHealth }),
-    })
-  )
-
-  // Started last of the delivering subsystems: a job that finishes before delivery is attached has
-  // nowhere to send its answer, and a one-shot job is disabled on finalize so it never retries.
-  trackDaemonTask({
-    tasks,
-    state,
-    startup,
-    name: 'scheduler',
-    task: app.resolve('schedulerTask').start(startupSignal),
-  })
-
-  // After delivery is attached: an alert or brief that fires on the first tick must have a channel
-  // to reach. Each task goes through the same tracker as the scheduler's, but a trading loop
-  // quarantines its own failure first, so a bad tick stops that loop and not the daemon.
-  for (const task of tradingTasks) {
-    trackDaemonTask({ tasks, state, startup, name: task.name, task: task.start(startupSignal) })
-  }
-
-  disposers.push(startRetention(app, logger))
-  disposers.push(startUpdateWatch(app, { logger, upgrade: app.resolve('selfUpgrade') }))
-  disposers.push(startSocialUpkeep(app, logger))
-
-  attachPluginTasks({ app, signal: startupSignal, startup, tasks, state })
-
-  const apiSkipped = app.config.api.enabled ? await startApi(app, teardown) : []
-
-  return [
-    ...channels.skipped.map(
-      ({ channel, error }): DegradedItem => ({
-        kind: 'channel',
-        subject: channel,
-        message: error.operator,
-      })
-    ),
-    ...apiSkipped,
-  ]
-}
-
-// A token the operator named but cannot serve keeps the API closed; any other failure stops the start.
-async function startApi(app: App, teardown: Teardown): Promise<readonly DegradedItem[]> {
-  const logger = app.resolve('logger')
-
-  try {
-    const api = await app.resolve('apiStarter')(app, process.env)
-
-    teardown.admission.push(api.closeAdmission)
-    teardown.disposers.push(api.stop)
-    logger.info('api.started', { port: app.config.api.port })
-
-    return []
-  } catch (err: unknown) {
-    if (!(err instanceof ApiTokenError)) {
-      throw err
-    }
-
-    logger.warn('api.token_unusable', { err: formatErrForLog(err) })
-
-    return [{ kind: 'api', subject: 'api', message: err.operator }]
-  }
-}
-
 function toDaemonStartupError(err: unknown): AppError {
   if (err instanceof AppError) {
     return err
   }
 
   return new ConfigError('daemon startup failed', err)
-}
-
-interface AttachPluginTasksOptions {
-  readonly app: App
-  readonly signal: AbortSignal
-  readonly startup: AbortController
-  readonly tasks: Array<Promise<void>>
-  readonly state: DaemonTaskState
-}
-
-function attachPluginTasks(options: AttachPluginTasksOptions): void {
-  const { app, signal, startup, tasks, state } = options
-  for (const plugin of app.resolve('plugins')) {
-    for (const task of plugin.contributions.daemonTasks ?? []) {
-      trackDaemonTask({ tasks, state, startup, name: task.name, task: task.start(signal) })
-    }
-  }
-}
-
-interface DaemonTaskState {
-  failure?: AppError
-}
-
-interface TrackDaemonTaskOptions {
-  readonly tasks: Promise<void>[]
-  readonly state: DaemonTaskState
-  readonly startup: AbortController
-  readonly name: string
-  readonly task: Promise<void>
-}
-
-/** Only now does a proactive notice have anywhere to go. Detached first on the way down, so nothing
- *  is queued against an adapter that is already closing. */
-function attachDelivery(options: {
-  readonly delivery: DeliveryHub
-  readonly channels: StartChannelsResult
-  readonly disposers: Disposer[]
-}): void {
-  const { delivery, channels } = options
-
-  if (channels.notifier === undefined) {
-    return
-  }
-
-  options.disposers.unshift(
-    delivery.attach({
-      notifier: channels.notifier,
-      snapshots: channels.snapshots,
-      isWorking: channels.isWorking,
-      recipients: channels.recipients,
-      recipient: channels.defaultRecipient,
-      isDeliverable: channels.isDeliverable,
-    })
-  )
-}
-
-function trackDaemonTask(options: TrackDaemonTaskOptions): void {
-  const { tasks, state, startup, name, task } = options
-  tasks.push(
-    task.catch((err: unknown) => {
-      state.failure ??= new ConfigError(`daemon task failed: ${name}`, err)
-      startup.abort(state.failure)
-    })
-  )
-}
-
-function channelDeps(app: App, signal: AbortSignal): StartChannelsDeps {
-  return {
-    definitions: app.resolve('channels'),
-    config: app.config,
-    runner: app.resolve('runner'),
-    runRegistry: app.resolve('runRegistry'),
-    sessionQueue: app.resolve('sessionQueue'),
-    costTracker: app.resolve('costTracker'),
-    pairingStore: app.resolve('pairingStore'),
-    sessionRouter: app.resolve('sessionRouter'),
-    sessions: app.resolve('sessionStore'),
-    spend: app.resolve('spendReader'),
-    pollOffsets: app.resolve('pollOffsetStore'),
-    inbox: app.resolve('inboundInbox'),
-    bindings: app.resolve('chatBindingStore'),
-    dispatcher: app.resolve('slashDispatcher'),
-    agents: toAgentRegistry(app.resolve('agents')),
-    operatorNotices: app.resolve('operatorNotices'),
-    bus: app.resolve('bus'),
-    logger: app.resolve('logger'),
-    // Injected once here so no adapter reaches for process.env on its own.
-    env: process.env,
-    shutdownSignal: signal,
-  }
 }
 
 interface AbortWaiter {
@@ -364,7 +166,10 @@ async function shutdown(options: {
       await runCleanup(logger, 'daemon.admission_failed', close)
     }
 
-    await runCleanup(logger, 'daemon.pause_failed', () => app.resolve('sessionQueue').pause())
+    await runCleanup(logger, 'daemon.pause_failed', () => {
+      app.resolve('sessionQueue').pause()
+      app.resolve('commandLane').pause()
+    })
     await runCleanup(logger, 'daemon.drain_failed', () =>
       app.resolve('runRegistry').drain(SHUTDOWN_DRAIN_MS)
     )
@@ -404,6 +209,7 @@ function markReady(ready: {
   logger.info('daemon.started')
   options?.onReady?.(warnings)
   reportUpgradeOutcome(app, logger)
+  announceRestart(app, logger)
 
   if (options?.previousRun !== undefined) {
     announceUncleanStop({ app, delivery, logger }, options.previousRun)
@@ -455,4 +261,55 @@ function reportUpgradeOutcome(app: App, logger: Logger): void {
     .catch((err: unknown) => {
       logger.warn('update.announce_crashed', { err: formatErrForLog(err) })
     })
+}
+
+/** A restart asked for through the API leaves a marker, and only the daemon it brings up files the
+ *  line to the bell. Taken here, not at boot: the helper and the `--background` parent boot in
+ *  daemon mode too and would take it first. */
+function announceRestart(app: App, logger: Logger): void {
+  takeRestartMarker(app.config.paths.dataDir, Date.now())
+    .then(async (restarted) => {
+      if (restarted) {
+        await readEarlierRestartNotices(app).catch((err: unknown) => {
+          logger.warn('daemon.restart_notices_read_failed', { err: formatErrForLog(err) })
+        })
+        app.resolve('bus').emit('daemon_notice', {
+          text: t(app.config.locale.language, 'ui.restartDone'),
+          at: Date.now(),
+          kind: RESTART_DONE,
+        })
+      }
+    })
+    .catch((err: unknown) => {
+      logger.warn('daemon.restart_marker_failed', { err: formatErrForLog(err) })
+    })
+}
+
+/** Every restart files the same sentence, so the newest one stands for the earlier ones still
+ *  unread instead of stacking them in the bell. */
+async function readEarlierRestartNotices(app: App): Promise<void> {
+  const store = app.resolve('noticeStore')
+  const rows = await store.list(undefined, RESTART_NOTICE_SCAN)
+  const ids = rows
+    .filter((row) => row.readAt === undefined && isRestartDone(row))
+    .map((row) => row.id)
+
+  if (ids.length > 0) {
+    await store.markRead(ids, Date.now())
+  }
+}
+
+function isRestartDone(row: NoticeRow): boolean {
+  if (row.kind !== 'daemon_notice') {
+    return false
+  }
+
+  const event: unknown = JSON.parse(row.event)
+
+  return (
+    typeof event === 'object' &&
+    event !== null &&
+    'noticeKind' in event &&
+    event.noticeKind === RESTART_DONE
+  )
 }

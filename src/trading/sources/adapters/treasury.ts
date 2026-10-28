@@ -5,17 +5,25 @@ import type { TradingDay } from '@/trading/kernel/instrument'
 import type { MacroSnapshot } from '@/trading/kernel/market/market-data'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/define'
+import type { MacroSourceProfile } from '@/trading/sources/macro-gate'
 import type { SourceFetchOutcome } from '@/trading/sources/types'
 import { tradingDay } from '@/trading/kernel/instrument'
 import { MACRO_FORMULA_VERSION } from '@/trading/kernel/market/macro-series'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { createSource, parsedSource } from '@/trading/sources/define'
+import { DAILY_STALE_AFTER_DAYS } from '@/trading/sources/macro-gate'
 import { utcDayStartEpochMs, yearOf } from '@/trading/sources/rows/normalization'
 import { COMPLEMENTARY_ATTEMPT_LIMITS } from '@/trading/sources/transport/http'
 
 const TREASURY_ID = sourceId('treasury')
 
 export const TREASURY_DEFAULT_ENDPOINT = 'https://home.treasury.gov'
+
+export const TREASURY_MACRO_PROFILE: MacroSourceProfile = {
+  series: ['us-10y-yield', 'us-real-rate'],
+  cadence: { kind: 'daily' },
+  staleAfterDays: DAILY_STALE_AFTER_DAYS,
+}
 
 const CURVE_PATH = '/resource-center/data-chart-center/interest-rates/pages/xml'
 const NOMINAL_CURVE = 'daily_treasury_yield_curve'

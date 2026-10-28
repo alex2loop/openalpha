@@ -8,7 +8,7 @@ import type {
 } from '@/core/types/command'
 import { RESEARCH_PROFILE_DEPTHS } from '@/core/config/resolve'
 import { agentId } from '@/core/ids'
-import { DEEP_RESEARCHER_ID, RESEARCH_QUERY_MAX_CHARS } from '@/engine/api'
+import { DEEP_RESEARCHER_ID, RESEARCH_DEPTH_PREFIX, RESEARCH_QUERY_MAX_CHARS } from '@/engine/api'
 
 const USAGE: CommandMessage = { key: 'slash.researchUsage' }
 const MESSAGE_KEYS = [USAGE.key, 'slash.researchQueryTooLong'] as const
@@ -21,7 +21,6 @@ const POLICY = {
 } as const satisfies SlashInvocationPolicy
 const DEFAULT_RESEARCH_DEPTH = RESEARCH_PROFILE_DEPTHS.standard
 const RESEARCH_AGENT_ID = agentId(DEEP_RESEARCHER_ID)
-const RESEARCH_DEPTH_PREFIX = 'depth:'
 
 type ResearchProfile = keyof typeof RESEARCH_PROFILE_DEPTHS
 

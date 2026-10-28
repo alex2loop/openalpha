@@ -1,0 +1,40 @@
+.calls-head {
+  font-size: var(--sizeBody);
+}
+
+.calls-list {
+  margin: var(--s1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.calls-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--sizeBody);
+}
+
+.calls-row:first-child {
+  border-top: 0;
+}
+
+.calls-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.calls-main b {
+  font-weight: var(--weightMedium);
+  overflow-wrap: anywhere;
+}
+
+.calls-side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+}

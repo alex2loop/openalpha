@@ -1,4 +1,4 @@
-import type { CalendarPolicy } from '@/trading/kernel/config'
+import type { CalendarPolicy, SessionHours } from '@/trading/kernel/config'
 import type { SessionPhase, TradingDay, TradingSessionState } from '@/trading/kernel/instrument'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { ConfigError } from '@/core/errors'
@@ -88,6 +88,7 @@ export function createTradingCalendar(
   return {
     timezone: policy.timezone,
     continuous: policy.continuous,
+    ...(policy.continuous ? {} : { hours: toSessionHours(policy) }),
     ...(lastHoliday === undefined ? {} : { lastHoliday }),
     isTradingDay,
     dayAt: (epochMs) => dayFromEpochSeconds(epochMs / MS_PER_SECOND, policy.timezone),
@@ -96,6 +97,21 @@ export function createTradingCalendar(
     sessionCloseAt,
     tapeFinalAt: (day) => sessionCloseAt(day) + TAPE_SETTLE_LAG_MS,
     sessionState: (epochMs) => resolveSessionState({ epochMs, policy, session, isTradingDay }),
+  }
+}
+
+function toSessionHours(policy: CalendarPolicy): SessionHours {
+  const { breakStartLocalTime: from, breakEndLocalTime: to } = policy
+  const auctionFrom = policy.closeAuctionStartLocalTime
+  const close = policy.sessionCloseLocalTime
+
+  return {
+    ...(policy.exchange === undefined ? {} : { exchange: policy.exchange }),
+    timezone: policy.timezone,
+    open: policy.sessionOpenLocalTime,
+    close,
+    ...(from === undefined || to === undefined ? {} : { breaks: [{ from, to }] }),
+    ...(auctionFrom === undefined ? {} : { closeAuction: { from: auctionFrom, to: close } }),
   }
 }
 
@@ -198,6 +214,27 @@ export function sessionPhase(calendar: TradingCalendar, now: number): SessionPha
   return state === 'closed' ? 'break' : state
 }
 
+/** A market's own day at one instant: the date on its clock, whether it trades, the next day it
+ *  does, and where the session stands. Past the holiday table (`lastHoliday`) a closure reads as a
+ *  session, as it does everywhere else; boot warns when the table runs out. */
+export interface MarketDay {
+  readonly today: TradingDay
+  readonly tradesToday: boolean
+  readonly nextTradingDay: TradingDay
+  readonly phase: SessionPhase
+}
+
+export function resolveMarketDay(calendar: TradingCalendar, now: number): MarketDay {
+  const today = calendar.dayAt(now)
+
+  return {
+    today,
+    tradesToday: calendar.isTradingDay(today),
+    nextTradingDay: calendar.addTradingDays(today, 1),
+    phase: sessionPhase(calendar, now),
+  }
+}
+
 /** The session an order placed at `now` fills in: today until the close, the next trading day after
  *  it or on a day the market does not trade. */
 export function orderSessionOf(calendar: TradingCalendar, now: number): TradingDay {
@@ -230,12 +267,21 @@ function resolveSession(policy: CalendarPolicy): SessionMinutes {
 
   const breakStart = optionalMinutes(policy.breakStartLocalTime, policy.timezone)
   const breakEnd = optionalMinutes(policy.breakEndLocalTime, policy.timezone)
+  const auctionStart = optionalMinutes(policy.closeAuctionStartLocalTime, policy.timezone)
 
   if (breakStart !== undefined && breakEnd !== undefined && breakEnd <= breakStart) {
     throw new ConfigError(`calendar ${policy.timezone} has an inverted break`, undefined, [
       'calendar',
       policy.timezone,
     ])
+  }
+
+  if (auctionStart !== undefined && (auctionStart <= open || auctionStart >= close)) {
+    throw new ConfigError(
+      `calendar ${policy.timezone} has an auction outside its session`,
+      undefined,
+      ['calendar', policy.timezone]
+    )
   }
 
   return {

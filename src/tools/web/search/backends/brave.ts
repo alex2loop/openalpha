@@ -3,7 +3,7 @@ import { runApiKeyProvider } from '@/tools/web/search/backends/api-key-provider'
 import { toDomainQuery } from '@/tools/web/search/domains'
 import { toFreeSearchResponse, toSearchResults } from '@/tools/web/search/result-parser'
 
-const BRAVE_ENDPOINT = 'https://api.search.brave.com/res/v1/web/search'
+export const BRAVE_ENDPOINT = 'https://api.search.brave.com/res/v1/web/search'
 const BRAVE_HEADER = 'X-Subscription-Token'
 
 const RECENCY_TO_BRAVE = {

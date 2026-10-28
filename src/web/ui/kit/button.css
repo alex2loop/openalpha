@@ -1,0 +1,101 @@
+/* One button system: commit (the form's one main action, Ink fill), ai (the brand gradient),
+   secondary (bordered), ghost (no frame until hovered), tertiary (a text link with its arrow), destructive (Problem text). A
+   regular button is a field's height; a small one sits inside a row. */
+.btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: var(--weightMedium);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-regular {
+  height: var(--controlH);
+  padding: 0 var(--controlPadX);
+  border-radius: var(--controlRadius);
+  font-size: var(--controlFont);
+}
+
+.btn-small {
+  height: var(--controlSmH);
+  padding: 0 var(--controlSmPadX);
+  border-radius: var(--controlSmRadius);
+  font-size: var(--controlSmFont);
+}
+
+.btn:not(:disabled):hover {
+  background: var(--sunken);
+}
+
+.btn-commit {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.btn-commit:not(:disabled):hover {
+  background: var(--ink);
+  opacity: 0.88;
+}
+
+.btn-ai {
+  border-color: transparent;
+  background: var(--ai);
+  color: var(--onAi);
+}
+
+.btn-ai:not(:disabled):hover {
+  background: var(--ai);
+  filter: brightness(1.08);
+}
+
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink2);
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--ink);
+}
+
+.btn-tertiary {
+  gap: 4px;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink2);
+  font-size: var(--controlFont);
+}
+
+.btn-tertiary:not(:disabled):hover {
+  background: none;
+  color: var(--ink);
+}
+
+.btn-destructive {
+  color: var(--dangerText);
+}
+
+.btn-destructive:not(:disabled):hover {
+  background: var(--dangerTint);
+}
+
+.btn:disabled {
+  border-color: var(--border);
+  background: var(--sunken);
+  color: var(--ink3);
+  cursor: default;
+}
+
+.btn-tertiary:disabled {
+  background: none;
+}

@@ -2,6 +2,8 @@ import { Glob } from 'bun'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
+import { lineAt, scanImports } from './import-scan'
+
 const SRC = `${import.meta.dir}/../src`
 
 const ALLOWED: Readonly<Record<string, readonly string[]>> = {
@@ -18,6 +20,7 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
   social: ['core', 'engine', 'i18n'],
   trading: ['core', 'engine', 'persistence', 'i18n'],
   channels: ['core', 'engine', 'commands', 'i18n'],
+  web: ['i18n'],
   cli: [
     'core',
     'ai',
@@ -48,6 +51,7 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
     'trading',
     'channels',
     'cli',
+    'web',
   ],
 }
 
@@ -58,9 +62,11 @@ const ALLOWED: Readonly<Record<string, readonly string[]>> = {
 const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'brand',
   'channels',
+  'command-lane',
   'container',
   'errors',
   'events',
+  'field-errors',
   'fs',
   'ids',
   'limits',
@@ -78,6 +84,8 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'types/budget',
   'types/cli-command',
   'types/command',
+  'types/doctor',
+  'types/event-job',
   'types/exact',
   'types/locale',
   'types/memory',
@@ -114,6 +122,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'utils/retry',
   'utils/text',
   'utils/time',
+  'utils/url',
   'utils/version',
 ])
 // engine/research is a bounded context the module gate cannot see: it lives inside `engine`, so the
@@ -134,6 +143,14 @@ const RESEARCH_PUBLIC: ReadonlySet<string> = new Set([
 ])
 const RESEARCH_DIR = `${SRC}/engine/research/`
 const I18N_INDEX = `${SRC}/i18n/index.ts`
+// The page compiles `app/server/wire` on its own under a DOM lib, so one import that leaves the
+// folder pulls the whole server graph into that build. Only its own files and the core type leaves
+// may be imported.
+const WIRE_DIR = `${SRC}/app/server/wire/`
+const WIRE_ALIAS_PREFIX = '@/app/server/wire/'
+const WIRE_CORE_PREFIX = '@/core/types/'
+// The page reads the daemon's wire shapes as types only; nothing else crosses from web into app.
+const WEB_DIR = `${SRC}/web/`
 // index.ts sits above every module, like `app`, and is checked, not skipped.
 const BARREL_DEPS: readonly string[] = [...(ALLOWED.app ?? []), 'app']
 const NO_DEEP_ALLOW: ReadonlySet<string> = new Set()
@@ -150,25 +167,10 @@ if (process.argv.includes('--list-core-public')) {
 
   process.exit(0)
 }
-// Static import/export-from statements, incl. multiline bodies. The middle part can never
-// contain a quote (specifiers are the only strings in an import clause), so [^'"]*? cannot
-// jump across statements. Type-only imports follow the same module boundaries as value imports.
-const STATIC_SPEC_RE = /\b(?:import|export)\s+(?:type\s+)?[^'"]*?from\s*'([^']+)'/gs
-// Side-effect (`import './x'`) and dynamic (`import('x')`) imports — always value imports.
-const BARE_SPEC_RE = /\bimport\s*(?:\(\s*)?'([^']+)'\s*\)?/g
-
 interface Violation {
   file: string
   line: number
   message: string
-}
-
-interface FoundImport {
-  specifier: string
-  index: number
-  isTypeOnly: boolean
-  statementKind: 'import' | 'export'
-  clause?: string
 }
 
 interface Importer {
@@ -184,7 +186,7 @@ if (!existsSync(SRC)) {
   process.exit(1)
 }
 
-const files = [...new Glob('**/*.ts').scanSync(SRC)].map((file) => `${SRC}/${file}`)
+const files = [...new Glob('**/*.{ts,tsx}').scanSync(SRC)].map((file) => `${SRC}/${file}`)
 const exists = new Set(files)
 const violations: Violation[] = []
 
@@ -196,7 +198,7 @@ const moduleOf = (absPath: string): string | null => {
 
 const resolveRelative = (fromFile: string, spec: string): string | null => {
   const base = resolve(dirname(fromFile), spec)
-  for (const candidate of [`${base}.ts`, `${base}/index.ts`]) {
+  for (const candidate of [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`]) {
     if (exists.has(candidate)) return candidate
   }
   return null
@@ -215,31 +217,6 @@ const importerOf = (file: string): Importer | null => {
   if (!module) return null
 
   return { name: module, allowed: ALLOWED[module] ?? [], deepAllow: NO_DEEP_ALLOW }
-}
-
-const lineAt = (source: string, index: number): number =>
-  source.slice(0, index).split('\n').length
-
-const scanImports = (source: string): FoundImport[] => {
-  const found: FoundImport[] = []
-  for (const m of source.matchAll(STATIC_SPEC_RE)) {
-    const specifier = m[1]
-    if (specifier !== undefined) {
-      const statement = m[0]
-      const typeOnly = /^\s*(?:import|export)\s+type\s+/.test(statement)
-      const statementKind = /^\s*import\b/.test(statement) ? 'import' : 'export'
-      const clause = statement.match(/\b(?:import|export)\s+(?:type\s+)?([^'\"]*?)\s+from\s*'/s)?.[1]
-
-      found.push({ specifier, index: m.index, isTypeOnly: typeOnly, statementKind, clause })
-    }
-  }
-  for (const m of source.matchAll(BARE_SPEC_RE)) {
-    const specifier = m[1]
-    if (specifier !== undefined) {
-      found.push({ specifier, index: m.index, isTypeOnly: false, statementKind: 'import' })
-    }
-  }
-  return found
 }
 
 // Kernel modules have no api.ts, so their importable surface is enumerated rather than re-exported.
@@ -283,8 +260,26 @@ const researchSurfaceIssue = (file: string, specifier: string): string | null =>
   )
 }
 
+const wireIssue = (file: string, specifier: string): string | null => {
+  if (!file.startsWith(WIRE_DIR)) return null
+  if (specifier.startsWith(WIRE_ALIAS_PREFIX) || specifier.startsWith(WIRE_CORE_PREFIX)) return null
+
+  if (specifier.startsWith('.')) {
+    const target = resolveRelative(file, specifier)
+    if (target?.startsWith(WIRE_DIR) === true) return null
+  }
+
+  return `wire/ may import only wire/ and core/types, not '${specifier}'`
+}
+
 const checkFile = (file: string, importer: Importer, source: string): void => {
   for (const found of scanImports(source)) {
+    const wire = wireIssue(file, found.specifier)
+
+    if (wire !== null) {
+      violations.push({ file, line: lineAt(source, found.index), message: wire })
+    }
+
     const researchIssue = researchSurfaceIssue(file, found.specifier)
 
     if (researchIssue !== null) {
@@ -314,6 +309,14 @@ const checkFile = (file: string, importer: Importer, source: string): void => {
       found.clause?.replace(/\s/g, '') === '{Locale}'
 
     if (isI18nLocaleTypeImport) continue
+
+    const isWebWireTypeImport =
+      file.startsWith(WEB_DIR) &&
+      found.statementKind === 'import' &&
+      found.isTypeOnly &&
+      found.specifier.startsWith(WIRE_ALIAS_PREFIX)
+
+    if (isWebWireTypeImport) continue
 
     const line = lineAt(source, found.index)
     if (!importer.allowed.includes(depModule)) {

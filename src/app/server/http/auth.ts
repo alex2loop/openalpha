@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { chmod } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -15,14 +15,35 @@ const LOCKOUT_MS = 30_000
 /** Exponential-backoff ceiling: 1h. */
 const MAX_LOCKOUT_MS = 3_600_000
 const MAX_PEERS = 1024
+// The lockout key of a request whose peer address or forwarded client is unknown.
+const UNKNOWN_PEER = '?'
+const PROXIED_PEER_PREFIX = 'proxied:'
+const FORWARDED_FOR = 'x-forwarded-for'
+const FORWARDED_FOR_SEPARATOR = ','
+const SECRET_BYTES = 32
 
+export const LOOPBACK_HOST = '127.0.0.1'
+// Headers a reverse proxy adds; without `public_url` the daemon refuses to be fronted by one.
+export const PROXY_HEADERS: readonly string[] = [
+  'x-forwarded-for',
+  'forwarded',
+  'x-forwarded-host',
+  'x-forwarded-proto',
+  'x-real-ip',
+  'via',
+  'cf-connecting-ip',
+  'true-client-ip',
+]
 const LOOPBACK_ADDRESSES: readonly string[] = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
-const ALLOWED_ORIGIN_HOSTNAMES: readonly string[] = ['127.0.0.1', 'localhost', '[::1]']
+const LOOPBACK_HOSTNAMES: readonly string[] = ['127.0.0.1', 'localhost', '[::1]']
+const PAGE_PROTOCOL = 'http:'
+const BEARER_PREFIX = 'Bearer '
 
 interface PeerState {
   fails: number
   until: number
   violations: number
+  lastFailAt: number
 }
 
 /** The token the operator named cannot serve. The stored one never stands in for it: the API
@@ -32,8 +53,6 @@ export class ApiTokenError extends OperatorConfigError {}
 // Process-local by design: one daemon process owns the surface, so the lockout table is
 // process-wide security state, not per-run state. Bounded by MAX_PEERS (see prunePeers).
 const peers = new Map<string, PeerState>()
-
-type AuthBackoffState = 'ok' | 'locked'
 
 export function isLoopback(ip: string | null): boolean {
   return ip !== null && LOOPBACK_ADDRESSES.includes(ip)
@@ -48,50 +67,44 @@ function isTokenEqual(got: string, token: string): boolean {
   return timingSafeEqual(a, b)
 }
 
-/** What a request offered: a matching token, a token that does not match, or nothing at all. */
-type Credential = 'valid' | 'wrong' | 'absent'
+/** What a request offered: a matching token or code, a live browser session, a token or code that
+ *  does not match, one left unchecked because the lockout holds, or nothing at all. */
+export type Credential = 'valid' | 'session' | 'wrong' | 'locked' | 'absent'
 
-function toCredential(presented: readonly string[], token: string): Credential {
-  if (presented.length === 0) {
+export function resolveBearerCredential(
+  header: string | null,
+  token: string,
+  locked: boolean
+): Credential {
+  if (header?.startsWith(BEARER_PREFIX) !== true) {
     return 'absent'
   }
 
-  return presented.some((got) => isTokenEqual(got, token)) ? 'valid' : 'wrong'
-}
+  if (locked) {
+    return 'locked'
+  }
 
-function bearerOf(header: string | null): string[] {
-  return header?.startsWith('Bearer ') === true ? [header.slice('Bearer '.length)] : []
-}
-
-export function resolveBearerCredential(header: string | null, token: string): Credential {
-  return toCredential(bearerOf(header), token)
-}
-
-/** The socket can carry the token in the header or in `?token=` — a browser WebSocket sets no headers. */
-export function resolveWebSocketCredential(req: Request, token: string): Credential {
-  const query = new URL(req.url).searchParams.get('token')
-
-  return toCredential(
-    [...bearerOf(req.headers.get('authorization')), ...(query === null ? [] : [query])],
-    token
-  )
+  return isTokenEqual(header.slice(BEARER_PREFIX.length), token) ? 'valid' : 'wrong'
 }
 
 export type AuthOutcome = 'ok' | 'locked' | 'unauthorized'
 
-// One lockout accounting for HTTP and WS auth. Every peer is loopback, so the lockout is one shared
-// key: a valid token is never refused because of it (and clears it), and only a request that
-// presents a wrong token counts toward it.
-export function resolveAuthOutcome(
-  ip: string | null,
-  credential: Credential,
-  now: number
-): AuthOutcome {
-  const addr = ip ?? '?'
+// One lockout accounting for HTTP, WS and the code exchange, per `resolvePeerKey`: while it holds, a
+// token or code is refused before it is compared, so no guess is checked. A session is never
+// refused by it, only a valid token or code clears it (a session cookie proves nothing about who is
+// guessing), and only a wrong token or a wrong or used code counts toward it.
+export function resolveAuthOutcome(peer: string, credential: Credential, now: number): AuthOutcome {
+  if (credential === 'locked') {
+    return 'locked'
+  }
 
   if (credential === 'valid') {
-    peers.delete(addr)
+    peers.delete(peer)
 
+    return 'ok'
+  }
+
+  if (credential === 'session') {
     return 'ok'
   }
 
@@ -99,35 +112,91 @@ export function resolveAuthOutcome(
     return 'unauthorized'
   }
 
-  if (authBackoff(addr, now) === 'locked') {
-    return 'locked'
-  }
-
-  recordFailure(addr, now)
+  recordFailure(peer, now)
 
   return 'unauthorized'
 }
 
-// Native clients send no Origin; a browser's cross-origin WebSocket must name a loopback origin.
-export function isOriginAllowed(origin: string | null): boolean {
-  if (origin === null) {
-    return true
+/** The origin of the page a request belongs to, from its `Host`: `http://<host>` for a loopback
+ *  name on any port (an SSH tunnel serves the daemon on a local port of its own), `publicUrl` for
+ *  its own host, else `undefined`. A rebinding page reaches the loopback port under its own name,
+ *  so it gets none. */
+export function resolvePageOrigin(
+  host: string | null,
+  publicUrl: string | undefined
+): string | undefined {
+  if (host === null) {
+    return undefined
   }
 
-  return URL.canParse(origin) && ALLOWED_ORIGIN_HOSTNAMES.includes(new URL(origin).hostname)
+  const page = toHostUrl(PAGE_PROTOCOL, host)
+
+  if (page !== undefined && LOOPBACK_HOSTNAMES.includes(page.hostname)) {
+    return page.origin
+  }
+
+  if (publicUrl === undefined) {
+    return undefined
+  }
+
+  // Parsed under the public scheme, so an explicit default port (`:443`) drops as it does there.
+  const published = new URL(publicUrl)
+
+  return toHostUrl(published.protocol, host)?.host === published.host ? publicUrl : undefined
 }
 
-function authBackoff(ip: string, now: number): AuthBackoffState {
-  const entry = peers.get(ip)
-
-  return entry !== undefined && entry.until > now ? 'locked' : 'ok'
+/** Native clients send no Origin; a browser must come from the page it was opened on, so another
+ *  local web app (a dev server on another port) is refused. */
+export function isOriginAllowed(origin: string | null, pageOrigin: string): boolean {
+  return origin === null || origin === pageOrigin
 }
 
-function recordFailure(ip: string, now: number): void {
+/** A fresh random secret: a sign-in code or a browser session's cookie value. */
+export function buildSecret(): string {
+  return randomBytes(SECRET_BYTES).toString('base64url')
+}
+
+/** What is kept of a code or a session secret. Keyed by the API token, so a token change ends
+ *  every browser session. */
+export function toSecretHash(secret: string, token: string): string {
+  return createHmac('sha256', token).update(secret).digest('hex')
+}
+
+function toHostUrl(protocol: string, host: string): URL | undefined {
+  const url = `${protocol}//${host}`
+
+  return URL.canParse(url) ? new URL(url) : undefined
+}
+
+/** Who a request counts as for the lockout. A caller with no proxy header is keyed by its own peer.
+ *  Through the `public_url` host it is keyed by the last `X-Forwarded-For` hop, the one our proxy
+ *  added, so a remote guesser never locks out a terminal on this machine. Proxy headers on any
+ *  other host are not trusted: that caller shares one proxied key. */
+export function resolvePeerKey(headers: Headers, ip: string | null, isPublicPage: boolean): string {
+  if (!PROXY_HEADERS.some((name) => headers.has(name))) {
+    return ip ?? UNKNOWN_PEER
+  }
+
+  const hop = isPublicPage
+    ? headers.get(FORWARDED_FOR)?.split(FORWARDED_FOR_SEPARATOR).at(-1)?.trim()
+    : undefined
+
+  return `${PROXIED_PEER_PREFIX}${hop === undefined || hop === '' ? UNKNOWN_PEER : hop}`
+}
+
+/** Asked before a token or code is compared, so a guess sent during the lockout is never checked. */
+export function isAuthLocked(peer: string, now: number): boolean {
+  const entry = peers.get(peer)
+
+  return entry !== undefined && entry.until > now
+}
+
+function recordFailure(peer: string, now: number): void {
   prunePeers(now)
 
-  const entry = peers.get(ip) ?? { fails: 0, until: 0, violations: 0 }
+  const entry = peers.get(peer) ?? { fails: 0, until: 0, violations: 0, lastFailAt: now }
   entry.fails += 1
+  entry.lastFailAt = now
 
   if (entry.fails >= MAX_FAILS) {
     entry.until = now + Math.min(LOCKOUT_MS * 2 ** entry.violations, MAX_LOCKOUT_MS)
@@ -135,16 +204,16 @@ function recordFailure(ip: string, now: number): void {
     entry.violations += 1
   }
 
-  peers.set(ip, entry)
+  peers.set(peer, entry)
 }
 
-// Bound the map: drop entries no longer locked out with no pending fails; if still over cap, evict
-// the oldest (Map iterates in insertion order). Without this, an attacker rotating source IPs grows
-// `peers` without bound.
+// Bound the map: an entry is forgotten, and its backoff with it, only after a full MAX_LOCKOUT_MS
+// with no failure and no lockout; if still over cap, evict the oldest (Map iterates in insertion
+// order). Without this, an attacker rotating keys grows `peers` without bound.
 function prunePeers(now: number): void {
-  for (const [ip, entry] of peers) {
-    if (entry.until <= now && entry.fails === 0) {
-      peers.delete(ip)
+  for (const [peer, entry] of peers) {
+    if (Math.max(entry.until, entry.lastFailAt) + MAX_LOCKOUT_MS <= now) {
+      peers.delete(peer)
     }
   }
 

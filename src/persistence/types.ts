@@ -10,8 +10,12 @@ import type {
   DaySpend,
   LLMAttemptInput,
   LLMUsageTotals,
+  ModelRunCost,
+  RootRunCostRow,
+  RunCalls,
   SpendBreakdownRow,
 } from '@/core/types/usage'
+import type { EpochRange } from '@/core/utils/time'
 
 export type MigrationUp = (tx: Transaction, dialect: Dialect) => Promise<void>
 export type MigrationDown = MigrationUp
@@ -110,6 +114,8 @@ export interface SessionClaim {
 export interface HistoryPageQuery {
   /** Transcript index (`idx`): only rows strictly older than it. Newest rows when absent. */
   readonly before?: number
+  /** Only the assistant rows this run wrote, the newest `limit` of them; `before` is not read. */
+  readonly runId?: RunId
   readonly limit: number
 }
 
@@ -119,6 +125,37 @@ export interface HistoryPage {
   readonly hasMore: boolean
   /** `idx` of the oldest returned row, the next page's `before`; null when nothing older remains. */
   readonly nextBefore: number | null
+}
+
+export interface SessionListQuery {
+  /** Only sessions of these channels; every channel when absent, none when empty. */
+  readonly channels?: readonly ChannelId[]
+  /** Text any message of the session contains, ignoring case. */
+  readonly query?: string
+  /** `lastActivityAt`: only sessions strictly older than it. The newest when absent. */
+  readonly before?: number
+  /** With `before`, pages by `(lastActivityAt, id)`: sessions sharing `before` come after this id,
+   *  so none is skipped at a page edge. */
+  readonly beforeId?: SessionId
+  /** Only this one session, empty or not; every other listing leaves out a session with no
+   *  user or assistant row. */
+  readonly id?: SessionId
+  readonly limit: number
+}
+
+/** One session as a list shows it. The two contents are stored text, a JSON string or a block
+ *  array, left for the caller to read. */
+export interface SessionListing {
+  readonly id: SessionId
+  readonly agentId: AgentId
+  readonly channel: ChannelId
+  readonly chatId?: string
+  readonly startedAt: number
+  readonly lastActivityAt: number
+  /** User and assistant rows, as the history page counts them. */
+  readonly messageCount: number
+  readonly firstUserContent: string | null
+  readonly lastAssistantContent: string | null
 }
 
 export interface SessionStore extends SessionActivity {
@@ -135,7 +172,11 @@ export interface SessionStore extends SessionActivity {
   /** Resolve a displayed session-id prefix without loading unbounded history. */
   resolveIdPrefix(prefix: string): Promise<SessionIdResolution>
   listRecent(limit: number): Promise<readonly SessionSummary[]>
+  /** Sessions newest activity first, across the named channels, cut in SQL. */
+  listByChannels(query: SessionListQuery): Promise<readonly SessionListing[]>
   latestIdForChannel(channel: ChannelId): Promise<SessionId | null>
+  /** The channel the session belongs to; absent for an unknown id. */
+  channelOf(id: SessionId): Promise<string | undefined>
   /** Cumulative totals folded from the session's durable attempts; zeros when it has none. */
   loadTotals(id: SessionId): Promise<LLMUsageTotals>
   /** Append-only write of the messages a run produced since its last flush (engine's SessionSink). */
@@ -164,17 +205,165 @@ export interface LLMAttemptStore {
   dailyRange(range: CostRange): Promise<readonly DaySpend[]>
   breakdownFor(period: 'day' | 'month', nowMs: number): Promise<readonly SpendBreakdownRow[]>
   breakdownRange(range: CostRange): Promise<readonly SpendBreakdownRow[]>
+  /** The same attempts `totalRange` sums, by top-level run and job, costliest first. */
+  rootRunsForRange(range: CostRange): Promise<readonly RootRunCostRow[]>
   /** What one billing agent has spent today, on the operator's calendar. Counts every run an
    *  agent started: its own, its delegates', and the debates it asked for. */
   totalForBillingAgent(agentId: AgentId, nowMs: number): Promise<number>
   /** Today's spend of every billing agent that has any, in one read. An agent absent from the map
    *  has spent nothing. */
   totalsForBillingAgents(nowMs: number): Promise<ReadonlyMap<AgentId, number>>
+  /** The mean cost of one run on each named model over its last `sample` runs inside the recent
+   *  window, a run being the attempts that share a `run_id`. A model with no attempts there is
+   *  absent. */
+  perRunCostByModel(
+    models: readonly string[],
+    sample: number,
+    nowMs: number
+  ): Promise<readonly ModelRunCost[]>
+  /** The attempts of one run and everything beneath it, as `/v1/activity` prices a run, newest
+   *  first, at most `limit`; the totals cover them all. A run with none, or an unknown one,
+   *  answers an empty list. */
+  attemptsForRun(runId: RunId, limit: number): Promise<RunCalls>
   /** Which of these attempts are already durable — a write whose acknowledgement was lost is. */
   recordedIds(ids: readonly LLMAttemptId[]): Promise<ReadonlySet<LLMAttemptId>>
 }
 
+/** One finished run, as the activity page lists it. A child run names its parent; a command has no
+ *  agent. */
+export interface RunLogRow {
+  readonly runId: RunId
+  readonly kind: 'agent' | 'command'
+  /** The agent id, or the command name. */
+  readonly name: string
+  readonly title?: string
+  readonly summary?: string
+  readonly agentId?: AgentId
+  readonly channel?: ChannelId
+  readonly chatId?: string
+  readonly sessionId?: SessionId
+  readonly parentRunId?: RunId
+  /** The admitted sources a research run ended with. */
+  readonly sources?: number
+  /** The tickers the run reported on, in the order first seen. */
+  readonly tickers?: readonly string[]
+  /** The research questions the run answered, of how many it asked. */
+  readonly questionsDone?: number
+  readonly questionsTotal?: number
+  readonly startedAt: number
+  readonly endedAt: number
+  /** A run result reason for an agent, `completed | aborted | error` for a command. */
+  readonly outcome: string
+}
+
+export interface CommandCostRange {
+  readonly lowUsd: number
+  readonly highUsd: number
+  /** Finished runs in the sample, free ones included. */
+  readonly runs: number
+}
+
+export interface RunLogStore {
+  /** A run is written once; recording the same id again keeps the first row. */
+  record(row: RunLogRow): Promise<void>
+  /** Runs that ended in `[fromMs, toMs)` and have no parent, newest first. */
+  listTopLevel(fromMs: number, toMs: number, limit: number): Promise<readonly RunLogRow[]>
+  /** Each run's direct children, oldest first, at most `perRun` of each. A run with none is absent. */
+  childrenOf(
+    runIds: readonly RunId[],
+    perRun: number
+  ): Promise<ReadonlyMap<RunId, readonly RunLogRow[]>>
+  /** Top-level runs of one agent that ended before `beforeMs`, newest first. */
+  listResearch(agent: string, beforeMs: number, limit: number): Promise<readonly RunLogRow[]>
+  /** How many top-level runs of one agent ended in `[fromMs, toMs)`. */
+  countResearch(agent: string, fromMs: number, toMs: number): Promise<number>
+  /** What each run and every run beneath it cost, in USD. A run with no attempts is absent. */
+  costOf(runIds: readonly RunId[]): Promise<ReadonlyMap<RunId, number>>
+  /** The 25th to 75th percentile of what each name's last `sample` finished command runs cost,
+   *  over the runs that cost something (0 to 0 when none did). A name with no run is absent. */
+  costRangeByName(
+    names: readonly string[],
+    sample: number
+  ): Promise<ReadonlyMap<string, CommandCostRange>>
+}
+
+/** One notice the bell holds. `event` is the wire event as JSON, exactly what a socket was sent;
+ *  `deliveredTo` lists the channels that also got it (empty for the bell alone). */
+export interface NoticeRow {
+  readonly id: string
+  readonly kind: string
+  readonly weight: string
+  readonly wake: boolean
+  readonly runId?: string
+  readonly deliveredTo: readonly string[]
+  readonly event: string
+  readonly createdAt: number
+  readonly readAt?: number
+}
+
+/** Where a page of notices resumes: strictly older than `createdAt`, and with `id` also the notices of
+ *  that same instant that sort after it. */
+export interface NoticeCursor {
+  readonly createdAt: number
+  readonly id?: string
+}
+
+export interface NoticeStore {
+  record(row: NoticeRow): Promise<void>
+  /** Notices after the cursor (from the newest when absent), newest first. */
+  list(cursor: NoticeCursor | undefined, limit: number): Promise<readonly NoticeRow[]>
+  /** Notices of one kind created in the range, oldest first. */
+  listOfKind(kind: string, range: EpochRange, limit: number): Promise<readonly NoticeRow[]>
+  /** Notices not yet read. */
+  unreadCount(): Promise<number>
+  /** Unread notices of one kind. */
+  unreadCountOfKind(kind: string): Promise<number>
+  /** Marks the named notices read (every unread one when `ids` is absent); an already read notice
+   *  keeps its first read time. */
+  markRead(ids: readonly string[] | undefined, at: number): Promise<void>
+}
+
+/** One signed-in browser. `id` is public (what the page lists and ends by); `secretHash` is the
+ *  cookie secret's HMAC keyed by the API token, so the secret itself is never stored. */
+export interface BrowserSessionRow {
+  readonly id: string
+  readonly secretHash: string
+  /** Short browser label, may be ''. */
+  readonly label: string
+  readonly createdAt: number
+  readonly lastSeenAt: number
+}
+
+export interface BrowserSessionStore {
+  /** In one transaction: drops rows idle since before `keep.idleCutoff`, inserts, keeps the newest `keep.limit`. */
+  insert(
+    row: BrowserSessionRow,
+    keep: { readonly idleCutoff: number; readonly limit: number }
+  ): Promise<void>
+  findBySecret(secretHash: string, idleCutoff: number): Promise<BrowserSessionRow | undefined>
+  has(id: string): Promise<boolean>
+  touch(id: string, at: number): Promise<void>
+  /** Newest `last_seen_at` first. */
+  list(idleCutoff: number, limit: number): Promise<readonly BrowserSessionRow[]>
+  remove(id: string): Promise<boolean>
+  removeAll(): Promise<number>
+}
+
 export interface RetentionConfig {
   readonly retentionDays: number
+  /** Track-record and calibration rows; never shorter than `retentionDays`. */
+  readonly historyRetentionDays: number
   readonly inboxRetentionDays: number
+  /** How far back each history scope's readers look; a scope keeps at least that much whatever
+   *  `historyRetentionDays` says. */
+  readonly historyFloors: HistoryFloorDays
+}
+
+export interface HistoryFloorDays {
+  /** The track record and factor attribution: suggestions, factor_log, theme_outcomes. */
+  readonly trackRecord: number
+  /** The macro year-over-year read: series_points, series_provenance. */
+  readonly macroSeries: number
+  /** The macro extract's backfill: macro_documents. */
+  readonly macroDocuments: number
 }

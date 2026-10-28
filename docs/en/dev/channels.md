@@ -38,6 +38,7 @@ also pass definitions through the `channels` option of `boot` ([Extending](./ext
 interface ChannelDefinition<T extends ChannelDeliveryConfig = ChannelDeliveryConfig> {
   readonly id: ChannelId
   readonly safeConfigOverrides?: readonly string[]
+  readonly apiHosts?: readonly string[]
   resolveConfig(raw: unknown): T
   isEnabled(config: T): boolean
   admission(config: T): ChannelAdmission
@@ -49,7 +50,8 @@ A definition handles two things: this transport's config and creating the adapte
 settings are normalized once by `resolveChannelSettings`. Declarative plugins may change only the fields
 in `safeConfigOverrides`; absent means none. Telegram and Zalo allow `SAFE_DELIVERY_OVERRIDE_FIELDS`
 (`markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions`, `notify_max_per_minute`);
-Zalo Personal allows none.
+Zalo Personal allows none. `apiHosts` names the hosts its adapter sends to, which `/v1/outbound` lists for a started
+channel; it is absent when the transport's hosts are not the channel's own to name.
 
 `createChannel(def)` is the author-time factory. It brands the id, rejects unknown keys and checks the
 adapter functions exist.
@@ -107,12 +109,14 @@ A channel without `inlineButtons` cannot show a keyboard, so `delivery/choices.t
 code per button (`/4821`), keyed by chat, and the approval prompt and the plan review append them as
 lines. `handleTypedChoice` runs first in `route`, before the mention rule, and turns a live code into
 the same `ChannelCallbackQuery` a tap makes, through the same admission (`gate.admitCallback`).
-Nothing consumes a code: the resolver that owns the prompt answers a repeat "already answered or
-expired", so an answer it did not take (a member who is not the operator, a prompt still landing)
-leaves the code live. Each entry carries the prompt's own `expiresAt`; past it the code is kept as
-expired, so an admitted operator typing it hears so, while four digits never handed out in that chat
-pass through as ordinary text. A new code is never one the chat still remembers, and the LRU bounds
-memory.
+Nothing consumes a code:
+
+- The resolver that owns the prompt answers a repeat "already answered or expired", so an answer it
+  did not take (a member who is not the operator, a prompt still landing) leaves the code live.
+- Each entry carries the prompt's own `expiresAt`. Past it the code is kept as expired, so an admitted
+  operator typing it hears so, while four digits never handed out in that chat pass through as
+  ordinary text.
+- A new code is never one the chat still remembers, and the LRU bounds memory.
 
 ### Button payloads
 
@@ -168,6 +172,8 @@ Pairing fails closed:
 - repeated unknown messages do not mint unlimited codes;
 - a storage failure rejects admission;
 - pending codes expire under the pairing store's policy.
+
+The API reads the same store: `GET /v1/pairing` lists pending codes and, per channel, at most 200 paired chats in chat id order (`PairingStore.listPaired`, a `LIMIT` in SQL, beside the `LIMIT 2` of `lonePairedChat`), and `DELETE /v1/pairing/:channel/:chatId` calls `revoke`, answering whether anything was revoked.
 
 ## From arrival to answer
 
@@ -309,11 +315,19 @@ token to refuse; it retries its login in the background (5 seconds initial, 5 mi
 `startChannels` returns `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: shutdown, health
 snapshots, the channels left down, an outbound sender that routes to the runtime owning a channel (`AcknowledgedRouter`), and a default
 proactive recipient. That recipient is the channel's `fallback_chat_id`, its only allowed id when it
-has exactly one, or its one paired chat (`createChannelRecipient`). Every send asks `isDeliverable`: a chat
-`pair revoke` revoked (its row keeps `revoked_at` rather than being deleted) is refused with `revoked`, so alerts and briefs switch off rather than retry, and `resolveRecipient` no longer returns it, so the system arming passes arm nothing for that chat; a failed pairing read answers `unavailable` and waits on the retry ladder, switching nothing off; while a chat that
-never paired, such as a group admitted through its operator, still receives. The paired chat is read at start and
-again whenever the gate admits a paired chat that is not yet the recipient, since `pair approve` writes
-from another process. `stop` settles every runtime disposal and never lets one failed cleanup block the rest.
+has exactly one, or its one paired chat (`createChannelRecipient`).
+
+Every send asks `isDeliverable`:
+
+- A chat `pair revoke` revoked (its row keeps `revoked_at` rather than being deleted) is refused with
+  `revoked`, so alerts and briefs switch off rather than retry. `resolveRecipient` no longer returns
+  it, so the system arming passes arm nothing for that chat.
+- A failed pairing read answers `unavailable` and waits on the retry ladder, switching nothing off.
+- A chat that never paired, such as a group admitted through its operator, still receives.
+
+The paired chat is read at start and again whenever the gate admits a paired chat that is not yet the
+recipient, since `pair approve` writes from another process. `stop` settles every runtime disposal and
+never lets one failed cleanup block the rest.
 
 ## Adding a channel
 

@@ -1,0 +1,329 @@
+import type { Group } from 'three'
+
+import type { Materials } from '@/web/scene/render3d/lights'
+import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
+import type { SimView } from '@/web/scene/types'
+import { type CopierRun, createCopierRun, syncCopierRun } from '@/web/scene/render3d/copier'
+import { operatorTrayOf } from '@/web/scene/render3d/desk-dressing'
+import { createFish, disposeFish, type Fish, syncFish } from '@/web/scene/render3d/fish'
+import {
+  beginPool,
+  createPool,
+  endPool,
+  type Pool,
+  placeInstance,
+  type Shapes,
+} from '@/web/scene/render3d/instancing'
+import { feedKOf } from '@/web/scene/sim/life/events'
+import { METAL, PALETTE, PROP_TONES } from '@/web/scene/sprites/palette'
+import { propsOn } from '@/web/scene/world/props'
+import { roomAt, roomById, WALL_BAND_PX } from '@/web/scene/world/rooms'
+
+/** The office life's moving pieces, each kind one instanced mesh: sheets in flight, the tray and
+ *  printer stacks, steam, the cart and the fish. */
+export interface Effects {
+  readonly papers: Pool
+  readonly stacks: Pool
+  readonly steam: Pool
+  readonly cart: Pool
+  readonly fish: Fish
+  readonly copier: Pool
+  readonly ribbons: Pool
+  readonly copierRun: CopierRun
+}
+
+/** What the effects read this frame. */
+export interface EffectFrame {
+  readonly sim: SimView
+  readonly now: number
+  readonly level: DetailLevel
+  readonly isReduced: boolean
+}
+
+const STEAM_TONE = '#FFFFFF'
+const BUBBLE_TONE = '#D9EFFB'
+const MAX_PAPERS = 12
+const MAX_STACK = 16
+const MAX_STEAM = 24
+// The mockup's ribbons under the air conditioner: they flutter while someone is in its room.
+const RIBBON = Object.freeze({
+  count: 3,
+  dx: 6,
+  gap: 11,
+  y: 24,
+  proud: 3.6,
+  w: 0.5,
+  h: 5.5,
+  d: 0.2,
+  tone: '#F2C9C2',
+  swing: 0.42,
+  rest: 0.04,
+  periodMs: 420,
+  phase: 1.7,
+})
+const AIR_CON = propsOn('office').find((prop) => prop.kind === 'air-con')
+// The scanner light, a full output tray, the printer's light and its sheet.
+const COPIER_PIECES = 11
+const SHEET = Object.freeze({ w: 8, h: 0.6, d: 6 })
+// The mockup's sheet in flight: white, at 20 px, arcing 12 px over its way.
+const PAPER_ARC_PX = 12
+const PAPER_FROM_PX = 20
+const PAPER_TONE = '#FFFFFF'
+const TRAY = Object.freeze({ step: 1.4, h: 1.2, cap: 6, w: 10.6, d: 5.6, jog: 0.3 })
+const PRINT = Object.freeze({ y: 5.8, step: 0.42, w: 12, d: 6, slide: 5 })
+const STEAM_RISE_PX = 6
+const STEAM_MS = 900
+const BUBBLE_MS = 1_200
+const PUFF_PX = 1.4
+const CART = Object.freeze({ w: 20, d: 10, h: 10 })
+const OPERATOR_TRAY = operatorTrayOf()
+const PRINT_TRAY = propsOn('office').find((prop) => prop.kind === 'tray')
+const BREAK_PROPS = [...propsOn('office'), ...propsOn('team')].filter(
+  (prop) => prop.kind === 'coffee' || prop.kind === 'cooler'
+)
+
+export function createEffects(shapes: Shapes, materials: Materials, root: Group): Effects {
+  const effects: Effects = {
+    papers: createPool(shapes.box, materials.unlitI, { cap: MAX_PAPERS }),
+    stacks: createPool(shapes.box, materials.litI, { cap: MAX_STACK }),
+    steam: createPool(shapes.box, materials.unlitI, { cap: MAX_STEAM }),
+    cart: createPool(shapes.box, materials.litI, { cap: PROP_TONES.cups.length + 1 }),
+    fish: createFish(materials.lit),
+    copier: createPool(shapes.box, materials.unlitI, { cap: COPIER_PIECES }),
+    ribbons: createPool(shapes.box, materials.unlitI, { cap: RIBBON.count }),
+    copierRun: createCopierRun(),
+  }
+
+  root.add(...pools(effects).map((pool) => pool.mesh), effects.fish.root)
+
+  return effects
+}
+
+/** Rewrites what moved; `isChanged` when a pool was rewritten, `isMoving` while one animates. */
+export function syncEffects(
+  effects: Effects,
+  frame: EffectFrame
+): { readonly isChanged: boolean; readonly isMoving: boolean } {
+  const isChanged = [
+    syncPapers(effects.papers, frame),
+    syncStacks(effects.stacks, frame),
+    syncSteam(effects.steam, frame),
+    syncCart(effects.cart, frame),
+    syncFish(effects.fish, frame),
+    syncRibbons(effects.ribbons, frame),
+  ].some(Boolean)
+  const { sim } = frame
+  const isFeeding = feedKOf(sim.life, frame.now) < 1
+  const copier = syncCopierRun(effects.copierRun, {
+    pool: effects.copier,
+    isOffice: sim.floor === 'office',
+    now: frame.now,
+    isReduced: frame.isReduced,
+  })
+
+  return {
+    isChanged: isChanged || copier.isChanged,
+    isMoving: copier.isMoving || (!frame.isReduced && (isFeeding || sim.papers.length > 0)),
+  }
+}
+
+export function disposeEffects(effects: Effects): void {
+  for (const pool of pools(effects)) {
+    pool.mesh.dispose()
+  }
+
+  disposeFish(effects.fish)
+}
+
+function pools(effects: Effects): Pool[] {
+  return [
+    effects.papers,
+    effects.stacks,
+    effects.steam,
+    effects.cart,
+    effects.copier,
+    effects.ribbons,
+  ]
+}
+
+function syncPapers(pool: Pool, frame: EffectFrame): boolean {
+  const { sim } = frame
+  const flying = sim.papers.filter((paper) => paper.floor === sim.floor)
+
+  if (!beginPool(pool, flying.map((paper) => `${paper.k}${paper.prevK}`).join() + sim.alpha)) {
+    return false
+  }
+
+  for (const paper of flying) {
+    const k = paper.prevK + (paper.k - paper.prevK) * sim.alpha
+
+    placeInstance(pool, {
+      x: paper.from.x + (paper.to.x - paper.from.x) * k,
+      y: PAPER_FROM_PX + Math.sin(k * Math.PI) * PAPER_ARC_PX,
+      z: paper.from.y + (paper.to.y - paper.from.y) * k,
+      size: [SHEET.w, SHEET.h, SHEET.d],
+      color: PAPER_TONE,
+    })
+  }
+
+  endPool(pool)
+
+  return true
+}
+
+// The operator's tray stack on your desk, and the printer's stack with its newest sheet sliding out.
+function syncStacks(pool: Pool, frame: EffectFrame): boolean {
+  const { sim } = frame
+  const isOffice = sim.floor === 'office'
+  const tray = isOffice && OPERATOR_TRAY !== undefined ? Math.min(TRAY.cap, sim.tray) : 0
+  const sheets = isOffice && PRINT_TRAY !== undefined ? sim.life.sheets : 0
+  const feedK = frame.isReduced ? 1 : feedKOf(sim.life, frame.now)
+
+  if (!beginPool(pool, `${tray}|${sheets}|${feedK}`)) {
+    return false
+  }
+
+  for (let i = 0; i < tray && OPERATOR_TRAY !== undefined; i++) {
+    placeInstance(pool, {
+      x: OPERATOR_TRAY.x + (i % 2) * TRAY.jog + TRAY.w / 2,
+      y: OPERATOR_TRAY.y + i * TRAY.step + TRAY.h / 2,
+      z: OPERATOR_TRAY.z + TRAY.d / 2,
+      size: [TRAY.w, TRAY.h, TRAY.d],
+      color: PALETTE.paper,
+    })
+  }
+
+  if (PRINT_TRAY !== undefined) {
+    const cx = PRINT_TRAY.rect.x + PRINT_TRAY.rect.w / 2
+    const cz = PRINT_TRAY.rect.y + PRINT_TRAY.rect.h / 2
+
+    for (let i = 0; i < sheets; i++) {
+      const slide = i === sheets - 1 ? (1 - feedK) * PRINT.slide : 0
+
+      placeInstance(pool, {
+        x: cx,
+        y: PRINT.y + i * PRINT.step,
+        z: cz - slide,
+        size: [PRINT.w, PRINT.step - 0.05, PRINT.d],
+        color: PALETTE.paper,
+      })
+    }
+  }
+
+  endPool(pool)
+
+  return true
+}
+
+// Steam curls over a pantry mug, a bubble rises in a cooler; still under reduced motion.
+function syncSteam(pool: Pool, frame: EffectFrame): boolean {
+  const here = frame.sim.life.steam.filter((one) => one.floor === frame.sim.floor)
+  const beat = (kind: 'mug' | 'cooler') =>
+    frame.isReduced
+      ? 0
+      : (frame.now % (kind === 'mug' ? STEAM_MS : BUBBLE_MS)) /
+        (kind === 'mug' ? STEAM_MS : BUBBLE_MS)
+
+  if (
+    !beginPool(pool, here.map((one) => `${one.at.x}${one.at.y}${beat(one.kind).toFixed(2)}`).join())
+  ) {
+    return false
+  }
+
+  for (const one of here) {
+    const prop = BREAK_PROPS.find(
+      (each) =>
+        each.floor === one.floor &&
+        each.draw.x + each.draw.w / 2 === one.at.x &&
+        each.draw.y === one.at.y
+    )
+    const isMug = one.kind === 'mug'
+    const k = beat(one.kind)
+    // Steam rises over the prop's top; a bubble rises inside the cooler's bottle.
+    const y = (prop?.height ?? 0) + (isMug ? STEAM_RISE_PX * k : -STEAM_RISE_PX * (2 - k))
+    const z = prop === undefined ? one.at.y : prop.rect.y + prop.rect.h / 2
+    const tone = isMug ? STEAM_TONE : BUBBLE_TONE
+
+    placeInstance(pool, { x: one.at.x, y, z, size: [PUFF_PX, PUFF_PX * 1.6, PUFF_PX], color: tone })
+    placeInstance(pool, {
+      x: one.at.x - 2,
+      y: y - 2,
+      z,
+      size: [PUFF_PX, PUFF_PX, PUFF_PX],
+      color: tone,
+    })
+  }
+
+  endPool(pool)
+
+  return true
+}
+
+function syncCart(pool: Pool, frame: EffectFrame): boolean {
+  const cart = frame.sim.life.cart?.floor === frame.sim.floor ? frame.sim.life.cart : undefined
+
+  if (!beginPool(pool, cart === undefined ? '' : `${cart.at.x}|${cart.at.y}`)) {
+    return false
+  }
+
+  if (cart !== undefined) {
+    placeInstance(pool, {
+      x: cart.at.x,
+      y: CART.h / 2,
+      z: cart.at.y - CART.d / 2,
+      size: [CART.w, CART.h, CART.d],
+      color: METAL[1],
+    })
+    PROP_TONES.cups.forEach((tone, i) => {
+      placeInstance(pool, {
+        x: cart.at.x - 6 + i * 6,
+        y: CART.h + 1.5,
+        z: cart.at.y - CART.d / 2,
+        size: [3, 3, 3],
+        color: tone,
+      })
+    })
+  }
+
+  endPool(pool)
+
+  return true
+}
+
+// Each ribbon hangs from the unit's lip and swings about its top while the room is in use; it
+// rests nearly still otherwise and under reduced motion. It moves only on frames already drawn.
+function syncRibbons(pool: Pool, frame: EffectFrame): boolean {
+  const { sim } = frame
+  const room = AIR_CON === undefined ? undefined : roomById(AIR_CON.room)
+  const isBlowing =
+    !(frame.isReduced || sim.life.isQuiet) &&
+    sim.actors.some(
+      (actor) => actor.floor === sim.floor && roomAt(sim.floor, actor.at)?.id === AIR_CON?.room
+    )
+  const t = isBlowing ? frame.now : 0
+
+  if (AIR_CON === undefined || room === undefined || !beginPool(pool, `${sim.floor}|${t}`)) {
+    return false
+  }
+
+  if (room.floor === sim.floor) {
+    for (let i = 0; i < RIBBON.count; i++) {
+      const roll = isBlowing
+        ? Math.sin(t / RIBBON.periodMs + i * RIBBON.phase) * RIBBON.swing
+        : RIBBON.rest
+
+      placeInstance(pool, {
+        x: AIR_CON.rect.x + RIBBON.dx + i * RIBBON.gap + (Math.sin(roll) * RIBBON.h) / 2,
+        y: RIBBON.y - (Math.cos(roll) * RIBBON.h) / 2,
+        z: room.rect.y + WALL_BAND_PX + RIBBON.proud,
+        size: [RIBBON.w, RIBBON.h, RIBBON.d],
+        roll,
+        color: RIBBON.tone,
+      })
+    }
+  }
+
+  endPool(pool)
+
+  return true
+}

@@ -9,7 +9,7 @@ import { renderFocusLabel, resolveRunFocus } from '@/trading/api'
 function ownedFocusRefs(app: CliApp): readonly AgentFocusRef[] {
   const registry = app.resolve('agents')
 
-  return [...app.resolve('userAgentIds')].flatMap((id) => {
+  return [...app.resolve('userAgentIds')()].flatMap((id) => {
     const agent = registry.get(id)
 
     return agent === undefined ? [] : [{ agentId: id, focusKey: resolveRunFocus(agent.focus).key }]
@@ -24,7 +24,7 @@ export async function agentExtraLines(
   app: CliApp,
   agents: readonly AgentProfile[]
 ): Promise<ReadonlyMap<string, readonly string[]>> {
-  const userIds = app.resolve('userAgentIds')
+  const userIds = app.resolve('userAgentIds')()
   const own = agents.filter((agent) => userIds.has(agent.id))
   const lines = new Map<string, readonly string[]>()
 

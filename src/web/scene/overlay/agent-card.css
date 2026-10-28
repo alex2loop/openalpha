@@ -1,0 +1,81 @@
+.agent-cards {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.agent-card {
+  position: absolute;
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink);
+  font: var(--typeCaption);
+  line-height: 14px;
+  text-align: left;
+  transform-origin: top left;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.agent-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--sizeBody);
+}
+
+.agent-card-head b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-card-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink3);
+}
+
+.agent-card-dot.is-running {
+  background: var(--ink);
+}
+
+.agent-card-dot.is-paused {
+  background: var(--badgeNeed);
+}
+
+.agent-card-line,
+.agent-card-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-card-meta {
+  color: var(--ink2);
+}
+
+.agent-card-bar {
+  display: block;
+  flex: none;
+  height: 3px;
+  margin-top: auto;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--sunken);
+}
+
+.agent-card-bar i {
+  display: block;
+  height: 100%;
+  background: var(--ink2);
+}

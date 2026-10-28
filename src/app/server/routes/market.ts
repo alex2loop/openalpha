@@ -25,9 +25,19 @@ import {
   parseLimit,
   parseOptionalBranded,
   parsePathId,
+  parseTickerRequest,
+  readJsonBody,
 } from '@/app/server/routes/params'
 import { cachedScreen } from '@/app/server/routes/screen-cache'
-import { alertId, marketRef, region, SURFACE_LIMITS, TYPED_PRICES, ticker } from '@/trading/api'
+import { formatErrForLog } from '@/core/security/credentials'
+import {
+  alertId,
+  disabledSegments,
+  marketRef,
+  region,
+  SURFACE_LIMITS,
+  TYPED_PRICES,
+} from '@/trading/api'
 
 /** The kinds a screen can be narrowed to; the host refuses a market that holds no such kind. */
 const SCREEN_KINDS: ReadonlySet<string> = new Set<InstrumentKind>(['equity', 'etf', 'crypto'])
@@ -90,15 +100,39 @@ async function handleInstrumentSearch(req: Request, ctx: ApiRouteContext): Promi
   return json(toSearchWire(matches))
 }
 
-async function handleMarkets(_req: Request, ctx: ApiRouteContext): Promise<Response> {
-  return json(toMarketsWire(hostOf(ctx).describeMarkets()) satisfies MarketsResponse)
+// World gold is read for reference only and never enabled.
+const WORLD_GOLD_SEGMENT = 'gold'
+
+// The segments the operator switched off. When the profile cannot be read the list still answers,
+// with every market on but world gold: the page then keeps the office open, never wrongly shut.
+async function switchedOffSegments(
+  req: Request,
+  ctx: ApiRouteContext
+): Promise<ReadonlySet<string>> {
+  try {
+    return disabledSegments((await hostOf(ctx).getProfile(req.signal)).caps)
+  } catch (err: unknown) {
+    if (req.signal.aborted) {
+      throw err
+    }
+
+    ctx.app.resolve('logger').warn('api.markets_profile_unreadable', { err: formatErrForLog(err) })
+
+    return new Set([WORLD_GOLD_SEGMENT])
+  }
+}
+
+async function handleMarkets(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const off = await switchedOffSegments(req, ctx)
+
+  return json(toMarketsWire(hostOf(ctx).describeMarkets(Date.now()), off) satisfies MarketsResponse)
 }
 
 /** The home region's markets lead; the rest keep the daemon's order. */
 async function handleOverview(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const host = hostOf(ctx)
   const blocks = await host.getOverview(req.signal)
-  const { homeRegion, markets } = host.describeMarkets()
+  const { homeRegion, markets } = host.describeMarkets(Date.now())
   const home = new Set(markets.filter((m) => m.region === homeRegion).map((m) => m.market))
   const ordered = [
     ...blocks.filter((block) => home.has(block.market)),
@@ -147,7 +181,7 @@ async function handleAlertsList(req: Request, ctx: ApiRouteContext): Promise<Res
 
 /** The alert fires to this app: the api surface shows whatever chat id a notice names. */
 async function handleAlertCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = ALERT_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = ALERT_BODY.safeParse(await readJsonBody(req))
   const instrument = parsed.success ? parseTickerRequest(parsed.data.instrument) : null
 
   if (!parsed.success || instrument === null) {
@@ -176,23 +210,6 @@ async function handleAlertDisable(req: Request, ctx: ApiRouteContext): Promise<R
   const result = await hostOf(ctx).disableAlert({ alertId: id, signal: req.signal })
 
   return json({ result } satisfies AlertDisableResponse)
-}
-
-function parseTickerRequest(raw: {
-  readonly ticker: string
-  readonly market?: string | undefined
-}): {
-  readonly ticker: ReturnType<typeof ticker>
-  readonly market?: ReturnType<typeof marketRef>
-} | null {
-  try {
-    return {
-      ticker: ticker(raw.ticker),
-      ...(raw.market === undefined ? {} : { market: marketRef(raw.market) }),
-    }
-  } catch {
-    return null
-  }
 }
 
 export const MARKET_ROUTES = [

@@ -7,21 +7,31 @@ import type {
   PairingDecisionBody,
   PairingDecisionResult,
   PairingList,
+  PairingRevokeResult,
 } from '@/app/server/wire/sign-in'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import { authProviderByLoginName, awaitLoopbackCode, createTokenFile } from '@/ai/api'
+import { buildServerOnlyText, isApiExposed } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { isExposedOnDisk } from '@/app/server/routes/config'
+import { localeOf, parsePathId, readJsonBody } from '@/app/server/routes/params'
 import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { bindLocale } from '@/i18n'
+import { bindLocale, t } from '@/i18n'
 
 const LOGIN_NAME = 'chatgpt'
 /** How long a sign-in waits for the browser or the device code, as the CLI's `auth login` does. */
 const LOGIN_TIMEOUT_MS = 15 * 60_000
+/** Paired chats listed per channel: a household of operators, never a crowd. */
+const MAX_PAIRED_LIST = 200
 const LOGIN_BODY = z.object({ method: z.enum(['browser', 'device']) })
+const SERVER_ONLY_KEYS = Object.freeze({
+  booted: 'errors.chatgptServerOnly',
+  saved: 'errors.chatgptServerOnlySaved',
+} as const)
 
 type LoginMethod = z.infer<typeof LOGIN_BODY>['method']
 
@@ -185,10 +195,15 @@ async function handleChatgptStatus(_req: Request, ctx: ApiRouteContext): Promise
 }
 
 async function handleChatgptLogin(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = LOGIN_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = LOGIN_BODY.safeParse(await readJsonBody(req))
 
   if (!parsed.success) {
     return apiError('invalid_body')
+  }
+
+  // A sign-in saves a token the daemon's model calls spend on, like a key.
+  if (await isExposedOnDisk(ctx)) {
+    return apiError('conflict', buildServerOnlyText(ctx, SERVER_ONLY_KEYS, { brand: BRAND.name }))
   }
 
   await startLogin(ctx.app, parsed.data.method)
@@ -215,18 +230,23 @@ async function handlePairingList(_req: Request, ctx: ApiRouteContext): Promise<R
   const store = ctx.app.resolve('pairingStore')
   const now = Date.now()
   const perChannel = await Promise.all(
-    ctx.app
-      .resolve('channels')
-      .map(async ({ id }) =>
-        (await store.listPending(id, now)).map((pending) => ({ channel: id, ...pending }))
-      )
+    ctx.app.resolve('channels').map(async ({ id }) => ({
+      pending: (await store.listPending(id, now)).map((pending) => ({ channel: id, ...pending })),
+      paired: (await store.listPaired(id, MAX_PAIRED_LIST)).map((chatId) => ({
+        channel: id,
+        chatId,
+      })),
+    }))
   )
 
-  return json({ pending: perChannel.flat() } satisfies PairingList)
+  return json({
+    pending: perChannel.flatMap((entry) => entry.pending),
+    paired: perChannel.flatMap((entry) => entry.paired),
+  } satisfies PairingList)
 }
 
 async function handlePairingDecision(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = DECISION_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = DECISION_BODY.safeParse(await readJsonBody(req))
   const channel = parsed.success ? parseChannel(parsed.data.channel) : null
 
   if (!parsed.success || channel === null) {
@@ -245,6 +265,15 @@ async function handlePairingDecision(req: Request, ctx: ApiRouteContext): Promis
     )
   }
 
+  // Behind `public_url` nobody at the page is known to be the operator, and an approval grants a
+  // chat access to the whole agent.
+  if (isApiExposed(ctx.app.config.api)) {
+    return apiError(
+      'conflict',
+      t(localeOf(ctx), 'errors.pairingApproveServerOnly', { brand: BRAND.name, code })
+    )
+  }
+
   const approval = await store.approve({ code, channel, now: Date.now() })
 
   return json(
@@ -252,6 +281,21 @@ async function handlePairingDecision(req: Request, ctx: ApiRouteContext): Promis
       ? { ok: true }
       : { ok: false, reason: approval.reason }) satisfies PairingDecisionResult
   )
+}
+
+/** Takes the chat's pairing back: its next message is asked for a code again. */
+async function handlePairingRevoke(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const channel = parsePathId(req, channelId, 1)
+  // A chat id is whatever the channel calls it; the route match already refuses an empty segment.
+  const chatId = parsePathId(req, (raw) => raw)
+
+  if (channel === null || chatId === null) {
+    return apiError('invalid_body')
+  }
+
+  const revoked = await ctx.app.resolve('pairingStore').revoke({ channel, chatId, now: Date.now() })
+
+  return json({ revoked } satisfies PairingRevokeResult)
 }
 
 function parseChannel(raw: string): ReturnType<typeof channelId> | null {
@@ -268,4 +312,10 @@ export const SIGN_IN_ROUTES: readonly ApiRouteSpec[] = [
   { method: 'DELETE', path: '/v1/auth/chatgpt', auth: true, handler: handleChatgptLogout },
   { method: 'GET', path: '/v1/pairing', auth: true, handler: handlePairingList },
   { method: 'POST', path: '/v1/pairing', auth: true, handler: handlePairingDecision },
+  {
+    method: 'DELETE',
+    path: '/v1/pairing/:channel/:chatId',
+    auth: true,
+    handler: handlePairingRevoke,
+  },
 ]

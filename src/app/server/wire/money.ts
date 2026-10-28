@@ -84,6 +84,13 @@ export interface LedgerWriteResponse {
   readonly planned?: SuggestionWire
 }
 
+/** POST /v1/ledger/preview - `{ draft }`, written nowhere. `fxRate` is the day's market rate
+ *  (book currency per unit of `currency`), present only where a rate changes what the row records:
+ *  ask the operator for it, then send it as `operatorFxRate` with `fxRateConfirmed: true`. */
+export interface LedgerPreviewResponse {
+  readonly fxRate?: { readonly currency: string; readonly rate: number; readonly day: string }
+}
+
 /** GET /v1/stops — the stop each holding's latest plan names, and who stands behind it at the
  *  exchange. `distanceToStopPct` at or below 0 means the mark is through the stop. A held name with
  *  no row is below the venue's minimum size. */
@@ -209,10 +216,26 @@ export interface ReconcileResponse {
       readonly held: number
       /** Book minus venue. */
       readonly delta: number
+      /** The venue's cash currency: a deposit or withdrawal corrects it, not a trade. */
+      readonly cash: boolean
     }[]
     readonly uncompared?: 'unreachable' | 'keyless' | 'unsupported'
     readonly missingCredentials?: readonly string[]
+    /** The venue lists its fills, so `POST /v1/ledger/sync` can book what the ledger lacks. */
+    readonly canSync: boolean
   }[]
+}
+
+/** POST /v1/ledger/sync - books the venue's fills the ledger lacks; places no order. */
+export interface LedgerSyncBody {
+  readonly venue: string
+}
+
+/** `text` is `/record sync`'s reply; `recorded` the rows written, `skipped` the fills left out. */
+export interface LedgerSyncResponse {
+  readonly text: string
+  readonly recorded: number
+  readonly skipped: number
 }
 
 /** GET /v1/venues - every venue a trade can be recorded at and the markets it holds. */

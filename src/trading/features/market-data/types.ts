@@ -1,3 +1,4 @@
+import type { SessionHours } from '@/trading/kernel/config'
 import type {
   BoardLotPolicy,
   CurrencyCode,
@@ -13,6 +14,11 @@ import type {
   TradingDay,
 } from '@/trading/kernel/instrument'
 import type { AccountsHistory } from '@/trading/kernel/market/annual-accounts'
+import type {
+  IndexCode,
+  IndexContributorsReading,
+  IndexValuationReading,
+} from '@/trading/kernel/market/index-reading'
 import type {
   FuturesBasis,
   PreviousCloseOption,
@@ -36,6 +42,7 @@ import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 import type { MarketNews, SourceResult, SourceSummary } from '@/trading/kernel/source/source-result'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
+import type { MarketDay } from '@/trading/markets/calendar'
 import type { QuoteConvention } from '@/trading/render/money'
 
 /** The requests above are the *resolved* form a market capability consumes. The requests below are
@@ -83,10 +90,14 @@ export interface MarketDescription {
   readonly icon: string
   /** The index its suggestions are measured against; absent where it keeps none. */
   readonly benchmark?: InstrumentRef
-  /** Whether it answers a screen board, a morning brief, and corporate events. */
+  /** When it trades; absent for a market that never closes. */
+  readonly session?: SessionHours
+  /** Whether it answers a screen board, a morning brief, corporate events, and an index's
+   *  contributors and valuation. */
   readonly hasBoard: boolean
   readonly hasBrief: boolean
   readonly hasEvents: boolean
+  readonly hasIndexes: boolean
 }
 
 export interface MarketDataEventsRequest extends MarketDataDayRangeRequest {
@@ -103,6 +114,10 @@ export interface MarketDataFlowsRequest extends MarketDataDayRangeRequest {
 
 export interface MarketDataMarketRequest extends MarketDataRequest {
   readonly market: MarketRef
+}
+
+export interface MarketDataIndexRequest extends MarketDataMarketRequest {
+  readonly index: IndexCode
 }
 
 export interface MarketDataRegionRequest extends MarketDataRequest {
@@ -166,6 +181,8 @@ export interface MarketDataService {
   /** What a surface needs to know about each market to lay itself out: where it trades, whether it
    *  speaks for its region, its index, and which reads it answers. Registration order. */
   describeMarkets(): readonly MarketDescription[]
+  /** A market's day at `now` on its own calendar; absent for one that never closes. */
+  marketDay(market: MarketRef, now: number): MarketDay | undefined
   /** One instrument's convention, where the market's is wrong for it: an index is a level, and
    *  scaling it by the board would print 1,850 as 1.85. */
   instrumentQuoteConvention(
@@ -199,6 +216,10 @@ export interface MarketDataService {
    *  from any market. An exact crypto symbol asks the provider, so a caller debounces typing. */
   searchInstruments(options: InstrumentSearchRequest): Promise<readonly InstrumentMatch[]>
   sectors(options: MarketDataMarketRequest): Promise<SectorStrengthResult>
+  indexContributors(
+    options: MarketDataIndexRequest
+  ): Promise<SourceResult<IndexContributorsReading>>
+  indexValuation(options: MarketDataIndexRequest): Promise<SourceResult<IndexValuationReading>>
   sentiment(options: MarketDataMarketRequest): Promise<SourceResult<SentimentSnapshot>>
   funding(options: MarketDataInstrumentRequest): Promise<SourceResult<FundingSnapshot>>
   recommendations(

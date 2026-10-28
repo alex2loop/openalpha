@@ -184,13 +184,18 @@ function migrationsUpToDate(locale: Locale, count: number): string {
   )
 }
 
+/** The migrations a database holds against the ones this release declares. `light`: the integrity
+ *  scan was skipped, so the lines never say it passed. */
+interface MigrationLedger {
+  readonly migrations: readonly { readonly id: string }[]
+  readonly applied: readonly { readonly id: string }[]
+  readonly light?: boolean
+}
+
 /** A database with migrations this release does not declare is one boot refuses, so it fails here
  *  too; one that is only behind is brought up by the next start. */
-export function migrationFinding(
-  locale: Locale,
-  migrations: readonly { readonly id: string }[],
-  applied: readonly { readonly id: string }[]
-): DoctorFinding {
+export function migrationFinding(locale: Locale, ledger: MigrationLedger): DoctorFinding {
+  const { migrations, applied } = ledger
   const appliedIds = new Set(applied.map((m) => m.id))
   const declaredIds = new Set(migrations.map((m) => m.id))
   const pending = migrations.filter((m) => !appliedIds.has(m.id)).map((m) => m.id)
@@ -209,9 +214,18 @@ export function migrationFinding(
   if (pending.length > 0) {
     return {
       status: 'warn',
-      detail: t(locale, 'cli.doctorMigrationsPending', { pending: pending.join(', ') }),
+      detail: t(
+        locale,
+        ledger.light === true ? 'cli.doctorMigrationsPendingLight' : 'cli.doctorMigrationsPending',
+        { pending: pending.join(', '), brand: BRAND.name }
+      ),
     }
   }
 
-  return { status: 'ok', detail: migrationsUpToDate(locale, applied.length) }
+  const detail =
+    ledger.light === true
+      ? t(locale, 'cli.doctorDatabaseFullCheck', { brand: BRAND.name })
+      : migrationsUpToDate(locale, applied.length)
+
+  return { status: 'ok', detail }
 }

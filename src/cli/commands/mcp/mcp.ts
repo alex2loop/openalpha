@@ -11,6 +11,7 @@ import { z } from 'zod'
 
 import type { Command, Group } from '@/cli/command'
 import type { ParsedArgs } from '@/cli/parsing/args'
+import type { Terminal } from '@/cli/terminal'
 import type { CliApp } from '@/cli/types'
 import type { ProgressMessage } from '@/core/stream-events'
 import type { ToolDefinition } from '@/core/tool'
@@ -45,7 +46,6 @@ const MCP_PROGRESS_HEARTBEAT_MS = 25_000
 const MCP_MAX_RESULT_CHARS = 200_000
 const RESULT_SIZE_META = Object.freeze({ 'anthropic/maxResultSizeChars': MCP_MAX_RESULT_CHARS })
 const PASSTHROUGH_INPUT = z.looseObject({}).optional()
-const SHUTDOWN_SIGNALS = ['SIGINT', 'SIGTERM'] as const
 /** A client shuts a stdio server down by closing its input first, and may exit without signalling;
  *  missing it left the server running, orphaned, with its event loop spinning on a dead pipe. */
 const STDIN_CLOSE_EVENTS = ['end', 'close'] as const
@@ -96,12 +96,10 @@ async function serveMcp(_args: ParsedArgs, app: CliApp): Promise<number> {
     await closeTransport(transport)
   }
 
-  for (const signal of SHUTDOWN_SIGNALS) {
-    process.once(signal, stop)
-  }
+  const releaseSignals = stopOnSignal(app.terminal, stop)
 
   for (const event of STDIN_CLOSE_EVENTS) {
-    process.stdin.once(event, stop)
+    app.terminal.stdin.once(event, stop)
   }
 
   try {
@@ -111,16 +109,33 @@ async function serveMcp(_args: ParsedArgs, app: CliApp): Promise<number> {
     await jobs.drain()
     await closeTransport(transport)
 
-    for (const signal of SHUTDOWN_SIGNALS) {
-      process.removeListener(signal, stop)
-    }
+    releaseSignals()
 
     for (const event of STDIN_CLOSE_EVENTS) {
-      process.stdin.removeListener(event, stop)
+      app.terminal.stdin.removeListener(event, stop)
     }
   }
 
   return 0
+}
+
+/** Stops on the first Ctrl-C or terminate and lets go of both, so a second one is not swallowed
+ *  while the server drains. Returns the way to let go sooner. */
+function stopOnSignal(terminal: Terminal, stop: () => void): () => void {
+  const offs: Array<() => void> = []
+  const release = (): void => {
+    for (const off of offs) {
+      off()
+    }
+  }
+  const onSignal = (): void => {
+    release()
+    stop()
+  }
+
+  offs.push(terminal.onInterrupt(onSignal), terminal.onTerminate(onSignal))
+
+  return release
 }
 
 function waitForTransportClose(transport: StdioServerTransport): Promise<void> {

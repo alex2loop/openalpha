@@ -16,6 +16,7 @@ import {
   localeOf,
   MAX_IDEMPOTENCY_KEY_LENGTH,
   parsePathId,
+  readJsonBody,
 } from '@/app/server/routes/params'
 import { ticker, venueRef } from '@/trading/api'
 
@@ -102,7 +103,7 @@ async function handleDiscard(req: Request, ctx: ApiRouteContext): Promise<Respon
 }
 
 async function handleSetExit(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = EXIT_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = EXIT_BODY.safeParse(await readJsonBody(req))
   const target = parsed.success ? parseExitTarget(parsed.data) : null
   const requestId = exitRequestId(req)
 
@@ -143,7 +144,7 @@ async function handleCancelExit(req: Request, ctx: ApiRouteContext): Promise<Res
 }
 
 async function handleHalt(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const parsed = HALT_BODY.safeParse(await req.json().catch(() => null))
+  const parsed = HALT_BODY.safeParse(await readJsonBody(req))
 
   if (!parsed.success) {
     return apiError('invalid_body')

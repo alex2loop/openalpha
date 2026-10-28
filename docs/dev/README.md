@@ -15,7 +15,7 @@ trong [AGENTS.md](../../AGENTS.md) và [CONTRIBUTING.md](../../CONTRIBUTING.md).
 | [kenh.md](kenh.md) | Định nghĩa kênh, hợp đồng adapter, thêm một kênh |
 | [an-toan.md](an-toan.md) | Cổng phê duyệt và cây lỗi |
 | [luu-tru.md](luu-tru.md) | Dialect, migration, sổ đăng ký bảng, kho phiên |
-| [van-hanh.md](van-hanh.md) | Vòng lặp daemon, bộ lập lịch, giao thức heartbeat |
+| [van-hanh.md](van-hanh.md) | Vòng lặp dịch vụ nền (daemon), bộ lập lịch, giao thức heartbeat |
 | [nghien-cuu.md](nghien-cuu.md) | Một lượt nghiên cứu được dựng thế nào và bằng chứng được nhận ra sao |
 
 ## Tìm code ở đâu

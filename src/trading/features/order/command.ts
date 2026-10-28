@@ -36,7 +36,7 @@ import {
   runReconcile,
   runStatus,
 } from '@/trading/features/order/review'
-import { OrderError } from '@/trading/features/order/types'
+import { OrderError, TRADE_COMMAND_NAME } from '@/trading/features/order/types'
 import { usage } from '@/trading/kernel/surface/surface'
 import { resolveTradeCost } from '@/trading/markets/cost'
 import { renderVenueName } from '@/trading/render/format'
@@ -110,7 +110,7 @@ export function createTradeCommand(options: TradeCommandOptions): SlashCommand {
   const deps: TradeCommandDeps = { ...rest, order }
 
   return {
-    name: 'trade',
+    name: TRADE_COMMAND_NAME,
     description: { kind: 'localized', key: 'slash.tradingTradeHelp' },
     messageKeys: [
       USAGE,
@@ -137,7 +137,7 @@ export function createTradeCommand(options: TradeCommandOptions): SlashCommand {
 // command before setting a key; anything well-formed is told which keys would place it.
 function createKeylessTradeCommand(venues: Pick<VenueRegistry, 'list'>): SlashCommand {
   return {
-    name: 'trade',
+    name: TRADE_COMMAND_NAME,
     description: { kind: 'localized', key: 'slash.tradingTradeHelp' },
     messageKeys: [USAGE, NEEDS_KEY],
     policy: KEYLESS_POLICY,

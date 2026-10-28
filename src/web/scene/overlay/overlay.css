@@ -1,0 +1,350 @@
+.scene-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bubble {
+  /* A glass speech bubble, its tail a thin line down to the head; a notice keeps its colour on the
+     edge and the text. */
+  --bubble-ink: var(--ink);
+  --bubble-tail: var(--glassRim);
+
+  position: absolute;
+  box-sizing: border-box;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: var(--bubble-ink);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.bubble::after {
+  position: absolute;
+  left: calc(var(--tail-x) - 1px);
+  width: 0;
+  height: 6px;
+  border-left: 2px solid var(--bubble-tail);
+  content: "";
+}
+
+.bubble.side-above::after {
+  top: 100%;
+}
+
+.bubble.side-below::after {
+  bottom: 100%;
+}
+
+.bubble.side-beside::after {
+  display: none;
+}
+
+.bubble-think {
+  --bubble-ink: var(--ink2);
+  --bubble-tail: var(--ink3);
+
+  padding: 5px 10px;
+  border-radius: 14px;
+  font-style: italic;
+}
+
+.bubble-think::after {
+  border-left-style: dotted;
+}
+
+.bubble-caution,
+.bubble-wait {
+  --bubble-ink: var(--caution);
+  --bubble-tail: var(--caution);
+
+  padding: 5px 9px;
+  border: 1px solid var(--caution);
+  font-weight: 600;
+}
+
+.bubble-due {
+  --bubble-ink: var(--tc-blue);
+  --bubble-tail: var(--tc-blue);
+
+  padding: 5px 9px;
+  border: 1px solid var(--tc-blue);
+}
+
+.bubble.is-bright {
+  box-shadow:
+    var(--pop),
+    0 0 0 2px var(--tc-blue);
+  transition: box-shadow 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble.is-bright {
+    transition: none;
+  }
+}
+
+.bubble-text {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.bubble-foot {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink2);
+  font-size: 11px;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bubble-foot::first-letter,
+.name-tag::first-letter {
+  text-transform: uppercase;
+}
+
+.bubble-actions {
+  display: flex;
+  gap: 10px;
+  height: 22px;
+  align-items: flex-end;
+}
+
+.bubble-actions button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tc-blue);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.name-tag {
+  position: absolute;
+  display: inline-block;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.name-tag.is-selected {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.marker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  animation: marker-bob 1.2s ease-in-out infinite;
+}
+
+.marker-need {
+  background: var(--badgeNeed);
+  box-shadow: 0 0 8px var(--badgeNeed);
+  color: var(--badgeNeedInk);
+}
+
+.marker-stop {
+  background: var(--badgeStop);
+  box-shadow: 0 0 8px var(--badgeStop);
+  color: var(--badgeStopInk);
+}
+
+.marker.is-still {
+  animation: none;
+}
+
+.marker.is-in-scene {
+  opacity: 0;
+}
+
+@keyframes marker-bob {
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marker {
+    animation: none;
+  }
+}
+
+.desk-screen {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 0 2px;
+  border-radius: 1px;
+  background: #14213d;
+  box-shadow: 0 0 6px rgba(143, 180, 255, 0.55);
+  color: #d7e0f5;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.desk-screen svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.desk-screen polyline {
+  fill: none;
+  stroke: #8fb4ff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* An idle desk's watched name over its line. */
+.desk-screen .desk-quote {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* The mockup's terminal: a window bar with its three dots, then the run's lines in its colours.
+   Text sets them in flow; bars set every piece by pixel of the flat screen. */
+.desk-screen.is-terminal {
+  padding: 0;
+  background: #141a36;
+  font-weight: 600;
+}
+
+.desk-titlebar {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  background: #2b3566;
+}
+
+.desk-dot {
+  display: block;
+  flex: none;
+  background: #6fe3d6;
+}
+
+.desk-dot.is-red {
+  background: #ff6259;
+}
+
+.desk-dot.is-amber {
+  background: #f2c46c;
+}
+
+.desk-titlebar.is-bars,
+.desk-titlebar.is-bars > .desk-dot,
+.desk-bar,
+.desk-cursor {
+  position: absolute;
+}
+
+.desk-rows {
+  display: block;
+  box-sizing: border-box;
+  /* The filter in `CrispFilter`: text pixels wholly ink or clear, as the mockup's monitors. */
+  filter: url(#desk-crisp);
+}
+
+.desk-crisp {
+  position: absolute;
+}
+
+.desk-row {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+
+.desk-screen .is-command {
+  color: #8db4ff;
+}
+
+.desk-screen .is-step {
+  color: #f2c46c;
+}
+
+.desk-screen .is-done {
+  color: #6fe3d6;
+}
+
+.desk-bar {
+  background: currentcolor;
+}
+
+.desk-cursor {
+  background: #d7e0f5;
+  animation: desk-cursor-blink 1.06s steps(1) infinite;
+}
+
+.desk-row > .desk-cursor {
+  position: static;
+  display: inline-block;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+}
+
+.desk-screen.is-still .desk-cursor {
+  animation: none;
+}
+
+@keyframes desk-cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desk-cursor {
+    animation: none;
+  }
+}
+
+.screen-hosts {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.bubble-whole p {
+  margin: 0 0 var(--s1);
+}
+
+.pick-ring {
+  --ring-edge: #f9e2af;
+  --ring-fill: rgba(249, 226, 175, 0.18);
+  --ring-key-fill: rgba(127, 127, 160, 0.18);
+
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--ring-edge);
+  border-radius: 50%;
+  background: var(--ring-fill);
+  pointer-events: none;
+}
+
+.pick-ring.is-key {
+  border-color: var(--ink);
+  background: var(--ring-key-fill);
+  box-shadow: 0 0 0 2px var(--canvas);
+}

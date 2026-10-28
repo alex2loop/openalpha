@@ -46,6 +46,8 @@ import {
 } from '@/trading/markets/equity-vn/refresh/universe'
 import { runScreen } from '@/trading/markets/equity-vn/screen-capability'
 import { buildFuturesBasis } from '@/trading/markets/equity-vn/tape/basis'
+import { createIndexContributors } from '@/trading/markets/equity-vn/tape/index-contributors'
+import { createIndexValuation } from '@/trading/markets/equity-vn/tape/index-valuation'
 import { runOverview } from '@/trading/markets/equity-vn/tape/overview'
 import { vnQuote } from '@/trading/markets/equity-vn/tape/quote'
 import { realizedVolatility } from '@/trading/markets/timeseries'
@@ -101,14 +103,13 @@ export function vnCapabilities(
       run: (request) => runMacroRisk({ deps, crossSection, calendar: manifest.calendar, request }),
     },
     basis: { kind: 'basis', run: (request) => runBasis(deps, manifest, request) },
+    indexContributors: createIndexContributors(deps, manifest.calendar),
+    indexValuation: createIndexValuation(deps),
     refresh: {
       kind: 'refresh',
       run: (request) => refreshMarketData({ deps, manifest, crossSection, request }),
     },
-    staleKinds: {
-      kind: 'staleKinds',
-      run: (request) => vnStaleKinds(manifest.calendar, request),
-    },
+    staleKinds: { kind: 'staleKinds', run: (r) => vnStaleKinds(manifest.calendar, r) },
     ...briefCapability(deps, manifest, crossSection),
   }
 }

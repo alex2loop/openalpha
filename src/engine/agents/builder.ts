@@ -11,6 +11,12 @@ import { agentId, isPathId } from '@/core/ids'
 import { REASONING_MODES } from '@/core/llm'
 import { hasBlockingThreat, scanSkill } from '@/core/security/sanitize'
 import { MAX_TIMER_MS } from '@/core/utils/time'
+import {
+  LOOK_MAX_PARTS,
+  LOOK_VALUE_MAX_CHARS,
+  MAX_SPAWN_PER_AGENT,
+  SPAWN_TOOL_NAME,
+} from '@/engine/constants'
 
 export const RESERVED_AGENT_IDS: ReadonlySet<string> = new Set(['default'])
 export const ALL_TOOLS = '*'
@@ -19,6 +25,16 @@ export const ALL_TOOLS = '*'
 export type ToolGrant = typeof ALL_TOOLS | readonly string[]
 
 const RawTableSchema = z.record(z.string(), z.unknown())
+const LOOK_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const LookSlug = z.string().max(LOOK_VALUE_MAX_CHARS).regex(LOOK_SLUG_RE)
+
+/** How an agent's character looks on the app's page: a few named parts, each a slug. Shape only; the
+ *  page decides which values mean something and falls back for the rest. */
+export const AgentLookSchema = z
+  .record(LookSlug, LookSlug)
+  .refine((look) => Object.keys(look).length <= LOOK_MAX_PARTS, {
+    message: `at most ${LOOK_MAX_PARTS} parts`,
+  })
 
 const AgentTomlSchema = z.strictObject({
   id: z.string().optional(),
@@ -31,11 +47,13 @@ const AgentTomlSchema = z.strictObject({
   max_tokens: z.number().int().positive().optional(),
   max_duration_ms: z.number().int().positive().max(MAX_TIMER_MS).optional(),
   focus: RawTableSchema.optional(),
+  look: AgentLookSchema.optional(),
   max_daily_usd: z.number().nonnegative().optional(),
   capabilities: z
     .strictObject({
       tools: z.union([z.literal(ALL_TOOLS), z.array(z.string())]).optional(),
       delegates: z.array(z.string()).optional(),
+      max_spawn: z.number().int().min(0).max(MAX_SPAWN_PER_AGENT).optional(),
       hosts: z.array(z.string().min(1)).optional(),
       skills: z.array(z.string().min(1)).optional(),
     })
@@ -63,6 +81,8 @@ export interface AgentBuildContext {
   readonly allToolNames: readonly string[]
   /** A plugin loader passes `bundledIds.has(plugin.id)`, as `plugins/merge.ts` does for code. */
   readonly trusted: boolean
+  /** Lets an untrusted profile name a configured model tier; `reasoning` stays trusted-only. */
+  readonly allowModelTier?: true
   readonly preferredModelTier?: string
 }
 
@@ -152,7 +172,8 @@ export function buildAgentFromToml(
   assertSystemPromptAllowed(parsed.system_prompt, id, ctx)
   assertMaxDailyUsd(parsed.max_daily_usd, ctx.config.budget.maxDailyUsd, id)
 
-  const tools = resolveToolGrant(parsed.capabilities?.tools, ctx.allToolNames)
+  const maxSpawn = parsed.capabilities?.max_spawn ?? 0
+  const tools = resolveToolGrant(parsed.capabilities?.tools, ctx.allToolNames, maxSpawn)
   const selected = resolveAgentModelChain({
     parsed,
     id,
@@ -179,8 +200,10 @@ export function buildAgentFromToml(
     ...(parsed.max_tokens === undefined ? {} : { maxTokens: parsed.max_tokens }),
     ...(parsed.max_duration_ms === undefined ? {} : { maxDurationMs: parsed.max_duration_ms }),
     ...(parsed.focus === undefined ? {} : { focus: Object.freeze({ ...parsed.focus }) }),
+    ...(parsed.look === undefined ? {} : { look: Object.freeze({ ...parsed.look }) }),
     ...(isOwnCap(parsed.max_daily_usd) ? { maxDailyUsd: parsed.max_daily_usd } : {}),
     delegates: parsed.capabilities?.delegates ?? [],
+    ...(maxSpawn > 0 ? { maxSpawn } : {}),
     ...(parsed.capabilities?.hosts === undefined ? {} : { hosts: parsed.capabilities.hosts }),
     ...(parsed.capabilities?.skills === undefined ? {} : { skills: parsed.capabilities.skills }),
   }
@@ -215,11 +238,17 @@ function resolveAgentReasoning(
 }
 
 // An agent that never named a tool gets none: a file with no grant must not inherit the registry.
+// `*` leaves out `spawn` for an agent that may not spawn, so a tool that only refuses is never offered.
 function resolveToolGrant(
   grant: ToolGrant | undefined,
-  allToolNames: readonly string[]
+  allToolNames: readonly string[],
+  maxSpawn: number
 ): readonly string[] {
-  return grant === ALL_TOOLS ? allToolNames : (grant ?? [])
+  if (grant !== ALL_TOOLS) {
+    return grant ?? []
+  }
+
+  return maxSpawn > 0 ? allToolNames : allToolNames.filter((name) => name !== SPAWN_TOOL_NAME)
 }
 
 /** The builder's throwing guard wraps the engine-owned reference collector (one implementation). */
@@ -279,7 +308,7 @@ function resolveAgentModelChain(input: ResolveAgentModelInput): AgentModelSelect
   const { parsed, id, ctx, hasTools } = input
 
   if (parsed.model_tier !== undefined) {
-    if (!ctx.trusted) {
+    if (!ctx.trusted && ctx.allowModelTier !== true) {
       throw new ConfigError(`agent '${id}': model_tier is not allowed for untrusted profiles`)
     }
 

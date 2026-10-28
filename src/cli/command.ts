@@ -22,8 +22,11 @@ export interface Needs {
   readonly configFile?: 'required' | 'optional' | 'probe'
   readonly daemon?: 'running' | 'stopped' | 'any'
   readonly bootMode?: 'cli' | 'daemon'
-  readonly prepareDaemon?: 'none' | 'stop'
+  readonly prepareDaemon?: 'none' | 'restart'
   readonly modelSource?: ModelSource
+  // Always runs in the terminal's own process: it reads or writes a file the operator names, or
+  // manages the API itself.
+  readonly local?: boolean
 }
 
 export interface CommandDef {
@@ -64,6 +67,10 @@ interface GroupDef {
   readonly default?: string
 }
 
+export interface LazyCommand extends Command {
+  load(): Promise<Command | Group>
+}
+
 interface LazyCommandDef {
   readonly name: string
   readonly summary: LocalizedText
@@ -86,6 +93,7 @@ export const DEFAULT_NEEDS: Required<Needs> = {
   bootMode: 'cli',
   prepareDaemon: 'none',
   modelSource: 'config',
+  local: false,
 }
 const HELP_NEEDS: Required<Needs> = {
   boot: false,
@@ -96,6 +104,7 @@ const HELP_NEEDS: Required<Needs> = {
   bootMode: 'cli',
   prepareDaemon: 'none',
   modelSource: 'config',
+  local: false,
 }
 
 function resolveNeeds(needs: Needs | undefined): Required<Needs> {
@@ -112,7 +121,18 @@ function mergeGroupNeeds(child: Required<Needs>, parent: Required<Needs>): Requi
     bootMode: child.bootMode,
     prepareDaemon: child.prepareDaemon,
     modelSource: child.modelSource,
+    local: child.local || parent.local,
   }
+}
+
+export function isForwardable(needs: Required<Needs>): boolean {
+  return (
+    needs.boot &&
+    needs.daemon === 'any' &&
+    needs.bootMode === 'cli' &&
+    needs.modelSource !== 'client' &&
+    !needs.local
+  )
 }
 
 export function createCommand(def: CommandDef): Command {
@@ -272,7 +292,7 @@ export function hasLoadedConfig(app: CliApp): boolean {
   return probe !== undefined && (probe.configError === null || probe.configKeyMissing)
 }
 
-export function lazyCommand(def: LazyCommandDef): Command {
+export function lazyCommand(def: LazyCommandDef): LazyCommand {
   let loaded: Promise<Command | Group> | undefined
   const load = (): Promise<Command | Group> => {
     loaded ??= def.load()
@@ -283,6 +303,7 @@ export function lazyCommand(def: LazyCommandDef): Command {
     kind: 'cmd',
     name: def.name,
     summary: def.summary,
+    load,
     async needsFor(argv): Promise<Required<Needs>> {
       return (await load()).needsFor(argv)
     },

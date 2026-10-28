@@ -5,7 +5,7 @@ Có hai việc khác nhau, và OpenAlpha phòng thủ cả hai song song. **Phê
 đã chạy. Cái này không thay được cái kia, và cả hai đều do mã thực thi, không phải nhờ một câu dặn
 trong prompt.
 
-Nói thật ngay từ đầu: một lệnh shell đã được duyệt chạy với đúng quyền của tiến trình daemon. Thư mục
+Nói thật ngay từ đầu: một lệnh shell đã được duyệt chạy với đúng quyền của tiến trình dịch vụ nền (daemon). Thư mục
 làm việc chỉ là điểm xuất phát, **không** phải sandbox của hệ điều hành. Muốn nhốt mã thật sự thù
 địch, hãy dùng container hoặc một tài khoản dịch vụ bị hạn chế quyền.
 
@@ -36,7 +36,7 @@ Phê duyệt chặn các tác dụng phụ mà agent xin làm. Nó cũng giữ n
 | --- | --- |
 | **Từ chối** | Chặn lời gọi này. Trong CLI, văn bản tự do sẽ về lại agent như phản hồi về việc cần đổi gì. |
 | **Cho một lần** | Chạy đúng lời gọi này, một lần. |
-| **Ghi nhớ** | Cho phép trong suốt phiên chat hoặc kết nối MCP. Không có nếu công cụ không cho nhớ, hoặc nếu tham số dài đến mức ô hỏi không hiện đủ. |
+| **Ghi nhớ** | Cho phép trong suốt cuộc trò chuyện hoặc kết nối MCP. Không có nếu công cụ không cho nhớ, hoặc nếu tham số dài đến mức ô hỏi không hiện đủ. |
 
 Mọi thứ không nhận diện được, sai định dạng, hết hạn hay không gửi tới được đều chặn lời gọi. Hủy thì
 dừng luôn cả khoảng chờ lẫn phiên chạy.
@@ -58,7 +58,7 @@ thì phải hỏi. Gọi lại bộ nhớ thì không cần hỏi, ghi hay xóa 
 
 Đọc trang web cũng vậy. Agent mở luôn link bạn gửi hoặc link mà một lần tìm kiếm hay đọc tin mang về.
 Nó hỏi bạn trước khi tự ghép hay sửa link, tự thêm header, hoặc đã đọc quá `[loop] max_unasked_fetches`
-trang trong một lần chạy (mặc định 10). Một trang web có thể giấu lệnh bên trong, và link do agent tự
+trang trong một phiên chạy (mặc định 10). Một trang web có thể giấu lệnh bên trong, và link do agent tự
 ghép chính là đường nó có thể mang danh mục, hồ sơ hay ghi chú của bạn ra ngoài, nên link đó phải để
 bạn duyệt. Đoạn bạn chuyển tiếp vào chat, hay việc một agent giao cho agent khác, đều được coi là lời của
 người khác, không tính là link bạn gửi.
@@ -88,7 +88,7 @@ có đích thì hỏi qua đích đó, và `schedule run-now` cũng theo đúng 
 
 | Phạm vi | Được đưa ra | "Ghi nhớ" sống bao lâu |
 | --- | --- | --- |
-| Phiên chat tương tác | từ chối, một lần, ghi nhớ | Trong bộ nhớ tiến trình, theo từng phiên chat và lời gọi. Không bao giờ lưu xuống đĩa. |
+| Cuộc trò chuyện tương tác | từ chối, một lần, ghi nhớ | Trong bộ nhớ tiến trình, theo từng cuộc trò chuyện và lời gọi. Không bao giờ lưu xuống đĩa. |
 | Client MCP | từ chối, một lần, ghi nhớ | Theo kết nối MCP đang hoạt động. |
 | Việc theo lịch có đích | từ chối, một lần | Không có. |
 | Agent con có tuyến | từ chối, một lần | Không có. |
@@ -99,7 +99,7 @@ Phê duyệt đã ghi nhớ chỉ phủ đúng điều khóa của nó nêu, và
 - công cụ từ server MCP bên ngoài: toàn bộ bộ đối số (không kể thứ tự khóa);
 - mọi công cụ khác: tên công cụ.
 
-Lời gọi có khóa khác sẽ hỏi lại. Lần từ chối trong phiên chat không được nhớ. Lần từ chối trên MCP
+Lời gọi có khóa khác sẽ hỏi lại. Lần từ chối trong cuộc trò chuyện không được nhớ. Lần từ chối trên MCP
 thì có, để agent không thể hỏi mãi về cùng một công cụ đã bị từ chối trên một kết nối.
 
 **Agent con không bao giờ thừa hưởng chế độ bypass hay các phê duyệt đã ghi nhớ của agent cha.** Với
@@ -138,10 +138,12 @@ gọn. Lời gọi quá dài để hiện đủ sẽ mở đầu bằng `[Tham s
 không có nút ghi nhớ.
 
 **Kênh.** Ô hỏi dạng nút bấm chỉ đi tới đúng kênh sở hữu phiên chạy. Một lần bấm chỉ được nhận khi
-yêu cầu vẫn đang chờ, đến từ đúng chat đã được hỏi, quyết định đó thật sự đã được đưa ra, **và** người
-bấm là một operator có thẩm quyền. Kênh không có nút bấm (Zalo) thì hỏi bằng các mã ngắn như `/4821` để gõ lại, mỗi mã chỉ dùng được
-trong chat đó và chỉ khi câu hỏi còn sống; chỉ khi không rút được mã nào thì mới từ chối ngay và nói rõ. Khi tắt máy, mọi
-yêu cầu còn treo đều bị từ chối.
+mọi điều sau đều đúng: yêu cầu vẫn đang chờ, lần bấm đến từ đúng chat đã được hỏi, quyết định đó thật
+sự đã được đưa ra, **và** người bấm là một operator có thẩm quyền.
+
+Kênh không có nút bấm (Zalo) thì hỏi bằng các mã ngắn như `/4821` để bạn gõ lại. Mỗi mã chỉ dùng được
+trong chat đó và chỉ khi câu hỏi còn mở. Chỉ khi không tạo được mã nào thì nó mới từ chối ngay, và nói
+rõ điều đó. Khi tắt máy, mọi yêu cầu còn chờ đều bị từ chối.
 
 **MCP.** Phê duyệt qua form elicitation khi client hỗ trợ. Client không có elicitation thì không duyệt
 được, nên các lời gọi nguy hiểm hỏng theo hướng đóng.
@@ -190,6 +192,20 @@ Một vài thông tin đăng nhập là tệp riêng dưới thư mục dữ li�
 của nhà cung cấp mô hình, token API tự sinh, khóa mạng xã hội và phiên Zalo cá nhân. Chúng không đi
 theo `db export` hay `db backup`; xem [Lưu trữ](luu-tru.md#tệp-nằm-ngoài-cơ-sở-dữ-liệu).
 
+Khóa nhập trên trang văn phòng (Cài đặt > Nhà cung cấp, Sàn giao dịch và Công cụ) được ghi vào đúng tệp
+khóa mà `openalpha key set` ghi, `<thư mục dữ liệu>/env`, quyền `0600`, thay thế nguyên khối.
+
+- Dịch vụ nền không bao giờ gửi lại giá trị đã lưu. Trang chỉ biết một tên đã được lưu hay chưa, và giá
+  trị bị từ chối không xuất hiện lại trong lỗi, trong log hay trong câu báo của ô nhập.
+- Trang chỉ đặt được những biến mà mô hình, sàn, tìm kiếm web và nguồn dữ liệu của bạn đọc. Mã API,
+  token bot của từng kênh, biến của máy chủ MCP, các biến điều khiển của chính sản phẩm (như
+  `OPENALPHA_DATA_DIR`) và những tên quyết định cách chương trình khởi chạy đều bị từ chối. Giá trị có
+  xuống dòng, có khoảng trắng ở đầu hay cuối, hoặc dài quá 4.096 ký tự cũng vậy.
+- Khóa nằm trong biến nào (`api_key_env`, `[trading.sources]`, `credentials` của một sàn) chỉ đặt được
+  bằng câu lệnh hoặc sửa tệp, nên trang không thể trỏ một khóa sang chỗ mới.
+- Khi đã đặt `[api] public_url`, dù mới lưu trên đĩa hay đang chạy, trang không đổi khóa nào và không bắt
+  đầu đăng nhập ChatGPT.
+
 Việc nhận diện thông tin đăng nhập bao gồm header authorization, token của nhà cung cấp, JWT, khóa
 riêng, chứng chỉ và URL có mang thông tin đăng nhập. Nó được dùng theo ba hướng:
 
@@ -226,12 +242,16 @@ môi trường đã lọc, cùng `HOME` và thư mục tạm riêng cho mỗi ph
 
 Mọi thứ ghi dưới thư mục dữ liệu đều chỉ của riêng bạn: thư mục `0700`, tệp `0600`. Phạm vi này gồm
 token của nhà cung cấp, tệp agent và kỹ năng, các bản cài plugin, log, thư mục nháp, đầu ra `db export`
-và các bản sao lưu cơ sở dữ liệu. Bản sao lưu chứa mọi phiên chat, mọi bộ nhớ và mọi dòng sổ, nên nó
-không bao giờ thừa hưởng một umask để lại quyền đọc cho người khác. Tệp xuất hiện bằng một lần rename
-nguyên tử, với quyền đã đặt **trước** lần rename đó, nên không ai thấy một tệp dở dang hay mở quyền. Bản sao lưu là tệp duy nhất do chính cơ sở dữ liệu
-ghi ra, nên nó được ghi trong một thư mục tạm riêng tư `0700` và chỉ chuyển ra khi đã hoàn tất.
-Windows không có các bit quyền này: ở đó thư mục dữ liệu nằm trong hồ sơ người dùng của bạn
-(`%USERPROFILE%\.openalpha`), vốn đã chặn các tài khoản khác.
+và các bản sao lưu cơ sở dữ liệu.
+
+- Bản sao lưu chứa mọi cuộc trò chuyện, mọi bộ nhớ và mọi dòng sổ, nên nó không bao giờ thừa hưởng một
+  umask để lại quyền đọc cho người khác.
+- Tệp xuất hiện bằng một lần rename nguyên tử, với quyền đã đặt **trước** lần rename đó, nên không ai
+  thấy một tệp dở dang hay mở quyền.
+- Bản sao lưu là tệp duy nhất do chính cơ sở dữ liệu ghi ra. Nên nó được ghi trong một thư mục tạm riêng
+  tư `0700` và chỉ chuyển ra khi đã hoàn tất.
+- Windows không có các bit quyền này. Ở đó thư mục dữ liệu nằm trong hồ sơ người dùng của bạn
+  (`%USERPROFILE%\.openalpha`), vốn đã chặn các tài khoản khác.
 
 ### Yêu cầu đi ra
 
@@ -248,6 +268,12 @@ Windows không có các bit quyền này: ở đó thư mục dữ liệu nằm 
 Endpoint của một server MCP qua HTTP được kiểm lại ở mỗi yêu cầu và không đi theo chuyển hướng nào,
 nhưng không được ghim địa chỉ, nên khoảng hở rebind giữa lúc kiểm và lúc gọi vẫn còn.
 
+Trang văn phòng tự gọi ra ngoài đúng một chỗ, từ trình duyệt của bạn chứ không phải từ dịch vụ nền: thời tiết
+hiện tại của thành phố thuộc vùng nhà từ `api.open-meteo.com`, mỗi 30 phút, chỉ gửi vĩ độ và kinh độ của
+thành phố, không kèm cookie hay referrer. Nó không bao giờ chạy khi xem thử giờ khác hay khi giảm chuyển
+động, và gọi lỗi thì văn phòng dùng thời tiết tự tạo. Chính sách bảo mật của trang đã biên dịch chỉ cho nó nối tới dịch vụ nền
+và đúng máy chủ đó; Cài đặt > Dữ liệu và kết nối ghi tên nó cạnh các máy chủ mà dịch vụ nền gọi.
+
 Danh sách `hosts` của agent là một ranh giới năng lực cho `web_fetch` và cho các trang `research` đọc
 trực tiếp: thêm một host là cố ý nới phạm vi agent đó với tới được. Trang research nằm ngoài danh sách bị bỏ
 qua như một lần đọc hỏng bình thường, phiên chạy vẫn đi tiếp.
@@ -260,7 +286,7 @@ qua như một lần đọc hỏng bình thường, phiên chạy vẫn đi ti�
    nên một khối khóa không thể bị cắt đôi rồi để lộ nửa còn lại. Kết quả lớn hơn 4 MiB (chỉ một máy chủ
    MCP từ xa mới gửi được) bị bỏ mà không đọc, thay bằng một dòng ghi chú.
 2. Phát hiện các mẫu tiêm prompt **trước** khi rút gọn mảng và áp trần dung lượng.
-3. Chuẩn hóa các mảng và giới hạn đầu ra: 32 KB trong một phiên chat, 64 KB cho một lời gọi MCP được
+3. Chuẩn hóa các mảng và giới hạn đầu ra: 32 KB trong một cuộc trò chuyện, 64 KB cho một lời gọi MCP được
    phục vụ mà client tự lo ngân sách ngữ cảnh. Phần nào dài hơn thì giữ phần đầu và phần cuối. Trần này
    tính theo văn bản như mô hình nhận được, đã thoát ký tự và nằm trong lớp bọc, không tính theo văn bản
    thô.
@@ -280,7 +306,7 @@ Chỉ các plugin đi kèm đáng tin mới được đóng góp công cụ có 
 `[plugins].allow_untrusted`.
 
 Ngoại lệ duy nhất có chạy mã đã cài là `sources.ts` của một nguồn dữ liệu thị trường. Nó cần thêm công
-tắc riêng `[plugins].allow_code` ngoài `allow_untrusted`, và chạy với toàn bộ quyền của daemon: endpoint
+tắc riêng `[plugins].allow_code` ngoài `allow_untrusted`, và chạy với toàn bộ quyền của dịch vụ nền: endpoint
 đã khai chỉ ràng buộc được một plugin trung thực, không hơn.
 
 Khâu xét duyệt kênh là danh sách cho phép hoặc ghép nối. Không có chế độ mở. Trong chat dùng chung,
@@ -305,6 +331,30 @@ khóa và bản nháp nằm ở trang đó. Ở ranh giới yêu cầu, runtime 
   ký, quản trị không bao giờ được gửi.
 - **Kiểm tra bí mật.** Nội dung giống bí mật hoặc chứa chính khóa của agent bị từ chối.
 - **MCP.** `social_request` và `social_skill` bị giữ lại khỏi bề mặt máy chủ MCP.
+
+### Lệnh được chuyển cho dịch vụ nền
+
+Khi có dịch vụ nền đang chạy, CLI chuyển các lệnh thuộc trạng thái dịch vụ nền cho nó qua `/v1/exec` (xem
+[vận hành](van-hanh.md#lệnh-chạy-trong-dịch-vụ-nền)). Socket này chạy một lệnh ngay trong dịch vụ nền, nên nó chỉ
+nhận đúng terminal của bạn trên cùng máy. Mọi điều kiện sau đều phải đúng, và được kiểm trước khi kết nối
+được nâng cấp:
+
+- Token API trong tiêu đề `Authorization: Bearer`. Cookie đăng nhập của trang không bao giờ được đọc, và
+  token sai được tính vào cùng cơ chế khóa tạm như mọi lệnh gọi API khác.
+- Không có tiêu đề `Origin`. Trình duyệt luôn gửi tiêu đề này, nên không trang web nào mở được nó.
+- Đầu bên kia là loopback, và `Host` đúng bằng `127.0.0.1:<cổng>`.
+- Không có `X-Forwarded-For`, `Forwarded`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Real-IP`, `Via`,
+  `CF-Connecting-IP` hay `True-Client-IP`, dù có đặt `public_url` hay không.
+
+Reverse proxy hoặc `tailscale serve` chạy trên cùng máy đều hiện ra như một đầu loopback, nên chính các
+phép kiểm `Host` và tiêu đề mới là thứ giữ người gọi từ xa ở ngoài. Socket có mức trần riêng là 8, tách
+khỏi các luồng của trang, và socket nào không gửi lệnh nào trong 10 giây sẽ bị đóng.
+
+Lệnh được chuyển chỉ làm được đúng những gì lệnh đó làm ở terminal của bạn, không hơn. Phê duyệt vẫn
+được hỏi ngay ở terminal đó, trang không trả lời thay được, và hai terminal không bao giờ thấy phê duyệt
+của nhau. Các lệnh nhận bí mật (`key set`, `onboard`, `auth login`) vẫn chạy ở máy bạn. Dịch vụ nền ghi log tên
+lệnh, mã thoát và thời gian của mỗi lệnh, không bao giờ ghi đối số, câu trả lời, văn bản đã sửa hay đầu
+ra.
 
 ## Hành vi khi hỏng
 
@@ -333,15 +383,15 @@ Khi một phiên chạy dừng sớm, CLI thoát với mã dưới đây và in 
 |---|---:|---|---|
 | `shutdown` | 0 | Runtime dừng bình thường. | Không cần làm gì. |
 | `budget` | 3 | Chạm một trần chi tiêu, hoặc không đọc được sổ chi phí. | Chạy `openalpha cost`. Xem danh sách trần bên dưới. |
-| `rate` | 4 | Hết hạn mức tần suất: của nhà cung cấp, hoặc của chính ứng dụng. | Đợi vài giây rồi thử lại, hoặc thêm model dự phòng trong `[[models]]`. |
-| `llm_error` | 5 | Nhà cung cấp mô hình lỗi hẳn. | Xem `openalpha logs`, hoặc thử model dự phòng. Xem danh sách lỗi mô hình bên dưới. |
+| `rate` | 4 | Hết hạn mức tần suất: của nhà cung cấp, hoặc của chính ứng dụng. | Đợi vài giây rồi thử lại, hoặc thêm mô hình dự phòng trong `[[models]]`. |
+| `llm_error` | 5 | Nhà cung cấp mô hình lỗi hẳn. | Xem `openalpha logs`, hoặc thử mô hình dự phòng. Xem danh sách lỗi mô hình bên dưới. |
 | `turn_limit` | 6 | Agent dùng hết số lượt cho phép trước khi xong. | Gửi tin nhắn tiếp để làm tiếp, hoặc tăng `[loop] max_turns`. |
-| `length_limit` | 7 | Ngữ cảnh vẫn đầy sau khi nén. | Mở phiên chat mới bằng `/new`, hoặc rút gọn yêu cầu và kết quả công cụ. |
-| `content_filter` | 8 | Chính sách an toàn của nhà cung cấp chặn nội dung. | Diễn đạt lại, hoặc thử model khác. |
-| `queue_full` | 9 | Hàng đợi của phiên chat đầy (10 việc đang chờ). | Đợi một chút rồi thử lại. |
+| `length_limit` | 7 | Ngữ cảnh vẫn đầy sau khi nén. | Mở cuộc trò chuyện mới bằng `/new`, hoặc rút gọn yêu cầu và kết quả công cụ. |
+| `content_filter` | 8 | Chính sách an toàn của nhà cung cấp chặn nội dung. | Diễn đạt lại, hoặc thử mô hình khác. |
+| `queue_full` | 9 | Hàng đợi của cuộc trò chuyện đầy (10 việc đang chờ). | Đợi một chút rồi thử lại. |
 | `no_agents` | 10 | Không có agent nào đủ điều kiện. | Kiểm tra agent bằng `openalpha agent list`. |
 | `hook_failed` | 11 | Một bước bắt buộc hỏng, phiên chạy dừng để tránh mất dữ liệu. | Xem log. |
-| `session_busy` | 12 | Phiên chat này đang có một phiên chạy khác. | Đợi, dừng nó bằng `/stop`, hoặc mở phiên mới bằng `/new`. Phiên chạy chết mà chưa dọn sẽ nhả phiên chat sau `[loop] max_duration_ms` cộng năm phút. |
+| `session_busy` | 12 | Cuộc trò chuyện này đang có một phiên chạy khác. | Đợi, dừng nó bằng `/stop`, hoặc mở cuộc trò chuyện mới bằng `/new`. Phiên chạy chết mà chưa dọn sẽ nhả cuộc trò chuyện sau `[loop] max_duration_ms` cộng năm phút. |
 | `loop` | 15 | Agent cứ lặp lại cùng các lời gọi công cụ. | Diễn đạt lại, hoặc gửi tin nhắn tiếp để đổi hướng. Nếu nó gọi quá nhiều công cụ khác nhau, tăng `[loop] max_tool_calls`. |
 | `agent_paused` | 16 | Agent đang tạm dừng. | `openalpha agent resume <id>`. |
 | `abort` | 130 | Bạn đã hủy. | Gửi tin nhắn mới để bắt đầu lại. |
@@ -366,15 +416,15 @@ riêng; các mã còn lại báo chung là lỗi nhà cung cấp, chi tiết n�
 
 | Mã | Nghĩa là | Việc cần làm |
 |---|---|---|
-| `transient` | Lỗi tạm thời của nhà cung cấp. | Thử lại. Chuỗi model đã tự thử lại và thử dự phòng rồi. |
-| `rate` | Nhà cung cấp trả 429. | Đợi, hoặc thêm model dự phòng. Mục đó nghỉ theo `Retry-After` của nhà cung cấp, hoặc 1 phút. |
+| `transient` | Lỗi tạm thời của nhà cung cấp. | Thử lại. Chuỗi mô hình đã tự thử lại và thử dự phòng rồi. |
+| `rate` | Nhà cung cấp trả 429. | Đợi, hoặc thêm mô hình dự phòng. Mục đó nghỉ theo `Retry-After` của nhà cung cấp, hoặc 1 phút. |
 | `auth` | Xác thực thất bại. | Sửa khóa. Nhà cung cấp bị bỏ qua 15 phút. |
 | `billing` | Lỗi thanh toán. | Nạp tiền cho tài khoản. Nhà cung cấp bị bỏ qua 15 phút. |
 | `timeout` | Yêu cầu quá thời gian chờ. | Thử lại. |
-| `not_found` | Không tìm thấy model hoặc địa chỉ dịch vụ. | Sửa mã model. Mục đó tắt đến khi khởi động lại. |
+| `not_found` | Không tìm thấy mô hình hoặc địa chỉ dịch vụ. | Sửa mã mô hình. Mục đó tắt đến khi khởi động lại. |
 | `context_overflow` | Vượt giới hạn ngữ cảnh. | `/new`, hoặc rút gọn yêu cầu. |
 | `empty_response` | Mô hình không trả lời gì. | Thử lại. |
-| `output_budget_exhausted` | Hết hạn mức phản hồi trước khi kịp trả lời. | Tăng `max_tokens` trên mục model. |
+| `output_budget_exhausted` | Hết hạn mức phản hồi trước khi kịp trả lời. | Tăng `max_tokens` trên mục mô hình. |
 | `response_too_large` | Phản hồi quá lớn. | Thu hẹp yêu cầu. |
 | `fatal` | Lỗi khác từ nhà cung cấp. | Xem log. |
 
@@ -436,7 +486,7 @@ Lỗi đặt lệnh đến từ `/trade` và `order_place`. Chúng chia theo vi�
 | `order.unfilled` | Không khớp kịp và đã bị hủy. | Đặt lại nếu vẫn muốn. |
 | `order.book_moved` | Một lệnh khác đã đi ra trong lúc lệnh này chờ, nên hạn mức không còn cho phép. | Kiểm tra sổ rồi đặt lại. |
 | `order.book_unpriced` | Có khoản nắm chưa có giá nên không kiểm tra được hạn mức cho lệnh mua. | `/portfolio` cho biết mã nào; `/refresh` thị trường của mã đó rồi đặt lại. |
-| `order.approval_bypassed` | Lệnh cần bước duyệt, mà phiên này đang bỏ qua duyệt. | Chạy trong phiên `manual`, hoặc đặt thêm `[trading.orders] allow_unattended`. |
+| `order.approval_bypassed` | Lệnh cần bước duyệt, mà cuộc trò chuyện này đang bỏ qua duyệt. | Chạy trong phiên `manual`, hoặc đặt thêm `[trading.orders] allow_unattended`. |
 | `order.buying_halted` | Chức năng mua đang tắt (`/trade halt`). Bán và lệnh thoát vẫn gửi được. | Chỉ bạn mới bật lại được. |
 | `order.sell_unsettled` | Hôm nay chỉ bán được phần đã về tài khoản. | Thông báo nêu khối lượng bán được ngay; chờ phần còn lại. |
 | `order.sell_guarded` | Một lệnh thoát đang chờ đã khóa một phần vị thế tại sàn. | `/trade cancel`, hoặc bán tối đa khối lượng được nêu. |

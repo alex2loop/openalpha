@@ -8,33 +8,21 @@ import { SKILL_CATALOG_GUIDANCE } from '@/engine/hooks/available-skills'
 import { canRequireApproval } from '@/engine/hooks/dangerous'
 import { MCP_SERVER_INSTRUCTIONS } from '@/engine/mcp/instructions'
 
-// Withheld by what the capability already says. shell runs code the caller could run itself;
-// delegate spends this operator's model budget driving an agent loop for a host that has its own;
-// a fired schedule_* job delivers to the operator's default channel rather than the caller.
-const MCP_EXCLUDED_CAPABILITIES: ReadonlySet<Capability> = new Set([
-  'shell',
-  'delegate',
-  'schedule',
-])
+// Withheld by what the capability already says. delegate spends this operator's model budget
+// driving an agent loop for a host that has its own; a fired schedule_* job delivers to the
+// operator's default channel rather than the caller.
+const MCP_EXCLUDED_CAPABILITIES: ReadonlySet<Capability> = new Set(['delegate', 'schedule'])
 
 // Withheld by name where the capability cannot separate them. No conversation to use:
-// ask_clarification and todo_write need the interactive loop. Host capability: file_write and
-// file_edit take their approval from an MCP client answering as a program, not as a person, and the
-// readers see only the agent scratch dir those writers would have filled, which is nothing a host
-// with real file tools wants. memory_store and memory_remove rewrite the operator's durable memory.
-// order_place is irreversible at a real exchange, and a client program answering the approval is
-// not the human the gate exists for. web_search and web_fetch: the host brings its own, and this
-// server reads no search configuration. social_request and social_skill act as one of the
-// operator's own agents on a public network: a client program on this server must never speak as
-// one, and `net` and `read` are not capabilities this server withholds. Other domain writes stay
-// exposed - this server validates those itself.
+// ask_clarification and todo_write need the interactive loop. The file readers see only the agent
+// scratch dir the withheld writers would have filled, which is nothing a host with real file tools
+// wants. memory_store and memory_remove rewrite the operator's durable memory. order_place is
+// irreversible at a real exchange, and a client program answering the approval is not the human the
+// gate exists for. web_search and web_fetch: the host brings its own, and this server reads no
+// search configuration. Other domain writes stay exposed - this server validates those itself.
 const MCP_TOOL_DENYLIST: ReadonlySet<string> = new Set([
   'ask_clarification',
-  'social_request',
-  'social_skill',
   'todo_write',
-  'file_write',
-  'file_edit',
   'file_read',
   'file_list',
   'file_search',
@@ -44,6 +32,23 @@ const MCP_TOOL_DENYLIST: ReadonlySet<string> = new Set([
   'web_search',
   'web_fetch',
 ])
+
+// The file writers change the host's disk. social_request and social_skill act as one of the
+// operator's own agents on a public network, and `net` and `read` are not capabilities withheld.
+const CLIENT_WITHHELD_TOOLS: ReadonlySet<string> = new Set([
+  'file_write',
+  'file_edit',
+  'social_request',
+  'social_skill',
+])
+
+/** Tools a client program must never drive, since it would answer their approval as a program, not
+ *  as the person the gate exists for: shell runs code, and the named tools above. A plugin- or
+ *  MCP-contributed tool is external: re-offering it would put another server's tools behind this
+ *  one's name, and the host can connect that server itself. */
+export function isClientApprovalWithheld(name: string, tool: ToolDefinition): boolean {
+  return tool.capability === 'shell' || tool.isExternal === true || CLIENT_WITHHELD_TOOLS.has(name)
+}
 
 /** One entry as `tools/list` sends it, for every transport that serves this surface. */
 export interface AdvertisedTool {
@@ -83,13 +88,11 @@ export function exposedToolNames(tools: ReadonlyMap<string, ToolDefinition>): re
   return [...tools].flatMap(([name, tool]) => (isMcpExposed(name, tool) ? [name] : []))
 }
 
-/** A plugin- or MCP-contributed tool is external: re-advertising it here would put another
- *  server's tools behind this one's name, and the host can connect that server itself. */
 function isMcpExposed(name: string, tool: ToolDefinition): boolean {
-  return (
-    tool.isExternal !== true &&
-    !MCP_EXCLUDED_CAPABILITIES.has(tool.capability) &&
-    !MCP_TOOL_DENYLIST.has(name)
+  return !(
+    isClientApprovalWithheld(name, tool) ||
+    MCP_EXCLUDED_CAPABILITIES.has(tool.capability) ||
+    MCP_TOOL_DENYLIST.has(name)
   )
 }
 

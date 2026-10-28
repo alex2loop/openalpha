@@ -22,6 +22,7 @@ import type {
   SectorStrengthResult,
 } from '@/trading/kernel/market/market-capability'
 import type { Quote } from '@/trading/kernel/market/market-data'
+import type { MarketDay } from '@/trading/markets/calendar'
 import type {
   Market,
   MarketRegistry,
@@ -45,6 +46,7 @@ import { markExcluded } from '@/trading/features/market-data/ops/exclusions'
 import { markMarginIneligible } from '@/trading/features/market-data/ops/margin'
 import { describeMarket } from '@/trading/features/market-data/reads/describe'
 import { freshnessOf, settledEvidenceCaveats } from '@/trading/features/market-data/reads/freshness'
+import { indexReads } from '@/trading/features/market-data/reads/index-reading'
 import { runOverviews } from '@/trading/features/market-data/reads/overview'
 import { buildQuoteBoard } from '@/trading/features/market-data/reads/quote-board'
 import {
@@ -62,6 +64,7 @@ import { pricedCandidate } from '@/trading/features/market-data/screen-caution'
 import { unsupportedScreen, unsupportedSectors } from '@/trading/features/market-data/unsupported'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { ECONOMY_FEED_SCOPE } from '@/trading/kernel/source/source-result'
+import { resolveMarketDay } from '@/trading/markets/calendar'
 import { convictionDriftCaveats } from '@/trading/markets/conviction-calibration'
 import { countByGate } from '@/trading/markets/screen-partition'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -84,12 +87,8 @@ interface MarketDataServiceDeps {
  *  unresolved input — a bare ticker, an instant, a day range — and receives a typed result whose
  *  unavailable arm names why. Nothing above this layer sees a registry. */
 export function createMarketDataService(deps: MarketDataServiceDeps): MarketDataService {
-  const run = {
-    logger: deps.logger,
-    markets: deps.markets,
-    config: deps.config,
-    ensure: deps.ensure,
-  }
+  const { logger, markets, config, ensure } = deps
+  const run = { logger, markets, config, ensure }
 
   return {
     listSources: () => deps.sources.list(),
@@ -97,6 +96,7 @@ export function createMarketDataService(deps: MarketDataServiceDeps): MarketData
     markets: () => deps.markets.list().map((market) => market.manifest.id),
     quoteConvention: (market) => quoteConventionOf(deps.markets, market),
     describeMarkets: () => deps.markets.list().map(describeMarket),
+    marketDay: (market, now) => marketDayOf(deps.markets, market, now),
     instrumentQuoteConvention: (options) => runQuoteConvention(run, options),
     minimumRiskReward: (market) => deps.markets.find(market)?.manifest.minimumRiskReward,
     boardLot: (market) => deps.markets.find(market)?.manifest.boardLot,
@@ -123,6 +123,7 @@ export function createMarketDataService(deps: MarketDataServiceDeps): MarketData
     screen: (options) => runScreen(run, options, deps.exclusions),
     searchInstruments: (options) => searchInstruments(deps.markets, options),
     sectors: (options) => runSectors(run, options),
+    ...indexReads(run),
 
     sentiment: (options) => runSentiment(run, options),
   }
@@ -393,4 +394,15 @@ function quoteConventionOf(
     unit: manifest.quoteUnit,
     ...(manifest.priceDisplay === undefined ? {} : { display: manifest.priceDisplay }),
   }
+}
+
+/** Absent for a market the registry does not list or one that never closes, as its hours are. */
+function marketDayOf(
+  markets: MarketRegistry,
+  market: MarketRef,
+  now: number
+): MarketDay | undefined {
+  const calendar = markets.find(market)?.manifest.calendar
+
+  return calendar === undefined || calendar.continuous ? undefined : resolveMarketDay(calendar, now)
 }

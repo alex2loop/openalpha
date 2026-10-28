@@ -18,11 +18,12 @@ import { LLMError } from '@/core/errors'
 import { httpRequest } from '@/core/http-client'
 import { silentLogger } from '@/core/logging/logger'
 import { NetworkPolicy } from '@/core/ssrf/network-policy'
+import { withoutTrailingSlashes } from '@/core/utils/url'
 import { t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
-import type { DoctorEnvironment, DoctorProbe, ResolvedProviderModel } from './types'
-import { checkLabel, subjectLabel } from './labels'
+import type { DoctorEnvironment, DoctorProbe, DoctorSurface, ResolvedProviderModel } from './types'
+import { checkLabel, offlineKey, subjectLabel } from './labels'
 import { unknownProviderProbe } from './local-probes'
 
 export const ONLINE_TIMEOUT_MS = 10_000
@@ -34,7 +35,6 @@ const UNREACHABLE_CODES: ReadonlySet<LLMErrorCode> = new Set(['transient', 'time
 // Both bot APIs answer `GET /bot<token>/getMe` with an `{ ok }` envelope.
 const BOT_API_HOSTS = { telegram: TELEGRAM_API_BASE, zalo: ZALO_API_BASE } as const
 const DUCKDUCKGO_HOST = 'https://html.duckduckgo.com'
-const TRAILING_SLASH_RE = /\/+$/
 
 const botConfigSchema = z.looseObject({
   enabled: z.boolean().optional(),
@@ -56,7 +56,15 @@ interface BotProbeOptions {
 interface ProviderProbeOptions {
   readonly config: ResolvedConfig
   readonly online: boolean
+  readonly surface: DoctorSurface
   readonly env: DoctorEnvironment
+  readonly locale: Locale
+}
+
+interface WebSearchProbeOptions {
+  readonly config: ResolvedConfig
+  readonly online: boolean
+  readonly surface: DoctorSurface
   readonly locale: Locale
 }
 
@@ -73,7 +81,10 @@ export async function probeProviders(
   const loginProbes = await probeSubscriptionLogins(config, locale)
 
   if (!online) {
-    return [{ name, status: 'ok', detail: t(locale, 'cli.doctorNotProbed') }, ...loginProbes]
+    return [
+      { name, status: 'ok', detail: t(locale, offlineKey(options.surface, 'providers')) },
+      ...loginProbes,
+    ]
   }
 
   const credentials = createCredentialSources({
@@ -169,7 +180,7 @@ async function probeLogin(options: {
 }
 
 export async function probeBotTokenCheck(
-  options: BotProbeOptions & { readonly online: boolean }
+  options: BotProbeOptions & { readonly online: boolean; readonly surface: DoctorSurface }
 ): Promise<readonly DoctorProbe[]> {
   if (options.config.channels[options.channel] === undefined) {
     return []
@@ -180,7 +191,7 @@ export async function probeBotTokenCheck(
       {
         name: checkLabel(options.locale, options.channel),
         status: 'ok',
-        detail: t(options.locale, 'cli.doctorNotProbed'),
+        detail: t(options.locale, offlineKey(options.surface, 'notProbed')),
       },
     ]
   }
@@ -190,11 +201,8 @@ export async function probeBotTokenCheck(
   return row === null ? [] : [row]
 }
 
-export async function probeWebSearch(
-  config: ResolvedConfig,
-  online: boolean,
-  locale: Locale
-): Promise<DoctorProbe> {
+export async function probeWebSearch(options: WebSearchProbeOptions): Promise<DoctorProbe> {
+  const { config, locale } = options
   const { webSearch } = config
   const missing = toMissingSearchKeyError(webSearch)
 
@@ -206,7 +214,7 @@ export async function probeWebSearch(
     }
   }
 
-  const row = await probeSearchProvider(config, online, locale)
+  const row = await probeSearchProvider(options)
 
   if (webSearch.fallbackMissingEnv === undefined || row.status === 'fail') {
     return row
@@ -225,18 +233,15 @@ export async function probeWebSearch(
   }
 }
 
-async function probeSearchProvider(
-  config: ResolvedConfig,
-  online: boolean,
-  locale: Locale
-): Promise<DoctorProbe> {
-  const search = config.webSearch
+async function probeSearchProvider(options: WebSearchProbeOptions): Promise<DoctorProbe> {
+  const { online, locale } = options
+  const search = options.config.webSearch
   const name = checkLabel(locale, 'web-search')
 
   if (search.provider === 'duckduckgo') {
     return online
       ? reachProbe({ host: DUCKDUCKGO_HOST, path: '/html/', query: { q: 'ping' }, locale })
-      : offlineWebSearchRow(search.provider, locale)
+      : offlineWebSearchRow(search.provider, options)
   }
 
   if (search.provider === 'searxng') {
@@ -246,12 +251,12 @@ async function probeSearchProvider(
 
     return online
       ? reachProbe({
-          host: search.baseUrl.replace(TRAILING_SLASH_RE, ''),
+          host: withoutTrailingSlashes(search.baseUrl),
           path: '/search',
           query: { q: 'ping', format: 'json' },
           locale,
         })
-      : offlineWebSearchRow(search.provider, locale)
+      : offlineWebSearchRow(search.provider, options)
   }
 
   if (search.provider === 'anysearch' && search.apiKey === undefined) {
@@ -392,11 +397,13 @@ async function reachProbe(options: {
   }
 }
 
-function offlineWebSearchRow(provider: string, locale: Locale): DoctorProbe {
+function offlineWebSearchRow(provider: string, options: WebSearchProbeOptions): DoctorProbe {
+  const { locale } = options
+
   return {
     name: checkLabel(locale, 'web-search'),
     status: 'ok',
-    detail: t(locale, 'cli.doctorWebSearchOffline', { provider }),
+    detail: t(locale, offlineKey(options.surface, 'webSearch'), { provider }),
   }
 }
 

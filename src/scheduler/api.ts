@@ -1,5 +1,6 @@
 // Public API of scheduler/. Other modules import from here — never from scheduler/ internals.
 
+export type { EventJobTrigger, JobEvent } from '@/scheduler/event/types'
 export type {
   HeartbeatDeps,
   HeartbeatRunInput,
@@ -11,6 +12,9 @@ export type {
   DeliverySink,
   DeliveryTarget,
   Job,
+  JobCommandAnswer,
+  JobCommandRun,
+  JobEdit,
   JobOwner,
   JobSchedule,
   JobStore,
@@ -19,4 +23,7 @@ export type {
   SchedulerRunNowInput,
   SchedulerRunOutcome,
 } from '@/scheduler/types'
+export { createDropLog, fireMatchingJobs } from '@/scheduler/event/match'
+export { EVENT_JOB_PARKED_AT } from '@/scheduler/event/types'
+export { pauseJobsOfAgent } from '@/scheduler/job/agent-jobs'
 export { createSchedulerProvider } from '@/scheduler/services'

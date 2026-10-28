@@ -1,4 +1,5 @@
 import type { App, ServiceProvider } from '@/core/container'
+import type { AgentProfile } from '@/engine/api'
 import type { HeartbeatDeps } from '@/scheduler/heartbeat/types'
 import type { SchedulerController } from '@/scheduler/runner'
 import type {
@@ -47,6 +48,8 @@ interface ClaimedJobRun {
   readonly job: Job
   readonly requestId: string
   readonly signal: AbortSignal
+  /** The run a price crossing started, which spends a price job. */
+  readonly crossing: boolean
 }
 
 interface Deferred<T> {
@@ -77,11 +80,11 @@ export function createSchedulerProvider(build: (app: App) => SchedulerTaskDeps):
             return
           }
           const deps = build(app)
-          const agents = deps.heartbeat.agents.all()
+          const agents = (): readonly AgentProfile[] => deps.heartbeat.agents.all()
 
           // The fallible step runs before anything is armed: a rejection here leaves no tick
           // running that nothing would stop.
-          await deps.heartbeat.store.syncAgents(agents.map((agent) => agent.id))
+          await deps.heartbeat.store.syncAgents(agents().map((agent) => agent.id))
 
           const running = startScheduler(deps, signal)
           const stopHeartbeat = startHeartbeats(deps.heartbeat, agents, signal)
@@ -148,8 +151,9 @@ function createSchedulerCommands(deps: SchedulerCommandDeps): SchedulerCommands 
     resume: (owner, idOrPrefix) => resumeOwnedJob({ deps, owner, idOrPrefix }),
     runNow: (input) => runJobNow({ deps, ...input }),
     remove: async (owner, idOrPrefix) =>
-      removeJob(deps, await resolveOwnedJob({ deps, owner, idOrPrefix })),
-    removeAny: async (idOrPrefix) => removeJob(deps, await resolveAnyJob(deps, idOrPrefix)),
+      removeJob(deps, await resolveOwnedJob({ deps, owner, idOrPrefix }), false),
+    removeAny: async (idOrPrefix, options) =>
+      removeJob(deps, await resolveAnyJob(deps, idOrPrefix), options?.fromOwnRun === true),
     pauseAny: (idOrPrefix) => pauseAnyJob(deps, idOrPrefix),
     resumeAny: (idOrPrefix) => resumeAnyJob(deps, idOrPrefix),
   }
@@ -178,6 +182,10 @@ async function resumeAnyJob(
 
   if (resolved.kind !== 'job') {
     return resolved
+  }
+
+  if (!(await isResumable(deps, resolved.job))) {
+    return { kind: 'alert_inactive' }
   }
 
   const nextRunAt = nextRunAfterResume(resolved.job, Date.now())
@@ -209,6 +217,10 @@ async function resumeOwnedJob(options: OwnedJobOperation): Promise<SchedulerComm
     return resolved
   }
 
+  if (!(await isResumable(deps, resolved.job))) {
+    return { kind: 'alert_inactive' }
+  }
+
   const now = Date.now()
   const nextRunAt = nextRunAfterResume(resolved.job, now)
   const updated = await deps.scheduler.jobStore.resumeOwned(owner, resolved.job.id, nextRunAt)
@@ -216,6 +228,15 @@ async function resumeOwnedJob(options: OwnedJobOperation): Promise<SchedulerComm
   return updated
     ? { kind: 'job', job: { ...resolved.job, enabled: true, nextRunAt, consecutiveFailures: 0 } }
     : { kind: 'not_found' }
+}
+
+// A price job waits on one alert. Once it has fired or been removed nothing can start the job, so
+// turning it back on would only leave it enabled and silent.
+async function isResumable(deps: SchedulerCommandDeps, job: Job): Promise<boolean> {
+  const alertId = job.event?.event === 'price' ? job.event.alertId : undefined
+  const check = deps.scheduler.isEventAlertLive
+
+  return alertId === undefined || check === undefined || (await check(alertId))
 }
 
 function nextRunAfterResume(job: Job, now: number): number {
@@ -230,7 +251,7 @@ function nextRunAfterResume(job: Job, now: number): number {
 }
 
 async function runJobNow(options: RunJobOperation): Promise<SchedulerCommandResult> {
-  const { deps, owner, idOrPrefix, requestId, signal } = options
+  const { deps, owner, idOrPrefix, requestId, signal, appendPrompt } = options
   const resolved =
     owner === undefined
       ? await resolveAnyJob(deps, idOrPrefix)
@@ -246,13 +267,17 @@ async function runJobNow(options: RunJobOperation): Promise<SchedulerCommandResu
     return { kind: 'rejected' }
   }
 
-  return await admitClaimedJob({
+  const result = await admitClaimedJob({
     deps,
-    job,
+    job: appendPrompt === undefined ? job : { ...job, prompt: `${job.prompt}\n\n${appendPrompt}` },
     requestId,
     signal,
+    crossing: appendPrompt !== undefined,
     ...(owner === undefined ? {} : { owner }),
   })
+
+  // The caller gets the job as stored, not as this one run read it.
+  return result.kind === 'job' ? { kind: 'job', job } : result
 }
 
 async function claimRun(options: RunJobOperation, job: Job): Promise<Job | undefined> {
@@ -310,13 +335,14 @@ function admitThroughController(
   controller: NonNullable<ReturnType<SchedulerCommandDeps['controller']>>,
   options: ClaimedJobRun
 ): Promise<ClaimedJobRunResult | undefined> {
-  const { deps, owner, job, requestId } = options
+  const { deps, owner, job, requestId, crossing } = options
   const admission = controller.admit(job, (signal) =>
     runClaimedScheduledJob({
       job,
       deps: deps.scheduler,
       signal,
       requestId,
+      crossing,
       ...(owner === undefined ? {} : { owner }),
     })
   )
@@ -325,20 +351,22 @@ function admitThroughController(
 }
 
 function runUncontrolledJob(options: ClaimedJobRun): Promise<ClaimedJobRunResult> {
-  const { deps, owner, job, requestId, signal } = options
+  const { deps, owner, job, requestId, signal, crossing } = options
 
   return runClaimedScheduledJob({
     job,
     deps: deps.scheduler,
     signal,
     requestId,
+    crossing,
     ...(owner === undefined ? {} : { owner }),
   })
 }
 
 async function removeJob(
   deps: SchedulerCommandDeps,
-  resolved: SchedulerCommandResult
+  resolved: SchedulerCommandResult,
+  fromOwnRun: boolean
 ): Promise<SchedulerCommandResult> {
   if (resolved.kind !== 'job') {
     return resolved
@@ -346,14 +374,51 @@ async function removeJob(
 
   const job = resolved.job
   const controller = deps.controller()
+  const remove = (): Promise<void> => deps.scheduler.jobStore.remove(job.id)
+
+  // A job removing itself neither waits on its own run (that wait would never end) nor cuts it
+  // short: the row goes once the run has finalized and delivered. The job is disabled and its
+  // alert retired at once, so a delete that never lands (process death, stop timeout) leaves a
+  // disabled row that never fires again.
+  if (fromOwnRun) {
+    await deps.scheduler.jobStore.disable(job.id)
+    await retireEventAlert(deps, job)
+
+    if (controller?.removeAfterRun(job.id, remove) !== true) {
+      await remove()
+    }
+
+    return { kind: 'job', job }
+  }
 
   if (controller !== null) {
     await controller.cancel(job.id)
   }
 
-  await deps.scheduler.jobStore.remove(job.id)
+  await remove()
+  await retireEventAlert(deps, job)
 
   return { kind: 'job', job }
+}
+
+// A price job armed an alert of its own; the alert goes with the job, from whichever surface
+// removed it. A failure is logged, not raised: the job is already gone and the alert would only
+// send its one notice.
+async function retireEventAlert(deps: SchedulerCommandDeps, job: Job): Promise<void> {
+  const alertId = job.event?.alertId
+
+  if (alertId === undefined || deps.scheduler.onEventJobRemoved === undefined) {
+    return
+  }
+
+  try {
+    await deps.scheduler.onEventJobRemoved(alertId)
+  } catch (err: unknown) {
+    deps.scheduler.logger.warn('scheduler.event_alert_disable_failed', {
+      jobId: job.id,
+      err: formatErrForLog(err),
+    })
+  }
 }
 
 async function resolveOwnedJob(options: OwnedJobOperation): Promise<SchedulerCommandResult> {

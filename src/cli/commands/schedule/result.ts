@@ -25,6 +25,10 @@ export function formatJobFailure(input: JobFailureText): string {
     return t(locale, 'cli.scheduleNoJobWithId', { id })
   }
 
+  if (result.kind === 'alert_inactive') {
+    return t(locale, 'cli.scheduleAlertGone')
+  }
+
   if (result.kind === 'ambiguous') {
     return t(locale, 'cli.scheduleAmbiguousJob', { id })
   }

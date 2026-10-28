@@ -1,0 +1,66 @@
+.skip-link {
+  position: absolute;
+  top: var(--s1);
+  left: var(--s1);
+  z-index: var(--zModal);
+  padding: var(--s1) var(--s2);
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--canvas);
+  font-weight: var(--weightSemibold);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* Out of sight like `.sr` until focus reaches one of its buttons. */
+.scene-twin:not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.scene-twin:focus-within {
+  position: absolute;
+  bottom: var(--s2);
+  left: var(--s2);
+  z-index: var(--zPopover);
+  max-width: min(420px, calc(100% - var(--s4)));
+  max-height: 50%;
+  overflow: auto;
+  padding: var(--s2);
+  border-radius: var(--popRadius);
+}
+
+.scene-twin h2 {
+  margin-bottom: var(--s1);
+  font-size: var(--sizeReading);
+}
+
+.scene-twin ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scene-twin button {
+  width: 100%;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font-size: var(--sizeBody);
+  text-align: left;
+  cursor: pointer;
+}
+
+.scene-twin button:hover {
+  background: var(--sunken);
+}

@@ -32,6 +32,7 @@ declare module '@/core/container' {
 
 export interface CoreCommandDeps {
   readonly agents: AgentRegistry
+  readonly ownAgentIds: AgentCommandDeps['ownAgentIds']
   readonly pausedAgents: AgentCommandDeps['pausedAgents']
   readonly memory: Memory
   readonly spend: SpendCommandDeps
@@ -51,6 +52,7 @@ export interface CoreCommandDeps {
 export function createCoreCommands(deps: CoreCommandDeps): readonly SlashCommand[] {
   const agentDeps: AgentCommandDeps = {
     agents: deps.agents,
+    ownAgentIds: deps.ownAgentIds,
     pausedAgents: deps.pausedAgents,
     agentFor: deps.agentFor,
     selectAgent: deps.selectAgent,
@@ -88,6 +90,7 @@ export function createCommandsProvider(
       bind('slashDispatcher', (app) => {
         const dispatcher = createSlashDispatcher({
           keys,
+          bus: app.resolve('bus'),
           logger: app.resolve('logger'),
           transcript: app.resolve('sessionStore'),
           ratePerMinute: app.config.commands.ratePerMinute,

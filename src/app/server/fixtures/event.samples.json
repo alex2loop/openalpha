@@ -4,7 +4,80 @@
     "kind": "run_started",
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
-    "runId": "run_abc"
+    "runId": "run_abc",
+    "run": {
+      "kind": "agent",
+      "name": "chat",
+      "title": "Phân tích FPT",
+      "channelId": "cli",
+      "sessionId": "sess_91d",
+      "startedAt": 1792480010000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_started",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "web-researcher" },
+    "runId": "run_def",
+    "run": {
+      "kind": "agent",
+      "name": "web-researcher",
+      "channelId": "cli",
+      "sessionId": "sess_91d",
+      "parentRunId": "run_abc",
+      "hidden": true,
+      "startedAt": 1792480011000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_started",
+    "weight": "quiet",
+    "source": { "channel": "telegram", "agentId": "" },
+    "runId": "cmd_4f1a",
+    "run": {
+      "kind": "command",
+      "name": "refresh",
+      "channelId": "telegram",
+      "sessionId": "sess_8c2",
+      "startedAt": 1792480000000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_progress",
+    "weight": "quiet",
+    "source": { "channel": "telegram", "agentId": "" },
+    "runId": "cmd_4f1a",
+    "progress": {
+      "key": "trading.progress.refresh.bars",
+      "params": { "market": "equity-vn", "done": 120, "total": 1600 },
+      "text": "equity-vn · Đang tải lịch sử giá - 120/1600 mã…",
+      "mode": "transient",
+      "at": 1792480004000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_progress",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "chat" },
+    "runId": "run_abc",
+    "progress": {
+      "key": "progress.researchStage",
+      "text": "Đang đọc nguồn",
+      "mode": "transient",
+      "at": 1792480012000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_thinking",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "" },
+    "runId": "run_abc",
+    "thinking": "So sánh biên lợi nhuận với nhóm công nghệ"
   },
   {
     "v": 1,
@@ -19,7 +92,25 @@
     "kind": "run_finished",
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
-    "runId": "run_abc"
+    "runId": "run_abc",
+    "outcome": "completed"
+  },
+  {
+    "v": 1,
+    "kind": "run_finished",
+    "weight": "quiet",
+    "source": { "channel": "telegram", "agentId": "" },
+    "runId": "cmd_4f1a",
+    "outcome": "completed",
+    "tickers": ["HPG", "FPT"]
+  },
+  {
+    "v": 1,
+    "kind": "tool_started",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "chat" },
+    "runId": "run_abc",
+    "tool": { "name": "vn_price", "ok": true, "capability": "read" }
   },
   {
     "v": 1,
@@ -27,12 +118,57 @@
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
     "runId": "run_abc",
-    "tool": { "name": "vn_price", "ok": true }
+    "tool": { "name": "vn_price", "ok": true, "capability": "read" }
+  },
+  {
+    "v": 1,
+    "kind": "tool_result",
+    "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "" },
+    "runId": "run_abc",
+    "tool": { "name": "order_place", "ok": false, "capability": "write", "skipped": true }
+  },
+  {
+    "v": 1,
+    "kind": "role_output",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "" },
+    "role": {
+      "ticker": "FPT",
+      "market": "equity-vn",
+      "role": "bull",
+      "stance": "Bullish",
+      "summary": "Cloud revenue keeps growing faster than the sector.",
+      "citations": 3,
+      "unsupported": false
+    }
+  },
+  {
+    "v": 1,
+    "kind": "role_output",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "" },
+    "role": {
+      "ticker": "FPT",
+      "market": "equity-vn",
+      "role": "bear",
+      "stance": "Bearish",
+      "citations": 1,
+      "unsupported": true
+    }
+  },
+  {
+    "v": 1,
+    "kind": "agent_added",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "vn-banks" },
+    "agent": { "agentId": "vn-banks", "name": "VN banks" }
   },
   {
     "v": 1,
     "kind": "approval_requested",
     "weight": "interrupt",
+    "wake": true,
     "source": { "channel": "telegram", "agentId": "chat" },
     "runId": "run_abc",
     "requestId": "call_123",
@@ -42,38 +178,55 @@
       "argsSummary": "ticker: FPT, days: 365",
       "expiresAt": 1792483200000,
       "decisions": ["deny", "approve", "always"],
-      "dangerous": false
+      "channelId": "telegram",
+      "answerable": false,
+      "askedAt": 1792479900000
     }
   },
   {
     "v": 1,
     "kind": "approval_resolved",
     "weight": "quiet",
-    "source": { "channel": "telegram", "agentId": "chat" },
-    "runId": "run_abc",
+    "source": { "channel": "telegram", "agentId": "" },
     "requestId": "call_123",
-    "resolution": { "decision": "approve", "by": "api" }
+    "resolution": { "decision": "approve", "by": "telegram" }
   },
   {
     "v": 1,
     "kind": "clarification_requested",
     "weight": "interrupt",
     "source": { "channel": "telegram", "agentId": "" },
-    "clarification": { "text": "Which broker account?", "sessionId": "tg_123456789" }
+    "runId": "run_abc",
+    "requestId": "ask_77",
+    "clarification": {
+      "text": "Which broker account?",
+      "sessionId": "tg_123456789",
+      "askedAt": 1792479950000,
+      "channelId": "telegram",
+      "answerable": false
+    }
   },
   {
     "v": 1,
     "kind": "budget_warning",
     "weight": "nudge",
-    "source": { "channel": "cron", "agentId": "chat" },
+    "source": { "channel": "api", "agentId": "chat" },
     "budget": { "period": "daily", "spent": 8.4, "cap": 10 }
+  },
+  {
+    "v": 1,
+    "kind": "budget_exhausted",
+    "weight": "interrupt",
+    "wake": true,
+    "source": { "channel": "api", "agentId": "chat" },
+    "note": "Daily spend cap reached.",
+    "budget": { "period": "daily", "spent": 10.02, "cap": 10 }
   },
   {
     "v": 1,
     "kind": "provider_fallback",
     "weight": "quiet",
-    "source": { "channel": "cli", "agentId": "chat" },
-    "runId": "run_abc",
+    "source": { "channel": "cli", "agentId": "" },
     "fallback": { "from": "openrouter/free", "to": "gemini/flash", "reason": "rate", "attempt": 1 }
   },
   {
@@ -92,6 +245,7 @@
     "v": 1,
     "kind": "alert_fired",
     "weight": "nudge",
+    "wake": true,
     "source": { "channel": "api", "agentId": "" },
     "note": "HPG reached 31,000",
     "alert": {
@@ -106,6 +260,7 @@
     "v": 1,
     "kind": "stop_breached",
     "weight": "interrupt",
+    "wake": true,
     "source": { "channel": "api", "agentId": "" },
     "note": "VCB fell below its stop at 90,500",
     "alert": {
@@ -141,6 +296,29 @@
   },
   {
     "v": 1,
+    "kind": "order_filled",
+    "weight": "nudge",
+    "wake": true,
+    "source": { "channel": "api", "agentId": "" },
+    "note": "The stop on BTC filled at OKX: sold 0.05 at 61,200.00 USDT. It is in the ledger.",
+    "fill": {
+      "instrument": { "market": "crypto", "ticker": "BTC" },
+      "venue": "okx",
+      "side": "sell",
+      "quantity": 0.05,
+      "price": 61200,
+      "closeReason": "stop"
+    }
+  },
+  {
+    "v": 1,
+    "kind": "alerts_checked",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "" },
+    "checkedAt": 1792480060000
+  },
+  {
+    "v": 1,
     "kind": "idea",
     "weight": "nudge",
     "source": { "channel": "api", "agentId": "" },
@@ -149,6 +327,54 @@
       "instrument": { "market": "equity-vn", "ticker": "HPG" },
       "action": "buy",
       "conviction": "high"
+    }
+  },
+  {
+    "v": 1,
+    "kind": "idea",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "bank" },
+    "idea": {
+      "suggestionId": "01a1199a-e001-7a00-9c00-000000000003",
+      "instrument": { "market": "equity-vn", "ticker": "ACB" },
+      "action": "buy",
+      "conviction": "medium"
+    }
+  },
+  {
+    "v": 1,
+    "kind": "call_scored",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "FPT call closed on its target: +6.2% net of fees, against +1.1% for VN-Index.",
+    "call": {
+      "suggestionId": "01a1199a-e001-7a00-9c00-000000000001",
+      "ticker": "FPT",
+      "market": "equity-vn",
+      "action": "buy",
+      "status": "target",
+      "returnPct": 0.062,
+      "benchmark": { "ticker": "VNINDEX", "returnPct": 0.011 },
+      "focusKey": "default",
+      "day": "2026-09-10"
+    }
+  },
+  {
+    "v": 1,
+    "kind": "call_scored",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "bank" },
+    "note": "The buy call on VCB from 12/09/2026 hit its stop: -3.1%. It counts in the record. VNINDEX over the same span: -0.4%.",
+    "call": {
+      "suggestionId": "01a1199a-e001-7a00-9c00-000000000002",
+      "ticker": "VCB",
+      "market": "equity-vn",
+      "action": "buy",
+      "status": "stop",
+      "returnPct": -0.031,
+      "benchmark": { "ticker": "VNINDEX", "returnPct": -0.004 },
+      "focusKey": "f-05a184fec6ab1d83",
+      "day": "2026-09-12"
     }
   },
   {
@@ -164,5 +390,50 @@
     "weight": "nudge",
     "source": { "channel": "api", "agentId": "" },
     "note": "Price alerts to telegram are off after repeated failed sends"
+  },
+  {
+    "v": 1,
+    "kind": "notice",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "News on FPT, which you hold: FPT signs a new cloud contract.",
+    "noticeKind": "held-news",
+    "instrument": { "market": "equity-vn", "ticker": "FPT" }
+  },
+  {
+    "v": 1,
+    "kind": "notice",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "VN-Index fell 1.7% in this session.",
+    "noticeKind": "index-drop",
+    "movePct": -1.7
+  },
+  {
+    "v": 1,
+    "kind": "daemon_notice",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "Daemon restarted",
+    "noticeKind": "restart-done"
+  },
+  {
+    "v": 1,
+    "kind": "notices_changed",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "" },
+    "unread": 3
+  },
+  {
+    "v": 1,
+    "kind": "preference_saved",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "chat" },
+    "preference": {
+      "attribute": "constraints",
+      "value": "không dùng margin",
+      "change": "added",
+      "sessionId": "chat_0123456789abcdef0123456789"
+    }
   }
 ]

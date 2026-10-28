@@ -68,7 +68,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `nso` | the statistics office's monthly socio-economic reports, read by the `trading.macro-extract` job | no |
 | `fred-csv` | monthly commodity series no daily feed carries (coal, rice, pork, steel), behind `vndirect` | no |
 | `vietcap-statements` | VN financial statements: full years plus discrete quarters (below) | no |
-| `treasury` `bls` `fred` | US macro series, merged rather than failed over | `fred` needs `FRED_API_KEY` |
+| `treasury` `bls` `fred` | US macro series, merged rather than failed over | `fred` needs `FRED_API_KEY`; `bls` takes an optional `BLS_API_KEY` |
 | `coinpaprika` | the ranked crypto board and seven-day change, keyless, one request; first fallback behind `coinmarketcap`; it measures 24-hour volume lower, so `/screen crypto` says when the ranking came from it or any other fallback | no |
 | `coinmarketcap` `coinlore` | the ranked crypto board the screen picks its universe from, keyless, one request; `coinlore` sits third | no |
 | `coinbase` | the USD price of a settlement coin, from a venue that trades the pair | no |
@@ -90,7 +90,16 @@ CFTC positioning is **weekly and lagged**, and the report says so. It carries th
 
 Macro is the only kind that **merges** instead of failing over: no provider publishes every series, and where two publish the same one, route order decides which wins. The keyless `treasury`/`bls` pair goes first, so an install without keys still reads US macro.
 
-The macro composite renormalizes when published: a series with no reading today does not vote. Each driver publishes its share of the vote actually cast, and its contribution is measured against the score it moved. Published weights sum to one, contributions sum to the score, and partial data shows up in `coverage` and the missing list. When the read sits one lost series above the coverage floor, a note says the next outage would turn the market state defensive; a read already defensive carries no such note. A driver names its unit: rate series are percentages, while the dollar index (Jan-2006 = 100) and the VIX are levels and print without a percent sign.
+The macro composite renormalizes when published: a series with no reading today does not vote. Each
+driver publishes its share of the vote actually cast, and its contribution is measured against the
+score it moved.
+
+- Published weights sum to one, and contributions sum to the score.
+- Partial data shows up in `coverage` and the missing list.
+- When the read sits one lost series above the coverage floor, a note says the next outage would turn
+  the market state defensive. A read already defensive carries no such note.
+- A driver names its unit: rate series are percentages, while the dollar index (Jan-2006 = 100) and
+  the VIX are levels and print without a percent sign.
 
 This holds for what you see, not only what is stored. Shares printed under their whole are rounded together so the column adds up on screen. The same goes for a suggestion's factor contributions under its composite and for the profile's segment targets (renormalized to one). Only rows that print a share take part.
 
@@ -129,81 +138,110 @@ A **quote read** - behind `/price`, the watchlist pulse and every alert tick - h
 
 #### A live quote carries the session so far
 
-A quote from a source with an intraday series carries the session's **high, low and accumulated volume** beside the price, plus when that window opened. A price alone cannot say whether it sits at the high or the low. Three things need to know:
+Some sources publish an intraday series. A quote from one of them brings the session's **high, low and accumulated volume** along with the price, plus the time that window opened. A price on its own cannot tell you whether it sits at the high or the low, and three things need to know:
 
 - alerts compare thresholds against the extremes, not the last print;
 - `/price` shows the day's range beside the number;
 - the standing check asks whether a stored suggestion's levels still pay their own risk.
 
-The range is absent on a settled read and for any source with no intraday series. Nothing infers a range from one close.
+A settled read has no range, and neither does a source without an intraday series. Nothing guesses a range from one close.
 
-Crypto headline rows are measured against the settled close from their own daily series, printed beside the row, not against a rolling 24-hour window that appears nowhere on screen.
+Crypto headline rows are measured against the settled close from their own daily series. That close is printed beside the row. They are not measured against a rolling 24-hour window you never see on screen.
 
-The roll-ups beside those rows come off the market-cap board, where every source publishes a rolling 24 hours. So the mover list and the traded-value ranking are titled by that window, not by a session. The taker-buy share is the exception: it is a settled session's, and it names that session.
+The summaries beside those rows come from the market-cap board, and every source publishes that board over a rolling 24 hours. So the mover list and the traded-value ranking are titled by that window, not by a session. The taker-buy share is the exception: it belongs to a settled session, and it names that session.
 
-The market-size line also counts how many liquid names are up and down over that same rolling day, the one breadth read a market with no session can give. A morning brief at 07:00 in Vietnam shows whether the Asian hours moved the board, not only the two headline names.
+The market-size line also counts how many liquid names rose and fell over that same rolling day. For a market with no sessions, that is the only breadth reading there is. So a morning brief at 07:00 in Vietnam shows you whether the Asian hours moved the whole board, not only the two headline names.
 
-A held or watched name that traded at least 2% above the settled close and is back at or below it is headed *opened up, then gave it all back*. Nothing else changes on the row.
+Say a name you hold or watch traded at least 2% above the settled close, then fell back to it or below. Its row is headed *opened up, then gave it all back*. Nothing else on the row changes.
 
 #### The pulse reads live, twelve names at a time
 
-`/watchlist` and the `cross-asset-pulse` brief section read live quotes the same way, capped at **twelve** instruments and fetched **four at a time**. `/watchlist` quotes the names you follow; the pulse adds every name you hold, deduped. The cap bounds spend and latency; it is not a ranking. A longer list is cut and says so with `market-data.universe-truncated`, so a missing name is explained.
+`/watchlist` and the `cross-asset-pulse` brief section read live quotes the same way: at most **twelve** instruments, fetched **four at a time**.
 
-Each row asks for a live quote. A market not in session answers with its stored close, so the same call is right at 10am and at midnight.
+- `/watchlist` quotes the names you follow.
+- The pulse adds every name you hold, with duplicates removed.
 
-A name whose quote is unsupported, unavailable or non-finite becomes a caveat naming it, never a zero row. A fake price on a pulse line looks exactly like a real one.
+The cap keeps cost and waiting time down; it is not a ranking. A longer list is cut and says so with `market-data.universe-truncated`, so you know why a name is missing.
+
+Each row asks for a live quote. A market that is not in session answers with its stored close, so the same request gives a correct answer at 10am and at midnight.
+
+If a name's quote is unsupported, unavailable or not a real number, you get a caveat naming it, never a row showing zero. A made-up price on a pulse line would look exactly like a real one.
 
 #### A screen is ranked on settled evidence
 
-A board pulled at 11am is ranked through yesterday's close even though its prices are live. The board's date is the market calendar's day at the run instant; the "evidence through" date is the last settled day the ranking actually covers, because today's forming bar is dropped.
+A board pulled at 11am shows live prices, but it is ranked on data up to yesterday's close. Two dates appear:
 
-For a continuous market (crypto, UTC calendar) the board's date is the UTC day, not your local day, and the settled day is always yesterday UTC. Example: 09:44 UTC on 2026-09-09 (16:44 ICT) screens `asOf 2026-09-09` over evidence through `2026-09-08`. From 00:00 to 06:59 ICT your local date already reads one day ahead of the UTC date.
+- the board's date is the market calendar's day at the moment of the run;
+- the "evidence through" date is the last settled day the ranking really covers, because today's unfinished bar is left out.
 
-The result carries `market-data.evidence-settled-only`: the price history runs to the last settled close, and readings the market publishes continuously are current. It names no session, because the board states its own and repeating it would put two stamps on one message.
+A market that never closes (crypto, on a UTC calendar) dates its board by the UTC day, not your local day, and its settled day is always yesterday in UTC. For example, a screen at 09:44 UTC on 2026-09-09 (16:44 ICT) reads `asOf 2026-09-09`, with evidence through `2026-09-08`. Between 00:00 and 06:59 ICT your local date is already one day ahead of the UTC date.
 
-Re-ranking on a partial session would move names up and down the board all morning on volume that has not finished arriving.
+The result carries `market-data.evidence-settled-only`. It means the price history runs to the last settled close, while readings the market publishes all the time are current. It names no session: the board already states its own, and repeating it would put two dates on one message.
+
+Why not rank on today's partial session? Because names would jump up and down the board all morning on volume that has not finished coming in.
 
 #### A session settles when its data does, not when its bell rings
 
-A board stops trading at its close and publishes the closing auction some minutes later. In between, the source answers with a session that looks complete and is missing its last print. On HOSE that meant 18 of the 25 busiest names carried a wrong close and the market's traded value was 10% short.
+A board stops trading at its close, then publishes the closing auction a few minutes later. In between, the source answers with a session that looks complete but is missing its last print. When we measured this on HOSE, 18 of the 25 busiest names had a wrong close and the market's traded value came out 10% short.
 
-So a day counts as settled only once the close **plus the auction lag** has passed. Nothing is stored for a day before then, and the scheduler's own anchor is that same instant. One rule decides what may be stored and what may be served.
+So a day counts as settled only after the close **plus the auction lag** has passed. Nothing is stored for that day before then, and the scheduler times itself from the same moment. One rule decides both what may be stored and what may be shown.
 
-**Declared closes.** A board with an auction has a real close: HOSE strikes its closing price at 14:45, and the lag past it covers the 14:45-15:00 put-through window plus source publication. A dealer board strikes nothing; it is revised until it stops. So its close is an estimate of when revisions end. `gold-vn` uses 17:30 because SJC was measured still revising at 17:15. An estimate that measurement contradicts is moved; a struck price is not.
+**Declared closes.** A board with a closing auction has a real close. HOSE fixes its closing price at 14:45, and the lag after that covers the 14:45-15:00 put-through window plus the time the source takes to publish.
 
-**The domestic gold premium** is why the rule is shared. It prices a static vendor board against world gold, which keeps moving. A point taken between the counter's close and its settle measures a different spread than one taken after, and the series keeps whichever landed first. A day already on file reports as current, not as an update, and `force` is what re-derives it. Without that, the stored premium would stay frozen at the day's first reading while every screen recomputed a newer one.
+A dealer board, such as a gold shop's, fixes nothing: it keeps revising prices until it stops. So its close is an estimate of when the revisions end. `gold-vn` uses 17:30 because SJC was measured still revising at 17:15. If a measurement shows an estimate is wrong, the estimate moves; a fixed exchange close does not.
 
-The live pass writes only settled sessions. A backfill pass then fills the percentile window's other missing days from dated gold boards, priced against the newest world close and FX rate within their lag allowances. A day whose world close or FX rate never arrived is reported as missing, not skipped silently. A day on which the counter published nothing is not counted as missing: it cannot arrive, and counting it would make every pass look short. A vendor that stops publishing altogether is caught by the percentile's own coverage floor.
+**The domestic gold premium** is why every market shares this rule. The premium compares a vendor's fixed board with world gold, which keeps moving. A reading taken between the shop's close and its settle gives a different gap than one taken after, and the series keeps whichever arrived first.
 
-**Stored refresh stamps.** A refresh attempt is stamped with the day it covers, and the next run reuses it instead of refetching. A pass that ran inside the settle gap would stamp a day still forming, and every later run would read that stamp as current. It would not heal on its own: the kind stays pinned to that forming tape until the cadence window moves past it, which across a Friday is three days. So a stamp counts as current only if the day was already final when the pass claimed it, before age is even considered.
+A day already on file is reported as current, not as an update; `force` is what works it out again. Without this rule, the stored premium would stay stuck at the day's first reading while every screen computed a newer one.
 
-**Live prices.** A market's live quote is dropped when its own session is not newer than the settled close, or when its age is more than a closing print or a quiet market can explain. The market owns that call, not the source, the way `gold-vn` already checks board age. How a reading is judged is in [Data sources](data-sources.md). It catches three things that all arrive well-formed:
+The live pass writes only settled sessions. A backfill pass then fills the other missing days in the percentile window from dated gold boards. Each one is priced against the newest world close and FX rate that fall within their allowed lag.
 
-- A venue that halts a pair keeps serving its last trade indefinitely, so levels would anchor an entry on a market that stopped trading.
-- A settled session answers every later request with the close it already holds. A screen would print that as the price the market is making now. On HOSE that is every request from 15:15 to the next open, about three quarters of the day.
-- A feed that stops advancing keeps answering with a bar from hours ago that carries today's date. `/price`, `/overview` and `/market` could each print a different stale index bar, all showing a rise on a session the index spent down.
+- A day whose world close or FX rate never arrived is reported as missing, never skipped quietly.
+- A day on which the shop published nothing is not counted as missing. It can never arrive, and counting it would make every pass look short.
+- A vendor that stops publishing altogether is caught by the percentile's own coverage floor.
 
-In each case the settled close stands instead, correctly dated. A live quote survives only as the last resort for a name the store cannot price at all: a book values on whatever mark it can get, and only the freshness stamp may go missing. Crypto and VN equities answer this way, so a market whose tape is shut still prints a price rather than refusing.
+**Stored refresh stamps.** Each refresh attempt is stamped with the day it covers, and the next run reuses that stamp instead of fetching again. Picture a pass that ran inside the settle gap: it would stamp a day that was still forming, and every later run would treat that stamp as current.
 
-A refusal while the board is open says so. A shut market needs no explanation, but a name whose board is trading and has not printed is a halted ticker, something you can act on. It carries `market-data.quote-not-live` naming the ticker.
+That mistake would not fix itself. The data kind would stay stuck on the unfinished tape until the refresh window moved past it, which over a weekend means three days. So a stamp counts as current only if the day was already final when the pass recorded it. Age is checked only after that.
+
+**Live prices.** A market drops its live quote in two cases: the quote's session is no newer than the settled close, or the quote is older than a closing print or a quiet market can explain. The market makes that call, not the source, in the same way `gold-vn` already checks how old its board is. How a reading is judged is in [Data sources](data-sources.md).
+
+This catches three problems that all arrive looking perfectly normal:
+
+- A venue that halts a pair keeps serving its last trade forever. Levels built on it would set an entry on a market that is no longer trading.
+- After a session settles, every later request gets back the close it already holds. A screen would print that as the price the market is making right now. On HOSE that covers every request from 15:15 to the next open, about three quarters of the day.
+- A feed that stops updating keeps answering with a bar from hours ago that carries today's date. `/price`, `/overview` and `/market` could each print a different old index bar, all showing a rise on a day the index actually fell.
+
+In each case you get the settled close instead, with its correct date. A live quote is kept only as a last resort, for a name the store cannot price at all. Your book is valued on whatever price it can get, and only the freshness stamp may be missing. Crypto and VN equities work this way, so a closed market still prints a price instead of refusing.
+
+If a quote is refused while the board is open, you are told. A closed market needs no explanation. But a name that has not printed while its board is trading is a halted ticker, and that is something you can act on. It carries `market-data.quote-not-live` with the ticker named.
 
 #### The screen marks an excluded name, and never hides one
 
-A name you excluded still ranks and still prints, with `on your exclusion list` on its row. Hiding it would quietly narrow the board without telling you. The actual block sits elsewhere: the `profile-exclusion` stage in the suggestion pipeline and the rebalance candidate list.
+A name you excluded still gets ranked and still prints, with `on your exclusion list` on its row. Hiding it would quietly shrink the board without telling you. The real block happens elsewhere: in the `profile-exclusion` stage of the suggestion pipeline and in the rebalance candidate list.
 
-Nothing from your profile shapes the board itself. Universe, ranking, scores and factors are identical under any profile, so the board carries no profile stamp. A policy header there would imply a filter that never ran.
+Your profile does not shape the board itself. The universe, ranking, scores and factors are the same whatever your profile says, so the board carries no profile stamp. A policy header there would suggest a filter that never ran.
 
-If your profile cannot be read, the board loses its marks, never its rows, and says so with `profile.exclusions-unavailable`. That is what separates "nothing here is excluded" from "we could not check".
+If your profile cannot be read, the board drops its marks but keeps every row, and says so with `profile.exclusions-unavailable`. That is how you tell "nothing here is excluded" apart from "we could not check".
 
 #### Unavailable is an answer
 
-Every source call returns either data with its provenance and caveats, or *unavailable* with a reason - `unconfigured`, `unsupported`, `stale` or `failed` - the sources that were tried, and caveats. Nothing fabricates a number to fill a gap, and nothing breaks because a free source had no coverage.
+Every source call returns one of two things:
 
-Freshness (`live` or `cached`) sits on each provenance row, never as one aggregate: a result built from four sources has no single answer to "is this fresh?".
+- data, with where it came from and any caveats; or
+- *unavailable*, with a reason (`unconfigured`, `unsupported`, `stale` or `failed`), the sources that were tried, and caveats.
 
-A block dated to one session reads every figure in it at that session or drops the ones it cannot. VN breadth counts each name at the settled session and withholds its index-trend figures whenever the index series stops short of it. The index endpoint holds the settled bar back for hours after the shares have theirs, and the block names the session that series actually reached. A heading whose window is missing states the heading alone.
+Nothing invents a number to fill a gap, and nothing breaks because a free source did not cover a name.
 
-That session is what dates the block, never the newest day anything in it reports. The two differ every morning until the refresh lands: the index endpoint publishes today while the stored price history still ends yesterday. Dating by the later one would stamp one session's breadth, turnover, flows, leaders, movers and boards under the next one's date. It would also suppress the note that today's turnover and foreign flow are not measured yet.
+Freshness (`live` or `cached`) is marked on each source row, never as one overall label. A result built from four sources has no single answer to "is this fresh?".
+
+A block dated to one session reads every figure in it at that session, or drops the figures it cannot. Take VN breadth:
+
+- it counts each name at the settled session;
+- the index source publishes its settled bar hours after the shares get theirs, so when the index series stops short, the index-trend figures are held back and the block names the session that series actually reached;
+- a heading whose window is missing prints the heading alone.
+
+That session dates the block, never the newest day any figure in it reports. The two differ every morning until the refresh lands: the index source already shows today, while the stored price history still ends yesterday. Dating by the later day would put one session's breadth, turnover, flows, leaders, movers and boards under the next session's date. It would also hide the note that today's turnover and foreign flow are not measured yet.
 
 Each price row carries its own `closedOn` date. The agent tool groups the same roll-ups under `settledSession`.
 
@@ -249,7 +287,15 @@ A row the book holds is also exempt from the depth ratchet on reuse. Otherwise t
 
 #### Checks on what the debate says
 
-**A refuted claim holds a call only when the call rests on the debate.** A claim the evidence contradicts, arguing for the proposed action, turns a buy or an evidence sale into a hold. A sale under one of the plan's own reasons (`over-target`, `weak-signal`, `over-cap`) never rested on the debate's case, so there the refuted claim is named and lowers conviction instead. On an `over-cap` sale the roles are told which cap was passed (per-name, fund or sector), measured on the whole book, so the room left under another cap does not read as proof that none was passed.
+**A refuted claim holds a call only when the call rests on the debate.**
+
+- A claim the evidence contradicts, arguing for the proposed action, turns a buy or an evidence sale
+  into a hold.
+- A sale under one of the plan's own reasons (`over-target`, `weak-signal`, `over-cap`) never rested on
+  the debate's case. So there the refuted claim is named and lowers conviction instead.
+- On an `over-cap` sale, the roles are told which cap was passed (per-name, fund or sector), measured on
+  the whole book. That way the room left under another cap does not read as proof that none was
+  passed.
 
 **A figure the evidence never printed is named, not judged.** After verification, every number in the material claims is compared by value with the numbers in the evidence. Units (`tỷ`, `bn`, `%` and the rest) are converted, a decimal comma and a decimal point both read, and a figure matches within half its last printed digit, so a rounded restatement still counts. Bare small counts and years are ignored.
 
@@ -275,11 +321,19 @@ None of this changes confidence, levels or size. The reads go to the `[[model_ti
 - `thesis-weakening`
 - `overheated` - longs paying crowded funding.
 - `stale` - a full holding window at cost.
-- `ceiling-close` - a VN stock you hold closed at or just under its daily ceiling. The next open usually gaps up and the weeks after have lagged the market, so your usual first take-profit share is sold at that open; once that open has passed the gap is already paid and nothing is proposed.
+- `ceiling-close` - a VN stock you hold closed at or just under its daily ceiling. The next open usually gaps up, and the weeks after have lagged the market. So your usual first take-profit share is sold at that open. Once that open has passed, the gap has already been paid out and nothing is proposed.
 
 `structure-broken`, `stale` and `ceiling-close` are read on a short-horizon segment only. A long segment is not sold on a ten-session low, a flat quarter or one ceiling close.
 
-When a trim and an evidence reason both fire, the larger sale wins, counted in board lots, and the row carries that reason; a tie goes to the evidence. When the evidence asks for less than one board lot on a position you have not sold from, it holds as `sale-below-board-lot`, not as already sold. `over-target` fires on any drift that clears a board lot, and a name that rose into its own exit signal has drifted that far. Ranking them the other way would put a routine trim's size on a structure the market broke. The debate asks whether to keep or sell, as it does for a trim, and can only decline.
+When a trim and an evidence reason both fire, the larger sale wins, counted in board lots, and the row
+carries that reason. A tie goes to the evidence.
+
+- When the evidence asks for less than one board lot on a position you have not sold from, it holds as
+  `sale-below-board-lot`, not as already sold.
+- `over-target` fires on any drift that clears a board lot, and a name that rose into its own exit
+  signal has drifted that far. Ranking them the other way would put a routine trim's size on a
+  structure the market broke.
+- The debate asks whether to keep or sell, as it does for a trim, and can only decline.
 
 #### Two checks that run first
 
@@ -290,17 +344,23 @@ The pipeline's own stages run ahead of any market's gate, for every market:
 
 #### Signals are settled; the price is live
 
-Factors are computed only on settled bars. On a forming bar a factor would repaint. But the levels stage and the standing check ask for a live quote, so entry, stop and target are built against the price you are looking at.
+Factors are computed only on settled bars, because on an unfinished bar a factor would keep changing. The levels stage and the standing check, though, ask for a live quote. So entry, stop and target are built against the price you are actually looking at.
 
-Each market decides when a live quote can be answered and falls back to the last close, so pre-open and closed sessions are unchanged. Whether a reading is live depends on the session it belongs to, not its timestamp. A closing auction prints after the bell, so once the tape settles the market's own closing print becomes that session's close and the live row is dropped.
+Each market decides when it can give a live quote, and falls back to the last close otherwise, so nothing changes before the open or after the close. Whether a reading counts as live depends on the session it belongs to, not on its timestamp. A closing auction prints after the bell, so once the session settles, the market's own closing print becomes that session's close and the live row is dropped.
 
-Evidence and price can end on different sessions, so every stored row carries an *evidence through* date: the newest settled session its factors and levels were read from. The report's closing lines print it whenever it differs from the run's own day. On a continuous market that is every run, because its bar for the calendar day closes at the next midnight UTC. The call's own date stays the day it was priced, which the reuse identity and the outcome window key on.
+Evidence and price can end on different sessions. So every stored row carries an *evidence through* date: the newest settled session its factors and levels were read from.
+
+- The report's closing lines print it whenever it differs from the run's own day.
+- On a market that never closes, that is every run, because the bar for a calendar day closes at the next midnight UTC.
+- The call's own date stays the day it was priced. Reuse and the outcome window are both keyed on that date.
 
 #### VN specifics
 
-**A VN price outside its own session's band means stale history, not a halted name.** No trade prints outside the band. If the live price lands beyond the band built from the stored close, that close is on an old basis, usually an ex-rights day the source has not adjusted yet. The run holds with `history-not-adjusted` instead of pricing levels on it. This runs ahead of the band-edge block, which would otherwise read the drop as a stock pinned at its floor. The next refresh that sees the restated close rebuilds the name.
+**A VN price outside its own session's band means stale history, not a halted name.** No trade can print outside the daily band. So if the live price lands beyond the band worked out from the stored close, that stored close is on an old basis. Usually it is an ex-rights day the source has not adjusted yet.
 
-**A VN stock's factors print as an "at a glance" checklist** grouped by side: in its favour, against it, then context. Within a group the strongest reading leads. Each row carries its factor's own score gauge and headline readings, never a fixed threshold.
+In that case the run holds with `history-not-adjusted` instead of pricing levels on bad history. This check runs before the band-edge block, which would otherwise read the drop as a stock stuck at its floor. The next refresh that sees the corrected close rebuilds the name.
+
+**A VN stock's factors print as an "at a glance" checklist**, grouped by side: in its favour, against it, then context. Within each group the strongest reading comes first. Each row shows its factor's own score gauge and headline readings, never a fixed pass/fail threshold.
 
 - Growth has no factor of its own, so it prints numbers only, under context. A factor reading near zero sits there too.
 - Profitability and financial health share the quality score, so the second row leaves its gauge blank rather than counting it twice.
@@ -309,7 +369,11 @@ Evidence and price can end on different sessions, so every stored row carries an
 
 Readings the rows do not show stay in the calculation. Any market with a factor the checklist has no row for keeps the factor table.
 
-**The VN market state holds until the score clearly leaves it.** A state is entered at +-0.25 and left only once the score is back inside +-0.15, so a composite hovering on the line does not move deployment every day. `macro.regime-held` says when the band held where the bare score would have flipped. The memory is the last stored rated read within five sessions; an older one means the daemon was off, not that the market was calm. It applies to VN only, the one market that stores its reads.
+**The VN market state holds until the score clearly leaves it.** A state is entered at +-0.25 and left only once the score is back inside +-0.15. That way a score hovering on the line does not change how much you deploy every day.
+
+- `macro.regime-held` tells you when the band held a state that the bare score would have flipped.
+- The state is remembered from the last stored rated reading within five sessions. An older reading means the daemon was off, not that the market was calm.
+- This applies to VN only, the one market that stores its readings.
 
 **A VN fund is read through the index it tracks.** Its two factors read that index. When the index's newest bar is older than the fund's, both carry `factor.input-stale`. Other differences from a share:
 
@@ -319,11 +383,13 @@ Readings the rows do not show stay in the calculation. Any market with a factor 
 
 #### A held name is planned without being asked
 
-A buy recorded with no plan standing gets a levels-only hold row (`recorded-entry`) at its fill price. It is written by the ledger's one write path, so the slash command, the agent's record tool, a venue sync and a mirrored fill all get it. Your write confirmation prints it; the agent's receipt does not.
+When you record a buy and no plan is standing for it, you get a levels-only hold row (`recorded-entry`) at the fill price. The ledger's single write path creates it, so every way in gets one: the slash command, the agent's record tool, a venue sync and a mirrored fill. Your write confirmation prints it; the agent's receipt does not.
 
 The alert tick writes the same row, from the settled close, for any held name nothing watches, and sends one notice.
 
-This is the plan the name is stopped, targeted and trailed against until `/suggest` replaces it. A recorded plan never satisfies the reuse gate or starts a cooldown. A run whose debate never answered (no model key, a role that failed, no budget left) decided nothing: it is shown with the reason but not stored, so it never replaces the plan already standing.
+The name's stop, target and trail follow this plan until `/suggest` replaces it. A recorded plan never counts for the reuse gate and never starts a cooldown.
+
+A run whose debate never answered (no model key, a role that failed, no budget left) decided nothing. It is shown to you with the reason but not stored, so it never replaces the plan already standing.
 
 - A call's plan expires when the outcome tick resolves it; a recorded plan expires once the settled close has passed either level.
 - Either way, the next tick plans afresh from where the name trades, floored at the old stop while that stop is still below the price.
@@ -333,7 +399,7 @@ This is the plan the name is stopped, targeted and trailed against until `/sugge
 
 Each market declares the risk-reward its levels must still pay at the current price. `equity-vn` and `crypto` both use 1:1.
 
-The plan's chase ceiling is that same threshold solved for price: (target + R x stop) / (1 + R). The plan and the reuse check read the same value, so when a market retunes its floor, the price the plan prints and the price the check enforces move together.
+The plan's chase ceiling (the highest price still worth paying) is that same threshold solved for price: (target + R x stop) / (1 + R). The plan and the reuse check read the same value. So if a market changes its floor, the price the plan prints and the price the check enforces move together.
 
 - Above the ceiling, today's answer stands.
 - Below it, or past the stop or target, the row is served with `suggestion.levels-void`. `/suggest <ticker> force` runs a fresh call.
@@ -348,29 +414,51 @@ The plan's chase ceiling is that same threshold solved for price: (target + R x 
 - `reward_risk` - the target as a multiple of the risk;
 - `maximum_stop_loss` - a hard ceiling as a fraction of entry.
 
-`stop_loss_atr` and `reward_risk` replace the market's own value for both horizons. When the ATR stop would sit further out than the ceiling, the stop is pulled in to just inside it, never a tick past. The target and first take-profit are placed off that smaller risk, so reward/risk is unchanged and size grows into the shorter distance. The plan then carries `market.stop-capped`. For `gold-vn` the ceiling counts down from the shop's buy-back price, so the buy/sell gap comes on top.
+`stop_loss_atr` and `reward_risk` replace the market's own value for both horizons.
 
-Setting any of the three adds a suffix to that market's strategy version (`1.0.0+3f9a1c0b`). Plans priced under your keys keep their own track record, are never served back once the keys change, and a held name is re-planned once. A stop only ratchets up, so loosening the keys never lowers a stop you hold. Keys and ranges: [Configuration](configuration.md).
+When the ATR stop would sit further away than the ceiling, the stop is pulled in to just inside it, never a tick past. The target and first take-profit are then placed off that smaller risk. Reward/risk stays the same, and size grows to fit the shorter distance. The plan carries `market.stop-capped`. For `gold-vn` the ceiling counts down from the shop's buy-back price, so the buy/sell gap comes on top.
+
+Setting any of the three adds a suffix to that market's strategy version (`1.0.0+3f9a1c0b`). What that means for you:
+
+- plans priced under your keys keep their own track record;
+- they are never served back once the keys change;
+- a held name is re-planned once;
+- a stop only moves up, so loosening the keys never lowers a stop you hold.
+
+Keys and ranges: [Configuration](configuration.md).
 
 #### A crypto buy after a hot run rests below the quote
 
-When a name has risen 25% or more over its last seven settled sessions, the entry is a buy limit half an ATR under the live quote, standing for five sessions. The stop, take-profit, target and void price are all priced from that limit.
+When a name has risen 25% or more over its last seven settled sessions, the plan does not chase it. The entry becomes a buy limit half an ATR under the live quote, standing for five sessions. The stop, take-profit, target and void price are all priced from that limit.
 
-Measured 2026-10-15 on 81 names' hourly bars, with the limit filled only on a trade through it after it went in: it beat buying at the quote by 2.4% a trade on the plan's own exits (t 3.2, 85% filled). The plan tells you to rest it on the exchange as good-til-cancelled, because `/trade` only places orders that fill on the spot. The rule is the market's level policy, not a setting.
+This was measured on 2026-10-15 over 81 names' hourly bars, counting the limit as filled only when a trade went through it after it was placed. On the plan's own exits it beat buying at the quote by 2.4% a trade (t 3.2, 85% filled).
+
+The plan tells you to rest the order on the exchange as good-til-cancelled, because `/trade` only places orders that fill on the spot. The rule is part of the market's level policy, not a setting.
 
 #### Size
 
-Size is budgeted on the entry stop; the market state scales the whole order. The risk ceiling divides the per-trade budget by the ATR distance from entry to stop, never by a stop that a trail or ratchet moved closer. A tighter exit is not a smaller bet.
+Size is budgeted on the entry stop, and the market state scales the whole order. The risk ceiling divides the per-trade budget by the ATR distance from entry to stop. It never uses a stop that a trail or ratchet later moved closer, because a tighter exit does not make the bet smaller.
 
-The segment's market-state scale reduces the final size alongside confidence and the trader's intent. A defensive read therefore shrinks a buy even when cash is not the binding ceiling. `suggestion.size-scaled-by-regime` says when it was the tightest of the three.
+The segment's market-state scale reduces the final size, alongside confidence and the trader's intent. So a defensive market shrinks a buy even when cash is not what limits it. `suggestion.size-scaled-by-regime` tells you when the market state was the tightest of the three.
 
-Every name in one `/suggest` batch is sized against the same book as it stood before the batch, so each buy fits the cash and open-risk room alone. After the verdicts, "If you took every call above" lists what two or more buys would cross together: a sector or segment ceiling, the cash the book can spend (and, where one market's venues reach less, that market's cash), and the room left under the open-risk ceiling. A sale frees neither cash nor open risk until it settles, so only buys count. It is a note, never a refusal; the open-risk figure reads each buy's stored stop, so a stop lifted to a held one makes it err toward silence.
+Every name in one `/suggest` batch is sized against the same book as it stood before the batch. So
+each buy fits the cash and open-risk room on its own.
+
+After the verdicts, "If you took every call above" lists what two or more buys would cross together:
+
+- a sector or segment ceiling;
+- the cash the book can spend (and, where one market's venues reach less, that market's cash);
+- the room left under the open-risk ceiling.
+
+A sale frees neither cash nor open risk until it settles, so only buys count. This is a note, never a
+refusal. The open-risk figure reads each buy's stored stop, so when a stop was lifted to match a held
+one, the note errs toward saying nothing.
 
 #### Reuse on a market with no session boundary
 
-A crypto day is only a charting convention, so reuse goes by age, not date. A run at 23:00 UTC and one at 01:00 are two hours apart, not two days. A row younger than 4 hours satisfies the gate whichever day it landed in. The cooldown still counts sessions.
+A crypto "day" is only a charting convention, so reuse goes by age, not by date. A run at 23:00 UTC and one at 01:00 are two hours apart, not two days. A row younger than 4 hours passes the gate whichever day it landed on. The cooldown still counts sessions.
 
-A buy also stands until it can no longer be taken as written. Its entry is the live quote, which moves far between runs; re-pricing the same crypto idea each day can move its stop by up to 21%. A run serves the same buy back as `reused` when all of these hold:
+A buy also stands until it can no longer be taken as written. Its entry is the live quote, which can move a lot between runs: re-pricing the same crypto idea each day can shift its stop by up to 21%. A run hands the same buy back as `reused` when all of these are true:
 
 - the newest call on the name is an unresolved buy inside its outcome window;
 - you have not traded the name;
@@ -381,27 +469,42 @@ Anything it cannot read runs fresh, and `force` always does.
 
 #### One focus, one call a day
 
-A suggestion is identified by market, ticker, strategy version, **focus key** and day. Your own calls are the `default` focus. An agent with `[focus]` set stores under a key derived from that table (sorted and de-duplicated, so reordering a list never splits a record).
+A suggestion is identified by market, ticker, strategy version, **focus key** and day. Your own calls use the `default` focus. An agent with `[focus]` set stores its calls under a key built from that table. The key is sorted and de-duplicated, so reordering a list never splits a record.
 
-Everything that reads "the previous call" reads it per focus: the cooldown and reuse gates, the standing thesis a new run checks, and the calibration that sizes a buy. A horizon-only focus must not blend into yours. The exit plan, the verdict `/rebalance` reads and the trail that raises stops read only `default`: one book, one plan. Every focus is scored, and a restated price history voids every focus's open calls on the name.
+Everything that looks up "the previous call" does it per focus: the cooldown and reuse gates, the standing thesis a new run checks, and the calibration that sizes a buy. A focus that only sets a horizon must not mix into yours.
+
+- The exit plan, the verdict `/rebalance` reads and the trail that raises stops read only `default`: one book, one plan.
+- Every focus is scored.
+- A restated price history voids every focus's open calls on that name.
 
 The calibration that tempers conviction and sizes a buy reads only calls whose window has finished, so quick stop-outs cannot make the record look worse than it is.
 
-A name outside the calling agent's focus is refused before any model call, naming the focus. The screen it runs is narrowed to its markets and sectors before ranking, so its board and header count the sector, not the whole market. `/suggest`, the brief, `/suggest stops` and recorded plans are always your own focus.
+A name outside the calling agent's focus is refused before any model call, and the refusal names the focus. The agent's screen is narrowed to its markets and sectors before ranking, so its board and header count the sector, not the whole market. `/suggest`, the brief, `/suggest stops` and recorded plans always use your own focus.
 
-A focus call reads as a second opinion. It opens with that line and carries levels, thesis, debate and caveats, but no size, units, amount, order notes or `/record` hint, and neither its JSON nor its card carries the holding. Acting on one would open a position no plan watches.
+A focus call reads as a second opinion, and opens by saying so. It carries levels, thesis, debate and caveats. It carries no size, units, amount, order notes or `/record` hint, and neither its JSON nor its card shows the holding. Acting on one would open a position that no plan watches.
 
 ### Outcomes and track record
 
-Suggestions are resolved against later bars: `target`, `stop` or `expired`, with the return and, where a benchmark exists, the benchmark's return over the same window. A benchmark read from a stale cache, or one ending more than a session before the exit, gives no comparison rather than one over a shorter span.
+Each suggestion is later checked against the bars that followed it. It ends as `target`, `stop` or `expired`, with its return and, where the market has a benchmark, the benchmark's return over the same window.
 
-**Window.** A call is read at the end of its own holding window. One left pending while the daemon was off past the one-year lookback is still scored as it would have been then. If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it with the rows closed by a restated price history.
+If the benchmark comes from a stale cache, or ends more than a session before the exit, you get no comparison at all rather than one over a shorter span.
 
-A quote prints inside its own session's range. If a call's session bar no longer spans the quote it was priced on, a dividend or split has adjusted the series under it, and the call closes the same way instead of scoring levels on a scale the series has left.
+**Window.** A call is read at the end of its own holding window.
 
-**Fees.** Every resolved return is net of round-trip fees at the venue the market books to by default (each venue's `fees`, through its `default_for`). A VN call pays brokerage and sell tax, a crypto call pays taker fees, and a market with no priced venue pays a flat 0.1%. The outcome formula version separates rows scored either way.
+- A call left pending while the daemon was off, even past the one-year lookback, is still scored as it would have been at the time.
+- If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it together with the rows closed by a restated price history.
 
-**VN limit locks.** A session that traded all day at one price pinned at its limit had no counterparty on one side, and the scorer books nothing on that side.
+A quote always prints inside its own session's range. So if a call's session bar no longer covers the quote it was priced on, a dividend or split has adjusted the series since. The call then closes the same way, instead of scoring levels on a price scale the series no longer uses.
+
+**Fees.** Every resolved return is net of round-trip fees at the market's default venue (each venue's `fees`, through its `default_for`).
+
+- A VN call pays brokerage and sell tax.
+- A crypto call pays taker fees.
+- A market with no priced venue pays a flat 0.1%.
+
+The outcome formula version keeps rows scored with and without fees apart.
+
+**VN limit locks.** When a session trades all day at one price stuck at its limit, nobody was trading on one side. The scorer books nothing on that side.
 
 - Locked at the floor: a long's stop is held until the board reopens, then fills at that session's open or at the stop, whichever is lower.
 - Locked at the ceiling: a buy's entry moves to the open of the next session that trades, and T+2 and the benchmark comparison both count from that fill.
@@ -409,34 +512,76 @@ A quote prints inside its own session's range. If a call's session bar no longer
 - A call the ceiling kept out for its whole window closes `unfilled`: no trade, no result, out of every scored count.
 - A name you hold that closes at or just under the ceiling is proposed for a partial sale at the next open (`ceiling-close`, under Selling a held name).
 
-**Resting buys.** A resting buy fills on the first session that trades below its limit (a touch is not a fill), at that session's open where it opened below. On the call's own day only the move from the quote to the close counts, since the day's low may have printed before the order existed. On the fill session itself the target counts only when the session opened below the limit (a gap fill at the open); a session that opened at or above it filled partway through, and a daily bar cannot say whether its high printed first, so the target is read from the next session. The stop is still tested on the fill session, as it is on every session before the target. A limit unfilled by its last day closes `unfilled` the same way. `/reflect` counts those apart from calls that played out.
+**Resting buys.** A resting buy fills on the first session that trades below its limit (a touch is not
+a fill), at that session's open where it opened below.
 
-The band read is the one stored for the order session, so a new listing's wider first-day band applies to its later sessions too, and a lock in its first weeks can be missed.
+- On the call's own day, only the move from the quote to the close counts, since the day's low may
+  have printed before the order existed.
+- On the fill session itself, the target counts only when the session opened below the limit (a gap
+  fill at the open). A session that opened at or above it filled partway through, and a daily bar
+  cannot say whether its high printed first. So the target is read from the next session.
+- The stop is still tested on the fill session, as it is on every session before the target.
+- A limit unfilled by its last day closes `unfilled` the same way. `/reflect` counts those apart from
+  calls that played out.
 
-**What the track record shows.** It opens with the calls it is drawn from: how many suggestions were made, how many played out, how many are open, and how many sit on a market with no price series and can never be scored. Then it reports win rate, mean and median return, the benchmark comparison and **calibration by confidence band**. A rate without its denominator says nothing. If high-confidence calls win no more often than low-confidence ones, that is the number worth seeing next to the headline.
+The band used is the one stored for the order session. So a new listing's wider first-day band also applies to its later sessions, and a lock in its first weeks can be missed.
 
-Every rate counts independent calls. A call repeating one still open on the same name and side rides the same move, so it is folded into the first. The brief re-issues a held idea every session, and each row would otherwise count as another outcome. `/reflect` says how many it folded. The per-focus and per-agent records below fold the same way, each over its own focus's calls (as `/reflect` reads one focus), so a focus reaches the reporting minimum on independent calls and its sample matches what `/reflect` says for it.
+**What the track record shows.** It starts with the calls it is drawn from:
+
+- how many suggestions were made;
+- how many played out;
+- how many are still open;
+- how many sit on a market with no price series and can never be scored.
+
+Then it reports win rate, mean and median return, the benchmark comparison and **calibration by confidence band**. A rate without its denominator tells you nothing. And if high-confidence calls win no more often than low-confidence ones, that is the number worth reading next to the headline.
+
+Every rate counts independent calls. A call that repeats one still open, on the same name and side, rides the same price move, so it is folded into the first. The brief re-issues a held idea every session, and without folding each of those rows would count as a separate outcome. `/reflect` says how many it folded.
+
+The per-focus and per-agent records below fold the same way, each over its own focus's calls (just as `/reflect` reads one focus). So a focus reaches the reporting minimum only on independent calls, and its sample matches what `/reflect` reports for it.
 
 The range next to each rate shows how sure that number is: with few calls it is wide, and two rates whose ranges overlap are not really different.
 
-`/reflect` also says what you did with the calls that played out, read from the ledger when the report is made and never stored. A call counts as taken when a fill on its side of the same instrument landed between its order session and the day it was scored out. It prints two figures, each only once its group reaches the track record's reporting minimum:
+`/reflect` also says what you did with the calls that played out. It reads this from the ledger when the report is made and never stores it. A call counts as taken when a fill on its side, on the same instrument, landed between its order session and the day it was scored out. It prints two figures, each only once its group reaches the track record's reporting minimum:
 
 - the average return of taken calls against passed-on ones;
 - the mean gap between each fill and the suggested entry (implementation shortfall; positive means a worse fill).
 
-A VN gold fill is recorded in the shop's unit while its suggestion is quoted per tael, so check one recorded gold buy against its suggestion before trusting the shortfall line for gold.
+A VN gold fill is recorded in the shop's unit, while its suggestion is quoted per tael. Before you trust the shortfall line for gold, check one recorded gold buy against its suggestion.
 
 #### The board's own record
 
-Suggestions are a handful of names a session; the screen scores a hundred. Every settled session the daemon logs each market's whole board, one per kind it ranks, so VN funds are logged beside shares (composite, factor scores, close and the providers the board was read from) and scores each row on its close-to-close return over the market's own horizon window, against the benchmark where the market names one. Both closes come off the series as it stands when the row is scored, so a later dividend or split moves neither. No stop, no target, no fees: this measures the evidence, not a trade. Each row names its providers so a session a fallback answered can be measured apart, and on a market with several boards it names the kind it was ranked as, so a fund's composite can be measured apart from a share's; rows logged before this carry neither.
+Suggestions are a handful of names a session; the screen scores a hundred. So every settled session,
+the daemon logs each market's whole board, one per kind it ranks. VN funds are logged beside shares,
+with the composite, factor scores, close and the providers the board was read from.
 
-`/reflect` prints it as a second attribution block. It is the sample the factor weights and confidence bands are fitted to as it grows. Each factor is scored per strategy version, newest two per market, because a version change redefines what the factor measures.
+- Each row is scored on its close-to-close return over the market's own horizon window, against the
+  benchmark where the market names one.
+- Both closes come off the series as it stands when the row is scored, so a later dividend or split
+  moves neither.
+- No stop, no target, no fees: this measures the evidence, not a trade.
+- Each row names its providers, so a session a fallback answered can be measured apart. On a market
+  with several boards it names the kind it was ranked as, so a fund's composite can be measured apart
+  from a share's. Rows logged before this carry neither.
 
-A research script measures the VN factors on history ([developer page](dev/trading.md)). Measured over 2025-01 to 2026-07, it is why the VN stock composite carries no `size` or `sector-strength`, why `quality` is read but carries no weight in the score, and why the confidence cut points are fitted on its 75 weekly boards. Over that stretch a sector that had already run picked weaker names, and the best-run businesses did not beat the board; both pulled medium-confidence buys back to where low ones sat. The population is today's listings, so read it as a shape. Quality still prints on the profit and health lines, still shortlists theme names, and still decides a long holding's thesis sale where no annual report scores.
+`/reflect` prints it as a second attribution block. As it grows, it becomes the sample the factor weights and confidence bands are fitted to. Each factor is scored per strategy version, the newest two per market, because a new version can change what the factor measures.
 
-A name that stops trading while its market's benchmark keeps printing resolves at its last close, marked as stopped, once the benchmark has printed ten sessions without it and has reached the window end. `/reflect` says how many. Nothing is imputed.
+A research script measures the VN factors on history ([developer page](dev/trading.md)). Measured over
+2025-01 to 2026-07, it explains three choices:
 
-A name the market's listing still calls active waits thirty sessions instead of ten. The listing comes from a different source than the bars, so a feed that loses one name's series gets six weeks to be repaired before it reads as a stop. A suspension the listing never reports still books.
+- why the VN stock composite carries no `size` or `sector-strength`;
+- why `quality` is read but carries no weight in the score;
+- why the confidence cut points are fitted on its 75 weekly boards.
+
+Over that stretch, a sector that had already run picked weaker names, and the best-run businesses did
+not beat the board. Both pulled medium-confidence buys back to where low ones sat. The population is
+today's listings, so read it as a shape, not a precise figure.
+
+Quality still prints on the profit and health lines, still shortlists theme names, and still decides a
+long holding's thesis sale where no annual report scores.
+
+Sometimes a name stops trading while its market's benchmark keeps printing. Once the benchmark has printed ten sessions without it and reached the window end, the call resolves at the name's last close, marked as stopped. `/reflect` says how many. Nothing is filled in by guesswork.
+
+If the market's listing still calls the name active, it waits thirty sessions instead of ten. The listing comes from a different source than the bars, so a feed that loses one name's series gets six weeks to be fixed before the name reads as stopped. A suspension the listing never reports is still booked.
 
 #### Records per focus, and agreement
 
@@ -463,19 +608,21 @@ The `suggestion_track_record` tool returns the asking agent's own focus record a
 
 **Alerts** are price thresholds (`above` / `below`) that fire once and deliver to a channel.
 
-**Delivery.** Each claim on a delivery expires after 60 seconds. A failed send is tried three times, waiting 30 seconds and then a minute between tries, then that delivery is given up rather than retried forever:
+**Delivery.** Each claim on a delivery expires after 60 seconds. A failed send is tried three times, waiting 30 seconds and then a minute between tries. After that, the delivery is given up instead of being retried forever:
 
-- a system-armed alert is disabled, then armed again once 15 minutes have passed while its level is still expected, since the notice never reached you; one a reconcile pass disabled stays retired for as long as its row is kept (`[retention] days`);
+- a system-armed alert is disabled. Because the notice never reached you, it is armed again after 15 minutes if its level is still expected. One that a reconcile pass disabled stays retired for as long as its row is kept (`[retention] days`);
 - a brief's day is dropped and tomorrow's is scheduled;
-- an alert you created with `/alert` is never disabled for a failed send. It is yours alone and nothing re-arms it, so it keeps retrying, doubling the wait each time up to an hour between tries, until the channel accepts it or you run `/alert disable`.
+- an alert you created with `/alert` is never disabled for a failed send. It is yours alone and nothing else would re-arm it. So it keeps retrying, doubling the wait each time up to an hour between tries, until the channel accepts it or you run `/alert disable`.
 
-A chat whose pairing was revoked with `pair revoke` is different: no retry can reach it, so at the first refused send the alert is disabled, yours or system-armed alike, and so is the morning brief. Exit and screener alerts go to the brief's chat, so while that chat stays revoked they are not armed, even if the brief was already off; pair the chat again, or run `/brief enable` from another chat, and they are armed again.
+A chat whose pairing was revoked with `pair revoke` is different, because no retry can reach it. At the first refused send the alert is disabled, whether you made it or the system armed it, and so is the morning brief.
+
+Exit and screener alerts go to the brief's chat. So while that chat stays revoked they are not armed, even if the brief was already off. Pair the chat again, or run `/brief enable` from another chat, and they are armed again.
 
 **Evaluation** is bounded and shared:
 
 - A tick pages through every active alert, so a stop or target is checked each minute however many are live.
 - One quote is fetched **per instrument per tick** and reused by every alert watching that name. That is faster and kinder to the source's rate limit. It lives for one tick only.
-- Thresholds compare against the **session's high and low**, not just the last price, so a level touched between two polls still fires. An alert created after its session opened reads the last price alone for that session, because the extremes include moves from before it was watching.
+- Thresholds compare against the **session's high and low**, not just the last price, so a level touched between two checks still fires. An alert created after its session opened reads only the last price for that session, because the high and low include moves from before it was watching.
 - Alerts on a hard-closed market (a weekend, the lunch break) are skipped rather than burning live quotes. Pre-open and post-close still evaluate against the settled close.
 - A missing or non-finite quote leaves the alert active and reports why. An alert that silently stops watching is worse than one that says it could not look.
 
@@ -486,13 +633,19 @@ A chat whose pairing was revoked with `pair revoke` is different: no retry can r
 | Each actionable suggestion behind a position you hold (exit alerts) | The plan's stop as trailed today, and its target |
 | Every watchlist and held name (screener alerts) | One band either side of the settled close |
 
-A market that declares a trail raises the stored stop every settled session. The raised level arms as a new alert and the old one retires. A write that fails is tried again on the next tick rather than waiting for the next session. A same-day `/suggest` re-run that replaces a buy keeps the level the trail had reached when it sits above the new plan's stop: a stop never moves down.
+A market that declares a trail raises the stored stop every settled session. The raised level arms as a new alert, and the old one retires. If that write fails, it is tried again on the next tick instead of waiting for the next session.
 
-One alert tick delivers what is due first, then runs the two arming passes, each on its own. A failing pass is logged (`trading.alert_arming_failed`) and the other still runs, so price alerts keep delivering whatever the arming passes do. Inside the exit pass one holding's planning failure is logged with its ticker (`trading.exit_holding_failed`) and that holding keeps the plan it had, while the other holdings are planned as usual. A failure of the delivery step itself still stops the loop, as before.
+If you re-run `/suggest` the same day and it replaces a buy, the level the trail had already reached is kept whenever it sits above the new plan's stop. A stop never moves down.
 
-Both passes **reconcile** rather than append: they work out which alerts should exist now, arm what is missing, and disable what is no longer expected. An exit alert follows the book, so a ledger edit that re-bases positions enables or disables alerts on the next tick. A screener band is tied to its settled day, so yesterday's bands retire on the first tick after the next settle.
+One alert tick first delivers what is due, then runs the two arming passes, each on its own.
 
-The screener band is `average daily range x breakout_range` either side of the settled close, measured over `breakout_sessions` (both under `[trading.alerts]`). They govern when you are notified, not what a suggestion means. A name with fewer than five usable sessions in the window arms nothing: an average built on missing history fires on noise.
+- If one pass fails, it is logged (`trading.alert_arming_failed`) and the other still runs. Price alerts keep delivering whatever happens to the arming passes.
+- Inside the exit pass, if planning fails for one holding, that failure is logged with its ticker (`trading.exit_holding_failed`). That holding keeps the plan it had, and the other holdings are planned as usual.
+- If the delivery step itself fails, the loop still stops, as before.
+
+Both passes **reconcile** instead of only adding: they work out which alerts should exist now, arm what is missing, and disable what is no longer needed. An exit alert follows the book, so a ledger edit that changes your positions turns alerts on or off on the next tick. A screener band belongs to its settled day, so yesterday's bands retire on the first tick after the next settle.
+
+The screener band is `average daily range x breakout_range` on either side of the settled close, measured over `breakout_sessions` (both under `[trading.alerts]`). These settings decide when you are notified, not what a suggestion means. A name with fewer than five usable sessions in the window arms nothing, because an average built on missing history fires on noise.
 
 **Briefs** are the one daily run: a single pre-open morning brief. There is no after-close run. Resolved suggestions and fired alerts fold into the next morning's brief.
 
@@ -501,9 +654,29 @@ The screener band is `average daily range x breakout_range` either side of the s
 
 The two are kept apart because only one of them is a problem.
 
-The brief opens with one **market story**, found by code with no model call and no cost, and a look back at earlier ones. The look back checks the watch conditions of a story told on an earlier session against today's figures and says whether the story held. Above the verdict, the story names one thing the Vietnamese market did that is out of the ordinary, in a hook, the figures behind it, a reading marked as inference, what could make that reading wrong, and what to watch next. A story is told once, on the first session it appears; while it keeps going, the look back carries it, and once the look back has let it go the brief says it is still going on and for how many sessions. A session with nothing unusual prints a single quiet line; a session whose only signals are stories already told says there is no new story instead, and says nothing more when the look back above already carries every one of them. The story reads only the market and the last settled session, never your book and never a live price, and it is absent when the brief has no Vietnamese market block: the segment is switched off and you hold and watch no Vietnamese name.
+The brief opens with one **market story**, found by code with no model call and no cost, and a look
+back at earlier ones.
 
-A brief reads in this order: an **operator** block opening with the book (what you hold, before any market commentary); one **market** block per market, headed by that market's own name and glyph and carrying only the sections that market publishes; and an **actions** block last.
+- **The look back** checks the watch conditions of a story told on an earlier session against today's
+  figures, and says whether the story held.
+- **The story** names one thing the Vietnamese market did that is out of the ordinary. It has a hook,
+  the figures behind it, a reading marked as inference, what could make that reading wrong, and what
+  to watch next.
+- A story is told once, on the first session it appears. While it keeps going, the look back carries
+  it. Once the look back has let it go, the brief says it is still going on and for how many sessions.
+- A session with nothing unusual prints a single quiet line. A session whose only signals are stories
+  already told says there is no new story instead, and says nothing more when the look back above
+  already carries every one of them.
+
+The story reads only the market and the last settled session, never your book and never a live price.
+It is absent when the brief has no Vietnamese market block: the segment is switched off and you hold
+and watch no Vietnamese name.
+
+A brief reads in this order:
+
+1. an **operator** block that opens with your book, so you see what you hold before any market commentary;
+2. one **market** block per market, headed by that market's own name and glyph, with only the sections that market publishes;
+3. an **actions** block last.
 
 | Block | Sections |
 |---|---|
@@ -517,7 +690,7 @@ A brief reads in this order: an **operator** block opening with the book (what y
 
 The two level sections, `fired-alerts` and `position-exits`, print a VN stock's levels in board points, as `/portfolio` and `/alert` do; the scale is stated once at the foot of the brief.
 
-Each market publishes only the per-market sections it has data for, so adding a market adds its block and no new section. A market that publishes its own composite and does not own its region (crypto) carries it on its own `/overview` block, with the same score, driver, missing and coverage rows. The region read above it is the owner's.
+Each market publishes only the per-market sections it has data for, so adding a market adds its block and no new section. Crypto publishes its own composite but does not own its region. It shows that composite on its own `/overview` block, with the same score, driver, missing and coverage rows, while the region reading above it belongs to the region's owner.
 
 **Reading order.** Every report opens with its answer and closes with its fine print:
 
@@ -534,11 +707,29 @@ Each market publishes only the per-market sections it has data for, so adding a 
 - A suggestion draws none. A fresh plan's first take-profit sits one risk unit above entry, so the dot would always sit in the middle and say nothing.
 - Tool results relayed by the model print plain wording, with no glyphs to copy.
 
-**Segment bars** appear only on phones, under each segment's head line: 20 cells of 5% of NAV, so bars compare across rows. `█` is held (`▌` a half cell) and `○` is the one level the row is read against: the target in `/rebalance`, the cap in `/portfolio`. A legend under each table names it. The `○` is hollow so it stays visible inside the filled part. The REPL keeps the plain grid, whose aligned numbers already carry the reading. `/profile` draws no bar: it shows settings, not holdings.
+**Segment bars** appear only on phones, under each segment's head line. Each bar is 20 cells of 5% of NAV, so bars compare across rows.
 
-**Next index rebalance.** The brief names the next FTSE GEIS or VN30 rebalance session, worked out from the review rule rather than a maintained list. On the eve, every VN suggestion on an index constituent carries the date as a caveat. On the session itself a new buy is refused and held names read the caveat instead. There is no setting: the dates are the exchange's.
+- `█` is what you hold (`▌` is a half cell).
+- `○` is the one level the row is read against: the target in `/rebalance`, the cap in `/portfolio`. A legend under each table names it. The `○` is hollow so it stays visible inside the filled part.
 
-**Suggestion sections run last and cost the most**, on the brief's own share of the budget. If it runs out, those sections are lost, never the whole brief. Each runs a **lean** debate over every held name in its scope first, then the watchlist: `suggestions` for VN, `cross-asset-suggestions` for every other market. A name whose debate never finished (no key, a failed role, no budget left) reads NO CALL with no confidence beside it, not WAIT: nothing was decided, and the plan already in place keeps watching it. A call served from earlier in the day, on a book you have changed since, is named once at the end of the brief with `/suggest <ticker> force` to redo it.
+The REPL keeps the plain grid, whose aligned numbers already tell the story. `/profile` draws no bar, because it shows settings, not holdings.
+
+**Next index rebalance.** The brief names the next FTSE GEIS or VN30 rebalance session, worked out from the review rule rather than from a list someone maintains.
+
+- The day before, every VN suggestion on a stock in the index carries the date as a caveat.
+- On the session itself, a new buy is refused and held names show the caveat instead.
+
+There is no setting for this: the dates are the exchange's.
+
+**Suggestion sections run last and cost the most**, on the brief's own share of the budget. If it runs
+out, those sections are lost, never the whole brief.
+
+- Each runs a **lean** debate over every held name in its scope first, then the watchlist:
+  `suggestions` for VN, `cross-asset-suggestions` for every other market.
+- A name whose debate never finished (no key, a failed role, no budget left) reads NO CALL with no
+  confidence beside it, not WAIT. Nothing was decided, and the plan already in place keeps watching it.
+- A call served from earlier in the day, on a book you have changed since, is named once at the end of
+  the brief with `/suggest <ticker> force` to redo it.
 
 A held name is never cut, because its run is what re-prices the plan:
 
@@ -551,19 +742,55 @@ A name already suggested today is served from its row at no cost.
 
 `next-actions` runs after everything because it reads the other sections' real results. It suggests `/rebalance` only when something drifted and `/alert` only when one fired.
 
-What the read cost sits below a rule at the very end, since it belongs to the whole brief. The per-market split stops a figure being reported twice under two headings: the domestic gold premium belongs to `gold-vn`'s block, futures positioning to `gold`'s.
+What the brief cost sits below a rule at the very end, since it belongs to the whole brief. Splitting by market keeps a figure from being reported twice under two headings: the domestic gold premium belongs to `gold-vn`'s block, and futures positioning to `gold`'s.
 
-**Timing.** The default send time is 08:15 in the **market's** timezone (08:15 in Ho Chi Minh City, not 08:15 UTC and not wherever you are). A brief is only sent while the session is pre-open (a market that trades round the clock, or a day it is shut, counts as pre-open), so one is never built or sent mid-session or after the close, and a pre-flight check confirms the previous session produced a bar before any tokens are spent.
+**Timing.** The default send time is 08:15 in the **market's** timezone: 08:15 in Ho Chi Minh City, not 08:15 UTC and not wherever you happen to be.
 
-After downtime the missed mornings are not replayed. A scheduled day that has already passed is skipped with a `trading.brief_stale_day_skipped` warning and the schedule moves to today. Today's brief still goes out late if the daemon starts after the send time but before the open. If the daemon starts after the open, or a retry lands after it, today's brief is skipped with a `trading.brief_past_open_skipped` warning, the chat gets one line saying so, and the next morning's is due. A brief whose build starts before the open but finishes after it is still sent, with a first line saying prices have moved since it was written.
+A brief is only sent before the open. A market that trades round the clock, or a day the market is shut, counts as before the open. So a brief is never built or sent mid-session or after the close. Before any tokens are spent, a quick check confirms the previous session produced a bar.
 
-A day whose three delivery attempts all fail is given up, not the subscription. The schedule moves to tomorrow, `trading.brief_day_abandoned` is logged, and a notice says today's brief was dropped (sent best-effort through the channel that just failed, so it may not arrive). Only `/brief disable` turns the morning brief off.
+After downtime, the missed mornings are not replayed.
+
+- A scheduled day that has already passed is skipped with a `trading.brief_stale_day_skipped` warning,
+  and the schedule moves to today.
+- Today's brief still goes out late if the daemon starts after the send time but before the open.
+- If the daemon starts after the open, or a retry lands after it, today's brief is skipped with a
+  `trading.brief_past_open_skipped` warning. The chat gets one line saying so, and the next morning's
+  is due.
+- A brief whose build starts before the open but finishes after it is still sent, with a first line
+  saying prices have moved since it was written.
+
+If all three delivery attempts fail, that day is given up, not your subscription. The schedule moves to tomorrow, `trading.brief_day_abandoned` is logged, and a notice says today's brief was dropped. That notice is sent best-effort through the channel that just failed, so it may not arrive. Only `/brief disable` turns the morning brief off.
 
 - `/brief enable 07:30` sets your own time.
 - `/brief enable` with no time follows `[trading.briefs] send_time`, so editing config later still moves the brief.
-- Enabling again after today's brief went out starts tomorrow, and is refused while a brief is being sent. The refusal is held at the write, so a send that starts between the check and the enable keeps its claim and the command says a brief is being sent.
+- Enabling again after today's brief went out starts tomorrow. It is refused while a brief is being sent. That refusal is checked at the moment of writing, so a send that starts between the check and the enable keeps going, and the command tells you a brief is being sent.
 - `/brief` alone shows the latest brief, building one if none exists.
 - `/brief disable` stops delivery.
+
+#### Readings that stay in the bell
+
+Three kinds of reading go to the bell in the app and to no chat, so a quiet day stays quiet on your phone: scored calls, news on names you hold, and a hard drop in the region's index. To get one in your chat as well, add its kind to
+`[notices] chat` in `config.toml`: `call-scored`, `held-news` or `index-drop`. Any other
+name stops the daemon at start and lists the valid ones. Nothing else the daemon sends to a chat changes.
+
+- **A call was scored.** When the track record closes a call you were given, at its target, its stop or its expiry,
+  you hear about it once. You see the result net of fees, next to how the market's own benchmark did over the same
+  span where the market names one.
+  - Only a call whose window ended within the last couple of days is reported, so the first pass after an upgrade
+    does not flood the bell with old results.
+  - Only calls in your own record reach the bell or a chat. A second opinion from an agent with its own focus shows
+    only live on the office page, at that agent.
+  - The card for that call has the full picture.
+- **News on a name you hold.** One notice per held name per day, with the headline and its source, for a story
+  published that day. An older story the daemon archives later is not announced.
+  - It covers only names the daemon has already read. Headlines are archived when a `/suggest` or a chat about the
+    name reads them; nothing fetches news for your holdings on a schedule.
+  - After a restart it does not repeat the day's headlines.
+- **The index falling hard.** When the region's index is down at least 1.5% in a session. It fires once per session,
+  and is checked every few minutes while that session runs.
+  - It says how many of your holdings in that index's market are down, counted only from a live quote of this
+    session, and whether any has broken its stop.
+  - If some holdings could not be priced, it says how many it could not check, and never claims that none broke.
 
 ### Themes
 
@@ -585,18 +812,38 @@ Commands:
 
 The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]` otherwise.
 
-**Code scores, the model reads.** A theme, sector or company score is arithmetic over the model's ratings and the run's figures, never a number the model produced. It carries a confidence showing how much of the read it stands on. A proposal is judged on its own case and must name the sectors that stand to gain; it lists every condition that would end it, so approving it approves the exit too. When a check cannot reach a tracked theme's sectors, the report keeps the sectors and companies from the check before and says which one. Stock opportunities list only names read with at least medium confidence; a low-confidence name, such as one with no P/E to value it on, stays under its sector, marked. A tracked theme whose sector check found no sector that gains scores no reach, rather than leaving that part out; a check that failed leaves it out. The "was" beside a score only compares scores made the same way, and an ended theme shows its reason, not its odds.
+**Code scores, the model reads.** A theme, sector or company score is arithmetic over the model's
+ratings and the run's figures, never a number the model produced. It carries a confidence showing how
+much of the read it stands on.
 
-**Earnings are a base case.** A read prints `base case earnings per share (EPS) {growth} over {months} months`, the growth signed, with no probability attached. A target P/E is refused only when it is above the name's own five-year high. Readings above the hard cap of 200 are left out of the range.
+- A proposal is judged on its own case and must name the sectors that stand to gain. It lists every
+  condition that would end it, so approving it approves the exit too.
+- When a check cannot reach a tracked theme's sectors, the report keeps the sectors and companies from
+  the check before, and says which one.
+- Stock opportunities list only names read with at least medium confidence. A low-confidence name,
+  such as one with no P/E to value it on, stays under its sector, marked.
+- A tracked theme whose sector check found no sector that gains scores no reach, rather than leaving
+  that part out. A check that failed leaves it out.
+- The "was" beside a score only compares scores made the same way, and an ended theme shows its
+  reason, not its odds.
 
-**Each stock read is scored later.** The `theme-outcomes` job compares it with VN-Index at 3, 6 and 12 months from stored bars (no model call), and `/themes show` prints how each score band has done. A name or sector read under several themes in one run counts as one bet, at the mean of its scores. Each score bucket prints its result vs VN-Index once it holds 20 reads; whether high scores beat low ones is judged only when every bucket has its 20. Only reads scored the current way count, so a change to the score weights starts a fresh record. A name listed for under a year is measured too, from its close on the day it was read.
+**Earnings are a base case.** A read prints `base case earnings per share (EPS) {growth} over {months} months`, with the growth signed and no probability attached. A target P/E is refused only when it is above the name's own five-year high. Readings above the hard cap of 200 are left out of the range.
 
-**Code keeps the model honest.** Code builds the evidence bundle and mints every id in it (`M1`, `C3`, `N12`); the model only cites them. The theme analyst is the only trading persona with a tool, `research`.
+**Each stock read is scored later.** The `theme-outcomes` job compares it with VN-Index at 3, 6 and 12
+months from stored bars (no model call), and `/themes show` prints how each score band has done.
+
+- A name or sector read under several themes in one run counts as one bet, at the mean of its scores.
+- Each score bucket prints its result vs VN-Index once it holds 20 reads. Whether high scores beat low
+  ones is judged only when every bucket has its 20.
+- Only reads scored the current way count, so a change to the score weights starts a fresh record.
+- A name listed for under a year is measured too, from its close on the day it was read.
+
+**Code keeps the model honest.** Code builds the evidence bundle and gives every item in it an id (`M1`, `C3`, `N12`); the model can only cite those ids. The theme analyst is the only trading persona with a tool, `research`.
 
 - It updates `active` and `weakening` themes one at a time, then proposes new ones against the titles and theses already known.
 - A claim citing an id the bundle lacks is dropped, the model is re-asked once, and a read still without counter-evidence is dropped.
 - A proposal needs two origins of support, one of them macro or commodity, and one to three sectors that gain.
-- A proposal's end conditions are asked to name a figure, a threshold and a period, to watch a driver or a sector that gains, and not to hold already. The rule is in the prompt; code does not check it.
+- A proposal's end conditions are asked to name a figure, a threshold and a period, to watch a driver or a sector that gains, and not to be true already. That rule lives in the prompt; code does not check it.
 - A theme is marked `invalidated` only when one of its own conditions is backed by hard data. Its sectors and companies are no longer read, and the report suggests `/themes retire <id>`.
 - Only you make a theme `active`, reject it or retire it.
 
@@ -606,11 +853,22 @@ The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]`
 - A budget halt ends the stage and names the steps it skipped.
 - A board that cannot be read skips the company stage and reports a `screen` gap.
 - Each theme starts from its own latest read, so the last run is never the whole picture.
-- News is every headline archived since the oldest last read among the themes in the run, whenever it was published, so a story archived late is not missed. A theme read more recently than that may see a few headlines again.
+- News is every headline archived since the oldest last read among the run's themes, whenever it was published, so a story archived late is not missed. A theme read more recently than that may see a few headlines twice.
 
-**From theme to company.** For each `active` theme, code reads the board, the sectors, the stored quarters and one day of valuation ratios once. The analyst maps the theme to at most three ICB super-sectors, each with a cited counter claim. Code then shortlists at most five names per sector from the board's survivors whose quality factor fired, dropping weak Piotroski scores, Beneish flags, negative free cash flow and non-positive return on invested capital. The analyst reads the names three at a time, without `research`.
+**From theme to company.** For each `active` theme, it works in four steps:
 
-**Company reads are checked.** Code re-asks once, then drops the name with a note, when a stock read's scenario odds do not sum to 100, its target P/E is above the name's five-year high, or an "earnings" verdict cites no accounts figure. Code, not the model, computes crowding and earnings surprise: an unread signal never makes a name crowded, and a name whose newest quarter is more than two behind the calendar is not read.
+1. Code reads the board, the sectors, the stored quarters and one day of valuation ratios, once.
+2. The analyst maps the theme to at most three ICB super-sectors, each with a cited counter claim.
+3. Code shortlists at most five names per sector, from the board's survivors whose quality factor fired. It drops weak Piotroski scores, Beneish flags, negative free cash flow and non-positive return on invested capital.
+4. The analyst reads the names three at a time, without `research`.
+
+**Company reads are checked.** Code re-asks once, and then drops the name with a note, when a stock read:
+
+- has scenario odds that do not add up to 100;
+- has a target P/E above the name's five-year high; or
+- gives an "earnings" verdict that cites no accounts figure.
+
+Code, not the model, works out crowding and earnings surprise. A signal that was not read never makes a name crowded, and a name whose newest quarter is more than two quarters behind the calendar is not read.
 
 **How a score is built.** Theme, sector and stock reads each get a 0-100 score from fixed weights, stored with the run.
 
@@ -637,52 +895,71 @@ These run in the daemon, with more when a venue has exchange credentials. Each r
 | `exits` | 60s | 50 | a venue has trading credentials | Reconcile what rests at the exchange against the book, and trail the stops it holds |
 | `intents` | 5m | - | an order service exists | Settle an order the exchange took that the book never got; reaches no venue |
 
-The last two are absent on an install with no exchange credentials, which is why the loop count differs between two books. A venue with no credentials can rest no exit, and with no order service there is no unsettled order.
+The last two do not exist on an install with no exchange credentials, which is why two books can show a different number of loops. A venue with no credentials cannot rest an exit, and with no order service there is no unsettled order to fix.
 
-The alert loop runs in order (deliver, arm exits, arm screeners), so an alert can never be delivered by the tick that armed it. Order flow rides the refresh anchor because it records one row per name per settled session, the moment refresh already waits for.
+The alert loop runs in order (deliver, arm exits, arm screeners), so an alert is never delivered by the same tick that armed it. Order flow runs with refresh because it records one row per name per settled session, which is the moment refresh already waits for.
 
-Only the `[trading.refresh]` cadence is configurable. The alert loop and resting-exit reconciliation run every 60 seconds and missed-fill settlement every 5 minutes, fixed. The rest (`briefs`, `outcomes`, `macro-extract`, `theme-outcomes`) are paced by what they cost.
+Only the `[trading.refresh]` cadence can be configured. The alert loop and resting-exit reconciliation run every 60 seconds, and missed-fill settlement every 5 minutes; those are fixed. The rest (`briefs`, `outcomes`, `macro-extract`, `theme-outcomes`) are paced by what they cost.
 
 #### How refresh is scheduled
 
-Refresh follows the trading calendar, not a fixed interval. It fires when each session settles (the close plus the auction lag, the same instant that decides whether a session counts as settled) and 60 minutes before each open, so the morning brief and the first screen read fresh data without paying for the fetch inline. Every market with its own hours anchors a tick. The configured interval survives as a ceiling for continuous markets and for an empty registry.
+Refresh follows the trading calendar, not a fixed interval. It fires at two moments:
 
-Refresh covers every market you still use: a segment switched on in the profile, or a market where you hold a name, watch one, wait on a call to be scored, or get a scheduled brief built on it. A switched-off segment drops out only when none of those still reads it, so a holding's stop is never left without prices. With no profile yet, every market refreshes. A failed read of that set refreshes everything. The morning brief describes the same set, and naming a market on `/refresh` refreshes it regardless.
+- when each session settles (the close plus the auction lag, the same moment that decides whether a session counts as settled);
+- 60 minutes before each open, so the morning brief and the first screen read fresh data without waiting for a fetch.
 
-Markets run together, not one after another. They share almost no source, the pacer meters the few they do, and making each wait for the last would only add up independent hosts.
+Every market with its own hours sets its own tick. The configured interval still applies, as a ceiling, to markets that never close and to an empty registry.
+
+Refresh covers every market you still use. A market counts as in use when:
+
+- its segment is switched on in your profile; or
+- you hold a name there, watch one, wait on a call to be scored, or get a scheduled brief built on it.
+
+A switched-off segment drops out only when none of those still needs it, so a holding's stop is never left without prices. With no profile yet, every market refreshes. If that list cannot be read, everything refreshes. The morning brief describes the same list, and naming a market on `/refresh` refreshes it either way.
+
+Markets refresh at the same time, not one after another. They share almost no sources, the pacer controls the few they do share, and making each wait for the previous one would only add up the waiting time of unrelated hosts.
 
 Inside the VN board the same idea applies. Price history, financial ratios and trading flows load at the same time. The macro read and the financial reports wait for them, because both read what those three just stored.
 
-**One sweep per market at a time.** A `/refresh` typed while the scheduled tick is running joins that fetch instead of racing it. `/refresh force` is the one pairing that queues instead of joining: an unforced sweep may skip scopes it considers fresh, which is exactly what `force` asks to redo.
+**One sweep per market at a time.** If you type `/refresh` while the scheduled tick is running, it joins that fetch instead of racing it. `/refresh force` is the one case that waits its turn instead of joining. An unforced sweep may skip data it thinks is fresh, and redoing exactly that is what `force` asks for.
 
-`/refresh <market>` sweeps only that market. An unregistered name earns the usage line rather than a silent no-op. A command that joins a sweep in flight says so and names the market it waits on. Every progress line names its market, since an unnamed one would flicker between the markets sharing the line.
+`/refresh <market>` sweeps only that market. A name that is not a registered market gets the usage line instead of silently doing nothing. A command that joins a sweep already running says so and names the market it waits on. Every progress line names its market; without the name, the line would flicker between the markets sharing it.
 
-**What reading the board cost travels with the pass.** The crypto sweep plans against the ranked market-cap board, whose sources publish different depths (750 rows, 250 and 100). A sweep that failed over to a shallower one plans over a fraction of the field, and every count it reports would describe that fraction as the whole. So the board's own caveats and `market-data.universe-shallow` reach the result, as `/screen` and `/overview` already say about the same sweep. A result whose every target failed still earns `source.no-available-provider`.
+**What reading the board cost travels with the pass.** The crypto sweep plans against the ranked market-cap board, and its sources publish different depths (750 rows, 250 and 100). A sweep that fell back to a shallower source covers only part of the field, yet every count it reports would describe that part as the whole.
 
-**A refresh caveat names its own kind.** `/refresh` prints each kind as a row. `/overview` and `/brief` hoist every caveat into one deduped list, where a note reading `1 of 23 pulls landed` answers no question. So each caveat's sentence names its kind, wherever it lands, and the refresh view prints the notes under the market rather than under a row that would state the kind twice.
+So the board's own caveats and `market-data.universe-shallow` reach the result, just as `/screen` and `/overview` already report about the same sweep. A result where every target failed still gets `source.no-available-provider`.
 
-**Who was in charge of a session is recorded once, or not at all.** Every refresh records the buy/sell aggressor split for each name you hold or watch. Neither source behind it accepts a date: `kbsec` answers with whatever session its board currently holds, and `vietcap` pages backwards from the newest tape. So the split is readable only between the tape-settle instant and the next open.
+**A refresh caveat names its own kind.** `/refresh` prints each data kind as a row. `/overview` and `/brief` gather every caveat into one list without duplicates, where a note like `1 of 23 pulls landed` would leave you asking "of what?". So each caveat's sentence names its kind wherever it shows up, and the refresh view prints the notes under the market, not under a row that would repeat the kind.
 
-The refresh anchors put two passes inside that window (15:15 and 08:00 for a VN board). After the open the session is gone for good. A name the sweep could not record is therefore named under its market in the `/refresh` view, since a miss no later pass can fill is a hole in the series. The sweep covers only the markets that refresh covered, so `/refresh crypto` spends no VN source's budget.
+**Who was in charge of a session is recorded once, or not at all.** Every refresh records the buy/sell aggressor split (whether buyers or sellers drove the trades) for each name you hold or watch. Neither source behind it lets you ask for a date. `kbsec` answers with whatever session its board holds right now, and `vietcap` pages backwards from the newest trades. So the split can only be read between the moment the session settles and the next open.
 
-A name neither held nor watched is never swept, which is every buy candidate. `/suggest` reads the buy/sell split itself for the session it is judging and stores nothing; a stored row would otherwise join a brief section that lists what you follow. Both readers ask for the same day, so a stored row from an earlier session never stands in for the session being judged.
+The refresh schedule puts two passes inside that window (15:15 and 08:00 for a VN board). After the open, that session is gone for good. So a name the sweep could not record is named under its market in the `/refresh` view: a miss that no later pass can fill is a permanent hole in the series. The sweep covers only the markets that refresh covered, so `/refresh crypto` spends none of a VN source's budget.
 
-**One trading-flow signal on every VN screen row:** a *foreign flip*. Foreign net selling, as a share of turnover, is two standard deviations below a trailing mean that was net buying, after a rise of 3% or more over four sessions. It changes no score. A suggestion on a name showing it carries it as a caveat, and the factor log carries it so the forward record can say what it was worth before it earns a weight.
+A name you neither hold nor watch is never swept, and that includes every buy candidate. For those, `/suggest` reads the buy/sell split itself for the session it is judging, and stores nothing. A stored row would otherwise show up in a brief section that lists the names you follow. Both readers ask for the same day, so a stored row from an earlier session never stands in for the session being judged.
+
+**One trading-flow signal on every VN screen row:** a *foreign flip*. It fires when foreign investors, who had been net buyers on average, suddenly sell: net selling as a share of turnover falls two standard deviations below that trailing average, after a rise of 3% or more over four sessions.
+
+It changes no score. A suggestion on a name showing it carries it as a caveat. The factor log records it too, so the forward record can show what it was worth before it is ever given a weight.
 
 **Crypto reads its own trading flow.** Two signals ride on every crypto screen row and are logged with its factor scores:
 
 - A *washout that held*: a session down at least 5% over four sessions, on relative volume of at least 1.5, closing in the bottom fifth of its range, whose low every later session has held, read for the two to four sessions after it.
 - A *leverage-led rally*: open-interest contracts up at least twice as much as price over the same three sessions, on a rise of 5% or more.
 
-Neither changes a score. A suggestion on a name showing one carries a caveat: the first says selling here sells the low, the second says the rise is carried by leverage rather than spot. There is no setting. The thresholds are strategy policy, versioned with the crypto strategy.
+Neither changes a score. A suggestion on a name showing one carries a caveat. The first says that selling here means selling the low; the second says the rise is carried by leverage rather than by spot buying. There is no setting: the thresholds are strategy policy, versioned with the crypto strategy.
 
 **Crypto factors, equal weight:** trend, funding, the retail long/short lean, turnover velocity and volatility.
 
-- Trend is the only price-strength reading, on purpose. Momentum and the distance to the 200-session high were checked against what coins did over the next one to four weeks, added nothing, and moved in step with trend. Keeping all three meant counting one opinion three times.
+- Trend is the only price-strength reading, on purpose. Momentum and the distance to the 200-session high were checked against what coins did over the next one to four weeks. They added nothing and moved in step with trend, so keeping all three would have counted one opinion three times.
 - Funding and the long/short lean are contrarian: the side paying to stay in, and the crowd already in, have less left to buy.
 - The lean is Binance's global long/short account ratio, stored with the funding row. There is no setting for it.
 
-**Boot.** The first refresh runs under a **60-second budget** and is then detached. A warm store settles inside the budget. A cold one times out, the daemon starts accepting work, and the sweep finishes in the background: freshness eventually, correctness always. Nothing aborts the sweep at the deadline, because an aborted scope writes no attempt row and the next tick would redo all of it.
+**Boot.** The first refresh gets a **60-second budget**, and after that it carries on in the background.
+
+- If the store already holds recent data, the refresh finishes inside the budget.
+- If the store is empty or old, the budget runs out, the daemon starts accepting work anyway, and the sweep finishes in the background. Data is fresh eventually, and always correct.
+
+Nothing stops the sweep at the deadline, because a stopped scope writes no attempt row and the next tick would have to redo all of it.
 
 ### Costs and limits
 
@@ -703,9 +980,14 @@ Every capability is reachable through these surfaces, from the same services.
 
 **Tools** (for agents), with `order_place` and `order_exits` added when a venue has trading credentials. Some are offered to the model up front: `market_overview`, `market_screen`, `market_price`, `market_bars`, `market_events`, `market_sector_strength`, `macro_risk`, `vn_foreign_flow`, `portfolio_view`, `portfolio_record`, `profile_update`, `suggestion_run`, `suggestion_batch` (and `skill_view`). The rest are found through tool search when a turn needs them.
 
-The split is narrow on purpose. A tool is offered up front only when a model that cannot see it would answer from the open web, with plausible-sounding numbers for facts this product already holds. Every up-front tool costs tokens on every turn, so the whole up-front set is capped at 23.
+The up-front list is kept short on purpose. A tool goes there only when a model that could not see it would answer from the open web instead, with numbers that sound right for facts this product already holds. Every up-front tool costs tokens on every turn, so the whole up-front set is capped at 23.
 
-Tool search only blocks a call it had to *guess* at. A call by exact name loads the tool and runs it. A call matched by similarity is blocked, and the result names the loaded tools and ends with a `hint` saying what to call. Up to eight searched tools stay loaded, oldest evicted first.
+Tool search only blocks a call it had to *guess* at.
+
+- A call by exact name loads the tool and runs it.
+- A call matched only by similarity is blocked. The result names the loaded tools and ends with a `hint` saying what to call.
+
+Up to eight searched tools stay loaded, and the oldest is dropped first.
 
 The full set:
 
@@ -722,27 +1004,41 @@ openalpha chat --message "/profile set risk-level balanced"
 openalpha chat --message "/suggest FPT"
 ```
 
-Alerts are named by a six-character id (the tail of the long one) in `/alert list`, the confirmation and every notice; `/alert disable <id>` takes it, and lists the full ids when it matches several. A fired price or exit alert opens with the headline and the next step: for an exit, the sale's `/record sell` line to fill in, then `/suggest` for a fresh look. In a chat `/transactions` shows 10 rows by default, and `/portfolio` lists positions right after the warnings, then cash, profit and loss and allocation, with at most three closed trips on a phone.
+Alerts are named by a six-character id (the end of the long one) in `/alert list`, in the confirmation and in every notice. `/alert disable <id>` takes that id, and lists the full ids when it matches several.
 
-`/alert create` and `/brief enable` need somewhere to send to, such as Telegram or Zalo. Typed in a connected channel they deliver to that chat. Typed in the terminal they go to your chat: the first configured channel wins (Telegram, then Zalo, then Zalo Personal), and `fallback_chat_id` picks the chat, else the one paired chat. With no channel configured they are refused. They arrive only while OpenAlpha runs in the background (`openalpha start --background`).
+A fired price or exit alert opens with the headline and the next step. For an exit, that is the sale's `/record sell` line for you to fill in, then `/suggest` for a fresh look.
+
+In a chat, `/transactions` shows 10 rows by default. `/portfolio` lists positions right after the warnings, then cash, profit and loss and allocation, with at most three closed trips on a phone.
+
+`/alert create` and `/brief enable` need somewhere to send to, such as Telegram or Zalo.
+
+- Typed in a connected channel, they deliver to that chat.
+- Typed in the terminal, they go to your chat. The first configured channel wins (Telegram, then Zalo, then Zalo Personal), and `fallback_chat_id` picks the chat, or else the one paired chat.
+- With no channel configured, they are refused.
+
+They arrive only while OpenAlpha runs in the background (`openalpha start --background`).
 
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.
 
 You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing.
 
-**HTTP** (loopback, bearer-authenticated). `openalpha start` serves a local API when `[api] enabled = true` (see [`[api]`](configuration.md)). Routes return **codes and data, never prose**: a client receives `{ code: 'suggestion.reused-same-day' }` and renders it in the reader's language. Every request acts as the single local operator, fixed at startup, so no payload can select or spoof a user. Route list: [developer page](dev/trading.md).
+**HTTP** (on this machine only, with a bearer token). `openalpha start` serves a local API when `[api] enabled = true` (see [`[api]`](configuration.md)).
+
+Routes return **codes and data, never prose**: a client receives `{ code: 'suggestion.reused-same-day' }` and shows it in the reader's language. Every request acts as the one local operator, fixed at startup, so no request can pick or fake a different user. Route list: [developer page](dev/trading.md).
 
 ### Language
 
-Every string you see is a locale key, in English and Vietnamese. Codes derive from fixed lists, so a new value cannot exist without a catalog entry: startup fails, and a build check fails even earlier.
+Every string you see comes from a translation key, in English and Vietnamese. Codes come from fixed lists, so a new value cannot exist without a translation: startup fails, and a build check fails even earlier.
 
-Vietnamese terminology is checked at build time. The failure that matters is not a mistranslation that looks wrong, but one that looks fine: a `reduce` suggestion rendered as *bán* tells you to sell out when the product suggested trimming.
+Vietnamese terms are checked at build time. The dangerous mistake is not a translation that looks wrong, but one that looks fine: a `reduce` suggestion shown as *bán* tells you to sell out, when the product only suggested trimming.
 
 ### Storage
 
 The schema starts consolidated and grows by migration. Migrations run in id order, only those not yet applied, and an applied migration never changes.
 
-Market data retention is **derived, not configured**: the longest evidence window any registered market declares, converted from sessions to calendar days by that market's own weekend rule, plus a 5% margin. A configured value was both wrong by default and unjudgeable. A sweep shorter than the longest evidence window deletes rows the factor pipeline re-requests on its next run.
+How long market data is kept is **worked out, not configured**. It is the longest evidence window any registered market declares, converted from sessions to calendar days with that market's own weekend rule, plus a 5% margin.
+
+A configured value was wrong by default, and there was no good way to judge it. A cleanup shorter than the longest evidence window would delete rows that the factor pipeline asks for again on its next run.
 
 ---
 
@@ -750,7 +1046,9 @@ Market data retention is **derived, not configured**: the longest evidence windo
 
 The ledger is the only source of truth. Positions, cash and NAV are all calculated from the ledger rows, never stored as balances that could drift from the entries that produced them.
 
-A position is keyed by instrument **and venue**. The same coin at two custodians is two positions, with two cost bases and two settled quantities. A sale on one releases that venue's basis, not an average that includes coins held elsewhere. `/portfolio` merges them back into one row (one exposure, one weight, one blended cost) and adds a venue line beneath only when a holding actually spans venues. Cash is held per venue too; the consequence is spelled out at the end of this page.
+A position is keyed by instrument **and venue**. The same coin at two custodians is two positions, with two cost bases and two settled quantities. A sale on one releases that venue's cost basis, not an average that includes coins held elsewhere.
+
+`/portfolio` merges them back into one row (one exposure, one weight, one blended cost). It adds a venue line underneath only when a holding really sits on more than one venue. Cash is held per venue too; what that means is spelled out at the end of this page.
 
 Recording a transaction updates your ledger. It never sends an order anywhere.
 
@@ -758,7 +1056,7 @@ Recording a transaction updates your ledger. It never sends an order anywhere.
 
 Every row has an id, the time it was first recorded, the time it was last edited, and the transaction itself. One trade is one row, edited and deleted in place. Mistyping a day means fixing that day, not adding a row to replace it.
 
-This is a deliberate tradeoff: the book is calculated from the rows **as they stand right now**. Editing an entry recalculates every number derived from it, including suggestions made before the edit. There is no audit trail, and `/reflect` cannot prove what the book looked like on the day a suggestion was made. Convenience was chosen over that guarantee.
+This is a deliberate tradeoff. The book is calculated from the rows **as they stand right now**, so editing an entry recalculates every number that depends on it, including suggestions made before the edit. There is no audit trail, and `/reflect` cannot prove what the book looked like on the day a suggestion was made. Ease of fixing mistakes was chosen over that guarantee.
 
 | Kind | Shape | Effect |
 |---|---|---|
@@ -778,19 +1076,25 @@ A share-count adjustment (`split`, `distribution`) moves no money, so it accepts
 
 **Every row naming an instrument names a venue.** A venue the registry does not know, or one that cannot hold the row's market, is refused. That includes splits: a venue that cannot hold the market has no position to adjust. A cash row names a venue and no instrument.
 
-**Fees.** A `buy` or `sell` may leave its fee out. The `fees` rate you configured for that venue in `[trading.venues.<id>]` then prices it, never zero, which would understate the book forever. Every venue has a rate, because a broker declared by hand must state one. `rights` always states its own fee, since a rights issue is not brokered at the standard rate. A stored row always carries a fee; only what you have to type differs. The write confirmation says which rate the fee came from, or how far a stated fee sits from it.
+**Fees.** A `buy` or `sell` may leave its fee out. The fee is then priced with the `fees` rate you configured for that venue in `[trading.venues.<id>]`. It is never set to zero, which would understate the book forever.
 
-**The quantity is asked of the venue, never derived from a rate.** A venue marked `fee_asset = "base"` in its `fees` (OKX and Binance by default, like most crypto exchanges) takes its **buy** fee out of the asset it delivers, so an order for 3 coins credits fewer than 3. The row must carry what was actually credited, because the position adds `quantity` as is and a fee only moves cash.
+- Every venue has a rate, because a broker you declare by hand must state one.
+- `rights` always states its own fee, since a rights issue is not charged at the standard brokerage rate.
+- A stored row always carries a fee; only what you have to type differs.
 
-The shortfall cannot be computed from the configured rate. An order fills as maker or taker and only the exchange knows which, so a derived quantity would be a guess stored as a recorded fact. A sell is unaffected: its fee comes out of the proceeds, which the cash side already carries.
+The write confirmation says which rate the fee came from, or how far a fee you typed sits from that rate.
 
-Recording a trade at a venue with trading credentials looks up what that venue actually filled that day, on that side, in that instrument. **Exactly one** fill within 1% of the size you stated makes the row, with its filled quantity net of a base-billed fee, its average price and its fee priced in the transaction currency.
+**The quantity is asked of the venue, never worked out from a rate.** A venue marked `fee_asset = "base"` in its `fees` (OKX and Binance by default, like most crypto exchanges) takes its **buy** fee out of the coins it delivers. So an order for 3 coins credits you with fewer than 3. The row must carry what was actually credited, because the position adds `quantity` as it is, and a fee only moves cash.
 
-Anything else leaves the row as typed: a venue with no client, a day outside the venue's history window, no match, two fills either could be, or a venue that does not answer. A fee you state is never overridden. Stating one is how you record a trade the exchange cannot be asked about. The confirmation says which of the two happened.
+That shortfall cannot be calculated from the configured rate. An order fills as maker or taker, and only the exchange knows which. A calculated quantity would be a guess stored as if it were a recorded fact. A sell is not affected: its fee comes out of the proceeds, which the cash side already records.
 
-**`fee` vs `loss`.** Both take cash out and neither touches net deposits, but a fee is a cost of trading and a loss is the trading result. `loss` exists so money lost on trades that closed before the book started keeping records (what a snapshot import can only state as a total) is not filed as a brokerage charge.
+When you record a trade at a venue with trading credentials, OpenAlpha looks up what that venue actually filled that day, on that side, in that instrument. If there is **exactly one** fill within 1% of the size you stated, that fill makes the row: its filled quantity net of a fee taken in coins, its average price, and its fee priced in the transaction currency.
 
-**Days.** A row's day is a trading day (`YYYY-MM-DD`), never a datetime. Two entries on the same day are ordered by id, which keeps recording order within the day. Settlement is derived by the owning market's calendar: T+2 for Vietnamese equities, same day for every other market. It is re-derived whenever you edit the day.
+In every other case the row stays as you typed it: a venue with no client, a day outside the venue's history window, no match, two fills that could both be it, or a venue that does not answer. A fee you state is never overridden; stating one is how you record a trade the exchange cannot be asked about. The confirmation tells you which of the two happened.
+
+**`fee` vs `loss`.** Both take cash out and neither touches net deposits. But a fee is a cost of trading, while a loss is a trading result. `loss` exists for money lost on trades that closed before the book started keeping records (which a snapshot import can only state as a total), so it is not filed as a brokerage charge.
+
+**Days.** A row's day is a trading day (`YYYY-MM-DD`), never a date and time. Two entries on the same day are ordered by id, which keeps the order you recorded them in. Settlement follows the market's own calendar: T+2 for Vietnamese equities, same day for every other market. It is worked out again whenever you edit the day.
 
 #### Fixing an entry
 
@@ -806,17 +1110,24 @@ openalpha chat --message "/update 0f9838 buy VPS equity-vn:ACB 600 21900 VND 120
 openalpha chat --message "/delete 0f9838 confirm"
 ```
 
-`/update` takes the handle followed by the full `/record` line: the whole transaction, not a patch. The reply shows the row as it was, then the confirmation. It must state its own quantity and fee, where `/record` may write `all` or leave the fee to a rate. An edit names a row that already carries both, and re-resolving either against a later book or a changed rate would move a settled figure you never restated.
+`/update` takes the handle followed by the full `/record` line: the whole transaction, not just the changed part. The reply shows the row as it was, then the confirmation.
 
-`/delete <handle>` shows the row and asks first (a button on Telegram, a line to type elsewhere); `/delete <handle> confirm` removes it outright (a duplicate, or a trade that never happened). A script that deletes in one step must add `confirm`. Both accept a full entry id too, which is what the agent passes via `portfolio_update` or `portfolio_remove`.
+An update must state its own quantity and fee, whereas `/record` may write `all` or leave the fee to a rate. The row you edit already carries both. Working either out again against a later book or a changed rate would move a settled figure you never retyped.
 
-The handle is the last six characters of the entry id, not the first: ids open with a timestamp, so rows recorded in the same millisecond share leading characters. A handle that matches more than one row is refused rather than guessed.
+`/delete <handle>` shows the row and asks first (a button on Telegram, a line to type elsewhere). `/delete <handle> confirm` removes it straight away, for a duplicate or a trade that never happened. A script that deletes in one step must add `confirm`. Both also accept a full entry id, which is what the agent passes via `portfolio_update` or `portfolio_remove`.
+
+The handle is the last six characters of the entry id, not the first. Ids start with a timestamp, so rows recorded in the same millisecond share their first characters. A handle that matches more than one row is refused, never guessed.
 
 Any field can change, including the day. Backdating is not restricted.
 
 #### What a write checks
 
-Every insert, update and delete validates the **whole book as it will stand afterwards**, in the same transaction that writes it. An edit can invalidate a row it never touched. Shrinking a January buy can overdraw a February withdrawal that was affordable when you recorded it. Moving a buy before the deposit that funded it leaves you spending money you did not have yet. Both are refused with the day and the shortfall named:
+Every insert, update and delete checks the **whole book as it will stand afterwards**, in the same transaction that writes it. That matters because an edit can break a row it never touched:
+
+- shrinking a January buy can overdraw a February withdrawal that was affordable when you recorded it;
+- moving a buy before the deposit that paid for it would have you spending money you did not have yet.
+
+Both are refused, with the day and the shortfall named:
 
 ```text
 buy on 2026-06-11 needs 13152000 available cash, book has 0
@@ -825,9 +1136,25 @@ sell of 600 ACB exceeds 0 settled on 2026-06-15
 
 A row dated after today, on the home region's calendar, is refused too. A trade that has not happened yet is a typo, and the book would otherwise hold it out of sight until the day came.
 
-A price is always the full figure, such as `58400`, never the board figure (`58,40`, meaning x1,000 VND). A Vietnamese share price below 1,000 VND while the name trades above that is refused, with the full price to send instead. An `/alert` threshold is checked the same way.
+A price is always the full figure, such as `58400`, never the board figure (`58,40`, meaning x1,000 VND). If you type a Vietnamese share price below 1,000 VND while the name trades above that, it is refused and you are shown the full price to send instead. An `/alert` threshold is checked the same way.
 
-A price you type that sits ten times or more above or below the name's latest stored close on or before its day (for VN gold, or a name with no stored close, the price it trades at now) is not saved straight away, in every market: the reply shows both figures and asks whether you meant it, since a gap that wide is nearly always a zero or three gone missing. Tap "That price is right, save it", or send the same command again with `confirm` at the end, and it is saved as typed. Nothing is held in between: ignore the question and nothing is written. `/record`, `/update` and `/alert create` all ask; deposits, withdrawals and fees have no price to compare and are never asked about, and a name with no price to compare, or whose price does not arrive within 3 seconds, is saved without asking. A trade the venue's own fill priced (`/trade`, `/record sync`, an exit that filled) is never asked about either, nor is a `rights` row, whose price the issuer sets, often at par far under the market. The assistant is refused the same way and has to ask you before it records the price. `[trading.typed_prices] confirm_multiple` sets the multiple (default 10). The desktop app's ledger and alert requests check the same way when they send `typedPrice`.
+A price you type that sits ten times or more above or below the name's latest stored close on or
+before its day (for VN gold, or a name with no stored close, the price it trades at now) is not saved
+straight away, in every market. The reply shows both figures and asks whether you meant it, since a
+gap that wide is nearly always a zero or three gone missing.
+
+Tap "That price is right, save it", or send the same command again with `confirm` at the end, and it
+is saved as typed. Nothing is held in between: ignore the question and nothing is written.
+
+- `/record`, `/update` and `/alert create` all ask.
+- Deposits, withdrawals and fees have no price to compare and are never asked about. A name with no
+  price to compare, or whose price does not arrive within 3 seconds, is saved without asking.
+- A trade the venue's own fill priced (`/trade`, `/record sync`, an exit that filled) is never asked
+  about either. Nor is a `rights` row, whose price the issuer sets, often at par far under the market.
+- The assistant is refused the same way, and has to ask you before it records the price.
+
+`[trading.typed_prices] confirm_multiple` sets the multiple (default 10). The desktop app's ledger and
+alert requests check the same way when they send `typedPrice`.
 
 #### What a write confirmation says about the fee
 
@@ -865,7 +1192,17 @@ They are different types with different fields. An agent cannot learn your accou
 
 ### Valuation
 
-A holding below the venue's minimum order size is not listed. The venue will not trade it, so the row would describe something you can neither sell nor act on. Its value still counts toward NAV and the allocation table, and the section says how many rows it held back. If no source prices it any more (a delisted coin, say), it counts at what it cost and a note says so, rather than leaving NAV blank and blocking every buy. A weight with nothing under it is what that count explains. Every other surface treats it the same way: the brief does not count it as a losing position or suggest on it, `/market` and the chat assistant do not list it, it takes no slot under `maximum_open_trades`, and on its own it does not keep a switched-off market in `/refresh`.
+A holding below the venue's minimum order size is not listed. The venue will not trade it, so the
+row would describe something you can neither sell nor act on.
+
+Its value still counts toward NAV and the allocation table, and the section says how many rows it held
+back. If no source prices it any more (a delisted coin, say), it counts at what it cost and a note
+says so, rather than leaving NAV blank and blocking every buy. A weight with nothing under it is what
+that count explains.
+
+Every other surface treats it the same way: the brief does not count it as a losing position or
+suggest on it, `/market` and the chat assistant do not list it, it takes no slot under
+`maximum_open_trades`, and on its own it does not keep a switched-off market in `/refresh`.
 
 A valued position is either:
 
@@ -878,13 +1215,24 @@ A coin held at two custodians is merged into one exposure, so it is quoted once,
 
 #### Two rates, and which currency each market settles in
 
-A market value converts at today's rate for the market's own currency. A cost basis converts at the rate frozen on the row when the trade was recorded, so an old entry keeps the money it actually cost. The gap between them is the currency move on what you hold, and the book reports it as its own line rather than folding it into the price move.
+A market value converts at today's rate for the market's own currency. A cost basis converts at the rate saved on the row when the trade was recorded, so an old entry keeps what it really cost you. The difference between the two is how much the currency moved on what you hold. The book reports it on its own line instead of mixing it into the price move.
 
-The currency belongs to the market. Crypto settles in **USDT** and gold in **USD**, and each converts at the rate its own market trades against: `USDTVND` for coins, `USDVND` for gold. The interbank USD fixing is deliberately not used for coins, because USDT is not USD and the fixing is not a rate a crypto holder can transact at. Measured 2026-09-08, the two were 0.3% apart, all of it in the direction that overstated the book.
+The currency belongs to the market. Crypto settles in **USDT** and gold in **USD**, and each converts at the rate its own market trades against: `USDTVND` for coins, `USDVND` for gold.
+
+The interbank USD rate is deliberately not used for coins. USDT is not USD, and a crypto holder cannot actually trade at the interbank rate. Measured on 2026-09-08, the two were 0.3% apart, all of it in the direction that made the book look bigger than it was.
 
 `USDTVND` comes from the coin sources only. When they are all out there is no fallback to `USDVND`, because a silently substituted rate is worse than none. The position reads as unpriced with `valuation.fx-missing` and NAV is withheld.
 
-A row may carry the operator's own rate instead of the market's: `fx <rate>` at the end of a `/record` line stores the rate you actually paid, with its source recorded as `operator`, and `fx auto` takes the day's market rate on purpose. Cash rows may now also be in a currency a venue's markets are quoted in, so `/record deposit binance 1000 USDT 2026-08-14 fx 26600` is a valid row. Without `fx`, a row in a foreign currency is previewed and held for `/record confirm` rather than written at a rate you never chose; `/record sync` books at the market rate and says which currencies it did so for.
+A row may carry the operator's own rate instead of the market's:
+
+- `fx <rate>` at the end of a `/record` line stores the rate you actually paid, with its source
+  recorded as `operator`.
+- `fx auto` takes the day's market rate on purpose.
+- Cash rows may now also be in a currency a venue's markets are quoted in. So
+  `/record deposit binance 1000 USDT 2026-08-14 fx 26600` is a valid row.
+- Without `fx`, a row in a foreign currency is previewed and held for `/record confirm`, rather than
+  written at a rate you never chose. `/record sync` books at the market rate and says which currencies
+  it did so for.
 
 #### Foreign cash at a venue
 
@@ -1004,11 +1352,23 @@ A priced position is marked either:
 
 Each market answers on its own calendar, so one book can hold both at once: VN equities settled at 15:00 Hanoi while crypto never stopped trading.
 
-The book as a whole is `live` only when **every** priced position is live, otherwise `close`. A live book shows the clock time of its freshest mark. A settled book names the session it was priced at. A mixed book reads as settled and labels its exceptional legs on their own rows, so the headline never claims a freshness only some holdings have. That is what stops a total pulled at 11am from reading as a closing value, and one pulled at midnight from reading as live.
+The book as a whole is `live` only when **every** priced position is live; otherwise it is `close`.
 
-**Realized P/L** is the exception. It is cash + cost basis - net deposits, so no price enters it and it is present even when NAV is not. Every deposit that is neither cash on hand nor basis in an open position was spent or lost on a trade that has closed. Unrealized P/L is the paper move on what you still hold; realized P/L is what is settled and gone. They render as separate lines.
+- A live book shows the clock time of its freshest price.
+- A settled book names the session it was priced at.
+- A mixed book reads as settled, and marks the exceptions on their own rows. The headline never claims a freshness that only some holdings have.
 
-When any holding is unpriced, NAV is withheld and the assessment carries `portfolio.valuation-partial`. Weight-based checks skip themselves rather than divide by a partial total, and a buy placed through `/trade` or `order_place` is refused for the same reason. The exclusion and liquidity checks still run, because "you still hold something on your exclusion list" is true regardless of pricing.
+That is what stops a total pulled at 11am from looking like a closing value, and one pulled at midnight from looking live.
+
+**Realized P/L** is the exception. It is cash + cost basis - net deposits, so no price goes into it, and it is shown even when NAV is not. Any deposit that is neither cash on hand nor cost in an open position was gained or lost on a trade that has closed.
+
+Unrealized P/L is the paper move on what you still hold; realized P/L is what is settled and done. They show on separate lines.
+
+When any holding has no price, NAV is held back and the assessment carries `portfolio.valuation-partial`.
+
+- Checks based on weights skip themselves instead of dividing by an incomplete total.
+- A buy placed through `/trade` or `order_place` is refused for the same reason.
+- The exclusion and liquidity checks still run, because "you still hold something on your exclusion list" is true whatever the prices are.
 
 ### How your book has done
 
@@ -1017,8 +1377,10 @@ When any holding is unpriced, NAV is withheld and the assessment carries `portfo
 - **One snapshot a day.** After each `trading.refresh` pass the daemon values the book exactly as `/portfolio` does and keeps one row for the day; the last pass of the day wins. History starts when you upgrade. Nothing is rebuilt from the ledger, because stored VN closes are back-adjusted and ledger quantities are not.
 - **Time-weighted return.** A deposit or withdrawal moves the book's value without being a gain, so it comes out of the day it lands on. A dividend, fee or loss stays inside the return.
 - **Drops from a peak.** The deepest drop and how far below the peak you sit today, both on the same index.
-- **A yardstick from your own target mix.** Each segment you gave a target earns its market's benchmark index and cash earns nothing. A segment whose market has no benchmark is left out and the rest are scaled back to a whole; gold has none today. The reply names the legs. If no segment you target has a benchmark, there is no yardstick and the reply says so. If an index has no prices covering the whole window (none back to the first snapshot, or none near the last), the yardstick is left out rather than computed from part of it.
-- **Gaps.** A day with a holding that has no price writes no row and logs `trading.nav_snapshot_skipped` naming the instruments; that day's earlier row stays. A day the daemon was off has no point, but the return across the gap is still exact, because deposits are read from the ledger. An empty book writes nothing.
+- **A yardstick from your own target mix.** Each segment you gave a target earns its market's benchmark index, and cash earns nothing. A segment whose market has no benchmark is left out, and the rest are scaled back up to a whole; gold has none today. The reply names the parts.
+  - If no segment you target has a benchmark, there is no yardstick, and the reply says so.
+  - If an index has no prices covering the whole window (none back to the first snapshot, or none near the last), the yardstick is left out instead of being worked out from part of it.
+- **Gaps.** On a day when a holding has no price, no row is written and `trading.nav_snapshot_skipped` is logged with the instruments named; any earlier row for that day stays. A day the daemon was off has no point on the chart, but the return across the gap is still exact, because deposits are read from the ledger. An empty book writes nothing.
 
 These are your own figures. They appear only on slash commands and the loopback API (`GET /v1/portfolio/nav`), never to a model or an MCP tool.
 
@@ -1058,7 +1420,7 @@ openalpha chat --message "/profile reset"
 
 - `risk-level`, `risk-capacity`, `risk-willingness`, `horizon`, `goal`
 - `maximum-sector-pct-nav` - the most of your total assets one sector may take
-- `reserve-pct-nav` - the cash you always keep
+- `reserve-pct-nav` - the cash you always keep. The cash target never sits below it: raising the reserve past the cash target lifts the target to it and shrinks the other segments in proportion; hand-set targets stay, and the change is refused if they no longer fit. A cash target you name below the reserve is refused too. Lowering the reserve leaves the cash target where it is; `/profile reset` re-seeds it
 - `regime-scale` - the most of a planned buy that is used each time (0.75 uses 75%); a defensive market can lower it further
 - `risk-per-trade-pct-nav` - the most one new buy may lose at its stop-loss
 - `maximum-open-risk-pct-nav` - the most every holding may lose together at their stops
@@ -1073,21 +1435,27 @@ Both fields take 0.2 to 1.
 - `segment-target`, `segment-cap` and `position-cap`, each taking a segment and a fraction
 - `/profile enable|disable <segment>` turns a segment on or off
 
-A segment no venue trades (world gold, kept for its price and the `gold-vn` premium) stays off, and enabling it is refused. `/suggest` on one of its names still gives the factor read and levels, as a hold with the reason `reference-only`, and runs no debate. The usage text of `/profile`, `/record` and `/rebalance` leaves it out, and `/overview` prints its macro read without the line on how much of a planned buy to spend, since nothing is bought there.
+A segment no venue trades stays off, and enabling it is refused. Today that is world gold, kept for its price and for the `gold-vn` premium.
+
+- `/suggest` on one of its names still gives the factor read and levels, as a hold with the reason `reference-only`, and runs no debate.
+- The usage text of `/profile`, `/record` and `/rebalance` leaves it out.
+- `/overview` prints its macro read without the line on how much of a planned buy to spend, since nothing is bought there.
 
 A segment with a 0% target opens nothing new. The conservative level ships crypto that way: `/suggest` on a coin you do not hold answers a hold with the reason `segment-target-zero`, while names you already hold keep their exits and trims. Give the segment a share with `segment-target` to buy into it again.
 
 `maximum-open-risk-pct-nav` bounds what every held name may lose at its planned stop together. A new buy is sized into the room left under it, and a held name with no planned stop is reported rather than counted as safe.
 
-`risk-level` and the pair `risk-capacity`/`risk-willingness` are **mutually exclusive**. The level is the shorthand and the pair is the derivation behind it. A write that sends both is rejected. The `profile_update` tool builds that rule into its own schema, so the model is told to retry before you are asked to approve a write that cannot land.
+`risk-level` and the pair `risk-capacity`/`risk-willingness` are **mutually exclusive**. The level is the shortcut, and the pair is what it is worked out from. A write that sends both is rejected. The `profile_update` tool builds that rule into its own schema, so the model is told to try again before you are ever asked to approve a write that would fail.
 
 **Units.** Profile policy fields are **fractions** (`0.25`), while every weight shown in a view is a **percentage** (`25`). The suffix `pct-nav` means a share of NAV, your total assets, and appears on both.
 
 Risk level sets the defaults, and bounds limit what you may set. A per-trade risk of 40% of NAV is rejected, not accepted and then quietly ignored. The refusal names the field you typed and the range it allows.
 
-Changing the risk level re-seeds the caps for the new level, but two things you set yourself stay: a segment's target and a segment's ETF core. A core above the new ETF cap is held at the cap and comes back to your number once the cap widens again. Turning a segment off and on keeps it too. `/profile reset` clears both.
+Changing the risk level resets the caps to the new level's defaults, but two things you set yourself stay: a segment's target and a segment's ETF core. A core above the new ETF cap is held at the cap, and goes back to your number once the cap widens again. Turning a segment off and on keeps them too. `/profile reset` clears both.
 
-Every screen whose numbers the profile shaped names it once, in the last line of its headline: `/portfolio`, `/rebalance` and a stored suggestion. The stamp is identity only (risk, horizon, goal, plus a marker when nothing was saved), because every limit already prints where it binds. A stored suggestion carries the stamp it was sized under, so viewing it again states the policy its numbers came from, not the one in force when you look. `/reflect` carries none for the same reason: its rows were sized under whatever applied on each of their days.
+Every screen whose numbers your profile shaped names the profile once, in the last line of its headline: `/portfolio`, `/rebalance` and a stored suggestion. The stamp only says which profile it was (risk, horizon, goal, plus a marker when nothing was saved), because every limit is already printed where it applies.
+
+A stored suggestion carries the stamp it was sized under. Viewing it again shows the policy its numbers came from, not the one in force when you look. `/reflect` carries no stamp for the same reason: each of its rows was sized under whatever applied on its own day.
 
 ### Advice
 
@@ -1104,7 +1472,17 @@ An unavailable answer still carries the findings, because "you are over your sec
 
 A segment the plan could not fund to target raises one caveat naming that segment. Each segment gets its own slice of the deployable pool, so a plan-wide shortfall would otherwise blame a neighbour's exhausted budget on whichever name sat below target.
 
-When the cap that stopped it is shared, the segment's ETF cap or a sector cap, the caveat names that cap and says that only names outside it fill the segment, and the plan offers names from the screen that cap does not reach, leaving out the sectors already in the plan when a sector cap is what bound. When the board has none, the cap's own line stands alone. A sale the plan wants but cannot place is named too, rather than leaving a name over its limit with no order beside it: either too little of the holding has settled (T+2), or the name trades too thinly to sell an order's worth in a session, in which case trimming it by hand bit by bit is the way out.
+When the cap that stopped it is shared (the segment's ETF cap or a sector cap), the caveat names that
+cap and says that only names outside it fill the segment. The plan offers names from the screen that
+cap does not reach, leaving out the sectors already in the plan when a sector cap is what bound. When
+the board has none, the cap's own line stands alone.
+
+A sale the plan wants but cannot place is named too, rather than leaving a name over its limit with no
+order beside it. There are two reasons this happens:
+
+- too little of the holding has settled (T+2); or
+- the name trades too thinly to sell an order's worth in a session. Then trimming it by hand, bit by
+  bit, is the way out.
 
 The deployment ceiling that gets printed is the whole book's, not one segment's. The pool is split by profile target weight and each slice is held to its own segment's macro read, so a defensive segment beside a neutral one produces a blend that matches neither. Every screen that prints the figure also states the market state of each segment behind it.
 
@@ -1115,15 +1493,42 @@ The deployment ceiling that gets printed is the whole book's, not one segment's.
 
 So a name the plan lists may be one the suggestion declines that day. The plan says so where it lists a buy. It does not run the debate, so it costs nothing in model calls.
 
-A gap the plan cannot close in one lot is said out loud rather than left to look like convergence, but only while it is a gap you can act on. Below the resolution the sentence prints at, the name is at target for every practical purpose, and a note claiming it sits `0%` off would read as the plan arguing with itself.
+A gap the plan cannot close in one lot is stated plainly, instead of being left to look as if it is closing, but only while you can act on it. Once the gap is smaller than the sentence can print, the name is at target for every practical purpose. A note saying it sits `0%` off would read as the plan arguing with itself.
 
-One verdict the plan does not step around: a held name whose newest stored verdict is a `reduce` on evidence takes no increase, however far under target it sits, and the plan names it rather than leaving the row silently absent. A sale under one of the plan's own reasons (`over-target`, `weak-signal`, `over-cap`) is not that verdict. It is this plan's own rule written back to the store, so acting on it would let the plan veto itself. Nothing else about the plan changes: the segment's unfilled gap stays unfilled and is reported as cash.
+There is one verdict the plan does not step around. If a held name's newest stored verdict is a `reduce` on evidence, it gets no increase, however far under target it sits. The plan names it instead of quietly leaving the row out.
 
-A name that has run past its cap is sold back, even when its score is neutral and its segment has not drifted. Once a holding's weight passes its per-name cap (or a fund's cap) by more than the 5/25 band, the plan sells it back to the cap. A 10% cap acts at 12.5% and sells back to 10%, and the next run at 10.3% places no order. A sector past its cap gives the excess back from its weakest names first. A weak-scored name it reaches is sold whole (one on your exclusion list is only cut back like the rest), and when those sales alone bring the sector back inside its band, the other names keep their weight, as the next run would leave them. Funds are left out of it, and so are names in a segment with a 0% target, since those are sold whole anyway. The sale goes to the cap, at most one board lot past it, and in one step, though the settled quantity and the name's turnover still limit what sells in a day. The row reads "above your profile's per-name cap of 10% - trimmed to fit the cap, not for a weak score" and sits under what to do first. It never closes the name to `/rebalance`. A name on your exclusion list is sold back too: the list stops new buys, while the cap limits risk. To keep a concentrated name on purpose, raise the cap with `/profile`.
+A sale under one of the plan's own reasons (`over-target`, `weak-signal`, `over-cap`) is not that verdict. It is this plan's own rule saved back to the store, so obeying it would let the plan block itself. Nothing else about the plan changes: the segment's unfilled gap stays unfilled and is reported as cash.
 
-A fund is never sold for a weak score. A bearish read on an index is a call on the whole market, which the segment's weight and its market state already answer, so a held ETF scoring under the hold line keeps its weight. The drift rule can still trim it, and a cap can still sell it back. The segment's ETF core stays with the tracker you already hold until another one outscores it by 0.15. Funds on overlapping indices move almost together, so a small lead is not worth a round trip of fees and tax.
+A name that has run past its cap is sold back, even when its score is neutral and its segment has not
+drifted.
 
-With no names, `/rebalance` sizes your holdings plus the saved watchlist. Naming tickers sizes exactly those. Each order line states the amount in the book's base currency and the price in the market's own quote currency (what the venue takes), so a board-scaled market prints its points with no currency while a coin prints its own. A price takes the decimals its currency actually has: VND, JPY and KRW have no minor unit, so a dong price prints whole.
+- **Per name.** Once a holding's weight passes its per-name cap (or a fund's cap) by more than the
+  5/25 band, the plan sells it back to the cap. A 10% cap acts at 12.5% and sells back to 10%, and the
+  next run at 10.3% places no order.
+- **Per sector.** A sector past its cap gives the excess back from its weakest names first. A
+  weak-scored name it reaches is sold whole (one on your exclusion list is only cut back like the
+  rest). When those sales alone bring the sector back inside its band, the other names keep their
+  weight, as the next run would leave them. Funds are left out of it, and so are names in a segment
+  with a 0% target, since those are sold whole anyway.
+- **How much.** The sale goes to the cap, at most one board lot past it, and in one step. The settled
+  quantity and the name's turnover still limit what sells in a day.
+- **Odd lots.** Every sale is in whole board lots. A weak name sold "whole" can leave an odd remainder
+  under one lot (on the VN board, 1-99 shares). The plan that sells the rest shows no "keep watching"
+  note for the name; sell the remainder by hand in the odd-lot session.
+
+The row reads "above your profile's per-name cap of 10% - trimmed to fit the cap, not for a weak score"
+and sits under what to do first. It never closes the name to `/rebalance`.
+
+A name on your exclusion list is sold back too: the list stops new buys, while the cap limits risk. To
+keep a concentrated name on purpose, raise the cap with `/profile`.
+
+A fund is never sold for a weak score. A bearish read on an index is a view on the whole market, and the segment's weight and market state already handle that. So a held ETF scoring under the hold line keeps its weight. The drift rule can still trim it, and a cap can still sell it back.
+
+The segment's ETF core stays with the fund you already hold until another one outscores it by 0.15. Funds on overlapping indices move almost together, so a small lead is not worth paying fees and tax on a round trip.
+
+With no names, `/rebalance` sizes your holdings plus the saved watchlist. Naming tickers sizes exactly those.
+
+Each order line states the amount in the book's base currency and the price in the market's own quote currency (what the venue takes). So a board-scaled market prints its points with no currency, while a coin prints its own. A price uses the decimals its currency really has: VND, JPY and KRW have no smaller unit, so a dong price prints as a whole number.
 
 ```bash
 openalpha chat --message "/portfolio"
@@ -1145,6 +1550,8 @@ Terminal chat and channels share one slash-command registry, so a transaction sy
 
 A fill placed through `/trade` or `order_place` is written to the ledger the same way a manual `/record` is. The book stays one calculation over one set of rows, and a position opened at the exchange looks the same as one typed in by hand. A sell written by a triggered exit names which leg filled (`stopped out` / `target hit`); a sale you make yourself names none.
 
+When a resting stop or take-profit fills at the exchange, the next pass over resting exits (every 60 seconds) books the sale and sends one notice naming which exit filled, the venue, the quantity and the price, and that the ledger holds it. An app on the API sees the same fill once. A sale that `/record sync` booked first sends nothing.
+
 **`/record sync <venue>`** is the third way those rows are created, and it takes the same path. It differs only in how it selects: it asks the venue what it filled, then books what the book has no row for. Validation, calculation and confirmation are shared.
 
 A limit order that filled only partly before you cancelled it is now synced for the part that filled.
@@ -1154,6 +1561,23 @@ A limit order that filled only partly before you cancelled it is now synced for 
 - Fills are booked oldest first across instruments. A name the book could take only part of is not taken at all: if a sync fails or is cancelled part way, it takes back what it had booked of any name it had not finished, so it never leaves a half-booked position. Rows an earlier run left behind are yours to delete.
 
 Allocation has no surface of its own: `portfolio_rebalance` and `/rebalance` report segment targets and per-name changes as one plain-language plan.
+
+#### On the office page
+
+The Portfolio tab of the [office page](operations.md#the-office-page) writes the same rows as `/record`, `/update` and `/delete`, through the same checks, and never sends an order.
+
+- **Every kind of row.** The record form opens on Buy or Sell; "Other" holds dividend (the amount received, in the market's currency), distribution (the shares received), split (shares added, negative for a reverse split), rights (with the purchase price; an empty fee is recorded as 0), transfer (between two of your venues; the same venue on both sides is refused before anything is sent), deposit, withdrawal, fee and loss (money lost before you kept the ledger). A share change shows what the holding will be once recorded. History lists every kind, with a filter, and every row can be edited or deleted, with undo.
+- **The rate you paid.** When a row is in a currency other than the book's and a rate applies, such as a USDT deposit on a VND book or a buy at a venue holding no USDT, a Rate field appears, filled with that day's market rate; change it to the rate you actually paid. It cannot be left empty, so the page never saves such a row at a rate you did not see. A row paid from USDT the venue already holds (a buy, a transfer, a fee) shows no rate field. If the day's rate cannot be read, the form says so, offers Retry and does not save yet. Editing a row keeps its booked rate.
+- **Check against venues.** History > Check against venues reads each venue that has a key, as `/reconcile` does: a match, or how much more or less the venue holds than the ledger, with a button that opens the record form filled with the difference (the price is left for you). A venue with no key names its variables and links to Settings > Exchanges; one that cannot read balances, or does not answer, says so. "Sync fills from <venue>" does what `/record sync` does: it reads the filled orders and books the ones the ledger lacks, and places no order. If the answer is slow, the page reads the ledger again rather than sending the sync twice.
+- **Orders.** Where a venue can place orders and `[api] orders` is on, Portfolio has an *Orders* tab.
+  - An order you staged in chat with `/trade` waits there for "Place on <venue>" (asked once; the
+    button stays off until the exchange answers, and nothing is sent twice) or "Don't place".
+  - If no answer comes in time, the page says it cannot tell whether the order went out and reads the
+    list again. So check it before staging another.
+  - Below are the exits resting at the exchange, each with Cancel exit after a confirm; the positions
+    nothing protects; the fills the exchange took that the ledger could not book yet (Sync fills books
+    them); and "Allow buying", the same switch as `/trade halt`.
+  - Setting or moving an exit stays `/trade exit` in chat.
 
 ### Venues, and the one thing this book does not do
 
@@ -1234,7 +1658,17 @@ You can rename the variables in `credentials` under `[trading.venues.okx]`, and 
 
 The `order_place` and `order_exits` tools follow the same gate, so an install that never configures an exchange has no order surface at all.
 
-**Approval.** `order_place` asks you on every call, offers no remembered decision, and refuses outright when the run's approval mode is `bypass`, unless `[trading.orders] allow_unattended` is set. A take-profit or stop-loss rides a buy only: `order_place` refuses one on a sell, as `/trade` does. Orders are sized and checked against a live price only; when the exchange reading is a stored close or a stale print, the order is held back with a plain note to try again. A buy that would take a holding, sector or segment past its cap is refused there too, and the agent tells you which; place it with `/trade`, which shows the breach before you confirm. A buy of an ETF into a segment whose ETF share cannot be measured (a holding there has no resolved kind) counts as a breach of any ETF ceiling the segment declares: the caps cannot be checked, so it is not waved through.
+**Approval.** `order_place` asks you on every call and offers no remembered decision. It refuses
+outright when the run's approval mode is `bypass`, unless `[trading.orders] allow_unattended` is set.
+
+- A take-profit or stop-loss rides a buy only: `order_place` refuses one on a sell, as `/trade` does.
+- Orders are sized and checked against a live price only. When the exchange reading is a stored close
+  or a stale print, the order is held back with a plain note to try again.
+- A buy that would take a holding, sector or segment past its cap is refused there too, and the agent
+  tells you which. Place it with `/trade`, which shows the breach before you confirm.
+- A buy of an ETF into a segment whose ETF share cannot be measured (a holding there has no resolved
+  kind) counts as a breach of any ETF ceiling the segment declares. The caps cannot be checked, so it
+  is not waved through.
 
 With a saved profile, a buy is refused while any holding in the book has no price (`order.book_unpriced`), on `/trade` and `order_place` alike. Without a price for every holding there is no total, so no position, segment or ETF cap can be measured, and an order that skipped them would clear them all. `/portfolio` names the holding; `/refresh` its market to load a price, then place the order again. A sell, and a buy with no saved profile, are not held back.
 
@@ -1248,7 +1682,14 @@ When an order is refused for size (a sale larger than what has settled, or than 
 - A run cancelled after the exchange took an order still marks it for `/trade reconcile` and, for an order left resting, tries to cancel it.
 - One cancelled between the fill and the ledger write leaves an unrecorded row with the reason `order.mirror_aborted`, still charged against the caps and listed by `/trade reconcile`.
 
-`/trade reconcile` also asks each venue that rests exits what it holds under a client id this setup minted, and lists any with no live row. The exit check reads rows alone, so such an exit (a crash between the exchange taking it and the row landing, or anything older) is never checked or trailed. It only reports. `/trade cancel` cannot reach it, so cancel it in the exchange app if unwanted, and leave one that is protecting a position. A venue that could not be read is named rather than skipped. `POST /v1/trade/reconcile` returns the same two lists (`orphanExits` and `unreadExitVenues`).
+`/trade reconcile` also asks each venue that rests exits what it holds under a client id this setup
+minted, and lists any with no live row. The exit check reads rows alone, so such an exit (a crash
+between the exchange taking it and the row landing, or anything older) is never checked or trailed.
+
+- It only reports. `/trade cancel` cannot reach it, so cancel it in the exchange app if unwanted, and
+  leave one that is protecting a position.
+- A venue that could not be read is named rather than skipped.
+- `POST /v1/trade/reconcile` returns the same two lists (`orphanExits` and `unreadExitVenues`).
 
 A `/trade exit` seeds the exit's client id from the request, so a Telegram message redelivered after a crash finds the exit it already placed. The CLI and the app mint a fresh id per command. `POST /v1/trade/exits` takes an `Idempotency-Key` header for a client that retries: the same key finds the exit the first call placed, and a call without one is its own request.
 

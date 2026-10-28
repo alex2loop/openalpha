@@ -1,9 +1,13 @@
 import type { DeliveryHub } from '@/app/delivery'
+import type { RestartWhen } from '@/app/server/wire/vocab'
+import type { RestartRequest, RestartStart } from '@/app/update/restart'
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { DeliveryTarget } from '@/scheduler/api'
+import { logRestart, runRestart } from '@/app/update/restart'
 import {
+  canRestartInPlace,
   formatInstalledNotice,
   isBackgroundLaunch,
   type PendingUpgrade,
@@ -36,6 +40,8 @@ interface UpgradeStartRequest {
 
 export interface SelfUpgrade {
   start(request: UpgradeStartRequest): Promise<UpgradeStart>
+  /** Answers once the restart is accepted or refused; an `idle` one then waits in the background. */
+  restart(when: RestartWhen): Promise<RestartStart>
   announceOutcome(): Promise<void>
 }
 
@@ -45,28 +51,119 @@ interface UpgradeParts {
   readonly logger: Logger
 }
 
+/** Held by whoever is changing this process's release. `starting` is set before the first await: two
+ *  taps, or a re-delivered inbox message, never both pass the pending check; a restart holds it
+ *  through its idle wait too. `restarting` is set once the restart is under way, which stops this
+ *  daemon: no upgrade or second restart may start meanwhile. */
+interface UpgradeBusy {
+  starting: boolean
+  restarting: boolean
+}
+
 export function createSelfUpgrade(app: App, delivery: DeliveryHub): SelfUpgrade {
   const parts: UpgradeParts = { app, delivery, logger: app.resolve('logger') }
-  // Set before the first await: two taps, or a re-delivered inbox message, never both pass the
-  // pending check below.
-  let starting = false
+  const busy: UpgradeBusy = { starting: false, restarting: false }
 
   return {
     async start(request): Promise<UpgradeStart> {
-      if (starting) {
+      if (busy.starting || busy.restarting) {
         return 'busy'
       }
 
-      starting = true
+      busy.starting = true
 
       try {
         return await startUpgrade(parts, request)
       } finally {
-        starting = false
+        busy.starting = false
       }
     },
+    restart: (when) => startRestart(parts, busy, when),
     announceOutcome: () => announceUpgradeOutcome(parts),
   }
+}
+
+async function startRestart(
+  parts: UpgradeParts,
+  busy: UpgradeBusy,
+  when: RestartWhen
+): Promise<RestartStart> {
+  const request = { when, requestedAt: Date.now() }
+  const outcome = await requestRestart(parts, busy, request)
+
+  if (outcome !== 'started') {
+    logRestart(parts.app, request, 'aborted')
+  }
+
+  return outcome
+}
+
+async function requestRestart(
+  parts: UpgradeParts,
+  busy: UpgradeBusy,
+  request: RestartRequest
+): Promise<RestartStart> {
+  if (busy.starting || busy.restarting) {
+    return 'busy'
+  }
+
+  busy.starting = true
+
+  // `runRestart` releases `starting` once it settles; every other way out releases it here.
+  let handedOver = false
+
+  try {
+    const refusal = await refuseRestart(parts)
+
+    if (refusal !== undefined) {
+      return refusal
+    }
+
+    handedOver = true
+  } finally {
+    if (!handedOver) {
+      busy.starting = false
+    }
+  }
+
+  runRestart({
+    ...request,
+    app: parts.app,
+    isWorking: () => isWorking(parts),
+    onUnderway: () => {
+      busy.restarting = true
+    },
+    onFailed: () => {
+      busy.restarting = false
+    },
+  })
+    .catch((err: unknown) => {
+      parts.logger.error('update.restart_crashed', { err: formatErrForLog(err) })
+    })
+    .finally(() => {
+      busy.starting = false
+    })
+
+  return 'started'
+}
+
+async function refuseRestart(
+  parts: UpgradeParts
+): Promise<Exclude<RestartStart, 'started'> | undefined> {
+  const { app } = parts
+
+  if (app.signal.aborted) {
+    return 'stopping'
+  }
+
+  // Without in-place restart, a daemon in a terminal or under a service is not ours to restart.
+  if (!(canRestartInPlace() || isBackgroundLaunch())) {
+    return 'foreground'
+  }
+
+  const state = await readUpdateState(app.config.paths.dataDir)
+
+  return isPending(state.pendingUpgrade, Date.now()) ? 'busy' : undefined
 }
 
 async function startUpgrade(
@@ -94,13 +191,15 @@ async function startUpgrade(
   return await spawnUpgrade(parts, { ...request, requestedAt: now })
 }
 
-/** A restart drains for up to 30 s and then aborts: an answer, a research run, a tool approval
- *  waiting for its tap, or a trading pass such as a brief's debate would be lost. */
+/** A restart gives runs SHUTDOWN_DRAIN_MS to land, and the whole stop SHUTDOWN_TOTAL_MS, before it
+ *  aborts the rest: an answer, a research run, a tool approval waiting for its tap, or a trading
+ *  pass such as a brief's debate would be lost. */
 function isWorking(parts: UpgradeParts): boolean {
   const { app, delivery } = parts
 
   return (
     app.resolve('runRegistry').active().length > 0 ||
+    app.resolve('slashDispatcher').activeCommands().length > 0 ||
     delivery.isWorking() ||
     app.resolve('tradingServices').daemonTasks.some((task) => task.isWorking?.() === true)
   )

@@ -34,7 +34,8 @@
 # An unset key variable never stops `openalpha start`: the daemon prints one warning
 # and keeps refreshing data, firing alerts and running the ledger. Chat, /suggest,
 # research and the morning brief's model sections wait until you save the variable
-# with `openalpha key set <NAME>` and run `openalpha restart --background`.
+# with `openalpha key set <NAME>` (or on the office page, Settings > Providers) and run
+# `openalpha restart --background`.
 # `openalpha doctor` and `openalpha config validate` still report it.
 
 [model_defaults]
@@ -201,10 +202,24 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # ---- Retention --------------------------------------------------------------
 
 # [retention]
-# days = 90                       # prune old sessions/runs and removed-agent log dirs
+# days = 90                       # prune old sessions, run and notice history, and removed-agent log dirs; the ledger is never swept
+# history_days = 1095             # track record (scored suggestions, factor log, theme outcomes, NAV, macro series); at least days.
+#                                 # Tables read further back are kept that long anyway: the track record a year, macro series about 500 days, macro documents about 25 months.
 # inbox_days = 7                  # prune delivered/dead inbox rows
 # daily_backups = 3               # one SQLite snapshot a day in backups/daily/, this many kept; 0 turns it off
 # The cost ledger (llm_attempts) is kept 400 days whatever days is set to.
+
+
+# ---- Notices ----------------------------------------------------------------
+# These readings reach the bell in the app and no chat: a call you were given has
+# been scored (call-scored), news on a name you hold (held-news), and the region's
+# index falling hard in a session (index-drop). List a kind here to get it in your
+# chat as well. Held-name news covers only names the daemon has already read: a
+# /suggest or a chat about the name archived its headlines, and nothing fetches
+# news for your holdings on a schedule.
+
+# [notices]
+# chat = []                       # any of: call-scored, held-news, index-drop
 
 
 # ---- Logging ----------------------------------------------------------------
@@ -303,6 +318,8 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # secret); any other field stops boot. Every rule: docs/en/configuration.md#trading.
 # Give an exchange key Reading and Spot & Margin Trading only, never Withdrawals,
 # and pin it to your server's IP. `openalpha doctor venues --online` checks both.
+# The office page saves the key values (Settings > Exchanges) but never changes
+# credentials: the variable names are set here or from the CLI.
 # [trading.venues.binance]
 # default_for = ["crypto"]
 # fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }
@@ -324,8 +341,11 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # [trading.refresh]
 # interval_ms = 43200000             # ~12h ceiling; refresh anchors to each session's open and close
 
-# Rename a source's credential env var. Only coingecko and fred take credentials.
+# Rename a source's credential env var. Only bls, coingecko and fred take credentials.
+# Set here or from the CLI only; the office page saves the keys (Settings > Tools),
+# never these names.
 # [trading.sources]
+# bls = "MY_BLS_KEY"                   # default: BLS_API_KEY; optional, 500 calls a day instead of 25
 # coingecko = "MY_COINGECKO_KEY"     # default: COINGECKO_API_KEY
 # fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only VIX source
 
@@ -342,6 +362,8 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # A channel whose token is unset or rejected by the platform does not start: the
 # daemon warns, runs without it and answers nobody there until you fix the token
 # and run `openalpha restart --background`.
+# While [api] public_url is set, allowed_ids, operator_user_ids, pairing and
+# dm_policy change only on the server (the CLI or this file), never from the app.
 
 # [channels.telegram]
 # enabled = true
@@ -403,13 +425,17 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # delegation_depth = 3               # max parent -> child delegate chain
 # max_delegations = 32               # total delegate calls per run tree
 # max_parallel_delegations = 5       # most children one delegate_parallel accepts
+# max_spawn_duration_ms = 600000     # time one spawned child agent gets before it is stopped (max 2147483647)
+# max_spawn_turns = 12               # model turns one spawned child agent gets
 # max_unasked_fetches = 10           # web_fetch calls per run before each one asks you; 0 = always ask
 
 
 # ---- Memory -----------------------------------------------------------------
 
 # [memory]
-# ttl_days = 90
+# ttl_days = 90                      # a note is forgotten this many days after its last update
+# The office page lists the notes per agent and person (Settings > Memory), adds one
+# with + Remember and forgets one with undo.
 
 
 # ---- Web search -------------------------------------------------------------
@@ -419,6 +445,8 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # If api_key_env names a variable that is empty, only web search stops (the tool
 # and /research refuse, doctor and `config validate` say which variable to set);
 # an empty fallback_api_key_env just turns the fallback off.
+# The office page (Settings > Tools) switches provider and saves the key; api_key_env
+# and base_url stay in this file.
 
 # A paid provider, with a self-hosted SearXNG behind it:
 # [web_search]
@@ -448,16 +476,40 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # ==== Connections =============================================================
 
 # ---- API server -------------------------------------------------------------
-# HTTP/WS API for client apps (off by default).
+# HTTP/WS API for client apps (off by default). Turning it on gives a client app
+# a live feed of what the daemon is running: runs and their steps, pending
+# approvals, fills and spend caps reached. The daemon also serves the office page at
+# its own address (http://127.0.0.1:<port>/), which shows that feed.
 # Binds 127.0.0.1 only; on a server, reach it through an SSH tunnel or a reverse
-# proxy on the same host (docs/en/operations.md). Bearer token at
-# <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with
-# `openalpha api token`, replace it with `openalpha api rotate`.
+# proxy on the same host (docs/en/operations.md).
+# Anything in front of the daemon (a proxy such as Caddy or nginx, `tailscale serve`, a domain)
+# needs public_url set to the address the browser opens: it turns on the exposure limits and
+# the __Host- sign-in cookie. Without it the daemon only catches a proxy that sends
+# X-Forwarded-For or Forwarded, or a Host that is not a local name, and refuses those with a line
+# naming public_url. A proxy that sends neither (a bare nginx proxy_pass) looks local, so set
+# public_url first and have nginx send `proxy_set_header Host $host;` and
+# `proxy_set_header X-Forwarded-For $remote_addr;`.
+# Setting it keeps the order routes and /trade from the app off until orders = true, keeps
+# shell commands, file writes, tools from MCP servers or plugins and social network tools out of
+# chats from the app, keeps jobs made from the app answering only in the app, and makes pairing
+# approval, the channel access keys, saving keys and the ChatGPT sign-in server-only. The office
+# page's config editor leaves plugins, MCP commands, *_env keys and every other field naming an
+# environment variable ([trading.sources], a venue's credentials), base_url, [paths], [log] file,
+# [storage], [api], [update] and [trading.orders] allow_unattended to this file. The page saves
+# key values themselves (Settings > Providers, Exchanges, Tools) into the same file
+# `openalpha key set` writes.
+# Bearer token at <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with
+# `openalpha api token`, replace it with `openalpha api rotate` (it signs every browser out
+# and restarts a running daemon, which retires the old token). `openalpha web` prints a one-time link that
+# opens the office page, good for 5 minutes; `openalpha connect` prints the address and
+# token the desktop app pastes. Keep them as private as the token itself.
 
 # [api]
 # enabled = false
 # port = 8765
 # token_env = "OPENALPHA_API_TOKEN"
+# orders = true                      # false by default once public_url is set
+# public_url = "https://alpha.example.com"   # or https://<machine>.<tailnet>.ts.net
 
 
 # ---- Serving OpenAlpha over MCP ---------------------------------------------

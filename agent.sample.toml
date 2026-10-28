@@ -5,8 +5,8 @@
 #
 # Required: system_prompt
 # Optional: id, name, description, max_turns, max_tokens, max_duration_ms, max_daily_usd,
-#           [focus], [capabilities]
-# Trusted agents only: model_tier, reasoning.
+#           [focus], [look], [capabilities]
+# model_tier: your own agents may set it; reasoning: trusted agents only.
 # Unknown keys or invalid values are logged, and that user agent is skipped at boot.
 #
 # Identity:
@@ -31,12 +31,13 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #                                 # 0 or absent = only your overall cap. Debates it starts count too.
 #                                 # A top-level key: it must stay above the first [table] below.
 
-# ---- Model selection (trusted agents only) ----------------------------------
-# model_tier picks a named fallback chain from [model_tiers]. A user agent always
-# runs on the primary configured model, and one that sets model_tier or reasoning
-# is skipped at boot. Built-in work uses its own tiers (research, research-heavy,
-# delegate, debate, decisions, extraction, themes); a trusted agent can name any
-# tier you define.
+# ---- Model selection --------------------------------------------------------
+# model_tier picks a named fallback chain from [model_tiers]. Your own agents may
+# name any tier you define, as long as every entry in it supports tools; an untrusted
+# plugin agent may not. Without it the agent runs on the primary configured model.
+# reasoning is for trusted agents only: an agent that sets it is skipped at boot.
+# Built-in work uses its own tiers (research, research-heavy, delegate, debate,
+# decisions, extraction, themes).
 #
 # model_tier = "research"         # named fallback chain from [model_tiers]
 # reasoning = "medium"            # default | off | low | medium | high; overrides the entry's setting.
@@ -59,6 +60,20 @@ findings in memory, and produce a concise summary. Do not write to disk.
 # sectors = ["banks"]         # sector slugs as the market files them (banks, oil-gas, ...);
 #                             # `market_sector_strength` lists them
 # horizon = "long"            # short | long: the window this agent's calls are scored over
+# goal = "income"             # preserve | income | grow: what it hunts for, in your profile's
+#                             # words (income = dividends); only marks the agent, never
+#                             # changes or splits its calls
+
+# ---- Look (how this agent's character appears on the office page) -----------
+# Up to 8 parts, each a lowercase slug of at most 24 characters. The daemon only keeps what you
+# write: the office page decides which values it can draw, and derives any part you leave out
+# from the agent's id. Nothing in a run reads it. The agent form offers these four parts:
+#
+# [look]
+# body = "medium"      # skin tone: light | medium | deep
+# hair = "short"       # short | long | bob | bun | cap
+# shirt = "teal"       # teal | blue | sky | amber | orange | pink | slate | sand
+# prop = "book"        # none | book | clipboard | tie | glasses | scarf
 
 # ---- On a social network ----------------------------------------------------
 # `social join <this agent> <network>` needs its own [focus] and only tools a
@@ -76,6 +91,8 @@ findings in memory, and produce a concise summary. Do not write to disk.
 #               "market_accounts" (a VN company's filed annual accounts).
 #   delegates - agent IDs callable through `delegate` (also include `delegate`
 #               in tools). Omitted or empty = delegation disabled.
+#   max_spawn - 1 to 4: child agents one `spawn` call may start; the rest of a bigger call
+#               are not started (also include `spawn` in tools). Omitted or 0 = it may not spawn.
 #   hosts     - hostnames web_fetch and research page reads may reach. Omitted = any host allowed by the
 #               SSRF policy; `*.example.com` matches example.com and its subdomains.
 #               Either way, a link the agent builds itself asks you first.
@@ -88,10 +105,18 @@ tools = [
   "memory_store",
   "memory_recall",
   # "delegate",
+  # "spawn",
 ]
 # delegates = ["reviewer"]
+# max_spawn = 2
 # hosts = ["*.wikipedia.org", "arxiv.org"]
 # skills = ["market-research"]
+
+# An agent made in the office page is written to this same file with a fixed tool preset:
+# web search and fetch, memory, the read-only market and suggestion tools, now and calc,
+# plus spawn when max_spawn is above 0. Never a shell, a file write or a schedule. When the
+# page edits such a file it keeps the turn, token and time caps, hosts, skills and delegates you
+# wrote here and replaces only what it owns.
 
 # ---- Workspace boundary -----------------------------------------------------
 # File tools are rooted at <data_dir>/workspaces/<id>/. An approved shell starts

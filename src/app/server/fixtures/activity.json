@@ -1,0 +1,84 @@
+{
+  "day": "2026-10-23",
+  "rows": [
+    {
+      "runId": "cmd_9d21",
+      "kind": "command",
+      "name": "suggest",
+      "channelId": "telegram",
+      "startedAt": 1792480000000,
+      "endedAt": 1792480095000,
+      "outcome": "completed",
+      "costUsd": 0.1842,
+      "children": [
+        {
+          "runId": "run_bull1",
+          "kind": "agent",
+          "name": "suggest-bull",
+          "title": "Case for buying HPG",
+          "summary": "Steel margins are recovering and the stock trades under its five-year average.",
+          "channelId": "telegram",
+          "agentId": "suggest-bull",
+          "parentRunId": "cmd_9d21",
+          "startedAt": 1792480012000,
+          "endedAt": 1792480041000,
+          "outcome": "completed",
+          "costUsd": 0.0611
+        },
+        {
+          "runId": "run_bear1",
+          "kind": "agent",
+          "name": "suggest-bear",
+          "channelId": "telegram",
+          "agentId": "suggest-bear",
+          "parentRunId": "cmd_9d21",
+          "startedAt": 1792480012000,
+          "endedAt": 1792480043000,
+          "outcome": "completed",
+          "costUsd": 0.0587
+        }
+      ],
+      "tickers": ["HPG"]
+    },
+    {
+      "runId": "cmd_4f7a",
+      "kind": "command",
+      "name": "restart",
+      "title": "idle",
+      "channelId": "api",
+      "startedAt": 1792475000000,
+      "endedAt": 1792475042000,
+      "outcome": "completed",
+      "costUsd": 0
+    },
+    {
+      "runId": "run_abc",
+      "kind": "agent",
+      "name": "chat",
+      "title": "Phân tích FPT",
+      "channelId": "api",
+      "agentId": "chat",
+      "startedAt": 1792470000000,
+      "endedAt": 1792470032000,
+      "outcome": "completed",
+      "costUsd": 0.0214
+    },
+    {
+      "runId": "run_deep1",
+      "kind": "agent",
+      "name": "deep-researcher",
+      "title": "Steel sector outlook",
+      "channelId": "api",
+      "agentId": "deep-researcher",
+      "startedAt": 1792460000000,
+      "endedAt": 1792460300000,
+      "outcome": "completed",
+      "costUsd": 0.1203,
+      "tickers": ["HPG", "HSG"],
+      "questions": {
+        "done": 5,
+        "total": 5
+      }
+    }
+  ]
+}

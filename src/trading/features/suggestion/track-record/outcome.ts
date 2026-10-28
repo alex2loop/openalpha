@@ -1,10 +1,13 @@
 import type { Logger } from '@/core/logging/logger'
+import type { AgentFocusStore } from '@/trading/features/suggestion/store/agent-focus'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
+import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { OutcomeResolutionBatch } from '@/trading/features/suggestion/track-record/types'
 import type {
   ActionableStoredSuggestion,
   OutcomeResolution,
   SuggestionId,
+  SuggestionOutcome,
 } from '@/trading/features/suggestion/types'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { Candle } from '@/trading/kernel/market/market-data'
@@ -24,6 +27,7 @@ import {
   resolveOutcome,
 } from '@/trading/features/suggestion/pipeline/outcomes'
 import { canResolveOutcomes } from '@/trading/features/suggestion/track-record/resolvable'
+import { notifyCallScored } from '@/trading/features/suggestion/track-record/scored-notice'
 import { UNFILLED_STATUS } from '@/trading/kernel/conviction'
 import { RESTATEMENT_TOLERANCE } from '@/trading/markets/bar-restatement'
 import { marketRoundTripRate } from '@/trading/markets/cost'
@@ -33,6 +37,8 @@ export interface OutcomeResolutionDeps extends MarketCosts {
   readonly markets: MarketRegistry
   readonly store: SuggestionStore
   readonly logger: Logger
+  readonly notices: CallScoredNotices
+  readonly agentFocuses: Pick<AgentFocusStore, 'agentsOf'>
 }
 
 /** One pass's reads. Every row of a market is scored against the same benchmark series, so it is
@@ -192,7 +198,7 @@ async function scoreSeries(pass: ResolvePass, series: WindowSeries): Promise<Out
   })
 
   if (resolution.kind === 'resolved') {
-    await deps.store.resolve(suggestion.id, resolution.outcome, options.signal)
+    await storeOutcome(pass, series, resolution.outcome)
   }
 
   if (resolution.kind === 'unscorable') {
@@ -200,6 +206,27 @@ async function scoreSeries(pass: ResolvePass, series: WindowSeries): Promise<Out
   }
 
   return resolution
+}
+
+/** Keeps the result and, when the store took it, tells the operator once: a retried tick finds the
+ *  row already closed and writes and says nothing. */
+async function storeOutcome(
+  pass: ResolvePass,
+  series: WindowSeries,
+  outcome: SuggestionOutcome
+): Promise<void> {
+  const { deps, options } = pass
+  const { suggestion, market } = series
+
+  if (!(await deps.store.resolve(suggestion.id, outcome, options.signal))) {
+    return
+  }
+
+  await notifyCallScored(
+    { ...deps.notices, logger: deps.logger, agentFocuses: deps.agentFocuses },
+    { suggestion, market, outcome },
+    options
+  )
 }
 
 /** A series that stops short of the call's own session would make every fetched bar look like

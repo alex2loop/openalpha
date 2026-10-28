@@ -16,8 +16,9 @@ ba nơi:
 | Plugin | `AgentProfileSource` trong phần đóng góp `agents` của plugin | Chỉ đáng tin với plugin đi kèm |
 | Người dùng | `<data_dir>/agents/<id>/agent.toml` | Không đáng tin |
 
-Mức tin cậy quyết định loader đọc những trường nào. `model_tier` và `reasoning` bị từ chối trên hồ sơ không đáng tin, và
-`system_prompt` của nó bị quét tìm mẫu chỉ dẫn bị chặn. Schema nghiêm là có chủ ý: một khóa năng lực gõ sai mà bị bỏ qua
+Mức tin cậy quyết định loader đọc những trường nào. `reasoning` bị từ chối trên hồ sơ không đáng tin, còn `model_tier` bị từ chối trừ khi ngữ cảnh dựng đặt
+`allowModelTier`, và chỉ nơi nạp agent người dùng đặt nó ([app/providers.ts](../../src/app/providers.ts)). Agent plugin
+không đặt cờ này. `system_prompt` của hồ sơ không đáng tin bị quét tìm mẫu chỉ dẫn bị chặn. Schema nghiêm là có chủ ý: một khóa năng lực gõ sai mà bị bỏ qua
 sẽ được đọc như một quyền đã cấp. Mọi trường `[capabilities]` là một cái trần, không bao giờ là một cái sàn; không trường
 nào nới quyền.
 
@@ -27,7 +28,7 @@ Agent của người dùng nạp hỏng mềm theo từng tệp ([engine/agents/
 rồi plugin, rồi người dùng; mã đã tồn tại là mã dành riêng. Công cụ đăng ký cùng kiểu - có sẵn, plugin, rồi công cụ MCP đã
 kết nối sau cùng, không bao giờ thay một cái tên đã có.
 
-Một `model_tier` đáng tin phải trỏ tới nhóm không rỗng mà mọi mục đều hỗ trợ gọi công cụ khi agent có công cụ. Một nhóm
+Một `model_tier` phải trỏ tới nhóm không rỗng mà mọi mục đều hỗ trợ gọi công cụ khi agent có công cụ. Một nhóm
 mâu thuẫn với nhóm phần ghép ưu tiên thì bị từ chối.
 
 ### Suy luận của persona
@@ -46,7 +47,7 @@ không trộn vào tập cũ, nên hãy coi đó là một thay đổi chiến l
 Công cụ tệp đặt gốc tại `<data_dir>/workspaces/<id>/` và mỗi agent có phạm vi bộ nhớ riêng. Shell đã duyệt bắt đầu ở gốc
 đó, nhưng đó là thư mục làm việc, không phải sandbox của hệ điều hành. Ràng buộc chat nằm trong `ChatBindingStore`
 ([persistence/stores/channel/chat-binding.ts](../../src/persistence/stores/channel/chat-binding.ts)). Đổi một ràng buộc sẽ
-cập nhật lại tuyến, hủy phần việc đang chờ và đang chạy của phiên chat cũ, và mở một phiên chat mới.
+cập nhật lại tuyến, hủy phần việc đang chờ và đang chạy của cuộc trò chuyện cũ, và mở một cuộc trò chuyện mới.
 
 ---
 
@@ -63,11 +64,14 @@ Một đội được suy ra, không được lưu: danh sách `delegates` của
 | `loop.delegation_depth` | `config.toml [loop]` | Số cạnh con tối đa từ phiên chạy gốc; mặc định `3` cho phép độ sâu 1, 2, 3. |
 | `loop.max_delegations` | `config.toml [loop]` | Số nhánh của cả cây: tổng số con từng được cả hai công cụ khởi động. Không hoàn lại. |
 | `loop.max_parallel_delegations` | `config.toml [loop]` | Số mục tối đa trong một lời gọi `delegate_parallel`. |
+| `spawn` | [tools/delegation/spawn.ts](../../src/tools/delegation/spawn.ts) | Agent con tạm thời, chỉ đọc, dựng bằng code từ profile của agent cha. |
+| `capabilities.max_spawn` | `[capabilities]` của agent | 0 đến 4 agent con khởi động mỗi lời gọi; `AgentProfile.maxSpawn`, vắng khi là 0. |
+| `loop.max_spawn_duration_ms`, `loop.max_spawn_turns` | `config.toml [loop]` | Thời gian (mặc định 600000) và số lượt (mặc định 12) mỗi agent con tự tạo. |
 
 Cổng kiểm danh sách của con, không phải của cha: một con trong danh sách có thể dùng công cụ mà cha không gọi trực tiếp
 được, và công cụ vắng mặt ở con thì bị chặn trước cả khâu phê duyệt.
 
-Phiên chạy con thừa hưởng `AbortSignal` và `Budget` của cha, có một phiên chat tạm thời riêng tư mới (không bao giờ ghi vào
+Phiên chạy con thừa hưởng `AbortSignal` và `Budget` của cha, có một cuộc trò chuyện tạm thời riêng tư mới (không bao giờ ghi vào
 bản ghi hội thoại bền vững), và bị bỏ đi khi phiên chạy cha kết thúc. Hủy phiên chạy tiền cảnh sẽ hủy lần lượt mọi con đang
 chạy; khâu dọn dẹp chạy lại nhiều lần cũng an toàn và không bao giờ ném lỗi. Worker nghiên cứu theo cùng quy tắc. Không có
 tác vụ nền, mã nghiên cứu, lệnh điều khiển bất đồng bộ hay khôi phục bền vững.
@@ -89,6 +93,47 @@ việc lan truyền hủy; mô hình không giữ cái nào.
 
 `delegate` trả JSON có `agent_id`, lý do dừng `reason` và `text`. `delegate_parallel` trả mảng `children` cùng dạng; lỗi
 ngân sách, phê duyệt và runner vẫn hiện ra, và một lần từ chối ngoài dự tính chỉ gói gọn trong mục của nó.
+
+### `spawn` - agent con tạm thời
+
+Đầu vào là `role` cùng `goal` (một agent con) hoặc `items` (mỗi mục một agent con), thêm `context` và `output_schema` tùy chọn (một đối tượng JSON Schema, dài tối đa `MAX_OUTPUT_SCHEMA_CHARS`).
+
+Profile của agent con là profile của agent cha, với các thay đổi sau:
+
+- giữ nguyên `id`, nên nhật ký, trần theo agent và định tuyến log vẫn là của agent cha;
+- `tools` cắt còn danh sách đọc `SPAWN_TOOL_NAMES`, và không có danh sách ủy quyền;
+- trần là `[loop] max_spawn_turns` và `max_spawn_duration_ms` (mỗi trần bị cắt theo max_turns và max_duration_ms của `[loop]`);
+- chạy trên nhóm `delegate` nếu có khai báo.
+
+`RunOptions.profile` mang nó vào. `runOnce` chỉ nhận một profile khi nó cùng `id` với agent đã cấu hình và danh sách công cụ nằm trong danh sách của agent đó, không thì ném `ValidationError`. `RunOptions.title` đặt tên phiên chạy (`<role>: <goal>`, đã lọc thông tin xác thực, cắt ở `RUN_TITLE_MAX_CHARS`). `run_finished` của nó trên bus mang `summary`, là `CHILD_SUMMARY_MAX_CHARS` ký tự đầu của câu trả lời đã lọc, được nhật ký phiên chạy lưu lại và `/v1/activity` hiển thị; sự kiện trên dây bỏ nó.
+
+`maxSpawn` giới hạn một lần gọi, không giới hạn cả cây phiên chạy. `maxSpawn` agent con đầu tiên của lần gọi khởi động, phần còn
+lại trả về là các mục thất bại "chưa bắt đầu", nói rằng lần gọi xin nhiều hơn mức agent được khởi động cùng lúc.
+
+- Dòng có khóa là `tools.spawn.full` (`count` là số đã khởi động; `tools.spawn.fullOne` khi chỉ có 1). Nó hiện thành một dòng
+  tiến độ bền ngay khi áp giới hạn, trước khi các agent con được nhận bắt đầu, và mỗi mục nêu rõ mục tiêu chưa được bắt đầu.
+- Các agent con vẫn dùng hạn ngạch nhánh của `DelegationQuota` trên cây phiên chạy.
+
+Mỗi kết quả là `{ role, status: done | partial | failed, reason?: timeout | turns | budget | error, text?, json? }`.
+
+- `turn_limit` là `turns` (dòng `tools.spawn.reason.turns`, `{turns}`). Agent con bị hủy thì thất bại, không có lý do và không
+  có dòng lý do.
+- `role` được lọc thông tin xác thực khi vào. `resolveToolGrant` bỏ `spawn` khỏi `tools = "*"` khi `max_spawn` là 0.
+- Ngân sách là một phần `AGENT_BUDGET_FRACTION`, và mức dùng của agent con được cộng vào agent cha.
+- Dòng nhóm (`progress.spawnLine`, hoặc `progress.spawnLineOne` khi chỉ có một agent con) đi qua tiến độ của agent cha, nên kênh
+  chat và terminal in ra. Các dòng công cụ, mô hình và lý do của từng agent con chỉ đi vào bus. Tham số là chuỗi và số:
+  `kind: 'spawn'`, `role`, `parentRunId`.
+
+`output_schema` được biên dịch một lần trước khi có agent con nào chạy (`z.fromJSONSchema`, trong [tools/delegation/spawn-output.ts](../../src/tools/delegation/spawn-output.ts)); schema quá dài hoặc không dùng được là `invalid_input`.
+
+Nhà cung cấp bỏ ràng buộc đầu ra mỗi khi có công cụ, nên schema đi trong system prompt của từng agent con và được kiểm tra sau khi chạy:
+
+- câu trả lời cuối của agent con `done` được đọc (chấp nhận khối code bao trọn) và kiểm tra, khớp thì `text` được thay bằng `json` đã đọc;
+- không khớp là `failed` với `reason: error`, `text` tiếng Anh ngắn nêu lỗi đầu tiên, và cùng dòng khóa `tools.spawn.reason.error` như mọi lỗi khác;
+- agent con `partial` và `failed` không bị kiểm tra: text của chúng là bản tóm tắt đang chạy, không phải tài liệu.
+
+Một agent con `delegate` kết thúc vì hết giờ, lỗi, hết lượt, vòng lặp hoặc bị hủy giờ được xếp là thất bại (`isError`); chỉ
+phiên chạy hoàn tất mới được xếp là hoàn tất.
 
 ### Phê duyệt không bao giờ di truyền
 
@@ -151,8 +196,8 @@ giới vai chat khỏi phần thân, và áp các quy tắc hiển thị theo n�
 
 Mục lục trong prompt được dựng ở [engine/hooks/available-skills.ts](../../src/engine/hooks/available-skills.ts) và bị chặn ở
 `SKILL_INDEX_BLOCK_MAX` (8.192 byte); 200 ký tự đầu của mô tả được hiện. `skill_view`
-([tools/system/skill-view.ts](../../src/tools/system/skill-view.ts)) tra tên trong mục lục agent được thấy, trả văn bản nhúng
-hoặc `<dir>/<name>/SKILL.md` an toàn đầu tiên, và tính kích thước vào ngân sách của phiên chạy
+([tools/system/skill-view.ts](../../src/tools/system/skill-view.ts)) tra tên trong mục lục agent được thấy, và trả văn bản nhúng
+hoặc `<dir>/<name>/SKILL.md` an toàn đầu tiên. Nó tính kích thước vào ngân sách của phiên chạy
 (`SKILL_VIEW_RUN_BUDGET_BYTES`, 262.144; phiên chạy con bắt đầu với ngân sách riêng). Tên không thấy, không tồn tại hoặc
 không an toàn cho `ToolError('file_not_found')`; hết ngân sách cho `payload_too_large`. Tệp quá `SKILL_MAX_BYTES` (1 MiB,
 [engine/skills/load.ts](../../src/engine/skills/load.ts)) không bao giờ được nạp.
@@ -222,7 +267,7 @@ Mặc định ([core/config/resolvers/runtime.ts](../../src/core/config/resolver
   chung một router, và một lần từ chối từ phía trên không được tắt luôn các mục dự phòng phía sau. Chỉ thông tin đăng nhập
   và thanh toán mới trải lên mọi mô hình sau một nhà cung cấp.
 - Endpoint nào từ chối một trường suy luận hay hợp đồng đầu ra thì được thử thêm một lần không có trường đó
-  (`ai.reasoning_rejected`, `ai.output_contract_rejected`). Cả hai chỉ là phần tối ưu, lượt chạy vẫn đi tiếp được; lần thử
+  (`ai.reasoning_rejected`, `ai.output_contract_rejected`). Cả hai chỉ là phần tối ưu, phiên chạy vẫn đi tiếp được; lần thử
   bị từ chối vẫn tính tiền.
 - Cho nghỉ đánh dấu một mục là không dùng được cho cả lượt kế tiếp, nên chỉ tín hiệu khả dụng thật mới làm điều đó
   (`transient`, `rate`, `timeout` - `ENTRY_COOLDOWN_CODES`). `empty_response` và `output_budget_exhausted` nói về đầu ra của
@@ -278,7 +323,7 @@ ghi vào `llm_attempts`, và đó là thứ khiến sổ chi phí chính xác.
 
 Một phiên chạy chờ tối đa 5 giây cho bảng giá của OpenRouter trước lượt đầu tiên
 ([ai/openrouter-feed.ts](../../src/ai/openrouter-feed.ts)). Bảng giá được tải khi thứ có thể gọi mô hình lần đầu
-dựng chuỗi (`llmChains`, gắn trong `ai/services.ts`) hoặc một lượt chạy lần đầu chờ `pricing.ready()`, chứ không
+dựng chuỗi (`llmChains`, gắn trong `ai/services.ts`) hoặc một phiên chạy lần đầu chờ `pricing.ready()`, chứ không
 phải lúc dựng bảng giá, nên lệnh không gọi mô hình thì không phải chờ nó. Vì vậy cảnh báo mô hình lạ
 (`pricing.unknown_model`) chạy sau lần tải đầu, không phải lúc boot.
 

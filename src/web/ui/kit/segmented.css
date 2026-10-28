@@ -1,0 +1,67 @@
+/* A sunken track with the open option a light pill on it. In a column it spans the row with even
+   options; in a flex row, such as the header, it takes its options' width. */
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  min-inline-size: 0;
+  margin: 0 0 var(--s2);
+  padding: 2px;
+  border: 0;
+  border-radius: var(--controlRadius);
+  background: var(--sunken);
+}
+
+:is(.flow, .stack) > .seg {
+  margin-bottom: 0;
+}
+
+.seg button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: calc(var(--controlH) - 4px);
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink2);
+  font-size: var(--controlSmFont);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.seg button.is-on {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  box-shadow:
+    inset 0 1px 0 var(--segHi),
+    var(--lift);
+  color: var(--ink);
+  font-weight: var(--weightSemibold);
+}
+
+.seg button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.seg svg.icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ink);
+}
+
+.seg-badge {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink2);
+  font: var(--typeCaptionStrong);
+  font-variant-numeric: tabular-nums;
+}
+
+.seg button.is-on .seg-badge {
+  background: var(--ink);
+  color: var(--canvas);
+}

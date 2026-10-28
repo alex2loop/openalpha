@@ -52,6 +52,7 @@ export function createBriefCommand(deps: BriefCommandDeps): SlashCommand {
       role: 'operator',
       action: 'mutate',
       execution: { progressKey: 'slash.tradingBriefProgress' },
+      selfContained: true,
     },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
     usage: () => ({ key: USAGE }),
@@ -199,6 +200,7 @@ async function buildNow(
     signal: ctx.signal,
     forced: options.forced,
     billingSessionId: ctx.sessionId,
+    ...(ctx.runId === undefined ? {} : { parentRunId: ctx.runId }),
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),
   })
 

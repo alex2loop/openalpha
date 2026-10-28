@@ -1,0 +1,9 @@
+{
+  "loaded": ["analyst", "bank"],
+  "skipped": [
+    {
+      "id": "broken",
+      "reason": "I could not load this file, so it stays out until it is fixed. The reason is in the agent log."
+    }
+  ]
+}

@@ -20,7 +20,10 @@ export function resolveStorageConfig(
   const url = process.env[raw.url_env]
 
   if (url === undefined || url === '') {
-    throw new MissingEnvError(raw.url_env, 'storage', { path: ['storage', 'url_env'] })
+    throw new MissingEnvError(raw.url_env, 'storage', {
+      path: ['storage', 'url_env'],
+      effect: 'storage',
+    })
   }
 
   return { engine: 'postgres', url, schema: raw.schema }

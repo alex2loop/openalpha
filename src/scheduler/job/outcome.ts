@@ -28,6 +28,12 @@ export const UNCOUNTED_HALT_MESSAGES: ReadonlySet<string> = new Set([
   PAUSED_MESSAGE,
 ])
 
+// A stop, target or mover job waits for the next crossing and stays on. A price job is spent by the
+// one crossing its alert had, so it takes the same path as any other one-shot and is disabled.
+function isParkedEventJob(job: Job): boolean {
+  return job.event !== undefined && job.event.event !== 'price'
+}
+
 export function isAbortHalt(err: unknown): boolean {
   return err instanceof RunHalted && err.code === 'abort'
 }
@@ -136,7 +142,11 @@ function onceHaltTransition(job: Job, message: string, now: number): SchedulerJo
 
 // Asked again after the longest backoff with no failure counted.
 function deferredTransition(job: Job, now: number): SchedulerJobTransition {
-  return { kind: 'retry', failures: job.consecutiveFailures, nextRunAt: now + RETRY_CAP_MS }
+  return {
+    kind: 'retry',
+    failures: job.consecutiveFailures,
+    nextRunAt: now + RETRY_CAP_MS,
+  }
 }
 
 function haltTransition(job: Job, message: string, now: number): SchedulerJobTransition {
@@ -167,7 +177,9 @@ export async function advanceJob(job: Job, deps: SchedulerDeps, now: number): Pr
 
 function nextTransition(job: Job, now: number): SchedulerJobTransition {
   if (job.schedule.kind === 'once') {
-    return { kind: 'disable' }
+    return isParkedEventJob(job)
+      ? { kind: 'advance', nextRunAt: job.schedule.at }
+      : { kind: 'disable' }
   }
 
   return { kind: 'advance', nextRunAt: nextScheduledRunAt(job, now) }

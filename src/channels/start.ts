@@ -1,6 +1,6 @@
 import type { BudgetCaps } from '@/channels/delivery/queue'
 import type { ChannelRecipient } from '@/channels/recipient'
-import type { ChannelSettings } from '@/channels/schema'
+import type { ChannelDeliveryConfig, ChannelSettings } from '@/channels/schema'
 import type {
   AcknowledgedSendOptions,
   AcknowledgedSendResult,
@@ -20,6 +20,7 @@ import type { EventBus } from '@/core/events'
 import type { Logger } from '@/core/logging/logger'
 import type {
   ChatBindingStore,
+  CommandLane,
   PairingStore,
   PollOffsetStore,
   SessionActivity,
@@ -41,6 +42,7 @@ export interface StartChannelsDeps {
   readonly runner: Runner
   readonly runRegistry: RunRegistry
   readonly sessionQueue: SessionQueue
+  readonly commandLane: CommandLane
   readonly costTracker: CostTracker
   readonly pairingStore: PairingStore
   readonly sessionRouter: SessionRouter
@@ -194,13 +196,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
 
   const admission = definition.admission(config)
   const recipient = createRecipient(deps, definition, admission)
-  const adapter = definition.create(config, {
-    logger: deps.logger,
-    pollOffsets: deps.pollOffsets,
-    inbox: deps.inbox,
-    env: deps.env,
-    dataDir: deps.config.paths.dataDir,
-  })
+  const adapter = createAdapter(deps, definition, config)
   const runtime = createChannelRuntime({
     adapter,
     settings,
@@ -213,6 +209,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
     runner: deps.runner,
     runRegistry: deps.runRegistry,
     sessionQueue: deps.sessionQueue,
+    commandLane: deps.commandLane,
     costTracker: deps.costTracker,
     caps: budgetCaps(deps.config),
     pairingStore: deps.pairingStore,
@@ -231,6 +228,20 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
   })
 
   return [{ runtime, adapter, recipient }]
+}
+
+function createAdapter(
+  deps: StartChannelsDeps,
+  definition: ChannelDefinition,
+  config: ChannelDeliveryConfig
+): ChannelAdapter {
+  return definition.create(config, {
+    logger: deps.logger,
+    pollOffsets: deps.pollOffsets,
+    inbox: deps.inbox,
+    env: deps.env,
+    dataDir: deps.config.paths.dataDir,
+  })
 }
 
 function createRecipient(

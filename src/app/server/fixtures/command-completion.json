@@ -1,0 +1,4 @@
+{
+  "candidates": ["add", "list", "remove"],
+  "usage": "Usage\n/watchlist\n/watchlist add <ticker>...\n/watchlist remove <ticker>..."
+}

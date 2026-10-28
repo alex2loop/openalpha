@@ -10,10 +10,17 @@ import type { Storage } from '@/core/types/storage'
 import type { OpenedPersistence } from '@/persistence/api'
 import type { SocialConfig } from '@/social/api'
 import type { TradingConfig } from '@/trading/api'
+import '@/app/events'
+import type { NoticeLog } from '@/app/activity/notice-log'
+import type { RunLog } from '@/app/activity/run-log'
+import { startNoticeLog } from '@/app/activity/notice-log'
+import { startRunLog } from '@/app/activity/run-log'
+import { createAgentLogsProvider } from '@/app/agent-registry'
 import { loadAssets } from '@/app/assets'
 import { resolveBootExtensions } from '@/app/config-tree'
 import { createDeliveryHub, type DeliveryHub } from '@/app/delivery'
-import { createTradingNoticeSender } from '@/app/notice-sender'
+import { createAlertFiredListener } from '@/app/event-jobs'
+import { assertNoticeChatKinds, createTradingNoticeSender } from '@/app/notice-sender'
 import { buildProviders } from '@/app/providers'
 import { assertSocialToolRules, createSocialProvider } from '@/app/social'
 import { hydrateStartupState, migrateStartupSchema } from '@/app/startup-state'
@@ -28,6 +35,7 @@ import { ensurePrivateDirectory } from '@/core/security/private-files'
 import { WORKSPACES_DIR_NAME } from '@/engine/api'
 import { hasOwnMessage } from '@/i18n'
 import { openPersistence } from '@/persistence/api'
+import { assertSpawnToolsRegistered } from '@/tools/api'
 import { createTradingRegistrationProvider, createTradingStoresProvider } from '@/trading/api'
 
 // Allow-list, not a deny-list: an interpreter-hijack variable (NODE_OPTIONS, LD_PRELOAD,
@@ -58,11 +66,18 @@ interface BootResource {
   close(): Promise<void>
 }
 
+/** What boot has opened so far, filled in as each step succeeds so a failed boot closes only that. */
+interface HeldBootResources {
+  readonly loggerResource: LoggerResource
+  disposeAssets?: () => Promise<void>
+  storage?: Storage
+  runLog?: RunLog
+  noticeLog?: NoticeLog
+}
+
 interface DisposeBootOptions {
   readonly logger: Logger
-  readonly loggerResource: LoggerResource
-  readonly disposeAssets: () => Promise<void>
-  readonly storage: Storage | undefined
+  readonly held: HeldBootResources
 }
 
 interface ResolvedBootConfig {
@@ -105,17 +120,11 @@ export async function boot(options: BootOptions): Promise<Booted> {
   })
   const logger = bootLogger(loggerResource, options.mode)
   const childEnvBase = resolveChildEnv(options.env)
-  const delivery = createDeliveryHub()
-  let disposeAssets: (() => Promise<void>) | undefined
-  let storage: Storage | undefined
+  const delivery = createDeliveryHub(logger)
+  const held: HeldBootResources = { loggerResource }
   let disposePromise: Promise<void> | undefined
   const dispose = (): Promise<void> => {
-    disposePromise ??= disposeBootResources({
-      logger,
-      loggerResource,
-      disposeAssets: disposeAssets ?? (async () => undefined),
-      storage,
-    })
+    disposePromise ??= disposeBootResources({ logger, held })
     return disposePromise
   }
 
@@ -129,9 +138,9 @@ export async function boot(options: BootOptions): Promise<Booted> {
       childEnvBase,
       bootScope: options.bootScope ?? 'full',
     })
-    disposeAssets = loaded.dispose
+    held.disposeAssets = loaded.dispose
     const persistence = await openPersistence(config.storage, logger)
-    storage = persistence.storage
+    held.storage = persistence.storage
     const assembly = buildProviderAssembly({
       config,
       options,
@@ -141,12 +150,9 @@ export async function boot(options: BootOptions): Promise<Booted> {
       socialConfig,
       delivery,
     })
-    const app = createApp(config, [...assembly.providers, ...(options.features ?? [])], {
-      configPath,
-      signal: options.shutdownSignal,
-    })
+    const app = createBootApp({ config, configPath, options, assembly, held })
 
-    await prepareBootApp({ bootOptions: options, assembly, app, socialConfig, loggerResource })
+    await prepareBootApp({ bootOptions: options, assembly, app, socialConfig, held })
 
     return { app, delivery, dispose }
   } catch (err: unknown) {
@@ -154,6 +160,29 @@ export async function boot(options: BootOptions): Promise<Booted> {
     await dispose()
     throw err
   }
+}
+
+interface BootAppInput {
+  readonly config: ResolvedConfig
+  readonly configPath: string
+  readonly options: BootOptions
+  readonly assembly: ReturnType<typeof buildProviders>
+  readonly held: HeldBootResources
+}
+
+// The agent log router is the logger resource's: handed to the container so a reload reaches it.
+function createBootApp(input: BootAppInput): App {
+  const { config, configPath, options, assembly, held } = input
+
+  return createApp(
+    config,
+    [
+      createAgentLogsProvider(held.loggerResource),
+      ...assembly.providers,
+      ...(options.features ?? []),
+    ],
+    { configPath, signal: options.shutdownSignal }
+  )
 }
 
 interface ProviderAssemblyInput {
@@ -187,6 +216,15 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
           channels: () => app.resolve('channels'),
           pairingStore: () => app.resolve('pairingStore'),
         }),
+      // The bus isolates a handler that throws, so a page that cannot take the event never fails a booking.
+      onFilled: (app) => (fill) => app.resolve('bus').emit('order_filled', fill),
+      onAlertFired: createAlertFiredListener,
+      onAlertsChecked: (app) => (at) => app.resolve('bus').emit('alerts_checked', { at }),
+      onTaskPass: (app) => app.resolve('taskStatus').listener,
+      // Resolved per pass, not at bind: the dispatcher's commands are built from trading itself.
+      runScheduled: (app) => (request) => app.resolve('slashDispatcher').runScheduled(request),
+      onRoleOutput: (app) => (output) => app.resolve('bus').emit('role_output', output),
+      onFocusCallScored: (app) => (scored) => app.resolve('bus').emit('focus_call_scored', scored),
       recipient: () => input.delivery.defaultRecipient(),
       keys: commandKeyValidator,
       pluginModules: input.assets.pluginSourceModules,
@@ -199,11 +237,11 @@ interface PrepareBootAppOptions {
   readonly assembly: ReturnType<typeof buildProviders>
   readonly app: App
   readonly socialConfig: SocialConfig
-  readonly loggerResource: LoggerResource
+  readonly held: HeldBootResources
 }
 
 async function prepareBootApp(options: PrepareBootAppOptions): Promise<void> {
-  const { bootOptions, assembly, app, socialConfig, loggerResource } = options
+  const { bootOptions, assembly, app, socialConfig, held } = options
   const startup = bootOptions.startup ?? 'hydrate'
 
   if (bootOptions.bootScope === 'persistence') {
@@ -218,15 +256,19 @@ async function prepareBootApp(options: PrepareBootAppOptions): Promise<void> {
   // Resolved eagerly so registry construction and its consistency checks run at boot, not at the
   // first tool call: a misconfigured install must fail during composition.
   app.resolve('tradingServices')
+  assertSpawnToolsRegistered(app.resolve('tools'))
   // Also resolved at boot, so an unset search key is logged once at start, not at the first search.
   app.resolve('webRetrieval')
   assertSocialToolRules(app, socialConfig)
-  await loggerResource.configureAgentRegistry(app.resolve('agents').keys())
+  await held.loggerResource.configureAgentRegistry(app.resolve('agents').keys())
   if (startup === 'hydrate') {
     await hydrateStartupState(app, bootOptions.mode)
   } else if (startup === 'migrate') {
     await migrateStartupSchema(app)
   }
+
+  held.runLog = startRunLog(app)
+  held.noticeLog = startNoticeLog(app)
 }
 
 // A refused startup must fail before boot creates a logger, opens the database, or touches the
@@ -244,6 +286,9 @@ async function resolveBootConfig(options: BootOptions): Promise<ResolvedBootConf
     deferMissingKeys: true,
   })
   const { trading: tradingConfig, social: socialConfig } = resolveBootExtensions(config)
+
+  assertNoticeChatKinds(config.notices.chat)
+
   const check = await (options.bootGate ?? passThroughBootGate)({
     configPath,
     dataDir: config.paths.dataDir,
@@ -294,12 +339,18 @@ function buildBootExtensions(options: BootOptions): BootExtensionOptions {
 }
 
 async function disposeBootResources(options: DisposeBootOptions): Promise<void> {
-  const { logger, loggerResource, disposeAssets, storage } = options
-  const resources = disposalResources(disposeAssets, storage)
+  const { logger, held } = options
+
+  // First, while storage is open: a `chat -m` process exits right after its command finishes, and
+  // that command's row is still being written.
+  await held.runLog?.stop()
+  await held.noticeLog?.stop()
+
+  const resources = disposalResources(held.disposeAssets ?? (async () => undefined), held.storage)
   const results = await Promise.allSettled(resources.map((resource) => resource.close()))
 
   logDisposeFailures(logger, resources, results)
-  await loggerResource.close()
+  await held.loggerResource.close()
 }
 
 function disposalResources(

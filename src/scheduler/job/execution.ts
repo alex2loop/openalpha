@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 
-import type { RunResult } from '@/engine/api'
 import type {
   Job,
   JobOwner,
@@ -11,7 +10,7 @@ import type {
 } from '@/scheduler/types'
 import { withCorrelation } from '@/core/logging/correlation'
 import { formatErrForLog } from '@/core/security/credentials'
-import { createSchedulerApproval } from '@/scheduler/approval'
+import { type JobExecution, runAgent } from '@/scheduler/job/agent-run'
 import { deliverPartial, deliverText, notifyIfAutoDisabled } from '@/scheduler/job/delivery'
 import { finalizeOccurrence } from '@/scheduler/job/finalize'
 import {
@@ -22,25 +21,12 @@ import {
   SHUTDOWN_MESSAGE,
 } from '@/scheduler/job/outcome'
 
-// Exported for scheduler/runner.ts: the run-now claim staleness TTL is sized off the same cap so
-// the two never drift apart from separately-tuned constants.
-export const JOB_MAX_DURATION_MS = 900_000
 const STALLED_OUTCOME_MESSAGE = 'stalled run recovered; outcome was not recorded'
 // Wall-clock lease, independent of the engine's own duration clock (which pauses for an open
 // approval prompt): renewing on a fixed interval keeps the lease fresh for as long as a live
 // process is actually attending to the run, however long the run's real wall-clock time is.
 const OCCURRENCE_LEASE_TTL_MS = 300_000
 const OCCURRENCE_LEASE_RENEW_INTERVAL_MS = 120_000
-
-interface JobExecution {
-  readonly result: RunResult
-  readonly denied: boolean
-}
-
-interface RunAgentOptions {
-  readonly signal: AbortSignal
-  readonly onWorkStart?: () => Promise<void>
-}
 
 interface RunScheduledOccurrenceOptions {
   readonly job: Job
@@ -58,6 +44,8 @@ interface RunClaimedScheduledJobOptions {
   readonly signal: AbortSignal
   readonly requestId: string
   readonly owner?: JobOwner
+  /** Started by a price crossing: only that run spends a price job. */
+  readonly crossing: boolean
 }
 
 interface FinishScheduledExecutionOptions {
@@ -78,6 +66,7 @@ interface FinishRunNowExecutionOptions {
   readonly job: Job
   readonly deps: SchedulerDeps
   readonly runId: number
+  readonly crossing: boolean
   readonly execution: JobExecution
 }
 
@@ -85,6 +74,7 @@ interface FinishRunNowThrownOptions {
   readonly job: Job
   readonly deps: SchedulerDeps
   readonly runId: number
+  readonly crossing: boolean
   readonly err: unknown
 }
 
@@ -251,7 +241,7 @@ export function runClaimedScheduledJob(
 }
 
 async function runClaimedJob(options: RunClaimedScheduledJobOptions): Promise<ClaimedJobRunResult> {
-  const { job, deps, signal, requestId, owner } = options
+  const { job, deps, signal, requestId, owner, crossing } = options
   const startedAt = Date.now()
   let runId: number | undefined
 
@@ -268,11 +258,11 @@ async function runClaimedJob(options: RunClaimedScheduledJobOptions): Promise<Cl
     }
 
     try {
-      const completed = await finishRunNowExecution({ job, deps, runId, execution })
+      const completed = await finishRunNowExecution({ job, deps, runId, crossing, execution })
 
       return { kind: 'finished', completed }
     } catch (err: unknown) {
-      await finishRunNowThrownExecution({ job, deps, runId, err })
+      await finishRunNowThrownExecution({ job, deps, runId, crossing, err })
 
       return { kind: 'finished', completed: false }
     }
@@ -286,7 +276,7 @@ async function runClaimedJob(options: RunClaimedScheduledJobOptions): Promise<Cl
       return { kind: 'rejected' }
     }
 
-    await finishRunNowThrownExecution({ job, deps, runId, err })
+    await finishRunNowThrownExecution({ job, deps, runId, crossing, err })
 
     return { kind: 'finished', completed: false }
   } finally {
@@ -355,14 +345,19 @@ async function finishScheduledThrownExecution(
 }
 
 async function finishRunNowExecution(options: FinishRunNowExecutionOptions): Promise<boolean> {
-  const { job, deps, runId, execution } = options
+  const { job, deps, runId, crossing, execution } = options
   const now = Date.now()
   const outcome = computeOutcome(execution.result, execution.denied, now)
 
   await finishRunNow(deps, runId, outcome)
 
   // Run-now leaves the schedule untouched; without this a `once` job fires again when it comes due.
-  if (outcome.status === 'success' && job.schedule.kind === 'once') {
+  // A price job is spent by its one crossing whether or not the run succeeded: no later alert will
+  // start it again. A manual run crossed nothing, so the job stays armed with its alert.
+  if (
+    spendsCrossing(job, crossing) ||
+    (outcome.status === 'success' && job.schedule.kind === 'once' && !isPriceJob(job))
+  ) {
     await advanceJob(job, deps, now).catch((err: unknown) => {
       deps.logger.warn('scheduler.run_now_advance_failed', {
         jobId: job.id,
@@ -386,7 +381,7 @@ async function finishRunNowExecution(options: FinishRunNowExecutionOptions): Pro
 }
 
 async function finishRunNowThrownExecution(options: FinishRunNowThrownOptions): Promise<void> {
-  const { job, deps, runId, err } = options
+  const { job, deps, runId, crossing, err } = options
   const formatted = formatErrForLog(err)
 
   deps.logger.error('scheduler.run_now_failed', { jobId: job.id, err: formatted })
@@ -395,6 +390,24 @@ async function finishRunNowThrownExecution(options: FinishRunNowThrownOptions): 
     endedAtMs: Date.now(),
     errorMessage: isAbortHalt(err) ? SHUTDOWN_MESSAGE : formatted.message,
   })
+
+  // The crossing this run was for is spent however the run ended.
+  if (spendsCrossing(job, crossing)) {
+    await advanceJob(job, deps, Date.now()).catch((advanceErr: unknown) => {
+      deps.logger.warn('scheduler.run_now_spend_failed', {
+        jobId: job.id,
+        err: formatErrForLog(advanceErr),
+      })
+    })
+  }
+}
+
+function isPriceJob(job: Job): boolean {
+  return job.event?.event === 'price'
+}
+
+function spendsCrossing(job: Job, crossing: boolean): boolean {
+  return crossing && isPriceJob(job)
 }
 
 async function finishRunNow(
@@ -407,33 +420,6 @@ async function finishRunNow(
   } catch (err: unknown) {
     deps.logger.warn('scheduler.run_now_finish_failed', { runId, err: formatErrForLog(err) })
   }
-}
-
-async function runAgent(
-  job: Job,
-  deps: SchedulerDeps,
-  options: RunAgentOptions
-): Promise<JobExecution> {
-  const jobApproval = job.target === undefined ? undefined : createSchedulerApproval(job)
-  const input = deps.runInput(job)
-  const result = await deps.runner.run(
-    job.target === undefined ? input : { ...input, channel: job.target.channel },
-    {
-      approvalMode: jobApproval === undefined ? 'unavailable' : 'manual',
-      ...(jobApproval === undefined ? {} : { approval: jobApproval.approval }),
-      ...(job.target === undefined ? {} : { chatId: job.target.chatId }),
-      ...(job.allowedTools !== undefined && job.allowedTools.length > 0
-        ? { allowedTools: job.allowedTools }
-        : {}),
-      approvalTimeoutMs: deps.config.schedule.approvalTimeoutMs,
-      parentSignal: options.signal,
-      ...(options.onWorkStart === undefined ? {} : { onWorkStart: options.onWorkStart }),
-      // Caps agent work only: the engine stops this clock while an approval prompt is open.
-      maxDurationMs: JOB_MAX_DURATION_MS,
-    }
-  )
-
-  return { result, denied: jobApproval?.hasDenied() === true }
 }
 
 interface ReleaseRunNowClaimOptions {

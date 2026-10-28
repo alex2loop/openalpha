@@ -2,10 +2,18 @@ import { randomUUID } from 'node:crypto'
 
 import { z } from 'zod'
 
-import type { OnStreamEvent } from '@/core/stream-events'
-import type { ToolInvocationContext, ToolResult } from '@/core/tool'
+import type { AgentId } from '@/core/ids'
+import type { OnStreamEvent, ProgressMessage } from '@/core/stream-events'
+import type { DelegationQuota, ToolInvocationContext, ToolResult } from '@/core/tool'
 import type { LLMUsageTotals } from '@/core/types/usage'
-import type { AgentProfile, Budget, BudgetSlice, RunOnceOptions, RunResult } from '@/engine/api'
+import type {
+  AgentProfile,
+  Budget,
+  BudgetSlice,
+  RunInput,
+  RunOnceOptions,
+  RunResult,
+} from '@/engine/api'
 import { RunHalted, ToolError } from '@/core/errors'
 import { sessionId } from '@/core/ids'
 import { formatErrForLog, scrubCredentials } from '@/core/security/credentials'
@@ -17,6 +25,11 @@ import {
 } from '@/engine/api'
 
 const MAX_PROMPT_CHARS = 20_000
+const SETTLEMENT_LABELS = {
+  budget_exhausted: 'budget exhausted',
+  approval_timeout: 'approval timeout',
+  failed: 'run failed',
+} as const satisfies Record<Exclude<ChildRunSettlement['kind'], 'completed'>, string>
 
 export const delegationInput = z.object({
   agent_id: z
@@ -48,16 +61,22 @@ interface ResolvedDelegation {
   readonly input: DelegationInput
 }
 
+/** Extra params a progress line carries, strings and numbers only. */
+export type ProgressTag = Readonly<Record<string, string | number>>
+
+export type ProgressLineReporter = (message: ProgressMessage) => void
+
 interface ChildResultSummary {
   readonly agent_id: string
   readonly reason: RunResult['reason']
   readonly text: string
 }
 
-type ChildRunSettlement =
+export type ChildRunSettlement =
   | { readonly kind: 'completed'; readonly result: RunResult }
   | { readonly kind: 'budget_exhausted'; readonly result: RunResult; readonly message: string }
   | { readonly kind: 'approval_timeout'; readonly result: RunResult; readonly message: string }
+  | { readonly kind: 'failed'; readonly result: RunResult; readonly message: string }
 
 export function resolveDelegation(
   input: DelegationInput,
@@ -87,12 +106,16 @@ export function resolveDelegation(
 }
 
 // Called after the budget slices exist, so a budget refusal never consumes quota.
-function reserveDelegationQuota(ctx: ToolInvocationContext, count: number): void {
+export function reserveDelegationQuota(ctx: ToolInvocationContext, count: number): void {
+  requireDelegationQuota(ctx).reserve(count)
+}
+
+function requireDelegationQuota(ctx: ToolInvocationContext): DelegationQuota {
   if (ctx.delegationQuota === undefined) {
     throw new ToolError('delegate_full', 'delegation quota unavailable')
   }
 
-  ctx.delegationQuota.reserve(count)
+  return ctx.delegationQuota
 }
 
 export async function runSingleChild(
@@ -164,13 +187,16 @@ export async function runParallelChildren(
 
 // Children share a hard-capped cut of the parent's remainder; the rest is what the parent spends
 // reading their results and answering. The caller settles every slice it is handed.
-function allocateChildBudgets(ctx: ToolInvocationContext, count: number): readonly BudgetSlice[] {
+export function allocateChildBudgets(
+  ctx: ToolInvocationContext,
+  count: number
+): readonly BudgetSlice[] {
   const allocationUsd = ctx.budget.remainingUsd() * AGENT_BUDGET_FRACTION
 
   return createBudgetSlicesWithin(ctx.budget, allocationUsd, count)
 }
 
-function budgetRefusal(): ToolResult {
+export function budgetRefusal(): ToolResult {
   return {
     content: 'insufficient budget to start delegated work',
     isError: true,
@@ -178,7 +204,7 @@ function budgetRefusal(): ToolResult {
   }
 }
 
-function addDelegatedUsage(ctx: ToolInvocationContext, childTotals: LLMUsageTotals): void {
+export function addDelegatedUsage(ctx: ToolInvocationContext, childTotals: LLMUsageTotals): void {
   if (ctx.addDelegatedUsage === undefined) {
     throw new ToolError('unexpected', 'delegated usage rollup unavailable')
   }
@@ -197,18 +223,12 @@ async function runChild(
     mode: 'transient',
   })
 
-  const onChunk = childOnChunk(ctx)
   const result = await ctx.services.runner.run(
-    {
+    childRunInput(ctx, {
       agentId: delegation.agent.id,
-      // A private session keeps the child's transcript out of the parent's trail; persistence is
-      // ephemeral so nothing is written to the durable record.
-      sessionId: sessionId(randomUUID()),
-      userId: ctx.userId,
-      channel: ctx.channel,
       userMessage: delegation.input.prompt,
-      ...(onChunk === undefined ? {} : { onChunk }),
-    },
+      onChunk: childOnChunk(ctx),
+    }),
     childRunOptions(ctx, budget)
   )
 
@@ -221,28 +241,59 @@ async function runChild(
   return toChildRunSettlement(result)
 }
 
-function childOnChunk(ctx: ToolInvocationContext): OnStreamEvent | undefined {
-  if (ctx.callDepth !== 0 || ctx.reportProgress === undefined) {
+interface ChildRunInputSpec {
+  readonly agentId: AgentId
+  readonly userMessage: string
+  readonly onChunk: OnStreamEvent | undefined
+}
+
+// A private session keeps the child's transcript out of the parent's trail; persistence is
+// ephemeral so nothing is written to the durable record.
+export function childRunInput(ctx: ToolInvocationContext, spec: ChildRunInputSpec): RunInput {
+  return {
+    agentId: spec.agentId,
+    sessionId: sessionId(randomUUID()),
+    userId: ctx.userId,
+    channel: ctx.channel,
+    userMessage: spec.userMessage,
+    ...(spec.onChunk === undefined ? {} : { onChunk: spec.onChunk }),
+  }
+}
+
+interface ChildChunkOptions {
+  /** Where tool and model lines go; the parent's own progress line by default. */
+  readonly report?: ProgressLineReporter
+  /** Params every line carries, so a surface can tell which child it belongs to. */
+  readonly tag?: ProgressTag
+}
+
+export function childOnChunk(
+  ctx: ToolInvocationContext,
+  options: ChildChunkOptions = {}
+): OnStreamEvent | undefined {
+  const report = options.report ?? ctx.reportProgress
+  const tag = options.tag ?? {}
+
+  if (ctx.callDepth !== 0 || report === undefined) {
     return undefined
   }
 
-  const reportProgress = ctx.reportProgress
   let modelReported = false
 
   return (event) => {
     switch (event.type) {
       case 'tool_execution_start':
-        reportProgress({
+        report({
           key: 'progress.childToolStarted',
-          params: { label: event.label },
+          params: { label: event.label, ...tag },
           mode: 'transient',
         })
         return
       case 'turn_metric':
         if (!modelReported) {
-          reportProgress({
+          report({
             key: 'progress.childModel',
-            params: { model: event.model },
+            params: { model: event.model, ...tag },
             mode: 'transient',
           })
           modelReported = true
@@ -257,7 +308,7 @@ function childOnChunk(ctx: ToolInvocationContext): OnStreamEvent | undefined {
 // The parent invocation's chatId is the one route predicate: a routed child gets a one-time
 // delegated scope and the same chat target so the parent surface's operator can answer; a headless
 // child gets unavailable approval and its dangerous calls block before any prompt is emitted.
-function childRunOptions(ctx: ToolInvocationContext, budget: Budget): RunOnceOptions {
+export function childRunOptions(ctx: ToolInvocationContext, budget: Budget): RunOnceOptions {
   const common: RunOnceOptions = {
     budgetSlice: budget,
     parentSignal: ctx.signal,
@@ -309,12 +360,10 @@ function childSettlementNotice(settlement: ChildRunSettlement): string {
     return ''
   }
 
-  const label = settlement.kind === 'budget_exhausted' ? 'budget exhausted' : 'approval timeout'
-
-  return `\n\n[${label}: ${settlement.message}]`
+  return `\n\n[${SETTLEMENT_LABELS[settlement.kind]}: ${settlement.message}]`
 }
 
-function toChildRunSettlement(result: RunResult): ChildRunSettlement {
+export function toChildRunSettlement(result: RunResult): ChildRunSettlement {
   if (result.reason === 'budget') {
     return {
       kind: 'budget_exhausted',
@@ -328,6 +377,14 @@ function toChildRunSettlement(result: RunResult): ChildRunSettlement {
       kind: 'approval_timeout',
       result,
       message: `child ended without action: ${result.completionCode}`,
+    }
+  }
+
+  if (result.reason !== 'completed') {
+    return {
+      kind: 'failed',
+      result,
+      message: result.errorMessage ?? `child ended early: ${result.reason}`,
     }
   }
 

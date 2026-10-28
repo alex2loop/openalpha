@@ -5,7 +5,12 @@ import type { Logger } from '@/core/logging/logger'
 import type { Storage } from '@/core/types/storage'
 import { isErrno } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { PRIVATE_DIRECTORY_MODE, PRIVATE_FILE_MODE } from '@/core/security/private-files'
+import {
+  PRIVATE_DIRECTORY_MODE,
+  PRIVATE_FILE_MODE,
+  syncDirectory,
+  syncFile,
+} from '@/core/security/private-files'
 
 const BACKUP_EXT = '.db'
 const STAGING_PREFIX = '.staging-'
@@ -28,7 +33,8 @@ export function backupTarget(dir: string): string {
 // Written into a private staging directory beside the target and renamed last: VACUUM INTO honours
 // the umask, so the copy is unreadable to others from its first byte, and a crash mid-write never
 // leaves a half-written `.db` that occupies a retention slot. Same filesystem, so the rename is
-// atomic.
+// atomic. The copy is synced before the rename and the parent after it, so a power loss never
+// leaves a named but empty `.db` in a retention slot.
 export async function backupSqlite(db: Storage, target: string): Promise<void> {
   const parent = dirname(target)
 
@@ -44,7 +50,9 @@ export async function backupSqlite(db: Storage, target: string): Promise<void> {
     // VACUUM INTO takes a string literal, not a bind parameter, so quote-doubling is the escape.
     await db.execute(`VACUUM INTO '${partial.replaceAll("'", "''")}'`)
     await chmod(partial, PRIVATE_FILE_MODE)
+    await syncFile(partial)
     await rename(partial, target)
+    await syncDirectory(parent)
   } finally {
     await removeQuietly(staging)
   }

@@ -4,7 +4,9 @@
 // payload, credential, SQL row, or `unknown` field crosses this boundary.
 // Additive-only within v1. camelCase keys, no snake_case on the wire, no field renames.
 
-import type { Locale } from '@/core/types/locale'
+import type { BriefTextWire } from '@/app/server/wire/brief'
+import type { PortfolioSharesWire } from '@/app/server/wire/portfolio-shares'
+import type { ByModelWire } from '@/app/server/wire/track-record'
 import type {
   AssetClass,
   BriefSectionKind,
@@ -16,7 +18,8 @@ import type {
   MarketEventKind,
   RiskLevel,
   SourceFreshness,
-} from '@/trading/api'
+} from '@/app/server/wire/vocab'
+import type { Locale } from '@/core/types/locale'
 
 /** `info` is a by-design note on how a figure was made; `warn` is a degradation. `text` is the CLI's
  *  sentence in the operator's language, so a client shows it as it is. */
@@ -195,6 +198,7 @@ export interface TradingPortfolioResponse {
   readonly cashBase: number
   readonly availableCashBase: number
   readonly positions: readonly AbsolutePositionWire[]
+  readonly shares: PortfolioSharesWire
   readonly caveats: readonly TradingWireCaveat[]
 }
 
@@ -230,6 +234,11 @@ interface SuggestionWireBase {
   readonly trailingStop?: number
   /** A held name's standing stop this run raised, from this level. */
   readonly raisedStopFrom?: number
+  /** The models that argued the call, sorted. Absent on a call stored before they were kept. */
+  readonly models?: readonly string[]
+  /** True when the plan's lower level is a review, not a stop: a fund is looked at again there and
+   *  never sold by it. Absent otherwise. */
+  readonly reviewOnly?: true
 }
 
 /** A discriminated union, not an optional-field bag: a hold has no entry, stop, target, or outcome,
@@ -293,8 +302,12 @@ interface TrackRecordSummaryWire {
     readonly focusKey: string
     readonly resolvedCount: number
     readonly winCount: number
+    readonly targetCount: number
     readonly winRate?: number
   }[]
+  /** The operator's own calls each model argued alone, over every call ever scored: unlike the rest
+   *  of the summary it is not cut to the newest `limit` rows. A call several models argued is in none. */
+  readonly byModel: readonly ByModelWire[]
   readonly caveats: readonly TradingWireCaveat[]
 }
 
@@ -373,29 +386,6 @@ export interface BriefSnapshotWire {
   readonly createdAt: number
   readonly sections: readonly BriefSectionWire[]
   readonly caveats: readonly TradingWireCaveat[]
-}
-
-/** The brief as the CLI prints it, without its icons and indents. */
-export interface BriefTextWire {
-  readonly title: string
-  /** The answer: the session sentence and the figures it rests on. */
-  readonly verdict: readonly string[]
-  /** The review of earlier stories and today's story; empty when the brief tells none. */
-  readonly story: readonly string[]
-  /** Ready and unavailable sections in the brief's order; one turned off by policy is not here, and
-   *  neither is the cost or the macro reference the verdict already states. */
-  readonly sections: readonly {
-    /** Unique in the brief: a market's kind repeats once per market. */
-    readonly id: string
-    readonly kind: string
-    /** The market's name, on a section that belongs to one. */
-    readonly market?: string
-    readonly status: 'ready' | 'unavailable'
-    readonly heading: string
-    readonly lines: readonly string[]
-  }[]
-  /** Every caveat the brief carries, stated once, as the CLI words them. */
-  readonly caveats: readonly string[]
 }
 
 export interface TradingBriefResponse {

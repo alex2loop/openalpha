@@ -1,13 +1,7 @@
-import { ConfigError, ToolError } from '@/core/errors'
-import { advanceCron } from '@/core/utils/cron'
-import { MS_PER_HOUR, MS_PER_MINUTE, toCanonicalTimeZone, zoneOffsetMs } from '@/core/utils/time'
+import { MS_PER_HOUR, MS_PER_MINUTE, zoneOffsetMs } from '@/core/utils/time'
+import { JobInputError } from '@/tools/schedule/job-input-error'
 
 const LOCAL_DT_RE = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?(Z|[+-]\d{2}:?\d{2})?$/
-// Below this an `at` number is epoch seconds, not milliseconds: as ms it is the year 2001.
-export const MIN_EPOCH_MS = 1e12
-// The last instant a job may be set for (end of year 9999, what a four-digit year can name). Past
-// the Date range a saved job could not even be formatted.
-export const MAX_EPOCH_MS = Date.UTC(9999, 11, 31, 23, 59, 59, 999)
 
 interface WallClock {
   readonly year: number
@@ -18,35 +12,16 @@ interface WallClock {
   readonly second: number
 }
 
-export function assertValidCron(expr: string, now: number, tz: string): void {
-  try {
-    advanceCron(expr, new Date(now), tz)
-  } catch (err: unknown) {
-    if (err instanceof ConfigError) {
-      throw new ToolError('invalid_input', `invalid cron expression "${expr}": ${err.message}`)
-    }
-    throw err
-  }
-}
-
-// DateTimeFormat accepts IANA links (e.g. Asia/Ho_Chi_Minh) that Intl.supportedValuesOf omits.
-export function resolveTimezone(tz: string): string {
-  try {
-    return toCanonicalTimeZone(tz)
-  } catch {
-    throw new ToolError('invalid_input', `invalid timezone: ${tz}`)
-  }
-}
-
 // "YYYY-MM-DD HH:mm[:ss]" → epoch ms. A trailing Z or ±HH:mm names the instant outright; without
 // one the text is wall clock in `tz`.
 export function toEpochMs(local: string, tz: string): number {
   const m = LOCAL_DT_RE.exec(local.trim())
 
   if (m === null) {
-    throw new ToolError(
+    throw new JobInputError(
       'invalid_input',
-      `could not read the time "${local}" - use "YYYY-MM-DD HH:mm" (e.g. "2026-08-05 15:45")`
+      `could not read the time "${local}" - use "YYYY-MM-DD HH:mm" (e.g. "2026-08-05 15:45")`,
+      { key: 'errors.jobAtUnreadable', params: { value: local } }
     )
   }
 
@@ -82,9 +57,10 @@ export function toEpochMs(local: string, tz: string): number {
   // jump 02:00 to 03:00 — the passes land an hour early instead of failing. Reading the instant
   // back in the zone is the only way to see it.
   if (instant + zoneOffsetMs(instant, tz) !== wall) {
-    throw new ToolError(
+    throw new JobInputError(
       'invalid_input',
-      `"${local}" does not exist in ${tz} - clocks move forward over that time`
+      `"${local}" does not exist in ${tz} - clocks move forward over that time`,
+      { key: 'errors.jobAtSkipped', params: { value: local, timezone: tz } }
     )
   }
 
@@ -134,6 +110,9 @@ function assertRealWallClock(local: string, wall: number, parts: WallClock): voi
     at.getUTCSeconds() !== parts.second
 
   if (rolled) {
-    throw new ToolError('invalid_input', `"${local}" is not a real date and time`)
+    throw new JobInputError('invalid_input', `"${local}" is not a real date and time`, {
+      key: 'errors.jobAtNotReal',
+      params: { value: local },
+    })
   }
 }

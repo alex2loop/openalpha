@@ -1,13 +1,14 @@
 import type { ChannelId } from '@/core/channels'
 import type { SessionId } from '@/core/ids'
-import type { LLMErrorCode, LLMMessage, LLMRequest, ProviderChain } from '@/core/llm'
+import type { LLMErrorCode, LLMMessage, LLMRequest } from '@/core/llm'
 import type { Logger } from '@/core/logging/logger'
 import type { OnStreamEvent } from '@/core/stream-events'
 import type { SettledProviderResponse } from '@/engine/llm-turn'
+import type { ThinkingState } from '@/engine/loop/thinking'
 import type { Hooks, LLMRequestModifier, RunView } from '@/engine/types/run'
 import { haltDetailOf } from '@/ai/api'
 import { LLMError, RunHalted } from '@/core/errors'
-import { formatErrForLog } from '@/core/security/credentials'
+import { formatErrForLog, scrubCredentials } from '@/core/security/credentials'
 import { appendSystemBlock } from '@/engine/hooks/system-block'
 import { streamSettledTurn } from '@/engine/llm-turn'
 import { reserveTurnCost } from '@/engine/loop/limits'
@@ -26,10 +27,16 @@ declare module '@/core/events' {
   }
 }
 
+const THINKING_EMIT_INTERVAL_MS = 2000
+const THINKING_EXCERPT_MAX_CHARS = 160
+// Holds any single-line credential the scrub matches. A PEM block is longer, so a cut can land
+// inside one.
+const THINKING_RAW_TAIL_CHARS = 1024
+
 interface ProviderCallOptions {
   readonly run: RunView
-  readonly chain: ProviderChain
   readonly hooks: Hooks
+  readonly thinking: ThinkingState
   readonly onChunk: OnStreamEvent | undefined
   /** Returns true and books the restart when the run may retry this turn fresh. */
   readonly consumeTurnRestart: () => boolean
@@ -43,12 +50,7 @@ export async function callProvider(
   const { run, hooks } = options
   const base = buildLLMRequest(run)
   const request = await applyRequestModifiers(run, base, hooks.llmRequestModifiers)
-  const downstream = runStreamListener(options.onChunk, run.services.logger)
-  const listener: OnStreamEvent = (event) => {
-    if (event.type !== 'tool_call_start') {
-      downstream?.(event)
-    }
-  }
+  const listener = buildStreamListener(options)
 
   try {
     return await callChainWithReservation(options, request, listener)
@@ -85,6 +87,55 @@ export async function callProvider(
   }
 }
 
+// The provider listener sees `reasoning_delta` whether or not the caller passed `onChunk`, so the
+// reasoning feed taps it here rather than in the drive-level listener.
+function buildStreamListener(options: ProviderCallOptions): OnStreamEvent {
+  const { run, thinking } = options
+  const downstream = runStreamListener(options.onChunk, run.services.logger)
+  const feedsThinking = run.env.reasoningVisibility !== 'hidden'
+
+  // A provider call is one turn (or a retry of it): its first excerpt must not carry the last one's.
+  thinking.tail = ''
+
+  return (event) => {
+    if (event.type === 'reasoning_delta' && feedsThinking) {
+      publishThinking(run, thinking, event.delta)
+    }
+
+    if (event.type !== 'tool_call_start') {
+      downstream?.(event)
+    }
+  }
+}
+
+// No timer: an excerpt that lands inside the interval waits for the next delta, and one left at
+// the end of the stream is dropped.
+function publishThinking(run: RunView, thinking: ThinkingState, delta: string): void {
+  thinking.tail = (thinking.tail + delta).slice(-THINKING_RAW_TAIL_CHARS)
+
+  const now = performance.now()
+
+  if (now - thinking.lastEmitAt < THINKING_EMIT_INTERVAL_MS) {
+    return
+  }
+
+  // Scrub first, cut after: cutting first could drop a credential's prefix and leave a suffix
+  // the patterns no longer match.
+  const excerpt = scrubCredentials(thinking.tail).slice(-THINKING_EXCERPT_MAX_CHARS).trim()
+
+  if (excerpt === '') {
+    return
+  }
+
+  thinking.lastEmitAt = now
+  run.services.bus.emit('run_thinking', {
+    runId: run.identity.runId,
+    channel: run.identity.channel,
+    excerpt,
+    at: Date.now(),
+  })
+}
+
 async function callChainWithReservation(
   options: ProviderCallOptions,
   request: LLMRequest,
@@ -93,7 +144,7 @@ async function callChainWithReservation(
   const reservation = await reserveTurnCost(options.run, request)
 
   try {
-    return await streamSettledTurn(options.chain, request, {
+    return await streamSettledTurn(options.run.services.chain, request, {
       onEvent: listener,
       kind: 'turn',
       run: options.run,

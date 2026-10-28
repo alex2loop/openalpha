@@ -2,7 +2,7 @@
 // regime. Same rules as `wire/trading.ts`. `changePct` is a percent, as on `/v1/quotes`.
 
 import type { InstrumentRefWire, TradingWireCaveat } from '@/app/server/wire/trading'
-import type { TypedPrice } from '@/trading/api'
+import type { SessionPhase, TypedPrice } from '@/app/server/wire/vocab'
 
 /** A ranked name's identity and live price; what the board says about it is in `card`. */
 interface ScreenCandidateWire {
@@ -65,6 +65,49 @@ interface OverviewRowWire {
   readonly observedAt?: number
 }
 
+/** A ranked name and the session figure it is ranked by, in the market's currency. */
+export interface OverviewLeaderWire {
+  readonly instrument: InstrumentRefWire
+  readonly value: number
+  /** Its share of the list's total, as a percent. */
+  readonly sharePct?: number
+  /** Its own move this session, as a percent. */
+  readonly changePct?: number
+}
+
+/** Where the session's money went, each list strongest first. A list the market does not measure is
+ *  absent, never empty. */
+export interface OverviewLeadersWire {
+  /** The window every list was measured over: a closed board reports its session, a market that
+   *  never closes its provider's rolling day. */
+  readonly window: 'session' | 'rolling-24h'
+  /** How many sessions the lists sum over; absent on a rolling window. */
+  readonly sessions?: number
+  readonly foreignBuys?: readonly OverviewLeaderWire[]
+  readonly foreignSells?: readonly OverviewLeaderWire[]
+  readonly proprietaryBuys?: readonly OverviewLeaderWire[]
+  readonly proprietarySells?: readonly OverviewLeaderWire[]
+  /** The session (`YYYY-MM-DD`) the proprietary lists were ranked over; present only when it is an
+   *  earlier one than the block's own, because that session's figures are not out yet. */
+  readonly proprietaryDay?: string
+  readonly mostTraded?: readonly OverviewLeaderWire[]
+}
+
+/** The session's biggest movers above the market's liquidity floor, each strongest first. */
+export interface OverviewMoversWire {
+  readonly window: 'session' | 'rolling-24h'
+  readonly gainers: readonly OverviewMoverWire[]
+  readonly losers: readonly OverviewMoverWire[]
+}
+
+export interface OverviewMoverWire {
+  readonly instrument: InstrumentRefWire
+  /** Percent. */
+  readonly changePct: number
+  /** Traded value in the market's currency. */
+  readonly turnover: number
+}
+
 /** GET /v1/overview — one block per registered market. */
 export interface OverviewResponse {
   readonly markets: readonly {
@@ -82,6 +125,8 @@ export interface OverviewResponse {
     }
     /** Foreign investors' net buying in the market's currency; negative is net selling. */
     readonly foreignNetValue?: number
+    readonly leaders?: OverviewLeadersWire
+    readonly movers?: OverviewMoversWire
     readonly caveats: readonly TradingWireCaveat[]
   }[]
 }
@@ -110,6 +155,9 @@ export type MacroResponse =
       }
       /** 0 to 1: share of the model's weight that had a reading. */
       readonly coverage: number
+      /** Every series the read carried by id (`deposit-rate-12m` in percent, `usd-vnd` in dong per
+       *  dollar), drivers or not; a series with no reading is absent. */
+      readonly readings: Readonly<Record<string, number>>
       readonly drivers: readonly {
         readonly id: string
         /** The driver's name in the operator's language. */
@@ -122,8 +170,10 @@ export type MacroResponse =
         readonly bullishAt: number
         readonly contribution: number
       }[]
+      /** The drivers with no reading, left out of the score; `label` in the operator's language. */
       readonly missing: readonly {
         readonly id: string
+        readonly label: string
         readonly reason: 'no-observation' | 'observation-only' | 'fetch-error'
       }[]
       readonly caveats: readonly TradingWireCaveat[]
@@ -133,6 +183,14 @@ export type MacroResponse =
       readonly status: 'unavailable'
       readonly caveats: readonly TradingWireCaveat[]
     }
+
+/** GET /v1/market?region — what `/market` prints for the region's last closed session and the next
+ *  report, in the daemon's language, one entry per line. It reads the sources, so it may take
+ *  seconds; no model runs. */
+export interface MarketSessionResponse {
+  readonly region: string
+  readonly text: readonly string[]
+}
 
 interface AlertWireBase {
   readonly id: string
@@ -188,7 +246,7 @@ export interface AlertDisableResponse {
  *  app prints it the way the CLI does: a board-scaled market (`priceDisplay`) prints
  *  `price / divisor` at `decimals` and no currency; any other prints in `currency`, with `quoteUnit`
  *  naming the measure it is per. The labels are in the daemon's language. */
-interface MarketWire {
+export interface MarketWire {
   readonly market: string
   readonly currency: string
   readonly quoteUnit: string
@@ -198,20 +256,84 @@ interface MarketWire {
   readonly ownsRegion: boolean
   /** The profile segment it fills. */
   readonly segment: string
+  /** The operator has that segment switched on. A market that is registered but off still trades
+   *  and is listed here; world gold, read for reference only, is always off. */
+  readonly enabled: boolean
   readonly label: string
   readonly segmentLabel: string
   readonly regionLabel: string
   readonly icon: string
   /** The index its suggestions are measured against. */
   readonly benchmark?: InstrumentRefWire
+  /** When it trades, as `HH:MM` on `timeZone`'s clock, and its day at the request; absent for a
+   *  market that never closes. */
+  readonly session?: MarketSessionWire
   /** It answers `/v1/screen`, a morning brief, and `/v1/events`. */
   readonly hasBoard: boolean
   readonly hasBrief: boolean
   readonly hasEvents: boolean
+  /** It answers `/v1/index-contributors` and `/v1/index-valuation`. */
+  readonly hasIndexes: boolean
+}
+
+/** `today` is the market's trading day on its own clock and `nextTradingDay` the next one it
+ *  trades, both `YYYY-MM-DD`. A closure past the market's holiday table reads as a session. */
+export interface MarketSessionWire {
+  /** The exchange whose hours these are, as a proper noun printed as is (`HOSE`); absent where no
+   *  one exchange sets them. */
+  readonly exchange?: string
+  readonly timeZone: string
+  readonly open: string
+  readonly close: string
+  readonly breaks?: readonly { readonly from: string; readonly to: string }[]
+  /** The closing call auction, inside `open`: absent where the market closes without one. */
+  readonly closeAuction?: { readonly from: string; readonly to: string }
+  readonly today: string
+  readonly tradesToday: boolean
+  readonly nextTradingDay: string
+  readonly phase: SessionPhase
 }
 
 export interface MarketsResponse {
   /** The operator's region (`[locale] region`). */
   readonly homeRegion: string
   readonly markets: readonly MarketWire[]
+}
+
+/** One sector's standing against its market's index. The returns are fractions (`0.05` is 5%):
+ *  `sessionReturn` is today, the two excess returns lead the index over 20 and 60 sessions. */
+interface SectorWire {
+  readonly sector: string
+  /** The sector's name in the daemon's language. */
+  readonly label: string
+  readonly memberCount: number
+  readonly sessionReturn?: number
+  readonly excessReturnShort?: number
+  readonly excessReturnLong?: number
+  readonly score?: number
+}
+
+/** GET /v1/sectors?market — strongest first. A market that files no sectors answers an empty list
+ *  and says why in `caveats`. */
+export interface SectorsResponse {
+  readonly market: string
+  readonly asOf: string
+  readonly sectors: readonly SectorWire[]
+  readonly caveats: readonly TradingWireCaveat[]
+}
+
+interface SourceWire {
+  readonly id: string
+  readonly kind: string
+  readonly lastSuccessAt?: number
+  /** Why its last call failed, in the daemon's language; absent when it has not failed. */
+  readonly failure?: string
+  /** `open` means the daemon stopped calling it for now. */
+  readonly breaker: 'closed' | 'open'
+}
+
+/** GET /v1/sources — every data source the daemon reads. What it reports is this process's memory
+ *  of its own calls, so a daemon that has called nothing yet reports no success either. */
+export interface SourcesResponse {
+  readonly sources: readonly SourceWire[]
 }

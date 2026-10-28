@@ -1,0 +1,88 @@
+/* Under the running chip, as the mockup hangs it. */
+.popover.jobs-popover {
+  right: auto;
+  left: 130px;
+  width: 420px;
+}
+
+.job-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--sizeBody);
+}
+
+.sub-head + .job-row,
+.sub-head + .meta {
+  border-top: 0;
+}
+
+.job-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.job-main b {
+  font-weight: var(--weightMedium);
+  overflow-wrap: anywhere;
+}
+
+.job-time {
+  flex: none;
+  width: 72px;
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+}
+
+.job-child {
+  margin: 2px 0 0;
+  padding-left: 10px;
+  border-left: 2px dashed var(--border);
+}
+
+.job-row .spin {
+  margin-top: 4px;
+}
+
+.job-row.is-failing b {
+  color: var(--dangerText);
+}
+
+.upkeep-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  width: 100%;
+  padding: var(--s1) 0;
+  border: 0;
+  background: none;
+  font-size: var(--sizeBody);
+  text-align: left;
+  cursor: pointer;
+}
+
+.upkeep-toggle .meta {
+  margin-left: auto;
+}
+
+.upkeep-status {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 9px;
+  background: var(--sunken);
+  color: var(--ink2);
+  font: var(--typeCaptionStrong);
+}
+
+.upkeep-status.is-failing {
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+:root:not([data-layout="wide"]) .popover.jobs-popover {
+  right: var(--popoverGutter);
+  left: var(--popoverGutter);
+  width: auto;
+}

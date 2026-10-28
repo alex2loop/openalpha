@@ -16,10 +16,16 @@ import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { RunDebate } from '@/trading/features/suggestion/pipeline/types'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
 import type { FactorLogService } from '@/trading/features/suggestion/track-record/factor-log-types'
+import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
+import type {
+  AlertFiredListener,
+  OrderFilledListener,
+  TradingNoticeSender,
+} from '@/trading/kernel/operator/notice'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
@@ -64,6 +70,10 @@ interface DomainServiceDeps {
   readonly stages: StageRegistry
   readonly refresh: RefreshMarketData
   readonly sender: TradingNoticeSender
+  recipient(): DeliveryAddress | undefined
+  readonly onFilled: OrderFilledListener
+  readonly onAlertFired: AlertFiredListener
+  readonly onFocusCallScored: CallScoredNotices['onFocusScored']
   readonly config: TradingConfig
   readonly logger: Logger
   readonly runDebate: RunDebate
@@ -211,6 +221,12 @@ function buildSuggestions(parts: SuggestionParts): SuggestionService {
     config: deps.config,
     logger: deps.logger,
     runDebate: deps.runDebate,
+    notices: {
+      sender: deps.sender,
+      recipient: deps.recipient,
+      locale: deps.defaultLocale,
+      onFocusScored: deps.onFocusCallScored,
+    },
     ensure,
     createSuggestionBudget: () => deps.createSuggestionBudget(),
     skillVersions: deps.skillVersions,
@@ -274,6 +290,7 @@ function buildOrder(parts: OrderParts): OrderService | undefined {
     policy: deps.config.orders,
     costs: deps.config.costs,
     logger: deps.logger,
+    onFilled: deps.onFilled,
     findProfile: (signal) => deps.stores.profile.find(signal),
     quoteOf: (instrument, now, signal) => quoteOf(marketData, instrument, { now, signal }),
     findRecordedFill: async (venue, orderId, signal) =>
@@ -354,6 +371,7 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
     briefs,
     alerts: createAlertService({
       defaultLocale: deps.defaultLocale,
+      onAlertFired: deps.onAlertFired,
       store: deps.stores.alert,
       markets: deps.markets,
       marketData,

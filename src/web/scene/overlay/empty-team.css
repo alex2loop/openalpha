@@ -1,0 +1,67 @@
+.empty-team {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: var(--s2);
+  width: min(440px, calc(100% - 2 * var(--s3)));
+  padding: var(--s3);
+  border-radius: 12px;
+  box-shadow: var(--pop);
+  transform: translate(-50%, -50%);
+}
+
+.empty-team h3 {
+  margin: 0;
+  color: var(--title);
+  font-size: 15px;
+}
+
+.empty-team-templates {
+  display: grid;
+  gap: var(--s1);
+}
+
+.empty-team-template,
+.empty-team-scratch,
+.add-desk {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.empty-team-template {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s1) var(--s2);
+  text-align: left;
+}
+
+.empty-team-scratch {
+  align-self: flex-start;
+  padding: 6px var(--s2);
+  font-size: 12px;
+}
+
+.add-desk {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 2px;
+  border-style: dashed;
+  background: var(--glass);
+  color: var(--ink2);
+  font-size: 11px;
+  line-height: 13px;
+}
+
+.add-desk:hover,
+.empty-team-template:hover,
+.empty-team-scratch:hover {
+  border-color: var(--ink3);
+}

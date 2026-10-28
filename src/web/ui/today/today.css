@@ -1,0 +1,295 @@
+.block {
+  margin-bottom: var(--s2);
+  padding: var(--s3);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.block-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin-bottom: var(--s2);
+  color: var(--title);
+  font: var(--typeCardTitle);
+}
+
+.block-head .meta {
+  font-weight: var(--weightRegular);
+}
+
+.block-grow {
+  flex: 1;
+}
+
+.block-read {
+  margin-top: calc(var(--s0) * -1);
+}
+
+.strip {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  margin-bottom: var(--s2);
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: var(--sizeBody);
+}
+
+.flow > .strip {
+  margin: 0;
+}
+
+.strip > span {
+  flex: 1;
+}
+
+.strip.is-caution {
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.strip.is-problem {
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+.strip.is-grey {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  background: var(--sunken);
+  color: var(--ink2);
+}
+
+.session-line {
+  margin-bottom: var(--s2);
+}
+
+.session-line b {
+  color: var(--ink);
+}
+
+.needs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px var(--s1);
+  width: 100%;
+  margin-bottom: var(--s2);
+  padding: 10px var(--s2);
+  border: 1px solid var(--badgeStop);
+  border-radius: 12px;
+  background: var(--problemTint);
+  color: var(--problemText);
+  font-size: var(--sizeReading);
+  text-align: left;
+  cursor: pointer;
+}
+
+.needs-bar:hover {
+  filter: brightness(0.97);
+}
+
+.row-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A price in a list: monospaced, so a column of them lines up. */
+.row-price {
+  font: var(--typePriceFigure);
+}
+
+.row b {
+  font-weight: var(--weightMedium);
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.row.is-breach {
+  margin-inline: calc(var(--s1) * -1);
+  padding-inline: var(--s1);
+  border-radius: 6px;
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+.row-note {
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+}
+
+.todo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.todo:first-child {
+  border-top: 0;
+}
+
+.todo b {
+  display: block;
+  font-weight: var(--weightMedium);
+}
+
+.todo-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--s1);
+}
+
+.todo .tile {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--controlSmRadius);
+}
+
+.todo .tile svg.icon {
+  width: 14px;
+  height: 14px;
+}
+
+.todo.is-breach,
+.todo.is-breach .meta {
+  color: var(--problemText);
+}
+
+.pill {
+  min-width: 78px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font: var(--typeHeading);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pill.is-up {
+  background: var(--pillUpBg);
+  color: var(--pillUpInk);
+}
+
+.pill.is-down {
+  background: var(--pillDownBg);
+  color: var(--pillDownInk);
+}
+
+.pill.is-flat {
+  background: var(--sunken);
+  color: var(--ink2);
+}
+
+.market-section + .market-section {
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
+}
+
+.news-item {
+  display: block;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.news-item:first-child {
+  border-top: 0;
+}
+
+.news-item b {
+  font-weight: var(--weightSemibold);
+}
+
+a.news-item:hover b {
+  text-decoration: underline;
+}
+
+.regime-tag {
+  display: inline-block;
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--sunken);
+  font: var(--typeHeading);
+}
+
+.regime-tag.is-risk-off {
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.step {
+  display: flex;
+  gap: var(--s2);
+  padding: var(--s2) 0;
+  border-top: 1px solid var(--border);
+}
+
+.step:first-child {
+  border-top: 0;
+}
+
+.step-num {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--ink2);
+  font: var(--typeHeading);
+}
+
+.step.is-done .step-num {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.step-num svg {
+  width: 13px;
+  height: 13px;
+}
+
+.step-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.step-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.step-optional {
+  margin-left: 4px;
+  color: var(--ink2);
+  font: var(--typeCaption);
+}

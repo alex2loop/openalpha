@@ -135,10 +135,12 @@ A call too long to show whole opens with `[Arguments cut short - you can only ap
 and offers no remember.
 
 **Channels.** An inline-button prompt goes only to the channel that owns the run. A tap counts only
-when the request is still pending, it came from the prompted chat, that decision was actually
-offered, *and* the person tapping is an authorised operator. A channel without inline buttons (Zalo) asks
-with short codes such as `/4821` to type back, each good only in that chat and only while the prompt
-lives; it denies immediately and says so only when no code can be drawn. Shutdown denies every outstanding request.
+when all of these are true: the request is still pending, the tap came from the chat that was asked,
+that decision was actually offered, *and* the person tapping is an authorised operator.
+
+A channel without inline buttons (Zalo) asks with short codes such as `/4821` for you to type back.
+Each code works only in that chat and only while the prompt is open. Only when no code can be drawn
+does it deny straight away, and it says so. Shutdown denies every request still waiting.
 
 **MCP.** Approval uses form elicitation when the client supports it. A client without elicitation
 cannot approve, so dangerous calls fail closed.
@@ -186,6 +188,20 @@ subscription login, the generated API token, social network keys and the Zalo pe
 do not travel with `db export` or `db backup`; see
 [Storage](storage.md#files-outside-the-database).
 
+Keys typed on the office page (Settings > Providers, Exchanges and Tools) go to the same key file
+`openalpha key set` writes, `<data dir>/env`, mode `0600`, replaced atomically.
+
+- The daemon never sends a saved value back. The page learns only whether a name is saved, and a
+  refused value is not echoed in the error, the log or the field's sentence.
+- The page may set only the variables your models, exchanges, web search and data sources read. The
+  API token, a channel's bot token, an MCP server's variables, the product's own control variables
+  (such as `OPENALPHA_DATA_DIR`) and the names that steer how programs start are refused. So is a
+  value with a line break, an edge space or more than 4,096 characters.
+- Which variable a key lives in (`api_key_env`, `[trading.sources]`, a venue's `credentials`) is set
+  only from the CLI or the file, so the page cannot point a key somewhere new.
+- While `[api] public_url` is set, saved on disk or running, the page changes no key and starts no
+  ChatGPT sign-in.
+
 Credential detection covers authorization headers, provider tokens, JWTs, private keys,
 certificates and URLs that carry credentials. It is used three ways:
 
@@ -219,13 +235,16 @@ a per-run `HOME` and temp directory.
 
 Everything written under the data directory is private to you: directories `0700`, files `0600`.
 That covers provider tokens, agent and skill files, plugin installs, logs, scratch directories,
-`db export` output and database backups. A backup holds every session, memory and ledger row, so it
-never inherits a umask that leaves it readable by others. Files appear by atomic rename with the
-mode set *before* the rename, so nobody sees a partial or permissive file. A backup is the one file
-written by the database itself, so it is written inside a private `0700` staging folder and moved
-out only when complete. Windows has no mode bits:
-there the data directory sits in your user profile (`%USERPROFILE%\.openalpha`), whose access list
-already keeps other accounts out.
+`db export` output and database backups.
+
+- A backup holds every session, memory and ledger row, so it never inherits a umask that leaves it
+  readable by others.
+- Files appear by atomic rename with the mode set *before* the rename, so nobody sees a partial or
+  permissive file.
+- A backup is the one file written by the database itself. So it is written inside a private `0700`
+  staging folder and moved out only when complete.
+- Windows has no mode bits. There the data directory sits in your user profile
+  (`%USERPROFILE%\.openalpha`), whose access list already keeps other accounts out.
 
 ### Outbound requests
 
@@ -242,6 +261,13 @@ already keeps other accounts out.
 
 An external MCP server's HTTP endpoint is rechecked on every request and follows no redirect, but it
 is not address-pinned, so the rebind window between check and call stays open.
+
+The office page makes one outside call of its own, from your browser rather than the daemon: the
+current weather for the region's city from `api.open-meteo.com`, every 30 minutes, sending only the
+city's latitude and longitude, with no cookie and no referrer. It never runs in a preview hour or under
+reduced motion, and a failed call falls back to a made-up sky. The compiled page's security policy
+lets it reach the daemon and that one host, nothing else; Settings > Data and connections names it beside the hosts the
+daemon calls.
 
 An agent's `hosts` list is a capability boundary for `web_fetch` and for the pages `research` reads
 directly: adding a host deliberately widens what that agent can reach. A research page on a host outside
@@ -300,6 +326,29 @@ enforces:
   and admin requests are never sent.
 - **Secret check.** A body that looks like a secret or contains the agent's own key is refused.
 - **MCP.** `social_request` and `social_skill` are withheld from the MCP server surface.
+
+### Commands forwarded to the daemon
+
+With a daemon running, the CLI hands daemon-state commands to it over `/v1/exec` (see
+[operations](operations.md#commands-run-in-the-daemon)). That socket runs a command in the daemon, so
+it admits only your own terminal on the same machine. All of these must hold, checked before the
+connection upgrades:
+
+- The API token in an `Authorization: Bearer` header. The page's sign-in cookie is never read, and a
+  wrong token counts toward the same lockout as every other API call.
+- No `Origin` header. A browser always sends one, so no web page can open it.
+- A loopback peer, and a `Host` of exactly `127.0.0.1:<port>`.
+- None of `X-Forwarded-For`, `Forwarded`, `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Real-IP`, `Via`,
+  `CF-Connecting-IP` or `True-Client-IP`, with or without `public_url`.
+
+A reverse proxy or `tailscale serve` on the same machine presents a loopback peer, so the `Host` and
+header checks are what keep a remote caller out. The socket has its own cap of 8, apart from the
+page's streams, and one that sends no command within 10 seconds is closed.
+
+A forwarded command can do what the same command does in your terminal, no more. Approvals are still
+asked in that terminal, the page cannot answer them, and two terminals never see each other's. Commands
+that take a secret (`key set`, `onboard`, `auth login`) stay local. The daemon logs each command's name,
+exit code and duration, never its arguments, your answers, edited text or output.
 
 ## Failure behaviour
 

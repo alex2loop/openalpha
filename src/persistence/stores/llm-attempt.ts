@@ -1,13 +1,21 @@
-import type { LLMAttemptId } from '@/core/ids'
+import type { LLMAttemptId, RunId } from '@/core/ids'
 import type { LLMErrorCode, ProviderAttemptOutcome } from '@/core/llm'
 import type { Dialect, Storage, Transaction } from '@/core/types/storage'
-import type { CostSource, LLMAttemptInput, LLMAttemptKind, UsageSource } from '@/core/types/usage'
+import type {
+  CostSource,
+  LLMAttemptInput,
+  LLMAttemptKind,
+  RunAttempt,
+  RunCalls,
+  UsageSource,
+} from '@/core/types/usage'
 import type { LLMAttempt, LLMAttemptStore } from '@/persistence/types'
 import { StorageError } from '@/core/errors'
 import { agentId, llmAttemptId, runId, sessionId } from '@/core/ids'
 import { fromNanoUsd, toNanoUsd } from '@/persistence/money'
 import { SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
 import { createSpendReads } from '@/persistence/stores/llm-attempt-spend'
+import { runTreeCtes } from '@/persistence/stores/run-tree-sql'
 
 // The column list has one owner: the insert, the idempotent-retry read, and the detail read in
 // stores/session.ts all enumerate exactly these, in this order.
@@ -77,6 +85,7 @@ export function createLLMAttemptStore(
   return {
     record: (attempt) => record(store, attempt),
     ...createSpendReads(db, dialect, timeZone),
+    attemptsForRun: (id, limit) => attemptsForRun(store, id, limit),
     recordedIds: (ids) => recordedIds(store, dialect, ids),
   }
 }
@@ -84,14 +93,20 @@ export function createLLMAttemptStore(
 // Map a stored fact row back to the canonical shape; brand-parsing is the only validation the
 // CHECK constraints do not already guarantee.
 export function toLlmAttempt(row: LLMAttemptRow): LLMAttempt {
+  return {
+    ...toRunAttempt(row),
+    sessionId: row.session_id === null ? null : sessionId(row.session_id),
+    messageIdx: row.message_idx,
+  }
+}
+
+function toRunAttempt(row: LLMAttemptRow): RunAttempt {
   const base = {
     id: llmAttemptId(row.id),
-    sessionId: row.session_id === null ? null : sessionId(row.session_id),
     runId: runId(row.run_id),
     ...(row.parent_run_id === null ? {} : { parentRunId: runId(row.parent_run_id) }),
     agentId: agentId(row.agent_id),
     billingAgentId: agentId(row.billing_agent_id === '' ? row.agent_id : row.billing_agent_id),
-    messageIdx: row.message_idx,
     kind: row.kind,
     provider: row.provider,
     model: row.model,
@@ -116,6 +131,26 @@ export function toLlmAttempt(row: LLMAttemptRow): LLMAttempt {
   }
 
   return { ...base, outcome: row.outcome, errorCode: row.error_code }
+}
+
+// A list under `limit` is the whole subtree, so its totals come from the rows; a full one may be cut
+// and asks the tree once more. The id tie-break keeps equal instants in a stable order.
+async function attemptsForRun(store: StoreDeps, id: RunId, limit: number): Promise<RunCalls> {
+  const rows = await store.db.query<LLMAttemptRow>(store.sql.forRun, [id, limit])
+  const calls = rows.map(toRunAttempt)
+
+  if (rows.length < limit) {
+    const nano = rows.reduce((sum, row) => sum + row.cost_nano_usd, 0)
+
+    return { calls, totalCalls: rows.length, totalUsd: fromNanoUsd(nano) }
+  }
+
+  const [total] = await store.db.query<{ readonly calls: number; readonly total: number }>(
+    store.sql.totalForRun,
+    [id]
+  )
+
+  return { calls, totalCalls: total?.calls ?? 0, totalUsd: fromNanoUsd(total?.total ?? 0) }
 }
 
 // One transaction: a failed write leaves neither an attempt fact nor a misleading total. The
@@ -233,6 +268,14 @@ function buildSql(d: Dialect) {
       `INSERT INTO llm_attempts (${columns}) VALUES (${d.paramList(LLM_ATTEMPT_COLUMNS.length)}) ` +
       `ON CONFLICT (id) DO NOTHING`,
     loadById: `SELECT ${columns} FROM llm_attempts WHERE id = ${d.param(1)}`,
+    forRun:
+      `${runTreeCtes(d, 1)}SELECT ${columns} FROM llm_attempts ` +
+      `WHERE run_id IN (SELECT run_id FROM tree) ` +
+      `ORDER BY settled_at DESC, id LIMIT ${d.param(2)}`,
+    totalForRun:
+      `${runTreeCtes(d, 1)}SELECT COUNT(*) AS calls, ` +
+      `CAST(COALESCE(SUM(cost_nano_usd), 0) AS BIGINT) AS total FROM llm_attempts ` +
+      `WHERE run_id IN (SELECT run_id FROM tree)`,
     // Portable monotonic advance: MAX(current, settled_at) without dialect-specific GREATEST.
     touchActivity:
       `UPDATE sessions SET last_activity_at = ` +

@@ -7,6 +7,8 @@ const JSON_INDENT = 2
 /** opencode and Kilo Code time out a local server in 5-10 s unless told otherwise, and a served
  *  call waits up to `MCP_CALL_WAIT_MS` before it answers `working`. */
 const HOST_TIMEOUT_MS = MCP_CALL_WAIT_MS * 2
+/** Muse Code refuses a settings file without its schema version. */
+const MUSE_SCHEMA_VERSION = 1
 const SHELL_SAFE_RE = /^[\w@%+=:,./-]+$/
 const SINGLE_QUOTE_RE = /'/g
 const QUOTED_SINGLE_QUOTE = `'\\''`
@@ -32,6 +34,14 @@ export function buildHostConfig(format: HostConfigFormat, server: SelfCommand): 
           },
         },
         experimental: { mcp_timeout: HOST_TIMEOUT_MS },
+      })
+    case 'muse':
+      // A required server that fails to start aborts every Muse Code run; optional skips it with a warning.
+      return toJson({
+        schema_version: MUSE_SCHEMA_VERSION,
+        mcp_servers: {
+          [BRAND.name]: { transport: 'stdio', command, args, mode: 'optional' },
+        },
       })
     case 'zed':
       return toJson({ context_servers: { [BRAND.name]: { source: 'custom', command, args } } })

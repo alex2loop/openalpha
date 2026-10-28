@@ -8,7 +8,7 @@ OpenAlpha is an AI trading research analyst. It suggests by default and executes
 
 - Screens, scores, sizes and debates trade ideas across markets (VN equities, gold, crypto).
 - Delivers suggestions (entry, stop, target, R:R, conviction, thesis with sources), keeps an honest ledger of the operator's trades, tracks how past suggestions performed.
-- Surfaces: CLI and Telegram/Zalo.
+- Surfaces: CLI, Telegram/Zalo and the office web page.
 
 ## Design goals
 
@@ -53,7 +53,7 @@ A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src
 
 ### Module DAG
 
-15 modules in `src/`, acyclic, every edge points toward `core`.
+16 modules in `src/`, acyclic, every edge points toward `core`.
 
 | Module | May import | Role |
 |---|---|---|
@@ -70,6 +70,7 @@ A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src
 | `social` | core, engine, i18n | Agent social networks joined by skill |
 | `trading` | core, engine, persistence, i18n | Self-contained bounded context |
 | `channels` | core, engine, commands, i18n | Channel definitions, delivery, adapters |
+| `web` | i18n; type-only app/server/wire | Office page: Preact UI and Canvas scene, served by the daemon |
 | `cli` | all except `app` | Terminal surface |
 | `app` | all | Entry and sole composition root |
 
@@ -83,7 +84,7 @@ Boundary rules (hard):
    - `i18n` exposes only bare `@/i18n`; it may `import type` only `Locale` from `@/core/types/locale`.
 3. Consumer-side interfaces at every seam: consumer defines, provider `implements`, `app` binds. Direct dependencies only between always-coexisting modules.
 4. `core` has no finance vocabulary. Nothing imports `trading` except `app`, `cli` (via its public API) and the SDK barrel.
-5. Domain modules never import surfaces (`cli`, `channels`, `server`). Surfaces never import `app`.
+5. Domain modules never import surfaces (`cli`, `channels`, `server`). Surfaces never import `app`, except `web`, which takes type-only `app/server/wire`.
 6. No `RunContext` god-object: the Run owns its state; services are injected.
 7. Provider order in `app/providers.ts` is load-bearing (prologue + 15 steps, 9 constraints, incl. step 8b `cliCommands`). Read it before reordering.
 
@@ -221,7 +222,7 @@ Implementation plus one composition registration; defining does not activate.
 - Trading slash command: `features/<feature>/command.ts` (or `command/<name>.ts`) exporting `create<Name>Command`; register in `createTradingCommands` (`trading/wiring/catalog/commands.ts`); strings in both catalogs; arguments follow the Operator argument grammar. Generic slash command: `createSlashCommand`, registered via a `boot` option or `ServiceProvider`. Terminal command: `createCommand`, contributed through `cliCommands` (step 8b).
 - Tool: `createTool`; trading tools register in `createTradingTools` (`trading/wiring/catalog/tools.ts`). No tool names an absolute read (`check-feature-isolation`).
 - Channel: `ChannelDefinition` + `ChannelAdapter` behind `channels/api.ts`, in `channels/adapters/<name>/`. Keep transport parsing, rendering and credentials in that folder; declare truthful capabilities; enforce `maxTextLen` in the renderer; accept the shutdown signal before arming listeners or polling; register at composition (normally a trusted bundled plugin); config and doctor validation go through the definition's schema path. No per-channel `if` in delivery, command, approval or persistence code: add the missing capability to `ChannelCapabilities`.
-- Agent: a TOML file, not code (`AgentTomlSchema`, `src/engine/agents/builder.ts`; template `agent.sample.toml`). Trading debate personas: `src/trading/agents/<id>/agent.toml`, loaded by role in `trading/wiring/catalog/agents.ts` (keyed by `DebateRole`). User agents: `<data_dir>/agents/<id>/agent.toml`, untrusted. Code-defined untrusted agents: `createAgent`.
+- Agent: a TOML file, not code (`AgentTomlSchema`, `src/engine/agents/builder.ts`; template `agent.sample.toml`). Trading debate personas: `src/trading/agents/<id>/agent.toml`, loaded by role in `trading/wiring/catalog/agents.ts` (keyed by `DebateRole`). User agents: `<data_dir>/agents/<id>/agent.toml`, untrusted; they may set `model_tier` (`allowModelTier` in `createUserAgentsProvider`), never `reasoning`; untrusted plugin agents may set neither. Code-defined untrusted agents: `createAgent`.
 
 ### Persistence and migrations
 
@@ -358,6 +359,7 @@ Reduce reasons:
 - Memory rejects secrets and injection.
 - Untrusted plugins contribute no code unless `plugins.allow_code`; tools and hooks stay forbidden regardless; a source module is the one code contribution that flag opens.
 - Config is merged once at boot and frozen. Channel access is allow-listed/paired, fail-closed.
+- While `[api] public_url` is set, app-channel runs are never offered what `isClientApprovalWithheld` names (shell, file writes, social tools, external tools), and pairing is approved, chat access granted and jobs for other chats made only on the server. `[api] orders` gates the order routes, `/trade` and `order_place` for app runs.
 
 ## Coding rules
 

@@ -1,14 +1,13 @@
 import type { Locale } from '@/core/types/locale'
+import type { EpochRange } from '@/core/utils/time'
 import type { Alert, AlertListPage, DisableAlertResult } from '@/trading/features/alerts/types'
-import type { BriefText } from '@/trading/features/brief/surface'
-import type { BriefDelivery, BriefSnapshot } from '@/trading/features/brief/types'
+import type { BriefDelivery } from '@/trading/features/brief/types'
+import type { VenueSyncOutcome } from '@/trading/features/ledger/sync-run'
 import type {
   LedgerDayRange,
   LedgerEntry,
   LedgerWriteResult,
 } from '@/trading/features/ledger/types'
-import type { ScreenCard } from '@/trading/features/market-data/render/screen'
-import type { MarketDescription, ScreenView } from '@/trading/features/market-data/types'
 import type {
   ConfirmOutcome,
   ExitLevels,
@@ -16,22 +15,18 @@ import type {
   ReconcileReview,
   TradeStatus,
 } from '@/trading/features/order/types'
-import type { VenueReconciliation } from '@/trading/features/portfolio/folds/reconcile'
 import type { NavHistory, NavWindow } from '@/trading/features/portfolio/nav/types'
-import type { ReconcileSentences } from '@/trading/features/portfolio/render/reconcile'
-import type { SizedValuedBook, VenueChoice } from '@/trading/features/portfolio/types'
+import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
+import type { VenueChoice } from '@/trading/features/portfolio/venues'
+import type { WatchlistResult } from '@/trading/features/profile/types'
 import type { SuggestionCard } from '@/trading/features/suggestion/render/card'
-import type { TrackRecordReflection } from '@/trading/features/suggestion/suggestion'
-import type {
-  AgentFocusRef,
-  AgentRecordView,
-} from '@/trading/features/suggestion/track-record/agent-record'
-import type { ReflectText } from '@/trading/features/suggestion/track-record/surface'
+import type { AgentFocusRef } from '@/trading/features/suggestion/track-record/agent-record'
 import type {
   StoredSuggestion,
   SuggestionId,
   SuggestionListStatus,
 } from '@/trading/features/suggestion/types'
+import type { ThemeId, ThemeTransition } from '@/trading/features/themes/types'
 import type {
   CurrencyCode,
   InstrumentKind,
@@ -44,27 +39,47 @@ import type {
   TradingDay,
   VenueRef,
 } from '@/trading/kernel/instrument'
+import type {
+  IndexContributorsReading,
+  IndexValuationReading,
+} from '@/trading/kernel/market/index-reading'
 import type { QuoteBoard } from '@/trading/kernel/market/market-capability'
 import type { Candle, MarketEvent, NewsItem } from '@/trading/kernel/market/market-data'
-import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
-import type {
-  AlertCondition,
-  AlertId,
-  StopCover,
-  StopDistance,
-} from '@/trading/kernel/operator/alert'
+import type { AlertCondition, AlertId } from '@/trading/kernel/operator/alert'
 import type { LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { ProfilePatch, UserProfile } from '@/trading/kernel/operator/profile'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Page } from '@/trading/kernel/store/page'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
-import type { QuoteConvention } from '@/trading/render/money'
 import type { SURFACE_LIMITS } from '@/trading/surface-limits'
-import type { BriefRescheduleView } from '@/trading/wiring/composition/app-views'
+import type {
+  BriefRescheduleView,
+  DayDigestView,
+  ThemeChangeView,
+  ThemesView,
+} from '@/trading/wiring/composition/app-views'
+import type { IntradayNext } from '@/trading/wiring/composition/intraday-next'
 import type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
+import type {
+  SourceStatus,
+  TradingIndexRequest,
+  TradingSectorsRequest,
+  TradingSectorsView,
+} from '@/trading/wiring/host/market-types'
+import type {
+  AgentRecordSummary,
+  HeldStopView,
+  ReconcileView,
+  ScreenAnswer,
+  TradingBriefView,
+  TradingMacroView,
+  TradingMarketsView,
+  TradingSetupView,
+  TradingTrackRecordView,
+} from '@/trading/wiring/host/view-types'
 
 interface TradingSignalRequest {
   readonly signal: AbortSignal
@@ -72,11 +87,6 @@ interface TradingSignalRequest {
 
 interface TradingNavRequest extends TradingSignalRequest {
   readonly window: NavWindow
-}
-
-export interface ReconcileView {
-  readonly venues: readonly VenueReconciliation[]
-  readonly text: ReconcileSentences
 }
 
 /** One name over a day range: its bars or its corporate events. */
@@ -119,6 +129,8 @@ interface TradingAlertCreateRequest {
   /** Where it fires to: the asking surface's own address. */
   readonly delivery: DeliveryAddress
   readonly typedPrice?: TypedPrice
+  /** Refuses a level a live alert already covers, rather than returning that alert. */
+  readonly requireNew?: true
   readonly signal: AbortSignal
 }
 
@@ -129,6 +141,30 @@ interface TradingAlertDisableRequest {
 
 interface TradingRegionRequest {
   readonly region?: Region
+  readonly signal: AbortSignal
+}
+
+interface TradingMarketSessionRequest {
+  readonly region?: Region
+  readonly locale: Locale
+  readonly signal: AbortSignal
+}
+
+interface TradingThemesRequest {
+  readonly locale: Locale
+  readonly signal: AbortSignal
+}
+
+interface TradingThemeChangeRequest {
+  readonly themeId: ThemeId
+  readonly transition: ThemeTransition
+  readonly signal: AbortSignal
+}
+
+interface TradingWatchlistRequest {
+  readonly kind: 'add' | 'remove'
+  /** As the operator types them: `fpt`, or `crypto:hdb` where the market must be named. */
+  readonly names: readonly string[]
   readonly signal: AbortSignal
 }
 
@@ -147,11 +183,6 @@ interface TradingSuggestionsRequest {
   readonly signal: AbortSignal
 }
 
-interface TradingSuggestionCardRequest {
-  readonly suggestionId: SuggestionId
-  readonly signal: AbortSignal
-}
-
 interface TradingBriefRescheduleRequest {
   /** `HH:mm`, read in the market's own timezone. */
   readonly sendTime: string
@@ -165,9 +196,19 @@ interface TradingAgentRecordsRequest {
   readonly signal: AbortSignal
 }
 
-/** An agent's record with the lines a terminal prints for it, in the requested language. */
-export interface AgentRecordSummary extends AgentRecordView {
-  readonly lines: readonly string[]
+interface TradingDayDigestRequest {
+  /** The operator's day, which dates the briefs. */
+  readonly day: TradingDay
+  /** The same day as instants, which date the calls. */
+  readonly range: EpochRange
+  /** How many of the day's largest closes to read. */
+  readonly limit: number
+  readonly signal: AbortSignal
+}
+
+interface TradingSuggestionRequest {
+  readonly suggestionId: SuggestionId
+  readonly signal: AbortSignal
 }
 
 interface TradingTrackRecordRequest {
@@ -213,6 +254,10 @@ interface TradingLedgerDeleteRequest {
   readonly signal: AbortSignal
 }
 
+interface TradingLedgerSyncRequest {
+  readonly venue: VenueRef
+}
+
 interface TradingOrderTokenRequest {
   /** The staged order's confirmation token, or an unmirrored row's. */
   readonly token: string
@@ -245,62 +290,14 @@ interface TradingNewsView {
   readonly result: SourceResult<readonly NewsItem[]>
 }
 
-/** A screen read with the CLI's own lines for it. */
-export interface ScreenAnswer {
-  readonly view: ScreenView
-  readonly card: ScreenCard
-}
-
-/** A holding's planned stop, and who stands behind it at the exchange. `cover` is absent where
- *  nothing could rest: no exchange account, a custodian with no client, or a venue that did not
- *  answer. */
-export interface HeldStopView extends StopDistance {
-  readonly cover?: StopCover
-}
-
-/** One registered market as an app lays it out: its facts, how it prints a price, and its names
- *  in the operator's language. */
-export interface MarketView extends MarketDescription, QuoteConvention {
-  readonly label: string
-  readonly segmentLabel: string
-  readonly regionLabel: string
-}
-
-/** Every registered market, with the operator's home region: its owner is the default market. */
-export interface TradingMarketsView {
-  readonly homeRegion: Region
-  readonly markets: readonly MarketView[]
-}
-
-export interface TradingMacroView {
-  readonly region: Region
-  readonly result: SourceResult<MacroRiskView>
-  /** The CLI's lean sentence; absent with the macro read. */
-  readonly lean?: string
-  /** Each driver's name in the operator's language, keyed by driver id. */
-  readonly labels: Readonly<Record<string, string>>
-}
-
-/** The snapshot stores no region - one operator has one - so the resolved region travels beside
- *  it. */
-export interface TradingBriefView {
-  readonly region: Region
-  readonly snapshot: BriefSnapshot | null
-  /** The brief's lines as the CLI prints them; null with the snapshot. */
-  readonly text: BriefText | null
-}
-
-export interface TradingTrackRecordView {
-  readonly reflection: TrackRecordReflection
-  readonly text: ReflectText
-}
-
 /** The only trading surface the server sees. It closes over one app-supplied operator identity, so
  *  no request can select or spoof a user — that is why this exists instead of routes calling
  *  services directly. It holds no store, registry, market switch, renderer, cache, or
- *  authorization logic, and every method makes exactly one service call. */
+ *  authorization logic, and every method makes exactly one service call (a guard may read a
+ *  registry list first, as `syncLedger` does to refuse an unknown venue). */
 export interface TradingHost {
-  getQuotes(signal: AbortSignal): Promise<QuoteBoard>
+  /** The watchlist's board; with `instrument`, that one name's board row, read live. */
+  getQuotes(signal: AbortSignal, instrument?: InstrumentRef): Promise<QuoteBoard>
   getOhlcv(request: TradingInstrumentRangeRequest): Promise<SourceResult<readonly Candle[]>>
   /** Ex-dates, meetings, splits and listings; a market with no event source answers unavailable. */
   getEvents(request: TradingInstrumentRangeRequest): Promise<SourceResult<readonly MarketEvent[]>>
@@ -310,28 +307,66 @@ export interface TradingHost {
   searchInstruments(request: TradingSearchRequest): Promise<readonly InstrumentMatch[]>
   getOverview(signal: AbortSignal): Promise<readonly MarketDataOverview[]>
   getMacroRisk(request: TradingRegionRequest): Promise<TradingMacroView>
-  describeMarkets(): TradingMarketsView
+  /** What `/market` prints for the region's last closed session, one entry per line; reads the
+   *  sources, no model. */
+  readMarketSession(
+    request: TradingMarketSessionRequest
+  ): Promise<{ readonly region: Region; readonly text: readonly string[] }>
+  /** The open themes and `/themes show`'s lines for them; no model. */
+  readThemes(
+    request: TradingThemesRequest
+  ): Promise<{ readonly themes: ThemesView['themes']; readonly text: readonly string[] }>
+  /** Approves, rejects or retires one theme, as `/themes <transition> <id>`. */
+  changeTheme(request: TradingThemeChangeRequest): Promise<ThemeChangeView>
+  describeMarkets(now: number): TradingMarketsView
+  /** The market's sectors, strongest first; a market that files none answers empty with a caveat. */
+  getSectors(request: TradingSectorsRequest): Promise<TradingSectorsView>
+  /** What each name added to the index this session. The only read here that reaches a provider:
+   *  it answers from a short-lived list the daemon holds, and the last one it held on a failure. */
+  getIndexContributors(
+    request: TradingIndexRequest
+  ): Promise<SourceResult<IndexContributorsReading>>
+  /** The index's ratios as the last refresh stored them; never waits on a provider. */
+  getIndexValuation(request: TradingIndexRequest): Promise<SourceResult<IndexValuationReading>>
+  /** Every source's health as this process has seen it. */
+  listSources(): readonly SourceStatus[]
   getProfile(signal: AbortSignal): Promise<UserProfile>
   updateProfile(request: TradingProfileUpdateRequest): Promise<UserProfile>
-  getPortfolio(request: TradingSignalRequest): Promise<SizedValuedBook>
+  /** Adds or removes names; an add that names one nothing resolves saves nothing. */
+  updateWatchlist(request: TradingWatchlistRequest): Promise<WatchlistResult>
+  /** What a first run still has to do on the trading side. */
+  getSetup(signal: AbortSignal): Promise<TradingSetupView>
+  getPortfolio(request: TradingSignalRequest): Promise<PortfolioView>
   getNavHistory(request: TradingNavRequest): Promise<NavHistory>
   getStopDistances(request: TradingSignalRequest): Promise<readonly HeldStopView[]>
   getRebalance(request: TradingRebalanceRequest): Promise<RebalanceView>
   getReconcile(request: TradingSignalRequest): Promise<ReconcileView>
   listLedger(request: TradingLedgerPageRequest): Promise<Page<LedgerEntry, LedgerEntryId>>
+  previewLedger(
+    request: Pick<TradingLedgerRecordRequest, 'draft' | 'signal'> &
+      Partial<TradingLedgerDeleteRequest>
+  ): ReturnType<TradingServices['portfolio']['previewRecord']>
   recordLedger(request: TradingLedgerRecordRequest): Promise<LedgerWriteResult>
   updateLedgerEntry(request: TradingLedgerUpdateRequest): Promise<LedgerWriteResult>
   deleteLedgerEntry(request: TradingLedgerDeleteRequest): Promise<LedgerWriteResult>
+  /** Books what the venue filled that the ledger lacks, as `/record sync`; places no order. */
+  syncLedger(request: TradingLedgerSyncRequest): Promise<VenueSyncOutcome>
   listSuggestions(request: TradingSuggestionsRequest): Promise<Page<StoredSuggestion, SuggestionId>>
   /** The decision card for one stored suggestion, in the operator's language; `null` for an id the
    *  store does not hold. */
-  getSuggestionCard(request: TradingSuggestionCardRequest): Promise<SuggestionCard | null>
+  getSuggestionCard(request: TradingSuggestionRequest): Promise<SuggestionCard | null>
+  /** One stored suggestion as it was written; `null` for an id the store does not hold. */
+  getSuggestion(request: TradingSuggestionRequest): Promise<StoredSuggestion | null>
   getTrackRecord(request: TradingTrackRecordRequest): Promise<TradingTrackRecordView>
+  /** The calls, briefs and largest closes of one operator day. */
+  getDayDigest(request: TradingDayDigestRequest): Promise<DayDigestView>
   /** What each named agent's calls have earned, together and per focus, beside the other agents'. */
   listAgentRecords(request: TradingAgentRecordsRequest): Promise<readonly AgentRecordSummary[]>
   getBrief(request: TradingRegionRequest): Promise<TradingBriefView>
   /** When and where the morning brief is delivered; `null` before one is scheduled. */
   getBriefDelivery(request: TradingSignalRequest): Promise<BriefDelivery | null>
+  /** Whether the intraday report is on, and when it next fires. */
+  nextIntraday(signal: AbortSignal): Promise<IntradayNext>
   /** Moves the brief's send time and keeps its delivery address; refuses a brief that is off. */
   rescheduleBrief(request: TradingBriefRescheduleRequest): Promise<BriefRescheduleView>
   /** Every venue a trade can be recorded at, with the markets it holds. */
@@ -339,6 +374,8 @@ export interface TradingHost {
   listAlerts(request: TradingAlertsPageRequest): Promise<AlertListPage>
   createAlert(request: TradingAlertCreateRequest): Promise<Alert>
   disableAlert(request: TradingAlertDisableRequest): Promise<DisableAlertResult>
+  /** Whether the alert can still fire. */
+  isAlertLive(request: TradingAlertDisableRequest): Promise<boolean>
   /** Whether a venue can place orders; every order method below needs one. */
   ordersEnabled(): boolean
   /** Staged orders, resting exits, unguarded positions, fills the book never got, and the halt. */

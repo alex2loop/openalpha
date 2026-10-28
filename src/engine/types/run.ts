@@ -98,6 +98,8 @@ export interface RunEnv {
   readonly reasoningVisibility?: 'hidden'
   readonly instructions?: string
   readonly routingKey?: string
+  /** Names a child run on the feed; its finish then carries an excerpt of its answer. */
+  readonly title?: string
   /** Foreground research seam for this run only; delegated children never inherit it. */
   readonly researchInteraction?: ForegroundResearchInteraction
 }
@@ -197,6 +199,10 @@ export interface RunOptions {
   /** Counts this run's spend against another agent's cap; absent bills to the run's own agent. */
   readonly billingAgentId?: AgentId
   readonly parentRunId?: RunId
+  /** Names a child run on the feed; a top-level run is named by its prompt. */
+  readonly title?: string
+  /** The profile this run uses in place of its agent's: same id, tools only the agent already has. */
+  readonly profile?: AgentProfile
   /** Runs once after engine admission and before any metered work starts. */
   readonly onWorkStart?: () => Promise<void>
   /** Further restrict the agent's tools to this subset. Ignored when empty or undefined. */
@@ -379,6 +385,9 @@ export interface RunRegistry {
   abortSession(sessionId: SessionId, chatId: string): boolean
   /** Aborts every active run started from that chat, whichever session or user owns it. */
   abortChat(channel: ChannelId, chatId: string): boolean
+  /** Aborts the one active run with that id, whatever channel or chat started it. False = no active
+   *  run has that id (unknown or finished). */
+  abortRun(runId: RunId): boolean
   /** Injects text into the matching active run's next turn. False = no run accepted it. */
   steer(sessionId: SessionId, chatId: string, text: string): boolean
   drain(timeoutMs: number): Promise<void>

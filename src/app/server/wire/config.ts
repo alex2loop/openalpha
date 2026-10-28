@@ -1,14 +1,18 @@
 // The /v1 config routes: the raw config, the provider catalog, the key test and `setup`.
 
-/** GET /v1/config — the raw config.toml as JSON (keys in full; bearer + 0600 already gate it). */
+/** GET /v1/config — the raw config.toml as JSON, every literal secret shown as `redacted`; a write
+ *  that sends `redacted` back keeps the file's value. */
 export interface ConfigResponse {
   readonly config: unknown
   readonly configPath: string
+  readonly redacted: string
 }
 
 interface ConfigIssue {
   readonly path: string
   readonly message: string
+  /** A field a write may not carry (a hidden secret, a CLI-only change); its message names it. */
+  readonly refused?: true
 }
 
 /** POST /v1/config/validate result (also the pre-write gate for POST /v1/config). */

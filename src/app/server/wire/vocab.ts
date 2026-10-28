@@ -1,0 +1,98 @@
+// The closed vocabularies the wire names. Written out here, not imported from the trading module:
+// the page compiles `wire/` on its own, and an import of `@/trading/api` pulls the whole server
+// graph in. `mappers/market.ts` checks each against its trading source, so a drift fails typecheck.
+
+export type AssetClass = 'equity' | 'gold' | 'crypto'
+
+export type CaveatSeverity = 'info' | 'warn'
+
+export type ConvictionBand = 'low' | 'medium' | 'high'
+
+export type InstrumentKind = 'equity' | 'etf' | 'future' | 'index' | 'gold' | 'fx' | 'crypto'
+
+export type InvestmentGoal = 'preserve' | 'income' | 'grow'
+
+export type InvestmentHorizon = 'short' | 'long'
+
+/** `idle` waits for the daemon to go quiet before it restarts; `now` restarts at once. */
+export type RestartWhen = 'idle' | 'now'
+
+export type RiskLevel = 'conservative' | 'balanced' | 'aggressive'
+
+export type SourceFreshness = 'live' | 'cached'
+
+/** Where a market's session stands: `break` is its lunch gap, `non-session` a day it does not
+ *  trade. */
+export type SessionPhase = 'pre-open' | 'open' | 'break' | 'post-close' | 'non-session'
+
+export type TypedPrice = 'unconfirmed' | 'confirmed'
+
+export type MarketEventKind =
+  | 'dividend-ex-date'
+  | 'agm'
+  | 'meeting-ex-date'
+  | 'split'
+  | 'rights-issue'
+  | 'additional-listing'
+  | 'listing'
+  | 'delisting'
+  | 'last-trading-day'
+  | 'margin-eligible'
+  | 'margin-ineligible'
+
+export type BriefSectionKind =
+  | 'thesis-review'
+  | 'story'
+  | 'session-delta'
+  | 'book-summary'
+  | 'resolved-suggestions'
+  | 'fired-alerts'
+  | 'position-exits'
+  | 'unwatched-positions'
+  | 'stale-positions'
+  | 'positions-in-loss'
+  | 'cross-asset-pulse'
+  | 'trade-sides'
+  | 'drift-nudge'
+  | 'monthly-scorecard'
+  | 'regime-shift'
+  | 'macro'
+  | 'deposit-rate'
+  | 'macro-headlines'
+  | 'economy-headlines'
+  | 'reading'
+  | 'market-prices'
+  | 'market-quotes'
+  | 'market-board'
+  | 'tape'
+  | 'breadth'
+  | 'turnover'
+  | 'range'
+  | 'market-cap'
+  | 'sector-rotation'
+  | 'foreign-desk-flow'
+  | 'proprietary-flow'
+  | 'derivatives'
+  | 'taker-flow'
+  | 'etf-flows'
+  | 'positioning'
+  | 'premium'
+  | 'leaders'
+  | 'leaders-24h'
+  | 'movers-session'
+  | 'movers-24h'
+  | 'sentiment'
+  | 'basis'
+  | 'fx'
+  | 'watchlist-leading'
+  | 'watchlist-dropped'
+  | 'screen-delta'
+  | 'disclosures'
+  | 'index-review'
+  | 'events'
+  | 'headlines'
+  | 'cost'
+  | 'suggestions'
+  | 'cross-asset-suggestions'
+  | 'next-actions'
+  | 'discipline'

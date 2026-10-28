@@ -20,7 +20,7 @@ interface SlashNoticeDeps {
   readonly locale: Locale
   readonly chatId: string
   readonly replyToMessageId: string
-  /** The command's own abort signal: once it fires, the notice ends as cancelled. */
+  /** Fires when the command is cancelled, by this chat or by a stop of its run: the notice then ends as cancelled. */
   readonly signal: AbortSignal
   /** What the cancel button carries. */
   readonly cancelData: string

@@ -118,7 +118,7 @@ interface ReachableKeys {
 }
 
 async function reachableKeys(): Promise<ReachableKeys> {
-  const scanned = await Array.fromAsync(new Bun.Glob('**/*.ts').scan({ cwd: SOURCE_ROOT }))
+  const scanned = await Array.fromAsync(new Bun.Glob('**/*.{ts,tsx}').scan({ cwd: SOURCE_ROOT }))
   const sources = scanned.filter((file) => file !== KEY_DECLARATION_FILE)
   const blob = (
     await Promise.all(sources.map((file) => Bun.file(`${SOURCE_ROOT}/${file}`).text()))

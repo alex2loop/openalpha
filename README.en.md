@@ -2,7 +2,8 @@
 <h3 align="center">What if TradingAgents and OpenClaw had a baby? 👀</h3>
 
 <p align="center">
-  <strong>A council of AI analysts that argues before every call, like TradingAgents, running on your machine and chatting over Telegram and Zalo, like OpenClaw.<br/>Meet OpenAlpha, an open-source AI investment analyst.</strong>
+  <strong>A council of AI analysts that argues before every call, like <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, running on your machine and chatting over Telegram and Zalo, like <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
+  Meet OpenAlpha, an open-source AI investment analyst: the AI does the analysis, and placing the order is still your call.
 </p>
 
 <p align="center">
@@ -18,73 +19,27 @@
   <img src="assets/readme/hero.en.png" alt="Weak ideas are dropped before they reach you, across six steps: data, evidence, gate, debate, stages, verdict" width="100%" />
 </p>
 
-<p align="center">
-  Every morning before the open, it screens the whole market, picks the few names worth a look, works out how much of each fits the book you hold, and gives you the case for buying next to the case against.<br/>
-  Deepest in <strong>Vietnamese equities</strong>, with local data sources, and it follows <strong>crypto</strong> and gold too.<br/>
-  <strong>That is where it stops: placing the order is still your call.</strong>
-</p>
+You ask about a name, and OpenAlpha gives you a plan back: where to buy, where to stop out, where to take profit, and how much fits the book you hold, with the case for buying next to the case against. It is for individual investors who run their own book and want the reasoning behind a call, not just a ticker.
 
-<p align="center">
-  <em>The model can read everything about the name you asked for, except one thing: your money.</em>
-</p>
+- **Runs on your machine.** Your book, config and API keys stay local. The AI sees weights only, never a balance, a price paid or your total assets.
+- **You approve every order.** It suggests by default. With exchange keys set, every order waits for your confirmation.
+- **An AI council debates.** Bull, bear, a synthesizer, a trader, a risk analyst and a fact-checker. Code computes prices and size; the AI handles the *why*.
+- **Four markets.** Vietnamese equities (the deepest, with local data sources), crypto, Vietnamese gold, and world gold for reference.
+
+It is an analysis aid, not investment advice. Suggestions can be wrong, and every decision is yours.
 
 <p align="center">
   <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-support%20group-0068FF?style=for-the-badge" alt="Zalo support group" /></a><br/>
   <sub>Stuck on setup, or want release news? Ask in the <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">OpenAlpha Zalo group</a> (in Vietnamese).</sub>
 </p>
 
----
-
 <p align="center">
-  <a href="#see-it-in-action">See it in action</a> · <a href="#quick-start">Quick start</a> · <a href="#why-openalpha">Why and safety</a> · <a href="#documentation">Docs</a> · <a href="#contribute-to-openalpha">Contribute</a> · <a href="#stability-license-and-disclaimer">License</a>
+  <a href="#quick-start">Quick start</a> · <a href="#the-office-page">The office page</a> · <a href="#see-it-in-action">See it in action</a> · <a href="#why-openalpha">Why OpenAlpha</a> · <a href="#safety">Safety</a> · <a href="#documentation">Docs</a> · <a href="#faq">FAQ</a> · <a href="#contribute-to-openalpha">Contribute</a> · <a href="#stability-license-and-disclaimer">License</a>
 </p>
-
-## See it in action
-
-Type `/suggest FPT` and get a plan back: where to buy, where to stop out, where to take profit and how much to buy.
-
-<p align="center">
-  <img src="assets/readme/demo.en.gif" alt="Type /suggest and get a plan back: entry, stop, take-profit, size, how to manage it" width="100%" />
-</p>
-
-### A real run
-
-Beyond the plan, every suggestion gives the case for buying, the case for waiting, and what would prove it wrong. Here is a real run, trimmed, with the ticker and prices masked:
-
-```
-You:  /suggest XXX
-
-💡 XXX (16/10/2026): BUY, Medium confidence. Buy about 400 XXX (~9,280,000 VND, 4.65% of your portfolio).
-  Entry xx.xx · Stop xx.xx (▼ -7.54%) · Take 33% off at xx.xx (▲ 7.97%) · Far target xx.xx (▲ 23.92%)
-
-🎯 How to manage it
-  Don't chase it above xx.xx. Buy 200 XXX first, and add the rest later if the price comes back and holds.
-  After fees: if the stop is hit you lose about 737,120 VND (0.37% of your portfolio).
-
-🚩 I am wrong if
-  The 2026 report shows operating cash flow below profit.
-
-💬 Debate (3 review steps)
-  🐂 Case for buying: cheap on earnings, profit rising, net cash.
-  🐻 Case for waiting: profit runs well above its historical average; the last four quarters are unaudited.
-
-This is analysis, not an order - the decision is always yours.
-  Once you have traded, paste this: /record buy vps equity-vn:XXX 400 xxxxx VND 2026-10-16
-```
-
-### A day with OpenAlpha
-
-https://github.com/user-attachments/assets/46ea9c20-cc72-4bfa-8bb6-272981615802
-
-<p align="center">
-  <sub>70 seconds</sub>
-</p>
-
----
 
 ## Quick start
 
-All you need is a Mac, a Linux machine or Windows 10/11 (ARM machines need Windows 11), and one AI key: sign up at [OpenRouter](https://openrouter.ai) and create one at [openrouter.ai/keys](https://openrouter.ai/keys) (keep it like a password). OpenRouter has free models too; a paid model usually costs a few dollars a month.
+You need a Mac, a Linux machine or Windows 10/11 (ARM machines need Windows 11), and one AI key. The easiest: sign up at [OpenRouter](https://openrouter.ai) and create a key at [openrouter.ai/keys](https://openrouter.ai/keys). Keep it like a password. OpenRouter also lists some models at no charge; a paid model usually costs a few dollars a month.
 
 ### Try it in 3 commands
 
@@ -108,7 +63,7 @@ That is enough to see a suggestion. For one sized to your own money, also do ste
 
 Already ran the 3 commands above? Start at step 3.
 
-**1. Install.** One line. It downloads one self-contained binary, then asks a few questions (language, the currency of your book, AI model, a daily spending cap, Telegram if you want it). The currency is chosen once: after you set up your profile it cannot change. Run `openalpha onboard` any time to change the rest.
+**1. Install.** One line. It downloads one self-contained binary, then asks a few questions: language, the currency of your book, AI model, a daily spending cap, Telegram if you want it. The currency is chosen once: after you set up your profile it cannot change. Run `openalpha onboard` any time to change the rest.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
@@ -130,7 +85,7 @@ openalpha doctor --online              # sends the model one short test message
 **3. Load the data and say how much risk you want.** Run `openalpha chat`, then type:
 
 ```text
-/refresh     # first time: loads symbol lists, prices, statements (free, about 5 minutes)
+/refresh     # first time: loads symbol lists, prices, statements (no AI call, about 5 minutes)
 /setup       # pick your risk level and the markets you trade
 ```
 
@@ -213,12 +168,22 @@ A few things that work the same in every market:
 - **Taking money out:** type `/record withdrawal` with the venue, amount, currency and date, for example `/record withdrawal vps 1000000 VND 2026-08-21`. Dates are always year-month-day.
 - **Recorded something wrong?** Type `/transactions` to see each row's id. Fix it with `/update <id> ...`. To remove it, `/delete <id>` shows the row first so you can check, then `/delete <id> confirm`.
 - **Dividends, splits, moving cash between two places:** type `/record` on its own and it lists every kind of row and how to write each one.
-- **Just edited `config.toml`** (say, to add a broker or a gold shop)? Type `/exit`, open `openalpha chat` again, and that's it. If OpenAlpha runs in the background, also run `openalpha restart --background`.
+- **Just edited `config.toml`** (say, to add a broker or a gold shop)? Type `/exit`, open `openalpha chat` again, and that's it. If OpenAlpha runs in the background, run `openalpha restart` instead: it keeps the old settings until it restarts, and with `[api]` on the chat runs inside it.
 
-**5. Turn on the morning brief (optional).** Type `/exit` to leave the chat, then run `openalpha start --background` keeps it running (and data refreshes itself); `openalpha autostart enable` starts it at every login. Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat. `openalpha status` tells you whether it is running, `openalpha stop` stops it. A few weeks in, `/reflect` shows how the old suggestions did.
+Full guide to the ledger: [trading guide, the ledger](docs/en/trading.md#the-ledger).
+
+**5. Run it in the background and get the morning brief (optional).** Type `/exit` to leave the chat, then:
+
+```bash
+openalpha start --background   # run the daemon; data refreshes itself from here
+openalpha autostart enable     # start it at every login
+openalpha status               # is it running? openalpha stop stops it
+```
+
+Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat for a brief before the open. A few weeks in, `/reflect` shows how the old suggestions did.
 
 <details>
-<summary><b>Windows, minimal config, updates, uninstall</b></summary>
+<summary><b>Windows, minimal config, models, updates, uninstall</b></summary>
 
 - **No admin rights needed.** `openalpha.exe` goes in `%USERPROFILE%\.local\bin`, and that folder is added to your user PATH. If `openalpha` is not recognized, open a new PowerShell window, or run `& "$HOME\.local\bin\openalpha.exe"` directly. Data and config live in `%USERPROFILE%\.openalpha`, the `~/.openalpha` this guide refers to.
 - **Windows Defender blocks `openalpha.exe`?** The binary is not code-signed, so it is sometimes flagged by mistake. The installer already checked it against the release's `SHA256SUMS`; to check yourself, run `Get-FileHash "$HOME\.local\bin\openalpha.exe"` and compare it with the line for your build (`openalpha-windows-x64.exe`, or `openalpha-windows-arm64.exe` on ARM) on the [Releases](https://github.com/alex2loop/openalpha/releases) page. If it matches, exclude the folder, in PowerShell run as Administrator: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Don't turn antivirus off.
@@ -234,7 +199,7 @@ A few things that work the same in every market:
   New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -OutFile "$HOME\.openalpha\config.toml"
   ```
 
-- **Change the model, add a fallback AI provider:** run `openalpha onboard` and pick "AI model", or edit `[[models]]` in `config.toml`. The first entry is the main model; the next ones are used only when the one before fails or stalls. `openalpha provider list` gives the provider names, `openalpha provider models` the models and their prices. Details: [models and providers](docs/en/agents.md#models-and-providers) · [provider catalog](docs/en/configuration.md#provider-catalog).
+- **Change the model, add a fallback AI provider:** run `openalpha onboard` and pick "AI model", or edit `[[models]]` in `config.toml`. The first entry is the main model; the next ones are used only when the one before fails or stalls. `openalpha provider list` gives the provider names (over 70), `openalpha provider models` the models and their prices. Details: [models and providers](docs/en/agents.md#models-and-providers) · [the `[[models]]` keys](docs/en/configuration.md#models-required-at-least-one) · [provider catalog](docs/en/configuration.md#provider-catalog).
 
   ```toml
   [[models]]                                   # main model
@@ -255,28 +220,98 @@ A few things that work the same in every market:
 
 </details>
 
-### Daily use
+## The office page
 
-Most of what you do every day is **free**: those commands work on data already on your machine and never call the AI. The figures below were measured on 2026-10-15 with cheap models (`gpt-6-luna` for the debate, `claude-haiku-5.5` for research); dearer models cost more, and `[budget]` caps it either way.
+<p><img src="assets/readme/new.en.svg" height="24" alt="New" /></p>
 
-| You want | Type | Costs? |
+> [!TIP]
+> 🔥 **New:** your whole AI team works in a pixel office right in your browser. See who is doing what, click a person to hand them work, and glance at the market panel beside it. Open it with `openalpha web`.
+
+<p align="center">
+  <img src="assets/readme/office.en.gif" alt="The OpenAlpha office page: a top-down pixel office with a data store, library, meeting room, lobby, alert desk and assistant room; the staff move as the daemon's real runs start and finish, a price tape scrolls across the top and a command box sits at the bottom" width="100%" />
+</p>
+
+The office page is a glass wall into the daemon: your assistant, the research crew and your own agents work in their rooms, and everything that moves is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. Beside it sit your portfolio, suggestions, chat and command box. The page never places an order and never starts an AI run by itself.
+
+To open it, add these two lines to `~/.openalpha/config.toml`:
+
+```toml
+[api]
+enabled = true
+```
+
+then run:
+
+```bash
+openalpha restart --background   # the daemon reads the config again (not running yet? openalpha start --background)
+openalpha web                    # prints a one-time sign-in link (5 minutes) and opens your browser
+```
+
+The desktop app takes the address and token `openalpha connect` prints. What the page shows, how to use it and how to reach it from another machine: [the office page](docs/en/operations.md#the-office-page) · [run the API on a server](docs/en/operations.md#run-the-api-on-a-server). The same API serves your own app too: see [Advanced](#advanced).
+
+## See it in action
+
+Type `/suggest FPT` and get a plan back: where to buy, where to stop out, where to take profit and how much to buy.
+
+<p align="center">
+  <img src="assets/readme/demo.en.gif" alt="Type /suggest and get a plan back: entry, stop, take-profit, size, how to manage it" width="100%" />
+</p>
+
+### A real run
+
+Every suggestion also gives the case for buying, the case for waiting, and what would prove it wrong. Here is a real run, trimmed, with the ticker, prices and percentages masked:
+
+```
+You:  /suggest XXX
+
+💡 XXX (16/10/2026): BUY, Medium confidence. Buy about 400 XXX (~9,280,000 VND, 4.65% of your portfolio).
+  Entry xx.xx · Stop xx.xx (▼ -x.xx%) · Take 33% off at xx.xx (▲ x.xx%) · Far target xx.xx (▲ x.xx%)
+
+🎯 How to manage it
+  Don't chase it above xx.xx. Buy 200 XXX first, and add the rest later if the price comes back and holds.
+  After fees: if the stop is hit you lose about 737,120 VND (0.37% of your portfolio).
+
+🚩 I am wrong if
+  The 2026 report shows operating cash flow below profit.
+
+💬 Debate (3 review steps)
+  🐂 Case for buying: cheap on earnings, profit rising, net cash.
+  🐻 Case for waiting: profit runs well above its historical average; the last four quarters are unaudited.
+
+This is analysis, not an order - the decision is always yours.
+  Once you have traded, paste this: /record buy vps equity-vn:XXX 400 xxxxx VND 2026-10-16
+```
+
+### A day with OpenAlpha
+
+https://github.com/user-attachments/assets/46ea9c20-cc72-4bfa-8bb6-272981615802
+
+<p align="center">
+  <sub>70 seconds</sub>
+</p>
+
+## Daily use
+
+Most everyday commands work on data already on your machine and never call the AI. The ones that do count against the spending cap you set during install.
+
+| You want | Type | Calls the AI? |
 |---|---|---|
-| The morning read, before the open | `/brief` · `/brief enable 08:00` | yes: one short read per held or watched name; names already read today are free |
-| A deep read on one name | `/suggest FPT` | about $0.01 |
-| A question researched, with sources | `/research <question>` | about $0.03 (`quick`) |
+| The morning read, before the open | `/brief` · `/brief enable 08:00` | yes: one short read per held or watched name; a name already read today is reused |
+| A deep read on one name | `/suggest FPT` | yes |
+| A question researched, with sources | `/research <question>` | yes (`quick` is the lightest depth) |
 | Themes forming in Vietnam | `/themes` | yes, at most $1 a run by default |
-| Rank a whole market | `/screen equity-vn 20` | **free** |
-| Follow a few names' prices | `/watchlist add FPT HPG` · `/watchlist` | **free** |
-| Load missing data for the markets you use (`force`: reload it all) | `/refresh` · `/refresh equity-vn force` | **free** |
-| Boards, macro, one price | `/market` · `/overview` · `/price FPT` | **free** |
-| See the book, steer it back to target | `/portfolio` · `/rebalance` | **free** |
-| How the book has really done, deposits taken out | `/portfolio nav` | **free** |
-| Catch the book up to the exchange (needs an exchange API key) | `/record sync okx` · `/reconcile` | **free** |
-| Find out how your calls did | `/reflect` | **free** |
+| Rank a whole market | `/screen equity-vn 20` | no |
+| Follow a few names' prices | `/watchlist add FPT HPG` · `/watchlist` | no |
+| Load missing data for the markets you use (`force`: reload it all) | `/refresh` · `/refresh equity-vn force` | no |
+| Boards, macro, one price | `/market` · `/overview` · `/price FPT` | no |
+| See the book, steer it back to target | `/portfolio` · `/rebalance` | no |
+| How the book has really done, deposits taken out | `/portfolio nav` | no |
+| Catch the book up to the exchange (needs an exchange API key) | `/record sync okx` · `/reconcile` | no |
+| Find out how past suggestions did | `/reflect` | no |
 
-The figures in this README only illustrate the syntax; they are not trade ideas. Everything else: `/help` in chat, or [docs/en/commands.md](docs/en/commands.md).
+What a command that calls the AI costs depends on the model you pick: a cheaper model costs less, and `[budget]` caps it either way. `openalpha cost` shows what today, the week or the month cost (`--breakdown` splits it by model), and the office page shows beside each command what it usually costs, taken from its last few runs ([budgets](docs/en/budgets.md#finding-out-what-cost)).
 
----
+The figures in this README only illustrate the syntax; they are not trade ideas. Every command: `/help` in chat, or [commands.md](docs/en/commands.md).
 
 ## Why OpenAlpha
 
@@ -287,32 +322,9 @@ The figures in this README only illustrate the syntax; they are not trade ideas.
 
 **A good fit if** you run your own book, you want the reasoning behind a call rather than just the ticker, and you want your API keys to stay on your own machine. **A bad fit if** you want a bot that trades by itself, or someone to decide for you. Neither exists here, and that is deliberate.
 
-### Markets and data
+## How it works
 
-<p align="center">
-  <img src="assets/readme/markets.en.png" alt="One assistant, four markets: VN equities, crypto, world gold, VN gold" width="100%" />
-</p>
-
-| Market | Market id | What it brings |
-|---|---|---|
-| **VN equities** | `equity-vn` | The deepest: follows foreign and proprietary flow, the disclosure calendar and financial health, and always plans around T+2. |
-| **Crypto** | `crypto` | Spot only. Buys when price clears its recent high, with a stop that moves up behind the price, and reads the futures market to show how much leverage traders are using. |
-| **VN gold** | `gold-vn` | Compared with the world price, so you can tell a real move from a shop widening its spread. |
-| **World gold** | `gold` | Reference only: its price, and the yardstick for VN gold. |
-
-A bare ticker is usually enough (`/price FPT`). Qualify it only where two markets could claim the same name: `/suggest crypto:UNI`.
-
-<p align="center">
-  <img src="assets/readme/sources.en.png" alt="35 data sources, routed per market" width="100%" />
-</p>
-
-Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo or Zalo Personal.
-
-From OpenAI, Anthropic, Gemini and DeepSeek to gateways such as OpenRouter or a model on your own machine through Ollama: `openalpha provider list` shows the full list and the name to put in the config ([guide](docs/en/configuration.md#provider-catalog)). Paying for ChatGPT already? Sign in with `openalpha auth login chatgpt`, no key needed. No key at all works too: connect OpenAlpha to Claude Code, Codex or Cursor over MCP and that app's model does the reasoning ([Advanced](#advanced)).
-
-### How it works
-
-For every name you ask about, six AI analysts argue it: bull, bear, a synthesizer, then a trader, a risk analyst and a fact-checker. For a Vietnamese stock, a whole series of checks can each kill the idea. **Not one of them is allowed to write a number.** Entry, stop, target, size - the code has finished all of it before the debate even opens. The model's job is the *why*, and the *what would make this wrong*.
+For every name you ask about, six AI analysts argue it over three rounds: bull, bear, a synthesizer, then a trader, a risk analyst and a fact-checker. For a Vietnamese stock, a whole series of checks can each stop the idea. **Not one of them is allowed to write a number.** Entry, stop, target and size are computed in code before the debate even opens. The model's job is the *why*, and the *what would make this wrong*.
 
 <p align="center">
   <img src="assets/readme/debate.en.png" alt="An AI panel argues in three rounds: two sides, synthesis, plan and check" width="100%" />
@@ -322,7 +334,7 @@ For every name you ask about, six AI analysts argue it: bull, bear, a synthesize
 
 <p align="center"><img src="assets/readme/discipline.en.png" alt="Lose the emotion, keep the discipline: emotional habits and the OpenAlpha rule that replaces each" width="100%" /></p>
 
-**No FOMO, no hoping a loser comes back.** The hard part is rarely knowledge; it is the moment you press the button.
+**No FOMO, no hoping a loser comes back.** The hard part is rarely knowledge; it is the moment you press the button. The plan is fixed while you are calm, then keeps you on it, and each suggestion is tracked until it closes, so `/reflect` shows their real record.
 
 <details>
 <summary><b>How it keeps you disciplined, including when the market turns down</b></summary>
@@ -340,27 +352,50 @@ For every name you ask about, six AI analysts argue it: bull, bear, a synthesize
 
 OpenAlpha does not promise you will never lose. It keeps each loss small, planned and known in advance.
 
-### Safety
+### Markets and data
+
+<p align="center">
+  <img src="assets/readme/markets.en.png" alt="One assistant, four markets: VN equities, crypto, world gold, VN gold" width="100%" />
+</p>
+
+| Market | Market id | What it brings |
+|---|---|---|
+| **VN equities** | `equity-vn` | The deepest: follows foreign and proprietary flow, the disclosure calendar and financial health, and always plans around T+2. |
+| **Crypto** | `crypto` | Spot only. Buys when price clears its recent high, with a stop that moves up behind the price, and reads the futures market to show how much leverage traders are using. |
+| **VN gold** | `gold-vn` | Compared with the world price, so you can tell a real move from a shop widening its spread. Off by default; switch it on with `/profile enable gold-vn`. |
+| **World gold** | `gold` | Reference only: its price, and the yardstick for VN gold. |
+
+A bare ticker is usually enough (`/price FPT`). Qualify it only where two markets could claim the same name: `/suggest crypto:UNI`.
+
+<p align="center">
+  <img src="assets/readme/sources.en.png" alt="Data sources routed per market: VN equities, crypto, VN gold, world gold, VN macro, US macro and cross-market" width="100%" />
+</p>
+
+OpenAlpha routes 37 data sources per market; when one fails, the next takes over, in a measured order ([data sources](docs/en/data-sources.md)). Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo, Zalo Personal or the office page.
+
+From OpenAI, Anthropic, Gemini and DeepSeek to gateways such as OpenRouter or a model on your own machine through Ollama: `openalpha provider list` shows the full list and the name to put in the config ([guide](docs/en/configuration.md#provider-catalog)). Paying for ChatGPT already? Sign in with `openalpha auth login chatgpt`, no key needed. No key at all works too: connect OpenAlpha to Claude Code, Codex or Cursor over MCP and that app's model does the reasoning ([Advanced](#advanced)).
+
+## Safety
+
+*The model can read everything about the name you asked for, except one thing: your money.*
 
 - **The AI never sees your money.** The analyst gets weights only, never a balance, a price paid or your total assets.
-- **It places no orders on its own.** It suggests by default. Without exchange keys the order path does not exist; with them, every order waits for your confirmation.
+- **It places no orders on its own.** It suggests by default. Without exchange keys the order path does not exist; with them, every order waits for your confirmation, and `/trade halt` blocks every new buy until you type `/trade resume`.
 - **Everything stays on your machine.** The book and the config live locally; keys come from your environment or from `~/.openalpha/env` (readable only by you). OpenAlpha writes that file only when you type a key into `onboard` or `openalpha key set`, and never prints a key back.
 - **Your book is backed up every day.** While it runs in the background, OpenAlpha copies the SQLite book into `~/.openalpha/backups/daily/` and keeps the newest three ([backup and restore](docs/en/storage.md#sqlite-backup-and-restore)).
-- **AI spend has a ceiling.** `onboard` sets a daily cap; add a monthly or per-run cap in `[budget]`, so a bad loop cannot run up a bill.
+- **AI spend has a ceiling.** A daily cap is set during install; add a monthly or per-run cap in `[budget]`, so a bad loop cannot run up a bill ([budgets](docs/en/budgets.md)).
 
-Every other safeguard: [SECURITY.en.md](SECURITY.en.md).
-
----
+Every other safeguard: [safety.md](docs/en/safety.md) · [SECURITY.en.md](SECURITY.en.md).
 
 ## Documentation
 
-This section sums up each area. Every topic has a full page in the table at the end.
+New here? Start with the [docs index](docs/en/README.md): it points you to the pages for setup, everyday commands and what each number means. No code needed for any of the guides. This section sums up each area; every topic has a full page in the table at the end.
 
 ### Research with receipts
 
 Ask a question that needs fresh outside data, and get back a report where every claim can show where it came from. The model never goes online itself: code searches and fetches the pages first, so the model cannot invent a source, and where evidence is missing the report says so.
 
-**The search provider sets the depth.** The default is DuckDuckGo: free and keyless, but thin, so a question about fresh figures often comes back empty. Set `[web_search]` to Exa, Tavily, Brave, Serper or DeepSeek, the cheapest and strong on Vietnamese sources ([configuration](docs/en/configuration.md)), and the report draws on far more sources.
+**The search provider sets the depth.** The default is DuckDuckGo: keyless and costs nothing, but thin, so a question about fresh figures often comes back empty. Set `[web_search]` to Exa, Tavily, Brave, Serper or DeepSeek, the cheapest and strong on Vietnamese sources ([configuration](docs/en/configuration.md)), and the report draws on far more sources.
 
 Details: [docs/en/research.md](docs/en/research.md)
 
@@ -398,16 +433,23 @@ Ask it with `openalpha chat --agent banks`, or point a Telegram/Zalo chat at it 
 Run OpenAlpha as an MCP server inside Claude Code, Codex, Cursor, VS Code or Gemini CLI: that app's own model does the thinking, so you need no AI provider key of your own.
 
 ```bash
-openalpha mcp install      # or --host codex, cursor, vscode, gemini, opencode, zed
+openalpha mcp install      # or --host codex, cursor, vscode, gemini, muse, opencode, zed
 ```
 
 Suggestions written that way are scored separately in `/reflect` under `client:<model>`, and orders are never placed from there. Details: [docs/en/dev/extending.md](docs/en/dev/extending.md)
 
 </details>
 
+<details>
+<summary><b>The office page and your own app (API)</b></summary>
+
+Set `[api] enabled = true` and the daemon serves a local HTTP and WebSocket API on `127.0.0.1`, behind a token. A client app gets your book, quotes, suggestions and chat, plus a live feed of what the daemon is running right now: each run and its steps, approvals and questions waiting on any channel, fills, and spend caps reached. The same address serves the [office page](#the-office-page). Run `openalpha web` for a one-time link that signs your browser in; the desktop app takes the address and token `openalpha connect` prints. The page shows and never decides: it places no orders and starts no AI run on its own. How to turn it on and reach it from another machine: [docs/en/operations.md](docs/en/operations.md#run-the-api-on-a-server). What the page shows and how to use it: [docs/en/operations.md](docs/en/operations.md#the-office-page)
+
+</details>
+
 ### FAQ
 
-- **What does it cost?** The software is free; you pay only your AI provider, and the [Daily use](#daily-use) table lists the cost of each command. You set a daily spending cap during setup.
+- **What does it cost?** OpenAlpha itself is open source under MIT; you pay only your AI provider. The [Daily use](#daily-use) table says which commands call the AI, and `openalpha cost` shows what they cost. You set a daily spending cap during setup.
 - **Do I need a powerful machine?** No. The AI runs at the provider; your machine runs one small binary. Only running a model locally (Ollama) needs real hardware.
 - **Can I use it without coding?** Yes. You paste a few commands into a terminal once; after that you ask in plain language, or chat over Telegram or Zalo.
 - **Can I trust the suggestions?** They can be wrong, and it does not hide that: `/reflect` shows the real record of every past call.
@@ -424,10 +466,8 @@ Suggestions written that way are scored separately in `/reflect` under `client:<
 | Web research with citations | [research.md](docs/en/research.md) |
 | Telegram and Zalo | [channels.md](docs/en/channels.md) |
 | Approvals and safeguards | [safety.md](docs/en/safety.md) |
-| Budgets, background operation, storage | [budgets.md](docs/en/budgets.md) · [operations.md](docs/en/operations.md) · [storage.md](docs/en/storage.md) |
+| Budgets, the daemon and the office page, storage | [budgets.md](docs/en/budgets.md) · [operations.md](docs/en/operations.md) · [storage.md](docs/en/storage.md) |
 | SDK, MCP and extending | [dev/extending.md](docs/en/dev/extending.md) |
-
----
 
 ## Contribute to OpenAlpha
 
@@ -453,7 +493,7 @@ bun run lint:arch   # the architecture gates
 
 Both commands must pass before anything lands. House rules and the business invariants: [AGENTS.md](AGENTS.md). A clone updates with `git pull`.
 
-Architecture: 15 modules with no cycles, every dependency pointing toward the kernel; 31 gates break the build the moment a boundary does. Contributing: [CONTRIBUTING.en.md](CONTRIBUTING.en.md) · [Code of conduct](CODE_OF_CONDUCT.en.md).
+Architecture: 16 modules with no cycles, every dependency pointing toward the kernel; 32 gates break the build the moment a boundary does. Contributing: [CONTRIBUTING.en.md](CONTRIBUTING.en.md) · [Code of conduct](CODE_OF_CONDUCT.en.md).
 
 ### Support and community
 
@@ -462,8 +502,6 @@ Architecture: 15 modules with no cycles, every dependency pointing toward the ke
 - **Security vulnerabilities:** report privately per [SECURITY.en.md](SECURITY.en.md), never in the group or an issue.
 
 Find it useful? Give the repo a ⭐ so more people find it.
-
----
 
 ## Stability, license and disclaimer
 

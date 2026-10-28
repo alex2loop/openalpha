@@ -1,5 +1,5 @@
 import type { ChannelId } from '@/core/channels'
-import type { AgentId, SessionId, UserId } from '@/core/ids'
+import type { AgentId, RunId, SessionId, UserId } from '@/core/ids'
 import type { LocalizedMessageParam } from '@/core/stream-events'
 import type { Locale } from '@/core/types/locale'
 /**
@@ -89,6 +89,26 @@ export type ProgressReporter = (
   params?: Readonly<Record<string, string | number | LocalizedMessageParam>>
 ) => void
 
+/** What work the daemon starts on its own runs under once it shows as a command run. */
+export interface ScheduledRun {
+  readonly signal: AbortSignal
+  readonly progress: ProgressReporter
+}
+
+export interface ScheduledRequest<T> {
+  /** The command the run shows as. */
+  readonly name: string
+  readonly signal: AbortSignal
+  work(run: ScheduledRun): Promise<T>
+  /** True when the work found nothing to do. The run shows from its first stage, so such work,
+   *  reporting none, never shows as running and leaves no row in the activity log. */
+  isIdle?(value: T): boolean
+}
+
+/** Shows work the daemon starts on its own as a command run, the way a typed command shows: live
+ *  with its stages, stoppable, and in the activity log once it ends. */
+export type ScheduledRunner = <T>(request: ScheduledRequest<T>) => Promise<T>
+
 export interface SlashContext {
   readonly channel: ChannelId
   /** Stable per-inbound-request id; used as the idempotency key for non-idempotent commands. */
@@ -111,6 +131,10 @@ export interface SlashContext {
   readonly correlationId?: string
   /** Present when the surface can show incremental progress; commands treat it as fire-and-forget. */
   readonly progress?: ProgressReporter
+  /** Minted by the dispatcher for a long-running command, so work it starts can name its parent. A
+   *  surface that must name the run before it starts (a command it announces while it waits) mints
+   *  the id itself and the dispatcher keeps it. */
+  readonly runId?: RunId
 }
 
 /**
@@ -128,6 +152,11 @@ export interface SlashInvocationPolicy {
   readonly cooldownMs?: number
   readonly idempotencyKey?: (ctx: SlashContext) => string
   readonly execution?: LongRunningExecution
+  /** The command never runs an agent turn: it never returns `kind: 'agent'`. It may append its own
+   *  exchange to the session transcript (`transcript: 'echo'`), which `appendCommandExchange` allows
+   *  while a run holds the session, so a surface may run it beside other work in the same chat
+   *  instead of behind the session's turn. */
+  readonly selfContained?: true
   /** What to use instead, shown where a surface this policy leaves out refuses the command. */
   readonly surfaceHint?: CommandMessageKey
   /** `'echo'` records the invocation and its `text` output in the session transcript, so the next

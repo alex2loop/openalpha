@@ -317,6 +317,7 @@ function toSession(request: ThemeRunRequest, budget: Budget): AnalystSession {
     channel: request.channel,
     locale: request.locale,
     billingSessionId: request.billingSessionId,
+    ...(request.parentRunId === undefined ? {} : { parentRunId: request.parentRunId }),
     signal: request.signal,
     parent: {
       callDepth: 0,

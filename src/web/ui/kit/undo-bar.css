@@ -1,0 +1,14 @@
+/* In the bottom stack, which sits above any dialog, so Undo stays in reach. */
+.undo-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--s1) var(--s2);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: var(--sizeBody);
+}
+
+.undo-bar > span {
+  flex: 1;
+}

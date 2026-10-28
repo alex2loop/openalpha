@@ -21,6 +21,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type {
   ChatBindingStore,
+  CommandLane,
   PairingStore,
   SessionActivity,
   SessionOpener,
@@ -65,6 +66,7 @@ export interface ChannelRuntimeDeps {
   readonly runner: Runner
   readonly runRegistry: RunRegistry
   readonly sessionQueue: SessionQueue
+  readonly commandLane: CommandLane
   readonly costTracker: CostTracker
   readonly caps: BudgetCaps
   readonly pairingStore: PairingStore
@@ -381,6 +383,7 @@ function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHand
     queue: parts.queue,
     choices: parts.choices,
     sessionQueue: deps.sessionQueue,
+    commandLane: deps.commandLane,
     sessions: deps.sessions,
     dispatcher: deps.dispatcher,
     spend: deps.spend,

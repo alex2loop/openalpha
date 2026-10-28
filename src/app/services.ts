@@ -9,7 +9,7 @@ import type { EventBus } from '@/core/events'
 import type { AgentId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { ToolServices } from '@/core/tool'
-import type { OpenedSession, SessionQueue } from '@/core/types/session'
+import type { CommandLane, OpenedSession, SessionQueue } from '@/core/types/session'
 import type {
   AgentProfile,
   AgentRegistry,
@@ -22,8 +22,12 @@ import type {
   Runner,
 } from '@/engine/api'
 import type { HeartbeatRunInput, Job, SchedulerTaskDeps } from '@/scheduler/api'
+import { createAlertLiveCheck, createAlertRetirer } from '@/app/event-jobs'
+import { runJobCommand } from '@/app/job-command'
+import { toJobSessionId } from '@/app/job-session'
 import { createScopedJobStore } from '@/app/scoped-jobs'
 import { createSocialHeartbeatTasks } from '@/app/social'
+import { createTaskStatusBoard } from '@/app/task-status'
 import { formatRunResultBody } from '@/channels/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { RunHalted } from '@/core/errors'
@@ -45,7 +49,6 @@ import { createChannelInbox } from '@/persistence/api'
 // A job owns one stable session so consecutive fires continue one conversation. A shared heartbeat
 // does the same (deterministic id); an isolated heartbeat gets a fresh id each run so it starts
 // clean. See heartbeatRunInput.
-const JOB_SESSION_PREFIX = 'job_'
 const HEARTBEAT_SESSION_PREFIX = 'hb_'
 // A scheduled run has no operator watching, so an unaddressed one has nowhere to prompt.
 const UNATTENDED_CHANNEL = LOCAL_CHANNEL_ID
@@ -55,8 +58,10 @@ declare module '@/core/container' {
     logger: Logger
     bus: EventBus
     sessionQueue: SessionQueue
+    commandLane: CommandLane
     inboundInbox: InboundInbox
     noticeSurfaces: NoticeSurfaces
+    deliveredNotices: DeliveryHub['onDelivered']
     selfUpgrade: SelfUpgrade
     childEnvBase: Readonly<Record<string, string>>
   }
@@ -66,6 +71,7 @@ export interface KernelDeps {
   readonly logger: Logger
   readonly bus: EventBus
   readonly sessionQueue: SessionQueue
+  readonly commandLane: CommandLane
   /** Frozen boot-computed process env allowlist handed to spawned shells. */
   readonly childEnvBase: Readonly<Record<string, string>>
 }
@@ -84,7 +90,9 @@ export function createKernelProvider(kernel: KernelDeps): ServiceProvider {
       bind('logger', () => kernel.logger)
       bind('bus', () => kernel.bus)
       bind('sessionQueue', () => kernel.sessionQueue)
+      bind('commandLane', () => kernel.commandLane)
       bind('childEnvBase', () => kernel.childEnvBase)
+      bind('taskStatus', (app) => createTaskStatusBoard(app.config.locale.language))
       bind('inboundInbox', (app) =>
         createChannelInbox(app.resolve('storage'), app.resolve('dialect'))
       )
@@ -225,10 +233,12 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
     jobStore: app.resolve('jobStore'),
     runner: app.resolve('runner'),
     occurrences: app.resolve('schedulerOccurrenceStore'),
+    onTaskPass: app.resolve('taskStatus').listener,
     notifier: delivery.sink,
     logger: app.resolve('logger'),
     config: app.config,
     runInput: (job) => jobRunInput(job),
+    runCommand: (job, run) => runJobCommand(app, { job, input: jobRunInput(job), run }),
     renderAutoDisableNotice: (disabledJobId, consecutiveFailures) =>
       t(app.config.locale.language, 'channel.scheduleAutoDisabled', {
         id: disabledJobId,
@@ -237,6 +247,8 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
     renderPartialNotice: (result) => formatRunResultBody(result, app.config.locale.language),
     defaultTarget: () => delivery.defaultRecipient(),
     failureTarget: () => app.config.schedule.failureTarget ?? delivery.defaultRecipient(),
+    onEventJobRemoved: createAlertRetirer(app),
+    isEventAlertLive: createAlertLiveCheck(app),
     heartbeat: {
       agents,
       runner: app.resolve('runner'),
@@ -255,7 +267,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
 function jobRunInput(job: Job): RunInput {
   return {
     agentId: job.agentId,
-    sessionId: sessionId(`${JOB_SESSION_PREFIX}${job.id}`),
+    sessionId: toJobSessionId(job.id),
     userId: LOCAL_USER_ID,
     channel: job.target?.channel ?? UNATTENDED_CHANNEL,
     userMessage: job.prompt,

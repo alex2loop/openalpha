@@ -13,7 +13,7 @@ bạn an toàn, phân biệt lệnh với câu hỏi thường, và dựng câu 
 | `zalo` | Zalo bot | văn bản thuần | không | có | không | không |
 | `zalo_personal` | Tài khoản Zalo cá nhân của bạn (không chính thức) | văn bản thuần | không | có | có | không |
 
-Kênh chỉ chạy khi đã có đủ cấu hình và thông tin đăng nhập, và nó chạy trong daemon.
+Kênh chỉ chạy khi đã có đủ cấu hình và thông tin đăng nhập, và nó chạy trong dịch vụ nền (daemon).
 
 ### Zalo Personal
 
@@ -33,7 +33,7 @@ Từ đó, mỗi lần kết nối kênh đăng nhập lại từ chỗ đã c�
 - Khi mất kết nối, kênh tự nối lại và đợi lâu hơn một chút sau mỗi lần hỏng, tối đa năm phút.
 - Mở Zalo Web hoặc Zalo PC trên cùng tài khoản sẽ giành mất phiên. `openalpha logs` ghi lại thành
   `zalo_personal.session_ended` với lý do `duplicate_connection`.
-- Đăng nhập lại trong lúc daemon đang chạy thì lần thử kế tiếp sẽ nhận, không cần khởi động lại.
+- Đăng nhập lại trong lúc dịch vụ nền đang chạy thì lần thử kế tiếp sẽ nhận, không cần khởi động lại.
 - `openalpha doctor channels` cho biết kênh còn thiếu thứ nào trong ba thứ: lời chấp nhận rủi ro, một id
   được phép, hay lần đăng nhập đã cất.
 
@@ -46,7 +46,7 @@ Mỗi kênh là một bảng `[channels.<id>]` trong `config.toml`. Bản chú t
 `config.sample.toml`.
 
 Với Telegram, bạn không cần tự sửa tệp: `openalpha onboard` hỏi tên biến chứa token của bot rồi ghi bảng
-này, để chế độ ghép nối bật sẵn. Chạy daemon, nhắn bất kỳ tin nào cho bot, rồi duyệt mã nó trả về
+này, để chế độ ghép nối bật sẵn. Chạy dịch vụ nền, nhắn bất kỳ tin nào cho bot, rồi duyệt mã nó trả về
 (`openalpha pair approve <mã>`). Lệnh `/start` mà Telegram tự gửi khi bạn mở bot lần đầu sẽ hiện danh
 sách lệnh.
 
@@ -76,15 +76,15 @@ Các khóa còn lại tinh chỉnh việc gửi: `markdown`, `mid_stream_updates
 giờ sáng.
 
 Một kênh chưa có token (biến trong `token_env` chưa đặt, hoặc `token_file` trống), hay có token mà chính
-nhà cung cấp từ chối (HTTP 401 hoặc 403 từ Telegram, 401 từ Zalo), thì không được mở. Daemon vẫn khởi
+nhà cung cấp từ chối (HTTP 401 hoặc 403 từ Telegram, 401 từ Zalo), thì không được mở. Dịch vụ nền vẫn khởi
 động: `start` in một dòng cảnh báo cho kênh đó, các kênh khác và mọi việc còn lại chạy bình thường, và kênh
 không có token hợp lệ không nhận tin của ai. Đặt lại token rồi `restart --background` để mở kênh. Token Telegram bị thu hồi
-khi daemon đang chạy cũng được xử lý như vậy: sau ba lần bị từ chối liên tiếp, kênh dừng, `/health` báo kênh ngừng, và thông báo kênh
+khi dịch vụ nền đang chạy cũng được xử lý như vậy: sau ba lần bị từ chối liên tiếp, kênh dừng, `/health` báo kênh ngừng, và thông báo kênh
 ngừng gửi qua kênh khác sẽ nói rõ là token bị từ chối. Một giá trị cấu hình sai
 (sai kiểu, sai tên khóa) vẫn làm `start` dừng và báo lỗi. Mọi lỗi khác khi kiểm
 tra token được coi là lỗi đường truyền: hệ thống thử bốn lần, khoảng chờ tăng dần, và nếu mạng vẫn chưa
 lên thì kênh vẫn được giữ, hiện ở trạng thái suy giảm và tiếp tục thử lại ở nền với khoảng chờ có trần,
-cho tới khi kết nối được hoặc daemon dừng. Zalo Personal không có token để bị từ chối: nó cũng cứ thử đăng
+cho tới khi kết nối được hoặc dịch vụ nền dừng. Zalo Personal không có token để bị từ chối: nó cũng cứ thử đăng
 nhập lại ở nền. Nếu không kênh nào chạy, dùng riêng CLI vẫn được.
 
 ## Ai được vào
@@ -98,7 +98,7 @@ Có hai chế độ và không có chế độ mở. Một kênh hoặc nhận t
 
 - **Telegram** ghép nối khi `pairing = true`. Bỏ trống `pairing` thì nó chỉ bật mặc định khi bạn không
   khai `allowed_ids`. Ghép nối mà không có id được phép thì bất kỳ người dùng Telegram nào cũng xin được
-  mã, và daemon ghi một cảnh báo (`telegram.pairing_open`).
+  mã, và dịch vụ nền ghi một cảnh báo (`telegram.pairing_open`).
 - **Zalo** theo `dm_policy`, mặc định là `pairing`, hoặc `allowlist` khi đã đặt `allowed_ids`, giống Telegram.
 - **Zalo Personal** luôn chỉ chạy theo danh sách cho phép.
 
@@ -130,7 +130,9 @@ Trong chat riêng với người vận hành, bot nhắc về bản mới nhiề
 
 `/upgrade` cho biết có gì mới, còn `/upgrade confirm` (hoặc nút "Cập nhật ngay") sẽ cài bản mới. Bot im khoảng một phút để khởi động lại, rồi nhắn bạn là đã chạy bản mới. Nếu bản mới không khởi động được, bot tự quay về bản cũ và báo cho bạn.
 
-Cách này chỉ dùng được với daemon bật bằng `start --background`, và chỉ khi bot không còn câu trả lời, lượt nghiên cứu, phê duyệt, bản tin hay lượt nạp dữ liệu nào đang dở; nếu không, bot nhờ bạn thử lại sau. Chỉ người vận hành dùng được, như `/trade`: không đặt `operator_user_ids` thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên ai dùng chung bot hãy đặt khóa này.
+Cách này chỉ dùng được với dịch vụ nền bật bằng `start --background`, và chỉ khi không còn việc gì đang dở: câu trả lời, lượt nghiên cứu, phê duyệt, bản tin hay lượt nạp dữ liệu. Nếu còn, bot nhờ bạn thử lại sau.
+
+Chỉ người vận hành dùng được, giống `/trade`. Không đặt `operator_user_ids` thì mọi người bot cho vào đều là người vận hành trong chat riêng của chính họ, nên nếu bạn dùng chung bot với người khác, hãy đặt khóa này.
 
 ## Phê duyệt và duyệt kế hoạch trên Zalo
 
@@ -140,9 +142,21 @@ cho operator, và chỉ tới khi câu hỏi hết hạn; gõ lại lần nữa,
 rằng câu đó đã được trả lời hoặc đã hết hạn. Hai câu hỏi mở cùng lúc nhận hai bộ mã khác nhau, và trả
 lời một câu không làm mất mã của câu kia. Bấm một nút sau khi câu hỏi đã được trả lời hoặc hết giờ cũng nhận đúng câu trả lời đó.
 
-`fallback_chat_id` cũng quyết định cảnh báo hay bản tin sáng đặt từ terminal sẽ gửi đi đâu: kênh được cấu hình đầu tiên (Telegram, Zalo, Zalo Personal) có chat dự phòng, hoặc một id được phép duy nhất, hoặc một chat ghép nối duy nhất. Ghép nối xong thì không cần đặt gì thêm: daemon nhận ra chat đó ở tin nhắn đầu tiên bạn gửi sau khi ghép nối. Bỏ ghép nối bằng `pair revoke` thì daemon thôi gửi mọi thứ tới chat đó, ngay từ tin kế tiếp và cả sau khi khởi động lại. Cảnh báo và bản tin sáng đặt ở chat ấy tự tắt ở lần gửi kế tiếp, nên ghép nối lại cũng không bật chúng lên: chạy lại `/brief enable` và đặt lại cảnh báo. Một nhóm được nhận qua tài khoản của bạn không có ghép nối riêng nên `pair revoke` không chạm tới nó: muốn ngừng, tắt cảnh báo và bản tin trong nhóm hoặc gỡ bot khỏi nhóm.
+`fallback_chat_id` cũng quyết định cảnh báo hay bản tin sáng đặt từ terminal sẽ gửi đi đâu: kênh được
+cấu hình đầu tiên (Telegram, Zalo, Zalo Personal) có chat dự phòng, hoặc một id được phép duy nhất, hoặc
+một chat ghép nối duy nhất.
 
-Kênh mất kết nối và không có lại sẽ được báo trên một kênh khác, và `status` liệt kê nó; xem [Vận hành](van-hanh.md#khi-daemon-dừng-hoặc-lỡ-bản-tin).
+- **Ghép nối** xong thì không cần đặt gì thêm. Dịch vụ nền nhận ra chat đó ở tin nhắn đầu tiên bạn gửi
+  sau khi ghép nối.
+- **Bỏ ghép nối** bằng `pair revoke` thì dịch vụ nền thôi gửi mọi thứ tới chat đó, ngay từ tin kế tiếp
+  và cả sau khi khởi động lại. Cảnh báo và bản tin sáng đặt ở chat ấy tự tắt ở lần gửi kế tiếp, nên ghép
+  nối lại cũng không bật chúng lên: chạy lại `/brief enable` và đặt lại cảnh báo.
+- **Một nhóm** được nhận qua tài khoản của bạn không có ghép nối riêng, nên `pair revoke` không chạm tới
+  nó. Muốn ngừng, tắt cảnh báo và bản tin trong nhóm, hoặc gỡ bot khỏi nhóm.
+- **Ứng dụng** liệt kê các chat đã ghép nối trên từng kênh và bỏ ghép nối được một chat, kết quả giống
+  `pair revoke`.
+
+Kênh mất kết nối và không có lại sẽ được báo trên một kênh khác, và `status` liệt kê nó; xem [Vận hành](van-hanh.md#khi-dịch-vụ-nền-dừng-hoặc-lỡ-bản-tin).
 
 ## Một tin nhắn đi qua những bước nào
 
@@ -151,20 +165,22 @@ Kênh mất kết nối và không có lại sẽ được báo trên một kên
    không bao giờ vào được thì không được lưu, nên người lạ không làm phình hộp nhận. Ở chế độ `pairing`
    thì mọi thứ đều được lưu, vì chat lạ sẽ được cấp một mã.
 2. **Kiểm tra.** Lệnh dừng và lệnh ghép nối được xử lý trước. Lệnh gạch chéo đi qua bộ điều phối lệnh
-   chuẩn. Văn bản thường được gom nhịp một lúc rồi chuyển tới agent và phiên chat của cuộc trò chuyện.
-3. **Xếp hàng.** Mỗi phiên chat xử lý tuần tự từng việc, và các cổng ngân sách ngày/tháng chạy trước khi
-   bất cứ gì mới bắt đầu.
+   chuẩn. Văn bản thường được gom nhịp một lúc rồi chuyển tới agent và cuộc trò chuyện đang mở của chat đó.
+3. **Xếp hàng.** Mỗi cuộc trò chuyện xử lý tuần tự từng việc, và các cổng ngân sách ngày/tháng chạy trước khi
+   bất cứ gì mới bắt đầu. Các câu lệnh tự chạy được (như `/suggest`, `/screen`, `/refresh`) là ngoại lệ: chúng
+   chạy bên cạnh lượt của phiên, tối đa ba câu lệnh cùng lúc mỗi cuộc chat. Câu lệnh phải chờ sẽ báo đã xếp hàng
+   và đứng thứ mấy, còn `/stop` hoặc `/new` thì bỏ nó, và dừng cả những câu lệnh đang chạy.
 4. **Bạn thấy tiến độ.** Khi `mid_stream_updates = true` trên kênh sửa được tin (Telegram), một tin cập
    nhật trực tiếp công cụ đang dùng và thời gian đã trôi. Ở kênh khác bạn nhận câu trả lời cuối. Chỉ báo
    "đang gõ" và cảm xúc chỉ hiện ở nơi kênh và cấu hình của bạn cùng cho phép.
 5. **Câu trả lời đến**, được cắt khúc và thoát ký tự cho vừa ứng dụng chat, kèm dòng chi phí, và một
    ghi chú đã bản địa hóa nếu phiên chạy dừng sớm.
 
-Nếu daemon chết giữa chừng, tin được thử lại sau, tối đa 3 lần, rồi bỏ và ghi log. Nếu việc gửi thất bại (mạng chập chờn chẳng hạn), mỗi lần thử lại chờ lâu hơn lần trước, khoảng 10 giây rồi 20 giây. Nếu phiên chạy đã xong
+Nếu dịch vụ nền chết giữa chừng, tin được thử lại sau, tối đa 3 lần, rồi bỏ và ghi log. Nếu việc gửi thất bại (mạng chập chờn chẳng hạn), mỗi lần thử lại chờ lâu hơn lần trước, khoảng 10 giây rồi 20 giây. Nếu phiên chạy đã xong
 nhưng gửi câu trả lời thất bại, chỉ tin cuối được gửi lại; agent không chạy lần hai. Điều này đúng với
 mọi phần của một câu trả lời dài: nếu mất một phần, cả câu trả lời được gửi lại từ đầu, nên phần đã đến
 có thể hiện hai lần. Có hai trường hợp
-vẫn chạy lại: daemon chết đúng lúc đang ghi lần cuối, và câu trả lời quá 256 KiB nên không được giữ. Các
+vẫn chạy lại: dịch vụ nền chết đúng lúc đang ghi lần cuối, và câu trả lời quá 256 KiB nên không được giữ. Các
 tin được gộp chung vào một câu trả lời thì nhận câu trả lời đó một lần.
 
 Vài điều nên biết:

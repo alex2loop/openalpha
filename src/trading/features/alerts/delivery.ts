@@ -8,6 +8,8 @@ import type { TradingConfig } from '@/trading/kernel/config'
 import type { InstrumentRef, Ticker } from '@/trading/kernel/instrument'
 import type { AlertId } from '@/trading/kernel/operator/alert'
 import type {
+  AlertFired,
+  AlertFiredListener,
   TradingNotice,
   TradingNoticePayload,
   TradingNoticeSender,
@@ -16,7 +18,7 @@ import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { buildLeaseToken, isScreenOrigin } from '@/trading/features/alerts/types'
+import { buildLeaseToken, isScreenOrigin, parseExitLevel } from '@/trading/features/alerts/types'
 import {
   nextAttemptAt,
   notifyDeliveryStopped,
@@ -32,6 +34,7 @@ interface AlertDeliveryDeps {
   readonly config: TradingConfig
   readonly logger: Logger
   readonly defaultLocale: Locale
+  readonly onAlertFired: AlertFiredListener
   readonly markets: MarketRegistry
   readonly marketData: Pick<MarketDataService, 'quote' | 'instrumentQuoteConvention'>
 }
@@ -97,6 +100,13 @@ async function deliverClaimedAlert(
 ): Promise<void> {
   const { alert, leaseToken, options, tally } = context
   const retry = deps.config.operations.deliveryRetry
+
+  // `claimDue` counted this try before the read, so one means the first: a send that is retried
+  // never starts a job again.
+  if (alert.attempts === 1) {
+    announceFired(deps, alert, options.now)
+  }
+
   const notice = await noticeFor(deps, alert, options)
   const outcome = await sendCaught(deps.sender, notice, options.signal)
 
@@ -143,6 +153,43 @@ async function deliverClaimedAlert(
   })
 
   tally.deferred += defer ? 1 : 0
+}
+
+/** Tells whoever listens that this alert fired, before the send. A listener that throws is logged
+ *  and never fails the delivery: the operator's notice matters more than what it triggers. */
+function announceFired(deps: AlertDeliveryDeps, alert: DeliveringAlert, firedAt: number): void {
+  const event = firedEventOf(alert)
+
+  if (event === undefined) {
+    return
+  }
+
+  try {
+    deps.onAlertFired({
+      alertId: alert.id,
+      event,
+      instrument: alert.instrument,
+      condition: alert.condition,
+      threshold: alert.threshold,
+      observedPrice: alert.observedPrice,
+      firedAt,
+    })
+  } catch (err: unknown) {
+    deps.logger.warn('trading.alert_listener_failed', {
+      alertId: alert.id,
+      err: formatErrForLog(err),
+    })
+  }
+}
+
+/** Which arming pass owns the row, in the words a job names it: an exit's level, a screener band,
+ *  or a name the operator armed. A foreign origin names none. */
+function firedEventOf(alert: DeliveringAlert): AlertFired['event'] | undefined {
+  if (alert.origin === undefined) {
+    return 'price'
+  }
+
+  return isScreenOrigin(alert.origin) ? 'mover' : (parseExitLevel(alert.origin) ?? undefined)
 }
 
 /** A revoked chat gets no notice: the send would be refused like the alert was. */

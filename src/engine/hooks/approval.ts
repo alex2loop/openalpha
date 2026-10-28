@@ -300,13 +300,36 @@ function armDecisionRace(signal: AbortSignal, timeoutMs: number): DecisionRace {
   }
 }
 
+function emitApprovalRequested(
+  { argsSummary, bus, call, run, scope }: EventDecisionDeps,
+  requestId: string,
+  { askedAt, expiresAt }: { readonly askedAt: number; readonly expiresAt: number }
+): void {
+  bus.emit('approval_requested', {
+    runId: run.identity.runId,
+    requestId,
+    agentId: run.identity.agentId,
+    toolName: call.name,
+    argsSummary,
+    ...toToolCallDisplay(call.presentation),
+    scope,
+    ...(isOneTimeCall(call) ? { oneTime: true as const } : {}),
+    expiresAt,
+    askedAt,
+    channel: run.identity.channel,
+    chatId: run.identity.chatId ?? run.identity.sessionId,
+    callDepth: run.env.callDepth,
+  })
+}
+
 async function awaitEventDecision(deps: EventDecisionDeps): Promise<DecisionOutcome> {
-  const { argsSummary, bus, call, run, scope } = deps
+  const { bus, run } = deps
   // One bus carries every run's prompts, so the key must be unique across all of them.
   const requestId = randomUUID()
   const timeoutMs = run.env.limits.approvalTimeoutMs
   // One clock read: the timer below and every surface's prompt expire at the same instant.
-  const expiresAt = Date.now() + timeoutMs
+  const askedAt = Date.now()
+  const expiresAt = askedAt + timeoutMs
   const race = armDecisionRace(run.state.abort.signal, timeoutMs)
   let off: () => void = () => {
     // Placeholder until `bus.on()` returns the real unsubscribe handle.
@@ -325,20 +348,7 @@ async function awaitEventDecision(deps: EventDecisionDeps): Promise<DecisionOutc
   })
 
   try {
-    bus.emit('approval_requested', {
-      runId: run.identity.runId,
-      requestId,
-      agentId: run.identity.agentId,
-      toolName: call.name,
-      argsSummary,
-      ...toToolCallDisplay(call.presentation),
-      scope,
-      ...(isOneTimeCall(call) ? { oneTime: true as const } : {}),
-      expiresAt,
-      channel: run.identity.channel,
-      chatId: run.identity.chatId ?? run.identity.sessionId,
-      callDepth: run.env.callDepth,
-    })
+    emitApprovalRequested(deps, requestId, { askedAt, expiresAt })
 
     const outcome = await Promise.race([decided, race.outcome])
     const settled: DecisionOutcome =

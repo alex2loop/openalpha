@@ -13,6 +13,7 @@
         }
       ],
       "createdAt": 1791300000000,
+      "models": ["anthropic/claude-sonnet-5"],
       "provenance": [
         {
           "sourceId": "vndirect",

@@ -73,8 +73,8 @@ function printJobDetail(app: CliApp, job: Job, locale: Locale): void {
     ['cli.scheduleFieldId', job.id],
     ['cli.scheduleFieldAgent', job.agentId],
     ['cli.scheduleFieldEnabled', enabled],
-    ['cli.scheduleFieldSchedule', formatSchedule(job.schedule, locale, timezone)],
-    ['cli.scheduleFieldNextRun', formatInstant(locale, job.nextRunAt, timezone)],
+    ['cli.scheduleFieldSchedule', formatSchedule(job, locale, timezone)],
+    ...nextRunRows(job, locale, timezone),
     ['cli.scheduleFieldTarget', formatTarget(job, locale)],
     ['cli.scheduleFieldFailures', String(job.consecutiveFailures)],
     ['cli.scheduleFieldTools', formatJobTools(app, job, locale)],
@@ -88,6 +88,18 @@ function printJobDetail(app: CliApp, job: Job, locale: Locale): void {
 
     app.out(`${label}${' '.repeat(width - Bun.stringWidth(label))} ${value}`)
   })
+}
+
+// An event job has no next run, and a paused one will not run then: the row would print its
+// parking slot.
+function nextRunRows(
+  job: Job,
+  locale: Locale,
+  timezone: string
+): readonly (readonly [MessageKey, string])[] {
+  return job.event === undefined && job.enabled
+    ? [['cli.scheduleFieldNextRun', formatInstant(locale, job.nextRunAt, timezone)]]
+    : []
 }
 
 function formatTarget(job: Job, locale: Locale): string {

@@ -45,6 +45,8 @@ interface Degraded<Message> {
   readonly kind: DegradedKind
   readonly subject: string
   readonly message: Message
+  /** An exchange with no keys: the unset variables it waits for, so a page can lay them out. */
+  readonly variables?: readonly string[]
 }
 
 /** Worded later, in the reader's language. */
@@ -73,6 +75,71 @@ export interface DaemonTask {
   start(signal: AbortSignal, options?: DaemonStartOptions): Promise<void>
   /** True while a pass is in flight that a restart would cut short. Absent: the task never says. */
   isWorking?(): boolean
+}
+
+/** One edge of a background task's pass. `at` is the pass's own clock value, read once: the start
+ *  and the end of one pass carry the same `at`. `error` says in the operator's language why a pass
+ *  failed (the raw cause stays in the log); `nextAt` is when the task's own timer fires again. */
+export interface TaskPass {
+  readonly name: string
+  readonly phase: 'start' | 'end'
+  readonly at: number
+  readonly everyMs?: number
+  readonly error?: OperatorMessage
+  readonly nextAt?: number
+}
+
+export type TaskPassListener = (pass: TaskPass) => void
+
+/** What a failed pass says, whatever broke it: the cause is in the log, not on the page. */
+export const TASK_FAILED: OperatorMessage = { key: 'ui.task.failed' }
+
+/** Tells the listener of a pass. A listener that throws must never fail or mask the pass it
+ *  watches, and core has no logger to say so with, so its failure is dropped. */
+export function notifyPass(listener: TaskPassListener, pass: TaskPass): void {
+  try {
+    listener(pass)
+  } catch {
+    // A status display is not worth a pass.
+  }
+}
+
+interface ReportedPassSpec {
+  readonly name: string
+  readonly everyMs: number
+  /** True when the next wait starts after the pass ends, not when it starts. */
+  readonly chained?: boolean
+}
+
+/** Runs one pass and reports its two edges to the listener, the failure included, which still
+ *  propagates to the caller. */
+export async function reportPass<T>(
+  listener: TaskPassListener,
+  spec: ReportedPassSpec,
+  run: () => Promise<T>
+): Promise<T> {
+  const at = Date.now()
+  const { name, everyMs } = spec
+  let failed = false
+
+  notifyPass(listener, { name, phase: 'start', at, everyMs })
+
+  try {
+    return await run()
+  } catch (err: unknown) {
+    failed = true
+
+    throw err
+  } finally {
+    notifyPass(listener, {
+      name,
+      phase: 'end',
+      at,
+      everyMs,
+      nextAt: (spec.chained === true ? Date.now() : at) + everyMs,
+      ...(failed ? { error: TASK_FAILED } : {}),
+    })
+  }
 }
 
 interface Registration<K extends keyof Services> {

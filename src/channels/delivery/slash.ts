@@ -1,7 +1,9 @@
+import { randomUUID } from 'node:crypto'
+
 import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { InboundMessage, OutboundButton } from '@/channels/types'
 import type { HelpRequest, ResolvedSlashCommand } from '@/commands/api'
-import type { AgentId, SessionId } from '@/core/ids'
+import type { AgentId, RunId, SessionId } from '@/core/ids'
 import type {
   Affordance,
   CommandRole,
@@ -14,6 +16,7 @@ import { TELEGRAM_CALLBACK_DATA_MAX_BYTES } from '@/channels/adapters/telegram/p
 import { buildAbortCallbackData, COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
 import { channelControlHelp } from '@/channels/delivery/control'
 import { formatChannelFooter, joinFooter } from '@/channels/delivery/format'
+import { runInCommandLane } from '@/channels/delivery/slash-lane'
 import { openSlashNotice, type SlashNotice } from '@/channels/delivery/slash-notice'
 import { operatorContextOf } from '@/channels/operator'
 import { parseHelpLine, renderCommandHelp, renderMessages } from '@/commands/api'
@@ -25,8 +28,9 @@ import {
   isCallerFault,
   operatorMessageOf,
   RunHalted,
+  ToolError,
 } from '@/core/errors'
-import { userId as brandUserId } from '@/core/ids'
+import { runId as brandRunId, userId as brandUserId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { hasRunFooter } from '@/core/utils/footer'
 import { bindLocale, t } from '@/i18n'
@@ -56,6 +60,8 @@ interface DispatchSlashOptions {
   readonly resolved?: ResolvedSlashCommand
   /** Present only for a long-running command, which reports its steps through it. */
   readonly notice?: SlashNotice
+  /** Minted by the surface for a long-running command, so its end can be told from the bus. */
+  readonly runId?: RunId
 }
 
 /** A command that fails has still been processed: the inbox must not re-run a twenty-six section
@@ -143,7 +149,7 @@ async function runSlashRequest(options: ResolveSlashOptions): Promise<SlashRunRe
 }
 
 async function runLongRunningSlash(options: ResolveSlashOptions): Promise<void> {
-  const { deps, msg, sessionId, route, resolved } = options
+  const { deps, msg, sessionId, resolved } = options
 
   if (resolved === undefined) {
     throw new ChannelError('get_updates_failed', 'missing resolved long-running slash command')
@@ -152,14 +158,7 @@ async function runLongRunningSlash(options: ResolveSlashOptions): Promise<void> 
   const controller = deps.slashRuns.register(sessionId, msg.chatId)
 
   try {
-    const queued = deps.sessionQueue.enqueue(
-      sessionId,
-      () => runQueuedSlash(options, controller),
-      route.register()
-    )
-
-    route.release()
-    await queued
+    await enqueueSlash(options, controller)
   } catch (err: unknown) {
     if (!(err instanceof RunHalted && err.code === 'queue_full')) {
       throw err
@@ -169,6 +168,22 @@ async function runLongRunningSlash(options: ResolveSlashOptions): Promise<void> 
   } finally {
     deps.slashRuns.unregister(sessionId, msg.chatId, controller)
   }
+}
+
+/** A self-contained command runs in the chat's lane; any other waits its turn in the session's. */
+function enqueueSlash(options: ResolveSlashOptions, controller: AbortController): Promise<void> {
+  const { deps, msg, sessionId, route, resolved } = options
+  const task = (): Promise<void> => runQueuedSlash(options, controller)
+
+  if (resolved?.policy.selfContained === true) {
+    return runInCommandLane({ deps, chatId: msg.chatId, id: requestIdOf(msg), route, task })
+  }
+
+  const queued = deps.sessionQueue.enqueue(sessionId, task, route.register())
+
+  route.release()
+
+  return queued
 }
 
 /** The command's turn at the head of its session. The notice opens here, not when the request
@@ -184,27 +199,36 @@ async function runQueuedSlash(
     return
   }
 
-  const notice = openProgressNotice({
-    deps,
-    msg,
-    sessionId,
-    signal: controller.signal,
-    execution: resolved?.policy.execution,
-  })
+  const stop = watchStopped(deps, controller.signal)
+  let notice: SlashNotice | null = null
 
   try {
+    notice = openProgressNotice({
+      deps,
+      msg,
+      sessionId,
+      signal: stop.signal,
+      execution: resolved?.policy.execution,
+    })
+
     const request = await dispatchSlash({
       deps,
       msg,
       sessionId,
       signal: controller.signal,
       resolveAgentId,
+      runId: stop.runId,
       ...(resolved === undefined ? {} : { resolved }),
       ...(notice === null ? {} : { notice }),
     })
 
     if (request === null) {
       return
+    }
+
+    // Outside the session's queue, an agent turn would race the session's own.
+    if (resolved?.policy.selfContained === true) {
+      throw new ToolError('unexpected', 'self-contained command asked for an agent turn')
     }
 
     const selectedAgent = request.agentId ?? (await resolveAgentId(msg.chatId))
@@ -214,8 +238,30 @@ async function runQueuedSlash(
       agentId: selectedAgent,
     })
   } finally {
+    stop.off()
     await notice?.stop()
   }
+}
+
+interface StopWatch {
+  readonly runId: RunId
+  /** Fires when the surface's own signal does, or when the command ends as stopped. */
+  readonly signal: AbortSignal
+  off(): void
+}
+
+// A stop by run id (the app's Stop) aborts the dispatcher's child controller, never the surface's
+// signal, so the command's own end event is what tells the notice it was cancelled.
+function watchStopped(deps: InboundHandlerDeps, own: AbortSignal): StopWatch {
+  const id = brandRunId(randomUUID())
+  const stopped = new AbortController()
+  const off = deps.bus.on('command_finished', (e) => {
+    if (e.runId === id && e.outcome === 'aborted') {
+      stopped.abort()
+    }
+  })
+
+  return { runId: id, signal: AbortSignal.any([own, stopped.signal]), off }
 }
 
 interface OpenNoticeInput {
@@ -407,6 +453,7 @@ function buildSlashContext(options: DispatchSlashOptions, role: CommandRole): Sl
     locale: deps.locale,
     signal: options.signal,
     args: [],
+    ...(options.runId === undefined ? {} : { runId: options.runId }),
     ...(options.notice === undefined ? {} : { progress: options.notice.report }),
   }
 }

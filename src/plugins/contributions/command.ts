@@ -53,7 +53,7 @@ export function createDeclarativeCommand(
       action: isWorkflow ? 'mutate' : 'costly',
       cooldownMs: DECLARATIVE_COOLDOWN_MS,
       idempotencyKey: declarativeIdempotencyKey,
-      ...(isWorkflow ? { execution: WORKFLOW_EXECUTION } : {}),
+      ...(isWorkflow ? { execution: WORKFLOW_EXECUTION, selfContained: true as const } : {}),
     },
     run: async (ctx): Promise<SlashResult> => runDeclarativeCommand(source, deps, ctx),
   }

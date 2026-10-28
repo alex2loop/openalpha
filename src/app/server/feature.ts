@@ -1,82 +1,172 @@
 import type { ApiHandle, ApiRouteSpec } from '@/app/types'
 import type { App, ServiceProvider } from '@/core/container'
+import type { Logger } from '@/core/logging/logger'
+import { withApiRunLimits } from '@/app/server/exposure'
+import { createLiveFeed, type LiveFeed } from '@/app/server/feed/live'
 import { ensureApiToken } from '@/app/server/http/auth'
 import { startApi } from '@/app/server/http/server'
+import { createSignInCodes } from '@/app/server/http/sign-in-codes'
 import { startIdeaWatch } from '@/app/server/push/ideas'
 import { attachAppSurface } from '@/app/server/push/notices'
+import { ACTIVITY_ROUTES } from '@/app/server/routes/activity'
+import { AGENT_EDIT_ROUTES } from '@/app/server/routes/agent-edit'
 import { AGENT_ROUTES } from '@/app/server/routes/agents'
 import { CHAT_ROUTES } from '@/app/server/routes/chat'
 import { CONFIG_ROUTES } from '@/app/server/routes/config'
+import { CREDENTIAL_ROUTES } from '@/app/server/routes/credentials'
+import { DEBATE_ROUTES } from '@/app/server/routes/debate'
+import { DIGEST_ROUTES } from '@/app/server/routes/digest'
+import { INDEX_ROUTES } from '@/app/server/routes/index-reading'
+import { JOB_ROUTES } from '@/app/server/routes/jobs'
 import { MARKET_ROUTES } from '@/app/server/routes/market'
+import { MARKET_EXTRA_ROUTES } from '@/app/server/routes/market-extra'
 import { MCP_ROUTES } from '@/app/server/routes/mcp'
+import { MEMORY_ROUTES } from '@/app/server/routes/memory'
+import { MODEL_ROUTES } from '@/app/server/routes/models'
 import { MONEY_ROUTES } from '@/app/server/routes/money'
+import { NOTICE_ROUTES } from '@/app/server/routes/notices'
 import { ORDER_ROUTES } from '@/app/server/routes/orders'
+import { OUTBOUND_ROUTES } from '@/app/server/routes/outbound'
+import { RESTART_ROUTES } from '@/app/server/routes/restart'
+import { RUN_ROUTES } from '@/app/server/routes/runs'
+import { SESSION_ROUTES } from '@/app/server/routes/session'
 import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_ROUTES } from '@/app/server/routes/system'
+import { TASK_ROUTES } from '@/app/server/routes/tasks'
+import { THEME_ROUTES } from '@/app/server/routes/themes'
 import { TRADING_ROUTES } from '@/app/server/routes/trading'
+import { WATCHLIST_ROUTES } from '@/app/server/routes/watchlist'
+import { broadcast } from '@/app/server/ws/socket'
+import { describeCommand } from '@/commands/api'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { bindLocale } from '@/i18n'
 
 // The server owns the FINAL route table, composed as data rather than extended at runtime: an
 // `extend('apiRoutes', ...)` step would either reorder the provider list or leave the table mutable
 // after boot. `assertRouteList` validates the whole composition once, here, not per route module.
 const ROUTES = [
   ...SYSTEM_ROUTES,
+  ...RESTART_ROUTES,
+  ...ACTIVITY_ROUTES,
+  ...RUN_ROUTES,
   ...AGENT_ROUTES,
+  ...AGENT_EDIT_ROUTES,
   ...CHAT_ROUTES,
   ...CONFIG_ROUTES,
+  ...CREDENTIAL_ROUTES,
   ...SIGN_IN_ROUTES,
   ...MCP_ROUTES,
   ...TRADING_ROUTES,
+  ...WATCHLIST_ROUTES,
+  ...DEBATE_ROUTES,
+  ...DIGEST_ROUTES,
   ...MARKET_ROUTES,
+  ...MARKET_EXTRA_ROUTES,
+  ...INDEX_ROUTES,
+  ...THEME_ROUTES,
+  ...MODEL_ROUTES,
   ...MONEY_ROUTES,
+  ...NOTICE_ROUTES,
   ...ORDER_ROUTES,
+  ...OUTBOUND_ROUTES,
+  ...TASK_ROUTES,
+  ...JOB_ROUTES,
+  ...SESSION_ROUTES,
+  ...MEMORY_ROUTES,
 ] as const
 
 // The HTTP/WS API: the last canonical provider (src/app/providers.ts); the daemon starts it only
 // with [api] enabled.
 export const apiServiceProvider: ServiceProvider = {
   name: 'api',
-  register(bind): void {
+  register(bind, extend): void {
     bind('apiRoutes', () => {
       assertRouteList(ROUTES)
 
       return ROUTES
     })
 
-    bind('apiStarter', () => async (app, env) => {
-      const token = await ensureApiToken(app.config, env)
-      const server = startApi(app, token)
-      let detachAppSurface: (() => void) | undefined
-
-      // Port is bound: a failure from here on must release it, or the next start finds it taken.
-      try {
-        detachAppSurface = attachAppSurface(app)
-        const stopIdeaWatch = startIdeaWatch(app)
-
-        return {
-          closeAdmission: server.closeAdmission,
-          stop: async () => {
-            await stopIdeaWatch()
-            detachAppSurface?.()
-            await server.stop()
-          },
-        }
-      } catch (err: unknown) {
-        detachAppSurface?.()
-        await stopAfterFailedStart(app, server)
-
-        throw err
-      }
-    })
+    bind('apiStarter', () => startApiSurface)
+    extend('runner', (runner, app) => withApiRunLimits(runner, app))
   },
 }
 
-async function stopAfterFailedStart(app: App, server: ApiHandle): Promise<void> {
+async function startApiSurface(
+  app: App,
+  env: Readonly<Record<string, string | undefined>>
+): Promise<ApiHandle> {
+  const token = await ensureApiToken(app.config, env)
+  const live = startLiveFeed(app)
+  let server: ApiHandle | undefined
+  let detachAppSurface: (() => void) | undefined
+  let stopIdeaWatch: (() => Promise<void>) | undefined
+
+  // Release order; the port goes last.
+  const stopAll = (): Promise<void> =>
+    runStopSteps(app.resolve('logger'), [
+      { step: 'ideaWatch', run: () => stopIdeaWatch?.() },
+      { step: 'appSurface', run: () => detachAppSurface?.() },
+      { step: 'liveFeed', run: () => live.stop() },
+      { step: 'api', run: () => server?.stop() },
+    ])
+
+  // The port can be taken, and a failure after it is bound must release it, or the next start
+  // finds it taken. Either way no bus listener of the feed outlives the failed start.
   try {
-    await server.stop()
+    const api = startApi(app, { token, live, codes: createSignInCodes(token) })
+
+    server = api
+    detachAppSurface = attachAppSurface(app)
+    stopIdeaWatch = startIdeaWatch(app)
+
+    return { closeAdmission: api.closeAdmission, stop: stopAll }
   } catch (err: unknown) {
-    app.resolve('logger').warn('api.start_cleanup_failed', { err: formatErrForLog(err) })
+    await stopAll()
+
+    throw err
+  }
+}
+
+/** The feed follows the bus; a run is live while the run registry or the command dispatcher holds it. */
+function startLiveFeed(app: App): LiveFeed {
+  const registry = app.resolve('runRegistry')
+  const dispatcher = app.resolve('slashDispatcher')
+
+  return createLiveFeed({
+    bus: app.resolve('bus'),
+    logger: app.resolve('logger'),
+    broadcast,
+    locale: app.config.locale.language,
+    describeCommand: (name) => {
+      const command = dispatcher.all().find((known) => known.name === name)
+
+      return command === undefined
+        ? undefined
+        : describeCommand(bindLocale(app.config.locale.language), command.description)
+    },
+    liveRunIds: () =>
+      new Set([
+        ...registry.active().map((handle) => handle.identity.runId),
+        ...dispatcher.activeCommands(),
+      ]),
+  })
+}
+
+interface StopStep {
+  readonly step: string
+  readonly run: () => void | Promise<void> | undefined
+}
+
+// A throwing step is logged and the rest still run: cleanup never throws and never leaves a
+// listener or the port behind.
+async function runStopSteps(logger: Logger, steps: readonly StopStep[]): Promise<void> {
+  for (const { step, run } of steps) {
+    try {
+      await run()
+    } catch (err: unknown) {
+      logger.warn('api.stop_step_failed', { step, err: formatErrForLog(err) })
+    }
   }
 }
 

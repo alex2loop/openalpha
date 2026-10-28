@@ -1,12 +1,13 @@
 import { join } from 'node:path'
 
-import type { App } from '@/core/container'
+import type { App, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { WorkspaceCleanupResult } from '@/engine/api'
+import { reportPass } from '@/core/container'
 import { pruneRemovedAgentLogs } from '@/core/logging/retention'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
-import { pruneExpiredWorkspaceTmp } from '@/engine/api'
+import { pruneExpiredRunCaches, pruneExpiredWorkspaceTmp } from '@/engine/api'
 import {
   BACKUPS_SUBDIR,
   backupAndPrune,
@@ -15,14 +16,19 @@ import {
   optimizeSqlite,
   runRetention,
 } from '@/persistence/api'
+import { HISTORY_FLOOR_DAYS } from '@/trading/api'
 
 const RETENTION_INTERVAL_MS = 6 * MS_PER_HOUR
 const DAILY_BACKUPS_SUBDIR = 'daily'
+const RETENTION_PASS = { name: 'retention', everyMs: RETENTION_INTERVAL_MS }
 
 /** Sweeps every retention scope now and then every few hours; the returned stop waits out a sweep
  *  in flight. */
-export function startRetention(app: App, logger: Logger): () => Promise<void> {
-  const configuredAgentIds = Object.freeze(new Set(app.resolve('agents').keys()))
+export function startRetention(
+  app: App,
+  logger: Logger,
+  onTaskPass: TaskPassListener
+): () => Promise<void> {
   let inFlight: Promise<void> | null = null
 
   const sweep = (): void => {
@@ -30,7 +36,7 @@ export function startRetention(app: App, logger: Logger): () => Promise<void> {
       return
     }
 
-    inFlight = runRetentionSweep(app, logger, configuredAgentIds)
+    inFlight = reportPass(onTaskPass, RETENTION_PASS, () => runRetentionSweep(app, logger))
       .catch((err: unknown) => {
         logger.warn('retention.failed', { err: formatErrForLog(err) })
       })
@@ -54,17 +60,15 @@ export function startRetention(app: App, logger: Logger): () => Promise<void> {
   }
 }
 
-async function runRetentionSweep(
-  app: App,
-  logger: Logger,
-  configuredAgentIds: ReadonlySet<string>
-): Promise<void> {
+async function runRetentionSweep(app: App, logger: Logger): Promise<void> {
   const cutoffAt = retentionCutoffAt(app)
 
   await runRetention(app.resolve('storage'), app.resolve('dialect'), {
     config: {
       retentionDays: app.config.retention.days,
+      historyRetentionDays: app.config.retention.historyDays,
       inboxRetentionDays: app.config.retention.inboxDays,
+      historyFloors: HISTORY_FLOOR_DAYS,
     },
     logger,
   }).catch((err: unknown) => {
@@ -72,10 +76,12 @@ async function runRetentionSweep(
   })
 
   await runWorkspaceTmpRetention(app, logger, cutoffAt)
+  await runRunCacheRetention(app, logger, cutoffAt)
 
   const logResult = await pruneRemovedAgentLogs({
     dataDir: app.config.paths.dataDir,
-    configuredAgentIds,
+    // Read each sweep: an agent added since boot keeps its logs, and a deleted one's age out.
+    configuredAgentIds: new Set(app.resolve('agents').keys()),
     cutoffAt,
   }).catch((err: unknown) => {
     logger.warn('retention.agent_logs_failed', { err: formatErrForLog(err) })
@@ -164,7 +170,17 @@ export async function runWorkspaceTmpRetention(
   }
 }
 
-function summarizeWorkspaceResult(result: WorkspaceCleanupResult): {
+async function runRunCacheRetention(app: App, logger: Logger, cutoffAt: number): Promise<void> {
+  try {
+    const results = await pruneExpiredRunCaches({ dataDir: app.config.paths.dataDir, cutoffAt })
+
+    logger.info('workspace.run_cache_retention', summarizeWorkspaceResult(...results))
+  } catch (err: unknown) {
+    logger.warn('workspace.run_cache_retention_failed', { err: formatErrForLog(err) })
+  }
+}
+
+function summarizeWorkspaceResult(...results: readonly WorkspaceCleanupResult[]): {
   readonly removedFiles: number
   readonly removedBytes: number
   readonly failures: number
@@ -173,7 +189,7 @@ function summarizeWorkspaceResult(result: WorkspaceCleanupResult): {
   let removedBytes = 0
   let failures = 0
 
-  for (const agent of result.agents.values()) {
+  for (const agent of results.flatMap((result) => [...result.agents.values()])) {
     removedFiles += agent.removedFiles
     removedBytes += agent.removedBytes
     failures += agent.failures

@@ -12,14 +12,43 @@ import { claimIdsWithVerdict } from '@/trading/features/suggestion/debate/types'
 /** Keeps a prior run's conditions apart from this run's claims in one shared verdict list. */
 const INVALIDATOR_PREFIX = 'invalidator'
 
+/** The id prefix each arguing role's claims are minted under. */
+const CLAIM_PREFIXES = Object.freeze({
+  'bull-researcher': 'bull',
+  'bear-researcher': 'bear',
+  'market-analyst': 'analyst',
+})
+
+export type ArguingRole = keyof typeof CLAIM_PREFIXES
+
 /** Both cases' claims in one list: the manager selects across them, and the id is what it selects
  *  by, so the prefix is what keeps two roles' first claims apart. */
 export function casesClaims(cases: OpposedCases): readonly DebateClaim[] {
-  return [...claimsOf('bull', cases.bull), ...claimsOf('bear', cases.bear)]
+  return [...claimsOf('bull-researcher', cases.bull), ...claimsOf('bear-researcher', cases.bear)]
 }
 
-export function claimsOf(prefix: string, source: ResearchCase): readonly DebateClaim[] {
-  return mintIds(prefix, source.claims).map((claim) => ({ ...claim, stance: source.stance }))
+export function claimsOf(role: ArguingRole, source: ResearchCase): readonly DebateClaim[] {
+  return mintIds(CLAIM_PREFIXES[role], source.claims).map((claim) => ({
+    ...claim,
+    stance: source.stance,
+  }))
+}
+
+/** Whether the role minted this claim, read back off the id the way `claimsOf` wrote it. */
+function isClaimBy(role: ArguingRole, claim: { readonly id: string }): boolean {
+  return claim.id.startsWith(`${CLAIM_PREFIXES[role]}-`)
+}
+
+/** Whether the evidence refuted every claim this role argued: its case then stands on nothing, and
+ *  what it wrote is withheld. A role that argued no claim is not unsupported. */
+export function isUnsupportedRole(
+  role: ArguingRole,
+  claims: readonly { readonly id: string }[],
+  refuted: ReadonlySet<string>
+): boolean {
+  const own = claims.filter((claim) => isClaimBy(role, claim))
+
+  return own.length > 0 && own.every((claim) => refuted.has(claim.id))
 }
 
 /** One owner for the id shape, so a claim and a condition can never collide on `bull-1`. The shape

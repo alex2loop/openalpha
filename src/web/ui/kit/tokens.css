@@ -1,0 +1,314 @@
+/* The desktop app's tokens (its DESIGN.md), as the office mockup carries them. */
+:root {
+  --s0: 4px;
+  --s1: 8px;
+  --s2: 12px;
+  --s3: 16px;
+  --s4: 24px;
+  /* The control sizes: a field, menu, button or segmented row is 30 px, a small one inside a
+     row 26 px, the header's chips and buttons 32 px. Controls side by side share one size. */
+  --controlH: 30px;
+  --controlSmH: 26px;
+  --headerControlH: 32px;
+  --controlRadius: 8px;
+  --controlSmRadius: 7px;
+  --controlPadX: 12px;
+  --controlSmPadX: 9px;
+  --fieldPadX: 8px;
+  /* The desktop's type roles (its DESIGN.md section 3): the page reads at 13 px, so its sizes carry
+     over unscaled, except the hero, which the wider page sets larger so it leads its card. */
+  --fontSans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --fontMono: ui-monospace, "SF Mono", Menlo, monospace;
+  --sizeHero: 20px;
+  --sizeTitle: 15px;
+  --sizeReading: 13px;
+  --sizeBody: 12px;
+  --sizeCaption: 11px;
+  --typeHero: 600 var(--sizeHero) / 1.2 var(--fontMono);
+  --typeTitle: 600 var(--sizeTitle) / 1.45 var(--fontSans);
+  --typeCardTitle: 600 var(--sizeReading) / 1.45 var(--fontSans);
+  --typeReading: 400 var(--sizeReading) / 1.45 var(--fontSans);
+  --typeHeading: 600 var(--sizeBody) / 1.45 var(--fontSans);
+  --typePriceFigure: 600 var(--sizeBody) / 1.45 var(--fontMono);
+  --typeEmphasis: 500 var(--sizeBody) / 1.45 var(--fontSans);
+  --typeBody: 400 var(--sizeBody) / 1.45 var(--fontSans);
+  --typeCaption: 400 var(--sizeCaption) / 1.45 var(--fontSans);
+  --typeCaptionStrong: 600 var(--sizeCaption) / 1.45 var(--fontSans);
+  --typeCode: 400 var(--sizeBody) / 1.45 var(--fontMono);
+  --weightRegular: 400;
+  --weightMedium: 500;
+  --weightSemibold: 600;
+  --controlFont: 12.5px;
+  --controlSmFont: 12px;
+  --fieldFont: 13px;
+  --canvas: #f2f2f6;
+  --surface: #ffffff;
+  --sunken: #e7e7ee;
+  --segHi: rgba(255, 255, 255, 0.9);
+  --border: #dbdbe4;
+  --ink: #1b1b29;
+  --ink2: #4e4e62;
+  --ink3: #5f5f75;
+  --title: #2a2d4a;
+  --up: #0b7532;
+  --upTint: #e6f2ea;
+  --down: #c1231a;
+  --downTint: #fbe9e7;
+  /* The price pill: a solid market colour with white figures in light, a flat tint in dark. */
+  --pillUpBg: var(--up);
+  --pillUpInk: #ffffff;
+  --pillDownBg: var(--down);
+  --pillDownInk: #ffffff;
+  --pillFlash: #ffffff;
+  --caution: #8a4b00;
+  --cautionBg: #fbf3db;
+  --dangerTint: #fdebec;
+  --dangerText: #9f2f2d;
+  /* What needs the operator now (a stop through, a needs bar): Problem tint, a deeper red in dark. */
+  --problemTint: var(--dangerTint);
+  --problemText: var(--dangerText);
+  --lift: 0 1px 2px rgba(27, 27, 41, 0.07);
+  --pop: 0 8px 28px rgba(27, 27, 41, 0.16);
+  --stage: #e4e4ec;
+  --stageHi: #eeeef3;
+  --glass: rgba(242, 242, 246, 0.86);
+  /* The page wallpaper and the chrome over it (header, panel, chat, menus): the desktop menu bar's
+     neutral, near-opaque glass, so no wallpaper colour reads through. */
+  --pageWall:
+    radial-gradient(1200px 800px at 8% 0%, #b9cffb 0, transparent 60%),
+    radial-gradient(1000px 900px at 96% 30%, #f4c9e1 0, transparent 60%),
+    radial-gradient(1200px 900px at 40% 100%, #fbddb8 0, transparent 60%), #dce3f3;
+  --glassBg: var(--glass);
+  --glassBlur: blur(18px) saturate(1.4);
+  /* The liquid glass over the office scene (`.glass`): a thin tint, a denser one for text-heavy
+     pieces, a light blur, a specular rim, a sheen, an inset highlight, a drop and a text halo. */
+  --glassTint: 255 255 255;
+  --glassA: 0.2;
+  --glassStrongA: 0.5;
+  --glassFocusA: 0.62;
+  --glassTagA: 0.78;
+  --glassHaloA: 0.75;
+  --glassFilter: blur(8px) saturate(1.9) brightness(1.06);
+  --glassSheenFill: radial-gradient(120% 90% at 20% 0%, var(--glassSheen), transparent 55%);
+  --glassRim: rgba(255, 255, 255, 0.95);
+  --glassHi: rgba(255, 255, 255, 0.9);
+  --glassLo: rgba(27, 27, 41, 0.08);
+  --glassSheen: rgba(255, 255, 255, 0.45);
+  --glassDrop: rgba(20, 20, 40, 0.2);
+  --glassShadow:
+    inset 0 1px 1px var(--glassHi), inset 0 -8px 16px -10px var(--glassLo),
+    0 10px 26px -8px var(--glassDrop);
+  --glassRimFill: linear-gradient(
+    135deg,
+    var(--glassRim),
+    transparent 35%,
+    transparent 65%,
+    var(--glassRim)
+  );
+  /* A popup that sits over text stays solid and shares the glass rim, radius and shadow. */
+  --popRadius: var(--islandRadius);
+  --scrimFilter: blur(4px);
+  --glassSeam: rgb(var(--glassTint) / 0.5);
+  --glassFocusRim: color-mix(in srgb, var(--focusRing) 30%, transparent);
+  --glassFocusGlow: color-mix(in srgb, var(--focusRing) 35%, transparent);
+  /* The islands floating on the stage: the composer's, the top bar's and the control dock. */
+  --islandH: 40px;
+  --islandRadius: 10px;
+  --islandMs: 260ms;
+  --stageTopH: calc(var(--s1) * 2 + var(--controlH) + var(--tapeH));
+  --stageBottomH: calc(var(--islandH) + var(--s2) * 2);
+  /* The info panel floating over the scene and its bottom sheet on a narrow screen. */
+  --sheetH: 64%;
+  --sheetMs: 280ms;
+  --gripW: 38px;
+  --gripH: 5px;
+  --tc-yellow: #a16207;
+  --tc-green: #1f8a4c;
+  --tc-blue: #2563eb;
+  --tc-pink: #c0365f;
+  --tc-peach: #c2410c;
+  --tc-teal: #0f766e;
+  --tc-gray: #5f5f75;
+  --tc-violet: #7c3aed;
+  --tile-mix: 14%;
+  --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
+  --onAi: #ffffff;
+  --headerH: 48px;
+  --commandBarH: 62px;
+  --chatPanelW: clamp(340px, 28vw, 440px);
+  --panelW: 440px;
+  --panelRailW: 52px;
+  --panelContentMaxW: 720px;
+  --tapeH: 28px;
+  --tapeScrollMs: 70s;
+  --flashMs: 0.6s;
+  --popoverGutter: 8px;
+  --focusRing: var(--ink);
+  /* The AI cost chart's bars: one calm colour, never a market move's. */
+  --spend: var(--tc-violet);
+  --zPopover: 26;
+  --zModal: 30;
+  --zUndo: 32;
+  --zStageBar: 3;
+  --scrollW: 8px;
+  --scrollThumb: #b8b8c8;
+  --scrollTrack: transparent;
+  --scrim: rgba(10, 10, 18, 0.45);
+  --readerScrim: rgba(10, 10, 18, 0.55);
+  --badgeNeed: #f2b33d;
+  --badgeNeedInk: #2b2433;
+  --badgeStop: #e5484d;
+  --badgeStopInk: #ffffff;
+  --lampOn: #e8a317;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #1c1c28;
+    --surface: #262637;
+    --sunken: #303044;
+    --segHi: rgba(255, 255, 255, 0.2);
+    --border: #3a3a50;
+    --scrollThumb: #4a4a62;
+    --ink: #eeeef6;
+    --ink2: #b6b7c9;
+    --ink3: #9c9db2;
+    --title: #dcdef2;
+    --up: #32d74b;
+    --upTint: color-mix(in srgb, var(--up) 15%, var(--canvas));
+    --down: #ff6259;
+    --downTint: color-mix(in srgb, var(--down) 15%, var(--canvas));
+    --pillUpBg: var(--upTint);
+    --pillUpInk: var(--up);
+    --pillDownBg: var(--downTint);
+    --pillDownInk: var(--down);
+    --pillFlash: var(--ink);
+    --caution: #ffb340;
+    --cautionBg: rgba(255, 179, 64, 0.14);
+    --dangerTint: rgba(255, 98, 89, 0.16);
+    --dangerText: #ff8a80;
+    --problemTint: rgba(229, 72, 77, 0.16);
+    --problemText: #ff9b9e;
+    --lift: none;
+    --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --stage: #13151f;
+    --stageHi: #2b3045;
+    --glass: rgba(28, 28, 40, 0.86);
+    --pageWall:
+      radial-gradient(1200px 800px at 8% 0%, #1f2b5c 0, transparent 60%),
+      radial-gradient(1000px 900px at 96% 30%, #3a1c40 0, transparent 60%),
+      radial-gradient(1200px 900px at 40% 100%, #3a220d 0, transparent 60%), #10142a;
+    --tc-yellow: #f9e2af;
+    --tc-green: #a6e3a1;
+    --tc-blue: #89b4fa;
+    --tc-pink: #f38ba8;
+    --tc-peach: #fab387;
+    --tc-teal: #94e2d5;
+    --tc-gray: #a6adc8;
+    --tc-violet: #cba6f7;
+    --tile-mix: 22%;
+    --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
+    --onAi: #ffffff;
+    --glassTint: 24 24 36;
+    --glassA: 0.36;
+    --glassStrongA: 0.66;
+    --glassFocusA: 0.78;
+    --glassTagA: 0.86;
+    --glassRim: rgba(255, 255, 255, 0.45);
+    --glassHi: rgba(255, 255, 255, 0.22);
+    --glassLo: rgba(0, 0, 0, 0.35);
+    --glassSheen: rgba(255, 255, 255, 0.12);
+    --glassDrop: rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --canvas: #1c1c28;
+  --surface: #262637;
+  --sunken: #303044;
+  --segHi: rgba(255, 255, 255, 0.2);
+  --border: #3a3a50;
+  --scrollThumb: #4a4a62;
+  --ink: #eeeef6;
+  --ink2: #b6b7c9;
+  --ink3: #9c9db2;
+  --title: #dcdef2;
+  --up: #32d74b;
+  --upTint: color-mix(in srgb, var(--up) 15%, var(--canvas));
+  --down: #ff6259;
+  --downTint: color-mix(in srgb, var(--down) 15%, var(--canvas));
+  --pillUpBg: var(--upTint);
+  --pillUpInk: var(--up);
+  --pillDownBg: var(--downTint);
+  --pillDownInk: var(--down);
+  --pillFlash: var(--ink);
+  --caution: #ffb340;
+  --cautionBg: rgba(255, 179, 64, 0.14);
+  --dangerTint: rgba(255, 98, 89, 0.16);
+  --dangerText: #ff8a80;
+  --problemTint: rgba(229, 72, 77, 0.16);
+  --problemText: #ff9b9e;
+  --lift: none;
+  --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --stage: #13151f;
+  --stageHi: #2b3045;
+  --glass: rgba(28, 28, 40, 0.86);
+  --pageWall:
+    radial-gradient(1200px 800px at 8% 0%, #1f2b5c 0, transparent 60%),
+    radial-gradient(1000px 900px at 96% 30%, #3a1c40 0, transparent 60%),
+    radial-gradient(1200px 900px at 40% 100%, #3a220d 0, transparent 60%), #10142a;
+  --tc-yellow: #f9e2af;
+  --tc-green: #a6e3a1;
+  --tc-blue: #89b4fa;
+  --tc-pink: #f38ba8;
+  --tc-peach: #fab387;
+  --tc-teal: #94e2d5;
+  --tc-gray: #a6adc8;
+  --tc-violet: #cba6f7;
+  --tile-mix: 22%;
+  --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
+  --onAi: #ffffff;
+  --glassTint: 24 24 36;
+  --glassA: 0.36;
+  --glassStrongA: 0.66;
+  --glassFocusA: 0.78;
+  --glassTagA: 0.86;
+  --glassRim: rgba(255, 255, 255, 0.45);
+  --glassHi: rgba(255, 255, 255, 0.22);
+  --glassLo: rgba(0, 0, 0, 0.35);
+  --glassSheen: rgba(255, 255, 255, 0.12);
+  --glassDrop: rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+/* Red up, green down: the up and down tokens trade places in each theme. */
+:root[data-colours="red-up"] {
+  --up: #c1231a;
+  --upTint: #fbe9e7;
+  --down: #0b7532;
+  --downTint: #e6f2ea;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-colours="red-up"]:not([data-theme="light"]) {
+    --up: #ff6259;
+    --down: #32d74b;
+  }
+}
+
+:root[data-colours="red-up"][data-theme="dark"] {
+  --up: #ff6259;
+  --down: #32d74b;
+}
+
+/* The operator asked for less motion on this page, whatever the system says. */
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation: none;
+  transition: none;
+}

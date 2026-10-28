@@ -40,5 +40,21 @@
       ]
     }
   ],
+  "shares": {
+    "segments": [
+      {
+        "segment": "cash",
+        "weight": 0.2,
+        "target": 0.15,
+        "gap": 0.05
+      },
+      {
+        "segment": "equity-vn",
+        "weight": 0.8,
+        "target": 0.85,
+        "gap": -0.05
+      }
+    ]
+  },
   "caveats": []
 }

@@ -1,0 +1,83 @@
+/* Its blur makes it the stacking context of the popovers it holds, so it sits at their level. */
+.header {
+  position: relative;
+  z-index: var(--zPopover);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--s2);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  font-weight: var(--weightSemibold);
+}
+
+.header-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+/* Every header control stands at the header's own height. */
+.header .btn {
+  height: var(--headerControlH);
+}
+
+.header-grow {
+  flex: 1;
+}
+
+.layout-toggle[aria-pressed="true"] {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.header-keys {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* The pane bar takes the Info only toggle's place, and the cost chip drops its "AI today". */
+:root:not([data-layout="wide"]) :is(.layout-toggle, .header-cost-label) {
+  display: none;
+}
+
+/* A phone keeps the logo without the word, and its pills their short labels: none is clipped. */
+:root[data-layout="phone"] .header {
+  gap: 6px;
+  padding: 0 var(--s1);
+}
+
+:root[data-layout="phone"] .header-brand {
+  gap: 0;
+  font-size: 0;
+}
+
+:root[data-layout="phone"] .header .chip {
+  flex: none;
+  padding: 0 9px;
+}
+
+:root[data-layout="phone"] .header .chip svg,
+:root[data-layout="phone"] .header .clock-market {
+  display: none;
+}
+
+:root[data-layout="phone"] .header .view-switch {
+  flex: none;
+}
+:root[data-layout="phone"] .header .view-switch button {
+  padding: 4px 6px;
+}
+:root[data-layout="phone"] .header :is(.bell-button, .gear-button) {
+  flex: none;
+}
+
+/* The key list is a keyboard's; a phone's header has no room for it. */
+:root[data-layout="phone"] .header-keys {
+  display: none;
+}

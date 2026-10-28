@@ -1,0 +1,45 @@
+/* Hangs under the header, at the right edge unless its own class places it. */
+.popover {
+  position: fixed;
+  top: calc(var(--headerH) + 4px);
+  right: var(--s2);
+  z-index: var(--zPopover);
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  max-height: calc(100vh - var(--headerH) - var(--s4));
+  overflow: hidden;
+  color: var(--ink);
+}
+
+.popover-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s2) 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.popover-head h2 {
+  flex: 1;
+  font: var(--typeCardTitle);
+}
+
+.popover-scroll {
+  overflow: auto;
+  padding: 4px 14px 10px;
+}
+
+.popover-foot {
+  display: flex;
+  gap: var(--s1);
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Below the narrow width every popover spans the screen inside the gutter. */
+:root:not([data-layout="wide"]) .popover {
+  right: var(--popoverGutter);
+  left: var(--popoverGutter);
+  width: auto;
+}

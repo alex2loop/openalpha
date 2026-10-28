@@ -12,7 +12,7 @@ This page covers writing an agent, building a team, giving agents skills, and ch
 Start from the annotated template, [agent.sample.toml](../../agent.sample.toml).
 
 Built-in agents and bundled-plugin agents are trusted. Agents you write, in `<data_dir>/agents/<id>/agent.toml`,
-are not. An untrusted agent cannot set `model_tier` or `reasoning`, and its `system_prompt` is scanned and
+are not. Your agent may set `model_tier` but not `reasoning`, and its `system_prompt` is scanned and
 refused when it matches a blocked instruction pattern.
 
 ### Scaffold one
@@ -24,8 +24,59 @@ openalpha agent edit web-researcher  # opens it in $EDITOR
 
 A missing `agents/` directory is normal, not an error.
 
-`openalpha agent list` and `show <id>` inspect agents. `remove <id>` deletes one of yours and cannot touch a
+`openalpha agent list` and `show <id>` inspect agents; `show` also prints the tools, delegates, turn cap and how many
+children the agent may spawn. `remove <id>` deletes one of yours, pauses the schedules that were on for it, and cannot touch a
 built-in. `agent bind`, `unbind` and `bindings` map a channel chat to an agent - see [Commands](commands.md).
+
+### From the office page
+
+With the API on, the office page can create, edit and delete your agents without you touching a file. It writes
+the same `agent.toml` into your agents folder, so `agent list` and `agent show` see the agent and a later hand edit
+still works.
+
+- On the *Your agents* floor, "+ Add an agent" opens the form. With no agent yet, three starting
+  templates fill it in for you to edit, and a blank one is there too. The form asks for:
+  - a name (the id is made from it, unless you type your own, and cannot change once the agent exists);
+  - what it does, in your own words;
+  - the markets and sectors it follows;
+  - a daily budget (`0` means only the overall budget);
+  - a model;
+  - whether it may start child agents, and how many per call;
+  - its look.
+
+  Leave every market unticked and the agent shares your own view, so its calls drive the real book.
+  Tick markets and it becomes a second opinion (see [Focus, spend and pause](#focus-spend-and-pause)).
+- The look picker offers four parts, with a portrait that updates as you choose:
+  - body (a skin tone: light, medium or deep);
+  - hair (short, long, bob, bun or cap);
+  - shirt (teal, blue, sky, amber, orange, pink, slate or sand);
+  - accessory (none, book, clipboard, tie, glasses or scarf).
+
+  A part you leave alone follows the agent's id, so every agent has a look from the start. It is the `[look]` table in the file; the daemon keeps it and never reads it during a run.
+- Clicking an agent (its desk, or its card on the team floor) opens its tab: *Progress* (the live steps and any child agents), *Result*, *Profile* and *Work*, with a button to pause or resume it.
+  - A paused agent refuses every run it owns until you resume it, exactly as `agent pause` does, and its desk says so.
+  - The profile's edit button opens the form, which also holds the delete button.
+- When a run hands work to child agents, the Progress tab lists each child. It shows how many are running out of the most one call may start, how many levels deep they go, and the longest one child may run.
+  - That last figure is the daemon's own per-call limit for children (the tighter of the run and spawn time caps in `[loop]`). It is read from the daemon, so it is always the real one.
+  - Their cost counts to the parent run, and one button stops the whole run, children included.
+- Under a finished run's answer, *Result* carries a closed "AI calls" fold, the same one a job's row and a finished chat answer have: the model calls that run and its child agents made, with what each cost and how it ended (see [Budgets](budgets.md#in-the-office-page)).
+- A new or edited agent is checked the way the daemon checks a file at start: the file shape, the id, the focus,
+  the budget cap, the prompt scan and the model tier. A refusal comes back in plain words and nothing is written.
+- The page creates up to 50 agents of your own, counting files that failed to load; past that it asks you to delete one first.
+- The agent answers on its next message, with no restart. A run already going keeps the definition it started
+  with.
+- Its tools are a fixed set: web research, memory, the clock and a calculator, and read-only market and suggestion
+  tools. Never a shell or a file write. Giving it `max_spawn` adds `spawn` to the set.
+- The page owns the name, description, prompt, focus, daily cap, model tier, look, tools and `max_spawn`: an edit
+  replaces each, or removes it when the page leaves it out. Everything else in the file is kept, such as turn,
+  token and time caps, `hosts`, `skills`, `delegates` and `reasoning`. Built-in and plugin agents can be read there
+  but not edited or deleted.
+- Deleting an agent removes its folder and pauses every schedule that was on for it, so none keeps firing at a
+  name that no longer resolves; the bell says how many. Its memory, sessions, spend and track record stay. An
+  agent that is on a social network is refused until it leaves.
+- A file you edited by hand while the daemon runs is picked up when the page reads the folder again. A file that
+  fails to load is skipped with a plain-words reason (the exact cause is in the daemon log, `logs`) and stays out of the running set until you fix it and read again. If the
+  folder itself cannot be read, the agents already running stay exactly as they were.
 
 ### The file
 
@@ -61,8 +112,9 @@ ignored would read as a permission you granted.
 | `max_duration_ms` | positive int | `[loop].max_duration_ms` from config | Per-run wall-clock cap. Can lower the `[loop]` value, never raise it. |
 | `max_daily_usd` | number | none | This agent's share of the day, under `[budget] max_daily_usd`. See [Focus, spend and pause](#focus-spend-and-pause). |
 | `[focus]` | table | none | What the agent looks at. See [Focus, spend and pause](#focus-spend-and-pause). |
-| `model_tier` | string | none | **Trusted agents only.** Selects a `[model_tiers]` chain. |
-| `reasoning` | enum | `'default'` | **Trusted agents only.** |
+| `[look]` | table | none | How the agent's character looks in the office page: a few short parts, each a lowercase word or hyphenated slug (`hair = "short"`). The daemon only stores it and refuses a part that is not shaped that way; the page decides which values it can draw and fills any part you leave out from the agent's id. The form offers `body`, `hair`, `shirt` and `prop` (see [From the office page](#from-the-office-page)). |
+| `model_tier` | string | none | A tier in `[model_tiers]` whose every entry supports tools. Your agents may set it; untrusted plugin agents may not. |
+| `reasoning` | enum | `'default'` | **Trusted agents only:** built-in and bundled-plugin agents. |
 | `[capabilities]` | table | see below | Security ceiling; every field only narrows access. |
 
 An id starts with a lowercase letter or digit and holds only lowercase letters, digits, underscores, hyphens or
@@ -87,12 +139,13 @@ enforced.
 
 ### Choosing the model
 
-A user agent always runs the primary `[[models]]` chain. There is no per-agent model override for an untrusted
-agent, because a dropped-in file could otherwise reroute your spend.
+A user agent runs the primary `[[models]]` chain unless it sets `model_tier`. There is no per-agent `model` key,
+so a dropped-in file can only pick a tier you configured yourself.
 
-A trusted agent may set `model_tier` to a chain under `[model_tiers]`. The tier must exist and be non-empty,
-and every entry must support tool calls when the agent has tools. A `model_tier` that contradicts the tier the
-composition prefers is rejected, not ignored.
+Your agent may set `model_tier` to a chain under `[model_tiers]`. The tier must exist and be non-empty, and
+every entry must support tool calls when the agent has tools. Untrusted plugin agents may not set `model_tier`, and
+`reasoning` stays trusted-only. A `model_tier` that contradicts the tier the composition prefers is rejected,
+not ignored.
 
 `/model` in a channel is session-scoped: it swaps the model for that one session from the global `[[models]]`
 chain, keeps the other entries as fallbacks, cannot pick a tier, and does not persist. `openalpha provider list`
@@ -103,14 +156,15 @@ and `openalpha provider models` show what is available.
 One bad agent never stops the daemon from booting. Each file fails on its own and is skipped:
 
 - malformed TOML, a schema violation, an `id` that differs from the directory, an unknown tool in `tools`,
-  `model_tier` or `reasoning` on a user agent, a `max_daily_usd` above your `[budget]` cap, or a `system_prompt`
+  `reasoning` on a user agent, a `model_tier` that names a missing tier or one with an entry that lacks tool
+  support, a `max_daily_usd` above your `[budget]` cap, or a `system_prompt`
   the injection scan blocks - logged as `agents.user_load_failed`;
 - a reserved-id collision - logged as `agents.user_id_reserved`.
 
 ### Runtime boundary
 
 Each agent runs with file tools rooted at `<data_dir>/workspaces/<id>/` and its own memory scope. An approved
-shell starts in that folder, but it is a working directory, not an operating-system sandbox.
+shell starts in that folder, but it is a working directory, not an operating-system sandbox. The office page lists what each agent remembers, per person it talked to, under Settings > Memory, where a note can be added or forgotten (see [Operations](operations.md#settings-worth-knowing)).
 
 ### Focus, spend and pause
 
@@ -125,9 +179,13 @@ exactly as `/suggest` does. Set it and the agent becomes a *second opinion*:
 markets = ["equity-vn"]   # markets your book trades
 sectors = ["banks"]       # the market's sector slugs: banks, oil-gas, ...
 horizon = "long"          # short | long: the window its calls are scored over
+goal = "income"           # preserve | income | grow: what it hunts for (income = dividends)
 ```
 
-Focus only narrows:
+`goal` takes your profile's goal words and only marks the agent: the office page seats an `income` agent as your
+dividend hunter. It never changes or splits a call: two agents that differ only in `goal` share their calls, debates
+and record, and a `[focus]` holding only `goal` is your own focus. The hunting is in the agent's prompt. The rest
+only narrows:
 
 - `markets` must be markets your book trades.
 - `sectors` need a market that keeps sector data (today `equity-vn`). Names are the market's own slugs, listed by
@@ -185,6 +243,9 @@ one general chat.
 | `[loop] delegation_depth` | Max child levels from the top-level run. Default `3` allows depths 1, 2 and 3. |
 | `[loop] max_delegations` | Total children one run may ever start, across both tools. |
 | `[loop] max_parallel_delegations` | Max items in one `delegate_parallel` call. |
+| `spawn` tool | Starts short-lived read-only child agents the agent describes itself; see [Spawned child agents](#spawned-child-agents). |
+| `[capabilities] max_spawn` | How many spawned children one `spawn` call may start, 1 to 4. Absent or `0` means the agent may not spawn. |
+| `[loop] max_spawn_duration_ms`, `max_spawn_turns` | Time (default 10 minutes) and model turns (default `12`) each spawned child gets. |
 
 A rostered child uses its own tool allowlist: it may use a tool its parent cannot call directly, and a tool
 missing from the child is blocked before approval.
@@ -238,6 +299,32 @@ More items than `[loop] max_parallel_delegations` is rejected with `delegate_ful
 The result has one entry per item, each with `agent_id`, stop `reason` and final `text`. Budget, approval and
 runner failures stay visible, and an unexpected failure is isolated to its own entry instead of failing the batch.
 
+### Spawned child agents
+
+An agent with `spawn` in its tools and `max_spawn` above `0` can split a question into independent reads, such as one
+company's dividends and its quarterly accounts, and start one short-lived child agent per part. The chat assistant
+may start up to `2` in one call. Pass `goal` for one child, or `items` for one child per part, plus a `role` label and the
+`context` the children need: they see none of the conversation. Pass `output_schema`, a JSON Schema of at most 4,000
+characters, when you want each answer back as checked JSON instead of prose.
+
+- A child is the parent's own agent narrowed: web, market and news reads and memory recall only. It never trades,
+  records, schedules, sends, writes suggestions, spawns or delegates.
+- It runs on the `delegate` tier of `[model_tiers]` when you declare one, else on the parent's models.
+- It has `[loop] max_spawn_duration_ms` and `max_spawn_turns`. A child that runs out of time, turns or budget brings
+  back what it had read, marked partial, with the reason (time, turns or budget); one that fails before reading
+  anything is marked failed. A child stopped together with its parent is failed with no reason.
+- With `output_schema`, each child is told to end with one JSON document that fits the schema. A finished child whose
+  answer parses and fits comes back as that JSON; one whose answer does not is failed with the first mismatch named.
+  A child that was cut off still brings back its plain summary, unchecked. A schema the daemon cannot use refuses the
+  whole call before any child starts.
+- Children share the parent's budget slice, `[loop] max_delegations` quota and `[loop] delegation_depth`, and their
+  cost counts to the parent. Stopping the parent stops every child.
+- A call that asks for more children than `max_spawn` starts the first `max_spawn`; the rest are refused back to the
+  model as not started, never queued, and the screen says the call asked for more than may start at once.
+- `spawn` is left out of `tools = "*"` for an agent whose `max_spawn` is `0`.
+- Channels and the terminal show one line for the group (`N child agents reading, k/N done`); the live feed lists
+  each child under its parent, and the activity log keeps the start of its answer.
+
 ### Approval never inherits
 
 Nothing carries over to a child: not the parent's bypass mode, not a remembered approval in the parent's session,
@@ -261,8 +348,9 @@ The `[loop]` limits bound recursion, but a roster you did not intend is still a 
 2. **Orchestrator.** Add the delegation tools to `[capabilities] tools` and list the sub-agent ids in
    `[capabilities] delegates`.
 3. **Bounds.** Set `[loop] delegation_depth`, `max_delegations` and `max_parallel_delegations` in `config.toml`.
-4. **Models.** User agents use the global `[[models]]` chain. Only built-in and bundled-plugin agents may pick a
-   `model_tier`.
+   For `spawn`, also `[loop] max_spawn_duration_ms` and `max_spawn_turns`.
+4. **Models.** User agents use the global `[[models]]` chain unless they set `model_tier` to one of your
+   `[model_tiers]`. Untrusted plugin agents may not.
 
 End every sub-agent's `system_prompt` with this, so it stops writing for a human who is not reading:
 
@@ -383,14 +471,14 @@ changes the per-chat binding, which survives restarts:
 /agent default         # return to the channel's configured default
 ```
 
-Changing a binding cancels the old session's queued and active work and opens a fresh session for the new agent,
-so a mid-conversation switch never leaves an orphaned run billing your budget.
+Changing a binding cancels the old session's queued and active work, and the next message opens a fresh session
+with the new agent, so a mid-conversation switch never leaves an orphaned run billing your budget.
 
 ### Where plugin agents fit
 
 At boot, valid agents from `<data_dir>/agents/` are added after the built-in and plugin agents. Existing ids are
 reserved and cannot be shadowed. A plugin's `agents/<id>/agent.toml` extends the same registry under the same
-rule, and an untrusted agent that sets `model_tier` or `reasoning` is rejected.
+rule, and an untrusted plugin agent that sets `model_tier` or `reasoning` is rejected.
 
 Built-in tools register first, plugin tools extend them, and connected MCP tools are added last without
 replacing a name that already exists. See [Plugins](dev/extending.md).
@@ -598,6 +686,8 @@ next entry.
 `auth` commands do not boot the runtime and need no config file. Without one, tokens land in the default data
 directory; pass `--data-dir` to put them elsewhere.
 
+The office page can sign in too. Go to Settings > Providers > "+ Add provider" > "Sign in to ChatGPT": it shows a code and a link where you enter it, and saves the same login file once you finish. Signing out there asks you to confirm once. While `[api] public_url` is set, the page cannot sign in; do it on the server with `openalpha auth login chatgpt`.
+
 Subscription turns are priced at `$0`, with `pricing_subscription` as the cost source. Tokens are still counted and
 turn and duration limits still apply, but the spend never counts against daily, monthly or per-run caps.
 
@@ -612,7 +702,7 @@ Two limits come from the ChatGPT endpoint, not OpenAlpha:
 
 ### Model tiers (optional)
 
-A trusted agent selects a named fallback chain with `model_tier`. When the tier is absent, the agent or task that
+An agent selects a named fallback chain with `model_tier`, if it is built-in, from a bundled plugin, or your own. When the tier is absent, the agent or task that
 wanted it falls back to the global `[[models]]` chain, and every entry in a tier must support tool calls. The tier
 names, which role prefers each, and how a tier chain ends on the primary `[[models]]` entry are in
 [Configuration](configuration.md). The trading debate roles prefer the `debate` tier when

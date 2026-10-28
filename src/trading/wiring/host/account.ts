@@ -1,10 +1,15 @@
+import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
 import type { StopCover } from '@/trading/kernel/operator/alert'
 import type { AgentMethods } from '@/trading/wiring/host/agents'
 import type { LedgerMethods } from '@/trading/wiring/host/ledger'
 import type { MarketMethods } from '@/trading/wiring/host/market'
 import type { OrderMethods } from '@/trading/wiring/host/order'
-import type { HeldStopView, TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
+import type { ProfileMethods } from '@/trading/wiring/host/profile'
+import type { ThemeMethods } from '@/trading/wiring/host/themes'
+import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
+import type { HeldStopView } from '@/trading/wiring/host/view-types'
 import { reconcileSentences } from '@/trading/features/portfolio/render/reconcile'
+import { toSegmentShares } from '@/trading/features/portfolio/render/segment-shares'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { bounded, profileOf, resolveRegion, scoped, scopedSlow } from '@/trading/wiring/host/scope'
 
@@ -12,10 +17,23 @@ const NO_COVERS: ReadonlyMap<string, StopCover> = new Map()
 
 type AccountMethods = Omit<
   TradingHost,
-  keyof MarketMethods | keyof LedgerMethods | keyof OrderMethods | keyof AgentMethods
+  | keyof MarketMethods
+  | keyof LedgerMethods
+  | keyof OrderMethods
+  | keyof AgentMethods
+  | keyof ProfileMethods
+  | keyof ThemeMethods
 >
-type AlertMethods = Pick<AccountMethods, 'listAlerts' | 'createAlert' | 'disableAlert'>
-type BriefMethods = Pick<AccountMethods, 'getBrief' | 'rescheduleBrief' | 'getBriefDelivery'>
+type AlertMethods = Pick<
+  AccountMethods,
+  'listAlerts' | 'createAlert' | 'disableAlert' | 'isAlertLive'
+>
+type BriefMethods = Pick<
+  AccountMethods,
+  'getBrief' | 'rescheduleBrief' | 'getBriefDelivery' | 'nextIntraday'
+>
+
+type SuggestionMethods = Pick<AccountMethods, 'getSuggestion' | 'getDayDigest'>
 
 type BookMethods = Pick<
   AccountMethods,
@@ -39,14 +57,24 @@ async function heldStops(
   })
 }
 
+/** The valued book beside the profile it is held to: the segment shares need both. */
+async function portfolioView(
+  deps: TradingHostDeps,
+  scope: { readonly now: number; readonly signal: AbortSignal }
+): Promise<PortfolioView> {
+  const [sized, profile] = await Promise.all([
+    deps.services.portfolio.viewAbsoluteSized({ now: scope.now, signal: scope.signal }),
+    profileOf(deps, scope),
+  ])
+
+  return { ...sized, shares: toSegmentShares(sized.valued, profile) }
+}
+
 function bookMethods(deps: TradingHostDeps): BookMethods {
   return {
     // The only method that reaches the absolute view. Everything an agent can reach goes through
     // the relative surface, which this host does not expose at all.
-    getPortfolio: (request) =>
-      scoped(deps, request.signal, (scope) =>
-        deps.services.portfolio.viewAbsoluteSized({ now: scope.now, signal: scope.signal })
-      ),
+    getPortfolio: (request) => scoped(deps, request.signal, (scope) => portfolioView(deps, scope)),
 
     getNavHistory: (request) =>
       scoped(deps, request.signal, (scope) =>
@@ -79,9 +107,32 @@ function bookMethods(deps: TradingHostDeps): BookMethods {
   }
 }
 
+/** One stored suggestion, and what a day added to the book. */
+function suggestionMethods(deps: TradingHostDeps): SuggestionMethods {
+  return {
+    getSuggestion: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.suggestions.get(request.suggestionId, scope.signal)
+      ),
+
+    getDayDigest: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.appViews.dayDigest({
+          day: request.day,
+          range: request.range,
+          limit: bounded(request.limit, deps.limits.maximumTrackRecordItems),
+          signal: scope.signal,
+        })
+      ),
+  }
+}
+
 function recordMethods(
   deps: TradingHostDeps
-): Omit<AccountMethods, keyof BookMethods | keyof AlertMethods | keyof BriefMethods> {
+): Omit<
+  AccountMethods,
+  keyof BookMethods | keyof AlertMethods | keyof BriefMethods | keyof SuggestionMethods
+> {
   return {
     // Non-null, unlike the hook's `ProfileReader.find`: this only ever serves the single operator
     // this host is closed over, and that profile is auto-provisioned at first boot.
@@ -148,6 +199,9 @@ function briefMethods(deps: TradingHostDeps): BriefMethods {
 
     getBriefDelivery: (request) =>
       scoped(deps, request.signal, (scope) => deps.services.briefs.find(scope.signal)),
+
+    nextIntraday: (signal) =>
+      scoped(deps, signal, (scope) => deps.services.nextIntraday(scope.now, scope.signal)),
   }
 }
 
@@ -175,6 +229,7 @@ function alertMethods(deps: TradingHostDeps): AlertMethods {
             delivery: request.delivery,
           },
           ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
+          ...(request.requireNew === undefined ? {} : { requireNew: request.requireNew }),
           now: scope.now,
           signal: scope.signal,
         })
@@ -184,6 +239,11 @@ function alertMethods(deps: TradingHostDeps): AlertMethods {
       scoped(deps, request.signal, (scope) =>
         alerts.disable({ alertId: request.alertId, now: scope.now, signal: scope.signal })
       ),
+
+    isAlertLive: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        alerts.isLive({ alertId: request.alertId, signal: scope.signal })
+      ),
   }
 }
 
@@ -191,6 +251,7 @@ export function accountMethods(deps: TradingHostDeps): AccountMethods {
   return {
     ...bookMethods(deps),
     ...recordMethods(deps),
+    ...suggestionMethods(deps),
     ...briefMethods(deps),
     ...alertMethods(deps),
   }

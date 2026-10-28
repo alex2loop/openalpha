@@ -11,7 +11,7 @@ import {
 } from '@/tools/web/search/result-parser'
 import { RECENCY_DAYS } from '@/tools/web/search/types'
 
-const DEEPSEEK_ENDPOINT = 'https://api.deepseek.com/v1/tools/search'
+export const DEEPSEEK_ENDPOINT = 'https://api.deepseek.com/v1/tools/search'
 const DEEPSEEK_AUTHORIZATION_HEADER = 'Authorization'
 const DEEPSEEK_BEARER_PREFIX = 'Bearer '
 const DEEPSEEK_QUERY_MAX_CHARS = 128

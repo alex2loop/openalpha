@@ -4,6 +4,8 @@ import { BROWSER_HEADERS } from '@/core/http-client'
 import { parseChangelog, type ReleaseNote } from './changelog'
 
 const LATEST_RELEASE_URL = `${BRAND.repository}/releases/latest`
+/** Where the update check goes: the release page of the repository. */
+export const UPDATE_CHECK_HOST = new URL(LATEST_RELEASE_URL).host
 const RELEASE_TAG_RE = /\/releases\/tag\/v(\d+\.\d+\.\d+)$/
 const HTTP_ERROR_STATUS = 400
 const HTTP_NOT_FOUND = 404

@@ -14,17 +14,17 @@ export interface ChatBindingStore {
   get(channel: ChannelId, chatId: string): Promise<ChatBinding | null>
   put(b: ChatBinding): Promise<void>
   remove(channel: ChannelId, chatId: string): Promise<void>
-  /** Atomically moves the chat to a fresh session and writes or removes its agent override. */
-  selectSession(selection: ChatSessionSelection): Promise<void>
+  /** Atomically drops the chat's session routes, so its next message opens a fresh session, and
+   *  writes or removes its agent override. */
+  resetSession(reset: ChatSessionReset): Promise<void>
   /** Every binding, newest first. Operator-facing (`agent bindings`); bounded by chat count. */
   list(): Promise<readonly ChatBinding[]>
 }
 
-export interface ChatSessionSelection {
+export interface ChatSessionReset {
   readonly channel: ChannelId
   readonly chatId: string
   readonly userId: UserId
-  readonly sessionId: SessionId
   /** Absent means remove the override and use the composition-owned default. */
   readonly agentId?: AgentId
 }
@@ -43,6 +43,31 @@ export interface SessionQueue {
   /** Serializes chat-global mutations per chat; invalidation stales every chat member's pending work. */
   coordinateChat<T>(key: ChatRouteKey, task: (invalidate: () => void) => Promise<T>): Promise<T>
   /** Shed all new work. One-way: shutdown is the only caller and the process exits after it. */
+  pause(): void
+}
+
+export interface CommandLaneEntry<T> {
+  /** One lane per chat: `toCommandLaneKey`. */
+  readonly key: string
+  /** Names the entry to `drop`; unique within the lane. */
+  readonly id: string
+  /** Owned by the lane from here on: released when the task starts, is cancelled, dropped or rejected. */
+  readonly registration: SessionRouteRegistration
+  readonly task: () => Promise<T>
+  /** Called with the 1-based place in the waiting line when the task cannot start at once. */
+  readonly onWaiting?: (position: number) => void
+}
+
+/** Runs a chat's self-contained commands beside its session turn, a few at a time, instead of one
+ *  behind another. A waiting task rejects with `RunHalted('abort')` when cancelled, dropped or its
+ *  route went stale, and with `RunHalted('queue_full')` past the waiting cap or after `pause`. */
+export interface CommandLane {
+  enqueue<T>(entry: CommandLaneEntry<T>): Promise<T>
+  /** Rejects every waiting task of the chat; a running task is untouched. */
+  cancel(key: string): void
+  /** Rejects one waiting task; false when it is not waiting (running, finished or unknown). */
+  drop(key: string, id: string): boolean
+  /** Shed all new work and reject what waits. One-way: shutdown is the only caller. */
   pause(): void
 }
 
@@ -100,6 +125,8 @@ export interface PairingStore {
   isPaired(channel: ChannelId, chatId: string): Promise<boolean>
   /** The one approved chat on `channel`; undefined when none or several are. */
   lonePairedChat(channel: ChannelId): Promise<string | undefined>
+  /** The approved, not revoked chats on `channel`, at most `limit`, in chat id order. */
+  listPaired(channel: ChannelId, limit: number): Promise<readonly string[]>
   // Idempotent per chat: re-messaging returns the same code, never a new one.
   requestCode(args: {
     readonly channel: ChannelId

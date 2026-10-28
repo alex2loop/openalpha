@@ -4,11 +4,19 @@ import type { AgentId, BrandTag } from '@/core/ids'
 import type { ToolInvocationContext } from '@/core/tool'
 import type { HoldReasonCode } from '@/trading/kernel/caveat'
 import type { MarketRef, PortfolioSegment } from '@/trading/kernel/instrument'
-import type { InvestmentHorizon, UserProfile } from '@/trading/kernel/operator/profile'
+import type {
+  InvestmentGoal,
+  InvestmentHorizon,
+  UserProfile,
+} from '@/trading/kernel/operator/profile'
 import { ValidationError } from '@/core/errors'
 import { canonicalJson, hashString } from '@/core/utils/hash'
 import { marketRef } from '@/trading/kernel/instrument'
-import { horizonFor, INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
+import {
+  horizonFor,
+  INVESTMENT_GOALS,
+  INVESTMENT_HORIZONS,
+} from '@/trading/kernel/operator/profile'
 
 const DEFAULT_KEY = 'default'
 const SECTOR_SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
@@ -17,6 +25,7 @@ const FOCUS_SCHEMA = z
     markets: z.array(z.string().min(1)).min(1).optional(),
     sectors: z.array(z.string().regex(SECTOR_SLUG)).min(1).optional(),
     horizon: z.enum(INVESTMENT_HORIZONS).optional(),
+    goal: z.enum(INVESTMENT_GOALS).optional(),
   })
   .refine((focus) => Object.keys(focus).length > 0, 'an empty [focus] table narrows nothing')
 
@@ -56,6 +65,9 @@ export interface AgentFocus {
   readonly markets?: readonly MarketRef[]
   readonly sectors?: readonly string[]
   readonly horizon?: InvestmentHorizon
+  /** What the agent hunts for, in the profile's goal words (`income` for dividends). A mark on the
+   *  agent only: `resolveRunFocus` leaves it out, so it never changes, splits or labels a call. */
+  readonly goal?: InvestmentGoal
 }
 
 export interface RunFocus {
@@ -131,12 +143,13 @@ export function toAgentFocus(raw: unknown): AgentFocus | undefined {
     )
   }
 
-  const { markets, sectors, horizon } = parsed.data
+  const { markets, sectors, horizon, goal } = parsed.data
 
   return {
     ...(markets === undefined ? {} : { markets: sortedUnique(markets).map(marketRef) }),
     ...(sectors === undefined ? {} : { sectors: sortedUnique(sectors) }),
     ...(horizon === undefined ? {} : { horizon }),
+    ...(goal === undefined ? {} : { goal }),
   }
 }
 
@@ -150,10 +163,13 @@ function focusKey(focus: AgentFocus | undefined): FocusKey {
   return `f-${hashString(canonicalJson(focus))}` as FocusKey
 }
 
+/** The focus a call is made, keyed and shared under: the declared table less `goal`, so agents that
+ *  differ only in their goal share one call and one debate. A table holding only a goal narrows
+ *  nothing, so it is the operator's own focus. */
 export function resolveRunFocus(raw: unknown): RunFocus {
-  const focus = toAgentFocus(raw)
+  const { goal: _goal, ...focus } = toAgentFocus(raw) ?? {}
 
-  if (focus === undefined) {
+  if (Object.keys(focus).length === 0) {
     return DEFAULT_RUN_FOCUS
   }
 

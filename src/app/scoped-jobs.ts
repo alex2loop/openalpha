@@ -11,8 +11,10 @@ import type {
   ScopedNewJob,
   ScopedNewJobSchedule,
 } from '@/tools/api'
+import { toJobSessionId } from '@/app/job-session'
+import { scheduledCommandRefusal } from '@/commands/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
-import { ToolError } from '@/core/errors'
+import { ToolError, ValidationError } from '@/core/errors'
 import { jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
 import { SCHEDULER_MAX_JOBS } from '@/tools/api'
@@ -60,7 +62,7 @@ export function createScopedJobStore(app: App): ScopedJobStore {
           )
         }
 
-        const job = buildScopedJob(scope, input)
+        const job = buildScopedJob(app, scope, input)
         const created = await app.resolve('jobStore').create(job)
 
         if (!created) {
@@ -100,9 +102,30 @@ export function createScopedJobStore(app: App): ScopedJobStore {
         throw new ToolError('invalid_input', `no job ${id}`)
       }
 
-      await app.resolve('jobStore').remove(id)
+      await removeThroughScheduler(app, scope, id)
     },
   }
+}
+
+// A prompt that is a command no one is there to approve is refused as the other surfaces refuse it.
+function assertCommandMayRun(app: App, prompt: string): void {
+  const refusal = scheduledCommandRefusal(app.resolve('slashDispatcher'), prompt)
+
+  if (refusal !== undefined) {
+    throw new ToolError(
+      'invalid_input',
+      refusal.message,
+      new ValidationError(refusal.message, refusal.operator)
+    )
+  }
+}
+
+// Through the scheduler like every other removal: it stops a run and retires a price job's alert.
+// A job that removes itself is inside the run the scheduler would wait for, so that run is left to end.
+async function removeThroughScheduler(app: App, scope: JobToolScope, id: JobId): Promise<void> {
+  await app
+    .resolve('schedulerCommands')
+    .removeAny(id, { fromOwnRun: scope.sessionId === toJobSessionId(id) })
 }
 
 function toScopedRow(job: Job, now: number): ScopedJobRow {
@@ -110,7 +133,7 @@ function toScopedRow(job: Job, now: number): ScopedJobRow {
     id: job.id,
     status: toJobStatus(job, now),
     prompt: job.prompt,
-    nextRunAt: job.nextRunAt,
+    ...(job.event === undefined ? { nextRunAt: job.nextRunAt } : { onEvent: job.event.event }),
     ...(job.schedule.kind === 'cron' ? { cronExpr: job.schedule.expr } : {}),
   }
 }
@@ -123,11 +146,18 @@ function toJobStatus(job: Job, now: number): ScopedJobStatus {
     return 'scheduled'
   }
 
+  // An event job's time is never reached; a price one is spent by its single crossing.
+  if (job.event !== undefined) {
+    return job.event.event === 'price' ? 'done' : 'paused'
+  }
+
   return job.schedule.kind === 'once' && job.nextRunAt <= now ? 'done' : 'paused'
 }
 
 // The clock is read once here so the schedule and nextRunAt of one job never disagree.
-function buildScopedJob(scope: JobToolScope, input: ScopedNewJob): Job {
+function buildScopedJob(app: App, scope: JobToolScope, input: ScopedNewJob): Job {
+  assertCommandMayRun(app, input.prompt)
+
   const now = Date.now()
   const schedule = toJobSchedule(input.schedule)
   // Delivery defaults to the chat the job was created in; a local CLI session has no inbound

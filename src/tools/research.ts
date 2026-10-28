@@ -80,9 +80,7 @@ export const researchTool = createTool({
           ...(hosts === undefined ? {} : { allowedHosts: hosts }),
           addDelegatedUsage: ctx.addDelegatedUsage,
           addExternalCost: ctx.addExternalCost,
-          ...(interaction === undefined
-            ? {}
-            : { reportProgress: (message) => reportSafely(ctx, interaction, message) }),
+          reportProgress: (message) => reportResearch(ctx, interaction, message),
           ...(review === undefined ? {} : review),
         }
       )
@@ -136,6 +134,25 @@ async function reviewWithPausedDeadline(
     return { kind: 'cancel' }
   } finally {
     ctx.deadline.resume()
+  }
+}
+
+// The bus hears every research step, interactive surface or not; the surface, when there is one,
+// is told after.
+function reportResearch(
+  ctx: ToolInvocationContext,
+  interaction: ForegroundResearchInteraction | undefined,
+  message: ResearchProgress
+): void {
+  ctx.bus.emit('run_progress', {
+    runId: ctx.runId,
+    agentId: ctx.agentId,
+    channel: ctx.channel,
+    message,
+  })
+
+  if (interaction !== undefined) {
+    reportSafely(ctx, interaction, message)
   }
 }
 

@@ -44,6 +44,8 @@ class RunCostTracker implements CostTracker {
   private readonly timeZone: string
   private dailyWarnedValue = false
   private monthlyWarnedValue = false
+  private dailyExhaustedValue = false
+  private monthlyExhaustedValue = false
   private ledgerUnavailableValue = false
   private dailySpentValue = 0
   private monthlySpentValue = 0
@@ -82,6 +84,8 @@ class RunCostTracker implements CostTracker {
       reservedUsd: this.reservedValue,
       dailyWarned: this.dailyWarnedValue,
       monthlyWarned: this.monthlyWarnedValue,
+      dailyCapUsd: this.maxDailyUsd,
+      monthlyCapUsd: this.maxMonthlyUsd,
       ledgerUnavailable: this.ledgerUnavailableValue,
     }
   }
@@ -101,6 +105,22 @@ class RunCostTracker implements CostTracker {
     }
 
     this.monthlyWarnedValue = true
+  }
+
+  markExhausted(period: 'daily' | 'monthly', at: number): boolean {
+    this.rollover(at)
+
+    if (period === 'daily') {
+      const first = !this.dailyExhaustedValue
+      this.dailyExhaustedValue = true
+
+      return first
+    }
+
+    const first = !this.monthlyExhaustedValue
+    this.monthlyExhaustedValue = true
+
+    return first
   }
 
   reserve(estimateUsd: number): CostReservation {
@@ -166,12 +186,14 @@ class RunCostTracker implements CostTracker {
       this.dailySpentValue = 0
       this.dayStartMs = dayStartMs
       this.dailyWarnedValue = false
+      this.dailyExhaustedValue = false
     }
 
     if (monthStartMs > this.monthStartMs) {
       this.monthlySpentValue = 0
       this.monthStartMs = monthStartMs
       this.monthlyWarnedValue = false
+      this.monthlyExhaustedValue = false
     }
   }
 }

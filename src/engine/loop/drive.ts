@@ -59,7 +59,7 @@ interface DriveDeps {
   readonly progress: { workStarted: boolean }
 }
 
-interface SteeringInbox {
+export interface SteeringInbox {
   /** Accepts text while the run's turn loop is open; false once the loop has exited. */
   readonly accept: (text: string) => boolean
   readonly queue: string[]
@@ -240,8 +240,8 @@ async function runOneTurn(scope: TurnScope): Promise<TurnResult> {
   const startedAt = performance.now()
   const settled = await callProvider({
     run,
-    chain: run.services.chain,
     hooks: deps.hooks,
+    thinking: bookkeeping.thinking,
     onChunk: drive.onChunk,
     consumeTurnRestart: () => {
       if (bookkeeping.turnRestarts >= MAX_VISIBLE_OUTPUT_RESTARTS) {

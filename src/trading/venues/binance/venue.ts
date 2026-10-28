@@ -7,6 +7,7 @@ import { marketRef, venueRef } from '@/trading/kernel/instrument'
 import { createBinanceCatalog } from '@/trading/venues/binance/catalog'
 import { fetchBinanceKeyRestrictions } from '@/trading/venues/binance/key'
 import { createBinanceSpotAdapter } from '@/trading/venues/binance/spot'
+import { binanceHostOf } from '@/trading/venues/binance/transport'
 
 const BINANCE_MARKETS: readonly MarketRef[] = Object.freeze([marketRef('crypto')])
 
@@ -45,6 +46,7 @@ export function createBinanceVenue(input: BinanceVenueInput): Venue {
       markets: BINANCE_MARKETS,
       acceptsOrders: true,
       execution: { exit: 'attached', amend: false, fills: 'by-symbol', balances: true },
+      apiHosts: [new URL(binanceHostOf(credentials.simulated)).host],
     },
     adapter: createBinanceSpotAdapter({
       credentials,

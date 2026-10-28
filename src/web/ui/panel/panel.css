@@ -1,0 +1,223 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Info only: no stage, so the panel takes the main area, its content at a reading width and
+   centred, the chat docked beside, ending above the command bar; its glass shows the still office
+   behind it. */
+.panel.is-reading {
+  width: 100%;
+  max-width: calc(var(--panelContentMaxW) + var(--s3) * 2);
+  margin: 0 auto var(--stageBottomH);
+  border-inline: 1px solid var(--border);
+}
+
+/* Glass denser than a chip since it carries text. Each block inside is flat glass: a thin tint,
+   sheen and highlight over the panel's own blur. */
+.panel.glass {
+  --glassAlpha: var(--glassFocusA);
+}
+
+/* Floating over the office, in the stage's cell. */
+.panel.is-float,
+.panel.is-sheet {
+  z-index: var(--zStageBar);
+  border-radius: var(--islandRadius);
+  overflow: hidden;
+  animation: panel-float-in var(--sheetMs) ease-out;
+}
+
+.panel.is-float {
+  justify-self: end;
+  width: min(var(--panelW), calc(100% - var(--s2)));
+  margin: calc(var(--stageTopH) + var(--s1)) var(--s2) var(--stageBottomH) 0;
+}
+
+.panel.is-sheet {
+  align-self: end;
+  height: var(--sheetH);
+  margin: var(--s2);
+}
+
+@keyframes panel-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--s2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel.is-float,
+  .panel.is-sheet {
+    animation: none;
+  }
+}
+
+/* The grab handle: a tap hides the sheet, the pane bar brings it back. */
+.sheet-handle {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  padding: var(--s1) 0 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.sheet-grip {
+  width: var(--gripW);
+  height: var(--gripH);
+  border-radius: var(--gripH);
+  background: var(--ink3);
+  opacity: 0.5;
+}
+
+/* The tabs on a sunken track, the collapse arrow at the end, and the way back under them. */
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 4px 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-tabs {
+  flex: 1;
+  flex-wrap: nowrap;
+  gap: 2px;
+  margin: var(--s1) var(--s1) var(--s1) 0;
+  container-type: inline-size;
+}
+
+.panel-tabs button {
+  flex: 1 1 auto;
+  padding: 0 var(--s1);
+}
+
+/* Under the width the four labelled tabs and the count take (they fit the default panel in both
+   languages), each tab keeps its icon and the label stays its title. */
+@container (width < 376px) {
+  .panel-tabs .seg-label {
+    display: none;
+  }
+}
+
+.panel-collapse {
+  margin-left: auto;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--ink3);
+  cursor: pointer;
+}
+
+.back-row {
+  flex-basis: 100%;
+  padding: 6px 0 var(--s1);
+}
+
+.back-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 4px;
+  border: 0;
+  border-radius: var(--controlSmRadius);
+  background: none;
+  color: var(--ink2);
+  font: var(--typeEmphasis);
+  cursor: pointer;
+}
+
+.back-row button:hover {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overflow-x: hidden;
+  padding: var(--s3);
+}
+
+.panel-body > * {
+  max-width: var(--panelContentMaxW);
+  margin-inline: auto;
+}
+
+.panel.glass .panel-head {
+  border-bottom-color: var(--glassSeam);
+}
+
+.panel.glass .panel-body {
+  text-shadow: none;
+}
+
+.panel.glass .block {
+  background: var(--glassSheenFill), rgb(var(--glassTint) / var(--glassA));
+  box-shadow: var(--glassShadow);
+}
+
+.panel-view.is-entering {
+  animation: panel-enter 250ms ease-out;
+}
+
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+
+/* Folded to a strip of icons floating over the office at the panel's corner, the active one a pill
+   on the track. */
+.panel-rail.glass {
+  --glassAlpha: var(--glassFocusA);
+  z-index: var(--zStageBar);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  align-self: start;
+  justify-self: end;
+  width: var(--panelRailW);
+  margin: calc(var(--stageTopH) + var(--s1)) var(--s2) 0 0;
+  padding: var(--s1) 0;
+  border-radius: var(--islandRadius);
+}
+
+/* Folded, the tabs are a column of icons: the selected one keeps its pill, with no track behind. */
+.panel-rail .panel-tabs {
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+
+.panel-rail .panel-tabs button {
+  position: relative;
+  flex: none;
+  padding: 0;
+  width: calc(var(--controlH) - 4px);
+}
+
+.panel-rail .seg-label {
+  display: none;
+}
+
+.panel-rail .seg-badge {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+}
+
+.panel-rail .panel-collapse {
+  margin: 0;
+  transform: rotate(180deg);
+}

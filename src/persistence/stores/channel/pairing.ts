@@ -40,6 +40,7 @@ interface Sql {
   readonly isPaired: string
   readonly isRevoked: string
   readonly listPairedChats: string
+  readonly listPairedChatsPage: string
   readonly findPendingByChat: string
   readonly findPendingByCode: string
   readonly findPendingByChannelCode: string
@@ -70,6 +71,15 @@ export function createPairingStore(db: Storage, dialect: Dialect): PairingStore 
       const rows = await db.query<{ readonly chat_id: string }>(sql.listPairedChats, [channel])
 
       return rows.length === 1 ? rows[0]?.chat_id : undefined
+    },
+
+    async listPaired(channel: ChannelId, limit: number): Promise<readonly string[]> {
+      const rows = await db.query<{ readonly chat_id: string }>(sql.listPairedChatsPage, [
+        channel,
+        limit,
+      ])
+
+      return rows.map((row) => row.chat_id)
     },
 
     // Every message from an unpaired chat lands here, so the repeat case answers from one read: a
@@ -106,18 +116,7 @@ export function createPairingStore(db: Storage, dialect: Dialect): PairingStore 
       }))
     },
 
-    // Marks the approved binding revoked rather than deleting it, so a send still addressed to the
-    // chat can be refused; any pending code goes, so the chat must pair again.
-    async revoke(args: PairingRevokeArgs): Promise<boolean> {
-      const { channel, chatId, now } = args
-
-      return await db.transaction(async (tx) => {
-        const revoked = await tx.execute(sql.revoke, [now, channel, chatId])
-        const dropped = await tx.execute(sql.dropPendingForChat, [channel, chatId])
-
-        return revoked.changes + dropped.changes > 0
-      })
-    },
+    revoke: (args) => revokePairing(db, sql, args),
 
     async isRevoked(channel: ChannelId, chatId: string): Promise<boolean> {
       const rows = await db.query<{ readonly revoked_at: number | null }>(sql.isRevoked, [
@@ -128,6 +127,19 @@ export function createPairingStore(db: Storage, dialect: Dialect): PairingStore 
       return rows.length > 0 && rows.every((row) => row.revoked_at !== null)
     },
   }
+}
+
+// Marks the approved binding revoked rather than deleting it, so a send still addressed to the
+// chat can be refused; any pending code goes, so the chat must pair again.
+async function revokePairing(db: Storage, sql: Sql, args: PairingRevokeArgs): Promise<boolean> {
+  const { channel, chatId, now } = args
+
+  return await db.transaction(async (tx) => {
+    const revoked = await tx.execute(sql.revoke, [now, channel, chatId])
+    const dropped = await tx.execute(sql.dropPendingForChat, [channel, chatId])
+
+    return revoked.changes + dropped.changes > 0
+  })
 }
 
 async function approvePairing(
@@ -320,7 +332,15 @@ function buildSql(d: Dialect): Sql {
 /** The approved bindings: who is paired, who was revoked, and the revocation itself. */
 function buildBindingSql(
   d: Dialect
-): Pick<Sql, 'isPaired' | 'isRevoked' | 'listPairedChats' | 'revoke' | 'dropPendingForChat'> {
+): Pick<
+  Sql,
+  | 'isPaired'
+  | 'isRevoked'
+  | 'listPairedChats'
+  | 'listPairedChatsPage'
+  | 'revoke'
+  | 'dropPendingForChat'
+> {
   return {
     isPaired:
       `SELECT 1 AS one FROM pairings WHERE channel = ${d.param(1)} AND chat_id = ${d.param(2)} ` +
@@ -333,6 +353,9 @@ function buildBindingSql(
     listPairedChats:
       `SELECT DISTINCT chat_id FROM pairings WHERE channel = ${d.param(1)} ` +
       `AND status = 'approved' AND revoked_at IS NULL LIMIT 2`,
+    listPairedChatsPage:
+      `SELECT DISTINCT chat_id FROM pairings WHERE channel = ${d.param(1)} ` +
+      `AND status = 'approved' AND revoked_at IS NULL ORDER BY chat_id LIMIT ${d.param(2)}`,
     revoke:
       `UPDATE pairings SET revoked_at = ${d.param(1)} WHERE channel = ${d.param(2)} ` +
       `AND chat_id = ${d.param(3)} AND status = 'approved' AND revoked_at IS NULL`,

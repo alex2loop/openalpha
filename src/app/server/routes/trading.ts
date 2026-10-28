@@ -41,6 +41,7 @@ import {
   parseOptionalBranded,
   parseOptionalInstrument,
   parsePathId,
+  readJsonBody,
 } from '@/app/server/routes/params'
 import { bindLocale } from '@/i18n'
 import {
@@ -54,13 +55,24 @@ import {
 } from '@/trading/api'
 
 const AMBIGUOUS_SYMBOL = 'source.ambiguous-symbol'
+const EMPTY_WINDOW = 'source.empty-window'
+// What leaves an events read with nothing to list rather than failed: a market no event source
+// covers, or a window every source answered with nothing.
+const NO_EVENTS_REASONS: ReadonlySet<string> = new Set(['unsupported', 'empty'])
 
 /** Every handler: parse the query, call exactly one host method, project through one mapper. The
  *  host owns the operator identity and the numeric bounds, so a route holds no authorization, no
  *  registry lookup, and no default of its own. Codes and data only — rendering is the client's. */
 
+// The watchlist's board, or one named instrument's live quote when the caller names one.
 async function handleTradingQuotes(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const quoteBoard = await hostOf(ctx).getQuotes(req.signal)
+  const instrument = parseOptionalInstrument(new URL(req.url).searchParams)
+
+  if (instrument === null) {
+    return apiError('invalid_body')
+  }
+
+  const quoteBoard = await hostOf(ctx).getQuotes(req.signal, instrument)
 
   return json(toQuotesResponse(quoteBoard, localeOf(ctx)))
 }
@@ -107,8 +119,7 @@ async function handleTradingEvents(req: Request, ctx: ApiRouteContext): Promise<
 
   const result = await hostOf(ctx).getEvents({ instrument, fromDay, toDay, signal: req.signal })
 
-  // A market no event source covers has no events to show, which is an answer, not a failure.
-  if (result.kind === 'unavailable' && result.reason !== 'unsupported') {
+  if (result.kind === 'unavailable' && !NO_EVENTS_REASONS.has(result.reason)) {
     return sourceError(ctx, result, instrument.ticker)
   }
 
@@ -119,7 +130,11 @@ async function handleTradingEvents(req: Request, ctx: ApiRouteContext): Promise<
     ticker: instrument.ticker,
     events: found ? result.value.map(toMarketEventWire) : [],
     provenance: found ? toProvenanceWires(result.provenance) : [],
-    caveats: toCaveatWires(result.caveats, localeOf(ctx)),
+    // An empty window is the answer, not a caution about it.
+    caveats: toCaveatWires(
+      result.caveats.filter((caveat) => caveat.code !== EMPTY_WINDOW),
+      localeOf(ctx)
+    ),
   } satisfies TradingEventsResponse)
 }
 
@@ -188,7 +203,7 @@ async function handleTradingProfileGet(req: Request, ctx: ApiRouteContext): Prom
 }
 
 async function handleTradingProfileUpdate(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const body: unknown = await req.json().catch(() => null)
+  const body: unknown = await readJsonBody(req)
   const request = parseProfileUpdate(body)
 
   if (request === null) {
@@ -301,7 +316,7 @@ const RESCHEDULE_BODY = z.object({ sendTime: z.string().regex(/^([01]\d|2[0-3]):
 
 /** Moves the brief's send time and leaves its delivery address where it is. */
 async function handleBriefReschedule(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const body = RESCHEDULE_BODY.safeParse(await req.json().catch(() => null))
+  const body = RESCHEDULE_BODY.safeParse(await readJsonBody(req))
 
   if (!body.success) {
     return apiError('invalid_body')

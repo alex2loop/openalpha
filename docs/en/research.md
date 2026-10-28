@@ -155,6 +155,19 @@ Every completed result also carries an outcome and an evidence level:
 The reviewer approves only when every score dimension is at least 0.4, the composite is at least 0.7,
 no claim is unsupported and no issue is outstanding.
 
+### On the office page
+
+Send `/research <question>` from the [office page](operations.md#the-office-page)'s command box, and the
+chat lists the run's steps as they happen.
+
+- Stop asks first, says that the AI already used still counts toward today's limit, and stops any child
+  agents with it.
+- The finished answer is the report. Each footnote number jumps to the numbered sources under that
+  answer, and two research answers in one chat keep their numbers apart.
+- Once the run is listed, "Open as a report" opens that run's answer in the reader, whatever was said
+  in the chat afterwards. Ideas keeps it with the other research results.
+- A run that was stopped or failed shows the daemon's sentence where the steps were.
+
 ## When research fails
 
 A run fails with `insufficient_evidence` when no excerpt was admitted, when nothing survives the

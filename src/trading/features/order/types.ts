@@ -19,6 +19,9 @@ import type {
 import { AppError } from '@/core/errors'
 import { formatQuantity } from '@/trading/render/format'
 
+export const TRADE_COMMAND_NAME = 'trade'
+export const ORDER_TOOL_NAME = 'order_place'
+
 export type {
   ExitReceipt,
   InstrumentLimits,

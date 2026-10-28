@@ -1,0 +1,46 @@
+import type { ComponentChildren } from 'preact'
+
+import { NEXT_GLYPH } from '@/web/text/glyphs'
+
+import './button.css'
+
+/** commit: Ink fill, one per dialog. ai: brand gradient, always with its cost beside it.
+ *  ghost: no frame until hovered. tertiary: a text link with its arrow.
+ *  destructive: Problem text, confirmed first when it loses work. */
+type ButtonKind = 'commit' | 'ai' | 'secondary' | 'ghost' | 'tertiary' | 'destructive'
+/** Buttons side by side share one size. */
+type ButtonSize = 'regular' | 'small'
+
+interface ButtonProps {
+  readonly kind?: ButtonKind
+  readonly size?: ButtonSize
+  readonly type?: 'button' | 'submit'
+  readonly disabled?: boolean
+  /** The name a reader still gets when a narrow layout hides the label. */
+  readonly title?: string
+  readonly onClick?: (() => void) | undefined
+  readonly children: ComponentChildren
+}
+
+export function Button({
+  kind = 'secondary',
+  size = 'regular',
+  type = 'button',
+  disabled,
+  title,
+  onClick,
+  children,
+}: ButtonProps) {
+  return (
+    <button
+      type={type}
+      class={`btn btn-${kind} btn-${size}`}
+      disabled={disabled}
+      title={title}
+      onClick={onClick}
+    >
+      {children}
+      {kind === 'tertiary' && <span aria-hidden="true">{NEXT_GLYPH}</span>}
+    </button>
+  )
+}

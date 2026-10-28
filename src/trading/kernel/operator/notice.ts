@@ -1,8 +1,18 @@
+import type { EventJobKind } from '@/core/types/event-job'
 import type { Locale } from '@/core/types/locale'
 import type { DeliveringAlert } from '@/trading/features/alerts/types'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { IntradayReport } from '@/trading/features/market-data/intraday/types'
-import type { CurrencyCode, PriceDisplay, QuoteUnit, Ticker } from '@/trading/kernel/instrument'
+import type { OutcomeStatus } from '@/trading/kernel/conviction'
+import type {
+  CurrencyCode,
+  InstrumentRef,
+  PriceDisplay,
+  QuoteUnit,
+  Ticker,
+  TradingDay,
+} from '@/trading/kernel/instrument'
+import type { AlertCondition, AlertId } from '@/trading/kernel/operator/alert'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 
 interface AlertQuote {
@@ -20,6 +30,10 @@ export const NOTICE_KINDS = Object.freeze([
   'exit-plan',
   'stop-raised',
   'series-restated',
+  'exit-filled',
+  'call-scored',
+  'held-news',
+  'index-drop',
 ] as const)
 
 export type NoticeKind = (typeof NOTICE_KINDS)[number]
@@ -58,6 +72,51 @@ export type TradingNoticePayload =
   /** A name whose price history the provider re-adjusted, usually an ex-date. The plans priced on
    *  the old basis are closed, and the next tick writes new ones. */
   | { readonly kind: 'series-restated'; readonly tickers: readonly string[] }
+  /** A resting stop or take-profit filled at the exchange and is in the ledger. `closeReason` is
+   *  typed inline because the kernel may not reach into the ledger feature for its own type. */
+  | {
+      readonly kind: 'exit-filled'
+      readonly fill: {
+        readonly instrument: InstrumentRef
+        readonly venue: string
+        readonly quantity: number
+        readonly unitPrice: number
+        readonly currency: CurrencyCode
+        readonly closeReason?: 'stop' | 'target'
+      }
+    }
+  /** A call the track record has just scored. Both returns are fractions (0.05 is 5%), net of fees.
+   *  `benchmark` is absent where the market names none. */
+  | {
+      readonly kind: 'call-scored'
+      readonly suggestionId: string
+      readonly instrument: InstrumentRef
+      readonly action: 'buy' | 'reduce'
+      readonly status: OutcomeStatus
+      readonly returnPct: number
+      readonly benchmark?: { readonly instrument: InstrumentRef; readonly returnPct: number }
+      readonly focusKey: string
+      readonly day: TradingDay
+    }
+  /** The newest headline archived for a held name since the last pass. */
+  | {
+      readonly kind: 'held-news'
+      readonly instrument: InstrumentRef
+      readonly title: string
+      readonly source: string
+    }
+  /** The region's index is falling in the session. `movePct` is a percent (-1.7 is down 1.7%);
+   *  `heldDown` counts the holdings whose own session move is negative, and `stopsBroken` those
+   *  whose price is at or under their plan's stop, and `stopsUnread` those with a stop that could not be
+   *  checked for want of a price. A fund's review level is in none of the counts. */
+  | {
+      readonly kind: 'index-drop'
+      readonly index: InstrumentRef
+      readonly movePct: number
+      readonly heldDown: number
+      readonly stopsBroken: number
+      readonly stopsUnread: number
+    }
   // Terminal, and named by what stopped: the operator re-enables it through that subject's tool.
   | { readonly kind: 'delivery-disabled'; readonly subject: NoticeKind }
   // The daemon was down through today's pre-open window, so today's was skipped; the next is still
@@ -71,6 +130,43 @@ export type TradingNoticePayload =
   // A background loop stopped on an error that is this code being wrong. `retryInMs` is absent once
   // the loop has used its restarts and stays stopped until the daemon restarts.
   | { readonly kind: 'loop-quarantined'; readonly operation: string; readonly retryInMs?: number }
+
+export type ExitFillPayload = Extract<TradingNoticePayload, { readonly kind: 'exit-filled' }>
+export type CallScoredPayload = Extract<TradingNoticePayload, { readonly kind: 'call-scored' }>
+export type HeldNewsPayload = Extract<TradingNoticePayload, { readonly kind: 'held-news' }>
+export type IndexDropPayload = Extract<TradingNoticePayload, { readonly kind: 'index-drop' }>
+
+/** One fill the book now holds, handed to whoever wants to show it. */
+export interface OrderFill {
+  readonly instrument: InstrumentRef
+  readonly venue: string
+  readonly side: 'buy' | 'sell'
+  readonly quantity: number
+  readonly unitPrice: number
+  readonly currency: CurrencyCode
+  readonly closeReason?: 'stop' | 'target'
+  readonly at: number
+}
+
+/** Called synchronously, and guarded by the caller: a listener that throws never fails the
+ *  booking. */
+export type OrderFilledListener = (fill: OrderFill) => void
+
+/** An alert that is about to be sent for the first time, with what made it fire. `event` is which
+ *  kind of alert it was: an exit's stop or target, a name the operator armed, a screener band. */
+export interface AlertFired {
+  readonly alertId: AlertId
+  readonly event: EventJobKind
+  readonly instrument: InstrumentRef
+  readonly condition: AlertCondition
+  readonly threshold: number
+  readonly observedPrice: number
+  readonly firedAt: number
+}
+
+/** Called synchronously, once per alert, and guarded by the caller: a listener that throws never
+ *  fails the delivery. */
+export type AlertFiredListener = (fired: AlertFired) => void
 
 export interface TradingNotice {
   readonly target: DeliveryAddress

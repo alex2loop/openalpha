@@ -17,6 +17,8 @@ import {
 } from '@/trading/render/money'
 import { renderMarketName } from '@/trading/render/tool-detail'
 
+const WHOLE_ENTRY = 'entry'
+
 interface EntryFieldOptions {
   readonly quoteConventions: ReadonlyMap<MarketRef, QuoteConvention>
   readonly audience: WriteAudience
@@ -178,4 +180,16 @@ type FieldName =
 
 function renderField(locale: Locale, name: FieldName, params: Record<string, string>): string {
   return `${INDENT[1]}${t(locale, `trading.render.ledger.field.${name}`, params)}`
+}
+
+/** A draft field's name as the operator reads it, for a message that points at the field. Keyed by
+ *  where the field sits in the draft (`quantity`, `instrument.ticker`; the entry as a whole when the
+ *  path is empty); a path the catalog does not know prints as written. */
+export function toFieldLabel(path: string): {
+  readonly key: string
+  readonly fallback: string
+} {
+  const name = path === '' ? WHOLE_ENTRY : path
+
+  return { key: `trading.render.ledger.label.${name}`, fallback: name }
 }

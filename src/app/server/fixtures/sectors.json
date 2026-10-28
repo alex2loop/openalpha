@@ -1,0 +1,25 @@
+{
+  "market": "equity-vn",
+  "asOf": "2026-10-23",
+  "sectors": [
+    {
+      "sector": "banks",
+      "label": "Ngân hàng",
+      "memberCount": 24,
+      "sessionReturn": 0.0123,
+      "excessReturnShort": 0.031,
+      "excessReturnLong": 0.054,
+      "score": 0.62
+    },
+    {
+      "sector": "oil-gas",
+      "label": "Dầu khí",
+      "memberCount": 9,
+      "sessionReturn": -0.0041,
+      "excessReturnShort": -0.012,
+      "excessReturnLong": 0.008,
+      "score": -0.18
+    }
+  ],
+  "caveats": []
+}

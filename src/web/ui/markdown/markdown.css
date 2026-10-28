@@ -1,0 +1,94 @@
+.md {
+  overflow-wrap: anywhere;
+}
+
+.md > * + * {
+  margin-top: 8px;
+}
+
+.md-p,
+.md-quote {
+  white-space: pre-wrap;
+}
+
+.md-heading {
+  margin-top: var(--s2);
+  color: var(--title);
+  font: var(--typeCardTitle);
+}
+
+.md-heading:focus {
+  outline: none;
+}
+
+.md-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.md-list .md-list {
+  margin-top: 2px;
+}
+
+.md-list li + li {
+  margin-top: 2px;
+}
+
+.md-quote {
+  margin-inline: 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--border);
+  color: var(--ink2);
+}
+
+.md-rule {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.md-code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--sunken);
+  font: var(--typeCode);
+}
+
+.md a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.md sup a {
+  text-decoration: none;
+  color: var(--ink2);
+}
+
+.md-table {
+  overflow-x: auto;
+}
+
+.md-table table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.md-table th,
+.md-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.md-table th {
+  color: var(--ink2);
+  font-weight: var(--weightSemibold);
+}
+
+.note-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: pre-line;
+}

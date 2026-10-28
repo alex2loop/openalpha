@@ -30,6 +30,7 @@ export function createBriefService(deps: BriefServiceDeps): BriefService {
   return {
     build: (options) => build(deps, options),
     getLatest: (options) => getLatest(deps, options),
+    hasOnDay: (day, signal) => deps.store.hasOnDay(day, signal),
     find: (signal) => deps.deliveries.find(signal),
     resolveRecipient: (origin) => deps.sender.resolveRecipient(origin),
     enable: (options) => enable(deps, options),
@@ -55,6 +56,7 @@ function build(deps: BriefServiceDeps, options: BuildBriefOptions): Promise<Brie
     ...(options.billingSessionId === undefined
       ? {}
       : { billingSessionId: options.billingSessionId }),
+    ...(options.parentRunId === undefined ? {} : { parentRunId: options.parentRunId }),
   })
 }
 

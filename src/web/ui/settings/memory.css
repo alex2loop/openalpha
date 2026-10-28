@@ -1,0 +1,33 @@
+.memory-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.memory-tools input {
+  flex: 1;
+  min-width: 0;
+}
+
+.memory-part {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.memory-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s1);
+  padding: 4px 0;
+}
+
+.memory-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

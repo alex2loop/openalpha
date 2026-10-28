@@ -1,8 +1,9 @@
-import type { SessionId } from '@/core/ids'
+import type { RunId, SessionId } from '@/core/ids'
 import type {
   CommandExchange,
   CommandRole,
   CommandSurface,
+  ScheduledRunner,
   SlashCommand,
   SlashContext,
   SlashInvocationPolicy,
@@ -39,6 +40,15 @@ export interface SlashDispatcher {
   dispatchResolved(resolved: ResolvedSlashCommand, ctx: SlashContext): Promise<SlashResult>
 
   dispatch(line: string, ctx: SlashContext): Promise<SlashResult | null>
+
+  /** Stops a long-running command by its run id; false when none is in flight under it. */
+  abortCommand(runId: RunId): boolean
+
+  /** Run ids of the long-running commands in flight. */
+  activeCommands(): readonly RunId[]
+
+  /** Shows work the daemon starts on its own as a long-running command run. */
+  readonly runScheduled: ScheduledRunner
 }
 
 export interface CommandCatalog {

@@ -1,11 +1,17 @@
-import type { SessionId } from '@/core/ids'
+import type { RunId, SessionId } from '@/core/ids'
 import type {
   CommandMessage,
   CommandMessageKey,
   SlashCommand,
   SlashResult,
 } from '@/core/types/command'
-import type { CostRange, DaySpend, LLMUsageTotals, SpendBreakdownRow } from '@/core/types/usage'
+import type {
+  CostRange,
+  DaySpend,
+  LLMUsageTotals,
+  RunCalls,
+  SpendBreakdownRow,
+} from '@/core/types/usage'
 import { formatUsd } from '@/core/utils/cost'
 
 const MESSAGE_KEYS: readonly CommandMessageKey[] = [
@@ -14,6 +20,18 @@ const MESSAGE_KEYS: readonly CommandMessageKey[] = [
   'slash.costLineUncapped',
   'slash.costSession',
 ]
+
+interface JobSpend {
+  readonly kind: 'command' | 'agent'
+  readonly name: string
+  readonly runs: number
+  readonly costUsd: number
+}
+
+export interface JobsSpend {
+  readonly jobs: readonly JobSpend[]
+  readonly otherUsd: number
+}
 
 /** The one spend source every surface reads, so the CLI and a channel answer with the same number. */
 export interface SpendReader {
@@ -27,8 +45,14 @@ export interface SpendReader {
   breakdownForPeriod(period: 'day' | 'month', nowMs: number): Promise<readonly SpendBreakdownRow[]>
   /** Where `forRange`'s total went, per agent and model, most expensive first. */
   breakdownForRange(range: CostRange): Promise<readonly SpendBreakdownRow[]>
+  /** Where `forRange`'s total went, per top-level run's job, costliest first; `otherUsd` is the
+   *  attempts whose top-level run has no run row, so the jobs and it add up to that total. */
+  jobsForRange(range: CostRange): Promise<JobsSpend>
   /** Everything one session has accumulated — what `/cost` reports and a run footer prints. */
   forSession(sessionId: SessionId): Promise<LLMUsageTotals>
+  /** One run's attempts and everything beneath it, newest first, at most `limit`, with the totals
+   *  of all of them: every billed call, a billed search and each retried attempt included. */
+  callsForRun(runId: RunId, limit: number): Promise<RunCalls>
 }
 
 export interface SpendCommandDeps {

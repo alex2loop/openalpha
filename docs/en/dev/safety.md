@@ -15,12 +15,14 @@ blocked call never reaches the executor.
   (`trading/features/order/execute.ts`).
 - **Danger.** A call is dangerous when the tool's `capability` is `write` or `shell`, when
   `isExternal` is set (MCP server, untrusted plugin), or when `requiresApproval(input, context)` says
-  so. `requiresApproval` receives normalised, schema-valid input, so a read-capable tool like
-  `schedule` or `memory_store` can gate only its mutations. Its `CallApprovalContext`
-  (`engine/hooks/approval-context.ts`) counts this tool's calls in the run and answers `hasSeen`
-  against the operator's own words (forwarded `<pasted_content>` removed) and non-error results of
-  `net` tools, never text the model wrote. `web_fetch` asks for a URL in neither, for extra headers,
-  and past `[loop] max_unasked_fetches`.
+  so.
+  - `requiresApproval` receives normalised, schema-valid input, so a read-capable tool like
+    `schedule` or `memory_store` can gate only its mutations.
+  - Its `CallApprovalContext`
+    (`engine/hooks/approval-context.ts`) counts this tool's calls in the run and answers `hasSeen`
+    against the operator's own words (forwarded `<pasted_content>` removed) and non-error results of
+    `net` tools, never text the model wrote.
+  - `web_fetch` asks for a URL in neither, for extra headers, and past `[loop] max_unasked_fetches`.
 - **Remember.** `oneTimeApproval: true` on a tool offers no remember arm. `order_place` sets it with
   `requiresApproval: () => true`.
 - **Decisions.** `decisionsFor(scope, oneTime)` is the one map from scope to offered choices.
@@ -93,14 +95,16 @@ raced or replayed - and the two map to different statuses at the wire boundary. 
 message without `--verbose`, because it carries the version the operator needs to retry.
 
 A setup failure the operator can fix throws `OperatorConfigError` with a keyed `errors.*` message.
-`toInvalidConfigError(err, schema, section?)` words a schema refusal with every issue as one list
-param (a bounded count, then "and K more"); an unknown key is one entry per key, offered the nearest
-name `schema` accepts there (`closestName`, `core/utils/text`, which allows a third of the word's
-length in edits, so a short word suggests nothing). An unclaimed top-level section is offered the
-nearest known section the same way.
-A bare `ConfigError` is internal: surfaces print a generic localised line and keep its English for
-`--verbose`. `ConfigError` has one code on purpose; read `path` to name the rejected field.
-`StorageError` also has one code and keeps the underlying cause.
+
+- `toInvalidConfigError(err, schema, section?)` words a schema refusal with every issue as one list
+  param (a bounded count, then "and K more").
+- An unknown key is one entry per key, offered the nearest name `schema` accepts there
+  (`closestName`, `core/utils/text`). It allows a third of the word's length in edits, so a short
+  word suggests nothing. An unclaimed top-level section is offered the nearest known section the
+  same way.
+- A bare `ConfigError` is internal: surfaces print a generic localised line and keep its English for
+  `--verbose`. `ConfigError` has one code on purpose; read `path` to name the rejected field.
+- `StorageError` also has one code and keeps the underlying cause.
 
 ### Order errors
 
@@ -138,17 +142,22 @@ Notes:
 ### Run halt codes
 
 `HALT_SPEC` maps each `HaltCode` to a CLI exit status, message key, optional hint key and emoji.
-`HALT_DETAIL_SPEC` words the halt details that need their own text: the ceiling behind a budget halt,
-and the provider codes that change the operator's next step (`auth`, `billing`, `not_found`, `rate`).
-`failureSpecOf(result)` picks the detail's text over the halt code's when the detail has one; the CLI
-words a bare `LLMError` the same way. The `auth`, `billing` and `not_found` codes read as a provider's verdict only when the
-provider sent it: `classifyHttpError` marks the error (`answeredByProvider`) and `haltDetailOf` drops
-the code from any other `LLMError` (a sign-in failure, an unknown provider), which keeps its own
-diagnostic or reads as the broad `llm_error`. A `budget` halt carries a `BudgetHaltDetail`
-(`run_budget`, `daily_cap`, `monthly_cap`, `agent_daily_cap`, `ledger_unavailable`); an `llm_error`
-halt carries the provider's `LLMErrorCode` where `haltDetailOf` allows it. `RUN_FAILURE_SPEC` maps the broader non-completed run
-reasons (`aborted`, `budget`, `turn_limit`, `loop`, `timeout`, `error`) onto the same entries where
-semantics match; a typed halt code is preferred.
+
+- `HALT_DETAIL_SPEC` words the halt details that need their own text: the ceiling behind a budget
+  halt, and the provider codes that change the operator's next step (`auth`, `billing`, `not_found`,
+  `rate`).
+- `failureSpecOf(result)` picks the detail's text over the halt code's when the detail has one; the
+  CLI words a bare `LLMError` the same way.
+- The `auth`, `billing` and `not_found` codes read as a provider's verdict only when the provider sent
+  it. `classifyHttpError` marks the error (`answeredByProvider`), and `haltDetailOf` drops the code
+  from any other `LLMError` (a sign-in failure, an unknown provider). That error keeps its own
+  diagnostic or reads as the broad `llm_error`.
+- A `budget` halt carries a `BudgetHaltDetail` (`run_budget`, `daily_cap`, `monthly_cap`,
+  `agent_daily_cap`, `ledger_unavailable`); an `llm_error` halt carries the provider's `LLMErrorCode`
+  where `haltDetailOf` allows it.
+- `RUN_FAILURE_SPEC` maps the broader non-completed run reasons (`aborted`, `budget`, `turn_limit`,
+  `loop`, `timeout`, `error`) onto the same entries where semantics match; a typed halt code is
+  preferred.
 
 | Code | Exit | Meaning |
 |---|---:|---|

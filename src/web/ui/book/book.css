@@ -1,0 +1,217 @@
+/* Name and move on the first line, the facts on one muted line under them. */
+.row.holding-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 2px;
+}
+
+.holding-facts {
+  grid-column: 1 / -1;
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-button.is-small {
+  width: 22px;
+  height: 22px;
+}
+
+.icon-button.is-small svg {
+  width: 13px;
+  height: 13px;
+}
+
+.alert-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.alert-fired {
+  color: var(--caution);
+  font-weight: var(--weightSemibold);
+}
+
+.add-name {
+  display: flex;
+  gap: 6px;
+  margin-top: var(--s1);
+}
+
+.add-name input {
+  flex: 1;
+  min-width: 0;
+}
+
+.segment-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.segment-bar-head {
+  display: flex;
+  gap: 10px;
+  font-size: var(--sizeBody);
+  font-variant-numeric: tabular-nums;
+}
+
+.segment-bar-head b {
+  flex: 1;
+  font-weight: var(--weightMedium);
+}
+
+.segment-bar-gap {
+  color: var(--ink2);
+}
+
+.segment-bar .meta {
+  margin-top: 4px;
+}
+
+.segment-bar-track {
+  position: relative;
+  height: 8px;
+  margin-top: 4px;
+  border-radius: 4px;
+  background: var(--sunken);
+}
+
+.segment-bar-track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+  background: var(--c);
+}
+
+.segment-bar-track b {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 14px;
+  background: var(--ink);
+}
+
+.steps-line {
+  white-space: pre-line;
+}
+
+.steps-list {
+  margin: 0;
+  padding-left: 18px;
+  white-space: pre-line;
+}
+
+.steps-list li {
+  padding: var(--s0) 0;
+}
+
+.ledger {
+  margin-top: var(--s1);
+}
+
+.ledger-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1.2fr) 58px minmax(0, 1fr) minmax(0, 1.4fr) 36px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--sizeBody);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-row:first-child {
+  border-top: 0;
+}
+
+.ledger-row.is-flash {
+  animation: ledger-flash 1.4s ease-out;
+}
+
+.ledger-edit {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+  text-align: right;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ledger-edit:hover {
+  color: var(--ink);
+}
+
+@keyframes ledger-flash {
+  from {
+    background: var(--cautionBg);
+  }
+}
+
+.ledger-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ledger-cell.is-end {
+  text-align: right;
+}
+
+.nav-chart {
+  display: block;
+  width: 100%;
+  margin-top: var(--s1);
+}
+
+.nav-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+
+.nav-line.is-target {
+  stroke: var(--ink3);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 3;
+}
+
+.nav-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 4px;
+  color: var(--ink3);
+  font-size: var(--sizeCaption);
+}
+
+.nav-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  margin-right: 5px;
+  border-top: 2px solid var(--ink);
+  vertical-align: 3px;
+}
+
+.nav-legend i.is-target {
+  border-top: 2px dashed var(--ink3);
+}
+
+.daemon-text {
+  white-space: pre-line;
+}
+
+/* Over target reads in Caution, bar and gap alike. */
+.segment-bar.is-over .segment-bar-gap {
+  color: var(--caution);
+  font-weight: var(--weightSemibold);
+}

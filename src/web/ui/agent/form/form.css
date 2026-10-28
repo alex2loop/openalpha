@@ -1,0 +1,119 @@
+.agent-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.form-label {
+  color: var(--ink);
+  font: var(--typeHeading);
+}
+
+.form-id {
+  font-size: var(--sizeBody);
+}
+
+.form-number {
+  max-width: 140px;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.form-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+}
+
+.form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font: var(--typeBody);
+}
+
+.form-pill {
+  height: var(--controlSmH);
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+  cursor: pointer;
+}
+
+.form-pill:hover {
+  border-color: var(--ink3);
+  color: var(--ink);
+}
+
+.form-pill.is-on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.look-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--s2);
+}
+
+.look-picker .portrait {
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--sunken);
+}
+
+.look-rows {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--s1);
+  min-width: 0;
+}
+
+.look-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.look-row-label {
+  padding: 0;
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+}
+
+.look-swatch {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.look-swatch.is-on {
+  border-color: var(--ink);
+}

@@ -1,0 +1,430 @@
+import { effect, untracked } from '@preact/signals'
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
+
+import type { ActorState, Director } from '@/web/scene/sim/director'
+import type { RoomId, SimView } from '@/web/scene/types'
+import { clockMode, pageMinute, setSceneZone } from '@/web/scene/clock/clock'
+import { agenda, startAgenda } from '@/web/scene/data/agenda'
+import { alertStrip } from '@/web/scene/data/alert-strip'
+import { heldNewsPins, indexDrop, startBoard } from '@/web/scene/data/board'
+import { exDividends, startExDividends } from '@/web/scene/data/ex-dividends'
+import { homeMarket, regionPack, startHome } from '@/web/scene/data/home'
+import { ledItems, startLed } from '@/web/scene/data/led'
+import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
+import { sourceLights, startSourceLights } from '@/web/scene/data/source-lights'
+import { coolerOffer, startTeamCalls } from '@/web/scene/data/team-calls'
+import { todayRuns } from '@/web/scene/data/today-runs'
+import { startWeather, weather } from '@/web/scene/data/weather'
+import { AddDesk } from '@/web/scene/overlay/add-desk'
+import { AgentCards } from '@/web/scene/overlay/agent-card'
+import { BoardButtons } from '@/web/scene/overlay/board-buttons'
+import { EmptyTeam } from '@/web/scene/overlay/empty-team'
+import { sceneHandOff } from '@/web/scene/overlay/hand-off'
+import { withLiveScreens } from '@/web/scene/overlay/live-screens'
+import { ObjectTip } from '@/web/scene/overlay/object-tip'
+import { SceneOverlay } from '@/web/scene/overlay/overlay'
+import { type OverlayPass, readOverlayInputs, startOverlay } from '@/web/scene/overlay/overlay-pass'
+import { watchPane } from '@/web/scene/overlay/pane-watch'
+import { PerfReadout } from '@/web/scene/overlay/perf-readout'
+import { RadialMenu } from '@/web/scene/overlay/radial-menu'
+import { RoomTags } from '@/web/scene/overlay/room-tags'
+import {
+  type InputSlot,
+  type Renderers,
+  SCENE_KEYS_ID,
+  SCENE_LABEL_ID,
+  startViews,
+} from '@/web/scene/overlay/scene-views'
+import { keepStill } from '@/web/scene/overlay/still'
+import { Toolbar } from '@/web/scene/overlay/toolbar'
+import { syncTwin } from '@/web/scene/overlay/twin'
+import { ViewNote } from '@/web/scene/overlay/view-note'
+import { nextAmbientFxAt } from '@/web/scene/render2d/ambient-fx'
+import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
+import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
+import { isOnFloor } from '@/web/scene/sim/actors/poses'
+import { isChildActorId } from '@/web/scene/sim/actors/roster'
+import { AMBIENT_KEY, ambientWindows } from '@/web/scene/sim/ambient-windows'
+import { isLampNight, isRoomLit, noteLitRooms } from '@/web/scene/sim/lamps'
+import { napGlowOf } from '@/web/scene/sim/life/presence'
+import { createSimLoop } from '@/web/scene/sim/loop'
+import { homePhase, isOfficeClosed, moment } from '@/web/scene/sim/rhythm'
+import { createSims, disposeSims, type Sims } from '@/web/scene/sims'
+import { withinBuildSlice } from '@/web/scene/sprites/sprite-cache'
+import { tapeBoard } from '@/web/scene/sprites/tape-face'
+import {
+  bringIntoView,
+  canFollow,
+  readLastInteractionAt,
+  view,
+  visibleRect,
+  zoomToRoom,
+} from '@/web/scene/view'
+import { ROOMS, roomById } from '@/web/scene/world/rooms'
+import { agents } from '@/web/state/agents'
+import { breakpoint } from '@/web/state/breakpoints'
+import { onWireEvent } from '@/web/state/events'
+import { selectActor, selectedActor, takeFocusRequest } from '@/web/state/focus'
+import { unseenCalls } from '@/web/state/ideas'
+import { findRun, pending, runs } from '@/web/state/live'
+import { hasUnreadAlert, unread } from '@/web/state/notices'
+import {
+  colorScheme,
+  colourPair,
+  lampsOff,
+  lightByHour,
+  nightLamps,
+  reducedMotion,
+} from '@/web/state/prefs'
+import { locale, state } from '@/web/state/session'
+import { tr } from '@/web/text/tr'
+
+import './canvas.css'
+
+/** The office scene: the mounted renderer driven by the sim loop, sized to its pane, with its
+ *  overlays on top. */
+export function SceneCanvas() {
+  const host = useRef<HTMLDivElement>(null)
+  const [renderers] = useState(createRenderers)
+  const renderer = renderers.host
+
+  useLayoutEffect(() => {
+    const element = host.current
+
+    return element === null ? undefined : mountScene(element, renderers)
+  }, [renderers])
+
+  useEffect(() => effect(syncSceneZone), [])
+
+  return (
+    <div class="scene">
+      <p id={SCENE_LABEL_ID} class="sr">
+        {tr('ui.office.a11y.scene')}
+      </p>
+      <p id={SCENE_KEYS_ID} class="sr">
+        {tr('ui.office.a11y.canvasKeys')}
+      </p>
+      <div ref={host} class="scene-host" />
+      <RoomTags renderer={renderer} />
+      <BoardButtons renderer={renderer} />
+      <SceneOverlay />
+      <AgentCards />
+      <AddDesk />
+      <EmptyTeam />
+      <ObjectTip />
+      <RadialMenu />
+      <Toolbar />
+      <PerfReadout renderer={renderer} />
+      <ViewNote />
+    </div>
+  )
+}
+
+function createRenderers(): Renderers {
+  const flat = createRenderer2d()
+
+  return { flat, host: createRendererHost(flat) }
+}
+
+// Everything it arms, the returned stop releases: data reads, the director, the street and its
+// painter, the overlay, loop, input, observer, listeners and the renderer.
+function mountScene(element: HTMLElement, renderers: Renderers): () => void {
+  const renderer = renderers.host
+  const stops = startReads()
+  const sims = createSims()
+
+  renderer.mount(element)
+
+  const overlay = startOverlay({ renderer, scene: element.parentElement ?? element })
+  const input: InputSlot = { current: undefined }
+  const { loop, readView } = createSceneLoop({ ...sims, renderer, overlay, input })
+  const offs = [
+    startLed(),
+    startViews({
+      renderers,
+      element,
+      input,
+      pointer: { renderer, readView, director: sims.director, wake: loop.wake },
+      load3d: loadRenderer3d,
+    }),
+    watchPane(element, loop),
+    effect(() => {
+      readSceneInputs()
+      untracked(loop.wake)
+    }),
+    effect(() => answerFocusRequest(sims.director)),
+    onWireEvent('any', loop.wake),
+    sims.street.watchArrivals(loop),
+    onWireEvent('run_started', (event) => followRun(sims.director, event.runId)),
+  ]
+
+  loop.start()
+
+  return () => {
+    runEach(offs)
+    loop.stop()
+    keepLastFrame(element, () => renderer.draw(readView(), performance.now()))
+    overlay.stop()
+    disposeSims(sims)
+    selectActor(undefined)
+    renderer.unmount()
+    runEach(stops)
+  }
+}
+
+function runEach(steps: readonly (() => void)[]): void {
+  for (const step of steps) {
+    step()
+  }
+}
+
+// A WebGL canvas keeps its pixels only until the frame is shown, so the last view is drawn once more
+// and copied in the same task.
+function keepLastFrame(element: HTMLElement, draw: () => void): void {
+  const canvas = element.querySelector('canvas')
+
+  if (canvas !== null) {
+    draw()
+    keepStill(canvas)
+  }
+}
+
+// The scene's own data reads, each returning its stop.
+function startReads(): (() => void)[] {
+  return [
+    startHome(),
+    startBoard(),
+    startRoomStatus(),
+    startAgenda(),
+    startTeamCalls(),
+    startWeather(),
+    startExDividends(),
+    startSourceLights(),
+  ]
+}
+
+interface LoopParts extends Sims {
+  readonly renderer: SceneRenderer
+  readonly overlay: OverlayPass
+  readonly input: InputSlot
+}
+
+// The sim loop over the director; each drawn frame lays the overlay out after it, and the
+// snapshot it drew is what the hit test reads.
+function createSceneLoop(parts: LoopParts): {
+  readonly loop: ReturnType<typeof createSimLoop>
+  readonly readView: () => SimView
+} {
+  const { lift, director, life, team, street, renderer, overlay, input } = parts
+  let drawn = buildSimView(parts, 0)
+  const loop = createSimLoop({
+    step: (index) => {
+      const nowMs = performance.now()
+      // Life first, so a goal it sets walks in this step rather than waiting for the next wake.
+      const isLiving = life.step(index)
+      const isLifted = lift.step(nowMs)
+      const directed = director.step(index)
+      const isTeamed = team.step(nowMs)
+      const isStreetMoving = street.step(nowMs)
+      const isInputMoving = input.current?.step(nowMs) ?? false
+
+      const isSeen = isInputMoving || isTeamed || isLiving || isLifted || isStreetMoving
+
+      return isSeen ? 'seen' : directed
+    },
+    draw: withinBuildSlice((alpha: number, now: number) => {
+      drawn = buildSimView(parts, alpha)
+      dropGoneSelection(drawn)
+      input.current?.frame(drawn)
+
+      const isAnimating = renderer.draw(drawn, now)
+
+      overlay.frame(drawn, now)
+      syncTwin(drawn, sceneHandOff.value.marks)
+
+      // The street was painted for the camera before this draw placed it: once more if it moved.
+      return isAnimating || parts.sky.isEasing(now) || !parts.painter.isCurrent(visibleRect())
+    }),
+    resume: () => {
+      director.resume()
+      life.resume()
+      team.resume()
+      street.resume()
+    },
+    nextDueAt: () => nextDueOf(parts, drawn),
+  })
+
+  return { loop, readView: () => drawn }
+}
+
+// The soonest of every sim's next deadline, the overlay's, the input's and the people's ambient
+// motion on the floor shown.
+function nextDueOf(parts: LoopParts, drawn: SimView): number {
+  const floor = view.value.floor
+  const nowMs = performance.now()
+  const hasPeople = drawn.actors.some((actor) => isOnFloor(actor, floor))
+
+  return Math.min(
+    parts.director.nextDueAt(),
+    parts.lift.nextDueAt(),
+    parts.life.nextDueAt(),
+    parts.team.nextDueAt(nowMs),
+    parts.street.nextDueAt(),
+    parts.overlay.nextDueAt(),
+    parts.input.current?.nextDueAt() ?? Infinity,
+    hasPeople ? ambientWindows.nextAt(AMBIENT_KEY.people, nowMs) : Infinity,
+    nextAmbientFxAt(drawn, nowMs)
+  )
+}
+
+function buildSimView(parts: Sims, alpha: number): SimView {
+  const life = parts.life.view()
+  const lit = new Set<RoomId>(
+    ROOMS.filter((room) => isRoomLit(room.id, life.occupied)).map((room) => room.id)
+  )
+
+  noteLitRooms(lit)
+  const office = parts.director.view()
+  const statuses = parts.life.statuses(office.actors)
+  const actors = office.actors.map((actor) => {
+    const status = statuses.get(actor.id)
+
+    return status === undefined ? actor : { ...actor, status }
+  })
+
+  return {
+    floor: view.value.floor,
+    alpha,
+    ...office,
+    actors: [...actors, ...parts.team.actors()],
+    light: parts.sky.view(performance.now(), reducedMotion.value),
+    windowLight: parts.sky.windowLight(parts.street.view().weather),
+    props: { lit, lampGlow: parts.sky.glow(napGlowOf()), isClosed: isOfficeClosed.value },
+    weather: parts.street.view().weather,
+    life,
+    team: parts.team.view(performance.now()),
+    street: parts.painter.paint(parts.street.view(), visibleRect(), pageMinute.value),
+    lift: parts.lift.view(),
+    ...withLiveScreens(sceneHandOff.value, life.deskItems),
+  }
+}
+
+// A child who left the floor, or someone gone home, is no longer anyone to look at.
+function dropGoneSelection(sim: SimView): void {
+  const selected = selectedActor.peek()
+
+  if (selected === undefined) {
+    return
+  }
+
+  const held = sim.actors.find((actor) => actor.id === selected)
+  const isGone = held === undefined ? isChildActorId(selected) : held.isAway === true
+
+  if (isGone) {
+    selectActor(undefined)
+  }
+}
+
+// What the picture shows besides the sim, and what retargets it (the live store, the clock's
+// mode, reduced motion): a change to any of these draws a frame and steps the sim.
+function readSceneInputs(): void {
+  runs.value
+  pending.value
+  clockMode.value
+  reducedMotion.value
+  selectedActor.value
+  view.value
+  lampsOff.value
+  nightLamps.value
+  isLampNight.value
+  lightByHour.value
+  pageMinute.value
+  colorScheme.value
+  colourPair.value
+  breakpoint.value
+  agenda.value
+  roomStatus.value
+  unseenCalls.value
+  heldNewsPins.value
+  indexDrop.value
+  unread.value
+  hasUnreadAlert.value
+  homePhase.value
+  isOfficeClosed.value
+  moment.value
+  exDividends.value
+  agents.value
+  coolerOffer.value
+  todayRuns.value
+  ledItems.value
+  tapeBoard.value
+  alertStrip.value
+  sourceLights.value
+  weather.value
+  regionPack.value
+  locale.value
+  readOverlayInputs()
+}
+
+async function loadRenderer3d(): Promise<() => SceneRenderer> {
+  return (await import('./render3d/renderer-3d')).createRenderer3d
+}
+
+// The home market's session zone, else the operator's `[locale] timezone`.
+function syncSceneZone(): void {
+  const timeZone = homeMarket.value?.session?.timeZone ?? state.value?.timeZone
+
+  if (timeZone !== undefined) {
+    untracked(() => setSceneZone(timeZone))
+  }
+}
+
+// "Xem" on a run: its actor is selected and its room comes into view, on its floor (zoomed into on
+// a narrow screen, where the office pane was just brought forward); a run with no room moves nothing.
+function answerFocusRequest(director: Director): void {
+  const request = takeFocusRequest()
+
+  if (request === undefined) {
+    return
+  }
+
+  untracked(() => {
+    const actor = actorOfRun(director, request.runId)
+    const run = findRun(request.runId)
+    const roomId = actor?.def.room ?? (run === undefined ? undefined : roomOfRun(run))
+
+    selectActor(actor?.def.id)
+    showRoom(roomId, { isClose: breakpoint.value !== 'wide' })
+  })
+}
+
+// A new run the office can place: the camera goes to its room, unless the operator moved the
+// camera in the last few seconds or it follows someone.
+function followRun(director: Director, runId: string | undefined): void {
+  const actor = runId === undefined ? undefined : actorOfRun(director, runId)
+  const isFree =
+    view.value.follow === undefined && canFollow(readLastInteractionAt(), performance.now())
+
+  if (actor !== undefined && isFree) {
+    showRoom(actor.def.room)
+  }
+}
+
+function actorOfRun(director: Director, runId: string): ActorState | undefined {
+  return [...director.actors().values()].find((actor) => actor.goal?.runId === runId)
+}
+
+function showRoom(roomId: RoomId | undefined, opts: { readonly isClose?: boolean } = {}): void {
+  const room = roomId === undefined ? undefined : roomById(roomId)
+
+  if (room === undefined) {
+    return
+  }
+
+  if (opts.isClose === true) {
+    zoomToRoom(room.id, room.rect, room.floor)
+    return
+  }
+
+  bringIntoView({ floor: room.floor, rect: room.rect, room: { id: room.id, rect: room.rect } })
+}

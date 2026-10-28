@@ -127,7 +127,7 @@ tắc bất biến nêu tên **điểm nối**, không nêu tên sàn.
 - Mọi lần khớp đều được ghi vào sổ qua đúng đường `portfolio.record` mà `/record` thủ công dùng.
 - Một lệnh vào đã được duyệt có thể để lại lệnh chốt lời/cắt lỗ đang treo ở sàn, và lệnh này có thể khớp
   **sau khi** phiên chạy đã kết thúc. Không đoạn mã nào chọn mức giá hay thời điểm của nó, và một vòng lặp
-  daemon có giới hạn sẽ đối chiếu lần khớp đó vào sổ.
+  dịch vụ nền (daemon) có giới hạn sẽ đối chiếu lần khớp đó vào sổ.
 - Khi chưa có khóa sàn, sàn vẫn được đăng ký như một nơi giữ tài sản mà operator ghi sổ vào, nhưng không
   có client. `order_place` không được đăng ký và `/trade` chỉ nêu tên các khóa cần đặt.
 - Binance không dời được lệnh thoát đang treo. Nó khai `amend: false` chứ không mô phỏng việc dời bằng
@@ -190,10 +190,52 @@ Cổng này kiểm tra các cạnh module được phép, các import API công 
 Chỉ gồm hành vi **đã làm xong và dùng được**; mục tiêu thiết kế không được tính là tính năng. Nơi nào trang
 khác sở hữu chi tiết, mục này dẫn sang đó.
 
-**Chat và phiên chat.** `chat` chạy một tin nhắn truyền luồng hoặc một REPL tương tác. Phiên chat được lưu,
+**Chat và cuộc trò chuyện.** `chat` chạy một tin nhắn truyền luồng hoặc một REPL tương tác. Cuộc trò chuyện được lưu,
 xử lý tuần tự từng việc, giữ ngữ cảnh có giới hạn và được nén, và các tin nhắn công cụ cũ được sửa trước
 lần gọi mô hình kế tiếp. Engine kiểm tra trích nguồn, rút ra các sở thích lâu dài mà người dùng nói rõ,
 truyền tín hiệu hủy, và báo lý do kết thúc có kiểu. Cấu hình và các sổ đăng ký đóng băng lúc khởi động.
+
+**Luồng trực tiếp và làn câu lệnh.** Engine và bộ điều phối câu lệnh đưa vòng đời của phiên chạy lên bus
+(`run_started`, `run_progress`, `run_thinking`, `run_finished`, và `command_started`, `command_progress`,
+`command_finished` cho câu lệnh gạch chéo chạy lâu); app thêm `order_filled`, `alerts_checked`, `role_output` (lời của từng vai trong cuộc tranh biện, qua một
+điểm nối của trading do `app` gắn vào) và `agent_added`, engine thêm `budget_exhausted`, `tool_started` và
+`tool_finished` (mỗi lời gọi có công cụ đã đăng ký báo kết thúc đúng một lần, và báo bắt đầu nếu nó tới được
+công cụ).
+
+Ba loại thông báo (`call-scored`, `held-news`, `index-drop`) chỉ vào chuông: bộ gửi thông báo đưa
+chúng qua `DeliveryHub.post`, chỉ báo cho các bên nghe và không gửi tới chat nào, trừ khi `[notices] chat` liệt
+kê loại đó (kiểm tra theo đúng tập này lúc khởi động). Một lệnh gọi theo trọng tâm được chấm điểm không phải thông
+báo: bộ chấm điểm trao nó cho điểm nối `onFocusCallScored` cùng các agent mà `agent_focuses` ghi đã gọi theo trọng
+tâm đó, `app` phát `focus_call_scored` lên bus, và luồng trực tiếp gửi tới các socket một `call_scored` mức `quiet`
+cho mỗi agent, nên chuông và chat không bao giờ thấy nó.
+
+Bộ theo dõi ý tưởng ([app/server/push/ideas.ts](../../src/app/server/push/ideas.ts))
+mỗi phút đọc các lệnh gọi đang mở mới nhất của trọng tâm của chính bạn và của từng `[focus]` mà các agent của bạn
+đang dùng, rồi gửi mỗi lệnh mua hay giảm bớt mới thành `idea`: từ app với lệnh gọi của chính bạn, mức `quiet` và
+một lần cho mỗi agent với một trọng tâm (trọng tâm chưa agent nào gọi theo thì chưa có gì để liệt kê). Việc theo dõi mã đang giữ chạy trong vòng lặp cảnh báo;
+mốc đọc tin bắt đầu từ lúc khởi động và các tập chống gửi lặp được xóa khi sang ngày.
+
+[app/server/feed/](../../src/app/server/feed/) gộp chúng thành sổ các phiên chạy phía sau
+`GET /v1/live` và phát từng sự kiện tới các socket đang mở; `approval_requested` và `clarification_requested`
+mang id và `askedAt` để danh sách đang chờ giữ được chúng. Hình dạng trên dây:
+[CONTRACT.md](../../src/app/server/CONTRACT.md).
+
+Các câu lệnh tự chạy được đi qua một làn riêng cho từng cuộc chat
+([core/command-lane.ts](../../src/core/command-lane.ts)), ba câu chạy và mười câu chờ mỗi cuộc chat, dùng chung cho
+mọi bề mặt tới được cuộc chat đó; `/new`, `/stop` và khung `cancel` của socket bỏ những câu đang chờ và dừng những câu đang chạy, còn `drop`
+bỏ đúng một câu đang chờ.
+
+`POST /v1/runs/:runId/stop` dừng một phiên chạy từ bất kỳ kênh nào: gọi `RunRegistry.abortRun` (phiên chạy của agent) rồi `SlashDispatcher.abortCommand` (câu lệnh chạy lâu), và chỉ hủy, nên phiên chạy tự kết thúc theo đường của nó và hiện là `run_finished`; id không biết hoặc đã xong thì `not_found`.
+
+`GET /v1/runs/:runId/calls` ([routes/runs.ts](../../src/app/server/routes/runs.ts)) liệt kê các lệnh gọi mô hình đã tính phí của một phiên chạy và mọi phiên chạy bên dưới nó, mới nhất trước, qua `SpendReader.callsForRun` trên `LLMAttemptStore.attemptsForRun`; cây phiên chạy là đoạn `runTreeCtes` ([persistence/stores/run-tree-sql.ts](../../src/persistence/stores/run-tree-sql.ts)) mà `/v1/activity` dùng để tính tiền một phiên chạy, nên hai bên khớp tổng.
+
+- Route trả tối đa `RUN_CALLS_MAX` dòng, còn `totalCalls` và `totalUsd` tính cả cây kể cả khi `truncated` là true, nên dòng đầu của trang đọc hai số này chứ không cộng các dòng.
+- Mỗi dòng chỉ là siêu dữ liệu (không có câu hỏi hay câu trả lời) và chỉ dành cho người vận hành: không gì ở đây tới được đầu vào của mô hình.
+- Id sai dạng là `invalid_body`; phiên chạy không biết hoặc chưa tính phí là danh sách rỗng.
+- Khối `RunCalls` của trang ([web/ui/run/calls/](../../src/web/ui/run/calls/)) đọc route này khi mở, giữ các phiên chạy đã xong trong một bộ nhớ đệm có trần (`RUN_CALLS_CACHE_MAX`), và đọc lại phiên chạy đang chạy khi nó `run_finished`, không bao giờ theo đồng hồ.
+
+Mỗi định danh và độ sâu chỉ chạy một `/suggest`: lượt thứ hai tìm lượt đang chạy trong bảng các
+lượt của dịch vụ đề xuất rồi chờ nó, và chỉ lượt khởi đầu bị tính phí.
 
 **Agent và đội.** Các agent có sẵn: `chat`, `deep-researcher` cùng các worker nội bộ của nó
 (`research-crawler`, `research-planner`, `research-reviewer`, `research-synthesizer`), và `reviewer`. Phần
@@ -204,7 +246,7 @@ chọn, cùng `theme-analyst` do `/themes` chạy. Agent của người dùng v�
 
 Một [đội](../tro-ly.md#đội-và-ủy-quyền) được suy ra từ cấu hình: một agent điều phối có danh sách
 `delegates` và dùng `delegate` hoặc `delegate_parallel`. Không có thực thể Đội nào được lưu. Phiên chạy
-con thừa hưởng tín hiệu hủy và ngân sách của phiên chạy cha, có một phiên chat tạm thời riêng, và ghi các
+con thừa hưởng tín hiệu hủy và ngân sách của phiên chạy cha, có một cuộc trò chuyện tạm thời riêng, và ghi các
 lần gọi tính tiền kèm `parentRunId`. Phiên chạy con có tuyến có thể xin đúng một lần phê duyệt công cụ nguy
 hiểm qua chat của phiên chạy cha; phiên chạy con không có tuyến vẫn không thể phê duyệt. Phiên chạy con
 không bao giờ thừa hưởng bypass hay phê duyệt đã ghi nhớ của phiên chạy cha. Danh sách của phiên chạy cha
@@ -264,10 +306,10 @@ khi hết giờ hoặc bị hủy. Tải web có biện pháp chống SSRF.
 
 **Bộ nhớ.** Dữ liệu khóa-giá trị theo phạm vi agent và người dùng, hỗ trợ gọi lại chính xác, liệt kê theo
 tiền tố, tìm toàn văn, xóa mềm và TTL. Giá trị trông như bí mật hoặc như prompt injection bị từ chối trước
-khi lưu. Các phiên chạy con tách khóa riêng qua vùng tên của phiên chat tạm thời. Engine còn rút ra các
+khi lưu. Các phiên chạy con tách khóa riêng qua vùng tên của cuộc trò chuyện tạm thời. Engine còn rút ra các
 sở thích mà người dùng nói rõ từ những cuộc hội thoại đã xong, và lưu chúng qua đúng đường có kiểm soát đó.
 Một sở thích đã lưu không bao giờ bị ghi đè khi trích xuất: thay đổi được hỏi lại người dùng một lần, ở đầu
-câu trả lời kế tiếp, và chỉ được lưu khi tin nhắn sau đó của họ đồng ý. Lượt chạy theo lịch hoặc chạy qua
+câu trả lời kế tiếp, và chỉ được lưu khi tin nhắn sau đó của họ đồng ý. Phiên chạy theo lịch hoặc chạy qua
 pipe không có ai để hỏi, nên không bao giờ đề xuất thay đổi.
 
 **Kỹ năng.** Các thư mục chứa `SKILL.md`, cộng với các kỹ năng giao dịch được nhúng vào binary. Mô hình nhận
@@ -304,7 +346,7 @@ một phiên chạy bắt đầu. Hộp thư đến và offset polling được 
 | Trạng thái và chi phí | `/health`, `/cost`, `/config` |
 | Bộ nhớ | `/memory` |
 | Lập lịch | `/schedule [show\|pause\|resume\|run\|remove] <id>` |
-| Phiên chat | `/new`, `/continue` |
+| Cuộc trò chuyện | `/new`, `/continue` |
 
 Phần giao dịch thêm các lệnh riêng, cộng `/trade` khi một sàn có khóa giao dịch (chính khóa đó cũng mở
 nhánh `sync <venue>` của `/record`). Phần mạng xã hội thêm `/social`. `/stop` cùng các lệnh ghép nối thuộc
@@ -324,12 +366,12 @@ hình.
 migration được sinh tự động, truy vấn do kho sở hữu, và tìm toàn văn theo từng dialect. `db` báo trạng thái
 migration, tính toàn vẹn và thống kê, áp migration, dọn theo chính sách lưu giữ và reset dữ liệu. SQLite
 còn có sao lưu và khôi phục có kiểm chứng; PostgreSQL không có sao lưu, khôi phục hay kiểm tra toàn vẹn
-sâu dành riêng cho SQLite. Chính sách lưu giữ phủ các phiên chat cũ, các tuyến, bộ nhớ, các phiên chạy của
+sâu dành riêng cho SQLite. Chính sách lưu giữ phủ các cuộc trò chuyện cũ, các tuyến, bộ nhớ, các phiên chạy của
 bộ lập lịch, các mục trong hộp thư đến của kênh và các ghép nối. `workspace cleanup` thu hồi dữ liệu trong
 thư mục làm việc của agent và đòi xác nhận rõ ràng.
 
 **An toàn và phê duyệt.** Công cụ nguy hiểm dùng duyệt thủ công, bypass chọn rõ ràng, hoặc không khả dụng.
-Quyết định đã ghi nhớ chỉ áp dụng trong phiên chat. Một phiên chạy con có tuyến (REPL tương tác,
+Quyết định đã ghi nhớ chỉ áp dụng trong cuộc trò chuyện. Một phiên chạy con có tuyến (REPL tương tác,
 `chat --message` tương tác, phiên chạy từ kênh, việc theo lịch có đích, workflow được gọi từ kênh) có thể
 xin đúng một lần phê duyệt công cụ nguy hiểm qua chat của phiên chạy cha. Phiên chạy con không có tuyến
 (CLI một phát không tương tác, bộ lập lịch không có đích, heartbeat, workflow chạy theo lịch hay từ CLI,
@@ -344,9 +386,9 @@ từng agent nằm riêng khỏi dữ liệu nháp trong thư mục làm việc,
 `logs clear` xóa chúng theo tuổi hoặc theo phạm vi.
 
 **Chẩn đoán và vòng đời.** `doctor` kiểm tra cấu hình, mô hình, thư mục dữ liệu, log, cơ sở dữ liệu,
-daemon, kênh, khâu gửi tin, nguồn dữ liệu, sàn, tìm kiếm web và các nhà cung cấp; các bước kiểm tra online
-tùy chọn của nó thăm dò các tích hợp từ xa mà không đổi trạng thái cục bộ. `status` tóm tắt daemon, kênh,
-phiên chat và chi tiêu. Daemon giữ một tệp PID, phục hồi các phiên chạy dở dang lúc khởi động, và tắt theo
+dịch vụ nền, kênh, khâu gửi tin, nguồn dữ liệu, sàn, tìm kiếm web và các nhà cung cấp; các bước kiểm tra online
+tùy chọn của nó thăm dò các tích hợp từ xa mà không đổi trạng thái cục bộ. `status` tóm tắt dịch vụ nền, kênh,
+cuộc trò chuyện và chi tiêu. Dịch vụ nền giữ một tệp PID, phục hồi các phiên chạy dở dang lúc khởi động, và tắt theo
 thứ tự: ngừng nhận việc mới, chờ việc đang chạy xong, rồi đóng các dịch vụ. Lệnh hủy từ CLI lan vào các
 phiên chạy đang hoạt động và thoát sạch. Các lệnh CLI tầng cao là `BUILT_IN_COMMANDS` trong
 [src/cli/registry.ts](../../src/cli/registry.ts); phần giao dịch không đóng góp lệnh CLI nào. Về bề mặt lập
@@ -362,20 +404,166 @@ bản bootstrap (`--data-dir`, biến thư mục dữ liệu, mặc định) nê
 **Khóa không bao giờ chặn lúc khởi động.** Boot resolve với `deferMissingKeys`: một mô hình có biến khóa
 chưa đặt giữ `missingEnv` (chuỗi bỏ qua nó, và khi không còn mô hình nào thì mọi lời gọi bị từ chối
 bằng `MissingEnvError` đã bản địa hóa), còn máy chủ MCP nêu `${VAR}` chưa đặt thì vào `ResolvedMcp.unset`
-thay vì làm hỏng bước resolve. `doctor` và `probeConfig` resolve chặt nên vẫn báo lỗi. Mỗi bộ phát hiện ghi
+thay vì làm hỏng bước resolve. `doctor` và `probeConfig` resolve chặt nên vẫn báo lỗi.
+
+Mỗi bộ phát hiện ghi
 log một lần ở nơi nó thấy chỗ thiếu (`llm.key_missing` lúc dựng registry chuỗi, `web_search.key_missing`,
 `mcp.env_missing`), và `toMissingKeyErrors` trong `src/cli/missing-keys.ts` là danh sách duy nhất mà
-terminal in ra và `config validate` báo. Kênh có `start()` ném `OperatorConfigError` (token thiếu hoặc bị
+terminal in ra và `config validate` báo.
+
+Kênh có `start()` ném `OperatorConfigError` (token thiếu hoặc bị
 từ chối) thì được đóng và ghi `channel.start_skipped`; `startChannels` trả nó trong `skipped`, nên kênh chưa
 từng lắng nghe thì không cho ai vào. `ApiTokenError` từ bộ khởi động API được xử lý giống vậy
-(`api.token_unusable`). Tác vụ daemon đưa cả hai danh sách cho `onReady` (`DaemonStartOptions.onReady`); `start`
+(`api.token_unusable`).
+
+Tác vụ dịch vụ nền đưa cả hai danh sách cho `onReady` (`DaemonStartOptions.onReady`); `start`
 tiền cảnh in chúng ra stderr, còn log stderr của tiến trình nền được chuyển tiếp dưới dòng thành công của
-tiến trình cha. Sau đó handler ghi tệp sẵn sàng (`BRAND.readyFile`, ghi nguyên khối, `{ pid, degraded }`) mà
+tiến trình cha.
+
+Sau đó handler ghi tệp sẵn sàng (`BRAND.readyFile`, ghi nguyên khối, `{ pid, degraded }`) mà
 lần khởi động nền chờ, còn `status` và `/v1/state` đọc lại; mỗi lần khởi động xóa tệp này ngay khi giữ được
-tệp pid, nên tệp do một daemon chết đột ngột để lại không bao giờ bị coi là sẵn sàng khi pid được dùng lại. Tệp pid còn ghi `startedAt`. Lần khởi động giành lại một tệp pid cũ (`PidFileClaim` `reclaimed`) truyền
-`DaemonStartOptions.previousRun`, nên daemon nhắn chat mặc định một lần (`cli.daemonStoppedUnexpectedly`), và
-`status` đọc cùng tệp qua `readStalePid`. Một nhịp vòng lặp lỗi với `MissingEnvError` là lỗi biên (`trading.tick_key_missing` một lần
+tệp pid, nên tệp do một dịch vụ nền chết đột ngột để lại không bao giờ bị coi là sẵn sàng khi pid được dùng lại. Tệp pid còn ghi `startedAt`. Lần khởi động giành lại một tệp pid cũ (`PidFileClaim` `reclaimed`) truyền
+`DaemonStartOptions.previousRun`, nên dịch vụ nền nhắn chat mặc định một lần (`cli.daemonStoppedUnexpectedly`), và
+`status` đọc cùng tệp qua `readStalePid`.
+
+Một nhịp vòng lặp lỗi với `MissingEnvError` là lỗi biên (`trading.tick_key_missing` một lần
 mỗi vòng cho tới khi có lỗi khác được ghi, thử lại ở khoảng sau), không bao giờ vào cách ly.
+
+**Đăng nhập trang văn phòng.** `api token` và `api rotate` ([app/server/cli/api-command.ts](../../src/app/server/cli/api-command.ts)) dùng chung `readApiToken(app)` với `web` và `connect`: `[api] token_env` khi có đặt (biến rỗng là lỗi), nếu không thì `<data_dir>/auth/api/token.json`. Trình duyệt không bao giờ giữ token này, và trang xóa mọi đoạn `#token=` khỏi thanh địa chỉ ngay khi tải mà không đọc nó.
+
+**Mã đăng nhập.** `web` ([app/server/cli/web-command.ts](../../src/app/server/cli/web-command.ts)) gọi `POST /v1/session/code` kèm bearer token rồi in `<origin>/#code=<code>`; sổ mã ([http/sign-in-codes.ts](../../src/app/server/http/sign-in-codes.ts)) nằm trong bộ nhớ, mỗi lần API khởi động một sổ, chứa tối đa 16 mã khóa bằng HMAC dưới token, hết hạn sau năm phút theo kiểu kiểm khi dùng chứ không có bộ đếm giờ, và một mã bị tiêu ngay lần `take` đầu, nên hai thẻ tranh một mã chỉ có một bên thắng và khởi động lại thì mọi mã đang chờ mất.
+
+**Phiên.** Trang đổi mã ở `POST /v1/session` lấy một dòng trong `browser_sessions`: một UUID công khai cùng HMAC của bí mật cookie khóa bằng token, nên đổi token làm mọi dòng cũ không đọc được nữa.
+
+- Cookie là `HttpOnly; SameSite=Strict; Path=/`, tên `oa_session_<cổng>` trên loopback (hai dịch vụ nền trên một máy không bao giờ dùng chung) và `__Host-oa_session` qua `public_url` (Secure, không có `Domain`).
+- Dòng không dùng quá 30 ngày thì hết hạn; mỗi lần chạm, nhiều nhất mỗi giờ một lần, gia hạn dòng và gửi lại cookie, còn chạm thất bại chỉ ghi nhật ký.
+- Một giao dịch dọn các dòng quá hạn và giữ trần 20 ở mỗi lần chèn.
+- Cookie chỉ được nhận khi có `Sec-Fetch-Site: same-origin`, và lệnh ghi còn cần `Origin` của trang; bắt tay socket thì chỉ dựa vào `Origin` của trang.
+- Header `Authorization` không phải `Bearer` (xác thực basic của proxy) bị bỏ qua, nên cookie vẫn được đọc.
+
+**Khóa tạm.** Khóa tạm đếm token sai và mã sai hoặc đã dùng, không bao giờ đếm một cookie lạ, theo từng khóa do `resolvePeerKey` tính: địa chỉ của bên gọi khi không có header proxy, `proxied:<hop X-Forwarded-For cuối cùng>` khi đi qua host của `public_url`, và một khóa chung `proxied:?` cho header proxy trên mọi host khác. Mỗi lần khóa dài gấp đôi lần trước, tối đa `MAX_LOCKOUT_MS`, và một mục chỉ bị dọn sau `MAX_LOCKOUT_MS` không có lần sai nào và không bị khóa. Trong lúc khóa, `isAuthLocked` từ chối token hay mã trước khi so (mã không bị tiêu), phiên vẫn qua, và hết khóa thì token hay mã hợp lệ xóa số lần sai.
+
+**Đăng xuất và đổi token.** Đăng xuất và `DELETE /v1/sessions/:id` xóa dòng và đóng socket của phiên đó bằng mã 4401; socket mở đúng lúc dòng đang bị xóa cũng bị đóng. `api rotate` ghi token mới, in ra, rồi xóa mọi dòng (`browserSessionStore.removeAll`) và báo số lượng. Dịch vụ nền đang chạy giữ token cũ trong bộ nhớ, nên `rotate` đọc token đó trước khi ghi token mới rồi nhờ dịch vụ nền khởi động lại `now` qua `restartDaemonWith` ([cli/restart-client.ts](../../src/app/server/cli/restart-client.ts)), đúng đường `restart` dùng; khi không nhờ được dịch vụ nền hoặc dịch vụ nền không chạy lại, lệnh báo lỗi và nêu `restart`.
+
+**In ra.** Chỗ duy nhất in token là `connect`, in một dòng địa chỉ (`<public_url>` hoặc `<brand>+ssh://user@host[:cổng]?api=<cổng>`) và một dòng token riêng cho ứng dụng desktop, nên token không bao giờ nằm trong một URL mà trình duyệt mở được; địa chỉ dựng từ `SSH_CONNECTION` ([cli/ssh-address.ts](../../src/app/server/cli/ssh-address.ts)). `web` chỉ mở trình duyệt trên macOS hoặc Linux có màn hình, không bao giờ qua SSH, không chờ tiến trình mở, và qua SSH thì in một đường hầm trên cổng máy chủ cộng 10000 với `ExitOnForwardFailure=yes`. Phần tóm tắt của `start` chỉ in dòng `cli.daemonPage`, nêu tên `web` và không bao giờ in token, vì một lần khởi động `--background` ghi phần tóm tắt vào nhật ký. `GET /v1/health` mang `brand` (`BRAND.display`) để màn hình đăng nhập của trang nêu tên sản phẩm trước khi xác thực.
+
+**Yêu cầu được đến từ đâu.** `resolvePageOrigin` ([http/auth.ts](../../src/app/server/http/auth.ts)) đổi tiêu đề `Host` thành origin của trang: một tên loopback ở cổng bất kỳ, hoặc host của `public_url` (lưu dưới dạng `URL.origin`, phân tích theo chính scheme của nó nên `:443` vẫn là cùng host). Mọi thứ khác bị từ chối.
+
+- Khi chưa đặt `public_url`, yêu cầu mang `X-Forwarded-For` hay `Forwarded` bị từ chối kèm một câu nêu tên `public_url`. Nhờ vậy bắt được proxy chuyển tiếp một trong hai.
+- Proxy không gửi cả hai và chuyển một `Host` loopback (một `proxy_pass` nginx trần) thì không phân biệt được với máy khách cục bộ, vì vậy các hướng dẫn bảo người vận hành đặt `public_url` trước khi mở dịch vụ nền ra ngoài.
+- Trong bản biên dịch, trang và các khối của nó được trả kèm CSP (`frame-ancestors 'none'`), `Referrer-Policy: no-referrer` và `nosniff` ([http/page.ts](../../src/app/server/http/page.ts)). Chạy từ mã nguồn thì trang đi qua `routes` của Bun, vốn không mang tiêu đề nào, nên khung chặn nhúng frame của chính trang gánh phần đó.
+
+**Điều API bị phơi ra ngoài không có.** Khi đặt `public_url`, `withApiRunLimits` ([app/server/exposure.ts](../../src/app/server/exposure.ts)) bọc dịch vụ `runner`:
+
+- Một phiên chạy của kênh ứng dụng không bao giờ được đưa những gì `isClientApprovalWithheld` nêu tên (cùng điều kiện `/v1/mcp` dùng: khả năng `shell`, `file_write`, `file_edit`, các công cụ mạng xã hội và mọi công cụ bên ngoài), cũng không có `order_place` khi `[api] orders` đang tắt. Lớp bọc này với tới cả các lượt con của phiên chạy đó.
+- Một công việc do ứng dụng tạo mà không nêu đích được hướng vào kênh ứng dụng, nên chạy dưới cùng các giới hạn. Công việc cho chat khác bị từ chối.
+- Duyệt ghép nối trả 409 nêu tên `pair approve`, cổng kiểm cấu hình từ chối `channels.<id>.{allowed_ids, operator_user_ids, pairing, dm_policy}`, và mọi đường đặt lệnh cùng `/trade` trên socket đều trả lời như đang tắt.
+
+`api`, `update` và `trading.orders.allow_unattended` chỉ đổi được bằng dòng lệnh dù có đặt `public_url` hay không.
+
+**Chạy một lệnh trong dịch vụ nền.** Mọi thứ dưới `src/cli` chạm vào tiến trình chỉ qua một đối tượng, terminal ([cli/terminal.ts](../../src/cli/terminal.ts)): `stdin`, `stdout`, `stderr`, chín tên biến môi trường nó được đọc (`NO_COLOR`, `FORCE_COLOR`, `TERM`, `CI`, `LANG`, `LC_ALL`, `LC_CTYPE`, `VISUAL`, `EDITOR`), các cờ quiet, verbose và no-color, `onInterrupt`, `onTerminate` và `openEditor`. Điểm vào cài bản dựa trên tiến trình làm `app.terminal`. `currentTerminal()` trả về bản được `withTerminal(terminal, fn)` (một `AsyncLocalStorage`) đặt trong phạm vi, nếu không thì bản của tiến trình.
+
+Quiet và verbose nằm trên terminal chứ không trong trạng thái module, vì dịch vụ nền có thể chạy nhiều lệnh được chuyển đi cùng lúc. Một cổng kiểm trong `scripts/check-conventions.ts` giữ điều đó: `process.stdout`, `stderr`, `stdin`, `env`, `cwd`, `on`, `once`, `off`, `emit`, `exit`, `removeListener`, `prependListener` và `addListener` bị từ chối dưới `src/cli`, trừ trong `terminal.ts`, `env.ts` và `commands/daemon/daemon.ts`.
+
+Phía dịch vụ nền là `app/server/exec/`: `admission.ts` (các phép kiểm trước khi nâng cấp và mức trần chỗ ngồi), `connection.ts` (đọc frame, hạn chót cho frame đầu tiên, các đường đóng), `terminal.ts` (một terminal dựa trên socket) và `run.ts` (`runCli` trên nó, trong `withTerminal`, rồi nạp lại agent của người dùng sau khi `agent add`, `edit` hoặc `remove` thành công). Mọi frame socket chuyển vào (nhập liệu, đổi cỡ, câu trả lời của một lần sửa, tín hiệu, lúc đóng) cũng chạy trong `withTerminal`, nên không callback nào đọc tiến trình riêng của dịch vụ nền. Hình dạng trên đường truyền là `wire/exec.ts` và mục 6 của [CONTRACT.md](../../src/app/server/CONTRACT.md).
+
+Một lệnh có được chuyển đi hay không lấy từ `Needs`, không phải một danh sách viết tay. `isForwardable` trong [cli/command.ts](../../src/cli/command.ts) đòi `boot`, `daemon: 'any'`, `bootMode: 'cli'`, `modelSource` khác `client`, và không có `local: true` (dấu cho các lệnh đọc hoặc ghi tệp do operator chỉ định, cùng `api`). `--local` hoặc cờ `--log-level` không bao giờ chuyển đi.
+
+Phía client có ba phần:
+
+- `app/server/cli/exec-target.ts`: một dịch vụ nền sống giữ thư mục dữ liệu này với đúng tệp cấu hình và bản này, `[api]` bật và không suy giảm, token đọc được;
+- `exec-client.ts`: bắt tay, rồi chuyển tiếp;
+- `exec-relay.ts`: stdin, chế độ raw, đổi cỡ, trình soạn thảo, tín hiệu.
+
+Khi có sự cố:
+
+- Một lần bắt tay thất bại hoặc chậm (`EXEC_OPEN_TIMEOUT_MS`), hoặc một lời từ chối (đóng với mã 4400) trước `accepted`, sẽ quay về chạy tại chỗ.
+- Mọi lần đóng khác sau khi `exec` đã gửi đi đều tính là mất dịch vụ nền, và sau `accepted` lệnh không bao giờ chạy lại.
+- Đóng mà không có `exit`, hoặc `EXEC_LIVENESS_TIMEOUT_MS` (300 giây, gấp 2,5 lần `SOCKET_IDLE_TIMEOUT_SECONDS`, nhịp ping của dịch vụ nền, được đặt lại bởi mọi frame và ping) mà không có dấu hiệu sống, là mã thoát 17.
+
+Bản được so sánh chỉ là `BRAND.version`. Chạy từ mã nguồn mà chưa tăng bản thì CLI chuyển lệnh cho một dịch vụ nền cũ hơn mà không báo gì: dùng `--local`, hoặc khởi động lại dịch vụ nền.
+
+**Khởi động lại từ API.** `POST /v1/restart` gọi `SelfUpgrade.restart` ([app/update/install.ts](../../src/app/update/install.ts)), từ chối dịch vụ nền không tự khởi động lại tại chỗ được và không chạy bằng `--background`, dịch vụ nền đang dừng, và dịch vụ nền đang có một lần cập nhật hoặc khởi động lại chưa xong; nhận thì trả 202.
+
+`when: 'idle'` sau đó kiểm tra `isWorking` (phiên chạy, câu lệnh chạy lâu, tin đang gửi, tác vụ giao dịch) đến khi không còn gì chạy hoặc hết `RESTART_IDLE_WAIT_MS`, bằng một `sleep` hủy được mà lúc dừng sẽ hủy; `now` bỏ qua phần chờ.
+
+**Tại chỗ.** Khi `canRestartInPlace()` đúng (không phải Windows, và có `process.execve`), [app/update/restart.ts](../../src/app/update/restart.ts) gửi cho chính tiến trình này `RESTART_SIGNAL` (SIGUSR2), đúng tín hiệu `kill -USR2` của người vận hành: `runDaemon` đánh dấu việc khởi động lại rồi hủy dịch vụ nền như khi nhận SIGTERM, nên chạy đúng một đường dừng (`SHUTDOWN_DRAIN_MS` là khoảng chờ các phiên chạy được hoàn tất trước khi bị ngắt, hiện là `restartDrainMs` trên `/v1/state`; đó không phải thời gian ngừng, nên trang nhận ra khởi động lại khi health xuống rồi lên lại, vẫn cùng pid), và các yêu cầu phê duyệt còn chờ bị từ chối. SIGINT hoặc SIGTERM đến trong lúc đang dừng thì thoát ngay như mọi khi, nên không có gì chạy lại.
+
+Khi phiên chạy đã thoát gọn và `boot` đã đóng, `main` gọi `restartInPlaceIfRequested` ([app/update/exec-restart.ts](../../src/app/update/exec-restart.ts)): nó ghi `<data_dir>/restart.json` (`{ requestedAt }`) rồi gọi `process.execve` với đúng dòng lệnh tiến trình này đã chạy (`resolveSelfCommand` cộng `process.argv`), cùng môi trường trừ các tên tệp khóa đã đặt, để phiên chạy mới đọc lại tệp đó. Pid, terminal và descriptor 0 đến 2 được giữ; mọi descriptor khác tự đóng khi exec. Nếu execve thất bại, marker bị xóa, `cli.daemonRestartFailed` được in ra stderr (lúc này logger đã đóng) và thoát với mã 1.
+
+**Qua tiến trình phụ.** Khi không có khởi động lại tại chỗ (Windows), `startHelper` ghi marker rồi chạy `restart --background` như một tiến trình phụ tách rời (`spawnRestartProcess`, log `restart.stdout.log` / `restart.stderr.log`), tiến trình đó dừng dịch vụ nền này qua cùng đường dừng.
+
+**Chạy lại.** Dịch vụ nền do lần khởi động lại đưa lên lấy marker khi đã sẵn sàng (`takeRestartMarker` trong `markReady`, không bao giờ trong `boot`, vì tiến trình phụ và tiến trình cha `--background` cũng chạy `boot`) và, khi marker còn trẻ hơn `RESTART_MARKER_MAX_AGE_MS`, ghi `ui.restartDone` vào chuông như một `daemon_notice` loại `restart-done`, sau khi đánh dấu đã đọc các thông báo `restart-done` cũ chưa đọc trong những dòng chuông mới nhất, nên chuông chỉ giữ một dòng.
+
+**Yêu cầu và thất bại.**
+
+- Một yêu cầu còn đang chạy lúc dịch vụ nền dừng được trả 503 `stopping` và ghi `api.handler_stopped` ở mức info; trang giữ số liệu cũ và đọc lại khi kết nối socket trở lại.
+- Marker không đi qua thông báo cập nhật, nên một lần khởi động lại không bao giờ đọc thành cập nhật thất bại.
+- Tiến trình phụ không khởi động được (hoặc không gửi được tín hiệu), hay tiến trình phụ thoát trong khi dịch vụ nền này vẫn chạy, thì marker bị xóa, cờ chờ được nhả để khởi động lại lần nữa được, và `ui.restartFailed` được ghi vào chuông như một `daemon_notice` loại `restart-failed`, vì trang đã nhận 202 và nếu không sẽ chờ pid mới mãi.
+- Mỗi yêu cầu kết thúc bằng đúng một sự kiện `restart_ended` trên bus (`logRestart`), nhật ký phiên chạy ghi thành một dòng `runs` tên `restart`: `completed` khi lệnh dừng tới dịch vụ nền này (tín hiệu hủy `app.signal`, nên dòng được ghi trước khi nhật ký dừng), `aborted` khi bị từ chối hoặc có lệnh dừng tới trước, `error` khi tiến trình phụ hoặc tín hiệu không thực hiện được, hay tiến trình phụ thoát trong lúc dịch vụ nền này vẫn chạy.
+
+**Các lượt đọc và ghi nhỏ cho trang văn phòng.** `GET /v1/outbound` dựng danh sách trong [app/outbound-hosts.ts](../../src/app/outbound-hosts.ts) từ chính đoạn mã sở hữu từng host, nên thêm một nhà cung cấp mới là nó tự xuất hiện, không có danh sách thứ hai:
+
+- `listSourceHosts`: điểm cuối mỗi adapter ghim cứng, `RSS_FEEDS`, và điểm cuối của các nguồn plugin mà registry giữ lại, chia thành `data`, `news` và `plugin` theo các loại tuyến mà mỗi id phục vụ;
+- `listPricingHosts`: nguồn bảng giá;
+- `resolveModelHost` trên `config.models`: `base_url` riêng của mục đó, không có thì lấy của nhà cung cấp;
+- `ChannelDefinition.apiHosts` cho các kênh dịch vụ nền khởi động, và `VenueManifest.apiHosts` cho sàn có khóa (đọc qua `VenueChoice`);
+- các MCP server dùng HTTP;
+- `listSearchHosts`: điểm cuối của từng backend, `base_url` riêng của SearXNG, không có gì khi backend chính thiếu khóa;
+- `UPDATE_CHECK_HOST` khi `[update] check` bật, API base của từng mạng xã hội mà một agent đang hoạt động đã tham gia, và host kiểm tra mạng trong cấu hình trading.
+
+Một host phục vụ hai mục đích thì xuất hiện một lần dưới mỗi mục đích, vì thứ gửi tới đó khác nhau.
+
+`GET /v1/models` định giá từng mô hình bằng chính dịch vụ giá mà sổ chi phí dùng để tính, còn `LLMAttemptStore.perRunCostByModel` cho chi phí trung bình mỗi phiên chạy trong một câu lệnh: gom các lượt gọi theo `(provider, model, run_id)`, xếp mới nhất trước theo từng mô hình bằng `ROW_NUMBER()`, giữ `COST_ESTIMATE_SAMPLE` phiên gần nhất, cùng một đoạn SQL cho SQLite và Postgres.
+
+`SessionStore.listByChannels` cắt danh sách cuộc trò chuyện ngay trong SQL (`IN` theo kênh, `last_activity_at < before`, `LIMIT`) và lọc theo chữ bằng `EXISTS` trên các dòng của người dùng và trợ lý (`m.role IN DISPLAYED_ROLES`), khớp với chữ đã hạ chữ hoa hoặc đúng như gõ (`LOWER(content) LIKE ... ESCAPE OR content LIKE ...`, dựng bằng `toLikeContainsPattern`; SQLite chỉ gập hoa-thường ASCII), tối đa `SESSION_CHANNELS_MAX` kênh mỗi yêu cầu; tin nhắn đầu của người dùng và câu trả lời cuối đi cùng câu lệnh, app giải mã, xóa thông tin xác thực và cắt ngắn.
+
+Các điểm nhỏ hơn:
+
+- `POST /v1/watchlist` là hai lời gọi host, `remove` rồi `add`, qua cùng bộ phân giải tất-cả-hoặc-không của `/watchlist`, nên không nguyên tử.
+- `StatePayload.firstRun` đọc phép kiểm tra nhà cung cấp mà `doctor` chạy, `ProfileService.isSaved` và một dòng sổ cái.
+- Một bản nháp sổ cái bị schema từ chối sẽ ném `FieldValidationError` ([core/field-errors.ts](../../src/core/field-errors.ts)): mỗi vấn đề zod là một thông điệp `errors.fields.<code>` (`too_small` tách theo `inclusive` và `origin` chuỗi, mã nào bản nháp không thể sinh ra thì đọc như `custom`), tên trường lấy qua `trading.render.ledger.label.<path>`; bộ điều phối render chúng vào `ApiError.fields`.
+- `portfolio.shares` gọi đúng `apportionedSegmentWeights` và `FRACTION_QUANTUM` mà `/portfolio` dùng ([features/portfolio/render/segment-shares.ts](../../src/trading/features/portfolio/render/segment-shares.ts)); `session` của một thị trường là `hours` lịch của nó suy ra từ `CalendarPolicy`, vắng mặt với thị trường liên tục; `closeAuction` chạy từ `closeAuctionStartLocalTime` tới giờ đóng cửa, chỉ có ở thị trường có phiên khớp lệnh định kỳ đóng cửa (HOSE và HNX: 14:30-14:45) và nằm trong pha `open`, nên không reader nào của pha phiên phải đổi.
+
+**Bản ghi mà trang văn phòng đọc.** `startRunLog` và `startNoticeLog` ([app/activity/](../../src/app/activity/)) chạy trong mọi tiến trình khởi động app, dù API có bật hay không, và nơi gọi chờ `stop` xong rồi mới đóng kho lưu trữ.
+
+**Nhật ký phiên chạy.** Nhật ký phiên chạy ghi một dòng `runs` cho mỗi câu lệnh chạy lâu đã xong và mỗi phiên chạy agent có câu trả lời tới một bề mặt, cộng với phiên con của một phiên khác; câu lệnh giao lượt cho agent, và phiên chạy ẩn không có cha, không ghi gì. Tiêu đề không bao giờ bắt đầu bằng tiền tố nội bộ `depth:<level>` của một phiên `/research`. Một phiên con tự đặt tên (`RunOptions.title`) mang phần đầu đã lọc của câu trả lời làm `summary` trên `run_finished` của bus; sự kiện trên dây bỏ nó và nhật ký giữ nó. Nhật ký còn giữ các mã mà dòng tiến độ của phiên chạy đã nhắc tới (`runs.tickers`, nối bằng `,`, tối đa 20) và số câu hỏi nghiên cứu đã xong trên số câu đã hỏi (`questions_done`, `questions_total`), để trang vẫn ghi được bảng trắng của phiên đã xong sau khi tải lại.
+
+**Nhật ký thông báo.** Nhật ký thông báo lưu mọi sự kiện không phải `quiet`, dựng bằng đúng các bộ chuẩn hóa mà socket được gửi, kèm các kênh mà nó còn tới, ghi lần lượt từng dòng để mỗi `notices_changed` mang số đếm sau dòng của chính nó.
+
+**Lưu giữ và chi phí.** Cả hai bảng được [persistence/retention-activity.ts](../../src/persistence/retention-activity.ts) quét theo `[retention] days`; chi phí của một phiên chạy không lưu trên dòng của nó mà đọc từ `llm_attempts` qua cây phiên chạy, cây đó đi theo `runs.parent_run_id` và `llm_attempts.parent_run_id` (một lần đọc tính tiền dưới mã phiên chạy tạm vẫn được tính cho phiên chạy đã hỏi).
+
+**Các route.**
+
+- `GET /v1/activity`, `/v1/research` và `/v1/digest` đọc `runs` (bản tổng kết ngày thêm đề xuất và ảnh chụp bản tin, và lấy chi tiêu từ cùng bộ đọc với `/v1/cost`); `GET /v1/notices` và `POST /v1/notices/read` đọc và đánh dấu chuông.
+- `GET /v1/board` là `createResultBoard`, vài câu trả lời gần nhất của câu lệnh trong bộ nhớ, nên khởi động lại là rỗng.
+- `GET /v1/tasks` đọc `taskStatus` ([app/task-status.ts](../../src/app/task-status.ts)), do lớp bọc tác vụ của dịch vụ nền nạp qua các listener `TaskPass`, cạnh lịch bản tin và lần báo cáo trong ngày kế tiếp (đọc hỏng một trong hai thì bỏ nó khỏi nội dung, không làm hỏng cả nội dung).
+- `trackRecordMinSample` trên `/v1/state` là `MINIMUM_TRACK_RECORD_SAMPLE`, để trang lấy đúng con số của dịch vụ nền làm ngưỡng cho các tỷ lệ.
+
+**Phần cài đặt và các thẻ của trang đọc, ghi gì.** Theo từng route:
+
+- `GET /v1/doctor` chạy đúng các phép dò của CLI (`collectDoctorProbes` với `surface: 'page'`, nên phép kiểm cơ sở dữ liệu là bản nhẹ và nhà cung cấp không bao giờ bị dò). Các phép chỉ có nghĩa trong terminal trả về dòng `cliOnly`, còn `?check=` thu phiên chạy về đúng một phép.
+- `GET /v1/update` thêm `newer`, ghi chú phát hành và lệnh nâng cấp vào trạng thái phát hành.
+- `/v1/credentials` liệt kê các tên mà `keyEnvGroups` đưa ra cho nhóm nhà cung cấp, sàn, tìm kiếm và nguồn dữ liệu, không bao giờ là tên mà nhóm token, MCP hay kênh đọc, tên điều khiển hay tên runtime. Nó ghi tệp khóa bằng `writeEnvFileValue` (quyền 0600, thay nguyên khối). Route này và `POST /v1/auth/chatgpt` trả 409 khi `isExposedOnDisk` thấy `public_url`, dù đã khởi động hay mới lưu.
+- `/v1/memory` đọc `Memory.listScopes` (phạm vi cục bộ đứng đầu, trần số dòng nằm trong SQL), bỏ các dòng `prefs-pending:` và `prefs-asked:`, và quên theo một khóa phạm vi base64url. Một lần ghi `prefs:` thành công phát `preference_saved`.
+- `GET /v1/market` vẽ đường hiển thị của `/market` (`renderMarketShow`); `/v1/themes` vẽ chữ của `/themes show` và các bước chuyển với đúng câu của câu lệnh.
+- `POST /v1/ledger/preview` trả tỷ giá mà một bản nháp cần (`replacing` bỏ ra dòng mà lần sửa thay thế). `POST /v1/ledger` từ chối bản nháp cần tỷ giá mà không nêu, với lỗi trường ở `operatorFxRate`. `POST /v1/ledger/sync` là `runVenueSync`, đúng mã mà `/record sync` chạy.
+- `DELETE /v1/chat/sessions/:id` chỉ xóa phiên `api` không có lượt nào đang chạy.
+- `GET /v1/cost` thêm `jobs` từ `rootRunsForRange`, hàm lần mọi lần gọi trong khoảng lên tới phiên chạy gốc của nó. Phần chi không có gốc là `otherUsd`, nên `jobs` cộng `otherUsd` bằng đúng tổng.
+
+**Agent và lịch được ghi từ API.** **Agent.** [routes/agent-edit.ts](../../src/app/server/routes/agent-edit.ts) xử lý một lần ghi theo thứ tự này:
+
+1. Biến thân yêu cầu thành TOML (`toAgentToml`: bộ công cụ cố định, một lần sửa giữ các khóa trang không sở hữu).
+2. Dựng nó qua `buildUserAgent` (cách dựng mà lúc khởi động agent nhận) trước khi chạm vào đĩa. Thân bị từ chối được báo bằng một câu `errors.fields.*` cho mỗi vấn đề zod trong `ApiError.fields` (`FieldValidationError`, cơ chế duy nhất cho mọi route nhận thân yêu cầu; thân quá cỡ hoặc không phải JSON là `invalid_body` qua `readJsonBody`).
+3. Đếm các thư mục agent trên đĩa và ghi tệp nguyên tử trong cùng một lượt của hàng đợi tuần tự của sổ đăng ký, từ chối agent thứ 51 của riêng người vận hành (`MAX_USER_AGENTS`, 409 `errors.agentLimit`), để hai lần tạo cùng lúc khi đã có 49 agent không cùng lọt qua.
+4. Gọi `reloadUserAgents` ([app/agent-registry.ts](../../src/app/agent-registry.ts)): một lần hoán đổi có tuần tự của sổ đăng ký đang chạy, giữ nguyên agent có sẵn, của trading, của plugin và của phần mở rộng, đọc lại thư mục (đọc hỏng thì dừng trước khi hoán đổi, nên agent đang chạy và các dòng heartbeat của chúng còn nguyên) và trả `loaded` cùng `skipped`.
+
+- Tạo mới phát `agent_added` sau khi nạp lại thành công.
+- Xóa thì tạm dừng mọi việc đang bật của agent qua `pauseJobsOfAgent` ([scheduler/job/agent-jobs.ts](../../src/scheduler/job/agent-jobs.ts), dùng chung với `agent remove`), xóa dòng tạm dừng để agent sau dùng lại mã không sinh ra đã bị tạm dừng, gỡ thư mục, nạp lại (việc này cũng đóng tuyến log của agent qua `syncAgentRoutes`) và ghi một `daemon_notice` dù nạp lại có được hay không; agent đang ở mạng xã hội thì bị từ chối.
+
+**Việc.** `POST /v1/jobs` đi qua cùng các bộ kiểm tra với `schedule add`; một việc theo sự kiện là việc `once` đậu ở `EVENT_JOB_PARKED_AT` ([scheduler/event/types.ts](../../src/scheduler/event/types.ts)) với một dòng `job_event_triggers` (và `job_event_fires` cho khoảng chờ theo từng mã), cả hai xóa theo việc, nên mọi nơi đọc đều rẽ nhánh theo `Job.event` và `/v1/state` mang `event` thay cho giờ.
+
+`createAlertFiredListener` ([app/event-jobs.ts](../../src/app/event-jobs.ts)) khởi động các việc khớp ngay lần gửi đầu của một cảnh báo, dưới tín hiệu của dịch vụ nền, với một prompt nói vì sao; việc `price` đặt cảnh báo trước và sở hữu nó, nên gỡ việc là tắt cảnh báo, còn chạy lại bị từ chối khi cảnh báo đã chạm.
 
 **Giới hạn của việc thực thi lệnh.** `/trade` và `order_place` đặt lệnh spot trên một sàn đã đăng ký, và
 không có gì khác trong mã nguồn gửi được lệnh: một sàn mới chỉ là thêm một `SpotAdapter` phía sau cùng tính
@@ -386,7 +574,7 @@ demo của sàn. Tài sản không chuyển được giữa các sàn.
 
 ### MCP
 
-`mcp serve` mở các công cụ runtime được phép qua MCP, kèm lời dặn của máy chủ chỉ cho model của host cách
+`mcp serve` mở các công cụ runtime được phép qua MCP, kèm lời dặn của máy chủ chỉ cho mô hình của host cách
 dùng chúng. Khi client hỗ trợ elicitation, việc phê duyệt công cụ được xin ngay trong tương tác đó. Danh
 sách các công cụ được mở và bị giữ lại nằm ở [Lệnh](../lenh.md#mcp).
 
@@ -405,7 +593,7 @@ Dưới `mcp serve`, mô hình của client đã kết nối đứng thay chuỗ
 - Cả hai nửa của thời gian chờ một yêu cầu đều được ghi log (`mcp.request_viewed`,
   `mcp.request_answered`). `serveMcp` xả hết các công việc trước khi kho lưu trữ đóng.
 
-Mọi lượt chạy MCP mang `audience: 'operator'` (`RunOptions` sang `ToolInvocationContext`); các lượt chạy
+Mọi phiên chạy MCP mang `audience: 'operator'` (`RunOptions` sang `ToolInvocationContext`); các phiên chạy
 khác là `agent`. Dưới `operator`, các công cụ đề xuất giữ `units` và `portfolio_rebalance` đọc
 `rebalanceWithUnits`, còn `held`, `policyUnits`, tiền mặt, chi phí và NAV vẫn bị giữ lại.
 `check-feature-isolation` làm hỏng mọi công cụ nêu một lần đọc tuyệt đối. `report` mà các công cụ đề xuất
@@ -434,7 +622,7 @@ Các giá trị mặc định sau khi phân giải cấu hình. Dòng nào có k
 | Số lời gọi công cụ mỗi phiên chạy | 120 | `[loop] max_tool_calls` |
 | Thời lượng phiên chạy | 15 phút | `[loop] max_duration_ms` |
 | Thời gian chờ phê duyệt | 2 phút | `[loop] approval_timeout_ms` |
-| Số tin nhắn mỗi phiên chat | 500 | Cố định |
+| Số tin nhắn mỗi cuộc trò chuyện | 500 | Cố định |
 | Độ sâu ủy quyền | 3 | `[loop] delegation_depth` |
 | Tổng số lần ủy quyền | 32 | `[loop] max_delegations` |
 | Số ủy quyền song song | 5 | `[loop] max_parallel_delegations` |
@@ -563,7 +751,7 @@ hình. Chúng không bao giờ tính lại giá hay trần chi phí.
 | `unavailable` | Một lời gọi nguy hiểm bị chặn vì không gửi được ô hỏi tới ai |
 
 Không có chế độ `safe`. Các lựa chọn là `deny`, `once`, và `remember` khi phạm vi hỗ trợ ghi nhớ. Phê duyệt
-đã ghi nhớ nằm trong bộ nhớ phiên chat và bị xóa cùng phiên; ở phạm vi bộ lập lịch và ủy quyền chỉ có
+đã ghi nhớ nằm trong bộ nhớ cuộc trò chuyện và bị xóa cùng cuộc trò chuyện; ở phạm vi bộ lập lịch và ủy quyền chỉ có
 quyết định một lần. Hai lời gọi đang chờ giống hệt nhau trong một phiên chạy dùng chung một ô hỏi. Hết giờ
 và hủy đều kết thúc bên đang chờ và dọn các listener và timer. Bên gọi không hỏi được thì phải dùng
 `unavailable`, không được chờ vô hạn. Chat CLI tương tác hiện ô hỏi ngay trong terminal; phiên chạy một
@@ -638,6 +826,80 @@ payload của kênh đều có giới hạn độ dài và được lọc trư�
 kênh truyền và cắt khúc theo code point, để các cặp surrogate không bị chẻ đôi. Không bề mặt nào được hiển
 thị bí mật thô, văn bản plugin chưa làm sạch, hay tham số công cụ tùy ý.
 
+### Trang văn phòng (`web`)
+
+Mô-đun `web` là trang văn phòng: một giao diện Preact dùng signals để giữ trạng thái, cùng một khung cảnh canvas, được Bun gói lại và dịch vụ nền phục vụ tại `GET /` (`src/web/api.ts` xuất `officePage`, thứ duy nhất server nhập). Bản thân trang là tĩnh và không cần xác thực; mọi thứ nó đọc đều là `/v1`, sau một phiên trình duyệt. `main.tsx` từ chối chạy trong một khung trước mọi việc khác, xóa khóa lưu trữ `office.token` cũ, và đổi `#code=` trên địa chỉ lấy một phiên trước lần tải đầu tiên.
+
+**Được nhập gì.** `i18n` lúc chạy, và chỉ `import type` từ `app/server/wire/*`. [scripts/check-dag.ts](../../scripts/check-dag.ts) giữ đúng một ngoại lệ đó (`isWebWireTypeImport`). Nhờ vậy các kiểu wire chính là toàn bộ hợp đồng: một thay đổi ở server làm hỏng trang sẽ làm `tsc -p src/web/tsconfig.json` thất bại, chương trình thứ tư của `bun run typecheck`. Socket còn kiểm tra phiên bản hợp đồng mà nó được xây theo và dừng lại, nhắc người vận hành tải lại trang, khi dịch vụ nền nói một phiên bản khác.
+
+**Các thư mục.** [src/web/api/](../../src/web/api/) là client: một lớp bọc fetch có giới hạn thời gian, socket với backoff và jitter, `startPoll`, các lượt tải single-flight và trạng thái đăng nhập (đổi mã, đăng nhập đã kết thúc hoặc bị từ chối). [src/web/state/](../../src/web/state/) là kho trạng thái, mỗi mối quan tâm một mô-đun signal (phiên làm việc, các phiên chạy trực tiếp, chat, agent, chi phí, tùy chọn, bảng thông tin). [src/web/text/](../../src/web/text/) chứa các bộ định dạng và `tr`. [src/web/ui/](../../src/web/ui/) mỗi khu vực một thư mục, CSS nằm cạnh thành phần. [src/web/scene/](../../src/web/scene/) là văn phòng. Mọi chuỗi người dùng thấy đều là khóa `ui.office.*` trong cả hai bộ ngôn ngữ.
+
+**Kho trạng thái và trục sự kiện.** [state/feed.ts](../../src/web/state/feed.ts) sở hữu socket duy nhất. Mỗi lần kết nối nó lấy một ảnh chụp (`GET /v1/live`), giữ các sự kiện đến trong lúc đó trong một bộ đệm có giới hạn rồi phát lại đúng thứ tự, gộp các phiên chạy theo `runId`, và giữ một danh sách ngắn các phiên đã xong để sự kiện đến muộn không làm chúng sống lại. Nó cũng đồng bộ lại theo chu kỳ (`LIVE_RESYNC_MS`). Một ảnh chụp lấy không được thì được thử lại theo nhịp lùi dần và không bao giờ đóng socket, vì đóng nó sẽ dừng các lượt trò chuyện và lệnh đang chạy trên đó. Sau khi áp một sự kiện vào kho, nó phát sự kiện đó một lần lên trục ở [state/events.ts](../../src/web/state/events.ts): `onWireEvent(kind | 'any', handler)`, lỗi của một handler không bao giờ chặn handler khác. Khung cảnh, thông báo và đời sống văn phòng đăng ký ở đó và không ở đâu khác.
+
+**Các tầng của khung cảnh và cổng kiểm tra.** Dưới `scene/` các thư mục được xếp hạng: `world` (sàn, phòng, đồ vật, chỗ ngồi, cửa, lưới đi lại, bộ sinh số có hạt giống), `clock`, `data` (các signal `/v1` mà khung cảnh đọc), `sim`, rồi `render2d`, `render3d` và `sprites` (cùng một hạng, nên hai bộ vẽ không chạm tới nhau: cả hai đọc chung bảng màu, các hàng ánh sáng và mặt màn hình trong `sprites/`), rồi `overlay` (mọi thành phần DOM nằm trên canvas). Một tệp chỉ nhập tầng của chính nó, tầng thấp hơn và các tệp gốc (`types`, `street-types`, `sky-types`, `renderer`, `budgets`, `view`), không bao giờ tầng cao hơn.
+
+- [scripts/check-scene-layers.ts](../../scripts/check-scene-layers.ts), thuộc `bun run lint:arch`, thực thi điều đó. Nên sim không thể chạm tới bộ vẽ, không gì chạm tới bộ vẽ 3D ngoài `import()` lười của bộ ghép, và `three` chỉ được nhập dưới `render3d/`.
+- `canvas.tsx` là bộ ghép: nó gắn một bộ vẽ, điều khiển vòng lặp và chứa các lớp phủ.
+- `sims.ts`, nằm cạnh nó, dựng những gì vòng lặp bước (người, thang máy, đời sống văn phòng, tầng đội riêng, con phố và bộ vẽ phố). Không tầng nào nhập hai tệp này.
+
+**Mặt trời và thời tiết.** `clock/sun.ts` giữ công thức vị trí mặt trời của NOAA (`sunAt`, `solarNoonOf`).
+
+- **Lấy dữ liệu.** `data/weather.ts` là lần gọi `fetch` duy nhất ngoài `api/`: một `startPoll` tới Open-Meteo mỗi 30 phút khi đồng hồ là giờ thật và không giảm chuyển động (hết giờ sau 8 giây, không gửi thông tin đăng nhập, không gửi referrer, mỗi chu kỳ tối đa một lần dù khởi động lại bao nhiêu lần). Số đọc tốt gần nhất được giữ 3 giờ, sau đó dùng thời tiết tự tạo theo ngày.
+- **Làm mượt.** `sim/sky.ts` đổi mặt trời và mây thành `skyNow` (mỗi phút trang một lần) và chuyển dần trong 2 giây cho các bộ vẽ. `sim/window-ease.ts` (qua `SkyEase.windowLight`) làm mượt ánh sáng cửa sổ mà `clock/window-light.ts` yêu cầu trên cùng nhịp đó, rèm với hằng thời gian 900 ms và vệt nắng 600 ms, nên cả hai bộ vẽ đọc chung một `SimView.windowLight`. `SkyEase.glow` làm mờ dần mức đèn giờ nghỉ trưa (`napGlowOf`) với hằng thời gian 500 ms. Cả ba dùng chung `sim/ease.ts`, và `lightOf` trong `sprites/daylight.ts` đổi kết quả ra hàng ánh sáng.
+- **Ngoài phố.** Thời tiết ngoài phố (`sim/street/weather-fx.ts`) cho người đi bộ cầm ô, đi trú và định giờ chớp. `render2d/street/weather.ts` vẽ phố ướt, sương và mưa; `render2d/sky-fx.ts` và `render3d/weather.ts` vẽ kính, rèm và chớp, cùng từ `sprites/sky-glass.ts`.
+- **Kiểu và CSP.** Tệp gốc `sky-types.ts` giữ các kiểu dùng chung. CSP của trang đã biên dịch cho phép `connect-src https://api.open-meteo.com`; chạy từ mã nguồn không gửi CSP.
+
+**Gói vùng.** [world/regions/](../../src/web/scene/world/regions/) giữ mọi giá trị thuộc về một thành phố. `RegionPack` trong `index.ts` mang:
+
+- thành phố và tọa độ, bố cục đường cùng thói quen giao thông;
+- con đường chính có tên, công viên và các trạm xe buýt (tên riêng, không bao giờ dịch);
+- dãy cửa hàng với giờ mở của từng mặt tiền và thứ một lần đi mua mang về, cùng tỷ lệ các loại xe;
+- các khung giờ của phố (cao điểm, đưa đón học sinh, giao hàng, công viên, hàng rong, nhân viên tòa nhà) và bảng ngày lễ;
+- chân và tỷ lệ của tòa tháp biểu tượng, `officeHours`, `officeLife`, mùa báo cáo và quy tắc đáo hạn;
+- những người vẫn đến vào ngày nghỉ, và các đồng hồ treo tường ở sảnh (mỗi chiếc là mã một sàn và múi giờ nó đọc).
+
+`packOf(homeRegion)` chọn một gói và rơi về gói mặc định, nên vùng nào dịch vụ nền xác định được cũng vẽ ra một thành phố; hiện chỉ có `vn.ts`. Vùng mới là một tệp dữ liệu cộng mã của nó trong `RegionPackId` và `REGION_PACKS`. `sim/street/`, `sim/life/crew.ts` và `render2d/street/` không giữ tên, giờ hay cửa hàng nào của riêng chúng, và mọi từ chung chúng hiện ra là một khóa `ui.office.street.*` trong cả hai bộ ngôn ngữ. Bảng ngày lễ chạy tới `FESTIVE_LAST_YEAR`; hãy nối dài trước khi năm đó hết.
+
+**Lớp con phố.** `sim/street/` bước xe cộ và đèn tín hiệu, người đi bộ và các lần đi mua đồ, công viên, hàng rong và thú vật, cùng thời tiết ngoài phố (`createStreet`: dựng lại khi đổi ngày, vùng hay múi giờ, đứng yên khi giảm chuyển động). Sự ngẫu nhiên của nó đến từ các hạt giống của `world/rng.ts` và thời gian đến từ đồng hồ, nên chuyển 2D/3D vẫn giữ nguyên từng chiếc xe, từng người và từng con vật, còn khung bị ẩn thì khi quay lại được dựng lại theo đồng hồ chứ không phát lại.
+
+**Vẽ.** Chỉ `sim/street/` di chuyển một thứ trên phố; bộ vẽ chỉ đọc. `render2d/street/paint.ts` là bộ vẽ phố duy nhất mà cả hai bộ vẽ cảnh đọc: `PAINT_PARTS` (trong `parts.ts`) là danh sách theo thứ tự của nó (bầu trời, thành phố, công viên, cửa hàng, mặt tiền, trang trí lễ, đèn tín hiệu, nhà chờ, hàng rong, vật di chuyển, thời tiết), mỗi phần vẽ canvas tĩnh (vẽ lại tối đa mỗi phút trang một lần, ở một trong ba mức chi tiết trong `detail.ts`) và có thể vẽ canvas động trên vùng đang nhìn thấy ở mỗi bước.
+
+- Lần vẽ lại tĩnh giữ những lát tốn nhất (tháp mốc, đường chân trời và từng công viên) thành các lớp ngoài màn hình (`render2d/street/layer-cache.ts`), chỉ vẽ lại khi khóa riêng của lớp đổi (ánh sáng, ngày, ngôn ngữ, mức chi tiết, và bóng đổ vốn đọc mặt trời theo từng độ nguyên), còn lại thì ghép nguyên như đang có; bản nét vẽ thẳng.
+- Một lần vẽ lại không bao giờ xong trong một khung hình: `paint-run.ts` vẽ các phần của nó lên một canvas nháp, mỗi khung vài phần (`STREET_PAINT_SLICE_MS` mỗi khung, quá mức đó nhiều nhất một phần), rồi chép bức tranh đã xong lên canvas đang hiện, nên canvas đang hiện không bao giờ vẽ dở và mức chi tiết hay phút trước vẫn được giữ, phóng to ra, trong lúc chờ.
+- Bản nét làm như vậy sau khi canvas tĩnh đã xong, và khung nào đã vẽ thì để canvas động cho khung sau.
+- Vòng lặp chỉ vẽ tiếp các khung cho tới khi vẽ xong (`isCurrent`), lần vẽ lại đổi giữa chừng thì làm lại từ đầu, và các canvas nháp được giải phóng khi một lần vẽ xong, bị thay hay bộ vẽ được giải phóng.
+
+**Hiển thị.** Các canvas tới bộ vẽ cảnh qua góc nhìn sim: 2D dán thẳng chúng, 3D phủ chúng lên hai mặt phẳng (`render3d/street-planes.ts`, chỉ tải lên một canvas khi phiên bản của nó đổi). Con phố chỉ đánh thức vòng lặp khi có thứ của nó đang chuyển động trong vùng nhìn thấy. Bảng LED đọc `data/led.ts`, nơi gộp các lần đọc tổng quan thị trường của trang thành mỗi chỉ số một mục, kèm đường giá của các lần đọc kể từ khi mở trang.
+
+**Nhân viên tòa nhà và thang máy.** `sim/life/crew.ts` cho lễ tân, nhân viên vệ sinh và bảo vệ đi lại theo khung giờ nhân viên của gói, hai người đầu chỉ vào ngày giao dịch. Họ không phải nhân vật của bộ điều phối: không trạng thái, không menu, không bấm được, Tab và danh sách dạng chữ đều bỏ qua họ. `sim/lift.ts` là buồng thang duy nhất giữa hai tầng: lời gọi của người đi thang làm sáng nút của tầng đó, buồng chạy tới và mở cửa, tất cả bước theo sim và không có timer riêng; người đang đi thang không thuộc tầng nào khi buồng đang chạy.
+
+**Vòng lặp sim và đồng hồ của nó.** [scene/sim/loop.ts](../../src/web/scene/sim/loop.ts) chạy theo bước cố định dưới một bộ tích lũy, chỉ vẽ khung hình khi có thứ gì đó chuyển động (người đang làm việc hay đi lại ở tốc độ bị giới hạn; cử động nhẹ, hơi nước và cá chạy theo đồng hồ nền), nghỉ trên một timeout tới hạn kế tiếp khi không có gì chuyển động, và không chạy gì khi thẻ bị ẩn hay khung của nó bị ẩn (chế độ tập trung, hoặc một khung khác đang hiện trên màn hình hẹp). Sim không bao giờ đọc `Date.now()` hay `Math.random()`. Thời gian đến từ [scene/clock/clock.ts](../../src/web/scene/clock/clock.ts): giờ thật, hoặc một giờ thử chạy với tốc độ đã chọn, được cuộn trong ngày thật để ngày tháng và hạt giống của nó không bao giờ dịch chuyển; nó không bao giờ được lưu. Sự ngẫu nhiên đến từ các hạt giống có khóa của `world/rng.ts`, nên cùng một ngày trông như nhau sau khi tải lại. Mọi bể (nhân vật, nhịp, thú cưng, giấy tờ, bong bóng) đều có trần.
+
+**Một sự kiện thành mục tiêu như thế nào.** Bộ điều phối đọc kho trực tiếp chứ không đọc dòng sự kiện, nên kết nối lại không thể nhân đôi ai. `goalsFor` trong [sim/vocabulary.ts](../../src/web/scene/sim/vocabulary.ts) biến khóa tiến độ của mỗi phiên chạy trọng tâm thành các dòng phân vai (ai, ở loại đồ vật nào, tư thế nào, cầm gì), dòng đầu tiên có khóa là tiền tố của tiến độ phiên chạy thì thắng; phiên chạy không dòng nào khớp trở thành "ngồi ở bàn gõ máy" dưới tên phiên chạy, và một yêu cầu đang chờ bạn đưa người giữ nó tới bàn của bạn. Mục tiêu là `work`, `idle` hoặc `life`, và mục tiêu `work` luôn mang `runId` của nó. Các cử chỉ một lần (trao tay, phản ứng, đến nơi, một đề xuất được chấm) là các nhịp đăng ký trên trục. Đời sống văn phòng ([sim/life/](../../src/web/scene/sim/life/)) và tầng đội riêng ([sim/team/](../../src/web/scene/sim/team/)) nghe trục chỉ để ghi lại; bước kế tiếp mới hành động. Mục tiêu `life` nằm dưới mục tiêu `work` và bị bỏ ngay khi một phiên chạy cần người đó.
+
+**Đường nối bộ vẽ.** [scene/renderer.ts](../../src/web/scene/renderer.ts) là `SceneRenderer`: `mount`, `unmount`, `draw(view, now)`, `toScreen`, `toWorld` và `stats`. Bộ vẽ vẽ một ảnh chụp `SimView` và không bao giờ đổi trạng thái sim; lớp phủ và phép dò va chạm chỉ nói `toScreen` và `toWorld`, nên chúng không biết bộ vẽ nào đang được gắn. Bộ ghép giữ một `RendererHost`, một mặt `SceneRenderer` cố định mà vòng lặp và lớp phủ nắm giữ, và `swap(next)` gọi `unmount()` của bộ cũ trước `mount()` của bộ mới. [overlay/scene-views.ts](../../src/web/scene/overlay/scene-views.ts) chạy lựa chọn 2D | 3D: nó tải bộ vẽ 3D bằng `import()` ở lần đầu, chuyển phần nhập liệu của canvas và tên cho trình đọc màn hình sang từng canvas mới, và quay về 2D, kèm một dòng báo, khi tải lỗi, gắn kết ném lỗi hoặc mất ngữ cảnh đồ họa.
+
+**Nhập liệu, bố cục và mức báo.**
+
+- [overlay/interact.ts](../../src/web/scene/overlay/interact.ts) là chủ duy nhất của các listener trên canvas (con trỏ, cuộn, phím và tiêu điểm, trên một `AbortController`), với `pointer.ts`, `pinch.ts`, `actor-focus.ts` và `radial-menu.tsx` nằm cạnh. Nó không có timer riêng, nên nhấn giữ trên cảm ứng và việc đi theo chạy trên bước sim, và nó được gỡ rồi gắn lại ở mỗi lần đổi bộ vẽ.
+- [state/breakpoints.ts](../../src/web/state/breakpoints.ts) giữ hai độ rộng (900 và 600 px) trong các truy vấn `matchMedia` và ghi `data-layout` (`wide`, `narrow` hoặc `phone`) lên tài liệu. Mọi stylesheet chọn theo thuộc tính đó, còn `state/pane.ts` cho biết khung nào hiện dưới 900 px.
+- [ui/keys/keys.ts](../../src/web/ui/keys/keys.ts) là listener `keydown` duy nhất của tài liệu cho các phím tắt.
+- [state/attention.ts](../../src/web/state/attention.ts) áp trọng lượng mà dịch vụ nền gán cho mỗi sự kiện wire (bong bóng sáng lên, các chấm, tiêu đề thẻ; biểu tượng thẻ trong `state/favicon.ts`, tiếng chuông trong `state/chime.ts`, thông báo của trình duyệt trong `state/notifications.ts`) mà không tự suy ra lại.
+
+**Mức cho phép và `?perf=1`.** [scene/budgets.ts](../../src/web/scene/budgets.ts) đặt tên cho:
+
+- chi phí khung hình của bộ vẽ 2D, và tốc độ vẽ cho phép khi người đang làm việc;
+- một đồng hồ hiệu ứng nền duy nhất (`AMBIENT_FX_FPS`, chỉ đánh thức vòng lặp khi có hiệu ứng nào đang bật và không bao giờ khi giảm chuyển động). Nó bước bụi, dải ruy băng máy lạnh, tủ máy chủ, đèn chờ duyệt, bọt bể cá của tầng 2D, các cử động nhẹ của thú cưng ở cả hai tầng (thở, vẫy tai, liếc nhìn, vẫy đuôi, chữ "z" nhấp nháy của con đang ngủ), nhịp chớp mắt và thở của người trong cửa sổ của họ, hơi nước trên cốc và cá;
+- một chuỗi cửa sổ chuyển động nền có hạt giống trong [scene/sim/ambient-windows.ts](../../src/web/scene/sim/ambient-windows.ts) mà nhịp chớp mắt và cử động ngồi của người, trình bảo vệ màn hình ở bàn, dải LED, màu trôi của đế StandBy, thú cưng và cá cùng dùng. Một cửa sổ mở 12 đến 60 giây sau khi cửa sổ trước đóng và kéo dài 10 đến 30 giây. Mỗi bên chỉ chạy trong đoạn riêng của mình, và một đồng hồ chỉ chạy trong đoạn đó giữ dải LED, màu trôi và trình bảo vệ màn hình đứng yên giữa các cửa sổ, nên tầng vắng người có thể hoàn toàn lặng;
+- số lần gọi vẽ cho phép với một tầng 3D;
+- một bước mô phỏng phố (`STREET_STEP_BUDGET_MS`) và khung dài nhất của một lần vẽ lại canvas tĩnh của phố (`STREET_PAINT_BUDGET_MS`), mà lần vẽ lại giữ được nhờ vẽ `STREET_PAINT_SLICE_MS` các bước mỗi khung.
+
+Khi địa chỉ có `?perf=1`, bảng trong `overlay/perf-readout.tsx` hiện từng con số so với mức của nó mỗi giây một lần, kể cả bước mô phỏng phố và lần vẽ lại phố.
+
+**Hạ tầng của trang cho phần cài đặt và các thẻ.** `showUndo` trong `ui/kit/undo-bar.tsx` là thanh hoàn tác duy nhất: phần khung trang gắn nó một lần, thời gian chờ dừng khi trang bị ẩn, thanh mới hơn gửi yêu cầu đang giữ của thanh cũ trước, và trang đã đóng thì không gửi gì. `?chat=<id>` chỉ bắt đầu những lần đọc của khung chat (`startLive({ chatTab })`) và không vẽ khung cảnh. Route mà dịch vụ nền có thể giữ lâu hơn mang `timeout: 'slow'` và chờ `slowRequestMs` từ `/v1/state` cộng một khoảng dư (`setSlowRequestMs`). `isAdvanced` trong `state/prefs.ts` là mức chi tiết mà mọi chỗ hiển thị đều hỏi.
+
+**Cổng kiểm tra và vòng lặp phát triển.** Cổng kiểm tra của trang chính là cổng của repo, mở rộng cho `.tsx`: giới hạn dòng và hàm, chu trình, export không dùng, khả năng tiếp cận (nó đi theo `index.html` tới `main.tsx`), `check-dag`, `check-scene-layers`, và `check-vi-terminology` trên bộ ngôn ngữ. Không có bộ test; kiểm chứng là các cổng cộng một lượt đi tay trên bản sao dữ liệu của bạn. Trang được gói một lần, ở yêu cầu đầu tiên, nên sửa `src/web` thì cần khởi động lại dịch vụ nền mới thấy: `bun --hot` không gói lại nó. `bun run build` biên dịch trang vào tệp chạy với `--splitting`, nên `three` nằm trong một khối chỉ tải khi chọn 3D (chạy từ mã nguồn thì nó nằm trong gói trang duy nhất), và `./dist/openalpha start` phục vụ nó. Hãy chạy dịch vụ nền trên một bản sao dữ liệu (`OPENALPHA_DATA_DIR`) với `[api] enabled = true`, rồi mở trang bằng `web`.
+
 ---
 
 ## Bản đồ mã nguồn
@@ -651,4 +913,5 @@ thị bí mật thô, văn bản plugin chưa làm sạch, hay tham số công c
 - [src/core/errors.ts](../../src/core/errors.ts): `HALT_SPEC`, `failureSpecOf`
 - [src/trading/render/format.ts](../../src/trading/render/format.ts): `resolveRenderContext`
 - [src/engine/mcp/jobs/](../../src/engine/mcp/jobs/), [src/ai/client-model/](../../src/ai/client-model/): mô hình client dưới `mcp serve`
+- [src/web/](../../src/web/), [scripts/check-scene-layers.ts](../../scripts/check-scene-layers.ts): trang văn phòng và cổng kiểm tra các tầng khung cảnh
 - [Mở rộng](./mo-rong.md), [Kênh](./kenh.md)

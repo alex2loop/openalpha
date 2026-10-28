@@ -57,7 +57,7 @@ never past the next anchor; a fifth failure hands back to the anchor and the lad
 | `StorageError`, `ChannelError`, `LLMError`, or `RunHalted` with code `budget` or `rate` | Boundary failure: `trading.tick_failed` at warn, retried next interval. |
 | `MissingEnvError` | Boundary failure: `trading.tick_key_missing` at warn once per loop until another failure is logged, retried next interval. |
 | Any other error | Escapes to the quarantine wrapper around the loop. Retrying forever would hide the code being wrong. |
-| Abort | Shutdown; the loop exits normally. |
+| Abort | Shutdown when the loop's own signal fired; the loop exits normally. Any other abort (the operator stopped the pass's run on the page) logs `trading.tick_stopped` at info and waits for the next interval. |
 
 Quarantine (`withQuarantine`) logs `trading.loop_quarantined` at error and sends the operator a
 notice that names the loop. It restarts the loop after one hour, at most three times. A loop that ran
@@ -160,14 +160,19 @@ delivered. A rejected call is never cached.
 
 ### Backoff
 
-A run that never reaches `completed` leaves the last-completed time untouched, which would make the
-task due again on the next tick forever. Instead the failure increments a count and defers the next
-claim by `60 s x 2^(failures - 1)`, capped at 30 minutes. A completed run clears both. Backoff gates
-the claim: the task is never disabled. Two more paths defer the same way through
-`deferFailedHeartbeatTask` (`heartbeat/lease.ts`): a completed run whose `completeHeartbeatTask` write
-failed (`{ kind: 'failed' }`; `lease_lost` stays as is, another claimant owns the task), and a
-`runClaimedHeartbeatTask` that throws, unless shutdown aborted the signal. A throw after completion is
-harmless: the failure write is keyed on the lease token completion already cleared.
+A run that never reaches `completed` leaves the last-completed time untouched, so without a brake the
+task would be due again on every tick, forever. Instead, each failure increments a count and defers the
+next claim by `60 s x 2^(failures - 1)`, capped at 30 minutes. A completed run clears both. Backoff only
+gates the claim: the task is never disabled.
+
+Two more paths defer the same way, through `deferFailedHeartbeatTask` (`heartbeat/lease.ts`):
+
+- a completed run whose `completeHeartbeatTask` write failed (`{ kind: 'failed' }`; `lease_lost` stays
+  as is, because another claimant owns the task);
+- a `runClaimedHeartbeatTask` that throws, unless shutdown aborted the signal.
+
+A throw after completion is harmless: the failure write is keyed on the lease token that completion
+already cleared.
 
 ### Failure behavior
 

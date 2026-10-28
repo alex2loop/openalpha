@@ -10,6 +10,7 @@ import type {
 import {
   applyPinnedTargets,
   defaultProfile,
+  isBelowReserve,
   TARGET_SUM_EPSILON,
 } from '@/trading/features/profile/policy'
 import { assertPatch } from '@/trading/features/profile/validate'
@@ -37,7 +38,7 @@ export function updateProfile(
   const capacity = patch.riskLevel ?? patch.riskCapacity ?? current.riskCapacity
   const willingness = patch.riskLevel ?? patch.riskWillingness ?? current.riskWillingness
   const riskLevel = effectiveRisk(capacity, willingness)
-  const effective = withAgreeingPins(
+  const merged = withAgreeingPins(
     current,
     {
       ...resolveRiskPolicy(current, context, riskLevel),
@@ -45,6 +46,13 @@ export function updateProfile(
     },
     patch
   )
+  // Only an edit that can move cash or the reserve is held to the reserve: a watchlist or goal edit
+  // must not rewrite targets it never named.
+  const movesCash =
+    patch.reservePctNav !== undefined ||
+    patch.segmentTargets !== undefined ||
+    riskLevel !== current.riskLevel
+  const effective = movesCash ? withReserveCash(current, merged, context) : merged
 
   const etfCores = askedEtfCores(current, patch, effective)
 
@@ -86,6 +94,32 @@ function withAgreeingPins(
   )
 
   return { ...effective, pinnedTargets: Object.fromEntries(pinned) }
+}
+
+/** A reserve raised past the cash target lifts the target with it, and the other segments give up
+ *  the difference in proportion, so the allocation never plans cash below what must stay. */
+function withReserveCash(
+  current: UserProfile,
+  effective: ProfilePatch,
+  context: ProfileContext
+): ProfilePatch {
+  const segmentTargets = effective.segmentTargets ?? current.segmentTargets
+  const reservePctNav = effective.reservePctNav ?? current.reservePctNav
+
+  if (!isBelowReserve({ segmentTargets, reservePctNav })) {
+    return effective
+  }
+
+  return {
+    ...effective,
+    ...applyPinnedTargets({
+      ...context,
+      segmentTargets,
+      reservePctNav,
+      caps: effective.caps ?? current.caps,
+      pinned: effective.pinnedTargets ?? current.pinnedTargets,
+    }),
+  }
 }
 
 /** Rebuilds today's defaults through the same validator a hand-written patch crosses, so a seed

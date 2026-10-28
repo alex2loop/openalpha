@@ -9,6 +9,20 @@ import {
 import { missingCredentials } from '@/core/security/credentials'
 import { resolveTradingConfig, unavailableSources } from '@/trading/api'
 
+const API_TOKEN_SUBJECT = 'api'
+const MCP_SUBJECT = 'mcp'
+// With nothing set, every source that takes a key reads as unavailable: each one and its variable.
+const NO_ENV: Readonly<Record<string, string | undefined>> = Object.freeze({})
+
+/** Who a key variable serves: the provider, search provider, venue, source, channel or MCP server
+ *  that reads it, or `api` for the API token. */
+interface KeyEnvName {
+  readonly name: string
+  readonly subject: string
+}
+
+export type KeyEnvGroup = 'provider' | 'search' | 'venue' | 'source' | 'token' | 'mcp' | 'channel'
+
 /** Every unset key variable the resolved config names, one per variable: the model chain and its
  *  tiers, web search and MCP servers. Each only takes its own feature down. */
 export function toMissingKeyErrors(config: ResolvedConfig): readonly MissingEnvError[] {
@@ -66,6 +80,7 @@ function toKeylessVenues(
       {
         kind: 'optional-key',
         subject: venue,
+        variables,
         message: {
           key: 'cli.keylessVenue',
           params: {
@@ -79,23 +94,47 @@ function toKeylessVenues(
   })
 }
 
-/** Every variable the config reads a key from, set or not: the model chain and its tiers, web
- *  search, MCP placeholders, channel tokens, venue credentials and source keys. */
-export function keyEnvNames(config: ResolvedConfig): readonly string[] {
+/** Every variable the config reads a key from, set or not, by what it opens: the model chain and
+ *  its tiers, web search, venue credentials, source keys, the API token, MCP placeholders and
+ *  channel tokens. A name may appear in more than one group. */
+export function keyEnvGroups(
+  config: ResolvedConfig
+): Readonly<Record<KeyEnvGroup, readonly KeyEnvName[]>> {
   const trading = resolveTradingConfig({ extensions: config.extensions, locale: config.locale })
   const models = [...config.models, ...Object.values(config.modelTiers).flat()]
-  const names = [
-    ...models.map((model) => model.apiKeyEnv),
-    config.webSearch.apiKeyEnv,
-    config.webSearch.fallbackApiKeyEnv,
-    config.api.tokenEnv,
-    ...config.mcp.envNames,
-    ...Object.values(config.channels).map(channelTokenEnv),
-    ...Object.values(trading.venues).flatMap((venue) => Object.values(venue?.credentialEnv ?? {})),
-    ...Object.values(trading.sourceCredentialEnv),
-  ]
+  const { webSearch } = config
 
-  return [...new Set(names.filter((name): name is string => name !== undefined))].sort()
+  return {
+    provider: models.flatMap((model) => named(model.apiKeyEnv, model.provider)),
+    search: [
+      ...named(webSearch.apiKeyEnv, webSearch.provider),
+      ...named(webSearch.fallbackApiKeyEnv, webSearch.fallback?.provider ?? webSearch.provider),
+    ],
+    venue: Object.entries(trading.venues).flatMap(([venue, settings]) =>
+      Object.values(settings?.credentialEnv ?? {}).map((name) => ({ name, subject: venue }))
+    ),
+    source: unavailableSources({ env: NO_ENV, credentialEnv: trading.sourceCredentialEnv }).map(
+      ({ source, variable }) => ({ name: variable, subject: source })
+    ),
+    token: named(config.api.tokenEnv, API_TOKEN_SUBJECT),
+    mcp: config.mcp.envNames.map((name) => ({ name, subject: MCP_SUBJECT })),
+    channel: Object.entries(config.channels).flatMap(([channel, settings]) =>
+      named(channelTokenEnv(settings), channel)
+    ),
+  }
+}
+
+/** Every variable the config reads a key from, set or not: `keyEnvGroups` as one sorted list. */
+export function keyEnvNames(config: ResolvedConfig): readonly string[] {
+  const names = Object.values(keyEnvGroups(config)).flatMap((group) =>
+    group.map((entry) => entry.name)
+  )
+
+  return [...new Set(names)].sort()
+}
+
+function named(name: string | undefined, subject: string): readonly KeyEnvName[] {
+  return name === undefined ? [] : [{ name, subject }]
 }
 
 function channelTokenEnv(channel: unknown): string | undefined {
