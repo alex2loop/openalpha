@@ -642,7 +642,7 @@
     "office.ticker.why": "Vì sao?",
     "office.ticker.events": "Sự kiện",
     "office.ticker.suggestCta": "Phân tích mã này",
-    "office.ticker.suggestFresh": "Phân tích lại từ đầu",
+    "office.common.suggestFresh": "Phân tích lại từ đầu",
     "office.ticker.watchCta": "Theo dõi mã này",
     "office.ticker.watching": "Đang theo dõi",
     "office.ticker.outcome.open": "đang mở",

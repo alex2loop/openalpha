@@ -9,8 +9,10 @@ import {
 } from '@/web/state/chat'
 import {
   ALERT_CREATE_COMMAND,
+  FORCE_ARG,
   fillInput,
   inputText,
+  runCommand,
   SUGGEST_COMMAND,
   setInput,
 } from '@/web/state/command'
@@ -20,7 +22,7 @@ import { canRemember, toAttributeName } from '@/web/state/memory'
 import { joinInline } from '@/web/text/glyphs'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
-import { commandWordOf, resolveCommandLink } from '@/web/ui/chat/command-link'
+import { commandWordOf, commandWordsOf, resolveCommandLink } from '@/web/ui/chat/command-link'
 import { RememberThis, ReplyText } from '@/web/ui/chat/history-message'
 import { QueuedCard } from '@/web/ui/chat/queued-card'
 import { isResearchTurn, ResearchReportLink, ResearchSteps } from '@/web/ui/chat/research-steps'
@@ -276,10 +278,13 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
   )
 }
 
-// The first name the answer reported on: analyze it, unless this turn already did, or start an
-// alert on it, which waits in the box for its price.
+// The first name the answer reported on: analyze it, or, under an analysis that may have handed back
+// a stored call, analyze it again from scratch; or start an alert on it, which waits in the box for
+// its price.
 function NextSteps({ turn }: { readonly turn: Turn }) {
   const ticker = turn.tickers?.[0]
+  const isSuggest = commandWordOf(turn.text) === SUGGEST_COMMAND
+  const isForced = commandWordsOf(turn.text).includes(FORCE_ARG)
 
   if (ticker === undefined) {
     return null
@@ -287,7 +292,15 @@ function NextSteps({ turn }: { readonly turn: Turn }) {
 
   return (
     <>
-      {commandWordOf(turn.text) !== SUGGEST_COMMAND && <SuggestChip ticker={ticker} />}
+      {!isSuggest && <SuggestChip ticker={ticker} />}
+      {isSuggest && !isForced && (
+        <Button
+          size="small"
+          onClick={() => runCommand(`${SUGGEST_COMMAND} ${ticker} ${FORCE_ARG}`)}
+        >
+          {tr('ui.office.common.suggestFresh')}
+        </Button>
+      )}
       <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
         {tr('ui.office.common.setAlert')}
       </Button>

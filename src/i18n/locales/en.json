@@ -642,7 +642,7 @@
     "office.ticker.why": "Why?",
     "office.ticker.events": "Events",
     "office.ticker.suggestCta": "Analyze this name",
-    "office.ticker.suggestFresh": "Analyze again from scratch",
+    "office.common.suggestFresh": "Analyze again from scratch",
     "office.ticker.watchCta": "Watch this name",
     "office.ticker.watching": "Watching",
     "office.ticker.outcome.open": "open",

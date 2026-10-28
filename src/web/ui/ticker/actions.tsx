@@ -48,7 +48,7 @@ export function CardActions({ ticker, market, hasPlan }: CardActionsProps) {
       </Button>
       {hasPlan && (
         <Button onClick={() => runCommand(`${SUGGEST_COMMAND} ${ticker} ${FORCE_ARG}`)}>
-          {tr('ui.office.ticker.suggestFresh')}
+          {tr('ui.office.common.suggestFresh')}
         </Button>
       )}
       {isWatched ? (
