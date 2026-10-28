@@ -995,5 +995,5 @@ config.toml has things to fix:
 - `budget.max_daly_usd`: that is not a setting I know. Did you mean `max_daily_usd`?
 Correct them, then run again.
 
-ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start yet. Save it with `openalpha key set ANTHROPIC_API_KEY`, then try again.
+ANTHROPIC_API_KEY is not set, so the AI model cannot answer: chat, the written debate in /suggest, /research, /themes and the brief's written parts wait for it, while prices, scores and levels keep working. Save it with `openalpha key set ANTHROPIC_API_KEY`; if OpenAlpha runs in the background, follow with `openalpha restart --background`.
 ```
