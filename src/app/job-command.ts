@@ -60,6 +60,7 @@ export async function runJobCommand(
       role: 'operator',
       locale: language,
       args: [],
+      isScheduled: true,
     },
   })
 

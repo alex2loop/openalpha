@@ -139,6 +139,9 @@ export interface SlashContext {
    *  surface that must name the run before it starts (a command it announces while it waits) mints
    *  the id itself and the dispatcher keeps it. */
   readonly runId?: RunId
+  /** A scheduled job's own line: its answer is delivered, and its session reopens every run and is
+   *  never swept, so only model-context (`echo`) rows are kept for it. */
+  readonly isScheduled?: true
 }
 
 /**

@@ -64,22 +64,24 @@ export function HistoryMessages({
   )
 }
 
-/** Oldest first, as the history holds them: each answer learns the command it replies to, as the
- *  live chat reads a line starting with `/`, and whether its run wrote anything after it. */
+/** Oldest first, as the history holds them: the answer right after a line starting with `/` is
+ *  that command's (a command writes exactly one, and an agent turn still running may land its own
+ *  answer after it), and each answer learns whether its run wrote anything after it. */
 function toHistoryEntries(messages: readonly ChatHistoryMessage[]): readonly HistoryEntry[] {
   const runEnds = toRunEnds(messages)
-  let command: string | undefined
 
   return messages.map((message, index) => {
-    if (message.role === USER_ROLE) {
-      command = message.content.startsWith(COMMAND_PREFIX)
-        ? commandWordOf(message.content)
+    const before = messages[index - 1]
+    const command =
+      message.role !== USER_ROLE &&
+      before?.role === USER_ROLE &&
+      before.content.startsWith(COMMAND_PREFIX)
+        ? commandWordOf(before.content)
         : undefined
-    }
 
     return {
       message,
-      ...(message.role === USER_ROLE || command === undefined ? {} : { command }),
+      ...(command === undefined ? {} : { command }),
       isRunEnd: runEnds[index] === true,
     }
   })

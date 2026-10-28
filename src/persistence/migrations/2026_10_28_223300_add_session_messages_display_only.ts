@@ -9,6 +9,8 @@ export const up: MigrationUp = async (tx) => {
   )
 }
 
+// The previous release reads every row as model context, so the display rows leave with the flag.
 export const down: MigrationDown = async (tx) => {
+  await tx.execute('DELETE FROM session_messages WHERE display_only = 1')
   await tx.execute('ALTER TABLE session_messages DROP COLUMN display_only')
 }

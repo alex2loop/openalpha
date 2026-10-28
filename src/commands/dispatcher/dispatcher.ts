@@ -171,6 +171,12 @@ type AdmissionResult =
   | { readonly kind: 'admitted'; readonly lease: AdmissionLease }
   | { readonly kind: 'rejected'; readonly result: SlashResult }
 
+interface AdmittedResult {
+  readonly result: SlashResult
+  /** False when admission refused it: nothing ran under the context's run id. */
+  readonly isRun: boolean
+}
+
 /** A channel stamps one id per inbound message, so a command and every engine turn it starts group
  *  together; the REPL has only the session, which is the honest granularity there. Whatever the
  *  command answered, a refusal included, is recorded in its session's transcript. */
@@ -180,11 +186,11 @@ function dispatchResolved(options: AdmissionOptions): Promise<SlashResult> {
   const { command, args, policy } = options.resolved
 
   return withCorrelation(id, async () => {
-    const result = await dispatchAdmitted({ ...options, context })
+    const { result, isRun } = await dispatchAdmitted({ ...options, context })
 
     await appendExchange({
       ...options,
-      context,
+      context: isRun ? context : withoutRunId(context),
       invocation: [`/${command.name}`, ...args].join(' '),
       policy,
       result,
@@ -203,11 +209,18 @@ function withRunId(context: SlashContext, policy: SlashInvocationPolicy): SlashC
   return { ...context, runId: brandRunId(randomUUID()) }
 }
 
-async function dispatchAdmitted(options: AdmissionOptions): Promise<SlashResult> {
+// A refused command never ran, so the run id it was handed names nothing.
+function withoutRunId(context: SlashContext): SlashContext {
+  const { runId: _dropped, ...rest } = context
+
+  return rest
+}
+
+async function dispatchAdmitted(options: AdmissionOptions): Promise<AdmittedResult> {
   const admission = admit(options)
 
   if (admission.kind === 'rejected') {
-    return admission.result
+    return { result: admission.result, isRun: false }
   }
 
   const lease = admission.lease
@@ -217,10 +230,10 @@ async function dispatchAdmitted(options: AdmissionOptions): Promise<SlashResult>
     lease.commit()
     committed = true
 
-    return result
+    return { result, isRun: true }
   } catch (err: unknown) {
     if (isCancellation(err)) {
-      return { kind: 'handled' }
+      return { result: { kind: 'handled' }, isRun: true }
     }
     throw err
   } finally {

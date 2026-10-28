@@ -41,15 +41,24 @@ export function fillInput(text: string, opts: { readonly agentId?: string } = {}
   focusInput()
 }
 
-/** Sends a button's own command, leaving what is typed in the box alone. Offline, the command
- *  takes the box instead and `isNotSent` says why. */
+/** Sends a button's own command, leaving what is typed in the box alone. A named agent is switched
+ *  to first, and the command goes once the daemon confirmed the switch, so it is never asked of the
+ *  agent before. Offline, `isNotSent` says so and an empty box takes the command. */
 export function runCommand(text: string, opts: { readonly agentId?: string } = {}): void {
-  if (opts.agentId !== undefined) {
-    selectAgent(opts.agentId)
+  const run = (): void => {
+    if (!send(text)) {
+      holdUnsent(text)
+    }
   }
 
-  if (!send(text)) {
-    inputText.value = text
+  if (opts.agentId === undefined) {
+    run()
+    return
+  }
+
+  if (!selectAgent(opts.agentId, run)) {
+    isNotSent.value = true
+    holdUnsent(text)
   }
 }
 
@@ -106,4 +115,11 @@ function send(text: string): boolean {
   sent.value = [...sent.value.filter((held) => held !== text), text].slice(-HISTORY_MAX)
 
   return true
+}
+
+// A draft the operator typed outranks a button's command.
+function holdUnsent(text: string): void {
+  if (inputText.value.trim() === '') {
+    inputText.value = text
+  }
 }

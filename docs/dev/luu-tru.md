@@ -192,7 +192,7 @@ cùng kết nối với câu xóa.
   `engine/hooks/persistence.ts`. `appendCommandExchange` ghi hai dòng mà một lệnh slash đóng góp (chúng mang
   phiên chạy của lệnh khi lệnh chạy như một phiên chạy; không gắn lần gọi nào). Bộ điều phối ghi mọi câu
   trả lời của lệnh qua đây: câu trả lời `text` được echo thành ngữ cảnh cho mô hình, mọi câu khác mang
-  `display_only = 1`, giữ cho trang lịch sử và bị loại khỏi `loadHistory` và `lastMessageAt`. `finalizeRun(id, runId, outcome)` khép cuộc trò chuyện lại và ném
+  `display_only = 1`, giữ cho trang lịch sử và bị loại khỏi `loadHistory` và `lastMessageAt`; việc theo lịch không giữ dòng nào (câu trả lời đã được gửi đi, và phiên của nó không bao giờ bị dọn), còn rollback migration thì xóa các dòng này, vì bản trước sẽ đọc chúng như ngữ cảnh của mô hình. `finalizeRun(id, runId, outcome)` khép cuộc trò chuyện lại và ném
   `ConflictError` trừ khi đúng phiên chạy đó đang giữ nó.
 - **Stale.** `markStaleRuns(leaseExpiresBefore)` chạy một lần lúc dịch vụ nền khởi động
   (`app/startup-state.ts`), trước khi bất kỳ hệ con nào mở được phiên chạy, và đánh dấu `stale` mọi

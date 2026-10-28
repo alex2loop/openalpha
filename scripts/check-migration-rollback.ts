@@ -203,6 +203,17 @@ async function assertDisplayOnlyRollback(db: Storage): Promise<void> {
     await hasColumn(db, SESSION_MESSAGES_TABLE, 'display_only'),
     'display_only migration did not add the column'
   )
+  await db.execute(
+    'INSERT INTO sessions (id, agent_id, user_id, channel, status, started_at, last_activity_at) ' +
+      "VALUES ('display-session', 'main', 'operator', 'api', 'done', ?1, ?1)",
+    [APPLIED_AT_MS]
+  )
+  await db.execute(
+    'INSERT INTO session_messages (session_id, idx, role, content, display_only, created_at) VALUES ' +
+      "('display-session', 0, 'user', 'kept', 0, ?1), " +
+      "('display-session', 1, 'assistant', 'shown only', 1, ?1)",
+    [APPLIED_AT_MS]
+  )
 
   const rolledBack = await rollbackMigration(db, sqliteDialect, {
     expectedId: DISPLAY_ONLY_MIGRATION_ID,
@@ -217,6 +228,15 @@ async function assertDisplayOnlyRollback(db: Storage): Promise<void> {
   assertState(
     !(await hasColumn(db, SESSION_MESSAGES_TABLE, 'display_only')),
     'display_only rollback kept the column'
+  )
+
+  const left = await db.query<{ content: string }>(
+    "SELECT content FROM session_messages WHERE session_id = 'display-session'"
+  )
+
+  assertState(
+    left.length === 1 && left[0]?.content === 'kept',
+    'display_only rollback left a display row for the model to read'
   )
 }
 
