@@ -200,12 +200,15 @@ its turn. `buildEndpointMaps` keeps the origin (the trusted-host list) and the e
 CoinGecko's `/api/v3` is not lost.
 
 Credentials: `SOURCE_CREDENTIALS` declares, per source, the default variable *name* (`COINGECKO_API_KEY`, `FRED_API_KEY`, `BLS_API_KEY`) and the catalog line saying what setting it adds (`trading.source.credential.<id>`, which `doctor` prints); `SOURCE_CREDENTIAL_ENV` is derived from it.
-`[trading.sources]` may rename a variable, never name a value or a host. A rename aimed at a source that takes no credential is
-a boot-time `OperatorConfigError` (`errors.configSourceNoCredential`). `resolveCredential` (`core/security/credentials.ts`) reads
-the variable, then the same name with the product prefix (`OPENALPHA_FRED_API_KEY`). A request that declares a credential
-placement (`header` with an optional prefix, or `query`) with no secret resolved is an `OperatorConfigError`, unless it is marked
-`optional` (`bls` sends `registrationkey` only when `BLS_API_KEY` is set). A source whose facts say `keylessTier` registers either way,
-and `unavailableSources` still lists it so `doctor` and `key list` name the variable.
+
+- `[trading.sources]` may rename a variable, never name a value or a host. A rename aimed at a source that takes no credential is
+  a boot-time `OperatorConfigError` (`errors.configSourceNoCredential`).
+- `resolveCredential` (`core/security/credentials.ts`) reads the variable, then the same name with the product prefix
+  (`OPENALPHA_FRED_API_KEY`).
+- A request that declares a credential placement (`header` with an optional prefix, or `query`) with no secret resolved is an
+  `OperatorConfigError`, unless it is marked `optional` (`bls` sends `registrationkey` only when `BLS_API_KEY` is set).
+- A source whose facts say `keylessTier` registers either way, and `unavailableSources` still lists it so `doctor` and `key list`
+  name the variable.
 
 A source that needs a key and has none is not registered, so its kind falls through to the next provider. Boot logs one
 `trading.source.skipped` warning naming each skipped source and the variable it wanted. A keyless install is a supported reduced
@@ -330,15 +333,18 @@ remainder is listed by no routed venue). It is third in `bars` on purpose: the l
 volume is least trustworthy, so it answers only for a name the majors decline. Its bars carry no `takerBuyVolume` (no aggressor
 split), which `Candle` models as absent rather than zero.
 
-**`fx`** is one `ANY_SCOPE` list whose members do not overlap. The coin providers lead and pick their own work: they cover only a
-pair whose base is a coin they can price. `yahoo` and `er-api` split a pair into two ISO codes, so a seven-character `USDTVND`
-fails their `covers`. `coinbase` leads the pair it trades because the crypto book is valued through that rate; `okx` backs it
-because coinbase's book is the deeper one. `fxHistory` is `yahoo` alone: the coin providers quote spot, not dated history, and
-`er-api` publishes today's board only. A fiat pair reaches `yahoo` untouched; a coin's dollar leg (`USDTUSD`, the bridge leg of a
-`USDTVND` rate) reads Yahoo's `USDT-USD` listing, refused unless it answers as a cryptocurrency. Without it a past day's rate
-carried today's peg and moved on every call while naming that day. There is no fallback from
-`USDTVND` to `USDVND`: USDT is a different instrument in a different market, and a substituted rate is worse than the gap
-`valuation.fx-missing` reports.
+**`fx`** is one `ANY_SCOPE` list whose members do not overlap.
+
+- The coin providers lead and pick their own work: they cover only a pair whose base is a coin they can price. `yahoo` and
+  `er-api` split a pair into two ISO codes, so a seven-character `USDTVND` fails their `covers`.
+- `coinbase` leads the pair it trades because the crypto book is valued through that rate; `okx` backs it because coinbase's
+  book is the deeper one.
+- `fxHistory` is `yahoo` alone: the coin providers quote spot, not dated history, and `er-api` publishes today's board only.
+- A fiat pair reaches `yahoo` untouched. A coin's dollar leg (`USDTUSD`, the bridge leg of a `USDTVND` rate) reads Yahoo's
+  `USDT-USD` listing, refused unless it answers as a cryptocurrency. Without it, a past day's rate carried today's peg and moved
+  on every call while naming that day.
+- There is no fallback from `USDTVND` to `USDVND`: USDT is a different instrument in a different market, and a substituted rate
+  is worse than the gap `valuation.fx-missing` reports.
 
 ### Health demotes, it never promotes
 
