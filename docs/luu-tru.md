@@ -1,11 +1,11 @@
-# Lưu trữ và phiên chat
+# Lưu trữ và cuộc trò chuyện
 
 Mọi thứ OpenAlpha nhớ được nằm trong một tệp SQLite duy nhất theo mặc định, hoặc trong PostgreSQL nếu
 bạn trỏ nó sang đó. Hội thoại, sổ lệnh, các đề xuất, lịch sử chi phí và trạng thái bộ lập lịch đều là
 các dòng trong cùng một cơ sở dữ liệu. Vì vậy một lần `db export` mang theo trọn phần không dựng lại
 được.
 
-Trang này nói về cơ sở dữ liệu trước, rồi đến các phiên chat lưu trong đó.
+Trang này nói về cơ sở dữ liệu trước, rồi đến các cuộc trò chuyện lưu trong đó.
 
 ---
 
@@ -30,8 +30,8 @@ openalpha db export --out ./export
 openalpha db import --in ./export
 ```
 
-Lệnh nào ghi dữ liệu thì cần dừng daemon trước. `db integrity`, `db stats`, `db export` và `db backup`
-chỉ đọc, nên chạy được khi daemon đang chạy. Chúng chỉ khởi động tầng lưu trữ, nên dùng được cả khi bạn
+Lệnh nào ghi dữ liệu thì cần dừng dịch vụ nền (daemon) trước. `db integrity`, `db stats`, `db export` và `db backup`
+chỉ đọc, nên chạy được khi dịch vụ nền đang chạy. Chúng chỉ khởi động tầng lưu trữ, nên dùng được cả khi bạn
 chưa cấu hình khóa mô hình nào. Trên PostgreSQL, `db integrity` chỉ kiểm tra kết nối được hay không.
 
 `db stats` liệt kê các bảng cốt lõi và các bảng giao dịch. Nếu cơ sở dữ liệu nặng vài megabyte, phần
@@ -45,12 +45,12 @@ Nếu một bảng giao dịch biến mất sau khi reset, nghĩa là migration 
 
 | Bảng | Giữ gì |
 | --- | --- |
-| `sessions`, `session_messages` | Vòng đời phiên chat và bản ghi hội thoại. Không lưu tổng lượng dùng riêng: tổng theo phiên chat được cộng lại từ `llm_attempts` mỗi khi đọc, nên không thể lệch. |
+| `sessions`, `session_messages` | Vòng đời cuộc trò chuyện và bản ghi hội thoại. Không lưu tổng lượng dùng riêng: tổng theo cuộc trò chuyện được cộng lại từ `llm_attempts` mỗi khi đọc, nên không thể lệch. |
 | `llm_attempts` | Sổ chỉ ghi thêm: từng lần gọi mô hình và chi phí toàn cục. |
 | `runs` | Một dòng cho mỗi câu lệnh chạy lâu và mỗi phiên chạy của agent có câu trả lời đến bạn đã kết thúc (cùng các phiên chạy con do chúng khởi động): trang hoạt động liệt kê từ đây. Chi phí của một phiên chạy được đọc từ `llm_attempts`, không chép vào đây. |
-| `notices` | Chuông thông báo: mọi thông báo daemon phát ra cho bạn chứ không phải chỉ để cập nhật màn hình trong chốc lát (cảnh báo, điểm dừng lỗ, bản tin sáng, lệnh khớp, yêu cầu duyệt, ngân sách cạn, những câu daemon tự ghi), kèm các kênh đã nhận và việc bạn đã đọc chưa. |
+| `notices` | Chuông thông báo: mọi thông báo dịch vụ nền phát ra cho bạn chứ không phải chỉ để cập nhật màn hình trong chốc lát (cảnh báo, điểm dừng lỗ, bản tin sáng, lệnh khớp, yêu cầu duyệt, ngân sách cạn, những câu dịch vụ nền tự ghi), kèm các kênh đã nhận và việc bạn đã đọc chưa. |
 | `bindings`, `pairings` | Bí danh định tuyến chat và trạng thái ghép nối kênh. |
-| `channel_state` | Mốc tiến độ của kênh: offset polling và tuyến phiên chat. |
+| `channel_state` | Mốc tiến độ của kênh: offset polling và tuyến cuộc trò chuyện. |
 | `channel_inbox` | Hàng đợi tin đến và số lần thử lại; nội dung của các mục đã xong hoặc đã hỏng; câu trả lời của phiên chạy đã xong nhưng lần gửi cuối bị lỗi. |
 | `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Lịch, lịch sử các lần chạy, điều kiện kích hoạt của việc theo sự kiện cùng lần chạy gần nhất cho từng mã, tiến độ heartbeat và các cam kết hoãn lại. |
 | `memory_kv` | Bộ nhớ agent. SQLite thêm tìm kiếm FTS5; PostgreSQL dùng các tiện ích text-search. |
@@ -103,13 +103,13 @@ một gói bằng chứng không thể dựng lại.
   chứng, và `theme_id` khi chỉ soát một chủ đề bằng `/themes run <id>`) cùng một tập `theme_reads` ở ba
   tầng: chủ đề, ngành, cổ phiếu. Dòng đã ghi không bao giờ bị ghi đè.
 - `theme_outcomes` giữ ba dòng theo kỳ hạn cho mỗi nhận định cổ phiếu. Chúng được ghi cùng phiên chạy,
-  và vòng lặp daemon chốt kết quả khi tới hạn, dựa trên các cây nến mà sau một lần reset có thể đã mất.
+  và vòng lặp dịch vụ nền chốt kết quả khi tới hạn, dựa trên các cây nến mà sau một lần reset có thể đã mất.
 
 **Chuỗi theo ngày.** `series_points` giữ các chuỗi số đơn theo ngày. Mức chênh giá vàng trong nước được
 suy ra từ lịch sử đã tải: mỗi lượt bù các ngày còn thiếu của cửa sổ phân vị từ lịch sử bảng giá vàng có
 ngày, giá đóng cửa thế giới và lịch sử tỷ giá. Chuỗi tỷ giá ghi thẳng từ một chuỗi đã tải. Refresh
 thường **không** ghi đè ngày đã có, vì bảng giá không đổi nữa sau khi phiên chốt. Refresh cưỡng bức
-thì thay được, và đó là cách duy nhất để sửa một ngày. Các tỷ lệ của chỉ số Việt Nam (P/E, P/B, tỷ suất cổ tức, trung bình năm năm của chúng và tỷ lệ mã nằm trên đường trung bình 50 và 200 phiên, cho VN-Index, VN30 và HNX) được lượt làm mới ghi mỗi ngày một lần cho từng chỉ số, mỗi tỷ lệ một dòng mỗi ngày, nên daemon giữ lịch sử định giá của riêng nó; mỗi mã đóng góp bao nhiêu cho một chỉ số thì không bao giờ được lưu.
+thì thay được, và đó là cách duy nhất để sửa một ngày. Các tỷ lệ của chỉ số Việt Nam (P/E, P/B, tỷ suất cổ tức, trung bình năm năm của chúng và tỷ lệ mã nằm trên đường trung bình 50 và 200 phiên, cho VN-Index, VN30 và HNX) được lượt làm mới ghi mỗi ngày một lần cho từng chỉ số, mỗi tỷ lệ một dòng mỗi ngày, nên dịch vụ nền giữ lịch sử định giá của riêng nó; mỗi mã đóng góp bao nhiêu cho một chỉ số thì không bao giờ được lưu.
 
 #### Agent và phạm vi
 
@@ -175,9 +175,9 @@ là cửa sổ của kết quả theo dõi và `inbox_days` là cửa sổ riên
 
 | Dữ liệu | Hành vi lưu giữ |
 | --- | --- |
-| Phiên chat không hoạt động và tin nhắn của chúng | Bị xóa sau `days`, tính từ lúc kết thúc hoặc hoạt động cuối. |
-| Tuyến phiên chat | Theo cửa sổ chung của phiên chat. |
-| `llm_attempts` | Được giữ khi phiên chat bị xóa, chỉ bị gỡ liên kết tới phiên chat. Dòng đã chốt quá 400 ngày thì bị xóa, nên khoảng một năm mà `cost` báo vẫn đầy đủ. |
+| Cuộc trò chuyện không hoạt động và tin nhắn của chúng | Bị xóa sau `days`, tính từ lúc kết thúc hoặc hoạt động cuối. |
+| Tuyến cuộc trò chuyện | Theo cửa sổ chung của cuộc trò chuyện. |
+| `llm_attempts` | Được giữ khi cuộc trò chuyện bị xóa, chỉ bị gỡ liên kết tới cuộc trò chuyện. Dòng đã chốt quá 400 ngày thì bị xóa, nên khoảng một năm mà `cost` báo vẫn đầy đủ. |
 | `runs` (nhật ký phía sau trang hoạt động) | Bị xóa sau `days`, tính từ lúc phiên chạy kết thúc. Sổ chi phí ở trên không nằm trong đó. |
 | `notices` (chuông thông báo) | Bị xóa sau `days`, tính từ lúc thông báo được phát, dù đã đọc hay chưa. |
 | Mục inbox đã xong hoặc đã hỏng | Bị xóa sau `inbox_days`, gồm cả nội dung tin nhắn. |
@@ -201,8 +201,8 @@ là cửa sổ của kết quả theo dõi và `inbox_days` là cửa sổ riên
 | Sổ cái, ý định đặt lệnh, lệnh thoát còn sống | Không bao giờ bị cắt theo tuổi: sổ cái là sổ gốc. Ý định đặt lệnh rời đi khi hết hạn hoặc đã xong, hoặc khi bạn xóa một ý định lỗi. |
 | Dữ liệu thị trường | `db cleanup` không đụng tới. Mỗi lần refresh của một thị trường tự cắt các dòng cũ của nó theo thời điểm tải, sau một lượt đã ghi dữ liệu. Tin tức cũng vậy, theo cửa sổ riêng. |
 
-Daemon tự dọn một lần lúc khởi động rồi theo chu kỳ. `db cleanup --older-than <khoảng>` chạy đúng chính
-sách đó bằng tay, cần daemon đã dừng, và thêm `--dry-run` thì chỉ đếm chứ không xóa. `--older-than` bắt
+Dịch vụ nền tự dọn một lần lúc khởi động rồi theo chu kỳ. `db cleanup --older-than <khoảng>` chạy đúng chính
+sách đó bằng tay, cần dịch vụ nền đã dừng, và thêm `--dry-run` thì chỉ đếm chứ không xóa. `--older-than` bắt
 buộc, ghi đè cửa sổ chung chỉ cho lệnh đó và phải ít nhất `1d`. Các mục inbox vẫn dùng `inbox_days`,
 kết quả theo dõi dùng `history_days` (không bao giờ dưới `--older-than`), còn `llm_attempts` giữ cửa
 sổ 400 ngày riêng. Bảng nào được giữ lâu hơn `history_days` vì nơi đọc nó cần, lệnh in cửa sổ của bảng
@@ -225,7 +225,7 @@ openalpha db import --in ./export
 ```
 
 **Xuất** ghi mỗi bảng thành một tệp. Không có `--table` thì xuất tập bền: sổ lệnh, các đề xuất cũ, hồ
-sơ, cảnh báo, bộ nhớ, phiên chat cùng bản ghi hội thoại, các việc theo lịch, các ràng buộc, lịch sử chi
+sơ, cảnh báo, bộ nhớ, cuộc trò chuyện cùng bản ghi hội thoại, các việc theo lịch, các ràng buộc, lịch sử chi
 tiêu, trạng thái gửi bản tin, thiết lập trong ngày và mọi bảng bền khác nêu ở trên. Dữ liệu thị trường
 bị bỏ qua vì `refresh` dựng lại được từng dòng. `--table` vẫn chọn được bất kỳ bảng đã đăng ký nào theo
 tên. Bảng có trong sổ đăng ký mà cơ sở dữ liệu chưa tạo (như sau khi đổi schema và trước `db reset`) sẽ
@@ -271,18 +271,18 @@ openalpha db restore /safe/place/runtime.sqlite --yes
 ```
 
 **Sao lưu** ghi một bản chụp nhất quán ngay khi cơ sở dữ liệu đang chạy và đặt quyền `0600`, dù
-`--path` trỏ tới đâu. Nó chứa mọi phiên chat, mọi bộ nhớ và mọi dòng sổ, nên không bao giờ để nhóm hay
+`--path` trỏ tới đâu. Nó chứa mọi cuộc trò chuyện, mọi bộ nhớ và mọi dòng sổ, nên không bao giờ để nhóm hay
 người khác đọc được, kể cả lúc đang ghi: bản sao được tạo trong một thư mục tạm riêng tư `0700` đặt cạnh
 đích rồi mới chuyển vào chỗ khi đã đủ. Nếu tiến trình chết giữa chừng, thư mục tạm `.staging-` còn sót
 lại: thư mục sao lưu tự động sẽ xóa nó ở lần sao lưu kế tiếp, còn chỗ khác thì bạn xóa tay. Đích sao lưu tự động giữ bảy tệp mới nhất.
 
-Daemon cũng tự sao lưu mỗi ngày một bản vào `backups/daily/` và giữ ba bản mới nhất
-(`[retention] daily_backups`, `0` là tắt). Bản đầu tiên ghi lúc daemon khởi động, các bản sau ghi khi
+Dịch vụ nền cũng tự sao lưu mỗi ngày một bản vào `backups/daily/` và giữ ba bản mới nhất
+(`[retention] daily_backups`, `0` là tắt). Bản đầu tiên ghi lúc dịch vụ nền khởi động, các bản sau ghi khi
 bản mới nhất đã gần một ngày tuổi. Đây là bản sao lưu thường, nên đưa bản nào cho `db restore` cũng
 được. PostgreSQL bị bỏ qua: hãy dùng `pg_dump`. `--path` từ chối tệp đã tồn tại trừ khi
 bạn thêm `--force`.
 
-**Khôi phục** cần daemon đã dừng. Trước hết nó kiểm tra nguồn có mở được như một cơ sở dữ liệu SQLite
+**Khôi phục** cần dịch vụ nền đã dừng. Trước hết nó kiểm tra nguồn có mở được như một cơ sở dữ liệu SQLite
 và qua `PRAGMA quick_check` không, rồi cất cơ sở dữ liệu đang bị thay vào `backups/` với tên theo thời
 điểm, nên khôi phục mấy lần cũng không mất bản gốc. Nếu cơ sở dữ liệu cũ không mở được thì việc khôi
 phục vẫn chạy: nó cũng được dời vào `backups/` như vậy.
@@ -302,7 +302,7 @@ Các lệnh này cố tình **không** sao lưu hay khôi phục PostgreSQL. Hã
 openalpha db reset --yes
 ```
 
-Reset xóa mọi dòng và cần daemon đã dừng. SQLite thay cơ sở dữ liệu cùng các tệp đi kèm; PostgreSQL dựng
+Reset xóa mọi dòng và cần dịch vụ nền đã dừng. SQLite thay cơ sở dữ liệu cùng các tệp đi kèm; PostgreSQL dựng
 lại schema đã cấu hình, và từ chối `public` vì ứng dụng khác có thể dùng chung. Sau đó mọi migration đã
 đăng ký được áp lại. Muốn giữ dữ liệu, chạy `db export`
 trước rồi `db import` sau (xem [Xuất và nhập](#xuất-và-nhập)).
@@ -316,19 +316,19 @@ trước rồi `db import` sau (xem [Xuất và nhập](#xuất-và-nhập)).
 | SQLite bận quá mốc chờ đã cấu hình | Trả về một lỗi lưu trữ. |
 | Nguồn khôi phục không phải cơ sở dữ liệu SQLite đọc được, hoặc không qua `quick_check` | Lệnh khôi phục bị từ chối trước khi thay cơ sở dữ liệu. |
 | Worker inbox bị cắt giữa chừng | Các mục đang xử lý được đưa lại hàng đợi đến số lần thử tối đa, rồi đánh dấu hỏng. |
-| Một phiên chat bị xóa | Tin nhắn của phiên chat bị xóa; dữ liệu chi phí vẫn còn, chỉ bị gỡ liên kết. |
+| Một cuộc trò chuyện bị xóa | Tin nhắn của cuộc trò chuyện bị xóa; dữ liệu chi phí vẫn còn, chỉ bị gỡ liên kết. |
 
 ---
 
-## Phiên chat và lịch sử
+## Cuộc trò chuyện và lịch sử
 
-Một phiên chat là một cuộc hội thoại lưu lâu dài giữa một agent, một người dùng và một bề mặt. Phiên
-chat giữ bản ghi hội thoại, trạng thái, lượng dùng, tuyến và hàng đợi chạy lần lượt từng việc.
+Một cuộc trò chuyện là một cuộc hội thoại lưu lâu dài giữa một agent, một người dùng và một bề mặt. Cuộc trò chuyện
+giữ bản ghi hội thoại, trạng thái, lượng dùng, tuyến và hàng đợi chạy lần lượt từng việc.
 
-Một **phiên chạy** là một lần thực thi có giới hạn bên trong phiên chat đó. Agent được ủy quyền dùng
-phiên chat tạm thời riêng, nên phần trò chuyện của agent con không bao giờ lọt vào lịch sử của bạn.
+Một **phiên chạy** là một lần thực thi có giới hạn bên trong cuộc trò chuyện đó. Agent được ủy quyền dùng
+cuộc trò chuyện tạm thời riêng, nên phần trò chuyện của agent con không bao giờ lọt vào lịch sử của bạn.
 
-### Bắt đầu hoặc tiếp tục một phiên chat CLI
+### Bắt đầu hoặc tiếp tục một cuộc trò chuyện CLI
 
 ```bash
 openalpha chat
@@ -337,15 +337,15 @@ openalpha chat --continue
 openalpha chat --continue --message "Expand the risk section"
 ```
 
-Không có `--continue`, chat CLI tạo phiên chat mới. Có `--continue`, nó tiếp tục phiên chat CLI gần nhất
+Không có `--continue`, chat CLI tạo cuộc trò chuyện mới. Có `--continue`, nó tiếp tục cuộc trò chuyện CLI gần nhất
 và nạp bản ghi hội thoại cùng tổng lượng dùng đã lưu, kể cả khi tiến trình đã khởi động lại.
 
 Kênh định tuyến theo kênh, chat và người dùng. Tin đầu tiên được nhận sẽ tạo một tuyến; các tin sau
 dùng lại tuyến đó.
 
-- `/new` chuyển tuyến sang phiên chat mới trong một bước, để việc đang chờ của cuộc trò chuyện cũ không
+- `/new` chuyển tuyến sang cuộc trò chuyện mới trong một bước, để việc đang chờ của cuộc trò chuyện cũ không
   lọt sang cuộc mới.
-- `/continue` giữ nguyên phiên chat hiện tại và gửi một lời nhắc ngắn làm lượt kế tiếp, nên phiên chạy
+- `/continue` giữ nguyên cuộc trò chuyện hiện tại và gửi một lời nhắc ngắn làm lượt kế tiếp, nên phiên chạy
   dừng giữa chừng sẽ làm tiếp từ chỗ đang dở, bạn không phải gõ lại yêu cầu.
 
 ### Xem và xóa lịch sử
@@ -358,54 +358,54 @@ openalpha history delete <session-id>
 openalpha history clear --agent analyst --yes
 ```
 
-`history show` nhận mã phiên chat đầy đủ hoặc một tiền tố chỉ khớp một phiên chat. Nó hiện trạng thái,
+`history show` nhận mã cuộc trò chuyện đầy đủ hoặc một tiền tố chỉ khớp một cuộc trò chuyện. Nó hiện trạng thái,
 các tin nhắn theo thứ tự, tổng token và chi phí lũy kế, cùng các lần gọi mô hình đứng sau từng tin nhắn
 của trợ lý. Những lần gọi không gắn với tin nhắn nào, như khi nén hội thoại, được hiện riêng.
 
-`history delete` xóa một phiên chat mà không hỏi lại. `history clear` cần daemon đã dừng và hỏi xác
-nhận trừ khi bạn thêm `--yes`. Cả hai từ chối phiên chat đang có một lượt chạy dở; phiên chat chỉ còn mở mà
+`history delete` xóa một cuộc trò chuyện mà không hỏi lại. `history clear` cần dịch vụ nền đã dừng và hỏi xác
+nhận trừ khi bạn thêm `--yes`. Cả hai từ chối cuộc trò chuyện đang có một lượt chạy dở; cuộc trò chuyện chỉ còn mở mà
 không chạy gì thì xóa được.
 
 ### Vòng đời
 
 ```mermaid
 stateDiagram-v2
-  [*] --> active: tuyến tạo phiên chat
+  [*] --> active: tuyến tạo cuộc trò chuyện
   active --> active: ghi thêm một lượt đã xong
   active --> done: phiên chạy gốc kết thúc
-  active --> stale: daemon khởi động lại giữa lượt
-  done --> active: phiên chat được tiếp tục
-  stale --> active: phiên chat được tiếp tục
+  active --> stale: dịch vụ nền khởi động lại giữa lượt
+  done --> active: cuộc trò chuyện được tiếp tục
+  stale --> active: cuộc trò chuyện được tiếp tục
   done --> [*]: xóa hoặc hết hạn lưu giữ
   stale --> [*]: xóa hoặc hết hạn lưu giữ
 ```
 
 Mỗi lượt xong được ghi ngay, nên nếu tiến trình chết đột ngột thì chỉ mất đúng lượt đang dở. Khi một
-phiên chạy kết thúc, các tin nhắn còn lại được ghi trước, rồi mới ghi kết cục. Lượng dùng của phiên chat
+phiên chạy kết thúc, các tin nhắn còn lại được ghi trước, rồi mới ghi kết cục. Lượng dùng của cuộc trò chuyện
 được tính lại từ các lần gọi mô hình đã lưu chứ không giữ thành một tổng riêng.
 
-Khi daemon khởi động, các phiên chat còn đánh dấu `active` do một phiên chạy đã chết để lại sẽ chuyển
+Khi dịch vụ nền khởi động, các cuộc trò chuyện còn đánh dấu `active` do một phiên chạy đã chết để lại sẽ chuyển
 thành `stale`, kèm lý do là khởi động lại. Bản ghi hội thoại của chúng vẫn dùng tiếp được: một phiên
-chạy sau sẽ kích hoạt lại đúng phiên chat đó.
+chạy sau sẽ kích hoạt lại đúng cuộc trò chuyện đó.
 
 ### Bản ghi hội thoại lưu gì
 
-Tin nhắn chỉ được ghi thêm và xếp theo thứ tự trong phiên chat. Mỗi tin ghi phiên chạy tạo ra nó, vai,
+Tin nhắn chỉ được ghi thêm và xếp theo thứ tự trong cuộc trò chuyện. Mỗi tin ghi phiên chạy tạo ra nó, vai,
 nội dung, liên kết với lời gọi công cụ, dấu lỗi và thời điểm tạo. Tin nhắn của trợ lý liên kết tới các
 lần gọi mô hình đứng sau nó, nên các lần thử lại và dự phòng được giữ mà không bị tính là những câu trả
 lời riêng.
 
-`llm_attempts` là sổ gốc, lưu lâu dài, cho cả chi phí theo phiên chat lẫn chi phí toàn cục. Xóa một
-phiên chat thì xóa luôn tin nhắn của nó, nhưng các dòng lần gọi chỉ bị **gỡ liên kết**, không bị xóa.
+`llm_attempts` là sổ gốc, lưu lâu dài, cho cả chi phí theo cuộc trò chuyện lẫn chi phí toàn cục. Xóa một
+cuộc trò chuyện thì xóa luôn tin nhắn của nó, nhưng các dòng lần gọi chỉ bị **gỡ liên kết**, không bị xóa.
 
 ### Mỗi lúc một phiên chạy
 
-Mỗi lúc chỉ một phiên chạy được sửa một phiên chat. Các tin nhắn sau chờ trong hàng đợi, tối đa mười tác
+Mỗi lúc chỉ một phiên chạy được sửa một cuộc trò chuyện. Các tin nhắn sau chờ trong hàng đợi, tối đa mười tác
 vụ đang chờ; phần vượt quá bị từ chối với `queue_full` thay vì để bộ nhớ phình mãi. Một tác vụ lỗi
 không ảnh hưởng tác vụ kế tiếp.
 
 `/new` và các lần đổi tuyến khác chờ việc đang chạy xong, hủy phần việc đã xếp hàng, cập nhật tuyến, rồi
-mới nhận việc cho phiên chat mới. Nhờ vậy tin nhắn nhận cho phiên chat cũ không chạy nhầm dưới tuyến
+mới nhận việc cho cuộc trò chuyện mới. Nhờ vậy tin nhắn nhận cho cuộc trò chuyện cũ không chạy nhầm dưới tuyến
 mới.
 
 ### Giới hạn ngữ cảnh và khâu nén
@@ -436,47 +436,47 @@ lần thử `compaction`.
 Kết quả `todo_write` chỉ là một tin nhắn công cụ bình thường, nên khâu nén hay trần số tin nhắn có thể
 xóa nó khi agent vẫn đang làm theo danh sách. Vì vậy phiên chạy giữ một bản sao riêng ngoài bản ghi hội
 thoại, và ghi lại danh sách trước lần gọi mô hình kế tiếp, khi không còn kết quả `todo_write` hay thông
-báo khôi phục nào trước đó còn thấy được. Danh sách đang hiển thị không bao giờ bị nhân đôi, nên phiên
-chat dài chỉ tốn một tin nhắn cho mỗi lần nén, không phải một tin nhắn mỗi lượt.
+báo khôi phục nào trước đó còn thấy được. Danh sách đang hiển thị không bao giờ bị nhân đôi, nên cuộc trò chuyện
+dài chỉ tốn một tin nhắn cho mỗi lần nén, không phải một tin nhắn mỗi lượt.
 
 Chỉ kết quả `todo_write` mới làm mới bản sao: bản tóm tắt diễn giải lại danh sách không ghi đè được thứ
 agent đã viết. Thông báo khôi phục chỉ nằm trong prompt. Nó không bao giờ được ghi vào bản ghi hội
 thoại, nên không hiện trong `history show` hay API lịch sử chat.
 
-Bản sao không sống lâu hơn phiên chạy. Phiên chat được tiếp tục lấy lại danh sách từ kết quả
+Bản sao không sống lâu hơn phiên chạy. Cuộc trò chuyện được tiếp tục lấy lại danh sách từ kết quả
 `todo_write` đã lưu, miễn là tin nhắn đó còn nằm trong 500 tin nhắn gần nhất của phiên.
 
 ### Trạng thái mô hình và phê duyệt
 
-`/model` lưu một lựa chọn ghi đè có giới hạn trong tiến trình, theo từng phiên chat. Nó còn hiệu lực qua
+`/model` lưu một lựa chọn ghi đè có giới hạn trong tiến trình, theo từng cuộc trò chuyện. Nó còn hiệu lực qua
 các phiên chạy sau trong tiến trình đó nhưng mất khi khởi động lại; hồ sơ agent đã lưu vẫn là mặc định.
-Các phê duyệt đã cấp cũng chỉ áp dụng trong phiên chat và trong tiến trình. `/new` tạo phạm vi mới cho
+Các phê duyệt đã cấp cũng chỉ áp dụng trong cuộc trò chuyện và trong tiến trình. `/new` tạo phạm vi mới cho
 cả hai.
 
 Hai thứ này không làm đổi bản ghi hội thoại đã lưu. Mô hình và kết cục phê duyệt vẫn xem được qua các
 dòng lần gọi và dòng công cụ đã lưu.
 
-### Phiên chat được ủy quyền
+### Cuộc trò chuyện được ủy quyền
 
-Agent được ủy quyền dùng phiên chat tạm thời riêng. Chúng thừa hưởng tín hiệu hủy và dùng chung cây
+Agent được ủy quyền dùng cuộc trò chuyện tạm thời riêng. Chúng thừa hưởng tín hiệu hủy và dùng chung cây
 ngân sách của agent cha, nhưng không nạp và không ghi thêm vào bản ghi hội thoại của agent cha. Các lần
-gọi mô hình của chúng giữ mã phiên chạy con và cha, và được tính tiền vào phiên chat gốc, nên chi tiêu
+gọi mô hình của chúng giữ mã phiên chạy con và cha, và được tính tiền vào cuộc trò chuyện gốc, nên chi tiêu
 vẫn kiểm toán được mà không trộn phần hội thoại nháp riêng vào lịch sử của bạn.
 
 ### Lưu giữ và hành vi khi hỏng
 
 | Điều kiện | Kết quả |
 | --- | --- |
-| Tiến trình dừng giữa một lượt | Các lượt đã xong trước đó vẫn còn; phiên chat thành `stale` lúc daemon khởi động. |
-| Hai tin nhắn cùng nhắm một phiên chat | Chúng chạy lần lượt theo thứ tự đến. |
-| Hàng đợi của một phiên chat chạm mười tác vụ đang chờ | Việc mới bị từ chối với `queue_full`. |
+| Tiến trình dừng giữa một lượt | Các lượt đã xong trước đó vẫn còn; cuộc trò chuyện thành `stale` lúc dịch vụ nền khởi động. |
+| Hai tin nhắn cùng nhắm một cuộc trò chuyện | Chúng chạy lần lượt theo thứ tự đến. |
+| Hàng đợi của một cuộc trò chuyện chạm mười tác vụ đang chờ | Việc mới bị từ chối với `queue_full`. |
 | Tuyến đổi trong lúc việc cũ còn trong hàng đợi | Việc cũ bị hủy trước khi nó kịp chạy. |
 | Nhà cung cấp cho khâu tóm tắt hỏng | Ngữ cảnh gần đây đã sửa vẫn tiếp tục, kèm một dấu cắt ngắn. |
 | Khâu nén xóa một danh sách việc đang hoạt động | Phiên chạy ghi lại nó trước lần gọi mô hình kế tiếp. |
-| Phiên chat không hoạt động vượt `[retention].days` | Phiên chat, tuyến và tin nhắn bị xóa. |
-| Phiên chat bị xóa thủ công | Các lần gọi mô hình vẫn còn, chỉ bị bỏ liên kết tới phiên chat. |
+| Cuộc trò chuyện không hoạt động vượt `[retention].days` | Cuộc trò chuyện, tuyến và tin nhắn bị xóa. |
+| Cuộc trò chuyện bị xóa thủ công | Các lần gọi mô hình vẫn còn, chỉ bị bỏ liên kết tới cuộc trò chuyện. |
 
-Phiên chat đang hoạt động không bị cắt theo tuổi. Tuyến phiên chat theo cửa sổ chung `[retention].days`;
+Cuộc trò chuyện đang hoạt động không bị cắt theo tuổi. Tuyến cuộc trò chuyện theo cửa sổ chung `[retention].days`;
 offset polling là mốc theo dõi riêng của kênh và được giữ vô thời hạn.
 
 Bên trong: [dev/luu-tru.md](dev/luu-tru.md).

@@ -47,7 +47,7 @@ không trộn vào tập cũ, nên hãy coi đó là một thay đổi chiến l
 Công cụ tệp đặt gốc tại `<data_dir>/workspaces/<id>/` và mỗi agent có phạm vi bộ nhớ riêng. Shell đã duyệt bắt đầu ở gốc
 đó, nhưng đó là thư mục làm việc, không phải sandbox của hệ điều hành. Ràng buộc chat nằm trong `ChatBindingStore`
 ([persistence/stores/channel/chat-binding.ts](../../src/persistence/stores/channel/chat-binding.ts)). Đổi một ràng buộc sẽ
-cập nhật lại tuyến, hủy phần việc đang chờ và đang chạy của phiên chat cũ, và mở một phiên chat mới.
+cập nhật lại tuyến, hủy phần việc đang chờ và đang chạy của cuộc trò chuyện cũ, và mở một cuộc trò chuyện mới.
 
 ---
 
@@ -71,7 +71,7 @@ Một đội được suy ra, không được lưu: danh sách `delegates` của
 Cổng kiểm danh sách của con, không phải của cha: một con trong danh sách có thể dùng công cụ mà cha không gọi trực tiếp
 được, và công cụ vắng mặt ở con thì bị chặn trước cả khâu phê duyệt.
 
-Phiên chạy con thừa hưởng `AbortSignal` và `Budget` của cha, có một phiên chat tạm thời riêng tư mới (không bao giờ ghi vào
+Phiên chạy con thừa hưởng `AbortSignal` và `Budget` của cha, có một cuộc trò chuyện tạm thời riêng tư mới (không bao giờ ghi vào
 bản ghi hội thoại bền vững), và bị bỏ đi khi phiên chạy cha kết thúc. Hủy phiên chạy tiền cảnh sẽ hủy lần lượt mọi con đang
 chạy; khâu dọn dẹp chạy lại nhiều lần cũng an toàn và không bao giờ ném lỗi. Worker nghiên cứu theo cùng quy tắc. Không có
 tác vụ nền, mã nghiên cứu, lệnh điều khiển bất đồng bộ hay khôi phục bền vững.

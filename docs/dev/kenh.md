@@ -122,7 +122,7 @@ mang theo một lệnh gạch chéo mà một tin nhắn đã mời bạn bấm.
 
 Hãy coi dữ liệu `cmd:` là đầu vào thù địch: client có thể gửi bất kỳ `callback_data` nào nó muốn. Nó
 không đi thẳng tới handler. Nó quay lại đúng con đường một tin nhắn gõ tay đi qua, cùng khâu xét duyệt,
-cùng cổng quyền, cùng cửa sổ giới hạn tần suất và cùng phiên chat, với `query.from` là người dùng và
+cùng cổng quyền, cùng cửa sổ giới hạn tần suất và cùng cuộc trò chuyện, với `query.from` là người dùng và
 `query.isGroup` được mang theo. Payload không gọi tên lệnh gạch chéo nào thì chuyển sang nhánh callback
 điều khiển.
 
@@ -186,7 +186,7 @@ Sau đó khâu rút hàng đợi xử lý hộp nhận:
 - `claimPending` giữ một lease trên các dòng; `renewClaims` giữ lease của phiên chạy còn sống khi một lần
   phê duyệt tạm dừng hạn của nó.
 - `recoverStalled` đưa các dòng hết lease trở lại hàng đợi (giới hạn thời lượng phiên chạy cộng 5 phút),
-  nên việc dở của một daemon đã chết được nhặt lại.
+  nên việc dở của một dịch vụ nền (daemon) đã chết được nhặt lại.
 - Một lần thử hỏng sẽ được thử lại cho tới `inboxMaxAttempts` (3), rồi dòng đó bị đưa vào dead-letter và
   ghi log `channel.inbox_dead_lettered`. Dòng được xếp lại mang `retry_at` (10 giây, nhân đôi mỗi lần, trần
   5 phút), và cả hai câu lệnh nhận việc bỏ qua dòng chưa tới giờ, nên một lần mạng chập chờn không đốt hết
@@ -196,18 +196,18 @@ Việc giao là ít nhất một lần, nhưng một phiên chạy đã xong th�
 cuối của câu trả lời thất bại, hộp nhận giữ câu trả lời đó trên dòng (`answer`), và lần thử lại chỉ gửi
 lại tin nhắn cuối, không phát lại phần tiến trình trực tiếp, thay vì chạy lại agent cùng công cụ của nó.
 Các tin nhắn được gộp chung vào một câu trả lời thì chỉ gửi nó một lần; những dòng còn lại hoàn tất mà
-không có tin trả lời riêng. Có hai trường hợp vẫn chạy lại: daemon chết đúng lúc đang ghi lần cuối, và
+không có tin trả lời riêng. Có hai trường hợp vẫn chạy lại: dịch vụ nền chết đúng lúc đang ghi lần cuối, và
 câu trả lời quá lớn để giữ (trên 256 KiB, `MAX_STORED_ANSWER_CHARS`).
 
 Sau khi được nhận:
 
 1. lệnh điều khiển và lệnh ghép nối được xử lý;
 2. lệnh gạch chéo đi qua bộ điều phối lệnh chuẩn;
-3. văn bản thường được gom nhịp rồi định tuyến tới agent và phiên chat đã chọn;
-4. hàng đợi theo phiên chat và các cổng ngân sách ngày/tháng chạy trước khi bất cứ gì mới được thực thi;
+3. văn bản thường được gom nhịp rồi định tuyến tới agent và cuộc trò chuyện đã chọn;
+4. hàng đợi theo cuộc trò chuyện và các cổng ngân sách ngày/tháng chạy trước khi bất cứ gì mới được thực thi;
 5. sự kiện luồng cập nhật câu trả lời đang chạy, và kết quả cuối được gửi đi.
 
-Khóa phiên chat bao gồm định danh kênh và chat, nên hai kênh truyền không bao giờ dùng chung trạng thái
+Khóa cuộc trò chuyện bao gồm định danh kênh và chat, nên hai kênh truyền không bao giờ dùng chung trạng thái
 hội thoại.
 
 ## Gửi câu trả lời về
@@ -250,7 +250,7 @@ thành viên khác vào phiên của mình. Zalo Personal điền nó từ `data
 - với một thông báo, chỉ nhãn của nó;
 - với mọi thứ khác, một dòng chỉ dẫn.
 
-Dòng chân của lượt chạy (chi phí LLM, token, số lần gọi model) được giấu khỏi model như một con số của
+Dòng chân của lượt chạy (chi phí LLM, token, số lần gọi mô hình) được giấu khỏi mô hình như một con số của
 người vận hành: nó bị cắt khỏi nội dung tin được trả lời, và đoạn bôi chọn chạm vào nó thì lùi về cả phần
 thân không có dòng chân. Dòng chân gửi thành một tin riêng không bao giờ được ghi lại, nên trả lời vào nó
 chỉ nhận dòng chỉ dẫn. Một tin trong hộp thư được phát lại vẫn giữ `replyTo` nhưng gặp bảng rỗng sau khi
@@ -272,14 +272,14 @@ plugin khai báo không ghi đè được nó.
 
 `runExchange` truyền ghi chú khoảng im lặng và đoạn dẫn trả lời qua `RunInput.lead`, một lần cho mỗi lượt
 chạy. Engine thêm nó thành một tin người dùng tạm thời ngay trước lời của người vận hành, giống cách nó
-khôi phục danh sách việc cần làm: model đọc được trong lượt đó, còn `history show` và lịch sử chat qua
+khôi phục danh sách việc cần làm: mô hình đọc được trong lượt đó, còn `history show` và lịch sử chat qua
 `/v1` chỉ hiện đúng những gì người vận hành đã gõ. Phiên, tuyến và lịch sử không đổi, và `/new` vẫn là cách
 bắt đầu mới một cách tường minh.
 
 ## Thông báo đặt từ terminal đi đâu
 
 `TradingNoticeSender.resolveRecipient(origin)` trả lời khi đặt cảnh báo hay bản tin. Một nguồn có đường đi
-thì trả về nguyên. Terminal (`LOCAL_CHANNEL_ID`) quy về người nhận mặc định đang sống của daemon khi kênh
+thì trả về nguyên. Terminal (`LOCAL_CHANNEL_ID`) quy về người nhận mặc định đang sống của dịch vụ nền khi kênh
 đã gắn, nếu không thì `resolveDefaultRecipient` (`channels/recipient.ts`): định nghĩa được bật đầu tiên
 theo thứ tự registry có chat dự phòng, hoặc, ở chế độ ghép nối, có đúng một chat đã ghép nối
 (`PairingStore.lonePairedChat`). `resolveFallbackChat` là quy tắc duy nhất cho
@@ -289,7 +289,7 @@ dùng nó. `AlertService.create` và `scheduleOf` của bản tin quy một lầ
 ## Theo dõi kênh mất kết nối lâu
 
 Kênh chỉ báo trạng thái qua `setStatus`, không có sự kiện trên bus, nên `app/channel-watch.ts` chạy một vòng
-lặp năm phút trên `delivery.snapshots()` (góc nhìn `/health` hiển thị) khi daemon đang chạy. Kênh có
+lặp năm phút trên `delivery.snapshots()` (góc nhìn `/health` hiển thị) khi dịch vụ nền đang chạy. Kênh có
 `toHealthCode` khác `ok` suốt `CHANNEL_DOWN_GRACE_MS` (15 phút, đo bằng `performance.now()`) được báo một lần
 trên kênh khác đang chạy đầu tiên trong `DeliveryHub.recipients()` (chat mặc định riêng của mỗi kênh đã chạy,
 từ `resolveFallbackChat`), và một `watchUp` khi nó trở lại; trạng thái là một map giới hạn theo số kênh đã cấu
@@ -303,7 +303,7 @@ các mục kênh.
 chúng bằng `Promise.allSettled`, nên một token cũ không chặn được các kênh còn lại. Lỗi khởi động
 không bao giờ nghiêm trọng: kênh có `start()` ném lỗi bị giải phóng và loại, nên nó không bao giờ lắng
 nghe và không cho ai vào. `OperatorConfigError` (token thiếu hoặc bị từ chối) ghi log
-`channel.start_skipped` và được trả về trong `StartChannelsResult.skipped` để daemon báo; mọi lỗi khác
+`channel.start_skipped` và được trả về trong `StartChannelsResult.skipped` để dịch vụ nền báo; mọi lỗi khác
 ghi log `channel.start_failed`. Lỗi lúc dựng runtime (agent không có, giá trị sai) vẫn ném trước khi
 kênh nào khởi động. Nếu không kênh nào chạy, chạy riêng CLI vẫn hợp lệ.
 

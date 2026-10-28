@@ -4,7 +4,7 @@ Mọi khóa TOML, giá trị mặc định và biến môi trường. Một tệ
 
 Hai điều cần biết trước:
 
-- **Cấu hình chỉ được đọc một lần, lúc khởi động.** Đổi gì thì khởi động lại daemon. Không có nạp nóng,
+- **Cấu hình chỉ được đọc một lần, lúc khởi động.** Đổi gì thì khởi động lại dịch vụ nền (daemon). Không có nạp nóng,
   cũng không có trạng thái áp dụng nửa vời.
 - **Khóa lạ là lỗi.** Gõ sai thì `config validate` báo ngay, thay vì để một thiết lập nằm ở mặc định
   suốt ba tháng mà không ai hay.
@@ -171,7 +171,7 @@ Các tên nhóm sau được tra theo tên:
 | `delegate` | `reviewer` |
 | `debate` | các vai tranh luận giao dịch |
 | `themes` | vai phân tích chủ đề đứng sau `/themes`; mọi mục phải hỗ trợ gọi công cụ, vì nó có thể gọi `research` |
-| `extraction` | chỉ riêng tác vụ trích xuất vĩ mô của daemon, đọc số liệu vĩ mô VN từ báo cáo của cơ quan thống kê và báo chí |
+| `extraction` | chỉ riêng tác vụ trích xuất vĩ mô của dịch vụ nền, đọc số liệu vĩ mô VN từ báo cáo của cơ quan thống kê và báo chí |
 | `decisions` | lượt đọc tiêu đề chạy trước phiên tranh luận |
 
 Không có nhóm của mình thì agent hay tác vụ dùng chuỗi `[[models]]` toàn cục. `decisions` là ngoại lệ:
@@ -292,17 +292,17 @@ Bố cục dưới `data_dir`:
 ```text
 {data_dir}/
   data/openalpha.sqlite             cơ sở dữ liệu SQLite mặc định (dữ liệu + bộ nhớ)
-  openalpha.pid                     tệp khóa của daemon
-  openalpha.ready                   ghi khi daemon đã sẵn sàng; những gì nó đang thiếu
-  daemon.stdout.log                 đầu ra lạc của daemon chạy nền, xóa trắng mỗi lần khởi động
-  daemon.stderr.log                 cảnh báo và lỗi của daemon chạy nền, xóa trắng mỗi lần khởi động
-  restart.json                      ghi ngay trước khi daemon chạy lại, xóa khi daemon mới báo chuyện đó
+  openalpha.pid                     tệp khóa của dịch vụ nền
+  openalpha.ready                   ghi khi dịch vụ nền đã sẵn sàng; những gì nó đang thiếu
+  daemon.stdout.log                 đầu ra lạc của dịch vụ nền chạy ở chế độ nền, xóa trắng mỗi lần khởi động
+  daemon.stderr.log                 cảnh báo và lỗi của dịch vụ nền chạy ở chế độ nền, xóa trắng mỗi lần khởi động
+  restart.json                      ghi ngay trước khi dịch vụ nền chạy lại, xóa khi dịch vụ nền mới báo chuyện đó
   restart.stdout.log                chỉ trên Windows: đầu ra lạc của một lần khởi động lại từ API, nơi cần xem khi nó thất bại
   restart.stderr.log                chỉ trên Windows: cảnh báo và lỗi của lần khởi động lại đó
   logs/daemon.log                   log chung mặc định (`[log] file`)
   logs/agents/<agentId>/agent.log   log chạy riêng theo agent, được giữ lại
   backups/                          bản sao lưu `db backup`, cùng ảnh chụp pre-migration/ và pre-rollback/
-    daily/                          bản sao hằng ngày của daemon, giữ `[retention] daily_backups` bản mới nhất
+    daily/                          bản sao hằng ngày của dịch vụ nền, giữ `[retention] daily_backups` bản mới nhất
   plugins/                          plugin đã cài
   workspaces/<agentId>/             thư mục nháp riêng của từng agent
     run/                            HOME của tiến trình con; chỉ `workspace cleanup` có xác nhận mới dọn
@@ -361,9 +361,9 @@ vào cấu hình bạn xem.
 
 `days` còn điều khiển hai quy tắc về tệp:
 
-- Lúc daemon khởi động, tệp trong `workspaces/<agentId>/tmp/` cũ hơn `days` bị xóa một lần, trước khi
+- Lúc dịch vụ nền khởi động, tệp trong `workspaces/<agentId>/tmp/` cũ hơn `days` bị xóa một lần, trước khi
   nhận việc.
-- Trong lượt quét định kỳ của daemon, thư mục trong `logs/agents/` của agent không còn được cấu hình chỉ
+- Trong lượt quét định kỳ của dịch vụ nền, thư mục trong `logs/agents/` của agent không còn được cấu hình chỉ
   bị xóa khi đoạn log mới nhất của nó cũ hơn `days`.
 
 Nó không áp cho log chung hay log theo agent đang hoạt động (bị chặn bởi `[log].max_file_mb` và
@@ -375,9 +375,9 @@ chung.
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `chat` | mảng chuỗi | `[]` | Các loại thông báo được gửi tới chat của bạn ngoài chuông. Loại hợp lệ: `call-scored`, `held-news`, `index-drop`; tên khác sẽ làm daemon dừng lúc khởi động và nêu các loại hợp lệ. |
+| `chat` | mảng chuỗi | `[]` | Các loại thông báo được gửi tới chat của bạn ngoài chuông. Loại hợp lệ: `call-scored`, `held-news`, `index-drop`; tên khác sẽ làm dịch vụ nền dừng lúc khởi động và nêu các loại hợp lệ. |
 
-Các loại này chỉ vào chuông trong ứng dụng, không tới chat nào trừ khi bạn liệt kê ở đây: một đề xuất bạn nhận đã có kết quả, tin về mã bạn đang giữ, và chỉ số của khu vực giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã daemon đã đọc: tiêu đề được lưu khi `/suggest` hoặc một cuộc chat về mã đó đọc chúng, và không có gì đi lấy tin cho các mã bạn giữ theo lịch. Mọi thứ khác daemon gửi tới chat vẫn như cũ.
+Các loại này chỉ vào chuông trong ứng dụng, không tới chat nào trừ khi bạn liệt kê ở đây: một đề xuất bạn nhận đã có kết quả, tin về mã bạn đang giữ, và chỉ số của khu vực giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã dịch vụ nền đã đọc: tiêu đề được lưu khi `/suggest` hoặc một cuộc chat về mã đó đọc chúng, và không có gì đi lấy tin cho các mã bạn giữ theo lịch. Mọi thứ khác dịch vụ nền gửi tới chat vẫn như cũ.
 
 ### `[log]`
 
@@ -395,9 +395,9 @@ Thứ tự ưu tiên của mức log: `--log-level`, rồi `OPENALPHA_LOG_LEVEL`
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `check` | bool | `true` | Hỏi GitHub hai lần mỗi ngày xem đã có bản mới chưa. |
-| `auto` | bool | `false` | Tự cài bản sửa lỗi (chỉ đổi số cuối, như 1.0.5 lên 1.0.6) lúc 00:00-06:00 theo `[locale] timezone`, khi daemon chạy nền; không bao giờ cài khi thị trường bạn theo dõi đang trong phiên, kể cả giờ nghỉ trưa (crypto chạy cả ngày nên không tính). |
+| `auto` | bool | `false` | Tự cài bản sửa lỗi (chỉ đổi số cuối, như 1.0.5 lên 1.0.6) lúc 00:00-06:00 theo `[locale] timezone`, khi dịch vụ nền chạy ở chế độ nền; không bao giờ cài khi thị trường bạn theo dõi đang trong phiên, kể cả giờ nghỉ trưa (crypto chạy cả ngày nên không tính). |
 
-Khi có bản mới, CLI in một thông báo ngắn sau lệnh (tối đa mỗi ngày một lần), chat hiện thông báo đó dưới lời chào, `version` và `doctor version` báo lại, daemon ghi vào nhật ký, bản tin sáng gửi qua kênh kết thúc bằng thông báo đó, và bot nhắc trong chat riêng của bạn. Không có gì tự cài cho tới khi bạn chạy `openalpha upgrade` hoặc `/upgrade confirm`, trừ khi bật `auto`: khi đó daemon chạy nền tự cài bản sửa lỗi trong khung giờ ấy, nhắn bạn khi đã chạy lại (vào chat riêng bạn nhắn bot gần nhất), và quay về bản cũ nếu bản mới không khởi động được. Trên máy chủ, hãy đặt `[locale] timezone` để khung giờ rơi vào ban đêm. Bản chạy từ mã nguồn không bao giờ kiểm tra; trong CI chỉ `version` và `doctor --online` kiểm tra.
+Khi có bản mới, CLI in một thông báo ngắn sau lệnh (tối đa mỗi ngày một lần), chat hiện thông báo đó dưới lời chào, `version` và `doctor version` báo lại, dịch vụ nền ghi vào nhật ký, bản tin sáng gửi qua kênh kết thúc bằng thông báo đó, và bot nhắc trong chat riêng của bạn. Không có gì tự cài cho tới khi bạn chạy `openalpha upgrade` hoặc `/upgrade confirm`, trừ khi bật `auto`: khi đó dịch vụ nền chạy ở chế độ nền tự cài bản sửa lỗi trong khung giờ ấy, nhắn bạn khi đã chạy lại (vào chat riêng bạn nhắn bot gần nhất), và quay về bản cũ nếu bản mới không khởi động được. Trên máy chủ, hãy đặt `[locale] timezone` để khung giờ rơi vào ban đêm. Bản chạy từ mã nguồn không bao giờ kiểm tra; trong CI chỉ `version` và `doctor --online` kiểm tra.
 
 ### `[channels.telegram]`
 
@@ -557,9 +557,9 @@ cùng mọi mục khác ghi tên biến môi trường (`[trading.sources]`, `[t
 allow_unattended`; những mục đó bạn sửa ngay trong file này. Bản thân giá trị khóa thì lưu được từ
 Cài đặt > Nhà cung cấp, Sàn giao dịch và Công cụ, các mục này ghi `<thư mục dữ liệu>/env` giống `openalpha key set`.
 
-Bất cứ thứ gì đứng trước daemon (proxy như Caddy hay nginx, `tailscale serve`, một tên miền) đều cần `public_url`
+Bất cứ thứ gì đứng trước dịch vụ nền (proxy như Caddy hay nginx, `tailscale serve`, một tên miền) đều cần `public_url`
 đặt là địa chỉ trình duyệt mở. Chính nó bật các giới hạn khi bị phơi ra ngoài và cookie đăng nhập `__Host-`.
-Khi chưa đặt, daemon chỉ bắt được proxy gửi `X-Forwarded-For` hoặc `Forwarded`, hay một `Host` không phải
+Khi chưa đặt, dịch vụ nền chỉ bắt được proxy gửi `X-Forwarded-For` hoặc `Forwarded`, hay một `Host` không phải
 tên cục bộ, và từ chối chúng kèm một câu nêu tên `public_url`. Proxy không gửi cả hai (một `proxy_pass`
 nginx trần gửi `Host: 127.0.0.1:<cổng>` và không có tiêu đề chuyển tiếp nào) trông như yêu cầu cục bộ, nên
 hãy đặt `public_url` trước khi mở ra ngoài, và cho nginx gửi `proxy_set_header Host $host;` cùng
@@ -574,9 +574,9 @@ Khi đó trang cũng không lưu khóa nào và không bắt đầu đăng nhậ
 
 Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở lần chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
-không được dùng thay) và `start` in cảnh báo, phần còn lại của daemon vẫn chạy; cổng đã bị dùng thì
+không được dùng thay) và `start` in cảnh báo, phần còn lại của dịch vụ nền vẫn chạy; cổng đã bị dùng thì
 `start` vẫn dừng. `openalpha api token` in mã ra và `openalpha api rotate` thay mã mới; xoay vòng sẽ đăng
-xuất mọi trình duyệt và khởi động lại daemon đang chạy, nên mã cũ hết dùng được ngay. Trình duyệt không bao giờ
+xuất mọi trình duyệt và khởi động lại dịch vụ nền đang chạy, nên mã cũ hết dùng được ngay. Trình duyệt không bao giờ
 giữ mã này: `openalpha web` in một liên kết dùng một lần để đăng nhập, còn `openalpha connect` in dòng mà
 ứng dụng desktop dán vào (xem [Vận hành](van-hanh.md#chạy-api-trên-máy-chủ)).
 
@@ -586,7 +586,7 @@ giữ mã này: `openalpha web` in một liên kết dùng một lần để đ�
 | `port` | số nguyên | `8765` | Cổng TCP, 1024-65535. |
 | `token_env` | chuỗi | - | Biến môi trường chứa bearer token. Khi được đặt, token trong tệp bị bỏ qua. |
 | `orders` | bool | `true`, hoặc `false` khi đã đặt `public_url` | Cho ứng dụng đặt lệnh, hủy lệnh và tắt chức năng mua. |
-| `public_url` | chuỗi | - | Địa chỉ `https://` mà daemon được truy cập qua proxy: chỉ tên máy và cổng nếu cần, không kèm đường dẫn. Dùng `https://<machine>.<tailnet>.ts.net` với `tailscale serve`. |
+| `public_url` | chuỗi | - | Địa chỉ `https://` mà dịch vụ nền được truy cập qua proxy: chỉ tên máy và cổng nếu cần, không kèm đường dẫn. Dùng `https://<machine>.<tailnet>.ts.net` với `tailscale serve`. |
 
 ### `[[mcp.servers]]`
 
@@ -868,7 +868,7 @@ hỏi. Nên đặt lệnh khi không có người trông cần **hai** quyết �
 `credentials` chứa **tên biến**, không bao giờ chứa giá trị. Tên khóa là của chính sàn: `okx` nhận `apiKey`, `secret` và `passphrase`, `binance` nhận `apiKey` và `secret`, còn trường nào khác sẽ làm khởi động dừng lại và nêu các trường sàn đó nhận. Mỗi cái được đọc
 theo đúng tên biến đó, hoặc nếu không có thì đọc cùng tên với tiền tố `OPENALPHA_`. Thiếu một cái không
 phải lỗi khởi động: sàn không có bộ nối, không đặt được lệnh nào, `/trade` chỉ nêu tên các khóa cần đặt,
-và daemon vẫn khởi động. Sàn vẫn là nơi giữ tài sản để bạn ghi sổ lệnh; chỉ là không bao giờ được
+và dịch vụ nền vẫn khởi động. Sàn vẫn là nơi giữ tài sản để bạn ghi sổ lệnh; chỉ là không bao giờ được
 chọn khi định tuyến.
 
 `simulated` không phải chạy thử. Bộ nối vẫn ký, gửi và thăm dò một API thật trên môi trường demo của sàn

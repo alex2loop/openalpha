@@ -14,7 +14,7 @@ Không cần làm gì để bắt đầu. Một vài nhà cung cấp nhận mộ
 | `coingecko` | `COINGECKO_API_KEY` | Mất bên dự phòng cuối cho bảng vốn hóa crypto, và mất luôn cách tra riêng một coin nằm ngoài mọi bảng. Nó cũng không còn trong danh sách FX cho một coin thanh toán so với tiền pháp định. |
 | `fred` | `FRED_API_KEY` | Bạn mất các chuỗi chỉ FRED công bố. Vĩ mô Mỹ vẫn đọc được từ `treasury` và `bls`, hai bên không cần khóa. |
 
-Lưu khóa bằng `openalpha key set <TÊN>` (hoặc ở Cài đặt > Công cụ trên trang văn phòng) rồi khởi động lại daemon, hoặc đặt biến trong shell hay môi trường; đừng bao giờ ghi khóa vào tệp cấu hình. `openalpha key list` cho thấy cả hai biến và biến nào đã đặt. OpenAlpha cũng đọc cùng tên đó với tiền tố sản phẩm (`OPENALPHA_FRED_API_KEY`). Biến đã đặt nhưng để trống thì coi như chưa đặt. Muốn dùng tên biến khác thì đổi tên trong `config.toml`:
+Lưu khóa bằng `openalpha key set <TÊN>` (hoặc ở Cài đặt > Công cụ trên trang văn phòng) rồi khởi động lại dịch vụ nền (daemon), hoặc đặt biến trong shell hay môi trường; đừng bao giờ ghi khóa vào tệp cấu hình. `openalpha key list` cho thấy cả hai biến và biến nào đã đặt. OpenAlpha cũng đọc cùng tên đó với tiền tố sản phẩm (`OPENALPHA_FRED_API_KEY`). Biến đã đặt nhưng để trống thì coi như chưa đặt. Muốn dùng tên biến khác thì đổi tên trong `config.toml`:
 
 ```toml
 [trading.sources]
@@ -92,7 +92,7 @@ Vài nguồn ít hiển nhiên làm gì:
 
 - `vndirect` đứng đầu giá VN vì dòng giá của nó được ghi ngay khi thị trường đang giao dịch. Nó không phục vụ chỉ số: giá chỉ số đi tới `vietcap-chart`, còn lịch sử chỉ số đi tới `entrade` rồi `vietcap-chart`. `vps` đứng cuối, có mặt cho các chỉ số chuẩn ETF (VNDIAMOND, VNX50...) mà cả `vndirect` lẫn `entrade` đều không phục vụ, để một lần bị từ chối không làm mất tất cả.
 - `vietcap-board` đọc cả bảng giá VN trong một lần gọi và dự phòng cho `vndirect` ở cả bảng giá trực tiếp lẫn room ngoại.
-- `vndirect` còn phục vụ các tỷ lệ riêng của từng chỉ số từ `/v4/ratios` (P/E, P/B, tỷ suất cổ tức, trung bình năm năm của hai hệ số, và tỷ lệ mã nằm trên đường trung bình 50 và 200 phiên). Lượt làm mới hỏi nhiều nhất một lần mỗi ngày UTC cho mỗi chỉ số và lưu mỗi tỷ lệ một dòng mỗi ngày trong `series_points`, nên thẻ Thị trường đọc chúng mà không gọi nhà cung cấp, và daemon tự xây lịch sử của riêng nó (giữ bằng `history_days`, mặc định 1095 ngày nếu bạn không đổi). Nguồn không công bố ROE cho chỉ số; trang tự suy ra bằng P/B chia P/E và nói rõ như vậy.
+- `vndirect` còn phục vụ các tỷ lệ riêng của từng chỉ số từ `/v4/ratios` (P/E, P/B, tỷ suất cổ tức, trung bình năm năm của hai hệ số, và tỷ lệ mã nằm trên đường trung bình 50 và 200 phiên). Lượt làm mới hỏi nhiều nhất một lần mỗi ngày UTC cho mỗi chỉ số và lưu mỗi tỷ lệ một dòng mỗi ngày trong `series_points`, nên thẻ Thị trường đọc chúng mà không gọi nhà cung cấp, và dịch vụ nền tự xây lịch sử của riêng nó (giữ bằng `history_days`, mặc định 1095 ngày nếu bạn không đổi). Nguồn không công bố ROE cho chỉ số; trang tự suy ra bằng P/B chia P/E và nói rõ như vậy.
 - `vndirect-mkw` là máy chủ market-watch của công ty chứng khoán, một máy chủ thứ hai nên được tính nhịp và tạm dừng riêng khỏi `vndirect`. Nó cho biết với VN-Index, VN30 hoặc HNX mỗi mã đã cộng hay trừ bao nhiêu điểm trong phiên. Chỉ đọc khi thẻ Thị trường hỏi: nhiều nhất một lần mỗi phút khi phiên đang giao dịch, một lần sau giờ đóng cửa và giữ đến lần mở cửa kế tiếp, và các lời gọi cùng lúc dùng chung một lượt đọc. Nếu đọc lỗi thì danh sách cuối cùng được giữ lại và ghi rõ như vậy. Không có gì của nó được lưu.
 - `cafef-statements` không phải bên dự phòng cho `vietcap-statements`. Nó chỉ được hỏi cho quý mới nhất khi `vietcap-statements` đã có bảng cân đối và kết quả kinh doanh nhưng chưa có lưu chuyển tiền tệ, và số của nó chỉ được giữ khi lợi nhuận trước thuế lũy kế khớp với các quý đã có. `vietcap-statements` thay chúng ngay ngày nó có lưu chuyển tiền tệ.
 - `cafef` không phải bên dự phòng cho dòng tiền của `vndirect`. Nó chỉ công bố khối tự doanh, sớm hơn hai phiên, và chỉ được hỏi cho những phiên còn thiếu phần đó.
@@ -116,7 +116,7 @@ Các nguồn scrape Việt Nam và các bảng vàng khá mong manh, và việc 
 
 Chúng vẫn được đăng ký. Khi một nguồn không trả lời, bạn nhận một *unavailable* có ghi rõ nguồn, hữu ích hơn một bản cài lặng lẽ không phủ gì.
 
-`nso` đôi khi không với tới được từ nước ngoài. Không sao: việc `trading.macro-extract` của daemon thử lại ở nhịp kế tiếp, và một báo cáo hằng tháng nằm trên mạng nhiều tuần. Việc này đọc các báo cáo của cơ quan thống kê (cùng các tiêu đề về PMI và đầu tư công của Việt Nam) bằng một model trong `[[model_tiers.extraction]]`, nếu không có thì dùng `[[models]]`. Nó chỉ giữ một con số nếu trích dẫn của nó xuất hiện nguyên văn trong nguồn và con số có trong trích dẫn.
+`nso` đôi khi không với tới được từ nước ngoài. Không sao: việc `trading.macro-extract` của dịch vụ nền thử lại ở nhịp kế tiếp, và một báo cáo hằng tháng nằm trên mạng nhiều tuần. Việc này đọc các báo cáo của cơ quan thống kê (cùng các tiêu đề về PMI và đầu tư công của Việt Nam) bằng một mô hình trong `[[model_tiers.extraction]]`, nếu không có thì dùng `[[models]]`. Nó chỉ giữ một con số nếu trích dẫn của nó xuất hiện nguyên văn trong nguồn và con số có trong trích dẫn.
 
 Positioning của CFTC là hằng tuần và có độ trễ, và báo cáo nói rõ điều đó. Nó mang ngày thứ Ba mà các vị thế được giữ, và được công bố vào thứ Sáu sau đó. Một con số mang ngày thứ Ba tuần trước là báo cáo đang nói thật về độ trễ của chính nó, không phải số đọc cũ.
 
@@ -166,7 +166,7 @@ Mỗi nhà cung cấp được điều nhịp theo một tốc độ yêu cầu 
 
 Ba nhà cung cấp tính hạn mức theo cửa sổ dài hơn mà nhịp theo phút không diễn đạt được: `bls` theo ngày, `er-api` và `coingecko` theo tháng (bộ nối `coingecko` nhắm tới gói Demo 10.000 lời gọi mỗi tháng). Dùng bình thường thì không bên nào gần chạm: `er-api` đứng cuối danh sách FX và `bls` chỉ được hỏi tối đa một lần mỗi ngày và hoàn toàn không được hỏi giữa hai kỳ công bố hằng tháng của chỉ số lạm phát (xem [Cache](#cache)). `coinmarketcap` không công bố trần cho phần dùng không khóa và trả `1022` khi một người gọi ẩn danh đã dùng hết; nó hồi lại trong vòng một phút sau khi nghỉ, và nhà cung cấp kế tiếp lấp chỗ trống.
 
-OpenAlpha không giữ hạn mức theo ngày hay theo tháng nào của riêng nó cho lời gọi nhà cung cấp, vì các lời gọi đó miễn phí ở những gói mà nó nhắm tới. Trần chi tiêu có cho lời gọi model: [Ngân sách](ngan-sach.md).
+OpenAlpha không giữ hạn mức theo ngày hay theo tháng nào của riêng nó cho lời gọi nhà cung cấp, vì các lời gọi đó miễn phí ở những gói mà nó nhắm tới. Trần chi tiêu có cho lời gọi mô hình: [Ngân sách](ngan-sach.md).
 
 Thời gian và kích thước:
 
