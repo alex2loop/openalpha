@@ -199,7 +199,7 @@ chat-role boundary lines from bodies, and applies platform and tool-availability
 The prompt index is built in [engine/hooks/available-skills.ts](../../../src/engine/hooks/available-skills.ts) and
 capped at `SKILL_INDEX_BLOCK_MAX` (8,192 bytes); the first 200 description characters show. `skill_view`
 ([tools/system/skill-view.ts](../../../src/tools/system/skill-view.ts)) looks the name up in the index the agent
-may see, returns the embedded text or the first safe `<dir>/<name>/SKILL.md`, and charges its size to the run's
+may see, and returns the embedded text or the first safe `<dir>/<name>/SKILL.md`. It charges the size to the run's
 budget (`SKILL_VIEW_RUN_BUDGET_BYTES`, 262,144; a child starts its own). Unseen, missing or unsafe gives
 `ToolError('file_not_found')`; an exhausted budget gives `payload_too_large`. A file over `SKILL_MAX_BYTES`
 (1 MiB, [engine/skills/load.ts](../../../src/engine/skills/load.ts)) is never loaded.

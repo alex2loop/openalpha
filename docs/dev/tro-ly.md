@@ -196,8 +196,8 @@ giới vai chat khỏi phần thân, và áp các quy tắc hiển thị theo n�
 
 Mục lục trong prompt được dựng ở [engine/hooks/available-skills.ts](../../src/engine/hooks/available-skills.ts) và bị chặn ở
 `SKILL_INDEX_BLOCK_MAX` (8.192 byte); 200 ký tự đầu của mô tả được hiện. `skill_view`
-([tools/system/skill-view.ts](../../src/tools/system/skill-view.ts)) tra tên trong mục lục agent được thấy, trả văn bản nhúng
-hoặc `<dir>/<name>/SKILL.md` an toàn đầu tiên, và tính kích thước vào ngân sách của phiên chạy
+([tools/system/skill-view.ts](../../src/tools/system/skill-view.ts)) tra tên trong mục lục agent được thấy, và trả văn bản nhúng
+hoặc `<dir>/<name>/SKILL.md` an toàn đầu tiên. Nó tính kích thước vào ngân sách của phiên chạy
 (`SKILL_VIEW_RUN_BUDGET_BYTES`, 262.144; phiên chạy con bắt đầu với ngân sách riêng). Tên không thấy, không tồn tại hoặc
 không an toàn cho `ToolError('file_not_found')`; hết ngân sách cho `payload_too_large`. Tệp quá `SKILL_MAX_BYTES` (1 MiB,
 [engine/skills/load.ts](../../src/engine/skills/load.ts)) không bao giờ được nạp.
