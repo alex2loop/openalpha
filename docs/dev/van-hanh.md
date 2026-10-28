@@ -6,7 +6,7 @@ thế nào bên dưới. Phần dành cho operator ở [Việc lặp lại](../v
 ## Cơ chế vòng lặp
 
 Mọi vòng lặp giao dịch theo kiểu ngủ - chạy - ngủ, không dùng `setInterval`. Khoảng chờ kế tiếp được
-tính sau khi lượt chạy xong, nên một lượt chậm không chồng lên chính nó, và lượt nào không có việc đủ
+tính sau khi phiên chạy xong, nên một lượt chậm không chồng lên chính nó, và lượt nào không có việc đủ
 điều kiện thì thoát ngay. Kích thước lô cố định 50 dòng mỗi lượt; `trading.macro-extract` dùng 3 vì mỗi
 mục là một lời gọi mô hình. Nhịp workflow và nhịp heartbeat là các timer 30 giây do hệ con của chúng
 tự giữ.
@@ -95,7 +95,7 @@ flowchart LR
 ```
 
 Lần nhận việc được lưu bền và duy nhất theo **cả** việc **và** mốc thời gian đã lên lịch, nhờ đó các
-lần chạy tự động không bị trùng. Một việc không chồng lên chính nó, và trần toàn cục áp cho tất cả.
+phiên chạy tự động không bị trùng. Một việc không chồng lên chính nó, và trần toàn cục áp cho tất cả.
 Khâu kết thúc ghi kết cục rồi đẩy lịch tới, thử lại hoặc tắt việc, tất cả trong một giao dịch.
 
 Lần nhận việc đi kèm một lease: 5 phút (`OCCURRENCE_LEASE_TTL_MS`), gia hạn mỗi 2 phút theo đồng hồ
@@ -105,8 +105,8 @@ nguyên nhịp lịch. Chỉ dòng `failed`, hoặc dòng `running` có lease đ
 đóng lại ở trạng thái hỏng và nhịp lịch đi tiếp, thay vì chạy lại lần đã tiêu. Việc chạy một lần không
 có lần kế tiếp, nên một lần mất được tính là lỗi.
 
-`run-now` dùng lần nhận việc riêng. Nó ghi một lần chạy mà không đẩy lịch và không chạm bộ đếm lỗi, và
-bị từ chối khi một lần chạy theo lịch của cùng việc đang giữ lease còn hạn, dù từ CLI hay từ dịch vụ nền. Lần
+`run-now` dùng lần nhận việc riêng. Nó ghi một phiên chạy mà không đẩy lịch và không chạm bộ đếm lỗi, và
+bị từ chối khi một phiên chạy theo lịch của cùng việc đang giữ lease còn hạn, dù từ CLI hay từ dịch vụ nền. Lần
 nhận này bị coi là cũ sau thời gian chờ phê duyệt cộng trần thời lượng của việc cộng 60 giây. Lúc khởi
 động, các dòng `running` cũ chuyển thành hỏng với lý do dịch vụ nền khởi động lại, và các lần nhận run-now bị
 bỏ rơi được giải phóng sau lượt quét đó.
@@ -114,7 +114,7 @@ bỏ rơi được giải phóng sau lượt quét đó.
 Việc thử lại dùng chung một chính sách với heartbeat (`scheduler/backoff.ts`), tối đa 30 phút:
 `60 giây x 2^(số lần hỏng - 1)`. Việc cron bị tắt sau 3 lần hỏng liên tiếp. Các lần dừng không tính là
 hỏng: tắt máy, phê duyệt bị từ chối hoặc quá hạn, agent chạm trần, agent đang tạm dừng. Việc gửi chạy sau khâu kết
-thúc, nên lỗi gửi không bao giờ làm hỏng lần chạy.
+thúc, nên lỗi gửi không bao giờ làm hỏng phiên chạy.
 
 ## Bộ chạy heartbeat
 
@@ -163,7 +163,7 @@ chắc đã tới nơi. Lời gọi bị từ chối không bao giờ được c
 
 ### Khoảng chờ tăng dần
 
-Lượt chạy không bao giờ tới `completed` để nguyên mốc hoàn tất gần nhất; không có phanh thì tác vụ lại
+Phiên chạy không bao giờ tới `completed` để nguyên mốc hoàn tất gần nhất; không có phanh thì tác vụ lại
 đến hạn ngay ở nhịp kế tiếp, mãi mãi. Vì vậy mỗi lần hỏng tăng bộ đếm và hoãn lần nhận việc kế tiếp thêm
 `60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút. Một lượt hoàn tất xóa cả hai. Khoảng chờ chặn ở khâu
 nhận việc: tác vụ không bao giờ bị tắt. Hai đường khác hoãn theo cùng cách qua

@@ -6,7 +6,7 @@ trí của nghiên cứu giữa các tính năng khác: [Bên trong](ben-trong.m
 
 ## Quy trình
 
-Một lần chạy gồm một khâu điều phối và bốn worker, mỗi worker một việc: `research-planner`,
+Một phiên chạy gồm một khâu điều phối và bốn worker, mỗi worker một việc: `research-planner`,
 `research-crawler`, `research-synthesizer` và `research-reviewer` (hồ sơ ở `src/engine/agents/`). Mỗi
 worker chạy như một phiên chạy con tách biệt, chỉ lưu tạm và không đọc được bản ghi của worker khác. Các
 giai đoạn là `plan`, `crawl`, `synthesize` và `review`. `/research` chạy quy trình này qua agent
@@ -42,9 +42,9 @@ Mọi worker nghiên cứu đều khai `tools = []`: không worker nào tìm ki�
 Với mỗi câu hỏi, lượt truy hồi:
 
 1. Lấy các từ khóa tìm kiếm mà planner đã sinh.
-2. Ghi từng từ khóa vào sổ truy vấn con của lần chạy trước khi lần tìm nào bắt đầu. Từ khóa đã dùng thì
+2. Ghi từng từ khóa vào sổ truy vấn con của phiên chạy trước khi lần tìm nào bắt đầu. Từ khóa đã dùng thì
    bị bỏ qua (`duplicate_subquery`); chạm 42 truy vấn con thì dừng và ghi khoảng trống `content_limit`.
-   Sổ này dùng chung cho mọi câu hỏi, nên trần áp cho cả lần chạy.
+   Sổ này dùng chung cho mọi câu hỏi, nên trần áp cho cả phiên chạy.
 3. Tìm trên nhà cung cấp mặc định đã cấu hình, cho mọi từ khóa còn lại cùng một lúc, nên mỗi câu hỏi tốn
    cỡ một lần chờ hết giờ của nhà cung cấp. Kết quả được gom, khử trùng theo URL và xếp hạng trước khi
    đọc gì: trang có tiêu đề hay đoạn trích nêu đúng các thực thể của câu hỏi xếp trước. Cửa sổ độ mới
@@ -56,7 +56,7 @@ Với mỗi câu hỏi, lượt truy hồi:
    3 trang tốt nhất được tải thẳng cùng một lúc. Trang vượt giới hạn được ghi là khoảng trống
    `content_limit`.
 
-Văn bản trang được lưu chung cho cả lần chạy theo URL đã chuẩn hóa, nên hai câu hỏi cùng gặp một trang
+Văn bản trang được lưu chung cho cả phiên chạy theo URL đã chuẩn hóa, nên hai câu hỏi cùng gặp một trang
 chỉ đọc nó một lần. Tài liệu đã thu còn được cache theo từng câu hỏi, nên lần crawl thử lại chạy lại mô
 hình mà không mất thêm tiền truy hồi.
 
@@ -213,7 +213,7 @@ lời, nếu không nhà cung cấp cắt ở `finish=length` khi câu trả l�
 không giữ `low` trong một ngân sách cố định: với tám trang tiếng Việt, Claude Haiku 5.5 đã tiêu hơn 4.000
 token suy nghĩ chỉ riêng ở bước crawler, nên trần của bước này lớn hơn.
 
-Các trần schema (`src/engine/research/contracts.ts`) áp cho mỗi lần chạy dù cấu hình thế nào: 8 luận điểm
+Các trần schema (`src/engine/research/contracts.ts`) áp cho mỗi phiên chạy dù cấu hình thế nào: 8 luận điểm
 mỗi nhánh câu hỏi, 3 nguồn mỗi luận điểm, 8 mục trong mỗi mục báo cáo, 12 khoảng trống, 6 vấn đề soát, 64
 lần truy hồi, thông báo lỗi 500 ký tự và câu hỏi 20.000 ký tự. Một lần đọc trang bị chặn ở 1 MiB trước khi
 rút trích, và đoạn trích tìm kiếm ở 400 ký tự (`snippetMaxChars` trong

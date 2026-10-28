@@ -448,7 +448,7 @@ theo từng chat, và nó sống qua khởi động lại:
 /agent default         # quay về mặc định của kênh
 ```
 
-Đổi ràng buộc sẽ hủy phần việc đang chờ và đang chạy của cuộc trò chuyện cũ rồi mở cuộc trò chuyện mới cho agent mới, nên đổi
+Đổi ràng buộc sẽ hủy phần việc đang chờ và đang chạy của cuộc trò chuyện cũ, và tin nhắn kế tiếp mở cuộc trò chuyện mới với agent mới, nên đổi
 giữa chừng không để lại một phiên chạy mồ côi vẫn đang tiêu ngân sách của bạn.
 
 ### Agent của plugin nằm ở đâu

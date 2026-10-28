@@ -87,7 +87,7 @@ thời gian trôi. Tên mô hình chỉ hiện khi đúng một mô hình phục
 chừng thì không còn một cái tên duy nhất, nên dòng cuối chỉ còn số đếm và lần đổi được in ở dòng ngay bên trên.
 
 Khi API bật, ứng dụng cho thấy chi phí trước khi chạy và sau khi chạy. Cạnh mỗi câu lệnh có mức nó thường tốn: nửa
-giữa của các lần chạy xong gần đây, tính trên những lần có tốn tiền, nên một lần lệch hẳn ít làm nó xê dịch. Nó chờ
+giữa của các phiên chạy xong gần đây, tính trên những lần có tốn tiền, nên một lần lệch hẳn ít làm nó xê dịch. Nó chờ
 đến khi câu lệnh đã chạy vài lần, không hiện gì cho câu lệnh giao lượt cho agent (khoản đó thuộc phiên chạy của chính
 agent), và hiện từ 0 đến 0 khi các lần gần đây đều không dùng AI. Câu lệnh có chi phí phụ thuộc vào thứ bạn gõ, như
 `/suggest` trên các mã khác nhau, gộp mọi lần dùng dưới một cái tên, nên hãy coi đó là con số tham khảo. Mỗi phiên chạy

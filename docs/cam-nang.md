@@ -444,7 +444,7 @@ Viết `thị-trường:mã` ở bất kỳ lệnh nào khi tên trần có th�
   luận không đổi được kết luận "giữ nguyên" đó.
 
 **`/rebalance`:** không nhập mã thì dùng danh mục đang nắm cộng danh sách theo dõi. Nhập mã thì các
-mã đó thay danh sách theo dõi trong lần chạy ấy và không được lưu. **Danh mục đang nắm luôn được
+mã đó thay danh sách theo dõi trong phiên chạy ấy và không được lưu. **Danh mục đang nắm luôn được
 xét**, vì bỏ sót một mã đang nắm thì lời khuyên về cả cuốn sổ sẽ sai.
 
 ### 4.2 `/trade` - đường duy nhất ra sàn
@@ -675,7 +675,7 @@ Mỗi thị trường có đúng một mô hình yếu tố. Sàng lọc có hai
   trần, dao động nhiễu. Riêng crypto loại sẵn stablecoin, coin gương, cổ phiếu mã hóa, coin vốn hóa
   dưới 250 triệu USD hoặc khối lượng ngày dưới 10 triệu USD **trước khi** tốn lệnh gọi dữ liệu nào.
 - **Mã qua cổng xếp theo điểm tổng hợp** của chính thị trường đó; bằng điểm thì cổ phiếu VN xếp theo
-  giá trị giao dịch rồi tới chữ cái, crypto xếp theo chữ cái, để mỗi lần chạy ra cùng một kết quả.
+  giá trị giao dịch rồi tới chữ cái, crypto xếp theo chữ cái, để mỗi phiên chạy ra cùng một kết quả.
 
 **Không có bảng trọng số thứ hai.** Điểm `/screen` xếp hạng chính là điểm quy trình đề xuất dùng, nên
 "đứng đầu bảng" và "đủ mạnh để gợi ý" không mâu thuẫn. Top mã chỉ để tham khảo; không gì tự chạy theo
@@ -749,13 +749,13 @@ chặn -> tranh luận -> cổng giao dịch và rủi ro -> chốt -> lưu**. G
    dẫn chứng kèm nguồn); vai quản lý danh mục chọn luận điểm từ cả hai phía; vai trader đề xuất kế
    hoạch vào lệnh; vai rủi ro được quyền chặn hoặc **hạ** mức tin cậy; vai đối chiếu kiểm từng khẳng
    định với bằng chứng. Chế độ `lean` chạy một vai phân tích rồi đối chiếu.
-4. **Ngân sách theo vai**: mỗi vai một phần, cắt từ 80% ngân sách còn lại của lần chạy. Cạn ngân sách
+4. **Ngân sách theo vai**: mỗi vai một phần, cắt từ 80% ngân sách còn lại của phiên chạy. Cạn ngân sách
    thì kết quả đổ về "giữ nguyên", không báo lỗi giữa chừng.
 5. **Định cỡ**: theo rủi ro mỗi lệnh trong hồ sơ, kẹp bởi trần vị thế, tiền mặt khả dụng, lô giao
    dịch và thang trạng thái vĩ mô (chỉ co).
 6. **Lưu**: đề xuất lưu kèm phiên bản chiến lược và phiên bản công thức.
 
-Một lần chạy kết thúc theo một trong bốn cách: có đề xuất; mã chưa được hỗ trợ (không thị trường nào
+Một phiên chạy kết thúc theo một trong bốn cách: có đề xuất; mã chưa được hỗ trợ (không thị trường nào
 nhận mã đó, hoặc hai thị trường cùng nhận và bạn phải chỉ rõ); mã đang trong thời gian chờ; hoặc lỗi
 lúc lưu - chạy lại an toàn, không tạo bản trùng.
 
@@ -915,7 +915,7 @@ thế chồng lấn và phần tiền mặt nhàn rỗi. Hệ thống tự ghi l
 tư nào, chủ đề lan tới ngành nào, và doanh nghiệp nào thật sự đổi lợi nhuận vì nó. Chỉ áp dụng cho
 cổ phiếu VN.
 
-- **Bạn quyết danh sách.** Lần chạy đầu chỉ đề xuất chủ đề. Mỗi đề xuất phải nêu được ngành nào hưởng
+- **Bạn quyết danh sách.** Phiên chạy đầu chỉ đề xuất chủ đề. Mỗi đề xuất phải nêu được ngành nào hưởng
   lợi, nên bạn biết trước duyệt nó dẫn tới đâu; áp lực chi phí hay sức cầu yếu mà không có bên thắng
   rõ ràng thì không được đề xuất. `/themes approve <id>` để theo dõi, `reject <id>` để bỏ, `retire
   <id>` khi không muốn theo nữa. Hệ thống tự chuyển một chủ đề sang "đang yếu đi" hoặc "đã kết thúc"
@@ -950,12 +950,12 @@ cổ phiếu VN.
   soát lại chủ đề đó cùng ngành và mã của nó, không đụng chủ đề khác, không tìm chủ đề mới, nên rẻ
   hơn hẳn một phiên đầy đủ. Báo cáo trả về chỉ nói về chủ đề đó, không kèm bảng điểm các lần trước.
   `/themes show` hiện mọi chủ đề còn trong danh sách, mỗi chủ đề theo lần soát gần nhất của nó; chủ
-  đề nào được soát từ trước lần chạy gần nhất thì có thêm dòng "Soát lần cuối" ghi rõ ngày.
+  đề nào được soát từ trước phiên chạy gần nhất thì có thêm dòng "Soát lần cuối" ghi rõ ngày.
 - **Chủ đề "Đã kết thúc" thì không còn mã.** Mỗi chủ đề đi kèm vài điều kiện kết thúc, mỗi điều kiện
   nêu một con số, một ngưỡng và một khoảng thời gian. Khi số liệu cho thấy một điều kiện đã xảy ra,
   chủ đề chuyển sang "Đã kết thúc": ngay dưới tên chủ đề có dòng "Lý do kết thúc", hệ thống ngừng
   soát ngành và mã của nó, và gợi ý `/themes retire <id>` để bạn bỏ nó khỏi danh sách theo dõi.
-- **Chi phí.** Mỗi lần chạy có trần riêng (`[trading.themes] maximum_cost_usd`, mặc định $1). Chủ đề được
+- **Chi phí.** Mỗi phiên chạy có trần riêng (`[trading.themes] maximum_cost_usd`, mặc định $1). Chủ đề được
   cập nhật, tìm mới, rồi lập danh sách ngành và mã theo thứ tự đó; chạm trần thì dừng giai đoạn đang
   làm và nêu tên những mã bị bỏ qua. `/themes show` đọc lại kết quả đã lưu, không tốn gì. Qua MCP chỉ
   có công cụ đọc `themes_view`.

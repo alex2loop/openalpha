@@ -580,7 +580,7 @@ characters, the API stays closed (the saved token never stands in) and `start` w
 the daemon runs; a port already in use still stops the start. `openalpha api token` prints the token
 and `openalpha api rotate` replaces it; rotating signs every browser out and restarts a running
 daemon, so the old token stops working at once. A browser never holds the token: `openalpha web` prints a
-one-time link that signs it in, and `openalpha connect` prints the line the desktop app pastes (see
+one-time link that signs it in, and `openalpha connect` prints the address and token the desktop app pastes (see
 [Operations](operations.md#run-the-api-on-a-server)).
 
 | Key | Type | Default | Notes |

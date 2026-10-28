@@ -38,10 +38,10 @@ việc thì thoát ngay.
 | nhịp lập lịch | 30 giây | Tìm các việc theo lịch đã đến hạn. |
 
 Khi API bật, ứng dụng liệt kê các vòng này, cùng vòng nào plugin thêm, thành một bảng việc dịch vụ nền đang làm ngầm: tên
-vòng bằng lời thường, bao lâu chạy một lần nếu nó có nhịp cố định, lần chạy gần nhất bắt đầu lúc nào, lỗi cuối cùng
-nếu lần đó hỏng (lần chạy tốt kế tiếp xóa lỗi), lần chạy tới là khi nào và nó có đang làm việc không. Bản tin sáng
+vòng bằng lời thường, bao lâu chạy một lần nếu nó có nhịp cố định, phiên chạy gần nhất bắt đầu lúc nào, lỗi cuối cùng
+nếu lần đó hỏng (phiên chạy tốt kế tiếp xóa lỗi), phiên chạy tới là khi nào và nó có đang làm việc không. Bản tin sáng
 và báo cáo trong ngày cho biết khi nào đến hạn lần kế. Bảng này nằm trong bộ nhớ, nên sau khi khởi động lại mỗi vòng
-chưa hiện gì cho đến lượt chạy kế tiếp của nó.
+chưa hiện gì cho đến phiên chạy kế tiếp của nó.
 
 ### Dữ liệu thị trường được làm mới khi nào
 
@@ -82,7 +82,7 @@ Một nhịp: `[trading.refresh] interval_ms`, mặc định là trần 12 giờ
 [Cấu hình](cau-hinh.md#trading). Mỗi lượt xử lý 50 dòng, riêng `trading.macro-extract` là 3 vì mỗi
 mục ở đó là một lời gọi mô hình. Đổi gì ở đây cũng cần khởi động lại dịch vụ nền.
 
-### Khi một lượt chạy báo lỗi
+### Khi một phiên chạy báo lỗi
 
 | Lỗi | Kết quả |
 | --- | --- |
@@ -144,12 +144,12 @@ openalpha schedule list | show <id> | pause <id> | resume <id> | run-now <id> | 
 
 `--agent` mặc định là `chat`. Muốn chạy theo chu kỳ thì dùng `--every 30m` thay cho `--cron`.
 `schedule edit` đổi được prompt, lịch, múi giờ hay đích gửi; muốn đổi agent thì xóa rồi thêm lại.
-Lệnh chạy được cả khi dịch vụ nền đang chạy và chỉ ghi các trường bạn đổi, nên lượt chạy đến hạn hay đang
+Lệnh chạy được cả khi dịch vụ nền đang chạy và chỉ ghi các trường bạn đổi, nên phiên chạy đến hạn hay đang
 thử lại không bị ảnh hưởng.
 
 Prompt bắt đầu bằng `/` là một lệnh, chạy như khi bạn gõ, không dùng mô hình trừ khi chính lệnh đó cần
 (`/suggest`, `/research`): `--prompt "/health"` không tốn gì. Chỉ dòng đầu là lệnh, và kết quả được gửi
-như mọi câu trả lời khác, vào chuông khi không có trang nào đang mở để trang mở sau đó đọc được. Mỗi lần chạy
+như mọi câu trả lời khác, vào chuông khi không có trang nào đang mở để trang mở sau đó đọc được. Mỗi phiên chạy
 như vậy để lại một dòng trong nhật ký hoạt động. Lệnh thay đổi cài đặt, lệnh đặt hoặc sổ của bạn (như `/trade`, `/record sync`
 hay `/refresh`) cần bạn duyệt, nên `schedule add` và `schedule edit` từ chối, trang văn phòng và công cụ
 lập lịch của agent cũng vậy. Từ sau dấu `/` mà không phải lệnh nào cũng bị từ chối như vậy, và một việc đã lưu mà giờ sẽ bị từ chối thì cũng bị từ chối khi đến hạn chạy.
@@ -162,7 +162,7 @@ giữ thủng mức cắt lỗ hoặc chạm mức chốt lời, khi một mã b
 đặt được chạm. Việc chạy tối đa một lần mỗi khoảng chờ, quãng nghỉ mà việc mang theo để một mã ồn ào không kích nó chạy liên tục, và vẫn bật sau khi chạy,
 trừ việc theo giá: một lần chạm là hết. `schedule list` ghi nó là `khi FPT chạm mức giá bạn đặt`
 thay cho giờ, `schedule edit` không đặt giờ cho nó được, `schedule remove` gỡ luôn cảnh báo giá nó
-đã đặt, còn `schedule resume` từ chối việc theo giá mà cảnh báo đã chạm. Một lần chạy hỏng của việc theo sự kiện không tính vào việc tự tắt, nên việc cứ hỏng mãi vẫn bật và báo lỗi ở mỗi lần cảnh báo chạm, tối đa một lần mỗi khoảng chờ.
+đã đặt, còn `schedule resume` từ chối việc theo giá mà cảnh báo đã chạm. Một phiên chạy hỏng của việc theo sự kiện không tính vào việc tự tắt, nên việc cứ hỏng mãi vẫn bật và báo lỗi ở mỗi lần cảnh báo chạm, tối đa một lần mỗi khoảng chờ.
 
 Cron nhận năm trường, hỗ trợ ký tự đại diện, khoảng, bước (`*/15`, `1-5/2`) và danh sách ngăn bằng dấu
 phẩy. Khi cả ngày-trong-tháng lẫn thứ-trong-tuần đều bị giới hạn, khớp **một trong hai** là đủ; trường
@@ -173,45 +173,45 @@ Khi đồng hồ đổi giờ, việc ghim vào giờ cụ thể (không có `*`
 giờ bị lặp lại, và chạy ở phút đầu tiên còn tồn tại sau giờ bị nhảy qua. Việc có `*` ở một trong hai
 trường thì cứ chạy theo đồng hồ.
 
-### Một lần chạy cư xử thế nào
+### Một phiên chạy cư xử thế nào
 
 - Một việc không bao giờ chạy hai lần cùng lúc, và không chạy hai lần cho cùng một mốc đã lên lịch.
-- `run-now` ghi lại một lần chạy nhưng không đẩy lịch tới và không chạm vào bộ đếm lỗi. Ngoại lệ duy nhất là việc chạy một lần: `run-now` thành công chính là lần chạy của nó, nên sau đó việc ấy xong và bị tắt. Nó bị từ chối
-  khi một lần chạy theo lịch của cùng việc vẫn đang chạy, dù gọi từ CLI hay từ dịch vụ nền.
-- Lần chạy chết giữa chừng (ví dụ dịch vụ nền bị kill) được đóng lại ở trạng thái hỏng và lịch đi tiếp,
+- `run-now` ghi lại một phiên chạy nhưng không đẩy lịch tới và không chạm vào bộ đếm lỗi. Ngoại lệ duy nhất là việc chạy một lần: `run-now` thành công chính là phiên chạy của nó, nên sau đó việc ấy xong và bị tắt. Nó bị từ chối
+  khi một phiên chạy theo lịch của cùng việc vẫn đang chạy, dù gọi từ CLI hay từ dịch vụ nền.
+- Phiên chạy chết giữa chừng (ví dụ dịch vụ nền bị kill) được đóng lại ở trạng thái hỏng và lịch đi tiếp,
   không chạy lại lần đã tiêu. Việc chạy một lần không có lần kế tiếp, nên một lần mất được tính là lỗi:
   nó đến hạn lại sau khoảng chờ thử lại bên dưới, và bị tắt kèm thông báo ở lần thứ ba.
 
 ### Thử lại và gửi đi
 
 Việc cron hay theo chu kỳ chạy thành công thì lần kế tiếp tính từ lúc nó xong; việc chạy một lần thì
-tự tắt. Lần chạy hỏng được thử lại với khoảng chờ tăng gấp đôi, `60 giây x 2^(số lần hỏng - 1)`, tối
+tự tắt. Phiên chạy hỏng được thử lại với khoảng chờ tăng gấp đôi, `60 giây x 2^(số lần hỏng - 1)`, tối
 đa 30 phút: một phút sau lần hỏng đầu, hai phút sau lần thứ hai, rồi **tắt hẳn ở lần hỏng liên tiếp
 thứ ba**. Một lần thành công đặt lại bộ đếm.
 
-Thiếu khóa cũng không tính: một lần chạy hỏng vì biến môi trường của khóa AI chưa đặt được bỏ qua kèm một
+Thiếu khóa cũng không tính: một phiên chạy hỏng vì biến môi trường của khóa AI chưa đặt được bỏ qua kèm một
 cảnh báo trong nhật ký, việc vẫn bật và chạy lại ở lần tới, nên lưu khóa bằng `openalpha key set <NAME>` rồi `restart --background` là xong, không cần
 `schedule resume`. Bản tin sáng cũng vậy: hôm đó bạn nhận một tin nói thiếu biến nào và cách đặt, thay cho
 câu "gửi không được sau nhiều lần thử".
 
-Hết ngân sách cũng không tính. Khi hạn mức ngày, tháng hay hạn mức riêng của agent chặn một lần chạy,
-việc nhảy sang lần kế tiếp theo lịch, còn việc chạy một lần thì được hỏi lại sau 30 phút. Lần chạy bị
+Hết ngân sách cũng không tính. Khi hạn mức ngày, tháng hay hạn mức riêng của agent chặn một phiên chạy,
+việc nhảy sang lần kế tiếp theo lịch, còn việc chạy một lần thì được hỏi lại sau 30 phút. Phiên chạy bị
 giới hạn tần suất chặn cũng được hỏi lại sau 30 phút. Nhờ vậy một ngày tiêu nhiều không làm việc tắt hẳn.
 
 Tắt máy không bao giờ tính vào việc tự tắt. Việc chạy một lần bị cắt ngang vì tắt máy vẫn đến hạn và
 chạy ở lần khởi động sau. Còn phê duyệt bị từ chối hay quá hạn thì việc vẫn kết thúc, vì chạy lại chỉ
-lặp lại câu hỏi. Sau khi khởi động lại, những lần chạy còn đang đánh dấu là chạy sẽ chuyển thành hỏng
+lặp lại câu hỏi. Sau khi khởi động lại, những phiên chạy còn đang đánh dấu là chạy sẽ chuyển thành hỏng
 với lý do dịch vụ nền khởi động lại.
 
-Việc gửi diễn ra sau khi lần chạy tốn tiền đã xong, nên gửi hỏng không biến lần chạy thành thất bại và
-không kích hoạt thêm một lần chạy tốn tiền. Việc không có `--to` thì dùng đích mặc định nếu có, nếu
+Việc gửi diễn ra sau khi phiên chạy tốn tiền đã xong, nên gửi hỏng không biến phiên chạy thành thất bại và
+không kích hoạt thêm một phiên chạy tốn tiền. Việc không có `--to` thì dùng đích mặc định nếu có, nếu
 không thì đầu ra bị bỏ kèm một cảnh báo. Thông báo tự tắt đi tới `failure_target`, không tới đích của
 chính việc đó (có thể đang hỏng).
 
 ### Phê duyệt
 
 Việc có đích là kênh thì hỏi được kênh đó và chờ tối đa `approval_timeout_ms`. Việc không có đích thì
-không có ai duyệt, nên công cụ cần phê duyệt đơn giản là không dùng được. Bị từ chối thì lần chạy kết
+không có ai duyệt, nên công cụ cần phê duyệt đơn giản là không dùng được. Bị từ chối thì phiên chạy kết
 thúc và không thử lại hành động bị từ chối. Quyết định chỉ có hiệu lực trong việc đó, không bao giờ
 được dùng lại như trạng thái của cuộc trò chuyện.
 
@@ -220,11 +220,11 @@ thúc và không thử lại hành động bị từ chối. Quyết định ch�
 | Điều kiện | Kết quả |
 | --- | --- |
 | Số việc đến hạn nhiều hơn sức chứa | Phần còn lại vẫn đến hạn, chờ lượt rà sau |
-| Lần chạy agent hỏng | Được ghi lại; áp chính sách thử lại |
-| Gửi hỏng sau khi chạy thành công | Lần chạy vẫn là thành công; lỗi gửi được ghi lại |
+| Phiên chạy agent hỏng | Được ghi lại; áp chính sách thử lại |
+| Gửi hỏng sau khi chạy thành công | Phiên chạy vẫn là thành công; lỗi gửi được ghi lại |
 | Lần hỏng liên tiếp thứ ba | Việc bị tắt; thông báo tùy chọn được gửi |
-| Một lần chạy vẫn đang diễn ra | Lượt rà này bỏ qua; lịch không đổi |
-| Bộ thực thi của lần chạy đã biến mất | Đóng lại ở trạng thái hỏng; lịch đi tiếp |
+| Một phiên chạy vẫn đang diễn ra | Lượt rà này bỏ qua; lịch không đổi |
+| Bộ thực thi của phiên chạy đã biến mất | Đóng lại ở trạng thái hỏng; lịch đi tiếp |
 | Dịch vụ nền dừng | Ngừng nhận việc mới, việc đang chạy bị hủy, khâu tắt chờ tối đa năm giây |
 
 ---
@@ -239,7 +239,7 @@ Agent tham gia mạng xã hội còn có thêm một tác vụ cho mỗi mạng,
 thêm vào chứ không viết trong tệp. Nó chạy cả khi không có `HEARTBEAT.md`, không nhận ngữ cảnh dùng
 chung của tệp, và có nhịp cùng khung giờ hoạt động riêng. Xem
 [mạng xã hội](mang-xa-hoi.md#một-lượt-ghé-diễn-ra-thế-nào). Tác vụ của agent đang tạm dừng được bỏ
-qua, không tính là thất bại; lượt chạy bị cắt ngang vì tắt máy cũng vậy: tác vụ vẫn đến hạn và chạy lại ở lần khởi động sau.
+qua, không tính là thất bại; phiên chạy bị cắt ngang vì tắt máy cũng vậy: tác vụ vẫn đến hạn và chạy lại ở lần khởi động sau.
 
 ### Tệp
 
@@ -270,12 +270,12 @@ tasks:
 Một tệp tối đa 65.536 byte và 20 tác vụ. Dòng `session` hay `duplicate_window` mà giá trị rỗng hoặc
 không hợp lệ thì **cả tác vụ bị bỏ**, không lặng lẽ quay về mặc định.
 
-### Một lần chạy làm được gì
+### Một phiên chạy làm được gì
 
-Cuối mỗi lần chạy, agent hoặc im lặng, hoặc gửi bạn một bản tóm tắt. Nó cũng có thể xin xem lại một
+Cuối mỗi phiên chạy, agent hoặc im lặng, hoặc gửi bạn một bản tóm tắt. Nó cũng có thể xin xem lại một
 việc ở lần đến hạn kế tiếp của chính tác vụ đó (một cam kết): tối đa 5 cam kết mỗi lần, mỗi cam kết
 dài tối đa 500 ký tự, đến hạn sau một phút tới ba mươi ngày. Phản hồi sai định dạng thì không gửi gì
-và không tạo cam kết nào, nhưng lần chạy vẫn tính là xong, nên một mô hình cứ trả lời sai không bị thử
+và không tạo cam kết nào, nhưng phiên chạy vẫn tính là xong, nên một mô hình cứ trả lời sai không bị thử
 lại mỗi 30 giây. Nội dung cam kết quay lại agent dưới dạng ngữ cảnh không đáng tin: nó không ghi đè
 được tác vụ hay các quy tắc. Định dạng phản hồi và quy tắc lưu: [Bên trong](dev/van-hanh.md#giao-thức-phản-hồi).
 
@@ -284,13 +284,13 @@ lại mỗi 30 giây. Nội dung cam kết quay lại agent dưới dạng ngữ
 `duplicate_window` chặn một thông báo lặp lại đúng nội dung tới đúng đích đó trong cửa sổ. Nó chỉ làm
 hết sức và chỉ nằm trong bộ nhớ, trong một danh sách giới hạn 200 mục, nên khởi động lại hay danh sách
 đầy đều làm nó quên mục cũ, và một thông báo trùng có thể quay lại. Thông báo bị từ chối không bao giờ
-được nhớ, nên lần chạy đủ điều kiện kế tiếp sẽ thử lại.
+được nhớ, nên phiên chạy đủ điều kiện kế tiếp sẽ thử lại.
 
 ### Khoảng chờ tăng dần
 
-Lần chạy không bao giờ xong (bị hủy, lỗi hay bị dừng) làm lần chạy kế tiếp của tác vụ bị hoãn thêm
-`60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút - cùng khoảng chờ với việc theo lịch. Một lần chạy
-xong xóa nó. Cùng khoảng chờ áp dụng cho lần chạy đã xong nhưng không lưu được kết quả (lỗi lưu trữ) và lần
+Phiên chạy không bao giờ xong (bị hủy, lỗi hay bị dừng) làm phiên chạy kế tiếp của tác vụ bị hoãn thêm
+`60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút - cùng khoảng chờ với việc theo lịch. Một phiên chạy
+xong xóa nó. Cùng khoảng chờ áp dụng cho phiên chạy đã xong nhưng không lưu được kết quả (lỗi lưu trữ) và lần
 chạy ném lỗi: cả hai không được lặp lại mỗi 30 giây. Tác vụ đang chờ đơn giản là không được chọn: nó không bao giờ bị tắt, và không có gì
 được gửi đi trong lúc chờ.
 
@@ -300,8 +300,8 @@ chạy ném lỗi: cả hai không được lặp lại mỗi 30 giây. Tác v�
 | --- | --- |
 | Tệp không đọc được hoặc quá cỡ | Không chạy |
 | Tác vụ sai định dạng hoặc chưa tới hạn | Bỏ hoặc bỏ qua |
-| Engine hủy hoặc lỗi | Không thông báo; bộ đếm lỗi tăng và lần chạy kế tiếp bị hoãn |
-| Không lưu được kết quả | Lần chạy tính là hỏng: bộ đếm lỗi tăng và lần chạy kế tiếp bị hoãn |
+| Engine hủy hoặc lỗi | Không thông báo; bộ đếm lỗi tăng và phiên chạy kế tiếp bị hoãn |
+| Không lưu được kết quả | Phiên chạy tính là hỏng: bộ đếm lỗi tăng và phiên chạy kế tiếp bị hoãn |
 | Phản hồi không hợp lệ | Vẫn tính là xong; không gửi gì |
 | Đích gửi không hợp lệ | Cảnh báo; các đích khác vẫn tiếp tục |
 | Bộ thông báo từ chối một đích | Cảnh báo; thông báo đó không được nhớ |
@@ -321,7 +321,7 @@ tin sáng và cảnh báo vẫn đến sau khi khởi động lại máy: một 
 của systemd trên Linux (trên máy chủ không ai đăng nhập, chạy thêm `loginctl enable-linger $USER`) và một
 mục trong khóa Run trên Windows. `openalpha autostart` cho biết đã bật chưa, và `autostart disable` gỡ nó
 (dịch vụ nền đang chạy vẫn tiếp tục). Lệnh cần bản cài đặt, không dùng được với bản chạy từ mã nguồn, và có hiệu
-lực từ lần đăng nhập tới. Lần chạy lúc đăng nhập không thấy biến chỉ export trong shell, nên hãy lưu khóa
+lực từ lần đăng nhập tới. Phiên chạy lúc đăng nhập không thấy biến chỉ export trong shell, nên hãy lưu khóa
 bằng `openalpha key set`; `enable` nêu tên mọi khóa mà cấu hình của bạn đọc nhưng chỉ đặt trong shell, kể cả khóa nguồn dữ liệu như `FRED_API_KEY`. Unit nó ghi tên là
 `openalpha-autostart`, tách khỏi dịch vụ viết tay bên dưới, vốn vẫn là cách chạy một máy chủ API.
 
@@ -421,13 +421,13 @@ khác vẫn hiện trong trang văn phòng nhưng được trả lời ở nơi 
 
 Trang văn phòng còn đọc được những gì dịch vụ nền biết mà không cần câu lệnh nào: lịch sử mọi cuộc chat, kể cả Telegram, tìm kiếm được nhưng chỉ nói tiếp được ở những chat do chính trang văn phòng mở; từng nguồn dữ liệu và lần gần nhất nó trả lời; các máy chủ dịch vụ nền có thể gọi tới và thứ gì được gửi tới từng nơi; các mô hình đang dùng cùng giá và chi phí thường lệ của một phiên chạy trên mỗi mô hình; sức mạnh ngành theo thị trường; và danh sách theo dõi của bạn, mà trang văn phòng sửa được.
 
-Khi dịch vụ nền dừng, API ngừng nhận kết nối và yêu cầu trước tiên, trước khi các lượt chạy được chờ xong; yêu
+Khi dịch vụ nền dừng, API ngừng nhận kết nối và yêu cầu trước tiên, trước khi các phiên chạy được chờ xong; yêu
 cầu đang chạy vẫn hoàn tất. Chat hay lệnh gửi qua một luồng đang mở được trả lời bằng lỗi `unavailable`,
-lượt chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các luồng đóng sau đó.
+phiên chạy đang diễn ra vẫn hoàn tất trong khoảng chờ, và các luồng đóng sau đó.
 
-Trang văn phòng cũng khởi động lại được dịch vụ nền dù nó chạy ở đâu: trong cửa sổ terminal, ở nền hay dưới một dịch vụ (macOS và Linux). Chọn khởi động lại khi không còn gì đang chạy (chờ tối đa khoảng hai phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Dịch vụ nền dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và lượt chạy nào không xong trong khoảng ân hạn lúc dừng thì bị ngắt; trang văn phòng báo các yêu cầu phê duyệt đó trước. Sau đó nó chạy lại ngay trong cùng tiến trình: cùng pid, cùng cửa sổ terminal, cùng dòng lệnh và cùng môi trường, khóa lưu bằng `openalpha key set` được đọc lại (biến bạn export trong shell đã bật dịch vụ nền thì giữ giá trị cũ). Ở terminal, nhật ký tiếp tục ngay trong cửa sổ đó. Khi dịch vụ nền chạy lại, chuông hiện "Đã khởi động lại dịch vụ nền." (dòng mới thay cho các dòng cùng nội dung còn chưa đọc) và không có gì gửi tới chat. Nếu lần chạy mới không khởi động được (tệp chạy bị di chuyển hoặc xóa chẳng hạn), dịch vụ nền vẫn dừng và báo ngay trên terminal của nó, hoặc trong nhật ký lỗi nếu nó chạy nền; bạn bật lại bằng `openalpha start`.
+Trang văn phòng cũng khởi động lại được dịch vụ nền dù nó chạy ở đâu: trong cửa sổ terminal, ở nền hay dưới một dịch vụ (macOS và Linux). Chọn khởi động lại khi không còn gì đang chạy (chờ tối đa khoảng hai phút, hết hạn thì vẫn khởi động lại) hoặc ngay lập tức. Dịch vụ nền dừng theo cách thông thường, nên yêu cầu phê duyệt còn chờ bị từ chối và phiên chạy nào không xong trong khoảng ân hạn lúc dừng thì bị ngắt; trang văn phòng báo các yêu cầu phê duyệt đó trước. Sau đó nó chạy lại ngay trong cùng tiến trình: cùng pid, cùng cửa sổ terminal, cùng dòng lệnh và cùng môi trường, khóa lưu bằng `openalpha key set` được đọc lại (biến bạn export trong shell đã bật dịch vụ nền thì giữ giá trị cũ). Ở terminal, nhật ký tiếp tục ngay trong cửa sổ đó. Khi dịch vụ nền chạy lại, chuông hiện "Đã khởi động lại dịch vụ nền." (dòng mới thay cho các dòng cùng nội dung còn chưa đọc) và không có gì gửi tới chat. Nếu phiên chạy mới không khởi động được (tệp chạy bị di chuyển hoặc xóa chẳng hạn), dịch vụ nền vẫn dừng và báo ngay trên terminal của nó, hoặc trong nhật ký lỗi nếu nó chạy nền; bạn bật lại bằng `openalpha start`.
 
-Cũng có thể làm trên dòng lệnh: `openalpha restart` nhờ dịch vụ nền đang chạy tự khởi động lại, chờ nó chạy lại rồi in kết quả, và `restart --now` không chờ việc đang chạy. `kill -USR2 <pid>` khởi động lại ngay, như `--now`; unit systemd dùng được nó làm `ExecReload`. `restart --background` vẫn dừng dịch vụ nền rồi chạy lại ở nền từ shell của bạn, với các biến của shell đó. Trên Windows dịch vụ nền không tự khởi động lại tại chỗ được: trang văn phòng chỉ khởi động lại dịch vụ nền bật bằng `--background`, qua một tiến trình phụ (nếu thất bại, dịch vụ nền vẫn chạy như cũ và chuông chỉ dẫn xem nhật ký restart trong thư mục dữ liệu), còn dịch vụ nền chạy trong terminal thì dừng bằng Ctrl+C rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay dịch vụ nền đang dừng, thì yêu cầu mới bị từ chối.
+Cũng có thể làm trên dòng lệnh: `openalpha restart` nhờ dịch vụ nền đang chạy tự khởi động lại, chờ nó chạy lại rồi in kết quả, và `restart --now` không chờ việc đang chạy. Muốn nhờ được thì `[api]` phải bật và lệnh phải đọc được token; thiếu một trong hai, `restart` dừng dịch vụ nền rồi chạy lại từ shell của bạn, như `--background`. Dù vậy `kill -USR2 <pid>` vẫn khởi động lại tại chỗ ngay, như `--now`; unit systemd dùng được nó làm `ExecReload`. `restart --background` vẫn dừng dịch vụ nền rồi chạy lại ở nền từ shell của bạn, với các biến của shell đó. Trên Windows dịch vụ nền không tự khởi động lại tại chỗ được: trang văn phòng chỉ khởi động lại dịch vụ nền bật bằng `--background`, qua một tiến trình phụ (nếu thất bại, dịch vụ nền vẫn chạy như cũ và chuông chỉ dẫn xem nhật ký restart trong thư mục dữ liệu), còn dịch vụ nền chạy trong terminal thì dừng bằng Ctrl+C rồi bật lại. Đang có một lần khởi động lại hoặc cập nhật, hay dịch vụ nền đang dừng, thì yêu cầu mới bị từ chối.
 
 ### Lệnh chạy trong dịch vụ nền
 
@@ -435,13 +435,13 @@ Khi dịch vụ nền đang chạy và API bật, những lệnh đọc hoặc �
 thay vì dựng một bản app thứ hai bên cạnh. Gồm `chat`, `status`, `cost`, `history`, `agent`, `memory`,
 `skill`, `plugin`, `workflow`, `social`, `schedule`, `pair` (`approve`, `deny`, `list`, `revoke`),
 `db integrity`, `db stats` và mọi lệnh do plugin thêm. Việc chỉ chạy ở một nơi, nên một cuộc chat bạn mở
-ở terminal hiện trên trang văn phòng như mọi lượt chạy khác, ở kênh `cli`. Ở dòng lệnh bạn không thấy
+ở terminal hiện trên trang văn phòng như mọi phiên chạy khác, ở kênh `cli`. Ở dòng lệnh bạn không thấy
 khác biệt: cùng đầu ra, cùng câu hỏi, trình soạn thảo của chính bạn, Ctrl+C và cùng mã thoát.
 
 Những lệnh này vẫn chạy ngay trong terminal: `help`, `version`, `upgrade`, `doctor`, `onboard`, `start`,
 `stop`, `restart`, `autostart`, `provider`, `config`, `key`, `auth`, `zalo`, `logs`, `setup`, `connect`,
-`web`, `api`, `mcp`, và mọi lệnh cần dịch vụ nền đang dừng (`history clear` là một). Các lệnh đọc hoặc ghi
-tệp do bạn chỉ định cũng vậy: `db backup --path`, `db export --out`, `plugin install` và `skill install`.
+`web`, `api`, `mcp`, và mọi lệnh cần dịch vụ nền đang dừng (`history clear` là một). `db backup` và các lệnh
+đọc hoặc ghi tệp do bạn chỉ định cũng vậy: `db export --out`, `plugin install` và `skill install`.
 Nếu không, đường dẫn tương đối sẽ được hiểu theo thư mục của dịch vụ nền, mà dịch vụ nền khởi động lúc đăng nhập
 thường không ghi được vào Desktop, Documents hay Downloads.
 
@@ -456,9 +456,9 @@ Một lệnh chạy ngay trong terminal khi:
   `openalpha restart --background`.
 
 Lệnh được chuyển đi chạy với cấu hình, tệp khóa và biến môi trường mà dịch vụ nền đã đọc lúc khởi động, giống
-như một cuộc chat từ trang văn phòng hay Telegram. Sau khi bạn sửa `config.toml`, thêm khóa vào tệp khóa
-hoặc xuất khóa nhà cung cấp ở shell này, hãy chạy `openalpha restart --background` để thay đổi có hiệu
-lực. Môi trường của terminal chỉ đi theo để dựng màu, bề rộng và trình soạn thảo.
+như một cuộc chat từ trang văn phòng hay Telegram. Sau khi bạn sửa `config.toml` hoặc thêm khóa vào tệp
+khóa, hãy chạy `openalpha restart` để thay đổi có hiệu lực. Khóa nhà cung cấp bạn xuất ở shell này thì cần
+`openalpha restart --background`, vì chỉ khi khởi động từ shell này nó mới được mang theo. Môi trường của terminal chỉ đi theo để dựng màu, bề rộng và trình soạn thảo.
 
 Nhấn Ctrl+C một lần là ngắt lệnh như khi chạy ở terminal. Nhấn lần hai trước khi lệnh trả lời sẽ đóng kết
 nối, dịch vụ nền dừng mọi thứ lệnh đã bắt đầu, và CLI thoát `130`.
@@ -513,7 +513,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 
 ### Thị trường, tin tức và chủ đề
 
-Thẻ Thị trường có ba phần. *Thị trường* mở đầu bằng nút "Cập nhật dữ liệu" cạnh ô chọn vùng: nút gửi `/refresh` cho từng thị trường của vùng đang xem mà bạn còn theo dõi, không bao giờ kèm `force`, nên thị trường đã đủ dữ liệu chỉ tốn một lượt chạy nhanh. Một lượt có thể dùng mô hình để đọc báo cáo vĩ mô; khi các lượt trước đủ để ước tính một chi phí lớn hơn 0, dòng chú thích cạnh nút ghi chi phí đó; lượt chạy hiện ở chip đang chạy, kho dữ liệu trong văn phòng và khung chat như `/refresh` gõ tay, nút tắt khi còn một lượt đang chạy, và các khối bên dưới đọc lại khi lượt xong. Thẻ hiện đầy đủ số đọc vĩ mô của vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này): trạng thái và chiều nghiêng, một dòng lãi suất tiền gửi 12 tháng và tỷ giá USD/VND (phần nào chưa có số thì bỏ), những thành phần bị để ngoài vì chưa có số đọc, phần mô hình đã có dữ liệu, và ở mức Nâng cao thì thêm thang đo cùng bảng các thành phần tạo nên con số, lực kéo mạnh nhất đứng đầu. Bên dưới là giá của vùng đó, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng), rồi khối Dòng tiền theo mã: năm mã khối ngoại mua ròng và bán ròng nhiều nhất, năm mã tự doanh mua ròng và bán ròng nhiều nhất (nhà cung cấp công bố trễ khoảng một phiên, nên khi chưa có thì danh sách lấy từ phiên gần nhất đã có số liệu, kèm ngày bên cạnh tiêu đề) và năm mã giao dịch nhiều nhất, giá trị rút gọn (như 76,5 tỷ) và ghi rõ khoảng thời gian đo khi không phải một phiên; khối Sức mạnh ngành xếp các ngành từ mạnh đến yếu, kèm biến động hôm nay, hiện năm ngành mạnh nhất và năm ngành yếu nhất, phần còn lại nằm sau "Xem tất cả" khi thị trường có hơn mười ngành (chỉ có cho thị trường có phân ngành); các khối này đọc lại cùng lúc với phần còn lại, không theo chu kỳ riêng; với Việt Nam, một ô chọn VN-Index, VN30 hoặc HNX cùng năm mã kéo lên và năm mã kéo xuống chỉ số đó trong phiên (số điểm mỗi mã góp, có dấu) và phần định giá của nó (P/E, P/B, ROE suy ra kèm một dòng nói cách suy, tỷ suất cổ tức, mỗi số đặt cạnh trung bình năm năm của nó, và tỷ lệ mã trong rổ chỉ số nằm trên trung bình 50 và 200 phiên; danh sách được đọc khi mở thẻ và lặp lại mỗi phút, dịch vụ nền giữ mỗi danh sách một phút kể từ lần đọc nên hỏi lại trong phút đó không tốn lượt đọc nguồn; còn định giá là số lượt làm mới gần nhất đã lưu và được đọc lại khi một lượt làm mới xong; các khối này và Dòng tiền theo mã ghi dưới tiêu đề dữ liệu đến ngày nào và đọc lúc nào), phần nào không có gì để hiện thì bị bỏ và phần nào không đọc được thì nói rõ vì sao; và phiên gần nhất đã chốt đúng như `/market` viết (dòng về bản cập nhật định kỳ chỉ có ở vùng nhà), được đọc khi bạn mở và khi bấm Làm mới, không bao giờ theo chu kỳ. *Tin tức* liệt kê tin theo từng ngày theo múi giờ của dịch vụ nền, kèm ô lọc trên những tin đã tải; khi không đọc được nguồn tin, trang nói rõ thay vì hiện một danh sách trống. *Chủ đề* (chỉ có cho Việt Nam) liệt kê những chủ đề đang chờ bạn quyết, với Theo dõi và Bỏ qua, cùng những chủ đề bạn đang theo dõi, với Dừng theo dõi sau một bước xác nhận. "Chạy lại" đặt `/themes` vào ô câu lệnh kèm chi phí ước tính; chưa có gì chạy cho tới khi bạn gửi.
+Thẻ Thị trường có ba phần. *Thị trường* mở đầu bằng nút "Cập nhật dữ liệu" cạnh ô chọn vùng: nút gửi `/refresh` cho từng thị trường của vùng đang xem mà bạn còn theo dõi, không bao giờ kèm `force`, nên thị trường đã đủ dữ liệu chỉ tốn một phiên chạy nhanh. Một lượt có thể dùng mô hình để đọc báo cáo vĩ mô; khi các lượt trước đủ để ước tính một chi phí lớn hơn 0, dòng chú thích cạnh nút ghi chi phí đó; phiên chạy hiện ở chip đang chạy, kho dữ liệu trong văn phòng và khung chat như `/refresh` gõ tay, nút tắt khi còn một lượt đang chạy, và các khối bên dưới đọc lại khi lượt xong. Thẻ hiện đầy đủ số đọc vĩ mô của vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này): trạng thái và chiều nghiêng, một dòng lãi suất tiền gửi 12 tháng và tỷ giá USD/VND (phần nào chưa có số thì bỏ), những thành phần bị để ngoài vì chưa có số đọc, phần mô hình đã có dữ liệu, và ở mức Nâng cao thì thêm thang đo cùng bảng các thành phần tạo nên con số, lực kéo mạnh nhất đứng đầu. Bên dưới là giá của vùng đó, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng), rồi khối Dòng tiền theo mã: năm mã khối ngoại mua ròng và bán ròng nhiều nhất, năm mã tự doanh mua ròng và bán ròng nhiều nhất (nhà cung cấp công bố trễ khoảng một phiên, nên khi chưa có thì danh sách lấy từ phiên gần nhất đã có số liệu, kèm ngày bên cạnh tiêu đề) và năm mã giao dịch nhiều nhất, giá trị rút gọn (như 76,5 tỷ) và ghi rõ khoảng thời gian đo khi không phải một phiên; khối Sức mạnh ngành xếp các ngành từ mạnh đến yếu, kèm biến động hôm nay, hiện năm ngành mạnh nhất và năm ngành yếu nhất, phần còn lại nằm sau "Xem tất cả" khi thị trường có hơn mười ngành (chỉ có cho thị trường có phân ngành); các khối này đọc lại cùng lúc với phần còn lại, không theo chu kỳ riêng; với Việt Nam, một ô chọn VN-Index, VN30 hoặc HNX cùng năm mã kéo lên và năm mã kéo xuống chỉ số đó trong phiên (mỗi mã kèm giá và số điểm nó góp, có dấu, rồi một dòng cộng tổng phần các mã trong danh sách góp, không phải toàn bộ biến động của chỉ số) và phần định giá của nó (P/E và P/B, mỗi số đặt cạnh trung bình năm năm của nó, ROE suy ra từ hai số đó kèm một dòng nói cách suy, tỷ suất cổ tức, và tỷ lệ mã trong rổ chỉ số nằm trên trung bình 50 và 200 phiên; danh sách được đọc khi mở thẻ và lặp lại mỗi phút, dịch vụ nền giữ mỗi danh sách một phút kể từ lần đọc nên hỏi lại trong phút đó không tốn lượt đọc nguồn; còn định giá là số lượt làm mới gần nhất đã lưu và được đọc lại khi một lượt làm mới xong; các khối này và Dòng tiền theo mã ghi dưới tiêu đề dữ liệu đến ngày nào và đọc lúc nào), phần nào không có gì để hiện thì bị bỏ và phần nào không đọc được thì nói rõ vì sao; và phiên gần nhất đã chốt đúng như `/market` viết (dòng về bản cập nhật định kỳ chỉ có ở vùng nhà), được đọc khi bạn mở và khi bấm Làm mới, không bao giờ theo chu kỳ. *Tin tức* liệt kê tin theo từng ngày theo múi giờ của dịch vụ nền, kèm ô lọc trên những tin đã tải; khi không đọc được nguồn tin, trang nói rõ thay vì hiện một danh sách trống. *Chủ đề* (chỉ có cho Việt Nam) liệt kê những chủ đề đang chờ bạn quyết, với Theo dõi và Bỏ qua, cùng những chủ đề bạn đang theo dõi, với Dừng theo dõi sau một bước xác nhận. "Chạy lại" đặt `/themes` vào ô câu lệnh kèm chi phí ước tính; chưa có gì chạy cho tới khi bạn gửi.
 
 ### Văn phòng
 
@@ -567,9 +567,9 @@ Một công tắc "2D | 3D" trên đầu trang, đứng trước nút Chỉ thô
 
 **Bàn làm việc.** Mỗi bàn trong văn phòng có đồ của người ngồi đó (báo cáo, màn hình, bảng kiểm tra, chậu cây và ảnh, tai nghe, giấy ghi chú, điện thoại và đèn của bàn cảnh báo) và bừa dần theo việc thật trong ngày: một tờ giấy cho mỗi phiên chạy của họ đã xong, một cốc sau mỗi lần nghỉ uống cà phê hay ăn tráng miệng. Mở trang muộn thì giấy của các phiên đã xong hôm nay hiện ngay; cốc chỉ đến từ những lần nghỉ diễn ra khi trang đang mở. Bàn được dọn lúc 06:00 theo đồng hồ văn phòng. Thùng rác cạnh mỗi bàn ở thư viện, và cạnh bàn của mỗi agent của bạn, có thêm một tờ giấy vo tròn cho mỗi phiên chạy làm ở bàn đó trong ngày, tối đa ba tờ; vào ngày giao dịch, nhân viên vệ sinh đổ hết các thùng khi bắt đầu ca. Khay máy in xếp một tờ cho mỗi báo cáo nghiên cứu và bản tin sáng đã giao trong ngày, tối đa sáu tờ, và được dọn khi sang ngày mới. Màn hình hiện trình bảo vệ khi người ngồi rời bàn, tắt khi văn phòng yên lặng, và chuyển xám lúc nghỉ trưa và sau giờ đóng cửa; bàn có người đang làm việc giữ màn hình công việc. Người tìm tin ngồi ở bàn mà chưa có gì để đọc thì màn hình hiện đường chỉ số của thị trường nhà dưới các thẻ trình duyệt. Ai ngồi bàn cũng quay lưng về phía bạn, nhìn vào bàn, cùng một kiểu màn hình đứng ở mép xa, mặt màn hình hướng về bạn nên đọc được chữ; quầy cảnh báo cũng có một chiếc. Đèn bàn cảnh báo sáng màu hổ phách khi còn cảnh báo giá chưa đọc. Khi người ngồi bàn đang rảnh ở đó, màn hình đọc số liệu thật thay vào: màn hình đường giá của trader và laptop của nhà phân tích lần lượt hiện từng mã trong những mã trang vốn đã lấy giá, khoảng 20 giây đổi một mã (đứng yên khi giảm chuyển động), kèm giá gần nhất, mức thay đổi và đường giá từ giá đóng cửa hôm trước qua các lần trang lấy giá từ khi mở; bảng kiểm tra của bàn rủi ro tô đỏ một ô, và khi zoom vào phòng thì ghi số, cho mỗi mã đang nắm giữ cách mức cắt lỗ trong vòng 3%; còn máy tính của người trực cảnh báo hiện số cảnh báo giá đang bật. Không có gì trong đó hỏi thêm dịch vụ nền. Trỏ vào màn hình để đọc; bấm vào thì mở thẻ của mã, hoặc thẻ Danh mục với một con số.
 
-**Mặt trời và thời tiết.** Ánh sáng văn phòng đi theo mặt trời thật trên thành phố của vùng nhà: đêm khi mặt trời dưới -6 độ, rồi chạng vạng, giờ vàng dưới 10 độ, mây làm ngày xám đi. Ánh sáng chuyển dần trong 2 giây khi đồng hồ hay bầu trời đổi. Bóng trên phố ngả ngược phía mặt trời và tắt khi trời tối; nắng in một vệt ấm trên sàn bên trong mặt kính nó chiếu qua, mặt trời càng thấp vệt càng sâu, và rèm phía tây hoặc phía đông khép khi mặt trời thấp chiếu thẳng vào (buổi sáng ở phía đông, buổi chiều ở phía tây), mở lại khi mặt trời lặn hoặc trời nhiều mây; vệt nắng và rèm chuyển dần sang mức mới trong chưa đầy một giây (tức thì khi giảm chuyển động), còn độ sáng của đèn đổi tức thì giữa mức ban ngày và ban đêm ngay khi mặt trời qua mốc -6 độ, còn đèn mờ dần sang độ sáng dịu của giờ nghỉ trưa và sáng lại trong khoảng một giây. Tắt "ánh sáng theo giờ" thì mặt trời đứng ở chính ngọ, trời quang. Ở giờ thật và khi không giảm chuyển động, chính trang gọi Open-Meteo (`api.open-meteo.com`) lấy thời tiết hiện tại của thành phố mỗi 30 phút, chỉ gửi vĩ độ và kinh độ của thành phố; xem thử giờ khác, giảm chuyển động hay gọi lỗi thì văn phòng dùng thời tiết tự tạo theo ngày (0 đến 2 cơn mưa ngắn). Gọi lỗi thì số đọc gần nhất được giữ 3 giờ. Mưa mang theo ô, người trú dưới mái hiên, mặt đường ướt và vệt nước trên kính phía bắc; mưa giông thêm một chớp sáng ngắn, tối đa 20 giây một lần (không có khi giảm chuyển động, không có tiếng); sương mù làm mờ các dãy nhà xa và xe bật đèn; từ 33 độ khi còn nắng, người đi bộ đội nón và đi bên bóng râm. Thanh trên cùng hiện một ô thời tiết nhỏ cạnh đồng hồ khi có số đọc thật (không hiện trên điện thoại). Danh sách kết nối ra ngoài trong phần cài đặt có ghi lời gọi này.
+**Mặt trời và thời tiết.** Ánh sáng văn phòng đi theo mặt trời thật trên thành phố của vùng nhà: đêm khi mặt trời dưới -6 độ, rồi chạng vạng, giờ vàng dưới 10 độ, mây làm ngày xám đi. Ánh sáng chuyển dần trong 2 giây khi đồng hồ hay bầu trời đổi. Bóng trên phố ngả ngược phía mặt trời và tắt khi trời tối; nắng in một vệt ấm trên sàn bên trong mặt kính nó chiếu qua, mặt trời càng thấp vệt càng sâu, và rèm phía tây hoặc phía đông khép khi mặt trời thấp chiếu thẳng vào (buổi sáng ở phía đông, buổi chiều ở phía tây), mở lại khi mặt trời lặn hoặc trời nhiều mây; vệt nắng và rèm chuyển dần sang mức mới trong chưa đầy một giây (tức thì khi giảm chuyển động), còn độ sáng của đèn đổi tức thì giữa mức ban ngày và ban đêm ngay khi mặt trời qua mốc -6 độ, còn đèn mờ dần sang độ sáng dịu của giờ nghỉ trưa và sáng lại trong khoảng một giây. Tắt "Ánh sáng văn phòng theo giờ" thì mặt trời đứng ở chính ngọ, trời quang. Ở giờ thật và khi không giảm chuyển động, chính trang gọi Open-Meteo (`api.open-meteo.com`) lấy thời tiết hiện tại của thành phố mỗi 30 phút, chỉ gửi vĩ độ và kinh độ của thành phố; xem thử giờ khác, giảm chuyển động hay gọi lỗi thì văn phòng dùng thời tiết tự tạo theo ngày (0 đến 2 cơn mưa ngắn). Gọi lỗi thì số đọc gần nhất được giữ 3 giờ. Mưa mang theo ô, người trú dưới mái hiên, mặt đường ướt và vệt nước trên kính phía bắc; mưa giông thêm một chớp sáng ngắn, tối đa 20 giây một lần (không có khi giảm chuyển động, không có tiếng); sương mù làm mờ các dãy nhà xa và xe bật đèn; từ 33 độ khi còn nắng, người đi bộ đội nón và đi bên bóng râm. Thanh trên cùng hiện một ô thời tiết nhỏ cạnh đồng hồ khi có số đọc thật (không hiện trên điện thoại). Danh sách kết nối ra ngoài trong phần cài đặt có ghi lời gọi này.
 
-**Nhịp thị trường.** Văn phòng giữ đúng lịch của thị trường nhà, không bịa lịch riêng. Cuối tuần hoặc ngày nghỉ lễ của thị trường chỉ có nhân viên cảnh báo và trợ lý ở lại, cùng các agent có trọng tâm là thị trường vẫn giao dịch (tiền mã hóa) và bất kỳ ai đang có một lượt chạy thật; mọi bàn và phòng khác tắt đèn, màn hình sảnh ghi khi nào thị trường mở lại. Ngày giao dịch, mọi người đi vào qua cửa phố từ 07:00 đến 08:15 và về nhà từ 17:00 đến 19:00, mỗi người một phút riêng; lượt chạy còn dang dở giữ người của nó ở bàn với đèn sáng, còn lượt chạy bắt đầu ngoài giờ sẽ gọi người đó vào rồi cho về khi nó xong. Những phút đầu sau giờ mở cửa không ai rời bàn. Trong phiên ATC, người rảnh đứng xem màn hình sảnh; sau giờ đóng cửa, khung cà phê chiều mở lại và các cuộc trò chuyện đến sớm hơn. Khi chỉ số nhà giảm mạnh (thông báo của chính dịch vụ nền, lúc phiên còn mở), hai ba người rảnh tụ lại ở màn hình sảnh, tối đa nửa giờ một lần, còn phiên đóng cửa tăng rõ rệt thì một người giơ hai tay. Mùa báo cáo tài chính, người ở phòng khác thỉnh thoảng ghé thư viện. Thứ Năm đáo hạn phái sinh giữ trader và người kiểm soát rủi ro ở bàn suốt phiên, còn ngày giao dịch không hưởng quyền cổ tức của một mã đang nắm giữ (đọc một lần mỗi ngày từ nguồn sự kiện) giữ agent săn cổ tức ở bàn đến trưa, với một tờ lịch khoanh tròn ngày đó trên bàn; không có agent như vậy thì nhà phân tích ở lại bàn. Mỗi người đều nói lý do trong nhãn khi rê chuột. Cả văn phòng chỉ được coi là đã đóng cửa, với sảnh mờ đi và quầy cảnh báo ghi thị trường đã đóng, khi thị trường nhà và mọi thị trường khác bạn đang bật đều đã đóng; tiền mã hóa không bao giờ đóng, nên khi nó đang bật (`/profile enable crypto`) văn phòng vẫn mở, còn khi tắt thì chỉ các thị trường bạn giữ lại mới quyết định.
+**Nhịp thị trường.** Văn phòng giữ đúng lịch của thị trường nhà, không bịa lịch riêng. Cuối tuần hoặc ngày nghỉ lễ của thị trường chỉ có nhân viên cảnh báo và trợ lý ở lại, cùng các agent có trọng tâm là thị trường vẫn giao dịch (tiền mã hóa) và bất kỳ ai đang có một phiên chạy thật; mọi bàn và phòng khác tắt đèn, màn hình sảnh ghi khi nào thị trường mở lại. Ngày giao dịch, mọi người đi vào qua cửa phố từ 07:00 đến 08:15 và về nhà từ 17:00 đến 19:00, mỗi người một phút riêng; phiên chạy còn dang dở giữ người của nó ở bàn với đèn sáng, còn phiên chạy bắt đầu ngoài giờ sẽ gọi người đó vào rồi cho về khi nó xong. Những phút đầu sau giờ mở cửa không ai rời bàn. Trong phiên ATC, người rảnh đứng xem màn hình sảnh; sau giờ đóng cửa, khung cà phê chiều mở lại và các cuộc trò chuyện đến sớm hơn. Khi chỉ số nhà giảm mạnh (thông báo của chính dịch vụ nền, lúc phiên còn mở), hai ba người rảnh tụ lại ở màn hình sảnh, tối đa nửa giờ một lần, còn phiên đóng cửa tăng rõ rệt thì một người giơ hai tay. Mùa báo cáo tài chính, người ở phòng khác thỉnh thoảng ghé thư viện. Thứ Năm đáo hạn phái sinh giữ trader và người kiểm soát rủi ro ở bàn suốt phiên, còn ngày giao dịch không hưởng quyền cổ tức của một mã đang nắm giữ (đọc một lần mỗi ngày từ nguồn sự kiện) giữ agent săn cổ tức ở bàn đến trưa, với một tờ lịch khoanh tròn ngày đó trên bàn; không có agent như vậy thì nhà phân tích ở lại bàn. Mỗi người đều nói lý do trong nhãn khi rê chuột. Cả văn phòng chỉ được coi là đã đóng cửa, với sảnh mờ đi và quầy cảnh báo ghi thị trường đã đóng, khi thị trường nhà và mọi thị trường khác bạn đang bật đều đã đóng; tiền mã hóa không bao giờ đóng, nên khi nó đang bật (`/profile enable crypto`) văn phòng vẫn mở, còn khi tắt thì chỉ các thị trường bạn giữ lại mới quyết định.
 
 ### Con phố và thành phố
 
@@ -607,7 +607,7 @@ Cảm ứng dùng như chuột: một ngón kéo để di chuyển, hai ngón ch
 
 ### Tùy chọn hiển thị
 
-Giao diện (sáng, tối hoặc theo hệ thống), cặp màu tăng giảm (xanh tăng hay đỏ tăng), chuyển động (đầy đủ, giảm hoặc theo hệ thống), mức chi tiết (ở trên) và ánh sáng văn phòng được lưu trong trình duyệt này và có hiệu lực ngay. Giảm chuyển động làm nhân vật và thú cưng đứng yên, trừ chớp mắt, giữ yên bụi nắng, ruy băng máy lạnh, dải LED, đèn tủ máy chủ, đèn chờ duyệt và bọt bể cá, dừng dải giá chạy, các hiệu ứng báo và nhấp nháy giá, và cho giờ thử của đồng hồ chạy ở tốc độ thường; bong bóng vẫn cập nhật. Ngôn ngữ và múi giờ là thiết lập của chính dịch vụ nền (chúng cũng đổi bản tin và Telegram) và cần khởi động lại. Trình duyệt còn nhớ những đèn bạn đã tắt, lựa chọn 2D hay 3D, vùng đã chọn ở thẻ Thị trường, bản cập nhật bạn đã để sau, lựa chọn tiếng chuông và thông báo; không thứ nào được gửi cho dịch vụ nền.
+Giao diện (sáng, tối hoặc theo hệ thống), cặp màu tăng giảm (xanh tăng hay đỏ tăng), chuyển động (đầy đủ, giảm hoặc theo hệ thống), mức chi tiết (ở trên) và ánh sáng văn phòng được lưu trong trình duyệt này và có hiệu lực ngay. Giảm chuyển động làm nhân vật và thú cưng đứng yên, trừ chớp mắt, giữ yên bụi nắng, ruy băng máy lạnh, dải LED, đèn tủ máy chủ, đèn chờ duyệt và bọt bể cá, dừng dải giá chạy, các hiệu ứng báo và nhấp nháy giá, và cho giờ thử của đồng hồ chạy ở tốc độ thường; bong bóng vẫn cập nhật. Ngôn ngữ và múi giờ là thiết lập của chính dịch vụ nền (chúng cũng đổi bản tin và Telegram) và cần khởi động lại. Trình duyệt còn nhớ những đèn bạn đã tắt, lựa chọn 2D hay 3D, chế độ Chỉ thông tin, vùng đã chọn ở thẻ Thị trường, bản cập nhật bạn đã để sau, lựa chọn tiếng chuông và thông báo; không thứ nào được gửi cho dịch vụ nền.
 
 Bên trong: [dev/van-hanh.md](dev/van-hanh.md).
 

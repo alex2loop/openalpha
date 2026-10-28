@@ -250,13 +250,13 @@ thành viên khác vào phiên của mình. Zalo Personal điền nó từ `data
 - với một thông báo, chỉ nhãn của nó;
 - với mọi thứ khác, một dòng chỉ dẫn.
 
-Dòng chân của lượt chạy (chi phí LLM, token, số lần gọi mô hình) được giấu khỏi mô hình như một con số của
+Dòng chân của phiên chạy (chi phí LLM, token, số lần gọi mô hình) được giấu khỏi mô hình như một con số của
 người vận hành: nó bị cắt khỏi nội dung tin được trả lời, và đoạn bôi chọn chạm vào nó thì lùi về cả phần
 thân không có dòng chân. Dòng chân gửi thành một tin riêng không bao giờ được ghi lại, nên trả lời vào nó
 chỉ nhận dòng chỉ dẫn. Một tin trong hộp thư được phát lại vẫn giữ `replyTo` nhưng gặp bảng rỗng sau khi
 khởi động lại, nên cũng chỉ nhận dòng chỉ dẫn.
 
-Một tin trả lời không bao giờ được đưa vào lượt chạy đang dở: nó chờ lượt đó xong rồi chạy thành lượt
+Một tin trả lời không bao giờ được đưa vào phiên chạy đang dở: nó chờ lượt đó xong rồi chạy thành lượt
 riêng, để mang theo đoạn dẫn. Khi nhiều tin gom vào một lượt thì chỉ giữ tin trả lời của tin cuối.
 
 ### Ghi chú về khoảng im lặng

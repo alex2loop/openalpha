@@ -2784,7 +2784,7 @@
     "authTokenEnvEmpty": "{env} được cấu hình làm nguồn token nhưng đang trống.",
     "authTokenMissing": "Chưa có token. Khởi động OpenAlpha một lần bằng `{brand} start --background` để tạo.",
     "authTokenManagedByEnv": "Token do {env} quản lý. Muốn đổi token thì đổi biến môi trường đó.",
-    "authTokenRestart": "Khởi động lại dịch vụ nền để dùng token mới: `{brand} restart --background`.",
+    "authTokenRestart": "Chưa có dịch vụ nền nào chạy; lần khởi động tới sẽ dùng token mới: `{brand} start --background`.",
     "apiRotateSignedOut": "Mọi trình duyệt đã đăng xuất ({count}).",
     "apiRotateOldTokenEnded": "Dịch vụ nền đã khởi động lại, token cũ không còn dùng được.",
     "apiRotateRestartFailed": "Dịch vụ nền đang chạy vẫn nhận token cũ. Bạn khởi động lại ngay: `{brand} restart`.",

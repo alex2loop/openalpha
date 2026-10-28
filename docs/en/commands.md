@@ -201,7 +201,7 @@ The box at the bottom of the [office page](operations.md#the-office-page) takes 
 - **The queue.** Commands that run on their own do not wait behind each other, within the limits above. In the chat column a command that has to wait says its place in line and how many are running at once, and can be dropped from the line. A command that runs beside others says what it runs alongside.
 - **Stopping and adding.** A running answer or command shows "See it in the office" and Stop, which asks you to confirm and keeps the work already done in the log. While an answer (not a command) is in progress you can type a further thought and press "Add to it": the answer reads it at its next step. A line that starts with `/` is a command, never an addition.
 
-Buttons and menus on the page never send a command for you: they fill the box (or pick the receiver) and leave the sending to you, so you always see the command, and its estimate, before it costs anything.
+Buttons and menus on the page never send a command for you, with one exception: Market's "Refresh data" sends `/refresh` for the markets of the region in view (never with `force`) and shows its usual cost beside it. Every other button fills the box (or picks the receiver) and leaves the sending to you, so you always see the command, and its estimate, before it costs anything.
 
 ## Research
 
@@ -282,12 +282,14 @@ and exits zero; one that never came up exits non-zero. `stop` and `status` work 
 modes. A start prints the version it runs, the model, the channels it opens, the API port and a
 line naming `web` when `[api]` is on, and the log file. In the foreground with a channel configured it also says the bot
 starts answering once market data has loaded; the log records when the channels open.
-When a daemon is running, `restart` asks that daemon to restart itself in place (same pid, same terminal),
+When a daemon is running and `[api]` is on, `restart` asks that daemon to restart itself in place (same pid, same terminal),
 waits until it is ready and prints the result. It waits for running work to finish (about two minutes at most);
 `--now` does not. The daemon stops the usual way, so an approval still waiting is refused. `restart --background`,
 or `restart` when no daemon runs, stops it (if it runs) and starts it again from this shell, with this
-shell's variables, in the background or in this window. On Windows a daemon cannot restart in place, so
-`restart` always stops and starts again. `kill -USR2 <pid>` also restarts the daemon at once, like `--now`.
+shell's variables, in the background or in this window. A plain `restart` does the same when `[api]` is off or
+the daemon cannot be asked (its token cannot be read or is not accepted), and `--now` then changes nothing. On
+Windows a daemon cannot restart in place, so `restart` always stops and starts again. `kill -USR2 <pid>` restarts
+the daemon in place at once, like `--now`, whether `[api]` is on or not.
 
 A missing key does not stop `start`. An unset key variable for a model (the main one, a tier or a
 fallback), for web search or for an MCP server, and a Telegram or Zalo bot token that is unset or that

@@ -93,7 +93,7 @@ vì một lượt hỏng không phải một cuộc trò chuyện hỏng.
 | `upgrade` | Cài bản phát hành mới nhất | không có; `--check` chỉ báo, `--rollback` quay về bản cài trước |
 | `doctor` | Kiểm cấu hình, thông tin đăng nhập, lưu trữ | không có; kèm tên phép kiểm (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `safety`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) và `--online` |
 | `onboard` | Thiết lập lần đầu, hoặc đổi mô hình, bot Telegram, mức chi hay ngôn ngữ | không có |
-| `setup` | Chỉ dành cho ứng dụng desktop. Lần chạy đầu của một ứng dụng khách: danh mục nhà cung cấp, và tệp cấu hình khởi điểm có bật API (một dòng JSON) | `catalog`, `write <nhà cung cấp> <mô hình>` |
+| `setup` | Chỉ dành cho ứng dụng desktop. Phiên chạy đầu của một ứng dụng khách: danh mục nhà cung cấp, và tệp cấu hình khởi điểm có bật API (một dòng JSON) | `catalog`, `write <nhà cung cấp> <mô hình>` |
 | `api` | Mã API (bearer token) của `/v1` | `token`, `rotate` |
 | `web` | Mở trang văn phòng, đăng nhập bằng liên kết dùng một lần | không có |
 | `connect` | In địa chỉ và token ứng dụng desktop cần | không có |
@@ -200,7 +200,7 @@ bên dưới, và ở [Cẩm nang sử dụng](cam-nang.md) theo góc nhìn ngư
 - **Hàng chờ.** Các câu lệnh tự chạy được thì không đứng đợi nhau, trong giới hạn nêu ở trên. Trong khung chat, câu lệnh phải chờ sẽ nói nó đứng thứ mấy trong hàng và đang có mấy câu lệnh chạy cùng lúc, và bỏ khỏi hàng được. Câu lệnh chạy song song với câu lệnh khác thì nói nó chạy cùng câu lệnh nào.
 - **Dừng và bổ sung.** Câu trả lời hay câu lệnh đang chạy hiện "Xem trong văn phòng" và nút Dừng; nút Dừng hỏi xác nhận và giữ phần đã làm trong nhật ký. Khi một câu trả lời (không phải câu lệnh) đang chạy, bạn gõ thêm một ý rồi bấm "Bổ sung": câu trả lời đọc ý đó ở bước tiếp theo. Dòng bắt đầu bằng `/` là câu lệnh, không bao giờ là phần bổ sung.
 
-Nút và menu trên trang không bao giờ tự gửi câu lệnh thay bạn: chúng chỉ điền vào ô (hoặc chọn người nhận) và để bạn tự gửi, nên bạn luôn thấy câu lệnh cùng chi phí ước tính của nó trước khi nó tốn bất cứ thứ gì.
+Nút và menu trên trang không bao giờ tự gửi câu lệnh thay bạn, trừ một ngoại lệ: "Cập nhật dữ liệu" ở thẻ Thị trường tự gửi `/refresh` cho các thị trường của vùng đang xem (không bao giờ kèm `force`) và ghi chi phí thường lệ bên cạnh. Các nút khác chỉ điền vào ô (hoặc chọn người nhận) và để bạn tự gửi, nên bạn luôn thấy câu lệnh cùng chi phí ước tính của nó trước khi nó tốn bất cứ thứ gì.
 
 ## Nghiên cứu
 
@@ -279,12 +279,13 @@ liệu chậm) thì lệnh để nó chạy tiếp, báo cách theo dõi và tho
 thoát với mã khác 0. `stop` và `status` hoạt động như nhau ở cả hai chế độ. `start` in phiên bản đang
 chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật `[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh
 được cấu hình, nó còn báo bot chỉ bắt đầu trả lời sau khi dữ liệu thị trường tải xong; nhật ký ghi lại lúc
-các kênh mở. `restart` khi đã có dịch vụ nền chạy thì nhờ chính dịch vụ nền đó khởi động lại tại chỗ (cùng pid, cùng cửa sổ
+các kênh mở. `restart` khi đã có dịch vụ nền chạy và `[api]` đang bật thì nhờ chính dịch vụ nền đó khởi động lại tại chỗ (cùng pid, cùng cửa sổ
 terminal), chờ nó sẵn sàng rồi in kết quả. Nó chờ việc đang chạy xong (tối đa khoảng hai phút); `--now` thì không chờ.
 Dịch vụ nền dừng theo cách thông thường: yêu cầu phê duyệt còn chờ bị từ chối. `restart --background`, hoặc khi chưa có
 dịch vụ nền nào chạy, thì dừng (nếu có) rồi chạy lại từ shell này, với các biến của shell đó, ở nền hoặc ngay trong cửa sổ này.
-Trên Windows dịch vụ nền không khởi động lại tại chỗ được nên `restart` luôn dừng rồi chạy lại. `kill -USR2 <pid>` cũng khởi
-động lại dịch vụ nền ngay, như `--now`.
+`restart` thường cũng làm vậy khi `[api]` tắt hoặc không hỏi được dịch vụ nền (không đọc được token, hoặc token không được
+chấp nhận), và khi đó `--now` không có tác dụng gì. Trên Windows dịch vụ nền không khởi động lại tại chỗ được nên `restart`
+luôn dừng rồi chạy lại. `kill -USR2 <pid>` khởi động lại dịch vụ nền tại chỗ ngay, như `--now`, dù `[api]` bật hay tắt.
 
 Thiếu khóa không chặn `start`. Biến môi trường của khóa AI (mô hình chính, các tầng và dự phòng), của
 tìm kiếm web hay của một máy chủ MCP chưa đặt, hoặc bot token Telegram/Zalo chưa đặt hay bị nền tảng từ
@@ -309,7 +310,7 @@ khóa của nguồn dữ liệu phụ nằm riêng dưới "khóa tùy chọn": 
 `doctor` luôn chỉ đọc. Chạy offline thì nó chỉ kiểm phần nhìn được ở máy; `--online` thêm các phép thử
 thật tới PostgreSQL, nhà cung cấp, token kênh, tìm kiếm web và khóa sàn. Phép thử nhà cung cấp gửi cho
 mô hình đầu tiên của mỗi nhà cung cấp một tin ngắn, và nói rõ khi máy chủ chạy trên máy bạn chưa bật. Nhãn mỗi dòng theo `[locale] language`
-của bạn. Dòng đánh dấu `i` là trạng thái chưa cần làm gì, không phải cảnh báo: cơ sở dữ liệu, thư mục log hay thư mục dữ liệu mà lần chạy đầu sẽ tạo,
+của bạn. Dòng đánh dấu `i` là trạng thái chưa cần làm gì, không phải cảnh báo: cơ sở dữ liệu, thư mục log hay thư mục dữ liệu mà phiên chạy đầu sẽ tạo,
 dịch vụ nền chưa được bật, và nguồn dữ liệu tùy chọn chưa đặt khóa. Dòng nguồn dữ liệu nói rõ khóa đó sẽ thêm được gì. `doctor models` còn nêu tên
 các biến tài khoản đám mây mà một mục Vertex hay Azure không có khóa vẫn cần. `doctor trading` dựng thử hệ
 thống y như `chat` nhưng không khởi chạy hay migrate gì, nên khu vực chính không sàn nào giao dịch hay
@@ -318,7 +319,7 @@ thống y như `chat` nhưng không khởi chạy hay migrate gì, nên khu vự
 `doctor version` đọc câu trả lời gần nhất từ GitHub (cũ nhất một ngày); `doctor version --online` hỏi
 lại ngay. Chậm phiên bản chỉ là cảnh báo, không bao giờ là lỗi.
 
-`doctor safety` cảnh báo từng công tắc cho phép OpenAlpha hành động mà không hỏi: `orders.allow_unattended`, `plugins.allow_untrusted`, và `plugins.allow_code` khi nó bật cùng công tắc thứ hai. Không có công tắc nào bật thì báo một dòng sạch. Lệnh này không bao giờ làm lần chạy thất bại.
+`doctor safety` cảnh báo từng công tắc cho phép OpenAlpha hành động mà không hỏi: `orders.allow_unattended`, `plugins.allow_untrusted`, và `plugins.allow_code` khi nó bật cùng công tắc thứ hai. Không có công tắc nào bật thì báo một dòng sạch. Lệnh này không bao giờ làm phiên chạy thất bại.
 
 Hãy chạy `doctor venues --online` một lần sau khi thêm khóa sàn. Nó đọc xem khóa Binance thật được phép
 làm gì, và cảnh báo khi khóa còn rút được tiền, còn dùng được từ mọi IP, hoặc đang tắt giao dịch spot.
@@ -554,7 +555,7 @@ Lệnh cần dịch vụ nền đã dừng và sẽ hỏi lại trừ khi bạn 
 
 Lệnh này khác với khâu quét tự động của dịch vụ nền, vốn chỉ xóa log của những agent không còn trong cấu hình
 (xem [`[retention]`](cau-hinh.md#retention)). Khi không có `--daemon`, `logs clear` xóa mọi thứ khớp
-phạm vi, kể cả log của agent đang cấu hình (bộ ghi log sẽ tạo lại chúng ở lần chạy sau), và không bao giờ
+phạm vi, kể cả log của agent đang cấu hình (bộ ghi log sẽ tạo lại chúng ở phiên chạy sau), và không bao giờ
 chạm tới log chung đang hoạt động, vốn bị giới hạn bởi `[log].max_file_mb` và `[log].max_files`. Thư mục
 nháp của agent (`run/`, `tmp/`) vẫn là việc của `workspace cleanup`.
 
@@ -602,7 +603,7 @@ thoát đang treo được nêu chính xác.
 
 #### `/rebalance` tính những gì
 
-Các mã đưa vào `/rebalance` thay cho danh sách theo dõi đã lưu trong lần chạy đó và không bao giờ được
+Các mã đưa vào `/rebalance` thay cho danh sách theo dõi đã lưu trong phiên chạy đó và không bao giờ được
 lưu lại. Thứ bạn đang nắm luôn được tính. Không có mã nào thì dùng các vị thế đang nắm cộng danh sách
 theo dõi đã lưu. Viết `thị-trường:mã` khi một tên trần mơ hồ.
 
@@ -746,7 +747,7 @@ khớp.
 - Một lệnh khớp trùng một dòng của bạn ở *mọi thứ trừ* ngày thì được báo chứ không ghi. Sửa ngày ở dòng
   đó rồi chạy lại.
 - Nếu một lệnh khớp nào của một mã không ghi được thì không lệnh nào của mã đó được ghi. Lịch sử nửa chừng
-  của một mã là một vị thế chưa từng tồn tại và một giá vốn không gì sau này sửa được, nên lần chạy báo
+  của một mã là một vị thế chưa từng tồn tại và một giá vốn không gì sau này sửa được, nên phiên chạy báo
   tên mã và để sổ của bạn nguyên như cũ.
 
 ### Đề xuất
@@ -809,7 +810,7 @@ các ứng viên được nêu tên, không bao giờ bị định tuyến theo 
 
 `/trade` chỉ đặt được lệnh khi một sàn đã đăng ký mang khóa giao dịch. Trước đó nó trả lời bằng tên các
 biến mà từng sàn còn chờ và nhắc bạn ghi sổ bằng `/record`; `/trade help` (hoặc một dòng gõ sai) vẫn in đủ cú pháp
-để bạn làm quen trước. Cách định tuyến, thiết lập và lần chạy đầu
+để bạn làm quen trước. Cách định tuyến, thiết lập và phiên chạy đầu
 nằm ở [Giao dịch](giao-dich.md).
 
 ## MCP

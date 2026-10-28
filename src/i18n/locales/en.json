@@ -2784,7 +2784,7 @@
     "authTokenEnvEmpty": "{env} is configured as the token source but is empty.",
     "authTokenMissing": "No token exists yet. Start OpenAlpha once with `{brand} start --background` to create one.",
     "authTokenManagedByEnv": "The token is managed by {env}. Change that environment variable to rotate it.",
-    "authTokenRestart": "Restart the daemon to use the new token: `{brand} restart --background`.",
+    "authTokenRestart": "No daemon is running; the next start uses the new token: `{brand} start --background`.",
     "apiRotateSignedOut": "Every browser is signed out ({count}).",
     "apiRotateOldTokenEnded": "The daemon restarted, so the old token no longer works.",
     "apiRotateRestartFailed": "The running daemon still takes the old token. Restart it now: `{brand} restart`.",

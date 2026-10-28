@@ -206,7 +206,7 @@ transaction, on the same connection as its delete.
 
 `core/session-queue.ts` serialises work per session on a promise tail with `MAX_QUEUE_DEPTH` = 10;
 past it the caller gets `RunHalted('queue_full')`. A route switch (`/new`) goes through a route
-fence with a per-route generation: it waits for held leases, invalidates queued work, updates the
+fence with a per-route generation: it waits for held leases, invalidates queued work, drops the
 stored route, then admits work for the new generation, so a message accepted for the old session
 cannot run under the new route.
 

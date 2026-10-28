@@ -52,7 +52,7 @@ Nếu một bảng giao dịch biến mất sau khi reset, nghĩa là migration 
 | `bindings`, `pairings` | Bí danh định tuyến chat và trạng thái ghép nối kênh. |
 | `channel_state` | Mốc tiến độ của kênh: offset polling và tuyến cuộc trò chuyện. |
 | `channel_inbox` | Hàng đợi tin đến và số lần thử lại; nội dung của các mục đã xong hoặc đã hỏng; câu trả lời của phiên chạy đã xong nhưng lần gửi cuối bị lỗi. |
-| `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Lịch, lịch sử các lần chạy, điều kiện kích hoạt của việc theo sự kiện cùng lần chạy gần nhất cho từng mã, tiến độ heartbeat và các cam kết hoãn lại. |
+| `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Lịch, lịch sử các phiên chạy, điều kiện kích hoạt của việc theo sự kiện cùng phiên chạy gần nhất cho từng mã, tiến độ heartbeat và các cam kết hoãn lại. |
 | `memory_kv` | Bộ nhớ agent. SQLite thêm tìm kiếm FTS5; PostgreSQL dùng các tiện ích text-search. |
 
 Phần giao dịch có các bảng riêng: `instruments`, `daily_bars`, `fundamental_snapshots`,
@@ -184,14 +184,14 @@ là cửa sổ của kết quả theo dõi và `inbox_days` là cửa sổ riên
 | Mục inbox đang chờ hoặc đang xử lý | Không bị xóa theo `inbox_days`. Mục xử lý dở bị ngắt được đưa lại hàng đợi, tối đa 3 lần. Mục nào quá `days` mà không ai nhận (thường do kênh đã bị gỡ) thì bị xóa theo cửa sổ chung. |
 | Offset polling trong `channel_state` | Giữ vô thời hạn, như các mốc theo dõi việc gửi. |
 | Lịch sử bộ lập lịch | Dòng cũ hơn `days` chỉ bị cắt khi một việc có quá 200 dòng như vậy; 200 dòng mới nhất được giữ. |
-| `job_event_triggers`, `job_event_fires` | Không bị quét theo `days`: chúng đi cùng việc của mình, nên xóa một việc là xóa luôn thứ nó chờ và lần chạy gần nhất cho từng mã. |
+| `job_event_triggers`, `job_event_fires` | Không bị quét theo `days`: chúng đi cùng việc của mình, nên xóa một việc là xóa luôn thứ nó chờ và phiên chạy gần nhất cho từng mã. |
 | Bộ nhớ | Bị xóa khi đã hết hạn, hoặc đã bị đánh dấu xóa quá `days`. |
 | Ghép nối đang chờ | Bị xóa sau `days`, tính từ lúc tạo. |
 | Cảnh báo đã nổ hoặc đã tắt | Bị xóa sau `days`, tính từ lúc nổ hoặc lúc bị tắt. Cảnh báo còn sống không bao giờ bị cắt. |
 | `brief_snapshots` | Bị xóa sau `days`, trừ ảnh chụp mới nhất của mỗi ngôn ngữ, cái đó luôn sống sót. |
 | Việc lập lịch | Việc chạy một lần đã chạy xong và đã tắt bị xóa sau `days` tính từ giờ chạy, cùng lịch sử chạy của nó. Việc chạy một lần bị tạm dừng khi chưa chạy, và mọi việc lặp lại hay theo sự kiện, được giữ. |
 | Lệnh thoát đang chờ | Dòng đã khớp hoặc đã đóng bị xóa sau `days` tính từ lúc đặt. Dòng còn sống không bao giờ bị cắt. |
-| Lượt chạy chủ đề và các nhận định | Bị xóa sau `days`, trừ lượt mà một kết quả còn dẫn tới, hai lượt mới nhất của mỗi chủ đề, lượt mới nhất và lượt đầy đủ mới nhất. |
+| Phiên chạy chủ đề và các nhận định | Bị xóa sau `days`, trừ lượt mà một kết quả còn dẫn tới, hai lượt mới nhất của mỗi chủ đề, lượt mới nhất và lượt đầy đủ mới nhất. |
 | Gợi ý | Gợi ý đã chấm bị xóa sau `history_days` tính từ lúc chốt, lệnh giữ sau `history_days` tính từ lúc tạo. Gợi ý chưa chấm không bao giờ bị xóa, và mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động và trọng tâm, nên kế hoạch đang đứng và kế hoạch thoát luôn còn. Gợi ý, `factor_log` và `theme_outcomes` được giữ ít nhất một năm dù `history_days` ngắn hơn, vì kết quả theo dõi nhìn lại xa như vậy. |
 | Nguồn yếu tố của gợi ý đã chấm | Khi gợi ý đã chấm chốt quá `days` và không nằm trong mười dòng mới nhất của mã đó, các dấu nguồn dưới từng yếu tố được làm rỗng. Điểm, trọng số, kết quả, luận điểm, tranh luận và các mức giá vẫn giữ, và gợi ý vẫn ghi nguồn một lần. |
 | `factor_log`, `theme_outcomes` | Dòng đã chốt bị xóa sau `history_days` tính từ lúc chốt. Dòng đang chờ không bao giờ bị cắt. |
@@ -343,8 +343,9 @@ và nạp bản ghi hội thoại cùng tổng lượng dùng đã lưu, kể c�
 Kênh định tuyến theo kênh, chat và người dùng. Tin đầu tiên được nhận sẽ tạo một tuyến; các tin sau
 dùng lại tuyến đó.
 
-- `/new` chuyển tuyến sang cuộc trò chuyện mới trong một bước, để việc đang chờ của cuộc trò chuyện cũ không
-  lọt sang cuộc mới.
+- `/new` bỏ tuyến của khung chat trong một bước, để việc đang chờ của cuộc trò chuyện cũ không lọt sang
+  cuộc mới. Tin nhắn kế tiếp mới mở cuộc trò chuyện mới, nên khung chat im lặng sau đó không để lại cuộc
+  trò chuyện rỗng nào.
 - `/continue` giữ nguyên cuộc trò chuyện hiện tại và gửi một lời nhắc ngắn làm lượt kế tiếp, nên phiên chạy
   dừng giữa chừng sẽ làm tiếp từ chỗ đang dở, bạn không phải gõ lại yêu cầu.
 
@@ -363,7 +364,7 @@ các tin nhắn theo thứ tự, tổng token và chi phí lũy kế, cùng các
 của trợ lý. Những lần gọi không gắn với tin nhắn nào, như khi nén hội thoại, được hiện riêng.
 
 `history delete` xóa một cuộc trò chuyện mà không hỏi lại. `history clear` cần dịch vụ nền đã dừng và hỏi xác
-nhận trừ khi bạn thêm `--yes`. Cả hai từ chối cuộc trò chuyện đang có một lượt chạy dở; cuộc trò chuyện chỉ còn mở mà
+nhận trừ khi bạn thêm `--yes`. Cả hai từ chối cuộc trò chuyện đang có một phiên chạy dở; cuộc trò chuyện chỉ còn mở mà
 không chạy gì thì xóa được.
 
 ### Vòng đời
@@ -404,7 +405,7 @@ Mỗi lúc chỉ một phiên chạy được sửa một cuộc trò chuyện. 
 vụ đang chờ; phần vượt quá bị từ chối với `queue_full` thay vì để bộ nhớ phình mãi. Một tác vụ lỗi
 không ảnh hưởng tác vụ kế tiếp.
 
-`/new` và các lần đổi tuyến khác chờ việc đang chạy xong, hủy phần việc đã xếp hàng, cập nhật tuyến, rồi
+`/new` và các lần đổi tuyến khác chờ việc đang chạy xong, hủy phần việc đã xếp hàng, bỏ tuyến cũ, rồi
 mới nhận việc cho cuộc trò chuyện mới. Nhờ vậy tin nhắn nhận cho cuộc trò chuyện cũ không chạy nhầm dưới tuyến
 mới.
 
