@@ -115,8 +115,12 @@ async function readFirstRun(app: App, signal: AbortSignal): Promise<StatePayload
     resolveProviderChecks(app, translate),
   ])
 
+  const isClientModel = app.config.modelSource === 'client'
+  const modelKeyEnv = isClientModel ? undefined : app.config.models[0]?.apiKeyEnv
+
   return {
-    modelReady: app.config.modelSource === 'client' || providers.some((check) => check.ok),
+    modelReady: isClientModel || providers.some((check) => check.ok),
+    ...(modelKeyEnv === undefined ? {} : { modelKeyEnv }),
     ...setup,
   }
 }

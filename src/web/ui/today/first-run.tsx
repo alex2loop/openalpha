@@ -2,17 +2,13 @@ import type { ComponentChildren } from 'preact'
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import type { ApiFailure } from '@/web/api/client'
-import { ROUTES } from '@/web/api/routes'
-import { useBlock } from '@/web/state/block'
 import { fillInput } from '@/web/state/command'
 import { estimateText } from '@/web/state/estimates'
 import { loadSession, state } from '@/web/state/session'
-import { toFailureText, tr } from '@/web/text/tr'
+import { tr } from '@/web/text/tr'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
-import { Skeleton } from '@/web/ui/kit/skeleton'
 import { openSettings } from '@/web/ui/settings/settings'
 
 const BRIEF_COMMAND = '/brief'
@@ -112,19 +108,18 @@ function Step({ index, title, isDone, isOptional, children }: StepProps) {
 
 // The key itself is never typed here: the page only names the variable the daemon reads.
 function ModelStep({ isDone }: { readonly isDone: boolean }) {
-  const providers = useBlock(ROUTES.providers)
   const recheck = useRecheck()
-  const envVar = providers.data?.providers[0]?.envVar
+  const envVar = state.value?.firstRun.modelKeyEnv
 
   return (
     <Step index={1} title={tr('ui.office.firstRun.modelTitle')} isDone={isDone}>
       {!isDone && (
         <>
-          {envVar === undefined ? (
-            <ModelPending error={providers.error} />
-          ) : (
-            <p class="meta">{tr('ui.office.firstRun.modelBody', { envVar })}</p>
-          )}
+          <p class="meta">
+            {envVar === undefined
+              ? tr('ui.office.firstRun.modelBodyNoKey')
+              : tr('ui.office.firstRun.modelBody', { envVar })}
+          </p>
           <div class="step-actions">
             <Button size="small" onClick={recheck}>
               {tr('ui.office.common.recheck')}
@@ -133,14 +128,6 @@ function ModelStep({ isDone }: { readonly isDone: boolean }) {
         </>
       )}
     </Step>
-  )
-}
-
-function ModelPending({ error }: { readonly error: ApiFailure | undefined }) {
-  return error === undefined ? (
-    <Skeleton lines={2} />
-  ) : (
-    <p class="failure-line">{toFailureText(error)}</p>
   )
 }
 
