@@ -7,6 +7,21 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.1.1] - 2026-10-28
+
+The office page now opens with no config edit: the API is on by default, still on `127.0.0.1`
+only. A second daemon on the same port stops with a clear message instead of sharing it. No
+database change.
+> Trang văn phòng giờ mở được mà không cần sửa cấu hình: API bật sẵn, vẫn chỉ nghe trên `127.0.0.1`. Dịch vụ nền thứ hai dùng cùng cổng sẽ dừng kèm thông báo rõ ràng thay vì dùng chung cổng. Không đổi cơ sở dữ liệu.
+
+### Changes
+
+- `[api] enabled` defaults to `true`; set it to `false` to keep the port closed. `openalpha start
+  --background` then `openalpha web` is all the office page needs.
+- Two daemons pointed at one `[api] port` no longer share the socket silently: the second stops
+  and says to run `openalpha stop` or pick another `[api] port`.
+- The starter config no longer writes `[api] enabled = true`.
+
 ## [1.1.0] - 2026-10-28
 
 A new office page: your analysts work in a pixel-art office you open in the browser, with your
@@ -31,8 +46,8 @@ for client apps. Six additive database changes; the upgrade runs them for you.
 
 ### Daemon and API
 
-- An HTTP/WS API under `/v1`, on by default on `127.0.0.1:8765` (`[api] enabled = false` turns it
-  off), with a bearer token from `openalpha api token`. With `[api] public_url` set it withholds shell, file writes, external tools, pairing
+- An HTTP/WS API under `/v1` (off by default, `[api]`), with a bearer token from `openalpha api
+  token`. With `[api] public_url` set it withholds shell, file writes, external tools, pairing
   approval and orders.
 - Live run feed, notices with read state, event-triggered jobs, agents created and edited from
   the API, and a `spawn` tool for temporary child agents.
@@ -50,8 +65,6 @@ for client apps. Six additive database changes; the upgrade runs them for you.
 
 ### Upgrading
 
-- The daemon now opens the API port by default. A second daemon on the same port stops with a
-  message instead of sharing it; set `[api] port` to run two.
 - New tables for runs, notices, job event triggers and browser sessions, plus new columns for
   debate models and run tickers. Older binaries cannot open the upgraded database; `openalpha
   upgrade --rollback` takes it back after an `openalpha upgrade`.
