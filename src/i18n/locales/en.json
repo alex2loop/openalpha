@@ -314,6 +314,7 @@
     "office.step.flows": "flows {done}/{total}",
     "office.step.macro": "macro",
     "office.step.premium": "premium",
+    "office.step.valuation": "valuation",
     "office.step.waiting": "waiting",
     "office.step.recheck": "recheck",
     "office.step.discover": "discover",

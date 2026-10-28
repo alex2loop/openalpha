@@ -43,6 +43,7 @@ const STEP_LABELS: Readonly<Record<string, StepLabel>> = Object.freeze({
   'trading.progress.refresh.flows': ['ui.office.step.flows', 'done', 'total'],
   'trading.progress.refresh.macro': ['ui.office.step.macro'],
   'trading.progress.refresh.premium': ['ui.office.step.premium'],
+  'trading.progress.refresh.index-ratios': ['ui.office.step.valuation'],
   'trading.progress.refreshJoined': ['ui.office.step.waiting'],
   'trading.progress.themes.evidence': ['ui.office.step.data'],
   'trading.progress.themes.update': ['ui.office.step.recheck'],
