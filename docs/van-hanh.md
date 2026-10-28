@@ -387,7 +387,7 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
    DNS rebinding. Khi đã đặt `public_url`, `openalpha web` in liên kết `https://` thay vì đường hầm. Năm lần
    sai mã API hoặc mã đăng nhập sẽ tạm dừng nơi gửi đó trong 30 giây, mỗi lần dừng sau tăng gấp đôi, tối đa
    một giờ; một giờ không sai lần nào thì tính lại từ đầu. Yêu cầu qua `public_url` được phân biệt theo địa chỉ
-   đầu tiên trong `X-Forwarded-For`, nên người đoán mã trên internet không bao giờ làm dừng terminal hay CLI
+   cuối cùng trong `X-Forwarded-For` (địa chỉ do proxy của bạn thêm vào), nên người đoán mã trên internet không bao giờ làm dừng terminal hay CLI
    của bạn trên cùng máy. Trong khoảng dừng mọi mã từ nơi gửi đó đều bị từ chối, đúng hay sai, nên không lần
    đoán nào được kiểm; trình duyệt đã đăng nhập vẫn dùng bình thường. Hết khoảng dừng, một mã đúng sẽ xóa số
    lần sai.

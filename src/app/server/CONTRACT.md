@@ -72,7 +72,7 @@ this document — neither imports the other.
   - **Lockout:** a wrong token (HTTP and WS alike) and a wrong or used sign-in code count toward
     the same per-peer lockout (5 failures → 30s backoff, doubling with each lockout up to 1h; a peer
     with no failure and no lockout for 1h starts over). A caller with no proxy header is its own
-    peer. Through the `public_url` host, the peer is the first `X-Forwarded-For` hop, so a remote
+    peer. Through the `public_url` host, the peer is the last `X-Forwarded-For` hop (the one the proxy added), so a remote
     caller never locks out a terminal on the same machine; proxy headers on any other host share one
     peer. A request with no credentials or an unknown cookie is refused without counting. While the lockout holds, a token
     or code is refused with `403 forbidden` before it is compared, right or wrong, and a code is

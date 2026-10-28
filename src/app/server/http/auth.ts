@@ -169,16 +169,16 @@ function toHostUrl(protocol: string, host: string): URL | undefined {
 }
 
 /** Who a request counts as for the lockout. A caller with no proxy header is keyed by its own peer.
- *  Through the `public_url` host it is keyed by the first `X-Forwarded-For` hop, so a remote guesser
- *  never locks out a terminal on this machine. Proxy headers on any other host are not trusted:
- *  that caller shares one proxied key. */
+ *  Through the `public_url` host it is keyed by the last `X-Forwarded-For` hop, the one our proxy
+ *  added, so a remote guesser never locks out a terminal on this machine. Proxy headers on any
+ *  other host are not trusted: that caller shares one proxied key. */
 export function resolvePeerKey(headers: Headers, ip: string | null, isPublicPage: boolean): string {
   if (!PROXY_HEADERS.some((name) => headers.has(name))) {
     return ip ?? UNKNOWN_PEER
   }
 
   const hop = isPublicPage
-    ? headers.get(FORWARDED_FOR)?.split(FORWARDED_FOR_SEPARATOR)[0]?.trim()
+    ? headers.get(FORWARDED_FOR)?.split(FORWARDED_FOR_SEPARATOR).at(-1)?.trim()
     : undefined
 
   return `${PROXIED_PEER_PREFIX}${hop === undefined || hop === '' ? UNKNOWN_PEER : hop}`

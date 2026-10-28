@@ -396,7 +396,7 @@ Run the daemon on a server you own and point a client app at it.
    DNS-rebinding page. With `public_url` set, `openalpha web` prints the `https://` link instead of a
    tunnel. Five wrong tokens or sign-in codes pause that caller for 30 seconds, and each pause after
    that doubles, up to an hour; an hour with no wrong try starts it over. A caller through `public_url`
-   is told apart by the first address in `X-Forwarded-For`, so a guesser on the internet never pauses
+   is told apart by the last address in `X-Forwarded-For` (the one your proxy added), so a guesser on the internet never pauses
    your terminal or the CLI on the same machine. During a pause every token and code from that caller
    is refused, right or wrong, so no guess is checked; a browser already signed in carries on. Once it
    ends, a right token or code clears the count.
