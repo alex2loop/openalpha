@@ -994,5 +994,5 @@ config.toml có chỗ cần sửa:
 - `budget.max_daly_usd`: không phải thiết lập mình biết, có phải ý bạn là `max_daily_usd`?
 Sửa xong rồi chạy lại nhé.
 
-Chưa có ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Lưu bằng `openalpha key set ANTHROPIC_API_KEY` rồi thử lại nhé.
+Chưa có ANTHROPIC_API_KEY nên mô hình AI chưa trả lời được: trò chuyện, phần tranh luận trong /suggest, /research, /themes và phần viết của bản tin sáng phải chờ, còn giá, điểm số và các mức giá vẫn dùng bình thường. Lưu bằng `openalpha key set ANTHROPIC_API_KEY`; nếu OpenAlpha đang chạy nền thì chạy thêm `openalpha restart --background`.
 ```
