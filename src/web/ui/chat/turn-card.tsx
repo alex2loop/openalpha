@@ -7,7 +7,13 @@ import {
   type Turn,
   thread,
 } from '@/web/state/chat'
-import { ALERT_CREATE_COMMAND, fillInput, inputText, setInput } from '@/web/state/command'
+import {
+  ALERT_CREATE_COMMAND,
+  fillInput,
+  inputText,
+  SUGGEST_COMMAND,
+  setInput,
+} from '@/web/state/command'
 import { focusRun } from '@/web/state/focus'
 import { findRun, hasChildren, type Run, runs } from '@/web/state/live'
 import { canRemember, toAttributeName } from '@/web/state/memory'
@@ -264,15 +270,16 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
         {isResearchTurn(turn) && turn.runId !== undefined && (
           <ResearchReportLink runId={turn.runId} />
         )}
-        <NextSteps tickers={turn.tickers} />
+        <NextSteps turn={turn} />
       </div>
     </>
   )
 }
 
-// The first name the answer reported on: suggest it, or set an alert on it. Both only fill the box.
-function NextSteps({ tickers }: { readonly tickers: readonly string[] | undefined }) {
-  const ticker = tickers?.[0]
+// The first name the answer reported on: suggest it, unless this turn already was the suggestion,
+// or set an alert on it. Both only fill the box.
+function NextSteps({ turn }: { readonly turn: Turn }) {
+  const ticker = turn.tickers?.[0]
 
   if (ticker === undefined) {
     return null
@@ -280,7 +287,7 @@ function NextSteps({ tickers }: { readonly tickers: readonly string[] | undefine
 
   return (
     <>
-      <SuggestChip ticker={ticker} />
+      {commandWordOf(turn.text) !== SUGGEST_COMMAND && <SuggestChip ticker={ticker} />}
       <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
         {tr('ui.office.common.setAlert')}
       </Button>

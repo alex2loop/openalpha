@@ -194,6 +194,7 @@
 .panel-rail .panel-tabs {
   flex: none;
   flex-direction: column;
+  overflow: visible;
   gap: 2px;
   margin: 0;
   padding: 0;

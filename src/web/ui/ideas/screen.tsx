@@ -1,7 +1,7 @@
 import type { ScreenResponse } from '@/app/server/wire/market'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
-import { fillInput, SUGGEST_COMMAND } from '@/web/state/command'
+import { runCommand, SUGGEST_COMMAND } from '@/web/state/command'
 import { estimateText } from '@/web/state/estimates'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
@@ -63,12 +63,12 @@ function Board({ market }: { readonly market: string }) {
   )
 }
 
-// Fills the box with `/screen <market>`: the operator sends it, and sees the cost first.
+// Sends `/screen <market>`, its cost shown beside the button.
 function Rerun({ market }: { readonly market: string }) {
   return (
     <>
       <Estimate command={SCREEN_COMMAND} />
-      <Button kind="ai" size="small" onClick={() => fillInput(`${SCREEN_COMMAND} ${market}`)}>
+      <Button kind="ai" size="small" onClick={() => runCommand(`${SCREEN_COMMAND} ${market}`)}>
         {tr('ui.office.ideas.screenRerun')}
       </Button>
     </>
@@ -149,7 +149,7 @@ function Opportunity({ row }: { readonly row: Row }) {
         ))}
       </div>
       <div class="opportunity-ask">
-        <Button kind="ai" size="small" onClick={() => fillInput(`${SUGGEST_COMMAND} ${row.key}`)}>
+        <Button kind="ai" size="small" onClick={() => runCommand(`${SUGGEST_COMMAND} ${row.key}`)}>
           {tr('ui.office.ideas.screenSuggest')}
         </Button>
         <Estimate command={SUGGEST_COMMAND} />

@@ -607,7 +607,7 @@ trả lời hay đầu ra.
 
 ## Trang văn phòng
 
-Khi API bật, dịch vụ nền còn phục vụ một trang web ngay tại địa chỉ của nó, `http://127.0.0.1:<cổng>/` (cổng 8765 nếu bạn không đổi). Cứ hình dung đó là một bức tường kính nhìn vào dịch vụ nền: một văn phòng nhỏ nơi trợ lý, nhóm nghiên cứu và các agent của bạn làm việc cùng lúc với dịch vụ nền. Mọi chuyển động bạn thấy đều là một phiên chạy, một bước hay một câu hỏi đang chờ bạn có thật; không có gì được dựng sẵn cho có vẻ bận rộn. Trang không bao giờ đặt lệnh và không tự khởi động một phiên chạy AI nào. Một nút hoặc mở ra một thứ gì đó, hoặc điền chữ vào ô câu lệnh để bạn đọc rồi tự gửi; ngoại lệ duy nhất là "Cập nhật dữ liệu" ở thẻ Thị trường, tự gửi `/refresh` (xem bên dưới).
+Khi API bật, dịch vụ nền còn phục vụ một trang web ngay tại địa chỉ của nó, `http://127.0.0.1:<cổng>/` (cổng 8765 nếu bạn không đổi). Cứ hình dung đó là một bức tường kính nhìn vào dịch vụ nền: một văn phòng nhỏ nơi trợ lý, nhóm nghiên cứu và các agent của bạn làm việc cùng lúc với dịch vụ nền. Mọi chuyển động bạn thấy đều là một phiên chạy, một bước hay một câu hỏi đang chờ bạn có thật; không có gì được dựng sẵn cho có vẻ bận rộn. Trang không bao giờ đặt lệnh và không tự khởi động một phiên chạy AI nào: phiên chạy chỉ bắt đầu khi bạn gửi một câu lệnh, hoặc bấm một nút ghi rõ câu lệnh, như "/suggest VPB", có chi phí thường lệ ghi bên cạnh. Nút nào còn cần bạn nhập thêm, như Đặt cảnh báo, thì chỉ điền câu lệnh vào ô để bạn viết nốt rồi gửi.
 
 ### Mở trang
 
@@ -738,8 +738,8 @@ Phần nào không có gì để hiện thì bị bỏ, và phần nào không �
 Khi không đọc được nguồn tin, trang nói rõ thay vì hiện một danh sách trống.
 
 **Chủ đề** (chỉ có cho Việt Nam) liệt kê những chủ đề đang chờ bạn quyết, với Theo dõi và Bỏ qua, cùng
-những chủ đề bạn đang theo dõi, với Dừng theo dõi sau một bước xác nhận. "Chạy lại" đặt `/themes` vào ô
-câu lệnh kèm chi phí ước tính; chưa có gì chạy cho tới khi bạn gửi.
+những chủ đề bạn đang theo dõi, với Dừng theo dõi sau một bước xác nhận. "Chạy lại" gửi `/themes` ngay;
+chi phí ước tính nằm cạnh nút.
 
 ### Văn phòng
 

@@ -2,7 +2,7 @@ import type { ComponentChildren } from 'preact'
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import { fillInput } from '@/web/state/command'
+import { runCommand } from '@/web/state/command'
 import { estimateText } from '@/web/state/estimates'
 import { loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
@@ -131,13 +131,13 @@ function ModelStep({ isDone }: { readonly isDone: boolean }) {
   )
 }
 
-// The brief fills the box and never sends it; it waits for a model to answer it.
+// The brief runs at once; it waits for a model to answer it.
 function BriefStep({ isModelReady }: { readonly isModelReady: boolean }) {
   return (
     <Step index={5} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
       <p class="meta">{tr('ui.office.firstRun.briefBody')}</p>
       <div class="step-actions">
-        <Button size="small" disabled={!isModelReady} onClick={() => fillInput(BRIEF_COMMAND)}>
+        <Button size="small" disabled={!isModelReady} onClick={() => runCommand(BRIEF_COMMAND)}>
           {tr('ui.office.firstRun.briefCta')}
         </Button>
         <span class="meta">{estimateText(BRIEF_COMMAND)}</span>

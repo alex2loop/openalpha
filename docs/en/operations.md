@@ -612,7 +612,7 @@ or output.
 
 ## The office page
 
-With the API on, the daemon also serves a web page at its own address, `http://127.0.0.1:<port>/` (port 8765 unless you changed it). Think of it as a glass wall into the daemon: a small office where your assistant, the research crew and your own agents work while the daemon works. Everything you see moving is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. The page never places an order and never starts an AI run by itself. A button either opens something or puts text in the command box for you to read and send; the one exception is Market's "Refresh data", which sends `/refresh` itself (see below).
+With the API on, the daemon also serves a web page at its own address, `http://127.0.0.1:<port>/` (port 8765 unless you changed it). Think of it as a glass wall into the daemon: a small office where your assistant, the research crew and your own agents work while the daemon works. Everything you see moving is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. The page never places an order and never starts an AI run by itself: a run starts only when you send a command or click a button that names one, such as "/suggest VPB", with its usual cost shown beside it. A button that needs more from you, such as Set alert, puts the command in the box for you to finish and send.
 
 ### Opening it
 
@@ -744,8 +744,8 @@ A part with nothing to show is left out, and one that could not be read says why
 When the sources cannot be read, it says so instead of showing an empty list.
 
 **Themes** (Vietnam only) lists the themes waiting for you, with Follow and Skip, and the ones you
-follow, with Stop following after a confirm. "Run again" puts `/themes` in the command box with its
-estimated cost; nothing runs until you send it.
+follow, with Stop following after a confirm. "Run again" sends `/themes` at once; its estimated cost
+sits beside the button.
 
 ### The office
 

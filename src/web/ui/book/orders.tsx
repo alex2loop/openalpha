@@ -34,10 +34,10 @@ export function Orders() {
 
   return (
     <section class="block">
+      <BlockHead title={tr('ui.office.orders.waiting')} colour="blue" icon={<ListIcon />} />
       <BuyingSwitch isHalted={data.haltedAt !== undefined} reread={reading.retry} />
       {error !== undefined && <FailureStrip failure={error} retry={reading.retry} />}
       <OrderAnswer />
-      <BlockHead title={tr('ui.office.orders.waiting')} colour="blue" icon={<ListIcon />} />
       {data.staged.length === 0 && <p class="meta">{tr('ui.office.orders.none')}</p>}
       {data.staged.map((order) => (
         <StagedCard key={order.token} order={order} reread={reading.retry} />

@@ -2,7 +2,7 @@ import type { ScheduleRow } from '@/app/server/wire/system'
 import type { TasksResponse } from '@/app/server/wire/tasks'
 import type { LoadState } from '@/web/ui/kit/use-load'
 import { ALERTS_TASK_NAME } from '@/web/scene/data/agenda'
-import { fillInput } from '@/web/state/command'
+import { runCommand } from '@/web/state/command'
 import { state } from '@/web/state/session'
 import { readText } from '@/web/text/fields'
 import { ABSENT_CELL } from '@/web/text/glyphs'
@@ -117,14 +117,14 @@ function toUpcoming(row: ScheduleRow): UpcomingItem[] {
   ]
 }
 
-// A run spends AI, so it only fills the box; the operator sends it.
+// Sends the job's prompt now, to the agent it names.
 function RerunButton({ rerun }: { readonly rerun: NonNullable<UpcomingItem['rerun']> }) {
   return (
     <Button
       size="small"
       onClick={() => {
         closePopover()
-        fillInput(rerun.text, rerun.agentId === undefined ? {} : { agentId: rerun.agentId })
+        runCommand(rerun.text, rerun.agentId === undefined ? {} : { agentId: rerun.agentId })
       }}
     >
       {tr('ui.office.jobs.rerun')}

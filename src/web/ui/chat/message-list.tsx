@@ -18,12 +18,18 @@ export function MessageList() {
   const earlier = history.value.messages
 
   const isPinned = useRef(true)
+  const newestId = useRef(turns.at(-1)?.localId)
 
-  // A new turn or a streamed delta keeps the newest line in view while the reader is at the bottom.
+  // A turn just sent always brings the list to the bottom; a streamed delta keeps the newest line in
+  // view only while the reader is already there.
   useEffect(() => {
     const element = list.current
+    const isNewTurn = turns.at(-1)?.localId !== newestId.current
 
-    if (element !== null && isPinned.current) {
+    newestId.current = turns.at(-1)?.localId
+
+    if (element !== null && (isNewTurn || isPinned.current)) {
+      isPinned.current = true
       element.scrollTop = element.scrollHeight
     }
   }, [turns])

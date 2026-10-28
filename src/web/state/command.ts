@@ -41,6 +41,17 @@ export function fillInput(text: string, opts: { readonly agentId?: string } = {}
   focusInput()
 }
 
+/** Sends `text` as if typed and sent: a button's own command. Offline, it stays in the box and
+ *  `isNotSent` says why. */
+export function runCommand(text: string, opts: { readonly agentId?: string } = {}): void {
+  if (opts.agentId !== undefined) {
+    selectAgent(opts.agentId)
+  }
+
+  setInput(text)
+  sendFromInput()
+}
+
 export function focusInput(): void {
   inputElement?.focus()
 }

@@ -5,7 +5,7 @@ import type { ThemesResponse, ThemeTransitionWire } from '@/app/server/wire/them
 import { sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
-import { fillInput } from '@/web/state/command'
+import { runCommand } from '@/web/state/command'
 import { estimateText } from '@/web/state/estimates'
 import { onCommandFinished } from '@/web/state/events'
 import { homeRegion } from '@/web/state/market'
@@ -39,11 +39,10 @@ interface MoveContext {
 }
 
 /** Chủ đề: proposals to decide, themes followed, and `/themes show` for them. The page moves a
- *  theme but never runs the model: Chạy lại only fills the chat box. */
+ *  theme; Chạy lại runs `/themes` at once, its cost shown beside it. */
 export function Themes() {
   const reading = useBlock(ROUTES.themes)
   const answer = useSignal<MoveAnswer | undefined>(undefined)
-  const isFilled = useSignal(false)
 
   useEffect(() => onCommandFinished(THEMES_COMMAND, reading.retry), [])
 
@@ -53,12 +52,11 @@ export function Themes() {
       colour="yellow"
       icon={<BulbIcon />}
       reading={reading}
-      action={<RunAgain isFilled={isFilled} />}
+      action={<RunAgain />}
     >
       {(data) => (
         <>
           <VnOnlyNote />
-          {isFilled.value && <p class="meta">{tr('ui.office.themes.filled')}</p>}
           {answer.value?.isRefused === false && <p class="meta">{answer.value.text}</p>}
           {data.themes.length === 0 ? (
             <p class="meta">{tr('ui.office.themes.none')}</p>
@@ -80,20 +78,13 @@ function VnOnlyNote() {
   )
 }
 
-function RunAgain({ isFilled }: { readonly isFilled: Signal<boolean> }) {
+function RunAgain() {
   const estimate = estimateText(RUN_TEXT)
 
   return (
     <>
       {estimate !== undefined && <span class="meta">{estimate}</span>}
-      <Button
-        kind="ai"
-        size="small"
-        onClick={() => {
-          fillInput(RUN_TEXT)
-          isFilled.value = true
-        }}
-      >
+      <Button kind="ai" size="small" onClick={() => runCommand(RUN_TEXT)}>
         {tr('ui.office.themes.rerun')}
       </Button>
     </>

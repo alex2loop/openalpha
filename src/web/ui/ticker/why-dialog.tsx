@@ -4,7 +4,7 @@ import { formatDay } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { agents } from '@/web/state/agents'
-import { fillInput } from '@/web/state/command'
+import { runCommand } from '@/web/state/command'
 import { isAdvanced } from '@/web/state/prefs'
 import { locale, state } from '@/web/state/session'
 import { citationsOf } from '@/web/text/card-sources'
@@ -33,7 +33,7 @@ interface StoredDebate {
 }
 
 /** Opens "Vì sao?": what the daemon stored about how a call was reached. It reads stored data and
- *  costs nothing; "Hỏi sâu hơn" only fills the box with a question for the operator to send. */
+ *  costs nothing; "Hỏi sâu hơn" sends a question about it. */
 export function openWhy(subject: WhySubject): void {
   openModal({
     title: buildTitle(subject),
@@ -97,7 +97,7 @@ function WhyFooter({ subject }: { readonly subject: WhySubject }) {
         kind="ai"
         onClick={() => {
           closeModal()
-          fillInput(
+          runCommand(
             buildQuestion(subject),
             subject.kind === 'opinion' ? { agentId: subject.agentId } : {}
           )

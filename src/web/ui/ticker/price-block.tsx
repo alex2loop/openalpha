@@ -3,7 +3,7 @@ import { formatDay, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
-import { fillInput } from '@/web/state/command'
+import { runCommand } from '@/web/state/command'
 import { findMarket, findQuote, keyOf, stopsBlock } from '@/web/state/market'
 import { REFRESH_COMMAND } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
@@ -96,7 +96,7 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
     return (
       <>
         <p class="meta">{tr('ui.office.ticker.noData')}</p>
-        <Button size="small" onClick={() => fillInput(REFRESH_COMMAND)}>
+        <Button size="small" onClick={() => runCommand(REFRESH_COMMAND)}>
           {REFRESH_COMMAND}
         </Button>
       </>

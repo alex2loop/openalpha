@@ -223,7 +223,12 @@ interface KeyContext {
   readonly options: readonly SuggestOption[]
 }
 
+// While an input method composes (Vietnamese Telex, for one), its keys finish the word, not the line.
 function onKey(event: TargetedKeyboardEvent<HTMLInputElement>, context: KeyContext): void {
+  if (event.isComposing) {
+    return
+  }
+
   const handled = handleKey(event.key, context)
 
   if (handled) {

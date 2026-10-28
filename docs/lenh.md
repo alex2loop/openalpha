@@ -214,7 +214,7 @@ Một chip bên trái cho biết ai nhận câu bạn gõ: trợ lý, hay một 
 - **Hàng chờ.** Các câu lệnh tự chạy được thì không đứng đợi nhau, trong giới hạn nêu ở trên. Trong khung chat, câu lệnh phải chờ sẽ nói nó đứng thứ mấy trong hàng và đang có mấy câu lệnh chạy cùng lúc, và bỏ khỏi hàng được. Câu lệnh chạy song song với câu lệnh khác thì nói nó chạy cùng câu lệnh nào.
 - **Dừng và bổ sung.** Câu trả lời hay câu lệnh đang chạy hiện "Xem trong văn phòng" và nút Dừng; nút Dừng hỏi xác nhận và giữ phần đã làm trong nhật ký. Khi một câu trả lời (không phải câu lệnh) đang chạy, bạn gõ thêm một ý rồi bấm "Bổ sung": câu trả lời đọc ý đó ở bước tiếp theo. Dòng bắt đầu bằng `/` là câu lệnh, không bao giờ là phần bổ sung.
 
-Nút và menu trên trang không bao giờ tự gửi câu lệnh thay bạn, trừ một ngoại lệ: "Cập nhật dữ liệu" ở thẻ Thị trường tự gửi `/refresh` cho các thị trường của vùng đang xem (không bao giờ kèm `force`) và ghi chi phí thường lệ bên cạnh. Các nút khác chỉ điền vào ô (hoặc chọn người nhận) và để bạn tự gửi, nên bạn luôn thấy câu lệnh cùng chi phí ước tính của nó trước khi nó tốn bất cứ thứ gì.
+Nút nào ghi rõ một câu lệnh đầy đủ thì gửi luôn câu lệnh đó khi bạn bấm, chi phí thường lệ ghi ngay cạnh nút: "/suggest VPB", "Chạy lại" cho `/themes`, bản tin ở thẻ bắt đầu, lọc mã, "Chạy lại" của một việc đã lên lịch, "Hỏi sâu hơn". "Cập nhật dữ liệu" ở thẻ Thị trường gửi `/refresh` cho các thị trường của vùng đang xem (không bao giờ kèm `force`). Nút nào còn cần bạn nhập thêm, như Đặt cảnh báo hay trích một bản báo cáo, thì chỉ điền vào ô (hoặc chọn người nhận) và để phần còn lại cho bạn.
 
 ## Nghiên cứu
 
