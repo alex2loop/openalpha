@@ -194,15 +194,15 @@ Bảng giá của tiệm vàng thì không chốt gì: giá cứ được sửa 
 
 Một ngày đã có sẵn thì được báo là hiện hành, không phải đã cập nhật; muốn tính lại thì dùng `force`. Không có quy tắc này, mức chênh đã lưu sẽ kẹt ở số đọc đầu tiên trong ngày, trong khi mọi màn hình lại tính ra một mức mới hơn.
 
-Lượt chạy trực tiếp chỉ ghi phiên đã chốt. Sau đó một lượt bù lấp các ngày còn thiếu trong cửa sổ phân vị bằng các bảng giá vàng có ghi ngày. Mỗi ngày được định giá so với giá đóng thế giới và tỷ giá mới nhất còn nằm trong độ trễ cho phép.
+Phiên chạy trực tiếp chỉ ghi phiên đã chốt. Sau đó một lượt bù lấp các ngày còn thiếu trong cửa sổ phân vị bằng các bảng giá vàng có ghi ngày. Mỗi ngày được định giá so với giá đóng thế giới và tỷ giá mới nhất còn nằm trong độ trễ cho phép.
 
 - Ngày mà giá đóng thế giới hay tỷ giá không bao giờ về thì được báo là thiếu, không bị lặng lẽ bỏ qua.
 - Ngày mà tiệm không công bố gì thì không tính là thiếu. Ngày đó không bao giờ về, và đếm nó sẽ khiến lượt nào cũng trông như thiếu.
 - Tiệm ngừng công bố hẳn thì bị chính ngưỡng độ phủ của phân vị phát hiện.
 
-**Dấu refresh đã lưu.** Mỗi lần refresh được đóng dấu bằng ngày nó phủ, và lần chạy sau dùng lại dấu đó thay vì tải lại. Thử hình dung một lượt chạy rơi đúng vào khoảng chờ chốt: nó sẽ đóng dấu một ngày còn đang hình thành, rồi mọi lượt sau coi dấu đó là hiện hành.
+**Dấu refresh đã lưu.** Mỗi lần refresh được đóng dấu bằng ngày nó phủ, và phiên chạy sau dùng lại dấu đó thay vì tải lại. Thử hình dung một phiên chạy rơi đúng vào khoảng chờ chốt: nó sẽ đóng dấu một ngày còn đang hình thành, rồi mọi phiên chạy sau coi dấu đó là hiện hành.
 
-Lỗi này không tự hết. Loại dữ liệu đó sẽ kẹt ở bảng giá chưa xong cho tới khi cửa sổ refresh trôi qua, mà qua một ngày thứ Sáu là ba ngày. Nên một dấu chỉ được coi là hiện hành nếu ngày đó đã chốt vào lúc lượt chạy ghi dấu. Tuổi của dấu chỉ xét sau đó.
+Lỗi này không tự hết. Loại dữ liệu đó sẽ kẹt ở bảng giá chưa xong cho tới khi cửa sổ refresh trôi qua, mà qua một ngày thứ Sáu là ba ngày. Nên một dấu chỉ được coi là hiện hành nếu ngày đó đã chốt vào lúc phiên chạy ghi dấu. Tuổi của dấu chỉ xét sau đó.
 
 **Giá trực tiếp.** Một thị trường bỏ giá trực tiếp của nó trong hai trường hợp: phiên của giá đó không mới hơn giá đóng đã chốt, hoặc giá đó cũ hơn mức mà một lần khớp đóng cửa hay một bảng giá im ắng có thể giải thích. **Thị trường** quyết định việc này, không phải nguồn, giống cách `gold-vn` vốn đã kiểm tuổi bảng giá. Cách đánh giá một số đọc nằm ở [Nguồn dữ liệu](nguon-du-lieu.md).
 
@@ -352,7 +352,7 @@ Mỗi thị trường tự quyết khi nào đưa được giá trực tiếp, c
 Bằng chứng và giá có thể dừng ở hai phiên khác nhau. Nên mọi dòng đã lưu mang một ngày **bằng chứng tới**: phiên đã chốt mới nhất mà các yếu tố và mức giá của nó được đọc từ đó.
 
 - Phần cuối báo cáo in ngày này mỗi khi nó khác ngày chạy.
-- Với thị trường không bao giờ đóng cửa thì lần chạy nào cũng vậy, vì nến của một ngày lịch đóng vào nửa đêm UTC kế tiếp.
+- Với thị trường không bao giờ đóng cửa thì phiên chạy nào cũng vậy, vì nến của một ngày lịch đóng vào nửa đêm UTC kế tiếp.
 - Ngày của đề xuất vẫn là ngày nó được định giá. Việc dùng lại và cửa sổ kết quả đều dựa vào ngày này.
 
 #### Riêng cổ phiếu VN
@@ -459,9 +459,9 @@ một cắt lỗ đã được nâng cho khớp mức đang nắm, ghi chú nghi
 
 #### Dùng lại trên thị trường không có ranh giới phiên
 
-"Ngày" của crypto chỉ là quy ước để vẽ biểu đồ, nên việc dùng lại tính theo tuổi chứ không theo ngày. Một lần chạy lúc 23:00 UTC và một lần lúc 01:00 cách nhau hai giờ, không phải hai ngày. Dòng nào chưa quá 4 giờ thì qua cổng, dù rơi vào ngày nào. Thời gian chờ vẫn đếm theo phiên.
+"Ngày" của crypto chỉ là quy ước để vẽ biểu đồ, nên việc dùng lại tính theo tuổi chứ không theo ngày. Một phiên chạy lúc 23:00 UTC và một phiên lúc 01:00 cách nhau hai giờ, không phải hai ngày. Dòng nào chưa quá 4 giờ thì qua cổng, dù rơi vào ngày nào. Thời gian chờ vẫn đếm theo phiên.
 
-Một lệnh mua cũng giữ hiệu lực cho tới khi không còn thực hiện được như đã viết. Giá vào của nó là giá trực tiếp, mà giá này có thể đi xa giữa hai lần chạy: định giá lại cùng một ý tưởng crypto mỗi ngày có thể dời cắt lỗ tới 21%. Lần chạy trả lại đúng lệnh mua đó, đánh dấu `reused`, khi tất cả điều sau đều đúng:
+Một lệnh mua cũng giữ hiệu lực cho tới khi không còn thực hiện được như đã viết. Giá vào của nó là giá trực tiếp, mà giá này có thể đi xa giữa hai phiên chạy: định giá lại cùng một ý tưởng crypto mỗi ngày có thể dời cắt lỗ tới 21%. Phiên chạy trả lại đúng lệnh mua đó, đánh dấu `reused`, khi tất cả điều sau đều đúng:
 
 - đề xuất mới nhất trên mã là một lệnh mua chưa chốt, nằm trong cửa sổ kết cục của nó;
 - bạn chưa giao dịch mã đó;
@@ -474,7 +474,7 @@ Cái gì không đọc được thì chạy mới, và `force` luôn chạy mớ
 
 Một đề xuất được nhận diện bằng thị trường, mã, phiên bản chiến lược, **khóa phạm vi** và ngày. Đề xuất của chính bạn dùng phạm vi `default`. Một agent có `[focus]` lưu đề xuất dưới một khóa dựng từ bảng đó. Khóa đã được sắp xếp và bỏ trùng, nên đổi thứ tự một danh sách không bao giờ tách đôi hồ sơ.
 
-Mọi thứ cần tra "đề xuất trước" đều tra theo phạm vi: các cổng thời gian chờ và dùng lại, luận điểm đang đứng mà lần chạy mới kiểm lại, và phép hiệu chỉnh định cỡ lệnh mua. Một phạm vi chỉ đặt kỳ hạn không được trộn vào phạm vi của bạn.
+Mọi thứ cần tra "đề xuất trước" đều tra theo phạm vi: các cổng thời gian chờ và dùng lại, luận điểm đang đứng mà phiên chạy mới kiểm lại, và phép hiệu chỉnh định cỡ lệnh mua. Một phạm vi chỉ đặt kỳ hạn không được trộn vào phạm vi của bạn.
 
 - Kế hoạch thoát, kết luận mà `/rebalance` đọc và việc kéo cắt lỗ lên theo giá chỉ đọc `default`: một cuốn sổ, một kế hoạch.
 - Mọi phạm vi đều được chấm điểm.
@@ -639,7 +639,7 @@ Cảnh báo thoát và cảnh báo sàng lọc gửi tới chat của bản tin.
 
 Thị trường nào khai một trail (cắt lỗ kéo theo giá) thì nâng cắt lỗ đã lưu sau mỗi phiên đã chốt. Mức mới được dựng thành một cảnh báo mới, và cảnh báo cũ nghỉ hẳn. Nếu lần ghi đó hỏng, nó được thử lại ở nhịp kế tiếp thay vì chờ phiên sau.
 
-Nếu bạn chạy lại `/suggest` trong ngày và lần chạy đó thay một lệnh mua, mức mà trail đã đạt tới vẫn được giữ khi nó nằm trên cắt lỗ của kế hoạch mới. Cắt lỗ không bao giờ đi xuống.
+Nếu bạn chạy lại `/suggest` trong ngày và phiên chạy đó thay một lệnh mua, mức mà trail đã đạt tới vẫn được giữ khi nó nằm trên cắt lỗ của kế hoạch mới. Cắt lỗ không bao giờ đi xuống.
 
 Mỗi nhịp cảnh báo gửi những gì đến hạn trước, rồi chạy hai lượt dựng, mỗi lượt độc lập.
 
@@ -862,7 +862,7 @@ từ các nến đã lưu (không gọi mô hình), và `/themes show` in mỗi 
 - Hết ngân sách thì dừng giai đoạn đó và nêu tên các bước bị bỏ.
 - Bảng không đọc được thì bỏ giai đoạn công ty và báo một khoảng trống `screen`.
 - Mỗi chủ đề bắt đầu từ lần đọc mới nhất của chính nó, nên phiên chạy cuối không bao giờ là toàn bộ bức tranh.
-- Tin tức là mọi tin đã lưu kể từ lần đọc cũ nhất trong các chủ đề của lượt chạy, bất kể đăng lúc nào, nên tin lưu muộn không bị sót. Chủ đề nào được đọc gần đây hơn mốc đó có thể gặp lại vài tin.
+- Tin tức là mọi tin đã lưu kể từ lần đọc cũ nhất trong các chủ đề của phiên chạy, bất kể đăng lúc nào, nên tin lưu muộn không bị sót. Chủ đề nào được đọc gần đây hơn mốc đó có thể gặp lại vài tin.
 
 **Từ chủ đề tới công ty.** Với mỗi chủ đề `active`, việc diễn ra theo bốn bước:
 
@@ -934,7 +934,7 @@ Bên trong thị trường chứng khoán Việt Nam cũng vậy. Lịch sử gi
 
 `/refresh <thị trường>` chỉ quét thị trường đó. Tên không phải thị trường đã đăng ký thì nhận dòng hướng dẫn cách dùng, thay vì lặng lẽ không làm gì. Lệnh nhập vào một lượt quét đang chạy sẽ báo vậy và nêu tên thị trường nó đang chờ. Mọi dòng tiến độ đều nêu tên thị trường; không có tên, dòng đó sẽ nhấp nháy giữa các thị trường dùng chung nó.
 
-**Chi phí đọc bảng đi cùng lượt chạy.** Lượt quét crypto lập kế hoạch trên bảng vốn hóa xếp hạng, và các nguồn của bảng này công bố độ sâu khác nhau (750 dòng, 250 và 100). Một lượt quét phải lùi về nguồn nông hơn chỉ phủ một phần thị trường, nhưng mọi số đếm nó báo lại mô tả phần đó như thể là toàn bộ.
+**Chi phí đọc bảng đi cùng phiên chạy.** Lượt quét crypto lập kế hoạch trên bảng vốn hóa xếp hạng, và các nguồn của bảng này công bố độ sâu khác nhau (750 dòng, 250 và 100). Một lượt quét phải lùi về nguồn nông hơn chỉ phủ một phần thị trường, nhưng mọi số đếm nó báo lại mô tả phần đó như thể là toàn bộ.
 
 Vì vậy các lưu ý của chính bảng cùng `market-data.universe-shallow` được chuyển tới kết quả, giống cách `/screen` và `/overview` vốn đã báo về cùng lượt quét. Một kết quả mà mọi mục tiêu đều hỏng vẫn nhận `source.no-available-provider`.
 
@@ -1047,7 +1047,7 @@ Schema bắt đầu gọn và lớn dần bằng migration. Các migration chạ
 
 Thời gian giữ dữ liệu thị trường được **tính ra, không cấu hình**. Đó là cửa sổ bằng chứng dài nhất mà một thị trường đã đăng ký khai, quy từ phiên ra ngày lịch theo quy tắc cuối tuần của chính thị trường đó, cộng 5% dự phòng.
 
-Một giá trị cấu hình vừa sai theo mặc định vừa không có cách nào đánh giá. Một lượt dọn ngắn hơn cửa sổ bằng chứng dài nhất sẽ xóa các dòng mà quy trình tính yếu tố lại cần tới ở lần chạy kế tiếp.
+Một giá trị cấu hình vừa sai theo mặc định vừa không có cách nào đánh giá. Một lượt dọn ngắn hơn cửa sổ bằng chứng dài nhất sẽ xóa các dòng mà quy trình tính yếu tố lại cần tới ở phiên chạy kế tiếp.
 
 ---
 
@@ -1410,7 +1410,7 @@ openalpha chat --message "/profile reset"
 
 - `risk-level`, `risk-capacity`, `risk-willingness`, `horizon`, `goal`
 - `maximum-sector-pct-nav` - phần tối đa của tổng tài sản được dồn vào một ngành
-- `reserve-pct-nav` - phần tiền mặt luôn giữ lại
+- `reserve-pct-nav` - phần tiền mặt luôn giữ lại. Mục tiêu tiền mặt không bao giờ thấp hơn mức này: nâng mức dự trữ vượt mục tiêu tiền mặt thì mục tiêu được kéo lên bằng nó và các nhóm khác co lại theo tỷ lệ; tỷ trọng bạn tự đặt giữ nguyên, và lệnh bị từ chối nếu chúng không còn vừa. Tự đặt mục tiêu tiền mặt thấp hơn mức dự trữ cũng bị từ chối. Hạ mức dự trữ thì mục tiêu tiền mặt giữ nguyên; `/profile reset` đặt lại từ đầu
 - `regime-scale` - mỗi lần mua chỉ dùng tối đa chừng này số tiền định mua (0,75 là 75%); thị trường phòng thủ có thể hạ thấp hơn nữa
 - `risk-per-trade-pct-nav` - mức lỗ tối đa nếu một lệnh mua mới chạm cắt lỗ
 - `maximum-open-risk-pct-nav` - mức lỗ tối đa nếu mọi vị thế đang nắm cùng chạm cắt lỗ
@@ -1500,6 +1500,9 @@ Một mã đã vượt trần sẽ được giảm bớt, kể cả khi điểm 
   chúng đằng nào cũng được giảm bớt hết.
 - **Giảm bao nhiêu.** Lệnh đưa về mức trần, lệch tối đa một lô, và trong một bước. Số lượng đã về tài
   khoản và thanh khoản của mã vẫn giới hạn số giảm bớt được trong ngày.
+- **Lô lẻ.** Mọi lệnh bán đều theo lô chẵn. Một mã yếu được bán hết vẫn có thể còn lại phần lẻ dưới một
+  lô (trên sàn VN là 1-99 cổ phiếu). Kế hoạch bán phần chẵn không hiện dòng "nên theo dõi" cho mã đó;
+  bạn tự bán phần lẻ trong phiên lô lẻ.
 
 Dòng đó đọc "đang vượt trần mỗi mã trong hồ sơ 10% - giảm bớt cho vừa trần, không phải vì điểm yếu" và
 nằm dưới mục làm trước. Nó không bao giờ đóng mã khỏi `/rebalance`.

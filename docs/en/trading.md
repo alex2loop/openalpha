@@ -1420,7 +1420,7 @@ openalpha chat --message "/profile reset"
 
 - `risk-level`, `risk-capacity`, `risk-willingness`, `horizon`, `goal`
 - `maximum-sector-pct-nav` - the most of your total assets one sector may take
-- `reserve-pct-nav` - the cash you always keep
+- `reserve-pct-nav` - the cash you always keep. The cash target never sits below it: raising the reserve past the cash target lifts the target to it and shrinks the other segments in proportion; hand-set targets stay, and the change is refused if they no longer fit. A cash target you name below the reserve is refused too. Lowering the reserve leaves the cash target where it is; `/profile reset` re-seeds it
 - `regime-scale` - the most of a planned buy that is used each time (0.75 uses 75%); a defensive market can lower it further
 - `risk-per-trade-pct-nav` - the most one new buy may lose at its stop-loss
 - `maximum-open-risk-pct-nav` - the most every holding may lose together at their stops
@@ -1512,6 +1512,9 @@ drifted.
   with a 0% target, since those are sold whole anyway.
 - **How much.** The sale goes to the cap, at most one board lot past it, and in one step. The settled
   quantity and the name's turnover still limit what sells in a day.
+- **Odd lots.** Every sale is in whole board lots. A weak name sold "whole" can leave an odd remainder
+  under one lot (on the VN board, 1-99 shares). The plan that sells the rest shows no "keep watching"
+  note for the name; sell the remainder by hand in the odd-lot session.
 
 The row reads "above your profile's per-name cap of 10% - trimmed to fit the cap, not for a weak score"
 and sits under what to do first. It never closes the name to `/rebalance`.

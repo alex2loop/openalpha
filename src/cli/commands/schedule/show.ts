@@ -90,13 +90,14 @@ function printJobDetail(app: CliApp, job: Job, locale: Locale): void {
   })
 }
 
-// An event job has no next run: the row would print its parking slot.
+// An event job has no next run, and a paused one will not run then: the row would print its
+// parking slot.
 function nextRunRows(
   job: Job,
   locale: Locale,
   timezone: string
 ): readonly (readonly [MessageKey, string])[] {
-  return job.event === undefined
+  return job.event === undefined && job.enabled
     ? [['cli.scheduleFieldNextRun', formatInstant(locale, job.nextRunAt, timezone)]]
     : []
 }

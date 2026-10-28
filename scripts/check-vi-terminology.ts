@@ -219,7 +219,7 @@ const GLOBAL_CONFUSIONS: readonly TermRule[] = Object.freeze([
     why: 'margin (ký quỹ) and profit margin (biên lợi nhuận) are unrelated concepts',
   },
   {
-    key: '*',
+    key: EVERY_KEY,
     forbidden: [/(?:lượt|lần) chạy/i],
     why: 'one execution is "phiên chạy"; "lượt" alone is the turn inside it, so "lượt chạy" names the smaller thing with the bigger word',
   },

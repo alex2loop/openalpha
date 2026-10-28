@@ -300,16 +300,17 @@ interface PinnedTargetsInput {
   readonly segmentTargets: Readonly<Record<PortfolioSegment, number>>
   readonly caps: Readonly<Record<PortfolioSegment, RiskCapSet>>
   readonly pinned: Readonly<Partial<Record<PortfolioSegment, number>>>
+  readonly reservePctNav: number
   readonly segments: readonly SegmentDescriptor[]
   readonly bounds: ProfileBounds
 }
 
 /** The hand-set targets laid over a set of seeded ones: each pin keeps its exact number and every
  *  other segment keeps its share of what is left, so the set still sums to one. Cash is not in the
- *  pool — it is the reserve the operator chose, not slack for a pin to spend — and pins that would
- *  eat into it are refused rather than shaved. */
+ *  pool and never sits below the reserve - it is what the operator chose to keep, not slack for a
+ *  pin to spend - and pins that would eat into it are refused rather than shaved. */
 export function applyPinnedTargets(input: PinnedTargetsInput): SegmentPolicy {
-  if (Object.keys(input.pinned).length === 0) {
+  if (Object.keys(input.pinned).length === 0 && !isBelowReserve(input)) {
     return { segmentTargets: input.segmentTargets, caps: input.caps }
   }
 
@@ -320,7 +321,7 @@ export function applyPinnedTargets(input: PinnedTargetsInput): SegmentPolicy {
 
 function pinnedTargets(input: PinnedTargetsInput): Record<PortfolioSegment, number> {
   const { pinned, segmentTargets } = input
-  const cash = segmentTargets[CASH_SEGMENT] ?? 0
+  const cash = Math.max(segmentTargets[CASH_SEGMENT] ?? 0, input.reservePctNav)
   const others = Object.entries(segmentTargets).filter(
     ([id]) => id !== CASH_SEGMENT && pinned[portfolioSegment(id)] === undefined
   )
@@ -351,6 +352,13 @@ function pinnedTargets(input: PinnedTargetsInput): Record<PortfolioSegment, numb
     ...pinned,
     [CASH_SEGMENT]: cash,
   }
+}
+
+/** The cash target under the reserve, the one state a profile edit must lift before it is stored. */
+export function isBelowReserve(
+  input: Pick<PinnedTargetsInput, 'segmentTargets' | 'reservePctNav'>
+): boolean {
+  return (input.segmentTargets[CASH_SEGMENT] ?? 0) < input.reservePctNav - TARGET_SUM_EPSILON
 }
 
 function widenedCaps(
