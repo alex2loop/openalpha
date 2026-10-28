@@ -836,7 +836,9 @@ trong bảng cũng là kính.
   lại bảng.
 - Nút Chỉ thông tin (`I`) trên đầu trang ẩn hẳn văn phòng, để thông tin chiếm cả trang ở độ rộng dễ
   đọc, khung chat vẫn nằm cạnh. Khung cảnh không được tải hay chạy, nên đỡ tốn bộ xử lý và đồ họa trên
-  máy nhỏ hoặc chậm. Công tắc 2D | 3D, đồng hồ và thời tiết cũng rời đầu trang. Lựa chọn được giữ trong
+  máy nhỏ hoặc chậm. Sau lớp kính là ảnh văn phòng mờ nhẹ, đúng như lúc bạn rời đi; nếu mở trang thẳng
+  vào Chỉ thông tin thì đó là sơ đồ mặt sàn trống. Ảnh này đứng yên. Công tắc 2D | 3D, đồng hồ và thời
+  tiết cũng rời đầu trang. Lựa chọn được giữ trong
   trình duyệt này. Bấm lại phím hoặc nút thì văn phòng quay lại; "Xem" một phiên chạy cũng làm vậy rồi
   zoom vào phòng của nó.
 

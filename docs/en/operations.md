@@ -842,7 +842,9 @@ panel's blocks are glass too.
   shows. The strip's own arrow opens it again.
 - The header's Info only toggle (`I`) hides the office entirely, so the information fills the page at
   a comfortable reading width, with the chat still docked beside it. The scene is not even loaded or
-  running, which saves processor and graphics work on a small or slow machine. The 2D | 3D switch, the
+  running, which saves processor and graphics work on a small or slow machine. Behind the glass you see
+  a soft, blurred picture of the office as you left it; open the page straight into Info only and it
+  shows the bare floor plan instead. The picture never moves. The 2D | 3D switch, the
   clock and the weather leave the header with it. Your choice is kept in this browser. Pressing the
   key or the toggle again brings the office back; "See" on a run does the same and zooms into its
   room.

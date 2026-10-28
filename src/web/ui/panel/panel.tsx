@@ -26,7 +26,7 @@ import { Today } from '@/web/ui/today/today'
 import './panel.css'
 
 /** The info panel: tabs, the way back, and the view. On a wide screen it floats over the office as
- *  glass and folds into a rail; in Info only it fills the page at a reading width; on a narrow
+ *  glass and folds into a rail; in Info only it is the same glass at a reading width; on a narrow
  *  screen it is a glass bottom sheet over the office, its handle closing it. */
 export function Panel() {
   if (collapsed.value && isFloating.value) {
@@ -73,7 +73,7 @@ function panelClass(isSheet: boolean): string {
     return 'panel glass is-sheet'
   }
 
-  return isFloating.value ? 'panel glass is-float' : 'panel chrome-glass is-reading'
+  return isFloating.value ? 'panel glass is-float' : 'panel glass is-reading'
 }
 
 function SheetHandle() {

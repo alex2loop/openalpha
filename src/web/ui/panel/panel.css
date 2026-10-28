@@ -5,7 +5,7 @@
 }
 
 /* Info only: no stage, so the panel takes the main area, its content at a reading width and
-   centred, the chat docked beside. */
+   centred, the chat docked beside; its glass shows the still office behind it. */
 .panel.is-reading {
   flex: 1;
   max-width: calc(var(--panelContentMaxW) + var(--s3) * 2);
@@ -13,11 +13,15 @@
   border-inline: 1px solid var(--border);
 }
 
-/* Floating over the office: glass in the stage's cell, denser than a chip since it carries text. Each
-   block inside is flat glass: a thin tint, sheen and highlight over the panel's own blur. */
+/* Glass denser than a chip since it carries text. Each block inside is flat glass: a thin tint,
+   sheen and highlight over the panel's own blur. */
+.panel.glass {
+  --glassAlpha: var(--glassFocusA);
+}
+
+/* Floating over the office, in the stage's cell. */
 .panel.is-float,
 .panel.is-sheet {
-  --glassAlpha: var(--glassFocusA);
   z-index: var(--zStageBar);
   border-radius: var(--islandRadius);
   overflow: hidden;

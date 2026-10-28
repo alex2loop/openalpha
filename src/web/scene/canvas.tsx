@@ -35,6 +35,7 @@ import {
   SCENE_LABEL_ID,
   startViews,
 } from '@/web/scene/overlay/scene-views'
+import { keepStill } from '@/web/scene/overlay/still'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { syncTwin } from '@/web/scene/overlay/twin'
 import { ViewNote } from '@/web/scene/overlay/view-note'
@@ -160,19 +161,31 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
   loop.start()
 
   return () => {
-    for (const off of offs) {
-      off()
-    }
-
+    runEach(offs)
     loop.stop()
+    keepLastFrame(element, () => renderer.draw(readView(), performance.now()))
     overlay.stop()
     disposeSims(sims)
     selectActor(undefined)
     renderer.unmount()
+    runEach(stops)
+  }
+}
 
-    for (const stop of stops) {
-      stop()
-    }
+function runEach(steps: readonly (() => void)[]): void {
+  for (const step of steps) {
+    step()
+  }
+}
+
+// A WebGL canvas keeps its pixels only until the frame is shown, so the last view is drawn once more
+// and copied in the same task.
+function keepLastFrame(element: HTMLElement, draw: () => void): void {
+  const canvas = element.querySelector('canvas')
+
+  if (canvas !== null) {
+    draw()
+    keepStill(canvas)
   }
 }
 
