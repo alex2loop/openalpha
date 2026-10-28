@@ -34,7 +34,7 @@ export const DONE_GLYPH = '✓'
 /** The unit after a temperature. */
 export const DEGREE_C = '°C'
 /** Separates the segments of one line. */
-const INLINE_SEPARATOR = '·'
+export const INLINE_SEPARATOR = '·'
 const INLINE_JOINER = ` ${INLINE_SEPARATOR} `
 const LIST_SEPARATOR = ', '
 

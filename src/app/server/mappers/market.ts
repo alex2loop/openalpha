@@ -41,7 +41,7 @@ import type {
   TypedPrice,
 } from '@/trading/api'
 import { toCaveatWires, toInstrumentWire } from '@/app/server/mappers/trading'
-import { formatSignedFlowIn, MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
+import { MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
 
 // A closed vocabulary the wire copies in `wire/vocab.ts` must match its trading source both ways, so
 // a value added on either side fails typecheck here.
@@ -222,12 +222,7 @@ function toOverviewBlockWire(block: MarketDataOverview, locale: Locale): Overvie
             measured: breadth.measured,
           },
         }),
-    ...(foreignNetValue === undefined
-      ? {}
-      : {
-          foreignNetValue,
-          foreignNetText: formatSignedFlowIn(locale, foreignNetValue, block.currency),
-        }),
+    ...(foreignNetValue === undefined ? {} : { foreignNetValue }),
     ...(leaders === undefined ? {} : { leaders: toLeadersWire(leaders) }),
     ...(movers === undefined ? {} : { movers: toMoversWire(movers) }),
     caveats: toCaveatWires(block.caveats, locale),

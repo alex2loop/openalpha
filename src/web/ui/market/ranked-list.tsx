@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact'
 
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import { INLINE_SEPARATOR } from '@/web/text/glyphs'
 
 import './ranked-list.css'
 
@@ -32,7 +33,12 @@ export function RankedList({ title, note, rows }: RankedListProps) {
     <div class="flow">
       <h4 class="sub-head">
         {title}
-        {note !== undefined && <span class="meta"> {note}</span>}
+        {note !== undefined && (
+          <span class="meta">
+            {' '}
+            {INLINE_SEPARATOR} {note}
+          </span>
+        )}
       </h4>
       <div class="row-list">
         {rows.map((row) => (

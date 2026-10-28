@@ -90,7 +90,7 @@ async function runShow(deps: MarketCommandDeps, ctx: SlashContext): Promise<Slas
 }
 
 /** What `/market` prints for a region: its intraday report, then whether and when the next one is
- *  sent. The web page reads the same text for any region. */
+ *  sent. The web page reads the same text for any region; the schedule line is the default region's own. */
 export async function renderMarketShow(
   deps: MarketCommandDeps,
   request: MarketShowRequest
@@ -103,14 +103,18 @@ export async function renderMarketShow(
     { plan, now, signal: request.signal }
   )
 
-  return [
-    renderIntradayText(
-      request.locale,
-      report,
-      resolveRenderContext(deps.report.timezone, request.surface)
-    ),
-    nextLine(request.locale, { plan, now, enabled, timezone: deps.report.timezone }),
-  ].join(BLOCK_SEPARATOR)
+  const text = renderIntradayText(
+    request.locale,
+    report,
+    resolveRenderContext(deps.report.timezone, request.surface)
+  )
+
+  // The schedule is the default region's: another region's page carries no line about it.
+  return request.region === deps.config.defaultRegion
+    ? [text, nextLine(request.locale, { plan, now, enabled, timezone: deps.report.timezone })].join(
+        BLOCK_SEPARATOR
+      )
+    : text
 }
 
 /** Enabling reports the next fire rather than a bare "done": with an empty `send_times`, "enabled"

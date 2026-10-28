@@ -9,6 +9,7 @@ const ASSISTANT_ROLE = 'assistant'
 const TITLE_MAX_CHARS = 80
 const ELLIPSIS = '...'
 const LINE_BREAK = /\r?\n/
+const TRAILING_COLON = /\s*:+$/
 
 export type ReaderSource =
   | { readonly kind: 'brief' }
@@ -79,7 +80,7 @@ function toContent(markdown: string): ReaderContent | undefined {
   if (first?.kind === 'heading' && first.level === 1) {
     return {
       kind: 'report',
-      title: toPlain(first.inline),
+      title: toTitle(toPlain(first.inline)),
       doc: { ...parsed, blocks: parsed.blocks.slice(1), headings: parsed.headings.slice(1) },
     }
   }
@@ -100,9 +101,14 @@ function leadTitled(parsed: ReportDoc, lead: string): ReaderContent {
 
   return {
     kind: 'report',
-    title: cut(lead),
+    title: toTitle(cut(lead)),
     doc: isRepeat ? { ...parsed, blocks: rest } : parsed,
   }
+}
+
+// A model ends a lead-in line with a colon; a title does not.
+function toTitle(line: string): string {
+  return line.replace(TRAILING_COLON, '')
 }
 
 function cut(line: string): string {

@@ -1,6 +1,11 @@
 import type { OverviewResponse } from '@/app/server/wire/market'
 import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
-import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import {
+  formatPrice,
+  formatSignedCompactAmount,
+  formatSignedPercent,
+  toneOfPercent,
+} from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { Movers } from '@/web/ui/today/blocks/movers'
@@ -45,9 +50,10 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
             })}
           </p>
         )}
-        {block.foreignNetText !== undefined && (
+        {block.foreignNetValue !== undefined && (
           <p>
-            {tr('ui.office.today.foreign')}: {block.foreignNetText}
+            {tr('ui.office.today.foreign')}: {formatSignedCompactAmount(block.foreignNetValue)}{' '}
+            {block.currency}
           </p>
         )}
       </div>

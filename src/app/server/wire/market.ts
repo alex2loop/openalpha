@@ -125,8 +125,6 @@ export interface OverviewResponse {
     }
     /** Foreign investors' net buying in the market's currency; negative is net selling. */
     readonly foreignNetValue?: number
-    /** The same figure as the CLI prints it, signed and in the market's currency. */
-    readonly foreignNetText?: string
     readonly leaders?: OverviewLeadersWire
     readonly movers?: OverviewMoversWire
     readonly caveats: readonly TradingWireCaveat[]

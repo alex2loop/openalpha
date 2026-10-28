@@ -177,6 +177,7 @@ export {
 } from '@/engine/hooks/user-preferences'
 export { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
 export { isSpendCapHalt, PAUSED_MESSAGE } from '@/engine/loop/preflight'
+export { withoutResearchDepth } from '@/engine/loop/run-text'
 export {
   formatTodoBlock,
   TODO_GLYPHS,

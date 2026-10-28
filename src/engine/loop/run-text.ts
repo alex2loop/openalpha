@@ -8,8 +8,12 @@ import {
 const RESEARCH_DEPTH_RE = new RegExp(`^${RESEARCH_DEPTH_PREFIX}\\w+\\s+`)
 
 // The depth prefix is the command's note to the researcher, not what the operator asked.
+export function withoutResearchDepth(text: string): string {
+  return text.replace(RESEARCH_DEPTH_RE, '')
+}
+
 export function toRunTitle(text: string): string | undefined {
-  return toScrubbedHead(text.replace(RESEARCH_DEPTH_RE, ''), RUN_TITLE_MAX_CHARS)
+  return toScrubbedHead(withoutResearchDepth(text), RUN_TITLE_MAX_CHARS)
 }
 
 export function toChildSummary(text: string): string | undefined {

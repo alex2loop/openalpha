@@ -65,6 +65,12 @@ export function formatUsd(value: number | undefined): string {
   return formatFixed(value, USD_DIGITS)
 }
 
+/** A USD amount at cent precision whatever its size: the rows of a breakdown, which add up to a
+ *  total printed the same way. */
+export function formatUsdCents(value: number | undefined): string {
+  return formatFixed(value, USD_DIGITS)
+}
+
 /** A number at exactly `digits` decimals in the page's language; a missing one prints
  *  `ABSENT_CELL`. */
 export function formatFixed(value: number | undefined, digits: number): string {
