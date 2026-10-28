@@ -47,6 +47,7 @@ import {
   isTeamFloor,
   isTeamTagged,
 } from '@/web/scene/overlay/team-pass'
+import { syncTwin } from '@/web/scene/overlay/twin'
 import { isOnFloor } from '@/web/scene/sim/actors/poses'
 import { isActorId, isCrewId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { projection, view } from '@/web/scene/view'
@@ -133,6 +134,7 @@ export function startOverlay(deps: PassDeps): OverlayPass {
 
       state.typing.clear()
       showOverlay(EMPTY_OVERLAY)
+      syncTwin(undefined, [])
       hoverActor(undefined)
       keyActor(undefined)
       releaseMeasure()

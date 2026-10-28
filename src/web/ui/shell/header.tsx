@@ -8,7 +8,8 @@ import { WeatherChip } from '@/web/scene/overlay/weather-chip'
 import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
 import { runningCount } from '@/web/state/live'
-import { isFocus, toggleFocus } from '@/web/state/panel'
+import { isInfoOnly } from '@/web/state/pane'
+import { OFFICE_LAYOUTS, type OfficeLayout, officeLayout, setOfficeLayout } from '@/web/state/prefs'
 import { brand, isFirstRun } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { BellButton } from '@/web/ui/bell/bell-button'
@@ -19,13 +20,31 @@ import { JobsPopover } from '@/web/ui/jobs/jobs-popover'
 import { LIST_KEY } from '@/web/ui/keys/keys'
 import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
 import { Chip } from '@/web/ui/kit/chip'
-import { CoinIcon, FocusIcon } from '@/web/ui/kit/icons'
+import { CoinIcon, DockedIcon, FullOfficeIcon, InfoOnlyIcon } from '@/web/ui/kit/icons'
 import { closePopover, JOBS_POPOVER_ID, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
+import { Segmented } from '@/web/ui/kit/segmented'
 import { GearButton } from '@/web/ui/settings/gear-button'
 
 import './header.css'
 
+const LAYOUTS = Object.freeze({
+  docked: {
+    icon: <DockedIcon />,
+    label: 'ui.office.layout.docked',
+    tip: 'ui.office.layout.dockedTip',
+  },
+  full: {
+    icon: <FullOfficeIcon />,
+    label: 'ui.office.layout.full',
+    tip: 'ui.office.layout.fullTip',
+  },
+  info: { icon: <InfoOnlyIcon />, label: 'ui.office.layout.info', tip: 'ui.office.layout.infoTip' },
+} as const satisfies Record<OfficeLayout, unknown>)
+
+/** The scene's own header controls (the view, the clock, the weather) have nothing to act on in
+ *  Info only, where no scene is mounted. */
 export function Header() {
+  const hasScene = !isInfoOnly.value
   const jobsAnchor = useRef<HTMLButtonElement>(null)
   const costAnchor = useRef<HTMLButtonElement>(null)
   const bellAnchor = useRef<HTMLButtonElement>(null)
@@ -42,10 +61,10 @@ export function Header() {
       <RunningChip anchor={jobsAnchor} />
       <span class="header-grow" />
       {!isFirstRun.value && <CostChip anchor={costAnchor} />}
-      <ViewSwitch />
-      <FocusButton />
-      <ClockControl />
-      <WeatherChip />
+      {hasScene && <ViewSwitch />}
+      <LayoutSwitch />
+      {hasScene && <ClockControl />}
+      {hasScene && <WeatherChip />}
       <BellButton anchor={bellAnchor} />
       <KeysButton />
       <GearButton />
@@ -100,18 +119,21 @@ function runningTextOf(count: number): string {
     : tr(pluralKey(count, 'ui.office.header.runningOne', 'ui.office.header.running'), { count })
 }
 
-function FocusButton() {
+// Wide screens only: a narrow one picks its pane from the pane bar.
+function LayoutSwitch() {
   return (
-    <button
-      type="button"
-      class="btn btn-ghost btn-regular header-focus"
-      title={tr('ui.office.header.focusTip')}
-      aria-pressed={isFocus.value}
-      onClick={toggleFocus}
-    >
-      <FocusIcon />
-      {isFocus.value ? tr('ui.office.header.office') : tr('ui.office.header.focus')}
-    </button>
+    <Segmented
+      className="layout-switch"
+      label={tr('ui.office.layout.group')}
+      value={officeLayout.value}
+      options={OFFICE_LAYOUTS.map((value) => ({
+        value,
+        label: tr(LAYOUTS[value].label),
+        icon: LAYOUTS[value].icon,
+        title: tr(LAYOUTS[value].tip),
+      }))}
+      onChange={setOfficeLayout}
+    />
   )
 }
 

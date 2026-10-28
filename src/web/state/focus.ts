@@ -11,8 +11,15 @@ interface FocusRequest {
 const request = signal<FocusRequest | undefined>(undefined)
 let requestSeq = 0
 
-/** The latest "show me" request; the scene answers it by bringing the run's room into view. */
-export const focusRequest: ReadonlySignal<FocusRequest | undefined> = request
+/** The latest "show me" request, handed over once: the scene answers it by bringing the run's room
+ *  into view, and a scene mounted later does not repeat it. Reading it subscribes the caller. */
+export function takeFocusRequest(): FocusRequest | undefined {
+  const held = request.value
+
+  request.value = undefined
+
+  return held
+}
 
 export function focusRun(runId: string): void {
   showPane('office')

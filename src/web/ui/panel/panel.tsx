@@ -1,9 +1,8 @@
 import { breakpoint } from '@/web/state/breakpoints'
-import { showPane } from '@/web/state/pane'
+import { isInfoOnly, showPane } from '@/web/state/pane'
 import {
   backStack,
   collapsed,
-  isFocus,
   isFocused,
   PANEL_ELEMENT_ID,
   type PanelView,
@@ -27,27 +26,29 @@ import { Today } from '@/web/ui/today/today'
 import './panel.css'
 
 /** The info panel: tabs, the way back, and the view. It folds into a rail on a wide screen, except
- *  in focus mode, where it floats over the office as glass; on a narrow screen it is a glass bottom
- *  sheet over the office, its handle closing it. */
+ *  in Full office, where it floats over the office as glass, and in Info only, where it fills the
+ *  page at a reading width; on a narrow screen it is a glass bottom sheet over the office, its
+ *  handle closing it. */
 export function Panel() {
-  if (collapsed.value && !isFocus.value && breakpoint.value === 'wide') {
+  const isFixed = isFocused.value || isInfoOnly.value
+
+  if (collapsed.value && !isFixed && breakpoint.value === 'wide') {
     return <Rail />
   }
 
   const isSheet = breakpoint.value !== 'wide'
-  const kind = isSheet ? 'panel glass is-sheet' : 'panel glass is-float'
 
   return (
     <aside
       id={PANEL_ELEMENT_ID}
-      class={isFocused.value || isSheet ? kind : 'panel chrome-glass'}
+      class={panelClass(isSheet)}
       aria-label={tr('ui.office.panel.label')}
       tabIndex={-1}
     >
       {isSheet && <SheetHandle />}
       <div class="panel-head">
         <Tabs />
-        {!isFocus.value && (
+        {!isFixed && (
           <button
             type="button"
             class="panel-collapse"
@@ -68,6 +69,18 @@ export function Panel() {
       </div>
     </aside>
   )
+}
+
+function panelClass(isSheet: boolean): string {
+  if (isSheet) {
+    return 'panel glass is-sheet'
+  }
+
+  if (isFocused.value) {
+    return 'panel glass is-float'
+  }
+
+  return isInfoOnly.value ? 'panel chrome-glass is-reading' : 'panel chrome-glass'
 }
 
 function SheetHandle() {

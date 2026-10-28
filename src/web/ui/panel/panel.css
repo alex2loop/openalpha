@@ -6,6 +6,16 @@
   border-left: 1px solid var(--border);
 }
 
+/* Info only: no stage, so the panel takes the main area, its content at a reading width and
+   centred, the chat docked beside. */
+.panel.is-reading {
+  flex: 1;
+  width: auto;
+  max-width: calc(var(--panelContentMaxW) + var(--s3) * 2);
+  margin-inline: auto;
+  border-inline: 1px solid var(--border);
+}
+
 /* Floating over the office: glass in the stage's cell, denser than a chip since it carries text. The
    head, tabs and margins are the glass; each block keeps its solid surface for the figures. */
 .panel.is-float,

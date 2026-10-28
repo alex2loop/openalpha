@@ -61,7 +61,7 @@ import { ROOMS, roomById } from '@/web/scene/world/rooms'
 import { agents } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
 import { onWireEvent } from '@/web/state/events'
-import { focusRequest, selectActor, selectedActor } from '@/web/state/focus'
+import { selectActor, selectedActor, takeFocusRequest } from '@/web/state/focus'
 import { unseenCalls } from '@/web/state/ideas'
 import { findRun, pending, runs } from '@/web/state/live'
 import { hasUnreadAlert, unread } from '@/web/state/notices'
@@ -407,7 +407,7 @@ function syncSceneZone(): void {
 // "Xem" on a run: its actor is selected and its room comes into view, on its floor (zoomed into on
 // a narrow screen, where the office pane was just brought forward); a run with no room moves nothing.
 function answerFocusRequest(director: Director): void {
-  const request = focusRequest.value
+  const request = takeFocusRequest()
 
   if (request === undefined) {
     return
