@@ -1,7 +1,7 @@
 import type { MessageKey } from '@/i18n'
 
 /** How an app writes its MCP server list: each is a different file shape. */
-export type HostConfigFormat = 'mcp-servers' | 'vscode' | 'opencode' | 'codex' | 'zed'
+export type HostConfigFormat = 'mcp-servers' | 'vscode' | 'opencode' | 'codex' | 'muse' | 'zed'
 
 /** An app whose own CLI adds a server, so the operator can paste one line instead of editing JSON. */
 export type HostAddCommand = 'claude' | 'codex' | 'vscode'
@@ -63,6 +63,11 @@ const MCP_HOSTS = {
     configFile: '~/.config/kilo/kilo.jsonc',
     format: 'opencode',
     skill: { dir: '~/.kilo/skills' },
+  },
+  muse: {
+    configFile: '~/.config/muse/settings.json',
+    format: 'muse',
+    skill: { dir: '~/.config/muse/skills' },
   },
   opencode: {
     configFile: '~/.config/opencode/opencode.json',

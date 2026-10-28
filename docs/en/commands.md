@@ -1078,10 +1078,14 @@ format, pointing at the binary and config file this server actually runs with. T
 skill file the app reads.
 
 `--host` picks the app: `claude-code` (the default), `claude-desktop`, `codex`, `cursor`, `gemini`,
-`kilo-code`, `opencode`, `vscode`, `windsurf`, `zed`, or `agents` for the neutral Agent Skills
+`kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, or `agents` for the neutral Agent Skills
 location (`~/.agents/skills`). One skill body serves every app. Claude Desktop, Windsurf and Zed have
 no skills folder, so nothing is written for them unless you pass `--skill-dir`; they read the rules
 from the server when they connect.
+
+Muse Code has no add command: merge the printed entry into `~/.config/muse/settings.json`, keeping
+the keys already there. The entry sets `mode` to `optional`, so when OpenAlpha cannot start, Muse Code
+warns and carries on instead of aborting the run. The skill goes to `~/.config/muse/skills`.
 
 opencode and Kilo Code time out a local server within 5-10 s by default, so for them the entry also
 sets the server `timeout` and `experimental.mcp_timeout` to twice the 45 s a served call waits before

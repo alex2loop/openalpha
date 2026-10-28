@@ -1061,10 +1061,14 @@ Lệnh này in ra lệnh thêm server của chính ứng dụng đó (nếu ứn
 nó ghi tệp kỹ năng để ứng dụng đọc.
 
 `--host` chọn ứng dụng: `claude-code` (mặc định), `claude-desktop`, `codex`, `cursor`, `gemini`,
-`kilo-code`, `opencode`, `vscode`, `windsurf`, `zed`, hoặc `agents` cho vị trí Agent Skills trung tính
+`kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, hoặc `agents` cho vị trí Agent Skills trung tính
 (`~/.agents/skills`). Một thân kỹ năng phục vụ mọi ứng dụng. Claude Desktop, Windsurf và Zed không có thư
 mục kỹ năng, nên không có gì được ghi cho chúng trừ khi bạn đưa `--skill-dir`; chúng đọc các quy tắc từ
 server khi kết nối.
+
+Muse Code không có lệnh thêm server: gộp mục in ra vào `~/.config/muse/settings.json`, giữ nguyên các khóa
+đã có. Mục này đặt `mode = "optional"`, nên khi OpenAlpha không khởi động được thì Muse Code chỉ cảnh báo
+và chạy tiếp thay vì dừng cả phiên. Kỹ năng được ghi vào `~/.config/muse/skills`.
 
 opencode và Kilo Code mặc định cắt một server cục bộ sau 5-10 giây, nên với chúng mục cấu hình còn đặt
 `timeout` của server và `experimental.mcp_timeout` thành gấp đôi mức 45 giây mà một lời gọi được phục vụ

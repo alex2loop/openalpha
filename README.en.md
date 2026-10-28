@@ -433,7 +433,7 @@ Ask it with `openalpha chat --agent banks`, or point a Telegram/Zalo chat at it 
 Run OpenAlpha as an MCP server inside Claude Code, Codex, Cursor, VS Code or Gemini CLI: that app's own model does the thinking, so you need no AI provider key of your own.
 
 ```bash
-openalpha mcp install      # or --host codex, cursor, vscode, gemini, opencode, zed
+openalpha mcp install      # or --host codex, cursor, vscode, gemini, muse, opencode, zed
 ```
 
 Suggestions written that way are scored separately in `/reflect` under `client:<model>`, and orders are never placed from there. Details: [docs/en/dev/extending.md](docs/en/dev/extending.md)

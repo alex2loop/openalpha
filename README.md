@@ -433,7 +433,7 @@ Hỏi nó bằng `openalpha chat --agent ngan-hang`, hoặc gắn nó vào một
 Chạy OpenAlpha như một máy chủ MCP trong Claude Code, Codex, Cursor, VS Code hay Gemini CLI: mô hình của chính ứng dụng ấy làm phần suy nghĩ, bạn không cần khóa AI riêng.
 
 ```bash
-openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, opencode, zed
+openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, muse, opencode, zed
 ```
 
 Đề xuất tạo theo cách này được chấm điểm riêng trong `/reflect` (dưới tên `client:<model>`), và cách này không bao giờ đặt được lệnh. Chi tiết: [docs/dev/mo-rong.md](docs/dev/mo-rong.md)
