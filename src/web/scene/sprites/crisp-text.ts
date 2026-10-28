@@ -23,6 +23,13 @@ const BASELINE_SHARE = 1.02
 const LINE_SHARE = 1.4
 
 let scratch: CanvasRenderingContext2D | null | undefined
+let isWarm = false
+
+/** The first line rasterised brings the scratch canvas and the font up, a few ms; until it has, a
+ *  frame with other costly work should leave the text for a later one. */
+export function isCrispTextWarm(): boolean {
+  return isWarm
+}
 
 /** Paints `text` as the mockup's monitors do: rasterised at a whole device size, then every pixel
  *  made wholly ink or wholly clear, so the strokes stay crisp however the floor is stretched.
@@ -61,6 +68,8 @@ export function paintCrispText(g: CanvasRenderingContext2D, text: string, at: Cr
   g.imageSmoothingEnabled = false
   g.drawImage(s.canvas, 0, 0, w, h, dx, dy, w / at.perPx, h / at.perPx)
   g.restore()
+
+  isWarm = true
 
   return textW / at.perPx
 }

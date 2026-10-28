@@ -32,12 +32,13 @@ import {
 import {
   layoutOverlay,
   layoutTags,
+  readFixed,
   readOverlayFont,
   releaseMeasure,
   sizeBubble,
   sizeTag,
 } from '@/web/scene/overlay/placement'
-import { menuActor, menuPillRects, menuPlaceOf } from '@/web/scene/overlay/radial-menu'
+import { menuActor, menuPillRects, menuPlaceOf, menuRingOf } from '@/web/scene/overlay/radial-menu'
 import { createScreenTyping, type ScreenTyping } from '@/web/scene/overlay/screen-typing'
 import { analystSeriesOf, buildTeamScreens } from '@/web/scene/overlay/screens'
 import {
@@ -63,8 +64,6 @@ import { tr } from '@/web/text/tr'
 const OVERLAY_REFRESH_MS = 250
 // A speaker this far past the pane's edge, in CSS px, counts as off screen.
 const OFF_SCREEN_PX = 16
-// The boards, room tags and toolbar pieces other overlays draw; no bubble covers them.
-const FIXED_SELECTOR = '.room-tag-row, .board-line, .scene-zoombtn, .scene-hint'
 
 /** Everything the layout reads from one frame. Figures are in CSS px of the scene host. */
 interface PassInput {
@@ -283,8 +282,7 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
   const team = teamPlacesOf(input, deps.renderer)
   const fixed = [
     ...readFixed(deps.scene),
-    ...markerPlaces.map((place) => place.rect),
-    ...screenPlaces.map((place) => place.rect),
+    ...[...markerPlaces, ...screenPlaces].map((place) => place.rect),
     ...team.cards.map((place) => place.rect),
     ...(team.addDesk === undefined ? [] : [team.addDesk]),
     ...menuPillRects(input.figures, input.menu),
@@ -299,6 +297,7 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     rooms: roomRects(input.view, deps.renderer),
     actors: input.figures,
     selected: input.selected,
+    ...menuRingOf(input.figures, input.menu),
   })
   const taken = [...fixed, ...tags.values(), ...layout.placed.map((placed) => placed.rect)]
 
@@ -410,17 +409,6 @@ function withMore(input: PassInput, set: TagSet): PlacedTag[] {
 
 function roomRects(sim: SimView, renderer: SceneRenderer): ReadonlyMap<RoomId, Rect> {
   return new Map(roomsOn(sim.floor).map((room) => [room.id, toScreenRect(renderer, room.rect)]))
-}
-
-// The boxes other overlays drew, read only when a layout runs, never per frame.
-function readFixed(scene: HTMLElement): Rect[] {
-  const origin = scene.getBoundingClientRect()
-
-  return [...scene.querySelectorAll(FIXED_SELECTOR)].map((element) => {
-    const box = element.getBoundingClientRect()
-
-    return { x: box.left - origin.left, y: box.top - origin.top, w: box.width, h: box.height }
-  })
 }
 
 function toScreenRect(renderer: SceneRenderer, rect: Rect): Rect {

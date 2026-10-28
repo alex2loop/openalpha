@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'preact/hooks'
 
 import type { MessageKey } from '@/i18n'
 import type { ActorNow } from '@/web/scene/overlay/actor-state'
+import type { MenuBounds } from '@/web/scene/overlay/placement'
 import type { ActorId, Rect, Size } from '@/web/scene/types'
 import type { Run } from '@/web/state/live'
 import { overlayView } from '@/web/scene/overlay/overlay'
@@ -134,6 +135,27 @@ export function menuPillRects(
       h: PILL_HALF_H_PX * 2,
     }
   })
+}
+
+/** The box round the open ring's pills and the pane it stands in, for its person's bubble to
+ *  stand clear of. */
+export function menuRingOf(
+  figures: ReadonlyMap<ActorId, Rect>,
+  actor: ActorId | undefined
+): { readonly menu?: MenuBounds } {
+  const pills = menuPillRects(figures, actor)
+
+  if (actor === undefined || pills.length === 0) {
+    return {}
+  }
+
+  const left = Math.min(...pills.map((pill) => pill.x))
+  const top = Math.min(...pills.map((pill) => pill.y))
+  const right = Math.max(...pills.map((pill) => pill.x + pill.w))
+  const bottom = Math.max(...pills.map((pill) => pill.y + pill.h))
+  const ring = { x: left, y: top, w: right - left, h: bottom - top }
+
+  return { menu: { actor, ring, pane: projection.value.pane } }
 }
 
 /** Opens the ring round `actor`; a person with nothing to do now gets none. */

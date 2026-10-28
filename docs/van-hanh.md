@@ -555,7 +555,7 @@ Trỏ vào một người để thấy tên và một dòng trạng thái trực
 - *Hồ sơ*: hồ sơ của agent riêng của bạn.
 - *Đi theo*, cho mọi người: camera đi theo họ (bên dưới).
 
-Phím mũi tên đi quanh vòng tròn, Esc đóng lại, và chuyển tiêu điểm đi chỗ khác cũng đóng lại. Bấm vào người đang chờ ở bàn của bạn thì mở yêu cầu duyệt trong chuông.
+Câu trả lời của họ nằm ngoài vòng tròn, phía trên, bên cạnh hoặc bên dưới, trong khung nhìn. Phím mũi tên đi quanh vòng tròn, Esc đóng lại, và chuyển tiêu điểm đi chỗ khác cũng đóng lại. Bấm vào người đang chờ ở bàn của bạn thì mở yêu cầu duyệt trong chuông.
 
 **Đi theo một người.** Bấm đúp bằng chuột vào một người, hoặc chọn "Đi theo" trong vòng hành động của họ, camera giữ họ ở giữa, qua các tầng và thang máy, cho tới khi bạn tự dời camera (kéo, cuộn, zoom hoặc phím mũi tên), nhấn Esc, bấm vào sàn trống, dùng bàn phím sang người khác, hoặc chuyển giữa 2D và 3D.
 

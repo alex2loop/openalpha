@@ -89,6 +89,8 @@ export interface PaintScene {
   readonly refreshShare?: number
   /** The market the store refreshes, or would refresh next: the home market. */
   readonly refreshMarket?: string
+  /** The street painted a step of its repaint this frame. */
+  readonly isStreetPainting: boolean
   /** Each lobby wall clock's minute of its own zone's day, by the clock's `variant`. */
   readonly wallClocks: readonly number[]
   /** What each room's whiteboard says while a run counts its steps there. */

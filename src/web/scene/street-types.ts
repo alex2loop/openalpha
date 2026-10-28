@@ -246,4 +246,6 @@ export interface StreetFrame {
   readonly staticVersion: number
   readonly sharpVersion: number
   readonly movingVersion: number
+  /** This frame painted a step of a static or sharp repaint, so nothing else costly shares it. */
+  readonly isPainting: boolean
 }
