@@ -135,7 +135,7 @@ Chúng vẫn được đăng ký. Khi một nguồn không trả lời, bạn nh
 
 Việc này đọc các báo cáo của cơ quan thống kê (cùng các tiêu đề về PMI và đầu tư công của Việt Nam) bằng một mô hình trong `[[model_tiers.extraction]]`, nếu không có thì dùng `[[models]]`. PMI là khảo sát hằng tháng về hoạt động kinh doanh. Việc này chỉ giữ một con số nếu trích dẫn của nó xuất hiện nguyên văn trong nguồn và con số có trong trích dẫn.
 
-Positioning của CFTC (các nhà giao dịch lớn đang nắm hợp đồng tương lai thế nào) là hằng tuần và có độ trễ, và báo cáo nói rõ điều đó. Nó mang ngày thứ Ba mà các vị thế được giữ, và được công bố vào thứ Sáu sau đó. Một con số mang ngày thứ Ba tuần trước là báo cáo đang nói thật về độ trễ của chính nó, không phải số đọc cũ.
+Vị thế CFTC (các nhà giao dịch lớn đang nắm hợp đồng tương lai thế nào) ra hằng tuần và có độ trễ, và báo cáo nói rõ điều đó. Nó mang ngày thứ Ba mà các vị thế được giữ, và được công bố vào thứ Sáu sau đó. Một con số mang ngày thứ Ba tuần trước là báo cáo đang nói thật về độ trễ của chính nó, không phải số đọc cũ.
 
 ## Khi một nhà cung cấp hỏng
 
@@ -219,11 +219,11 @@ Có rất ít thứ được cache, và mỗi cái đều có lý do đo đượ
   - Cây nến hôm nay đang hình thành không bao giờ được dùng làm bằng chứng, nên một cửa sổ không chấm điểm khác nhau từng phút.
   - Một ngày vừa chốt chỉ tải đúng ngày đó, không tải lại 200 ngày trước.
   - Lịch sử cổ phiếu không bao giờ đi qua đường này, vì giá điều chỉnh bị sửa ngược về quá khứ: một đợt chia tách hay cổ tức sau này viết lại giá cũ.
+- **Vĩ mô.** Một lần đọc vĩ mô đã trộn cho mỗi khu vực và mỗi ngày, dùng chung cho mọi thị trường chấm điểm dựa trên nó. Lần đọc mà có nhà cung cấp không trả lời thì không được giữ. Nên lượt đầu tiên trong ngày (trước khi các chuỗi Mỹ được công bố) không bao giờ thành câu trả lời của cả ngày.
 - **Nhà cung cấp vĩ mô.** `treasury`, `bls`, `fred` và lãi suất tiền gửi của `vndirect` được hỏi tối đa một lần mỗi ngày (giờ UTC). Mọi lần đọc vĩ mô khác trong ngày, kể cả sau khi khởi động lại, lấy câu trả lời gần nhất đã lưu trong cơ sở dữ liệu của bạn.
   - `bls` còn được để yên khi chưa thể có kỳ lạm phát mới. Số của một tháng xuất hiện từ khoảng ngày 10 tháng sau, nên khi đã có số đó thì không hỏi lại cho tới lúc ấy.
   - Nhà cung cấp từ chối hoặc lỗi (kể cả hết lượt gọi trong ngày) được thay bằng câu trả lời đã lưu gần nhất, kèm ngày mà nó mô tả, chừng nào câu trả lời đó còn đủ mới để có nghĩa. Chỉ khi không còn gì đủ mới thì lần đọc mới báo thiếu nhà cung cấp.
   - Nếu lý do là hết lượt trong ngày thì ghi chú nói rõ điều đó, và nói rằng mai gọi lại được.
-- **Vĩ mô.** Một lần đọc vĩ mô đã trộn cho mỗi khu vực và mỗi ngày, dùng chung cho mọi thị trường chấm điểm dựa trên nó. Lần đọc mà có nhà cung cấp không trả lời thì không được giữ. Nên lượt đầu tiên trong ngày (trước khi các chuỗi Mỹ được công bố) không bao giờ thành câu trả lời của cả ngày.
 - **Bảng crypto.** Bảng xếp hạng được đọc một lần mỗi giờ và dùng chung cho mọi lần tra giá và ký hiệu.
 - **Lần đọc toàn thị trường VN.** Một lượt refresh hỏi `vndirect` từng mã một, nhưng nhà cung cấp trả cả thị trường cho mỗi truy vấn. Nên bên gọi đầu tiên đọc cả cửa sổ và những bên sau lấy phần của mình. Nó sống 60 giây khi nhàn rỗi và không bao giờ quá 5 phút.
 - **Các yêu cầu giống hệt nhau cùng lúc** dùng chung một lần tải trong lúc chúng còn đang chạy. Không gì được trả lời từ một lần đọc cũ.

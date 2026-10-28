@@ -135,10 +135,12 @@ A call too long to show whole opens with `[Arguments cut short - you can only ap
 and offers no remember.
 
 **Channels.** An inline-button prompt goes only to the channel that owns the run. A tap counts only
-when the request is still pending, it came from the prompted chat, that decision was actually
-offered, *and* the person tapping is an authorised operator. A channel without inline buttons (Zalo) asks
-with short codes such as `/4821` to type back, each good only in that chat and only while the prompt
-lives; it denies immediately and says so only when no code can be drawn. Shutdown denies every outstanding request.
+when all of these are true: the request is still pending, the tap came from the chat that was asked,
+that decision was actually offered, *and* the person tapping is an authorised operator.
+
+A channel without inline buttons (Zalo) asks with short codes such as `/4821` for you to type back.
+Each code works only in that chat and only while the prompt is open. Only when no code can be drawn
+does it deny straight away, and it says so. Shutdown denies every request still waiting.
 
 **MCP.** Approval uses form elicitation when the client supports it. A client without elicitation
 cannot approve, so dangerous calls fail closed.

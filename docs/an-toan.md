@@ -138,10 +138,12 @@ gọn. Lời gọi quá dài để hiện đủ sẽ mở đầu bằng `[Tham s
 không có nút ghi nhớ.
 
 **Kênh.** Ô hỏi dạng nút bấm chỉ đi tới đúng kênh sở hữu phiên chạy. Một lần bấm chỉ được nhận khi
-yêu cầu vẫn đang chờ, đến từ đúng chat đã được hỏi, quyết định đó thật sự đã được đưa ra, **và** người
-bấm là một operator có thẩm quyền. Kênh không có nút bấm (Zalo) thì hỏi bằng các mã ngắn như `/4821` để gõ lại, mỗi mã chỉ dùng được
-trong chat đó và chỉ khi câu hỏi còn sống; chỉ khi không rút được mã nào thì mới từ chối ngay và nói rõ. Khi tắt máy, mọi
-yêu cầu còn treo đều bị từ chối.
+mọi điều sau đều đúng: yêu cầu vẫn đang chờ, lần bấm đến từ đúng chat đã được hỏi, quyết định đó thật
+sự đã được đưa ra, **và** người bấm là một operator có thẩm quyền.
+
+Kênh không có nút bấm (Zalo) thì hỏi bằng các mã ngắn như `/4821` để bạn gõ lại. Mỗi mã chỉ dùng được
+trong chat đó và chỉ khi câu hỏi còn mở. Chỉ khi không tạo được mã nào thì nó mới từ chối ngay, và nói
+rõ điều đó. Khi tắt máy, mọi yêu cầu còn chờ đều bị từ chối.
 
 **MCP.** Phê duyệt qua form elicitation khi client hỗ trợ. Client không có elicitation thì không duyệt
 được, nên các lời gọi nguy hiểm hỏng theo hướng đóng.

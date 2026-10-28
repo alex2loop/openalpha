@@ -377,7 +377,9 @@ chung.
 |---|---|---|---|
 | `chat` | mảng chuỗi | `[]` | Các loại thông báo được gửi tới chat của bạn ngoài chuông. Loại hợp lệ: `call-scored`, `held-news`, `index-drop`; tên khác sẽ làm dịch vụ nền dừng lúc khởi động và nêu các loại hợp lệ. |
 
-Các loại này chỉ vào chuông trong ứng dụng, không tới chat nào trừ khi bạn liệt kê ở đây: một đề xuất bạn nhận đã có kết quả, tin về mã bạn đang giữ, và chỉ số của khu vực giảm mạnh trong phiên. Tin về mã đang giữ chỉ gồm những mã dịch vụ nền đã đọc: tiêu đề được lưu khi `/suggest` hoặc một cuộc chat về mã đó đọc chúng, và không có gì đi lấy tin cho các mã bạn giữ theo lịch. Mọi thứ khác dịch vụ nền gửi tới chat vẫn như cũ.
+Có ba loại tin chỉ vào chuông trong ứng dụng và không tới chat nào, trừ khi bạn liệt kê chúng ở đây: một đề xuất bạn nhận đã có kết quả, tin về mã bạn đang giữ, và chỉ số của khu vực giảm mạnh trong phiên.
+
+Tin về mã đang giữ chỉ gồm những mã dịch vụ nền đã đọc. Tiêu đề được lưu khi `/suggest` hoặc một cuộc trò chuyện về mã đó đọc chúng; không có gì tự đi lấy tin cho các mã bạn giữ theo lịch. Mọi thứ khác dịch vụ nền gửi tới chat vẫn như cũ.
 
 ### `[log]`
 
@@ -397,7 +399,18 @@ Thứ tự ưu tiên của mức log: `--log-level`, rồi `OPENALPHA_LOG_LEVEL`
 | `check` | bool | `true` | Hỏi GitHub hai lần mỗi ngày xem đã có bản mới chưa. |
 | `auto` | bool | `false` | Tự cài bản sửa lỗi (chỉ đổi số cuối, như 1.0.5 lên 1.0.6) lúc 00:00-06:00 theo `[locale] timezone`, khi dịch vụ nền chạy ở chế độ nền; không bao giờ cài khi thị trường bạn theo dõi đang trong phiên, kể cả giờ nghỉ trưa (crypto chạy cả ngày nên không tính). |
 
-Khi có bản mới, CLI in một thông báo ngắn sau lệnh (tối đa mỗi ngày một lần), chat hiện thông báo đó dưới lời chào, `version` và `doctor version` báo lại, dịch vụ nền ghi vào nhật ký, bản tin sáng gửi qua kênh kết thúc bằng thông báo đó, và bot nhắc trong chat riêng của bạn. Không có gì tự cài cho tới khi bạn chạy `openalpha upgrade` hoặc `/upgrade confirm`, trừ khi bật `auto`: khi đó dịch vụ nền chạy ở chế độ nền tự cài bản sửa lỗi trong khung giờ ấy, nhắn bạn khi đã chạy lại (vào chat riêng bạn nhắn bot gần nhất), và quay về bản cũ nếu bản mới không khởi động được. Trên máy chủ, hãy đặt `[locale] timezone` để khung giờ rơi vào ban đêm. Bản chạy từ mã nguồn không bao giờ kiểm tra; trong CI chỉ `version` và `doctor --online` kiểm tra.
+Khi có bản mới, bạn sẽ thấy thông báo ở nhiều chỗ:
+
+- CLI in một thông báo ngắn sau lệnh (tối đa mỗi ngày một lần);
+- chat hiện thông báo dưới lời chào;
+- `version` và `doctor version` báo lại;
+- dịch vụ nền ghi vào nhật ký;
+- bản tin sáng gửi qua kênh kết thúc bằng thông báo đó;
+- bot nhắc trong chat riêng của bạn.
+
+Không có gì tự cài cho tới khi bạn chạy `openalpha upgrade` hoặc `/upgrade confirm`, trừ khi bật `auto`. Khi bật, dịch vụ nền chạy ở chế độ nền tự cài bản sửa lỗi trong khung giờ ấy, nhắn bạn khi đã chạy lại (vào chat riêng bạn nhắn bot gần nhất), và quay về bản cũ nếu bản mới không khởi động được. Trên máy chủ, hãy đặt `[locale] timezone` để khung giờ rơi vào ban đêm.
+
+Bản chạy từ mã nguồn không bao giờ kiểm tra. Trong CI, chỉ `version` và `doctor --online` kiểm tra.
 
 ### `[channels.telegram]`
 

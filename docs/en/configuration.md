@@ -378,7 +378,9 @@ logs now, configured agents included, run `openalpha logs clear`. It does not to
 |---|---|---|---|
 | `chat` | array of strings | `[]` | Notice kinds sent to your chat as well as the bell. Valid kinds: `call-scored`, `held-news`, `index-drop`; any other name stops the daemon at start with the list of valid ones. |
 
-These readings reach the bell in the app and no chat unless listed here: a call you were given has been scored, news on a name you hold, and the region's index falling hard in a session. Held-name news covers only names the daemon has already read: headlines are archived when a `/suggest` or a chat about the name reads them, and nothing fetches news for your holdings on a schedule. Everything else the daemon sends to a chat is unchanged.
+Three readings go to the bell in the app and to no chat, unless you list them here: a call you were given has been scored, news on a name you hold, and the region's index falling hard in a session.
+
+Held-name news covers only names the daemon has already read. Headlines are archived when a `/suggest` or a chat about the name reads them; nothing fetches news for your holdings on a schedule. Everything else the daemon sends to a chat is unchanged.
 
 ### `[log]`
 
@@ -398,7 +400,18 @@ Priority for the level: `--log-level`, then `OPENALPHA_LOG_LEVEL`, then `[log].l
 | `check` | bool | `true` | Ask GitHub twice a day whether a newer release is out. |
 | `auto` | bool | `false` | Install patch releases (1.0.5 to 1.0.6, say) by itself between 00:00 and 06:00 on `[locale] timezone`, when the daemon runs in the background; never while a market you follow is in session, lunch break included (crypto trades around the clock, so it does not count). |
 
-When one is out, the CLI prints a short notice after a command (at most once a day), chat shows it under the welcome, `version` and `doctor version` report it, the daemon logs it, the morning brief sent to a channel ends with it, and the bot mentions it in your private chat. Nothing installs until you run `openalpha upgrade` or `/upgrade confirm`, unless `auto` is on: then a background daemon installs a patch release by itself in that window, messages you when it is back (in the private chat you last wrote to it from), and goes back to the old release if the new one will not start. On a server, set `[locale] timezone` so the window falls at night. A source checkout never checks; under CI only `version` and `doctor --online` do.
+When a new release is out, you hear about it in several places:
+
+- the CLI prints a short notice after a command (at most once a day);
+- chat shows it under the welcome;
+- `version` and `doctor version` report it;
+- the daemon logs it;
+- the morning brief sent to a channel ends with it;
+- the bot mentions it in your private chat.
+
+Nothing installs until you run `openalpha upgrade` or `/upgrade confirm`, unless `auto` is on. When it is on, a background daemon installs a patch release by itself in that window, messages you when it is back (in the private chat you last wrote to it from), and goes back to the old release if the new one will not start. On a server, set `[locale] timezone` so the window falls at night.
+
+A source checkout never checks. Under CI, only `version` and `doctor --online` do.
 
 ### `[channels.telegram]`
 
