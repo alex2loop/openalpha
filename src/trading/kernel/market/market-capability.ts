@@ -17,6 +17,11 @@ import type {
   Ticker,
   TradingDay,
 } from '@/trading/kernel/instrument'
+import type {
+  IndexCode,
+  IndexContributorsReading,
+  IndexValuationReading,
+} from '@/trading/kernel/market/index-reading'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type {
   MarketRegime,
@@ -28,13 +33,32 @@ import type { MarketMovers } from '@/trading/kernel/market/market-overview'
 import type { TapeSignal } from '@/trading/kernel/market/tape'
 import type { ScreenCautionCode, ScreenGateCode } from '@/trading/kernel/screen-codes'
 import type { SourceId } from '@/trading/kernel/source/source-id'
-import type { SourceProvenance } from '@/trading/kernel/source/source-result'
+import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 
 export interface MarketRequest {
   readonly asOf: TradingDay
   readonly now: number
   readonly signal: AbortSignal
+}
+
+export interface IndexRequest extends MarketRequest {
+  readonly index: IndexCode
+}
+
+/** An index's reads, which a market declares together. */
+export interface IndexCapabilities {
+  /** The names that moved an index this session. Read when asked, never stored. */
+  readonly indexContributors: {
+    readonly request: IndexRequest
+    readonly result: SourceResult<IndexContributorsReading>
+  }
+  /** An index's multiples against its own five-year average. Served from what the refresh stored,
+   *  so asking never reaches a provider. */
+  readonly indexValuation: {
+    readonly request: IndexRequest
+    readonly result: SourceResult<IndexValuationReading>
+  }
 }
 
 export interface InstrumentRequest extends MarketRequest {

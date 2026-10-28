@@ -20,6 +20,10 @@ import type {
 } from '@/app/server/wire/credentials'
 import type { DebateWire } from '@/app/server/wire/debate'
 import type { DigestWire } from '@/app/server/wire/digest'
+import type {
+  IndexContributorsResponse,
+  IndexValuationResponse,
+} from '@/app/server/wire/index-reading'
 import type { LiveSnapshotWire, RunCallsWire, RunStopWire } from '@/app/server/wire/live'
 import type {
   AlertDisableResponse,
@@ -154,6 +158,8 @@ export const ROUTES = Object.freeze({
   board: route<BoardResponse>('/v1/board'),
   digest: route<DigestWire>('/v1/digest'),
   sectors: route<SectorsResponse>('/v1/sectors'),
+  indexContributors: route<IndexContributorsResponse>('/v1/index-contributors'),
+  indexValuation: route<IndexValuationResponse>('/v1/index-valuation'),
   chatRecent: route<ChatRecentResponse>('/v1/chat/recent'),
   chatHistory: (sessionId: string) =>
     route<ChatHistoryResponse>(`/v1/chat/history/${encodeURIComponent(sessionId)}`),

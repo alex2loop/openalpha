@@ -59,6 +59,8 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 | Phía mua và bán của các giao dịch trong ngày | `kbsec`, `vietcap` |
 | Danh sách giám sát của sàn (trộn) | `hsx`, `ssi` |
 | Thành phần rổ chỉ số (`vn30`, `vn100`) | `vietcap` |
+| Tỷ lệ định giá của một chỉ số (VN-Index, VN30, HNX) | `vndirect` |
+| Số điểm mỗi mã đóng góp cho một chỉ số trong phiên | `vndirect-mkw` |
 | Tin tức | `vndirect`, `rss` |
 | **Việt Nam, toàn khu vực** | |
 | Chuỗi vĩ mô | `vndirect` |
@@ -90,6 +92,8 @@ Vài nguồn ít hiển nhiên làm gì:
 
 - `vndirect` đứng đầu giá VN vì dòng giá của nó được ghi ngay khi thị trường đang giao dịch. Nó không phục vụ chỉ số: giá chỉ số đi tới `vietcap-chart`, còn lịch sử chỉ số đi tới `entrade` rồi `vietcap-chart`. `vps` đứng cuối, có mặt cho các chỉ số chuẩn ETF (VNDIAMOND, VNX50...) mà cả `vndirect` lẫn `entrade` đều không phục vụ, để một lần bị từ chối không làm mất tất cả.
 - `vietcap-board` đọc cả bảng giá VN trong một lần gọi và dự phòng cho `vndirect` ở cả bảng giá trực tiếp lẫn room ngoại.
+- `vndirect` còn phục vụ các tỷ lệ riêng của từng chỉ số từ `/v4/ratios` (P/E, P/B, tỷ suất cổ tức, trung bình năm năm của hai hệ số, và tỷ lệ mã nằm trên đường trung bình 50 và 200 phiên). Lượt làm mới hỏi nhiều nhất một lần mỗi ngày UTC cho mỗi chỉ số và lưu mỗi tỷ lệ một dòng mỗi ngày trong `series_points`, nên thẻ Thị trường đọc chúng mà không gọi nhà cung cấp, và daemon tự xây lịch sử của riêng nó (giữ bằng `history_days`, mặc định 1095 ngày nếu bạn không đổi). Nguồn không công bố ROE cho chỉ số; trang tự suy ra bằng P/B chia P/E và nói rõ như vậy.
+- `vndirect-mkw` là máy chủ market-watch của công ty chứng khoán, một máy chủ thứ hai nên được tính nhịp và tạm dừng riêng khỏi `vndirect`. Nó cho biết với VN-Index, VN30 hoặc HNX mỗi mã đã cộng hay trừ bao nhiêu điểm trong phiên. Chỉ đọc khi thẻ Thị trường hỏi: nhiều nhất một lần mỗi phút khi phiên đang giao dịch, một lần sau giờ đóng cửa và giữ đến lần mở cửa kế tiếp, và các lời gọi cùng lúc dùng chung một lượt đọc. Nếu đọc lỗi thì danh sách cuối cùng được giữ lại và ghi rõ như vậy. Không có gì của nó được lưu.
 - `cafef-statements` không phải bên dự phòng cho `vietcap-statements`. Nó chỉ được hỏi cho quý mới nhất khi `vietcap-statements` đã có bảng cân đối và kết quả kinh doanh nhưng chưa có lưu chuyển tiền tệ, và số của nó chỉ được giữ khi lợi nhuận trước thuế lũy kế khớp với các quý đã có. `vietcap-statements` thay chúng ngay ngày nó có lưu chuyển tiền tệ.
 - `cafef` không phải bên dự phòng cho dòng tiền của `vndirect`. Nó chỉ công bố khối tự doanh, sớm hơn hai phiên, và chỉ được hỏi cho những phiên còn thiếu phần đó.
 - `fred-csv` mang các chuỗi hàng hóa hằng tháng mà không feed hằng ngày nào có (than, gạo, thịt lợn, thép). `vndirect` mang các chuỗi hằng ngày. Hai bên không bao giờ tranh nhau một mặt hàng.
@@ -105,7 +109,7 @@ Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền r�
 
 Các nguồn scrape Việt Nam và các bảng vàng khá mong manh, và việc chúng bật mặc định không thay đổi điều đó:
 
-- `vndirect`, `entrade` và `vietcap` đọc các endpoint nội bộ của công ty chứng khoán, không tài liệu, không cam kết dịch vụ.
+- `vndirect`, `vndirect-mkw`, `entrade` và `vietcap` đọc các endpoint nội bộ của công ty chứng khoán, không tài liệu, không cam kết dịch vụ.
 - `cafef` đọc chính handler của một trang tiêu dùng, và công bố các dòng mà giá trị với khối lượng tự mâu thuẫn nhau. Những dòng đó bị bỏ.
 - `pnj` đọc endpoint của chính cửa hàng.
 - `giavang` là API cộng đồng do một người vận hành.
@@ -155,7 +159,7 @@ Mỗi nhà cung cấp được điều nhịp theo một tốc độ yêu cầu 
 | 600 | `binance`, `binance-futures`, `bybit`, `okx`, `mexc` |
 | 300 | `cafef`, `vndirect` |
 | 120 | `fred`, `vietcap-statements` |
-| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `yahoo` |
+| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-mkw`, `yahoo` |
 | 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps` |
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |

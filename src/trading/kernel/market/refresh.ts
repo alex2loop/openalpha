@@ -195,3 +195,10 @@ export interface MarketRefreshAttempt {
   readonly attemptedAt: number
   readonly result: RefreshKindResult
 }
+
+/** The attempts the caller already read, so answering costs no second query. */
+export interface StaleKindsRequest {
+  readonly attempts: readonly MarketRefreshAttempt[]
+  readonly now: number
+  readonly signal: AbortSignal
+}

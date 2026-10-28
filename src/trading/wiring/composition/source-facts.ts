@@ -84,7 +84,10 @@ import {
   VIETCAP_STATEMENTS_ENDPOINT,
 } from '@/trading/sources/adapters/vietcap/client'
 import { createVietcapSources } from '@/trading/sources/adapters/vietcap/sources'
-import { VNDIRECT_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/vndirect/client'
+import {
+  VNDIRECT_DEFAULT_ENDPOINT,
+  VNDIRECT_MKW_DEFAULT_ENDPOINT,
+} from '@/trading/sources/adapters/vndirect/client'
 import { VNDIRECT_MACRO_PROFILE } from '@/trading/sources/adapters/vndirect/macro'
 import { createVndirectSources } from '@/trading/sources/adapters/vndirect/sources'
 import { createVpsSources, VPS_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/vps'
@@ -126,6 +129,7 @@ export const SOURCE_ENDPOINTS = Object.freeze({
   [sourceId('vietcap-chart')]: VIETCAP_DEFAULT_ENDPOINT,
   [sourceId('vietcap-statements')]: VIETCAP_STATEMENTS_ENDPOINT,
   [sourceId('vndirect')]: VNDIRECT_DEFAULT_ENDPOINT,
+  [sourceId('vndirect-mkw')]: VNDIRECT_MKW_DEFAULT_ENDPOINT,
   [sourceId('vps')]: VPS_DEFAULT_ENDPOINT,
   [sourceId('yahoo')]: YAHOO_DEFAULT_ENDPOINT,
 })
@@ -160,6 +164,10 @@ export const SOURCE_ENDPOINTS = Object.freeze({
  *  `cafef-statements` publishes no ceiling. A name costs one page of about 33 KB, asked only for a
  *  name whose newest quarter lacks cash flow, so 60 a minute is far above the peak and still catches
  *  a runaway.
+ *
+ *  `vndirect-mkw` publishes no ceiling. A read is made when the Market tab asks and the daemon holds a
+ *  list for about a minute while the session trades, so 60 a minute is far above the peak and still
+ *  catches a runaway.
  *
  *  `vietcap-statements` publishes no ceiling. A name costs three requests, four for a bank, and a
  *  refresh asks for the board and the book, about 120 names, only when their reports are due, so
@@ -199,6 +207,7 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('vietcap-chart')]: 30,
   [sourceId('vietcap-statements')]: 120,
   [sourceId('vndirect')]: 300,
+  [sourceId('vndirect-mkw')]: 60,
   [sourceId('vps')]: 30,
   [sourceId('yahoo')]: 60,
 })

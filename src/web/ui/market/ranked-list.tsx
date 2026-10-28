@@ -11,6 +11,8 @@ interface RankedRow {
   readonly figure: string
   /** The row's own move, as a percent; a row with none leaves its place empty. */
   readonly changePct?: number | undefined
+  /** A signed figure of another unit (index points) in the move's place, toned by its sign. */
+  readonly pill?: { readonly text: string; readonly tone: 'up' | 'down' } | undefined
 }
 
 interface RankedListProps {
@@ -37,13 +39,7 @@ export function RankedList({ title, note, rows }: RankedListProps) {
           <div key={row.key} class="row">
             <b>{row.label}</b>
             <span class="meta">{row.figure}</span>
-            {row.changePct === undefined ? (
-              <span />
-            ) : (
-              <span class={`pill is-${toneOfPercent(row.changePct)}`}>
-                {formatSignedPercent(row.changePct)}
-              </span>
-            )}
+            <RowMove row={row} />
           </div>
         ))}
       </div>
@@ -54,4 +50,20 @@ export function RankedList({ title, note, rows }: RankedListProps) {
 /** Ranked lists side by side while each keeps room for its name, figure and move, stacked below. */
 export function RankedLists({ children }: { readonly children: ComponentChildren }) {
   return <div class="ranked-lists">{children}</div>
+}
+
+function RowMove({ row }: { readonly row: RankedRow }) {
+  if (row.pill !== undefined) {
+    return <span class={`pill is-${row.pill.tone}`}>{row.pill.text}</span>
+  }
+
+  if (row.changePct === undefined) {
+    return <span />
+  }
+
+  return (
+    <span class={`pill is-${toneOfPercent(row.changePct)}`}>
+      {formatSignedPercent(row.changePct)}
+    </span>
+  )
 }

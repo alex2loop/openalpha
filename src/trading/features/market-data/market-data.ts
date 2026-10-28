@@ -46,6 +46,7 @@ import { markExcluded } from '@/trading/features/market-data/ops/exclusions'
 import { markMarginIneligible } from '@/trading/features/market-data/ops/margin'
 import { describeMarket } from '@/trading/features/market-data/reads/describe'
 import { freshnessOf, settledEvidenceCaveats } from '@/trading/features/market-data/reads/freshness'
+import { indexReads } from '@/trading/features/market-data/reads/index-reading'
 import { runOverviews } from '@/trading/features/market-data/reads/overview'
 import { buildQuoteBoard } from '@/trading/features/market-data/reads/quote-board'
 import {
@@ -86,12 +87,8 @@ interface MarketDataServiceDeps {
  *  unresolved input — a bare ticker, an instant, a day range — and receives a typed result whose
  *  unavailable arm names why. Nothing above this layer sees a registry. */
 export function createMarketDataService(deps: MarketDataServiceDeps): MarketDataService {
-  const run = {
-    logger: deps.logger,
-    markets: deps.markets,
-    config: deps.config,
-    ensure: deps.ensure,
-  }
+  const { logger, markets, config, ensure } = deps
+  const run = { logger, markets, config, ensure }
 
   return {
     listSources: () => deps.sources.list(),
@@ -126,6 +123,7 @@ export function createMarketDataService(deps: MarketDataServiceDeps): MarketData
     screen: (options) => runScreen(run, options, deps.exclusions),
     searchInstruments: (options) => searchInstruments(deps.markets, options),
     sectors: (options) => runSectors(run, options),
+    ...indexReads(run),
 
     sentiment: (options) => runSentiment(run, options),
   }

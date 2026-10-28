@@ -39,6 +39,10 @@ import type {
   TradingDay,
   VenueRef,
 } from '@/trading/kernel/instrument'
+import type {
+  IndexContributorsReading,
+  IndexValuationReading,
+} from '@/trading/kernel/market/index-reading'
 import type { QuoteBoard } from '@/trading/kernel/market/market-capability'
 import type { Candle, MarketEvent, NewsItem } from '@/trading/kernel/market/market-data'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
@@ -61,6 +65,7 @@ import type { RebalanceView } from '@/trading/wiring/composition/rebalance-views
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import type {
   SourceStatus,
+  TradingIndexRequest,
   TradingSectorsRequest,
   TradingSectorsView,
 } from '@/trading/wiring/host/market-types'
@@ -316,6 +321,13 @@ export interface TradingHost {
   describeMarkets(now: number): TradingMarketsView
   /** The market's sectors, strongest first; a market that files none answers empty with a caveat. */
   getSectors(request: TradingSectorsRequest): Promise<TradingSectorsView>
+  /** What each name added to the index this session. The only read here that reaches a provider:
+   *  it answers from a short-lived list the daemon holds, and the last one it held on a failure. */
+  getIndexContributors(
+    request: TradingIndexRequest
+  ): Promise<SourceResult<IndexContributorsReading>>
+  /** The index's ratios as the last refresh stored them; never waits on a provider. */
+  getIndexValuation(request: TradingIndexRequest): Promise<SourceResult<IndexValuationReading>>
   /** Every source's health as this process has seen it. */
   listSources(): readonly SourceStatus[]
   getProfile(signal: AbortSignal): Promise<UserProfile>

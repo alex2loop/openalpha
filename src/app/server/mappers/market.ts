@@ -153,6 +153,7 @@ export function toMarketsWire(view: TradingMarketsView, off: ReadonlySet<string>
         hasBoard: market.hasBoard,
         hasBrief: market.hasBrief,
         hasEvents: market.hasEvents,
+        hasIndexes: market.hasIndexes,
       }
     }),
   }

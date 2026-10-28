@@ -6,6 +6,8 @@ import { eventsSource } from '@/trading/sources/adapters/vndirect/events'
 import { flowsSource } from '@/trading/sources/adapters/vndirect/flows'
 import { foreignRoomSource } from '@/trading/sources/adapters/vndirect/foreign-room'
 import { fundamentalsSource } from '@/trading/sources/adapters/vndirect/fundamentals'
+import { indexContributorsSource } from '@/trading/sources/adapters/vndirect/index-contributors'
+import { indexValuationSource } from '@/trading/sources/adapters/vndirect/index-valuation'
 import { instrumentsSource } from '@/trading/sources/adapters/vndirect/instruments'
 import { macroSource } from '@/trading/sources/adapters/vndirect/macro'
 import { newsSource } from '@/trading/sources/adapters/vndirect/news'
@@ -28,6 +30,8 @@ export function createVndirectSources(options: SourceAdapterOptions): readonly R
     macroSource(options),
     commoditiesSource(options),
     valuationSource(options),
+    indexValuationSource(options),
+    indexContributorsSource(options),
     newsSource(options),
   ]
 }

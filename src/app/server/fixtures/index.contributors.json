@@ -1,0 +1,46 @@
+{
+  "market": "equity-vn",
+  "index": "VNINDEX",
+  "contributors": {
+    "asOf": "2026-10-27",
+    "up": [
+      {
+        "instrument": {
+          "market": "equity-vn",
+          "ticker": "VCB"
+        },
+        "point": 1.84,
+        "price": 92500
+      },
+      {
+        "instrument": {
+          "market": "equity-vn",
+          "ticker": "GVR"
+        },
+        "point": 0.97,
+        "price": 31200
+      }
+    ],
+    "down": [
+      {
+        "instrument": {
+          "market": "equity-vn",
+          "ticker": "VIC"
+        },
+        "point": -2.31,
+        "price": 186400
+      },
+      {
+        "instrument": {
+          "market": "equity-vn",
+          "ticker": "HPG"
+        },
+        "point": -0.86,
+        "price": 27100
+      }
+    ],
+    "upSum": 2.81,
+    "downSum": -3.17
+  },
+  "caveats": []
+}

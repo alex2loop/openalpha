@@ -19,6 +19,8 @@ export function describeMarket(market: Market): MarketDescription {
     hasBoard: capabilities.screen !== undefined,
     hasBrief: capabilities.brief !== undefined,
     hasEvents: capabilities.events !== undefined,
+    hasIndexes:
+      capabilities.indexContributors !== undefined && capabilities.indexValuation !== undefined,
   }
 }
 

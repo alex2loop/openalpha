@@ -37,6 +37,8 @@ system can ask for.
 | `statReports` | `StatReport[]` | the statistics office's monthly report |
 | `commodityPrices` | `CommodityHistory` | |
 | `valuationRatios` | `ValuationRatios` | |
+| `indexContributors` | `IndexContributions` | what each name added to one index this session, from a feed that takes no date |
+| `indexValuation` | `IndexRatios` | the newest day of one index's own ratios |
 | `flows` | `FlowSnapshot[]` | |
 | `proprietaryFlows` | `ProprietaryFlow[]` | the proprietary desk alone, from a provider that publishes it sooner than the `flows` provider |
 | `tradeSides` | `DailyTradeSides` | |
@@ -600,6 +602,8 @@ coverage is checked over calendar days: a market with weekends would never hit.
 in-flight promise, so callers arriving together share one fan-out. It holds two entries (today and the adjacent day, for a run
 crossing midnight). A failed or aborted read clears its own slot, and so does a read in which any provider did not answer: the
 day's first pass runs before the US series publish, and only a complete read is served to later callers.
+
+**Index reading** (`kernel/market/index-reading.ts`; `vndirect` serves `indexValuation`, `vndirect-mkw` serves `indexContributors`; the VN market publishes both as capabilities, `hasIndexes` on `/v1/markets`). *Valuation* is stored, never read in a request: `refreshIndexValuation` (`markets/equity-vn/refresh/index-valuation.ts`, run at the end of every VN refresh pass, outside the evidence kinds, so a replayed pass still retries a read that failed) asks the provider at most once per index and UTC day (the write instant of the P/E point is the check; `force` skips it), reads one window of seven ratio codes from `fromDay` (five sessions back) and keeps the newest day that has both multiples. One `series_points` row per index, ratio and day, id `index-ratio:<INDEX>:<ratio>`, day the provider's `reportDate`, the daemon's own history from then on; no migration. `series_points` is swept after `history_days` (1095 by default) and never below `HISTORY_FLOOR_DAYS.macroSeries` (about 500), so the default covers a one- and three-year comparison against its own history, and a five-year one needs `history_days` raised (the five-year averages shown today are the provider's, with no backfill). `createIndexValuation` reads the latest stored point of each ratio and builds the reading; a failed refresh leaves the last one, and one older than ten days carries `source.stale-cache`. ROE is `P/B / P/E`, derived. *Contributors* are never stored: `createIndexContributors` (`markets/equity-vn/tape/index-contributors.ts`) keeps one slot per index (three in all). While the session trades a slot is good for `LIVE_CONTRIBUTORS_TTL_MS`; once the tape has settled (`isTapeServing`) it is read once and kept until the next open, keyed by the settled day. Callers share one in-flight read under its own timeout, because the read must not be tied to whichever caller arrived first; a failed read answers with the held slot and `source.stale-cache`, or the failure when none is held. The feed's `point` is dropped below `MINIMUM_CONTRIBUTION_POINTS` (0.005, as the provider's own widget does), and each side lists the top `CONTRIBUTORS_PER_SIDE`.
 
 **Macro gate** (`sources/macro-gate.ts`) - fronts every `macro` source that declares a `MacroSourceProfile` (`MACRO_SOURCE_PROFILES` in
 `source-facts.ts`: `bls`, `fred`, `treasury`, `vndirect`; a plugin declares none and is read as before). `gateMacroSource` wraps the
