@@ -37,13 +37,23 @@ function ChatHead() {
   return (
     <div class="chat-head">
       <h2>{tr('ui.office.chat.title')}</h2>
-      <Button kind="ghost" size="small" onClick={openSessionsDialog}>
+      <Button
+        kind="ghost"
+        size="small"
+        title={tr('ui.office.chat.oldSessions')}
+        onClick={openSessionsDialog}
+      >
         <HistoryIcon />
-        {tr('ui.office.chat.oldSessions')}
+        <span class="chat-head-label">{tr('ui.office.chat.oldSessions')}</span>
       </Button>
-      <Button kind="ghost" size="small" onClick={askNewSession}>
+      <Button
+        kind="ghost"
+        size="small"
+        title={tr('ui.office.chat.newSession')}
+        onClick={askNewSession}
+      >
         <PlusIcon />
-        {tr('ui.office.chat.newSession')}
+        <span class="chat-head-label">{tr('ui.office.chat.newSession')}</span>
       </Button>
       {!isChatOnly.value && (
         <button

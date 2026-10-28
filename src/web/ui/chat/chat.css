@@ -3,6 +3,7 @@
   flex-direction: column;
   width: var(--chatPanelW);
   min-height: 0;
+  container-type: inline-size;
   border-left: 1px solid var(--border);
 }
 
@@ -27,6 +28,14 @@
 .chat-head h2 {
   flex: 1;
   font: var(--typeCardTitle);
+}
+
+/* Under the width the two labelled actions take in both languages, each keeps its icon and the
+   label stays its title. */
+@container (width < 480px) {
+  .chat-head-label {
+    display: none;
+  }
 }
 
 .chat-messages {

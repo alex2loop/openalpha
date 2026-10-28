@@ -16,6 +16,8 @@ interface ButtonProps {
   readonly size?: ButtonSize
   readonly type?: 'button' | 'submit'
   readonly disabled?: boolean
+  /** The name a reader still gets when a narrow layout hides the label. */
+  readonly title?: string
   readonly onClick?: (() => void) | undefined
   readonly children: ComponentChildren
 }
@@ -25,11 +27,18 @@ export function Button({
   size = 'regular',
   type = 'button',
   disabled,
+  title,
   onClick,
   children,
 }: ButtonProps) {
   return (
-    <button type={type} class={`btn btn-${kind} btn-${size}`} disabled={disabled} onClick={onClick}>
+    <button
+      type={type}
+      class={`btn btn-${kind} btn-${size}`}
+      disabled={disabled}
+      title={title}
+      onClick={onClick}
+    >
       {children}
       {kind === 'tertiary' && <span aria-hidden="true">{NEXT_GLYPH}</span>}
     </button>
