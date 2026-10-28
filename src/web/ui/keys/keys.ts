@@ -6,7 +6,8 @@ import { stopFollow, view, ZOOM_KEYS } from '@/web/scene/view'
 import { agents } from '@/web/state/agents'
 import { isChatOpen, setChatOpen } from '@/web/state/chat'
 import { focusInput } from '@/web/state/command'
-import { openView, panelView, toggleOfficeLayout } from '@/web/state/panel'
+import { toggleInfoOnly } from '@/web/state/pane'
+import { openView, panelView } from '@/web/state/panel'
 import {
   COMMAND_KEY_CAP,
   CONTROL_KEY_CAP,
@@ -62,7 +63,6 @@ const BACK_KEY = 'r'
 const BELL_KEY = 'b'
 const JOBS_KEY = 'j'
 const CHAT_KEY = 'c'
-const FOCUS_KEY = 'f'
 const INFO_KEY = 'i'
 const TAB_KEYS: Readonly<Record<string, PanelTab>> = Object.freeze({
   1: 'today',
@@ -107,7 +107,6 @@ export const SHORTCUT_ROWS: readonly ShortcutRow[] = Object.freeze([
   { caps: [BELL_KEY.toUpperCase()], does: 'ui.office.keys.bell' },
   { caps: [JOBS_KEY.toUpperCase()], does: 'ui.office.keys.jobs' },
   { caps: [CHAT_KEY.toUpperCase()], does: 'ui.office.keys.chat' },
-  { caps: [FOCUS_KEY.toUpperCase()], does: 'ui.office.keys.focus' },
   { caps: [INFO_KEY.toUpperCase()], does: 'ui.office.keys.info' },
   { caps: Object.keys(AGENT_STEPS), does: 'ui.office.keys.agents' },
   { caps: [TAB_KEY_CAP, ENTER_KEY_CAP], does: 'ui.office.keys.canvas' },
@@ -243,11 +242,8 @@ function handleNamedKey(key: string, { deps, viewed }: KeyContext): boolean {
     case CHAT_KEY:
       setChatOpen(!isChatOpen.value)
       return true
-    case FOCUS_KEY:
-      toggleOfficeLayout('full')
-      return true
     case INFO_KEY:
-      toggleOfficeLayout('info')
+      toggleInfoOnly()
       return true
     case ESCAPE_KEY.toLowerCase():
       return endFollow()

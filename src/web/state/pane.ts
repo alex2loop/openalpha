@@ -20,6 +20,11 @@ export const isInfoOnly: ReadonlySignal<boolean> = computed(
   () => officeLayout.value === 'info' && breakpoint.value === 'wide'
 )
 
+/** Switches between Info only and the office. */
+export function toggleInfoOnly(): void {
+  setOfficeLayout(officeLayout.peek() === 'info' ? 'office' : 'info')
+}
+
 /** The one pane on screen below the narrow width: the chat while it is open, else the office or
  *  the information it was left on, so closing the chat goes back to the pane before it. */
 export const pane: ReadonlySignal<Pane> = computed(() =>
@@ -45,6 +50,6 @@ export function showPane(next: Pane): void {
   if (breakpoint.peek() !== 'wide') {
     setChatOpen(false)
   } else if (next === 'office' && isInfoOnly.peek()) {
-    setOfficeLayout('docked')
+    setOfficeLayout('office')
   }
 }
