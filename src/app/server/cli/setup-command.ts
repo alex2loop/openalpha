@@ -12,7 +12,7 @@ import { createPrivateFileAtomic } from '@/core/security/private-files'
 const EXIT_REFUSED = 1
 
 /** The app's first run, before any config exists: `setup catalog` lists the providers, `setup write
- *  <provider> <model>` writes the starter config with the API on. Output is one JSON line. The key
+ *  <provider> <model>` writes the starter config. Output is one JSON line. The key
  *  never passes through here: the config names its environment variable, and the app hands the
  *  value to the daemon it starts. */
 export const setupCommand: Command = createCommand({

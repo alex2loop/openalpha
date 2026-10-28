@@ -447,7 +447,7 @@ tên `config.toml.<thời-điểm>.bak`. Mỗi lần đổi để lại một b�
 nhất và tự xóa bản cũ hơn. Khi chưa có cấu hình, gõ `openalpha` trần hoặc bất kỳ lệnh nào cần cấu hình
 đều sẽ mời bạn bắt đầu thiết lập.
 
-`setup write` ghi cùng tệp khởi điểm cho ứng dụng desktop, bật thêm `[api]`, và không ghi đè cấu hình đã có.
+`setup write` ghi cùng tệp khởi điểm cho ứng dụng desktop và không ghi đè cấu hình đã có.
 
 ```text
 openalpha api token

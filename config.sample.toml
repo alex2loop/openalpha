@@ -282,7 +282,7 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # that day, with a notice; tomorrow's goes out as usual. Only /brief disable stops it.
 # The brief opens with a market story and a check of earlier ones; it calls no model and needs no key.
 # [trading.briefs]
-# send_time = "08:15"                # morning brief delivery (HH:MM, market timezone)
+# send_time = "08:15"                # morning brief delivery (HH:MM, market timezone, before the open)
 
 # Mid-session report for the market of your [locale] region (VN stocks by
 # default), on that market's hours and trading days. Off by default; name the

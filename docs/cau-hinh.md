@@ -619,7 +619,7 @@ giữ mã này: `openalpha web` in một liên kết dùng một lần để đ�
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `enabled` | bool | `false` | Công tắc chính. |
+| `enabled` | bool | `true` | Công tắc chính. |
 | `port` | số nguyên | `8765` | Cổng TCP, 1024-65535. |
 | `token_env` | chuỗi | - | Biến môi trường chứa bearer token. Khi được đặt, token trong tệp bị bỏ qua. |
 | `orders` | bool | `true`, hoặc `false` khi đã đặt `public_url` | Cho ứng dụng đặt lệnh, hủy lệnh và tắt chức năng mua. |
@@ -932,6 +932,8 @@ canh giữ, nên không có gì để đặt:
 chưa có giờ riêng mới theo khóa này. Bản tin luôn được lập lịch theo múi giờ của **thị trường**, lấy từ
 lịch của khu vực `[locale] region`, không bao giờ từ `[locale] timezone` (nơi bạn đang ở). Một operator
 ở London không nhận bản tin vào 15:15 giờ Hà Nội.
+Bản tin là bức tranh trước giờ mở cửa, nên `send_time` phải sớm hơn giờ mở cửa của thị trường chính.
+Đặt muộn hơn thì dịch vụ nền từ chối khởi động, thay vì lặng lẽ bỏ bản tin mỗi sáng.
 
 Danh sách theo dõi trong hồ sơ là danh sách công cụ duy nhất được cấu hình. Bảng giá và các mục gợi ý
 trong bản tin đều suy ra từ nó và từ phần đang nắm trong sổ.

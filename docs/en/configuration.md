@@ -622,7 +622,7 @@ one-time link that signs it in, and `openalpha connect` prints the address and t
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `enabled` | bool | `false` | Master switch. |
+| `enabled` | bool | `true` | Master switch. |
 | `port` | int | `8765` | TCP port, 1024-65535. |
 | `token_env` | string | - | Environment variable holding the bearer token. When set, the file token is ignored. |
 | `orders` | bool | `true`, or `false` once `public_url` is set | Lets the app place, cancel and halt orders. |
@@ -937,6 +937,8 @@ guards, so there is nothing to set:
 a row with no time of its own follows this key. A brief is always scheduled in the **market's**
 timezone, taken from the calendar that owns `[locale] region`, never from `[locale] timezone`
 (where you are). An operator in London does not get a brief at 15:15 Hanoi time.
+The brief is a pre-open read, so `send_time` has to come before your home market opens; the daemon
+refuses to start with a later one rather than skip the brief every morning.
 
 The profile watchlist is the only configured instrument list. Quotes and the brief's suggestion
 sections derive from it and from what the book holds.

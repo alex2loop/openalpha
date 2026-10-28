@@ -78,7 +78,6 @@
     "src/engine/run-registry.ts#composeAbort": 57,
     "src/engine/run-registry.ts#createRunRegistry": 45,
     "src/engine/workflows/run.ts#startScheduledWorkflows": 43,
-    "src/persistence/engines/sqlite.ts#createStorage": 45,
     "src/persistence/stores/channel/pairing.ts#createPairingStore": 52,
     "src/persistence/stores/scheduler/job/store.ts#createOwnedOperations": 53,
     "src/persistence/stores/scheduler/job/store.ts#createSchedulerOperations": 44,

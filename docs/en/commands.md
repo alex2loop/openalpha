@@ -457,7 +457,7 @@ That rewrite drops the file's comments, so the old file is saved first beside it
 deleted for you. When no config exists, a bare `openalpha` and any command that needs one offer to
 start the setup.
 
-`setup write` writes the same starter file for the desktop app, turns on `[api]`, and refuses to
+`setup write` writes the same starter file for the desktop app and refuses to
 replace an existing config.
 
 ```text
