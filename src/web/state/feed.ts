@@ -1,6 +1,7 @@
 import type { WireEvent } from '@/app/server/wire/events'
 import type { LiveRunWire, LiveSnapshotWire } from '@/app/server/wire/live'
 import type { ClientFrame, ServerFrame } from '@/app/server/wire/socket'
+import { nextDelayMs } from '@/web/api/backoff'
 import { getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
@@ -44,6 +45,9 @@ interface FeedState {
   unknownRunId: string | undefined
   // Finished runs, oldest first, so a late or replayed event never brings one back.
   readonly tombstones: Set<string>
+  // A failed snapshot retries on the backoff; the socket stays, as closing it aborts its runs.
+  syncRetryTimer: ReturnType<typeof setTimeout> | undefined
+  syncAttempt: number
 }
 
 /** A run event, once its `runId` is known to be there. */
@@ -68,6 +72,8 @@ export function startFeed(): () => void {
     isDropping: false,
     unknownRunId: undefined,
     tombstones: new Set(),
+    syncRetryTimer: undefined,
+    syncAttempt: 0,
   }
   const { signal } = feed.lifetime
 
@@ -89,6 +95,7 @@ export function startFeed(): () => void {
 
   return () => {
     feed.lifetime.abort()
+    clearTimeout(feed.syncRetryTimer)
     stopPoll()
     feed.socket?.close()
 
@@ -187,18 +194,36 @@ async function syncOnce(feed: FeedState, signal: AbortSignal): Promise<boolean> 
   if (!isSnapshot(snapshot)) {
     replayBuffered(feed, false)
 
-    // A live socket with no snapshot shows a stale view: reconnect, on the backoff.
+    // A live socket with no snapshot shows a stale view; a reconnect takes its own snapshot.
     if (!signal.aborted && connection.value.status === 'live') {
-      feed.socket?.retryNow()
+      armSyncRetry(feed)
     }
 
     return false
   }
 
+  clearTimeout(feed.syncRetryTimer)
+  feed.syncRetryTimer = undefined
+  feed.syncAttempt = 0
   applySnapshot(feed, snapshot, mark)
   replayBuffered(feed, true)
 
   return true
+}
+
+function armSyncRetry(feed: FeedState): void {
+  if (feed.syncRetryTimer !== undefined) {
+    return
+  }
+
+  const delayMs = nextDelayMs(feed.syncAttempt, Math.random)
+
+  feed.syncAttempt++
+  feed.syncRetryTimer = setTimeout(() => {
+    feed.syncRetryTimer = undefined
+    // `resync` turns a failed snapshot into `false` and clears its flags in `finally`.
+    resync(feed, feed.lifetime.signal).catch(() => undefined)
+  }, delayMs)
 }
 
 function isSnapshot(value: unknown): value is LiveSnapshotWire {

@@ -8,6 +8,8 @@ const SPRITE_IDLE_MS = 60 * MS_PER_SECOND
 
 // While a frame paints, sprites are built only until `until`; each one left out is counted.
 const builds = { until: Number.POSITIVE_INFINITY, skips: 0 }
+// Every cache's eviction, run once a frame so an idle sprite goes even while nothing new is built.
+const sweeps: ((now: number) => void)[] = []
 
 interface CacheSpec<T> {
   readonly max: number
@@ -38,8 +40,13 @@ export function withinBuildSlice<A extends unknown[]>(
 ): (...args: A) => boolean {
   return (...args) => {
     const skipsBefore = builds.skips
+    const now = performance.now()
 
-    builds.until = performance.now() + SPRITE_BUILD_SLICE_MS
+    for (const sweep of sweeps) {
+      sweep(now)
+    }
+
+    builds.until = now + SPRITE_BUILD_SLICE_MS
 
     try {
       return paint(...args) || builds.skips !== skipsBefore
@@ -111,10 +118,12 @@ export function createSpriteCache<T>(spec: CacheSpec<T>): SpriteCache<T> {
     },
   }
 
+  sweeps.push((now) => evict(held, spec, now))
+
   return cache
 }
 
-// Held newest last; past `max`, or idle too long, the oldest go.
+// Held newest last.
 function store<T>(
   held: Map<string, HeldSprite<T>>,
   spec: CacheSpec<T>,
@@ -123,7 +132,11 @@ function store<T>(
   const now = performance.now()
 
   held.set(next.key, { sprite: next.sprite, drawnAt: now })
+  evict(held, spec, now)
+}
 
+// Past `max`, or idle too long, the least recently drawn go.
+function evict<T>(held: Map<string, HeldSprite<T>>, spec: CacheSpec<T>, now: number): void {
   for (const [oldest, entry] of held) {
     if (held.size <= spec.max && now - entry.drawnAt < SPRITE_IDLE_MS) {
       break

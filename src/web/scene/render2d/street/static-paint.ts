@@ -44,6 +44,11 @@ export function syncStatic(state: PainterState, minute: StreetMinute, until: num
   if (stepRun(run, until)) {
     state.staticRun = undefined
     state.staticVersion++
+
+    // A sprite the run had no time to build is left out, and the next frame paints it all again.
+    if (run.isPartial) {
+      state.staticKey = ''
+    }
   }
 
   return true

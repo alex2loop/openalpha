@@ -10,7 +10,8 @@ import { locale, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { buildDayKey } from '@/web/text/time'
 import { buildMonthStart, shiftDay } from '@/web/text/time-units'
-import { toFailureText, tr } from '@/web/text/tr'
+import { tr } from '@/web/text/tr'
+import { FailureStrip } from '@/web/ui/book/failure-strip'
 import { CostBreakdown } from '@/web/ui/cost/cost-breakdown'
 import { CostChart } from '@/web/ui/cost/cost-chart'
 import { formatSpent } from '@/web/ui/cost/spent'
@@ -39,6 +40,7 @@ const DAYS_30 = 30
 interface CostRead {
   readonly report: Signal<CostReport | undefined>
   readonly failure: Signal<ApiFailure | undefined>
+  readonly retry: () => void
 }
 
 /** "Chi phí AI" in full: a period's total, its days as bars, and where it went by job, agent and
@@ -73,20 +75,26 @@ function CostReportBody() {
           period.value = value
         }}
       />
-      {failure !== undefined && <p class="failure-line">{toFailureText(failure)}</p>}
+      {failure !== undefined && <FailureStrip failure={failure} retry={read.retry} />}
       {report === undefined && failure === undefined && <Skeleton />}
       {report !== undefined && <ReportView report={report} period={period.value} />}
     </div>
   )
 }
 
-// One read per period choice, the one before aborted; a failed read keeps the report on screen.
+// One read per period choice or retry, the one before aborted; the last period's report never shows
+// under the new one's label.
 function useCostRead(period: CostPeriod): CostRead {
   const report = useSignal<CostReport | undefined>(undefined)
   const failure = useSignal<ApiFailure | undefined>(undefined)
+  const tries = useSignal(0)
   const timeZone = state.value?.timeZone
+  const triesValue = tries.value
 
   useEffect(() => {
+    report.value = undefined
+    failure.value = undefined
+
     if (timeZone === undefined) {
       return undefined
     }
@@ -111,9 +119,15 @@ function useCostRead(period: CostPeriod): CostRead {
     )
 
     return () => controller.abort()
-  }, [period, timeZone])
+  }, [period, timeZone, triesValue])
 
-  return { report, failure }
+  return {
+    report,
+    failure,
+    retry: () => {
+      tries.value++
+    },
+  }
 }
 
 // Days are the daemon's, so every period ends on its today.

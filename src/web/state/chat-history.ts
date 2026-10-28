@@ -112,8 +112,21 @@ export function resumeAppSession(session: ChatSession): void {
   loadOlder().catch(() => undefined)
 }
 
+/** The "Older" button: the next older page, or once the latest session failed to load, that load again. */
+export async function loadEarlier(): Promise<void> {
+  const abortSignal = lifetime?.signal
+
+  if (historySession !== undefined || abortSignal === undefined || view.value.status !== 'failed') {
+    return loadOlder()
+  }
+
+  view.value = { messages: [], status: 'loading' }
+
+  return loadRecent(abortSignal)
+}
+
 /** The next older page of the current session; a call while one loads is ignored. */
-export async function loadOlder(): Promise<void> {
+async function loadOlder(): Promise<void> {
   const session = historySession
   const abortSignal = lifetime?.signal
   const held = view.value
@@ -169,7 +182,13 @@ async function loadRecent(abortSignal: AbortSignal): Promise<void> {
   try {
     const recent = await getJson(ROUTES.chatRecent, { signal: abortSignal })
 
-    if (recent.sessionId === null || sessionId.value !== undefined) {
+    if (sessionId.value !== undefined) {
+      return
+    }
+
+    // No session yet: a retry's spinner gives way to the empty column.
+    if (recent.sessionId === null) {
+      view.value = EMPTY
       return
     }
 
