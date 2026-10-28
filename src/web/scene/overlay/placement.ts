@@ -9,19 +9,22 @@ const MAX_MEASURE_CACHE = 200
 const BUBBLE_FONT = '500 12px'
 const FOOTER_FONT = '500 11px'
 const TAG_FONT = '600 11px'
+const PILL_FONT = '600 12px'
 // Until the overlay has read the page's family, measures fall back to the browser's sans.
 const FALLBACK_FAMILY = 'sans-serif'
 // A bubble's box as overlay.css draws it: text width, padding, line heights.
 const BUBBLE_TEXT_MAX_PX = 200
-const BUBBLE_PAD_X_PX = 8
-const BUBBLE_PAD_Y_PX = 5
-const BUBBLE_LINE_PX = 16
+const BUBBLE_PAD_X_PX = 9
+const BUBBLE_PAD_Y_PX = 6
+const BUBBLE_LINE_PX = 16.2
 const FOOTER_LINE_PX = 15
 const ACTION_ROW_PX = 22
 const ACTION_GAP_PX = 10
 const TAG_PAD_X_PX = 6
 const TAG_H_PX = 18
 const TAG_GAP_PX = 2
+// A radial menu pill's side padding, as radial-menu.css draws it.
+const PILL_PAD_X_PX = 12
 // How far a bubble keeps from its speaker, and from anything else on screen.
 const BUBBLE_GAP_PX = 6
 const HIT_GAP_PX = 3
@@ -55,10 +58,10 @@ export interface Placed {
   readonly tailX: number
 }
 
-/** The open radial menu's person, the box round its pills, and the pane it stands in. */
+/** The open radial menu's person, its pills (the first at the top) and the pane it stands in. */
 export interface MenuBounds {
   readonly actor: ActorId
-  readonly ring: Rect
+  readonly pills: readonly Rect[]
   readonly pane: Size
 }
 
@@ -117,19 +120,19 @@ export function layoutOverlay(input: LayoutInput): Layout {
   const hidden: ActorId[] = []
 
   for (const bubble of sortBubbles(input.bubbles, input)) {
-    const around = aroundOf(bubble.actor, input)
+    const speaker = input.actors.get(bubble.actor)
     const isSelected = bubble.actor === input.selected
     const spot =
-      around === undefined || (placed.length >= MAX_BUBBLES && !isSelected)
+      speaker === undefined || (placed.length >= MAX_BUBBLES && !isSelected)
         ? undefined
-        : spotOf(candidatesOf(bubble, around), taken, isSelected)
+        : spotOf(candidatesFor(bubble, { speaker, input }), taken, isSelected)
 
-    if (around === undefined || spot === undefined) {
+    if (speaker === undefined || spot === undefined) {
       hidden.push(bubble.actor)
       continue
     }
 
-    placed.push({ bubble, ...spot, tailX: tailOf(spot.rect, around.speaker) })
+    placed.push({ bubble, ...spot, tailX: tailOf(spot.rect, speaker) })
     taken.push(spot.rect)
   }
 
@@ -174,11 +177,20 @@ export function sizeBubble(bubble: Bubble, actions: readonly string[]): Sized<Bu
     (bubble.footer === undefined ? 0 : FOOTER_LINE_PX) +
     (actions.length === 0 ? 0 : ACTION_ROW_PX)
 
-  return { ...bubble, w: Math.ceil(innerW) + BUBBLE_PAD_X_PX * 2, h: h + BUBBLE_PAD_Y_PX * 2 }
+  return {
+    ...bubble,
+    w: Math.ceil(innerW) + BUBBLE_PAD_X_PX * 2,
+    h: Math.ceil(h) + BUBBLE_PAD_Y_PX * 2,
+  }
 }
 
 export function sizeTag(text: string): Size {
   return { w: Math.ceil(measure(text, TAG_FONT)) + TAG_PAD_X_PX * 2, h: TAG_H_PX }
+}
+
+/** A radial menu pill's width from its label. */
+export function pillWidthOf(text: string): number {
+  return Math.ceil(measure(text, PILL_FONT)) + PILL_PAD_X_PX * 2
 }
 
 /** The boxes other overlays and the page's floating chrome drew, relative to `scene`; read only
@@ -275,17 +287,67 @@ function sortBubbles(
   )
 }
 
-// What a bubble stands round: its speaker inside their room, or the open ring inside the pane.
-function aroundOf(actor: ActorId, input: LayoutInput): Around | undefined {
-  const { menu } = input
+// Round the open ring for its person, else round the speaker inside their room.
+function candidatesFor(
+  bubble: Sized<Bubble>,
+  at: { readonly speaker: Rect; readonly input: LayoutInput }
+): Candidate[] {
+  const { menu } = at.input
 
-  if (menu !== undefined && menu.actor === actor) {
-    return { speaker: menu.ring, room: { x: 0, y: 0, ...menu.pane } }
+  if (menu !== undefined && menu.actor === bubble.actor) {
+    return menuCandidatesOf(bubble, { speaker: at.speaker, menu })
   }
 
-  const speaker = input.actors.get(actor)
+  return candidatesOf(bubble, { speaker: at.speaker, room: roomOf(at.speaker, at.input.rooms) })
+}
 
-  return speaker === undefined ? undefined : { speaker, room: roomOf(speaker, input.rooms) }
+// Over the top pill first (sliding sideways, still over the person), then beside each pill nearest
+// the person first, then under the ring; each inside the pane and clear of the person and the
+// pills, even where nothing else is free.
+function menuCandidatesOf(
+  size: Size,
+  at: { readonly speaker: Rect; readonly menu: MenuBounds }
+): Candidate[] {
+  const { speaker, menu } = at
+  const scene = { x: 0, y: 0, ...menu.pane }
+  const centerX = speaker.x + speaker.w / 2
+  const top = menu.pills[0]?.y ?? speaker.y
+  const bottom = Math.max(...menu.pills.map((pill) => pill.y + pill.h))
+  const beside = menu.pills
+    .flatMap((pill) => {
+      const y = pill.y + pill.h / 2 - size.h / 2
+
+      return [
+        { x: pill.x + pill.w + BUBBLE_GAP_PX, y, ...size },
+        { x: pill.x - BUBBLE_GAP_PX - size.w, y, ...size },
+      ]
+    })
+    .sort((a, b) => distanceOf(a, speaker) - distanceOf(b, speaker))
+  const below = { x: centerX - size.w / 2, y: bottom + BUBBLE_GAP_PX, ...size }
+
+  return [
+    ...aboveOf(size, { centerX, bottom: top, room: scene }),
+    ...[...beside, below].map((rect) => {
+      const clipped = clip(rect, scene)
+
+      return { rect: clipped, side: sideOf(clipped, speaker) }
+    }),
+  ].filter(({ rect }) => !isTaken(rect, [speaker, ...menu.pills]))
+}
+
+function distanceOf(rect: Rect, speaker: Rect): number {
+  return Math.hypot(
+    rect.x + rect.w / 2 - (speaker.x + speaker.w / 2),
+    rect.y + rect.h / 2 - (speaker.y + speaker.h / 2)
+  )
+}
+
+function sideOf(rect: Rect, speaker: Rect): Placed['side'] {
+  if (rect.y + rect.h <= speaker.y) {
+    return 'above'
+  }
+
+  return rect.y >= speaker.y + speaker.h ? 'below' : 'beside'
 }
 
 // The room the speaker's feet stand in.
@@ -309,17 +371,7 @@ function candidatesOf(size: Size, around: Around): Candidate[] {
   const { speaker, room } = around
   const centerX = speaker.x + speaker.w / 2
   const midY = speaker.y + speaker.h / 2 - size.h / 2
-  const above = SHIFT_STEPS.map((step) => ({
-    rect: clip(
-      {
-        x: centerX - size.w / 2 + step * SHIFT_STEP * size.w,
-        y: speaker.y - size.h - BUBBLE_GAP_PX,
-        ...size,
-      },
-      room
-    ),
-    side: 'above' as const,
-  })).filter(({ rect }) => rect.x <= centerX - SPAN_PX && rect.x + rect.w >= centerX + SPAN_PX)
+  const above = aboveOf(size, { centerX, bottom: speaker.y, room })
   const rest: Candidate[] = [
     { rect: { x: speaker.x + speaker.w + BUBBLE_GAP_PX, y: midY, ...size }, side: 'beside' },
     { rect: { x: speaker.x - BUBBLE_GAP_PX - size.w, y: midY, ...size }, side: 'beside' },
@@ -330,6 +382,26 @@ function candidatesOf(size: Size, around: Around): Candidate[] {
   ]
 
   return [...above, ...rest.map((spot) => ({ ...spot, rect: clip(spot.rect, room) }))]
+}
+
+// Over `bottom`, sliding sideways in steps but always spanning `centerX`, clipped into the room.
+function aboveOf(
+  size: Size,
+  at: { readonly centerX: number; readonly bottom: number; readonly room: Rect | undefined }
+): Candidate[] {
+  const { centerX } = at
+
+  return SHIFT_STEPS.map((step) => ({
+    rect: clip(
+      {
+        x: centerX - size.w / 2 + step * SHIFT_STEP * size.w,
+        y: at.bottom - size.h - BUBBLE_GAP_PX,
+        ...size,
+      },
+      at.room
+    ),
+    side: 'above' as const,
+  })).filter(({ rect }) => rect.x <= centerX - SPAN_PX && rect.x + rect.w >= centerX + SPAN_PX)
 }
 
 function clip(rect: Rect, room: Rect | undefined): Rect {
