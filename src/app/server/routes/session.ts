@@ -72,7 +72,7 @@ async function handleSignIn(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   const now = Date.now()
   const credential = takeCodeCredential(ctx, parsed.data.code, now)
-  const refusal = toAuthRefusal(resolveAuthOutcome(ctx.ip, credential, now))
+  const refusal = toAuthRefusal(resolveAuthOutcome(ctx.peer, credential, now))
 
   if (refusal !== null) {
     return refusal
@@ -98,7 +98,7 @@ async function handleSignIn(req: Request, ctx: ApiRouteContext): Promise<Respons
 }
 
 function takeCodeCredential(ctx: ApiRouteContext, code: string, now: number): Credential {
-  if (isAuthLocked(ctx.ip, now)) {
+  if (isAuthLocked(ctx.peer, now)) {
     return 'locked'
   }
 

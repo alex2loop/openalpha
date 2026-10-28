@@ -70,8 +70,11 @@ this document — neither imports the other.
     served opens the socket and another local web app is refused; native clients send no `Origin`
     and pass.
   - **Lockout:** a wrong token (HTTP and WS alike) and a wrong or used sign-in code count toward
-    the same per-peer lockout (5 failures → 30s backoff, doubling to 1h). A request with no
-    credentials or an unknown cookie is refused without counting. While the lockout holds, a token
+    the same per-peer lockout (5 failures → 30s backoff, doubling with each lockout up to 1h; a peer
+    with no failure and no lockout for 1h starts over). A caller with no proxy header is its own
+    peer. Through the `public_url` host, the peer is the first `X-Forwarded-For` hop, so a remote
+    caller never locks out a terminal on the same machine; proxy headers on any other host share one
+    peer. A request with no credentials or an unknown cookie is refused without counting. While the lockout holds, a token
     or code is refused with `403 forbidden` before it is compared, right or wrong, and a code is
     not spent. A session is never refused by the lockout; a valid token or code clears it, a session
     does not.
@@ -481,7 +484,7 @@ UTF-8 text.
    `tailscale serve` on the same machine presents a loopback peer, so this and the proxy check are
    what keep a remote caller out.
 6. `Authorization: Bearer <token>` only; the session cookie is never read. A missing token is
-   `401 unauthorized`; a wrong one is `401` and counts toward the shared lockout (§1). While it
+   `401 unauthorized`; a wrong one is `401` and counts toward the terminal's own lockout (§1). While it
    holds, any token is `403 forbidden` without being compared.
 7. The exec sockets have their own cap (separate from `/v1/ws`); over it → `503 too_many_streams`.
 

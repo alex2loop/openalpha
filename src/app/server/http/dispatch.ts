@@ -246,7 +246,7 @@ export function toErrorCode(err: unknown): ApiErrorCode {
  *  here, so a cookie and a token are judged alike on each. */
 export async function resolveAuthorizedCaller(
   req: Request,
-  ctx: Pick<ApiRouteContext, 'app' | 'token' | 'ip' | 'pageOrigin' | 'cookieName'>
+  ctx: Pick<ApiRouteContext, 'app' | 'token' | 'peer' | 'pageOrigin' | 'cookieName'>
 ): Promise<Caller | Response> {
   // One clock read per request: the lockout window, the failure it records and the session's
   // idle cutoff must agree.
@@ -257,11 +257,11 @@ export async function resolveAuthorizedCaller(
     pageOrigin: ctx.pageOrigin,
     cookieName: ctx.cookieName,
     now,
-    locked: isAuthLocked(ctx.ip, now),
+    locked: isAuthLocked(ctx.peer, now),
     logger: ctx.app.resolve('logger'),
   })
 
-  return toAuthRefusal(resolveAuthOutcome(ctx.ip, caller.credential, now)) ?? caller
+  return toAuthRefusal(resolveAuthOutcome(ctx.peer, caller.credential, now)) ?? caller
 }
 
 /** The one place an auth verdict becomes a status. HTTP and the WebSocket upgrade refuse alike, so

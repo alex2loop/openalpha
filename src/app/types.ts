@@ -47,6 +47,8 @@ export interface ApiRouteContext {
   readonly token: string
   readonly live: LiveFeed
   readonly ip: string | null
+  /** Who the request counts as for the auth lockout, as `resolvePeerKey` found it. */
+  readonly peer: string
   /** The origin of the page the request belongs to, as `resolvePageOrigin` found it. */
   readonly pageOrigin: string
   readonly cookieName: string

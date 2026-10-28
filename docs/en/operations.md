@@ -394,10 +394,12 @@ Run the daemon on a server you own and point a client app at it.
    `proxy_set_header X-Forwarded-For $remote_addr;`. The daemon otherwise answers only a request
    addressed to `127.0.0.1`, `localhost` or `[::1]` (any port, so a tunnel works as is), which stops a
    DNS-rebinding page. With `public_url` set, `openalpha web` prints the `https://` link instead of a
-   tunnel. Every request through a proxy reaches the daemon from `127.0.0.1`, so five wrong tokens or
-   sign-in codes pause sign-ins for everyone for 30 seconds, doubling up to an hour. During that pause
-   every token and code is refused, right or wrong, so no guess is checked; a browser already signed
-   in carries on. Once it ends, a right token or code clears the count.
+   tunnel. Five wrong tokens or sign-in codes pause that caller for 30 seconds, and each pause after
+   that doubles, up to an hour; an hour with no wrong try starts it over. A caller through `public_url`
+   is told apart by the first address in `X-Forwarded-For`, so a guesser on the internet never pauses
+   your terminal or the CLI on the same machine. During a pause every token and code from that caller
+   is refused, right or wrong, so no guess is checked; a browser already signed in carries on. Once it
+   ends, a right token or code clears the count.
 6. **Connect the client.** Give the app the address and the token; every request carries the token
    as `Authorization: Bearer <token>`. At most 8 app streams (`/v1/ws`) are open at once; a ninth
    handshake is refused with 503 `too_many_streams`.
