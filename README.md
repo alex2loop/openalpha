@@ -15,6 +15,11 @@
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
 </p>
 
+<p><img src="assets/readme/new.vi.svg" height="24" alt="Mới" /></p>
+
+> [!TIP]
+> 🔥 **Mới:** cả đội AI của bạn làm việc trong một văn phòng pixel ngay trên trình duyệt. Nhìn ai đang làm gì, bấm vào một nhân vật để giao việc, liếc bảng thị trường bên cạnh. Mở bằng `openalpha web` · [xem cách dùng](#trang-văn-phòng).
+
 <p align="center">
   <img src="assets/readme/hero.vi.png" alt="Đề xuất yếu bị loại trước khi tới tay bạn, qua sáu bước: dữ liệu, bằng chứng, cổng chặn, tranh luận, kiểm tra, kết luận" width="100%" />
 </p>
@@ -222,32 +227,20 @@ Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/b
 
 ## Trang văn phòng
 
-<p><img src="assets/readme/new.vi.svg" height="24" alt="Mới" /></p>
-
-> [!TIP]
-> 🔥 **Mới:** cả đội AI của bạn làm việc trong một văn phòng pixel ngay trên trình duyệt. Nhìn ai đang làm gì, bấm vào một nhân vật để giao việc, liếc bảng thị trường bên cạnh. Mở bằng `openalpha web`.
-
 <p align="center">
   <img src="assets/readme/office.vi.gif" alt="Trang văn phòng của OpenAlpha: một văn phòng pixel nhìn từ trên xuống với kho dữ liệu, thư viện, phòng họp, sảnh, bàn cảnh báo và phòng trợ lý; các nhân vật đi lại theo phiên chạy thật của dịch vụ nền, dải giá chạy phía trên và ô câu lệnh ở dưới" width="100%" />
 </p>
 
 Trang văn phòng là một ô cửa kính nhìn vào dịch vụ nền: trợ lý, nhóm nghiên cứu và các agent của bạn làm việc trong từng phòng, và mỗi chuyển động là một phiên chạy, một bước hay một câu hỏi đang chờ bạn, không có gì diễn cho vui. Bên cạnh là danh mục, đề xuất, cuộc trò chuyện và ô câu lệnh. Trang không bao giờ đặt lệnh và không tự khởi động phiên chạy AI nào.
 
-Để mở trang, thêm hai dòng này vào `~/.openalpha/config.toml`:
-
-```toml
-[api]
-enabled = true
-```
-
-rồi chạy:
+Để mở trang, chạy:
 
 ```bash
-openalpha restart --background   # dịch vụ nền đọc lại cấu hình (chưa chạy thì dùng openalpha start --background)
+openalpha start --background     # dịch vụ nền phục vụ trang (đang chạy rồi thì bỏ qua)
 openalpha web                    # in liên kết đăng nhập dùng một lần (5 phút) và mở trình duyệt
 ```
 
-Ứng dụng desktop thì dùng địa chỉ và token mà `openalpha connect` in ra. Trang hiện gì, cách dùng và cách mở từ máy khác: [trang văn phòng](docs/van-hanh.md#trang-văn-phòng) · [chạy API trên máy chủ](docs/van-hanh.md#chạy-api-trên-máy-chủ). Cùng API đó cũng phục vụ ứng dụng của riêng bạn: xem [Nâng cao](#nâng-cao).
+Trang hiện gì, cách dùng và cách mở từ máy khác: [trang văn phòng](docs/van-hanh.md#trang-văn-phòng) · [chạy API trên máy chủ](docs/van-hanh.md#chạy-api-trên-máy-chủ). Cùng API đó cũng phục vụ ứng dụng của riêng bạn: xem [Nâng cao](#nâng-cao).
 
 ## Xem nó làm việc
 
@@ -443,7 +436,7 @@ openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, muse, 
 <details>
 <summary><b>Trang văn phòng và ứng dụng của riêng bạn (API)</b></summary>
 
-Đặt `[api] enabled = true` thì dịch vụ nền mở một API HTTP và WebSocket cục bộ trên `127.0.0.1`, có mã truy cập. Ứng dụng khách nhận được sổ giao dịch, giá, đề xuất và cuộc trò chuyện của bạn, cùng một luồng trực tiếp về những gì dịch vụ nền đang chạy: từng phiên chạy và các bước của nó, phê duyệt và câu hỏi đang chờ trên mọi kênh, các lần khớp lệnh và lúc chạm hạn mức chi tiêu. Cùng địa chỉ đó phục vụ [trang văn phòng](#trang-văn-phòng). Chạy `openalpha web` để lấy liên kết dùng một lần đăng nhập trình duyệt của bạn; ứng dụng desktop dùng địa chỉ và token mà `openalpha connect` in ra. Trang chỉ cho bạn xem, không quyết định thay bạn: không đặt lệnh và không tự khởi động phiên chạy AI nào. Cách bật và cách nối từ máy khác: [docs/van-hanh.md](docs/van-hanh.md#chạy-api-trên-máy-chủ). Trang cho thấy gì và dùng thế nào: [docs/van-hanh.md](docs/van-hanh.md#trang-văn-phòng)
+Dịch vụ nền mở sẵn một API HTTP và WebSocket cục bộ trên `127.0.0.1`, có mã truy cập (`[api] enabled = false` để tắt). Ứng dụng khách nhận được sổ giao dịch, giá, đề xuất và cuộc trò chuyện của bạn, cùng một luồng trực tiếp về những gì dịch vụ nền đang chạy: từng phiên chạy và các bước của nó, phê duyệt và câu hỏi đang chờ trên mọi kênh, các lần khớp lệnh và lúc chạm hạn mức chi tiêu. Cùng địa chỉ đó phục vụ [trang văn phòng](#trang-văn-phòng). Chạy `openalpha web` để lấy liên kết dùng một lần đăng nhập trình duyệt của bạn. Trang chỉ cho bạn xem, không quyết định thay bạn: không đặt lệnh và không tự khởi động phiên chạy AI nào. Cách bật và cách nối từ máy khác: [docs/van-hanh.md](docs/van-hanh.md#chạy-api-trên-máy-chủ). Trang cho thấy gì và dùng thế nào: [docs/van-hanh.md](docs/van-hanh.md#trang-văn-phòng)
 
 </details>
 
