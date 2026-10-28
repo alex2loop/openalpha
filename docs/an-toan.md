@@ -191,15 +191,18 @@ của nhà cung cấp mô hình, token API tự sinh, khóa mạng xã hội và
 theo `db export` hay `db backup`; xem [Lưu trữ](luu-tru.md#tệp-nằm-ngoài-cơ-sở-dữ-liệu).
 
 Khóa nhập trên trang văn phòng (Cài đặt > Nhà cung cấp, Sàn giao dịch và Công cụ) được ghi vào đúng tệp
-khóa mà `openalpha key set` ghi, `<thư mục dữ liệu>/env`, quyền `0600`, thay thế nguyên khối. Dịch vụ nền không
-bao giờ gửi lại giá trị đã lưu: trang chỉ biết một tên đã được lưu hay chưa, và giá trị bị từ chối không
-xuất hiện lại trong lỗi, trong log hay trong câu báo của ô nhập. Trang chỉ đặt được những biến mà mô hình,
-sàn, tìm kiếm web và nguồn dữ liệu của bạn đọc: mã API, token bot của từng kênh, biến của máy chủ MCP,
-các biến điều khiển của chính sản phẩm (như `OPENALPHA_DATA_DIR`) và những tên quyết định cách chương trình khởi chạy đều
-bị từ chối, cũng như giá trị có xuống dòng, có khoảng trắng ở đầu hay cuối, hoặc dài quá 4.096 ký tự.
-Khóa nằm trong biến nào (`api_key_env`, `[trading.sources]`, `credentials` của một sàn) chỉ đặt được bằng
-câu lệnh hoặc sửa tệp, nên trang không thể trỏ một khóa sang chỗ mới. Khi đã đặt `[api] public_url`, dù mới
-lưu trên đĩa hay đang chạy, trang không đổi khóa nào và không bắt đầu đăng nhập ChatGPT.
+khóa mà `openalpha key set` ghi, `<thư mục dữ liệu>/env`, quyền `0600`, thay thế nguyên khối.
+
+- Dịch vụ nền không bao giờ gửi lại giá trị đã lưu. Trang chỉ biết một tên đã được lưu hay chưa, và giá
+  trị bị từ chối không xuất hiện lại trong lỗi, trong log hay trong câu báo của ô nhập.
+- Trang chỉ đặt được những biến mà mô hình, sàn, tìm kiếm web và nguồn dữ liệu của bạn đọc. Mã API,
+  token bot của từng kênh, biến của máy chủ MCP, các biến điều khiển của chính sản phẩm (như
+  `OPENALPHA_DATA_DIR`) và những tên quyết định cách chương trình khởi chạy đều bị từ chối. Giá trị có
+  xuống dòng, có khoảng trắng ở đầu hay cuối, hoặc dài quá 4.096 ký tự cũng vậy.
+- Khóa nằm trong biến nào (`api_key_env`, `[trading.sources]`, `credentials` của một sàn) chỉ đặt được
+  bằng câu lệnh hoặc sửa tệp, nên trang không thể trỏ một khóa sang chỗ mới.
+- Khi đã đặt `[api] public_url`, dù mới lưu trên đĩa hay đang chạy, trang không đổi khóa nào và không bắt
+  đầu đăng nhập ChatGPT.
 
 Việc nhận diện thông tin đăng nhập bao gồm header authorization, token của nhà cung cấp, JWT, khóa
 riêng, chứng chỉ và URL có mang thông tin đăng nhập. Nó được dùng theo ba hướng:
@@ -237,12 +240,16 @@ môi trường đã lọc, cùng `HOME` và thư mục tạm riêng cho mỗi ph
 
 Mọi thứ ghi dưới thư mục dữ liệu đều chỉ của riêng bạn: thư mục `0700`, tệp `0600`. Phạm vi này gồm
 token của nhà cung cấp, tệp agent và kỹ năng, các bản cài plugin, log, thư mục nháp, đầu ra `db export`
-và các bản sao lưu cơ sở dữ liệu. Bản sao lưu chứa mọi cuộc trò chuyện, mọi bộ nhớ và mọi dòng sổ, nên nó
-không bao giờ thừa hưởng một umask để lại quyền đọc cho người khác. Tệp xuất hiện bằng một lần rename
-nguyên tử, với quyền đã đặt **trước** lần rename đó, nên không ai thấy một tệp dở dang hay mở quyền. Bản sao lưu là tệp duy nhất do chính cơ sở dữ liệu
-ghi ra, nên nó được ghi trong một thư mục tạm riêng tư `0700` và chỉ chuyển ra khi đã hoàn tất.
-Windows không có các bit quyền này: ở đó thư mục dữ liệu nằm trong hồ sơ người dùng của bạn
-(`%USERPROFILE%\.openalpha`), vốn đã chặn các tài khoản khác.
+và các bản sao lưu cơ sở dữ liệu.
+
+- Bản sao lưu chứa mọi cuộc trò chuyện, mọi bộ nhớ và mọi dòng sổ, nên nó không bao giờ thừa hưởng một
+  umask để lại quyền đọc cho người khác.
+- Tệp xuất hiện bằng một lần rename nguyên tử, với quyền đã đặt **trước** lần rename đó, nên không ai
+  thấy một tệp dở dang hay mở quyền.
+- Bản sao lưu là tệp duy nhất do chính cơ sở dữ liệu ghi ra. Nên nó được ghi trong một thư mục tạm riêng
+  tư `0700` và chỉ chuyển ra khi đã hoàn tất.
+- Windows không có các bit quyền này. Ở đó thư mục dữ liệu nằm trong hồ sơ người dùng của bạn
+  (`%USERPROFILE%\.openalpha`), vốn đã chặn các tài khoản khác.
 
 ### Yêu cầu đi ra
 

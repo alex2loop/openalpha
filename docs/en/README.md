@@ -41,7 +41,7 @@ plugin, adding a data source or a channel, and why the code is shaped the way it
 
 ## Contributing to the docs
 
-Fixes and new pages are welcome. Keep one subject per page; a paragraph that fits two pages wants a
-link instead. Write the English page first, add its Vietnamese twin under a Vietnamese name, and add a
+Fixes and new pages are welcome. Keep one subject per page. If a paragraph fits two pages, link to it
+instead of copying it. Write the English page first, add its Vietnamese twin under a Vietnamese name, and add a
 row to both indexes. Anything an operator does goes in a guide; anything only a developer needs goes
 in `dev/`.

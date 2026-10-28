@@ -44,7 +44,7 @@ thêm nguồn dữ liệu hay kênh mới, và lý do code được tổ chức 
 
 ## Đóng góp tài liệu
 
-Rất hoan nghênh chỗ sửa hay trang mới. Mỗi trang một chủ đề; đoạn nào hợp với hai trang thì nên dùng
-link thay vì chép lại. Viết bản tiếng Anh trong `en/` trước, thêm bản tiếng Việt với tên tiếng Việt, và
+Rất hoan nghênh chỗ sửa hay trang mới. Mỗi trang một chủ đề. Đoạn nào hợp với cả hai trang thì đặt
+link tới nó, đừng chép lại. Viết bản tiếng Anh trong `en/` trước, thêm bản tiếng Việt với tên tiếng Việt, và
 thêm một dòng vào cả hai bảng mục lục. Việc operator làm thì vào trang hướng dẫn; thứ chỉ developer cần
 thì vào `dev/`.

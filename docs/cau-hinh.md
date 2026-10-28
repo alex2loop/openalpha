@@ -528,7 +528,20 @@ chính lẫn bên dự phòng. `ANYSEARCH_API_KEY` là tùy chọn; không có n
 thấp hơn. Nó trả tối đa 20 kết quả, gửi `[locale] language`, và không hỗ trợ lọc theo độ mới, nên một
 yêu cầu về độ mới được báo là chưa kiểm chứng.
 
-`deepseek` là lựa chọn tiết kiệm: khoảng 0,75 USD cho 1.000 lượt tìm, lượt nào không ra kết quả thì không mất tiền. Nó đọc tốt nguồn tiếng Việt lẫn tiếng Anh, có ngày đăng cho từng kết quả và lọc đúng theo độ mới, nên "tuần trước" là đúng tuần trước. Nó dùng chung `DEEPSEEK_API_KEY` với mô hình DeepSeek; hãy đặt `cost_per_search_usd = 0.00075` để khoản chi hiện trong tổng. DeepSeek chỉ nhận truy vấn ngắn (128 ký tự). Truy vấn dài bị cắt bớt từ cuối nhưng vẫn giữ danh sách trang bạn chọn; chỉ khi danh sách dài tới mức gần hết chỗ cho câu hỏi thì nó mới chuyển sang lọc trên kết quả. Trang loại trừ luôn được lọc trên kết quả, nên bạn vẫn chỉ nhận đúng các trang đã chọn. DeepSeek không nhận tham số ngôn ngữ, nên bản dịch máy của một trang (đường dẫn kiểu `/nl/`, `/de/`) bị bỏ khỏi kết quả, chỉ giữ trang đúng ngôn ngữ của bạn. Các lượt tìm được giãn nhịp theo giới hạn 5 lượt mỗi giây của DeepSeek.
+`deepseek` là lựa chọn tiết kiệm: khoảng 0,75 USD cho 1.000 lượt tìm, lượt nào không ra kết quả thì
+không mất tiền. Nó đọc tốt nguồn tiếng Việt lẫn tiếng Anh, có ngày đăng cho từng kết quả và lọc đúng
+theo độ mới, nên "tuần trước" là đúng tuần trước. Nó dùng chung `DEEPSEEK_API_KEY` với mô hình
+DeepSeek; hãy đặt `cost_per_search_usd = 0.00075` để khoản chi hiện trong tổng.
+
+Vài giới hạn cần biết:
+
+- DeepSeek chỉ nhận truy vấn ngắn (128 ký tự). Truy vấn dài bị cắt bớt từ cuối nhưng vẫn giữ danh sách
+  trang bạn chọn. Chỉ khi danh sách dài tới mức gần hết chỗ cho câu hỏi thì nó mới chuyển sang lọc
+  trên kết quả.
+- Trang loại trừ luôn được lọc trên kết quả, nên bạn vẫn chỉ nhận đúng các trang đã chọn.
+- DeepSeek không nhận tham số ngôn ngữ. Nên bản dịch máy của một trang (đường dẫn kiểu `/nl/`, `/de/`)
+  bị bỏ khỏi kết quả, chỉ giữ trang đúng ngôn ngữ của bạn.
+- Các lượt tìm được giãn nhịp theo giới hạn 5 lượt mỗi giây của DeepSeek.
 
 Khóa chỉ lấy từ biến môi trường mà `api_key_env` và `fallback_api_key_env` nêu tên.
 Cài đặt > Công cụ trên trang văn phòng đổi được `provider` (sau khi khởi động lại) và lưu chính khóa, còn
@@ -548,27 +561,38 @@ hỏng 3 lần liên tiếp thì bị bỏ qua 1 phút. Cache giữ 100 mục m�
 ### `[api]`
 
 API HTTP/WS (`/v1`) mà các ứng dụng khách dùng. `openalpha start` mở API khi `enabled = true`; một lệnh
-chạy một lần không bao giờ mở cổng. API chỉ nghe trên `127.0.0.1` và từ chối mọi máy khác, nên máy khác
-phải nối qua đường hầm SSH hoặc một reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ
-trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]`, hoặc tới `public_url` khi đã đặt. Ô sửa
-cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ MCP, mọi khóa `*_env`
-cùng mọi mục khác ghi tên biến môi trường (`[trading.sources]`, `[trading.venues.<id>] credentials`),
-`base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` hay `[trading.orders]
-allow_unattended`; những mục đó bạn sửa ngay trong file này. Bản thân giá trị khóa thì lưu được từ
-Cài đặt > Nhà cung cấp, Sàn giao dịch và Công cụ, các mục này ghi `<thư mục dữ liệu>/env` giống `openalpha key set`.
+chạy một lần không bao giờ mở cổng.
 
-Bất cứ thứ gì đứng trước dịch vụ nền (proxy như Caddy hay nginx, `tailscale serve`, một tên miền) đều cần `public_url`
-đặt là địa chỉ trình duyệt mở. Chính nó bật các giới hạn khi bị phơi ra ngoài và cookie đăng nhập `__Host-`.
-Khi chưa đặt, dịch vụ nền chỉ bắt được proxy gửi `X-Forwarded-For` hoặc `Forwarded`, hay một `Host` không phải
-tên cục bộ, và từ chối chúng kèm một câu nêu tên `public_url`. Proxy không gửi cả hai (một `proxy_pass`
-nginx trần gửi `Host: 127.0.0.1:<cổng>` và không có tiêu đề chuyển tiếp nào) trông như yêu cầu cục bộ, nên
-hãy đặt `public_url` trước khi mở ra ngoài, và cho nginx gửi `proxy_set_header Host $host;` cùng
-`proxy_set_header X-Forwarded-For $remote_addr;`. Đặt `public_url` cũng thu hẹp việc ứng dụng làm được, vì
-lúc này ứng dụng với tới được từ bên ngoài: các đường đặt lệnh của API và `/trade` vẫn tắt cho tới khi đặt
-`orders = true`; chat từ ứng dụng không chạy được lệnh shell, không ghi tệp và không dùng công cụ của máy
-chủ MCP hay plugin, cũng không dùng công cụ mạng xã hội; công việc tạo từ ứng dụng chỉ trả lời trong ứng
-dụng; còn việc duyệt ghép nối cùng `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng
-kênh chỉ đổi được trên máy chủ: bằng câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
+API chỉ nghe trên `127.0.0.1` và từ chối mọi máy khác. Nên máy khác phải nối qua đường hầm SSH hoặc một
+reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ trả lời yêu cầu gửi tới `127.0.0.1`,
+`localhost` hoặc `[::1]`, hoặc tới `public_url` khi đã đặt.
+
+Ô sửa cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ MCP, mọi khóa
+`*_env` cùng mọi mục khác ghi tên biến môi trường (`[trading.sources]`,
+`[trading.venues.<id>] credentials`), `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
+`[update]` hay `[trading.orders] allow_unattended`; những mục đó bạn sửa ngay trong file này. Bản thân
+giá trị khóa thì lưu được từ Cài đặt > Nhà cung cấp, Sàn giao dịch và Công cụ; các mục này ghi
+`<thư mục dữ liệu>/env` giống `openalpha key set`.
+
+Bất cứ thứ gì đứng trước dịch vụ nền (proxy như Caddy hay nginx, `tailscale serve`, một tên miền) đều
+cần `public_url` đặt là địa chỉ trình duyệt mở. Chính nó bật các giới hạn khi bị phơi ra ngoài và cookie
+đăng nhập `__Host-`.
+
+Khi chưa đặt, dịch vụ nền chỉ bắt được proxy gửi `X-Forwarded-For` hoặc `Forwarded`, hay một `Host`
+không phải tên cục bộ. Nó từ chối chúng kèm một câu nêu tên `public_url`. Proxy không gửi cả hai (một
+`proxy_pass` nginx trần gửi `Host: 127.0.0.1:<cổng>` và không có tiêu đề chuyển tiếp nào) trông như yêu
+cầu cục bộ. Nên hãy đặt `public_url` trước khi mở ra ngoài, và cho nginx gửi
+`proxy_set_header Host $host;` cùng `proxy_set_header X-Forwarded-For $remote_addr;`.
+
+Đặt `public_url` cũng thu hẹp việc ứng dụng làm được, vì lúc này ứng dụng với tới được từ bên ngoài:
+
+- các đường đặt lệnh của API và `/trade` vẫn tắt cho tới khi đặt `orders = true`;
+- chat từ ứng dụng không chạy được lệnh shell, không ghi tệp và không dùng công cụ của máy chủ MCP hay
+  plugin, cũng không dùng công cụ mạng xã hội;
+- công việc tạo từ ứng dụng chỉ trả lời trong ứng dụng;
+- việc duyệt ghép nối cùng `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng kênh
+  chỉ đổi được trên máy chủ: bằng câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
+
 Khi đó trang cũng không lưu khóa nào và không bắt đầu đăng nhập ChatGPT: hãy dùng `openalpha key set` và
 `openalpha auth login chatgpt` trên máy chủ.
 
@@ -971,22 +995,29 @@ API cũng dùng đúng các bước đó. Giá trị cấu hình nêu tên thị
 ký cũng lỗi ngay ở đây, không đợi tới lần dùng đầu tiên. Khóa chưa đặt của một mô hình mà chuỗi của nó vẫn còn
 mô hình khác trả lời được chỉ là cảnh báo, không làm lệnh thất bại.
 
-Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa. Một phiên chạy liệt
-kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằng một con số), nên bạn sửa một lượt rồi mới
-chạy lại. Khóa gõ sai thì được gợi ý tên gần nhất, ví dụ `max_daly_usd` gợi ý `max_daily_usd`. `config
-validate` cũng đối chiếu tên nhà cung cấp trong `[[models]]` với danh mục, và báo biến môi trường của
-khóa còn thiếu như một mục trong cùng danh sách thay vì dừng ở đó. `--verbose` in thêm toàn bộ danh sách
-lỗi schema. Thiếu biến môi trường của khóa thì câu báo chỉ luôn lệnh lưu nó:
-`openalpha key set TÊN`, giống nhau trên mọi hệ. Khóa được giữ trong `<thư mục dữ liệu>/env`, mọi
-lệnh đều đọc tệp này lúc bắt đầu. Biến đặt trong môi trường luôn thắng tệp. Tệp chỉ giữ khóa dịch vụ,
-kể cả khóa mang tiền tố `OPENALPHA_` như `OPENALPHA_OPENROUTER_API_KEY`: các tên điều khiển chính
-OpenAlpha (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) hay cách chương trình khởi động (`PATH`,
-`NODE_OPTIONS`, `LD_*`...) bị bỏ qua, và `#` sau
-một dấu cách là chú thích. Tệp khóa theo `--data-dir`
-hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu hình. Thiếu khóa của mô hình chỉ chặn những việc cần
-gọi AI: `status`, `stop`, `/price`, `/portfolio`, `/record` và các lệnh miễn phí khác vẫn chạy, còn
-`openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn lưu
-khóa bằng `openalpha key set <TÊN>` rồi chạy `openalpha restart --background`.
+Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa.
+
+- Một phiên chạy liệt kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằng một con số), nên bạn
+  sửa một lượt rồi mới chạy lại.
+- Khóa gõ sai thì được gợi ý tên gần nhất, ví dụ `max_daly_usd` gợi ý `max_daily_usd`.
+- `config validate` cũng đối chiếu tên nhà cung cấp trong `[[models]]` với danh mục. Nó báo biến môi
+  trường của khóa còn thiếu như một mục trong cùng danh sách thay vì dừng ở đó.
+- `--verbose` in thêm toàn bộ danh sách lỗi schema.
+
+Thiếu biến môi trường của khóa thì câu báo chỉ luôn lệnh lưu nó: `openalpha key set TÊN`, giống nhau
+trên mọi hệ. Khóa được giữ trong `<thư mục dữ liệu>/env`, mọi lệnh đều đọc tệp này lúc bắt đầu. Biến đặt
+trong môi trường luôn thắng tệp.
+
+Tệp chỉ giữ khóa dịch vụ, kể cả khóa mang tiền tố `OPENALPHA_` như `OPENALPHA_OPENROUTER_API_KEY`. Các
+tên điều khiển chính OpenAlpha (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) hay cách chương trình khởi
+động (`PATH`, `NODE_OPTIONS`, `LD_*`...) bị bỏ qua, và `#` sau một dấu cách là chú thích. Tệp khóa theo
+`--data-dir` hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu
+hình.
+
+Thiếu khóa của mô hình chỉ chặn những việc cần gọi AI. `status`, `stop`, `/price`, `/portfolio`,
+`/record` và các lệnh miễn phí khác vẫn chạy. `openalpha start` vẫn khởi động kèm một dòng cảnh báo,
+chạy mọi việc không cần AI cho tới khi bạn lưu khóa bằng `openalpha key set <TÊN>` rồi chạy
+`openalpha restart --background`.
 
 ```text
 config.toml có chỗ cần sửa:

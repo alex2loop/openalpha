@@ -530,7 +530,20 @@ the fallback. `ANYSEARCH_API_KEY` is optional; without it you get anonymous acce
 It returns at most 20 results, sends your `[locale] language`, and does not support recency, so a
 requested recency is reported as unverified.
 
-`deepseek` is the budget pick: about $0.75 per 1,000 searches, and an empty search costs nothing. It reads Vietnamese and English sources well, dates its results and honors recency, so "last week" really means last week. It shares `DEEPSEEK_API_KEY` with DeepSeek models; set `cost_per_search_usd = 0.00075` so the spend shows in your totals. DeepSeek takes short queries (128 characters). A long one is trimmed from the end but keeps the sites you chose; only a site list long enough to crowd out the question moves to filtering the results. Excluded sites are always filtered from the results, so you still get only the sites you asked for. DeepSeek takes no language, so a page's machine-translated copies (paths like `/nl/`, `/de/`) are dropped and only pages in your language are kept. Searches are paced to DeepSeek's limit of 5 a second.
+`deepseek` is the budget pick: about $0.75 per 1,000 searches, and an empty search costs nothing. It
+reads Vietnamese and English sources well, dates its results and honors recency, so "last week" really
+means last week. It shares `DEEPSEEK_API_KEY` with DeepSeek models; set
+`cost_per_search_usd = 0.00075` so the spend shows in your totals.
+
+A few limits to know:
+
+- DeepSeek takes short queries (128 characters). A long one is trimmed from the end but keeps the
+  sites you chose. Only a site list long enough to crowd out the question moves to filtering the
+  results.
+- Excluded sites are always filtered from the results, so you still get only the sites you asked for.
+- DeepSeek takes no language. So a page's machine-translated copies (paths like `/nl/`, `/de/`) are
+  dropped, and only pages in your language are kept.
+- Searches are paced to DeepSeek's limit of 5 a second.
 
 Keys come only from the environment variables named by `api_key_env` and `fallback_api_key_env`.
 The office page's Settings > Tools switches `provider` (after a restart) and saves the key itself, but the
@@ -550,27 +563,38 @@ A provider call times out after 15 seconds and retries transient failures up to 
 ### `[api]`
 
 The HTTP/WS API (`/v1`) that client apps talk to. `openalpha start` serves it when `enabled = true`;
-a one-off command never opens the port. It binds `127.0.0.1` only and refuses every other peer, so a
-client on another machine connects through an SSH tunnel or a reverse proxy on the same host (see
-[Operations](operations.md)). It answers only a request addressed to `127.0.0.1`, `localhost` or
-`[::1]`, or to `public_url` when set. The office page's config editor cannot change plugins, an MCP
-server's command, every `*_env` key and every other field naming an environment variable (`[trading.sources]`,
+a one-off command never opens the port.
+
+It binds `127.0.0.1` only and refuses every other peer. So a client on another machine connects
+through an SSH tunnel or a reverse proxy on the same host (see [Operations](operations.md)). It
+answers only a request addressed to `127.0.0.1`, `localhost` or `[::1]`, or to `public_url` when set.
+
+The office page's config editor cannot change plugins, an MCP server's command, every `*_env` key and
+every other field naming an environment variable (`[trading.sources]`,
 `[trading.venues.<id>] credentials`), `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
 `[update]` or `[trading.orders] allow_unattended`; change those here. The key values themselves can be
-saved from Settings > Providers, Exchanges and Tools, which write `<data dir>/env` as `openalpha key set` does.
+saved from Settings > Providers, Exchanges and Tools, which write `<data dir>/env` as
+`openalpha key set` does.
 
 Anything in front of the daemon (a proxy such as Caddy or nginx, `tailscale serve`, a domain) needs
 `public_url` set to the address the browser opens. That is what turns on the exposure limits and the
-`__Host-` sign-in cookie. Without it the daemon only catches a proxy that sends `X-Forwarded-For` or
-`Forwarded`, or a `Host` that is not a local name, and refuses those with a line naming `public_url`.
-A proxy that passes neither (a bare nginx `proxy_pass` sends `Host: 127.0.0.1:<port>` and no forwarded
-header) looks local, so set `public_url` before you expose it, and have nginx send
-`proxy_set_header Host $host;` and `proxy_set_header X-Forwarded-For $remote_addr;`. Setting
-`public_url` also limits what the app can do, because it is now reachable from outside: the API's order
-routes and `/trade` stay off until `orders = true`; chats from the app cannot run shell commands, write
-files or use tools from MCP servers or plugins, nor the social network tools; jobs made from the app
-answer only in the app; and pairing approval plus each channel's `allowed_ids`, `operator_user_ids`,
-`pairing` and `dm_policy` are server-only: they change from the CLI or this file, never from the app.
+`__Host-` sign-in cookie.
+
+Without it, the daemon only catches a proxy that sends `X-Forwarded-For` or `Forwarded`, or a `Host`
+that is not a local name. It refuses those with a line naming `public_url`. A proxy that passes
+neither (a bare nginx `proxy_pass` sends `Host: 127.0.0.1:<port>` and no forwarded header) looks
+local. So set `public_url` before you expose it, and have nginx send `proxy_set_header Host $host;`
+and `proxy_set_header X-Forwarded-For $remote_addr;`.
+
+Setting `public_url` also limits what the app can do, because it is now reachable from outside:
+
+- the API's order routes and `/trade` stay off until `orders = true`;
+- chats from the app cannot run shell commands, write files or use tools from MCP servers or
+  plugins, nor the social network tools;
+- jobs made from the app answer only in the app;
+- pairing approval plus each channel's `allowed_ids`, `operator_user_ids`, `pairing` and
+  `dm_policy` are server-only: they change from the CLI or this file, never from the app.
+
 The page then saves no key and starts no ChatGPT sign-in either: use `openalpha key set` and
 `openalpha auth login chatgpt` on the server.
 
@@ -973,21 +997,29 @@ same checks. A config value that names an unregistered market, venue or default 
 too, not on first use. An unset key for a model whose chain still has another model to answer is a
 warning, and the run does not fail on it.
 
-Every error is reported in your `[locale]` language and names the setting to fix. One run lists every
-problem in the file (up to 8, the rest as a count), so you fix them in one pass before running again.
-A misspelt key gets the nearest known name, for example `max_daly_usd` suggests `max_daily_usd`.
-`config validate` also checks each `[[models]]` provider name against the catalog, and reports an
-unset key variable as one item in the same list instead of stopping there. `--verbose` adds the full
-list of schema issues. A missing key variable comes with the command that stores it:
-`openalpha key set NAME`, the same on every platform. It keeps the key in `<data dir>/env`, which every
-command reads at start. A variable set in your environment wins over the file. The file holds service
-keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY` included: names that steer
-OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs start (`PATH`,
-`NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts a comment. The key file follows
-`--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since it is read before the config is. A missing model key stops only what needs the model:
-`status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, and
-`openalpha start` starts with a warning, running everything that needs no model until you save the key
-with `openalpha key set <NAME>` and run `openalpha restart --background`.
+Every error is reported in your `[locale]` language and names the setting to fix.
+
+- One run lists every problem in the file (up to 8, the rest as a count), so you fix them in one pass
+  before running again.
+- A misspelt key gets the nearest known name, for example `max_daly_usd` suggests `max_daily_usd`.
+- `config validate` also checks each `[[models]]` provider name against the catalog. It reports an
+  unset key variable as one item in the same list instead of stopping there.
+- `--verbose` adds the full list of schema issues.
+
+A missing key variable comes with the command that stores it: `openalpha key set NAME`, the same on
+every platform. It keeps the key in `<data dir>/env`, which every command reads at start. A variable
+set in your environment wins over the file.
+
+The file holds service keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY`
+included. Names that steer OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how
+programs start (`PATH`, `NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts
+a comment. The key file follows `--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since
+it is read before the config is.
+
+A missing model key stops only what needs the model. `status`, `stop`, `/price`, `/portfolio`,
+`/record` and the other free commands still run. `openalpha start` starts with a warning, running
+everything that needs no model until you save the key with `openalpha key set <NAME>` and run
+`openalpha restart --background`.
 
 ```text
 config.toml has things to fix:

@@ -109,9 +109,15 @@ that cannot be rebuilt.
 
 **Series.** `series_points` holds day-keyed scalar series. The domestic gold premium is derived from
 fetched history: each pass backfills the percentile window's missing days from dated gold board
-history, world closes and FX history. The FX series is written from a fetched one. An ordinary
-refresh does not overwrite a day already recorded, because a board does not change once its session
-has closed. A forced refresh replaces it, and that is the one way to correct a day. The Vietnamese index ratios (P/E, P/B, dividend yield, their five-year averages and the share of stocks above their 50- and 200-session mean, for VN-Index, VN30 and HNX) are written once a day per index by the refresh, one row per ratio and day, so the daemon keeps its own valuation history; what each stock contributed to an index is never stored.
+history, world closes and FX history. The FX series is written from a fetched one.
+
+An ordinary refresh does not overwrite a day already recorded, because a board does not change once
+its session has closed. A forced refresh replaces it, and that is the one way to correct a day.
+
+The Vietnamese index ratios are written once a day per index by the refresh, one row per ratio and
+day. They are P/E, P/B, dividend yield, their five-year averages and the share of stocks above their
+50- and 200-session mean, for VN-Index, VN30 and HNX. So the daemon keeps its own valuation history.
+What each stock contributed to an index is never stored.
 
 #### Agents and focus
 
@@ -154,12 +160,16 @@ part has its own steps in [Social networks](social.md#moving-to-another-machine)
 
 ### Migrations
 
-Migrations apply at boot, in filename order, as one all-or-nothing batch: if one fails, none of that
-batch is applied and the later ones do not run. `db migrate --status` shows each as applied,
-pending or orphaned. An orphan is an applied migration this version of the code does not know, which
-means a newer release updated the database. This version then refuses to start, and `doctor` fails
-the database check, rather than misreading it. Run `upgrade` to go back to the newer release, or
-restore the copy in `backups/pre-migration/` with `db restore`.
+Migrations apply at boot, in filename order, as one all-or-nothing batch. If one fails, none of that
+batch is applied and the later ones do not run. `db migrate --status` shows each as applied, pending
+or orphaned.
+
+An orphan is an applied migration this version of the code does not know. It means a newer release
+updated the database. This version then refuses to start, and `doctor` fails the database check,
+rather than misreading it. You have two ways out:
+
+- run `upgrade` to go back to the newer release;
+- or restore the copy in `backups/pre-migration/` with `db restore`.
 
 `db migrate` snapshots into `backups/pre-migration/` before applying a pending migration, and
 `db migrate down` into `backups/pre-rollback/` before rolling one back. Neither writes anything when
@@ -204,12 +214,17 @@ The windows are set by [`[retention]`](configuration.md#retention): `days` is th
 | Market data | Not touched by `db cleanup`. Each market's refresh trims its own old rows by fetch time after a pass that wrote. News ages out the same way, on its own window. |
 
 The daemon applies retention once at startup and then on a schedule. `db cleanup --older-than
-<duration>` runs the same policy by hand, needs the daemon stopped, and with `--dry-run` only
-counts. `--older-than` is required, overrides the general window for that command only and must be
-at least `1d`. Inbox entries still use `inbox_days`, the track record `history_days` (never below
-`--older-than`), and `llm_attempts` keeps its own 400 days. Where a table is kept longer than
-`history_days` because its readers need it, the command prints that table's window under the history
-window, and it counts the scored calls whose factor sources it emptied.
+<duration>` runs the same policy by hand.
+
+- It needs the daemon stopped.
+- With `--dry-run` it only counts.
+- `--older-than` is required. It overrides the general window for that command only, and must be at
+  least `1d`.
+- Inbox entries still use `inbox_days`. The track record uses `history_days` (never below
+  `--older-than`). `llm_attempts` keeps its own 400 days.
+- Where a table is kept longer than `history_days` because its readers need it, the command prints
+  that table's window under the history window. It also counts the scored calls whose factor sources
+  it emptied.
 
 Rows are deleted in pages of 5,000, each page its own transaction, so a large backlog never holds
 the write lock for long; one sweep takes at most 20 pages per kind and leaves the rest for the next.
@@ -229,10 +244,11 @@ openalpha db import --in ./export
 
 **Export** writes one file per table. Without `--table` it writes the durable set: the ledger, past
 suggestions, the profile, alerts, memory, sessions and their transcripts, jobs, bindings, spend
-history, brief delivery state, intraday settings and every other durable table above. Market data is
-skipped because `refresh` re-derives every row. `--table` still reaches any registered table by
-name. A table the registry names but the database has not created yet (after a schema change, before
-`db reset`) is skipped with a note: it holds nothing to keep.
+history, brief delivery state, intraday settings and every other durable table above.
+
+Market data is skipped, because `refresh` re-derives every row. `--table` still reaches any registered
+table by name. A table the registry names but the database has not created yet (after a schema change,
+before `db reset`) is skipped with a note: it holds nothing to keep.
 
 - Two exports of unchanged rows diff clean. Values go out as stored: nano-USD stays nano-USD, an
   epoch-ms column stays a number.
@@ -274,11 +290,13 @@ openalpha db backup --path /safe/place/runtime.sqlite
 openalpha db restore /safe/place/runtime.sqlite --yes
 ```
 
-**Backup** writes a consistent snapshot while the database is live and sets it to `0600`, wherever
-`--path` points. It holds every session, memory and ledger row, so it is never readable by the group
+**Backup** writes a consistent snapshot while the database is live, and sets it to `0600`, wherever
+`--path` points. It holds every session, memory and ledger row. So it is never readable by the group
 or everyone, not even while it is being written: the copy is made in a private `0700` staging folder
-next to the target and moved into place when it is complete. A crash can leave a `.staging-` folder
-behind; the automatic backups folder clears it on the next backup, anywhere else delete it by hand. Automatic backup destinations keep the seven newest files.
+next to the target, and moved into place when it is complete.
+
+A crash can leave a `.staging-` folder behind. The automatic backups folder clears it on the next
+backup; anywhere else, delete it by hand. Automatic backup destinations keep the seven newest files.
 
 The daemon also takes one backup a day by itself, into `backups/daily/`, and keeps the newest three
 (`[retention] daily_backups`, `0` turns it off). The first lands when the daemon starts, and a later
@@ -291,11 +309,14 @@ passes `PRAGMA quick_check`, then keeps the database it replaces in `backups/` u
 name, so restoring twice never loses the original. A previous database that cannot be opened does
 not block the restore: it is moved into `backups/` the same way.
 
-**Moving servers.** You need only the one file; renaming it is fine, and the target needs no
-prepared data directory. Migration state travels inside the file, so the new host reports its
-migrations as already applied. The target must run code that recognises those migrations; if not,
-`db migrate --status` reports an orphan. Both hosts must use SQLite: a SQLite backup cannot be
-loaded into PostgreSQL. To move between engines, use `db export` and `db import`.
+**Moving servers.** You need only the one file. Renaming it is fine, and the target needs no prepared
+data directory. Migration state travels inside the file, so the new host reports its migrations as
+already applied.
+
+- The target must run code that recognises those migrations. If not, `db migrate --status` reports an
+  orphan.
+- Both hosts must use SQLite: a SQLite backup cannot be loaded into PostgreSQL. To move between
+  engines, use `db export` and `db import`.
 
 These commands deliberately do not back up or restore PostgreSQL. Use the database service's own
 backup, point-in-time recovery and access controls.
@@ -416,11 +437,12 @@ under the new route.
 
 Compaction starts when the history approaches the model's context window or exceeds the soft message
 cap. The threshold, the message cap and the maximum number of passes are under
-[`[loop]`](configuration.md#loop). It keeps the system head, summarises the older middle, and keeps
-the ten most recent message groups (a user message, or an assistant message with its tool results),
-so a run driven by one long request still has older content to shrink. A configured fast model is
-preferred for summarising; otherwise the primary model is used. Summary calls are budgeted, priced
-and saved as `compaction` attempts.
+[`[loop]`](configuration.md#loop).
+
+It keeps the system head, summarises the older middle, and keeps the ten most recent message groups (a
+user message, or an assistant message with its tool results). So a run driven by one long request
+still has older content to shrink. A configured fast model is preferred for summarising; otherwise the
+primary model is used. Summary calls are budgeted, priced and saved as `compaction` attempts.
 
 - Each tool call stays together with its result. Orphaned calls and results are dropped, repeated
   results are folded, and integrity is checked before the next provider request.
@@ -437,10 +459,10 @@ and saved as `compaction` attempts.
 ### Todo list restoration
 
 A `todo_write` result is an ordinary tool message, so compaction or the message cap can remove it
-while the agent is still working through the list. The run keeps its own copy outside the transcript
-and re-appends the list before the next model call once no `todo_write` result or earlier
-restoration notice is still visible. A visible list is never duplicated, so a long session pays one
-message per compaction, not one per turn.
+while the agent is still working through the list. To guard against that, the run keeps its own copy
+outside the transcript. Before the next model call, it re-appends the list once no `todo_write` result
+or earlier restoration notice is still visible. A visible list is never duplicated, so a long session
+pays one message per compaction, not one per turn.
 
 Only a `todo_write` result refreshes the copy: a summary that paraphrases the list cannot overwrite
 what the agent wrote. The restoration notice exists only in the prompt. It is never saved to the

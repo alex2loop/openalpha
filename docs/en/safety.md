@@ -187,15 +187,18 @@ do not travel with `db export` or `db backup`; see
 [Storage](storage.md#files-outside-the-database).
 
 Keys typed on the office page (Settings > Providers, Exchanges and Tools) go to the same key file
-`openalpha key set` writes, `<data dir>/env`, mode `0600`, replaced atomically. The daemon never sends
-a saved value back: the page learns only whether a name is saved, and a refused value is not echoed
-in the error, the log or the field's sentence. The page may set only the variables your models,
-exchanges, web search and data sources read: the API token, a channel's bot token, an MCP server's
-variables, the product's own control variables (such as `OPENALPHA_DATA_DIR`) and the names that steer how programs start
-are refused, and so is a value with a line break, an edge space or more than 4,096 characters. Which
-variable a key lives in (`api_key_env`, `[trading.sources]`, a venue's `credentials`) is set only from
-the CLI or the file, so the page cannot point a key somewhere new. While `[api] public_url` is set,
-saved on disk or running, the page changes no key and starts no ChatGPT sign-in.
+`openalpha key set` writes, `<data dir>/env`, mode `0600`, replaced atomically.
+
+- The daemon never sends a saved value back. The page learns only whether a name is saved, and a
+  refused value is not echoed in the error, the log or the field's sentence.
+- The page may set only the variables your models, exchanges, web search and data sources read. The
+  API token, a channel's bot token, an MCP server's variables, the product's own control variables
+  (such as `OPENALPHA_DATA_DIR`) and the names that steer how programs start are refused. So is a
+  value with a line break, an edge space or more than 4,096 characters.
+- Which variable a key lives in (`api_key_env`, `[trading.sources]`, a venue's `credentials`) is set
+  only from the CLI or the file, so the page cannot point a key somewhere new.
+- While `[api] public_url` is set, saved on disk or running, the page changes no key and starts no
+  ChatGPT sign-in.
 
 Credential detection covers authorization headers, provider tokens, JWTs, private keys,
 certificates and URLs that carry credentials. It is used three ways:
@@ -230,13 +233,16 @@ a per-run `HOME` and temp directory.
 
 Everything written under the data directory is private to you: directories `0700`, files `0600`.
 That covers provider tokens, agent and skill files, plugin installs, logs, scratch directories,
-`db export` output and database backups. A backup holds every session, memory and ledger row, so it
-never inherits a umask that leaves it readable by others. Files appear by atomic rename with the
-mode set *before* the rename, so nobody sees a partial or permissive file. A backup is the one file
-written by the database itself, so it is written inside a private `0700` staging folder and moved
-out only when complete. Windows has no mode bits:
-there the data directory sits in your user profile (`%USERPROFILE%\.openalpha`), whose access list
-already keeps other accounts out.
+`db export` output and database backups.
+
+- A backup holds every session, memory and ledger row, so it never inherits a umask that leaves it
+  readable by others.
+- Files appear by atomic rename with the mode set *before* the rename, so nobody sees a partial or
+  permissive file.
+- A backup is the one file written by the database itself. So it is written inside a private `0700`
+  staging folder and moved out only when complete.
+- Windows has no mode bits. There the data directory sits in your user profile
+  (`%USERPROFILE%\.openalpha`), whose access list already keeps other accounts out.
 
 ### Outbound requests
 
