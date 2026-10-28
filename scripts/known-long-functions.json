@@ -81,7 +81,7 @@
     "src/persistence/engines/sqlite.ts#createStorage": 45,
     "src/persistence/stores/channel/pairing.ts#createPairingStore": 52,
     "src/persistence/stores/scheduler/job/store.ts#createOwnedOperations": 53,
-    "src/persistence/stores/scheduler/job/store.ts#createSchedulerOperations": 46,
+    "src/persistence/stores/scheduler/job/store.ts#createSchedulerOperations": 44,
     "src/persistence/stores/scheduler/run.ts#buildOccurrenceSql": 42,
     "src/persistence/stores/session/sql.ts#buildSessionSql": 43,
     "src/persistence/stores/social/memberships.ts#createSocialMembershipState": 49,

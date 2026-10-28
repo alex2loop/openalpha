@@ -147,7 +147,8 @@ openalpha schedule list | show <id> | pause <id> | resume <id> | run-now <id> | 
 
 `--agent` defaults to `chat`. Use `--every 30m` instead of `--cron` for an interval. `schedule edit`
 can replace the prompt, schedule, timezone or target; to change the agent, remove the job and add it
-again.
+again. It works while the daemon runs and writes only the fields you changed, so a run that is due or
+retrying is not disturbed.
 
 A prompt that starts with `/` is a command, run the way you would type it, with no model unless the
 command itself needs one (`/suggest`, `/research`): `--prompt "/health"` costs nothing. Only the first
@@ -448,7 +449,7 @@ editor, Ctrl+C, and the same exit codes.
 
 These stay in your terminal: `help`, `version`, `upgrade`, `doctor`, `onboard`, `start`, `stop`,
 `restart`, `autostart`, `provider`, `config`, `key`, `auth`, `zalo`, `logs`, `setup`, `connect`, `web`,
-`api`, `mcp`, and every command that needs the daemon stopped (`schedule edit` is one). So do the
+`api`, `mcp`, and every command that needs the daemon stopped (`history clear` is one). So do the
 commands that read or write a file you name: `db backup --path`, `db export --out`, `plugin install`
 and `skill install`. A relative path would otherwise resolve in the daemon's folder, and a daemon
 started at login often cannot write to your Desktop, Documents or Downloads.

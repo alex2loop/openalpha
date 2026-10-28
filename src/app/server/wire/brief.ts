@@ -24,6 +24,9 @@ export interface BriefTextWire {
     readonly status: 'ready' | 'unavailable'
     readonly heading: string
     readonly lines: readonly string[]
+    /** Each line's depth, level with `lines`: 0 for a row, 1 for the detail under it. Absent from an
+     *  older daemon, where every line is a row. */
+    readonly depths?: readonly number[]
   }[]
   /** Every caveat the brief carries, stated once, as the CLI words them. */
   readonly caveats: readonly string[]

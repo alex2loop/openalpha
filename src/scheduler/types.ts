@@ -42,6 +42,15 @@ export interface Job {
   readonly event?: JobEvent
 }
 
+/** The fields an operator edit changes. A field left out is never written, so a tick's advance or
+ *  retry landing meanwhile keeps its own next-run and failure count. */
+export interface JobEdit {
+  readonly prompt?: string
+  readonly target?: DeliveryTarget
+  /** A new schedule restarts the job's cadence: it comes with the next run it implies. */
+  readonly schedule?: { readonly schedule: JobSchedule; readonly nextRunAt: number }
+}
+
 export interface JobStore {
   /** `runNowClaimStaleBeforeMs`: a row whose run-now claim predates this is due despite the claim
    *  -- a process that died mid-run-now must not pause the job's own cadence indefinitely. */
@@ -49,7 +58,8 @@ export interface JobStore {
   advance(id: JobId, nextRunAt: number): Promise<void>
   disable(id: JobId): Promise<void>
   create(job: Job): Promise<boolean>
-  put(job: Job): Promise<void>
+  /** False when the job is gone. */
+  edit(id: JobId, edit: JobEdit): Promise<boolean>
   list(): Promise<readonly Job[]>
   /** The jobs of one agent that are on. */
   listEnabledOfAgent(agentId: AgentId): Promise<readonly Job[]>

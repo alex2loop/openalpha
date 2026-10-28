@@ -5,6 +5,7 @@ import type { StoredEventFire, StoredEventMatch } from '@/persistence/stores/sch
 import type {
   JobRow,
   StoredJob,
+  StoredJobEdit,
   StoredJobOwner,
   StoredJobStore,
 } from '@/persistence/stores/scheduler/job/mapping'
@@ -12,7 +13,12 @@ import type { JobSql } from '@/persistence/stores/scheduler/job/sql'
 import { formatErrForLog } from '@/core/security/credentials'
 import { toLikePrefixPattern } from '@/persistence/sql/like-escape'
 import { toTriggerParams } from '@/persistence/stores/scheduler/job/event'
-import { ownerParams, toJob, toJobParams } from '@/persistence/stores/scheduler/job/mapping'
+import {
+  ownerParams,
+  toJob,
+  toJobParams,
+  toScheduleParams,
+} from '@/persistence/stores/scheduler/job/mapping'
 import { buildJobSql } from '@/persistence/stores/scheduler/job/sql'
 
 const ENABLED = 1
@@ -40,33 +46,65 @@ export function createJobStore(db: Storage, dialect: Dialect, logger: Logger): S
   }
 }
 
-interface JobWrite {
-  readonly job: StoredJob
-  /** `create` leaves a row that is already there alone and says so; `put` replaces it. */
-  readonly insertOnly: boolean
-}
-
-// An event job is the row and its trigger, so the two land together or not at all.
-async function writeJob(db: Storage, sql: JobSql, write: JobWrite): Promise<boolean> {
-  const { job, insertOnly } = write
+// An event job is the row and its trigger, so the two land together or not at all. A row that is
+// already there is left alone and reported.
+async function createJob(db: Storage, sql: JobSql, job: StoredJob): Promise<boolean> {
   const now = Date.now()
-  const statement = insertOnly ? sql.create : sql.put
   const { event } = job
 
   if (event === undefined) {
-    return (await db.execute(statement, toJobParams(job, now))).changes > 0
+    return (await db.execute(sql.create, toJobParams(job, now))).changes > 0
   }
 
   return await db.transaction(async (tx) => {
-    const result = await tx.execute(statement, toJobParams(job, now))
+    const result = await tx.execute(sql.create, toJobParams(job, now))
 
-    if (insertOnly && result.changes === 0) {
+    if (result.changes === 0) {
       return false
     }
 
     await tx.execute(sql.putTrigger, toTriggerParams(job.id, event, now))
 
     return true
+  })
+}
+
+// Only the edited fields are written, in one transaction, so the scheduler's own writes to the
+// next-run and failure columns are never overwritten with a stale copy of the row.
+async function editJob(
+  db: Storage,
+  sql: JobSql,
+  target: { readonly id: JobId; readonly edit: StoredJobEdit }
+): Promise<boolean> {
+  const { id, edit } = target
+  const statements: (readonly [string, readonly unknown[]])[] = []
+
+  if (edit.prompt !== undefined) {
+    statements.push([sql.editPrompt, [edit.prompt, id]])
+  }
+
+  if (edit.target !== undefined) {
+    statements.push([sql.editTarget, [edit.target.channel, edit.target.chatId, id]])
+  }
+
+  if (edit.schedule !== undefined) {
+    const { schedule, nextRunAt } = edit.schedule
+
+    statements.push([sql.editSchedule, [...toScheduleParams(schedule), nextRunAt, id]])
+  }
+
+  return await db.transaction(async (tx) => {
+    let found = false
+
+    for (const [statement, params] of statements) {
+      found = (await tx.execute(statement, params)).changes > 0
+
+      if (!found) {
+        return false
+      }
+    }
+
+    return found
   })
 }
 
@@ -151,11 +189,9 @@ function createSchedulerOperations(
       await db.execute(sql.deferRetry, [failures, nextRunAt, id])
     },
 
-    create: (job: StoredJob): Promise<boolean> => writeJob(db, sql, { job, insertOnly: true }),
+    create: (job: StoredJob): Promise<boolean> => createJob(db, sql, job),
 
-    async put(job: StoredJob): Promise<void> {
-      await writeJob(db, sql, { job, insertOnly: false })
-    },
+    edit: (id: JobId, edit: StoredJobEdit): Promise<boolean> => editJob(db, sql, { id, edit }),
 
     ...createStateOperations(db, sql, logger),
     ...createRunNowOperations(db, sql),

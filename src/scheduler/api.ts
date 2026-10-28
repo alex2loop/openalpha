@@ -14,6 +14,7 @@ export type {
   Job,
   JobCommandAnswer,
   JobCommandRun,
+  JobEdit,
   JobOwner,
   JobSchedule,
   JobStore,

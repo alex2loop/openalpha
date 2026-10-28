@@ -58,6 +58,30 @@ function addLine(parts: StoryPart[], line: StoryLine): void {
   }
 }
 
+export interface SectionRow {
+  readonly text: string
+  /** What sits under the row: a price board's figures under the name they belong to. */
+  readonly details: readonly string[]
+}
+
+/** A section's lines as rows: each line at depth 0 opens one and the deeper lines after it are its
+ *  details. A line before any row, or from a daemon that sends no depths, is a row of its own. */
+export function sectionRows(section: BriefSection): readonly SectionRow[] {
+  const rows: { readonly text: string; readonly details: string[] }[] = []
+
+  section.lines.forEach((text, index) => {
+    const last = rows.at(-1)
+
+    if ((section.depths?.[index] ?? 0) > 0 && last !== undefined) {
+      last.details.push(text)
+    } else {
+      rows.push({ text, details: [] })
+    }
+  })
+
+  return rows
+}
+
 /** A section's name; one that belongs to a market says which, as the same heading repeats per market. */
 export function sectionTitle(section: BriefSection): string {
   return section.market === undefined

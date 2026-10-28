@@ -144,6 +144,8 @@ openalpha schedule list | show <id> | pause <id> | resume <id> | run-now <id> | 
 
 `--agent` mặc định là `chat`. Muốn chạy theo chu kỳ thì dùng `--every 30m` thay cho `--cron`.
 `schedule edit` đổi được prompt, lịch, múi giờ hay đích gửi; muốn đổi agent thì xóa rồi thêm lại.
+Lệnh chạy được cả khi daemon đang chạy và chỉ ghi các trường bạn đổi, nên lượt chạy đến hạn hay đang
+thử lại không bị ảnh hưởng.
 
 Prompt bắt đầu bằng `/` là một lệnh, chạy như khi bạn gõ, không dùng mô hình trừ khi chính lệnh đó cần
 (`/suggest`, `/research`): `--prompt "/health"` không tốn gì. Chỉ dòng đầu là lệnh, và kết quả được gửi
@@ -437,7 +439,7 @@ khác biệt: cùng đầu ra, cùng câu hỏi, trình soạn thảo của chí
 
 Những lệnh này vẫn chạy ngay trong terminal: `help`, `version`, `upgrade`, `doctor`, `onboard`, `start`,
 `stop`, `restart`, `autostart`, `provider`, `config`, `key`, `auth`, `zalo`, `logs`, `setup`, `connect`,
-`web`, `api`, `mcp`, và mọi lệnh cần daemon đang dừng (`schedule edit` là một). Các lệnh đọc hoặc ghi
+`web`, `api`, `mcp`, và mọi lệnh cần daemon đang dừng (`history clear` là một). Các lệnh đọc hoặc ghi
 tệp do bạn chỉ định cũng vậy: `db backup --path`, `db export --out`, `plugin install` và `skill install`.
 Nếu không, đường dẫn tương đối sẽ được hiểu theo thư mục của daemon, mà daemon khởi động lúc đăng nhập
 thường không ghi được vào Desktop, Documents hay Downloads.

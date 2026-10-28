@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { App } from '@/core/container'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { SlashCommand, SlashContext } from '@/core/types/command'
@@ -9,7 +7,7 @@ import { createConfigSummary } from '@/app/views'
 import { resolveRegisteredChannelSettings } from '@/channels/api'
 import { createCoreCommands } from '@/commands/api'
 import { toCommandLaneKey } from '@/core/command-lane'
-import { agentId as brandAgentId, sessionId as brandSessionId, DEFAULT_AGENT_ID } from '@/core/ids'
+import { agentId as brandAgentId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
 
@@ -26,7 +24,6 @@ interface FreshSessionOptions {
   readonly app: App
   readonly ctx: SlashContext
   readonly cause: 'new' | 'agent'
-  readonly agentId: AgentId
   /** The agent to leave bound to the chat; omitting it clears the binding. */
   readonly binding?: AgentId
   readonly invalidate: () => void
@@ -108,33 +105,32 @@ async function applyEntryAgentSelection(options: EntryAgentSelectionOptions): Pr
     app,
     ctx,
     cause: 'agent',
-    agentId: targetAgentId,
     ...(target === 'default' ? {} : { binding: target }),
     invalidate,
   })
 }
 
 // Keeps the chat on whatever agent it is already bound to; only the transcript is left behind.
-async function resetChatSession(app: App, ctx: SlashContext): Promise<SessionId> {
-  return await app
+async function resetChatSession(app: App, ctx: SlashContext): Promise<void> {
+  await app
     .resolve('sessionQueue')
     .coordinateChat({ channel: ctx.channel, chatId: ctx.chatId }, async (invalidate) => {
       const binding = await app.resolve('chatBindingStore').get(ctx.channel, ctx.chatId)
 
-      return await startFreshSession({
+      await startFreshSession({
         app,
         ctx,
         cause: 'new',
-        agentId: binding?.agentId ?? configuredEntryAgent(app, ctx.channel),
         ...(binding === null ? {} : { binding: binding.agentId }),
         invalidate,
       })
     })
 }
 
-// Cancels whatever the chat had in flight, then routes it to a new session.
-async function startFreshSession(options: FreshSessionOptions): Promise<SessionId> {
-  const { app, ctx, cause, agentId, binding, invalidate } = options
+// Cancels whatever the chat had in flight and drops its session route: the next message opens the
+// new session, so a chat that goes quiet leaves no empty one behind.
+async function startFreshSession(options: FreshSessionOptions): Promise<void> {
+  const { app, ctx, cause, binding, invalidate } = options
 
   invalidate()
   app.resolve('sessionQueue').cancelSession(ctx.sessionId)
@@ -143,32 +139,14 @@ async function startFreshSession(options: FreshSessionOptions): Promise<SessionI
   app.resolve('bus').emit('chat_session_reset', { channel: ctx.channel, chatId: ctx.chatId, cause })
   app.resolve('bus').emit('session_ended', { sessionId: ctx.sessionId })
 
-  const freshSessionId = brandSessionId(randomUUID())
-
-  await app.resolve('sessionStore').create({
-    id: freshSessionId,
-    agentId,
-    userId: ctx.userId,
+  await app.resolve('chatBindingStore').resetSession({
     channel: ctx.channel,
     chatId: ctx.chatId,
+    userId: ctx.userId,
+    ...(binding === undefined ? {} : { agentId: binding }),
   })
 
-  try {
-    await app.resolve('chatBindingStore').selectSession({
-      channel: ctx.channel,
-      chatId: ctx.chatId,
-      userId: ctx.userId,
-      sessionId: freshSessionId,
-      ...(binding === undefined ? {} : { agentId: binding }),
-    })
-  } catch (err: unknown) {
-    await discardFreshSession(app, freshSessionId)
-    throw err
-  }
-
   await closeReplacedSession(app, ctx.sessionId)
-
-  return freshSessionId
 }
 
 // The store skips a session a run still holds; that run records its own end.
@@ -177,26 +155,6 @@ async function closeReplacedSession(app: App, sessionId: SessionId): Promise<voi
     await app.resolve('sessionStore').updateStatus(sessionId, 'done')
   } catch (err: unknown) {
     app.resolve('logger').warn('agent.session_close_failed', { err: formatErrForLog(err) })
-  }
-}
-
-async function discardFreshSession(app: App, freshSessionId: SessionId): Promise<void> {
-  app.resolve('bus').emit('session_ended', { sessionId: freshSessionId })
-
-  try {
-    await app.resolve('sessionStore').remove(freshSessionId)
-  } catch (removeErr: unknown) {
-    app.resolve('logger').warn('agent.session_remove_failed', {
-      err: formatErrForLog(removeErr),
-    })
-    await app
-      .resolve('sessionStore')
-      .updateStatus(freshSessionId, 'stale')
-      .catch((markErr: unknown) => {
-        app.resolve('logger').warn('agent.session_mark_stale_failed', {
-          err: formatErrForLog(markErr),
-        })
-      })
   }
 }
 

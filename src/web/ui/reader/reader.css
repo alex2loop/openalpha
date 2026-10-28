@@ -105,6 +105,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+.reader-details {
+  padding-left: var(--s2);
+}
+
 .reader-group-head {
   margin-top: var(--s1);
   color: var(--ink2);

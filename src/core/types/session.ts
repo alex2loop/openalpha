@@ -14,17 +14,17 @@ export interface ChatBindingStore {
   get(channel: ChannelId, chatId: string): Promise<ChatBinding | null>
   put(b: ChatBinding): Promise<void>
   remove(channel: ChannelId, chatId: string): Promise<void>
-  /** Atomically moves the chat to a fresh session and writes or removes its agent override. */
-  selectSession(selection: ChatSessionSelection): Promise<void>
+  /** Atomically drops the chat's session routes, so its next message opens a fresh session, and
+   *  writes or removes its agent override. */
+  resetSession(reset: ChatSessionReset): Promise<void>
   /** Every binding, newest first. Operator-facing (`agent bindings`); bounded by chat count. */
   list(): Promise<readonly ChatBinding[]>
 }
 
-export interface ChatSessionSelection {
+export interface ChatSessionReset {
   readonly channel: ChannelId
   readonly chatId: string
   readonly userId: UserId
-  readonly sessionId: SessionId
   /** Absent means remove the override and use the composition-owned default. */
   readonly agentId?: AgentId
 }
