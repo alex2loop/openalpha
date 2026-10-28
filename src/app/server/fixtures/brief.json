@@ -82,25 +82,50 @@
       "VN-Index đứng trên đường trung bình 50 phiên, thanh khoản ở mức bình thường.",
       "Độ rộng: 58% mã trên đường trung bình 50 phiên."
     ],
+    "readingLines": 1,
     "story": [
-      "Nhìn lại chuyện mình kể hôm trước",
-      "Khối ngoại bán ròng mạnh · vẫn đang theo dõi · 0/2 dấu hiệu đã xảy ra",
-      "Chuyện này vẫn tiếp diễn, nay đã là phiên thứ 2",
-      "✗ VN-Index lùi xuống mức cách đường TB50 ▼ -5,77% hoặc thấp hơn trong 5 phiên tới → nếu xảy ra, nhận định có thêm cơ sở",
-      "✗ Khối ngoại chuyển sang mua ròng, tính gộp cả giai đoạn, trong 5 phiên tới → nếu xảy ra, mình đã đọc sai",
-      "Điều đáng chú ý hôm nay",
-      "VN-Index đóng cửa đỏ, nhưng số mã tăng lại nhiều hơn số mã giảm. Vậy ai đang kéo chỉ số xuống?",
-      "Số liệu đứng sau",
-      "VNINDEX · ▼ -0,94%",
-      "VN100 · ▼ -0,71%",
-      "Cách mình đọc (đây là suy luận)",
-      "Sức ép đang dồn vào một nhóm nhỏ cổ phiếu vốn hóa lớn. Phần đông thị trường thật ra khỏe hơn những gì con số chỉ số cho thấy.",
-      "Điều gì có thể làm nhận định này sai?",
-      "Một phiên lệch nhau thì chưa thành xu hướng. Cần thêm vài phiên nữa, và cần thấy tiền vào đi cùng.",
-      "Đã thấy dấu hiệu: so với 20 phiên 0,95×",
-      "Điều mình sẽ theo dõi",
-      "Số mã nằm trên đường TB50 tăng lên 38,83% hoặc hơn trong 5 phiên tới → nếu xảy ra, nhận định có thêm cơ sở",
-      "Số mã nằm trên đường TB50 rơi xuống 30,83% hoặc thấp hơn trong 5 phiên tới → nếu xảy ra, mình đã đọc sai"
+      { "role": "title", "text": "Nhìn lại chuyện mình kể hôm trước" },
+      {
+        "role": "lead",
+        "text": "Khối ngoại bán ròng mạnh · vẫn đang theo dõi · 0/2 dấu hiệu đã xảy ra"
+      },
+      { "role": "lead", "text": "Chuyện này vẫn tiếp diễn, nay đã là phiên thứ 2" },
+      {
+        "role": "row",
+        "text": "✗ VN-Index lùi xuống mức cách đường TB50 ▼ -5,77% hoặc thấp hơn trong 5 phiên tới → nếu xảy ra, nhận định có thêm cơ sở"
+      },
+      {
+        "role": "row",
+        "text": "✗ Khối ngoại chuyển sang mua ròng, tính gộp cả giai đoạn, trong 5 phiên tới → nếu xảy ra, mình đã đọc sai"
+      },
+      { "role": "title", "text": "Điều đáng chú ý hôm nay" },
+      {
+        "role": "lead",
+        "text": "VN-Index đóng cửa đỏ, nhưng số mã tăng lại nhiều hơn số mã giảm. Vậy ai đang kéo chỉ số xuống?"
+      },
+      { "role": "heading", "text": "Số liệu đứng sau" },
+      { "role": "row", "text": "VNINDEX · ▼ -0,94%" },
+      { "role": "row", "text": "VN100 · ▼ -0,71%" },
+      { "role": "heading", "text": "Cách mình đọc (đây là suy luận)" },
+      {
+        "role": "note",
+        "text": "Sức ép đang dồn vào một nhóm nhỏ cổ phiếu vốn hóa lớn. Phần đông thị trường thật ra khỏe hơn những gì con số chỉ số cho thấy."
+      },
+      { "role": "heading", "text": "Điều gì có thể làm nhận định này sai?" },
+      {
+        "role": "note",
+        "text": "Một phiên lệch nhau thì chưa thành xu hướng. Cần thêm vài phiên nữa, và cần thấy tiền vào đi cùng."
+      },
+      { "role": "row", "text": "Đã thấy dấu hiệu: so với 20 phiên 0,95×" },
+      { "role": "heading", "text": "Điều mình sẽ theo dõi" },
+      {
+        "role": "row",
+        "text": "Số mã nằm trên đường TB50 tăng lên 38,83% hoặc hơn trong 5 phiên tới → nếu xảy ra, nhận định có thêm cơ sở"
+      },
+      {
+        "role": "row",
+        "text": "Số mã nằm trên đường TB50 rơi xuống 30,83% hoặc thấp hơn trong 5 phiên tới → nếu xảy ra, mình đã đọc sai"
+      }
     ],
     "sections": [
       {

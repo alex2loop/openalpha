@@ -696,6 +696,7 @@
     "office.record.byModel": "Theo model đã dùng",
     "office.record.empty": "Chưa có đề xuất nào được chấm.",
     "office.reader.toc": "Mục lục",
+    "office.reader.cautions": "Lưu ý",
     "office.reader.ask": "Hỏi về đoạn này",
     "office.reader.quote": "Về đoạn \"{quote}\" trong báo cáo {title}:",
     "office.reader.missing": "Mình chưa tìm thấy nội dung báo cáo này.",

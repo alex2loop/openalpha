@@ -4,6 +4,7 @@
 // payload, credential, SQL row, or `unknown` field crosses this boundary.
 // Additive-only within v1. camelCase keys, no snake_case on the wire, no field renames.
 
+import type { BriefTextWire } from '@/app/server/wire/brief'
 import type { PortfolioSharesWire } from '@/app/server/wire/portfolio-shares'
 import type { ByModelWire } from '@/app/server/wire/track-record'
 import type {
@@ -385,29 +386,6 @@ export interface BriefSnapshotWire {
   readonly createdAt: number
   readonly sections: readonly BriefSectionWire[]
   readonly caveats: readonly TradingWireCaveat[]
-}
-
-/** The brief as the CLI prints it, without its icons and indents. */
-export interface BriefTextWire {
-  readonly title: string
-  /** The answer: the session sentence and the figures it rests on. */
-  readonly verdict: readonly string[]
-  /** The review of earlier stories and today's story; empty when the brief tells none. */
-  readonly story: readonly string[]
-  /** Ready and unavailable sections in the brief's order; one turned off by policy is not here, and
-   *  neither is the cost or the macro reference the verdict already states. */
-  readonly sections: readonly {
-    /** Unique in the brief: a market's kind repeats once per market. */
-    readonly id: string
-    readonly kind: string
-    /** The market's name, on a section that belongs to one. */
-    readonly market?: string
-    readonly status: 'ready' | 'unavailable'
-    readonly heading: string
-    readonly lines: readonly string[]
-  }[]
-  /** Every caveat the brief carries, stated once, as the CLI words them. */
-  readonly caveats: readonly string[]
 }
 
 export interface TradingBriefResponse {

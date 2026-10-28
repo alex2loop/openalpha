@@ -696,6 +696,7 @@
     "office.record.byModel": "By model used",
     "office.record.empty": "No call has been scored yet.",
     "office.reader.toc": "Contents",
+    "office.reader.cautions": "Cautions",
     "office.reader.ask": "Ask about this passage",
     "office.reader.quote": "About the passage \"{quote}\" in the report {title}:",
     "office.reader.missing": "I could not find this report's text.",

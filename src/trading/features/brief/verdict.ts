@@ -47,7 +47,7 @@ export function renderVerdictBlock(
 
 /** The session sentence, without its heading: it appears again below, so the heading would be the
  *  one thing stated twice. */
-function renderQuotedReading(
+export function renderQuotedReading(
   locale: Locale,
   sections: readonly BriefSectionResult[],
   context: RenderContext
