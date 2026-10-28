@@ -53,10 +53,9 @@ async function writeStarterConfig(app: CliApp, provider: string, model: string):
     return answer(app, { ok: false, code: 'config_exists', configPath })
   }
 
-  const content = starterConfigToml(
-    { model: { provider, model, ...(subscription ? {} : { apiKeyEnv: keyEnv }) } },
-    { api: true }
-  )
+  const content = starterConfigToml({
+    model: { provider, model, ...(subscription ? {} : { apiKeyEnv: keyEnv }) },
+  })
 
   if (!isValidConfig(content)) {
     return answer(app, { ok: false, code: 'invalid' })

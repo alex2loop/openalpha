@@ -96,7 +96,7 @@ leave, because one failed turn is not a failed session.
 | `upgrade` | Install the latest release | none; `--check` only reports, `--rollback` goes back to the previous release |
 | `doctor` | Check config, credentials and storage | none; optional check name (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `safety`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) and `--online` |
 | `onboard` | First setup, or change the model, Telegram bot, budget or language | none |
-| `setup` | Desktop app only. A client app's first run: provider catalog, and a starter config with the API on (one JSON line) | `catalog`, `write <provider> <model>` |
+| `setup` | Desktop app only. A client app's first run: provider catalog, and a starter config (one JSON line) | `catalog`, `write <provider> <model>` |
 | `api` | The `/v1` API's bearer token | `token`, `rotate` |
 | `web` | Open the office page, signed in with a one-time link | none |
 | `connect` | Print the address and token the desktop app needs | none |

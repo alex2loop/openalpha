@@ -78,8 +78,8 @@ this document — neither imports the other.
     or code is refused with `403 forbidden` before it is compared, right or wrong, and a code is
     not spent. A session is never refused by the lockout; a valid token or code clears it, a session
     does not.
-- **Opt-in:** off by default (`[api].enabled = false`). When off, no socket is bound and the daemon is
-  byte-for-byte unchanged.
+- **On by default** (`[api].enabled = true`, loopback only). `[api].enabled = false` binds no socket
+  and leaves the daemon byte-for-byte unchanged.
 - **Encoding:** JSON, `camelCase` keys, UTF-8. No snake_case on the wire. WS **text** frames are JSON
   (`ServerFrame`/`ClientFrame`, `socket.ts`); WS **binary** frames are raw PCM dictation audio.
 - **Base path:** every route is under `/v1`.

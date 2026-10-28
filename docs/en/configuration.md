@@ -575,8 +575,8 @@ A provider call times out after 15 seconds and retries transient failures up to 
 
 ### `[api]`
 
-The HTTP/WS API (`/v1`) that client apps talk to. `openalpha start` serves it when `enabled = true`;
-a one-off command never opens the port.
+The HTTP/WS API (`/v1`) that client apps talk to. `openalpha start` serves it by default (`enabled = true`);
+set `enabled = false` to turn it off. A one-off command never opens the port.
 
 It binds `127.0.0.1` only and refuses every other peer. So a client on another machine connects
 through an SSH tunnel or a reverse proxy on the same host (see [Operations](operations.md)). It

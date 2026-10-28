@@ -1031,7 +1031,7 @@ Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không
 
 Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán.
 
-**HTTP** (chỉ trên máy này, xác thực bằng bearer token). `openalpha start` mở một API cục bộ khi `[api] enabled = true` (xem [`[api]`](cau-hinh.md)).
+**HTTP** (chỉ trên máy này, xác thực bằng bearer token). `openalpha start` mở một API cục bộ theo mặc định (`[api] enabled = false` để tắt) (xem [`[api]`](cau-hinh.md)).
 
 Các route trả về **mã và dữ liệu, không bao giờ là câu chữ**: client nhận `{ code: 'suggestion.reused-same-day' }` và tự hiển thị bằng ngôn ngữ của người đọc. Mọi yêu cầu đều đại diện cho một operator cục bộ duy nhất, cố định lúc khởi động, nên không yêu cầu nào chọn hay giả mạo được người dùng khác. Danh sách route: [trang dành cho lập trình viên](dev/giao-dich.md).
 

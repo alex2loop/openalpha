@@ -476,7 +476,7 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # ==== Connections =============================================================
 
 # ---- API server -------------------------------------------------------------
-# HTTP/WS API for client apps (off by default). Turning it on gives a client app
+# HTTP/WS API for client apps (on by default, loopback only). It gives a client app
 # a live feed of what the daemon is running: runs and their steps, pending
 # approvals, fills and spend caps reached. The daemon also serves the office page at
 # its own address (http://127.0.0.1:<port>/), which shows that feed.
@@ -505,7 +505,7 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # token the desktop app pastes. Keep them as private as the token itself.
 
 # [api]
-# enabled = false
+# enabled = true                     # false: no port is opened
 # port = 8765
 # token_env = "OPENALPHA_API_TOKEN"
 # orders = true                      # false by default once public_url is set

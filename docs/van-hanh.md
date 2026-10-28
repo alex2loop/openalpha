@@ -393,9 +393,9 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
    dẫn mà `command -v openalpha` in ra (mặc định `~/.local/bin/openalpha`); unit bên dưới phải dùng
    đường dẫn đó.
 2. **Cấu hình.** `openalpha setup write <nhà cung cấp> <mô hình>` ghi `~/.openalpha/config.toml` với
-   `[api] enabled = true` và một mô hình (`openalpha setup catalog` liệt kê các nhà cung cấp). Hoặc
+   một mô hình (`openalpha setup catalog` liệt kê các nhà cung cấp). Hoặc
    tải [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
-   vào đó rồi tự đặt `[api] enabled = true` và chuỗi mô hình. Mỗi mô hình ghi tên biến môi trường chứa
+   vào đó rồi tự đặt chuỗi mô hình (API bật sẵn). Mỗi mô hình ghi tên biến môi trường chứa
    khóa của nó (`api_key_env`); đặt biến đó trên máy chủ.
 3. **Giữ cho chạy liên tục.** Một unit systemd cho người dùng, khóa nằm trong `~/.openalpha/env` (mỗi
    dòng một `TÊN=giá-trị`, quyền 0600):

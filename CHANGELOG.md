@@ -31,8 +31,8 @@ for client apps. Six additive database changes; the upgrade runs them for you.
 
 ### Daemon and API
 
-- An HTTP/WS API under `/v1` (off by default, `[api]`), with a bearer token from `openalpha api
-  token`. With `[api] public_url` set it withholds shell, file writes, external tools, pairing
+- An HTTP/WS API under `/v1`, on by default on `127.0.0.1:8765` (`[api] enabled = false` turns it
+  off), with a bearer token from `openalpha api token`. With `[api] public_url` set it withholds shell, file writes, external tools, pairing
   approval and orders.
 - Live run feed, notices with read state, event-triggered jobs, agents created and edited from
   the API, and a `spawn` tool for temporary child agents.
@@ -50,6 +50,8 @@ for client apps. Six additive database changes; the upgrade runs them for you.
 
 ### Upgrading
 
+- The daemon now opens the API port by default. A second daemon on the same port stops with a
+  message instead of sharing it; set `[api] port` to run two.
 - New tables for runs, notices, job event triggers and browser sessions, plus new columns for
   debate models and run tickers. Older binaries cannot open the upgraded database; `openalpha
   upgrade --rollback` takes it back after an `openalpha upgrade`.
