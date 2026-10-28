@@ -701,6 +701,7 @@
     "office.record.hitsOne": "{hit}/{count} reached the target before the stop",
     "office.record.byModel": "By model used",
     "office.record.empty": "No call has been scored yet.",
+    "office.reader.briefRewrite": "Write today's brief again",
     "office.reader.toc": "Contents",
     "office.reader.cautions": "Cautions",
     "office.reader.ask": "Ask about this passage",

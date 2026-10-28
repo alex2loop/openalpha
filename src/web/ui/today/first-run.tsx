@@ -2,15 +2,13 @@ import type { ComponentChildren } from 'preact'
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import { runCommand } from '@/web/state/command'
+import { BRIEF_COMMAND, runCommand } from '@/web/state/command'
 import { loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
 import { openSettings } from '@/web/ui/settings/settings'
-
-const BRIEF_COMMAND = '/brief'
 
 interface StepProps {
   readonly index: number

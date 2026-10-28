@@ -701,6 +701,7 @@
     "office.record.hitsOne": "{hit}/{count} chạm mục tiêu trước mức cắt lỗ",
     "office.record.byModel": "Theo mô hình đã dùng",
     "office.record.empty": "Chưa có đề xuất nào được chấm.",
+    "office.reader.briefRewrite": "Viết lại bản tin hôm nay",
     "office.reader.toc": "Mục lục",
     "office.reader.cautions": "Lưu ý",
     "office.reader.ask": "Hỏi về đoạn này",

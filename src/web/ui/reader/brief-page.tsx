@@ -1,6 +1,8 @@
 import type { BriefTextWire } from '@/app/server/wire/brief'
 import type { ReaderContent } from '@/web/ui/reader/load-report'
+import { BRIEF_COMMAND, FORCE_ARG, runCommand } from '@/web/state/command'
 import { tr } from '@/web/text/tr'
+import { Button } from '@/web/ui/kit/button'
 import { Fold } from '@/web/ui/kit/fold'
 import { InlineMarkdown } from '@/web/ui/markdown/markdown'
 import { NoteList } from '@/web/ui/markdown/report-notes'
@@ -47,8 +49,27 @@ export function BriefPage({ content, onClose }: BriefPageProps) {
           <Section key={section.id} section={section} />
         ))}
         <Cautions caveats={text.caveats} />
+        <Rewrite onRun={onClose} />
       </div>
     </ReaderPage>
+  )
+}
+
+// Writes today's brief again from the data as it stands; the chat it lands in shows the run.
+function Rewrite({ onRun }: { readonly onRun: () => void }) {
+  return (
+    <div class="reader-next">
+      <Button
+        kind="ai"
+        size="small"
+        onClick={() => {
+          onRun()
+          runCommand(`${BRIEF_COMMAND} ${FORCE_ARG}`)
+        }}
+      >
+        {tr('ui.office.reader.briefRewrite')}
+      </Button>
+    </div>
   )
 }
 

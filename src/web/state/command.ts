@@ -6,6 +6,7 @@ import { sendMessage } from '@/web/state/chat'
 const HISTORY_MAX = 50
 
 export const SUGGEST_COMMAND = '/suggest'
+export const BRIEF_COMMAND = '/brief'
 // `/suggest`'s word for a fresh run past a call it would otherwise hand back.
 export const FORCE_ARG = 'force'
 export const ALERT_CREATE_COMMAND = '/alert create'
