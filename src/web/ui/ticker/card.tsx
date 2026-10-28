@@ -28,8 +28,16 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
   })
   const standing: SuggestionWire | undefined = plan.data?.plan
 
-  // A finished run may have stored or closed the plan this card shows.
-  useEffect(() => onWireEvent('run_finished', plan.retry), [])
+  // A run that reported on this name may have stored or closed its plan.
+  useEffect(
+    () =>
+      onWireEvent('run_finished', (event) => {
+        if (event.tickers?.includes(ticker) === true) {
+          plan.retry()
+        }
+      }),
+    []
+  )
 
   return (
     <>

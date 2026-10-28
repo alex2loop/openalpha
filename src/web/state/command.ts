@@ -9,6 +9,8 @@ export const SUGGEST_COMMAND = '/suggest'
 export const BRIEF_COMMAND = '/brief'
 // `/suggest`'s word for a fresh run past a call it would otherwise hand back.
 export const FORCE_ARG = 'force'
+// `/suggest`'s word for a pass over every held name, not one.
+export const SUGGEST_STOPS_ARG = 'stops'
 export const ALERT_CREATE_COMMAND = '/alert create'
 export const WATCHLIST_ADD_COMMAND = '/watchlist add'
 

@@ -298,6 +298,7 @@ function toUnmirroredIntent(row: UnmirroredRow): UnmirroredIntent {
     failure: row.failure,
     ...(row.order_id === null ? {} : { orderId: row.order_id }),
     ...(row.filled_quantity === null ? {} : { filledQuantity: row.filled_quantity }),
-    ...(row.avg_price === null ? {} : { averagePrice: row.avg_price }),
+    // A venue that never priced the fill reports 0, which is no price at all.
+    ...(row.avg_price === null || row.avg_price <= 0 ? {} : { averagePrice: row.avg_price }),
   }
 }

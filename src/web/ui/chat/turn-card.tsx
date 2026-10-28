@@ -14,6 +14,7 @@ import {
   inputText,
   runCommand,
   SUGGEST_COMMAND,
+  SUGGEST_STOPS_ARG,
   setInput,
 } from '@/web/state/command'
 import { focusRun } from '@/web/state/focus'
@@ -283,8 +284,9 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
 // its price.
 function NextSteps({ turn }: { readonly turn: Turn }) {
   const ticker = turn.tickers?.[0]
-  const isSuggest = commandWordOf(turn.text) === SUGGEST_COMMAND
-  const isForced = commandWordsOf(turn.text).includes(FORCE_ARG)
+  const [command, subject, ...options] = commandWordsOf(turn.text)
+  const isSuggest = command === SUGGEST_COMMAND
+  const canForce = isSuggest && subject !== SUGGEST_STOPS_ARG && !options.includes(FORCE_ARG)
 
   if (ticker === undefined) {
     return null
@@ -293,7 +295,7 @@ function NextSteps({ turn }: { readonly turn: Turn }) {
   return (
     <>
       {!isSuggest && <SuggestChip ticker={ticker} />}
-      {isSuggest && !isForced && (
+      {canForce && (
         <Button
           size="small"
           onClick={() => runCommand(`${SUGGEST_COMMAND} ${ticker} ${FORCE_ARG}`)}

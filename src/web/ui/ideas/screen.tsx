@@ -22,8 +22,9 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 const SCREEN_COMMAND = '/screen'
 const MARKET_SEPARATOR = ':'
 // The newest calls of every market (the list filters by name, not by market alone), read to tell
-// which ranked names were already analyzed on the board's day; the most one read returns.
-const DAY_CALLS_READ = 100
+// which ranked names were already analyzed on the board's day. A busy day stores about 30 across
+// markets, and each row carries its whole call, so the read stays near two days.
+const DAY_CALLS_READ = 50
 
 /** Cơ hội: the names the daemon ranked best in a market, as it words them. A score is a rank, not
  *  advice, and a call is one tap away. */
@@ -59,8 +60,17 @@ function Board({ market }: { readonly market: string }) {
     query: { status: 'all', limit: DAY_CALLS_READ },
   })
 
-  // A finished run may have stored a call, which turns its row's button into a fresh analysis.
-  useEffect(() => onWireEvent('run_finished', calls.retry), [])
+  // A run that reported on names may have stored a call, which turns its row's button into a fresh
+  // analysis.
+  useEffect(
+    () =>
+      onWireEvent('run_finished', (event) => {
+        if (event.tickers !== undefined) {
+          calls.retry()
+        }
+      }),
+    []
+  )
 
   return (
     <BlockFrame
@@ -97,6 +107,8 @@ function analyzedOn(
   return new Set(
     calls
       .filter((call) => call.instrument.market === board.market && call.at === board.day)
+      // A failed run is re-run by a plain `/suggest`, so it needs no force.
+      .filter((call) => call.action !== 'hold' || call.undecided !== true)
       .map((call) => call.instrument.ticker)
   )
 }
