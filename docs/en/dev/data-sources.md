@@ -488,14 +488,18 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
 caught there instead of as a 429 in production.
 
 Three figures limit a burst rather than the quota that binds them, because a token bucket cannot express a day or a month: `bls`
-(per day), `er-api` and `coingecko` (per month). None is near its allowance in ordinary use (`bls` is asked at most once a UTC day and not between
-releases, by the macro gate; `er-api` is last in the `fx` route). The numbers prevent a breaker storm spending an allowance in an afternoon. Set far
-above the real peak they prevent nothing: a runaway at hundreds of requests a minute empties a monthly quota in an hour, whereas a
-figure near the peak leaves half a day for the breaker and a human to react. `coinmarketcap` (30) publishes no ceiling for its
-keyless subset and answers `1022` once an anonymous caller has used it up (measured recovering within a minute of going idle); the
-figure stops the burst and the next provider covers a refusal. `coingecko` (10) is keyed (`COINGECKO_API_KEY`; the adapter
-targets a Demo plan of 10,000 calls a month), so without the key it is not registered. It sits last on the market-cap route,
-reached only when its key is set and the keyless boards have failed or a coin is past every window.
+(per day), `er-api` and `coingecko` (per month).
+
+- None is near its allowance in ordinary use. `bls` is asked at most once a UTC day and not between releases, by the macro gate;
+  `er-api` is last in the `fx` route.
+- The numbers prevent a breaker storm spending an allowance in an afternoon. Set far above the real peak, they prevent nothing: a
+  runaway at hundreds of requests a minute empties a monthly quota in an hour, whereas a figure near the peak leaves half a day for
+  the breaker and a human to react.
+- `coinmarketcap` (30) publishes no ceiling for its keyless subset and answers `1022` once an anonymous caller has used it up
+  (measured recovering within a minute of going idle). The figure stops the burst, and the next provider covers a refusal.
+- `coingecko` (10) is keyed (`COINGECKO_API_KEY`; the adapter targets a Demo plan of 10,000 calls a month), so without the key it is
+  not registered. It sits last on the market-cap route, reached only when its key is set and the keyless boards have failed or a
+  coin is past every window.
 
 The pacer treats an absent limit as unpaced, not zero. No built-in reaches that path but a plugin can, so a manifest omitting
 `rateLimitPerMinute` gets `PLUGIN_DEFAULT_RATE_LIMIT_PER_MINUTE` (30). A limit of zero is a `ConfigError` (the manifest schema
