@@ -1067,7 +1067,7 @@ mục kỹ năng, nên không có gì được ghi cho chúng trừ khi bạn đ
 server khi kết nối.
 
 Muse Code không có lệnh thêm server: gộp mục in ra vào `~/.config/muse/settings.json`, giữ nguyên các khóa
-đã có. Mục này đặt `mode = "optional"`, nên khi OpenAlpha không khởi động được thì Muse Code chỉ cảnh báo
+đã có. Mục này đặt `mode` là `optional`, nên khi OpenAlpha không khởi động được thì Muse Code chỉ cảnh báo
 và chạy tiếp thay vì dừng cả phiên. Kỹ năng được ghi vào `~/.config/muse/skills`.
 
 opencode và Kilo Code mặc định cắt một server cục bộ sau 5-10 giây, nên với chúng mục cấu hình còn đặt
