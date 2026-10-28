@@ -289,6 +289,10 @@ export const VN_RECOMMENDATION_SESSIONS = 120
 export const VN_OVERVIEW_LEADERS = 5
 
 export const VN_OVERVIEW_SESSIONS = 5
+/** How many flow sessions back the overview looks for proprietary figures when the newest session's
+ *  are not yet published: the desk lands about one session after the foreign one, so a few cover a
+ *  holiday or a late provider without ranking a stale desk as current. */
+export const VN_PROPRIETARY_LOOKBACK_SESSIONS = 5
 /** Sessions the short moving-average breadth compares against — the 20-day mean. */
 export const VN_TURNOVER_REFERENCE_SESSIONS = 20
 /** Reading order for the boards, largest first. Alphabetical puts HNX above HOSE, which is not how

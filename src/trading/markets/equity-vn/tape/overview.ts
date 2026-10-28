@@ -5,8 +5,6 @@ import type {
   MarketBoard,
   MarketDataOverview,
   MarketDataOverviewRow,
-  MarketLeader,
-  MarketLeaders,
   MarketMover,
   MarketMovers,
   MarketRange,
@@ -34,10 +32,10 @@ import {
 import { loadUniverse } from '@/trading/markets/equity-vn/refresh/universe'
 import { toBreadth } from '@/trading/markets/equity-vn/tape/breadth'
 import { vnIntradayBreadth } from '@/trading/markets/equity-vn/tape/intraday-breadth'
+import { toLeaders } from '@/trading/markets/equity-vn/tape/leaders'
 import { overviewCaveats } from '@/trading/markets/equity-vn/tape/overview-caveats'
 import { headlineLevel, vnLiveIndexReading } from '@/trading/markets/equity-vn/tape/quote'
 import {
-  type SessionValue,
   sessionChangePct,
   sessionForeignNet,
   sessionProprietaryNet,
@@ -48,7 +46,7 @@ import {
 } from '@/trading/markets/equity-vn/tape/session-totals'
 import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
 import { barTurnover } from '@/trading/markets/equity-vn/turnover'
-import { OVERVIEW_LEADER_SESSIONS, rangeFromCloses } from '@/trading/markets/overview'
+import { rangeFromCloses } from '@/trading/markets/overview'
 import { median, sessionChange } from '@/trading/markets/timeseries'
 
 const PERCENT_PER_UNIT = 100
@@ -182,96 +180,6 @@ function toRatios(names: readonly NameEvidence[]): MarketRatios | undefined {
 
 function latestSession(entries: readonly OverviewEntry[]): TradingDay | undefined {
   return entries.map((entry) => entry.at).sort()[entries.length - 1]
-}
-
-/** Who the session's money went to. Both flow directions, because a market that sold on balance
- *  still had names being accumulated, and that is the half a net figure hides. A list nobody
- *  qualified for is absent rather than empty — an empty list would read as "these are the leaders".
- */
-function toLeaders(names: readonly NameEvidence[], session: TradingDay): MarketLeaders | undefined {
-  const turnoverTotal = sessionTotal(names, session, sessionTurnover) ?? 0
-  const foreign = netLeaders(names, session, sessionForeignNet)
-  const proprietary = netLeaders(names, session, sessionProprietaryNet)
-  const mostTraded = rankNames(names, session, sessionTurnover).slice(0, VN_OVERVIEW_LEADERS)
-
-  if (
-    foreign.buys.length === 0 &&
-    foreign.sells.length === 0 &&
-    proprietary.buys.length === 0 &&
-    proprietary.sells.length === 0 &&
-    mostTraded.length === 0
-  ) {
-    return undefined
-  }
-
-  return {
-    window: 'session',
-    sessions: OVERVIEW_LEADER_SESSIONS,
-    ...(foreign.buys.length === 0 ? {} : { foreignBuys: foreign.buys }),
-    ...(foreign.sells.length === 0 ? {} : { foreignSells: foreign.sells }),
-    ...(proprietary.buys.length === 0 ? {} : { proprietaryBuys: proprietary.buys }),
-    ...(proprietary.sells.length === 0 ? {} : { proprietarySells: proprietary.sells }),
-    ...(mostTraded.length === 0 ? {} : { mostTraded: withShare(mostTraded, turnoverTotal) }),
-  }
-}
-
-/** The biggest net buyers and net sellers of one flow, each with its share of its own side's gross. */
-function netLeaders(
-  names: readonly NameEvidence[],
-  session: TradingDay,
-  of: SessionValue
-): { readonly buys: readonly MarketLeader[]; readonly sells: readonly MarketLeader[] } {
-  const ranked = rankNames(names, session, of)
-  const buyers = ranked.filter((entry) => entry.value > 0)
-  const sellers = ranked.filter((entry) => entry.value < 0)
-
-  return {
-    buys: withShare(buyers.slice(0, VN_OVERVIEW_LEADERS), grossValue(buyers)),
-    sells: withShare(sellers.slice(-VN_OVERVIEW_LEADERS).reverse(), grossValue(sellers)),
-  }
-}
-
-/** A direction's gross flow: a share of the net would pass 100% on a day the other side nearly
- *  cancelled it. */
-function grossValue(leaders: readonly MarketLeader[]): number {
-  return leaders.reduce((sum, leader) => sum + Math.abs(leader.value), 0)
-}
-
-/** Each leader's value as a share of the session's total for its list — how concentrated the top is.
- *  A name that did not trade reports no value, so it never appears; a zero total yields no share. */
-function withShare(leaders: readonly MarketLeader[], total: number): MarketLeader[] {
-  if (total === 0) {
-    return leaders.map((leader) => ({ ...leader }))
-  }
-
-  return leaders.map((leader) => ({ ...leader, sharePct: Math.abs(leader.value) / total }))
-}
-
-/** Descending, so a caller takes buys from the head and sells from the tail of one sorted pass. */
-function rankNames(
-  names: readonly NameEvidence[],
-  session: TradingDay,
-  of: SessionValue
-): readonly MarketLeader[] {
-  return names
-    .flatMap((name) => {
-      const value = of(name, session)
-
-      if (value === undefined) {
-        return []
-      }
-
-      const changePct = sessionChangePct(name, session)
-
-      return [
-        {
-          instrument: name.record.instrument,
-          value,
-          ...(changePct === undefined ? {} : { changePct }),
-        },
-      ]
-    })
-    .sort((left, right) => right.value - left.value)
 }
 
 /** One grouping feeds both the per-board rows and the label naming what the totals cover; two

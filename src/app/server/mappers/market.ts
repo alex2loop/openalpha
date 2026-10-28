@@ -235,7 +235,8 @@ function toOverviewBlockWire(block: MarketDataOverview, locale: Locale): Overvie
 }
 
 function toLeadersWire(leaders: OverviewLeaders): OverviewLeadersWire {
-  const { window, sessions, foreignBuys, foreignSells, proprietaryBuys, proprietarySells } = leaders
+  const { window, sessions, foreignBuys, foreignSells } = leaders
+  const { proprietaryBuys, proprietarySells, proprietaryDay } = leaders
 
   return {
     window,
@@ -248,6 +249,7 @@ function toLeadersWire(leaders: OverviewLeaders): OverviewLeadersWire {
     ...(proprietarySells === undefined
       ? {}
       : { proprietarySells: proprietarySells.map(toLeaderWire) }),
+    ...(proprietaryDay === undefined ? {} : { proprietaryDay }),
     ...(leaders.mostTraded === undefined
       ? {}
       : { mostTraded: leaders.mostTraded.map(toLeaderWire) }),

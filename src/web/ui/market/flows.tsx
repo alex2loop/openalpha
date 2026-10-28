@@ -1,6 +1,7 @@
 import type { OverviewLeadersWire, OverviewResponse } from '@/app/server/wire/market'
-import type { MessageKey } from '@/i18n'
+import { formatDay, type MessageKey } from '@/i18n'
 import { findMarket, selectRegionOverview } from '@/web/state/market'
+import { locale } from '@/web/state/session'
 import { formatCompactAmount, formatSignedCompactAmount } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -11,20 +12,31 @@ import { BlockHead } from '@/web/ui/today/block-frame'
 
 const LEADERS_SHOWN = 5
 
-type LeaderList = Exclude<keyof OverviewLeadersWire, 'window' | 'sessions'>
+type LeaderList = Exclude<keyof OverviewLeadersWire, 'window' | 'sessions' | 'proprietaryDay'>
 
 // Reading order: who bought, who sold, then the money that changed hands. A net list is signed.
 const LEADER_LISTS = Object.freeze([
   { list: 'foreignBuys', title: 'ui.office.market.foreignBuys', isNet: true },
   { list: 'foreignSells', title: 'ui.office.market.foreignSells', isNet: true },
-  { list: 'proprietaryBuys', title: 'ui.office.market.proprietaryBuys', isNet: true },
-  { list: 'proprietarySells', title: 'ui.office.market.proprietarySells', isNet: true },
+  {
+    list: 'proprietaryBuys',
+    title: 'ui.office.market.proprietaryBuys',
+    isNet: true,
+  },
+  {
+    list: 'proprietarySells',
+    title: 'ui.office.market.proprietarySells',
+    isNet: true,
+  },
   { list: 'mostTraded', title: 'ui.office.market.mostTraded', isNet: false },
 ] as const satisfies readonly {
   readonly list: LeaderList
   readonly title: MessageKey
   readonly isNet: boolean
 }[])
+
+// The desk's lists can come from an earlier session than the rest, so they are dated on their own.
+const PROPRIETARY_LISTS: ReadonlySet<LeaderList> = new Set(['proprietaryBuys', 'proprietarySells'])
 
 type OverviewBlock = OverviewResponse['markets'][number]
 
@@ -58,6 +70,7 @@ function MarketFlows({ block }: { readonly block: OverviewBlock }) {
   }
 
   const note = joinInline([...windowNotes(leaders), block.currency])
+  const proprietaryNote = joinInline([...proprietaryDayNotes(leaders), note])
 
   return (
     <div class="flow">
@@ -67,7 +80,7 @@ function MarketFlows({ block }: { readonly block: OverviewBlock }) {
           <RankedList
             key={list}
             title={tr(title)}
-            note={note}
+            note={PROPRIETARY_LISTS.has(list) ? proprietaryNote : note}
             rows={(leaders[list] ?? []).slice(0, LEADERS_SHOWN).map((leader) => ({
               key: leader.instrument.ticker,
               label: (
@@ -81,6 +94,17 @@ function MarketFlows({ block }: { readonly block: OverviewBlock }) {
       </RankedLists>
     </div>
   )
+}
+
+// Desk figures published after the session's own are dated, so an older session is never read as it.
+function proprietaryDayNotes(leaders: OverviewLeadersWire): readonly string[] {
+  return leaders.proprietaryDay === undefined
+    ? []
+    : [
+        tr('ui.office.market.proprietaryDay', {
+          day: formatDay(locale.value, leaders.proprietaryDay),
+        }),
+      ]
 }
 
 // A rolling day is said as such; one session is the default reading, several are counted.

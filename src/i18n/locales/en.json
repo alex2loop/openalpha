@@ -1255,6 +1255,7 @@
     "office.market.proprietarySells": "Proprietary net selling",
     "office.market.mostTraded": "Most traded",
     "office.market.windowSessions": "last {count} sessions",
+    "office.market.proprietaryDay": "{day} session",
     "office.market.sectors": "Sector strength",
     "office.market.sectorsRanked": "Strongest to weakest",
     "office.market.sectorsNote": "strength against the index · today",

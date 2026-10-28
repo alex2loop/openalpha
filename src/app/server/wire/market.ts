@@ -87,6 +87,9 @@ export interface OverviewLeadersWire {
   readonly foreignSells?: readonly OverviewLeaderWire[]
   readonly proprietaryBuys?: readonly OverviewLeaderWire[]
   readonly proprietarySells?: readonly OverviewLeaderWire[]
+  /** The session (`YYYY-MM-DD`) the proprietary lists were ranked over; present only when it is an
+   *  earlier one than the block's own, because that session's figures are not out yet. */
+  readonly proprietaryDay?: string
   readonly mostTraded?: readonly OverviewLeaderWire[]
 }
 
