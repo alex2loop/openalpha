@@ -91,7 +91,7 @@ Một nhà cung cấp ngừng cập nhật thì **không báo hỏng**. Nó tr�
 - **Nó thuộc phiên nào.** Phải mới hơn giá chốt gần nhất đã settle, xét theo **phiên** chứ không theo thời điểm: phiên khớp lệnh đóng cửa in giá vài phút sau tiếng chuông, và nếu chỉ kiểm theo thời điểm thì giá chốt hôm nay sẽ bị đọc là "trực tiếp" suốt phần còn lại của ngày.
 - **Nó cũ bao nhiêu.** Không được chậm hơn đồng hồ quá `TAPE_SETTLE_LAG_MS` (30 phút) cộng khoảng dài nhất mà một bảng giá đang mở có thể hợp lệ không in giá nào, `QUIET_TAPE_MS` (60 phút: giờ nghỉ của CME với kim loại) - tổng cộng 90 phút. Một giá đóng cửa thật đã cũ đúng bằng `TAPE_SETTLE_LAG_MS` ngay lúc phiên của nó settle, nên hạn mức được dựng từ cả hai. Giờ nghỉ trưa được miễn: giá cuối trước giờ nghỉ đại diện cho cả khoảng trống.
 
-`toLiveReading` (`markets/live-reading.ts`) - đường của `/overview` và `/market` - áp đúng phép kiểm tuổi đó (`isRecentObservation`) lên ngày đã settle mà bên gọi đang giữ. Quy tắc settle nằm ở [Giao dịch](../giao-dich.md#một-phiên-settle-khi-bảng-giá-của-nó-settle-không-phải-khi-chuông-reo).
+`toLiveReading` (`markets/live-reading.ts`) - đường của `/overview` và `/market` - áp đúng phép kiểm tuổi đó (`isRecentObservation`) lên ngày đã settle mà bên gọi đang giữ. Quy tắc settle nằm ở [Giao dịch](../giao-dich.md#một-phiên-chốt-khi-bảng-giá-của-nó-chốt-không-phải-khi-chuông-reo).
 
 Một số đọc trượt một trong hai phép kiểm thì **không phải lỗi**. Thị trường trả giá chốt mà kho đang lưu, gắn nhãn `market-data.quote-not-live`, để màn hình nói rõ đó là giá nào; chỉ từ chối với mã mà kho hoàn toàn không định giá được. Crypto làm việc này qua `liveOrStoredQuote` (`markets/stored-quote.ts`), cổ phiếu VN qua `storedQuote` của cùng tệp.
 
