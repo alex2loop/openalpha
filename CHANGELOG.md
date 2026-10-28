@@ -7,6 +7,53 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.1.0] - 2026-10-28
+
+A new office page: your analysts work in a pixel-art office you open in the browser, with your
+book, ideas, markets, costs and chat beside it. The daemon now serves it, along with a `/v1` API
+for client apps. Six additive database changes; the upgrade runs them for you.
+> Trang văn phòng mới: các nhà phân tích AI làm việc trong một văn phòng pixel mở bằng trình duyệt, bên cạnh là danh mục, đề xuất, thị trường, chi phí và khung chat. Dịch vụ nền giờ phục vụ trang này cùng API `/v1` cho ứng dụng khách. Có sáu thay đổi cơ sở dữ liệu kiểu thêm mới; lệnh nâng cấp tự chạy chúng.
+
+### The office page
+
+- `openalpha web` prints a one-time sign-in link; `openalpha connect` signs in another device.
+  Signed-in browsers are listed, and `openalpha api rotate` signs them all out.
+- A 2D and a 3D office show every run as it happens: who is working, the step it is on, its
+  AI calls and its result on the room's whiteboard. Click a person or room for details.
+- The info panel has Today, Portfolio, Ideas and Market tabs. Office, Info only and narrow-screen
+  layouts share one floating command bar; the chat sits beside it.
+- The command bar suggests commands and arguments; forwarded commands run in the daemon like
+  local ones.
+- Approvals and questions from every channel, scheduled jobs and the AI cost report (daily chart,
+  per-run calls) are on the page. You can also record dividends, splits, rights and transfers,
+  reconcile with venues and sync fills there.
+- Light and dark themes, keyboard shortcuts, screen-reader text and touch layouts.
+
+### Daemon and API
+
+- An HTTP/WS API under `/v1` (off by default, `[api]`), with a bearer token from `openalpha api
+  token`. With `[api] public_url` set it withholds shell, file writes, external tools, pairing
+  approval and orders.
+- Live run feed, notices with read state, event-triggered jobs, agents created and edited from
+  the API, and a `spawn` tool for temporary child agents.
+- `restart` restarts in place; `doctor` shares the CLI probes and prints fix lines; the update
+  notice shows release notes.
+
+### Smaller changes
+
+- `openalpha mcp install --host muse` adds Muse Code.
+- Raising `reserve-pct-nav` past the cash target lifts the target with it; a cash target set
+  below the reserve is refused.
+- `schedule show` leaves out the next run of a paused job.
+- Vietnamese text now says "dịch vụ nền", "mô hình", "cuộc trò chuyện" and "phiên chạy"
+  throughout.
+
+### Upgrading
+
+- New tables for runs, notices, job event triggers and browser sessions, plus new columns for
+  debate models and run tickers. Older binaries cannot open the upgraded database; `openalpha
+  upgrade --rollback` takes it back after an `openalpha upgrade`.
+
 ## [1.0.17] - 2026-10-23
 
 `/themes run <id>` reports on one theme, an ended theme says why and what to do, a leftover
