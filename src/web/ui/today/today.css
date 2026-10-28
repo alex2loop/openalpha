@@ -196,6 +196,14 @@
   color: var(--ink2);
 }
 
+.movers {
+  /* Two lists share a line only when each keeps room for ticker, turnover and move. */
+  --moversColumnMin: 290px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--moversColumnMin), 1fr));
+  gap: var(--s3);
+}
+
 .market-section + .market-section {
   padding-top: var(--s2);
   border-top: 1px solid var(--border);
