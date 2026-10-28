@@ -8,8 +8,7 @@ import { WeatherChip } from '@/web/scene/overlay/weather-chip'
 import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
 import { runningCount } from '@/web/state/live'
-import { isInfoOnly } from '@/web/state/pane'
-import { OFFICE_LAYOUTS, type OfficeLayout, officeLayout, setOfficeLayout } from '@/web/state/prefs'
+import { isInfoOnly, toggleInfoOnly } from '@/web/state/pane'
 import { brand, isFirstRun } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { BellButton } from '@/web/ui/bell/bell-button'
@@ -20,26 +19,11 @@ import { JobsPopover } from '@/web/ui/jobs/jobs-popover'
 import { LIST_KEY } from '@/web/ui/keys/keys'
 import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
 import { Chip } from '@/web/ui/kit/chip'
-import { CoinIcon, DockedIcon, FullOfficeIcon, InfoOnlyIcon } from '@/web/ui/kit/icons'
+import { CoinIcon, InfoOnlyIcon } from '@/web/ui/kit/icons'
 import { closePopover, JOBS_POPOVER_ID, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
-import { Segmented } from '@/web/ui/kit/segmented'
 import { GearButton } from '@/web/ui/settings/gear-button'
 
 import './header.css'
-
-const LAYOUTS = Object.freeze({
-  docked: {
-    icon: <DockedIcon />,
-    label: 'ui.office.layout.docked',
-    tip: 'ui.office.layout.dockedTip',
-  },
-  full: {
-    icon: <FullOfficeIcon />,
-    label: 'ui.office.layout.full',
-    tip: 'ui.office.layout.fullTip',
-  },
-  info: { icon: <InfoOnlyIcon />, label: 'ui.office.layout.info', tip: 'ui.office.layout.infoTip' },
-} as const satisfies Record<OfficeLayout, unknown>)
 
 /** The scene's own header controls (the view, the clock, the weather) have nothing to act on in
  *  Info only, where no scene is mounted. */
@@ -62,7 +46,7 @@ export function Header() {
       <span class="header-grow" />
       {!isFirstRun.value && <CostChip anchor={costAnchor} />}
       {hasScene && <ViewSwitch />}
-      <LayoutSwitch />
+      <InfoOnlyToggle />
       {hasScene && <ClockControl />}
       {hasScene && <WeatherChip />}
       <BellButton anchor={bellAnchor} />
@@ -120,20 +104,18 @@ function runningTextOf(count: number): string {
 }
 
 // Wide screens only: a narrow one picks its pane from the pane bar.
-function LayoutSwitch() {
+function InfoOnlyToggle() {
   return (
-    <Segmented
-      className="layout-switch"
-      label={tr('ui.office.layout.group')}
-      value={officeLayout.value}
-      options={OFFICE_LAYOUTS.map((value) => ({
-        value,
-        label: tr(LAYOUTS[value].label),
-        icon: LAYOUTS[value].icon,
-        title: tr(LAYOUTS[value].tip),
-      }))}
-      onChange={setOfficeLayout}
-    />
+    <button
+      type="button"
+      class="icon-button layout-toggle"
+      title={tr(isInfoOnly.value ? 'ui.office.layout.officeTip' : 'ui.office.layout.infoTip')}
+      aria-label={tr('ui.office.layout.info')}
+      aria-pressed={isInfoOnly.value}
+      onClick={toggleInfoOnly}
+    >
+      <InfoOnlyIcon />
+    </button>
   )
 }
 

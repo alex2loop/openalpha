@@ -6,7 +6,7 @@ import { Tabs } from '@/web/ui/panel/tabs'
 /** The 52 px strip the panel folds into: one icon per tab, then the arrow that opens it again. */
 export function Rail() {
   return (
-    <div id={PANEL_ELEMENT_ID} class="panel-rail" tabIndex={-1}>
+    <div id={PANEL_ELEMENT_ID} class="panel-rail glass" tabIndex={-1}>
       <Tabs />
       <button
         type="button"

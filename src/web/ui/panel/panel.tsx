@@ -1,9 +1,9 @@
 import { breakpoint } from '@/web/state/breakpoints'
-import { isInfoOnly, showPane } from '@/web/state/pane'
+import { showPane } from '@/web/state/pane'
 import {
   backStack,
   collapsed,
-  isFocused,
+  isFloating,
   PANEL_ELEMENT_ID,
   type PanelView,
   panelView,
@@ -25,14 +25,11 @@ import { Today } from '@/web/ui/today/today'
 
 import './panel.css'
 
-/** The info panel: tabs, the way back, and the view. It folds into a rail on a wide screen, except
- *  in Full office, where it floats over the office as glass, and in Info only, where it fills the
- *  page at a reading width; on a narrow screen it is a glass bottom sheet over the office, its
- *  handle closing it. */
+/** The info panel: tabs, the way back, and the view. On a wide screen it floats over the office as
+ *  glass and folds into a rail; in Info only it fills the page at a reading width; on a narrow
+ *  screen it is a glass bottom sheet over the office, its handle closing it. */
 export function Panel() {
-  const isFixed = isFocused.value || isInfoOnly.value
-
-  if (collapsed.value && !isFixed && breakpoint.value === 'wide') {
+  if (collapsed.value && isFloating.value) {
     return <Rail />
   }
 
@@ -48,7 +45,7 @@ export function Panel() {
       {isSheet && <SheetHandle />}
       <div class="panel-head">
         <Tabs />
-        {!isFixed && (
+        {isFloating.value && (
           <button
             type="button"
             class="panel-collapse"
@@ -76,11 +73,7 @@ function panelClass(isSheet: boolean): string {
     return 'panel glass is-sheet'
   }
 
-  if (isFocused.value) {
-    return 'panel glass is-float'
-  }
-
-  return isInfoOnly.value ? 'panel chrome-glass is-reading' : 'panel chrome-glass'
+  return isFloating.value ? 'panel glass is-float' : 'panel chrome-glass is-reading'
 }
 
 function SheetHandle() {

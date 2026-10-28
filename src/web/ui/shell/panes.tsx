@@ -4,7 +4,7 @@ import { SceneCanvas } from '@/web/scene/canvas'
 import { FloorRow } from '@/web/scene/overlay/toolbar'
 import { breakpoint } from '@/web/state/breakpoints'
 import { isInfoOnly, pane } from '@/web/state/pane'
-import { isFocused } from '@/web/state/panel'
+import { isFloating } from '@/web/state/panel'
 import { SceneTwin } from '@/web/ui/a11y/scene-twin'
 import { ChatPanel } from '@/web/ui/chat/chat-panel'
 import { CommandBar } from '@/web/ui/command/command-bar'
@@ -20,13 +20,13 @@ export const isStageShown = computed(() =>
 
 /** Where each part of the office mounts: the stage (the scene, with the floor row and the tape
  *  floating over its top and the command bar over its foot), the info panel and the chat docked
- *  right. In Full office the panel floats over the stage, above the command bar; in Info only the
+ *  right. On a wide screen the panel floats over the stage, above the command bar; in Info only the
  *  stage and the scene twin are not mounted at all and the panel fills the page; on a narrow screen
  *  the information pane is a bottom sheet over the stage.
- *  Below the narrow width the pane bar picks the one shown; the layouts are a wide-screen choice. */
+ *  Below the narrow width the pane bar picks the one shown; Info only is a wide-screen choice. */
 export function Panes() {
   return (
-    <main class={isFocused.value ? 'panes is-focus' : 'panes'} data-pane={pane.value}>
+    <main class={isFloating.value ? 'panes is-overlay' : 'panes'} data-pane={pane.value}>
       {!isInfoOnly.value && <Stage />}
       <Panel />
       <ChatPanel />

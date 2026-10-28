@@ -1,16 +1,13 @@
 .panel {
   display: flex;
   flex-direction: column;
-  width: var(--panelW);
   min-height: 0;
-  border-left: 1px solid var(--border);
 }
 
 /* Info only: no stage, so the panel takes the main area, its content at a reading width and
    centred, the chat docked beside. */
 .panel.is-reading {
   flex: 1;
-  width: auto;
   max-width: calc(var(--panelContentMaxW) + var(--s3) * 2);
   margin-inline: auto;
   border-inline: 1px solid var(--border);
@@ -22,8 +19,6 @@
 .panel.is-sheet {
   --glassAlpha: var(--glassFocusA);
   z-index: var(--zStageBar);
-  width: auto;
-  border-left: 0;
   border-radius: var(--islandRadius);
   overflow: hidden;
   animation: panel-float-in var(--sheetMs) ease-out;
@@ -168,16 +163,21 @@
   }
 }
 
-/* Folded to a strip of icons, the active one a pill on the track. */
-.panel-rail {
+/* Folded to a strip of icons floating over the office at the panel's corner, the active one a pill
+   on the track. */
+.panel-rail.glass {
+  --glassAlpha: var(--glassFocusA);
+  z-index: var(--zStageBar);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  align-self: start;
+  justify-self: end;
   width: var(--panelRailW);
+  margin: calc(var(--stageTopH) + var(--s1)) var(--s2) 0 0;
   padding: var(--s1) 0;
-  border-left: 1px solid var(--border);
-  background: var(--canvas);
+  border-radius: var(--islandRadius);
 }
 
 /* Folded, the tabs are a column of icons: the selected one keeps its pill, with no track behind. */
@@ -210,9 +210,4 @@
 .panel-rail .panel-collapse {
   margin: 0;
   transform: rotate(180deg);
-}
-
-/* The pane bar takes the collapse arrow's place. */
-:root:not([data-layout="wide"]) .panel-collapse {
-  display: none;
 }

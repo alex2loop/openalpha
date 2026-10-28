@@ -23,7 +23,7 @@ export const THEMES = ['system', 'light', 'dark'] as const
 export const COLOUR_PAIRS = ['green-up', 'red-up'] as const
 export const MOTIONS = ['system', 'reduced', 'full'] as const
 export const SCENE_VIEWS = ['2d', '3d'] as const
-export const OFFICE_LAYOUTS = ['docked', 'full', 'info'] as const
+const OFFICE_LAYOUTS = ['office', 'info'] as const
 // Advanced first: it is the default, and today's reader loses nothing.
 export const DETAIL_LEVELS = ['advanced', 'simple'] as const
 
@@ -31,7 +31,7 @@ export type Theme = (typeof THEMES)[number]
 export type ColourPair = (typeof COLOUR_PAIRS)[number]
 export type Motion = (typeof MOTIONS)[number]
 export type SceneView = (typeof SCENE_VIEWS)[number]
-export type OfficeLayout = (typeof OFFICE_LAYOUTS)[number]
+type OfficeLayout = (typeof OFFICE_LAYOUTS)[number]
 export type DetailLevel = (typeof DETAIL_LEVELS)[number]
 type ColorScheme = 'light' | 'dark'
 
@@ -77,7 +77,8 @@ export const colourPair: ReadonlySignal<ColourPair> = colourChoice
 export const motion: ReadonlySignal<Motion> = motionChoice
 /** How the office is drawn: flat 2D, or the 3D view; blocked or unknown reads as 2D. */
 export const sceneView: ReadonlySignal<SceneView> = sceneViewChoice
-/** How a wide page lays out the office and the information; blocked or unknown reads as docked. */
+/** Whether a wide page keeps the office or shows the information alone; blocked or unknown
+ *  (an older layout name) reads as the office. */
 export const officeLayout: ReadonlySignal<OfficeLayout> = layoutChoice
 /** How much the page spells out: simple leaves the scores, sources and technical detail folded away. */
 export const detailLevel: ReadonlySignal<DetailLevel> = detailChoice

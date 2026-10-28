@@ -1,8 +1,7 @@
 import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import { breakpoint } from '@/web/state/breakpoints'
-import { showPane } from '@/web/state/pane'
-import { type OfficeLayout, officeLayout, setOfficeLayout } from '@/web/state/prefs'
+import { isInfoOnly, showPane } from '@/web/state/pane'
 
 const BACK_MAX = 20
 
@@ -24,10 +23,9 @@ export const panelView = signal<PanelView>({ tab: 'today' })
 export const backStack = signal<readonly PanelView[]>([])
 /** The panel is folded into its icon strip. */
 export const collapsed = signal(false)
-/** Full office as the page lays it out: the office fills the page and the info panel floats over
- *  it, a wide-screen choice. */
-export const isFocused: ReadonlySignal<boolean> = computed(
-  () => officeLayout.value === 'full' && breakpoint.value === 'wide'
+/** The info panel floats over the office, which fills the page: a wide screen outside Info only. */
+export const isFloating: ReadonlySignal<boolean> = computed(
+  () => breakpoint.value === 'wide' && !isInfoOnly.value
 )
 
 /** Shows `view`, remembering the one it leaves; a tab click passes `fresh` and starts over. Every
@@ -55,11 +53,6 @@ export function goBack(): void {
 
   backStack.value = backStack.value.slice(0, -1)
   panelView.value = previous
-}
-
-/** Picks `layout`, or goes back to docked when it is already the one in use. */
-export function toggleOfficeLayout(layout: Exclude<OfficeLayout, 'docked'>): void {
-  setOfficeLayout(officeLayout.value === layout ? 'docked' : layout)
 }
 
 function isSameView(a: PanelView, b: PanelView): boolean {
