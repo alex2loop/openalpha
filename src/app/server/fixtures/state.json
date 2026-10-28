@@ -83,6 +83,7 @@
   "childRunMaxMs": 600000,
   "firstRun": {
     "modelReady": true,
+    "modelKeyEnv": "OPENROUTER_API_KEY",
     "profileSaved": true,
     "bookEmpty": false
   },

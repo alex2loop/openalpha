@@ -88,6 +88,8 @@ export interface ScheduleRow {
 interface FirstRunWire {
   /** A model can answer: its key is set or its login is done, or the connected client answers. */
   readonly modelReady: boolean
+  /** The variable the first configured model reads its key from; absent for a login or a client. */
+  readonly modelKeyEnv?: string
   /** The operator saved a profile; a daemon that never did runs on seeded defaults. */
   readonly profileSaved: boolean
   /** The ledger holds no row at all. */

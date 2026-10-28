@@ -583,6 +583,7 @@
     "office.firstRun.optional": "không bắt buộc",
     "office.firstRun.modelTitle": "Kết nối mô hình AI",
     "office.firstRun.modelBody": "Chưa đọc được khóa API. Đặt biến môi trường {envVar} trên máy chạy dịch vụ nền, rồi bấm Kiểm tra lại. Khóa không nhập trên trang này.",
+    "office.firstRun.modelBodyNoKey": "Mô hình đầu tiên chưa trả lời được. Đăng nhập hoặc xem lại thiết lập ở Cài đặt > Nhà cung cấp, rồi bấm Kiểm tra lại.",
     "office.firstRun.profileBody": "Khẩu vị rủi ro, mục tiêu, kỳ hạn và tỷ trọng từng nhóm tài sản. Mình dùng để chọn tỷ trọng và mức cắt lỗ.",
     "office.firstRun.profileCta": "Điền hồ sơ",
     "office.firstRun.bookTitle": "Danh mục hiện có",

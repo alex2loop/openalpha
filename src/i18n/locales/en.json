@@ -583,6 +583,7 @@
     "office.firstRun.optional": "optional",
     "office.firstRun.modelTitle": "Connect an AI model",
     "office.firstRun.modelBody": "I cannot read an API key yet. Set the environment variable {envVar} on the machine running the daemon, then press Check again. The key is never typed on this page.",
+    "office.firstRun.modelBodyNoKey": "The first model cannot answer yet. Sign in or check its settings in Settings > Providers, then press Check again.",
     "office.firstRun.profileBody": "Risk appetite, goal, horizon and the weight of each segment. I use it to choose sizes and stops.",
     "office.firstRun.profileCta": "Fill it in",
     "office.firstRun.bookTitle": "Your current holdings",
