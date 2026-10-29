@@ -1895,6 +1895,7 @@
     "socialUsage": "Cách dùng\n/social drafts\n/social approve <id>\n/social discard <id>"
   },
   "errors": {
+    "approvalGone": "Yêu cầu này đã được trả lời hoặc đã hết hạn, nên không còn gì để duyệt.",
     "approvalOtherChannel": "Yêu cầu này hỏi từ {channel}, bạn trả lời ở đó nhé.",
     "chatSessionRunning": "Cuộc trò chuyện này đang trả lời nên mình chưa xóa được.",
     "chatSessionNotDeletable": "Cuộc trò chuyện trên {channel} không xóa ở đây được, vì đó cũng là lịch sử bên {channel}.",
@@ -3681,6 +3682,7 @@
     "costCapMonthly": "đã đạt giới hạn chi tiêu tháng",
     "scheduleAutoDisabled": "Công việc định kỳ {id} đã tự tắt sau {count} lần lỗi liên tiếp.",
     "queueFull": "Mình vẫn đang xử lý các tin nhắn trước của bạn - hãy gửi lại sau một chút.",
+    "restarting": "Mình đang khởi động lại một chút, sẽ trả lời tin này ngay khi quay lại.",
     "commandFailed": "⚠️ Câu lệnh lỗi ở phía mình. Bạn thử lại sau giây lát; nếu vẫn lỗi, `{brand} logs` trên máy chạy OpenAlpha cho biết lý do.",
     "commandRejected": "⚠️ Mình chưa hiểu câu lệnh này. /help <câu lệnh> cho xem cách viết.",
     "commandQueued": "Mình xếp câu lệnh này vào hàng (thứ {position}), sẽ chạy khi có chỗ trống.",
@@ -4325,8 +4327,8 @@
     "caveat.suggestion.conviction-lowered": "Mức tin cậy đã bị hạ sau bước kiểm tra.",
     "caveat.suggestion.averaging-down": "Giá hiện tại thấp hơn giá vốn {underwater}, nên mua thêm là bình quân giá xuống. Mức tin cậy hạ một bậc.",
     "caveat.suggestion.averaging-downWithheld": "Giá hiện tại thấp hơn giá vốn của bạn, nên mua thêm là bình quân giá xuống. Mức tin cậy hạ một bậc.",
-    "caveat.suggestion.averaging-down-net": "Giá hiện tại thấp hơn giá vốn {underwater} sau khi trừ cổ tức, mua thêm là bình quân giá xuống. Mức tin cậy hạ một bậc.",
-    "caveat.suggestion.averaging-down-netWithheld": "Giá hiện tại thấp hơn giá vốn của bạn sau khi trừ cổ tức, nên mua thêm là bình quân giá xuống. Mức tin cậy hạ một bậc.",
+    "caveat.suggestion.averaging-down-net": "Giá hiện tại thấp hơn giá vốn {underwater} sau cổ tức, nên mua thêm là bình quân giá xuống. Mức tin cậy hạ một bậc.",
+    "caveat.suggestion.averaging-down-netWithheld": "Giá hiện tại thấp hơn giá vốn của bạn sau cổ tức, nên mua thêm là bình quân giá xuống. Mức tin cậy hạ một bậc.",
     "caveat.suggestion.dividend-amount-unknown": "Có thể một số cổ tức từ sau ngày bạn mua chưa được tính, nên mức giảm này có thể trông lớn hơn thực tế.",
     "caveat.suggestion.recent-exit": "Bạn đã cắt lỗ mã này {realizedLoss} trong {sessions} phiên, nên mức tin cậy hạ một bậc. Chờ tín hiệu mới.",
     "caveat.suggestion.recent-exitWithheld": "Bạn vừa cắt lỗ mã này trong vòng {sessions} phiên, nên mức tin cậy hạ một bậc. Chờ tín hiệu mới rồi hãy vào lại.",

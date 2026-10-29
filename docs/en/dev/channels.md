@@ -332,7 +332,7 @@ never lets one failed cleanup block the rest.
 
 A channel has two lifetimes. The daemon's shutdown signal is its intake signal (`intakeSignal`): it cuts a
 start short and ends polling, the inbox drain and the admission of new work, so a message not yet claimed stays
-pending for the next start and a run the drain cuts hands its claim back (`releaseClaim`, no attempt spent). A
+pending for the next start and a run the drain cuts hands its claim back (`releaseClaim`, no attempt spent) after editing its placeholder to a short "restarting, I'll answer this when I'm back" line instead of the generic error. A
 turn that meets the closed intake (a burst that fires after it, or a refusal from the paused session queue)
 rejects instead of answering "queue full" or returning, so its entry is released rather than completed.
 Delivery outlives it: each runtime owns its outbound signal and ends it only in `stop`, so the runs the daemon

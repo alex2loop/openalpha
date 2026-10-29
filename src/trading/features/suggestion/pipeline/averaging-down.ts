@@ -3,7 +3,7 @@ import type { Stage, StageDecision, StageInput } from '@/trading/markets/stage'
 import { openLots } from '@/trading/features/portfolio/folds/holdings'
 import { lowerBand } from '@/trading/kernel/conviction'
 import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
-import { eventsFromDay } from '@/trading/kernel/market/margin-status'
+import { eventsFromDay } from '@/trading/kernel/market/market-event'
 import { loweredDecision, STAGE_PASS } from '@/trading/markets/stage'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 

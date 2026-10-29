@@ -335,7 +335,7 @@ một lần dọn hỏng chặn những lần còn lại.
 
 Một kênh có hai vòng đời. Tín hiệu tắt của dịch vụ nền là tín hiệu nhận tin (`intakeSignal`): nó cắt ngang lúc
 khởi động và dừng polling, vòng xử lý hộp thư và việc nhận thêm việc mới, nên tin chưa được nhận giữ nguyên
-trạng thái chờ cho lần khởi động sau, còn phiên chạy bị vòng xử lý cắt thì trả lại quyền giữ (`releaseClaim`,
+trạng thái chờ cho lần khởi động sau, còn phiên chạy bị vòng xử lý cắt thì sửa tin chờ thành một dòng ngắn "đang khởi động lại, sẽ trả lời khi quay lại" thay cho lỗi chung, rồi trả lại quyền giữ (`releaseClaim`,
 không tốn lượt thử nào). Một lượt gặp cửa nhận tin đã đóng (một cụm tin kích hoạt sau đó, hoặc bị hàng đợi phiên
 đang tạm dừng từ chối) bị từ chối thay vì trả lời "hàng đợi đầy" hay trả về lặng lẽ, nên mục của nó được trả lại
 chứ không bị đánh dấu xong. Việc gửi thì sống lâu hơn: mỗi runtime tự giữ tín hiệu gửi đi và chỉ kết thúc nó

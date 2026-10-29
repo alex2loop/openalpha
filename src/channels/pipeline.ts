@@ -374,6 +374,7 @@ function orchestratorDeps(deps: PipelineDeps, parts: HandlerParts): Orchestrator
     locale: deps.locale,
     logger: deps.logger,
     signal: deps.outboundSignal,
+    intakeSignal: deps.intakeSignal,
     sent: parts.sent,
     sessions: deps.sessions,
     reviewPlan: (chatId, input) => parts.planReviewer.reviewPlan(chatId, input),

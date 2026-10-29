@@ -1895,6 +1895,7 @@
     "socialUsage": "Usage\n/social drafts\n/social approve <id>\n/social discard <id>"
   },
   "errors": {
+    "approvalGone": "That request was already answered or has timed out, so there's nothing left to approve.",
     "approvalOtherChannel": "This was asked on {channel}; answer it there.",
     "chatSessionRunning": "This chat is still answering, so I can't delete it yet.",
     "chatSessionNotDeletable": "A {channel} chat can't be deleted here, since it's that app's history too.",
@@ -3681,6 +3682,7 @@
     "costCapMonthly": "monthly cost cap reached",
     "scheduleAutoDisabled": "Scheduled job {id} was automatically disabled after {count} consecutive failures.",
     "queueFull": "I'm still working through your earlier messages - please resend in a moment.",
+    "restarting": "Restarting for a moment - I'll answer this as soon as I'm back.",
     "commandFailed": "⚠️ That command failed on my side. Try again in a moment; if it keeps failing, `{brand} logs` on the machine running OpenAlpha shows why.",
     "commandRejected": "⚠️ I couldn't read that command. /help <command> shows how to write it.",
     "commandQueued": "Queued (number {position} in line). It starts when a slot frees up.",

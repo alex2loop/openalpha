@@ -31,7 +31,9 @@ the way the order path charges them.
   switch a job off after three in a row.
 - A cron job more than `[schedule] late_grace_ms` (15 minutes) late skips to its next time; interval
   and one-time jobs still run. The intraday report skips a send it woke too late for.
-- At shutdown, queued notices get their one last attempt before the channels close.
+- At shutdown, channels stop taking new messages at once (they wait for the next start) and queued
+  notices get their one last attempt before the channels close. A reply cut by the restart says so
+  instead of showing an error.
 - A message Telegram or Zalo refuses for good is not retried.
 - An API port already in use is reported as a degraded item; the daemon keeps running.
 
@@ -59,6 +61,8 @@ the way the order path charges them.
 - Too many open tabs reads as such, not as offline.
 - `GET /v1/health` no longer carries a `status` that was always `ready`.
 - A request the client already dropped is answered 499 and logged at debug.
+- `POST /v1/respond` answers `not_found` for a request that is no longer waiting, instead of a
+  silent ok.
 - Chat history pages never start in the middle of a turn; rate-limited commands are not stored;
   deleting a chat also removes its agent binding.
 

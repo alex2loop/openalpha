@@ -8,18 +8,18 @@ import { goldManifest } from '@/trading/markets/gold/market'
 import { goldVnManifest } from '@/trading/markets/gold-vn/market'
 import { MARKETS_CONFIG_KEY } from '@/trading/wiring/config-schema'
 
-const SECTION = `trading.${MARKETS_CONFIG_KEY}`
-
 /** The two ways a `holidays` / `open_days` date can be wrong on its own, refused where the config
  *  resolves so `config validate` and boot agree. A market this build does not ship has no weekend
  *  to test against; composition refuses the unknown market itself. */
-export function assertConfiguredDays(config: TradingConfig): void {
-  assertDaysAgree(config)
-  assertDaysAreWeekdays(config)
+export function assertConfiguredDays(config: TradingConfig, section: string): void {
+  const label = `[${section}.${MARKETS_CONFIG_KEY}]`
+
+  assertDaysAgree(config, label)
+  assertDaysAreWeekdays(config, label)
 }
 
 /** A date both closed and reopened under one market says two things; neither can be guessed. */
-function assertDaysAgree(config: TradingConfig): void {
+function assertDaysAgree(config: TradingConfig, label: string): void {
   const contradicted = Object.entries(config.markets).flatMap(([ref, settings]) => {
     const reopened = new Set(settings?.openDays ?? [])
 
@@ -30,7 +30,7 @@ function assertDaysAgree(config: TradingConfig): void {
 
   if (contradicted.length > 0) {
     throw new OperatorConfigError(
-      `[${SECTION}] dates in both holidays and open_days: ${contradicted.join(', ')}`,
+      `${label} dates in both holidays and open_days: ${contradicted.join(', ')}`,
       { key: 'errors.configMarketDayContradicted', params: { days: contradicted.join(', ') } }
     )
   }
@@ -38,7 +38,7 @@ function assertDaysAgree(config: TradingConfig): void {
 
 /** A configured date on the market's own weekend is a mistyped date: that day never traded, so the
  *  change it was meant to make is not there. Every offender in one throw. */
-function assertDaysAreWeekdays(config: TradingConfig): void {
+function assertDaysAreWeekdays(config: TradingConfig, label: string): void {
   const policies = new Map(
     [cryptoManifest, goldManifest, goldVnManifest, vnManifest]
       .map((build) => build(config))
@@ -56,7 +56,7 @@ function assertDaysAreWeekdays(config: TradingConfig): void {
 
   if (misplaced.length > 0) {
     throw new OperatorConfigError(
-      `[${SECTION}] holidays or open_days fall on a weekend: ${misplaced.join(', ')}`,
+      `${label} holidays or open_days fall on a weekend: ${misplaced.join(', ')}`,
       { key: 'errors.configMarketDayOnWeekend', params: { days: misplaced.join(', ') } }
     )
   }

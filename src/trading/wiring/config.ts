@@ -63,7 +63,7 @@ export function resolveTradingConfig(options: ResolveTradingConfigOptions): Trad
   try {
     const config = freezeDeep(merge(parsed.data, localized))
 
-    assertConfiguredDays(config)
+    assertConfiguredDays(config, TRADING_CONFIG_SECTION)
 
     return config
   } catch (err: unknown) {

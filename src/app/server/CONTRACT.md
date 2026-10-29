@@ -242,7 +242,7 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   still trading, which is neither.
 - **`/v1/respond`** answers one approval: `{ requestId, decision }`, where `requestId` is the
   `WireEvent.requestId` the client received (= the gate's `callId`). A clarification is not
-  answered here: its answer is the next chat message in its session (see §4). An approval asked on another channel answers `409 conflict` with `error.message` naming that channel; it is answered there.
+  answered here: its answer is the next chat message in its session (see §4). An approval asked on another channel answers `409 conflict` with `error.message` naming that channel; it is answered there. An id that no longer waits (answered, timed out, its run gone, or never asked) answers `404 not_found`; the daemon keeps every approval still waiting, none dropped for count.
 - **`/v1/profile` POST** applies a partial patch: keys left out keep their value, and a
   `horizons` map changes only the markets it names.
 - **`preferredLocale`** in a profile response is `[locale] language`, the one language every reply

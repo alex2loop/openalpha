@@ -239,15 +239,20 @@ async function handleRespond(req: Request, ctx: ApiRouteContext): Promise<Respon
 
   const body = parsed.data
   const origin = ctx.live.pendingOrigin(body.requestId)
+  const { translate } = bindLocale(localeOf(ctx))
+
+  // The feed holds every approval still waiting, so an id it lacks was answered, timed out or
+  // never asked: an answer from here would reach no one.
+  if (origin === undefined) {
+    return apiError('not_found', translate('errors.approvalGone'))
+  }
 
   // The gate only takes an answer from the channel that asked, so an answer from here would be
   // dropped without a word; say where it has to be given instead.
-  if (origin !== undefined && !isApiChannel(origin)) {
+  if (!isApiChannel(origin)) {
     return apiError(
       'conflict',
-      bindLocale(localeOf(ctx)).translate('errors.approvalOtherChannel', {
-        channel: channelNameOf(origin),
-      })
+      translate('errors.approvalOtherChannel', { channel: channelNameOf(origin) })
     )
   }
 

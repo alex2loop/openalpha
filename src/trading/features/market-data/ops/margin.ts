@@ -4,7 +4,8 @@ import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Market } from '@/trading/markets/types'
 import { formatErrForLog } from '@/core/security/credentials'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
-import { eventsFromDay, standingMarginEvent } from '@/trading/kernel/market/margin-status'
+import { standingMarginEvent } from '@/trading/kernel/market/margin-status'
+import { eventsFromDay } from '@/trading/kernel/market/market-event'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 interface MarkMarginInput {
