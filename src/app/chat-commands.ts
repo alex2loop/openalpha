@@ -9,6 +9,7 @@ import { createCoreCommands } from '@/commands/api'
 import { toCommandLaneKey } from '@/core/command-lane'
 import { agentId as brandAgentId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
+import { isEntryAgent } from '@/engine/api'
 import { t } from '@/i18n'
 
 const COMPLETED_RUN: RunResultReason = 'completed'
@@ -70,7 +71,9 @@ async function hasStoppedRun(app: App, ctx: SlashContext): Promise<boolean> {
 async function entryAgent(app: App, ctx: SlashContext): Promise<AgentId> {
   const binding = await app.resolve('chatBindingStore').get(ctx.channel, ctx.chatId)
 
-  return binding?.agentId ?? configuredEntryAgent(app, ctx.channel)
+  return binding !== null && isEntryAgent(app.resolve('agents').get(binding.agentId))
+    ? binding.agentId
+    : configuredEntryAgent(app, ctx.channel)
 }
 
 async function selectEntryAgent(

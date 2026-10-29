@@ -1537,7 +1537,6 @@
     "office.settings.sessionSignedIn": "Signed in {when}",
     "office.settings.sessionLastSeen": "Last seen {when}",
     "office.settings.sessionUnnamed": "Unnamed browser",
-    "office.settings.saved": "Saved",
     "office.settings.savedNow": "Saved - takes effect now",
     "office.settings.savedLater": "Saved - waiting for a restart",
     "office.settings.needsRestart": "needs a restart",

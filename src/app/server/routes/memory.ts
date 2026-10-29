@@ -24,7 +24,7 @@ import { ValidationError } from '@/core/errors'
 import { FieldValidationError } from '@/core/field-errors'
 import { agentId, LOCAL_USER_ID, userId } from '@/core/ids'
 import { isMemoryKey, MEMORY_KEY_MAX_LEN } from '@/core/memory-key'
-import { ASKED_PREFIX, PENDING_PREFIX, PREFS_PREFIX } from '@/engine/api'
+import { ASKED_PREFIX, isEntryAgent, PENDING_PREFIX, PREFS_PREFIX } from '@/engine/api'
 import { bindLocale, translateDisplayText } from '@/i18n'
 
 /** The most rows one read sends; the local user's sort first, so theirs are never the ones cut. */
@@ -205,7 +205,7 @@ async function resolveWebAgent(
   // For the app's chat the chat id is the session id; a binding to a deleted agent is passed over.
   const binding = await ctx.app.resolve('chatBindingStore').get(API_CHANNEL, id)
 
-  return binding !== null && ctx.app.resolve('agents').has(binding.agentId)
+  return binding !== null && isEntryAgent(ctx.app.resolve('agents').get(binding.agentId))
     ? binding.agentId
     : configuredEntryAgent(ctx.app, API_CHANNEL)
 }

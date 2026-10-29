@@ -413,7 +413,7 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 
 Chat runs on the **same socket** as the feed. The client sends `ClientFrame`s (`socket.ts`):
 
-- `{ type: 'chat', message, sessionId?, id?, quiet? }` — start a turn. A `message` whose first non-space char is `/`
+- `{ type: 'chat', message, sessionId?, id?, quiet? }` — start a turn; a blank `message` is a malformed frame. A `message` whose first non-space char is `/`
   runs the shared **slash dispatcher** (channel surface) instead of an agent run. `id` is the
   client's own id for the message (at most 64 letters, digits, `-` or `_`; anything else closes the
   socket as an invalid frame). Every frame the message produces then carries it as `id`: a short

@@ -4,6 +4,7 @@ import type { CliApp } from '@/cli/types'
 import type { AgentId } from '@/core/ids'
 import { createCommand } from '@/cli/command'
 import { usage } from '@/cli/error-output'
+import { formatArgIssue } from '@/cli/parsing/arg-issue'
 import { flagBool, flagString } from '@/cli/parsing/args'
 import { hint, success } from '@/cli/ui/colors'
 import { agentId } from '@/core/ids'
@@ -39,6 +40,13 @@ function selectAgents(action: PauseAction, args: ParsedArgs, app: CliApp): Selec
   const locale = app.config.locale.language
   const userIds = app.resolve('userAgentIds')()
   const raw = flagString(args, 'id')
+
+  if (flagBool(args, 'all') && raw !== undefined) {
+    return {
+      kind: 'usage',
+      message: formatArgIssue(locale, { token: '<id>/--all', code: 'conflicting_flags' }),
+    }
+  }
 
   if (flagBool(args, 'all')) {
     return { kind: 'ids', ids: [...userIds].sort() }

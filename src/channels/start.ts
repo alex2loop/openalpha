@@ -35,6 +35,7 @@ import { resolveChannelSettings } from '@/channels/schema'
 import { OperatorConfigError } from '@/core/config/resolve'
 import { ConfigError, isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { isEntryAgent } from '@/engine/api'
 
 export interface StartChannelsDeps {
   readonly definitions: readonly ChannelDefinition[]
@@ -273,7 +274,7 @@ function assertConfiguredAgent(
 ): void {
   const agent = settings.agent
 
-  if (agent !== undefined && deps.agents.get(agent) === null) {
+  if (agent !== undefined && !isEntryAgent(deps.agents.get(agent))) {
     throw new ConfigError(`channel ${definition.id}: configured agent '${agent}' not found`)
   }
 }

@@ -654,7 +654,8 @@ lần `db reset`, nằm ở [Lưu trữ](luu-tru.md).
 
 `workspace cleanup` chỉ chạm tới `run/` và `tmp/` bên trong các thư mục làm việc của agent bạn chọn bằng
 `--agent <id>` hoặc `--all` (bắt buộc chọn đúng một). `--older-than`, `--dry-run` và `--yes` dùng như ở
-các lệnh khác, và dịch vụ nền phải đã dừng. Lệnh này không xóa tệp bền vững ở gốc thư mục làm việc hay log của
+các lệnh khác, và dịch vụ nền phải đã dừng. `--all` không kèm `--older-than` sẽ dọn sạch vùng nháp của mọi agent,
+nên lệnh luôn bắt bạn gõ `DELETE`, kể cả khi có `--yes`. Lệnh này không xóa tệp bền vững ở gốc thư mục làm việc hay log của
 agent. Như mọi khi: thư mục làm việc chỉ là chỗ bắt đầu an toàn, không phải một vùng khóa kín do hệ
 điều hành bảo vệ.
 

@@ -20,6 +20,8 @@ import { t } from '@/i18n'
 // One operator on one machine, so the CLI has a single stable chat.
 const APPROVAL_MODES = ['manual', 'bypass'] as const
 const CLI_CHANNEL_ID = LOCAL_CHANNEL_ID
+// Plain decimal only: `Number()` alone also takes `0x10`, `1e3` and padded input.
+const USD_AMOUNT_RE = /^\d+(?:\.\d+)?$/
 
 interface FlagOk extends ChatFlags {
   readonly kind: 'value'
@@ -98,7 +100,7 @@ function readFlags(args: Parameters<Parameters<typeof createCommand>[0]['run']>[
   const rawCost = flagString(args, 'maxCostUsd')
   const maxCostUsd = rawCost === undefined ? undefined : Number(rawCost)
 
-  if (maxCostUsd !== undefined && !(Number.isFinite(maxCostUsd) && maxCostUsd > 0)) {
+  if (rawCost !== undefined && !isUsdAmount(rawCost)) {
     return {
       kind: 'error',
       error: { key: 'cli.chatMaxCostInvalid', params: { value: rawCost ?? '' } },
@@ -135,6 +137,10 @@ function readFlags(args: Parameters<Parameters<typeof createCommand>[0]['run']>[
     ...(maxTurnsValue === undefined ? {} : { maxTurns: maxTurnsValue }),
     ...(maxCostUsd === undefined ? {} : { maxCostUsd }),
   }
+}
+
+function isUsdAmount(raw: string): boolean {
+  return USD_AMOUNT_RE.test(raw) && Number(raw) > 0
 }
 
 function isApprovalMode(value: string): value is 'manual' | 'bypass' {

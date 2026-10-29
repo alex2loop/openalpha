@@ -669,7 +669,8 @@ through a `db reset` are in [Storage](storage.md).
 
 `workspace cleanup` visits only `run/` and `tmp/` inside the agent workspaces you select with
 `--agent <id>` or `--all` (exactly one is required). `--older-than`, `--dry-run` and `--yes` work as
-elsewhere, and the daemon must be stopped. It does not delete durable workspace-root files or agent
+elsewhere, and the daemon must be stopped. `--all` without `--older-than` empties every agent's scratch, so it
+always asks you to type `DELETE`, even with `--yes`. It does not delete durable workspace-root files or agent
 logs. As always, the workspace is a safe place to start in, not a locked box enforced by the operating
 system.
 

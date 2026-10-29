@@ -1537,7 +1537,6 @@
     "office.settings.sessionSignedIn": "Đăng nhập {when}",
     "office.settings.sessionLastSeen": "Lần cuối {when}",
     "office.settings.sessionUnnamed": "Trình duyệt không rõ tên",
-    "office.settings.saved": "Đã lưu",
     "office.settings.savedNow": "Đã lưu - có hiệu lực ngay",
     "office.settings.savedLater": "Đã lưu - chờ khởi động lại",
     "office.settings.needsRestart": "cần khởi động lại",
