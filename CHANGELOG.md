@@ -45,6 +45,12 @@ the way the order path charges them.
 - Telegram and Zalo check their token once at start; a slow network is retried by the polling loop
   instead of holding the start, and the Telegram command menu is installed in the background. A
   wrong token is still reported at start.
+- `status`, `start` and every other command list all the config problems `config validate` lists,
+  not only the first section's.
+- With a config that cannot be read, `doctor` checks only config, daemon and version and marks the
+  rest as waiting, instead of reporting on the defaults (`doctor web-search` showed duckduckgo ✓).
+- `/profile set reserve-pct-nav 5` names the allowed range instead of a message about pinned targets.
+- `/reflect` calls a repeated suggestion a suggestion, not an order.
 - `web` and `connect` say why the daemon has no API (its port taken by another program, say)
   instead of reporting a refused token from whatever holds that port.
 - A run that stops on something you can fix, such as an unset key, is logged as a warning, not an

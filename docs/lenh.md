@@ -357,6 +357,11 @@ Nhãn mỗi dòng theo `[locale] language` của bạn. Dòng đánh dấu `i` l
 phải cảnh báo. Ví dụ: cơ sở dữ liệu, thư mục log hay thư mục dữ liệu mà phiên chạy đầu sẽ tạo; dịch vụ
 nền chưa được bật; nguồn dữ liệu tùy chọn chưa đặt khóa. Dòng nguồn dữ liệu nói rõ khóa đó sẽ thêm được gì.
 
+Khi `config.toml` chưa đọc được, chỉ các dòng cấu hình, dịch vụ nền và phiên bản được kiểm. Các dòng còn
+lại báo đang chờ bạn sửa cấu hình, vì kiểm chúng lúc này chỉ là kiểm cấu hình mặc định chứ không phải
+của bạn. Gọi riêng một phép kiểm như `doctor web-search` thì dòng cấu hình hiện kèm phía trên để bạn biết
+cần sửa gì.
+
 `doctor models` còn nêu tên các biến tài khoản đám mây mà một mục Vertex hay Azure không có khóa vẫn cần.
 `doctor trading` dựng thử hệ thống y như `chat` nhưng không khởi chạy hay migrate gì. Nhờ vậy khu vực
 chính không sàn nào giao dịch, hay `default_for` trỏ nhầm sàn, sẽ lộ ra ngay ở đây. Nó chờ tới khi đã

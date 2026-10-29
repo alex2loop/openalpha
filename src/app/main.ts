@@ -47,6 +47,7 @@ import {
 } from '@/cli/api'
 import { resolveLoadDataDir } from '@/core/config/load'
 import { resolveEnvFile } from '@/core/config/resolve'
+import { withExtensionRefusals } from '@/core/config/validate'
 import { formatErrForLog } from '@/core/security/credentials'
 
 const EXIT_OK = 0
@@ -334,11 +335,24 @@ async function runBoot(options: RunBootOptions): Promise<number> {
     return await runCli(cliApp, flags.argv, commands)
   } catch (err: unknown) {
     // boot() never catches its own ConfigError (spec §13 Pillar C) — the entry prints it, once.
-    return printError(err, { write: writers.err, verbose: isVerbose(), locale })
+    return printBootError(err, { write: writers.err, verbose: isVerbose(), locale })
   } finally {
     // Whatever the command did, the transports boot opened are ours to close.
     await booted?.dispose()
   }
+}
+
+/** A refused config is printed with what the sections core never reached refuse too, so one run
+ *  lists every problem, as `config validate` does. */
+function printBootError(err: unknown, output: Parameters<typeof printError>[1]): number {
+  const [first, ...rest] = withExtensionRefusals(err, bootRefusals)
+  const code = printError(first, output)
+
+  for (const refusal of rest) {
+    printError(refusal, output)
+  }
+
+  return code
 }
 
 /** What the entry holds before boot: the key file this process loaded, for the API surface that

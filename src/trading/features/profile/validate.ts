@@ -240,7 +240,7 @@ function assertSegmentCeiling(entry: RiskCapSet, segment: PortfolioSegment, targ
   }
 }
 
-function assertBounds(patch: ProfilePatch, bounds: ProfileBounds): void {
+export function assertBounds(patch: ProfilePatch, bounds: ProfileBounds): void {
   assertOptionalWithin(
     patch.maximumSectorPctNav,
     bounds.maximumSectorPctNav,

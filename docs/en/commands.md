@@ -363,6 +363,10 @@ never a warning. Examples: a database, log folder or data folder that the first 
 that has not been started; an optional data source whose key is unset. The source row says what the
 key would add.
 
+When `config.toml` cannot be read, only the config, daemon and version rows are checked. The rest say
+they wait on the config fix, since checking them now would check the defaults, not your settings. A
+single check such as `doctor web-search` then prints the config row above it, so you see what to fix.
+
 `doctor models` also names the cloud-account variables a keyless Vertex or Azure entry still needs.
 `doctor trading` composes the app the way `chat` would, without starting or migrating anything. So a
 home region no venue trades, or a `default_for` on the wrong venue, shows up here first. It waits until

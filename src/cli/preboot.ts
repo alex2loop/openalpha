@@ -6,6 +6,7 @@ import type { Services } from '@/core/container'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { toTerminalWriters } from '@/cli/terminal'
 import { probeConfig } from '@/core/config/load'
+import { withExtensionRefusals } from '@/core/config/validate'
 import { ConfigError } from '@/core/errors'
 
 export interface PreBootOptions {
@@ -42,7 +43,9 @@ export async function preBootApp(options: PreBootOptions): Promise<CliApp> {
       configError:
         probed.error === null
           ? null
-          : terminalErrorMessage(probed.error, probed.config.locale.language),
+          : withExtensionRefusals(probed.error, options.bootRefusals)
+              .map((refusal) => terminalErrorMessage(refusal, probed.config.locale.language))
+              .join('\n'),
       configMissing: probed.missing,
       configKeyMissing: probed.keyMissing,
       explicitConfig: options.configPath !== undefined,
