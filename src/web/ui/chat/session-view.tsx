@@ -5,7 +5,7 @@ import type { ChatHistoryMessage, ChatHistoryResponse } from '@/app/server/wire/
 import { pluralKey } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { type ChatSession, viewedSession } from '@/web/state/chat'
+import { type ChatSession, USER_ROLE, viewedSession } from '@/web/state/chat'
 import {
   HISTORY_PAGE_SIZE,
   MAX_EARLIER,
@@ -75,7 +75,7 @@ export function SessionView({ session }: { readonly session: ChatSession }) {
       <ReadingBanner session={session} />
       <PagesHead pages={held} onOlder={loadMore} />
       <HistoryMessages messages={held.messages} />
-      <EndNote count={session.messageCount} />
+      <EndNote count={session.turnCount} />
       <NewerRows sessionId={session.sessionId} pages={pages} list={list} />
     </div>
   )
@@ -215,7 +215,7 @@ function toPages(messages: readonly ChatHistoryMessage[], page: ChatHistoryRespo
 
 // The rows past the last one held are added at the end. A newest page that no longer reaches the
 // rows held, more having arrived than one page holds, stands in for all of them instead, and older
-// pages are read again on the way up. The end note counts what was added.
+// pages are read again on the way up. The end note counts the turns added.
 function takeNewer(pages: Signal<Pages>, page: ChatHistoryResponse): void {
   const held = pages.value
   const last = held.messages.at(-1)?.idx ?? -1
@@ -225,9 +225,10 @@ function takeNewer(pages: Signal<Pages>, page: ChatHistoryResponse): void {
   pages.value = isJoined ? withFresh(held, fresh) : toPages(page.messages, page)
 
   const viewed = viewedSession.value
+  const turns = fresh.filter((message) => message.role === USER_ROLE).length
 
   if (viewed !== undefined) {
-    viewedSession.value = { ...viewed, messageCount: viewed.messageCount + fresh.length }
+    viewedSession.value = { ...viewed, turnCount: viewed.turnCount + turns }
   }
 }
 

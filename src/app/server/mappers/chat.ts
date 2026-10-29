@@ -23,7 +23,7 @@ export function toChatSessionsWire(
 
   return {
     sessions: listings.map(toChatSessionWire),
-    nextBefore: last?.lastActivityAt ?? null,
+    nextBefore: last?.lastMessageAt ?? null,
     nextBeforeId: last?.id ?? null,
   }
 }
@@ -38,8 +38,8 @@ function toChatSessionWire(listing: SessionListing): ChatSessionsResponse['sessi
     ...(listing.chatId === undefined ? {} : { chatId: listing.chatId }),
     agentId: listing.agentId,
     startedAt: listing.startedAt,
-    lastActivityAt: listing.lastActivityAt,
-    messageCount: listing.messageCount,
+    lastMessageAt: listing.lastMessageAt,
+    turnCount: listing.turnCount,
     ...(title === undefined ? {} : { title }),
     ...(lastReply === undefined ? {} : { lastReply }),
   }

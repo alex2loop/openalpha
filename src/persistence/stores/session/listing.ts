@@ -16,8 +16,8 @@ interface ListingRow {
   readonly channel: string
   readonly chat_id: string | null
   readonly started_at: number
-  readonly last_activity_at: number
-  readonly message_count: number
+  readonly last_message_at: number
+  readonly turn_count: number
   readonly first_user: string | null
   readonly last_assistant: string | null
 }
@@ -47,19 +47,23 @@ export async function listSessionsByChannels(
   }
   const conditions = buildConditions(query, bind)
   const where = conditions.length === 0 ? '' : `WHERE ${conditions.join(' AND ')} `
+  const cursor =
+    query.before === undefined
+      ? ''
+      : `WHERE ${toBeforeCondition(query.before, query.beforeId, bind)} `
   // The page is cut first, so the correlated reads below run on its rows alone.
   const sql =
-    `SELECT p.id, p.agent_id, p.channel, p.chat_id, p.started_at, p.last_activity_at, ` +
+    `SELECT p.id, p.agent_id, p.channel, p.chat_id, p.started_at, p.last_message_at, ` +
     `(SELECT COUNT(*) FROM session_messages m WHERE m.session_id = p.id ` +
-    `AND ${displayedRow('m')}) AS message_count, ` +
+    `AND m.role = 'user') AS turn_count, ` +
     `(SELECT m.content FROM session_messages m WHERE m.session_id = p.id ` +
     `AND m.role = 'user' ORDER BY m.idx ASC LIMIT 1) AS first_user, ` +
     `(SELECT m.content FROM session_messages m WHERE m.session_id = p.id ` +
-    `AND m.role = 'assistant' ORDER BY m.idx DESC LIMIT 1) AS last_assistant ` +
-    `FROM (SELECT s.id, s.agent_id, s.channel, s.chat_id, s.started_at, s.last_activity_at ` +
-    `FROM sessions s ${where}` +
-    `ORDER BY s.last_activity_at DESC, s.id DESC LIMIT ${bind(query.limit)}) p ` +
-    `ORDER BY p.last_activity_at DESC, p.id DESC`
+    `AND m.role = 'assistant' AND ${displayedRow('m')} ORDER BY m.idx DESC LIMIT 1) AS last_assistant ` +
+    `FROM (SELECT c.* FROM (SELECT s.id, s.agent_id, s.channel, s.chat_id, s.started_at, ` +
+    `${lastMessageAt('s')} AS last_message_at FROM sessions s ${where}) c ${cursor}` +
+    `ORDER BY c.last_message_at DESC, c.id DESC LIMIT ${bind(query.limit)}) p ` +
+    `ORDER BY p.last_message_at DESC, p.id DESC`
   const rows = await deps.db.query<ListingRow>(sql, params)
 
   return rows.map(toSessionListing)
@@ -81,7 +85,6 @@ function buildConditions(
     ...(query.channels === undefined
       ? []
       : [`s.channel IN (${query.channels.map(bind).join(', ')})`]),
-    ...(query.before === undefined ? [] : [toBeforeCondition(query.before, query.beforeId, bind)]),
     ...(query.id === undefined ? [] : [`s.id = ${bind(query.id)}`]),
     ...(query.query === undefined
       ? []
@@ -104,12 +107,12 @@ function toBeforeCondition(
   bind: (value: string | number) => string
 ): string {
   if (beforeId === undefined) {
-    return `s.last_activity_at < ${bind(before)}`
+    return `c.last_message_at < ${bind(before)}`
   }
 
   return (
-    `(s.last_activity_at < ${bind(before)} OR ` +
-    `(s.last_activity_at = ${bind(before)} AND s.id < ${bind(beforeId)}))`
+    `(c.last_message_at < ${bind(before)} OR ` +
+    `(c.last_message_at = ${bind(before)} AND c.id < ${bind(beforeId)}))`
   )
 }
 
@@ -120,8 +123,8 @@ function toSessionListing(row: ListingRow): SessionListing {
     channel: channelId(row.channel),
     ...(row.chat_id === null ? {} : { chatId: row.chat_id }),
     startedAt: row.started_at,
-    lastActivityAt: row.last_activity_at,
-    messageCount: row.message_count,
+    lastMessageAt: row.last_message_at,
+    turnCount: row.turn_count,
     firstUserContent: row.first_user,
     lastAssistantContent: row.last_assistant,
   }
@@ -133,5 +136,14 @@ function displayedRow(alias: string): string {
   return (
     `(${alias}.role = 'user' OR (${alias}.role = 'assistant' AND ` +
     `(${alias}.content NOT LIKE '${BLOCKS_PREFIX}' OR ${alias}.content LIKE '${TEXT_BLOCK}')))`
+  )
+}
+
+/** When the session's newest shown message was written: what a list dates and orders it by, since
+ *  its activity also moves on a command that keeps no row. One with none falls back to its activity. */
+function lastMessageAt(alias: string): string {
+  return (
+    `COALESCE((SELECT MAX(m.created_at) FROM session_messages m WHERE m.session_id = ${alias}.id ` +
+    `AND ${displayedRow('m')}), ${alias}.last_activity_at)`
   )
 }

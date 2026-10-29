@@ -86,7 +86,7 @@ function toGroups(
   timeZone: string | undefined
 ): readonly { readonly id: GroupId; readonly rows: readonly ChatSession[] }[] {
   const days = timeZone === undefined ? undefined : toGroupDays(timeZone)
-  const placed = sessions.map((session) => ({ session, id: groupOf(session.lastActivityAt, days) }))
+  const placed = sessions.map((session) => ({ session, id: groupOf(session.lastMessageAt, days) }))
 
   return GROUP_ORDER.map((id) => ({
     id,
@@ -121,7 +121,7 @@ interface RowProps {
 }
 
 function SessionRow({ session, timeZone }: RowProps) {
-  const count = session.messageCount
+  const count = session.turnCount
 
   return (
     <li class="sessions-item">
@@ -129,7 +129,7 @@ function SessionRow({ session, timeZone }: RowProps) {
         <b>{sessionTitleOf(session)}</b>
         <span class="meta">
           {joinInline([
-            timeZone === undefined ? ABSENT_CELL : formatWhen(session.lastActivityAt, timeZone),
+            timeZone === undefined ? ABSENT_CELL : formatWhen(session.lastMessageAt, timeZone),
             sourceLabel(session.channel),
             tr(pluralKey(count, 'ui.office.sessions.countOne', 'ui.office.sessions.count'), {
               count,

@@ -6,8 +6,8 @@
       "chatId": "1042",
       "agentId": "default",
       "startedAt": 1791420000000,
-      "lastActivityAt": 1791430371000,
-      "messageCount": 6,
+      "lastMessageAt": 1791430371000,
+      "turnCount": 3,
       "title": "FPT hôm nay thế nào?",
       "lastReply": "FPT đóng cửa tăng 1,3%, khối ngoại mua ròng. Mình vẫn giữ nhận định cũ."
     },
@@ -16,8 +16,8 @@
       "channel": "api",
       "agentId": "default",
       "startedAt": 1791400000000,
-      "lastActivityAt": 1791410000000,
-      "messageCount": 2,
+      "lastMessageAt": 1791410000000,
+      "turnCount": 1,
       "title": "Tóm tắt thị trường sáng nay"
     }
   ],

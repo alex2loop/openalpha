@@ -154,13 +154,15 @@ interface ChatSessionWire {
   readonly chatId?: string
   readonly agentId: string
   readonly startedAt: number
-  readonly lastActivityAt: number
-  readonly messageCount: number
+  /** When its newest shown message was written; the list is ordered and paged by it. */
+  readonly lastMessageAt: number
+  /** The operator's lines, each with the answer it got. */
+  readonly turnCount: number
   readonly title?: string
   readonly lastReply?: string
 }
 
-/** GET /v1/chat/sessions?channel&query&sessionId&before&beforeId&limit — newest activity first.
+/** GET /v1/chat/sessions?channel&query&sessionId&before&beforeId&limit — newest message first.
  *  `channel` repeats to name several and defaults to all. `query` (at least two characters, any
  *  case) keeps the sessions with a message containing it, which may match inside a stored tool call
  *  too. `sessionId` keeps that one session, none when it is unknown. The next page is

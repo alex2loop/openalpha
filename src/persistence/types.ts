@@ -142,9 +142,9 @@ export interface SessionListQuery {
   readonly channels?: readonly ChannelId[]
   /** Text any message of the session contains, ignoring case. */
   readonly query?: string
-  /** `lastActivityAt`: only sessions strictly older than it. The newest when absent. */
+  /** `lastMessageAt`: only sessions strictly older than it. The newest when absent. */
   readonly before?: number
-  /** With `before`, pages by `(lastActivityAt, id)`: sessions sharing `before` come after this id,
+  /** With `before`, pages by `(lastMessageAt, id)`: sessions sharing `before` come after this id,
    *  so none is skipped at a page edge. */
   readonly beforeId?: SessionId
   /** Only this one session, empty or not; every other listing leaves out a session with no
@@ -161,9 +161,10 @@ export interface SessionListing {
   readonly channel: ChannelId
   readonly chatId?: string
   readonly startedAt: number
-  readonly lastActivityAt: number
-  /** The rows the history page shows: the operator's lines and the answers that carry text. */
-  readonly messageCount: number
+  /** When its newest shown message was written; its last activity where it has none. */
+  readonly lastMessageAt: number
+  /** The operator's lines, each with the answer it got. */
+  readonly turnCount: number
   readonly firstUserContent: string | null
   readonly lastAssistantContent: string | null
 }
