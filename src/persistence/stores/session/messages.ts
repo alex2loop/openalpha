@@ -6,6 +6,7 @@ import type { LLMAttemptRow } from '@/persistence/stores/llm-attempt'
 import type { SessionSql } from '@/persistence/stores/session/sql'
 import type { HistoryPage, HistoryPageQuery, SessionSnapshot } from '@/persistence/types'
 import { ConflictError, StorageError } from '@/core/errors'
+import { isShownMessage } from '@/core/utils/message'
 import { withRetry } from '@/core/utils/retry'
 import { toLlmAttempt } from '@/persistence/stores/llm-attempt'
 import {
@@ -263,7 +264,8 @@ interface TailInsert {
 }
 
 /** Appends at the session's current tail and returns the first index written, which the attempt
- *  linker needs to address each row it just inserted. */
+ *  linker needs to address each row it just inserted. A row the conversation page shows dates the
+ *  session in its list. */
 async function insertTail(input: TailInsert): Promise<number> {
   const { tx, sql, id, writes, now } = input
   const rows = await tx.query<{ readonly next: number | null }>(sql.nextIdx, [id])
@@ -271,6 +273,10 @@ async function insertTail(input: TailInsert): Promise<number> {
 
   for (const [offset, write] of writes.entries()) {
     await tx.execute(sql.insertMessage, toMessageParams(id, write, { idx: base + offset, now }))
+  }
+
+  if (writes.some((write) => isShownMessage(write.message))) {
+    await tx.execute(sql.touchLastMessage, [now, id])
   }
 
   return base

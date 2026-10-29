@@ -501,7 +501,7 @@ A host two purposes share is listed once under each, since what is sent there di
 
 `GET /v1/models` prices each model with the pricing service the cost ledger settles with, and `LLMAttemptStore.perRunCostByModel` gives its mean cost per run in one statement: attempts grouped by `(provider, model, run_id)`, ranked newest first per model with `ROW_NUMBER()`, the last `COST_ESTIMATE_SAMPLE` kept, same text on SQLite and Postgres.
 
-`SessionStore.listByChannels` cuts the chat session list in SQL (channel `IN`, `last_activity_at < before`, `LIMIT`) and filters by text with `EXISTS` over the user and assistant rows (`m.role IN DISPLAYED_ROLES`), matching the lowered text or the text as typed (`LOWER(content) LIKE ... ESCAPE OR content LIKE ...`, built with `toLikeContainsPattern`; SQLite folds ASCII case only), at most `SESSION_CHANNELS_MAX` channels per request; the first user and last assistant rows ride the same statement and the app decodes, scrubs and cuts them.
+`SessionStore.listByChannels` cuts the chat session list in SQL off the indexed `sessions.last_message_at`, which an append stamps when a row the page shows lands (an operator line, or an answer holding text: `isShownMessage`), so a session with none is not listed (channel `IN`, the keyset `(last_message_at, id)` below `before`/`beforeId`, `LIMIT`), and filters by text with `EXISTS` over the rows the page shows, matching the lowered text or the text as typed (`LOWER(content) LIKE ... ESCAPE OR content LIKE ...`, built with `toLikeContainsPattern`; SQLite folds ASCII case only), at most `SESSION_CHANNELS_MAX` channels per request; the first user and last assistant rows ride the same statement and the app decodes, scrubs and cuts them.
 
 Smaller points:
 

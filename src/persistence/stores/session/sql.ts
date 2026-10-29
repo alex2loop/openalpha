@@ -47,7 +47,8 @@ export interface SessionSql {
   readonly loadTotals: string
   readonly insertMessage: string
   readonly nextIdx: string
-  readonly lastMessageAt: string
+  readonly lastModelMessageAt: string
+  readonly touchLastMessage: string
   readonly linkAttempt: string
   readonly linkedGroup: string
   readonly touchActivity: string
@@ -97,7 +98,7 @@ export function buildSessionSql(d: Dialect): SessionSql {
     nextIdx: `SELECT MAX(idx) + 1 AS next FROM session_messages WHERE session_id = ${d.param(1)}`,
     // The primary key is (session_id, idx), so the newest row is one index step. It dates what the
     // model last saw, so a command's display row does not move it.
-    lastMessageAt:
+    lastModelMessageAt:
       `SELECT created_at FROM session_messages WHERE session_id = ${d.param(1)} ${MODEL_ROWS} ` +
       `ORDER BY idx DESC LIMIT 1`,
     linkAttempt:
@@ -131,6 +132,7 @@ type TranscriptSql = Pick<
   | 'loadTranscriptNewest'
   | 'loadTranscriptBefore'
   | 'loadTranscriptRun'
+  | 'touchLastMessage'
 >
 
 // The model's payloads leave display-only rows out; display pages read user/assistant rows, those
@@ -153,6 +155,8 @@ function buildTranscriptSql(d: Dialect): TranscriptSql {
     loadTranscriptNewest: `${head}${roles}ORDER BY idx DESC LIMIT ${d.param(2)}`,
     loadTranscriptBefore: `${head}${roles}AND idx < ${d.param(2)} ORDER BY idx DESC LIMIT ${d.param(3)}`,
     loadTranscriptRun: `${head}AND role = 'assistant' AND run_id = ${d.param(2)} ORDER BY idx DESC LIMIT ${d.param(3)}`,
+    // What the conversation list dates and orders the session by.
+    touchLastMessage: `UPDATE sessions SET last_message_at = ${d.param(1)} WHERE id = ${d.param(2)}`,
   }
 }
 

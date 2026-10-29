@@ -22,6 +22,9 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const LAST_MESSAGE_MIGRATION_ID = '2026_10_29_111645_add_sessions_last_message_at'
+const SESSIONS_TABLE = 'sessions'
+const LAST_MESSAGE_INDEX = 'idx_sessions_last_message'
 const DROPPED_COLUMNS_MIGRATION_ID = '2026_10_28_234503_drop_unused_columns'
 const DROPPED_COLUMNS: readonly (readonly [table: string, column: string])[] = [
   ['memory_kv', 'source'],
@@ -207,6 +210,30 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   )
 
   return new Set(rows.map((row) => row.name))
+}
+
+/** The column and its index are all the migration adds; rolling back leaves the sessions table
+ *  without them. */
+async function assertLastMessageRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, SESSIONS_TABLE, 'last_message_at'),
+    'last_message_at migration did not add the column'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: LAST_MESSAGE_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'last_message_at rollback did not complete')
+  assertState(
+    !(await hasColumn(db, SESSIONS_TABLE, 'last_message_at')),
+    'last_message_at rollback kept the column'
+  )
+  assertState(
+    !(await indexNames(db)).has(LAST_MESSAGE_INDEX),
+    'last_message_at rollback kept the index'
+  )
 }
 
 /** Every column and index the migration drops is gone after it and back after rolling it back. */
@@ -467,6 +494,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertLastMessageRollback(db)
     await assertDroppedColumnsRollback(db)
     await assertDisplayOnlyRollback(db)
     await assertRunsEnrichmentRollback(db)

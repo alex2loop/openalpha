@@ -172,7 +172,7 @@ export interface SessionOpener {
 
 export interface SessionActivity {
   /** When the session's newest model-context row was written; null for a session with none. */
-  lastMessageAt(id: SessionId): Promise<number | null>
+  lastModelMessageAt(id: SessionId): Promise<number | null>
 }
 
 export interface PollOffsetStore {
