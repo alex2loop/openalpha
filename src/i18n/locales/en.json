@@ -467,6 +467,7 @@
     "office.chat.toggle": "Show or hide the chat (C)",
     "office.chat.newSession": "New session",
     "office.chat.oldSessions": "Earlier sessions",
+    "office.chat.newer": "New messages, jump to them",
     "office.chat.older": "Load older messages",
     "office.chat.start": "This is the start of this chat.",
     "office.chat.working": "Running the command...",

@@ -5,12 +5,9 @@ import { history, isOpenedGone, loadEarlier } from '@/web/state/chat-history'
 import { toFailureText, tr } from '@/web/text/tr'
 import { ApprovalInline } from '@/web/ui/chat/approval-inline'
 import { HistoryMessages } from '@/web/ui/chat/history-message'
-import { useOlderPages } from '@/web/ui/chat/older-pages'
+import { isAtEnd, useOlderPages } from '@/web/ui/chat/older-pages'
 import { TurnCard } from '@/web/ui/chat/turn-card'
 import { Button } from '@/web/ui/kit/button'
-
-// How near the bottom still counts as reading the newest line.
-const PIN_SLACK_PX = 24
 
 /** The current session: its earlier messages, then what was sent on this page, newest last. */
 export function MessageList() {
@@ -45,8 +42,7 @@ export function MessageList() {
       onScroll={(event) => {
         const element = event.currentTarget
 
-        isPinned.current =
-          element.scrollHeight - element.scrollTop - element.clientHeight <= PIN_SLACK_PX
+        isPinned.current = isAtEnd(element)
         onScrollOlder()
       }}
     >

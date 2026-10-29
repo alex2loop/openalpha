@@ -98,6 +98,7 @@ export function toMessage(row: MessagePayloadRow): LLMMessage {
 
 export function toTranscriptMessage(row: TranscriptRow): TranscriptMessage {
   return {
+    idx: row.idx,
     message: toMessage(row),
     ...(row.run_id === null ? {} : { runId: runId(row.run_id) }),
   }

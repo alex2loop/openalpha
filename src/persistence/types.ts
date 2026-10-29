@@ -62,6 +62,8 @@ export interface StoredSessionMessage {
 
 /** One row of the display transcript and the run that wrote it, when one did. */
 export interface TranscriptMessage {
+  /** Its place in the session's transcript; a later row always has a larger one. */
+  readonly idx: number
   readonly message: LLMMessage
   readonly runId?: RunId
 }

@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef } from 'preact/hooks'
 
 // How near the top the next older page starts loading, so it lands before the reader reaches it.
 const LOAD_AHEAD_PX = 160
+// How near the bottom still counts as reading the newest line.
+const AT_END_SLACK_PX = 24
 
 interface OlderPagesInput {
   /** The scrolling list. */
@@ -71,4 +73,9 @@ export function useOlderPages(input: OlderPagesInput): () => void {
 
 function isNearTop(element: HTMLElement): boolean {
   return element.scrollTop <= LOAD_AHEAD_PX
+}
+
+/** The reader is at the newest line, so what arrives below may bring the list down with it. */
+export function isAtEnd(element: HTMLElement): boolean {
+  return element.scrollHeight - element.scrollTop - element.clientHeight <= AT_END_SLACK_PX
 }

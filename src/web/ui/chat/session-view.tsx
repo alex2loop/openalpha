@@ -1,7 +1,7 @@
 import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import type { ChatHistoryMessage } from '@/app/server/wire/chat'
+import type { ChatHistoryMessage, ChatHistoryResponse } from '@/app/server/wire/chat'
 import { pluralKey } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
@@ -18,6 +18,7 @@ import { sourceLabel } from '@/web/text/source'
 import { formatWhen } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 import { HistoryMessages } from '@/web/ui/chat/history-message'
+import { useNewerMessages } from '@/web/ui/chat/newer-messages'
 import { useOlderPages } from '@/web/ui/chat/older-pages'
 import { Button } from '@/web/ui/kit/button'
 
@@ -75,8 +76,33 @@ export function SessionView({ session }: { readonly session: ChatSession }) {
       <PagesHead pages={held} onOlder={loadMore} />
       <HistoryMessages messages={held.messages} />
       <EndNote count={session.messageCount} />
+      <NewerRows sessionId={session.sessionId} pages={pages} list={list} />
     </div>
   )
+}
+
+interface NewerRowsProps {
+  readonly sessionId: string
+  readonly pages: Signal<Pages>
+  readonly list: { readonly current: HTMLElement | null }
+}
+
+// What was said in the chat since it was read, taken in at the end of the list.
+function NewerRows({ sessionId, pages, list }: NewerRowsProps) {
+  const newer = useNewerMessages({
+    sessionId,
+    list,
+    lastIdx: () => pages.value.messages.at(-1)?.idx,
+    take: (page) => takeNewer(pages, page),
+  })
+
+  return newer.hasNewer ? (
+    <div class="chat-newer">
+      <Button size="small" onClick={newer.showNewer}>
+        {tr('ui.office.chat.newer')}
+      </Button>
+    </div>
+  ) : null
 }
 
 function EndNote({ count }: { readonly count: number }) {
@@ -164,21 +190,56 @@ async function loadPage(
       signal: abortSignal,
     })
 
-    const messages = [...page.messages, ...held.messages]
-    const isCapped = messages.length >= MAX_EARLIER
-
-    pages.value = {
-      messages: toKeptMessages(messages),
-      ...(page.hasMore && page.nextBefore !== null && !isCapped
-        ? { nextBefore: page.nextBefore }
-        : {}),
-      ...(isCapped && page.hasMore ? { isCapped: true } : {}),
-      isLoading: false,
-    }
+    pages.value = toPages([...page.messages, ...held.messages], page)
   } catch (error: unknown) {
     // Anything but an `ApiFailure` is this view's own abort.
     if (error instanceof ApiFailure) {
       pages.value = { ...held, isLoading: false, failure: error }
     }
   }
+}
+
+// `page` is the oldest page read, which says whether anything older is left to ask for.
+function toPages(messages: readonly ChatHistoryMessage[], page: ChatHistoryResponse): Pages {
+  const isCapped = messages.length >= MAX_EARLIER
+
+  return {
+    messages: toKeptMessages(messages),
+    ...(page.hasMore && page.nextBefore !== null && !isCapped
+      ? { nextBefore: page.nextBefore }
+      : {}),
+    ...(isCapped && page.hasMore ? { isCapped: true } : {}),
+    isLoading: false,
+  }
+}
+
+// The rows past the last one held are added at the end. A newest page that no longer reaches the
+// rows held, more having arrived than one page holds, stands in for all of them instead, and older
+// pages are read again on the way up. The end note counts what was added.
+function takeNewer(pages: Signal<Pages>, page: ChatHistoryResponse): void {
+  const held = pages.value
+  const last = held.messages.at(-1)?.idx ?? -1
+  const fresh = page.messages.filter((message) => message.idx > last)
+  const isJoined = !page.hasMore || (page.nextBefore !== null && page.nextBefore <= last)
+
+  pages.value = isJoined ? withFresh(held, fresh) : toPages(page.messages, page)
+
+  const viewed = viewedSession.value
+
+  if (viewed !== undefined) {
+    viewedSession.value = { ...viewed, messageCount: viewed.messageCount + fresh.length }
+  }
+}
+
+// What older paging stood at still holds, unless the view now keeps all it can.
+function withFresh(held: Pages, fresh: readonly ChatHistoryMessage[]): Pages {
+  const messages = [...held.messages, ...fresh]
+
+  if (messages.length <= MAX_EARLIER) {
+    return { ...held, messages }
+  }
+
+  const { nextBefore: _dropped, ...rest } = held
+
+  return { ...rest, messages: toKeptMessages(messages), isCapped: true }
 }

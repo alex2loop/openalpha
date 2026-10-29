@@ -119,7 +119,7 @@ function parseIndex(value: string | null): number | undefined {
 // An assistant turn is a block array; only its text blocks are display content (a tool call is not).
 // An answer names the run that wrote it, so its model calls can be read.
 function toHistoryMessage(row: TranscriptMessage): readonly ChatHistoryMessage[] {
-  const { message, runId } = row
+  const { idx, message, runId } = row
   const content =
     typeof message.content === 'string'
       ? message.content.trim()
@@ -134,6 +134,7 @@ function toHistoryMessage(row: TranscriptMessage): readonly ChatHistoryMessage[]
 
   return [
     {
+      idx,
       role: message.role,
       content: scrubCredentials(content),
       ...(message.role === 'assistant' && runId !== undefined ? { runId } : {}),

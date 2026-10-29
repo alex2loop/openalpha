@@ -52,6 +52,13 @@
   align-self: center;
 }
 
+/* Messages that arrived while the reader was scrolled up: held at the foot of the view until asked. */
+.chat-newer {
+  position: sticky;
+  bottom: 0;
+  align-self: center;
+}
+
 .chat-start {
   align-self: center;
   text-align: center;

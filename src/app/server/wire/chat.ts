@@ -119,6 +119,9 @@ export const CHAT_CLIENT_ID_MAX = 64
 /** GET /v1/chat/history/:sessionId — one prior transcript message (display text). A slash
  *  command's turn is its line (`user`, starting with `/`) and its answer, as the chat showed them. */
 export interface ChatHistoryMessage {
+  /** Its place in the session's transcript, rising: a client reading the newest page again takes
+   *  only the rows past the last one it holds. */
+  readonly idx: number
   readonly role: string
   readonly content: string
   /** On an answer: the run that wrote it (an agent turn's run, or a long-running command's), whose
