@@ -7,7 +7,7 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
-## [Unreleased]
+## [1.2.1] - 2026-10-29
 
 VN market holidays are now worked out from the law for every year, so 2027 and later need no update
 from us. Scheduled jobs ride out a short network outage instead of switching themselves off, and a
@@ -543,6 +543,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.2.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.1
 [1.2.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.0
 [1.0.17]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.17
 [1.0.15]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.15
