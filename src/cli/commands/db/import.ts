@@ -13,7 +13,13 @@ import { expandHome } from '@/core/config/resolve'
 import { ValidationError } from '@/core/errors'
 import { isPlainRecord } from '@/core/utils/collections'
 import { type MessageKey, t } from '@/i18n'
-import { ALL_TABLE_NAMES, ALL_TABLES, bindChunkSize, findTable } from '@/persistence/api'
+import {
+  ALL_TABLE_NAMES,
+  ALL_TABLES,
+  bindChunkSize,
+  findTable,
+  stampLastMessages,
+} from '@/persistence/api'
 
 import { countedTotals, printTableCounts, type TableCount } from './report'
 
@@ -122,6 +128,9 @@ async function readInto(req: ImportRequest): Promise<number> {
 
       written.push(await importTable({ tx, dialect, table, columns, path: tableFile(dir, table) }))
     }
+
+    // An older export has no date the conversation list orders by, which would leave its chats out.
+    await stampLastMessages(tx)
 
     return written
   })

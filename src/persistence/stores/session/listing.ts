@@ -4,6 +4,7 @@ import { channelId } from '@/core/channels'
 import { ValidationError } from '@/core/errors'
 import { agentId, sessionId } from '@/core/ids'
 import { toLikeContainsPattern } from '@/persistence/sql/like-escape'
+import { shownRow } from '@/persistence/stores/session/shown-rows'
 
 interface ListingDeps {
   readonly db: Storage
@@ -21,10 +22,6 @@ interface ListingRow {
   readonly first_user: string | null
   readonly last_assistant: string | null
 }
-
-// A block array starts with `[`; one holding no text block is a turn's tool calls alone.
-const BLOCKS_PREFIX = '[%'
-const TEXT_BLOCK = '%"type":"text"%'
 
 /** The filters are optional, so the statement is built per call; every value still binds. */
 export async function listSessionsByChannels(
@@ -59,7 +56,7 @@ export async function listSessionsByChannels(
     `(SELECT m.content FROM session_messages m WHERE m.session_id = p.id ` +
     `AND m.role = 'user' ORDER BY m.idx ASC LIMIT 1) AS first_user, ` +
     `(SELECT m.content FROM session_messages m WHERE m.session_id = p.id ` +
-    `AND m.role = 'assistant' AND ${displayedRow('m')} ORDER BY m.idx DESC LIMIT 1) AS last_assistant ` +
+    `AND m.role = 'assistant' AND ${shownRow('m')} ORDER BY m.idx DESC LIMIT 1) AS last_assistant ` +
     `FROM (SELECT s.id, s.agent_id, s.channel, s.chat_id, s.started_at, ` +
     `COALESCE(s.last_message_at, s.last_activity_at) AS listed_at FROM sessions s ${where}` +
     `ORDER BY s.last_message_at DESC, s.id DESC LIMIT ${bind(query.limit)}) p ` +
@@ -88,7 +85,7 @@ function buildConditions(
           // the collation on postgres, so the text as typed matches too: "Đầu tư" is found by
           // "Đầu" even where "đầu" misses it.
           `EXISTS (SELECT 1 FROM session_messages m WHERE m.session_id = s.id ` +
-            `AND ${displayedRow('m')} ` +
+            `AND ${shownRow('m')} ` +
             `AND (LOWER(m.content) LIKE ${bind(toLikeContainsPattern(query.query.toLowerCase()))} ESCAPE '\\' ` +
             `OR m.content LIKE ${bind(toLikeContainsPattern(query.query))} ESCAPE '\\'))`,
         ]),
@@ -123,13 +120,4 @@ function toSessionListing(row: ListingRow): SessionListing {
     firstUserContent: row.first_user,
     lastAssistantContent: row.last_assistant,
   }
-}
-
-/** The rows the history page shows: the operator's lines, and every answer but one that only called
- *  tools, which carries no text to show. */
-function displayedRow(alias: string): string {
-  return (
-    `(${alias}.role = 'user' OR (${alias}.role = 'assistant' AND ` +
-    `(${alias}.content NOT LIKE '${BLOCKS_PREFIX}' OR ${alias}.content LIKE '${TEXT_BLOCK}')))`
-  )
 }
