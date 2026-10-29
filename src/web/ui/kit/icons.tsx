@@ -95,6 +95,22 @@ export function SlashIcon({ class: className }: IconProps) {
   )
 }
 
+export function ExternalIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    </svg>
+  )
+}
+
+export function TrashIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  )
+}
+
 export function MoreIcon({ class: className }: IconProps) {
   return (
     <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>

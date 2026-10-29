@@ -20,7 +20,7 @@ import { sourceLabel } from '@/web/text/source'
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
-import { MoreIcon } from '@/web/ui/kit/icons'
+import { ExternalIcon, MoreIcon, TrashIcon } from '@/web/ui/kit/icons'
 import { closeModal } from '@/web/ui/kit/modal'
 import { closePopover, openPopoverId, Popover, togglePopover } from '@/web/ui/kit/popover'
 import { showUndo } from '@/web/ui/kit/undo-bar'
@@ -171,10 +171,12 @@ function RowMenu({ session }: { readonly session: ChatSession }) {
           rel="noopener"
           onClick={closePopover}
         >
+          <ExternalIcon />
           {tr('ui.office.sessions.openTab')}
         </a>
         {session.channel === APP_CHANNEL && (
-          <button type="button" onClick={() => deleteSession(session)}>
+          <button type="button" class="is-danger" onClick={() => deleteSession(session)}>
+            <TrashIcon />
             {tr('ui.office.sessions.delete')}
           </button>
         )}
