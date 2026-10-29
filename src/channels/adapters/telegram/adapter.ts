@@ -232,6 +232,8 @@ async function runRestartAttempts(deps: RestartLoopDeps, menu: MenuInstall): Pro
   }
 
   while (!deps.signal.aborted) {
+    const startedAt = performance.now()
+
     try {
       // Still unknown when the first getMe could not reach Telegram.
       botIdentity ??= await fetchBotIdentity(deps.api)
@@ -262,6 +264,8 @@ async function runRestartAttempts(deps: RestartLoopDeps, menu: MenuInstall): Pro
 
       deps.logger.error('telegram.poll_loop_failed', { err: formatErrForLog(err) })
 
+      restartMs = restartDelayMs(restartMs, startedAt)
+
       if (!(await waitBackoff(restartMs, deps.signal))) {
         return
       }
@@ -269,6 +273,13 @@ async function runRestartAttempts(deps: RestartLoopDeps, menu: MenuInstall): Pro
       restartMs = Math.min(restartMs * 2, TELEGRAM_POLL_RESTART_MAX_MS)
     }
   }
+}
+
+// A loop that ran past the longest backoff was healthy, so its failure starts the ladder over.
+function restartDelayMs(restartMs: number, startedAt: number): number {
+  return performance.now() - startedAt > TELEGRAM_POLL_RESTART_MAX_MS
+    ? TELEGRAM_POLL_RESTART_INITIAL_MS
+    : restartMs
 }
 
 // The one getMe start() makes decides the channel's fate: a rejected token (ConfigError) keeps it

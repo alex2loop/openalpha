@@ -63,14 +63,16 @@ export function providerRequestKey(request: SourceRequest): string {
   return `${request.sourceId}|${request.path}|${valueKey(request.query ?? {})}`
 }
 
+// Strings and lists are quoted, so a separator inside a value (`['a,b']` against `['a', 'b']`, or an
+// `&` in a search subject) can never make two unlike requests share one key.
 function valueKey(value: unknown): string {
   if (Array.isArray(value)) {
-    return value.map(valueKey).join(',')
+    return JSON.stringify(value.map(valueKey))
   }
 
   if (typeof value === 'object' && value !== null) {
     return JSON.stringify(value, Object.keys(value).sort())
   }
 
-  return String(value)
+  return typeof value === 'string' ? JSON.stringify(value) : String(value)
 }

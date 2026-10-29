@@ -89,7 +89,7 @@ export const handleChat: Command = createCommand({
 })
 
 function readFlags(args: Parameters<Parameters<typeof createCommand>[0]['run']>[0]): FlagResult {
-  const maxTurns = parseIntFlagStrict(flagString(args, 'maxTurns'), '--max-turns')
+  const maxTurns = readMaxTurns(flagString(args, 'maxTurns'))
 
   if (maxTurns.kind === 'error') {
     return maxTurns
@@ -137,6 +137,15 @@ function readFlags(args: Parameters<Parameters<typeof createCommand>[0]['run']>[
     ...(maxTurnsValue === undefined ? {} : { maxTurns: maxTurnsValue }),
     ...(maxCostUsd === undefined ? {} : { maxCostUsd }),
   }
+}
+
+// A run takes at least one turn, so 0 is refused rather than quietly raised to 1.
+function readMaxTurns(raw: string | undefined): ReturnType<typeof parseIntFlagStrict> {
+  const parsed = parseIntFlagStrict(raw, '--max-turns')
+
+  return parsed.kind === 'value' && parsed.value === 0
+    ? { kind: 'error', error: { key: 'cli.chatMaxTurnsZero' } }
+    : parsed
 }
 
 function isUsdAmount(raw: string): boolean {

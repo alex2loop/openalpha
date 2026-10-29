@@ -21,6 +21,7 @@ import {
 import {
   dropInvalid,
   fromCodeTable,
+  parseRow,
   utcDayStartEpochMs,
 } from '@/trading/sources/rows/normalization'
 
@@ -50,29 +51,23 @@ const MAXIMUM_TIMESTAMP_SKEW_MS = MS_PER_DAY
  *  so a window far longer than a rolling year is the shape changing rather than a longer history. */
 const MAXIMUM_HISTORY_POINTS = 512
 
+// Prices stay `unknown` so one row cannot fail the board: the feed carries forms this adapter does
+// not read, and a malformed one among them costs only that row.
 const RESPONSE = z.object({
   success: z.literal(true),
   timestamp: z.number(),
   date: z.string(),
-  prices: z.record(
-    z.string(),
-    z.object({ buy: z.number(), sell: z.number(), currency: z.string() })
-  ),
+  prices: z.record(z.string(), z.unknown()),
 })
 
-type PriceEntry = z.infer<typeof RESPONSE>['prices'][string]
+const PRICE_ENTRY = z.object({ buy: z.number(), sell: z.number(), currency: z.string() })
 
 const HISTORY_RESPONSE = z.object({
   success: z.literal(true),
-  history: z.array(
-    z.object({
-      date: z.string(),
-      prices: z.record(z.string(), z.object({ buy: z.number(), sell: z.number() })),
-    })
-  ),
+  history: z.array(z.object({ date: z.string(), prices: z.record(z.string(), z.unknown()) })),
 })
 
-type HistoryPrice = z.infer<typeof HISTORY_RESPONSE>['history'][number]['prices'][string]
+const HISTORY_PRICE = z.object({ buy: z.number(), sell: z.number() })
 
 interface HistorySpan {
   readonly fromDay: TradingDay
@@ -133,8 +128,9 @@ function parseBoard(raw: unknown, fetchedAt: number): ParsedSource<GoldBoard> {
   )
 }
 
-function toRow(code: string, price: PriceEntry): GoldBoardRow {
+function toRow(code: string, raw: unknown): GoldBoardRow {
   const form = fromCodeTable(TYPE_FORMS, code)
+  const price = parseRow(PRICE_ENTRY, raw, 'giavang board')
 
   if (form === undefined || price.currency !== VND) {
     throw new ValidationError('not a quoted gold form')
@@ -188,8 +184,9 @@ function parseHistory(
   return parsedSource(points)
 }
 
-function toPoint(date: string, code: string, price: HistoryPrice): GoldBoardPoint {
+function toPoint(date: string, code: string, raw: unknown): GoldBoardPoint {
   const form = fromCodeTable(TYPE_FORMS, code)
+  const price = parseRow(HISTORY_PRICE, raw, 'giavang history')
 
   if (form === undefined) {
     throw new ValidationError('not a quoted gold form')

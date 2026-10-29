@@ -185,7 +185,8 @@ function printMessages(
   for (const stored of messages) {
     const idx = stored.idx.toString().padStart(3)
     const role = stored.message.role.padEnd(9)
-    const origin = stored.runId === undefined ? '' : `  run:${stored.runId}`
+    const origin =
+      stored.runId === undefined ? '' : `  ${t(locale, 'cli.historyRun', { run: stored.runId })}`
     const shown = stored.displayOnly === true ? `  ${t(locale, 'cli.historyDisplayOnly')}` : ''
 
     app.out(
@@ -224,12 +225,11 @@ function buildMessageAttemptsMap(attempts: readonly LLMAttempt[]): Map<number, L
 }
 
 function printMessageGenerationCost(app: CliApp, attempts: readonly LLMAttempt[]): void {
+  const locale = app.config.locale.language
   const sum = sumAttempts(attempts)
-  const tokens = `in=${sum.inputTokens} out=${sum.outputTokens}`
-  const cache = `cache=${sum.cacheReadTokens}/${sum.cacheWriteTokens}`
 
   app.out(
-    `      generation: ${formatUsd(sum.costUsd)} · ${tokens} ${cache} reason=${sum.reasoningTokens}`
+    `${INDENT}${t(locale, 'cli.historyGeneration', { cost: formatUsd(sum.costUsd), tokens: tokenCounts(locale, sum) })}`
   )
 
   for (const attempt of attempts) {
@@ -238,21 +238,41 @@ function printMessageGenerationCost(app: CliApp, attempts: readonly LLMAttempt[]
 }
 
 function printAttemptDetails(app: CliApp, attempt: LLMAttempt, indent: string): void {
+  const locale = app.config.locale.language
   const outcome =
     attempt.outcome === 'success' ? attempt.outcome : `${attempt.outcome} (${attempt.errorCode})`
-  const parent = attempt.parentRunId === undefined ? '' : ` parent:${attempt.parentRunId}`
-
-  app.out(`${indent}agent:${attempt.agentId} ${attempt.provider}/${attempt.model} · ${outcome}`)
-  app.out(`${indent}  run:${attempt.runId}${parent}`)
-  const tokenLine = `in=${attempt.inputTokens} out=${attempt.outputTokens}`
-  const cacheLine = `cache=${attempt.cacheReadTokens}/${attempt.cacheWriteTokens}`
+  const run = t(locale, 'cli.historyRun', { run: attempt.runId })
+  const parent =
+    attempt.parentRunId === undefined
+      ? ''
+      : ` ${t(locale, 'cli.historyParentRun', { run: attempt.parentRunId })}`
 
   app.out(
-    `${indent}  cost:${formatUsd(attempt.costUsd)} ${tokenLine} ${cacheLine} reason=${attempt.reasoningTokens}`
+    `${indent}${t(locale, 'cli.historyAttempt', { agent: attempt.agentId, model: `${attempt.provider}/${attempt.model}`, outcome })}`
+  )
+  app.out(`${indent}  ${run}${parent}`)
+  app.out(
+    `${indent}  ${t(locale, 'cli.historyAttemptCost', { cost: formatUsd(attempt.costUsd), tokens: tokenCounts(locale, attempt) })}`
   )
   app.out(
-    `${indent}  usage:${attempt.usageSource} cost:${attempt.costSource} latency:${attempt.latencyMs}ms`
+    `${indent}  ${t(locale, 'cli.historyAttemptSources', { usage: attempt.usageSource, cost: attempt.costSource, latencyMs: attempt.latencyMs })}`
   )
+}
+
+function tokenCounts(
+  locale: Locale,
+  counts: Pick<
+    LLMAttempt,
+    'inputTokens' | 'outputTokens' | 'cacheReadTokens' | 'cacheWriteTokens' | 'reasoningTokens'
+  >
+): string {
+  return t(locale, 'cli.historyTokens', {
+    input: counts.inputTokens,
+    output: counts.outputTokens,
+    cacheRead: counts.cacheReadTokens,
+    cacheWrite: counts.cacheWriteTokens,
+    reasoning: counts.reasoningTokens,
+  })
 }
 
 function printUnlinkedAttempts(app: CliApp, attempts: readonly LLMAttempt[]): void {
