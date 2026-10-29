@@ -90,6 +90,14 @@ this document — neither imports the other.
   client is the norm. A browser sees no handshake status, so the page reads `GET /v1/ws` as a plain
   request after a drop: `too_many_streams` there means full (it asks to close other tabs and keeps
   retrying), `invalid_body` means there was room.
+- **Starting:** the daemon binds its port before its subsystems start, so a client can connect while it
+  is still coming up. `GET /v1/health` then answers `ok: false, status: 'starting'` (still `200`),
+  and `ready` once it can do everything. Until then a route answers only if it is a `GET`, or one of
+  the three that need no subsystem (`POST /v1/session`, `POST /v1/session/code` and
+  `POST /v1/session/logout`); every other route, and the `/v1/ws` and `/v1/exec` upgrades, answer
+  `503 unavailable` with a sentence in the daemon's language. A client keeps asking `/v1/health` and
+  tries again once it reads `ready`; the browser page does so on its backoff and does not spend a
+  sign-in code before then.
 - **CORS:** the daemon ships no `Access-Control-*` headers, so browsers block cross-origin reads of
   the HTTP endpoints; the WS Origin allow-list above gates the one CORS-exempt protocol.
 
@@ -107,7 +115,7 @@ this document — neither imports the other.
 
 | Method | Path | Auth | Request | 2xx response | Fixture |
 |---|---|---|---|---|---|
-| GET | `/v1/health` | no | — | `HealthResponse` | `health.json` |
+| GET | `/v1/health` | no | — | `HealthResponse` (`status`: `starting` while the daemon's subsystems come up, `ready` after; `ok` is `status === 'ready'`; the answer is `200` either way) | `health.json` |
 | GET | `/v1/state` | yes | — | `StatePayload` (`schedules`: one row per job; a job that runs when an alert fires carries `event: {event,market?,ticker?,condition?,threshold?,cooldownMs}` and has neither `schedule` nor `nextRunAt`, because it has no time of its own; `restartable`: `POST /v1/restart` can restart the daemon, because it restarts in place (not on Windows) or runs in the background; false in a terminal or under a service on Windows; `restartIdleWaitMs`: the longest a `when: 'idle'` restart waits for the daemon to go quiet; `restartDrainMs`: the grace runs in flight get when the daemon stops, before they are cut; not the downtime, which also covers the rest of the shutdown and the boot, so a page detects a restart as `/v1/health` going down, then up (the `pid` in `/v1/state` is the same after a restart in place); `trackRecordMinSample`: resolved calls a track record needs before its rates mean anything, the daemon's own number for a page to gate on; `childRunMaxMs`: the longest one child agent a `spawn` call started may run, the tighter of `[loop]`'s run and spawn caps; `firstRun`: `{modelReady, profileSaved, bookEmpty}` for a first-run checklist: `modelReady` when any configured model passes the check `doctor` runs on it (key set or login done) or the connected client answers every call, `modelKeyEnv` the variable the first configured model reads its key from (absent for a login or a connected client), `profileSaved` when the operator ever saved a profile (a daemon that never did runs on seeded defaults), `bookEmpty` when the ledger holds no row; `slowRequestMs`: the longest the daemon lets its slow routes run, so a client waits that long plus its own margin for them; `exposed`: `[api] public_url` is set as booted, so a page hides the key fields and shows the server commands; the daemon refuses those writes anyway, a `public_url` saved but not booted included) | `state.json` |
 | GET | `/v1/live` | yes | — | `LiveSnapshotWire` (`runs`: every agent run and long-running command still running, oldest first, each with its latest `progress`, `thinking`, the `persistent` steps so far and the `tickers` its progress lines named so far (deduped, first seen first, at most 20; absent when none); `pending`: every approval and question still waiting on any channel, approvals first, each oldest first; an approval is `{kind:'approval',event}` where `event` is its `approval_requested` wire event (its `approval` carries the `channelId` and `answerable`), a question is `{kind:'question',requestId,runId,sessionId,channelId,question,askedAt,answerable}`; `answerable` is true only for a request asked on `api`; an approval leaves on `approval_resolved`, its `expiresAt` or when its run is gone, a question on the next `run_started` of `run.kind` `agent` in its `sessionId` or after a day; `alertsCheckedAt`: epoch ms the last alert pass finished, absent before the first) | `live.json` |
 | GET | `/v1/doctor` | yes | `?online=1` adds the network probes, never a model call (the providers row stays offline) and never the full-file SQLite integrity scan (the database row opens the file and reads its migrations; the full check is `doctor` in a terminal); `?check=<id>` runs one check, an unknown id is `invalid_body` | `DoctorReport` (`checks`: the CLI `doctor` rows in its words, each with `check` (the `doctor <check>` name, or `api` for the API token row), `status` `ok`, `info` (needs no action, never a problem), `warn`, `fail` or `cliOnly` (`config`, `daemon` and `trading` read the CLI process, so they come back with no `detail`: run `doctor` on the server for them), `ok` (`status` is `ok` or `info`) and `detail`; `checkedAt`: when the daemon ran them; `online`: whether `?online=1` was asked) | `doctor.json` |
@@ -298,9 +306,9 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
 - **Capabilities**: `HealthResponse.capabilities` + `StatePayload.capabilities` tell the client which
   optional sections exist (a flag is true exactly when its route is registered); the client greys unbuilt
   tabs rather than inferring from a 404.
-- **`/v1/health`**: `ok` is always `true`: the daemon starts its api as the last boot step, so an
-  answer at all means a booted daemon, and a daemon still booting or stopped refuses the connection.
-  `contractVersion` is the `/v1/ws` contract it speaks (the `hello` handshake's number), so a client
+- **`/v1/health`**: `status` is `starting` (with `ok: false`) until the daemon has started every
+  subsystem, then `ready` (with `ok: true`); native clients read `ok`, which is false while starting. See Starting above. A daemon that is stopped refuses the
+  connection. `contractVersion` is the `/v1/ws` contract it speaks (the `hello` handshake's number), so a client
   can tell a daemon too old for it before opening the socket. `brand` is the product's display name,
   so a page's sign-in screen names it before the token is entered, with no `package.json` bundled.
 - **Browser sign-in**: a terminal holding the token mints a code with `POST /v1/session/code` and
@@ -486,7 +494,7 @@ UTF-8 text.
 
 **Admission**, checked in this order before the upgrade; the first that fails answers over HTTP:
 
-1. The daemon is shutting down → `503 unavailable`.
+1. The daemon is shutting down, or still starting → `503 unavailable`.
 2. Any proxy header (`X-Forwarded-For`, `Forwarded`, `X-Forwarded-Host`, `X-Forwarded-Proto`,
    `X-Real-IP`, `Via`, `CF-Connecting-IP`, `True-Client-IP`) → `403 forbidden`, with or without
    `public_url`.
@@ -554,7 +562,7 @@ stable code, never a leaked internal message. `message` is set only when the run
 sentence written for the operator (a ledger row the book cannot hold, say), in the daemon's
 language; show it as is. Codes and statuses are `wire/errors.ts` (`API_ERROR_STATUS`):
 `unauthorized`(401) `forbidden`/`locked`(403) `not_found`(404) `invalid_body`(400) `conflict`(409) `price_unconfirmed`(422) `upstream_failed`(502) `too_many_streams`/`unavailable`/`stopping`(503) `timeout`(504)
-`internal`(500). `stopping` answers a read the daemon dropped because it is stopping or restarting; read again once the socket is back. A request the client already dropped gets 499 with no body (nobody reads it). `invalid_body` is every malformed request: JSON that does not parse, a body over its size cap, a path id that is malformed, a refused field. For a ledger draft, a job, an agent, a config write, a key test or a memory note it also carries `fields`: `[{path, message}]`, one per refused field, `path` the field in the body you sent (`quantity`, `instrument.ticker`; empty for the body as a whole, which the sentence calls "this entry" or "the request") and `message` its sentence in the daemon's language, with the first repeated as `message`; mark each field and show the sentences as they are. `price_unconfirmed` also carries `unconfirmedPrice` (`UnconfirmedPriceWire`): the
+`internal`(500). `stopping` answers a read the daemon dropped because it is stopping or restarting; read again once the socket is back. `unavailable` also answers any request that needs a subsystem the daemon has not started yet (see Starting in section 1); ask again once `/v1/health` reads `ready`. A request the client already dropped gets 499 with no body (nobody reads it). `invalid_body` is every malformed request: JSON that does not parse, a body over its size cap, a path id that is malformed, a refused field. For a ledger draft, a job, an agent, a config write, a key test or a memory note it also carries `fields`: `[{path, message}]`, one per refused field, `path` the field in the body you sent (`quantity`, `instrument.ticker`; empty for the body as a whole, which the sentence calls "this entry" or "the request") and `message` its sentence in the daemon's language, with the first repeated as `message`; mark each field and show the sentences as they are. `price_unconfirmed` also carries `unconfirmedPrice` (`UnconfirmedPriceWire`): the
 typed price, the market's latest price and the day it stands for. Fixtures: `error.unauthorized.json`,
 `error.price-unconfirmed.json`, `error.fields.json`.
 

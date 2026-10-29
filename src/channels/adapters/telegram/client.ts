@@ -433,8 +433,12 @@ interface PostAndLogRequest {
   readonly signal?: AbortSignal
 }
 
-// Posts, drains the response, and never throws: the result is not worth the caller's error path.
-export async function postAndLog(ctx: TelegramApiContext, req: PostAndLogRequest): Promise<void> {
+// Posts, drains the response, and never throws: a failure is logged under the request's key and
+// reported as false, not as an error path.
+export async function postAndLog(
+  ctx: TelegramApiContext,
+  req: PostAndLogRequest
+): Promise<boolean> {
   // why-safe: Logger's level methods are closures over the pino instance, never `this`-bound.
   const log = req.level === 'warn' ? ctx.logger.warn : ctx.logger.debug
 
@@ -450,8 +454,12 @@ export async function postAndLog(ctx: TelegramApiContext, req: PostAndLogRequest
     }
 
     await discardBody(res)
+
+    return res.ok
   } catch (err: unknown) {
     log(req.logKey, { err: formatErrForLog(err) })
+
+    return false
   }
 }
 

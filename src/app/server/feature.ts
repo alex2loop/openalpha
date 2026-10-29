@@ -120,7 +120,7 @@ async function startApiSurface(
     detachAppSurface = attachAppSurface(app)
     stopIdeaWatch = startIdeaWatch(app)
 
-    return { closeAdmission: api.closeAdmission, stop: stopAll }
+    return { markReady: api.markReady, closeAdmission: api.closeAdmission, stop: stopAll }
   } catch (err: unknown) {
     await stopAll()
 

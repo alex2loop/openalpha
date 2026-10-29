@@ -292,19 +292,18 @@ openalpha doctor [check] [--online]
 ```
 
 **Khởi động.** `start` trần chạy ở tiền cảnh, và Ctrl-C sẽ dừng nó. `--background`/`-b` chạy lại đúng
-dòng lệnh đó ở nền. Nó chờ tới khi dịch vụ nền thật sự sẵn sàng: đã tải xong dữ liệu thị trường và mở
-xong các kênh chat. Việc này thường mất khoảng một phút. Chỉ khi đó nó mới báo thành công, in pid và
-đường dẫn đầu ra.
+dòng lệnh đó ở nền. Nó chờ tới khi dịch vụ nền thật sự sẵn sàng: API đã mở và các kênh chat đã khởi
+động. Việc này thường mất vài giây. Chỉ khi đó nó mới báo thành công, in pid và đường dẫn đầu ra.
+Dữ liệu thị trường vẫn tiếp tục nạp ở nền sau đó.
 
 - Dịch vụ nền chết giữa chừng khi khởi động (ví dụ không mở được cơ sở dữ liệu) thì được báo
   ngay, kèm chính thông báo lỗi và mã thoát của nó. Lệnh thoát với mã khác 0.
-- Chờ quá 90 giây mà dịch vụ nền vẫn chạy nhưng chưa sẵn sàng (nguồn dữ liệu chậm) thì lệnh để nó chạy
+- Chờ quá 90 giây mà dịch vụ nền vẫn chạy nhưng chưa sẵn sàng (đăng nhập kênh chat chậm chẳng hạn) thì lệnh để nó chạy
   tiếp, báo cách theo dõi và thoát với mã 0. Dịch vụ nền không chạy lên được thì thoát với mã khác 0.
 - `stop` và `status` hoạt động như nhau ở cả hai chế độ.
 
 `start` in phiên bản đang chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật
-`[api]`, và tệp nhật ký. Chạy ở tiền cảnh mà có kênh được cấu hình, nó còn báo bot chỉ bắt đầu trả lời
-sau khi dữ liệu thị trường tải xong. Nhật ký ghi lại lúc các kênh mở.
+`[api]`, và tệp nhật ký. Nhật ký ghi lại lúc các kênh mở.
 
 **Khởi động lại.** Khi đã có dịch vụ nền chạy và `[api]` đang bật, `restart` nhờ chính dịch vụ nền đó
 khởi động lại tại chỗ (cùng pid, cùng cửa sổ terminal). Nó chờ dịch vụ nền sẵn sàng rồi in kết quả.
@@ -325,8 +324,7 @@ khởi động lại tại chỗ (cùng pid, cùng cửa sổ terminal). Nó ch�
 - bot token Telegram/Zalo chưa đặt, hoặc bị nền tảng từ chối.
 
 Dịch vụ nền in mỗi mục một dòng cảnh báo (dấu `!`, ra stderr), nói việc gì đang chờ và cách sửa. Ở tiền
-cảnh, dòng về biến môi trường hiện ngay dưới phần tóm tắt. Dòng về kênh hiện khi các kênh mở, sau khi tải
-xong dữ liệu thị trường. Với `--background`, các dòng đó nằm dưới dòng báo thành công.
+cảnh, dòng về biến môi trường hiện ngay dưới phần tóm tắt. Dòng về kênh hiện khi các kênh mở. Với `--background`, các dòng đó nằm dưới dòng báo thành công.
 
 Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ lệnh và các việc không cần AI. Chat qua kênh,
 `/suggest`, nghiên cứu và các mục AI của bản tin sáng chờ tới khi bạn lưu khóa bằng `openalpha key set <NAME>`

@@ -33,10 +33,16 @@ interface DegradedWire {
   readonly variables?: readonly string[]
 }
 
-/** GET /v1/health — the only unauthenticated route. Liveness + version + capabilities. The api starts
- *  as the last daemon step, so an answer at all means a booted daemon. */
+/** GET /v1/health — the only unauthenticated route. Liveness + version + capabilities. The api binds
+ *  before the daemon's subsystems start, so an answer at all means the process is up; only `ready`
+ *  means it can do everything. */
 export interface HealthResponse {
-  readonly ok: true
+  /** `status === 'ready'`, so false while starting; a client that wants a yes or no reads this, and
+   *  the native apps do. */
+  readonly ok: boolean
+  /** `starting` while the subsystems come up (reads answer, anything that changes state is a 503
+   *  `unavailable`, the socket is refused); `ready` once they have. */
+  readonly status: 'starting' | 'ready'
   readonly version: string
   /** The product's display name, so a sign-in screen can name it before the token is entered. */
   readonly brand: string

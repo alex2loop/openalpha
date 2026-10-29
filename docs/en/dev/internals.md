@@ -402,6 +402,32 @@ A channel whose `start()` throws
 the daemon running. Any other API start failure still stops the start. Each maintenance disposer is
 registered as its subsystem starts, so a later one that throws cannot lose an earlier one.
 
+**Start order.** Migrations and the container come first. The API binds next, before any subsystem
+(`startDaemonApi`), so a page can connect while the daemon is still coming up and a busy port is the
+first thing reported. Then workspace retention, then `startDaemonSubsystems` (the boot refresh as a
+tracked daemon task, channels, scheduled workflows, delivery, channel watch, scheduler, trading loops,
+maintenance, plugin tasks), then `markReady`. The API's admission closer and stop are registered for
+teardown the moment it binds, so a start that fails later still closes it, and its admission still
+closes first on the way down.
+
+Until `markReady` the API is starting: `GET /v1/health` answers `ok: false, status: 'starting'`, and a
+route answers only if it is a `GET` or declares `whileStarting` (the sign-in exchange, sign-out and
+minting a sign-in code, which need no subsystem). Every other route answers 503 `unavailable` with
+`errors.apiStarting`, and so do the feed and exec socket upgrades; the page's `classify` reads the feed
+refusal as `offline` and retries on its backoff. The gate is one check in `handleHttp` and one in each
+upgrade, so a route added without thinking of it fails closed. The page reads `status` from
+`/v1/health`, shows the `ui.office.starting` line and signs in only once it reads `ready`, so a sign-in
+code is never spent on a daemon that cannot finish the exchange.
+
+The boot sweep no longer blocks the start. It runs as a tracked task: a failure that is not a boundary
+failure ends the daemon through the same task tracker as every other loop. The trading loops that read
+market data (alerts, the operation loops and the intraday loop) wait on the `firstSweep`
+promise before their first tick, aborting with the daemon; the exit and intent loops read only the venue
+and the stored plans, so they start at once; `runBootRefresh` settles it through
+`TradingServices.releaseFirstSweep` when the sweep ends, when its 60 s budget runs out and in `finally`,
+so a stuck provider never holds them. The refresh loop joins the sweep through the coordinator's
+in-flight map; chat, the scheduler, the channels and maintenance never wait for it.
+
 The daemon task
 hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the foreground `start` prints them on
 stderr, and a background child's stderr log is relayed under the parent's success line.

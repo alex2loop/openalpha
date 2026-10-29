@@ -33,7 +33,7 @@ import { createChannelRuntime } from '@/channels/lifecycle'
 import { createChannelRecipient, resolveFallbackChat } from '@/channels/recipient'
 import { resolveChannelSettings } from '@/channels/schema'
 import { OperatorConfigError } from '@/core/config/resolve'
-import { ConfigError } from '@/core/errors'
+import { ConfigError, isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 
 export interface StartChannelsDeps {
@@ -167,6 +167,11 @@ async function onStartFailed(
       err: formatErrForLog(err),
     })
   })
+
+  // A stop that arrived while the channel was starting ends the start; it is not a failure.
+  if (isAbortError(reason)) {
+    return undefined
+  }
 
   if (reason instanceof OperatorConfigError) {
     deps.logger.warn('channel.start_skipped', {

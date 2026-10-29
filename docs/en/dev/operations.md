@@ -37,11 +37,12 @@ somewhere to go.
 A continuous market has no open and anchors on the UTC day rollover alone. Anchors under 60 s apart
 merge into one pass.
 
-Boot runs the first refresh before the other subsystems start, waits up to 60 s, then lets it finish
-in the background with a warning. A boundary failure (`isBoundaryFailure`) from it warns as
-`daemon.boot_refresh_failed` on either side of the 60 s and boot continues; any other error is fatal,
-thrown to the caller inside the budget and through the daemon task tracker after it. The loop's own first tick follows: it joins a boot sweep still in
-flight, and after a boot with no network it is the pass that waits for the network and enters the
+Boot runs the first refresh as a tracked daemon task beside the other subsystems. The loops that read
+market data wait for it before their first tick, up to 60 s (`daemon.boot_refresh_timeout`), and the
+sweep then finishes in the background. A boundary failure (`isBoundaryFailure`) from it warns as
+`daemon.boot_refresh_failed` on either side of the 60 s and the daemon runs on; any other error is
+fatal, through the daemon task tracker. The loop's own first tick follows: it joins a boot sweep still
+in flight, and after a boot with no network it is the pass that waits for the network and enters the
 retry ladder.
 
 A pass that leaves any kind `unavailable` (nothing fetched) retries after 2, 4, 8 and 16 minutes,

@@ -12,9 +12,11 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 VN market holidays are now worked out from the law for every year, so 2027 and later need no update
 from us. Scheduled jobs ride out a short network outage instead of switching themselves off, and a
 job whose time passed while the daemon was down waits for its next time rather than running late.
-A busy API port no longer stops the daemon. Several sizing and booking figures now include fees
+The office page and API answer within about a second of `start`, instead of after up to a minute of
+loading market data, and a slow Telegram or Zalo no longer holds the start. A busy API port no longer
+stops the daemon. Several sizing and booking figures now include fees
 the way the order path charges them.
-> Ngày nghỉ của sàn VN giờ được tính theo luật cho mọi năm, nên từ 2027 trở đi không cần chờ bản cập nhật. Việc theo lịch không còn tự tắt chỉ vì mất mạng vài phút, và việc lỡ giờ khi dịch vụ nền đang tắt sẽ đợi lần kế tiếp thay vì chạy trễ. Cổng API bị chiếm không còn làm dịch vụ nền dừng lại. Một số con số về khối lượng và ghi sổ giờ đã tính phí đúng như khi đặt lệnh.
+> Ngày nghỉ của sàn VN giờ được tính theo luật cho mọi năm, nên từ 2027 trở đi không cần chờ bản cập nhật. Việc theo lịch không còn tự tắt chỉ vì mất mạng vài phút, và việc lỡ giờ khi dịch vụ nền đang tắt sẽ đợi lần kế tiếp thay vì chạy trễ. Trang văn phòng và API trả lời trong khoảng một giây sau khi khởi động, thay vì phải chờ tới một phút nạp dữ liệu thị trường, và Telegram hay Zalo chậm không còn làm chậm cả lúc khởi động. Cổng API bị chiếm không còn làm dịch vụ nền dừng lại. Một số con số về khối lượng và ghi sổ giờ đã tính phí đúng như khi đặt lệnh.
 
 ### Calendar
 
@@ -36,6 +38,13 @@ the way the order path charges them.
   instead of showing an error.
 - A message Telegram or Zalo refuses for good is not retried.
 - An API port already in use is reported as a degraded item; the daemon keeps running.
+- Start-up no longer waits for market data: the API binds first and `GET /v1/health` reports
+  `starting` until the daemon is ready (writes and live streams answer `unavailable` meanwhile).
+  The boot refresh runs in the background; only the trading loops that read market data wait for
+  its first pass, for at most a minute.
+- Telegram and Zalo check their token once at start; a slow network is retried by the polling loop
+  instead of holding the start, and the Telegram command menu is installed in the background. A
+  wrong token is still reported at start.
 
 ### Trading
 

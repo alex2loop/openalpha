@@ -60,13 +60,20 @@ sau khi khởi động lại mỗi vòng chưa hiện gì cho đến phiên ch�
 Thị trường không bao giờ đóng cửa như crypto thì làm mới lúc sang ngày UTC. Hai mốc cách nhau dưới 60
 giây thì gộp làm một lượt.
 
-Lúc khởi động, lần làm mới đầu tiên chạy trước các phần khác:
+Lúc khởi động, lần làm mới đầu tiên chạy song song với các phần khác khi chúng khởi động, nên trang
+văn phòng và cuộc trò chuyện sẵn sàng sau vài giây:
 
-- Nó chờ tối đa 60 giây, rồi hoàn tất ở chế độ nền kèm một cảnh báo.
+- Trong tối đa một phút sau khi khởi động, dữ liệu thị trường có thể vẫn đang được nạp, nên biểu đồ
+  có thể còn thưa cho đến khi dữ liệu về đủ.
+- Các vòng đọc dữ liệu thị trường (cảnh báo, kết quả gợi ý, trích xuất vĩ mô, kết quả chủ đề, bản tin
+  và báo cáo trong phiên) chờ nó xong rồi mới chạy lượt đầu, tối đa 60 giây. Nhà cung cấp
+  không trả lời cũng không giữ chúng lâu hơn: chúng chạy kèm một cảnh báo
+  (`daemon.boot_refresh_timeout`) còn lượt làm mới tiếp tục ở nền. Vòng làm mới nhập vào đúng lượt
+  này. Trò chuyện, bộ lập lịch, các kênh chat và các vòng bảo trì không bao giờ chờ nó.
 - Khởi động mà không có mạng thì vòng lặp chờ có mạng.
 - Lần làm mới đầu mà gặp lỗi nhà cung cấp, lưu trữ hay kênh thì chỉ là một cảnh báo
-  (`daemon.boot_refresh_failed`), dù lỗi đến trong 60 giây hay sau đó. Dịch vụ nền vẫn khởi động.
-  Lỗi nào khác thì dừng khởi động.
+  (`daemon.boot_refresh_failed`), dù lỗi đến trong 60 giây hay sau đó. Dịch vụ nền vẫn chạy tiếp.
+  Lỗi nào khác thì dừng dịch vụ nền.
 
 Mỗi lượt như vậy, kể cả lượt lúc khởi động, hiện trên trang văn phòng y như khi bạn gõ `/refresh`.
 Thủ kho vào Kho dữ liệu làm việc, tiến độ hiện trên màn hình tường. Đầu trang đếm nó vào số việc đang
@@ -636,7 +643,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 - Trang từ chối chạy bên trong một khung (frame), và ở bản phát hành thì nó chỉ được nói chuyện với đúng dịch vụ nền đã phục vụ nó.
 - Dịch vụ nền chỉ nghe trên `127.0.0.1` và chỉ nhận `Host` là tên của chính máy này (`127.0.0.1`, `localhost` hoặc `[::1]`) hoặc `public_url` của bạn, từ chối lời gọi API do trang web khác khởi phát, và chỉ mở luồng trực tiếp cho đúng trang nó phục vụ, nên một ứng dụng web khác trên máy không dùng ké được.
 - Safari trước 16.4 không gửi tiêu đề mà dịch vụ nền dựa vào, nên trang báo trình duyệt đang chặn cookie cho địa chỉ này dù thực ra không. Hãy cập nhật Safari.
-- Nếu không nối được dịch vụ nền, trang nói thẳng bằng một dòng rồi tự thử lại, và mở ra ngay khi dịch vụ nền trả lời. Nếu đang đăng nhập mà mất kết nối, một thanh hiện đồng hồ đếm lùi lần thử lại, nút "Thử ngay" và dòng báo các phiên chạy vẫn tiếp tục ở dịch vụ nền. Khi nối lại, trang hỏi lại bức tranh hiện tại rồi theo dõi tiếp. Trang cũ hơn dịch vụ nền thì nhắc bạn tải lại. Khối nào làm mới không được vẫn giữ số liệu tốt gần nhất và ghi rõ lúc nào đọc.
+- Nếu không nối được dịch vụ nền, trang nói thẳng bằng một dòng rồi tự thử lại, và mở ra ngay khi dịch vụ nền trả lời. Dịch vụ nền mở địa chỉ trước rồi mới khởi động nốt phần còn lại: lúc đó trang báo đang khởi động, chỉ mất khoảng một giây, rồi tự mở khi dịch vụ nền sẵn sàng. Trong lúc khởi động, các thao tác đọc vẫn trả lời, còn mọi thao tác làm thay đổi gì đó (gửi lệnh, chạy một phiên, đặt lệnh, đổi lịch) bị từ chối kèm dòng "đang khởi động, thử lại sau giây lát". Nếu đang đăng nhập mà mất kết nối, một thanh hiện đồng hồ đếm lùi lần thử lại, nút "Thử ngay" và dòng báo các phiên chạy vẫn tiếp tục ở dịch vụ nền. Khi nối lại, trang hỏi lại bức tranh hiện tại rồi theo dõi tiếp. Trang cũ hơn dịch vụ nền thì nhắc bạn tải lại. Khối nào làm mới không được vẫn giữ số liệu tốt gần nhất và ghi rõ lúc nào đọc.
 
 ### Trên màn hình có gì
 

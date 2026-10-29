@@ -309,9 +309,14 @@ back in `StartChannelsResult.skipped` for the daemon to report; anything else lo
 throws before any channel starts. If none start, CLI-only operation is valid.
 
 Only a token the provider refuses counts as configuration: HTTP 401 or 403 from Telegram, and 401 from
-Zalo, whose own error table lists 403 as a server fault. Any other `getMe` failure is transport, and both
-adapters try it up to four times with a capped backoff before dropping the channel. Zalo Personal has no
-token to refuse; it retries its login in the background (5 seconds initial, 5 minutes maximum).
+Zalo, whose own error table lists 403 as a server fault. Each adapter's `start()` makes one `getMe` bounded by
+the request timeout, so a slow network never holds `startChannels` (and the scheduler, trading loops and API
+behind it). A refused token throws from `start()`; any other failure is transport, reported as
+`connected: false` with `lastError: get_me_failed`, and the poll loop takes over with its own backoff. Telegram's
+restart loop fetches the bot identity again while it is unknown and installs the command menu from there,
+detached from polling and awaited by the loop on exit; a failed install retries on the loop's next restart.
+Zalo Personal has no token to refuse; it retries its login in the background (5 seconds initial, 5 minutes
+maximum).
 
 `startChannels` returns `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: shutdown, health
 snapshots, the channels left down, an outbound sender that routes to the runtime owning a channel (`AcknowledgedRouter`), and a default

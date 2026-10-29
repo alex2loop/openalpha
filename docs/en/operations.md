@@ -60,13 +60,20 @@ after a restart each loop shows nothing until its next pass.
 A market that never closes, such as crypto, refreshes at the UTC day rollover. Anchors within 60
 seconds of each other merge into one run.
 
-At boot, the first refresh runs before other parts start:
+At boot, the first refresh runs beside the other parts as they start, so the office page and the
+chat are up within seconds:
 
-- It waits up to 60 seconds, then finishes in the background with a warning.
+- For up to a minute after the start, market data may still be filling in, so a chart can look thin
+  until it lands.
+- The loops that read market data (alerts, outcomes, macro extraction, theme outcomes, briefs and
+  the intraday report) wait for it before their first pass, up to 60 seconds. A provider that
+  never answers cannot hold them longer: they start with a warning (`daemon.boot_refresh_timeout`)
+  and the sweep finishes in the background. The refresh loop joins the same sweep. Chat, the
+  scheduler, the channels and the maintenance loops never wait for it.
 - With no network at boot, the loop waits for the network.
 - A provider, storage or channel failure in that refresh is only a warning
   (`daemon.boot_refresh_failed`), whether it lands inside the 60 seconds or after them. The daemon
-  boots on. Any other error stops the boot.
+  keeps running. Any other error stops the daemon.
 
 Each of these passes, the boot one included, shows on the office page just as a typed `/refresh`
 does. The stock keeper works in the data store, with progress on the wall monitor. The header counts
@@ -642,7 +649,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
 - The page refuses to run inside a frame, and in the released binary it may talk only to the daemon that served it.
 - The daemon listens on `127.0.0.1` only and accepts only a `Host` naming this machine (`127.0.0.1`, `localhost` or `[::1]`) or your `public_url`, refuses an API call another website starts, and opens the live stream only for the page it served, so another local web app cannot use it.
 - Safari before 16.4 does not send the header the daemon relies on, so the page says this browser blocks cookies for the address even though it does not. Update Safari.
-- If the daemon cannot be reached, the page says so in one plain line and keeps trying on its own, then opens once the daemon answers. If the connection drops while you are signed in, a bar shows the retry countdown and a "Retry now" button, and says that runs keep going in the daemon. When the connection returns, the page asks for the picture as it stands and carries on. A page older than the daemon asks you to reload. A block that fails to refresh keeps its last good figures and says when they were read.
+- If the daemon cannot be reached, the page says so in one plain line and keeps trying on its own, then opens once the daemon answers. The daemon opens its address first and finishes starting behind it: until then the page says it is starting, which takes about a second, and opens by itself when the daemon is ready. While it starts, reads answer, but anything that changes something (sending a command, a run, an order, a schedule) is refused with a "still starting, try again in a moment" line. If the connection drops while you are signed in, a bar shows the retry countdown and a "Retry now" button, and says that runs keep going in the daemon. When the connection returns, the page asks for the picture as it stands and carries on. A page older than the daemon asks you to reload. A block that fails to refresh keeps its last good figures and says when they were read.
 
 ### What is on the screen
 

@@ -83,9 +83,10 @@ channel without a valid token accepts no messages from anyone. Fix the token and
 A Telegram token revoked while the daemon runs is handled the same way: after three refusals in a row the channel stops,
 `/health` shows it down, and the down notice on another open channel says the token was refused.
 A bad configuration value (wrong type, misspelt key) still stops `start` with an error. Any other
-failure to check the token is a connection problem: the check is tried four times with a growing pause,
-and if the network is still down the channel stays up, shows as degraded, and keeps retrying in the
-background with a capped pause until it connects or the daemon stops. Zalo Personal has no token to
+failure to check the token is a connection problem: the check is made once at start-up and never holds
+the daemon back. If the network is down or slow the channel stays up, shows as degraded, and keeps
+retrying in the background with a capped pause until it connects or the daemon stops. Telegram's
+command menu is also set up in the background once the bot is reachable. Zalo Personal has no token to
 reject; it keeps retrying its login in the background the same way. If no channel is up, running from
 the CLI alone still works.
 

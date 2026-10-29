@@ -82,9 +82,10 @@ không có token hợp lệ không nhận tin của ai. Đặt lại token rồi
 khi dịch vụ nền đang chạy cũng được xử lý như vậy: sau ba lần bị từ chối liên tiếp, kênh dừng, `/health` báo kênh ngừng, và thông báo kênh
 ngừng gửi qua kênh khác sẽ nói rõ là token bị từ chối. Một giá trị cấu hình sai
 (sai kiểu, sai tên khóa) vẫn làm `start` dừng và báo lỗi. Mọi lỗi khác khi kiểm
-tra token được coi là lỗi đường truyền: hệ thống thử bốn lần, khoảng chờ tăng dần, và nếu mạng vẫn chưa
-lên thì kênh vẫn được giữ, hiện ở trạng thái suy giảm và tiếp tục thử lại ở nền với khoảng chờ có trần,
-cho tới khi kết nối được hoặc dịch vụ nền dừng. Zalo Personal không có token để bị từ chối: nó cũng cứ thử đăng
+tra token được coi là lỗi đường truyền: hệ thống chỉ kiểm tra một lần lúc khởi động và không làm dịch vụ nền
+chậm lại. Nếu mạng hỏng hoặc chậm thì kênh vẫn được giữ, hiện ở trạng thái suy giảm và tiếp tục thử lại ở nền
+với khoảng chờ có trần, cho tới khi kết nối được hoặc dịch vụ nền dừng. Menu lệnh của Telegram cũng được cài ở
+nền khi bot đã liên lạc được. Zalo Personal không có token để bị từ chối: nó cũng cứ thử đăng
 nhập lại ở nền. Nếu không kênh nào chạy, dùng riêng CLI vẫn được.
 
 ## Ai được vào

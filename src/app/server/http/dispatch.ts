@@ -18,7 +18,7 @@ import { missingEnvOf } from '@/core/config/resolve'
 import { ChannelError, ConflictError, isCancellation, ValidationError } from '@/core/errors'
 import { FieldValidationError } from '@/core/field-errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { bindLocale } from '@/i18n'
+import { bindLocale, t } from '@/i18n'
 import { PriceUnconfirmedError } from '@/trading/api'
 
 const PARAM_PREFIX = ':'
@@ -48,6 +48,11 @@ export function apiError(code: ApiErrorCode, message?: string, extras?: ApiError
   return Response.json({ error } satisfies ApiError, { status: API_ERROR_STATUS[code] })
 }
 
+/** The answer to anything that needs a subsystem the daemon has not started yet. */
+export function apiStarting(app: App): Response {
+  return apiError('unavailable', t(app.config.locale.language, 'errors.apiStarting'))
+}
+
 /** Exact, or segment-by-segment when the route declares `:param` placeholders. */
 function isPathMatch(routePath: string, actual: string): boolean {
   if (routePath === actual) {
@@ -68,6 +73,10 @@ function isPathMatch(routePath: string, actual: string): boolean {
   return route.every((seg, i) =>
     seg.startsWith(PARAM_PREFIX) ? parts[i] !== '' : seg === parts[i]
   )
+}
+
+function isReadyRequired(route: ApiRouteSpec): boolean {
+  return route.method !== 'GET' && route.whileStarting !== true
 }
 
 function isCapabilityDenied(app: App, route: ApiRouteSpec): boolean {
@@ -91,6 +100,10 @@ export async function handleHttp(req: Request, ctx: ApiRouteContext): Promise<Re
 
   if (route === undefined) {
     return apiError('not_found')
+  }
+
+  if (isReadyRequired(route) && !ctx.isReady()) {
+    return apiStarting(ctx.app)
   }
 
   if (route.auth) {

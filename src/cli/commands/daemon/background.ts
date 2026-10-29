@@ -18,9 +18,8 @@ import { sleep } from '@/core/utils/time'
 import { t } from '@/i18n'
 
 const PID_POLL_MS = 100
-// A background start waits for the daemon to be ready, not merely alive: past the boot refresh's
-// own budget (app/boot-refresh.ts, 60s) plus a first boot's migrations. A daemon that dies is
-// reported as soon as it exits.
+// A background start waits for the daemon to be ready, not merely alive: a first boot's migrations
+// and a slow chat login fit inside it. A daemon that dies is reported as soon as it exits.
 export const START_TIMEOUT_MS = 90_000
 const DAEMON_STDOUT_LOG = 'daemon.stdout.log'
 // Kept apart from stdout so a failed start can quote the daemon's own error and nothing else.

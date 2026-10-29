@@ -29,6 +29,8 @@ const browserLocale = resolveBrowserLocale()
 export const brand = signal<string | undefined>(undefined)
 /** `GET /v1/health` failed: the daemon that served this page is down; the page keeps asking. */
 export const isUnreachable = signal(false)
+/** `GET /v1/health` answered `starting`: the daemon is up but still loading; the page keeps asking. */
+export const isStarting = signal(false)
 /** Written by the feed only. */
 export const connection = signal<Connection>({ status: 'connecting' })
 /** The last good `GET /v1/state`. */
@@ -49,27 +51,26 @@ export const isFirstRun = computed(() => {
   return firstRun !== undefined && !firstRun.profileSaved && firstRun.bookEmpty
 })
 
-/** Trades a sign-in `code` first when the address carried one, then loads brand and session, on the
- *  backoff for as long as the daemon cannot be reached. A code the daemon never answered stays in the
- *  address and is tried again. */
+/** Asks `GET /v1/health` until the daemon answers `ready`, on the backoff while it cannot be reached
+ *  and at its first step while it is starting. Then trades a sign-in `code` when the address carried one, and loads the
+ *  session. A code the daemon never answered stays in the address and is tried again. */
 export async function loadUntilReady(abortSignal: AbortSignal, code?: string): Promise<void> {
-  let pendingCode = code
   let tries = 0
 
   while (!abortSignal.aborted) {
-    const isTraded = pendingCode === undefined || (await signInWithCode(pendingCode, abortSignal))
+    await loadBrand(abortSignal)
 
-    if (isTraded) {
-      pendingCode = undefined
+    if (!(isUnreachable.value || isStarting.value)) {
+      const isTraded = code === undefined || (await signInWithCode(code, abortSignal))
+
+      if (isTraded) {
+        await loadSession(abortSignal)
+        return
+      }
     }
 
-    await Promise.all([loadBrand(abortSignal), ...(isTraded ? [loadSession(abortSignal)] : [])])
-
-    if (isTraded && !isUnreachable.value) {
-      return
-    }
-
-    await waitFor(nextDelayMs(tries++, Math.random), abortSignal)
+    // A daemon that answers `starting` is about a second from ready: ask again at the first step.
+    await waitFor(nextDelayMs(isStarting.value ? 0 : tries++, Math.random), abortSignal)
   }
 }
 
@@ -95,6 +96,7 @@ async function loadBrand(abortSignal: AbortSignal): Promise<void> {
 
     brand.value = health.brand
     isUnreachable.value = false
+    isStarting.value = health.status === 'starting'
   } catch (error: unknown) {
     // Anything but an `ApiFailure` is the caller's own abort.
     if (error instanceof ApiFailure) {

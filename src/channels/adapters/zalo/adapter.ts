@@ -12,7 +12,6 @@ import { plainRenderer, stripMarkdown } from '@/channels/renderer'
 import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
 import { ChannelError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { withRetry } from '@/core/utils/retry'
 
 import { getMe, sendChatAction, sendMessage, ZALO_MAX_LEN, ZALO_UNAUTHORIZED_CODE } from './client'
 import { ZALO_CHANNEL_ID } from './config'
@@ -29,8 +28,6 @@ const ZALO_CAPABILITIES: ChannelCapabilities = {
 
 const ZALO_TOKEN_OWNER = { id: ZALO_CHANNEL_ID, label: 'Zalo' } as const
 const ZALO_RATE_LIMITED_CODE = 429
-const ZALO_GET_ME_MAX_ATTEMPTS = 4
-const ZALO_GET_ME_RETRY_INITIAL_MS = 1_000
 // Zalo publishes no retry-after hint, so a rate-limited send gets one fixed pause instead of the
 // provider-named one telegram gets. reply.ts clamps it and retries the final write only.
 const ZALO_RATE_LIMIT_RETRY_MS = 5_000
@@ -98,20 +95,16 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
   }
 }
 
-// A refused token keeps the channel from starting. A network failure leaves the channel up and unconnected: the poll loop
-// keeps retrying with its own backoff and reports connected on its first good poll.
+// One getMe, no retry: a refused token keeps the channel from starting. A network failure leaves the
+// channel up and unconnected: the poll loop keeps retrying with its own backoff and reports
+// connected on its first good poll.
 async function verifyToken(
   options: CreateZaloAdapterOptions,
   handlers: AdapterHandlers,
   signal: AbortSignal
 ): Promise<void> {
   try {
-    await withRetry(() => assertZaloTokenAccepted(options.token, signal), {
-      maxAttempts: ZALO_GET_ME_MAX_ATTEMPTS,
-      initialMs: ZALO_GET_ME_RETRY_INITIAL_MS,
-      signal,
-      isRetryable: (err) => !(err instanceof ConfigError),
-    })
+    await assertZaloTokenAccepted(options.token, signal)
     handlers.setStatus({ connected: true, lastError: null })
   } catch (err: unknown) {
     if (err instanceof ConfigError || signal.aborted) {
@@ -124,7 +117,7 @@ async function verifyToken(
 }
 
 // Only a token Zalo itself refuses is the operator's to fix; a 5xx, a rate limit or a malformed
-// reply is transient and is retried.
+// reply is transient and left to the poll loop.
 async function assertZaloTokenAccepted(token: string, signal: AbortSignal): Promise<void> {
   const me = await getMe({ token, signal })
 

@@ -2,12 +2,12 @@ import type { DeliveryHub } from '@/app/delivery'
 import type { App, DaemonStartOptions, DaemonTask, DegradedItem } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { NoticeRow } from '@/persistence/api'
-import { refreshMarketDataOnBoot } from '@/app/boot-refresh'
 import {
+  type DaemonApi,
   type DaemonTaskState,
+  startDaemonApi,
   startDaemonSubsystems,
   type Teardown,
-  trackDaemonTask,
 } from '@/app/daemon-subsystems'
 import '@/app/events'
 
@@ -57,25 +57,9 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
       const tasks: Promise<void>[] = []
 
       try {
+        const api = await startDaemonApi(app, teardown)
+
         await runWorkspaceTmpRetention(app, logger, retentionCutoffAt(app))
-
-        const refreshed = await refreshMarketDataOnBoot({
-          app,
-          logger,
-          signal: startupSignal,
-          track: (task) =>
-            trackDaemonTask({
-              tasks,
-              state: taskState,
-              startup,
-              name: 'trading.boot-refresh',
-              task,
-            }),
-        })
-
-        if (!refreshed) {
-          return
-        }
 
         const warnings = await startDaemonSubsystems({
           app,
@@ -89,7 +73,17 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
           teardown,
         })
 
-        markReady({ app, delivery, logger, warnings, options })
+        // A stop that arrived while the subsystems were starting is not ready, and says nothing.
+        if (!startupSignal.aborted) {
+          markReady({
+            app,
+            delivery,
+            logger,
+            warnings: [...warnings, ...api.degraded],
+            api,
+            options,
+          })
+        }
 
         await abortWaiter.promise
 
@@ -202,10 +196,12 @@ function markReady(ready: {
   readonly delivery: DeliveryHub
   readonly logger: Logger
   readonly warnings: readonly DegradedItem[]
+  readonly api: DaemonApi
   readonly options: DaemonStartOptions | undefined
 }): void {
-  const { app, delivery, logger, warnings, options } = ready
+  const { app, delivery, logger, warnings, api, options } = ready
 
+  api.markReady()
   logger.info('daemon.started')
   options?.onReady?.(warnings)
   reportUpgradeOutcome(app, logger)

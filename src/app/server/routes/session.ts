@@ -171,9 +171,21 @@ function toBrowserLabel(userAgent: string | null): string {
 }
 
 export const SESSION_ROUTES: readonly ApiRouteSpec[] = [
-  { method: 'POST', path: '/v1/session/code', auth: true, handler: handleCode },
-  { method: 'POST', path: '/v1/session', auth: false, handler: handleSignIn },
-  { method: 'POST', path: '/v1/session/logout', auth: true, handler: handleLogout },
+  {
+    method: 'POST',
+    path: '/v1/session/code',
+    auth: true,
+    whileStarting: true,
+    handler: handleCode,
+  },
+  { method: 'POST', path: '/v1/session', auth: false, whileStarting: true, handler: handleSignIn },
+  {
+    method: 'POST',
+    path: '/v1/session/logout',
+    auth: true,
+    whileStarting: true,
+    handler: handleLogout,
+  },
   { method: 'GET', path: '/v1/sessions', auth: true, handler: handleList },
   { method: 'DELETE', path: '/v1/sessions/:id', auth: true, handler: handleDelete },
 ]

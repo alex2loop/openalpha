@@ -221,6 +221,7 @@ function setStatus(state: SocketState, next: ConnectionStatus, retryAt?: number)
 
 // The feed path read as a plain request is no upgrade: a daemon with room answers `invalid_body`, one
 // with every socket taken answers `too_many_streams`, the only status a browser cannot see on a socket.
+// A daemon still starting refuses the feed with `unavailable`, so it reads `offline` and is retried.
 async function classify(signal: AbortSignal): Promise<'offline' | 'full' | 'refused'> {
   try {
     await getJson(ROUTES.health, { signal })

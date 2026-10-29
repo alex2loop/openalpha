@@ -1,5 +1,6 @@
 {
   "ok": true,
+  "status": "ready",
   "version": "1.0.3",
   "brand": "OpenAlpha",
   "contractVersion": 1,

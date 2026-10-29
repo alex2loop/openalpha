@@ -9,7 +9,6 @@ import {
   START_TIMEOUT_MS,
 } from '@/cli/commands/daemon/background'
 import {
-  configuredChannels,
   printServed,
   printStartSetup,
   renderDegraded,
@@ -263,11 +262,6 @@ function printStartBanner(app: CliApp, keyless: readonly DegradedItem[]): void {
   app.out(info(t(locale, 'cli.daemonRunning', { pid: process.pid, version: BRAND.version })))
   printStartSetup(app)
   reportMissingKeys(app, keyless)
-
-  // Boot loads market data before any channel opens, so a bot messaged right now stays silent.
-  if (configuredChannels(app).length > 0) {
-    app.out(hint(t(locale, 'cli.daemonChannelsWarmup')))
-  }
 }
 
 // What a channel or the API left down goes out before the ready file, so a background start relays

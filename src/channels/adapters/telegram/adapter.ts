@@ -13,7 +13,6 @@ import type { PollOffsetStore } from '@/core/types/session'
 import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
 import { ChannelError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { withRetry } from '@/core/utils/retry'
 import { sleep } from '@/core/utils/time'
 
 import type { BotIdentity } from './protocol'
@@ -37,8 +36,6 @@ const FORBIDDEN_STATUS = 403
 const TELEGRAM_TOKEN_OWNER = { id: TELEGRAM_CHANNEL_ID, label: 'Telegram' } as const
 const TELEGRAM_POLL_RESTART_INITIAL_MS = 1_000
 const TELEGRAM_POLL_RESTART_MAX_MS = 60_000
-const TELEGRAM_GET_ME_MAX_ATTEMPTS = 4
-const TELEGRAM_GET_ME_RETRY_INITIAL_MS = 1_000
 
 const TELEGRAM_CAPABILITIES: ChannelCapabilities = {
   inlineButtons: true,
@@ -80,8 +77,8 @@ export function createTelegramAdapter(options: CreateTelegramAdapterOptions): Ch
       const botIdentity = await connectOrDefer(ctx, handlers)
       api = ctx
 
-      // Detached: the loop stops on `signal`, so start() resolves as soon as the token verifies or the
-      // network is found down (the loop then keeps trying).
+      // Detached: the loop stops on `signal`, so start() resolves after one getMe, answered or not
+      // (the loop then fetches the identity again if it is still unknown, and installs the menu).
       pollTask = runRestartLoop({
         api: ctx,
         handlers,
@@ -144,16 +141,48 @@ function buildApiContext(
   }
 }
 
-// Best-effort menu: setMyCommands reports its own failure and never throws, so polling starts
-// either way. `connected` belongs to the poll loop and is not written from here.
-async function installMenu(ctx: TelegramApiContext, handlers: AdapterHandlers): Promise<void> {
+// Best-effort menu: setMyCommands logs its own failure, so polling runs either way. Resolves false
+// when any scope failed or the menu could not be read, for the loop to try again on its next
+// reconnect. `connected` belongs to the poll loop and is not written from here.
+async function installMenu(ctx: TelegramApiContext, handlers: AdapterHandlers): Promise<boolean> {
   if (handlers.commandsForMenu === undefined) {
+    return true
+  }
+
+  try {
+    let installed = true
+
+    for (const menu of handlers.commandsForMenu()) {
+      installed = (await publishCommandMenu(ctx, menu.audience, menu.commands)) && installed
+    }
+
+    return installed
+  } catch (err: unknown) {
+    ctx.logger.warn('telegram.menu_install_failed', { err: formatErrForLog(err) })
+
+    return false
+  }
+}
+
+interface MenuInstall {
+  installed: boolean
+  task: Promise<void> | undefined
+}
+
+// Detached from polling: a slow setMyCommands never delays the first getUpdates. One run at a time,
+// and none once the menu is in place.
+function startMenuInstall(deps: RestartLoopDeps, menu: MenuInstall): void {
+  if (menu.installed || menu.task !== undefined) {
     return
   }
 
-  for (const menu of handlers.commandsForMenu()) {
-    await publishCommandMenu(ctx, menu.audience, menu.commands)
-  }
+  menu.task = installMenu(deps.api, deps.handlers)
+    .then((installed) => {
+      menu.installed = installed
+    })
+    .finally(() => {
+      menu.task = undefined
+    })
 }
 
 interface RestartLoopDeps {
@@ -172,13 +201,42 @@ interface RestartLoopDeps {
 // restart with capped exponential backoff. The lifecycle signal is the only controller; dispose()
 // awaits the same task after it has aborted.
 async function runRestartLoop(deps: RestartLoopDeps): Promise<void> {
+  const menu: MenuInstall = { installed: false, task: undefined }
+
+  try {
+    await runRestartAttempts(deps, menu)
+  } finally {
+    // Bound by the lifecycle signal, so this settles promptly once the loop is stopping.
+    await menu.task
+  }
+}
+
+/** False when the lifecycle signal ended the wait. */
+async function waitBackoff(ms: number, signal: AbortSignal): Promise<boolean> {
+  try {
+    await sleep(ms, signal)
+
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function runRestartAttempts(deps: RestartLoopDeps, menu: MenuInstall): Promise<void> {
   let restartMs = TELEGRAM_POLL_RESTART_INITIAL_MS
   let botIdentity = deps.botIdentity
+
+  // The first getMe just failed, so give Telegram the loop's first backoff step before asking again.
+  if (botIdentity === undefined && !(await waitBackoff(restartMs, deps.signal))) {
+    return
+  }
 
   while (!deps.signal.aborted) {
     try {
       // Still unknown when the first getMe could not reach Telegram.
-      botIdentity ??= await connect(deps.api, deps.handlers)
+      botIdentity ??= await fetchBotIdentity(deps.api)
+
+      startMenuInstall(deps, menu)
 
       await runPollLoop({
         api: deps.api,
@@ -204,9 +262,7 @@ async function runRestartLoop(deps: RestartLoopDeps): Promise<void> {
 
       deps.logger.error('telegram.poll_loop_failed', { err: formatErrForLog(err) })
 
-      try {
-        await sleep(restartMs, deps.signal)
-      } catch {
+      if (!(await waitBackoff(restartMs, deps.signal))) {
         return
       }
 
@@ -215,15 +271,15 @@ async function runRestartLoop(deps: RestartLoopDeps): Promise<void> {
   }
 }
 
-// The first attempt decides the channel's fate: a rejected token (ConfigError) keeps it from
-// starting, while a network failure leaves the channel up and unconnected for the restart loop to
-// keep retrying.
+// The one getMe start() makes decides the channel's fate: a rejected token (ConfigError) keeps it
+// from starting, while a network failure leaves the channel up and unconnected for the restart loop
+// to keep retrying with its own backoff.
 async function connectOrDefer(
   ctx: TelegramApiContext,
   handlers: AdapterHandlers
 ): Promise<BotIdentity | undefined> {
   try {
-    return await connect(ctx, handlers)
+    return await fetchBotIdentity(ctx)
   } catch (err: unknown) {
     if (err instanceof ConfigError || ctx.intakeSignal.aborted) {
       throw err
@@ -236,24 +292,11 @@ async function connectOrDefer(
   }
 }
 
-async function connect(ctx: TelegramApiContext, handlers: AdapterHandlers): Promise<BotIdentity> {
-  const identity = await fetchBotIdentity(ctx)
-
-  await installMenu(ctx, handlers)
-
-  return identity
-}
-
 // getMe verifies the credential: an auth failure here means the token is bad (a ConfigError). Any
-// other failure (network, 5xx, timeout) is retried with backoff before it is reported.
+// other failure (network, 5xx, timeout) is thrown as is and not retried here.
 async function fetchBotIdentity(ctx: TelegramApiContext): Promise<BotIdentity> {
   try {
-    return await withRetry(() => getMe(ctx), {
-      maxAttempts: TELEGRAM_GET_ME_MAX_ATTEMPTS,
-      initialMs: TELEGRAM_GET_ME_RETRY_INITIAL_MS,
-      signal: ctx.intakeSignal,
-      isRetryable: (err) => !isTokenRejected(err),
-    })
+    return await getMe(ctx)
   } catch (err: unknown) {
     if (isTokenRejected(err)) {
       throw toTokenRejectedError(TELEGRAM_TOKEN_OWNER, formatErrForLog(err).message)

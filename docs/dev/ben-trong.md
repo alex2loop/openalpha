@@ -419,6 +419,30 @@ suy giảm `kind: 'api'`, còn dịch vụ nền vẫn chạy. Mọi lỗi khở
 của nhóm bảo trì được đăng ký ngay khi hệ con của nó khởi động, nên một hệ con sau ném lỗi cũng không làm mất
 hàm dọn của hệ con trước.
 
+**Thứ tự khởi động.** Migration và container đi trước. API mở cổng ngay sau đó, trước mọi hệ con
+(`startDaemonApi`), nên trang kết nối được khi dịch vụ nền còn đang lên và cổng bị chiếm là điều được báo
+đầu tiên. Rồi tới dọn thư mục làm việc tạm, rồi `startDaemonSubsystems` (lần làm mới đầu như một tác vụ
+dịch vụ nền được theo dõi, kênh, workflow theo lịch, bộ gửi, theo dõi kênh, bộ lập lịch, các vòng giao dịch,
+bảo trì, tác vụ của plugin), rồi `markReady`. Hàm đóng nhận khách và hàm dừng của API được đăng ký cho phần
+tắt ngay khi nó mở cổng, nên một lần khởi động hỏng muộn hơn vẫn đóng được nó, và nó vẫn là thứ đóng nhận
+khách đầu tiên khi tắt.
+
+Trước `markReady`, API ở trạng thái đang khởi động: `GET /v1/health` trả `ok: false, status: 'starting'`, và
+một route chỉ trả lời nếu là `GET` hoặc khai `whileStarting` (đổi mã đăng nhập, đăng xuất và tạo mã đăng
+nhập, không cần hệ con nào). Mọi route khác trả 503 `unavailable` kèm `errors.apiStarting`, hai lần nâng cấp
+socket (luồng sự kiện và exec) cũng vậy; `classify` của trang đọc lời từ chối của luồng là `offline` và thử
+lại theo backoff. Cổng chặn là một chỗ kiểm trong `handleHttp` và một chỗ trong mỗi lần nâng cấp, nên route
+thêm vào mà quên khai thì bị chặn. Trang đọc `status` từ `/v1/health`, hiện dòng `ui.office.starting` và chỉ
+đăng nhập khi đọc được `ready`, nên mã đăng nhập không bị dùng mất trên một dịch vụ nền chưa đổi được.
+
+Lượt quét khởi động không còn chặn việc khởi động. Nó chạy như một tác vụ được theo dõi: lỗi không phải lỗi
+ranh giới làm dịch vụ nền dừng qua đúng bộ theo dõi tác vụ như mọi vòng khác. Các vòng giao dịch đọc dữ liệu
+thị trường (cảnh báo, các vòng tác vụ và vòng báo cáo trong phiên) chờ promise `firstSweep`
+trước nhịp đầu, và dừng theo dịch vụ nền; vòng lệnh thoát và vòng ý định chỉ đọc sàn và các kế hoạch đã lưu nên chạy ngay; `runBootRefresh` giải phóng nó qua `TradingServices.releaseFirstSweep`
+khi lượt quét xong, khi hết ngân sách 60 giây và trong `finally`, nên nhà cung cấp kẹt không giữ chúng mãi.
+Vòng làm mới nhập vào lượt quét qua bảng đang chạy của bộ điều phối; trò chuyện, bộ lập lịch, kênh và bảo trì
+không bao giờ chờ nó.
+
 Tác vụ dịch vụ nền đưa cả hai danh sách cho `onReady` (`DaemonStartOptions.onReady`); `start`
 tiền cảnh in chúng ra stderr, còn log stderr của tiến trình nền được chuyển tiếp dưới dòng thành công của
 tiến trình cha.

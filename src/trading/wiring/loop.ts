@@ -26,6 +26,8 @@ interface LoopSpec {
   readonly everyMs?: number
   nextDelayMs(now: number): number
   readonly tick: OperationTick
+  /** Settles when the loop may begin: its first tick, or the wait before it, comes after this. */
+  readonly after?: Promise<void>
   readonly onTaskPass: TaskPassListener
   readonly logger: Logger
   readonly reachability: Reachability
@@ -53,6 +55,10 @@ function createTask(spec: LoopSpec, options: { readonly delayed: boolean }): Dae
     name: spec.name,
     isWorking: () => state.ticking,
     async start(signal) {
+      if (spec.after !== undefined && !(await waitUntilSettled(spec.after, signal))) {
+        return
+      }
+
       if (options.delayed && !(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
         return
       }
@@ -60,6 +66,27 @@ function createTask(spec: LoopSpec, options: { readonly delayed: boolean }): Dae
       await runLoop(spec, { signal, state })
     },
   }
+}
+
+/** `false` means shutdown arrived first. The abort listener is armed with its own controller, so it
+ *  is gone whichever side wins. */
+async function waitUntilSettled(settled: Promise<void>, signal: AbortSignal): Promise<boolean> {
+  if (signal.aborted) {
+    return false
+  }
+
+  const listening = new AbortController()
+  const { promise: aborted, resolve } = Promise.withResolvers<void>()
+
+  signal.addEventListener('abort', () => resolve(), { once: true, signal: listening.signal })
+
+  try {
+    await Promise.race([settled, aborted])
+  } finally {
+    listening.abort()
+  }
+
+  return !signal.aborted
 }
 
 async function runLoop(

@@ -312,9 +312,13 @@ ghi log `channel.start_failed`. Lỗi lúc dựng runtime (agent không có, gi�
 kênh nào khởi động. Nếu không kênh nào chạy, chạy riêng CLI vẫn hợp lệ.
 
 Chỉ một token mà chính nhà cung cấp từ chối mới tính là cấu hình: HTTP 401 hoặc 403 từ Telegram, và 401
-từ Zalo, vì bảng mã lỗi của chính Zalo xếp 403 là lỗi máy chủ. Mọi lỗi `getMe` khác là lỗi đường truyền,
-và cả hai adapter thử tối đa bốn lần với khoảng chờ có trần trước khi bỏ kênh. Zalo Personal không có
-token để bị từ chối: nó thử đăng nhập lại ở nền (đầu tiên 5 giây, tối đa 5 phút).
+từ Zalo, vì bảng mã lỗi của chính Zalo xếp 403 là lỗi máy chủ. `start()` của mỗi adapter chỉ gọi `getMe` một
+lần, giới hạn bởi timeout của request, nên mạng chậm không giữ chân `startChannels` (và bộ lập lịch, vòng
+giao dịch, API phía sau nó). Token bị từ chối thì `start()` ném lỗi; mọi lỗi khác là lỗi đường truyền, báo
+`connected: false` với `lastError: get_me_failed`, rồi vòng poll tiếp quản với khoảng chờ riêng. Vòng khởi động
+lại của Telegram lấy lại danh tính bot khi nó còn chưa biết và cài menu lệnh từ đó, tách khỏi việc poll và được
+vòng chờ khi thoát; lần cài hỏng sẽ thử lại ở lần khởi động lại kế tiếp của vòng. Zalo Personal không có token
+để bị từ chối: nó thử đăng nhập lại ở nền (đầu tiên 5 giây, tối đa 5 phút).
 
 `startChannels` trả về `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: hàm tắt, ảnh chụp sức khỏe, các kênh bị loại,
 một bộ gửi chiều ra định tuyến tới runtime sở hữu kênh (`AcknowledgedRouter`), và người nhận mặc định

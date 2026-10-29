@@ -38,10 +38,11 @@ tiên vẫn có nơi gửi tới.
 Thị trường chạy liên tục không có giờ mở, nên chỉ neo vào lúc sang ngày UTC. Hai neo cách nhau dưới 60
 giây thì gộp thành một lượt.
 
-Khi khởi động, lần làm mới đầu chạy trước các hệ con khác, chờ tối đa 60 giây rồi hoàn tất ở chế độ
-nền kèm cảnh báo. Lỗi ranh giới (`isBoundaryFailure`) từ nó chỉ cảnh báo `daemon.boot_refresh_failed` dù ở
-trong hay sau 60 giây và khởi động vẫn tiếp tục; lỗi khác là chí mạng, ném về nơi gọi trong ngân sách thời
-gian và qua bộ theo dõi tác vụ dịch vụ nền sau đó. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
+Khi khởi động, lần làm mới đầu chạy như một tác vụ dịch vụ nền được theo dõi, song song với các hệ con
+khác. Các vòng đọc dữ liệu thị trường chờ nó trước nhịp đầu, tối đa 60 giây (`daemon.boot_refresh_timeout`),
+rồi lượt quét hoàn tất ở chế độ nền. Lỗi ranh giới (`isBoundaryFailure`) từ nó chỉ cảnh báo
+`daemon.boot_refresh_failed` dù ở trong hay sau 60 giây và dịch vụ nền vẫn chạy; lỗi khác là chí mạng,
+qua bộ theo dõi tác vụ dịch vụ nền. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
 chạy thì nó nhập vào đó, và nếu máy khởi động không có mạng, chính nhịp này là lượt chờ có mạng rồi đi
 vào chuỗi thử lại.
 

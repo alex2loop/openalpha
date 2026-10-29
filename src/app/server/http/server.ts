@@ -17,7 +17,12 @@ import {
   resolvePeerKey,
 } from '@/app/server/http/auth'
 import { SET_COOKIE, toSessionCookieName } from '@/app/server/http/caller'
-import { apiError, handleHttp, resolveAuthorizedCaller } from '@/app/server/http/dispatch'
+import {
+  apiError,
+  apiStarting,
+  handleHttp,
+  resolveAuthorizedCaller,
+} from '@/app/server/http/dispatch'
 import { PAGE_ROUTES, toPageResponse } from '@/app/server/http/page'
 import { EXEC_PATH } from '@/app/server/wire/exec'
 import { SOCKET_IDLE_TIMEOUT_SECONDS } from '@/app/server/wire/socket'
@@ -47,6 +52,8 @@ export function startApi(
   surface: { readonly token: string; readonly live: LiveFeed; readonly codes: SignInCodes }
 ): ApiHandle {
   const wsServices = resolveWsServices(app)
+  let ready = false
+  const isReady = (): boolean => ready
   const server = listen(app, () =>
     Bun.serve({
       // Loopback-only by construction. The isLoopback check in handleHttp is a second lock for the
@@ -58,7 +65,7 @@ export function startApi(
       maxRequestBodySize: MAX_HTTP_BODY_BYTES,
       idleTimeout: IDLE_TIMEOUT_SECONDS,
       routes: PAGE_ROUTES,
-      fetch: (req, srv) => routeRequest(req, srv, { app, ...surface, wsServices }),
+      fetch: (req, srv) => routeRequest(req, srv, { app, ...surface, wsServices, isReady }),
       // Bun's pings stay on (`sendPings`), so an idle forwarded REPL is not reaped as a dead peer.
       websocket: {
         ...socketHandlers,
@@ -67,11 +74,7 @@ export function startApi(
       },
       // Bun's default error page is HTML with the stack; every error body here is `{ error: { code } }`.
       development: false,
-      error(err): Response {
-        app.resolve('logger').error('api.request_failed', { err: formatErrForLog(err) })
-
-        return apiError('internal')
-      },
+      error: (err): Response => toInternalError(app, err),
     })
   )
 
@@ -80,6 +83,9 @@ export function startApi(
   const stopListening = (): Promise<void> => (stopping ??= server.stop(false))
 
   return {
+    markReady: (): void => {
+      ready = true
+    },
     closeAdmission: (): void => {
       closeSocketAdmission()
       closeExecAdmission()
@@ -94,6 +100,12 @@ export function startApi(
       await stopRequests(app, server, stopListening())
     },
   }
+}
+
+function toInternalError(app: App, err: unknown): Response {
+  app.resolve('logger').error('api.request_failed', { err: formatErrForLog(err) })
+
+  return apiError('internal')
 }
 
 // In-flight requests get SHUTDOWN_DRAIN_MS to finish, so storage is not closed under one; a request
@@ -119,6 +131,7 @@ interface RouteDeps {
   readonly live: LiveFeed
   readonly codes: SignInCodes
   readonly wsServices: WsServices
+  isReady(): boolean
 }
 
 // Every request but the source run's page passes here, so the proxy and Host checks come first.
@@ -131,9 +144,13 @@ function routeRequest(
   const { publicUrl } = app.config.api
   const url = new URL(req.url)
 
-  // Stricter than the page's rules, and checked whole before any of them.
+  // Stricter than the page's rules, and checked whole before any of them. A socket that runs
+  // commands or carries the feed needs the subsystems, so both refuse until ready (the feed in
+  // `wsUpgradeResponse`); the client asks again.
   if (url.pathname === EXEC_PATH) {
-    return execUpgradeResponse(req, srv, { app, token: surface.token })
+    return surface.isReady()
+      ? execUpgradeResponse(req, srv, { app, token: surface.token })
+      : apiStarting(app)
   }
 
   if (publicUrl === undefined && PROXY_HEADERS.some((name) => req.headers.has(name))) {
@@ -199,6 +216,10 @@ async function wsUpgradeResponse(
   deps: { readonly ctx: ApiRouteContext; readonly wsServices: WsServices }
 ): Promise<Response | undefined> {
   const { ctx, wsServices } = deps
+
+  if (!ctx.isReady()) {
+    return apiStarting(ctx.app)
+  }
 
   if (!isOriginAllowed(req.headers.get('origin'), ctx.pageOrigin)) {
     return apiError('forbidden')

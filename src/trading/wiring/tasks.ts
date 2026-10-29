@@ -83,6 +83,10 @@ interface TradingDaemonDeps {
   refreshMarketData(
     options: RefreshAllMarketDataOptions
   ): Promise<readonly RefreshMarketDataResult[]>
+  /** Settles once the boot sweep has landed, failed or used up its budget. The loops that read
+   *  market data wait for it before their first tick; the refresh loop joins the sweep itself, and
+   *  the exit and intent loops read the venue and the stored plans, so none of the three waits. */
+  readonly firstSweep: Promise<void>
   readonly logger: Logger
 }
 
@@ -152,6 +156,7 @@ function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
     operationTask(deps, {
       name: 'trading.exits',
       policy: deps.config.operations.exits,
+      waitsForSweep: false,
       tickFor: (policy) =>
         createExitTick({
           venues: deps.venues,
@@ -245,6 +250,7 @@ function alertTask(deps: TradingDaemonDeps): DaemonTask {
     everyMs: policy.intervalMs,
     nextDelayMs: () => policy.intervalMs,
     logger,
+    after: deps.firstSweep,
     reachability: deps.config.operations,
     onTaskPass: deps.onTaskPass,
     tick: async (signal, notes) => {
@@ -285,6 +291,8 @@ async function armingStep(step: ArmingStep, run: () => Promise<void>): Promise<v
 interface OperationTaskSpec {
   readonly name: string
   readonly policy: OperationPolicy
+  /** False for a loop that reads no swept market data; it then starts with the daemon. */
+  readonly waitsForSweep?: boolean
   tickFor(policy: OperationPolicy): OperationTick
 }
 
@@ -294,6 +302,7 @@ function operationTask(deps: TradingDaemonDeps, spec: OperationTaskSpec): Daemon
     everyMs: spec.policy.intervalMs,
     nextDelayMs: () => spec.policy.intervalMs,
     logger: deps.logger,
+    ...(spec.waitsForSweep === false ? {} : { after: deps.firstSweep }),
     reachability: deps.config.operations,
     onTaskPass: deps.onTaskPass,
     tick: spec.tickFor(spec.policy),
@@ -356,6 +365,7 @@ function intradayTask(deps: TradingDaemonDeps): DaemonTask {
     name: 'trading.intraday',
     nextDelayMs: timing.nextDelayMs,
     logger: deps.logger,
+    after: deps.firstSweep,
     reachability: deps.config.operations,
     onTaskPass: deps.onTaskPass,
     tick: createIntradayTick({

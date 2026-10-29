@@ -1,6 +1,13 @@
 import { authState } from '@/web/api/auth-state'
 import { isChatOnly } from '@/web/state/pane'
-import { brand, connection, isUnreachable, sessionFailure, state } from '@/web/state/session'
+import {
+  brand,
+  connection,
+  isStarting,
+  isUnreachable,
+  sessionFailure,
+  state,
+} from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Announcer } from '@/web/ui/a11y/announcer'
 import { SkipLink } from '@/web/ui/a11y/skip-link'
@@ -19,12 +26,16 @@ import { StatusLine } from '@/web/ui/shell/status-line'
 import './app.css'
 
 /** The page grid (header | pane bar when narrow | main | command bar unless it floats over main),
- *  behind the loading, failure and sign-in screens. A loaded session stays on screen when a later
+ *  behind the loading, starting, failure and sign-in screens. A loaded session stays on screen when a later
  *  load fails. A chat tab is its chat pane and the command bar alone: no scene, panel or header
  *  mounts. */
 export function App() {
   if (isUnreachable.value) {
     return <StatusLine text={tr('ui.office.error.unreachable')} />
+  }
+
+  if (isStarting.value) {
+    return <StatusLine text={tr('ui.office.starting')} />
   }
 
   if (brand.value === undefined) {

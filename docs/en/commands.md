@@ -294,20 +294,18 @@ openalpha doctor [check] [--online]
 ```
 
 **Starting.** Bare `start` runs in the foreground, and Ctrl-C stops it. `--background`/`-b` runs the
-same command detached. It then waits until the daemon is actually ready: market data loaded and chat
-channels open. That usually takes about a minute. Only then does it report success, with the pid and
-the output path.
+same command detached. It then waits until the daemon is actually ready: the API open and the chat
+channels started. That usually takes a few seconds. Only then does it report success, with the pid and
+the output path. Market data keeps loading in the background after that.
 
 - A daemon that dies while starting (say its database cannot be opened) is reported at once, with
   its own error message and exit code. The command exits non-zero.
-- After 90 seconds, a daemon that is running but not ready yet (a slow data source) is left running.
+- After 90 seconds, a daemon that is running but not ready yet (a slow chat login, say) is left running.
   The command says how to follow it and exits zero. One that never came up exits non-zero.
 - `stop` and `status` work the same in both modes.
 
 A start prints the version it runs, the model, the channels it opens, the API port and a
-line naming `web` when `[api]` is on, and the log file. In the foreground with a channel configured, it
-also tells you the bot starts answering once market data has loaded. The log records when the
-channels open.
+line naming `web` when `[api]` is on, and the log file. The log records when the channels open.
 
 **Restarting.** When a daemon is running and `[api]` is on, `restart` asks that daemon to restart
 itself in place (same pid, same terminal). It waits until the daemon is ready and prints the result.
@@ -329,7 +327,7 @@ itself in place (same pid, same terminal). It waits until the daemon is ready an
 
 You get one warning line per item (marked `!`, on stderr) saying what waits and how to fix it. In the
 foreground, the variable warnings print right under the summary. The channel warnings print when the
-channels open, after market data has loaded. With `--background` they sit under the success line.
+channels open. With `--background` they sit under the success line.
 
 Everything else keeps running: data refresh, price alerts, the ledger and every job that needs no
 model. Chat over a channel, `/suggest`, research and the brief's model sections wait until you save
