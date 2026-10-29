@@ -30,7 +30,7 @@ system can ask for.
 | `sessionQuotes` | `SessionQuote[]` | the whole board in one read |
 | `fundamentals` | `FundamentalSnapshot[]` | |
 | `accounts` | `FiledAccounts` | every full-year and quarterly report the provider serves for one name |
-| `events` | `MarketEvent[]` | a cash dividend carries `cashPerShare` (the market's price unit) and `paysOn` where the provider publishes them |
+| `events` | `MarketEvent[]` | where the provider publishes them: a cash dividend's `cashPerShare` (the market's price unit) and `paysOn`, a share dividend's `shareRatio` (new shares per share held), a rights issue's `shareRatio` and `subscriptionPrice` |
 | `news` | `NewsItem[]` | |
 | `macro` | `MacroSnapshot` | merged across providers |
 | `policyRates` | `PolicyRateSnapshot` | the central bank's policy rates and interbank averages |

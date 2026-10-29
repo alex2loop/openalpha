@@ -213,6 +213,7 @@ function stageInputFor(
     ...(prepared.factors.signals === undefined ? {} : { signals: prepared.factors.signals }),
     ...(prepared.instrumentKind === undefined ? {} : { instrumentKind: prepared.instrumentKind }),
     ...(prepared.levels === undefined ? {} : { levels: prepared.levels }),
+    events: prepared.instrumentEvents,
     now: request.now,
     signal: request.signal,
   }
@@ -373,9 +374,10 @@ function toDraftCalendar(
 
 function calendarFieldsOf(
   calendar: DraftCalendar
-): Pick<Prepared, 'upcomingEvents' | 'calendarFailed'> {
+): Pick<Prepared, 'upcomingEvents' | 'instrumentEvents' | 'calendarFailed'> {
   return {
     upcomingEvents: calendar.events,
+    instrumentEvents: calendar.instrumentEvents,
     ...(calendar.calendarFailed === true ? { calendarFailed: true } : {}),
   }
 }

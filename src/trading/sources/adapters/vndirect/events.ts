@@ -18,6 +18,8 @@ import {
 
 // Every event is published per language; the operator reads Vietnamese, so the VN edition wins.
 const EVENT_LOCALE = 'VN'
+// The provider states a share ratio as new shares per this many held.
+const RATIO_BASE = 100
 
 // `effectiveDate` is required on purpose: it is the day the event acts on the price, and a row
 // without one is dropped rather than dated by `disclosureDate`, which is when it was announced —
@@ -31,6 +33,8 @@ const EVENT_ROW = z.object({
   note: z.string().optional(),
   dividend: z.number().positive().optional(),
   actualDate: z.string().min(1).optional(),
+  ratio: z.number().positive().optional(),
+  price: z.number().positive().optional(),
 })
 
 /** Mapped to the closed `MarketEventKind` union. An unmapped code is dropped rather than widened to
@@ -111,19 +115,31 @@ function toMarketEvent(raw: unknown): ParsedSource<MarketEvent> {
       providerEventId: String(row.id),
       title: title.value,
       ...(detail === undefined ? {} : { detail: detail.value }),
-      ...(kind === 'dividend-ex-date' ? cashDividendOf(row) : {}),
+      ...termsOf(kind, row),
     },
     caveats
   )
 }
 
-// `actualDate` is the payment day; a row without it states the amount and leaves the day open.
-function cashDividendOf(
-  row: z.infer<typeof EVENT_ROW>
-): Pick<MarketEvent, 'cashPerShare' | 'paysOn'> {
-  return {
-    ...(row.dividend === undefined ? {} : { cashPerShare: row.dividend }),
-    ...(row.actualDate === undefined ? {} : { paysOn: tradingDay(row.actualDate) }),
+type EventTerms = Pick<MarketEvent, 'cashPerShare' | 'paysOn' | 'shareRatio' | 'subscriptionPrice'>
+
+/** The terms that move the reference price. `ratio` is new shares per 100 held, and `actualDate` the
+ *  payment day: a row without one states the rest and leaves it open. */
+function termsOf(kind: MarketEventKind, row: z.infer<typeof EVENT_ROW>): EventTerms {
+  const shareRatio = row.ratio === undefined ? {} : { shareRatio: row.ratio / RATIO_BASE }
+
+  switch (kind) {
+    case 'dividend-ex-date':
+      return {
+        ...(row.dividend === undefined ? {} : { cashPerShare: row.dividend }),
+        ...(row.actualDate === undefined ? {} : { paysOn: tradingDay(row.actualDate) }),
+      }
+    case 'split':
+      return shareRatio
+    case 'rights-issue':
+      return { ...shareRatio, ...(row.price === undefined ? {} : { subscriptionPrice: row.price }) }
+    default:
+      return {}
   }
 }
 

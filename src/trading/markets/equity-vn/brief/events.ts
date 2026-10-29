@@ -75,6 +75,10 @@ export async function buildEvents(context: BriefContext): Promise<BriefSectionRe
       eventKind: event.kind,
       ...(event.cashPerShare === undefined ? {} : { cashPerShare: event.cashPerShare }),
       ...(event.paysOn === undefined ? {} : { paysOn: event.paysOn }),
+      ...(event.shareRatio === undefined ? {} : { shareRatio: event.shareRatio }),
+      ...(event.subscriptionPrice === undefined
+        ? {}
+        : { subscriptionPrice: event.subscriptionPrice }),
     })),
     { caveats, provenance }
   )

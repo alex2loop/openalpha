@@ -217,6 +217,8 @@ export interface Prepared {
   /** The record's own kind, for the segment's ETF ceiling. */
   readonly instrumentKind?: InstrumentKind
   readonly upcomingEvents: readonly MarketEvent[]
+  /** Past rows too: a dividend that already went ex is owed to the units bought before it. */
+  readonly instrumentEvents: readonly MarketEvent[]
   readonly calendarFailed?: true
   readonly openRisk?: OpenRisk
   readonly direction: DraftDirection

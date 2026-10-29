@@ -146,6 +146,12 @@ export function toMarketEventWire(event: MarketEvent): MarketEventWire {
     kind: event.kind,
     title: event.title,
     ...(event.detail === undefined ? {} : { detail: event.detail }),
+    ...(event.cashPerShare === undefined ? {} : { cashPerShare: event.cashPerShare }),
+    ...(event.paysOn === undefined ? {} : { paysOn: event.paysOn }),
+    ...(event.shareRatio === undefined ? {} : { shareRatio: event.shareRatio }),
+    ...(event.subscriptionPrice === undefined
+      ? {}
+      : { subscriptionPrice: event.subscriptionPrice }),
   }
 }
 

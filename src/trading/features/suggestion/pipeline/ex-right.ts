@@ -22,8 +22,8 @@ const EX_RIGHT_CAVEATS = Object.freeze({
  *  reference price already stands on the new basis while the bars, the standing plan and a quote
  *  still showing the last close do not, until a refresh restates the series. Keyed on the run's day
  *  rather than the next session, so the evening before still prices against the close it watches.
- *  A cash dividend is priced the way the provider will adjust it; any other action leaves the factor
- *  unknown. */
+ *  An action with published terms is priced the way the exchange adjusts it; one without leaves the
+ *  factor unknown. */
 export type ExRightGap =
   | { readonly kind: 'adjusted'; readonly day: TradingDay; readonly factor: number }
   | { readonly kind: 'unadjusted'; readonly day: TradingDay }
@@ -86,19 +86,47 @@ function exRightGapOf(candles: readonly Candle[], input: ExRightInput): ExRightG
     return undefined
   }
 
-  // An action with no published cash amount leaves the factor unknown (NaN fails both bounds).
-  const cash = gap.every((event) => event.kind === 'dividend-ex-date')
-    ? gap.reduce((sum, event) => sum + (event.cashPerShare ?? Number.NaN), 0)
-    : Number.NaN
-  const factor = (newest.close - cash) / newest.close
+  // An action with no published terms leaves the price unknown (NaN fails both bounds).
+  const reference = gap.reduce((price, event) => exRightPriceOf(price, event), newest.close)
+  const factor = reference / newest.close
+
+  if (factor === 1) {
+    return undefined
+  }
 
   return factor > 0 && factor < 1
     ? { kind: 'adjusted', day: first.at, factor }
     : { kind: 'unadjusted', day: first.at }
 }
 
-/** The series as the provider will restate it: every price scaled by the dividend's share of the
- *  last close, volume and turnover as traded. */
+/** The reference price the exchange sets on the ex-date from the close before it: less the cash, the
+ *  close spread over the new shares, or the rights' subscription money added to it first. */
+function exRightPriceOf(close: number, event: MarketEvent): number {
+  switch (event.kind) {
+    case 'dividend-ex-date':
+      return close - (event.cashPerShare ?? Number.NaN)
+    case 'split':
+      return close / (1 + (event.shareRatio ?? Number.NaN))
+    case 'rights-issue':
+      return rightsPriceOf(close, event)
+    default:
+      return Number.NaN
+  }
+}
+
+// Rights priced at or above the close dilute nothing, so the exchange leaves the price alone.
+function rightsPriceOf(
+  close: number,
+  terms: Pick<MarketEvent, 'shareRatio' | 'subscriptionPrice'>
+): number {
+  const ratio = terms.shareRatio ?? Number.NaN
+  const price = terms.subscriptionPrice ?? Number.NaN
+
+  return price >= close ? close : (close + price * ratio) / (1 + ratio)
+}
+
+/** The series as the provider will restate it: every price scaled to the reference price, volume
+ *  and turnover as traded. */
 function toAdjustedCandles(candles: readonly Candle[], gap: ExRightGap): readonly Candle[] {
   if (gap.kind !== 'adjusted') {
     return candles

@@ -26,6 +26,11 @@ export interface MarketEvent {
   readonly cashPerShare?: number
   /** The day a cash dividend is paid; absent where not published. */
   readonly paysOn?: TradingDay
+  /** New shares per share held, as a fraction (`0.1` for 100:10), for a share dividend, a bonus
+   *  issue or a rights issue; absent where not published. */
+  readonly shareRatio?: number
+  /** What a rights issue's new share costs, in the market's price unit; absent where not published. */
+  readonly subscriptionPrice?: number
 }
 
 /** A provider answering a per-instrument request names no subject, so an absent one is the
