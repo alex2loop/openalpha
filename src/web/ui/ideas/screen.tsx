@@ -1,3 +1,4 @@
+import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import type { ScreenResponse } from '@/app/server/wire/market'
@@ -94,34 +95,48 @@ function Board({ market }: { readonly market: string }) {
 interface BoardReading extends BlockReading<ScreenResponse> {
   /** Ranks the board again, past the one the daemon already read, and shows it in place. */
   readonly rerank: () => void
+  readonly isRanking: boolean
 }
 
+// The block's next read is the fresh one; a click while a read is out queues it behind that read.
 function useBoard(market: string): BoardReading {
   const isFresh = useRef(false)
+  const isRanking = useSignal(false)
   const reading = useBlockRead(
-    (abort) => {
-      const query = isFresh.current ? { market, fresh: FRESH_FLAG } : { market }
+    async (abort) => {
+      const fresh = isFresh.current
 
       isFresh.current = false
 
-      return getJson(ROUTES.screen, { query, signal: abort })
+      try {
+        return await getJson(ROUTES.screen, {
+          query: fresh ? { market, fresh: FRESH_FLAG } : { market },
+          signal: abort,
+        })
+      } finally {
+        if (fresh) {
+          isRanking.value = false
+        }
+      }
     },
     { capability: ROUTES.screen.capability }
   )
 
   return {
     ...reading,
+    isRanking: isRanking.value,
     rerank: () => {
       isFresh.current = true
+      isRanking.value = true
       reading.retry()
     },
   }
 }
 
-// No model runs: the board is ranked from stored data, so this is a plain button, busy while read.
+// No model runs: the board is ranked from stored data, so it is a plain button, waiting while read.
 function Rerun({ reading }: { readonly reading: BoardReading }) {
   return (
-    <Button size="small" disabled={reading.state === 'loading'} onClick={reading.rerank}>
+    <Button size="small" disabled={reading.isRanking} onClick={reading.rerank}>
       {tr('ui.office.ideas.screenRerun')}
     </Button>
   )
