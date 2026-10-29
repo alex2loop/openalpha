@@ -8,8 +8,8 @@ import { scrubCredentials } from '@/core/security/credentials'
 import { trimToSize } from '@/core/utils/collections'
 import { MS_PER_DAY } from '@/core/utils/time'
 
-/** Bounds each map of requests a client can ask about; the oldest go first. */
-const MAX_PENDING = 50
+/** Bounds the questions a client can ask about; the oldest go first. */
+const MAX_PENDING_QUESTIONS = 50
 /** A question has no deadline of its own: the operator answers when they next open the chat. */
 const QUESTION_PENDING_TTL_MS = MS_PER_DAY
 
@@ -23,7 +23,8 @@ interface ApprovalEntry {
 interface PendingFeed {
   /** The approvals and questions still waiting, on every channel: approvals first, each oldest first. */
   list(): readonly PendingWire[]
-  /** The raw channel an approval was asked on; undefined for an id the feed does not hold. */
+  /** The raw channel an approval was asked on; undefined for an id no longer waiting (answered,
+   *  timed out, its run gone, or never asked). */
   originOf(requestId: string): string | undefined
   stop(): void
 }
@@ -37,7 +38,9 @@ interface PendingFeedDeps {
 
 /** Follows the approvals and questions of every channel on the bus. An approval leaves on its
  *  `approval_resolved` (the gate settles a timeout the same way), or when its run or deadline is gone;
- *  a question ends its run at once, so it leaves on the next agent run in its session, or after a day. */
+ *  a question ends its run at once, so it leaves on the next agent run in its session, or after a day.
+ *  Approvals are never evicted for count: each carries a deadline, so the map is bounded by the
+ *  approvals pending at once, and an id it lacks is one that no longer waits. */
 export function createPendingFeed(deps: PendingFeedDeps): PendingFeed {
   const approvals = new Map<string, ApprovalEntry>()
   const questions = new Map<string, QuestionPendingWire>()
@@ -52,7 +55,11 @@ export function createPendingFeed(deps: PendingFeedDeps): PendingFeed {
 
       return [...[...approvals.values()].map((entry) => entry.wire), ...questions.values()]
     },
-    originOf: (requestId) => approvals.get(requestId)?.channelId,
+    originOf(requestId) {
+      prune(approvals, questions, deps.liveRunIds())
+
+      return approvals.get(requestId)?.channelId
+    },
     stop() {
       for (const off of offs) {
         off()
@@ -78,7 +85,6 @@ function followApprovals(
         runId: e.runId,
         expiresAt: e.expiresAt,
       })
-      trimToSize(approvals, MAX_PENDING)
     }),
     // The gate takes an answer only from the channel that asked, so any other channel's is no answer.
     bus.on('approval_resolved', (e) => {
@@ -107,7 +113,7 @@ function followQuestions(
         askedAt: e.askedAt,
         answerable: isApiChannel(e.channel),
       })
-      trimToSize(questions, MAX_PENDING)
+      trimToSize(questions, MAX_PENDING_QUESTIONS)
     }),
     // The answer turn is an agent run in the question's session; a slash command typed in the same
     // chat starts a command, which answers nothing.

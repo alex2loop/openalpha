@@ -7,6 +7,92 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+VN market holidays are now worked out from the law for every year, so 2027 and later need no update
+from us. Scheduled jobs ride out a short network outage instead of switching themselves off, and a
+job whose time passed while the daemon was down waits for its next time rather than running late.
+The office page and API answer within about a second of `start`, instead of after up to a minute of
+loading market data, and a slow Telegram or Zalo no longer holds the start. A busy API port no longer
+stops the daemon. Several sizing and booking figures now include fees
+the way the order path charges them.
+> Ngày nghỉ của sàn VN giờ được tính theo luật cho mọi năm, nên từ 2027 trở đi không cần chờ bản cập nhật. Việc theo lịch không còn tự tắt chỉ vì mất mạng vài phút, và việc lỡ giờ khi dịch vụ nền đang tắt sẽ đợi lần kế tiếp thay vì chạy trễ. Trang văn phòng và API trả lời trong khoảng một giây sau khi khởi động, thay vì phải chờ tới một phút nạp dữ liệu thị trường, và Telegram hay Zalo chậm không còn làm chậm cả lúc khởi động. Cổng API bị chiếm không còn làm dịch vụ nền dừng lại. Một số con số về khối lượng và ghi sổ giờ đã tính phí đúng như khi đặt lệnh.
+
+### Calendar
+
+- VN closures follow Labor Code art. 112: New Year, Tet (with the usual days around it), Hung
+  Kings, 30/4, 1/5, National Day and its adjacent day, and Vietnam Culture Day from 2026, plus the
+  next weekday when one falls on a weekend. Swap days the government announces go under
+  `[trading.markets.<id>] holidays`; the new `open_days` reopens a day the rules close. A date in
+  both lists, or on the market's weekend, stops the start.
+- The "holiday table is out of date" warning is gone: there is no table to run out.
+- Checked against the real tape for 2020-2025: 29 April 2024 (a swap day) is closed, and National
+  Day 2021 took its second day on 3 September, not 1 September.
+
+### Scheduler and delivery
+
+- While the host is offline, due jobs wait and no failure is counted; only real failures still
+  switch a job off after three in a row.
+- A cron job more than `[schedule] late_grace_ms` (15 minutes) late skips to its next time; interval
+  and one-time jobs still run. The intraday report skips a send it woke too late for.
+- At shutdown, channels stop taking new messages at once (they wait for the next start) and queued
+  notices get their one last attempt before the channels close. A reply cut by the restart says so
+  instead of showing an error.
+- A message Telegram or Zalo refuses for good is not retried.
+- An API port already in use is reported as a degraded item; the daemon keeps running.
+- Start-up no longer waits for market data: the API binds first and `GET /v1/health` reports
+  `starting` until the daemon is ready (writes and live streams answer `unavailable` meanwhile).
+  The boot refresh runs in the background; only the trading loops that read market data wait for
+  its first pass, for at most a minute.
+- Telegram and Zalo check their token once at start; a slow network is retried by the polling loop
+  instead of holding the start, and the Telegram command menu is installed in the background. A
+  wrong token is still reported at start.
+- `status`, `start` and every other command list all the config problems `config validate` lists,
+  not only the first section's.
+- With a config that cannot be read, `doctor` checks only config, daemon and version and marks the
+  rest as waiting, instead of reporting on the defaults (`doctor web-search` showed duckduckgo ✓).
+- `/profile set reserve-pct-nav 5` names the allowed range instead of a message about pinned targets.
+- `/reflect` calls a repeated suggestion a suggestion, not an order.
+- `web` and `connect` say why the daemon has no API (its port taken by another program, say)
+  instead of reporting a refused token from whatever holds that port.
+- A run that stops on something you can fix, such as an unset key, is logged as a warning, not an
+  error.
+- A terminal command sent while the daemon is still starting waits for it, then runs there, instead
+  of running a second copy of the work (a `/refresh`, say) in the terminal.
+
+### Trading
+
+- A plan made from a recorded fill on or after an ex-date is priced on the new basis, and a plan
+  is only scaled by the ex-dates it has not absorbed yet. Same-day cash and share actions give one
+  reference price whatever order the provider lists them in.
+- Averaging down no longer counts a dividend with no published amount as zero, and says when some
+  dividends could not be counted.
+- The reminder to record a dividend is built from every event, not only the ones the brief shows.
+- An OKX rebate books as no fee; a Binance fill whose trades are not listed yet waits for
+  `/record sync` instead of booking a zero fee.
+- A buy into a switched-off segment shows as a cap breach and `order_place` refuses it.
+- Suggested buys and the batch cash check leave room for the fee, plus the price drift a market
+  order may fill through on an exchange `/trade` reaches; `/rebalance` leaves room for the fee.
+- One name with zero turnover no longer withholds the whole `/rebalance` plan.
+
+### Office page and API
+
+- The ticker card now really shows a corporate action's terms (1.2.0 promised them but showed only
+  the payment day): cash per share, new shares per 100, subscription price and payment day.
+- On a held position, a first exit that sits under your cost reads "Trim on a rebound to ..., still
+  below your cost" instead of "Take profit".
+- The VN event note groups its figures the Vietnamese way (`2.250.000 CP`, `10.000 đ/cp`) instead
+  of the provider's `2,250,000` and bare `10000`.
+- The sign-in lockout has its own error code, `locked`; other refusals show their reason, and a
+  sign-in link survives a daemon that is restarting.
+- Too many open tabs reads as such, not as offline.
+- `GET /v1/health` no longer carries a `status` that was always `ready`.
+- A request the client already dropped is answered 499 and logged at debug.
+- `POST /v1/respond` answers `not_found` for a request that is no longer waiting, instead of a
+  silent ok.
+- Chat history pages never start in the middle of a turn; rate-limited commands are not stored;
+  deleting a chat also removes its agent binding.
+
 ## [1.2.0] - 2026-10-29 [IMPORTANT]
 
 Plans and exit alerts now follow a held VN stock across its ex-dividend date, so a dividend gap no
@@ -51,11 +137,12 @@ sessions list. Three database changes; the upgrade runs them for you.
 ### Smaller changes
 
 - An order the ledger has not booked yet shows what the exchange filled, with the average fill
-  price, in `/trade status`, `/trade reconcile` and the Orders tab.
+  price, in bare `/trade`, `/trade reconcile` and the Orders tab.
 - A sale held back by settlement says so, instead of calling it smaller than a board lot.
 - Startup refuses a `[trading.briefs] send_time` at or after the home market's open; the brief
   used to be skipped every morning.
-- A broken `config.toml` exits 2 on every command. `/cost` prints money and tokens like the run
+- A broken `config.toml` exits 2 on every command that needs it; `version` still runs, and `doctor`,
+  `onboard` and `config validate` still run and exit 1. `/cost` prints money and tokens like the run
   footer.
 - `openalpha db import` reads exports from older releases, columns dropped or added since
   included.

@@ -15,14 +15,16 @@ import { buildCapabilities } from '@/app/server/http/capabilities'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
 import { missingEnvOf } from '@/core/config/resolve'
-import { ChannelError, ConflictError, ValidationError } from '@/core/errors'
+import { ChannelError, ConflictError, isCancellation, ValidationError } from '@/core/errors'
 import { FieldValidationError } from '@/core/field-errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { bindLocale } from '@/i18n'
+import { bindLocale, t } from '@/i18n'
 import { PriceUnconfirmedError } from '@/trading/api'
 
 const PARAM_PREFIX = ':'
 const SERVER_ERROR_STATUS = 500
+// Nobody reads the answer to a request the client already dropped; the status only labels it.
+const CLIENT_CLOSED_STATUS = 499
 
 export function json(data: unknown, status = 200): Response {
   return Response.json(data, { status })
@@ -44,6 +46,11 @@ export function apiError(code: ApiErrorCode, message?: string, extras?: ApiError
   }
 
   return Response.json({ error } satisfies ApiError, { status: API_ERROR_STATUS[code] })
+}
+
+/** The answer to anything that needs a subsystem the daemon has not started yet. */
+export function apiStarting(app: App): Response {
+  return apiError('unavailable', t(app.config.locale.language, 'errors.apiStarting'))
 }
 
 /** Exact, or segment-by-segment when the route declares `:param` placeholders. */
@@ -68,6 +75,10 @@ function isPathMatch(routePath: string, actual: string): boolean {
   )
 }
 
+function isReadyRequired(route: ApiRouteSpec): boolean {
+  return route.method !== 'GET' && route.whileStarting !== true
+}
+
 function isCapabilityDenied(app: App, route: ApiRouteSpec): boolean {
   if (route.capability === undefined) {
     return false
@@ -89,6 +100,10 @@ export async function handleHttp(req: Request, ctx: ApiRouteContext): Promise<Re
 
   if (route === undefined) {
     return apiError('not_found')
+  }
+
+  if (isReadyRequired(route) && !ctx.isReady()) {
+    return apiStarting(ctx.app)
   }
 
   if (route.auth) {
@@ -142,8 +157,14 @@ async function runHandler(
   try {
     return await route.handler(req, handlerCtx)
   } catch (err: unknown) {
-    if (req.signal.aborted) {
-      throw err
+    if (req.signal.aborted && isCancellation(err)) {
+      app.resolve('logger').debug('api.request_aborted', {
+        method: route.method,
+        path: route.path,
+        err: formatErrForLog(err),
+      })
+
+      return new Response(null, { status: CLIENT_CLOSED_STATUS })
     }
 
     // A stop or restart cut the read short: expected, and the caller reads again once it is back.
@@ -268,7 +289,7 @@ export async function resolveAuthorizedCaller(
  *  a lockout cannot read as a bad token on one surface and a ban on the other. */
 export function toAuthRefusal(outcome: AuthOutcome): Response | null {
   if (outcome === 'locked') {
-    return apiError('forbidden')
+    return apiError('locked')
   }
 
   return outcome === 'ok' ? null : apiError('unauthorized')

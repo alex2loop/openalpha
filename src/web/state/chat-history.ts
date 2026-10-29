@@ -15,7 +15,7 @@ import { onChatFrame } from '@/web/state/feed'
 
 export const HISTORY_PAGE_SIZE = 30
 // Past this many earlier messages the panel stops offering more; the sessions dialog reads the rest.
-export const MAX_EARLIER = 300
+const MAX_EARLIER = 300
 
 /** `more`: an older page exists; `start`: the session's first message is in view; `capped`: the
  *  panel holds all it keeps. */
@@ -178,12 +178,18 @@ function canLoad(status: HistoryStatus): boolean {
   return status === 'idle' || status === 'more' || status === 'failed'
 }
 
+/** Whether `count` rows leave the view holding all it keeps: it trimmed some, or is full with older
+ *  rows left. A trimmed view never opens on the session's first message, whatever its last page says. */
+export function isCapped(count: number, hasMore: boolean): boolean {
+  return count > MAX_EARLIER || (hasMore && count === MAX_EARLIER)
+}
+
 function resolveStatus(hasMore: boolean, count: number): HistoryStatus {
-  if (!hasMore) {
-    return 'start'
+  if (isCapped(count, hasMore)) {
+    return 'capped'
   }
 
-  return count >= MAX_EARLIER ? 'capped' : 'more'
+  return hasMore ? 'more' : 'start'
 }
 
 // A session chosen on the page before the answer came keeps its place.

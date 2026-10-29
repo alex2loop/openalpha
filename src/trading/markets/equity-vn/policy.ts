@@ -14,7 +14,7 @@ import type { AdmissionPolicy } from '@/trading/markets/admission'
 import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { currencyCode, fxPair, marketRef, region, ticker } from '@/trading/kernel/instrument'
-import { VN_EXCHANGE_HOLIDAYS } from '@/trading/markets/equity-vn/holidays'
+import { vnClosuresOf } from '@/trading/markets/equity-vn/calendar/closures'
 import { US_DRIVER_BANDS } from '@/trading/markets/macro-risk'
 
 /** Bumped whenever a parameter changes what this market suggests: the version is part of a
@@ -63,7 +63,7 @@ export const VN_CALENDAR: CalendarPolicy = Object.freeze({
   breakEndLocalTime: '13:00',
   closeAuctionStartLocalTime: '14:30',
   weekendDays: Object.freeze([0, 6]),
-  holidays: VN_EXCHANGE_HOLIDAYS,
+  holidays: vnClosuresOf,
   continuous: false,
 })
 

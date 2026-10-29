@@ -19,11 +19,11 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import { BRAND } from '@/core/brand'
-import { ValidationError } from '@/core/errors'
+import { isCancellation, ValidationError } from '@/core/errors'
 import { runId as brandRunId } from '@/core/ids'
 import { withCorrelation } from '@/core/logging/correlation'
 
-import { type CommandRuns, createCommandRuns, isCancellation } from './long-running'
+import { type CommandRuns, createCommandRuns } from './long-running'
 import { assertPolicyValid, assertSlashCommandValid } from './registration'
 import { IDEMPOTENCY_TTL_MS, RATE_WINDOW_MS, sweepRegistries } from './registries'
 import {
@@ -169,17 +169,21 @@ interface AdmissionLease {
 
 type AdmissionResult =
   | { readonly kind: 'admitted'; readonly lease: AdmissionLease }
-  | { readonly kind: 'rejected'; readonly result: SlashResult }
+  | { readonly kind: 'rejected'; readonly result: SlashResult; readonly isRecorded: boolean }
 
 interface AdmittedResult {
   readonly result: SlashResult
   /** False when admission refused it: nothing ran under the context's run id. */
   readonly isRun: boolean
+  /** False for a refusal the limiter makes: keeping each one would make the limiter write twice
+   *  per command it refuses. */
+  readonly isRecorded: boolean
 }
 
 /** A channel stamps one id per inbound message, so a command and every engine turn it starts group
  *  together; the REPL has only the session, which is the honest granularity there. Whatever the
- *  command answered, a refusal included, is recorded in its session's transcript. */
+ *  command answered is recorded in its session's transcript, a refusal included, except the rate
+ *  limiter's. */
 function dispatchResolved(options: AdmissionOptions): Promise<SlashResult> {
   const context = withRunId(options.context, options.resolved.policy)
   const id = context.correlationId ?? context.sessionId
@@ -197,9 +201,15 @@ function dispatchResolved(options: AdmissionOptions): Promise<SlashResult> {
       throw err
     }
 
-    const { result, isRun } = admitted
+    const { result, isRun, isRecorded } = admitted
 
-    await appendExchange({ ...exchange, context: isRun ? context : withoutRunId(context), result })
+    if (isRecorded) {
+      await appendExchange({
+        ...exchange,
+        context: isRun ? context : withoutRunId(context),
+        result,
+      })
+    }
 
     return result
   })
@@ -225,7 +235,7 @@ async function dispatchAdmitted(options: AdmissionOptions): Promise<AdmittedResu
   const admission = admit(options)
 
   if (admission.kind === 'rejected') {
-    return { result: admission.result, isRun: false }
+    return { result: admission.result, isRun: false, isRecorded: admission.isRecorded }
   }
 
   const lease = admission.lease
@@ -235,10 +245,10 @@ async function dispatchAdmitted(options: AdmissionOptions): Promise<AdmittedResu
     lease.commit()
     committed = true
 
-    return { result, isRun: true }
+    return { result, isRun: true, isRecorded: true }
   } catch (err: unknown) {
     if (isCancellation(err)) {
-      return { result: { kind: 'handled' }, isRun: true }
+      return { result: { kind: 'handled' }, isRun: true, isRecorded: true }
     }
     throw err
   } finally {
@@ -264,6 +274,16 @@ function rejectMessage(key: CommandMessageKey): AdmissionResult {
   return {
     kind: 'rejected',
     result: { kind: 'message', messages: [{ key }] },
+    isRecorded: true,
+  }
+}
+
+// A burst of commands past the limit must cost the store nothing, so the refusal is shown and not kept.
+function rejectRateLimited(): AdmissionResult {
+  return {
+    kind: 'rejected',
+    result: { kind: 'message', messages: [{ key: 'slash.rateLimited' }] },
+    isRecorded: false,
   }
 }
 
@@ -281,11 +301,12 @@ function rejectSurface(policy: SlashInvocationPolicy, surface: CommandSurface): 
         ...(hint === undefined ? [] : [{ key: hint, values: { brand: BRAND.name } }]),
       ],
     },
+    isRecorded: true,
   }
 }
 
 function rejectHandled(): AdmissionResult {
-  return { kind: 'rejected', result: { kind: 'handled' } }
+  return { kind: 'rejected', result: { kind: 'handled' }, isRecorded: true }
 }
 
 function admit(options: AdmissionOptions): AdmissionResult {
@@ -316,7 +337,7 @@ function admit(options: AdmissionOptions): AdmissionResult {
     cooldownMs = policy.cooldownMs
     cooldownKey = gateKey
     if (isCooldownActive({ cooldowns, pendingKeys, key: cooldownKey, now })) {
-      return rejectMessage('slash.rateLimited')
+      return rejectRateLimited()
     }
     keys.push(cooldownKey)
   }
@@ -326,7 +347,7 @@ function admit(options: AdmissionOptions): AdmissionResult {
   // Before the idempotency stamp below: a key stamped first would answer every redelivery `handled`
   // for the whole TTL without ever running the command.
   if (isRateExceeded({ calls, key: rateKey, now, limit: ratePerMinute })) {
-    return rejectMessage('slash.rateLimited')
+    return rejectRateLimited()
   }
 
   if (policy.idempotencyKey !== undefined) {
@@ -344,7 +365,7 @@ function admit(options: AdmissionOptions): AdmissionResult {
 
   // Charged here, not on commit, and deliberately not fenced by `pendingKeys`: the budget is per
   // identity per minute, so concurrent commands each take a slot. Treating it as single-flight
-  // would cap the user at one command at a time — /cancel could never reach a run still going.
+  // would cap the user at one command at a time — /stop could never reach a run still going.
   recordCall(calls, rateKey, now)
 
   for (const key of keys) {

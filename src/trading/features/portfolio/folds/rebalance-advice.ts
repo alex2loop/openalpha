@@ -1,4 +1,4 @@
-import type { AdviceInput } from '@/trading/features/portfolio/folds/allocation'
+import type { AdviceInput } from '@/trading/features/portfolio/folds/advice-input'
 import type {
   AbsoluteRebalancePlan,
   CashSegmentTarget,
@@ -155,12 +155,14 @@ function isValidCandidate(candidate: AdviceInput['candidates'][number]): boolean
   ].every(Number.isFinite)
 
   // Positive, not integral: crypto trades in 0.0001 units, and both rounding sites floor by the lot.
+  // A turnover of zero is a measured dead name, not bad data: its liquidity ceiling sizes it to
+  // nothing, and one such name must not refuse the plan for every other.
   return (
     finite &&
     candidate.unitPriceBase > 0 &&
     candidate.boardLot > 0 &&
     candidate.maximumPositionPctNav >= 0 &&
-    (candidate.averageDailyTurnoverBase === undefined || candidate.averageDailyTurnoverBase > 0)
+    (candidate.averageDailyTurnoverBase === undefined || candidate.averageDailyTurnoverBase >= 0)
   )
 }
 
@@ -239,7 +241,12 @@ function cashSegmentAdvice(
   nav: number,
   plan: readonly PositionChange[]
 ): CashSegmentTarget {
-  const purchases = plan.reduce((sum, row) => sum + Math.max(row.changePctNav, 0), 0)
+  // A buy draws its value plus the fee and drift headroom, the same draw the increase pass reserved.
+  const purchases = plan.reduce(
+    (sum, row) =>
+      sum + Math.max(row.changePctNav, 0) * input.buyCashMultiple(row.instrument.market),
+    0
+  )
   // Currency cash is held at cost in the book; NAV and the segment table mark it at today's rate.
   const settledBase = input.valued.book.availableCashBase + (input.valued.currencyCashGainBase ?? 0)
   const cashPctNav = Math.max(settledBase / nav - purchases, 0)

@@ -7,7 +7,12 @@ import type { ChatSession } from '@/web/state/chat'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { toFailureText, tr } from '@/web/text/tr'
-import { deletedSessionIds, SessionGroups } from '@/web/ui/chat/sessions-rows'
+import {
+  deletedAt,
+  isSessionDeleted,
+  pruneDeleted,
+  SessionGroups,
+} from '@/web/ui/chat/sessions-rows'
 import { Button } from '@/web/ui/kit/button'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { Skeleton } from '@/web/ui/kit/skeleton'
@@ -83,9 +88,8 @@ interface ListProps {
 // A failed read keeps the rows already read under its line; Thử lại asks for the same page again.
 function SessionsList({ pages, search, onMore }: ListProps) {
   const { next, isLoading, failure } = pages
-  const sessions = pages.sessions.filter(
-    (session) => !deletedSessionIds.value.has(session.sessionId)
-  )
+  const deleted = deletedAt.value
+  const sessions = pages.sessions.filter((session) => !isSessionDeleted(deleted, session))
 
   return (
     <>
@@ -161,7 +165,14 @@ function readPage({ pages, search, inFlight }: PageRead): void {
     signal: abort.signal,
   }).then(
     (page) => {
-      pages.value = toPages(held.sessions, page)
+      const next = toPages(held.sessions, page)
+
+      pages.value = next
+
+      // A search shows only matches, so a row it leaves out proves nothing.
+      if (search === undefined) {
+        pruneDeleted(next.sessions, page.nextBefore === null)
+      }
     },
     (error: unknown) => {
       // Anything but an `ApiFailure` is this list's own abort.

@@ -414,7 +414,34 @@ terminal in ra và `config validate` báo.
 Kênh có `start()` ném `OperatorConfigError` (token thiếu hoặc bị
 từ chối) thì được đóng và ghi `channel.start_skipped`; `startChannels` trả nó trong `skipped`, nên kênh chưa
 từng lắng nghe thì không cho ai vào. `ApiTokenError` từ bộ khởi động API được xử lý giống vậy
-(`api.token_unusable`).
+(`api.token_unusable`), `ApiPortInUseError` cũng vậy (`api.port_in_use`): cả hai để API đóng, thành một mục
+suy giảm `kind: 'api'`, còn dịch vụ nền vẫn chạy. Mọi lỗi khởi động API khác vẫn dừng việc khởi động. Mỗi hàm dọn
+của nhóm bảo trì được đăng ký ngay khi hệ con của nó khởi động, nên một hệ con sau ném lỗi cũng không làm mất
+hàm dọn của hệ con trước.
+
+**Thứ tự khởi động.** Migration và container đi trước. API mở cổng ngay sau đó, trước mọi hệ con
+(`startDaemonApi`), nên trang kết nối được khi dịch vụ nền còn đang lên và cổng bị chiếm là điều được báo
+đầu tiên. Rồi tới dọn thư mục làm việc tạm, rồi `startDaemonSubsystems` (lần làm mới đầu như một tác vụ
+dịch vụ nền được theo dõi, kênh, workflow theo lịch, bộ gửi, theo dõi kênh, bộ lập lịch, các vòng giao dịch,
+bảo trì, tác vụ của plugin), rồi `markReady`. Hàm đóng nhận khách và hàm dừng của API được đăng ký cho phần
+tắt ngay khi nó mở cổng, nên một lần khởi động hỏng muộn hơn vẫn đóng được nó, và nó vẫn là thứ đóng nhận
+khách đầu tiên khi tắt.
+
+Trước `markReady`, API ở trạng thái đang khởi động: `GET /v1/health` trả `ok: false, status: 'starting'`, và
+một route chỉ trả lời nếu là `GET` hoặc khai `whileStarting` (đổi mã đăng nhập, đăng xuất và tạo mã đăng
+nhập, không cần hệ con nào). Mọi route khác trả 503 `unavailable` kèm `errors.apiStarting`, hai lần nâng cấp
+socket (luồng sự kiện và exec) cũng vậy; `classify` của trang đọc lời từ chối của luồng là `offline` và thử
+lại theo backoff. Cổng chặn là một chỗ kiểm trong `handleHttp` và một chỗ trong mỗi lần nâng cấp, nên route
+thêm vào mà quên khai thì bị chặn. Trang đọc `status` từ `/v1/health`, hiện dòng `ui.office.starting` và chỉ
+đăng nhập khi đọc được `ready`, nên mã đăng nhập không bị dùng mất trên một dịch vụ nền chưa đổi được.
+
+Lượt quét khởi động không còn chặn việc khởi động. Nó chạy như một tác vụ được theo dõi: lỗi không phải lỗi
+ranh giới làm dịch vụ nền dừng qua đúng bộ theo dõi tác vụ như mọi vòng khác. Các vòng giao dịch đọc dữ liệu
+thị trường (cảnh báo, các vòng tác vụ và vòng báo cáo trong phiên) chờ promise `firstSweep`
+trước nhịp đầu, và dừng theo dịch vụ nền; vòng lệnh thoát và vòng ý định chỉ đọc sàn và các kế hoạch đã lưu nên chạy ngay; `runBootRefresh` giải phóng nó qua `TradingServices.releaseFirstSweep`
+khi lượt quét xong, khi hết ngân sách 60 giây và trong `finally`, nên nhà cung cấp kẹt không giữ chúng mãi.
+Vòng làm mới nhập vào lượt quét qua bảng đang chạy của bộ điều phối; trò chuyện, bộ lập lịch, kênh và bảo trì
+không bao giờ chờ nó.
 
 Tác vụ dịch vụ nền đưa cả hai danh sách cho `onReady` (`DaemonStartOptions.onReady`); `start`
 tiền cảnh in chúng ra stderr, còn log stderr của tiến trình nền được chuyển tiếp dưới dòng thành công của
@@ -497,6 +524,7 @@ Khi phiên chạy đã thoát gọn và `boot` đã đóng, `main` gọi `restar
 
 **Yêu cầu và thất bại.**
 
+- Một yêu cầu mà bên gọi đã ngắt kết nối thì ghi `api.request_aborted` ở mức debug và không tính là lỗi.
 - Một yêu cầu còn đang chạy lúc dịch vụ nền dừng được trả 503 `stopping` và ghi `api.handler_stopped` ở mức info; trang giữ số liệu cũ và đọc lại khi kết nối socket trở lại.
 - Marker không đi qua thông báo cập nhật, nên một lần khởi động lại không bao giờ đọc thành cập nhật thất bại.
 - Tiến trình phụ không khởi động được (hoặc không gửi được tín hiệu), hay tiến trình phụ thoát trong khi dịch vụ nền này vẫn chạy, thì marker bị xóa, cờ chờ được nhả để khởi động lại lần nữa được, và `ui.restartFailed` được ghi vào chuông như một `daemon_notice` loại `restart-failed`, vì trang đã nhận 202 và nếu không sẽ chờ pid mới mãi.
@@ -510,7 +538,7 @@ Khi phiên chạy đã thoát gọn và `boot` đã đóng, `main` gọi `restar
 - `ChannelDefinition.apiHosts` cho các kênh dịch vụ nền khởi động, và `VenueManifest.apiHosts` cho sàn có khóa (đọc qua `VenueChoice`);
 - các MCP server dùng HTTP;
 - `listSearchHosts`: điểm cuối của từng backend, `base_url` riêng của SearXNG, không có gì khi backend chính thiếu khóa;
-- `UPDATE_CHECK_HOST` khi `[update] check` bật, API base của từng mạng xã hội mà một agent đang hoạt động đã tham gia, và host kiểm tra mạng trong cấu hình trading.
+- `UPDATE_CHECK_HOST` khi `[update] check` bật, API base của từng mạng xã hội mà một agent đang hoạt động đã tham gia, và host kiểm tra mạng (`REACHABILITY_HOST`), một lần thăm dò chung cho bộ lập lịch, trình kích hoạt workflow và các vòng trading.
 
 Một host phục vụ hai mục đích thì xuất hiện một lần dưới mỗi mục đích, vì thứ gửi tới đó khác nhau.
 
@@ -828,7 +856,7 @@ thị bí mật thô, văn bản plugin chưa làm sạch, hay tham số công c
 
 ### Trang văn phòng (`web`)
 
-Mô-đun `web` là trang văn phòng: một giao diện Preact dùng signals để giữ trạng thái, cùng một khung cảnh canvas, được Bun gói lại và dịch vụ nền phục vụ tại `GET /` (`src/web/api.ts` xuất `officePage`, thứ duy nhất server nhập). Bản thân trang là tĩnh và không cần xác thực; mọi thứ nó đọc đều là `/v1`, sau một phiên trình duyệt. `main.tsx` từ chối chạy trong một khung trước mọi việc khác, xóa khóa lưu trữ `office.token` cũ, và đổi `#code=` trên địa chỉ lấy một phiên trước lần tải đầu tiên.
+Mô-đun `web` là trang văn phòng: một giao diện Preact dùng signals để giữ trạng thái, cùng một khung cảnh canvas, được Bun gói lại và dịch vụ nền phục vụ tại `GET /` (`src/web/api.ts` xuất `officePage`, thứ duy nhất server nhập). Bản thân trang là tĩnh và không cần xác thực; mọi thứ nó đọc đều là `/v1`, sau một phiên trình duyệt. `main.tsx` từ chối chạy trong một khung trước mọi việc khác, xóa khóa lưu trữ `office.token` cũ, và đổi `#code=` trên địa chỉ lấy một phiên trước lần tải đầu tiên. Mã nằm lại trên địa chỉ cho đến khi dịch vụ nền trả lời (kể cả từ chối) và được thử lại khi chưa có phản hồi (không kết nối được, hoặc lỗi 5xx như 502 đến 504 của proxy lúc dịch vụ nền khởi động lại), nên hết thời gian chờ hay một lần khởi động lại không làm mất liên kết; từ chối mang mã lỗi `locked` được hiểu là bị khóa, từ chối khác thì hiện đúng câu kèm theo.
 
 **Được nhập gì.** `i18n` lúc chạy, và chỉ `import type` từ `app/server/wire/*`. [scripts/check-dag.ts](../../scripts/check-dag.ts) giữ đúng một ngoại lệ đó (`isWebWireTypeImport`). Nhờ vậy các kiểu wire chính là toàn bộ hợp đồng: một thay đổi ở server làm hỏng trang sẽ làm `tsc -p src/web/tsconfig.json` thất bại, chương trình thứ tư của `bun run typecheck`. Socket còn kiểm tra phiên bản hợp đồng mà nó được xây theo và dừng lại, nhắc người vận hành tải lại trang, khi dịch vụ nền nói một phiên bản khác.
 

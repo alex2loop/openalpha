@@ -52,6 +52,7 @@ export const tradingConfigPatchSchema = z.strictObject({
       configMarketRef,
       z.strictObject({
         holidays: z.array(configDay).optional(),
+        open_days: z.array(configDay).optional(),
         maximum_stop_loss: boundedNumber(MAXIMUM_STOP_LOSS_BOUNDS).optional(),
         stop_loss_atr: boundedNumber(STOP_LOSS_ATR_BOUNDS).optional(),
         reward_risk: boundedNumber(REWARD_RISK_BOUNDS).optional(),

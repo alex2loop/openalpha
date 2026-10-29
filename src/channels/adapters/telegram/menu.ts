@@ -11,14 +11,19 @@ type TelegramCommandScope =
 
 // Telegram stores one list per scope and serves the narrowest that has one, so each audience is
 // published independently.
+// Resolves false when any scope failed, so the caller can try again later.
 export async function publishCommandMenu(
   ctx: TelegramApiContext,
   audience: ChannelMenuAudience,
   commands: readonly ChannelMenuCommand[]
-): Promise<void> {
+): Promise<boolean> {
+  let published = true
+
   for (const scope of toCommandScopes(audience)) {
-    await setMyCommands(ctx, commands, scope)
+    published = (await setMyCommands(ctx, commands, scope)) && published
   }
+
+  return published
 }
 
 function toCommandScopes(audience: ChannelMenuAudience): readonly TelegramCommandScope[] {
@@ -38,12 +43,13 @@ async function setMyCommands(
   ctx: TelegramApiContext,
   commands: readonly ChannelMenuCommand[],
   scope: TelegramCommandScope
-): Promise<void> {
-  await postAndLog(ctx, {
+): Promise<boolean> {
+  return await postAndLog(ctx, {
     method: 'setMyCommands',
     body: { commands: filterCommandsForMenu(commands), scope },
     logKey: 'telegram.set_my_commands_failed',
     level: 'warn',
+    signal: ctx.intakeSignal,
   })
 }
 

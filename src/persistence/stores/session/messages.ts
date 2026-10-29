@@ -64,7 +64,7 @@ export async function loadSessionHistoryPage(
   const rows = await readTranscriptRows(store, id, query)
   const { limit } = query
   const hasMore = rows.length > limit
-  const page = rows.slice(0, isSplitExchange(rows, limit) ? limit - 1 : limit).reverse()
+  const page = rows.slice(0, hasMore ? startOfTurn(rows, limit) : limit).reverse()
 
   return {
     messages: page.map(toTranscriptMessage),
@@ -73,10 +73,13 @@ export async function loadSessionHistoryPage(
   }
 }
 
-// An answer whose question falls past the page waits for the older page, so a line and the answer
-// to it always land together.
-function isSplitExchange(rows: readonly TranscriptRow[], limit: number): boolean {
-  return limit > 1 && rows[limit - 1]?.role === 'assistant' && rows[limit]?.role === 'user'
+// Newest first. A page never starts inside a turn: an answer, and the tool-call rows before it,
+// wait with their line for the older page. Rows are kept down to the oldest operator line; a turn
+// longer than the whole page has none, and is cut at the page edge so the page still moves.
+function startOfTurn(rows: readonly TranscriptRow[], limit: number): number {
+  const oldestLine = rows.slice(0, limit).findLastIndex((row) => row.role === 'user')
+
+  return oldestLine === -1 ? limit : oldestLine + 1
 }
 
 // One row past the page tells whether older ones remain.

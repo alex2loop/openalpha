@@ -77,7 +77,7 @@ export function renderDegraded(app: CliApp, item: DegradedItem): DegradedEntry {
   }
 }
 
-export function configuredChannels(app: CliApp): readonly string[] {
+function configuredChannels(app: CliApp): readonly string[] {
   return Object.entries(app.config.channels)
     .filter(([, channel]) => !isPlainRecord(channel) || channel.enabled !== false)
     .map(([id]) => id)

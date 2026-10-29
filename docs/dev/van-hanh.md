@@ -38,10 +38,11 @@ tiên vẫn có nơi gửi tới.
 Thị trường chạy liên tục không có giờ mở, nên chỉ neo vào lúc sang ngày UTC. Hai neo cách nhau dưới 60
 giây thì gộp thành một lượt.
 
-Khi khởi động, lần làm mới đầu chạy trước các hệ con khác, chờ tối đa 60 giây rồi hoàn tất ở chế độ
-nền kèm cảnh báo. Lỗi ranh giới (`isBoundaryFailure`) từ nó chỉ cảnh báo `daemon.boot_refresh_failed` dù ở
-trong hay sau 60 giây và khởi động vẫn tiếp tục; lỗi khác là chí mạng, ném về nơi gọi trong ngân sách thời
-gian và qua bộ theo dõi tác vụ dịch vụ nền sau đó. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
+Khi khởi động, lần làm mới đầu chạy như một tác vụ dịch vụ nền được theo dõi, song song với các hệ con
+khác. Các vòng đọc dữ liệu thị trường chờ nó trước nhịp đầu, tối đa 60 giây (`daemon.boot_refresh_timeout`),
+rồi lượt quét hoàn tất ở chế độ nền. Lỗi ranh giới (`isBoundaryFailure`) từ nó chỉ cảnh báo
+`daemon.boot_refresh_failed` dù ở trong hay sau 60 giây và dịch vụ nền vẫn chạy; lỗi khác là chí mạng,
+qua bộ theo dõi tác vụ dịch vụ nền. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
 chạy thì nó nhập vào đó, và nếu máy khởi động không có mạng, chính nhịp này là lượt chờ có mạng rồi đi
 vào chuỗi thử lại.
 
@@ -113,8 +114,27 @@ bỏ rơi được giải phóng sau lượt quét đó.
 
 Việc thử lại dùng chung một chính sách với heartbeat (`scheduler/backoff.ts`), tối đa 30 phút:
 `60 giây x 2^(số lần hỏng - 1)`. Việc cron bị tắt sau 3 lần hỏng liên tiếp. Các lần dừng không tính là
-hỏng: tắt máy, phê duyệt bị từ chối hoặc quá hạn, agent chạm trần, agent đang tạm dừng. Việc gửi chạy sau khâu kết
-thúc, nên lỗi gửi không bao giờ làm hỏng phiên chạy.
+hỏng: tắt máy, phê duyệt bị từ chối hoặc quá hạn, agent chạm trần, agent đang tạm dừng, giờ bị lỡ. Việc gửi chạy
+sau khâu kết thúc, nên lỗi gửi không bao giờ làm hỏng phiên chạy.
+
+Nhịp nào thấy có việc đến hạn mà chưa chạy thì hỏi bộ thăm dò khả năng kết nối dùng chung
+(`core/utils/reachability`: một lần tra tên miền của host mà các vòng giao dịch chờ, ngân sách 5 giây, bị cắt khi
+bộ lập lịch dừng) trước. Việc còn đang chạy từ nhịp trước không được tính, nên một lần chạy dài không tốn lần tra
+nào. Mất mạng thì nhịp trả về trước khi nhận việc nào, nên các việc vẫn đến hạn và không có lần chạy nào để hỏng;
+`scheduler.tick_offline` được ghi một lần cho mỗi đợt mất mạng, và một nhịp không còn việc nào bị giữ lại thì kết
+thúc đợt đó.
+
+Độ trễ được xét trên lần nhận việc, trong `runScheduledOccurrence`: việc cron có `nextRunAt` tụt
+sau đồng hồ quá `lateGraceMs` (`[schedule] late_grace_ms`, 15 phút; `resolveSchedule` từ chối giá trị dưới một nhịp cộng ngân sách thăm dò, 35 giây, vì một mốc chỉ được thấy ở nhịp kế tiếp, nhịp này nối sau nhịp trước và có thể phải chờ hết lần thăm dò trước) thì được kết thúc với `MISSED_SLOT_MESSAGE`
+và bước chuyển `skip` thay vì chạy: lịch đi tiếp từ lúc này và giữ nguyên bộ đếm lỗi. Việc theo chu kỳ và việc chạy một
+lần không bao giờ bị bỏ qua vì chúng không gắn với giờ nào. Vòng báo cáo trong phiên đọc cùng giá trị và bỏ qua lần gửi mà lúc đánh thức đã trễ chừng đó
+(`trading.intraday_late`).
+
+Trình kích hoạt workflow (`startScheduledWorkflows`) theo đúng hai quy tắc đó. Một mốc bị thấy trễ quá `lateGraceMs`
+(`isSlotLate`, cũng là vị từ `isMissedSlot` dùng) thì bị bỏ qua và ghi `workflow.slot_missed`, rồi workflow chờ mốc
+kế tiếp. Trước khi chạy những gì đến hạn, một nhịp hỏi cùng bộ thăm dò; mất mạng thì nó trả về mà không đóng cửa
+sổ của mình, nên mốc đó được phát lại khi có mạng, hoặc bị bỏ qua vì trễ nếu chờ quá thời gian cho phép.
+`workflow.tick_offline` được ghi một lần cho mỗi đợt mất mạng.
 
 ## Bộ chạy heartbeat
 

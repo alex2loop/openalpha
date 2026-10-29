@@ -1,11 +1,13 @@
 import { z } from 'zod'
 
+import type { Locale } from '@/core/types/locale'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { RegisteredSource } from '@/trading/kernel/source/source-result'
 import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/define'
 import { ValidationError } from '@/core/errors'
 import { tradingDay } from '@/trading/kernel/instrument'
+import { formatNumber } from '@/trading/render/number'
 import { DEFAULT_PAGE_SIZE, VNDIRECT_ID } from '@/trading/sources/adapters/vndirect/client'
 import { createSource, parsedSource } from '@/trading/sources/define'
 import {
@@ -20,6 +22,11 @@ import {
 const EVENT_LOCALE = 'VN'
 // The provider states a share ratio as new shares per this many held.
 const RATIO_BASE = 100
+// The VN edition still writes `2,250,000 CP` and `10000 đ/cp`, so its figures are regrouped the
+// Vietnamese way. A bare number is only touched before `đ/cp`: elsewhere it is a year.
+const NOTE_LOCALE: Locale = 'vi'
+const COMMA_GROUPED_RE = /\d{1,3}(?:,\d{3})+(?![\d,])/g
+const BARE_PRICE_RE = /\d{4,}(?= ?đ\/cp)/gi
 
 // `effectiveDate` is required on purpose: it is the day the event acts on the price, and a row
 // without one is dropped rather than dated by `disclosureDate`, which is when it was announced —
@@ -114,7 +121,7 @@ function toMarketEvent(raw: unknown): ParsedSource<MarketEvent> {
       kind,
       providerEventId: String(row.id),
       title: title.value,
-      ...(detail === undefined ? {} : { detail: detail.value }),
+      ...(detail === undefined ? {} : { detail: toVietnameseFigures(detail.value) }),
       ...termsOf(kind, row),
     },
     caveats
@@ -141,6 +148,14 @@ function termsOf(kind: MarketEventKind, row: z.infer<typeof EVENT_ROW>): EventTe
     default:
       return {}
   }
+}
+
+function toVietnameseFigures(note: string): string {
+  const regroup = (digits: string) => formatNumber(NOTE_LOCALE, 'count', Number(digits))
+
+  return note
+    .replace(COMMA_GROUPED_RE, (figure) => regroup(figure.replaceAll(',', '')))
+    .replace(BARE_PRICE_RE, regroup)
 }
 
 function kindFor(type: string): MarketEventKind | undefined {

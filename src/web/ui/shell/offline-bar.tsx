@@ -26,13 +26,15 @@ export function OfflineBar() {
     return <OutdatedLine />
   }
 
-  if (status !== 'offline') {
+  if (status !== 'offline' && status !== 'full') {
     return null
   }
 
   return (
     <div class="offline-bar glass is-strong" role="status">
-      <strong>{tr('ui.office.offline.title')}</strong>
+      <strong>
+        {tr(status === 'full' ? 'ui.office.offline.full' : 'ui.office.offline.title')}
+      </strong>
       {retryAt === undefined ? <RunningNote /> : <ArmedRetry retryAt={retryAt} />}
     </div>
   )

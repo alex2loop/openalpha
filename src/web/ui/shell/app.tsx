@@ -26,7 +26,7 @@ import { StatusLine } from '@/web/ui/shell/status-line'
 import './app.css'
 
 /** The page grid (header | pane bar when narrow | main | command bar unless it floats over main),
- *  behind the loading, failure and sign-in screens. A loaded session stays on screen when a later
+ *  behind the loading, starting, failure and sign-in screens. A loaded session stays on screen when a later
  *  load fails. A chat tab is its chat pane and the command bar alone: no scene, panel or header
  *  mounts. */
 export function App() {
@@ -34,7 +34,11 @@ export function App() {
     return <StatusLine text={tr('ui.office.error.unreachable')} />
   }
 
-  if (brand.value === undefined || isStarting.value) {
+  if (isStarting.value) {
+    return <StatusLine text={tr('ui.office.starting')} />
+  }
+
+  if (brand.value === undefined) {
     return <StatusLine text={tr('ui.office.loading')} />
   }
 
@@ -50,7 +54,8 @@ export function App() {
     )
   }
 
-  const appClass = connection.value.status === 'offline' ? 'app is-offline' : 'app'
+  const { status } = connection.value
+  const appClass = status === 'offline' || status === 'full' ? 'app is-offline' : 'app'
 
   if (isChatOnly.value) {
     return (

@@ -1,4 +1,3 @@
-import type { Logger } from '@/core/logging/logger'
 import type { ToolDefinition } from '@/core/tool'
 import type { CliCommandDef } from '@/core/types/cli-command'
 import type { SlashCommand } from '@/core/types/command'
@@ -10,12 +9,9 @@ import { ConfigError } from '@/core/errors'
 import { isValidSendTime } from '@/trading/features/brief/schedule'
 import { marketRef } from '@/trading/kernel/instrument'
 import { tradingLocaleKeys } from '@/trading/locale-manifest'
-import { isWeekendDay } from '@/trading/markets/calendar'
 import { TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
 import { BUILT_IN_VENUES } from '@/trading/wiring/config-defaults'
 import { MARKETS_CONFIG_KEY, VENUES_CONFIG_KEY } from '@/trading/wiring/config-schema'
-
-const YEAR_LENGTH = 4
 
 /** Consumer-side, and deliberately the same shape and name the commands provider already uses:
  *  one key-coverage contract, threaded by both callers rather than restated as a synonym. */
@@ -48,32 +44,6 @@ export function assertRegistryConsistency(
   assertVenueMarketsExist(markets, presentation.venues)
   assertDistinctScopeNames(markets, presentation.venues)
   assertLocaleCoverage(markets, presentation)
-}
-
-/** Names the markets whose closure table ends before the year they are in: from then on each
- *  holiday reads as a session, so a quote is called stale and an order is dated to a day the
- *  exchange is shut. A warning rather than a refusal, because a stale table only misdates those
- *  days, and the operator closes the gap with `holidays` under `[trading.markets.<id>]`. */
-export function reportOutdatedHolidayTables(
-  markets: MarketRegistry,
-  logger: Logger,
-  now: number
-): void {
-  const outdated = markets.list().flatMap((market) => {
-    const { calendar } = market.manifest
-    const covered = calendar.lastHoliday?.slice(0, YEAR_LENGTH)
-
-    return covered !== undefined && covered < calendar.dayAt(now).slice(0, YEAR_LENGTH)
-      ? [market.manifest.id]
-      : []
-  })
-
-  if (outdated.length > 0) {
-    logger.warn('trading.holidays_outdated', {
-      markets: outdated,
-      configKey: `${TRADING_CONFIG_SECTION}.${MARKETS_CONFIG_KEY}.<id>.holidays`,
-    })
-  }
 }
 
 interface RegistryPresentation {
@@ -142,7 +112,6 @@ function assertConfiguredReferencesExist(
 
   assertBriefSendTimeBeforeOpen(homeOwners, config.briefs.sendTime, Date.now())
   assertConfiguredMarketsExist(markets, config)
-  assertConfiguredHolidaysAreSessions(markets, config)
   assertDefaultVenuesHold(config, venues)
 }
 
@@ -163,27 +132,6 @@ function assertBriefSendTimeBeforeOpen(
     throw new OperatorConfigError(
       `[${TRADING_CONFIG_SECTION}.briefs] send_time ${sendTime} is not before the open of: ${late}`,
       { key: 'errors.configBriefSendTimeAfterOpen', params: { time: sendTime, markets: late } }
-    )
-  }
-}
-
-/** A configured holiday on the market's own weekend is a mistyped date: that day never traded, so
- *  the closure it was meant to add is still missing. Every offender in one throw. */
-function assertConfiguredHolidaysAreSessions(markets: MarketRegistry, config: TradingConfig): void {
-  const misplaced = Object.entries(config.markets).flatMap(([ref, settings]) => {
-    const policy = markets.find(marketRef(ref))?.manifest.defaultCalendar
-
-    return policy === undefined
-      ? []
-      : (settings?.holidays ?? [])
-          .filter((day) => isWeekendDay(policy, day))
-          .map((day) => `${ref} ${day}`)
-  })
-
-  if (misplaced.length > 0) {
-    throw new OperatorConfigError(
-      `[${TRADING_CONFIG_SECTION}.${MARKETS_CONFIG_KEY}] holidays fall on a weekend: ${misplaced.join(', ')}`,
-      { key: 'errors.configHolidayOnWeekend', params: { days: misplaced.join(', ') } }
     )
   }
 }

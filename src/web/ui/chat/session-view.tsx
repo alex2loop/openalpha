@@ -8,7 +8,7 @@ import { ROUTES } from '@/web/api/routes'
 import { type ChatSession, USER_ROLE, viewedSession } from '@/web/state/chat'
 import {
   HISTORY_PAGE_SIZE,
-  MAX_EARLIER,
+  isCapped,
   startNewSession,
   toKeptMessages,
 } from '@/web/state/chat-history'
@@ -207,14 +207,12 @@ async function loadPage(
 
 // `page` is the oldest page read, which says whether anything older is left to ask for.
 function toPages(messages: readonly ChatHistoryMessage[], page: ChatHistoryResponse): Pages {
-  const isCapped = messages.length >= MAX_EARLIER
+  const isFull = isCapped(messages.length, page.hasMore)
 
   return {
     messages: toKeptMessages(messages),
-    ...(page.hasMore && page.nextBefore !== null && !isCapped
-      ? { nextBefore: page.nextBefore }
-      : {}),
-    ...(isCapped && page.hasMore ? { isCapped: true } : {}),
+    ...(page.hasMore && page.nextBefore !== null && !isFull ? { nextBefore: page.nextBefore } : {}),
+    ...(isFull ? { isCapped: true } : {}),
     isLoading: false,
   }
 }
@@ -242,7 +240,7 @@ function takeNewer(pages: Signal<Pages>, page: ChatHistoryResponse): void {
 function withFresh(held: Pages, fresh: readonly ChatHistoryMessage[]): Pages {
   const messages = [...held.messages, ...fresh]
 
-  if (messages.length <= MAX_EARLIER) {
+  if (!isCapped(messages.length, held.nextBefore !== undefined)) {
     return { ...held, messages }
   }
 

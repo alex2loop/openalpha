@@ -8,9 +8,11 @@ import type {
   TaskPassListener,
 } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import { runBootRefresh } from '@/app/boot-refresh'
 import { resolveChannelDeps } from '@/app/channel-deps'
 import { startChannelWatch } from '@/app/channel-watch'
 import { startRetention } from '@/app/retention'
+import { ApiPortInUseError } from '@/app/server/http/api-port-error'
 import { ApiTokenError } from '@/app/server/http/auth'
 import { startSocialUpkeep } from '@/app/social-upkeep'
 import { startUpdateWatch } from '@/app/update/watch'
@@ -18,6 +20,15 @@ import { startChannels } from '@/channels/api'
 import { type AppError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { startScheduledWorkflows } from '@/engine/api'
+
+/** What the daemon holds of its API once it is up: what it started without, and the step that lets it
+ *  answer everything. Both are inert when the API is off or could not open. */
+export interface DaemonApi {
+  readonly degraded: readonly DegradedItem[]
+  readonly markReady: () => void
+}
+
+const NO_API: DaemonApi = { degraded: [], markReady: () => undefined }
 
 type Disposer = () => void | Promise<void>
 
@@ -49,13 +60,19 @@ export async function startDaemonSubsystems(
   const { app, delivery, startupSignal, startup, logger, tasks, state, teardown } = options
   const { disposers } = teardown
   const { onHealth } = options
-  const taskStatus = app.resolve('taskStatus')
-  const onTaskPass = taskStatus.listener
+  const onTaskPass = app.resolve('taskStatus').listener
 
-  // The env is injected once here so no adapter reaches for process.env on its own.
-  const channels = await startChannels(resolveChannelDeps(app, startupSignal, process.env))
-  const tradingTasks = app.resolve('tradingServices').daemonTasks
-  disposers.push(() => channels.stop())
+  // First, so the sweep runs beside every start below; the trading loops that read market data
+  // wait for it, and nothing else does.
+  trackDaemonTask({
+    tasks,
+    state,
+    startup,
+    name: 'trading.boot-refresh',
+    task: runBootRefresh({ app, logger, signal: startupSignal }),
+  })
+
+  const channels = await startOwnedChannels(app, startupSignal, disposers)
   disposers.push(
     startScheduledWorkflows(
       {
@@ -82,6 +99,19 @@ export async function startDaemonSubsystems(
     })
   )
 
+  startDaemonTasks(options, onTaskPass)
+
+  return toChannelDegraded(channels.skipped)
+}
+
+function startDaemonTasks(
+  options: StartDaemonSubsystemsOptions,
+  onTaskPass: TaskPassListener
+): void {
+  const { app, startupSignal, startup, logger, tasks, state, teardown } = options
+  const taskStatus = app.resolve('taskStatus')
+  const tradingTasks = app.resolve('tradingServices').daemonTasks
+
   // Named before the scheduler and the maintenance tasks start, so a task that waits long for its
   // first pass still shows.
   taskStatus.track(taskNames(app, tradingTasks))
@@ -103,13 +133,9 @@ export async function startDaemonSubsystems(
     trackDaemonTask({ tasks, state, startup, name: task.name, task: task.start(startupSignal) })
   }
 
-  disposers.push(...startMaintenance(app, logger, onTaskPass))
+  startMaintenance(app, teardown.disposers, { logger, onTaskPass })
 
   attachPluginTasks({ app, signal: startupSignal, startup, tasks, state })
-
-  const apiSkipped = app.config.api.enabled ? await startApi(app, teardown) : []
-
-  return [...toChannelDegraded(channels.skipped), ...apiSkipped]
 }
 
 function toChannelDegraded(skipped: StartChannelsResult['skipped']): readonly DegradedItem[] {
@@ -143,16 +169,45 @@ function taskNames(app: App, tradingTasks: readonly DaemonTask[]): readonly stri
   ]
 }
 
-function startMaintenance(app: App, logger: Logger, onTaskPass: TaskPassListener): Disposer[] {
-  return [
-    startRetention(app, logger, onTaskPass),
-    startUpdateWatch(app, { logger, upgrade: app.resolve('selfUpgrade'), onTaskPass }),
-    startSocialUpkeep(app, logger, onTaskPass),
-  ]
+// Each disposer is registered as its subsystem starts, so one that throws leaves the earlier ones
+// to the teardown instead of losing them with a half-built array.
+function startMaintenance(
+  app: App,
+  disposers: Disposer[],
+  deps: { readonly logger: Logger; readonly onTaskPass: TaskPassListener }
+): void {
+  const { logger, onTaskPass } = deps
+
+  disposers.push(startRetention(app, logger, onTaskPass))
+  disposers.push(startUpdateWatch(app, { logger, upgrade: app.resolve('selfUpgrade'), onTaskPass }))
+  disposers.push(startSocialUpkeep(app, logger, onTaskPass))
 }
 
-// A token the operator named but cannot serve keeps the API closed; any other failure stops the start.
-async function startApi(app: App, teardown: Teardown): Promise<readonly DegradedItem[]> {
+// Only intake ends with the shutdown signal: a channel keeps delivering through the run drain and
+// ends that itself in `stop`, after its final notice drain. The env is injected once here so no
+// adapter reaches for process.env on its own.
+async function startOwnedChannels(
+  app: App,
+  startupSignal: AbortSignal,
+  disposers: Disposer[]
+): Promise<StartChannelsResult> {
+  const channels = await startChannels(resolveChannelDeps(app, startupSignal, process.env))
+
+  disposers.push(() => channels.stop())
+
+  return channels
+}
+
+// Bound before any subsystem starts, so the page can connect while the daemon is still coming up
+// and a busy port is the first thing reported. A token the operator named but cannot serve, or a
+// port another process holds, keeps the API closed and the rest of the daemon running; any other
+// failure stops the start. Registered for teardown as soon as it is bound: a later failed start
+// still closes it.
+export async function startDaemonApi(app: App, teardown: Teardown): Promise<DaemonApi> {
+  if (!app.config.api.enabled) {
+    return NO_API
+  }
+
   const logger = app.resolve('logger')
 
   try {
@@ -162,16 +217,26 @@ async function startApi(app: App, teardown: Teardown): Promise<readonly Degraded
     teardown.disposers.push(api.stop)
     logger.info('api.started', { port: app.config.api.port })
 
-    return []
+    return { degraded: [], markReady: api.markReady }
   } catch (err: unknown) {
-    if (!(err instanceof ApiTokenError)) {
-      throw err
+    if (err instanceof ApiTokenError) {
+      logger.warn('api.token_unusable', { err: formatErrForLog(err) })
+
+      return toApiDegraded(err)
     }
 
-    logger.warn('api.token_unusable', { err: formatErrForLog(err) })
+    if (err instanceof ApiPortInUseError) {
+      logger.warn('api.port_in_use', { port: app.config.api.port, err: formatErrForLog(err) })
 
-    return [{ kind: 'api', subject: 'api', message: err.operator }]
+      return toApiDegraded(err)
+    }
+
+    throw err
   }
+}
+
+function toApiDegraded(err: ApiTokenError | ApiPortInUseError): DaemonApi {
+  return { ...NO_API, degraded: [{ kind: 'api', subject: 'api', message: err.operator }] }
 }
 
 interface AttachPluginTasksOptions {
@@ -224,7 +289,7 @@ function attachDelivery(options: {
   )
 }
 
-export function trackDaemonTask(options: TrackDaemonTaskOptions): void {
+function trackDaemonTask(options: TrackDaemonTaskOptions): void {
   const { tasks, state, startup, name, task } = options
   tasks.push(
     task.catch((err: unknown) => {

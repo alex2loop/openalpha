@@ -309,9 +309,14 @@ back in `StartChannelsResult.skipped` for the daemon to report; anything else lo
 throws before any channel starts. If none start, CLI-only operation is valid.
 
 Only a token the provider refuses counts as configuration: HTTP 401 or 403 from Telegram, and 401 from
-Zalo, whose own error table lists 403 as a server fault. Any other `getMe` failure is transport, and both
-adapters try it up to four times with a capped backoff before dropping the channel. Zalo Personal has no
-token to refuse; it retries its login in the background (5 seconds initial, 5 minutes maximum).
+Zalo, whose own error table lists 403 as a server fault. Each adapter's `start()` makes one `getMe` bounded by
+the request timeout, so a slow network never holds `startChannels` (and the scheduler, trading loops and API
+behind it). A refused token throws from `start()`; any other failure is transport, reported as
+`connected: false` with `lastError: get_me_failed`, and the poll loop takes over with its own backoff. Telegram's
+restart loop fetches the bot identity again while it is unknown and installs the command menu from there,
+detached from polling and awaited by the loop on exit; a failed install retries on the loop's next restart.
+Zalo Personal has no token to refuse; it retries its login in the background (5 seconds initial, 5 minutes
+maximum).
 
 `startChannels` returns `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: shutdown, health
 snapshots, the channels left down, an outbound sender that routes to the runtime owning a channel (`AcknowledgedRouter`), and a default
@@ -330,13 +335,32 @@ The paired chat is read at start and again whenever the gate admits a paired cha
 recipient, since `pair approve` writes from another process. `stop` settles every runtime disposal and
 never lets one failed cleanup block the rest.
 
+A channel has two lifetimes. The daemon's shutdown signal is its intake signal (`intakeSignal`): it cuts a
+start short and ends polling, the inbox drain and the admission of new work, so a message not yet claimed stays
+pending for the next start and a run the drain cuts hands its claim back (`releaseClaim`, no attempt spent) after editing its placeholder to a short "restarting, I'll answer this when I'm back" line instead of the generic error. A
+turn that meets the closed intake (a burst that fires after it, or a refusal from the paused session queue)
+rejects instead of answering "queue full" or returning, so its entry is released rather than completed.
+Delivery outlives it: each runtime owns its outbound signal and ends it only in `stop`, so the runs the daemon
+drains can still deliver. The final notice drain comes first: the notifier makes one bounded attempt
+(`notifyDrainTimeoutMs`, 500 ms) at each notice still queued while the adapter's transport is live, and only
+then is delivery aborted and the adapter closed. An adapter's `start` signal is the intake one, so `send`,
+`edit` and the rest must keep working after it, until `dispose`. A second stop signal exits the process, so
+nothing waits on it.
+
+The notifier retries a failed send up to `notifyMaxAttempts`, except a `PermanentChannelError`: a refusal the
+platform repeats on every attempt (a Telegram client error other than 408 and 429, a text over the platform
+limit, a Zalo 401). That one is dropped on the first failure. A 429 is a plain `ChannelError` and keeps
+honouring its retry-after. The inbox applies the same rule through `isPermanentChannelError`, which also looks
+through a wrapper such as `AnswerUndelivered`: an entry whose reply the platform refuses for good is
+dead-lettered at once instead of being retried up to `inboxMaxAttempts`.
+
 ## Adding a channel
 
 1. Implement a `ChannelDefinition` and a `ChannelAdapter` behind `channels/api.ts`, in
    `channels/adapters/<name>/`.
 2. Keep transport parsing, rendering and credentials inside that folder.
 3. Declare truthful capabilities and enforce `maxTextLen` in the renderer.
-4. Accept the shutdown signal before arming listeners or polling.
+4. Accept the `start` signal before arming listeners or polling; it ends intake only, and sends keep working until `dispose`.
 5. Register the definition at composition, normally through a trusted bundled plugin.
 6. Add config and doctor validation through the definition's schema path.
 

@@ -100,6 +100,8 @@ export const LogSchema = z.strictObject({
 
 export const ScheduleSchema = z.strictObject({
   approval_timeout_ms: timerMs.optional(),
+  /** How late a recurring job's slot may still start; past it the slot is skipped. */
+  late_grace_ms: timerMs.optional(),
   /** `<channel>:<chatId>` — where "job disabled after N failures" goes. */
   failure_target: z.string().min(1).optional(),
 })

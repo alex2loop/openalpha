@@ -6,7 +6,7 @@ import type {
   ServerFrame,
 } from '@/app/server/wire/socket'
 import { nextDelayMs } from '@/web/api/backoff'
-import { ApiFailure, getJson } from '@/web/api/client'
+import { ApiFailure, getJson, UNAUTHORIZED_STATUS } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 
 // Typed against the daemon's constants, so a change there fails the typecheck until the page follows.
@@ -14,9 +14,8 @@ const EXPECTED_CONTRACT_VERSION: typeof CONTRACT_VERSION = 1
 const CONTRACT_REFUSED_CODE: typeof CONTRACT_REFUSED_CLOSE_CODE = 1011
 const CONTRACT_REFUSED_PREFIX: typeof CONTRACT_REFUSED_REASON_PREFIX = 'contract '
 const STABLE_AFTER_MS = 10_000
-const UNAUTHORIZED_STATUS = 401
 
-export type ConnectionStatus = 'connecting' | 'live' | 'offline' | 'refused' | 'outdated'
+export type ConnectionStatus = 'connecting' | 'live' | 'offline' | 'full' | 'refused' | 'outdated'
 
 interface FeedSocketDeps {
   readonly url: () => string
@@ -47,8 +46,9 @@ interface SocketState {
 }
 
 /** The page's one socket. It says hello, goes `live` on a matching welcome, and on any drop asks the
- *  daemon why: a browser exposes no handshake status, so `/v1/health` then `/v1/state` tell an
- *  absent daemon (`offline`, retried with backoff) from an ended sign-in (`refused`, never retried). */
+ *  daemon why: a browser exposes no handshake status, so `/v1/health`, `/v1/state` and a plain read of
+ *  the feed path tell an absent daemon (`offline`) and a daemon whose sockets are all taken (`full`),
+ *  both retried with backoff, from an ended sign-in (`refused`, never retried). */
 export function createFeedSocket(deps: FeedSocketDeps): FeedSocket {
   const state: SocketState = {
     deps,
@@ -79,8 +79,8 @@ function connect(state: SocketState): void {
   }
 
   // An attempt under way has nothing armed: the bar drops its countdown until the next verdict.
-  if (state.status === 'offline') {
-    setStatus(state, 'offline')
+  if (state.status === 'offline' || state.status === 'full') {
+    setStatus(state, state.status)
   }
 
   const controller = new AbortController()
@@ -172,7 +172,7 @@ async function drop(state: SocketState, event?: CloseEvent): Promise<void> {
 
   state.attempt++
   state.retryTimer = setTimeout(() => connect(state), delayMs)
-  setStatus(state, 'offline', Date.now() + delayMs)
+  setStatus(state, verdict, Date.now() + delayMs)
 }
 
 function send(state: SocketState, frame: ClientFrame): boolean {
@@ -219,14 +219,24 @@ function setStatus(state: SocketState, next: ConnectionStatus, retryAt?: number)
   state.deps.onStatus(next, retryAt)
 }
 
-async function classify(signal: AbortSignal): Promise<'offline' | 'refused'> {
+// The feed path read as a plain request is no upgrade: a daemon with room answers `invalid_body`, one
+// with every socket taken answers `too_many_streams`, the only status a browser cannot see on a socket.
+// A daemon still starting refuses the feed with `unavailable`, so it reads `offline` and is retried.
+async function classify(signal: AbortSignal): Promise<'offline' | 'full' | 'refused'> {
   try {
     await getJson(ROUTES.health, { signal })
     await getJson(ROUTES.state, { signal })
+    await getJson(ROUTES.feed, { signal })
   } catch (error: unknown) {
-    if (error instanceof ApiFailure && error.status === UNAUTHORIZED_STATUS) {
+    if (!(error instanceof ApiFailure)) {
+      return 'offline'
+    }
+
+    if (error.status === UNAUTHORIZED_STATUS) {
       return 'refused'
     }
+
+    return error.code === 'too_many_streams' ? 'full' : 'offline'
   }
 
   return 'offline'

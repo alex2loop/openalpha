@@ -2,7 +2,8 @@
 // desired weight, and the two sides run against that. The sides live in `rebalance-reduce.ts` and
 // `rebalance-increase.ts`; the arithmetic they share lives in `rebalance-step.ts`.
 
-import type { AdviceInput, DesiredWeights } from '@/trading/features/portfolio/folds/allocation'
+import type { AdviceInput } from '@/trading/features/portfolio/folds/advice-input'
+import type { DesiredWeights } from '@/trading/features/portfolio/folds/allocation'
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
 import type { RowInput, SegmentGap } from '@/trading/features/portfolio/folds/rebalance-step'
 import type {

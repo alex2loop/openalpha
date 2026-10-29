@@ -154,6 +154,7 @@ function operatorCaveatsOf(held: HeldPosition): StoredSuggestion['caveats'] {
 
   return [
     { code: 'suggestion.averaging-down', detail: { underwater } },
+    { code: 'suggestion.averaging-down-net', detail: { underwater } },
     { code: 'suggestion.recent-exit', detail: { realizedLoss: underwater, sessions: 4 } },
   ]
 }

@@ -9,10 +9,6 @@ import { ROUTES } from '@/web/api/routes'
 import { signInWithCode } from '@/web/api/sign-in'
 
 const FALLBACK_UI_LOCALE: UiLocale = 'vi'
-// A booting daemon answers `/v1/health` with `starting`; the page asks again until it is ready.
-const STARTING_RETRY_MS = 1_000
-const STARTING_RETRY_LIMIT = 30
-
 type UiLocale = StatePayload['locale']
 
 /** The feed socket's state; `retryAt` (epoch ms) is when an `offline` socket tries again. */
@@ -33,7 +29,7 @@ const browserLocale = resolveBrowserLocale()
 export const brand = signal<string | undefined>(undefined)
 /** `GET /v1/health` failed: the daemon that served this page is down; the page keeps asking. */
 export const isUnreachable = signal(false)
-/** `GET /v1/health` answered `starting`: the daemon is still coming up. */
+/** `GET /v1/health` answered `starting`: the daemon is up but still loading; the page keeps asking. */
 export const isStarting = signal(false)
 /** Written by the feed only. */
 export const connection = signal<Connection>({ status: 'connecting' })
@@ -55,35 +51,26 @@ export const isFirstRun = computed(() => {
   return firstRun !== undefined && !firstRun.profileSaved && firstRun.bookEmpty
 })
 
-/** Trades a sign-in `code` first when the address carried one, then loads brand and session, again
- *  every `STARTING_RETRY_MS` while the daemon is starting, at most `STARTING_RETRY_LIMIT` times, and
- *  on the backoff for as long as it cannot be reached. */
+/** Asks `GET /v1/health` until the daemon answers `ready`, on the backoff while it cannot be reached
+ *  and at its first step while it is starting. Then trades a sign-in `code` when the address carried one, and loads the
+ *  session. A code the daemon never answered stays in the address and is tried again. */
 export async function loadUntilReady(abortSignal: AbortSignal, code?: string): Promise<void> {
-  if (code !== undefined) {
-    await signInWithCode(code, abortSignal)
-  }
-
-  let startingTries = 0
-  let unreachableTries = 0
+  let tries = 0
 
   while (!abortSignal.aborted) {
-    await Promise.all([loadBrand(abortSignal), loadSession(abortSignal)])
+    await loadBrand(abortSignal)
 
-    if (isUnreachable.value) {
-      await waitFor(nextDelayMs(unreachableTries++, Math.random), abortSignal)
-      continue
+    if (!(isUnreachable.value || isStarting.value)) {
+      const isTraded = code === undefined || (await signInWithCode(code, abortSignal))
+
+      if (isTraded) {
+        await loadSession(abortSignal)
+        return
+      }
     }
 
-    if (!isStarting.value) {
-      return
-    }
-
-    if (startingTries++ >= STARTING_RETRY_LIMIT) {
-      isStarting.value = false
-      return
-    }
-
-    await waitFor(STARTING_RETRY_MS, abortSignal)
+    // A daemon that answers `starting` is about a second from ready: ask again at the first step.
+    await waitFor(nextDelayMs(isStarting.value ? 0 : tries++, Math.random), abortSignal)
   }
 }
 
@@ -108,12 +95,11 @@ async function loadBrand(abortSignal: AbortSignal): Promise<void> {
     const health = await getJson(ROUTES.health, { signal: abortSignal })
 
     brand.value = health.brand
-    isStarting.value = health.status === 'starting'
     isUnreachable.value = false
+    isStarting.value = health.status === 'starting'
   } catch (error: unknown) {
     // Anything but an `ApiFailure` is the caller's own abort.
     if (error instanceof ApiFailure) {
-      isStarting.value = false
       isUnreachable.value = true
     }
   }

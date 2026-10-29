@@ -13,6 +13,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { type JobExecution, runAgent } from '@/scheduler/job/agent-run'
 import { deliverPartial, deliverText, notifyIfAutoDisabled } from '@/scheduler/job/delivery'
 import { finalizeOccurrence } from '@/scheduler/job/finalize'
+import { isMissedSlot, skipMissedSlot } from '@/scheduler/job/missed-slot'
 import {
   advanceJob,
   computeOutcome,
@@ -97,6 +98,11 @@ export async function runScheduledOccurrence(
   })
 
   if (claim.kind === 'claimed') {
+    if (isMissedSlot(job, startedAtMs, deps.config.schedule.lateGraceMs)) {
+      await skipMissedSlot({ job, deps, claim, now: startedAtMs })
+      return
+    }
+
     await runScheduledJob({ job, deps, signal, claim })
     return
   }

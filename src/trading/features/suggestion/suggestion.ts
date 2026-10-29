@@ -49,11 +49,13 @@ import type { MarketRef, PortfolioSegment, TradingDay } from '@/trading/kernel/i
 import type { OperationTickOptions, Page } from '@/trading/kernel/store/page'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
+import type { VenueRegistry } from '@/trading/venues/types'
 import { ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { buildEnsureOptions } from '@/trading/features/market-data/market-data-run'
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { uniqueItems, watchlistItems } from '@/trading/features/suggestion/batch-items'
+import { buyCashMultipleOf } from '@/trading/features/suggestion/buy-cash'
 import { suggestionScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
 import { runSuggestionBatch } from '@/trading/features/suggestion/pipeline/batch'
 import {
@@ -90,6 +92,7 @@ interface SuggestionServiceDeps {
     readonly signal: AbortSignal
   }): Promise<readonly RecordedFill[]>
   readonly config: TradingConfig
+  readonly venues: VenueRegistry
   readonly logger: Logger
   readonly runDebate: RunDebate
   /** Where a call the track record has just scored is told. */
@@ -285,6 +288,7 @@ function toBatchDeps(
     runDebate: deps.runDebate,
     flights,
     roundTripFeeFraction: (market) => marketRoundTripRate(deps.config, market),
+    buyCashMultiple: (market) => buyCashMultipleOf(deps, market),
     ...(deps.skillVersions === undefined ? {} : { skillVersions: deps.skillVersions }),
     ...(deps.personaVersions === undefined ? {} : { personaVersions: deps.personaVersions }),
   }

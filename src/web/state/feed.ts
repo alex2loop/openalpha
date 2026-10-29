@@ -25,7 +25,6 @@ import {
 } from '@/web/state/live'
 import { connection, loadSession } from '@/web/state/session'
 
-const FEED_PATH = '/v1/ws'
 // Past this many events held during one snapshot, the page drops the rest of the pass and takes
 // another snapshot instead.
 const MAX_BUFFERED_EVENTS = 500
@@ -126,7 +125,7 @@ export function onChatFrame(sink: (frame: ChatServerFrame) => void): () => void 
 function buildFeedUrl(): string {
   const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:'
 
-  return `${scheme}//${location.host}${FEED_PATH}`
+  return `${scheme}//${location.host}${ROUTES.feed.path}`
 }
 
 function setConnection(status: ConnectionStatus, retryAt?: number): void {

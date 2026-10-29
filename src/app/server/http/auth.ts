@@ -232,26 +232,40 @@ export function apiTokenPath(dataDir: string): string {
   return join(dataDir, 'auth', 'api', 'token.json')
 }
 
+/** Whether a configured or stored value can serve as the API token. */
+function isApiTokenUsable(token: unknown): token is string {
+  return typeof token === 'string' && token.length >= MIN_TOKEN_LEN
+}
+
+/** The token the variable `token_env` names holds, or the `ApiTokenError` saying why it cannot
+ *  serve. The daemon and the CLI read it here, so both refuse the same values. */
+export function resolveTokenEnv(
+  tokenEnv: string,
+  env: Readonly<Record<string, string | undefined>>
+): string {
+  const value = env[tokenEnv]
+
+  if (isApiTokenUsable(value)) {
+    return value
+  }
+
+  throw new ApiTokenError(
+    `[api].token_env = "${tokenEnv}" is set but that variable is empty or shorter than ${MIN_TOKEN_LEN} chars`,
+    {
+      key: 'errors.configApiTokenShort',
+      params: { env: tokenEnv, minimum: MIN_TOKEN_LEN, brand: BRAND.name },
+    }
+  )
+}
+
 export async function ensureApiToken(
   config: ResolvedConfig,
   env: Readonly<Record<string, string | undefined>>
 ): Promise<string> {
   const tokenEnv = config.api.tokenEnv
 
-  if (tokenEnv !== undefined && tokenEnv !== '') {
-    const value = env[tokenEnv]
-
-    if (value !== undefined && value.length >= MIN_TOKEN_LEN) {
-      return value
-    }
-
-    throw new ApiTokenError(
-      `[api].token_env = "${tokenEnv}" is set but that variable is empty or shorter than ${MIN_TOKEN_LEN} chars`,
-      {
-        key: 'errors.configApiTokenShort',
-        params: { env: tokenEnv, minimum: MIN_TOKEN_LEN, brand: BRAND.name },
-      }
-    )
+  if (tokenEnv !== undefined) {
+    return resolveTokenEnv(tokenEnv, env)
   }
 
   const path = apiTokenPath(config.paths.dataDir)
@@ -262,7 +276,7 @@ export async function ensureApiToken(
     await chmod(path, TOKEN_FILE_MODE)
 
     const parsed: unknown = await file.json().catch(() => null)
-    const existing = readToken(parsed)
+    const existing = parseTokenFile(parsed)
 
     if (existing !== null) {
       return existing
@@ -276,12 +290,12 @@ export async function ensureApiToken(
   return token
 }
 
-function readToken(parsed: unknown): string | null {
+/** The token a stored token file holds, or null when its shape or length cannot serve. The daemon
+ *  and the CLI read the file through this, so both refuse the same files. */
+export function parseTokenFile(parsed: unknown): string | null {
   if (typeof parsed !== 'object' || parsed === null || !('token' in parsed)) {
     return null
   }
 
-  const token = parsed.token
-
-  return typeof token === 'string' && token.length >= MIN_TOKEN_LEN ? token : null
+  return isApiTokenUsable(parsed.token) ? parsed.token : null
 }

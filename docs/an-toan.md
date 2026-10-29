@@ -467,6 +467,7 @@ Lỗi đặt lệnh đến từ `/trade` và `order_place`. Chúng chia theo vi�
 |---|---|---|
 | `order.unmirrorable` | Đã khớp, nhưng sổ từ chối bút toán. | Ghi giao dịch bằng tay với `/record`. |
 | `order.unmirrorable_fee` | Đã khớp, nhưng loại phí không ghi tự động được. | Ghi giao dịch bằng tay. |
+| `order.fee_unreported` | Đã khớp, nhưng sàn vẫn chưa liệt kê phí của giao dịch sau vài lần đọc lại nhanh. | Chờ một lát rồi chạy `/record sync <sàn>`; lệnh vào sổ khi sàn đã liệt kê. |
 | `order.unpriced_fill` | Sàn báo đã khớp nhưng không kèm giá. | Ghi giao dịch bằng tay. |
 | `order.fill_timeout` | Lệnh vẫn còn sống trên sàn và không hủy được. | Xử lý lệnh đó trên sàn; `/trade reconcile` liệt kê lệnh còn treo để bạn chốt. |
 | `order.exit_failed` | Đã khớp, nhưng không đặt được chốt lời/cắt lỗ. | Vị thế đang không có lệnh cắt lỗ. Đặt bằng `/trade exit`. |

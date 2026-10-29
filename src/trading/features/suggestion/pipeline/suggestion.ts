@@ -46,10 +46,8 @@ import { openRiskOf } from '@/trading/features/suggestion/pipeline/open-risk'
 import { longestOutcomeWindowSessions } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { runStages } from '@/trading/features/suggestion/pipeline/stages'
 import { outsideFocus, unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
-import {
-  MARGIN_STATUS_LOOKBACK_SESSIONS,
-  standingMarginEvent,
-} from '@/trading/kernel/market/margin-status'
+import { standingMarginEvent } from '@/trading/kernel/market/margin-status'
+import { eventsFromDay } from '@/trading/kernel/market/market-event'
 import { isOutsideFocus, runHorizon } from '@/trading/kernel/operator/focus'
 import { isSourceFailed } from '@/trading/kernel/source/source-result'
 import { regimeFor } from '@/trading/markets/macro-risk'
@@ -214,6 +212,7 @@ function stageInputFor(
     ...(prepared.instrumentKind === undefined ? {} : { instrumentKind: prepared.instrumentKind }),
     ...(prepared.levels === undefined ? {} : { levels: prepared.levels }),
     events: prepared.instrumentEvents,
+    ...(prepared.calendarFailed === true ? { calendarFailed: true } : {}),
     now: request.now,
     signal: request.signal,
   }
@@ -341,7 +340,7 @@ function readRunInputs(
         longestOutcomeWindowSessions(market.manifest.defaultCalendar)
       ),
       now: request.now,
-      fromDay: market.manifest.calendar.addTradingDays(asOf, -MARGIN_STATUS_LOOKBACK_SESSIONS),
+      fromDay: eventsFromDay(market.manifest.calendar, asOf),
       signal: request.signal,
     }),
   ])

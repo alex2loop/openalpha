@@ -17,6 +17,8 @@ let isSigningOut = false
 
 /** `ok` until a load says otherwise. */
 export const authState = signal<AuthState>('ok')
+/** The daemon's own sentence for a `sign-in-failed` refusal; empty when it sent none. */
+export const refusalMessage = signal('')
 
 export function noteCodeTraded(): void {
   isFreshSignIn = true

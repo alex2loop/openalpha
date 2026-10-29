@@ -15,7 +15,7 @@ import type {
 } from '@/core/types/command'
 import '@/commands/events'
 import { SCHEDULE_CHANNEL } from '@/core/channels'
-import { isAbortError, RunHalted } from '@/core/errors'
+import { isCancellation } from '@/core/errors'
 import { runId, sessionId } from '@/core/ids'
 
 import { toSlashResult } from './result'
@@ -288,14 +288,4 @@ function linkAbort(source: AbortSignal, target: AbortController): () => void {
   source.addEventListener('abort', onAbort, { once: true })
 
   return () => source.removeEventListener('abort', onAbort)
-}
-
-// Both cancellation shapes a command can raise: a native fetch/stream abort, and the runtime's
-// own typed halt from `abortError`.
-export function isCancellation(err: unknown): boolean {
-  if (err instanceof RunHalted) {
-    return err.code === 'abort'
-  }
-
-  return isAbortError(err)
 }

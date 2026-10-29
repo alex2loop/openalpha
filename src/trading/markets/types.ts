@@ -86,9 +86,6 @@ export interface TradingCalendar {
    *  progress is never evidence. Effective after any override, like `timezone`. */
   readonly continuous: boolean
   readonly hours?: SessionHours
-  /** The newest closure the exchange's published table reaches. Absent where the market observes
-   *  none beyond its weekend. */
-  readonly lastHoliday?: TradingDay
   dayAt(epochMs: number): TradingDay
   isTradingDay(day: TradingDay): boolean
   addTradingDays(day: TradingDay, count: number): TradingDay

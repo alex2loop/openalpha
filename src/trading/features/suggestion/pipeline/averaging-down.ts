@@ -3,6 +3,7 @@ import type { Stage, StageDecision, StageInput } from '@/trading/markets/stage'
 import { openLots } from '@/trading/features/portfolio/folds/holdings'
 import { lowerBand } from '@/trading/kernel/conviction'
 import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
+import { eventsFromDay } from '@/trading/kernel/market/market-event'
 import { loweredDecision, STAGE_PASS } from '@/trading/markets/stage'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 
@@ -35,14 +36,20 @@ function evaluate(input: StageInput): StageDecision {
     return STAGE_PASS
   }
 
-  const underwater = underwaterFraction(suggestion, dividendPerUnitOf(input))
+  const dividends = dividendsOf(input)
+  const underwater = underwaterFraction(suggestion, dividends.perUnit)
 
   if (underwater === undefined || underwater < AVERAGING_DOWN_THRESHOLD_FRACTION) {
     return STAGE_PASS
   }
 
+  // The sentence claims the cost is net of dividends only when some were taken off it.
   return loweredDecision(suggestion.conviction, lowerBand(suggestion.conviction), [
-    { code: 'suggestion.averaging-down', detail: { underwater } },
+    {
+      code: dividends.perUnit > 0 ? 'suggestion.averaging-down-net' : 'suggestion.averaging-down',
+      detail: { underwater },
+    },
+    ...(dividends.isIncomplete ? [{ code: 'suggestion.dividend-amount-unknown' as const }] : []),
   ])
 }
 
@@ -63,9 +70,18 @@ function underwaterFraction(suggestion: Suggestion, dividendPerUnit: number): nu
   return 1 - mark / unitCost
 }
 
-/** The cash dividend each unit still held earned: an open lot earns every dividend that went ex after
+interface Dividends {
+  /** The cash each unit still held earned, counting only amounts the provider published. */
+  readonly perUnit: number
+  /** A dividend went ex with no published amount, the corporate calendar could not be read, or a lot
+   *  is older than the events read reaches: the figure above may be short, and an absent amount is
+   *  not a zero one. */
+  readonly isIncomplete: boolean
+}
+
+/** The cash dividends the units still held earned: an open lot earns every dividend that went ex after
  *  it was bought, through the run's day, whether or not the cash has landed. */
-function dividendPerUnitOf(input: StageInput): number {
+function dividendsOf(input: StageInput): Dividends {
   const { instrument, at } = input.suggestion
   const lots = openLots(
     input.valued.book.positions
@@ -76,15 +92,22 @@ function dividendPerUnitOf(input: StageInput): number {
   const dividends = (input.events ?? []).filter(
     (event) => event.kind === 'dividend-ex-date' && event.at <= at
   )
-  const owed = lots.reduce(
-    (sum, lot) =>
-      sum +
-      lot.remainingQuantity *
-        dividends
-          .filter((event) => event.at > lot.acquiredAt)
-          .reduce((cash, event) => cash + (event.cashPerShare ?? 0), 0),
-    0
+  const windowStart = eventsFromDay(input.market.manifest.calendar, at)
+  const isOlderThanWindow =
+    input.market.capabilities.events !== undefined &&
+    lots.some((lot) => lot.acquiredAt < windowStart)
+  const earned = lots.flatMap((lot) =>
+    dividends
+      .filter((event) => event.at > lot.acquiredAt)
+      .map((event) => ({ units: lot.remainingQuantity, cashPerShare: event.cashPerShare }))
   )
+  const owed = earned.reduce((sum, row) => sum + row.units * (row.cashPerShare ?? 0), 0)
 
-  return units > 0 ? owed / units : 0
+  return {
+    perUnit: units > 0 ? owed / units : 0,
+    isIncomplete:
+      input.calendarFailed === true ||
+      isOlderThanWindow ||
+      earned.some((row) => row.cashPerShare === undefined),
+  }
 }

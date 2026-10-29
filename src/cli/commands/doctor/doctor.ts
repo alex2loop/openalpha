@@ -18,6 +18,9 @@ import { probeDaemon, tradingConfigOf } from './local-probes'
 import { labelWidthOf, renderDoctorProbe } from './render'
 
 const EXIT_ISSUES_FOUND = 1
+// What still means something when the config failed to load: every other check would read the
+// fallback config, not the operator's, and report on settings they never wrote.
+const CONFIG_FREE_CHECKS: ReadonlySet<CheckName> = new Set(['config', 'daemon', 'version'])
 
 export const doctorCommand: Command = createCommand({
   ...CLI_COMMAND_METADATA.doctor,
@@ -95,12 +98,31 @@ async function runProbes(
     surface: 'terminal',
   }
   const checks = createCheckRegistry(app, input)
-  const names = options.selected === undefined ? CHECK_NAMES : [options.selected]
+  // A config whose only fault is an unset key still loads: the key is reported under models.
+  const configFailed = hasConfigError(app) && app.configProbe?.configKeyMissing !== true
+  const names = selectedChecks(options.selected, configFailed)
+  const runnerOf = (name: CheckName): CheckRunner =>
+    configFailed && !CONFIG_FREE_CHECKS.has(name)
+      ? async () => awaitingConfig(name, locale)
+      : checks[name]
 
   return await runChecks(
-    names.map((name) => [name, checks[name]]),
+    names.map((name) => [name, runnerOf(name)]),
     locale
   )
+}
+
+/** One check waiting on a config that failed to load runs behind the config row, so the reader
+ *  sees what to fix and the run counts it. */
+function selectedChecks(
+  selected: CheckName | undefined,
+  configFailed: boolean
+): readonly CheckName[] {
+  if (selected === undefined) {
+    return CHECK_NAMES
+  }
+
+  return configFailed && !CONFIG_FREE_CHECKS.has(selected) ? ['config', selected] : [selected]
 }
 
 function createCheckRegistry(
@@ -108,26 +130,16 @@ function createCheckRegistry(
   input: DoctorInput
 ): Readonly<Record<CheckName, CheckRunner>> {
   const locale = input.locale
-  // A config whose only fault is an unset key still loads: the key is reported under models.
-  const configFailed = hasConfigError(app) && app.configProbe?.configKeyMissing !== true
   const trading = tradingConfigOf(input.config)
-  const shared = createSharedChecks(input)
-  const awaiting =
-    (name: CheckName): CheckRunner =>
-    async () =>
-      awaitingConfig(name, locale)
 
   return {
-    ...shared,
+    ...createSharedChecks(input),
     config: async () => [await probeConfiguration(app, locale)],
     daemon: async () => [await probeDaemon(app)],
     trading:
-      configFailed || trading === undefined
-        ? awaiting('trading')
+      trading === undefined
+        ? async () => awaitingConfig('trading', locale)
         : async () => [await probeComposition(app, locale)],
-    ...(configFailed
-      ? { models: awaiting('models'), safety: awaiting('safety'), providers: awaiting('providers') }
-      : {}),
   }
 }
 

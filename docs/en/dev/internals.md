@@ -397,7 +397,36 @@ the one list the terminal prints and `config validate` reports.
 A channel whose `start()` throws
 `OperatorConfigError` (token missing or rejected) is disposed and logged `channel.start_skipped`;
 `startChannels` returns it in `skipped`, so a channel that never listened admits nobody. An
-`ApiTokenError` from the API starter is handled the same way (`api.token_unusable`).
+`ApiTokenError` from the API starter is handled the same way (`api.token_unusable`), and so is
+`ApiPortInUseError` (`api.port_in_use`): either leaves the API closed as a `kind: 'api'` degraded item and
+the daemon running. Any other API start failure still stops the start. Each maintenance disposer is
+registered as its subsystem starts, so a later one that throws cannot lose an earlier one.
+
+**Start order.** Migrations and the container come first. The API binds next, before any subsystem
+(`startDaemonApi`), so a page can connect while the daemon is still coming up and a busy port is the
+first thing reported. Then workspace retention, then `startDaemonSubsystems` (the boot refresh as a
+tracked daemon task, channels, scheduled workflows, delivery, channel watch, scheduler, trading loops,
+maintenance, plugin tasks), then `markReady`. The API's admission closer and stop are registered for
+teardown the moment it binds, so a start that fails later still closes it, and its admission still
+closes first on the way down.
+
+Until `markReady` the API is starting: `GET /v1/health` answers `ok: false, status: 'starting'`, and a
+route answers only if it is a `GET` or declares `whileStarting` (the sign-in exchange, sign-out and
+minting a sign-in code, which need no subsystem). Every other route answers 503 `unavailable` with
+`errors.apiStarting`, and so do the feed and exec socket upgrades; the page's `classify` reads the feed
+refusal as `offline` and retries on its backoff. The gate is one check in `handleHttp` and one in each
+upgrade, so a route added without thinking of it fails closed. The page reads `status` from
+`/v1/health`, shows the `ui.office.starting` line and signs in only once it reads `ready`, so a sign-in
+code is never spent on a daemon that cannot finish the exchange.
+
+The boot sweep no longer blocks the start. It runs as a tracked task: a failure that is not a boundary
+failure ends the daemon through the same task tracker as every other loop. The trading loops that read
+market data (alerts, the operation loops and the intraday loop) wait on the `firstSweep`
+promise before their first tick, aborting with the daemon; the exit and intent loops read only the venue
+and the stored plans, so they start at once; `runBootRefresh` settles it through
+`TradingServices.releaseFirstSweep` when the sweep ends, when its 60 s budget runs out and in `finally`,
+so a stuck provider never holds them. The refresh loop joins the sweep through the coordinator's
+in-flight map; chat, the scheduler, the channels and maintenance never wait for it.
 
 The daemon task
 hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the foreground `start` prints them on
@@ -482,6 +511,7 @@ Once the run has exited cleanly and `boot` is disposed, `main` calls `restartInP
 
 **Requests and failures.**
 
+- A request whose client already hung up logs `api.request_aborted` at debug and is not a failure.
 - A request still running when the daemon stops answers 503 `stopping` and logs `api.handler_stopped` at info; the API's stop gives open requests `SHUTDOWN_DRAIN_MS`, then cuts any left (a stalled body) with `server.stop(true)` and logs `api.stop_forced`; the page keeps its last figures and reads again once its socket is back.
 - The marker never touches the upgrade announcement, so a restart cannot read as a failed upgrade.
 - A helper that cannot start (or a signal that cannot be sent), or a helper that exits while this daemon still runs, removes the marker, releases the pending flag so a new restart can start, and files `ui.restartFailed` to the bell as a `daemon_notice` of kind `restart-failed`, because the page already got its 202 and would otherwise wait for a new pid for good.
@@ -495,7 +525,7 @@ Once the run has exited cleanly and `boot` is disposed, `main` calls `restartInP
 - `ChannelDefinition.apiHosts` for the channels the daemon starts, and `VenueManifest.apiHosts` for the venues holding a key (read through `VenueChoice`);
 - the HTTP MCP servers;
 - `listSearchHosts`: each backend's endpoint, SearXNG's own `base_url`, nothing for a primary whose key is missing;
-- `UPDATE_CHECK_HOST` while `[update] check` is on, the API base of each social network an active agent has joined, and the trading config's reachability host.
+- `UPDATE_CHECK_HOST` while `[update] check` is on, the API base of each social network an active agent has joined, and the reachability host (`REACHABILITY_HOST`), the one probe the scheduler, the workflow trigger and the trading loops share.
 
 A host two purposes share is listed once under each, since what is sent there differs.
 
@@ -806,7 +836,7 @@ arbitrary tool arguments.
 
 ### The office page (`web`)
 
-The `web` module is the office page: a Preact interface with signals for state and a canvas scene, bundled by Bun and served by the daemon at `GET /` (`src/web/api.ts` exports `officePage`, the one thing the server imports). The page itself is static and unauthenticated; everything it reads is `/v1`, behind a browser session. `main.tsx` refuses to run inside a frame before anything else, clears the old `office.token` storage key, and trades a `#code=` in the address for a session before the first load.
+The `web` module is the office page: a Preact interface with signals for state and a canvas scene, bundled by Bun and served by the daemon at `GET /` (`src/web/api.ts` exports `officePage`, the one thing the server imports). The page itself is static and unauthenticated; everything it reads is `/v1`, behind a browser session. `main.tsx` refuses to run inside a frame before anything else, clears the old `office.token` storage key, and trades a `#code=` in the address for a session before the first load. The code stays in the address until the daemon answers (a refusal included) and is tried again while no answer comes (no connection, or a 5xx such as a proxy's 502 to 504 while the daemon restarts), so a timeout or a restart does not burn the link; a refusal with error code `locked` reads as the lockout, any other shows its sentence as sent.
 
 **What it may import.** `i18n` at runtime, and `import type` from `app/server/wire/*` only. [scripts/check-dag.ts](../../../scripts/check-dag.ts) carries that one exception (`isWebWireTypeImport`). The wire types are therefore the whole contract: a server change that breaks the page fails `tsc -p src/web/tsconfig.json`, the fourth program of `bun run typecheck`. The socket also checks the contract version it was built against and stops, telling the operator to reload, when the daemon speaks another.
 

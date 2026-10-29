@@ -6,8 +6,8 @@ import type {
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { LevelResult, TradeLevels } from '@/trading/kernel/factor'
-import type { TradingDay } from '@/trading/kernel/instrument'
-import type { MarketResolution } from '@/trading/markets/types'
+import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type { Market, MarketResolution } from '@/trading/markets/types'
 import { bankedShareOf, isFirstExitTaken } from '@/trading/features/suggestion/exit-plan/first-exit'
 import { heldPositionOf } from '@/trading/features/suggestion/pipeline/concentration'
 import { type ExRightGap, planBasisFactorOf } from '@/trading/features/suggestion/pipeline/ex-right'
@@ -187,6 +187,30 @@ async function standingPlanOf(
     ...(input.held.openedOn === undefined ? {} : { heldSince: input.held.openedOn }),
     signal: options.request.signal,
   })
+
+  return toStandingPlan(plan, {
+    market,
+    instrument,
+    gap: input.gap,
+    asOf: input.asOf,
+    now: options.request.now,
+    signal: options.request.signal,
+  })
+}
+
+/** Where a stored plan's prices stand against the series' basis: the one answer to an ex-date the
+ *  store has not caught up to, for the suggestion run and the recorded plan alike. */
+export async function toStandingPlan(
+  plan: StoredSuggestion | null,
+  input: {
+    readonly market: Market
+    readonly instrument: InstrumentRef
+    readonly gap: ExRightGap | undefined
+    readonly asOf: TradingDay
+    readonly now: number
+    readonly signal: AbortSignal
+  }
+): Promise<StandingPlan> {
   const factor = plan === null ? 1 : planBasisFactorOf(plan, input.gap)
 
   if (factor === null) {
@@ -197,11 +221,11 @@ async function standingPlanOf(
     return { plan, toBasis: samePrice }
   }
 
-  const { tickSize } = await resolveTrailBounds(market, {
-    instrument,
+  const { tickSize } = await resolveTrailBounds(input.market, {
+    instrument: input.instrument,
     asOf: input.asOf,
-    now: options.request.now,
-    signal: options.request.signal,
+    now: input.now,
+    signal: input.signal,
   })
 
   return { plan, toBasis: (price) => roundToTick(price * factor, tickSize, 'nearest') }

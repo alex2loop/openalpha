@@ -143,6 +143,7 @@ export interface ChannelAdapter {
    * Resolves once the channel is UP — credentials verified, handlers armed. It does not stay
    * pending for the life of the channel: the receive loop runs detached and stops on `signal`, so
    * boot can fail fast on a bad token while a mid-life fault only marks the status unhealthy.
+   * `signal` ends intake only: `send`, `edit` and the rest keep working after it, until `dispose`.
    */
   start(handlers: AdapterHandlers, signal: AbortSignal): Promise<void>
   send(out: ChannelOutbound, options?: { readonly signal?: AbortSignal }): Promise<SentRef>

@@ -104,7 +104,7 @@ function goldQuote(
 // The manifest is where this market declares itself, including the timezone every `asOf` and
 // cooldown computation resolves against. Config supplies overrides and the market supplies its own
 // default; neither side enumerates the other.
-function goldManifest(config: TradingConfig): MarketManifest {
+export function goldManifest(config: TradingConfig): MarketManifest {
   const defaultCalendar = WORLD_GOLD_CALENDAR
 
   return {
@@ -118,7 +118,7 @@ function goldManifest(config: TradingConfig): MarketManifest {
     icon: '🥇',
     quoteUnit: quoteUnit('currency-per-troy-ounce'),
     defaultCalendar,
-    calendar: createTradingCalendar(defaultCalendar, config.markets[GOLD_MARKET_REF]?.holidays),
+    calendar: createTradingCalendar(defaultCalendar, config.markets[GOLD_MARKET_REF]),
     // The only market trading the global region.
     ownsRegion: true,
     detection: 'stored',

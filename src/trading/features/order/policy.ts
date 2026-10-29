@@ -2,6 +2,7 @@ import type { CapRejection, OrderSide, OrderType } from '@/trading/features/orde
 import type { OrderPolicy } from '@/trading/kernel/config'
 import type { VenueRef } from '@/trading/kernel/instrument'
 import type { TradeCost } from '@/trading/markets/cost'
+import { cashDrawMultiple } from '@/trading/markets/cost'
 
 interface CapInput {
   readonly policy: OrderPolicy
@@ -75,13 +76,11 @@ export function validateOrderCaps(input: CapInput): readonly CapRejection[] {
 
 /** The cash a buy draws, which the ledger refuses to book short of: its row costs quantity times
  *  price plus the fee, so a buy sized to the notional alone fills and then cannot be mirrored. A
- *  fee billed in base coins comes out of the quantity and adds nothing here. A market order
- *  carries the drift the confirm tolerates; a limit order never fills above its limit. */
+ *  market order carries the drift the confirm tolerates; a limit order never fills above its limit. */
 function cashNeededBase(input: CapInput): number {
-  const slippage = input.orderType === 'market' ? 1 + input.policy.maximumPriceDrift : 1
-  const feeRate = input.cost?.feeAsset === 'quote' ? input.cost.buyRate : 0
+  const drift = input.orderType === 'market' ? input.policy.maximumPriceDrift : 0
 
-  return input.notionalBase * slippage * (1 + feeRate)
+  return input.notionalBase * cashDrawMultiple(input.cost, drift)
 }
 
 /** An exit only ever exits a long, so direction is `stopLoss < reference < takeProfit` with no

@@ -33,7 +33,7 @@ import { createChannelRuntime } from '@/channels/lifecycle'
 import { createChannelRecipient, resolveFallbackChat } from '@/channels/recipient'
 import { resolveChannelSettings } from '@/channels/schema'
 import { OperatorConfigError } from '@/core/config/resolve'
-import { ConfigError } from '@/core/errors'
+import { ConfigError, isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 
 export interface StartChannelsDeps {
@@ -58,7 +58,9 @@ export interface StartChannelsDeps {
   readonly logger: Logger
   /** Injected so no adapter reads process.env directly. */
   readonly env: Record<string, string | undefined>
-  readonly shutdownSignal: AbortSignal
+  /** Ends intake at shutdown: polling, the inbox drain and the admission of new work. Delivery does
+   *  not stop with it; each runtime ends that itself in `stop`, after its final drain. */
+  readonly intakeSignal: AbortSignal
 }
 
 /** Resolves the started runtime that owns the target's channel and submits through its queue.
@@ -166,6 +168,11 @@ async function onStartFailed(
     })
   })
 
+  // A stop that arrived while the channel was starting ends the start; it is not a failure.
+  if (isAbortError(reason)) {
+    return undefined
+  }
+
   if (reason instanceof OperatorConfigError) {
     deps.logger.warn('channel.start_skipped', {
       channel: entry.adapter.id,
@@ -224,7 +231,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
     bus: deps.bus,
     logger: deps.logger,
     locale: deps.config.locale.language,
-    shutdownSignal: deps.shutdownSignal,
+    intakeSignal: deps.intakeSignal,
   })
 
   return [{ runtime, adapter, recipient }]

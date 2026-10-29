@@ -1,5 +1,6 @@
 import type { ChannelOutbound, EditRequest, ReactionRequest, SentRef } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
+import { PermanentChannelError } from '@/channels/permanent-error'
 import { ChannelError, type ChannelErrorCode } from '@/core/errors'
 import { BROWSER_HEADERS } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -21,7 +22,10 @@ import {
 // Bounds every call, including getUpdates' own long-poll timeout.
 const TELEGRAM_REQUEST_TIMEOUT_MS = 15_000
 const RATE_LIMITED_STATUS = 429
+const REQUEST_TIMEOUT_STATUS = 408
 const BAD_REQUEST_STATUS = 400
+const CLIENT_ERROR_MIN_STATUS = 400
+const SERVER_ERROR_MIN_STATUS = 500
 const ALLOWED_UPDATES = '["message","callback_query"]'
 const MAX_ERROR_DESCRIPTION_LEN = 512
 const PARSE_FAILURE_RE = /can't parse|parse error/i
@@ -32,7 +36,9 @@ type TelegramBody = Record<string, unknown> & { text: string }
 export interface TelegramApiContext {
   readonly botToken: string
   readonly fetchImpl: typeof fetch
-  readonly shutdownSignal: AbortSignal
+  /** Ends the polling and start-up calls. A send does not take it: delivery outlives intake, and
+   *  the adapter's `dispose` is what closes it. */
+  readonly intakeSignal: AbortSignal
   readonly logger: Logger
 }
 
@@ -150,13 +156,14 @@ export async function deleteWebhook(ctx: TelegramApiContext): Promise<void> {
     body: { drop_pending_updates: false },
     logKey: 'telegram.delete_webhook_failed',
     level: 'warn',
+    signal: ctx.intakeSignal,
   })
 }
 
 export async function getMe(ctx: TelegramApiContext): Promise<BotIdentity> {
   const res = await ctx.fetchImpl(buildTelegramUrl(ctx.botToken, 'getMe'), {
     headers: baseHeaders(),
-    signal: withTimeout(ctx, TELEGRAM_REQUEST_TIMEOUT_MS),
+    signal: withTimeout(TELEGRAM_REQUEST_TIMEOUT_MS, ctx.intakeSignal),
   })
 
   if (!res.ok) {
@@ -186,7 +193,7 @@ export async function getUpdates(
 
   const res = await ctx.fetchImpl(url.toString(), {
     headers: baseHeaders(),
-    signal: withTimeout(ctx, TELEGRAM_REQUEST_TIMEOUT_MS),
+    signal: withTimeout(TELEGRAM_REQUEST_TIMEOUT_MS, ctx.intakeSignal),
   })
 
   if (!res.ok) {
@@ -208,7 +215,7 @@ export async function getUpdates(
 // rather than cut, because a silent truncation loses the tail of a brief and reports success.
 function assertWithinTextLimit(text: string, code: ChannelErrorCode): void {
   if (text.length > TELEGRAM_MAX_LEN) {
-    throw new ChannelError(
+    throw new PermanentChannelError(
       code,
       `telegram text is ${text.length} code units, over the ${TELEGRAM_MAX_LEN} limit`
     )
@@ -265,12 +272,10 @@ function baseHeaders(): Record<string, string> {
   return { ...BROWSER_HEADERS }
 }
 
-function withTimeout(ctx: TelegramApiContext, timeoutMs: number, extra?: AbortSignal): AbortSignal {
+function withTimeout(timeoutMs: number, extra?: AbortSignal): AbortSignal {
   const timeout = AbortSignal.timeout(timeoutMs)
 
-  return extra !== undefined
-    ? AbortSignal.any([ctx.shutdownSignal, extra, timeout])
-    : AbortSignal.any([ctx.shutdownSignal, timeout])
+  return extra === undefined ? timeout : AbortSignal.any([extra, timeout])
 }
 
 interface PostJsonRequest {
@@ -284,7 +289,7 @@ async function postJson(ctx: TelegramApiContext, req: PostJsonRequest): Promise<
     method: 'POST',
     headers: { ...baseHeaders(), 'content-type': 'application/json' },
     body: JSON.stringify(req.body),
-    signal: withTimeout(ctx, TELEGRAM_REQUEST_TIMEOUT_MS, req.signal),
+    signal: withTimeout(TELEGRAM_REQUEST_TIMEOUT_MS, req.signal),
   })
 }
 
@@ -359,9 +364,22 @@ function toChannelError(
     })
   }
 
-  return new ChannelError(code, `telegram ${label} failed: HTTP ${err.status} ${err.description}`, {
-    cause: err.status,
-  })
+  const message = `telegram ${label} failed: HTTP ${err.status} ${err.description}`
+
+  return isPermanentStatus(err.status)
+    ? new PermanentChannelError(code, message, { cause: err.status })
+    : new ChannelError(code, message, { cause: err.status })
+}
+
+// A client error other than a timeout or a rate limit (a bad request, a blocked bot, a revoked
+// token) says the same thing on every attempt; a server error or a dropped line may not.
+function isPermanentStatus(status: number): boolean {
+  return (
+    status >= CLIENT_ERROR_MIN_STATUS &&
+    status < SERVER_ERROR_MIN_STATUS &&
+    status !== REQUEST_TIMEOUT_STATUS &&
+    status !== RATE_LIMITED_STATUS
+  )
 }
 
 interface TelegramApiError {
@@ -412,23 +430,36 @@ interface PostAndLogRequest {
   readonly logKey: string
   // `warn` for calls whose failure every user of the bot notices; per-message trivia stays debug.
   readonly level?: 'warn'
+  readonly signal?: AbortSignal
 }
 
-// Posts, drains the response, and never throws: the result is not worth the caller's error path.
-export async function postAndLog(ctx: TelegramApiContext, req: PostAndLogRequest): Promise<void> {
+// Posts, drains the response, and never throws: a failure is logged under the request's key and
+// reported as false, not as an error path.
+export async function postAndLog(
+  ctx: TelegramApiContext,
+  req: PostAndLogRequest
+): Promise<boolean> {
   // why-safe: Logger's level methods are closures over the pino instance, never `this`-bound.
   const log = req.level === 'warn' ? ctx.logger.warn : ctx.logger.debug
 
   try {
-    const res = await postJson(ctx, { method: req.method, body: req.body })
+    const res = await postJson(ctx, {
+      method: req.method,
+      body: req.body,
+      ...(req.signal === undefined ? {} : { signal: req.signal }),
+    })
 
     if (!res.ok) {
       log(req.logKey, { status: res.status })
     }
 
     await discardBody(res)
+
+    return res.ok
   } catch (err: unknown) {
     log(req.logKey, { err: formatErrForLog(err) })
+
+    return false
   }
 }
 

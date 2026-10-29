@@ -1,8 +1,9 @@
 import type { SshAddress } from '@/app/server/cli/ssh-address'
+import type { ApiErrorCode } from '@/app/server/wire/errors'
 import type { BrowserSignInCode } from '@/app/server/wire/sign-in'
 import type { CliApp, Command } from '@/cli/api'
 import type { MessageKey } from '@/i18n'
-import { readApiToken } from '@/app/server/cli/api-token'
+import { readApiDown, readApiToken } from '@/app/server/cli/api-token'
 import { resolveSshAddress, toSshTarget } from '@/app/server/cli/ssh-address'
 import { LOOPBACK_HOST } from '@/app/server/http/auth'
 import { SIGN_IN_CODE_TTL_MS } from '@/app/server/http/sign-in-codes'
@@ -14,8 +15,7 @@ import { t } from '@/i18n'
 
 const EXIT_FAILED = 1
 const HTTP_UNAUTHORIZED = 401
-// From loopback with the right Host, a 403 is the auth lockout after repeated wrong tries.
-const HTTP_FORBIDDEN = 403
+const LOCKED_CODE: ApiErrorCode = 'locked'
 const CODE_REQUEST_TIMEOUT_MS = 5_000
 // The tunnel's local end sits off the server's port, so it never lands on a daemon this machine
 // runs on that same port.
@@ -46,6 +46,14 @@ async function openPage(app: CliApp): Promise<number> {
 
   if (!app.config.api.enabled) {
     app.err(fail(t(locale, 'cli.webApiOff', { brand: BRAND.name })))
+
+    return EXIT_FAILED
+  }
+
+  const apiDown = await readApiDown(app)
+
+  if (apiDown !== undefined) {
+    app.err(fail(apiDown))
 
     return EXIT_FAILED
   }
@@ -94,7 +102,7 @@ async function requestCode(port: number, token: string): Promise<CodeRequest> {
     return { ok: false, key: 'cli.webTokenRefused' }
   }
 
-  if (res.status === HTTP_FORBIDDEN) {
+  if (isLockedOut(body)) {
     return { ok: false, key: 'cli.webLockedOut' }
   }
 
@@ -103,6 +111,12 @@ async function requestCode(port: number, token: string): Promise<CodeRequest> {
   return typeof code === 'string' && code !== ''
     ? { ok: true, code }
     : { ok: false, key: 'cli.webCodeFailed' }
+}
+
+function isLockedOut(body: unknown): boolean {
+  const error = isPlainRecord(body) ? body.error : undefined
+
+  return isPlainRecord(error) && error.code === LOCKED_CODE
 }
 
 function isConnectionRefused(err: unknown): boolean {

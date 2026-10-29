@@ -90,12 +90,7 @@ export const HALT_SPEC = {
     hintKey: 'errors.budgetHint',
     emoji: '💸',
   },
-  rate: {
-    exitCode: 4,
-    messageKey: 'errors.rate',
-    hintKey: 'errors.rateHint',
-    emoji: '⏳',
-  },
+  rate: { exitCode: 4, messageKey: 'errors.rate', hintKey: 'errors.rateHint', emoji: '⏳' },
   llm_error: {
     exitCode: 5,
     messageKey: 'errors.llmError',
@@ -445,6 +440,12 @@ export function abortError(signal?: AbortSignal): Error {
 // The DOM abort a signal raises, not the domain halt: `RunHalted('abort')` is a separate concept.
 export function isAbortError(err: unknown): boolean {
   return err instanceof Error && err.name === 'AbortError'
+}
+
+// Both cancellation shapes the codebase raises: a native fetch/stream abort, and the runtime's own
+// typed halt from `abortError`.
+export function isCancellation(err: unknown): boolean {
+  return err instanceof RunHalted ? err.code === 'abort' : isAbortError(err)
 }
 
 export function isErrno(error: unknown, code: string): error is NodeJS.ErrnoException {

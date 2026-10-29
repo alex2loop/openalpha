@@ -441,6 +441,8 @@ Size is budgeted on the entry stop, and the market state scales the whole order.
 
 The segment's market-state scale reduces the final size, alongside confidence and the trader's intent. So a defensive market shrinks a buy even when cash is not what limits it. `suggestion.size-scaled-by-regime` tells you when the market state was the tightest of the three.
 
+The cash ceiling leaves room for what the order will cost: the buy fee and the `maximum_price_drift` a market order's own cash cap allows for the fill. The sizer leaves the fee room on every buy, and the drift room wherever the market's default venue places orders, since it does not know the order type you will use. So a buy sized to the cash you hold is not refused at `/trade` for the missing room. A market you trade by hand, such as VN equities or VN gold, never takes a market order from OpenAlpha, so it keeps only the fee room.
+
 Every name in one `/suggest` batch is sized against the same book as it stood before the batch. So
 each buy fits the cash and open-risk room on its own.
 
@@ -748,16 +750,28 @@ still prices against the close it watches. Rights priced at or above the close c
 whose terms the provider has not published cannot be scaled, so that day's plan starts fresh instead
 of carrying the old levels. Either way the plan says so.
 
+Actions that go ex on the same day are priced by one formula, the way the exchange sets the reference
+price: the cash comes off, and the new shares are spread over everything, so the order the provider lists
+them in changes nothing. When two ex-dates fall before the history catches up, a plan already scaled for
+the first is scaled only by the second, never twice. A plan written from a fill you record after an
+ex-date is read the same way, so its entry and its stop stand on one price basis.
+
 The brief's events list shows each action's terms where the provider publishes them: a cash
 dividend's amount per share and payment day, the new shares per share held, and a rights issue's
 subscription price. A held name with a cash or share dividend in the window gets a line under what to
 do first: the cash or the shares land weeks after the ex-date, and only a recorded `dividend` or
-`distribution` row puts them in the book. The ticker card's events show the payment day too.
+`distribution` row puts them in the book. The ticker card's events show the same terms on one line: the cash per share, the new shares per 100 held, the subscription price and the payment day.
 
 The check that lowers confidence on a buy that averages down measures against your cost less the cash
 dividends the units still held have earned: each lot earns every dividend that went ex after it was
 bought, whether or not the cash has landed. Otherwise every ex-date would read as a loss. It reads the
-dividends inside the corporate calendar the run already fetches, about six months back.
+dividends inside the corporate calendar the run already fetches, about six months back. A lot bought
+before that window may have earned dividends the read does not reach, so the suggestion says some
+dividends may not have been counted.
+
+The warning says "after dividends" only when some were taken off the cost. A dividend with no published
+amount counts for nothing, and so does a corporate calendar that could not be read; the warning then says
+some dividends could not be counted, so the drop may look bigger than it is.
 
 A name already suggested today is served from its row at no cost.
 
@@ -912,7 +926,7 @@ These run in the daemon, with more when a venue has exchange credentials. Each r
 | `macro-extract` | 12h | 3 | always | Read statistics-office (`nso`) reports and matching press items into stored macro series, on the `extraction` model tier |
 | `theme-outcomes` | 12h | 50 | always | Score `/themes` company reads against VN-Index at 3, 6 and 12 months, from stored bars; no model call |
 | `refresh` | session-aligned | - | always | Refresh every market still in use, then record order flow, then log each market's settled board and score earlier boards that reached the end of their window (see [the board's own record](#the-boards-own-record)) |
-| `intraday` | schedule-aligned | - | always | Deliver the intraday read on the region's configured fire times, idling between them |
+| `intraday` | schedule-aligned | - | always | Deliver the intraday read on the region's configured fire times, idling between them; a fire more than `[schedule] late_grace_ms` late is skipped, not sent late |
 | `exits` | 60s | 50 | a venue has trading credentials | Reconcile what rests at the exchange against the book, and trail the stops it holds |
 | `intents` | 5m | - | an order service exists | Settle an order the exchange took that the book never got; reaches no venue |
 
@@ -1108,6 +1122,8 @@ The write confirmation says which rate the fee came from, or how far a fee you t
 **The quantity is asked of the venue, never worked out from a rate.** A venue marked `fee_asset = "base"` in its `fees` (OKX and Binance by default, like most crypto exchanges) takes its **buy** fee out of the coins it delivers. So an order for 3 coins credits you with fewer than 3. The row must carry what was actually credited, because the position adds `quantity` as it is, and a fee only moves cash.
 
 That shortfall cannot be calculated from the configured rate. An order fills as maker or taker, and only the exchange knows which. A calculated quantity would be a guess stored as if it were a recorded fact. A sell is not affected: its fee comes out of the proceeds, which the cash side already records.
+
+The venue's fee is booked as a charge only. A rebate (OKX reports one as a positive fee) books as no fee, since the book holds no negative fee. Binance prints a fill's fee on its trade rows, so a fill with no rows yet has no fee to book: it is left unbooked rather than booked as free, and `/record sync` books it once the rows appear.
 
 When you record a trade at a venue with trading credentials, OpenAlpha looks up what that venue actually filled that day, on that side, in that instrument. If there is **exactly one** fill within 1% of the size you stated, that fill makes the row: its filled quantity net of a fee taken in coins, its average price, and its fee priced in the transaction currency.
 
@@ -1509,7 +1525,7 @@ The deployment ceiling that gets printed is the whole book's, not one segment's.
 
 **`/rebalance` and `/suggest` size the same name against different things, and both answers are correct.**
 
-- The plan takes the gap to target and holds it to the segment budget, the per-name cap and the board lot.
+- The plan takes the gap to target and holds it to the segment budget, the per-name cap and the board lot. The budget pays the buy fee as well, so a plan that spends it all still leaves the reserve whole.
 - The suggestion takes the tightest of its own ceilings and scales it by the tightest of confidence, the trader's intent and the market state (never their product).
 
 So a name the plan lists may be one the suggestion declines that day. The plan says so where it lists a buy. It does not run the debate, so it costs nothing in model calls.
@@ -1532,7 +1548,8 @@ drifted.
   weight, as the next run would leave them. Funds are left out of it, and so are names in a segment
   with a 0% target, since those are sold whole anyway.
 - **How much.** The sale goes to the cap, at most one board lot past it, and in one step. The settled
-  quantity and the name's turnover still limit what sells in a day.
+  quantity and the name's turnover still limit what sells in a day. A name that traded nothing in the
+  window has a turnover of zero: it is sized to nothing, and the plan for every other name goes on.
 - **Odd lots.** Every sale is in whole board lots. A weak name sold "whole" can leave an odd remainder
   under one lot (on the VN board, 1-99 shares). The plan that sells the rest shows no "keep watching"
   note for the name; sell the remainder by hand in the odd-lot session.
@@ -1690,6 +1707,8 @@ outright when the run's approval mode is `bypass`, unless `[trading.orders] allo
 - A buy of an ETF into a segment whose ETF share cannot be measured (a holding there has no resolved
   kind) counts as a breach of any ETF ceiling the segment declares. The caps cannot be checked, so it
   is not waved through.
+- A buy into a segment you have switched off (both its caps are 0) is a breach too: `/trade` shows it and
+  `order_place` refuses it. A segment with no caps recorded at all is not switched off.
 
 With a saved profile, a buy is refused while any holding in the book has no price (`order.book_unpriced`), on `/trade` and `order_place` alike. Without a price for every holding there is no total, so no position, segment or ETF cap can be measured, and an order that skipped them would clear them all. `/portfolio` names the holding; `/refresh` its market to load a price, then place the order again. A sell, and a buy with no saved profile, are not held back.
 

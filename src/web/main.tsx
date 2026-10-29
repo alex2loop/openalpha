@@ -2,7 +2,7 @@ import { computed, effect, untracked } from '@preact/signals'
 import { render } from 'preact'
 
 import { authState } from '@/web/api/auth-state'
-import { takeCodeFromHash } from '@/web/api/sign-in'
+import { readCodeFromHash } from '@/web/api/sign-in'
 import { disposeClock } from '@/web/scene/clock/clock'
 import { startAgents } from '@/web/state/agents'
 import { pageTitle, startAttention } from '@/web/state/attention'
@@ -42,8 +42,8 @@ const root = document.getElementById(ROOT_ID)
 if (root !== null && window.top === window.self) {
   removeStorage('local', RETIRED_TOKEN_KEY)
   removeStorage('session', RETIRED_TOKEN_KEY)
-  // Before anything can read or log the address: the code leaves the URL at once.
-  const code = takeCodeFromHash()
+  // Before anything can read or log the address: the code leaves the URL once the daemon answers it.
+  const code = readCodeFromHash()
   const chatTab = new URLSearchParams(location.search).get(CHAT_TAB_PARAM) ?? undefined
 
   if (chatTab !== undefined) {

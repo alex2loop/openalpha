@@ -60,12 +60,14 @@ const MODEL_CHECKS: ReadonlySet<CheckName> = new Set(['providers'])
 // Providers whose unreadable login was already logged, per app: bounded by the configured models.
 const unreadableLogins = new WeakMap<App, Set<string>>()
 
-// The only unauthenticated route. It answers 'ready' unconditionally: the api starts as the last
-// daemon step, so a socket that connects at all is talking to a booted daemon.
+// The only unauthenticated route. The api binds before the subsystems start, so it answers
+// `starting` until the daemon is ready; a page that sees it asks again.
 async function handleHealth(_req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const ready = ctx.isReady()
+
   return json({
-    ok: true,
-    status: 'ready',
+    ok: ready,
+    status: ready ? 'ready' : 'starting',
     version: BRAND.version,
     brand: BRAND.display,
     contractVersion: CONTRACT_VERSION,

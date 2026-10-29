@@ -28,10 +28,12 @@ export type BootGate = (options: {
   readonly dataDir: string
 }) => Promise<BootCheck>
 
-/** What the daemon holds of a running HTTP/WS surface: `closeAdmission` is the first step down
+/** What the daemon holds of a running HTTP/WS surface. It is bound before the subsystems start and
+ *  answers only what needs none of them until `markReady`. `closeAdmission` is the first step down
  *  (no new connection or request; in-flight ones finish), `stop` the last (sockets, then wait for
  *  those in-flight requests). */
 export interface ApiHandle {
+  markReady(): void
   closeAdmission(): void
   stop(): Promise<void>
 }
@@ -52,6 +54,8 @@ export interface ApiRouteContext {
   /** The origin of the page the request belongs to, as `resolvePageOrigin` found it. */
   readonly pageOrigin: string
   readonly cookieName: string
+  /** False while the daemon is still starting its subsystems. */
+  isReady(): boolean
   readonly codes: SignInCodes
   /** The browser session the request came from; absent for the bearer token and on open routes. */
   readonly browserSessionId?: string
@@ -67,6 +71,9 @@ export interface ApiRouteSpec {
   readonly path: string
   readonly auth: boolean
   readonly capability?: ApiCapability
+  /** Answers while the daemon is still starting. Absent, only a `GET` does: anything that changes
+   *  state needs the subsystems, so a route added without thinking of it fails closed. */
+  readonly whileStarting?: true
   handler(req: Request, ctx: ApiRouteContext): Promise<Response>
 }
 

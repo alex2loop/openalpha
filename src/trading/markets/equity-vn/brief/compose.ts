@@ -205,11 +205,12 @@ export async function buildVnBrief(options: LoadContextOptions): Promise<MarketB
   // read costs the section, never the morning.
   const delta = await readDelta(context, sections)
   const composed = [...sections, delta]
+  const nextActions = await buildNextActions(context, composed, fromOverviews)
 
   const ordered = [
     ...operatorSections(composed),
     ...marketSections(withMarketStamps(composed, vn), [...fromOverviews, ...fromNews]),
-    ...tailSections(composed, buildNextActions(context, composed, fromOverviews)),
+    ...tailSections(composed, nextActions),
   ]
 
   return { sections: ordered, stories: tryReadStories(context, ordered, vn) }

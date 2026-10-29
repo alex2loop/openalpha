@@ -1,6 +1,8 @@
 import type { MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { BriefActionCode, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
+import type { EventsRead } from '@/trading/markets/equity-vn/brief/events-read'
+import { isAbortError } from '@/core/errors'
 import { hasNoBook, sectionNumber } from '@/trading/kernel/operator/brief-section'
 import { ready } from '@/trading/markets/equity-vn/brief/sections'
 import { VN_STORY_POLICY } from '@/trading/markets/equity-vn/brief/story-policy'
@@ -10,11 +12,11 @@ import { CONFIRMING_TURNOVER_RATIO } from '@/trading/markets/overview-sections'
 /** The one ordered exception to the builder record, because it reads the completed results of
  *  every other section. It emits action **codes**, never a command string: a snapshot holding `/rebalance`
  *  cannot be rendered by the HTTP surface and breaks the moment a command is renamed. */
-export function buildNextActions(
+export async function buildNextActions(
   context: BriefContext,
   sections: readonly BriefSectionResult[],
   overviews: readonly BriefSectionResult[]
-): BriefSectionResult {
+): Promise<BriefSectionResult> {
   const readyKinds = new Set(
     sections.filter((section) => section.status === 'ready').map((section) => section.kind)
   )
@@ -48,19 +50,35 @@ export function buildNextActions(
     codes.push('avoid-chasing')
   }
 
+  const events = await readCalendar(context)
+
   // Ready with no rows, never omitted: this is a core section, so omitting it would suppress the
   // whole brief on a morning that simply needs nothing. The renderer already skips an empty one.
   return ready('next-actions', [
     ...codes.map((code) => ({ code })),
-    ...heldEventTickers(context, sections, 'dividend-ex-date').map((ticker) => ({
+    ...heldEventTickers(context, events, 'dividend-ex-date').map((ticker) => ({
       ticker,
       code: 'record-dividend' as const,
     })),
-    ...heldEventTickers(context, sections, 'split').map((ticker) => ({
+    ...heldEventTickers(context, events, 'split').map((ticker) => ({
       ticker,
       code: 'record-distribution' as const,
     })),
   ])
+}
+
+/** The whole calendar the events section drew its capped list from. The read is memoised, so a
+ *  throw is the events section's own: it comes back unavailable, and this only loses the reminders. */
+async function readCalendar(context: BriefContext): Promise<EventsRead['rows']> {
+  try {
+    return (await context.events()).rows
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
+    return []
+  }
 }
 
 /** The held names a cash or share dividend goes ex on inside the calendar window: the price drops by
@@ -68,19 +86,13 @@ export function buildNextActions(
  *  in the book. */
 function heldEventTickers(
   context: BriefContext,
-  sections: readonly BriefSectionResult[],
+  events: EventsRead['rows'],
   kind: MarketEventKind
 ): readonly string[] {
-  const events = sections.find((section) => section.kind === 'events')
   const held = new Set(context.heldNames.map((instrument) => String(instrument.ticker)))
-
-  if (events?.status !== 'ready') {
-    return []
-  }
-
-  const tickers = events.rows.flatMap((row) =>
-    row.eventKind === kind && typeof row.ticker === 'string' && held.has(row.ticker)
-      ? [row.ticker]
+  const tickers = events.flatMap((row) =>
+    row.event.kind === kind && held.has(String(row.instrument.ticker))
+      ? [row.instrument.ticker]
       : []
   )
 

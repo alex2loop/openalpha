@@ -67,6 +67,9 @@ export interface TradingServices {
     readonly signal: AbortSignal
   }): Promise<string>
   readonly daemonTasks: readonly DaemonTask[]
+  /** Lets the loops that read market data begin: the boot refresh calls it once its sweep has
+   *  landed, failed, run out its budget or been aborted. Idempotent. */
+  releaseFirstSweep(): void
   /** The configured default region. It lives on the aggregate so no surface carries a fallback of
    *  its own — a slash-command default and a route default that disagree are two products. */
   readonly defaultRegion: Region

@@ -13,6 +13,7 @@ import type { ChannelId } from '@/core/channels'
 import type { Logger } from '@/core/logging/logger'
 import { AnswerUndelivered, decodeAnswer, encodeAnswer } from '@/channels/delivery/answer'
 import { callbackMessageId } from '@/channels/delivery/inbound'
+import { isPermanentChannelError } from '@/channels/permanent-error'
 import { channelId } from '@/core/channels'
 import { ChannelError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -292,7 +293,9 @@ async function failEntry(deps: InboxDrainDeps, claimed: ClaimedEntry, err: unkno
     token,
     error,
     failedAt,
-    maxAttempts: deps.inboxMaxAttempts,
+    // The claim already counted this attempt, so capping at it dead-letters a refusal the platform
+    // repeats instead of asking it again.
+    maxAttempts: isPermanentChannelError(err) ? entry.attemptCount : deps.inboxMaxAttempts,
     retryAt:
       failedAt + computeBackoffMs(entry.attemptCount, INBOX_RETRY_BASE_MS, INBOX_RETRY_CAP_MS),
     ...(answer === undefined ? {} : { answer }),

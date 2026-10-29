@@ -21,6 +21,7 @@ import { ValidationError } from '@/core/errors'
 import { freezeDeep } from '@/core/utils/freeze'
 import { currencyCode, marketRef, region, tradingDay, venueRef } from '@/trading/kernel/instrument'
 import { sourceId } from '@/trading/kernel/source/source-id'
+import { assertConfiguredDays } from '@/trading/wiring/config-days'
 import { BUILT_IN_VENUES, DEFAULT_TRADING_CONFIG } from '@/trading/wiring/config-defaults'
 import { tradingConfigPatchSchema, VENUES_CONFIG_KEY } from '@/trading/wiring/config-schema'
 
@@ -60,7 +61,11 @@ export function resolveTradingConfig(options: ResolveTradingConfigOptions): Trad
   }
 
   try {
-    return freezeDeep(merge(parsed.data, localized))
+    const config = freezeDeep(merge(parsed.data, localized))
+
+    assertConfiguredDays(config, TRADING_CONFIG_SECTION)
+
+    return config
   } catch (err: unknown) {
     rethrowAsConfigError(err, TRADING_CONFIG_SECTION)
   }
@@ -178,7 +183,7 @@ function mergeOrders(patch: TradingConfigPatch['orders'], base: OrderPolicy): Or
   }
 }
 
-/** A declared list replaces rather than extends the one below it: a corrected holiday must not keep
+/** A declared list replaces rather than extends the one below it: a corrected day must not keep
  *  the typo. A key the patch leaves out keeps the one below. */
 function mergeMarkets(patch: TradingConfigPatch['markets'], base: MarketConfigs): MarketConfigs {
   if (!patch) {
@@ -205,6 +210,7 @@ function mergeMarket(settings: MarketPatch, below: MarketConfig | undefined): Ma
 
   return {
     holidays: Object.freeze(settings.holidays?.map(tradingDay) ?? below?.holidays ?? []),
+    openDays: Object.freeze(settings.open_days?.map(tradingDay) ?? below?.openDays ?? []),
     ...(maximumStopLoss === undefined ? {} : { maximumStopLoss }),
     ...(stopLossAtr === undefined ? {} : { stopLossAtr }),
     ...(rewardRisk === undefined ? {} : { rewardRisk }),

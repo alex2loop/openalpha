@@ -42,7 +42,11 @@ interface ZaloPersonalSessionDeps {
   readonly handlers: AdapterHandlers
   readonly inbox: InboundInbox
   readonly logger: Logger
+  /** Ends the session: its listener and its reconnect loop. */
   readonly signal: AbortSignal
+  /** Ends the HTTP transport. The session's own end leaves it alone, so a send after intake closes
+   *  still goes out through the last logged-in client. */
+  readonly transportSignal: AbortSignal
   readonly threadTypes: LruMap<string, ThreadType>
   /** The logged-in client sends go through, or null while there is none. */
   readonly setApi: (api: API | null) => void
@@ -58,11 +62,11 @@ export async function runZaloPersonalSession(deps: ZaloPersonalSessionDeps): Pro
     const startedAt = performance.now()
     const end = await runSessionOnce(deps)
 
-    deps.setApi(null)
-
     if (deps.signal.aborted) {
       return
     }
+
+    deps.setApi(null)
 
     const wasStable = performance.now() - startedAt >= SESSION_STABLE_MS
 
@@ -89,9 +93,10 @@ async function runSessionOnce(deps: ZaloPersonalSessionDeps): Promise<SessionEnd
   let api: API
 
   try {
-    api = await new Zalo({ logging: false, polyfill: createZaloPersonalFetch(deps.signal) }).login(
-      credentials
-    )
+    api = await new Zalo({
+      logging: false,
+      polyfill: createZaloPersonalFetch(deps.transportSignal),
+    }).login(credentials)
   } catch (err: unknown) {
     return { reason: 'login_failed', detail: { err: formatErrForLog(err), fix: LOGIN_COMMAND } }
   }
@@ -144,11 +149,11 @@ function reportSessionEnd(
   }
 }
 
-function createZaloPersonalFetch(lifetimeSignal: AbortSignal): typeof fetch {
+function createZaloPersonalFetch(transportSignal: AbortSignal): typeof fetch {
   return Object.assign(
     async (input: string | URL | Request, init?: BunFetchRequestInit): Promise<Response> => {
-      if (lifetimeSignal.aborted) {
-        throw abortError(lifetimeSignal)
+      if (transportSignal.aborted) {
+        throw abortError(transportSignal)
       }
 
       const callerSignal = init?.signal ?? undefined
@@ -162,17 +167,17 @@ function createZaloPersonalFetch(lifetimeSignal: AbortSignal): typeof fetch {
         controller.abort(new ChannelError('send_failed', 'zalo_personal transport timed out'))
       }, REQUEST_TIMEOUT_MS)
       const onCallerAbort = (): void => controller.abort(abortError(callerSignal))
-      const onLifetimeAbort = (): void => controller.abort(abortError(lifetimeSignal))
+      const onTransportAbort = (): void => controller.abort(abortError(transportSignal))
 
       callerSignal?.addEventListener('abort', onCallerAbort, { once: true })
-      lifetimeSignal.addEventListener('abort', onLifetimeAbort, { once: true })
+      transportSignal.addEventListener('abort', onTransportAbort, { once: true })
 
       try {
         return await globalThis.fetch(input, { ...init, signal: controller.signal })
       } finally {
         clearTimeout(timer)
         callerSignal?.removeEventListener('abort', onCallerAbort)
-        lifetimeSignal.removeEventListener('abort', onLifetimeAbort)
+        transportSignal.removeEventListener('abort', onTransportAbort)
       }
     },
     globalThis.fetch

@@ -150,11 +150,13 @@ async function clearSessions(store: StoreDeps, agentId?: AgentId): Promise<Sessi
 
     if (agentId === undefined) {
       await tx.execute(store.sql.clearRoutesAll, [ROUTE_KEY_PATTERN])
+      await tx.execute(store.sql.clearBindingsAll)
       await tx.execute(store.sql.clearMessagesAll)
       await tx.execute(store.sql.detachAttemptsAll)
       await tx.execute(store.sql.clearAll)
     } else {
       await tx.execute(store.sql.clearRoutesByAgent, [ROUTE_KEY_PATTERN, agentId])
+      await tx.execute(store.sql.clearBindingsByAgent, [agentId])
       await tx.execute(store.sql.clearMessagesByAgent, [agentId])
       await tx.execute(store.sql.detachAttemptsByAgent, [agentId])
       await tx.execute(store.sql.clearByAgent, [agentId])
@@ -263,6 +265,7 @@ async function removeSession(store: StoreDeps, id: SessionId): Promise<SessionRe
     }
 
     await tx.execute(store.sql.removeRoutes, [ROUTE_KEY_PATTERN, id])
+    await tx.execute(store.sql.removeBinding, [id, id])
     await tx.execute(store.sql.removeMessages, [id])
     await tx.execute(store.sql.detachAttempts, [id])
     await tx.execute(store.sql.remove, [id])

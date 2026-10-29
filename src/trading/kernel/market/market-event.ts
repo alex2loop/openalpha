@@ -15,6 +15,19 @@ export const MARKET_EVENT_KINDS = Object.freeze([
 ] as const)
 export type MarketEventKind = (typeof MARKET_EVENT_KINDS)[number]
 
+/** How far back a name's events read reaches. HOSE republishes the margin list quarterly, so two
+ *  cycles reach a row that took effect at the start of the previous one. */
+const EVENTS_LOOKBACK_SESSIONS = 130
+
+/** The first day a name's events read reaches back to: the one owner of the window, so a reader of
+ *  past events can tell what the read could not have covered. */
+export function eventsFromDay(
+  calendar: { addTradingDays(day: TradingDay, count: number): TradingDay },
+  asOf: TradingDay
+): TradingDay {
+  return calendar.addTradingDays(asOf, -EVENTS_LOOKBACK_SESSIONS)
+}
+
 export interface MarketEvent {
   readonly at: TradingDay
   readonly kind: MarketEventKind

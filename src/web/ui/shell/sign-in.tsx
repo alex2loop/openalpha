@@ -1,4 +1,4 @@
-import { type AuthState, authState } from '@/web/api/auth-state'
+import { type AuthState, authState, refusalMessage } from '@/web/api/auth-state'
 import { UNAUTHORIZED_STATUS } from '@/web/api/client'
 import { brand, sessionFailure } from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
@@ -41,7 +41,7 @@ function resolveFailureText(auth: AuthState): string | undefined {
     case 'locked':
       return tr('ui.office.signIn.locked', { brand: command })
     case 'sign-in-failed':
-      return tr('ui.office.error.generic')
+      return refusalMessage.value === '' ? tr('ui.office.error.generic') : refusalMessage.value
     case 'cookie-blocked':
       return tr('ui.office.signIn.cookieBlocked', { brand: command })
     case 'ended':

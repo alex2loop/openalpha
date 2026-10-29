@@ -11,53 +11,53 @@ interface BootRefreshOptions {
   readonly app: App
   readonly logger: Logger
   readonly signal: AbortSignal
-  /** Hands an unfinished sweep to the daemon's task tracker: a detached failure must still reach
-   *  the same fatal boundary as any other daemon task. */
-  track(task: Promise<void>): void
 }
 
-/** Bounded synchronous phase, detached completion. The sweeper is never aborted on timeout - an
- *  aborted kind writes no attempt row, so the next tick would redo the whole scope; detaching gets
- *  freshness eventually and correctness always. The coordinator's in-flight map joins any later
- *  `trading.refresh` tick to this same sweep, so no second guard is needed here.
+/** One sweep of every market in use, run beside the rest of the start. The loops that read market
+ *  data wait for it through `releaseFirstSweep`, which is called when the sweep has settled, when
+ *  the budget runs out, or on abort, so a stuck provider never holds them. The sweeper is never
+ *  aborted on timeout - an aborted kind writes no attempt row, so the next tick would redo the
+ *  whole scope - so the sweep carries on and the coordinator's in-flight map joins any later
+ *  `trading.refresh` tick to it.
  *
- *  A provider outage degrades the same way inside the budget or after it: warn and boot on.
- *  Anything else is this code being wrong and must surface, through the caller inside the budget
- *  and through the fatal task tracker after it. `false` means boot was aborted. */
-export async function refreshMarketDataOnBoot(options: BootRefreshOptions): Promise<boolean> {
+ *  A provider outage degrades the same way inside the budget or after it: warn and carry on.
+ *  Anything else is this code being wrong and rejects, for the daemon's task tracker to make fatal. */
+export async function runBootRefresh(options: BootRefreshOptions): Promise<void> {
   const { app, logger, signal } = options
-  const settled = app
-    .resolve('tradingServices')
-    .refreshMarketData({ signal, scheduled: true })
-    .then((results) => {
-      const degradations = refreshDegradations(results)
+  const trading = app.resolve('tradingServices')
+  const sweep = sweepMarketData(app, logger, signal)
 
-      if (degradations.length > 0) {
-        logRefreshDegradations({ logger, forced: false, degradations })
-      }
+  try {
+    if (!(await settleWithin(sweep, BOOT_REFRESH_BUDGET_MS))) {
+      logger.warn('daemon.boot_refresh_timeout', { budgetMs: BOOT_REFRESH_BUDGET_MS })
+      trading.releaseFirstSweep()
+    }
 
-      return true
-    })
-    .catch((err: unknown) => {
-      if (isAbortError(err)) {
-        return false
-      }
-
-      if (isBoundaryFailure(err)) {
-        logger.warn('daemon.boot_refresh_failed', { err: formatErrForLog(err) })
-
-        return true
-      }
-
-      throw err
-    })
-
-  if (await settleWithin(settled, BOOT_REFRESH_BUDGET_MS)) {
-    return await settled
+    await sweep
+  } finally {
+    trading.releaseFirstSweep()
   }
+}
 
-  logger.warn('daemon.boot_refresh_timeout', { budgetMs: BOOT_REFRESH_BUDGET_MS })
-  options.track(settled.then(() => undefined))
+async function sweepMarketData(app: App, logger: Logger, signal: AbortSignal): Promise<void> {
+  try {
+    const results = await app
+      .resolve('tradingServices')
+      .refreshMarketData({ signal, scheduled: true })
+    const degradations = refreshDegradations(results)
 
-  return true
+    if (degradations.length > 0) {
+      logRefreshDegradations({ logger, forced: false, degradations })
+    }
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      return
+    }
+
+    if (!isBoundaryFailure(err)) {
+      throw err
+    }
+
+    logger.warn('daemon.boot_refresh_failed', { err: formatErrForLog(err) })
+  }
 }

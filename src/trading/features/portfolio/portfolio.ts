@@ -56,6 +56,7 @@ import {
 } from '@/trading/features/portfolio/view'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { disabledSegments } from '@/trading/kernel/operator/profile'
+import { cashDrawMultiple, marketTradeCost } from '@/trading/markets/cost'
 import { minimumSizesByInstrument, reachableCashByMarket } from '@/trading/venues/holdings'
 
 interface PortfolioServiceDeps extends PortfolioViewDeps {
@@ -339,6 +340,8 @@ function buildAdvice(input: {
       standingReduces: input.standingReduces,
       regimes: input.regimes,
       reachableCashBase: reachableCashByMarket(deps.venues, valued.book),
+      // No drift: a plan spends the expected fill; the order cap allows for the worst.
+      buyCashMultiple: (market) => cashDrawMultiple(marketTradeCost(deps.config, market), 0),
     }),
     book: valued,
   }

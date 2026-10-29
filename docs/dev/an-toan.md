@@ -116,8 +116,13 @@ Lỗi thiết lập mà operator sửa được thì ném `OperatorConfigError` 
 mình. Mọi mã trong `OrderErrorCode` nằm ở một trong hai nhóm.
 
 **Operator phải ra tay** (lệnh đã khớp mà sổ không biết, hoặc thiếu lớp bảo vệ): `order.unmirrorable`,
-`order.unmirrorable_fee`, `order.unpriced_fill`, `order.fill_timeout` (vẫn còn sống ở sàn),
+`order.unmirrorable_fee`, `order.fee_unreported`, `order.unpriced_fill`, `order.fill_timeout` (vẫn còn sống ở sàn),
 `order.exit_failed` (vị thế mở, không có lệnh cắt lỗ).
+
+`order.fee_unreported` chỉ xảy ra sau khi phần đọc biên nhận của Binance đã liệt kê lại các giao dịch một số lần
+có giới hạn, có lùi nhịp (`rereadUntil`, `venues/transport.ts`, hủy được); khi đó mirror ghi log mức `warn`
+(`order.fill_fee_unreported`) vì `/record sync` sẽ vào sổ lệnh đó sau. Mọi fill không vào sổ được khác vẫn là
+`order.fill_unbookable` mức `error`.
 
 **Sổ nguyên vẹn:** `order.auth`, `order.network`, `order.rate_limited`, `order.insufficient`,
 `order.rejected`, `order.clock_skew`, `order.below_minimum`, `order.exit_below_minimum`, `order.exit_inverted`,

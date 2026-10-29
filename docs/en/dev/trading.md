@@ -41,6 +41,10 @@ resolveSettledDay(calendar, now) // today if settled, else the previous trading 
 
 `upsertSeriesPoint` ([market-data store](../../../src/trading/features/market-data/store/market-data.ts)) answers whether the row landed. A pass counts only what it wrote, and `force` is what re-derives a stored day. A day the gold board history found no board on is not a `missingTargets` entry.
 
+## Which days are closed
+
+`CalendarPolicy.holidays` is a function from a year (and the calendar's own weekend test) to that year's closures, so a calendar answers `isTradingDay` for any year with no table to extend. VN's lives in [`markets/equity-vn/calendar/`](../../../src/trading/markets/equity-vn/calendar/closures.ts): the Labor Code art. 112 holidays (New Year, Tết, Hung Kings' Day, 30/4 and 1/5, National Day (a second adjacent day from 2021), from 2026 Vietnam Culture Day), each one that lands on a weekend moved to the next weekday not already closed, plus a short list of announced swap days and of the years the government put the second National Day holiday after 2 September, which follow no rule. Tết and the Hung Kings' Day come from the Vietnamese lunar calendar ([`lunar.ts`](../../../src/trading/markets/equity-vn/calendar/lunar.ts), Ho Ngoc Duc's algorithm at UTC+7, which is why some years differ from the Chinese date). `createTradingCalendar` works each year out once and keeps it in a small map. The operator's `holidays` and `open_days` are laid over the rules and win. Past days are still settled by the bars themselves, not by this calendar.
+
 ## The screen and the exclusion list
 
 `ScreenRequest` carries `market`, `limit`, `instrumentKind` and `sectors`. No market reads a profile. The mark `on your exclusion list` arrives through an `ExclusionReader` ([types.ts](../../../src/trading/features/market-data/types.ts)) that composition binds, so `market-data` reaches no operator-scoped feature.

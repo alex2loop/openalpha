@@ -47,6 +47,8 @@ interface AggregateOptions {
   readonly onFilled: OrderFilledListener
   readonly onAlertsChecked: (at: number) => void
   readonly onTaskPass: TaskPassListener
+  /** `[schedule] late_grace_ms`: the one lateness bound a timed send shares with the scheduler. */
+  readonly lateGraceMs: number
   recipient(): DeliveryAddress | undefined
 }
 
@@ -70,6 +72,10 @@ export function toAggregate(
   options: AggregateOptions,
   registries: Registries
 ): TradingServices {
+  // The one owner of "the boot sweep is done": the loops wait on its promise, and the boot refresh
+  // settles it through `releaseFirstSweep`.
+  const firstSweep = Promise.withResolvers<void>()
+
   return Object.freeze({
     ...parts.services,
     refresh: parts.refresh,
@@ -89,7 +95,12 @@ export function toAggregate(
     suggestionCards: buildSuggestionCards(parts.services, options.tradingConfig, parts.stores),
     rebalanceViews: buildRebalanceViews(parts.services, options.tradingConfig),
     appViews: buildAppViews(parts.services, options.tradingConfig),
-    daemonTasks: buildDaemonTasks(parts, options, registries),
+    daemonTasks: buildDaemonTasks(
+      parts,
+      { ...options, firstSweep: firstSweep.promise },
+      registries
+    ),
+    releaseFirstSweep: () => firstSweep.resolve(),
     syncVenue: buildVenueSync(parts, registries),
     marketSession: buildMarketSession(parts, options.tradingConfig, registries),
   })
@@ -130,7 +141,7 @@ function buildVenueSync(
 
 function buildDaemonTasks(
   parts: AggregateParts,
-  options: AggregateOptions,
+  options: AggregateOptions & { readonly firstSweep: Promise<void> },
   registries: Registries
 ): TradingServices['daemonTasks'] {
   return createTradingDaemonTasks({
@@ -151,6 +162,7 @@ function buildDaemonTasks(
     portfolio: parts.services.portfolio,
     reportDeps: toReportDeps(parts, options.tradingConfig, registries.venues),
     intradaySettings: parts.stores.intradaySettings,
+    lateGraceMs: options.lateGraceMs,
     restingExit: parts.stores.restingExit,
     isFillBooked: (fill, signal) => isVenueFillBooked(parts.stores.ledger, fill, signal),
     venues: registries.venues,
@@ -162,6 +174,7 @@ function buildDaemonTasks(
     onTaskPass: options.onTaskPass,
     recipient: options.recipient,
     refreshMarketData: parts.refreshMarketData,
+    firstSweep: options.firstSweep,
     logger: parts.logger,
   })
 }

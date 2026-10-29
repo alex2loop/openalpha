@@ -1,6 +1,7 @@
 import { isAbortError } from '@/core/errors'
 import { HttpRequestError, httpRequestWithSignal } from '@/core/http-client'
-import { withRetry } from '@/core/utils/retry'
+import { computeBackoffMs, withRetry } from '@/core/utils/retry'
+import { sleep } from '@/core/utils/time'
 import { OrderError } from '@/trading/features/order/types'
 
 const ATTEMPT_TIMEOUT_MS = 10_000
@@ -8,6 +9,9 @@ const REQUEST_BUDGET_MS = 30_000
 const READ_MAXIMUM_ATTEMPTS = 3
 const RETRY_INITIAL_DELAY_MS = 500
 const RETRY_MAXIMUM_DELAY_MS = 5_000
+const REREAD_MAXIMUM_READS = 4
+const REREAD_INITIAL_DELAY_MS = 400
+const REREAD_MAXIMUM_DELAY_MS = 2_000
 // 429 asks for slower traffic and 418 is the ban a client earns by ignoring it; replaying either
 // inside the retry window only deepens it.
 const RATE_LIMIT_STATUSES: ReadonlySet<number> = new Set([418, 429])
@@ -92,6 +96,24 @@ export function retriedRead<T>(
     isRetryable: (err: unknown) =>
       !budget.aborted && err instanceof OrderError && err.code === 'order.network',
   })
+}
+
+/** Reads again, a bounded number of times, while the venue's answer is not yet what it will be:
+ *  an accepted fill is listed a moment after its order row. Returns the last read either way, so
+ *  the caller still decides what an answer that never settled means. */
+export async function rereadUntil<T>(
+  signal: AbortSignal,
+  read: () => Promise<T>,
+  isSettled: (value: T) => boolean
+): Promise<T> {
+  let value = await read()
+
+  for (let reads = 1; reads < REREAD_MAXIMUM_READS && !isSettled(value); reads++) {
+    await sleep(computeBackoffMs(reads, REREAD_INITIAL_DELAY_MS, REREAD_MAXIMUM_DELAY_MS), signal)
+    value = await read()
+  }
+
+  return value
 }
 
 /** A write is never replayed: an order is not idempotent once its client id stops deduping, which

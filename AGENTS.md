@@ -115,8 +115,8 @@ Resolution and regions:
 Calendars:
 - A market's weekend is what its tape publishes, verified, not assumed from the asset class (VN gold quotes Saturdays). `isSettled` requires `isTradingDay`, so a wrong weekend silently drops days.
 - Session-counted tolerances (`WORLD_CLOSE_LAG_SESSIONS`, `FX_LAG_SESSIONS`) read the same calendar; changing the weekend rule re-derives them in the same commit.
-- Exchange closures are calendar: `CalendarPolicy.holidays` (`markets/equity-vn/holidays.ts`). A holiday is never a settled session.
-- Operators add closures under `[trading.markets.<id>] holidays`; `createTradingCalendar` layers them on the table, never replaces it; boot refuses one on the market's own weekend. Boot logs `trading.holidays_outdated` when the newest date is in a past year.
+- Exchange closures are calendar: `CalendarPolicy.holidays` is a function from a year to that year's closures (`vnClosuresOf`, `markets/equity-vn/calendar/`: Labor Code art. 112 plus the lunar conversion, with announced swap days listed beside the rules). A holiday is never a settled session.
+- Operators layer `[trading.markets.<id>] holidays` (adds a closure) and `open_days` (reopens one the rules close) over the rules; the operator wins; boot refuses either on the market's own weekend. There is no table to run out.
 - Another market's bars are counted on that market's calendar, never the caller's.
 
 Data semantics:
@@ -136,7 +136,7 @@ Strategy versions:
 
 Anything not listed is derived or gate-checked.
 
-1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>]?.holidays)`; published holidays go in `markets/<ref>/holidays.ts`.
+1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>])`; a market with exchange closures sets `CalendarPolicy.holidays` to a year-to-closures function kept in `markets/<ref>/calendar/`.
 2. Factor id tuple and a `FactorId` union arm in `trading/kernel/factor.ts` (`manifest.factorIds` is typed against it). The central edit is deliberate: a market with new factor ids ships in-tree, never as a plugin.
 3. One `markets.register(...)` line in `trading/wiring/composition/registration.ts`.
 4. Providers under `sources/`, routed in `SOURCE_ROUTES`, registered in `trading/wiring/composition/source-registry.ts`.

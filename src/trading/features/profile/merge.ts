@@ -13,7 +13,7 @@ import {
   isBelowReserve,
   TARGET_SUM_EPSILON,
 } from '@/trading/features/profile/policy'
-import { assertPatch } from '@/trading/features/profile/validate'
+import { assertBounds, assertPatch } from '@/trading/features/profile/validate'
 import { portfolioSegment } from '@/trading/kernel/instrument'
 import { disabledSegments, isSegmentDisabled, RISK_LEVELS } from '@/trading/kernel/operator/profile'
 
@@ -35,6 +35,10 @@ export function updateProfile(
   patch: ProfilePatch,
   context: ProfileContext
 ): UserProfile {
+  // The typed numbers first: the reserve reshapes targets below, and a value out of range would
+  // otherwise surface as whatever that reshaping trips over.
+  assertBounds(patch, context.bounds)
+
   const capacity = patch.riskLevel ?? patch.riskCapacity ?? current.riskCapacity
   const willingness = patch.riskLevel ?? patch.riskWillingness ?? current.riskWillingness
   const riskLevel = effectiveRisk(capacity, willingness)

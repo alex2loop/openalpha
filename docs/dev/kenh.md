@@ -312,9 +312,13 @@ ghi log `channel.start_failed`. Lỗi lúc dựng runtime (agent không có, gi�
 kênh nào khởi động. Nếu không kênh nào chạy, chạy riêng CLI vẫn hợp lệ.
 
 Chỉ một token mà chính nhà cung cấp từ chối mới tính là cấu hình: HTTP 401 hoặc 403 từ Telegram, và 401
-từ Zalo, vì bảng mã lỗi của chính Zalo xếp 403 là lỗi máy chủ. Mọi lỗi `getMe` khác là lỗi đường truyền,
-và cả hai adapter thử tối đa bốn lần với khoảng chờ có trần trước khi bỏ kênh. Zalo Personal không có
-token để bị từ chối: nó thử đăng nhập lại ở nền (đầu tiên 5 giây, tối đa 5 phút).
+từ Zalo, vì bảng mã lỗi của chính Zalo xếp 403 là lỗi máy chủ. `start()` của mỗi adapter chỉ gọi `getMe` một
+lần, giới hạn bởi timeout của request, nên mạng chậm không giữ chân `startChannels` (và bộ lập lịch, vòng
+giao dịch, API phía sau nó). Token bị từ chối thì `start()` ném lỗi; mọi lỗi khác là lỗi đường truyền, báo
+`connected: false` với `lastError: get_me_failed`, rồi vòng poll tiếp quản với khoảng chờ riêng. Vòng khởi động
+lại của Telegram lấy lại danh tính bot khi nó còn chưa biết và cài menu lệnh từ đó, tách khỏi việc poll và được
+vòng chờ khi thoát; lần cài hỏng sẽ thử lại ở lần khởi động lại kế tiếp của vòng. Zalo Personal không có token
+để bị từ chối: nó thử đăng nhập lại ở nền (đầu tiên 5 giây, tối đa 5 phút).
 
 `startChannels` trả về `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: hàm tắt, ảnh chụp sức khỏe, các kênh bị loại,
 một bộ gửi chiều ra định tuyến tới runtime sở hữu kênh (`AcknowledgedRouter`), và người nhận mặc định
@@ -333,13 +337,32 @@ Chat ghép nối được đọc lúc khởi động và đọc lại mỗi khi 
 nhận, vì `pair approve` ghi từ một tiến trình khác. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để
 một lần dọn hỏng chặn những lần còn lại.
 
+Một kênh có hai vòng đời. Tín hiệu tắt của dịch vụ nền là tín hiệu nhận tin (`intakeSignal`): nó cắt ngang lúc
+khởi động và dừng polling, vòng xử lý hộp thư và việc nhận thêm việc mới, nên tin chưa được nhận giữ nguyên
+trạng thái chờ cho lần khởi động sau, còn phiên chạy bị vòng xử lý cắt thì sửa tin chờ thành một dòng ngắn "đang khởi động lại, sẽ trả lời khi quay lại" thay cho lỗi chung, rồi trả lại quyền giữ (`releaseClaim`,
+không tốn lượt thử nào). Một lượt gặp cửa nhận tin đã đóng (một cụm tin kích hoạt sau đó, hoặc bị hàng đợi phiên
+đang tạm dừng từ chối) bị từ chối thay vì trả lời "hàng đợi đầy" hay trả về lặng lẽ, nên mục của nó được trả lại
+chứ không bị đánh dấu xong. Việc gửi thì sống lâu hơn: mỗi runtime tự giữ tín hiệu gửi đi và chỉ kết thúc nó
+trong `stop`, nên các phiên chạy mà dịch vụ nền đang chờ vẫn gửi được kết quả. Lượt gửi nốt thông báo còn lại đi
+trước: bộ gửi thử đúng một lần, có giới hạn thời gian (`notifyDrainTimeoutMs`, 500 ms), với từng thông báo còn
+trong hàng đợi khi đường truyền của adapter còn sống, rồi mới hủy việc gửi và đóng adapter. Tín hiệu `start` của
+adapter là tín hiệu nhận tin, nên `send`, `edit` và các hàm còn lại phải tiếp tục chạy sau nó, cho đến `dispose`.
+Tín hiệu dừng thứ hai thì thoát tiến trình, nên không có gì chờ nó.
+
+Bộ gửi thử lại một lần gửi hỏng tối đa `notifyMaxAttempts` lần, trừ `PermanentChannelError`: nền tảng từ chối
+và lần nào cũng từ chối lại (lỗi phía client của Telegram ngoài 408 và 429, văn bản quá giới hạn của nền tảng,
+Zalo 401). Loại này bị bỏ ngay ở lần hỏng đầu. Mã 429 là `ChannelError` thường và vẫn chờ đúng khoảng
+retry-after. Hộp thư áp dụng cùng quy tắc qua `isPermanentChannelError`, hàm này nhìn xuyên cả lớp bọc như
+`AnswerUndelivered`: một mục mà nền tảng từ chối câu trả lời vĩnh viễn thì vào hàng chết ngay, không thử lại tới
+`inboxMaxAttempts`.
+
 ## Thêm một kênh
 
 1. Viết một `ChannelDefinition` và một `ChannelAdapter` phía sau `channels/api.ts`, trong
    `channels/adapters/<tên>/`.
 2. Giữ phần phân tích kênh truyền, dựng hiển thị, và thông tin đăng nhập bên trong thư mục đó.
 3. Khai đúng năng lực thật, và áp `maxTextLen` ở tầng dựng hiển thị.
-4. Nhận tín hiệu tắt trước khi gắn listener hay bắt đầu polling.
+4. Nhận tín hiệu `start` trước khi gắn listener hay bắt đầu polling; nó chỉ dừng việc nhận tin, còn gửi vẫn chạy đến `dispose`.
 5. Đăng ký định nghĩa ở tầng composition, thường qua một plugin đi kèm đáng tin cậy.
 6. Thêm kiểm tra cấu hình và doctor qua chính đường schema của định nghĩa.
 

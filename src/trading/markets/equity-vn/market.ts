@@ -70,7 +70,7 @@ export function createVnEquityMarket(deps: MarketDeps): Market {
   }
 }
 
-function vnManifest(config: TradingConfig): MarketManifest {
+export function vnManifest(config: TradingConfig): MarketManifest {
   return {
     id: VN_MARKET_REF,
     region: VN_MARKET_REGION,
@@ -82,7 +82,7 @@ function vnManifest(config: TradingConfig): MarketManifest {
     icon: '🇻🇳',
     quoteUnit: quoteUnit('currency-per-share'),
     defaultCalendar: VN_CALENDAR,
-    calendar: createTradingCalendar(VN_CALENDAR, config.markets[VN_MARKET_REF]?.holidays),
+    calendar: createTradingCalendar(VN_CALENDAR, config.markets[VN_MARKET_REF]),
     // HOSE's session is what "a Vietnamese trading day" means.
     ownsRegion: true,
     detection: 'stored',

@@ -128,6 +128,8 @@ interface RouteOptions {
 export const ROUTES = Object.freeze({
   health: route<HealthResponse>('/v1/health'),
   state: route<StatePayload>('/v1/state'),
+  // The feed socket's path: only ever read as a plain request, to learn why a socket did not open.
+  feed: route<undefined>('/v1/ws'),
   live: route<LiveSnapshotWire>('/v1/live'),
   notices: route<NoticesResponse>('/v1/notices'),
   noticesRead: route<NoticesReadResponse>('/v1/notices/read'),

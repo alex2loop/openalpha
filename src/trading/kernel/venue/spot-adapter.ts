@@ -38,9 +38,13 @@ export interface OrderReceipt {
   readonly averagePrice: number
   /** Accumulated fill quantity in base currency, never one fill's `fillSz`. */
   readonly filledQuantity: number
-  /** A charge is reported negative; the sign is preserved here and taken absolute at the mirror. */
+  /** A charge is reported negative and a rebate positive; the sign is preserved here. Booking takes
+   *  the charge and books a rebate as no fee (`toBookedFill`). */
   readonly fee: number
   readonly feeCurrency: string
+  /** The venue printed a fill but has not said what it cost, so `fee` is a placeholder zero. Not
+   *  bookable until a later read carries the charge: a guessed zero would book a free fill. */
+  readonly feeUnreported?: true
   /** The last fill's stamp, from the venue's clock. What dates an exit — absent when the
    *  venue named none, because a local clock would date the trade to the day it was noticed. */
   readonly filledAt?: number

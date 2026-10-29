@@ -13,20 +13,40 @@ import { sendCaught } from '@/trading/kernel/operator/delivery-retry'
 /** How long the loop sleeps when nothing is scheduled - an empty `send_times`, or a calendar with
  *  no trading day ahead. Long enough to cost nothing, short enough that a config reload is picked
  *  up without a restart. */
-export const IDLE_DELAY_MS = 3_600_000
+const IDLE_DELAY_MS = 3_600_000
 
 interface IntradayTickDeps extends IntradayReportDeps {
   readonly plan: IntradayPlan
+  readonly timing: Pick<IntradayTiming, 'lateByMs'>
+  /** How long after its slot a report may still go out. */
+  readonly lateGraceMs: number
   readonly settings: IntradaySettingsStore
   readonly sender: TradingNoticeSender
   recipient(): DeliveryAddress | undefined
   readonly logger: Logger
 }
 
-export function nextIntradayDelayMs(plan: IntradayPlan, now: number, ceilingMs: number): number {
-  const at = nextIntradayFireAt(plan, now)
+/** The loop's wake-ups and how late the current one is. A wake long after the instant it was set
+ *  for (a host asleep or offline through the slot) would send a report for a time that has passed. */
+interface IntradayTiming {
+  nextDelayMs(now: number): number
+  lateByMs(now: number): number
+}
 
-  return at === null ? ceilingMs : Math.max(0, at - now)
+export function createIntradayTiming(plan: IntradayPlan): IntradayTiming {
+  let dueAt: number | undefined
+
+  return {
+    nextDelayMs(now) {
+      const at = nextIntradayFireAt(plan, now)
+      const delayMs = at === null ? IDLE_DELAY_MS : Math.max(0, at - now)
+
+      dueAt = now + delayMs
+
+      return delayMs
+    },
+    lateByMs: (now) => (dueAt === undefined ? 0 : Math.max(0, now - dueAt)),
+  }
 }
 
 export function createIntradayTick(deps: IntradayTickDeps): (signal: AbortSignal) => Promise<void> {
@@ -48,6 +68,13 @@ export function createIntradayTick(deps: IntradayTickDeps): (signal: AbortSignal
 
     if (target === undefined) {
       deps.logger.debug('trading.intraday_no_recipient', { market: plan.market.manifest.id })
+      return
+    }
+
+    const lateMs = deps.timing.lateByMs(now)
+
+    if (lateMs > deps.lateGraceMs) {
+      deps.logger.warn('trading.intraday_late', { market: plan.market.manifest.id, lateMs })
       return
     }
 

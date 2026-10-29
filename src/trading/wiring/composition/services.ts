@@ -219,6 +219,7 @@ function buildSuggestions(parts: SuggestionParts): SuggestionService {
     portfolio: createPortfolioReader({ portfolio, profile: profiles, deps, fx }),
     fills: (options) => listFillsSince(portfolio, options),
     config: deps.config,
+    venues: deps.venues,
     logger: deps.logger,
     runDebate: deps.runDebate,
     notices: {

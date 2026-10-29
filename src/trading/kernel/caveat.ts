@@ -143,6 +143,8 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'stage.threw', severity: 'warn' },
   { code: 'suggestion.conviction-lowered', severity: 'warn' },
   { code: 'suggestion.averaging-down', severity: 'warn', operatorDetail: true },
+  { code: 'suggestion.averaging-down-net', severity: 'warn', operatorDetail: true },
+  { code: 'suggestion.dividend-amount-unknown', severity: 'warn' },
   { code: 'suggestion.recent-exit', severity: 'warn', operatorDetail: true },
   { code: 'suggestion.round-trip-churn', severity: 'warn' },
   { code: 'suggestion.crowded-side', severity: 'warn' },

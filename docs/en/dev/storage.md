@@ -197,14 +197,14 @@ same connection as its delete.
   turn by `engine/hooks/persistence.ts`. `appendCommandExchange` writes the two rows a slash command
   contributes (they name the command's run when it ran as one; no attempt is linked). The dispatcher
   records every command answer through it: an echoed `text` answer as model context, every other one
-  with `display_only = 1`, kept for the history page and left out of `loadHistory` and `lastModelMessageAt`; a scheduled job keeps only its model-context (echo) rows (its answer is delivered, and its session is never swept), `/new` and choosing an agent keep nothing (they move the chat to another session), and neither does a command a page button sent quiet (its result shows where the button sits), a command that fails keeps its line with a generic failure answer, a history page never ends between a line and its answer, and rolling the migration back deletes them, since the previous release would read them as model context. `finalizeRun(id, runId, outcome)` closes the session out and throws
+  with `display_only = 1`, kept for the history page and left out of `loadHistory` and `lastModelMessageAt`; a scheduled job keeps only its model-context (echo) rows (its answer is delivered, and its session is never swept), `/new` and choosing an agent keep nothing (they move the chat to another session), and neither does a command a page button sent quiet (its result shows where the button sits), a command that fails keeps its line with a generic failure answer, a command the rate limiter refuses keeps nothing (so a burst cannot write past the limit), a history page never starts inside a turn (it opens on the operator's line, and the answer with its tool-call rows go with their line unless one turn outruns the page), and rolling the migration back deletes them, since the previous release would read them as model context. `finalizeRun(id, runId, outcome)` closes the session out and throws
   `ConflictError` unless that run holds it.
 - **Stale.** `markStaleRuns(leaseExpiresBefore)` runs once at daemon boot (`app/startup-state.ts`),
   before any subsystem can open a run, and marks every `active` session nobody holds a live lease on
   as `stale`.
 - **Remove.** `remove(id)` reads the status inside the transaction and refuses an `active` session
   (`'active'`; its next flush would fail on the cascaded delete). Otherwise it deletes route rows
-  first, then messages, nulls `llm_attempts.session_id`, then the session. `clear(agentId?)` does
+  first, then the chat's agent binding when its chat id is this session id (the app's chats), then messages, nulls `llm_attempts.session_id`, then the session. `clear(agentId?)` does
   the same for many and refuses if any is active. Route keys use `SESSION_ROUTE_KEY_PREFIX`.
 - **Prefix lookup.** `resolveIdPrefix` returns `found | not_found | ambiguous`; an exact id wins over
   a longer match.
