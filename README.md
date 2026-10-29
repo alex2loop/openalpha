@@ -218,6 +218,15 @@ Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/b
   api_key_env = "ANTHROPIC_API_KEY"
   ```
 
+- **Chỉnh mức cắt lỗ và chốt lời:** OpenAlpha không chốt lời theo một con số % chung cho mọi mã, vì lãi 8% với mã ngân hàng đi chậm là xa, còn với mã nhỏ hay giật thì chỉ là dao động vài phiên. Cắt lỗ đặt theo biên độ dao động thường ngày của từng mã, mục tiêu là bội số của khoảng lỗ đó, nên tỷ lệ lời/lỗ luôn đúng như bạn chọn. Muốn khuôn quen thuộc kiểu "lỗ tối đa 8%" thì sửa `config.toml` rồi khởi động lại:
+
+  ```toml
+  [trading.markets.equity-vn]
+  maximum_stop_loss = 0.08   # cắt lỗ không bao giờ xa quá 8% dưới giá vào
+  reward_risk = 3            # mục tiêu xa gấp 3 lần khoảng lỗ: lỗ 8% thì mục tiêu khoảng +24%
+  ```
+
+  Ở mốc chốt lời đầu tiên (cách giá vào đúng một khoảng lỗ), một phần vị thế được bán để khóa lãi; phần còn lại đi tiếp với cắt lỗ được nâng dần theo giá. Đổi phần bán đó bằng `/profile set take-profit-tranche-pct 0.5` (mặc định một phần ba). Đổi các mức này thì thị trường đó bắt đầu một sổ thành tích riêng, để `/reflect` không trộn kế hoạch cũ với mới. Chi tiết: [đặt cắt lỗ và mục tiêu](docs/giao-dich.md#đặt-cắt-lỗ-và-mục-tiêu-theo-từng-thị-trường).
 - **Mọi tùy chọn cấu hình:** [config.sample.toml](config.sample.toml) · [docs/cau-hinh.md](docs/cau-hinh.md). Không muốn dùng khóa AI thì chạy mô hình ngay trên máy qua Ollama hoặc vLLM.
 - **Cài trên máy chủ hay trong CI?** Đặt `OPENALPHA_NO_ONBOARD=1` để bỏ bước hỏi; đầu [install.sh](install.sh) và [install.ps1](install.ps1) liệt kê đủ các tùy chọn, ví dụ `OPENALPHA_VERSION` để cài đúng một bản.
 - **Cập nhật:** CLI nhắc mỗi ngày một lần, kèm điều đáng chú ý của bản mới; trong cuộc trò chuyện riêng, bot nhắc mỗi tuần (bản quan trọng thì mỗi ngày). `openalpha upgrade` lên bản mới mà giữ nguyên dữ liệu và cấu hình.
