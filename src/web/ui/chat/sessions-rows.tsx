@@ -179,7 +179,7 @@ function RowMenu({ session }: { readonly session: ChatSession }) {
   )
 }
 
-// Delete is offered on this app's sessions only; the daemon refuses any other channel's anyway.
+// The daemon says which chats it would delete.
 function RowMenuItems({ session }: { readonly session: ChatSession }) {
   return (
     <>
@@ -192,7 +192,7 @@ function RowMenuItems({ session }: { readonly session: ChatSession }) {
         <ExternalIcon />
         {tr('ui.office.sessions.openTab')}
       </a>
-      {session.channel === APP_CHANNEL && (
+      {session.deletable && (
         <button type="button" class="is-danger" onClick={() => deleteSession(session)}>
           <TrashIcon />
           {tr('ui.office.sessions.delete')}

@@ -548,7 +548,7 @@ Các điểm nhỏ hơn:
 - `/v1/memory` đọc `Memory.listScopes` (phạm vi cục bộ đứng đầu, trần số dòng nằm trong SQL), bỏ các dòng `prefs-pending:` và `prefs-asked:`, và quên theo một khóa phạm vi base64url. Một lần ghi `prefs:` thành công phát `preference_saved`.
 - `GET /v1/market` vẽ đường hiển thị của `/market` (`renderMarketShow`); `/v1/themes` vẽ chữ của `/themes show` và các bước chuyển với đúng câu của câu lệnh.
 - `POST /v1/ledger/preview` trả tỷ giá mà một bản nháp cần (`replacing` bỏ ra dòng mà lần sửa thay thế). `POST /v1/ledger` từ chối bản nháp cần tỷ giá mà không nêu, với lỗi trường ở `operatorFxRate`. `POST /v1/ledger/sync` là `runVenueSync`, đúng mã mà `/record sync` chạy.
-- `DELETE /v1/chat/sessions/:id` chỉ xóa phiên `api` không có lượt nào đang chạy.
+- `DELETE /v1/chat/sessions/:id` chỉ xóa phiên `api` hoặc `cli` không có lượt nào đang chạy (`isDeletableChannel`, cũng là nơi đặt `deletable` của danh sách); terminal còn mở trên phiên đó tạo lại dòng cùng id ở câu kế tiếp.
 - `GET /v1/cost` thêm `jobs` từ `rootRunsForRange`, hàm lần mọi lần gọi trong khoảng lên tới phiên chạy gốc của nó. Phần chi không có gốc là `otherUsd`, nên `jobs` cộng `otherUsd` bằng đúng tổng.
 
 **Agent và lịch được ghi từ API.** **Agent.** [routes/agent-edit.ts](../../src/app/server/routes/agent-edit.ts) xử lý một lần ghi theo thứ tự này:

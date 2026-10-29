@@ -1,4 +1,4 @@
-import { channelId } from '@/core/channels'
+import { channelId, LOCAL_CHANNEL_ID } from '@/core/channels'
 
 /** The channel the app's requests, sessions and notices carry. */
 export const API_CHANNEL = channelId('api')
@@ -7,6 +7,12 @@ export const API_CHANNEL = channelId('api')
  *  folds unknown channels into `api`, so it never answers this. */
 export function isApiChannel(channel: string): boolean {
   return channel === API_CHANNEL
+}
+
+/** Whether the operator may delete a chat of this channel from the app: the app's own and the
+ *  terminal's. A chat app's is the other side's history too, so it stays. */
+export function isDeletableChannel(channel: string): boolean {
+  return channel === API_CHANNEL || channel === LOCAL_CHANNEL_ID
 }
 
 /** The chat id of the app's own alerts; the runtime gives an unaddressed surface notice the same. */

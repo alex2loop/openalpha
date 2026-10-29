@@ -1893,7 +1893,7 @@
   "errors": {
     "approvalOtherChannel": "Yêu cầu này hỏi từ {channel}, bạn trả lời ở đó nhé.",
     "chatSessionRunning": "Cuộc trò chuyện này đang trả lời nên mình chưa xóa được.",
-    "chatSessionNotWeb": "Ở đây chỉ xóa được cuộc trò chuyện trên web; cuộc trò chuyện này thuộc {channel}.",
+    "chatSessionNotDeletable": "Cuộc trò chuyện trên {channel} không xóa ở đây được, vì đó cũng là lịch sử bên {channel}.",
     "memorySessionNotWeb": "Ghi nhớ chỉ lưu được từ cuộc trò chuyện trên web; cuộc trò chuyện này thuộc {channel}, bạn nói với mình ở đó nhé.",
     "dbResetSharedSchema": "Mình không reset schema \"{schema}\": ứng dụng khác có thể đang để bảng ở đó, và reset sẽ xóa sạch mọi thứ bên trong. Hãy đặt storage.schema sang một schema riêng (ví dụ \"alpha\") rồi chạy reset lại.",
     "dbSchemaAhead": "Cơ sở dữ liệu này đã được một bản mới hơn cập nhật, và bản hiện tại không đọc nó an toàn được, nên mình dừng lại trước khi đụng vào. Để chạy lại, hãy quay về bản mới: `{upgrade} --rollback` nếu bạn vừa quay về bản cũ, còn không thì `{upgrade}`. Nếu muốn ở lại bản này, hãy khôi phục bản sao lưu trước lần cập nhật đó bằng `{restore}`, với một tệp trong {folder} ở thư mục dữ liệu (chỉ SQLite).",

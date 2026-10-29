@@ -1893,7 +1893,7 @@
   "errors": {
     "approvalOtherChannel": "This was asked on {channel}; answer it there.",
     "chatSessionRunning": "This chat is still answering, so I can't delete it yet.",
-    "chatSessionNotWeb": "Only web chats can be deleted here; this one belongs to {channel}.",
+    "chatSessionNotDeletable": "A {channel} chat can't be deleted here, since it's that app's history too.",
     "memorySessionNotWeb": "Notes are saved from web chats only; this chat belongs to {channel}, so tell me there instead.",
     "dbResetSharedSchema": "I won't reset the \"{schema}\" schema: other apps may keep tables there, and a reset drops everything in it. Give storage.schema a schema of its own (for example \"alpha\"), then run the reset again.",
     "dbSchemaAhead": "A newer release has already updated this database, and this version can't read it safely, so I stopped before touching anything. To get going again, go back to the newer release: `{upgrade} --rollback` if you just rolled back, `{upgrade}` otherwise. To stay on this version, restore the copy saved before that update with `{restore}`, using a file from {folder} in your data folder (SQLite only).",

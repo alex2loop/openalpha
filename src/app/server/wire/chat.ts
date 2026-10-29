@@ -158,6 +158,8 @@ interface ChatSessionWire {
   readonly lastMessageAt: number
   /** The operator's lines, each with the answer it got. */
   readonly turnCount: number
+  /** The operator may delete it here: a chat the app or the terminal started. */
+  readonly deletable: boolean
   readonly title?: string
   readonly lastReply?: string
 }

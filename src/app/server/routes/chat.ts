@@ -10,7 +10,7 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { SessionId } from '@/core/ids'
 import type { TranscriptMessage } from '@/persistence/api'
-import { API_CHANNEL, isApiChannel } from '@/app/server/channel'
+import { API_CHANNEL, isApiChannel, isDeletableChannel } from '@/app/server/channel'
 import { CHAT_ID_RE } from '@/app/server/chat-id'
 import { ENGINE_DECISION } from '@/app/server/decision'
 import { apiError, json } from '@/app/server/http/dispatch'
@@ -177,8 +177,9 @@ async function handleChatSessions(req: Request, ctx: ApiRouteContext): Promise<R
   return json(toChatSessionsWire(listings, page.limit))
 }
 
-/** Deletes an app chat. Another channel's session is refused, and so is one whose turn is running;
- *  an id already gone answers `deleted: false`. */
+/** Deletes an app or terminal chat. A chat app's session is refused, and so is one whose turn is
+ *  running; an id already gone answers `deleted: false`. A terminal still open on it carries on in a
+ *  fresh session of the same id. */
 async function handleChatSessionDelete(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const id = parsePathId(req, parseSessionId)
 
@@ -195,10 +196,10 @@ async function handleChatSessionDelete(req: Request, ctx: ApiRouteContext): Prom
 
   const { translate } = bindLocale(localeOf(ctx))
 
-  if (!isApiChannel(channel)) {
+  if (!isDeletableChannel(channel)) {
     return apiError(
       'conflict',
-      translate('errors.chatSessionNotWeb', { channel: channelNameOf(channel) })
+      translate('errors.chatSessionNotDeletable', { channel: channelNameOf(channel) })
     )
   }
 
