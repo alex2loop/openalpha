@@ -12,14 +12,14 @@ import { AnalyzeButton } from '@/web/ui/ticker/analyze-button'
 interface CardActionsProps {
   readonly ticker: string
   readonly market: string
-  /** A stored call stands: a plain `/suggest` would hand it back, so a fresh run is offered too. */
-  readonly hasPlan: boolean
+  /** A stored call stands: a plain `/suggest` would hand it back, so the analysis runs fresh. */
+  readonly isAnalyzed: boolean
 }
 
 /** What the operator can do with this name. The analysis runs at once, fresh where a call is
  *  stored; "Theo dõi" is free and changes the list at once; the alert and the trade open their
  *  forms. */
-export function CardActions({ ticker, market, hasPlan }: CardActionsProps) {
+export function CardActions({ ticker, market, isAnalyzed }: CardActionsProps) {
   const failure = useSignal<string | undefined>(undefined)
   const isBusy = useSignal(false)
   const isWatched = watchedNames.value.some(
@@ -43,7 +43,7 @@ export function CardActions({ ticker, market, hasPlan }: CardActionsProps) {
 
   return (
     <div class="card-actions">
-      <AnalyzeButton name={ticker} isAnalyzed={hasPlan} />
+      <AnalyzeButton name={qualifyName({ market, ticker })} isAnalyzed={isAnalyzed} />
       {isWatched ? (
         <Button onClick={() => openBook('watch')}>{tr('ui.office.ticker.watching')}</Button>
       ) : (

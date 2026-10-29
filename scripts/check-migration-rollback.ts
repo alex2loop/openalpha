@@ -209,7 +209,7 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   return new Set(rows.map((row) => row.name))
 }
 
-/** Every dropped column and index comes back, so the previous release writes its rows unchanged. */
+/** Every column and index the migration drops is gone after it and back after rolling it back. */
 async function assertDroppedColumnsRollback(db: Storage): Promise<void> {
   for (const [table, column] of DROPPED_COLUMNS) {
     assertState(
@@ -217,6 +217,13 @@ async function assertDroppedColumnsRollback(db: Storage): Promise<void> {
       `unused-column migration kept ${table}.${column}`
     )
   }
+
+  const kept = await indexNames(db)
+
+  assertState(
+    DROPPED_INDEXES.every((name) => !kept.has(name)),
+    'unused-column migration kept an index'
+  )
 
   const rolledBack = await rollbackMigration(db, sqliteDialect, {
     expectedId: DROPPED_COLUMNS_MIGRATION_ID,

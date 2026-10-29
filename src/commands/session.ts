@@ -14,6 +14,7 @@ const POLICY = {
   role: 'operator',
   action: 'mutate',
   idempotencyKey: (ctx: SlashContext) => ctx.requestId,
+  transcript: 'none',
 } as const satisfies SlashInvocationPolicy
 
 /** Routes the caller's chat to a fresh session, opened by its next message. The old transcript stays on disk. */

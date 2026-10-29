@@ -27,6 +27,7 @@ export interface TranscriptRow extends MessagePayloadRow {
 }
 
 export interface StoredMessageRow extends TranscriptRow {
+  readonly display_only: number
   readonly created_at: number
 }
 
@@ -107,6 +108,7 @@ export function toStoredMessage(row: StoredMessageRow): StoredSessionMessage {
     idx: row.idx,
     ...(row.run_id === null ? {} : { runId: runId(row.run_id) }),
     message: toMessage(row),
+    ...(row.display_only === 1 ? { displayOnly: true as const } : {}),
     createdAt: row.created_at,
   }
 }

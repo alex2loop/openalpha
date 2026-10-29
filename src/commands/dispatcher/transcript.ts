@@ -28,8 +28,9 @@ interface ExchangeInput {
  * as written, a `message` result rendered in the session's locale. An echoed `text` result
  * (`transcript: 'echo'`) is model context, so the next agent turn in this session can be asked
  * about it; every other answer is display-only, kept for the session's history and never read back
- * by the model. A failed write is logged and the answer still goes out: it costs the history and
- * the follow-up context and nothing else.
+ * by the model. A command that moves the chat to another session (`transcript: 'none'`) and a
+ * scheduled job's non-echo answer keep nothing. A failed write is logged and the answer still goes
+ * out: it costs the history and the follow-up context and nothing else.
  */
 export async function appendExchange(input: ExchangeInput): Promise<void> {
   try {
@@ -52,7 +53,7 @@ function toExchange(input: ExchangeInput): CommandExchange | undefined {
   const run = context.runId === undefined ? {} : { runId: context.runId }
   const isEcho = result.kind === 'text' && input.policy?.transcript === 'echo'
 
-  if (context.isScheduled === true && !isEcho) {
+  if (input.policy?.transcript === 'none' || (context.isScheduled === true && !isEcho)) {
     return undefined
   }
 

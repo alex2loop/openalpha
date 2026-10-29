@@ -3,12 +3,12 @@ import { join, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
 
 import type { CliApp } from '@/cli/types'
-import type { Dialect, Transaction } from '@/core/types/storage'
+import type { Dialect, DialectName, Transaction } from '@/core/types/storage'
 import type { DbTable } from '@/persistence/api'
 import { type Command, createCommand } from '@/cli/command'
 import { usage } from '@/cli/error-output'
 import { flagString } from '@/cli/parsing/args'
-import { success } from '@/cli/ui/colors'
+import { success, warn } from '@/cli/ui/colors'
 import { expandHome } from '@/core/config/resolve'
 import { ValidationError } from '@/core/errors'
 import { isPlainRecord } from '@/core/utils/collections'
@@ -23,6 +23,13 @@ const IMPORT_EXTENSION = 'json'
 // Interpolated into the INSERT, so it is bounded to an identifier: no quote, space, paren or
 // semicolon is expressible, and a name that passes but names no column is rejected by the engine.
 const COLUMN_NAME_RE = /^[a-z][a-z0-9_]*$/
+// The columns the table has in this release, so an export from an older one still reads back.
+const TABLE_COLUMNS_SQL: Readonly<Record<DialectName, string>> = {
+  sqlite: 'SELECT name FROM pragma_table_info(?1)',
+  postgres:
+    'SELECT column_name AS name FROM information_schema.columns ' +
+    'WHERE table_schema = current_schema() AND table_name = $1',
+}
 
 type Row = Record<string, unknown>
 
@@ -105,23 +112,31 @@ async function readInto(req: ImportRequest): Promise<number> {
   const { app, dir } = req
   const locale = app.config.locale.language
   const dialect = app.resolve('dialect')
-  const counts = await app.resolve('storage').transaction(async (tx) => {
-    const written: TableCount[] = []
+  const imported = await app.resolve('storage').transaction(async (tx) => {
+    const written: TableImported[] = []
 
     for (const table of req.tables) {
       await assertEmpty(tx, table)
-      written.push({
-        name: table.name,
-        rows: await importTable({ tx, dialect, table, path: tableFile(dir, table) }),
-      })
+
+      const columns = await tableColumns(tx, dialect, table)
+
+      written.push(await importTable({ tx, dialect, table, columns, path: tableFile(dir, table) }))
     }
 
     return written
   })
-  const rows = printTableCounts(app, counts)
+  const rows = printTableCounts(app, imported)
+
+  for (const { name, skipped } of imported) {
+    if (skipped.length > 0) {
+      app.out(
+        warn(t(locale, 'cli.dbImportSkippedColumns', { table: name, columns: skipped.join(', ') }))
+      )
+    }
+  }
 
   app.out(
-    success(t(locale, 'cli.dbImportRead', { ...countedTotals(locale, rows, counts.length), dir }))
+    success(t(locale, 'cli.dbImportRead', { ...countedTotals(locale, rows, imported.length), dir }))
   )
 
   return 0
@@ -137,28 +152,50 @@ async function assertEmpty(tx: Transaction, table: DbTable): Promise<void> {
   }
 }
 
+async function tableColumns(
+  tx: Transaction,
+  dialect: Dialect,
+  table: DbTable
+): Promise<ReadonlySet<string>> {
+  const rows = await tx.query<{ readonly name: string }>(TABLE_COLUMNS_SQL[dialect.name], [
+    table.name,
+  ])
+
+  return new Set(rows.map((row) => row.name))
+}
+
 interface TableImport {
   readonly tx: Transaction
   readonly dialect: Dialect
   readonly table: DbTable
+  /** What the table holds now; a file column outside it was dropped since the export. */
+  readonly columns: ReadonlySet<string>
   readonly path: string
 }
 
+interface TableImported extends TableCount {
+  readonly skipped: readonly string[]
+}
+
 interface RowShape {
+  /** Every column the file's rows carry. */
+  readonly fileCols: readonly string[]
+  /** The ones written: the file's columns the table still has. */
   readonly cols: readonly string[]
+  readonly skipped: readonly string[]
   readonly rowsPerStatement: number
 }
 
 interface RowValues {
   readonly row: Row
-  readonly cols: readonly string[]
+  readonly shape: RowShape
   readonly req: TableImport
   readonly line: number
 }
 
 // Read a line at a time and flushed by the bind ceiling, so a table's memory cost is one batch
 // rather than one file — the same property that makes `db export` page its reads.
-async function importTable(req: TableImport): Promise<number> {
+async function importTable(req: TableImport): Promise<TableImported> {
   const stream = createReadStream(req.path, { encoding: 'utf8' })
   const lines = createInterface({ input: stream, crlfDelay: Number.POSITIVE_INFINITY })
   let shape: RowShape | null = null
@@ -176,7 +213,7 @@ async function importTable(req: TableImport): Promise<number> {
 
       const row = toRow(text, req, line)
       shape ??= toShape(row, req, line)
-      batch.push(toValues({ row, cols: shape.cols, req, line }))
+      batch.push(toValues({ row, shape, req, line }))
       total += 1
 
       if (batch.length >= shape.rowsPerStatement) {
@@ -189,7 +226,7 @@ async function importTable(req: TableImport): Promise<number> {
       await writeBatch(req, shape.cols, batch)
     }
 
-    return total
+    return { name: req.table.name, rows: total, skipped: shape?.skipped ?? [] }
   } finally {
     lines.close()
     stream.close()
@@ -229,28 +266,39 @@ function toShape(row: Row, req: TableImport, line: number): RowShape {
     })
   }
 
-  return { cols, rowsPerStatement: bindChunkSize(cols.length) }
+  const kept = cols.filter((name) => req.columns.has(name))
+
+  if (kept.length === 0) {
+    throw importError('cli.dbImportBadColumn', {
+      table: req.table.name,
+      line,
+      column: cols[0] ?? '',
+    })
+  }
+
+  return {
+    fileCols: cols,
+    cols: kept,
+    skipped: cols.filter((name) => !req.columns.has(name)),
+    rowsPerStatement: bindChunkSize(kept.length),
+  }
 }
 
 function toValues(input: RowValues): readonly unknown[] {
-  const { row, req, line } = input
-  const values: unknown[] = []
+  const { row, shape, req, line } = input
+  const missing = shape.fileCols.find((name) => !(name in row))
 
-  for (const name of input.cols) {
-    if (!(name in row)) {
-      throw importError('cli.dbImportBadRow', { table: req.table.name, line, column: name })
-    }
-
-    values.push(row[name])
+  if (missing !== undefined) {
+    throw importError('cli.dbImportBadRow', { table: req.table.name, line, column: missing })
   }
 
-  const extra = Object.keys(row).find((name) => !input.cols.includes(name))
+  const extra = Object.keys(row).find((name) => !shape.fileCols.includes(name))
 
   if (extra !== undefined) {
     throw importError('cli.dbImportExtraColumn', { table: req.table.name, line, column: extra })
   }
 
-  return values
+  return shape.cols.map((name) => row[name])
 }
 
 async function writeBatch(

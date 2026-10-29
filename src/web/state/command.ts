@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals'
 
 import { selectAgent } from '@/web/state/agents'
-import { sendMessage } from '@/web/state/chat'
+import { isFinished, sendMessage, thread } from '@/web/state/chat'
 
 const HISTORY_MAX = 50
 
@@ -65,6 +65,12 @@ export function runCommand(text: string, opts: { readonly agentId?: string } = {
     isNotSent.value = true
     holdUnsent(text)
   }
+}
+
+/** A button's command is still on its way or running, so pressing it again would only queue a
+ *  second run. */
+export function isRunningCommand(text: string): boolean {
+  return thread.value.some((turn) => turn.text === text && !isFinished(turn))
 }
 
 export function focusInput(): void {

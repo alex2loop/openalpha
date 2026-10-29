@@ -154,7 +154,7 @@ async function loadOlder(): Promise<void> {
 
     nextBefore = page.nextBefore ?? undefined
     view.value = {
-      messages: messages.slice(-MAX_EARLIER),
+      messages: toKeptMessages(messages),
       status: resolveStatus(page.hasMore, messages.length),
     }
   } catch (error: unknown) {
@@ -163,6 +163,15 @@ async function loadOlder(): Promise<void> {
       view.value = { messages: held.messages, status: 'failed', failure: error }
     }
   }
+}
+
+/** The newest `MAX_EARLIER`, never opening on an answer whose line was cut away. */
+export function toKeptMessages(
+  messages: readonly ChatHistoryMessage[]
+): readonly ChatHistoryMessage[] {
+  const kept = messages.slice(-MAX_EARLIER)
+
+  return kept.length < messages.length && kept[0]?.role === 'assistant' ? kept.slice(1) : kept
 }
 
 function canLoad(status: HistoryStatus): boolean {

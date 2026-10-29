@@ -159,17 +159,17 @@ export interface SlashInvocationPolicy {
   readonly cooldownMs?: number
   readonly idempotencyKey?: (ctx: SlashContext) => string
   readonly execution?: LongRunningExecution
-  /** The command never runs an agent turn: it never returns `kind: 'agent'`. It may append its own
-   *  exchange to the session transcript (`transcript: 'echo'`), which `appendCommandExchange` allows
-   *  while a run holds the session, so a surface may run it beside other work in the same chat
-   *  instead of behind the session's turn. */
+  /** The command never runs an agent turn: it never returns `kind: 'agent'`. Its exchange is
+   *  appended to the session transcript, which `appendCommandExchange` allows while a run holds the
+   *  session, so a surface may run it beside other work in the same chat instead of behind the
+   *  session's turn. */
   readonly selfContained?: true
   /** What to use instead, shown where a surface this policy leaves out refuses the command. */
   readonly surfaceHint?: CommandMessageKey
-  /** `'echo'` records the invocation and its `text` output in the session transcript, so the next
-   *  agent turn in this session can be asked about it. Commands that only confirm a mutation, and
-   *  commands that report runtime state, leave it unset. */
-  readonly transcript?: 'echo'
+  /** Every answer is kept in the session's history, display-only by default. `'echo'` keeps a
+   *  `text` answer as model context instead, so the next agent turn can be asked about it. `'none'`
+   *  keeps nothing: the command moves the chat to another session, so its line belongs to neither. */
+  readonly transcript?: 'echo' | 'none'
 }
 
 export interface CommandGroup {

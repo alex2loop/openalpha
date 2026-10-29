@@ -212,6 +212,7 @@ export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/re
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 export { renderCallScoredNotice } from '@/trading/features/suggestion/track-record/scored-notice'
 export {
+  isRecordedPlan,
   isUndecidedHold,
   SUGGESTION_LIST_STATUSES,
   suggestionId,

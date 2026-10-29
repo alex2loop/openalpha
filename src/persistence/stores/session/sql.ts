@@ -87,7 +87,7 @@ export function buildSessionSql(d: Dialect): SessionSql {
       `SELECT id FROM sessions WHERE id LIKE ${d.param(1)} ESCAPE '\\' ` +
       `ORDER BY CASE WHEN id = ${d.param(2)} THEN 0 ELSE 1 END, id LIMIT ${d.param(3)}`,
     loadMessages:
-      `SELECT idx, run_id, ${PAYLOAD_COLS}, created_at FROM session_messages ` +
+      `SELECT idx, run_id, ${PAYLOAD_COLS}, display_only, created_at FROM session_messages ` +
       `WHERE session_id = ${d.param(1)} ORDER BY idx`,
     loadAttempts: `SELECT ${LLM_ATTEMPT_COLUMNS.join(', ')} FROM llm_attempts WHERE session_id = ${d.param(1)} ORDER BY settled_at, id`,
     loadTotals: `SELECT ${TOTALS_FOLD_COLS} FROM llm_attempts WHERE session_id = ${d.param(1)}`,

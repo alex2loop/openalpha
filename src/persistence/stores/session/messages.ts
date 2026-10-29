@@ -63,13 +63,19 @@ export async function loadSessionHistoryPage(
   const rows = await readTranscriptRows(store, id, query)
   const { limit } = query
   const hasMore = rows.length > limit
-  const page = rows.slice(0, limit).reverse()
+  const page = rows.slice(0, isSplitExchange(rows, limit) ? limit - 1 : limit).reverse()
 
   return {
     messages: page.map(toTranscriptMessage),
     hasMore,
     nextBefore: hasMore ? (page[0]?.idx ?? null) : null,
   }
+}
+
+// An answer whose question falls past the page waits for the older page, so a line and the answer
+// to it always land together.
+function isSplitExchange(rows: readonly TranscriptRow[], limit: number): boolean {
+  return limit > 1 && rows[limit - 1]?.role === 'assistant' && rows[limit]?.role === 'user'
 }
 
 // One row past the page tells whether older ones remain.

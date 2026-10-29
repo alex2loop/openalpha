@@ -12,6 +12,7 @@ import {
   FORCE_ARG,
   fillInput,
   inputText,
+  isRunningCommand,
   runCommand,
   SUGGEST_COMMAND,
   SUGGEST_STOPS_ARG,
@@ -280,13 +281,15 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
 }
 
 // The first name the answer reported on: analyze it, or, under an analysis that may have handed back
-// a stored call, analyze it again from scratch; or start an alert on it, which waits in the box for
-// its price.
+// a stored call, run that same line again from scratch; or start an alert on it, which waits in the
+// box for its price.
 function NextSteps({ turn }: { readonly turn: Turn }) {
   const ticker = turn.tickers?.[0]
-  const [command, subject, ...options] = commandWordsOf(turn.text)
+  const words = commandWordsOf(turn.text)
+  const [command, subject, ...options] = words
   const isSuggest = command === SUGGEST_COMMAND
   const canForce = isSuggest && subject !== SUGGEST_STOPS_ARG && !options.includes(FORCE_ARG)
+  const fresh = [...words, FORCE_ARG].join(' ')
 
   if (ticker === undefined) {
     return null
@@ -296,10 +299,7 @@ function NextSteps({ turn }: { readonly turn: Turn }) {
     <>
       {!isSuggest && <SuggestChip ticker={ticker} />}
       {canForce && (
-        <Button
-          size="small"
-          onClick={() => runCommand(`${SUGGEST_COMMAND} ${ticker} ${FORCE_ARG}`)}
-        >
+        <Button size="small" disabled={isRunningCommand(fresh)} onClick={() => runCommand(fresh)}>
           {tr('ui.office.common.suggestFresh')}
         </Button>
       )}

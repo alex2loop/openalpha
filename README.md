@@ -221,6 +221,7 @@ Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/b
 - **Mọi tùy chọn cấu hình:** [config.sample.toml](config.sample.toml) · [docs/cau-hinh.md](docs/cau-hinh.md). Không muốn dùng khóa AI thì chạy mô hình ngay trên máy qua Ollama hoặc vLLM.
 - **Cài trên máy chủ hay trong CI?** Đặt `OPENALPHA_NO_ONBOARD=1` để bỏ bước hỏi; đầu [install.sh](install.sh) và [install.ps1](install.ps1) liệt kê đủ các tùy chọn, ví dụ `OPENALPHA_VERSION` để cài đúng một bản.
 - **Cập nhật:** CLI nhắc mỗi ngày một lần, kèm điều đáng chú ý của bản mới; trong cuộc trò chuyện riêng, bot nhắc mỗi tuần (bản quan trọng thì mỗi ngày). `openalpha upgrade` lên bản mới mà giữ nguyên dữ liệu và cấu hình.
+- **Sao lưu và làm lại sổ:** `openalpha db backup` chụp lại sổ bất cứ lúc nào, kể cả khi dịch vụ nền đang chạy; `openalpha db restore <tệp> --yes` đưa sổ về đúng bản đó. Muốn làm lại cơ sở dữ liệu mà vẫn giữ sổ: `openalpha stop`, `openalpha db export --out ./keep`, `openalpha db reset --yes`, `openalpha db import --in ./keep`, rồi `openalpha start --background` và chạy `/refresh` để tải lại dữ liệu thị trường. Khôi phục và reset đều cần dừng dịch vụ nền trước ([chi tiết](docs/luu-tru.md#xuất-và-nhập)).
 - **Gỡ cài đặt:** `openalpha stop`, rồi xóa tệp `openalpha` (mặc định ở `~/.local/bin`; trên Windows là `openalpha.exe` và `openalpha.exe.old` nếu có). Thư mục `~/.openalpha` chứa toàn bộ sổ và cấu hình: chạy `openalpha db export --out <thư-mục>` trước nếu muốn giữ.
 
 </details>

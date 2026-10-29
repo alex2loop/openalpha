@@ -1,10 +1,10 @@
-import { useEffect } from 'preact/hooks'
+import { useEffect, useRef } from 'preact/hooks'
 
 import type { ScreenResponse } from '@/app/server/wire/market'
 import type { SuggestionWire } from '@/app/server/wire/trading'
+import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { useBlock } from '@/web/state/block'
-import { runCommand } from '@/web/state/command'
+import { type BlockReading, useBlock, useBlockRead } from '@/web/state/block'
 import { onWireEvent } from '@/web/state/events'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
@@ -16,10 +16,10 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
-import { AnalyzeButton } from '@/web/ui/ticker/analyze-button'
+import { AnalyzeButton, isStoredAnswer } from '@/web/ui/ticker/analyze-button'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
-const SCREEN_COMMAND = '/screen'
+const FRESH_FLAG = '1'
 const MARKET_SEPARATOR = ':'
 // The newest calls of every market (the list filters by name, not by market alone), read to tell
 // which ranked names were already analyzed on the board's day. A busy day stores about 30 across
@@ -55,7 +55,7 @@ export function Opportunities() {
 
 // Mounted per market, so its read ends with the tab or the market.
 function Board({ market }: { readonly market: string }) {
-  const reading = useBlock(ROUTES.screen, { query: { market } })
+  const reading = useBoard(market)
   const calls = useBlock(ROUTES.suggestions, {
     query: { status: 'all', limit: DAY_CALLS_READ },
   })
@@ -79,7 +79,7 @@ function Board({ market }: { readonly market: string }) {
       icon={<TrendIcon />}
       reading={reading}
       dataTo={reading.data?.dataThroughDay ?? reading.data?.asOf}
-      action={<Rerun market={market} />}
+      action={<Rerun reading={reading} />}
     >
       {(board) => (
         <BoardBody
@@ -91,25 +91,55 @@ function Board({ market }: { readonly market: string }) {
   )
 }
 
-function Rerun({ market }: { readonly market: string }) {
+interface BoardReading extends BlockReading<ScreenResponse> {
+  /** Ranks the board again, past the one the daemon already read, and shows it in place. */
+  readonly rerank: () => void
+}
+
+function useBoard(market: string): BoardReading {
+  const isFresh = useRef(false)
+  const reading = useBlockRead(
+    (abort) => {
+      const query = isFresh.current ? { market, fresh: FRESH_FLAG } : { market }
+
+      isFresh.current = false
+
+      return getJson(ROUTES.screen, { query, signal: abort })
+    },
+    { capability: ROUTES.screen.capability }
+  )
+
+  return {
+    ...reading,
+    rerank: () => {
+      isFresh.current = true
+      reading.retry()
+    },
+  }
+}
+
+// No model runs: the board is ranked from stored data, so this is a plain button, busy while read.
+function Rerun({ reading }: { readonly reading: BoardReading }) {
   return (
-    <Button kind="ai" size="small" onClick={() => runCommand(`${SCREEN_COMMAND} ${market}`)}>
+    <Button size="small" disabled={reading.state === 'loading'} onClick={reading.rerank}>
       {tr('ui.office.ideas.screenRerun')}
     </Button>
   )
 }
 
 // The names `/suggest` would answer from a call already stored: those analyzed on the board's day,
-// or later where the board was read before the day turned.
+// or later where the board was read before the day turned, and a buy still open from an earlier
+// day, which a round-the-clock market hands back while it can be taken.
 function analyzedOn(
   calls: readonly SuggestionWire[],
   board: { readonly market: string; readonly day: string }
 ): ReadonlySet<string> {
   return new Set(
     calls
-      .filter((call) => call.instrument.market === board.market && call.at >= board.day)
-      // A failed run is re-run by a plain `/suggest`, so it needs no force.
-      .filter((call) => call.action !== 'hold' || call.undecided !== true)
+      .filter((call) => call.instrument.market === board.market && isStoredAnswer(call))
+      .filter(
+        (call) => call.at >= board.day || (call.action === 'buy' && call.outcome === undefined)
+      )
       .map((call) => call.instrument.ticker)
   )
 }

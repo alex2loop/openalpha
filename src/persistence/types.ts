@@ -55,6 +55,8 @@ export interface StoredSessionMessage {
   /** Absent on a row a slash command contributed outside a run. */
   readonly runId?: RunId
   readonly message: LLMMessage
+  /** Kept for the history only: the model never reads it back. */
+  readonly displayOnly?: true
   readonly createdAt: number
 }
 

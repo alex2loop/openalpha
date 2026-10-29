@@ -34,7 +34,7 @@ import {
   parseCommand,
   suggestCommandName,
 } from './resolve'
-import { toSlashResult } from './result'
+import { toSlashResult, unexpectedResult } from './result'
 import { appendExchange } from './transcript'
 
 const DEFAULT_RATE_PER_MINUTE = 20
@@ -186,15 +186,20 @@ function dispatchResolved(options: AdmissionOptions): Promise<SlashResult> {
   const { command, args, policy } = options.resolved
 
   return withCorrelation(id, async () => {
-    const { result, isRun } = await dispatchAdmitted({ ...options, context })
+    const exchange = { ...options, invocation: [`/${command.name}`, ...args].join(' '), policy }
+    let admitted: AdmittedResult
 
-    await appendExchange({
-      ...options,
-      context: isRun ? context : withoutRunId(context),
-      invocation: [`/${command.name}`, ...args].join(' '),
-      policy,
-      result,
-    })
+    try {
+      admitted = await dispatchAdmitted({ ...options, context })
+    } catch (err: unknown) {
+      // The surface shows the failure live; the history keeps that the command failed.
+      await appendExchange({ ...exchange, context, result: unexpectedResult() })
+      throw err
+    }
+
+    const { result, isRun } = admitted
+
+    await appendExchange({ ...exchange, context: isRun ? context : withoutRunId(context), result })
 
     return result
   })

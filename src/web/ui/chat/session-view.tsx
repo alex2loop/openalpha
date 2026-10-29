@@ -6,7 +6,12 @@ import { pluralKey } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { type ChatSession, viewedSession } from '@/web/state/chat'
-import { HISTORY_PAGE_SIZE, MAX_EARLIER, startNewSession } from '@/web/state/chat-history'
+import {
+  HISTORY_PAGE_SIZE,
+  MAX_EARLIER,
+  startNewSession,
+  toKeptMessages,
+} from '@/web/state/chat-history'
 import { state } from '@/web/state/session'
 import { ABSENT_CELL } from '@/web/text/glyphs'
 import { sourceLabel } from '@/web/text/source'
@@ -163,7 +168,7 @@ async function loadPage(
     const isCapped = messages.length >= MAX_EARLIER
 
     pages.value = {
-      messages: messages.slice(-MAX_EARLIER),
+      messages: toKeptMessages(messages),
       ...(page.hasMore && page.nextBefore !== null && !isCapped
         ? { nextBefore: page.nextBefore }
         : {}),

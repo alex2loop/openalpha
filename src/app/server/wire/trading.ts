@@ -266,6 +266,8 @@ export type SuggestionWire =
       readonly holdReasonCodes: readonly string[]
       /** True when the row records a run that failed rather than a decision: the daemon re-runs it. */
       readonly undecided?: true
+      /** True for levels written for a held name at its fill, not a call: `/suggest` runs past it. */
+      readonly recorded?: true
       readonly outcome?: never
     })
 

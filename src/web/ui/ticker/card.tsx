@@ -7,6 +7,7 @@ import { useBlockRead } from '@/web/state/block'
 import { onWireEvent } from '@/web/state/events'
 import { CardActions } from '@/web/ui/ticker/actions'
 import { CardAlerts } from '@/web/ui/ticker/alerts'
+import { isStoredAnswer } from '@/web/ui/ticker/analyze-button'
 import { EventsBlock } from '@/web/ui/ticker/events'
 import { HoldingBlock } from '@/web/ui/ticker/holding'
 import { OpinionsBlock } from '@/web/ui/ticker/opinions'
@@ -48,7 +49,11 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
       <PastCalls ticker={ticker} market={market} />
       <CardAlerts ticker={ticker} market={market} />
       <EventsBlock ticker={ticker} market={market} />
-      <CardActions ticker={ticker} market={market} hasPlan={standing !== undefined} />
+      <CardActions
+        ticker={ticker}
+        market={market}
+        isAnalyzed={standing !== undefined && isStoredAnswer(standing)}
+      />
     </>
   )
 }

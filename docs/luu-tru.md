@@ -135,7 +135,7 @@ gói bằng chứng, và không thể dựng lại.
 | `suggestions.debate_models` | Các mô hình đã tranh luận một lời gọi, đã sắp xếp và nối bằng dấu phẩy; trống ở lời gọi lưu trước khi có cột. Bảng thành tích theo từng mô hình chỉ đếm các lời gọi mà đúng một mô hình tranh luận |
 | `llm_attempts.billing_agent_id` | Khoản chi tính vào `max_daily_usd` của agent nào; để trống khi dòng tính cho chính agent đã chạy |
 
-`db import` điền giá trị mặc định cho cột bị thiếu (phạm vi `default`, agent chịu chi phí để trống, không có mô hình tranh luận).
+`db import` điền giá trị mặc định cho cột bị thiếu (phạm vi `default`, agent chịu chi phí để trống, không có mô hình tranh luận). Cột mà phiên bản này không còn lưu sẽ được bỏ qua và lệnh nhập nêu tên cột đó, nên bản export làm trước khi nâng cấp vẫn nạp lại được.
 
 #### Mạng xã hội
 
@@ -394,6 +394,8 @@ openalpha history clear --agent analyst --yes
 `history show` nhận mã cuộc trò chuyện đầy đủ, hoặc một tiền tố chỉ khớp một cuộc trò chuyện. Nó hiện trạng
 thái, các tin nhắn theo thứ tự, tổng token và chi phí lũy kế, cùng các lần gọi mô hình đứng sau từng tin
 nhắn của trợ lý. Những lần gọi không gắn với tin nhắn nào, như khi nén hội thoại, được hiện riêng.
+Dòng lệnh và câu trả lời chỉ giữ để xem lại trong lịch sử chat được đánh dấu riêng, vì mô hình không
+đọc chúng.
 
 `history delete` xóa một cuộc trò chuyện mà không hỏi lại. `history clear` cần dịch vụ nền đã dừng, và hỏi
 xác nhận trừ khi bạn thêm `--yes`.

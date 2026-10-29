@@ -7,7 +7,7 @@ import type {
 } from '@/trading/features/order/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type { QuoteConvention, QuotedIn } from '@/trading/render/money'
-import { t } from '@/i18n'
+import { pluralKey, t } from '@/i18n'
 import { renderUnmirroredLines } from '@/trading/features/order/render'
 import { formatInstant } from '@/trading/render/datetime'
 import {
@@ -170,9 +170,12 @@ function residueLine(input: TradeStatusRender): readonly string[] {
     return []
   }
 
+  const count = status.unguardedResidue.length
+  const key = pluralKey(count, 'trading.order.status.residueOne', 'trading.order.status.residue')
+
   return [
-    `${INDENT[1]}${t(locale, 'trading.order.status.residue', {
-      count: formatCount(locale, status.unguardedResidue.length),
+    `${INDENT[1]}${t(locale, key, {
+      count: formatCount(locale, count),
       names: status.unguardedResidue.join(INLINE_SEPARATOR),
     })}`,
   ]
