@@ -25,7 +25,11 @@ export function ChatPanel() {
   return (
     <aside class="chat-panel chrome-glass" aria-label={tr('ui.office.chat.title')}>
       <ChatHead />
-      {viewed === undefined ? <MessageList /> : <SessionView session={viewed} />}
+      {viewed === undefined ? (
+        <MessageList />
+      ) : (
+        <SessionView key={viewed.sessionId} session={viewed} />
+      )}
     </aside>
   )
 }

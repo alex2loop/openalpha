@@ -632,6 +632,7 @@
     "office.book.undoWatch": "Đã bỏ {ticker} khỏi danh sách theo dõi.",
     "office.book.undoAlert": "Đã xóa cảnh báo {ticker} {dir} {level}.",
     "office.ticker.noData": "Mã này chưa có dữ liệu giá. Bấm Cập nhật dữ liệu để tải về; nếu vẫn trống, bạn xem lại mã đã gõ đúng chưa nhé.",
+    "office.ticker.noPrice": "Mã này chưa có dữ liệu giá. Bạn xem lại mã đã gõ đúng chưa nhé.",
     "office.ticker.boardScale": "giá bảng điện, x{divisor} {currency}",
     "office.ticker.levelsNote": "đường đứt là các mức của kế hoạch",
     "office.ticker.buyZone": "Vùng mua",

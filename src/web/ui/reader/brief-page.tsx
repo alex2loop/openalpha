@@ -24,6 +24,8 @@ import {
 import { ReaderPage } from '@/web/ui/reader/page'
 
 const REWRITE_COMMAND = `${BRIEF_COMMAND} ${FORCE_ARG}`
+// How a command run that threw ends.
+const FAILED_OUTCOME = 'error'
 
 interface BriefPageProps {
   readonly content: Extract<ReaderContent, { readonly kind: 'brief' }>
@@ -39,7 +41,7 @@ export function BriefPage({ content, onClose, onReload }: BriefPageProps) {
   const { title, meta, text } = content
   const blocks = storyBlocks(text.story)
 
-  useEffect(() => onCommandFinished(BRIEF_NAME, onReload), [])
+  useReloadOnRewrite(onReload)
 
   return (
     <ReaderPage
@@ -70,6 +72,19 @@ export function BriefPage({ content, onClose, onReload }: BriefPageProps) {
         </div>
       </div>
     </ReaderPage>
+  )
+}
+
+// A failed run wrote no brief, and reading again would take away the button that says why.
+function useReloadOnRewrite(onReload: () => void): void {
+  useEffect(
+    () =>
+      onCommandFinished(BRIEF_NAME, (outcome) => {
+        if (outcome !== FAILED_OUTCOME) {
+          onReload()
+        }
+      }),
+    []
   )
 }
 

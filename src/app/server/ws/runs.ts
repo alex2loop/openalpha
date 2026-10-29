@@ -166,9 +166,6 @@ export function abortSocketSession(ws: ServerWebSocket<WsData>, sessionId: Sessi
   ws.data.services.commandLane.cancel(toCommandLaneKey(API_CHANNEL, sessionId))
 }
 
-/** The engine run an agent turn of this session becomes, learned from the bus because the runner
- *  returns its result only. The session queue runs one turn at a time, so the first top-level run
- *  the session announces while this one is active is it. */
 /** Whether a command run was announced: a command refused at admission never is. */
 export interface CommandStartWatch {
   hasStarted(): boolean
@@ -186,6 +183,9 @@ export function watchCommandStart(bus: EventBus, runId: RunId): CommandStartWatc
   return { hasStarted: () => hasStarted, stop: off }
 }
 
+/** The engine run an agent turn of this session becomes, learned from the bus because the runner
+ *  returns its result only. The session queue runs one turn at a time, so the first top-level run
+ *  the session announces while this one is active is it. */
 export function followRunId(
   bus: EventBus,
   sessionId: SessionId

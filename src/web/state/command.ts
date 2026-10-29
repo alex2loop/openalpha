@@ -2,6 +2,7 @@ import { signal } from '@preact/signals'
 
 import { selectAgent } from '@/web/state/agents'
 import { COMMAND_PREFIX, isFinished, sendMessage, thread } from '@/web/state/chat'
+import { isCommandRun, runs } from '@/web/state/live'
 import { quietCommands } from '@/web/state/quiet-command'
 
 const HISTORY_MAX = 50
@@ -71,11 +72,13 @@ export function runCommand(text: string, opts: { readonly agentId?: string } = {
 }
 
 /** A button's command is still on its way or running, in the chat or sent quiet, so pressing it
- *  again would only queue a second run. */
+ *  again would only queue a second run. A bare command runs once at a time wherever it was asked,
+ *  so a run of it from another channel holds the button too. */
 export function isRunningCommand(text: string): boolean {
   return (
     quietCommands.value.includes(text) ||
-    thread.value.some((turn) => turn.text === text && !isFinished(turn))
+    thread.value.some((turn) => turn.text === text && !isFinished(turn)) ||
+    runs.value.some((run) => isCommandRun(run, text.slice(COMMAND_PREFIX.length)))
   )
 }
 

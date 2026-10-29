@@ -4,7 +4,7 @@ import { useEffect } from 'preact/hooks'
 import type { MarketWire } from '@/app/server/wire/market'
 import { COMMAND_PREFIX, isFinished, thread } from '@/web/state/chat'
 import { onCommandFinished } from '@/web/state/events'
-import { runs } from '@/web/state/live'
+import { isCommandRun, runs } from '@/web/state/live'
 import { knownMarkets } from '@/web/state/market'
 import { quietCommands, sendQuiet } from '@/web/state/quiet-command'
 
@@ -16,14 +16,19 @@ const REFRESH_COMMAND = `${COMMAND_PREFIX}${REFRESH_NAME}`
 /** A `/refresh` is running or waiting, wherever it came from: this page, a channel or the schedule. */
 export const isRefreshing: ReadonlySignal<boolean> = computed(
   () =>
-    runs.value.some((run) => run.kind === 'command' && run.name === REFRESH_NAME) ||
+    runs.value.some((run) => isCommandRun(run, REFRESH_NAME)) ||
     quietCommands.value.some(isRefreshLine) ||
     thread.value.some((turn) => !isFinished(turn) && isRefreshLine(turn.text))
 )
 
 /** The markets of `region` the operator still reads: `/refresh` takes one market a line. */
 export function refreshableMarkets(region: string): readonly MarketWire[] {
-  return knownMarkets.value.filter((market) => market.region === region && market.enabled)
+  return knownMarkets.value.filter((market) => market.region === region && isRefreshable(market))
+}
+
+/** Only a market the operator reads takes a refresh; world gold, read for reference, never does. */
+export function isRefreshable(market: MarketWire): boolean {
+  return market.enabled
 }
 
 /** Sends `/refresh <market>` quiet for each of `markets`, never `force`: the blocks that asked read

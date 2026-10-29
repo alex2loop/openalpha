@@ -48,6 +48,14 @@ export const pending: ReadonlySignal<readonly PendingWire[]> = pendingList
 /** Epoch ms the daemon's last alert pass finished; absent until the snapshot or an event says. */
 export const alertsCheckedAt: ReadonlySignal<number | undefined> = checkedAt
 
+/** A run of the slash command `name`, which its run carries without the slash. */
+export function isCommandRun(
+  run: { readonly kind: string; readonly name: string },
+  name: string
+): boolean {
+  return run.kind === 'command' && run.name === name
+}
+
 /** Keeps the latest pass: a snapshot taken before a newer event never moves it back. */
 export function noteAlertsChecked(at: number | undefined): void {
   if (at !== undefined && (checkedAt.value === undefined || at > checkedAt.value)) {

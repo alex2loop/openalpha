@@ -4,7 +4,7 @@ import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
 import { findMarket, findQuote, keyOf, stopsBlock } from '@/web/state/market'
-import { useRereadAfterRefresh } from '@/web/state/refresh'
+import { isRefreshable, useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
@@ -94,12 +94,7 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
   const facts = resolvePrice({ ticker, market }, quote, bars)
 
   if (facts === undefined) {
-    return (
-      <>
-        <p class="meta">{tr('ui.office.ticker.noData')}</p>
-        <RefreshOwnMarket market={market} />
-      </>
-    )
+    return <NoPrice market={market} />
   }
 
   return (
@@ -125,11 +120,21 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
   )
 }
 
-// Only the name's own market: refreshing every market for one missing price costs minutes.
-function RefreshOwnMarket({ market }: { readonly market: string }) {
+// Only the name's own market is refreshed: every market for one missing price costs minutes. Where
+// it takes no refresh, the ticker is what to check.
+function NoPrice({ market }: { readonly market: string }) {
   const held = findMarket(market)
 
-  return <RefreshMarketsButton markets={held === undefined ? [] : [held]} size="small" />
+  if (held === undefined || !isRefreshable(held)) {
+    return <p class="meta">{tr('ui.office.ticker.noPrice')}</p>
+  }
+
+  return (
+    <>
+      <p class="meta">{tr('ui.office.ticker.noData')}</p>
+      <RefreshMarketsButton markets={[held]} size="small" />
+    </>
+  )
 }
 
 // The price with its move, a warning when it is stale, and where it comes from: scale, session, time.

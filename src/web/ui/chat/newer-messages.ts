@@ -48,6 +48,7 @@ export function useNewerMessages(input: NewerInput): NewerMessages {
       }
 
       if (element !== null && isAtEnd(element)) {
+        waiting.value = undefined
         isToEnd.current = true
         latest.current.take(page)
       } else {

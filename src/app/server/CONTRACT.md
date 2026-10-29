@@ -412,8 +412,10 @@ Chat runs on the **same socket** as the feed. The client sends `ClientFrame`s (`
   (cancelled) or an `error` carrying `id`. A message sent without `id` gets today's frames
   unchanged.
   `quiet: true` on a long-running slash command a page button sent, whose result the page shows where
-  it was pressed: no answer frames reach the client and the session keeps no transcript row; it
-  ends with `done`, or with `error` carrying the answer when admission refused it before it ran.
+  it was pressed: no `text` frame reaches the client (its tagged `queued`, `started` and `progress`
+  frames still do) and the session keeps no transcript row; it ends with `done`, or with `error`
+  carrying the answer when admission refused it before it ran. A refusal the command itself answers
+  once running ends with `done` as well.
   Any other line ignores `quiet`.
 - `{ type: 'steer', message, sessionId?, id? }` — add a message to the turn already running; it reads it
   at its next turn boundary and the daemon answers `{ kind: 'steered' }`. A steer sent with an

@@ -632,6 +632,7 @@
     "office.book.undoWatch": "Removed {ticker} from the watchlist.",
     "office.book.undoAlert": "Deleted the alert on {ticker} {dir} {level}.",
     "office.ticker.noData": "No price data for this name yet. Refresh data fetches it; if it still shows nothing, check the ticker is spelled right.",
+    "office.ticker.noPrice": "No price data for this name. Check the ticker is spelled right.",
     "office.ticker.boardScale": "board price, x{divisor} {currency}",
     "office.ticker.levelsNote": "dashed lines are the plan's levels",
     "office.ticker.buyZone": "Buy zone",
