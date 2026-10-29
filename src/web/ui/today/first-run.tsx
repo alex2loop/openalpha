@@ -2,9 +2,10 @@ import type { ComponentChildren } from 'preact'
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import { BRIEF_COMMAND, runCommand } from '@/web/state/command'
+import { BRIEF_COMMAND } from '@/web/state/command'
 import { loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
+import { RunButton } from '@/web/ui/command/run-button'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
@@ -134,9 +135,12 @@ function BriefStep({ isModelReady }: { readonly isModelReady: boolean }) {
     <Step index={5} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
       <p class="meta">{tr('ui.office.firstRun.briefBody')}</p>
       <div class="step-actions">
-        <Button size="small" disabled={!isModelReady} onClick={() => runCommand(BRIEF_COMMAND)}>
-          {tr('ui.office.firstRun.briefCta')}
-        </Button>
+        <RunButton
+          command={BRIEF_COMMAND}
+          label={tr('ui.office.firstRun.briefCta')}
+          size="small"
+          disabled={!isModelReady}
+        />
       </div>
     </Step>
   )

@@ -12,8 +12,6 @@ import {
   FORCE_ARG,
   fillInput,
   inputText,
-  isRunningCommand,
-  runCommand,
   SUGGEST_COMMAND,
   SUGGEST_STOPS_ARG,
   setInput,
@@ -28,6 +26,7 @@ import { commandWordOf, commandWordsOf, resolveCommandLink } from '@/web/ui/chat
 import { RememberThis, ReplyText } from '@/web/ui/chat/history-message'
 import { QueuedCard } from '@/web/ui/chat/queued-card'
 import { isResearchTurn, ResearchReportLink, ResearchSteps } from '@/web/ui/chat/research-steps'
+import { RunButton } from '@/web/ui/command/run-button'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
@@ -299,9 +298,7 @@ function NextSteps({ turn }: { readonly turn: Turn }) {
     <>
       {!isSuggest && <SuggestChip ticker={ticker} />}
       {canForce && (
-        <Button size="small" disabled={isRunningCommand(fresh)} onClick={() => runCommand(fresh)}>
-          {tr('ui.office.common.suggestFresh')}
-        </Button>
+        <RunButton command={fresh} label={tr('ui.office.common.suggestFresh')} size="small" />
       )}
       <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
         {tr('ui.office.common.setAlert')}

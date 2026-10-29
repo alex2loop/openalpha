@@ -1,5 +1,5 @@
-import { runCommand, SUGGEST_COMMAND } from '@/web/state/command'
-import { Button } from '@/web/ui/kit/button'
+import { SUGGEST_COMMAND } from '@/web/state/command'
+import { RunButton } from '@/web/ui/command/run-button'
 
 interface SuggestChipProps {
   readonly ticker: string
@@ -12,14 +12,11 @@ export function SuggestChip({ ticker, onRun }: SuggestChipProps) {
   const suggest = `${SUGGEST_COMMAND} ${ticker}`
 
   return (
-    <Button
+    <RunButton
+      command={suggest}
+      label={suggest}
       size="small"
-      onClick={() => {
-        onRun?.()
-        runCommand(suggest)
-      }}
-    >
-      {suggest}
-    </Button>
+      {...(onRun === undefined ? {} : { onRun })}
+    />
   )
 }

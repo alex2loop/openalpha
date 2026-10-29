@@ -10,7 +10,7 @@ import { knownMarkets } from '@/web/state/market'
 const WORD_BREAK = /\s+/
 // A command's run is named without the slash.
 const REFRESH_NAME = 'refresh'
-export const REFRESH_COMMAND = `${COMMAND_PREFIX}${REFRESH_NAME}`
+const REFRESH_COMMAND = `${COMMAND_PREFIX}${REFRESH_NAME}`
 
 /** A `/refresh` is running or waiting, wherever it came from: this page, a channel or the schedule. */
 export const isRefreshing: ReadonlySignal<boolean> = computed(

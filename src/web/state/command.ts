@@ -1,12 +1,14 @@
 import { signal } from '@preact/signals'
 
 import { selectAgent } from '@/web/state/agents'
-import { isFinished, sendMessage, thread } from '@/web/state/chat'
+import { COMMAND_PREFIX, isFinished, sendMessage, thread } from '@/web/state/chat'
 
 const HISTORY_MAX = 50
 
 export const SUGGEST_COMMAND = '/suggest'
-export const BRIEF_COMMAND = '/brief'
+// A command's run is named without the slash.
+export const BRIEF_NAME = 'brief'
+export const BRIEF_COMMAND = `${COMMAND_PREFIX}${BRIEF_NAME}`
 // `/suggest`'s word for a fresh run past a call it would otherwise hand back.
 export const FORCE_ARG = 'force'
 // `/suggest`'s word for a pass over every held name, not one.

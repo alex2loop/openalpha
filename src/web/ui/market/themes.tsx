@@ -5,10 +5,10 @@ import type { ThemesResponse, ThemeTransitionWire } from '@/app/server/wire/them
 import { sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
-import { runCommand } from '@/web/state/command'
 import { onCommandFinished } from '@/web/state/events'
 import { homeRegion } from '@/web/state/market'
 import { toErrorText, tr } from '@/web/text/tr'
+import { RunButton } from '@/web/ui/command/run-button'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { BulbIcon } from '@/web/ui/kit/icons'
@@ -83,9 +83,13 @@ function VnOnlyNote() {
 
 function RunAgain() {
   return (
-    <Button kind="ai" size="small" onClick={() => runCommand(RUN_TEXT)}>
-      {tr('ui.office.themes.rerun')}
-    </Button>
+    <RunButton
+      command={RUN_TEXT}
+      label={tr('ui.office.themes.rerun')}
+      busyLabel={tr('ui.office.themes.running')}
+      kind="ai"
+      size="small"
+    />
   )
 }
 
@@ -201,9 +205,13 @@ function TrackedActions({ theme, context }: ThemeRowProps) {
   return (
     <>
       {theme.status !== INVALIDATED && (
-        <Button kind="ai" size="small" onClick={() => runCommand(`${RUN_ONE_TEXT} ${theme.id}`)}>
-          {tr('ui.office.themes.rerun')}
-        </Button>
+        <RunButton
+          command={`${RUN_ONE_TEXT} ${theme.id}`}
+          label={tr('ui.office.themes.rerun')}
+          busyLabel={tr('ui.office.themes.running')}
+          kind="ai"
+          size="small"
+        />
       )}
       <Button size="small" onClick={() => askStop(theme, context)}>
         {tr('ui.office.themes.stop')}

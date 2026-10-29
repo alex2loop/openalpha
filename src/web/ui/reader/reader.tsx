@@ -116,6 +116,7 @@ function onKey(event: KeyboardEvent): void {
 
 interface ReaderBodyProps {
   readonly source: ReaderSource
+  /** Reads the report again from the start: after a failure, or once a new one is written. */
   readonly onRetry: () => void
 }
 
@@ -156,7 +157,7 @@ function ReaderBody({ source, onRetry }: ReaderBodyProps) {
   }
 
   return content.kind === 'brief' ? (
-    <BriefPage content={content} onClose={closeReader} />
+    <BriefPage content={content} onClose={closeReader} onReload={onRetry} />
   ) : (
     <ReportPage content={content} onClose={closeReader} />
   )

@@ -3,9 +3,8 @@ import { formatDay, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
-import { runCommand } from '@/web/state/command'
 import { findMarket, findQuote, keyOf, stopsBlock } from '@/web/state/market'
-import { REFRESH_COMMAND } from '@/web/state/refresh'
+import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
@@ -16,6 +15,7 @@ import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
+import { RefreshMarketsButton } from '@/web/ui/market/refresh-button'
 import { type ChartLevel, PriceChart } from '@/web/ui/ticker/chart'
 import { useLiveQuote } from '@/web/ui/ticker/live-quote'
 import { BlockFrame } from '@/web/ui/today/block-frame'
@@ -47,13 +47,14 @@ interface PriceFacts {
 }
 
 /** The name, its price with the session it belongs to, and the last 30 sessions with the plan's
- *  levels on them. Without any price it says so and offers `/refresh`; its head button reads this
- *  one name's price live, then the bars again. */
+ *  levels on them. Without any price it says so and offers to refresh its market; its head button
+ *  reads this one name's price live, then the bars again. */
 export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   const reading = useBlockRead(readBars(ticker, market), { capability: ROUTES.ohlcv.capability })
   const live = useLiveQuote(ticker, market, reading.retry)
 
   useRetryWhenKnown(state.value?.timeZone !== undefined, reading.retry)
+  useRereadAfterRefresh(reading.retry)
 
   const board = findQuote(ticker, market)
   const quote = newerQuote(live.quote, board)
@@ -96,9 +97,7 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
     return (
       <>
         <p class="meta">{tr('ui.office.ticker.noData')}</p>
-        <Button size="small" onClick={() => runCommand(REFRESH_COMMAND)}>
-          {REFRESH_COMMAND}
-        </Button>
+        <RefreshOwnMarket market={market} />
       </>
     )
   }
@@ -124,6 +123,13 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
       )}
     </>
   )
+}
+
+// Only the name's own market: refreshing every market for one missing price costs minutes.
+function RefreshOwnMarket({ market }: { readonly market: string }) {
+  const held = findMarket(market)
+
+  return <RefreshMarketsButton markets={held === undefined ? [] : [held]} size="small" />
 }
 
 // The price with its move, a warning when it is stale, and where it comes from: scale, session, time.
