@@ -975,8 +975,9 @@ cuối tuần thì được nghỉ bù vào ngày làm việc kế tiếp. Chín
 lịch này giả định năm ngày quen thuộc; năm nào khác thì chỉnh bằng `holidays` và `open_days`. Có hai điều
 luật không biết thay bạn:
 
-- **Ngày nghỉ hoán đổi mà Chính phủ công bố.** Thêm vào `[trading.markets.<id>] holidays`. Ba ngày đã
-  công bố cho tới nay (2/5/2025, 2/1/2026, 31/8/2026) đã có sẵn.
+- **Ngày nghỉ hoán đổi mà Chính phủ công bố.** Thêm vào `[trading.markets.<id>] holidays`. Các ngày đã
+  công bố cho tới nay (29/4/2024, 2/5/2025, 2/1/2026, 31/8/2026, và 3/9/2021 là ngày nghỉ thứ hai của
+  Quốc khánh năm đó) đã có sẵn, đối chiếu với dữ liệu giao dịch thật.
 - **Ngày luật cho nghỉ nhưng sàn vẫn giao dịch.** Ghi vào `open_days`. Nếu sàn chọn nghỉ 3/9 thay vì
   1/9 cho dịp Quốc khánh, hãy đưa 1/9 vào `open_days` và 3/9 vào `holidays`.
 

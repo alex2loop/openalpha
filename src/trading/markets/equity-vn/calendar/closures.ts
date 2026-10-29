@@ -14,14 +14,19 @@ const VIETNAM_CULTURE_DAY_FIRST_YEAR = 2026
 /** Days the government moved a working day onto a weekend for a longer break. They follow no rule,
  *  so each is written down when announced; the exchanges close with the civil service. */
 const ANNOUNCED_SWAP_CLOSURES: readonly TradingDay[] = Object.freeze(
-  ['2025-05-02', '2026-01-02', '2026-08-31'].map(tradingDay)
+  ['2024-04-29', '2025-05-02', '2026-01-02', '2026-08-31'].map(tradingDay)
 )
+/** The years the government gave National Day its second day after 2 September rather than
+ *  before; any other year follows the rule in `nationalDaySecond`. */
+const ANNOUNCED_NATIONAL_DAY_SECOND: Readonly<Record<number, TradingDay>> = Object.freeze({
+  2021: tradingDay('2021-09-03'),
+})
 
 /** The weekdays HOSE and HNX are shut in a year: the paid public holidays of Labor Code art. 112
  *  (New Year, Tết, Giỗ Tổ, 30/4 and 1/5, National Day, and from 2026 Vietnam Culture Day), each
  *  one that lands on a weekend moved to the next weekday not already a closure, plus the announced
- *  swap days. From 2021 National Day takes a second adjacent day, the day before unless that is a
- *  weekend. */
+ *  swap days. From 2021 National Day takes a second adjacent day: the announced one, else the day
+ *  before unless that is a weekend. */
 export function vnClosuresOf(
   year: number,
   isWeekend: (day: TradingDay) => boolean
@@ -62,6 +67,12 @@ function statutoryDays(year: number, isWeekend: (day: TradingDay) => boolean): T
 }
 
 function nationalDaySecond(year: number, isWeekend: (day: TradingDay) => boolean): TradingDay {
+  const announced = ANNOUNCED_NATIONAL_DAY_SECOND[year]
+
+  if (announced !== undefined) {
+    return announced
+  }
+
   const national = tradingDay(`${year}-09-02`)
   const before = shiftCalendarDay(national, -1)
 

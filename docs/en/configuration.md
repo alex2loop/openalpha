@@ -982,8 +982,9 @@ holiday that lands on a weekend moves to the next weekday. The government picks 
 itself, and the calendar assumes its usual five days; if a year differs, fix it with `holidays` and
 `open_days`. Two things the law cannot tell the bot:
 
-- **A swap day the government announces.** Add it under `[trading.markets.<id>] holidays`. The three
-  announced so far (2 May 2025, 2 January 2026, 31 August 2026) are already built in.
+- **A swap day the government announces.** Add it under `[trading.markets.<id>] holidays`. The ones
+  announced so far (29 April 2024, 2 May 2025, 2 January 2026, 31 August 2026, and 3 September 2021 as
+  that year's second National Day holiday) are built in, checked against the real trading tape.
 - **A day the exchange trades although the law closes it.** List it under `open_days`. If the
   exchange picks 3 September instead of 1 September for National Day, put 1 September in `open_days`
   and 3 September in `holidays`.

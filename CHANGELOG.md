@@ -26,6 +26,8 @@ the way the order path charges them.
   `[trading.markets.<id>] holidays`; the new `open_days` reopens a day the rules close. A date in
   both lists, or on the market's weekend, stops the start.
 - The "holiday table is out of date" warning is gone: there is no table to run out.
+- Checked against the real tape for 2020-2025: 29 April 2024 (a swap day) is closed, and National
+  Day 2021 took its second day on 3 September, not 1 September.
 
 ### Scheduler and delivery
 
