@@ -6,10 +6,13 @@ import { commandWordOf } from '@/web/ui/chat/command-link'
 import { RESEARCH_COMMAND } from '@/web/ui/chat/research-steps'
 import { openRememberDialog } from '@/web/ui/dialogs/remember-dialog'
 import { Button } from '@/web/ui/kit/button'
-import { Markdown } from '@/web/ui/markdown/markdown'
+import { InlineMarkdown, Markdown } from '@/web/ui/markdown/markdown'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
 
 const PARAGRAPH_BREAK = /\n{2,}/
+// A channel that folds detail away quotes each of its lines; here they read as indented rows.
+const FOLD_QUOTE = /^> ?/
+const ROW_INDENT = '  '
 
 /** One stored message and what it reads from its neighbours. */
 interface HistoryEntry {
@@ -23,7 +26,7 @@ interface HistoryEntry {
 interface ReplyTextProps {
   readonly text: string
   /** An agent's prose: markdown, known tickers linked. Off for a command's answer, whose lines are
-   *  data laid out by the daemon. */
+   *  data laid out by the daemon: only its bold and links are drawn, and its folds unquoted. */
   readonly isProse?: boolean
   /** A research answer: its footnotes jump to its own sources list. */
   readonly scope?: string | undefined
@@ -41,11 +44,21 @@ export function ReplyText({ text, isProse = true, scope }: ReplyTextProps) {
     <>
       {paragraphs.map((part, index) => (
         <p key={index} class="chat-reply">
-          {part}
+          <InlineMarkdown text={part.split('\n').map(unquoteFold).join('\n')} />
         </p>
       ))}
     </>
   )
+}
+
+function unquoteFold(line: string): string {
+  if (!FOLD_QUOTE.test(line)) {
+    return line
+  }
+
+  const row = line.replace(FOLD_QUOTE, '')
+
+  return row.startsWith(ROW_INDENT) ? row : `${ROW_INDENT}${row}`
 }
 
 /** Stored messages, oldest first, each laid out as the chat showed it. */
