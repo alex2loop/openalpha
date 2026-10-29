@@ -67,6 +67,8 @@ the way the order path charges them.
 
 - The ticker card now really shows a corporate action's terms (1.2.0 promised them but showed only
   the payment day): cash per share, new shares per 100, subscription price and payment day.
+- The VN event note groups its figures the Vietnamese way (`2.250.000 CP`, `10.000 đ/cp`) instead
+  of the provider's `2,250,000` and bare `10000`.
 - The sign-in lockout has its own error code, `locked`; other refusals show their reason, and a
   sign-in link survives a daemon that is restarting.
 - Too many open tabs reads as such, not as offline.
