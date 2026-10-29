@@ -3,7 +3,7 @@ import type { ApiErrorCode } from '@/app/server/wire/errors'
 import type { BrowserSignInCode } from '@/app/server/wire/sign-in'
 import type { CliApp, Command } from '@/cli/api'
 import type { MessageKey } from '@/i18n'
-import { readApiToken } from '@/app/server/cli/api-token'
+import { readApiDown, readApiToken } from '@/app/server/cli/api-token'
 import { resolveSshAddress, toSshTarget } from '@/app/server/cli/ssh-address'
 import { LOOPBACK_HOST } from '@/app/server/http/auth'
 import { SIGN_IN_CODE_TTL_MS } from '@/app/server/http/sign-in-codes'
@@ -46,6 +46,14 @@ async function openPage(app: CliApp): Promise<number> {
 
   if (!app.config.api.enabled) {
     app.err(fail(t(locale, 'cli.webApiOff', { brand: BRAND.name })))
+
+    return EXIT_FAILED
+  }
+
+  const apiDown = await readApiDown(app)
+
+  if (apiDown !== undefined) {
+    app.err(fail(apiDown))
 
     return EXIT_FAILED
   }

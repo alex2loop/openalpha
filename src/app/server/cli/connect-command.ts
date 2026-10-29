@@ -1,9 +1,9 @@
 import { isIPv6 } from 'node:net'
 
 import type { CliApp, Command } from '@/cli/api'
-import { withApiToken } from '@/app/server/cli/api-token'
+import { readApiDown, withApiToken } from '@/app/server/cli/api-token'
 import { resolveSshAddress, toSshTarget } from '@/app/server/cli/ssh-address'
-import { createCommand, getEnv, hint } from '@/cli/api'
+import { createCommand, fail, getEnv, hint } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 
@@ -13,8 +13,20 @@ export const connectCommand: Command = createCommand({
   name: 'connect',
   summary: { key: 'cliHelp.connectSummary' },
   needs: { boot: false },
-  run: (_args, app) => withApiToken(app, (token) => printConnectLine(app, token)),
+  run: (_args, app) => connect(app),
 })
+
+async function connect(app: CliApp): Promise<number> {
+  const apiDown = await readApiDown(app)
+
+  if (apiDown !== undefined) {
+    app.err(fail(apiDown))
+
+    return 1
+  }
+
+  return await withApiToken(app, (token) => printConnectLine(app, token))
+}
 
 function printConnectLine(app: CliApp, token: string): void {
   const locale = app.config.locale.language

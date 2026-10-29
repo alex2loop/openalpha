@@ -459,6 +459,9 @@ Run the daemon on a server you own and point a client app at it.
 
    For the desktop app, run `openalpha connect`. It prints the address and the token on two separate
    lines. Give the app that address and token, never a browser, and keep the token private.
+
+   If the daemon could not open its API, say because another program holds the port, both `web` and
+   `connect` tell you that instead of handing out a link that cannot work.
 5. **Reach it from outside.** The API listens on the server's `127.0.0.1` only, so the SSH tunnel
    above needs nothing more. To reach it without a tunnel, pick one in this order:
    - **SSH**, no domain needed: nothing to set up. `openalpha web` prints the tunnel.

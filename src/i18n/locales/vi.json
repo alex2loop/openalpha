@@ -5235,6 +5235,7 @@
     "render.suggestion.holdLevelsTakeProfitTrail": "Chốt {tranche} tại {takeProfit} ({takeProfitPct}) rồi để phần còn lại chạy tiếp",
     "render.suggestion.holdLevelsTargetFar": "Mục tiêu xa {target} ({targetPct})",
     "render.suggestion.holdLevelsTakeProfit": "Chốt lời {target} ({targetPct})",
+    "render.suggestion.holdLevelsTakeProfitBelowCost": "Bán bớt khi hồi về {target} ({targetPct}), vẫn dưới giá vốn",
     "render.suggestion.holdLevelsTranche": "Tại {price}, bán {tranche} và để phần còn lại chạy theo mức cắt lỗ đang nâng dần.",
     "render.suggestion.holdLevelsTrancheReached": "Giá đã vượt {price}: bán {tranche} ngay và để phần còn lại chạy theo mức cắt lỗ đang nâng dần.",
     "render.suggestion.holdLevelsTrancheTaken": "Bạn đã bán {sold} vị thế này - nhiều hơn phần {share} kế hoạch định chốt tại {price} - nên bước chốt lời đầu tiên coi như đã xong. Phần còn lại cứ để chạy theo mức cắt lỗ đang nâng dần.",

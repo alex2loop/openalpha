@@ -45,6 +45,10 @@ the way the order path charges them.
 - Telegram and Zalo check their token once at start; a slow network is retried by the polling loop
   instead of holding the start, and the Telegram command menu is installed in the background. A
   wrong token is still reported at start.
+- `web` and `connect` say why the daemon has no API (its port taken by another program, say)
+  instead of reporting a refused token from whatever holds that port.
+- A run that stops on something you can fix, such as an unset key, is logged as a warning, not an
+  error.
 - A terminal command sent while the daemon is still starting waits for it, then runs there, instead
   of running a second copy of the work (a `/refresh`, say) in the terminal.
 
@@ -67,6 +71,8 @@ the way the order path charges them.
 
 - The ticker card now really shows a corporate action's terms (1.2.0 promised them but showed only
   the payment day): cash per share, new shares per 100, subscription price and payment day.
+- On a held position, a first exit that sits under your cost reads "Trim on a rebound to ..., still
+  below your cost" instead of "Take profit".
 - The VN event note groups its figures the Vietnamese way (`2.250.000 CP`, `10.000 đ/cp`) instead
   of the provider's `2,250,000` and bare `10000`.
 - The sign-in lockout has its own error code, `locked`; other refusals show their reason, and a

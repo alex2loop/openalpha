@@ -5235,6 +5235,7 @@
     "render.suggestion.holdLevelsTakeProfitTrail": "Take {tranche} off at {takeProfit} ({takeProfitPct}) and let the rest run",
     "render.suggestion.holdLevelsTargetFar": "Far target {target} ({targetPct})",
     "render.suggestion.holdLevelsTakeProfit": "Take profit {target} ({targetPct})",
+    "render.suggestion.holdLevelsTakeProfitBelowCost": "Trim on a rebound to {target} ({targetPct}), still below your cost",
     "render.suggestion.holdLevelsTranche": "At {price}, sell {tranche} and let the rest ride the rising stop.",
     "render.suggestion.holdLevelsTrancheReached": "The price is already past {price}: sell {tranche} now and let the rest ride the rising stop.",
     "render.suggestion.holdLevelsTrancheTaken": "You have already sold {sold} of this position - more than the {share} the plan takes off at {price} - so that first step is done. Let the rest ride the rising stop.",

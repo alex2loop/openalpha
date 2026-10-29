@@ -6,7 +6,7 @@ import {
   parseTokenFile,
   resolveTokenEnv,
 } from '@/app/server/http/auth'
-import { fail, getEnv } from '@/cli/api'
+import { fail, getEnv, liveDaemon, readDaemonDegraded } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { bindLocale, t } from '@/i18n'
 
@@ -63,6 +63,19 @@ function readTokenEnv(tokenEnv: string, locale: Locale): ApiTokenRead {
       message: bindLocale(locale).translate(err.operator.key, err.operator.params),
     }
   }
+}
+
+/** Why the running daemon serves no API (its port was taken, its token variable unset), in the
+ *  daemon's own words; undefined when no daemon runs or its API is up. A token sent anyway would
+ *  reach whatever else holds the port and read as refused. */
+export async function readApiDown(app: CliApp): Promise<string | undefined> {
+  const daemon = await liveDaemon(app)
+
+  if (daemon === null) {
+    return undefined
+  }
+
+  return (await readDaemonDegraded(app, daemon.pid)).find((entry) => entry.kind === 'api')?.message
 }
 
 /** A disabled server reads no token, so neither showing nor minting one means anything yet. */

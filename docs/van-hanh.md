@@ -454,6 +454,9 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
 
    Với ứng dụng desktop, chạy `openalpha connect`. Nó in địa chỉ và token trên hai dòng riêng. Hãy đưa
    cho ứng dụng địa chỉ và token đó, đừng dán vào trình duyệt, và giữ kín token.
+
+   Nếu dịch vụ nền chưa mở được API, chẳng hạn vì cổng đang có chương trình khác dùng, thì cả `web` và
+   `connect` đều báo đúng lý do đó thay vì đưa ra một liên kết không dùng được.
 5. **Nối từ bên ngoài.** API chỉ nghe trên `127.0.0.1` của máy chủ, nên đường hầm SSH ở trên không cần gì thêm.
    Muốn nối mà không qua đường hầm, chọn một cách theo thứ tự này:
    - **SSH**, không cần tên miền: không phải cài gì. `openalpha web` in sẵn đường hầm.
