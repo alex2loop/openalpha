@@ -15,11 +15,6 @@
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
 </p>
 
-<p><img src="assets/readme/new.vi.svg" height="24" alt="Mới" /></p>
-
-> [!TIP]
-> Cả đội AI của bạn làm việc trong một văn phòng pixel ngay trên trình duyệt. Nhìn ai đang làm gì, bấm vào một nhân vật để giao việc, liếc bảng thị trường bên cạnh. Mở bằng `openalpha web` · [xem cách dùng](#trang-văn-phòng).
-
 <p align="center">
   <img src="assets/readme/hero.vi.png" alt="Đề xuất yếu bị loại trước khi tới tay bạn, qua sáu bước: dữ liệu, bằng chứng, cổng chặn, tranh luận, kiểm tra, kết luận" width="100%" />
 </p>
@@ -32,6 +27,11 @@ Bạn hỏi một mã, OpenAlpha trả về một kế hoạch: mua ở đâu, c
 - **Bốn thị trường.** Cổ phiếu Việt Nam (sâu nhất, nhờ dữ liệu trong nước), crypto, vàng trong nước, và vàng thế giới để tham chiếu.
 
 Đây là công cụ hỗ trợ phân tích, không phải lời khuyên đầu tư. Đề xuất có thể sai, và mọi quyết định là của bạn.
+
+<p><img src="assets/readme/new.vi.svg" height="24" alt="Mới" /></p>
+
+> [!TIP]
+> Cả đội AI của bạn làm việc trong một văn phòng pixel ngay trên trình duyệt. Nhìn ai đang làm gì, bấm vào một nhân vật để giao việc, liếc bảng thị trường bên cạnh. Mở bằng `openalpha web` · [xem cách dùng](#trang-văn-phòng).
 
 <p align="center">
   <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-nh%C3%B3m%20h%E1%BB%97%20tr%E1%BB%A3-0068FF?style=for-the-badge" alt="Nhóm Zalo hỗ trợ" /></a><br/>

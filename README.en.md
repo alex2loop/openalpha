@@ -15,11 +15,6 @@
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
 </p>
 
-<p><img src="assets/readme/new.en.svg" height="24" alt="New" /></p>
-
-> [!TIP]
-> Your whole AI team works in a pixel office right in your browser. See who is doing what, click a person to hand them work, and glance at the market panel beside it. Open it with `openalpha web` · [see how](#the-office-page).
-
 <p align="center">
   <img src="assets/readme/hero.en.png" alt="Weak ideas are dropped before they reach you, across six steps: data, evidence, gate, debate, stages, verdict" width="100%" />
 </p>
@@ -32,6 +27,11 @@ You ask about a name, and OpenAlpha gives you a plan back: where to buy, where t
 - **Four markets.** Vietnamese equities (the deepest, with local data sources), crypto, Vietnamese gold, and world gold for reference.
 
 It is an analysis aid, not investment advice. Suggestions can be wrong, and every decision is yours.
+
+<p><img src="assets/readme/new.en.svg" height="24" alt="New" /></p>
+
+> [!TIP]
+> Your whole AI team works in a pixel office right in your browser. See who is doing what, click a person to hand them work, and glance at the market panel beside it. Open it with `openalpha web` · [see how](#the-office-page).
 
 <p align="center">
   <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-support%20group-0068FF?style=for-the-badge" alt="Zalo support group" /></a><br/>
