@@ -4206,7 +4206,7 @@
     "event.dividend-ex-date": "Ex-dividend date",
     "event.agm": "Shareholder meeting",
     "event.meeting-ex-date": "Ex-date for shareholder meeting rights",
-    "event.split": "Share split",
+    "event.split": "Share dividend or bonus issue",
     "event.rights-issue": "Rights issue to existing shareholders",
     "event.additional-listing": "New shares start trading",
     "event.listing": "New listing",
