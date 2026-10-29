@@ -4,12 +4,10 @@ import { thread } from '@/web/state/chat'
 import { history, isOpenedGone, loadEarlier } from '@/web/state/chat-history'
 import { toFailureText, tr } from '@/web/text/tr'
 import { ApprovalInline } from '@/web/ui/chat/approval-inline'
-import { HistoryMessage } from '@/web/ui/chat/history-message'
+import { HistoryMessages } from '@/web/ui/chat/history-message'
+import { isAtEnd, useOlderPages } from '@/web/ui/chat/older-pages'
 import { TurnCard } from '@/web/ui/chat/turn-card'
 import { Button } from '@/web/ui/kit/button'
-
-// How near the bottom still counts as reading the newest line.
-const PIN_SLACK_PX = 24
 
 /** The current session: its earlier messages, then what was sent on this page, newest last. */
 export function MessageList() {
@@ -18,12 +16,19 @@ export function MessageList() {
   const earlier = history.value.messages
 
   const isPinned = useRef(true)
+  const newestId = useRef(turns.at(-1)?.localId)
+  const onScrollOlder = useEarlierPages(list)
 
-  // A new turn or a streamed delta keeps the newest line in view while the reader is at the bottom.
+  // A turn just sent always brings the list to the bottom; a streamed delta keeps the newest line in
+  // view only while the reader is already there.
   useEffect(() => {
     const element = list.current
+    const isNewTurn = turns.at(-1)?.localId !== newestId.current
 
-    if (element !== null && isPinned.current) {
+    newestId.current = turns.at(-1)?.localId
+
+    if (element !== null && (isNewTurn || isPinned.current)) {
+      isPinned.current = true
       element.scrollTop = element.scrollHeight
     }
   }, [turns])
@@ -37,22 +42,33 @@ export function MessageList() {
       onScroll={(event) => {
         const element = event.currentTarget
 
-        isPinned.current =
-          element.scrollHeight - element.scrollTop - element.clientHeight <= PIN_SLACK_PX
+        isPinned.current = isAtEnd(element)
+        onScrollOlder()
       }}
     >
       {isOpenedGone.value && <p class="meta chat-start">{tr('ui.office.sessions.unknown')}</p>}
       <HistoryHead />
-      {earlier.map((message, index) => (
-        // Counted from the newest, so an older page prepended never shifts a key.
-        <HistoryMessage key={earlier.length - index} message={message} />
-      ))}
+      <HistoryMessages messages={earlier} />
       {turns.map((turn) => (
         <TurnCard key={turn.localId} turn={turn} />
       ))}
       <ApprovalInline />
     </div>
   )
+}
+
+// `loadEarlier` keeps its own failure in `history` and ignores a call while a page loads.
+function useEarlierPages(list: { readonly current: HTMLElement | null }): () => void {
+  const { messages, status } = history.value
+
+  return useOlderPages({
+    list,
+    oldest: messages[0],
+    canLoad: status === 'more',
+    loadOlder: () => {
+      loadEarlier().catch(() => undefined)
+    },
+  })
 }
 
 function HistoryHead() {

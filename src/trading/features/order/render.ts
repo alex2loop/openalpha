@@ -261,6 +261,7 @@ function capText(context: CapContext, value: number): string {
 interface UnmirroredContext {
   readonly locale: Locale
   readonly timezone: string
+  readonly quoteConventions: ReadonlyMap<MarketRef, QuoteConvention>
 }
 
 interface UnmirroredInput extends UnmirroredContext {
@@ -300,9 +301,10 @@ export function renderUnmirroredLines(
   const parts = [
     t(locale, 'trading.order.prompt.line', {
       side: t(locale, `trading.order.side.${intent.side}`),
-      quantity: formatQuantity(locale, intent.quantity),
+      quantity: formatQuantity(locale, intent.filledQuantity ?? intent.quantity),
       ticker: intent.instrument.ticker,
     }),
+    ...fillPriceCell(context, intent),
     renderVenueName(locale, intent.venue),
     formatInstant(locale, intent.createdAt, context.timezone),
     renderProvidedValue(
@@ -320,6 +322,21 @@ export function renderUnmirroredLines(
   return [
     `${INDENT[1]}${SIDE_MARKS[intent.side]} ${parts.join(INLINE_SEPARATOR)}`,
     `${INDENT[2]}${t(locale, 'trading.order.unmirrored.settle', { token: intent.token })}`,
+  ]
+}
+
+// A market the registry no longer lists leaves the price out: a price with no currency misleads.
+function fillPriceCell(context: UnmirroredContext, intent: UnmirroredIntent): readonly string[] {
+  const convention = context.quoteConventions.get(intent.instrument.market)
+
+  if (intent.averagePrice === undefined || convention === undefined) {
+    return []
+  }
+
+  return [
+    t(context.locale, 'trading.order.unmirrored.fillPrice', {
+      price: formatQuotedPrice(context.locale, intent.averagePrice, convention),
+    }),
   ]
 }
 

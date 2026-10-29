@@ -139,7 +139,9 @@
   --commandBarH: 62px;
   --chatPanelW: clamp(340px, 28vw, 440px);
   --panelW: 440px;
-  --panelRailW: 52px;
+  --panelRailW: 44px;
+  --railItemH: 36px;
+  --railIconSize: 18px;
   --panelContentMaxW: 720px;
   --tapeH: 28px;
   --tapeScrollMs: 70s;

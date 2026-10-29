@@ -1,6 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { QuoteView } from '@/trading/kernel/market/market-capability'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { RenderContext } from '@/trading/render/format'
 import { formatDay, t } from '@/i18n'

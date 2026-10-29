@@ -212,6 +212,11 @@ export function formatSignedFraction(fraction: number | undefined): string {
   return formatSignedPercent(fraction === undefined ? undefined : fraction * PERCENT)
 }
 
+/** As `toneOfPercent`, for a field given as a fraction. */
+export function toneOfFraction(fraction: number | undefined): Tone {
+  return toneOfPercent(fraction === undefined ? undefined : fraction * PERCENT)
+}
+
 /** The direction a percent reads in, judged off its rendered text. */
 export function toneOfPercent(value: number | undefined): Tone {
   return readPercent(value).tone

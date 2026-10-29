@@ -33,7 +33,7 @@ export function NewsList({ region }: { readonly region: string }) {
     >
       {(news) =>
         news.items.length === 0 ? (
-          <p class="meta">{tr('ui.office.news.none')}</p>
+          <p class="empty-note">{tr('ui.office.news.none')}</p>
         ) : (
           <>
             <input
@@ -64,7 +64,7 @@ function NewsGroups({
   const timeZone = state.value?.timeZone
 
   if (shown.length === 0) {
-    return <p class="meta">{tr('ui.office.news.noMatch', { query })}</p>
+    return <p class="empty-note">{tr('ui.office.news.noMatch', { query })}</p>
   }
 
   // Without the daemon's zone no day can be placed, so the headlines stand in one list.

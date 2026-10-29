@@ -7,17 +7,26 @@ import {
   type Turn,
   thread,
 } from '@/web/state/chat'
-import { ALERT_CREATE_COMMAND, fillInput, inputText, setInput } from '@/web/state/command'
+import {
+  ALERT_CREATE_COMMAND,
+  FORCE_ARG,
+  fillInput,
+  inputText,
+  SUGGEST_COMMAND,
+  SUGGEST_STOPS_ARG,
+  setInput,
+} from '@/web/state/command'
 import { focusRun } from '@/web/state/focus'
 import { findRun, hasChildren, type Run, runs } from '@/web/state/live'
 import { canRemember, toAttributeName } from '@/web/state/memory'
 import { joinInline } from '@/web/text/glyphs'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
-import { commandWordOf, resolveCommandLink } from '@/web/ui/chat/command-link'
+import { commandWordOf, commandWordsOf, resolveCommandLink } from '@/web/ui/chat/command-link'
 import { RememberThis, ReplyText } from '@/web/ui/chat/history-message'
 import { QueuedCard } from '@/web/ui/chat/queued-card'
 import { isResearchTurn, ResearchReportLink, ResearchSteps } from '@/web/ui/chat/research-steps'
+import { RunButton } from '@/web/ui/command/run-button'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
@@ -264,15 +273,22 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
         {isResearchTurn(turn) && turn.runId !== undefined && (
           <ResearchReportLink runId={turn.runId} />
         )}
-        <NextSteps tickers={turn.tickers} />
+        <NextSteps turn={turn} />
       </div>
     </>
   )
 }
 
-// The first name the answer reported on: suggest it, or set an alert on it. Both only fill the box.
-function NextSteps({ tickers }: { readonly tickers: readonly string[] | undefined }) {
-  const ticker = tickers?.[0]
+// The first name the answer reported on: analyze it, or, under an analysis that may have handed back
+// a stored call, run that same line again from scratch; or start an alert on it, which waits in the
+// box for its price.
+function NextSteps({ turn }: { readonly turn: Turn }) {
+  const ticker = turn.tickers?.[0]
+  const words = commandWordsOf(turn.text)
+  const [command, subject, ...options] = words
+  const isSuggest = command === SUGGEST_COMMAND
+  const canForce = isSuggest && subject !== SUGGEST_STOPS_ARG && !options.includes(FORCE_ARG)
+  const fresh = [...words, FORCE_ARG].join(' ')
 
   if (ticker === undefined) {
     return null
@@ -280,7 +296,10 @@ function NextSteps({ tickers }: { readonly tickers: readonly string[] | undefine
 
   return (
     <>
-      <SuggestChip ticker={ticker} />
+      {!isSuggest && <SuggestChip ticker={ticker} />}
+      {canForce && (
+        <RunButton command={fresh} label={tr('ui.office.common.suggestFresh')} size="small" />
+      )}
       <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
         {tr('ui.office.common.setAlert')}
       </Button>

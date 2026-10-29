@@ -74,7 +74,7 @@ function CallsBody({ runId, isRunning, command }: RunCallsProps) {
   }
 
   if (calls.calls.length === 0) {
-    return <p class="meta">{tr('ui.office.calls.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.calls.empty')}</p>
   }
 
   return <CallList calls={calls} command={command} />

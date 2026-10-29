@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { ChatSessionsResponse } from '@/app/server/wire/chat'
 import type { SessionListing } from '@/persistence/api'
+import { isDeletableChannel } from '@/app/server/channel'
 import { scrubCredentials } from '@/core/security/credentials'
 import { truncate } from '@/core/utils/text'
 import { withoutResearchDepth } from '@/engine/api'
@@ -23,7 +24,7 @@ export function toChatSessionsWire(
 
   return {
     sessions: listings.map(toChatSessionWire),
-    nextBefore: last?.lastActivityAt ?? null,
+    nextBefore: last?.lastMessageAt ?? null,
     nextBeforeId: last?.id ?? null,
   }
 }
@@ -38,8 +39,9 @@ function toChatSessionWire(listing: SessionListing): ChatSessionsResponse['sessi
     ...(listing.chatId === undefined ? {} : { chatId: listing.chatId }),
     agentId: listing.agentId,
     startedAt: listing.startedAt,
-    lastActivityAt: listing.lastActivityAt,
-    messageCount: listing.messageCount,
+    lastMessageAt: listing.lastMessageAt,
+    turnCount: listing.turnCount,
+    deletable: isDeletableChannel(listing.channel),
     ...(title === undefined ? {} : { title }),
     ...(lastReply === undefined ? {} : { lastReply }),
   }

@@ -129,9 +129,6 @@ function toRow({ event, deliveredTo, createdAt }: Filing): NoticeRow {
   return {
     id: randomUUID(),
     kind: event.kind,
-    weight: event.weight,
-    wake: event.wake === true,
-    ...(event.runId === undefined ? {} : { runId: event.runId }),
     deliveredTo,
     event: JSON.stringify(event),
     createdAt: createdAt ?? Date.now(),

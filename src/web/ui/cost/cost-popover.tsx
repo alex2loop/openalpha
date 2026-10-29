@@ -137,7 +137,7 @@ function ByJobRows({ activity }: { readonly activity: LoadState<ActivityResponse
   const rows = activity.value.rows.filter((row) => row.costUsd > 0)
 
   if (rows.length === 0) {
-    return <p class="meta">{tr('ui.office.jobs.none')}</p>
+    return <p class="empty-note">{tr('ui.office.jobs.none')}</p>
   }
 
   return (

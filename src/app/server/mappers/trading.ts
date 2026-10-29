@@ -15,7 +15,6 @@ import type {
   TradingProfileResponse,
   TradingQuotesResponse,
   TradingQuoteWire,
-  TradingTrackRecordResponse,
   TradingWireCaveat,
   TradingWireProvenance,
 } from '@/app/server/wire/trading'
@@ -34,15 +33,14 @@ import type {
   SourceProvenance,
   StoredSuggestion,
   SuggestionCard,
-  TradingTrackRecordView,
   UserProfile,
   ValuedPosition,
 } from '@/trading/api'
-import { toByModelWires, toFocusWires } from '@/app/server/mappers/track-record'
 import {
   buildInstrumentKey,
   describeCaveat,
   isBelowMinimumSize,
+  isRecordedPlan,
   isUndecidedHold,
   shownCall,
 } from '@/trading/api'
@@ -148,6 +146,12 @@ export function toMarketEventWire(event: MarketEvent): MarketEventWire {
     kind: event.kind,
     title: event.title,
     ...(event.detail === undefined ? {} : { detail: event.detail }),
+    ...(event.cashPerShare === undefined ? {} : { cashPerShare: event.cashPerShare }),
+    ...(event.paysOn === undefined ? {} : { paysOn: event.paysOn }),
+    ...(event.shareRatio === undefined ? {} : { shareRatio: event.shareRatio }),
+    ...(event.subscriptionPrice === undefined
+      ? {}
+      : { subscriptionPrice: event.subscriptionPrice }),
   }
 }
 
@@ -329,7 +333,7 @@ export function toSuggestionWire(call: StoredSuggestion, locale: Locale): Sugges
       ...(suggestion.target === undefined ? {} : { target: suggestion.target }),
       ...(suggestion.riskReward === undefined ? {} : { riskReward: suggestion.riskReward }),
       holdReasonCodes: [...suggestion.holdReasonCodes],
-      ...(isUndecidedHold(suggestion) ? { undecided: true as const } : {}),
+      ...toHoldKindWire(suggestion),
     }
   }
 
@@ -346,6 +350,17 @@ export function toSuggestionWire(call: StoredSuggestion, locale: Locale): Sugges
   }
 }
 
+// A hold that is not a decision: a run that failed, or the plan written for a held name at its fill.
+function toHoldKindWire(
+  suggestion: StoredSuggestion
+): Pick<Extract<SuggestionWire, { readonly action: 'hold' }>, 'undecided' | 'recorded'> {
+  if (isUndecidedHold(suggestion)) {
+    return { undecided: true }
+  }
+
+  return isRecordedPlan(suggestion) ? { recorded: true } : {}
+}
+
 function toOutcomeWire(
   outcome: NonNullable<Extract<StoredSuggestion, { action: 'buy' | 'reduce' }>['outcome']>
 ): NonNullable<SuggestionWire['outcome']> {
@@ -357,57 +372,6 @@ function toOutcomeWire(
     ...(outcome.benchmarkReturnPct === undefined
       ? {}
       : { benchmarkReturnPct: outcome.benchmarkReturnPct }),
-  }
-}
-
-export function toTrackRecordWire(
-  view: TradingTrackRecordView,
-  locale: Locale
-): TradingTrackRecordResponse {
-  const { report, acted } = view.reflection
-  const { summary } = report
-
-  return {
-    text: {
-      summary: [...view.text.summary],
-      byConviction: [...view.text.byConviction],
-      acted: [...view.text.acted],
-      closed: view.text.closed.map((row) => ({ ...row })),
-    },
-    summary: {
-      resolvedCount: summary.resolvedCount,
-      ...(summary.winRate === undefined ? {} : { winRate: summary.winRate }),
-      ...(summary.meanReturnPct === undefined ? {} : { meanReturnPct: summary.meanReturnPct }),
-      ...(summary.medianReturnPct === undefined
-        ? {}
-        : { medianReturnPct: summary.medianReturnPct }),
-      benchmarkComparedCount: summary.benchmarkComparedCount,
-      benchmarkBeatCount: summary.benchmarkBeatCount,
-      ...(summary.benchmarkMeanReturnPct === undefined
-        ? {}
-        : { benchmarkMeanReturnPct: summary.benchmarkMeanReturnPct }),
-      ...(summary.beatsBenchmarkMajority === undefined
-        ? {}
-        : { beatsBenchmarkMajority: summary.beatsBenchmarkMajority }),
-      versions: summary.versions.map((entry) => ({
-        strategyVersion: entry.strategyVersion,
-        calculationVersions: entry.calculationVersions.map((version) => ({
-          name: version.name,
-          version: version.version,
-        })),
-        resolvedCount: entry.resolvedCount,
-      })),
-      calibration: summary.calibration.map((bucket) => ({
-        convictionBand: bucket.convictionBand,
-        resolvedCount: bucket.resolvedCount,
-        ...(bucket.winRate === undefined ? {} : { winRate: bucket.winRate }),
-      })),
-      focuses: toFocusWires(summary.focuses),
-      byModel: toByModelWires(view.byModel),
-      caveats: toCaveatWires(summary.caveats, locale),
-    },
-    recent: report.recent.map((suggestion) => toSuggestionWire(suggestion, locale)),
-    ...(acted === undefined ? {} : { acted: { ...acted } }),
   }
 }
 

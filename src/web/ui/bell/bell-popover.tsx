@@ -103,7 +103,7 @@ function TodaySection() {
         <p class="failure-line">{toFailureText(failure)}</p>
       )}
       {failure === undefined && today.length === 0 && (
-        <p class="meta">{tr('ui.office.bell.empty')}</p>
+        <p class="empty-note">{tr('ui.office.bell.empty')}</p>
       )}
       {today.map((notice) => (
         <NoticeRow key={notice.id} notice={notice} />

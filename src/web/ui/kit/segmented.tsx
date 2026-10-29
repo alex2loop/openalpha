@@ -1,4 +1,5 @@
-import type { ComponentChildren } from 'preact'
+import type { ComponentChildren, RefObject } from 'preact'
+import { useEffect, useRef } from 'preact/hooks'
 
 import './segmented.css'
 
@@ -34,6 +35,7 @@ export function Segmented<T extends string>({
   options,
   onChange,
 }: SegmentedProps<T>) {
+  const tabList = useOpenTabInView(value)
   const classes = className === undefined ? 'seg' : `seg ${className}`
   const buttons = options.map((option) => {
     const isOn = option.value === value
@@ -60,7 +62,7 @@ export function Segmented<T extends string>({
 
   if (isTabs) {
     return (
-      <div class={classes} role="tablist" aria-label={label} title={title}>
+      <div ref={tabList} class={classes} role="tablist" aria-label={label} title={title}>
         {buttons}
       </div>
     )
@@ -72,4 +74,17 @@ export function Segmented<T extends string>({
       {buttons}
     </fieldset>
   )
+}
+
+// A row that scrolls sideways keeps the open tab in view.
+function useOpenTabInView(value: string | undefined): RefObject<HTMLDivElement | null> {
+  const tabList = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    tabList.current
+      ?.querySelector('.is-on')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [value])
+
+  return tabList
 }

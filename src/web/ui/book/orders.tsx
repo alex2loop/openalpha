@@ -5,10 +5,10 @@ import { useBlockRead } from '@/web/state/block'
 import { onCommandFinished, onWireEvent } from '@/web/state/events'
 import { readTrade, setBuyingHalted } from '@/web/state/orders'
 import { toErrorText, tr } from '@/web/text/tr'
-import { FailureStrip } from '@/web/ui/book/failure-strip'
 import { OrderAnswer } from '@/web/ui/book/orders-answer'
 import { OrderExits } from '@/web/ui/book/orders-exits'
 import { StagedCard } from '@/web/ui/book/orders-staged'
+import { FailureStrip } from '@/web/ui/kit/failure-strip'
 import { ListIcon } from '@/web/ui/kit/icons'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { BlockHead } from '@/web/ui/today/block-frame'
@@ -34,11 +34,11 @@ export function Orders() {
 
   return (
     <section class="block">
+      <BlockHead title={tr('ui.office.orders.waiting')} colour="blue" icon={<ListIcon />} />
       <BuyingSwitch isHalted={data.haltedAt !== undefined} reread={reading.retry} />
       {error !== undefined && <FailureStrip failure={error} retry={reading.retry} />}
       <OrderAnswer />
-      <BlockHead title={tr('ui.office.orders.waiting')} colour="blue" icon={<ListIcon />} />
-      {data.staged.length === 0 && <p class="meta">{tr('ui.office.orders.none')}</p>}
+      {data.staged.length === 0 && <p class="empty-note">{tr('ui.office.orders.none')}</p>}
       {data.staged.map((order) => (
         <StagedCard key={order.token} order={order} reread={reading.retry} />
       ))}

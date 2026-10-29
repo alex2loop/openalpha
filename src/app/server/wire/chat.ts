@@ -108,14 +108,25 @@ export interface ChatBody {
   /** The client's own id for this message, echoed on every frame it produces (`LaneTag`): at most
    *  `CHAT_CLIENT_ID_MAX` letters, digits, `-` or `_`. */
   readonly id?: string
+  /** A long-running command a page button sent, whose result the page shows where it was pressed:
+   *  no answer frames and no transcript row, only `done`, or `error` carrying the answer of a
+   *  command refused before it ran. Any other line ignores it. */
+  readonly quiet?: true
 }
 
 export const CHAT_CLIENT_ID_MAX = 64
 
-/** GET /v1/chat/history/:sessionId — one prior transcript message (display text). */
+/** GET /v1/chat/history/:sessionId — one prior transcript message (display text). A slash
+ *  command's turn is its line (`user`, starting with `/`) and its answer, as the chat showed them. */
 export interface ChatHistoryMessage {
+  /** Its place in the session's transcript, rising: a client reading the newest page again takes
+   *  only the rows past the last one it holds. */
+  readonly idx: number
   readonly role: string
   readonly content: string
+  /** On an answer: the run that wrote it (an agent turn's run, or a long-running command's), whose
+   *  model calls `GET /v1/runs/:id/calls` lists. Absent on the operator's own lines. */
+  readonly runId?: string
 }
 
 /** Page oldest-first, the newest page first; `?limit=` (default 30) + `?before=<idx>` scroll back. `nextBefore` is the
@@ -143,13 +154,17 @@ interface ChatSessionWire {
   readonly chatId?: string
   readonly agentId: string
   readonly startedAt: number
-  readonly lastActivityAt: number
-  readonly messageCount: number
+  /** When its newest shown message was written; the list is ordered and paged by it. */
+  readonly lastMessageAt: number
+  /** The operator's lines, each with the answer it got. */
+  readonly turnCount: number
+  /** The operator may delete it here: a chat the app or the terminal started. */
+  readonly deletable: boolean
   readonly title?: string
   readonly lastReply?: string
 }
 
-/** GET /v1/chat/sessions?channel&query&sessionId&before&beforeId&limit — newest activity first.
+/** GET /v1/chat/sessions?channel&query&sessionId&before&beforeId&limit — newest message first.
  *  `channel` repeats to name several and defaults to all. `query` (at least two characters, any
  *  case) keeps the sessions with a message containing it, which may match inside a stored tool call
  *  too. `sessionId` keeps that one session, none when it is unknown. The next page is

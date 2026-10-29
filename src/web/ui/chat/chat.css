@@ -52,6 +52,13 @@
   align-self: center;
 }
 
+/* Messages that arrived while the reader was scrolled up: held at the foot of the view until asked. */
+.chat-newer {
+  position: sticky;
+  bottom: 0;
+  align-self: center;
+}
+
 .chat-start {
   align-self: center;
   text-align: center;
@@ -176,6 +183,7 @@
 }
 
 .sessions-item {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -188,22 +196,36 @@
   border-top: 0;
 }
 
-/* A row's menu opens under it, inside the dialog, rather than under the header. */
-.popover.sessions-menu {
-  position: static;
-  flex-basis: 100%;
+/* A row's menu drops from its own button, over the rows below, rather than under the header. */
+.popover.sessions-menu,
+:root:not([data-layout="wide"]) .popover.sessions-menu {
+  position: absolute;
+  top: calc(100% - 6px);
+  right: 0;
+  left: auto;
   width: auto;
-  margin: 0 0 var(--s1);
-  box-shadow: none;
+  min-width: 200px;
+  max-height: none;
+  padding: 4px;
+}
+
+.popover.sessions-menu.is-up,
+:root:not([data-layout="wide"]) .popover.sessions-menu.is-up {
+  top: auto;
+  bottom: calc(100% - 6px);
 }
 
 .sessions-menu a,
 .sessions-menu button {
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: 7px 10px;
   border: 0;
+  border-radius: 6px;
   background: none;
   color: var(--ink);
-  font: inherit;
+  font-size: var(--sizeBody);
   text-align: left;
   text-decoration: none;
   cursor: pointer;
@@ -212,6 +234,23 @@
 .sessions-menu a:hover,
 .sessions-menu button:hover {
   background: var(--sunken);
+}
+
+.sessions-menu .is-danger {
+  color: var(--dangerText);
+}
+
+.sessions-menu .is-danger:hover {
+  background: var(--dangerTint);
+}
+
+/* Load more sits apart from the last row, centred under the list. */
+.sessions-foot {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--s3);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
 }
 
 .sessions-group .sessions-list {

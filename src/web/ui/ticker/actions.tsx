@@ -1,24 +1,25 @@
 import { useSignal } from '@preact/signals'
 
 import { openBook } from '@/web/state/book'
-import { fillInput, SUGGEST_COMMAND } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
 import { keyOf, watchedNames } from '@/web/state/market'
 import { addWatch, qualifyName } from '@/web/state/watch'
 import { toErrorText, tr } from '@/web/text/tr'
 import { openAlertDialog } from '@/web/ui/dialogs/alert-dialog'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
+import { AnalyzeButton } from '@/web/ui/ticker/analyze-button'
 
 interface CardActionsProps {
   readonly ticker: string
   readonly market: string
+  /** A stored call stands: a plain `/suggest` would hand it back, so the analysis runs fresh. */
+  readonly isAnalyzed: boolean
 }
 
-/** What the operator can do with this name. "Phân tích lại" only fills the box, so the AI cost is
- *  theirs to confirm; "Theo dõi" is free and changes the list at once; the alert and the trade
- *  open their forms. */
-export function CardActions({ ticker, market }: CardActionsProps) {
+/** What the operator can do with this name. The analysis runs at once, fresh where a call is
+ *  stored; "Theo dõi" is free and changes the list at once; the alert and the trade open their
+ *  forms. */
+export function CardActions({ ticker, market, isAnalyzed }: CardActionsProps) {
   const failure = useSignal<string | undefined>(undefined)
   const isBusy = useSignal(false)
   const isWatched = watchedNames.value.some(
@@ -42,10 +43,7 @@ export function CardActions({ ticker, market }: CardActionsProps) {
 
   return (
     <div class="card-actions">
-      <Button kind="ai" onClick={() => fillInput(`${SUGGEST_COMMAND} ${ticker}`)}>
-        {tr('ui.office.ticker.suggestCta')}
-      </Button>
-      <span class="meta">{estimateText(SUGGEST_COMMAND)}</span>
+      <AnalyzeButton name={qualifyName({ market, ticker })} isAnalyzed={isAnalyzed} />
       {isWatched ? (
         <Button onClick={() => openBook('watch')}>{tr('ui.office.ticker.watching')}</Button>
       ) : (
@@ -59,7 +57,7 @@ export function CardActions({ ticker, market }: CardActionsProps) {
   )
 }
 
-function FormButtons({ ticker, market }: CardActionsProps) {
+function FormButtons({ ticker, market }: Pick<CardActionsProps, 'ticker' | 'market'>) {
   return (
     <>
       <Button onClick={() => openAlertDialog({ ticker, market })}>

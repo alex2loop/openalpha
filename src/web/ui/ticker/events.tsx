@@ -49,6 +49,13 @@ export function EventsBlock({
               <div>
                 <b>{event.title}</b>
                 {event.detail !== undefined && <p class="meta">{event.detail}</p>}
+                {event.paysOn !== undefined && (
+                  <p class="meta">
+                    {tr('ui.office.ticker.eventPaysOn', {
+                      day: formatDay(locale.value, event.paysOn),
+                    })}
+                  </p>
+                )}
               </div>
               <span class="row-note">{formatDay(locale.value, event.at)}</span>
             </div>

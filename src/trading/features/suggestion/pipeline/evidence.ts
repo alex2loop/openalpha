@@ -10,12 +10,8 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorResult, FactorScore, TradeLevels } from '@/trading/kernel/factor'
 import type { PriceDisplay, Ticker } from '@/trading/kernel/instrument'
 import type { AccountsHistory } from '@/trading/kernel/market/annual-accounts'
-import type {
-  AnalystRecommendation,
-  MarketEvent,
-  MarketEventKind,
-  NewsItem,
-} from '@/trading/kernel/market/market-data'
+import type { AnalystRecommendation, NewsItem } from '@/trading/kernel/market/market-data'
+import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Market } from '@/trading/markets/types'
 import { t } from '@/i18n'

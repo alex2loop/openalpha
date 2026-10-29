@@ -738,6 +738,27 @@ A held name is never cut, because its run is what re-prices the plan:
 - the standing take-profit, kept until its first slice is sold;
 - any reduce reason, which the exit alerts arm on the next tick.
 
+On an ex-date the price opens at the exchange's reference price (less a cash dividend, spread over a
+share dividend or bonus issue, blended with a rights issue's subscription price), while the stored
+history only catches up at the next refresh. From that morning on, before the open included, the run
+scales the stored prices, a quote still showing the last close, and the standing stop and take-profit
+by the same ratio, onto the tick grid. The gap is then not read as a fall, the stop keeps its distance,
+and the exit alerts watch the morning brief's plan on the new basis all session. The evening before
+still prices against the close it watches. Rights priced at or above the close change nothing. An action
+whose terms the provider has not published cannot be scaled, so that day's plan starts fresh instead
+of carrying the old levels. Either way the plan says so.
+
+The brief's events list shows each action's terms where the provider publishes them: a cash
+dividend's amount per share and payment day, the new shares per share held, and a rights issue's
+subscription price. A held name with a cash or share dividend in the window gets a line under what to
+do first: the cash or the shares land weeks after the ex-date, and only a recorded `dividend` or
+`distribution` row puts them in the book. The ticker card's events show the payment day too.
+
+The check that lowers confidence on a buy that averages down measures against your cost less the cash
+dividends the units still held have earned: each lot earns every dividend that went ex after it was
+bought, whether or not the cash has landed. Otherwise every ex-date would read as a loss. It reads the
+dividends inside the corporate calendar the run already fetches, about six months back.
+
 A name already suggested today is served from its row at no cost.
 
 `next-actions` runs after everything because it reads the other sections' real results. It suggests `/rebalance` only when something drifted and `/alert` only when one fired.

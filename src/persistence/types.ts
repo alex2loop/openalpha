@@ -52,10 +52,20 @@ export interface SessionDetails {
 
 export interface StoredSessionMessage {
   readonly idx: number
-  /** Absent on a row a slash command contributed: no run produced it. */
+  /** Absent on a row a slash command contributed outside a run. */
   readonly runId?: RunId
   readonly message: LLMMessage
+  /** Kept for the history only: the model never reads it back. */
+  readonly displayOnly?: true
   readonly createdAt: number
+}
+
+/** One row of the display transcript and the run that wrote it, when one did. */
+export interface TranscriptMessage {
+  /** Its place in the session's transcript; a later row always has a larger one. */
+  readonly idx: number
+  readonly message: LLMMessage
+  readonly runId?: RunId
 }
 
 // A stored LLM-usage fact: history deletion detaches the session (null) instead of deleting
@@ -120,8 +130,8 @@ export interface HistoryPageQuery {
 }
 
 export interface HistoryPage {
-  /** User and assistant rows only, oldest first. */
-  readonly messages: readonly LLMMessage[]
+  /** User and assistant rows only, a slash command's display-only rows included, oldest first. */
+  readonly messages: readonly TranscriptMessage[]
   readonly hasMore: boolean
   /** `idx` of the oldest returned row, the next page's `before`; null when nothing older remains. */
   readonly nextBefore: number | null
@@ -132,9 +142,9 @@ export interface SessionListQuery {
   readonly channels?: readonly ChannelId[]
   /** Text any message of the session contains, ignoring case. */
   readonly query?: string
-  /** `lastActivityAt`: only sessions strictly older than it. The newest when absent. */
+  /** `lastMessageAt`: only sessions strictly older than it. The newest when absent. */
   readonly before?: number
-  /** With `before`, pages by `(lastActivityAt, id)`: sessions sharing `before` come after this id,
+  /** With `before`, pages by `(lastMessageAt, id)`: sessions sharing `before` come after this id,
    *  so none is skipped at a page edge. */
   readonly beforeId?: SessionId
   /** Only this one session, empty or not; every other listing leaves out a session with no
@@ -151,9 +161,10 @@ export interface SessionListing {
   readonly channel: ChannelId
   readonly chatId?: string
   readonly startedAt: number
-  readonly lastActivityAt: number
-  /** User and assistant rows, as the history page counts them. */
-  readonly messageCount: number
+  /** When its newest shown message was written; its last activity where it has none. */
+  readonly lastMessageAt: number
+  /** The operator's lines, each with the answer it got. */
+  readonly turnCount: number
   readonly firstUserContent: string | null
   readonly lastAssistantContent: string | null
 }
@@ -162,8 +173,8 @@ export interface SessionStore extends SessionActivity {
   create(record: OpenedSession): Promise<void>
   /** Take ownership of the session for one run. False when a live run already holds it. */
   claimRun(claim: SessionClaim): Promise<boolean>
-  /** Ordered transcript payloads for a resumed run. With `limit`, only the newest that many rows,
-   *  still in order; the whole transcript otherwise. */
+  /** Ordered transcript payloads for a resumed run, display-only rows left out. With `limit`, only
+   *  the newest that many rows, still in order; the whole transcript otherwise. */
   loadHistory(id: SessionId, limit?: number): Promise<readonly LLMMessage[]>
   /** One page of the display transcript (user/assistant rows), cut in SQL. */
   loadHistoryPage(id: SessionId, query: HistoryPageQuery): Promise<HistoryPage>
@@ -181,7 +192,8 @@ export interface SessionStore extends SessionActivity {
   loadTotals(id: SessionId): Promise<LLMUsageTotals>
   /** Append-only write of the messages a run produced since its last flush (engine's SessionSink). */
   appendMessages(id: SessionId, writes: readonly SessionMessageWrite[]): Promise<void>
-  /** The two rows a slash command contributes: no run owns them, so none is named or linked. */
+  /** The two rows a slash command contributes: they name the command's run, when it ran as one,
+   *  and no attempt is linked to them. */
   appendCommandExchange(id: SessionId, exchange: CommandExchange): Promise<void>
   /** Close the session out with its outcome. Only the holding run may; the other half of SessionSink. */
   finalizeRun(id: SessionId, runId: RunId, outcome: SessionOutcome): Promise<void>
@@ -240,7 +252,6 @@ export interface RunLogRow {
   readonly summary?: string
   readonly agentId?: AgentId
   readonly channel?: ChannelId
-  readonly chatId?: string
   readonly sessionId?: SessionId
   readonly parentRunId?: RunId
   /** The admitted sources a research run ended with. */
@@ -292,9 +303,6 @@ export interface RunLogStore {
 export interface NoticeRow {
   readonly id: string
   readonly kind: string
-  readonly weight: string
-  readonly wake: boolean
-  readonly runId?: string
   readonly deliveredTo: readonly string[]
   readonly event: string
   readonly createdAt: number

@@ -31,6 +31,7 @@ import { channelsProvider } from '@/channels/api'
 import { createCommandsProvider, createSessionModelSelection } from '@/commands/api'
 import { OperatorConfigError } from '@/core/config/resolve'
 import { addWorkflow, createSkillCatalog, engineProvider, resolveSkillsDir } from '@/engine/api'
+import { bindLocale } from '@/i18n'
 import { memoryProvider } from '@/memory/api'
 import { createPersistenceProvider } from '@/persistence/api'
 import { createPluginsProvider } from '@/plugins/api'
@@ -142,7 +143,7 @@ export function buildProviders(options: BuildProvidersOptions): ProviderAssembly
     engineProvider, // 5
     toolsProvider, // 6
     channelsProvider, // 7
-    createCommandsProvider(coreCommands, options.extensions.keys), // 8
+    createCommandsProvider(coreCommands, options.extensions.keys, bindLocale), // 8
     createCliCommandsProvider(), // 8b
     options.social, // 8c
     options.tradingRegistration, // 9

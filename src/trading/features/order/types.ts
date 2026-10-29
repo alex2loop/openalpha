@@ -143,9 +143,8 @@ export interface RestingExit {
   readonly placedAt: number
 }
 
-/** One row the operator still has to settle against the ledger, in the terms they staged it in.
- *  `orderId` is absent where the exchange never named one, which is the case that most needs a
- *  human: whether anything filled at all is not something this tree can answer. */
+/** A row the operator still has to settle against the ledger: `filledQuantity` falls under
+ *  `quantity` when the rest was cancelled, and with no `orderId` nobody knows what filled. */
 export interface UnmirroredIntent {
   readonly token: string
   readonly instrument: InstrumentRef
@@ -155,6 +154,8 @@ export interface UnmirroredIntent {
   readonly createdAt: number
   readonly failure: string
   readonly orderId?: string
+  readonly filledQuantity?: number
+  readonly averagePrice?: number
 }
 
 /** The operator's terms as they were staged. Never the verdict: quote, drift and caps are re-run

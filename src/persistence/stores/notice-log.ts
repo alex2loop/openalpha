@@ -4,24 +4,11 @@ import { SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
 
 const DELIVERED_SEPARATOR = ','
 
-const NOTICE_COLUMNS = [
-  'id',
-  'kind',
-  'weight',
-  'wake',
-  'run_id',
-  'delivered_to',
-  'event',
-  'created_at',
-  'read_at',
-] as const
+const NOTICE_COLUMNS = ['id', 'kind', 'delivered_to', 'event', 'created_at', 'read_at'] as const
 
 interface DbNoticeRow {
   readonly id: string
   readonly kind: string
-  readonly weight: string
-  readonly wake: number
-  readonly run_id: string | null
   readonly delivered_to: string
   readonly event: string
   readonly created_at: number
@@ -79,9 +66,6 @@ function toNoticeRow(row: DbNoticeRow): NoticeRow {
   return {
     id: row.id,
     kind: row.kind,
-    weight: row.weight,
-    wake: row.wake !== 0,
-    ...(row.run_id === null ? {} : { runId: row.run_id }),
     deliveredTo: row.delivered_to === '' ? [] : row.delivered_to.split(DELIVERED_SEPARATOR),
     event: row.event,
     createdAt: row.created_at,
@@ -93,9 +77,6 @@ function toParams(row: NoticeRow): readonly unknown[] {
   return [
     row.id,
     row.kind,
-    row.weight,
-    row.wake ? 1 : 0,
-    row.runId ?? null,
     row.deliveredTo.join(DELIVERED_SEPARATOR),
     row.event,
     row.createdAt,

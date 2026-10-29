@@ -27,7 +27,6 @@ import type {
   InstrumentRecord,
   MacroSnapshot,
   MarketCapRecord,
-  MarketEvent,
   NewsItem,
   PositioningSnapshot,
   ProprietaryFlow,
@@ -35,6 +34,7 @@ import type {
   SentimentSnapshot,
   SessionQuote,
 } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { PolicyRateSnapshot } from '@/trading/kernel/market/policy-rates'
 import type { StatReport } from '@/trading/kernel/market/stat-report'
 import type { SupervisionSnapshot } from '@/trading/kernel/market/supervision'

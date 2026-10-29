@@ -186,8 +186,11 @@ function printMessages(
     const idx = stored.idx.toString().padStart(3)
     const role = stored.message.role.padEnd(9)
     const origin = stored.runId === undefined ? '' : `  run:${stored.runId}`
+    const shown = stored.displayOnly === true ? `  ${t(locale, 'cli.historyDisplayOnly')}` : ''
 
-    app.out(`  ${idx}  ${role} ${formatInstant(locale, stored.createdAt, timezone)}${origin}`)
+    app.out(
+      `  ${idx}  ${role} ${formatInstant(locale, stored.createdAt, timezone)}${origin}${shown}`
+    )
     app.out(`      ${formatMessageContent(stored.message)}`)
 
     if (stored.message.role === 'assistant') {

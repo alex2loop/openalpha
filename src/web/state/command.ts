@@ -1,11 +1,20 @@
 import { signal } from '@preact/signals'
 
 import { selectAgent } from '@/web/state/agents'
-import { sendMessage } from '@/web/state/chat'
+import { COMMAND_PREFIX, isFinished, sendMessage, thread } from '@/web/state/chat'
+import { isCommandRun, runs } from '@/web/state/live'
+import { quietCommands } from '@/web/state/quiet-command'
 
 const HISTORY_MAX = 50
 
 export const SUGGEST_COMMAND = '/suggest'
+// A command's run is named without the slash.
+export const BRIEF_NAME = 'brief'
+export const BRIEF_COMMAND = `${COMMAND_PREFIX}${BRIEF_NAME}`
+// `/suggest`'s word for a fresh run past a call it would otherwise hand back.
+export const FORCE_ARG = 'force'
+// `/suggest`'s word for a pass over every held name, not one.
+export const SUGGEST_STOPS_ARG = 'stops'
 export const ALERT_CREATE_COMMAND = '/alert create'
 export const WATCHLIST_ADD_COMMAND = '/watchlist add'
 
@@ -41,6 +50,38 @@ export function fillInput(text: string, opts: { readonly agentId?: string } = {}
   focusInput()
 }
 
+/** Sends a button's own command, leaving what is typed in the box alone. A named agent is switched
+ *  to first, and the command goes once the daemon confirmed the switch, so it is never asked of the
+ *  agent before. Offline, `isNotSent` says so and an empty box takes the command. */
+export function runCommand(text: string, opts: { readonly agentId?: string } = {}): void {
+  const run = (): void => {
+    if (!send(text)) {
+      holdUnsent(text)
+    }
+  }
+
+  if (opts.agentId === undefined) {
+    run()
+    return
+  }
+
+  if (!selectAgent(opts.agentId, run)) {
+    isNotSent.value = true
+    holdUnsent(text)
+  }
+}
+
+/** A button's command is still on its way or running, in the chat or sent quiet, so pressing it
+ *  again would only queue a second run. A bare command runs once at a time wherever it was asked,
+ *  so a run of it from another channel holds the button too. */
+export function isRunningCommand(text: string): boolean {
+  return (
+    quietCommands.value.includes(text) ||
+    thread.value.some((turn) => turn.text === text && !isFinished(turn)) ||
+    runs.value.some((run) => isCommandRun(run, text.slice(COMMAND_PREFIX.length)))
+  )
+}
+
 export function focusInput(): void {
   inputElement?.focus()
 }
@@ -56,17 +97,9 @@ export function setInput(text: string): void {
 export function sendFromInput(): void {
   const text = inputText.value.trim()
 
-  if (text === '') {
-    return
+  if (text !== '' && send(text)) {
+    setInput('')
   }
-
-  if (!sendMessage(text)) {
-    isNotSent.value = true
-    return
-  }
-
-  sent.value = [...sent.value.filter((held) => held !== text), text].slice(-HISTORY_MAX)
-  setInput('')
 }
 
 /** True while up and down walk the history: the box is empty or holds a recalled line. */
@@ -90,4 +123,23 @@ export function recall(direction: 'older' | 'newer'): void {
 
   inputText.value = sent.value[count - 1 - index] ?? ''
   recallIndex = index
+}
+
+// What was sent joins the recall history; a refused send marks the box not sent.
+function send(text: string): boolean {
+  if (!sendMessage(text)) {
+    isNotSent.value = true
+    return false
+  }
+
+  sent.value = [...sent.value.filter((held) => held !== text), text].slice(-HISTORY_MAX)
+
+  return true
+}
+
+// A draft the operator typed outranks a button's command.
+function holdUnsent(text: string): void {
+  if (inputText.value.trim() === '') {
+    inputText.value = text
+  }
 }

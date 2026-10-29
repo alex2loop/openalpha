@@ -32,6 +32,7 @@ export type {
   SessionStore,
   SessionSummary,
   StoredSessionMessage,
+  TranscriptMessage,
 } from '@/persistence/types'
 export {
   BACKUPS_SUBDIR,
@@ -69,6 +70,7 @@ export { drainPages, RETENTION_DELETE_LIMIT } from '@/persistence/retention-page
 export { createPersistenceProvider } from '@/persistence/services'
 export { bindChunkSize } from '@/persistence/sql/syntax'
 export { createChannelInbox } from '@/persistence/stores/channel/inbox'
+export { stampLastMessages } from '@/persistence/stores/session/shown-rows'
 export {
   ALL_TABLE_NAMES,
   ALL_TABLES,

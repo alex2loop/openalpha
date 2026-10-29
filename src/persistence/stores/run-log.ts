@@ -19,7 +19,6 @@ const RUN_COLUMNS = [
   'summary',
   'agent_id',
   'channel',
-  'chat_id',
   'session_id',
   'parent_run_id',
   'sources',
@@ -39,7 +38,6 @@ interface DbRunRow {
   readonly summary: string | null
   readonly agent_id: string | null
   readonly channel: string | null
-  readonly chat_id: string | null
   readonly session_id: string | null
   readonly parent_run_id: string | null
   readonly sources: number | null
@@ -191,7 +189,6 @@ function toRunLogRow(row: DbRunRow): RunLogRow {
     ...(row.summary === null ? {} : { summary: row.summary }),
     ...(row.agent_id === null ? {} : { agentId: agentId(row.agent_id) }),
     ...(row.channel === null ? {} : { channel: channelId(row.channel) }),
-    ...(row.chat_id === null ? {} : { chatId: row.chat_id }),
     ...(row.session_id === null ? {} : { sessionId: sessionId(row.session_id) }),
     ...(row.parent_run_id === null ? {} : { parentRunId: runId(row.parent_run_id) }),
     ...(row.sources === null ? {} : { sources: row.sources }),
@@ -215,7 +212,6 @@ function toParams(row: RunLogRow): readonly unknown[] {
     row.summary ?? null,
     row.agentId ?? null,
     row.channel ?? null,
-    row.chatId ?? null,
     row.sessionId ?? null,
     row.parentRunId ?? null,
     row.sources ?? null,

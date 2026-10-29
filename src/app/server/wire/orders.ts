@@ -58,6 +58,10 @@ export interface UnmirroredOrderWire {
   readonly failure: string
   /** Absent when the exchange never named an order: whether anything filled is unknown. */
   readonly orderId?: string
+  /** What the exchange filled, where it reported a fill; `quantity` is what was staged. */
+  readonly filledQuantity?: number
+  /** The fill's average price, in the venue's quote. */
+  readonly averagePrice?: number
 }
 
 /** GET /v1/trade */

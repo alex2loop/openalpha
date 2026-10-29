@@ -128,6 +128,8 @@ export const BRIEF_ACTION_CODES = Object.freeze([
   'review-alerts',
   'avoid-chasing',
   'record-book',
+  'record-dividend',
+  'record-distribution',
 ] as const)
 export type BriefActionCode = (typeof BRIEF_ACTION_CODES)[number]
 
@@ -156,6 +158,8 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'basisPct',
   'buyPrice',
   'cashAfterPlanPctNav',
+  /** A cash dividend per share, in the market's price unit. */
+  'cashPerShare',
   'ceilings',
   'changePct',
   'compositeScore',
@@ -219,12 +223,16 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'sellPrice',
   'sentimentScore',
   'sharePct',
+  /** New shares per share held, a fraction (`0.1` for 100:10). */
+  'shareRatio',
   'spentUsd',
   'spreadPct',
   'stopBreachedCount',
   'stopClearCount',
   'stopUnmeasuredCount',
   'strength',
+  /** What a rights issue's new share costs, in the market's price unit. */
+  'subscriptionPrice',
   'support',
   'supportPct',
   'takeProfitTranchePct',
@@ -248,6 +256,7 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'at',
   'closedOn',
   'observedOn',
+  'paysOn',
   'board',
   'code',
   'condition',

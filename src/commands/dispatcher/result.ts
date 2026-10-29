@@ -17,7 +17,7 @@ import { renderCommandText } from './render'
 // TypeError. Valid `text` is rendered once through the commands-owned sanitizer.
 export function toSlashResult(command: SlashCommand, result: unknown): SlashResult {
   if (!isPlainRecord(result) || typeof result.kind !== 'string') {
-    return unexpected()
+    return unexpectedResult()
   }
 
   if (result.kind === 'message') {
@@ -36,12 +36,12 @@ export function toSlashResult(command: SlashCommand, result: unknown): SlashResu
     return { kind: 'handled' }
   }
 
-  return unexpected()
+  return unexpectedResult()
 }
 
 function toMessageResult(command: SlashCommand, result: Record<string, unknown>): SlashResult {
   if (!Array.isArray(result.messages)) {
-    return unexpected()
+    return unexpectedResult()
   }
 
   const messages: CommandMessage[] = []
@@ -49,7 +49,7 @@ function toMessageResult(command: SlashCommand, result: Record<string, unknown>)
     const message = toCommandMessage(command, entry)
 
     if (message === undefined) {
-      return unexpected()
+      return unexpectedResult()
     }
 
     messages.push(message)
@@ -61,7 +61,7 @@ function toMessageResult(command: SlashCommand, result: Record<string, unknown>)
 
   const title = toCommandMessage(command, result.title)
 
-  return title === undefined ? unexpected() : { kind: 'message', title, messages }
+  return title === undefined ? unexpectedResult() : { kind: 'message', title, messages }
 }
 
 function toCommandMessage(command: SlashCommand, entry: unknown): CommandMessage | undefined {
@@ -110,13 +110,13 @@ function toMessageValue(value: unknown): CommandMessageValue | undefined {
 
 function toTextResult(result: Record<string, unknown>): SlashResult {
   if (typeof result.text !== 'string') {
-    return unexpected()
+    return unexpectedResult()
   }
 
   const rendered = renderCommandText(result.text)
 
   if (rendered === '') {
-    return unexpected()
+    return unexpectedResult()
   }
 
   const affordances = toAffordances(result.affordances)
@@ -164,7 +164,7 @@ function toAffordance(entry: unknown): Affordance | undefined {
 
 function toAgentResult(result: Record<string, unknown>): SlashResult {
   if (typeof result.retryMessage !== 'string') {
-    return unexpected()
+    return unexpectedResult()
   }
 
   return {
@@ -176,6 +176,7 @@ function toAgentResult(result: Record<string, unknown>): SlashResult {
   }
 }
 
-function unexpected(): SlashResult {
+/** What a command that failed for no reason it could name answers. */
+export function unexpectedResult(): SlashResult {
   return { kind: 'message', messages: [{ key: 'slash.commandUnexpected' }] }
 }

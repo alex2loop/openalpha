@@ -217,9 +217,7 @@ export async function admitCommand(
   const configError = configAdmissionError(needs.configFile, app)
 
   if (configError !== undefined) {
-    app.err(fail(configError))
-
-    return EXIT_BLOCKED
+    return usage(app, configError)
   }
 
   return (await isDaemonStateOk(needs, app)) ? undefined : EXIT_BLOCKED

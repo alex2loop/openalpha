@@ -1,5 +1,37 @@
-import type { InstrumentRef } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+
+export const MARKET_EVENT_KINDS = Object.freeze([
+  'dividend-ex-date',
+  'agm',
+  'meeting-ex-date',
+  'split',
+  'rights-issue',
+  'additional-listing',
+  'listing',
+  'delisting',
+  'last-trading-day',
+  'margin-eligible',
+  'margin-ineligible',
+] as const)
+export type MarketEventKind = (typeof MARKET_EVENT_KINDS)[number]
+
+export interface MarketEvent {
+  readonly at: TradingDay
+  readonly kind: MarketEventKind
+  readonly title: string
+  readonly instrument?: InstrumentRef
+  readonly detail?: string
+  readonly providerEventId?: string
+  /** A cash dividend's amount per share, in the market's price unit; absent where not published. */
+  readonly cashPerShare?: number
+  /** The day a cash dividend is paid; absent where not published. */
+  readonly paysOn?: TradingDay
+  /** New shares per share held, as a fraction (`0.1` for 100:10), for a share dividend, a bonus
+   *  issue or a rights issue; absent where not published. */
+  readonly shareRatio?: number
+  /** What a rights issue's new share costs, in the market's price unit; absent where not published. */
+  readonly subscriptionPrice?: number
+}
 
 /** A provider answering a per-instrument request names no subject, so an absent one is the
  *  instrument asked for; a different one is a provider mismatch, dropped rather than filed under

@@ -1,28 +1,22 @@
-import { fillInput, SUGGEST_COMMAND } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
-import { joinInline } from '@/web/text/glyphs'
-import { Button } from '@/web/ui/kit/button'
+import { SUGGEST_COMMAND } from '@/web/state/command'
+import { RunButton } from '@/web/ui/command/run-button'
 
 interface SuggestChipProps {
   readonly ticker: string
-  /** Runs just before the box is filled. */
-  readonly onFill?: () => void
+  /** Runs just before the command is sent. */
+  readonly onRun?: () => void
 }
 
-/** "/suggest TICKER" with what it usually costs. It only fills the box: the operator sends it. */
-export function SuggestChip({ ticker, onFill }: SuggestChipProps) {
+/** "/suggest TICKER", sent on click. */
+export function SuggestChip({ ticker, onRun }: SuggestChipProps) {
   const suggest = `${SUGGEST_COMMAND} ${ticker}`
-  const estimate = estimateText(SUGGEST_COMMAND)
 
   return (
-    <Button
+    <RunButton
+      command={suggest}
+      label={suggest}
       size="small"
-      onClick={() => {
-        onFill?.()
-        fillInput(suggest)
-      }}
-    >
-      {estimate === undefined ? suggest : joinInline([suggest, estimate])}
-    </Button>
+      {...(onRun === undefined ? {} : { onRun })}
+    />
   )
 }

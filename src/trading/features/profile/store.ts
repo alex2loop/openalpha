@@ -1,6 +1,5 @@
 import { z } from 'zod'
 
-import type { Locale } from '@/core/types/locale'
 import type { InstrumentRef, PortfolioSegment } from '@/trading/kernel/instrument'
 import type { RiskCapSet, RiskLevel, UserProfile } from '@/trading/kernel/operator/profile'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
@@ -23,13 +22,13 @@ const PROFILE_ROW_ID = 1
 export const PROFILE_CURRENCY_SQL = 'SELECT base_currency FROM trading_profiles LIMIT 1'
 
 const UPSERT_SQL =
-  'INSERT INTO trading_profiles (id, preferred_locale, base_currency, ' +
+  'INSERT INTO trading_profiles (id, base_currency, ' +
   'risk_capacity, risk_willingness, goal, payload) VALUES '
 // `base_currency` is written on insert and never updated: the first persisted profile fixes it, so
 // a later config change cannot reinterpret historical facts.
 const UPSERT_SET =
   ' ON CONFLICT (id) DO UPDATE SET ' +
-  'preferred_locale = excluded.preferred_locale, risk_capacity = excluded.risk_capacity, ' +
+  'risk_capacity = excluded.risk_capacity, ' +
   'risk_willingness = excluded.risk_willingness, goal = excluded.goal, payload = excluded.payload'
 
 const instrumentRefSchema = z.strictObject({ market: z.string(), ticker: z.string() })
@@ -81,13 +80,7 @@ export interface ProfileStore {
   upsert(profile: UserProfile, signal: AbortSignal): Promise<UserProfile>
 }
 
-/** `preferred_locale` is a column the profile no longer reads: replies follow `[locale] language`.
- *  It still mirrors that language, so a build that reads it gets a valid one. */
-interface ProfileStoreDeps extends StoreDeps {
-  readonly locale: Locale
-}
-
-export function createProfileStore(deps: ProfileStoreDeps): ProfileStore {
+export function createProfileStore(deps: StoreDeps): ProfileStore {
   return {
     find: (signal) => find(deps, signal),
     upsert: (profile, signal) => upsert(deps, profile, signal),
@@ -112,15 +105,14 @@ async function find(deps: StoreDeps, signal: AbortSignal): Promise<UserProfile |
  *  the difference either — serializing a read against a later write needs `SELECT … FOR UPDATE`,
  *  which is dialect-specific SQL this codebase does not write. */
 async function upsert(
-  deps: ProfileStoreDeps,
+  deps: StoreDeps,
   profile: UserProfile,
   signal: AbortSignal
 ): Promise<UserProfile> {
   assertNotAborted(signal)
 
-  await deps.db.execute(`${UPSERT_SQL}(${deps.dialect.paramList(7)})${UPSERT_SET}`, [
+  await deps.db.execute(`${UPSERT_SQL}(${deps.dialect.paramList(6)})${UPSERT_SET}`, [
     PROFILE_ROW_ID,
-    deps.locale,
     profile.baseCurrency,
     profile.riskCapacity,
     profile.riskWillingness,

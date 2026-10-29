@@ -215,7 +215,9 @@ A chip on its left says who receives what you type: the assistant, or one of you
 - **The queue.** Commands that run on their own do not wait behind each other, within the limits above. In the chat column a command that has to wait says its place in line and how many are running at once, and can be dropped from the line. A command that runs beside others says what it runs alongside.
 - **Stopping and adding.** A running answer or command shows "See it in the office" and Stop, which asks you to confirm and keeps the work already done in the log. While an answer (not a command) is in progress you can type a further thought and press "Add to it": the answer reads it at its next step. A line that starts with `/` is a command, never an addition.
 
-Buttons and menus on the page never send a command for you, with one exception: Market's "Refresh data" sends `/refresh` for the markets of the region in view (never with `force`) and shows its usual cost beside it. Every other button fills the box (or picks the receiver) and leaves the sending to you, so you always see the command, and its estimate, before it costs anything.
+A button that names a whole command sends it when you click it: "/suggest VPB", "Analyze this name" on a ticker card and on each Opportunities row (where `/suggest` would hand back a stored call, meaning an open call on the ticker card, or on Opportunities a call made that day or a buy still open, the same button reads "Analyze again from scratch" and sends `/suggest <ticker> force`; a failed run or the plan written for a holding when you bought it is not a call, so the button stays "Analyze this name" there; "Analyze again from scratch" also sits under every `/suggest <ticker>` answer that was not already forced and runs that same line again with `force`), the brief on the first-run card, a scheduled job's "Run again", "Dig deeper". While the run a button started is still going, that button spins and stays locked, so a second press never costs a second run.
+
+A button whose result shows where it sits runs its command without writing anything to the chat or the chat's history: "Refresh data" (`/refresh`, never with `force`) on Market for the markets of the region in view, and on a ticker card with no price for that name's market alone (a market you switched off, and world gold, gets no button); "Write today's brief again" at the foot of the morning brief (`/brief force`), where the reader stays open and loads the new brief once it is written; "Run again" on Themes (`/themes`, or `/themes run <id>` for one theme), which needs an AI model and stays locked until one is set up; "Screen again" on Opportunities, which ranks the board again. To follow or stop one, open "Running" at the top of the page; a command refused before it starts (over a spending cap, say) says why right under its button, and "Run again" on Themes also stays locked while a themes run asked from another channel is going. A button that needs more from you, such as Set alert or quoting a report, only fills the box (or picks the receiver) and leaves the rest to you.
 
 ## Research
 
@@ -457,7 +459,7 @@ That rewrite drops the file's comments, so the old file is saved first beside it
 deleted for you. When no config exists, a bare `openalpha` and any command that needs one offer to
 start the setup.
 
-`setup write` writes the same starter file for the desktop app, turns on `[api]`, and refuses to
+`setup write` writes the same starter file for the desktop app and refuses to
 replace an existing config.
 
 ```text

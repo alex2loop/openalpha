@@ -7,6 +7,66 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.2.0] - 2026-10-29 [IMPORTANT]
+
+Plans and exit alerts now follow a held VN stock across its ex-dividend date, so a dividend gap no
+longer reads as a stop being hit. On the office page, buttons run their command right where you
+press them, chat history keeps the commands you typed, and CLI chats can be deleted from the
+sessions list. Three database changes; the upgrade runs them for you.
+> Kế hoạch và cảnh báo thoát lệnh giờ theo đúng mã đang giữ qua ngày giao dịch không hưởng quyền, nên khoảng giảm giá do chia cổ tức không còn bị đọc nhầm là chạm mức cắt lỗ. Trên trang văn phòng, các nút chạy lệnh ngay tại chỗ, lịch sử trò chuyện giữ lại các câu lệnh bạn gõ, và xóa được cuộc trò chuyện CLI ngay trong danh sách. Có ba thay đổi cơ sở dữ liệu; lệnh nâng cấp tự chạy chúng.
+
+### Ex-dividend dates
+
+- On a cash dividend's ex-date, `/suggest` scales the stored bars and the standing stop and
+  take-profit by the dividend, so the morning plan and the exit alerts stand on the new price. A
+  share dividend, bonus issue or rights issue is priced the way the exchange sets the reference
+  price; an action with no published terms starts that day's plan fresh.
+- The brief's events and the ticker card show the terms: cash per share, share ratio,
+  subscription price and payment day. A held name with a dividend or share distribution gets a
+  line reminding you to record it.
+- Averaging down no longer reads every ex-date as a loss: the cost it compares against nets out
+  the dividends your shares already earned.
+- vndirect share dividends and bonus issues are labelled as such, not as splits.
+
+### The office page
+
+- A button that names a whole command runs it at once and waits in place while it runs. Refresh
+  data, Write today's brief again, Run again on Themes and Screen again show their result where
+  they sit and leave nothing in the chat; a refusal before the run starts shows under the button.
+- Analyze buttons on the ticker card, Opportunities and a `/suggest` answer offer a fresh
+  analysis once a call is stored.
+- The sessions list dates each chat by its last message and counts exchanges. Each row's menu
+  opens the chat in its own tab or deletes it (app and CLI chats, with Undo for a few seconds).
+  New messages from another channel show up while you read it.
+- A cleaner why dialog and folded panel rail. A half-typed line survives a button press, and
+  Enter while Safari composes a word (Vietnamese input) finishes the word, not the line. No cost
+  estimate beside buttons.
+
+### Chat history
+
+- Commands you type are kept in the chat's history on every channel and shown as they first
+  appeared, with the AI calls under an answer. The assistant never reads them back.
+- Scrolling near the top loads older messages.
+
+### Smaller changes
+
+- An order the ledger has not booked yet shows what the exchange filled, with the average fill
+  price, in `/trade status`, `/trade reconcile` and the Orders tab.
+- A sale held back by settlement says so, instead of calling it smaller than a board lot.
+- Startup refuses a `[trading.briefs] send_time` at or after the home market's open; the brief
+  used to be skipped every morning.
+- A broken `config.toml` exits 2 on every command. `/cost` prints money and tokens like the run
+  footer.
+- `openalpha db import` reads exports from older releases, columns dropped or added since
+  included.
+
+### Upgrading
+
+- A new column marks command turns kept for display, columns nothing read leave `memory_kv`,
+  `notices`, `runs` and `trading_profiles`, and sessions get an indexed last-message time. Older
+  binaries cannot open the upgraded database; `openalpha upgrade --rollback` takes it back after
+  an `openalpha upgrade`.
+
 ## [1.1.2] - 2026-10-28
 
 The office page's first-run checklist names the key your configured model reads, not another
@@ -396,6 +456,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.2.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.0
 [1.0.17]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.17
 [1.0.15]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.15
 [1.0.14]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.14

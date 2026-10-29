@@ -74,10 +74,14 @@ export type SlashResult =
 
 /** What a slash command adds to its session transcript: the line the operator ran, and the text it
  *  answered with. Recorded as a user row and an assistant row so the next turn reads a normal
- *  exchange. */
+ *  exchange, or, when `displayOnly`, so only the session's history shows it. */
 export interface CommandExchange {
   readonly invocation: string
   readonly output: string
+  /** The command's run, when it ran as one. */
+  readonly runId?: RunId
+  /** Kept for the reader of the session's history; never read back as model context. */
+  readonly displayOnly?: true
 }
 
 /** A long-running command reports the locale key of its current stage through this; the surface
@@ -135,6 +139,12 @@ export interface SlashContext {
    *  surface that must name the run before it starts (a command it announces while it waits) mints
    *  the id itself and the dispatcher keeps it. */
   readonly runId?: RunId
+  /** A scheduled job's own line: its answer is delivered, and its session reopens every run and is
+   *  never swept, so only model-context (`echo`) rows are kept for it. */
+  readonly isScheduled?: true
+  /** Sent by a page button that shows the result where it was pressed: the session keeps nothing of
+   *  it, as the chat shows nothing. */
+  readonly isQuiet?: true
 }
 
 /**
@@ -152,17 +162,17 @@ export interface SlashInvocationPolicy {
   readonly cooldownMs?: number
   readonly idempotencyKey?: (ctx: SlashContext) => string
   readonly execution?: LongRunningExecution
-  /** The command never runs an agent turn: it never returns `kind: 'agent'`. It may append its own
-   *  exchange to the session transcript (`transcript: 'echo'`), which `appendCommandExchange` allows
-   *  while a run holds the session, so a surface may run it beside other work in the same chat
-   *  instead of behind the session's turn. */
+  /** The command never runs an agent turn: it never returns `kind: 'agent'`. Its exchange is
+   *  appended to the session transcript, which `appendCommandExchange` allows while a run holds the
+   *  session, so a surface may run it beside other work in the same chat instead of behind the
+   *  session's turn. */
   readonly selfContained?: true
   /** What to use instead, shown where a surface this policy leaves out refuses the command. */
   readonly surfaceHint?: CommandMessageKey
-  /** `'echo'` records the invocation and its `text` output in the session transcript, so the next
-   *  agent turn in this session can be asked about it. Commands that only confirm a mutation, and
-   *  commands that report runtime state, leave it unset. */
-  readonly transcript?: 'echo'
+  /** Every answer is kept in the session's history, display-only by default. `'echo'` keeps a
+   *  `text` answer as model context instead, so the next agent turn can be asked about it. `'none'`
+   *  keeps nothing: the command moves the chat to another session, so its line belongs to neither. */
+  readonly transcript?: 'echo' | 'none'
 }
 
 export interface CommandGroup {

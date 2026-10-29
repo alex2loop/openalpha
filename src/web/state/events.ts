@@ -1,11 +1,8 @@
 import type { WireEvent } from '@/app/server/wire/events'
-import { runs as liveRuns } from '@/web/state/live'
+import { isCommandRun, runs as liveRuns } from '@/web/state/live'
 
 type WireEventKind = WireEvent['kind']
 type WireEventHandler = (event: WireEvent) => void
-
-// A slash command's runs start as this kind, named without the slash.
-const COMMAND_RUN = 'command'
 
 // Keyed by the closed kind list plus `any`, so the map stays a handful of entries; each set holds
 // only the handlers still subscribed.
@@ -24,23 +21,22 @@ export function onWireEvent(kind: WireEventKind | 'any', handler: WireEventHandl
   }
 }
 
-/** Calls `handler` each time a run of the slash command `name` (no slash) ends, one that began
- *  before the call included. The returned function unsubscribes. */
-export function onCommandFinished(name: string, handler: () => void): () => void {
-  const runs = new Set(
-    liveRuns
-      .peek()
-      .flatMap((run) => (run.kind === COMMAND_RUN && run.name === name ? run.runId : []))
-  )
+/** Calls `handler` with how it ended each time a run of the slash command `name` (no slash) ends,
+ *  one that began before the call included. The returned function unsubscribes. */
+export function onCommandFinished(
+  name: string,
+  handler: (outcome: string | undefined) => void
+): () => void {
+  const runs = new Set(liveRuns.peek().flatMap((run) => (isCommandRun(run, name) ? run.runId : [])))
   const offs = [
     onWireEvent('run_started', ({ run, runId }) => {
-      if (runId !== undefined && run?.kind === COMMAND_RUN && run.name === name) {
+      if (runId !== undefined && run !== undefined && isCommandRun(run, name)) {
         runs.add(runId)
       }
     }),
-    onWireEvent('run_finished', ({ runId }) => {
+    onWireEvent('run_finished', ({ runId, outcome }) => {
       if (runId !== undefined && runs.delete(runId)) {
-        handler()
+        handler(outcome)
       }
     }),
   ]

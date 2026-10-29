@@ -7,7 +7,7 @@ import type {
   MarketRef,
   PortfolioSegment,
 } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { StopCover, StopDistance } from '@/trading/kernel/operator/alert'
 import type { ProfileStamp, RiskCapSet } from '@/trading/kernel/operator/profile'
 import type { RenderContext } from '@/trading/render/format'

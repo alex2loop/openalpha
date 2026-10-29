@@ -8,12 +8,12 @@ const NAMES_MAX = 6
 interface NextStepsProps {
   /** Every word of the page. */
   readonly text: string
-  /** Runs just before a chip fills the box. */
-  readonly onFill: () => void
+  /** Runs just before a chip sends its command. */
+  readonly onRun: () => void
 }
 
 /** A "/suggest" chip for each name the report mentions that the page knows. */
-export function NextSteps({ text, onFill }: NextStepsProps) {
+export function NextSteps({ text, onRun }: NextStepsProps) {
   const names = linkTickers(text, knownTickers.value)
     .flatMap((part) => ('ticker' in part ? [part.ticker] : []))
     .slice(0, NAMES_MAX)
@@ -27,7 +27,7 @@ export function NextSteps({ text, onFill }: NextStepsProps) {
       <h3 class="md-heading">{tr('trading.brief.section.next-actions')}</h3>
       <div class="reader-chips">
         {names.map((name) => (
-          <SuggestChip key={name} ticker={name} onFill={onFill} />
+          <SuggestChip key={name} ticker={name} onRun={onRun} />
         ))}
       </div>
     </section>

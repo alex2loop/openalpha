@@ -62,8 +62,8 @@ export function createSessionStore(db: Storage, dialect: Dialect): SessionStore 
     latestIdForChannel: (channel) => latestIdForChannel(store, channel),
     channelOf: (id) => channelOf(store, id),
 
-    async lastMessageAt(id: SessionId): Promise<number | null> {
-      const rows = await db.query<{ readonly created_at: number }>(sql.lastMessageAt, [id])
+    async lastModelMessageAt(id: SessionId): Promise<number | null> {
+      const rows = await db.query<{ readonly created_at: number }>(sql.lastModelMessageAt, [id])
 
       return rows[0]?.created_at ?? null
     },

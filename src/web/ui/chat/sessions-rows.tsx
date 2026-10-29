@@ -1,4 +1,4 @@
-import { type ReadonlySignal, signal } from '@preact/signals'
+import { type ReadonlySignal, signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { type MessageKey, pluralKey } from '@/i18n'
@@ -20,7 +20,7 @@ import { sourceLabel } from '@/web/text/source'
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
-import { MoreIcon } from '@/web/ui/kit/icons'
+import { ExternalIcon, MoreIcon, TrashIcon } from '@/web/ui/kit/icons'
 import { closeModal } from '@/web/ui/kit/modal'
 import { closePopover, openPopoverId, Popover, togglePopover } from '@/web/ui/kit/popover'
 import { showUndo } from '@/web/ui/kit/undo-bar'
@@ -86,7 +86,7 @@ function toGroups(
   timeZone: string | undefined
 ): readonly { readonly id: GroupId; readonly rows: readonly ChatSession[] }[] {
   const days = timeZone === undefined ? undefined : toGroupDays(timeZone)
-  const placed = sessions.map((session) => ({ session, id: groupOf(session.lastActivityAt, days) }))
+  const placed = sessions.map((session) => ({ session, id: groupOf(session.lastMessageAt, days) }))
 
   return GROUP_ORDER.map((id) => ({
     id,
@@ -121,7 +121,7 @@ interface RowProps {
 }
 
 function SessionRow({ session, timeZone }: RowProps) {
-  const count = session.messageCount
+  const count = session.turnCount
 
   return (
     <li class="sessions-item">
@@ -129,7 +129,7 @@ function SessionRow({ session, timeZone }: RowProps) {
         <b>{sessionTitleOf(session)}</b>
         <span class="meta">
           {joinInline([
-            timeZone === undefined ? ABSENT_CELL : formatWhen(session.lastActivityAt, timeZone),
+            timeZone === undefined ? ABSENT_CELL : formatWhen(session.lastMessageAt, timeZone),
             sourceLabel(session.channel),
             tr(pluralKey(count, 'ui.office.sessions.countOne', 'ui.office.sessions.count'), {
               count,
@@ -142,9 +142,9 @@ function SessionRow({ session, timeZone }: RowProps) {
   )
 }
 
-// Delete is offered on this app's sessions only; the daemon refuses any other channel's anyway.
 function RowMenu({ session }: { readonly session: ChatSession }) {
   const anchor = useRef<HTMLButtonElement>(null)
+  const opensUp = useSignal(false)
   const menuId = `${MENU_ID_PREFIX}${session.sessionId}`
   const label = tr('ui.office.sessions.menu')
 
@@ -160,27 +160,53 @@ function RowMenu({ session }: { readonly session: ChatSession }) {
         title={label}
         aria-label={label}
         aria-expanded={openPopoverId.value === menuId}
-        onClick={() => togglePopover(menuId)}
+        onClick={() => {
+          opensUp.value = isInLowerHalf(anchor.current)
+          togglePopover(menuId)
+        }}
       >
         <MoreIcon />
       </button>
-      <Popover id={menuId} anchor={anchor} label={label} class="sessions-menu">
-        <a
-          href={`?${CHAT_TAB_PARAM}=${encodeURIComponent(session.sessionId)}`}
-          target="_blank"
-          rel="noopener"
-          onClick={closePopover}
-        >
-          {tr('ui.office.sessions.openTab')}
-        </a>
-        {session.channel === APP_CHANNEL && (
-          <button type="button" onClick={() => deleteSession(session)}>
-            {tr('ui.office.sessions.delete')}
-          </button>
-        )}
+      <Popover
+        id={menuId}
+        anchor={anchor}
+        label={label}
+        class={opensUp.value ? 'sessions-menu is-up' : 'sessions-menu'}
+      >
+        <RowMenuItems session={session} />
       </Popover>
     </>
   )
+}
+
+// The daemon says which chats it would delete.
+function RowMenuItems({ session }: { readonly session: ChatSession }) {
+  return (
+    <>
+      <a
+        href={`?${CHAT_TAB_PARAM}=${encodeURIComponent(session.sessionId)}`}
+        target="_blank"
+        rel="noopener"
+        onClick={closePopover}
+      >
+        <ExternalIcon />
+        {tr('ui.office.sessions.openTab')}
+      </a>
+      {session.deletable && (
+        <button type="button" class="is-danger" onClick={() => deleteSession(session)}>
+          <TrashIcon />
+          {tr('ui.office.sessions.delete')}
+        </button>
+      )}
+    </>
+  )
+}
+
+// A row low in the list opens its menu upward, where the list has room for it.
+function isInLowerHalf(element: HTMLElement | null): boolean {
+  const rect = element?.getBoundingClientRect()
+
+  return rect !== undefined && rect.top > window.innerHeight / 2
 }
 
 function closeMenu(menuId: string): void {

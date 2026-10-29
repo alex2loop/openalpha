@@ -150,8 +150,9 @@ export function reputationLine(agent: AgentWire, minSample: number): string {
 
 /** Sends `/agent <id>` (no AI cost); the chip changes once the daemon answers without an error.
  *  False when the socket is not live. */
-export function selectAgent(agentId: string | undefined): boolean {
+export function selectAgent(agentId: string | undefined, onSelected?: () => void): boolean {
   if (agentId === selected.value) {
+    onSelected?.()
     return true
   }
 
@@ -159,6 +160,7 @@ export function selectAgent(agentId: string | undefined): boolean {
     isSystem: true,
     onDone: () => {
       selected.value = agentId
+      onSelected?.()
     },
   })
 }

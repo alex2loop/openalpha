@@ -40,6 +40,8 @@ export interface BriefContext {
   readonly policy: BriefPolicy
   /** The VN names the operator chose. Empty is a real answer. */
   readonly watchlist: readonly InstrumentRef[]
+  /** The VN names the operator holds. */
+  readonly heldNames: readonly InstrumentRef[]
   /** The VN names the brief debates: every held one, then the watchlist. A held name is never cut,
    *  since its run is what re-prices the plan the exit alerts arm. */
   readonly suggestionNames: readonly InstrumentRef[]
@@ -108,6 +110,7 @@ export async function loadBriefContext(options: LoadContextOptions): Promise<Bri
     calendar: options.calendar,
     policy: deps.config.briefs,
     watchlist: watchlists.market,
+    heldNames: heldInMarket,
     suggestionNames: dedupe([...heldInMarket, ...watchlists.market]),
     crossAssetSuggestionNames: dedupe([...heldCrossAsset, ...watchlists.crossAsset]),
     calendarNames: unionNames(watchlists.covered, heldInMarket),

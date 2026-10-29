@@ -35,7 +35,8 @@ import type {
   Ticker,
   TradingDay,
 } from '@/trading/kernel/instrument'
-import type { MarketEvent, RegimeScale } from '@/trading/kernel/market/market-data'
+import type { RegimeScale } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { BookChange, ClosedRoundTrip } from '@/trading/kernel/operator/book'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { InvestmentHorizon, UserProfile } from '@/trading/kernel/operator/profile'
@@ -216,6 +217,8 @@ export interface Prepared {
   /** The record's own kind, for the segment's ETF ceiling. */
   readonly instrumentKind?: InstrumentKind
   readonly upcomingEvents: readonly MarketEvent[]
+  /** Past rows too: a dividend that already went ex is owed to the units bought before it. */
+  readonly instrumentEvents: readonly MarketEvent[]
   readonly calendarFailed?: true
   readonly openRisk?: OpenRisk
   readonly direction: DraftDirection

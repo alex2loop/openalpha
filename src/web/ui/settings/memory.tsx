@@ -132,7 +132,7 @@ function toVisibleRows(scope: MemoryScope, typed: string): ScopeRows {
 
 function EmptyLines({ query }: { readonly query: string }) {
   if (query !== '') {
-    return <p class="meta">{tr('ui.office.memory.noMatch', { query })}</p>
+    return <p class="empty-note">{tr('ui.office.memory.noMatch', { query })}</p>
   }
 
   return (

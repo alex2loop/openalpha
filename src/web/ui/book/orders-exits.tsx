@@ -108,7 +108,14 @@ function Unbooked({ rows }: { readonly rows: readonly UnmirroredOrderWire[] }) {
           <span>
             {joinInline([
               tr(`ui.office.orders.side.${row.side}`),
-              `${formatQuantity(row.quantity)} ${row.instrument.ticker}`,
+              `${formatQuantity(row.filledQuantity ?? row.quantity)} ${row.instrument.ticker}`,
+              ...(row.averagePrice === undefined
+                ? []
+                : [
+                    tr('ui.office.orders.fillPrice', {
+                      price: formatMarketPrice(row.instrument.market, row.averagePrice),
+                    }),
+                  ]),
               toVenueName(row.venue),
             ])}
           </span>

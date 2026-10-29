@@ -16,6 +16,7 @@ import { startMarket } from '@/web/state/market'
 import { startNotices } from '@/web/state/notices'
 import { CHAT_TAB_PARAM, setChatOnly } from '@/web/state/pane'
 import { disposePrefs } from '@/web/state/prefs'
+import { startQuietCommands } from '@/web/state/quiet-command'
 import { startRestartWatch } from '@/web/state/restart'
 import { brand, loadUntilReady, locale, state } from '@/web/state/session'
 import { removeStorage } from '@/web/state/storage'
@@ -102,6 +103,7 @@ function startLive({ chatTab }: LiveOptions): () => void {
     startFeed(),
     startNotices(),
     startChat(),
+    startQuietCommands(),
     startChatHistory(chatTab),
     startEstimates(),
     startAttention(),

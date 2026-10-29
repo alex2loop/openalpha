@@ -67,13 +67,7 @@ interface RecallInput {
 async function recallMemory(input: RecallInput): Promise<MemoryEntry | null> {
   const { db, scope } = input
   const now = Date.now()
-  const rows = await db.query<EntryRow>(input.sql, [
-    now,
-    scope.agentId,
-    scope.userId,
-    now,
-    input.key,
-  ])
+  const rows = await db.query<EntryRow>(input.sql, [scope.agentId, scope.userId, now, input.key])
 
   return rows[0] ? toEntry(rows[0]) : null
 }
@@ -198,7 +192,7 @@ async function storeMemory(input: StoreMemoryInput): Promise<void> {
   )
 }
 
-// The store UPSERT binds nine columns; the array is built once here so the interface method stays small.
+// The store UPSERT binds eight columns; the array is built once here so the interface method stays small.
 function storeParams(input: {
   readonly scope: MemoryScope
   readonly key: string
@@ -216,7 +210,6 @@ function storeParams(input: {
     input.expiresAt,
     input.now,
     input.now,
-    input.now,
   ]
 }
 
@@ -226,25 +219,16 @@ function buildSql(d: Dialect) {
   const live = `deleted_at IS NULL AND (expires_at IS NULL OR expires_at > ${d.param(3)})`
 
   return {
-    // Hand-written rather than dialect.upsert: created_at survives an update, version increments,
-    // and deleted_at resets so a store() on a soft-deleted key resurrects it.
+    // Hand-written rather than dialect.upsert: created_at survives an update, and deleted_at resets
+    // so a store() on a soft-deleted key resurrects it.
     store:
       `INSERT INTO memory_kv ` +
-      `(agent_id, user_id, key, value, importance, expires_at, created_at, updated_at, last_accessed_at) ` +
-      `VALUES (${d.paramList(9)}) ` +
+      `(agent_id, user_id, key, value, importance, expires_at, created_at, updated_at) ` +
+      `VALUES (${d.paramList(8)}) ` +
       `ON CONFLICT (agent_id, user_id, key) DO UPDATE SET ` +
       `value = excluded.value, importance = excluded.importance, ` +
-      `expires_at = excluded.expires_at, updated_at = excluded.updated_at, ` +
-      `last_accessed_at = excluded.last_accessed_at, ` +
-      `version = memory_kv.version + 1, deleted_at = NULL`,
-    // A single statement advances last_accessed_at and returns the row; RETURNING is supported by
-    // both sqlite and postgres, so a missing/expired/deleted key resolves to null without a second
-    // query.
-    recall:
-      `UPDATE memory_kv SET last_accessed_at = ${d.param(1)} ` +
-      `WHERE agent_id = ${d.param(2)} AND user_id = ${d.param(3)} AND deleted_at IS NULL ` +
-      `AND (expires_at IS NULL OR expires_at > ${d.param(4)}) AND key = ${d.param(5)} ` +
-      `RETURNING key, value, updated_at`,
+      `expires_at = excluded.expires_at, updated_at = excluded.updated_at, deleted_at = NULL`,
+    recall: `SELECT key, value, updated_at FROM memory_kv WHERE ${scoped} AND ${live} AND key = ${d.param(4)}`,
     list: `SELECT key, value, updated_at FROM memory_kv WHERE ${scoped} AND ${live} ORDER BY key LIMIT ${d.param(4)}`,
     // substr equality is a literal prefix match — no LIKE wildcard or ESCAPE concerns.
     listPrefixed:

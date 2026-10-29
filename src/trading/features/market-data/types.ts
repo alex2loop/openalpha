@@ -34,10 +34,10 @@ import type {
   Candle,
   FlowSnapshot,
   FundingSnapshot,
-  MarketEvent,
   NewsItem,
   SentimentSnapshot,
 } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 import type { MarketNews, SourceResult, SourceSummary } from '@/trading/kernel/source/source-result'

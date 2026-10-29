@@ -42,6 +42,8 @@ import {
 /** The kinds a screen can be narrowed to; the host refuses a market that holds no such kind. */
 const SCREEN_KINDS: ReadonlySet<string> = new Set<InstrumentKind>(['equity', 'etf', 'crypto'])
 const MAX_QUERY_LENGTH = 40
+// `?fresh=1`: rank the board again rather than serve the one already read.
+const FRESH_FLAG = '1'
 const ALERT_BODY: z.ZodType<AlertCreateBody> = z.object({
   instrument: z.object({ ticker: z.string().min(1), market: z.string().min(1).exactOptional() }),
   condition: z.enum(['above', 'below']),
@@ -60,6 +62,7 @@ async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Respons
       ? SURFACE_LIMITS.defaultScreenCandidates
       : parseLimit(query.get('limit'), SURFACE_LIMITS.maximumScreenCandidates)
   const kind = query.get('kind')
+  const isFresh = query.get('fresh') === FRESH_FLAG
 
   if (market === undefined || market === null || limit === null) {
     return apiError('invalid_body')
@@ -83,7 +86,7 @@ async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Respons
     return toScreenWire(market, answer)
   }
 
-  return json(await cachedScreen(`${market}|${kind ?? ''}|${limit ?? ''}`, read))
+  return json(await cachedScreen(`${market}|${kind ?? ''}|${limit ?? ''}`, read, isFresh))
 }
 
 async function handleInstrumentSearch(req: Request, ctx: ApiRouteContext): Promise<Response> {

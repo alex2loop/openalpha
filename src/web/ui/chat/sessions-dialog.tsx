@@ -105,9 +105,12 @@ function SessionsList({ pages, search, onMore }: ListProps) {
         <EmptyList search={search} pages={pages} />
       )}
       {next !== undefined && failure === undefined && (
-        <Button size="small" disabled={isLoading} onClick={onMore}>
-          {tr('ui.office.sessions.more')}
-        </Button>
+        <div class="sessions-foot">
+          <Button size="small" disabled={isLoading} onClick={onMore}>
+            {isLoading && <span class="spin" aria-hidden="true" />}
+            {tr('ui.office.sessions.more')}
+          </Button>
+        </div>
       )}
     </>
   )
@@ -128,7 +131,7 @@ function EmptyList({ search, pages }: EmptyProps) {
   }
 
   return (
-    <p class="meta">
+    <p class="empty-note">
       {search === undefined
         ? tr('ui.office.sessions.none')
         : tr('ui.office.sessions.noMatch', { query: search })}

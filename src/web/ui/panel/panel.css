@@ -173,38 +173,58 @@
   }
 }
 
-/* Folded to a strip of icons floating over the office at the panel's corner, the active one a pill
-   on the track. */
+/* Folded to a strip of icons floating over the office at the panel's corner: the open tab a pill,
+   the others lit on hover, and the arrow that opens the panel again under a seam. */
 .panel-rail.glass {
   --glassAlpha: var(--glassFocusA);
   z-index: var(--zStageBar);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: var(--s0);
   align-self: start;
   justify-self: end;
   width: var(--panelRailW);
   margin: calc(var(--stageTopH) + var(--s1)) var(--s2) 0 0;
-  padding: var(--s1) 0;
+  padding: var(--s0);
   border-radius: var(--islandRadius);
 }
 
-/* Folded, the tabs are a column of icons: the selected one keeps its pill, with no track behind. */
+/* A column has no width for the panel head's width query to read, so the query is off here. */
 .panel-rail .panel-tabs {
   flex: none;
   flex-direction: column;
+  overflow: visible;
   gap: 2px;
   margin: 0;
-  padding: 0;
+  padding: 0 0 var(--s0);
+  border-bottom: 1px solid var(--glassSeam);
+  border-radius: 0;
   background: none;
+  container-type: normal;
 }
 
-.panel-rail .panel-tabs button {
+.panel-rail :is(.panel-tabs button, .panel-collapse) {
   position: relative;
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--railItemH);
+  height: var(--railItemH);
+  margin: 0;
   padding: 0;
-  width: calc(var(--controlH) - 4px);
+  border-radius: var(--controlRadius);
+}
+
+.panel-rail :is(.panel-tabs button:not(.is-on), .panel-collapse):hover {
+  background: color-mix(in srgb, var(--sunken) 45%, transparent);
+  color: var(--ink);
+}
+
+.panel-rail button svg.icon {
+  width: var(--railIconSize);
+  height: var(--railIconSize);
 }
 
 .panel-rail .seg-label {
@@ -214,10 +234,10 @@
 .panel-rail .seg-badge {
   position: absolute;
   top: -2px;
-  right: -6px;
+  right: -4px;
 }
 
 .panel-rail .panel-collapse {
-  margin: 0;
+  color: var(--ink2);
   transform: rotate(180deg);
 }

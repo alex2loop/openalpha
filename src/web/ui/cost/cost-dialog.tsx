@@ -11,11 +11,11 @@ import { joinInline } from '@/web/text/glyphs'
 import { buildDayKey } from '@/web/text/time'
 import { buildMonthStart, shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
-import { FailureStrip } from '@/web/ui/book/failure-strip'
 import { CostBreakdown } from '@/web/ui/cost/cost-breakdown'
 import { CostChart } from '@/web/ui/cost/cost-chart'
 import { formatSpent } from '@/web/ui/cost/spent'
 import { Button } from '@/web/ui/kit/button'
+import { FailureStrip } from '@/web/ui/kit/failure-strip'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
@@ -157,7 +157,7 @@ function ReportView({
   readonly period: CostPeriod
 }) {
   if (report.totalUsd === 0) {
-    return <p class="meta">{tr('ui.office.cost.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.cost.empty')}</p>
   }
 
   return (

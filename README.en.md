@@ -221,6 +221,7 @@ Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/br
 - **Every config option:** [config.sample.toml](config.sample.toml) · [docs/en/configuration.md](docs/en/configuration.md). No AI key? Run a local model through Ollama or vLLM.
 - **Installing on a server or in CI?** Set `OPENALPHA_NO_ONBOARD=1` to skip the questions; the top of [install.sh](install.sh) and [install.ps1](install.ps1) lists every option, such as `OPENALPHA_VERSION` to install one exact release.
 - **Updates:** the CLI mentions a new release once a day, with what is worth knowing about it; in a private chat the bot mentions it weekly (daily for an important one). `openalpha upgrade` takes you there and keeps your data and settings.
+- **Back up and reset the book:** `openalpha db backup` takes a snapshot at any time, even with the daemon running; `openalpha db restore <file> --yes` puts the book back to exactly that snapshot. To rebuild the database and keep your book: `openalpha stop`, `openalpha db export --out ./keep`, `openalpha db reset --yes`, `openalpha db import --in ./keep`, then `openalpha start --background` and run `/refresh` to reload market data. Restore and reset both need the daemon stopped first ([details](docs/en/storage.md#export-and-import)).
 - **Uninstall:** `openalpha stop`, then delete the `openalpha` file (in `~/.local/bin` by default; on Windows `openalpha.exe`, and `openalpha.exe.old` if present). `~/.openalpha` holds your whole book and config: run `openalpha db export --out <folder>` first if you want to keep them.
 
 </details>

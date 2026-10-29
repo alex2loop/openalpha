@@ -50,7 +50,7 @@ export function Events() {
 
 function EventList({ events }: { readonly events: readonly HeldEvent[] }) {
   if (events.length === 0) {
-    return <p class="meta">{tr('ui.office.today.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
   return (

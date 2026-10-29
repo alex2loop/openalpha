@@ -4,12 +4,12 @@ import { NEXT_GLYPH } from '@/web/text/glyphs'
 
 import './button.css'
 
-/** commit: Ink fill, one per dialog. ai: brand gradient, always with its cost beside it.
+/** commit: Ink fill, one per dialog. ai: brand gradient, for a button that runs a model.
  *  ghost: no frame until hovered. tertiary: a text link with its arrow.
  *  destructive: Problem text, confirmed first when it loses work. */
-type ButtonKind = 'commit' | 'ai' | 'secondary' | 'ghost' | 'tertiary' | 'destructive'
+export type ButtonKind = 'commit' | 'ai' | 'secondary' | 'ghost' | 'tertiary' | 'destructive'
 /** Buttons side by side share one size. */
-type ButtonSize = 'regular' | 'small'
+export type ButtonSize = 'regular' | 'small'
 
 interface ButtonProps {
   readonly kind?: ButtonKind

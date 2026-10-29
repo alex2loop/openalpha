@@ -5,6 +5,7 @@ import type { ConvictionBand } from '@/trading/kernel/conviction'
 import type { FactorResult, TradeLevels } from '@/trading/kernel/factor'
 import type { InstrumentKind } from '@/trading/kernel/instrument'
 import type { RegimeScale } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { TapeReading } from '@/trading/kernel/market/tape'
 import type { ClosedRoundTrip } from '@/trading/kernel/operator/book'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
@@ -28,6 +29,8 @@ export interface StageInput {
    *  stage may judge differently: an index carries no single-name thesis to be wrong about. */
   readonly instrumentKind?: InstrumentKind
   readonly levels?: TradeLevels
+  /** This name's dated corporate actions, past ones included. */
+  readonly events?: readonly MarketEvent[]
   /** From `FactorScore.failedGates`, threaded so the admission stage judges the same evidence read
    *  the score was built from rather than fetching the market's universe a second time. */
   readonly failedGates?: readonly ScreenGateCode[]

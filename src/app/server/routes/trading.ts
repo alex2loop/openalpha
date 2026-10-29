@@ -18,6 +18,7 @@ import {
   toBriefSnapshotWire,
   toBriefTextWire,
 } from '@/app/server/mappers/brief'
+import { toTrackRecordWire } from '@/app/server/mappers/track-record'
 import {
   toCandleWire,
   toCaveatWires,
@@ -30,7 +31,6 @@ import {
   toQuotesResponse,
   toSuggestionCardWire,
   toSuggestionWire,
-  toTrackRecordWire,
 } from '@/app/server/mappers/trading'
 import {
   hostOf,

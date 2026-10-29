@@ -10,6 +10,7 @@ import type { SessionRouteRegistration } from '@/core/types/session'
 import { API_CHANNEL } from '@/app/server/channel'
 import { resolveAgentId } from '@/app/server/ws/chat'
 import {
+  type CommandStartWatch,
   registerCommandRun,
   send,
   sendOperatorFailure,
@@ -18,6 +19,7 @@ import {
   toTurnTag,
   trackLaneItem,
   unregisterSocketRun,
+  watchCommandStart,
 } from '@/app/server/ws/runs'
 import { HELP_COMMAND, parseHelpLine, renderCommandHelp, renderMessages } from '@/commands/api'
 import { toCommandLaneKey } from '@/core/command-lane'
@@ -39,6 +41,10 @@ interface SlashRun {
   readonly longRunning: boolean
   /** Runs beside the session's turn, in the command lane. */
   readonly inLane: boolean
+  /** A quiet long-running command; anything else sent quiet runs as typed. */
+  readonly isQuiet: boolean
+  /** Present on a quiet run: tells a refusal, whose answer comes back, from a run that started. */
+  readonly quietStart?: CommandStartWatch
   readonly tag: LaneTag
   /** The client's id for the line, when it sent one. */
   readonly clientId?: string
@@ -53,6 +59,7 @@ export interface ChatRunRequest extends LaneTag {
 /** One slash line and the client's id for it, when the client sent one. */
 interface SlashLine extends LaneTag {
   readonly line: string
+  readonly quiet?: true
 }
 
 /** Returns the message to run as a turn, or null when the slash command was terminal. */
@@ -76,14 +83,23 @@ export async function runSlash(
     return null
   }
 
-  const run = toSlashRun({ ws, sessionId, line, resolved, controller, longRunning }, input.id)
+  const isQuiet = input.quiet === true && longRunning
+  const base = toSlashRun(
+    { ws, sessionId, line, resolved, controller, longRunning, isQuiet },
+    input.id
+  )
   const help = parseHelpLine(line)
 
   if (help !== null) {
-    sendChat(run, renderHelp(ws.data.services, help))
+    sendChat(base, renderHelp(ws.data.services, help))
 
     return null
   }
+
+  const run: SlashRun =
+    isQuiet && base.ctx.runId !== undefined
+      ? { ...base, quietStart: watchCommandStart(ws.data.services.bus, base.ctx.runId) }
+      : base
 
   try {
     const result = await execute(run)
@@ -97,6 +113,8 @@ export async function runSlash(
   } catch (err: unknown) {
     return handleSlashFailure(run, err)
   } finally {
+    run.quietStart?.stop()
+
     if (longRunning) {
       unregisterSocketRun(ws, sessionId, controller)
     }
@@ -116,10 +134,10 @@ function renderHelp(services: WsServices, request: HelpRequest): string {
 
 // A lane command is tagged with the client's id, else its own; any other line only with the client's.
 function toSlashRun(
-  input: Omit<SlashRun, 'ctx' | 'tag' | 'inLane' | 'clientId'>,
+  input: Omit<SlashRun, 'ctx' | 'tag' | 'inLane' | 'clientId' | 'quietStart'>,
   clientId: string | undefined
 ): SlashRun {
-  const { ws, sessionId, resolved, controller, longRunning } = input
+  const { ws, sessionId, resolved, controller, longRunning, isQuiet } = input
   const { services } = ws.data
   const requestId = randomUUID()
   const inLane = longRunning && resolved?.policy.selfContained === true
@@ -139,6 +157,7 @@ function toSlashRun(
     // Named here, before the command starts, so a queued command can tell the client which run
     // it will be; the dispatcher keeps it.
     ...(longRunning ? { runId: brandRunId(randomUUID()) } : {}),
+    ...(isQuiet ? { isQuiet: true } : {}),
     progress: (key, params) => {
       if (!controller.signal.aborted) {
         send(ws, {
@@ -301,11 +320,11 @@ async function dispatchSlash(run: SlashRun): ReturnType<SlashDispatcher['dispatc
   const { ws, line, ctx, resolved } = run
   const { services } = ws.data
 
+  await openSession(services, ctx.sessionId)
+
   if (resolved === null) {
     return services.slashDispatcher.dispatch(line, ctx)
   }
-
-  await openSession(services, ctx.sessionId)
 
   return services.slashDispatcher.dispatchResolved(resolved, ctx)
 }
@@ -314,12 +333,17 @@ async function dispatchSlash(run: SlashRun): ReturnType<SlashDispatcher['dispatc
 function handleSlashResult(run: SlashRun, result: SlashResult): ChatRunRequest | null {
   switch (result.kind) {
     case 'message':
-      sendChat(run, renderMessages(bindLocale(run.ws.data.services.locale), result))
+      sendAnswer(run, renderMessages(bindLocale(run.ws.data.services.locale), result))
       return null
     case 'text':
-      sendChat(run, result.text)
+      sendAnswer(run, result.text)
       return null
     case 'agent':
+      if (run.isQuiet) {
+        sendSlashDone(run)
+        return null
+      }
+
       return {
         message: result.retryMessage,
         ...(result.agentId === undefined ? {} : { agentId: result.agentId }),
@@ -333,6 +357,18 @@ function handleSlashResult(run: SlashRun, result: SlashResult): ChatRunRequest |
       const _exhaustive: never = result
       return _exhaustive
     }
+  }
+}
+
+// A quiet command's result is shown where it was asked for, so only a refusal comes back: it ran
+// nothing there, and its answer is the only word of why.
+function sendAnswer(run: SlashRun, text: string): void {
+  if (run.quietStart === undefined) {
+    sendChat(run, text)
+  } else if (run.quietStart.hasStarted()) {
+    sendSlashDone(run)
+  } else {
+    send(run.ws, { type: 'chat', kind: 'error', code: 'unavailable', message: text, ...run.tag })
   }
 }
 

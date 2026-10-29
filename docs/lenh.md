@@ -214,7 +214,9 @@ Một chip bên trái cho biết ai nhận câu bạn gõ: trợ lý, hay một 
 - **Hàng chờ.** Các câu lệnh tự chạy được thì không đứng đợi nhau, trong giới hạn nêu ở trên. Trong khung chat, câu lệnh phải chờ sẽ nói nó đứng thứ mấy trong hàng và đang có mấy câu lệnh chạy cùng lúc, và bỏ khỏi hàng được. Câu lệnh chạy song song với câu lệnh khác thì nói nó chạy cùng câu lệnh nào.
 - **Dừng và bổ sung.** Câu trả lời hay câu lệnh đang chạy hiện "Xem trong văn phòng" và nút Dừng; nút Dừng hỏi xác nhận và giữ phần đã làm trong nhật ký. Khi một câu trả lời (không phải câu lệnh) đang chạy, bạn gõ thêm một ý rồi bấm "Bổ sung": câu trả lời đọc ý đó ở bước tiếp theo. Dòng bắt đầu bằng `/` là câu lệnh, không bao giờ là phần bổ sung.
 
-Nút và menu trên trang không bao giờ tự gửi câu lệnh thay bạn, trừ một ngoại lệ: "Cập nhật dữ liệu" ở thẻ Thị trường tự gửi `/refresh` cho các thị trường của vùng đang xem (không bao giờ kèm `force`) và ghi chi phí thường lệ bên cạnh. Các nút khác chỉ điền vào ô (hoặc chọn người nhận) và để bạn tự gửi, nên bạn luôn thấy câu lệnh cùng chi phí ước tính của nó trước khi nó tốn bất cứ thứ gì.
+Nút nào ghi rõ một câu lệnh đầy đủ thì gửi luôn câu lệnh đó khi bạn bấm: "/suggest VPB", "Phân tích mã này" trên thẻ mã và ở mỗi dòng Cơ hội (khi `/suggest` sẽ trả lại đề xuất đã lưu, tức mã còn đề xuất đang mở trên thẻ mã, hoặc ở Cơ hội là mã đã được phân tích trong ngày hay còn lệnh mua đang mở, chính nút đó đổi thành "Phân tích lại từ đầu" và gửi `/suggest <mã> force`; một lần chạy bị lỗi hay kế hoạch tự ghi cho mã đang giữ lúc bạn mua không phải là đề xuất, nên khi đó nút vẫn là "Phân tích mã này"; "Phân tích lại từ đầu" cũng nằm dưới mọi câu trả lời `/suggest <mã>` chưa kèm `force` và chạy lại đúng câu lệnh đó với `force`), bản tin ở thẻ bắt đầu, "Chạy lại" của một việc đã lên lịch, "Hỏi sâu hơn". Khi lượt chạy do một nút gửi đi chưa xong, nút đó quay vòng và tạm khóa, nên bấm thêm lần nữa cũng không tốn thêm lượt nào.
+
+Nút nào cho thấy kết quả ngay tại chỗ thì chạy câu lệnh mà không ghi gì vào khung chat hay lịch sử cuộc trò chuyện: "Cập nhật dữ liệu" (`/refresh`, không bao giờ kèm `force`) ở thẻ Thị trường cho các thị trường của vùng đang xem, và ở thẻ mã chưa có giá cho riêng thị trường của mã đó (thị trường bạn đã tắt, và vàng thế giới, thì không có nút này); "Viết lại bản tin hôm nay" ở cuối bản tin sáng (`/brief force`), trang đọc vẫn mở và tự nạp bản tin mới khi viết xong; "Chạy lại" ở Chủ đề (`/themes`, hoặc `/themes run <id>` cho một chủ đề), cần một mô hình AI và khóa lại khi chưa có; "Lọc lại" ở Cơ hội xếp hạng lại bảng. Muốn xem tiến trình hay dừng thì mở "Việc đang chạy" ở đầu trang; câu lệnh bị từ chối trước khi chạy (ví dụ vượt hạn mức chi phí) thì lý do hiện ngay dưới nút, và "Chạy lại" ở Chủ đề cũng khóa khi một lượt chủ đề gửi từ kênh khác đang chạy. Nút nào còn cần bạn nhập thêm, như Đặt cảnh báo hay trích một bản báo cáo, thì chỉ điền vào ô (hoặc chọn người nhận) và để phần còn lại cho bạn.
 
 ## Nghiên cứu
 
@@ -447,7 +449,7 @@ tên `config.toml.<thời-điểm>.bak`. Mỗi lần đổi để lại một b�
 nhất và tự xóa bản cũ hơn. Khi chưa có cấu hình, gõ `openalpha` trần hoặc bất kỳ lệnh nào cần cấu hình
 đều sẽ mời bạn bắt đầu thiết lập.
 
-`setup write` ghi cùng tệp khởi điểm cho ứng dụng desktop, bật thêm `[api]`, và không ghi đè cấu hình đã có.
+`setup write` ghi cùng tệp khởi điểm cho ứng dụng desktop và không ghi đè cấu hình đã có.
 
 ```text
 openalpha api token

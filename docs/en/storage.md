@@ -131,7 +131,7 @@ All durable:
 | `suggestions.debate_models` | The models that argued a call, sorted and joined by commas; empty on a call stored before the column existed. The per-model track record counts only calls that one model argued alone |
 | `llm_attempts.billing_agent_id` | Which agent's `max_daily_usd` the spend counts against; empty when the row bills to the agent that ran it |
 
-`db import` fills a missing column with its default (`default` focus, an empty billing agent, no debate models).
+`db import` fills a missing column with its default (`default` focus, an empty billing agent, no debate models). A column this version no longer keeps is left out, and the import names it, so an export taken before an upgrade still reads back.
 
 #### Social networks
 
@@ -387,7 +387,9 @@ openalpha history clear --agent analyst --yes
 
 `history show` accepts a full session id or any prefix that matches only one session. It shows
 status, the messages in order, cumulative token and cost totals, and the model attempts behind each
-assistant message. Attempts not tied to a message, such as compaction, are shown separately.
+assistant message. Attempts not tied to a message, such as compaction, are shown separately. A
+command's line and answer kept only for the chat history are marked, since the model never reads
+them.
 
 `history delete` removes one session without asking. `history clear` needs the daemon stopped and
 asks for confirmation unless you pass `--yes`. Both refuse a session with a turn still running; one that

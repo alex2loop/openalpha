@@ -1,24 +1,26 @@
 import { useSignal } from '@preact/signals'
 
-import { estimateText, isNoAi } from '@/web/state/estimates'
+import type { MarketWire } from '@/app/server/wire/market'
 import { marketsBlock, overviewBlock } from '@/web/state/market'
 import { marketRegion } from '@/web/state/market-tab'
 import {
   isRefreshing,
-  REFRESH_COMMAND,
   refreshableMarkets,
   refreshMarkets,
   useRereadAfterRefresh,
 } from '@/web/state/refresh'
 import { tr } from '@/web/text/tr'
-import { Button } from '@/web/ui/kit/button'
+import { Button, type ButtonSize } from '@/web/ui/kit/button'
 
-/** "Cập nhật dữ liệu": `/refresh` for the markets of the region in view, with its cost beside it
- *  once the runs logged so far quote one above zero. It never forces; the blocks read again when the
- *  run ends. */
+interface RefreshMarketsButtonProps {
+  readonly markets: readonly MarketWire[]
+  readonly size?: ButtonSize
+}
+
+/** "Cập nhật dữ liệu" for the markets of the region in view; the blocks read again when the run
+ *  ends. */
 export function RefreshButton() {
   const region = marketRegion.value
-  const isNotSent = useSignal(false)
 
   useRereadAfterRefresh(() => {
     marketsBlock.retry()
@@ -29,27 +31,45 @@ export function RefreshButton() {
     return null
   }
 
-  const markets = refreshableMarkets(region)
-  const note = isNoAi(REFRESH_COMMAND) ? undefined : estimateText(REFRESH_COMMAND)
-
   return (
     <div class="market-refresh">
-      {note !== undefined && <span class="meta">{note}</span>}
+      <RefreshMarketsButton markets={refreshableMarkets(region)} />
+    </div>
+  )
+}
+
+/** Sends `/refresh` quiet for each of `markets`, never `force`, and waits while any refresh runs.
+ *  The caller reads its own blocks again through `useRereadAfterRefresh`. */
+export function RefreshMarketsButton({ markets, size }: RefreshMarketsButtonProps) {
+  const failure = useSignal<string | undefined>(undefined)
+
+  return (
+    <>
       <Button
+        {...(size === undefined ? {} : { size })}
         disabled={isRefreshing.value || markets.length === 0}
         onClick={() => {
-          isNotSent.value = !refreshMarkets(markets)
+          failure.value = undefined
+
+          if (
+            !refreshMarkets(markets, (message) => {
+              failure.value = message
+            })
+          ) {
+            failure.value = tr('ui.office.command.offline')
+          }
         }}
       >
+        {isRefreshing.value && <span class="spin" aria-hidden="true" />}
         {isRefreshing.value
           ? tr('ui.office.market.refreshing')
           : tr('ui.office.market.refreshData')}
       </Button>
-      {isNotSent.value && (
+      {failure.value !== undefined && (
         <p class="failure-line" role="alert">
-          {tr('ui.office.command.notSent')}
+          {failure.value}
         </p>
       )}
-    </div>
+    </>
   )
 }

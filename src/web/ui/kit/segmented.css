@@ -11,6 +11,13 @@
   background: var(--sunken);
 }
 
+/* Tabs keep one row and scroll sideways where the panel is too narrow for every label. */
+.seg[role="tablist"] {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
 :is(.flow, .stack) > .seg {
   margin-bottom: 0;
 }

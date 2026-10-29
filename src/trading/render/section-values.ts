@@ -1,11 +1,8 @@
 import type { Locale } from '@/core/types/locale'
 import type { ConvictionBand, OutcomeStatus, SuggestionAction } from '@/trading/kernel/conviction'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
-import type {
-  IndexReviewKind,
-  MarketEventKind,
-  MarketRegime,
-} from '@/trading/kernel/market/market-data'
+import type { IndexReviewKind, MarketRegime } from '@/trading/kernel/market/market-data'
+import type { MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { AlertCondition } from '@/trading/kernel/operator/alert'
 import type { CashPosture } from '@/trading/kernel/operator/book'
 import type {
@@ -80,6 +77,8 @@ const ACTION_CODE_KEYS = Object.freeze({
   'avoid-chasing': 'trading.brief.action.avoid-chasing',
   rebalance: 'trading.brief.action.rebalance',
   'record-book': 'trading.brief.action.record-book',
+  'record-dividend': 'trading.brief.action.record-dividend',
+  'record-distribution': 'trading.brief.action.record-distribution',
   'review-alerts': 'trading.brief.action.review-alerts',
   'review-portfolio': 'trading.brief.action.review-portfolio',
   'review-suggestions': 'trading.brief.action.review-suggestions',
@@ -184,6 +183,7 @@ const VALUE_FORMATTERS = Object.freeze({
   basisPct: formatFraction,
   buyPrice: formatFixedAmount,
   cashAfterPlanPctNav: formatFraction,
+  cashPerShare: formatFixedAmount,
   ceilings: formatCount,
   changePct: formatSignedFixedPercent,
   compositeScore: formatScoreValue,
@@ -246,12 +246,14 @@ const VALUE_FORMATTERS = Object.freeze({
   sellPrice: formatFixedAmount,
   sentimentScore: bandedSentiment,
   sharePct: formatFraction,
+  shareRatio: formatFraction,
   spentUsd: formatSpendUsd,
   spreadPct: formatFraction,
   stopBreachedCount: formatCount,
   stopClearCount: formatCount,
   stopUnmeasuredCount: formatCount,
   strength: formatSignedFraction,
+  subscriptionPrice: formatFixedAmount,
   support: formatFixedAmount,
   supportPct: formatFixedFraction,
   takeProfitTranchePct: formatFixedFraction,
@@ -296,6 +298,8 @@ const MONEY_FIELDS: ReadonlySet<BriefField> = new Set([
  *  stamped with a denomination it does not have. */
 const PRICE_FIELDS: ReadonlySet<BriefField> = new Set([
   'buyPrice',
+  'cashPerShare',
+  'subscriptionPrice',
   'last',
   'observedPrice',
   'previousClose',

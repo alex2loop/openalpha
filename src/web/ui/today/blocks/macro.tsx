@@ -42,7 +42,7 @@ export function Macro() {
 /** The regime and the daemon's lean; an unavailable reading leaves its caveats to say why. */
 export function MacroReading({ macro }: { readonly macro: MacroResponse }) {
   if (macro.status === 'unavailable') {
-    return <p class="meta">{tr('ui.office.today.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
   return (

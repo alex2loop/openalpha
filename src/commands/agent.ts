@@ -32,6 +32,7 @@ const SELECT_POLICY = {
   action: 'mutate' as const,
   idempotencyKey: (ctx: SlashContext) => ctx.requestId,
   surfaceHint: 'slash.agentTerminalHint' as const,
+  transcript: 'none' as const,
 }
 
 export interface AgentCommandDeps {

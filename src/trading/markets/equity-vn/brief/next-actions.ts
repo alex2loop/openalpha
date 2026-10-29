@@ -1,3 +1,4 @@
+import type { MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { BriefActionCode, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
 import { hasNoBook, sectionNumber } from '@/trading/kernel/operator/brief-section'
@@ -49,10 +50,41 @@ export function buildNextActions(
 
   // Ready with no rows, never omitted: this is a core section, so omitting it would suppress the
   // whole brief on a morning that simply needs nothing. The renderer already skips an empty one.
-  return ready(
-    'next-actions',
-    codes.map((code) => ({ code }))
+  return ready('next-actions', [
+    ...codes.map((code) => ({ code })),
+    ...heldEventTickers(context, sections, 'dividend-ex-date').map((ticker) => ({
+      ticker,
+      code: 'record-dividend' as const,
+    })),
+    ...heldEventTickers(context, sections, 'split').map((ticker) => ({
+      ticker,
+      code: 'record-distribution' as const,
+    })),
+  ])
+}
+
+/** The held names a cash or share dividend goes ex on inside the calendar window: the price drops by
+ *  it on the ex-date while the cash or the shares land weeks later, and only a recorded row puts them
+ *  in the book. */
+function heldEventTickers(
+  context: BriefContext,
+  sections: readonly BriefSectionResult[],
+  kind: MarketEventKind
+): readonly string[] {
+  const events = sections.find((section) => section.kind === 'events')
+  const held = new Set(context.heldNames.map((instrument) => String(instrument.ticker)))
+
+  if (events?.status !== 'ready') {
+    return []
+  }
+
+  const tickers = events.rows.flatMap((row) =>
+    row.eventKind === kind && typeof row.ticker === 'string' && held.has(row.ticker)
+      ? [row.ticker]
+      : []
   )
+
+  return [...new Set(tickers)]
 }
 
 /** Near resistance on thin turnover, a buy pays up for the level rather than to reach it. "Near" is

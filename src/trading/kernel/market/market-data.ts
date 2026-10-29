@@ -15,21 +15,6 @@ import type { SourceId } from '@/trading/kernel/source/source-id'
 export const BAR_ADJUSTMENTS = Object.freeze(['adjusted', 'raw'] as const)
 export type BarAdjustment = (typeof BAR_ADJUSTMENTS)[number]
 
-export const MARKET_EVENT_KINDS = Object.freeze([
-  'dividend-ex-date',
-  'agm',
-  'meeting-ex-date',
-  'split',
-  'rights-issue',
-  'additional-listing',
-  'listing',
-  'delisting',
-  'last-trading-day',
-  'margin-eligible',
-  'margin-ineligible',
-] as const)
-export type MarketEventKind = (typeof MARKET_EVENT_KINDS)[number]
-
 export const INDEX_REVIEW_KINDS = Object.freeze(['ftse-geis', 'hose'] as const)
 export type IndexReviewKind = (typeof INDEX_REVIEW_KINDS)[number]
 
@@ -229,15 +214,6 @@ export interface ForeignRoom {
   readonly instrument: InstrumentRef
   readonly totalRoomShares: number
   readonly availableRoomShares: number
-}
-
-export interface MarketEvent {
-  readonly at: TradingDay
-  readonly kind: MarketEventKind
-  readonly title: string
-  readonly instrument?: InstrumentRef
-  readonly detail?: string
-  readonly providerEventId?: string
 }
 
 export interface IndexMembership {

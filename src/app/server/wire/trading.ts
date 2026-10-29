@@ -86,6 +86,14 @@ export interface MarketEventWire {
   /** The source's own title, in the language it publishes in. */
   readonly title: string
   readonly detail?: string
+  /** A cash dividend per share, in the market's price unit. */
+  readonly cashPerShare?: number
+  /** `YYYY-MM-DD`, the day a cash dividend is paid. */
+  readonly paysOn?: string
+  /** New shares per share held, a fraction (`0.1` for 100:10). */
+  readonly shareRatio?: number
+  /** What a rights issue's new share costs, in the market's price unit. */
+  readonly subscriptionPrice?: number
 }
 
 /** One name's corporate events over a day range: ex-dates, meetings, splits, listings. */
@@ -266,6 +274,8 @@ export type SuggestionWire =
       readonly holdReasonCodes: readonly string[]
       /** True when the row records a run that failed rather than a decision: the daemon re-runs it. */
       readonly undecided?: true
+      /** True for levels written for a held name at its fill, not a call: `/suggest` runs past it. */
+      readonly recorded?: true
       readonly outcome?: never
     })
 

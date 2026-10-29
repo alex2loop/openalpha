@@ -9,8 +9,8 @@ import type {
 } from '@/app/server/wire/chat'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { SessionId } from '@/core/ids'
-import type { LLMMessage } from '@/core/llm'
-import { API_CHANNEL, isApiChannel } from '@/app/server/channel'
+import type { TranscriptMessage } from '@/persistence/api'
+import { API_CHANNEL, isApiChannel, isDeletableChannel } from '@/app/server/channel'
 import { CHAT_ID_RE } from '@/app/server/chat-id'
 import { ENGINE_DECISION } from '@/app/server/decision'
 import { apiError, json } from '@/app/server/http/dispatch'
@@ -117,7 +117,9 @@ function parseIndex(value: string | null): number | undefined {
 }
 
 // An assistant turn is a block array; only its text blocks are display content (a tool call is not).
-function toHistoryMessage(message: LLMMessage): readonly ChatHistoryMessage[] {
+// An answer names the run that wrote it, so its model calls can be read.
+function toHistoryMessage(row: TranscriptMessage): readonly ChatHistoryMessage[] {
+  const { idx, message, runId } = row
   const content =
     typeof message.content === 'string'
       ? message.content.trim()
@@ -126,7 +128,18 @@ function toHistoryMessage(message: LLMMessage): readonly ChatHistoryMessage[] {
           .join('')
           .trim()
 
-  return content === '' ? [] : [{ role: message.role, content: scrubCredentials(content) }]
+  if (content === '') {
+    return []
+  }
+
+  return [
+    {
+      idx,
+      role: message.role,
+      content: scrubCredentials(content),
+      ...(message.role === 'assistant' && runId !== undefined ? { runId } : {}),
+    },
+  ]
 }
 
 /** The conversations of every channel, or of the ones named, newest first. A search shorter than
@@ -164,8 +177,9 @@ async function handleChatSessions(req: Request, ctx: ApiRouteContext): Promise<R
   return json(toChatSessionsWire(listings, page.limit))
 }
 
-/** Deletes an app chat. Another channel's session is refused, and so is one whose turn is running;
- *  an id already gone answers `deleted: false`. */
+/** Deletes an app or terminal chat. A chat app's session is refused, and so is one whose turn is
+ *  running; an id already gone answers `deleted: false`. A terminal still open on it carries on in a
+ *  fresh session of the same id. */
 async function handleChatSessionDelete(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const id = parsePathId(req, parseSessionId)
 
@@ -182,10 +196,10 @@ async function handleChatSessionDelete(req: Request, ctx: ApiRouteContext): Prom
 
   const { translate } = bindLocale(localeOf(ctx))
 
-  if (!isApiChannel(channel)) {
+  if (!isDeletableChannel(channel)) {
     return apiError(
       'conflict',
-      translate('errors.chatSessionNotWeb', { channel: channelNameOf(channel) })
+      translate('errors.chatSessionNotDeletable', { channel: channelNameOf(channel) })
     )
   }
 

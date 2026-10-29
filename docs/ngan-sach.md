@@ -132,7 +132,7 @@ Khi API bật, ứng dụng cho thấy chi phí trước khi chạy và sau khi 
   - Nếu đọc lỗi, báo cáo cũ vẫn ở trên màn hình, kèm một dòng báo lỗi.
   - Nút "Đổi ngân sách" cũng có ở cuối báo cáo.
 - **Dòng ngân sách.** Cài đặt > Agent và AI có mức trần ngày và tháng tính bằng USD (`0` nghĩa là không giới hạn). Nó ghi `[budget]` trong `config.toml` và, như chính tệp, có hiệu lực sau khi khởi động lại. Trang đề nghị khởi động lại giúp bạn.
-- **Trước khi chạy.** Ô câu lệnh hiện cạnh mỗi câu lệnh mức nó thường tốn, và phần còn lại của mức trần hôm nay. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng). Nút trên trang chỉ điền vào ô, nên không có gì tốn tiền được khởi động cho tới khi bạn gửi.
+- **Trước khi chạy.** Ô câu lệnh hiện cạnh mỗi câu lệnh mức nó thường tốn, và phần còn lại của mức trần hôm nay. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng). Nút trên trang gửi lệnh ngay và không ghi ước tính; muốn xem chi phí trước thì gõ câu lệnh vào ô.
 - **Theo từng agent.** Ở tầng đội riêng, thẻ của agent cho thấy hôm nay nó đã tiêu bao nhiêu so với ngân sách ngày riêng của nó. Đó là mức bạn đặt trong biểu mẫu agent (hoặc `max_daily_usd` trong tệp).
 - **Theo từng phiên chạy.** Mỗi phiên chạy trên trang có một khối "Lệnh gọi AI" đang đóng: trong thẻ *Kết quả* của agent, trên dòng của một việc và dưới câu trả lời đã xong trong cuộc trò chuyện. Mở ra, bạn thấy dòng đầu (bao nhiêu lệnh gọi, tốn bao nhiêu, lệnh gọi lâu nhất). Bên dưới là từng lệnh gọi một: mô hình, số token, chi phí, mất bao lâu và kết thúc ra sao, kèm lý do dễ hiểu khi một lượt gọi lỗi.
   - Phiên chạy chia việc cho agent con thì lệnh gọi của chúng cũng nằm trong đó.

@@ -583,8 +583,8 @@ export const ETF_BENCHMARK_BY_TICKER: ReadonlyMap<Ticker, Ticker> = new Map([
   [ticker('FUEMITEC'), ticker(VNMITECH_INDEX_TICKER)],
 ])
 
-/** The exchange's rolling alias for the nearest-month VN30 contract, and the only form the provider
- *  lists: dated contracts appear only once expired, none of them carrying a maturity date. */
+/** The exchange's rolling alias for the nearest-month VN30 contract, the one the basis reads. The
+ *  provider also lists dated contracts, the month only in their name, never a maturity date. */
 export const VN30_FRONT_MONTH_TICKER = 'VN30F1M'
 
 export const BASIS_SESSIONS = 60

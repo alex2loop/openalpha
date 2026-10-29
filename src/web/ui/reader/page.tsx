@@ -57,7 +57,7 @@ export function ReaderPage({ entries, plainText, onAsk, onClose, children, ...fr
     <ReaderFrame {...frame} onClose={onClose}>
       <div ref={column} class="reader-main">
         {children}
-        <NextSteps text={plainText} onFill={onClose} />
+        <NextSteps text={plainText} onRun={onClose} />
       </div>
       <Toc entries={entries} scroller={column} />
       {onAsk !== undefined && <QuoteAsk scroller={column} onAsk={onAsk} />}

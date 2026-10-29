@@ -501,7 +501,7 @@ A host two purposes share is listed once under each, since what is sent there di
 
 `GET /v1/models` prices each model with the pricing service the cost ledger settles with, and `LLMAttemptStore.perRunCostByModel` gives its mean cost per run in one statement: attempts grouped by `(provider, model, run_id)`, ranked newest first per model with `ROW_NUMBER()`, the last `COST_ESTIMATE_SAMPLE` kept, same text on SQLite and Postgres.
 
-`SessionStore.listByChannels` cuts the chat session list in SQL (channel `IN`, `last_activity_at < before`, `LIMIT`) and filters by text with `EXISTS` over the user and assistant rows (`m.role IN DISPLAYED_ROLES`), matching the lowered text or the text as typed (`LOWER(content) LIKE ... ESCAPE OR content LIKE ...`, built with `toLikeContainsPattern`; SQLite folds ASCII case only), at most `SESSION_CHANNELS_MAX` channels per request; the first user and last assistant rows ride the same statement and the app decodes, scrubs and cuts them.
+`SessionStore.listByChannels` cuts the chat session list in SQL off the indexed `sessions.last_message_at`, which an append stamps when a row the page shows lands (an operator line, or an answer holding text: `isShownMessage`), so a session with none is not listed and `db import` stamps the ones an older export brings without it (channel `IN`, the keyset `(last_message_at, id)` below `before`/`beforeId`, `LIMIT`), and filters by text with `EXISTS` over the rows the page shows, matching the lowered text or the text as typed (`LOWER(content) LIKE ... ESCAPE OR content LIKE ...`, built with `toLikeContainsPattern`; SQLite folds ASCII case only), at most `SESSION_CHANNELS_MAX` channels per request; the first user and last assistant rows ride the same statement and the app decodes, scrubs and cuts them.
 
 Smaller points:
 
@@ -533,7 +533,7 @@ Smaller points:
 - `/v1/memory` reads `Memory.listScopes` (local scope first, the row cap in SQL), drops the `prefs-pending:` and `prefs-asked:` rows, and forgets by a base64url scope key. A successful `prefs:` write publishes `preference_saved`.
 - `GET /v1/market` renders the show path of `/market` (`renderMarketShow`); `/v1/themes` renders the `/themes show` text and its transitions with the command's own sentences.
 - `POST /v1/ledger/preview` answers the rate a draft needs (`replacing` leaves out the row an edit replaces). `POST /v1/ledger` refuses a draft whose rate applies but is unstated, with a field error on `operatorFxRate`. `POST /v1/ledger/sync` is `runVenueSync`, the code `/record sync` runs.
-- `DELETE /v1/chat/sessions/:id` removes only an `api` session with no turn running.
+- `DELETE /v1/chat/sessions/:id` removes only an `api` or `cli` session with no turn running (`isDeletableChannel`, which also sets the listing's `deletable`); a terminal still open on it re-creates the row of the same id on its next line.
 - `GET /v1/cost` adds `jobs` from `rootRunsForRange`, which walks every attempt in the window up to its root run. Spend with no root is `otherUsd`, so the jobs and `otherUsd` sum to the total.
 
 **Agents and schedules written from the API.** **Agents.** [routes/agent-edit.ts](../../../src/app/server/routes/agent-edit.ts) handles a write in this order:

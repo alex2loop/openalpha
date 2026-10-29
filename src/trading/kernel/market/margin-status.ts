@@ -1,5 +1,5 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-data'
+import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 
 /** How far back a margin-list row still describes today. HOSE republishes the list quarterly, so
  *  two cycles reach a row that took effect at the start of the previous one. */

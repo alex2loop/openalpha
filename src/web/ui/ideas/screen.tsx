@@ -1,8 +1,12 @@
+import { useSignal } from '@preact/signals'
+import { useEffect, useRef } from 'preact/hooks'
+
 import type { ScreenResponse } from '@/app/server/wire/market'
+import type { SuggestionWire } from '@/app/server/wire/trading'
+import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { useBlock } from '@/web/state/block'
-import { fillInput, SUGGEST_COMMAND } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
+import { type BlockReading, useBlock, useBlockRead } from '@/web/state/block'
+import { onWireEvent } from '@/web/state/events'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
@@ -13,10 +17,15 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
+import { AnalyzeButton, isStoredAnswer } from '@/web/ui/ticker/analyze-button'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
-const SCREEN_COMMAND = '/screen'
+const FRESH_FLAG = '1'
 const MARKET_SEPARATOR = ':'
+// The newest calls of every market (the list filters by name, not by market alone), read to tell
+// which ranked names were already analyzed on the board's day. A busy day stores about 30 across
+// markets, and each row carries its whole call, so the read stays near two days.
+const DAY_CALLS_READ = 50
 
 /** Cơ hội: the names the daemon ranked best in a market, as it words them. A score is a rank, not
  *  advice, and a call is one tap away. */
@@ -25,7 +34,7 @@ export function Opportunities() {
   const market = markets.find((held) => held.market === screenMarket.value) ?? markets[0]
 
   if (market === undefined) {
-    return <p class="meta">{tr('ui.office.today.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
   return (
@@ -47,7 +56,22 @@ export function Opportunities() {
 
 // Mounted per market, so its read ends with the tab or the market.
 function Board({ market }: { readonly market: string }) {
-  const reading = useBlock(ROUTES.screen, { query: { market } })
+  const reading = useBoard(market)
+  const calls = useBlock(ROUTES.suggestions, {
+    query: { status: 'all', limit: DAY_CALLS_READ },
+  })
+
+  // A run that reported on names may have stored a call, which turns its row's button into a fresh
+  // analysis.
+  useEffect(
+    () =>
+      onWireEvent('run_finished', (event) => {
+        if (event.tickers !== undefined) {
+          calls.retry()
+        }
+      }),
+    []
+  )
 
   return (
     <BlockFrame
@@ -56,37 +80,99 @@ function Board({ market }: { readonly market: string }) {
       icon={<TrendIcon />}
       reading={reading}
       dataTo={reading.data?.dataThroughDay ?? reading.data?.asOf}
-      action={<Rerun market={market} />}
+      action={<Rerun reading={reading} />}
     >
-      {(board) => <BoardBody board={board} />}
+      {(board) => (
+        // The board stays readable, dimmed, while the new one is ranked.
+        <div class={reading.isRanking ? 'flow is-ranking' : 'flow'} aria-busy={reading.isRanking}>
+          <BoardBody
+            board={board}
+            analyzed={analyzedOn(calls.data?.suggestions ?? [], { market, day: board.asOf })}
+          />
+        </div>
+      )}
     </BlockFrame>
   )
 }
 
-// Fills the box with `/screen <market>`: the operator sends it, and sees the cost first.
-function Rerun({ market }: { readonly market: string }) {
+interface BoardReading extends BlockReading<ScreenResponse> {
+  /** Ranks the board again, past the one the daemon already read, and shows it in place. */
+  readonly rerank: () => void
+  readonly isRanking: boolean
+}
+
+// The block's next read is the fresh one; a click while a read is out queues it behind that read.
+function useBoard(market: string): BoardReading {
+  const isFresh = useRef(false)
+  const isRanking = useSignal(false)
+  const reading = useBlockRead(
+    async (abort) => {
+      const fresh = isFresh.current
+
+      isFresh.current = false
+
+      try {
+        return await getJson(ROUTES.screen, {
+          query: fresh ? { market, fresh: FRESH_FLAG } : { market },
+          signal: abort,
+        })
+      } finally {
+        if (fresh) {
+          isRanking.value = false
+        }
+      }
+    },
+    { capability: ROUTES.screen.capability }
+  )
+
+  return {
+    ...reading,
+    isRanking: isRanking.value,
+    rerank: () => {
+      isFresh.current = true
+      isRanking.value = true
+      reading.retry()
+    },
+  }
+}
+
+// No model runs: the board is ranked from stored data, so it is a plain button, waiting while read.
+function Rerun({ reading }: { readonly reading: BoardReading }) {
   return (
-    <>
-      <Estimate command={SCREEN_COMMAND} />
-      <Button kind="ai" size="small" onClick={() => fillInput(`${SCREEN_COMMAND} ${market}`)}>
-        {tr('ui.office.ideas.screenRerun')}
-      </Button>
-    </>
+    <Button size="small" disabled={reading.isRanking} onClick={reading.rerank}>
+      {reading.isRanking && <span class="spin" aria-hidden="true" />}
+      {tr(reading.isRanking ? 'ui.office.ideas.screenRanking' : 'ui.office.ideas.screenRerun')}
+    </Button>
   )
 }
 
-// What the command usually costs, beside its button; nothing while the daemon has no estimate.
-function Estimate({ command }: { readonly command: string }) {
-  const estimate = estimateText(command)
-
-  return estimate === undefined ? null : <span class="meta">{estimate}</span>
+// The names `/suggest` would answer from a call already stored: those analyzed on the board's day,
+// or later where the board was read before the day turned, and a buy still open from an earlier
+// day, which a round-the-clock market hands back while it can be taken.
+function analyzedOn(
+  calls: readonly SuggestionWire[],
+  board: { readonly market: string; readonly day: string }
+): ReadonlySet<string> {
+  return new Set(
+    calls
+      .filter((call) => call.instrument.market === board.market && isStoredAnswer(call))
+      .filter(
+        (call) => call.at >= board.day || (call.action === 'buy' && call.outcome === undefined)
+      )
+      .map((call) => call.instrument.ticker)
+  )
 }
 
-function BoardBody({ board }: { readonly board: ScreenResponse }) {
+interface BoardBodyProps {
+  readonly board: ScreenResponse
+  readonly analyzed: ReadonlySet<string>
+}
+
+function BoardBody({ board, analyzed }: BoardBodyProps) {
   const { card } = board
 
   if (card.rows.length === 0) {
-    return <p class="meta">{tr('ui.office.today.empty')}</p>
+    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
   return (
@@ -98,7 +184,7 @@ function BoardBody({ board }: { readonly board: ScreenResponse }) {
         })}
       </p>
       {card.rows.map((row) => (
-        <Opportunity key={row.key} row={row} />
+        <Opportunity key={row.key} row={row} analyzed={analyzed} />
       ))}
       {card.caveats.map((caveat) => (
         <p key={caveat} class={isInfoLine(caveat) ? 'meta' : 'strip is-caution'}>
@@ -128,7 +214,13 @@ function lineOf(row: Row): string {
   return joinInline(splitInline(row.line).filter((segment) => !segment.startsWith(scoreLead)))
 }
 
-function Opportunity({ row }: { readonly row: Row }) {
+function Opportunity({
+  row,
+  analyzed,
+}: {
+  readonly row: Row
+  readonly analyzed: ReadonlySet<string>
+}) {
   const [market, ticker] = row.key.split(MARKET_SEPARATOR)
   const head = lineOf(row)
 
@@ -149,10 +241,11 @@ function Opportunity({ row }: { readonly row: Row }) {
         ))}
       </div>
       <div class="opportunity-ask">
-        <Button kind="ai" size="small" onClick={() => fillInput(`${SUGGEST_COMMAND} ${row.key}`)}>
-          {tr('ui.office.ideas.screenSuggest')}
-        </Button>
-        <Estimate command={SUGGEST_COMMAND} />
+        <AnalyzeButton
+          name={row.key}
+          isAnalyzed={ticker !== undefined && analyzed.has(ticker)}
+          size="small"
+        />
       </div>
     </div>
   )

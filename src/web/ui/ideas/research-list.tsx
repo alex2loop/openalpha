@@ -50,7 +50,7 @@ export function ResearchList() {
       {!research.isLoading.value &&
         research.failure.value === undefined &&
         shown.length === 0 &&
-        running.length === 0 && <p class="meta">{tr('ui.office.today.empty')}</p>}
+        running.length === 0 && <p class="empty-note">{tr('ui.office.today.empty')}</p>}
       <Pager
         page={page}
         size={RESEARCH_PAGE}

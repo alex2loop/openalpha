@@ -516,7 +516,7 @@ Một host phục vụ hai mục đích thì xuất hiện một lần dưới m
 
 `GET /v1/models` định giá từng mô hình bằng chính dịch vụ giá mà sổ chi phí dùng để tính, còn `LLMAttemptStore.perRunCostByModel` cho chi phí trung bình mỗi phiên chạy trong một câu lệnh: gom các lượt gọi theo `(provider, model, run_id)`, xếp mới nhất trước theo từng mô hình bằng `ROW_NUMBER()`, giữ `COST_ESTIMATE_SAMPLE` phiên gần nhất, cùng một đoạn SQL cho SQLite và Postgres.
 
-`SessionStore.listByChannels` cắt danh sách cuộc trò chuyện ngay trong SQL (`IN` theo kênh, `last_activity_at < before`, `LIMIT`) và lọc theo chữ bằng `EXISTS` trên các dòng của người dùng và trợ lý (`m.role IN DISPLAYED_ROLES`), khớp với chữ đã hạ chữ hoa hoặc đúng như gõ (`LOWER(content) LIKE ... ESCAPE OR content LIKE ...`, dựng bằng `toLikeContainsPattern`; SQLite chỉ gập hoa-thường ASCII), tối đa `SESSION_CHANNELS_MAX` kênh mỗi yêu cầu; tin nhắn đầu của người dùng và câu trả lời cuối đi cùng câu lệnh, app giải mã, xóa thông tin xác thực và cắt ngắn.
+`SessionStore.listByChannels` cắt danh sách cuộc trò chuyện ngay trong SQL theo cột có chỉ mục `sessions.last_message_at`, do lệnh ghi tin nhắn đóng dấu khi có một dòng trang hiển thị (câu của người dùng, hoặc câu trả lời có chữ: `isShownMessage`), nên cuộc trò chuyện chưa có dòng nào thì không được liệt kê, còn `db import` đóng dấu cho những cuộc trò chuyện mà bản xuất cũ mang vào thiếu cột này (`IN` theo kênh, khóa phân trang `(last_message_at, id)` dưới `before`/`beforeId`, `LIMIT`), và lọc theo chữ bằng `EXISTS` trên các dòng trang hiển thị, khớp với chữ đã hạ chữ hoa hoặc đúng như gõ (`LOWER(content) LIKE ... ESCAPE OR content LIKE ...`, dựng bằng `toLikeContainsPattern`; SQLite chỉ gập hoa-thường ASCII), tối đa `SESSION_CHANNELS_MAX` kênh mỗi yêu cầu; tin nhắn đầu của người dùng và câu trả lời cuối đi cùng câu lệnh, app giải mã, xóa thông tin xác thực và cắt ngắn.
 
 Các điểm nhỏ hơn:
 
@@ -548,7 +548,7 @@ Các điểm nhỏ hơn:
 - `/v1/memory` đọc `Memory.listScopes` (phạm vi cục bộ đứng đầu, trần số dòng nằm trong SQL), bỏ các dòng `prefs-pending:` và `prefs-asked:`, và quên theo một khóa phạm vi base64url. Một lần ghi `prefs:` thành công phát `preference_saved`.
 - `GET /v1/market` vẽ đường hiển thị của `/market` (`renderMarketShow`); `/v1/themes` vẽ chữ của `/themes show` và các bước chuyển với đúng câu của câu lệnh.
 - `POST /v1/ledger/preview` trả tỷ giá mà một bản nháp cần (`replacing` bỏ ra dòng mà lần sửa thay thế). `POST /v1/ledger` từ chối bản nháp cần tỷ giá mà không nêu, với lỗi trường ở `operatorFxRate`. `POST /v1/ledger/sync` là `runVenueSync`, đúng mã mà `/record sync` chạy.
-- `DELETE /v1/chat/sessions/:id` chỉ xóa phiên `api` không có lượt nào đang chạy.
+- `DELETE /v1/chat/sessions/:id` chỉ xóa phiên `api` hoặc `cli` không có lượt nào đang chạy (`isDeletableChannel`, cũng là nơi đặt `deletable` của danh sách); terminal còn mở trên phiên đó tạo lại dòng cùng id ở câu kế tiếp.
 - `GET /v1/cost` thêm `jobs` từ `rootRunsForRange`, hàm lần mọi lần gọi trong khoảng lên tới phiên chạy gốc của nó. Phần chi không có gốc là `otherUsd`, nên `jobs` cộng `otherUsd` bằng đúng tổng.
 
 **Agent và lịch được ghi từ API.** **Agent.** [routes/agent-edit.ts](../../src/app/server/routes/agent-edit.ts) xử lý một lần ghi theo thứ tự này:

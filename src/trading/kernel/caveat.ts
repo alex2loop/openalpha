@@ -184,6 +184,8 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'suggestion.chasing-gap', severity: 'warn' },
   { code: 'suggestion.stop-ratcheted', severity: 'info' },
   { code: 'suggestion.take-profit-held', severity: 'info' },
+  { code: 'suggestion.levels-ex-adjusted', severity: 'info' },
+  { code: 'suggestion.levels-ex-unadjusted', severity: 'warn' },
   { code: 'suggestion.standing-unverified', severity: 'warn' },
   { code: 'suggestion.position-changed', severity: 'warn' },
   { code: 'suggestion.book-changed', severity: 'warn' },

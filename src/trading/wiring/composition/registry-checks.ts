@@ -3,10 +3,11 @@ import type { ToolDefinition } from '@/core/tool'
 import type { CliCommandDef } from '@/core/types/cli-command'
 import type { SlashCommand } from '@/core/types/command'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { MarketRegistry } from '@/trading/markets/types'
+import type { Market, MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { OperatorConfigError } from '@/core/config/resolve'
 import { ConfigError } from '@/core/errors'
+import { isValidSendTime } from '@/trading/features/brief/schedule'
 import { marketRef } from '@/trading/kernel/instrument'
 import { tradingLocaleKeys } from '@/trading/locale-manifest'
 import { isWeekendDay } from '@/trading/markets/calendar'
@@ -127,10 +128,10 @@ function assertConfiguredReferencesExist(
   venues: VenueRegistry
 ): void {
   const held = venues.heldMarkets()
-  const homeRegions = markets
+  const homeOwners = markets
     .list()
     .filter(({ manifest }) => manifest.ownsRegion && held.has(manifest.id))
-    .map(({ manifest }) => manifest.region)
+  const homeRegions = homeOwners.map(({ manifest }) => manifest.region)
 
   if (!homeRegions.includes(config.defaultRegion)) {
     throw new OperatorConfigError(`defaultRegion ${config.defaultRegion} is not a home region`, {
@@ -139,9 +140,31 @@ function assertConfiguredReferencesExist(
     })
   }
 
+  assertBriefSendTimeBeforeOpen(homeOwners, config.briefs.sendTime, Date.now())
   assertConfiguredMarketsExist(markets, config)
   assertConfiguredHolidaysAreSessions(markets, config)
   assertDefaultVenuesHold(config, venues)
+}
+
+/** A delivery with no time of its own follows `[trading.briefs] send_time`; at or past the open it
+ *  never lands pre-open, so the brief would be skipped every morning. `/brief enable` refuses such
+ *  a time on its own row, and this refuses it in config. */
+function assertBriefSendTimeBeforeOpen(
+  owners: readonly Market[],
+  sendTime: string,
+  now: number
+): void {
+  const late = owners
+    .filter((market) => !isValidSendTime({ market, sendTime }, now))
+    .map((market) => market.manifest.id)
+    .join(', ')
+
+  if (late !== '') {
+    throw new OperatorConfigError(
+      `[${TRADING_CONFIG_SECTION}.briefs] send_time ${sendTime} is not before the open of: ${late}`,
+      { key: 'errors.configBriefSendTimeAfterOpen', params: { time: sendTime, markets: late } }
+    )
+  }
 }
 
 /** A configured holiday on the market's own weekend is a mistyped date: that day never traded, so

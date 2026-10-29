@@ -264,17 +264,20 @@ export function sizeReduce(input: ReduceSizingInput): SizingResult {
     return { kind: 'unavailable', reasonCode: 'position-unsettled' }
   }
 
-  const units = floorToLot(
-    Math.min(heldUnits * Math.min(saleFraction, 1), settledUnits),
-    boardLot.size
-  )
+  const owed = heldUnits * Math.min(saleFraction, 1)
+  const units = floorToLot(Math.min(owed, settledUnits), boardLot.size)
 
   if (!Number.isFinite(units)) {
     return { kind: 'unavailable', reasonCode: 'insufficient-data' }
   }
 
+  // A lot the sale owes but settlement has not delivered yet is waiting on T+N, not too small.
   if (units <= 0) {
-    return { kind: 'unavailable', reasonCode: 'sale-below-board-lot' }
+    return {
+      kind: 'unavailable',
+      reasonCode:
+        floorToLot(owed, boardLot.size) > 0 ? 'position-unsettled' : 'sale-below-board-lot',
+    }
   }
 
   return { kind: 'available', units, sizePctNav: (units * entryBase) / navBase }

@@ -26,42 +26,6 @@
   margin-top: calc(var(--s0) * -1);
 }
 
-.strip {
-  display: flex;
-  align-items: center;
-  gap: var(--s1);
-  margin-bottom: var(--s2);
-  padding: 7px 10px;
-  border-radius: 8px;
-  font-size: var(--sizeBody);
-}
-
-.flow > .strip {
-  margin: 0;
-}
-
-.strip > span {
-  flex: 1;
-}
-
-.strip.is-caution {
-  background: var(--cautionBg);
-  color: var(--caution);
-}
-
-.strip.is-problem {
-  background: var(--dangerTint);
-  color: var(--dangerText);
-}
-
-.strip.is-grey {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
-  background: var(--sunken);
-  color: var(--ink2);
-}
-
 .session-line {
   margin-bottom: var(--s2);
 }

@@ -2,16 +2,14 @@ import type { ComponentChildren } from 'preact'
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import { fillInput } from '@/web/state/command'
-import { estimateText } from '@/web/state/estimates'
-import { loadSession, state } from '@/web/state/session'
+import { BRIEF_COMMAND } from '@/web/state/command'
+import { isModelReady, loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
+import { RunButton } from '@/web/ui/command/run-button'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
 import { openSettings } from '@/web/ui/settings/settings'
-
-const BRIEF_COMMAND = '/brief'
 
 interface StepProps {
   readonly index: number
@@ -29,11 +27,11 @@ export function FirstRun() {
     <section class="block">
       <h2 class="block-head">{tr('ui.office.firstRun.title')}</h2>
       <div class="steps">
-        <ModelStep isDone={firstRun?.modelReady === true} />
+        <ModelStep isDone={isModelReady.value} />
         <ProfileStep isDone={firstRun?.profileSaved === true} />
         <BookStep isDone={firstRun?.bookEmpty === false} />
         <ChatStep />
-        <BriefStep isModelReady={firstRun?.modelReady === true} />
+        <BriefStep />
       </div>
     </section>
   )
@@ -131,16 +129,18 @@ function ModelStep({ isDone }: { readonly isDone: boolean }) {
   )
 }
 
-// The brief fills the box and never sends it; it waits for a model to answer it.
-function BriefStep({ isModelReady }: { readonly isModelReady: boolean }) {
+// The brief runs at once; it waits for a model to answer it.
+function BriefStep() {
   return (
     <Step index={5} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
       <p class="meta">{tr('ui.office.firstRun.briefBody')}</p>
       <div class="step-actions">
-        <Button size="small" disabled={!isModelReady} onClick={() => fillInput(BRIEF_COMMAND)}>
-          {tr('ui.office.firstRun.briefCta')}
-        </Button>
-        <span class="meta">{estimateText(BRIEF_COMMAND)}</span>
+        <RunButton
+          command={BRIEF_COMMAND}
+          label={tr('ui.office.firstRun.briefCta')}
+          size="small"
+          disabled={!isModelReady.value}
+        />
       </div>
     </Step>
   )

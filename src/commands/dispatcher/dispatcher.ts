@@ -1,4 +1,7 @@
+import { randomUUID } from 'node:crypto'
+
 import type {
+  CommandLocales,
   CommandTranscript,
   KeyValidator,
   ResolvedSlashCommand,
@@ -17,6 +20,7 @@ import type {
 } from '@/core/types/command'
 import { BRAND } from '@/core/brand'
 import { ValidationError } from '@/core/errors'
+import { runId as brandRunId } from '@/core/ids'
 import { withCorrelation } from '@/core/logging/correlation'
 
 import { type CommandRuns, createCommandRuns, isCancellation } from './long-running'
@@ -30,7 +34,7 @@ import {
   parseCommand,
   suggestCommandName,
 } from './resolve'
-import { toSlashResult } from './result'
+import { toSlashResult, unexpectedResult } from './result'
 import { appendExchange } from './transcript'
 
 const DEFAULT_RATE_PER_MINUTE = 20
@@ -41,6 +45,7 @@ interface SlashDispatcherDeps {
   readonly bus: EventBus
   readonly logger: Logger
   readonly transcript: CommandTranscript
+  readonly locales: CommandLocales
   readonly ratePerMinute?: number
 }
 
@@ -54,6 +59,7 @@ export function createSlashDispatcher(deps: SlashDispatcherDeps): SlashDispatche
     ratePerMinute: deps.ratePerMinute ?? DEFAULT_RATE_PER_MINUTE,
     logger: deps.logger,
     transcript: deps.transcript,
+    locales: deps.locales,
     runs: createCommandRuns({ bus: deps.bus, logger: deps.logger }),
   }
 
@@ -66,23 +72,46 @@ export function createSlashDispatcher(deps: SlashDispatcherDeps): SlashDispatche
       return parsed === null ? null : resolveParsed(parsed.raw, parsed.args, commands)
     },
     dispatchResolved: (resolved, context) => dispatchResolved({ ...state, resolved, context }),
-    dispatch: (line, context) =>
-      dispatchLine({
-        line,
-        resolve: (raw, args) => resolveParsed(raw, args, commands),
-        suggest: (raw) =>
-          suggestCommandName({
-            commands,
-            target: normalizeName(raw),
-            surface: context.surface,
-            role: context.role,
-          }),
-        runResolved: (resolved) => dispatchResolved({ ...state, resolved, context }),
-      }),
+    dispatch: (line, context) => dispatchCommandLine({ state, commands, line, context }),
     abortCommand: (id: RunId) => state.runs.abortCommand(id),
     activeCommands: () => state.runs.activeCommands(),
     runScheduled: state.runs.runScheduled,
   }
+}
+
+interface CommandLine {
+  readonly state: DispatchState
+  readonly commands: Map<string, SlashCommand>
+  readonly line: string
+  readonly context: SlashContext
+}
+
+// A resolved command records its own turn; a line naming none is answered, and recorded, here.
+async function dispatchCommandLine(input: CommandLine): Promise<SlashResult | null> {
+  const { state, commands, line, context } = input
+  let isResolved = false
+  const result = await dispatchLine({
+    line,
+    resolve: (raw, args) => resolveParsed(raw, args, commands),
+    suggest: (raw) =>
+      suggestCommandName({
+        commands,
+        target: normalizeName(raw),
+        surface: context.surface,
+        role: context.role,
+      }),
+    runResolved: (resolved) => {
+      isResolved = true
+
+      return dispatchResolved({ ...state, resolved, context })
+    },
+  })
+
+  if (result !== null && !isResolved) {
+    await appendExchange({ ...state, context, invocation: line.trim(), result })
+  }
+
+  return result
 }
 
 function registerCommand(
@@ -124,6 +153,7 @@ interface DispatchState {
   readonly ratePerMinute: number
   readonly logger: Logger
   readonly transcript: CommandTranscript
+  readonly locales: CommandLocales
   readonly runs: CommandRuns
 }
 
@@ -141,19 +171,61 @@ type AdmissionResult =
   | { readonly kind: 'admitted'; readonly lease: AdmissionLease }
   | { readonly kind: 'rejected'; readonly result: SlashResult }
 
-/** A channel stamps one id per inbound message, so a command and every engine turn it starts group
- *  together; the REPL has only the session, which is the honest granularity there. */
-function dispatchResolved(options: AdmissionOptions): Promise<SlashResult> {
-  const id = options.context.correlationId ?? options.context.sessionId
-
-  return withCorrelation(id, () => dispatchAdmitted(options))
+interface AdmittedResult {
+  readonly result: SlashResult
+  /** False when admission refused it: nothing ran under the context's run id. */
+  readonly isRun: boolean
 }
 
-async function dispatchAdmitted(options: AdmissionOptions): Promise<SlashResult> {
+/** A channel stamps one id per inbound message, so a command and every engine turn it starts group
+ *  together; the REPL has only the session, which is the honest granularity there. Whatever the
+ *  command answered, a refusal included, is recorded in its session's transcript. */
+function dispatchResolved(options: AdmissionOptions): Promise<SlashResult> {
+  const context = withRunId(options.context, options.resolved.policy)
+  const id = context.correlationId ?? context.sessionId
+  const { command, args, policy } = options.resolved
+
+  return withCorrelation(id, async () => {
+    const exchange = { ...options, invocation: [`/${command.name}`, ...args].join(' '), policy }
+    let admitted: AdmittedResult
+
+    try {
+      admitted = await dispatchAdmitted({ ...options, context })
+    } catch (err: unknown) {
+      // The surface shows the failure live; the history keeps that the command failed.
+      await appendExchange({ ...exchange, context, result: unexpectedResult() })
+      throw err
+    }
+
+    const { result, isRun } = admitted
+
+    await appendExchange({ ...exchange, context: isRun ? context : withoutRunId(context), result })
+
+    return result
+  })
+}
+
+// A long-running command is a run; named here when the surface did not, so its turn can name it.
+function withRunId(context: SlashContext, policy: SlashInvocationPolicy): SlashContext {
+  if (policy.execution === undefined || context.runId !== undefined) {
+    return context
+  }
+
+  return { ...context, runId: brandRunId(randomUUID()) }
+}
+
+// A refused command never ran, so the run id it was handed names nothing.
+function withoutRunId(context: SlashContext): SlashContext {
+  const { runId: _dropped, ...rest } = context
+
+  return rest
+}
+
+async function dispatchAdmitted(options: AdmissionOptions): Promise<AdmittedResult> {
   const admission = admit(options)
 
   if (admission.kind === 'rejected') {
-    return admission.result
+    return { result: admission.result, isRun: false }
   }
 
   const lease = admission.lease
@@ -163,20 +235,10 @@ async function dispatchAdmitted(options: AdmissionOptions): Promise<SlashResult>
     lease.commit()
     committed = true
 
-    await appendExchange({
-      transcript: options.transcript,
-      logger: options.logger,
-      sessionId: options.context.sessionId,
-      name: options.resolved.command.name,
-      args: options.resolved.args,
-      policy: options.resolved.policy,
-      result,
-    })
-
-    return result
+    return { result, isRun: true }
   } catch (err: unknown) {
     if (isCancellation(err)) {
-      return { kind: 'handled' }
+      return { result: { kind: 'handled' }, isRun: true }
     }
     throw err
   } finally {

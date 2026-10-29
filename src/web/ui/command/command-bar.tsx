@@ -32,6 +32,8 @@ import './command.css'
 
 const LIST_ID = 'command-suggestions'
 const COMMAND_PREFIX = '/'
+// The key code browsers give a key an input method takes.
+const IME_KEY_CODE = 229
 // A floating bar's islands: glass, the field denser since it carries the text.
 const ISLAND = 'command-island glass'
 const FIELD_ISLAND = `${ISLAND} is-strong`
@@ -223,7 +225,13 @@ interface KeyContext {
   readonly options: readonly SuggestOption[]
 }
 
+// While an input method composes (Vietnamese Telex, for one), its keys finish the word, not the line.
+// Safari reports the key that ends the composition only by its code.
 function onKey(event: TargetedKeyboardEvent<HTMLInputElement>, context: KeyContext): void {
+  if (event.isComposing || event.keyCode === IME_KEY_CODE) {
+    return
+  }
+
   const handled = handleKey(event.key, context)
 
   if (handled) {

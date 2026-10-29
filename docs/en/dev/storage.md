@@ -195,7 +195,9 @@ same connection as its delete.
   `now - (loop.maxDurationMs + RUN_LEASE_SLACK_MS)`, with `RUN_LEASE_SLACK_MS` = 300,000.
 - **Write path.** `appendMessages` is the engine's session sink: append-only, flushed per completed
   turn by `engine/hooks/persistence.ts`. `appendCommandExchange` writes the two rows a slash command
-  contributes (no run owns them). `finalizeRun(id, runId, outcome)` closes the session out and throws
+  contributes (they name the command's run when it ran as one; no attempt is linked). The dispatcher
+  records every command answer through it: an echoed `text` answer as model context, every other one
+  with `display_only = 1`, kept for the history page and left out of `loadHistory` and `lastModelMessageAt`; a scheduled job keeps only its model-context (echo) rows (its answer is delivered, and its session is never swept), `/new` and choosing an agent keep nothing (they move the chat to another session), and neither does a command a page button sent quiet (its result shows where the button sits), a command that fails keeps its line with a generic failure answer, a history page never ends between a line and its answer, and rolling the migration back deletes them, since the previous release would read them as model context. `finalizeRun(id, runId, outcome)` closes the session out and throws
   `ConflictError` unless that run holds it.
 - **Stale.** `markStaleRuns(leaseExpiresBefore)` runs once at daemon boot (`app/startup-state.ts`),
   before any subsystem can open a run, and marks every `active` session nobody holds a live lease on

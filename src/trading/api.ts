@@ -145,13 +145,8 @@ export type {
   QuoteBoardItem,
   ScreenResult,
 } from '@/trading/kernel/market/market-capability'
-export type {
-  Candle,
-  MarketEvent,
-  MarketEventKind,
-  NewsItem,
-  Quote,
-} from '@/trading/kernel/market/market-data'
+export type { Candle, NewsItem, Quote } from '@/trading/kernel/market/market-data'
+export type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 export type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 export type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 export type {
@@ -212,6 +207,7 @@ export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/re
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 export { renderCallScoredNotice } from '@/trading/features/suggestion/track-record/scored-notice'
 export {
+  isRecordedPlan,
   isUndecidedHold,
   SUGGESTION_LIST_STATUSES,
   suggestionId,
