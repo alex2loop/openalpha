@@ -412,7 +412,8 @@ export interface SuggestionCardWire {
   readonly levels: readonly string[]
   readonly notes: readonly string[]
   readonly calibration?: string
-  /** The factor block without its title: the composite, the checklist and the fold below it. */
+  /** The factor block without its title: the composite, the checklist and the fold below it. Each
+   *  line keeps its leading indent, two spaces a level. */
   readonly factors: readonly string[]
   /** What the trader waits on before the entry; empty once it would enter. */
   readonly watch: readonly string[]

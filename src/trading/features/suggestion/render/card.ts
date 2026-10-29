@@ -35,7 +35,8 @@ export interface SuggestionCard {
   readonly levels: readonly string[]
   readonly notes: readonly string[]
   readonly calibration?: string
-  /** The factor block without its title: the composite, the checklist and the fold below it. */
+  /** The factor block without its title: the composite, the checklist and the fold below it. Each
+   *  line keeps its leading indent, two spaces a level. */
   readonly factors: readonly string[]
   /** What the trader waits on before the entry, each a condition it can be checked against. */
   readonly watch: readonly string[]
@@ -70,7 +71,8 @@ export function renderSuggestionCard(view: RenderView, call: StoredSuggestion): 
     levels: trimmed(levelLines(view, suggestion, quote)),
     notes: trimmed(noteLines(view, suggestion, quote)),
     ...(calibration === undefined ? {} : { calibration: calibration.trimStart() }),
-    factors: trimmed(renderFactorBlock(view, suggestion, quote).slice(1)),
+    // Indented as printed: the checklist's groups and readings are told apart by depth alone.
+    factors: renderFactorBlock(view, suggestion, quote).slice(1),
     watch: trimmed(watchConditions(suggestion)),
     details: renderDetailBlocks(view, suggestion)
       .map(trimmed)
