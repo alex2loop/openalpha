@@ -477,7 +477,7 @@ is saved under `profile`.
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `approval_timeout_ms` | int | `900000` | 15 minutes. How long a scheduled job waits for its channel approver. The answer is never saved. At most 2147483647 (about 24 days). |
-| `late_grace_ms` | int | `900000` | 15 minutes. How late a cron job's time may still start. Past it that time is skipped and the job moves to its next one, with no failure counted. Interval and one-time jobs are never skipped. The intraday report uses the same bound. At least 35000 (35 seconds: one scheduler look plus its quick network check): anything shorter is refused at start, since on-time cron jobs could be skipped. Workflows with a cron trigger follow the same bound. At most 2147483647 (about 24 days). |
+| `late_grace_ms` | int | `900000` | 15 minutes. How late a cron job's time may still start, a retry after a failure included. Past it that time is skipped and the job moves to its next one, with no failure counted. Interval and one-time jobs are never skipped. The intraday report uses the same bound. At least 35000 (35 seconds: one scheduler look plus its quick network check): anything shorter is refused at start, since on-time cron jobs could be skipped. Workflows with a cron trigger follow the same bound. At most 2147483647 (about 24 days). |
 | `failure_target` | string | - | `<channel>:<chatId>` that gets the notice when a job is disabled after failures. |
 
 The scheduler checks for due jobs every 30 seconds, starts at most 5 per check, and runs at most 50

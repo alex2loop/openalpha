@@ -263,7 +263,11 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   `api_key` that is not a `*_env` variable name) replaced by `redacted`, the placeholder the response
   carries. `POST /v1/config` and `/v1/config/validate` put the file's value back wherever the body
   still holds `redacted` (an array item is matched by its `name`, else its place); one the file has
-  no value for is `invalid_body` with `fields`.
+  no value for is `invalid_body` with `fields`. `version` is an opaque token for the file as read.
+- **`POST /v1/config`** sent with `If-Match: <version>` is `conflict`, with a sentence in the daemon's
+  language, when the file has changed since that read (another tab, the CLI, a hand edit), so a stale
+  tree never puts an older file back; without the header the write is not checked. The result's
+  `version` is the file as written, for the next save.
 - **`POST /v1/config`** refuses, as `invalid_body` with one `fields` entry per path, any change
   against the file to what only the CLI or `config.toml` may change: `plugins`, `paths`, `storage`,
   `api`, `update`, `log.file`, `trading.orders.allow_unattended`, an MCP server's `transport`,

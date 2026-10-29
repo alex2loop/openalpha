@@ -8,6 +8,7 @@ import { readStorage, removeStorage, writeStorage } from '@/web/state/storage'
 
 const PENDING_KEY = 'office.pendingRestart'
 const ISSUE_SEPARATOR = '; '
+const IF_MATCH_HEADER = 'If-Match'
 
 export const SETTINGS_SECTIONS = [
   'profile',
@@ -59,6 +60,8 @@ type ConfigIssues = NonNullable<ConfigValidation['issues']>
 export interface ConfigRead {
   readonly tree: ConfigTree
   readonly redacted: string
+  /** The file as read; a save that carries it is refused once another edit has landed. */
+  readonly version: string
 }
 
 const pending = signal<readonly RestartRow[]>(readPending())
@@ -72,19 +75,31 @@ export async function saveConfig(
   change: (tree: ConfigTree) => ConfigTree,
   row: RestartRow
 ): Promise<void> {
-  await saveConfigTree(change(await readConfigTree()), row)
+  const read = await readConfig()
+
+  await saveConfigTree({ tree: change(read.tree), version: read.version }, row)
 }
 
-/** Validates the whole tree, then writes it; the old file stays beside the new one. */
-export async function saveConfigTree(tree: ConfigTree, row: RestartRow): Promise<void> {
-  const checked = await sendJson('POST', ROUTES.configValidate, { body: tree })
+/** Validates the whole tree, then writes it over the file `version` names; the old file stays
+ *  beside the new one. Answers the version written, for the next save. */
+export async function saveConfigTree(
+  save: { readonly tree: ConfigTree; readonly version: string },
+  row: RestartRow
+): Promise<string> {
+  const checked = await sendJson('POST', ROUTES.configValidate, { body: save.tree })
 
   if (!checked.ok) {
     throw new ApiFailure(400, 'invalid_body', { message: describeIssues(checked.issues ?? []) })
   }
 
-  await sendJson('POST', ROUTES.configWrite, { body: tree })
+  const written = await sendJson('POST', ROUTES.configWrite, {
+    body: save.tree,
+    headers: { [IF_MATCH_HEADER]: save.version },
+  })
+
   noteRestartRow(row)
+
+  return written.version
 }
 
 /** Reads the tree as the daemon holds it; throws `ApiFailure`. */
@@ -94,7 +109,7 @@ export async function readConfigTree(abort?: AbortSignal): Promise<ConfigTree> {
 
 /** As `readConfigTree`, with the placeholder the daemon shows its secrets as. */
 export async function readConfig(abort?: AbortSignal): Promise<ConfigRead> {
-  const { config, redacted } = await getJson(
+  const { config, redacted, version } = await getJson(
     ROUTES.config,
     abort === undefined ? {} : { signal: abort }
   )
@@ -103,7 +118,7 @@ export async function readConfig(abort?: AbortSignal): Promise<ConfigRead> {
     throw new ApiFailure(0, 'bad_response')
   }
 
-  return { tree: config, redacted }
+  return { tree: config, redacted, version }
 }
 
 /** The daemon restarted: whatever waited for it has been applied. */

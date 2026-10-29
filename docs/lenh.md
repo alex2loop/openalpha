@@ -75,7 +75,8 @@ Nếu bạn viết script: mã thoát cho biết **lý do** một phiên chạy 
 | `130` | `aborted` |
 
 Các lỗi khác: `2` cho lỗi cách dùng, cấu hình và kiểm tra; `5` khi LLM lỗi hẳn; `11` cho lưu trữ; `13`
-cho kênh; `14` cho công cụ; `15` khi một lần ghi bị xung đột với lần sửa khác. Các lý do dừng khác dùng
+cho kênh; `14` cho công cụ; `18` khi một lần ghi bị xung đột với lần sửa khác; `143` khi lệnh bị
+SIGTERM dừng. Các lý do dừng khác dùng
 mã liệt kê ở [An toàn](an-toan.md), nên `11` cũng là `hook_failed` và `12` cũng là `session_busy`.
 `doctor` thoát `1` khi có phép kiểm nào hỏng.
 

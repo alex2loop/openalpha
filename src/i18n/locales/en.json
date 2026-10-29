@@ -1898,6 +1898,7 @@
     "approvalGone": "That request was already answered or has timed out, so there's nothing left to approve.",
     "approvalOtherChannel": "This was asked on {channel}; answer it there.",
     "chatSessionRunning": "This chat is still answering, so I can't delete it yet.",
+    "configChanged": "The config changed since you opened it (another tab or the CLI). Reload it and make your change again.",
     "chatSessionNotDeletable": "A {channel} chat can't be deleted here, since it's that app's history too.",
     "memorySessionNotWeb": "Notes are saved from web chats only; this chat belongs to {channel}, so tell me there instead.",
     "dbResetSharedSchema": "I won't reset the \"{schema}\" schema: other apps may keep tables there, and a reset drops everything in it. Give storage.schema a schema of its own (for example \"alpha\"), then run the reset again.",

@@ -74,7 +74,8 @@ If you script against the CLI: the code tells you why a run stopped, not just th
 | `130` | `aborted` |
 
 Other failures: `2` for usage, config and validation; `5` for a final LLM failure; `11` for storage;
-`13` for channels; `14` for tools; `15` for a write that conflicted with another edit. Other halt
+`13` for channels; `14` for tools; `18` for a write that conflicted with another edit; `143` for a
+command stopped by SIGTERM. Other halt
 reasons use the code listed in [Safety](safety.md), so `11` is also `hook_failed` and `12` is also
 `session_busy`. `doctor` exits `1` when any check fails.
 

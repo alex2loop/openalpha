@@ -131,7 +131,7 @@ export const HALT_SPEC = {
   no_agents: { exitCode: 10, messageKey: 'halt.noAgents', emoji: '🤷' },
   hook_failed: { exitCode: 11, messageKey: 'halt.hookFailed', emoji: '🧩' },
   shutdown: { exitCode: 0, messageKey: 'halt.shutdown', emoji: '🌙' },
-  // 13-15 belong to the CLI's channel, tool and conflict exits.
+  // 13 and 14 belong to the CLI's channel and tool exits.
   agent_paused: { exitCode: 16, messageKey: 'halt.agentPaused', emoji: '⏸️' },
 } as const satisfies Record<HaltCode, HaltSpecEntry>
 
