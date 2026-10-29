@@ -145,13 +145,8 @@ export type {
   QuoteBoardItem,
   ScreenResult,
 } from '@/trading/kernel/market/market-capability'
-export type {
-  Candle,
-  MarketEvent,
-  MarketEventKind,
-  NewsItem,
-  Quote,
-} from '@/trading/kernel/market/market-data'
+export type { Candle, NewsItem, Quote } from '@/trading/kernel/market/market-data'
+export type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 export type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 export type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 export type {

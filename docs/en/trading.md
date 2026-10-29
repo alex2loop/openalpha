@@ -738,6 +738,20 @@ A held name is never cut, because its run is what re-prices the plan:
 - the standing take-profit, kept until its first slice is sold;
 - any reduce reason, which the exit alerts arm on the next tick.
 
+On the ex-date of a cash dividend the price opens lower by the dividend, while the stored history only
+catches up at the next refresh. From that morning on, before the open included, the run scales the
+stored prices, a quote still showing the last close, and the standing stop and take-profit down by the
+dividend's share of the last close, onto the tick grid. The gap is then not read as a fall, the stop
+keeps its distance, and the exit alerts watch the morning brief's plan on the new basis all session. The
+evening before still prices against the close it watches. A split or rights issue has no published
+amount to scale by, so that day's plan starts fresh instead of carrying the old levels. Either way the
+plan says so.
+
+The brief's events list shows a cash dividend's amount per share and its payment day where the
+provider publishes them, and a held name with one in the window gets a line under what to do first:
+the dividend lands weeks after the ex-date, and only a recorded `dividend` row puts it back in the
+book.
+
 A name already suggested today is served from its row at no cost.
 
 `next-actions` runs after everything because it reads the other sections' real results. It suggests `/rebalance` only when something drifted and `/alert` only when one fired.

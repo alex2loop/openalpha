@@ -13,7 +13,8 @@ import type {
 } from '@/trading/features/suggestion/types'
 import type { FactorScore } from '@/trading/kernel/factor'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent, RegimeScale } from '@/trading/kernel/market/market-data'
+import type { RegimeScale } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { StageInput } from '@/trading/markets/stage'
 import type { MarketResolution } from '@/trading/markets/types'
@@ -235,13 +236,9 @@ async function prepare(
     asOf,
     upcomingEvents: calendar.events,
   })
+  const levelsAt = { asOf, direction: levelDirectionFor(direction), horizon, context }
   const priced = await timed(options, 'levels', () =>
-    buildLevelsFor(options, resolution, {
-      asOf,
-      direction: levelDirectionFor(direction),
-      horizon,
-      context,
-    })
+    buildLevelsFor(options, resolution, { ...levelsAt, events: calendar.instrumentEvents })
   )
   return {
     market,
@@ -352,6 +349,8 @@ function readRunInputs(
 /** One read of this name's events answers both halves a draft needs. */
 interface DraftCalendar {
   readonly events: readonly MarketEvent[]
+  /** Past rows too: an ex-date the stored series has not caught up to moves today's levels. */
+  readonly instrumentEvents: readonly MarketEvent[]
   readonly standingMargin?: MarketEvent
   readonly calendarFailed?: true
 }
@@ -366,6 +365,7 @@ function toDraftCalendar(
 
   return {
     events: upcomingEvents(own, asOf),
+    instrumentEvents: own,
     ...(standing === undefined ? {} : { standingMargin: standing }),
     ...(isSourceFailed(events) ? { calendarFailed: true } : {}),
   }

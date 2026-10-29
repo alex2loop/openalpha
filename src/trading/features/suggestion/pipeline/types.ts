@@ -35,7 +35,8 @@ import type {
   Ticker,
   TradingDay,
 } from '@/trading/kernel/instrument'
-import type { MarketEvent, RegimeScale } from '@/trading/kernel/market/market-data'
+import type { RegimeScale } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { BookChange, ClosedRoundTrip } from '@/trading/kernel/operator/book'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { InvestmentHorizon, UserProfile } from '@/trading/kernel/operator/profile'

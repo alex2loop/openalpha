@@ -128,6 +128,7 @@ export const BRIEF_ACTION_CODES = Object.freeze([
   'review-alerts',
   'avoid-chasing',
   'record-book',
+  'record-dividend',
 ] as const)
 export type BriefActionCode = (typeof BRIEF_ACTION_CODES)[number]
 
@@ -156,6 +157,8 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'basisPct',
   'buyPrice',
   'cashAfterPlanPctNav',
+  /** A cash dividend per share, in the market's price unit. */
+  'cashPerShare',
   'ceilings',
   'changePct',
   'compositeScore',
@@ -248,6 +251,7 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'at',
   'closedOn',
   'observedOn',
+  'paysOn',
   'board',
   'code',
   'condition',

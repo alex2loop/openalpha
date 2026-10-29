@@ -11,10 +11,12 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { LevelResult, MarketLevelRequest } from '@/trading/kernel/factor'
 import type { CurrencyCode, TradingDay } from '@/trading/kernel/instrument'
 import type { Candle, Quote } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketManifest, MarketResolution, TradingCalendar } from '@/trading/markets/types'
 import { ratchetHeldStop } from '@/trading/features/suggestion/exit-plan/ratchet'
+import { adjustForExRight } from '@/trading/features/suggestion/pipeline/ex-right'
 import { outcomeWindowSessions } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { isBookFocus } from '@/trading/kernel/operator/focus'
 import { isLiveObservation, orderSessionOf } from '@/trading/markets/calendar'
@@ -61,10 +63,12 @@ export async function buildLevelsFor(
     readonly horizon: InvestmentHorizon
     /** The book this draft is judged against, for the stop a held name is already planned on. */
     readonly context: SuggestionPortfolioContext
+    /** This name's dated corporate actions, for an ex-date the stored series has not caught up to. */
+    readonly events: readonly MarketEvent[]
   }
 ): Promise<PricedLevels> {
   const market = resolution.market
-  const [bars, quote] = await readBarsAndQuote(options, resolution, at.asOf)
+  const { bars, quote, gap, caveats: exRight } = await readLevelInputs(options, resolution, at)
   const previousClose = priorClose(bars, quote, market.manifest)
   const observed = toObservedQuote(quote, market.manifest.currency, previousClose)
 
@@ -76,8 +80,9 @@ export async function buildLevelsFor(
   const { result: ratcheted, ...heldExits } = await heldExitsOf(options, resolution, {
     at,
     result: marketLevels,
+    ...(gap === undefined ? {} : { gap }),
   })
-  const sourceCaveats = [...bars.caveats, ...(quote?.caveats ?? [])]
+  const sourceCaveats = [...bars.caveats, ...(quote?.caveats ?? []), ...exRight]
   const newest = bars.value[bars.value.length - 1]
   const chase = await chasingGapCaveats(options, resolution, { at, quote, previousClose })
   const caveated =
@@ -342,6 +347,21 @@ function mean(values: readonly number[]): number {
 }
 
 /** The two reads share nothing, so neither waits behind the other. */
+/** The settled bars and the quote, moved onto the new basis across an ex-date the store has not
+ *  caught up to. */
+async function readLevelInputs(
+  options: SuggestionRunOptions,
+  resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
+  at: { readonly asOf: TradingDay; readonly events: readonly MarketEvent[] }
+): Promise<ReturnType<typeof adjustForExRight>> {
+  const [bars, quote] = await readBarsAndQuote(options, resolution, at.asOf)
+
+  return adjustForExRight(
+    { bars, quote },
+    { events: at.events, asOf: at.asOf, calendar: resolution.market.manifest.calendar }
+  )
+}
+
 function readBarsAndQuote(
   options: SuggestionRunOptions,
   resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,

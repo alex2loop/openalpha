@@ -44,7 +44,8 @@ import type {
   IndexValuationReading,
 } from '@/trading/kernel/market/index-reading'
 import type { QuoteBoard } from '@/trading/kernel/market/market-capability'
-import type { Candle, MarketEvent, NewsItem } from '@/trading/kernel/market/market-data'
+import type { Candle, NewsItem } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 import type { AlertCondition, AlertId } from '@/trading/kernel/operator/alert'
 import type { LedgerEntryId } from '@/trading/kernel/operator/book'

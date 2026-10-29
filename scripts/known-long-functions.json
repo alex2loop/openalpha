@@ -132,7 +132,7 @@
     "src/trading/features/suggestion/pipeline/draft-sizing.ts#sizeFor": 46,
     "src/trading/features/suggestion/pipeline/draft.ts#buildDraft": 46,
     "src/trading/features/suggestion/pipeline/suggestion.ts#afterDebate": 41,
-    "src/trading/features/suggestion/pipeline/suggestion.ts#prepare": 47,
+    "src/trading/features/suggestion/pipeline/suggestion.ts#prepare": 43,
     "src/trading/features/suggestion/render/card.ts#renderSuggestionCard": 42,
     "src/trading/features/suggestion/render/hold-levels.ts#renderLevelLines": 47,
     "src/trading/features/suggestion/store/suggestion-row.ts#toOptionalBase": 41,

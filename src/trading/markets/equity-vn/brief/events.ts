@@ -1,6 +1,6 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { BriefContext } from '@/trading/markets/equity-vn/brief/context'
@@ -69,10 +69,12 @@ export async function buildEvents(context: BriefContext): Promise<BriefSectionRe
 
   return ready(
     'events',
-    rows.slice(0, context.policy.maximumItemsPerSection).map((row) => ({
-      at: row.event.at,
-      ticker: row.instrument.ticker,
-      eventKind: row.event.kind,
+    rows.slice(0, context.policy.maximumItemsPerSection).map(({ event, instrument }) => ({
+      at: event.at,
+      ticker: instrument.ticker,
+      eventKind: event.kind,
+      ...(event.cashPerShare === undefined ? {} : { cashPerShare: event.cashPerShare }),
+      ...(event.paysOn === undefined ? {} : { paysOn: event.paysOn }),
     })),
     { caveats, provenance }
   )

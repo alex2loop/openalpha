@@ -27,7 +27,7 @@ Một nhà cung cấp là một mã phục vụ một hoặc nhiều **loại** 
 | `sessionQuotes` | `SessionQuote[]` | cả bảng giá trong một lần đọc |
 | `fundamentals` | `FundamentalSnapshot[]` | |
 | `accounts` | `FiledAccounts` | mọi báo cáo năm và quý mà nhà cung cấp phục vụ cho một mã |
-| `events` | `MarketEvent[]` | |
+| `events` | `MarketEvent[]` | cổ tức tiền mặt mang `cashPerShare` (theo đơn vị giá của thị trường) và `paysOn` khi nhà cung cấp có công bố |
 | `news` | `NewsItem[]` | |
 | `macro` | `MacroSnapshot` | trộn từ nhiều nhà cung cấp |
 | `policyRates` | `PolicyRateSnapshot` | lãi suất điều hành và liên ngân hàng bình quân của ngân hàng trung ương |

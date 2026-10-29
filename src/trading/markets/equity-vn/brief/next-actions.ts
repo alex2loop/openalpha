@@ -49,10 +49,35 @@ export function buildNextActions(
 
   // Ready with no rows, never omitted: this is a core section, so omitting it would suppress the
   // whole brief on a morning that simply needs nothing. The renderer already skips an empty one.
-  return ready(
-    'next-actions',
-    codes.map((code) => ({ code }))
+  return ready('next-actions', [
+    ...codes.map((code) => ({ code })),
+    ...heldDividendTickers(context, sections).map((ticker) => ({
+      ticker,
+      code: 'record-dividend' as const,
+    })),
+  ])
+}
+
+/** The held names a cash dividend goes ex on inside the calendar window: the price drops by it on
+ *  the ex-date while the cash lands weeks later, and only a recorded dividend puts it in the book. */
+function heldDividendTickers(
+  context: BriefContext,
+  sections: readonly BriefSectionResult[]
+): readonly string[] {
+  const events = sections.find((section) => section.kind === 'events')
+  const held = new Set(context.heldNames.map((instrument) => String(instrument.ticker)))
+
+  if (events?.status !== 'ready') {
+    return []
+  }
+
+  const tickers = events.rows.flatMap((row) =>
+    row.eventKind === 'dividend-ex-date' && typeof row.ticker === 'string' && held.has(row.ticker)
+      ? [row.ticker]
+      : []
   )
+
+  return [...new Set(tickers)]
 }
 
 /** Near resistance on thin turnover, a buy pays up for the level rather than to reach it. "Near" is

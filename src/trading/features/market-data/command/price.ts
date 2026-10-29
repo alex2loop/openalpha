@@ -6,7 +6,7 @@ import type {
 } from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import { renderQuoteText } from '@/trading/features/market-data/render/quote'
 import { parseTickerRequest, usage } from '@/trading/kernel/surface/surface'
 import { shiftCalendarDay } from '@/trading/markets/calendar'

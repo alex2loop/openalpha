@@ -6,10 +6,13 @@ import type {
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { LevelResult, TradeLevels } from '@/trading/kernel/factor'
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type { MarketResolution } from '@/trading/markets/types'
 import { bankedShareOf, isFirstExitTaken } from '@/trading/features/suggestion/exit-plan/first-exit'
 import { heldPositionOf } from '@/trading/features/suggestion/pipeline/concentration'
+import { type ExRightGap, planBasisFactorOf } from '@/trading/features/suggestion/pipeline/ex-right'
 import { armsExit, planStopOf, planTakeProfitOf } from '@/trading/features/suggestion/types'
+import { resolveTrailBounds, roundToTick } from '@/trading/markets/levels'
 
 interface RatchetedLevels {
   readonly levels: TradeLevels
@@ -18,13 +21,14 @@ interface RatchetedLevels {
   readonly raisedStopFrom?: number
 }
 
-function standingExitOf(plan: StoredSuggestion | null): Pick<HeldStop, 'standingExit'> {
+function standingExitOf(standing: StandingPlan): Pick<HeldStop, 'standingExit'> {
+  const { plan, toBasis } = standing
   const stop = plan === null ? undefined : planStopOf(plan)
   const takeProfit = plan === null ? undefined : planTakeProfitOf(plan)
 
   return stop === undefined || takeProfit === undefined
     ? {}
-    : { standingExit: { stop, takeProfit } }
+    : { standingExit: { stop: toBasis(stop), takeProfit: toBasis(takeProfit) } }
 }
 
 /** The higher of the fresh stop and the one the standing plan named, only upward and only below the
@@ -59,13 +63,20 @@ interface KeptTakeProfit {
 export function keepTakeProfit(
   levels: TradeLevels,
   prior: StoredSuggestion | null,
-  held: { readonly position: HeldPosition | undefined; readonly trails: boolean }
+  held: {
+    readonly position: HeldPosition | undefined
+    readonly trails: boolean
+    /** Moves the plan's price onto the series' current basis; absent where it already stands there. */
+    readonly toBasis?: (price: number) => number
+  }
 ): KeptTakeProfit {
   if (prior === null || held.position === undefined) {
     return { caveats: [] }
   }
 
-  const takeProfit = planTakeProfitOf(prior)
+  const planned = planTakeProfitOf(prior)
+  const takeProfit =
+    planned === undefined || held.toBasis === undefined ? planned : held.toBasis(planned)
   const unsold =
     armsExit(prior) &&
     bankedShareOf(prior, held.trails) < 1 &&
@@ -83,10 +94,19 @@ export function keepTakeProfit(
 
 interface HeldStopInput {
   readonly at: {
+    readonly asOf: TradingDay
     readonly direction: 'buy' | 'reduce'
     readonly context: SuggestionPortfolioContext
   }
   readonly result: LevelResult
+  /** An ex-date the stored series has not caught up to: the standing plan moves with the price. */
+  readonly gap?: ExRightGap
+}
+
+/** The standing plan as this run carries it, and how its prices reach the series' basis. */
+interface StandingPlan {
+  readonly plan: StoredSuggestion | null
+  readonly toBasis: (price: number) => number
 }
 
 interface HeldStop {
@@ -113,21 +133,26 @@ export async function ratchetHeldStop(
     return { result }
   }
 
-  const prior = await options.deps.store.findLatestExitPlan({
-    market: resolution.instrument.market,
-    ticker: resolution.instrument.ticker,
-    ...(held.openedOn === undefined ? {} : { heldSince: held.openedOn }),
-    signal: options.request.signal,
+  const standing = await standingPlanOf(options, resolution, {
+    held,
+    asOf: at.asOf,
+    gap: input.gap,
   })
+  const { plan: prior, toBasis } = standing
 
   if (result.kind !== 'available' || at.direction === 'reduce') {
-    return { result, ...standingExitOf(prior) }
+    return { result, ...standingExitOf(standing) }
   }
 
-  const ratcheted = ratchetStop(result.levels, prior === null ? undefined : planStopOf(prior))
+  const priorStop = prior === null ? undefined : planStopOf(prior)
+  const ratcheted = ratchetStop(
+    result.levels,
+    priorStop === undefined ? undefined : toBasis(priorStop)
+  )
   const kept = keepTakeProfit(ratcheted.levels, prior, {
     position: held,
     trails: resolution.market.trail !== undefined,
+    toBasis,
   })
 
   return {
@@ -141,4 +166,48 @@ export async function ratchetHeldStop(
       ? {}
       : { standingTakeProfit: kept.standingTakeProfit }),
   }
+}
+
+/** The plan the holding stands on, moved onto the series' current basis where an ex-date passed
+ *  since it was priced, onto the instrument's own tick grid. A plan the action leaves unpriceable is
+ *  not carried. */
+async function standingPlanOf(
+  options: SuggestionRunOptions,
+  resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
+  input: {
+    readonly held: HeldPosition
+    readonly asOf: TradingDay
+    readonly gap: ExRightGap | undefined
+  }
+): Promise<StandingPlan> {
+  const { instrument, market } = resolution
+  const plan = await options.deps.store.findLatestExitPlan({
+    market: instrument.market,
+    ticker: instrument.ticker,
+    ...(input.held.openedOn === undefined ? {} : { heldSince: input.held.openedOn }),
+    signal: options.request.signal,
+  })
+  const factor = plan === null ? 1 : planBasisFactorOf(plan, input.gap)
+
+  if (factor === null) {
+    return { plan: null, toBasis: samePrice }
+  }
+
+  if (factor === 1) {
+    return { plan, toBasis: samePrice }
+  }
+
+  const { tickSize } = await resolveTrailBounds(market, {
+    instrument,
+    asOf: input.asOf,
+    now: options.request.now,
+    signal: options.request.signal,
+  })
+
+  return { plan, toBasis: (price) => roundToTick(price * factor, tickSize, 'nearest') }
+}
+
+// A plan already priced on the series' current basis keeps its prices.
+function samePrice(price: number): number {
+  return price
 }

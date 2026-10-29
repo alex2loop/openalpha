@@ -744,6 +744,19 @@ Một mã đang nắm không bao giờ bị cắt, vì chính phiên chạy củ
 - mức chốt lời đang đứng, giữ cho tới khi đợt đầu tiên được bán;
 - mọi lý do reduce, mà cảnh báo thoát dựng ở nhịp kế tiếp.
 
+Vào ngày không hưởng quyền cổ tức tiền mặt, giá mở cửa thấp hơn đúng phần cổ tức, trong khi giá lịch sử
+đã lưu chỉ được điều chỉnh ở lần cập nhật dữ liệu tới. Từ sáng hôm đó, kể cả trước giờ mở cửa, phiên chạy
+trừ phần cổ tức (theo tỷ lệ so với giá đóng cửa gần nhất) khỏi giá lịch sử, khỏi giá hiện tại nếu nó vẫn là
+giá đóng cửa hôm trước, và khỏi cắt lỗ, chốt lời đang đứng, làm tròn theo bước giá. Nhờ vậy khoảng hụt không
+bị đọc thành một cú giảm, cắt lỗ giữ đúng khoảng cách, và cảnh báo thoát lệnh cả phiên đọc kế hoạch của bản
+tin sáng theo mặt bằng giá mới. Tối hôm trước vẫn tính theo giá đóng cửa đang theo dõi. Chia tách hay phát
+hành quyền mua không có số tiền để quy đổi, nên kế hoạch ngày đó được tính lại từ đầu thay vì giữ mức cũ.
+Cả hai trường hợp đều có ghi chú trong kế hoạch.
+
+Lịch sự kiện của bản tin ghi số tiền cổ tức mỗi cổ phiếu và ngày trả khi nhà cung cấp có công bố. Mã đang
+giữ có cổ tức tiền mặt trong khoảng đó còn có thêm một dòng ở phần việc nên làm trước: tiền cổ tức về sau
+ngày không hưởng quyền vài tuần, và chỉ khi bạn ghi dòng `dividend` thì sổ mới có khoản đó.
+
 Một mã đã được đề xuất trong ngày thì được phục vụ từ dòng của nó mà không tốn gì.
 
 `next-actions` chạy sau cùng vì nó đọc kết quả thật của các mục khác. Nó chỉ gợi ý `/rebalance` khi có gì đó đã lệch và chỉ gợi ý `/alert` khi có cảnh báo đã nổ.

@@ -68,9 +68,9 @@ import { MACRO_SERIES_IDS } from '@/trading/kernel/market/macro-series'
 import {
   ICB_SUPERSECTORS,
   INDEX_REVIEW_KINDS,
-  MARKET_EVENT_KINDS,
   MARKET_REGIMES,
 } from '@/trading/kernel/market/market-data'
+import { MARKET_EVENT_KINDS } from '@/trading/kernel/market/market-event'
 import {
   REFRESH_ANCHOR_KINDS,
   REFRESH_DATA_KINDS,

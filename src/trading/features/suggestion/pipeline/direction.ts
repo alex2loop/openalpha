@@ -14,7 +14,7 @@ import type {
   PortfolioSegment,
   TradingDay,
 } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { InvestmentHorizon, UserProfile } from '@/trading/kernel/operator/profile'
 import type { Market } from '@/trading/markets/types'
 import { isPositionStale } from '@/trading/features/suggestion/exit-plan/staleness'

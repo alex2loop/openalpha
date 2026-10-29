@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-data'
+import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { RegisteredSource } from '@/trading/kernel/source/source-result'
 import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/define'
 import { ValidationError } from '@/core/errors'
@@ -29,6 +29,8 @@ const EVENT_ROW = z.object({
   effectiveDate: z.string().min(1),
   typeDesc: z.string().min(1),
   note: z.string().optional(),
+  dividend: z.number().positive().optional(),
+  actualDate: z.string().min(1).optional(),
 })
 
 /** Mapped to the closed `MarketEventKind` union. An unmapped code is dropped rather than widened to
@@ -109,9 +111,20 @@ function toMarketEvent(raw: unknown): ParsedSource<MarketEvent> {
       providerEventId: String(row.id),
       title: title.value,
       ...(detail === undefined ? {} : { detail: detail.value }),
+      ...(kind === 'dividend-ex-date' ? cashDividendOf(row) : {}),
     },
     caveats
   )
+}
+
+// `actualDate` is the payment day; a row without it states the amount and leaves the day open.
+function cashDividendOf(
+  row: z.infer<typeof EVENT_ROW>
+): Pick<MarketEvent, 'cashPerShare' | 'paysOn'> {
+  return {
+    ...(row.dividend === undefined ? {} : { cashPerShare: row.dividend }),
+    ...(row.actualDate === undefined ? {} : { paysOn: tradingDay(row.actualDate) }),
+  }
 }
 
 function kindFor(type: string): MarketEventKind | undefined {
