@@ -58,6 +58,7 @@ cli:installProcessTerminal
 cli:isBackgroundLaunch
 cli:isCompiledBinary
 cli:isConfigPresent
+cli:isDaemonReady
 cli:isForwardable
 cli:isRestartRequested
 cli:isRuntimeEnvName
@@ -102,6 +103,7 @@ cli:toChatText
 cli:toTerminalWriters
 cli:usage
 cli:waitForRestart
+cli:waitUntilDaemonReady
 cli:warn
 cli:withTerminal
 cli:writeCommandCache

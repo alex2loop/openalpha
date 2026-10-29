@@ -45,6 +45,8 @@ the way the order path charges them.
 - Telegram and Zalo check their token once at start; a slow network is retried by the polling loop
   instead of holding the start, and the Telegram command menu is installed in the background. A
   wrong token is still reported at start.
+- A terminal command sent while the daemon is still starting waits for it, then runs there, instead
+  of running a second copy of the work (a `/refresh`, say) in the terminal.
 
 ### Trading
 

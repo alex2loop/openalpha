@@ -2802,6 +2802,7 @@
     "errorsVerboseHint": "Chạy lại với --verbose để xem chi tiết.",
     "errorsUnexpectedRejection": "Đã xảy ra lỗi ngoài ý muốn",
     "execVersionSkew": "Lệnh này chạy tại chỗ, không qua dịch vụ nền: dịch vụ nền vẫn ở bản {daemon}, còn CLI là {cli}. Khởi động lại để hai bên khớp nhau: {brand} restart --background",
+    "execWaitingForDaemon": "Dịch vụ nền đang khởi động, lệnh này chờ một chút rồi chạy ở đó.",
     "execDaemonLost": "Dịch vụ nền dừng giữa chừng khi đang chạy {command}; mình không chạy lại lệnh này ở đây.",
     "execDaemonLostChat": "Xem nó đã làm tới đâu bằng {brand} history list, rồi nối tiếp bằng {brand} chat --continue.",
     "execDaemonLostCheck": "Trước khi chạy lại, bạn xem kết quả bằng lệnh liệt kê của chính nó.",

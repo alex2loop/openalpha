@@ -263,6 +263,19 @@ async function printStartupTimeout(
   return 1
 }
 
+/** `false` when the daemon with this pid stopped, or was not ready within a start's own timeout. */
+export async function waitUntilDaemonReady(app: CliApp, pid: number): Promise<boolean> {
+  const outcome = await pollUntil(async () => {
+    if (await isDaemonReady(app, pid)) {
+      return true
+    }
+
+    return (await liveDaemon(app))?.pid === pid ? undefined : false
+  }, START_TIMEOUT_MS)
+
+  return outcome === true
+}
+
 // Asks `read` every poll interval until it answers; undefined when the timeout passes first.
 export async function pollUntil<T>(
   read: () => Promise<T | undefined>,

@@ -618,6 +618,11 @@ A command runs in your terminal instead when:
 - the daemon runs a different version from the CLI. This is the only case that says anything: one
   line names both versions and tells you to run `openalpha restart --background`.
 
+A daemon that is still starting does not send the command back to your terminal: the CLI says it is
+waiting, then runs it in the daemon once it is ready, usually within a second or two. Running it
+here instead would repeat work the daemon is already doing, such as a `/refresh`. Only a daemon that
+stops, or is not ready within the background start's own timeout, sends it back here.
+
 A forwarded command runs with the config, the key file and the environment the daemon read when it
 started, the same as a chat from the page or Telegram. After you edit `config.toml` or add a key to the
 key file, run `openalpha restart` for it to take effect. A provider key you export in this shell

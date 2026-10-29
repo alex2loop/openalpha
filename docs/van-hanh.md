@@ -612,6 +612,11 @@ Một lệnh chạy ngay trong terminal khi:
 - dịch vụ nền chạy bản khác với CLI. Chỉ trường hợp này có lên tiếng: một dòng nêu cả hai bản và bảo bạn chạy
   `openalpha restart --background`.
 
+Dịch vụ nền đang khởi động thì lệnh không bị trả về terminal: CLI báo đang chờ, rồi chạy lệnh trong dịch vụ nền
+ngay khi nó sẵn sàng, thường chỉ một hai giây. Chạy tại chỗ lúc đó sẽ làm lại việc dịch vụ nền đang làm, chẳng hạn
+một lượt `/refresh`. Lệnh chỉ quay về terminal khi dịch vụ nền dừng hẳn, hoặc vẫn chưa sẵn sàng sau thời gian chờ
+khởi động nền.
+
 Lệnh được chuyển đi chạy với cấu hình, tệp khóa và biến môi trường mà dịch vụ nền đã đọc lúc khởi động, giống
 như một cuộc chat từ trang văn phòng hay Telegram. Sau khi bạn sửa `config.toml` hoặc thêm khóa vào tệp
 khóa, hãy chạy `openalpha restart` để thay đổi có hiệu lực. Khóa nhà cung cấp bạn xuất ở shell này thì cần

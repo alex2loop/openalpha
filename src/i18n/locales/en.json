@@ -2802,6 +2802,7 @@
     "errorsVerboseHint": "Re-run with --verbose for the full stack.",
     "errorsUnexpectedRejection": "Unexpected non-Error rejection",
     "execVersionSkew": "Ran here instead of in the daemon: it is still on {daemon} and this CLI is {cli}. Restart it to bring them together: {brand} restart --background",
+    "execWaitingForDaemon": "The daemon is still starting, so this command waits a moment and then runs there.",
     "execDaemonLost": "The daemon stopped while {command} was running, and it was not run again here.",
     "execDaemonLostChat": "See how far it got with {brand} history list, then pick up where it left off with {brand} chat --continue.",
     "execDaemonLostCheck": "Check its result with the command's own list before you run it again.",

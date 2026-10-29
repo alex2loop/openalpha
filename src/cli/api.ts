@@ -23,7 +23,11 @@ export {
   lazyCommand,
 } from '@/cli/command'
 export { readCommandCacheStubs, writeCommandCache } from '@/cli/command-cache'
-export { spawnRestartProcess, spawnUpgradeProcess } from '@/cli/commands/daemon/background'
+export {
+  spawnRestartProcess,
+  spawnUpgradeProcess,
+  waitUntilDaemonReady,
+} from '@/cli/commands/daemon/background'
 export {
   readRestartFlags,
   stopDaemonIfRunning,
@@ -43,7 +47,7 @@ export {
 export { offerOnboard } from '@/cli/commands/onboard/onboard'
 export { isBackgroundLaunch } from '@/cli/daemon-env'
 export { liveDaemon } from '@/cli/daemon-guard'
-export { readDaemonDegraded } from '@/cli/daemon-ready'
+export { isDaemonReady, readDaemonDegraded } from '@/cli/daemon-ready'
 export {
   canRestartInPlace,
   execSelf,
