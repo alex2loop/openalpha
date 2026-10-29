@@ -2,6 +2,7 @@ import type { JobId } from '@/core/ids'
 import type { Job, SchedulerDeps } from '@/scheduler/types'
 import { reportPass } from '@/core/container'
 import { formatErrForLog } from '@/core/security/credentials'
+import { probeHost, REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/utils/reachability'
 import { MS_PER_SECOND } from '@/core/utils/time'
 import { JOB_MAX_DURATION_MS } from '@/scheduler/job/agent-run'
 import { runScheduledOccurrence } from '@/scheduler/job/execution'
@@ -43,6 +44,8 @@ interface SchedulerState {
   stopTask: Promise<void> | null
   onAbort: (() => void) | null
   stopped: boolean
+  /** One warning per offline stretch, cleared when the network answers again. */
+  offlineWarned: boolean
 }
 
 interface SchedulerWaitOptions {
@@ -99,6 +102,7 @@ function createSchedulerState(signal: AbortSignal): SchedulerState {
     stopTask: null,
     onAbort: null,
     stopped: false,
+    offlineWarned: false,
   }
 }
 
@@ -154,7 +158,22 @@ async function runTick(
   const limit = deps.config.schedule.maxPerTick + state.inFlight.size
   const due = await deps.jobStore.due(now, limit, now - runNowClaimTtlMs)
 
-  if (state.stopped || state.signal.aborted) {
+  if (due.length === 0) {
+    return
+  }
+
+  // An offline run fails every attempt, and each failure counts toward the auto-disable, so a short
+  // outage would switch jobs off. They stay due and run once the network is back; a recurring one
+  // that waited past its grace is skipped to its next occurrence instead.
+  const offline = !(await probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS))
+
+  if (offline) {
+    warnOfflineOnce(state, deps, due.length)
+  } else {
+    state.offlineWarned = false
+  }
+
+  if (state.stopped || state.signal.aborted || offline) {
     return
   }
 
@@ -177,6 +196,15 @@ async function runTick(
       deps.logger.error('scheduler.occurrence_failed', { jobId: job.id, err: formatErrForLog(err) })
     })
   }
+}
+
+function warnOfflineOnce(state: SchedulerState, deps: SchedulerDeps, jobs: number): void {
+  if (state.offlineWarned) {
+    return
+  }
+
+  state.offlineWarned = true
+  deps.logger.warn('scheduler.tick_offline', { jobs, host: REACHABILITY_HOST })
 }
 
 function admitJob<T>(options: AdmitJobOptions<T>): SchedulerAdmission<T> {

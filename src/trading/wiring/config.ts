@@ -178,7 +178,7 @@ function mergeOrders(patch: TradingConfigPatch['orders'], base: OrderPolicy): Or
   }
 }
 
-/** A declared list replaces rather than extends the one below it: a corrected holiday must not keep
+/** A declared list replaces rather than extends the one below it: a corrected day must not keep
  *  the typo. A key the patch leaves out keeps the one below. */
 function mergeMarkets(patch: TradingConfigPatch['markets'], base: MarketConfigs): MarketConfigs {
   if (!patch) {
@@ -205,6 +205,7 @@ function mergeMarket(settings: MarketPatch, below: MarketConfig | undefined): Ma
 
   return {
     holidays: Object.freeze(settings.holidays?.map(tradingDay) ?? below?.holidays ?? []),
+    openDays: Object.freeze(settings.open_days?.map(tradingDay) ?? below?.openDays ?? []),
     ...(maximumStopLoss === undefined ? {} : { maximumStopLoss }),
     ...(stopLossAtr === undefined ? {} : { stopLossAtr }),
     ...(rewardRisk === undefined ? {} : { rewardRisk }),

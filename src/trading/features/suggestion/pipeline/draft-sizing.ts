@@ -81,19 +81,14 @@ function sizeFor(input: FinalizeInput, convictionScale: number): SizingResult {
     return { kind: 'unsized', reason: 'segment-uncapped' }
   }
 
-  const reserveBase = navBase * context.profile.reservePctNav
-  const spendableBase = Math.max(context.book.book.availableCashBase - reserveBase, 0)
-
   return sizeBuy({
     navBase,
     entryBase,
     convictionScale,
     sizingIntent: sizingIntentOf(input.debate),
     riskDistanceBase: input.levels.riskDistance * rate,
-    spendableCashBase: Math.min(
-      spendableBase,
-      context.reachableCashBase.get(manifest.id) ?? spendableBase
-    ),
+    spendableCashBase: spendableCashOf(input, navBase),
+    cashDrawMultiple: input.deps.buyCashMultiple(manifest.id),
     openRiskHeadroomPctNav:
       input.openRisk === undefined
         ? Number.POSITIVE_INFINITY
@@ -111,6 +106,18 @@ function sizeFor(input: FinalizeInput, convictionScale: number): SizingResult {
       ? {}
       : { medianTurnoverBase: input.medianTurnover * rate }),
   })
+}
+
+/** The book's available cash less the operator's reserve, capped by what the routed market can
+ *  reach. The reserve comes off the whole book, because it is one obligation. */
+function spendableCashOf(input: FinalizeInput, navBase: number): number {
+  const { context, manifest } = input
+  const spendableBase = Math.max(
+    context.book.book.availableCashBase - navBase * context.profile.reservePctNav,
+    0
+  )
+
+  return Math.min(spendableBase, context.reachableCashBase.get(manifest.id) ?? spendableBase)
 }
 
 function reduceFor(input: FinalizeInput, entryBase: number): SizingResult {

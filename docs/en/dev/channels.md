@@ -330,6 +330,17 @@ The paired chat is read at start and again whenever the gate admits a paired cha
 recipient, since `pair approve` writes from another process. `stop` settles every runtime disposal and
 never lets one failed cleanup block the rest.
 
+The daemon hands channels a signal of their own. Its shutdown signal can cut a start short, but once the
+channels are up only `stop` ends them, so the runs the daemon drains can still deliver. Inside a channel the
+final notice drain comes first: the notifier makes one bounded attempt (`notifyDrainTimeoutMs`, 500 ms) at each
+notice still queued while the adapter and the channel's signal are live, and only then is the channel aborted
+and its adapter closed. A second stop signal exits the process, so nothing waits on it.
+
+The notifier retries a failed send up to `notifyMaxAttempts`, except a `PermanentChannelError`: a refusal the
+platform repeats on every attempt (a Telegram client error other than 408 and 429, a text over the platform
+limit, a Zalo 401). That one is dropped on the first failure. A 429 is a plain `ChannelError` and keeps
+honouring its retry-after.
+
 ## Adding a channel
 
 1. Implement a `ChannelDefinition` and a `ChannelAdapter` behind `channels/api.ts`, in

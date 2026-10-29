@@ -157,8 +157,8 @@ restart forgets it, so a channel still down afterwards is announced once more.
 ## Scheduled jobs
 
 The scheduler checks for due jobs every 30 seconds, starts at most 5 per check and runs at most 50 at
-once. `[schedule]` holds `approval_timeout_ms` and `failure_target`; defaults and meaning are in
-[Configuration](configuration.md#schedule).
+once. `[schedule]` holds `approval_timeout_ms`, `late_grace_ms` and `failure_target`; defaults and meaning
+are in [Configuration](configuration.md#schedule).
 
 ### Managing them
 
@@ -251,6 +251,19 @@ A spent budget does not count either. When the daily or monthly cap, or an agent
 run, the job skips to its next time, and a one-time job is asked again in 30 minutes. A run stopped
 by the rate limit is asked again in 30 minutes too. So a busy day never switches a job off for good.
 
+A job does not run while the host is offline. Before it starts due jobs, the scheduler checks the network
+(a name lookup, the same check the trading loops wait on). Offline, the jobs stay due, no failure is
+counted, and they start once the network is back. So a Wi-Fi drop of a few minutes never walks a job
+toward auto-disable, and the disable notice never has to cross the same dead network. A run that loses
+the network halfway still counts as one failure, as any failed run does.
+
+A missed time is skipped, not run late. A cron job that is more than
+`late_grace_ms` late moves to its next time with no failure counted, and its history row reads `skipped
+(missed slot)`. The default is 15 minutes: long enough for a restart or a short outage, short enough that a
+morning job is never answered after the session it was for. So a daemon that was down overnight and starts
+at 15:00 does not run a 07:30 cron job (one you added with `schedule add`) at 15:00; its next run is 07:30 on the next matching day.
+A one-time job still runs whenever it comes due, however late.
+
 Shutdown never counts toward auto-disable. A one-time job cut short by shutdown stays due and runs on
 the next start. A denied or timed-out approval still ends it, because running it again would only
 repeat the question. After a restart, runs that were still marked running become failed with a
@@ -274,6 +287,8 @@ session state.
 | --- | --- |
 | More jobs due than capacity allows | The rest stay due for the next check |
 | Agent run fails | Recorded; the retry policy applies |
+| Host offline when jobs are due | They wait, no failure counted, and start when the network is back |
+| Recurring job more than `late_grace_ms` late | Skipped to its next time, no failure counted |
 | Delivery fails after a successful run | The run stays successful; the delivery error is recorded |
 | Third consecutive failure | Job disabled; optional notice sent |
 | A run is still live | This check skips it; the schedule is untouched |
@@ -453,8 +468,8 @@ Run the daemon on a server you own and point a client app at it.
    no forwarded header. So set `public_url` before you expose the daemon, and have nginx send
    `proxy_set_header Host $host;` and `proxy_set_header X-Forwarded-For $remote_addr;`.
 
-   Otherwise, the daemon answers only a request addressed to `127.0.0.1`, `localhost` or `[::1]` (any
-   port, so a tunnel works as is). That stops a DNS-rebinding page. With `public_url` set,
+   Otherwise, the daemon accepts only a request whose `Host` is `127.0.0.1`, `localhost` or `[::1]` (any
+   port, so a tunnel works as is; it listens on `127.0.0.1` only, so `[::1]` is just a name a tunnel can send). That stops a DNS-rebinding page. With `public_url` set,
    `openalpha web` prints the `https://` link instead of a tunnel.
 
    Wrong guesses are slowed down:
@@ -469,7 +484,8 @@ Run the daemon on a server you own and point a client app at it.
    - Once the pause ends, a right token or code clears the count.
 6. **Connect the client.** Give the app the address and the token; every request carries the token
    as `Authorization: Bearer <token>`. At most 8 app streams (`/v1/ws`) are open at once; a ninth
-   handshake is refused with 503 `too_many_streams`.
+   handshake is refused with 503 `too_many_streams`. The office page then asks you to close other tabs
+   and keeps retrying.
 
 **What `public_url` changes.** Once the daemon is reachable from outside, the app is trusted with
 less, so setting `public_url` also:
@@ -623,7 +639,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
 - Settings > Display, under "This page's connection", lists the browsers signed in, with when each signed in and was last seen, and a button to sign any of them out, this one included. A browser signed out this way is dropped from the page at once.
 - `openalpha api rotate` signs every browser out and restarts the daemon, so the old token stops working too. Then run `openalpha web` again.
 - The page refuses to run inside a frame, and in the released binary it may talk only to the daemon that served it.
-- The daemon answers only an address on this machine (`127.0.0.1`, `localhost` or `[::1]`) or your `public_url`, refuses an API call another website starts, and opens the live stream only for the page it served, so another local web app cannot use it.
+- The daemon listens on `127.0.0.1` only and accepts only a `Host` naming this machine (`127.0.0.1`, `localhost` or `[::1]`) or your `public_url`, refuses an API call another website starts, and opens the live stream only for the page it served, so another local web app cannot use it.
 - Safari before 16.4 does not send the header the daemon relies on, so the page says this browser blocks cookies for the address even though it does not. Update Safari.
 - If the daemon cannot be reached, the page says so in one plain line and keeps trying on its own, then opens once the daemon answers. If the connection drops while you are signed in, a bar shows the retry countdown and a "Retry now" button, and says that runs keep going in the daemon. When the connection returns, the page asks for the picture as it stands and carries on. A page older than the daemon asks you to reload. A block that fails to refresh keeps its last good figures and says when they were read.
 
@@ -656,7 +672,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
   - Click one of your agents in the office and its tab opens (see
     [Agents](agents.md#from-the-office-page)).
   - A back row returns to where you were, and the panel collapses to an icon strip.
-- **Chat.** The conversation with the assistant, docked on the right. Earlier sessions, Telegram's included, are searchable (a session nothing was said in is not listed), grouped into today, the last 7 days and older by their last message (by the daemon's day, not your browser's); each row gives the time of its last message and its number of exchanges, an exchange being a line you sent with its answer, and load older ones on demand; only chats the page started can be continued; while another channel's chat is open, the box at the bottom says so and offers to continue in a new session. Each row's menu opens the chat in a tab of its own, with nothing but the chat in it, and deletes a chat the page or the CLI started: the row goes at once and a bar at the bottom offers Undo for a few seconds (the clock pauses while the tab is hidden; closing the tab first deletes nothing). A chat whose answer is still running cannot be deleted, and a Telegram chat is never deleted here, since it is that app's history too. A CLI window still open on a deleted chat simply carries on as a fresh one. A `/research` answer shows its steps while it runs and numbered sources under the answer (see [Deep research](research.md#on-the-office-page)). An earlier chat you open, and the current one after the page reloads, shows every turn the way it first appeared: the commands you typed with their answers, laid out as the chat showed them, and "AI calls" under an answer that ran, listing the model calls it made. Commands are kept from this version on, on every channel; `/help` is not kept, nor is a button that shows its result where it sits (such as Refresh data). These saved answers are for you to read: the assistant never reads them back. Scroll up near the top and older messages load by themselves, keeping your place; "Load older messages" is still there to click. While you read another channel's chat, such as Telegram or the CLI, new messages there appear at the end, as soon as an assistant answer finishes, and a command's answer within about 15 seconds; if you have scrolled up, the page does not jump down but shows "New messages, jump to them".
+- **Chat.** The conversation with the assistant, docked on the right. Earlier sessions, Telegram's included, are searchable (a session nothing was said in is not listed), grouped into today, the last 7 days and older by their last message (by the daemon's day, not your browser's); each row gives the time of its last message and its number of exchanges, an exchange being a line you sent with its answer, and load older ones on demand; only chats the page started can be continued; while another channel's chat is open, the box at the bottom says so and offers to continue in a new session. Each row's menu opens the chat in a tab of its own, with nothing but the chat in it, and deletes a chat the page or the CLI started: the row goes at once and a bar at the bottom offers Undo for a few seconds (the clock pauses while the tab is hidden; closing the tab first deletes nothing). A chat whose answer is still running cannot be deleted, and a Telegram chat is never deleted here, since it is that app's history too. A CLI window still open on a deleted chat simply carries on as a fresh one, which the list shows again once it has said something new. A `/research` answer shows its steps while it runs and numbered sources under the answer (see [Deep research](research.md#on-the-office-page)). An earlier chat you open, and the current one after the page reloads, shows every turn the way it first appeared: the commands you typed with their answers, laid out as the chat showed them, and "AI calls" under an answer that ran, listing the model calls it made. Commands are kept from this version on, on every channel; `/help` is not kept, nor is a button that shows its result where it sits (such as Refresh data). These saved answers are for you to read: the assistant never reads them back. Scroll up near the top and older messages load by themselves, keeping your place; "Load older messages" is still there to click. While you read another channel's chat, such as Telegram or the CLI, new messages there appear at the end, as soon as an assistant answer finishes, and a command's answer within about 15 seconds; if you have scrolled up, the page does not jump down but shows "New messages, jump to them".
 - **Command bar.** Floating over the foot of the office scene, or over the office picture in Info only; on a narrow screen's Information and Chat panes it sits at the bottom of the page: who receives what you type, and the box (Enter sends; a phone also shows Send). While you type, the agent chip and the Chat button shrink to their icons; a phone always shows the chip and Send as icons. See [Commands](commands.md#the-command-bar-in-the-office-page).
 - **Bell and jobs.** The bell lists notices and the requests waiting for you. An approval asked from this page is answered right in the bell: approve once, remember, or deny. A countdown shows when it times out, and a request that times out unanswered is refused. A request is answered once: if it shows in both the bell and the chat, only one answer is sent, and the other card shows that answer and says it was already answered if you chose differently there. One asked on Telegram or another channel is listed but answered where it was asked. The jobs list shows what is running (stop it, after a confirm), what is coming up, what is waiting for an event (checked on a timer at no AI cost) and the automatic upkeep jobs, with a way to fix one that is failing; "Add a schedule" files a job for the assistant.
 - **Cost.** The chip shows today's spend against the daily cap; click for the month, the split by job and the budget row, and "See the full report" for today, the last 7 or 30 days, or this month. See [Budgets](budgets.md#in-the-office-page).

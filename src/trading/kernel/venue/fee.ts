@@ -31,16 +31,21 @@ export function isBookableFill(receipt: OrderReceipt): boolean {
  *  the fee's coins too, so it books them as sold and their value as the fee: the position drops by
  *  everything the venue took and the proceeds stay what the fill paid.
  *
- *  Undefined where the figure would have to be invented: a receipt that names no priced fill; a
- *  third-currency fee the venue will not quote has no rate to convert at; and a buy fee at or above
+ *  A rebate books as no fee: the ledger holds none below zero, and netting it into the price would
+ *  invent a figure the venue never stated.
+ *
+ *  Undefined where the figure would have to be invented: a receipt that names no priced fill; one
+ *  whose fee the venue has not reported yet; a third-currency fee the venue will not quote has no
+ *  rate to convert at; and a buy fee at or above
  *  the fill delivered nothing, which is not a row. */
 export async function toBookedFill(input: BookedFillInput): Promise<BookedFill | undefined> {
   const { receipt } = input
-  const fee = Math.abs(receipt.fee)
 
-  if (!isBookableFill(receipt)) {
+  if (!isBookableFill(receipt) || receipt.feeUnreported === true) {
     return undefined
   }
+
+  const fee = feeChargeOf(receipt.fee)
 
   if (receipt.feeCurrency === input.quoteAsset || fee === 0) {
     return { quantity: receipt.filledQuantity, fee }
@@ -53,6 +58,11 @@ export async function toBookedFill(input: BookedFillInput): Promise<BookedFill |
   }
 
   return toPricedFeeFill(input, fee)
+}
+
+/** What the venue charged, in the receipt's own currency: a charge is negative, a rebate positive. */
+export function feeChargeOf(fee: number): number {
+  return Math.max(-fee, 0)
 }
 
 function toInKindFeeFill(receipt: OrderReceipt, fee: number): BookedFill | undefined {

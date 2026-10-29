@@ -319,6 +319,9 @@ export interface SuggestionRunDeps {
   readonly flights: SuggestionFlights
   /** What a round trip costs at the venue each market books to, as a fraction of the entry. */
   roundTripFeeFraction(market: MarketRef): number
+  /** What a market order's cash draw exceeds its notional by at the venue each market books to:
+   *  the headroom a buy is sized to, because the order caps refuse a buy short of it. */
+  buyCashMultiple(market: MarketRef): number
   /** `name@version` of every skill admitted to this run; hashed into the calculation versions so a
    *  skill edit separates populations exactly as a strategy edit does. */
   readonly skillVersions?: readonly string[]

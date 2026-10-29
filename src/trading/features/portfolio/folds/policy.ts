@@ -55,7 +55,9 @@ export function turnoverCapPctNav(
   )
 }
 
-/** Sessions to exit a holding at the participation ceiling. Absent when turnover is unmeasured. */
+/** Sessions to exit a holding at the participation ceiling. Absent when turnover is unmeasured or
+ *  zero: a name that trades nothing has no session count to print (the liquidity ceilings cap it
+ *  at nothing instead). */
 export function daysToLiquidate(
   valueBase: number,
   averageDailyTurnoverBase: number | undefined

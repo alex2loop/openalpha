@@ -1,5 +1,3 @@
-import { lookup } from 'node:dns/promises'
-
 import type { DaemonTask, TaskPassListener } from '@/core/container'
 import type { OperatorMessage } from '@/core/errors'
 import type { Logger } from '@/core/logging/logger'
@@ -8,7 +6,7 @@ import { type MissingEnvError, missingEnvOf } from '@/core/config/resolve'
 import { notifyPass, TASK_FAILED } from '@/core/container'
 import { ChannelError, isAbortError, LLMError, RunHalted, StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { settleWithin } from '@/core/utils/concurrency'
+import { probeHost, REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/utils/reachability'
 import { sleep } from '@/core/utils/time'
 
 /** What a tick may say about its own pass without failing it. */
@@ -18,10 +16,7 @@ export interface PassNotes {
 }
 
 export type OperationTick = (signal: AbortSignal, notes: PassNotes) => Promise<void>
-type Reachability = Pick<
-  OperationsPolicy,
-  'reachabilityHost' | 'reachabilityTimeoutMs' | 'offlineRetryMs'
->
+type Reachability = Pick<OperationsPolicy, 'offlineRetryMs'>
 
 /** One bounded background loop: what each tick does, when the next one fires, and the host it
  *  waits on while offline. */
@@ -148,19 +143,11 @@ interface PassDetail {
 /** `false` means stop. A tick waits out an offline stretch instead of running into it, so a fetch
  *  trips no source breaker and a send burns no delivery attempt. One warning per stretch. */
 async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<boolean> {
-  const { reachabilityHost, reachabilityTimeoutMs, offlineRetryMs } = spec.reachability
+  const { offlineRetryMs } = spec.reachability
   let warned = false
 
   for (;;) {
-    // The OS resolver, the path every outbound fetch takes: raw DNS or an address policy would gate
-    // on a different question than the one the tick is about to ask.
-    const resolved = lookup(reachabilityHost).then(
-      () => true,
-      () => false
-    )
-    const reachable = (await settleWithin(resolved, reachabilityTimeoutMs)) && (await resolved)
-
-    if (reachable) {
+    if (await probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS)) {
       return true
     }
 
@@ -169,7 +156,7 @@ async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<
     }
 
     if (!warned) {
-      spec.logger.warn('trading.tick_offline', { operation: spec.name, host: reachabilityHost })
+      spec.logger.warn('trading.tick_offline', { operation: spec.name, host: REACHABILITY_HOST })
       warned = true
     }
 
@@ -183,7 +170,7 @@ async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<
 
 /** An offline stretch is the pass's error until the loop reaches the network again and runs. */
 function reportOffline(spec: LoopSpec): void {
-  const { reachabilityHost, offlineRetryMs } = spec.reachability
+  const { offlineRetryMs } = spec.reachability
   const at = Date.now()
 
   notifyPass(spec.onTaskPass, {
@@ -191,7 +178,7 @@ function reportOffline(spec: LoopSpec): void {
     phase: 'end',
     at,
     ...(spec.everyMs === undefined ? {} : { everyMs: spec.everyMs }),
-    error: { key: 'ui.task.offline', params: { host: reachabilityHost } },
+    error: { key: 'ui.task.offline', params: { host: REACHABILITY_HOST } },
     nextAt: at + offlineRetryMs,
   })
 }

@@ -25,6 +25,7 @@ import type {
 } from '@/trading/api'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { bindLocale } from '@/i18n'
+import { feeChargeOf } from '@/trading/api'
 
 type ExecutedOutcome = Extract<ConfirmOutcome, { readonly kind: 'executed' }>
 
@@ -124,7 +125,7 @@ function toExecutedWire(outcome: ExecutedOutcome, locale: Locale): ConfirmOrderR
       state: receipt.state,
       averagePrice: receipt.averagePrice,
       filledQuantity: receipt.filledQuantity,
-      fee: Math.abs(receipt.fee),
+      ...(receipt.feeUnreported === true ? {} : { fee: feeChargeOf(receipt.fee) }),
       feeCurrency: receipt.feeCurrency,
       ...(receipt.filledAt === undefined ? {} : { filledAt: receipt.filledAt }),
     },

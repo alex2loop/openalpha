@@ -20,7 +20,6 @@ import type { FxQuote } from '@/trading/kernel/market/market-data'
 import type { Book, PriceFreshness } from '@/trading/kernel/operator/book'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
-import { utcDay } from '@/core/utils/time'
 import {
   totalCostBase,
   totalFeesBase,
@@ -39,7 +38,7 @@ import {
 } from '@/trading/features/portfolio/folds/holdings'
 import { staleQuoteCaveats, staleRateCaveats } from '@/trading/features/portfolio/folds/staleness'
 import { valuationCaveats } from '@/trading/features/portfolio/folds/valuation-caveats'
-import { CASH_SEGMENT, ETF_KIND, exposureSectorOf, tradingDay } from '@/trading/kernel/instrument'
+import { CASH_SEGMENT, ETF_KIND, exposureSectorOf } from '@/trading/kernel/instrument'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 import { changeAgainstClose } from '@/trading/sources/rows/normalization'
 
@@ -174,7 +173,8 @@ function priceFreshness(valued: readonly ValuedPosition[]): PriceFreshness | und
 
     return {
       markKind: 'live',
-      day: tradingDay(utcDay(freshest.observed.observedAt)),
+      // The session the reading's own market stamped on it, never the UTC date of its instant.
+      day: freshest.observed.day,
       observedAt: freshest.observed.observedAt,
     }
   }

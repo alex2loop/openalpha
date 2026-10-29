@@ -116,7 +116,7 @@ Lỗi thiết lập mà operator sửa được thì ném `OperatorConfigError` 
 mình. Mọi mã trong `OrderErrorCode` nằm ở một trong hai nhóm.
 
 **Operator phải ra tay** (lệnh đã khớp mà sổ không biết, hoặc thiếu lớp bảo vệ): `order.unmirrorable`,
-`order.unmirrorable_fee`, `order.unpriced_fill`, `order.fill_timeout` (vẫn còn sống ở sàn),
+`order.unmirrorable_fee`, `order.fee_unreported`, `order.unpriced_fill`, `order.fill_timeout` (vẫn còn sống ở sàn),
 `order.exit_failed` (vị thế mở, không có lệnh cắt lỗ).
 
 **Sổ nguyên vẹn:** `order.auth`, `order.network`, `order.rate_limited`, `order.insufficient`,

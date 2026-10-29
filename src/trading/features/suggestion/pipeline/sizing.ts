@@ -104,6 +104,9 @@ interface BuySizingInput {
    *  by what the routed market can reach. The reserve comes off the whole book at the call site,
    *  because it is one obligation — subtracting it per market would charge it once per segment. */
   readonly spendableCashBase: number
+  /** What a market order's cash draw exceeds its notional by (fee and price drift), the headroom the
+   *  order caps then demand: cash sized to the notional alone would be refused at the order. */
+  readonly cashDrawMultiple: number
   /** Room left under the operator's whole-book open-risk ceiling, as a fraction of NAV. Positive
    *  infinity where the book could not be read. */
   readonly openRiskHeadroomPctNav: number
@@ -214,10 +217,11 @@ function buildCeilings(input: BuySizingInput, distance: number): SizingCeilings 
     sector: (input.sectorHeadroomPctNav * navBase) / entryBase,
     etf: (input.etfHeadroomPctNav * navBase) / entryBase,
     segment: (input.segmentHeadroomPctNav * navBase) / entryBase,
-    cash: input.spendableCashBase / entryBase,
-    // Unmeasured turnover is not illiquid: an absent read must pass, never cap.
+    cash: input.spendableCashBase / (entryBase * input.cashDrawMultiple),
+    // Unmeasured turnover is not illiquid: an absent read must pass, never cap. A measured zero is
+    // a name that traded nothing, so it has no room.
     liquidity:
-      input.medianTurnoverBase === undefined || input.medianTurnoverBase <= 0
+      input.medianTurnoverBase === undefined
         ? Number.POSITIVE_INFINITY
         : (input.medianTurnoverBase * MAXIMUM_TURNOVER_PARTICIPATION_FRACTION) / entryBase,
   }

@@ -43,6 +43,16 @@ export function resolveTradeCost(venue: VenueRef, costs: TradingCosts): TradeCos
   }
 }
 
+/** What a buy draws from cash per unit of its notional: the fee on top, and the price drift a
+ *  market order may fill through. A fee billed in base coins comes out of the quantity and adds
+ *  nothing here. The one answer for the order caps, the sizer and the rebalance plan, so a buy sized
+ *  to the cash it has is one the cap on cash then admits. */
+export function cashDrawMultiple(cost: TradeCost | undefined, priceDrift: number): number {
+  const feeRate = cost?.feeAsset === 'quote' ? cost.buyRate : 0
+
+  return (1 + priceDrift) * (1 + feeRate)
+}
+
 /** What entering and leaving costs together, against the amount entered. */
 export function roundTripRate(cost: TradeCost): number {
   return cost.buyRate + cost.sellRate

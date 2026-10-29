@@ -74,7 +74,7 @@ import {
 } from '@/trading/features/suggestion/track-record/model-record'
 import { resolvePendingOutcomes } from '@/trading/features/suggestion/track-record/outcome'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
-import { marketRoundTripRate } from '@/trading/markets/cost'
+import { cashDrawMultiple, marketRoundTripRate, marketTradeCost } from '@/trading/markets/cost'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 interface SuggestionServiceDeps {
@@ -285,6 +285,8 @@ function toBatchDeps(
     runDebate: deps.runDebate,
     flights,
     roundTripFeeFraction: (market) => marketRoundTripRate(deps.config, market),
+    buyCashMultiple: (market) =>
+      cashDrawMultiple(marketTradeCost(deps.config, market), deps.config.orders.maximumPriceDrift),
     ...(deps.skillVersions === undefined ? {} : { skillVersions: deps.skillVersions }),
     ...(deps.personaVersions === undefined ? {} : { personaVersions: deps.personaVersions }),
   }

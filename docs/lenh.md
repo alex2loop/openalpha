@@ -34,8 +34,10 @@ Hãy xem trang này như một tấm bản đồ. Muốn biết chính xác cú 
 - Thành công thì thoát `0`. Lệnh lạ và lỗi thông thường thoát `1`. Hỏi trợ giúp (`openalpha` không kèm gì,
   `help`, `--help`) không phải lỗi nên thoát `0`.
 - `--version` và `-v` làm đúng việc của `version`.
-- Cờ sai, thiếu giá trị, lựa chọn không hợp lệ, lỗi cấu hình hoặc lỗi kiểm tra đầu vào đều thoát `2`
-  **trước khi** lệnh làm bất cứ điều gì. Lệnh sai cú pháp không bao giờ chạy dở.
+- Cờ sai, thiếu giá trị, lựa chọn không hợp lệ hoặc lỗi kiểm tra đầu vào đều thoát `2` **trước khi**
+  lệnh làm bất cứ điều gì. Lệnh sai cú pháp không bao giờ chạy dở.
+- `config.toml` hỏng cũng thoát `2` ở mọi lệnh cần đến nó. Bốn lệnh vẫn chạy và nói rõ chỗ sai:
+  `version` thoát `0`, còn `doctor`, `onboard` và `config validate` thoát `1`.
 - Cờ chung đặt trước hay sau lệnh đều được, trừ sau dấu `--`.
 - `--` kết thúc phần phân tích cờ: mọi thứ sau nó là đối số vị trí. Số âm (`-5`, `-3.2`, `-5%`) là giá
   trị, không bao giờ bị coi là cờ lạ.
@@ -161,6 +163,9 @@ lệnh nào và menu Telegram. Nhờ vậy một lệnh hành xử giống hệt
 | `/new` | Chuyển sang một cuộc trò chuyện mới (chat trên trang văn phòng cũng chuyển theo); các câu lệnh đang chờ trong hàng của cuộc chat bị bỏ và những câu đang chạy bị dừng |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
+| `/pair` | Chỉ operator, trong kênh chat: liệt kê các mã ghép nối đang chờ duyệt. Xem [Kênh](kenh.md#ghép-nối) |
+| `/approve` | Chỉ operator, trong kênh chat: `/approve <mã>` cho cuộc chat đã xin mã ghép nối đó vào. Xem [Kênh](kenh.md#ghép-nối) |
+| `/deny` | Chỉ operator, trong kênh chat: `/deny <mã>` từ chối yêu cầu ghép nối đó. Xem [Kênh](kenh.md#ghép-nối) |
 
 `/help` liệt kê câu lệnh theo nhóm: danh mục và giao dịch (mở đầu bằng `/setup`), thị trường, phân tích và đề xuất, rồi đến hệ thống (`/help`, `/stop` và các lệnh không thuộc nhóm nào). Menu Telegram theo cùng thứ tự.
 `/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì mình
@@ -291,7 +296,7 @@ dòng lệnh đó ở nền. Nó chờ tới khi dịch vụ nền thật sự s
 xong các kênh chat. Việc này thường mất khoảng một phút. Chỉ khi đó nó mới báo thành công, in pid và
 đường dẫn đầu ra.
 
-- Dịch vụ nền chết giữa chừng khi khởi động (ví dụ cổng API đã có tiến trình khác dùng) thì được báo
+- Dịch vụ nền chết giữa chừng khi khởi động (ví dụ không mở được cơ sở dữ liệu) thì được báo
   ngay, kèm chính thông báo lỗi và mã thoát của nó. Lệnh thoát với mã khác 0.
 - Chờ quá 90 giây mà dịch vụ nền vẫn chạy nhưng chưa sẵn sàng (nguồn dữ liệu chậm) thì lệnh để nó chạy
   tiếp, báo cách theo dõi và thoát với mã 0. Dịch vụ nền không chạy lên được thì thoát với mã khác 0.
@@ -328,8 +333,9 @@ Phần còn lại vẫn chạy: làm mới dữ liệu, cảnh báo giá, sổ l
 rồi `restart --background`. Kênh thiếu token thì không nhận tin của ai. `doctor` vẫn báo thiếu khóa như
 một lỗi ở dòng mô hình, còn các dòng kiểm tra khác vẫn chạy bình thường.
 
-Một số lỗi vẫn chặn `start`: lỗi cấu hình (TOML sai, giá trị không hợp lệ), cổng API đã bị dùng, đã có
-dịch vụ nền khác chạy, và lỗi lưu trữ.
+Một số lỗi vẫn chặn `start`: lỗi cấu hình (TOML sai, giá trị không hợp lệ), đã có dịch vụ nền khác chạy,
+và lỗi lưu trữ. Cổng API đã bị dùng thì không: API không mở, `start` in cảnh báo nêu số cổng, phần còn lại của
+dịch vụ nền vẫn chạy.
 
 **Trạng thái.** `status` cho biết dịch vụ nền đang chạy bản nào.
 
@@ -515,6 +521,13 @@ Agent của bạn nằm trong thư mục dữ liệu đang dùng. Agent có sẵ
 có hiệu lực từ tin nhắn kế tiếp.
 
 ```text
+openalpha agent bind <chat-id> <agent-id> --channel <id>
+openalpha agent unbind <chat-id> --channel <id>
+```
+
+Cả hai đều bắt buộc có `--channel`.
+
+```text
 openalpha plugin list
 openalpha plugin install <nguồn>
 openalpha plugin update <id>
@@ -558,6 +571,9 @@ còn giữ tư cách thành viên. Chi tiết ở [Mạng xã hội](mang-xa-hoi
 Mọi thao tác với bộ nhớ đều qua các kiểm tra về bí mật, tiêm prompt, kích thước, phạm vi và thời gian
 sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>` chỉ giữ các khóa bắt đầu bằng chữ đó.
 
+`memory search <câu hỏi>` trả về 10 kết quả, thêm `--limit <n>` để đổi số này. `history list` hiện 20 cuộc
+trò chuyện gần nhất, thêm `--limit <n>` để đổi số này.
+
 `history clear` xóa mọi cuộc trò chuyện, hoặc mọi cuộc trò chuyện của một agent. Hãy đọc phần trợ giúp và câu hỏi
 xác nhận trước khi chạy.
 
@@ -596,6 +612,16 @@ trống, và ảnh QR bị xóa khi xong. Dịch vụ nền đang chạy sẽ nh
 Lịch chạy hỗ trợ cron hoặc chu kỳ cố định, đích gửi do bạn chỉ định, tạm dừng và chạy lại, chạy ngay,
 và giới hạn công cụ cho từng việc qua `--allow-tools`. `--agent` mặc định là `chat`. Việc theo cron lưu
 kèm một múi giờ IANA; việc theo chu kỳ thì không nhận múi giờ.
+
+```text
+openalpha schedule add <id> --prompt <nội dung> (--cron <biểu thức> | --every <khoảng>)
+    [--tz <múi giờ>] [--to <kênh:chat-id>] [--agent <id>] [--allow-tools <tên công cụ>]
+openalpha schedule edit <id> [--prompt <nội dung>] [--cron <biểu thức> | --every <khoảng>]
+    [--tz <múi giờ>] [--to <kênh:chat-id>]
+```
+
+`add` bắt buộc có `--prompt`, cùng đúng một trong `--cron` hoặc `--every` (`"0 9 * * *"`, `30m`, `1h`).
+`--tz` mặc định theo `[locale] timezone`. `--to` là nơi nhận kết quả, ví dụ `telegram:-1001234567`.
 
 Khi một việc theo lịch gọi công cụ nguy hiểm, yêu cầu phê duyệt đi qua kênh nếu đích của việc đó có
 người duyệt. Nếu không, lời gọi bị từ chối.

@@ -442,6 +442,8 @@ Cỡ lệnh được tính ngân sách theo cắt lỗ lúc vào, và trạng th
 
 Hệ số trạng thái thị trường của nhóm giảm cỡ lệnh cuối cùng, cùng với mức tin cậy và ý định của vai trader. Vì vậy thị trường phòng thủ sẽ thu nhỏ lệnh mua kể cả khi tiền mặt không phải thứ giới hạn nó. `suggestion.size-scaled-by-regime` báo cho bạn khi trạng thái thị trường là giới hạn chặt nhất trong ba.
 
+Trần tiền mặt chừa chỗ cho chi phí của lệnh: phí mua và mức trượt giá `maximum_price_drift` mà trần tiền mặt của lệnh thị trường cho phép khi khớp. Phần chừa này được áp cho mọi lệnh mua, vì lúc tính cỡ lệnh chưa biết bạn sẽ dùng loại lệnh nào. Nên một lệnh mua tính theo số tiền bạn đang có sẽ không bị `/trade` từ chối vì thiếu phần chừa đó.
+
 Mọi mã trong một lượt `/suggest` đều được tính cỡ trên cùng cuốn sổ như nó đứng trước lượt đó. Nên mỗi
 lệnh mua tự nó vừa với tiền mặt và phần rủi ro mở còn lại.
 
@@ -755,16 +757,26 @@ hoặc cao hơn giá đóng cửa thì không làm đổi gì. Sự kiện mà n
 quy đổi được, nên kế hoạch ngày đó được tính lại từ đầu thay vì giữ mức cũ. Cả hai trường hợp đều có ghi chú
 trong kế hoạch.
 
+Các sự kiện cùng ngày không hưởng quyền được tính bằng một công thức, đúng cách sở đặt giá tham chiếu:
+trừ tiền cổ tức, rồi chia đều cho toàn bộ cổ phiếu mới, nên thứ tự nhà cung cấp liệt kê không làm đổi kết
+quả. Khi có hai ngày không hưởng quyền trước lúc dữ liệu lịch sử bắt kịp, kế hoạch đã quy đổi cho ngày đầu
+chỉ được quy đổi thêm cho ngày sau, không bao giờ hai lần. Kế hoạch lập từ một lệnh mua bạn ghi sau ngày
+không hưởng quyền cũng được đọc theo cách đó, nên giá vào và cắt lỗ của nó đứng trên cùng một mặt bằng giá.
+
 Lịch sự kiện của bản tin ghi điều kiện của từng sự kiện khi nhà cung cấp có công bố: số tiền cổ tức mỗi cổ
 phiếu và ngày trả, tỷ lệ cổ phiếu mới, và giá mua của quyền mua. Mã đang giữ có cổ tức tiền mặt hoặc cổ tức
 bằng cổ phiếu trong khoảng đó còn có thêm một dòng ở phần việc nên làm trước: tiền hoặc cổ phiếu về sau ngày
 không hưởng quyền vài tuần, và chỉ khi bạn ghi dòng `dividend` hoặc `distribution` thì sổ mới có. Phần sự
-kiện trên thẻ mã cũng ghi ngày trả tiền.
+kiện trên thẻ mã ghi các điều khoản đó trên một dòng: cổ tức tiền mặt mỗi cổ phiếu, số cổ phiếu mới trên mỗi 100 cổ phiếu đang giữ, giá mua và ngày trả tiền.
 
 Bước hạ mức tin cậy khi mua thêm mà bình quân giá xuống so giá hiện tại với giá vốn đã trừ phần cổ tức tiền
 mặt mà số cổ phiếu đang giữ được hưởng: mỗi lô được hưởng mọi đợt cổ tức có ngày không hưởng quyền sau ngày
 mua lô đó, dù tiền đã về hay chưa. Nếu không, mỗi ngày không hưởng quyền sẽ bị đọc thành một khoản lỗ. Bước
 này đọc cổ tức trong lịch sự kiện mà phiên chạy đã lấy, khoảng sáu tháng gần nhất.
+
+Cảnh báo chỉ ghi "sau cổ tức" khi thật sự có cổ tức được trừ khỏi giá vốn. Cổ tức chưa công bố số tiền thì
+không được tính, lịch sự kiện không đọc được cũng vậy; khi đó cảnh báo nói có cổ tức chưa tính được, nên
+mức giảm có thể trông lớn hơn thực tế.
 
 Một mã đã được đề xuất trong ngày thì được phục vụ từ dòng của nó mà không tốn gì.
 
@@ -922,7 +934,7 @@ Chúng chạy trong dịch vụ nền, thêm nữa khi một sàn có khóa giao
 | `macro-extract` | 12h | 3 | luôn | Đọc báo cáo của cơ quan thống kê (`nso`) và các bài báo khớp thành các chuỗi vĩ mô đã lưu, trên nhóm mô hình `extraction` |
 | `theme-outcomes` | 12h | 50 | luôn | Chấm các lần đọc công ty của `/themes` so với VN-Index ở 3, 6 và 12 tháng, từ nến đã lưu; không gọi mô hình |
 | `refresh` | theo phiên | - | luôn | Làm mới mọi thị trường còn dùng, rồi ghi dòng lệnh, rồi ghi bảng đã chốt của mỗi thị trường và chấm các bảng cũ đã tới cuối cửa sổ của chúng (xem [thành tích của chính bảng giá](#thành-tích-của-chính-bảng-giá)) |
-| `intraday` | theo lịch | - | luôn | Gửi bản đọc trong phiên vào các giờ đã cấu hình của khu vực, nghỉ giữa các lần |
+| `intraday` | theo lịch | - | luôn | Gửi bản đọc trong phiên vào các giờ đã cấu hình của khu vực, nghỉ giữa các lần; lần gửi trễ quá `[schedule] late_grace_ms` thì bị bỏ qua, không gửi trễ |
 | `exits` | 60s | 50 | một sàn có khóa giao dịch | Đối soát những gì đang treo ở sàn với cuốn sổ, và trail các cắt lỗ nó giữ |
 | `intents` | 5m | - | có dịch vụ đặt lệnh | Chốt một lệnh mà sàn đã nhận mà cuốn sổ chưa có; không chạm sàn nào |
 
@@ -1118,6 +1130,8 @@ Dòng xác nhận ghi cho biết phí lấy từ tỷ lệ nào, hoặc phí b�
 **Khối lượng được hỏi từ sàn, không bao giờ tự tính từ một tỷ lệ.** Một sàn đặt `fee_asset = "base"` trong `fees` (OKX và Binance mặc định, như phần lớn sàn crypto) trừ phí **mua** ngay vào số coin nó giao. Nên một lệnh mua 3 coin chỉ ghi có cho bạn ít hơn 3. Dòng phải mang đúng con số thực sự được ghi có, vì vị thế cộng `quantity` nguyên như vậy, còn phí chỉ làm đổi tiền mặt.
 
 Phần hụt đó không tính được từ tỷ lệ đã cấu hình. Một lệnh khớp theo kiểu maker hay taker, và chỉ sàn biết là kiểu nào. Một khối lượng tự tính sẽ là phỏng đoán nhưng lại được lưu như dữ kiện đã ghi. Lệnh bán không bị ảnh hưởng: phí của nó trừ vào tiền thu về, mà phía tiền mặt đã ghi phần đó.
+
+Phí sàn chỉ được ghi khi đó là một khoản bị thu. Khoản hoàn phí (OKX báo là phí dương) được ghi là không có phí, vì sổ không có phí âm. Binance in phí của một lần khớp trên các dòng giao dịch của nó, nên lần khớp chưa có dòng nào thì chưa có phí để ghi: nó được để chưa ghi thay vì ghi là miễn phí, và `/record sync` ghi nó khi các dòng xuất hiện.
 
 Khi bạn ghi một giao dịch ở sàn có khóa giao dịch, OpenAlpha tra xem sàn đó thật sự đã khớp gì trong ngày, cùng chiều, trên cùng mã. Nếu có **đúng một** lần khớp lệch không quá 1% so với cỡ bạn nêu, lần khớp đó tạo ra dòng: khối lượng khớp đã trừ phí tính bằng coin, giá bình quân, và phí quy ra tiền tệ giao dịch.
 
@@ -1499,7 +1513,7 @@ Trần triển khai được in ra là của cả cuốn sổ, không phải c�
 
 **`/rebalance` và `/suggest` định cỡ cùng một mã theo các thứ khác nhau, và cả hai câu trả lời đều đúng.**
 
-- Kế hoạch lấy khoảng cách tới mục tiêu và giữ nó trong ngân sách nhóm, trần mỗi mã và lô chẵn.
+- Kế hoạch lấy khoảng cách tới mục tiêu và giữ nó trong ngân sách nhóm, trần mỗi mã và lô chẵn. Ngân sách này trả cả phí mua, nên kế hoạch dùng hết nó vẫn để nguyên phần dự trữ.
 - Đề xuất lấy trần chặt nhất trong các trần của chính nó và co nó theo cái chặt nhất trong mức tin cậy, ý định của trader và trạng thái thị trường (không bao giờ là tích của chúng).
 
 Nên một mã mà kế hoạch liệt kê có thể là mã mà đề xuất từ chối hôm đó. Kế hoạch nói vậy ở chỗ nó liệt kê một lệnh mua. Nó không chạy tranh luận, nên không tốn lời gọi mô hình nào.
@@ -1521,7 +1535,8 @@ Một mã đã vượt trần sẽ được giảm bớt, kể cả khi điểm 
   chạy sau cũng sẽ để yên. Quỹ không bị tính vào đó, các mã thuộc nhóm có mục tiêu 0% cũng vậy, vì
   chúng đằng nào cũng được giảm bớt hết.
 - **Giảm bao nhiêu.** Lệnh đưa về mức trần, lệch tối đa một lô, và trong một bước. Số lượng đã về tài
-  khoản và thanh khoản của mã vẫn giới hạn số giảm bớt được trong ngày.
+  khoản và thanh khoản của mã vẫn giới hạn số giảm bớt được trong ngày. Một mã không có giao dịch nào
+  trong cửa sổ đó có thanh khoản bằng 0: nó được tính cỡ về không, còn kế hoạch cho mọi mã khác vẫn chạy tiếp.
 - **Lô lẻ.** Mọi lệnh bán đều theo lô chẵn. Một mã yếu được bán hết vẫn có thể còn lại phần lẻ dưới một
   lô (trên sàn VN là 1-99 cổ phiếu). Kế hoạch bán phần chẵn không hiện dòng "nên theo dõi" cho mã đó;
   bạn tự bán phần lẻ trong phiên lô lẻ.
@@ -1678,6 +1693,8 @@ chế độ duyệt của phiên chạy là `bypass`, trừ khi đặt `[trading
   báo bạn vượt ở đâu. Bạn đặt lại bằng `/trade`, nơi mức vượt được hiện ra trước khi bạn xác nhận.
 - Lệnh mua một ETF vào nhóm mà phần ETF không đo được (có khoản nắm ở đó chưa phân loại được) được tính
   là vượt mọi trần ETF mà nhóm đó đã khai. Không kiểm tra được hạn mức thì không cho qua.
+- Lệnh mua vào một nhóm bạn đã tắt (cả hai trần của nó đều bằng 0) cũng là vượt trần: `/trade` hiện ra và
+  `order_place` từ chối. Nhóm mà hồ sơ chưa ghi trần nào thì không phải là nhóm đã tắt.
 
 Khi đã lưu hồ sơ, lệnh mua bị từ chối (`order.book_unpriced`) lúc còn khoản nắm nào chưa có giá, cả ở `/trade` lẫn `order_place`. Thiếu giá một khoản thì không có tổng, nên không đo được trần vị thế, nhóm hay ETF nào, và một lệnh bỏ qua các trần đó sẽ qua hết. `/portfolio` cho biết đó là mã nào; chạy `/refresh` cho thị trường của mã đó để lấy giá, rồi đặt lại lệnh. Lệnh bán, và lệnh mua khi chưa lưu hồ sơ, không bị giữ lại.
 

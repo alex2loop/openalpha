@@ -32,8 +32,7 @@ import { createBriefTick } from '@/trading/features/brief/tick'
 import { resolveIntradayPlan } from '@/trading/features/market-data/intraday/schedule'
 import {
   createIntradayTick,
-  IDLE_DELAY_MS,
-  nextIntradayDelayMs,
+  createIntradayTiming,
 } from '@/trading/features/market-data/ops/intraday'
 import {
   logRefreshDegradations,
@@ -66,6 +65,8 @@ interface TradingDaemonDeps {
   readonly portfolio: Pick<PortfolioService, 'positionsAt' | 'record'>
   readonly reportDeps: IntradayReportDeps
   readonly intradaySettings: IntradaySettingsStore
+  /** How late after its slot a timed send may still go out (`[schedule] late_grace_ms`). */
+  readonly lateGraceMs: number
   readonly restingExit: RestingExitStore
   isFillBooked(fill: VenueFill, signal: AbortSignal): Promise<boolean>
   readonly venues: VenueRegistry
@@ -347,18 +348,21 @@ function intradayTask(deps: TradingDaemonDeps): DaemonTask {
   // Resolved once: the registry and the config are both frozen by the time tasks are built, and
   // boot has already rejected a `defaultRegion` no market covers.
   const plan = resolveIntradayPlan(deps, deps.config.defaultRegion)
+  const timing = createIntradayTiming(plan)
 
   // `createDelayedLoopTask` waits before the first tick, so the loop sleeps until the first
   // configured fire rather than sending one at boot.
   return createDelayedLoopTask({
     name: 'trading.intraday',
-    nextDelayMs: (now) => nextIntradayDelayMs(plan, now, IDLE_DELAY_MS),
+    nextDelayMs: timing.nextDelayMs,
     logger: deps.logger,
     reachability: deps.config.operations,
     onTaskPass: deps.onTaskPass,
     tick: createIntradayTick({
       ...deps.reportDeps,
       plan,
+      timing,
+      lateGraceMs: deps.lateGraceMs,
       settings: deps.intradaySettings,
       sender: deps.sender,
       recipient: deps.recipient,

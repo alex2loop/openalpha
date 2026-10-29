@@ -476,11 +476,12 @@ Khóa là `zalo_personal`, trùng mã kênh. Liên kết đăng nhập bằng `o
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `approval_timeout_ms` | số nguyên | `900000` | 15 phút. Một việc theo lịch chờ người duyệt qua kênh lâu như vậy. Câu trả lời không bao giờ được lưu. Tối đa 2147483647 (khoảng 24 ngày). |
+| `late_grace_ms` | số nguyên | `900000` | 15 phút. Một việc cron được phép bắt đầu trễ tối đa chừng này so với giờ của nó. Trễ hơn thì giờ đó bị bỏ qua và việc nhảy sang lần kế tiếp, không tính lần hỏng nào. Việc theo chu kỳ và việc chạy một lần không bao giờ bị bỏ qua. Báo cáo trong phiên dùng cùng giới hạn này. Tối thiểu 30000 (30 giây, một lần bộ lập lịch xem): đặt thấp hơn thì bị từ chối khi khởi động, vì mọi việc cron sẽ bị bỏ qua. Tối đa 2147483647 (khoảng 24 ngày). |
 | `failure_target` | chuỗi | - | `<channel>:<chatId>` nhận thông báo khi một việc bị tắt vì hỏng nhiều lần. |
 
 Bộ lập lịch cứ 30 giây xem có việc đến hạn không, mỗi lần khởi động tối đa 5 việc, và chạy tối đa 50
 việc cùng lúc. Cron tính theo phút và `schedule run-now` bỏ qua lượt xem này, nên một khoảng ngắn hơn
-chẳng được gì.
+chẳng được gì. Khi máy mất mạng, lượt xem này không khởi động việc nào: việc đến hạn chờ và không tính lần hỏng.
 
 ### `[loop]`
 
@@ -577,8 +578,8 @@ API HTTP/WS (`/v1`) mà các ứng dụng khách dùng. `openalpha start` mở A
 đặt `enabled = false` để tắt. Một lệnh chạy một lần không bao giờ mở cổng.
 
 API chỉ nghe trên `127.0.0.1` và từ chối mọi máy khác. Nên máy khác phải nối qua đường hầm SSH hoặc một
-reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ trả lời yêu cầu gửi tới `127.0.0.1`,
-`localhost` hoặc `[::1]`, hoặc tới `public_url` khi đã đặt.
+reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ nhận yêu cầu có `Host` là `127.0.0.1`,
+`localhost` hoặc `[::1]`, hoặc `public_url` khi đã đặt. `[::1]` chỉ là tên mà đường hầm hay proxy có thể gửi: dịch vụ nền không nghe trên IPv6.
 
 Ô sửa cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ MCP, mọi khóa
 `*_env` cùng mọi mục khác ghi tên biến môi trường (`[trading.sources]`,
@@ -611,8 +612,9 @@ Khi đó trang cũng không lưu khóa nào và không bắt đầu đăng nhậ
 
 Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở phiên chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
-không được dùng thay) và `start` in cảnh báo, phần còn lại của dịch vụ nền vẫn chạy; cổng đã bị dùng thì
-`start` vẫn dừng. `openalpha api token` in mã ra và `openalpha api rotate` thay mã mới; xoay vòng sẽ đăng
+không được dùng thay) và `start` in cảnh báo, phần còn lại của dịch vụ nền vẫn chạy. Cổng đã bị dùng cũng vậy:
+API không mở, `start` in cảnh báo nêu số cổng, phần còn lại của dịch vụ nền vẫn chạy; hãy giải phóng cổng hoặc
+đặt `[api] port` khác rồi khởi động lại. `openalpha api token` in mã ra và `openalpha api rotate` thay mã mới; xoay vòng sẽ đăng
 xuất mọi trình duyệt và khởi động lại dịch vụ nền đang chạy, nên mã cũ hết dùng được ngay. Trình duyệt không bao giờ
 giữ mã này: `openalpha web` in một liên kết dùng một lần để đăng nhập, còn `openalpha connect` in địa chỉ và token mà
 ứng dụng desktop dán vào (xem [Vận hành](van-hanh.md#chạy-api-trên-máy-chủ)).
@@ -775,7 +777,8 @@ cooldown_sessions = 0          # số phiên chờ trước khi cùng một mã 
 debate_mode = "full"           # full: phe mua, phe bán, quản lý danh mục và người giao dịch; lean: một chuyên gia phân tích, rẻ hơn
 
 [trading.markets.equity-vn]
-holidays = ["2027-01-01"]      # ngày sàn nghỉ được công bố sau khi bản build của bạn đã ra
+holidays = ["2027-05-04"]      # ngày sàn nghỉ được công bố mà luật không tự cho ra
+open_days = ["2027-09-01"]     # ngày luật cho nghỉ nhưng sàn vẫn giao dịch
 maximum_stop_loss = 0.08       # điểm cắt lỗ không bao giờ xa quá 8% dưới giá vào (0.02-0.30)
 stop_loss_atr = 3              # khoảng cắt lỗ tính bằng số lần biên độ ngày trung bình (1-5)
 reward_risk = 3                # mục tiêu bằng bao nhiêu lần khoảng rủi ro (1-5)
@@ -926,7 +929,9 @@ canh giữ, nên không có gì để đặt:
 - đối chiếu lệnh: lệnh thoát đang treo mỗi 60 giây, lệnh khớp bị sót mỗi 5 phút;
 - bản tin, kết cục đề xuất, sổ yếu tố, trích xuất vĩ mô và kết cục chủ đề.
 
-`intraday` kích hoạt ở các mốc trong `[trading.intraday] send_times`, không theo chu kỳ.
+`intraday` kích hoạt ở các mốc trong `[trading.intraday] send_times`, không theo chu kỳ. Báo cáo nào mà giờ của
+nó đã qua hơn `[schedule] late_grace_ms` trước khi gửi được (máy ngủ suốt mốc 14:00) thì bị bỏ qua chứ không gửi
+trễ; mốc kế tiếp vẫn gửi bình thường.
 
 `send_time` chỉ là một **mặc định**. `/brief enable 07:30` lưu giờ riêng lên dòng gửi, và chỉ dòng nào
 chưa có giờ riêng mới theo khóa này. Bản tin luôn được lập lịch theo múi giờ của **thị trường**, lấy từ
@@ -962,12 +967,21 @@ hình quyết định cái gì chạy và khi nào, cộng ba thứ thuộc quy�
   Crypto còn đặt lệnh mua chờ thấp hơn giá live nửa ATR cho mã đã tăng từ 25% trong một tuần; đó là
   chính sách của thị trường, không phải một khóa cấu hình.
 
-**Lịch giao dịch do từng thị trường quyết định, và chỉ có một thiết lập.** Giờ phiên và ngày cuối tuần
-nằm trong mã, và mỗi thị trường đi kèm bảng ngày sàn nghỉ của riêng nó. `[trading.markets.<id>]
-holidays` thêm các ngày nghỉ được công bố sau khi bản build của bạn ra đời. Nó cộng thêm vào các ngày có
-sẵn, không bao giờ thay thế. Một ngày rơi vào cuối tuần của chính thị trường đó là gõ nhầm và làm khởi
-động thất bại. Khi bảng của một thị trường kết thúc trước năm hiện tại, lúc khởi động hệ thống cảnh báo
-(`trading.holidays_outdated`).
+**Lịch giao dịch theo luật, với hai thiết lập.** Giờ phiên và ngày cuối tuần nằm trong mã. Các ngày
+nghỉ được tính từ Bộ luật Lao động cho năm nào cũng được, nên không có danh sách nào để bạn phải cập
+nhật: Tết Dương lịch, Tết Nguyên đán (năm ngày quanh mùng 1), Giỗ Tổ Hùng Vương, 30/4 và 1/5, Quốc
+khánh (2/9, từ 2021 thêm một ngày liền kề) và từ 2026 là Ngày Văn hóa Việt Nam (24/11). Ngày lễ rơi vào
+cuối tuần thì được nghỉ bù vào ngày làm việc kế tiếp. Chính phủ tự quyết kỳ nghỉ Tết của từng năm, còn
+lịch này giả định năm ngày quen thuộc; năm nào khác thì chỉnh bằng `holidays` và `open_days`. Có hai điều
+luật không biết thay bạn:
+
+- **Ngày nghỉ hoán đổi mà Chính phủ công bố.** Thêm vào `[trading.markets.<id>] holidays`. Ba ngày đã
+  công bố cho tới nay (2/5/2025, 2/1/2026, 31/8/2026) đã có sẵn.
+- **Ngày luật cho nghỉ nhưng sàn vẫn giao dịch.** Ghi vào `open_days`. Nếu sàn chọn nghỉ 3/9 thay vì
+  1/9 cho dịp Quốc khánh, hãy đưa 1/9 vào `open_days` và 3/9 vào `holidays`.
+
+Hai danh sách của bạn được ưu tiên hơn luật. Một ngày rơi vào cuối tuần của chính thị trường đó, hoặc
+một ngày nằm ở cả hai danh sách, là gõ nhầm và làm khởi động thất bại.
 
 Phiên được đếm sau khi đã xảy ra: một phiên là một ngày đã có một cây nến. Nên bước chốt kết cục và
 thanh toán T+2 đọc lịch sử đã quan sát được chứ không đọc lịch dự phóng. Thanh toán chỉ quay về tính

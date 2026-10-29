@@ -54,6 +54,7 @@ type OrderErrorCode =
   | 'order.no_position'
   | 'order.exit_conflict'
   | 'order.unmirrorable_fee'
+  | 'order.fee_unreported'
   | 'order.unpriced_fill'
   | 'order.unmirrorable'
   | 'order.book_moved'
@@ -294,10 +295,8 @@ export interface PreparedOrder {
   readonly breaches: readonly CapBreach[]
 }
 
-type CapRejectionCode = 'stake' | 'openTrades' | 'cash' | 'stopLossRequired'
-
 export interface CapRejection {
-  readonly code: CapRejectionCode
+  readonly code: 'stake' | 'openTrades' | 'cash' | 'stopLossRequired'
   readonly limit: number
   readonly actual: number
   /** Which venue's cash the `cash` arm measured. Absent on every other code: a stake ceiling and an

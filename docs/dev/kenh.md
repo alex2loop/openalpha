@@ -333,6 +333,17 @@ Chat ghép nối được đọc lúc khởi động và đọc lại mỗi khi 
 nhận, vì `pair approve` ghi từ một tiến trình khác. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để
 một lần dọn hỏng chặn những lần còn lại.
 
+Dịch vụ nền đưa cho các kênh một tín hiệu riêng. Tín hiệu tắt của nó có thể cắt ngang lúc khởi động, nhưng khi
+các kênh đã chạy thì chỉ `stop` mới kết thúc chúng, nên các phiên chạy mà dịch vụ nền đang chờ vẫn gửi được kết
+quả. Trong một kênh, lượt gửi nốt thông báo còn lại đi trước: bộ gửi thử đúng một lần, có giới hạn thời gian
+(`notifyDrainTimeoutMs`, 500 ms), với từng thông báo còn trong hàng đợi khi adapter và tín hiệu của kênh còn
+sống, rồi mới hủy kênh và đóng adapter. Tín hiệu dừng thứ hai thì thoát tiến trình, nên không có gì chờ nó.
+
+Bộ gửi thử lại một lần gửi hỏng tối đa `notifyMaxAttempts` lần, trừ `PermanentChannelError`: nền tảng từ chối
+và lần nào cũng từ chối lại (lỗi phía client của Telegram ngoài 408 và 429, văn bản quá giới hạn của nền tảng,
+Zalo 401). Loại này bị bỏ ngay ở lần hỏng đầu. Mã 429 là `ChannelError` thường và vẫn chờ đúng khoảng
+retry-after.
+
 ## Thêm một kênh
 
 1. Viết một `ChannelDefinition` và một `ChannelAdapter` phía sau `channels/api.ts`, trong

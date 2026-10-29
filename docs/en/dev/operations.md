@@ -112,8 +112,18 @@ run-now claims are cleared after that sweep.
 
 Retries share one policy with heartbeats (`scheduler/backoff.ts`): `60 s x 2^(failures - 1)`, capped
 at 30 minutes; a cron job is disabled after 3 consecutive failures. Halts that do not count as
-failures: shutdown, approval denied or timed out, an agent cap, a paused agent. Delivery runs after
-finalisation, so a delivery error never fails the run.
+failures: shutdown, approval denied or timed out, an agent cap, a paused agent, a missed slot. Delivery runs
+after finalisation, so a delivery error never fails the run.
+
+A tick that finds due jobs first asks the shared reachability probe (`core/utils/reachability`: one lookup of
+the host the trading loops wait on, 5 s budget). Offline, it returns before admitting anything, so the jobs
+stay due and no attempt is made to fail; `scheduler.tick_offline` is logged once per offline stretch.
+
+Lateness is judged on the claimed occurrence, in `runScheduledOccurrence`: a cron job whose
+`nextRunAt` is more than `lateGraceMs` (`[schedule] late_grace_ms`, 15 minutes; `resolveSchedule` refuses a value under one tick, 30 s, because a slot is first seen at the next tick) behind the clock is finalised
+with `MISSED_SLOT_MESSAGE` and a `skip` transition instead of running, which advances the cadence from now and
+keeps the failure count. Interval and once jobs are never skipped: they name no clock time. The intraday report loop reads the same value and skips a
+send whose wake-up is that late (`trading.intraday_late`).
 
 ## Heartbeat runner
 

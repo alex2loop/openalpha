@@ -205,6 +205,7 @@ async function planExit(
     const planned = await deps.exitPlans.plan({
       instrument: transaction.instrument,
       entry: transaction.unitPrice,
+      entryDay: transaction.at,
       now: mutation.now,
       signal: mutation.signal,
     })

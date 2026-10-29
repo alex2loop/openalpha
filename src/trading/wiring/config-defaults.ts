@@ -45,9 +45,6 @@ const DEFAULT_THEME_MAXIMUM_COST_USD = 1
 const DEFAULT_MAXIMUM_LEDGER_ENTRIES = 50_000
 const SUGGESTION_BATCH_CONCURRENCY = 5
 const DELIVERY_LEASE_MS = 60_000
-/** IANA-reserved, so it resolves wherever any name does and names no provider the daemon reads. */
-const REACHABILITY_HOST = 'example.com'
-const REACHABILITY_TIMEOUT_MS = 5_000
 const OFFLINE_RETRY_MS = 60_000
 const BRIEF_MAXIMUM_ITEMS_PER_SECTION = 5
 const BRIEF_ACTIVITY_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1_000
@@ -166,8 +163,6 @@ const DEFAULT_OPERATIONS_POLICY: OperationsPolicy = Object.freeze({
   refreshRetry: REFRESH_RETRY,
   deliveryLeaseMs: DELIVERY_LEASE_MS,
   deliveryRetry: DELIVERY_RETRY,
-  reachabilityHost: REACHABILITY_HOST,
-  reachabilityTimeoutMs: REACHABILITY_TIMEOUT_MS,
   offlineRetryMs: OFFLINE_RETRY_MS,
 })
 

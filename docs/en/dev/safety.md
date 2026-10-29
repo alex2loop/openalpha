@@ -114,7 +114,7 @@ A setup failure the operator can fix throws `OperatorConfigError` with a keyed `
 failures. Every code in `OrderErrorCode` sits in one of two groups.
 
 **Operator must act** (the order filled and the book does not know, or protection is missing):
-`order.unmirrorable`, `order.unmirrorable_fee`, `order.unpriced_fill`, `order.fill_timeout`
+`order.unmirrorable`, `order.unmirrorable_fee`, `order.fee_unreported`, `order.unpriced_fill`, `order.fill_timeout`
 (still live at the exchange), `order.exit_failed` (open position, no stop).
 
 **The book is untouched:** `order.auth`, `order.network`, `order.rate_limited`, `order.insufficient`,

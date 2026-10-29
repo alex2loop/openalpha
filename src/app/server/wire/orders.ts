@@ -89,8 +89,9 @@ interface OrderFillWire {
   readonly state: 'live' | 'partially_filled' | 'filled' | 'canceled' | 'mmp_canceled'
   readonly averagePrice: number
   readonly filledQuantity: number
-  /** Positive: what the exchange charged, in `feeCurrency`. */
-  readonly fee: number
+  /** What the exchange charged, in `feeCurrency`: zero for a rebate, absent while the exchange has
+   *  not reported it. */
+  readonly fee?: number
   readonly feeCurrency: string
   readonly filledAt?: number
 }

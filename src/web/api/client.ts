@@ -7,13 +7,16 @@ const REQUEST_TIMEOUT_MS = 20_000
 const SLOW_MARGIN_MS = 15_000
 /** The status of a request the daemon refused for want of a signed-in session. */
 export const UNAUTHORIZED_STATUS = 401
-// A request that got no answer has no HTTP status.
-const NO_STATUS = 0
+/** The status of a request that got no answer. */
+export const NO_STATUS = 0
+/** From this status up the daemon (or a proxy in front of it) is not answering for itself. */
+export const SERVER_ERROR_STATUS = 500
 const JSON_CONTENT_TYPE = 'application/json'
 // Exhaustive by `satisfies`, so a code added to the wire fails the typecheck until it is listed.
 const API_ERROR_CODES = Object.freeze({
   unauthorized: true,
   forbidden: true,
+  locked: true,
   not_found: true,
   invalid_body: true,
   conflict: true,

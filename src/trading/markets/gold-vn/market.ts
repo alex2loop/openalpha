@@ -132,7 +132,7 @@ function goldVnManifest(config: TradingConfig): MarketManifest {
     icon: '🏦',
     quoteUnit: quoteUnit('currency-per-luong'),
     defaultCalendar,
-    calendar: createTradingCalendar(defaultCalendar, config.markets[GOLD_VN_MARKET_REF]?.holidays),
+    calendar: createTradingCalendar(defaultCalendar, config.markets[GOLD_VN_MARKET_REF]),
     // Vietnam's trading day is the equity session's; the gold shop counter keeps its own hours.
     ownsRegion: false,
     detection: 'stored',

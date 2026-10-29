@@ -119,6 +119,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'utils/glob',
   'utils/hash',
   'utils/message',
+  'utils/reachability',
   'utils/retry',
   'utils/text',
   'utils/time',

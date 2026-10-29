@@ -113,8 +113,19 @@ bỏ rơi được giải phóng sau lượt quét đó.
 
 Việc thử lại dùng chung một chính sách với heartbeat (`scheduler/backoff.ts`), tối đa 30 phút:
 `60 giây x 2^(số lần hỏng - 1)`. Việc cron bị tắt sau 3 lần hỏng liên tiếp. Các lần dừng không tính là
-hỏng: tắt máy, phê duyệt bị từ chối hoặc quá hạn, agent chạm trần, agent đang tạm dừng. Việc gửi chạy sau khâu kết
-thúc, nên lỗi gửi không bao giờ làm hỏng phiên chạy.
+hỏng: tắt máy, phê duyệt bị từ chối hoặc quá hạn, agent chạm trần, agent đang tạm dừng, giờ bị lỡ. Việc gửi chạy
+sau khâu kết thúc, nên lỗi gửi không bao giờ làm hỏng phiên chạy.
+
+Nhịp nào thấy có việc đến hạn thì hỏi bộ thăm dò khả năng kết nối dùng chung (`core/utils/reachability`: một lần
+tra tên miền của host mà các vòng giao dịch chờ, ngân sách 5 giây) trước. Mất mạng thì nó trả về trước khi nhận
+việc nào, nên các việc vẫn đến hạn và không có lần chạy nào để hỏng; `scheduler.tick_offline` được ghi một lần
+cho mỗi đợt mất mạng.
+
+Độ trễ được xét trên lần nhận việc, trong `runScheduledOccurrence`: việc cron có `nextRunAt` tụt
+sau đồng hồ quá `lateGraceMs` (`[schedule] late_grace_ms`, 15 phút; `resolveSchedule` từ chối giá trị dưới một nhịp, 30 giây, vì một mốc chỉ được thấy ở nhịp kế tiếp) thì được kết thúc với `MISSED_SLOT_MESSAGE`
+và bước chuyển `skip` thay vì chạy: lịch đi tiếp từ lúc này và giữ nguyên bộ đếm lỗi. Việc theo chu kỳ và việc chạy một
+lần không bao giờ bị bỏ qua vì chúng không gắn với giờ nào. Vòng báo cáo trong phiên đọc cùng giá trị và bỏ qua lần gửi mà lúc đánh thức đã trễ chừng đó
+(`trading.intraday_late`).
 
 ## Bộ chạy heartbeat
 

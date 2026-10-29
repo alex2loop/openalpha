@@ -477,11 +477,12 @@ is saved under `profile`.
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `approval_timeout_ms` | int | `900000` | 15 minutes. How long a scheduled job waits for its channel approver. The answer is never saved. At most 2147483647 (about 24 days). |
+| `late_grace_ms` | int | `900000` | 15 minutes. How late a cron job's time may still start. Past it that time is skipped and the job moves to its next one, with no failure counted. Interval and one-time jobs are never skipped. The intraday report uses the same bound. At least 30000 (30 seconds, one scheduler look): anything shorter is refused at start, since every cron job would be skipped. At most 2147483647 (about 24 days). |
 | `failure_target` | string | - | `<channel>:<chatId>` that gets the notice when a job is disabled after failures. |
 
 The scheduler checks for due jobs every 30 seconds, starts at most 5 per check, and runs at most 50
 at once. Cron is minute-granular and `schedule run-now` skips the check, so a shorter interval would
-buy nothing.
+buy nothing. While the host is offline the check starts nothing: due jobs wait and count no failure.
 
 ### `[loop]`
 
@@ -580,7 +581,8 @@ set `enabled = false` to turn it off. A one-off command never opens the port.
 
 It binds `127.0.0.1` only and refuses every other peer. So a client on another machine connects
 through an SSH tunnel or a reverse proxy on the same host (see [Operations](operations.md)). It
-answers only a request addressed to `127.0.0.1`, `localhost` or `[::1]`, or to `public_url` when set.
+accepts only a request whose `Host` is `127.0.0.1`, `localhost` or `[::1]`, or `public_url` when set. `[::1]` is only a
+name a tunnel or proxy can send: the daemon has no IPv6 listener.
 
 The office page's config editor cannot change plugins, an MCP server's command, every `*_env` key and
 every other field naming an environment variable (`[trading.sources]`,
@@ -614,7 +616,9 @@ The page then saves no key and starts no ChatGPT sign-in either: use `openalpha 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32
 characters, the API stays closed (the saved token never stands in) and `start` warns while the rest of
-the daemon runs; a port already in use still stops the start. `openalpha api token` prints the token
+the daemon runs. A port already in use does the same: the API stays closed, `start` warns and names the
+port, and the rest of the daemon runs; free the port or set another `[api] port`, then restart.
+`openalpha api token` prints the token
 and `openalpha api rotate` replaces it; rotating signs every browser out and restarts a running
 daemon, so the old token stops working at once. A browser never holds the token: `openalpha web` prints a
 one-time link that signs it in, and `openalpha connect` prints the address and token the desktop app pastes (see
@@ -778,7 +782,8 @@ cooldown_sessions = 0          # sessions before the same name may be suggested 
 debate_mode = "full"           # full: bull, bear, manager and trader; lean: one analyst, cheaper
 
 [trading.markets.equity-vn]
-holidays = ["2027-01-01"]      # exchange closures announced after your build shipped
+holidays = ["2027-05-04"]      # a closure the exchange announced that the law does not give
+open_days = ["2027-09-01"]     # a day the law closes but the exchange trades
 maximum_stop_loss = 0.08       # the stop never sits more than 8% below entry (0.02-0.30)
 stop_loss_atr = 3              # stop distance in average daily ranges (1-5)
 reward_risk = 3                # target as a multiple of the risk (1-5)
@@ -931,7 +936,9 @@ guards, so there is nothing to set:
 - order reconciliation: resting exits every 60 seconds, missed fills every 5 minutes;
 - briefs, outcomes, the factor log, macro extract and theme outcomes.
 
-`intraday` fires at the times in `[trading.intraday] send_times`, not on an interval.
+`intraday` fires at the times in `[trading.intraday] send_times`, not on an interval. A report whose time
+passed more than `[schedule] late_grace_ms` before it could go out (a laptop asleep through 14:00) is skipped
+rather than sent late; the next time goes out as normal.
 
 `send_time` is a **default**. `/brief enable 07:30` stores its own time on the delivery row, and only
 a row with no time of its own follows this key. A brief is always scheduled in the **market's**
@@ -967,11 +974,22 @@ Config decides what runs and when, plus three things that are yours to judge:
   [Trading](trading.md). Crypto also rests a buy that ran 25% or more in a week half an ATR under the
   live price; that is market policy, not a key.
 
-**The calendar is fixed per market, with one setting.** Session hours and the weekend are in code,
-and each market ships its own table of exchange closures. `[trading.markets.<id>] holidays` adds
-closures announced after your build shipped. It adds to the built-in dates and never replaces them. A
-date on the market's own weekend is a typo and fails boot. Boot warns (`trading.holidays_outdated`)
-when a market's table ends before the current year.
+**The calendar follows the law, with two settings.** Session hours and the weekend are in code. The
+closures are worked out from the Labor Code for any year, so there is no list to keep up to date:
+New Year, Tết (the five days around Lunar New Year), Hung Kings' Day, 30 April and 1 May, National Day
+(2 September, plus the day next to it from 2021) and, from 2026, Vietnam Culture Day (24 November). A
+holiday that lands on a weekend moves to the next weekday. The government picks each year's Tết break
+itself, and the calendar assumes its usual five days; if a year differs, fix it with `holidays` and
+`open_days`. Two things the law cannot tell the bot:
+
+- **A swap day the government announces.** Add it under `[trading.markets.<id>] holidays`. The three
+  announced so far (2 May 2025, 2 January 2026, 31 August 2026) are already built in.
+- **A day the exchange trades although the law closes it.** List it under `open_days`. If the
+  exchange picks 3 September instead of 1 September for National Day, put 1 September in `open_days`
+  and 3 September in `holidays`.
+
+Your two lists win over the law. A date on the market's own weekend, or one in both lists, is a typo and
+fails boot.
 
 Sessions are counted after the fact: a session is a day that produced a bar. So outcome resolution
 and T+2 settlement read observed history, not a projected calendar. Settlement falls back to weekday

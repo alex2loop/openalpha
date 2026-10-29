@@ -47,6 +47,8 @@ interface AggregateOptions {
   readonly onFilled: OrderFilledListener
   readonly onAlertsChecked: (at: number) => void
   readonly onTaskPass: TaskPassListener
+  /** `[schedule] late_grace_ms`: the one lateness bound a timed send shares with the scheduler. */
+  readonly lateGraceMs: number
   recipient(): DeliveryAddress | undefined
 }
 
@@ -151,6 +153,7 @@ function buildDaemonTasks(
     portfolio: parts.services.portfolio,
     reportDeps: toReportDeps(parts, options.tradingConfig, registries.venues),
     intradaySettings: parts.stores.intradaySettings,
+    lateGraceMs: options.lateGraceMs,
     restingExit: parts.stores.restingExit,
     isFillBooked: (fill, signal) => isVenueFillBooked(parts.stores.ledger, fill, signal),
     venues: registries.venues,

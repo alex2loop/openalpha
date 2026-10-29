@@ -230,6 +230,7 @@ export {
   validateAgentFocus,
 } from '@/trading/kernel/operator/focus'
 export { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
+export { feeChargeOf } from '@/trading/kernel/venue/fee'
 export { describeCaveat } from '@/trading/render/caveat'
 export { formatClock, formatInstant } from '@/trading/render/datetime'
 export { renderFocusLabel } from '@/trading/render/focus'

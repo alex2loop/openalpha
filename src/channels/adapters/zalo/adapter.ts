@@ -7,6 +7,7 @@ import type {
   SentRef,
 } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
+import { PermanentChannelError } from '@/channels/permanent-error'
 import { plainRenderer, stripMarkdown } from '@/channels/renderer'
 import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
 import { ChannelError, ConfigError } from '@/core/errors'
@@ -193,5 +194,9 @@ function sendFailure(errorCode: number | undefined, description: string | undefi
     })
   }
 
-  return new ChannelError('send_failed', `zalo_send_failed: ${detail}`)
+  const message = `zalo_send_failed: ${detail}`
+
+  return errorCode === ZALO_UNAUTHORIZED_CODE
+    ? new PermanentChannelError('send_failed', message)
+    : new ChannelError('send_failed', message)
 }

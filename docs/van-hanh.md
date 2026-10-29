@@ -156,8 +156,8 @@ Khởi động lại thì quên hết, nên kênh còn mất kết nối sau đ�
 ## Việc theo lịch
 
 Bộ lập lịch rà việc đến hạn mỗi 30 giây, khởi động tối đa 5 việc mỗi lần rà và chạy đồng thời tối đa
-50 việc. `[schedule]` có `approval_timeout_ms` và `failure_target`; giá trị mặc định và ý nghĩa ở
-[Cấu hình](cau-hinh.md#schedule).
+50 việc. `[schedule]` có `approval_timeout_ms`, `late_grace_ms` và `failure_target`; giá trị mặc định và ý
+nghĩa ở [Cấu hình](cau-hinh.md#schedule).
 
 ### Quản lý
 
@@ -249,6 +249,19 @@ Hết ngân sách cũng không tính. Khi hạn mức ngày, tháng hay hạn m�
 việc nhảy sang lần kế tiếp theo lịch, còn việc chạy một lần thì được hỏi lại sau 30 phút. Phiên chạy bị
 giới hạn tần suất chặn cũng được hỏi lại sau 30 phút. Nhờ vậy một ngày tiêu nhiều không làm việc tắt hẳn.
 
+Việc không chạy khi máy mất mạng. Trước khi khởi động các việc đến hạn, bộ lập lịch kiểm tra mạng (một lần tra
+tên miền, chính là phép kiểm tra mà các vòng giao dịch chờ). Mất mạng thì các việc vẫn đến hạn, không tính lần
+hỏng nào, và chạy ngay khi có mạng lại. Nhờ vậy mạng rớt vài phút không đẩy việc tới ngưỡng tự tắt, và thông
+báo tắt không phải đi qua chính đường mạng đang chết. Phiên chạy mất mạng giữa chừng vẫn tính một lần hỏng, như
+mọi phiên chạy hỏng khác.
+
+Giờ bị lỡ thì bị bỏ qua chứ không chạy trễ. Việc cron trễ quá `late_grace_ms` thì nhảy
+sang lần kế tiếp theo lịch, không tính lần hỏng nào, và dòng lịch sử ghi `skipped (missed slot)`. Mặc định là 15
+phút: đủ cho một lần khởi động lại hay mất mạng ngắn, và đủ ngắn để việc buổi sáng không bao giờ được trả lời
+sau phiên mà nó dành cho. Vậy nếu dịch vụ nền tắt cả đêm rồi khởi động lúc 15:00 thì việc cron 07:30 (việc bạn thêm bằng `schedule add`) không chạy
+lúc 15:00; lần chạy kế tiếp là 07:30 của ngày khớp lịch tiếp theo. Việc chạy một lần thì vẫn chạy khi đến hạn, dù
+trễ bao nhiêu.
+
 Tắt máy không bao giờ tính vào việc tự tắt. Việc chạy một lần bị cắt ngang vì tắt máy vẫn đến hạn và
 chạy ở lần khởi động sau. Còn phê duyệt bị từ chối hay quá hạn thì việc vẫn kết thúc, vì chạy lại chỉ
 lặp lại câu hỏi. Sau khi khởi động lại, những phiên chạy còn đang đánh dấu là chạy sẽ chuyển thành hỏng
@@ -272,6 +285,8 @@ thúc và không thử lại hành động bị từ chối. Quyết định ch�
 | --- | --- |
 | Số việc đến hạn nhiều hơn sức chứa | Phần còn lại vẫn đến hạn, chờ lượt rà sau |
 | Phiên chạy agent hỏng | Được ghi lại; áp chính sách thử lại |
+| Máy mất mạng lúc việc đến hạn | Việc chờ, không tính lần hỏng, và chạy khi có mạng lại |
+| Việc lặp lại trễ quá `late_grace_ms` | Nhảy sang lần kế tiếp, không tính lần hỏng |
 | Gửi hỏng sau khi chạy thành công | Phiên chạy vẫn là thành công; lỗi gửi được ghi lại |
 | Lần hỏng liên tiếp thứ ba | Việc bị tắt; thông báo tùy chọn được gửi |
 | Một phiên chạy vẫn đang diễn ra | Lượt rà này bỏ qua; lịch không đổi |
@@ -449,8 +464,8 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
    mở dịch vụ nền ra ngoài, và cho nginx gửi `proxy_set_header Host $host;` cùng
    `proxy_set_header X-Forwarded-For $remote_addr;`.
 
-   Ngoài ra, dịch vụ nền chỉ trả lời yêu cầu gửi tới `127.0.0.1`, `localhost` hoặc `[::1]` (cổng nào cũng
-   được, nên đường hầm SSH dùng như cũ). Điều này chặn trang web giở trò DNS rebinding. Khi đã đặt
+   Ngoài ra, dịch vụ nền chỉ nhận yêu cầu có `Host` là `127.0.0.1`, `localhost` hoặc `[::1]` (cổng nào cũng
+   được, nên đường hầm SSH dùng như cũ; dịch vụ nền chỉ nghe trên `127.0.0.1`, nên `[::1]` chỉ là tên mà đường hầm có thể gửi). Điều này chặn trang web giở trò DNS rebinding. Khi đã đặt
    `public_url`, `openalpha web` in liên kết `https://` thay vì đường hầm.
 
    Đoán sai sẽ bị làm chậm lại:
@@ -465,7 +480,7 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
    - Hết khoảng dừng, một mã đúng sẽ xóa số lần sai.
 6. **Nối ứng dụng khách.** Đưa cho ứng dụng địa chỉ và mã API; mọi yêu cầu gửi kèm mã dưới dạng
    `Authorization: Bearer <mã>`. Tối đa 8 luồng ứng dụng (`/v1/ws`) mở cùng lúc; lần bắt tay thứ chín bị từ
-   chối với 503 `too_many_streams`.
+   chối với 503 `too_many_streams`. Trang văn phòng khi đó nhắc bạn đóng bớt thẻ và vẫn tiếp tục thử lại.
 
 **`public_url` thay đổi điều gì.** Khi dịch vụ nền đã với tới được từ bên ngoài, ứng dụng được tin ít hơn, nên đặt
 `public_url` còn:
@@ -618,7 +633,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 - Cài đặt > Hiển thị, mục "Kết nối của trang này", liệt kê các trình duyệt đang đăng nhập, lúc đăng nhập và lần cuối thấy, cùng nút đăng xuất từng cái, kể cả cái đang dùng. Trình duyệt bị đăng xuất theo cách này rời khỏi trang ngay.
 - `openalpha api rotate` đăng xuất mọi trình duyệt và khởi động lại dịch vụ nền, nên mã cũ cũng hết dùng được. Sau đó chạy `openalpha web` lại.
 - Trang từ chối chạy bên trong một khung (frame), và ở bản phát hành thì nó chỉ được nói chuyện với đúng dịch vụ nền đã phục vụ nó.
-- Dịch vụ nền chỉ trả lời địa chỉ trên chính máy này (`127.0.0.1`, `localhost` hoặc `[::1]`) hoặc `public_url` của bạn, từ chối lời gọi API do trang web khác khởi phát, và chỉ mở luồng trực tiếp cho đúng trang nó phục vụ, nên một ứng dụng web khác trên máy không dùng ké được.
+- Dịch vụ nền chỉ nghe trên `127.0.0.1` và chỉ nhận `Host` là tên của chính máy này (`127.0.0.1`, `localhost` hoặc `[::1]`) hoặc `public_url` của bạn, từ chối lời gọi API do trang web khác khởi phát, và chỉ mở luồng trực tiếp cho đúng trang nó phục vụ, nên một ứng dụng web khác trên máy không dùng ké được.
 - Safari trước 16.4 không gửi tiêu đề mà dịch vụ nền dựa vào, nên trang báo trình duyệt đang chặn cookie cho địa chỉ này dù thực ra không. Hãy cập nhật Safari.
 - Nếu không nối được dịch vụ nền, trang nói thẳng bằng một dòng rồi tự thử lại, và mở ra ngay khi dịch vụ nền trả lời. Nếu đang đăng nhập mà mất kết nối, một thanh hiện đồng hồ đếm lùi lần thử lại, nút "Thử ngay" và dòng báo các phiên chạy vẫn tiếp tục ở dịch vụ nền. Khi nối lại, trang hỏi lại bức tranh hiện tại rồi theo dõi tiếp. Trang cũ hơn dịch vụ nền thì nhắc bạn tải lại. Khối nào làm mới không được vẫn giữ số liệu tốt gần nhất và ghi rõ lúc nào đọc.
 
@@ -651,7 +666,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
   - Bấm một agent của bạn trong văn phòng thì thẻ của nó mở ra (xem
     [Agent](tro-ly.md#từ-trang-văn-phòng)).
   - Hàng quay lại đưa bạn về chỗ vừa xem, và bảng thu gọn được thành một dải biểu tượng.
-- **Trò chuyện.** Cuộc trò chuyện với trợ lý, nằm bên phải. Các cuộc trò chuyện trước, kể cả của Telegram, tìm được (cuộc trò chuyện chưa có lời nào thì không được liệt kê), chia thành hôm nay, 7 ngày qua và cũ hơn theo tin nhắn cuối cùng (theo ngày của dịch vụ nền, không theo trình duyệt); mỗi dòng ghi giờ của tin nhắn cuối và số lượt trao đổi, một lượt là một câu bạn gửi cùng câu trả lời của nó, và tải thêm cuộc trò chuyện cũ khi bạn cần; chỉ những cuộc chat do trang mở mới nói tiếp được; khi đang mở cuộc trò chuyện của kênh khác, ô gõ ở cuối trang báo điều đó và cho bạn tiếp tục trong cuộc trò chuyện mới. Menu của mỗi dòng mở cuộc trò chuyện đó ở một thẻ riêng, trong thẻ chỉ có khung chat, và xóa được cuộc trò chuyện do trang hoặc CLI mở: dòng biến mất ngay và một thanh ở cuối trang cho bạn Hoàn tác trong vài giây (đồng hồ dừng khi thẻ bị ẩn; đóng thẻ trước thì không xóa gì). Cuộc trò chuyện còn câu trả lời đang chạy thì không xóa được, và cuộc trò chuyện Telegram không bao giờ bị xóa ở đây, vì đó cũng là lịch sử bên Telegram. Cửa sổ CLI còn mở trên cuộc trò chuyện vừa xóa thì cứ thế chat tiếp như một cuộc trò chuyện mới. Câu trả lời `/research` hiện các bước khi đang chạy và nguồn đánh số dưới câu trả lời (xem [Nghiên cứu sâu](nghien-cuu.md#trên-trang-văn-phòng)). Cuộc trò chuyện cũ bạn mở, và cuộc trò chuyện hiện tại sau khi tải lại trang, hiện mọi lượt như lúc đầu: các câu lệnh bạn gõ cùng câu trả lời, trình bày như khung chat đã hiện, và "Lệnh gọi AI" dưới câu trả lời có phiên chạy, liệt kê các lần gọi mô hình của nó. Câu lệnh được lưu từ phiên bản này trở đi, trên mọi kênh; `/help` thì không lưu, và những nút cho thấy kết quả ngay tại chỗ (như Cập nhật dữ liệu) cũng không. Những câu trả lời đã lưu này chỉ để bạn đọc: trợ lý không bao giờ đọc lại chúng. Cuộn lên gần đầu thì tin nhắn cũ hơn tự tải thêm mà không làm mất chỗ bạn đang đọc; nút "Tải tin nhắn cũ hơn" vẫn còn để bấm. Khi đang xem cuộc trò chuyện của kênh khác, như Telegram hay CLI, tin nhắn mới ở đó tự hiện ở cuối, ngay khi trợ lý trả lời xong, còn câu trả lời của câu lệnh thì chậm nhất khoảng 15 giây; nếu bạn đang kéo lên đọc tin cũ thì trang không tự nhảy xuống mà hiện nút "Có tin nhắn mới, xem ngay".
+- **Trò chuyện.** Cuộc trò chuyện với trợ lý, nằm bên phải. Các cuộc trò chuyện trước, kể cả của Telegram, tìm được (cuộc trò chuyện chưa có lời nào thì không được liệt kê), chia thành hôm nay, 7 ngày qua và cũ hơn theo tin nhắn cuối cùng (theo ngày của dịch vụ nền, không theo trình duyệt); mỗi dòng ghi giờ của tin nhắn cuối và số lượt trao đổi, một lượt là một câu bạn gửi cùng câu trả lời của nó, và tải thêm cuộc trò chuyện cũ khi bạn cần; chỉ những cuộc chat do trang mở mới nói tiếp được; khi đang mở cuộc trò chuyện của kênh khác, ô gõ ở cuối trang báo điều đó và cho bạn tiếp tục trong cuộc trò chuyện mới. Menu của mỗi dòng mở cuộc trò chuyện đó ở một thẻ riêng, trong thẻ chỉ có khung chat, và xóa được cuộc trò chuyện do trang hoặc CLI mở: dòng biến mất ngay và một thanh ở cuối trang cho bạn Hoàn tác trong vài giây (đồng hồ dừng khi thẻ bị ẩn; đóng thẻ trước thì không xóa gì). Cuộc trò chuyện còn câu trả lời đang chạy thì không xóa được, và cuộc trò chuyện Telegram không bao giờ bị xóa ở đây, vì đó cũng là lịch sử bên Telegram. Cửa sổ CLI còn mở trên cuộc trò chuyện vừa xóa thì cứ thế chat tiếp như một cuộc trò chuyện mới, và danh sách sẽ hiện lại cuộc đó khi nó có tin nhắn mới. Câu trả lời `/research` hiện các bước khi đang chạy và nguồn đánh số dưới câu trả lời (xem [Nghiên cứu sâu](nghien-cuu.md#trên-trang-văn-phòng)). Cuộc trò chuyện cũ bạn mở, và cuộc trò chuyện hiện tại sau khi tải lại trang, hiện mọi lượt như lúc đầu: các câu lệnh bạn gõ cùng câu trả lời, trình bày như khung chat đã hiện, và "Lệnh gọi AI" dưới câu trả lời có phiên chạy, liệt kê các lần gọi mô hình của nó. Câu lệnh được lưu từ phiên bản này trở đi, trên mọi kênh; `/help` thì không lưu, và những nút cho thấy kết quả ngay tại chỗ (như Cập nhật dữ liệu) cũng không. Những câu trả lời đã lưu này chỉ để bạn đọc: trợ lý không bao giờ đọc lại chúng. Cuộn lên gần đầu thì tin nhắn cũ hơn tự tải thêm mà không làm mất chỗ bạn đang đọc; nút "Tải tin nhắn cũ hơn" vẫn còn để bấm. Khi đang xem cuộc trò chuyện của kênh khác, như Telegram hay CLI, tin nhắn mới ở đó tự hiện ở cuối, ngay khi trợ lý trả lời xong, còn câu trả lời của câu lệnh thì chậm nhất khoảng 15 giây; nếu bạn đang kéo lên đọc tin cũ thì trang không tự nhảy xuống mà hiện nút "Có tin nhắn mới, xem ngay".
 - **Ô câu lệnh.** Nổi trên phần chân khung cảnh văn phòng, hoặc trên ảnh văn phòng ở chế độ Chỉ thông tin; trên màn hình hẹp, ở khung Thông tin và Trò chuyện, nó nằm ở cuối trang: ai nhận câu bạn gõ và ô nhập (Enter là gửi; trên điện thoại còn có nút Gửi). Khi bạn gõ, chip agent và nút Trò chuyện thu lại chỉ còn biểu tượng; trên điện thoại chip agent và nút Gửi luôn chỉ là biểu tượng. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng).
 - **Chuông và việc đang chạy.** Chuông liệt kê thông báo và các yêu cầu đang chờ bạn. Yêu cầu duyệt hỏi từ trang này được trả lời ngay trong chuông: duyệt một lần, ghi nhớ hoặc từ chối. Đồng hồ đếm lùi cho biết khi nào hết hạn, và yêu cầu hết giờ mà chưa trả lời thì bị từ chối. Mỗi yêu cầu chỉ được trả lời một lần: nếu nó hiện ở cả chuông lẫn khung chat thì chỉ một câu trả lời được gửi đi, và thẻ còn lại hiện đúng câu trả lời đó, kèm dòng "đã được trả lời" nếu bạn chọn khác ở thẻ này. Yêu cầu hỏi trên Telegram hay kênh khác vẫn được liệt kê nhưng trả lời ở nơi nó được hỏi. Danh sách việc cho thấy cái đang chạy (dừng được, sau một bước xác nhận), cái sắp chạy, cái đang chờ một sự kiện (kiểm tra theo chu kỳ, không tốn AI) và các việc bảo trì tự chạy, kèm cách sửa việc nào đang lỗi; nút "Thêm lịch" đặt một việc cho trợ lý.
 - **Chi phí.** Chip cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày; bấm để xem cả tháng, chi phí theo từng việc và dòng ngân sách, còn "Xem đủ báo cáo" mở báo cáo cho hôm nay, 7 hoặc 30 ngày qua, hay tháng này. Xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng).

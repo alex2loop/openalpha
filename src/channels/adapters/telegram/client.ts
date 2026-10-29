@@ -1,5 +1,6 @@
 import type { ChannelOutbound, EditRequest, ReactionRequest, SentRef } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
+import { PermanentChannelError } from '@/channels/permanent-error'
 import { ChannelError, type ChannelErrorCode } from '@/core/errors'
 import { BROWSER_HEADERS } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -21,7 +22,10 @@ import {
 // Bounds every call, including getUpdates' own long-poll timeout.
 const TELEGRAM_REQUEST_TIMEOUT_MS = 15_000
 const RATE_LIMITED_STATUS = 429
+const REQUEST_TIMEOUT_STATUS = 408
 const BAD_REQUEST_STATUS = 400
+const CLIENT_ERROR_MIN_STATUS = 400
+const SERVER_ERROR_MIN_STATUS = 500
 const ALLOWED_UPDATES = '["message","callback_query"]'
 const MAX_ERROR_DESCRIPTION_LEN = 512
 const PARSE_FAILURE_RE = /can't parse|parse error/i
@@ -208,7 +212,7 @@ export async function getUpdates(
 // rather than cut, because a silent truncation loses the tail of a brief and reports success.
 function assertWithinTextLimit(text: string, code: ChannelErrorCode): void {
   if (text.length > TELEGRAM_MAX_LEN) {
-    throw new ChannelError(
+    throw new PermanentChannelError(
       code,
       `telegram text is ${text.length} code units, over the ${TELEGRAM_MAX_LEN} limit`
     )
@@ -359,9 +363,22 @@ function toChannelError(
     })
   }
 
-  return new ChannelError(code, `telegram ${label} failed: HTTP ${err.status} ${err.description}`, {
-    cause: err.status,
-  })
+  const message = `telegram ${label} failed: HTTP ${err.status} ${err.description}`
+
+  return isPermanentStatus(err.status)
+    ? new PermanentChannelError(code, message, { cause: err.status })
+    : new ChannelError(code, message, { cause: err.status })
+}
+
+// A client error other than a timeout or a rate limit (a bad request, a blocked bot, a revoked
+// token) says the same thing on every attempt; a server error or a dropped line may not.
+function isPermanentStatus(status: number): boolean {
+  return (
+    status >= CLIENT_ERROR_MIN_STATUS &&
+    status < SERVER_ERROR_MIN_STATUS &&
+    status !== REQUEST_TIMEOUT_STATUS &&
+    status !== RATE_LIMITED_STATUS
+  )
 }
 
 interface TelegramApiError {

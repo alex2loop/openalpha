@@ -214,6 +214,7 @@ function stageInputFor(
     ...(prepared.instrumentKind === undefined ? {} : { instrumentKind: prepared.instrumentKind }),
     ...(prepared.levels === undefined ? {} : { levels: prepared.levels }),
     events: prepared.instrumentEvents,
+    ...(prepared.calendarFailed === true ? { calendarFailed: true } : {}),
     now: request.now,
     signal: request.signal,
   }

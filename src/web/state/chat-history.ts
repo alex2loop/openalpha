@@ -178,12 +178,18 @@ function canLoad(status: HistoryStatus): boolean {
   return status === 'idle' || status === 'more' || status === 'failed'
 }
 
+/** Whether `count` rows leave the view holding all it keeps: it trimmed some, or is full with older
+ *  rows left. A trimmed view never opens on the session's first message, whatever its last page says. */
+export function isCapped(count: number, hasMore: boolean): boolean {
+  return count > MAX_EARLIER || (hasMore && count === MAX_EARLIER)
+}
+
 function resolveStatus(hasMore: boolean, count: number): HistoryStatus {
-  if (!hasMore) {
-    return 'start'
+  if (isCapped(count, hasMore)) {
+    return 'capped'
   }
 
-  return count >= MAX_EARLIER ? 'capped' : 'more'
+  return hasMore ? 'more' : 'start'
 }
 
 // A session chosen on the page before the answer came keeps its place.

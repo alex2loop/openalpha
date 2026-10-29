@@ -1,4 +1,4 @@
-import { type ReadonlySignal, signal, useSignal } from '@preact/signals'
+import { signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { type MessageKey, pluralKey } from '@/i18n'
@@ -47,11 +47,31 @@ interface GroupDays {
 }
 
 // Page-wide, not per list: a row deleted, closed and reopened inside the undo window stays gone.
-// Undo or a refusal takes its id out; a delete that went through keeps it, as the daemon does.
-const deletedIds = signal<ReadonlySet<string>>(new Set())
+// Undo or a refusal takes its id out; a delete that went through keeps it, as the daemon does. The
+// value is the row's last activity: a terminal still open on a deleted session recreates the same
+// id, and that row is back once it shows later activity.
+const deletedAt = signal<ReadonlyMap<string, number>>(new Map())
 
-/** The sessions deleted on this page, whose rows no list shows. */
-export const deletedSessionIds: ReadonlySignal<ReadonlySet<string>> = deletedIds
+/** Whether this row is one deleted on this page: no list shows it. */
+export function isSessionDeleted(session: ChatSession): boolean {
+  const at = deletedAt.value.get(session.sessionId)
+
+  return at !== undefined && session.lastMessageAt <= at
+}
+
+/** Forgets the deleted ids an unfiltered read shows the daemon no longer returns, so the map stays
+ *  as small as the deletes still in view. `sessions` is that read's rows, newest first;
+ *  `isComplete` is true when it reached the last page. Below the oldest row held an id may sit on a
+ *  page not read yet, so it stays until one is. */
+export function pruneDeleted(sessions: readonly ChatSession[], isComplete: boolean): void {
+  const held = new Set(sessions.map((session) => session.sessionId))
+  const floor = isComplete ? -Infinity : (sessions.at(-1)?.lastMessageAt ?? Infinity)
+  const kept = [...deletedAt.peek()].filter(([id, at]) => held.has(id) || at <= floor)
+
+  if (kept.length < deletedAt.peek().size) {
+    deletedAt.value = new Map(kept)
+  }
+}
 
 interface GroupsProps {
   readonly sessions: readonly ChatSession[]
@@ -235,11 +255,11 @@ function openSession(session: ChatSession): void {
 function deleteSession(session: ChatSession): void {
   const id = session.sessionId
   const bringBack = (): void => {
-    deletedIds.value = new Set([...deletedIds.peek()].filter((held) => held !== id))
+    deletedAt.value = new Map([...deletedAt.peek()].filter(([held]) => held !== id))
   }
 
   closePopover()
-  deletedIds.value = new Set([...deletedIds.peek(), id])
+  deletedAt.value = new Map([...deletedAt.peek(), [id, session.lastMessageAt]])
   showUndo(tr('ui.office.sessions.deleted', { title: toBarTitle(sessionTitleOf(session)) }), {
     commit: () => commitDelete(id),
     restore: bringBack,

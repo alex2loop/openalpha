@@ -8,6 +8,7 @@ import type { App } from '@/core/container'
 import { SHUTDOWN_DRAIN_MS } from '@/app/daemon'
 import { admitExec, closeExecAdmission } from '@/app/server/exec/admission'
 import { closeAllExecs, execHandlers } from '@/app/server/exec/connection'
+import { ApiPortInUseError } from '@/app/server/http/api-port-error'
 import {
   isOriginAllowed,
   LOOPBACK_HOST,
@@ -28,7 +29,7 @@ import {
   wsHandlers,
 } from '@/app/server/ws/socket'
 import { BRAND } from '@/core/brand'
-import { isErrno, ValidationError } from '@/core/errors'
+import { isErrno } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
 import { t } from '@/i18n'
@@ -52,7 +53,7 @@ export function startApi(
       // /v1 HTTP routes only: the page route and the WS upgrade below never reach it.
       hostname: LOOPBACK_HOST,
       port: app.config.api.port,
-      // A second daemon on this port must fail with `cli.apiPortInUse`, not share the socket.
+      // A taken port must refuse (`cli.apiPortInUse`, the daemon runs on without the API), never share the socket.
       reusePort: false,
       maxRequestBodySize: MAX_HTTP_BODY_BYTES,
       idleTimeout: IDLE_TIMEOUT_SECONDS,
@@ -183,10 +184,10 @@ function listen(app: App, serve: () => Server<SocketData>): Server<SocketData> {
 
     const port = app.config.api.port
 
-    throw new ValidationError(
+    throw new ApiPortInUseError(
       `api port ${port} is in use`,
       { key: 'cli.apiPortInUse', params: { port, brand: BRAND.name } },
-      err
+      { path: ['api', 'port'], cause: err }
     )
   }
 }

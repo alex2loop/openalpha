@@ -1,13 +1,6 @@
 import { authState } from '@/web/api/auth-state'
 import { isChatOnly } from '@/web/state/pane'
-import {
-  brand,
-  connection,
-  isStarting,
-  isUnreachable,
-  sessionFailure,
-  state,
-} from '@/web/state/session'
+import { brand, connection, isUnreachable, sessionFailure, state } from '@/web/state/session'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Announcer } from '@/web/ui/a11y/announcer'
 import { SkipLink } from '@/web/ui/a11y/skip-link'
@@ -34,7 +27,7 @@ export function App() {
     return <StatusLine text={tr('ui.office.error.unreachable')} />
   }
 
-  if (brand.value === undefined || isStarting.value) {
+  if (brand.value === undefined) {
     return <StatusLine text={tr('ui.office.loading')} />
   }
 
@@ -50,7 +43,8 @@ export function App() {
     )
   }
 
-  const appClass = connection.value.status === 'offline' ? 'app is-offline' : 'app'
+  const { status } = connection.value
+  const appClass = status === 'offline' || status === 'full' ? 'app is-offline' : 'app'
 
   if (isChatOnly.value) {
     return (

@@ -82,6 +82,7 @@ async function batchExposure(
   const overcommit = await overcommittedBook({
     results,
     markets: deps.markets,
+    buyCashMultiple: deps.buyCashMultiple,
     readContext,
     readOpenRisk: (context) => readOpenRisk(deps, options.signal, context),
   })

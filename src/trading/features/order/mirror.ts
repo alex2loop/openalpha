@@ -286,12 +286,19 @@ export async function toMirrorNumbers(input: MirrorNumbersInput): Promise<Booked
     )
   }
 
+  if (receipt.feeUnreported === true) {
+    throw new OrderError(
+      'order.fee_unreported',
+      `the venue has not listed the trades of order ${receipt.orderId} yet`
+    )
+  }
+
   const numbers = await toBookedFill(input)
 
   if (numbers === undefined) {
     throw new OrderError(
       'order.unmirrorable_fee',
-      `fee in ${receipt.feeCurrency} needs a conversion this path will not guess`
+      `the fee of order ${receipt.orderId} needs a conversion this path will not guess`
     )
   }
 

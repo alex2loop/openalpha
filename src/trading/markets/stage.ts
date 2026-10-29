@@ -31,6 +31,8 @@ export interface StageInput {
   readonly levels?: TradeLevels
   /** This name's dated corporate actions, past ones included. */
   readonly events?: readonly MarketEvent[]
+  /** The corporate calendar could not be read, so an empty `events` is not "nothing happened". */
+  readonly calendarFailed?: true
   /** From `FactorScore.failedGates`, threaded so the admission stage judges the same evidence read
    *  the score was built from rather than fetching the market's universe a second time. */
   readonly failedGates?: readonly ScreenGateCode[]

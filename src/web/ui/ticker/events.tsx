@@ -6,6 +6,8 @@ import { useBlockRead } from '@/web/state/block'
 import { findMarket } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
+import { formatPrice, formatQuantity, PERCENT, wholeUnitsDisplay } from '@/web/text/figures'
+import { joinInline } from '@/web/text/glyphs'
 import { buildDayKey } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
@@ -49,13 +51,7 @@ export function EventsBlock({
               <div>
                 <b>{event.title}</b>
                 {event.detail !== undefined && <p class="meta">{event.detail}</p>}
-                {event.paysOn !== undefined && (
-                  <p class="meta">
-                    {tr('ui.office.ticker.eventPaysOn', {
-                      day: formatDay(locale.value, event.paysOn),
-                    })}
-                  </p>
-                )}
+                <EventTerms event={event} market={market} />
               </div>
               <span class="row-note">{formatDay(locale.value, event.at)}</span>
             </div>
@@ -64,6 +60,54 @@ export function EventsBlock({
       )}
     </BlockFrame>
   )
+}
+
+/** What the event pays or offers, on one line; nothing when the source gave no terms. */
+function EventTerms({
+  event,
+  market,
+}: {
+  readonly event: MarketEventWire
+  readonly market: string
+}) {
+  const terms = toTermLines(event, market)
+
+  return terms.length === 0 ? null : <p class="meta">{joinInline(terms)}</p>
+}
+
+function toTermLines(event: MarketEventWire, market: string): readonly string[] {
+  const { cashPerShare, shareRatio, subscriptionPrice, paysOn } = event
+
+  return [
+    ...(cashPerShare === undefined
+      ? []
+      : [tr('ui.office.ticker.eventCash', { amount: formatPerShare(market, cashPerShare) })]),
+    ...(shareRatio === undefined
+      ? []
+      : [tr('ui.office.ticker.eventShareRatio', { added: formatQuantity(shareRatio * PERCENT) })]),
+    ...(subscriptionPrice === undefined
+      ? []
+      : [
+          tr('ui.office.ticker.eventSubscription', {
+            amount: formatPerShare(market, subscriptionPrice),
+          }),
+        ]),
+    ...(paysOn === undefined
+      ? []
+      : [tr('ui.office.ticker.eventPaysOn', { day: formatDay(locale.value, paysOn) })]),
+  ]
+}
+
+// The wire states these in whole currency units, not on the board's scale: a VN dividend of 1000
+// reads `1.000 VND`, where the board would print `1,00`.
+function formatPerShare(market: string, value: number): string {
+  const currency = findMarket(market)?.currency
+
+  if (currency === undefined) {
+    return formatPrice(value, undefined)
+  }
+
+  return `${formatPrice(value, wholeUnitsDisplay(currency))} ${currency}`
 }
 
 function readEvents(ticker: string, market: string): (abort: AbortSignal) => Promise<EventsRead> {

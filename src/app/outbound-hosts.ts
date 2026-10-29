@@ -4,10 +4,10 @@ import type { MessageKey } from '@/i18n'
 import { listAuthHosts, listPricingHosts, resolveModelHost } from '@/ai/api'
 import { enabledChannels } from '@/app/views'
 import { UPDATE_CHECK_HOST } from '@/cli/api'
+import { REACHABILITY_HOST } from '@/core/utils/reachability'
 import { hostOfUrl } from '@/core/utils/url'
 import { t } from '@/i18n'
 import { listSearchHosts } from '@/tools/api'
-import { resolveTradingConfig } from '@/trading/api'
 
 /** In the order a reader weighs them: what carries their question, their orders and their
  *  messages before the data fetches. */
@@ -92,11 +92,7 @@ function configHosts(app: App): readonly FoundHost[] {
     { host: WEB_HOST, purpose: 'web' },
     ...app.resolve('sourceHosts').map(({ host, kind }) => ({ host, purpose: kind })),
     ...(config.update.check ? [{ host: UPDATE_CHECK_HOST, purpose: 'update' as const }] : []),
-    {
-      host: resolveTradingConfig({ extensions: config.extensions, locale: config.locale })
-        .operations.reachabilityHost,
-      purpose: 'reachability',
-    },
+    { host: REACHABILITY_HOST, purpose: 'reachability' },
   ]
 }
 

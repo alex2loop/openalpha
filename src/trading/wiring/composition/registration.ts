@@ -54,10 +54,7 @@ import { bindHostSeams } from '@/trading/wiring/composition/host-seams'
 import { buildMacroExtractTick } from '@/trading/wiring/composition/macro-extract'
 import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
 import { buildRefreshCoordinator, buildRefreshTick } from '@/trading/wiring/composition/refresh'
-import {
-  assertRegistryConsistency,
-  reportOutdatedHolidayTables,
-} from '@/trading/wiring/composition/registry-checks'
+import { assertRegistryConsistency } from '@/trading/wiring/composition/registry-checks'
 import { createDomainServices } from '@/trading/wiring/composition/services'
 import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/source-registry'
 import { createTradingStores } from '@/trading/wiring/composition/stores'
@@ -117,6 +114,7 @@ type BoundOptions = Omit<
   readonly runScheduled: ScheduledRunner
   readonly onRoleOutput: RoleOutputListener
   readonly onFocusCallScored: CallScoredNotices['onFocusScored']
+  readonly lateGraceMs: number
 }
 
 declare module '@/core/container' {
@@ -280,6 +278,7 @@ function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptio
     runScheduled: provided.runScheduled(app),
     onRoleOutput: provided.onRoleOutput(app),
     onFocusCallScored: provided.onFocusCallScored(app),
+    lateGraceMs: app.config.schedule.lateGraceMs,
   }
 }
 
@@ -414,7 +413,6 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
   markets.register(createCryptoMarket(deps))
   markets.close()
   stages.close()
-  reportOutdatedHolidayTables(markets, logger, Date.now())
 
   return { markets, sources, stages, venues, fx }
 }

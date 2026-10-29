@@ -1,5 +1,6 @@
 import type { ChannelOutbound, OutboundTarget, SentRef } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
+import { PermanentChannelError } from '@/channels/permanent-error'
 import { ChannelError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
@@ -233,9 +234,8 @@ export class Notifier {
 
       note.attempts += 1
 
-      note.noRetryBefore = Date.now() + retryDelayMs(note.attempts, err)
-
-      if (note.attempts >= this.deps.maxAttempts) {
+      // A refusal the platform will repeat is dropped at once; a rate limit keeps its retry-after.
+      if (err instanceof PermanentChannelError || note.attempts >= this.deps.maxAttempts) {
         this.deps.logger.warn('notifier.dropped', {
           channel: note.out.channel,
           attempts: note.attempts,
@@ -245,6 +245,8 @@ export class Notifier {
 
         return false
       }
+
+      note.noRetryBefore = Date.now() + retryDelayMs(note.attempts, err)
 
       // A dispose that ran mid-send has already drained the queue: re-queueing now would strand
       // the note (and its awaiting caller) forever.

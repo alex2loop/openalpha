@@ -1,8 +1,14 @@
 import type { CliApp } from '@/cli/api'
-import { apiTokenPath } from '@/app/server/http/auth'
+import type { Locale } from '@/core/types/locale'
+import {
+  ApiTokenError,
+  apiTokenPath,
+  isApiTokenUsable,
+  resolveTokenEnv,
+} from '@/app/server/http/auth'
 import { fail, getEnv } from '@/cli/api'
 import { BRAND } from '@/core/brand'
-import { t } from '@/i18n'
+import { bindLocale, t } from '@/i18n'
 
 type ApiTokenRead =
   | { readonly ok: true; readonly token: string }
@@ -27,17 +33,14 @@ export async function withApiToken(app: CliApp, show: (token: string) => void): 
   return 0
 }
 
-/** The token the daemon accepts: `token_env` when set, else the one in the data dir. */
+/** The token the daemon accepts: `token_env` when set, else the one in the data dir. The refusal is
+ *  the daemon's own: a variable it would not start with names its cause. */
 export async function readApiToken(app: CliApp): Promise<ApiTokenRead> {
   const locale = app.config.locale.language
   const tokenEnv = app.config.api.tokenEnv
 
   if (tokenEnv !== undefined) {
-    const value = getEnv()[tokenEnv] ?? ''
-
-    return value === ''
-      ? { ok: false, message: t(locale, 'cli.authTokenEnvEmpty', { env: tokenEnv }) }
-      : { ok: true, token: value }
+    return readTokenEnv(tokenEnv, locale)
   }
 
   const token = await readTokenFile(app.config.paths.dataDir)
@@ -45,6 +48,21 @@ export async function readApiToken(app: CliApp): Promise<ApiTokenRead> {
   return token === null
     ? { ok: false, message: t(locale, 'cli.authTokenMissing', { brand: BRAND.name }) }
     : { ok: true, token }
+}
+
+function readTokenEnv(tokenEnv: string, locale: Locale): ApiTokenRead {
+  try {
+    return { ok: true, token: resolveTokenEnv(tokenEnv, getEnv()) }
+  } catch (err: unknown) {
+    if (!(err instanceof ApiTokenError)) {
+      throw err
+    }
+
+    return {
+      ok: false,
+      message: bindLocale(locale).translate(err.operator.key, err.operator.params),
+    }
+  }
 }
 
 /** A disabled server reads no token, so neither showing nor minting one means anything yet. */
@@ -67,5 +85,5 @@ async function readTokenFile(dataDir: string): Promise<string | null> {
     return null
   }
 
-  return typeof parsed.token === 'string' ? parsed.token : null
+  return isApiTokenUsable(parsed.token) ? parsed.token : null
 }

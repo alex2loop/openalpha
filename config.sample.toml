@@ -68,6 +68,7 @@ model = "deepseek/deepseek-v4.1-flash"
 
 # Per-entry tuning, also settable in [model_defaults]. Keep max_tokens per entry:
 # a default would also cap the decisions tier below, which takes no output cap.
+# base_url = "http://127.0.0.1:11434/v1"   # endpoint override; default: the provider's catalog endpoint
 # reasoning = "default"            # default | off | low | medium | high
 # max_tokens = 8192                # cap on the reply for this entry
 # reasoning_required = false       # per entry only: endpoint rejects a disable payload
@@ -268,7 +269,8 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # horizon (your profile picks the horizon per segment). Setting any level key
 # starts a separate track record for that market. Restart after editing.
 # [trading.markets.equity-vn]
-# holidays = ["2027-01-01"]          # closures announced after your build; added to the built-in ones
+# holidays = ["2027-05-04"]          # a closure the exchange announced that the law does not give
+# open_days = ["2027-09-01"]         # a day the law closes but the exchange trades
 # maximum_stop_loss = 0.08           # never more than 8% below entry (0.02-0.30); none by default
 # stop_loss_atr = 3                  # stop distance in average daily ranges (1-5); 1.5 / 3
 # reward_risk = 3                    # target as a multiple of that risk (1-5); 1.5 / 3
@@ -286,7 +288,8 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 
 # Mid-session report for the market of your [locale] region (VN stocks by
 # default), on that market's hours and trading days. Off by default; name the
-# times to turn it on.
+# times to turn it on. A report that wakes later than [schedule] late_grace_ms
+# after its time (a laptop asleep through it) is skipped, not sent late.
 # [trading.intraday]
 # send_times = ["10:30", "14:00"]
 
@@ -376,7 +379,7 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # markdown = true                    # bold, links and expandable detail blocks; false sends
 #                                    # plain text, streamed replies included
 # require_mention = true             # groups: only answer when mentioned
-# slash_commands = true              # intercept /new /stop /cancel /help and the core commands
+# slash_commands = true              # intercept /new /help and the core commands; /stop always works
 # typing_indicator = true
 # use_reactions = true
 # mid_stream_updates = true          # edit the placeholder while streaming
@@ -409,6 +412,7 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 
 # [schedule]
 # approval_timeout_ms = 900000       # a scheduled run's approval window (max 2147483647)
+# late_grace_ms = 900000             # how late a cron job (or an intraday report) may still start; a later time is skipped (min 30000, one scheduler look; max 2147483647)
 # failure_target = "telegram:123456" # where "job disabled after N failures" goes
 
 
@@ -457,6 +461,21 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # fallback_base_url = "http://localhost:8080"
 # safe_search = 1                        # SearXNG only: 0 off, 1 moderate, 2 strict
 # cache_ttl_ms = 300000                  # query cache lifetime in milliseconds; 0 disables it
+
+# Your own SearXNG instance (keyless; enable the json format in settings.yml, search.formats):
+# [web_search]
+# provider = "searxng"
+# base_url = "http://localhost:8080"     # searxng only; a remote instance must use https
+# safe_search = 1
+
+# A paid provider with another paid one behind it (the fallback must differ from provider):
+# [web_search]
+# provider = "tavily"
+# api_key_env = "TAVILY_API_KEY"
+# cost_per_search_usd = 0.001
+# fallback_provider = "deepseek"
+# fallback_api_key_env = "DEEPSEEK_API_KEY"
+# fallback_cost_per_search_usd = 0.00075
 
 # exa, with its search mode:
 # [web_search]

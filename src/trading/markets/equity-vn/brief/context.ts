@@ -10,10 +10,12 @@ import type {
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
+import type { EventsRead } from '@/trading/markets/equity-vn/brief/events-read'
 import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
+import { readEvents } from '@/trading/markets/equity-vn/brief/events-read'
 import {
   VN_MACRO_DRIVERS,
   VN_MACRO_FORMULA_VERSION,
@@ -52,6 +54,9 @@ export interface BriefContext {
   readonly calendarNames: BriefNames
   /** The same union outside VN, for the sections that price a cross-asset name without debating it. */
   readonly crossAssetNames: BriefNames
+  /** The corporate calendar of `calendarNames`, read once: the events section prints a capped list
+   *  of it and next-actions reminds from all of it. */
+  readonly events: () => Promise<EventsRead>
   readonly cross: CrossSection | null
   /** Another day's pass, on demand: the delta section needs yesterday's board without forcing the
    *  whole context to reload a second universe. The two-slot cache keeps both days resident. */
@@ -98,6 +103,7 @@ export async function loadBriefContext(options: LoadContextOptions): Promise<Bri
   const held = holdings ?? []
   const heldInMarket = held.filter(isVnInstrument)
   const heldCrossAsset = held.filter((instrument) => !isVnInstrument(instrument))
+  const calendarNames = unionNames(watchlists.covered, heldInMarket)
 
   return {
     deps,
@@ -113,8 +119,11 @@ export async function loadBriefContext(options: LoadContextOptions): Promise<Bri
     heldNames: heldInMarket,
     suggestionNames: dedupe([...heldInMarket, ...watchlists.market]),
     crossAssetSuggestionNames: dedupe([...heldCrossAsset, ...watchlists.crossAsset]),
-    calendarNames: unionNames(watchlists.covered, heldInMarket),
+    calendarNames,
     crossAssetNames: unionNames(watchlists.crossAsset, heldCrossAsset),
+    events: onceAsync(() =>
+      readEvents({ deps, request, calendar: options.calendar, calendarNames })
+    ),
     cross,
     crossAt: options.crossAt,
     sectors: cross?.sectors ?? [],

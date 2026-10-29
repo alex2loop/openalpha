@@ -34,8 +34,10 @@ Treat this page as a map. For the exact syntax of the version you installed, run
 - Success exits `0`. Unknown commands and ordinary failures exit `1`. Asking for help (`openalpha` alone,
   `help`, `--help`) is not a failure and exits `0`.
 - `--version` and `-v` do what `version` does.
-- Invalid flags, missing values, invalid choices, and config or validation errors exit `2`
-  **before** the command does anything. A malformed command never half-runs.
+- Invalid flags, missing values, invalid choices, and validation errors exit `2` **before** the
+  command does anything. A malformed command never half-runs.
+- A broken `config.toml` exits `2` the same way on every command that needs it. Four still run and say
+  what is wrong: `version` exits `0`, and `doctor`, `onboard` and `config validate` exit `1`.
 - Global flags may come before or after the command, but not after a `--`.
 - `--` ends option parsing: every token after it is a positional argument. A negative number (`-5`,
   `-3.2`, `-5%`) is a value, never an unknown flag.
@@ -160,6 +162,9 @@ Telegram menu. So a command behaves the same in the REPL and in a group chat.
 | `/new` | Switch to a fresh chat session (the office page's chat moves to it too); commands waiting in the chat's line are dropped and the ones running are stopped |
 | `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
 | `/social` | `/social drafts` lists what your agents are waiting to post; `/social approve <id>` sends one and `/social discard <id>` drops it. Operator only. See [Social networks](social.md) |
+| `/pair` | Operator only, in a chat channel: lists the pairing codes waiting for approval. See [Channels](channels.md#pairing) |
+| `/approve` | Operator only, in a chat channel: `/approve <code>` lets the chat that asked for that pairing code in. See [Channels](channels.md#pairing) |
+| `/deny` | Operator only, in a chat channel: `/deny <code>` turns that pairing request down. See [Channels](channels.md#pairing) |
 
 `/help` lists commands in groups: portfolio and trades (starting with `/setup`), markets, analysis and suggestions, then system (`/help`, `/stop` and the commands that belong to no group). The Telegram menu follows the same order.
 `/help <name>` (with or without the leading `/`) shows one command's description and usage; a misspelt
@@ -293,7 +298,7 @@ same command detached. It then waits until the daemon is actually ready: market 
 channels open. That usually takes about a minute. Only then does it report success, with the pid and
 the output path.
 
-- A daemon that dies while starting (say the API port is already in use) is reported at once, with
+- A daemon that dies while starting (say its database cannot be opened) is reported at once, with
   its own error message and exit code. The command exits non-zero.
 - After 90 seconds, a daemon that is running but not ready yet (a slow data source) is left running.
   The command says how to follow it and exits zero. One that never came up exits non-zero.
@@ -332,8 +337,9 @@ the key with `openalpha key set <NAME>` and `restart --background`. A channel wi
 no messages from anyone. `doctor` still reports a missing key as a failure on its models row, and runs
 every other check as usual.
 
-Some problems do still stop `start`: a configuration error (bad TOML, an invalid value), an API port
-already taken, a daemon already running, and a storage failure.
+Some problems do still stop `start`: a configuration error (bad TOML, an invalid value), a daemon
+already running, and a storage failure. An API port already taken does not: the API stays closed,
+`start` warns and names the port, and the rest of the daemon runs.
 
 **Status.** `status` names the version the running daemon was started from.
 
@@ -529,6 +535,13 @@ Binding commands take a channel id and map a channel and chat to an agent; bindi
 effect on the next inbound message.
 
 ```text
+openalpha agent bind <chat-id> <agent-id> --channel <id>
+openalpha agent unbind <chat-id> --channel <id>
+```
+
+`--channel` is required on both.
+
+```text
 openalpha plugin list
 openalpha plugin install <source>
 openalpha plugin update <id>
@@ -573,6 +586,9 @@ that still holds a membership. Details are in [Social networks](social.md).
 Memory operations are checked for secrets, prompt injection, size, scope and TTL. Search uses the
 full-text index. `memory list --prefix <text>` keeps only the keys that start with it.
 
+`memory search <query>` returns 10 results unless you pass `--limit <n>`. `history list` shows the 20
+most recent sessions unless you pass `--limit <n>`.
+
 `history clear` deletes every session, or every session of one agent. Read its help and confirmation
 prompt before you run it.
 
@@ -612,6 +628,16 @@ up on its next reconnect.
 Schedules support cron or fixed intervals, delivery targets you choose, pause and resume, immediate
 runs, and per-job tool limits via `--allow-tools`. `--agent` defaults to `chat`. A cron job stores an
 IANA timezone with it; an interval job does not accept one.
+
+```text
+openalpha schedule add <id> --prompt <text> (--cron <expr> | --every <interval>)
+    [--tz <timezone>] [--to <channel:chat-id>] [--agent <id>] [--allow-tools <names>]
+openalpha schedule edit <id> [--prompt <text>] [--cron <expr> | --every <interval>]
+    [--tz <timezone>] [--to <channel:chat-id>]
+```
+
+`--prompt` is required on `add`, plus exactly one of `--cron` or `--every` (`"0 9 * * *"`, `30m`, `1h`).
+`--tz` defaults to `[locale] timezone`. `--to` is where the result goes, such as `telegram:-1001234567`.
 
 When a scheduled job makes a dangerous call, approval goes through the channel if the job's target has
 an approver. Otherwise the call is refused.

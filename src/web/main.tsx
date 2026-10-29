@@ -42,7 +42,7 @@ const root = document.getElementById(ROOT_ID)
 if (root !== null && window.top === window.self) {
   removeStorage('local', RETIRED_TOKEN_KEY)
   removeStorage('session', RETIRED_TOKEN_KEY)
-  // Before anything can read or log the address: the code leaves the URL at once.
+  // Before anything can read or log the address: the code leaves the URL once the daemon answers it.
   const code = takeCodeFromHash()
   const chatTab = new URLSearchParams(location.search).get(CHAT_TAB_PARAM) ?? undefined
 

@@ -397,7 +397,10 @@ the one list the terminal prints and `config validate` reports.
 A channel whose `start()` throws
 `OperatorConfigError` (token missing or rejected) is disposed and logged `channel.start_skipped`;
 `startChannels` returns it in `skipped`, so a channel that never listened admits nobody. An
-`ApiTokenError` from the API starter is handled the same way (`api.token_unusable`).
+`ApiTokenError` from the API starter is handled the same way (`api.token_unusable`), and so is
+`ApiPortInUseError` (`api.port_in_use`): either leaves the API closed as a `kind: 'api'` degraded item and
+the daemon running. Any other API start failure still stops the start. Each maintenance disposer is
+registered as its subsystem starts, so a later one that throws cannot lose an earlier one.
 
 The daemon task
 hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the foreground `start` prints them on
@@ -482,6 +485,7 @@ Once the run has exited cleanly and `boot` is disposed, `main` calls `restartInP
 
 **Requests and failures.**
 
+- A request whose client already hung up logs `api.request_aborted` at debug and is not a failure.
 - A request still running when the daemon stops answers 503 `stopping` and logs `api.handler_stopped` at info; the API's stop gives open requests `SHUTDOWN_DRAIN_MS`, then cuts any left (a stalled body) with `server.stop(true)` and logs `api.stop_forced`; the page keeps its last figures and reads again once its socket is back.
 - The marker never touches the upgrade announcement, so a restart cannot read as a failed upgrade.
 - A helper that cannot start (or a signal that cannot be sent), or a helper that exits while this daemon still runs, removes the marker, releases the pending flag so a new restart can start, and files `ui.restartFailed` to the bell as a `daemon_notice` of kind `restart-failed`, because the page already got its 202 and would otherwise wait for a new pid for good.
@@ -806,7 +810,7 @@ arbitrary tool arguments.
 
 ### The office page (`web`)
 
-The `web` module is the office page: a Preact interface with signals for state and a canvas scene, bundled by Bun and served by the daemon at `GET /` (`src/web/api.ts` exports `officePage`, the one thing the server imports). The page itself is static and unauthenticated; everything it reads is `/v1`, behind a browser session. `main.tsx` refuses to run inside a frame before anything else, clears the old `office.token` storage key, and trades a `#code=` in the address for a session before the first load.
+The `web` module is the office page: a Preact interface with signals for state and a canvas scene, bundled by Bun and served by the daemon at `GET /` (`src/web/api.ts` exports `officePage`, the one thing the server imports). The page itself is static and unauthenticated; everything it reads is `/v1`, behind a browser session. `main.tsx` refuses to run inside a frame before anything else, clears the old `office.token` storage key, and trades a `#code=` in the address for a session before the first load. The code stays in the address until the daemon answers (a refusal included) and is tried again while no answer comes (no connection, or a 5xx such as a proxy's 502 to 504 while the daemon restarts), so a timeout or a restart does not burn the link; a refusal with error code `locked` reads as the lockout, any other shows its sentence as sent.
 
 **What it may import.** `i18n` at runtime, and `import type` from `app/server/wire/*` only. [scripts/check-dag.ts](../../../scripts/check-dag.ts) carries that one exception (`isWebWireTypeImport`). The wire types are therefore the whole contract: a server change that breaks the page fails `tsc -p src/web/tsconfig.json`, the fourth program of `bun run typecheck`. The socket also checks the contract version it was built against and stops, telling the operator to reload, when the daemon speaks another.
 

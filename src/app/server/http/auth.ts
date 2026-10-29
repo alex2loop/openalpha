@@ -232,6 +232,32 @@ export function apiTokenPath(dataDir: string): string {
   return join(dataDir, 'auth', 'api', 'token.json')
 }
 
+/** Whether a configured or stored value can serve as the API token. */
+export function isApiTokenUsable(token: unknown): token is string {
+  return typeof token === 'string' && token.length >= MIN_TOKEN_LEN
+}
+
+/** The token the variable `token_env` names holds, or the `ApiTokenError` saying why it cannot
+ *  serve. The daemon and the CLI read it here, so both refuse the same values. */
+export function resolveTokenEnv(
+  tokenEnv: string,
+  env: Readonly<Record<string, string | undefined>>
+): string {
+  const value = env[tokenEnv]
+
+  if (isApiTokenUsable(value)) {
+    return value
+  }
+
+  throw new ApiTokenError(
+    `[api].token_env = "${tokenEnv}" is set but that variable is empty or shorter than ${MIN_TOKEN_LEN} chars`,
+    {
+      key: 'errors.configApiTokenShort',
+      params: { env: tokenEnv, minimum: MIN_TOKEN_LEN, brand: BRAND.name },
+    }
+  )
+}
+
 export async function ensureApiToken(
   config: ResolvedConfig,
   env: Readonly<Record<string, string | undefined>>
@@ -239,19 +265,7 @@ export async function ensureApiToken(
   const tokenEnv = config.api.tokenEnv
 
   if (tokenEnv !== undefined && tokenEnv !== '') {
-    const value = env[tokenEnv]
-
-    if (value !== undefined && value.length >= MIN_TOKEN_LEN) {
-      return value
-    }
-
-    throw new ApiTokenError(
-      `[api].token_env = "${tokenEnv}" is set but that variable is empty or shorter than ${MIN_TOKEN_LEN} chars`,
-      {
-        key: 'errors.configApiTokenShort',
-        params: { env: tokenEnv, minimum: MIN_TOKEN_LEN, brand: BRAND.name },
-      }
-    )
+    return resolveTokenEnv(tokenEnv, env)
   }
 
   const path = apiTokenPath(config.paths.dataDir)
@@ -281,7 +295,5 @@ function readToken(parsed: unknown): string | null {
     return null
   }
 
-  const token = parsed.token
-
-  return typeof token === 'string' && token.length >= MIN_TOKEN_LEN ? token : null
+  return isApiTokenUsable(parsed.token) ? parsed.token : null
 }

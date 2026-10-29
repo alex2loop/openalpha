@@ -146,10 +146,14 @@ async function disposeChannel(options: DisposeChannelOptions): Promise<void> {
   }
   state.disposed = true
 
-  runtimeAbort.abort()
   parts.handler.dispose()
   parts.proactive.dispose()
   parts.planReviewer.dispose()
+  // Before the abort and the adapter's close: the queued notices get their one bounded attempt
+  // while the transport and its signal are still live.
+  await closeQuietly(deps, 'notifier', () => parts.notifier.dispose())
+
+  runtimeAbort.abort()
   await closeQuietly(deps, 'queue', () => parts.queue.dispose())
   await closeQuietly(deps, 'adapter', () => adapter.dispose())
 
@@ -165,8 +169,6 @@ async function disposeChannel(options: DisposeChannelOptions): Promise<void> {
       })
     }
   }
-
-  await closeQuietly(deps, 'notifier', () => parts.notifier.dispose())
 
   state.status = {
     ...state.status,

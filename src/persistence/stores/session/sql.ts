@@ -59,6 +59,7 @@ export interface SessionSql {
   readonly channelOf: string
   readonly selectRun: string
   readonly removeRoutes: string
+  readonly removeBinding: string
   readonly removeMessages: string
   readonly detachAttempts: string
   readonly remove: string
@@ -68,6 +69,8 @@ export interface SessionSql {
   readonly countRunningByAgent: string
   readonly clearRoutesAll: string
   readonly clearRoutesByAgent: string
+  readonly clearBindingsAll: string
+  readonly clearBindingsByAgent: string
   readonly clearMessagesAll: string
   readonly clearMessagesByAgent: string
   readonly detachAttemptsAll: string
@@ -189,7 +192,13 @@ function buildClaimSql(d: Dialect): ClaimSql {
 
 type RemoveSql = Pick<
   SessionSql,
-  'channelOf' | 'selectRun' | 'removeRoutes' | 'removeMessages' | 'detachAttempts' | 'remove'
+  | 'channelOf'
+  | 'selectRun'
+  | 'removeRoutes'
+  | 'removeBinding'
+  | 'removeMessages'
+  | 'detachAttempts'
+  | 'remove'
 >
 
 // `channelOf` is the read a caller makes before it removes: only some channels' sessions may go.
@@ -198,6 +207,10 @@ function buildRemoveSql(d: Dialect): RemoveSql {
     channelOf: `SELECT channel FROM sessions WHERE id = ${d.param(1)}`,
     selectRun: `SELECT active_run_id FROM sessions WHERE id = ${d.param(1)}`,
     removeRoutes: `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} AND value = ${d.param(2)}`,
+    // The agent a chat is bound to, keyed (channel, chat id): the app's chat id is its session id.
+    removeBinding:
+      `DELETE FROM bindings WHERE chat_id = ${d.param(1)} ` +
+      `AND channel = (SELECT channel FROM sessions WHERE id = ${d.param(2)})`,
     removeMessages: `DELETE FROM session_messages WHERE session_id = ${d.param(1)}`,
     detachAttempts: detachAttemptsSql(`session_id = ${d.param(1)}`),
     remove: `DELETE FROM sessions WHERE id = ${d.param(1)}`,
@@ -219,6 +232,8 @@ type ClearSql = Pick<
   | 'countRunningByAgent'
   | 'clearRoutesAll'
   | 'clearRoutesByAgent'
+  | 'clearBindingsAll'
+  | 'clearBindingsByAgent'
   | 'clearMessagesAll'
   | 'clearMessagesByAgent'
   | 'detachAttemptsAll'
@@ -239,6 +254,13 @@ function buildClearSql(d: Dialect): ClearSql {
     clearRoutesByAgent:
       `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} ` +
       `AND value IN (SELECT id FROM sessions WHERE agent_id = ${d.param(2)})`,
+    // The agent a chat is bound to, keyed (channel, chat id): the app's chat id is its session id.
+    clearBindingsAll:
+      'DELETE FROM bindings WHERE chat_id IN ' +
+      '(SELECT id FROM sessions WHERE sessions.channel = bindings.channel)',
+    clearBindingsByAgent:
+      'DELETE FROM bindings WHERE chat_id IN ' +
+      `(SELECT id FROM sessions WHERE sessions.channel = bindings.channel AND sessions.agent_id = ${d.param(1)})`,
     clearMessagesAll: 'DELETE FROM session_messages',
     clearMessagesByAgent:
       `DELETE FROM session_messages WHERE session_id IN ` +

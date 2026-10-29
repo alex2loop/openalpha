@@ -1,10 +1,12 @@
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
-import type { InstrumentRef } from '@/trading/kernel/instrument'
+import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 
 export interface PlanRecordedEntryOptions {
   readonly instrument: InstrumentRef
   /** The fill price on the write path. Absent on the tick, which plans from the settled close. */
   readonly entry?: number
+  /** The day the fill traded, which says whether its price stands before or after an ex-date. */
+  readonly entryDay?: TradingDay
   readonly now: number
   readonly signal: AbortSignal
 }

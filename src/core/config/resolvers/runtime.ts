@@ -13,6 +13,7 @@ import { parseChannelAddress } from '@/core/channels'
 import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
 import { DEFAULT_MAX_DURATION_MS, DEFAULT_MAX_TOOL_CALLS, DEFAULT_MAX_TURNS } from '@/core/limits'
+import { MS_PER_SECOND } from '@/core/utils/time'
 
 // Caps are opt-in guardrails: 0 = uncapped, only tracked.
 const DEFAULT_MAX_DAILY_USD = 0
@@ -26,6 +27,11 @@ const DEFAULT_TICK_SECONDS = 30
 const DEFAULT_MAX_PER_TICK = 5
 const DEFAULT_MAX_GLOBAL = 50
 const DEFAULT_SCHEDULER_APPROVAL_TIMEOUT_MS = 900_000
+// Long enough for a restart, a slow tick or a short outage; short enough that a morning slot is
+// never answered after the session it was for.
+const DEFAULT_LATE_GRACE_MS = 900_000
+// A slot is seen at the first tick after its time, so a grace under one tick skips every cron slot.
+const MIN_LATE_GRACE_MS = DEFAULT_TICK_SECONDS * MS_PER_SECOND
 const DEFAULT_COMPACTION_THRESHOLD = 0.75
 const DEFAULT_MAX_COMPACTION_PASSES = 3
 const DEFAULT_APPROVAL_TIMEOUT_MS = 120_000
@@ -62,6 +68,7 @@ export interface ResolvedSchedule {
   readonly maxPerTick: number
   readonly maxGlobal: number
   readonly approvalTimeoutMs: number
+  readonly lateGraceMs: number
   readonly failureTarget?: ChannelAddress
 }
 
@@ -150,6 +157,18 @@ export function resolveSchedule(raw: RawSchedule | undefined): ResolvedSchedule 
     maxPerTick: DEFAULT_MAX_PER_TICK,
     maxGlobal: DEFAULT_MAX_GLOBAL,
     approvalTimeoutMs: raw?.approval_timeout_ms ?? DEFAULT_SCHEDULER_APPROVAL_TIMEOUT_MS,
+    lateGraceMs: raw?.late_grace_ms ?? DEFAULT_LATE_GRACE_MS,
+  }
+
+  if (schedule.lateGraceMs < MIN_LATE_GRACE_MS) {
+    throw new OperatorConfigError(
+      `invalid schedule.late_grace_ms: ${schedule.lateGraceMs} is under one scheduler tick (${MIN_LATE_GRACE_MS} ms)`,
+      {
+        key: 'errors.configLateGrace',
+        params: { value: schedule.lateGraceMs, min: MIN_LATE_GRACE_MS },
+      },
+      { path: ['schedule', 'late_grace_ms'] }
+    )
   }
 
   if (raw?.failure_target !== undefined) {

@@ -11,6 +11,7 @@ import type { Logger } from '@/core/logging/logger'
 import { resolveChannelDeps } from '@/app/channel-deps'
 import { startChannelWatch } from '@/app/channel-watch'
 import { startRetention } from '@/app/retention'
+import { ApiPortInUseError } from '@/app/server/http/api-port-error'
 import { ApiTokenError } from '@/app/server/http/auth'
 import { startSocialUpkeep } from '@/app/social-upkeep'
 import { startUpdateWatch } from '@/app/update/watch'
@@ -52,10 +53,8 @@ export async function startDaemonSubsystems(
   const taskStatus = app.resolve('taskStatus')
   const onTaskPass = taskStatus.listener
 
-  // The env is injected once here so no adapter reaches for process.env on its own.
-  const channels = await startChannels(resolveChannelDeps(app, startupSignal, process.env))
+  const channels = await startOwnedChannels(app, startupSignal, disposers)
   const tradingTasks = app.resolve('tradingServices').daemonTasks
-  disposers.push(() => channels.stop())
   disposers.push(
     startScheduledWorkflows(
       {
@@ -103,7 +102,7 @@ export async function startDaemonSubsystems(
     trackDaemonTask({ tasks, state, startup, name: task.name, task: task.start(startupSignal) })
   }
 
-  disposers.push(...startMaintenance(app, logger, onTaskPass))
+  startMaintenance(app, disposers, { logger, onTaskPass })
 
   attachPluginTasks({ app, signal: startupSignal, startup, tasks, state })
 
@@ -143,15 +142,62 @@ function taskNames(app: App, tradingTasks: readonly DaemonTask[]): readonly stri
   ]
 }
 
-function startMaintenance(app: App, logger: Logger, onTaskPass: TaskPassListener): Disposer[] {
-  return [
-    startRetention(app, logger, onTaskPass),
-    startUpdateWatch(app, { logger, upgrade: app.resolve('selfUpgrade'), onTaskPass }),
-    startSocialUpkeep(app, logger, onTaskPass),
-  ]
+// Each disposer is registered as its subsystem starts, so one that throws leaves the earlier ones
+// to the teardown instead of losing them with a half-built array.
+function startMaintenance(
+  app: App,
+  disposers: Disposer[],
+  deps: { readonly logger: Logger; readonly onTaskPass: TaskPassListener }
+): void {
+  const { logger, onTaskPass } = deps
+
+  disposers.push(startRetention(app, logger, onTaskPass))
+  disposers.push(startUpdateWatch(app, { logger, upgrade: app.resolve('selfUpgrade'), onTaskPass }))
+  disposers.push(startSocialUpkeep(app, logger, onTaskPass))
 }
 
-// A token the operator named but cannot serve keeps the API closed; any other failure stops the start.
+// The channels' own lifetime, not the daemon's: shutdown aborts `startupSignal` first, and a channel
+// aborted with it has nothing left to send its queued notices through. The daemon's signal still
+// cuts a start short; once the channels are up only `stop` ends them, after their final drain. A
+// second stop signal exits the process, so nothing here waits on it.
+async function startOwnedChannels(
+  app: App,
+  startupSignal: AbortSignal,
+  disposers: Disposer[]
+): Promise<StartChannelsResult> {
+  const lifetime = new AbortController()
+  const cutShort = (): void => lifetime.abort(startupSignal.reason)
+
+  if (startupSignal.aborted) {
+    cutShort()
+  } else {
+    startupSignal.addEventListener('abort', cutShort, { once: true })
+  }
+
+  try {
+    // The env is injected once here so no adapter reaches for process.env on its own.
+    const channels = await startChannels(resolveChannelDeps(app, lifetime.signal, process.env))
+
+    disposers.push(async () => {
+      try {
+        await channels.stop()
+      } finally {
+        lifetime.abort()
+      }
+    })
+
+    return channels
+  } catch (err: unknown) {
+    lifetime.abort()
+
+    throw err
+  } finally {
+    startupSignal.removeEventListener('abort', cutShort)
+  }
+}
+
+// A token the operator named but cannot serve, or a port another process holds, keeps the API closed
+// and the rest of the daemon running; any other failure stops the start.
 async function startApi(app: App, teardown: Teardown): Promise<readonly DegradedItem[]> {
   const logger = app.resolve('logger')
 
@@ -164,13 +210,19 @@ async function startApi(app: App, teardown: Teardown): Promise<readonly Degraded
 
     return []
   } catch (err: unknown) {
-    if (!(err instanceof ApiTokenError)) {
-      throw err
+    if (err instanceof ApiTokenError) {
+      logger.warn('api.token_unusable', { err: formatErrForLog(err) })
+
+      return [{ kind: 'api', subject: 'api', message: err.operator }]
     }
 
-    logger.warn('api.token_unusable', { err: formatErrForLog(err) })
+    if (err instanceof ApiPortInUseError) {
+      logger.warn('api.port_in_use', { port: app.config.api.port, err: formatErrForLog(err) })
 
-    return [{ kind: 'api', subject: 'api', message: err.operator }]
+      return [{ kind: 'api', subject: 'api', message: err.operator }]
+    }
+
+    throw err
   }
 }
 

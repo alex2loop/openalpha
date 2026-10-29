@@ -158,7 +158,7 @@ function cryptoManifest(config: TradingConfig): MarketManifest {
     icon: '🪙',
     quoteUnit: quoteUnit('currency-per-coin'),
     defaultCalendar,
-    calendar: createTradingCalendar(defaultCalendar, config.markets[CRYPTO_MARKET_REF]?.holidays),
+    calendar: createTradingCalendar(defaultCalendar, config.markets[CRYPTO_MARKET_REF]),
     ownsRegion: false,
     detection: 'fetched',
     settlementSessions: 0,

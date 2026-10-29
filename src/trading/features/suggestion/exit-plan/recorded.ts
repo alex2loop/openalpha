@@ -18,8 +18,18 @@ import type { InvestmentHorizon, ProfileStamp } from '@/trading/kernel/operator/
 import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { resolveDay } from '@/trading/features/market-data/resolve'
-import { keepTakeProfit, ratchetStop } from '@/trading/features/suggestion/exit-plan/ratchet'
+import {
+  keepTakeProfit,
+  ratchetStop,
+  toStandingPlan,
+} from '@/trading/features/suggestion/exit-plan/ratchet'
 import { toHeldPosition } from '@/trading/features/suggestion/pipeline/concentration'
+import { instrumentEvents } from '@/trading/features/suggestion/pipeline/draft-input'
+import {
+  adjustForExRight,
+  type ExRightGap,
+  toSeriesBasisPrice,
+} from '@/trading/features/suggestion/pipeline/ex-right'
 import { buildSuggestionId, isRecordedPlan, planStopOf } from '@/trading/features/suggestion/types'
 import { strategyId } from '@/trading/kernel/instrument'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
@@ -62,39 +72,37 @@ async function planRecordedEntry(
 
   const settled = resolveSettledDay(market.manifest.calendar, now)
   const held = toHeldPosition(await deps.holdingsAt({ now, signal }), instrument)
-  const heldSince = held?.openedOn === undefined ? {} : { heldSince: held.openedOn }
   const [standing, series, board] = await Promise.all([
     deps.store.findLatestExitPlan({
       market: instrument.market,
       ticker: instrument.ticker,
-      ...heldSince,
+      ...heldSinceOf(held),
       signal,
     }),
     bars.run({ instrument, asOf: settled, now, sessions: LEVEL_BARS_SESSIONS, signal }),
     readBoard(market, { ...options, settled }),
   ])
+  const exRight = await readExRight(market, { ...options, day: resolveDay(market, now), series })
+  const kept = await standingIfUnspent(market, standing, { ...options, settled, board, exRight })
 
-  if (
-    standing !== null &&
-    standing.strategyVersion === market.manifest.strategyVersion &&
-    !isSpent(standing, watchedPrice(market, { series, board }))
-  ) {
-    return { kind: 'standing', plan: standing }
+  if (kept !== null) {
+    return { kind: 'standing', plan: kept }
   }
 
-  if (series.kind !== 'available') {
+  if (exRight.bars?.kind !== 'available') {
     return { kind: 'unplanned', reason: 'no-levels' }
   }
 
   const plan = await buildRecordedPlan(deps, market, {
     ...options,
+    ...(exRight.entry === undefined ? {} : { entry: exRight.entry }),
     ...(held === undefined ? {} : { held }),
-    ...heldSince,
     ...(board === undefined ? {} : { board }),
+    ...(exRight.gap === undefined ? {} : { gap: exRight.gap }),
     settled,
-    candles: series.value,
-    provenance: series.provenance,
-    caveats: series.caveats,
+    candles: exRight.bars.value,
+    provenance: exRight.bars.provenance,
+    caveats: [...exRight.bars.caveats, ...exRight.caveats],
   })
 
   if (plan === null) {
@@ -106,12 +114,93 @@ async function planRecordedEntry(
   return created ? { kind: 'planned', plan } : { kind: 'unplanned', reason: 'row-exists' }
 }
 
+/** The day the holding opened: only a plan written since can stand, and the floor a new stop may not
+ *  sit under comes from its plans. */
+function heldSinceOf(held: HeldPosition | undefined): { readonly heldSince?: TradingDay } {
+  return held?.openedOn === undefined ? {} : { heldSince: held.openedOn }
+}
+
+type ExRightView = ReturnType<typeof adjustForExRight> & {
+  /** The fill's price on the series' basis, where there is a fill to move. */
+  readonly entry?: number
+}
+
+/** The settled series moved onto the basis of an ex-date the store has not caught up to, the way a
+ *  suggestion's levels read it, and the fill's price moved onto the same basis (events are read from
+ *  the fill's day when it precedes the series' end: a refresh may have restated the bars across an
+ *  ex-date the fill's price still stands before). A failed events read is no gap: the next run's
+ *  adjustment finds it. */
+async function readExRight(
+  market: Market,
+  input: PlanRecordedEntryOptions & {
+    readonly day: TradingDay
+    readonly series: SourceResult<readonly Candle[]>
+  }
+): Promise<ExRightView> {
+  const { instrument, day, series, entry, entryDay } = input
+  const newest = series.kind === 'available' ? series.value.at(-1) : undefined
+  const events =
+    newest === undefined
+      ? undefined
+      : await market.capabilities.events?.run({
+          instrument,
+          asOf: day,
+          now: input.now,
+          fromDay: entryDay !== undefined && entryDay < newest.at ? entryDay : newest.at,
+          signal: input.signal,
+        })
+  const rows = instrumentEvents(events, instrument)
+  const adjusted = adjustForExRight(
+    { bars: series, quote: undefined },
+    { events: rows, asOf: day, calendar: market.manifest.calendar }
+  )
+
+  if (newest === undefined || entry === undefined || entryDay === undefined) {
+    return adjusted
+  }
+
+  const basis = { events: rows, newestDay: newest.at, gap: adjusted.gap }
+
+  return { ...adjusted, entry: toSeriesBasisPrice({ price: entry, day: entryDay }, basis) }
+}
+
+/** The plan already on the book, when it still answers: priced by this strategy version and, for a
+ *  recorded plan, not yet passed by the price it is watched on. */
+async function standingIfUnspent(
+  market: Market,
+  standing: StoredSuggestion | null,
+  input: PlanRecordedEntryOptions & {
+    readonly settled: TradingDay
+    readonly board: Quote | undefined
+    readonly exRight: ReturnType<typeof adjustForExRight>
+  }
+): Promise<StoredSuggestion | null> {
+  if (standing === null || standing.strategyVersion !== market.manifest.strategyVersion) {
+    return null
+  }
+
+  const on = await toStandingPlan(standing, {
+    market,
+    instrument: input.instrument,
+    gap: input.exRight.gap,
+    asOf: input.settled,
+    now: input.now,
+    signal: input.signal,
+  })
+
+  // A plan the gap cannot price is not carried: its levels describe a trade that no longer exists.
+  return on.plan === null ||
+    isSpent(on, watchedPrice(market, { bars: input.exRight.bars, board: input.board }))
+    ? null
+    : standing
+}
+
 /** The price a stored plan's levels are watched on: the board's buying price where the market's
  *  bars are another instrument's tape, the settled close otherwise. */
 function watchedPrice(
   market: Market,
   reads: {
-    readonly series: SourceResult<readonly Candle[]>
+    readonly bars: SourceResult<readonly Candle[]> | undefined
     readonly board: Quote | undefined
   }
 ): number | undefined {
@@ -119,16 +208,22 @@ function watchedPrice(
     return reads.board === undefined ? undefined : exitPriceOf(reads.board)
   }
 
-  return reads.series.kind === 'available' ? reads.series.value.at(-1)?.close : undefined
+  return reads.bars?.kind === 'available' ? reads.bars.value.at(-1)?.close : undefined
 }
 
 /** Only a recorded plan is judged here: a call resolves on the outcome tick and drops out on its
  *  own. A price at or past the target, or at or under the stop as the tick has trailed it, has
- *  spent the plan; an unknown price leaves it standing rather than replacing a plan on no evidence. */
-function isSpent(plan: StoredSuggestion, price: number | undefined): boolean {
-  const stop = planStopOf(plan)
+ *  spent the plan; an unknown price leaves it standing rather than replacing a plan on no evidence.
+ *  The price and the levels are compared on the series' basis. */
+function isSpent(
+  standing: Awaited<ReturnType<typeof toStandingPlan>>,
+  price: number | undefined
+): boolean {
+  const { plan, toBasis } = standing
+  const stop = plan === null ? undefined : planStopOf(plan)
 
   if (
+    plan === null ||
     !isRecordedPlan(plan) ||
     price === undefined ||
     stop === undefined ||
@@ -137,17 +232,17 @@ function isSpent(plan: StoredSuggestion, price: number | undefined): boolean {
     return false
   }
 
-  return price >= plan.target || price <= stop
+  return price >= toBasis(plan.target) || price <= toBasis(stop)
 }
 
 interface RecordedPlanInput extends PlanRecordedEntryOptions {
   /** Absent only when the book no longer holds the name by the time the plan is written. */
   readonly held?: HeldPosition
-  /** The day that holding opened: the floor a new stop may not sit under comes from its plans. */
-  readonly heldSince?: TradingDay
   /** The dealer board the levels sit on, where the market quotes one. */
   readonly board?: Quote
   readonly settled: TradingDay
+  /** The ex-dates the candles were moved across; absent where none passed since the series ended. */
+  readonly gap?: ExRightGap
   readonly candles: readonly Candle[]
   readonly provenance: readonly SourceProvenance[]
   readonly caveats: readonly Caveat[]
@@ -196,12 +291,13 @@ async function buildRecordedPlan(
       market: instrument.market,
       ticker: instrument.ticker,
       includeResolved: true,
-      ...(input.heldSince === undefined ? {} : { heldSince: input.heldSince }),
+      ...heldSinceOf(input.held),
       signal,
     }),
   ])
   const horizon = horizonFor(profile, manifest.segment)
-  // On the tick a board market has no fill, so it enters where the shop sells now.
+  // The fill's price is already on the candles' basis. On the tick a board market has no fill, so
+  // it enters where the shop sells now.
   const entry = input.entry ?? board?.price
   const exitPrice = exitPriceFor(entry, board)
   const result = await market.levels({
@@ -221,11 +317,7 @@ async function buildRecordedPlan(
     return null
   }
 
-  const ratcheted = ratchetStop(result.levels, prior === null ? undefined : planStopOf(prior))
-  const kept = keepTakeProfit(ratcheted.levels, prior, {
-    position: input.held,
-    trails: market.trail !== undefined,
-  })
+  const carried = await ratchetOnBasis(market, input, { prior, levels: result.levels })
 
   return toPlanRow(market, {
     ...input,
@@ -233,12 +325,51 @@ async function buildRecordedPlan(
     profile: toProfileStamp({ profile, saved }),
     takeProfitTranchePct: profile.takeProfitTranchePct,
     locale: deps.defaultLocale,
+    levels: carried.levels,
+    ...(carried.standingTakeProfit === undefined
+      ? {}
+      : { standingTakeProfit: carried.standingTakeProfit }),
+    caveats: [...input.caveats, ...result.caveats, ...carried.caveats],
+  })
+}
+
+/** The fresh stop raised to the prior plan's, and its take-profit kept, both moved onto the same
+ *  basis as the fresh levels. */
+async function ratchetOnBasis(
+  market: Market,
+  input: RecordedPlanInput,
+  from: { readonly prior: StoredSuggestion | null; readonly levels: TradeLevels }
+): Promise<{
+  readonly levels: TradeLevels
+  readonly standingTakeProfit?: number
+  readonly caveats: readonly Caveat[]
+}> {
+  const { plan, toBasis } = await toStandingPlan(from.prior, {
+    market,
+    instrument: input.instrument,
+    gap: input.gap,
+    asOf: input.settled,
+    now: input.now,
+    signal: input.signal,
+  })
+  const priorStop = plan === null ? undefined : planStopOf(plan)
+  const ratcheted = ratchetStop(
+    from.levels,
+    priorStop === undefined ? undefined : toBasis(priorStop)
+  )
+  const kept = keepTakeProfit(ratcheted.levels, plan, {
+    position: input.held,
+    trails: market.trail !== undefined,
+    toBasis,
+  })
+
+  return {
     levels: ratcheted.levels,
+    caveats: [...ratcheted.caveats, ...kept.caveats],
     ...(kept.standingTakeProfit === undefined
       ? {}
       : { standingTakeProfit: kept.standingTakeProfit }),
-    caveats: [...input.caveats, ...result.caveats, ...ratcheted.caveats, ...kept.caveats],
-  })
+  }
 }
 
 interface PlanRowInput extends RecordedPlanInput {

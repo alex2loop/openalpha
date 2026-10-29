@@ -118,7 +118,7 @@ function goldManifest(config: TradingConfig): MarketManifest {
     icon: '🥇',
     quoteUnit: quoteUnit('currency-per-troy-ounce'),
     defaultCalendar,
-    calendar: createTradingCalendar(defaultCalendar, config.markets[GOLD_MARKET_REF]?.holidays),
+    calendar: createTradingCalendar(defaultCalendar, config.markets[GOLD_MARKET_REF]),
     // The only market trading the global region.
     ownsRegion: true,
     detection: 'stored',

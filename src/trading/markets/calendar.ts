@@ -1,9 +1,10 @@
-import type { CalendarPolicy, SessionHours } from '@/trading/kernel/config'
+import type { CalendarPolicy, MarketConfig, SessionHours } from '@/trading/kernel/config'
 import type { SessionPhase, TradingDay, TradingSessionState } from '@/trading/kernel/instrument'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { ConfigError } from '@/core/errors'
 import { LOCAL_TIME_RE, MS_PER_DAY, MS_PER_MINUTE, MS_PER_SECOND } from '@/core/utils/time'
 import { tradingDay } from '@/trading/kernel/instrument'
+import { createRuleClosures } from '@/trading/markets/rule-closures'
 import { cachedFormatter } from '@/trading/render/datetime'
 import { dayFromEpochSeconds } from '@/trading/sources/rows/normalization'
 
@@ -61,35 +62,30 @@ interface SessionMinutes {
   readonly breakEnd?: number
 }
 
-/** `configuredHolidays` are the closures the operator declared under `[trading.markets.<id>]` since
- *  the build shipped, added to the market's own table and never replacing it. */
+/** The closures the operator declared under `[trading.markets.<id>]` lay over the market's own
+ *  rules: `holidays` close a day the rules leave open, `openDays` reopen one they close, and the
+ *  operator wins. */
 export function createTradingCalendar(
   policy: CalendarPolicy,
-  configuredHolidays: readonly TradingDay[] = []
+  settings?: Pick<MarketConfig, 'holidays' | 'openDays'>
 ): TradingCalendar {
   const session = resolveSession(policy)
   const weekend: ReadonlySet<number> = new Set(policy.weekendDays)
-  const holidays: ReadonlySet<TradingDay> = new Set([
-    ...(policy.holidays ?? []),
-    ...configuredHolidays,
-  ])
-  // The published closures are the forward answer; which past days the exchange was actually shut
-  // is still answered by the bars themselves - see `advanceObservedSessions`.
+  const holidays: ReadonlySet<TradingDay> = new Set(settings?.holidays)
+  const openDays: ReadonlySet<TradingDay> = new Set(settings?.openDays)
+  const isWeekend = (day: TradingDay): boolean => weekend.has(dayOfWeek(day))
+  const ruleClosesDay = createRuleClosures(policy, isWeekend)
+  // The rules are the forward answer; which past days the exchange was actually shut is still
+  // answered by the bars themselves - see `advanceObservedSessions`.
   const isTradingDay = (day: TradingDay): boolean =>
-    !(weekend.has(dayOfWeek(day)) || holidays.has(day))
+    !(isWeekend(day) || holidays.has(day)) && (openDays.has(day) || !ruleClosesDay(day))
   const sessionCloseAt = (day: TradingDay): number =>
     zonedEpochMs(day, session.close, policy.timezone)
-
-  const lastHoliday = [...holidays].reduce<TradingDay | undefined>(
-    (latest, day) => (latest === undefined || day > latest ? day : latest),
-    undefined
-  )
 
   return {
     timezone: policy.timezone,
     continuous: policy.continuous,
     ...(policy.continuous ? {} : { hours: toSessionHours(policy) }),
-    ...(lastHoliday === undefined ? {} : { lastHoliday }),
     isTradingDay,
     dayAt: (epochMs) => dayFromEpochSeconds(epochMs / MS_PER_SECOND, policy.timezone),
     addTradingDays: (day, count) => addTradingDays(day, count, isTradingDay),
@@ -215,8 +211,7 @@ export function sessionPhase(calendar: TradingCalendar, now: number): SessionPha
 }
 
 /** A market's own day at one instant: the date on its clock, whether it trades, the next day it
- *  does, and where the session stands. Past the holiday table (`lastHoliday`) a closure reads as a
- *  session, as it does everywhere else; boot warns when the table runs out. */
+ *  does, and where the session stands. */
 export interface MarketDay {
   readonly today: TradingDay
   readonly tradesToday: boolean
