@@ -441,7 +441,7 @@ Size is budgeted on the entry stop, and the market state scales the whole order.
 
 The segment's market-state scale reduces the final size, alongside confidence and the trader's intent. So a defensive market shrinks a buy even when cash is not what limits it. `suggestion.size-scaled-by-regime` tells you when the market state was the tightest of the three.
 
-The cash ceiling leaves room for what the order will cost: the buy fee and the `maximum_price_drift` a market order's own cash cap allows for the fill. The sizer leaves that room on every buy, since it does not know the order type you will use. So a buy sized to the cash you hold is not refused at `/trade` for the missing room.
+The cash ceiling leaves room for what the order will cost: the buy fee and the `maximum_price_drift` a market order's own cash cap allows for the fill. The sizer leaves the fee room on every buy, and the drift room wherever the market's default venue places orders, since it does not know the order type you will use. So a buy sized to the cash you hold is not refused at `/trade` for the missing room. A market you trade by hand, such as VN equities or VN gold, never takes a market order from OpenAlpha, so it keeps only the fee room.
 
 Every name in one `/suggest` batch is sized against the same book as it stood before the batch. So
 each buy fits the cash and open-risk room on its own.
@@ -765,7 +765,9 @@ do first: the cash or the shares land weeks after the ex-date, and only a record
 The check that lowers confidence on a buy that averages down measures against your cost less the cash
 dividends the units still held have earned: each lot earns every dividend that went ex after it was
 bought, whether or not the cash has landed. Otherwise every ex-date would read as a loss. It reads the
-dividends inside the corporate calendar the run already fetches, about six months back.
+dividends inside the corporate calendar the run already fetches, about six months back. A lot bought
+before that window may have earned dividends the read does not reach, so the suggestion says some
+dividends may not have been counted.
 
 The warning says "after dividends" only when some were taken off the cost. A dividend with no published
 amount counts for nothing, and so does a corporate calendar that could not be read; the warning then says

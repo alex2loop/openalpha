@@ -15,7 +15,7 @@ import { onChatFrame } from '@/web/state/feed'
 
 export const HISTORY_PAGE_SIZE = 30
 // Past this many earlier messages the panel stops offering more; the sessions dialog reads the rest.
-export const MAX_EARLIER = 300
+const MAX_EARLIER = 300
 
 /** `more`: an older page exists; `start`: the session's first message is in view; `capped`: the
  *  panel holds all it keeps. */

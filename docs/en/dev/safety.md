@@ -117,6 +117,11 @@ failures. Every code in `OrderErrorCode` sits in one of two groups.
 `order.unmirrorable`, `order.unmirrorable_fee`, `order.fee_unreported`, `order.unpriced_fill`, `order.fill_timeout`
 (still live at the exchange), `order.exit_failed` (open position, no stop).
 
+`order.fee_unreported` is reached only after Binance's receipt read re-lists the trades a bounded number of
+times with backoff (`rereadUntil`, `venues/transport.ts`, abortable); the mirror then logs it at `warn`
+(`order.fill_fee_unreported`), since `/record sync` books the fill later. Any other unbookable fill stays
+`order.fill_unbookable` at `error`.
+
 **The book is untouched:** `order.auth`, `order.network`, `order.rate_limited`, `order.insufficient`,
 `order.rejected`, `order.clock_skew`, `order.below_minimum`, `order.exit_below_minimum`, `order.exit_inverted`,
 `order.exit_oversized`, `order.book_moved`, `order.book_unpriced`, `order.sell_unsettled`, `order.sell_guarded`,

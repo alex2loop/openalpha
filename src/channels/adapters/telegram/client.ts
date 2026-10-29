@@ -36,7 +36,9 @@ type TelegramBody = Record<string, unknown> & { text: string }
 export interface TelegramApiContext {
   readonly botToken: string
   readonly fetchImpl: typeof fetch
-  readonly shutdownSignal: AbortSignal
+  /** Ends the polling and start-up calls. A send does not take it: delivery outlives intake, and
+   *  the adapter's `dispose` is what closes it. */
+  readonly intakeSignal: AbortSignal
   readonly logger: Logger
 }
 
@@ -154,13 +156,14 @@ export async function deleteWebhook(ctx: TelegramApiContext): Promise<void> {
     body: { drop_pending_updates: false },
     logKey: 'telegram.delete_webhook_failed',
     level: 'warn',
+    signal: ctx.intakeSignal,
   })
 }
 
 export async function getMe(ctx: TelegramApiContext): Promise<BotIdentity> {
   const res = await ctx.fetchImpl(buildTelegramUrl(ctx.botToken, 'getMe'), {
     headers: baseHeaders(),
-    signal: withTimeout(ctx, TELEGRAM_REQUEST_TIMEOUT_MS),
+    signal: withTimeout(TELEGRAM_REQUEST_TIMEOUT_MS, ctx.intakeSignal),
   })
 
   if (!res.ok) {
@@ -190,7 +193,7 @@ export async function getUpdates(
 
   const res = await ctx.fetchImpl(url.toString(), {
     headers: baseHeaders(),
-    signal: withTimeout(ctx, TELEGRAM_REQUEST_TIMEOUT_MS),
+    signal: withTimeout(TELEGRAM_REQUEST_TIMEOUT_MS, ctx.intakeSignal),
   })
 
   if (!res.ok) {
@@ -269,12 +272,10 @@ function baseHeaders(): Record<string, string> {
   return { ...BROWSER_HEADERS }
 }
 
-function withTimeout(ctx: TelegramApiContext, timeoutMs: number, extra?: AbortSignal): AbortSignal {
+function withTimeout(timeoutMs: number, extra?: AbortSignal): AbortSignal {
   const timeout = AbortSignal.timeout(timeoutMs)
 
-  return extra !== undefined
-    ? AbortSignal.any([ctx.shutdownSignal, extra, timeout])
-    : AbortSignal.any([ctx.shutdownSignal, timeout])
+  return extra === undefined ? timeout : AbortSignal.any([extra, timeout])
 }
 
 interface PostJsonRequest {
@@ -288,7 +289,7 @@ async function postJson(ctx: TelegramApiContext, req: PostJsonRequest): Promise<
     method: 'POST',
     headers: { ...baseHeaders(), 'content-type': 'application/json' },
     body: JSON.stringify(req.body),
-    signal: withTimeout(ctx, TELEGRAM_REQUEST_TIMEOUT_MS, req.signal),
+    signal: withTimeout(TELEGRAM_REQUEST_TIMEOUT_MS, req.signal),
   })
 }
 
@@ -429,6 +430,7 @@ interface PostAndLogRequest {
   readonly logKey: string
   // `warn` for calls whose failure every user of the bot notices; per-message trivia stays debug.
   readonly level?: 'warn'
+  readonly signal?: AbortSignal
 }
 
 // Posts, drains the response, and never throws: the result is not worth the caller's error path.
@@ -437,7 +439,11 @@ export async function postAndLog(ctx: TelegramApiContext, req: PostAndLogRequest
   const log = req.level === 'warn' ? ctx.logger.warn : ctx.logger.debug
 
   try {
-    const res = await postJson(ctx, { method: req.method, body: req.body })
+    const res = await postJson(ctx, {
+      method: req.method,
+      body: req.body,
+      ...(req.signal === undefined ? {} : { signal: req.signal }),
+    })
 
     if (!res.ok) {
       log(req.logKey, { status: res.status })

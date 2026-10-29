@@ -104,7 +104,7 @@ function goldQuote(
 // The manifest is where this market declares itself, including the timezone every `asOf` and
 // cooldown computation resolves against. Config supplies overrides and the market supplies its own
 // default; neither side enumerates the other.
-function goldManifest(config: TradingConfig): MarketManifest {
+export function goldManifest(config: TradingConfig): MarketManifest {
   const defaultCalendar = WORLD_GOLD_CALENDAR
 
   return {

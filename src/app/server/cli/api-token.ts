@@ -3,7 +3,7 @@ import type { Locale } from '@/core/types/locale'
 import {
   ApiTokenError,
   apiTokenPath,
-  isApiTokenUsable,
+  parseTokenFile,
   resolveTokenEnv,
 } from '@/app/server/http/auth'
 import { fail, getEnv } from '@/cli/api'
@@ -79,11 +79,5 @@ async function readTokenFile(dataDir: string): Promise<string | null> {
     return null
   }
 
-  const parsed: unknown = await file.json().catch(() => null)
-
-  if (typeof parsed !== 'object' || parsed === null || !('token' in parsed)) {
-    return null
-  }
-
-  return isApiTokenUsable(parsed.token) ? parsed.token : null
+  return parseTokenFile(await file.json().catch(() => null))
 }

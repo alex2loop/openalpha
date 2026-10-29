@@ -21,7 +21,7 @@ const TOKEN_HASH_PARAM = 'token'
  *  answer, so a load that got none can be tried again; the address then drops it without a history
  *  entry, so neither the address bar nor the back button keeps it. A `#token=` is dropped at once,
  *  never read or sent: the page never holds the API token. */
-export function takeCodeFromHash(): string | undefined {
+export function readCodeFromHash(): string | undefined {
   const params = new URLSearchParams(location.hash.slice(1))
   const code = params.get(CODE_HASH_PARAM)?.trim()
 

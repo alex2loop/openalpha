@@ -19,11 +19,11 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import { BRAND } from '@/core/brand'
-import { ValidationError } from '@/core/errors'
+import { isCancellation, ValidationError } from '@/core/errors'
 import { runId as brandRunId } from '@/core/ids'
 import { withCorrelation } from '@/core/logging/correlation'
 
-import { type CommandRuns, createCommandRuns, isCancellation } from './long-running'
+import { type CommandRuns, createCommandRuns } from './long-running'
 import { assertPolicyValid, assertSlashCommandValid } from './registration'
 import { IDEMPOTENCY_TTL_MS, RATE_WINDOW_MS, sweepRegistries } from './registries'
 import {

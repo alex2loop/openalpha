@@ -9,7 +9,6 @@ import { type ChatSession, USER_ROLE, viewedSession } from '@/web/state/chat'
 import {
   HISTORY_PAGE_SIZE,
   isCapped,
-  MAX_EARLIER,
   startNewSession,
   toKeptMessages,
 } from '@/web/state/chat-history'
@@ -241,7 +240,7 @@ function takeNewer(pages: Signal<Pages>, page: ChatHistoryResponse): void {
 function withFresh(held: Pages, fresh: readonly ChatHistoryMessage[]): Pages {
   const messages = [...held.messages, ...fresh]
 
-  if (messages.length <= MAX_EARLIER) {
+  if (!isCapped(messages.length, held.nextBefore !== undefined)) {
     return { ...held, messages }
   }
 

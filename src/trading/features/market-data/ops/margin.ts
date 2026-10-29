@@ -4,10 +4,7 @@ import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Market } from '@/trading/markets/types'
 import { formatErrForLog } from '@/core/security/credentials'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
-import {
-  MARGIN_STATUS_LOOKBACK_SESSIONS,
-  standingMarginEvent,
-} from '@/trading/kernel/market/margin-status'
+import { eventsFromDay, standingMarginEvent } from '@/trading/kernel/market/margin-status'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 interface MarkMarginInput {
@@ -32,10 +29,7 @@ export async function markMarginIneligible(
     return input.candidates
   }
 
-  const fromDay = input.market.manifest.calendar.addTradingDays(
-    input.asOf,
-    -MARGIN_STATUS_LOOKBACK_SESSIONS
-  )
+  const fromDay = eventsFromDay(input.market.manifest.calendar, input.asOf)
   const failures: unknown[] = []
   const marked = await mapWithConcurrency(
     input.candidates,

@@ -340,13 +340,8 @@ function buildAdvice(input: {
       standingReduces: input.standingReduces,
       regimes: input.regimes,
       reachableCashBase: reachableCashByMarket(deps.venues, valued.book),
-      // No price drift: the plan spends what a fill is expected to cost; only an order's cap
-      // allows for the worst fill.
-      buyCashMultiple: (market) =>
-        cashDrawMultiple(
-          marketTradeCost({ costs: deps.costs, defaultVenues: deps.config.defaultVenues }, market),
-          0
-        ),
+      // No drift: a plan spends the expected fill; the order cap allows for the worst.
+      buyCashMultiple: (market) => cashDrawMultiple(marketTradeCost(deps.config, market), 0),
     }),
     book: valued,
   }

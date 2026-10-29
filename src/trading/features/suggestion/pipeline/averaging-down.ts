@@ -3,6 +3,7 @@ import type { Stage, StageDecision, StageInput } from '@/trading/markets/stage'
 import { openLots } from '@/trading/features/portfolio/folds/holdings'
 import { lowerBand } from '@/trading/kernel/conviction'
 import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
+import { eventsFromDay } from '@/trading/kernel/market/margin-status'
 import { loweredDecision, STAGE_PASS } from '@/trading/markets/stage'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 
@@ -72,8 +73,9 @@ function underwaterFraction(suggestion: Suggestion, dividendPerUnit: number): nu
 interface Dividends {
   /** The cash each unit still held earned, counting only amounts the provider published. */
   readonly perUnit: number
-  /** A dividend went ex with no published amount, or the corporate calendar could not be read: the
-   *  figure above may be short, and an absent amount is not a zero one. */
+  /** A dividend went ex with no published amount, the corporate calendar could not be read, or a lot
+   *  is older than the events read reaches: the figure above may be short, and an absent amount is
+   *  not a zero one. */
   readonly isIncomplete: boolean
 }
 
@@ -90,6 +92,10 @@ function dividendsOf(input: StageInput): Dividends {
   const dividends = (input.events ?? []).filter(
     (event) => event.kind === 'dividend-ex-date' && event.at <= at
   )
+  const windowStart = eventsFromDay(input.market.manifest.calendar, at)
+  const isOlderThanWindow =
+    input.market.capabilities.events !== undefined &&
+    lots.some((lot) => lot.acquiredAt < windowStart)
   const earned = lots.flatMap((lot) =>
     dividends
       .filter((event) => event.at > lot.acquiredAt)
@@ -100,6 +106,8 @@ function dividendsOf(input: StageInput): Dividends {
   return {
     perUnit: units > 0 ? owed / units : 0,
     isIncomplete:
-      input.calendarFailed === true || earned.some((row) => row.cashPerShare === undefined),
+      input.calendarFailed === true ||
+      isOlderThanWindow ||
+      earned.some((row) => row.cashPerShare === undefined),
   }
 }

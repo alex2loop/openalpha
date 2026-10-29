@@ -44,6 +44,7 @@ async function setMyCommands(
     body: { commands: filterCommandsForMenu(commands), scope },
     logKey: 'telegram.set_my_commands_failed',
     level: 'warn',
+    signal: ctx.intakeSignal,
   })
 }
 

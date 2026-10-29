@@ -70,7 +70,7 @@ export function createVnEquityMarket(deps: MarketDeps): Market {
   }
 }
 
-function vnManifest(config: TradingConfig): MarketManifest {
+export function vnManifest(config: TradingConfig): MarketManifest {
   return {
     id: VN_MARKET_REF,
     region: VN_MARKET_REGION,

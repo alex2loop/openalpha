@@ -333,16 +333,24 @@ Chat ghép nối được đọc lúc khởi động và đọc lại mỗi khi 
 nhận, vì `pair approve` ghi từ một tiến trình khác. `stop` chạy hết mọi khâu dọn dẹp và không bao giờ để
 một lần dọn hỏng chặn những lần còn lại.
 
-Dịch vụ nền đưa cho các kênh một tín hiệu riêng. Tín hiệu tắt của nó có thể cắt ngang lúc khởi động, nhưng khi
-các kênh đã chạy thì chỉ `stop` mới kết thúc chúng, nên các phiên chạy mà dịch vụ nền đang chờ vẫn gửi được kết
-quả. Trong một kênh, lượt gửi nốt thông báo còn lại đi trước: bộ gửi thử đúng một lần, có giới hạn thời gian
-(`notifyDrainTimeoutMs`, 500 ms), với từng thông báo còn trong hàng đợi khi adapter và tín hiệu của kênh còn
-sống, rồi mới hủy kênh và đóng adapter. Tín hiệu dừng thứ hai thì thoát tiến trình, nên không có gì chờ nó.
+Một kênh có hai vòng đời. Tín hiệu tắt của dịch vụ nền là tín hiệu nhận tin (`intakeSignal`): nó cắt ngang lúc
+khởi động và dừng polling, vòng xử lý hộp thư và việc nhận thêm việc mới, nên tin chưa được nhận giữ nguyên
+trạng thái chờ cho lần khởi động sau, còn phiên chạy bị vòng xử lý cắt thì trả lại quyền giữ (`releaseClaim`,
+không tốn lượt thử nào). Một lượt gặp cửa nhận tin đã đóng (một cụm tin kích hoạt sau đó, hoặc bị hàng đợi phiên
+đang tạm dừng từ chối) bị từ chối thay vì trả lời "hàng đợi đầy" hay trả về lặng lẽ, nên mục của nó được trả lại
+chứ không bị đánh dấu xong. Việc gửi thì sống lâu hơn: mỗi runtime tự giữ tín hiệu gửi đi và chỉ kết thúc nó
+trong `stop`, nên các phiên chạy mà dịch vụ nền đang chờ vẫn gửi được kết quả. Lượt gửi nốt thông báo còn lại đi
+trước: bộ gửi thử đúng một lần, có giới hạn thời gian (`notifyDrainTimeoutMs`, 500 ms), với từng thông báo còn
+trong hàng đợi khi đường truyền của adapter còn sống, rồi mới hủy việc gửi và đóng adapter. Tín hiệu `start` của
+adapter là tín hiệu nhận tin, nên `send`, `edit` và các hàm còn lại phải tiếp tục chạy sau nó, cho đến `dispose`.
+Tín hiệu dừng thứ hai thì thoát tiến trình, nên không có gì chờ nó.
 
 Bộ gửi thử lại một lần gửi hỏng tối đa `notifyMaxAttempts` lần, trừ `PermanentChannelError`: nền tảng từ chối
 và lần nào cũng từ chối lại (lỗi phía client của Telegram ngoài 408 và 429, văn bản quá giới hạn của nền tảng,
 Zalo 401). Loại này bị bỏ ngay ở lần hỏng đầu. Mã 429 là `ChannelError` thường và vẫn chờ đúng khoảng
-retry-after.
+retry-after. Hộp thư áp dụng cùng quy tắc qua `isPermanentChannelError`, hàm này nhìn xuyên cả lớp bọc như
+`AnswerUndelivered`: một mục mà nền tảng từ chối câu trả lời vĩnh viễn thì vào hàng chết ngay, không thử lại tới
+`inboxMaxAttempts`.
 
 ## Thêm một kênh
 
@@ -350,7 +358,7 @@ retry-after.
    `channels/adapters/<tên>/`.
 2. Giữ phần phân tích kênh truyền, dựng hiển thị, và thông tin đăng nhập bên trong thư mục đó.
 3. Khai đúng năng lực thật, và áp `maxTextLen` ở tầng dựng hiển thị.
-4. Nhận tín hiệu tắt trước khi gắn listener hay bắt đầu polling.
+4. Nhận tín hiệu `start` trước khi gắn listener hay bắt đầu polling; nó chỉ dừng việc nhận tin, còn gửi vẫn chạy đến `dispose`.
 5. Đăng ký định nghĩa ở tầng composition, thường qua một plugin đi kèm đáng tin cậy.
 6. Thêm kiểm tra cấu hình và doctor qua chính đường schema của định nghĩa.
 

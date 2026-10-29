@@ -1,4 +1,5 @@
 import type { Job, SchedulerClaim, SchedulerDeps, SchedulerRunOutcome } from '@/scheduler/types'
+import { isSlotLate } from '@/core/utils/cron'
 import { finalizeOccurrence } from '@/scheduler/job/finalize'
 import { computeTransition, MISSED_SLOT_MESSAGE } from '@/scheduler/job/outcome'
 
@@ -12,7 +13,7 @@ interface SkipMissedSlotOptions {
 // A cron slot answered long after its clock time is work for a session that has passed. An interval
 // job names no clock time, so late is still on time for it; a once job has no later slot.
 export function isMissedSlot(job: Job, now: number, graceMs: number): boolean {
-  return job.schedule.kind === 'cron' && now - job.nextRunAt > graceMs
+  return job.schedule.kind === 'cron' && isSlotLate(job.nextRunAt, now, graceMs)
 }
 
 // Closes the claimed occurrence without running it and moves the cadence to the next slot. No

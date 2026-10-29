@@ -162,9 +162,9 @@ Telegram menu. So a command behaves the same in the REPL and in a group chat.
 | `/new` | Switch to a fresh chat session (the office page's chat moves to it too); commands waiting in the chat's line are dropped and the ones running are stopped |
 | `/continue` | Resume a run that stopped before finishing, without retyping the request; says so when nothing stopped |
 | `/social` | `/social drafts` lists what your agents are waiting to post; `/social approve <id>` sends one and `/social discard <id>` drops it. Operator only. See [Social networks](social.md) |
-| `/pair` | Operator only, in a chat channel: lists the pairing codes waiting for approval. See [Channels](channels.md#pairing) |
-| `/approve` | Operator only, in a chat channel: `/approve <code>` lets the chat that asked for that pairing code in. See [Channels](channels.md#pairing) |
-| `/deny` | Operator only, in a chat channel: `/deny <code>` turns that pairing request down. See [Channels](channels.md#pairing) |
+| `/pair` | Operator only, in a chat listed in `allowed_ids`: lists the pairing codes waiting for approval. See [Channels](channels.md#pairing) |
+| `/approve` | Operator only, in a chat listed in `allowed_ids`: `/approve <code>` lets the chat that asked for that pairing code in. See [Channels](channels.md#pairing) |
+| `/deny` | Operator only, in a chat listed in `allowed_ids`: `/deny <code>` turns that pairing request down. See [Channels](channels.md#pairing) |
 
 `/help` lists commands in groups: portfolio and trades (starting with `/setup`), markets, analysis and suggestions, then system (`/help`, `/stop` and the commands that belong to no group). The Telegram menu follows the same order.
 `/help <name>` (with or without the leading `/`) shows one command's description and usage; a misspelt

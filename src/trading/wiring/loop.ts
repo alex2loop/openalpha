@@ -147,7 +147,7 @@ async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<
   let warned = false
 
   for (;;) {
-    if (await probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS)) {
+    if (await probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS, signal)) {
       return true
     }
 

@@ -461,7 +461,7 @@ Order failures come from `/trade` and `order_place`. They split by whether your 
 |---|---|---|
 | `order.unmirrorable` | Filled, but the ledger rejected the entry. | Record the trade by hand with `/record`. |
 | `order.unmirrorable_fee` | Filled, but the fee currency cannot be booked automatically. | Record the trade by hand. |
-| `order.fee_unreported` | Filled, but the exchange has not listed the trade's fee yet. | Wait a minute, then run `/record sync <venue>`; it books the fill once the exchange lists it. |
+| `order.fee_unreported` | Filled, but the exchange still had not listed the trade's fee after a few quick re-reads. | Wait a minute, then run `/record sync <venue>`; it books the fill once the exchange lists it. |
 | `order.unpriced_fill` | The venue reported a fill with no price. | Record the trade by hand. |
 | `order.fill_timeout` | The order is still live at the exchange and could not be cancelled. | Settle it at the exchange; `/trade reconcile` lists it so you can close it out. |
 | `order.exit_failed` | Filled, but the take-profit/stop-loss could not be placed. | The position has no stop. Set one with `/trade exit`. |

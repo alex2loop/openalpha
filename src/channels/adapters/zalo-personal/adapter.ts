@@ -51,6 +51,9 @@ interface CreateZaloPersonalAdapterOptions {
 interface AdapterState {
   api: API | null
   sessionTask: Promise<void> | null
+  /** Ends the transport the session logs in and sends through. The start signal ends intake only,
+   *  so the final notices of a shutdown still go out; `dispose` aborts this. */
+  readonly transport: AbortController
   readonly threadTypes: LruMap<string, ThreadType>
   readonly logger: Logger
 }
@@ -61,6 +64,7 @@ export function createZaloPersonalAdapter(
   const state: AdapterState = {
     api: null,
     sessionTask: null,
+    transport: new AbortController(),
     threadTypes: lruMap<string, ThreadType>(ZALO_PERSONAL_THREAD_CACHE_MAX),
     logger: options.logger,
   }
@@ -79,6 +83,7 @@ export function createZaloPersonalAdapter(
 
       state.sessionTask = null
       state.api = null
+      state.transport.abort()
 
       try {
         await sessionTask
@@ -110,6 +115,7 @@ function startSession(input: StartSessionOptions): Promise<void> {
     inbox: options.inbox,
     logger: options.logger,
     signal,
+    transportSignal: state.transport.signal,
     threadTypes: state.threadTypes,
     setApi: (api) => {
       state.api = api

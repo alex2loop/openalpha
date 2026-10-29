@@ -4,7 +4,7 @@ import { toAgentRegistry } from '@/app/services'
 
 export function resolveChannelDeps(
   app: App,
-  signal: AbortSignal,
+  intakeSignal: AbortSignal,
   env: Record<string, string | undefined>
 ): StartChannelsDeps {
   return {
@@ -28,6 +28,6 @@ export function resolveChannelDeps(
     bus: app.resolve('bus'),
     logger: app.resolve('logger'),
     env,
-    shutdownSignal: signal,
+    intakeSignal,
   }
 }

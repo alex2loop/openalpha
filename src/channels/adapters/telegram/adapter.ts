@@ -139,7 +139,7 @@ function buildApiContext(
   return {
     botToken: options.token,
     fetchImpl: options.fetchImpl ?? fetch,
-    shutdownSignal: signal,
+    intakeSignal: signal,
     logger: options.logger,
   }
 }
@@ -225,7 +225,7 @@ async function connectOrDefer(
   try {
     return await connect(ctx, handlers)
   } catch (err: unknown) {
-    if (err instanceof ConfigError || ctx.shutdownSignal.aborted) {
+    if (err instanceof ConfigError || ctx.intakeSignal.aborted) {
       throw err
     }
 
@@ -251,7 +251,7 @@ async function fetchBotIdentity(ctx: TelegramApiContext): Promise<BotIdentity> {
     return await withRetry(() => getMe(ctx), {
       maxAttempts: TELEGRAM_GET_ME_MAX_ATTEMPTS,
       initialMs: TELEGRAM_GET_ME_RETRY_INITIAL_MS,
-      signal: ctx.shutdownSignal,
+      signal: ctx.intakeSignal,
       isRetryable: (err) => !isTokenRejected(err),
     })
   } catch (err: unknown) {

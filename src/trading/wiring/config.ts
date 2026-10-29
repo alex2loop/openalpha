@@ -21,6 +21,7 @@ import { ValidationError } from '@/core/errors'
 import { freezeDeep } from '@/core/utils/freeze'
 import { currencyCode, marketRef, region, tradingDay, venueRef } from '@/trading/kernel/instrument'
 import { sourceId } from '@/trading/kernel/source/source-id'
+import { assertConfiguredDays } from '@/trading/wiring/config-days'
 import { BUILT_IN_VENUES, DEFAULT_TRADING_CONFIG } from '@/trading/wiring/config-defaults'
 import { tradingConfigPatchSchema, VENUES_CONFIG_KEY } from '@/trading/wiring/config-schema'
 
@@ -60,7 +61,11 @@ export function resolveTradingConfig(options: ResolveTradingConfigOptions): Trad
   }
 
   try {
-    return freezeDeep(merge(parsed.data, localized))
+    const config = freezeDeep(merge(parsed.data, localized))
+
+    assertConfiguredDays(config)
+
+    return config
   } catch (err: unknown) {
     rethrowAsConfigError(err, TRADING_CONFIG_SECTION)
   }

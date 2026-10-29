@@ -6,7 +6,7 @@ import type {
   ServerFrame,
 } from '@/app/server/wire/socket'
 import { nextDelayMs } from '@/web/api/backoff'
-import { ApiFailure, getJson } from '@/web/api/client'
+import { ApiFailure, getJson, UNAUTHORIZED_STATUS } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 
 // Typed against the daemon's constants, so a change there fails the typecheck until the page follows.
@@ -14,7 +14,6 @@ const EXPECTED_CONTRACT_VERSION: typeof CONTRACT_VERSION = 1
 const CONTRACT_REFUSED_CODE: typeof CONTRACT_REFUSED_CLOSE_CODE = 1011
 const CONTRACT_REFUSED_PREFIX: typeof CONTRACT_REFUSED_REASON_PREFIX = 'contract '
 const STABLE_AFTER_MS = 10_000
-const UNAUTHORIZED_STATUS = 401
 
 export type ConnectionStatus = 'connecting' | 'live' | 'offline' | 'full' | 'refused' | 'outdated'
 

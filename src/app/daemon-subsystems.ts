@@ -156,44 +156,19 @@ function startMaintenance(
   disposers.push(startSocialUpkeep(app, logger, onTaskPass))
 }
 
-// The channels' own lifetime, not the daemon's: shutdown aborts `startupSignal` first, and a channel
-// aborted with it has nothing left to send its queued notices through. The daemon's signal still
-// cuts a start short; once the channels are up only `stop` ends them, after their final drain. A
-// second stop signal exits the process, so nothing here waits on it.
+// Only intake ends with the shutdown signal: a channel keeps delivering through the run drain and
+// ends that itself in `stop`, after its final notice drain. The env is injected once here so no
+// adapter reaches for process.env on its own.
 async function startOwnedChannels(
   app: App,
   startupSignal: AbortSignal,
   disposers: Disposer[]
 ): Promise<StartChannelsResult> {
-  const lifetime = new AbortController()
-  const cutShort = (): void => lifetime.abort(startupSignal.reason)
+  const channels = await startChannels(resolveChannelDeps(app, startupSignal, process.env))
 
-  if (startupSignal.aborted) {
-    cutShort()
-  } else {
-    startupSignal.addEventListener('abort', cutShort, { once: true })
-  }
+  disposers.push(() => channels.stop())
 
-  try {
-    // The env is injected once here so no adapter reaches for process.env on its own.
-    const channels = await startChannels(resolveChannelDeps(app, lifetime.signal, process.env))
-
-    disposers.push(async () => {
-      try {
-        await channels.stop()
-      } finally {
-        lifetime.abort()
-      }
-    })
-
-    return channels
-  } catch (err: unknown) {
-    lifetime.abort()
-
-    throw err
-  } finally {
-    startupSignal.removeEventListener('abort', cutShort)
-  }
+  return channels
 }
 
 // A token the operator named but cannot serve, or a port another process holds, keeps the API closed

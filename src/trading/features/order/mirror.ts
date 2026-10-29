@@ -127,13 +127,21 @@ async function bookedNumbers(deps: OrderServiceDeps, parts: MirrorInput): Promis
       throw err
     }
 
-    deps.logger.error('order.fill_unbookable', {
+    const fields = {
       clientOrderId: staged.clientOrderId,
       orderId: receipt.orderId,
       symbol: staged.symbol,
       feeCurrency: receipt.feeCurrency,
       err: formatErrForLog(err),
-    })
+    }
+
+    // Still unlisted after the venue's re-reads: `/record sync` books it later, so this is a
+    // degraded fill rather than a failed one.
+    if (err instanceof OrderError && err.code === 'order.fee_unreported') {
+      deps.logger.warn('order.fill_fee_unreported', fields)
+    } else {
+      deps.logger.error('order.fill_unbookable', fields)
+    }
 
     // The thrown code, so the row says which refusal this was; anything else came out of the fee
     // lookup itself.

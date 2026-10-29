@@ -7,7 +7,12 @@ import type { ChatSession } from '@/web/state/chat'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { toFailureText, tr } from '@/web/text/tr'
-import { isSessionDeleted, pruneDeleted, SessionGroups } from '@/web/ui/chat/sessions-rows'
+import {
+  deletedAt,
+  isSessionDeleted,
+  pruneDeleted,
+  SessionGroups,
+} from '@/web/ui/chat/sessions-rows'
 import { Button } from '@/web/ui/kit/button'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { Skeleton } from '@/web/ui/kit/skeleton'
@@ -83,7 +88,8 @@ interface ListProps {
 // A failed read keeps the rows already read under its line; Thử lại asks for the same page again.
 function SessionsList({ pages, search, onMore }: ListProps) {
   const { next, isLoading, failure } = pages
-  const sessions = pages.sessions.filter((session) => !isSessionDeleted(session))
+  const deleted = deletedAt.value
+  const sessions = pages.sessions.filter((session) => !isSessionDeleted(deleted, session))
 
   return (
     <>

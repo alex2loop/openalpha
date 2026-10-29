@@ -442,7 +442,7 @@ Cỡ lệnh được tính ngân sách theo cắt lỗ lúc vào, và trạng th
 
 Hệ số trạng thái thị trường của nhóm giảm cỡ lệnh cuối cùng, cùng với mức tin cậy và ý định của vai trader. Vì vậy thị trường phòng thủ sẽ thu nhỏ lệnh mua kể cả khi tiền mặt không phải thứ giới hạn nó. `suggestion.size-scaled-by-regime` báo cho bạn khi trạng thái thị trường là giới hạn chặt nhất trong ba.
 
-Trần tiền mặt chừa chỗ cho chi phí của lệnh: phí mua và mức trượt giá `maximum_price_drift` mà trần tiền mặt của lệnh thị trường cho phép khi khớp. Phần chừa này được áp cho mọi lệnh mua, vì lúc tính cỡ lệnh chưa biết bạn sẽ dùng loại lệnh nào. Nên một lệnh mua tính theo số tiền bạn đang có sẽ không bị `/trade` từ chối vì thiếu phần chừa đó.
+Trần tiền mặt chừa chỗ cho chi phí của lệnh: phí mua và mức trượt giá `maximum_price_drift` mà trần tiền mặt của lệnh thị trường cho phép khi khớp. Phần chừa phí áp cho mọi lệnh mua, còn phần chừa trượt giá áp cho thị trường mà sàn mặc định có đặt lệnh, vì lúc tính cỡ lệnh chưa biết bạn sẽ dùng loại lệnh nào. Nên một lệnh mua tính theo số tiền bạn đang có sẽ không bị `/trade` từ chối vì thiếu phần chừa đó. Thị trường bạn tự giao dịch tay, như cổ phiếu VN hay vàng VN, không bao giờ có lệnh thị trường do OpenAlpha đặt, nên chỉ chừa phần phí.
 
 Mọi mã trong một lượt `/suggest` đều được tính cỡ trên cùng cuốn sổ như nó đứng trước lượt đó. Nên mỗi
 lệnh mua tự nó vừa với tiền mặt và phần rủi ro mở còn lại.
@@ -772,7 +772,8 @@ kiện trên thẻ mã ghi các điều khoản đó trên một dòng: cổ t�
 Bước hạ mức tin cậy khi mua thêm mà bình quân giá xuống so giá hiện tại với giá vốn đã trừ phần cổ tức tiền
 mặt mà số cổ phiếu đang giữ được hưởng: mỗi lô được hưởng mọi đợt cổ tức có ngày không hưởng quyền sau ngày
 mua lô đó, dù tiền đã về hay chưa. Nếu không, mỗi ngày không hưởng quyền sẽ bị đọc thành một khoản lỗ. Bước
-này đọc cổ tức trong lịch sự kiện mà phiên chạy đã lấy, khoảng sáu tháng gần nhất.
+này đọc cổ tức trong lịch sự kiện mà phiên chạy đã lấy, khoảng sáu tháng gần nhất. Lô mua từ trước khoảng
+đó có thể đã được hưởng cổ tức mà lần đọc không tới, nên đề xuất nói rằng có thể một số cổ tức chưa được tính.
 
 Cảnh báo chỉ ghi "sau cổ tức" khi thật sự có cổ tức được trừ khỏi giá vốn. Cổ tức chưa công bố số tiền thì
 không được tính, lịch sự kiện không đọc được cũng vậy; khi đó cảnh báo nói có cổ tức chưa tính được, nên

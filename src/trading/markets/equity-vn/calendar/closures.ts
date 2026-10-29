@@ -3,9 +3,8 @@ import { tradingDay } from '@/trading/kernel/instrument'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 import { toSolarDay } from '@/trading/markets/equity-vn/calendar/lunar'
 
-// The government sets each year's Tet break: the lunar new year's day, two days before it and two
-// after is its usual five; a year that differs is the operator's `holidays` /
-// `open_days`.
+// The usual Tet break is the lunar new year's day and two days either side; a year the government
+// sets differently is the operator's `holidays` / `open_days`.
 const TET_DAYS_EACH_SIDE = 2
 const HUNG_KINGS_LUNAR = { month: 3, day: 10 }
 /** The Labor Code in force from 2021 gives National Day two days; before it, 2 September alone. */

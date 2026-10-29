@@ -43,10 +43,9 @@ interface CreateZaloAdapterOptions {
 }
 
 export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAdapter {
-  // The poll loop is torn down by the abort signal handed to start(); the adapter keeps a handle to
-  // it so outbound calls (send/typing) can be shut down in lockstep rather than hanging on a dead
-  // bot, and dispose() can join the task after abort.
-  let lifetimeSignal: AbortSignal | undefined
+  // The abort signal handed to start() ends intake only: sends outlive it so the final notices of a
+  // shutdown still go out, each bounded by its caller's signal and the request deadline. dispose()
+  // joins the poll task after abort.
   let pollTask: Promise<void> | undefined
 
   return {
@@ -55,8 +54,6 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
     renderer: plainRenderer,
 
     async start(handlers: AdapterHandlers, signal: AbortSignal): Promise<void> {
-      lifetimeSignal = signal
-
       if (!options.token) {
         throw toTokenMissingError(ZALO_TOKEN_OWNER, options.tokenEnv)
       }
@@ -81,7 +78,7 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
       out: ChannelOutbound,
       sendOpts?: { readonly signal?: AbortSignal }
     ): Promise<SentRef> {
-      return sendZaloMessage(options.token, out, zaloSignalOf(sendOpts?.signal, lifetimeSignal))
+      return sendZaloMessage(options.token, out, sendOpts?.signal)
     },
 
     async chatAction(chatId: string, action: 'typing'): Promise<void> {
@@ -89,13 +86,10 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
         token: options.token,
         chatId,
         action,
-        ...(lifetimeSignal === undefined ? {} : { signal: lifetimeSignal }),
       })
     },
 
     async dispose(): Promise<void> {
-      lifetimeSignal = undefined
-
       if (pollTask !== undefined) {
         await pollTask
         pollTask = undefined
@@ -146,21 +140,6 @@ async function assertZaloTokenAccepted(token: string, signal: AbortSignal): Prom
     'not_initialized',
     `zalo getMe failed (${me.error_code ?? 'no status'}): ${me.description ?? 'no description'}`
   )
-}
-
-function zaloSignalOf(
-  caller: AbortSignal | undefined,
-  lifetime: AbortSignal | undefined
-): AbortSignal | undefined {
-  if (caller === undefined) {
-    return lifetime
-  }
-
-  if (lifetime === undefined) {
-    return caller
-  }
-
-  return AbortSignal.any([caller, lifetime])
 }
 
 async function sendZaloMessage(

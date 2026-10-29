@@ -81,7 +81,14 @@ export interface ChannelRuntimeDeps {
   readonly bus: EventBus
   readonly logger: Logger
   readonly locale: Locale
-  readonly shutdownSignal: AbortSignal
+  /** Aborts at the daemon's shutdown: stops polling, the inbox drain and the admission of new work. */
+  readonly intakeSignal: AbortSignal
+}
+
+/** The runtime's own outbound signal lives past `intakeSignal`, so the notices and answers still
+ *  queued at shutdown get their bounded final attempt before it aborts in `dispose`. */
+export interface PipelineDeps extends ChannelRuntimeDeps {
+  readonly outboundSignal: AbortSignal
 }
 
 export interface Pipeline {
@@ -104,8 +111,8 @@ interface NotifierSend {
   ) => Promise<void>
 }
 
-function createNotifier(deps: ChannelRuntimeDeps): NotifierSend {
-  const { adapter, logger, settings, shutdownSignal } = deps
+function createNotifier(deps: PipelineDeps): NotifierSend {
+  const { adapter, logger, settings, outboundSignal } = deps
   const notifier = new Notifier({
     logger,
     sender: (out, options) => adapter.send(out, options),
@@ -113,7 +120,7 @@ function createNotifier(deps: ChannelRuntimeDeps): NotifierSend {
     queueMax: settings.notifyQueueMax,
     maxAttempts: settings.notifyMaxAttempts,
     drainTimeoutMs: settings.notifyDrainTimeoutMs,
-    signal: shutdownSignal,
+    signal: outboundSignal,
   })
 
   // A dropped notice is a failed send, not a silent one: the caller decides what to undo.
@@ -135,9 +142,9 @@ function createNotifier(deps: ChannelRuntimeDeps): NotifierSend {
  *  notifier's per-minute window meters unsolicited notices; a reply held behind it lands a minute
  *  late, under whatever the operator asked next. */
 function createReplySender(
-  deps: ChannelRuntimeDeps
+  deps: PipelineDeps
 ): (chatId: string, text: string, buttons?: readonly OutboundButton[]) => Promise<void> {
-  const { adapter, settings, shutdownSignal } = deps
+  const { adapter, settings, outboundSignal } = deps
   const useMarkup = resolveOutboundMarkup(adapter, settings, true)
 
   return async (chatId, text, buttons) => {
@@ -156,18 +163,18 @@ function createReplySender(
           ...(useMarkup ? { useMarkup: true as const } : {}),
           ...(last && buttons !== undefined && buttons.length > 0 ? { buttons } : {}),
         },
-        { signal: shutdownSignal }
+        { signal: outboundSignal }
       )
     }
   }
 }
 
 function createOperatorSurfaces(
-  deps: ChannelRuntimeDeps,
+  deps: PipelineDeps,
   surfaces: { readonly gate: Gate; readonly choices: TextChoices }
 ): Pick<Pipeline, 'proactive' | 'planReviewer'> {
   const { gate, choices } = surfaces
-  const { adapter, logger, locale, shutdownSignal } = deps
+  const { adapter, logger, locale, outboundSignal } = deps
   const isOperatorUser = (userId: string | undefined, context: OperatorContext): boolean =>
     gate.isOperatorUser(userId, context)
 
@@ -178,7 +185,7 @@ function createOperatorSurfaces(
       adapter,
       channelId: adapter.id,
       locale,
-      signal: shutdownSignal,
+      signal: outboundSignal,
       choices,
       isOperatorUser,
     }),
@@ -187,15 +194,15 @@ function createOperatorSurfaces(
       channelId: adapter.id,
       locale,
       logger,
-      signal: shutdownSignal,
+      signal: outboundSignal,
       choices,
       isOperatorUser,
     }),
   }
 }
 
-export function createPipeline(deps: ChannelRuntimeDeps): Pipeline {
-  const { adapter, logger, locale, settings, shutdownSignal } = deps
+export function createPipeline(deps: PipelineDeps): Pipeline {
+  const { adapter, logger, locale, settings, intakeSignal } = deps
   const { notifier, sendText } = createNotifier(deps)
   const sendReply = createReplySender(deps)
   const sent = createSentMessages()
@@ -207,7 +214,7 @@ export function createPipeline(deps: ChannelRuntimeDeps): Pipeline {
     caps: deps.caps,
     logger,
     locale,
-    signal: shutdownSignal,
+    signal: intakeSignal,
   })
 
   const gate = createGate({
@@ -251,10 +258,10 @@ export function createPipeline(deps: ChannelRuntimeDeps): Pipeline {
 // on, and a silent reroute to another provider. Both are notices, never replies — a failed send is
 // logged and dropped rather than retried into a chat that may be the reason it failed.
 function subscribeNotices(
-  deps: ChannelRuntimeDeps,
+  deps: PipelineDeps,
   sendText: (chatId: string, text: string, buttons?: readonly OutboundButton[]) => Promise<void>
 ): void {
-  const { bus, locale, logger, shutdownSignal: signal } = deps
+  const { bus, locale, logger, outboundSignal: signal } = deps
   const notice: Notice = { sendText, logger }
 
   observe(bus, 'clarification_requested', {
@@ -292,8 +299,8 @@ function subscribeNotices(
 // Recovery notices: a restarted answer supersedes the partial the operator already saw, and
 // dropped steering means their message needs a resend - both are surface-state facts only the
 // engine knows.
-function subscribeRecoveryNotices(deps: ChannelRuntimeDeps, notice: Notice): void {
-  const { bus, locale, shutdownSignal: signal } = deps
+function subscribeRecoveryNotices(deps: PipelineDeps, notice: Notice): void {
+  const { bus, locale, outboundSignal: signal } = deps
 
   observe(bus, 'turn_restarted', {
     signal,
@@ -358,7 +365,7 @@ interface HandlerParts {
   ) => Promise<void>
 }
 
-function orchestratorDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): OrchestratorDeps {
+function orchestratorDeps(deps: PipelineDeps, parts: HandlerParts): OrchestratorDeps {
   return {
     adapter: deps.adapter,
     runner: deps.runner,
@@ -366,14 +373,14 @@ function orchestratorDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): Orches
     settings: deps.settings,
     locale: deps.locale,
     logger: deps.logger,
-    signal: deps.shutdownSignal,
+    signal: deps.outboundSignal,
     sent: parts.sent,
     sessions: deps.sessions,
     reviewPlan: (chatId, input) => parts.planReviewer.reviewPlan(chatId, input),
   }
 }
 
-function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHandlerDeps {
+function handlerDeps(deps: PipelineDeps, parts: HandlerParts): InboundHandlerDeps {
   const { adapter, logger, locale, settings } = deps
   const orchestrator = orchestratorDeps(deps, parts)
 
@@ -395,7 +402,7 @@ function handlerDeps(deps: ChannelRuntimeDeps, parts: HandlerParts): InboundHand
     operatorNotices: deps.operatorNotices,
     bus: deps.bus,
     settings,
-    signal: deps.shutdownSignal,
+    signal: deps.intakeSignal,
     runExchange: (exchange) => runExchange(orchestrator, exchange),
     redeliver: (answer) => redeliverAnswer(orchestrator, answer),
     sendText: parts.sendText,

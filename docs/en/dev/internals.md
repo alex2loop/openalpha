@@ -499,7 +499,7 @@ Once the run has exited cleanly and `boot` is disposed, `main` calls `restartInP
 - `ChannelDefinition.apiHosts` for the channels the daemon starts, and `VenueManifest.apiHosts` for the venues holding a key (read through `VenueChoice`);
 - the HTTP MCP servers;
 - `listSearchHosts`: each backend's endpoint, SearXNG's own `base_url`, nothing for a primary whose key is missing;
-- `UPDATE_CHECK_HOST` while `[update] check` is on, the API base of each social network an active agent has joined, and the trading config's reachability host.
+- `UPDATE_CHECK_HOST` while `[update] check` is on, the API base of each social network an active agent has joined, and the reachability host (`REACHABILITY_HOST`), the one probe the scheduler, the workflow trigger and the trading loops share.
 
 A host two purposes share is listed once under each, since what is sent there differs.
 

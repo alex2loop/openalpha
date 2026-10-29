@@ -2,7 +2,7 @@ import type { TradingDay } from '@/trading/kernel/instrument'
 import { MS_PER_DAY, utcDay } from '@/core/utils/time'
 import { tradingDay } from '@/trading/kernel/instrument'
 
-// Ho Ngoc Duc's public-domain algorithm for the Vietnamese lunar calendar (xemlich.com): new moons
+// Vietnamese lunar calendar after Ho Ngoc Duc's algorithm (xemlich.com): new moons
 // and the sun's longitude computed astronomically, month boundaries read at UTC+7, which is what
 // puts the Vietnamese calendar a day apart from the Chinese one in some years. Only the lunar to
 // solar direction is needed here.
@@ -38,7 +38,7 @@ export function toSolarDay(lunarYear: number, lunarMonth: number, lunarDay: numb
     offset += 1
   }
 
-  const jd = newMoonJd(cycle + offset) + lunarDay - 1
+  const jd = moonStartJd(cycle + offset) + lunarDay - 1
 
   return tradingDay(utcDay((jd - UNIX_EPOCH_JD) * MS_PER_DAY))
 }
@@ -60,7 +60,7 @@ function julianDay(day: number, month: number, year: number): number {
 }
 
 /** The Julian day number of the Vietnamese calendar day the `k`th new moon after 1900 falls on. */
-function newMoonJd(k: number): number {
+function moonStartJd(k: number): number {
   const t = k / 1236.85
   const t2 = t * t
   const t3 = t2 * t
@@ -117,9 +117,9 @@ function sunLongitudeStep(jd: number): number {
 /** The Julian day the lunar month 11 of that year opens on: the month holding the winter solstice. */
 function month11Start(year: number): number {
   const k = Math.floor((julianDay(31, 12, year) - CYCLE_ORIGIN_DAY) / SYNODIC_MONTH_DAYS)
-  const start = newMoonJd(k)
+  const start = moonStartJd(k)
 
-  return sunLongitudeStep(start) >= LATE_MONTH_11_STEP ? newMoonJd(k - 1) : start
+  return sunLongitudeStep(start) >= LATE_MONTH_11_STEP ? moonStartJd(k - 1) : start
 }
 
 /** In a 13-month year, how many months after month 11 the leap month sits: the first month with no
@@ -127,13 +127,13 @@ function month11Start(year: number): number {
 function leapMonthOffset(month11: number): number {
   const k = Math.floor((month11 - CYCLE_ORIGIN_JD) / SYNODIC_MONTH_DAYS + 0.5)
   let month = 1
-  let step = sunLongitudeStep(newMoonJd(k + month))
+  let step = sunLongitudeStep(moonStartJd(k + month))
   let last: number
 
   do {
     last = step
     month += 1
-    step = sunLongitudeStep(newMoonJd(k + month))
+    step = sunLongitudeStep(moonStartJd(k + month))
   } while (step !== last && month < MONTH_SEARCH_LIMIT)
 
   return month - 1

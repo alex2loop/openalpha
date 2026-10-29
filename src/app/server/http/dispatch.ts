@@ -15,7 +15,7 @@ import { buildCapabilities } from '@/app/server/http/capabilities'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
 import { missingEnvOf } from '@/core/config/resolve'
-import { ChannelError, ConflictError, isAbortError, ValidationError } from '@/core/errors'
+import { ChannelError, ConflictError, isCancellation, ValidationError } from '@/core/errors'
 import { FieldValidationError } from '@/core/field-errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
@@ -144,7 +144,7 @@ async function runHandler(
   try {
     return await route.handler(req, handlerCtx)
   } catch (err: unknown) {
-    if (req.signal.aborted && isAbortError(err)) {
+    if (req.signal.aborted && isCancellation(err)) {
       app.resolve('logger').debug('api.request_aborted', {
         method: route.method,
         path: route.path,

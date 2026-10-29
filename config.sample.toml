@@ -412,7 +412,7 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 
 # [schedule]
 # approval_timeout_ms = 900000       # a scheduled run's approval window (max 2147483647)
-# late_grace_ms = 900000             # how late a cron job (or an intraday report) may still start; a later time is skipped (min 30000, one scheduler look; max 2147483647)
+# late_grace_ms = 900000             # how late a cron job (or an intraday report) may still start; a later time is skipped (min 35000, one scheduler look plus its network check; max 2147483647)
 # failure_target = "telegram:123456" # where "job disabled after N failures" goes
 
 

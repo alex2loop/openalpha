@@ -9,7 +9,6 @@ import { ConfigError } from '@/core/errors'
 import { isValidSendTime } from '@/trading/features/brief/schedule'
 import { marketRef } from '@/trading/kernel/instrument'
 import { tradingLocaleKeys } from '@/trading/locale-manifest'
-import { isWeekendDay } from '@/trading/markets/calendar'
 import { TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
 import { BUILT_IN_VENUES } from '@/trading/wiring/config-defaults'
 import { MARKETS_CONFIG_KEY, VENUES_CONFIG_KEY } from '@/trading/wiring/config-schema'
@@ -113,8 +112,6 @@ function assertConfiguredReferencesExist(
 
   assertBriefSendTimeBeforeOpen(homeOwners, config.briefs.sendTime, Date.now())
   assertConfiguredMarketsExist(markets, config)
-  assertConfiguredDaysAreWeekdays(markets, config)
-  assertConfiguredDaysAgree(config)
   assertDefaultVenuesHold(config, venues)
 }
 
@@ -135,46 +132,6 @@ function assertBriefSendTimeBeforeOpen(
     throw new OperatorConfigError(
       `[${TRADING_CONFIG_SECTION}.briefs] send_time ${sendTime} is not before the open of: ${late}`,
       { key: 'errors.configBriefSendTimeAfterOpen', params: { time: sendTime, markets: late } }
-    )
-  }
-}
-
-/** A configured `holidays` or `open_days` date on the market's own weekend is a mistyped date: that
- *  day never traded, so the change it was meant to make is not there. Every offender in one
- *  throw. */
-function assertConfiguredDaysAreWeekdays(markets: MarketRegistry, config: TradingConfig): void {
-  const misplaced = Object.entries(config.markets).flatMap(([ref, settings]) => {
-    const policy = markets.find(marketRef(ref))?.manifest.defaultCalendar
-
-    return policy === undefined
-      ? []
-      : [...(settings?.holidays ?? []), ...(settings?.openDays ?? [])]
-          .filter((day) => isWeekendDay(policy, day))
-          .map((day) => `${ref} ${day}`)
-  })
-
-  if (misplaced.length > 0) {
-    throw new OperatorConfigError(
-      `[${TRADING_CONFIG_SECTION}.${MARKETS_CONFIG_KEY}] holidays or open_days fall on a weekend: ${misplaced.join(', ')}`,
-      { key: 'errors.configMarketDayOnWeekend', params: { days: misplaced.join(', ') } }
-    )
-  }
-}
-
-/** A date both closed and reopened under one market says two things; neither can be guessed. */
-function assertConfiguredDaysAgree(config: TradingConfig): void {
-  const contradicted = Object.entries(config.markets).flatMap(([ref, settings]) => {
-    const reopened = new Set(settings?.openDays ?? [])
-
-    return (settings?.holidays ?? [])
-      .filter((day) => reopened.has(day))
-      .map((day) => `${ref} ${day}`)
-  })
-
-  if (contradicted.length > 0) {
-    throw new OperatorConfigError(
-      `[${TRADING_CONFIG_SECTION}.${MARKETS_CONFIG_KEY}] dates in both holidays and open_days: ${contradicted.join(', ')}`,
-      { key: 'errors.configMarketDayContradicted', params: { days: contradicted.join(', ') } }
     )
   }
 }

@@ -1,5 +1,5 @@
 import type { SentMessages } from '@/channels/delivery/sent-messages'
-import type { ChannelRuntimeDeps, Pipeline } from '@/channels/pipeline'
+import type { ChannelRuntimeDeps, Pipeline, PipelineDeps } from '@/channels/pipeline'
 import type {
   ChannelAdapter,
   ChannelCommandMenu,
@@ -22,6 +22,13 @@ import { bindLocale } from '@/i18n'
 const CHANNEL_DRAIN_TIMEOUT_MS = 5_000
 const COMMAND_PREFIX = '/'
 
+// What this runtime owns of its two lifetimes: `dispose` ends intake itself when the daemon's signal
+// has not, and is the only thing that ends delivery.
+interface RuntimeAborts {
+  readonly intake: AbortController
+  readonly outbound: AbortController
+}
+
 interface RuntimeState {
   status: ChannelStatus
   drainTask: Promise<void> | null
@@ -29,9 +36,12 @@ interface RuntimeState {
 }
 
 export function createChannelRuntime(deps: ChannelRuntimeDeps): ChannelRuntime {
-  const runtimeAbort = new AbortController()
-  const runtimeSignal = AbortSignal.any([deps.shutdownSignal, runtimeAbort.signal])
-  const runtimeDeps: ChannelRuntimeDeps = { ...deps, shutdownSignal: runtimeSignal }
+  const aborts: RuntimeAborts = { intake: new AbortController(), outbound: new AbortController() }
+  const runtimeDeps: PipelineDeps = {
+    ...deps,
+    intakeSignal: AbortSignal.any([deps.intakeSignal, aborts.intake.signal]),
+    outboundSignal: aborts.outbound.signal,
+  }
   const { adapter } = deps
   const pipeline = createPipeline(runtimeDeps)
   const state: RuntimeState = {
@@ -43,8 +53,7 @@ export function createChannelRuntime(deps: ChannelRuntimeDeps): ChannelRuntime {
   return {
     channelId: adapter.id,
     start: () => startChannel({ deps: runtimeDeps, adapter, pipeline, state }),
-    dispose: () =>
-      disposeChannel({ deps: runtimeDeps, adapter, parts: pipeline, runtimeAbort, state }),
+    dispose: () => disposeChannel({ deps: runtimeDeps, adapter, parts: pipeline, aborts, state }),
     snapshot: () => ({ channel: adapter.id, ...state.status }),
     isWorking: pipeline.isWorking,
     notify: async (target, text, options) => {
@@ -105,7 +114,7 @@ async function startChannel(options: StartChannelOptions): Promise<void> {
       },
       commandsForMenu: () => menuCommands(deps),
     },
-    deps.shutdownSignal
+    deps.intakeSignal
   )
 
   state.drainTask = observeDrain(
@@ -117,29 +126,29 @@ async function startChannel(options: StartChannelOptions): Promise<void> {
       runMaxDurationMs: deps.runMaxDurationMs,
       channelId: adapter.id,
       logger: deps.logger,
-      signal: deps.shutdownSignal,
+      signal: deps.intakeSignal,
     })
   )
 }
 
 interface StartChannelOptions {
-  readonly deps: ChannelRuntimeDeps
+  readonly deps: PipelineDeps
   readonly adapter: ChannelAdapter
   readonly pipeline: Pipeline
   readonly state: RuntimeState
 }
 
 interface DisposeChannelOptions {
-  readonly deps: ChannelRuntimeDeps
+  readonly deps: PipelineDeps
   readonly adapter: ChannelAdapter
   readonly parts: Pipeline
-  readonly runtimeAbort: AbortController
+  readonly aborts: RuntimeAborts
   readonly state: RuntimeState
 }
 
 // Idempotent and non-throwing: a failed start must still tear down cleanly.
 async function disposeChannel(options: DisposeChannelOptions): Promise<void> {
-  const { deps, adapter, parts, runtimeAbort, state } = options
+  const { deps, adapter, parts, aborts, state } = options
 
   if (state.disposed) {
     return
@@ -149,11 +158,12 @@ async function disposeChannel(options: DisposeChannelOptions): Promise<void> {
   parts.handler.dispose()
   parts.proactive.dispose()
   parts.planReviewer.dispose()
-  // Before the abort and the adapter's close: the queued notices get their one bounded attempt
-  // while the transport and its signal are still live.
+  aborts.intake.abort()
+  // Before the outbound abort and the adapter's close: the queued notices get their one bounded
+  // attempt while the transport and its signal are still live.
   await closeQuietly(deps, 'notifier', () => parts.notifier.dispose())
 
-  runtimeAbort.abort()
+  aborts.outbound.abort()
   await closeQuietly(deps, 'queue', () => parts.queue.dispose())
   await closeQuietly(deps, 'adapter', () => adapter.dispose())
 
@@ -181,7 +191,7 @@ async function disposeChannel(options: DisposeChannelOptions): Promise<void> {
 
 function observeDrain(deps: ChannelRuntimeDeps, task: Promise<void>): Promise<void> {
   return task.catch((err: unknown) => {
-    if (!deps.shutdownSignal.aborted) {
+    if (!deps.intakeSignal.aborted) {
       deps.logger.error('inbound.drain_terminated', {
         channel: deps.adapter.id,
         err: formatErrForLog(err),

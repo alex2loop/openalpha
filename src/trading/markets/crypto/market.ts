@@ -145,7 +145,7 @@ async function cryptoQuote(
 
 /** Crypto trades continuously and settles on-chain, so it reuses the shared continuous calendar and
  *  claims no region calendar — world gold already owns the global trading day. */
-function cryptoManifest(config: TradingConfig): MarketManifest {
+export function cryptoManifest(config: TradingConfig): MarketManifest {
   const defaultCalendar = CONTINUOUS_CALENDAR
 
   return {

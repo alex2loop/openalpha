@@ -108,7 +108,7 @@ export function createInboundQueue(deps: InboundQueueDeps): InboundQueue {
 function enqueueInbound(ctx: QueueContext, request: InboundRequest): Promise<void> {
   if (ctx.deps.signal.aborted) {
     request.route.release()
-    return Promise.reject(new RunHalted('shutdown', 'inbound queue is shutting down'))
+    return Promise.reject(shuttingDown())
   }
 
   try {
@@ -177,7 +177,10 @@ function fireBurst(ctx: QueueContext, sessionId: SessionId, burst: Burst): void 
     (err: unknown) => {
       rejectReceipts(burst.receipts, toReceiptError(err))
       ctx.state.inFlight.delete(task)
-      ctx.deps.logger.error('queue.fire_failed', { err: formatErrForLog(err) })
+
+      if (!(err instanceof RunHalted && err.code === 'shutdown')) {
+        ctx.deps.logger.error('queue.fire_failed', { err: formatErrForLog(err) })
+      }
     }
   )
 }
@@ -285,9 +288,11 @@ async function fire(
   addPending(pending, queued)
 
   try {
-    if (queued.cancelled || deps.signal.aborted) {
+    if (queued.cancelled) {
       return
     }
+
+    assertIntakeOpen(deps)
 
     const capped = overCap(deps)
 
@@ -300,9 +305,11 @@ async function fire(
     await deps.sessionQueue.enqueue(
       queued.sessionId,
       async () => {
-        if (queued.cancelled || deps.signal.aborted) {
+        if (queued.cancelled) {
           return
         }
+
+        assertIntakeOpen(deps)
 
         await queued.run(queued.combined)
       },
@@ -318,6 +325,18 @@ async function fire(
     releaseRegistrations(queued.routes)
     dropPending(pending, queued)
   }
+}
+
+// A turn that meets a closed intake rejects rather than returning: a return would resolve its
+// receipt, and the inbox would complete a message nothing answered.
+function assertIntakeOpen(deps: InboundQueueDeps): void {
+  if (deps.signal.aborted) {
+    throw shuttingDown()
+  }
+}
+
+function shuttingDown(): RunHalted {
+  return new RunHalted('shutdown', 'inbound queue is shutting down')
 }
 
 function combineRegistrations(
@@ -389,7 +408,9 @@ async function handleDeliberateEnqueueFailure(
   combined: InboundMessage,
   err: unknown
 ): Promise<boolean> {
-  if (err instanceof RunHalted && err.code === 'queue_full') {
+  // A refusal at shutdown is the daemon pausing the queue, not the chat being busy: it rethrows so
+  // the message stays pending instead of being answered "queue full" and completed.
+  if (err instanceof RunHalted && err.code === 'queue_full' && !deps.signal.aborted) {
     await deps.notify(combined.chatId, t(deps.locale, 'channel.queueFull'))
 
     return true

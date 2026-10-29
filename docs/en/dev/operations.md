@@ -115,15 +115,23 @@ at 30 minutes; a cron job is disabled after 3 consecutive failures. Halts that d
 failures: shutdown, approval denied or timed out, an agent cap, a paused agent, a missed slot. Delivery runs
 after finalisation, so a delivery error never fails the run.
 
-A tick that finds due jobs first asks the shared reachability probe (`core/utils/reachability`: one lookup of
-the host the trading loops wait on, 5 s budget). Offline, it returns before admitting anything, so the jobs
-stay due and no attempt is made to fail; `scheduler.tick_offline` is logged once per offline stretch.
+A tick that finds a due job not already running first asks the shared reachability probe
+(`core/utils/reachability`: one lookup of the host the trading loops wait on, 5 s budget, cut short when the
+scheduler stops). A job still running from an earlier tick does not count, so a long run costs no lookups. Offline,
+the tick returns before admitting anything, so the jobs stay due and no attempt is made to fail;
+`scheduler.tick_offline` is logged once per offline stretch, and a tick with nothing held back ends the stretch.
 
 Lateness is judged on the claimed occurrence, in `runScheduledOccurrence`: a cron job whose
-`nextRunAt` is more than `lateGraceMs` (`[schedule] late_grace_ms`, 15 minutes; `resolveSchedule` refuses a value under one tick, 30 s, because a slot is first seen at the next tick) behind the clock is finalised
+`nextRunAt` is more than `lateGraceMs` (`[schedule] late_grace_ms`, 15 minutes; `resolveSchedule` refuses a value under one tick plus the probe budget, 35 s, because a slot is first seen at the next tick, which chains after the previous one and may wait out the probe first) behind the clock is finalised
 with `MISSED_SLOT_MESSAGE` and a `skip` transition instead of running, which advances the cadence from now and
 keeps the failure count. Interval and once jobs are never skipped: they name no clock time. The intraday report loop reads the same value and skips a
 send whose wake-up is that late (`trading.intraday_late`).
+
+The workflow trigger (`startScheduledWorkflows`) follows the same two rules. A slot found more than `lateGraceMs`
+late (`isSlotLate`, the predicate `isMissedSlot` uses too) is skipped and logged as `workflow.slot_missed`, and
+the workflow waits for its next one. Before running what is due, a tick asks the same probe; offline it returns
+without closing its window, so the slot replays when the network is back, or is skipped as late if the wait
+outlasts the grace. `workflow.tick_offline` is logged once per offline stretch.
 
 ## Heartbeat runner
 

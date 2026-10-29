@@ -33,7 +33,7 @@ không có việc thì thoát ngay.
 | `trading.refresh` | sau giờ đóng cửa từng thị trường, tối đa 12 giờ | Làm mới dữ liệu cho mọi thị trường bạn còn dùng và ghi log phần suy giảm. Sau đó chụp bảng yếu tố của từng thị trường khi phiên chốt, và chấm điểm các bảng cũ đã tới cuối cửa sổ. Nó cũng ghi ảnh chụp danh mục trong ngày (giá trị, tiền mặt, tiền nạp ròng). Nếu một mã đang nắm chưa có giá thì bỏ qua ảnh chụp ngày đó và log `trading.nav_snapshot_skipped` kèm tên các mã; lỗi khác log `trading.nav_snapshot_failed`. Không gọi mô hình. |
 | `trading.intraday` | các mốc giờ bạn khai | Gửi báo cáo trong phiên. **Tắt cho tới khi `[trading.intraday] send_times` nêu một mốc giờ.** |
 | quét lưu giữ | 6 giờ | Xóa các dòng quá `[retention] days` / `history_days` / `inbox_days`, tệp tạm trong thư mục làm việc, cache cũ trong thư mục nhà shell của mỗi agent (`run/.cache`, `run/.npm`, `run/.bun/install/cache`, `run/.local/share/Trash`; `doctor` cảnh báo khi `run/` của một agent vượt 2 GB), và thư mục log của agent không còn được cấu hình. Sao lưu SQLite hằng ngày vào `backups/daily/` khi bản mới nhất đã gần một ngày tuổi (`daily_backups`; bỏ qua PostgreSQL). Cũng chạy một lần lúc khởi động. |
-| nhịp workflow | 30 giây | Kích hoạt các workflow có cron trigger. Lượt hỏng sẽ phát lại cửa sổ của nó, nên không mất lần kích hoạt nào. |
+| nhịp workflow | 30 giây | Kích hoạt các workflow có cron trigger. Lượt không hoàn tất được, kể cả khi mất mạng, sẽ phát lại cửa sổ của nó, nên không mất lần kích hoạt nào; lần chờ quá `late_grace_ms` thì bị bỏ qua, như việc cron. |
 | nhịp heartbeat | 30 giây | Quét `HEARTBEAT.md` của từng thư mục làm việc. |
 | nhịp lập lịch | 30 giây | Tìm các việc theo lịch đã đến hạn. |
 
@@ -260,7 +260,8 @@ sang lần kế tiếp theo lịch, không tính lần hỏng nào, và dòng l�
 phút: đủ cho một lần khởi động lại hay mất mạng ngắn, và đủ ngắn để việc buổi sáng không bao giờ được trả lời
 sau phiên mà nó dành cho. Vậy nếu dịch vụ nền tắt cả đêm rồi khởi động lúc 15:00 thì việc cron 07:30 (việc bạn thêm bằng `schedule add`) không chạy
 lúc 15:00; lần chạy kế tiếp là 07:30 của ngày khớp lịch tiếp theo. Việc chạy một lần thì vẫn chạy khi đến hạn, dù
-trễ bao nhiêu.
+trễ bao nhiêu. Workflow có cron trigger theo cùng hai quy tắc: mất mạng thì chờ có mạng, và giờ trễ quá
+`late_grace_ms` thì bị bỏ qua.
 
 Tắt máy không bao giờ tính vào việc tự tắt. Việc chạy một lần bị cắt ngang vì tắt máy vẫn đến hạn và
 chạy ở lần khởi động sau. Còn phê duyệt bị từ chối hay quá hạn thì việc vẫn kết thúc, vì chạy lại chỉ

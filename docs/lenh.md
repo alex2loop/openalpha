@@ -163,9 +163,9 @@ lệnh nào và menu Telegram. Nhờ vậy một lệnh hành xử giống hệt
 | `/new` | Chuyển sang một cuộc trò chuyện mới (chat trên trang văn phòng cũng chuyển theo); các câu lệnh đang chờ trong hàng của cuộc chat bị bỏ và những câu đang chạy bị dừng |
 | `/continue` | Chạy tiếp một lượt dừng giữa chừng, không phải gõ lại yêu cầu; không có lượt nào dở thì chỉ báo vậy |
 | `/social` | `/social drafts` xem những gì agent đang chờ đăng; `/social approve <id>` gửi một bản nháp, `/social discard <id>` bỏ nó. Chỉ operator dùng được. Xem [Mạng xã hội](mang-xa-hoi.md) |
-| `/pair` | Chỉ operator, trong kênh chat: liệt kê các mã ghép nối đang chờ duyệt. Xem [Kênh](kenh.md#ghép-nối) |
-| `/approve` | Chỉ operator, trong kênh chat: `/approve <mã>` cho cuộc chat đã xin mã ghép nối đó vào. Xem [Kênh](kenh.md#ghép-nối) |
-| `/deny` | Chỉ operator, trong kênh chat: `/deny <mã>` từ chối yêu cầu ghép nối đó. Xem [Kênh](kenh.md#ghép-nối) |
+| `/pair` | Chỉ operator, trong một chat có trong `allowed_ids`: liệt kê các mã ghép nối đang chờ duyệt. Xem [Kênh](kenh.md#ghép-nối) |
+| `/approve` | Chỉ operator, trong một chat có trong `allowed_ids`: `/approve <mã>` cho cuộc chat đã xin mã ghép nối đó vào. Xem [Kênh](kenh.md#ghép-nối) |
+| `/deny` | Chỉ operator, trong một chat có trong `allowed_ids`: `/deny <mã>` từ chối yêu cầu ghép nối đó. Xem [Kênh](kenh.md#ghép-nối) |
 
 `/help` liệt kê câu lệnh theo nhóm: danh mục và giao dịch (mở đầu bằng `/setup`), thị trường, phân tích và đề xuất, rồi đến hệ thống (`/help`, `/stop` và các lệnh không thuộc nhóm nào). Menu Telegram theo cùng thứ tự.
 `/help <tên>` (có hay không có dấu `/` đều được) cho mô tả và cách dùng của một câu lệnh; gõ sai tên thì mình

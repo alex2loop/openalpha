@@ -514,7 +514,7 @@ Khi phiên chạy đã thoát gọn và `boot` đã đóng, `main` gọi `restar
 - `ChannelDefinition.apiHosts` cho các kênh dịch vụ nền khởi động, và `VenueManifest.apiHosts` cho sàn có khóa (đọc qua `VenueChoice`);
 - các MCP server dùng HTTP;
 - `listSearchHosts`: điểm cuối của từng backend, `base_url` riêng của SearXNG, không có gì khi backend chính thiếu khóa;
-- `UPDATE_CHECK_HOST` khi `[update] check` bật, API base của từng mạng xã hội mà một agent đang hoạt động đã tham gia, và host kiểm tra mạng trong cấu hình trading.
+- `UPDATE_CHECK_HOST` khi `[update] check` bật, API base của từng mạng xã hội mà một agent đang hoạt động đã tham gia, và host kiểm tra mạng (`REACHABILITY_HOST`), một lần thăm dò chung cho bộ lập lịch, trình kích hoạt workflow và các vòng trading.
 
 Một host phục vụ hai mục đích thì xuất hiện một lần dưới mỗi mục đích, vì thứ gửi tới đó khác nhau.
 

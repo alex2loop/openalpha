@@ -39,6 +39,9 @@ interface SchedulerState {
   /** At most one per job in flight; taken out when that run settles. */
   readonly deferredRemovals: Map<JobId, () => Promise<void>>
   readonly signal: AbortSignal
+  /** Aborts when the scheduler stops, by `signal` or by `stop`, so a tick waiting on the network
+   *  does not hold the stop for its whole budget. */
+  readonly stopping: AbortController
   timer: ReturnType<typeof setTimeout> | null
   tickTask: Promise<void> | null
   stopTask: Promise<void> | null
@@ -97,6 +100,7 @@ function createSchedulerState(signal: AbortSignal): SchedulerState {
     inFlight: new Map(),
     deferredRemovals: new Map(),
     signal,
+    stopping: new AbortController(),
     timer: null,
     tickTask: null,
     stopTask: null,
@@ -157,27 +161,37 @@ async function runTick(
   // rows cannot crowd later-due jobs out of the per-tick budget.
   const limit = deps.config.schedule.maxPerTick + state.inFlight.size
   const due = await deps.jobStore.due(now, limit, now - runNowClaimTtlMs)
+  const waiting = due.filter((job) => !state.inFlight.has(job.id))
 
-  if (due.length === 0) {
+  // Nothing held back, so no offline stretch to keep warning about: the next one warns afresh.
+  if (waiting.length === 0) {
+    state.offlineWarned = false
+
     return
   }
 
   // An offline run fails every attempt, and each failure counts toward the auto-disable, so a short
   // outage would switch jobs off. They stay due and run once the network is back; a recurring one
   // that waited past its grace is skipped to its next occurrence instead.
-  const offline = !(await probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS))
+  const offline = !(await probeHost(
+    REACHABILITY_HOST,
+    REACHABILITY_TIMEOUT_MS,
+    state.stopping.signal
+  ))
 
-  if (offline) {
-    warnOfflineOnce(state, deps, due.length)
-  } else {
-    state.offlineWarned = false
-  }
-
-  if (state.stopped || state.signal.aborted || offline) {
+  if (state.stopped || state.signal.aborted) {
     return
   }
 
-  for (const job of due) {
+  if (offline) {
+    warnOfflineOnce(state, deps, waiting.length)
+
+    return
+  }
+
+  state.offlineWarned = false
+
+  for (const job of waiting) {
     const admission = controller.admit(job, (runSignal) =>
       runScheduledOccurrence({ job, deps, signal: runSignal })
     )
@@ -316,6 +330,7 @@ async function settleScheduler(
 
 function stopScheduling(state: SchedulerState): void {
   state.stopped = true
+  state.stopping.abort()
 
   if (state.timer !== null) {
     clearTimeout(state.timer)

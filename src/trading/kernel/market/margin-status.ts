@@ -3,7 +3,16 @@ import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/marke
 
 /** How far back a margin-list row still describes today. HOSE republishes the list quarterly, so
  *  two cycles reach a row that took effect at the start of the previous one. */
-export const MARGIN_STATUS_LOOKBACK_SESSIONS = 130
+const MARGIN_STATUS_LOOKBACK_SESSIONS = 130
+
+/** The first day a name's events read reaches back to: the one owner of the window, so a reader of
+ *  past events can tell what the read could not have covered. */
+export function eventsFromDay(
+  calendar: { addTradingDays(day: TradingDay, count: number): TradingDay },
+  asOf: TradingDay
+): TradingDay {
+  return calendar.addTradingDays(asOf, -MARGIN_STATUS_LOOKBACK_SESSIONS)
+}
 
 const MARGIN_EVENT_KINDS: ReadonlySet<MarketEventKind> = new Set([
   'margin-eligible',

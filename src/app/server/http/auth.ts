@@ -233,7 +233,7 @@ export function apiTokenPath(dataDir: string): string {
 }
 
 /** Whether a configured or stored value can serve as the API token. */
-export function isApiTokenUsable(token: unknown): token is string {
+function isApiTokenUsable(token: unknown): token is string {
   return typeof token === 'string' && token.length >= MIN_TOKEN_LEN
 }
 
@@ -264,7 +264,7 @@ export async function ensureApiToken(
 ): Promise<string> {
   const tokenEnv = config.api.tokenEnv
 
-  if (tokenEnv !== undefined && tokenEnv !== '') {
+  if (tokenEnv !== undefined) {
     return resolveTokenEnv(tokenEnv, env)
   }
 
@@ -276,7 +276,7 @@ export async function ensureApiToken(
     await chmod(path, TOKEN_FILE_MODE)
 
     const parsed: unknown = await file.json().catch(() => null)
-    const existing = readToken(parsed)
+    const existing = parseTokenFile(parsed)
 
     if (existing !== null) {
       return existing
@@ -290,7 +290,9 @@ export async function ensureApiToken(
   return token
 }
 
-function readToken(parsed: unknown): string | null {
+/** The token a stored token file holds, or null when its shape or length cannot serve. The daemon
+ *  and the CLI read the file through this, so both refuse the same files. */
+export function parseTokenFile(parsed: unknown): string | null {
   if (typeof parsed !== 'object' || parsed === null || !('token' in parsed)) {
     return null
   }

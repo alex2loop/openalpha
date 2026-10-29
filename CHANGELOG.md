@@ -46,14 +46,14 @@ the way the order path charges them.
 - An OKX rebate books as no fee; a Binance fill whose trades are not listed yet waits for
   `/record sync` instead of booking a zero fee.
 - A buy into a switched-off segment shows as a cap breach and `order_place` refuses it.
-- Suggested buys, the batch cash check and `/rebalance` leave room for the fee and price drift the
-  order path charges.
+- Suggested buys and the batch cash check leave room for the fee, plus the price drift a market
+  order may fill through on an exchange `/trade` reaches; `/rebalance` leaves room for the fee.
 - One name with zero turnover no longer withholds the whole `/rebalance` plan.
 
 ### Office page and API
 
-- The ticker card shows a corporate action's terms: cash per share, new shares per 100, subscription
-  price and payment day.
+- The ticker card now really shows a corporate action's terms (1.2.0 promised them but showed only
+  the payment day): cash per share, new shares per 100, subscription price and payment day.
 - The sign-in lockout has its own error code, `locked`; other refusals show their reason, and a
   sign-in link survives a daemon that is restarting.
 - Too many open tabs reads as such, not as offline.

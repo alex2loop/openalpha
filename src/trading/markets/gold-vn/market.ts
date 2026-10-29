@@ -118,7 +118,7 @@ export function createVnGoldMarket(deps: MarketDeps): Market {
   }
 }
 
-function goldVnManifest(config: TradingConfig): MarketManifest {
+export function goldVnManifest(config: TradingConfig): MarketManifest {
   const defaultCalendar = VN_GOLD_CALENDAR
 
   return {

@@ -33,7 +33,7 @@ run with nothing to do returns at once.
 | `trading.refresh` | after each market's close, 12 h at most | Refreshes market data for every market you still use and logs what degraded. Then it captures each market's factor board once its session settles and scores earlier boards that reached the end of their window. It also writes the day's portfolio snapshot (value, cash, net deposits). If a holding has no price, the snapshot is skipped and `trading.nav_snapshot_skipped` names the instruments; any other failure logs `trading.nav_snapshot_failed`. No model call. |
 | `trading.intraday` | your send times | Sends the intraday report. **Off until `[trading.intraday] send_times` names a time.** |
 | retention sweep | 6 h | Deletes rows past `[retention] days` / `history_days` / `inbox_days`, workspace temp files, old caches in each agent's shell home (`run/.cache`, `run/.npm`, `run/.bun/install/cache`, `run/.local/share/Trash`; `doctor` warns when an agent's `run/` passes 2 GB), and log folders of agents you no longer configure. Takes the daily SQLite backup into `backups/daily/` when the newest is about a day old (`daily_backups`; PostgreSQL skipped). Also runs once at boot. |
-| workflow check | 30 s | Fires workflows that have a cron trigger. A failed pass replays its window, so no trigger is lost. |
+| workflow check | 30 s | Fires workflows that have a cron trigger. A pass that cannot finish, offline included, replays its window, so no trigger is lost; one that waited past `late_grace_ms` is skipped, as for a cron job. |
 | heartbeat check | 30 s | Scans each workspace's `HEARTBEAT.md`. |
 | schedule check | 30 s | Looks for scheduled jobs that are due. |
 
@@ -262,7 +262,8 @@ A missed time is skipped, not run late. A cron job that is more than
 (missed slot)`. The default is 15 minutes: long enough for a restart or a short outage, short enough that a
 morning job is never answered after the session it was for. So a daemon that was down overnight and starts
 at 15:00 does not run a 07:30 cron job (one you added with `schedule add`) at 15:00; its next run is 07:30 on the next matching day.
-A one-time job still runs whenever it comes due, however late.
+A one-time job still runs whenever it comes due, however late. A workflow with a cron trigger follows the
+same two rules: offline it waits for the network, and a time more than `late_grace_ms` late is skipped.
 
 Shutdown never counts toward auto-disable. A one-time job cut short by shutdown stays due and runs on
 the next start. A denied or timed-out approval still ends it, because running it again would only

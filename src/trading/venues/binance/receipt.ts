@@ -8,6 +8,7 @@ import { ORDER_SIDES } from '@/trading/kernel/venue/spot-adapter'
 import { fetchAssetPrice } from '@/trading/venues/binance/price'
 import { toBinanceTicker } from '@/trading/venues/binance/symbol'
 import { BINANCE_QUOTE_ASSET, DECIMAL, signedRequest } from '@/trading/venues/binance/transport'
+import { rereadUntil } from '@/trading/venues/transport'
 
 const TRADES_PATH = '/api/v3/myTrades'
 const TRADES = z.array(
@@ -54,7 +55,7 @@ export async function readReceipt(
   order: BinanceOrder,
   signal: AbortSignal
 ): Promise<OrderReceipt | undefined> {
-  const trades = order.executedQty > 0 ? await fetchTrades(deps, order, signal) : []
+  const trades = order.executedQty > 0 ? await fetchListedTrades(deps, order, signal) : []
 
   return await toReceipt({
     order,
@@ -81,6 +82,20 @@ export function toOrderState(status: string): OrderState {
     default:
       return 'live'
   }
+}
+
+/** The trades of a filled order can be listed a moment after its row, so an empty list is read
+ *  again before the receipt calls its fee unreported. */
+function fetchListedTrades(
+  deps: BinanceTransportDeps,
+  order: BinanceOrder,
+  signal: AbortSignal
+): Promise<readonly BinanceTrade[] | undefined> {
+  return rereadUntil(
+    signal,
+    () => fetchTrades(deps, order, signal),
+    (trades) => trades !== undefined && trades.length > 0
+  )
 }
 
 function fetchTrades(
