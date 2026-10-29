@@ -8,7 +8,7 @@ import { runCommand } from '@/web/state/command'
 import { isAdvanced } from '@/web/state/prefs'
 import { locale, state } from '@/web/state/session'
 import { citationsOf } from '@/web/text/card-sources'
-import { formatSignedFraction } from '@/web/text/figures'
+import { formatSignedFraction, toneOfFraction } from '@/web/text/figures'
 import { ABSENT_CELL } from '@/web/text/glyphs'
 import { formatWhen } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
@@ -109,20 +109,29 @@ function WhyFooter({ subject }: { readonly subject: WhySubject }) {
   )
 }
 
+// A past call leads with how it ended; the notes on what was read sit apart at the foot.
 function WhyBody({ subject }: { readonly subject: WhySubject }) {
   return (
-    <>
+    <div class="flow">
+      {subject.kind === 'past' && <PastResult call={subject.call} />}
       <Reason call={subject.call} />
       {subject.kind === 'plan' && <StoredDebateView call={subject.call} />}
       {subject.kind === 'opinion' && <AgentBrief agentId={subject.agentId} />}
-      {subject.kind === 'past' && <PastResult call={subject.call} />}
-      <p class="meta why-stored">{tr('ui.office.why.stored')}</p>
-    </>
+      <div class="stack why-notes">
+        {subject.kind === 'past' && <p class="meta">{tr('ui.office.why.kept')}</p>}
+        <p class="meta">{tr('ui.office.why.stored')}</p>
+      </div>
+    </div>
   )
 }
 
 function Reason({ call }: { readonly call: SuggestionWire }) {
-  return call.thesis === undefined ? null : <p>{call.thesis}</p>
+  return call.thesis === undefined ? null : (
+    <section>
+      <h3 class="sub-head">{tr('ui.office.why.thesis')}</h3>
+      <p>{call.thesis}</p>
+    </section>
+  )
 }
 
 function AgentBrief({ agentId }: { readonly agentId: string }) {
@@ -135,17 +144,19 @@ function PastResult({ call }: { readonly call: SuggestionWire }) {
   const { outcome } = call
 
   return (
-    <>
-      <p>
-        {outcome === undefined
-          ? tr('ui.office.ticker.outcome.open')
-          : tr('ui.office.why.outcome', {
-              outcome: tr(`trading.outcome.${outcome.status}`),
-              return: formatSignedFraction(outcome.returnPct),
-            })}
-      </p>
-      <p class="meta">{tr('ui.office.why.kept')}</p>
-    </>
+    <section>
+      <h3 class="sub-head">{tr('ui.office.why.result')}</h3>
+      {outcome === undefined ? (
+        <p>{tr('ui.office.ticker.outcome.open')}</p>
+      ) : (
+        <div class="stack">
+          <p class={`lead is-${toneOfFraction(outcome.returnPct)}-text`}>
+            {formatSignedFraction(outcome.returnPct)}
+          </p>
+          <p>{tr('ui.office.why.outcome', { outcome: tr(`trading.outcome.${outcome.status}`) })}</p>
+        </div>
+      )}
+    </section>
   )
 }
 

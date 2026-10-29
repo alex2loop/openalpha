@@ -214,6 +214,15 @@
   background: var(--sunken);
 }
 
+/* Load more sits apart from the last row, centred under the list. */
+.sessions-foot {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--s3);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
+}
+
 .sessions-group .sessions-list {
   margin-top: 4px;
 }

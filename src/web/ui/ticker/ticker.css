@@ -148,3 +148,9 @@ text.chart-axis,
 .opinion-why {
   grid-column: 1 / -1;
 }
+
+/* What the dialog read, and what it cost, set apart under its content. */
+.why-notes {
+  padding-top: var(--s2);
+  border-top: 1px solid var(--border);
+}
