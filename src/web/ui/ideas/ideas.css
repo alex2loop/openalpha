@@ -101,6 +101,12 @@ button.research-row {
   border-top: 0;
 }
 
+/* A board being ranked again stays in view, dimmed, until the new one lands. */
+.is-ranking {
+  opacity: 0.5;
+  transition: opacity 120ms ease;
+}
+
 .opportunity {
   display: flex;
   gap: 10px;

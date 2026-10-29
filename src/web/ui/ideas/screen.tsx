@@ -83,10 +83,13 @@ function Board({ market }: { readonly market: string }) {
       action={<Rerun reading={reading} />}
     >
       {(board) => (
-        <BoardBody
-          board={board}
-          analyzed={analyzedOn(calls.data?.suggestions ?? [], { market, day: board.asOf })}
-        />
+        // The board stays readable, dimmed, while the new one is ranked.
+        <div class={reading.isRanking ? 'flow is-ranking' : 'flow'} aria-busy={reading.isRanking}>
+          <BoardBody
+            board={board}
+            analyzed={analyzedOn(calls.data?.suggestions ?? [], { market, day: board.asOf })}
+          />
+        </div>
       )}
     </BlockFrame>
   )
@@ -137,7 +140,8 @@ function useBoard(market: string): BoardReading {
 function Rerun({ reading }: { readonly reading: BoardReading }) {
   return (
     <Button size="small" disabled={reading.isRanking} onClick={reading.rerank}>
-      {tr('ui.office.ideas.screenRerun')}
+      {reading.isRanking && <span class="spin" aria-hidden="true" />}
+      {tr(reading.isRanking ? 'ui.office.ideas.screenRanking' : 'ui.office.ideas.screenRerun')}
     </Button>
   )
 }

@@ -696,6 +696,7 @@
     "office.ideas.screenFunnel": "Screened {universe} names, {kept} left",
     "office.ideas.screenNote": "The score is a rank, not a buy call. For a call, pick a name.",
     "office.ideas.screenRerun": "Screen again",
+    "office.ideas.screenRanking": "Screening...",
     "office.record.hits": "{hit}/{count} reached the target before the stop",
     "office.record.hitsOne": "{hit}/{count} reached the target before the stop",
     "office.record.byModel": "By model used",

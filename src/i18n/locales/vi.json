@@ -696,6 +696,7 @@
     "office.ideas.screenFunnel": "Sàng {universe} mã, còn {kept}",
     "office.ideas.screenNote": "Điểm chỉ là thứ hạng, không phải lời khuyên mua. Muốn có đề xuất, chọn một mã.",
     "office.ideas.screenRerun": "Lọc lại",
+    "office.ideas.screenRanking": "Đang lọc...",
     "office.record.hits": "{hit}/{count} chạm mục tiêu trước mức cắt lỗ",
     "office.record.hitsOne": "{hit}/{count} chạm mục tiêu trước mức cắt lỗ",
     "office.record.byModel": "Theo mô hình đã dùng",
