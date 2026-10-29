@@ -162,7 +162,7 @@ export interface SessionListing {
   readonly chatId?: string
   readonly startedAt: number
   readonly lastActivityAt: number
-  /** User and assistant rows, as the history page counts them. */
+  /** The rows the history page shows: the operator's lines and the answers that carry text. */
   readonly messageCount: number
   readonly firstUserContent: string | null
   readonly lastAssistantContent: string | null

@@ -22,8 +22,9 @@ interface ListingRow {
   readonly last_assistant: string | null
 }
 
-// The display transcript is its user and assistant rows, as the history page reads it.
-const DISPLAYED_ROLES = "('user', 'assistant')"
+// A block array starts with `[`; one holding no text block is a turn's tool calls alone.
+const BLOCKS_PREFIX = '[%'
+const TEXT_BLOCK = '%"type":"text"%'
 
 /** The filters are optional, so the statement is built per call; every value still binds. */
 export async function listSessionsByChannels(
@@ -50,7 +51,7 @@ export async function listSessionsByChannels(
   const sql =
     `SELECT p.id, p.agent_id, p.channel, p.chat_id, p.started_at, p.last_activity_at, ` +
     `(SELECT COUNT(*) FROM session_messages m WHERE m.session_id = p.id ` +
-    `AND m.role IN ${DISPLAYED_ROLES}) AS message_count, ` +
+    `AND ${displayedRow('m')}) AS message_count, ` +
     `(SELECT m.content FROM session_messages m WHERE m.session_id = p.id ` +
     `AND m.role = 'user' ORDER BY m.idx ASC LIMIT 1) AS first_user, ` +
     `(SELECT m.content FROM session_messages m WHERE m.session_id = p.id ` +
@@ -74,7 +75,7 @@ function buildConditions(
     ...(query.id === undefined
       ? [
           `EXISTS (SELECT 1 FROM session_messages d WHERE d.session_id = s.id ` +
-            `AND d.role IN ${DISPLAYED_ROLES})`,
+            `AND ${displayedRow('d')})`,
         ]
       : []),
     ...(query.channels === undefined
@@ -89,7 +90,7 @@ function buildConditions(
           // the collation on postgres, so the text as typed matches too: "Đầu tư" is found by
           // "Đầu" even where "đầu" misses it.
           `EXISTS (SELECT 1 FROM session_messages m WHERE m.session_id = s.id ` +
-            `AND m.role IN ${DISPLAYED_ROLES} ` +
+            `AND ${displayedRow('m')} ` +
             `AND (LOWER(m.content) LIKE ${bind(toLikeContainsPattern(query.query.toLowerCase()))} ESCAPE '\\' ` +
             `OR m.content LIKE ${bind(toLikeContainsPattern(query.query))} ESCAPE '\\'))`,
         ]),
@@ -124,4 +125,13 @@ function toSessionListing(row: ListingRow): SessionListing {
     firstUserContent: row.first_user,
     lastAssistantContent: row.last_assistant,
   }
+}
+
+/** The rows the history page shows: the operator's lines, and every answer but one that only called
+ *  tools, which carries no text to show. */
+function displayedRow(alias: string): string {
+  return (
+    `(${alias}.role = 'user' OR (${alias}.role = 'assistant' AND ` +
+    `(${alias}.content NOT LIKE '${BLOCKS_PREFIX}' OR ${alias}.content LIKE '${TEXT_BLOCK}')))`
+  )
 }
