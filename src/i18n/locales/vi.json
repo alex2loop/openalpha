@@ -5520,6 +5520,7 @@
     "order.unmirrored.reason.order.mirror_aborted": "đã khớp nhưng phiên bị hủy trước khi sổ ghi lại",
     "order.unmirrored.reason.order.unpriced_fill": "lệnh khớp ở mức giá sổ không ghi được",
     "order.unmirrored.orderId": "mã lệnh trên sàn {orderId}",
+    "order.unmirrored.fillPrice": "khớp giá {price}",
     "order.unmirrored.settle": "Khi sổ đã đúng: /trade reconcile {token}",
     "order.unmirrored.remedy": "Mỗi dòng ở đây vẫn tính vào hạn mức cho tới khi được xử lý. Nếu sàn có khóa API, /record sync <sàn> sẽ kéo lệnh khớp về và tự xử lý; còn lại thì bạn ghi tay lệnh đó trước.",
     "order.orphanExits.title": "Lệnh thoát đang treo trên sàn",

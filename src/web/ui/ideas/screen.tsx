@@ -99,14 +99,15 @@ function Rerun({ market }: { readonly market: string }) {
   )
 }
 
-// The names `/suggest` would answer from a call already stored: those analyzed on the board's day.
+// The names `/suggest` would answer from a call already stored: those analyzed on the board's day,
+// or later where the board was read before the day turned.
 function analyzedOn(
   calls: readonly SuggestionWire[],
   board: { readonly market: string; readonly day: string }
 ): ReadonlySet<string> {
   return new Set(
     calls
-      .filter((call) => call.instrument.market === board.market && call.at === board.day)
+      .filter((call) => call.instrument.market === board.market && call.at >= board.day)
       // A failed run is re-run by a plain `/suggest`, so it needs no force.
       .filter((call) => call.action !== 'hold' || call.undecided !== true)
       .map((call) => call.instrument.ticker)

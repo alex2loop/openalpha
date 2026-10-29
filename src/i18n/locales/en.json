@@ -5520,6 +5520,7 @@
     "order.unmirrored.reason.order.mirror_aborted": "it filled and the run was cancelled before the book recorded it",
     "order.unmirrored.reason.order.unpriced_fill": "it filled at a price the book cannot record",
     "order.unmirrored.orderId": "exchange order {orderId}",
+    "order.unmirrored.fillPrice": "filled at {price}",
     "order.unmirrored.settle": "Once the book is right: /trade reconcile {token}",
     "order.unmirrored.remedy": "Each of these keeps counting against your caps until it is settled. Where the venue has credentials, /record sync <venue> pulls the fills in and clears them for you; anywhere else, record the trade by hand first.",
     "order.orphanExits.title": "Exit orders resting at the exchange",

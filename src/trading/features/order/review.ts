@@ -1,6 +1,6 @@
 import type { SlashContext, SlashResult } from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
-import type { OrderService, TradeStatus } from '@/trading/features/order/types'
+import type { OrderService, ReconcileReview, TradeStatus } from '@/trading/features/order/types'
 import { pluralKey } from '@/i18n'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { renderUnmirroredIntents } from '@/trading/features/order/render'
@@ -63,10 +63,10 @@ export async function runStatus(deps: ReviewDeps, input: ReviewInput): Promise<S
     text: renderTradeStatus({
       locale: ctx.locale,
       status,
-      quoteConventions: quoteConventionsFor(
-        deps.marketData,
-        status.exits.map((exit) => exit.instrument)
-      ),
+      quoteConventions: quoteConventionsFor(deps.marketData, [
+        ...status.exits.map((exit) => exit.instrument),
+        ...status.unmirrored.map((intent) => intent.instrument),
+      ]),
       timezone: deps.timezone,
     }),
   }
@@ -147,16 +147,7 @@ export async function runReconcile(
   return {
     kind: 'text',
     text: joinSections([
-      review.outstanding.length === 0
-        ? []
-        : [
-            renderUnmirroredIntents({
-              locale: ctx.locale,
-              intents: review.outstanding,
-              settled: review.settled,
-              timezone: deps.timezone,
-            }),
-          ],
+      review.outstanding.length === 0 ? [] : [renderOutstanding(deps, ctx, review)],
       exitsReported
         ? [
             renderOrphanExits({
@@ -168,4 +159,17 @@ export async function runReconcile(
         : [],
     ]),
   }
+}
+
+function renderOutstanding(deps: ReviewDeps, ctx: SlashContext, review: ReconcileReview): string {
+  return renderUnmirroredIntents({
+    locale: ctx.locale,
+    intents: review.outstanding,
+    settled: review.settled,
+    timezone: deps.timezone,
+    quoteConventions: quoteConventionsFor(
+      deps.marketData,
+      review.outstanding.map((intent) => intent.instrument)
+    ),
+  })
 }
