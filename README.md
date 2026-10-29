@@ -3,7 +3,7 @@
 
 <p align="center">
   <strong>Một hội đồng AI tranh luận trước mỗi đề xuất như <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
-  OpenAlpha là nhà phân tích đầu tư AI mã nguồn mở: AI phân tích, còn đặt lệnh hay không vẫn do bạn quyết.
+  OpenAlpha là trợ lý AI đầu tư mã nguồn mở cài trên máy bạn, cho chứng khoán Việt Nam, vàng và crypto: AI phân tích, còn đặt lệnh hay không vẫn do bạn quyết.
 </p>
 
 <p align="center">
@@ -14,11 +14,6 @@
   <img src="https://img.shields.io/github/actions/workflow/status/alex2loop/openalpha/check.yml?branch=main&style=flat-square&label=check" alt="check" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
 </p>
-
-<p><img src="assets/readme/new.vi.svg" height="24" alt="Mới" /></p>
-
-> [!TIP]
-> Cả đội AI của bạn làm việc trong một văn phòng pixel ngay trên trình duyệt. Nhìn ai đang làm gì, bấm vào một nhân vật để giao việc, liếc bảng thị trường bên cạnh. Mở bằng `openalpha web` · [xem cách dùng](#trang-văn-phòng).
 
 <p align="center">
   <img src="assets/readme/hero.vi.png" alt="Đề xuất yếu bị loại trước khi tới tay bạn, qua sáu bước: dữ liệu, bằng chứng, cổng chặn, tranh luận, kiểm tra, kết luận" width="100%" />
@@ -32,6 +27,11 @@ Bạn hỏi một mã, OpenAlpha trả về một kế hoạch: mua ở đâu, c
 - **Bốn thị trường.** Cổ phiếu Việt Nam (sâu nhất, nhờ dữ liệu trong nước), crypto, vàng trong nước, và vàng thế giới để tham chiếu.
 
 Đây là công cụ hỗ trợ phân tích, không phải lời khuyên đầu tư. Đề xuất có thể sai, và mọi quyết định là của bạn.
+
+<p><img src="assets/readme/new.vi.svg" height="24" alt="Mới" /></p>
+
+> [!TIP]
+> Cả đội AI của bạn làm việc trong một văn phòng pixel ngay trên trình duyệt. Nhìn ai đang làm gì, bấm vào một nhân vật để giao việc, liếc bảng thị trường bên cạnh. Mở bằng `openalpha web` · [xem cách dùng](#trang-văn-phòng).
 
 <p align="center">
   <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-nh%C3%B3m%20h%E1%BB%97%20tr%E1%BB%A3-0068FF?style=for-the-badge" alt="Nhóm Zalo hỗ trợ" /></a><br/>
