@@ -209,6 +209,12 @@
   padding: 4px;
 }
 
+.popover.sessions-menu.is-up,
+:root:not([data-layout="wide"]) .popover.sessions-menu.is-up {
+  top: auto;
+  bottom: calc(100% - 6px);
+}
+
 .sessions-menu a,
 .sessions-menu button {
   display: flex;

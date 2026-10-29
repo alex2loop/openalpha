@@ -1,4 +1,4 @@
-import { type ReadonlySignal, signal } from '@preact/signals'
+import { type ReadonlySignal, signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { type MessageKey, pluralKey } from '@/i18n'
@@ -142,9 +142,9 @@ function SessionRow({ session, timeZone }: RowProps) {
   )
 }
 
-// Delete is offered on this app's sessions only; the daemon refuses any other channel's anyway.
 function RowMenu({ session }: { readonly session: ChatSession }) {
   const anchor = useRef<HTMLButtonElement>(null)
+  const opensUp = useSignal(false)
   const menuId = `${MENU_ID_PREFIX}${session.sessionId}`
   const label = tr('ui.office.sessions.menu')
 
@@ -160,29 +160,53 @@ function RowMenu({ session }: { readonly session: ChatSession }) {
         title={label}
         aria-label={label}
         aria-expanded={openPopoverId.value === menuId}
-        onClick={() => togglePopover(menuId)}
+        onClick={() => {
+          opensUp.value = isInLowerHalf(anchor.current)
+          togglePopover(menuId)
+        }}
       >
         <MoreIcon />
       </button>
-      <Popover id={menuId} anchor={anchor} label={label} class="sessions-menu">
-        <a
-          href={`?${CHAT_TAB_PARAM}=${encodeURIComponent(session.sessionId)}`}
-          target="_blank"
-          rel="noopener"
-          onClick={closePopover}
-        >
-          <ExternalIcon />
-          {tr('ui.office.sessions.openTab')}
-        </a>
-        {session.channel === APP_CHANNEL && (
-          <button type="button" class="is-danger" onClick={() => deleteSession(session)}>
-            <TrashIcon />
-            {tr('ui.office.sessions.delete')}
-          </button>
-        )}
+      <Popover
+        id={menuId}
+        anchor={anchor}
+        label={label}
+        class={opensUp.value ? 'sessions-menu is-up' : 'sessions-menu'}
+      >
+        <RowMenuItems session={session} />
       </Popover>
     </>
   )
+}
+
+// Delete is offered on this app's sessions only; the daemon refuses any other channel's anyway.
+function RowMenuItems({ session }: { readonly session: ChatSession }) {
+  return (
+    <>
+      <a
+        href={`?${CHAT_TAB_PARAM}=${encodeURIComponent(session.sessionId)}`}
+        target="_blank"
+        rel="noopener"
+        onClick={closePopover}
+      >
+        <ExternalIcon />
+        {tr('ui.office.sessions.openTab')}
+      </a>
+      {session.channel === APP_CHANNEL && (
+        <button type="button" class="is-danger" onClick={() => deleteSession(session)}>
+          <TrashIcon />
+          {tr('ui.office.sessions.delete')}
+        </button>
+      )}
+    </>
+  )
+}
+
+// A row low in the list opens its menu upward, where the list has room for it.
+function isInLowerHalf(element: HTMLElement | null): boolean {
+  const rect = element?.getBoundingClientRect()
+
+  return rect !== undefined && rect.top > window.innerHeight / 2
 }
 
 function closeMenu(menuId: string): void {

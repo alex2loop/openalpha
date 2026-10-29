@@ -190,11 +190,17 @@ async function loadPage(
       signal: abortSignal,
     })
 
-    pages.value = toPages([...page.messages, ...held.messages], page)
+    const now = pages.value
+
+    // Rows taken in at the end meanwhile stay; a list replaced meanwhile pages up on its own.
+    pages.value =
+      now.messages[0]?.idx === held.messages[0]?.idx
+        ? toPages([...page.messages, ...now.messages], page)
+        : { ...now, isLoading: false }
   } catch (error: unknown) {
     // Anything but an `ApiFailure` is this view's own abort.
     if (error instanceof ApiFailure) {
-      pages.value = { ...held, isLoading: false, failure: error }
+      pages.value = { ...pages.value, isLoading: false, failure: error }
     }
   }
 }
