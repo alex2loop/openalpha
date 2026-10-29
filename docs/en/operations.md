@@ -684,7 +684,10 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     count of new calls you have not seen.
   - Click a ticker anywhere and its card opens: price (with "Refresh price", which reads that one name
     live), the last sessions charted on price and date axes with the plan levels, your holding, "Why?"
-    for the reasoning behind a call, earlier calls and what your own agents think.
+    for the reasoning behind a call, earlier calls and what your own agents think. Under the plan's
+    levels sit "What it is waiting for" (what the trader still waits on before the entry, when it
+    does) and "How each factor reads", the same lines `/suggest` prints. A call card under Ideas
+    shows both too.
   - Click one of your agents in the office and its tab opens (see
     [Agents](agents.md#from-the-office-page)).
   - A back row returns to where you were, and the panel collapses to an icon strip.

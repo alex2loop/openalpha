@@ -21,6 +21,7 @@ import {
   planOptions,
   renderCalibrationLine,
   renderDetailBlocks,
+  renderFactorBlock,
   renderFacts,
 } from '@/trading/features/suggestion/render/suggestion'
 import { inconclusiveBanner } from '@/trading/features/suggestion/render/verdict'
@@ -34,6 +35,10 @@ export interface SuggestionCard {
   readonly levels: readonly string[]
   readonly notes: readonly string[]
   readonly calibration?: string
+  /** The factor block without its title: the composite, the checklist and the fold below it. */
+  readonly factors: readonly string[]
+  /** What the trader waits on before the entry, each a condition it can be checked against. */
+  readonly watch: readonly string[]
   /** The rest of `/suggest` after the plan, one block each: factors, debate, thesis, what would
    *  break it, sources and caveats. */
   readonly details: readonly (readonly string[])[]
@@ -63,29 +68,40 @@ export function renderSuggestionCard(view: RenderView, call: StoredSuggestion): 
       ...holdReasonLines(view.locale, suggestion, inconclusive),
     ]),
     levels: trimmed(levelLines(view, suggestion, quote)),
-    notes: trimmed([
-      ...renderHeldExit({
-        locale: view.locale,
-        suggestion,
-        ...(quote === undefined ? {} : { quote }),
-        ...(view.cost === undefined ? {} : { cost: view.cost }),
-        placesOrders: view.placesOrders === true,
-        operatorFigures: view.operatorFigures,
-      }),
-      ...renderOrderNotes({
-        locale: view.locale,
-        suggestion,
-        ...(quote === undefined ? {} : { quote }),
-        ...(view.cost === undefined ? {} : { cost: view.cost }),
-        trailsStop: view.trailsStop === true,
-      }),
-    ]),
+    notes: trimmed(noteLines(view, suggestion, quote)),
     ...(calibration === undefined ? {} : { calibration: calibration.trimStart() }),
+    factors: trimmed(renderFactorBlock(view, suggestion, quote).slice(1)),
+    watch: trimmed(watchConditions(suggestion)),
     details: renderDetailBlocks(view, suggestion)
       .map(trimmed)
       .filter((block) => block.length > 0),
     disclaimer: t(view.locale, 'trading.render.suggestion.disclaimerApp'),
   }
+}
+
+/** What to do with the plan beside its levels: the held exit and the order notes. */
+function noteLines(
+  view: RenderView,
+  suggestion: StoredSuggestion,
+  quote: QuotedIn | undefined
+): readonly string[] {
+  return [
+    ...renderHeldExit({
+      locale: view.locale,
+      suggestion,
+      ...(quote === undefined ? {} : { quote }),
+      ...(view.cost === undefined ? {} : { cost: view.cost }),
+      placesOrders: view.placesOrders === true,
+      operatorFigures: view.operatorFigures,
+    }),
+    ...renderOrderNotes({
+      locale: view.locale,
+      suggestion,
+      ...(quote === undefined ? {} : { quote }),
+      ...(view.cost === undefined ? {} : { cost: view.cost }),
+      trailsStop: view.trailsStop === true,
+    }),
+  ]
 }
 
 /** The plan's levels, then a buy's plan without its bold section title. */
@@ -111,6 +127,14 @@ function levelLines(
       ? renderPlanLines(view.locale, suggestion, planOptions(view, quote)).slice(1)
       : []),
   ]
+}
+
+/** Every condition the trader waits on, where `/suggest` caps a compact read: the page has room for
+ *  all of them. A lean debate runs no trader, and one that would enter waits on nothing. */
+function watchConditions(suggestion: StoredSuggestion): readonly string[] {
+  const { debate } = suggestion
+
+  return debate?.mode === 'full' && debate.traderStance !== 'enter' ? debate.traderConditions : []
 }
 
 function trimmed(lines: readonly string[]): readonly string[] {

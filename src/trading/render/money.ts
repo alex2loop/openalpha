@@ -7,6 +7,7 @@ import {
   formatExactAmount,
   formatFixedAmount,
   formatFlow,
+  formatSignedFlow,
   isSubUnit,
   renderDeclaredValue,
   withGlyph,
@@ -207,9 +208,16 @@ function labelled(locale: Locale, price: string, quote: QuotedIn): string {
  *  abbreviated and no label above the row says which currency they count. Bare when the surface
  *  does not know: a VND market cap and a USD one are the same digits otherwise. */
 export function formatFlowIn(locale: Locale, value: number, currency?: CurrencyCode): string {
-  return currency === undefined
-    ? formatFlow(locale, value)
-    : `${formatFlow(locale, value)} ${currency}`
+  return withCurrency(formatFlow(locale, value), currency)
+}
+
+/** A net flow, signed with its direction mark, in the currency it was traded in. */
+export function formatSignedFlowIn(locale: Locale, value: number, currency?: CurrencyCode): string {
+  return withCurrency(formatSignedFlow(locale, value), currency)
+}
+
+function withCurrency(amount: string, currency: CurrencyCode | undefined): string {
+  return currency === undefined ? amount : `${amount} ${currency}`
 }
 
 /** The same price where the surface may know none of the convention, some of it, or all: a level

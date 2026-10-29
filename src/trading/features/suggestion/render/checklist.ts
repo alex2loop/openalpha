@@ -58,7 +58,7 @@ const CHECKLIST_ROWS: readonly ChecklistRow[] = Object.freeze([
   { factor: 'value', metrics: ['pe', 'pb', 'value-percentile'] },
   { factor: 'trend', metrics: ['trend-average'] },
   { factor: 'high-proximity', metrics: ['year-high'] },
-  { factor: 'foreign-flow', metrics: [] },
+  { factor: 'foreign-flow', metrics: ['foreign-net-flow'] },
   { factor: 'proprietary-flow', metrics: [] },
   { factor: 'speculative-turnover', metrics: [] },
 ])

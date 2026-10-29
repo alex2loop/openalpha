@@ -383,6 +383,8 @@ export function toSuggestionCardWire(card: SuggestionCard): SuggestionCardWire {
     levels: [...card.levels],
     notes: [...card.notes],
     ...(card.calibration === undefined ? {} : { calibration: card.calibration }),
+    factors: [...card.factors],
+    watch: [...card.watch],
     details: card.details.map((block) => [...block]),
     disclaimer: card.disclaimer,
   }

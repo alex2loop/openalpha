@@ -360,7 +360,7 @@ Evidence and price can end on different sessions. So every stored row carries an
 
 In that case the run holds with `history-not-adjusted` instead of pricing levels on bad history. This check runs before the band-edge block, which would otherwise read the drop as a stock stuck at its floor. The next refresh that sees the corrected close rebuilds the name.
 
-**A VN stock's factors print as an "at a glance" checklist**, grouped by side: in its favour, against it, then context. Within each group the strongest reading comes first. Each row shows its factor's own score gauge and headline readings, never a fixed pass/fail threshold.
+**A VN stock's factors print as an "at a glance" checklist**, grouped by side: in its favour, against it, then context. Within each group the strongest reading comes first. Each row shows its factor's own score gauge and headline readings, never a fixed pass/fail threshold. The foreign-flow row prints the foreign desk's net over the same sessions its score was measured on.
 
 - Growth has no factor of its own, so it prints numbers only, under context. A factor reading near zero sits there too.
 - Profitability and financial health share the quality score, so the second row leaves its gauge blank rather than counting it twice.

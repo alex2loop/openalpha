@@ -361,7 +361,7 @@ Bằng chứng và giá có thể dừng ở hai phiên khác nhau. Nên mọi d
 
 Khi đó phiên chạy giữ nguyên với `history-not-adjusted`, thay vì định giá trên lịch sử sai. Phép kiểm này chạy trước khối chạm biên, khối mà nếu không sẽ hiểu cú rơi đó là mã đang kẹt sàn. Lần refresh sau thấy giá đóng đã điều chỉnh sẽ dựng lại mã.
 
-**Các yếu tố của một cổ phiếu VN in thành danh sách "nhìn nhanh"**, chia theo phía: điểm cộng, điểm trừ, rồi thông tin thêm. Trong mỗi nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng có thang điểm riêng của yếu tố và các số đọc chính, không bao giờ là một ngưỡng đạt/không đạt cố định.
+**Các yếu tố của một cổ phiếu VN in thành danh sách "nhìn nhanh"**, chia theo phía: điểm cộng, điểm trừ, rồi thông tin thêm. Trong mỗi nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng có thang điểm riêng của yếu tố và các số đọc chính, không bao giờ là một ngưỡng đạt/không đạt cố định. Dòng khối ngoại ghi số mua ròng của khối ngoại cộng dồn qua đúng các phiên mà điểm của nó đã tính.
 
 - Tăng trưởng không có yếu tố riêng, nên chỉ in số, trong nhóm thông tin thêm. Yếu tố có điểm gần 0 cũng nằm ở đó.
 - Khả năng sinh lời và sức khỏe tài chính dùng chung điểm chất lượng, nên dòng thứ hai để trống vạch thay vì đếm hai lần.

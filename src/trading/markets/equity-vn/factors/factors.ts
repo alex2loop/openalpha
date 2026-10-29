@@ -59,6 +59,7 @@ import {
 import { adjustedCloses, screenCandidate, toScreenInput } from '@/trading/markets/equity-vn/screen'
 import {
   foreignFlowRatio,
+  foreignNetFlow,
   netFlowValue,
   proprietaryFlowRatio,
 } from '@/trading/markets/equity-vn/tape/flows'
@@ -245,7 +246,10 @@ function stockFactorInputs(
       ...averageProfitMetrics(evidence, accountsAverageProfit(cross.accounts.get(key))),
     ]),
     input('speculative-turnover', cross.speculativeTurnover.get(key), provenance),
-    input('foreign-flow', foreignFlowRatio(evidence.flows, evidence.bars), provenance),
+    withMetrics(
+      input('foreign-flow', foreignFlowRatio(evidence.flows, evidence.bars), provenance),
+      foreignFlowMetrics(evidence)
+    ),
     proprietaryFlowInput(evidence, cross, provenance),
     withMetrics(
       input(
@@ -285,6 +289,12 @@ function levelMetrics(evidence: NameEvidence): readonly FactorMetric[] {
     trailingAverage(evidence.closes, TREND_SESSIONS),
     TREND_SESSIONS
   )
+}
+
+function foreignFlowMetrics(evidence: NameEvidence): readonly FactorMetric[] {
+  const net = foreignNetFlow(evidence.flows, evidence.bars)
+
+  return net === undefined ? [] : [{ id: 'foreign-net-flow', ...net }]
 }
 
 function priceMetric(

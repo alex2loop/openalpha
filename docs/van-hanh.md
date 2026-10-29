@@ -679,6 +679,9 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
   - Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng
     mã đó), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng các mức của kế hoạch, mã bạn đang
     giữ, "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
+    Dưới các mức của kế hoạch là "Đang chờ điều gì" (điều kiện người giao dịch còn chờ trước khi vào
+    lệnh, nếu có) và "Từng yếu tố chấm ra sao", đúng những dòng `/suggest` in ra. Thẻ đề xuất ở mục
+    Đề xuất cũng có hai phần này.
   - Bấm một agent của bạn trong văn phòng thì thẻ của nó mở ra (xem
     [Agent](tro-ly.md#từ-trang-văn-phòng)).
   - Hàng quay lại đưa bạn về chỗ vừa xem, và bảng thu gọn được thành một dải biểu tượng.

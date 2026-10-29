@@ -798,7 +798,7 @@ Một phiên chạy kết thúc theo một trong bốn cách:
 **Cổ phiếu VN có bảng "Nhìn nhanh".** Thay vì bảng điểm từng yếu tố, đề xuất chia các yếu tố thành ba
 nhóm: điểm cộng, điểm trừ, và thông tin thêm (tăng trưởng, cùng các yếu tố có điểm gần 0). Trong mỗi
 nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng có vạch điểm (`▲` cộng, `▼` trừ, càng nhiều vạch càng rõ),
-cùng vài con số chính như P/E, P/B, ROE, nợ xấu. Không có ngưỡng cứng kiểu "ROE > 15%", vì điểm đã
+cùng vài con số chính như P/E, P/B, ROE, nợ xấu, khối ngoại mua/bán ròng bao nhiêu trong các phiên gần đây. Không có ngưỡng cứng kiểu "ROE > 15%", vì điểm đã
 được so với chính ngành của mã.
 
 **Bản in nói luôn phí.** Dưới dòng quy mô lệnh có một dòng dạng *"Phí trọn vòng mua-bán khoảng 141 VND
