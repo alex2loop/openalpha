@@ -7,6 +7,7 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { onCommandFinished } from '@/web/state/events'
 import { homeRegion } from '@/web/state/market'
+import { isModelReady } from '@/web/state/session'
 import { toErrorText, tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
 import { Button } from '@/web/ui/kit/button'
@@ -60,6 +61,9 @@ export function Themes() {
       {(data) => (
         <>
           <VnOnlyNote />
+          {!isModelReady.value && (
+            <p class="strip is-caution">{tr('ui.office.themes.needsModel')}</p>
+          )}
           {answer.value?.isRefused === false && <p class="meta">{answer.value.text}</p>}
           {data.themes.length === 0 ? (
             <p class="empty-note">{tr('ui.office.themes.none')}</p>
@@ -89,6 +93,8 @@ function RunAgain() {
       busyLabel={tr('ui.office.themes.running')}
       kind="ai"
       size="small"
+      disabled={!isModelReady.value}
+      isQuiet
     />
   )
 }
@@ -211,6 +217,8 @@ function TrackedActions({ theme, context }: ThemeRowProps) {
           busyLabel={tr('ui.office.themes.running')}
           kind="ai"
           size="small"
+          disabled={!isModelReady.value}
+          isQuiet
         />
       )}
       <Button size="small" onClick={() => askStop(theme, context)}>

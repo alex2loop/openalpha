@@ -2,6 +2,7 @@ import { signal } from '@preact/signals'
 
 import { selectAgent } from '@/web/state/agents'
 import { COMMAND_PREFIX, isFinished, sendMessage, thread } from '@/web/state/chat'
+import { quietCommands } from '@/web/state/quiet-command'
 
 const HISTORY_MAX = 50
 
@@ -69,10 +70,13 @@ export function runCommand(text: string, opts: { readonly agentId?: string } = {
   }
 }
 
-/** A button's command is still on its way or running, so pressing it again would only queue a
- *  second run. */
+/** A button's command is still on its way or running, in the chat or sent quiet, so pressing it
+ *  again would only queue a second run. */
 export function isRunningCommand(text: string): boolean {
-  return thread.value.some((turn) => turn.text === text && !isFinished(turn))
+  return (
+    quietCommands.value.includes(text) ||
+    thread.value.some((turn) => turn.text === text && !isFinished(turn))
+  )
 }
 
 export function focusInput(): void {

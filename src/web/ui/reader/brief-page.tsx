@@ -65,6 +65,7 @@ export function BriefPage({ content, onClose, onReload }: BriefPageProps) {
             busyLabel={tr('ui.office.reader.briefRewriting')}
             kind="ai"
             size="small"
+            isQuiet
           />
         </div>
       </div>

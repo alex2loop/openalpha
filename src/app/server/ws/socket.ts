@@ -57,7 +57,7 @@ const CHAT_FIELDS = {
 }
 
 const WS_FRAME: z.ZodType<ClientFrame> = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('chat'), ...CHAT_FIELDS }),
+  z.object({ type: z.literal('chat'), ...CHAT_FIELDS, quiet: z.literal(true).exactOptional() }),
   z.object({ type: z.literal('steer'), ...CHAT_FIELDS }),
   z.object({ type: z.literal('cancel'), sessionId: z.string() }),
   z.object({ type: z.literal('drop'), sessionId: z.string(), id: z.string() }),
@@ -270,8 +270,9 @@ async function handleMessage(ws: ServerWebSocket<WsData>, raw: string | Buffer):
   }
 
   const line = frame.message.trim()
+  const quiet = frame.type === 'chat' && frame.quiet === true ? { quiet: true as const } : {}
   const request = line.startsWith('/')
-    ? await runSlash(ws, session, { line, ...toLaneTag(frame.id) })
+    ? await runSlash(ws, session, { line, ...toLaneTag(frame.id), ...quiet })
     : { message: frame.message, ...toLaneTag(frame.id) }
 
   if (request !== null) {

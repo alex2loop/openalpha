@@ -46,6 +46,9 @@ export const locale = computed<UiLocale>(() => state.value?.locale ?? browserLoc
 
 /** No saved profile and an empty book: the page walks the operator through the first steps, the
  *  model key among them. */
+/** A model can answer: a key or login is set, or the connected client answers. */
+export const isModelReady = computed(() => state.value?.firstRun.modelReady === true)
+
 export const isFirstRun = computed(() => {
   const firstRun = state.value?.firstRun
 

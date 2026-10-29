@@ -108,6 +108,10 @@ export interface ChatBody {
   /** The client's own id for this message, echoed on every frame it produces (`LaneTag`): at most
    *  `CHAT_CLIENT_ID_MAX` letters, digits, `-` or `_`. */
   readonly id?: string
+  /** A long-running command a page button sent, whose result the page shows where it was pressed:
+   *  no answer frames and no transcript row, only `done`, or `error` carrying the answer of a
+   *  command refused before it ran. Any other line ignores it. */
+  readonly quiet?: true
 }
 
 export const CHAT_CLIENT_ID_MAX = 64

@@ -3,7 +3,7 @@ import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { BRIEF_COMMAND } from '@/web/state/command'
-import { loadSession, state } from '@/web/state/session'
+import { isModelReady, loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
@@ -27,11 +27,11 @@ export function FirstRun() {
     <section class="block">
       <h2 class="block-head">{tr('ui.office.firstRun.title')}</h2>
       <div class="steps">
-        <ModelStep isDone={firstRun?.modelReady === true} />
+        <ModelStep isDone={isModelReady.value} />
         <ProfileStep isDone={firstRun?.profileSaved === true} />
         <BookStep isDone={firstRun?.bookEmpty === false} />
         <ChatStep />
-        <BriefStep isModelReady={firstRun?.modelReady === true} />
+        <BriefStep />
       </div>
     </section>
   )
@@ -130,7 +130,7 @@ function ModelStep({ isDone }: { readonly isDone: boolean }) {
 }
 
 // The brief runs at once; it waits for a model to answer it.
-function BriefStep({ isModelReady }: { readonly isModelReady: boolean }) {
+function BriefStep() {
   return (
     <Step index={5} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
       <p class="meta">{tr('ui.office.firstRun.briefBody')}</p>
@@ -139,7 +139,7 @@ function BriefStep({ isModelReady }: { readonly isModelReady: boolean }) {
           command={BRIEF_COMMAND}
           label={tr('ui.office.firstRun.briefCta')}
           size="small"
-          disabled={!isModelReady}
+          disabled={!isModelReady.value}
         />
       </div>
     </Step>

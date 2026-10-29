@@ -399,7 +399,7 @@ field matching its `kind`**, and the notices also carry `note`, the line a chat 
 
 Chat runs on the **same socket** as the feed. The client sends `ClientFrame`s (`socket.ts`):
 
-- `{ type: 'chat', message, sessionId?, id? }` — start a turn. A `message` whose first non-space char is `/`
+- `{ type: 'chat', message, sessionId?, id?, quiet? }` — start a turn. A `message` whose first non-space char is `/`
   runs the shared **slash dispatcher** (channel surface) instead of an agent run. `id` is the
   client's own id for the message (at most 64 letters, digits, `-` or `_`; anything else closes the
   socket as an invalid frame). Every frame the message produces then carries it as `id`: a short
@@ -411,6 +411,10 @@ Chat runs on the **same socket** as the feed. The client sends `ClientFrame`s (`
   carries no tag. A tagged command outside the lane may also end with `{ kind: 'dropped', id }`
   (cancelled) or an `error` carrying `id`. A message sent without `id` gets today's frames
   unchanged.
+  `quiet: true` on a long-running slash command a page button sent, whose result the page shows where
+  it was pressed: no answer frames reach the client and the session keeps no transcript row; it
+  ends with `done`, or with `error` carrying the answer when admission refused it before it ran.
+  Any other line ignores `quiet`.
 - `{ type: 'steer', message, sessionId?, id? }` — add a message to the turn already running; it reads it
   at its next turn boundary and the daemon answers `{ kind: 'steered' }`. A steer sent with an
   `id` has it echoed on `steered` and on the `steer_dropped` that follows if the turn ends before

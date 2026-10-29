@@ -38,10 +38,10 @@ export function RefreshButton() {
   )
 }
 
-/** Sends `/refresh` for each of `markets`, never `force`, and waits while any refresh runs. The
- *  caller reads its own blocks again through `useRereadAfterRefresh`. */
+/** Sends `/refresh` quiet for each of `markets`, never `force`, and waits while any refresh runs.
+ *  The caller reads its own blocks again through `useRereadAfterRefresh`. */
 export function RefreshMarketsButton({ markets, size }: RefreshMarketsButtonProps) {
-  const isNotSent = useSignal(false)
+  const failure = useSignal<string | undefined>(undefined)
 
   return (
     <>
@@ -49,7 +49,15 @@ export function RefreshMarketsButton({ markets, size }: RefreshMarketsButtonProp
         {...(size === undefined ? {} : { size })}
         disabled={isRefreshing.value || markets.length === 0}
         onClick={() => {
-          isNotSent.value = !refreshMarkets(markets)
+          failure.value = undefined
+
+          if (
+            !refreshMarkets(markets, (message) => {
+              failure.value = message
+            })
+          ) {
+            failure.value = tr('ui.office.command.offline')
+          }
         }}
       >
         {isRefreshing.value && <span class="spin" aria-hidden="true" />}
@@ -57,9 +65,9 @@ export function RefreshMarketsButton({ markets, size }: RefreshMarketsButtonProp
           ? tr('ui.office.market.refreshing')
           : tr('ui.office.market.refreshData')}
       </Button>
-      {isNotSent.value && (
+      {failure.value !== undefined && (
         <p class="failure-line" role="alert">
-          {tr('ui.office.market.refreshNotSent')}
+          {failure.value}
         </p>
       )}
     </>

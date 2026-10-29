@@ -53,7 +53,11 @@ function toExchange(input: ExchangeInput): CommandExchange | undefined {
   const run = context.runId === undefined ? {} : { runId: context.runId }
   const isEcho = result.kind === 'text' && input.policy?.transcript === 'echo'
 
-  if (input.policy?.transcript === 'none' || (context.isScheduled === true && !isEcho)) {
+  if (
+    input.policy?.transcript === 'none' ||
+    context.isQuiet === true ||
+    (context.isScheduled === true && !isEcho)
+  ) {
     return undefined
   }
 

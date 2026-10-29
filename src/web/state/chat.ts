@@ -261,8 +261,8 @@ function stopUnfinished(): void {
   }
 }
 
-// Only a frame naming one of this page's lines is read: another client's frames carry no id of ours.
-function frameIdOf(frame: ChatServerFrame): string | undefined {
+/** The page's own id a frame names; another client's frames carry no id of ours. */
+export function frameIdOf(frame: ChatServerFrame): string | undefined {
   if (frame.kind === 'tool' || !('id' in frame)) {
     return undefined
   }
@@ -384,8 +384,8 @@ function toDone(turn: Turn, frameRunId: string | undefined, session: string | un
   }
 }
 
-// Only a page with no session takes one: a turn from an earlier session never pulls it back.
-function adoptSessionId(next: string): void {
+/** Only a page with no session takes one: a line from an earlier session never pulls it back. */
+export function adoptSessionId(next: string): void {
   if (sessionId.value === undefined) {
     sessionId.value = next
   }
