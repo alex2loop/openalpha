@@ -37,4 +37,7 @@ export interface AgentProfile {
   readonly hosts?: readonly string[]
   /** Omitted = every installed skill; present = only these are listed or viewable. */
   readonly skills?: readonly string[]
+  /** Runs only inside a run another agent starts (a research worker, a debate persona): never a
+   *  chat's entry agent nor a job's. Set by the code that registers it, never by an agent file. */
+  readonly internal?: boolean
 }

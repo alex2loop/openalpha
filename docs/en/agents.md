@@ -376,7 +376,8 @@ agent with an empty or unresolved roster gets no block.
 | `research-reviewer` | Internal, tool-free. Scores a report against its evidence. |
 
 The `research-*` workers are run by the research coordinator, with fixed profiles, only the tools their role
-needs and empty rosters.
+needs and empty rosters. Like the trading personas below, they answer only inside a run: `/agent`, `agent bind`,
+`chat --agent` and a job's `--agent` refuse them as unknown.
 
 Trading adds trusted personas: the debate roles `bull-researcher`, `bear-researcher`, `portfolio-manager`,
 `trader`, `risk-analyst`, `claim-verifier` and `market-analyst`, plus `theme-analyst` behind `/themes`, whose only
@@ -719,7 +720,8 @@ For each call the preferred model goes first, then the other entries in the orde
 - A failing entry rests for 1 minute before it is tried again (longer if the provider says so).
 - **Retry and fallback happen only before any content is shown or any cost is incurred.** After that, the call is
   not replayed: the alternative is paying twice for two answers to one question.
-- A Claude safety refusal is a normal stop (`content_filter`), not an error, and the chain does not fall back.
+- A Claude safety refusal, or a Gemini prompt it blocks outright, is a normal stop (`content_filter`), not an error,
+  and the chain does not fall back.
 
 Every surface reports a switch: channels post a notice, deep research raises a warning, and the CLI prints one
 line per distinct switch above the run footer.

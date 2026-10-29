@@ -26,6 +26,7 @@ import { createPrivateFileAtomic } from '@/core/security/private-files'
 import { sanitizeDisplayText, toSingleLine } from '@/core/utils/text'
 import {
   assertValidAgentToml,
+  isEntryAgent,
   isValidAgentId,
   RESERVED_AGENT_IDS,
   userAgentFile,
@@ -411,7 +412,7 @@ async function bindChat(args: ParsedArgs, app: CliApp): Promise<number> {
     return usage(app, t(locale, 'cli.agentBindRequiresIds'))
   }
 
-  if (!app.resolve('agents').has(rawAgentId)) {
+  if (!isEntryAgent(app.resolve('agents').get(rawAgentId))) {
     return usage(app, t(locale, 'cli.agentUnknownAgent', { id: rawAgentId }))
   }
 

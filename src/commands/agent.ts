@@ -8,6 +8,7 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import type { AgentRegistry } from '@/engine/api'
+import { entryAgentIds, isEntryAgent } from '@/engine/api'
 
 const MESSAGE_KEYS = [
   'slash.agentCurrent',
@@ -87,7 +88,7 @@ async function runAgentCommand(deps: AgentCommandDeps, ctx: SlashContext): Promi
 
   const agent = deps.agents.get(requested)
 
-  if (!agent) {
+  if (!isEntryAgent(agent)) {
     return {
       kind: 'message',
       messages: [
@@ -126,5 +127,5 @@ function agentList(agents: AgentRegistry): string {
 }
 
 function agentTargets(agents: AgentRegistry): readonly string[] {
-  return [DEFAULT_AGENT, ...agents.all().map((item) => item.id)]
+  return [DEFAULT_AGENT, ...entryAgentIds(agents.all())]
 }

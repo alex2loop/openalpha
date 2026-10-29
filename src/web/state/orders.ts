@@ -101,7 +101,9 @@ export async function syncVenue(venue: string): Promise<void> {
   syncing.value = withKey(syncing.value, venue)
 
   try {
-    synced.value = new Map([...synced.value, [venue, await sendSync(venue)]])
+    // Awaited before the spread: a sync of another venue may land meanwhile, and its answer stays.
+    const answer = await sendSync(venue)
+    synced.value = new Map([...synced.value, [venue, answer]])
     await markLedgerChanged()
   } finally {
     syncing.value = withoutKey(syncing.value, venue)

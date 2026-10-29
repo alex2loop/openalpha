@@ -14,6 +14,7 @@ import { scheduledCommandRefusal } from '@/commands/api'
 import { parseChannelAddress } from '@/core/channels'
 import { agentId, jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
+import { entryAgentIds, isEntryAgent } from '@/engine/api'
 import { bindLocale, t } from '@/i18n'
 import { assertValidCron, isValidInterval, resolveTimezone, validateJobPrompt } from '@/tools/api'
 
@@ -74,14 +75,12 @@ export const scheduleAddCommand: Command = createCommand({
       return usage(app, promptError)
     }
 
-    if (!app.resolve('agents').has(agent)) {
-      const validIds = [...app.resolve('agents').keys()].sort().join(', ')
-
+    if (!isEntryAgent(app.resolve('agents').get(agent))) {
       return usage(
         app,
         t(locale, 'cli.scheduleUnknownAgent', {
           agent: agentRaw ?? 'chat',
-          valid: validIds,
+          valid: entryAgentIds(app.resolve('agents').values()).toSorted().join(', '),
         })
       )
     }

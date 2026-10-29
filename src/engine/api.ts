@@ -146,7 +146,7 @@ export {
   RESERVED_AGENT_IDS,
 } from '@/engine/agents/builder'
 export { buildAgentDefinition, createAgent } from '@/engine/agents/define'
-export { DEEP_RESEARCHER_ID } from '@/engine/agents/registry'
+export { DEEP_RESEARCHER_ID, entryAgentIds, isEntryAgent } from '@/engine/agents/registry'
 export { buildUserAgents, readUserAgents, userAgentFile, userAgentsDir } from '@/engine/agents/user'
 export { createDelegationQuota } from '@/engine/budget/delegation-quota'
 export { createBudget, createConfiguredRunBudget } from '@/engine/budget/run-budget'

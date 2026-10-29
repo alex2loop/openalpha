@@ -14,6 +14,7 @@ import { flagBool, flagString, parseIntFlagStrict } from '@/cli/parsing/args'
 import { resolveChatCompletion, resolveChatDisplay } from '@/cli/services'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { agentId as brandAgentId, DEFAULT_AGENT_ID, LOCAL_USER_ID, sessionId } from '@/core/ids'
+import { isEntryAgent } from '@/engine/api'
 import { t } from '@/i18n'
 
 // One operator on one machine, so the CLI has a single stable chat.
@@ -158,7 +159,7 @@ async function openSession(app: CliApp, flags: ChatFlags): Promise<OpenSessionRe
     }
   }
 
-  if (!app.resolve('agents').has(agent)) {
+  if (!isEntryAgent(app.resolve('agents').get(agent))) {
     return { kind: 'error', error: t(locale, 'cli.agentUnknown', { id: agent }) }
   }
 

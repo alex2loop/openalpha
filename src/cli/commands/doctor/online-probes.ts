@@ -13,6 +13,7 @@ import {
 } from '@/ai/api'
 import { resolveSecret, TELEGRAM_API_BASE, ZALO_API_BASE } from '@/channels/api'
 import { providerFailureSpecOf, terminalErrorMessage } from '@/cli/error-output'
+import { BRAND } from '@/core/brand'
 import { setEnvCommand, toMissingSearchKeyError } from '@/core/config/resolve'
 import { LLMError } from '@/core/errors'
 import { httpRequest } from '@/core/http-client'
@@ -356,7 +357,11 @@ async function probeBotToken(options: BotProbeOptions): Promise<DoctorProbe | nu
   const token = resolveSecret(parsed.data, env)
 
   if (token === '') {
-    return { name, status: 'fail', detail: t(locale, 'cli.doctorTokenNotResolved') }
+    return {
+      name,
+      status: 'fail',
+      detail: t(locale, 'cli.doctorTokenNotResolved', { brand: BRAND.name }),
+    }
   }
 
   try {

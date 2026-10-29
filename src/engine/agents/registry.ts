@@ -37,6 +37,7 @@ interface BuiltInAgentSource {
   readonly displayName?: string
   readonly maxPromptChars?: number
   readonly preferredModelTier?: string
+  readonly internal?: true
 }
 
 // Research stage reasoning/max_tokens is fixed research policy (`RESEARCH_LIMITS.stages`), applied
@@ -58,12 +59,22 @@ const BUILT_IN_SOURCES: Readonly<Record<BuiltInAgentId, BuiltInAgentSource>> = {
   [RESEARCH_CRAWLER_ID]: {
     toml: researchCrawlerToml,
     preferredModelTier: RESEARCH_HEAVY_MODEL_TIER,
+    internal: true,
   },
-  'research-planner': { toml: researchPlannerToml, preferredModelTier: RESEARCH_MODEL_TIER },
-  'research-reviewer': { toml: researchReviewerToml, preferredModelTier: RESEARCH_MODEL_TIER },
+  'research-planner': {
+    toml: researchPlannerToml,
+    preferredModelTier: RESEARCH_MODEL_TIER,
+    internal: true,
+  },
+  'research-reviewer': {
+    toml: researchReviewerToml,
+    preferredModelTier: RESEARCH_MODEL_TIER,
+    internal: true,
+  },
   'research-synthesizer': {
     toml: researchSynthesizerToml,
     preferredModelTier: RESEARCH_MODEL_TIER,
+    internal: true,
   },
   reviewer: { toml: reviewerToml, preferredModelTier: DELEGATE_MODEL_TIER },
 }
@@ -98,7 +109,22 @@ function buildBuiltInAgent(id: BuiltInAgentId, ctx: AgentBuildContext): AgentPro
     throw new ConfigError(`agent '${id}' prompt exceeds ${source.maxPromptChars} characters`)
   }
 
-  return source.displayName === undefined ? agent : { ...agent, name: source.displayName }
+  return {
+    ...agent,
+    ...(source.displayName === undefined ? {} : { name: source.displayName }),
+    ...(source.internal === undefined ? {} : { internal: source.internal }),
+  }
+}
+
+/** An agent a chat can be handed to or a job can run as: known, and not one that only works inside
+ *  another agent's run. */
+export function isEntryAgent(agent: AgentProfile | null | undefined): agent is AgentProfile {
+  return agent !== null && agent !== undefined && agent.internal !== true
+}
+
+/** The ids `isEntryAgent` admits, in the order given. */
+export function entryAgentIds(agents: Iterable<AgentProfile>): readonly string[] {
+  return [...agents].filter(isEntryAgent).map((agent) => agent.id)
 }
 
 function applyResearchStageTuning(
