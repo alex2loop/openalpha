@@ -3,7 +3,7 @@
 
 <p align="center">
   <strong>Một hội đồng AI tranh luận trước mỗi đề xuất như <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
-  OpenAlpha là nhà phân tích đầu tư AI mã nguồn mở: AI phân tích, còn đặt lệnh hay không vẫn do bạn quyết.
+  OpenAlpha là trợ lý AI đầu tư mã nguồn mở cài trên máy bạn, cho chứng khoán Việt Nam, vàng và crypto: AI phân tích, còn đặt lệnh hay không vẫn do bạn quyết.
 </p>
 
 <p align="center">

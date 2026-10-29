@@ -3,7 +3,7 @@
 
 <p align="center">
   <strong>A council of AI analysts that argues before every call, like <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, running on your machine and chatting over Telegram and Zalo, like <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
-  Meet OpenAlpha, an open-source AI investment analyst: the AI does the analysis, and placing the order is still your call.
+  Meet OpenAlpha, an open-source AI investment assistant you install on your own computer, for Vietnamese stocks, gold and crypto: the AI does the analysis, and placing the order is still your call.
 </p>
 
 <p align="center">
