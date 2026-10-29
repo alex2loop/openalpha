@@ -60,3 +60,4 @@ bun.lockb
 .superpowers/
 .worktrees/
 *.tmp
+.gstack/
