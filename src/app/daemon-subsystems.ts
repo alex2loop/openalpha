@@ -8,7 +8,7 @@ import type {
   TaskPassListener,
 } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
-import { BOOT_REFRESH_TASK, runBootRefresh } from '@/app/boot-refresh'
+import { runBootRefresh } from '@/app/boot-refresh'
 import { resolveChannelDeps } from '@/app/channel-deps'
 import { startChannelWatch } from '@/app/channel-watch'
 import { startRetention } from '@/app/retention'
@@ -70,7 +70,7 @@ export async function startDaemonSubsystems(
     tasks,
     state,
     startup,
-    name: BOOT_REFRESH_TASK,
+    name: 'trading.boot-refresh',
     task: runBootRefresh({ app, logger, signal: startupSignal, onTaskPass }),
   })
 

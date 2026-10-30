@@ -20,7 +20,6 @@
     "channelName.zalo": "Zalo",
     "channelName.zalo_personal": "Zalo",
     "channelName.cli": "the terminal",
-    "task.trading.boot-refresh": "Market data load at start",
     "task.trading.alerts": "Price alerts",
     "task.trading.exits": "Exit orders at the exchange",
     "task.trading.refresh": "Market data refresh",

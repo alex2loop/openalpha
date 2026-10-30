@@ -2,7 +2,6 @@ import type { TaskStatusWire } from '@/app/server/wire/tasks'
 import type { TaskPass, TaskPassListener, TaskSnapshot } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
-import { BOOT_REFRESH_TASK } from '@/app/boot-refresh'
 import { MS_PER_SECOND } from '@/core/utils/time'
 import { t, translateDisplayText } from '@/i18n'
 
@@ -18,7 +17,6 @@ declare module '@/core/container' {
 const TASK_REPORT_GAP_MS = 5 * MS_PER_SECOND
 
 const LABEL_KEYS: ReadonlyMap<string, MessageKey> = new Map([
-  [BOOT_REFRESH_TASK, 'ui.task.trading.boot-refresh'],
   ['trading.alerts', 'ui.task.trading.alerts'],
   ['trading.exits', 'ui.task.trading.exits'],
   ['trading.refresh', 'ui.task.trading.refresh'],
@@ -41,7 +39,8 @@ interface TaskEntry {
   readonly lastRunAt?: number
   readonly lastError?: string
   readonly nextRunAt?: number
-  readonly working: boolean
+  /** Passes in flight: the start's market data sweep reports under the refresh loop it joins. */
+  readonly passes: number
 }
 
 interface TaskStatusBoard {
@@ -71,7 +70,7 @@ export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
     track: (names) => {
       for (const name of names) {
         if (!entries.has(name)) {
-          entries.set(name, { working: false })
+          entries.set(name, { passes: 0 })
         }
       }
     },
@@ -103,24 +102,28 @@ export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
 
 function applyPass(locale: Locale, current: TaskEntry | undefined, pass: TaskPass): TaskEntry {
   const everyMs = pass.everyMs ?? current?.everyMs
+  const passes = current?.passes ?? 0
 
   if (pass.phase === 'start') {
-    return { ...current, ...(everyMs === undefined ? {} : { everyMs }), working: true }
+    return { ...current, ...(everyMs === undefined ? {} : { everyMs }), passes: passes + 1 }
   }
+
+  const nextRunAt = pass.nextAt ?? current?.nextRunAt
 
   return {
     ...(everyMs === undefined ? {} : { everyMs }),
     lastRunAt: pass.at,
     ...(pass.error === undefined ? {} : { lastError: translateDisplayText(locale, pass.error) }),
-    ...(pass.nextAt === undefined ? {} : { nextRunAt: pass.nextAt }),
-    working: false,
+    ...(nextRunAt === undefined ? {} : { nextRunAt }),
+    passes: Math.max(0, passes - 1),
   }
 }
 
 function toStatusWire(locale: Locale, name: string, entry: TaskEntry): TaskStatusWire {
   const key = LABEL_KEYS.get(name)
+  const { passes, ...shown } = entry
 
-  return { name, label: key === undefined ? name : t(locale, key), ...entry }
+  return { name, label: key === undefined ? name : t(locale, key), ...shown, working: passes > 0 }
 }
 
 /** Hands `onTasks` the board now, then again whenever which tasks work, or failed, changes. */

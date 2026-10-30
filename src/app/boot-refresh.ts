@@ -8,7 +8,9 @@ import { isBoundaryFailure, logRefreshDegradations, refreshDegradations } from '
 
 const BOOT_REFRESH_BUDGET_MS = 60_000
 
-export const BOOT_REFRESH_TASK = 'trading.boot-refresh'
+// The refresh loop's first tick joins this sweep, so the sweep reports as that loop's pass: one
+// piece of work, one task on the board.
+const REFRESH_TASK = 'trading.refresh'
 
 interface BootRefreshOptions {
   readonly app: App
@@ -31,7 +33,7 @@ export async function runBootRefresh(options: BootRefreshOptions): Promise<void>
   const trading = app.resolve('tradingServices')
   const at = Date.now()
 
-  notifyPass(onTaskPass, { name: BOOT_REFRESH_TASK, phase: 'start', at })
+  notifyPass(onTaskPass, { name: REFRESH_TASK, phase: 'start', at })
 
   const sweep = sweepMarketData(app, logger, signal)
 
@@ -44,7 +46,7 @@ export async function runBootRefresh(options: BootRefreshOptions): Promise<void>
     await sweep
   } finally {
     trading.releaseFirstSweep()
-    notifyPass(onTaskPass, { name: BOOT_REFRESH_TASK, phase: 'end', at })
+    notifyPass(onTaskPass, { name: REFRESH_TASK, phase: 'end', at })
   }
 }
 
