@@ -93,20 +93,39 @@ Ba nguyên tắc:
 
 ### 2.1 Cài đặt
 
+Mở Terminal (Windows: PowerShell) rồi chạy đúng một dòng theo máy của bạn:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # cài, rồi tự chạy onboard; xong thì mở terminal mới
-# Windows: mở PowerShell rồi chạy
-#   irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex
-
-export ANTHROPIC_API_KEY="sk-ant-..."   # key của nhà cung cấp LLM bạn chọn
-
-openalpha onboard      # thiết lập lần đầu, hoặc chạy lại để đổi mô hình, bot Telegram, mức chi, ngôn ngữ
-openalpha doctor       # kiểm tra nhanh, không cần mạng
-openalpha status       # tổng quan: dịch vụ nền, kênh, cuộc trò chuyện gần đây, chi tiêu hôm nay
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
 ```
 
-Key đọc từ biến môi trường, mặc định **không** nằm trong file cấu hình, để bạn không vô tình commit
-secret lên git. Xem hoặc sửa cấu hình: `openalpha config show`, `openalpha config edit`.
+```powershell
+irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex   # Windows
+```
+
+Trình cài tự chạy `openalpha onboard` và hỏi ngôn ngữ, tiền tệ của sổ, dịch vụ AI, mức chi mỗi ngày và
+Telegram. Ở câu dịch vụ AI, có khóa OpenRouter thì chọn OpenRouter và dán khóa; dùng gói ChatGPT thì chọn
+"ChatGPT (subscription)" để đăng nhập trên trình duyệt, không cần khóa. Xong thì mở một cửa sổ mới và chạy:
+
+```bash
+openalpha doctor --online   # gửi một tin ngắn để thử mô hình
+openalpha status            # tổng quan: dịch vụ nền, kênh, cuộc trò chuyện gần đây, chi tiêu hôm nay
+```
+
+Lúc cài chưa nối AI thì làm bây giờ:
+
+```bash
+openalpha key set OPENROUTER_API_KEY   # dán khóa rồi Enter; màn hình không hiện gì là bình thường
+openalpha auth login chatgpt           # hoặc đăng nhập gói ChatGPT
+```
+
+Khóa được giữ trong `~/.openalpha/env` (chỉ bạn đọc được), không nằm trong file cấu hình, để bạn không
+vô tình commit secret lên git; một biến môi trường cùng tên đặt trong shell vẫn được ưu tiên. `openalpha key`
+cho biết khóa nào đã có. Chạy lại `openalpha onboard` bất cứ lúc nào để đổi mô hình, bot Telegram, mức chi
+hay ngôn ngữ. Xem hoặc sửa cấu hình: `openalpha config show`, `openalpha config edit`.
+
+Dùng trên trình duyệt thay cho terminal: `openalpha start --background` rồi `openalpha web`. Các câu lệnh
+`/` trong cẩm nang này gõ được cả ở ô câu lệnh của trang web lẫn trong `openalpha chat`.
 
 ### 2.2 Khai hồ sơ đầu tư
 

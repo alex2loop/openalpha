@@ -7,6 +7,30 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+The README walks a newcomer through one five-step setup, with the web page or the terminal as the
+place to work and a ChatGPT plan as an option to an OpenRouter key. Windows installs in the open
+PowerShell window. A few sample config comments that were wrong are fixed. No database change.
+> README hướng dẫn người mới qua một luồng cài đặt 5 bước, cho chọn làm việc trên trang web hay trong terminal, và dùng gói ChatGPT thay cho khóa OpenRouter. Windows cài ngay trong cửa sổ PowerShell đang mở. Vài ghi chú sai trong tệp cấu hình mẫu đã được sửa. Không đổi cơ sở dữ liệu.
+
+### Docs
+
+- The README opens with the demo and why to use it, then a five-step quick start: install, check,
+  pick the web page (`openalpha start --background`, `openalpha web`) or `openalpha chat`, see a
+  first suggestion, then `/setup` and the ledger. The FAQ is its own section.
+- Windows installs with `irm .../install.ps1 | iex` in the PowerShell window you have open; the
+  installer adds itself to that window's PATH, so `openalpha` works there at once.
+- The gold examples write `gold-vn:SJC`, since SJC is also a stock ticker and a bare `SJC` is asked
+  back.
+- `config.sample.toml`: `token_file` needs a full path (`~` is not expanded), `[[models]]` needs only
+  `provider` after `[model_defaults]`, the debate runs in three serial stages, and a hand-traded
+  broker can take `markets` to hold a market without becoming its default.
+- `agent.sample.toml`: `max_turns` and `max_duration_ms` never exceed `[loop]`, `max_tokens` only
+  lowers the reply cap, and a `max_daily_usd` above `[budget]` stops the agent from loading.
+- `config.minimal.toml` saves the key with `openalpha key set` and shows `currency`, to set before the
+  first `/setup`.
+
 ## [1.2.1] - 2026-10-29
 
 VN market holidays are now worked out from the law for every year, so 2027 and later need no update

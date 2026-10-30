@@ -3,7 +3,7 @@
 # Cách dùng:
 #   1. Tải file này: curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -o ~/.openalpha/config.toml --create-dirs
 #      Windows (PowerShell): New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -OutFile "$HOME\.openalpha\config.toml"
-#   2. Lấy một khóa ở openrouter.ai, rồi đặt: export OPENROUTER_API_KEY="..."
+#   2. Lấy một khóa ở openrouter.ai/keys, rồi lưu: openalpha key set OPENROUTER_API_KEY
 #   3. Kiểm tra lại: openalpha doctor --online
 #
 # Vậy là đủ để chạy. Khi cần thêm (Telegram, sàn giao dịch...),
@@ -12,6 +12,9 @@
 # Ngôn ngữ trả lời, báo cáo và thông báo lỗi. Đổi thành "en" để dùng tiếng Anh.
 [locale]
 language = "vi"
+# Tiền tệ của sổ, mặc định VND. Muốn dùng tiền khác (ví dụ "USD") thì bỏ dấu # trước khi
+# chạy /setup lần đầu: khai hồ sơ xong thì không đổi được nữa.
+# currency = "VND"
 
 # Mọi mô hình bên dưới đều đi qua OpenRouter, dùng chung một khóa.
 # "latency" nghĩa là ưu tiên máy chủ trả lời nhanh nhất.
