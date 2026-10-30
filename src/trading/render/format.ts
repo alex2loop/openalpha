@@ -1,3 +1,4 @@
+import type { CommandSurface, SlashContext } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
 import type { CaveatSeverity } from '@/trading/kernel/caveat'
 import type { WatchMark } from '@/trading/kernel/operator/brief-story'
@@ -133,6 +134,11 @@ export function resolveRenderContext(timezone: string, surface: string): RenderC
     width: repl ? RENDER_WIDTHS.repl : RENDER_WIDTHS.channel,
     charts: surface !== TOOL_SURFACE,
   }
+}
+
+/** The surface a command's answer is shaped for. */
+export function answerSurfaceOf(ctx: Pick<SlashContext, 'surface' | 'readsAs'>): CommandSurface {
+  return ctx.readsAs ?? ctx.surface
 }
 
 export function formatHeadline(text: string): string {

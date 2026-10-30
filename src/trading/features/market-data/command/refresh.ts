@@ -13,7 +13,7 @@ import { isWord } from '@/core/utils/text'
 import { renderRefreshText } from '@/trading/features/market-data/render/refresh'
 import { REFRESH_COMMAND_NAME } from '@/trading/kernel/market/refresh'
 import { parseRegisteredMarket, usage } from '@/trading/kernel/surface/surface'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
 const USAGE: 'slash.tradingRefreshUsage' = 'slash.tradingRefreshUsage'
 const LIVE_ONLY: 'slash.tradingRefreshLiveOnly' = 'slash.tradingRefreshLiveOnly'
@@ -84,7 +84,7 @@ async function run(deps: RefreshCommandDeps, ctx: SlashContext): Promise<SlashRe
     text: renderRefreshText(
       ctx.locale,
       { results, skipped },
-      resolveRenderContext(deps.timezone, ctx.surface)
+      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
     ),
   }
 }

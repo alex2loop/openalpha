@@ -1,6 +1,6 @@
 import type { PidFileClaim, RunningDaemon } from '@/cli/daemon-guard'
 import type { CliApp } from '@/cli/types'
-import type { DaemonStartOptions, DegradedEntry, DegradedItem } from '@/core/container'
+import type { DaemonStartOptions, DegradedItem, TaskSnapshot } from '@/core/container'
 import { type Command, createCommand } from '@/cli/command'
 import {
   BACKGROUND_FLAG,
@@ -10,7 +10,9 @@ import {
 } from '@/cli/commands/daemon/background'
 import {
   printServed,
+  printSettledTask,
   printStartSetup,
+  printTasks,
   renderDegraded,
   reportMissingKeys,
 } from '@/cli/commands/daemon/summary'
@@ -64,6 +66,15 @@ const RESTART_SPEC = {
 /** Whether this start reached ready, which decides what its pid file leaves behind. */
 interface StartRun {
   ready: boolean
+}
+
+/** What this run's ready file holds besides the pid, kept whole because every write replaces it. */
+interface ReadyRecord {
+  boot: readonly DegradedItem[]
+  health: readonly DegradedItem[]
+  tasks: readonly TaskSnapshot[]
+  /** The tasks working when the daemon got ready, each announced once as it settles. */
+  readonly awaited: Set<string>
 }
 
 export const startCommand: Command = createCommand({
@@ -226,7 +237,7 @@ async function releasePidFile(
 }
 
 /** What the daemon task is told about this start. The boot list is kept so a channel that drops
- *  later is written beside it in the ready file `status` reads. */
+ *  later, or a task that changes, is written beside it in the ready file `status` reads. */
 function toStartOptions(
   app: CliApp,
   start: {
@@ -236,19 +247,25 @@ function toStartOptions(
   }
 ): DaemonStartOptions {
   const { keyless, claim, run } = start
-  let bootDegraded: readonly DegradedItem[] = keyless
+  const record: ReadyRecord = { boot: keyless, health: [], tasks: [], awaited: new Set() }
 
   return {
     onReady: (degraded) => {
       run.ready = true
-      bootDegraded = [...keyless, ...degraded]
-      announceReady(app, bootDegraded)
+      record.boot = [...keyless, ...degraded]
+      announceReady(app, record)
     },
     onHealth: (channelItems) => {
-      recordReady(
-        app,
-        [...bootDegraded, ...channelItems].map((item) => renderDegraded(app, item))
-      )
+      record.health = channelItems
+      recordReady(app, record)
+    },
+    onTasks: (tasks) => {
+      record.tasks = tasks
+
+      if (run.ready) {
+        announceSettled(app, record)
+        recordReady(app, record)
+      }
     },
     ...(claim.kind === 'reclaimed'
       ? { previousRun: claim.startedAt === undefined ? {} : { startedAt: claim.startedAt } }
@@ -267,8 +284,8 @@ function printStartBanner(app: CliApp, keyless: readonly DegradedItem[]): void {
 // What a channel or the API left down goes out before the ready file, so a background start relays
 // it with its confirmation; the ready file then records the whole list for `status`. A failed write
 // never stops the running daemon, but says so: a background start would otherwise wait it out.
-function announceReady(app: CliApp, degraded: readonly DegradedItem[]): void {
-  const entries = degraded.map((item) => renderDegraded(app, item))
+function announceReady(app: CliApp, record: ReadyRecord): void {
+  const entries = record.boot.map((item) => renderDegraded(app, item))
 
   printServed(app, entries)
 
@@ -276,11 +293,28 @@ function announceReady(app: CliApp, degraded: readonly DegradedItem[]): void {
     app.err(warn(entry.message))
   }
 
-  recordReady(app, entries)
+  printTasks(app, record.tasks)
+
+  for (const task of record.tasks.filter((entry) => entry.working)) {
+    record.awaited.add(task.label)
+  }
+
+  recordReady(app, record)
 }
 
-function recordReady(app: CliApp, entries: readonly DegradedEntry[]): void {
-  writeReadyFile(app, entries).catch((err: unknown) => {
+// Only the work running at start is followed to its end; the terminal stays quiet after that.
+function announceSettled(app: CliApp, record: ReadyRecord): void {
+  for (const task of record.tasks) {
+    if (!task.working && record.awaited.delete(task.label)) {
+      printSettledTask(app, task)
+    }
+  }
+}
+
+function recordReady(app: CliApp, record: ReadyRecord): void {
+  const entries = [...record.boot, ...record.health].map((item) => renderDegraded(app, item))
+
+  writeReadyFile(app, entries, record.tasks).catch((err: unknown) => {
     app.resolve('logger').warn('daemon.ready_file_failed', { err: formatErrForLog(err) })
     app.err(warn(t(app.config.locale.language, 'cli.daemonReadyFileFailed')))
   })

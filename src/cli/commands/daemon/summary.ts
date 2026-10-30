@@ -1,15 +1,22 @@
 import type { CliApp } from '@/cli/types'
-import type { DegradedEntry, DegradedItem } from '@/core/container'
-import { hint, warn } from '@/cli/ui/colors'
+import type { DegradedEntry, DegradedItem, TaskSnapshot } from '@/core/container'
+import { hint, success, warn } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { isPlainRecord } from '@/core/utils/collections'
 import { bindLocale, t } from '@/i18n'
 
-/** What this daemon will run with, so a background start says more than its pid. */
-export function printDaemonSummary(app: CliApp, degraded: readonly DegradedEntry[]): void {
+const LIST_SEPARATOR = ', '
+
+/** What this daemon will run with and is doing, so a background start says more than its pid. */
+export function printDaemonSummary(
+  app: CliApp,
+  degraded: readonly DegradedEntry[],
+  tasks: readonly TaskSnapshot[]
+): void {
   printModel(app)
   printServed(app, degraded)
   printLogFile(app)
+  printTasks(app, tasks)
 }
 
 /** A foreground start prints this before boot; the channels and API follow at ready. */
@@ -29,7 +36,7 @@ export function printServed(app: CliApp, degraded: readonly DegradedEntry[]): vo
   const listed =
     configured.length === 0
       ? t(locale, 'cli.daemonNoChannels', { brand: BRAND.name })
-      : configured.filter((channel) => !down.has(channel)).join(', ')
+      : configured.filter((channel) => !down.has(channel)).join(LIST_SEPARATOR)
 
   if (listed !== '') {
     app.out(hint(t(locale, 'cli.daemonChannels', { channels: listed })))
@@ -39,6 +46,36 @@ export function printServed(app: CliApp, degraded: readonly DegradedEntry[]): vo
     app.out(hint(t(locale, 'cli.daemonApi', { port: config.api.port })))
     app.out(hint(t(locale, 'cli.daemonPage', { command: `${BRAND.name} web` })))
   }
+}
+
+/** Which background tasks run now, then why any task's last pass failed. */
+export function printTasks(app: CliApp, tasks: readonly TaskSnapshot[]): void {
+  const locale = app.config.locale.language
+  const working = tasks.filter((task) => task.working).map((task) => task.label)
+
+  app.out(
+    hint(
+      working.length === 0
+        ? t(locale, 'cli.daemonIdle')
+        : t(locale, 'cli.daemonWorking', { tasks: working.join(LIST_SEPARATOR) })
+    )
+  )
+
+  for (const task of tasks.filter((entry) => entry.lastError !== undefined)) {
+    printSettledTask(app, task)
+  }
+}
+
+/** A task's pass has ended: done, or why it failed. */
+export function printSettledTask(app: CliApp, task: TaskSnapshot): void {
+  const locale = app.config.locale.language
+
+  if (task.lastError === undefined) {
+    app.out(success(t(locale, 'cli.daemonTaskDone', { task: task.label })))
+    return
+  }
+
+  app.err(warn(t(locale, 'cli.daemonTaskFailed', { task: task.label, error: task.lastError })))
 }
 
 function printModel(app: CliApp): void {

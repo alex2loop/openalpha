@@ -308,6 +308,10 @@ the output path. Market data keeps loading in the background after that.
 A start prints the version it runs, the model, the channels it opens, the API port and a
 line naming `web` when `[api]` is on, and the log file. The log records when the channels open.
 
+It then says which background work is running at that moment, such as the market data load every
+start runs, and why any task's last pass failed. In the foreground, each of those prints one "Done"
+line when it finishes; after that the terminal stays quiet.
+
 **Restarting.** When a daemon is running and `[api]` is on, `restart` asks that daemon to restart
 itself in place (same pid, same terminal). It waits until the daemon is ready and prints the result.
 
@@ -340,7 +344,8 @@ Some problems do still stop `start`: a configuration error (bad TOML, an invalid
 already running, and a storage failure. An API port already taken does not: the API stays closed,
 `start` warns and names the port, and the rest of the daemon runs.
 
-**Status.** `status` names the version the running daemon was started from.
+**Status.** `status` names the version the running daemon was started from, and which background
+work it is running now (a few seconds behind at most), with why any task's last pass failed.
 
 - Re-running the install script restarts a background daemon on the new binary.
 - An install pinned with `OPENALPHA_VERSION` keeps the daemon on its old release until you restart it.

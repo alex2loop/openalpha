@@ -59,11 +59,22 @@ export type DegradedEntry = Degraded<string>
 /** What a start left down, once every subsystem is up. */
 type DaemonReadyHandler = (degraded: readonly DegradedItem[]) => void
 
+/** One background task worded in the daemon's language, as the ready file records it for a reader
+ *  outside the daemon: whether a pass runs now, and why the last one failed when it did. */
+export interface TaskSnapshot {
+  readonly label: string
+  readonly working: boolean
+  readonly lastError?: string
+}
+
 export interface DaemonStartOptions {
   /** Fires once every subsystem, channels included, is up. */
   readonly onReady?: DaemonReadyHandler
   /** Called with what a channel has left down whenever that set changes while the daemon runs. */
   readonly onHealth?: (degraded: readonly DegradedItem[]) => void
+  /** Called with every background task once at start and again whenever which ones are working,
+   *  or failed, changes. */
+  readonly onTasks?: (tasks: readonly TaskSnapshot[]) => void
   /** Set when this start reclaimed the pid file of a daemon that never stopped cleanly; the old
    *  run's start time when its pid file recorded one. */
   readonly previousRun?: { readonly startedAt?: number }

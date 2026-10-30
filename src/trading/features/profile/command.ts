@@ -28,7 +28,7 @@ import {
   INVESTMENT_HORIZONS,
 } from '@/trading/kernel/operator/profile'
 import { parseMember, usage } from '@/trading/kernel/surface/surface'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 
 const USAGE: 'slash.tradingProfileUsage' = 'slash.tradingProfileUsage'
@@ -286,6 +286,10 @@ function buildUsageValues(profiles: Profiles): CommandMessageValues {
 function shown(deps: ProfileCommandDeps, ctx: SlashContext, profile: UserProfile): SlashResult {
   return {
     kind: 'text',
-    text: renderProfileText(ctx.locale, profile, resolveRenderContext(deps.timezone, ctx.surface)),
+    text: renderProfileText(
+      ctx.locale,
+      profile,
+      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
+    ),
   }
 }

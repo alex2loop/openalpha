@@ -25,7 +25,7 @@ import { toProfileStamp } from '@/trading/kernel/operator/profile'
 import { parseMember, usage } from '@/trading/kernel/surface/surface'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 import { bookAffordances } from '@/trading/render/affordance'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 import { minimumSizesByInstrument } from '@/trading/venues/holdings'
 
@@ -126,7 +126,11 @@ async function runNav(
   return {
     kind: 'text',
     affordances: bookAffordances(ctx.locale),
-    text: renderNavText(ctx.locale, history, resolveRenderContext(deps.timezone, ctx.surface)),
+    text: renderNavText(
+      ctx.locale,
+      history,
+      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
+    ),
   }
 }
 
@@ -159,7 +163,7 @@ async function run(deps: PortfolioCommandDeps, ctx: SlashContext): Promise<Slash
     kind: 'text',
     affordances: bookAffordances(ctx.locale),
     text: renderPortfolioText(ctx.locale, book, {
-      context: resolveRenderContext(deps.timezone, ctx.surface),
+      context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       cashTargetPctNav: profile.segmentTargets[CASH_SEGMENT] ?? 0,
       sectorCapPctNav: profile.maximumSectorPctNav,
       profile: toProfileStamp({ profile, saved: profileSaved }),

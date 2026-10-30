@@ -1,5 +1,6 @@
-import type { App } from '@/core/container'
+import type { App, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import { notifyPass } from '@/core/container'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
@@ -7,10 +8,13 @@ import { isBoundaryFailure, logRefreshDegradations, refreshDegradations } from '
 
 const BOOT_REFRESH_BUDGET_MS = 60_000
 
+export const BOOT_REFRESH_TASK = 'trading.boot-refresh'
+
 interface BootRefreshOptions {
   readonly app: App
   readonly logger: Logger
   readonly signal: AbortSignal
+  readonly onTaskPass: TaskPassListener
 }
 
 /** One sweep of every market in use, run beside the rest of the start. The loops that read market
@@ -23,8 +27,12 @@ interface BootRefreshOptions {
  *  A provider outage degrades the same way inside the budget or after it: warn and carry on.
  *  Anything else is this code being wrong and rejects, for the daemon's task tracker to make fatal. */
 export async function runBootRefresh(options: BootRefreshOptions): Promise<void> {
-  const { app, logger, signal } = options
+  const { app, logger, signal, onTaskPass } = options
   const trading = app.resolve('tradingServices')
+  const at = Date.now()
+
+  notifyPass(onTaskPass, { name: BOOT_REFRESH_TASK, phase: 'start', at })
+
   const sweep = sweepMarketData(app, logger, signal)
 
   try {
@@ -36,6 +44,7 @@ export async function runBootRefresh(options: BootRefreshOptions): Promise<void>
     await sweep
   } finally {
     trading.releaseFirstSweep()
+    notifyPass(onTaskPass, { name: BOOT_REFRESH_TASK, phase: 'end', at })
   }
 }
 

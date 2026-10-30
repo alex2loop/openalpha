@@ -49,7 +49,7 @@ export function buildDebateParts(debate: DebateWire, action: Action): readonly D
   if (debate.claims.length > 0) {
     parts.push({
       id: VERIFIER_ROLE,
-      title: tr(`trading.debate.role.${VERIFIER_ROLE}`),
+      title: tr('ui.office.why.claims'),
       body: <ClaimList debate={debate} />,
     })
   }
@@ -83,32 +83,24 @@ export function DebateFolds({ call }: { readonly call: SuggestionWire }) {
   )
 }
 
-// One side's stored summary in the daemon's own line; a case the evidence refuted whole has none.
+// One side's stored summary under the case it argues; a case the evidence refuted whole has none.
 function buildCasePart(debate: DebateWire, side: Side, action: Action): DebatePart {
   const summary = debate.roles.find((role) => role.role === side)?.summary
 
   return {
     id: side,
-    title: tr(`trading.debate.role.${side}`),
+    title: tr(resolveCaseKey(side, action)),
     body:
-      summary === undefined ? (
-        <p class="meta">{tr('ui.office.why.dropped')}</p>
-      ) : (
-        <p>{tr(resolveCaseKey(side, action), { summary })}</p>
-      ),
+      summary === undefined ? <p class="meta">{tr('ui.office.why.dropped')}</p> : <p>{summary}</p>,
   }
 }
 
 function resolveCaseKey(side: Side, action: Action) {
   if (side === BULL_ROLE) {
-    return action === 'reduce'
-      ? 'trading.render.suggestion.debateBullReduce'
-      : 'trading.render.suggestion.debateBull'
+    return action === 'reduce' ? 'ui.office.why.caseKeep' : 'ui.office.why.caseBuy'
   }
 
-  return action === 'reduce'
-    ? 'trading.render.suggestion.debateBearReduce'
-    : 'trading.render.suggestion.debateBear'
+  return action === 'reduce' ? 'ui.office.why.caseSell' : 'ui.office.why.caseWait'
 }
 
 function buildAnalystParts(debate: DebateWire): DebatePart[] {
@@ -123,14 +115,11 @@ function buildAnalystParts(debate: DebateWire): DebatePart[] {
   return [
     {
       id: ANALYST_ROLE,
-      title: tr(`trading.debate.role.${ANALYST_ROLE}`),
-      body: (
-        <p>
-          {verdict === undefined
-            ? summary
-            : tr('trading.render.suggestion.debateAnalyst', { stance: verdict, summary })}
-        </p>
-      ),
+      title:
+        verdict === undefined
+          ? tr('ui.office.why.analyst')
+          : tr('ui.office.why.analystStance', { stance: verdict }),
+      body: <p>{summary}</p>,
     },
   ]
 }

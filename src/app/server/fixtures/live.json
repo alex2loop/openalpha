@@ -9,7 +9,11 @@
       "startedAt": 1792480000000,
       "progress": {
         "key": "trading.progress.refresh.bars",
-        "params": { "market": "equity-vn", "done": 120, "total": 1600 },
+        "params": {
+          "market": "equity-vn",
+          "done": 120,
+          "total": 1600
+        },
         "text": "equity-vn · Đang tải lịch sử giá - 120/1600 mã…",
         "mode": "transient",
         "at": 1792480004000
@@ -38,7 +42,10 @@
         "kind": "approval_requested",
         "weight": "interrupt",
         "wake": true,
-        "source": { "channel": "api", "agentId": "chat" },
+        "source": {
+          "channel": "api",
+          "agentId": "chat"
+        },
         "runId": "run_abc",
         "requestId": "call_456",
         "approval": {
@@ -64,5 +71,41 @@
       "answerable": false
     }
   ],
-  "alertsCheckedAt": 1792480060000
+  "alertsCheckedAt": 1792480060000,
+  "tasks": [
+    {
+      "name": "trading.alerts",
+      "label": "Price alerts",
+      "everyMs": 60000,
+      "lastRunAt": 1792480140000,
+      "nextRunAt": 1792480200000,
+      "working": false
+    },
+    {
+      "name": "trading.refresh",
+      "label": "Market data refresh",
+      "lastRunAt": 1792479000000,
+      "lastError": "No connection to query1.finance.yahoo.com right now, so I am waiting and checking again.",
+      "nextRunAt": 1792480800000,
+      "working": true
+    },
+    {
+      "name": "trading.intraday",
+      "label": "Intraday report",
+      "working": false
+    },
+    {
+      "name": "retention",
+      "label": "Cleanup and backup",
+      "everyMs": 21600000,
+      "lastRunAt": 1792470000000,
+      "nextRunAt": 1792491600000,
+      "working": false
+    },
+    {
+      "name": "acme.sync",
+      "label": "acme.sync",
+      "working": false
+    }
+  ]
 }

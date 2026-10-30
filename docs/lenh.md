@@ -306,6 +306,10 @@ Dữ liệu thị trường vẫn tiếp tục nạp ở nền sau đó.
 `start` in phiên bản đang chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật
 `[api]`, và tệp nhật ký. Nhật ký ghi lại lúc các kênh mở.
 
+Sau đó nó cho biết việc nền nào đang chạy lúc ấy, ví dụ việc nạp dữ liệu thị trường mà lần khởi động
+nào cũng làm, và vì sao lần chạy gần nhất của một việc bị lỗi nếu có. Ở tiền cảnh, mỗi việc đó in thêm
+một dòng "Xong" khi làm xong; sau đó terminal im lặng.
+
 **Khởi động lại.** Khi đã có dịch vụ nền chạy và `[api]` đang bật, `restart` nhờ chính dịch vụ nền đó
 khởi động lại tại chỗ (cùng pid, cùng cửa sổ terminal). Nó chờ dịch vụ nền sẵn sàng rồi in kết quả.
 
@@ -336,7 +340,8 @@ Một số lỗi vẫn chặn `start`: lỗi cấu hình (TOML sai, giá trị k
 và lỗi lưu trữ. Cổng API đã bị dùng thì không: API không mở, `start` in cảnh báo nêu số cổng, phần còn lại của
 dịch vụ nền vẫn chạy.
 
-**Trạng thái.** `status` cho biết dịch vụ nền đang chạy bản nào.
+**Trạng thái.** `status` cho biết dịch vụ nền đang chạy bản nào, và việc nền nào đang chạy lúc này
+(chậm nhất vài giây), kèm lý do nếu lần chạy gần nhất của một việc bị lỗi.
 
 - Chạy lại script cài đặt thì dịch vụ nền chạy ở chế độ nền được bật lại trên bản mới.
 - Cài bản chọn sẵn bằng `OPENALPHA_VERSION` thì dịch vụ nền vẫn chạy bản cũ tới khi bạn tự khởi động

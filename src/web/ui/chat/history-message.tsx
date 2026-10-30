@@ -6,7 +6,8 @@ import { commandWordOf } from '@/web/ui/chat/command-link'
 import { RESEARCH_COMMAND } from '@/web/ui/chat/research-steps'
 import { openRememberDialog } from '@/web/ui/dialogs/remember-dialog'
 import { Button } from '@/web/ui/kit/button'
-import { InlineMarkdown, Markdown } from '@/web/ui/markdown/markdown'
+import { DepthLines, toDepthLine } from '@/web/ui/markdown/depth-lines'
+import { Markdown } from '@/web/ui/markdown/markdown'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
 
 const PARAGRAPH_BREAK = /\n{2,}/
@@ -43,9 +44,10 @@ export function ReplyText({ text, isProse = true, scope }: ReplyTextProps) {
   return (
     <>
       {paragraphs.map((part, index) => (
-        <p key={index} class="chat-reply">
-          <InlineMarkdown text={part.split('\n').map(unquoteFold).join('\n')} />
-        </p>
+        <DepthLines
+          key={index}
+          lines={part.split('\n').map((line) => toDepthLine(unquoteFold(line)))}
+        />
       ))}
     </>
   )

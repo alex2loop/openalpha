@@ -1,9 +1,0 @@
-.factor-lines {
-  display: grid;
-  gap: var(--s0);
-}
-
-.factor-line {
-  margin: 0;
-  padding-left: calc(var(--depth, 0) * var(--s3));
-}

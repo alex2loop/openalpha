@@ -2,6 +2,7 @@ import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { WireEvent } from '@/app/server/wire/events'
 import type { PendingWire, ProgressWire, QuestionPendingWire } from '@/app/server/wire/live'
+import type { TaskStatusWire } from '@/app/server/wire/tasks'
 
 /** The pending entry an approval is; the other kind is a question. */
 export const APPROVAL_KIND = 'approval'
@@ -37,6 +38,7 @@ export interface Run {
 const runList = signal<readonly Run[]>([])
 const pendingList = signal<readonly PendingWire[]>([])
 const checkedAt = signal<number | undefined>(undefined)
+const taskList = signal<readonly TaskStatusWire[] | undefined>(undefined)
 // The tickers each run the page watched end reported, oldest first, by `runId`.
 const finishedTickers = new Map<string, readonly string[]>()
 let arrivalSeq = 0
@@ -47,6 +49,10 @@ export const runningCount = computed(() => runList.value.filter((run) => !run.hi
 export const pending: ReadonlySignal<readonly PendingWire[]> = pendingList
 /** Epoch ms the daemon's last alert pass finished; absent until the snapshot or an event says. */
 export const alertsCheckedAt: ReadonlySignal<number | undefined> = checkedAt
+/** The daemon's background tasks as it last said; absent until the first snapshot. */
+export const backgroundTasks: ReadonlySignal<readonly TaskStatusWire[] | undefined> = taskList
+/** Background tasks in a pass right now. */
+export const workingTasks = computed(() => taskList.value?.filter((task) => task.working) ?? [])
 
 /** A run of the slash command `name`, which its run carries without the slash. */
 export function isCommandRun(
@@ -54,6 +60,13 @@ export function isCommandRun(
   name: string
 ): boolean {
   return run.kind === 'command' && run.name === name
+}
+
+/** The snapshot and every `tasks_changed` carry the whole list, so the latest replaces it. */
+export function noteTasks(tasks: readonly TaskStatusWire[] | undefined): void {
+  if (tasks !== undefined) {
+    taskList.value = tasks
+  }
 }
 
 /** Keeps the latest pass: a snapshot taken before a newer event never moves it back. */

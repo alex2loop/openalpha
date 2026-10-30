@@ -13,7 +13,7 @@ import { hasNoBook } from '@/trading/kernel/operator/brief-section'
 import { usage } from '@/trading/kernel/surface/surface'
 import { bookAffordances } from '@/trading/render/affordance'
 import { formatInstant } from '@/trading/render/datetime'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 import { joinSections } from '@/trading/render/layout'
 
 const USAGE: 'slash.tradingBriefUsage' = 'slash.tradingBriefUsage'
@@ -104,7 +104,11 @@ async function runShow(
 
   if (latest !== null) {
     return withSchedule(deps, ctx, {
-      body: renderBriefText(ctx.locale, latest, resolveRenderContext(deps.timezone, ctx.surface)),
+      body: renderBriefText(
+        ctx.locale,
+        latest,
+        resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
+      ),
       snapshot: latest,
     })
   }
@@ -122,7 +126,7 @@ async function runShow(
     body: renderBriefText(
       ctx.locale,
       built.snapshot,
-      resolveRenderContext(deps.timezone, ctx.surface)
+      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
     ),
     snapshot: built.snapshot,
   })

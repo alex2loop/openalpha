@@ -1,7 +1,7 @@
 import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import { renderReconcileText } from '@/trading/features/portfolio/render/reconcile'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
 /** Holds the book against what the custodians actually report. Read-only and venue-by-venue: a
  *  venue the operator trades by hand carries no adapter and has nothing to be held against. */
@@ -34,7 +34,7 @@ async function run(deps: ReconcileCommandDeps, ctx: SlashContext): Promise<Slash
     text: renderReconcileText(
       ctx.locale,
       reconciled,
-      resolveRenderContext(deps.timezone, ctx.surface)
+      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
     ),
   }
 }

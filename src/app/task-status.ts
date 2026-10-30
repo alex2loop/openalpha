@@ -1,7 +1,8 @@
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
-import type { TaskPass, TaskPassListener } from '@/core/container'
+import type { TaskPass, TaskPassListener, TaskSnapshot } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
+import { BOOT_REFRESH_TASK } from '@/app/boot-refresh'
 import { t, translateDisplayText } from '@/i18n'
 
 declare module '@/core/container' {
@@ -11,7 +12,12 @@ declare module '@/core/container' {
   }
 }
 
+// A pass that starts and ends inside this gap (the scheduler's tick) settles unseen, so a reader
+// outside the daemon hears of a change it could notice, not of every pass.
+const TASK_REPORT_GAP_MS = 5000
+
 const LABEL_KEYS: ReadonlyMap<string, MessageKey> = new Map([
+  [BOOT_REFRESH_TASK, 'ui.task.trading.boot-refresh'],
   ['trading.alerts', 'ui.task.trading.alerts'],
   ['trading.exits', 'ui.task.trading.exits'],
   ['trading.refresh', 'ui.task.trading.refresh'],
@@ -42,16 +48,24 @@ interface TaskStatusBoard {
   /** Names a task before its first pass, so a task that waits long for its first still shows. */
   track(names: readonly string[]): void
   list(): readonly TaskStatusWire[]
+  /** Calls `onChange` once per `gapMs` that saw a pass edge, until the returned stop is called;
+   *  a pass that starts and ends inside one gap reads as one change. */
+  watch(gapMs: number, onChange: () => void): () => void
 }
 
 /** One entry per task name. The names are the daemon's own tasks, fixed once it has started, so
  *  the table never grows past them. */
 export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
   const entries = new Map<string, TaskEntry>()
+  const watchers = new Set<() => void>()
 
   return {
     listener: (pass) => {
       entries.set(pass.name, applyPass(locale, entries.get(pass.name), pass))
+
+      for (const onChange of watchers) {
+        onChange()
+      }
     },
     track: (names) => {
       for (const name of names) {
@@ -61,7 +75,47 @@ export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
       }
     },
     list: () => [...entries].map(([name, entry]) => toStatusWire(locale, name, entry)),
+    watch: (gapMs, onChange) => {
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const fire = (): void => {
+        timer = undefined
+        onChange()
+      }
+      const onPass = (): void => {
+        timer ??= setTimeout(fire, gapMs)
+      }
+
+      watchers.add(onPass)
+
+      return () => {
+        watchers.delete(onPass)
+        clearTimeout(timer)
+      }
+    },
   }
+}
+
+/** Hands `onTasks` the board now, then again whenever which tasks work, or failed, changes. */
+export function reportTaskChanges(
+  board: TaskStatusBoard,
+  onTasks: (tasks: readonly TaskSnapshot[]) => void
+): () => void {
+  let reported = ''
+
+  const report = (): void => {
+    const tasks = board.list().map(toSnapshot)
+    const key = JSON.stringify(tasks)
+
+    if (key !== reported) {
+      reported = key
+      onTasks(tasks)
+    }
+  }
+  const unwatch = board.watch(TASK_REPORT_GAP_MS, report)
+
+  report()
+
+  return unwatch
 }
 
 function applyPass(locale: Locale, current: TaskEntry | undefined, pass: TaskPass): TaskEntry {
@@ -78,6 +132,12 @@ function applyPass(locale: Locale, current: TaskEntry | undefined, pass: TaskPas
     ...(pass.nextAt === undefined ? {} : { nextRunAt: pass.nextAt }),
     working: false,
   }
+}
+
+function toSnapshot(task: TaskStatusWire): TaskSnapshot {
+  const { label, working, lastError } = task
+
+  return { label, working, ...(lastError === undefined ? {} : { lastError }) }
 }
 
 function toStatusWire(locale: Locale, name: string, entry: TaskEntry): TaskStatusWire {

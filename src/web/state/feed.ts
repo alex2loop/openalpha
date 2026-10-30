@@ -15,6 +15,7 @@ import {
   nextArrivalSeq,
   noteAlertsChecked,
   noteFinishedTickers,
+  noteTasks,
   type Run,
   readArrivalSeq,
   removeRun,
@@ -260,6 +261,7 @@ function applySnapshot(feed: FeedState, snapshot: LiveSnapshotWire, mark: number
 
   replacePending(snapshot.pending, resolvedWhileSyncing(feed))
   noteAlertsChecked(snapshot.alertsCheckedAt)
+  noteTasks(snapshot.tasks)
 }
 
 // The snapshot may predate an answer an event held back for replay already carries.
@@ -309,6 +311,10 @@ function applyWireEvent(feed: FeedState, event: WireEvent, isAfterSnapshot: bool
 
   if (event.kind === 'alerts_checked') {
     noteAlertsChecked(event.checkedAt)
+  }
+
+  if (event.kind === 'tasks_changed') {
+    noteTasks(event.tasks)
   }
 
   if (hasRunId(event)) {

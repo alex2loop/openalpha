@@ -104,10 +104,6 @@
   font-size: var(--sizeBody);
 }
 
-.chat-reply {
-  white-space: pre-wrap;
-}
-
 .chat-step {
   display: flex;
   align-items: center;

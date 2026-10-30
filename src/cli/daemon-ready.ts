@@ -6,7 +6,7 @@ import { z } from 'zod'
 import type { CliApp } from '@/cli/types'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import { BRAND } from '@/core/brand'
-import { DEGRADED_KINDS, type DegradedEntry } from '@/core/container'
+import { DEGRADED_KINDS, type DegradedEntry, type TaskSnapshot } from '@/core/container'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 
 /** What a daemon started without, worded once in its own language so any reader prints it as is. */
@@ -16,7 +16,17 @@ const DEGRADED_ENTRY: z.ZodType<DegradedEntry> = z.object({
   message: z.string(),
   variables: z.array(z.string()).readonly().exactOptional(),
 })
-const READY_STATE = z.object({ pid: z.number(), degraded: z.array(DEGRADED_ENTRY) })
+const TASK_SNAPSHOT: z.ZodType<TaskSnapshot> = z.object({
+  label: z.string(),
+  working: z.boolean(),
+  lastError: z.string().exactOptional(),
+})
+// A file an older daemon wrote carries no tasks.
+const READY_STATE = z.object({
+  pid: z.number(),
+  degraded: z.array(DEGRADED_ENTRY),
+  tasks: z.array(TASK_SNAPSHOT).default([]),
+})
 
 export function readyFilePath(app: { readonly config: Pick<ResolvedConfig, 'paths'> }): string {
   return join(app.config.paths.dataDir, BRAND.readyFile)
@@ -24,12 +34,13 @@ export function readyFilePath(app: { readonly config: Pick<ResolvedConfig, 'path
 
 /** Written once boot has opened every subsystem, so a background start can tell a daemon that is
  *  up and answering from one still loading data. It also carries what the daemon started without,
- *  which `status` and `/v1/health` read back. */
+ *  which `status` and `/v1/health` read back, and its background tasks, which `status` prints. */
 export async function writeReadyFile(
   app: CliApp,
-  degraded: readonly DegradedEntry[]
+  degraded: readonly DegradedEntry[],
+  tasks: readonly TaskSnapshot[]
 ): Promise<void> {
-  const state = { pid: process.pid, degraded }
+  const state = { pid: process.pid, degraded, tasks }
 
   // Atomic: `status` and a waiting background start poll it, and must never read half a file.
   await replacePrivateFileAtomic({ path: readyFilePath(app), content: JSON.stringify(state) })
@@ -52,6 +63,15 @@ export async function readDaemonDegraded(
   pid: number
 ): Promise<readonly DegradedEntry[]> {
   return (await readReadyState(app, pid))?.degraded ?? []
+}
+
+/** The background tasks of the daemon with this pid as it last wrote them; empty when it is not
+ *  ready. */
+export async function readDaemonTasks(
+  app: { readonly config: Pick<ResolvedConfig, 'paths'> },
+  pid: number
+): Promise<readonly TaskSnapshot[]> {
+  return (await readReadyState(app, pid))?.tasks ?? []
 }
 
 async function readReadyState(

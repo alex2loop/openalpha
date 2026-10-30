@@ -433,8 +433,11 @@ hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the fo
 stderr, and a background child's stderr log is relayed under the parent's success line.
 
 The handler
-then writes the ready file (`BRAND.readyFile`, atomically, `{ pid, degraded }`) that a background start
-waits on and `status` and `/v1/state` read back; a start clears it as it claims the pid file, so a file a
+then writes the ready file (`BRAND.readyFile`, atomically, `{ pid, degraded, tasks }`) that a background start
+waits on and `status` and `/v1/state` read back. `tasks` is the task board in the daemon's language
+(`TaskSnapshot`: label, working, last error), handed to `DaemonStartOptions.onTasks` once at start and
+again when which tasks work or failed changes, coalesced over `TASK_REPORT_GAP_MS` so the scheduler's
+short tick never rewrites the file; a start clears it as it claims the pid file, so a file a
 crashed daemon left behind never reads as ready for a reused pid. The pid file also records `startedAt`. A start that reclaims a stale pid file (`PidFileClaim` `reclaimed`)
 passes `DaemonStartOptions.previousRun`, so the daemon messages the default chat once (`cli.daemonStoppedUnexpectedly`),
 and `status` reads the same file through `readStalePid`.
@@ -790,6 +793,11 @@ A renderer never assumes a width. `resolveRenderContext(timezone, surface)` answ
 |---|---|---|
 | repl | `table` | 90 |
 | channel (telegram, zalo) | `lines` | 45 |
+| office page chat | `lines` | 45 |
+
+The page runs the terminal's commands but shows their answers in a proportional font in a narrow
+column, so its slash context sets `readsAs: 'channel'`; commands shape their text through
+`answerSurfaceOf(ctx)`, while the dispatcher still checks the command's surfaces against `repl`.
 
 `toFactLines` joins as many facts onto a line as the budget holds and starts a new line instead of
 splitting a fact, because a cut inside one orphans a number from its label.

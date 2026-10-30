@@ -447,8 +447,11 @@ Tác vụ dịch vụ nền đưa cả hai danh sách cho `onReady` (`DaemonStar
 tiền cảnh in chúng ra stderr, còn log stderr của tiến trình nền được chuyển tiếp dưới dòng thành công của
 tiến trình cha.
 
-Sau đó handler ghi tệp sẵn sàng (`BRAND.readyFile`, ghi nguyên khối, `{ pid, degraded }`) mà
-lần khởi động nền chờ, còn `status` và `/v1/state` đọc lại; mỗi lần khởi động xóa tệp này ngay khi giữ được
+Sau đó handler ghi tệp sẵn sàng (`BRAND.readyFile`, ghi nguyên khối, `{ pid, degraded, tasks }`) mà
+lần khởi động nền chờ, còn `status` và `/v1/state` đọc lại. `tasks` là bảng việc nền bằng ngôn ngữ của
+dịch vụ nền (`TaskSnapshot`: tên, đang chạy hay không, lỗi gần nhất), được đưa cho
+`DaemonStartOptions.onTasks` một lần lúc khởi động và mỗi khi tập việc đang chạy hoặc bị lỗi thay đổi,
+gộp trong `TASK_REPORT_GAP_MS` để nhịp quét ngắn của bộ lập lịch không ghi lại tệp liên tục; mỗi lần khởi động xóa tệp này ngay khi giữ được
 tệp pid, nên tệp do một dịch vụ nền chết đột ngột để lại không bao giờ bị coi là sẵn sàng khi pid được dùng lại. Tệp pid còn ghi `startedAt`. Lần khởi động giành lại một tệp pid cũ (`PidFileClaim` `reclaimed`) truyền
 `DaemonStartOptions.previousRun`, nên dịch vụ nền nhắn chat mặc định một lần (`cli.daemonStoppedUnexpectedly`), và
 `status` đọc cùng tệp qua `readStalePid`.
@@ -810,6 +813,11 @@ mỗi đích:
 |---|---|---|
 | repl | `table` | 90 |
 | kênh (telegram, zalo) | `lines` | 45 |
+| khung chat trên trang văn phòng | `lines` | 45 |
+
+Trang chạy các lệnh của terminal nhưng hiện câu trả lời bằng font thường trong một cột hẹp, nên ngữ
+cảnh lệnh của nó đặt `readsAs: 'channel'`; lệnh dựng chữ theo `answerSurfaceOf(ctx)`, còn bộ điều phối
+vẫn đối chiếu quyền chạy của lệnh với `repl`.
 
 `toFactLines` ghép càng nhiều dữ kiện lên một dòng càng tốt trong hạn mức đó rồi xuống dòng mới, chứ không
 cắt đôi một dữ kiện, vì cắt giữa chừng sẽ tách con số khỏi nhãn gọi tên nó.

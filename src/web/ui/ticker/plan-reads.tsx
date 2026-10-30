@@ -1,12 +1,10 @@
 import type { SuggestionCardWire } from '@/app/server/wire/trading'
 import { tr } from '@/web/text/tr'
 import { Fold } from '@/web/ui/kit/fold'
-import { InlineMarkdown, Markdown } from '@/web/ui/markdown/markdown'
+import { DepthLines, indentOf, toDepthLine } from '@/web/ui/markdown/depth-lines'
+import { Markdown } from '@/web/ui/markdown/markdown'
 
-import './plan-reads.css'
-
-// `/suggest` indents a level by two spaces; a quoted line is the evidence under a reading.
-const INDENT_WIDTH = 2
+// A quoted line is the evidence under a reading.
 const QUOTE_PREFIX = '> '
 
 /** What the card says beside the levels: what the trader still waits for, and the factor checklist
@@ -38,25 +36,15 @@ function FactorLines({ lines }: { readonly lines: readonly string[] }) {
   const base = Math.min(...lines.map(indentOf))
 
   return (
-    <div class="factor-lines">
-      {lines.map((line, index) => {
-        const text = line.trimStart()
-        const isQuote = text.startsWith(QUOTE_PREFIX)
+    <DepthLines
+      lines={lines.map((line) => {
+        const placed = toDepthLine(line, base)
+        const isQuote = placed.text.startsWith(QUOTE_PREFIX)
 
-        return (
-          <p
-            key={index}
-            class={isQuote ? 'factor-line meta' : 'factor-line'}
-            style={{ '--depth': (indentOf(line) - base) / INDENT_WIDTH }}
-          >
-            <InlineMarkdown text={isQuote ? text.slice(QUOTE_PREFIX.length) : text} />
-          </p>
-        )
+        return isQuote
+          ? { ...placed, text: placed.text.slice(QUOTE_PREFIX.length), isMuted: true }
+          : placed
       })}
-    </div>
+    />
   )
-}
-
-function indentOf(line: string): number {
-  return line.length - line.trimStart().length
 }
