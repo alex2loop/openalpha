@@ -11,8 +11,17 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 The README walks a newcomer through one five-step setup, with the web page or the terminal as the
 place to work and a ChatGPT plan as an option to an OpenRouter key. Windows installs in the open
-PowerShell window. A few sample config comments that were wrong are fixed. No database change.
-> README hướng dẫn người mới qua một luồng cài đặt 5 bước, cho chọn làm việc trên trang web hay trong terminal, và dùng gói ChatGPT thay cho khóa OpenRouter. Windows cài ngay trong cửa sổ PowerShell đang mở. Vài ghi chú sai trong tệp cấu hình mẫu đã được sửa. Không đổi cơ sở dữ liệu.
+PowerShell window. A channel `token_file` may start with `~/`, and `config validate` now catches an
+unknown `[notices] chat` kind. A few sample config comments that were wrong are fixed. No database
+change.
+> README hướng dẫn người mới qua một luồng cài đặt 5 bước, cho chọn làm việc trên trang web hay trong terminal, và dùng gói ChatGPT thay cho khóa OpenRouter. Windows cài ngay trong cửa sổ PowerShell đang mở. `token_file` của kênh nay ghi được đường dẫn bắt đầu bằng `~/`, và `config validate` bắt được loại thông báo sai trong `[notices] chat`. Vài ghi chú sai trong tệp cấu hình mẫu đã được sửa. Không đổi cơ sở dữ liệu.
+
+### Fixes
+
+- A channel `token_file` such as `~/.secrets/telegram-token` was read relative to the folder the
+  daemon started in, so the bot got no token; `~/` now means your home folder.
+- `config validate` and the office page's config editor refuse an unknown `[notices] chat` kind, which
+  before only stopped the daemon at start.
 
 ### Docs
 
@@ -23,8 +32,7 @@ PowerShell window. A few sample config comments that were wrong are fixed. No da
   installer adds itself to that window's PATH, so `openalpha` works there at once.
 - The gold examples write `gold-vn:SJC`, since SJC is also a stock ticker and a bare `SJC` is asked
   back.
-- `config.sample.toml`: `token_file` needs a full path (`~` is not expanded), `[[models]]` needs only
-  `provider` after `[model_defaults]`, the debate runs in three serial stages, and a hand-traded
+- `config.sample.toml`: `[[models]]` needs only `provider` after `[model_defaults]`, the debate runs in three serial stages, and a hand-traded
   broker can take `markets` to hold a market without becoming its default.
 - `agent.sample.toml`: `max_turns` and `max_duration_ms` never exceed `[loop]`, `max_tokens` only
   lowers the reply cap, and a `max_daily_usd` above `[budget]` stops the agent from loading.

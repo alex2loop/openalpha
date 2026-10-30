@@ -374,7 +374,7 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # [channels.telegram]
 # enabled = true
 # token_env = "TELEGRAM_BOT_TOKEN"
-# token_file = "/home/you/.secrets/telegram-token"   # full path: ~ is not expanded here
+# token_file = "~/.secrets/telegram-token"
 # allowed_ids = [123456789]          # setting this turns pairing off by default
 # operator_user_ids = [123456789]    # restrict pairing commands in group chats
 # pairing = true
