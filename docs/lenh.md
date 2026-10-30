@@ -155,7 +155,7 @@ lệnh nào và menu Telegram. Nhờ vậy một lệnh hành xử giống hệt
 | `/agent` | Xem agent cửa vào; operator kênh có quyền thì đổi được. Trong terminal, chọn bằng `chat --agent <id>` |
 | `/model` | Xem bộ chọn mô hình đã cấu hình ở mọi nơi; chọn thì trong kênh chat |
 | `/research` | Chạy nghiên cứu có giới hạn và trích nguồn, không đổi agent đang chọn |
-| `/health` | Xem các mã sức khỏe của runtime và kênh |
+| `/health` | Xem các mã sức khỏe của runtime và kênh, việc tự chạy nào đang làm và việc nào lỗi ở lần gần nhất (chỉ tên việc; lý do xem ở `status` hoặc trang văn phòng) |
 | `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại; `/upgrade confirm` (hoặc nút bấm) cài bản mới ngay từ Telegram/Zalo |
 | `/memory` | Gọi lại một mục theo khóa (`/memory <khóa>`), tìm (`find <từ khóa>`), ghi nhớ (`remember <khóa> <giá trị>`) hoặc xóa (`forget <khóa>`) |
 | `/cost` | Xem lượng dùng của cuộc trò chuyện này và chi tiêu hôm nay so với hạn mức |

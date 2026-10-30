@@ -1,10 +1,12 @@
 import type { DeliveryHub } from '@/app/delivery'
+import type { TaskStatusWire } from '@/app/server/wire/tasks'
 import type { ChannelDefinition } from '@/channels/api'
 import type {
   ChannelHealth,
   ConfigSummaryReader,
   HealthCode,
   HealthSummaryReader,
+  JobsHealth,
   JobsSpend,
   SpendReader,
 } from '@/commands/api'
@@ -64,7 +66,27 @@ export function createConfigSummary(app: App): ConfigSummaryReader {
 // only where this process runs them.
 export function createHealthSummary(app: App, delivery: DeliveryHub): HealthSummaryReader {
   return {
-    read: async () => ({ runtime: 'ok', channels: toChannelHealth(app, delivery) }),
+    read: async () => {
+      const jobs = toJobsHealth(app.resolve('taskStatus').list())
+
+      return {
+        runtime: 'ok',
+        channels: toChannelHealth(app, delivery),
+        ...(jobs === undefined ? {} : { jobs }),
+      }
+    },
+  }
+}
+
+// An empty board is a process that runs no jobs, not one whose jobs are idle.
+function toJobsHealth(tasks: readonly TaskStatusWire[]): JobsHealth | undefined {
+  if (tasks.length === 0) {
+    return undefined
+  }
+
+  return {
+    working: tasks.filter((task) => task.working).map((task) => task.label),
+    failing: tasks.filter((task) => task.lastError !== undefined).map((task) => task.label),
   }
 }
 

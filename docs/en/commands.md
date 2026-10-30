@@ -154,7 +154,7 @@ Telegram menu. So a command behaves the same in the REPL and in a group chat.
 | `/agent` | Show the entry agent; an authorized channel operator can change it. In the terminal, pick it with `chat --agent <id>` |
 | `/model` | Show a configured model selector anywhere; select one in a chat channel |
 | `/research` | Run bounded, cited research without changing the selected agent |
-| `/health` | Show runtime and channel health codes |
+| `/health` | Show runtime and channel health codes, which automatic jobs are at work and which failed their last pass (names only; the reason is in `status` or on the office page) |
 | `/upgrade` | Operator only: shows your version, the latest release and what it brings; `/upgrade confirm` (or the button) installs it from Telegram/Zalo |
 | `/memory` | Recall an entry by key (`/memory <key>`), search (`find <query>`), save (`remember <key> <value>`) or remove (`forget <key>`) |
 | `/cost` | Show this chat's usage and today's spend against the cap |
