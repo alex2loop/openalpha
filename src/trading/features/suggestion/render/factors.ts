@@ -8,6 +8,7 @@ import type { QuotedIn } from '@/trading/render/money'
 import { t } from '@/i18n'
 import { CHECKLIST_METRICS, renderChecklist } from '@/trading/features/suggestion/render/checklist'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { scoreBand } from '@/trading/markets/factor-scoring'
 import { toFoldLines } from '@/trading/render/fold'
@@ -121,6 +122,7 @@ function tableSection(input: FactorSectionInput, section: RankedSection): readon
       ? [
           `${INDENT[1]}${QUIET_MARK} ${t(locale, 'trading.render.suggestion.factorsQuiet', {
             count: formatCount(locale, quietCount),
+            instrument: buildInstrumentKey(suggestion.instrument),
           })}`,
         ]
       : []),
