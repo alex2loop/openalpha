@@ -11,7 +11,7 @@ type SourceResult<T> = SourceAvailable<T> | SourceUnavailable
 
 interface SourceUnavailable {
   readonly kind: 'unavailable'
-  readonly reason: SourceUnavailableReason // 'unconfigured' | 'unsupported' | 'stale' | 'failed'
+  readonly reason: SourceUnavailableReason // 'unconfigured' | 'unsupported' | 'stale' | 'failed' | 'empty'
   readonly attemptedSourceIds: readonly SourceId[]
   readonly caveats: readonly Caveat[]
 }
@@ -71,7 +71,7 @@ Bộ nhớ theo phiên của trail (`trailedThrough`) chỉ được đặt sau 
 
 ## Các mục của bản tin
 
-Một số mục theo từng thị trường (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) đến từ bộ chuyển đổi overview của từng thị trường, trên một khuôn chung theo từng thị trường, không phải từ một builder của bản tin. Một thị trường thêm một khối, không bao giờ thêm một loại mục.
+Một số mục theo từng thị trường (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) đến từ bộ chuyển đổi overview của từng thị trường, trên một khuôn chung theo từng thị trường, không phải từ một builder của bản tin. Một thị trường thêm một khối, không bao giờ thêm một loại mục. Hai loại mục câu chuyện, `thesis-review` và `story`, không thuộc khối nào: `tryReadStories` của thị trường đọc phiên đã chốt thành các ứng viên, `planStory` (`features/brief/story/plan.ts`) chấm các câu chuyện của ảnh chụp trước và chọn câu chuyện hôm nay, và cả hai đứng đầu bản tin, trên mọi khối.
 
 ## Chấm điểm chủ đề
 

@@ -256,7 +256,7 @@ một `bind` trước đó:
 logger, bus, sessionQueue (cốt lõi, inline)
 storage -> tradingStores -> baseCurrencyGuard, memory -> ai -> engine -> tools
 -> channels, commands -> cliCommands -> social -> đăng ký phần giao dịch
--> plugins -> mcp -> userAgents -> app -> scheduler -> bootExtensions -> api
+-> plugins -> mcp -> userAgents -> app -> scheduler -> bootExtensions -> liveAgents -> api
 ```
 
 - `baseCurrencyGuard` (bước 2b) mở rộng các binding hồ sơ và sổ lệnh của phần giao dịch, nên đứng sau
@@ -298,12 +298,13 @@ lắp xong.
    nhà cung cấp bị loại vì **không có trong danh sách**.
 5. Nạp các tài nguyên runtime (server MCP, plugin đã cài, agent của người dùng, workflow của người dùng)
    và mở tầng lưu trữ.
-6. Gọi `createApp(config, [...assembly.providers, ...features], { configPath, signal })`.
+6. Gọi `createApp(config, [createAgentLogsProvider(...), ...assembly.providers, ...features], { configPath, signal })`.
 7. Chạy `assembly.assertExtensionsRegistered(app)`: buộc các dịch vụ liên quan phân giải, rồi ném
    **một** `ConfigError` đã lọc thông tin đăng nhập, liệt kê mọi vấn đề trên mọi tùy chọn phẳng.
-8. Phân giải ngay các dịch vụ giao dịch (bản cài sai báo lỗi ngay lúc khởi động, không đợi đến lời gọi
-   công cụ đầu tiên), kiểm tra các quy tắc công cụ của `[social]` trên sổ đăng ký công cụ cuối cùng, trỏ
-   logger vào sổ đăng ký agent, và chạy bước khởi động.
+8. Phân giải ngay các dịch vụ giao dịch và truy xuất web (bản cài sai hoặc thiếu khóa tìm kiếm báo ngay
+   lúc khởi động, không đợi đến lời gọi công cụ đầu tiên), khẳng định các công cụ spawn đã được đăng ký,
+   kiểm tra các quy tắc công cụ của `[social]` trên sổ đăng ký công cụ cuối cùng, trỏ logger vào sổ đăng
+   ký agent, chạy bước khởi động, rồi bật nhật ký phiên chạy và nhật ký thông báo (`dispose()` dừng cả hai).
 
 `boot()` trả về `{ app, delivery, dispose }`. Nếu khởi động lỗi, kể cả lỗi kiểm tra phần mở rộng, nó ghi
 log `boot.failed`, giải phóng những gì đã lấy, rồi ném lại lỗi. `dispose()` gọi nhiều lần cũng an toàn

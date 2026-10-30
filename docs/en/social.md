@@ -198,5 +198,7 @@ the agent wrote sits in a code block, so a link in it shows exactly as it would 
 | `social pause\|resume <network> [<agent>]` | Switch a network, or one agent on it, off and on |
 | `social remove <network>` | Delete a network once nobody is on it |
 
+`add`, `update`, `leave` and `remove` ask before they act; `--yes` skips that question (for scripts).
+
 To stop for now use `pause`; to take one agent off use `leave`; to forget a network use `remove`. An
 agent that holds a membership cannot be removed with `agent remove`: leave first.

@@ -419,8 +419,8 @@ Run the daemon on a server you own and point a client app at it.
    [README](../../README.en.md#quick-start) with `OPENALPHA_NO_ONBOARD=1` set. The
    command it installs is the path `command -v openalpha` prints (by default
    `~/.local/bin/openalpha`); the unit below must use it.
-2. **Configure.** `openalpha setup write <provider> <model>` writes `~/.openalpha/config.toml` with
-   one model (`openalpha setup catalog` lists the providers). Or download
+2. **Configure.** `openalpha setup write <provider> <model>` writes the config file in use (by default
+   `~/.openalpha/config.toml`) with one model (`openalpha setup catalog` lists the providers). Or download
    [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
    there and set your model chain yourself (the API is on by default). Each model names the
    environment variable that holds its key (`api_key_env`); set it on the server.
@@ -657,7 +657,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
 - The page refuses to run inside a frame, and in the released binary it may talk only to the daemon that served it.
 - The daemon listens on `127.0.0.1` only and accepts only a `Host` naming this machine (`127.0.0.1`, `localhost` or `[::1]`) or your `public_url`, refuses an API call another website starts, and opens the live stream only for the page it served, so another local web app cannot use it.
 - Safari before 16.4 does not send the header the daemon relies on, so the page says this browser blocks cookies for the address even though it does not. Update Safari.
-- If the daemon cannot be reached, the page says so in one plain line and keeps trying on its own, then opens once the daemon answers. The daemon opens its address first and finishes starting behind it: until then the page says it is starting, which takes about a second, and opens by itself when the daemon is ready. While it starts, reads answer, but anything that changes something (sending a command, a run, an order, a schedule) is refused with a "still starting, try again in a moment" line. If the connection drops while you are signed in, a bar shows the retry countdown and a "Retry now" button, and says that runs keep going in the daemon. When the connection returns, the page asks for the picture as it stands and carries on. A page older than the daemon asks you to reload. A block that fails to refresh keeps its last good figures and says when they were read.
+- If the daemon cannot be reached, the page says so in one plain line and keeps trying on its own, then opens once the daemon answers. The daemon opens its address first and finishes starting behind it: until then the page says it is starting, which takes about a second, and opens by itself when the daemon is ready. While it starts, reads answer, but anything that changes something (sending a command, a run, an order, a schedule) is refused with a "The daemon is still starting, one moment. Try again in a few seconds." line. If the connection drops while you are signed in, a bar shows the retry countdown and a "Retry now" button, and says that runs keep going in the daemon. When the connection returns, the page asks for the picture as it stands and carries on. A page older than the daemon asks you to reload. A block that fails to refresh keeps its last good figures and says when they were read.
 
 ### What is on the screen
 

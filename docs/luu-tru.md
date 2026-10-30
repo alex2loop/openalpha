@@ -57,6 +57,7 @@ Nó **không** có nghĩa là `db stats` đang che một migration hỏng.
 | `channel_inbox` | Hàng đợi tin đến và số lần thử lại; nội dung của các mục đã xong hoặc đã hỏng; câu trả lời của phiên chạy đã xong nhưng lần gửi cuối bị lỗi. |
 | `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Lịch, lịch sử các phiên chạy, điều kiện kích hoạt của việc theo sự kiện cùng phiên chạy gần nhất cho từng mã, tiến độ heartbeat và các cam kết hoãn lại. |
 | `memory_kv` | Bộ nhớ agent. SQLite thêm tìm kiếm FTS5; PostgreSQL dùng các tiện ích text-search. |
+| `browser_sessions` | Các lần đăng nhập vào trang văn phòng: mỗi trình duyệt đã đăng nhập một dòng, giữ băm của bí mật, một nhãn và lần thấy gần nhất. Không bền: mất nó chỉ tốn thêm một lần đăng nhập `web`. |
 
 Phần giao dịch có các bảng riêng: `instruments`, `daily_bars`, `fundamental_snapshots`,
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,

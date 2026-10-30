@@ -253,7 +253,7 @@ through an earlier `bind`:
 logger, bus, sessionQueue (core, inline)
 storage -> tradingStores -> baseCurrencyGuard, memory -> ai -> engine -> tools
 -> channels, commands -> cliCommands -> social -> trading registration
--> plugins -> mcp -> userAgents -> app -> scheduler -> bootExtensions -> api
+-> plugins -> mcp -> userAgents -> app -> scheduler -> bootExtensions -> liveAgents -> api
 ```
 
 - `baseCurrencyGuard` (step 2b) extends the trading profile and ledger bindings, so it follows
@@ -294,12 +294,13 @@ registers after the `app` and `scheduler` providers. Providers in `BootOptions.f
    key are out because they are not listed.
 5. Loads runtime assets (MCP servers, installed plugins, user agents, user workflows) and opens
    persistence.
-6. Calls `createApp(config, [...assembly.providers, ...features], { configPath, signal })`.
+6. Calls `createApp(config, [createAgentLogsProvider(...), ...assembly.providers, ...features], { configPath, signal })`.
 7. Runs `assembly.assertExtensionsRegistered(app)`: forces the affected services to resolve and throws
    **one** credential-scrubbed `ConfigError` listing every problem across the flat options.
-8. Resolves the trading services eagerly (a bad install fails at boot, not at the first tool call),
-   checks the `[social]` tool rules against the final tool registry, points the logger at the agent
-   registry, and runs the startup step.
+8. Resolves the trading services and web retrieval eagerly (a bad install or an unset search key
+   surfaces at boot, not at the first tool call), asserts the spawn tools are registered, checks the
+   `[social]` tool rules against the final tool registry, points the logger at the agent registry, runs
+   the startup step, and starts the run log and notice log (`dispose()` stops both).
 
 It resolves to `{ app, delivery, dispose }`. A boot failure, including extension validation, logs
 `boot.failed`, disposes what it acquired and rethrows. `dispose()` is idempotent (every call returns the

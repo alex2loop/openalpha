@@ -18,6 +18,7 @@ openalpha config path       # tệp nào đang thật sự được đọc
 openalpha config validate   # có phân tích và phân giải được không
 openalpha config show       # cấu hình hiệu lực đã trộn, thông tin bí mật đã che
 openalpha config edit       # mở bằng $VISUAL hoặc $EDITOR
+openalpha config get budget.maxDailyUsd   # in một giá trị đã phân giải, theo đường dẫn dạng chấm
 ```
 
 `openalpha onboard` ghi một tệp khởi đầu khi chưa có tệp và đích không phải symlink. Chạy khi đã có cấu

@@ -85,7 +85,7 @@ one is enabled. Week and custom ranges report the total only.
 "was switching model worth it?": run it before and after, then compare money and latency.
 
 It also prints a **By agent** block before the per-model rows, with one line for each billing agent and what it spent.
-On the default `--period day`, each line also shows the agent's cap ("$0.02 / $0.50 today"). Week and month leave the
+On the default `--period day`, each line also shows the agent's cap ("openalpha: $0.02 of $0.50 today"). Week and month leave the
 cap out, because a daily cap beside a week's spend would mislead.
 
 `status` shows today's spend too. A run stopped by budget halts through the normal `budget` path. The cost already
@@ -226,7 +226,7 @@ Search fees arrive two ways:
 - Brave, DeepSeek, Serper and Tavily bill per query but return nothing. Each is charged the `cost_per_search_usd` you
   set. Unset means uncharged.
 - DeepSeek is charged only when a search returns results.
-- DuckDuckGo and a self-hosted SearXNG are genuinely free.
+- AnySearch, DuckDuckGo and a self-hosted SearXNG are genuinely free.
 - A cache hit and a failed call are never charged.
 
 ### When a slice runs out

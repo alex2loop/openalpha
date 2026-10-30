@@ -587,12 +587,17 @@ openalpha social pause|resume <network> [<agent>]
 ```
 
 An agent needs its own `[focus]` and only allowed tools to join, and `agent remove` refuses an agent
-that still holds a membership. Details are in [Social networks](social.md).
+that still holds a membership. Flags: `add` takes
+`--name`, `--api-base` and a repeatable `--label "POST /path=label"`; `update` takes `--label`; `join`
+takes `--every <duration>`, `--key-env <VAR>` and `--name <public name>`; `rekey` takes `--key-env <VAR>`.
+`add`, `update`, `join`, `leave`, `remove` and `approve` ask for confirmation unless you pass `--yes`.
+Details are in [Social networks](social.md).
 
 ## Memory, history, cost
 
 Memory operations are checked for secrets, prompt injection, size, scope and TTL. Search uses the
-full-text index. `memory list --prefix <text>` keeps only the keys that start with it.
+full-text index. `memory list --prefix <text>` keeps only the keys that start with it. `memory store`, `recall`, `search`,
+`list` and `remove` take `--agent <id>` to pick the agent scope (default: chat).
 
 `memory search <query>` returns 10 results unless you pass `--limit <n>`. `history list` shows the 20
 most recent sessions unless you pass `--limit <n>`.
@@ -626,7 +631,7 @@ openalpha zalo login [--profile <name>]
 ```
 
 Links a personal Zalo account for the `zalo_personal` channel. It saves a QR image and prints where.
-Scan it with the Zalo app and confirm on the phone. A fresh code replaces it every couple of minutes,
+Scan it with the Zalo app and confirm on the phone. A fresh code replaces it about every 100 seconds,
 and the command gives up after five. The login is saved under `--profile`, or the channel's `profile`
 when you leave it out, and the QR image is deleted when you are done. A running daemon picks the login
 up on its next reconnect.
@@ -668,6 +673,11 @@ while the daemon is stopped.
   `db backup`, so a mistake can be undone with `db restore`. `--yes` answers that question with its
   default, so the backup is still taken.
 - `db cleanup` needs `--older-than` (at least `1d`); `--dry-run` previews what it would prune.
+- `db backup` writes to `--path` instead of `<data_dir>/backups`; `--force` replaces an existing file there.
+- `db export` needs `--out <dir>`; `--table <name>` exports one table, `--format json|csv` picks the format
+  (default `json`; csv does not import), and `--force` writes into a directory that already has files.
+- `db import` needs `--in <dir>`; `--table <name>` imports one table instead of every file present.
+- `db migrate up --status` lists migrations and their state and applies none.
 
 `db integrity`, `db stats`, `db export` and `db backup` start only the storage layer, so they run
 with no model credentials configured. Backup and restore, export and import, and what each keeps
@@ -683,7 +693,7 @@ system.
 ## Logs
 
 ```text
-openalpha logs [--lines <n>] [-f] [--agent <id>] [--since <instant|duration>]
+openalpha logs [--lines <n>] [-f | --follow] [--agent <id>] [--since <instant|duration>]
 openalpha logs clear [--agent <id> | --daemon] [--older-than <duration>] [--dry-run] [--yes]
 ```
 

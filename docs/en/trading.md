@@ -26,7 +26,7 @@ An approved entry may leave **one** resting take-profit/stop-loss at the exchang
 
 ### What ships
 
-The **market id** and the **portfolio segment** are two different names; they differ only for VN equity. Commands take the market id.
+The **market id** and the **portfolio segment** are two names for the same thing today: every market's segment equals its id. Commands take the market id.
 
 | Market | Region | Asset class | Segment | Currency | Sets its region's trading day |
 |---|---|---|---|---|---|
@@ -1367,7 +1367,7 @@ an average cost is off; fix it with `/update <id>` rather than adding a row.
 - **No `fx` on the loss.** The venue already holds USDT, so the loss comes out of it at the cost on your
   deposit line. Add `fx` and the book refuses it and asks you to drop it.
 - **Today's date is fine**, since coins don't wait for T+2.
-- A coin buy with a `0` fee prints two notes, "Fee is -100% off" and "Binance takes the fee in BTC...".
+- A coin buy with a `0` fee prints two notes, "Fee is -100% off" and "Binance takes this fee in BTC...".
   For an opening balance ignore both, as long as the quantity matches what the exchange shows.
 - **Each coin gets an exit plan straight away** (stop and take-profit), measured from the cost you
   typed. A coin that has run far from its cost can have levels well away from today's price;
@@ -1572,7 +1572,7 @@ Each order line states the amount in the book's base currency and the price in t
 openalpha chat --message "/portfolio"
 openalpha chat --message "/rebalance"
 openalpha chat --message "/rebalance FPT MWG"
-openalpha chat "Show my valued portfolio and its risk findings."
+openalpha chat --message "Show my valued portfolio and its risk findings."
 ```
 
 ### Surfaces of the book
@@ -1883,7 +1883,7 @@ Each step is a distinct failure this design exists to prevent. The early ones st
 
 - [ ] **Missing credential** - unset one variable: the log names it, `/trade` is unknown, the daemon still starts.
 - [ ] **Signing** - reaching a prompt at all proves the timestamp, digest, signed path and body are right. They fail identically, so isolate this first.
-- [ ] **Confirm within one minute**, same chat, same user - it places, rather than silently doing nothing.
+- [ ] **Confirm within five minutes**, same chat, same user - it places, rather than silently doing nothing.
 - [ ] **Base-unit sizing** - a market buy of `0.001 BTC` fills about 0.001 BTC. Read the receipt, not the request.
 - [ ] **Rest and cancel** - a limit far from the market rests, then is cancelled at the poll cap (about 20s).
 - [ ] **Partial fill** - one near the market that half-fills keeps polling rather than booking the half.

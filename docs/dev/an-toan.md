@@ -129,7 +129,7 @@ có giới hạn, có lùi nhịp (`rereadUntil`, `venues/transport.ts`, hủy �
 `order.exit_oversized`, `order.book_moved`, `order.book_unpriced`, `order.sell_unsettled`, `order.sell_guarded`,
 `order.no_position`, `order.exit_conflict`, `order.approval_bypassed`, `order.buying_halted`,
 `order.unfilled`, `order.exit_not_amendable`, `order.venue_unavailable`, `order.venue_ambiguous`,
-`order.venue_unreachable`.
+`order.venue_unreachable`, `order.quote_not_live`.
 
 `order.exit_unsupported` nằm ở cả hai: cùng một lần từ chối nghĩa là chưa có gì dịch chuyển khi
 `/trade exit` ném ra, và nghĩa là một vị thế đang mở mà không có lệnh cắt lỗ khi nó ném ra lúc gắn

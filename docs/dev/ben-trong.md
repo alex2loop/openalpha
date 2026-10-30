@@ -28,6 +28,7 @@ plugins     -> core, engine
 social      -> core, engine, i18n
 trading     -> core, engine, persistence, i18n
 channels    -> core, engine, commands, i18n
+web         -> i18n; chỉ import type từ app/server/wire
 cli         -> mọi module runtime trừ app
 app         -> mọi module runtime
 ```
@@ -288,7 +289,7 @@ MarkdownV2 và sửa tin tiến độ ngay tại chỗ; Zalo (văn bản thuần
 | Web | `web_fetch`, `web_search` |
 | Lập lịch | `schedule_add`, `schedule_list`, `schedule_remove` |
 | Kỹ năng | `skill_view` |
-| Ủy quyền | `delegate`, `delegate_parallel` |
+| Ủy quyền | `delegate`, `delegate_parallel`, `spawn` |
 | Nghiên cứu | `research` |
 
 Phần giao dịch đăng ký công cụ riêng của nó qua đúng sổ đăng ký đó, cộng `order_place` và `order_exits` khi
@@ -343,7 +344,7 @@ một phiên chạy bắt đầu. Hộp thư đến và offset polling được 
 | Định tuyến agent | `/agent [id\|default]` |
 | Chọn mô hình | `/model [selector]` |
 | Nghiên cứu | `/research [quick\|standard\|thorough] <câu hỏi>` |
-| Trạng thái và chi phí | `/health`, `/cost`, `/config` |
+| Trạng thái và chi phí | `/health`, `/cost`, `/config`, `/upgrade` |
 | Bộ nhớ | `/memory` |
 | Lập lịch | `/schedule [show\|pause\|resume\|run\|remove] <id>` |
 | Cuộc trò chuyện | `/new`, `/continue` |
@@ -528,7 +529,7 @@ Khi phiên chạy đã thoát gọn và `boot` đã đóng, `main` gọi `restar
 **Yêu cầu và thất bại.**
 
 - Một yêu cầu mà bên gọi đã ngắt kết nối thì ghi `api.request_aborted` ở mức debug và không tính là lỗi.
-- Một yêu cầu còn đang chạy lúc dịch vụ nền dừng được trả 503 `stopping` và ghi `api.handler_stopped` ở mức info; trang giữ số liệu cũ và đọc lại khi kết nối socket trở lại.
+- Một yêu cầu còn đang chạy lúc dịch vụ nền dừng được trả 503 `stopping` và ghi `api.handler_stopped` ở mức info; khi API dừng, các yêu cầu đang mở có `SHUTDOWN_DRAIN_MS` để xong, yêu cầu còn treo (ví dụ một body bị nghẽn) bị cắt bằng `server.stop(true)` và ghi `api.stop_forced`; trang giữ số liệu cũ và đọc lại khi kết nối socket trở lại.
 - Marker không đi qua thông báo cập nhật, nên một lần khởi động lại không bao giờ đọc thành cập nhật thất bại.
 - Tiến trình phụ không khởi động được (hoặc không gửi được tín hiệu), hay tiến trình phụ thoát trong khi dịch vụ nền này vẫn chạy, thì marker bị xóa, cờ chờ được nhả để khởi động lại lần nữa được, và `ui.restartFailed` được ghi vào chuông như một `daemon_notice` loại `restart-failed`, vì trang đã nhận 202 và nếu không sẽ chờ pid mới mãi.
 - Mỗi yêu cầu kết thúc bằng đúng một sự kiện `restart_ended` trên bus (`logRestart`), nhật ký phiên chạy ghi thành một dòng `runs` tên `restart`: `completed` khi lệnh dừng tới dịch vụ nền này (tín hiệu hủy `app.signal`, nên dòng được ghi trước khi nhật ký dừng), `aborted` khi bị từ chối hoặc có lệnh dừng tới trước, `error` khi tiến trình phụ hoặc tín hiệu không thực hiện được, hay tiến trình phụ thoát trong lúc dịch vụ nền này vẫn chạy.
@@ -866,13 +867,13 @@ thị bí mật thô, văn bản plugin chưa làm sạch, hay tham số công c
 
 Mô-đun `web` là trang văn phòng: một giao diện Preact dùng signals để giữ trạng thái, cùng một khung cảnh canvas, được Bun gói lại và dịch vụ nền phục vụ tại `GET /` (`src/web/api.ts` xuất `officePage`, thứ duy nhất server nhập). Bản thân trang là tĩnh và không cần xác thực; mọi thứ nó đọc đều là `/v1`, sau một phiên trình duyệt. `main.tsx` từ chối chạy trong một khung trước mọi việc khác, xóa khóa lưu trữ `office.token` cũ, và đổi `#code=` trên địa chỉ lấy một phiên trước lần tải đầu tiên. Mã nằm lại trên địa chỉ cho đến khi dịch vụ nền trả lời (kể cả từ chối) và được thử lại khi chưa có phản hồi (không kết nối được, hoặc lỗi 5xx như 502 đến 504 của proxy lúc dịch vụ nền khởi động lại), nên hết thời gian chờ hay một lần khởi động lại không làm mất liên kết; từ chối mang mã lỗi `locked` được hiểu là bị khóa, từ chối khác thì hiện đúng câu kèm theo.
 
-**Được nhập gì.** `i18n` lúc chạy, và chỉ `import type` từ `app/server/wire/*`. [scripts/check-dag.ts](../../scripts/check-dag.ts) giữ đúng một ngoại lệ đó (`isWebWireTypeImport`). Nhờ vậy các kiểu wire chính là toàn bộ hợp đồng: một thay đổi ở server làm hỏng trang sẽ làm `tsc -p src/web/tsconfig.json` thất bại, chương trình thứ tư của `bun run typecheck`. Socket còn kiểm tra phiên bản hợp đồng mà nó được xây theo và dừng lại, nhắc người vận hành tải lại trang, khi dịch vụ nền nói một phiên bản khác.
+**Được nhập gì.** `i18n` lúc chạy, và chỉ `import type` từ `app/server/wire/*`. [scripts/check-dag.ts](../../scripts/check-dag.ts) giữ đúng một ngoại lệ đó (`isWebWireTypeImport`). Nhờ vậy các kiểu wire chính là toàn bộ hợp đồng: một thay đổi ở server làm hỏng trang sẽ làm `tsc -p src/web/tsconfig.json` thất bại, chương trình `tsc` thứ ba trong `bun run typecheck`. Socket còn kiểm tra phiên bản hợp đồng mà nó được xây theo và dừng lại, nhắc người vận hành tải lại trang, khi dịch vụ nền nói một phiên bản khác.
 
 **Các thư mục.** [src/web/api/](../../src/web/api/) là client: một lớp bọc fetch có giới hạn thời gian, socket với backoff và jitter, `startPoll`, các lượt tải single-flight và trạng thái đăng nhập (đổi mã, đăng nhập đã kết thúc hoặc bị từ chối). [src/web/state/](../../src/web/state/) là kho trạng thái, mỗi mối quan tâm một mô-đun signal (phiên làm việc, các phiên chạy trực tiếp, chat, agent, chi phí, tùy chọn, bảng thông tin). [src/web/text/](../../src/web/text/) chứa các bộ định dạng và `tr`. [src/web/ui/](../../src/web/ui/) mỗi khu vực một thư mục, CSS nằm cạnh thành phần. [src/web/scene/](../../src/web/scene/) là văn phòng. Mọi chuỗi người dùng thấy đều là khóa `ui.office.*` trong cả hai bộ ngôn ngữ.
 
 **Kho trạng thái và trục sự kiện.** [state/feed.ts](../../src/web/state/feed.ts) sở hữu socket duy nhất. Mỗi lần kết nối nó lấy một ảnh chụp (`GET /v1/live`), giữ các sự kiện đến trong lúc đó trong một bộ đệm có giới hạn rồi phát lại đúng thứ tự, gộp các phiên chạy theo `runId`, và giữ một danh sách ngắn các phiên đã xong để sự kiện đến muộn không làm chúng sống lại. Nó cũng đồng bộ lại theo chu kỳ (`LIVE_RESYNC_MS`). Một ảnh chụp lấy không được thì được thử lại theo nhịp lùi dần và không bao giờ đóng socket, vì đóng nó sẽ dừng các lượt trò chuyện và lệnh đang chạy trên đó. Sau khi áp một sự kiện vào kho, nó phát sự kiện đó một lần lên trục ở [state/events.ts](../../src/web/state/events.ts): `onWireEvent(kind | 'any', handler)`, lỗi của một handler không bao giờ chặn handler khác. Khung cảnh, thông báo và đời sống văn phòng đăng ký ở đó và không ở đâu khác.
 
-**Các tầng của khung cảnh và cổng kiểm tra.** Dưới `scene/` các thư mục được xếp hạng: `world` (sàn, phòng, đồ vật, chỗ ngồi, cửa, lưới đi lại, bộ sinh số có hạt giống), `clock`, `data` (các signal `/v1` mà khung cảnh đọc), `sim`, rồi `render2d`, `render3d` và `sprites` (cùng một hạng, nên hai bộ vẽ không chạm tới nhau: cả hai đọc chung bảng màu, các hàng ánh sáng và mặt màn hình trong `sprites/`), rồi `overlay` (mọi thành phần DOM nằm trên canvas). Một tệp chỉ nhập tầng của chính nó, tầng thấp hơn và các tệp gốc (`types`, `street-types`, `sky-types`, `renderer`, `budgets`, `view`), không bao giờ tầng cao hơn.
+**Các tầng của khung cảnh và cổng kiểm tra.** Dưới `scene/` các thư mục được xếp hạng: `world` (sàn, phòng, đồ vật, chỗ ngồi, cửa, lưới đi lại, bộ sinh số có hạt giống), `clock`, `data` (các signal `/v1` mà khung cảnh đọc), `sim`, rồi `render2d`, `render3d` và `sprites` (cùng một hạng, nên hai bộ vẽ không chạm tới nhau, trừ việc `render3d` dùng lại phần vẽ đường phố trong `render2d/street/`; cả hai đọc chung bảng màu, các hàng ánh sáng và mặt màn hình trong `sprites/`), rồi `overlay` (mọi thành phần DOM nằm trên canvas). Một tệp chỉ nhập tầng của chính nó, tầng thấp hơn và các tệp gốc (`types`, `street-types`, `sky-types`, `overlay-types`, `renderer`, `budgets`, `view`), không bao giờ tầng cao hơn.
 
 - [scripts/check-scene-layers.ts](../../scripts/check-scene-layers.ts), thuộc `bun run lint:arch`, thực thi điều đó. Nên sim không thể chạm tới bộ vẽ, không gì chạm tới bộ vẽ 3D ngoài `import()` lười của bộ ghép, và `three` chỉ được nhập dưới `render3d/`.
 - `canvas.tsx` là bộ ghép: nó gắn một bộ vẽ, điều khiển vòng lặp và chứa các lớp phủ.

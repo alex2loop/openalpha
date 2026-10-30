@@ -18,6 +18,7 @@ openalpha config path       # which file is actually read
 openalpha config validate   # does it parse and resolve
 openalpha config show       # the merged config, secrets redacted
 openalpha config edit       # open it in $VISUAL or $EDITOR
+openalpha config get budget.maxDailyUsd   # print one resolved value by its dotted path
 ```
 
 `openalpha onboard` writes a starter file when none exists yet and the target is not a symlink. Run

@@ -195,5 +195,7 @@ agent viết nằm trong một khối mã, nên đường link trong đó hiện
 | `social pause\|resume <mạng> [<agent>]` | Tắt và bật một mạng, hoặc một agent trên đó |
 | `social remove <mạng>` | Xóa một mạng khi không còn ai ở trên đó |
 
+`add`, `update`, `leave` và `remove` hỏi lại trước khi làm; `--yes` bỏ qua câu hỏi đó (dùng cho script).
+
 Muốn dừng tạm thì dùng `pause`; muốn gỡ một agent thì `leave`; muốn quên hẳn một mạng thì `remove`.
 Agent còn giữ tư cách thành viên thì không `agent remove` được: hãy cho nó rời mạng trước.

@@ -250,7 +250,7 @@ Thiếu khóa cũng không tính. Một phiên chạy hỏng vì biến môi tr�
 kèm một cảnh báo trong nhật ký. Việc vẫn bật và chạy lại ở lần tới. Nên lưu khóa bằng
 `openalpha key set <NAME>` rồi `restart --background` là xong, không cần `schedule resume`. Bản tin sáng
 cũng vậy: hôm đó bạn nhận một tin nói thiếu biến nào và cách đặt, thay cho câu
-"gửi không được sau nhiều lần thử".
+"hôm nay mình thử gửi nhiều lần vẫn không được nên đã bỏ qua lần này".
 
 Hết ngân sách cũng không tính. Khi hạn mức ngày, tháng hay hạn mức riêng của agent chặn một phiên chạy,
 việc nhảy sang lần kế tiếp theo lịch, còn việc chạy một lần thì được hỏi lại sau 30 phút. Phiên chạy bị
@@ -415,8 +415,8 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
    [README](../README.md#bắt-đầu-nhanh) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường
    dẫn mà `command -v openalpha` in ra (mặc định `~/.local/bin/openalpha`); unit bên dưới phải dùng
    đường dẫn đó.
-2. **Cấu hình.** `openalpha setup write <nhà cung cấp> <mô hình>` ghi `~/.openalpha/config.toml` với
-   một mô hình (`openalpha setup catalog` liệt kê các nhà cung cấp). Hoặc
+2. **Cấu hình.** `openalpha setup write <nhà cung cấp> <mô hình>` ghi vào tệp cấu hình đang dùng (mặc định
+   `~/.openalpha/config.toml`) với một mô hình (`openalpha setup catalog` liệt kê các nhà cung cấp). Hoặc
    tải [config.sample.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.sample.toml)
    vào đó rồi tự đặt chuỗi mô hình (API bật sẵn). Mỗi mô hình ghi tên biến môi trường chứa
    khóa của nó (`api_key_env`); đặt biến đó trên máy chủ.
@@ -651,7 +651,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 - Trang từ chối chạy bên trong một khung (frame), và ở bản phát hành thì nó chỉ được nói chuyện với đúng dịch vụ nền đã phục vụ nó.
 - Dịch vụ nền chỉ nghe trên `127.0.0.1` và chỉ nhận `Host` là tên của chính máy này (`127.0.0.1`, `localhost` hoặc `[::1]`) hoặc `public_url` của bạn, từ chối lời gọi API do trang web khác khởi phát, và chỉ mở luồng trực tiếp cho đúng trang nó phục vụ, nên một ứng dụng web khác trên máy không dùng ké được.
 - Safari trước 16.4 không gửi tiêu đề mà dịch vụ nền dựa vào, nên trang báo trình duyệt đang chặn cookie cho địa chỉ này dù thực ra không. Hãy cập nhật Safari.
-- Nếu không nối được dịch vụ nền, trang nói thẳng bằng một dòng rồi tự thử lại, và mở ra ngay khi dịch vụ nền trả lời. Dịch vụ nền mở địa chỉ trước rồi mới khởi động nốt phần còn lại: lúc đó trang báo đang khởi động, chỉ mất khoảng một giây, rồi tự mở khi dịch vụ nền sẵn sàng. Trong lúc khởi động, các thao tác đọc vẫn trả lời, còn mọi thao tác làm thay đổi gì đó (gửi lệnh, chạy một phiên, đặt lệnh, đổi lịch) bị từ chối kèm dòng "đang khởi động, thử lại sau giây lát". Nếu đang đăng nhập mà mất kết nối, một thanh hiện đồng hồ đếm lùi lần thử lại, nút "Thử ngay" và dòng báo các phiên chạy vẫn tiếp tục ở dịch vụ nền. Khi nối lại, trang hỏi lại bức tranh hiện tại rồi theo dõi tiếp. Trang cũ hơn dịch vụ nền thì nhắc bạn tải lại. Khối nào làm mới không được vẫn giữ số liệu tốt gần nhất và ghi rõ lúc nào đọc.
+- Nếu không nối được dịch vụ nền, trang nói thẳng bằng một dòng rồi tự thử lại, và mở ra ngay khi dịch vụ nền trả lời. Dịch vụ nền mở địa chỉ trước rồi mới khởi động nốt phần còn lại: lúc đó trang báo đang khởi động, chỉ mất khoảng một giây, rồi tự mở khi dịch vụ nền sẵn sàng. Trong lúc khởi động, các thao tác đọc vẫn trả lời, còn mọi thao tác làm thay đổi gì đó (gửi lệnh, chạy một phiên, đặt lệnh, đổi lịch) bị từ chối kèm dòng "Dịch vụ nền đang khởi động, bạn chờ một chút rồi thử lại nhé.". Nếu đang đăng nhập mà mất kết nối, một thanh hiện đồng hồ đếm lùi lần thử lại, nút "Thử ngay" và dòng báo các phiên chạy vẫn tiếp tục ở dịch vụ nền. Khi nối lại, trang hỏi lại bức tranh hiện tại rồi theo dõi tiếp. Trang cũ hơn dịch vụ nền thì nhắc bạn tải lại. Khối nào làm mới không được vẫn giữ số liệu tốt gần nhất và ghi rõ lúc nào đọc.
 
 ### Trên màn hình có gì
 

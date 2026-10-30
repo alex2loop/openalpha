@@ -431,7 +431,7 @@ tin.
 Mã tự định tuyến: `/price FPT` biết là cổ phiếu VN, `/price BTC` là crypto. Chỉ khi một mã tồn tại ở
 nhiều thị trường mới phải ghi `thị-trường:mã` (`/price equity-vn:UNI`).
 
-**Cổ phiếu và ETF Mỹ nằm ngoài phạm vi.** `/suggest NVDA` trả lời "mã chưa được hỗ trợ" thay vì đoán
+**Cổ phiếu và ETF Mỹ nằm ngoài phạm vi.** `/suggest NVDA` trả lời "Chưa thị trường nào mình theo dõi có mã NVDA" thay vì đoán
 bừa.
 
 Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.md).
@@ -546,7 +546,7 @@ openalpha start|stop|restart   # dịch vụ nền (bản tin, cảnh báo, tự
 openalpha status               # tổng quan
 openalpha cost                 # chi phí LLM
 openalpha config show|edit|validate
-openalpha provider list        # kiểm tra key và nhà cung cấp
+openalpha provider list        # liệt kê nhà cung cấp và tên biến môi trường của key
 openalpha db backup|export|import|cleanup|stats
 openalpha logs                 # xem log khi có lỗi
 openalpha schedule             # lịch chạy tự động (cron 5 trường)
@@ -696,8 +696,8 @@ chèn một **bảng điểm tháng** đúng một lần ([6.6](#66-bảng-đi�
 2. **`/suggest <mã> lean`** khi chỉ cần một góc nhìn nhanh: một vai phân tích thay vì cả phiên tranh
    luận.
 3. **Hỏi lại cùng mã trong ngày không tốn thêm** - hệ thống trả lại bản đã có.
-4. **Đặt trần ngân sách** trong `openalpha config edit` nếu muốn chắc không vượt mức (mặc định không
-   giới hạn).
+4. **Đặt trần ngân sách** trong `openalpha config edit` nếu muốn chắc không vượt mức (`onboard` ghi
+   `max_daily_usd = 2`; `0` là không giới hạn).
 
 ---
 
@@ -1028,7 +1028,7 @@ Chỉ áp dụng cho cổ phiếu VN.
 
 | Triệu chứng | Cách xử lý |
 |---|---|
-| Không kết nối được mô hình | `openalpha provider list` kiểm tra key; `openalpha doctor`; `openalpha logs` xem chi tiết 401/429 |
+| Không kết nối được mô hình | `openalpha key` liệt kê key đã đặt; `openalpha doctor --online` kiểm tra kết nối; `openalpha logs` xem chi tiết 401/429 |
 | Lệnh dừng vì chạm ngân sách | `openalpha config edit` nâng trần, hoặc chờ chu kỳ mới |
 | `/brief` báo chưa có bản tin | Bản tin chỉ có ở `equity-vn`; kiểm tra khu vực nhà trong cấu hình có phải `vn` |
 | `/screen gold` báo lỗi | `gold` và `gold-vn` không có sàng lọc - dùng `/price` hoặc `/suggest` theo mã |

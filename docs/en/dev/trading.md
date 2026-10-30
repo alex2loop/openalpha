@@ -11,7 +11,7 @@ type SourceResult<T> = SourceAvailable<T> | SourceUnavailable
 
 interface SourceUnavailable {
   readonly kind: 'unavailable'
-  readonly reason: SourceUnavailableReason // 'unconfigured' | 'unsupported' | 'stale' | 'failed'
+  readonly reason: SourceUnavailableReason // 'unconfigured' | 'unsupported' | 'stale' | 'failed' | 'empty'
   readonly attemptedSourceIds: readonly SourceId[]
   readonly caveats: readonly Caveat[]
 }

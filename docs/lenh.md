@@ -573,12 +573,16 @@ openalpha social pause|resume <mạng> [<agent>]
 ```
 
 Agent cần `[focus]` riêng và chỉ công cụ được phép mới tham gia được, và `agent remove` từ chối một agent
-còn giữ tư cách thành viên. Chi tiết ở [Mạng xã hội](mang-xa-hoi.md).
+còn giữ tư cách thành viên. Cờ: `add` nhận `--name`, `--api-base`
+và `--label "POST /đường-dẫn=nhãn"` (lặp được); `update` nhận `--label`; `join` nhận `--every <khoảng>`,
+`--key-env <BIẾN>` và `--name <tên công khai>`; `rekey` nhận `--key-env <BIẾN>`. `add`, `update`, `join`,
+`leave`, `remove` và `approve` hỏi xác nhận trừ khi bạn thêm `--yes`. Chi tiết ở [Mạng xã hội](mang-xa-hoi.md).
 
 ## Bộ nhớ, lịch sử, chi phí
 
 Mọi thao tác với bộ nhớ đều qua các kiểm tra về bí mật, tiêm prompt, kích thước, phạm vi và thời gian
-sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>` chỉ giữ các khóa bắt đầu bằng chữ đó.
+sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>` chỉ giữ các khóa bắt đầu bằng chữ đó. `memory store`, `recall`, `search`,
+`list` và `remove` nhận `--agent <id>` để chọn phạm vi agent (mặc định: chat).
 
 `memory search <câu hỏi>` trả về 10 kết quả, thêm `--limit <n>` để đổi số này. `history list` hiện 20 cuộc
 trò chuyện gần nhất, thêm `--limit <n>` để đổi số này.
@@ -612,7 +616,7 @@ openalpha zalo login [--profile <tên>]
 ```
 
 Liên kết tài khoản Zalo cá nhân cho kênh `zalo_personal`. Lệnh lưu một ảnh mã QR và in ra đường dẫn. Bạn
-quét bằng ứng dụng Zalo rồi xác nhận trên điện thoại. Cứ khoảng hai phút có mã mới thay thế, và sau năm
+quét bằng ứng dụng Zalo rồi xác nhận trên điện thoại. Cứ khoảng 100 giây có mã mới thay thế, và sau năm
 phút lệnh thôi chờ. Lần đăng nhập được cất theo `--profile`, hoặc theo `profile` của kênh khi bạn bỏ
 trống, và ảnh QR bị xóa khi xong. Dịch vụ nền đang chạy sẽ nhận đăng nhập mới ở lần nối lại kế tiếp.
 
@@ -653,6 +657,11 @@ dịch vụ nền đã dừng.
   `db backup`, nên lỡ tay thì `db restore` lại được. `--yes` trả lời câu này theo mặc định, tức là
   vẫn sao lưu trước.
 - `db cleanup` cần `--older-than` (tối thiểu `1d`); `--dry-run` cho xem trước những gì nó sẽ dọn.
+- `db backup` ghi vào `--path` thay vì `<data_dir>/backups`; `--force` ghi đè tệp đã có ở đó.
+- `db export` cần `--out <thư mục>`; `--table <tên>` xuất một bảng, `--format json|csv` chọn định dạng
+  (mặc định `json`; csv không import lại được), và `--force` cho ghi vào thư mục đã có tệp.
+- `db import` cần `--in <thư mục>`; `--table <tên>` chỉ nhập một bảng thay vì mọi tệp có mặt.
+- `db migrate up --status` liệt kê các migration và trạng thái của chúng, không áp dụng cái nào.
 
 `db integrity`, `db stats`, `db export` và `db backup` chỉ khởi động tầng lưu trữ, nên chạy được khi chưa
 cấu hình khóa mô hình nào. Sao lưu và khôi phục, xuất và nhập, cùng việc mỗi cách giữ được gì qua một
@@ -668,7 +677,7 @@ agent. Như mọi khi: thư mục làm việc chỉ là chỗ bắt đầu an to
 ## Log
 
 ```text
-openalpha logs [--lines <n>] [-f] [--agent <id>] [--since <mốc|khoảng>]
+openalpha logs [--lines <n>] [-f | --follow] [--agent <id>] [--since <mốc|khoảng>]
 openalpha logs clear [--agent <id> | --daemon] [--older-than <khoảng>] [--dry-run] [--yes]
 ```
 
