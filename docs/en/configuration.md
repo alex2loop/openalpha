@@ -424,7 +424,7 @@ The section enables Telegram unless `enabled = false`. A token is still required
 | `allowed_ids` | (string\|int)[] | `[]` | Starting allowlist of Telegram users and chats. |
 | `operator_user_ids` | (string\|int)[] | `[]` | Users allowed to run operator-only commands. |
 | `token_env` | string | - | Environment variable holding the token. |
-| `token_file` | string | - | File whose trimmed contents are the token. |
+| `token_file` | string | - | File whose trimmed contents are the token. Give the full path: `~` is not expanded. |
 | `typing_indicator` | bool | `true` | Show "typing" while generating. |
 | `use_reactions` | bool | `true` | Use reactions as status cues where supported. |
 | `markdown` | bool | `true` | Render Telegram MarkdownV2; `false` sends plain text, streamed replies included. |
@@ -448,7 +448,7 @@ see [Channels](channels.md).
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `token_env` | string | - | Environment variable holding the token. |
-| `token_file` | string | - | File whose trimmed contents are the token. |
+| `token_file` | string | - | File whose trimmed contents are the token. Give the full path: `~` is not expanded. |
 | `allowed_ids` | (string\|int)[] | `[]` | Starting allowlist of chats and users. |
 | `operator_user_ids` | (string\|int)[] | `[]` | Users allowed to run operator commands. |
 | `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, or `allowlist` once `allowed_ids` is set | How chats are admitted, and the off switch. There is no open mode. |

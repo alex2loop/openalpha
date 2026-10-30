@@ -96,7 +96,7 @@ Ba nguyên tắc:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # cài, rồi tự chạy onboard; xong thì mở terminal mới
 # Windows: mở PowerShell rồi chạy
-#   powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"
+#   irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex
 
 export ANTHROPIC_API_KEY="sk-ant-..."   # key của nhà cung cấp LLM bạn chọn
 

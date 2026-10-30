@@ -423,7 +423,7 @@ Có mục này là Telegram được bật, trừ khi `enabled = false`. Vẫn c
 | `allowed_ids` | (chuỗi\|số)[] | `[]` | Danh sách cho phép ban đầu cho người dùng và chat Telegram. |
 | `operator_user_ids` | (chuỗi\|số)[] | `[]` | Người dùng được chạy lệnh chỉ dành cho operator. |
 | `token_env` | chuỗi | - | Biến môi trường chứa token. |
-| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. |
+| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. Ghi đường dẫn đầy đủ: `~` không được hiểu là thư mục nhà. |
 | `typing_indicator` | bool | `true` | Hiện "đang gõ" trong lúc sinh câu trả lời. |
 | `use_reactions` | bool | `true` | Dùng cảm xúc làm tín hiệu trạng thái ở nơi hỗ trợ. |
 | `markdown` | bool | `true` | Dựng Telegram MarkdownV2; `false` gửi văn bản thuần, kể cả khi trả lời theo luồng. |
@@ -447,7 +447,7 @@ khóa gửi tin đã liệt kê cho Telegram, cộng các khóa dưới đây. K
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `token_env` | chuỗi | - | Biến môi trường chứa token. |
-| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. |
+| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. Ghi đường dẫn đầy đủ: `~` không được hiểu là thư mục nhà. |
 | `allowed_ids` | (chuỗi\|số)[] | `[]` | Danh sách cho phép ban đầu cho chat và người dùng. |
 | `operator_user_ids` | (chuỗi\|số)[] | `[]` | Người dùng được chạy lệnh operator. |
 | `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, hoặc `allowlist` khi đã có `allowed_ids` | Cách xét duyệt chat, và công tắc tắt kênh. Không có chế độ mở. |
