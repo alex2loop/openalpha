@@ -3,6 +3,7 @@ import type { TaskPass, TaskPassListener, TaskSnapshot } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
 import { BOOT_REFRESH_TASK } from '@/app/boot-refresh'
+import { MS_PER_SECOND } from '@/core/utils/time'
 import { t, translateDisplayText } from '@/i18n'
 
 declare module '@/core/container' {
@@ -14,7 +15,7 @@ declare module '@/core/container' {
 
 // A pass that starts and ends inside this gap (the scheduler's tick) settles unseen, so a reader
 // outside the daemon hears of a change it could notice, not of every pass.
-const TASK_REPORT_GAP_MS = 5000
+const TASK_REPORT_GAP_MS = 5 * MS_PER_SECOND
 
 const LABEL_KEYS: ReadonlyMap<string, MessageKey> = new Map([
   [BOOT_REFRESH_TASK, 'ui.task.trading.boot-refresh'],
@@ -79,7 +80,12 @@ export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
       let timer: ReturnType<typeof setTimeout> | undefined
       const fire = (): void => {
         timer = undefined
-        onChange()
+
+        try {
+          onChange()
+        } catch {
+          // Runs on its own timer, where a throw would end the daemon: a status display is not worth it.
+        }
       }
       const onPass = (): void => {
         timer ??= setTimeout(fire, gapMs)
@@ -93,6 +99,28 @@ export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
       }
     },
   }
+}
+
+function applyPass(locale: Locale, current: TaskEntry | undefined, pass: TaskPass): TaskEntry {
+  const everyMs = pass.everyMs ?? current?.everyMs
+
+  if (pass.phase === 'start') {
+    return { ...current, ...(everyMs === undefined ? {} : { everyMs }), working: true }
+  }
+
+  return {
+    ...(everyMs === undefined ? {} : { everyMs }),
+    lastRunAt: pass.at,
+    ...(pass.error === undefined ? {} : { lastError: translateDisplayText(locale, pass.error) }),
+    ...(pass.nextAt === undefined ? {} : { nextRunAt: pass.nextAt }),
+    working: false,
+  }
+}
+
+function toStatusWire(locale: Locale, name: string, entry: TaskEntry): TaskStatusWire {
+  const key = LABEL_KEYS.get(name)
+
+  return { name, label: key === undefined ? name : t(locale, key), ...entry }
 }
 
 /** Hands `onTasks` the board now, then again whenever which tasks work, or failed, changes. */
@@ -118,30 +146,8 @@ export function reportTaskChanges(
   return unwatch
 }
 
-function applyPass(locale: Locale, current: TaskEntry | undefined, pass: TaskPass): TaskEntry {
-  const everyMs = pass.everyMs ?? current?.everyMs
-
-  if (pass.phase === 'start') {
-    return { ...current, ...(everyMs === undefined ? {} : { everyMs }), working: true }
-  }
-
-  return {
-    ...(everyMs === undefined ? {} : { everyMs }),
-    lastRunAt: pass.at,
-    ...(pass.error === undefined ? {} : { lastError: translateDisplayText(locale, pass.error) }),
-    ...(pass.nextAt === undefined ? {} : { nextRunAt: pass.nextAt }),
-    working: false,
-  }
-}
-
 function toSnapshot(task: TaskStatusWire): TaskSnapshot {
   const { label, working, lastError } = task
 
   return { label, working, ...(lastError === undefined ? {} : { lastError }) }
-}
-
-function toStatusWire(locale: Locale, name: string, entry: TaskEntry): TaskStatusWire {
-  const key = LABEL_KEYS.get(name)
-
-  return { name, label: key === undefined ? name : t(locale, key), ...entry }
 }

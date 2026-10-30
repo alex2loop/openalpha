@@ -12,9 +12,7 @@ interface DepthLine {
 
 /** A line's own text and depth; `base` is the indent that reads as depth zero. */
 export function toDepthLine(line: string, base = 0): DepthLine {
-  const text = line.trimStart()
-
-  return { text, depth: Math.max(0, (line.length - text.length - base) / INDENT_WIDTH) }
+  return { text: line.trimStart(), depth: Math.max(0, (indentOf(line) - base) / INDENT_WIDTH) }
 }
 
 export function indentOf(line: string): number {
