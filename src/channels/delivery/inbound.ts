@@ -13,6 +13,7 @@ import { commandHeadOf, UPGRADE_CHAT_COMMAND } from '@/commands/api'
 import { observe } from '@/core/events'
 import { agentId as brandAgentId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
+import { isEntryAgent } from '@/engine/api'
 
 import '@/channels/events'
 
@@ -205,7 +206,7 @@ async function resolveRunRequest(
 async function resolveAgentId(deps: InboundHandlerDeps, chatId: string): Promise<AgentId> {
   const binding = await deps.bindings.get(deps.channelId, chatId)
 
-  if (binding !== null && deps.agents.get(binding.agentId) !== null) {
+  if (binding !== null && isEntryAgent(deps.agents.get(binding.agentId))) {
     return binding.agentId
   }
 

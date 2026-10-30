@@ -24,10 +24,10 @@ findings in memory, and produce a concise summary. Do not write to disk.
 """
 
 # ---- Limits -----------------------------------------------------------------
-# max_turns = 20                  # per-run turn cap; defaults to [loop].max_turns
-# max_tokens = 4096               # caps this agent's replies; the default is 8192 plus reasoning room
-# max_duration_ms = 900000        # per-run duration cap (ms); defaults to [loop].max_duration_ms
-# max_daily_usd = 0.5             # this agent's share of the day, under [budget] max_daily_usd.
+# max_turns = 20                  # per-run turn cap; defaults to [loop].max_turns and never exceeds it
+# max_tokens = 4096               # lowers this agent's reply cap; the default is 8192 plus reasoning room
+# max_duration_ms = 900000        # per-run duration cap (ms); defaults to [loop].max_duration_ms and never exceeds it
+# max_daily_usd = 0.5             # this agent's share of the day; above [budget] max_daily_usd it fails to load.
 #                                 # 0 or absent = only your overall cap. Debates it starts count too.
 #                                 # A top-level key: it must stay above the first [table] below.
 

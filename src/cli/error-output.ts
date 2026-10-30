@@ -29,11 +29,12 @@ const EXIT_STORAGE = 11
 const EXIT_TIMEOUT = 12
 const EXIT_CHANNEL = 13
 const EXIT_TOOL = 14
-const EXIT_CONFLICT = 15
 /** 128 + SIGTERM: a command asked to terminate while nothing in it listened. */
 export const EXIT_TERMINATED = 143
 /** The daemon went away while a forwarded command ran in it; the command was not run again here. */
 const EXIT_DAEMON_LOST = 17
+/** A write refused because another edit landed first; 15 is the `loop` halt. */
+const EXIT_CONFLICT = 18
 const TERMINAL_CAUSE_LIMIT = 4
 const TERMINAL_TEXT_LIMIT = 32_000
 

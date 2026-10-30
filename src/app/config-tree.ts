@@ -2,6 +2,7 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { ConfigCheck } from '@/core/config/validate'
 import type { SocialConfig } from '@/social/api'
 import type { TradingConfig } from '@/trading/api'
+import { assertNoticeChatKinds } from '@/app/notice-sender'
 import { assertChannelConfigs } from '@/channels/api'
 import { assertExtensionsClaimed } from '@/core/config/resolve'
 import { validateConfigTree } from '@/core/config/validate'
@@ -24,6 +25,7 @@ export function resolveBootExtensions(config: ResolvedConfig): BootExtensions {
   // Run first: a whole section nobody owns is a worse problem than a typo in one that is read.
   assertExtensionsClaimed(config.extensions, CLAIMED_CONFIG_SECTIONS)
   assertChannelConfigs(config.channels)
+  assertNoticeChatKinds(config.notices.chat)
 
   return resolveClaimedSections(config)
 }
@@ -34,6 +36,7 @@ export function bootRefusals(config: ResolvedConfig): readonly unknown[] {
   return [
     refusalOf(() => assertExtensionsClaimed(config.extensions, CLAIMED_CONFIG_SECTIONS)),
     refusalOf(() => assertChannelConfigs(config.channels)),
+    refusalOf(() => assertNoticeChatKinds(config.notices.chat)),
     refusalOf(() => resolveClaimedSections(config)),
   ].filter((refusal) => refusal !== undefined)
 }

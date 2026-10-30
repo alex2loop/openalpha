@@ -7,6 +7,85 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.2.2] - 2026-10-30
+
+The ticker page now shows what the trader is waiting for before an entry, the full factor checklist
+and VN foreign net flow. Background work is visible as it happens: the office page, `start`,
+`status` and `/health` name the automatic jobs at work and why one failed. A retried scheduled job
+past its grace no longer goes out late, a channel `token_file` may start with `~/`, and a long list of
+QA fixes lands. The README and guides were reworked for newcomers. No database change.
+> Trang mã giờ cho thấy trợ lý đang chờ điều gì trước khi vào lệnh, đầy đủ bảng nhân tố và dòng tiền ròng khối ngoại. Việc chạy nền hiện ra ngay khi đang chạy: trang văn phòng, `start`, `status` và `/health` nêu các việc tự chạy đang làm và lý do việc nào hỏng. Việc theo lịch thử lại quá hạn không còn gửi trễ, `token_file` của kênh ghi được `~/`, cùng nhiều lỗi nhỏ được sửa. README và hướng dẫn được viết lại cho người mới. Không đổi cơ sở dữ liệu.
+
+### Office page
+
+- The ticker page and the Ideas call card show what the trader waits on before the entry, and the
+  factor checklist laid out as `/suggest` prints it: groups, rows and their readings at their own
+  depth, the quoted evidence muted.
+- VN foreign-flow factor rows carry the foreign desk's net flow over the same sessions, on every
+  surface.
+- The "Why?" dialog and the Ideas folds title each case by what it argues (case for buying, case for
+  waiting, facts checked against the sources) and drop the repeated label inside.
+- Slash commands typed in the page chat answer in chat shape, without padded columns, and a wrapped
+  line keeps its indent. `/transactions` there shows the chat's 10 rows.
+- The running chip and the jobs list follow every background pass live.
+- The settings page saves with the config's version, so a stale page can no longer put an older
+  config back.
+
+### Status and jobs
+
+- `start`, `start --background`, `status` and `/health` say which automatic jobs are running and
+  which failed; `status` and the page give the reason. The market data sweep at each start shows as
+  one task. "Automatic jobs" (việc tự chạy) is now the one name on every surface.
+- A scheduled retry past `late_grace_ms` is skipped, as the guide says: a 07:30 brief retried at 08:00
+  no longer goes out as if on time.
+
+### Fixes
+
+- A channel `token_file` such as `~/.secrets/telegram-token` was read relative to the folder the
+  daemon started in, so the bot got no token; `~/` now means your home folder.
+- `config validate` and the office config editor refuse an unknown `[notices] chat` kind, which
+  before only stopped the daemon at start.
+- A chat or channel bound to a debate persona or research worker falls back to its entry agent;
+  `/agent`, `agent bind`, `chat --agent` and `schedule add` refuse them.
+- Model prices: `gemini-2.5-flash`, `gpt-oss-20b` and other bare ids no longer fall back to the
+  conservative rate when the OpenRouter feed is down.
+- A Gemini prompt blocked outright ends as filtered instead of retrying and cooling the model.
+- Two venue syncs at once no longer overwrite each other.
+- Telegram's restart backoff starts over after a healthy run.
+- Gold, SSI and VNDirect boards: one bad gold row no longer drops the board, and an SSI or VNDirect
+  board that reads partly is refused instead of tallied short.
+- CLI: `history show` is translated, `chat --max-turns 0` and a non-decimal `--max-cost-usd` are
+  refused, `agent pause|resume` refuses an id together with `--all`, `upgrade --check --rollback`
+  exits 2 like any usage error, and `--help` after `--` is read as an argument.
+- The `now` tool shows the time year first on a 24-hour clock in every language.
+- A shortened suggestion (call cards, the report the chat agent relays) says what it leaves out and
+  names `/suggest <market:ticker>` to see it in full, instead of a hint about a lean mode.
+
+### For integrators
+
+- A write that conflicts with another edit exits 18 (15 stays the loop halt).
+- `GET /v1/config` answers a version; `POST /v1/config` with `If-Match` is a conflict once the file
+  changed since.
+- `GET /v1/live` carries `tasks`, and a `tasks_changed` event follows each background pass; the
+  suggestion card answers `factors` and `watch`.
+- A blank chat frame on the socket is refused as malformed instead of starting a billed turn.
+
+### Docs
+
+- The README opens with the demo and why to use it, then a five-step quick start: install, check,
+  pick the web page (`openalpha start --background`, `openalpha web`) or `openalpha chat`, see a
+  first suggestion, then `/setup` and the ledger. The FAQ is its own section.
+- Windows installs with `irm .../install.ps1 | iex` in the PowerShell window you have open; the
+  installer adds itself to that window's PATH, so `openalpha` works there at once.
+- The gold examples write `gold-vn:SJC`, since SJC is also a stock ticker.
+- The sample configs say what the code does: `[[models]]` needs only `provider` after
+  `[model_defaults]`, the debate runs in three serial stages, a hand-traded broker can take
+  `markets`, agent run limits never exceed `[loop]`, and the minimal configs save the key with
+  `openalpha key set` and show `currency`.
+- Every guide was checked against the code in both languages; wrong defaults, quotes, flags and
+  names were corrected, and missing flags (`db export --table`, `logs --follow`, `config get` and
+  others) documented.
+
 ## [1.2.1] - 2026-10-29
 
 VN market holidays are now worked out from the law for every year, so 2027 and later need no update
@@ -543,6 +622,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.2.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.2
 [1.2.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.1
 [1.2.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.0
 [1.0.17]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.17

@@ -15,7 +15,7 @@ import {
 import { renderIntradayText } from '@/trading/features/market-data/render/intraday'
 import { parseMember, usage } from '@/trading/kernel/surface/surface'
 import { formatClock } from '@/trading/render/datetime'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
 const BLOCK_SEPARATOR = '\n\n'
 
@@ -82,7 +82,7 @@ async function runShow(deps: MarketCommandDeps, ctx: SlashContext): Promise<Slas
   const text = await renderMarketShow(deps, {
     region: deps.config.defaultRegion,
     locale: ctx.locale,
-    surface: ctx.surface,
+    surface: answerSurfaceOf(ctx),
     signal: ctx.signal,
   })
 

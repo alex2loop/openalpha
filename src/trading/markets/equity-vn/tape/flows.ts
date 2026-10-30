@@ -22,6 +22,11 @@ interface FlowWindow {
   readonly minimumSessions: number
 }
 
+interface WindowSum {
+  readonly value: number
+  readonly sessions: number
+}
+
 /** Foreign and proprietary flow are the two factors most likely to be quietly wrong, because each
  *  divides one series by another with different coverage. Both ratios come from here. */
 export function foreignFlowRatio(
@@ -29,6 +34,26 @@ export function foreignFlowRatio(
   bars: readonly BarRecord[]
 ): number | undefined {
   return averageRatio(align(flows, bars), (flow) => flow.foreignNetValue, FACTOR_FLOW_WINDOW)
+}
+
+/** The foreign desk's net over the sessions the ratio averaged, in the flows' own currency: the
+ *  number behind the ratio, absent wherever the ratio is. */
+export function foreignNetFlow(
+  flows: readonly FlowSnapshot[],
+  bars: readonly BarRecord[]
+): WindowSum | undefined {
+  const recent = usableWindow(
+    align(flows, bars),
+    (flow) => flow.foreignNetValue,
+    FACTOR_FLOW_WINDOW
+  )
+
+  return recent === undefined
+    ? undefined
+    : {
+        value: recent.reduce((sum, entry) => sum + (entry.flow.foreignNetValue ?? 0), 0),
+        sessions: recent.length,
+      }
 }
 
 export function proprietaryFlowRatio(
@@ -171,19 +196,29 @@ function averageRatio(
   selectValue: (flow: FlowSnapshot) => number | undefined,
   window: FlowWindow
 ): number | undefined {
-  const usable = aligned.filter((entry) => isMeasurable(entry, selectValue(entry.flow)))
+  const recent = usableWindow(aligned, selectValue, window)
 
-  if (usable.length < window.minimumSessions) {
+  if (recent === undefined) {
     return undefined
   }
 
-  const recent = usable.slice(-window.sessions)
   const total = recent.reduce(
     (sum, entry) => sum + (selectValue(entry.flow) ?? 0) / entry.turnover,
     0
   )
 
   return total / recent.length
+}
+
+/** The newest measurable sessions in the window; absent below the window's minimum. */
+function usableWindow(
+  aligned: readonly AlignedFlow[],
+  selectValue: (flow: FlowSnapshot) => number | undefined,
+  window: FlowWindow
+): readonly AlignedFlow[] | undefined {
+  const usable = aligned.filter((entry) => isMeasurable(entry, selectValue(entry.flow)))
+
+  return usable.length < window.minimumSessions ? undefined : usable.slice(-window.sessions)
 }
 
 /** A desk's net cannot exceed the tape it traded on, so a session claiming otherwise is one the

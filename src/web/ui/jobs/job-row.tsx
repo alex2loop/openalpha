@@ -1,3 +1,4 @@
+import type { TaskStatusWire } from '@/app/server/wire/tasks'
 import type { Run } from '@/web/state/live'
 import { useNow } from '@/web/state/clock'
 import { focusRun } from '@/web/state/focus'
@@ -52,6 +53,19 @@ export function JobRow({ run, childRuns }: JobRowProps) {
       <Button kind="destructive" size="small" onClick={() => askStop(run, childRuns.length > 0)}>
         {tr('ui.office.common.stop')}
       </Button>
+    </div>
+  )
+}
+
+/** A background task of the daemon's own in a pass: it cannot be stopped or opened, only seen. */
+export function TaskRow({ task }: { readonly task: TaskStatusWire }) {
+  return (
+    <div class="job-row">
+      <span class="spin" aria-hidden="true" />
+      <div class="job-main">
+        <b>{task.label}</b>
+        <p class="meta">{tr('ui.office.jobs.onItsOwn')}</p>
+      </div>
     </div>
   )
 }

@@ -66,7 +66,7 @@ day and month totals until the month ends, so a restart cannot hand money back t
 fails, or the file is unreadable or damaged at startup, no further paid work is admitted while a daily or monthly
 cap is set (`ledger_unavailable`); with no cap it is only a reporting gap.
 
-Retention deletes old sessions and messages but detaches attempt rows rather than deleting them.
+Retention detaches attempt rows when their session is removed, and deletes them after 400 days.
 
 `billing_agent_id` is the agent whose cap the spend counts against, which is not always the one that ran. A
 delegated child, a research child and a debate persona started by a tool all bill the agent that asked; a headline
@@ -132,7 +132,7 @@ by phase (`PHASE_WEIGHTS`):
 so an early cohort cannot starve work the plan already knows is coming. Crawl keeps `CRAWL_EXTERNAL_COST_RESERVE`
 (25%) of its phase unsliceable: search fees land on the same crawl budget, and a cohort that reserved the whole
 phase would make the first fee halt the crawl. Exa's reported charge is used as-is; Brave, DeepSeek, Serper and Tavily charge
-the configured `cost_per_search_usd` (unset means uncharged), DeepSeek only for a search that returns results; DuckDuckGo and self-hosted SearXNG are free; a cache
+the configured `cost_per_search_usd` (unset means uncharged), DeepSeek only for a search that returns results; AnySearch, DuckDuckGo and self-hosted SearXNG are free; a cache
 hit and a failed call are never charged.
 
 ### When a slice runs out

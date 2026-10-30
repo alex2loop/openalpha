@@ -6,7 +6,7 @@ import type { CliApp } from '@/cli/types'
 import { printDaemonSummary } from '@/cli/commands/daemon/summary'
 import { buildBackgroundEnv, buildForegroundEnv } from '@/cli/daemon-env'
 import { liveDaemon } from '@/cli/daemon-guard'
-import { isDaemonReady, readDaemonDegraded } from '@/cli/daemon-ready'
+import { isDaemonReady, readDaemonDegraded, readDaemonTasks } from '@/cli/daemon-ready'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { buildSelfArgv } from '@/cli/services'
@@ -139,28 +139,14 @@ export async function runBackground(app: CliApp, argv: readonly string[]): Promi
     return 1
   }
 
-  const { child, logPath, errorLogPath } = started
+  const { child, errorLogPath } = started
 
   app.out(hint(t(locale, 'cli.daemonBackgroundStarting')))
 
   const outcome = await pollUntil(() => startOutcome(app, child), START_TIMEOUT_MS)
 
   if (outcome === 'ready') {
-    app.out(
-      success(
-        t(locale, 'cli.daemonStartedBackground', {
-          pid: child.pid,
-          // The daemon may run a release other than this process's, as right after `upgrade`.
-          version: (await liveDaemon(app))?.version ?? BRAND.version,
-          path: logPath,
-        })
-      )
-    )
-    printDaemonSummary(app, await readDaemonDegraded(app, child.pid))
-
-    for (const line of await lastOutputLines(errorLogPath, RELAYED_WARNING_LINES)) {
-      app.err(line)
-    }
+    await printStartedDaemon(app, started)
 
     return 0
   }
@@ -172,6 +158,30 @@ export async function runBackground(app: CliApp, argv: readonly string[]): Promi
   }
 
   return printStartupTimeout(app, child, errorLogPath)
+}
+
+async function printStartedDaemon(app: CliApp, started: DetachedDaemon): Promise<void> {
+  const { child, logPath, errorLogPath } = started
+
+  app.out(
+    success(
+      t(app.config.locale.language, 'cli.daemonStartedBackground', {
+        pid: child.pid,
+        // The daemon may run a release other than this process's, as right after `upgrade`.
+        version: (await liveDaemon(app))?.version ?? BRAND.version,
+        path: logPath,
+      })
+    )
+  )
+  printDaemonSummary(
+    app,
+    await readDaemonDegraded(app, child.pid),
+    await readDaemonTasks(app, child.pid)
+  )
+
+  for (const line of await lastOutputLines(errorLogPath, RELAYED_WARNING_LINES)) {
+    app.err(line)
+  }
 }
 
 async function startOutcome(

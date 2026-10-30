@@ -324,7 +324,7 @@ async function postWithPlainFallback(
     return { kind: 'failed', err }
   }
 
-  ctx.logger.debug('telegram.markdown_parse_failed', {
+  ctx.logger.warn('telegram.markdown_parse_failed', {
     method: req.method,
     status: err.status,
     description: err.description,

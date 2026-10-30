@@ -127,7 +127,7 @@ times with backoff (`rereadUntil`, `venues/transport.ts`, abortable); the mirror
 `order.exit_oversized`, `order.book_moved`, `order.book_unpriced`, `order.sell_unsettled`, `order.sell_guarded`,
 `order.no_position`, `order.exit_conflict`, `order.approval_bypassed`, `order.buying_halted`,
 `order.unfilled`, `order.exit_not_amendable`, `order.venue_unavailable`, `order.venue_ambiguous`,
-`order.venue_unreachable`.
+`order.venue_unreachable`, `order.quote_not_live`.
 
 `order.exit_unsupported` is in both: the same refusal means nothing moved when `/trade exit` raises
 it, and a position open with no stop when it is raised while attaching an exit to a filled entry.

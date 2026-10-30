@@ -22,6 +22,7 @@ import { createPendingFeed } from '@/app/server/feed/pending'
 import { toProgressWire } from '@/app/server/feed/progress'
 import { followRoles } from '@/app/server/feed/roles'
 import { followFocusCalls } from '@/app/server/feed/scored'
+import { followTasks, type TaskBoardReader } from '@/app/server/feed/tasks'
 import { withTicker } from '@/app/server/feed/tickers'
 import { followTools } from '@/app/server/feed/tools'
 import {
@@ -57,6 +58,7 @@ interface LiveFeedDeps {
   readonly logger: Logger
   /** A command's description in the daemon's language; undefined for a name no command holds. */
   readonly describeCommand: (name: string) => string | undefined
+  readonly tasks: TaskBoardReader
 }
 
 /** Follows every agent run and long-running command on the bus, tells open sockets as each moves,
@@ -79,6 +81,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
     ...followBudget(deps),
     ...followNotices(deps),
     ...followPreferences(deps),
+    followTasks(deps, deps.tasks),
   ]
 
   return {
@@ -89,6 +92,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
         runs: book.live(),
         pending: pending.list(),
         ...(alertsCheckedAt === undefined ? {} : { alertsCheckedAt }),
+        tasks: deps.tasks.list(),
       }
     },
     pendingOrigin: pending.originOf,

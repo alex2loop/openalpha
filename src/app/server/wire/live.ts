@@ -2,6 +2,7 @@
 // shapes ride GET /v1/live and the run_* wire events, so a client folds both into one view.
 
 import type { WireEvent } from '@/app/server/wire/events'
+import type { TaskStatusWire } from '@/app/server/wire/tasks'
 import type { LLMAttemptKind, RunAttempt } from '@/core/types/usage'
 
 /** One progress line a run reported. `text` is the line rendered in the daemon's `[locale]`;
@@ -105,4 +106,6 @@ export interface LiveSnapshotWire {
   readonly runs: readonly LiveRunWire[]
   readonly pending: readonly PendingWire[]
   readonly alertsCheckedAt?: number
+  /** Every background task, as `GET /v1/tasks` lists it; `tasks_changed` replaces it. */
+  readonly tasks: readonly TaskStatusWire[]
 }

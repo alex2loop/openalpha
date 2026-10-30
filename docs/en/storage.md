@@ -55,6 +55,7 @@ mean `db stats` is hiding a failed migration.
 | `channel_inbox` | Inbound queue and retries; payloads of completed or failed entries; a finished run's answer when its final send failed. |
 | `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Schedules, occurrence history, what starts an event job and when it last ran for each name, heartbeat progress and deferred commitments. |
 | `memory_kv` | Agent memory. SQLite adds FTS5 search; PostgreSQL uses its text-search facilities. |
+| `browser_sessions` | Office-page sign-ins: one row per signed-in browser, holding a hash of its secret, a label and when it was last seen. Not durable: losing it costs one more `web` sign-in. |
 
 Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots`,
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,

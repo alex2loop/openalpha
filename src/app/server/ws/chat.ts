@@ -20,6 +20,7 @@ import {
 import { createChatFrameMapper } from '@/app/server/ws/stream-events'
 import { sessionId as brandSessionId, DEFAULT_AGENT_ID, LOCAL_USER_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
+import { isEntryAgent } from '@/engine/api'
 
 export async function runChat(
   ws: ServerWebSocket<WsData>,
@@ -162,7 +163,7 @@ function sendChatFrames(
 export async function resolveAgentId(services: WsServices, session: SessionId): Promise<AgentId> {
   const binding = await services.bindings.get(API_CHANNEL, session)
 
-  return binding !== null && services.agents.has(binding.agentId)
+  return binding !== null && isEntryAgent(services.agents.get(binding.agentId))
     ? binding.agentId
     : DEFAULT_AGENT_ID
 }

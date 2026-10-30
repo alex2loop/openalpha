@@ -250,14 +250,7 @@ export function renderDetailBlocks(
   return [
     renderThesisLines(locale, suggestion),
     renderInvalidatorLines(locale, suggestion),
-    renderFactorLines({
-      locale,
-      suggestion,
-      detail: view.detail,
-      context: view.context,
-      ...(quote === undefined ? {} : { quote }),
-      ...(view.factorAttribution === undefined ? {} : { attribution: view.factorAttribution }),
-    }),
+    renderFactorBlock(view, suggestion, quote),
     suggestion.debate === undefined
       ? []
       : renderDebateLines(
@@ -277,6 +270,22 @@ export function renderDetailBlocks(
       withholdOperatorFigures: view.operatorFigures === 'withheld',
     }),
   ]
+}
+
+/** The factor section `/suggest` prints, title first; the app card shows it without the title. */
+export function renderFactorBlock(
+  view: RenderView,
+  suggestion: StoredSuggestion,
+  quote: QuotedIn | undefined
+): readonly string[] {
+  return renderFactorLines({
+    locale: view.locale,
+    suggestion,
+    detail: view.detail,
+    context: view.context,
+    ...(quote === undefined ? {} : { quote }),
+    ...(view.factorAttribution === undefined ? {} : { attribution: view.factorAttribution }),
+  })
 }
 
 /** The levels plus how the size moves through them. The ladders drop when the profile is

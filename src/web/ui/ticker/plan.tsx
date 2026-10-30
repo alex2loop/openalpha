@@ -2,6 +2,8 @@ import type { SuggestionWire } from '@/app/server/wire/trading'
 import type { BlockReading } from '@/web/state/block'
 import type { ChartLevel, LevelKey } from '@/web/ui/ticker/chart'
 import { formatDay } from '@/i18n'
+import { getJson } from '@/web/api/client'
+import { ROUTES } from '@/web/api/routes'
 import { keyOf, stopsBlock } from '@/web/state/market'
 import { locale } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
@@ -10,6 +12,8 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { CopyButton } from '@/web/ui/kit/copy-button'
 import { ListIcon } from '@/web/ui/kit/icons'
+import { useLoad } from '@/web/ui/kit/use-load'
+import { PlanReads } from '@/web/ui/ticker/plan-reads'
 import { openWhy } from '@/web/ui/ticker/why-dialog'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
@@ -104,8 +108,21 @@ function PlanBody({ plan, ticker, market }: PlanBodyProps) {
         text={joinInline([ticker, verdict, ...lines.map((line) => `${line.label} ${line.price}`)])}
         label={tr('ui.office.ticker.copyPlan')}
       />
+      {/* Keyed so a plan a run replaced reads its own card. */}
+      <StandingReads key={plan.id} id={plan.id} />
     </>
   )
+}
+
+/** The card's reads for the standing plan. Extra to the levels above, so a failed read says
+ *  nothing rather than standing in the plan's way. */
+function StandingReads({ id }: { readonly id: string }) {
+  const loaded = useLoad((abort) => getJson(ROUTES.suggestionCard(id), { signal: abort }))
+  const result = loaded.value
+
+  return result.status === 'ready' && result.value.card !== null ? (
+    <PlanReads card={result.value.card} />
+  ) : null
 }
 
 // The plan says so for a name not held; a held name's stop row says so too.

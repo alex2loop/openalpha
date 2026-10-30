@@ -30,6 +30,7 @@ export const FACTOR_METRIC_IDS = Object.freeze([
   'funding-daily',
   'trailing-low',
   'relative-volume',
+  'foreign-net-flow',
 ] as const)
 export type FactorMetricId = (typeof FACTOR_METRIC_IDS)[number]
 
@@ -49,6 +50,7 @@ export type FactorMetricUnit =
   | 'count'
   | 'checks-of-nine'
   | 'currency'
+  | 'signed-currency'
   | 'price'
 
 /** How to read each metric's value. Derived from the id rather than carried per reading: the unit
@@ -83,6 +85,7 @@ export const FACTOR_METRIC_UNITS = Object.freeze({
   'funding-daily': 'percent',
   'trailing-low': 'price',
   'relative-volume': 'multiple',
+  'foreign-net-flow': 'signed-currency',
 } as const satisfies Readonly<Record<FactorMetricId, FactorMetricUnit>>)
 
 export interface FactorMetric {

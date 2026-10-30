@@ -8,6 +8,7 @@ export type {
   HealthCode,
   HealthSummary,
   HealthSummaryReader,
+  JobsHealth,
 } from '@/commands/health'
 export type {
   ModelCommandDeps,

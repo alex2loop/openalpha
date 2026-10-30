@@ -64,7 +64,7 @@ export function createDaemonTask(app: App, delivery: DeliveryHub): DaemonTask {
         const warnings = await startDaemonSubsystems({
           app,
           delivery,
-          onHealth: options?.onHealth,
+          reporting: options,
           startupSignal,
           startup,
           logger,

@@ -377,7 +377,8 @@ phân giải được thì không nhận khối nào.
 | `research-reviewer` | Nội bộ, không có công cụ. Chấm điểm báo cáo dựa trên bằng chứng của nó. |
 
 Các worker `research-*` do khâu điều phối nghiên cứu chạy, với hồ sơ cố định, chỉ đúng những công cụ vai đó cần và
-danh sách ủy quyền rỗng.
+danh sách ủy quyền rỗng. Giống các persona giao dịch bên dưới, chúng chỉ trả lời bên trong một lượt chạy: `/agent`,
+`agent bind`, `chat --agent` và `--agent` của một job đều coi chúng là agent không tồn tại.
 
 Phần giao dịch thêm các persona đáng tin: các vai tranh luận `bull-researcher`, `bear-researcher`,
 `portfolio-manager`, `trader`, `risk-analyst`, `claim-verifier` và `market-analyst`, cộng với `theme-analyst` đứng sau
@@ -717,8 +718,8 @@ Với mỗi lời gọi, mô hình ưu tiên đi trước, rồi tới các mụ
 - Một mục vừa hỏng được cho nghỉ 1 phút trước khi thử lại (lâu hơn nếu nhà cung cấp nói vậy).
 - **Thử lại và dự phòng chỉ xảy ra trước khi có nội dung hiện ra hoặc phát sinh tiền.** Sau đó lời gọi không được phát
   lại: phương án còn lại là trả tiền hai lần cho hai câu trả lời của cùng một câu hỏi.
-- Một lần Claude từ chối vì bộ phân loại an toàn là một lần dừng bình thường (`content_filter`), không phải lỗi, và chuỗi
-  không rơi xuống mục kế.
+- Một lần Claude từ chối vì bộ phân loại an toàn, hay Gemini chặn thẳng câu hỏi, là một lần dừng bình thường
+  (`content_filter`), không phải lỗi, và chuỗi không rơi xuống mục kế.
 
 Mọi bề mặt đều báo lần đổi: kênh đăng một thông báo, nghiên cứu sâu nêu một cảnh báo, và CLI in một dòng cho mỗi lần đổi
 khác biệt, ngay trên dòng cuối của phiên chạy.

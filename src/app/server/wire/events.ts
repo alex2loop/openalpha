@@ -5,6 +5,7 @@
 /** The surface a run originates from — drives the source glyph + notification threading. */
 import type { Decision } from '@/app/server/wire/chat'
 import type { ProgressWire, RunStartWire } from '@/app/server/wire/live'
+import type { TaskStatusWire } from '@/app/server/wire/tasks'
 
 export type Channel = 'cli' | 'telegram' | 'cron' | 'api'
 
@@ -39,6 +40,7 @@ type WireEventKind =
   | 'mover'
   | 'order_filled'
   | 'alerts_checked'
+  | 'tasks_changed'
   | 'schedule_result'
   | 'call_scored'
   | 'notice'
@@ -164,6 +166,9 @@ export interface WireEvent {
   /** 'alerts_checked': epoch ms an alert pass last finished. A pass reads one cursor page of alerts,
    *  not the whole book. */
   readonly checkedAt?: number
+  /** 'tasks_changed': every background task as `GET /v1/tasks` lists it, after one started or
+   *  ended a pass. */
+  readonly tasks?: readonly TaskStatusWire[]
   /** 'notices_changed': the bell's unread count after a notice was written or some were read;
    *  refetch GET /v1/notices. */
   readonly unread?: number

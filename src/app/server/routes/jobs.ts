@@ -25,6 +25,7 @@ import { toFieldValidationError } from '@/core/field-errors'
 import { agentId, jobId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { advanceCron } from '@/core/utils/cron'
+import { isEntryAgent } from '@/engine/api'
 import { t } from '@/i18n'
 import { EVENT_JOB_PARKED_AT } from '@/scheduler/api'
 import {
@@ -120,7 +121,7 @@ function buildJob(ctx: ApiRouteContext, body: JobCreateBody): Job {
 
     assertJobPrompt(body.prompt)
     assertScheduledCommand(ctx, body.prompt)
-    assertKnownAgent(agent, (id) => ctx.app.resolve('agents').has(id))
+    assertKnownAgent(agent, (id) => isEntryAgent(ctx.app.resolve('agents').get(id)))
 
     const timed: TimedSchedule =
       body.schedule.kind === 'event'

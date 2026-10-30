@@ -75,7 +75,8 @@ Nếu bạn viết script: mã thoát cho biết **lý do** một phiên chạy 
 | `130` | `aborted` |
 
 Các lỗi khác: `2` cho lỗi cách dùng, cấu hình và kiểm tra; `5` khi LLM lỗi hẳn; `11` cho lưu trữ; `13`
-cho kênh; `14` cho công cụ; `15` khi một lần ghi bị xung đột với lần sửa khác. Các lý do dừng khác dùng
+cho kênh; `14` cho công cụ; `18` khi một lần ghi bị xung đột với lần sửa khác; `143` khi lệnh bị
+SIGTERM dừng. Các lý do dừng khác dùng
 mã liệt kê ở [An toàn](an-toan.md), nên `11` cũng là `hook_failed` và `12` cũng là `session_busy`.
 `doctor` thoát `1` khi có phép kiểm nào hỏng.
 
@@ -154,7 +155,7 @@ lệnh nào và menu Telegram. Nhờ vậy một lệnh hành xử giống hệt
 | `/agent` | Xem agent cửa vào; operator kênh có quyền thì đổi được. Trong terminal, chọn bằng `chat --agent <id>` |
 | `/model` | Xem bộ chọn mô hình đã cấu hình ở mọi nơi; chọn thì trong kênh chat |
 | `/research` | Chạy nghiên cứu có giới hạn và trích nguồn, không đổi agent đang chọn |
-| `/health` | Xem các mã sức khỏe của runtime và kênh |
+| `/health` | Xem các mã sức khỏe của runtime và kênh, việc tự chạy nào đang làm và việc nào lỗi ở lần gần nhất (chỉ tên việc; lý do xem ở `status` hoặc trang văn phòng) |
 | `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại; `/upgrade confirm` (hoặc nút bấm) cài bản mới ngay từ Telegram/Zalo |
 | `/memory` | Gọi lại một mục theo khóa (`/memory <khóa>`), tìm (`find <từ khóa>`), ghi nhớ (`remember <khóa> <giá trị>`) hoặc xóa (`forget <khóa>`) |
 | `/cost` | Xem lượng dùng của cuộc trò chuyện này và chi tiêu hôm nay so với hạn mức |
@@ -305,6 +306,10 @@ Dữ liệu thị trường vẫn tiếp tục nạp ở nền sau đó.
 `start` in phiên bản đang chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật
 `[api]`, và tệp nhật ký. Nhật ký ghi lại lúc các kênh mở.
 
+Sau đó nó cho biết việc tự chạy nào đang làm lúc ấy, ví dụ việc nạp dữ liệu thị trường mà lần khởi động
+nào cũng làm, và vì sao lần chạy gần nhất của một việc bị lỗi nếu có. Ở tiền cảnh, mỗi việc đó in thêm
+một dòng "Xong" khi làm xong; sau đó terminal im lặng.
+
 **Khởi động lại.** Khi đã có dịch vụ nền chạy và `[api]` đang bật, `restart` nhờ chính dịch vụ nền đó
 khởi động lại tại chỗ (cùng pid, cùng cửa sổ terminal). Nó chờ dịch vụ nền sẵn sàng rồi in kết quả.
 
@@ -335,7 +340,8 @@ Một số lỗi vẫn chặn `start`: lỗi cấu hình (TOML sai, giá trị k
 và lỗi lưu trữ. Cổng API đã bị dùng thì không: API không mở, `start` in cảnh báo nêu số cổng, phần còn lại của
 dịch vụ nền vẫn chạy.
 
-**Trạng thái.** `status` cho biết dịch vụ nền đang chạy bản nào.
+**Trạng thái.** `status` cho biết dịch vụ nền đang chạy bản nào, và việc tự chạy nào đang làm lúc này
+(chậm nhất vài giây), kèm lý do nếu lần chạy gần nhất của một việc bị lỗi.
 
 - Chạy lại script cài đặt thì dịch vụ nền chạy ở chế độ nền được bật lại trên bản mới.
 - Cài bản chọn sẵn bằng `OPENALPHA_VERSION` thì dịch vụ nền vẫn chạy bản cũ tới khi bạn tự khởi động
@@ -567,12 +573,16 @@ openalpha social pause|resume <mạng> [<agent>]
 ```
 
 Agent cần `[focus]` riêng và chỉ công cụ được phép mới tham gia được, và `agent remove` từ chối một agent
-còn giữ tư cách thành viên. Chi tiết ở [Mạng xã hội](mang-xa-hoi.md).
+còn giữ tư cách thành viên. Cờ: `add` nhận `--name`, `--api-base`
+và `--label "POST /đường-dẫn=nhãn"` (lặp được); `update` nhận `--label`; `join` nhận `--every <khoảng>`,
+`--key-env <BIẾN>` và `--name <tên công khai>`; `rekey` nhận `--key-env <BIẾN>`. `add`, `update`, `join`,
+`leave`, `remove` và `approve` hỏi xác nhận trừ khi bạn thêm `--yes`. Chi tiết ở [Mạng xã hội](mang-xa-hoi.md).
 
 ## Bộ nhớ, lịch sử, chi phí
 
 Mọi thao tác với bộ nhớ đều qua các kiểm tra về bí mật, tiêm prompt, kích thước, phạm vi và thời gian
-sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>` chỉ giữ các khóa bắt đầu bằng chữ đó.
+sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>` chỉ giữ các khóa bắt đầu bằng chữ đó. `memory store`, `recall`, `search`,
+`list` và `remove` nhận `--agent <id>` để chọn phạm vi agent (mặc định: chat).
 
 `memory search <câu hỏi>` trả về 10 kết quả, thêm `--limit <n>` để đổi số này. `history list` hiện 20 cuộc
 trò chuyện gần nhất, thêm `--limit <n>` để đổi số này.
@@ -606,7 +616,7 @@ openalpha zalo login [--profile <tên>]
 ```
 
 Liên kết tài khoản Zalo cá nhân cho kênh `zalo_personal`. Lệnh lưu một ảnh mã QR và in ra đường dẫn. Bạn
-quét bằng ứng dụng Zalo rồi xác nhận trên điện thoại. Cứ khoảng hai phút có mã mới thay thế, và sau năm
+quét bằng ứng dụng Zalo rồi xác nhận trên điện thoại. Cứ khoảng 100 giây có mã mới thay thế, và sau năm
 phút lệnh thôi chờ. Lần đăng nhập được cất theo `--profile`, hoặc theo `profile` của kênh khi bạn bỏ
 trống, và ảnh QR bị xóa khi xong. Dịch vụ nền đang chạy sẽ nhận đăng nhập mới ở lần nối lại kế tiếp.
 
@@ -647,6 +657,11 @@ dịch vụ nền đã dừng.
   `db backup`, nên lỡ tay thì `db restore` lại được. `--yes` trả lời câu này theo mặc định, tức là
   vẫn sao lưu trước.
 - `db cleanup` cần `--older-than` (tối thiểu `1d`); `--dry-run` cho xem trước những gì nó sẽ dọn.
+- `db backup` ghi vào `--path` thay vì `<data_dir>/backups`; `--force` ghi đè tệp đã có ở đó.
+- `db export` cần `--out <thư mục>`; `--table <tên>` xuất một bảng, `--format json|csv` chọn định dạng
+  (mặc định `json`; csv không import lại được), và `--force` cho ghi vào thư mục đã có tệp.
+- `db import` cần `--in <thư mục>`; `--table <tên>` chỉ nhập một bảng thay vì mọi tệp có mặt.
+- `db migrate up --status` liệt kê các migration và trạng thái của chúng, không áp dụng cái nào.
 
 `db integrity`, `db stats`, `db export` và `db backup` chỉ khởi động tầng lưu trữ, nên chạy được khi chưa
 cấu hình khóa mô hình nào. Sao lưu và khôi phục, xuất và nhập, cùng việc mỗi cách giữ được gì qua một
@@ -654,14 +669,15 @@ lần `db reset`, nằm ở [Lưu trữ](luu-tru.md).
 
 `workspace cleanup` chỉ chạm tới `run/` và `tmp/` bên trong các thư mục làm việc của agent bạn chọn bằng
 `--agent <id>` hoặc `--all` (bắt buộc chọn đúng một). `--older-than`, `--dry-run` và `--yes` dùng như ở
-các lệnh khác, và dịch vụ nền phải đã dừng. Lệnh này không xóa tệp bền vững ở gốc thư mục làm việc hay log của
+các lệnh khác, và dịch vụ nền phải đã dừng. `--all` không kèm `--older-than` sẽ dọn sạch vùng nháp của mọi agent,
+nên lệnh luôn bắt bạn gõ `DELETE`, kể cả khi có `--yes`. Lệnh này không xóa tệp bền vững ở gốc thư mục làm việc hay log của
 agent. Như mọi khi: thư mục làm việc chỉ là chỗ bắt đầu an toàn, không phải một vùng khóa kín do hệ
 điều hành bảo vệ.
 
 ## Log
 
 ```text
-openalpha logs [--lines <n>] [-f] [--agent <id>] [--since <mốc|khoảng>]
+openalpha logs [--lines <n>] [-f | --follow] [--agent <id>] [--since <mốc|khoảng>]
 openalpha logs clear [--agent <id> | --daemon] [--older-than <khoảng>] [--dry-run] [--yes]
 ```
 

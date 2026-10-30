@@ -12,7 +12,7 @@ import { quoteConventionsFor } from '@/trading/features/market-data/command/quot
 import { renderRebalanceText } from '@/trading/features/portfolio/render/rebalance'
 import { parseTickers, usage } from '@/trading/kernel/surface/surface'
 import { planAffordances } from '@/trading/render/affordance'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
 const USAGE: 'slash.tradingRebalanceUsage' = 'slash.tradingRebalanceUsage'
 
@@ -65,7 +65,7 @@ async function run(deps: AdviceCommandDeps, ctx: SlashContext): Promise<SlashRes
     kind: 'text',
     affordances: planAffordances(ctx.locale),
     text: renderRebalanceText(ctx.locale, advice, {
-      context: resolveRenderContext(deps.timezone, ctx.surface),
+      context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       listedOnly,
       sizing,
       ...(freshness === undefined ? {} : { freshness }),

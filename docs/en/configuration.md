@@ -18,6 +18,7 @@ openalpha config path       # which file is actually read
 openalpha config validate   # does it parse and resolve
 openalpha config show       # the merged config, secrets redacted
 openalpha config edit       # open it in $VISUAL or $EDITOR
+openalpha config get budget.maxDailyUsd   # print one resolved value by its dotted path
 ```
 
 `openalpha onboard` writes a starter file when none exists yet and the target is not a symlink. Run
@@ -424,7 +425,7 @@ The section enables Telegram unless `enabled = false`. A token is still required
 | `allowed_ids` | (string\|int)[] | `[]` | Starting allowlist of Telegram users and chats. |
 | `operator_user_ids` | (string\|int)[] | `[]` | Users allowed to run operator-only commands. |
 | `token_env` | string | - | Environment variable holding the token. |
-| `token_file` | string | - | File whose trimmed contents are the token. |
+| `token_file` | string | - | File whose trimmed contents are the token. `~/` is your home folder. |
 | `typing_indicator` | bool | `true` | Show "typing" while generating. |
 | `use_reactions` | bool | `true` | Use reactions as status cues where supported. |
 | `markdown` | bool | `true` | Render Telegram MarkdownV2; `false` sends plain text, streamed replies included. |
@@ -448,7 +449,7 @@ see [Channels](channels.md).
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `token_env` | string | - | Environment variable holding the token. |
-| `token_file` | string | - | File whose trimmed contents are the token. |
+| `token_file` | string | - | File whose trimmed contents are the token. `~/` is your home folder. |
 | `allowed_ids` | (string\|int)[] | `[]` | Starting allowlist of chats and users. |
 | `operator_user_ids` | (string\|int)[] | `[]` | Users allowed to run operator commands. |
 | `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, or `allowlist` once `allowed_ids` is set | How chats are admitted, and the off switch. There is no open mode. |
@@ -477,7 +478,7 @@ is saved under `profile`.
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `approval_timeout_ms` | int | `900000` | 15 minutes. How long a scheduled job waits for its channel approver. The answer is never saved. At most 2147483647 (about 24 days). |
-| `late_grace_ms` | int | `900000` | 15 minutes. How late a cron job's time may still start. Past it that time is skipped and the job moves to its next one, with no failure counted. Interval and one-time jobs are never skipped. The intraday report uses the same bound. At least 35000 (35 seconds: one scheduler look plus its quick network check): anything shorter is refused at start, since on-time cron jobs could be skipped. Workflows with a cron trigger follow the same bound. At most 2147483647 (about 24 days). |
+| `late_grace_ms` | int | `900000` | 15 minutes. How late a cron job's time may still start, a retry after a failure included. Past it that time is skipped and the job moves to its next one, with no failure counted. Interval and one-time jobs are never skipped. The intraday report uses the same bound. At least 35000 (35 seconds: one scheduler look plus its quick network check): anything shorter is refused at start, since on-time cron jobs could be skipped. Workflows with a cron trigger follow the same bound. At most 2147483647 (about 24 days). |
 | `failure_target` | string | - | `<channel>:<chatId>` that gets the notice when a job is disabled after failures. |
 
 The scheduler checks for due jobs every 30 seconds, starts at most 5 per check, and runs at most 50

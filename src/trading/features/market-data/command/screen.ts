@@ -19,7 +19,7 @@ import {
   parseRegisteredMarket,
   usage,
 } from '@/trading/kernel/surface/surface'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const USAGE: 'slash.tradingScreenUsage' = 'slash.tradingScreenUsage'
@@ -89,7 +89,7 @@ async function run(deps: ScreenCommandDeps, ctx: SlashContext): Promise<SlashRes
       ctx.locale,
       {
         market,
-        context: resolveRenderContext(deps.timezone, ctx.surface),
+        context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
         ...(display === undefined ? {} : { display }),
         ...(instrumentKind === undefined ? {} : { instrumentKind }),
       },

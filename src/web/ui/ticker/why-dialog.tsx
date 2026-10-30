@@ -1,3 +1,5 @@
+import { Fragment } from 'preact'
+
 import type { DebateWire } from '@/app/server/wire/debate'
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import { formatDay } from '@/i18n'
@@ -125,12 +127,13 @@ function WhyBody({ subject }: { readonly subject: WhySubject }) {
   )
 }
 
+// Each block is a heading and its body straight in the dialog's flow, which spaces and rules them.
 function Reason({ call }: { readonly call: SuggestionWire }) {
   return call.thesis === undefined ? null : (
-    <section>
+    <>
       <h3 class="sub-head">{tr('ui.office.why.thesis')}</h3>
       <p>{call.thesis}</p>
-    </section>
+    </>
   )
 }
 
@@ -144,7 +147,7 @@ function PastResult({ call }: { readonly call: SuggestionWire }) {
   const { outcome } = call
 
   return (
-    <section>
+    <>
       <h3 class="sub-head">{tr('ui.office.why.result')}</h3>
       {outcome === undefined ? (
         <p>{tr('ui.office.ticker.outcome.open')}</p>
@@ -156,7 +159,7 @@ function PastResult({ call }: { readonly call: SuggestionWire }) {
           <p>{tr('ui.office.why.outcome', { outcome: tr(`trading.outcome.${outcome.status}`) })}</p>
         </div>
       )}
-    </section>
+    </>
   )
 }
 
@@ -186,36 +189,15 @@ function StoredDebateView({ call }: { readonly call: SuggestionWire }) {
 
   return (
     <>
-      {debate !== undefined && <DebateSections debate={debate} action={call.action} />}
+      {debate !== undefined &&
+        buildDebateParts(debate, call.action).map((part) => (
+          <Fragment key={part.id}>
+            <h3 class="sub-head">{part.title}</h3>
+            {part.body}
+          </Fragment>
+        ))}
       {isAdvanced.value && citations.length > 0 && <CitationSection citations={citations} />}
       {debate !== undefined && <SetupUsed debate={debate} />}
-    </>
-  )
-}
-
-interface DebateSectionsProps {
-  readonly debate: DebateWire
-  readonly action: SuggestionWire['action']
-}
-
-function DebateSections({ debate, action }: DebateSectionsProps) {
-  const timeZone = state.value?.timeZone
-
-  return (
-    <>
-      <p class="meta">
-        {tr('ui.office.why.run', {
-          mode: tr(debate.mode === 'full' ? 'ui.office.why.modeFull' : 'ui.office.why.modeLean'),
-          steps: debate.steps,
-          time: timeZone === undefined ? ABSENT_CELL : formatWhen(debate.createdAt, timeZone),
-        })}
-      </p>
-      {buildDebateParts(debate, action).map((part) => (
-        <section key={part.id}>
-          <h3 class="sub-head">{part.title}</h3>
-          {part.body}
-        </section>
-      ))}
     </>
   )
 }
@@ -236,9 +218,19 @@ function CitationSection({ citations }: { readonly citations: readonly string[] 
   )
 }
 
+// How the call was argued and with what: provenance, so it waits in a fold under the reading.
 function SetupUsed({ debate }: { readonly debate: DebateWire }) {
+  const timeZone = state.value?.timeZone
+
   return (
     <Fold title={tr('ui.office.why.config')}>
+      <p class="meta">
+        {tr('ui.office.why.run', {
+          mode: tr(debate.mode === 'full' ? 'ui.office.why.modeFull' : 'ui.office.why.modeLean'),
+          steps: debate.steps,
+          time: timeZone === undefined ? ABSENT_CELL : formatWhen(debate.createdAt, timeZone),
+        })}
+      </p>
       <p class="meta">
         {tr('ui.office.why.configBody', {
           models: debate.models.length === 0 ? ABSENT_CELL : debate.models.join(', '),

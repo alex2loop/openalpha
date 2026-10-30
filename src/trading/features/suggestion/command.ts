@@ -20,6 +20,7 @@ import { DEBATE_MODES } from '@/trading/kernel/config'
 import { dedupeInstruments } from '@/trading/kernel/instrument'
 import { DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
 import { parseMember, parseTickerRequest, usage } from '@/trading/kernel/surface/surface'
+import { answerSurfaceOf } from '@/trading/render/format'
 
 const USAGE: 'slash.tradingSuggestUsage' = 'slash.tradingSuggestUsage'
 const STOPS_EMPTY: 'slash.tradingSuggestStopsEmpty' = 'slash.tradingSuggestStopsEmpty'
@@ -232,7 +233,7 @@ async function renderRun(
     result,
     detail: mode === 'lean' ? 'compact' : 'full',
     locale: ctx.locale,
-    surface: ctx.surface,
+    surface: answerSurfaceOf(ctx),
     signal: ctx.signal,
   })
 

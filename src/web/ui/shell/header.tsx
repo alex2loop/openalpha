@@ -7,7 +7,7 @@ import { ViewSwitch } from '@/web/scene/overlay/view-switch'
 import { WeatherChip } from '@/web/scene/overlay/weather-chip'
 import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
-import { runningCount } from '@/web/state/live'
+import { runningCount, workingTasks } from '@/web/state/live'
 import { isInfoOnly, toggleInfoOnly } from '@/web/state/pane'
 import { brand, isFirstRun } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
@@ -63,8 +63,9 @@ interface AnchorProps {
   readonly anchor: RefObject<HTMLButtonElement | null>
 }
 
+// Runs and the daemon's own background passes alike: whatever is working now.
 function RunningChip({ anchor }: AnchorProps) {
-  const count = runningCount.value
+  const count = runningCount.value + workingTasks.value.length
 
   return (
     <Chip

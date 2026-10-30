@@ -119,6 +119,9 @@ export interface SlashContext {
   readonly requestId: string
   /** The surface the command was dispatched from; compared against the command's declared surfaces. */
   readonly surface: CommandSurface
+  /** Where the answer is read, when not where it ran: the page runs the terminal's commands but
+   *  shows their text in a chat column, so it takes a channel's shape. */
+  readonly readsAs?: CommandSurface
   readonly userId: UserId
   readonly sessionId: SessionId
   /** The chat the command was typed in. Agent bindings are keyed by (channel, chatId). */

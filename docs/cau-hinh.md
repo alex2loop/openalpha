@@ -18,6 +18,7 @@ openalpha config path       # tệp nào đang thật sự được đọc
 openalpha config validate   # có phân tích và phân giải được không
 openalpha config show       # cấu hình hiệu lực đã trộn, thông tin bí mật đã che
 openalpha config edit       # mở bằng $VISUAL hoặc $EDITOR
+openalpha config get budget.maxDailyUsd   # in một giá trị đã phân giải, theo đường dẫn dạng chấm
 ```
 
 `openalpha onboard` ghi một tệp khởi đầu khi chưa có tệp và đích không phải symlink. Chạy khi đã có cấu
@@ -423,7 +424,7 @@ Có mục này là Telegram được bật, trừ khi `enabled = false`. Vẫn c
 | `allowed_ids` | (chuỗi\|số)[] | `[]` | Danh sách cho phép ban đầu cho người dùng và chat Telegram. |
 | `operator_user_ids` | (chuỗi\|số)[] | `[]` | Người dùng được chạy lệnh chỉ dành cho operator. |
 | `token_env` | chuỗi | - | Biến môi trường chứa token. |
-| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. |
+| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. `~/` là thư mục nhà của bạn. |
 | `typing_indicator` | bool | `true` | Hiện "đang gõ" trong lúc sinh câu trả lời. |
 | `use_reactions` | bool | `true` | Dùng cảm xúc làm tín hiệu trạng thái ở nơi hỗ trợ. |
 | `markdown` | bool | `true` | Dựng Telegram MarkdownV2; `false` gửi văn bản thuần, kể cả khi trả lời theo luồng. |
@@ -447,7 +448,7 @@ khóa gửi tin đã liệt kê cho Telegram, cộng các khóa dưới đây. K
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `token_env` | chuỗi | - | Biến môi trường chứa token. |
-| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. |
+| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. `~/` là thư mục nhà của bạn. |
 | `allowed_ids` | (chuỗi\|số)[] | `[]` | Danh sách cho phép ban đầu cho chat và người dùng. |
 | `operator_user_ids` | (chuỗi\|số)[] | `[]` | Người dùng được chạy lệnh operator. |
 | `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, hoặc `allowlist` khi đã có `allowed_ids` | Cách xét duyệt chat, và công tắc tắt kênh. Không có chế độ mở. |
@@ -476,7 +477,7 @@ Khóa là `zalo_personal`, trùng mã kênh. Liên kết đăng nhập bằng `o
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `approval_timeout_ms` | số nguyên | `900000` | 15 phút. Một việc theo lịch chờ người duyệt qua kênh lâu như vậy. Câu trả lời không bao giờ được lưu. Tối đa 2147483647 (khoảng 24 ngày). |
-| `late_grace_ms` | số nguyên | `900000` | 15 phút. Một việc cron được phép bắt đầu trễ tối đa chừng này so với giờ của nó. Trễ hơn thì giờ đó bị bỏ qua và việc nhảy sang lần kế tiếp, không tính lần hỏng nào. Việc theo chu kỳ và việc chạy một lần không bao giờ bị bỏ qua. Báo cáo trong phiên dùng cùng giới hạn này. Tối thiểu 35000 (35 giây: một lần bộ lập lịch xem cộng một lần kiểm tra mạng nhanh): đặt thấp hơn thì bị từ chối khi khởi động, vì việc cron đúng giờ cũng có thể bị bỏ qua. Workflow có cron trigger theo cùng giới hạn này. Tối đa 2147483647 (khoảng 24 ngày). |
+| `late_grace_ms` | số nguyên | `900000` | 15 phút. Một việc cron được phép bắt đầu trễ tối đa chừng này so với giờ của nó, kể cả khi đang chạy lại sau một lần hỏng. Trễ hơn thì giờ đó bị bỏ qua và việc nhảy sang lần kế tiếp, không tính lần hỏng nào. Việc theo chu kỳ và việc chạy một lần không bao giờ bị bỏ qua. Báo cáo trong phiên dùng cùng giới hạn này. Tối thiểu 35000 (35 giây: một lần bộ lập lịch xem cộng một lần kiểm tra mạng nhanh): đặt thấp hơn thì bị từ chối khi khởi động, vì việc cron đúng giờ cũng có thể bị bỏ qua. Workflow có cron trigger theo cùng giới hạn này. Tối đa 2147483647 (khoảng 24 ngày). |
 | `failure_target` | chuỗi | - | `<channel>:<chatId>` nhận thông báo khi một việc bị tắt vì hỏng nhiều lần. |
 
 Bộ lập lịch cứ 30 giây xem có việc đến hạn không, mỗi lần khởi động tối đa 5 việc, và chạy tối đa 50

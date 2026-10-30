@@ -15,6 +15,7 @@ import { startRetention } from '@/app/retention'
 import { ApiPortInUseError } from '@/app/server/http/api-port-error'
 import { ApiTokenError } from '@/app/server/http/auth'
 import { startSocialUpkeep } from '@/app/social-upkeep'
+import { reportTaskChanges } from '@/app/task-status'
 import { startUpdateWatch } from '@/app/update/watch'
 import { startChannels } from '@/channels/api'
 import { type AppError, ConfigError } from '@/core/errors'
@@ -45,7 +46,8 @@ export interface DaemonTaskState {
 interface StartDaemonSubsystemsOptions {
   readonly app: App
   readonly delivery: DeliveryHub
-  readonly onHealth: DaemonStartOptions['onHealth']
+  /** Where the start hears of a channel going down and of the background tasks. */
+  readonly reporting: Pick<DaemonStartOptions, 'onHealth' | 'onTasks'> | undefined
   readonly startupSignal: AbortSignal
   readonly startup: AbortController
   readonly logger: Logger
@@ -59,7 +61,7 @@ export async function startDaemonSubsystems(
 ): Promise<readonly DegradedItem[]> {
   const { app, delivery, startupSignal, startup, logger, tasks, state, teardown } = options
   const { disposers } = teardown
-  const { onHealth } = options
+  const onHealth = options.reporting?.onHealth
   const onTaskPass = app.resolve('taskStatus').listener
 
   // First, so the sweep runs beside every start below; the trading loops that read market data
@@ -69,7 +71,7 @@ export async function startDaemonSubsystems(
     state,
     startup,
     name: 'trading.boot-refresh',
-    task: runBootRefresh({ app, logger, signal: startupSignal }),
+    task: runBootRefresh({ app, logger, signal: startupSignal, onTaskPass }),
   })
 
   const channels = await startOwnedChannels(app, startupSignal, disposers)
@@ -115,6 +117,12 @@ function startDaemonTasks(
   // Named before the scheduler and the maintenance tasks start, so a task that waits long for its
   // first pass still shows.
   taskStatus.track(taskNames(app, tradingTasks))
+
+  const onTasks = options.reporting?.onTasks
+
+  if (onTasks !== undefined) {
+    teardown.disposers.push(reportTaskChanges(taskStatus, onTasks))
+  }
 
   // Started last of the delivering subsystems: a job that finishes before delivery is attached has
   // nowhere to send its answer, and a one-shot job is disabled on finalize so it never retries.

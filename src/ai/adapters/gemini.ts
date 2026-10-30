@@ -67,6 +67,8 @@ interface GeminiChunk {
     readonly finishReason?: string
   }>
   readonly usageMetadata?: GeminiUsage
+  /** Set, with no candidate, when the prompt itself was blocked. */
+  readonly promptFeedback?: { readonly blockReason?: string }
   readonly event_type?: string
   readonly error?: { readonly code?: unknown; readonly message?: unknown }
 }
@@ -308,6 +310,15 @@ function routeChunk(chunk: GeminiChunk, state: RouterState): readonly StreamEven
     if (usage !== undefined) {
       events.push({ type: 'usage', usage })
     }
+  }
+
+  // A blocked prompt streams no candidate, so its block reason is the stream's end: read as a
+  // filter, not as a cut stream that a retry or a cooldown could fix.
+  if (chunk.promptFeedback?.blockReason !== undefined && candidate === undefined) {
+    state.finished = true
+    events.push({ type: 'finish_reason', reason: 'content_filter' })
+
+    return events
   }
 
   const reason = candidate?.finishReason

@@ -92,3 +92,13 @@
   list-style: none;
   white-space: pre-line;
 }
+
+.depth-lines {
+  display: grid;
+  gap: var(--s0);
+}
+
+.depth-line {
+  padding-left: calc(var(--depth, 0) * var(--s2));
+  white-space: pre-wrap;
+}

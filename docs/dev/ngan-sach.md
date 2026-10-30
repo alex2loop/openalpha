@@ -63,7 +63,7 @@ ngày và tháng cho đến hết tháng của nó, nên khởi động lại kh
 tệp không đọc được hay bị hỏng lúc khởi động, không việc tốn tiền nào được duyệt thêm chừng nào còn đặt hạn mức ngày hoặc
 tháng (`ledger_unavailable`); không có hạn mức thì chỉ là khoảng hở trong báo cáo.
 
-Chính sách lưu giữ xóa cuộc trò chuyện và tin nhắn cũ nhưng tách rời các dòng lần thử chứ không xóa.
+Chính sách lưu giữ tách rời các dòng lần thử khi cuộc trò chuyện của chúng bị xóa, và xóa chúng sau 400 ngày.
 
 `billing_agent_id` là agent có mức trần được tính khoản chi, không phải lúc nào cũng là agent chạy. Một con ủy quyền, một con
 nghiên cứu và một persona tranh luận do công cụ khởi động đều tính cho agent đã nhờ; một lần đọc tiêu đề trong cuộc tranh
@@ -123,7 +123,7 @@ Nó giữ chỗ đúng 85% một lần và chia theo giai đoạn (`PHASE_WEIGHT
 sớm không bỏ đói phần việc mà kế hoạch đã biết là sắp tới. Giai đoạn crawl giữ `CRAWL_EXTERNAL_COST_RESERVE` (25%) không chia
 được: phí tìm kiếm rơi vào chính ngân sách crawl, và một nhóm giữ chỗ cả giai đoạn sẽ khiến khoản phí đầu tiên làm dừng luôn
 khâu crawl. Khoản Exa báo được dùng nguyên; Brave, DeepSeek, Serper và Tavily tính theo `cost_per_search_usd` đã khai (không khai thì
-không tính), riêng DeepSeek chỉ tính khi lượt tìm có kết quả; DuckDuckGo và SearXNG tự dựng miễn phí; trúng cache và lời gọi hỏng không bao giờ bị tính tiền.
+không tính), riêng DeepSeek chỉ tính khi lượt tìm có kết quả; AnySearch, DuckDuckGo và SearXNG tự dựng miễn phí; trúng cache và lời gọi hỏng không bao giờ bị tính tiền.
 
 ### Khi một lát cạn
 

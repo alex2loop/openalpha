@@ -319,6 +319,33 @@
   },
   {
     "v": 1,
+    "kind": "tasks_changed",
+    "weight": "quiet",
+    "source": {
+      "channel": "api",
+      "agentId": ""
+    },
+    "tasks": [
+      {
+        "name": "trading.alerts",
+        "label": "Price alerts",
+        "everyMs": 60000,
+        "lastRunAt": 1792480140000,
+        "nextRunAt": 1792480200000,
+        "working": false
+      },
+      {
+        "name": "trading.refresh",
+        "label": "Market data refresh",
+        "lastRunAt": 1792479000000,
+        "lastError": "No connection to query1.finance.yahoo.com right now, so I am waiting and checking again.",
+        "nextRunAt": 1792480800000,
+        "working": true
+      }
+    ]
+  },
+  {
+    "v": 1,
     "kind": "idea",
     "weight": "nudge",
     "source": { "channel": "api", "agentId": "" },

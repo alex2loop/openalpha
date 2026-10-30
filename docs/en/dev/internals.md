@@ -28,6 +28,7 @@ plugins     -> core, engine
 social      -> core, engine, i18n
 trading     -> core, engine, persistence, i18n
 channels    -> core, engine, commands, i18n
+web         -> i18n; import type from app/server/wire only
 cli         -> every runtime module except app
 app         -> all runtime modules
 ```
@@ -275,7 +276,7 @@ message in place; Zalo (plain text, no edit) sends chunks.
 | Web | `web_fetch`, `web_search` |
 | Scheduling | `schedule_add`, `schedule_list`, `schedule_remove` |
 | Skills | `skill_view` |
-| Delegation | `delegate`, `delegate_parallel` |
+| Delegation | `delegate`, `delegate_parallel`, `spawn` |
 | Research | `research` |
 
 Trading registers its own tools through the same registry, plus `order_place` and `order_exits` when a
@@ -328,7 +329,7 @@ and poll offsets are durable and one delivery pipeline serves every adapter. See
 | Agent routing | `/agent [id\|default]` |
 | Model selection | `/model [selector]` |
 | Research | `/research [quick\|standard\|thorough] <query>` |
-| Status and cost | `/health`, `/cost`, `/config` |
+| Status and cost | `/health`, `/cost`, `/config`, `/upgrade` |
 | Memory | `/memory` |
 | Scheduling | `/schedule [show\|pause\|resume\|run\|remove] <id>` |
 | Session | `/new`, `/continue` |
@@ -433,8 +434,11 @@ hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the fo
 stderr, and a background child's stderr log is relayed under the parent's success line.
 
 The handler
-then writes the ready file (`BRAND.readyFile`, atomically, `{ pid, degraded }`) that a background start
-waits on and `status` and `/v1/state` read back; a start clears it as it claims the pid file, so a file a
+then writes the ready file (`BRAND.readyFile`, atomically, `{ pid, degraded, tasks }`) that a background start
+waits on and `status` and `/v1/state` read back. `tasks` is the task board in the daemon's language
+(`TaskSnapshot`: label, working, last error), handed to `DaemonStartOptions.onTasks` once at start and
+again when which tasks work or failed changes, coalesced over `TASK_REPORT_GAP_MS` so the scheduler's
+short tick never rewrites the file; a start clears it as it claims the pid file, so a file a
 crashed daemon left behind never reads as ready for a reused pid. The pid file also records `startedAt`. A start that reclaims a stale pid file (`PidFileClaim` `reclaimed`)
 passes `DaemonStartOptions.previousRun`, so the daemon messages the default chat once (`cli.daemonStoppedUnexpectedly`),
 and `status` reads the same file through `readStalePid`.
@@ -790,6 +794,11 @@ A renderer never assumes a width. `resolveRenderContext(timezone, surface)` answ
 |---|---|---|
 | repl | `table` | 90 |
 | channel (telegram, zalo) | `lines` | 45 |
+| office page chat | `lines` | 45 |
+
+The page runs the terminal's commands but shows their answers in a proportional font in a narrow
+column, so its slash context sets `readsAs: 'channel'`; commands shape their text through
+`answerSurfaceOf(ctx)`, while the dispatcher still checks the command's surfaces against `repl`.
 
 `toFactLines` joins as many facts onto a line as the budget holds and starts a new line instead of
 splitting a fact, because a cut inside one orphans a number from its label.
@@ -838,13 +847,13 @@ arbitrary tool arguments.
 
 The `web` module is the office page: a Preact interface with signals for state and a canvas scene, bundled by Bun and served by the daemon at `GET /` (`src/web/api.ts` exports `officePage`, the one thing the server imports). The page itself is static and unauthenticated; everything it reads is `/v1`, behind a browser session. `main.tsx` refuses to run inside a frame before anything else, clears the old `office.token` storage key, and trades a `#code=` in the address for a session before the first load. The code stays in the address until the daemon answers (a refusal included) and is tried again while no answer comes (no connection, or a 5xx such as a proxy's 502 to 504 while the daemon restarts), so a timeout or a restart does not burn the link; a refusal with error code `locked` reads as the lockout, any other shows its sentence as sent.
 
-**What it may import.** `i18n` at runtime, and `import type` from `app/server/wire/*` only. [scripts/check-dag.ts](../../../scripts/check-dag.ts) carries that one exception (`isWebWireTypeImport`). The wire types are therefore the whole contract: a server change that breaks the page fails `tsc -p src/web/tsconfig.json`, the fourth program of `bun run typecheck`. The socket also checks the contract version it was built against and stops, telling the operator to reload, when the daemon speaks another.
+**What it may import.** `i18n` at runtime, and `import type` from `app/server/wire/*` only. [scripts/check-dag.ts](../../../scripts/check-dag.ts) carries that one exception (`isWebWireTypeImport`). The wire types are therefore the whole contract: a server change that breaks the page fails `tsc -p src/web/tsconfig.json`, the third `tsc` program in `bun run typecheck`. The socket also checks the contract version it was built against and stops, telling the operator to reload, when the daemon speaks another.
 
 **Folders.** [src/web/api/](../../../src/web/api/) is the client: one fetch wrapper with timeouts, the socket with backoff and jitter, `startPoll`, single-flight loads and the sign-in state (code exchange, ended or refused sign-in). [src/web/state/](../../../src/web/state/) is the store, one signal module per concern (session, live runs, chat, agents, cost, preferences, panel). [src/web/text/](../../../src/web/text/) holds the formatters and `tr`. [src/web/ui/](../../../src/web/ui/) is one folder per area with its CSS beside the component. [src/web/scene/](../../../src/web/scene/) is the office. Every user-visible string is a `ui.office.*` key in both catalogs.
 
 **The store and the event hub.** [state/feed.ts](../../../src/web/state/feed.ts) owns the one socket. On every connect it takes a snapshot (`GET /v1/live`), holds the events that arrive meanwhile in a bounded buffer and replays them in order, merges runs by `runId`, and keeps a short list of finished runs so a late event never revives one. It also resyncs on a timer (`LIVE_RESYNC_MS`). A failed snapshot is retried on the backoff and never closes the socket, since closing it would stop the chat turns and commands it carries. After applying an event to the store it publishes it once on the hub in [state/events.ts](../../../src/web/state/events.ts): `onWireEvent(kind | 'any', handler)`, with one handler's fault never stopping another. The scene, the notices and the office life subscribe there and nowhere else.
 
-**Scene layers and their gate.** Under `scene/` the folders are ranked: `world` (floors, rooms, props, seats, doors, nav grid, the seeded generator), `clock`, `data` (the `/v1` signals the scene reads), `sim`, then `render2d`, `render3d` and `sprites` (one rank, so neither renderer reaches the other: both read the shared palettes, light rows and screen faces in `sprites/`), then `overlay` (every DOM piece over the canvas). A file imports its own layer, a lower one and the root files (`types`, `street-types`, `sky-types`, `renderer`, `budgets`, `view`), never a higher one.
+**Scene layers and their gate.** Under `scene/` the folders are ranked: `world` (floors, rooms, props, seats, doors, nav grid, the seeded generator), `clock`, `data` (the `/v1` signals the scene reads), `sim`, then `render2d`, `render3d` and `sprites` (one rank, so neither renderer reaches the other, except that `render3d` reuses the street drawing in `render2d/street/`; both read the shared palettes, light rows and screen faces in `sprites/`), then `overlay` (every DOM piece over the canvas). A file imports its own layer, a lower one and the root files (`types`, `street-types`, `sky-types`, `overlay-types`, `renderer`, `budgets`, `view`), never a higher one.
 
 - [scripts/check-scene-layers.ts](../../../scripts/check-scene-layers.ts), part of `bun run lint:arch`, enforces it. So the sim cannot reach a renderer, nothing reaches the 3D renderer except the composer's lazy `import()`, and `three` is imported only under `render3d/`.
 - `canvas.tsx` is the composer: it mounts one renderer, drives the loop and hosts the overlays.

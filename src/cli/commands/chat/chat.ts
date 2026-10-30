@@ -14,11 +14,14 @@ import { flagBool, flagString, parseIntFlagStrict } from '@/cli/parsing/args'
 import { resolveChatCompletion, resolveChatDisplay } from '@/cli/services'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { agentId as brandAgentId, DEFAULT_AGENT_ID, LOCAL_USER_ID, sessionId } from '@/core/ids'
+import { isEntryAgent } from '@/engine/api'
 import { t } from '@/i18n'
 
 // One operator on one machine, so the CLI has a single stable chat.
 const APPROVAL_MODES = ['manual', 'bypass'] as const
 const CLI_CHANNEL_ID = LOCAL_CHANNEL_ID
+// Plain decimal only: `Number()` alone also takes `0x10`, `1e3` and padded input.
+const USD_AMOUNT_RE = /^\d+(?:\.\d+)?$/
 
 interface FlagOk extends ChatFlags {
   readonly kind: 'value'
@@ -86,7 +89,7 @@ export const handleChat: Command = createCommand({
 })
 
 function readFlags(args: Parameters<Parameters<typeof createCommand>[0]['run']>[0]): FlagResult {
-  const maxTurns = parseIntFlagStrict(flagString(args, 'maxTurns'), '--max-turns')
+  const maxTurns = readMaxTurns(flagString(args, 'maxTurns'))
 
   if (maxTurns.kind === 'error') {
     return maxTurns
@@ -97,7 +100,7 @@ function readFlags(args: Parameters<Parameters<typeof createCommand>[0]['run']>[
   const rawCost = flagString(args, 'maxCostUsd')
   const maxCostUsd = rawCost === undefined ? undefined : Number(rawCost)
 
-  if (maxCostUsd !== undefined && !(Number.isFinite(maxCostUsd) && maxCostUsd > 0)) {
+  if (rawCost !== undefined && !isUsdAmount(rawCost)) {
     return {
       kind: 'error',
       error: { key: 'cli.chatMaxCostInvalid', params: { value: rawCost ?? '' } },
@@ -136,6 +139,19 @@ function readFlags(args: Parameters<Parameters<typeof createCommand>[0]['run']>[
   }
 }
 
+// A run takes at least one turn, so 0 is refused rather than quietly raised to 1.
+function readMaxTurns(raw: string | undefined): ReturnType<typeof parseIntFlagStrict> {
+  const parsed = parseIntFlagStrict(raw, '--max-turns')
+
+  return parsed.kind === 'value' && parsed.value === 0
+    ? { kind: 'error', error: { key: 'cli.chatMaxTurnsZero' } }
+    : parsed
+}
+
+function isUsdAmount(raw: string): boolean {
+  return USD_AMOUNT_RE.test(raw) && Number(raw) > 0
+}
+
 function isApprovalMode(value: string): value is 'manual' | 'bypass' {
   return value === 'manual' || value === 'bypass'
 }
@@ -158,7 +174,7 @@ async function openSession(app: CliApp, flags: ChatFlags): Promise<OpenSessionRe
     }
   }
 
-  if (!app.resolve('agents').has(agent)) {
+  if (!isEntryAgent(app.resolve('agents').get(agent))) {
     return { kind: 'error', error: t(locale, 'cli.agentUnknown', { id: agent }) }
   }
 

@@ -53,6 +53,8 @@ function Editor({ config }: { readonly config: ConfigRead }) {
   const original = useMemo(() => stringifyToml(tree), [tree])
   const { draft, isChanged, markSaved } = useDraft(original)
   const check = useSignal<Check | undefined>(undefined)
+  // Moves with each save, so a second save from this editor is checked against its own write.
+  const version = useSignal(config.version)
   const current = check.value
   const isChecked = current?.kind === 'valid' && current.text === draft.value
 
@@ -66,7 +68,10 @@ function Editor({ config }: { readonly config: ConfigRead }) {
       extra={<CheckControls draft={draft} tree={tree} check={check} />}
       onSave={async () => {
         if (current?.kind === 'valid') {
-          await saveConfigTree(current.tree, 'raw')
+          version.value = await saveConfigTree(
+            { tree: current.tree, version: version.value },
+            'raw'
+          )
           markSaved()
         }
       }}

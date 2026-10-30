@@ -17,6 +17,7 @@ import { isIdRef, toIdHandle, tradingDay } from '@/trading/kernel/instrument'
 import { parseBranded, usage } from '@/trading/kernel/surface/surface'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 import { pageAffordances } from '@/trading/render/affordance'
+import { answerSurfaceOf } from '@/trading/render/format'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const USAGE: 'slash.tradingTransactionsUsage' = 'slash.tradingTransactionsUsage'
@@ -65,7 +66,7 @@ export function createTransactionsCommand(deps: TransactionsCommandDeps): SlashC
 async function run(deps: TransactionsCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const today = resolveRegionDay(deps.markets, deps.defaultRegion, Date.now())
   const defaultLimit =
-    ctx.surface === 'channel'
+    answerSurfaceOf(ctx) === 'channel'
       ? SURFACE_LIMITS.channelHistoryItems
       : SURFACE_LIMITS.maximumHistoryItems
   const parsed = parseTransactionsArgs(ctx.args, { today, defaultLimit })

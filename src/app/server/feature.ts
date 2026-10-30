@@ -138,6 +138,7 @@ function startLiveFeed(app: App): LiveFeed {
     logger: app.resolve('logger'),
     broadcast,
     locale: app.config.locale.language,
+    tasks: app.resolve('taskStatus'),
     describeCommand: (name) => {
       const command = dispatcher.all().find((known) => known.name === name)
 

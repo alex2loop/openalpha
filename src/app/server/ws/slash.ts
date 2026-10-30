@@ -146,6 +146,7 @@ function toSlashRun(
     channel: API_CHANNEL,
     requestId,
     surface: 'repl',
+    readsAs: 'channel',
     userId: LOCAL_USER_ID,
     sessionId,
     // The app has one chat per session, so the session id is also the chat's identity.

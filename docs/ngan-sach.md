@@ -232,7 +232,7 @@ Phí tìm kiếm đến theo hai đường:
 - Brave, DeepSeek, Serper và Tavily tính tiền theo mỗi truy vấn nhưng không trả về gì. Nên mỗi lần bị tính theo
   `cost_per_search_usd` bạn khai. Không khai thì không bị tính.
 - DeepSeek chỉ bị tính khi lượt tìm có kết quả.
-- DuckDuckGo và SearXNG tự dựng thì miễn phí thật.
+- AnySearch, DuckDuckGo và SearXNG tự dựng thì miễn phí thật.
 - Một lần trúng cache và một lời gọi hỏng không bao giờ bị tính tiền.
 
 ### Khi một lát cạn

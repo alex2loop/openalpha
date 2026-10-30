@@ -5,7 +5,7 @@ import { isDaemonRunning, isDaemonStopped } from '@/cli/daemon-guard'
 import { usage } from '@/cli/error-output'
 import { printCommandHelp, printGroupHelp, renderLocalized } from '@/cli/help'
 import { formatArgIssue } from '@/cli/parsing/arg-issue'
-import { parseArgs } from '@/cli/parsing/args'
+import { END_OF_OPTIONS, parseArgs } from '@/cli/parsing/args'
 import { fail, hint, style } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { ConfigError } from '@/core/errors'
@@ -461,8 +461,11 @@ function runnablePath(path: readonly string[], name: string): string {
   return commandPath([BRAND.name, ...path], name)
 }
 
+// A help flag after `--` is a positional, as every other flag is there.
 function hasHelp(argv: readonly string[]): boolean {
-  return argv.some((arg) => HELP_FLAGS.has(arg))
+  const end = argv.indexOf(END_OF_OPTIONS)
+
+  return (end === -1 ? argv : argv.slice(0, end)).some((arg) => HELP_FLAGS.has(arg))
 }
 
 function resolveNeedsForArgs(needs: Required<Needs>, argv: readonly string[]): Required<Needs> {

@@ -93,20 +93,39 @@ Ba nguyên tắc:
 
 ### 2.1 Cài đặt
 
+Mở Terminal (Windows: PowerShell) rồi chạy đúng một dòng theo máy của bạn:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # cài, rồi tự chạy onboard; xong thì mở terminal mới
-# Windows: mở PowerShell rồi chạy
-#   powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"
-
-export ANTHROPIC_API_KEY="sk-ant-..."   # key của nhà cung cấp LLM bạn chọn
-
-openalpha onboard      # thiết lập lần đầu, hoặc chạy lại để đổi mô hình, bot Telegram, mức chi, ngôn ngữ
-openalpha doctor       # kiểm tra nhanh, không cần mạng
-openalpha status       # tổng quan: dịch vụ nền, kênh, cuộc trò chuyện gần đây, chi tiêu hôm nay
+curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
 ```
 
-Key đọc từ biến môi trường, mặc định **không** nằm trong file cấu hình, để bạn không vô tình commit
-secret lên git. Xem hoặc sửa cấu hình: `openalpha config show`, `openalpha config edit`.
+```powershell
+irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex   # Windows
+```
+
+Trình cài tự chạy `openalpha onboard` và hỏi ngôn ngữ, tiền tệ của sổ, dịch vụ AI, mức chi mỗi ngày và
+Telegram. Ở câu dịch vụ AI, có khóa OpenRouter thì chọn OpenRouter và dán khóa; dùng gói ChatGPT thì chọn
+"ChatGPT (subscription)" để đăng nhập trên trình duyệt, không cần khóa. Xong thì mở một cửa sổ mới và chạy:
+
+```bash
+openalpha doctor --online   # gửi một tin ngắn để thử mô hình
+openalpha status            # tổng quan: dịch vụ nền, kênh, cuộc trò chuyện gần đây, chi tiêu hôm nay
+```
+
+Lúc cài chưa nối AI thì làm bây giờ:
+
+```bash
+openalpha key set OPENROUTER_API_KEY   # dán khóa rồi Enter; màn hình không hiện gì là bình thường
+openalpha auth login chatgpt           # hoặc đăng nhập gói ChatGPT
+```
+
+Khóa được giữ trong `~/.openalpha/env` (chỉ bạn đọc được), không nằm trong file cấu hình, để bạn không
+vô tình commit secret lên git; một biến môi trường cùng tên đặt trong shell vẫn được ưu tiên. `openalpha key`
+cho biết khóa nào đã có. Chạy lại `openalpha onboard` bất cứ lúc nào để đổi mô hình, bot Telegram, mức chi
+hay ngôn ngữ. Xem hoặc sửa cấu hình: `openalpha config show`, `openalpha config edit`.
+
+Dùng trên trình duyệt thay cho terminal: `openalpha start --background` rồi `openalpha web`. Các câu lệnh
+`/` trong cẩm nang này gõ được cả ở ô câu lệnh của trang web lẫn trong `openalpha chat`.
 
 ### 2.2 Khai hồ sơ đầu tư
 
@@ -412,7 +431,7 @@ tin.
 Mã tự định tuyến: `/price FPT` biết là cổ phiếu VN, `/price BTC` là crypto. Chỉ khi một mã tồn tại ở
 nhiều thị trường mới phải ghi `thị-trường:mã` (`/price equity-vn:UNI`).
 
-**Cổ phiếu và ETF Mỹ nằm ngoài phạm vi.** `/suggest NVDA` trả lời "mã chưa được hỗ trợ" thay vì đoán
+**Cổ phiếu và ETF Mỹ nằm ngoài phạm vi.** `/suggest NVDA` trả lời "Chưa thị trường nào mình theo dõi có mã NVDA" thay vì đoán
 bừa.
 
 Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.md).
@@ -527,7 +546,7 @@ openalpha start|stop|restart   # dịch vụ nền (bản tin, cảnh báo, tự
 openalpha status               # tổng quan
 openalpha cost                 # chi phí LLM
 openalpha config show|edit|validate
-openalpha provider list        # kiểm tra key và nhà cung cấp
+openalpha provider list        # liệt kê nhà cung cấp và tên biến môi trường của key
 openalpha db backup|export|import|cleanup|stats
 openalpha logs                 # xem log khi có lỗi
 openalpha schedule             # lịch chạy tự động (cron 5 trường)
@@ -677,8 +696,8 @@ chèn một **bảng điểm tháng** đúng một lần ([6.6](#66-bảng-đi�
 2. **`/suggest <mã> lean`** khi chỉ cần một góc nhìn nhanh: một vai phân tích thay vì cả phiên tranh
    luận.
 3. **Hỏi lại cùng mã trong ngày không tốn thêm** - hệ thống trả lại bản đã có.
-4. **Đặt trần ngân sách** trong `openalpha config edit` nếu muốn chắc không vượt mức (mặc định không
-   giới hạn).
+4. **Đặt trần ngân sách** trong `openalpha config edit` nếu muốn chắc không vượt mức (`onboard` ghi
+   `max_daily_usd = 2`; `0` là không giới hạn).
 
 ---
 
@@ -798,7 +817,7 @@ Một phiên chạy kết thúc theo một trong bốn cách:
 **Cổ phiếu VN có bảng "Nhìn nhanh".** Thay vì bảng điểm từng yếu tố, đề xuất chia các yếu tố thành ba
 nhóm: điểm cộng, điểm trừ, và thông tin thêm (tăng trưởng, cùng các yếu tố có điểm gần 0). Trong mỗi
 nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng có vạch điểm (`▲` cộng, `▼` trừ, càng nhiều vạch càng rõ),
-cùng vài con số chính như P/E, P/B, ROE, nợ xấu. Không có ngưỡng cứng kiểu "ROE > 15%", vì điểm đã
+cùng vài con số chính như P/E, P/B, ROE, nợ xấu, khối ngoại mua/bán ròng bao nhiêu trong các phiên gần đây. Không có ngưỡng cứng kiểu "ROE > 15%", vì điểm đã
 được so với chính ngành của mã.
 
 **Bản in nói luôn phí.** Dưới dòng quy mô lệnh có một dòng dạng *"Phí trọn vòng mua-bán khoảng 141 VND
@@ -1009,7 +1028,7 @@ Chỉ áp dụng cho cổ phiếu VN.
 
 | Triệu chứng | Cách xử lý |
 |---|---|
-| Không kết nối được mô hình | `openalpha provider list` kiểm tra key; `openalpha doctor`; `openalpha logs` xem chi tiết 401/429 |
+| Không kết nối được mô hình | `openalpha key` liệt kê key đã đặt; `openalpha doctor --online` kiểm tra kết nối; `openalpha logs` xem chi tiết 401/429 |
 | Lệnh dừng vì chạm ngân sách | `openalpha config edit` nâng trần, hoặc chờ chu kỳ mới |
 | `/brief` báo chưa có bản tin | Bản tin chỉ có ở `equity-vn`; kiểm tra khu vực nhà trong cấu hình có phải `vn` |
 | `/screen gold` báo lỗi | `gold` và `gold-vn` không có sàng lọc - dùng `/price` hoặc `/suggest` theo mã |

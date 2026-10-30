@@ -1,5 +1,4 @@
 <h1 align="center">OpenAlpha</h1>
-<h3 align="center">Khi TradingAgents gặp OpenClaw 👀</h3>
 
 <p align="center">
   <strong>Một hội đồng AI tranh luận trước mỗi đề xuất như <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
@@ -39,62 +38,124 @@ Bạn hỏi một mã, OpenAlpha trả về một kế hoạch: mua ở đâu, c
 </p>
 
 <p align="center">
-  <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> · <a href="#trang-văn-phòng">Trang văn phòng</a> · <a href="#xem-nó-làm-việc">Xem demo</a> · <a href="#vì-sao-dùng-openalpha">Vì sao dùng OpenAlpha</a> · <a href="#an-toàn">An toàn</a> · <a href="#tài-liệu">Tài liệu</a> · <a href="#câu-hỏi-thường-gặp">Hỏi đáp</a> · <a href="#góp-sức-cho-openalpha">Góp sức</a> · <a href="#độ-ổn-định-giấy-phép-và-miễn-trừ">Giấy phép</a>
+  <a href="#xem-nó-làm-việc">Xem demo</a> · <a href="#vì-sao-dùng-openalpha">Vì sao dùng OpenAlpha</a> · <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> · <a href="#dùng-mỗi-ngày">Dùng mỗi ngày</a> · <a href="#trang-văn-phòng">Trang văn phòng</a> · <a href="#an-toàn">An toàn</a> · <a href="#câu-hỏi-thường-gặp">Hỏi đáp</a> · <a href="#tài-liệu">Tài liệu</a> · <a href="#góp-sức-cho-openalpha">Góp sức</a> · <a href="#độ-ổn-định-giấy-phép-và-miễn-trừ">Giấy phép</a>
 </p>
+
+## Xem nó làm việc
+
+Một lần gõ `/suggest FPT` trông như thế này:
+
+<p align="center">
+  <img src="assets/readme/demo.vi.gif" alt="Gõ /suggest và nhận về kế hoạch: giá vào, cắt lỗ, chốt lời, khối lượng, cách quản lý vị thế" width="100%" />
+</p>
+
+### Một phiên chạy thật
+
+Mỗi đề xuất còn nói rõ lý do nên mua, lý do nên chờ, và điều gì sẽ chứng minh nó sai. Đây là một phiên chạy thật, đã rút gọn, che mã, giá và tỷ lệ:
+
+```
+Bạn:  /suggest XXX
+
+💡 XXX (16/10/2026): nên MUA, Mức tin cậy trung bình. Mua khoảng 400 XXX (~9.280.000 VND, chiếm 4,65% danh mục).
+  Vào lệnh xx,xx · Cắt lỗ xx,xx (▼ -x,xx%) · Chốt 33% tại xx,xx (▲ x,xx%) · Mục tiêu xa xx,xx (▲ x,xx%)
+
+🎯 Cách quản lý vị thế
+  Đừng mua đuổi trên xx,xx. Mua trước 200 XXX, phần còn lại mua sau nếu giá quay lại và đứng vững.
+  Đã trừ phí: nếu chạm cắt lỗ, bạn mất khoảng 737.120 VND (0,37% danh mục).
+
+🚩 Mình sai khi
+  Báo cáo năm 2026 ghi nhận dòng tiền hoạt động thấp hơn lợi nhuận.
+
+💬 Tranh luận (3 bước sàng lọc)
+  🐂 Lý do nên mua: định giá hấp dẫn, lợi nhuận tăng, tiền ròng dương.
+  🐻 Lý do nên chờ: lợi nhuận đang cao hơn hẳn bình quân lịch sử; bốn quý gần nhất chưa kiểm toán.
+
+Đây là phân tích, không phải lệnh đặt - quyết định luôn thuộc về bạn.
+  Sau khi khớp lệnh, dán dòng này: /record buy vps equity-vn:XXX 400 xxxxx VND 2026-10-16
+```
+
+### Một ngày dùng OpenAlpha
+
+https://github.com/user-attachments/assets/bea5ab46-72bd-48f5-8a51-9260f09824d9
+
+<p align="center">
+  <sub>70 giây</sub>
+</p>
+
+## Vì sao dùng OpenAlpha
+
+- **Kỷ luật được viết sẵn.** Kế hoạch chốt khi bạn còn tỉnh táo, rồi giữ bạn đi đúng kế hoạch đó, kể cả khi thị trường đi xuống.
+- **Mạnh ở cổ phiếu Việt Nam.** Dữ liệu trong nước, số liệu vĩ mô chính thức kèm câu trích gốc, và luôn tính đến T+2.
+- **Đúng sai đều được chấm.** Mỗi đề xuất được theo dõi tới khi khép lại; `/reflect` cho biết nó đúng được bao nhiêu, và đề xuất sau bớt tự tin khi đề xuất trước sai nhiều.
+
+**Không hợp nếu** bạn tìm một con bot tự chạy lệnh, hoặc muốn có ai đó quyết định thay bạn. Cả hai đều không có ở đây, và đó là chủ ý.
 
 ## Bắt đầu nhanh
 
-Bạn cần một máy macOS, Linux hoặc Windows 10/11 (máy chip ARM cần Windows 11), và một khóa AI. Cách dễ nhất: đăng ký [OpenRouter](https://openrouter.ai) rồi tạo khóa ở [openrouter.ai/keys](https://openrouter.ai/keys). Giữ khóa như mật khẩu, đừng gửi ai. OpenRouter cũng có vài mô hình không tính phí; dùng mô hình trả phí thì thường chỉ tốn vài đô la mỗi tháng.
+Bạn cần hai thứ:
 
-### Thử ngay trong 3 lệnh
+- **Một máy tính** chạy macOS, Linux hoặc Windows 10/11 (máy Windows chip ARM cần Windows 11).
+- **Một cách để dùng AI**, chọn một trong hai:
+  - **Khóa OpenRouter** (dễ nhất): đăng ký [OpenRouter](https://openrouter.ai) rồi tạo khóa ở [openrouter.ai/keys](https://openrouter.ai/keys). Giữ khóa như mật khẩu, đừng gửi ai. OpenRouter có vài mô hình không tính phí; dùng mô hình trả phí thì thường chỉ tốn vài đô la mỗi tháng.
+  - **Gói ChatGPT đang trả tiền**: đăng nhập lúc cài, không cần khóa.
 
-Mở Terminal (macOS: nhấn ⌘ + Space, gõ `Terminal`; Windows: mở PowerShell từ menu Start), chọn đúng một khối theo máy của bạn, chép từng dòng vào rồi nhấn Enter. Phần sau dấu `#` chỉ là ghi chú, không cần gõ:
+Bốn bước đầu mất khoảng 15 phút. Xong bước 3 là bạn đã xem được một đề xuất; bước 4 giúp đề xuất tính đúng theo số tiền bạn có; bước 5 làm sau cũng được.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux: cài đặt, xong thì mở terminal mới
-openalpha key set OPENROUTER_API_KEY   # dán khóa rồi Enter (màn hình không hiện gì là bình thường); lúc cài đã lưu thì bỏ qua
-openalpha chat                    # rồi gõ /refresh (chờ khoảng 5 phút), xong thì gõ /suggest FPT
-```
-
-```powershell
-powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows: cài đặt, xong thì mở cửa sổ PowerShell mới
-openalpha key set OPENROUTER_API_KEY   # dán khóa rồi Enter (màn hình không hiện gì là bình thường); lúc cài đã lưu thì bỏ qua
-openalpha chat                    # rồi gõ /refresh (chờ khoảng 5 phút), xong thì gõ /suggest FPT
-```
-
-Như vậy là đủ để xem một đề xuất. Muốn đề xuất có khối lượng vừa với túi tiền của bạn thì làm thêm bước 4 bên dưới.
-
-### Cài đầy đủ trong 5 bước
-
-Đã chạy 3 lệnh ở trên thì bắt đầu từ bước 3.
-
-**1. Cài đặt.** Một dòng, tải về một tệp chạy duy nhất rồi hỏi bạn vài câu: ngôn ngữ, tiền tệ của sổ, mô hình AI, mức chi mỗi ngày, Telegram nếu muốn. Tiền tệ chỉ chọn một lần: thiết lập hồ sơ rồi thì không đổi được. Muốn đổi phần còn lại thì chạy `openalpha onboard` bất cứ lúc nào.
+**1. Cài đặt.** Mở Terminal (macOS: nhấn ⌘ + Space, gõ `Terminal`; Windows: mở PowerShell từ menu Start), chép dòng đúng với máy của bạn vào rồi nhấn Enter. Phần sau dấu `#` chỉ là ghi chú, không cần gõ.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
 ```
 
 ```powershell
-powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"   # Windows
+irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex   # Windows
 ```
 
-**2. Lưu khóa AI và kiểm tra.** `onboard` sẽ hỏi lưu giúp; nếu chưa thì mở một terminal mới:
+Trình cài tải về một tệp chạy duy nhất rồi hỏi vài câu; cứ nhấn Enter để nhận lựa chọn gợi ý:
+
+- **Ngôn ngữ** và **tiền tệ của sổ** (thường là VND). Tiền tệ chỉ chọn được một lần, nên chọn đúng loại tiền bạn dùng.
+- **Dịch vụ AI.** Có khóa OpenRouter thì chọn OpenRouter rồi dán khóa khi được hỏi. Dùng gói ChatGPT thì chọn "ChatGPT (subscription)": trình duyệt mở ra, bạn đăng nhập tài khoản ChatGPT như thường lệ; OpenAlpha dùng gói của bạn, không cần khóa và không tính thêm phí AI.
+- **Mức chi mỗi ngày** cho AI (tính bằng đô la, chặn chi quá mức này) và **Telegram** nếu muốn nhận tin qua điện thoại.
+
+Cuối cùng nó gửi thử một tin ngắn tới mô hình; thấy mô hình trả lời là xong. Muốn đổi lại câu trả lời nào (trừ tiền tệ) thì chạy `openalpha onboard` bất cứ lúc nào.
+
+**2. Mở cửa sổ mới và kiểm tra.** Đóng cửa sổ cũ, mở một cửa sổ mới (để máy nhận lệnh `openalpha`), rồi chạy:
 
 ```bash
-openalpha key set OPENROUTER_API_KEY   # gõ khóa ở chế độ ẩn; khóa được giữ trong ~/.openalpha/env
 openalpha doctor --online              # gửi một tin ngắn để thử mô hình
 ```
 
-`openalpha key` cho biết khóa nào đã có và lấy từ đâu. Hai lệnh này dùng được cả trên Windows.
+Lúc cài bỏ qua bước nối AI, hoặc thử mô hình báo thiếu khóa, thì làm bây giờ rồi chạy lại lệnh trên:
 
-**3. Nạp dữ liệu và khai khẩu vị.** Chạy `openalpha chat`, rồi gõ:
-
-```text
-/refresh     # lần đầu: nạp danh sách mã, giá, báo cáo tài chính (không gọi AI, khoảng 5 phút)
-/setup       # chọn mức rủi ro và thị trường bạn chơi
+```bash
+openalpha key set OPENROUTER_API_KEY   # khóa OpenRouter: dán khóa rồi Enter; màn hình không hiện gì là bình thường
+openalpha auth login chatgpt           # hoặc gói ChatGPT: đăng nhập trên trình duyệt
 ```
 
-**4. Ghi số tiền bạn có, theo thị trường bạn chơi.** Khối lượng của mọi đề xuất đều tính từ sổ này, nên đừng bỏ qua. Đây chỉ là sổ ghi chép trên máy, không chuyển tiền thật. Các dòng bắt đầu bằng `/` gõ trong `openalpha chat` (hoặc Telegram, Zalo), không gõ thẳng ở terminal.
+`openalpha key` cho biết khóa nào đã có và lấy từ đâu; khóa được giữ trong `~/.openalpha/env`, chỉ bạn đọc được. Các lệnh này dùng được cả trên Windows. Gói Claude (Pro, Max) không đăng nhập được kiểu này; muốn dùng Claude mà không cần khóa thì nối OpenAlpha vào Claude Code qua MCP ([Nâng cao](#nâng-cao)).
+
+**3. Mở OpenAlpha và xem đề xuất đầu tiên.** Có hai cách, dùng cách nào cũng được và đổi qua lại lúc nào cũng được, vì cả hai đọc chung một sổ:
+
+- **Trên trình duyệt (dễ nhất nếu bạn ngại terminal).** Chạy hai lệnh dưới đây; trang [văn phòng](#trang-văn-phòng) mở ra, có ô câu lệnh ở dưới và các thẻ danh mục, đề xuất bên phải.
+
+  ```bash
+  openalpha start --background   # chạy dịch vụ nền, nơi phục vụ trang web
+  openalpha web                  # mở trang trong trình duyệt (liên kết đăng nhập dùng một lần, 5 phút)
+  ```
+
+  Lần sau muốn mở lại thì chỉ cần `openalpha web`.
+- **Trong terminal.** Chạy `openalpha chat` để mở cuộc trò chuyện với trợ lý ngay trong cửa sổ đó.
+
+Từ đây, các dòng bắt đầu bằng `/` gõ vào ô câu lệnh của trang web hoặc vào `openalpha chat` (hoặc Telegram, Zalo), không gõ thẳng ở terminal. Gõ lần lượt:
+
+```text
+/refresh       # nạp danh sách mã, giá, báo cáo tài chính (không gọi AI; lần đầu khoảng 5 phút)
+/suggest FPT   # trợ lý phân tích một mã: nên mua hay chờ, giá vào, cắt lỗ, chốt lời, kèm lý do
+```
+
+Lần đầu `/refresh` lâu vì phải tải nhiều; những lần sau nhanh hơn nhiều. Trong lúc chờ, cứ để cửa sổ hoặc trang đó mở.
+
+**4. Khai khẩu vị và ghi số tiền bạn có.** Gõ `/setup` rồi trả lời vài câu: mức rủi ro chịu được và thị trường bạn chơi. Sau đó ghi số tiền bạn có ở từng nơi; đề xuất mua bao nhiêu đều tính từ sổ này, nên đừng bỏ qua. Đây chỉ là sổ ghi chép trên máy: OpenAlpha không nối vào tài khoản chứng khoán và không chuyển tiền thật. Thay số tiền và ngày trong ví dụ bằng của bạn; ngày viết theo kiểu năm-tháng-ngày, số tiền viết liền không dấu chấm. Mở mục thị trường bạn chơi:
 
 <details open>
 <summary><b>Cổ phiếu Việt Nam</b></summary>
@@ -155,46 +216,56 @@ Nhóm này tắt sẵn. Bật nó lên rồi ghi như cổ phiếu; vàng và ti
 
 ```text
 /profile enable gold-vn
-/price SJC                     # giá mua vào, bán ra và chênh lệch hôm nay
+/price gold-vn:SJC             # giá mua vào, bán ra và chênh lệch hôm nay
 ```
 
 ```text
 /record deposit gold-shop 150000000 VND 2026-08-14
-/record buy SJC 1 140000000              # 1 lượng; tự điền tiệm vàng, VND và hôm nay
-/record sell SJC 1 145000000             # bán lại cho tiệm, theo giá tiệm mua vào
+/record buy gold-vn:SJC 1 140000000      # 1 lượng; tự điền tiệm vàng, VND và hôm nay
+/record sell gold-vn:SJC 1 145000000     # bán lại cho tiệm, theo giá tiệm mua vào
 ```
 
-Mua lẻ thì ghi theo lượng: 1 chỉ là `0.1`, giá vẫn ghi theo lượng. Vàng nhẫn ghi `PNJ-RING` hoặc `DOJI-RING`. Cắt lỗ và mục tiêu tính theo giá tiệm mua lại, tức số tiền bạn thực nhận khi bán. Muốn tách sổ theo từng tiệm (SJC, PNJ...) thì khai như SSI ở trên, với `markets = ["gold-vn"]` và `fees = { buy = 0, sell = 0 }`, rồi ghi tên tiệm thay cho `gold-shop`.
+Chữ `gold-vn:` cho biết đây là vàng, không phải cổ phiếu trùng mã SJC. Mua lẻ thì ghi theo lượng: 1 chỉ là `0.1`, giá vẫn ghi theo lượng. Vàng nhẫn ghi `PNJ-RING` hoặc `DOJI-RING`. Cắt lỗ và mục tiêu tính theo giá tiệm mua lại, tức số tiền bạn thực nhận khi bán. Muốn tách sổ theo từng tiệm (SJC, PNJ...) thì khai như SSI ở trên, với `markets = ["gold-vn"]` và `fees = { buy = 0, sell = 0 }`, rồi ghi tên tiệm thay cho `gold-shop`.
 
 </details>
 
 Vài điều dùng được cho mọi thị trường:
 
-- **Rút tiền về:** gõ `/record withdrawal` kèm nơi giữ, số tiền, tiền tệ và ngày, ví dụ `/record withdrawal vps 1000000 VND 2026-08-21`. Ngày luôn viết theo kiểu năm-tháng-ngày.
+- **Rút tiền về:** gõ `/record withdrawal` kèm nơi giữ, số tiền, tiền tệ và ngày, ví dụ `/record withdrawal vps 1000000 VND 2026-08-21`.
 - **Lỡ ghi nhầm?** Gõ `/transactions` để thấy mã của từng dòng. Sửa bằng `/update <mã bút toán> ...`. Muốn xóa thì gõ `/delete <mã bút toán>` để xem lại cho chắc, rồi `/delete <mã bút toán> confirm`.
 - **Cổ tức, chia tách, chuyển tiền giữa hai nơi:** gõ riêng `/record`, trợ lý sẽ liệt kê đủ các kiểu ghi và cách viết từng kiểu.
 - **Vừa sửa `config.toml`** (ví dụ thêm công ty chứng khoán hay tiệm vàng)? Gõ `/exit` để thoát rồi mở lại `openalpha chat` là xong. Nếu OpenAlpha đang chạy nền thì chạy `openalpha restart` thay vào đó: nó giữ thiết lập cũ cho tới khi khởi động lại, và khi `[api]` bật thì cuộc trò chuyện chạy ngay bên trong nó.
 
 Hướng dẫn đầy đủ về ghi sổ: [cẩm nang, phần ghi sổ](docs/cam-nang.md#24-ghi-sổ-danh-mục).
 
-**5. Chạy nền và nhận bản tin sáng (không bắt buộc).** Gõ `/exit` để thoát cuộc trò chuyện, rồi:
+**5. Chạy nền và nhận bản tin sáng (không bắt buộc).** Bỏ qua bước này nếu bạn chỉ mở OpenAlpha khi cần. Làm bước này khi muốn nó tự nạp dữ liệu, tự gửi bản tin mỗi sáng và báo động giá cả khi bạn không mở nó. Dùng terminal thì gõ `/exit` để thoát cuộc trò chuyện trước; dùng trang web thì dịch vụ nền đã chạy từ bước 3, bỏ qua dòng đầu:
 
 ```bash
 openalpha start --background   # chạy dịch vụ nền (daemon); dữ liệu cũng tự nạp từ đây
-openalpha autostart enable     # tự chạy mỗi lần đăng nhập
+openalpha autostart enable     # tự chạy mỗi lần đăng nhập, kể cả sau khi khởi động lại máy
 openalpha status               # còn chạy không; openalpha stop để dừng
 ```
 
 Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/brief enable 08:00` trong kênh đó để nhận bản tin trước giờ mở cửa. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
 
 <details>
-<summary><b>Windows, cấu hình tối giản, mô hình, cập nhật, gỡ cài đặt</b></summary>
+<summary><b>Dùng trên Windows, đổi mô hình AI, cập nhật và gỡ cài đặt</b></summary>
 
-- **Không cần quyền admin.** `openalpha.exe` nằm ở `%USERPROFILE%\.local\bin` và thư mục này được thêm vào PATH của tài khoản bạn. Gõ `openalpha` mà báo không nhận ra lệnh thì mở một cửa sổ PowerShell mới, hoặc chạy thẳng `& "$HOME\.local\bin\openalpha.exe"`. Dữ liệu và cấu hình nằm ở `%USERPROFILE%\.openalpha`, cũng chính là `~/.openalpha` trong hướng dẫn này.
-- **Windows Defender chặn `openalpha.exe`?** Tệp chạy chưa được ký số nên đôi khi bị báo nhầm. Trình cài đã đối chiếu tệp với `SHA256SUMS` của bản phát hành; muốn tự kiểm thì chạy `Get-FileHash "$HOME\.local\bin\openalpha.exe"` rồi so với dòng của bản bạn cài (`openalpha-windows-x64.exe`, hoặc `openalpha-windows-arm64.exe` trên máy ARM) trên trang [Releases](https://github.com/alex2loop/openalpha/releases). Khớp rồi thì thêm ngoại lệ cho cả thư mục, trong PowerShell chạy bằng quyền Admin: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Đừng tắt hẳn diệt virus.
-- **Máy Windows chip ARM?** Trình cài tự chọn bản ARM chạy thẳng trên máy; bản x64 cài trước đó sẽ chuyển sang bản ARM khi bạn chạy lại lệnh cài.
-- **Tiếng Việt hiện thành ký tự lạ?** Dùng Windows Terminal thay cho cửa sổ console cũ. **Thích WSL2?** Lệnh `curl ... | sh` chạy được trong WSL2, với thư mục `~/.openalpha` riêng.
-- **Không muốn trả lời từng câu lúc cài?** Lấy [config.minimal.toml](config.minimal.toml): chạy được ngay, chỉ cần khóa OpenRouter, mỗi dòng đều có chú thích. Lệnh này ghi đè `config.toml` nếu bạn đã có:
+**Dùng trên Windows**
+
+- **Không cần quyền admin.** OpenAlpha cài vào thư mục `%USERPROFILE%\.local\bin` của riêng tài khoản bạn. Dữ liệu và cấu hình nằm ở `%USERPROFILE%\.openalpha`; trong hướng dẫn này thư mục đó được viết là `~/.openalpha`.
+- **Gõ `openalpha` mà báo không có lệnh này?** Mở một cửa sổ PowerShell mới rồi thử lại. Vẫn không được thì chạy thẳng `& "$HOME\.local\bin\openalpha.exe"`.
+- **Windows Defender chặn `openalpha.exe`?** Tệp chưa được ký số nên đôi khi bị báo nhầm là virus. Trình cài đã kiểm tra tệp trước khi cài. Muốn tự kiểm lại:
+  1. Chạy `Get-FileHash "$HOME\.local\bin\openalpha.exe"` để lấy mã của tệp.
+  2. So với dòng `openalpha-windows-x64.exe` (máy chip ARM: `openalpha-windows-arm64.exe`) trong tệp `SHA256SUMS` trên trang [Releases](https://github.com/alex2loop/openalpha/releases).
+  3. Khớp thì mở PowerShell bằng quyền Admin và cho phép thư mục đó: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Đừng tắt hẳn phần mềm diệt virus.
+- **Máy chip ARM?** Trình cài tự chọn bản dành cho ARM. Trước đây lỡ cài bản x64 thì chạy lại lệnh cài là được.
+- **Tiếng Việt hiện thành ký tự lạ?** Dùng Windows Terminal thay cho cửa sổ dòng lệnh cũ.
+- **Quen dùng WSL2?** Lệnh cài cho Linux (`curl ... | sh`) chạy được trong WSL2; khi đó dữ liệu nằm riêng trong WSL2.
+
+**Cấu hình và mô hình AI**
+
+- **Muốn bỏ qua các câu hỏi lúc cài?** Tải sẵn [config.minimal.toml](config.minimal.toml): tệp cấu hình tối giản, chỉ cần khóa OpenRouter là chạy, dòng nào cũng có chú thích. Lệnh dưới đây **ghi đè** `config.toml` nếu bạn đã có:
 
   ```bash
   curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -o ~/.openalpha/config.toml --create-dirs
@@ -204,7 +275,8 @@ Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/b
   New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -OutFile "$HOME\.openalpha\config.toml"
   ```
 
-- **Đổi mô hình, thêm nhà cung cấp AI dự phòng:** chạy `openalpha onboard` rồi chọn "Mô hình AI", hoặc sửa `[[models]]` trong `config.toml`. Mục đầu là mô hình chính, các mục sau chỉ được dùng khi mục trước lỗi hay treo. `openalpha provider list` cho biết tên nhà cung cấp (hơn 70), `openalpha provider models` cho biết mô hình và giá. Chi tiết: [mô hình và nhà cung cấp](docs/tro-ly.md#mô-hình-và-nhà-cung-cấp) · [các khóa của `[[models]]`](docs/cau-hinh.md#models-bắt-buộc-ít-nhất-một) · [danh mục nhà cung cấp](docs/cau-hinh.md#danh-mục-nhà-cung-cấp).
+- **Đổi mô hình AI:** chạy `openalpha onboard` rồi chọn "Mô hình AI". `openalpha provider list` liệt kê hơn 70 nhà cung cấp, `openalpha provider models` cho biết các mô hình và giá.
+- **Thêm mô hình dự phòng:** sửa `[[models]]` trong `config.toml`. Mục đầu là mô hình chính; mục sau chỉ được dùng khi mục trước lỗi hoặc treo:
 
   ```toml
   [[models]]                                   # mô hình chính
@@ -218,71 +290,32 @@ Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/b
   api_key_env = "ANTHROPIC_API_KEY"
   ```
 
-- **Mọi tùy chọn cấu hình:** [config.sample.toml](config.sample.toml) · [docs/cau-hinh.md](docs/cau-hinh.md). Không muốn dùng khóa AI thì chạy mô hình ngay trên máy qua Ollama hoặc vLLM.
-- **Cài trên máy chủ hay trong CI?** Đặt `OPENALPHA_NO_ONBOARD=1` để bỏ bước hỏi; đầu [install.sh](install.sh) và [install.ps1](install.ps1) liệt kê đủ các tùy chọn, ví dụ `OPENALPHA_VERSION` để cài đúng một bản.
-- **Cập nhật:** CLI nhắc mỗi ngày một lần, kèm điều đáng chú ý của bản mới; trong cuộc trò chuyện riêng, bot nhắc mỗi tuần (bản quan trọng thì mỗi ngày). `openalpha upgrade` lên bản mới mà giữ nguyên dữ liệu và cấu hình.
-- **Sao lưu và làm lại sổ:** `openalpha db backup` chụp lại sổ bất cứ lúc nào, kể cả khi dịch vụ nền đang chạy; `openalpha db restore <tệp> --yes` đưa sổ về đúng bản đó. Muốn làm lại cơ sở dữ liệu mà vẫn giữ sổ: `openalpha stop`, `openalpha db export --out ./keep`, `openalpha db reset --yes`, `openalpha db import --in ./keep`, rồi `openalpha start --background` và chạy `/refresh` để tải lại dữ liệu thị trường. Khôi phục và reset đều cần dừng dịch vụ nền trước ([chi tiết](docs/luu-tru.md#xuất-và-nhập)).
-- **Gỡ cài đặt:** `openalpha stop`, rồi xóa tệp `openalpha` (mặc định ở `~/.local/bin`; trên Windows là `openalpha.exe` và `openalpha.exe.old` nếu có). Thư mục `~/.openalpha` chứa toàn bộ sổ và cấu hình: chạy `openalpha db export --out <thư-mục>` trước nếu muốn giữ.
+- **Không muốn trả tiền AI cho ai cả?** Chạy mô hình ngay trên máy qua Ollama hoặc vLLM.
+- **Tra cứu thêm:** [mô hình và nhà cung cấp](docs/tro-ly.md#mô-hình-và-nhà-cung-cấp) · [các khóa của `[[models]]`](docs/cau-hinh.md#models-bắt-buộc-ít-nhất-một) · [danh mục nhà cung cấp](docs/cau-hinh.md#danh-mục-nhà-cung-cấp) · [mọi tùy chọn cấu hình](docs/cau-hinh.md) · [config.sample.toml](config.sample.toml) (tệp mẫu đầy đủ).
+
+**Cập nhật, sao lưu và gỡ cài đặt**
+
+- **Cập nhật:** khi có bản mới, terminal nhắc mỗi ngày một lần kèm điểm đáng chú ý; bot trong chat riêng nhắc mỗi tuần (bản quan trọng thì mỗi ngày). Chạy `openalpha upgrade` để lên bản mới; dữ liệu và cấu hình giữ nguyên.
+- **Sao lưu:** `openalpha db backup` chụp lại sổ bất cứ lúc nào, kể cả khi dịch vụ nền đang chạy. Muốn quay về bản đã chụp thì dừng dịch vụ nền (`openalpha stop`) rồi chạy `openalpha db restore <tệp> --yes`.
+- **Làm lại cơ sở dữ liệu mà vẫn giữ sổ** (ít khi cần):
+
+  ```bash
+  openalpha stop                        # dừng dịch vụ nền trước
+  openalpha db export --out ./keep      # xuất sổ ra thư mục keep
+  openalpha db reset --yes              # xóa và tạo lại cơ sở dữ liệu
+  openalpha db import --in ./keep       # nạp lại sổ
+  openalpha start --background          # chạy lại, rồi gõ /refresh để tải lại dữ liệu thị trường
+  ```
+
+  Chi tiết: [xuất và nhập](docs/luu-tru.md#xuất-và-nhập).
+- **Cài trên máy chủ hay trong CI?** Đặt `OPENALPHA_NO_ONBOARD=1` để bỏ các câu hỏi. Đầu tệp [install.sh](install.sh) và [install.ps1](install.ps1) liệt kê mọi tùy chọn, ví dụ `OPENALPHA_VERSION` để cài đúng một bản.
+- **Gỡ cài đặt:**
+  1. Muốn giữ sổ thì chạy `openalpha db export --out <thư-mục>` trước.
+  2. Chạy `openalpha stop`.
+  3. Xóa tệp `openalpha` trong `~/.local/bin` (Windows: `openalpha.exe`, và `openalpha.exe.old` nếu có).
+  4. Xóa thư mục `~/.openalpha` nếu muốn bỏ luôn sổ và cấu hình.
 
 </details>
-
-## Trang văn phòng
-
-<p align="center">
-  <img src="assets/readme/office.vi.gif" alt="Trang văn phòng của OpenAlpha: một văn phòng pixel nhìn từ trên xuống với kho dữ liệu, thư viện, phòng họp, sảnh, bàn cảnh báo và phòng trợ lý; các nhân vật đi lại theo phiên chạy thật của dịch vụ nền, dải giá chạy phía trên và ô câu lệnh ở dưới" width="100%" />
-</p>
-
-Trang văn phòng là một ô cửa kính nhìn vào dịch vụ nền: trợ lý, nhóm nghiên cứu và các agent của bạn làm việc trong từng phòng, và mỗi chuyển động là một phiên chạy, một bước hay một câu hỏi đang chờ bạn, không có gì diễn cho vui. Bên cạnh là danh mục, đề xuất, cuộc trò chuyện và ô câu lệnh. Trang không bao giờ đặt lệnh và không tự khởi động phiên chạy AI nào.
-
-Để mở trang, chạy:
-
-```bash
-openalpha start --background     # dịch vụ nền phục vụ trang (đang chạy rồi thì bỏ qua)
-openalpha web                    # in liên kết đăng nhập dùng một lần (5 phút) và mở trình duyệt
-```
-
-Trang hiện gì, cách dùng và cách mở từ máy khác: [trang văn phòng](docs/van-hanh.md#trang-văn-phòng) · [chạy API trên máy chủ](docs/van-hanh.md#chạy-api-trên-máy-chủ). Cùng API đó cũng phục vụ ứng dụng của riêng bạn: xem [Nâng cao](#nâng-cao).
-
-## Xem nó làm việc
-
-Gõ `/suggest FPT`, nhận về một kế hoạch: mua ở đâu, cắt lỗ ở đâu, chốt lời ở đâu và mua bao nhiêu.
-
-<p align="center">
-  <img src="assets/readme/demo.vi.gif" alt="Gõ /suggest và nhận về kế hoạch: giá vào, cắt lỗ, chốt lời, khối lượng, cách quản lý vị thế" width="100%" />
-</p>
-
-### Một phiên chạy thật
-
-Mỗi đề xuất còn nói rõ lý do nên mua, lý do nên chờ, và điều gì sẽ chứng minh nó sai. Đây là một phiên chạy thật, đã rút gọn, che mã, giá và tỷ lệ:
-
-```
-Bạn:  /suggest XXX
-
-💡 XXX (16/10/2026): nên MUA, Mức tin cậy trung bình. Mua khoảng 400 XXX (~9.280.000 VND, chiếm 4,65% danh mục).
-  Vào lệnh xx,xx · Cắt lỗ xx,xx (▼ -x,xx%) · Chốt 33% tại xx,xx (▲ x,xx%) · Mục tiêu xa xx,xx (▲ x,xx%)
-
-🎯 Cách quản lý vị thế
-  Đừng mua đuổi trên xx,xx. Mua trước 200 XXX, phần còn lại mua sau nếu giá quay lại và đứng vững.
-  Đã trừ phí: nếu chạm cắt lỗ, bạn mất khoảng 737.120 VND (0,37% danh mục).
-
-🚩 Mình sai khi
-  Báo cáo năm 2026 ghi nhận dòng tiền hoạt động thấp hơn lợi nhuận.
-
-💬 Tranh luận (3 bước sàng lọc)
-  🐂 Lý do nên mua: định giá hấp dẫn, lợi nhuận tăng, tiền ròng dương.
-  🐻 Lý do nên chờ: lợi nhuận đang cao hơn hẳn bình quân lịch sử; bốn quý gần nhất chưa kiểm toán.
-
-Đây là phân tích, không phải lệnh đặt - quyết định luôn thuộc về bạn.
-  Sau khi khớp lệnh, dán dòng này: /record buy vps equity-vn:XXX 400 xxxxx VND 2026-10-16
-```
-
-### Một ngày dùng OpenAlpha
-
-https://github.com/user-attachments/assets/bea5ab46-72bd-48f5-8a51-9260f09824d9
-
-<p align="center">
-  <sub>70 giây</sub>
-</p>
 
 ## Dùng mỗi ngày
 
@@ -307,14 +340,15 @@ Câu lệnh gọi AI tốn bao nhiêu tùy mô hình bạn chọn: mô hình r�
 
 Các con số trong README chỉ minh họa cú pháp, không phải gợi ý mua bán. Đủ mọi câu lệnh: `/help` trong cuộc trò chuyện, hoặc [bản đồ lệnh](docs/cam-nang.md#4-bản-đồ-lệnh).
 
-## Vì sao dùng OpenAlpha
+## Trang văn phòng
 
-- **Con số do code tính, AI chỉ giải thích.** Giá vào, cắt lỗ, mục tiêu và khối lượng được tính sẵn; AI tranh luận vì sao nên mua và vì sao nên tránh.
-- **Kỷ luật được viết sẵn.** Kế hoạch chốt khi bạn còn tỉnh táo, rồi giữ bạn đi đúng kế hoạch đó, kể cả khi thị trường đi xuống.
-- **Mạnh ở cổ phiếu Việt Nam.** Dữ liệu trong nước, số liệu vĩ mô chính thức kèm câu trích gốc, và luôn tính đến T+2.
-- **Đúng sai đều được chấm.** Mỗi đề xuất được theo dõi tới khi khép lại; `/reflect` cho biết nó đúng được bao nhiêu, và đề xuất sau bớt tự tin khi đề xuất trước sai nhiều.
+<p align="center">
+  <img src="assets/readme/office.vi.gif" alt="Trang văn phòng của OpenAlpha: một văn phòng pixel nhìn từ trên xuống với kho dữ liệu, thư viện, phòng họp, sảnh, bàn cảnh báo và phòng trợ lý; các nhân vật đi lại theo phiên chạy thật của dịch vụ nền, dải giá chạy phía trên và ô câu lệnh ở dưới" width="100%" />
+</p>
 
-**Hợp với bạn nếu** bạn tự quản danh mục của mình, muốn thấy lập luận đằng sau mỗi đề xuất thay vì chỉ thấy một mã được phím, và muốn khóa API nằm trên máy mình. **Không hợp nếu** bạn tìm một con bot tự chạy lệnh, hoặc muốn có ai đó quyết định thay bạn. Cả hai đều không có ở đây, và đó là chủ ý.
+Trang văn phòng là một ô cửa kính nhìn vào dịch vụ nền: trợ lý, nhóm nghiên cứu và các agent của bạn làm việc trong từng phòng, và mỗi chuyển động là một phiên chạy, một bước hay một câu hỏi đang chờ bạn, không có gì diễn cho vui. Bên cạnh là danh mục, đề xuất, cuộc trò chuyện và ô câu lệnh. Trang không bao giờ đặt lệnh và không tự khởi động phiên chạy AI nào.
+
+Mở bằng `openalpha web` khi dịch vụ nền đang chạy ([bước 3](#bắt-đầu-nhanh) ở trên). Trang hiện gì, cách dùng và cách mở từ máy khác: [trang văn phòng](docs/van-hanh.md#trang-văn-phòng) · [chạy API trên máy chủ](docs/van-hanh.md#chạy-api-trên-máy-chủ). Cùng API đó cũng phục vụ ứng dụng của riêng bạn: xem [Nâng cao](#nâng-cao).
 
 ## Cách nó hoạt động
 
@@ -328,13 +362,13 @@ Với mỗi mã bạn hỏi, sáu nhà phân tích AI tranh luận theo ba vòng
 
 <p align="center"><img src="assets/readme/discipline.vi.png" alt="Bỏ cảm xúc, giữ kỷ luật: thói quen cảm xúc và quy tắc OpenAlpha thay thế" width="100%" /></p>
 
-**Không FOMO, không gồng lỗ, không "chắc nó hồi".** Cái khó hiếm khi là kiến thức, mà là lúc bấm nút. Kế hoạch được chốt khi bạn còn tỉnh táo, rồi giữ bạn đi đúng kế hoạch, và mỗi đề xuất được theo dõi tới khi khép lại, nên `/reflect` cho thấy thành tích thật của chúng.
+**Không FOMO, không gồng lỗ, không "chắc nó hồi".** Cái khó hiếm khi là kiến thức, mà là lúc bấm nút.
 
 <details>
 <summary><b>Cách nó giữ kỷ luật, kể cả khi thị trường đi xuống</b></summary>
 
 - **Cắt lỗ chỉ được nâng, không được hạ.** Không có nút "dời xuống thêm chút nữa".
-- **Không cần dán mắt vào bảng điện.** Trong Telegram hoặc Zalo, đặt mốc bằng `/alert create FPT above 130000` (giá đầy đủ, như khi `/record`), giá chạm là hệ thống nhắn bạn.
+- **Không cần dán mắt vào bảng điện.** Đặt mốc bằng `/alert create FPT above 130000` (giá đầy đủ, như khi `/record`); giá chạm mốc là OpenAlpha nhắn bạn qua Telegram hoặc Zalo.
 
 **Khi thị trường đi xuống,** mục tiêu không phải đoán đáy, mà là còn đủ vốn để chơi tiếp:
 
@@ -345,6 +379,25 @@ Với mỗi mã bạn hỏi, sáu nhà phân tích AI tranh luận theo ba vòng
 </details>
 
 OpenAlpha không hứa bạn không lỗ. Nó giúp mỗi khoản lỗ nhỏ, có kế hoạch và biết trước.
+
+<details>
+<summary><b>Chỉnh mức cắt lỗ và chốt lời theo ý bạn</b></summary>
+
+OpenAlpha không dùng một mức % chung cho mọi mã, vì lãi 8% là xa với một mã ngân hàng đi chậm nhưng chỉ là dao động vài phiên với một mã nhỏ hay giật. Thay vào đó, cắt lỗ đặt theo mức dao động thường ngày của từng mã, còn mục tiêu xa gấp vài lần khoảng lỗ đó, nên tỷ lệ lời/lỗ luôn đúng như bạn chọn.
+
+Muốn kiểu quen thuộc "lỗ tối đa 8%" thì thêm vào `config.toml` rồi khởi động lại:
+
+```toml
+[trading.markets.equity-vn]
+maximum_stop_loss = 0.08   # cắt lỗ không bao giờ xa quá 8% dưới giá vào
+reward_risk = 3            # mục tiêu xa gấp 3 lần khoảng lỗ: lỗ 8% thì mục tiêu khoảng +24%
+```
+
+- **Chốt lời từng phần:** khi giá lên được một khoảng bằng khoảng lỗ, OpenAlpha gợi ý bán một phần để khóa lãi (mặc định một phần ba); phần còn lại đi tiếp, với mức cắt lỗ được nâng dần theo giá. Muốn bán một nửa thì gõ `/profile set take-profit-tranche-pct 0.5`.
+- **Đổi các mức này** thì thị trường đó bắt đầu một sổ thành tích mới, để `/reflect` không trộn kế hoạch cũ với kế hoạch mới.
+- Chi tiết: [đặt cắt lỗ và mục tiêu](docs/giao-dich.md#đặt-cắt-lỗ-và-mục-tiêu-theo-từng-thị-trường).
+
+</details>
 
 ### Thị trường và dữ liệu
 
@@ -365,33 +418,36 @@ Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã 
   <img src="assets/readme/sources.vi.png" alt="Nguồn dữ liệu chia theo từng thị trường: cổ phiếu Việt Nam, tiền mã hóa, vàng trong nước, vàng thế giới, vĩ mô Việt Nam, vĩ mô Mỹ và liên thị trường" width="100%" />
 </p>
 
-OpenAlpha lấy dữ liệu từ 37 nguồn, chia theo từng thị trường; nguồn nào lỗi thì nguồn kế tiếp thay, theo thứ tự đã đo ([nguồn dữ liệu](docs/nguon-du-lieu.md)). Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì phiên chạy tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo, Zalo cá nhân hoặc trang văn phòng.
+OpenAlpha lấy dữ liệu từ 37 nguồn, chia theo từng thị trường; nguồn nào lỗi thì nguồn dự phòng tự thay vào ([nguồn dữ liệu](docs/nguon-du-lieu.md)). Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì phiên chạy tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo, Zalo cá nhân hoặc trang văn phòng.
 
-Từ OpenAI, Anthropic, Gemini, DeepSeek tới cổng trung gian như OpenRouter hay mô hình chạy ngay trên máy qua Ollama: gõ `openalpha provider list` để xem đủ danh sách và tên ghi vào cấu hình ([hướng dẫn](docs/cau-hinh.md#danh-mục-nhà-cung-cấp)). Đang trả tiền ChatGPT thì đăng nhập bằng `openalpha auth login chatgpt`, khỏi cần khóa. Không có khóa nào cũng được: nối OpenAlpha vào Claude Code, Codex hay Cursor qua MCP để mô hình của ứng dụng đó suy luận ([Nâng cao](#nâng-cao)).
+### Nghiên cứu có trích nguồn
+
+Hỏi một câu cần dữ liệu mới từ bên ngoài, nhận về một báo cáo mà mỗi nhận định đều chỉ ra được nó đến từ đâu. Mô hình không tự lên mạng: code tìm và tải trang trước, nên mô hình không bịa ra được nguồn, và chỗ nào thiếu bằng chứng thì báo cáo nói thẳng là thiếu.
+
+**Nguồn tìm kiếm quyết định độ sâu.** Mặc định là DuckDuckGo: không cần khóa, không tốn tiền, nhưng ít kết quả, nên câu hỏi về số liệu mới thường về tay không. Khai `[web_search]` bằng Exa, Tavily, Brave, Serper hay DeepSeek ([cấu hình](docs/cau-hinh.md)) thì báo cáo có nhiều nguồn hơn hẳn; trong số đó DeepSeek rẻ nhất và mạnh về nguồn tiếng Việt.
+
+Chi tiết: [docs/nghien-cuu.md](docs/nghien-cuu.md)
 
 ## An toàn
 
-*AI đọc được mọi thứ về mã bạn hỏi, trừ một thứ: số tiền của bạn.*
-
 - **AI không thấy tiền của bạn.** Nhà phân tích chỉ biết tỷ trọng, không bao giờ thấy số dư, giá đã mua hay tổng tài sản.
-- **Không tự đặt lệnh.** Mặc định chỉ gợi ý. Chưa khai khóa sàn thì đường đặt lệnh không tồn tại; có khóa thì lệnh nào cũng chờ bạn xác nhận, và `/trade halt` tắt mọi lệnh mua mới cho tới khi bạn gõ `/trade resume`.
+- **Không tự đặt lệnh.** Mặc định chỉ gợi ý. Chưa khai khóa sàn thì đường đặt lệnh không tồn tại; có khóa thì lệnh nào cũng chờ bạn xác nhận.
 - **Mọi thứ nằm trên máy bạn.** Sổ và cấu hình lưu ngay trên máy; khóa lấy từ biến môi trường hoặc từ `~/.openalpha/env` (chỉ bạn đọc được). OpenAlpha chỉ ghi vào tệp đó khi bạn nhập khóa qua `onboard` hoặc `openalpha key set`, và không bao giờ in khóa ra.
 - **Sổ được sao lưu mỗi ngày.** Khi chạy nền, OpenAlpha chép sổ SQLite vào `~/.openalpha/backups/daily/` và giữ ba bản mới nhất ([sao lưu và khôi phục](docs/luu-tru.md#sao-lưu-và-khôi-phục-sqlite)).
 - **Chi tiêu AI có trần.** Trần theo ngày đặt lúc cài; thêm trần theo tháng hoặc theo phiên chạy trong `[budget]`, để một vòng lặp lỗi không đốt tiền ([ngân sách](docs/ngan-sach.md)).
 
 Mọi lớp bảo vệ còn lại: [an-toan.md](docs/an-toan.md) · [SECURITY.md](SECURITY.md).
 
+## Câu hỏi thường gặp
+
+- **Tốn bao nhiêu tiền?** Bản thân OpenAlpha là mã nguồn mở theo giấy phép MIT; bạn chỉ trả cho nhà cung cấp AI. Bảng [Dùng mỗi ngày](#dùng-mỗi-ngày) ghi câu lệnh nào gọi AI, và `openalpha cost` cho biết chúng tốn bao nhiêu. Bạn đặt trần chi tiêu mỗi ngày lúc cài.
+- **Có cần máy mạnh không?** Không. AI chạy ở máy chủ của nhà cung cấp, máy bạn chỉ chạy một chương trình nhẹ. Chỉ khi muốn chạy mô hình ngay trên máy (Ollama) mới cần máy mạnh.
+- **Không biết lập trình có dùng được không?** Được. Bạn chỉ cần chép vài lệnh vào terminal một lần lúc cài; sau đó hỏi bằng tiếng Việt trên trang web, trong terminal, hoặc qua Telegram, Zalo.
+- **Đề xuất có đáng tin không?** Có thể sai, và nó không giấu điều đó: `/reflect` cho thấy thành tích thật của từng đề xuất cũ.
+
 ## Tài liệu
 
-Mới bắt đầu thì đọc [Cẩm nang sử dụng](docs/cam-nang.md): cài đặt, hồ sơ đầu tư, ghi sổ, bản đồ lệnh và ý nghĩa từng con số, viết cho nhà đầu tư, không cần biết lập trình. Mục lục đầy đủ: [docs/README.md](docs/README.md). Phần dưới đây tóm tắt từng mảng, bảng cuối trỏ tới trang đầy đủ.
-
-### Nghiên cứu có trích nguồn
-
-Hỏi một câu cần dữ liệu mới từ bên ngoài, nhận về một báo cáo mà mỗi nhận định đều chỉ ra được nó đến từ đâu. Mô hình không tự lên mạng: code tìm và tải trang trước, nên mô hình không bịa ra được nguồn, và chỗ nào thiếu bằng chứng thì báo cáo nói thẳng là thiếu.
-
-**Nguồn tìm kiếm quyết định độ sâu.** Mặc định là DuckDuckGo: không cần khóa, không tốn tiền, nhưng ít kết quả, nên câu hỏi về số liệu mới thường về tay không. Khai `[web_search]` bằng Exa, Tavily, Brave, Serper hay DeepSeek, rẻ nhất và mạnh về nguồn tiếng Việt ([cấu hình](docs/cau-hinh.md)), thì báo cáo có nhiều nguồn hơn hẳn.
-
-Chi tiết: [docs/nghien-cuu.md](docs/nghien-cuu.md)
+Mới bắt đầu thì đọc [Cẩm nang sử dụng](docs/cam-nang.md): cài đặt, hồ sơ đầu tư, ghi sổ, bản đồ lệnh và ý nghĩa từng con số, viết cho nhà đầu tư, không cần biết lập trình. Mục lục đầy đủ: [docs/README.md](docs/README.md). Phần Nâng cao dưới đây dành cho người muốn mở rộng; bảng cuối trỏ tới trang đầy đủ của từng chủ đề.
 
 ### Nâng cao
 
@@ -435,18 +491,11 @@ openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, muse, 
 </details>
 
 <details>
-<summary><b>Trang văn phòng và ứng dụng của riêng bạn (API)</b></summary>
+<summary><b>Ứng dụng của riêng bạn (API)</b></summary>
 
-Dịch vụ nền mở sẵn một API HTTP và WebSocket cục bộ trên `127.0.0.1`, có mã truy cập (`[api] enabled = false` để tắt). Ứng dụng khách nhận được sổ giao dịch, giá, đề xuất và cuộc trò chuyện của bạn, cùng một luồng trực tiếp về những gì dịch vụ nền đang chạy: từng phiên chạy và các bước của nó, phê duyệt và câu hỏi đang chờ trên mọi kênh, các lần khớp lệnh và lúc chạm hạn mức chi tiêu. Cùng địa chỉ đó phục vụ [trang văn phòng](#trang-văn-phòng). Chạy `openalpha web` để lấy liên kết dùng một lần đăng nhập trình duyệt của bạn. Trang chỉ cho bạn xem, không quyết định thay bạn: không đặt lệnh và không tự khởi động phiên chạy AI nào. Cách bật và cách nối từ máy khác: [docs/van-hanh.md](docs/van-hanh.md#chạy-api-trên-máy-chủ). Trang cho thấy gì và dùng thế nào: [docs/van-hanh.md](docs/van-hanh.md#trang-văn-phòng)
+Dịch vụ nền mở sẵn một API HTTP và WebSocket cục bộ trên `127.0.0.1`, có mã truy cập (`[api] enabled = false` để tắt). Ứng dụng khách nhận được sổ giao dịch, giá, đề xuất và cuộc trò chuyện của bạn, cùng một luồng trực tiếp về những gì dịch vụ nền đang chạy: từng phiên chạy và các bước của nó, phê duyệt và câu hỏi đang chờ trên mọi kênh, các lần khớp lệnh và lúc chạm hạn mức chi tiêu. Đây cũng là API mà [trang văn phòng](#trang-văn-phòng) dùng. Cách mở từ máy khác: [docs/van-hanh.md](docs/van-hanh.md#chạy-api-trên-máy-chủ).
 
 </details>
-
-### Câu hỏi thường gặp
-
-- **Tốn bao nhiêu tiền?** Bản thân OpenAlpha là mã nguồn mở theo giấy phép MIT; bạn chỉ trả cho nhà cung cấp AI. Bảng [Dùng mỗi ngày](#dùng-mỗi-ngày) ghi câu lệnh nào gọi AI, và `openalpha cost` cho biết chúng tốn bao nhiêu. Bạn đặt trần chi tiêu mỗi ngày lúc cài.
-- **Có cần máy mạnh không?** Không. AI chạy ở nhà cung cấp, máy bạn chỉ chạy một tệp nhỏ. Chỉ khi muốn chạy mô hình ngay trên máy (Ollama) mới cần máy mạnh.
-- **Không biết lập trình có dùng được không?** Được. Bạn chỉ cần chép vài lệnh vào terminal một lần; sau đó hỏi bằng tiếng Việt, hoặc trò chuyện qua Telegram, Zalo.
-- **Đề xuất có đáng tin không?** Có thể sai, và nó không giấu điều đó: `/reflect` cho thấy thành tích thật của từng đề xuất cũ.
 
 ### Tra cứu đầy đủ
 

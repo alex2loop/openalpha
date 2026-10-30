@@ -50,8 +50,10 @@ const SIGNED_OUT_CLOSE_CODE = 4401
 const SIGNED_OUT_REASON = 'signed_out'
 
 const CHAT_CLIENT_ID_RE = /^[A-Za-z0-9_-]+$/
+// Blank text would start a billed turn with nothing to answer, so it is a malformed frame.
+const NON_BLANK_RE = /\S/
 const CHAT_FIELDS = {
-  message: z.string(),
+  message: z.string().regex(NON_BLANK_RE),
   sessionId: z.string().exactOptional(),
   id: z.string().max(CHAT_CLIENT_ID_MAX).regex(CHAT_CLIENT_ID_RE).exactOptional(),
 }

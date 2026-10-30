@@ -15,6 +15,7 @@ import { Fold } from '@/web/ui/kit/fold'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
 import { Markdown } from '@/web/ui/markdown/markdown'
+import { PlanReads } from '@/web/ui/ticker/plan-reads'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { openWhy } from '@/web/ui/ticker/why-dialog'
 
@@ -96,6 +97,7 @@ function CardText({
       {call.thesis !== undefined && <p>{call.thesis}</p>}
       <Lines lines={card.reasons} />
       <Lines lines={card.levels} />
+      <PlanReads card={card} />
       <DebateFolds call={call} />
       {isAdvanced.value && citations.length > 0 && (
         <Fold

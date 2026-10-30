@@ -51,7 +51,7 @@ export function buildTradingAgents(
       throw new ConfigError(`duplicate trading agent '${agent.id}'`)
     }
 
-    agents.set(agent.id, agent)
+    agents.set(agent.id, { ...agent, internal: true })
   }
 
   const themeAnalyst = loadAgentFromText(themeAnalystToml, THEME_ANALYST_AGENT_ID, {
@@ -63,7 +63,7 @@ export function buildTradingAgents(
     throw new ConfigError(`theme analyst persona must be '${THEME_ANALYST_AGENT_ID}', once`)
   }
 
-  agents.set(themeAnalyst.id, themeAnalyst)
+  agents.set(themeAnalyst.id, { ...themeAnalyst, internal: true })
   assertEveryDebateRoleBound(agents)
 
   return agents

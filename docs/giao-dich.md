@@ -26,7 +26,7 @@ Một lệnh vào đã duyệt có thể để lại **một** lệnh chốt l�
 
 ### Những gì xuất xưởng
 
-**Mã thị trường** và **nhóm danh mục** là hai tên khác nhau; chúng chỉ khác nhau ở cổ phiếu VN. Các lệnh nhận mã thị trường.
+**Mã thị trường** và **nhóm danh mục** là hai tên gọi, và hiện nay trùng nhau: nhóm danh mục của mỗi thị trường chính là mã của nó. Các lệnh nhận mã thị trường.
 
 | Thị trường | Khu vực | Lớp tài sản | Nhóm | Tiền tệ | Giữ ngày giao dịch của khu vực |
 |---|---|---|---|---|---|
@@ -361,7 +361,7 @@ Bằng chứng và giá có thể dừng ở hai phiên khác nhau. Nên mọi d
 
 Khi đó phiên chạy giữ nguyên với `history-not-adjusted`, thay vì định giá trên lịch sử sai. Phép kiểm này chạy trước khối chạm biên, khối mà nếu không sẽ hiểu cú rơi đó là mã đang kẹt sàn. Lần refresh sau thấy giá đóng đã điều chỉnh sẽ dựng lại mã.
 
-**Các yếu tố của một cổ phiếu VN in thành danh sách "nhìn nhanh"**, chia theo phía: điểm cộng, điểm trừ, rồi thông tin thêm. Trong mỗi nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng có thang điểm riêng của yếu tố và các số đọc chính, không bao giờ là một ngưỡng đạt/không đạt cố định.
+**Các yếu tố của một cổ phiếu VN in thành danh sách "nhìn nhanh"**, chia theo phía: điểm cộng, điểm trừ, rồi thông tin thêm. Trong mỗi nhóm, yếu tố mạnh nhất đứng đầu. Mỗi dòng có thang điểm riêng của yếu tố và các số đọc chính, không bao giờ là một ngưỡng đạt/không đạt cố định. Dòng khối ngoại ghi số mua ròng của khối ngoại cộng dồn qua đúng các phiên mà điểm của nó đã tính.
 
 - Tăng trưởng không có yếu tố riêng, nên chỉ in số, trong nhóm thông tin thêm. Yếu tố có điểm gần 0 cũng nằm ở đó.
 - Khả năng sinh lời và sức khỏe tài chính dùng chung điểm chất lượng, nên dòng thứ hai để trống vạch thay vì đếm hai lần.
@@ -1560,7 +1560,7 @@ Mỗi dòng lệnh nêu số tiền theo tiền tệ gốc của cuốn sổ, v�
 openalpha chat --message "/portfolio"
 openalpha chat --message "/rebalance"
 openalpha chat --message "/rebalance FPT MWG"
-openalpha chat "Show my valued portfolio and its risk findings."
+openalpha chat --message "Show my valued portfolio and its risk findings."
 ```
 
 ### Bề mặt của cuốn sổ
@@ -1833,11 +1833,11 @@ Một sàn khai những gì API của nó làm được, và sàn nào không l�
 
 `/trade` trần trả lời một câu hỏi, cái gì đang sống ngay lúc này, theo từng phần. Phần nào rỗng thì vắng mặt, và một dòng đứng đầu tất cả khi việc mua đang tắt:
 
-- **Buying is off since ...** - chỉ có sau `/trade halt`, và đứng đầu vì nó đổi nghĩa mọi dòng khác.
-- **Waiting for your confirmation** - mọi lệnh đã dàn dựng còn trong cửa sổ năm phút, mỗi lệnh kèm token đặt nó.
-- **Resting exits** - những gì đang đứng ở một sàn, kèm trigger của chúng.
-- **Nothing is guarding these** - các vị thế ở một sàn bạn đặt lệnh được, có lối thoát bên dưới ít hơn cuốn sổ nói bạn đang nắm, mỗi cái nêu lệnh để chữa.
-- **Placed at the exchange, missing from your book** - danh sách đối soát, kèm cách chữa.
+- **Đã tắt mua từ ...** - chỉ có sau `/trade halt`, và đứng đầu vì nó đổi nghĩa mọi dòng khác.
+- **Đang chờ bạn xác nhận** - mọi lệnh đã dàn dựng còn trong cửa sổ năm phút, mỗi lệnh kèm token đặt nó.
+- **Lệnh thoát đang chờ trên sàn** - những gì đang đứng ở một sàn, kèm trigger của chúng.
+- **Chưa có gì bảo vệ** - các vị thế ở một sàn bạn đặt lệnh được, có lối thoát bên dưới ít hơn cuốn sổ nói bạn đang nắm, mỗi cái nêu lệnh để chữa.
+- **Đã đặt trên sàn, chưa có trong sổ** - danh sách đối soát, kèm cách chữa.
 
 Nó không chạm sàn nào. Một trạng thái cần mọi sàn đều hoạt động sẽ trống đúng lúc bạn cần biết nhất cái gì đang đứng ngoài đó.
 
@@ -1871,7 +1871,7 @@ Mỗi bước là một kiểu hỏng riêng mà thiết kế này sinh ra để
 
 - [ ] **Thiếu thông tin đăng nhập** - bỏ đặt một biến: log nêu tên nó, `/trade` là unknown, dịch vụ nền vẫn khởi động.
 - [ ] **Chữ ký** - tới được lời nhắc là đã chứng minh dấu thời gian, digest, đường dẫn đã ký và body đều đúng. Chúng hỏng giống hệt nhau, nên hãy tách cái này trước.
-- [ ] **Xác nhận trong một phút**, cùng chat, cùng người dùng - nó đặt, thay vì lặng lẽ không làm gì.
+- [ ] **Xác nhận trong năm phút**, cùng chat, cùng người dùng - nó đặt, thay vì lặng lẽ không làm gì.
 - [ ] **Cỡ theo đơn vị gốc** - một lệnh thị trường mua `0.001 BTC` khớp khoảng 0,001 BTC. Đọc biên nhận, không đọc yêu cầu.
 - [ ] **Treo và hủy** - một lệnh limit xa thị trường thì treo, rồi bị hủy ở trần số lần hỏi (khoảng 20s).
 - [ ] **Khớp một phần** - một lệnh gần thị trường mà khớp nửa thì tiếp tục hỏi chứ không ghi nửa đó.
@@ -1881,7 +1881,7 @@ Mỗi bước là một kiểu hỏng riêng mà thiết kế này sinh ra để
 - [ ] **Một lần chỉnh bị từ chối giữ lối thoát cũ** - gửi một `sl` mà sàn bác (trên giá cuối): lần chỉnh hỏng và lối thoát gốc vẫn sống ở OKX.
 - [ ] **Từ chối do dạng chân** - có một lối thoát chỉ cắt lỗ đang treo, `/trade exit <mã> tp <giá> sl <giá>` từ chối và nêu lệnh hủy, để nguyên cắt lỗ.
 - [ ] **Co lại sau một lệnh bán tay** - `/record sell` một phần vị thế, rồi `/trade exit`: cỡ lối thoát đang treo giảm xuống bằng cái cuốn sổ giờ đang nắm.
-- [ ] **Phủ một phần** - `/trade exit <mã> qty <một nửa> sl <giá>`: biên nhận nêu phần để lại chưa được bảo vệ, và `/trade` trần liệt kê vị thế đó dưới *Nothing is guarding these*.
+- [ ] **Phủ một phần** - `/trade exit <mã> qty <một nửa> sl <giá>`: biên nhận nêu phần để lại chưa được bảo vệ, và `/trade` trần liệt kê vị thế đó dưới *Chưa có gì bảo vệ*.
 - [ ] **Phủ quá cỡ** - một `qty` lớn hơn vị thế bị từ chối, không đặt gì.
 - [ ] **Xác nhận trần** - có đúng một lệnh đang dàn dựng, `/trade confirm` đặt nó. Dàn dựng cái thứ hai và nó từ chối kèm cả hai token thay vì chọn.
 - [ ] **Trạng thái** - `/trade` trần liệt kê cái đã dàn dựng, đang treo, chưa được bảo vệ và cái cuốn sổ đang thiếu, và vẫn trả lời khi sàn không với tới được.
@@ -1892,7 +1892,7 @@ Mỗi bước là một kiểu hỏng riêng mà thiết kế này sinh ra để
 - [ ] **Phí ước tính** - phí ước tính trên lời nhắc lệch không quá một phần tư so với cái biên nhận tính. Lệch hơn thì biên nhận nói vậy, và bậc phí của sàn trong `fees` là thứ phải sửa.
 - [ ] **Định tuyến** - có một sàn phục vụ thị trường thì không cần đối số sàn. Đăng ký sàn thứ hai và một `/trade spot BTC buy` trần bị từ chối, nêu tên cả hai.
 - [ ] **Không tự hủy** - xóa dòng vào lệnh: nhịp kế tiếp cảnh báo về độ lệch và OCO vẫn sống.
-- [ ] **Một kế hoạch không phải bảo vệ** - có cắt lỗ của một đề xuất trên một khoản nắm và không lối thoát nào treo, `/portfolio` đọc `... from its stop · no stop order placed`. Đặt một cái bằng `/trade exit` và dòng bổ nghĩa biến mất.
+- [ ] **Một kế hoạch không phải bảo vệ** - có cắt lỗ của một đề xuất trên một khoản nắm và không lối thoát nào treo, `/portfolio` đọc `... cách cắt lỗ ... · chưa đặt lệnh cắt lỗ`. Đặt một cái bằng `/trade exit` và dòng bổ nghĩa biến mất.
 - [ ] **Một nhịp chập chờn không chôn một lối thoát** - một not-found mà sàn trả lời lại ở nhịp sau thì khởi động lại cửa sổ chứ không tính vào nó. Chỉ năm phút not-found liền mạch mới đánh dấu dòng đã mất.
 - [ ] **Từ chối khi không giám sát** - dưới `--mode bypass`, một lệnh bị từ chối cho tới khi đặt `[trading.orders] allow_unattended`.
 - [ ] **Không có nút ghi nhớ** - lời nhắc `order_place` chỉ đưa từ chối và cho phép một lần.

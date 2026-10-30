@@ -27,6 +27,7 @@ import { type ChannelId, channelId } from '@/core/channels'
 import { ValidationError } from '@/core/errors'
 import { runId as brandRunId, sessionId as brandSessionId, DEFAULT_AGENT_ID } from '@/core/ids'
 import { scrubCredentials } from '@/core/security/credentials'
+import { isEntryAgent } from '@/engine/api'
 import { bindLocale } from '@/i18n'
 
 async function handleChatRecent(_req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -49,7 +50,7 @@ async function resolveBoundAgent(
   if (
     binding === null ||
     binding.agentId === DEFAULT_AGENT_ID ||
-    !ctx.app.resolve('agents').has(binding.agentId)
+    !isEntryAgent(ctx.app.resolve('agents').get(binding.agentId))
   ) {
     return undefined
   }

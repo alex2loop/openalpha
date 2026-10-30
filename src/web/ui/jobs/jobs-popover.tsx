@@ -4,12 +4,12 @@ import type { TasksResponse } from '@/app/server/wire/tasks'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { ASSISTANT } from '@/web/scene/sim/actors/roster'
-import { type Run, runs } from '@/web/state/live'
+import { type Run, runs, workingTasks } from '@/web/state/live'
 import { loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { buildAgentView } from '@/web/ui/agent/agent-view'
 import { openScheduleDialog } from '@/web/ui/agent/schedule/schedule-dialog'
-import { JobRow } from '@/web/ui/jobs/job-row'
+import { JobRow, TaskRow } from '@/web/ui/jobs/job-row'
 import {
   formatAlertSeconds,
   UpcomingSection,
@@ -69,18 +69,25 @@ async function loadTasks(signal: AbortSignal): Promise<TasksResponse> {
   return tasks
 }
 
+// Runs first, then the daemon's own tasks in a pass: everything the running chip counts.
 function RunningSection() {
   const shown = runs.value.filter((run) => !run.hidden)
   const ids = new Set(shown.map((run) => run.runId))
   // A child whose parent the page does not hold stands on its own.
   const tops = shown.filter((run) => run.parentRunId === undefined || !ids.has(run.parentRunId))
+  const working = workingTasks.value
 
   return (
     <>
       <h3 class="sub-head">{tr('ui.office.jobs.running')}</h3>
-      {tops.length === 0 && <p class="empty-note">{tr('ui.office.jobs.none')}</p>}
+      {tops.length === 0 && working.length === 0 && (
+        <p class="empty-note">{tr('ui.office.jobs.none')}</p>
+      )}
       {tops.map((run) => (
         <JobRow key={run.runId} run={run} childRuns={childrenOf(shown, run)} />
+      ))}
+      {working.map((task) => (
+        <TaskRow key={task.name} task={task} />
       ))}
     </>
   )

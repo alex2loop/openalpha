@@ -21,9 +21,9 @@
 # ==== AI models ===============================================================
 
 # ---- Models (required) ------------------------------------------------------
-# At least one entry, in fallback order. Every entry needs model; provider and
-# api_key_env must exist after merging [model_defaults]. A server on this machine
-# needs no api_key_env. `openalpha provider list` prints the known providers.
+# At least one entry, in fallback order. Every entry needs model; provider must
+# exist after merging [model_defaults]. api_key_env names where the key lives; a
+# server on this machine needs none. `openalpha provider list` prints the known providers.
 #
 # [model_defaults] is inherited by every [[models]] and [[model_tiers]] entry,
 # and an entry's own fields win. That is why the entries below are one line. An
@@ -115,7 +115,7 @@ model = "anthropic/claude-haiku-5.5"
 # model = "gemini-2.5-flash"
 # api_key_env = "GOOGLE_API_KEY"
 
-# The six debate personas. Pick a fast model: the debate is four serial calls.
+# The six debate personas. Pick a fast model: the debate runs in three serial stages.
 [[model_tiers.debate]]
 model = "openai/gpt-6-luna"
 
@@ -140,7 +140,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # provider = "lmstudio"
 # model = "your-local-decision-model"
 
-# Workers reached through `delegate` / `delegate_parallel`.
+# Workers reached through `delegate`, `delegate_parallel` and `spawn`.
 # [[model_tiers.delegate]]
 # model = "anthropic/claude-haiku-5.5"
 
@@ -338,6 +338,9 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 # [trading.venues.ssi]
 # default_for = ["equity-vn"]
 # fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
+# Keeping vps as the default too? Replace default_for with markets = ["equity-vn"]:
+# the broker holds that market without becoming its default. A built-in venue
+# (vps, binance, okx, gold-shop) cannot set markets.
 
 # Only markets you still use refresh: a segment on in /profile, or one where you
 # hold, watch or wait on a scored call. `/refresh <market>` loads any of them.

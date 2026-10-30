@@ -6,6 +6,9 @@ export interface ConfigResponse {
   readonly config: unknown
   readonly configPath: string
   readonly redacted: string
+  /** The file as read; sent back as `If-Match` on POST /v1/config, which refuses it once the file
+   *  has changed since. */
+  readonly version: string
 }
 
 interface ConfigIssue {
@@ -25,6 +28,8 @@ export interface ConfigValidation {
 export interface ConfigWriteResult {
   readonly ok: boolean
   readonly restartRequired: boolean
+  /** The file as written, for the next save's `If-Match`. */
+  readonly version: string
 }
 
 /** GET /v1/providers — one inline-catalog provider for the model picker. `envVar`/`auth` carry the

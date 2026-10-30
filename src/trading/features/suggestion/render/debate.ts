@@ -10,7 +10,7 @@ import type {
 import type { SuggestionDirection } from '@/trading/features/suggestion/types'
 import type { LeanDebateReason } from '@/trading/kernel/config'
 import type { SuggestionAction } from '@/trading/kernel/conviction'
-import { t } from '@/i18n'
+import { type MessageKey, t } from '@/i18n'
 import { isTraderRefusal } from '@/trading/features/suggestion/debate/types'
 import { DEBATE_MODE_ROLES } from '@/trading/kernel/config'
 import { toFoldLines } from '@/trading/render/fold'
@@ -146,11 +146,7 @@ function fullDebateRow(view: DebateView, reason: LeanDebateReason): readonly str
     return []
   }
 
-  return [
-    `${INDENT[1]}${t(view.locale, 'trading.render.suggestion.debateLeanFull', {
-      instrument: view.instrument,
-    })}`,
-  ]
+  return commandRow(view, 'trading.render.suggestion.debateLeanFull')
 }
 
 /** What each role decided, and what each side argued. The two travel apart because only the first
@@ -342,14 +338,13 @@ function outcomeLine(view: DebateView, debate: StoredDebateFull): readonly strin
   return []
 }
 
-/** A trailing ellipsis is the only sign a voice was cut, and it does not say the rest is reachable.
- *  Worded without a ticker so a channel and the CLI can print the same line. */
+/** A trailing ellipsis is the only sign a voice was cut; this names the command that prints it whole. */
 function trimNotice(view: DebateView, debate: StoredDebate): readonly string[] {
   if (view.detail === 'full' || !wasTrimmed(view.detail, debate)) {
     return []
   }
 
-  return [`${INDENT[1]}${t(view.locale, 'trading.render.suggestion.debateTrimmed')}`]
+  return commandRow(view, 'trading.render.suggestion.debateTrimmed')
 }
 
 function wasTrimmed(detail: SuggestionDetail, debate: StoredDebate): boolean {
@@ -362,6 +357,11 @@ function wasTrimmed(detail: SuggestionDetail, debate: StoredDebate): boolean {
     conditions.length > shownConditionCount(detail, conditions.length) ||
     prose.some((text) => shownText(detail, text) !== stripStance(text))
   )
+}
+
+/** A line naming the command, on this instrument, that prints what the compact text leaves out. */
+function commandRow(view: DebateView, key: MessageKey): readonly string[] {
+  return [`${INDENT[1]}${t(view.locale, key, { instrument: view.instrument })}`]
 }
 
 /** The methods the roles applied. A debate whose roles read none has no line. */

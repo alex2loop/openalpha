@@ -26,6 +26,7 @@ import { saveEditedConfig } from '@/cli/api'
 import { probeConfig } from '@/core/config/load'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 import { isPlainRecord } from '@/core/utils/collections'
+import { hashString } from '@/core/utils/hash'
 import { bindLocale } from '@/i18n'
 
 const MAX_CONFIG_BYTES = 512 * 1024
@@ -33,12 +34,20 @@ const CLI_ONLY_KIND = 'config_cli_only'
 const SECRET_HIDDEN_KIND = 'config_secret_hidden'
 const SERVER_ONLY_KIND = 'config_server_only'
 const TESTED_MODEL_KEYS = ['base_url', 'api_key_env'] as const
+// Carries the `version` a GET answered; a write sent without it is not checked.
+const IF_MATCH_HEADER = 'if-match'
 
 async function handleConfigGet(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   const { configPath } = await probeConfig({ configPath: ctx.app.configPath })
-  const config = toRedactedConfig(await readDiskConfig(configPath))
+  const text = await readDiskText(configPath)
+  const config = toRedactedConfig(toDiskTree(text))
 
-  return json({ config, configPath, redacted: REDACTED_SECRET } satisfies ConfigResponse)
+  return json({
+    config,
+    configPath,
+    redacted: REDACTED_SECRET,
+    version: hashString(text),
+  } satisfies ConfigResponse)
 }
 
 // Answers what a save of the same body would: the boot check, then every field a write refuses.
@@ -79,7 +88,18 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
   }
 
   const { configPath, missing } = await probeConfig({ configPath: ctx.app.configPath })
-  const disk = await readDiskConfig(configPath)
+  const text = await readDiskText(configPath)
+  const expected = req.headers.get(IF_MATCH_HEADER)
+
+  // A tree read before another edit landed would put that edit back as it was, so it is refused.
+  if (expected !== null && expected !== hashString(text)) {
+    return apiError(
+      'conflict',
+      bindLocale(ctx.app.config.locale.language).translate('errors.configChanged')
+    )
+  }
+
+  const disk = toDiskTree(text)
   const body = toRestoredConfig(await readJsonBody(req, MAX_CONFIG_BYTES), disk)
 
   // Validate before writing: a config that cannot resolve would take the daemon down on next boot.
@@ -99,17 +119,29 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
   if (missing) {
     await replacePrivateFileAtomic({ path: configPath, content: after })
   } else {
-    await saveEditedConfig(configPath, { before: await Bun.file(configPath).text(), after })
+    await saveEditedConfig(configPath, { before: text, after })
   }
 
-  return json({ ok: true, restartRequired: true } satisfies ConfigWriteResult)
+  return json({
+    ok: true,
+    restartRequired: true,
+    version: hashString(after),
+  } satisfies ConfigWriteResult)
 }
 
 /** The file as it stands; a missing one reads as empty, so every CLI-only key counts as new. */
 async function readDiskConfig(configPath: string): Promise<Record<string, unknown>> {
+  return toDiskTree(await readDiskText(configPath))
+}
+
+function toDiskTree(text: string): Record<string, unknown> {
+  return text === '' ? {} : parseToml(text)
+}
+
+async function readDiskText(configPath: string): Promise<string> {
   const file = Bun.file(configPath)
 
-  return (await file.exists()) ? parseToml(await file.text()) : {}
+  return (await file.exists()) ? await file.text() : ''
 }
 
 // Set on disk or in the write but not yet booted counts too: a restart would expose the daemon with
