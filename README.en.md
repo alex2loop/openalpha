@@ -200,7 +200,7 @@ VND paid into the exchange: a USDT buy converts at that day's market rate. The a
 
 - New to crypto? A round trip from USDT deposit to withdrawal, currency moves and checking USDT against the exchange: [trading guide](docs/en/trading.md#foreign-cash-at-a-venue).
 - `binance` and `okx` are built in. For another exchange (Bybit, Bitget...), declare it like SSI above, with `markets = ["crypto"]` and `fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }`.
-- With Binance or OKX API keys set, `/record sync binance` pulls in your fills, and `/trade` stages a real order for you to approve:
+- With Binance or OKX API keys set ([how to create and save them](docs/en/trading.md#orders); enable only reading and trading, **never withdrawals**), `/record sync binance` pulls in your fills, and `/trade` stages a real order for you to approve:
 
 ```text
 /trade spot binance:BTC buy 0.001 limit 60000 tp 70000 sl 56000   # limit buy with take-profit and stop-loss
@@ -246,7 +246,7 @@ openalpha autostart enable     # start it at every login, restarts included
 openalpha status               # is it running? openalpha stop stops it
 ```
 
-Connect Telegram or Zalo ([channels guide](docs/en/channels.md)), then type `/brief enable 08:00` in that chat for a brief before the open. A few weeks in, `/reflect` shows how the old suggestions did.
+Connect Telegram or Zalo ([channels guide](docs/en/channels.md)). The first time you message the bot you get a code: approve it under Settings > Messaging channels on the office page (or `openalpha pair approve <code>`) and the bot starts replying. Then type `/brief enable 08:00` in that chat for a brief before the open. A few weeks in, `/reflect` shows how the old suggestions did.
 
 <details>
 <summary><b>Using Windows, changing the AI model, updating and uninstalling</b></summary>
@@ -368,7 +368,7 @@ For every name you ask about, six AI analysts argue it over three rounds: bull, 
 <summary><b>How it keeps you disciplined, including when the market turns down</b></summary>
 
 - **A stop can only move up, never down.** There is no "just a little lower" button.
-- **No need to stare at the price board.** Set a level with `/alert create FPT above 130000` (the full price, as in `/record`); when the price reaches it, OpenAlpha messages you on Telegram or Zalo.
+- **No need to stare at the price board.** Set a level with `/alert create FPT above 130000` (the full price, as in `/record`); when the price reaches it, OpenAlpha messages you on Telegram or Zalo (needs the daemon and a connected chat, [step 5](#quick-start)).
 
 **When the market turns down,** the goal is not to call the bottom but to keep enough capital to play the next round:
 
@@ -418,13 +418,13 @@ A bare ticker is usually enough (`/price FPT`). Qualify it only where two market
   <img src="assets/readme/sources.en.png" alt="Data sources routed per market: VN equities, crypto, VN gold, world gold, VN macro, US macro and cross-market" width="100%" />
 </p>
 
-OpenAlpha routes 37 data sources per market; when one fails, a backup takes over by itself ([data sources](docs/en/data-sources.md)). Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo, Zalo Personal or the office page.
+OpenAlpha routes 37 data sources per market; when one fails, a backup takes over by itself ([data sources](docs/en/data-sources.md)). A few sources take an extra free key; if you follow gold or US macro, get a key from the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html) and save it with `openalpha key set FRED_API_KEY` to get the dollar index and VIX ([details](docs/en/data-sources.md#what-you-need-to-do)). Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo, Zalo Personal or the office page.
 
 ### Research with receipts
 
 Ask a question that needs fresh outside data, and get back a report where every claim can show where it came from. The model never goes online itself: code searches and fetches the pages first, so the model cannot invent a source, and where evidence is missing the report says so.
 
-**The search provider sets the depth.** The default is DuckDuckGo: keyless and costs nothing, but thin, so a question about fresh figures often comes back empty. Set `[web_search]` to Exa, Tavily, Brave, Serper or DeepSeek ([configuration](docs/en/configuration.md)) and the report draws on far more sources; of those, DeepSeek is the cheapest and strong on Vietnamese sources.
+**The search provider sets the depth.** The default is DuckDuckGo: keyless and costs nothing, but thin, so a question about fresh figures often comes back empty. Pick Exa, Tavily, Brave, Serper or DeepSeek and paste its key under Settings > Tools on the office page (or set `[web_search]`, see [configuration](docs/en/configuration.md)) and the report draws on far more sources; of those, DeepSeek is the cheapest and strong on Vietnamese sources.
 
 Details: [docs/en/research.md](docs/en/research.md)
 
@@ -444,6 +444,7 @@ Every other safeguard: [safety.md](docs/en/safety.md) · [SECURITY.en.md](SECURI
 - **Do I need a powerful machine?** No. The AI runs on the provider's servers; your machine runs one light program. Only running a model locally (Ollama) needs real hardware.
 - **Can I use it without coding?** Yes. You paste a few commands into a terminal once, at install; after that you ask in plain language on the web page, in the terminal, or over Telegram or Zalo.
 - **Can I trust the suggestions?** They can be wrong, and it does not hide that: `/reflect` shows the real record of every past call.
+- **Something went wrong?** Run `openalpha doctor`: it names what is missing (a key, a channel, the daemon). `openalpha logs` shows the detail. Still stuck? Ask in the [Zalo group](https://zalo.me/g/yl7iqyfovvtyosujulea) or open an [issue](https://github.com/alex2loop/openalpha/issues/new/choose).
 
 ## Documentation
 

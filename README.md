@@ -200,7 +200,7 @@ Nạp VND vào sàn thì lệnh mua bằng USDT được quy theo tỷ giá th�
 
 - Mới chơi crypto? Từng bước từ nạp USDT tới rút về, chênh lệch tỷ giá và đối chiếu USDT với sàn: [cẩm nang](docs/cam-nang.md#crypto-qua-p2p-từng-bước-cho-người-mới).
 - `binance` và `okx` có sẵn. Sàn khác (Bybit, Bitget...) thì khai như SSI ở trên, với `markets = ["crypto"]` và `fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }`.
-- Đã đặt khóa API của Binance hoặc OKX thì `/record sync binance` tự lấy lệnh đã khớp, và `/trade` dựng sẵn lệnh thật để bạn duyệt:
+- Đã đặt khóa API của Binance hoặc OKX ([cách tạo và lưu khóa](docs/giao-dich.md#đặt-lệnh); chỉ bật quyền đọc và giao dịch, **không bao giờ bật quyền rút tiền**) thì `/record sync binance` tự lấy lệnh đã khớp, và `/trade` dựng sẵn lệnh thật để bạn duyệt:
 
 ```text
 /trade spot binance:BTC buy 0.001 limit 60000 tp 70000 sl 56000   # mua giới hạn, kèm chốt lời và cắt lỗ
@@ -246,7 +246,7 @@ openalpha autostart enable     # tự chạy mỗi lần đăng nhập, kể c�
 openalpha status               # còn chạy không; openalpha stop để dừng
 ```
 
-Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)), rồi gõ `/brief enable 08:00` trong kênh đó để nhận bản tin trước giờ mở cửa. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
+Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)). Lần đầu nhắn bot, bạn nhận một mã: duyệt nó ở Cài đặt > Kênh nhắn tin trên trang văn phòng (hoặc `openalpha pair approve <mã>`) thì bot mới trả lời. Rồi gõ `/brief enable 08:00` trong kênh đó để nhận bản tin trước giờ mở cửa. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
 
 <details>
 <summary><b>Dùng trên Windows, đổi mô hình AI, cập nhật và gỡ cài đặt</b></summary>
@@ -368,7 +368,7 @@ Với mỗi mã bạn hỏi, sáu nhà phân tích AI tranh luận theo ba vòng
 <summary><b>Cách nó giữ kỷ luật, kể cả khi thị trường đi xuống</b></summary>
 
 - **Cắt lỗ chỉ được nâng, không được hạ.** Không có nút "dời xuống thêm chút nữa".
-- **Không cần dán mắt vào bảng điện.** Đặt mốc bằng `/alert create FPT above 130000` (giá đầy đủ, như khi `/record`); giá chạm mốc là OpenAlpha nhắn bạn qua Telegram hoặc Zalo.
+- **Không cần dán mắt vào bảng điện.** Đặt mốc bằng `/alert create FPT above 130000` (giá đầy đủ, như khi `/record`); giá chạm mốc là OpenAlpha nhắn bạn qua Telegram hoặc Zalo (cần chạy nền và nối kênh, [bước 5](#bắt-đầu-nhanh)).
 
 **Khi thị trường đi xuống,** mục tiêu không phải đoán đáy, mà là còn đủ vốn để chơi tiếp:
 
@@ -418,13 +418,13 @@ Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã 
   <img src="assets/readme/sources.vi.png" alt="Nguồn dữ liệu chia theo từng thị trường: cổ phiếu Việt Nam, tiền mã hóa, vàng trong nước, vàng thế giới, vĩ mô Việt Nam, vĩ mô Mỹ và liên thị trường" width="100%" />
 </p>
 
-OpenAlpha lấy dữ liệu từ 37 nguồn, chia theo từng thị trường; nguồn nào lỗi thì nguồn dự phòng tự thay vào ([nguồn dữ liệu](docs/nguon-du-lieu.md)). Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì phiên chạy tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo, Zalo cá nhân hoặc trang văn phòng.
+OpenAlpha lấy dữ liệu từ 37 nguồn, chia theo từng thị trường; nguồn nào lỗi thì nguồn dự phòng tự thay vào ([nguồn dữ liệu](docs/nguon-du-lieu.md)). Vài nguồn nhận thêm khóa miễn phí; nếu bạn theo dõi vàng hay vĩ mô Mỹ, nên lấy khóa ở [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html) rồi lưu bằng `openalpha key set FRED_API_KEY` để có chỉ số đô la và VIX ([chi tiết](docs/nguon-du-lieu.md#bạn-cần-làm-gì)). Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì phiên chạy tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo, Zalo cá nhân hoặc trang văn phòng.
 
 ### Nghiên cứu có trích nguồn
 
 Hỏi một câu cần dữ liệu mới từ bên ngoài, nhận về một báo cáo mà mỗi nhận định đều chỉ ra được nó đến từ đâu. Mô hình không tự lên mạng: code tìm và tải trang trước, nên mô hình không bịa ra được nguồn, và chỗ nào thiếu bằng chứng thì báo cáo nói thẳng là thiếu.
 
-**Nguồn tìm kiếm quyết định độ sâu.** Mặc định là DuckDuckGo: không cần khóa, không tốn tiền, nhưng ít kết quả, nên câu hỏi về số liệu mới thường về tay không. Khai `[web_search]` bằng Exa, Tavily, Brave, Serper hay DeepSeek ([cấu hình](docs/cau-hinh.md)) thì báo cáo có nhiều nguồn hơn hẳn; trong số đó DeepSeek rẻ nhất và mạnh về nguồn tiếng Việt.
+**Nguồn tìm kiếm quyết định độ sâu.** Mặc định là DuckDuckGo: không cần khóa, không tốn tiền, nhưng ít kết quả, nên câu hỏi về số liệu mới thường về tay không. Chọn Exa, Tavily, Brave, Serper hay DeepSeek và dán khóa ở Cài đặt > Công cụ trên trang văn phòng (hoặc khai `[web_search]`, xem [cấu hình](docs/cau-hinh.md)) thì báo cáo có nhiều nguồn hơn hẳn; trong số đó DeepSeek rẻ nhất và mạnh về nguồn tiếng Việt.
 
 Chi tiết: [docs/nghien-cuu.md](docs/nghien-cuu.md)
 
@@ -444,6 +444,7 @@ Mọi lớp bảo vệ còn lại: [an-toan.md](docs/an-toan.md) · [SECURITY.md
 - **Có cần máy mạnh không?** Không. AI chạy ở máy chủ của nhà cung cấp, máy bạn chỉ chạy một chương trình nhẹ. Chỉ khi muốn chạy mô hình ngay trên máy (Ollama) mới cần máy mạnh.
 - **Không biết lập trình có dùng được không?** Được. Bạn chỉ cần chép vài lệnh vào terminal một lần lúc cài; sau đó hỏi bằng tiếng Việt trên trang web, trong terminal, hoặc qua Telegram, Zalo.
 - **Đề xuất có đáng tin không?** Có thể sai, và nó không giấu điều đó: `/reflect` cho thấy thành tích thật của từng đề xuất cũ.
+- **Gặp lỗi thì làm gì?** Chạy `openalpha doctor`: nó chỉ ra thứ còn thiếu (khóa, kênh, dịch vụ nền). `openalpha logs` cho xem chi tiết. Vẫn kẹt thì hỏi trong [nhóm Zalo](https://zalo.me/g/yl7iqyfovvtyosujulea) hoặc mở [issue](https://github.com/alex2loop/openalpha/issues/new/choose).
 
 ## Tài liệu
 

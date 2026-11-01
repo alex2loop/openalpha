@@ -12,9 +12,9 @@ You need nothing to get started. A few providers take a key that you can add lat
 |---|---|---|
 | `bls` | `BLS_API_KEY` | Nothing is lost: US inflation reads either way. Without a key the provider allows 25 calls a day per IP address, shared by every program behind that address. With a key the limit is 500. |
 | `coingecko` | `COINGECKO_API_KEY` | You lose the last fallback for the crypto market-cap board, and the only way to look up a coin ranked below every board. It also drops out of the FX list for a settlement coin (such as USDT) against a fiat currency. |
-| `fred` | `FRED_API_KEY` | You lose the series that only FRED publishes. US macro still reads from `treasury` and `bls`, which need no key. |
+| `fred` | `FRED_API_KEY` | You lose the two series only FRED publishes: the dollar index and VIX (the market's fear gauge). The macro score still rates, without these two drivers: the US macro score loses about 30% of its weight, the macro backdrop for VN stocks 20%, and gold 2 of its 7 factors (dollar, safe haven). So days when the dollar strengthens or the market panics are easy to miss. US yields, the real rate and inflation still read from `treasury` and `bls`, which need no key. The key is free: sign up on the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html). |
 
-Save the key with `openalpha key set <NAME>` (or under Settings > Tools on the office page), then restart the daemon. Or set the variable in your shell or environment. Never write the key in a config file. `openalpha key list` shows both variables and whether each is set.
+Save the key with `openalpha key set <NAME>` (or under Settings > Tools on the office page), then restart the daemon. Or set the variable in your shell or environment. Never write the key in a config file. `openalpha key list` shows these variables and whether each is set.
 
 OpenAlpha also reads the same name with the product prefix (`OPENALPHA_FRED_API_KEY`). A variable that is set but empty counts as unset. To use a different variable name, rename it in `config.toml`:
 
