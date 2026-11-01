@@ -2,6 +2,10 @@ import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { AnnualAccounts } from '@/trading/kernel/market/annual-accounts'
 import { rankWithin } from '@/trading/markets/factor-scoring'
 
+/** Fewer peers than this cannot place a return: a lone name, or Berkshire's two classes with no
+ *  listed sector, would read a made-up middle rank, so the return-on-equity rank is absent. */
+const MINIMUM_SECTOR_PEERS = 5
+
 /** What a name's newest filed year says against what the market pays for it. */
 export interface UsFundamentals {
   /** Net income over capitalisation: what a dollar of the company yields. */
@@ -76,6 +80,11 @@ export function rankFundamentals(
     all.filter((entry) => entry.returnOnEquity !== undefined),
     (entry) => entry.sector
   )
+  const sectorReturns = (sector: string | undefined): number[] => {
+    const peers = valuesOf(returnsBySector.get(sector) ?? [], 'returnOnEquity')
+
+    return peers.length < MINIMUM_SECTOR_PEERS ? [] : peers
+  }
   const ranks = new Map<Ticker, UsFundamentalRanks>()
 
   for (const [ticker, fundamentals] of [...board, ...followed]) {
@@ -85,10 +94,7 @@ export function rankFundamentals(
     ])
     const quality = meanOf([
       rankOf(populations.grossProfitability, fundamentals.grossProfitability),
-      rankOf(
-        valuesOf(returnsBySector.get(fundamentals.sector) ?? [], 'returnOnEquity'),
-        fundamentals.returnOnEquity
-      ),
+      rankOf(sectorReturns(fundamentals.sector), fundamentals.returnOnEquity),
     ])
 
     ranks.set(ticker, {
@@ -107,8 +113,9 @@ function valuesOf(
   return entries.flatMap((entry) => entry[key] ?? [])
 }
 
+/** An empty population ranks nothing, rather than placing the value in its middle. */
 function rankOf(population: readonly number[], value: number | undefined): number | undefined {
-  return value === undefined ? undefined : rankWithin(population, value)
+  return value === undefined || population.length === 0 ? undefined : rankWithin(population, value)
 }
 
 function meanOf(values: readonly (number | undefined)[]): number | undefined {

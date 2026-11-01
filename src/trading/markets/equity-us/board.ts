@@ -1,6 +1,7 @@
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { AnnualAccounts } from '@/trading/kernel/market/annual-accounts'
 import type { BarRecord, InstrumentRecord } from '@/trading/kernel/market/market-data'
+import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { UsFundamentalRanks, UsFundamentals } from '@/trading/markets/equity-us/fundamentals'
 import type { UsRaws } from '@/trading/markets/equity-us/raws'
@@ -21,7 +22,7 @@ import {
   US_SCREEN_RANK,
   US_SCREEN_RANK_BUFFER,
 } from '@/trading/markets/equity-us/policy'
-import { usRawsOf } from '@/trading/markets/equity-us/raws'
+import { usAccountsProvenance, usRawsOf } from '@/trading/markets/equity-us/raws'
 import { usAdjustedCloses } from '@/trading/markets/equity-us/screen'
 import { followedTickersIn } from '@/trading/markets/held-tickers'
 
@@ -32,6 +33,7 @@ export interface UsBoardName {
   readonly bars: readonly BarRecord[]
   readonly marketCap: number
   readonly raws: UsRaws
+  readonly accountsProvenance: readonly SourceProvenance[]
 }
 
 /** A fund on the fund board: it has a series and no capitalisation rank. */
@@ -113,9 +115,14 @@ async function loadUsBoard(
     fundamentalsOf(members, { accounts, asOf }),
     fundamentalsOf(coverage.followed, { accounts, asOf })
   )
-  const names = members.map((member, index) =>
-    toName(member, memberBars[index] ?? [], ranks.get(member.record.instrument.ticker))
-  )
+  const names = members.map((member, index) => {
+    const { ticker } = member.record.instrument
+
+    return toName(member, memberBars[index] ?? [], {
+      ranks: ranks.get(ticker),
+      report: newestReport(accounts.get(ticker), asOf),
+    })
+  })
 
   return {
     asOf,
@@ -256,12 +263,16 @@ function rankUsMembers(
 function toName(
   member: UsMember,
   bars: readonly BarRecord[],
-  ranks: UsFundamentalRanks | undefined
+  read: {
+    readonly ranks: UsFundamentalRanks | undefined
+    readonly report: AnnualAccounts | undefined
+  }
 ): UsBoardName {
   return {
     record: member.record,
     bars,
     marketCap: member.marketCap,
-    raws: { ...usRawsOf(usAdjustedCloses(bars)), ...ranks },
+    raws: { ...usRawsOf(usAdjustedCloses(bars)), ...read.ranks },
+    accountsProvenance: usAccountsProvenance(read.report),
   }
 }

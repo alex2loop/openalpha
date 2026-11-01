@@ -1,3 +1,4 @@
+import type { AnnualAccounts } from '@/trading/kernel/market/annual-accounts'
 import type { BarRecord } from '@/trading/kernel/market/market-data'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import {
@@ -28,6 +29,15 @@ export function usRawsOf(closes: readonly number[]): UsRaws {
     ...(momentum === undefined ? {} : { momentum }),
     ...(volatility === undefined ? {} : { volatility }),
   }
+}
+
+/** The filed year value and quality were read from. */
+export function usAccountsProvenance(
+  report: AnnualAccounts | undefined
+): readonly SourceProvenance[] {
+  return report === undefined
+    ? []
+    : [{ sourceId: report.sourceId, fetchedAt: report.fetchedAt, freshness: 'cached' }]
 }
 
 export function usBarProvenance(bars: readonly BarRecord[]): readonly SourceProvenance[] {

@@ -21,6 +21,9 @@ import {
 
 /** Names are asked largest first, so the cap only ever drops the smallest ones. */
 const MAXIMUM_COMPANIES = 150
+/** A company's whole history in one body: the largest board filers' run to 3.6 MB (Japanese and
+ *  Canadian banks), past the shared cap, so this read declares its own. */
+const COMPANY_FACTS_MAXIMUM_BYTES = 8_388_608
 
 const COMPANY_FACTS = z.object({
   facts: z.record(z.string(), z.record(z.string(), z.unknown())),
@@ -65,6 +68,7 @@ async function readCompanyFiling(
       path: `/api/xbrl/companyfacts/CIK${cik}.json`,
       credential: SEC_CREDENTIAL,
       businessMissStatuses: BUSINESS_MISS_STATUSES,
+      maxBytes: COMPANY_FACTS_MAXIMUM_BYTES,
       signal: read.signal,
     },
     (raw) => toCompanyFiling(cik, COMPANY_FACTS.parse(raw).facts)

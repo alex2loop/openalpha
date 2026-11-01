@@ -261,7 +261,7 @@ Cả hai đều kiểm tín hiệu của bên gọi trước khi làm việc và
 | `ATTEMPT_TIMEOUT_MS` | 10.000 | hạn chót mỗi lần thử bên trong hạn mức đó (mặc định cho đọc theo lô) |
 | `RETRY_MAXIMUM_ATTEMPTS` | 3 | mặc định cho đọc theo lô |
 | `RETRY_INITIAL_DELAY_MS` / `RETRY_MAXIMUM_DELAY_MS` | 500 / 5.000 | cận của khoảng chờ |
-| `MAXIMUM_RESPONSE_BYTES` | 2 MiB | trần kích thước thân phản hồi |
+| `MAXIMUM_RESPONSE_BYTES` | 2 MiB | trần kích thước thân phản hồi, trừ khi request tự khai trần riêng (hồ sơ công ty của `sec-data`: 8 MiB) |
 | `MAXIMUM_PAGES` | 20 | số trang tiếp theo mà một lần tải sẽ đuổi theo |
 | `PAGE_SET_BUDGET_MS` | 120.000 | trần cho cả một bộ trang; không có nó, một lần đọc hai mươi trang là hai mươi hạn mức yêu cầu nối tiếp nhau |
 | `BREAKER_FAILURE_THRESHOLD` | 3 | số lần hỏng liên tiếp trước khi cầu dao mở |
@@ -513,7 +513,7 @@ Agent gọi một công cụ, công cụ gọi một tính năng, tính năng đ
 - **Feed nằm trong danh sách cho phép.** `feedId` chọn từ `RSS_FEEDS` do mã sở hữu; `path` và `query` bị bỏ qua trên đường đó, và một feed ngoài bản đồ không bao giờ được tải.
 - **Bí mật chỉ nằm trong yêu cầu đi ra.** Không bao giờ trong xuất xứ, bản tóm tắt, dòng log hay tệp cấu hình. `formatErrForLog` làm sạch những gì được ghi log.
 - **POST là đọc.** `jsonBody` có cho nhà cung cấp không có tương đương GET, và chỉ cho việc đọc: chính sách thử lại phát lại yêu cầu, nên một thân yêu cầu làm thay đổi gì đó cũng sẽ bị phát lại.
-- **Thân phản hồi bị chặn** ở 2 MiB, và thân không phải 2xx bị lớp HTTP lõi bỏ đi, vì thế chỉ một **mã trạng thái** có trong tài liệu nhà cung cấp mới đánh dấu được một lần trượt nghiệp vụ.
+- **Thân phản hồi bị chặn** ở 2 MiB, trừ khi adapter tự khai trần riêng, và thân không phải 2xx bị lớp HTTP lõi bỏ đi, vì thế chỉ một **mã trạng thái** có trong tài liệu nhà cung cấp mới đánh dấu được một lần trượt nghiệp vụ.
 - **Văn bản tải về được làm sạch** trước khi tới agent: `normalization.ts` chạy phép quét prompt-injection và phát `source.content-sanitized` thay vì để markup đi qua.
 
 ## Nguồn từ plugin

@@ -407,7 +407,7 @@ the health log. These constants are the global defaults - what a request gets wh
 | `ATTEMPT_TIMEOUT_MS` | 10,000 | per-attempt deadline inside that budget (bulk default) |
 | `RETRY_MAXIMUM_ATTEMPTS` | 3 | bulk default |
 | `RETRY_INITIAL_DELAY_MS` / `RETRY_MAXIMUM_DELAY_MS` | 500 / 5,000 | backoff bounds |
-| `MAXIMUM_RESPONSE_BYTES` | 2 MiB | body cap |
+| `MAXIMUM_RESPONSE_BYTES` | 2 MiB | body cap, unless the request declares its own (`sec-data` company facts: 8 MiB) |
 | `MAXIMUM_PAGES` | 20 | follow-up pages one fetch chases |
 | `PAGE_SET_BUDGET_MS` | 120,000 | ceiling over a whole page set; without it a twenty-page read is twenty request budgets in series |
 | `BREAKER_FAILURE_THRESHOLD` | 3 | consecutive failures before the breaker opens |
@@ -804,7 +804,7 @@ a provenance stamp.
   scrubs what is logged.
 - **POST is a read.** `jsonBody` exists for providers with no GET equivalent, only for reads: the retry policy replays the
   request, so a body that mutated anything would replay too.
-- **Bodies are capped** at 2 MiB, and non-2xx bodies are discarded by the core HTTP seam, which is why only a
+- **Bodies are capped** at 2 MiB unless the adapter declares its own cap, and non-2xx bodies are discarded by the core HTTP seam, which is why only a
   provider-documented *status* can mark a business miss.
 - **Fetched text is sanitized** before it reaches an agent: `normalization.ts` runs the prompt-injection scan and raises
   `source.content-sanitized` rather than passing markup through.

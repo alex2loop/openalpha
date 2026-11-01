@@ -53,7 +53,12 @@ export async function runUsScreen(
     rejections,
     universeSize: eligible.length,
     bandCounts: countBands(ranked),
-    provenance: dedupeProvenance(eligible.flatMap((subject) => usBarProvenance(subject.bars))),
+    provenance: dedupeProvenance(
+      eligible.flatMap((subject) => [
+        ...usBarProvenance(subject.bars),
+        ...(subject.accountsProvenance ?? []),
+      ])
+    ),
     // Names without a single bar is an unrefreshed data dir, not a market where nothing qualifies.
     caveats: dataThroughDay === undefined && eligible.length > 0 ? [HISTORY_EMPTY] : [],
   }

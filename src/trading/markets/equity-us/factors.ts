@@ -13,6 +13,7 @@ import type { MarketManifest } from '@/trading/markets/types'
 import { ETF_KIND } from '@/trading/kernel/instrument'
 import { runUsBars } from '@/trading/markets/equity-us/bars'
 import { US_ETF_FACTOR_POLICY, US_FACTOR_POLICY } from '@/trading/markets/equity-us/factor-policy'
+import { newestReport } from '@/trading/markets/equity-us/fundamentals'
 import {
   US_EVIDENCE_SESSIONS,
   US_FUND_MOMENTUM_SESSIONS,
@@ -21,7 +22,12 @@ import {
   US_TREND_SLOPE_SESSIONS,
   US_VOLATILITY_SESSIONS,
 } from '@/trading/markets/equity-us/policy'
-import { type UsRaws, usBarProvenance, usRawsOf } from '@/trading/markets/equity-us/raws'
+import {
+  type UsRaws,
+  usAccountsProvenance,
+  usBarProvenance,
+  usRawsOf,
+} from '@/trading/markets/equity-us/raws'
 import { usAdjustedCloses, usFailedGates } from '@/trading/markets/equity-us/screen'
 import { scoreFactors, UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
 import {
@@ -39,6 +45,8 @@ export interface UsSubject {
   readonly bars: readonly BarRecord[]
   readonly onBoard: boolean
   readonly raws?: UsRaws
+  /** Where value and quality were read, which is not where the prices were. */
+  readonly accountsProvenance?: readonly SourceProvenance[]
 }
 
 interface UsFactorContext {
@@ -49,13 +57,16 @@ interface UsFactorContext {
 
 function usEquityFactorInputs(
   raws: UsRaws,
-  provenance: readonly SourceProvenance[]
+  provenance: {
+    readonly prices: readonly SourceProvenance[]
+    readonly accounts: readonly SourceProvenance[]
+  }
 ): readonly FactorInput<UsEquityFactorId>[] {
   return [
-    inputOf('value', raws.value, provenance),
-    inputOf('quality', raws.quality, provenance),
-    inputOf('momentum', raws.momentum, provenance),
-    inputOf('volatility', raws.volatility, provenance),
+    inputOf('value', raws.value, provenance.accounts),
+    inputOf('quality', raws.quality, provenance.accounts),
+    inputOf('momentum', raws.momentum, provenance.prices),
+    inputOf('volatility', raws.volatility, provenance.prices),
   ]
 }
 
@@ -110,7 +121,10 @@ export function scoreUsSubject(subject: UsSubject): FactorScore {
   return subject.record.kind === ETF_KIND
     ? scoreFactors(usEtfFactorInputs(closes, provenance), US_ETF_FACTOR_POLICY)
     : scoreFactors(
-        usEquityFactorInputs(subject.raws ?? usRawsOf(closes), provenance),
+        usEquityFactorInputs(subject.raws ?? usRawsOf(closes), {
+          prices: provenance,
+          accounts: subject.accountsProvenance ?? [],
+        }),
         US_FACTOR_POLICY
       )
 }
@@ -123,7 +137,7 @@ async function resolveSubject(
   const member = board.byTicker.get(request.instrument.ticker)
 
   if (member !== undefined) {
-    return { record: member.record, bars: member.bars, onBoard: true, raws: member.raws }
+    return { ...member, onBoard: true }
   }
 
   const record = await context.deps.marketDataStore.findInstrument({
@@ -135,14 +149,15 @@ async function resolveSubject(
     return undefined
   }
 
+  const { ticker } = request.instrument
   const bars = await onDemandBars(context, request)
   // A followed name off the board has its value and quality ranked against the board.
-  const raws = {
-    ...usRawsOf(usAdjustedCloses(bars)),
-    ...board.followedRanks.get(request.instrument.ticker),
-  }
+  const raws = { ...usRawsOf(usAdjustedCloses(bars)), ...board.followedRanks.get(ticker) }
+  const accountsProvenance = board.followedRanks.has(ticker)
+    ? usAccountsProvenance(newestReport(board.accounts.get(ticker), board.asOf))
+    : []
 
-  return bars.length === 0 ? undefined : { record, bars, onBoard: false, raws }
+  return bars.length === 0 ? undefined : { record, bars, onBoard: false, raws, accountsProvenance }
 }
 
 /** The settled series through the capability, so a name no refresh has reached is read from the
