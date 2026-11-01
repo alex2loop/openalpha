@@ -59,30 +59,47 @@ export async function refreshUsMarket(
   const universe = instruments.universe
 
   if (universe.every((record) => record.status !== 'active')) {
+    input.board.invalidate()
+
     return [instruments.result]
   }
 
-  const fundamentals = await runKind({ ...input, attempts }, 'fundamentals', () =>
-    refreshUsFundamentals(deps, { universe, request })
-  )
-  const accounts = await runKind({ ...input, attempts }, 'accounts', () =>
-    refreshUsAccounts(deps, { manifest: input.manifest, universe, request })
-  )
-  const storedFrom = attempts.find((attempt) => attempt.result.kind === 'bars')?.result.coveredFrom
-  const bars = await runKind({ ...input, attempts }, 'bars', () =>
-    refreshUsBars(deps, {
-      manifest: input.manifest,
-      universe,
-      request,
-      ...(storedFrom === undefined ? {} : { storedFrom }),
-    })
-  )
-
-  input.board.invalidate()
-
+  const boardKinds = await refreshBoardKinds({ ...input, attempts }, universe)
   const macro = await runKind({ ...input, attempts }, 'macro', () => refreshUsMacro(input))
 
-  return [instruments.result, fundamentals, accounts, bars, macro]
+  return [instruments.result, ...boardKinds, macro]
+}
+
+/** The kinds the board is read from. Whatever they wrote before a throw or an abort is new evidence
+ *  too, so the board's cached pass is dropped on every exit, not only a clean one. */
+async function refreshBoardKinds(
+  input: KindContext,
+  universe: readonly InstrumentRecord[]
+): Promise<readonly RefreshKindResult[]> {
+  const { deps, request, attempts } = input
+
+  try {
+    const fundamentals = await runKind(input, 'fundamentals', () =>
+      refreshUsFundamentals(deps, { universe, request })
+    )
+    const accounts = await runKind(input, 'accounts', () =>
+      refreshUsAccounts(deps, { manifest: input.manifest, universe, request })
+    )
+    const storedFrom = attempts.find((attempt) => attempt.result.kind === 'bars')?.result
+      .coveredFrom
+    const bars = await runKind(input, 'bars', () =>
+      refreshUsBars(deps, {
+        manifest: input.manifest,
+        universe,
+        request,
+        ...(storedFrom === undefined ? {} : { storedFrom }),
+      })
+    )
+
+    return [fundamentals, accounts, bars]
+  } finally {
+    input.board.invalidate()
+  }
 }
 
 export async function usStaleKinds(
