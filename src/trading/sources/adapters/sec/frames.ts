@@ -47,6 +47,9 @@ const INSTANT_QUARTERS = Object.freeze([1, 2, 3, 4])
  *  report counts as published at the latest of them. */
 const ANNUAL_FILING_DAYS = 90
 
+const DAYS_PER_YEAR = 365
+const YEAR_END_TOLERANCE_DAYS = 14
+
 const FRAME = z.object({ data: z.array(z.unknown()) })
 
 const FACT = z.object({ cik: z.number(), end: z.string(), val: z.number() })
@@ -216,7 +219,30 @@ function toAnnual(
     }
   }
 
-  return [...years].flatMap(([key, entry]) => toRows(key, entry, { wanted, target }))
+  return [...years]
+    .filter(([key, entry]) => isYearEnd(key, entry, years))
+    .flatMap(([key, entry]) => toRows(key, entry, { wanted, target }))
+}
+
+/** A year-long flow that ends off the company's fiscal year end is a trailing twelve months a 10-Q
+ *  printed (Amazon's cash flow ending in September), which the calendar-year frame takes while the
+ *  10-K is not out. It is no year: it lands where the real one belongs, months early. A 52/53-week
+ *  year drifts a week, so the anniversary of the year before is matched within a fortnight. */
+function isYearEnd(
+  key: string,
+  entry: YearAccumulator,
+  years: ReadonlyMap<string, YearAccumulator>
+): boolean {
+  const [cik = '', year = ''] = key.split('|')
+  const previous = years.get(`${cik}|${Number(year) - 1}`)?.end
+
+  if (entry.end === undefined || previous === undefined) {
+    return true
+  }
+
+  const days = (utcDayStartEpochMs(entry.end) - utcDayStartEpochMs(previous)) / MS_PER_DAY
+
+  return Math.abs(days - DAYS_PER_YEAR) <= YEAR_END_TOLERANCE_DAYS
 }
 
 function addFact(years: Map<string, YearAccumulator>, job: FrameJob, fact: FrameFact): void {
