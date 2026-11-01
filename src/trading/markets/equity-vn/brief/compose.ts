@@ -4,24 +4,9 @@ import type { BriefComposition, ProducingSectionKind } from '@/trading/markets/b
 import type { LoadContextOptions } from '@/trading/markets/brief-context'
 import type { SectionBuilder } from '@/trading/markets/brief-sections'
 import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
+import { SHARED_SECTION_BUILDERS } from '@/trading/markets/brief-builders'
 import { composeBrief } from '@/trading/markets/brief-compose'
 import { loadBriefContext } from '@/trading/markets/brief-context'
-import { buildCrossAssetPulse } from '@/trading/markets/brief-cross-asset'
-import { buildStalePositions, buildUnwatchedPositions } from '@/trading/markets/brief-holdings'
-import { buildMacro, buildRegimeShift } from '@/trading/markets/brief-macro'
-import {
-  buildBookSummary,
-  buildCost,
-  buildCrossAssetSuggestions,
-  buildDiscipline,
-  buildDriftNudge,
-  buildFiredAlerts,
-  buildMonthlyScorecard,
-  buildPositionExits,
-  buildPositionsInLoss,
-  buildResolvedSuggestions,
-  buildSuggestions,
-} from '@/trading/markets/brief-sections'
 import { buildDisclosures } from '@/trading/markets/equity-vn/brief/disclosure-section'
 import { buildEvents } from '@/trading/markets/equity-vn/brief/events'
 import { buildIndexReview } from '@/trading/markets/equity-vn/brief/index-review-section'
@@ -51,18 +36,8 @@ import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
  *  keys, and the locale gate enforces the last part. `recent` is the US filings block: VN reads
  *  its disclosures through `disclosures`. */
 const SECTION_BUILDERS = Object.freeze({
-  'book-summary': buildBookSummary,
-  'resolved-suggestions': buildResolvedSuggestions,
-  'fired-alerts': buildFiredAlerts,
-  'position-exits': buildPositionExits,
-  'unwatched-positions': buildUnwatchedPositions,
-  'stale-positions': buildStalePositions,
-  'positions-in-loss': buildPositionsInLoss,
+  ...SHARED_SECTION_BUILDERS,
   'trade-sides': buildTradeSides,
-  'drift-nudge': buildDriftNudge,
-  'monthly-scorecard': buildMonthlyScorecard,
-  'regime-shift': buildRegimeShift,
-  macro: buildMacro,
   'deposit-rate': buildDepositRate,
   'macro-headlines': buildMacroHeadlines,
   tape: buildTape,
@@ -75,14 +50,9 @@ const SECTION_BUILDERS = Object.freeze({
   'watchlist-leading': buildWatchlistLeading,
   'watchlist-dropped': buildWatchlistDropped,
   'screen-delta': buildScreenDelta,
-  'cross-asset-pulse': buildCrossAssetPulse,
   disclosures: buildDisclosures,
   'index-review': buildIndexReview,
   events: buildEvents,
-  cost: buildCost,
-  suggestions: buildSuggestions,
-  'cross-asset-suggestions': buildCrossAssetSuggestions,
-  discipline: buildDiscipline,
 } as const satisfies Record<Exclude<ProducingSectionKind, 'recent'>, SectionBuilder<CrossSection>>)
 
 /** Which kinds describe the VN market rather than the operator's own book or the region it sits in.

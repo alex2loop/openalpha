@@ -4,25 +4,10 @@ import type { BriefComposition, SectionBuilders } from '@/trading/markets/brief-
 import type { BriefContext, BriefHome, LoadContextOptions } from '@/trading/markets/brief-context'
 import type { UsBoard } from '@/trading/markets/equity-us/board'
 import { MACRO_FORMULA_VERSION } from '@/trading/kernel/market/macro-series'
+import { SHARED_SECTION_BUILDERS } from '@/trading/markets/brief-builders'
 import { composeBrief } from '@/trading/markets/brief-compose'
 import { loadBriefContext } from '@/trading/markets/brief-context'
-import { buildCrossAssetPulse } from '@/trading/markets/brief-cross-asset'
-import { buildStalePositions, buildUnwatchedPositions } from '@/trading/markets/brief-holdings'
-import { buildMacro, buildRegimeShift } from '@/trading/markets/brief-macro'
 import { buildNextActions } from '@/trading/markets/brief-next-actions'
-import {
-  buildBookSummary,
-  buildCost,
-  buildCrossAssetSuggestions,
-  buildDiscipline,
-  buildDriftNudge,
-  buildFiredAlerts,
-  buildMonthlyScorecard,
-  buildPositionExits,
-  buildPositionsInLoss,
-  buildResolvedSuggestions,
-  buildSuggestions,
-} from '@/trading/markets/brief-sections'
 import { readUsEvents } from '@/trading/markets/equity-us/brief/events-read'
 import { buildRecent } from '@/trading/markets/equity-us/brief/recent-section'
 import {
@@ -37,23 +22,8 @@ import { medianTurnover } from '@/trading/markets/turnover'
  *  filings of the names in it, the suggestions, and the tail. The market's prices, range and headlines come from its overview and
  *  news reads, the way every non-home market's do, so a kind without a builder here is not run. */
 const SECTION_BUILDERS: SectionBuilders<UsBoard> = Object.freeze({
-  'book-summary': buildBookSummary,
-  'resolved-suggestions': buildResolvedSuggestions,
-  'fired-alerts': buildFiredAlerts,
-  'position-exits': buildPositionExits,
-  'unwatched-positions': buildUnwatchedPositions,
-  'stale-positions': buildStalePositions,
-  'positions-in-loss': buildPositionsInLoss,
-  'drift-nudge': buildDriftNudge,
-  'monthly-scorecard': buildMonthlyScorecard,
-  'regime-shift': buildRegimeShift,
-  macro: buildMacro,
-  'cross-asset-pulse': buildCrossAssetPulse,
+  ...SHARED_SECTION_BUILDERS,
   recent: buildRecent,
-  cost: buildCost,
-  suggestions: buildSuggestions,
-  'cross-asset-suggestions': buildCrossAssetSuggestions,
-  discipline: buildDiscipline,
 })
 
 /** No market story: the story reads VN's tape, and a US one would need its own detectors. */
