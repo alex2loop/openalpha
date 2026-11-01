@@ -17,7 +17,7 @@ import { sourceId } from '@/trading/kernel/source/source-id'
 import { toUsdtCandles, toUsdtQuote } from '@/trading/sources/adapters/coinbase-usdt'
 import { boardObservedAt } from '@/trading/sources/adapters/crypto-board'
 import { createCryptoFx } from '@/trading/sources/adapters/crypto-fx'
-import { createSource, parsedSource } from '@/trading/sources/define'
+import { createSource, mapOutcome, parsedSource } from '@/trading/sources/define'
 import {
   klineLimit,
   utcDayEndEpochMs,
@@ -56,12 +56,17 @@ export function createCoinbaseSources(options: SourceAdapterOptions): readonly R
 const FX: CryptoFxSpec = {
   id: COINBASE_SOURCE,
   coinId: (base) => (FX_COINS.has(base) ? base : undefined),
-  request: (input) => ({
-    ...QUOTE_ATTEMPT_LIMITS,
-    path: `/products/${input.coinId}-${input.fiat}/ticker`,
-    businessMissStatuses: PRODUCT_MISS_STATUSES,
-  }),
+  request: (input) => tickerRequest(input.coinId, input.fiat),
   parse: (raw) => toFxReading(TICKER.parse(raw)),
+}
+
+/** One last-trade read of a dollar pair, shared by the fx peg and the USDT quote. */
+function tickerRequest(coin: string, fiat: string) {
+  return {
+    ...QUOTE_ATTEMPT_LIMITS,
+    path: `/products/${coin}-${fiat}/ticker`,
+    businessMissStatuses: PRODUCT_MISS_STATUSES,
+  }
 }
 
 function toFxReading(row: z.infer<typeof TICKER>): CryptoFxReading {
@@ -95,39 +100,27 @@ function usdtQuoteSource(options: SourceAdapterOptions): RegisteredSource {
         return peg
       }
 
-      const { price, observedAt } = toUsdtQuote(
-        { ...coin.value, observedAt: coin.value.observedAt ?? coin.fetchedAt },
-        { ...peg.value, observedAt: peg.value.observedAt ?? peg.fetchedAt }
-      )
+      // The fold divides after the transport parsed both legs, so a zero or unreadable price is
+      // mapped to a rejected payload here rather than thrown past the source as a defect.
+      return mapOutcome(coin, (reading, fetchedAt) => {
+        const quote = toUsdtQuote(
+          { price: reading.rate, observedAt: reading.observedAt ?? fetchedAt },
+          { price: peg.value.rate, observedAt: peg.value.observedAt ?? peg.fetchedAt }
+        )
 
-      return {
-        ...coin,
-        value: parsedSource<Quote>({ instrument, price, observedAt }),
-      }
+        return parsedSource<Quote>({ instrument, ...quote })
+      })
     },
     observedAt: (value) => value.observedAt,
   })
 }
 
-async function readTicker(
+function readTicker(
   http: SourceHttp,
   coin: string,
   signal: AbortSignal
-): Promise<SourceFetchOutcome<{ readonly price: number; readonly observedAt?: number }>> {
-  return http.getJson(
-    {
-      ...QUOTE_ATTEMPT_LIMITS,
-      sourceId: COINBASE_SOURCE,
-      path: `/products/${coin}-${FIAT}/ticker`,
-      businessMissStatuses: PRODUCT_MISS_STATUSES,
-      signal,
-    },
-    (raw) => {
-      const row = TICKER.parse(raw)
-
-      return { price: Number(row.price), ...boardObservedAt(row.time) }
-    }
-  )
+): Promise<SourceFetchOutcome<CryptoFxReading>> {
+  return http.getJson({ ...tickerRequest(coin, FIAT), sourceId: COINBASE_SOURCE, signal }, FX.parse)
 }
 
 function usdtBarsSource(options: SourceAdapterOptions): RegisteredSource {
@@ -158,11 +151,13 @@ async function loadBars(
     context.fromDay ??
     utcDayOf(utcDayStartEpochMs(toDay) - klineLimit(context, MAXIMUM_CANDLES) * MS_PER_DAY)
   const coin = await readCandles(http, { coin: instrument.ticker, fromDay, toDay }, signal)
-  const peg = await readCandles(http, { coin: PEG, fromDay, toDay }, signal)
 
+  // An unlisted coin costs no peg read.
   if (coin.kind === 'error') {
     return coin
   }
+
+  const peg = await readCandles(http, { coin: PEG, fromDay, toDay }, signal)
 
   if (peg.kind === 'error') {
     return peg
