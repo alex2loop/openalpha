@@ -27,6 +27,7 @@ import { sessionChange } from '@/trading/markets/timeseries'
 import { barTurnover } from '@/trading/markets/turnover'
 
 const PERCENT_PER_UNIT = 100
+const EXCHANGE_SEPARATOR = ' + '
 
 interface OverviewLoad {
   readonly deps: MarketDeps
@@ -41,16 +42,20 @@ interface NameSession {
   readonly turnover: number
 }
 
-/** The headline indices as levels, then roll-ups folded over the board. Every roll-up is the board's, not the listing's, and absent where nothing could be
- *  measured: a total of nothing would read as a market that is worth nothing. */
+/** The headline indices as levels, then roll-ups folded over the board. Every roll-up is the
+ *  board's, not the listing's, and says so; each is absent where nothing could be measured, since a
+ *  total of nothing would read as a market worth nothing. A name whose newest bar is older than the
+ *  board's session sits out the session's moves rather than lending them its own stale change. */
 export async function runUsOverview(load: OverviewLoad): Promise<MarketDataOverview> {
   const { request, manifest } = load
   const board = await load.board.get(request.asOf, request.signal)
   const rows = await headlineRows(load)
-  const sessions = board.names.flatMap(toNameSession)
+  const day = latestSession(board)
+  const sessions = board.names
+    .filter((name) => name.bars.at(-1)?.candle.at === day)
+    .flatMap(toNameSession)
   const marketCap = board.names.reduce((sum, name) => sum + name.marketCap, 0)
   const turnover = sessions.reduce((sum, entry) => sum + entry.turnover, 0)
-  const day = latestSession(board)
 
   return {
     market: manifest.id,
@@ -58,6 +63,7 @@ export async function runUsOverview(load: OverviewLoad): Promise<MarketDataOverv
     currency: manifest.currency,
     icon: manifest.icon,
     rows,
+    ...optionalUniverse(board),
     ...(marketCap > 0 ? { marketCap } : {}),
     ...(turnover > 0 ? { turnover } : {}),
     ...optionalBreadth(sessions),
@@ -113,6 +119,17 @@ function toRow(instrument: InstrumentRef, bars: readonly BarRecord[]): MarketDat
       ...(change === undefined ? {} : { changePct: change * PERCENT_PER_UNIT }),
     },
   ]
+}
+
+/** The exchanges the board was drawn from, and that it is the largest names on them, not all. */
+function optionalUniverse(board: UsBoard): { universe?: string } {
+  const exchanges = [...new Set(board.names.flatMap((name) => name.record.exchange ?? []))].sort()
+
+  return exchanges.length === 0
+    ? {}
+    : {
+        universe: `${exchanges.join(EXCHANGE_SEPARATOR)}: the ${board.names.length} largest by market cap`,
+      }
 }
 
 function toNameSession(name: UsBoardName): NameSession[] {

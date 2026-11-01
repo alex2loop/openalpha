@@ -16,7 +16,7 @@ import { admissibleCandles } from '@/trading/markets/admissibility'
 import { isRestated, RESTATEMENT_TAIL_SESSIONS } from '@/trading/markets/bar-restatement'
 import { hasRebuiltWindow, writeBarWindows } from '@/trading/markets/bars'
 import { isSettled } from '@/trading/markets/calendar'
-import { loadUsMembers } from '@/trading/markets/equity-us/board'
+import { loadUsCoverage } from '@/trading/markets/equity-us/board'
 import {
   US_EVIDENCE_SESSIONS,
   US_INDEX_TICKERS,
@@ -135,11 +135,12 @@ async function fetchWindows(
   }
 }
 
+/** The board, the names the operator holds or watches off it, the fund board and the indices. */
 async function barTargets(deps: MarketDeps, pass: BarsPass): Promise<readonly InstrumentRef[]> {
   const byRecord = new Map<Ticker, InstrumentRecord>(
     pass.universe.map((record) => [record.instrument.ticker, record])
   )
-  const members = await loadUsMembers(deps, pass.manifest, {
+  const coverage = await loadUsCoverage(deps, pass.manifest, {
     records: pass.universe,
     asOf: pass.request.asOf,
     now: pass.request.now,
@@ -157,7 +158,7 @@ async function barTargets(deps: MarketDeps, pass: BarsPass): Promise<readonly In
   })
 
   return dedupeInstruments([
-    ...members.map((member) => member.record.instrument),
+    ...[...coverage.members, ...coverage.followed].map(({ record }) => record.instrument),
     ...funds,
     ...indices,
   ])

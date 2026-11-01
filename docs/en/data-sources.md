@@ -13,6 +13,7 @@ You need nothing to get started. A few providers take a key that you can add lat
 | `bls` | `BLS_API_KEY` | Nothing is lost: US inflation reads either way. Without a key the provider allows 25 calls a day per IP address, shared by every program behind that address. With a key the limit is 500. |
 | `coingecko` | `COINGECKO_API_KEY` | You lose the last fallback for the crypto market-cap board, and the only way to look up a coin ranked below every board. It also drops out of the FX list for a settlement coin (such as USDT) against a fiat currency. |
 | `fred` | `FRED_API_KEY` | You lose the two series only FRED publishes: the dollar index and VIX (the market's fear gauge). The macro score still rates, without these two drivers: the US macro score loses about 30% of its weight, the macro backdrop for VN stocks 20%, and gold 2 of its 7 factors (dollar, safe haven). So days when the dollar strengthens or the market panics are easy to miss. US yields, the real rate and inflation still read from `treasury` and `bls`, which need no key. The key is free: sign up on the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html). |
+| `sec-data` | `SEC_CONTACT_EMAIL` | Not a key: SEC asks every reader to say who is calling, so this is your contact email. Without it the SEC source stays off. US value and quality read as unavailable, and so do US earnings releases and insider purchases. |
 
 Save the key with `openalpha key set <NAME>` (or under Settings > Tools on the office page), then restart the daemon. Or set the variable in your shell or environment. Never write the key in a config file. `openalpha key list` shows these variables and whether each is set.
 
@@ -72,8 +73,8 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 | Policy and interbank rates | `sbv` |
 | Statistics office monthly report | `nso` |
 | **Crypto** | |
-| Live price | `binance`, `okx`, `mexc` (the default venue for `crypto` goes first) |
-| Daily history | `binance`, `bybit`, `mexc`, `yahoo` |
+| Live price | `binance`, `okx`, `mexc`, `coinbase` (the default venue for `crypto` goes first) |
+| Daily history | `binance`, `bybit`, `mexc`, `coinbase`, `yahoo` |
 | Ranked market-cap board | `coinmarketcap`, `coinpaprika`, `coinlore`, `coingecko` |
 | Sentiment | `alternative-me` |
 | Funding | `binance-futures` |
@@ -125,7 +126,7 @@ One kind is defined and has no provider: spot-ETF net flows for crypto. The brie
 
 ### US sources
 
-- **nasdaq** serves the listing (about 12,000 tickers, one request per exchange and one for funds), market caps, quotes, split-adjusted daily history and dividends. Its history is not dividend-adjusted, so an ex-dividend day restates nothing. Its dividend dates cover Nasdaq listings only: a NYSE name (about two thirds of the board) has no ex-dividend date, so its levels are not adjusted across one and the brief does not remind you to record its dividend. Record it by hand when it is paid. The 240-a-minute limit is measured, not published.
+- **nasdaq** serves the listing (about 12,000 tickers, one request per exchange and one for funds), market caps, quotes, split-adjusted daily history and dividends. Its history is not dividend-adjusted, so an ex-dividend day restates nothing. Its dividend dates cover Nasdaq listings only: a NYSE name (about two thirds of the board) has no ex-dividend date, so its levels are not adjusted across one and the brief does not remind you to record its dividend. Record it by hand when it is paid. The 120-a-minute limit is measured, not published: it is the rate a full sweep of the board ran at without a single refusal.
 - **SEC** asks every reader for a contact, sent as the user agent. Set `SEC_CONTACT_EMAIL` (`onboard` asks, or `key set SEC_CONTACT_EMAIL`); without it the SEC source stays off and US value and quality read as unavailable. Annual accounts come from the company-wide XBRL frames (six reported years and the one in progress). Each balance sheet is read at the filer's own year end, whatever the month, and a trailing twelve months a quarterly filing printed is dropped rather than taken for a year. Net income falls back to the figure available to common holders where a filer (PNC, Truist) tags only that. A company the frames miss altogether, mostly foreign issuers filing a 20-F or 40-F, is read from its own filings instead and converted to dollars at the latest rate, so its growth and ratios hold while older years move with the exchange rate. Without a rate that day its reports wait for the next refresh.
 - **Yield curve.** The Treasury read now also prints the ten-year less three-month spread, which the equity segment weighs in its macro composite.
 - **Coinbase for crypto.** It quotes dollars; the crypto book is in USDT, so a quote or a bar is divided by USDT's own dollar price on the same day.
@@ -189,7 +190,8 @@ Every provider is paced to a requests-per-minute rate. That rate is either its p
 |---|---|
 | 600 | `binance`, `binance-futures`, `bybit`, `okx`, `mexc` |
 | 300 | `cafef`, `vndirect` |
-| 120 | `fred`, `vietcap-statements` |
+| 240 | `sec`, `sec-data` |
+| 120 | `fred`, `nasdaq`, `vietcap-statements` |
 | 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-mkw`, `yahoo` |
 | 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps` |
 | 20 | `bls`, `cftc` |

@@ -181,7 +181,10 @@ export const SOURCE_ENDPOINTS = Object.freeze({
  *
  *  `vietcap-statements` publishes no ceiling. A name costs three requests, four for a bank, and a
  *  refresh asks for the board and the book, about 120 names, only when their reports are due, so
- *  120 a minute keeps the monthly burst near three minutes. */
+ *  120 a minute keeps the monthly burst near three minutes.
+ *
+ *  `nasdaq` publishes no ceiling. A full sweep of the US board ran at about 120 a minute without a
+ *  refusal, so that is the rate it is held to. */
 export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = Object.freeze({
   [sourceId('alternative-me')]: 30,
   [sourceId('binance')]: 600,
@@ -205,7 +208,7 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('hsx')]: 60,
   [sourceId('kbsec')]: 60,
   [sourceId('mexc')]: 600,
-  [sourceId('nasdaq')]: 240,
+  [sourceId('nasdaq')]: 120,
   [sourceId('nso')]: 10,
   [sourceId('okx')]: 600,
   [sourceId('pnj')]: 30,

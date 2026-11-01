@@ -12,11 +12,10 @@ import { t } from '@/i18n'
 
 import type { AskContext } from './ask'
 import type { ModelAnswer } from './model-step'
+import { isEnvSet } from './model-step'
 import { printNextSteps } from './next-steps'
 import { offerSaveKeys } from './save-key'
-import { askSecContact, type HomeRegion } from './settings-step'
-
-const SEC_CONTACT_ENV = 'SEC_CONTACT_EMAIL'
+import { askSecContact, type HomeRegion, SEC_CONTACT_ENV } from './settings-step'
 
 /** Signs in, tries the model once and lists what is left, after any write that set a model. */
 export async function finishModelChange(
@@ -59,8 +58,12 @@ export async function finishModelChange(
 }
 
 /** The contact SEC asks for: shown as typed, saved to the key file, and in this process too so
- *  what follows reads it. Empty skips; true when one was saved. */
+ *  what follows reads it. Already set, or left empty, it is not asked or saved; true when saved. */
 async function offerSecContact(ctx: AskContext): Promise<boolean> {
+  if (isEnvSet(SEC_CONTACT_ENV)) {
+    return false
+  }
+
   const value = await askSecContact(ctx)
 
   if (value === undefined) {

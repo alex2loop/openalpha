@@ -106,7 +106,12 @@ async function loadAccounts(
   }
 
   const facts = answers.flatMap((answer) => (answer.kind === 'ok' ? [answer.value] : []))
-  const years = { target: resolveRowTarget(context, map.fetchedAt), filingDays: ANNUAL_FILING_DAYS }
+  // The ticker map is cached for a day; the rows are as fresh as the newest frame read for them.
+  const fetchedAt = answers.reduce(
+    (newest, answer) => (answer.kind === 'ok' ? Math.max(newest, answer.fetchedAt) : newest),
+    map.fetchedAt
+  )
+  const years = { target: resolveRowTarget(context, fetchedAt), filingDays: ANNUAL_FILING_DAYS }
   const framed = toAnnual(facts, wanted, years)
   const recovered = await recoverGaps({ http, signal }, wanted, framed)
   const annual = recovered.length === 0 ? framed : toAnnual([...facts, ...recovered], wanted, years)
@@ -114,7 +119,7 @@ async function loadAccounts(
 
   return {
     kind: 'ok',
-    fetchedAt: map.fetchedAt,
+    fetchedAt,
     value: parsedSource({ annual: [...annual, ...missed], quarters: [] }),
   }
 }

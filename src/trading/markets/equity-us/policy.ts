@@ -38,18 +38,19 @@ export const US_BENCHMARK_TICKER: Ticker = ticker('SPY')
 /** Listed so a level row reads from the store like any name; Nasdaq charts both. */
 export const US_INDEX_TICKERS: readonly Ticker[] = Object.freeze([ticker('COMP'), ticker('NDX')])
 
-/** A fund leaves whole at its review level, so it banks nothing before the target. */
+/** A fund leaves whole at its review level, so it banks nothing before the target, and nothing
+ *  trails that level: a trail would only clamp the fresh one, as it did for VN funds. */
 export const US_FUND_LEVEL_POLICY: LevelPolicy = Object.freeze({
   atrSessions: 14,
   stopVolatilityMultiplier: { short: 1.5, long: 3 },
   targetRiskMultiplier: { short: 1.5, long: 3 },
-  trail: Object.freeze({ sessions: 22, volatilityMultiplier: 3, minimumStopMultiplier: 1 }),
 })
 
 /** A share banks its first third one risk unit out, the rest riding the trail. */
 export const US_LEVEL_POLICY: LevelPolicy = Object.freeze({
   ...US_FUND_LEVEL_POLICY,
   takeProfitRiskMultiplier: { short: 1, long: 1 },
+  trail: Object.freeze({ sessions: 22, volatilityMultiplier: 3, minimumStopMultiplier: 1 }),
 })
 
 /** Levels are priced off the quote the run read, and a gap can carry a name past them. Below

@@ -8,9 +8,9 @@ import { newestReport } from '@/trading/markets/equity-us/fundamentals'
 import { US_TREND_YEARS } from '@/trading/markets/equity-us/policy'
 
 /** Read off the board pass, so asking costs no provider read. A name whose accounts were never
- *  fetched (no SEC contact, a foreign filer, off the board) has none to read: absent, never an
- *  empty history. No flags: the observation lines are VN's own rules, and accounts here inform
- *  and never gate. */
+ *  fetched (no SEC contact, no machine-readable filing, neither on the board nor followed) has
+ *  none to read: absent, never an empty history. No flags: the observation lines are VN's own
+ *  rules, and accounts here inform and never gate. */
 export async function runUsAccounts(
   board: UsBoardCache,
   request: InstrumentRequest

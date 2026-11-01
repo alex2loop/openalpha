@@ -51,13 +51,15 @@ export async function runUsEvents(
   return available(mergeEvents(answers.flatMap((read) => read.value)), provenance, caveats)
 }
 
+/** Only a true repeat is dropped: two purchases one insider filed on one day differ in their
+ *  filing or their line, and both stand. */
 function mergeEvents(events: readonly MarketEvent[]): readonly MarketEvent[] {
   const seen = new Set<string>()
 
   return events
     .toSorted((left, right) => left.at.localeCompare(right.at))
     .filter((event) => {
-      const key = `${event.kind}|${event.at}|${event.title}`
+      const key = [event.kind, event.at, event.providerEventId, event.title, event.detail].join('|')
 
       if (seen.has(key)) {
         return false

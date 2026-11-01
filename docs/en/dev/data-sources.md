@@ -479,6 +479,7 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
 - `cafef-statements` 60: publishes none; a page of about 33 KB, asked only for a name whose newest quarter lacks cash flow.
 - `vietcap-statements` 120: publishes none; a name costs three requests (four for a bank) and a refresh asks for about 120 names
   only when their reports are due.
+- `nasdaq` 120: publishes none; a full sweep of the US board ran at about that rate without a refusal. `sec` and `sec-data` 240.
 - 60: `coinpaprika` publishes 10/s and 20,000/month; `coinlore` and `treasury` publish none (sweep-safe rate); `entrade`, `kbsec`,
   `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per sweep; `rss`
   is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo` serves gold `quote`/`bars`

@@ -16,6 +16,7 @@ const LANGUAGE_NAME_KEYS = {
 } as const satisfies Record<Locale, string>
 const CURRENCY_CHOICES = ['VND', 'USD'] as const
 const SEC_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const SEC_CONTACT_ENV = 'SEC_CONTACT_EMAIL'
 
 /** The market a book is mainly held in; it sets the home region and the book's currency. */
 export type HomeRegion = 'vn' | 'us'

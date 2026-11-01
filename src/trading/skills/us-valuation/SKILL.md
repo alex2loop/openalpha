@@ -23,4 +23,4 @@ Buybacks shrink the share count and lift earnings per share without lifting prof
 
 ## Missing accounts
 
-Accounts come from SEC filings. A company that files other forms, such as a foreign issuer, or a name with no contact email set up for the filings feed, has no accounts here. Say the read is price-only; never treat missing as zero.
+Accounts come from SEC filings. A foreign company's come from its own annual report, converted to dollars at today's rate, so its growth and ratios hold while its older dollar figures move with the exchange rate. A name with no machine-readable filing, or no contact email set up for the filings feed, has no accounts here. Say the read is price-only; never treat missing as zero.

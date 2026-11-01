@@ -13,6 +13,7 @@ Tóm tắt: mọi nhà cung cấp đều bật sẵn. Bạn không cần bật g
 | `bls` | `BLS_API_KEY` | Không mất gì: lạm phát Mỹ vẫn đọc được. Không có khóa thì nhà cung cấp cho 25 lượt gọi mỗi ngày trên mỗi địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì giới hạn là 500. |
 | `coingecko` | `COINGECKO_API_KEY` | Bạn mất bên dự phòng cuối cho bảng vốn hóa crypto, và mất luôn cách duy nhất để tra một coin nằm ngoài mọi bảng. Nó cũng không còn trong danh sách FX cho một coin thanh toán (như USDT) so với tiền pháp định. |
 | `fred` | `FRED_API_KEY` | Bạn mất hai chuỗi chỉ FRED công bố: chỉ số đô la và VIX (mức lo sợ của thị trường). Điểm vĩ mô vẫn chấm được nhưng thiếu hai yếu tố này: điểm vĩ mô Mỹ mất khoảng 30% trọng số, bối cảnh vĩ mô cho cổ phiếu VN mất 20%, vàng mất 2 trong 7 yếu tố (đô la, trú ẩn an toàn). Vì vậy những ngày đô la mạnh lên hay thị trường hoảng loạn dễ bị bỏ sót. Lợi suất, lãi suất thực và lạm phát Mỹ vẫn đọc từ `treasury` và `bls`, hai bên không cần khóa. Khóa miễn phí, đăng ký tại [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html). |
+| `sec-data` | `SEC_CONTACT_EMAIL` | Không phải khóa: SEC yêu cầu mọi người đọc cho biết ai đang gọi, nên đây là email liên hệ của bạn. Không có thì nguồn SEC tắt. Giá trị và chất lượng của cổ phiếu Mỹ đọc thành không có số liệu, công bố kết quả kinh doanh và giao dịch mua của người nội bộ cũng vậy. |
 
 Lưu khóa bằng `openalpha key set <TÊN>` (hoặc ở Cài đặt > Công cụ trên trang văn phòng), rồi khởi động lại dịch vụ nền (daemon). Hoặc đặt biến trong shell hay môi trường. Đừng bao giờ ghi khóa vào tệp cấu hình. `openalpha key list` cho thấy các biến này và biến nào đã đặt.
 
@@ -72,8 +73,8 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 | Lãi suất điều hành và liên ngân hàng | `sbv` |
 | Báo cáo hằng tháng của cơ quan thống kê | `nso` |
 | **Crypto** | |
-| Giá trực tiếp | `binance`, `okx`, `mexc` (sàn mặc định của `crypto` đứng đầu) |
-| Lịch sử theo ngày | `binance`, `bybit`, `mexc`, `yahoo` |
+| Giá trực tiếp | `binance`, `okx`, `mexc`, `coinbase` (sàn mặc định của `crypto` đứng đầu) |
+| Lịch sử theo ngày | `binance`, `bybit`, `mexc`, `coinbase`, `yahoo` |
 | Bảng vốn hóa xếp hạng | `coinmarketcap`, `coinpaprika`, `coinlore`, `coingecko` |
 | Tâm lý thị trường | `alternative-me` |
 | Funding | `binance-futures` |
@@ -125,7 +126,7 @@ Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền r�
 
 ### Nguồn dữ liệu Mỹ
 
-- **nasdaq** cung cấp danh sách niêm yết (khoảng 12.000 mã, mỗi sàn một yêu cầu và một yêu cầu cho quỹ), vốn hóa, báo giá, lịch sử ngày đã điều chỉnh chia tách và cổ tức. Lịch sử này không điều chỉnh theo cổ tức, nên ngày giao dịch không hưởng cổ tức không bị coi là điều chỉnh giá. Ngày cổ tức chỉ có cho mã niêm yết trên Nasdaq: mã NYSE (khoảng hai phần ba bảng) không có ngày không hưởng cổ tức, nên các mức giá không được chỉnh qua ngày đó và bản tin không nhắc bạn ghi cổ tức. Khi nhận cổ tức, hãy tự ghi. Giới hạn 240 yêu cầu mỗi phút là con số đã đo, không phải con số nguồn công bố.
+- **nasdaq** cung cấp danh sách niêm yết (khoảng 12.000 mã, mỗi sàn một yêu cầu và một yêu cầu cho quỹ), vốn hóa, báo giá, lịch sử ngày đã điều chỉnh chia tách và cổ tức. Lịch sử này không điều chỉnh theo cổ tức, nên ngày giao dịch không hưởng cổ tức không bị coi là điều chỉnh giá. Ngày cổ tức chỉ có cho mã niêm yết trên Nasdaq: mã NYSE (khoảng hai phần ba bảng) không có ngày không hưởng cổ tức, nên các mức giá không được chỉnh qua ngày đó và bản tin không nhắc bạn ghi cổ tức. Khi nhận cổ tức, hãy tự ghi. Giới hạn 120 yêu cầu mỗi phút là con số đã đo, không phải con số nguồn công bố: đó là tốc độ một lượt quét trọn bảng đã chạy mà không bị từ chối lần nào.
 - **SEC** yêu cầu người đọc để lại liên hệ, gửi qua user agent. Hãy đặt `SEC_CONTACT_EMAIL` (`onboard` sẽ hỏi, hoặc `key set SEC_CONTACT_EMAIL`); không có thì nguồn SEC tắt và giá trị, chất lượng của cổ phiếu Mỹ ghi là thiếu dữ liệu. Báo cáo năm lấy từ các bảng XBRL toàn doanh nghiệp (sáu năm đã báo cáo và năm đang chạy). Bảng cân đối được đọc đúng ngày kết thúc năm tài chính của doanh nghiệp, dù là tháng nào, và số liệu mười hai tháng gần nhất in trong báo cáo quý bị bỏ chứ không bị coi là một năm. Lợi nhuận ròng lùi về con số dành cho cổ đông phổ thông khi doanh nghiệp (PNC, Truist) chỉ ghi con số đó. Doanh nghiệp mà các bảng này bỏ sót hoàn toàn, phần lớn là doanh nghiệp nước ngoài nộp 20-F hoặc 40-F, được đọc từ hồ sơ của chính họ rồi quy ra đô la theo tỷ giá mới nhất: tăng trưởng và các tỷ lệ giữ nguyên, còn số tiền của các năm cũ dịch theo tỷ giá. Hôm nào chưa có tỷ giá thì báo cáo của họ chờ lần làm mới sau.
 - **Đường cong lợi suất.** Bản đọc của Kho bạc nay in thêm chênh lệch lợi suất 10 năm trừ 3 tháng, mà nhóm cổ phiếu cân trong chỉ số vĩ mô.
 - **Coinbase cho crypto.** Coinbase báo giá bằng đô la, còn sổ crypto tính bằng USDT, nên mỗi giá hoặc mỗi thanh nến được chia cho giá đô la của USDT trong cùng ngày.
@@ -189,7 +190,8 @@ Mỗi nhà cung cấp được điều nhịp theo một tốc độ yêu cầu 
 |---|---|
 | 600 | `binance`, `binance-futures`, `bybit`, `okx`, `mexc` |
 | 300 | `cafef`, `vndirect` |
-| 120 | `fred`, `vietcap-statements` |
+| 240 | `sec`, `sec-data` |
+| 120 | `fred`, `nasdaq`, `vietcap-statements` |
 | 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-mkw`, `yahoo` |
 | 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps` |
 | 20 | `bls`, `cftc` |

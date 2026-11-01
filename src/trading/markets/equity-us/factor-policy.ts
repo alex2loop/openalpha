@@ -27,9 +27,9 @@ const LINEAR = (bearishAt: number, bullishAt: number): FactorNormalization =>
  *  of it. Re-measure over the whole board before changing one.
  *
  *  Half the weight is price-only. A name whose accounts are not available (no contact email for
- *  SEC, a foreign issuer) still scores on momentum and volatility, which is why the
- *  coverage floor is half and not the default: with it, price-only names are rated and the board
- *  says its coverage is partial; without it they would all read inconclusive. */
+ *  SEC, a filer with no machine-readable accounts) still scores on momentum and volatility, which
+ *  is why the coverage floor is half and not the default: with it, price-only names are rated and
+ *  the board says its coverage is partial; without it they would all read inconclusive. */
 export const US_FACTOR_POLICY: FactorPolicy<UsEquityFactorId> = Object.freeze({
   weights: Object.freeze({
     value: 0.3,

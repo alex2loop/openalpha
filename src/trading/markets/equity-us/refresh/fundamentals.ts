@@ -5,6 +5,7 @@ import type { MarketDeps } from '@/trading/markets/deps'
 import type { MarketDataRefreshRequest } from '@/trading/markets/types'
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
 import { US_MARKET_REF, US_SCREEN_RANK_BUFFER } from '@/trading/markets/equity-us/policy'
+import { followedTickersIn } from '@/trading/markets/held-tickers'
 import { emptyKindResult, toKindResult } from '@/trading/markets/refresh-result'
 
 interface FundamentalsOptions {
@@ -12,9 +13,10 @@ interface FundamentalsOptions {
   readonly request: MarketDataRefreshRequest
 }
 
-/** One live read answers every equity; only the largest by capitalisation are stored, because a
- *  snapshot is kept for every day it is written and the screen reads no others. That bounds the
- *  store's growth to the kept set a day, however many names the listing holds. */
+/** One live read answers every equity; only the largest by capitalisation, and the names the
+ *  operator holds or watches, are stored, because a snapshot is kept for every day it is written
+ *  and nothing reads the others. That bounds the store's growth to the kept set a day, however many
+ *  names the listing holds. */
 export async function refreshUsFundamentals(
   deps: MarketDeps,
   options: FundamentalsOptions
@@ -38,10 +40,16 @@ export async function refreshUsFundamentals(
       .filter((record) => record.status === 'active' && record.kind === 'equity')
       .map((record) => record.instrument.ticker)
   )
+  const { followed } = await followedTickersIn(deps, US_MARKET_REF, {
+    now: request.now,
+    signal: request.signal,
+  })
   const kept = result.value
     .filter((snapshot) => listed.has(snapshot.instrument.ticker))
     .sort((left, right) => (right.marketCap ?? 0) - (left.marketCap ?? 0))
-    .slice(0, US_SCREEN_RANK_BUFFER)
+    .filter(
+      (snapshot, rank) => rank < US_SCREEN_RANK_BUFFER || followed.has(snapshot.instrument.ticker)
+    )
 
   await deps.marketDataStore.upsertFundamentals(kept, request.signal)
 

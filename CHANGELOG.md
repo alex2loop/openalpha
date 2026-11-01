@@ -20,6 +20,7 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 - A book from before a market existed no longer refreshes it: the in-use set reads the resolved profile.
 - Tool, skill and usage wording no longer assumes a Vietnamese book.
+- On a fresh Vietnam install, Vietnamese gold (`gold-vn`) now starts switched off until you enable it with `/profile enable`; world gold stays off, as it is read for reference only.
 
 ### Fixes
 

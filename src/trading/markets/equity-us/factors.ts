@@ -32,7 +32,8 @@ import {
 } from '@/trading/markets/timeseries'
 
 /** A name the board does not hold, read on demand: any listed name can be asked about, and its
- *  series comes from the store or, failing that, the provider. */
+ *  series comes from the store or, failing that, the provider. Its value and quality are read only
+ *  where the operator holds or watches it, since only those names have accounts fetched. */
 export interface UsSubject {
   readonly record: InstrumentRecord
   readonly bars: readonly BarRecord[]
@@ -135,8 +136,13 @@ async function resolveSubject(
   }
 
   const bars = await onDemandBars(context, request)
+  // A followed name off the board has its value and quality ranked against the board.
+  const raws = {
+    ...usRawsOf(usAdjustedCloses(bars)),
+    ...board.followedRanks.get(request.instrument.ticker),
+  }
 
-  return bars.length === 0 ? undefined : { record, bars, onBoard: false }
+  return bars.length === 0 ? undefined : { record, bars, onBoard: false, raws }
 }
 
 /** The settled series through the capability, so a name no refresh has reached is read from the

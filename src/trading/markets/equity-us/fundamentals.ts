@@ -3,7 +3,7 @@ import type { AnnualAccounts } from '@/trading/kernel/market/annual-accounts'
 import { rankWithin } from '@/trading/markets/factor-scoring'
 
 /** What a name's newest filed year says against what the market pays for it. */
-interface UsFundamentals {
+export interface UsFundamentals {
   /** Net income over capitalisation: what a dollar of the company yields. */
   readonly earningsYield?: number
   /** Shareholders' equity over capitalisation. */
@@ -54,15 +54,19 @@ export function usFundamentalsOf(
   }
 }
 
-/** Value is the mean of the earnings-yield and book-to-market ranks that exist; quality is the mean of
- *  the gross-profitability rank and the return-on-equity rank within the sector. Ranking the return
- *  across sectors would read a bank's leverage as quality. A name missing a quality reading would
- *  otherwise score on value alone, and cheap names are rarely the profitable ones: three in five on the
- *  board tag no gross profit, and on 2026-10-30 they held all thirty top screen places. */
+/** Value is the mean of the earnings-yield and book-to-market ranks that exist; quality is the mean
+ *  of the gross-profitability rank and the return-on-equity rank within the sector. Ranking the
+ *  return across sectors would read a bank's leverage as quality. A name missing a quality reading
+ *  would otherwise score on value alone, and cheap names are rarely the profitable ones: three in
+ *  five on the board tag no gross profit, and on 2026-10-30 they held all thirty top screen places.
+ *
+ *  The populations are the board's alone; a followed name off it is ranked against them without
+ *  joining them, so holding a name never moves another name's rank. */
 export function rankFundamentals(
-  entries: ReadonlyMap<Ticker, UsFundamentals>
+  board: ReadonlyMap<Ticker, UsFundamentals>,
+  followed: ReadonlyMap<Ticker, UsFundamentals>
 ): ReadonlyMap<Ticker, UsFundamentalRanks> {
-  const all = [...entries.values()]
+  const all = [...board.values()]
   const populations = {
     earningsYield: valuesOf(all, 'earningsYield'),
     bookToMarket: valuesOf(all, 'bookToMarket'),
@@ -74,7 +78,7 @@ export function rankFundamentals(
   )
   const ranks = new Map<Ticker, UsFundamentalRanks>()
 
-  for (const [ticker, fundamentals] of entries) {
+  for (const [ticker, fundamentals] of [...board, ...followed]) {
     const value = meanOf([
       rankOf(populations.earningsYield, fundamentals.earningsYield),
       rankOf(populations.bookToMarket, fundamentals.bookToMarket),

@@ -4,7 +4,7 @@ import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { MarketDataRefreshRequest, MarketManifest } from '@/trading/markets/types'
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
-import { loadUsMembers } from '@/trading/markets/equity-us/board'
+import { loadUsCoverage } from '@/trading/markets/equity-us/board'
 import { US_MARKET_REF } from '@/trading/markets/equity-us/policy'
 import { toMarketCurrency } from '@/trading/markets/equity-us/refresh/accounts-currency'
 import { emptyKindResult, toKindResult } from '@/trading/markets/refresh-result'
@@ -15,21 +15,24 @@ interface AccountsOptions {
   readonly request: MarketDataRefreshRequest
 }
 
-/** One read of the frames answers most board names at once; the rest are read one by one. Without
- *  the SEC contact the source is unconfigured: the kind attempted nothing, so it records no attempt
- *  and asks again next time. */
+/** One read of the frames answers most board names at once; the rest are read one by one. The
+ *  equities the operator holds or watches off the board are asked too, after the board. Without the
+ *  SEC contact the source is unconfigured: the kind attempted nothing, so it records no attempt and
+ *  asks again next time. */
 export async function refreshUsAccounts(
   deps: MarketDeps,
   options: AccountsOptions
 ): Promise<RefreshKindResult> {
   const { manifest, universe, request } = options
-  const members = await loadUsMembers(deps, manifest, {
+  const coverage = await loadUsCoverage(deps, manifest, {
     records: universe,
     asOf: request.asOf,
     now: request.now,
     signal: request.signal,
   })
-  const tickers = members.map((member) => member.record.instrument.ticker)
+  const tickers = [...coverage.members, ...coverage.followed]
+    .filter(({ record }) => record.kind === 'equity')
+    .map(({ record }) => record.instrument.ticker)
 
   // No board yet (fundamentals failed or never ran): nothing to ask the frames for.
   if (tickers.length === 0) {

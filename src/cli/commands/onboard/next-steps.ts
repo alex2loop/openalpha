@@ -9,8 +9,7 @@ import type { AskContext } from './ask'
 import type { StarterModel } from './config-file'
 import type { HomeRegion } from './settings-step'
 import { isEnvSet } from './model-step'
-
-const SEC_CONTACT_ENV = 'SEC_CONTACT_EMAIL'
+import { SEC_CONTACT_ENV } from './settings-step'
 
 interface NextStepsInput {
   readonly provider?: ProviderEntry
@@ -93,7 +92,10 @@ function startSteps(ctx: AskContext, input: NextStepsInput): readonly string[] {
   return [
     t(ctx.locale, 'cli.onboardStepChat', {
       ...params,
-      market: input.region === 'us' ? 'US' : 'VN',
+      market: t(
+        ctx.locale,
+        input.region === 'us' ? 'cli.onboardChatMarketUs' : 'cli.onboardChatMarketVn'
+      ),
     }),
     t(ctx.locale, 'cli.onboardStepDeposit'),
     t(ctx.locale, 'cli.onboardStepDaemon', params),
