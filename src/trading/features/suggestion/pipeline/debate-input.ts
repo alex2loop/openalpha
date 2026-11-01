@@ -100,7 +100,16 @@ export function debateInputFor(input: DebatePlanInput): DebateInput {
     ...(prepared.recentEvents.length === 0 ? {} : { recentEvents: prepared.recentEvents }),
     ...(prepared.calendarFailed === true ? { calendarFailed: true } : {}),
     ...(prepared.levels === undefined ? {} : { proposedLevels: prepared.levels }),
+    ...saleCapOf(prepared),
   }
+}
+
+function saleCapOf(prepared: Prepared): Pick<DebateInput, 'saleCap'> {
+  const { direction } = prepared
+
+  return direction.action === 'reduce' && direction.cap !== undefined
+    ? { saleCap: direction.cap }
+    : {}
 }
 
 /** A typed depth is the operator's and stands. `force` is the operator insisting, which means the

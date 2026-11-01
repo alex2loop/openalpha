@@ -9,6 +9,7 @@ import type {
 import type { CaveatDetail } from '@/trading/kernel/caveat'
 import type { InstrumentKind, InstrumentRef, PortfolioSegment } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
+import { segmentEntries } from '@/trading/features/portfolio/folds/allocation'
 import { PORTFOLIO_FINDING_KINDS } from '@/trading/kernel/caveat'
 import { buildInstrumentKey, CASH_SEGMENT } from '@/trading/kernel/instrument'
 import { isCappedAsFund } from '@/trading/kernel/operator/profile'
@@ -86,9 +87,14 @@ function segmentWeightFindings(input: AssessInput): readonly PortfolioFinding[] 
     return []
   }
 
-  return input.valued.segmentValues
-    .filter((value) => value.segment !== CASH_SEGMENT)
-    .flatMap((value) => segmentFindingsFor(input, value))
+  const held = input.valued.segmentValues.filter((value) => value.segment !== CASH_SEGMENT)
+  const present = new Set(held.map((value) => value.segment))
+  // A segment with a target and nothing in it is as far off that target as it can be.
+  const empty = segmentEntries(input.profile.segmentTargets)
+    .filter(([segment, target]) => segment !== CASH_SEGMENT && target > 0 && !present.has(segment))
+    .map(([segment]) => ({ segment, valueBase: 0, weightPctNav: 0, etfPctNav: 0 }))
+
+  return [...held, ...empty].flatMap((value) => segmentFindingsFor(input, value))
 }
 
 /** A segment can breach its ceiling and sit off its target at once, and each states a different

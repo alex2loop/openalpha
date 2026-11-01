@@ -5,13 +5,13 @@ import type { FinishReason, OnStreamEvent, StreamEvent, TokenUsage } from '@/cor
 import { classifyNetworkError } from '@/ai/adapters/errors'
 import { openSseStream } from '@/ai/adapters/http'
 import { sseScanner } from '@/ai/adapters/sse'
+import { parseToolArgs } from '@/ai/adapters/tool-args'
 import { abortError, attachAttemptUsage, LLMError } from '@/core/errors'
-import { formatErrForLog, scrubCredentials } from '@/core/security/credentials'
+import { scrubCredentials } from '@/core/security/credentials'
 import { estimateTextTokens } from '@/core/stream-events'
 
 const TRAILING_SLASH_RE = /\/$/
 const MALFORMED_PREVIEW_CHARS = 120
-const TOOL_ARGS_PREVIEW_CHARS = 80
 // Catches a provider that ignores `max_tokens` and streams without end, so it has to sit above what
 // the authorized budget can legitimately produce: SSE framing costs several hundred bytes per token,
 // and a fixed ceiling meets a large reasoning budget long before any runaway reaches it.
@@ -280,7 +280,7 @@ function finalize(state: StreamState, options: RunStreamOptions): LLMResponse {
     const tool = state.tools.get(id)
 
     if (tool) {
-      const input = parseToolArgs(tool.args, options)
+      const input = parseToolArgs(tool.args, options.logger, options.transportName)
       content.push({ type: 'tool_call', call: { id: tool.id, name: tool.name, input } })
     }
   }
@@ -415,26 +415,6 @@ function assertUsable(state: StreamState, transportName: string): void {
 
 function hasNoAnswer(state: StreamState): boolean {
   return state.text === '' && state.order.length === 0
-}
-
-// On parse failure the raw string is handed back to the model as `{ raw }` so it sees its own
-// malformed output and can self-correct on the next turn. Never throws.
-function parseToolArgs(raw: string, options: RunStreamOptions): unknown {
-  if (raw.length === 0) {
-    return {}
-  }
-
-  try {
-    return JSON.parse(raw)
-  } catch (err: unknown) {
-    options.logger.warn('adapter.tool_args_parse_failed', {
-      adapter: options.transportName,
-      err: formatErrForLog(err),
-      preview: scrubCredentials(raw.slice(0, TOOL_ARGS_PREVIEW_CHARS)),
-    })
-
-    return { raw }
-  }
 }
 
 function toTokenUsage(usage: MutableUsage): TokenUsage {

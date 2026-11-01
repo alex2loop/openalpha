@@ -28,6 +28,13 @@ const REBALANCE_COLUMNS: readonly SegmentColumn[] = Object.freeze([
   { labelKey: 'trading.render.segment.columnGap', align: 'left' },
 ])
 
+/** What the share columns read of a segment row: the portfolio view builds the same three from a
+ *  book with no plan, and prints through the same function. */
+type SegmentShareRow = Pick<
+  SegmentTarget,
+  'segment' | 'currentPctNav' | 'afterPlanPctNav' | 'targetPctNav'
+>
+
 /** The three columns of one segment row that are shares of NAV, as they will be printed. */
 interface SegmentShares {
   readonly currentPctNav: number
@@ -57,9 +64,9 @@ export function renderSegments(
  *
  *  A segment at zero held and zero wanted is dropped: `SegmentTarget` carries no cap set, so it is
  *  indistinguishable here from an open segment holding nothing, and "switched off" would be false. */
-function printedSegmentShares(
-  rows: readonly SegmentTarget[]
-): readonly (readonly [SegmentTarget, SegmentShares])[] {
+export function printedSegmentShares<T extends SegmentShareRow>(
+  rows: readonly T[]
+): readonly (readonly [T, SegmentShares])[] {
   const held = rows.filter((row) => row.targetPctNav !== 0 || row.currentPctNav !== 0)
   const current = apportionColumn(held, (row) => row.currentPctNav)
   const afterPlan = apportionColumn(held, (row) => row.afterPlanPctNav)
@@ -76,8 +83,8 @@ function printedSegmentShares(
 }
 
 function apportionColumn(
-  held: readonly SegmentTarget[],
-  read: (row: SegmentTarget) => number
+  held: readonly SegmentShareRow[],
+  read: (row: SegmentShareRow) => number
 ): readonly number[] {
   return apportion(held.map(read), FRACTION_QUANTUM)
 }

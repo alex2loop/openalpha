@@ -61,6 +61,8 @@ export interface ExitReconcileDeps {
   /** Plan id to the settled session its trail was last computed for. See `ExitPlanDeps`. */
   readonly trailedThrough: LruMap<string, TradingDay>
   /** See `ExitPlanDeps`. */
+  readonly trailRetryAt: LruMap<string, number>
+  /** See `ExitPlanDeps`. */
   readonly replannedOn: LruMap<string, TradingDay>
   tradeableHoldingsAt(options: PortfolioAtOptions): Promise<readonly Holding[]>
   /** Whether a stop rests at the exchange behind each held name. See `ExitPlanDeps`. */
@@ -306,7 +308,7 @@ export async function unwatchedPositions(
   for (const holding of holdings) {
     const plan = await findHoldingPlan(deps.store, holding, options.signal)
 
-    if (plan === null || planStopOf(plan) === undefined || planTakeProfitOf(plan) === undefined) {
+    if (plan === null || (planStopOf(plan) === undefined && planTakeProfitOf(plan) === undefined)) {
       unwatched.push(holding.instrument)
     }
   }

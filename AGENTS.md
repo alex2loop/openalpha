@@ -8,7 +8,7 @@ OpenAlpha is an AI trading research analyst. It suggests by default and executes
 
 - Screens, scores, sizes and debates trade ideas across markets (VN equities, gold, crypto).
 - Delivers suggestions (entry, stop, target, R:R, conviction, thesis with sources), keeps an honest ledger of the operator's trades, tracks how past suggestions performed.
-- Surfaces: CLI and Telegram/Zalo.
+- Surfaces: CLI, Telegram/Zalo and the office web page.
 
 ## Design goals
 
@@ -53,7 +53,7 @@ A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src
 
 ### Module DAG
 
-15 modules in `src/`, acyclic, every edge points toward `core`.
+16 modules in `src/`, acyclic, every edge points toward `core`.
 
 | Module | May import | Role |
 |---|---|---|
@@ -70,6 +70,7 @@ A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src
 | `social` | core, engine, i18n | Agent social networks joined by skill |
 | `trading` | core, engine, persistence, i18n | Self-contained bounded context |
 | `channels` | core, engine, commands, i18n | Channel definitions, delivery, adapters |
+| `web` | i18n; type-only app/server/wire | Office page: Preact UI and Canvas scene, served by the daemon |
 | `cli` | all except `app` | Terminal surface |
 | `app` | all | Entry and sole composition root |
 
@@ -83,7 +84,7 @@ Boundary rules (hard):
    - `i18n` exposes only bare `@/i18n`; it may `import type` only `Locale` from `@/core/types/locale`.
 3. Consumer-side interfaces at every seam: consumer defines, provider `implements`, `app` binds. Direct dependencies only between always-coexisting modules.
 4. `core` has no finance vocabulary. Nothing imports `trading` except `app`, `cli` (via its public API) and the SDK barrel.
-5. Domain modules never import surfaces (`cli`, `channels`, `server`). Surfaces never import `app`.
+5. Domain modules never import surfaces (`cli`, `channels`, `server`). Surfaces never import `app`, except `web`, which takes type-only `app/server/wire`.
 6. No `RunContext` god-object: the Run owns its state; services are injected.
 7. Provider order in `app/providers.ts` is load-bearing (prologue + 15 steps, 9 constraints, incl. step 8b `cliCommands`). Read it before reordering.
 
@@ -114,8 +115,8 @@ Resolution and regions:
 Calendars:
 - A market's weekend is what its tape publishes, verified, not assumed from the asset class (VN gold quotes Saturdays). `isSettled` requires `isTradingDay`, so a wrong weekend silently drops days.
 - Session-counted tolerances (`WORLD_CLOSE_LAG_SESSIONS`, `FX_LAG_SESSIONS`) read the same calendar; changing the weekend rule re-derives them in the same commit.
-- Exchange closures are calendar: `CalendarPolicy.holidays` (`markets/equity-vn/holidays.ts`). A holiday is never a settled session.
-- Operators add closures under `[trading.markets.<id>] holidays`; `createTradingCalendar` layers them on the table, never replaces it; boot refuses one on the market's own weekend. Boot logs `trading.holidays_outdated` when the newest date is in a past year.
+- Exchange closures are calendar: `CalendarPolicy.holidays` is a function from a year to that year's closures (`vnClosuresOf`, `markets/equity-vn/calendar/`: Labor Code art. 112 plus the lunar conversion, with announced swap days listed beside the rules). A holiday is never a settled session.
+- Operators layer `[trading.markets.<id>] holidays` (adds a closure) and `open_days` (reopens one the rules close) over the rules; the operator wins; boot refuses either on the market's own weekend. There is no table to run out.
 - Another market's bars are counted on that market's calendar, never the caller's.
 
 Data semantics:
@@ -135,13 +136,13 @@ Strategy versions:
 
 Anything not listed is derived or gate-checked.
 
-1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>]?.holidays)`; published holidays go in `markets/<ref>/holidays.ts`.
+1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>])`; a market with exchange closures sets `CalendarPolicy.holidays` to a year-to-closures function kept in `markets/<ref>/calendar/`.
 2. Factor id tuple and a `FactorId` union arm in `trading/kernel/factor.ts` (`manifest.factorIds` is typed against it). The central edit is deliberate: a market with new factor ids ships in-tree, never as a plugin.
 3. One `markets.register(...)` line in `trading/wiring/composition/registration.ts`.
 4. Providers under `sources/`, routed in `SOURCE_ROUTES`, registered in `trading/wiring/composition/source-registry.ts`.
 5. Locale keys in both `src/i18n/locales/en.json` and `vi.json`: `trading.market.<ref>`, `trading.region.<region>`, `trading.segment.<segment>`, `trading.factor.<id>` per factor. Composition throws listing what is missing.
 6. A venue that lists it. A market no venue holds is read for reference only (world gold): its segment stays off (`SegmentDescriptor.held`) and `/profile enable` refuses it.
-7. `manifest.playbook`: skills for debate roles, split into `analysis` and `execution` (omit `execution` if orders carry no rules). Typed against `SkillName`.
+7. `manifest.playbook`: skills for debate roles, split into `analysis` and `execution` (omit `execution` if orders carry no rules), plus `fundAnalysis` where `analysis` reads a business a fund does not have (a fund's case reads it instead). Typed against `SkillName`.
 
 `Region` and `PortfolioSegment` are brands (nothing to widen); `AssetClass` is closed. `MarketRegistry.register` rejects a duplicate `id`, `(region, assetClass)` or `segment`, and a second `ownsRegion` in a region.
 
@@ -221,7 +222,7 @@ Implementation plus one composition registration; defining does not activate.
 - Trading slash command: `features/<feature>/command.ts` (or `command/<name>.ts`) exporting `create<Name>Command`; register in `createTradingCommands` (`trading/wiring/catalog/commands.ts`); strings in both catalogs; arguments follow the Operator argument grammar. Generic slash command: `createSlashCommand`, registered via a `boot` option or `ServiceProvider`. Terminal command: `createCommand`, contributed through `cliCommands` (step 8b).
 - Tool: `createTool`; trading tools register in `createTradingTools` (`trading/wiring/catalog/tools.ts`). No tool names an absolute read (`check-feature-isolation`).
 - Channel: `ChannelDefinition` + `ChannelAdapter` behind `channels/api.ts`, in `channels/adapters/<name>/`. Keep transport parsing, rendering and credentials in that folder; declare truthful capabilities; enforce `maxTextLen` in the renderer; accept the shutdown signal before arming listeners or polling; register at composition (normally a trusted bundled plugin); config and doctor validation go through the definition's schema path. No per-channel `if` in delivery, command, approval or persistence code: add the missing capability to `ChannelCapabilities`.
-- Agent: a TOML file, not code (`AgentTomlSchema`, `src/engine/agents/builder.ts`; template `agent.sample.toml`). Trading debate personas: `src/trading/agents/<id>/agent.toml`, loaded by role in `trading/wiring/catalog/agents.ts` (keyed by `DebateRole`). User agents: `<data_dir>/agents/<id>/agent.toml`, untrusted. Code-defined untrusted agents: `createAgent`.
+- Agent: a TOML file, not code (`AgentTomlSchema`, `src/engine/agents/builder.ts`; template `agent.sample.toml`). Trading debate personas: `src/trading/agents/<id>/agent.toml`, loaded by role in `trading/wiring/catalog/agents.ts` (keyed by `DebateRole`). User agents: `<data_dir>/agents/<id>/agent.toml`, untrusted; they may set `model_tier` (`allowModelTier` in `createUserAgentsProvider`), never `reasoning`; untrusted plugin agents may set neither. Code-defined untrusted agents: `createAgent`.
 
 ### Persistence and migrations
 
@@ -236,6 +237,7 @@ Implementation plus one composition registration; defining does not activate.
 ### Themes
 
 - `features/themes/` keeps the operator's theme list; code mints every evidence id and scores every read, the model never scores, and a run writes nothing until every step answered. Details: [docs/en/trading.md](docs/en/trading.md#themes).
+- The themes track record reads only runs stamped with the current `SCORE_VERSION`. `check-strategy-version` digests `features/themes/score/` whole: a change that moves a score bumps `SCORE_VERSION` in the same commit, then re-record with `--write`.
 
 ### Settled decisions
 
@@ -267,7 +269,7 @@ Decided; do not re-litigate or re-add.
 
 Stop vs resting exit:
 - A plan's stop is not a stop at an exchange. `StopDistance` is the latest suggestion's level; `RestingExit` is an order at a venue. A holding can carry the first with nothing behind it (`order.exit_failed`, a hand-recorded trade, `/trade cancel`).
-- `StopDistance.plan` is `none` (no plan, or no stop) or `distance` (the latest plan's level, holds included: every spot holding is long, so its hold plan is an exit plan) - only if the plan is framed as a buy. A blocked reduce is stored as a hold keeping its levels' side, so `findLatestExitPlan` selects the newest buy or hold framing a long with a stop by `framedDirectionOf`, never by action; a name whose only plan prices a sale reads `none`.
+- `StopDistance.plan` is `none` (no plan, or no stop) or `distance` (the latest plan's level, holds included: every spot holding is long, so its hold plan is an exit plan) - only if the plan is framed as a buy. A blocked reduce is stored as a hold keeping its levels' side, so `findLatestExitPlan` selects the newest buy or hold framing a long with a stop by `framedDirectionOf`, never by action; a name whose only plan prices a sale reads `none`, except a same-day row that took over the plan's row (a sale, or a run that priced no levels): it answers through its `standingExit`, which the trail never raises.
 - The level is `planStopOf` (plan stop or the tick-trailed one). A surface printing the planned state says whether one actually rests at the venue. A hold's bare level has no third arm: armed or `reviewOnly`.
 
 Trail:
@@ -280,7 +282,7 @@ Scoring a call:
 - An order that traded in its own session (`orderSession === at`) on a live price is graded from entry to that session's close (only the stretch the fill travelled; a close already through a level exits at the level). If that session never printed the entry, the call meets the whole session from its open, gap included. The benchmark starts on the close the window starts from.
 - Exit ladder: a buy stamps the profile's `takeProfitTranchePct`; the scorer banks that share at `takeProfit` and the rest rides the trail (row pending until the rest closes or the window ends). A review level, a no-trail market, a reduce and a row stamped before the tranche exit whole at the target.
 - `takeProfit` is where `takeProfitRiskMultiplier` banks the share (one risk unit out on VN shares, long crypto, long gold); it is the target where the policy names none (`VN_FUND_LEVEL_POLICY` names none).
-- `TradeLevels.reviewOnly` marks a level with nothing armed; the row carries `reviewOnly`; `armsExit` reads only that. A VN fund is reviewed, never stopped: closed at the target or the window's last close.
+- `TradeLevels.reviewOnly` marks a level with nothing armed; the row carries `reviewOnly`; `armsExit` reads only that. A VN fund is reviewed, never stopped or trailed (its level policy declares no trail, which would only clamp the fresh review level): closed at the target or the window's last close.
 
 Gates and ratios:
 - R:R and reward gates read the target, except the break-even probability floor, which reads the first exit over entry-relative risk net of the round trip the scorer charges and the cost line prints (`marketTradeCost` at the market's default venue). The void line (don't-chase price, `levels-void`) follows the same rule but never sits past the take-profit.
@@ -303,17 +305,19 @@ Plan lifecycle:
 - Open risk is whole-book: `openRiskOf` sums `units x (mark - planned stop)` over priced tradeable holdings once per instrument across venues; a buy is sized into the room under `maximumOpenRiskPctNav`. A held name with no planned stop makes it a floor and is named (`suggestion.open-risk-unplanned`), never zero.
 - A fund answers to its segment's ETF ceiling instead of the single-name cap where declared (`positionCapOf`, `isCappedAsFund`).
 - The book never reads a suggestion row: it states the seam (`ReduceVerdicts`), `app` binds it.
+- A reused call is marked, never re-run, when the ledger moved since it was made (`bookChangeSince`): `suggestion.position-changed` for its own name, `suggestion.book-changed` on a call decided on weights and cash, `brief.call-outdated` in the brief. `force` is the fresh call.
 - A stored suggestion carries `held` and `evidenceThrough` on both arms (`SuggestionBase`; `sharedPayload` writes, `toBase` reads; the report's closing lines print `evidenceThrough` wherever it differs from `at`). `settlement`, `priceBand`, `concentration` stay on the actionable arm.
 
 Reduce reasons:
-- `reduce` carries a `reduceReasonCode`: `over-target` is the plan's trim; `structure-broken`, `regime-risk-off`, `thesis-weakening`, `overheated`, `stale` are evidence turning on a held name.
-- An evidence reason cuts to what its share leaves of the position as opened; what was sold since opening counts, so a true reason sells once, then holds as `evidence-sold`. A trim and an evidence reason are weighed, not ordered: the larger share wins and carries its reason, so a full exit is never filed as a routine trim.
-- `structure-broken` and `overheated` come from `crypto` alone (the Turtle exit its Donchian entry earns); do not transplant a full-exit trigger into a market whose entry is not a breakout without a record to fit it. The other three are cross-market.
+- `reduce` carries a `reduceReasonCode`: `over-target` (the plan's trim), `weak-signal` (the plan's exit below the weak-holding line; never a fund) and `over-cap` (a sale back to a cap the name ran past) are the plan's own; `structure-broken`, `regime-risk-off`, `thesis-weakening`, `overheated`, `stale`, `ceiling-close` are evidence turning on a held name.
+- An evidence reason cuts to what its share leaves of the position as opened; what was sold since opening counts, so a true reason sells once, then holds as `evidence-sold`; a share still owed but under one board lot holds as `sale-below-board-lot`. A trim and an evidence reason are weighed in board lots, not ordered: the larger sale wins and carries its reason (a tie goes to the evidence), so a full exit is never filed as a routine trim.
+- `structure-broken` and `overheated` come from `crypto` alone (the Turtle exit its Donchian entry earns); do not transplant a full-exit trigger into a market whose entry is not a breakout without a record to fit it. `regime-risk-off`, `thesis-weakening` and `stale` are cross-market. `ceiling-close` is VN stocks only, short horizon only (a long segment masks it), fires on a close at or just under the ceiling (within `LIMIT_HIT_TOLERANCE_FRACTION` of the band, at the session's high) and only until the next open has passed, measured on `daily_bars` (the next open gaps up, the ten sessions after lag), sold at the operator's take-profit tranche, off at `VN_CEILING_TRIM_POLICY.sessions = 0`.
 - On a long horizon `thesis-weakening` also needs the business factors (`BUSINESS_FACTOR_IDS`: quality only, read on its score because VN weighs it zero in the composite) read and bearish; value stays out (it reads the price paid). A market with no business factor sells on its composite alone.
 - Where the market reads annual reports (VN, `FactorScore.businessWeakening`) the latest final report decides: Piotroski at or below `VN_ACCOUNTS_POLICY.weakAtScore` sells, above keeps; the quality lean is the fallback only where no final report could be scored, except `readingOnlySectors`, where the report prints and the quality lean decides. A year counts only after its audit window closes.
 - Banks carry a books line (bad debt, watch list, cover, CASA) that informs and never sells. The accounts history (`markets/equity-vn/accounts/`: per-year figures, the newest quarters, trend over `VN_ACCOUNTS_POLICY.trendYears`, flags; read once per board day) prints on the quality line and reaches the debate (ANNUAL ACCOUNTS) and chat agent (`market_accounts`); it informs and never sells, gates or scores. On a buy the accounts score is a factor line only: add no buy gate from it. A developer's cash-timing flags stay silent.
-- A standing evidence reduce or its `evidence-sold` hold closes the name to `/rebalance` (`EvidenceReduceReasonCode` is exactly the closing set; `over-target` is excluded).
-- The drift rule sells weakest first: an over-target segment takes the overshoot from neutral holdings (score between the weak-holding line and zero), lowest first, before any positive-scoring name; an excluded name and the core's floor are never cut.
+- A standing evidence reduce or its `evidence-sold` / `sale-below-board-lot` hold closes the name to `/rebalance` (`EvidenceReduceReasonCode` is exactly the closing set; the plan's own reasons are excluded).
+- A refuted debate claim holds a call only when the call rests on the debate (`isEvidenceReduceReason`): a plan-reason sale is caveated instead. An `over-cap` sale tells the debate which cap it passed (`DebateInput.saleCap`).
+- The drift rule sells weakest first: an over-target segment takes the overshoot from neutral holdings (score between the weak-holding line and zero; a fund has no weak-holding line, so `isWeakHolding` never exits one on its score), lowest first, before any positive-scoring name; drift never cuts an excluded name or the core's floor; the core stays with a held tracker until another outscores it by `CORE_SWITCH_MARGIN`. A holding whose weight passes its per-name (or fund) cap plus that cap's 5/25 band sells back to the cap whether or not its segment drifted, an excluded name included. A sector past its cap plus band gives the excess back from its weakest names first, funds and zero-target segments excluded; a weak name it reaches leaves whole unless excluded (an excluded one is cut to the cap like the rest), and when those exits alone bring the sector back inside its band nothing else is cut. Allocation reads the trimmed weights.
 
 ### Macro composite and shares
 
@@ -328,7 +332,7 @@ Reduce reasons:
 - The ledger is truth. Positions are pure folds over rows, never stored balances, keyed `(instrument, venue)`; every reader indexing positions uses `buildPositionKey`.
 - Cash is per venue and moves only via a `transfer` row (no net-deposit effect). Assets cannot move between venues.
 - Rows are edited and deleted in place; the book is the fold over rows as they stand, so a correction re-bases every reading, past suggestions included. Every write validates the whole book as it will stand afterwards.
-- A holding below its venue's smallest accepted order is residue, not a position, on every planning or acting surface (`/portfolio` lists it nowhere and counts it held back; `/suggest` builds no plan or cost line; `/rebalance` sizes nothing; `/reconcile` reports it only from the side the book does not claim). `isBelowMinimumSize` is the one comparison; callers are `isUntradeable` (book) and `isUnclaimedDust` (venue). `/brief` (loss count, held-name suggestions), `/market`, `portfolio_view` / `portfolio_review` / `order_exits`, the `/trade` open-trade cap and the markets `/refresh` keeps in use skip it too (`createTradeableBook` for holdings, `withoutResidue` for a valued book); its value still counts toward NAV.
+- A holding below its venue's smallest accepted order is residue, not a position, on every planning or acting surface (`/portfolio` lists it nowhere and counts it held back; `/suggest` builds no plan or cost line; `/rebalance` sizes nothing; `/reconcile` reports it only from the side the book does not claim). `isBelowMinimumSize` is the one comparison; callers are `isUntradeable` (book) and `isUnclaimedDust` (venue). `/brief` (loss count, held-name suggestions), `/market`, `portfolio_view` / `portfolio_review` / `order_exits`, the `/trade` open-trade cap and the markets `/refresh` keeps in use skip it too (`createTradeableBook` for holdings, `withoutResidue` for a valued book); its value still counts toward NAV, at cost when no source prices it (`withResidueAtCost`), so an unpriceable sliver never withholds NAV. A real position with no price still does.
 - A sale may exceed the position it closes by a hair (exchange lot rounding over an in-kind fee; a whole-unit sale of a whole-unit holding closes at exactly its size): `closingOvershootOf` is what the validator admits and `isClosingSale` what the fold reads to release the whole basis. One-sided: a sale under the position by more than float residue is a partial; a too-small sliver is answered against the venue minimum, not a fold ratio.
 - Recorded trade figures come from the venue when it can be asked: `features/ledger/fills.ts` matches the draft against that venue's fills for the day, side and instrument; exactly one within 1% of the stated size makes the row (quantity net of a fee billed in the delivered asset, average price, fee priced in the transaction currency). A stated fee is never overridden but does not suppress the ask. With no client, no single match or an unbookable fee the row stays as typed and the venue's `fees` prices an omitted fee; an unreachable venue logs `ledger.venue_fill_unavailable` and degrades the same way, never refusing the write. The confirmation names each figure's provenance (`FillSource`).
 - `/record sync <venue>` enumerates every fill since the book's first row rather than matching a typed trade: idempotency key `<venue>:<orderId>` (`buildVenueFillKey`), the same key `/trade`'s mirror and the exit tick book under, so one fill has one row whichever writer lands first; a fill's market is resolved against the markets the venue holds only; a name the book could take only part of is taken not at all. Details: [docs/en/trading.md](docs/en/trading.md#surfaces-of-the-book).
@@ -345,7 +349,7 @@ Reduce reasons:
 
 ### MCP serve (client model)
 
-- Under `mcp serve` the client's model answers every model call (`Needs.modelSource: 'client'`). No served call waits over 45 s (it returns `working`; the client calls `model_resume`); every MCP run carries `audience: 'operator'` and serves no absolute figure beyond `units`; a suggestion `report` never prints a holding's size or cost (`scripts/check-report-figures.ts`); `suggestion_run` and `brief_build` take `force` with no approval. Details: [docs/en/commands.md](docs/en/commands.md#mcp), [docs/en/dev/internals.md](docs/en/dev/internals.md#mcp).
+- Under `mcp serve` the client's model answers every model call (`Needs.modelSource: 'client'`). No served call waits over 45 s (it returns `working`; the client calls `model_resume`); every MCP run carries `audience: 'operator'`, which may see `units` and figures derived from `units` and public prices (order amount, stake, round-trip fee); a suggestion `report` never prints a holding's size, cost basis, realized return or own fill (`scripts/check-report-figures.ts`); `suggestion_run` and `brief_build` take `force` with no approval. Details: [docs/en/commands.md](docs/en/commands.md#mcp), [docs/en/dev/internals.md](docs/en/dev/internals.md#mcp).
 
 ### Costs, security and config
 
@@ -355,6 +359,7 @@ Reduce reasons:
 - Memory rejects secrets and injection.
 - Untrusted plugins contribute no code unless `plugins.allow_code`; tools and hooks stay forbidden regardless; a source module is the one code contribution that flag opens.
 - Config is merged once at boot and frozen. Channel access is allow-listed/paired, fail-closed.
+- While `[api] public_url` is set, app-channel runs are never offered what `isClientApprovalWithheld` names (shell, file writes, social tools, external tools), and pairing is approved, chat access granted and jobs for other chats made only on the server. `[api] orders` gates the order routes, `/trade` and `order_place` for app runs.
 
 ## Coding rules
 
@@ -507,8 +512,8 @@ A scope narrowing a name is written `scope:ticker`, one token. `kernel/surface/s
 |---|---|---|
 | named field | every MCP tool input | JSON has named keys; `instrumentQueryInput` is the one ticker-and-optional-market pair |
 | `scope:ticker`, optional | `/price`, `/suggest`, `/alert`, `/watchlist`, `/rebalance`, `/trade` | disambiguates a name inside a variadic or labelled line |
-| `scope:ticker`, required | `/update`, `instrumentInputOf` | a write states the market it books against |
-| `scope:ticker`, optional, stored lists only | `/record` | a write may drop the market only when the lists already stored, among markets a venue holds, name exactly one; no network lookup; the confirmation names the market |
+| `scope:ticker`, required | `instrumentInputOf` | a tool write states the market it books against |
+| `scope:ticker`, optional, stored lists only | `/record`, `/update` | a write may drop the market only when the lists already stored, among markets a venue holds, name exactly one; no network lookup; the confirmation names the market. `/update` fills nothing else |
 | bare token, order-free | `/screen`, `/refresh`, `market_sentiment`, `sector_strength` | the market is the subject; no ticker to collide with |
 
 Markets and venues share `SLUG_RE`; `assertDistinctScopeNames` refuses, at composition, a venue id that also names a market. `/screen crypto` resolves market-before-kind by declaration order.
@@ -572,8 +577,6 @@ The LLM call (1-30 s) is the only real bottleneck.
 There are no test files. Do not run `bun test`: it verifies nothing.
 
 - Verification is `bun run typecheck` + `bun run lint` + `bun run check` (+ `bun run lint:arch` for trading changes), plus walking the affected business invariants with a one-command manual check against live data.
-- If you add tests: unit only, mocking LLM/DB/network; one test file per source file; each test under 500 ms.
-- Targeted is the default: `bun test tests/<changed>.test.ts`. Run the full suite only for multi-module changes, public API/interface changes, architecture-rule changes, or before claiming a refactor complete.
 
 ## Working principles
 

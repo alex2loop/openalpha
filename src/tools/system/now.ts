@@ -15,18 +15,12 @@ export const nowTool = createTool({
     const now = new Date()
     const tz = ctx.config.locale.timezone
 
+    const local = `${formatInZone(now, tz)} ${tz}`
+
     // The instant alone leaves the model guessing what "3pm" means to the operator, so the zone
-    // its schedules are read in rides along. The human reads that same zone in their own locale —
-    // the host's would put a second clock on screen and neither would say which.
-    return {
-      content: `${now.toISOString()} (${formatInZone(now, tz)} ${tz})`,
-      isError: false,
-      display: new Intl.DateTimeFormat(ctx.locale, {
-        timeZone: tz,
-        dateStyle: 'medium',
-        timeStyle: 'medium',
-      }).format(now),
-    }
+    // its schedules are read in rides along. The human reads the same zone, year first and on a
+    // 24-hour clock in every locale: a bare `en` would print month first on a 12-hour clock.
+    return { content: `${now.toISOString()} (${local})`, isError: false, display: local }
   },
 })
 

@@ -1,9 +1,14 @@
+import { randomUUID } from 'node:crypto'
+
 import type {
+  CommandLocales,
   CommandTranscript,
   KeyValidator,
   ResolvedSlashCommand,
   SlashDispatcher,
 } from '@/commands/types'
+import type { EventBus } from '@/core/events'
+import type { RunId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type {
   CommandMessageKey,
@@ -14,9 +19,11 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import { BRAND } from '@/core/brand'
-import { isAbortError, RunHalted, ValidationError } from '@/core/errors'
+import { isCancellation, ValidationError } from '@/core/errors'
+import { runId as brandRunId } from '@/core/ids'
 import { withCorrelation } from '@/core/logging/correlation'
 
+import { type CommandRuns, createCommandRuns } from './long-running'
 import { assertPolicyValid, assertSlashCommandValid } from './registration'
 import { IDEMPOTENCY_TTL_MS, RATE_WINDOW_MS, sweepRegistries } from './registries'
 import {
@@ -27,7 +34,7 @@ import {
   parseCommand,
   suggestCommandName,
 } from './resolve'
-import { toSlashResult } from './result'
+import { toSlashResult, unexpectedResult } from './result'
 import { appendExchange } from './transcript'
 
 const DEFAULT_RATE_PER_MINUTE = 20
@@ -35,8 +42,10 @@ const KEY_SEPARATOR_RE = /[\\:]/g
 
 interface SlashDispatcherDeps {
   readonly keys: KeyValidator
+  readonly bus: EventBus
   readonly logger: Logger
   readonly transcript: CommandTranscript
+  readonly locales: CommandLocales
   readonly ratePerMinute?: number
 }
 
@@ -50,6 +59,8 @@ export function createSlashDispatcher(deps: SlashDispatcherDeps): SlashDispatche
     ratePerMinute: deps.ratePerMinute ?? DEFAULT_RATE_PER_MINUTE,
     logger: deps.logger,
     transcript: deps.transcript,
+    locales: deps.locales,
+    runs: createCommandRuns({ bus: deps.bus, logger: deps.logger }),
   }
 
   return {
@@ -61,20 +72,46 @@ export function createSlashDispatcher(deps: SlashDispatcherDeps): SlashDispatche
       return parsed === null ? null : resolveParsed(parsed.raw, parsed.args, commands)
     },
     dispatchResolved: (resolved, context) => dispatchResolved({ ...state, resolved, context }),
-    dispatch: (line, context) =>
-      dispatchLine({
-        line,
-        resolve: (raw, args) => resolveParsed(raw, args, commands),
-        suggest: (raw) =>
-          suggestCommandName({
-            commands,
-            target: normalizeName(raw),
-            surface: context.surface,
-            role: context.role,
-          }),
-        runResolved: (resolved) => dispatchResolved({ ...state, resolved, context }),
-      }),
+    dispatch: (line, context) => dispatchCommandLine({ state, commands, line, context }),
+    abortCommand: (id: RunId) => state.runs.abortCommand(id),
+    activeCommands: () => state.runs.activeCommands(),
+    runScheduled: state.runs.runScheduled,
   }
+}
+
+interface CommandLine {
+  readonly state: DispatchState
+  readonly commands: Map<string, SlashCommand>
+  readonly line: string
+  readonly context: SlashContext
+}
+
+// A resolved command records its own turn; a line naming none is answered, and recorded, here.
+async function dispatchCommandLine(input: CommandLine): Promise<SlashResult | null> {
+  const { state, commands, line, context } = input
+  let isResolved = false
+  const result = await dispatchLine({
+    line,
+    resolve: (raw, args) => resolveParsed(raw, args, commands),
+    suggest: (raw) =>
+      suggestCommandName({
+        commands,
+        target: normalizeName(raw),
+        surface: context.surface,
+        role: context.role,
+      }),
+    runResolved: (resolved) => {
+      isResolved = true
+
+      return dispatchResolved({ ...state, resolved, context })
+    },
+  })
+
+  if (result !== null && !isResolved) {
+    await appendExchange({ ...state, context, invocation: line.trim(), result })
+  }
+
+  return result
 }
 
 function registerCommand(
@@ -116,6 +153,8 @@ interface DispatchState {
   readonly ratePerMinute: number
   readonly logger: Logger
   readonly transcript: CommandTranscript
+  readonly locales: CommandLocales
+  readonly runs: CommandRuns
 }
 
 interface AdmissionOptions extends DispatchState {
@@ -130,48 +169,86 @@ interface AdmissionLease {
 
 type AdmissionResult =
   | { readonly kind: 'admitted'; readonly lease: AdmissionLease }
-  | { readonly kind: 'rejected'; readonly result: SlashResult }
+  | { readonly kind: 'rejected'; readonly result: SlashResult; readonly isRecorded: boolean }
 
-/** A channel stamps one id per inbound message, so a command and every engine turn it starts group
- *  together; the REPL has only the session, which is the honest granularity there. */
-function dispatchResolved(options: AdmissionOptions): Promise<SlashResult> {
-  const id = options.context.correlationId ?? options.context.sessionId
-
-  return withCorrelation(id, () => dispatchAdmitted(options))
+interface AdmittedResult {
+  readonly result: SlashResult
+  /** False when admission refused it: nothing ran under the context's run id. */
+  readonly isRun: boolean
+  /** False for a refusal the limiter makes: keeping each one would make the limiter write twice
+   *  per command it refuses. */
+  readonly isRecorded: boolean
 }
 
-async function dispatchAdmitted(options: AdmissionOptions): Promise<SlashResult> {
+/** A channel stamps one id per inbound message, so a command and every engine turn it starts group
+ *  together; the REPL has only the session, which is the honest granularity there. Whatever the
+ *  command answered is recorded in its session's transcript, a refusal included, except the rate
+ *  limiter's. */
+function dispatchResolved(options: AdmissionOptions): Promise<SlashResult> {
+  const context = withRunId(options.context, options.resolved.policy)
+  const id = context.correlationId ?? context.sessionId
+  const { command, args, policy } = options.resolved
+
+  return withCorrelation(id, async () => {
+    const exchange = { ...options, invocation: [`/${command.name}`, ...args].join(' '), policy }
+    let admitted: AdmittedResult
+
+    try {
+      admitted = await dispatchAdmitted({ ...options, context })
+    } catch (err: unknown) {
+      // The surface shows the failure live; the history keeps that the command failed.
+      await appendExchange({ ...exchange, context, result: unexpectedResult() })
+      throw err
+    }
+
+    const { result, isRun, isRecorded } = admitted
+
+    if (isRecorded) {
+      await appendExchange({
+        ...exchange,
+        context: isRun ? context : withoutRunId(context),
+        result,
+      })
+    }
+
+    return result
+  })
+}
+
+// A long-running command is a run; named here when the surface did not, so its turn can name it.
+function withRunId(context: SlashContext, policy: SlashInvocationPolicy): SlashContext {
+  if (policy.execution === undefined || context.runId !== undefined) {
+    return context
+  }
+
+  return { ...context, runId: brandRunId(randomUUID()) }
+}
+
+// A refused command never ran, so the run id it was handed names nothing.
+function withoutRunId(context: SlashContext): SlashContext {
+  const { runId: _dropped, ...rest } = context
+
+  return rest
+}
+
+async function dispatchAdmitted(options: AdmissionOptions): Promise<AdmittedResult> {
   const admission = admit(options)
 
   if (admission.kind === 'rejected') {
-    return admission.result
+    return { result: admission.result, isRun: false, isRecorded: admission.isRecorded }
   }
 
   const lease = admission.lease
   let committed = false
   try {
-    const raw = await options.resolved.command.run({
-      ...options.context,
-      args: options.resolved.args,
-    })
-    const result = toSlashResult(options.resolved.command, raw)
+    const result = await runCommand(options)
     lease.commit()
     committed = true
 
-    await appendExchange({
-      transcript: options.transcript,
-      logger: options.logger,
-      sessionId: options.context.sessionId,
-      name: options.resolved.command.name,
-      args: options.resolved.args,
-      policy: options.resolved.policy,
-      result,
-    })
-
-    return result
+    return { result, isRun: true, isRecorded: true }
   } catch (err: unknown) {
     if (isCancellation(err)) {
-      return { kind: 'handled' }
+      return { result: { kind: 'handled' }, isRun: true, isRecorded: true }
     }
     throw err
   } finally {
@@ -181,20 +258,32 @@ async function dispatchAdmitted(options: AdmissionOptions): Promise<SlashResult>
   }
 }
 
-// Both cancellation shapes a command can raise: a native fetch/stream abort, and the runtime's
-// own typed halt from `abortError`.
-function isCancellation(err: unknown): boolean {
-  if (err instanceof RunHalted) {
-    return err.code === 'abort'
+// Only a long-running command is a run on the bus; the rest answer in place.
+async function runCommand(options: AdmissionOptions): Promise<SlashResult> {
+  const { command, args, policy } = options.resolved
+  const context = { ...options.context, args }
+
+  if (policy.execution !== undefined) {
+    return await options.runs.withCommandEvents(context, command)
   }
 
-  return isAbortError(err)
+  return toSlashResult(command, await command.run(context))
 }
 
 function rejectMessage(key: CommandMessageKey): AdmissionResult {
   return {
     kind: 'rejected',
     result: { kind: 'message', messages: [{ key }] },
+    isRecorded: true,
+  }
+}
+
+// A burst of commands past the limit must cost the store nothing, so the refusal is shown and not kept.
+function rejectRateLimited(): AdmissionResult {
+  return {
+    kind: 'rejected',
+    result: { kind: 'message', messages: [{ key: 'slash.rateLimited' }] },
+    isRecorded: false,
   }
 }
 
@@ -212,11 +301,12 @@ function rejectSurface(policy: SlashInvocationPolicy, surface: CommandSurface): 
         ...(hint === undefined ? [] : [{ key: hint, values: { brand: BRAND.name } }]),
       ],
     },
+    isRecorded: true,
   }
 }
 
 function rejectHandled(): AdmissionResult {
-  return { kind: 'rejected', result: { kind: 'handled' } }
+  return { kind: 'rejected', result: { kind: 'handled' }, isRecorded: true }
 }
 
 function admit(options: AdmissionOptions): AdmissionResult {
@@ -247,7 +337,7 @@ function admit(options: AdmissionOptions): AdmissionResult {
     cooldownMs = policy.cooldownMs
     cooldownKey = gateKey
     if (isCooldownActive({ cooldowns, pendingKeys, key: cooldownKey, now })) {
-      return rejectMessage('slash.rateLimited')
+      return rejectRateLimited()
     }
     keys.push(cooldownKey)
   }
@@ -257,7 +347,7 @@ function admit(options: AdmissionOptions): AdmissionResult {
   // Before the idempotency stamp below: a key stamped first would answer every redelivery `handled`
   // for the whole TTL without ever running the command.
   if (isRateExceeded({ calls, key: rateKey, now, limit: ratePerMinute })) {
-    return rejectMessage('slash.rateLimited')
+    return rejectRateLimited()
   }
 
   if (policy.idempotencyKey !== undefined) {
@@ -275,7 +365,7 @@ function admit(options: AdmissionOptions): AdmissionResult {
 
   // Charged here, not on commit, and deliberately not fenced by `pendingKeys`: the budget is per
   // identity per minute, so concurrent commands each take a slot. Treating it as single-flight
-  // would cap the user at one command at a time — /cancel could never reach a run still going.
+  // would cap the user at one command at a time — /stop could never reach a run still going.
   recordCall(calls, rateKey, now)
 
   for (const key of keys) {

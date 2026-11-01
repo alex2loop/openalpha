@@ -48,4 +48,7 @@ export type SkillName =
 export interface MarketPlaybook {
   readonly analysis: readonly SkillName[]
   readonly execution?: readonly SkillName[]
+  /** What the case on a fund reads in place of `analysis`: a tracker has no business to value, so a
+   *  market whose analysis methods read one names the fund's own here. */
+  readonly fundAnalysis?: readonly SkillName[]
 }

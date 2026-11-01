@@ -6,41 +6,46 @@
 
 export type { BriefText } from '@/trading/features/brief/surface'
 export type { RebalanceText } from '@/trading/features/portfolio/render/rebalance-surface'
+export type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
 export type { ReflectText } from '@/trading/features/suggestion/track-record/surface'
 export type { TypedPrice } from '@/trading/kernel/surface/surface'
-export type { BriefRescheduleView } from '@/trading/wiring/composition/app-views'
+export type { BriefRescheduleView, DayDigestView } from '@/trading/wiring/composition/app-views'
 export type { RebalanceView } from '@/trading/wiring/composition/rebalance-views'
+export type { SourceStatus, TradingSectorsView } from '@/trading/wiring/host/market-types'
+export type { TradingHost } from '@/trading/wiring/host/types'
 export type {
   HeldStopView,
   MarketView,
   ReconcileView,
   ScreenAnswer,
   TradingBriefView,
-  TradingHost,
   TradingMacroView,
   TradingMarketsView,
+  TradingSetupView,
   TradingTrackRecordView,
-} from '@/trading/wiring/host/types'
+} from '@/trading/wiring/host/view-types'
 export { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
+export { isIndexCode } from '@/trading/kernel/market/index-reading'
 export { TYPED_PRICES } from '@/trading/kernel/surface/surface'
 export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
 
 // ── Boot & composition ───────────────────────────────────────────────────────
 
-// ── Boot & composition ───────────────────────────────────────────────────────
-
 export type { LoadedSourceModule } from '@/trading/sources/plugin-module'
+export type { SourceHost } from '@/trading/wiring/composition/source-hosts'
 export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'
 export { PROFILE_CURRENCY_SQL } from '@/trading/features/profile/store'
 export { loadPluginSourceModules } from '@/trading/sources/plugin-module'
+export { HOST_SLOW_REQUEST_TIMEOUT_MS } from '@/trading/wiring/composition/host-seams'
 export {
   createTradingRegistrationProvider,
   createTradingStoresProvider,
 } from '@/trading/wiring/composition/registration'
-export { SOURCE_CREDENTIAL_ENV } from '@/trading/wiring/composition/source-facts'
+export { listSourceHosts } from '@/trading/wiring/composition/source-hosts'
 export { unavailableSources } from '@/trading/wiring/composition/source-registry'
 export { auditVenueKeys } from '@/trading/wiring/composition/venue-keys'
 export { resolveTradingConfig, TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
+export { HISTORY_FLOOR_DAYS } from '@/trading/wiring/config-defaults'
 
 // ── Daemon support ───────────────────────────────────────────────────────────
 
@@ -49,10 +54,6 @@ export {
   refreshDegradations,
 } from '@/trading/features/market-data/ops/refresh'
 export { isBoundaryFailure } from '@/trading/wiring/loop'
-
-// ── Contracts ────────────────────────────────────────────────────────────────
-
-// ── Contracts ────────────────────────────────────────────────────────────────
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 
@@ -93,18 +94,23 @@ export type {
   PortfolioFinding,
   PortfolioService,
   RebalancePlanResult,
-  SizedValuedBook,
   ValuedBook,
   ValuedPosition,
-  VenueChoice,
 } from '@/trading/features/portfolio/types'
+export type { VenueChoice } from '@/trading/features/portfolio/venues'
+export type {
+  RoleOutput,
+  RoleOutputListener,
+} from '@/trading/features/suggestion/debate/types'
 export type { SuggestionCard } from '@/trading/features/suggestion/render/card'
+export type { DebateView } from '@/trading/features/suggestion/render/debate-view'
 export type {
   SuggestionService,
   TrackRecordReflection,
 } from '@/trading/features/suggestion/suggestion'
 export type { ActedSummary } from '@/trading/features/suggestion/track-record/acted'
 export type { AgentFocusRef } from '@/trading/features/suggestion/track-record/agent-record'
+export type { ModelRecord } from '@/trading/features/suggestion/track-record/model-record'
 export type { TrackRecordReport } from '@/trading/features/suggestion/track-record/types'
 export type {
   StoredSuggestion,
@@ -124,21 +130,23 @@ export type {
   InstrumentRef,
   MarketRef,
   Region,
+  SessionPhase,
   Ticker,
   TradingDay,
 } from '@/trading/kernel/instrument'
+export type {
+  IndexCode,
+  IndexContribution,
+  IndexContributorsReading,
+  IndexValuationReading,
+} from '@/trading/kernel/market/index-reading'
 export type {
   QuoteBoard,
   QuoteBoardItem,
   ScreenResult,
 } from '@/trading/kernel/market/market-capability'
-export type {
-  Candle,
-  MarketEvent,
-  MarketEventKind,
-  NewsItem,
-  Quote,
-} from '@/trading/kernel/market/market-data'
+export type { Candle, NewsItem, Quote } from '@/trading/kernel/market/market-data'
+export type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 export type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 export type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 export type {
@@ -151,7 +159,15 @@ export type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
 export type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 export type { FocusScope } from '@/trading/kernel/operator/focus'
 export type {
+  AlertFired,
+  AlertFiredListener,
+  CallScoredPayload,
+  ExitFillPayload,
+  HeldNewsPayload,
+  IndexDropPayload,
   NoticeKind,
+  OrderFill,
+  OrderFilledListener,
   TradingNotice,
   TradingNoticeSender,
 } from '@/trading/kernel/operator/notice'
@@ -169,22 +185,34 @@ export type {
   SourceSummary,
 } from '@/trading/kernel/source/source-result'
 export type { Page } from '@/trading/kernel/store/page'
-export type { AgentRecordSummary } from '@/trading/wiring/host/types'
+export type { AgentRecordSummary } from '@/trading/wiring/host/view-types'
 export { DEFAULT_NAV_WINDOW, NAV_WINDOWS } from '@/trading/features/portfolio/nav/types'
 export { NOTICE_KINDS } from '@/trading/kernel/operator/notice'
+export { disabledSegments } from '@/trading/kernel/operator/profile'
 
 // ── Values ───────────────────────────────────────────────────────────────────
 
 export { renderAlertNotice } from '@/trading/features/alerts/render'
 export { parseExitLevel } from '@/trading/features/alerts/types'
 export { renderBriefText } from '@/trading/features/brief/render'
-export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
-export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 export {
+  renderHeldNewsNotice,
+  renderIndexDropNotice,
+} from '@/trading/features/market-data/ops/held-watch-notice'
+export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
+export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
+export { ORDER_TOOL_NAME, TRADE_COMMAND_NAME } from '@/trading/features/order/types'
+export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
+export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/render/debate-view'
+export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
+export { renderCallScoredNotice } from '@/trading/features/suggestion/track-record/scored-notice'
+export {
+  isRecordedPlan,
   isUndecidedHold,
   SUGGESTION_LIST_STATUSES,
   suggestionId,
 } from '@/trading/features/suggestion/types'
+export { THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 export {
   buildInstrumentKey,
   marketRef,
@@ -195,14 +223,22 @@ export {
 } from '@/trading/kernel/instrument'
 export { alertId } from '@/trading/kernel/operator/alert'
 export { ledgerEntryId } from '@/trading/kernel/operator/book'
-export { isBookFocus, resolveRunFocus, validateAgentFocus } from '@/trading/kernel/operator/focus'
+export {
+  isBookFocus,
+  resolveRunFocus,
+  toAgentFocus,
+  validateAgentFocus,
+} from '@/trading/kernel/operator/focus'
 export { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
+export { feeChargeOf } from '@/trading/kernel/venue/fee'
 export { describeCaveat } from '@/trading/render/caveat'
-export { formatInstant } from '@/trading/render/datetime'
+export { formatClock, formatInstant } from '@/trading/render/datetime'
 export { renderFocusLabel } from '@/trading/render/focus'
 export { toPlainText } from '@/trading/render/fold'
-export { resolveRenderContext } from '@/trading/render/format'
+export { formatSignedFixedFraction, resolveRenderContext } from '@/trading/render/format'
+export { formatPriceIn, quotedInOf } from '@/trading/render/money'
 export { renderLoopQuarantineNotice } from '@/trading/render/quarantine'
 export { renderRestatementNotice } from '@/trading/render/restatement'
+export { changeAgainstClose } from '@/trading/sources/rows/normalization'
 export { SURFACE_LIMITS } from '@/trading/surface-limits'
 export { TRADING_SKILLS } from '@/trading/wiring/catalog/skills'

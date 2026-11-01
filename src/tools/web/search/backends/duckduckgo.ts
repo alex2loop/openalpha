@@ -14,7 +14,7 @@ import {
 } from '@/tools/web/search/errors'
 import { toFreeSearchResponse } from '@/tools/web/search/result-parser'
 
-const DUCKDUCKGO_HOST = 'https://html.duckduckgo.com'
+export const DUCKDUCKGO_HOST = 'https://html.duckduckgo.com'
 const DUCKDUCKGO_PATH = '/html/'
 const RECENCY_TO_DUCKDUCKGO = { day: 'd', week: 'w', month: 'm', year: 'y' } as const
 

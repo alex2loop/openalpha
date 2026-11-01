@@ -48,6 +48,8 @@ export function preflightRun(
   if (state.budget.remainingUsd() < MIN_PER_RUN_BUDGET_USD) {
     return buildRunResult(state, 'budget', {
       workStarted: false,
+      haltCode: 'budget',
+      haltDetail: 'run_budget',
       errorMessage: 'Zero or sub-minimum budget at preflight',
     })
   }

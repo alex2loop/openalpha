@@ -20,13 +20,21 @@ const SUMMARY_MAX_CHARS = 500
 const APPROVAL_DENIED_MESSAGE = 'halted (approval denied or timed out)'
 const SPEND_CAP_MESSAGE = 'halted (spend cap reached)'
 const RATE_LIMITED_MESSAGE = 'halted (rate limited)'
+export const MISSED_SLOT_MESSAGE = 'skipped (missed slot)'
 // Halts that advance the schedule without counting a failure: the job itself is not broken.
 export const UNCOUNTED_HALT_MESSAGES: ReadonlySet<string> = new Set([
   SHUTDOWN_MESSAGE,
+  MISSED_SLOT_MESSAGE,
   APPROVAL_DENIED_MESSAGE,
   SPEND_CAP_MESSAGE,
   PAUSED_MESSAGE,
 ])
+
+// A stop, target or mover job waits for the next crossing and stays on. A price job is spent by the
+// one crossing its alert had, so it takes the same path as any other one-shot and is disabled.
+function isParkedEventJob(job: Job): boolean {
+  return job.event !== undefined && job.event.event !== 'price'
+}
 
 export function isAbortHalt(err: unknown): boolean {
   return err instanceof RunHalted && err.code === 'abort'
@@ -136,7 +144,11 @@ function onceHaltTransition(job: Job, message: string, now: number): SchedulerJo
 
 // Asked again after the longest backoff with no failure counted.
 function deferredTransition(job: Job, now: number): SchedulerJobTransition {
-  return { kind: 'retry', failures: job.consecutiveFailures, nextRunAt: now + RETRY_CAP_MS }
+  return {
+    kind: 'retry',
+    failures: job.consecutiveFailures,
+    nextRunAt: now + RETRY_CAP_MS,
+  }
 }
 
 function haltTransition(job: Job, message: string, now: number): SchedulerJobTransition {
@@ -167,7 +179,9 @@ export async function advanceJob(job: Job, deps: SchedulerDeps, now: number): Pr
 
 function nextTransition(job: Job, now: number): SchedulerJobTransition {
   if (job.schedule.kind === 'once') {
-    return { kind: 'disable' }
+    return isParkedEventJob(job)
+      ? { kind: 'advance', nextRunAt: job.schedule.at }
+      : { kind: 'disable' }
   }
 
   return { kind: 'advance', nextRunAt: nextScheduledRunAt(job, now) }

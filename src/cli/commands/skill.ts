@@ -73,6 +73,7 @@ const skillCmdInstall: Command = createCommand({
     positional: ['source'],
     flags: { force: { type: 'boolean', describe: { key: 'cliHelp.flagSkillForce' } } },
   },
+  needs: { local: true },
   run: installSkill,
 })
 

@@ -27,7 +27,7 @@ export async function reserveTurnCost(run: RunView, request: LLMRequest): Promis
     requestedModel: request.model,
     inputTokens,
     cacheReadTokens: 0,
-    cacheWriteTokens: inputTokens,
+    cacheWriteTokens: 0,
     maxTokens: request.maxTokens,
     reasoningMode: request.reasoningMode,
     hasOutputContract: request.outputContract !== undefined,

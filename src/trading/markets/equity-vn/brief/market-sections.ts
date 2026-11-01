@@ -7,8 +7,9 @@ import type {
 } from '@/trading/kernel/operator/brief-section'
 import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import { toHeadlineSection } from '@/trading/markets/brief-headlines'
 import { REGIME_SCALE_CAVEAT } from '@/trading/markets/brief-macro'
-import { absent, omitted, ready, toHeadlineSection } from '@/trading/markets/brief-sections'
+import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 import { latestNameSession, toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
 import { sectorCoveragePct } from '@/trading/markets/equity-vn/factors/sectors'
 import {

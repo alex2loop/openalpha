@@ -68,7 +68,11 @@ export async function runScreen(
     rejections,
     universeSize: eligible.length,
     bandCounts: countBands(ranked),
-    provenance: dedupeProvenance(eligible.flatMap((name) => latestBarProvenance(name))),
+    // The rows print the factors too, and a fund's are read off its index rather than its own tape.
+    provenance: dedupeProvenance([
+      ...eligible.flatMap((name) => latestBarProvenance(name)),
+      ...ranked.flatMap((candidate) => candidate.factors.flatMap((factor) => factor.provenance)),
+    ]),
     // Names without a single bar is an unrefreshed data dir, not a market where nothing qualifies.
     caveats: [
       ...screenCaveats(cross, inputs, candidates),

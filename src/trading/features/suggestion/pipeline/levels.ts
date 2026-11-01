@@ -11,10 +11,12 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { LevelResult, MarketLevelRequest } from '@/trading/kernel/factor'
 import type { CurrencyCode, TradingDay } from '@/trading/kernel/instrument'
 import type { Candle, Quote } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketManifest, MarketResolution, TradingCalendar } from '@/trading/markets/types'
 import { ratchetHeldStop } from '@/trading/features/suggestion/exit-plan/ratchet'
+import { adjustForExRight } from '@/trading/features/suggestion/pipeline/ex-right'
 import { outcomeWindowSessions } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { isBookFocus } from '@/trading/kernel/operator/focus'
 import { isLiveObservation, orderSessionOf } from '@/trading/markets/calendar'
@@ -43,7 +45,7 @@ export interface PricedLevels {
   readonly pullback?: PullbackStat
   /** The standing plan's stop on a held name, where this read sets a higher one. */
   readonly raisedStopFrom?: number
-  /** On a held name framed as a sale, the exits its standing plan names. */
+  /** On a held name framed as a sale or priced no levels, the exits its standing plan names. */
   readonly standingExit?: StoredSuggestion['standingExit']
   /** On a held name, the take-profit its standing plan set and this read keeps. */
   readonly standingTakeProfit?: number
@@ -61,31 +63,26 @@ export async function buildLevelsFor(
     readonly horizon: InvestmentHorizon
     /** The book this draft is judged against, for the stop a held name is already planned on. */
     readonly context: SuggestionPortfolioContext
+    /** This name's dated corporate actions, for an ex-date the stored series has not caught up to. */
+    readonly events: readonly MarketEvent[]
   }
 ): Promise<PricedLevels> {
   const market = resolution.market
-  const [bars, quote] = await readBarsAndQuote(options, resolution, at.asOf)
+  const { bars, quote, gap, caveats: exRight } = await readLevelInputs(options, resolution, at)
   const previousClose = priorClose(bars, quote, market.manifest)
   const observed = toObservedQuote(quote, market.manifest.currency, previousClose)
 
   if (bars?.kind !== 'available') {
-    return {
-      result: {
-        kind: 'unavailable',
-        reasonCode: 'insufficient-data',
-        caveats: bars?.caveats ?? [],
-      },
-      ...(observed === undefined ? {} : { quote: observed }),
-    }
+    return unpricedLevels(options, resolution, { at, caveats: bars?.caveats ?? [], observed })
   }
 
   const marketLevels = await marketLevelsOf(options, resolution, { at, candles: bars.value, quote })
-  // A focus call keeps the levels its own evidence produced: the held stop is the book's to carry,
-  // and a second opinion must neither raise it nor read it.
-  const { result: ratcheted, ...heldExits } = isBookFocus(options.request.focus)
-    ? await ratchetHeldStop(options, resolution, { at, result: marketLevels })
-    : { result: marketLevels }
-  const sourceCaveats = [...bars.caveats, ...(quote?.caveats ?? [])]
+  const { result: ratcheted, ...heldExits } = await heldExitsOf(options, resolution, {
+    at,
+    result: marketLevels,
+    ...(gap === undefined ? {} : { gap }),
+  })
+  const sourceCaveats = [...bars.caveats, ...(quote?.caveats ?? []), ...exRight]
   const newest = bars.value[bars.value.length - 1]
   const chase = await chasingGapCaveats(options, resolution, { at, quote, previousClose })
   const caveated =
@@ -110,6 +107,40 @@ export async function buildLevelsFor(
     ...(pullback === undefined ? {} : { pullback }),
     ...heldExits,
   }
+}
+
+/** Without a settled series there are no levels, but a held name still carries its plan's exits. */
+async function unpricedLevels(
+  options: SuggestionRunOptions,
+  resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
+  input: {
+    readonly at: Parameters<typeof ratchetHeldStop>[2]['at']
+    readonly caveats: readonly Caveat[]
+    readonly observed: SuggestionQuote | undefined
+  }
+): Promise<PricedLevels> {
+  const result: LevelResult = {
+    kind: 'unavailable',
+    reasonCode: 'insufficient-data',
+    caveats: input.caveats,
+  }
+
+  return {
+    ...(await heldExitsOf(options, resolution, { at: input.at, result })),
+    ...(input.observed === undefined ? {} : { quote: input.observed }),
+  }
+}
+
+/** A focus call keeps the levels its own evidence produced: the held stop is the book's to carry,
+ *  and a second opinion must neither raise it nor read it. */
+function heldExitsOf(
+  options: SuggestionRunOptions,
+  resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
+  input: Parameters<typeof ratchetHeldStop>[2]
+): ReturnType<typeof ratchetHeldStop> {
+  return isBookFocus(options.request.focus)
+    ? ratchetHeldStop(options, resolution, input)
+    : Promise.resolve({ result: input.result })
 }
 
 interface MarketLevelsInput {
@@ -260,7 +291,7 @@ function resolvePullback(
  *  leaves out, and it is why no fill rate is published beside this. One at the limit is ~50% for
  *  every name, because the limit is that name's own median depth. */
 function waitReturnPct(row: PullbackWindow, limit: number): number {
-  return limit <= 0 || row.bestPrice > limit
+  return limit <= 0 || row.bestPrice >= limit
     ? 0
     : ((row.exitClose - limit) / limit) * PERCENT_PER_UNIT
 }
@@ -316,6 +347,21 @@ function mean(values: readonly number[]): number {
 }
 
 /** The two reads share nothing, so neither waits behind the other. */
+/** The settled bars and the quote, moved onto the new basis across an ex-date the store has not
+ *  caught up to. */
+async function readLevelInputs(
+  options: SuggestionRunOptions,
+  resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
+  at: { readonly asOf: TradingDay; readonly events: readonly MarketEvent[] }
+): Promise<ReturnType<typeof adjustForExRight>> {
+  const [bars, quote] = await readBarsAndQuote(options, resolution, at.asOf)
+
+  return adjustForExRight(
+    { bars, quote },
+    { events: at.events, asOf: at.asOf, calendar: resolution.market.manifest.calendar }
+  )
+}
+
 function readBarsAndQuote(
   options: SuggestionRunOptions,
   resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,

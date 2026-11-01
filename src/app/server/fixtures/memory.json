@@ -1,0 +1,46 @@
+{
+  "scopes": [
+    {
+      "scope": "Y2hhdABsb2NhbA",
+      "agentId": "chat",
+      "agentName": "Trợ lý",
+      "userLabel": "local",
+      "isLocal": true,
+      "told": [
+        {
+          "key": "prefs:constraints",
+          "attribute": "constraints",
+          "value": "không dùng margin",
+          "updatedAt": 1792480000000
+        }
+      ],
+      "notes": [
+        {
+          "key": "muc_tieu_nam",
+          "value": "Mục tiêu năm: giữ tỷ trọng tiền mặt quanh 20%",
+          "updatedAt": 1792470000000,
+          "expiresAt": 1800246000000
+        }
+      ]
+    },
+    {
+      "scope": "Y2hhdAAxMjM0NTY3OA",
+      "agentId": "chat",
+      "agentName": "Trợ lý",
+      "userLabel": "Telegram 12345678",
+      "isLocal": false,
+      "told": [
+        {
+          "key": "prefs:communication",
+          "attribute": "communication",
+          "value": "trả lời ngắn gọn",
+          "updatedAt": 1792460000000
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "ttlDays": 90,
+  "keyMaxLen": 256,
+  "truncated": false
+}

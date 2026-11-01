@@ -316,7 +316,7 @@ function renderTxnDetail(
     })
   }
 
-  return formatRecordedMoney(locale, txn.amount, txn.currency)
+  return `${renderVenueName(locale, txn.venue)} ${formatRecordedMoney(locale, txn.amount, txn.currency)}`
 }
 
 /** Custodian then instrument, the order `/record` takes them in. Both name themselves, so neither

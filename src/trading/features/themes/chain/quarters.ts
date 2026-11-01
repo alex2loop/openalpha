@@ -6,8 +6,9 @@ const QUARTERS_PER_YEAR = 4
 const MONTHS_PER_QUARTER = 3
 /** VN companies file a quarter within about 45 days of its end, so two quarters behind the
  *  calendar is ordinary before a filing season; further behind, the name stopped filing or is late
- *  enough that its figures describe another period. */
-const MAXIMUM_QUARTERS_BEHIND = 3
+ *  enough that its figures describe another period, and a sector sum would mix it with names a
+ *  quarter ahead. */
+const MAXIMUM_QUARTERS_BEHIND = 2
 /** Earlier year-on-year changes the surprise is measured against: two years of them. */
 const SEASONAL_LOOKBACK = 8
 const MINIMUM_SEASONAL_CHANGES = 4

@@ -14,7 +14,7 @@ for (const s of ROOTS) {
 
 const isExempt = (p: string) => p.endsWith('.d.ts') || p.endsWith('.generated.ts')
 
-const files = ROOTS.flatMap((root) => [...new Glob('**/*.ts').scanSync(root)])
+const files = ROOTS.flatMap((root) => [...new Glob('**/*.{ts,tsx}').scanSync(root)])
 const violations: string[] = []
 
 for (const rel of files) {

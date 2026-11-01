@@ -1,8 +1,11 @@
+import type { Interface } from 'node:readline/promises'
 import { createInterface } from 'node:readline/promises'
 import { Writable } from 'node:stream'
 
+import type { Terminal, TerminalInput } from '@/cli/terminal'
 import type { CliApp, CompletionSource } from '@/cli/types'
 import type { Locale } from '@/core/types/locale'
+import { currentTerminal } from '@/cli/terminal'
 import { ask } from '@/cli/ui/colors'
 import {
   completionToken,
@@ -21,6 +24,12 @@ const SILENT_OUTPUT = new Writable({
     done()
   },
 })
+
+interface ReadlineOptions {
+  readonly completion?: CompletionSource
+  /** Echoes nothing, so what is typed at a terminal stays off the screen. */
+  readonly silent?: true
+}
 
 interface PromptOptions {
   readonly signal?: AbortSignal
@@ -51,8 +60,10 @@ export function declined(app: CliApp, locale: Locale = app.config.locale.languag
 }
 
 export function defaultPrompt(): PromptFn {
+  const terminal = currentTerminal()
+
   return async (question, options) => {
-    const rl = createInterface(readlineOptions())
+    const rl = openReadline(terminal)
 
     try {
       // question() never settles at EOF (closed pipe, /dev/null), so race it: no answer is a no.
@@ -75,24 +86,21 @@ export function defaultPrompt(): PromptFn {
  *  prompts raise; with no terminal it reads one line from stdin. A prompt another readline holds
  *  open (the onboard wizard's) hears no keys meanwhile, or it would echo them. */
 export async function promptSecret(question: string, signal?: AbortSignal): Promise<string> {
-  const interactive = isInteractiveTerminal()
+  const terminal = currentTerminal()
+  const interactive = isInteractiveTerminal(terminal)
   const cancel = new AbortController()
-  const restoreKeys = interactive ? suspendKeypressListeners(process.stdin) : undefined
+  const restoreKeys = interactive ? suspendKeypressListeners(terminal.stdin) : undefined
   // Closing a readline pauses stdin; a prompt held open elsewhere needs it flowing again.
-  const wasFlowing = process.stdin.readableFlowing === true
+  const wasFlowing = terminal.stdin.readableFlowing === true
   // Closing a terminal readline also leaves raw mode, which the held-open prompt needs back.
-  const wasRaw = process.stdin.isTTY && process.stdin.isRaw
-  const rl = createInterface({
-    input: process.stdin,
-    output: interactive ? SILENT_OUTPUT : undefined,
-    terminal: interactive,
-  })
+  const wasRaw = terminal.stdin.isTTY && terminal.stdin.isRaw
+  const rl = openReadline(terminal, { silent: true })
 
   rl.once('SIGINT', () => cancel.abort())
 
   try {
     if (interactive) {
-      process.stdout.write(ask(`${question} `))
+      terminal.stdout.write(ask(`${question} `))
     }
 
     const eof = new Promise<string>((resolve) => {
@@ -108,22 +116,22 @@ export async function promptSecret(question: string, signal?: AbortSignal): Prom
     restoreKeys?.()
 
     if (wasRaw) {
-      process.stdin.setRawMode(true)
+      terminal.stdin.setRawMode(true)
     }
 
     if (wasFlowing) {
-      process.stdin.resume()
+      terminal.stdin.resume()
     }
 
     if (interactive) {
-      process.stdout.write('\n')
+      terminal.stdout.write('\n')
     }
   }
 }
 
 /** Detaches every keypress listener but returns the way back, so a second reader on the same
  *  stream is the only one that sees the keys. */
-export function suspendKeypressListeners(input: NodeJS.ReadStream): () => void {
+export function suspendKeypressListeners(input: TerminalInput): () => void {
   const held = input.rawListeners('keypress')
 
   for (const listener of held) {
@@ -139,8 +147,9 @@ export function suspendKeypressListeners(input: NodeJS.ReadStream): () => void {
 }
 
 export function multiPrompt(config: MultiPromptOptions = {}): MultiPrompt {
-  const rl = createInterface(readlineOptions(config.completion))
-  const suggestions = createGhostSuggestions(rl, config.completion)
+  const terminal = currentTerminal()
+  const rl = openReadline(terminal, config)
+  const suggestions = createGhostSuggestions(terminal, rl, config.completion)
   const lifetime = new AbortController()
   const onSigint = config.onSigint
   let closed = false
@@ -184,7 +193,7 @@ export function multiPrompt(config: MultiPromptOptions = {}): MultiPrompt {
 }
 
 function createMultiPromptFn(
-  rl: ReturnType<typeof createInterface>,
+  rl: Interface,
   suggestions: ReturnType<typeof createGhostSuggestions>,
   lifetimeSignal: AbortSignal
 ): PromptFn {
@@ -249,11 +258,14 @@ function toQuery(question: string, options?: PromptOptions): string {
   return options?.bare === true ? `${question} ` : ask(`${question} `)
 }
 
-function readlineOptions(completion?: CompletionSource): Parameters<typeof createInterface>[0] {
-  return {
-    input: process.stdin,
-    output: process.stdout,
-    terminal: isInteractiveTerminal(),
+// Every readline interface is made here, on the terminal it was asked for.
+function openReadline(terminal: Terminal, options: ReadlineOptions = {}): Interface {
+  const { completion } = options
+  const interactive = isInteractiveTerminal(terminal)
+  const rl = createInterface({
+    input: terminal.stdin,
+    output: toReadlineOutput(terminal, options),
+    terminal: interactive,
     ...(completion === undefined
       ? {}
       : {
@@ -262,5 +274,20 @@ function readlineOptions(completion?: CompletionSource): Parameters<typeof creat
             completionToken(line),
           ],
         }),
+  })
+
+  if (!terminal.suspendable) {
+    // Readline's default for Ctrl-Z stops this whole process, and this terminal is not the process's.
+    rl.on('SIGTSTP', () => undefined)
   }
+
+  return rl
+}
+
+function toReadlineOutput(terminal: Terminal, options: ReadlineOptions): Writable | undefined {
+  if (options.silent !== true) {
+    return terminal.stdout
+  }
+
+  return isInteractiveTerminal(terminal) ? SILENT_OUTPUT : undefined
 }

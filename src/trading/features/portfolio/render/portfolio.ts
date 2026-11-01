@@ -7,7 +7,7 @@ import type {
   MarketRef,
   PortfolioSegment,
 } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { StopCover, StopDistance } from '@/trading/kernel/operator/alert'
 import type { ProfileStamp, RiskCapSet } from '@/trading/kernel/operator/profile'
 import type { RenderContext } from '@/trading/render/format'
@@ -17,6 +17,7 @@ import { renderAllocationSection } from '@/trading/features/portfolio/render/all
 import { renderAttentionLines } from '@/trading/features/portfolio/render/attention'
 import { renderCashSections } from '@/trading/features/portfolio/render/cash'
 import { renderPositionSection } from '@/trading/features/portfolio/render/rows'
+import { apportionedSegmentWeights } from '@/trading/features/portfolio/render/segment-shares'
 import { renderProfileStamp } from '@/trading/features/profile/render'
 import { buildInstrumentKey, CASH_SEGMENT, ETF_KIND } from '@/trading/kernel/instrument'
 import { renderCaveatLines } from '@/trading/render/caveat'
@@ -24,7 +25,7 @@ import {
   formatCount,
   formatFixedFraction,
   formatFlow,
-  formatSignedFraction,
+  formatSignedFixedFraction,
   renderDeclaredValue,
   SECTION_ICONS,
   SEVERITY_MARKS,
@@ -32,7 +33,6 @@ import {
 import { renderFreshness } from '@/trading/render/freshness'
 import { INDENT, joinSections, renderSectionTitle, toFactLines } from '@/trading/render/layout'
 import { formatMoney, formatSignedMoney, renderBoardScaleNotes } from '@/trading/render/money'
-import { apportion, FRACTION_QUANTUM } from '@/trading/render/number'
 
 const PARTIAL_NAV_CAVEAT = 'valuation.partial-nav'
 /** Cash may sit this far above its policy target before the report points at `/rebalance`. */
@@ -127,20 +127,6 @@ export function renderPortfolioText(
   ])
 }
 
-/** The weight column divides NAV over these segments, so it is rounded as a set rather than cell by
- *  cell, as `/rebalance` already rounds its own segment table: singly it printed 100,01%. Read by
- *  every line of this message that states a segment's weight, so none of them can round apart. */
-function apportionedSegmentWeights(book: ValuedBook): ReadonlyMap<PortfolioSegment, number> {
-  const weights = apportion(
-    book.segmentValues.map((entry) => entry.weightPctNav),
-    FRACTION_QUANTUM
-  )
-
-  return new Map(
-    book.segmentValues.map((entry, index) => [entry.segment, weights[index] ?? entry.weightPctNav])
-  )
-}
-
 /** The position rows quote each holding the way its own market does, so a board-scaled market needs
  *  the same note every other board-mixing list prints - once per convention, under the rows. */
 function renderBoardScaleNote(
@@ -220,7 +206,7 @@ function renderTotalPnl(
       ? t(locale, 'trading.render.portfolio.totalPnl', pnl)
       : t(locale, 'trading.render.portfolio.totalPnlPct', {
           ...pnl,
-          pct: formatSignedFraction(locale, pnlBase / deposits),
+          pct: formatSignedFixedFraction(locale, pnlBase / deposits),
         })
 
   return toFactLines(
@@ -247,7 +233,7 @@ function renderLatestMoveLine(locale: Locale, book: ValuedBook): readonly string
 
   const shared = {
     pnl: formatSignedMoney(locale, dayChange.amountBase, book.book.baseCurrency),
-    pct: formatSignedFraction(locale, dayChange.fraction),
+    pct: formatSignedFixedFraction(locale, dayChange.fraction),
   }
 
   if (book.book.asOf === dayChange.at) {

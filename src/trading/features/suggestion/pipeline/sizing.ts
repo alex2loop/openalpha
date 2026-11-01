@@ -104,6 +104,9 @@ interface BuySizingInput {
    *  by what the routed market can reach. The reserve comes off the whole book at the call site,
    *  because it is one obligation — subtracting it per market would charge it once per segment. */
   readonly spendableCashBase: number
+  /** What a market order's cash draw exceeds its notional by (fee and price drift), the headroom the
+   *  order caps then demand: cash sized to the notional alone would be refused at the order. */
+  readonly cashDrawMultiple: number
   /** Room left under the operator's whole-book open-risk ceiling, as a fraction of NAV. Positive
    *  infinity where the book could not be read. */
   readonly openRiskHeadroomPctNav: number
@@ -214,10 +217,11 @@ function buildCeilings(input: BuySizingInput, distance: number): SizingCeilings 
     sector: (input.sectorHeadroomPctNav * navBase) / entryBase,
     etf: (input.etfHeadroomPctNav * navBase) / entryBase,
     segment: (input.segmentHeadroomPctNav * navBase) / entryBase,
-    cash: input.spendableCashBase / entryBase,
-    // Unmeasured turnover is not illiquid: an absent read must pass, never cap.
+    cash: input.spendableCashBase / (entryBase * input.cashDrawMultiple),
+    // Unmeasured turnover is not illiquid: an absent read must pass, never cap. A measured zero is
+    // a name that traded nothing, so it has no room.
     liquidity:
-      input.medianTurnoverBase === undefined || input.medianTurnoverBase <= 0
+      input.medianTurnoverBase === undefined
         ? Number.POSITIVE_INFINITY
         : (input.medianTurnoverBase * MAXIMUM_TURNOVER_PARTICIPATION_FRACTION) / entryBase,
   }
@@ -256,21 +260,28 @@ export function sizeReduce(input: ReduceSizingInput): SizingResult {
     return { kind: 'unsized', reason: 'zero-nav' }
   }
 
-  if (entryBase <= 0 || settledUnits <= 0 || !(saleFraction > 0)) {
+  if (entryBase <= 0 || !(saleFraction > 0)) {
     return { kind: 'unavailable', reasonCode: 'insufficient-data' }
   }
 
-  const units = floorToLot(
-    Math.min(heldUnits * Math.min(saleFraction, 1), settledUnits),
-    boardLot.size
-  )
+  if (settledUnits <= 0) {
+    return { kind: 'unavailable', reasonCode: 'position-unsettled' }
+  }
+
+  const owed = heldUnits * Math.min(saleFraction, 1)
+  const units = floorToLot(Math.min(owed, settledUnits), boardLot.size)
 
   if (!Number.isFinite(units)) {
     return { kind: 'unavailable', reasonCode: 'insufficient-data' }
   }
 
+  // A lot the sale owes but settlement has not delivered yet is waiting on T+N, not too small.
   if (units <= 0) {
-    return { kind: 'unavailable', reasonCode: 'size-below-board-lot' }
+    return {
+      kind: 'unavailable',
+      reasonCode:
+        floorToLot(owed, boardLot.size) > 0 ? 'position-unsettled' : 'sale-below-board-lot',
+    }
   }
 
   return { kind: 'available', units, sizePctNav: (units * entryBase) / navBase }

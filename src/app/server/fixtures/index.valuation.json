@@ -1,0 +1,16 @@
+{
+  "market": "equity-vn",
+  "index": "VNINDEX",
+  "valuation": {
+    "asOf": "2026-10-27",
+    "pe": 12.18,
+    "pb": 1.96,
+    "roePct": 16.1,
+    "dividendYieldPct": 1.41,
+    "peAvg5y": 13.83,
+    "pbAvg5y": 1.92,
+    "aboveMa50Pct": 41.5,
+    "aboveMa200Pct": 25.8
+  },
+  "caveats": []
+}

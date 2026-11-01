@@ -10,7 +10,7 @@ export function buildVnNextActions(
   context: VnBriefContext,
   sections: readonly BriefSectionResult[],
   overviews: readonly BriefSectionResult[]
-): BriefSectionResult {
+): Promise<BriefSectionResult> {
   return buildNextActions(
     context,
     sections,

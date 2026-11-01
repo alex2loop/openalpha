@@ -10,6 +10,7 @@ import { RunHalted } from '@/core/errors'
 import { llmAttemptId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { withRetry } from '@/core/utils/retry'
+import { emitIfExhausted } from '@/engine/budget/exhaustion'
 import { addExternalCost, namedModel } from '@/engine/budget/usage'
 
 const ATTEMPT_RECORD_MAX_TRIES = 3
@@ -68,7 +69,7 @@ export type AttemptRecorder = (
 
 type LedgerServices = Pick<
   RunServices,
-  'costTracker' | 'llmAttemptSink' | 'unrecordedSpend' | 'logger'
+  'costTracker' | 'llmAttemptSink' | 'unrecordedSpend' | 'logger' | 'bus'
 >
 
 interface AttemptDraft {
@@ -128,6 +129,9 @@ async function settleIncurredUsage(
   deps.reservation.consume(charge.costUsd)
 
   const halt = applyCharge(deps.run.state, { charge, usage, model: attempt.providerModel.model })
+
+  emitIfExhausted(deps.run.services, deps.run.identity.agentId, settledAt)
+
   const id = llmAttemptId(randomUUID())
 
   // Awaited before the chain retries, falls back, or returns: continuing after a failed write
@@ -167,6 +171,7 @@ export async function settleExternalCharge(
   )
 
   run.state.totals = addExternalCost(run.state.totals, tracked.costUsd)
+  emitIfExhausted(run.services, run.identity.agentId, settledAt)
 
   await recordDurably(run.services, {
     id: llmAttemptId(randomUUID()),
@@ -322,6 +327,9 @@ export async function settleCallerAttempt(
 ): Promise<number> {
   const settledAt = Date.now()
   const charge = services.costTracker.record(attempt.providerModel, attempt.usage, settledAt)
+
+  emitIfExhausted(services, identity.agentId, settledAt)
+
   const draft: AttemptDraft = {
     kind: 'turn',
     charge,

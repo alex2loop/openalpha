@@ -103,7 +103,7 @@ console.log(`OK: every export in ${exportsByFile.size} file(s) has a consumer.`)
 
 async function scan(root: string, options: { readonly publishes: boolean }): Promise<void> {
   const dir = resolve(ROOT, root)
-  const glob = new Bun.Glob('**/*.ts')
+  const glob = new Bun.Glob('**/*.{ts,tsx}')
 
   for await (const rel of glob.scan({ cwd: dir })) {
     await collect(resolve(dir, rel), options.publishes)
@@ -210,7 +210,7 @@ function resolveSpecifier(from: string, specifier: string): string | null {
     return null
   }
 
-  for (const candidate of [`${base}.ts`, `${base}/index.ts`]) {
+  for (const candidate of [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`]) {
     if (Bun.file(candidate).size > 0) {
       return candidate
     }

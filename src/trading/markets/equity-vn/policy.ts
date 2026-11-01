@@ -14,7 +14,7 @@ import type { AdmissionPolicy } from '@/trading/markets/admission'
 import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { currencyCode, fxPair, marketRef, region, ticker } from '@/trading/kernel/instrument'
-import { VN_EXCHANGE_HOLIDAYS } from '@/trading/markets/equity-vn/holidays'
+import { vnClosuresOf } from '@/trading/markets/equity-vn/calendar/closures'
 import { US_DRIVER_BANDS } from '@/trading/markets/macro-risk'
 
 /** Bumped whenever a parameter changes what this market suggests: the version is part of a
@@ -49,18 +49,21 @@ export const ADMITTED_EXCHANGES: readonly VnExchange[] = Object.freeze(['HOSE', 
  *  09:15-11:30 and 13:00-14:30; the ATC call auction runs to 14:45, which is the last instant a
  *  price is discovered, so that is the calendar's close. HNX matches PLO orders until 15:00, but
  *  only at the closing price already fixed at 14:45, so nothing after the bell moves the reading a
- *  settled session stands for. The 11:30-13:00 lunch gap is the calendar's break — auction phases
- *  are tradeability facts, not calendar states. HNX determines its open by reference price rather
+ *  settled session stands for. The 11:30-13:00 lunch gap is the calendar's break and 14:30 the
+ *  closing auction's start, which HOSE and HNX share; the auction is a window inside the open
+ *  phase, not a phase of its own. HNX determines its open by reference price rather
  *  than an ATO auction; that difference is a per-exchange calendar override in config, never an
  *  assumption baked in here. */
 export const VN_CALENDAR: CalendarPolicy = Object.freeze({
+  exchange: PRIMARY_EXCHANGE,
   timezone: 'Asia/Ho_Chi_Minh',
   sessionOpenLocalTime: '09:00',
   sessionCloseLocalTime: '14:45',
   breakStartLocalTime: '11:30',
   breakEndLocalTime: '13:00',
+  closeAuctionStartLocalTime: '14:30',
   weekendDays: Object.freeze([0, 6]),
-  holidays: VN_EXCHANGE_HOLIDAYS,
+  holidays: vnClosuresOf,
   continuous: false,
 })
 
@@ -197,43 +200,45 @@ export const FTSE_REVIEW_MONTHS = Object.freeze([3, 6, 9, 12] as const)
  *  VNDiamond's, and the passive money moves on all four. */
 export const HOSE_REVIEW_MONTHS = Object.freeze([2, 5, 8, 11] as const)
 /** How far past a fiscal period end the accounts may sit before the ratios stop describing the
- *  business. A VN issuer files the following quarter within twenty days of its close, so at a full
- *  quarter plus the filing window plus three weeks of slack the issuer has missed a deadline rather
- *  than merely not reached one. Counted in calendar days because a statutory deadline is. */
+ *  business, in calendar days as a statutory deadline is: the next quarter (about 92 days), the
+ *  30-day deadline for consolidated accounts, and about two weeks of slack, so an overdue issuer has
+ *  missed a deadline rather than merely not reached one. */
 export const REPORT_OVERDUE_DAYS = 135
 
 /** The target is a multiple of the rounded risk, not an ATR multiple of its own: measured from
  *  ATR it lost ticks independently of the stop, and a 15-tick VN30 bank landed at 1.47. The long
  *  stop is three ATRs: at two, every stored plan sat inside one limit-down session and under the
  *  two-session settlement drawdown printed beside it, and the debate's own invalidator (a close
- *  under the 50-session average) lay twice as far below entry as the stop did. The trail hangs the
- *  stop from the highest close of a trading month so a name that ran keeps what it gained; an
- *  entry-relative stop on a long-horizon book otherwise never moves until the plan is spent.
+ *  under the 50-session average) lay twice as far below entry as the stop did.
  *
- *  That trail also clamps a fresh entry, and a VN entry is the close rather than a breakout, so the
+ *  A fund leaves whole at its review level, so it banks nothing before the target. Nothing trails
+ *  its review level either, so it declares no trail: one would only clamp the fresh level, and on
+ *  2026-10-22 it put two funds' review a single ATR under the close and printed a 9:1 reward. */
+export const VN_FUND_LEVEL_POLICY: LevelPolicy = Object.freeze({
+  atrSessions: 14,
+  stopVolatilityMultiplier: { short: 1.5, long: 3 },
+  targetRiskMultiplier: { short: 1.5, long: 3 },
+})
+
+/** A share banks its first third one risk unit out. Measured on the stored board, one trade per
+ *  name at a time with the stop, trail and T+2 as they run: the long target at nine ATRs was
+ *  reached by 3% to 14% of entries, one risk unit by 13% to 36%, with no measurable change in what
+ *  the trade returned, because the rest rides the trail either way.
+ *
+ *  The trail hangs the stop from the highest close of a trading month so a name that ran keeps what
+ *  it gained; an entry-relative stop on a long-horizon book otherwise never moves until the plan is
+ *  spent. It also clamps a fresh entry, and a VN entry is the close rather than a breakout, so the
  *  window high sits above it on every name that is not making a new high and the stop is the trail
  *  multiple less the pullback. Measured across the screened board on 2026-09-22 it bound on 63 of
  *  105 names, cut the median plan a quarter inside its designed distance and the deepest one to a
  *  fortieth, and left twelve stops inside a single session's own range. One ATR is the floor under
  *  it: a session's typical range is the least a stop can sit outside and still be answering the
  *  thesis rather than the noise. It widens a fifth of the board and moves no target, because the
- *  risk the target and the size read is the designed three ATRs either way.
- *
- *  A fund leaves whole at its review level, so it banks nothing before the target. */
-export const VN_FUND_LEVEL_POLICY: LevelPolicy = Object.freeze({
-  atrSessions: 14,
-  stopVolatilityMultiplier: { short: 1.5, long: 3 },
-  targetRiskMultiplier: { short: 1.5, long: 3 },
-  trail: Object.freeze({ sessions: 22, volatilityMultiplier: 3, minimumStopMultiplier: 1 }),
-})
-
-/** A share banks its first third one risk unit out. Measured on the stored board, one trade per
- *  name at a time with the stop, trail and T+2 as they run: the long target at nine ATRs was
- *  reached by 3% to 14% of entries, one risk unit by 13% to 36%, with no measurable change in what
- *  the trade returned, because the rest rides the trail either way. */
+ *  risk the target and the size read is the designed three ATRs either way. */
 export const VN_LEVEL_POLICY: LevelPolicy = Object.freeze({
   ...VN_FUND_LEVEL_POLICY,
   takeProfitRiskMultiplier: { short: 1, long: 1 },
+  trail: Object.freeze({ sessions: 22, volatilityMultiplier: 3, minimumStopMultiplier: 1 }),
 })
 
 /** A year of sessions: the horizon the published Vietnamese turnover factor is measured over, and
@@ -284,6 +289,10 @@ export const VN_RECOMMENDATION_SESSIONS = 120
 export const VN_OVERVIEW_LEADERS = 5
 
 export const VN_OVERVIEW_SESSIONS = 5
+/** How many flow sessions back the overview looks for proprietary figures when the newest session's
+ *  are not yet published: the desk lands about one session after the foreign one, so a few cover a
+ *  holiday or a late provider without ranking a stale desk as current. */
+export const VN_PROPRIETARY_LOOKBACK_SESSIONS = 5
 /** Sessions the short moving-average breadth compares against — the 20-day mean. */
 export const VN_TURNOVER_REFERENCE_SESSIONS = 20
 /** Reading order for the boards, largest first. Alphabetical puts HNX above HOSE, which is not how
@@ -318,6 +327,7 @@ export const REFRESH_STALE_SESSIONS: Readonly<Record<RefreshDataKind, number>> =
   macro: 1,
   accounts: 1,
   premium: 1,
+  'index-ratios': 1,
 })
 
 /** How long a replayed attempt keeps the targets it lost before asking for them again. Short
@@ -393,6 +403,11 @@ export const LIMIT_HIT_MAXIMUM = 3
 /** A close counts as a limit hit at this share of the band: tick rounding means an adjusted series
  *  rarely lands on the exact ceiling ratio. */
 export const LIMIT_HIT_TOLERANCE_FRACTION = 0.9
+
+/** A held short-horizon name that closes at its ceiling this many sessions running is trimmed at
+ *  the next open: the gap pays most there, and the ten sessions after it lag the market. 0 turns
+ *  the trim off. */
+export const VN_CEILING_TRIM_POLICY = Object.freeze({ sessions: 1 })
 
 /** What a failed screen gate costs a named VN ticker. `ceiling-locked` is absent because the band
  *  edge is already the levels block, and `no-price-history` because a name with no series has no
@@ -568,8 +583,8 @@ export const ETF_BENCHMARK_BY_TICKER: ReadonlyMap<Ticker, Ticker> = new Map([
   [ticker('FUEMITEC'), ticker(VNMITECH_INDEX_TICKER)],
 ])
 
-/** The exchange's rolling alias for the nearest-month VN30 contract, and the only form the provider
- *  lists: dated contracts appear only once expired, none of them carrying a maturity date. */
+/** The exchange's rolling alias for the nearest-month VN30 contract, the one the basis reads. The
+ *  provider also lists dated contracts, the month only in their name, never a maturity date. */
 export const VN30_FRONT_MONTH_TICKER = 'VN30F1M'
 
 export const BASIS_SESSIONS = 60

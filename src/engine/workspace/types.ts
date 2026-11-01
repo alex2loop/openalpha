@@ -1,7 +1,15 @@
 import type { AgentId } from '@/core/ids'
 import type { WorkspaceIdentity } from '@/core/security/path-policy'
 
-export type WorkspaceFixedArea = 'run' | 'tmp'
+/** Caches a shell regenerates under its HOME, `run/`: aged out like `tmp/`, never the rest of it. */
+export const RUN_CACHE_AREAS = Object.freeze([
+  'run/.cache',
+  'run/.npm',
+  'run/.bun/install/cache',
+  'run/.local/share/Trash',
+] as const)
+
+export type WorkspaceFixedArea = 'run' | 'tmp' | (typeof RUN_CACHE_AREAS)[number]
 
 export type WorkspaceCleanupScope =
   | { readonly kind: 'agent'; readonly agentId: AgentId }

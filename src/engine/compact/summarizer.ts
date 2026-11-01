@@ -37,7 +37,7 @@ export function createSummarizer(
       requestedModel: summaryModel.model,
       inputTokens,
       cacheReadTokens: 0,
-      cacheWriteTokens: inputTokens,
+      cacheWriteTokens: 0,
       maxTokens: COMPACT_SUMMARY_MAX_TOKENS,
       reasoningMode: req.reasoningMode,
       hasOutputContract: req.outputContract !== undefined,

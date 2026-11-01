@@ -58,6 +58,10 @@ export interface UnmirroredOrderWire {
   readonly failure: string
   /** Absent when the exchange never named an order: whether anything filled is unknown. */
   readonly orderId?: string
+  /** What the exchange filled, where it reported a fill; `quantity` is what was staged. */
+  readonly filledQuantity?: number
+  /** The fill's average price, in the venue's quote. */
+  readonly averagePrice?: number
 }
 
 /** GET /v1/trade */
@@ -85,8 +89,9 @@ interface OrderFillWire {
   readonly state: 'live' | 'partially_filled' | 'filled' | 'canceled' | 'mmp_canceled'
   readonly averagePrice: number
   readonly filledQuantity: number
-  /** Positive: what the exchange charged, in `feeCurrency`. */
-  readonly fee: number
+  /** What the exchange charged, in `feeCurrency`: zero for a rebate, absent while the exchange has
+   *  not reported it. */
+  readonly fee?: number
   readonly feeCurrency: string
   readonly filledAt?: number
 }

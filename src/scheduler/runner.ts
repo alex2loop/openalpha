@@ -1,8 +1,11 @@
 import type { JobId } from '@/core/ids'
 import type { Job, SchedulerDeps } from '@/scheduler/types'
+import { reportPass } from '@/core/container'
 import { formatErrForLog } from '@/core/security/credentials'
+import { probeHost, REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/utils/reachability'
 import { MS_PER_SECOND } from '@/core/utils/time'
-import { JOB_MAX_DURATION_MS, runScheduledOccurrence } from '@/scheduler/job/execution'
+import { JOB_MAX_DURATION_MS } from '@/scheduler/job/agent-run'
+import { runScheduledOccurrence } from '@/scheduler/job/execution'
 
 export const SCHEDULER_STOP_TIMEOUT_MS = 5_000
 // A live run-now claim's wall clock is the job's own duration cap plus however long it waited on
@@ -18,6 +21,10 @@ type SchedulerAdmission<T> =
 export interface SchedulerController {
   admit<T>(job: Job, execute: (signal: AbortSignal) => Promise<T>): SchedulerAdmission<T>
   cancel(jobId: JobId): Promise<boolean>
+  /** Takes `remove` (the row delete only) over when the job has a run in flight: it runs once that
+   *  run has finished and delivered, so a job removing itself does not delete the row its run still
+   *  has to finalize against. False when nothing is in flight (the caller removes now). */
+  removeAfterRun(jobId: JobId, remove: () => Promise<void>): boolean
   stop(timeoutMs: number): Promise<void>
 }
 
@@ -29,12 +36,19 @@ interface AdmittedJob {
 
 interface SchedulerState {
   readonly inFlight: Map<JobId, AdmittedJob>
+  /** At most one per job in flight; taken out when that run settles. */
+  readonly deferredRemovals: Map<JobId, () => Promise<void>>
   readonly signal: AbortSignal
+  /** Aborts when the scheduler stops, by `signal` or by `stop`, so a tick waiting on the network
+   *  does not hold the stop for its whole budget. */
+  readonly stopping: AbortController
   timer: ReturnType<typeof setTimeout> | null
   tickTask: Promise<void> | null
   stopTask: Promise<void> | null
   onAbort: (() => void) | null
   stopped: boolean
+  /** One warning per offline stretch, cleared when the network answers again. */
+  offlineWarned: boolean
 }
 
 interface SchedulerWaitOptions {
@@ -76,6 +90,7 @@ function createSchedulerController(
   return {
     admit: (job, execute) => admitJob({ state, job, deps, execute }),
     cancel: (jobId) => cancelJob(state, jobId),
+    removeAfterRun: (jobId, remove) => deferRemoval(state, jobId, remove),
     stop: (timeoutMs) => stopScheduler(state, deps, timeoutMs),
   }
 }
@@ -83,12 +98,15 @@ function createSchedulerController(
 function createSchedulerState(signal: AbortSignal): SchedulerState {
   return {
     inFlight: new Map(),
+    deferredRemovals: new Map(),
     signal,
+    stopping: new AbortController(),
     timer: null,
     tickTask: null,
     stopTask: null,
     onAbort: null,
     stopped: false,
+    offlineWarned: false,
   }
 }
 
@@ -110,9 +128,12 @@ function scheduleNextTick(
     return
   }
 
+  const tickMs = deps.config.schedule.tickSeconds * MS_PER_SECOND
+
   state.timer = setTimeout(() => {
     state.timer = null
-    const task = runTick(state, deps, controller)
+    const pass = { name: 'scheduler', everyMs: tickMs, chained: true }
+    const task = reportPass(deps.onTaskPass, pass, () => runTick(state, deps, controller))
       .catch((err: unknown) => {
         deps.logger.warn('scheduler.tick_failed', { err: formatErrForLog(err) })
       })
@@ -121,7 +142,7 @@ function scheduleNextTick(
         scheduleNextTick(state, deps, controller)
       })
     state.tickTask = task
-  }, deps.config.schedule.tickSeconds * MS_PER_SECOND)
+  }, tickMs)
 }
 
 async function runTick(
@@ -140,12 +161,37 @@ async function runTick(
   // rows cannot crowd later-due jobs out of the per-tick budget.
   const limit = deps.config.schedule.maxPerTick + state.inFlight.size
   const due = await deps.jobStore.due(now, limit, now - runNowClaimTtlMs)
+  const waiting = due.filter((job) => !state.inFlight.has(job.id))
+
+  // Nothing held back, so no offline stretch to keep warning about: the next one warns afresh.
+  if (waiting.length === 0) {
+    state.offlineWarned = false
+
+    return
+  }
+
+  // An offline run fails every attempt, and each failure counts toward the auto-disable, so a short
+  // outage would switch jobs off. They stay due and run once the network is back; a recurring one
+  // that waited past its grace is skipped to its next occurrence instead.
+  const offline = !(await probeHost(
+    REACHABILITY_HOST,
+    REACHABILITY_TIMEOUT_MS,
+    state.stopping.signal
+  ))
 
   if (state.stopped || state.signal.aborted) {
     return
   }
 
-  for (const job of due) {
+  if (offline) {
+    warnOfflineOnce(state, deps, waiting.length)
+
+    return
+  }
+
+  state.offlineWarned = false
+
+  for (const job of waiting) {
     const admission = controller.admit(job, (runSignal) =>
       runScheduledOccurrence({ job, deps, signal: runSignal })
     )
@@ -166,6 +212,15 @@ async function runTick(
   }
 }
 
+function warnOfflineOnce(state: SchedulerState, deps: SchedulerDeps, jobs: number): void {
+  if (state.offlineWarned) {
+    return
+  }
+
+  state.offlineWarned = true
+  deps.logger.warn('scheduler.tick_offline', { jobs, host: REACHABILITY_HOST })
+}
+
 function admitJob<T>(options: AdmitJobOptions<T>): SchedulerAdmission<T> {
   const { state, job, deps, execute } = options
 
@@ -183,7 +238,9 @@ function admitJob<T>(options: AdmitJobOptions<T>): SchedulerAdmission<T> {
 
   const controller = new AbortController()
   const jobSignal = AbortSignal.any([controller.signal, state.signal])
-  const completion = execute(jobSignal)
+  // The run settles before its deferred removal, so the removal is part of the completion that a
+  // cancel or a stop waits on.
+  const completion = execute(jobSignal).finally(() => runDeferredRemoval(state, deps, job.id))
   const tracked = completion.then(
     () => {
       state.inFlight.delete(job.id)
@@ -195,6 +252,38 @@ function admitJob<T>(options: AdmitJobOptions<T>): SchedulerAdmission<T> {
 
   state.inFlight.set(job.id, { jobId: job.id, controller, completion: tracked })
   return { kind: 'accepted', completion }
+}
+
+function deferRemoval(state: SchedulerState, jobId: JobId, remove: () => Promise<void>): boolean {
+  if (!state.inFlight.has(jobId)) {
+    return false
+  }
+
+  if (!state.deferredRemovals.has(jobId)) {
+    state.deferredRemovals.set(jobId, remove)
+  }
+
+  return true
+}
+
+async function runDeferredRemoval(
+  state: SchedulerState,
+  deps: SchedulerDeps,
+  jobId: JobId
+): Promise<void> {
+  const remove = state.deferredRemovals.get(jobId)
+
+  if (remove === undefined) {
+    return
+  }
+
+  state.deferredRemovals.delete(jobId)
+
+  try {
+    await remove()
+  } catch (err: unknown) {
+    deps.logger.warn('scheduler.deferred_remove_failed', { jobId, err: formatErrForLog(err) })
+  }
 }
 
 async function cancelJob(state: SchedulerState, jobId: JobId): Promise<boolean> {
@@ -241,6 +330,7 @@ async function settleScheduler(
 
 function stopScheduling(state: SchedulerState): void {
   state.stopped = true
+  state.stopping.abort()
 
   if (state.timer !== null) {
     clearTimeout(state.timer)

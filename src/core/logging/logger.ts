@@ -13,7 +13,7 @@ import {
   scrubCredentials,
 } from '@/core/security/credentials'
 
-import type { AgentLogSink } from './agent-router'
+import type { AgentLogRouter, AgentLogSink } from './agent-router'
 import type { LogDestinationHooks } from './files'
 import type { OwnedLogDestination } from './types'
 import { AGENT_LOG_DROP_POLICY, createAgentLogRouter } from './agent-router'
@@ -67,6 +67,9 @@ export interface Logger {
 export interface LoggerResource {
   readonly logger: Logger
   configureAgentRegistry(agentIds: Iterable<string>): Promise<void>
+  /** Routes for the agents a live reload left: one added gets a sink, one gone is closed, an agent
+   *  that already has a route keeps it open. */
+  syncAgentRoutes(agentIds: Iterable<AgentId>): Promise<void>
   isAvailable(): boolean
   flush(): Promise<void>
   close(): Promise<void>
@@ -135,9 +138,7 @@ export async function createLoggerResource(
       logger: root,
       destination: router?.destination ?? destination,
       hooks,
-      ...(router === undefined
-        ? {}
-        : { configureAgentRegistry: router.configure, withAgentId: router.withAgentId }),
+      ...(router === undefined ? {} : { agentRouting: router }),
     })
 
     router?.setDropWarning(() =>
@@ -170,8 +171,7 @@ function loggerResource(options: {
   readonly logger?: PinoLogger
   readonly destination: OwnedLogDestination | undefined
   readonly hooks: LoggerResourceHooks | undefined
-  readonly configureAgentRegistry?: (agentIds: Iterable<string>) => Promise<void>
-  readonly withAgentId?: WithAgentId
+  readonly agentRouting?: Pick<AgentLogRouter, 'configure' | 'syncAgentRoutes' | 'withAgentId'>
 }): LoggerResource {
   const { logger, destination, hooks } = options
   const planLogger = logger === undefined ? {} : { logger }
@@ -190,12 +190,12 @@ function loggerResource(options: {
   }
   const isAvailable = (): boolean => accepting && !terminal && (destination?.isAvailable() ?? true)
 
-  const agentScope =
-    options.withAgentId === undefined ? undefined : { withAgentId: options.withAgentId }
+  const agentScope = options.agentRouting
 
   return {
     logger: logger === undefined ? silentLogger : wrap(logger, isAvailable, agentScope),
-    configureAgentRegistry: options.configureAgentRegistry ?? (async () => undefined),
+    configureAgentRegistry: options.agentRouting?.configure ?? (async () => undefined),
+    syncAgentRoutes: options.agentRouting?.syncAgentRoutes ?? (async () => undefined),
     isAvailable,
     flush: () =>
       runLifecycle({

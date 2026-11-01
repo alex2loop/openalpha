@@ -140,19 +140,23 @@ function placementOf(input: PlacementInput): Placement {
   }
 
   const roomExhausted = isForeignRoomExhausted(request, tradeability, evidence)
+  const ticker = request.instrument.ticker
   const roomCaveats: readonly Caveat[] = roomExhausted
-    ? [{ code: 'market.foreign-room-exhausted', detail: { ticker: request.instrument.ticker } }]
+    ? [{ code: 'market.foreign-room-exhausted', detail: { ticker } }]
     : []
 
   // The cap binds foreign buyers, so only a foreign operator is blocked by it. A domestic one still
-  // sees the caveat: a full room is a crowding signal either way.
+  // sees the caveat: a full room is a crowding signal either way. `blocks` marks the refusing one.
   if (roomExhausted && deps.config.defaultRegion !== VN_MARKET_REGION) {
     return {
       kind: 'refused',
       result: {
         kind: 'unavailable',
         reasonCode: 'market-not-tradeable',
-        caveats: [...tradeability.caveats, ...roomCaveats],
+        caveats: [
+          ...tradeability.caveats,
+          { code: 'market.foreign-room-exhausted', detail: { ticker, blocks: 1 } },
+        ],
       },
     }
   }

@@ -1,0 +1,89 @@
+.scene-floorrow {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  min-height: var(--controlH);
+  padding: 0 var(--s2) 0 3px;
+  border-radius: var(--islandRadius);
+}
+
+.scene-floors {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+}
+
+.scene-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink2);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.scene-tool[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.scene-tool:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.scene-tool kbd {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--sunken);
+  font:
+    11px / 16px ui-monospace,
+    "SF Mono",
+    Menlo,
+    monospace;
+}
+
+.scene-crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  min-width: 0;
+}
+
+.scene-hint {
+  position: absolute;
+  bottom: var(--stageBottomH);
+  left: 50%;
+  padding: 4px 12px;
+  border-radius: 999px;
+  color: var(--ink2);
+  font-size: 12px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+fieldset.scene-floors {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+}
+
+:root:not([data-layout="wide"]) .scene-tool {
+  min-height: 32px;
+}
+
+:root[data-layout="phone"] .scene-crumb {
+  display: none;
+}
+
+:root[data-layout="phone"] .scene-floorrow {
+  padding-right: 3px;
+}

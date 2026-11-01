@@ -44,7 +44,7 @@ export async function resolveGapNote(input: GapNoteInput): Promise<string | unde
 
 async function readLastMessageAt(input: GapNoteInput): Promise<number | null> {
   try {
-    return await input.sessions.lastMessageAt(input.sessionId)
+    return await input.sessions.lastModelMessageAt(input.sessionId)
   } catch (err: unknown) {
     input.logger.warn('channel.gap_note_lookup_failed', { err: formatErrForLog(err) })
 

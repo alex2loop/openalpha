@@ -90,12 +90,7 @@ export const HALT_SPEC = {
     hintKey: 'errors.budgetHint',
     emoji: '💸',
   },
-  rate: {
-    exitCode: 4,
-    messageKey: 'errors.rate',
-    hintKey: 'errors.rateHint',
-    emoji: '⏳',
-  },
+  rate: { exitCode: 4, messageKey: 'errors.rate', hintKey: 'errors.rateHint', emoji: '⏳' },
   llm_error: {
     exitCode: 5,
     messageKey: 'errors.llmError',
@@ -136,7 +131,7 @@ export const HALT_SPEC = {
   no_agents: { exitCode: 10, messageKey: 'halt.noAgents', emoji: '🤷' },
   hook_failed: { exitCode: 11, messageKey: 'halt.hookFailed', emoji: '🧩' },
   shutdown: { exitCode: 0, messageKey: 'halt.shutdown', emoji: '🌙' },
-  // 13-15 belong to the CLI's channel, tool and conflict exits.
+  // 13 and 14 belong to the CLI's channel and tool exits.
   agent_paused: { exitCode: 16, messageKey: 'halt.agentPaused', emoji: '⏸️' },
 } as const satisfies Record<HaltCode, HaltSpecEntry>
 
@@ -445,6 +440,12 @@ export function abortError(signal?: AbortSignal): Error {
 // The DOM abort a signal raises, not the domain halt: `RunHalted('abort')` is a separate concept.
 export function isAbortError(err: unknown): boolean {
   return err instanceof Error && err.name === 'AbortError'
+}
+
+// Both cancellation shapes the codebase raises: a native fetch/stream abort, and the runtime's own
+// typed halt from `abortError`.
+export function isCancellation(err: unknown): boolean {
+  return err instanceof RunHalted ? err.code === 'abort' : isAbortError(err)
 }
 
 export function isErrno(error: unknown, code: string): error is NodeJS.ErrnoException {

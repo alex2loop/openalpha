@@ -20,7 +20,6 @@ import type { FxQuote } from '@/trading/kernel/market/market-data'
 import type { Book, PriceFreshness } from '@/trading/kernel/operator/book'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
-import { utcDay } from '@/core/utils/time'
 import {
   totalCostBase,
   totalFeesBase,
@@ -31,10 +30,15 @@ import {
   type Rates,
   valueCurrencyCash,
 } from '@/trading/features/portfolio/folds/currency-cash'
-import { toHoldings } from '@/trading/features/portfolio/folds/holdings'
+import {
+  countedValueOf,
+  type ResidueSizing,
+  toHoldings,
+  withResidueAtCost,
+} from '@/trading/features/portfolio/folds/holdings'
 import { staleQuoteCaveats, staleRateCaveats } from '@/trading/features/portfolio/folds/staleness'
 import { valuationCaveats } from '@/trading/features/portfolio/folds/valuation-caveats'
-import { CASH_SEGMENT, ETF_KIND, tradingDay } from '@/trading/kernel/instrument'
+import { CASH_SEGMENT, ETF_KIND, exposureSectorOf } from '@/trading/kernel/instrument'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 import { changeAgainstClose } from '@/trading/sources/rows/normalization'
 
@@ -44,7 +48,7 @@ const PERCENT_PER_UNIT = 100
 
 type PricedPosition = Extract<ValuedPosition, { kind: 'priced' }>
 
-interface ValueBookOptions {
+interface ValueBookOptions extends ResidueSizing {
   readonly book: Book
   readonly asOf: TradingDay
   /** What a mark is old against — see `folds/staleness`. Never `asOf`, which is the calendar day. */
@@ -70,14 +74,12 @@ export async function valueBook(options: ValueBookOptions): Promise<ValuedBook> 
     VALUATION_CONCURRENCY,
     (holding) => valuePosition(holding, options, rates)
   )
-  const valued = outcomes.map((outcome) => outcome.valued)
+  const valued = await withResidueAtCost(outcomes, options)
   const cash = valueCurrencyCash(options.book, rates, options.settledDay)
-  const complete = valued.every((entry) => entry.kind === 'priced') && cash.priced
+  const counted = countedValueOf(valued)
+  const complete = counted !== undefined && cash.priced
 
-  const positionsValue = valued.reduce(
-    (sum, entry) => sum + (entry.kind === 'priced' ? entry.valueBase : 0),
-    0
-  )
+  const positionsValue = counted ?? 0
   // Absent, not a partial sum: a NAV over priced positions only reads authoritative and is wrong.
   const navBase = complete ? positionsValue + options.book.cashBase + cash.gainBase : undefined
   const investedBase = totalCostBase(options.book)
@@ -111,7 +113,7 @@ export async function valueBook(options: ValueBookOptions): Promise<ValuedBook> 
             cashBase: options.book.cashBase + cash.gainBase,
           }),
     sectorValues: navBase === undefined ? [] : sectorValues(valued, options, navBase),
-    caveats: valuationCaveats({ complete, outcomes, valued, cash, sectorFor: options.sectorFor }),
+    caveats: valuationCaveats({ complete, outcomes, valued, cash, lookup: options }),
   }
 }
 
@@ -171,7 +173,8 @@ function priceFreshness(valued: readonly ValuedPosition[]): PriceFreshness | und
 
     return {
       markKind: 'live',
-      day: tradingDay(utcDay(freshest.observed.observedAt)),
+      // The session the reading's own market stamped on it, never the UTC date of its instant.
+      day: freshest.observed.day,
       observedAt: freshest.observed.observedAt,
     }
   }
@@ -373,9 +376,8 @@ function sectorValues(
   options: ValueBookOptions,
   navBase: number
 ): readonly SectorValue[] {
-  // A fund's provider sector names the vehicle, not the basket, so it feeds no concentration.
   const sectorOf = (instrument: InstrumentRef): string | undefined =>
-    options.instrumentKindFor(instrument) === ETF_KIND ? undefined : options.sectorFor(instrument)
+    exposureSectorOf(options.instrumentKindFor(instrument), options.sectorFor(instrument))
   const totals = aggregateValues(valued, sectorOf, [])
 
   return [...totals].map(([sector, valueBase]) => ({

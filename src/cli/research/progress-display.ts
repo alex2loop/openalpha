@@ -1,6 +1,7 @@
 import type { Writer } from '@/cli/types'
 import type { Locale } from '@/core/types/locale'
 import { isInteractiveStdout, isUnicode } from '@/cli/env'
+import { currentTerminal } from '@/cli/terminal'
 import { ASCII_FRAMES, SPINNER_INTERVAL_MS, UNICODE_FRAMES } from '@/cli/ui/spinner'
 import { formatDuration } from '@/core/utils/duration'
 import { pluralKey, t } from '@/i18n'
@@ -266,6 +267,7 @@ function composeStatusLine(input: StatusLineInput): string {
 // new. Lines are never truncated — long text wraps at the terminal edge, so the erase counts
 // visual rows, not logical lines.
 function createTransientBlock(writeRaw: Writer): { update(lines: readonly string[]): void } {
+  const terminal = currentTerminal()
   let rowCount = 0
 
   return {
@@ -274,7 +276,7 @@ function createTransientBlock(writeRaw: Writer): { update(lines: readonly string
         writeRaw(`\x1b[${rowCount}F\x1b[J`)
       }
 
-      const columns = process.stdout.columns
+      const columns = terminal.stdout.columns
       const maxWidth =
         (columns === undefined || !Number.isFinite(columns) ? FALLBACK_COLUMNS : columns) - 1
 

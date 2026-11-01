@@ -1,4 +1,3 @@
-import type { Locale } from '@/core/types/locale'
 import type { AlertStore } from '@/trading/features/alerts/store/alert'
 import type { Alert, AlertDraft, AlertOrigin, AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
@@ -17,8 +16,9 @@ import { dedupeInstruments } from '@/trading/kernel/instrument'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 
 /** Below this many usable sessions the average daily range says more about missing history than
- *  about the name, and a band built on it would fire on noise. */
-const MINIMUM_RANGE_SESSIONS = 5
+ *  about the name, and a band built on it would fire on noise. Exported so the config schema refuses
+ *  a `breakout_sessions` that could never arm a band. */
+export const MINIMUM_RANGE_SESSIONS = 5
 const EXHAUSTED_REARM_COOLDOWN_MS = 15 * 60_000
 
 export interface ScreenerReconcileDeps {
@@ -28,13 +28,9 @@ export interface ScreenerReconcileDeps {
   readonly markets: MarketRegistry
   readonly marketDataStore: MarketDataStore
   readonly policy: AlertPolicy
-  readonly defaultLocale: Locale
   /** The operator's policy, injected rather than imported: a screener reads the watchlist and the
    *  exclusions, and nothing else about the profile feature. */
-  getProfile(options: {
-    readonly defaultLocale: Locale
-    readonly signal: AbortSignal
-  }): Promise<UserProfile>
+  getProfile(options: { readonly signal: AbortSignal }): Promise<UserProfile>
   tradeableHoldingsAt(options: PortfolioAtOptions): Promise<readonly Holding[]>
 }
 
@@ -62,7 +58,7 @@ async function expectedDrafts(
   options: OperationTickOptions
 ): Promise<ReadonlyMap<AlertOrigin, AlertDraft>> {
   const [profile, holdings] = await Promise.all([
-    deps.getProfile({ defaultLocale: deps.defaultLocale, signal: options.signal }),
+    deps.getProfile({ signal: options.signal }),
     deps.tradeableHoldingsAt({ now: options.now, signal: options.signal }),
   ])
   const instruments = dedupeInstruments([

@@ -5,6 +5,7 @@ import type {
   SessionStatus,
   SessionSummary,
   StoredSessionMessage,
+  TranscriptMessage,
 } from '@/persistence/types'
 import { channelId } from '@/core/channels'
 import { StorageError } from '@/core/errors'
@@ -20,12 +21,13 @@ export interface MessagePayloadRow {
   readonly is_error: number
 }
 
-export interface IndexedPayloadRow extends MessagePayloadRow {
+export interface TranscriptRow extends MessagePayloadRow {
   readonly idx: number
+  readonly run_id: string | null
 }
 
-export interface StoredMessageRow extends IndexedPayloadRow {
-  readonly run_id: string | null
+export interface StoredMessageRow extends TranscriptRow {
+  readonly display_only: number
   readonly created_at: number
 }
 
@@ -94,11 +96,20 @@ export function toMessage(row: MessagePayloadRow): LLMMessage {
   return message
 }
 
+export function toTranscriptMessage(row: TranscriptRow): TranscriptMessage {
+  return {
+    idx: row.idx,
+    message: toMessage(row),
+    ...(row.run_id === null ? {} : { runId: runId(row.run_id) }),
+  }
+}
+
 export function toStoredMessage(row: StoredMessageRow): StoredSessionMessage {
   return {
     idx: row.idx,
     ...(row.run_id === null ? {} : { runId: runId(row.run_id) }),
     message: toMessage(row),
+    ...(row.display_only === 1 ? { displayOnly: true as const } : {}),
     createdAt: row.created_at,
   }
 }

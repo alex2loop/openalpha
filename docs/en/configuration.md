@@ -18,11 +18,12 @@ openalpha config path       # which file is actually read
 openalpha config validate   # does it parse and resolve
 openalpha config show       # the merged config, secrets redacted
 openalpha config edit       # open it in $VISUAL or $EDITOR
+openalpha config get budget.maxDailyUsd   # print one resolved value by its dotted path
 ```
 
 `openalpha onboard` writes a starter file when none exists yet and the target is not a symlink. Run
 on an existing config, it changes one part (model, Telegram bot, budget or language) and saves the
-old file beside it first, because the rewrite drops comments.
+old file beside it first (the newest 5 backups are kept), because the rewrite drops comments.
 
 Two templates to download: [config.minimal.en.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml)
 works with just `OPENROUTER_API_KEY` and a 2 USD daily cap (its Vietnamese twin is
@@ -136,7 +137,7 @@ or `.../openai/v1`. Claude model ids carry Bedrock's `anthropic.` prefix, such a
 
 ### `[[model_tiers.<name>]]` (optional)
 
-A named fallback chain that trusted agents can select. Each tier is an array of tables under
+A named fallback chain that agents can select: built-in and bundled-plugin agents, and your own. Each tier is an array of tables under
 `model_tiers.<name>`. The first entry is the primary and the rest are tried in order. Entries follow
 the `[[models]]` schema and inherit `[model_defaults]`. Every entry must support tool calls.
 
@@ -151,7 +152,7 @@ api_key_env = "ANTHROPIC_API_KEY"
 ```
 
 A tier name starts with a lowercase letter, then lowercase letters, digits, `_` or `-`. An omitted
-tier is an error only if a trusted agent selects it.
+tier is an error only if an agent selects it.
 
 The debate roles prefer a tier named `debate`. With one configured, every role runs on that chain.
 This is the place for an endpoint pin and tight stream timeouts, while chat keeps the primary chain:
@@ -241,8 +242,9 @@ provider its own `api_key_env`. `reasoning`, `max_tokens` and the two timeouts c
 An agent profile picks one named chain with `model_tier`. This is the only way an agent chooses a
 model chain; there is no per-agent `model` key. The tier must exist under `[[model_tiers.<name>]]`.
 
-Only trusted profiles (built-in and bundled-plugin) may set `model_tier`. A user-written agent or an
-untrusted plugin profile that declares it is rejected.
+Built-in profiles, bundled-plugin profiles and your own agents may set `model_tier`, and every entry in
+the tier must support tool calls. An untrusted plugin profile that declares it is rejected. `reasoning`
+stays trusted-only.
 
 Without `model_tier`, the agent uses the `[[models]]` chain. A built-in role can carry its own
 preference (the research workers prefer `research`), and an explicit `model_tier` cannot override it.
@@ -267,13 +269,20 @@ cap are in [Cost and budgets](budgets.md).
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `language` | string | `vi` | `en` or `vi`. |
+| `language` | string | `vi` | `en` or `vi`. The one language every reply, brief and alert is written in; the investment profile has none of its own. |
 | `timezone` | string | host zone (`UTC` if none) | IANA name, for example `Asia/Ho_Chi_Minh`. New cron jobs snapshot this value unless `--tz` overrides it; interval schedules reject `--tz`. |
 | `currency` | string | `VND` | ISO 4217 code (three capital letters). Trading's base currency; `onboard` asks it on first setup and writes it here. Fixed once your book has a profile: a later change is refused, and `doctor` names the mismatch on its `database` row. |
 | `region` | string | `vn` | Home region: `vn` or `us`. `us` makes US stocks and ETFs the home market; pair it with `currency = "USD"`, which cannot change after the first profile is saved, start from a fresh data directory, and see [`config.minimal.us.toml`](../../config.minimal.us.toml). US company accounts also need `SEC_CONTACT_EMAIL`, set by `onboard` or `key set`. A region needs a venue that trades its main market, so `global` (world gold, read for reference only) is refused. Its market is the default board, and a first profile seeds only its national segments plus crypto. |
 
 All keys are optional. `[locale]` accepts no other keys. `currency` and `region` say where you are,
 so trading reads them here rather than keeping copies under `[trading]`.
+
+`[locale] language` is the only language setting. The trading profile keeps an old `preferred-locale` mirror of it
+in storage, but nothing reads it: changing it there changes nothing, and the profile your app shows reports this key.
+
+Text a model writes, such as a suggestion's thesis or a theme read, stays in the language of the run
+that wrote it. Changing `language`, or writing to the bot in another language, changes the labels
+around it, not the stored text; the next run writes in the new language.
 
 ### `[paths]`
 
@@ -291,6 +300,9 @@ Layout under `data_dir`:
   openalpha.ready                   written once the daemon is up; what it started without
   daemon.stdout.log                 a background daemon's stray output, truncated each start
   daemon.stderr.log                 a background daemon's warnings and errors, truncated each start
+  restart.json                      written just before the daemon starts again, removed when the new daemon announces it
+  restart.stdout.log                Windows only: stray output of a restart from the API, where a failed one says to look
+  restart.stderr.log                Windows only: warnings and errors of that restart
   logs/daemon.log                   default global log (`[log] file`)
   logs/agents/<agentId>/agent.log   per-agent run log, kept
   backups/                          `db backup` files, plus pre-migration/ and pre-rollback/ snapshots
@@ -345,7 +357,8 @@ you see.
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, and brief snapshots past the newest per language. |
+| `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, brief snapshots past the newest per language, and the history the app reads: finished runs behind the activity list, and the notices in the bell, read or not. |
+| `history_days` | int | `1095` | Positive, at least `days` (a shorter one is refused when the config loads; unset, it is never below `days`). How long to keep the track record: scored suggestions and holds (each name keeps its newest ten per action, and an unscored call is never removed), resolved factor-log and theme outcome rows, NAV snapshots, and macro series points with their sources. Macro documents are kept at least 800 days, so the extractor never pays to read a month again. |
 | `inbox_days` | int | `7` | Positive. How long to keep completed and failed inbox entries, payloads included. |
 | `daily_backups` | int | `3` | `0` or more. How many daily SQLite snapshots to keep in `backups/daily/`; `0` turns them off. PostgreSQL is skipped (use `pg_dump`). |
 
@@ -359,6 +372,16 @@ you see.
 It does not apply to active global or per-agent logs (bounded by `[log].max_file_mb` and
 `[log].max_files`), to workspace-root files, or to `workspaces/<agentId>/run/`. To delete per-agent
 logs now, configured agents included, run `openalpha logs clear`. It does not touch the global log.
+
+### `[notices]`
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `chat` | array of strings | `[]` | Notice kinds sent to your chat as well as the bell. Valid kinds: `call-scored`, `held-news`, `index-drop`; any other name stops the daemon at start with the list of valid ones. |
+
+Three readings go to the bell in the app and to no chat, unless you list them here: a call you were given has been scored, news on a name you hold, and the region's index falling hard in a session.
+
+Held-name news covers only names the daemon has already read. Headlines are archived when a `/suggest` or a chat about the name reads them; nothing fetches news for your holdings on a schedule. Everything else the daemon sends to a chat is unchanged.
 
 ### `[log]`
 
@@ -378,7 +401,18 @@ Priority for the level: `--log-level`, then `OPENALPHA_LOG_LEVEL`, then `[log].l
 | `check` | bool | `true` | Ask GitHub twice a day whether a newer release is out. |
 | `auto` | bool | `false` | Install patch releases (1.0.5 to 1.0.6, say) by itself between 00:00 and 06:00 on `[locale] timezone`, when the daemon runs in the background; never while a market you follow is in session, lunch break included (crypto trades around the clock, so it does not count). |
 
-When one is out, the CLI prints a short notice after a command (at most once a day), chat shows it under the welcome, `version` and `doctor version` report it, the daemon logs it, the morning brief sent to a channel ends with it, and the bot mentions it in your private chat. Nothing installs until you run `openalpha upgrade` or `/upgrade confirm`, unless `auto` is on: then a background daemon installs a patch release by itself in that window, messages you when it is back (in the private chat you last wrote to it from), and goes back to the old release if the new one will not start. On a server, set `[locale] timezone` so the window falls at night. A source checkout never checks; under CI only `version` and `doctor --online` do.
+When a new release is out, you hear about it in several places:
+
+- the CLI prints a short notice after a command (at most once a day);
+- chat shows it under the welcome;
+- `version` and `doctor version` report it;
+- the daemon logs it;
+- the morning brief sent to a channel ends with it;
+- the bot mentions it in your private chat.
+
+Nothing installs until you run `openalpha upgrade` or `/upgrade confirm`, unless `auto` is on. When it is on, a background daemon installs a patch release by itself in that window, messages you when it is back (in the private chat you last wrote to it from), and goes back to the old release if the new one will not start. On a server, set `[locale] timezone` so the window falls at night.
+
+A source checkout never checks. Under CI, only `version` and `doctor --online` do.
 
 ### `[channels.telegram]`
 
@@ -391,7 +425,7 @@ The section enables Telegram unless `enabled = false`. A token is still required
 | `allowed_ids` | (string\|int)[] | `[]` | Starting allowlist of Telegram users and chats. |
 | `operator_user_ids` | (string\|int)[] | `[]` | Users allowed to run operator-only commands. |
 | `token_env` | string | - | Environment variable holding the token. |
-| `token_file` | string | - | File whose trimmed contents are the token. |
+| `token_file` | string | - | File whose trimmed contents are the token. `~/` is your home folder. |
 | `typing_indicator` | bool | `true` | Show "typing" while generating. |
 | `use_reactions` | bool | `true` | Use reactions as status cues where supported. |
 | `markdown` | bool | `true` | Render Telegram MarkdownV2; `false` sends plain text, streamed replies included. |
@@ -415,7 +449,7 @@ see [Channels](channels.md).
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `token_env` | string | - | Environment variable holding the token. |
-| `token_file` | string | - | File whose trimmed contents are the token. |
+| `token_file` | string | - | File whose trimmed contents are the token. `~/` is your home folder. |
 | `allowed_ids` | (string\|int)[] | `[]` | Starting allowlist of chats and users. |
 | `operator_user_ids` | (string\|int)[] | `[]` | Users allowed to run operator commands. |
 | `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, or `allowlist` once `allowed_ids` is set | How chats are admitted, and the off switch. There is no open mode. |
@@ -444,11 +478,12 @@ is saved under `profile`.
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `approval_timeout_ms` | int | `900000` | 15 minutes. How long a scheduled job waits for its channel approver. The answer is never saved. At most 2147483647 (about 24 days). |
+| `late_grace_ms` | int | `900000` | 15 minutes. How late a cron job's time may still start, a retry after a failure included. Past it that time is skipped and the job moves to its next one, with no failure counted. Interval and one-time jobs are never skipped. The intraday report uses the same bound. At least 35000 (35 seconds: one scheduler look plus its quick network check): anything shorter is refused at start, since on-time cron jobs could be skipped. Workflows with a cron trigger follow the same bound. At most 2147483647 (about 24 days). |
 | `failure_target` | string | - | `<channel>:<chatId>` that gets the notice when a job is disabled after failures. |
 
 The scheduler checks for due jobs every 30 seconds, starts at most 5 per check, and runs at most 50
 at once. Cron is minute-granular and `schedule run-now` skips the check, so a shorter interval would
-buy nothing.
+buy nothing. While the host is offline the check starts nothing: due jobs wait and count no failure.
 
 ### `[loop]`
 
@@ -461,6 +496,8 @@ buy nothing.
 | `delegation_depth` | int | `3` | Deepest sub-agent nesting. |
 | `max_delegations` | int | `32` | Children a whole run may start, in total. |
 | `max_parallel_delegations` | int | `5` | Most child items one `delegate_parallel` call accepts. |
+| `max_spawn_duration_ms` | int | `600000` | 10 minutes: how long one spawned child agent works before it is stopped; what it had read comes back marked partial. At most 2147483647. |
+| `max_spawn_turns` | int | `12` | Model turns one spawned child agent gets. |
 | `max_unasked_fetches` | int | `10` | `web_fetch` calls in one run, asked or not, before every further one asks you first. `0` asks every time. |
 
 Compaction is fixed: a session compacts past 500 messages or at 75% of the context window, at most 3
@@ -472,7 +509,7 @@ times per run.
 |---|---|---|---|
 | `ttl_days` | int | `90` | Default lifetime of expiring observations. |
 
-A stored memory value is capped at 16 KiB.
+A stored memory value is capped at 16 KiB. The office page lists the notes under Settings > Memory, per agent and per person it talked to, adds one with "+ Remember" and forgets one with undo; a note is forgotten `ttl_days` after its last update.
 
 ### `[web_search]`
 
@@ -508,9 +545,24 @@ the fallback. `ANYSEARCH_API_KEY` is optional; without it you get anonymous acce
 It returns at most 20 results, sends your `[locale] language`, and does not support recency, so a
 requested recency is reported as unverified.
 
-`deepseek` is the budget pick: about $0.75 per 1,000 searches, and an empty search costs nothing. It reads Vietnamese and English sources well, dates its results and honors recency, so "last week" really means last week. It shares `DEEPSEEK_API_KEY` with DeepSeek models; set `cost_per_search_usd = 0.00075` so the spend shows in your totals. DeepSeek takes short queries (128 characters). A long one is trimmed from the end but keeps the sites you chose; only a site list long enough to crowd out the question moves to filtering the results. Excluded sites are always filtered from the results, so you still get only the sites you asked for. DeepSeek takes no language, so a page's machine-translated copies (paths like `/nl/`, `/de/`) are dropped and only pages in your language are kept. Searches are paced to DeepSeek's limit of 5 a second.
+`deepseek` is the budget pick: about $0.75 per 1,000 searches, and an empty search costs nothing. It
+reads Vietnamese and English sources well, dates its results and honors recency, so "last week" really
+means last week. It shares `DEEPSEEK_API_KEY` with DeepSeek models; set
+`cost_per_search_usd = 0.00075` so the spend shows in your totals.
+
+A few limits to know:
+
+- DeepSeek takes short queries (128 characters). A long one is trimmed from the end but keeps the
+  sites you chose. Only a site list long enough to crowd out the question moves to filtering the
+  results.
+- Excluded sites are always filtered from the results, so you still get only the sites you asked for.
+- DeepSeek takes no language. So a page's machine-translated copies (paths like `/nl/`, `/de/`) are
+  dropped, and only pages in your language are kept.
+- Searches are paced to DeepSeek's limit of 5 a second.
 
 Keys come only from the environment variables named by `api_key_env` and `fallback_api_key_env`.
+The office page's Settings > Tools switches `provider` (after a restart) and saves the key itself, but the
+variable names and `base_url` stay in this file.
 A provider call times out after 15 seconds and retries transient failures up to 3 times from an
 800 ms base backoff. A provider that fails 3 times in a row is skipped for 1 minute. The cache holds
 100 entries per TTL, and each result snippet is capped at 400 characters.
@@ -525,22 +577,61 @@ A provider call times out after 15 seconds and retries transient failures up to 
 
 ### `[api]`
 
-The HTTP/WS API (`/v1`) that client apps talk to. `openalpha start` serves it when `enabled = true`;
-a one-off command never opens the port. It binds `127.0.0.1` only and refuses every other peer, so a
-client on another machine connects through an SSH tunnel or a reverse proxy on the same host (see
-[Operations](operations.md)).
+The HTTP/WS API (`/v1`) that client apps talk to. `openalpha start` serves it by default (`enabled = true`);
+set `enabled = false` to turn it off. A one-off command never opens the port.
+
+It binds `127.0.0.1` only and refuses every other peer. So a client on another machine connects
+through an SSH tunnel or a reverse proxy on the same host (see [Operations](operations.md)). It
+accepts only a request whose `Host` is `127.0.0.1`, `localhost` or `[::1]`, or `public_url` when set. `[::1]` is only a
+name a tunnel or proxy can send: the daemon has no IPv6 listener.
+
+The office page's config editor cannot change plugins, an MCP server's command, every `*_env` key and
+every other field naming an environment variable (`[trading.sources]`,
+`[trading.venues.<id>] credentials`), `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
+`[update]` or `[trading.orders] allow_unattended`; change those here. The key values themselves can be
+saved from Settings > Providers, Exchanges and Tools, which write `<data dir>/env` as
+`openalpha key set` does.
+
+Anything in front of the daemon (a proxy such as Caddy or nginx, `tailscale serve`, a domain) needs
+`public_url` set to the address the browser opens. That is what turns on the exposure limits and the
+`__Host-` sign-in cookie.
+
+Without it, the daemon only catches a proxy that sends `X-Forwarded-For` or `Forwarded`, or a `Host`
+that is not a local name. It refuses those with a line naming `public_url`. A proxy that passes
+neither (a bare nginx `proxy_pass` sends `Host: 127.0.0.1:<port>` and no forwarded header) looks
+local. So set `public_url` before you expose it, and have nginx send `proxy_set_header Host $host;`
+and `proxy_set_header X-Forwarded-For $remote_addr;`.
+
+Setting `public_url` also limits what the app can do, because it is now reachable from outside:
+
+- the API's order routes and `/trade` stay off until `orders = true`;
+- chats from the app cannot run shell commands, write files or use tools from MCP servers or
+  plugins, nor the social network tools;
+- jobs made from the app answer only in the app;
+- pairing approval plus each channel's `allowed_ids`, `operator_user_ids`, `pairing` and
+  `dm_policy` are server-only: they change from the CLI or this file, never from the app.
+
+The page then saves no key and starts no ChatGPT sign-in either: use `openalpha key set` and
+`openalpha auth login chatgpt` on the server.
 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32
 characters, the API stays closed (the saved token never stands in) and `start` warns while the rest of
-the daemon runs; a port already in use still stops the start. `openalpha api token` prints the token; `openalpha api rotate`
-replaces it.
+the daemon runs. A port already in use does the same: the API stays closed, `start` warns and names the
+port, and the rest of the daemon runs; free the port or set another `[api] port`, then restart.
+`openalpha api token` prints the token
+and `openalpha api rotate` replaces it; rotating signs every browser out and restarts a running
+daemon, so the old token stops working at once. A browser never holds the token: `openalpha web` prints a
+one-time link that signs it in, and `openalpha connect` prints the address and token the desktop app pastes (see
+[Operations](operations.md#run-the-api-on-a-server)).
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `enabled` | bool | `false` | Master switch. |
+| `enabled` | bool | `true` | Master switch. |
 | `port` | int | `8765` | TCP port, 1024-65535. |
 | `token_env` | string | - | Environment variable holding the bearer token. When set, the file token is ignored. |
+| `orders` | bool | `true`, or `false` once `public_url` is set | Lets the app place, cancel and halt orders. |
+| `public_url` | string | - | The `https://` address the daemon is reached at through a proxy: a host name and, if needed, a port, with no path. `https://<machine>.<tailnet>.ts.net` for `tailscale serve`. |
 
 ### `[[mcp.servers]]`
 
@@ -692,7 +783,8 @@ cooldown_sessions = 0          # sessions before the same name may be suggested 
 debate_mode = "full"           # full: bull, bear, manager and trader; lean: one analyst, cheaper
 
 [trading.markets.equity-vn]
-holidays = ["2027-01-01"]      # exchange closures announced after your build shipped
+holidays = ["2027-05-04"]      # a closure the exchange announced that the law does not give
+open_days = ["2027-09-01"]     # a day the law closes but the exchange trades
 maximum_stop_loss = 0.08       # the stop never sits more than 8% below entry (0.02-0.30)
 stop_loss_atr = 3              # stop distance in average daily ranges (1-5)
 reward_risk = 3                # target as a multiple of the risk (1-5)
@@ -705,14 +797,14 @@ send_times = []                # HH:MM pushes in the market's timezone; empty = 
 
 [trading.alerts]
 breakout_range = 1.5           # average daily ranges a move must span before a watchlist alert
-breakout_sessions = 14         # settled sessions the average daily range is measured over
+breakout_sessions = 14         # settled sessions the average daily range is measured over; at least 5
 
 [trading.typed_prices]
 confirm_multiple = 10          # ask before saving a typed price this many times from the market
 
 [trading.orders]
 maximum_stake_quote = 0        # 0 = uncapped; estimated notional in USDT on okx and binance
-maximum_open_trades = 0        # 0 = uncapped; open positions plus orders not yet in the book
+maximum_open_trades = 0        # 0 = uncapped; open positions plus orders not yet in the book; adding to a held name is not a new one
 maximum_price_drift = 0.005    # a fraction, not a percent: 0.005 is half a percent
 allow_unattended = false       # permit an order when approval mode is "bypass"
 require_stop_loss = true       # refuse a buy that names no stop-loss
@@ -845,12 +937,16 @@ guards, so there is nothing to set:
 - order reconciliation: resting exits every 60 seconds, missed fills every 5 minutes;
 - briefs, outcomes, the factor log, macro extract and theme outcomes.
 
-`intraday` fires at the times in `[trading.intraday] send_times`, not on an interval.
+`intraday` fires at the times in `[trading.intraday] send_times`, not on an interval. A report whose time
+passed more than `[schedule] late_grace_ms` before it could go out (a laptop asleep through 14:00) is skipped
+rather than sent late; the next time goes out as normal.
 
 `send_time` is a **default**. `/brief enable 07:30` stores its own time on the delivery row, and only
 a row with no time of its own follows this key. A brief is always scheduled in the **market's**
 timezone, taken from the calendar that owns `[locale] region`, never from `[locale] timezone`
 (where you are). An operator in London does not get a brief at 15:15 Hanoi time.
+The brief is a pre-open read, so `send_time` has to come before your home market opens; the daemon
+refuses to start with a later one rather than skip the brief every morning.
 
 The profile watchlist is the only configured instrument list. Quotes and the brief's suggestion
 sections derive from it and from what the book holds.
@@ -879,11 +975,23 @@ Config decides what runs and when, plus three things that are yours to judge:
   [Trading](trading.md). Crypto also rests a buy that ran 25% or more in a week half an ATR under the
   live price; that is market policy, not a key.
 
-**The calendar is fixed per market, with one setting.** Session hours and the weekend are in code,
-and each market ships its own table of exchange closures. `[trading.markets.<id>] holidays` adds
-closures announced after your build shipped. It adds to the built-in dates and never replaces them. A
-date on the market's own weekend is a typo and fails boot. Boot warns (`trading.holidays_outdated`)
-when a market's table ends before the current year.
+**The calendar follows the law, with two settings.** Session hours and the weekend are in code. The
+closures are worked out from the Labor Code for any year, so there is no list to keep up to date:
+New Year, Tết (the five days around Lunar New Year), Hung Kings' Day, 30 April and 1 May, National Day
+(2 September, plus the day next to it from 2021) and, from 2026, Vietnam Culture Day (24 November). A
+holiday that lands on a weekend moves to the next weekday. The government picks each year's Tết break
+itself, and the calendar assumes its usual five days; if a year differs, fix it with `holidays` and
+`open_days`. Two things the law cannot tell the bot:
+
+- **A swap day the government announces.** Add it under `[trading.markets.<id>] holidays`. The ones
+  announced so far (29 April 2024, 2 May 2025, 2 January 2026, 31 August 2026, and 3 September 2021 as
+  that year's second National Day holiday) are built in, checked against the real trading tape.
+- **A day the exchange trades although the law closes it.** List it under `open_days`. If the
+  exchange picks 3 September instead of 1 September for National Day, put 1 September in `open_days`
+  and 3 September in `holidays`.
+
+Your two lists win over the law. A date on the market's own weekend, or one in both lists, is a typo and
+fails boot.
 
 Sessions are counted after the fact: a session is a day that produced a bar. So outcome resolution
 and T+2 settlement read observed history, not a projected calendar. Settlement falls back to weekday
@@ -897,7 +1005,7 @@ market-data retention window are not your choice. They are provider facts or int
 they live in code. No config can point a source at another host.
 
 The one thing you can change is the name of the environment variable a source reads its key from.
-Of the built-in sources only `fred` and `coingecko` take a credential, and `[trading.sources]`
+Of the built-in sources only `bls`, `fred` and `coingecko` take a credential, and `[trading.sources]`
 renames the variable for one of them:
 
 ```toml
@@ -924,21 +1032,29 @@ same checks. A config value that names an unregistered market, venue or default 
 too, not on first use. An unset key for a model whose chain still has another model to answer is a
 warning, and the run does not fail on it.
 
-Every error is reported in your `[locale]` language and names the setting to fix. One run lists every
-problem in the file (up to 8, the rest as a count), so you fix them in one pass before running again.
-A misspelt key gets the nearest known name, for example `max_daly_usd` suggests `max_daily_usd`.
-`config validate` also checks each `[[models]]` provider name against the catalog, and reports an
-unset key variable as one item in the same list instead of stopping there. `--verbose` adds the full
-list of schema issues. A missing key variable comes with the command that stores it:
-`openalpha key set NAME`, the same on every platform. It keeps the key in `<data dir>/env`, which every
-command reads at start. A variable set in your environment wins over the file. The file holds service
-keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY` included: names that steer
-OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs start (`PATH`,
-`NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts a comment. The key file follows
-`--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since it is read before the config is. A missing model key stops only what needs the model:
-`status`, `stop`, `/price`, `/portfolio`, `/record` and the other free commands still run, and
-`openalpha start` starts with a warning, running everything that needs no model until you save the key
-with `openalpha key set <NAME>` and run `openalpha restart --background`.
+Every error is reported in your `[locale]` language and names the setting to fix.
+
+- One run lists every problem in the file (up to 8, the rest as a count), so you fix them in one pass
+  before running again.
+- A misspelt key gets the nearest known name, for example `max_daly_usd` suggests `max_daily_usd`.
+- `config validate` also checks each `[[models]]` provider name against the catalog. It reports an
+  unset key variable as one item in the same list instead of stopping there.
+- `--verbose` adds the full list of schema issues.
+
+A missing key variable comes with the command that stores it: `openalpha key set NAME`, the same on
+every platform. It keeps the key in `<data dir>/env`, which every command reads at start. A variable
+set in your environment wins over the file.
+
+The file holds service keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY`
+included. Names that steer OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how
+programs start (`PATH`, `NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts
+a comment. The key file follows `--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since
+it is read before the config is.
+
+A missing model key stops only what needs the model. `status`, `stop`, `/price`, `/portfolio`,
+`/record` and the other free commands still run. `openalpha start` starts with a warning, running
+everything that needs no model until you save the key with `openalpha key set <NAME>` and run
+`openalpha restart --background`.
 
 ```text
 config.toml has things to fix:
@@ -946,5 +1062,5 @@ config.toml has things to fix:
 - `budget.max_daly_usd`: that is not a setting I know. Did you mean `max_daily_usd`?
 Correct them, then run again.
 
-ANTHROPIC_API_KEY is not set, so model anthropic/claude-sonnet-4-6 cannot start yet. Save it with `openalpha key set ANTHROPIC_API_KEY`, then try again.
+ANTHROPIC_API_KEY is not set, so the AI model cannot answer: chat, the written debate in /suggest, /research, /themes and the brief's written parts wait for it, while prices, scores and levels keep working. Save it with `openalpha key set ANTHROPIC_API_KEY`; if OpenAlpha runs in the background, follow with `openalpha restart --background`.
 ```

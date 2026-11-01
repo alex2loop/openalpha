@@ -3,6 +3,7 @@ import type {
   MarketRefreshAttempt,
   RefreshDataKind,
   RefreshKindResult,
+  StaleKindsRequest,
 } from '@/trading/kernel/market/refresh'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type {
@@ -14,7 +15,6 @@ import type { UniverseRefreshOutcome } from '@/trading/markets/equity-vn/refresh
 import type {
   MarketDataRefreshRequest,
   MarketManifest,
-  StaleKindsRequest,
   TradingCalendar,
 } from '@/trading/markets/types'
 import { assertNotAborted } from '@/core/errors'
@@ -33,6 +33,7 @@ import {
   VN_REPAIR_COOLDOWN_MS,
 } from '@/trading/markets/equity-vn/policy'
 import { refreshAccounts } from '@/trading/markets/equity-vn/refresh/accounts'
+import { refreshIndexValuation } from '@/trading/markets/equity-vn/refresh/index-valuation'
 import { refreshMacro } from '@/trading/markets/equity-vn/refresh/macro'
 import {
   isForeignRoomUnstamped,
@@ -132,7 +133,25 @@ export async function refreshMarketData(
     [{ kind: 'accounts', run: (next) => refreshAccounts(next, options.crossSection) }],
   ])
 
-  return [instruments, ...evidence]
+  return [instruments, ...evidence, await refreshIndexRatios(options)]
+}
+
+// Outside the evidence kinds: a replayed pass must still retry a read that failed, and the refresh
+// asks the provider at most once a UTC day whatever the pass is.
+function refreshIndexRatios(options: RefreshMarketDataInput): Promise<RefreshKindResult> {
+  const { deps, crossSection, manifest, request } = options
+
+  reportRefreshStage(request.progress, { market: VN_MARKET_REF, kind: 'index-ratios' })
+
+  return refreshIndexValuation({
+    deps,
+    crossSection,
+    calendar: manifest.calendar,
+    asOf: resolveSettledDay(manifest.calendar, request.now),
+    forced: request.forced,
+    now: request.now,
+    signal: request.signal,
+  })
 }
 
 /** A stage settles every kind in it before the next starts, so a kind that throws never leaves a

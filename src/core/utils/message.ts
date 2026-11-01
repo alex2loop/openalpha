@@ -17,6 +17,15 @@ export function textOf(content: LLMMessage['content'], separator = ''): string {
     .join(separator)
 }
 
+/** A message the conversation page shows: the operator's line, or an answer holding text. A turn's
+ *  tool calls alone show nothing. */
+export function isShownMessage(message: LLMMessage): boolean {
+  return (
+    (message.role === 'user' || message.role === 'assistant') &&
+    textOf(message.content).trim() !== ''
+  )
+}
+
 export function toolCallIdsOf(message: LLMMessage | undefined): readonly string[] {
   if (message?.role !== 'assistant') {
     return []

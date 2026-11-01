@@ -49,7 +49,7 @@ export function createUsEquityMarket(deps: MarketDeps): Market {
   }
 }
 
-function usManifest(config: TradingConfig): MarketManifest {
+export function usManifest(config: TradingConfig): MarketManifest {
   return {
     id: US_MARKET_REF,
     region: US_MARKET_REGION,
@@ -61,7 +61,7 @@ function usManifest(config: TradingConfig): MarketManifest {
     icon: '🇺🇸',
     quoteUnit: quoteUnit('currency-per-share'),
     defaultCalendar: US_CALENDAR,
-    calendar: createTradingCalendar(US_CALENDAR, config.markets[US_MARKET_REF]?.holidays),
+    calendar: createTradingCalendar(US_CALENDAR, config.markets[US_MARKET_REF]),
     // The NYSE and Nasdaq regular session is what "a US trading day" means.
     ownsRegion: true,
     detection: 'stored',

@@ -1,11 +1,8 @@
 import type { Locale } from '@/core/types/locale'
 import type { ConvictionBand, OutcomeStatus, SuggestionAction } from '@/trading/kernel/conviction'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
-import type {
-  IndexReviewKind,
-  MarketEventKind,
-  MarketRegime,
-} from '@/trading/kernel/market/market-data'
+import type { IndexReviewKind, MarketRegime } from '@/trading/kernel/market/market-data'
+import type { MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { AlertCondition } from '@/trading/kernel/operator/alert'
 import type { CashPosture } from '@/trading/kernel/operator/book'
 import type {
@@ -50,11 +47,6 @@ import {
 } from '@/trading/render/format'
 import { formatFixedPrice } from '@/trading/render/money'
 
-const NOTE_SEPARATOR = ', '
-
-const VIETNAMESE_LETTER_RE =
-  /[ăâđêôơưàảãáạằẳẵắặầẩẫấậèẻẽéẹềểễếệìỉĩíịòỏõóọồổỗốộờởỡớợùủũúụừửữứựỳỷỹýỵ]/iu
-
 const NUMERIC_FIELDS: ReadonlySet<string> = new Set(BRIEF_NUMERIC_FIELDS)
 
 // Every map below is exhaustive by `satisfies`: a value with no entry renders as its raw slug, and
@@ -85,6 +77,8 @@ const ACTION_CODE_KEYS = Object.freeze({
   'avoid-chasing': 'trading.brief.action.avoid-chasing',
   rebalance: 'trading.brief.action.rebalance',
   'record-book': 'trading.brief.action.record-book',
+  'record-dividend': 'trading.brief.action.record-dividend',
+  'record-distribution': 'trading.brief.action.record-distribution',
   'review-alerts': 'trading.brief.action.review-alerts',
   'review-portfolio': 'trading.brief.action.review-portfolio',
   'review-suggestions': 'trading.brief.action.review-suggestions',
@@ -125,7 +119,8 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
       buy: 'trading.brief.call.buy',
       hold: 'trading.brief.call.hold',
       reduce: 'trading.brief.call.reduce',
-    } satisfies Record<SuggestionAction, MessageKey>,
+      inconclusive: 'trading.brief.call.inconclusive',
+    } satisfies Record<SuggestionAction | 'inconclusive', MessageKey>,
     aggressorSide: AGGRESSOR_SIDE_KEYS,
     code: ACTION_CODE_KEYS,
     condition: {
@@ -163,10 +158,12 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
   })
 
 /** Fields whose value is a code only the market registry can enumerate, so no closed map can list
- *  it. Composition already refuses to boot without these keys in both catalogs. */
+ *  it, or a code set the locale manifest already holds against both catalogs. Composition refuses to
+ *  boot without these keys. */
 const DECLARED_PREFIXES: Partial<Record<BriefField, `trading.${string}`>> = Object.freeze({
   market: 'trading.market',
   segment: 'trading.segment',
+  reduceReason: 'trading.brief.reduce-reason',
   driver: 'trading.macro.series',
   driverMissing: 'trading.macro.series',
   // The dropped-watchlist gate code, plus the two the brief adds when the screen has no verdict to
@@ -188,6 +185,7 @@ const VALUE_FORMATTERS = Object.freeze({
   basisPct: formatFraction,
   buyPrice: formatFixedAmount,
   cashAfterPlanPctNav: formatFraction,
+  cashPerShare: formatFixedAmount,
   ceilings: formatCount,
   changePct: formatSignedFixedPercent,
   compositeScore: formatScoreValue,
@@ -250,12 +248,14 @@ const VALUE_FORMATTERS = Object.freeze({
   sellPrice: formatFixedAmount,
   sentimentScore: bandedSentiment,
   sharePct: formatFraction,
+  shareRatio: formatFraction,
   spentUsd: formatSpendUsd,
   spreadPct: formatFraction,
   stopBreachedCount: formatCount,
   stopClearCount: formatCount,
   stopUnmeasuredCount: formatCount,
   strength: formatSignedFraction,
+  subscriptionPrice: formatFixedAmount,
   support: formatFixedAmount,
   supportPct: formatFixedFraction,
   takeProfitTranchePct: formatFixedFraction,
@@ -300,6 +300,8 @@ const MONEY_FIELDS: ReadonlySet<BriefField> = new Set([
  *  stamped with a denomination it does not have. */
 const PRICE_FIELDS: ReadonlySet<BriefField> = new Set([
   'buyPrice',
+  'cashPerShare',
+  'subscriptionPrice',
   'last',
   'observedPrice',
   'previousClose',
@@ -334,55 +336,6 @@ export interface RowUnit {
   readonly currency?: CurrencyCode
   /** Set where something above the row already names the currency, so the message says it once. */
   readonly stated?: true
-}
-
-const URL_PARENTHESIS_RE = /[()]/g
-const URL_PARENTHESIS = Object.freeze({ '(': '%28', ')': '%29' })
-const LABEL_BRACKET_RE = /[[\]]/g
-const LABEL_BRACKET = Object.freeze({ '[': '(', ']': ')' })
-const LABEL_BREAK_RE = /\s*[\r\n]+\s*/g
-
-interface LinkNotes {
-  readonly reader: Locale
-  readonly dated?: string
-}
-
-/** A headline that carries its source: the label is what prints, and the target travels behind it.
- *  Telegram reads a bare `)` as the end of a link, so the parentheses are encoded here - where the
- *  link is built is the only place that knows where the URL really ends. Notes follow in one
- *  parenthetical: the caller's own, then the headline's language where it is not the reader's,
- *  since sources publish verbatim. */
-export function toLink(label: string, url: string, notes?: LinkNotes): string {
-  const target = url.replace(
-    URL_PARENTHESIS_RE,
-    (char) => URL_PARENTHESIS[char as keyof typeof URL_PARENTHESIS]
-  )
-  const link = `[${linkLabel(label)}](${target})`
-
-  if (notes === undefined) {
-    return link
-  }
-
-  const written = writtenIn(label)
-  const all = [
-    ...(notes.dated === undefined ? [] : [notes.dated]),
-    ...(written === notes.reader ? [] : [t(notes.reader, `trading.render.language.${written}`)]),
-  ]
-
-  return all.length === 0 ? link : `${link} (${all.join(NOTE_SEPARATOR)})`
-}
-
-/** The two catalog languages part on script: Vietnamese spells with letters English never uses. */
-function writtenIn(text: string): Locale {
-  return VIETNAMESE_LETTER_RE.test(text) ? 'vi' : 'en'
-}
-
-/** A headline is a third party's text: an unbalanced bracket would end the label early, and
- *  `Foo](https://other)` would turn it into a link of the headline's own choosing. */
-function linkLabel(label: string): string {
-  return label
-    .replace(LABEL_BREAK_RE, ' ')
-    .replace(LABEL_BRACKET_RE, (char) => LABEL_BRACKET[char as keyof typeof LABEL_BRACKET])
 }
 
 /** A field's text and the unit it is denominated in, under one owner: a price formatted at one

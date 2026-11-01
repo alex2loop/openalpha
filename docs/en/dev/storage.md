@@ -45,15 +45,20 @@ each fill part of.
 - **SQLite** (`persistence/engines/sqlite.ts`, `bun:sqlite`). Pragmas in order: `busy_timeout`
   5000 ms first (switching to WAL takes a lock, so the wait must already be set), `journal_mode =
   WAL`, `synchronous = NORMAL`, `temp_store = MEMORY`, `cache_size` 4000 KiB, `mmap_size` 8 MiB,
-  `foreign_keys = ON`. The retention sweep also runs `PRAGMA optimize` every 6 hours on SQLite
-  (`optimizeSqlite` in `persistence/upkeep.ts`, failures log `retention.optimize_failed`); there is no
-  engine timer. Backup uses `VACUUM INTO` (`persistence/backup.ts`): written into a
-  `mkdtemp` staging folder (`.staging-*`, `0700`) beside the target, `chmod 0600`, then renamed into place,
-  because `VACUUM INTO` honours the umask and the copy must never be readable by others while it is
-  written. `backupAndPrune` writes a copy then clears orphaned staging folders and drops the oldest past `keep`
-  (`KEEP_BACKUPS`, 7, unless the caller passes a count). The retention sweep calls it for `backups/daily/`
-  when `newestBackupAt` is missing, in the future or at least a day less one sweep interval old, with
-  `[retention] daily_backups` as the count; SQLite only, failures log `retention.backup_failed`.
+  `foreign_keys = ON`.
+  - **Optimize.** The retention sweep also runs `PRAGMA optimize` every 6 hours on SQLite
+    (`optimizeSqlite` in `persistence/upkeep.ts`; failures log `retention.optimize_failed`). There is
+    no engine timer.
+  - **Backup.** Backup uses `VACUUM INTO` (`persistence/backup.ts`). The copy is written into a
+    `mkdtemp` staging folder (`.staging-*`, `0700`) beside the target, then `chmod 0600`, fsynced,
+    renamed into place, and the parent directory fsynced (an fsync failure fails the backup). This is
+    because `VACUUM INTO` honours the umask, and the copy must never be readable by others while it is
+    written.
+  - **Pruning.** `backupAndPrune` writes a copy, then clears orphaned staging folders and drops the
+    oldest past `keep` (`KEEP_BACKUPS`, 7, unless the caller passes a count). The retention sweep calls
+    it for `backups/daily/` when `newestBackupAt` is missing, in the future, or at least a day less one
+    sweep interval old, with `[retention] daily_backups` as the count. SQLite only; failures log
+    `retention.backup_failed`.
 - **PostgreSQL** (`persistence/engines/postgres.ts`). `ensureSchema` runs `CREATE SCHEMA IF NOT
   EXISTS` first: `search_path` names a schema but never creates it, and a missing entry is skipped
   silently, which would land every migration in `public`.
@@ -152,9 +157,9 @@ So a domain table missing after a reset means its migration was not registered a
 
 ### Data notes
 
-- `daily_bars` is keyed by source and day. The writer's window `DELETE` normally leaves one provider
-  per window, but that is the writer's doing. `listBars` orders by `fetched_at` and keeps the newest
-  row per session, because a series with one session twice changes every median, ATR and lookback.
+- `daily_bars` is keyed by `(market, ticker, day)`; `source_id` records the writer and is not part of
+  the key. A session therefore holds one row, which `listBars` returns as stored, because a series
+  with one session twice changes every median, ATR and lookback.
 - `resting_exits.first_missed_at` is a timestamp, not a counter, on purpose: counting denials would
   measure reconcile passes rather than time, and its meaning would shift with the tick cadence.
 - `llm_attempts` is the source of truth for cost. Session totals are folded from it
@@ -164,12 +169,19 @@ So a domain table missing after a reset means its migration was not registered a
 
 `persistence/retention.ts`. Constants: `SCHEDULER_RUNS_KEEP_PER_JOB` 200,
 `BRIEF_SNAPSHOTS_KEEP_PER_LOCALE` 1, `LLM_ATTEMPTS_RETENTION_MS` 400 days. `RetentionConfig` carries
-`retentionDays` and `inboxRetentionDays`. The daemon sweeps once at start, then on a schedule; the
-manual `db cleanup` runs the same policy. `runRetention` runs each scope's delete (`toScopes`) in its own
-transaction, so one slow or failing scope neither holds the SQLite connection for the whole sweep nor
-rolls the others back on PostgreSQL's statement timeout; a failed scope logs `retention.scope_failed`
-and returns 0 in the unchanged `RetentionCounts`. The `SELECT changes()` read stays inside the scope's
-transaction, on the same connection as its delete.
+`retentionDays` and `inboxRetentionDays`, plus `historyFloors`: the days each history scope's readers
+look back (trading's `HISTORY_FLOOR_DAYS`: `MAXIMUM_OUTCOME_LOOKBACK_DAYS`, `MACRO_WINDOW_DAYS`,
+`MACRO_BACKFILL_DAYS`), which `effectiveHistoryDays` takes the larger of with `historyRetentionDays`.
+`persistence/retention-evidence.ts` empties `factorScores[].provenance` on scored calls past the
+general window, outside each name's newest ten. It works in pages of 200, read and rewritten as raw
+JSON.
+
+The daemon sweeps once at start, then on a schedule; the manual `db cleanup` runs the same policy.
+`runRetention` runs each scope's delete (`toScopes`) in its own transaction. So one slow or failing
+scope neither holds the SQLite connection for the whole sweep nor rolls the others back on
+PostgreSQL's statement timeout. A failed scope logs `retention.scope_failed` and returns 0 in the
+unchanged `RetentionCounts`. The `SELECT changes()` read stays inside the scope's transaction, on the
+same connection as its delete.
 
 ## Session store
 
@@ -183,14 +195,16 @@ transaction, on the same connection as its delete.
   `now - (loop.maxDurationMs + RUN_LEASE_SLACK_MS)`, with `RUN_LEASE_SLACK_MS` = 300,000.
 - **Write path.** `appendMessages` is the engine's session sink: append-only, flushed per completed
   turn by `engine/hooks/persistence.ts`. `appendCommandExchange` writes the two rows a slash command
-  contributes (no run owns them). `finalizeRun(id, runId, outcome)` closes the session out and throws
+  contributes (they name the command's run when it ran as one; no attempt is linked). The dispatcher
+  records every command answer through it: an echoed `text` answer as model context, every other one
+  with `display_only = 1`, kept for the history page and left out of `loadHistory` and `lastModelMessageAt`; a scheduled job keeps only its model-context (echo) rows (its answer is delivered, and its session is never swept), `/new` and choosing an agent keep nothing (they move the chat to another session), and neither does a command a page button sent quiet (its result shows where the button sits), a command that fails keeps its line with a generic failure answer, a command the rate limiter refuses keeps nothing (so a burst cannot write past the limit), a history page never starts inside a turn (it opens on the operator's line, and the answer with its tool-call rows go with their line unless one turn outruns the page), and rolling the migration back deletes them, since the previous release would read them as model context. `finalizeRun(id, runId, outcome)` closes the session out and throws
   `ConflictError` unless that run holds it.
 - **Stale.** `markStaleRuns(leaseExpiresBefore)` runs once at daemon boot (`app/startup-state.ts`),
   before any subsystem can open a run, and marks every `active` session nobody holds a live lease on
   as `stale`.
 - **Remove.** `remove(id)` reads the status inside the transaction and refuses an `active` session
   (`'active'`; its next flush would fail on the cascaded delete). Otherwise it deletes route rows
-  first, then messages, nulls `llm_attempts.session_id`, then the session. `clear(agentId?)` does
+  first, then the chat's agent binding when its chat id is this session id (the app's chats), then messages, nulls `llm_attempts.session_id`, then the session. `clear(agentId?)` does
   the same for many and refuses if any is active. Route keys use `SESSION_ROUTE_KEY_PREFIX`.
 - **Prefix lookup.** `resolveIdPrefix` returns `found | not_found | ambiguous`; an exact id wins over
   a longer match.
@@ -202,7 +216,7 @@ transaction, on the same connection as its delete.
 
 `core/session-queue.ts` serialises work per session on a promise tail with `MAX_QUEUE_DEPTH` = 10;
 past it the caller gets `RunHalted('queue_full')`. A route switch (`/new`) goes through a route
-fence with a per-route generation: it waits for held leases, invalidates queued work, updates the
+fence with a per-route generation: it waits for held leases, invalidates queued work, drops the
 stored route, then admits work for the new generation, so a message accepted for the old session
 cannot run under the new route.
 

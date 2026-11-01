@@ -31,6 +31,9 @@ export const LOCAL_CHANNEL_ID = channelId('cli')
  *  heartbeat, never by the operator. */
 export const SOCIAL_CHANNEL = channelId('social')
 
+/** The channel a run the daemon starts on a schedule carries, so every surface names it as one. */
+export const SCHEDULE_CHANNEL = channelId('cron')
+
 /**
  * `<channel>:<chatId>` — one token to type, one to validate. Split on the FIRST separator only:
  * a chat id may itself contain one. Registry membership is checked by the delivery surface.

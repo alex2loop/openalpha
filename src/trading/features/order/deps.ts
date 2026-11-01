@@ -6,6 +6,7 @@ import type { RestingExitStore } from '@/trading/features/order/store/resting-ex
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { OrderPolicy, TradingCosts } from '@/trading/kernel/config'
 import type { CurrencyCode, InstrumentRef, TradingDay, VenueRef } from '@/trading/kernel/instrument'
+import type { OrderFilledListener } from '@/trading/kernel/operator/notice'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
@@ -49,4 +50,7 @@ export interface OrderServiceDeps {
    *  the profile store: this path needs the caps and nothing else the store holds. `null` when
    *  nothing has been saved, which states no ceilings rather than guessing at seeds. */
   findProfile(signal: AbortSignal): Promise<UserProfile | null>
+  /** Told of each fill once its ledger row is booked. Whoever binds it shows the fill; it is never
+   *  asked whether the fill may stand. */
+  readonly onFilled: OrderFilledListener
 }

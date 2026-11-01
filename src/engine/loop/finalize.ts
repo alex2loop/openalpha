@@ -174,7 +174,9 @@ export function classifyCaught(
   const formatted = formatErrForLog(err)
   const operator = operatorMessageOf(err)
   const missingEnv = missingEnvOf(err)?.env
-  run.services.logger.error('engine.run_uncaught', { err: formatted })
+  // One the operator can fix (an unset key, a refused one) is not a fault in the code.
+  const level = operator === undefined && missingEnv === undefined ? 'error' : 'warn'
+  run.services.logger[level]('engine.run_uncaught', { err: formatted })
 
   return {
     reason: 'error',

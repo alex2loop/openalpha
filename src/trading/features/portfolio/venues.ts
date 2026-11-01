@@ -1,13 +1,21 @@
-import type { VenueChoice } from '@/trading/features/portfolio/types'
 import type { DefaultVenues } from '@/trading/kernel/config'
 import type { MarketRef, VenueRef } from '@/trading/kernel/instrument'
 import type { VenueRegistry } from '@/trading/venues/types'
+
+/** A venue and the markets it can hold. `apiHosts` is where its orders go; empty for a venue the
+ *  operator trades by hand and one still waiting for its key. */
+export interface VenueChoice {
+  readonly venue: VenueRef
+  readonly markets: readonly MarketRef[]
+  readonly apiHosts: readonly string[]
+}
 
 /** Every registered venue and the markets it can hold, for a form that asks where a trade sits. */
 export function venueChoices(venues: VenueRegistry): readonly VenueChoice[] {
   return venues.list().map((venue) => ({
     venue: venue.manifest.id,
     markets: [...venue.manifest.markets],
+    apiHosts: venue.manifest.apiHosts ?? [],
   }))
 }
 

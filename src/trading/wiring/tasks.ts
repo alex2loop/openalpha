@@ -1,9 +1,10 @@
-import type { DaemonTask } from '@/core/container'
+import type { DaemonTask, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
 import type { VenueFill } from '@/trading/features/ledger/sync'
 import type { IntradayReportDeps } from '@/trading/features/market-data/intraday/report'
+import type { HeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import type { IntradaySettingsStore } from '@/trading/features/market-data/store/intraday-settings'
 import type { RestingExitStore } from '@/trading/features/order/store/resting-exit'
 import type { OrderService } from '@/trading/features/order/types'
@@ -18,7 +19,11 @@ import type {
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type {
+  OrderFill,
+  OrderFilledListener,
+  TradingNoticeSender,
+} from '@/trading/kernel/operator/notice'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
@@ -27,8 +32,7 @@ import { createBriefTick } from '@/trading/features/brief/tick'
 import { resolveIntradayPlan } from '@/trading/features/market-data/intraday/schedule'
 import {
   createIntradayTick,
-  IDLE_DELAY_MS,
-  nextIntradayDelayMs,
+  createIntradayTiming,
 } from '@/trading/features/market-data/ops/intraday'
 import {
   logRefreshDegradations,
@@ -44,7 +48,7 @@ import {
   createDelayedLoopTask,
   createLoopTask,
   type OperationTick,
-  type Reachability,
+  type PassNotes,
 } from '@/trading/wiring/loop'
 import { withQuarantine } from '@/trading/wiring/quarantine'
 
@@ -61,56 +65,39 @@ interface TradingDaemonDeps {
   readonly portfolio: Pick<PortfolioService, 'positionsAt' | 'record'>
   readonly reportDeps: IntradayReportDeps
   readonly intradaySettings: IntradaySettingsStore
+  /** How late after its slot a timed send may still go out (`[schedule] late_grace_ms`). */
+  readonly lateGraceMs: number
   readonly restingExit: RestingExitStore
   isFillBooked(fill: VenueFill, signal: AbortSignal): Promise<boolean>
   readonly venues: VenueRegistry
   readonly order?: Pick<OrderService, 'reconcileUnmirrored'>
   readonly sender: TradingNoticeSender
+  /** Told once per alert pass, after the alerts: the bell hears about held names and a falling index. */
+  readonly heldWatch: HeldWatch
+  readonly onFilled: OrderFilledListener
+  /** Called with the pass time once an alert pass has delivered what was armed. */
+  readonly onAlertsChecked?: (at: number) => void
+  /** Told each pass of every loop below, so the app can show when each last ran and runs next. */
+  readonly onTaskPass: TaskPassListener
   recipient(): DeliveryAddress | undefined
   refreshMarketData(
     options: RefreshAllMarketDataOptions
   ): Promise<readonly RefreshMarketDataResult[]>
+  /** Settles once the boot sweep has landed, failed or used up its budget. The loops that read
+   *  market data wait for it before their first tick; the refresh loop joins the sweep itself, and
+   *  the exit and intent loops read the venue and the stored plans, so none of the three waits. */
+  readonly firstSweep: Promise<void>
   readonly logger: Logger
 }
 
-/** Eight bounded loops behind one factory, plus the exit reconciler when some venue accepts orders
+/** The bounded loops behind one factory, plus the exit reconciler when some venue accepts orders
  *  and the intent sweep when an order service exists. Each starts with the daemon; the underlying
  *  service returns immediately when there is no eligible work. */
 export function createTradingDaemonTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
-  const { operations } = deps.config
   const { logger } = deps
   const tasks = [
     alertTask(deps),
-    operationTask({
-      name: 'trading.outcomes',
-      policy: operations.outcomes,
-      logger,
-      reachability: operations,
-      tickFor: (policy) =>
-        createOutcomeTick({ suggestions: deps.suggestions, batchSize: policy.batchSize }),
-    }),
-    operationTask({
-      name: 'trading.macro-extract',
-      policy: operations.macroExtract,
-      logger,
-      reachability: operations,
-      tickFor: (policy) => deps.macroExtractTick(policy),
-    }),
-    operationTask({
-      name: 'trading.theme-outcomes',
-      policy: operations.themeOutcomes,
-      logger,
-      reachability: operations,
-      tickFor: (policy) =>
-        createThemeOutcomeTick({ themes: deps.themes, batchSize: policy.batchSize, logger }),
-    }),
-    operationTask({
-      name: 'trading.briefs',
-      policy: operations.briefs,
-      logger,
-      reachability: operations,
-      tickFor: (policy) => createBriefTick({ briefs: deps.briefs, batchSize: policy.batchSize }),
-    }),
+    ...operationTasks(deps),
     refreshTask(deps),
     intradayTask(deps),
     ...exitTasks(deps),
@@ -127,6 +114,37 @@ export function createTradingDaemonTasks(deps: TradingDaemonDeps): readonly Daem
   return Object.freeze(tasks.map((task) => withQuarantine(task, quarantine)))
 }
 
+/** The loops that each run one batch-sized service call at their own interval. */
+function operationTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
+  const { operations } = deps.config
+  const { logger } = deps
+
+  return [
+    operationTask(deps, {
+      name: 'trading.outcomes',
+      policy: operations.outcomes,
+      tickFor: (policy) =>
+        createOutcomeTick({ suggestions: deps.suggestions, batchSize: policy.batchSize }),
+    }),
+    operationTask(deps, {
+      name: 'trading.macro-extract',
+      policy: operations.macroExtract,
+      tickFor: (policy) => deps.macroExtractTick(policy),
+    }),
+    operationTask(deps, {
+      name: 'trading.theme-outcomes',
+      policy: operations.themeOutcomes,
+      tickFor: (policy) =>
+        createThemeOutcomeTick({ themes: deps.themes, batchSize: policy.batchSize, logger }),
+    }),
+    operationTask(deps, {
+      name: 'trading.briefs',
+      policy: operations.briefs,
+      tickFor: (policy) => createBriefTick({ briefs: deps.briefs, batchSize: policy.batchSize }),
+    }),
+  ]
+}
+
 /** No venue accepting orders means no exchange, so there is nothing resting to reconcile and no
  *  loop to run. */
 function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
@@ -135,11 +153,10 @@ function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
   }
 
   return [
-    operationTask({
+    operationTask(deps, {
       name: 'trading.exits',
       policy: deps.config.operations.exits,
-      logger: deps.logger,
-      reachability: deps.config.operations,
+      waitsForSweep: false,
       tickFor: (policy) =>
         createExitTick({
           venues: deps.venues,
@@ -149,9 +166,43 @@ function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
           batchSize: policy.batchSize,
           logger: deps.logger,
           isFillBooked: deps.isFillBooked,
+          onFilled: deps.onFilled,
+          notifyFill: (fill, signal) => notifyFill(deps, fill, signal),
         }),
     }),
   ]
+}
+
+/** Tells the operator an exit filled, at the chat the daemon would use. With no recipient there is
+ *  nobody to tell and the ledger row is the record. A refused send is logged and never retried: the
+ *  sale is booked either way, and a second send could not be told apart from the first. */
+async function notifyFill(
+  deps: TradingDaemonDeps,
+  fill: OrderFill,
+  signal: AbortSignal
+): Promise<void> {
+  const target = deps.recipient()
+
+  if (target === undefined) {
+    return
+  }
+
+  const outcome = await deps.sender.send(
+    {
+      target,
+      locale: deps.reportDeps.locale,
+      payload: { kind: 'exit-filled', fill },
+    },
+    signal
+  )
+
+  // An aborted send is shutdown, not a refusal.
+  if (outcome !== 'accepted' && outcome !== 'aborted') {
+    deps.logger.warn('trading.exit_fill_notice_undelivered', {
+      ticker: fill.instrument.ticker,
+      outcome,
+    })
+  }
 }
 
 /** No order service means no exchange this tree can ask, so there is nothing to settle. */
@@ -167,9 +218,11 @@ function intentTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
   return [
     createLoopTask({
       name: 'trading.intents',
+      everyMs: policy.intervalMs,
       nextDelayMs: () => policy.intervalMs,
       logger,
       reachability: deps.config.operations,
+      onTaskPass: deps.onTaskPass,
       tick: async (signal) => {
         const review = await order.reconcileUnmirrored(signal)
 
@@ -194,26 +247,33 @@ function alertTask(deps: TradingDaemonDeps): DaemonTask {
 
   return createLoopTask({
     name: 'trading.alerts',
+    everyMs: policy.intervalMs,
     nextDelayMs: () => policy.intervalMs,
     logger,
+    after: deps.firstSweep,
     reachability: deps.config.operations,
-    tick: async (signal) => {
+    onTaskPass: deps.onTaskPass,
+    tick: async (signal, notes) => {
       const options = { now: Date.now(), batchSize: policy.batchSize, signal }
 
       await alerts.tick(options)
-      await armingStep(logger, 'exits', () => alerts.tickExits(options))
-      await armingStep(logger, 'screeners', () => alerts.tickScreeners(options))
+      deps.onAlertsChecked?.(options.now)
+      await armingStep({ logger, notes, name: 'exits' }, () => alerts.tickExits(options))
+      await armingStep({ logger, notes, name: 'screeners' }, () => alerts.tickScreeners(options))
+      await deps.heldWatch(options)
     },
   })
 }
 
-/** Each pass fails alone: the other still runs, and the next interval retries both. An abort is
- *  shutdown, not a failure. */
-async function armingStep(
-  logger: Logger,
-  name: 'exits' | 'screeners',
-  run: () => Promise<void>
-): Promise<void> {
+interface ArmingStep {
+  readonly logger: Logger
+  readonly notes: PassNotes
+  readonly name: 'exits' | 'screeners'
+}
+
+/** Each pass fails alone: the other still runs, and the next interval retries both. The loop's
+ *  pass carries the failure as its error. An abort is shutdown, not a failure. */
+async function armingStep(step: ArmingStep, run: () => Promise<void>): Promise<void> {
   try {
     await run()
   } catch (err: unknown) {
@@ -221,24 +281,30 @@ async function armingStep(
       throw err
     }
 
-    logger.warn('trading.alert_arming_failed', { step: name, err: formatErrForLog(err) })
+    const failure = formatErrForLog(err)
+
+    step.logger.warn('trading.alert_arming_failed', { step: step.name, err: failure })
+    step.notes.fail()
   }
 }
 
 interface OperationTaskSpec {
   readonly name: string
   readonly policy: OperationPolicy
-  readonly logger: Logger
-  readonly reachability: Reachability
+  /** False for a loop that reads no swept market data; it then starts with the daemon. */
+  readonly waitsForSweep?: boolean
   tickFor(policy: OperationPolicy): OperationTick
 }
 
-function operationTask(spec: OperationTaskSpec): DaemonTask {
+function operationTask(deps: TradingDaemonDeps, spec: OperationTaskSpec): DaemonTask {
   return createLoopTask({
     name: spec.name,
+    everyMs: spec.policy.intervalMs,
     nextDelayMs: () => spec.policy.intervalMs,
-    logger: spec.logger,
-    reachability: spec.reachability,
+    logger: deps.logger,
+    ...(spec.waitsForSweep === false ? {} : { after: deps.firstSweep }),
+    reachability: deps.config.operations,
+    onTaskPass: deps.onTaskPass,
     tick: spec.tickFor(spec.policy),
   })
 }
@@ -267,8 +333,9 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
     },
     logger: deps.logger,
     reachability: deps.config.operations,
+    onTaskPass: deps.onTaskPass,
     tick: async (signal) => {
-      const results = await deps.refreshMarketData({ signal })
+      const results = await deps.refreshMarketData({ signal, scheduled: true })
       const degradations = refreshDegradations(results)
       const emptied = results.some((result) =>
         result.results.some((kind) => kind.status === 'unavailable')
@@ -293,17 +360,22 @@ function intradayTask(deps: TradingDaemonDeps): DaemonTask {
   // Resolved once: the registry and the config are both frozen by the time tasks are built, and
   // boot has already rejected a `defaultRegion` no market covers.
   const plan = resolveIntradayPlan(deps, deps.config.defaultRegion)
+  const timing = createIntradayTiming(plan)
 
   // `createDelayedLoopTask` waits before the first tick, so the loop sleeps until the first
   // configured fire rather than sending one at boot.
   return createDelayedLoopTask({
     name: 'trading.intraday',
-    nextDelayMs: (now) => nextIntradayDelayMs(plan, now, IDLE_DELAY_MS),
+    nextDelayMs: timing.nextDelayMs,
     logger: deps.logger,
+    after: deps.firstSweep,
     reachability: deps.config.operations,
+    onTaskPass: deps.onTaskPass,
     tick: createIntradayTick({
       ...deps.reportDeps,
       plan,
+      timing,
+      lateGraceMs: deps.lateGraceMs,
       settings: deps.intradaySettings,
       sender: deps.sender,
       recipient: deps.recipient,

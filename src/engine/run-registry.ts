@@ -142,6 +142,30 @@ function abortChatEntries(
   return aborted
 }
 
+function abortRunEntry(runs: ReadonlyMap<RunId, RunEntry>, id: RunId): boolean {
+  const entry = runs.get(id)
+
+  if (entry === undefined || !ACTIVE_LIFECYCLES.has(entry.lifecycle)) {
+    return false
+  }
+
+  entry.controller.abort()
+
+  return true
+}
+
+function activeHandles(runs: ReadonlyMap<RunId, RunEntry>): readonly RunHandle[] {
+  const handles: RunHandle[] = []
+
+  for (const entry of runs.values()) {
+    if (ACTIVE_LIFECYCLES.has(entry.lifecycle)) {
+      handles.push(toHandle(entry))
+    }
+  }
+
+  return handles
+}
+
 export function createRunRegistry(): RunTracker {
   const runs = new Map<RunId, RunEntry>()
   const bySession = new Map<SessionId, Set<RunId>>()
@@ -180,6 +204,8 @@ export function createRunRegistry(): RunTracker {
 
     abortChat: (channel, chatId) => abortChatEntries(runs, channel, chatId),
 
+    abortRun: (id) => abortRunEntry(runs, id),
+
     steer: (sessionId, chatId, text) =>
       steerChatRun(runs, bySession.get(sessionId), { chatId, text }),
 
@@ -188,17 +214,7 @@ export function createRunRegistry(): RunTracker {
       await drainActive(runs, settle, timeoutMs)
     },
 
-    active(): readonly RunHandle[] {
-      const handles: RunHandle[] = []
-
-      for (const entry of runs.values()) {
-        if (ACTIVE_LIFECYCLES.has(entry.lifecycle)) {
-          handles.push(toHandle(entry))
-        }
-      }
-
-      return handles
-    },
+    active: () => activeHandles(runs),
 
     markDone(id: RunId, lifecycle: RunLifecycle): void {
       const entry = runs.get(id)

@@ -11,7 +11,9 @@ import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { TradingCosts } from '@/trading/kernel/config'
 import type { CurrencyCode, MarketRef } from '@/trading/kernel/instrument'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
+import type { MarketRegistry } from '@/trading/markets/types'
 import type { QuoteConvention } from '@/trading/render/money'
+import type { VenueRegistry } from '@/trading/venues/types'
 import { isWord } from '@/core/utils/text'
 import { t } from '@/i18n'
 import {
@@ -20,10 +22,10 @@ import {
   LEDGER_ISSUE_KEYS,
   parseLedgerDraft,
 } from '@/trading/features/ledger/draft'
-import { asksForFxRate } from '@/trading/features/ledger/fx-rate'
 import { resolveEntry } from '@/trading/features/ledger/mutate'
 import { renderWriteConfirmation } from '@/trading/features/ledger/render'
 import { renderEntry } from '@/trading/features/ledger/rows'
+import { MARKET_RESOLUTION_KEYS, toQualifiedLine } from '@/trading/features/ledger/shorthand'
 import { runWithPriceConfirm } from '@/trading/features/market-data/command/price-confirm'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { toIdHandle } from '@/trading/kernel/instrument'
@@ -57,6 +59,8 @@ interface EditCommandDeps {
 
 interface UpdateCommandDeps extends EditCommandDeps {
   readonly baseCurrency: CurrencyCode
+  readonly venues: VenueRegistry
+  readonly markets: MarketRegistry
 }
 
 /** Both commands name an entry by the handle `/transactions` prints beside it, so an operator never
@@ -65,7 +69,7 @@ export function createUpdateCommand(deps: UpdateCommandDeps): SlashCommand {
   return {
     name: UPDATE_COMMAND,
     description: { kind: 'localized', key: 'slash.tradingUpdateHelp' },
-    messageKeys: [UPDATE_USAGE, ...LEDGER_ISSUE_KEYS],
+    messageKeys: [UPDATE_USAGE, ...MARKET_RESOLUTION_KEYS, ...LEDGER_ISSUE_KEYS],
     policy: {
       surfaces: ['channel', 'repl'],
       role: 'operator',
@@ -101,7 +105,13 @@ async function runUpdate(
   typedPrice: TypedPrice
 ): Promise<SlashResult> {
   const [ref, ...rest] = ctx.args
-  const parsed = parseLedgerDraft(rest, deps.baseCurrency)
+  const qualified = await toQualifiedLine(deps, { tokens: rest, signal: ctx.signal })
+
+  if (qualified.kind === 'refused') {
+    return { kind: 'message', messages: qualified.messages }
+  }
+
+  const parsed = parseLedgerDraft(qualified.tokens, deps.baseCurrency)
 
   if (parsed.kind === 'invalid') {
     return {
@@ -114,13 +124,6 @@ async function runUpdate(
 
   if (ref === undefined || !isResolvedDraft(draft)) {
     return usage(UPDATE_USAGE)
-  }
-
-  if (asksForFxRate(draft, deps.baseCurrency) && 'currency' in draft) {
-    return {
-      kind: 'text',
-      text: t(ctx.locale, 'trading.render.ledger.updateNeedsFx', { currency: draft.currency }),
-    }
   }
 
   // An unknown or ambiguous handle is refused here, before any write.

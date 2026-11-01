@@ -23,7 +23,7 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { AlertId } from '@/trading/kernel/operator/alert'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type { AlertFiredListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
@@ -36,11 +36,12 @@ import {
   unwatchedPositions,
   watchPositionExits,
 } from '@/trading/features/alerts/exits'
+import { resolveAlertInstrument } from '@/trading/features/alerts/instrument'
 import { observePrice, toCrossing } from '@/trading/features/alerts/observation'
 import { reconcileScreenerAlerts } from '@/trading/features/alerts/screeners'
 import { stopDistances } from '@/trading/features/alerts/stop-distances'
+import { isLiveAlert } from '@/trading/features/alerts/types'
 import { assertTypedPrice } from '@/trading/features/market-data/reads/typed-price'
-import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { buildInstrumentKey, isIdRef } from '@/trading/kernel/instrument'
 import { buildAlertId } from '@/trading/kernel/operator/alert'
 
@@ -61,6 +62,8 @@ interface AlertServiceDeps {
   /** Delivery language. With one operator it can only ever be `[locale] language`, so it is read
    *  at send time rather than frozen onto each alert when it was armed. */
   readonly defaultLocale: Locale
+  /** Told once per alert as its first send starts; a job that runs on a crossing hangs off it. */
+  readonly onAlertFired: AlertFiredListener
   /** The arming passes read the book and the plans behind it; both arm through this same service,
    *  which is why they are its dependencies rather than services of their own. */
   readonly suggestions: SuggestionStore
@@ -90,12 +93,7 @@ export function createAlertService(deps: AlertServiceDeps): AlertService {
   let cursor: AlertId | undefined
   const arming = armingMethods(deps)
   const watch = exitWatchDeps(deps)
-  // Never module scope: two services would otherwise share these memos, and a plan replaced under
-  // one would read as already trailed or re-planned by the other.
-  const exits = exitReconcileDeps(deps, arming, {
-    trailedThrough: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
-    replannedOn: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
-  })
+  const exits = exitReconcileDeps(deps, arming)
   const screeners = screenerReconcileDeps(deps, arming)
 
   return {
@@ -112,6 +110,7 @@ export function createAlertService(deps: AlertServiceDeps): AlertService {
       return { ...page, activeCount }
     },
     listFired: (options) => deps.store.listFired(options),
+    isLive: async (options) => isLiveAlert(await deps.store.find(options)),
     positionExits: (options) => watchPositionExits(watch, options),
     unwatchedPositions: (options) => unwatchedPositions(watch, options),
     stalePositions: (options) => stalePositions(watch, options),
@@ -153,8 +152,7 @@ function armingMethods(deps: AlertServiceDeps): Pick<AlertService, 'create' | 'd
 
 function exitReconcileDeps(
   deps: AlertServiceDeps,
-  alerts: Pick<AlertService, 'create' | 'disable'>,
-  memos: Pick<ExitReconcileDeps, 'trailedThrough' | 'replannedOn'>
+  alerts: Pick<AlertService, 'create' | 'disable'>
 ): ExitReconcileDeps {
   return {
     alerts,
@@ -166,7 +164,11 @@ function exitReconcileDeps(
     logger: deps.logger,
     defaultLocale: deps.defaultLocale,
     briefs: deps.briefs,
-    ...memos,
+    // Built per service, never at module scope: two services would otherwise share these memos, and
+    // a plan replaced under one would read as already trailed or re-planned by the other.
+    trailedThrough: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
+    trailRetryAt: lruMap<string, number>(PLAN_MEMO_CAPACITY),
+    replannedOn: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
     tradeableHoldingsAt: deps.tradeableHoldingsAt,
     ...(deps.restingStops === undefined ? {} : { restingStops: deps.restingStops }),
   }
@@ -183,7 +185,6 @@ function screenerReconcileDeps(
     markets: deps.markets,
     marketDataStore: deps.marketDataStore,
     policy: deps.config.alerts,
-    defaultLocale: deps.defaultLocale,
     getProfile: deps.getProfile,
     tradeableHoldingsAt: deps.tradeableHoldingsAt,
   }
@@ -260,18 +261,7 @@ async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Prom
     throw new ValidationError(`alert threshold must be finite and positive, got ${draft.threshold}`)
   }
 
-  const { instrument } = draft
-  const resolution = await resolveInstrument(deps.markets, {
-    ticker: instrument.ticker,
-    ...(instrument.market === undefined ? {} : { market: instrument.market }),
-    signal: options.signal,
-  })
-
-  if (resolution.kind !== 'resolved') {
-    const named = instrument.market === undefined ? '' : `${instrument.market}:`
-
-    throw new ValidationError(`instrument is not supported: ${named}${instrument.ticker}`)
-  }
+  const resolution = await resolveAlertInstrument(deps, options)
 
   // An operator-armed level is typed; a system-armed one is computed and never a board figure.
   if (draft.origin === undefined) {
@@ -311,6 +301,10 @@ async function create(deps: AlertServiceDeps, options: CreateAlertOptions): Prom
     createdAt: options.now,
   }
   const result = await deps.store.create(alert, options.signal)
+
+  if (options.requireNew === true && result.kind !== 'inserted') {
+    throw new ValidationError('alert level taken', { key: 'errors.alertLevelTaken' })
+  }
 
   return result.alert
 }

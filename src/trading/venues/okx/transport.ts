@@ -5,7 +5,7 @@ import { OrderError } from '@/trading/features/order/types'
 import { signOkxRequest } from '@/trading/venues/okx/sign'
 import { createVenueTransport, retriedRead, unretried } from '@/trading/venues/transport'
 
-const OKX_HOSTS: readonly string[] = Object.freeze(['https://www.okx.com'])
+export const OKX_HOSTS: readonly string[] = Object.freeze(['https://www.okx.com'])
 const transport: VenueTransport = createVenueTransport(OKX_HOSTS)
 // A parameter or credential error arrives as a 4xx carrying the same `{ code, msg }` envelope as a
 // 200; every other non-2xx stays a failed attempt.

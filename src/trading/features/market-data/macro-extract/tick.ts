@@ -19,6 +19,10 @@ import { region } from '@/trading/kernel/instrument'
 import { recentMonths, toMonth, toMonthEnd, toPreviousMonth } from '@/trading/kernel/market/month'
 
 const BACKFILL_MONTHS = 24
+const LONGEST_MONTH_DAYS = 31
+/** The farthest a backfill month starts from today: the window ends last month, so it reaches one
+ *  month past its own length. A document swept inside it would be read, and paid for, again. */
+export const MACRO_BACKFILL_DAYS = (BACKFILL_MONTHS + 1) * LONGEST_MONTH_DAYS
 const PRESS_WINDOW_DAYS = 45
 /** A release reports the month before it, sometimes two. */
 const PRESS_PERIOD_MONTHS = 3
@@ -68,12 +72,14 @@ async function readDocument(
     signal: context.signal,
   })
 
+  // Recorded as read with nothing accepted, like a reply whose every figure failed verification:
+  // otherwise the same document costs a model call every tick and holds a batch slot forever.
   if (reply.answers === undefined) {
     deps.logger.warn('trading.macro_extract_unreadable', { url: document.url, model: reply.model })
-    return
   }
 
-  const verified = verifyAnswers({ ...document, answers: reply.answers, sourceText: document.text })
+  const answers = reply.answers ?? []
+  const verified = verifyAnswers({ ...document, answers, sourceText: document.text })
   const written = await deps.store.record({
     document: {
       url: document.url,

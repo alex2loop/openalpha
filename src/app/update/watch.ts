@@ -1,6 +1,6 @@
 import type { SelfUpgrade } from '@/app/update/install'
 import type { ResolvedConfig } from '@/core/config/resolve'
-import type { App } from '@/core/container'
+import type { App, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import {
   isUpdateCheckEnabled,
@@ -9,6 +9,7 @@ import {
   type UpdateState,
 } from '@/cli/api'
 import { BRAND } from '@/core/brand'
+import { reportPass } from '@/core/container'
 import { formatErrForLog } from '@/core/security/credentials'
 import {
   type DailyWindow,
@@ -24,10 +25,12 @@ const UPDATE_WATCH_INTERVAL_MS = MS_PER_HOUR
 // ticks outside the sessions of the markets in use: a VN book read from Europe or a UTC host
 // installs at 00:00-02:00, from the US at 03:00-06:00.
 const AUTO_UPDATE_WINDOW = '00:00-06:00'
+const UPDATE_PASS = { name: 'update', everyMs: UPDATE_WATCH_INTERVAL_MS }
 
 interface UpdateWatchOptions {
   readonly logger: Logger
   readonly upgrade: SelfUpgrade
+  readonly onTaskPass: TaskPassListener
 }
 
 /** The newest release each log line has already said, and the last one tried, so an hourly tick
@@ -71,7 +74,9 @@ export function startUpdateWatch(app: App, options: UpdateWatchOptions): () => P
       return
     }
 
-    inFlight = runUpdateCheck(app, { ...options, window, memory, signal: controller.signal })
+    inFlight = reportPass(options.onTaskPass, UPDATE_PASS, () =>
+      runUpdateCheck(app, { ...options, window, memory, signal: controller.signal })
+    )
       .catch((err: unknown) => {
         logger.warn('update.check_failed', { err: formatErrForLog(err) })
       })

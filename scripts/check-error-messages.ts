@@ -101,7 +101,7 @@ function lineOf(text: string, index: number): number {
   return text.slice(0, index).split('\n').length
 }
 
-const glob = new Bun.Glob('**/*.ts')
+const glob = new Bun.Glob('**/*.{ts,tsx}')
 let scanned = 0
 
 for (const source of SOURCES) {

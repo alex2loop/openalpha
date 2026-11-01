@@ -21,6 +21,7 @@ export type { ModelPrice } from '@/ai/types'
 export { haltDetailOf } from '@/ai/adapters/errors'
 export { hasIdentityEnv, IDENTITY_ENV } from '@/ai/auth/cloud/identity'
 export { createCredentialSources } from '@/ai/auth/credentials'
+export { listAuthHosts } from '@/ai/auth/hosts'
 export { awaitLoopbackCode } from '@/ai/auth/loopback'
 export { CHATGPT_PROVIDER_ID } from '@/ai/auth/providers/chatgpt'
 export { AUTH_PROVIDERS, authProviderByLoginName, loginNames } from '@/ai/auth/registry'
@@ -32,10 +33,12 @@ export {
   PROVIDERS,
   providerById,
   requiresApiKey,
+  resolveModelHost,
 } from '@/ai/catalog'
 export { classifyModel } from '@/ai/classify'
 export { type CreateClientInput, createClient, missingKeyErrors } from '@/ai/client'
 export { withClientModelJob } from '@/ai/client-model/job-context'
 export { cacheRatesOf } from '@/ai/cost/pricing'
+export { listPricingHosts } from '@/ai/openrouter-feed'
 export { reasoningBudgetOf } from '@/ai/reasoning/core'
 export { createAiProvider } from '@/ai/services'

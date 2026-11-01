@@ -3,7 +3,7 @@
 # How to use it:
 #   1. Download it: curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -o ~/.openalpha/config.toml --create-dirs
 #      Windows (PowerShell): New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -OutFile "$HOME\.openalpha\config.toml"
-#   2. Get a key at openrouter.ai, then set it: export OPENROUTER_API_KEY="..."
+#   2. Get a key at openrouter.ai/keys, then save it: openalpha key set OPENROUTER_API_KEY
 #   3. Check it: openalpha doctor --online
 #
 # That is enough to run. When you want more (Telegram, an exchange...),
@@ -12,6 +12,9 @@
 # Replies, reports and errors in English. Set "vi" for Vietnamese.
 [locale]
 language = "en"
+# The currency of your book, VND by default. For another one (say "USD"), remove the #
+# before your first /setup: once the profile is saved it cannot change.
+# currency = "VND"
 
 # Every model below goes through OpenRouter, sharing one key.
 # "latency" means prefer whichever server answers fastest.

@@ -11,7 +11,7 @@ import type {
   ThemeSector,
 } from '@/trading/features/themes/types'
 import { t } from '@/i18n'
-import { toMainDriver } from '@/trading/features/themes/score/compose'
+import { SCORE_SCALE, toMainDriver } from '@/trading/features/themes/score/compose'
 import { renderProvidedValue } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
 
@@ -88,8 +88,8 @@ export function sortByScore<T>(
   )
 }
 
-/** "Score 84 → 71, mostly on valuation · high confidence"; nothing for an unscored read, which
- *  the run's gaps line already explains. */
+/** "Theme score 71/100 (was 84), mostly on valuation · high confidence"; nothing for an unscored
+ *  read, which the run's gaps line already explains. */
 export function renderScoreFacts(context: ReportContext, read: ScoredRead): readonly string[] {
   const { score } = read
 
@@ -110,12 +110,19 @@ function renderScoreMove(
   const { locale } = context
   const previous = context.previous.get(toReadKey(read))
 
-  if (previous === undefined || previous.value === read.score.value) {
-    return t(locale, 'trading.render.themes.score', { score: read.score.value })
+  const current = { score: read.score.value, scale: SCORE_SCALE }
+
+  // A score read on other parts (a sector step that failed one run) moved for that reason alone.
+  if (
+    previous === undefined ||
+    previous.value === read.score.value ||
+    !isSamePartSet(previous, read.score)
+  ) {
+    return t(locale, 'trading.render.themes.score', current)
   }
 
   const driver = toMainDriver({ level: read.level, current: read.score, previous })
-  const values = { previous: previous.value, score: read.score.value }
+  const values = { ...current, previous: previous.value }
 
   return driver === undefined
     ? t(locale, 'trading.render.themes.scoreMoved', values)
@@ -123,6 +130,14 @@ function renderScoreMove(
         ...values,
         part: t(locale, `trading.themes.part.${driver}`),
       })
+}
+
+function isSamePartSet(left: ThemeScore, right: ThemeScore): boolean {
+  const parts = Object.keys(left.parts)
+
+  return (
+    parts.length === Object.keys(right.parts).length && parts.every((part) => part in right.parts)
+  )
 }
 
 function toReadKey(read: ScoredRead): string {

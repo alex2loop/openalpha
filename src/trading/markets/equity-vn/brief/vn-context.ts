@@ -1,5 +1,6 @@
 import type { BriefContext, BriefHome } from '@/trading/markets/brief-context'
 import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
+import { readVnEvents } from '@/trading/markets/equity-vn/brief/events-read'
 import {
   VN_MACRO_DRIVERS,
   VN_MACRO_FORMULA_VERSION,
@@ -21,4 +22,5 @@ export const VN_BRIEF_HOME: BriefHome<CrossSection> = Object.freeze({
       ...(name.turnover === undefined ? {} : { turnover: name.turnover }),
     })),
   sectorsOf: (board: CrossSection) => board.sectors,
+  readEvents: readVnEvents,
 })

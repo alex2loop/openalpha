@@ -26,11 +26,17 @@ const CORE_TABLES = [
   { name: 'pairings', pk: ['code'] },
   { name: 'jobs', pk: ['id'], durable: true },
   { name: 'scheduler_runs', pk: ['id'] },
+  // Durable: the operator set the trigger, and a job without it would read as a one-shot never due.
+  { name: 'job_event_triggers', pk: ['job_id'], durable: true },
+  { name: 'job_event_fires', pk: ['job_id', 'fire_key'] },
   { name: 'channel_state', pk: ['channel', 'key'] },
   { name: 'channel_inbox', pk: ['channel', 'update_id'] },
   { name: 'heartbeat_task_completions', pk: ['agent_id', 'task_name'] },
   { name: 'heartbeat_commitments', pk: ['id'] },
   { name: 'memory_kv', pk: ['agent_id', 'user_id', 'key'], durable: true },
+  { name: 'runs', pk: ['run_id'] },
+  { name: 'notices', pk: ['id'] },
+  { name: 'browser_sessions', pk: ['id'] },
 ] as const satisfies readonly DbTable[]
 
 // The data an operator actually accumulates: everything above is bounded by process lifetime,

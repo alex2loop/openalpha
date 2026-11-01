@@ -10,12 +10,8 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorResult, FactorScore, TradeLevels } from '@/trading/kernel/factor'
 import type { PriceDisplay, Ticker } from '@/trading/kernel/instrument'
 import type { AccountsHistory } from '@/trading/kernel/market/annual-accounts'
-import type {
-  AnalystRecommendation,
-  MarketEvent,
-  MarketEventKind,
-  NewsItem,
-} from '@/trading/kernel/market/market-data'
+import type { AnalystRecommendation, NewsItem } from '@/trading/kernel/market/market-data'
+import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Market } from '@/trading/markets/types'
 import { t } from '@/i18n'
@@ -215,11 +211,12 @@ function evidenceText(input: DebateInput, market: Market, sections: EvidenceSect
     }),
     eventsSection(input),
     recentEventsSection(input),
-    newsSection(sections.read.own, reads.news),
+    newsSection(sections.read.own, reads.news, market.manifest.calendar),
     marketNewsSection({
       items: sections.read.market,
       subject: input.draft.instrument.ticker,
       read: reads.marketNews,
+      calendar: market.manifest.calendar,
     }),
     consensusSection({
       rows: consensus,
@@ -297,7 +294,7 @@ function factorSection(input: DebateInput, display: PriceDisplay | undefined): s
     return ''
   }
 
-  const referencePrice = draft.quote?.price ?? entryOf(draft)
+  const referencePrice = draft.quote?.price ?? draft.entry
   const context: FactorRowContext = { locale: request.locale, display, referencePrice }
 
   return [
@@ -310,10 +307,6 @@ interface FactorRowContext {
   readonly locale: Locale
   readonly display: PriceDisplay | undefined
   readonly referencePrice: number | undefined
-}
-
-function entryOf(draft: DebateInput['draft']): number | undefined {
-  return draft.action === 'hold' ? draft.entry : draft.entry
 }
 
 /** The name is the catalog's, in the operator's own language, and the bare id no longer travels

@@ -3,9 +3,7 @@ import { z } from 'zod'
 import type { ToolDefinition } from '@/core/tool'
 import type { LedgerTxnDraft } from '@/trading/features/ledger/types'
 import type { LedgerToolDeps } from '@/trading/features/portfolio/tools/types'
-import { ValidationError } from '@/core/errors'
 import { createTool } from '@/core/tool'
-import { asksForFxRate } from '@/trading/features/ledger/fx-rate'
 import { renderWriteReceipt } from '@/trading/features/ledger/render'
 import { renderDraftLine } from '@/trading/features/ledger/rows'
 import {
@@ -35,14 +33,6 @@ export function createPortfolioUpdateTool(
       detail: (input, locale) => `[${input.id}] ${renderDraftLine(locale, input.draft, markets)}`,
     },
     async execute(args, ctx): Promise<string> {
-      // An edit always restates its rate, so it is refused outright instead of previewed.
-      if (asksForFxRate(args.draft, deps.baseCurrency) && 'currency' in args.draft) {
-        throw new ValidationError(`no rate stated for a ${args.draft.currency} row`, {
-          key: 'errors.ledgerFxRateUnstated',
-          params: { currency: args.draft.currency },
-        })
-      }
-
       const result = await portfolio.update({
         ref: args.id,
         draft: args.draft,

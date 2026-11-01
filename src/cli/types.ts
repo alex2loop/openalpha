@@ -1,4 +1,5 @@
 import type { KeyFile } from '@/cli/env-file'
+import type { Terminal } from '@/cli/terminal'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { App } from '@/core/container'
 import type { MessageKey } from '@/i18n'
@@ -31,6 +32,7 @@ export interface CliApp extends App {
   readonly out: Writer
   readonly err: Writer
   readonly write: Writer
+  readonly terminal: Terminal
   /** Present only for daemon commands; main creates its controller before boot. */
   readonly abortDaemon?: () => void
   readonly configProbe?: ConfigProbe

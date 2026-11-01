@@ -2,7 +2,10 @@
 // no SLA — it can change or refuse traffic without notice. The endpoint is code-owned rather than
 // operator-typed because it is a provider fact, not a judgment call; a failing fetch degrades to a
 // caveat through the normal failover path.
+import type { IndexCode } from '@/trading/kernel/market/index-reading'
+import type { SourceContext } from '@/trading/kernel/source/source-result'
 import { currencyCode } from '@/trading/kernel/instrument'
+import { isIndexCode } from '@/trading/kernel/market/index-reading'
 import { sourceId } from '@/trading/kernel/source/source-id'
 
 export const VNDIRECT_DEFAULT_ENDPOINT = 'https://api-finfo.vndirect.com.vn'
@@ -28,3 +31,17 @@ export function marketSort(dayField: string, direction: 'asc' | 'desc'): string 
  *  16.4s and timed out every run, 100 measured 8.3s. 50 answers in 4.3s, so the deadline keeps more
  *  than double the headroom while a universe-wide sweep still costs under ten requests. */
 export const RATIO_BATCH_TICKERS = 50
+
+/** The market-watch socket's HTTP face: a second host, so a second source id for the transport to
+ *  pin, meter and break on apart from `api-finfo`. Its path prefix is the endpoint's own. */
+export const VNDIRECT_MKW_DEFAULT_ENDPOINT = 'https://mkw-socket-v2.vndirect.com.vn/mkwsocketv2'
+export const VNDIRECT_MKW_ID = sourceId('vndirect-mkw')
+/** The widget this feed backs states its origin; the host answers without it, but a browser's own
+ *  request would carry it. */
+export const VNDIRECT_MKW_REFERER = 'https://mkw.vndirect.com.vn/'
+
+/** The index a request names, which both index feeds read from `ticker`: an index is a symbol of
+ *  its own here, never an instrument of the market. */
+export function contextIndex({ ticker }: SourceContext): IndexCode | undefined {
+  return ticker !== undefined && isIndexCode(ticker) ? ticker : undefined
+}

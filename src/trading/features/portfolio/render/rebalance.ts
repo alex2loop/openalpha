@@ -31,7 +31,7 @@ import { formatMoney } from '@/trading/render/money'
 import { renderSubject } from '@/trading/render/subject'
 
 import { renderOrders, splitBreaches } from './rebalance-orders'
-import { renderCashLine, renderEtfCapLines, renderSegments } from './segments'
+import { printedSegmentShares, renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
 const DRIFT_FINDING = 'segment-drift'
 const REGIME_CAVEAT = 'portfolio.regime-risk'
@@ -214,7 +214,10 @@ export function renderAfterPlan(
   advice: RebalancePlanReady,
   options: RebalanceRenderOptions
 ): readonly string[] {
-  const cash = advice.allocation.find((row) => row.segment === CASH_SEGMENT)?.afterPlanPctNav
+  // The table's own rounding, so the two lines state one figure.
+  const cash = printedSegmentShares(advice.allocation).find(
+    ([row]) => row.segment === CASH_SEGMENT
+  )?.[1].afterPlanPctNav
   const largest = largestSectorAfter(advice, options.book)
 
   if (cash === undefined || largest === undefined || options.maximumSectorPctNav === undefined) {
@@ -295,12 +298,13 @@ export function renderNotes(
   ]
 }
 
-/** A name the plan already sells carries the score that condemned it on its own row, so the note
- *  would be the same fact with less of it. */
+/** A name the plan sells whole or for its weak score has its row, and a note saying no sale is
+ *  needed yet would contradict it; an odd lot left after a weak exit is the same sale. A name only
+ *  trimmed to a cap keeps the note: the rest of it still stands. */
 function renderWeakHoldingLines(locale: Locale, advice: RebalancePlanReady): readonly string[] {
   const sold = new Set(
     advice.rebalance
-      .filter((row) => row.reason.kind === 'weak-signal')
+      .filter((row) => row.targetPctNav <= 0 || row.reason.kind === 'weak-signal')
       .map((row) => buildInstrumentKey(row.instrument))
   )
 

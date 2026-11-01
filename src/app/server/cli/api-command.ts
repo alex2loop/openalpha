@@ -2,13 +2,16 @@ import { randomBytes } from 'node:crypto'
 import { unlink } from 'node:fs/promises'
 
 import type { CliApp, Group } from '@/cli/api'
+import { printApiDisabled, readApiToken, withApiToken } from '@/app/server/cli/api-token'
+import { restartDaemonWith } from '@/app/server/cli/restart-client'
 import { apiTokenPath } from '@/app/server/http/auth'
-import { createCommand, createGroup, fail, getEnv, hint } from '@/cli/api'
+import { createCommand, createGroup, fail, hint, liveDaemon, success } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 import { t } from '@/i18n'
 
 const TOKEN_BYTES = 32
+const EXIT_FAILED = 1
 
 const authTokenCommand = createCommand({
   name: 'token',
@@ -27,41 +30,14 @@ const authRotateCommand = createCommand({
 export const apiCommand: Group = createGroup({
   name: 'api',
   summary: { key: 'cliHelp.apiAuthSummary' },
+  needs: { local: true },
   subcommands: [authTokenCommand, authRotateCommand],
 })
 
-async function printToken(app: CliApp): Promise<number> {
-  if (!app.config.api.enabled) {
-    return printApiDisabled(app)
-  }
-
-  const tokenEnv = app.config.api.tokenEnv
-
-  if (tokenEnv !== undefined) {
-    const value = getEnv()[tokenEnv] ?? ''
-
-    if (value === '') {
-      app.err(fail(t(app.config.locale.language, 'cli.authTokenEnvEmpty', { env: tokenEnv })))
-
-      return 1
-    }
-
-    app.out(value)
-
-    return 0
-  }
-
-  const token = await readTokenFile(app.config.paths.dataDir)
-
-  if (token === null) {
-    app.err(fail(t(app.config.locale.language, 'cli.authTokenMissing', { brand: BRAND.name })))
-
-    return 1
-  }
-
-  app.out(token)
-
-  return 0
+function printToken(app: CliApp): Promise<number> {
+  return withApiToken(app, (token) => {
+    app.out(token)
+  })
 }
 
 async function rotateToken(app: CliApp): Promise<number> {
@@ -77,6 +53,8 @@ async function rotateToken(app: CliApp): Promise<number> {
     return 0
   }
 
+  // Read before the file changes: the running daemon only takes the token it started with.
+  const previous = await readApiToken(app)
   const path = apiTokenPath(app.config.paths.dataDir)
 
   await unlink(path).catch(() => undefined)
@@ -85,31 +63,34 @@ async function rotateToken(app: CliApp): Promise<number> {
 
   await replacePrivateFileAtomic({ path, content: JSON.stringify({ token }, null, 2) })
 
+  const locale = app.config.locale.language
+
+  // Printed before the sessions go, so a failed removal never hides the new token.
   app.out(token)
-  app.out(hint(t(app.config.locale.language, 'cli.authTokenRestart', { brand: BRAND.name })))
 
-  return 0
-}
+  const signedOut = await app.resolve('browserSessionStore').removeAll()
 
-/** A disabled server reads no token, so neither showing nor minting one means anything yet. */
-function printApiDisabled(app: CliApp): number {
-  app.out(t(app.config.locale.language, 'cli.authApiDisabled'))
+  app.out(t(locale, 'cli.apiRotateSignedOut', { count: signedOut }))
 
-  return 0
-}
+  const daemon = await liveDaemon(app)
 
-async function readTokenFile(dataDir: string): Promise<string | null> {
-  const file = Bun.file(apiTokenPath(dataDir))
+  if (daemon === null) {
+    app.out(hint(t(locale, 'cli.authTokenRestart', { brand: BRAND.name })))
 
-  if (!(await file.exists())) {
-    return null
+    return 0
   }
 
-  const parsed: unknown = await file.json().catch(() => null)
+  const restarted = previous.ok
+    ? await restartDaemonWith(app, daemon, { token: previous.token, when: 'now' })
+    : undefined
 
-  if (typeof parsed !== 'object' || parsed === null || !('token' in parsed)) {
-    return null
+  if (restarted === 0) {
+    app.out(success(t(locale, 'cli.apiRotateOldTokenEnded')))
+
+    return 0
   }
 
-  return typeof parsed.token === 'string' ? parsed.token : null
+  app.err(fail(t(locale, 'cli.apiRotateRestartFailed', { brand: BRAND.name })))
+
+  return restarted ?? EXIT_FAILED
 }

@@ -1,5 +1,5 @@
 # Installs or upgrades OpenAlpha on Windows from its latest GitHub release:
-#   powershell -c "irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex"
+#   irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex
 # It installs one self-contained openalpha.exe with Bun built in, so nothing else is set up. Your
 # data dir and config are never touched; on an upgrade, `openalpha upgrade` moves a background daemon
 # onto the new binary.

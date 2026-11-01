@@ -1,0 +1,32 @@
+.fold {
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+:is(.flow, .stack) > .fold {
+  margin-top: 0;
+}
+
+.fold > summary {
+  margin-inline: calc(var(--s1) * -1);
+  padding: 6px var(--s1);
+  border-radius: var(--controlSmRadius);
+  color: var(--ink2);
+  font: var(--typeHeading);
+  cursor: pointer;
+}
+
+/* Focus shows as a soft pill on the row, not the page ring around its whole width. */
+.fold > summary:focus-visible {
+  outline: 0;
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--ink3);
+}
+
+.fold > summary::first-letter {
+  text-transform: uppercase;
+}
+
+.fold-body {
+  padding-bottom: 6px;
+}

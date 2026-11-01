@@ -37,7 +37,10 @@ export interface OrchestratorDeps {
   readonly settings: ChannelSettings
   readonly locale: Locale
   readonly logger: Logger
+  /** Outbound signal: lives past shutdown so a final line can still be written. */
   readonly signal: AbortSignal
+  /** Ends at the daemon's shutdown; a run that ends under it was cut, not finished. */
+  readonly intakeSignal: AbortSignal
   readonly sent: SentMessages
   readonly sessions: SessionActivity
   /** Channel-owned deep-plan review; the prompted chat supplies the explicit start or cancel. */
@@ -208,29 +211,50 @@ function newReply(deps: OrchestratorDeps, target: ReplyTarget): Reply {
   })
 }
 
+interface StopTarget {
+  readonly reply: Reply
+  readonly afterApproval: boolean
+}
+
 async function reportRunnerFailure(
   deps: OrchestratorDeps,
-  target: { readonly reply: Reply; readonly afterApproval: boolean },
+  target: StopTarget,
   err: unknown
 ): Promise<void> {
-  const { reply } = target
-  const text = t(deps.locale, 'errors.unexpected')
+  if (deps.intakeSignal.aborted) {
+    await reportShutdownCut(deps, target)
+
+    return
+  }
 
   deps.logger.error('orchestrator.run_failed', {
     channel: deps.adapter.id,
     err: formatErrForLog(err),
   })
 
-  // Same ordering rule as the answer: a prompt sits below the placeholder, so editing it would
-  // report the failure above the approval that preceded it.
+  await writeStopLine(deps, target, t(deps.locale, 'errors.unexpected'))
+  await runNonMasking(deps, 'orchestrator.failure_reaction_failed', () => target.reply.react('❌'))
+}
+
+// The message stays in the inbox and runs again after the restart, so the line promises an answer.
+async function reportShutdownCut(deps: OrchestratorDeps, target: StopTarget): Promise<void> {
+  await writeStopLine(deps, target, t(deps.locale, 'channel.restarting'))
+}
+
+// Same ordering rule as the answer: a prompt sits below the placeholder, so editing it would
+// report the stop above the approval that preceded it.
+async function writeStopLine(
+  deps: OrchestratorDeps,
+  target: StopTarget,
+  text: string
+): Promise<void> {
   await runNonMasking(deps, 'orchestrator.failure_update_failed', async () => {
     if (target.afterApproval) {
-      await reply.overflow(text, { signal: deps.signal })
+      await target.reply.overflow(text, { signal: deps.signal })
     } else {
-      await reply.update(text, { retryOn429: true, signal: deps.signal })
+      await target.reply.update(text, { retryOn429: true, signal: deps.signal })
     }
   })
-  await runNonMasking(deps, 'orchestrator.failure_reaction_failed', () => reply.react('❌'))
 }
 
 interface SettleInput {
@@ -297,6 +321,15 @@ interface AnswerSend {
 // The run is spent by now. A failed final write carries the answer out so the inbox retry sends it
 // again rather than running the agent a second time.
 async function deliverResult(deps: OrchestratorDeps, delivery: Delivery): Promise<void> {
+  const { reply, result, afterApproval } = delivery
+
+  // A run the shutdown cut has no answer: the message runs again after the restart.
+  if (result.reason === 'aborted' && deps.intakeSignal.aborted) {
+    await reportShutdownCut(deps, { reply, afterApproval })
+
+    throw new RunHalted('shutdown', 'channel exchange cut by shutdown')
+  }
+
   const answer = toFinalAnswer(deps.locale, delivery)
 
   try {

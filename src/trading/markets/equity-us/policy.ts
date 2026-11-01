@@ -6,7 +6,7 @@ import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { marketRef, region, ticker } from '@/trading/kernel/instrument'
 import { RESTATEMENT_TOLERANCE } from '@/trading/markets/bar-restatement'
-import { US_EXCHANGE_HOLIDAYS } from '@/trading/markets/equity-us/holidays'
+import { usClosuresOf } from '@/trading/markets/equity-us/calendar/closures'
 import { US_MACRO_DRIVERS } from '@/trading/markets/macro-risk'
 
 export const US_STRATEGY_VERSION = '1.0.0'
@@ -19,7 +19,7 @@ export const US_CALENDAR: CalendarPolicy = Object.freeze({
   sessionOpenLocalTime: '09:30',
   sessionCloseLocalTime: '16:00',
   weekendDays: Object.freeze([0, 6]),
-  holidays: US_EXCHANGE_HOLIDAYS,
+  holidays: usClosuresOf,
   continuous: false,
 })
 
@@ -153,6 +153,11 @@ export const US_MINIMUM_TRADED_VALUE_USD = 1_000_000
 export const US_MAXIMUM_VOLATILITY = 0.1
 /** How many names a refresh asks the provider for at once; the pacer still enforces the rate. */
 export const US_SOURCE_CONCURRENCY = 5
+
+/** Sessions back a filing still reads as news in the brief, and sessions ahead an ex-date is worth
+ *  stating and reminding about. */
+export const US_RECENT_FILING_SESSIONS = 5
+export const US_EX_DATE_HORIZON_SESSIONS = 10
 /** Store reads in flight while the board assembles; the database is local, so wider than a provider. */
 export const US_BOARD_READ_CONCURRENCY = 8
 /** How far a stored close may sit from the same session's refetched close before the series counts

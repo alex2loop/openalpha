@@ -1,8 +1,23 @@
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage, Transaction } from '@/core/types/storage'
+import type { PagedCutoffs, PagedScopeName } from '@/persistence/retention-history'
 import type { RetentionConfig } from '@/persistence/types'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY } from '@/core/utils/time'
+import {
+  countNoticesSql,
+  countRunsSql,
+  deleteNoticesSql,
+  deleteRunsSql,
+} from '@/persistence/retention-activity'
+import { countEvidence, evidenceFilter, trimEvidence } from '@/persistence/retention-evidence'
+import {
+  countPaged,
+  EMPTY_PAGED_COUNTS,
+  toPagedCutoffs,
+  toPagedScopes,
+} from '@/persistence/retention-history'
+import { buildPageDelete, countRows, deleteCount, drainPages } from '@/persistence/retention-pages'
 import { SESSION_ROUTE_KEY_PREFIX } from '@/persistence/stores/channel/chat-binding'
 import { detachAttemptsSql } from '@/persistence/stores/session/sql'
 
@@ -12,7 +27,6 @@ const BRIEF_SNAPSHOTS_KEEP_PER_LOCALE = 1
 // monthly cap window. Not the general window: `db prune --older-than` must not shorten the ledger.
 const LLM_ATTEMPTS_RETENTION_MS = 400 * MS_PER_DAY
 const ROUTE_KEY_PATTERN = `${SESSION_ROUTE_KEY_PREFIX}%`
-const SQLITE_DIRECT_CHANGES_SQL = 'SELECT changes() AS n'
 
 const EMPTY_COUNTS = Object.freeze({
   sessions: 0,
@@ -25,9 +39,13 @@ const EMPTY_COUNTS = Object.freeze({
   alertsTerminal: 0,
   briefSnapshots: 0,
   llmAttempts: 0,
+  runs: 0,
+  notices: 0,
+  suggestionEvidence: 0,
+  ...EMPTY_PAGED_COUNTS,
 })
 
-export interface RetentionCounts {
+export interface RetentionCounts extends Readonly<Record<PagedScopeName, number>> {
   readonly sessions: number
   readonly sessionRoutes: number
   readonly memory: number
@@ -38,6 +56,10 @@ export interface RetentionCounts {
   readonly alertsTerminal: number
   readonly briefSnapshots: number
   readonly llmAttempts: number
+  readonly runs: number
+  readonly notices: number
+  /** Scored calls whose factor source stamps were emptied, not deleted. */
+  readonly suggestionEvidence: number
 }
 
 interface RetentionOptions {
@@ -45,9 +67,7 @@ interface RetentionOptions {
   readonly logger: Logger
 }
 
-interface RetentionCutoffs {
-  readonly now: number
-  readonly general: number
+interface RetentionCutoffs extends PagedCutoffs {
   readonly inbox: number
 }
 
@@ -58,11 +78,6 @@ interface RetentionScope {
   run(tx: Transaction): Promise<number>
 }
 
-interface DeleteStatement {
-  readonly sql: string
-  readonly params: readonly unknown[]
-}
-
 export async function countRetention(
   db: Storage,
   dialect: Dialect,
@@ -71,6 +86,7 @@ export async function countRetention(
   const times = cutoffs(options.config)
 
   return db.transaction(async (tx) => ({
+    ...(await countPaged(tx, toPagedScopes(dialect, times))),
     sessions: await countSessions(tx, dialect, times.general),
     sessionRoutes: await countSessionRoutes(tx, dialect, times.general),
     memory: await countMemory(tx, dialect, times),
@@ -81,6 +97,9 @@ export async function countRetention(
     alertsTerminal: await countAlertsTerminal(tx, dialect, times.general),
     briefSnapshots: await countBriefSnapshots(tx, dialect, times.general),
     llmAttempts: await countLlmAttempts(tx, dialect, times.now - LLM_ATTEMPTS_RETENTION_MS),
+    runs: await countRuns(tx, dialect, times.general),
+    notices: await countNotices(tx, dialect, times.general),
+    suggestionEvidence: await countEvidence(tx, evidenceFilter(dialect, times.general)),
   }))
 }
 
@@ -90,10 +109,29 @@ export async function runRetention(
   options: RetentionOptions
 ): Promise<RetentionCounts> {
   const counts: Record<keyof RetentionCounts, number> = { ...EMPTY_COUNTS }
+  const times = cutoffs(options.config)
 
-  for (const scope of toScopes(dialect, cutoffs(options.config))) {
-    counts[scope.name] = await runScope(db, scope, options.logger)
+  for (const scope of toScopes(dialect, times)) {
+    const run = (): Promise<number> => db.transaction((tx) => scope.run(tx))
+
+    counts[scope.name] = await runScope(scope.name, run, options.logger)
   }
+
+  // Each page is its own transaction, so a long backlog releases the write lock between pages.
+  for (const scope of toPagedScopes(dialect, times)) {
+    const statement = buildPageDelete(dialect, scope.table, scope.filter)
+    const run = (): Promise<number> =>
+      drainPages(() => db.transaction((tx) => deleteCount(tx, dialect, statement)))
+
+    counts[scope.name] = await runScope(scope.name, run, options.logger)
+  }
+
+  // After the deletes, so a row about to go is not rewritten first.
+  counts.suggestionEvidence = await runScope(
+    'suggestionEvidence',
+    () => trimEvidence(db, dialect, evidenceFilter(dialect, times.general)),
+    options.logger
+  )
 
   options.logger.info('retention.pruned', counts)
 
@@ -115,15 +153,25 @@ function toScopes(dialect: Dialect, times: RetentionCutoffs): readonly Retention
     { name: 'alertsTerminal', run: (tx) => deleteAlertsTerminal(tx, dialect, times.general) },
     { name: 'briefSnapshots', run: (tx) => deleteBriefSnapshots(tx, dialect, times.general) },
     { name: 'llmAttempts', run: (tx) => deleteLlmAttempts(tx, dialect, attempts) },
+    { name: 'runs', run: (tx) => deleteCount(tx, dialect, deleteRunsSql(dialect, times.general)) },
+    {
+      name: 'notices',
+      run: (tx) => deleteCount(tx, dialect, deleteNoticesSql(dialect, times.general)),
+    },
   ]
 }
 
-// A failed scope counts zero and the sweep goes on: the rows wait for the next sweep.
-async function runScope(db: Storage, scope: RetentionScope, logger: Logger): Promise<number> {
+// A failed scope counts zero and the sweep goes on: the rows wait for the next sweep. A paged scope
+// that fails part way keeps the pages it already deleted.
+async function runScope(
+  name: keyof RetentionCounts,
+  run: () => Promise<number>,
+  logger: Logger
+): Promise<number> {
   try {
-    return await db.transaction((tx) => scope.run(tx))
+    return await run()
   } catch (err: unknown) {
-    logger.warn('retention.scope_failed', { scope: scope.name, err: formatErrForLog(err) })
+    logger.warn('retention.scope_failed', { scope: name, err: formatErrForLog(err) })
 
     return 0
   }
@@ -132,8 +180,7 @@ async function runScope(db: Storage, scope: RetentionScope, logger: Logger): Pro
 function cutoffs(config: RetentionConfig): RetentionCutoffs {
   const now = Date.now()
   return {
-    now,
-    general: now - config.retentionDays * MS_PER_DAY,
+    ...toPagedCutoffs(config, now),
     inbox: now - config.inboxRetentionDays * MS_PER_DAY,
   }
 }
@@ -279,6 +326,18 @@ async function countLlmAttempts(
   return countRows(tx, sql, [cutoff])
 }
 
+async function countRuns(tx: Transaction, dialect: Dialect, cutoff: number): Promise<number> {
+  const { sql, params } = countRunsSql(dialect, cutoff)
+
+  return countRows(tx, sql, params)
+}
+
+async function countNotices(tx: Transaction, dialect: Dialect, cutoff: number): Promise<number> {
+  const { sql, params } = countNoticesSql(dialect, cutoff)
+
+  return countRows(tx, sql, params)
+}
+
 async function deleteSessions(tx: Transaction, dialect: Dialect, cutoff: number): Promise<number> {
   const at = dialect.param(1)
 
@@ -403,28 +462,4 @@ function memoryWhere(dialect: Dialect): string {
     `(expires_at IS NOT NULL AND expires_at < ${dialect.param(1)}) OR ` +
     `(deleted_at IS NOT NULL AND deleted_at < ${dialect.param(2)})`
   )
-}
-
-async function deleteCount(
-  tx: Transaction,
-  dialect: Dialect,
-  statement: DeleteStatement
-): Promise<number> {
-  const result = await tx.execute(statement.sql, statement.params)
-
-  if (dialect.name === 'postgres') {
-    return result.changes
-  }
-
-  // Bun includes trigger and foreign-key side effects; changes() reports only the direct rows.
-  return countRows(tx, SQLITE_DIRECT_CHANGES_SQL)
-}
-
-async function countRows(
-  tx: Transaction,
-  sql: string,
-  params?: readonly unknown[]
-): Promise<number> {
-  const rows = await tx.query<{ readonly n: number }>(sql, params)
-  return rows[0]?.n ?? 0
 }

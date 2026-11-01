@@ -89,7 +89,7 @@ export const helloCommand = createCommand({
 | `preBootApp`, `runCli` | `/cli` | Ứng dụng chỉ có cấu hình cho các lệnh không cần khởi động; chạy cây lệnh với argv |
 | `parseGlobalFlags` | `/cli` | Phân tích cờ chung trước khi điều phối lệnh |
 | `formatTerminalError`, `printError`, `usage`, `fail` | `/cli` | Đầu ra lỗi và hướng dẫn dùng ở terminal |
-| `getEnv`, `isVerbose`, `stopDaemonIfRunning` | `/cli` | Hàm hỗ trợ môi trường CLI, hỗ trợ tắt daemon |
+| `getEnv`, `isVerbose`, `stopDaemonIfRunning` | `/cli` | Hàm hỗ trợ môi trường CLI, hỗ trợ tắt dịch vụ nền (daemon) |
 | `BUILT_IN_COMMANDS` | `/cli` | Sổ đăng ký chuẩn các lệnh có sẵn |
 
 ### Công cụ nhận được gì
@@ -117,7 +117,7 @@ chạy đã gọi nó.
 ### Tạo một agent
 
 Agent là dữ liệu (một `agent.toml` đã qua kiểm tra) hoặc mã (`createAgent`). Agent viết bằng mã có cùng
-schema với `agent.toml`, theo camelCase, trừ `modelTier` và `reasoning` (chỉ dành cho agent đáng tin) và
+schema với `agent.toml`, theo camelCase, trừ `modelTier` và `reasoning` (một `agent.toml` của người dùng được đặt `model_tier`, agent viết bằng mã thì không bao giờ; `reasoning` chỉ dành cho agent đáng tin) và
 trừ `focus` cùng `max_daily_usd` (chỉ `agent.toml` mới có). Nó luôn **không đáng tin**, ngang hàng với một
 `agent.toml` của người dùng.
 
@@ -256,15 +256,15 @@ một `bind` trước đó:
 logger, bus, sessionQueue (cốt lõi, inline)
 storage -> tradingStores -> baseCurrencyGuard, memory -> ai -> engine -> tools
 -> channels, commands -> cliCommands -> social -> đăng ký phần giao dịch
--> plugins -> mcp -> userAgents -> app -> scheduler -> bootExtensions -> api
+-> plugins -> mcp -> userAgents -> app -> scheduler -> bootExtensions -> liveAgents -> api
 ```
 
 - `baseCurrencyGuard` (bước 2b) mở rộng các binding hồ sơ và sổ lệnh của phần giao dịch, nên đứng sau
   `tradingStores`.
 - `cliCommands` (8b) là phần cơ sở rỗng mà phần giao dịch và plugin cùng mở rộng.
 - `social` (8c) bind dịch vụ mạng xã hội và mở rộng sổ đăng ký công cụ cùng lệnh.
-- `scheduler` (13b) bind các lệnh việc và tác vụ daemon sau khi các binding của provider `app` đã có.
-- `api` (cuối cùng) bind API HTTP/WS; daemon chỉ khởi động nó khi `[api]` được bật.
+- `scheduler` (13b) bind các lệnh việc và tác vụ dịch vụ nền sau khi các binding của provider `app` đã có.
+- `api` (cuối cùng) bind API HTTP/WS; dịch vụ nền chỉ khởi động nó khi `[api]` được bật.
 
 Các ràng buộc cứng, đúng như `providers.ts` phát biểu:
 
@@ -298,12 +298,13 @@ lắp xong.
    nhà cung cấp bị loại vì **không có trong danh sách**.
 5. Nạp các tài nguyên runtime (server MCP, plugin đã cài, agent của người dùng, workflow của người dùng)
    và mở tầng lưu trữ.
-6. Gọi `createApp(config, [...assembly.providers, ...features], { configPath, signal })`.
+6. Gọi `createApp(config, [createAgentLogsProvider(...), ...assembly.providers, ...features], { configPath, signal })`.
 7. Chạy `assembly.assertExtensionsRegistered(app)`: buộc các dịch vụ liên quan phân giải, rồi ném
    **một** `ConfigError` đã lọc thông tin đăng nhập, liệt kê mọi vấn đề trên mọi tùy chọn phẳng.
-8. Phân giải ngay các dịch vụ giao dịch (bản cài sai báo lỗi ngay lúc khởi động, không đợi đến lời gọi
-   công cụ đầu tiên), kiểm tra các quy tắc công cụ của `[social]` trên sổ đăng ký công cụ cuối cùng, trỏ
-   logger vào sổ đăng ký agent, và chạy bước khởi động.
+8. Phân giải ngay các dịch vụ giao dịch và truy xuất web (bản cài sai hoặc thiếu khóa tìm kiếm báo ngay
+   lúc khởi động, không đợi đến lời gọi công cụ đầu tiên), khẳng định các công cụ spawn đã được đăng ký,
+   kiểm tra các quy tắc công cụ của `[social]` trên sổ đăng ký công cụ cuối cùng, trỏ logger vào sổ đăng
+   ký agent, chạy bước khởi động, rồi bật nhật ký phiên chạy và nhật ký thông báo (`dispose()` dừng cả hai).
 
 `boot()` trả về `{ app, delivery, dispose }`. Nếu khởi động lỗi, kể cả lỗi kiểm tra phần mở rộng, nó ghi
 log `boot.failed`, giải phóng những gì đã lấy, rồi ném lại lỗi. `dispose()` gọi nhiều lần cũng an toàn
@@ -318,7 +319,7 @@ ghi mọi lỗi thành `boot.dispose_failed`, và đóng logger sau cùng.
 | `env` | Môi trường nguồn cho bộ lọc môi trường con |
 | `configFile` | `'required'` (mặc định), `'optional'` hoặc `'probe'` |
 | `configPath`, `dataDir`, `logLevel`, `modelSource` | Các cách ghi đè cấu hình |
-| `shutdownSignal` | `AbortSignal` của ứng dụng; công cụ và daemon truyền nó đi |
+| `shutdownSignal` | `AbortSignal` của ứng dụng; công cụ và dịch vụ nền truyền nó đi |
 | `tools`, `agents`, `slashCommands`, `channels` | Các tùy chọn mở rộng dạng phẳng. Mọi vấn đề gom vào một `ConfigError` |
 | `features` | Các `ServiceProvider` thêm, xếp sau provider mở rộng lúc khởi động |
 | `bootGate` | Mặc định là cổng cho qua |
@@ -342,7 +343,7 @@ không bao giờ bằng cách sửa danh sách chuẩn. Runtime không bao giờ
 
 ### Bề mặt nhận thông báo
 
-Ứng dụng chủ không phải kênh chat vẫn nhận được những gì daemon đẩy ra: cảnh báo giá, chạm mức cắt lỗ,
+Ứng dụng chủ không phải kênh chat vẫn nhận được những gì dịch vụ nền đẩy ra: cảnh báo giá, chạm mức cắt lỗ,
 bản tin sáng, mã biến động mạnh và kết quả việc theo lịch. Từ một trong các `features`, hãy gắn một bề
 mặt dưới một mã kênh và giữ hàm gỡ để dùng khi tắt:
 
@@ -398,7 +399,7 @@ runtime. Plugin đã cài trong hệ thống tệp được khám phá như **d�
 
 `DaemonTask` chạy `start(signal, options?)`. `options` là `DaemonStartOptions`: `onReady` kích hoạt khi mọi hệ con
 đã lên, `onHealth` báo những gì một kênh còn bỏ xuống mỗi khi nó đổi, và `previousRun` được đặt khi lần khởi động
-này giành lại tệp pid của một daemon chưa từng dừng đàng hoàng.
+này giành lại tệp pid của một dịch vụ nền chưa từng dừng đàng hoàng.
 
 Phần giao dịch **không** phải plugin. Nó đăng ký trực tiếp ở bước provider số 9, trước plugin, nên plugin
 không bao giờ che được công cụ, lệnh hay vai tranh luận nào của phần giao dịch. Xem

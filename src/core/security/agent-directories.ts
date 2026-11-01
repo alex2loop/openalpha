@@ -10,7 +10,9 @@ import { AGENT_LOG_FILE_NAME, AGENT_LOG_SEGMENTS } from '@/core/logging/paths'
 import { ensurePrivateDirectory } from '@/core/security/private-files'
 
 const AGENT_WORKSPACES_SEGMENTS = ['workspaces'] as const
-const RUN_DIR_SEGMENTS = ['run', 'tmp'] as const
+/** An approved shell's HOME inside its agent's workspace. */
+export const AGENT_RUN_DIR_NAME = 'run'
+const RUN_DIR_SEGMENTS = [AGENT_RUN_DIR_NAME, 'tmp'] as const
 
 export async function prepareAgentScratchDir(
   dataDir: string,

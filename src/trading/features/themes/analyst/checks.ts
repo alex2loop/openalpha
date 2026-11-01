@@ -329,8 +329,11 @@ function targetPeIssues(
   scenarios: ThemeCompanyReply['scenarios'],
   range: PeRange
 ): readonly string[] {
-  return SCENARIO_CASES.filter((key) => scenarios[key].targetPe > range.max).map(
-    (key) => `scenarios.${key}.targetPe: above the five-year high ${formatFigure(range.max)}`
+  const high = formatFigure(range.max)
+
+  // Held to the high as the prompt printed it, so a target set exactly there passes.
+  return SCENARIO_CASES.filter((key) => scenarios[key].targetPe > Number(high)).map(
+    (key) => `scenarios.${key}.targetPe: above the five-year high ${high}`
   )
 }
 

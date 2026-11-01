@@ -7,6 +7,10 @@
   "scoreRegime": "neutral",
   "score": 0.09777999999999992,
   "coverage": 0.5,
+  "readings": {
+    "deposit-rate-12m": 5.72,
+    "usd-vnd": 25841
+  },
   "drivers": [
     {
       "id": "us-real-rate",
@@ -56,10 +60,12 @@
   "missing": [
     {
       "id": "vn-index-trend",
+      "label": "Xu hướng VN-Index so với trung bình 200 phiên",
       "reason": "no-observation"
     },
     {
       "id": "vn-breadth",
+      "label": "Tỷ lệ mã trên trung bình 50 phiên",
       "reason": "no-observation"
     }
   ],

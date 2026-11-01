@@ -67,15 +67,20 @@ function trackingCaveats(dispersion: number | undefined): readonly Caveat[] {
  *  benchmark, no stored index series, or too short an overlap is absent rather than zero. */
 export function etfTrackingErrors(
   funds: readonly BenchmarkedFund[],
-  benchmarks: ReadonlyMap<Ticker, readonly Candle[]>
+  benchmarks: ReadonlyMap<Ticker, readonly BarRecord[]>
 ): ReadonlyMap<Ticker, number> {
   const errors = new Map<Ticker, number>()
 
   for (const fund of funds) {
     const key = fund.record.instrument.ticker
-    const benchmark = benchmarkCandles(key, benchmarks)
+    const benchmark = benchmarkBars(key, benchmarks)
     const error =
-      benchmark === undefined ? undefined : trackingError(adjustedCandles(fund.bars), benchmark)
+      benchmark === undefined
+        ? undefined
+        : trackingError(
+            adjustedCandles(fund.bars),
+            benchmark.map((bar) => bar.candle)
+          )
 
     if (error !== undefined) {
       errors.set(key, error)
@@ -87,10 +92,10 @@ export function etfTrackingErrors(
 
 /** The stored series a fund is measured against, or nothing: a fund with no declared benchmark, or
  *  one whose index has no bars yet, abstains rather than being measured against VN-Index. */
-export function benchmarkCandles(
+export function benchmarkBars(
   fund: Ticker,
-  benchmarks: ReadonlyMap<Ticker, readonly Candle[]>
-): readonly Candle[] | undefined {
+  benchmarks: ReadonlyMap<Ticker, readonly BarRecord[]>
+): readonly BarRecord[] | undefined {
   const index = ETF_BENCHMARK_BY_TICKER.get(fund)
 
   return index === undefined ? undefined : benchmarks.get(index)

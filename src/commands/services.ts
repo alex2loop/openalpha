@@ -1,4 +1,9 @@
-import type { CommandCatalog, KeyValidator, SlashDispatcher } from '@/commands/types'
+import type {
+  CommandCatalog,
+  CommandLocales,
+  KeyValidator,
+  SlashDispatcher,
+} from '@/commands/types'
 import type { App, ServiceProvider } from '@/core/container'
 import type { AgentId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
@@ -32,6 +37,7 @@ declare module '@/core/container' {
 
 export interface CoreCommandDeps {
   readonly agents: AgentRegistry
+  readonly ownAgentIds: AgentCommandDeps['ownAgentIds']
   readonly pausedAgents: AgentCommandDeps['pausedAgents']
   readonly memory: Memory
   readonly spend: SpendCommandDeps
@@ -51,6 +57,7 @@ export interface CoreCommandDeps {
 export function createCoreCommands(deps: CoreCommandDeps): readonly SlashCommand[] {
   const agentDeps: AgentCommandDeps = {
     agents: deps.agents,
+    ownAgentIds: deps.ownAgentIds,
     pausedAgents: deps.pausedAgents,
     agentFor: deps.agentFor,
     selectAgent: deps.selectAgent,
@@ -79,7 +86,8 @@ export function createCoreCommands(deps: CoreCommandDeps): readonly SlashCommand
 // (agents, memory, spendReader, schedulerCommands), which do not exist until assembly finishes.
 export function createCommandsProvider(
   build: (app: App) => readonly SlashCommand[],
-  keys: KeyValidator
+  keys: KeyValidator,
+  locales: CommandLocales
 ): ServiceProvider {
   return {
     name: 'commands',
@@ -88,8 +96,10 @@ export function createCommandsProvider(
       bind('slashDispatcher', (app) => {
         const dispatcher = createSlashDispatcher({
           keys,
+          bus: app.resolve('bus'),
           logger: app.resolve('logger'),
           transcript: app.resolve('sessionStore'),
+          locales,
           ratePerMinute: app.config.commands.ratePerMinute,
         })
         for (const command of app.resolve('commands')) {

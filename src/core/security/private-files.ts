@@ -191,7 +191,7 @@ async function unlinkIfPresent(path: string): Promise<void> {
   }
 }
 
-async function syncDirectory(path: string): Promise<void> {
+export async function syncDirectory(path: string): Promise<void> {
   let handle: FileHandle | undefined
 
   try {
@@ -213,6 +213,18 @@ async function syncDirectoryHandle(handle: FileHandle): Promise<void> {
     if (!isUnsupportedDirectorySync(err)) {
       throw err
     }
+  }
+}
+
+// 'r+', not 'r': Windows answers EPERM to a sync on a read-only handle.
+export async function syncFile(path: string): Promise<void> {
+  let handle: FileHandle | undefined
+
+  try {
+    handle = await open(path, 'r+')
+    await handle.sync()
+  } finally {
+    await closeQuietly(handle)
   }
 }
 

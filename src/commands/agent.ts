@@ -2,11 +2,13 @@ import type { AgentId } from '@/core/ids'
 import type { AgentPauseStore } from '@/core/types/agent-pause'
 import type {
   CommandDescription,
+  CommandMessage,
   SlashCommand,
   SlashContext,
   SlashResult,
 } from '@/core/types/command'
 import type { AgentRegistry } from '@/engine/api'
+import { entryAgentIds, isEntryAgent } from '@/engine/api'
 
 const MESSAGE_KEYS = [
   'slash.agentCurrent',
@@ -14,8 +16,10 @@ const MESSAGE_KEYS = [
   'slash.agentSet',
   'slash.agentPausedSelected',
   'slash.agentTerminalHint',
+  'slash.agentUsage',
 ] as const
 const DEFAULT_AGENT = 'default'
+const USAGE: CommandMessage = { key: 'slash.agentUsage' }
 
 const DESCRIPTION: CommandDescription = { kind: 'localized', key: 'slash.agentHelp' }
 const READ_POLICY = {
@@ -29,10 +33,13 @@ const SELECT_POLICY = {
   action: 'mutate' as const,
   idempotencyKey: (ctx: SlashContext) => ctx.requestId,
   surfaceHint: 'slash.agentTerminalHint' as const,
+  transcript: 'none' as const,
 }
 
 export interface AgentCommandDeps {
   readonly agents: AgentRegistry
+  /** The agents a chat can be handed to; the built-in roles that only work inside a run are not. */
+  readonly ownAgentIds: () => ReadonlySet<AgentId>
   readonly pausedAgents: Pick<AgentPauseStore, 'isPaused'>
   readonly agentFor: (ctx: SlashContext) => Promise<AgentId>
   readonly selectAgent: (ctx: SlashContext, target: AgentId | 'default') => Promise<void>
@@ -45,7 +52,8 @@ export function createAgentCommand(deps: AgentCommandDeps): SlashCommand {
     messageKeys: [...MESSAGE_KEYS],
     policy: READ_POLICY,
     policyFor: (args) => (args.length > 0 ? SELECT_POLICY : READ_POLICY),
-    completeFor: (args) => (args.length === 1 ? agentTargets(deps.agents) : []),
+    completeFor: (args) => (args.length === 1 ? [DEFAULT_AGENT, ...deps.ownAgentIds()] : []),
+    usage: () => USAGE,
     run: async (ctx: SlashContext): Promise<SlashResult> => runAgentCommand(deps, ctx),
   }
 }
@@ -63,7 +71,12 @@ async function runAgentCommand(deps: AgentCommandDeps, ctx: SlashContext): Promi
   if (ctx.args.length > 1) {
     return {
       kind: 'message',
-      messages: [{ key: 'slash.agentUnknown', values: { id: '', list: agentList(deps.agents) } }],
+      messages: [
+        {
+          key: 'slash.agentUnknown',
+          values: { id: ctx.args.join(' '), list: agentList(deps.agents) },
+        },
+      ],
     }
   }
 
@@ -75,7 +88,7 @@ async function runAgentCommand(deps: AgentCommandDeps, ctx: SlashContext): Promi
 
   const agent = deps.agents.get(requested)
 
-  if (!agent) {
+  if (!isEntryAgent(agent)) {
     return {
       kind: 'message',
       messages: [
@@ -114,5 +127,5 @@ function agentList(agents: AgentRegistry): string {
 }
 
 function agentTargets(agents: AgentRegistry): readonly string[] {
-  return [DEFAULT_AGENT, ...agents.all().map((item) => item.id)]
+  return [DEFAULT_AGENT, ...entryAgentIds(agents.all())]
 }

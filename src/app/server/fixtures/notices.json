@@ -1,0 +1,57 @@
+{
+  "items": [
+    {
+      "id": "7f3b6c1e-2d4a-4f8e-9a51-0c6d2b8e4a10",
+      "createdAt": 1792480100000,
+      "deliveredTo": ["telegram"],
+      "event": {
+        "v": 1,
+        "kind": "stop_breached",
+        "weight": "interrupt",
+        "wake": true,
+        "source": { "channel": "api", "agentId": "" },
+        "note": "HPG fell below the 24,500 stop",
+        "alert": {
+          "alertId": "alert_1",
+          "instrument": { "market": "equity-vn", "ticker": "HPG" },
+          "condition": "below",
+          "threshold": 24500,
+          "observedPrice": 24400,
+          "level": "stop"
+        }
+      }
+    },
+    {
+      "id": "5a2d7e94-6c13-4b8f-8e20-3f9a1d6b7c52",
+      "createdAt": 1792479800000,
+      "deliveredTo": [],
+      "event": {
+        "v": 1,
+        "kind": "notice",
+        "weight": "nudge",
+        "source": { "channel": "api", "agentId": "" },
+        "note": "News on FPT, which you hold: FPT signs a new cloud contract.",
+        "noticeKind": "held-news",
+        "instrument": { "market": "equity-vn", "ticker": "FPT" }
+      }
+    },
+    {
+      "id": "1c9e5a70-8b32-4d6f-a0e7-5b4f3d2c1a09",
+      "createdAt": 1792479000000,
+      "readAt": 1792479600000,
+      "deliveredTo": [],
+      "event": {
+        "v": 1,
+        "kind": "daemon_notice",
+        "weight": "nudge",
+        "source": { "channel": "api", "agentId": "" },
+        "note": "Daemon restarted",
+        "noticeKind": "restart-done"
+      }
+    }
+  ],
+  "nextBefore": 1792479000000,
+  "nextBeforeId": "1c9e5a70-8b32-4d6f-a0e7-5b4f3d2c1a09",
+  "unread": 2,
+  "needsYou": 2
+}

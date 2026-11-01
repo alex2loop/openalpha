@@ -19,7 +19,8 @@
       "!dist",
       "!.claude",
       "!.gitnexus",
-      "!**/*.generated.*"
+      "!**/*.generated.*",
+      "!src/web/index.html"
     ]
   },
   "formatter": {

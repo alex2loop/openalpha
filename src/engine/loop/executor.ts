@@ -18,8 +18,6 @@ import { addUsage } from '@/engine/budget/usage'
 import { parseToolInput } from '@/engine/loop/tools/arg-parse'
 import { resolveToolPresentation } from '@/engine/loop/tools/presentation'
 
-const TRAILING_COMMA_RE = /,\s*([}\]])$/
-
 // `services` is opaque here on purpose: tools/ owns what goes in it (agents, runner, its own
 // interfaces), and engine must not grow an edge to tools to name those types.
 interface ToolExecutorDeps {
@@ -46,10 +44,7 @@ export function coerceToolArgs(args: unknown): unknown {
   try {
     return JSON.parse(args)
   } catch {
-    // A streamed tool call may end with incomplete JSON when the model hits its token limit.
-    const repaired = repairJson(args)
-
-    return repaired ?? { raw: args }
+    return { raw: args }
   }
 }
 
@@ -202,17 +197,24 @@ function parseJsonOutput(content: string): unknown | undefined {
 // Progress is advisory: a throwing observer must not fail the tool that reported.
 function reportProgress(
   run: RunView,
-  observer: ToolExecutionObserver,
+  observer: ToolExecutionObserver | undefined,
   message: ProgressMessage
 ): void {
   try {
-    observer.progress(message)
+    observer?.progress(message)
   } catch (err: unknown) {
     run.services.logger.warn('tool.progress_failed', {
       tool: run.identity.agentId,
       err: formatErrForLog(err),
     })
   }
+
+  run.services.bus.emit('run_progress', {
+    runId: run.identity.runId,
+    agentId: run.identity.agentId,
+    channel: run.identity.channel,
+    message,
+  })
 }
 
 function buildInvocationContext(
@@ -257,12 +259,7 @@ function buildInvocationContext(
     ...(run.env.researchInteraction === undefined
       ? {}
       : { researchInteraction: run.env.researchInteraction }),
-    ...(observer === undefined
-      ? {}
-      : {
-          reportProgress: (message: ProgressMessage): void =>
-            reportProgress(run, observer, message),
-        }),
+    reportProgress: (message: ProgressMessage): void => reportProgress(run, observer, message),
   }
 
   // exactOptionalPropertyTypes: an absent chatId must stay absent, not be set to undefined.
@@ -339,74 +336,4 @@ function formatPipelineResult(result: ToolResult, call: ToolCall, sink: ResultSi
     ...(result.caveats === undefined ? {} : { caveats: result.caveats }),
     ...(result.display === undefined ? {} : { display: result.display }),
   }
-}
-
-function repairJson(raw: string): unknown | undefined {
-  const trimmed = raw.trim().replace(TRAILING_COMMA_RE, '$1')
-  const closers = closingDelimiters(trimmed)
-
-  if (closers === undefined) {
-    return undefined
-  }
-
-  try {
-    return JSON.parse(trimmed + closers.reverse().join(''))
-  } catch {
-    return undefined
-  }
-}
-
-function closingDelimiters(raw: string): string[] | undefined {
-  const state: JsonScanState = { closers: [], inString: false, escaped: false }
-
-  for (const char of raw) {
-    if (!advanceJsonScan(state, char)) {
-      return undefined
-    }
-  }
-
-  return state.inString ? undefined : state.closers
-}
-
-interface JsonScanState {
-  readonly closers: string[]
-  inString: boolean
-  escaped: boolean
-}
-
-function advanceJsonScan(state: JsonScanState, char: string): boolean {
-  if (state.escaped) {
-    state.escaped = false
-    return true
-  }
-
-  if (char === '\\' && state.inString) {
-    state.escaped = true
-    return true
-  }
-
-  if (char === '"') {
-    state.inString = !state.inString
-    return true
-  }
-
-  if (state.inString) {
-    return true
-  }
-
-  if (char === '{') {
-    state.closers.push('}')
-    return true
-  }
-
-  if (char === '[') {
-    state.closers.push(']')
-    return true
-  }
-
-  if (char !== '}' && char !== ']') {
-    return true
-  }
-
-  return state.closers.pop() === char
 }

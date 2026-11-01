@@ -1,6 +1,6 @@
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
-import type { Locale } from '@/core/types/locale'
+import type { ScheduledRunner } from '@/core/types/command'
 import type { BriefDelivery } from '@/trading/features/brief/types'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { ProfileService } from '@/trading/features/profile/types'
@@ -39,7 +39,6 @@ interface MarketsInUseDeps {
   /** The resolved profile, stored or seeded: a segment the stored one never named is off, so a book
    *  from before a market existed does not start refreshing it. */
   readonly profiles: Pick<ProfileService, 'get'>
-  readonly defaultLocale: Locale
 }
 
 function briefMarket(markets: MarketRegistry, brief: BriefDelivery | null): MarketRef[] {
@@ -89,8 +88,13 @@ interface RefreshTickParts {
   readonly logger: Logger
 }
 
+interface ScheduledRuns {
+  readonly runScheduled: ScheduledRunner
+}
+
 /** Built after the services: the trade-sides sweep it carries reads the book. */
 export function buildRefreshTick(
+  scheduled: ScheduledRuns,
   parts: RefreshTickParts
 ): (options: RefreshAllMarketDataOptions) => Promise<readonly RefreshMarketDataResult[]> {
   const { markets, stores, logger } = parts
@@ -106,6 +110,7 @@ export function buildRefreshTick(
       marketDataStore: stores.marketData,
       logger,
     }),
+    runScheduled: scheduled.runScheduled,
     logger,
   })
 }
@@ -121,15 +126,15 @@ export function resolveRefreshMarkets(markets: MarketRegistry): readonly MarketR
 
 /** The markets something the operator relies on still reads: a segment switched on, a holding, a
  *  watched name, a call waiting to be scored, or the market a scheduled brief is built on. A
- *  switched-off segment drops out only once none of those needs its prices. With no profile yet
- *  nothing is known to be unused, so every market stays in. */
+ *  switched-off segment drops out only once none of those needs its prices. With no profile saved
+ *  the seeded one decides, so a fresh install refreshes only the segments its home market seeds. */
 export async function resolveMarketsInUse(
   deps: MarketsInUseDeps,
   signal: AbortSignal
 ): Promise<ReadonlySet<MarketRef>> {
   const all = deps.markets.list()
   const [profile, positions, coverage, brief] = await Promise.all([
-    deps.profiles.get({ defaultLocale: deps.defaultLocale, signal }),
+    deps.profiles.get({ signal }),
     deps.book.tradeableHoldingsAt({ now: Date.now(), signal }),
     deps.stores.suggestion.coverage({ signal }),
     deps.stores.briefDelivery.find(signal),

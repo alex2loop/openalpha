@@ -6,13 +6,16 @@
       "at": "2026-09-21",
       "kind": "split",
       "title": "Cổ phiếu thưởng",
-      "detail": "Tỷ lệ 100:10"
+      "detail": "Tỷ lệ 100:10",
+      "shareRatio": 0.1
     },
     {
       "at": "2026-05-28",
       "kind": "dividend-ex-date",
       "title": "Cổ tức bằng tiền",
-      "detail": "Trả cổ tức đợt 2/2025 (1000 đ/cp)"
+      "detail": "Trả cổ tức đợt 2/2025 (1000 đ/cp)",
+      "cashPerShare": 1000,
+      "paysOn": "2026-06-18"
     },
     {
       "at": "2026-05-08",
@@ -21,12 +24,6 @@
       "detail": "Số lượng 5,485,050 CP"
     }
   ],
-  "provenance": [
-    {
-      "sourceId": "vndirect",
-      "fetchedAt": 1791535856825,
-      "freshness": "live"
-    }
-  ],
+  "provenance": [{ "sourceId": "vndirect", "fetchedAt": 1791535856825, "freshness": "live" }],
   "caveats": []
 }

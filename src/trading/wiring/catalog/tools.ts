@@ -51,7 +51,7 @@ import {
   tickerInput,
 } from '@/trading/kernel/surface/surface'
 
-/** The five workflow services are the whole tool surface: no tool receives a store, a registry, or
+/** The workflow services are the whole tool surface: no tool receives a store, a registry, or
  *  a resolver. The portfolio member is the feature's own `AgentPortfolio` narrowing, so the two
  *  absolute-money reads are not even representable to an agent. */
 interface TradingToolDeps {
@@ -71,6 +71,22 @@ interface TradingToolDeps {
   /** Absent when the exchange credentials are not configured, in which case the model is not
    *  offered a tool that can only fail. */
   readonly order?: OrderService
+}
+
+// The schema names only the regions whose market builds a brief; `findOrBuildBrief` refuses any other.
+function briefTools(
+  briefs: BriefService,
+  marketData: MarketDataService,
+  timezone: string
+): readonly ToolDefinition[] {
+  const regions = regionInput(
+    marketData
+      .describeMarkets()
+      .filter((market) => market.hasBrief)
+      .map((market) => market.region)
+  )
+
+  return [createBriefBuildTool(briefs, regions, timezone), createBriefManageTool(briefs, regions)]
 }
 
 export function createTradingTools(deps: TradingToolDeps): readonly ToolDefinition[] {
@@ -117,8 +133,7 @@ export function createTradingTools(deps: TradingToolDeps): readonly ToolDefiniti
     createPortfolioRemoveTool(ledgerToolDeps),
     ...suggestionTools(deps, markets),
     createAlertManageTool(alerts, markets),
-    createBriefBuildTool(briefs, regions, deps.displayTimezone),
-    createBriefManageTool(briefs, regions),
+    ...briefTools(briefs, marketData, deps.displayTimezone),
     createThemesViewTool(deps.themes),
     ...orderTools(deps),
   ]

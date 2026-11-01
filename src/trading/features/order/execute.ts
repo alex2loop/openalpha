@@ -165,6 +165,7 @@ async function bookCapRejections(
   assertBookPriced(book, profile)
 
   return rejectionsFor(deps, {
+    instrument: staged.instrument,
     side: staged.side,
     orderType: staged.orderType,
     notional: prepared.notional,

@@ -10,6 +10,7 @@ import type {
   ResolvedLlm,
   ResolvedLocale,
   ResolvedLoop,
+  ResolvedNotices,
   ResolvedSchedule,
 } from '@/core/config/resolvers/runtime'
 import type { RawConfig, RawModel, RawModelDefaults, RawModelTiers } from '@/core/config/schema'
@@ -26,6 +27,7 @@ import {
   resolveLlm,
   resolveLocale,
   resolveLoop,
+  resolveNotices,
   resolveSchedule,
 } from '@/core/config/resolvers/runtime'
 import { type ResolvedStorageConfig, resolveStorageConfig } from '@/core/config/resolvers/storage'
@@ -85,6 +87,7 @@ const DEFAULT_MAX_VALUE_BYTES = 16_384
 const DEFAULT_MEMORY_TTL_DAYS = 90
 const DEFAULT_COMMANDS_RATE_PER_MINUTE = 20
 const DEFAULT_RETENTION_DAYS = 90
+const DEFAULT_HISTORY_RETENTION_DAYS = 1095
 const DEFAULT_INBOX_MAX_ATTEMPTS = 3
 const DEFAULT_UPDATE_CHECK = true
 const DEFAULT_UPDATE_AUTO = false
@@ -132,6 +135,7 @@ interface ResolvedCommands {
 
 interface ResolvedRetention {
   readonly days: number
+  readonly historyDays: number
   readonly inboxDays: number
   readonly dailyBackups: number
 }
@@ -162,6 +166,7 @@ export interface ResolvedConfig {
   readonly mcp: ResolvedMcp
   readonly commands: ResolvedCommands
   readonly api: ResolvedApi
+  readonly notices: ResolvedNotices
   readonly retention: ResolvedRetention
   readonly inbox: ResolvedInbox
   readonly update: ResolvedUpdate
@@ -201,11 +206,8 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
     mcp: resolveMcp(raw.mcp, { deferMissingEnv: options?.deferMissingKeys === true }),
     commands: { ratePerMinute: DEFAULT_COMMANDS_RATE_PER_MINUTE },
     api: resolveApi(raw.api),
-    retention: {
-      days: raw.retention?.days ?? DEFAULT_RETENTION_DAYS,
-      inboxDays: raw.retention?.inbox_days ?? DEFAULT_INBOX_RETENTION_DAYS,
-      dailyBackups: raw.retention?.daily_backups ?? DEFAULT_DAILY_BACKUPS,
-    },
+    notices: resolveNotices(raw.notices),
+    retention: resolveRetention(raw.retention),
     inbox: { maxAttempts: DEFAULT_INBOX_MAX_ATTEMPTS },
     update: {
       check: raw.update?.check ?? DEFAULT_UPDATE_CHECK,
@@ -223,6 +225,27 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
   }
 
   return freezeDeep(resolved)
+}
+
+function resolveRetention(raw: RawConfig['retention']): ResolvedRetention {
+  const days = raw?.days ?? DEFAULT_RETENTION_DAYS
+  const historyDays = raw?.history_days ?? Math.max(DEFAULT_HISTORY_RETENTION_DAYS, days)
+
+  // The history window keeps what the general one would; a shorter one would sweep evidence first.
+  if (historyDays < days) {
+    throw new OperatorConfigError(
+      `retention history_days ${historyDays} is shorter than days ${days}`,
+      { key: 'errors.configRetentionHistoryShort', params: { history: historyDays, days } },
+      { path: ['retention', 'history_days'] }
+    )
+  }
+
+  return {
+    days,
+    historyDays,
+    inboxDays: raw?.inbox_days ?? DEFAULT_INBOX_RETENTION_DAYS,
+    dailyBackups: raw?.daily_backups ?? DEFAULT_DAILY_BACKUPS,
+  }
 }
 
 /** Sections core does not know land in `extensions` unvalidated, each waiting for the module that

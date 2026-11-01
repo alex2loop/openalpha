@@ -1,0 +1,72 @@
+.activity-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--sizeBody);
+}
+
+.activity-entry:first-child > .activity-line,
+.activity-entry:first-child > .activity-item > summary > .activity-line {
+  border-top: 0;
+}
+
+.activity-entry > .fold {
+  margin-top: 0;
+  border-top: 0;
+}
+
+.activity-time {
+  flex: none;
+  width: 38px;
+  color: var(--ink3);
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-main b {
+  font-weight: var(--weightMedium);
+  overflow-wrap: anywhere;
+}
+
+.activity-summary {
+  margin-top: 3px;
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+  white-space: pre-line;
+}
+
+.activity-cost {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.activity-item summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.activity-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.activity-children {
+  display: block;
+  padding-bottom: var(--s1);
+}
+
+.activity-nested {
+  margin-left: var(--s2);
+  padding-left: 10px;
+  border-left: 2px dashed var(--border);
+}

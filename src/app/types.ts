@@ -1,6 +1,8 @@
 import type { DeliveryHub } from '@/app/delivery'
+import type { LiveFeed } from '@/app/server/feed/live'
+import type { SignInCodes } from '@/app/server/http/sign-in-codes'
 import type { ChannelDefinition } from '@/channels/api'
-import type { Command, Group } from '@/cli/api'
+import type { Command, Group, KeyFile } from '@/cli/api'
 import type { KeyValidator } from '@/commands/api'
 import type { LogLevel, ModelSource } from '@/core/config/resolve'
 import type { App, ServiceProvider } from '@/core/container'
@@ -26,10 +28,12 @@ export type BootGate = (options: {
   readonly dataDir: string
 }) => Promise<BootCheck>
 
-/** What the daemon holds of a running HTTP/WS surface: `closeAdmission` is the first step down
+/** What the daemon holds of a running HTTP/WS surface. It is bound before the subsystems start and
+ *  answers only what needs none of them until `markReady`. `closeAdmission` is the first step down
  *  (no new connection or request; in-flight ones finish), `stop` the last (sockets, then wait for
  *  those in-flight requests). */
 export interface ApiHandle {
+  markReady(): void
   closeAdmission(): void
   stop(): Promise<void>
 }
@@ -43,6 +47,18 @@ type ServerStarter = (
 export interface ApiRouteContext {
   readonly app: App
   readonly token: string
+  readonly live: LiveFeed
+  readonly ip: string | null
+  /** Who the request counts as for the auth lockout, as `resolvePeerKey` found it. */
+  readonly peer: string
+  /** The origin of the page the request belongs to, as `resolvePageOrigin` found it. */
+  readonly pageOrigin: string
+  readonly cookieName: string
+  /** False while the daemon is still starting its subsystems. */
+  isReady(): boolean
+  readonly codes: SignInCodes
+  /** The browser session the request came from; absent for the bearer token and on open routes. */
+  readonly browserSessionId?: string
 }
 
 /** A section whose backing store may be absent. A route naming one answers 503 until it exists —
@@ -55,6 +71,9 @@ export interface ApiRouteSpec {
   readonly path: string
   readonly auth: boolean
   readonly capability?: ApiCapability
+  /** Answers while the daemon is still starting. Absent, only a `GET` does: anything that changes
+   *  state needs the subsystems, so a route added without thinking of it fails closed. */
+  readonly whileStarting?: true
   handler(req: Request, ctx: ApiRouteContext): Promise<Response>
 }
 
@@ -63,6 +82,12 @@ declare module '@/core/container' {
     // The HTTP/WS API (src/app/server); the daemon starts it only with [api] enabled.
     apiStarter: ServerStarter
     apiRoutes: readonly ApiRouteSpec[]
+    /** The key file the entry loaded before boot: where `/v1/credentials` writes, and which names
+     *  it set in the environment. */
+    keyFile: KeyFile
+    /** The commands the entry grafted beside the built-in ones (the server's own and the host's), so
+     *  a command forwarded to the daemon resolves against the same tree as in-process. */
+    extraCliCommands: readonly (Command | Group)[]
   }
 }
 

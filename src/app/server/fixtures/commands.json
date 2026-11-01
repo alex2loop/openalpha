@@ -3,6 +3,16 @@
     { "name": "/new", "summary": "Start a new session" },
     { "name": "/agent", "summary": "Switch the entry agent", "args": ["chat", "reviewer"] },
     { "name": "/cost", "summary": "Show today's cost" },
+    {
+      "name": "/price",
+      "summary": "Show the latest price",
+      "estimate": { "lowUsd": 0, "highUsd": 0, "runs": 5 }
+    },
+    {
+      "name": "/suggest",
+      "summary": "Suggest trades",
+      "estimate": { "lowUsd": 0.004, "highUsd": 0.009, "runs": 8 }
+    },
     { "name": "/schedule", "summary": "Manage scheduled runs", "args": ["add", "list", "remove"] }
   ]
 }

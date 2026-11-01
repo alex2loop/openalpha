@@ -1,0 +1,204 @@
+import type { ActorState } from '@/web/scene/sim/director'
+import type { StopSpec } from '@/web/scene/sim/life/moments'
+import type { DeskView, Point, RoomId } from '@/web/scene/types'
+import { ASSISTANT } from '@/web/scene/sim/actors/roster'
+import { begin } from '@/web/scene/sim/life/schedule'
+import { drawBetween, isAtSeat, type LifeState, type LifeStep } from '@/web/scene/sim/life/state'
+import { view } from '@/web/scene/view'
+import { DOORS } from '@/web/scene/world/doors'
+import { FLOORS, TEAM_FLOOR } from '@/web/scene/world/floors'
+import { createRng, seedOf } from '@/web/scene/world/rng'
+import { roomAt } from '@/web/scene/world/rooms'
+import { LIFT_EXITS, TEAM_SEATS } from '@/web/scene/world/seats'
+import { MS_PER_MINUTE } from '@/web/text/time-units'
+
+const ROUNDS_IDLE_MS = 25_000
+const QUIET_ROUNDS_MINUTES = 25
+// In a quiet office the rounds slow from seconds to minutes: the first after this long idle, then
+// at most one per as long again, so the page sleeps between them.
+const QUIET_ROUNDS_GAP_MS = QUIET_ROUNDS_MINUTES * MS_PER_MINUTE
+const ROUND_STOP_MS = Object.freeze({ min: 2_000, max: 4_000 })
+// A round stops at this many doors in a row along the corridor, drawn per day and round.
+const ROUND_DOOR_STOPS = Object.freeze({ min: 2, max: 3 })
+// An own agent whose run ended this recently is visited at its desk on the next round.
+const RECENT_FINISH_MS = 5 * MS_PER_MINUTE
+// A door's stop stands this far out from the wall, in the corridor.
+const DOOR_STEP_PX = 14
+// A desk's stop stands behind its agent's chair, a little to the side.
+const DESK_SIDE_PX = 10
+const DESK_BACK_PX = 18
+
+/** The rooms' doors along the corridor, west to east: the room each opens on, the stop in the
+ *  corridor before it and the opening itself. */
+export const ROUND_DOORS: readonly {
+  readonly room: RoomId
+  readonly at: Point
+  readonly door: Point
+}[] = Object.freeze(
+  DOORS.office
+    .flatMap((door) => {
+      const corridor = FLOORS.office.corridor
+
+      if (door.to !== undefined || door.isWest === true || corridor === undefined) {
+        return []
+      }
+
+      const isNorth = door.at.y <= corridor.y
+      const room = roomAt('office', {
+        x: door.at.x + door.width / 2,
+        y: door.at.y + (isNorth ? -1 : 1),
+      })
+      const at = {
+        x: door.at.x + door.width / 2,
+        y: door.at.y + (isNorth ? DOOR_STEP_PX : -DOOR_STEP_PX),
+      }
+
+      const opening = { x: door.at.x + door.width / 2, y: door.at.y }
+
+      return room === undefined ? [] : [{ room: room.id, at, door: opening }]
+    })
+    .sort((a, b) => a.at.x - b.at.x)
+)
+
+/** The assistant's rounds: free at its desk for `ROUNDS_IDLE_MS` while its floor is shown, it
+ *  walks the corridor and stops at a few rooms' doors; when an own agent's run ended within
+ *  `RECENT_FINISH_MS`, it then takes the lift to the team floor and stops at that agent's desk.
+ *  Any work, question or approval for it ends the round at once (the step's freedom check), and it
+ *  walks back to its desk, by the lift from upstairs. */
+export function stepRounds(state: LifeState, step: LifeStep): void {
+  const actor = step.actors.get(ASSISTANT)
+  const isIdle =
+    actor !== undefined &&
+    isRoundFree(actor) &&
+    isAtSeat(actor) &&
+    view.peek().floor === actor.def.floor
+
+  if (!(isIdle && step.canWalk) || state.moments.has(ASSISTANT)) {
+    state.round.freeSince = undefined
+    return
+  }
+
+  state.round.freeSince ??= step.nowMs
+
+  if (step.nowMs < roundDueOf(state, step)) {
+    return
+  }
+
+  state.round.freeSince = undefined
+  state.round.lastAt = step.nowMs
+  state.round.count++
+  begin(
+    state,
+    { actor, kind: 'round', nowMs: step.nowMs, line: { actor: ASSISTANT, label: 'rounds' } },
+    roundStops({ day: step.clock.day, count: state.round.count }, takeVisit(state, step.nowMs))
+  )
+}
+
+/** When a free assistant's round is due: `ROUNDS_IDLE_MS` at its desk, and in a quiet office
+ *  also `QUIET_ROUNDS_GAP_MS` since the office's last work and since the last round. */
+export function roundDueOf(
+  state: LifeState,
+  step: { readonly isQuiet: boolean; readonly nowMs: number }
+): number {
+  const { freeSince, lastAt } = state.round
+
+  if (freeSince === undefined) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  const atDesk = freeSince + ROUNDS_IDLE_MS
+
+  if (!step.isQuiet) {
+    return atDesk
+  }
+
+  return Math.max(
+    atDesk,
+    state.lastBusyAt + QUIET_ROUNDS_GAP_MS,
+    (lastAt ?? Number.NEGATIVE_INFINITY) + QUIET_ROUNDS_GAP_MS
+  )
+}
+
+/** Nothing for it to do: no goal of the live store's, no carry or trip owed, no gesture. */
+export function isRoundFree(actor: ActorState): boolean {
+  return (actor.goal === undefined || actor.isLife) && !actor.isOwed && actor.beats.length === 0
+}
+
+function roundStops(
+  round: { readonly day: string; readonly count: number },
+  visit: DeskView | undefined
+): readonly [StopSpec, ...StopSpec[]] {
+  const { count } = round
+  const doors: StopSpec[] = doorsOf(round).map((door, i) => ({
+    at: door.at,
+    pose: 'idle',
+    holdMs: drawBetween(ROUND_STOP_MS, 'round', String(count), String(i)),
+    line: { actor: ASSISTANT, label: 'roundCheck', room: door.room },
+  }))
+  const liftStop: StopSpec = {
+    at: LIFT_EXITS.office,
+    pose: 'idle',
+    holdMs: drawBetween(ROUND_STOP_MS, 'round-lift', String(count)),
+  }
+  const upstairs = visit === undefined ? [] : deskStops(count, visit)
+  const stops = upstairs.length > 0 ? [...doors, liftStop, ...upstairs] : doors
+  const [first, ...rest] = stops
+
+  return first === undefined ? [liftStop] : [first, ...rest]
+}
+
+// A run of doors along the corridor, its length and start drawn per day and round.
+function doorsOf(round: { readonly day: string; readonly count: number }): typeof ROUND_DOORS {
+  const rng = createRng(seedOf('round-doors', round.day, String(round.count)))
+  const length = Math.min(rng.int(ROUND_DOOR_STOPS.min, ROUND_DOOR_STOPS.max), ROUND_DOORS.length)
+  const start = rng.int(0, ROUND_DOORS.length - length)
+
+  return ROUND_DOORS.slice(start, start + length)
+}
+
+// The desk of the own agent whose run ended last within `RECENT_FINISH_MS`, if it is on duty; the
+// finish is spent by the visit.
+function takeVisit(state: LifeState, nowMs: number): DeskView | undefined {
+  const desks = state.teamDesks()
+  const recent = [...state.finishes].filter(([, at]) => nowMs - at <= RECENT_FINISH_MS).reverse()
+
+  for (const [agentId] of recent) {
+    const desk = desks.find((held) => held.agentId === agentId && held.isTaken)
+
+    if (desk !== undefined) {
+      state.finishes.delete(agentId)
+      return desk
+    }
+  }
+
+  return undefined
+}
+
+// The visited agent's desk on the team floor, from the lift and back to it.
+function deskStops(count: number, desk: DeskView): StopSpec[] {
+  const seat = TEAM_SEATS[desk.slot]
+  const stops: StopSpec[] =
+    seat === undefined
+      ? []
+      : [
+          {
+            at: { x: seat.at.x + DESK_SIDE_PX, y: seat.at.y + DESK_BACK_PX },
+            look: seat.at,
+            pose: 'idle',
+            floor: TEAM_FLOOR,
+            holdMs: drawBetween(ROUND_STOP_MS, 'round-desk', String(count), String(desk.slot)),
+          },
+        ]
+
+  return stops.length === 0
+    ? []
+    : [
+        ...stops,
+        {
+          at: LIFT_EXITS.team,
+          pose: 'idle',
+          floor: TEAM_FLOOR,
+          holdMs: drawBetween(ROUND_STOP_MS, 'round-lift-up', String(count)),
+        },
+      ]
+}

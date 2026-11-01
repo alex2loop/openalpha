@@ -28,7 +28,7 @@ const BUILT_IN_AGENT_IDS = ['chat', DEEP_RESEARCHER_ID, ...RESEARCH_WORKER_IDS, 
 // A ratchet, not a budget: the prompt is sent once per run and cached, so the cost of a line is
 // not the reason to keep it out - crowding the rules that are already there is. Raise it only
 // alongside the line being added, never to leave room for the next one.
-const CHAT_PROMPT_MAX_CHARS = 5_051
+const CHAT_PROMPT_MAX_CHARS = 5_049
 
 type BuiltInAgentId = (typeof BUILT_IN_AGENT_IDS)[number]
 
@@ -37,6 +37,7 @@ interface BuiltInAgentSource {
   readonly displayName?: string
   readonly maxPromptChars?: number
   readonly preferredModelTier?: string
+  readonly internal?: true
 }
 
 // Research stage reasoning/max_tokens is fixed research policy (`RESEARCH_LIMITS.stages`), applied
@@ -58,12 +59,22 @@ const BUILT_IN_SOURCES: Readonly<Record<BuiltInAgentId, BuiltInAgentSource>> = {
   [RESEARCH_CRAWLER_ID]: {
     toml: researchCrawlerToml,
     preferredModelTier: RESEARCH_HEAVY_MODEL_TIER,
+    internal: true,
   },
-  'research-planner': { toml: researchPlannerToml, preferredModelTier: RESEARCH_MODEL_TIER },
-  'research-reviewer': { toml: researchReviewerToml, preferredModelTier: RESEARCH_MODEL_TIER },
+  'research-planner': {
+    toml: researchPlannerToml,
+    preferredModelTier: RESEARCH_MODEL_TIER,
+    internal: true,
+  },
+  'research-reviewer': {
+    toml: researchReviewerToml,
+    preferredModelTier: RESEARCH_MODEL_TIER,
+    internal: true,
+  },
   'research-synthesizer': {
     toml: researchSynthesizerToml,
     preferredModelTier: RESEARCH_MODEL_TIER,
+    internal: true,
   },
   reviewer: { toml: reviewerToml, preferredModelTier: DELEGATE_MODEL_TIER },
 }
@@ -98,7 +109,22 @@ function buildBuiltInAgent(id: BuiltInAgentId, ctx: AgentBuildContext): AgentPro
     throw new ConfigError(`agent '${id}' prompt exceeds ${source.maxPromptChars} characters`)
   }
 
-  return source.displayName === undefined ? agent : { ...agent, name: source.displayName }
+  return {
+    ...agent,
+    ...(source.displayName === undefined ? {} : { name: source.displayName }),
+    ...(source.internal === undefined ? {} : { internal: source.internal }),
+  }
+}
+
+/** An agent a chat can be handed to or a job can run as: known, and not one that only works inside
+ *  another agent's run. */
+export function isEntryAgent(agent: AgentProfile | null | undefined): agent is AgentProfile {
+  return agent !== null && agent !== undefined && agent.internal !== true
+}
+
+/** The ids `isEntryAgent` admits, in the order given. */
+export function entryAgentIds(agents: Iterable<AgentProfile>): readonly string[] {
+  return [...agents].filter(isEntryAgent).map((agent) => agent.id)
 }
 
 function applyResearchStageTuning(

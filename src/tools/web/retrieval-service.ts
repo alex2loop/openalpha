@@ -358,12 +358,11 @@ async function fetchDirect(
 
   try {
     const content = await fetchDirectPage({
+      ...input,
       url: canonicalUrl,
       timeoutMs: config.webSearch.timeoutMs,
       maxReadBytes: DIRECT_FETCH_MAX_READ_BYTES,
       maxBytes: config.research.maxFullTextBytesPerSource,
-      publishedDayOf: input.publishedDayOf,
-      signal: input.signal,
     })
 
     if (key !== undefined) {

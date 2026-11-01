@@ -13,7 +13,8 @@ import type {
 } from '@/trading/features/suggestion/types'
 import type { FactorScore } from '@/trading/kernel/factor'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent, RegimeScale } from '@/trading/kernel/market/market-data'
+import type { RegimeScale } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { StageInput } from '@/trading/markets/stage'
 import type { MarketResolution } from '@/trading/markets/types'
@@ -34,6 +35,7 @@ import {
   recentEvents,
   upcomingEvents,
 } from '@/trading/features/suggestion/pipeline/draft-input'
+import { joinOrStartSuggestion } from '@/trading/features/suggestion/pipeline/flight'
 import { holdFrom } from '@/trading/features/suggestion/pipeline/hold'
 import {
   identityOf,
@@ -45,10 +47,8 @@ import { openRiskOf } from '@/trading/features/suggestion/pipeline/open-risk'
 import { longestOutcomeWindowSessions } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { runStages } from '@/trading/features/suggestion/pipeline/stages'
 import { outsideFocus, unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
-import {
-  MARGIN_STATUS_LOOKBACK_SESSIONS,
-  standingMarginEvent,
-} from '@/trading/kernel/market/margin-status'
+import { standingMarginEvent } from '@/trading/kernel/market/margin-status'
+import { eventsFromDay } from '@/trading/kernel/market/market-event'
 import { isOutsideFocus, runHorizon } from '@/trading/kernel/operator/focus'
 import { isSourceFailed } from '@/trading/kernel/source/source-result'
 import { regimeFor } from '@/trading/markets/macro-risk'
@@ -68,6 +68,7 @@ type RunPhase =
   | 'stages'
   | 'debate'
   | 'persist'
+  | 'shared'
 
 export async function runSuggestion(options: SuggestionRunOptions): Promise<SuggestionRunResult> {
   const { deps, request } = options
@@ -86,6 +87,18 @@ export async function runSuggestion(options: SuggestionRunOptions): Promise<Sugg
   if (isOutsideFocus(request.focus, resolution.instrument.market, resolution.sector)) {
     return outsideFocus(resolution)
   }
+
+  return joinOrStartSuggestion(options, resolution, {
+    run: (flightRequest) => runResolved({ ...options, request: flightRequest }, resolution),
+    onShared: () => reportStage(options, 'shared'),
+  })
+}
+
+async function runResolved(
+  options: SuggestionRunOptions,
+  resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>
+): Promise<SuggestionRunResult> {
+  const { deps, request } = options
 
   // Identity and cooldown resolve before any portfolio, source, factor, or persona work: a batch
   // over an already-suggested watchlist must not pay for reads it will discard. A forced run skips
@@ -200,6 +213,8 @@ function stageInputFor(
     ...(prepared.factors.signals === undefined ? {} : { signals: prepared.factors.signals }),
     ...(prepared.instrumentKind === undefined ? {} : { instrumentKind: prepared.instrumentKind }),
     ...(prepared.levels === undefined ? {} : { levels: prepared.levels }),
+    events: prepared.instrumentEvents,
+    ...(prepared.calendarFailed === true ? { calendarFailed: true } : {}),
     now: request.now,
     signal: request.signal,
   }
@@ -223,13 +238,9 @@ async function prepare(
     asOf,
     upcomingEvents: calendar.events,
   })
+  const levelsAt = { asOf, direction: levelDirectionFor(direction), horizon, context }
   const priced = await timed(options, 'levels', () =>
-    buildLevelsFor(options, resolution, {
-      asOf,
-      direction: levelDirectionFor(direction),
-      horizon,
-      context,
-    })
+    buildLevelsFor(options, resolution, { ...levelsAt, events: calendar.instrumentEvents })
   )
   return {
     market,
@@ -331,7 +342,7 @@ function readRunInputs(
         longestOutcomeWindowSessions(market.manifest.defaultCalendar)
       ),
       now: request.now,
-      fromDay: market.manifest.calendar.addTradingDays(asOf, -MARGIN_STATUS_LOOKBACK_SESSIONS),
+      fromDay: eventsFromDay(market.manifest.calendar, asOf),
       signal: request.signal,
     }),
   ])
@@ -340,6 +351,8 @@ function readRunInputs(
 /** One read of this name's events answers both halves a draft needs. */
 interface DraftCalendar {
   readonly events: readonly MarketEvent[]
+  /** Past rows too: an ex-date the stored series has not caught up to moves today's levels. */
+  readonly instrumentEvents: readonly MarketEvent[]
   readonly recent: readonly MarketEvent[]
   readonly standingMargin?: MarketEvent
   readonly calendarFailed?: true
@@ -355,6 +368,7 @@ function toDraftCalendar(
 
   return {
     events: upcomingEvents(own, asOf),
+    instrumentEvents: own,
     recent: recentEvents(own, asOf),
     ...(standing === undefined ? {} : { standingMargin: standing }),
     ...(isSourceFailed(events) ? { calendarFailed: true } : {}),
@@ -363,9 +377,10 @@ function toDraftCalendar(
 
 function calendarFieldsOf(
   calendar: DraftCalendar
-): Pick<Prepared, 'upcomingEvents' | 'recentEvents' | 'calendarFailed'> {
+): Pick<Prepared, 'upcomingEvents' | 'instrumentEvents' | 'recentEvents' | 'calendarFailed'> {
   return {
     upcomingEvents: calendar.events,
+    instrumentEvents: calendar.instrumentEvents,
     recentEvents: calendar.recent,
     ...(calendar.calendarFailed === true ? { calendarFailed: true } : {}),
   }

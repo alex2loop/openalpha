@@ -179,6 +179,8 @@ export interface ResearchInvocation {
   readonly budget: Budget
   readonly delegationQuota: DelegationQuota
   readonly parent?: ResearchParent
+  /** The agent's `[capabilities] hosts`: bounds the pages research reads directly. */
+  readonly allowedHosts?: readonly string[]
   readonly addDelegatedUsage: (totals: LLMUsageTotals) => void
   readonly addExternalCost: (charge: ExternalCharge) => Promise<void>
   readonly locale: Locale

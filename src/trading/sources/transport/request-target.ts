@@ -89,7 +89,7 @@ export function resolveTarget(
 
 // The wire-ready request: who we say we are, plus the secret where one is declared. The raw secret
 // exists only here — never returned to an adapter, logged, placed in provenance, or exposed in a
-// summary. A declared credential with no secret is a config defect.
+// summary. A declared credential with no secret is a config defect unless it is optional.
 export function prepareOutbound(
   facts: SourceFacts,
   request: SourceRequest,
@@ -106,6 +106,10 @@ export function prepareOutbound(
   }
 
   const secret = facts.credentials[request.sourceId]
+
+  if (secret === undefined && request.credential.optional) {
+    return base
+  }
 
   if (secret === undefined) {
     throw new OperatorConfigError(`source ${request.sourceId} requires a credential`, {

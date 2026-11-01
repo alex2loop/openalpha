@@ -1,9 +1,17 @@
 import type { ChannelId } from '@/core/channels'
 import type { AgentId, RunId, SessionId } from '@/core/ids'
 import type { Threat } from '@/core/security/sanitize'
+import type { ProgressMessage } from '@/core/stream-events'
+import type { Capability } from '@/core/tool'
 import type { RunResultReason } from '@/core/types/run'
 import type { LLMUsageTotals } from '@/core/types/usage'
+import type { ResearchProgress } from '@/engine/research/events'
 import type { ApprovalDecision, ApprovalScope } from '@/engine/types/approval'
+
+/** What a run's tools report while they work. Research params carry arrays and flags that the
+ *  channel-facing ProgressMessage forbids, so the bus carries the union and the core type stays
+ *  strict for every channel renderer. */
+export type RunProgressMessage = ProgressMessage | ResearchProgress
 
 declare module '@/core/events' {
   interface BusEventMap {
@@ -26,6 +34,8 @@ declare module '@/core/events' {
       readonly oneTime?: true
       // Epoch ms, absolute: a surface's own clock would start after delivery, not before it.
       readonly expiresAt: number
+      // Epoch ms the gate asked; the same read as `expiresAt`, so every surface dates the prompt alike.
+      readonly askedAt: number
       // Which surface must render the prompt: every surface subscribes to one bus, so without this
       // a telegram run's approval would also prompt on the CLI and vice versa.
       readonly channel: ChannelId
@@ -46,16 +56,74 @@ declare module '@/core/events' {
       readonly spent: number
       readonly cap: number
     }
+    /** Settled spend has reached a cap, so no further paid work is admitted. Once per period. */
+    budget_exhausted: {
+      readonly agentId: AgentId
+      readonly period: 'daily' | 'monthly'
+      readonly spent: number
+      readonly cap: number
+    }
     tool_output_threat: {
       readonly toolName: string
       readonly callId: string
       readonly findings: readonly Threat[]
     }
+    run_started: {
+      readonly runId: RunId
+      readonly agentId: AgentId
+      readonly sessionId: SessionId
+      readonly channel: ChannelId
+      readonly chatId?: string
+      readonly parentRunId?: RunId
+      // Scrubbed and capped at RUN_TITLE_MAX_CHARS; set for a top-level run and for a child that
+      // names itself.
+      readonly title?: string
+      // The run's answer never reaches a surface, so a feed shows that it ran and nothing more.
+      readonly hidden?: true
+      readonly startedAt: number
+    }
+    run_progress: {
+      readonly runId: RunId
+      readonly agentId: AgentId
+      readonly channel: ChannelId
+      readonly message: RunProgressMessage
+    }
+    // A scrubbed tail of the model's reasoning, throttled per run; `at` is epoch ms.
+    run_thinking: {
+      readonly runId: RunId
+      readonly channel: ChannelId
+      readonly excerpt: string
+      readonly at: number
+    }
+    // A tool call reached its tool: it passed admission and approval and is about to execute.
+    tool_started: {
+      readonly runId: RunId
+      readonly agentId: AgentId
+      readonly channel: ChannelId
+      readonly callId: string
+      readonly name: string
+      readonly capability: Capability
+    }
+    // Every call with a registered tool ends here once. `skipped` marks a call that never reached
+    // its tool (rejected, blocked or paired unrun), so it has no `tool_started`.
+    tool_finished: {
+      readonly runId: RunId
+      readonly channel: ChannelId
+      readonly callId: string
+      readonly name: string
+      readonly capability: Capability
+      readonly ok: boolean
+      readonly skipped?: true
+    }
     run_finished: {
       readonly runId: RunId
       readonly agentId: AgentId
       readonly sessionId: SessionId
+      readonly channel: ChannelId
+      readonly chatId?: string
       readonly reason: RunResultReason
+      // A named child's answer, scrubbed and cut at CHILD_SUMMARY_MAX_CHARS.
+      readonly summary?: string
       readonly totals: LLMUsageTotals
     }
     run_failed: {
@@ -63,6 +131,16 @@ declare module '@/core/events' {
       readonly agentId: AgentId
       readonly reason: RunResultReason
       readonly errorMessage?: string
+    }
+    // A `prefs:` preference was stored or removed for the run's scope, so a page can say so under
+    // the answer. `value` is empty on a removal.
+    preference_saved: {
+      readonly sessionId: SessionId
+      readonly agentId: AgentId
+      readonly channel: ChannelId
+      readonly attribute: string
+      readonly value: string
+      readonly change: 'added' | 'updated' | 'removed'
     }
     // Session-scoped state the engine holds in memory outlives the row otherwise: `app` owns the
     // session lifecycle, so it announces the end and the engine drops what it remembered.

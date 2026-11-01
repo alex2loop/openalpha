@@ -1,6 +1,8 @@
 import type { ProviderChainRegistry } from '@/ai/api'
+import type { BusEventMap } from '@/core/events'
 import type { ProviderChain } from '@/core/llm'
 import type { RunBookkeeping, RunDeps } from '@/engine/loop/context'
+import type { SteeringInbox } from '@/engine/loop/drive'
 import type { AgentProfile } from '@/engine/types/agent'
 import type {
   RunHandle,
@@ -11,7 +13,7 @@ import type {
   RunView,
 } from '@/engine/types/run'
 import type { RunOnceDeps } from '@/engine/types/run-deps'
-import { RunHalted } from '@/core/errors'
+import { RunHalted, ValidationError } from '@/core/errors'
 import { prepareAgentScratchDir } from '@/core/security/agent-directories'
 import { scrubCredentials } from '@/core/security/credentials'
 import { EMPTY_LLM_USAGE_TOTALS } from '@/core/types/usage'
@@ -26,6 +28,7 @@ import {
   pausedResult,
   preflightRun,
 } from '@/engine/loop/preflight'
+import { toRunTitle } from '@/engine/loop/run-text'
 import { clampUserMessage } from '@/engine/loop/user-message'
 import { composeAbort } from '@/engine/run-registry'
 
@@ -34,21 +37,18 @@ export async function runOnce(
   input: RunInput,
   options: RunOptions = {}
 ): Promise<RunResult> {
-  const configuredAgent = deps.agents.get(input.agentId)
-
-  if (configuredAgent === undefined) {
-    return agentNotFoundResult(input.agentId)
-  }
-
-  const agent = deps.agentForRun?.(input, configuredAgent) ?? configuredAgent
-
-  if (deps.shutdownSignal.aborted || options.parentSignal?.aborted) {
-    return abortedBeforeStartResult()
-  }
-
-  const userMessage = clampUserMessage(input.userMessage)
-
   try {
+    const agent = resolveRunAgent(deps, input, options)
+
+    if (agent === undefined) {
+      return agentNotFoundResult(input.agentId)
+    }
+
+    if (deps.shutdownSignal.aborted || options.parentSignal?.aborted) {
+      return abortedBeforeStartResult()
+    }
+
+    const userMessage = clampUserMessage(input.userMessage)
     const refusal = await refuseAtAdmission(deps, { input, options })
 
     if (refusal !== undefined) {
@@ -79,14 +79,7 @@ export async function runOnce(
     run.state.deadline = deadline
 
     const steering = createSteeringInbox()
-    let handle: RunHandle
-
-    try {
-      handle = deps.registry.register(run.identity, controller, steering.accept)
-    } catch (err: unknown) {
-      dispose()
-      throw err
-    }
+    const handle = registerRun({ deps, run, controller, dispose, steering, userMessage })
 
     return await driveRun({
       run,
@@ -104,6 +97,90 @@ export async function runOnce(
   } catch (err: unknown) {
     return resultForPreRegistrationFailure(err)
   }
+}
+
+/** The agent a run speaks as. A caller's profile must keep the configured agent's id and may drop
+ *  tools but never add one; the guard checks nothing else, so the rest of the profile is the caller's. */
+function resolveRunAgent(
+  deps: RunOnceDeps,
+  input: RunInput,
+  options: RunOptions
+): AgentProfile | undefined {
+  const configured = deps.agents.get(input.agentId)
+
+  if (configured === undefined) {
+    return undefined
+  }
+
+  const { profile } = options
+
+  if (profile === undefined) {
+    return deps.agentForRun?.(input, configured) ?? configured
+  }
+
+  if (
+    profile.id !== input.agentId ||
+    !profile.tools.every((tool) => configured.tools.includes(tool))
+  ) {
+    throw new ValidationError(`profile for agent ${configured.id} must narrow that agent`)
+  }
+
+  return profile
+}
+
+interface RegisterRunInput {
+  readonly deps: RunOnceDeps
+  readonly run: RunView
+  readonly controller: AbortController
+  readonly dispose: () => void
+  readonly steering: SteeringInbox
+  readonly userMessage: string
+}
+
+/** The registry entry and the start announcement go together: a feed that heard `run_started`
+ *  can always find the run it describes. */
+function registerRun(input: RegisterRunInput): RunHandle {
+  const { deps, run, controller, dispose, steering, userMessage } = input
+  let handle: RunHandle
+
+  try {
+    handle = deps.registry.register(run.identity, controller, steering.accept)
+  } catch (err: unknown) {
+    dispose()
+    throw err
+  }
+
+  const { identity } = run
+  const title = toStartTitle(run, userMessage)
+  const hidden: Pick<BusEventMap['run_started'], 'hidden'> =
+    run.env.answerVisibility === 'hidden' ? { hidden: true } : {}
+
+  run.services.bus.emit('run_started', {
+    runId: identity.runId,
+    agentId: identity.agentId,
+    sessionId: identity.sessionId,
+    channel: identity.channel,
+    ...(identity.chatId === undefined ? {} : { chatId: identity.chatId }),
+    ...(identity.parentRunId === undefined ? {} : { parentRunId: identity.parentRunId }),
+    ...(title === undefined ? {} : { title }),
+    ...hidden,
+    startedAt: Date.now(),
+  })
+
+  return handle
+}
+
+// A child names itself; a visible top-level run is named by what the operator asked.
+function toStartTitle(run: RunView, userMessage: string): string | undefined {
+  if (run.env.title !== undefined) {
+    return toRunTitle(run.env.title)
+  }
+
+  if (run.identity.parentRunId !== undefined || run.env.answerVisibility === 'hidden') {
+    return undefined
+  }
+
+  return toRunTitle(userMessage)
 }
 
 interface AdmissionInput {

@@ -4,6 +4,7 @@ import type { DisplayText, OnStreamEvent, ToolLifecycleOwner } from '@/core/stre
 import type { ToolCall, ToolResult } from '@/core/tool'
 import type { RunCompletionCode } from '@/core/types/run'
 import type { RunBookkeeping } from '@/engine/loop/context'
+import type { ToolEventTracker } from '@/engine/loop/tool-events'
 import type {
   AfterToolHook,
   ApprovalGate,
@@ -17,8 +18,10 @@ import type {
 import { RunHalted } from '@/core/errors'
 import { formatErrForLog, isSensitiveKey, scrubCredentials } from '@/core/security/credentials'
 import { unwrapToolResult } from '@/core/security/sanitize'
+import { textOf } from '@/core/utils/message'
 import { normalizeUsage } from '@/engine/budget/attempt-settlement'
 import { loopDetectorGate } from '@/engine/hooks/loop-detector'
+import { createToolEventTracker } from '@/engine/loop/tool-events'
 import {
   createToolExposureGate,
   TOOL_SEARCH_NAME,
@@ -51,6 +54,8 @@ interface TurnCommit {
   readonly llmAttemptIds: readonly [LLMAttemptId, ...LLMAttemptId[]]
 }
 
+export type SettledTurn = Pick<TurnCommit, 'response' | 'llmAttemptIds'>
+
 interface ToolRunDeps {
   readonly admissionGates: readonly ToolGate[]
   readonly approvalGate: ApprovalGate
@@ -59,6 +64,7 @@ interface ToolRunDeps {
   readonly hasPendingSteering?: () => boolean
   readonly onEvent?: OnStreamEvent
   readonly observer?: ToolExecutionObserver
+  readonly events?: ToolEventTracker
 }
 
 interface AgentToolCallOptions {
@@ -86,7 +92,7 @@ export function commitTurn(state: RunState, bookkeeping: RunBookkeeping, commit:
 
   adjustTurnCount(state, 1)
   bookkeeping.estimator = {
-    tokens: usage.input + usage.cacheRead + usage.output,
+    tokens: usage.input + usage.cacheRead + usage.cacheWrite + usage.output,
   }
   state.messages.pushToPending(assistantMessage(commit.response), commit.llmAttemptIds)
 }
@@ -120,6 +126,20 @@ export function classifyFinishReason(
     default:
       return unreachableFinishReason(response.finishReason)
   }
+}
+
+// A cut-off answer the run could not compact its way past is still the best answer it has: the
+// halt keeps its code and the operator reads the partial text instead of nothing.
+export function keepPartialAnswer(state: RunState, settled: SettledTurn): void {
+  const { response } = settled
+  const hasCalls = response.content.some((block) => block.type === 'tool_call')
+
+  if (hasCalls || textOf(response.content).trim() === '') {
+    return
+  }
+
+  state.messages.pushToPending(assistantMessage(response), settled.llmAttemptIds)
+  state.messages.flushPending()
 }
 
 export async function executeTools(
@@ -179,13 +199,19 @@ async function runOneToolCall(
   const { onEvent } = deps
   const tracked =
     onEvent === undefined ? undefined : createToolObserver(run.services.logger, onEvent, call)
-  const callDeps = tracked === undefined ? deps : { ...deps, observer: tracked.observer }
+  const events = createToolEventTracker(run, call)
+  const callDeps = {
+    ...deps,
+    events,
+    ...(tracked === undefined ? {} : { observer: tracked.observer }),
+  }
   const result = await executeAgentTool({ run, call, deps: callDeps })
 
   recordToolResult({
     run,
     call,
     result,
+    events,
     lifecycleOwner: tracked?.lifecycleOwner ?? 'tool',
     ...(onEvent === undefined ? {} : { onEvent }),
     ...(tracked?.display === undefined ? {} : { display: tracked.display }),
@@ -198,6 +224,7 @@ interface RecordToolResultInput {
   readonly run: RunView
   readonly call: ToolCall
   readonly result: ToolResult
+  readonly events: ToolEventTracker
   readonly lifecycleOwner: ToolLifecycleOwner
   readonly onEvent?: OnStreamEvent
   readonly display?: DisplayText
@@ -206,7 +233,7 @@ interface RecordToolResultInput {
 // Single owner of the transcript append + stream-event emission so normal and synthetic results
 // cannot diverge. The optional display text does not enter the model transcript.
 function recordToolResult(input: RecordToolResultInput): void {
-  const { run, call, result, lifecycleOwner, onEvent, display } = input
+  const { run, call, result, events, lifecycleOwner, onEvent, display } = input
 
   run.state.messages.appendDirect(toolResultMessage(call.id, result))
   onEvent?.({
@@ -223,6 +250,7 @@ function recordToolResult(input: RecordToolResultInput): void {
       : { resultSummary: summarizeToolValue(result.content) }),
     ...(display === undefined ? {} : { display }),
   })
+  events.finished(result.isError !== true)
 }
 
 interface SkipToolCallsInput {
@@ -242,6 +270,7 @@ function recordSkippedToolCalls(input: SkipToolCallsInput): void {
       run: input.run,
       call,
       result: input.result,
+      events: createToolEventTracker(input.run, call),
       lifecycleOwner: 'tool',
       ...(onEvent === undefined ? {} : { onEvent }),
     })
@@ -306,22 +335,23 @@ export async function executeTool(
   assertRunActive(run)
 
   deps.observer?.start(prepared.presentation)
+  deps.events?.started()
 
-  // A throw here skips recordToolResult, so this is the only signal left to close out the surface's
-  // spinner for this call.
+  // A throw here or in the display step below skips recordToolResult, so these are the only signals
+  // left to close out the surface's spinner and the call's bus events.
   const result = await executePreparedTool(run, prepared, deps).catch((err: unknown) => {
     deps.observer?.finish(undefined)
+    deps.events?.finished(false)
     throw err
   })
 
-  if (deps.observer !== undefined) {
-    deps.observer.finish(
-      resolveToolResultDisplay({
-        tool: prepared.tool,
-        result,
-        logger: run.services.logger,
-      })
+  try {
+    deps.observer?.finish(
+      resolveToolResultDisplay({ tool: prepared.tool, result, logger: run.services.logger })
     )
+  } catch (err: unknown) {
+    deps.events?.finished(false)
+    throw err
   }
 
   return finishToolCall(run, { call: prepared, result, hooks: deps.afterTool })

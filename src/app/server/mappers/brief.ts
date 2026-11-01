@@ -1,8 +1,8 @@
+import type { BriefTextWire } from '@/app/server/wire/brief'
 import type { BriefScheduleWire } from '@/app/server/wire/system'
 import type {
   BriefSectionWire,
   BriefSnapshotWire,
-  BriefTextWire,
   ScreenDeltaRowWire,
 } from '@/app/server/wire/trading'
 import type { Locale } from '@/core/types/locale'
@@ -91,7 +91,9 @@ export function toBriefScheduleWire(delivery: BriefDelivery): BriefScheduleWire 
     state: delivery.state,
     channel: delivery.delivery.channel,
     ...(delivery.sendTime === undefined ? {} : { sendTime: delivery.sendTime }),
-    ...(delivery.state === 'scheduled' ? { nextDeliveryDay: delivery.nextDeliveryDay } : {}),
+    ...(delivery.state === 'scheduled'
+      ? { nextDeliveryDay: delivery.nextDeliveryDay, nextDueAt: delivery.nextDueAt }
+      : {}),
   }
 }
 
@@ -99,8 +101,13 @@ export function toBriefTextWire(text: BriefText): BriefTextWire {
   return {
     title: text.title,
     verdict: [...text.verdict],
-    story: [...text.story],
-    sections: text.sections.map((section) => ({ ...section, lines: [...section.lines] })),
+    readingLines: text.readingLines,
+    story: text.story.map((line) => ({ ...line })),
+    sections: text.sections.map((section) => ({
+      ...section,
+      lines: [...section.lines],
+      depths: [...section.depths],
+    })),
     caveats: [...text.caveats],
   }
 }

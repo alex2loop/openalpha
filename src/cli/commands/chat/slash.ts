@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import type { ChatSession } from '@/cli/commands/chat/types'
 import type { CliApp } from '@/cli/types'
 import type { ResolvedSlashCommand, SlashDispatcher } from '@/commands/api'
@@ -10,7 +12,7 @@ import { isInteractiveStdout } from '@/cli/env'
 import { createLineProgress, createSpinner, type Spinner } from '@/cli/ui/spinner'
 import { renderMessages } from '@/commands/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
-import { LOCAL_USER_ID } from '@/core/ids'
+import { LOCAL_USER_ID, sessionId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { hasRunFooter } from '@/core/utils/footer'
 import { bindLocale, t } from '@/i18n'
@@ -60,7 +62,7 @@ export async function runSlash(session: ChatSession, line: string): Promise<Slas
     // The transient line is cleared before anything prints, so a reply never lands on the spinner.
     spinner?.stop()
 
-    state.sessionId = await routedSessionId(app, state.sessionId)
+    state.sessionId = await routedSessionId(app)
     const turn = toSlashTurn(session, line, result)
 
     fallbacks.report()
@@ -140,12 +142,14 @@ async function printSlashFooter(app: CliApp, id: SessionId, elapsedMs: number): 
   }
 }
 
-async function routedSessionId(app: CliApp, current: SessionId): Promise<SessionId> {
-  const routed = await app
+// A `/new` drops the route and leaves the next session to the next message, which this opens.
+function routedSessionId(app: CliApp): Promise<SessionId> {
+  return app
     .resolve('sessionRouter')
-    .get({ channel: CLI_CHANNEL_ID, chatId: CLI_CHAT_ID, userId: LOCAL_USER_ID })
-
-  return routed ?? current
+    .getOrCreate(
+      { channel: CLI_CHANNEL_ID, chatId: CLI_CHAT_ID, userId: LOCAL_USER_ID },
+      sessionId(randomUUID())
+    )
 }
 
 /** The terminal has no keyboard and its reader can type, so every affordance prints as a line

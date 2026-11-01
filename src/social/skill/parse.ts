@@ -1,5 +1,6 @@
 import type { HttpMethod, SocialEndpoint, SocialRegisterSpec } from '@/social/types'
 import { ValidationError } from '@/core/errors'
+import { withoutTrailingSlashes } from '@/core/utils/url'
 import { parseFrontmatter } from '@/engine/api'
 import { SKILL_FILE, SKILL_FILE_NAME_RE } from '@/social/constants'
 import { type CurlCommand, curlCommands, isHttpMethod, parseUrl } from '@/social/skill/curl'
@@ -24,7 +25,6 @@ const MAX_COMPANION_FILES = 16
 const MAX_ENDPOINTS = 200
 const JSON_BLOCK_RE = /```json\s*\n([\s\S]*?)```/g
 const REGISTER_PATH_RE = /\/register$/
-const TRAILING_SLASHES_RE = /\/+$/
 const ENCODED_OPEN_RE = /%7B/gi
 const ENCODED_CLOSE_RE = /%7D/gi
 const MAX_FRONT_DEPTH = 4
@@ -79,7 +79,7 @@ export function parseSkill(text: string, source: SkillSource): ParsedSkill {
   return {
     ...(front.name === undefined ? {} : { name: front.name }),
     ...(version === undefined || !VERSION_RE.test(version) ? {} : { version }),
-    apiBase: apiBase.href.replace(TRAILING_SLASHES_RE, ''),
+    apiBase: withoutTrailingSlashes(apiBase.href),
     files: companionFiles(text, skillUrl),
     endpoints: endpointsOf(text, commands, apiBase),
     ...registerOf(text, commands, apiBase),
@@ -162,7 +162,7 @@ function assertRestOnly(commands: readonly CurlCommand[], apiBase: URL, skillUrl
 
 /** A path under the API base, relative to it; `undefined` for anything outside it. */
 function relativePath(pathname: string, apiBase: URL): string | undefined {
-  const basePath = apiBase.pathname.replace(TRAILING_SLASHES_RE, '')
+  const basePath = withoutTrailingSlashes(apiBase.pathname)
   const decoded = pathname.replace(ENCODED_OPEN_RE, '{').replace(ENCODED_CLOSE_RE, '}')
 
   if (basePath === '') {
@@ -259,7 +259,7 @@ function compareText(a: string, b: string): number {
 
 /** `POST_ID` becomes `{post_id}`; a literal such as `general` stays until `unifyPlaceholders`. */
 function toTemplate(path: string): string {
-  const bare = (path.split('?')[0] ?? '').replace(TRAILING_SLASHES_RE, '')
+  const bare = withoutTrailingSlashes(path.split('?')[0] ?? '')
 
   return bare
     .split('/')

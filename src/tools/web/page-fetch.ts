@@ -64,6 +64,7 @@ export async function fetchDirectPage(input: {
   readonly maxReadBytes: number
   readonly maxBytes: number
   readonly publishedDayOf: (markup: string) => string | undefined
+  readonly allowedHosts?: readonly string[]
   readonly signal: AbortSignal
 }): Promise<{
   readonly canonicalUrl: string
@@ -80,6 +81,7 @@ export async function fetchDirectPage(input: {
       timeoutMs: input.timeoutMs,
       publishedDayOf: input.publishedDayOf,
       signal: input.signal,
+      ...(input.allowedHosts === undefined ? {} : { allowedHosts: input.allowedHosts }),
     },
     input.maxReadBytes
   )

@@ -37,11 +37,12 @@ somewhere to go.
 A continuous market has no open and anchors on the UTC day rollover alone. Anchors under 60 s apart
 merge into one pass.
 
-Boot runs the first refresh before the other subsystems start, waits up to 60 s, then lets it finish
-in the background with a warning. A boundary failure (`isBoundaryFailure`) from it warns as
-`daemon.boot_refresh_failed` on either side of the 60 s and boot continues; any other error is fatal,
-thrown to the caller inside the budget and through the daemon task tracker after it. The loop's own first tick follows: it joins a boot sweep still in
-flight, and after a boot with no network it is the pass that waits for the network and enters the
+Boot runs the first refresh as a tracked daemon task beside the other subsystems. The loops that read
+market data wait for it before their first tick, up to 60 s (`daemon.boot_refresh_timeout`), and the
+sweep then finishes in the background. A boundary failure (`isBoundaryFailure`) from it warns as
+`daemon.boot_refresh_failed` on either side of the 60 s and the daemon runs on; any other error is
+fatal, through the daemon task tracker. The loop's own first tick follows: it joins a boot sweep still
+in flight, and after a boot with no network it is the pass that waits for the network and enters the
 retry ladder.
 
 A pass that leaves any kind `unavailable` (nothing fetched) retries after 2, 4, 8 and 16 minutes,
@@ -57,7 +58,7 @@ never past the next anchor; a fifth failure hands back to the anchor and the lad
 | `StorageError`, `ChannelError`, `LLMError`, or `RunHalted` with code `budget` or `rate` | Boundary failure: `trading.tick_failed` at warn, retried next interval. |
 | `MissingEnvError` | Boundary failure: `trading.tick_key_missing` at warn once per loop until another failure is logged, retried next interval. |
 | Any other error | Escapes to the quarantine wrapper around the loop. Retrying forever would hide the code being wrong. |
-| Abort | Shutdown; the loop exits normally. |
+| Abort | Shutdown when the loop's own signal fired; the loop exits normally. Any other abort (the operator stopped the pass's run on the page) logs `trading.tick_stopped` at info and waits for the next interval. |
 
 Quarantine (`withQuarantine`) logs `trading.loop_quarantined` at error and sends the operator a
 notice that names the loop. It restarts the loop after one hour, at most three times. A loop that ran
@@ -112,8 +113,26 @@ run-now claims are cleared after that sweep.
 
 Retries share one policy with heartbeats (`scheduler/backoff.ts`): `60 s x 2^(failures - 1)`, capped
 at 30 minutes; a cron job is disabled after 3 consecutive failures. Halts that do not count as
-failures: shutdown, approval denied or timed out, an agent cap, a paused agent. Delivery runs after
-finalisation, so a delivery error never fails the run.
+failures: shutdown, approval denied or timed out, an agent cap, a paused agent, a missed slot. Delivery runs
+after finalisation, so a delivery error never fails the run.
+
+A tick that finds a due job not already running first asks the shared reachability probe
+(`core/utils/reachability`: one lookup of the host the trading loops wait on, 5 s budget, cut short when the
+scheduler stops). A job still running from an earlier tick does not count, so a long run costs no lookups. Offline,
+the tick returns before admitting anything, so the jobs stay due and no attempt is made to fail;
+`scheduler.tick_offline` is logged once per offline stretch, and a tick with nothing held back ends the stretch.
+
+Lateness is judged on the claimed occurrence, in `runScheduledOccurrence`: a cron job whose
+`nextRunAt` is more than `lateGraceMs` (`[schedule] late_grace_ms`, 15 minutes; `resolveSchedule` refuses a value under one tick plus the probe budget, 35 s, because a slot is first seen at the next tick, which chains after the previous one and may wait out the probe first) behind the clock is finalised
+with `MISSED_SLOT_MESSAGE` and a `skip` transition instead of running, which advances the cadence from now and
+keeps the failure count. Interval and once jobs are never skipped: they name no clock time. The intraday report loop reads the same value and skips a
+send whose wake-up is that late (`trading.intraday_late`).
+
+The workflow trigger (`startScheduledWorkflows`) follows the same two rules. A slot found more than `lateGraceMs`
+late (`isSlotLate`, the predicate `isMissedSlot` uses too) is skipped and logged as `workflow.slot_missed`, and
+the workflow waits for its next one. Before running what is due, a tick asks the same probe; offline it returns
+without closing its window, so the slot replays when the network is back, or is skipped as late if the wait
+outlasts the grace. `workflow.tick_offline` is logged once per offline stretch.
 
 ## Heartbeat runner
 
@@ -160,14 +179,19 @@ delivered. A rejected call is never cached.
 
 ### Backoff
 
-A run that never reaches `completed` leaves the last-completed time untouched, which would make the
-task due again on the next tick forever. Instead the failure increments a count and defers the next
-claim by `60 s x 2^(failures - 1)`, capped at 30 minutes. A completed run clears both. Backoff gates
-the claim: the task is never disabled. Two more paths defer the same way through
-`deferFailedHeartbeatTask` (`heartbeat/lease.ts`): a completed run whose `completeHeartbeatTask` write
-failed (`{ kind: 'failed' }`; `lease_lost` stays as is, another claimant owns the task), and a
-`runClaimedHeartbeatTask` that throws, unless shutdown aborted the signal. A throw after completion is
-harmless: the failure write is keyed on the lease token completion already cleared.
+A run that never reaches `completed` leaves the last-completed time untouched, so without a brake the
+task would be due again on every tick, forever. Instead, each failure increments a count and defers the
+next claim by `60 s x 2^(failures - 1)`, capped at 30 minutes. A completed run clears both. Backoff only
+gates the claim: the task is never disabled.
+
+Two more paths defer the same way, through `deferFailedHeartbeatTask` (`heartbeat/lease.ts`):
+
+- a completed run whose `completeHeartbeatTask` write failed (`{ kind: 'failed' }`; `lease_lost` stays
+  as is, because another claimant owns the task);
+- a `runClaimedHeartbeatTask` that throws, unless shutdown aborted the signal.
+
+A throw after completion is harmless: the failure write is keyed on the lease token that completion
+already cleared.
 
 ### Failure behavior
 

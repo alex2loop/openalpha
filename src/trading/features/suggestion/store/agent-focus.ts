@@ -42,6 +42,8 @@ export interface AgentFocusStore {
   record(input: RecordFocusInput): Promise<void>
   listFor(agentId: string, signal: AbortSignal): Promise<readonly AgentFocusRecord[]>
   listAll(signal: AbortSignal): Promise<readonly AgentFocusRecord[]>
+  /** The agents that have called under a focus, in id order. */
+  agentsOf(focusKey: FocusKey, signal: AbortSignal): Promise<readonly string[]>
 }
 
 export function createAgentFocusStore(deps: StoreDeps): AgentFocusStore {
@@ -49,6 +51,7 @@ export function createAgentFocusStore(deps: StoreDeps): AgentFocusStore {
     record: (input) => record(deps, input),
     listFor: (agentId, signal) => listFor(deps, agentId, signal),
     listAll: (signal) => listAll(deps, signal),
+    agentsOf: (focusKey, signal) => agentsOf(deps, focusKey, signal),
   }
 }
 
@@ -88,6 +91,21 @@ async function listAll(deps: StoreDeps, signal: AbortSignal): Promise<readonly A
   )
 
   return rows.flatMap(readableRecord)
+}
+
+async function agentsOf(
+  deps: StoreDeps,
+  focusKey: FocusKey,
+  signal: AbortSignal
+): Promise<readonly string[]> {
+  assertNotAborted(signal)
+
+  const rows = await deps.db.query<Pick<AgentFocusRow, 'agent_id'>>(
+    `SELECT agent_id FROM agent_focuses WHERE focus_key = ${deps.dialect.param(1)} ORDER BY agent_id`,
+    [focusKey]
+  )
+
+  return rows.map((row) => row.agent_id)
 }
 
 /** A row whose focus no longer parses is skipped, so one stale `[focus]` cannot hide every other

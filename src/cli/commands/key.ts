@@ -116,7 +116,7 @@ async function printSaveHints(app: CliApp, name: string): Promise<void> {
 
 function renderUnreadName(app: CliApp, name: string, names: readonly string[]): string {
   const locale = app.config.locale.language
-  const near = closestName(name, names)
+  const near = unprefixedName(name, names) ?? closestName(name, names)
 
   if (near !== undefined) {
     return t(locale, 'cli.keyNameUnreadNear', { name, near })
@@ -128,6 +128,14 @@ function renderUnreadName(app: CliApp, name: string, names: readonly string[]): 
   }
 
   return t(locale, 'cli.keyNameUnread', { name, names: names.join(', ') })
+}
+
+/** Both spellings are in use (the sample reads `OPENROUTER_API_KEY`, a config may read it with the
+ *  brand prefix), and an added prefix is too many edits for `closestName` to call a typo. */
+function unprefixedName(name: string, names: readonly string[]): string | undefined {
+  const bare = name.startsWith(BRAND.envPrefix) ? name.slice(BRAND.envPrefix.length) : undefined
+
+  return bare !== undefined && names.includes(bare) ? bare : undefined
 }
 
 /** undefined: the prompt was cancelled. */

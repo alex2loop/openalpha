@@ -38,6 +38,7 @@ also pass definitions through the `channels` option of `boot` ([Extending](./ext
 interface ChannelDefinition<T extends ChannelDeliveryConfig = ChannelDeliveryConfig> {
   readonly id: ChannelId
   readonly safeConfigOverrides?: readonly string[]
+  readonly apiHosts?: readonly string[]
   resolveConfig(raw: unknown): T
   isEnabled(config: T): boolean
   admission(config: T): ChannelAdmission
@@ -49,7 +50,8 @@ A definition handles two things: this transport's config and creating the adapte
 settings are normalized once by `resolveChannelSettings`. Declarative plugins may change only the fields
 in `safeConfigOverrides`; absent means none. Telegram and Zalo allow `SAFE_DELIVERY_OVERRIDE_FIELDS`
 (`markdown`, `mid_stream_updates`, `typing_indicator`, `use_reactions`, `notify_max_per_minute`);
-Zalo Personal allows none.
+Zalo Personal allows none. `apiHosts` names the hosts its adapter sends to, which `/v1/outbound` lists for a started
+channel; it is absent when the transport's hosts are not the channel's own to name.
 
 `createChannel(def)` is the author-time factory. It brands the id, rejects unknown keys and checks the
 adapter functions exist.
@@ -107,12 +109,14 @@ A channel without `inlineButtons` cannot show a keyboard, so `delivery/choices.t
 code per button (`/4821`), keyed by chat, and the approval prompt and the plan review append them as
 lines. `handleTypedChoice` runs first in `route`, before the mention rule, and turns a live code into
 the same `ChannelCallbackQuery` a tap makes, through the same admission (`gate.admitCallback`).
-Nothing consumes a code: the resolver that owns the prompt answers a repeat "already answered or
-expired", so an answer it did not take (a member who is not the operator, a prompt still landing)
-leaves the code live. Each entry carries the prompt's own `expiresAt`; past it the code is kept as
-expired, so an admitted operator typing it hears so, while four digits never handed out in that chat
-pass through as ordinary text. A new code is never one the chat still remembers, and the LRU bounds
-memory.
+Nothing consumes a code:
+
+- The resolver that owns the prompt answers a repeat "already answered or expired", so an answer it
+  did not take (a member who is not the operator, a prompt still landing) leaves the code live.
+- Each entry carries the prompt's own `expiresAt`. Past it the code is kept as expired, so an admitted
+  operator typing it hears so, while four digits never handed out in that chat pass through as
+  ordinary text.
+- A new code is never one the chat still remembers, and the LRU bounds memory.
 
 ### Button payloads
 
@@ -168,6 +172,8 @@ Pairing fails closed:
 - repeated unknown messages do not mint unlimited codes;
 - a storage failure rejects admission;
 - pending codes expire under the pairing store's policy.
+
+The API reads the same store: `GET /v1/pairing` lists pending codes and, per channel, at most 200 paired chats in chat id order (`PairingStore.listPaired`, a `LIMIT` in SQL, beside the `LIMIT 2` of `lonePairedChat`), and `DELETE /v1/pairing/:channel/:chatId` calls `revoke`, answering whether anything was revoked.
 
 ## From arrival to answer
 
@@ -256,8 +262,9 @@ carries its lead. A burst of messages batched into one run keeps only the reply 
 
 ### Quiet-gap note
 
-The gap is measured from the newest `session_messages` row (`SessionActivity.lastMessageAt`), never
-`sessions.last_activity_at`, which slash commands also touch. When that row is older than
+The gap is measured from the newest `session_messages` row the model reads
+(`SessionActivity.lastModelMessageAt`, display-only rows left out), never `sessions.last_activity_at`, which
+slash commands also touch. When that row is older than
 `gap_note_ms`, the lead opens with one line saying how long the chat was quiet and that earlier prices
 may be out of date. A failed read logs `channel.gap_note_lookup_failed` and skips the note, so it never fails
 the turn. The key is in `deliveryFields` but not in `SAFE_DELIVERY_OVERRIDE_FIELDS`, so a declarative plugin
@@ -302,18 +309,50 @@ back in `StartChannelsResult.skipped` for the daemon to report; anything else lo
 throws before any channel starts. If none start, CLI-only operation is valid.
 
 Only a token the provider refuses counts as configuration: HTTP 401 or 403 from Telegram, and 401 from
-Zalo, whose own error table lists 403 as a server fault. Any other `getMe` failure is transport, and both
-adapters try it up to four times with a capped backoff before dropping the channel. Zalo Personal has no
-token to refuse; it retries its login in the background (5 seconds initial, 5 minutes maximum).
+Zalo, whose own error table lists 403 as a server fault. Each adapter's `start()` makes one `getMe` bounded by
+the request timeout, so a slow network never holds `startChannels` (and the scheduler, trading loops and API
+behind it). A refused token throws from `start()`; any other failure is transport, reported as
+`connected: false` with `lastError: get_me_failed`, and the poll loop takes over with its own backoff. Telegram's
+restart loop fetches the bot identity again while it is unknown and installs the command menu from there,
+detached from polling and awaited by the loop on exit; a failed install retries on the loop's next restart.
+Zalo Personal has no token to refuse; it retries its login in the background (5 seconds initial, 5 minutes
+maximum).
 
 `startChannels` returns `{ stop, snapshots, skipped, notifier?, defaultRecipient, isDeliverable }`: shutdown, health
 snapshots, the channels left down, an outbound sender that routes to the runtime owning a channel (`AcknowledgedRouter`), and a default
 proactive recipient. That recipient is the channel's `fallback_chat_id`, its only allowed id when it
-has exactly one, or its one paired chat (`createChannelRecipient`). Every send asks `isDeliverable`: a chat
-`pair revoke` revoked (its row keeps `revoked_at` rather than being deleted) is refused with `revoked`, so alerts and briefs switch off rather than retry, and `resolveRecipient` no longer returns it, so the system arming passes arm nothing for that chat; a failed pairing read answers `unavailable` and waits on the retry ladder, switching nothing off; while a chat that
-never paired, such as a group admitted through its operator, still receives. The paired chat is read at start and
-again whenever the gate admits a paired chat that is not yet the recipient, since `pair approve` writes
-from another process. `stop` settles every runtime disposal and never lets one failed cleanup block the rest.
+has exactly one, or its one paired chat (`createChannelRecipient`).
+
+Every send asks `isDeliverable`:
+
+- A chat `pair revoke` revoked (its row keeps `revoked_at` rather than being deleted) is refused with
+  `revoked`, so alerts and briefs switch off rather than retry. `resolveRecipient` no longer returns
+  it, so the system arming passes arm nothing for that chat.
+- A failed pairing read answers `unavailable` and waits on the retry ladder, switching nothing off.
+- A chat that never paired, such as a group admitted through its operator, still receives.
+
+The paired chat is read at start and again whenever the gate admits a paired chat that is not yet the
+recipient, since `pair approve` writes from another process. `stop` settles every runtime disposal and
+never lets one failed cleanup block the rest.
+
+A channel has two lifetimes. The daemon's shutdown signal is its intake signal (`intakeSignal`): it cuts a
+start short and ends polling, the inbox drain and the admission of new work, so a message not yet claimed stays
+pending for the next start and a run the drain cuts hands its claim back (`releaseClaim`, no attempt spent) after editing its placeholder to a short "restarting, I'll answer this when I'm back" line instead of the generic error. A
+turn that meets the closed intake (a burst that fires after it, or a refusal from the paused session queue)
+rejects instead of answering "queue full" or returning, so its entry is released rather than completed.
+Delivery outlives it: each runtime owns its outbound signal and ends it only in `stop`, so the runs the daemon
+drains can still deliver. The final notice drain comes first: the notifier makes one bounded attempt
+(`notifyDrainTimeoutMs`, 500 ms) at each notice still queued while the adapter's transport is live, and only
+then is delivery aborted and the adapter closed. An adapter's `start` signal is the intake one, so `send`,
+`edit` and the rest must keep working after it, until `dispose`. A second stop signal exits the process, so
+nothing waits on it.
+
+The notifier retries a failed send up to `notifyMaxAttempts`, except a `PermanentChannelError`: a refusal the
+platform repeats on every attempt (a Telegram client error other than 408 and 429, a text over the platform
+limit, a Zalo 401). That one is dropped on the first failure. A 429 is a plain `ChannelError` and keeps
+honouring its retry-after. The inbox applies the same rule through `isPermanentChannelError`, which also looks
+through a wrapper such as `AnswerUndelivered`: an entry whose reply the platform refuses for good is
+dead-lettered at once instead of being retried up to `inboxMaxAttempts`.
 
 ## Adding a channel
 
@@ -321,7 +360,7 @@ from another process. `stop` settles every runtime disposal and never lets one f
    `channels/adapters/<name>/`.
 2. Keep transport parsing, rendering and credentials inside that folder.
 3. Declare truthful capabilities and enforce `maxTextLen` in the renderer.
-4. Accept the shutdown signal before arming listeners or polling.
+4. Accept the `start` signal before arming listeners or polling; it ends intake only, and sends keep working until `dispose`.
 5. Register the definition at composition, normally through a trusted bundled plugin.
 6. Add config and doctor validation through the definition's schema path.
 

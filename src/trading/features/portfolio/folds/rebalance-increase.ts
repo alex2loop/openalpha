@@ -80,7 +80,7 @@ export function increaseRows(
       continue
     }
 
-    budgets.set(candidate.segment, budget - funded.rounded)
+    budgets.set(candidate.segment, budget - funded.cashPctNav)
 
     const change = toChange({
       candidate,
@@ -111,6 +111,8 @@ function belowMinimumCaveats(
 
 interface FundedStep {
   readonly rounded: number
+  /** What buying `rounded` draws from the segment's budget: its value and the fee on top. */
+  readonly cashPctNav: number
   readonly shortfallPctNav: number
 }
 
@@ -122,9 +124,9 @@ interface FundInput {
   readonly shortfall: number
 }
 
-/** The lot-rounded step this segment's budget pays for, and what cash left uncovered. A step too
- *  small to clear the gate even with unlimited cash reports no shortfall: a turnover clamp or lot
- *  residue was never a funding gap. */
+/** The lot-rounded step this segment's budget pays for, fee included, and what cash left uncovered. A
+ *  step too small to clear the gate even with unlimited cash reports no shortfall: a turnover clamp
+ *  or lot residue was never a funding gap. */
 function fundedStep(input: FundInput): FundedStep {
   const { rows, candidate, minimum, budget } = input
   const absorbable = Math.min(
@@ -133,12 +135,18 @@ function fundedStep(input: FundInput): FundedStep {
   )
 
   if (roundToLot(absorbable, candidate, rows.nav) < minimum) {
-    return { rounded: 0, shortfallPctNav: 0 }
+    return { rounded: 0, cashPctNav: 0, shortfallPctNav: 0 }
   }
 
+  // The reserve is cash the buy and its fee must leave untouched, so the budget buys less than its face.
+  const draw = rows.input.buyCashMultiple(candidate.instrument.market)
+  const affordable = budget / draw
+  const rounded = roundToLot(Math.min(absorbable, affordable), candidate, rows.nav)
+
   return {
-    rounded: roundToLot(Math.min(absorbable, budget), candidate, rows.nav),
-    shortfallPctNav: Math.max(0, absorbable - budget),
+    rounded,
+    cashPctNav: rounded * draw,
+    shortfallPctNav: Math.max(0, absorbable - affordable),
   }
 }
 

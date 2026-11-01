@@ -413,16 +413,16 @@ function toHeadlinesRead(raw: NonNullable<SuggestionPayload['headlinesRead']>): 
 
 function toDebate(raw: StoredDebatePayload): StoredDebate {
   if (raw.mode === 'lean') {
-    const { playbook, ...lean } = raw
+    const { playbook, refutedIds, ...lean } = raw
 
-    return { ...lean, ...playbookField(playbook) }
+    return { ...lean, ...definedOnly({ refutedIds }), ...playbookField(playbook) }
   }
 
-  const { riskConviction, riskNote, playbook, ...full } = raw
+  const { riskConviction, riskNote, refutedIds, playbook, ...full } = raw
 
   return {
     ...full,
-    ...definedOnly({ riskConviction, riskNote }),
+    ...definedOnly({ riskConviction, riskNote, refutedIds }),
     ...playbookField(playbook),
   }
 }

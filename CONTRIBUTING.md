@@ -17,7 +17,7 @@ Cả hai phải xanh:
 
 ```bash
 bun run check      # biome + typecheck + 16 cổng hợp đồng
-bun run lint:arch  # 15 cổng kiến trúc
+bun run lint:arch  # 16 cổng kiến trúc
 ```
 
 Chúng chạy nhanh và báo đúng dòng gây lỗi. Hai lệnh này cùng bắt được: một import vòng,

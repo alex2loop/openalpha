@@ -1,0 +1,48 @@
+/* The card centres by its own margin, so a short viewport scrolls to the command instead of
+   cutting off the top. */
+.sign-in {
+  display: grid;
+  height: 100%;
+  overflow: auto;
+  padding: var(--s3);
+}
+
+.sign-in-card {
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 100%);
+  margin: auto;
+  padding: 26px;
+  border-radius: var(--popRadius);
+}
+
+.sign-in-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+
+.sign-in-title {
+  margin: 14px 0 6px;
+  font: var(--typeTitle);
+}
+
+.sign-in-body {
+  margin-bottom: 10px;
+  color: var(--ink2);
+}
+
+.sign-in-command {
+  padding: var(--s1) 10px;
+  border-radius: 8px;
+  background: var(--sunken);
+  margin-bottom: 14px;
+  font-size: var(--sizeBody);
+  user-select: all;
+}
+
+.sign-in-failure {
+  margin-bottom: var(--s2);
+  color: var(--dangerText);
+  font-size: var(--sizeBody);
+}

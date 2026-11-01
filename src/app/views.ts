@@ -1,14 +1,24 @@
 import type { DeliveryHub } from '@/app/delivery'
+import type { TaskStatusWire } from '@/app/server/wire/tasks'
+import type { ChannelDefinition } from '@/channels/api'
 import type {
   ChannelHealth,
   ConfigSummaryReader,
   HealthCode,
   HealthSummaryReader,
+  JobsHealth,
+  JobsSpend,
   SpendReader,
 } from '@/commands/api'
 import type { ChannelId } from '@/core/channels'
 import type { App } from '@/core/container'
-import type { LLMUsageTotals, SpendBreakdownRow } from '@/core/types/usage'
+import type {
+  LLMUsageTotals,
+  RootRunCostRow,
+  RunAttempt,
+  RunCalls,
+  SpendBreakdownRow,
+} from '@/core/types/usage'
 
 // A corrupt persisted row must not render as a nonsense balance.
 const MAX_PERSISTED_USAGE_VALUE = Number.MAX_SAFE_INTEGER
@@ -32,6 +42,8 @@ export function createSpendReader(app: App): SpendReader {
       (await attempts.breakdownFor(period, nowMs)).map(boundedBreakdownRow),
     breakdownForRange: async (range) =>
       (await attempts.breakdownRange(range)).map(boundedBreakdownRow),
+    jobsForRange: async (range) => toJobsSpend(await attempts.rootRunsForRange(range)),
+    callsForRun: async (id, limit) => boundedCalls(await attempts.attemptsForRun(id, limit)),
   }
 }
 
@@ -54,7 +66,27 @@ export function createConfigSummary(app: App): ConfigSummaryReader {
 // only where this process runs them.
 export function createHealthSummary(app: App, delivery: DeliveryHub): HealthSummaryReader {
   return {
-    read: async () => ({ runtime: 'ok', channels: toChannelHealth(app, delivery) }),
+    read: async () => {
+      const jobs = toJobsHealth(app.resolve('taskStatus').list())
+
+      return {
+        runtime: 'ok',
+        channels: toChannelHealth(app, delivery),
+        ...(jobs === undefined ? {} : { jobs }),
+      }
+    },
+  }
+}
+
+// An empty board is a process that runs no jobs, not one whose jobs are idle.
+function toJobsHealth(tasks: readonly TaskStatusWire[]): JobsHealth | undefined {
+  if (tasks.length === 0) {
+    return undefined
+  }
+
+  return {
+    working: tasks.filter((task) => task.working).map((task) => task.label),
+    failing: tasks.filter((task) => task.lastError !== undefined).map((task) => task.label),
   }
 }
 
@@ -68,14 +100,17 @@ function toChannelHealth(app: App, delivery: DeliveryHub): readonly ChannelHealt
   }))
 }
 
-// The predicate the daemon starts channels from.
 function configuredChannels(app: App): readonly ChannelId[] {
+  return enabledChannels(app).map((definition) => definition.id)
+}
+
+// The predicate the daemon starts channels from.
+export function enabledChannels(app: App): readonly ChannelDefinition[] {
   return app
     .resolve('channels')
     .filter((definition) =>
       definition.isEnabled(definition.resolveConfig(app.config.channels[definition.id]))
     )
-    .map((definition) => definition.id)
 }
 
 export function toHealthCode(
@@ -117,6 +152,41 @@ function boundedBreakdownRow(row: SpendBreakdownRow): SpendBreakdownRow {
     ...(row.averageLatencyMs === undefined
       ? {}
       : { averageLatencyMs: boundedCount(row.averageLatencyMs) }),
+  }
+}
+
+function boundedCalls(read: RunCalls): RunCalls {
+  return {
+    calls: read.calls.map(boundedAttempt),
+    totalCalls: boundedCount(read.totalCalls),
+    totalUsd: boundedUsage(read.totalUsd),
+  }
+}
+
+function boundedAttempt(attempt: RunAttempt): RunAttempt {
+  return {
+    ...attempt,
+    inputTokens: boundedCount(attempt.inputTokens),
+    outputTokens: boundedCount(attempt.outputTokens),
+    cacheReadTokens: boundedCount(attempt.cacheReadTokens),
+    cacheWriteTokens: boundedCount(attempt.cacheWriteTokens),
+    reasoningTokens: boundedCount(attempt.reasoningTokens),
+    costUsd: boundedUsage(attempt.costUsd),
+    latencyMs: boundedCount(attempt.latencyMs),
+  }
+}
+
+// The store folds every attempt whose top-level run left no run row into its one row with no job.
+function toJobsSpend(rows: readonly RootRunCostRow[]): JobsSpend {
+  const other = rows.find((row) => row.kind === undefined || row.name === undefined)
+
+  return {
+    jobs: rows.flatMap(({ kind, name, runs, costUsd }) =>
+      kind === undefined || name === undefined
+        ? []
+        : [{ kind, name, runs: boundedCount(runs), costUsd: boundedUsage(costUsd) }]
+    ),
+    otherUsd: boundedUsage(other?.costUsd ?? 0),
   }
 }
 

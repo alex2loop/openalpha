@@ -20,7 +20,7 @@ import {
 } from '@/trading/render/layout'
 import { renderPricePair } from '@/trading/render/price-pair'
 import { type PriceContext, toPricePair } from '@/trading/render/section-price'
-import { type RowUnit, renderValue, toLink } from '@/trading/render/section-values'
+import { type RowUnit, renderValue } from '@/trading/render/section-values'
 
 // Fields whose rendered value already says what it is: a ticker names itself, the side that crossed
 // the spread names itself, the price beside it is the only bare amount on the row, a signed percent
@@ -66,6 +66,16 @@ const SELF_EVIDENT_FIELDS: ReadonlySet<BriefField> = new Set([
   'title',
   'valuePct',
 ])
+
+const NOTE_SEPARATOR = ', '
+
+const VIETNAMESE_LETTER_RE =
+  /[ăâđêôơưàảãáạằẳẵắặầẩẫấậèẻẽéẹềểễếệìỉĩíịòỏõóọồổỗốộờởỡớợùủũúụừửữứựỳỷỹýỵ]/iu
+const URL_PARENTHESIS_RE = /[()]/g
+const URL_PARENTHESIS = Object.freeze({ '(': '%28', ')': '%29' })
+const LABEL_BRACKET_RE = /[[\]]/g
+const LABEL_BRACKET = Object.freeze({ '[': '(', ']': ')' })
+const LABEL_BREAK_RE = /\s*[\r\n]+\s*/g
 /** A single-field row needs no label: the section title already names what the value is. */
 
 /** What a long digest gives a reader to find while scrolling: the market's name in bold, with the
@@ -365,4 +375,47 @@ function linkedValue(
   return field === TITLE_FIELD && typeof url === 'string'
     ? toLink(rendered, url, { reader: locale })
     : rendered
+}
+
+interface LinkNotes {
+  readonly reader: Locale
+  readonly dated?: string
+}
+
+/** A headline that carries its source: the label is what prints, and the target travels behind it.
+ *  Telegram reads a bare `)` as the end of a link, so the parentheses are encoded here - where the
+ *  link is built is the only place that knows where the URL really ends. Notes follow in one
+ *  parenthetical: the caller's own, then the headline's language where it is not the reader's,
+ *  since sources publish verbatim. */
+export function toLink(label: string, url: string, notes?: LinkNotes): string {
+  const target = url.replace(
+    URL_PARENTHESIS_RE,
+    (char) => URL_PARENTHESIS[char as keyof typeof URL_PARENTHESIS]
+  )
+  const link = `[${linkLabel(label)}](${target})`
+
+  if (notes === undefined) {
+    return link
+  }
+
+  const written = writtenIn(label)
+  const all = [
+    ...(notes.dated === undefined ? [] : [notes.dated]),
+    ...(written === notes.reader ? [] : [t(notes.reader, `trading.render.language.${written}`)]),
+  ]
+
+  return all.length === 0 ? link : `${link} (${all.join(NOTE_SEPARATOR)})`
+}
+
+/** The two catalog languages part on script: Vietnamese spells with letters English never uses. */
+function writtenIn(text: string): Locale {
+  return VIETNAMESE_LETTER_RE.test(text) ? 'vi' : 'en'
+}
+
+/** A headline is a third party's text: an unbalanced bracket would end the label early, and
+ *  `Foo](https://other)` would turn it into a link of the headline's own choosing. */
+function linkLabel(label: string): string {
+  return label
+    .replace(LABEL_BREAK_RE, ' ')
+    .replace(LABEL_BRACKET_RE, (char) => LABEL_BRACKET[char as keyof typeof LABEL_BRACKET])
 }

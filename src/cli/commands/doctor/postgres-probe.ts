@@ -76,7 +76,10 @@ function migrationProbe(options: {
   readonly applied: readonly MigrationRow[]
   readonly locale: Locale
 }): DoctorFinding {
-  const finding = migrationFinding(options.locale, options.migrations, options.applied)
+  const finding = migrationFinding(options.locale, {
+    migrations: options.migrations,
+    applied: options.applied,
+  })
 
   return databaseProbe({ ...finding, storage: options.storage, locale: options.locale })
 }

@@ -8,6 +8,7 @@ import { ORDER_SIDES } from '@/trading/kernel/venue/spot-adapter'
 import { fetchAssetPrice } from '@/trading/venues/binance/price'
 import { toBinanceTicker } from '@/trading/venues/binance/symbol'
 import { BINANCE_QUOTE_ASSET, DECIMAL, signedRequest } from '@/trading/venues/binance/transport'
+import { rereadUntil } from '@/trading/venues/transport'
 
 const TRADES_PATH = '/api/v3/myTrades'
 const TRADES = z.array(
@@ -54,7 +55,7 @@ export async function readReceipt(
   order: BinanceOrder,
   signal: AbortSignal
 ): Promise<OrderReceipt | undefined> {
-  const trades = order.executedQty > 0 ? await fetchTrades(deps, order, signal) : []
+  const trades = order.executedQty > 0 ? await fetchListedTrades(deps, order, signal) : []
 
   return await toReceipt({
     order,
@@ -83,6 +84,20 @@ export function toOrderState(status: string): OrderState {
   }
 }
 
+/** The trades of a filled order can be listed a moment after its row, so an empty list is read
+ *  again before the receipt calls its fee unreported. */
+function fetchListedTrades(
+  deps: BinanceTransportDeps,
+  order: BinanceOrder,
+  signal: AbortSignal
+): Promise<readonly BinanceTrade[] | undefined> {
+  return rereadUntil(
+    signal,
+    () => fetchTrades(deps, order, signal),
+    (trades) => trades !== undefined && trades.length > 0
+  )
+}
+
 function fetchTrades(
   deps: BinanceTransportDeps,
   order: BinanceOrder,
@@ -109,7 +124,12 @@ async function toReceipt(input: ReceiptInput): Promise<OrderReceipt | undefined>
     order.executedQty > 0 && order.cummulativeQuoteQty > 0
       ? order.cummulativeQuoteQty / order.executedQty
       : 0
-  const fee = await chargedFee(input, averagePrice)
+  // Coins moved with no trade row to price them: the fee is not known yet, and zero would book a
+  // free fill and leave an in-kind fee in the quantity.
+  const fee =
+    order.executedQty > 0 && input.trades.length === 0
+      ? undefined
+      : await chargedFee(input, averagePrice)
   const filledAt = latestTradeTime(input.trades)
 
   return {
@@ -118,10 +138,11 @@ async function toReceipt(input: ReceiptInput): Promise<OrderReceipt | undefined>
     side,
     state: toOrderState(order.status),
     averagePrice,
-    filledQuantity: order.executedQty - fee.inKind,
+    filledQuantity: order.executedQty - (fee?.inKind ?? 0),
     // A receipt carries a charge as negative; Binance reports it positive.
-    fee: -fee.amount,
-    feeCurrency: fee.currency,
+    fee: fee === undefined ? 0 : -fee.amount,
+    feeCurrency: fee?.currency ?? '',
+    ...(fee === undefined ? { feeUnreported: true as const } : {}),
     ...(filledAt === undefined ? {} : { filledAt }),
   }
 }

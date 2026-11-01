@@ -1,5 +1,6 @@
 {
   "pending": [
     { "channel": "telegram", "code": "K7QM2X", "chatId": "123456789", "expiresAt": 1791431800000 }
-  ]
+  ],
+  "paired": [{ "channel": "telegram", "chatId": "987654321" }]
 }

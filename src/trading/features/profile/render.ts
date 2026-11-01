@@ -90,12 +90,7 @@ export function renderProfileText(
       ),
     ],
     renderSegmentBlock(locale, segmentBlockOf(locale, profile, disabled), context),
-    [
-      `${INDENT[1]}${t(locale, 'trading.render.profile.locale', {
-        locale: t(locale, `trading.render.language.${profile.preferredLocale}`),
-      })}`,
-      `${INDENT[1]}${t(locale, 'trading.render.profile.next')}`,
-    ],
+    [`${INDENT[1]}${t(locale, 'trading.render.profile.next')}`],
   ])
 }
 
@@ -296,12 +291,6 @@ export function renderPatchText(locale: Locale, patch: ProfilePatch): string {
     ],
     ['trading.render.profile.field.horizon', horizonsOf(locale, patch.horizons)],
     ['trading.render.profile.field.goal', declaredValue(locale, 'trading.goal', patch.goal)],
-    [
-      'trading.render.profile.field.locale',
-      patch.preferredLocale === undefined
-        ? undefined
-        : t(locale, `trading.render.language.${patch.preferredLocale}`),
-    ],
     ['trading.render.profile.field.riskPerTrade', fractionValue(locale, patch.riskPerTradePctNav)],
     ['trading.render.profile.field.openRisk', fractionValue(locale, patch.maximumOpenRiskPctNav)],
     ['trading.render.profile.field.reserve', fractionValue(locale, patch.reservePctNav)],

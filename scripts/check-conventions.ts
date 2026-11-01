@@ -17,8 +17,16 @@ const COMMENT_RE = /^\s*(\/\/|\/?\*)/
 // argument.
 const ENV_ALLOWED = [
   'src/core/config/',
-  'src/app/daemon.ts',
+  'src/app/daemon-subsystems.ts',
   'src/cli/env.ts',
+  'src/cli/terminal.ts',
+]
+
+// The terminal seam is src/cli/terminal.ts; only these files may touch the process directly.
+const TERMINAL_ALLOWED = [
+  'src/cli/terminal.ts', // the seam: stdio, env, cwd, signals and exit behind app.terminal
+  'src/cli/env.ts', // getEnv(): the process environment that feeds config, never rendering
+  'src/cli/commands/daemon/daemon.ts', // the daemon's own lifecycle, never forwarded
 ]
 
 interface Rule {
@@ -62,6 +70,17 @@ const RULES: readonly Rule[] = [
     exemptFile: (path) => !path.startsWith('src/cli/'),
   },
   {
+    label:
+      'process stdio/env/cwd/signals/exit in src/cli - reach the terminal (app.terminal, currentTerminal())',
+    pattern:
+      /\bprocess\.(stdout|stderr|stdin|env|cwd\(|on\(|once\(|off\(|emit\(|exit\(|removeListener\(|prependListener\(|addListener\()/,
+    exemptFile: (path) => !path.startsWith('src/cli/') || TERMINAL_ALLOWED.includes(path),
+  },
+  {
+    label: 'dangerouslySetInnerHTML - render JSX nodes; nothing reaches innerHTML',
+    pattern: /dangerouslySetInnerHTML/,
+  },
+  {
     label: 'duplicated CLI registry metadata — spread the canonical CLI_COMMAND_METADATA entry',
     pattern: /\b(?:name|summary):\s*['"`]/,
     exemptFile: (path) => path !== 'src/cli/registry.ts',
@@ -70,7 +89,7 @@ const RULES: readonly Rule[] = [
 
 async function collectSources(): Promise<Map<string, readonly string[]>> {
   const sources = new Map<string, readonly string[]>()
-  const glob = new Glob('**/*.ts')
+  const glob = new Glob('**/*.{ts,tsx}')
 
   for (const root of SRC_ROOTS) {
     for await (const rel of glob.scan({ cwd: `${ROOT}/${root}` })) {

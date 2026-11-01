@@ -150,7 +150,11 @@ function interpolateEnv(
     const resolved = process.env[name]
 
     if (resolved === undefined || resolved === '') {
-      throw new MissingEnvError(name, `mcp server "${serverName}"`, { path })
+      throw new MissingEnvError(name, `mcp server "${serverName}"`, {
+        path,
+        effect: 'mcp',
+        name: serverName,
+      })
     }
 
     return resolved

@@ -1,0 +1,70 @@
+.scene-zoomstack {
+  position: absolute;
+  right: var(--s2);
+  bottom: var(--stageBottomH);
+  pointer-events: none;
+}
+
+.scene-dock {
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+  border-radius: var(--islandRadius);
+}
+
+.scene-zoombtn {
+  display: grid;
+  place-items: center;
+  width: var(--islandH);
+  height: var(--islandH);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.scene-zoombtn + .scene-zoombtn {
+  border-bottom: 1px solid var(--glassSeam);
+}
+
+.scene-zoombtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.scene-zoomreset {
+  font-size: 18px;
+}
+
+.scene-bulb {
+  width: 18px;
+  height: 18px;
+}
+
+.scene-lamps[aria-pressed="true"] {
+  color: var(--lampOn);
+}
+
+.scene-zoombar {
+  position: absolute;
+  right: calc(var(--islandH) + var(--s1));
+  bottom: 0;
+  width: 6px;
+  height: 114px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.scene-zoombar i {
+  position: absolute;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translate(-50%, 50%);
+}

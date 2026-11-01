@@ -1,0 +1,22 @@
+{
+  "entries": [
+    {
+      "runId": "cmd_7b02",
+      "name": "brief",
+      "channel": "telegram",
+      "finishedAt": 1792480200000,
+      "title": "Morning brief",
+      "text": "Morning brief 2026-10-23\n  VN-Index opened flat.",
+      "tickers": ["HPG", "FPT"]
+    },
+    {
+      "runId": "cmd_4f1a",
+      "name": "price",
+      "channel": "api",
+      "finishedAt": 1792480100000,
+      "title": "Latest price of a ticker",
+      "text": "HPG 24,400",
+      "tickers": ["HPG"]
+    }
+  ]
+}

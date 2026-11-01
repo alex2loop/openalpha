@@ -12,7 +12,7 @@ import { quoteConventionsFor } from '@/trading/features/market-data/command/quot
 import { renderRebalanceText } from '@/trading/features/portfolio/render/rebalance'
 import { parseTickers, usage } from '@/trading/kernel/surface/surface'
 import { planAffordances } from '@/trading/render/affordance'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
 const USAGE: 'slash.tradingRebalanceUsage' = 'slash.tradingRebalanceUsage'
 
@@ -38,6 +38,7 @@ export function createRebalanceCommand(deps: AdviceCommandDeps): SlashCommand {
       role: 'operator',
       action: 'read',
       execution: { progressKey: 'slash.tradingRebalanceProgress' },
+      selfContained: true,
     },
     usage: () => ({ key: USAGE, values: buildUsageValues(heldMarketsOf(deps)) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
@@ -58,13 +59,13 @@ async function run(deps: AdviceCommandDeps, ctx: SlashContext): Promise<SlashRes
     signal: ctx.signal,
     ...(tickers === null ? {} : { tickers }),
   })
-  const profile = await deps.profiles.get({ defaultLocale: ctx.locale, signal: ctx.signal })
+  const profile = await deps.profiles.get({ signal: ctx.signal })
 
   return {
     kind: 'text',
     affordances: planAffordances(ctx.locale),
     text: renderRebalanceText(ctx.locale, advice, {
-      context: resolveRenderContext(deps.timezone, ctx.surface),
+      context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       listedOnly,
       sizing,
       ...(freshness === undefined ? {} : { freshness }),

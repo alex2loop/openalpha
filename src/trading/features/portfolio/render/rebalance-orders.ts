@@ -14,6 +14,7 @@ import { WEAK_HOLDING_SIGNAL_THRESHOLD } from '@/trading/features/portfolio/fold
 import { buildInstrumentKey, floorToLot } from '@/trading/kernel/instrument'
 import {
   formatFixedFraction,
+  formatFraction,
   formatQuantity,
   formatScoreValue,
   fractionDirection,
@@ -24,10 +25,10 @@ import { renderKindBadge } from '@/trading/render/kind-badge'
 import { INDENT } from '@/trading/render/layout'
 import { formatMoney, formatQuotedPrice, quotedInOf } from '@/trading/render/money'
 
-/** A row the policy no longer permits, as against one that merely drifted. Only these two arms name
- *  a position the plan is correcting rather than tuning. */
+/** A row the policy no longer permits, as against one that merely drifted. Only these arms name a
+ *  position the plan is correcting rather than tuning. */
 function isBreach(reason: ChangeReason): boolean {
-  return reason.kind === 'weak-signal' || reason.kind === 'off-policy'
+  return reason.kind === 'weak-signal' || reason.kind === 'off-policy' || reason.kind === 'over-cap'
 }
 
 interface BreachSplit {
@@ -272,6 +273,11 @@ function renderChangeReason(locale: Locale, row: PositionChange): string {
       })
     case 'off-policy':
       return t(locale, 'trading.render.rebalance.reasonOffPolicy', { segment })
+    case 'over-cap':
+      return t(locale, 'trading.render.rebalance.reasonOverCap', {
+        limit: renderDeclaredValue(locale, `trading.cap.${reason.limit}`),
+        cap: formatFraction(locale, reason.cap),
+      })
     default: {
       const exhaustive: never = reason
       return exhaustive

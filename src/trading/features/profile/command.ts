@@ -28,7 +28,7 @@ import {
   INVESTMENT_HORIZONS,
 } from '@/trading/kernel/operator/profile'
 import { parseMember, usage } from '@/trading/kernel/surface/surface'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 
 const USAGE: 'slash.tradingProfileUsage' = 'slash.tradingProfileUsage'
@@ -103,7 +103,6 @@ async function run(deps: ProfileCommandDeps, ctx: SlashContext): Promise<SlashRe
 
 async function runShow(deps: ProfileCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const profile = await deps.profiles.get({
-    defaultLocale: ctx.locale,
     signal: ctx.signal,
   })
 
@@ -131,14 +130,13 @@ async function runSet(
   const patch = parseProfilePatch({ field, values, segments })
 
   if (patch === null) {
-    const profile = await deps.profiles.get({ defaultLocale: ctx.locale, signal: ctx.signal })
+    const profile = await deps.profiles.get({ signal: ctx.signal })
 
     return buildSetRefusal(deps.profiles, field, openSegmentsOf(deps.profiles, profile))
   }
 
   const profile = await deps.profiles.update({
     patch,
-    defaultLocale: ctx.locale,
     signal: ctx.signal,
   })
 
@@ -155,7 +153,6 @@ async function runReset(
   }
 
   const profile = await deps.profiles.reset({
-    defaultLocale: ctx.locale,
     signal: ctx.signal,
   })
 
@@ -169,7 +166,6 @@ async function runSegment(
 ): Promise<SlashResult> {
   const profile = await deps.profiles.updateSegment({
     ...request,
-    defaultLocale: ctx.locale,
     signal: ctx.signal,
   })
 
@@ -183,7 +179,6 @@ async function runPolicy(
 ): Promise<SlashResult> {
   const profile = await deps.profiles.updateSegmentPolicy({
     ...request,
-    defaultLocale: ctx.locale,
     signal: ctx.signal,
   })
 
@@ -291,6 +286,10 @@ function buildUsageValues(profiles: Profiles): CommandMessageValues {
 function shown(deps: ProfileCommandDeps, ctx: SlashContext, profile: UserProfile): SlashResult {
   return {
     kind: 'text',
-    text: renderProfileText(ctx.locale, profile, resolveRenderContext(deps.timezone, ctx.surface)),
+    text: renderProfileText(
+      ctx.locale,
+      profile,
+      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
+    ),
   }
 }

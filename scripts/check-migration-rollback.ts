@@ -22,6 +22,45 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const LAST_MESSAGE_MIGRATION_ID = '2026_10_29_111645_add_sessions_last_message_at'
+const SESSIONS_TABLE = 'sessions'
+const LAST_MESSAGE_INDEX = 'idx_sessions_last_message'
+const DROPPED_COLUMNS_MIGRATION_ID = '2026_10_28_234503_drop_unused_columns'
+const DROPPED_COLUMNS: readonly (readonly [table: string, column: string])[] = [
+  ['memory_kv', 'source'],
+  ['memory_kv', 'run_id'],
+  ['memory_kv', 'version'],
+  ['memory_kv', 'last_accessed_at'],
+  ['notices', 'weight'],
+  ['notices', 'wake'],
+  ['notices', 'run_id'],
+  ['runs', 'chat_id'],
+  ['trading_profiles', 'preferred_locale'],
+]
+const DROPPED_INDEXES = ['idx_memory_user_accessed', 'idx_memory_run'] as const
+const DISPLAY_ONLY_MIGRATION_ID = '2026_10_28_223300_add_session_messages_display_only'
+const SESSION_MESSAGES_TABLE = 'session_messages'
+const RUNS_ENRICHMENT_MIGRATION_ID = '2026_10_27_080926_add_runs_tickers_questions'
+const RUNS_ENRICHMENT_COLUMNS = ['tickers', 'questions_done', 'questions_total'] as const
+const BROWSER_SESSIONS_MIGRATION_ID = '2026_10_26_132705_add_browser_sessions'
+const BROWSER_SESSIONS_TABLE = 'browser_sessions'
+const BROWSER_SESSIONS_INDEX = 'idx_browser_sessions_last_seen_at'
+const DEBATE_MODELS_MIGRATION_ID = '2026_10_24_083308_add_suggestion_debate_models'
+const SUGGESTIONS_TABLE = 'suggestions'
+const TRIGGERS_MIGRATION_ID = '2026_10_24_052558_add_job_event_triggers'
+const EVENT_PARKED_AT = 8_640_000_000_000_000
+const TRIGGER_TABLES = ['job_event_triggers', 'job_event_fires'] as const
+const NOTICES_MIGRATION_ID = '2026_10_24_012442_add_notices'
+const NOTICES_TABLE = 'notices'
+const NOTICES_INDEX = 'idx_notices_created_at'
+const RUNS_MIGRATION_ID = '2026_10_24_010135_add_runs'
+const RUNS_TABLE = 'runs'
+const RUNS_INDEXES = [
+  'idx_runs_ended_at',
+  'idx_runs_parent_run',
+  'idx_llm_attempts_run',
+  'idx_llm_attempts_parent_run',
+] as const
 const ANSWER_MIGRATION_ID = '2026_10_11_101208_add_channel_inbox_answer'
 const RETRY_AT_MIGRATION_ID = '2026_10_15_182559_add_channel_inbox_retry_at'
 const CASH_FLOW_SOURCE_MIGRATION_ID =
@@ -164,6 +203,269 @@ async function hasTable(db: Storage, table: string): Promise<boolean> {
   return rows.length === 1
 }
 
+async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
+  const rows = await db.query<{ readonly name: string }>(
+    'SELECT name FROM sqlite_master WHERE type = ?1',
+    ['index']
+  )
+
+  return new Set(rows.map((row) => row.name))
+}
+
+/** The column and its index are all the migration adds; rolling back leaves the sessions table
+ *  without them. */
+async function assertLastMessageRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, SESSIONS_TABLE, 'last_message_at'),
+    'last_message_at migration did not add the column'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: LAST_MESSAGE_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'last_message_at rollback did not complete')
+  assertState(
+    !(await hasColumn(db, SESSIONS_TABLE, 'last_message_at')),
+    'last_message_at rollback kept the column'
+  )
+  assertState(
+    !(await indexNames(db)).has(LAST_MESSAGE_INDEX),
+    'last_message_at rollback kept the index'
+  )
+}
+
+/** Every column and index the migration drops is gone after it and back after rolling it back. */
+async function assertDroppedColumnsRollback(db: Storage): Promise<void> {
+  for (const [table, column] of DROPPED_COLUMNS) {
+    assertState(
+      !(await hasColumn(db, table, column)),
+      `unused-column migration kept ${table}.${column}`
+    )
+  }
+
+  const kept = await indexNames(db)
+
+  assertState(
+    DROPPED_INDEXES.every((name) => !kept.has(name)),
+    'unused-column migration kept an index'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: DROPPED_COLUMNS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+  const indexes = await indexNames(db)
+
+  assertState(rolledBack.kind === 'rolled_back', 'unused-column rollback did not complete')
+
+  for (const [table, column] of DROPPED_COLUMNS) {
+    assertState(await hasColumn(db, table, column), `unused-column rollback lost ${table}.${column}`)
+  }
+
+  assertState(
+    DROPPED_INDEXES.every((name) => indexes.has(name)),
+    'unused-column rollback did not restore an index'
+  )
+}
+
+/** The flag is the only thing the migration adds; rolling back leaves the transcript's table without
+ *  it. */
+async function assertDisplayOnlyRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, SESSION_MESSAGES_TABLE, 'display_only'),
+    'display_only migration did not add the column'
+  )
+  await db.execute(
+    'INSERT INTO sessions (id, agent_id, user_id, channel, status, started_at, last_activity_at) ' +
+      "VALUES ('display-session', 'main', 'operator', 'api', 'done', ?1, ?1)",
+    [APPLIED_AT_MS]
+  )
+  await db.execute(
+    'INSERT INTO session_messages (session_id, idx, role, content, display_only, created_at) VALUES ' +
+      "('display-session', 0, 'user', 'kept', 0, ?1), " +
+      "('display-session', 1, 'assistant', 'shown only', 1, ?1)",
+    [APPLIED_AT_MS]
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: DISPLAY_ONLY_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'display_only rollback did not complete')
+  assertState(
+    await hasTable(db, SESSION_MESSAGES_TABLE),
+    'display_only rollback dropped the table'
+  )
+  assertState(
+    !(await hasColumn(db, SESSION_MESSAGES_TABLE, 'display_only')),
+    'display_only rollback kept the column'
+  )
+
+  const left = await db.query<{ content: string }>(
+    "SELECT content FROM session_messages WHERE session_id = 'display-session'"
+  )
+
+  assertState(
+    left.length === 1 && left[0]?.content === 'kept',
+    'display_only rollback left a display row for the model to read'
+  )
+}
+
+/** The columns are the only thing the migration adds, so rolling back must leave the run log's table
+ *  and leave them gone. */
+async function assertRunsEnrichmentRollback(db: Storage): Promise<void> {
+  for (const column of RUNS_ENRICHMENT_COLUMNS) {
+    assertState(
+      await hasColumn(db, RUNS_TABLE, column),
+      `runs enrichment migration did not add ${column}`
+    )
+  }
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: RUNS_ENRICHMENT_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'runs enrichment rollback did not complete')
+  assertState(await hasTable(db, RUNS_TABLE), 'runs enrichment rollback dropped the table')
+
+  for (const column of RUNS_ENRICHMENT_COLUMNS) {
+    assertState(
+      !(await hasColumn(db, RUNS_TABLE, column)),
+      `runs enrichment rollback kept ${column}`
+    )
+  }
+}
+
+/** Browser sign-ins go with their table and its one index. */
+async function assertBrowserSessionsRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasTable(db, BROWSER_SESSIONS_TABLE),
+    'browser_sessions migration did not add the table'
+  )
+  assertState(
+    (await indexNames(db)).has(BROWSER_SESSIONS_INDEX),
+    'browser_sessions migration did not add the index'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: BROWSER_SESSIONS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'browser_sessions rollback did not complete')
+  assertState(
+    !(await hasTable(db, BROWSER_SESSIONS_TABLE)),
+    'browser_sessions rollback kept the table'
+  )
+  assertState(
+    !(await indexNames(db)).has(BROWSER_SESSIONS_INDEX),
+    'browser_sessions rollback kept the index'
+  )
+}
+
+/** The column is the only thing the migration adds, so rolling back must leave it gone. */
+async function assertDebateModelsRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, SUGGESTIONS_TABLE, 'debate_models'),
+    'debate_models migration did not add the column'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: DEBATE_MODELS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'debate_models rollback did not complete')
+  assertState(
+    !(await hasColumn(db, SUGGESTIONS_TABLE, 'debate_models')),
+    'debate_models rollback kept the column'
+  )
+}
+
+/** A parked event job is only a job together with its trigger, so the jobs that have one go with
+ *  the tables and a plain schedule survives. */
+async function assertTriggersRollback(db: Storage): Promise<void> {
+  assertState(
+    (await Promise.all(TRIGGER_TABLES.map((table) => hasTable(db, table)))).every(Boolean),
+    'trigger migration did not add both tables'
+  )
+
+  const insertJob =
+    'INSERT INTO jobs (id, agent_id, prompt, schedule_kind, run_at, next_run_at, created_at) ' +
+    "VALUES (?1, 'chat', 'p', 'once', ?2, ?2, ?3)"
+
+  await db.execute(insertJob, ['event-job', EVENT_PARKED_AT, APPLIED_AT_MS])
+  await db.execute(insertJob, ['plain-job', APPLIED_AT_MS, APPLIED_AT_MS])
+  await db.execute(
+    'INSERT INTO job_event_triggers (job_id, event, cooldown_ms, created_at) ' +
+      "VALUES ('event-job', 'target', 300000, ?1)",
+    [APPLIED_AT_MS]
+  )
+  await db.execute(
+    "INSERT INTO job_event_fires (job_id, fire_key, last_fired_at) VALUES ('event-job', '*', ?1)",
+    [APPLIED_AT_MS]
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: TRIGGERS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+  const kept = await db.query<{ readonly id: string }>('SELECT id FROM jobs ORDER BY id')
+
+  assertState(rolledBack.kind === 'rolled_back', 'trigger rollback did not complete')
+  assertState(
+    (await Promise.all(TRIGGER_TABLES.map((table) => hasTable(db, table)))).every((has) => !has),
+    'trigger rollback kept a table'
+  )
+  assertState(
+    kept.length === 1 && kept[0]?.id === 'plain-job',
+    'trigger rollback kept a parked event job or dropped a plain one'
+  )
+}
+
+/** The notice log goes with its table and its one index. */
+async function assertNoticesRollback(db: Storage): Promise<void> {
+  assertState(await hasTable(db, NOTICES_TABLE), 'notices migration did not add the table')
+  assertState((await indexNames(db)).has(NOTICES_INDEX), 'notices migration did not add the index')
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: NOTICES_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'notices rollback did not complete')
+  assertState(!(await hasTable(db, NOTICES_TABLE)), 'notices rollback kept the table')
+  assertState(!(await indexNames(db)).has(NOTICES_INDEX), 'notices rollback kept the index')
+}
+
+/** The run log goes with its table, and the two attempt indexes it added go with it. */
+async function assertRunsRollback(db: Storage): Promise<void> {
+  const before = await indexNames(db)
+
+  assertState(await hasTable(db, RUNS_TABLE), 'runs migration did not add the table')
+  assertState(
+    RUNS_INDEXES.every((name) => before.has(name)),
+    'runs migration did not add every index'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: RUNS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+  const after = await indexNames(db)
+
+  assertState(rolledBack.kind === 'rolled_back', 'runs rollback did not complete')
+  assertState(!(await hasTable(db, RUNS_TABLE)), 'runs rollback kept the table')
+  assertState(
+    RUNS_INDEXES.every((name) => !after.has(name)),
+    'runs rollback kept an index'
+  )
+}
+
 const failingExtension: Migration = {
   id: EXTENSION_MIGRATION_ID,
   reversibility: 'reversible',
@@ -178,6 +480,10 @@ const failingExtension: Migration = {
 
 async function main(): Promise<void> {
   await assertDownCoversUp(`${TRADING_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${RUNS_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${NOTICES_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${TRIGGERS_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${BROWSER_SESSIONS_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -188,6 +494,15 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertLastMessageRollback(db)
+    await assertDroppedColumnsRollback(db)
+    await assertDisplayOnlyRollback(db)
+    await assertRunsEnrichmentRollback(db)
+    await assertBrowserSessionsRollback(db)
+    await assertDebateModelsRollback(db)
+    await assertTriggersRollback(db)
+    await assertNoticesRollback(db)
+    await assertRunsRollback(db)
     await assertCashFlowSourceRollback(db)
     await assertRevokedAtRollback(db)
 

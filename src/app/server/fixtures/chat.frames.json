@@ -54,5 +54,32 @@
   {
     "kind": "steer_dropped",
     "text": "⚠️ 1 message arrived while the run was stopping and was not processed - please resend"
+  },
+  {
+    "kind": "queued"
+  },
+  {
+    "kind": "queued",
+    "id": "req-2",
+    "position": 2
+  },
+  {
+    "kind": "started",
+    "id": "req-2",
+    "runId": "9f1c2d0e-5a77-4c1e-9d65-0f0c3a1b7e42"
+  },
+  {
+    "kind": "progress",
+    "text": "Thị trường tiền mã hóa · Đang tải lịch sử giá — 12/85 mã…",
+    "id": "req-2"
+  },
+  {
+    "kind": "text",
+    "delta": "BTC 64,210",
+    "id": "req-2"
+  },
+  {
+    "kind": "dropped",
+    "id": "req-3"
   }
 ]

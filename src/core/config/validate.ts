@@ -1,5 +1,9 @@
 import type { ResolvedConfig } from '@/core/config/resolve'
-import { resolveConfig } from '@/core/config/resolve'
+import {
+  combineInvalidConfigErrors,
+  InvalidConfigError,
+  resolveConfig,
+} from '@/core/config/resolve'
 import { parseRawConfig } from '@/core/config/schema'
 import { ConfigError } from '@/core/errors'
 
@@ -48,10 +52,28 @@ function formatPath(path: readonly (string | number)[]): string {
   }, '')
 }
 
-/** What the sections core does not own refuse on their own, read over defaults for everything else
- *  the way boot reads them; empty when they pass. Lets a caller still report them after core
- *  refused its own sections first. */
-export function extensionConfigErrors(
+/** A load refusal with what the sections core never reached refuse on their own folded in: core
+ *  refuses its own sections before any module reads its own, so those are checked over defaults
+ *  here and one run lists both. */
+export function withExtensionRefusals(
+  err: unknown,
+  refusals: (config: ResolvedConfig) => readonly unknown[]
+): readonly unknown[] {
+  if (!(err instanceof InvalidConfigError) || err.unchecked === undefined) {
+    return [err]
+  }
+
+  const extensions = extensionConfigErrors(err.unchecked, refusals)
+  const invalid = extensions.filter((extension) => extension instanceof InvalidConfigError)
+  const other = extensions.filter((extension) => !(extension instanceof InvalidConfigError))
+
+  return [
+    invalid.reduce((all, extension) => combineInvalidConfigErrors(all, extension), err),
+    ...other,
+  ]
+}
+
+function extensionConfigErrors(
   extensions: Readonly<Record<string, unknown>>,
   refusals: (config: ResolvedConfig) => readonly unknown[]
 ): readonly unknown[] {

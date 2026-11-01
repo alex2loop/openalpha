@@ -1,0 +1,59 @@
+.chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: var(--headerControlH);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--sunken);
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+button.chip {
+  cursor: pointer;
+}
+
+button.chip:hover {
+  background: var(--border);
+}
+
+.chip.is-caution {
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.chip.is-caution::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--caution);
+  animation: chip-caution 1.6s infinite;
+}
+
+@keyframes chip-caution {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--caution) 70%, transparent);
+  }
+
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip.is-caution::before {
+    animation: none;
+  }
+}
+
+.chip svg {
+  width: 15px;
+  height: 15px;
+}

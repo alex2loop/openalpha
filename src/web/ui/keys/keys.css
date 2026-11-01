@@ -1,0 +1,35 @@
+.key-list {
+  display: grid;
+  margin: 0 0 var(--s2);
+}
+
+.key-row {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) 1fr;
+  gap: var(--s2);
+  align-items: baseline;
+  padding: 5px 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--sizeReading);
+}
+
+.key-row:first-child {
+  border-top: 0;
+}
+
+.key-row dt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.key-row dd {
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .key-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

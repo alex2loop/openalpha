@@ -6,7 +6,7 @@ import { SearchProviderError } from '@/tools/web/search/errors'
 import { toSearchResults } from '@/tools/web/search/result-parser'
 import { ZERO_PROVIDER_COST_USD } from '@/tools/web/search/types'
 
-const ANYSEARCH_ENDPOINT = 'https://api.anysearch.com/v1/search'
+export const ANYSEARCH_ENDPOINT = 'https://api.anysearch.com/v1/search'
 const ANYSEARCH_AUTHORIZATION_HEADER = 'Authorization'
 const ANYSEARCH_BEARER_PREFIX = 'Bearer '
 const ANYSEARCH_RESPONSE_FORMAT = 'json'

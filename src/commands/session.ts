@@ -1,4 +1,3 @@
-import type { SessionId } from '@/core/ids'
 import type {
   CommandDescription,
   SlashCommand,
@@ -15,10 +14,11 @@ const POLICY = {
   role: 'operator',
   action: 'mutate',
   idempotencyKey: (ctx: SlashContext) => ctx.requestId,
+  transcript: 'none',
 } as const satisfies SlashInvocationPolicy
 
-/** Routes the caller's chat to a fresh session. The old transcript stays on disk. */
-export type SessionReset = (ctx: SlashContext) => Promise<SessionId>
+/** Routes the caller's chat to a fresh session, opened by its next message. The old transcript stays on disk. */
+export type SessionReset = (ctx: SlashContext) => Promise<void>
 
 export function createNewSessionCommand(reset: SessionReset): SlashCommand {
   return {

@@ -3,6 +3,7 @@ import type { OrderServiceDeps } from '@/trading/features/order/deps'
 import type { RoutedVenue } from '@/trading/features/order/routing'
 import type { ExecuteInput, OrderReceipt, OrderSide } from '@/trading/features/order/types'
 import type { TradingDay } from '@/trading/kernel/instrument'
+import type { OrderFill } from '@/trading/kernel/operator/notice'
 import type { BookedFill, FeePriceLookup } from '@/trading/kernel/venue/fee'
 import { isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -46,9 +47,36 @@ export async function mirrorFilledOrder(
   const numbers = await bookedNumbers(deps, parts)
   const write = await record(deps, { input, receipt, numbers, venue })
 
+  announceFill(deps, {
+    instrument: input.staged.instrument,
+    venue: input.staged.venue,
+    side: input.staged.side,
+    quantity: numbers.quantity,
+    unitPrice: receipt.averagePrice,
+    currency: input.prepared.currency,
+    at: receipt.filledAt ?? input.now,
+  })
   await recordMirrored(deps, input, receipt)
 
   return { input, receipt, numbers, write, venue }
+}
+
+/** The row is booked, so a listener that throws is logged and dropped: showing a fill must never
+ *  fail it, nor skip the exit guarding the position it opened. Shared with the exit tick, so the
+ *  one key covers both paths. */
+export function announceFill(
+  deps: Pick<OrderServiceDeps, 'logger' | 'onFilled'>,
+  fill: OrderFill
+): void {
+  try {
+    deps.onFilled(fill)
+  } catch (err: unknown) {
+    deps.logger.warn('trading.fill_listener_failed', {
+      venue: fill.venue,
+      ticker: fill.instrument.ticker,
+      err: formatErrForLog(err),
+    })
+  }
 }
 
 /** The row is already in the book, so a failure here must not skip the exit guarding the
@@ -99,13 +127,21 @@ async function bookedNumbers(deps: OrderServiceDeps, parts: MirrorInput): Promis
       throw err
     }
 
-    deps.logger.error('order.fill_unbookable', {
+    const fields = {
       clientOrderId: staged.clientOrderId,
       orderId: receipt.orderId,
       symbol: staged.symbol,
       feeCurrency: receipt.feeCurrency,
       err: formatErrForLog(err),
-    })
+    }
+
+    // Still unlisted after the venue's re-reads: `/record sync` books it later, so this is a
+    // degraded fill rather than a failed one.
+    if (err instanceof OrderError && err.code === 'order.fee_unreported') {
+      deps.logger.warn('order.fill_fee_unreported', fields)
+    } else {
+      deps.logger.error('order.fill_unbookable', fields)
+    }
 
     // The thrown code, so the row says which refusal this was; anything else came out of the fee
     // lookup itself.
@@ -258,12 +294,19 @@ export async function toMirrorNumbers(input: MirrorNumbersInput): Promise<Booked
     )
   }
 
+  if (receipt.feeUnreported === true) {
+    throw new OrderError(
+      'order.fee_unreported',
+      `the venue has not listed the trades of order ${receipt.orderId} yet`
+    )
+  }
+
   const numbers = await toBookedFill(input)
 
   if (numbers === undefined) {
     throw new OrderError(
       'order.unmirrorable_fee',
-      `fee in ${receipt.feeCurrency} needs a conversion this path will not guess`
+      `the fee of order ${receipt.orderId} needs a conversion this path will not guess`
     )
   }
 

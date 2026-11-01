@@ -1,8 +1,58 @@
 {
   "checks": [
-    { "name": "config", "ok": true, "detail": "/Users/me/.openalpha/config.toml" },
-    { "name": "database", "ok": true, "detail": "reachable" },
-    { "name": "provider: openrouter", "ok": true, "detail": "key set" },
-    { "name": "api: token", "ok": true, "detail": "file (ok)" }
-  ]
+    {
+      "check": "models",
+      "name": "models",
+      "status": "ok",
+      "ok": true,
+      "detail": "openrouter/anthropic/claude-sonnet-4.5"
+    },
+    {
+      "check": "data-dir",
+      "name": "data folder",
+      "status": "ok",
+      "ok": true,
+      "detail": "/Users/me/.openalpha"
+    },
+    {
+      "check": "database",
+      "name": "database",
+      "status": "ok",
+      "ok": true,
+      "detail": "/Users/me/.openalpha/data/openalpha.sqlite (opens fine and its migrations are current. Full check: run openalpha doctor in a terminal)"
+    },
+    {
+      "check": "sources",
+      "name": "data sources",
+      "status": "info",
+      "ok": true,
+      "detail": "fred is optional. Set FRED_API_KEY to add US macro series."
+    },
+    {
+      "check": "delivery",
+      "name": "delivery",
+      "status": "warn",
+      "ok": false,
+      "detail": "telegram (2 allowed ids): no fallback_chat_id - a scheduled job with no --to has nowhere to deliver"
+    },
+    {
+      "check": "telegram",
+      "name": "Telegram",
+      "status": "fail",
+      "ok": false,
+      "detail": "getMe returned ok=false"
+    },
+    { "check": "config", "name": "config", "status": "cliOnly", "ok": true },
+    { "check": "daemon", "name": "daemon", "status": "cliOnly", "ok": true },
+    { "check": "trading", "name": "trading", "status": "cliOnly", "ok": true },
+    {
+      "check": "api",
+      "name": "api: token",
+      "status": "ok",
+      "ok": true,
+      "detail": "/Users/me/.openalpha/api-token"
+    }
+  ],
+  "checkedAt": 1791535800000,
+  "online": false
 }

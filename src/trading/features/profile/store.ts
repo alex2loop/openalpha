@@ -1,11 +1,9 @@
 import { z } from 'zod'
 
-import type { Locale } from '@/core/types/locale'
 import type { InstrumentRef, PortfolioSegment } from '@/trading/kernel/instrument'
 import type { RiskCapSet, RiskLevel, UserProfile } from '@/trading/kernel/operator/profile'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, StorageError } from '@/core/errors'
-import { LOCALES } from '@/core/types/locale'
 import { canonicalJson, sha256Hex } from '@/core/utils/hash'
 import { seededPolicyNumbers } from '@/trading/features/profile/policy'
 import { currencyCode, marketRef, portfolioSegment, ticker } from '@/trading/kernel/instrument'
@@ -24,13 +22,13 @@ const PROFILE_ROW_ID = 1
 export const PROFILE_CURRENCY_SQL = 'SELECT base_currency FROM trading_profiles LIMIT 1'
 
 const UPSERT_SQL =
-  'INSERT INTO trading_profiles (id, preferred_locale, base_currency, ' +
+  'INSERT INTO trading_profiles (id, base_currency, ' +
   'risk_capacity, risk_willingness, goal, payload) VALUES '
 // `base_currency` is written on insert and never updated: the first persisted profile fixes it, so
 // a later config change cannot reinterpret historical facts.
 const UPSERT_SET =
   ' ON CONFLICT (id) DO UPDATE SET ' +
-  'preferred_locale = excluded.preferred_locale, risk_capacity = excluded.risk_capacity, ' +
+  'risk_capacity = excluded.risk_capacity, ' +
   'risk_willingness = excluded.risk_willingness, goal = excluded.goal, payload = excluded.payload'
 
 const instrumentRefSchema = z.strictObject({ market: z.string(), ticker: z.string() })
@@ -67,7 +65,6 @@ const payloadSchema = z.object({
 })
 
 interface ProfileRow {
-  readonly preferred_locale: string
   readonly base_currency: string
   readonly risk_capacity: string
   readonly risk_willingness: string
@@ -114,9 +111,8 @@ async function upsert(
 ): Promise<UserProfile> {
   assertNotAborted(signal)
 
-  await deps.db.execute(`${UPSERT_SQL}(${deps.dialect.paramList(7)})${UPSERT_SET}`, [
+  await deps.db.execute(`${UPSERT_SQL}(${deps.dialect.paramList(6)})${UPSERT_SET}`, [
     PROFILE_ROW_ID,
-    profile.preferredLocale,
     profile.baseCurrency,
     profile.riskCapacity,
     profile.riskWillingness,
@@ -185,7 +181,6 @@ function toProfile(row: ProfileRow): UserProfile {
   const seeded = seededPolicyNumbers(riskLevel)
 
   return {
-    preferredLocale: toLocale(row.preferred_locale),
     baseCurrency: currencyCode(row.base_currency),
     // The conservative floor of the two inputs; storing it would be a third copy free to disagree.
     riskLevel,
@@ -215,10 +210,6 @@ function lowerRisk(capacity: RiskLevel, willingness: RiskLevel): RiskLevel {
 
 function toRiskLevel(raw: string): RiskLevel {
   return toMember(raw, RISK_LEVELS, 'risk level')
-}
-
-function toLocale(raw: string): Locale {
-  return toMember(raw, LOCALES, 'locale')
 }
 
 function toInstrumentRef(raw: z.infer<typeof instrumentRefSchema>): InstrumentRef {

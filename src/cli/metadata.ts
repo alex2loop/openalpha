@@ -139,6 +139,7 @@ export const CLI_FLAG_DESCRIPTIONS = {
   limitToAgent: { key: 'cliHelp.flagLimitToAgent' },
   daemonLogScope: { key: 'cliHelp.flagDaemonLogScope' },
   runInBackground: { key: 'cliHelp.flagRunInBackground' },
+  restartNow: { key: 'cliHelp.flagRestartNow' },
   retentionWindow: { key: 'cliHelp.flagRetentionWindow' },
   previewWithoutDeleting: { key: 'cliHelp.flagPreviewWithoutDeleting' },
 } satisfies Record<string, LocalizedText>

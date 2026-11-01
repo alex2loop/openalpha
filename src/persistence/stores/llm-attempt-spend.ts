@@ -1,6 +1,12 @@
 import type { AgentId } from '@/core/ids'
 import type { Dialect, Storage } from '@/core/types/storage'
-import type { CostRange, DaySpend, SpendBreakdownRow } from '@/core/types/usage'
+import type {
+  CostRange,
+  DaySpend,
+  ModelRunCost,
+  RootRunCostRow,
+  SpendBreakdownRow,
+} from '@/core/types/usage'
 import type { EpochRange } from '@/core/utils/time'
 import type { LLMAttemptStore } from '@/persistence/types'
 import { StorageError } from '@/core/errors'
@@ -14,6 +20,8 @@ import {
   monthBoundsInZone,
 } from '@/core/utils/time'
 import { fromNanoUsd } from '@/persistence/money'
+import { SQL_MAX_BIND_PARAMS } from '@/persistence/sql/syntax'
+import { runRootCtes } from '@/persistence/stores/run-tree-sql'
 
 const ANSWERED_OUTCOME = 'success'
 const BILLED_SEARCH_KIND = 'external'
@@ -21,6 +29,12 @@ const BILLED_SEARCH_KIND = 'external'
 // the read groups by quarter hour and folds buckets into days afterwards. Every zone's offset is
 // a whole number of quarter hours, so no day boundary falls inside a bucket.
 const DAY_BUCKET_MS = 15 * MS_PER_MINUTE
+// A model's per-run cost reads this far back, so the scan stays on the `settled_at` index; the
+// sample ranks runs inside it.
+const MODEL_COST_WINDOW_MS = 30 * MS_PER_DAY
+// The window start and the sample size are the two binds that are not model names.
+const RESERVED_COST_BINDS = 2
+const MODELS_PER_COST_QUERY = SQL_MAX_BIND_PARAMS - RESERVED_COST_BINDS
 // A row written before the cap existed bills to the agent that ran it.
 const BILLING_AGENT_SQL = "COALESCE(NULLIF(billing_agent_id, ''), agent_id)"
 
@@ -31,8 +45,10 @@ type SpendReads = Pick<
   | 'dailyRange'
   | 'breakdownFor'
   | 'breakdownRange'
+  | 'rootRunsForRange'
   | 'totalForBillingAgent'
   | 'totalsForBillingAgents'
+  | 'perRunCostByModel'
 >
 
 interface SpendBreakdownDbRow {
@@ -49,6 +65,13 @@ interface SpendBreakdownDbRow {
   readonly output_total: number
   readonly reasoning_total: number
   readonly latency_average: number | null
+}
+
+interface RootRunDbRow {
+  readonly kind: 'command' | 'agent' | null
+  readonly name: string | null
+  readonly runs: number
+  readonly total: number
 }
 
 interface SpendDeps {
@@ -71,10 +94,13 @@ export function createSpendReads(db: Storage, dialect: Dialect, timeZone: string
     breakdownFor: async (period, nowMs) =>
       breakdownBetween(deps, periodBounds(deps, period, nowMs)),
     breakdownRange: async (range) => breakdownBetween(deps, rangeBounds(deps, range)),
+    rootRunsForRange: async (range) => rootRunsBetween(deps, rangeBounds(deps, range)),
     totalForBillingAgent: async (id, nowMs) =>
       sumForAgent(deps, id, dayBoundsInZone(nowMs, deps.timeZone)),
     totalsForBillingAgents: async (nowMs) =>
       sumByAgent(deps, dayBoundsInZone(nowMs, deps.timeZone)),
+    perRunCostByModel: async (models, sample, nowMs) =>
+      perRunCostOf(deps, { models, sample, nowMs }),
   }
 }
 
@@ -98,6 +124,33 @@ function rangeBounds(deps: SpendDeps, range: CostRange): EpochRange {
   }
 
   return bounds
+}
+
+async function perRunCostOf(
+  deps: SpendDeps,
+  query: { readonly models: readonly string[]; readonly sample: number; readonly nowMs: number }
+): Promise<readonly ModelRunCost[]> {
+  const { models, sample, nowMs } = query
+  const costs: ModelRunCost[] = []
+
+  for (let at = 0; at < models.length; at += MODELS_PER_COST_QUERY) {
+    const chunk = models.slice(at, at + MODELS_PER_COST_QUERY)
+    const rows = await deps.db.query<{
+      readonly provider: string
+      readonly model: string
+      readonly mean_cost: number
+    }>(deps.sql.perRunCost(chunk.length), [...chunk, nowMs - MODEL_COST_WINDOW_MS, sample])
+
+    for (const row of rows) {
+      costs.push({
+        provider: row.provider,
+        model: row.model,
+        perRunUsd: fromNanoUsd(row.mean_cost),
+      })
+    }
+  }
+
+  return costs
 }
 
 async function sumBetween(deps: SpendDeps, bounds: EpochRange): Promise<number> {
@@ -177,6 +230,22 @@ async function breakdownBetween(
   return rows.map(toSpendBreakdownRow)
 }
 
+async function rootRunsBetween(
+  deps: SpendDeps,
+  bounds: EpochRange
+): Promise<readonly RootRunCostRow[]> {
+  const rows = await deps.db.query<RootRunDbRow>(deps.sql.rootRunsBetween, [
+    bounds.fromMs,
+    bounds.toMs,
+  ])
+
+  return rows.map((row) => ({
+    ...(row.kind === null || row.name === null ? {} : { kind: row.kind, name: row.name }),
+    runs: row.runs,
+    costUsd: fromNanoUsd(row.total),
+  }))
+}
+
 function toSpendBreakdownRow(row: SpendBreakdownDbRow): SpendBreakdownRow {
   return {
     billingAgentId: agentId(row.billing_agent_id),
@@ -213,6 +282,7 @@ function buildSpendSql(d: Dialect) {
       `SELECT settled_at / ${DAY_BUCKET_MS} AS bucket, ` +
       `CAST(SUM(cost_nano_usd) AS BIGINT) AS total FROM llm_attempts ` +
       `WHERE settled_at >= ${d.param(1)} AND settled_at < ${d.param(2)} GROUP BY 1`,
+    perRunCost: (count: number) => buildPerRunCostSql(d, count),
     // Every SUM and the AVG are cast to BIGINT: postgres widens them to NUMERIC, which pg returns
     // as a string, while its INT8 parser is what makes a row read the same on both engines.
     breakdownBetween:
@@ -230,5 +300,33 @@ function buildSpendSql(d: Dialect) {
       `FROM llm_attempts WHERE settled_at >= ${d.param(1)} AND settled_at < ${d.param(2)} ` +
       `GROUP BY ${BILLING_AGENT_SQL}, agent_id, provider, model ` +
       `ORDER BY cost_total DESC, ${BILLING_AGENT_SQL}, agent_id, provider, model`,
+    rootRunsBetween: buildRootRunsSql(d),
   }
+}
+
+// The same `settled_at` window `sumBetween` reads, so the groups add up to its total; an attempt
+// whose root has no `runs` row lands in the one group with no kind or name.
+function buildRootRunsSql(d: Dialect): string {
+  return (
+    `${runRootCtes(d)}SELECT r.kind AS kind, r.name AS name, ` +
+    `COUNT(DISTINCT x.root) AS runs, CAST(SUM(a.cost_nano_usd) AS BIGINT) AS total ` +
+    `FROM llm_attempts a LEFT JOIN roots x ON x.run_id = a.run_id ` +
+    `LEFT JOIN runs r ON r.run_id = x.root ` +
+    `WHERE a.settled_at >= ${d.param(1)} AND a.settled_at < ${d.param(2)} ` +
+    `GROUP BY r.kind, r.name ORDER BY total DESC, r.kind, r.name`
+  )
+}
+
+// A run's cost on a model is the sum of its attempts on it, ranked newest run first per model so the
+// window is the model's own last runs, never a share of someone else's.
+function buildPerRunCostSql(d: Dialect, count: number): string {
+  return (
+    `WITH per_run AS (SELECT provider, model, run_id, ` +
+    `CAST(SUM(cost_nano_usd) AS BIGINT) AS cost, MAX(settled_at) AS last_at ` +
+    `FROM llm_attempts WHERE model IN (${d.paramList(count)}) AND settled_at >= ${d.param(count + 1)} GROUP BY provider, model, run_id), ` +
+    `ranked AS (SELECT provider, model, cost, ROW_NUMBER() OVER ` +
+    `(PARTITION BY provider, model ORDER BY last_at DESC, run_id) AS recency FROM per_run) ` +
+    `SELECT provider, model, CAST(AVG(cost) AS BIGINT) AS mean_cost FROM ranked ` +
+    `WHERE recency <= ${d.param(count + 2)} GROUP BY provider, model`
+  )
 }

@@ -1,7 +1,9 @@
 import type { Suggestion } from '@/trading/features/suggestion/types'
 import type { Stage, StageDecision, StageInput } from '@/trading/markets/stage'
+import { openLots } from '@/trading/features/portfolio/folds/holdings'
 import { lowerBand } from '@/trading/kernel/conviction'
-import { ETF_KIND } from '@/trading/kernel/instrument'
+import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
+import { eventsFromDay } from '@/trading/kernel/market/market-event'
 import { loweredDecision, STAGE_PASS } from '@/trading/markets/stage'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 
@@ -34,22 +36,31 @@ function evaluate(input: StageInput): StageDecision {
     return STAGE_PASS
   }
 
-  const underwater = underwaterFraction(suggestion)
+  const dividends = dividendsOf(input)
+  const underwater = underwaterFraction(suggestion, dividends.perUnit)
 
   if (underwater === undefined || underwater < AVERAGING_DOWN_THRESHOLD_FRACTION) {
     return STAGE_PASS
   }
 
+  // The sentence claims the cost is net of dividends only when some were taken off it.
   return loweredDecision(suggestion.conviction, lowerBand(suggestion.conviction), [
-    { code: 'suggestion.averaging-down', detail: { underwater } },
+    {
+      code: dividends.perUnit > 0 ? 'suggestion.averaging-down-net' : 'suggestion.averaging-down',
+      detail: { underwater },
+    },
+    ...(dividends.isIncomplete ? [{ code: 'suggestion.dividend-amount-unknown' as const }] : []),
   ])
 }
 
-/** How far the mark sits under the fee-bearing basis, as a fraction; negative on a position in
- *  profit, absent when the name is unheld or the market published no quote. Both figures are in the
- *  market's own currency, so no FX rate enters a reading taken against the levels beside it. */
-function underwaterFraction(suggestion: Suggestion): number | undefined {
-  const unitCost = suggestion.held?.unitCostNative
+/** How far the mark sits under the fee-bearing basis less the cash dividends the units earned, as a
+ *  fraction; negative on a position in profit, absent when the name is unheld or the market
+ *  published no quote. An ex-date takes the dividend off the price, so a basis that kept it would
+ *  read every dividend as a loss. Both figures are in the market's own currency, so no FX rate
+ *  enters a reading taken against the levels beside it. */
+function underwaterFraction(suggestion: Suggestion, dividendPerUnit: number): number | undefined {
+  const held = suggestion.held?.unitCostNative
+  const unitCost = held === undefined ? undefined : held - dividendPerUnit
   const mark = suggestion.quote === undefined ? undefined : exitPriceOf(suggestion.quote)
 
   if (unitCost === undefined || mark === undefined || unitCost <= 0) {
@@ -57,4 +68,46 @@ function underwaterFraction(suggestion: Suggestion): number | undefined {
   }
 
   return 1 - mark / unitCost
+}
+
+interface Dividends {
+  /** The cash each unit still held earned, counting only amounts the provider published. */
+  readonly perUnit: number
+  /** A dividend went ex with no published amount, the corporate calendar could not be read, or a lot
+   *  is older than the events read reaches: the figure above may be short, and an absent amount is
+   *  not a zero one. */
+  readonly isIncomplete: boolean
+}
+
+/** The cash dividends the units still held earned: an open lot earns every dividend that went ex after
+ *  it was bought, through the run's day, whether or not the cash has landed. */
+function dividendsOf(input: StageInput): Dividends {
+  const { instrument, at } = input.suggestion
+  const lots = openLots(
+    input.valued.book.positions
+      .filter((position) => isSameInstrument(position.instrument, instrument))
+      .flatMap((position) => position.lots)
+  )
+  const units = lots.reduce((sum, lot) => sum + lot.remainingQuantity, 0)
+  const dividends = (input.events ?? []).filter(
+    (event) => event.kind === 'dividend-ex-date' && event.at <= at
+  )
+  const windowStart = eventsFromDay(input.market.manifest.calendar, at)
+  const isOlderThanWindow =
+    input.market.capabilities.events !== undefined &&
+    lots.some((lot) => lot.acquiredAt < windowStart)
+  const earned = lots.flatMap((lot) =>
+    dividends
+      .filter((event) => event.at > lot.acquiredAt)
+      .map((event) => ({ units: lot.remainingQuantity, cashPerShare: event.cashPerShare }))
+  )
+  const owed = earned.reduce((sum, row) => sum + row.units * (row.cashPerShare ?? 0), 0)
+
+  return {
+    perUnit: units > 0 ? owed / units : 0,
+    isIncomplete:
+      input.calendarFailed === true ||
+      isOlderThanWindow ||
+      earned.some((row) => row.cashPerShare === undefined),
+  }
 }

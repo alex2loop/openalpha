@@ -3,13 +3,13 @@ import type {
   MarketRefreshAttempt,
   RefreshDataKind,
   RefreshKindResult,
+  StaleKindsRequest,
 } from '@/trading/kernel/market/refresh'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { UsBoardCache } from '@/trading/markets/equity-us/board'
 import type {
   MarketDataRefreshRequest,
   MarketManifest,
-  StaleKindsRequest,
   TradingCalendar,
 } from '@/trading/markets/types'
 import { assertNotAborted } from '@/core/errors'

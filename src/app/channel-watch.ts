@@ -1,17 +1,19 @@
 import type { DeliveryHub } from '@/app/delivery'
 import type { ChannelRuntimeSnapshot } from '@/channels/api'
 import type { ChannelId } from '@/core/channels'
-import type { DaemonStartOptions, DegradedItem } from '@/core/container'
+import type { DaemonStartOptions, DegradedItem, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
 import { toHealthCode } from '@/app/views'
 import { BRAND } from '@/core/brand'
+import { reportPass } from '@/core/container'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_MINUTE } from '@/core/utils/time'
 import { t } from '@/i18n'
 
 const CHANNEL_WATCH_INTERVAL_MS = 5 * MS_PER_MINUTE
+const CHANNEL_WATCH_PASS = { name: 'channels.watch', everyMs: CHANNEL_WATCH_INTERVAL_MS }
 // Absorbs the reconnects every channel makes on its own before anyone is told.
 const CHANNEL_DOWN_GRACE_MS = 15 * MS_PER_MINUTE
 // One stuck send must not hold the in-flight guard, and with it every later tick.
@@ -29,6 +31,7 @@ interface ChannelWatchInput {
   readonly delivery: DeliveryHub
   readonly locale: Locale
   readonly logger: Logger
+  readonly onTaskPass: TaskPassListener
   readonly onHealth?: DaemonStartOptions['onHealth']
 }
 
@@ -56,7 +59,7 @@ export function startChannelWatch(input: ChannelWatchInput): () => Promise<void>
 
     const pass = { input, periods, known, nowMs: performance.now(), signal: stop.signal }
 
-    inFlight = watchOnce(pass)
+    inFlight = reportPass(input.onTaskPass, CHANNEL_WATCH_PASS, () => watchOnce(pass))
       .catch((err: unknown) => {
         input.logger.warn('channel.watch_failed', { err: formatErrForLog(err) })
       })

@@ -53,6 +53,7 @@ const workflowRunCommand = createCommand({
     app.out(t(locale, 'cli.workflowRunningStatus', { id: workflow.id }))
     const result = await runWorkflow({
       runner: app.resolve('runner'),
+      config: app.config,
       logger: app.resolve('logger'),
       workflow,
       parentSignal: app.signal,

@@ -1,0 +1,24 @@
+.scene {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.scene-host {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Drags and pinches pan and zoom the office, never the page. */
+  touch-action: none;
+}
+
+/* Inside the clipped stage the ring is drawn within the canvas, whichever renderer made it. */
+.scene-host canvas:focus-visible {
+  outline-offset: -2px;
+}

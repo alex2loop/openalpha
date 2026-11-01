@@ -243,6 +243,7 @@ function mergeDeclarativeCommands(
     agents: app.resolve('agents'),
     workflows: app.resolve('workflows'),
     runner: app.resolve('runner'),
+    config: app.config,
     logger: app.resolve('logger'),
   }
 

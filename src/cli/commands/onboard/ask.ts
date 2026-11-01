@@ -70,7 +70,7 @@ export async function askUntilValid<T>(
 /** A menu picked with the arrow keys in a terminal; a numbered menu answered by typing
  *  where there is none (a pipe, CI). Enter takes the marked default either way. */
 export async function askChoice<T>(ctx: AskContext, question: ChoiceQuestion<T>): Promise<T> {
-  if (!isInteractiveTerminal()) {
+  if (!isInteractiveTerminal(ctx.app.terminal)) {
     return await askNumbered(ctx, question)
   }
 

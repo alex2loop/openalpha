@@ -1,9 +1,10 @@
 import { z } from 'zod'
 
 import type { ToolDefinition } from '@/core/tool'
+import type { AgentMarketData } from '@/trading/features/suggestion/agent-view'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
 import { createTool } from '@/core/tool'
-import { type AgentMarketData, toAgentTrackRecord } from '@/trading/features/suggestion/agent-view'
+import { toAgentTrackRecord } from '@/trading/features/suggestion/track-record/agent-view'
 import { hasAgreementSample } from '@/trading/features/suggestion/track-record/agreement'
 import { rootAgentFocus } from '@/trading/kernel/operator/focus'
 import { toAgentJson } from '@/trading/kernel/surface/agent-json'

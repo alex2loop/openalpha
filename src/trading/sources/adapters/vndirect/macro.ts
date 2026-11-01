@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { MacroSnapshot } from '@/trading/kernel/market/market-data'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { SourceAdapterOptions } from '@/trading/sources/define'
+import type { MacroSourceProfile } from '@/trading/sources/macro-gate'
 import { ValidationError } from '@/core/errors'
 import { tradingDay } from '@/trading/kernel/instrument'
 import { MACRO_FORMULA_VERSION } from '@/trading/kernel/market/macro-series'
@@ -19,6 +20,15 @@ const INTEREST_ROW = z.object({
 /** The one macro series VNDirect serves that FRED cannot: the cross-bank average 12-month term
  *  deposit rate, VN equities' risk-free comparator. */
 const DEPOSIT_RATE_CODE = 'BANK_AVG_CR_12M'
+/** The row is dated by the day the rate took effect, and banks move it a few times a year, so a
+ *  stored one stays the current rate for months. */
+const DEPOSIT_RATE_STALE_AFTER_DAYS = 180
+
+export const VNDIRECT_MACRO_PROFILE: MacroSourceProfile = {
+  series: ['deposit-rate-12m'],
+  cadence: { kind: 'daily' },
+  staleAfterDays: DEPOSIT_RATE_STALE_AFTER_DAYS,
+}
 
 export function macroSource(options: SourceAdapterOptions): RegisteredSource {
   return createSource({

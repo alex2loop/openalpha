@@ -36,7 +36,7 @@ export interface EvidenceDeps {
 
 export interface EvidenceRequest {
   readonly now: number
-  /** News published from here on; the run before this one already read what came earlier. */
+  /** News archived from here on; the run before this one already read what came earlier. */
   readonly newsSince: number
   readonly signal: AbortSignal
 }

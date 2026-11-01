@@ -1,4 +1,5 @@
 import type { CliApp } from '@/cli/types'
+import { isOwnTerminal } from '@/cli/terminal'
 import { style } from '@/cli/ui/colors'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { t, translateLlmErrorCode } from '@/i18n'
@@ -19,7 +20,7 @@ export function watchProviderFallbacks(app: CliApp): FallbackNotice {
   // Bounded by the configured chain: one entry pair per error code, and identical switches dedupe.
   const switched = new Set<string>()
   const off = app.resolve('bus').on('provider_fallback', (event) => {
-    if (event.channel !== LOCAL_CHANNEL_ID) {
+    if (event.channel !== LOCAL_CHANNEL_ID || !isOwnTerminal(app.terminal)) {
       return
     }
 

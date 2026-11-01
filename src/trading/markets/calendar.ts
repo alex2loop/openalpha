@@ -1,9 +1,10 @@
-import type { CalendarPolicy } from '@/trading/kernel/config'
+import type { CalendarPolicy, MarketConfig, SessionHours } from '@/trading/kernel/config'
 import type { SessionPhase, TradingDay, TradingSessionState } from '@/trading/kernel/instrument'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { ConfigError } from '@/core/errors'
 import { LOCAL_TIME_RE, MS_PER_DAY, MS_PER_MINUTE, MS_PER_SECOND } from '@/core/utils/time'
 import { tradingDay } from '@/trading/kernel/instrument'
+import { createRuleClosures } from '@/trading/markets/rule-closures'
 import { cachedFormatter } from '@/trading/render/datetime'
 import { dayFromEpochSeconds } from '@/trading/sources/rows/normalization'
 
@@ -27,7 +28,7 @@ const QUIET_TAPE_MS = 60 * MS_PER_MINUTE
  *  `TAPE_SETTLE_LAG_MS` old by the instant its session settles, and a quiet tape adds its halt on
  *  top. Past the sum is a feed that stopped advancing - the failure measured 2026-09-16 was four
  *  hours, which this clears by more than double, while the widest honest lag is an hour and a
- *  quarter. */
+ *  half. */
 const MAXIMUM_OBSERVATION_AGE_MS = TAPE_SETTLE_LAG_MS + QUIET_TAPE_MS
 
 /** What a reader calls the market's current state. Distinct from `TradingSessionState`, which is a
@@ -41,10 +42,11 @@ const MACHINE_LOCALE = 'en-CA'
 const ZONE_FORMATTERS = new Map<string, Intl.DateTimeFormat>()
 const TIME_FORMATTERS = new Map<string, Intl.DateTimeFormat>()
 
-/** World gold, crypto and the FX tape trade continuously; their calendar day is UTC, not any
+/** Crypto and the FX tape trade every day of the week; their calendar day is UTC, not any
  *  exchange's local day. Every `asOf`/cooldown computation for such a market resolves against this
  *  policy. It closes an hour or so after the FX roll, so a day it calls unsettled may just have
- *  settled — the error is one of caution, and only ever for that hour. */
+ *  settled — the error is one of caution, and only ever for that hour. World gold keeps UTC but
+ *  declares its weekend (`WORLD_GOLD_CALENDAR`). */
 export const CONTINUOUS_CALENDAR: CalendarPolicy = Object.freeze({
   timezone: 'UTC',
   sessionOpenLocalTime: '00:00',
@@ -60,34 +62,30 @@ interface SessionMinutes {
   readonly breakEnd?: number
 }
 
-/** `configuredHolidays` are the closures the operator declared under `[trading.markets.<id>]` since
- *  the build shipped, added to the market's own table and never replacing it. */
+/** The closures the operator declared under `[trading.markets.<id>]` lay over the market's own
+ *  rules: `holidays` close a day the rules leave open, `openDays` reopen one they close, and the
+ *  operator wins. */
 export function createTradingCalendar(
   policy: CalendarPolicy,
-  configuredHolidays: readonly TradingDay[] = []
+  settings?: Pick<MarketConfig, 'holidays' | 'openDays'>
 ): TradingCalendar {
   const session = resolveSession(policy)
   const weekend: ReadonlySet<number> = new Set(policy.weekendDays)
-  const holidays: ReadonlySet<TradingDay> = new Set([
-    ...(policy.holidays ?? []),
-    ...configuredHolidays,
-  ])
-  // The published closures are the forward answer; which past days the exchange was actually shut
-  // is still answered by the bars themselves - see `advanceObservedSessions`.
+  const holidays: ReadonlySet<TradingDay> = new Set(settings?.holidays)
+  const openDays: ReadonlySet<TradingDay> = new Set(settings?.openDays)
+  const isWeekend = (day: TradingDay): boolean => weekend.has(dayOfWeek(day))
+  const ruleClosesDay = createRuleClosures(policy, isWeekend)
+  // The rules are the forward answer; which past days the exchange was actually shut is still
+  // answered by the bars themselves - see `advanceObservedSessions`.
   const isTradingDay = (day: TradingDay): boolean =>
-    !(weekend.has(dayOfWeek(day)) || holidays.has(day))
+    !(isWeekend(day) || holidays.has(day)) && (openDays.has(day) || !ruleClosesDay(day))
   const sessionCloseAt = (day: TradingDay): number =>
     zonedEpochMs(day, session.close, policy.timezone)
-
-  const lastHoliday = [...holidays].reduce<TradingDay | undefined>(
-    (latest, day) => (latest === undefined || day > latest ? day : latest),
-    undefined
-  )
 
   return {
     timezone: policy.timezone,
     continuous: policy.continuous,
-    ...(lastHoliday === undefined ? {} : { lastHoliday }),
+    ...(policy.continuous ? {} : { hours: toSessionHours(policy) }),
     isTradingDay,
     dayAt: (epochMs) => dayFromEpochSeconds(epochMs / MS_PER_SECOND, policy.timezone),
     addTradingDays: (day, count) => addTradingDays(day, count, isTradingDay),
@@ -95,6 +93,21 @@ export function createTradingCalendar(
     sessionCloseAt,
     tapeFinalAt: (day) => sessionCloseAt(day) + TAPE_SETTLE_LAG_MS,
     sessionState: (epochMs) => resolveSessionState({ epochMs, policy, session, isTradingDay }),
+  }
+}
+
+function toSessionHours(policy: CalendarPolicy): SessionHours {
+  const { breakStartLocalTime: from, breakEndLocalTime: to } = policy
+  const auctionFrom = policy.closeAuctionStartLocalTime
+  const close = policy.sessionCloseLocalTime
+
+  return {
+    ...(policy.exchange === undefined ? {} : { exchange: policy.exchange }),
+    timezone: policy.timezone,
+    open: policy.sessionOpenLocalTime,
+    close,
+    ...(from === undefined || to === undefined ? {} : { breaks: [{ from, to }] }),
+    ...(auctionFrom === undefined ? {} : { closeAuction: { from: auctionFrom, to: close } }),
   }
 }
 
@@ -197,6 +210,26 @@ export function sessionPhase(calendar: TradingCalendar, now: number): SessionPha
   return state === 'closed' ? 'break' : state
 }
 
+/** A market's own day at one instant: the date on its clock, whether it trades, the next day it
+ *  does, and where the session stands. */
+export interface MarketDay {
+  readonly today: TradingDay
+  readonly tradesToday: boolean
+  readonly nextTradingDay: TradingDay
+  readonly phase: SessionPhase
+}
+
+export function resolveMarketDay(calendar: TradingCalendar, now: number): MarketDay {
+  const today = calendar.dayAt(now)
+
+  return {
+    today,
+    tradesToday: calendar.isTradingDay(today),
+    nextTradingDay: calendar.addTradingDays(today, 1),
+    phase: sessionPhase(calendar, now),
+  }
+}
+
 /** The session an order placed at `now` fills in: today until the close, the next trading day after
  *  it or on a day the market does not trade. */
 export function orderSessionOf(calendar: TradingCalendar, now: number): TradingDay {
@@ -229,12 +262,21 @@ function resolveSession(policy: CalendarPolicy): SessionMinutes {
 
   const breakStart = optionalMinutes(policy.breakStartLocalTime, policy.timezone)
   const breakEnd = optionalMinutes(policy.breakEndLocalTime, policy.timezone)
+  const auctionStart = optionalMinutes(policy.closeAuctionStartLocalTime, policy.timezone)
 
   if (breakStart !== undefined && breakEnd !== undefined && breakEnd <= breakStart) {
     throw new ConfigError(`calendar ${policy.timezone} has an inverted break`, undefined, [
       'calendar',
       policy.timezone,
     ])
+  }
+
+  if (auctionStart !== undefined && (auctionStart <= open || auctionStart >= close)) {
+    throw new ConfigError(
+      `calendar ${policy.timezone} has an auction outside its session`,
+      undefined,
+      ['calendar', policy.timezone]
+    )
   }
 
   return {

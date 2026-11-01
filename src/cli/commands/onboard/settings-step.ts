@@ -48,6 +48,10 @@ export async function askLanguage(ctx: AskContext): Promise<Locale> {
   })
 }
 
+export function isHomeRegion(value: string): value is HomeRegion {
+  return HOME_MARKETS.some((market) => market.region === value)
+}
+
 export function homeCurrencyOf(region: HomeRegion): string {
   return HOME_MARKETS.find((market) => market.region === region)?.currency ?? CURRENCY_CHOICES[0]
 }

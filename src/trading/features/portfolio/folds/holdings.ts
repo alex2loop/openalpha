@@ -1,5 +1,6 @@
-import type { Holding, ValuedBook } from '@/trading/features/portfolio/types'
+import type { Holding, ValuedBook, ValuedPosition } from '@/trading/features/portfolio/types'
 import type {
+  Book,
   ClosedRoundTrip,
   Position,
   PositionLot,
@@ -13,6 +14,7 @@ import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
 /** How many closed round trips a surface lists: the recent ones an operator still asks about, so a
  *  long ledger cannot grow the message. */
 const LISTED_ROUND_TRIPS = 10
+const RESIDUE_AT_COST = 'valuation.residue-at-cost'
 
 interface OpenCycle {
   proceedsNative: number
@@ -207,4 +209,77 @@ export function withoutResidue(
   )
 
   return { ...valued, positions }
+}
+
+/** What counting unpriced residue at cost reads: the venue positions behind each holding and how
+ *  each venue's smallest order is found, keyed by `buildInstrumentKey`. */
+export interface ResidueSizing {
+  readonly book: Book
+  minimumSizes?(
+    positions: readonly Position[],
+    signal: AbortSignal
+  ): Promise<ReadonlyMap<string, number>>
+  readonly signal: AbortSignal
+}
+
+/** A sliver below the venue's smallest order that no source prices any more (a delisted coin) would
+ *  otherwise withhold NAV, and with it every buy's caps, for a value that rounds away. It counts at
+ *  what it cost and says so; a real position with no price still withholds NAV. */
+export async function withResidueAtCost(
+  outcomes: readonly { readonly valued: ValuedPosition }[],
+  options: ResidueSizing
+): Promise<readonly ValuedPosition[]> {
+  const valued = outcomes.map((outcome) => outcome.valued)
+  const unpriced = new Set(
+    valued.flatMap((entry) =>
+      entry.kind === 'unpriced' ? [buildInstrumentKey(entry.position.instrument)] : []
+    )
+  )
+
+  if (options.minimumSizes === undefined || unpriced.size === 0) {
+    return valued
+  }
+
+  const sizes = await options.minimumSizes(
+    options.book.positions.filter((position) =>
+      unpriced.has(buildInstrumentKey(position.instrument))
+    ),
+    options.signal
+  )
+
+  return valued.map((entry) =>
+    entry.kind === 'unpriced' &&
+    isBelowMinimumSize(
+      entry.position.quantity,
+      sizes.get(buildInstrumentKey(entry.position.instrument))
+    )
+      ? {
+          ...entry,
+          caveat: {
+            code: RESIDUE_AT_COST,
+            detail: { ticker: entry.position.instrument.ticker },
+          },
+        }
+      : entry
+  )
+}
+
+/** What the holdings are worth in base currency, residue at cost included; nothing while any
+ *  holding has no value NAV could sum. */
+export function countedValueOf(valued: readonly ValuedPosition[]): number | undefined {
+  return valued.every((entry) => entry.kind === 'priced' || isAtCost(entry))
+    ? valued.reduce((sum, entry) => sum + valueOrCostOf(entry), 0)
+    : undefined
+}
+
+function isAtCost(entry: ValuedPosition): boolean {
+  return entry.kind === 'unpriced' && entry.caveat.code === RESIDUE_AT_COST
+}
+
+function valueOrCostOf(entry: ValuedPosition): number {
+  if (entry.kind === 'priced') {
+    return entry.valueBase
+  }
+
+  return isAtCost(entry) ? entry.position.costBasisBase : 0
 }

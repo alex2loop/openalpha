@@ -9,6 +9,7 @@ import type {
 } from '@/trading/kernel/market/market-capability'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
+import type { EventsRead, EventsReadInput } from '@/trading/markets/brief-events'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import type { TradingCalendar } from '@/trading/markets/types'
@@ -32,18 +33,23 @@ export interface BriefContext<Board = unknown> {
   /** The market's own calendar: every horizon in a section is trading days, not calendar days. */
   readonly calendar: TradingCalendar
   readonly policy: BriefPolicy
-  /** The VN names the operator chose. Empty is a real answer. */
+  /** The home market's names the operator chose. Empty is a real answer. */
   readonly watchlist: readonly InstrumentRef[]
-  /** The VN names the brief debates: every held one, then the watchlist. A held name is never cut,
+  /** The home market's names the operator holds. */
+  readonly heldNames: readonly InstrumentRef[]
+  /** The home market's names the brief debates: every held one, then the watchlist. A held name is never cut,
    *  since its run is what re-prices the plan the exit alerts arm. */
   readonly suggestionNames: readonly InstrumentRef[]
-  /** The same outside VN. */
+  /** The same outside the home market. */
   readonly crossAssetSuggestionNames: readonly InstrumentRef[]
-  /** The VN names whose corporate calendar the brief reads: the ones watched plus the ones held.
+  /** The home market's names whose corporate calendar the brief reads: the ones watched plus the ones held.
    *  A calendar lookup costs no model call, so it covers the whole book where a debate cannot. */
   readonly calendarNames: BriefNames
-  /** The same union outside VN, for the sections that price a cross-asset name without debating it. */
+  /** The same union outside the home market, for the sections that price a cross-asset name without debating it. */
   readonly crossAssetNames: BriefNames
+  /** The corporate calendar of `calendarNames`, read once: the calendar sections print a capped
+   *  list of it and next-actions reminds from all of it. */
+  readonly events: () => Promise<EventsRead>
   /** The home market's own population pass, or null when it could not be read. */
   readonly board: Board | null
   /** Another day's pass, on demand: the delta section needs yesterday's board without forcing the
@@ -69,7 +75,8 @@ interface BriefMacroRisk {
 }
 
 /** What differs between home markets, and nothing else: which market is home, the region whose
- *  macro composite the brief heads with and how it is weighed, and how to read the market's board. */
+ *  macro composite the brief heads with and how it is weighed, how to read the market's board, and
+ *  how its corporate calendar is read. */
 export interface BriefHome<Board> {
   readonly market: MarketRef
   readonly region: Region
@@ -79,6 +86,7 @@ export interface BriefHome<Board> {
     board: Board
   ): readonly { readonly instrument: InstrumentRef; readonly turnover?: number }[]
   sectorsOf(board: Board): readonly SectorStrength[]
+  readEvents(input: EventsReadInput): Promise<EventsRead>
 }
 
 export interface LoadContextOptions<Board = unknown> {
@@ -108,6 +116,7 @@ export async function loadBriefContext<Board>(
   const held = holdings ?? []
   const heldInMarket = held.filter(isHome)
   const heldCrossAsset = held.filter((instrument) => !isHome(instrument))
+  const calendarNames = unionNames(watchlists.covered, heldInMarket)
 
   return {
     deps,
@@ -120,10 +129,14 @@ export async function loadBriefContext<Board>(
     calendar: options.calendar,
     policy: deps.config.briefs,
     watchlist: watchlists.market,
+    heldNames: heldInMarket,
     suggestionNames: dedupe([...heldInMarket, ...watchlists.market]),
     crossAssetSuggestionNames: dedupe([...heldCrossAsset, ...watchlists.crossAsset]),
-    calendarNames: unionNames(watchlists.covered, heldInMarket),
+    calendarNames,
     crossAssetNames: unionNames(watchlists.crossAsset, heldCrossAsset),
+    events: onceAsync(() =>
+      home.readEvents({ deps, request, calendar: options.calendar, calendarNames })
+    ),
     board,
     boardAt: options.boardAt,
     sectors: board === null ? [] : home.sectorsOf(board),

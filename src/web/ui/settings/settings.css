@@ -1,0 +1,230 @@
+.gear-button {
+  position: relative;
+  flex: none;
+}
+
+.gear-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--badgeNeed);
+}
+
+/* The mockup's settings sheet: a fixed frame, the section list on Canvas down the left. */
+.modal-dialog.is-wide:has(.settings) {
+  width: min(900px, 100%);
+  height: min(640px, 84vh);
+}
+
+.modal-body:has(> .settings) {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+}
+
+.settings {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 200px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px var(--s1);
+  border-right: 1px solid var(--border);
+  background: var(--canvas);
+}
+
+.settings-nav button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--controlSmRadius);
+  background: none;
+  color: var(--ink2);
+  font-size: var(--sizeReading);
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-nav button:hover {
+  background: var(--sunken);
+}
+
+.settings-nav button.is-on {
+  background: var(--surface);
+  box-shadow: var(--lift);
+  color: var(--ink);
+  font-weight: var(--weightSemibold);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+  overflow: auto;
+  padding: var(--s3) 20px;
+}
+
+.settings-section {
+  font: var(--typeTitle);
+}
+
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-row:last-child {
+  border-bottom: 0;
+}
+
+.setting-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+  font-size: var(--sizeReading);
+}
+
+.setting-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--cautionBg);
+  color: var(--caution);
+  font: var(--typeCaption);
+}
+
+.setting-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.setting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+}
+
+/* Provider and model share the row: the model id is the longer text, so it takes twice the room. */
+.model-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--s1);
+}
+
+.model-choice select {
+  width: 100%;
+}
+
+:root[data-layout="phone"] .model-choice {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.setting-pair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1);
+}
+
+.setting-job {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+}
+
+.setting-editor {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: var(--sizeBody);
+  resize: vertical;
+}
+
+/* Below the narrow width the section list becomes a scrolling row above the form. */
+:root:not([data-layout="wide"]) .settings {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+:root:not([data-layout="wide"]) .settings-nav {
+  flex-direction: row;
+  overflow-x: auto;
+  border-right: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+:root:not([data-layout="wide"]) .settings-nav button {
+  flex: none;
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+:root[data-layout="phone"] .modal:has(.settings) {
+  padding: 0;
+}
+
+:root[data-layout="phone"] .modal-dialog:has(.settings) {
+  width: 100%;
+  max-height: none;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+.level-pill {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 9px;
+  font: var(--typeCaptionStrong);
+}
+
+.level-pill.is-ok {
+  background: var(--sunken);
+  color: var(--ink2);
+}
+
+.level-pill.is-warn {
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.level-pill.is-bad {
+  background: var(--dangerTint);
+  color: var(--dangerText);
+}
+
+.update-strip {
+  padding: var(--s1) 10px;
+  border-radius: 8px;
+  background: var(--cautionBg);
+  color: var(--caution);
+}
+
+.update-command {
+  padding: var(--s1) 10px;
+  border-radius: 8px;
+  background: var(--sunken);
+  user-select: all;
+}

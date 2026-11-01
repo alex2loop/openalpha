@@ -2,7 +2,7 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import { BRAND } from '@/core/brand'
 
 import { buildReleaseUrl } from './release'
-import { isUpdateCheckEnabled, readFreshUpdateState } from './state'
+import { isUpdateCheckEnabled, newerVersionOf, readFreshUpdateState, releasesBehind } from './state'
 
 /** What an app shows about updates: the running version and the newest release with its page. An
  *  app compares both with its own version, which may differ from the daemon's on another machine. */
@@ -13,6 +13,16 @@ export interface ReleaseStatus {
   readonly url: string | null
   /** When the release feed last answered or failed; 0 before the first check. */
   readonly checkedAt: number
+  readonly newer: boolean
+  /** The releases newer than the running one up to `latest`, newest first, each summary in the
+   *  config's language; empty while their notes are unread. */
+  readonly notes: readonly ReleaseNoteLine[]
+}
+
+interface ReleaseNoteLine {
+  readonly version: string
+  readonly important: boolean
+  readonly summary?: string
 }
 
 /** The cache while it is fresh, the release feed otherwise, so asking often costs two requests a day.
@@ -33,5 +43,15 @@ export async function readReleaseStatus(
     latest,
     url: latest === null ? null : buildReleaseUrl(latest),
     checkedAt: state.checkedAt,
+    newer: newerVersionOf(state) !== null,
+    notes: releasesBehind(state).map((note) => {
+      const summary = note.summary[config.locale.language]
+
+      return {
+        version: note.version,
+        important: note.important,
+        ...(summary === undefined ? {} : { summary }),
+      }
+    }),
   }
 }

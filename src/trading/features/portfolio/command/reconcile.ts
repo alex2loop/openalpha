@@ -2,7 +2,7 @@ import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/comma
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
 import { renderReconcileText } from '@/trading/features/portfolio/render/reconcile'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
 /** Holds the book against what the custodians actually report. Read-only and venue-by-venue: a
  *  venue the operator trades by hand carries no adapter and has nothing to be held against. */
@@ -23,6 +23,7 @@ export function createReconcileCommand(deps: ReconcileCommandDeps): SlashCommand
       role: 'operator',
       action: 'read',
       execution: { progressKey: 'slash.tradingReconcileProgress' },
+      selfContained: true,
     },
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
@@ -34,7 +35,7 @@ async function run(deps: ReconcileCommandDeps, ctx: SlashContext): Promise<Slash
   return {
     kind: 'text',
     text: renderReconcileText(ctx.locale, reconciled, {
-      context: resolveRenderContext(deps.timezone, ctx.surface),
+      context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       baseCurrency: deps.baseCurrency,
     }),
   }

@@ -143,6 +143,14 @@ export interface MarketLeaders {
   readonly sessions?: number
   readonly foreignBuys?: readonly MarketLeader[]
   readonly foreignSells?: readonly MarketLeader[]
+  /** The market's proprietary desks, as the foreign lists are drawn; a desk's figure lands after
+   *  the foreign one, so these are absent while no recent session's has. */
+  readonly proprietaryBuys?: readonly MarketLeader[]
+  readonly proprietarySells?: readonly MarketLeader[]
+  /** The session the proprietary lists were ranked over, present only when it is an earlier one
+   *  than the session reported because that one's figures are not out yet. Those rows carry no
+   *  `changePct`: the move they would show belongs to the newer session. */
+  readonly proprietaryDay?: TradingDay
   readonly mostTraded?: readonly MarketLeader[]
 }
 

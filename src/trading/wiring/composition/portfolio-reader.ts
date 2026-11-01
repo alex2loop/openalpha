@@ -38,8 +38,8 @@ export function createPortfolioReader(
   const heldMarkets = deps.venues.heldMarkets()
 
   return {
-    hasTradedSince: (instrument, since, signal) =>
-      portfolio.hasTradedSince(instrument, since, signal),
+    bookChangeSince: (instrument, from, signal) =>
+      portfolio.bookChangeSince(instrument, from, signal),
 
     async read(options) {
       const at = { now: options.now, signal: options.signal }

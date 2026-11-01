@@ -9,6 +9,7 @@ import type {
   RoleRunResult,
   RoleSchema,
 } from '@/trading/features/suggestion/debate/roles'
+import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
 import type { EvidenceBundle } from '@/trading/features/suggestion/pipeline/evidence'
 import type { DebateInput, SuggestionSink } from '@/trading/features/suggestion/pipeline/types'
 import type { Caveat } from '@/trading/kernel/caveat'
@@ -34,6 +35,8 @@ export interface DebateDeps extends RoleRunDeps {
   readonly decisionsChain: ProviderChain | undefined
   /** Bills the headline read's model calls to the same ledger and caps as the debate's. */
   readonly recordAttempt: AttemptRecorder
+  /** Told what each role said once the debate is verified. */
+  readonly onRoleOutput: RoleOutputListener
 }
 
 export interface DebateContext {
@@ -79,7 +82,7 @@ export function call<T>(context: DebateContext, spec: RoleCall<T>): Promise<Role
     budget,
     prompt: {
       instructions: renderPlaybook(
-        rolePlaybook(role, context.market.manifest),
+        rolePlaybook(role, context.market.manifest, context.input.draft.instrumentKind),
         context.deps.playbooks,
         prompt.instructions
       ),

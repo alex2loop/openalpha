@@ -26,7 +26,15 @@ const MANIFEST = JSON.parse(await Bun.file(resolve(ROOT, 'package.json')).text()
 // `@openalpha/runtime/app` -> one file, from the same `exports` the entry points come from.
 const SPECIFIER_FILES = publishedSpecifiers(MANIFEST)
 // Extension-less specifiers resolve against these, in order, the way the bundler does.
-const CANDIDATE_SUFFIXES: readonly string[] = ['', '.ts', '.json', '/index.ts', '/api.ts']
+const CANDIDATE_SUFFIXES: readonly string[] = [
+  '',
+  '.ts',
+  '.tsx',
+  '.json',
+  '/index.ts',
+  '/index.tsx',
+  '/api.ts',
+]
 
 // A file outside the import graph on purpose, with the reason it stays. `path`.
 const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([])
@@ -34,6 +42,9 @@ const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([])
 const FROM_RE = /\bfrom\s*['"]([^'"]+)['"]/g
 const DYNAMIC_RE = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g
 const BARE_IMPORT_RE = /(?:^|\n)\s*import\s*['"]([^'"]+)['"]/g
+// A page's `<script src>` and `<link href>`, which the bundler follows from an imported `.html`.
+const HTML_ASSET_RE = /<(?:script|link)\b[^>]*?\b(?:src|href)\s*=\s*['"]([^'"]+)['"]/g
+const HTML_SUFFIX = '.html'
 
 interface Entry {
   readonly file: string
@@ -74,10 +85,11 @@ function resolveSpecifier(specifier: string, fromFile: string): string | undefin
   return undefined
 }
 
-function specifiersOf(text: string): readonly string[] {
+function specifiersOf(file: string, text: string): readonly string[] {
   const found: string[] = []
+  const patterns = file.endsWith(HTML_SUFFIX) ? [HTML_ASSET_RE] : [FROM_RE, DYNAMIC_RE, BARE_IMPORT_RE]
 
-  for (const re of [FROM_RE, DYNAMIC_RE, BARE_IMPORT_RE]) {
+  for (const re of patterns) {
     re.lastIndex = 0
 
     let match = re.exec(text)
@@ -170,7 +182,7 @@ while (queue.length > 0) {
   const file = queue.pop() as string
   const text = await Bun.file(file).text()
 
-  for (const specifier of specifiersOf(text)) {
+  for (const specifier of specifiersOf(file, text)) {
     const target = resolveSpecifier(specifier, file)
 
     if (target !== undefined && !reached.has(target)) {
@@ -180,7 +192,7 @@ while (queue.length > 0) {
   }
 }
 
-const sources = [...new Glob('**/*.ts').scanSync(SRC)]
+const sources = [...new Glob('**/*.{ts,tsx}').scanSync(SRC)]
   .filter((file) => !file.endsWith('.d.ts'))
   .map((file) => resolve(SRC, file))
 

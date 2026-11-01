@@ -8,9 +8,6 @@ import { MS_PER_DAY, parseIsoDay } from '@/core/utils/time'
 import { isBookableFill, toBookedFill } from '@/trading/kernel/venue/fee'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 
-/** How far the venue's filled size may sit from the one stated before the two are different trades.
- *  Wide enough to cover a fee shaved off the credited amount, narrow enough that a second buy of a
- *  similar size on the same day never matches. */
 /** How far a reported fill's size may sit from a stated one before the two are different
  *  trades. A fee shaved off the credited amount moves the figure; a second trade of a similar
  *  size does not match. */

@@ -193,14 +193,7 @@ function createStorage(db: Database, logger: Logger): Storage {
     // Let in-flight transactions finish before the handle goes away.
     await txTail
 
-    try {
-      db.run('PRAGMA optimize')
-      db.run('PRAGMA wal_checkpoint(TRUNCATE)')
-      db.close()
-    } catch (err: unknown) {
-      // A failed close (SQLITE_BUSY) leaves WAL/SHM locked; log and let shutdown continue.
-      logger.error('sqlite.close_failed', { err: formatErrForLog(err) })
-    }
+    closeDatabase(db, logger)
   }
 
   return {
@@ -230,6 +223,22 @@ function createStorage(db: Database, logger: Logger): Storage {
 interface TransactionContext {
   readonly logger: Logger
   readonly seal: () => void
+}
+
+// A failed checkpoint must not skip the close: the handle would keep the WAL/SHM locked.
+function closeDatabase(db: Database, logger: Logger): void {
+  try {
+    db.run('PRAGMA optimize')
+    db.run(SQLITE_WAL_CHECKPOINT)
+  } catch (err: unknown) {
+    logger.warn('sqlite.checkpoint_failed', { err: formatErrForLog(err) })
+  }
+
+  try {
+    db.close()
+  } catch (err: unknown) {
+    logger.error('sqlite.close_failed', { err: formatErrForLog(err) })
+  }
 }
 
 async function runTransaction<T>(

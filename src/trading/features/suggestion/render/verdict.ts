@@ -7,7 +7,8 @@ import type {
   SuggestionBatchResult,
 } from '@/trading/features/suggestion/batch-types'
 import type { StoredSuggestion, SuggestionRunResult } from '@/trading/features/suggestion/types'
-import type { Caveat, HoldReasonCode } from '@/trading/kernel/caveat'
+import type { Caveat, HoldReasonCode, ReduceReasonCode } from '@/trading/kernel/caveat'
+import type { FactorResult } from '@/trading/kernel/factor'
 import type { RunFocus } from '@/trading/kernel/operator/focus'
 import type { ProfileStamp } from '@/trading/kernel/operator/profile'
 import { BRAND } from '@/core/brand'
@@ -16,6 +17,7 @@ import { t } from '@/i18n'
 import { renderProfileStamp } from '@/trading/features/profile/render'
 import { shownCall } from '@/trading/features/suggestion/render/second-opinion'
 import { isInconclusive } from '@/trading/features/suggestion/types'
+import { MILD_SCORE_AT } from '@/trading/kernel/conviction'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { renderCapBreachLines } from '@/trading/render/exposure'
@@ -160,15 +162,73 @@ function renderStoredVerdict(locale: Locale, call: StoredSuggestion): string {
     })
   }
 
-  const reasons = suggestion.holdReasonCodes.map((code) => renderHoldReason(locale, code)).join(' ')
+  const reasons = renderHoldReasons(locale, suggestion).join(' ')
 
   return reasons === ''
     ? t(locale, 'toolSummaries.suggestionVerdictAction', params)
     : t(locale, 'toolSummaries.suggestionVerdictHold', { ...params, reasons })
 }
 
-export function renderHoldReason(locale: Locale, code: HoldReasonCode): string {
-  return renderDeclaredValue(locale, `trading.hold.${code}`)
+/** `market-not-tradeable` covers a band edge, a full foreign room, a halt and a delisting alike; the
+ *  caveat stored beside it names which one, so the operator reads the cause, not the category. */
+function notTradeableKey(caveats: readonly Caveat[]): `trading.${string}` {
+  for (const caveat of caveats) {
+    if (caveat.code === 'market.band-edge-blocked') {
+      return caveat.detail?.edge === 'floor'
+        ? 'trading.holdBlocked.floor'
+        : 'trading.holdBlocked.ceiling'
+    }
+
+    if (caveat.code === 'market.foreign-room-exhausted' && caveat.detail?.blocks === 1) {
+      return 'trading.holdBlocked.foreign-room'
+    }
+  }
+
+  return 'trading.hold.market-not-tradeable'
+}
+
+interface HeldCall {
+  readonly holdReasonCodes: readonly HoldReasonCode[]
+  readonly caveats: readonly Caveat[]
+  readonly reduceReasonCode?: ReduceReasonCode
+  /** The rows the composite folded, which say how hard a contested read actually pulls apart. */
+  readonly factorScores: readonly FactorResult[]
+}
+
+function renderHoldReason(locale: Locale, code: HoldReasonCode, call: HeldCall): string {
+  if (code === 'market-not-tradeable') {
+    return renderDeclaredValue(locale, notTradeableKey(call.caveats))
+  }
+
+  return code === 'factors-contested' && !isPulledApart(call.factorScores)
+    ? renderDeclaredValue(locale, 'trading.holdContested.faint')
+    : renderDeclaredValue(locale, `trading.hold.${code}`)
+}
+
+/** Contested says the factors pull hard both ways only when each side has a factor past the lean
+ *  the scale calls clear; a disagreement against a reading near zero is a read that does not lean. */
+function isPulledApart(factors: readonly FactorResult[]): boolean {
+  return (
+    factors.some((factor) => factor.score >= MILD_SCORE_AT) &&
+    factors.some((factor) => factor.score <= -MILD_SCORE_AT)
+  )
+}
+
+/** A hold on a name a sale was called for leads with that sale's reason. */
+export function renderHoldReasons(locale: Locale, suggestion: HeldCall): readonly string[] {
+  const reasons = suggestion.holdReasonCodes.map((code) =>
+    renderHoldReason(locale, code, suggestion)
+  )
+  const sale = suggestion.reduceReasonCode
+
+  return sale === undefined
+    ? reasons
+    : [
+        renderDeclaredValue(locale, 'trading.render.suggestion.saleReason', {
+          reason: renderDeclaredValue(locale, `trading.brief.reduce-reason.${sale}`),
+        }),
+        ...reasons,
+      ]
 }
 
 /** The reason on its own line. The candidate-market hint that follows it in the full text is the
@@ -211,7 +271,7 @@ const INCONCLUSIVE_HINT_KEYS = {
   daily_cap: 'trading.render.suggestion.inconclusiveHintCostCap',
   monthly_cap: 'trading.render.suggestion.inconclusiveHintCostCap',
   agent_daily_cap: 'trading.render.suggestion.inconclusiveHintAgentCap',
-  ledger_unavailable: 'trading.render.suggestion.inconclusiveHintCostCap',
+  ledger_unavailable: 'trading.render.suggestion.inconclusiveHintLedger',
   budget: 'trading.render.suggestion.inconclusiveHintCostCap',
   aborted: 'trading.render.suggestion.inconclusiveHintCancelled',
   abort: 'trading.render.suggestion.inconclusiveHintCancelled',
@@ -233,8 +293,8 @@ const INCONCLUSIVE_HINT_KEYS = {
   loop: 'trading.render.suggestion.inconclusiveHintTurnLimit',
   'invalid-output': 'trading.render.suggestion.inconclusiveHintInvalidOutput',
   'no-budget-slice': 'trading.render.suggestion.inconclusiveHintNoBudget',
-  queue_full: 'trading.render.suggestion.inconclusiveHintInternal',
-  session_busy: 'trading.render.suggestion.inconclusiveHintInternal',
+  queue_full: 'trading.render.suggestion.inconclusiveHintBusy',
+  session_busy: 'trading.render.suggestion.inconclusiveHintBusy',
   no_agents: 'trading.render.suggestion.inconclusiveHintInternal',
   hook_failed: 'trading.render.suggestion.inconclusiveHintInternal',
   agent_paused: 'trading.render.suggestion.inconclusiveHintPaused',

@@ -3,6 +3,7 @@ import { ValidationError } from '@/core/errors'
 import { createTool } from '@/core/tool'
 import { delegateTool } from '@/tools/delegation/delegate'
 import { delegateParallelTool } from '@/tools/delegation/delegate-parallel'
+import { spawnTool } from '@/tools/delegation/spawn'
 import { fileEditTool } from '@/tools/fs/file-edit'
 import { fileListTool } from '@/tools/fs/file-list'
 import { fileReadTool } from '@/tools/fs/file-read'
@@ -48,6 +49,7 @@ export const BUILT_IN_TOOLS: readonly ToolDefinition[] = [
   skillViewTool,
   delegateTool,
   delegateParallelTool,
+  spawnTool,
   researchTool,
 ] as const
 

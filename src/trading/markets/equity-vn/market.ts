@@ -15,6 +15,7 @@ import {
   VN_ADMISSION,
   VN_BOARD_PRICE_DISPLAY,
   VN_CALENDAR,
+  VN_CEILING_TRIM_POLICY,
   VN_EVIDENCE_SESSIONS,
   VN_INDEX_TICKER,
   VN_LEVEL_POLICY,
@@ -55,7 +56,11 @@ export function createVnEquityMarket(deps: MarketDeps): Market {
     candidacy,
     detect: (options) => detect(deps, options),
     search: (options) => search(deps, options),
-    factors: (options) => runFactors(crossSection, options),
+    factors: (options) =>
+      runFactors(crossSection, options, {
+        sessions: VN_CEILING_TRIM_POLICY.sessions,
+        calendar: manifest.calendar,
+      }),
     levels: async (options) =>
       buildVnLevels(deps, await crossSection.get(options.asOf, options.signal), options),
     ...trailOf(VN_LEVEL_POLICY),
@@ -65,7 +70,7 @@ export function createVnEquityMarket(deps: MarketDeps): Market {
   }
 }
 
-function vnManifest(config: TradingConfig): MarketManifest {
+export function vnManifest(config: TradingConfig): MarketManifest {
   return {
     id: VN_MARKET_REF,
     region: VN_MARKET_REGION,
@@ -77,7 +82,7 @@ function vnManifest(config: TradingConfig): MarketManifest {
     icon: '🇻🇳',
     quoteUnit: quoteUnit('currency-per-share'),
     defaultCalendar: VN_CALENDAR,
-    calendar: createTradingCalendar(VN_CALENDAR, config.markets[VN_MARKET_REF]?.holidays),
+    calendar: createTradingCalendar(VN_CALENDAR, config.markets[VN_MARKET_REF]),
     // HOSE's session is what "a Vietnamese trading day" means.
     ownsRegion: true,
     detection: 'stored',
@@ -99,6 +104,7 @@ function vnManifest(config: TradingConfig): MarketManifest {
     playbook: {
       analysis: ['vn-valuation', 'quality-screen'],
       execution: ['vn-execution', 'vn-market-rules'],
+      fundAnalysis: ['macro-liquidity-analysis'],
     },
     // Both kinds screen, one at a time: the board defaults to equities and a fund board is asked
     // for by kind, because the two composites are averages over different factor counts.

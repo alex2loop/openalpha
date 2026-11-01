@@ -14,6 +14,7 @@ import type {
   UpdateLedgerOptions,
 } from '@/trading/features/portfolio/options'
 import type { RelativePortfolioView } from '@/trading/features/portfolio/relative-view'
+import type { VenueChoice } from '@/trading/features/portfolio/venues'
 import type {
   Caveat,
   CaveatDetail,
@@ -33,6 +34,7 @@ import type {
 import type { QuoteFreshness, RegimeScale } from '@/trading/kernel/market/market-data'
 import type {
   Book,
+  BookChange,
   CashPosture,
   CurrencyCash,
   LedgerEntryId,
@@ -52,8 +54,8 @@ interface StandingReduceOptions {
  *  weights alone cannot propose buying one. Implemented against the suggestion store and bound in
  *  wiring: the book states what it needs and never reads a suggestion row itself. */
 export interface ReduceVerdicts {
-  /** Keyed by `buildInstrumentKey`. A name absent from the map carries no such verdict; an
-   *  `over-target` trim is never here, because that is this fold's own drift rule handed back. */
+  /** Keyed by `buildInstrumentKey`. A name absent from the map carries no such verdict; a sale
+   *  under one of the plan's own reasons is never here, being this fold's own rule handed back. */
   standing(options: StandingReduceOptions): Promise<ReadonlyMap<string, EvidenceReduceReasonCode>>
 }
 
@@ -351,9 +353,9 @@ export type AgentPortfolio = Pick<
  *  trace back to a cause is one they have to reverse-engineer. */
 export type ChangeReason =
   | { readonly kind: 'fill-gap' | 'core-fill' }
-  | { readonly kind: 'trim' }
+  | { readonly kind: 'trim' | 'off-policy' }
   | { readonly kind: 'weak-signal'; readonly signal: number }
-  | { readonly kind: 'off-policy' }
+  | { readonly kind: 'over-cap'; readonly limit: CapReason; readonly cap: number }
 
 export interface PositionChange {
   readonly kind: 'position-change'
@@ -374,12 +376,6 @@ export interface PositionChange {
   readonly caveats: readonly Caveat[]
 }
 
-/** A venue and the markets it can hold. */
-export interface VenueChoice {
-  readonly venue: VenueRef
-  readonly markets: readonly MarketRef[]
-}
-
 /** The valued book and, by instrument key, the smallest order any venue holding it accepts. */
 export interface SizedValuedBook {
   readonly valued: ValuedBook
@@ -397,9 +393,8 @@ export interface PortfolioService {
   venuesHolding(market: MarketRef): readonly VenueRef[]
   /** Every registered venue with the markets it holds, in registration order. */
   venueChoices(): readonly VenueChoice[]
-  /** Whether the operator has recorded or corrected a row for this instrument since `since`. A
-   *  reader holding something derived from the book asks this rather than re-deriving it. */
-  hasTradedSince(instrument: InstrumentRef, since: number, signal: AbortSignal): Promise<boolean>
+  /** How far the book moved since `from`, this instrument's own rows apart. Cheaper than a re-read. */
+  bookChangeSince(instrument: InstrumentRef, from: number, signal: AbortSignal): Promise<BookChange>
   update(options: UpdateLedgerOptions): Promise<LedgerWriteResult>
   remove(options: RemoveLedgerOptions): Promise<LedgerWriteResult>
   historyRelative(options: LedgerPageOptions): Promise<Page<LedgerEntryView, LedgerEntryId>>

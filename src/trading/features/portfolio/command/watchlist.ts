@@ -12,7 +12,7 @@ import { resolveMarketIcons } from '@/trading/features/market-data/reads/describ
 import { renderQuotesText } from '@/trading/features/market-data/render/quotes'
 import { renderWatchlistText } from '@/trading/features/portfolio/render/watchlist'
 import { parseMember, parseTickers, usage } from '@/trading/kernel/surface/surface'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
 const USAGE: 'slash.tradingWatchlistUsage' = 'slash.tradingWatchlistUsage'
 const ACTIONS = Object.freeze(['add', 'remove'] as const)
@@ -35,7 +35,12 @@ export function createWatchlistCommand(deps: WatchlistCommandDeps): SlashCommand
     name: 'watchlist',
     description: { kind: 'localized', key: 'slash.tradingWatchlistHelp' },
     messageKeys: [USAGE],
-    policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
+    policy: {
+      surfaces: ['channel', 'repl'],
+      role: 'operator',
+      action: 'mutate',
+      execution: { progressKey: 'slash.tradingWatchlistProgress' },
+    },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
     usage: () => ({ key: USAGE, values: buildUsageValues(deps.marketData.markets()) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
@@ -60,7 +65,6 @@ async function run(deps: WatchlistCommandDeps, ctx: SlashContext): Promise<Slash
   const result = await deps.profiles.updateWatchlist({
     kind,
     tickers,
-    defaultLocale: ctx.locale,
     signal: ctx.signal,
   })
 
@@ -73,7 +77,6 @@ function buildUsageValues(markets: readonly MarketRef[]): CommandMessageValues {
 
 async function runShow(deps: WatchlistCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const profile = await deps.profiles.get({
-    defaultLocale: ctx.locale,
     signal: ctx.signal,
   })
 
@@ -96,7 +99,7 @@ async function runShow(deps: WatchlistCommandDeps, ctx: SlashContext): Promise<S
   return {
     kind: 'text',
     text: renderQuotesText(ctx.locale, quoteBoard, {
-      context: resolveRenderContext(deps.timezone, ctx.surface),
+      context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       quoteConventions: quoteConventionsFor(deps.marketData, quoteBoard.items),
       marketIcons: resolveMarketIcons(deps.marketData),
     }),

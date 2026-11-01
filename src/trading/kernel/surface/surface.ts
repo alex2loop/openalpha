@@ -121,6 +121,8 @@ const SCOPE_QUALIFIER = ':'
 /** The whole settled position, in the quantity slot a count would occupy. Kernel vocabulary because
  *  `/record` reads it and an exit alert writes it into the line it suggests. */
 export const SELL_ALL = 'all'
+/** The line a refusal that names one bad token ends on, pointing at the command's full usage. */
+export const SYNTAX_POINTER_KEY = 'slash.syntaxPointer'
 
 interface ScopedTicker {
   readonly symbol: Ticker

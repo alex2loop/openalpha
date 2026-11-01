@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import type { ModelPrice } from '@/ai/types'
+import { withBareTails } from '@/ai/cost/bare-tails'
 import snapshot from '@/ai/cost/modelsdev-snapshot.json'
 
 // A negative rate is no price: `catch` reads it as absent, so the lookup falls through to the next
@@ -45,7 +46,7 @@ function buildPriceMap(rows: readonly unknown[]): ReadonlyMap<string, ModelPrice
     }
   }
 
-  return map
+  return withBareTails(map)
 }
 
 // cost.input/output/cache_read/cache_write are already USD-per-million — direct assignment, no

@@ -18,9 +18,16 @@ import { assertNotAborted, StorageError, ValidationError } from '@/core/errors'
 import { FACTOR_LOG_EXIT_REASONS } from '@/trading/features/suggestion/track-record/factor-log-types'
 import { CONVICTION_BANDS } from '@/trading/kernel/conviction'
 import { factorComposite, isFactorId } from '@/trading/kernel/factor'
-import { brandFromPattern, marketRef, ticker, tradingDay } from '@/trading/kernel/instrument'
+import {
+  brandFromPattern,
+  INSTRUMENT_KINDS,
+  marketRef,
+  ticker,
+  tradingDay,
+} from '@/trading/kernel/instrument'
 import { TAPE_SIGNALS } from '@/trading/kernel/market/tape'
 import { INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
+import { isSourceId } from '@/trading/kernel/source/source-id'
 import { toMember } from '@/trading/kernel/store/store-payload'
 import { parseJson, toBindChunks, toPage } from '@/trading/kernel/store/store-row'
 
@@ -63,6 +70,12 @@ const payloadSchema = z.strictObject({
     .array(z.unknown())
     .transform((entries) => readableSignals(entries))
     .default([]),
+  sources: z
+    .array(z.string())
+    .transform((ids) => ids.filter(isSourceId))
+    .optional(),
+  // A kind this build no longer names reads as unrecorded rather than making the row unreadable.
+  instrumentKind: z.enum(INSTRUMENT_KINDS).optional().catch(undefined),
 })
 
 function readableSignals(entries: readonly unknown[]): readonly TapeSignal[] {
@@ -156,7 +169,13 @@ function toInsertParams(entry: FactorLogEntry): readonly unknown[] {
     entry.strategyVersion,
     entry.horizon,
     entry.close,
-    JSON.stringify({ composite: entry.composite, factors: entry.factors, signals: entry.signals }),
+    JSON.stringify({
+      composite: entry.composite,
+      factors: entry.factors,
+      signals: entry.signals,
+      sources: entry.sources,
+      instrumentKind: entry.instrumentKind,
+    }),
   ]
 }
 
@@ -186,22 +205,8 @@ async function listPending(
   const page = toPage(rows, options.batchSize, (row) => factorLogId(row.id))
 
   return {
-    items: page.items.flatMap(readablePending),
+    items: page.items.flatMap((row) => readableRow(row, toPending)),
     ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
-  }
-}
-
-/** A row whose payload no longer parses is skipped, so one corrupt row cannot stall the loop for
- *  every row behind it. Only a storage failure is skipped: anything else is a defect here. */
-function readablePending(row: FactorLogRow): readonly PendingFactorLogEntry[] {
-  try {
-    return [toPending(row)]
-  } catch (err: unknown) {
-    if (err instanceof StorageError) {
-      return []
-    }
-
-    throw err
   }
 }
 
@@ -261,7 +266,22 @@ async function listResolved(
     [options.limit]
   )
 
-  return rows.map(toResolved)
+  return rows.flatMap((row) => readableRow(row, toResolved))
+}
+
+/** A row whose payload no longer parses, or names a member a rename retired, is skipped: one such
+ *  row must not stall the outcome loop or take `/reflect` down with it. Only a storage failure is
+ *  skipped; anything else is a defect here. */
+function readableRow<T>(row: FactorLogRow, read: (row: FactorLogRow) => T): readonly T[] {
+  try {
+    return [read(row)]
+  } catch (err: unknown) {
+    if (err instanceof StorageError) {
+      return []
+    }
+
+    throw err
+  }
 }
 
 function toEntry(row: FactorLogRow): FactorLogEntry {
@@ -287,6 +307,8 @@ function toEntry(row: FactorLogRow): FactorLogEntry {
         : []
     ),
     signals: payload.signals,
+    ...(payload.sources === undefined ? {} : { sources: payload.sources }),
+    ...(payload.instrumentKind === undefined ? {} : { instrumentKind: payload.instrumentKind }),
   }
 }
 

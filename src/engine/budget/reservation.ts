@@ -3,6 +3,7 @@ import type { RunView } from '@/engine/types/run'
 import { type BudgetHaltDetail, RunHalted } from '@/core/errors'
 import { scrubCredentials } from '@/core/security/credentials'
 import { formatUsd } from '@/core/utils/cost'
+import { emitIfExhausted } from '@/engine/budget/exhaustion'
 import { isPositiveFinite, normalizeActualUsd } from '@/engine/budget/run-budget'
 // Side-effect import: merges engine's BusEventMap declarations so bus.emit('budget_warning') typechecks.
 import '@/engine/events'
@@ -65,9 +66,12 @@ async function admitLlmCost(run: RunView, estimateUsd: number): Promise<LlmCostA
 
   // Screen before spending a rate-limit token: a caller that clearly cannot afford the call
   // must not queue behind (or starve) callers that can.
-  const screened = capRejection(run, estimateUsd, snapshotNow(run))
+  const screenedAt = Date.now()
+  const screened = capRejection(run, estimateUsd, run.services.costTracker.snapshot(screenedAt))
 
   if (screened !== undefined) {
+    announceCapRejection(run, screened, screenedAt)
+
     return { status: 'rejected', rejection: screened }
   }
 
@@ -84,6 +88,8 @@ async function admitLlmCost(run: RunView, estimateUsd: number): Promise<LlmCostA
   const rejection = capRejection(run, estimateUsd, snapshot)
 
   if (rejection !== undefined) {
+    announceCapRejection(run, rejection, now)
+
     return { status: 'rejected', rejection }
   }
 
@@ -221,6 +227,10 @@ function warnPeriod(run: RunView, input: WarnPeriodInput): void {
   })
 }
 
-function snapshotNow(run: RunView): CostTrackerSnapshot {
-  return run.services.costTracker.snapshot(Date.now())
+// The ledger and per-agent refusals say nothing about the shared caps; `emitIfExhausted` tells a spent
+// cap from an estimate that would only cross it.
+function announceCapRejection(run: RunView, rejection: BudgetHaltDetail, now: number): void {
+  if (rejection === 'daily_cap' || rejection === 'monthly_cap' || rejection === 'run_budget') {
+    emitIfExhausted(run.services, run.identity.agentId, now)
+  }
 }

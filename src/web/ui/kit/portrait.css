@@ -1,0 +1,5 @@
+.portrait {
+  flex: none;
+  width: auto;
+  image-rendering: pixelated;
+}

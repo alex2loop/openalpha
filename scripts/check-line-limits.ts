@@ -36,7 +36,7 @@ interface Exceptions {
 async function oversizedFiles(): Promise<Map<string, number>> {
   const oversized = new Map<string, number>()
   const paths = [...ROOT_FILES]
-  const glob = new Glob('**/*.ts')
+  const glob = new Glob('**/*.{ts,tsx}')
 
   for (const root of SRC_ROOTS) {
     for await (const rel of glob.scan({ cwd: `${ROOT}/${root}` })) {

@@ -42,7 +42,7 @@ export type PidFileClaim =
   | { readonly kind: 'fresh' }
   | { readonly kind: 'reclaimed'; readonly stale: string; readonly startedAt?: number }
 
-export type RunningDaemon = Pick<ProcessIdentity, 'pid' | 'version' | 'background' | 'configPath'>
+export type RunningDaemon = Omit<ProcessIdentity, 'started'>
 
 type PidFileState =
   | { readonly kind: 'absent' }

@@ -35,7 +35,7 @@ export function buildThemeService(app: App, parts: ThemeServiceParts): ThemeServ
       sources: parts.sources,
       marketData: parts.marketData,
       readSeries: (options) => stores.marketData.listSeriesPoints(options),
-      listNews: (options) => stores.newsArchive.listPublished(options),
+      listNews: (options) => stores.newsArchive.listArchived(options),
       logger,
     },
     // The runner is composed after trading; resolving it per call is what the debate does too.

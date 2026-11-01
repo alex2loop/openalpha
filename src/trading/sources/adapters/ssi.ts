@@ -114,6 +114,13 @@ async function loadBoards(
       continue
     }
 
+    // A board where no row carries either status field has renamed them: read as normal, every name
+    // would pass as unsupervised.
+    if (!outcome.value.some(carriesStatus)) {
+      failure ??= 'source.payload-rejected'
+      continue
+    }
+
     boards.push(board)
     rows.push(...outcome.value)
     fetchedAt = Math.min(fetchedAt, outcome.fetchedAt)
@@ -126,6 +133,15 @@ async function loadBoards(
   const records = toRecords(rows, resolveRowTarget(context, fetchedAt))
 
   return { kind: 'ok', fetchedAt, value: parsedSource({ boards, authoritative: false, records }) }
+}
+
+function carriesStatus(row: unknown): boolean {
+  const parsed = BOARD_ROW.safeParse(row)
+
+  return (
+    parsed.success &&
+    (parsed.data.adminStatus !== undefined || parsed.data.tradingStatus !== undefined)
+  )
 }
 
 /** Branding the symbol happens inside `dropInvalid`, not after it: a row the board publishes with a

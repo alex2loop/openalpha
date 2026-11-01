@@ -172,6 +172,9 @@ export async function runDirectActivity(
         url: result.url,
         publishedDayOf: extractPublishedDay,
         signal: ctx.invocation.signal,
+        ...(ctx.invocation.allowedHosts === undefined
+          ? {}
+          : { allowedHosts: ctx.invocation.allowedHosts }),
         recordExternalCost: ctx.invocation.recordExternalCost,
         ...(ctx.cacheScope === undefined ? {} : { cacheScope: ctx.cacheScope }),
       })

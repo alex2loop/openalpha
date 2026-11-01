@@ -1,0 +1,170 @@
+/* Under the cost chip, as the mockup hangs it. */
+.popover.cost-popover {
+  right: 150px;
+  width: 380px;
+}
+
+.cost-figure {
+  font-variant-numeric: tabular-nums;
+}
+
+.cost-meter {
+  height: 6px;
+  margin: 4px 0 2px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--sunken);
+}
+
+.cost-meter i {
+  display: block;
+  height: 100%;
+  background: var(--ink2);
+}
+
+.cost-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--sizeBody);
+}
+
+.sub-head + .cost-row {
+  border-top: 0;
+}
+
+.cost-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.cost-row-main b {
+  font-weight: var(--weightMedium);
+  overflow-wrap: anywhere;
+}
+
+.cost-row-figure {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.cost-note {
+  margin-top: var(--s1);
+}
+
+.cost-readout {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s1);
+}
+
+.cost-chart {
+  --plotH: 120px;
+  --colMaxW: 64px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--s1);
+}
+
+.cost-scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: var(--plotH);
+  color: var(--ink3);
+  font: var(--typeCaption);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
+}
+
+.cost-cols {
+  display: flex;
+  gap: 3px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cost-cols > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.cost-cols > :only-child {
+  max-width: var(--colMaxW);
+}
+
+.cost-plot {
+  position: relative;
+  height: var(--plotH);
+  border-bottom: 1px solid var(--ink3);
+}
+
+.cost-plot::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  border-top: 1px dashed var(--border);
+}
+
+.cost-axis {
+  grid-column: 2;
+  margin-top: 4px;
+}
+
+.cost-day {
+  display: flex;
+  color: var(--ink3);
+  font: var(--typeCaption);
+  white-space: nowrap;
+}
+
+.cost-day.is-last {
+  justify-content: flex-end;
+}
+
+.cost-bar {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px 4px 0 0;
+  background: none;
+  cursor: pointer;
+}
+
+.cost-bar i {
+  display: block;
+  width: 100%;
+  max-width: 28px;
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--spend) 55%, transparent);
+}
+
+.cost-bar.is-latest i {
+  background: var(--spend);
+}
+
+.cost-bar:is(:hover, :focus-visible) {
+  background: var(--sunken);
+}
+
+.cost-bar:is(:hover, :focus-visible) i {
+  background: var(--ink);
+}
+
+.cost-bar:focus-visible {
+  outline: 0;
+  box-shadow: inset 0 0 0 1px var(--ink3);
+}
+
+:root:not([data-layout="wide"]) .popover.cost-popover {
+  right: var(--popoverGutter);
+  width: auto;
+}

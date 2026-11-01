@@ -1,6 +1,6 @@
 import type { Logger } from '@/core/logging/logger'
 import type { Budget } from '@/core/types/budget'
-import type { RebalancePlanResult, ValuedBook } from '@/trading/features/portfolio/types'
+import type { CapReason, RebalancePlanResult, ValuedBook } from '@/trading/features/portfolio/types'
 import type { HeadlinesRead, SuggestionCitation } from '@/trading/features/suggestion/citation'
 import type { DebateResult, ThesisBreak } from '@/trading/features/suggestion/debate/types'
 import type { BookExposure } from '@/trading/features/suggestion/exposure'
@@ -14,6 +14,7 @@ import type {
   SuggestionId,
   SuggestionIdentity,
   SuggestionRequest,
+  SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
 import type {
   Caveat,
@@ -34,10 +35,12 @@ import type {
   Ticker,
   TradingDay,
 } from '@/trading/kernel/instrument'
-import type { MarketEvent, RegimeScale } from '@/trading/kernel/market/market-data'
-import type { ClosedRoundTrip } from '@/trading/kernel/operator/book'
+import type { RegimeScale } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
+import type { BookChange, ClosedRoundTrip } from '@/trading/kernel/operator/book'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { InvestmentHorizon, UserProfile } from '@/trading/kernel/operator/profile'
+import type { SharedFlight } from '@/trading/kernel/shared-flight'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { Market, MarketManifest, MarketRegistry } from '@/trading/markets/types'
 
@@ -125,6 +128,8 @@ export interface DebateInput {
   /** Read by the roles that decide, never by the two that argue: a researcher handed the book
    *  argues portfolio construction instead of this name's evidence, which is not its question. */
   readonly exposure?: BookExposure
+  /** On an `over-cap` sale: which cap the plan measured the name past, on the whole book. */
+  readonly saleCap?: CapReason
 }
 
 /** Either the completed debate, or the hold it collapsed into. A role that halts, exhausts its
@@ -214,6 +219,8 @@ export interface Prepared {
   /** The record's own kind, for the segment's ETF ceiling. */
   readonly instrumentKind?: InstrumentKind
   readonly upcomingEvents: readonly MarketEvent[]
+  /** Past rows too: a dividend that already went ex is owed to the units bought before it. */
+  readonly instrumentEvents: readonly MarketEvent[]
   /** Filings already public that the debate may weigh, apart from the dated events ahead. */
   readonly recentEvents: readonly MarketEvent[]
   readonly calendarFailed?: true
@@ -234,11 +241,13 @@ export type DraftDirection =
       readonly reasonCode: ReduceReasonCode
       /** The share of the current holding to sell, in (0, 1]. */
       readonly saleFraction: number
+      /** On an `over-cap` sale: which cap the name ran past. */
+      readonly cap?: CapReason
     }
   | {
       readonly action: 'hold'
       readonly reasonCode: HoldReasonCode
-      /** Present only on `evidence-sold`: the evidence the holding was already cut for. */
+      /** Present on an evidence hold: the reason the holding is cut for. */
       readonly reduceReasonCode?: EvidenceReduceReasonCode
     }
 
@@ -291,11 +300,15 @@ interface SuggestionPortfolioReadOptions {
  *  the consumer; `app` binds the implementation. */
 export interface SuggestionPortfolioReader {
   read(options: SuggestionPortfolioReadOptions): Promise<SuggestionPortfolioContext>
-  /** Whether the operator has traded this name since a stored suggestion was made. The reuse gate
-   *  asks before serving one back, and it exits before any `read`, so this stays the cheap query it
-   *  is rather than the whole portfolio context. */
-  hasTradedSince(instrument: InstrumentRef, since: number, signal: AbortSignal): Promise<boolean>
+  /** How far the book moved since a stored suggestion was made, and whether this name's own rows
+   *  did. The reuse gate asks before serving one back, and it exits before any `read`, so this stays
+   *  the cheap query it is rather than the whole portfolio context. */
+  bookChangeSince(instrument: InstrumentRef, from: number, signal: AbortSignal): Promise<BookChange>
 }
+
+/** The runs in flight for one service, keyed by identity and depth. An entry leaves the map the
+ *  moment its run settles. */
+export type SuggestionFlights = Map<string, SharedFlight<SuggestionRunResult>>
 
 export interface SuggestionRunDeps {
   readonly markets: MarketRegistry
@@ -305,8 +318,14 @@ export interface SuggestionRunDeps {
   readonly policy: SuggestionPolicy
   readonly logger: Logger
   readonly runDebate: RunDebate
+  /** The runs in flight for this service, so a second request for the same identity and depth
+   *  waits on the first. Owned by the service, never shared across services. */
+  readonly flights: SuggestionFlights
   /** What a round trip costs at the venue each market books to, as a fraction of the entry. */
   roundTripFeeFraction(market: MarketRef): number
+  /** What a market order's cash draw exceeds its notional by at the venue each market books to:
+   *  the headroom a buy is sized to, because the order caps refuse a buy short of it. */
+  buyCashMultiple(market: MarketRef): number
   /** `name@version` of every skill admitted to this run; hashed into the calculation versions so a
    *  skill edit separates populations exactly as a strategy edit does. */
   readonly skillVersions?: readonly string[]

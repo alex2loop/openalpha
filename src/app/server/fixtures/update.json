@@ -3,5 +3,15 @@
   "current": "0.1.0",
   "latest": "0.2.0",
   "url": "https://github.com/alex2loop/openalpha/releases/tag/v0.2.0",
-  "checkedAt": 1791535800000
+  "checkedAt": 1791535800000,
+  "newer": true,
+  "notes": [
+    {
+      "version": "0.2.0",
+      "important": true,
+      "summary": "Bản sửa lỗi tính phí bán; nên cập nhật sớm."
+    },
+    { "version": "0.1.1", "important": false }
+  ],
+  "upgradeCommand": "openalpha upgrade"
 }

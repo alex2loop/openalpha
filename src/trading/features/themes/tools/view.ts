@@ -59,6 +59,7 @@ function toAgentSectors(themeId: ThemeId, reads: ThemeRunReads): unknown {
 function toAgentTheme(theme: Theme, report: ThemeReport): unknown {
   const read = report.reads.themes.find((entry) => entry.themeId === theme.id)
   const readRun = report.readRuns.get(theme.id)
+  const chainRun = report.chainRuns.get(theme.id)
 
   return {
     id: theme.id,
@@ -68,6 +69,10 @@ function toAgentTheme(theme: Theme, report: ThemeReport): unknown {
     maturity: theme.maturity,
     invalidation: theme.invalidation,
     readAt: readRun === undefined ? null : new Date(readRun.finishedAt).toISOString(),
+    // Sectors and companies from an earlier check, when the last one could not reach them.
+    ...(chainRun === undefined
+      ? {}
+      : { sectorsReadAt: new Date(chainRun.finishedAt).toISOString() }),
     missingData: readRun?.gaps ?? [],
     ...(read === undefined
       ? {}

@@ -20,7 +20,7 @@ runs:
       shell: pwsh
       env:
         TARGET: ${{ inputs.target }}
-      run: bun run gen && bun build src/app/main.ts --compile --target=$env:TARGET --outfile dist/openalpha.exe
+      run: bun run gen && bun build src/app/main.ts --compile --splitting --target=$env:TARGET --outfile dist/openalpha.exe
 
     - uses: ./.github/actions/daemon-lifecycle
       with:

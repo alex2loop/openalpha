@@ -2,8 +2,9 @@
 // It lives apart from either side because a reduction and an increase share the arithmetic and
 // nothing else: the sell side clamps on settled quantity, the buy side on a segment's cash budget.
 
-import type { AdviceInput } from '@/trading/features/portfolio/folds/allocation'
+import type { AdviceInput } from '@/trading/features/portfolio/folds/advice-input'
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
+import type { CapTrim } from '@/trading/features/portfolio/folds/policy'
 import type { ChangeReason, OrderSize, PositionChange } from '@/trading/features/portfolio/types'
 import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import { ROTATION_STEP_FRACTION } from '@/trading/features/portfolio/folds/policy'
@@ -26,6 +27,8 @@ export interface RowInput {
   readonly segments: ReadonlyMap<PortfolioSegment, SegmentGap>
   /** A buy into one of these fills the segment's core, not a score. */
   readonly cores: ReadonlySet<string>
+  readonly capTrims: ReadonlyMap<string, CapTrim>
+  readonly excluded: ReadonlySet<string>
 }
 
 /** A paced step under the minimum never trades, and one that steps below it on every run abandons

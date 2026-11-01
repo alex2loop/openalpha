@@ -50,6 +50,7 @@ const OUTAGE_CODES: ReadonlySet<CaveatCode> = new Set([
   'source.unavailable',
   'source.timeout',
   'source.rate-limited',
+  'source.quota-exhausted',
   'source.breaker-open',
   'source.payload-rejected',
   'source.empty-window',

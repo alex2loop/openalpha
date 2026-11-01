@@ -56,6 +56,7 @@ import {
 } from '@/trading/features/portfolio/view'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { disabledSegments } from '@/trading/kernel/operator/profile'
+import { cashDrawMultiple, marketTradeCost } from '@/trading/markets/cost'
 import { minimumSizesByInstrument, reachableCashByMarket } from '@/trading/venues/holdings'
 
 interface PortfolioServiceDeps extends PortfolioViewDeps {
@@ -85,8 +86,8 @@ export function createPortfolioService(deps: PortfolioServiceDeps): PortfolioSer
     recordVenues: (market) => venuesFor(deps.venues, deps.config.defaultVenues, market),
     venuesHolding: (market) => venuesHolding(deps.venues, market),
     venueChoices: () => venueChoices(deps.venues),
-    hasTradedSince: (instrument, since, signal) =>
-      deps.ledger.hasTradedSince(instrument, since, signal),
+    bookChangeSince: (instrument, from, signal) =>
+      deps.ledger.bookChangeSince(instrument, from, signal),
 
     update: (options) => mutateLedger(deps, { ...options, kind: 'update' }),
     remove: (options) => mutateLedger(deps, { ...options, kind: 'delete' }),
@@ -174,14 +175,11 @@ async function rebalance(
   }
 
   const asOf = resolveAsOf(deps, options.now)
+  const request = { asOf, now: options.now, signal: options.signal }
   // The macro read needs only the day, so it overlaps the valuation instead of waiting behind it.
   const [context, regimes] = await Promise.all([
     loadAdviceContext(deps, options),
-    resolveSegmentRegimes(
-      deps,
-      { asOf, now: options.now, signal: options.signal },
-      options.segments
-    ),
+    resolveSegmentRegimes(deps, request, options.segments),
   ])
   const { valued, profile } = context
   // Guard before side effects: a book with no NAV to size yields the same advice whatever the
@@ -190,21 +188,14 @@ async function rebalance(
   const instruments = sizable
     ? candidateInstruments(valued, named?.instruments ?? profile.watchlist)
     : valued.positions.map((entry) => entry.position.instrument)
-  const statistics = await loadInstrumentStatistics(deps, {
-    instruments,
-    asOf,
-    now: options.now,
-    signal: options.signal,
-  })
+  const statistics = await loadInstrumentStatistics(deps, { instruments, ...request })
   const { candidates, standingReduces } = await loadAdviceInputs(deps, {
     sizable,
     profile,
     valued,
-    asOf,
     statistics,
     instruments,
-    now: options.now,
-    signal: options.signal,
+    ...request,
   })
   const plan = buildAdvice({
     deps,
@@ -222,10 +213,9 @@ async function rebalance(
   }
 
   return withSegmentCandidates(deps, plan, {
+    ...request,
     considered: instruments,
-    asOf,
-    now: options.now,
-    signal: options.signal,
+    weighed: candidates,
   })
 }
 
@@ -350,13 +340,8 @@ function buildAdvice(input: {
       standingReduces: input.standingReduces,
       regimes: input.regimes,
       reachableCashBase: reachableCashByMarket(deps.venues, valued.book),
-      // The market's own composite for each name, which is the signal a weak holding is weak against.
-      holdingSignals: new Map(
-        input.candidates.map((candidate) => [
-          buildInstrumentKey(candidate.instrument),
-          candidate.marketScore,
-        ])
-      ),
+      // No drift: a plan spends the expected fill; the order cap allows for the worst.
+      buyCashMultiple: (market) => cashDrawMultiple(marketTradeCost(deps.config, market), 0),
     }),
     book: valued,
   }
@@ -414,6 +399,7 @@ async function valuedFor(
     ...options,
     asOf: resolveAsOf(deps, options.now),
     settledDay: resolveSettled(deps, options.now),
+    minimumSizes: (positions, signal) => minimumSizesByInstrument(deps.venues, positions, signal),
   })
 }
 

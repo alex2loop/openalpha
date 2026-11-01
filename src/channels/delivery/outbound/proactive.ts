@@ -64,6 +64,8 @@ interface PendingApproval {
   readonly chatId: string
   /** Null until the prompt lands; set by the send, which registers the entry before it starts. */
   messageId: string | null
+  /** Outcome an answer left while the prompt was still landing; the send applies it on arrival. */
+  pendingOutcome: string | null
   /** Exactly what this prompt rendered; a callback naming anything else was not offered. */
   readonly allowed: readonly ApprovalDecision[]
   /** Tool line and detail, replayed under the outcome so the chat keeps what was authorized. */
@@ -127,14 +129,7 @@ export function subscribeProactive(deps: ProactiveDeps): ProactiveSubscription {
         channel: deps.channelId,
       })
 
-      try {
-        await editNotice(deps, entry, approvalOutcome(deps.locale, decision))
-      } catch (err: unknown) {
-        deps.logger.warn('channel.approval_notice_edit_failed', {
-          channel: deps.channelId,
-          err: formatErrForLog(err),
-        })
-      }
+      await retireNotice(deps, entry, approvalOutcome(deps.locale, decision))
     },
 
     dispose(): void {
@@ -267,9 +262,11 @@ async function promptForApproval(
     expiresAt: event.expiresAt,
   }).finally(() => delivery.dispose())
 
-  // Torn down, answered or expired mid-send: nothing left to attach the message to.
-  if (ctx.outstanding.get(event.requestId) === entry) {
-    entry.messageId = sent.messageId
+  entry.messageId = sent.messageId
+
+  // Answered or expired mid-send: the prompt just landed live, so retire it now.
+  if (entry.pendingOutcome !== null) {
+    await retireNotice(deps, entry, entry.pendingOutcome)
   }
 }
 
@@ -322,6 +319,7 @@ function registerPending(
   const entry: PendingApproval = {
     chatId: event.chatId,
     messageId: null,
+    pendingOutcome: null,
     allowed: input.allowed,
     body: input.body,
     timer,
@@ -416,6 +414,21 @@ function approvalButtons(
   }))
 }
 
+async function retireNotice(
+  deps: ProactiveDeps,
+  entry: PendingApproval,
+  outcome: string
+): Promise<void> {
+  try {
+    await editNotice(deps, entry, outcome)
+  } catch (err: unknown) {
+    deps.logger.warn('channel.approval_notice_edit_failed', {
+      channel: deps.channelId,
+      err: formatErrForLog(err),
+    })
+  }
+}
+
 // Replaces the live prompt with what was asked plus its outcome. Carrying no buttons, the edit is
 // also what disarms them: a delete would leave a live keyboard whenever it failed.
 async function editNotice(
@@ -435,7 +448,10 @@ async function editNotice(
     return
   }
 
+  // The send has not returned yet: it applies the outcome when the prompt lands.
   if (entry.messageId === null) {
+    entry.pendingOutcome = outcome
+
     return
   }
 

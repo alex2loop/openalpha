@@ -12,8 +12,8 @@ import type {
   AnalystRecommendation,
   Candle,
   FundingSnapshot,
-  MarketEvent,
 } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Market, MarketManifest } from '@/trading/markets/types'
 import type { QuoteConvention } from '@/trading/render/money'

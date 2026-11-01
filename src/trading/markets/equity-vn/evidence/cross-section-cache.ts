@@ -1,5 +1,5 @@
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
-import type { Candle } from '@/trading/kernel/market/market-data'
+import type { BarRecord } from '@/trading/kernel/market/market-data'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
 import type { MarketManifest } from '@/trading/markets/types'
@@ -81,11 +81,12 @@ interface SeriesWindow {
 }
 
 /** One read per distinct index, keyed by the index rather than the fund: several funds share VN30,
- *  and an index with no stored bars yet is simply absent, which the ETF factors read as abstain. */
+ *  and an index with no stored bars yet is simply absent, which the ETF factors read as abstain.
+ *  Bars rather than candles, so a fund's factors cite the source of the series they read. */
 async function loadBenchmarks(
   deps: MarketDeps,
   window: SeriesWindow
-): Promise<ReadonlyMap<Ticker, readonly Candle[]>> {
+): Promise<ReadonlyMap<Ticker, readonly BarRecord[]>> {
   const indices = [...new Set(ETF_BENCHMARK_BY_TICKER.values())]
   const series = await Promise.all(
     indices.map(async (code) => {
@@ -94,9 +95,9 @@ async function loadBenchmarks(
         ...window,
       })
 
-      return [code, bars.map((bar) => bar.candle)] as const
+      return [code, bars] as const
     })
   )
 
-  return new Map(series.filter(([, candles]) => candles.length > 0))
+  return new Map(series.filter(([, bars]) => bars.length > 0))
 }

@@ -82,12 +82,15 @@ function heldLevelLines(input: HeldLevelsInput): readonly string[] {
     standing === undefined ? input.levels : { ...input.levels, target: standing.takeProfit }
   const exits = levelParams(locale, { ...levels, reference }, quoted)
   const suffix = armsExit(input.suggestion) ? '' : 'Fund'
+  // Bought above today's chart, the first exit can sit under cost: a sale there trims a loss.
+  const takeProfitKey =
+    levels.target < reference ? 'holdLevelsTakeProfitBelowCost' : 'holdLevelsTakeProfit'
 
   return [
     `${INDENT[1]}${t(locale, `trading.render.suggestion.holdLevelsIntroHeld${suffix}${withheld}`)}`,
     ...levelRows([
       t(locale, `trading.render.suggestion.holdLevelsStop${suffix}`, exits),
-      t(locale, 'trading.render.suggestion.holdLevelsTakeProfit', exits),
+      t(locale, `trading.render.suggestion.${takeProfitKey}`, exits),
     ]),
     ...bookRiskLines(locale, { held, mark, stop: levels.stop, suffix, operatorFigures }),
     ...(input.isReduce ? [] : heldTrancheLines(input)),

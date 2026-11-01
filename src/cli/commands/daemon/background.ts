@@ -6,7 +6,7 @@ import type { CliApp } from '@/cli/types'
 import { printDaemonSummary } from '@/cli/commands/daemon/summary'
 import { buildBackgroundEnv, buildForegroundEnv } from '@/cli/daemon-env'
 import { liveDaemon } from '@/cli/daemon-guard'
-import { isDaemonReady, readDaemonDegraded } from '@/cli/daemon-ready'
+import { isDaemonReady, readDaemonDegraded, readDaemonTasks } from '@/cli/daemon-ready'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { buildSelfArgv } from '@/cli/services'
@@ -18,9 +18,8 @@ import { sleep } from '@/core/utils/time'
 import { t } from '@/i18n'
 
 const PID_POLL_MS = 100
-// A background start waits for the daemon to be ready, not merely alive: past the boot refresh's
-// own budget (app/boot-refresh.ts, 60s) plus a first boot's migrations. A daemon that dies is
-// reported as soon as it exits.
+// A background start waits for the daemon to be ready, not merely alive: a first boot's migrations
+// and a slow chat login fit inside it. A daemon that dies is reported as soon as it exits.
 export const START_TIMEOUT_MS = 90_000
 const DAEMON_STDOUT_LOG = 'daemon.stdout.log'
 // Kept apart from stdout so a failed start can quote the daemon's own error and nothing else.
@@ -28,6 +27,9 @@ const DAEMON_STDERR_LOG = 'daemon.stderr.log'
 const FAILED_DAEMON_STDERR_LOG = 'daemon.stderr.failed.log'
 const UPGRADE_STDOUT_LOG = 'upgrade.stdout.log'
 const UPGRADE_STDERR_LOG = 'upgrade.stderr.log'
+const RESTART_STDOUT_LOG = 'restart.stdout.log'
+const RESTART_STDERR_LOG = 'restart.stderr.log'
+export const BACKGROUND_FLAG = '--background'
 const EXIT_REASON_LINES = 3
 // Bounds the warnings a ready start relays; the daemon prints one line per degraded item.
 const RELAYED_WARNING_LINES = 20
@@ -77,17 +79,39 @@ export async function keepFailedStartLog(dataDir: string): Promise<string | null
 export async function spawnUpgradeProcess(
   app: Pick<CliApp, 'config' | 'configPath'>
 ): Promise<Subprocess> {
-  const { dataDir } = app.config.paths
-  const argv = await buildSelfArgv({
-    dataDir,
-    configPath: app.configPath,
+  return await spawnHelperProcess(app, {
     tail: [CLI_COMMAND_METADATA.upgrade.name],
+    stdoutLog: UPGRADE_STDOUT_LOG,
+    stderrLog: UPGRADE_STDERR_LOG,
   })
+}
+
+/** Runs `restart --background` the same way: the daemon cannot stop itself and start again. */
+export async function spawnRestartProcess(
+  app: Pick<CliApp, 'config' | 'configPath'>
+): Promise<Subprocess> {
+  return await spawnHelperProcess(app, {
+    tail: [CLI_COMMAND_METADATA.restart.name, BACKGROUND_FLAG],
+    stdoutLog: RESTART_STDOUT_LOG,
+    stderrLog: RESTART_STDERR_LOG,
+  })
+}
+
+async function spawnHelperProcess(
+  app: Pick<CliApp, 'config' | 'configPath'>,
+  helper: {
+    readonly tail: readonly string[]
+    readonly stdoutLog: string
+    readonly stderrLog: string
+  }
+): Promise<Subprocess> {
+  const { dataDir } = app.config.paths
+  const argv = await buildSelfArgv({ dataDir, configPath: app.configPath, tail: helper.tail })
 
   return await spawnDetached({
     argv,
-    stdoutPath: join(dataDir, UPGRADE_STDOUT_LOG),
-    stderrPath: join(dataDir, UPGRADE_STDERR_LOG),
+    stdoutPath: join(dataDir, helper.stdoutLog),
+    stderrPath: join(dataDir, helper.stderrLog),
     env: buildForegroundEnv(),
   })
 }
@@ -115,28 +139,14 @@ export async function runBackground(app: CliApp, argv: readonly string[]): Promi
     return 1
   }
 
-  const { child, logPath, errorLogPath } = started
+  const { child, errorLogPath } = started
 
   app.out(hint(t(locale, 'cli.daemonBackgroundStarting')))
 
   const outcome = await pollUntil(() => startOutcome(app, child), START_TIMEOUT_MS)
 
   if (outcome === 'ready') {
-    app.out(
-      success(
-        t(locale, 'cli.daemonStartedBackground', {
-          pid: child.pid,
-          // The daemon may run a release other than this process's, as right after `upgrade`.
-          version: (await liveDaemon(app))?.version ?? BRAND.version,
-          path: logPath,
-        })
-      )
-    )
-    printDaemonSummary(app, await readDaemonDegraded(app, child.pid))
-
-    for (const line of await lastOutputLines(errorLogPath, RELAYED_WARNING_LINES)) {
-      app.err(line)
-    }
+    await printStartedDaemon(app, started)
 
     return 0
   }
@@ -148,6 +158,30 @@ export async function runBackground(app: CliApp, argv: readonly string[]): Promi
   }
 
   return printStartupTimeout(app, child, errorLogPath)
+}
+
+async function printStartedDaemon(app: CliApp, started: DetachedDaemon): Promise<void> {
+  const { child, logPath, errorLogPath } = started
+
+  app.out(
+    success(
+      t(app.config.locale.language, 'cli.daemonStartedBackground', {
+        pid: child.pid,
+        // The daemon may run a release other than this process's, as right after `upgrade`.
+        version: (await liveDaemon(app))?.version ?? BRAND.version,
+        path: logPath,
+      })
+    )
+  )
+  printDaemonSummary(
+    app,
+    await readDaemonDegraded(app, child.pid),
+    await readDaemonTasks(app, child.pid)
+  )
+
+  for (const line of await lastOutputLines(errorLogPath, RELAYED_WARNING_LINES)) {
+    app.err(line)
+  }
 }
 
 async function startOutcome(
@@ -237,6 +271,19 @@ async function printStartupTimeout(
   )
 
   return 1
+}
+
+/** `false` when the daemon with this pid stopped, or was not ready within a start's own timeout. */
+export async function waitUntilDaemonReady(app: CliApp, pid: number): Promise<boolean> {
+  const outcome = await pollUntil(async () => {
+    if (await isDaemonReady(app, pid)) {
+      return true
+    }
+
+    return (await liveDaemon(app))?.pid === pid ? undefined : false
+  }, START_TIMEOUT_MS)
+
+  return outcome === true
 }
 
 // Asks `read` every poll interval until it answers; undefined when the timeout passes first.

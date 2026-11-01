@@ -105,7 +105,5 @@ export function sessionProprietaryNet(name: NameEvidence, asOf: TradingDay): num
 }
 
 function sessionFlow(name: NameEvidence, asOf: TradingDay): FlowSnapshot | undefined {
-  const last = name.flows[name.flows.length - 1]
-
-  return last === undefined || last.at !== asOf ? undefined : last
+  return name.flows.find((flow) => flow.at === asOf)
 }

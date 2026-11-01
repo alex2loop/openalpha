@@ -1,6 +1,6 @@
 import type { BudgetCaps } from '@/channels/delivery/queue'
 import type { ChannelRecipient } from '@/channels/recipient'
-import type { ChannelSettings } from '@/channels/schema'
+import type { ChannelDeliveryConfig, ChannelSettings } from '@/channels/schema'
 import type {
   AcknowledgedSendOptions,
   AcknowledgedSendResult,
@@ -20,6 +20,7 @@ import type { EventBus } from '@/core/events'
 import type { Logger } from '@/core/logging/logger'
 import type {
   ChatBindingStore,
+  CommandLane,
   PairingStore,
   PollOffsetStore,
   SessionActivity,
@@ -32,8 +33,9 @@ import { createChannelRuntime } from '@/channels/lifecycle'
 import { createChannelRecipient, resolveFallbackChat } from '@/channels/recipient'
 import { resolveChannelSettings } from '@/channels/schema'
 import { OperatorConfigError } from '@/core/config/resolve'
-import { ConfigError } from '@/core/errors'
+import { ConfigError, isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { isEntryAgent } from '@/engine/api'
 
 export interface StartChannelsDeps {
   readonly definitions: readonly ChannelDefinition[]
@@ -41,6 +43,7 @@ export interface StartChannelsDeps {
   readonly runner: Runner
   readonly runRegistry: RunRegistry
   readonly sessionQueue: SessionQueue
+  readonly commandLane: CommandLane
   readonly costTracker: CostTracker
   readonly pairingStore: PairingStore
   readonly sessionRouter: SessionRouter
@@ -56,7 +59,9 @@ export interface StartChannelsDeps {
   readonly logger: Logger
   /** Injected so no adapter reads process.env directly. */
   readonly env: Record<string, string | undefined>
-  readonly shutdownSignal: AbortSignal
+  /** Ends intake at shutdown: polling, the inbox drain and the admission of new work. Delivery does
+   *  not stop with it; each runtime ends that itself in `stop`, after its final drain. */
+  readonly intakeSignal: AbortSignal
 }
 
 /** Resolves the started runtime that owns the target's channel and submits through its queue.
@@ -164,6 +169,11 @@ async function onStartFailed(
     })
   })
 
+  // A stop that arrived while the channel was starting ends the start; it is not a failure.
+  if (isAbortError(reason)) {
+    return undefined
+  }
+
   if (reason instanceof OperatorConfigError) {
     deps.logger.warn('channel.start_skipped', {
       channel: entry.adapter.id,
@@ -194,13 +204,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
 
   const admission = definition.admission(config)
   const recipient = createRecipient(deps, definition, admission)
-  const adapter = definition.create(config, {
-    logger: deps.logger,
-    pollOffsets: deps.pollOffsets,
-    inbox: deps.inbox,
-    env: deps.env,
-    dataDir: deps.config.paths.dataDir,
-  })
+  const adapter = createAdapter(deps, definition, config)
   const runtime = createChannelRuntime({
     adapter,
     settings,
@@ -213,6 +217,7 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
     runner: deps.runner,
     runRegistry: deps.runRegistry,
     sessionQueue: deps.sessionQueue,
+    commandLane: deps.commandLane,
     costTracker: deps.costTracker,
     caps: budgetCaps(deps.config),
     pairingStore: deps.pairingStore,
@@ -227,10 +232,24 @@ function createRuntime(deps: StartChannelsDeps, definition: ChannelDefinition): 
     bus: deps.bus,
     logger: deps.logger,
     locale: deps.config.locale.language,
-    shutdownSignal: deps.shutdownSignal,
+    intakeSignal: deps.intakeSignal,
   })
 
   return [{ runtime, adapter, recipient }]
+}
+
+function createAdapter(
+  deps: StartChannelsDeps,
+  definition: ChannelDefinition,
+  config: ChannelDeliveryConfig
+): ChannelAdapter {
+  return definition.create(config, {
+    logger: deps.logger,
+    pollOffsets: deps.pollOffsets,
+    inbox: deps.inbox,
+    env: deps.env,
+    dataDir: deps.config.paths.dataDir,
+  })
 }
 
 function createRecipient(
@@ -255,7 +274,7 @@ function assertConfiguredAgent(
 ): void {
   const agent = settings.agent
 
-  if (agent !== undefined && deps.agents.get(agent) === null) {
+  if (agent !== undefined && !isEntryAgent(deps.agents.get(agent))) {
     throw new ConfigError(`channel ${definition.id}: configured agent '${agent}' not found`)
   }
 }

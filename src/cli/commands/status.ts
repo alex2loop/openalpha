@@ -3,8 +3,9 @@ import type { DegradedEntry } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
 import type { SessionSummary } from '@/persistence/api'
 import { type Command, createCommand } from '@/cli/command'
+import { printTasks } from '@/cli/commands/daemon/summary'
 import { liveDaemon, type RunningDaemon, readStalePid } from '@/cli/daemon-guard'
-import { readDaemonDegraded } from '@/cli/daemon-ready'
+import { readDaemonDegraded, readDaemonTasks } from '@/cli/daemon-ready'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { hint, style, success, warn } from '@/cli/ui/colors'
 import { formatSessionRow } from '@/cli/ui/format'
@@ -23,6 +24,11 @@ export const statusCommand: Command = createCommand({
     const daemon = await liveDaemon(app)
 
     printDaemon(app, daemon, daemon === null ? await readStalePid(app) : null)
+
+    if (daemon !== null) {
+      printTasks(app, await readDaemonTasks(app, daemon.pid))
+    }
+
     app.out('')
 
     const degraded = daemon === null ? [] : await readDaemonDegraded(app, daemon.pid)

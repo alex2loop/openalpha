@@ -13,6 +13,8 @@ export interface VenueManifest {
   readonly execution?: VenueExecution
   /** Set only on an exchange waiting for its key: what tells it apart from a venue traded by hand. */
   readonly missingCredentials?: readonly string[]
+  /** The hosts its orders and balance reads go to. Absent on a venue that accepts no orders. */
+  readonly apiHosts?: readonly string[]
 }
 
 /** What this venue's API can be asked to do, as opposed to what the protocol vocabulary can

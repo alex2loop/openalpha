@@ -1,0 +1,72 @@
+/* A setup setup-notice in a signal colour (DESIGN.md Signals), never a market colour. */
+.setup-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--s2);
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--ink2);
+  font: var(--typeBody);
+}
+
+.setup-notice.is-caution {
+  background: var(--cautionBg);
+}
+
+.setup-notice.is-info {
+  background: var(--sunken);
+}
+
+.setup-notice-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font: var(--typeCardTitle);
+}
+
+.setup-notice.is-caution .setup-notice-head {
+  color: var(--caution);
+}
+
+.setup-notice.is-info .setup-notice-head {
+  color: var(--ink3);
+}
+
+.setup-notice-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.setup-notice-name {
+  color: var(--ink);
+  font-weight: var(--weightSemibold);
+}
+
+.setup-notice-keys {
+  color: var(--ink3);
+  font: var(--typeCaption);
+  font-family: var(--fontMono);
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+}
+
+.setup-notice-fix {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin: 2px 0 0;
+}
+
+.setup-notice-cmds {
+  display: contents;
+}
+
+.setup-notice-cmds .btn {
+  font-family: var(--fontMono);
+  font-weight: var(--weightRegular);
+}

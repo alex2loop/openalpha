@@ -1,0 +1,85 @@
+[
+  {
+    "type": "exec",
+    "argv": ["history", "list"],
+    "terminal": {
+      "stdinIsTTY": true,
+      "stdoutIsTTY": true,
+      "stderrIsTTY": true,
+      "columns": 120,
+      "rows": 40
+    },
+    "env": {
+      "TERM": "xterm-256color",
+      "LANG": "en_US.UTF-8",
+      "EDITOR": "vim"
+    },
+    "quiet": false,
+    "verbose": false,
+    "noColor": false,
+    "contractVersion": 1
+  },
+  {
+    "type": "input",
+    "data": "y\r"
+  },
+  {
+    "type": "input_end"
+  },
+  {
+    "type": "resize",
+    "columns": 100,
+    "rows": 30
+  },
+  {
+    "type": "signal",
+    "signal": "interrupt"
+  },
+  {
+    "type": "signal",
+    "signal": "terminate"
+  },
+  {
+    "type": "edited",
+    "kind": "exited",
+    "code": 0,
+    "text": "id = \"scout\"\nmodel_tier = \"fast\"\n"
+  },
+  {
+    "type": "edited",
+    "kind": "exited",
+    "code": 1
+  },
+  {
+    "type": "edited",
+    "kind": "failed",
+    "message": "spawn vim ENOENT"
+  },
+  {
+    "type": "accepted"
+  },
+  {
+    "type": "output",
+    "stream": "out",
+    "data": "Sessions\n"
+  },
+  {
+    "type": "output",
+    "stream": "err",
+    "data": "✗ No session matches that id\n"
+  },
+  {
+    "type": "raw",
+    "on": true
+  },
+  {
+    "type": "edit",
+    "editor": "vim",
+    "fileName": "agent.toml",
+    "text": "id = \"scout\"\n"
+  },
+  {
+    "type": "exit",
+    "code": 0
+  }
+]

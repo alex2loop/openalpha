@@ -10,9 +10,10 @@ import type {
 import {
   applyPinnedTargets,
   defaultProfile,
+  isBelowReserve,
   TARGET_SUM_EPSILON,
 } from '@/trading/features/profile/policy'
-import { assertPatch } from '@/trading/features/profile/validate'
+import { assertBounds, assertPatch } from '@/trading/features/profile/validate'
 import { portfolioSegment } from '@/trading/kernel/instrument'
 import { disabledSegments, isSegmentDisabled, RISK_LEVELS } from '@/trading/kernel/operator/profile'
 
@@ -34,10 +35,14 @@ export function updateProfile(
   patch: ProfilePatch,
   context: ProfileContext
 ): UserProfile {
+  // The typed numbers first: the reserve reshapes targets below, and a value out of range would
+  // otherwise surface as whatever that reshaping trips over.
+  assertBounds(patch, context.bounds)
+
   const capacity = patch.riskLevel ?? patch.riskCapacity ?? current.riskCapacity
   const willingness = patch.riskLevel ?? patch.riskWillingness ?? current.riskWillingness
   const riskLevel = effectiveRisk(capacity, willingness)
-  const effective = withAgreeingPins(
+  const merged = withAgreeingPins(
     current,
     {
       ...resolveRiskPolicy(current, context, riskLevel),
@@ -45,6 +50,13 @@ export function updateProfile(
     },
     patch
   )
+  // Only an edit that can move cash or the reserve is held to the reserve: a watchlist or goal edit
+  // must not rewrite targets it never named.
+  const movesCash =
+    patch.reservePctNav !== undefined ||
+    patch.segmentTargets !== undefined ||
+    riskLevel !== current.riskLevel
+  const effective = movesCash ? withReserveCash(current, merged, context) : merged
 
   const etfCores = askedEtfCores(current, patch, effective)
 
@@ -88,6 +100,32 @@ function withAgreeingPins(
   return { ...effective, pinnedTargets: Object.fromEntries(pinned) }
 }
 
+/** A reserve raised past the cash target lifts the target with it, and the other segments give up
+ *  the difference in proportion, so the allocation never plans cash below what must stay. */
+function withReserveCash(
+  current: UserProfile,
+  effective: ProfilePatch,
+  context: ProfileContext
+): ProfilePatch {
+  const segmentTargets = effective.segmentTargets ?? current.segmentTargets
+  const reservePctNav = effective.reservePctNav ?? current.reservePctNav
+
+  if (!isBelowReserve({ segmentTargets, reservePctNav })) {
+    return effective
+  }
+
+  return {
+    ...effective,
+    ...applyPinnedTargets({
+      ...context,
+      segmentTargets,
+      reservePctNav,
+      caps: effective.caps ?? current.caps,
+      pinned: effective.pinnedTargets ?? current.pinnedTargets,
+    }),
+  }
+}
+
 /** Rebuilds today's defaults through the same validator a hand-written patch crosses, so a seed
  *  that violates current bounds fails loudly instead of being persisted. Base currency, locale and
  *  the caller's risk level survive: raising every cap under a command that reads as tidying up is
@@ -102,7 +140,6 @@ export function resetProfile(
   riskLevel: RiskLevel
 ): UserProfile {
   const seeded = defaultProfile({
-    preferredLocale: current.preferredLocale,
     baseCurrency: current.baseCurrency,
     segments: context.segments,
     riskLevel,
@@ -157,7 +194,6 @@ interface SeedRiskPolicyOptions {
  *  switched on must seed a target however its market shipped. */
 export function seedRiskPolicy(options: SeedRiskPolicyOptions): UserProfile {
   const seeded = defaultProfile({
-    preferredLocale: options.current.preferredLocale,
     baseCurrency: options.current.baseCurrency,
     segments: options.context.segments.map((descriptor) => ({
       ...descriptor,
@@ -261,7 +297,6 @@ function toRiskPolicyPatch(seeded: UserProfile): ProfilePatch {
 // Present fields only: an explicit `undefined` in a spread would erase a stored value.
 function applyOptional(patch: ProfilePatch): Partial<UserProfile> {
   return {
-    ...(patch.preferredLocale === undefined ? {} : { preferredLocale: patch.preferredLocale }),
     ...(patch.goal === undefined ? {} : { goal: patch.goal }),
     ...(patch.watchlist === undefined ? {} : { watchlist: patch.watchlist }),
     ...(patch.exclusions === undefined ? {} : { exclusions: patch.exclusions }),

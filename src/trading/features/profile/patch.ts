@@ -1,8 +1,6 @@
-import type { Locale } from '@/core/types/locale'
 import type { SegmentPolicyRequest } from '@/trading/features/profile/types'
 import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import type { ProfilePatch } from '@/trading/kernel/operator/profile'
-import { LOCALES } from '@/core/types/locale'
 import { SEGMENT_POLICY_FIELDS } from '@/trading/features/profile/types'
 import {
   INVESTMENT_GOALS,
@@ -35,7 +33,6 @@ const FRACTION_PATCH_KEYS: Readonly<Record<(typeof FRACTION_FIELDS)[number], key
   })
 
 const RISK_FIELDS = Object.freeze(['risk-level', 'risk-capacity', 'risk-willingness'] as const)
-const LOCALE_FIELD = 'preferred-locale'
 const HORIZON_FIELD = 'horizon'
 const GOAL_FIELD = 'goal'
 /** The fields that take two words: the segment, then the value it carries. */
@@ -43,7 +40,6 @@ const SEGMENT_VALUE_COUNT = 2
 
 /** Every field name `/profile set` accepts, in the order the usage line reads them. */
 export const PROFILE_SET_FIELDS: readonly string[] = Object.freeze([
-  LOCALE_FIELD,
   ...RISK_FIELDS,
   HORIZON_FIELD,
   GOAL_FIELD,
@@ -63,8 +59,7 @@ export function toFieldShape(field: string): ProfileFieldShape {
     return 'share'
   }
 
-  const isChoice =
-    field === LOCALE_FIELD || field === GOAL_FIELD || parseMember(field, RISK_FIELDS) !== null
+  const isChoice = field === GOAL_FIELD || parseMember(field, RISK_FIELDS) !== null
 
   return isChoice ? 'choice' : 'unknown'
 }
@@ -97,10 +92,6 @@ export function profileFieldValues(options: FieldValueOptions): readonly string[
     return []
   }
 
-  if (field === LOCALE_FIELD) {
-    return LOCALES
-  }
-
   if (RISK_FIELDS.some((name) => name === field)) {
     return RISK_LEVELS
   }
@@ -127,11 +118,6 @@ export function parseProfilePatch(options: ParsePatchOptions): ProfilePatch | nu
 
   if (values.length !== 1) {
     return null
-  }
-
-  if (field === LOCALE_FIELD) {
-    const locale: Locale | null = parseMember(raw, LOCALES)
-    return locale === null ? null : { preferredLocale: locale }
   }
 
   const riskPatch = parseRiskPatch(field, raw)

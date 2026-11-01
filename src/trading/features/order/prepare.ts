@@ -33,6 +33,7 @@ import { adapterFor, resolveOrderVenue } from '@/trading/features/order/routing'
 import { resolveSellableQuantities, sellableQuantityOf } from '@/trading/features/order/sellable'
 import { OrderError, OrderQuantityError } from '@/trading/features/order/types'
 import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
+import { isSameInstrument } from '@/trading/kernel/instrument'
 import { resolveTradeCost } from '@/trading/markets/cost'
 
 const UNSETTLED_MESSAGE = 'the sale is larger than the settled part of the position'
@@ -355,6 +356,7 @@ async function capsFor(deps: OrderServiceDeps, caps: CapsInput): Promise<Caps> {
     notionalBase,
     breaches: buyBreaches(profile, caps, { book, notionalBase }),
     rejections: rejectionsFor(deps, {
+      instrument: caps.instrument,
       side: input.request.side,
       orderType: input.request.orderType,
       notional: caps.notional,
@@ -370,6 +372,7 @@ async function capsFor(deps: OrderServiceDeps, caps: CapsInput): Promise<Caps> {
 /** What the caps say about one order, given one reading of the book. Shared because the same
  *  verdict is taken twice: once where the operator is told, and again where the order goes out. */
 interface CapTerms {
+  readonly instrument: InstrumentRef
   readonly side: OrderSide
   readonly orderType: OrderType
   readonly notional: number
@@ -393,6 +396,9 @@ export function rejectionsFor(deps: OrderServiceDeps, terms: CapTerms): readonly
     availableCashBase: venueCashBase(terms),
     venue: terms.venue,
     openTrades: terms.book.positions.length + terms.unmirrored.count,
+    opensPosition: !terms.book.positions.some((entry) =>
+      isSameInstrument(entry.position.instrument, terms.instrument)
+    ),
     hasStopLoss: terms.hasStopLoss,
   })
 }

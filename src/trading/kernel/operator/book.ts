@@ -123,6 +123,10 @@ export interface Book {
 // a correction re-bases every reading taken from it, including past suggestions.
 export type LedgerEntryId = string & BrandTag<'LedgerEntryId'>
 
+/** How far the book moved since a moment: not at all, on other rows only, or on this instrument's
+ *  own rows. A deletion leaves nothing to find, so it reads as no change. */
+export type BookChange = 'none' | 'book' | 'instrument'
+
 export function ledgerEntryId(raw: string): LedgerEntryId {
   return parseUuidV7Id<LedgerEntryId>(raw, 'LedgerEntryId')
 }

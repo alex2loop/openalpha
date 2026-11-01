@@ -1,15 +1,22 @@
 import type { ValuedPosition } from '@/trading/features/portfolio/types'
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { InstrumentRef } from '@/trading/kernel/instrument'
+import type { InstrumentKind, InstrumentRef } from '@/trading/kernel/instrument'
+import { ETF_KIND } from '@/trading/kernel/instrument'
 
 const PARTIAL_NAV: Caveat = { code: 'valuation.partial-nav' }
+
+/** What the book's reference data says about a held name. */
+interface InstrumentLookup {
+  sectorFor(instrument: InstrumentRef): string | undefined
+  instrumentKindFor(instrument: InstrumentRef): InstrumentKind | undefined
+}
 
 interface CaveatInputs {
   readonly complete: boolean
   readonly outcomes: readonly { readonly sourceCaveats: readonly Caveat[] }[]
   readonly valued: readonly ValuedPosition[]
   readonly cash: { readonly caveats: readonly Caveat[] }
-  readonly sectorFor: (instrument: InstrumentRef) => string | undefined
+  readonly lookup: InstrumentLookup
 }
 
 export function valuationCaveats(inputs: CaveatInputs): readonly Caveat[] {
@@ -19,28 +26,32 @@ export function valuationCaveats(inputs: CaveatInputs): readonly Caveat[] {
     ...(complete ? [] : [PARTIAL_NAV]),
     // Both arms: a holding priced off a degraded read is still priced. Deduped below.
     ...dedupeCaveats(outcomes.flatMap((outcome) => outcome.sourceCaveats)),
-    ...uncheckedSectorCaveats(valued, inputs.sectorFor),
+    ...uncheckedSectorCaveats(valued, inputs.lookup),
     ...cash.caveats,
   ]
 }
 
 /** A holding the sector fold could not place is dropped; only names in a market placed elsewhere
- *  count, so a sectorless market (crypto) stays outside the check by nature. */
+ *  count, so a sectorless market (crypto) stays outside the check by nature. A fund counts toward
+ *  no sector, so it is neither placed nor missing one. */
 function uncheckedSectorCaveats(
   valued: readonly ValuedPosition[],
-  sectorFor: (instrument: InstrumentRef) => string | undefined
+  lookup: InstrumentLookup
 ): readonly Caveat[] {
-  const priced = valued.filter((entry) => entry.kind === 'priced')
+  const stocks = valued.filter(
+    (entry) =>
+      entry.kind === 'priced' && lookup.instrumentKindFor(entry.position.instrument) !== ETF_KIND
+  )
   const placed = new Set(
-    priced
-      .filter((entry) => sectorFor(entry.position.instrument) !== undefined)
+    stocks
+      .filter((entry) => lookup.sectorFor(entry.position.instrument) !== undefined)
       .map((entry) => entry.position.instrument.market)
   )
 
-  return priced
+  return stocks
     .filter(
       (entry) =>
-        sectorFor(entry.position.instrument) === undefined &&
+        lookup.sectorFor(entry.position.instrument) === undefined &&
         placed.has(entry.position.instrument.market)
     )
     .map((entry) => ({

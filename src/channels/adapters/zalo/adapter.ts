@@ -7,11 +7,11 @@ import type {
   SentRef,
 } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
+import { PermanentChannelError } from '@/channels/permanent-error'
 import { plainRenderer, stripMarkdown } from '@/channels/renderer'
 import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
 import { ChannelError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { withRetry } from '@/core/utils/retry'
 
 import { getMe, sendChatAction, sendMessage, ZALO_MAX_LEN, ZALO_UNAUTHORIZED_CODE } from './client'
 import { ZALO_CHANNEL_ID } from './config'
@@ -28,8 +28,6 @@ const ZALO_CAPABILITIES: ChannelCapabilities = {
 
 const ZALO_TOKEN_OWNER = { id: ZALO_CHANNEL_ID, label: 'Zalo' } as const
 const ZALO_RATE_LIMITED_CODE = 429
-const ZALO_GET_ME_MAX_ATTEMPTS = 4
-const ZALO_GET_ME_RETRY_INITIAL_MS = 1_000
 // Zalo publishes no retry-after hint, so a rate-limited send gets one fixed pause instead of the
 // provider-named one telegram gets. reply.ts clamps it and retries the final write only.
 const ZALO_RATE_LIMIT_RETRY_MS = 5_000
@@ -42,10 +40,9 @@ interface CreateZaloAdapterOptions {
 }
 
 export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAdapter {
-  // The poll loop is torn down by the abort signal handed to start(); the adapter keeps a handle to
-  // it so outbound calls (send/typing) can be shut down in lockstep rather than hanging on a dead
-  // bot, and dispose() can join the task after abort.
-  let lifetimeSignal: AbortSignal | undefined
+  // The abort signal handed to start() ends intake only: sends outlive it so the final notices of a
+  // shutdown still go out, each bounded by its caller's signal and the request deadline. dispose()
+  // joins the poll task after abort.
   let pollTask: Promise<void> | undefined
 
   return {
@@ -54,8 +51,6 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
     renderer: plainRenderer,
 
     async start(handlers: AdapterHandlers, signal: AbortSignal): Promise<void> {
-      lifetimeSignal = signal
-
       if (!options.token) {
         throw toTokenMissingError(ZALO_TOKEN_OWNER, options.tokenEnv)
       }
@@ -80,7 +75,7 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
       out: ChannelOutbound,
       sendOpts?: { readonly signal?: AbortSignal }
     ): Promise<SentRef> {
-      return sendZaloMessage(options.token, out, zaloSignalOf(sendOpts?.signal, lifetimeSignal))
+      return sendZaloMessage(options.token, out, sendOpts?.signal)
     },
 
     async chatAction(chatId: string, action: 'typing'): Promise<void> {
@@ -88,13 +83,10 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
         token: options.token,
         chatId,
         action,
-        ...(lifetimeSignal === undefined ? {} : { signal: lifetimeSignal }),
       })
     },
 
     async dispose(): Promise<void> {
-      lifetimeSignal = undefined
-
       if (pollTask !== undefined) {
         await pollTask
         pollTask = undefined
@@ -103,20 +95,16 @@ export function createZaloAdapter(options: CreateZaloAdapterOptions): ChannelAda
   }
 }
 
-// A refused token keeps the channel from starting. A network failure leaves the channel up and unconnected: the poll loop
-// keeps retrying with its own backoff and reports connected on its first good poll.
+// One getMe, no retry: a refused token keeps the channel from starting. A network failure leaves the
+// channel up and unconnected: the poll loop keeps retrying with its own backoff and reports
+// connected on its first good poll.
 async function verifyToken(
   options: CreateZaloAdapterOptions,
   handlers: AdapterHandlers,
   signal: AbortSignal
 ): Promise<void> {
   try {
-    await withRetry(() => assertZaloTokenAccepted(options.token, signal), {
-      maxAttempts: ZALO_GET_ME_MAX_ATTEMPTS,
-      initialMs: ZALO_GET_ME_RETRY_INITIAL_MS,
-      signal,
-      isRetryable: (err) => !(err instanceof ConfigError),
-    })
+    await assertZaloTokenAccepted(options.token, signal)
     handlers.setStatus({ connected: true, lastError: null })
   } catch (err: unknown) {
     if (err instanceof ConfigError || signal.aborted) {
@@ -129,7 +117,7 @@ async function verifyToken(
 }
 
 // Only a token Zalo itself refuses is the operator's to fix; a 5xx, a rate limit or a malformed
-// reply is transient and is retried.
+// reply is transient and left to the poll loop.
 async function assertZaloTokenAccepted(token: string, signal: AbortSignal): Promise<void> {
   const me = await getMe({ token, signal })
 
@@ -145,21 +133,6 @@ async function assertZaloTokenAccepted(token: string, signal: AbortSignal): Prom
     'not_initialized',
     `zalo getMe failed (${me.error_code ?? 'no status'}): ${me.description ?? 'no description'}`
   )
-}
-
-function zaloSignalOf(
-  caller: AbortSignal | undefined,
-  lifetime: AbortSignal | undefined
-): AbortSignal | undefined {
-  if (caller === undefined) {
-    return lifetime
-  }
-
-  if (lifetime === undefined) {
-    return caller
-  }
-
-  return AbortSignal.any([caller, lifetime])
 }
 
 async function sendZaloMessage(
@@ -193,5 +166,9 @@ function sendFailure(errorCode: number | undefined, description: string | undefi
     })
   }
 
-  return new ChannelError('send_failed', `zalo_send_failed: ${detail}`)
+  const message = `zalo_send_failed: ${detail}`
+
+  return errorCode === ZALO_UNAUTHORIZED_CODE
+    ? new PermanentChannelError('send_failed', message)
+    : new ChannelError('send_failed', message)
 }

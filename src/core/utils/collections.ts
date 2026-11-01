@@ -102,6 +102,13 @@ export function lruMap<K, V>(capacity: number, onEvict?: (value: V) => void): Lr
   }
 }
 
+/** Evicts the oldest entries (insertion order) until `map` holds at most `max`. */
+export function trimToSize<K, V>(map: Map<K, V>, max: number): void {
+  while (map.size > max) {
+    evictOldest(map)
+  }
+}
+
 export function ttlCache<K, V>(ttlMs: number, max: number): TtlCache<K, V> {
   if (max < 1) {
     throw new ValidationError('ttlCache max must be >= 1')

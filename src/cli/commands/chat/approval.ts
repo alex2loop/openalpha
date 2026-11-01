@@ -7,6 +7,7 @@ import type { Locale } from '@/core/types/locale'
 import type { ApprovalDecision, ApprovalScope } from '@/engine/api'
 import { formatToolCall } from '@/cli/commands/chat/render'
 import { isVerbose } from '@/cli/env'
+import { isOwnTerminal } from '@/cli/terminal'
 import { style } from '@/cli/ui/colors'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { observe } from '@/core/events'
@@ -76,8 +77,10 @@ export function subscribeCliApproval(deps: CliApprovalDeps): void {
   observe(deps.bus, 'approval_requested', {
     signal: deps.signal,
     fn: (event) => {
-      // One bus serves every surface; a telegram run's approval is not ours to answer.
-      if (event.channel !== 'cli') {
+      // One bus serves every surface and, in a daemon, every forwarded terminal. The bus emits
+      // synchronously inside the run's async context, and child runs carry their own session ids,
+      // so the terminal scope, not the session, names the command a run belongs to.
+      if (event.channel !== 'cli' || !isOwnTerminal(deps.app.terminal)) {
         return
       }
 

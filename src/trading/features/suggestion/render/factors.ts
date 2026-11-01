@@ -8,6 +8,7 @@ import type { QuotedIn } from '@/trading/render/money'
 import { t } from '@/i18n'
 import { CHECKLIST_METRICS, renderChecklist } from '@/trading/features/suggestion/render/checklist'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { scoreBand } from '@/trading/markets/factor-scoring'
 import { toFoldLines } from '@/trading/render/fold'
@@ -57,9 +58,11 @@ export function renderFactorLines(input: FactorSectionInput): readonly string[] 
   }
 
   const ranked = rankedFactors(suggestion.factorScores)
+  const stamps = ranked.flatMap((entry) => entry.factor.provenance)
+  // Retention empties an old scored call's factor stamps; their union stays on the suggestion.
   const sources = renderProvenanceLine(
     locale,
-    dedupeProvenance(ranked.flatMap((entry) => entry.factor.provenance)),
+    dedupeProvenance(stamps.length > 0 ? stamps : suggestion.provenance),
     input.context.timezone
   )
   const checklist = renderChecklist({
@@ -119,6 +122,7 @@ function tableSection(input: FactorSectionInput, section: RankedSection): readon
       ? [
           `${INDENT[1]}${QUIET_MARK} ${t(locale, 'trading.render.suggestion.factorsQuiet', {
             count: formatCount(locale, quietCount),
+            instrument: buildInstrumentKey(suggestion.instrument),
           })}`,
         ]
       : []),

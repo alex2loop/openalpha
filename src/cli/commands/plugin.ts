@@ -29,6 +29,7 @@ const pluginCmdInstall: Command = createCommand({
     positional: ['ref'],
     flags: { yes: { type: 'boolean', describe: CLI_FLAG_DESCRIPTIONS.skipConfirmation } },
   },
+  needs: { local: true },
   run: install,
 })
 

@@ -3,9 +3,9 @@ import type { CliApp, CompletionSource } from '@/cli/types'
 import type { AgentId } from '@/core/ids'
 import type { SlashCommand } from '@/core/types/command'
 import type { McpJobs, McpSurface, SkillCatalog } from '@/engine/api'
+import { completeLine } from '@/commands/api'
 import { sanitizeDisplayText } from '@/core/utils/text'
 
-const WHITESPACE_RE = /\s+/
 const SOURCE_ENTRY_SUFFIX = 'main.ts'
 // Read once at load: a binary replaced while it runs may report a changed path afterwards.
 const SELF_PATH = process.execPath
@@ -76,36 +76,6 @@ export function resolveChatCompletion(app: CliApp): CompletionSource {
   return createChatCompletionSource(app.resolve('slashDispatcher').all())
 }
 
-/** Splitting on whitespace leaves a trailing '' when the line ends in a space, which is exactly the
- *  empty partial token a command completes a fresh position from. */
 function createChatCompletionSource(commands: readonly SlashCommand[]): CompletionSource {
-  const names = uniqueSorted(commands.map((command) => `/${command.name}`))
-
-  return {
-    complete(line): readonly string[] {
-      const trimmed = line.trimStart()
-
-      if (!trimmed.startsWith('/')) {
-        return []
-      }
-
-      const [head = '', ...args] = trimmed.split(WHITESPACE_RE)
-
-      if (args.length === 0) {
-        return names.filter((name) => name.startsWith(head))
-      }
-
-      const command = commands.find((entry) => `/${entry.name}` === head)
-
-      return prefixMatches(command?.completeFor?.(args) ?? [], args[args.length - 1] ?? '')
-    },
-  }
-}
-
-function prefixMatches(candidates: readonly string[], token: string): readonly string[] {
-  return uniqueSorted(candidates.filter((candidate) => candidate.startsWith(token)))
-}
-
-function uniqueSorted(values: readonly string[]): readonly string[] {
-  return [...new Set(values)].sort((left, right) => left.localeCompare(right))
+  return { complete: (line) => completeLine(commands, line) }
 }

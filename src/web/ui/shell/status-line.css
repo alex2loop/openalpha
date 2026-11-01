@@ -1,0 +1,8 @@
+.status-line {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--s3);
+  color: var(--ink2);
+  text-align: center;
+}

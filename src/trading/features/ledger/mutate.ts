@@ -22,19 +22,22 @@ import { ConflictError, isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { foldBook } from '@/trading/features/ledger/book'
 import { isResolvedDraft } from '@/trading/features/ledger/draft'
-import { fxRateApplies, namesFxRate } from '@/trading/features/ledger/fx-rate'
+import { assertFxRateUsed } from '@/trading/features/ledger/fx-used'
 import { resolveDraft } from '@/trading/features/ledger/resolve'
 import {
   assertLedgerValid,
   assertVenuesKnown,
   orderLedger,
 } from '@/trading/features/ledger/validate'
-import { buildRequestFingerprint, finalizeTransaction } from '@/trading/features/ledger/write'
+import {
+  buildRequestFingerprint,
+  finalizeTransaction,
+  withKeptAnnotations,
+} from '@/trading/features/ledger/write'
 import { assertTypedPrice } from '@/trading/features/market-data/reads/typed-price'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { isIdRef } from '@/trading/kernel/instrument'
 import { buildLedgerEntryId } from '@/trading/kernel/operator/book'
-import { venueParam } from '@/trading/render/format'
 
 /** Consumer-side: the write path needs a store plus the write deps, and nothing else the portfolio
  *  service happens to hold. Declaring it here keeps the two files acyclic. */
@@ -74,6 +77,7 @@ type LedgerMutation =
       readonly idempotencyKey: string
       readonly fillSource?: FillSource
       readonly typedPrice?: TypedPrice
+      readonly requiresStatedRate?: true
       readonly now: number
       readonly signal: AbortSignal
     }
@@ -116,12 +120,12 @@ export async function mutateLedger(
     return { kind: 'deleted', entry, book: await bookAfter(deps, folded, mutation) }
   }
 
+  const previous = await deps.ledger.findById(id, mutation.signal)
+  const draft =
+    previous === null ? mutation.draft : withKeptAnnotations(mutation.draft, previous.transaction)
   // Resolved fresh rather than carried over: moving a trade to another day moves its settlement day
   // and may move the FX rate its base-currency value was struck at.
-  const transaction = await finalizeTransaction(deps, {
-    draft: mutation.draft,
-    signal: mutation.signal,
-  })
+  const transaction = await finalizeTransaction(deps, { draft, signal: mutation.signal })
 
   assertVenuesKnown(transaction, venueManifestOf(deps))
   await assertTradePrice(deps, {
@@ -131,7 +135,7 @@ export async function mutateLedger(
     signal: mutation.signal,
   })
   await assertFxRateUsed(deps, {
-    draft: mutation.draft,
+    draft,
     transaction,
     replacing: id,
     signal: mutation.signal,
@@ -152,6 +156,17 @@ async function recordMutation(
   context: { readonly folded: { book?: Book }; readonly assertValid: AssertLedgerValid }
 ): Promise<LedgerWriteResult> {
   const { draft } = mutation
+  const replay = await findReplay(deps, mutation)
+
+  if (replay !== undefined) {
+    return {
+      kind: 'recorded',
+      entry: replay,
+      replayed: true,
+      book: await bookAfter(deps, context.folded, mutation),
+    }
+  }
+
   // The order path mirrors a fill it just read; asking the venue again would re-fetch its own work.
   const resolved =
     mutation.fillSource !== undefined && isResolvedDraft(draft)
@@ -190,6 +205,7 @@ async function planExit(
     const planned = await deps.exitPlans.plan({
       instrument: transaction.instrument,
       entry: transaction.unitPrice,
+      entryDay: transaction.at,
       now: mutation.now,
       signal: mutation.signal,
     })
@@ -225,8 +241,38 @@ async function bookAfter(
   return foldBook(orderLedger(entries), dayOf(deps, clock.now), deps.baseCurrency)
 }
 
-/** A replayed insert costs no provider call. The same key carrying different content is a caller
- *  bug: returning the first receipt would tell them the second request succeeded. */
+/** The row a key already holds, found before the draft is resolved, so a replay costs no provider
+ *  call and cannot fail on a book that has moved since. The same key carrying different content is a
+ *  caller bug: returning the first receipt would tell them the second request succeeded. A draft
+ *  still to be resolved has no fingerprint yet, so only its key is matched. */
+async function findReplay(
+  deps: LedgerMutateDeps,
+  mutation: RecordMutation
+): Promise<LedgerEntry | undefined> {
+  const existing = await deps.ledger.findByIdempotency({
+    idempotencyKey: mutation.idempotencyKey,
+    signal: mutation.signal,
+  })
+
+  if (existing === null) {
+    return undefined
+  }
+
+  const { draft } = mutation
+
+  if (
+    isResolvedDraft(draft) &&
+    existing.requestFingerprint !==
+      (await buildRequestFingerprint({ draft, signal: mutation.signal }))
+  ) {
+    throw new ConflictError(
+      `idempotency key ${mutation.idempotencyKey} was reused with a different request`
+    )
+  }
+
+  return existing.entry
+}
+
 async function recordEntry(
   deps: LedgerMutateDeps,
   mutation: ResolvedRecord,
@@ -236,21 +282,6 @@ async function recordEntry(
     draft: mutation.draft,
     signal: mutation.signal,
   })
-  const existing = await deps.ledger.findByIdempotency({
-    idempotencyKey: mutation.idempotencyKey,
-    signal: mutation.signal,
-  })
-
-  if (existing !== null) {
-    if (existing.requestFingerprint !== requestFingerprint) {
-      throw new ConflictError(
-        `idempotency key ${mutation.idempotencyKey} was reused with a different request`
-      )
-    }
-
-    return { entry: existing.entry, replayed: true }
-  }
-
   const entry: LedgerEntry = {
     id: buildLedgerEntryId(mutation.now),
     recordedAt: mutation.now,
@@ -270,6 +301,7 @@ async function recordEntry(
   await assertFxRateUsed(deps, {
     draft: mutation.draft,
     transaction: entry.transaction,
+    ...(mutation.requiresStatedRate === undefined ? {} : { requiresStatedRate: true }),
     signal: mutation.signal,
   })
 
@@ -381,39 +413,6 @@ export async function assertTradePrice(
     typedPrice,
     confirmMultiple: deps.config.typedPrices.confirmMultiple,
     signal: check.signal,
-  })
-}
-
-/** A named rate the row cannot use is refused rather than dropped, or the operator would believe it
- *  was booked. The ledger is read again only when a rate was named. */
-async function assertFxRateUsed(
-  deps: LedgerMutateDeps,
-  input: {
-    readonly draft: LedgerTxnDraft
-    readonly transaction: LedgerTxn
-    readonly replacing?: LedgerEntryId
-    readonly signal: AbortSignal
-  }
-): Promise<void> {
-  const { transaction } = input
-
-  if (!(namesFxRate(input.draft) && 'currency' in transaction)) {
-    return
-  }
-
-  const entries = await deps.ledger.listAll(input.signal)
-  const others = entries.filter((entry) => entry.id !== input.replacing)
-  const book = foldBook(orderLedger(others), transaction.at, deps.baseCurrency)
-
-  if (fxRateApplies(book, transaction)) {
-    return
-  }
-
-  const venue = transaction.kind === 'transfer' ? transaction.fromVenue : transaction.venue
-
-  throw new ValidationError(`${transaction.currency} row at ${venue} takes no exchange rate`, {
-    key: 'errors.ledgerFxPaidFromCash',
-    params: { currency: transaction.currency, venue: venueParam(venue) },
   })
 }
 

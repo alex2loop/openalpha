@@ -2,7 +2,7 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { InstrumentMatch, InstrumentSearchRequest, Ticker } from '@/trading/kernel/instrument'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { MarketDetection, TickerCandidacy } from '@/trading/markets/types'
-import { ETF_KIND } from '@/trading/kernel/instrument'
+import { exposureSectorOf } from '@/trading/kernel/instrument'
 import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 
 /** VN listings are 3-letter share codes, longer fund codes (FUEVFVND), index codes, and dated
@@ -48,10 +48,7 @@ export async function detect(deps: MarketDeps, options: DetectOptions): Promise<
     }
   }
 
-  // A fund's provider sector names the vehicle, not the basket, the same reading the book fold
-  // takes. Passed through, it measures a fund against an operating sector's headroom and can cap
-  // the order there, while the holding it creates never counts toward that sector's weight.
-  const sector = record.kind === ETF_KIND ? undefined : record.sector
+  const sector = exposureSectorOf(record.kind, record.sector)
 
   return {
     kind: 'match',

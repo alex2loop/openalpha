@@ -16,13 +16,23 @@ interface Board {
 const boards = new Map<string, Board>()
 
 /** One read per key at a time: concurrent and repeat asks share it. A failed read is dropped at
- *  once, so the next ask reads again instead of replaying the failure. */
+ *  once, so the next ask reads again instead of replaying the failure. A fresh ask skips a board
+ *  already answered, and still shares one being read. */
 export function cachedScreen(
   key: string,
-  read: () => Promise<ScreenResponse>
+  read: () => Promise<ScreenResponse>,
+  isFresh = false
 ): Promise<ScreenResponse> {
+  const now = Date.now()
+
+  dropExpired(now)
+
   const held = boards.get(key)
-  const age = held === undefined ? Number.POSITIVE_INFINITY : Date.now() - held.readAt
+
+  if (isFresh && held?.answered === true) {
+    return start(key, read)
+  }
+  const age = held === undefined ? Number.POSITIVE_INFINITY : now - held.readAt
 
   if (held !== undefined && (age < SCREEN_FRESH_MS || !held.answered)) {
     return held.response
@@ -37,6 +47,15 @@ export function cachedScreen(
   }
 
   return start(key, read)
+}
+
+// A board past the kept window is never served again, so it goes whichever key is asked.
+function dropExpired(now: number): void {
+  for (const [key, board] of boards) {
+    if (board.answered && !board.rereading && now - board.readAt >= SCREEN_KEPT_MS) {
+      boards.delete(key)
+    }
+  }
 }
 
 function start(key: string, read: () => Promise<ScreenResponse>): Promise<ScreenResponse> {

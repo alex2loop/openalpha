@@ -10,6 +10,7 @@ import type {
   Theme,
   ThemeBundle,
   ThemeGap,
+  ThemeId,
   ThemeRead,
   ThemeRunNote,
 } from '@/trading/features/themes/types'
@@ -47,6 +48,8 @@ interface ChainInput {
 }
 
 export interface ChainResults {
+  /** Themes whose sector step answered, an empty answer included. */
+  readonly mappedThemes: ReadonlySet<ThemeId>
   readonly sectorReads: readonly SectorRead[]
   readonly stockReads: readonly StockRead[]
   readonly notes: readonly ThemeRunNote[]
@@ -87,6 +90,7 @@ interface FactsRead {
 const NO_FACTS: FactsRead = Object.freeze({ facts: new Map(), gaps: [] })
 const BENCHMARK_GAP: readonly EvidenceKind[] = Object.freeze(['price'])
 const NO_CHAIN: ChainResults = Object.freeze({
+  mappedThemes: new Set<ThemeId>(),
   sectorReads: [],
   stockReads: [],
   notes: [],
@@ -121,6 +125,7 @@ export async function runChain(deps: ChainStageDeps, input: ChainInput): Promise
   })
 
   return {
+    mappedThemes: new Set(mapped.values.map((theme) => theme.entry.theme.id)),
     sectorReads: mapped.values.flatMap((theme) => theme.reads),
     stockReads: stocks.values,
     notes: [...mapped.notes, ...stocks.notes],

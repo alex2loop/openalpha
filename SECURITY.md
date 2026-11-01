@@ -113,7 +113,7 @@ phải mong muốn:
 | | |
 |---|---|
 | Khóa | từ biến môi trường hoặc tệp khóa `0600`; endpoint thuộc quyền code nên không cấu hình nào chuyển hướng được request |
-| API cục bộ | bind loopback, bearer token quyền `0600`, danh sách origin cho phép, kiểm tra tiến trình gọi |
+| API cục bộ | bind loopback, bearer token quyền `0600`, chỉ nhận Host loopback, luồng trực tiếp cùng origin, kiểm tra tiến trình gọi, mục cấu hình chỉ đổi bằng câu lệnh |
 | Văn bản không tin được | quét prompt injection trước khi nó kịp lái một lượt chạy hay vào được ký ức |
 | Log và lỗi | được che ở biên |
 | Mạng | fetch có ghim, qua một chính sách mạng IPv4/IPv6/DNS |

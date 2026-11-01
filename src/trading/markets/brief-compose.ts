@@ -16,7 +16,8 @@ import {
 } from '@/trading/kernel/operator/brief-section'
 import { unavailable } from '@/trading/kernel/source/source-result'
 import { buildSessionDelta } from '@/trading/markets/brief-delta'
-import { absent, omitted, toHeadlineSection } from '@/trading/markets/brief-sections'
+import { toHeadlineSection } from '@/trading/markets/brief-headlines'
+import { absent, omitted } from '@/trading/markets/brief-sections'
 import { NEWS_ITEMS_PER_SECTION, normalizeTitle } from '@/trading/markets/news'
 import { overviewSections } from '@/trading/markets/overview-sections'
 
@@ -84,7 +85,7 @@ export interface BriefComposition<Board> {
     context: BriefContext<Board>,
     sections: readonly BriefSectionResult[],
     overviews: readonly BriefSectionResult[]
-  ): BriefSectionResult
+  ): Promise<BriefSectionResult>
 }
 
 interface ComposedBrief {
@@ -133,7 +134,7 @@ export async function composeBrief<Board>(
   // read costs the section, never the morning.
   const delta = await readDelta(context, sections)
   const composed = [...sections, delta]
-  const nextActions = composition.buildNextActions(context, composed, fromOverviews)
+  const nextActions = await composition.buildNextActions(context, composed, fromOverviews)
 
   return {
     sections: [

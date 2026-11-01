@@ -1,5 +1,5 @@
 import type { ChannelId } from '@/core/channels'
-import type { BrandTag, SessionId } from '@/core/ids'
+import type { BrandTag, RunId, SessionId } from '@/core/ids'
 import type { ProgressReporter } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
 import type { ThemeScorecard } from '@/trading/features/themes/outcomes/scorecard-types'
@@ -370,9 +370,14 @@ export interface ThemeReport {
   readonly reads: ThemeRunReads
   /** The run each open theme was last read on. */
   readonly readRuns: ReadonlyMap<ThemeId, ThemeRun>
+  /** The earlier run a theme's sectors and companies came from, when its last run's sector step
+   *  failed for it. */
+  readonly chainRuns: ReadonlyMap<ThemeId, ThemeRun>
   /** Each open theme's reads before those, for each score's change. */
   readonly previous: ThemeRunReads
   readonly scorecard: ThemeScorecard
+  /** The one theme a focused run asked for; the report then covers it alone. */
+  readonly focus?: ThemeId
 }
 
 export type ThemeLookupFailure =
@@ -386,6 +391,8 @@ export interface ThemeRunRequest {
   readonly channel: ChannelId
   /** The session the run's model calls bill to, so the command's footer states what it cost. */
   readonly billingSessionId: SessionId | null
+  /** The command run that asked, so the analyst calls are its children in the run log. */
+  readonly parentRunId?: RunId
   readonly signal: AbortSignal
   readonly progress?: ProgressReporter
   /** Re-reads this tracked theme alone and looks for no new ones; every tracked theme when absent. */

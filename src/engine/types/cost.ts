@@ -51,6 +51,9 @@ export interface CostTrackerSnapshot {
   readonly reservedUsd: number
   readonly dailyWarned: boolean
   readonly monthlyWarned: boolean
+  /** The configured caps, 0 when uncapped. */
+  readonly dailyCapUsd: number
+  readonly monthlyCapUsd: number
   /** Spend has outrun the durable ledger, so the caps can no longer be proven. */
   readonly ledgerUnavailable: boolean
 }
@@ -68,6 +71,8 @@ export interface CostReservation {
 export interface CostTracker {
   snapshot(at: number): CostTrackerSnapshot
   markWarned(period: 'daily' | 'monthly', at: number): void
+  /** True only the first time a period is marked, so one exhaustion is announced once. */
+  markExhausted(period: 'daily' | 'monthly', at: number): boolean
   hydrate(totals: { readonly dayUsd: number; readonly monthUsd: number; readonly at: number }): void
   reserve(estimateUsd: number): CostReservation
   record(id: ProviderModelId, usage: TokenUsage, settledAt: number): CostCharge

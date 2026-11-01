@@ -1,6 +1,8 @@
 import type { Key } from 'node:readline'
 import { emitKeypressEvents } from 'node:readline'
 
+import type { TerminalInput, TerminalOutput } from '@/cli/terminal'
+import { currentTerminal } from '@/cli/terminal'
 import { ask, hint, style } from '@/cli/ui/colors'
 import { suspendKeypressListeners } from '@/cli/ui/prompt'
 
@@ -28,6 +30,11 @@ interface SelectQuestion<O extends SelectOption> {
   readonly back?: true
 }
 
+interface Screen {
+  readonly out: TerminalOutput
+  readonly question: SelectQuestion<SelectOption>
+}
+
 type SelectKey =
   | { readonly kind: 'move'; readonly to: number }
   | { readonly kind: 'pick' }
@@ -41,37 +48,40 @@ type SelectKey =
 export async function selectOption<O extends SelectOption>(
   question: SelectQuestion<O>
 ): Promise<O | undefined> {
-  const wasRaw = process.stdin.isRaw
-  const restoreKeys = suspendKeypressListeners(process.stdin)
+  const { stdin, stdout } = currentTerminal()
+  const screen = { out: stdout, question }
+  const wasRaw = stdin.isRaw
+  const restoreKeys = suspendKeypressListeners(stdin)
   let rows = 0
 
   try {
-    emitKeypressEvents(process.stdin)
-    process.stdin.setRawMode(true)
-    process.stdin.resume()
-    process.stdout.write(HIDE_CURSOR)
-    rows = render(question, question.selected, rows)
+    emitKeypressEvents(stdin)
+    stdin.setRawMode(true)
+    stdin.resume()
+    stdout.write(HIDE_CURSOR)
+    rows = render(screen, question.selected, rows)
 
-    const picked = await readSelection(question, (to) => {
-      rows = render(question, to, rows)
+    const picked = await readSelection(question, stdin, (to) => {
+      rows = render(screen, to, rows)
     })
 
-    clearRows(rows)
+    clearRows(stdout, rows)
 
     if (picked !== undefined) {
-      process.stdout.write(`${ask(question.question)} ${style.accent(picked.label)}\n`)
+      stdout.write(`${ask(question.question)} ${style.accent(picked.label)}\n`)
     }
 
     return picked
   } finally {
-    process.stdout.write(SHOW_CURSOR)
-    process.stdin.setRawMode(wasRaw)
+    stdout.write(SHOW_CURSOR)
+    stdin.setRawMode(wasRaw)
     restoreKeys()
   }
 }
 
 function readSelection<O extends SelectOption>(
   question: SelectQuestion<O>,
+  input: TerminalInput,
   move: (to: number) => void
 ): Promise<O | undefined> {
   let current = question.selected
@@ -97,8 +107,8 @@ function readSelection<O extends SelectOption>(
     }
     const onEnd = (): void => settle('cancel')
     const settle = (answer: O | 'back' | 'cancel' | undefined): void => {
-      process.stdin.off('keypress', onKeypress)
-      process.stdin.off('end', onEnd)
+      input.off('keypress', onKeypress)
+      input.off('end', onEnd)
 
       if (answer === 'back') {
         resolve(undefined)
@@ -110,8 +120,8 @@ function readSelection<O extends SelectOption>(
       }
     }
 
-    process.stdin.on('keypress', onKeypress)
-    process.stdin.once('end', onEnd)
+    input.on('keypress', onKeypress)
+    input.once('end', onEnd)
   })
 }
 
@@ -147,20 +157,17 @@ function toSelectKey(input: KeyInput): SelectKey | undefined {
 
 /** Draws the question and its options over the `previous` rows the last drawing took, and
  *  returns how many rows this one takes. */
-function render(
-  question: SelectQuestion<SelectOption>,
-  selected: number,
-  previous: number
-): number {
+function render(screen: Screen, selected: number, previous: number): number {
+  const { out, question } = screen
   const lines = [
     `${ask(question.question)} ${hint(question.hint)}`,
     ...question.options.map((option, index) => optionLine(option, index === selected)),
   ]
 
-  clearRows(previous)
-  process.stdout.write(`${lines.join('\n')}\n`)
+  clearRows(out, previous)
+  out.write(`${lines.join('\n')}\n`)
 
-  return lines.reduce((total, line) => total + rowsOf(line), 0)
+  return lines.reduce((total, line) => total + rowsOf(out, line), 0)
 }
 
 function optionLine(option: SelectOption, isSelected: boolean): string {
@@ -171,14 +178,14 @@ function optionLine(option: SelectOption, isSelected: boolean): string {
   return `${marker} ${label}${note}`
 }
 
-function clearRows(rows: number): void {
+function clearRows(out: TerminalOutput, rows: number): void {
   if (rows > 0) {
-    process.stdout.write(`\r\u001B[${rows}A${CLEAR_DOWN}`)
+    out.write(`\r\u001B[${rows}A${CLEAR_DOWN}`)
   }
 }
 
-function rowsOf(line: string): number {
-  const columns = Math.max(MIN_COLUMNS, process.stdout.columns || MIN_COLUMNS)
+function rowsOf(out: TerminalOutput, line: string): number {
+  const columns = Math.max(MIN_COLUMNS, out.columns || MIN_COLUMNS)
 
   return Math.max(1, Math.ceil(Bun.stringWidth(line) / columns))
 }

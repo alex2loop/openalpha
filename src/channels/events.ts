@@ -7,6 +7,8 @@ declare module '@/core/events' {
     chat_session_reset: {
       readonly channel: ChannelId
       readonly chatId: string
+      /** `new`: the operator asked for a fresh session; `agent`: a switch of agent started one. */
+      readonly cause: 'new' | 'agent'
     }
     // A stranger's chat was sent a pairing code, so an operator surface can offer to approve it
     // without the operator going to a terminal. Emitted once per code, after the chat received it.

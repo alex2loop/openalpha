@@ -162,7 +162,8 @@ export interface ThemeStore {
     resolution: ThemeOutcomeResolution,
     signal: AbortSignal
   ): Promise<boolean>
-  listOutcomes(signal: AbortSignal): Promise<readonly ThemeOutcome[]>
+  /** Only reads scored the way `scoreVersion` scores, so a change of weights starts a new record. */
+  listOutcomes(scoreVersion: string, signal: AbortSignal): Promise<readonly ThemeOutcome[]>
 }
 
 function toTheme(row: ThemeRow): Theme {
@@ -395,6 +396,6 @@ export function createThemeStore(deps: StoreDeps): ThemeStore {
     transition: (options) => transition(deps, options),
     listDueOutcomes: (options) => listDueOutcomes(deps, options),
     resolveOutcome: (id, resolution, signal) => resolveOutcome(deps, { id, resolution, signal }),
-    listOutcomes: (signal) => listOutcomes(deps, signal),
+    listOutcomes: (scoreVersion, signal) => listOutcomes(deps, scoreVersion, signal),
   }
 }

@@ -1,0 +1,39 @@
+{
+  "sessionId": "chat_0123456789abcdef0123456789",
+  "hasMore": true,
+  "nextBefore": 12,
+  "messages": [
+    {
+      "idx": 12,
+      "role": "user",
+      "content": "/refresh equity-vn"
+    },
+    {
+      "idx": 13,
+      "role": "assistant",
+      "content": "Cổ phiếu VN: đã làm mới 728/728 mã.",
+      "runId": "5b8f2c1e-9d3a-4e7b-8c21-0f6a1d2e3b4c"
+    },
+    {
+      "idx": 14,
+      "role": "user",
+      "content": "FPT hôm nay thế nào?"
+    },
+    {
+      "idx": 15,
+      "role": "assistant",
+      "content": "FPT đóng cửa tăng 1,3%, khối ngoại mua ròng. Mình vẫn giữ nhận định cũ.",
+      "runId": "a41d7e09-3c5b-4f12-9e6d-2b8c0f7a5d31"
+    },
+    {
+      "idx": 16,
+      "role": "user",
+      "content": "/cost"
+    },
+    {
+      "idx": 17,
+      "role": "assistant",
+      "content": "Chi phí AI hôm nay: 0,12 USD."
+    }
+  ]
+}

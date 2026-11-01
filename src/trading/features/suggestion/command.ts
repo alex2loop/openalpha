@@ -20,6 +20,7 @@ import { DEBATE_MODES } from '@/trading/kernel/config'
 import { dedupeInstruments } from '@/trading/kernel/instrument'
 import { DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
 import { parseMember, parseTickerRequest, usage } from '@/trading/kernel/surface/surface'
+import { answerSurfaceOf } from '@/trading/render/format'
 
 const USAGE: 'slash.tradingSuggestUsage' = 'slash.tradingSuggestUsage'
 const STOPS_EMPTY: 'slash.tradingSuggestStopsEmpty' = 'slash.tradingSuggestStopsEmpty'
@@ -71,6 +72,7 @@ export function createSuggestCommand(deps: SuggestCommandDeps): SlashCommand {
       role: 'operator',
       action: 'costly',
       execution: { progressKey: 'slash.tradingSuggestProgress' },
+      selfContained: true,
     },
     // The subject is a ticker and `stops` is its exception, so only the options complete.
     completeFor: (args) => (args.length === 1 ? [] : OPTIONS),
@@ -109,6 +111,7 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
     focus: DEFAULT_RUN_FOCUS,
     ...request,
     ...(mode === null ? {} : { debateMode: mode }),
+    ...(ctx.runId === undefined ? {} : { parentRunId: ctx.runId }),
     force,
     now: Date.now(),
     signal: ctx.signal,
@@ -167,7 +170,7 @@ async function runStops(
   options: SuggestOptions
 ): Promise<SlashResult> {
   const now = Date.now()
-  const profile = await deps.profiles.get({ defaultLocale: ctx.locale, signal: ctx.signal })
+  const profile = await deps.profiles.get({ signal: ctx.signal })
 
   // Independent reads over one book, and a name can be both: nothing is watching it and its window
   // has passed. One batch either way, so the union is deduped before it is charged for.
@@ -195,6 +198,7 @@ async function runStops(
     billingSessionId: ctx.sessionId,
     focus: DEFAULT_RUN_FOCUS,
     ...stopsDebateMode(options),
+    ...(ctx.runId === undefined ? {} : { parentRunId: ctx.runId }),
     now,
     signal: ctx.signal,
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),
@@ -229,7 +233,7 @@ async function renderRun(
     result,
     detail: mode === 'lean' ? 'compact' : 'full',
     locale: ctx.locale,
-    surface: ctx.surface,
+    surface: answerSurfaceOf(ctx),
     signal: ctx.signal,
   })
 

@@ -28,7 +28,7 @@ No code needed for any of these.
 | [agents.md](agents.md) | Writing an agent, teams, skills, choosing a model |
 | [safety.md](safety.md) | Approvals, what protects you, the errors you can see |
 | [budgets.md](budgets.md) | Spending limits and finding what a run cost |
-| [operations.md](operations.md) | Background loops, schedules, heartbeats, running the API on a server |
+| [operations.md](operations.md) | Background loops, schedules, heartbeats, running the API on a server, the office page |
 | [storage.md](storage.md) | SQLite or Postgres, backups, export and import, sessions and history |
 | [channels.md](channels.md) | Telegram and Zalo |
 | [research.md](research.md) | Bounded web research with cited sources |
@@ -41,7 +41,7 @@ plugin, adding a data source or a channel, and why the code is shaped the way it
 
 ## Contributing to the docs
 
-Fixes and new pages are welcome. Keep one subject per page; a paragraph that fits two pages wants a
-link instead. Write the English page first, add its Vietnamese twin under a Vietnamese name, and add a
+Fixes and new pages are welcome. Keep one subject per page. If a paragraph fits two pages, link to it
+instead of copying it. Write the English page first, add its Vietnamese twin under a Vietnamese name, and add a
 row to both indexes. Anything an operator does goes in a guide; anything only a developer needs goes
 in `dev/`.

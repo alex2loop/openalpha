@@ -1,4 +1,5 @@
 import type { Locale } from '@/core/types/locale'
+import type { MessageKey } from '@/i18n'
 import type { SuggestionCitation } from '@/trading/features/suggestion/citation'
 import type { SuggestionDetail } from '@/trading/features/suggestion/render/debate'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
@@ -6,6 +7,7 @@ import type { PriceDisplay } from '@/trading/kernel/instrument'
 import type { QuotedIn } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
 import { tradedWeightPctNav } from '@/trading/features/suggestion/pipeline/concentration'
+import { ETF_KIND } from '@/trading/kernel/instrument'
 import { formatPublishedDay } from '@/trading/render/datetime'
 import {
   formatCount,
@@ -18,7 +20,7 @@ import {
 } from '@/trading/render/format'
 import { INDENT, renderOverflowLine, renderSectionTitle } from '@/trading/render/layout'
 import { formatPriceIn, renderBoardScaleNotes } from '@/trading/render/money'
-import { toLink } from '@/trading/render/section-values'
+import { toLink } from '@/trading/render/section'
 
 /** Citations shown before the rest collapse behind a count line. Compact surfaces (chat, a Telegram
  *  card) drown past five, so the compact detail collapses them rather than deleting any. */
@@ -187,13 +189,19 @@ export function renderReduceReasonLines(
   }
 
   const code = suggestion.reduceReasonCode
-  // Only the trim names a number: the evidence arms say what turned, which needs no parameter.
+  // Only a sale toward a weight names that weight: the other arms say what turned.
   const params =
-    code === 'over-target' && suggestion.targetPctNav !== undefined
+    (code === 'over-target' || code === 'over-cap') && suggestion.targetPctNav !== undefined
       ? { target: formatFraction(locale, suggestion.targetPctNav) }
       : {}
 
-  return [`${INDENT[1]}${t(locale, `trading.reduce.${code}`, params)}`]
+  // A fund is never trimmed for its sector, so its cap sale names its own ceiling alone.
+  const key: MessageKey =
+    code === 'over-cap' && suggestion.instrumentKind === ETF_KIND
+      ? 'trading.render.suggestion.reduceOverCapFund'
+      : `trading.reduce.${code}`
+
+  return [`${INDENT[1]}${t(locale, key, params)}`]
 }
 
 /** Every level below prints in board points on a board-scaled market, so the scale is said once. */

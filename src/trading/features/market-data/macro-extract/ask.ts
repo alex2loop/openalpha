@@ -51,7 +51,7 @@ interface ExtractionRequest {
 }
 
 interface ExtractionReply {
-  /** Absent when the reply could not be read; the caller retries the document later. */
+  /** Absent when the reply could not be read; the caller records the document with nothing accepted. */
   readonly answers?: readonly ExtractionAnswer[]
   readonly model: string
   readonly costUsd: number

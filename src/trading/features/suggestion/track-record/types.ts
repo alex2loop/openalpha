@@ -55,6 +55,8 @@ export interface TrackRecordFocusCount {
   readonly focusKey: FocusKey
   readonly resolvedCount: number
   readonly winCount: number
+  /** The calls that closed on their target. */
+  readonly targetCount: number
   readonly winRate?: number
 }
 

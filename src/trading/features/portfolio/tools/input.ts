@@ -3,7 +3,6 @@ import { z } from 'zod'
 import type { LedgerTxnDraft, LedgerTxnDraftInput } from '@/trading/features/ledger/types'
 import type { CurrencyCode, InstrumentRef, MarketRef, VenueRef } from '@/trading/kernel/instrument'
 import type { ProfilePatch } from '@/trading/kernel/operator/profile'
-import { LOCALES } from '@/core/types/locale'
 import { definedOnly } from '@/core/utils/collections'
 import { isResolvedDraft } from '@/trading/features/ledger/draft'
 import { resolveRecordVenue } from '@/trading/features/ledger/shorthand'
@@ -351,10 +350,6 @@ export function profilePatchInput(markets: MarketSchema): z.ZodType<ProfilePatch
 
   return z
     .strictObject({
-      preferredLocale: z
-        .enum(LOCALES)
-        .optional()
-        .describe('Language the operator wants to be answered in.'),
       riskLevel: riskLevel.optional().describe(RISK_LEVEL_DESCRIPTION),
       riskCapacity: riskLevel.optional().describe(RISK_CAPACITY_DESCRIPTION),
       riskWillingness: riskLevel.optional().describe(RISK_WILLINGNESS_DESCRIPTION),

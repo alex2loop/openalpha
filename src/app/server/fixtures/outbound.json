@@ -1,0 +1,54 @@
+{
+  "hosts": [
+    {
+      "host": "openrouter.ai",
+      "purpose": "model",
+      "sends": "nội dung câu hỏi và dữ liệu thị trường; không bao giờ có khối lượng, giá vốn hay lãi lỗ của bạn"
+    },
+    {
+      "host": "auth.openai.com",
+      "purpose": "model",
+      "sends": "nội dung câu hỏi và dữ liệu thị trường; không bao giờ có khối lượng, giá vốn hay lãi lỗ của bạn"
+    },
+    {
+      "host": "api.binance.com",
+      "purpose": "exchange",
+      "sends": "lệnh bạn đặt và yêu cầu đọc số dư"
+    },
+    {
+      "host": "api.telegram.org",
+      "purpose": "channel",
+      "sends": "tin nhắn gửi cho bạn"
+    },
+    {
+      "host": "html.duckduckgo.com",
+      "purpose": "search",
+      "sends": "từ khóa tìm kiếm"
+    },
+    {
+      "host": "",
+      "purpose": "web",
+      "sends": "địa chỉ trang bạn hoặc agent yêu cầu đọc"
+    },
+    {
+      "host": "api-gateway.vndirect.com.vn",
+      "purpose": "data",
+      "sends": "mã cổ phiếu và khoảng thời gian, không có số liệu của bạn"
+    },
+    {
+      "host": "cafef.vn",
+      "purpose": "news",
+      "sends": "mã cổ phiếu và khoảng thời gian, không có số liệu của bạn"
+    },
+    {
+      "host": "github.com",
+      "purpose": "update",
+      "sends": "số phiên bản đang chạy"
+    },
+    {
+      "host": "example.com",
+      "purpose": "reachability",
+      "sends": "không gửi gì, chỉ kiểm tra có mạng"
+    }
+  ]
+}

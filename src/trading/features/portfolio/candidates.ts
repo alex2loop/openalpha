@@ -5,12 +5,21 @@ import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/cand
 import type { ReduceVerdicts, ValuedBook } from '@/trading/features/portfolio/types'
 import type { Caveat, EvidenceReduceReasonCode } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { CurrencyCode, InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type {
+  CurrencyCode,
+  InstrumentKind,
+  InstrumentRef,
+  TradingDay,
+} from '@/trading/kernel/instrument'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
-import { buildInstrumentKey, dedupeInstruments } from '@/trading/kernel/instrument'
+import {
+  buildInstrumentKey,
+  dedupeInstruments,
+  exposureSectorOf,
+} from '@/trading/kernel/instrument'
 import { positionCapOf } from '@/trading/kernel/operator/profile'
 import { listedFactsOf } from '@/trading/markets/registry'
 
@@ -95,15 +104,7 @@ async function toCandidate(
     return null
   }
 
-  const record = await deps.marketDataStore.findInstrument({ instrument, signal: options.signal })
-  // A market that keeps no universe still knows what its names are.
-  const listed =
-    record === null
-      ? await listedFactsOf(market, { ticker: instrument.ticker, signal: options.signal })
-      : {
-          ...(record.sector === undefined ? {} : { sector: record.sector }),
-          ...(record.kind === undefined ? {} : { instrumentKind: record.kind }),
-        }
+  const listed = await listedFactsFor(deps, instrument, { market, signal: options.signal })
   const factors = await market.factors({
     instrument,
     asOf: options.asOf,
@@ -129,9 +130,30 @@ async function toCandidate(
       : { volatilityDaily: statistics.volatilityDaily }),
     maximumPositionPctNav: positionCapOf(
       options.profile.caps[market.manifest.segment],
-      record?.kind
+      listed.instrumentKind
     ),
     caveats: unmeasuredVolatilityCaveats(instrument, statistics?.volatilityDaily),
+  }
+}
+
+/** A market that keeps no universe still knows what its names are. */
+async function listedFactsFor(
+  deps: CandidateDeps,
+  instrument: InstrumentRef,
+  scope: { readonly market: Market; readonly signal: AbortSignal }
+): Promise<{ readonly sector?: string; readonly instrumentKind?: InstrumentKind }> {
+  const { market, signal } = scope
+  const record = await deps.marketDataStore.findInstrument({ instrument, signal })
+
+  if (record === null) {
+    return listedFactsOf(market, { ticker: instrument.ticker, signal })
+  }
+
+  const sector = exposureSectorOf(record.kind, record.sector)
+
+  return {
+    ...(sector === undefined ? {} : { sector }),
+    ...(record.kind === undefined ? {} : { instrumentKind: record.kind }),
   }
 }
 

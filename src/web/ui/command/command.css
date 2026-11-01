@@ -1,0 +1,337 @@
+.command-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--commandBarH);
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.who-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: var(--controlH);
+  padding: 0 6px 0 4px;
+  border-radius: var(--controlRadius);
+  cursor: pointer;
+}
+
+.who-chip:not(.glass) {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.who-chip select {
+  max-width: 150px;
+  min-height: 0;
+  border: 0;
+  background-color: transparent;
+  font-size: var(--sizeBody);
+}
+
+/* Where the browser lets a select style its own list, the agent picker opens as glass: a rim as a
+   gradient border, as a pseudo-element cannot be added to the list. */
+@supports (appearance: base-select) {
+  .who-chip select,
+  .who-chip select::picker(select) {
+    appearance: base-select;
+  }
+
+  .who-chip select::picker-icon,
+  .who-chip option::checkmark {
+    display: none;
+  }
+
+  .who-chip select::picker(select) {
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: var(--popRadius);
+    background:
+      var(--glassSheenFill) padding-box,
+      linear-gradient(
+        rgb(var(--glassTint) / var(--glassStrongA)),
+        rgb(var(--glassTint) / var(--glassStrongA))
+      )
+      padding-box,
+      var(--glassRimFill) border-box;
+    background-origin: border-box;
+    backdrop-filter: var(--glassFilter);
+    box-shadow: var(--glassShadow);
+    color: var(--ink);
+  }
+
+  .who-chip option {
+    padding: 5px 8px;
+    border-radius: var(--controlSmRadius);
+    font-size: var(--sizeBody);
+  }
+
+  .who-chip option:hover,
+  .who-chip option:focus-visible {
+    background: var(--sunken);
+  }
+}
+
+.command-box {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.command-field {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s1) var(--s2);
+  border-radius: 12px;
+}
+
+.command-field:not(.glass) {
+  border: 1px solid var(--border);
+  background: var(--canvas);
+}
+
+.command-field:not(.glass):focus-within {
+  border-color: var(--ink3);
+  background: var(--surface);
+}
+
+.command-mark {
+  color: var(--ink3);
+}
+
+.command-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  outline: 0;
+}
+
+.command-not-sent {
+  margin-top: 4px;
+  color: var(--caution);
+  font-size: var(--sizeBody);
+}
+
+.command-chat {
+  position: relative;
+}
+
+.suggest-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: var(--zPopover);
+  border-radius: var(--popRadius);
+}
+
+/* Over the page's own text the list takes the dense tint, so nothing reads through it. */
+.command-bar:not(.is-floating) .suggest-popover {
+  --glassAlpha: var(--glassTagA);
+}
+
+/* The phone's field is narrow beside its chips: the list takes the whole bar. */
+:root[data-layout="phone"] .command-box {
+  position: static;
+}
+
+:root[data-layout="phone"] .suggest-popover {
+  right: var(--s2);
+  left: var(--s2);
+}
+
+/* The rim belongs to the popover, so only this part scrolls. */
+.suggest-scroll {
+  max-height: 50vh;
+  overflow: auto;
+  padding: 6px;
+}
+
+.suggest-hint {
+  padding: 6px 10px;
+}
+
+.suggest-usage {
+  padding: 10px 16px 0;
+}
+
+.suggest-usage p {
+  margin: 0;
+  color: var(--ink3);
+  font-size: var(--sizeCaption);
+}
+
+.suggest-keys {
+  margin-top: 4px;
+  padding: 6px 10px 2px;
+  border-top: 1px solid var(--border);
+  color: var(--ink3);
+  font-size: var(--sizeCaption);
+}
+
+.suggest-head {
+  margin: 6px 10px 4px;
+  color: var(--ink3);
+  font: var(--typeCaptionStrong);
+}
+
+.suggest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: var(--s1) 10px;
+  border-radius: var(--controlRadius);
+  font-size: var(--sizeReading);
+  cursor: pointer;
+}
+
+.suggest-row:hover,
+.suggest-row.is-active {
+  background: var(--sunken);
+}
+
+.suggest-row .meta {
+  color: var(--ink3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The pane bar takes the chat button's place. */
+:root:not([data-layout="wide"]) .command-chat {
+  display: none;
+}
+
+:root[data-layout="phone"] .command-key {
+  display: none;
+}
+
+:root[data-layout="phone"] .command-bar:not(.is-floating) {
+  gap: 6px;
+  padding: 8px;
+}
+
+:root[data-layout="phone"] .who-chip select {
+  max-width: 88px;
+}
+
+/* Over the stage the bar is three glass islands with the scene between them, which keeps the
+   pointer. While the field is in use the side islands shrink to their icon; a phone keeps them so. */
+.command-bar.is-floating {
+  position: absolute;
+  right: var(--s2);
+  bottom: var(--s2);
+  left: var(--s2);
+  z-index: var(--zStageBar);
+  min-height: 0;
+  padding: 0;
+  border-top: 0;
+  gap: var(--s1);
+  pointer-events: none;
+}
+
+.command-bar.is-floating > * {
+  pointer-events: auto;
+}
+
+.command-island {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1);
+  height: var(--islandH);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--islandRadius);
+  color: var(--ink);
+  font: var(--typeEmphasis);
+  cursor: pointer;
+  transition:
+    width var(--islandMs) ease,
+    padding var(--islandMs) ease;
+}
+
+.command-island:disabled {
+  color: var(--ink3);
+  cursor: default;
+}
+
+.command-field.command-island {
+  justify-content: flex-start;
+  width: 100%;
+  cursor: text;
+}
+
+.command-island .command-input::placeholder {
+  color: var(--ink3);
+}
+
+.command-field.glass:focus-within {
+  --glassAlpha: var(--glassFocusA);
+  box-shadow:
+    inset 0 1px 1px var(--glassHi),
+    inset 0 0 0 1px var(--glassFocusRim),
+    0 0 18px -2px var(--glassFocusGlow),
+    0 10px 26px -8px var(--glassDrop);
+}
+
+.command-field.glass:focus-within::before {
+  background: linear-gradient(135deg, var(--glassRim), var(--glassFocusRim) 50%, var(--glassRim));
+}
+
+.command-readonly {
+  flex: 1;
+  justify-content: space-between;
+  min-width: 0;
+  cursor: default;
+}
+
+.command-bar.is-floating .command-not-sent {
+  position: absolute;
+  bottom: calc(100% + var(--s1));
+  left: 0;
+  margin: 0;
+  padding: 4px var(--s2);
+  border-radius: var(--controlRadius);
+}
+
+/* The icon-only island: the agent list stays the tap target, laid invisibly over the portrait. */
+.command-bar.is-floating:has(.command-input:focus, .command-input:not(:placeholder-shown))
+:is(.who-chip, .command-chat),
+:root[data-layout="phone"] .command-bar.is-floating :is(.who-chip, .command-send) {
+  width: var(--islandH);
+  padding: 0;
+}
+
+.command-bar.is-floating:has(.command-input:focus, .command-input:not(:placeholder-shown))
+  .command-island-text {
+  display: none;
+}
+
+.command-bar.is-floating:has(.command-input:focus, .command-input:not(:placeholder-shown))
+  .who-chip
+  select,
+:root[data-layout="phone"] .command-bar.is-floating .who-chip select {
+  position: absolute;
+  inset: 0;
+  max-width: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .command-island {
+    transition: none;
+  }
+}

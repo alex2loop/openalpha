@@ -1,0 +1,23 @@
+/* It sits in the bottom stack, just above the command bar. */
+.offline-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s1);
+  padding: 8px 10px 8px 14px;
+  border-radius: 12px;
+  color: var(--ink);
+  font-size: var(--sizeReading);
+}
+
+.offline-bar-detail {
+  color: var(--ink2);
+}
+
+.offline-bar .btn {
+  flex: none;
+}
+
+.app.is-offline .panes {
+  filter: grayscale(0.85) brightness(0.75);
+}

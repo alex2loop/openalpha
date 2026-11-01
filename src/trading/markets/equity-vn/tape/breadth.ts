@@ -1,5 +1,6 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingDay } from '@/trading/kernel/instrument'
+import type { IndexRatioId } from '@/trading/kernel/market/index-reading'
 import type { Candle } from '@/trading/kernel/market/market-data'
 import type {
   MarketBreadth,
@@ -8,6 +9,7 @@ import type {
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
 import { sessionBar } from '@/trading/markets/equity-vn/factors/factors'
 import {
+  LONG_TREND_SESSIONS,
   TREND_SESSIONS,
   TREND_SLOPE_SESSIONS,
   VN_INDEX_TICKER,
@@ -16,6 +18,12 @@ import {
 } from '@/trading/markets/equity-vn/policy'
 import { resolveBandReference, resolveTradeability } from '@/trading/markets/equity-vn/tradeability'
 import { averageSlope, sessionChange, trendDistance } from '@/trading/markets/timeseries'
+
+/** The index ratios a basket's names answer for, each with the mean its names are measured against. */
+const MEAN_RATIO_WINDOWS = Object.freeze([
+  ['aboveMa50Ratio', VN_MA_SESSIONS],
+  ['aboveMa200Ratio', LONG_TREND_SESSIONS],
+] as const satisfies readonly (readonly [IndexRatioId, number])[])
 
 const MA_WINDOWS = Object.freeze({
   short: VN_TURNOVER_REFERENCE_SESSIONS,
@@ -109,6 +117,26 @@ export function breadthAt(
     names.map((name) => truncatedAt(name, day)),
     day,
     indexBars
+  )
+}
+
+/** The share of `names` above their own mean on `day`, as the provider prints it for an index that
+ *  has its own ratios: of the names that traded that day with a full window behind them. A mean no
+ *  name could measure is left out, never published as zero. */
+export function aboveMeanRatios(
+  names: readonly NameEvidence[],
+  day: TradingDay
+): Partial<Record<IndexRatioId, number>> {
+  const settled = names
+    .map((name) => truncatedAt(name, day))
+    .filter((name) => sessionBar(name, day) !== undefined)
+
+  return Object.fromEntries(
+    MEAN_RATIO_WINDOWS.flatMap(([id, window]) => {
+      const readings = settled.flatMap((name) => isAboveMean(name.closes, window) ?? [])
+
+      return readings.length === 0 ? [] : [[id, readings.filter(Boolean).length / readings.length]]
+    })
   )
 }
 

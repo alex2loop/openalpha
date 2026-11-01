@@ -2,12 +2,15 @@ import type { DebateDeps } from '@/trading/features/suggestion/debate/call'
 import type { DebateInput } from '@/trading/features/suggestion/pipeline/types'
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type { ResolvedActionableSuggestion } from '@/trading/features/suggestion/types'
+import { independentCalls } from '@/trading/features/suggestion/pipeline/reporting'
 import { promptRatio, promptSignedPercent, promptWholePercent } from '@/trading/prompt-text'
 
 const CALIBRATION_HEADER =
   'YOUR REALIZED CALIBRATION ON THIS MARKET (do NOT inflate conviction past what this supports):'
 const RECENT_HEADER = 'YOUR LAST CALLS ON THIS NAME (outcomes already known):'
 const MAXIMUM_RECENT_OUTCOMES = 3
+/** Enough rows that a run of daily re-issues folded away still leaves three distinct calls. */
+const RECENT_OUTCOMES_READ = 20
 const BLOCK_SEPARATOR = '\n\n'
 
 /** A band that cleared the reporting minimum on resolved rows. The beat rate rides the same line
@@ -28,15 +31,18 @@ export async function buildHistoryBlock(
   const { market, ticker } = input.draft.instrument
   // Unpinned by version on purpose: three rows on one name are already a thin read, and pinning
   // them to the current scorer would empty the paragraph on every version bump. What a past call
-  // returned is the same fact whichever version authored it.
+  // returned is the same fact whichever version authored it. Only this focus's calls are its own,
+  // and a re-issue of a still-open call is the same call.
   const onName = await deps.store.listResolved({
     market,
     ticker,
-    limit: MAXIMUM_RECENT_OUTCOMES,
+    focusKeys: [input.request.focus.key],
+    limit: RECENT_OUTCOMES_READ,
     signal,
   })
+  const recent = independentCalls(onName).slice(0, MAXIMUM_RECENT_OUTCOMES)
 
-  return [calibrationParagraph(input.calibration), recentParagraph(onName)]
+  return [calibrationParagraph(input.calibration), recentParagraph(recent)]
     .filter((paragraph) => paragraph !== '')
     .join(BLOCK_SEPARATOR)
 }

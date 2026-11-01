@@ -8,6 +8,9 @@ const YEAR_MONTHS = 12
 const FIGURE_DECIMALS = 2
 const CHANGE_DECIMALS = 1
 const PERCENT = 100
+/** A feed that keeps exactly a year of sessions starts a day or two after the year-ago date; its
+ *  first point still stands for that date, and every point prints its own day. */
+const LOOKBACK_GRACE_DAYS = 7
 
 interface DatedValue {
   readonly day: string
@@ -20,8 +23,12 @@ interface Lookbacks {
   readonly yearAgo?: DatedValue
 }
 
-function lastOnOrBefore(points: readonly DatedValue[], day: string): DatedValue | undefined {
-  return points.findLast((point) => point.day <= day)
+function pointAt(points: readonly DatedValue[], day: string): DatedValue | undefined {
+  const graceEnd = toDayAfter(day, LOOKBACK_GRACE_DAYS)
+
+  return (
+    points.findLast((point) => point.day <= day) ?? points.find((point) => point.day <= graceEnd)
+  )
 }
 
 function lastDayOfMonth(year: number, monthIndex: number): number {
@@ -42,7 +49,11 @@ export function shiftMonths(day: string, months: number): TradingDay {
 }
 
 export function toDayBefore(day: string, days: number): TradingDay {
-  return utcDayOf(Date.parse(`${day}T00:00:00Z`) - days * MS_PER_DAY)
+  return toDayAfter(day, -days)
+}
+
+function toDayAfter(day: string, days: number): TradingDay {
+  return utcDayOf(Date.parse(`${day}T00:00:00Z`) + days * MS_PER_DAY)
 }
 
 /** Points oldest first, so a monthly, quarterly and daily series compare alike. */
@@ -53,8 +64,8 @@ export function toLookbacks(points: readonly DatedValue[]): Lookbacks | undefine
     return undefined
   }
 
-  const quarterAgo = lastOnOrBefore(points, shiftMonths(latest.day, -QUARTER_MONTHS))
-  const yearAgo = lastOnOrBefore(points, shiftMonths(latest.day, -YEAR_MONTHS))
+  const quarterAgo = pointAt(points, shiftMonths(latest.day, -QUARTER_MONTHS))
+  const yearAgo = pointAt(points, shiftMonths(latest.day, -YEAR_MONTHS))
 
   return {
     latest,

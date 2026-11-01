@@ -1,3 +1,4 @@
+import type { CapReason } from '@/trading/features/portfolio/types'
 import type { RolePrompt } from '@/trading/features/suggestion/debate/roles'
 import type {
   DebateClaim,
@@ -9,6 +10,7 @@ import type {
 import type { EvidenceBundle } from '@/trading/features/suggestion/pipeline/evidence'
 import type { DebateInput } from '@/trading/features/suggestion/pipeline/types'
 import type { SuggestionDirection } from '@/trading/features/suggestion/types'
+import type { ReduceReasonCode } from '@/trading/kernel/caveat'
 import type { DebateRole } from '@/trading/kernel/config'
 import type { Market } from '@/trading/markets/types'
 import { OUTCOME_WINDOW_DAYS } from '@/trading/features/suggestion/pipeline/outcome-window'
@@ -78,6 +80,37 @@ const TRADER_TRADEABILITY_INSTRUCTIONS = [
   'acts. Playbook lines about lots, ticks, bands, settlement, foreign room, or rounding belong to',
   'the order stage after you; do not apply them here.',
 ].join('\n')
+
+/** Why the deterministic draft proposes a sale, in the words a model weighs. Without it a reduce
+ *  looks like a call with no cause, and a sign of strength such as a ceiling close reads as a reason
+ *  to keep. */
+const REDUCE_REASON_SENTENCES = {
+  'over-target': 'the position is above the weight the plan targets for its segment',
+  'weak-signal':
+    'the composite score fell below the line the plan keeps a holding at, so the plan exits it',
+  'over-cap':
+    'the position has grown past a cap the operator set; the sale only brings it back within that cap and is risk discipline, not a view on the name',
+  'thesis-weakening': 'the evidence has turned bearish on a name the operator holds',
+  'structure-broken':
+    'the price closed below the low of the recent sessions, so the breakout failed',
+  'regime-risk-off': 'the market regime is risk-off and the evidence on this name is bearish',
+  stale: 'the position has been held for a full outcome window and is still near its cost',
+  overheated: 'longs are paying crowded funding to hold this name',
+  'ceiling-close':
+    'the name closed at or just under its daily price ceiling; the next open usually gaps up, and the weeks after ' +
+    'have lagged the market, so part of the position is sold into the gap',
+} as const satisfies Record<ReduceReasonCode, string>
+
+/** Which cap an `over-cap` sale answers to. The plan measures it on the whole book, so a roomier
+ *  cap the evidence shows - the sector beside a per-name breach - does not contradict it; without
+ *  the name of the cap a risk read took the sector's room as proof no cap was passed. */
+const OVER_CAP_SENTENCES: Partial<Record<CapReason, string>> = {
+  position:
+    'the position has grown past the per-name cap the operator set, measured on the whole book; the sale only brings it back to that cap and is risk discipline, not a view on the name',
+  etf: 'the fund has grown past the cap the operator set for funds in its segment, measured on the whole book; the sale only brings it back to that cap and is risk discipline, not a view on the fund',
+  sector:
+    'the names in its sector together have grown past the sector cap the operator set, measured on the whole book, and this is among the weakest of them; the sale only brings the sector back within that cap and is risk discipline, not a view on the name',
+}
 
 /** What every prompt needs: the run being argued about and the evidence it must argue from. */
 interface PromptContext {
@@ -314,7 +347,8 @@ export function verifierPrompt(
       renderClaims(claims),
       ...(invalidators.length === 0 ? [] : ['', renderConditions(invalidators)]),
       '',
-      orderedEvidence(context),
+      // The sale's reason is the system's own reading: a claim repeating it is not evidence.
+      evidenceBlock(context),
     ].join('\n'),
   }
 }
@@ -351,6 +385,24 @@ function orderedCases(context: PromptContext, cases: OpposedCases): string {
 }
 
 function orderedEvidence(context: PromptContext): string {
+  const { draft } = context.input
+  const reason = draft.action === 'reduce' ? draft.reduceReasonCode : undefined
+  const why =
+    reason === undefined ? '' : `\nWhy a sale is proposed: ${saleReasonSentence(reason, context)}`
+
+  return `${evidenceBlock(context)}${why}`
+}
+
+function saleReasonSentence(reason: ReduceReasonCode, context: PromptContext): string {
+  const cap = context.input.saleCap
+  const capSentence = cap === undefined ? undefined : OVER_CAP_SENTENCES[cap]
+
+  return reason === 'over-cap' && capSentence !== undefined
+    ? capSentence
+    : REDUCE_REASON_SENTENCES[reason]
+}
+
+function evidenceBlock(context: PromptContext): string {
   return `EVIDENCE:\n${context.evidence.text}`
 }
 

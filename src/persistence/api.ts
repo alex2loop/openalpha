@@ -11,19 +11,28 @@ export type {
 } from '@/core/types/session'
 export type { Dialect, DialectName, FtsSearch, Storage, Transaction } from '@/core/types/storage'
 export type {
+  BrowserSessionRow,
+  BrowserSessionStore,
   LLMAttempt,
   LLMAttemptStore,
   Migration,
   MigrationDown,
   MigrationUp,
+  NoticeRow,
+  NoticeStore,
   RetentionConfig,
+  RunLogRow,
+  RunLogStore,
   SessionDetails,
   SessionIdResolution,
+  SessionListing,
+  SessionListQuery,
   SessionSnapshot,
   SessionStatus,
   SessionStore,
   SessionSummary,
   StoredSessionMessage,
+  TranscriptMessage,
 } from '@/persistence/types'
 export {
   BACKUPS_SUBDIR,
@@ -56,9 +65,12 @@ export {
   SQLITE_MIGRATIONS_TABLE_SQL,
 } from '@/persistence/migrations/runner'
 export { countRetention, type RetentionCounts, runRetention } from '@/persistence/retention'
+export { effectiveHistoryDays } from '@/persistence/retention-history'
+export { drainPages, RETENTION_DELETE_LIMIT } from '@/persistence/retention-pages'
 export { createPersistenceProvider } from '@/persistence/services'
 export { bindChunkSize } from '@/persistence/sql/syntax'
 export { createChannelInbox } from '@/persistence/stores/channel/inbox'
+export { stampLastMessages } from '@/persistence/stores/session/shown-rows'
 export {
   ALL_TABLE_NAMES,
   ALL_TABLES,

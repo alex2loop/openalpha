@@ -25,6 +25,7 @@ import {
   titleOf,
   toPreviousScores,
 } from '@/trading/features/themes/render/shared'
+import { SCORE_SCALE, STOCK_SCORE_PARTS } from '@/trading/features/themes/score/compose'
 import {
   isDiscoveryNote,
   NEWS_CAPPED_GAP,
@@ -55,9 +56,10 @@ interface ThemeLine {
 }
 
 /** Top themes, then the sectors and names they lead to ranked across every theme, then the
- *  proposals and the scorecard. The theme row carries the lifecycle: a run writes its reads'
- *  statuses into it and the operator's approvals land there too, so a read is never asked what
- *  state its theme is in now. An invalidated theme stays listed until the operator retires it. */
+ *  proposals and the scorecard; a focused report keeps only what belongs to its theme. The theme
+ *  row carries the lifecycle: a run writes its reads' statuses into it and the operator's approvals
+ *  land there too, so a read is never asked what state its theme is in now. An invalidated theme
+ *  stays listed until the operator retires it. */
 export function renderThemeReportText(report: ThemeReport, options: ThemeRenderOptions): string {
   const { run } = report
 
@@ -86,7 +88,7 @@ export function renderThemeReportText(report: ThemeReport, options: ThemeRenderO
       lines.filter((line) => line.theme.status === 'proposed'),
       context
     ),
-    renderScorecard(report.scorecard, options.locale),
+    report.focus === undefined ? renderScorecard(report.scorecard, options.locale) : [],
   ])
 }
 
@@ -126,7 +128,19 @@ function renderHeader(context: ReportContext): readonly string[] {
     ...(run.gaps.includes(NEWS_CAPPED_GAP)
       ? [t(locale, `trading.themes.gap.${NEWS_CAPPED_GAP}`, { count: MAXIMUM_NEWS_ITEMS })]
       : []),
+    renderScoreLegend(locale),
   ]
+}
+
+/** Theme scores and the board's composite sit on different scales, so the report says which one it
+ *  prints before the first number. */
+function renderScoreLegend(locale: Locale): string {
+  return t(locale, 'trading.render.themes.scoreLegend', {
+    scale: SCORE_SCALE,
+    parts: STOCK_SCORE_PARTS.map((part) => t(locale, `trading.themes.part.${part}`)).join(
+      LIST_SEPARATOR
+    ),
+  })
 }
 
 function renderGapKinds(gaps: readonly ThemeGap[], locale: Locale): string {
@@ -142,7 +156,9 @@ function renderTopThemes(lines: readonly ThemeLine[], context: ReportContext): r
   }
 
   return [
-    t(context.locale, 'trading.render.themes.topThemes'),
+    ...(context.report.focus === undefined
+      ? [t(context.locale, 'trading.render.themes.topThemes')]
+      : []),
     ...joinEntries(
       sortByScore(lines, (line) => line.read?.score).map((line, index) =>
         renderTheme(line, { context, rank: index + 1 })
@@ -168,19 +184,38 @@ function renderTheme(
     head.join(INLINE_SEPARATOR),
     renderStatus(line, context.locale),
     ...renderReadAt(theme.id, context),
+    ...renderEnded(line, context.locale),
     ...(read === undefined ? [`${INDENT[1]}${theme.thesis}`] : renderRead(read, context.locale)),
+    ...renderProposalEnds(line, context.locale),
     ...renderHurt(theme.id, context),
     ...renderNotes(theme.id, context),
+    ...renderChainFrom(theme.id, context),
+    ...renderChainSkipped(line, context.locale),
   ]
 }
 
-/** A proposal's status is the heading it sits under, so its row starts at the maturity. */
+/** Every condition that would end a proposal, shown before it is approved so the operator approves
+ *  the exit too. */
+function renderProposalEnds(line: ThemeLine, locale: Locale): readonly string[] {
+  const { status, invalidation } = line.theme
+
+  return status === 'proposed' && invalidation.length > 0
+    ? [
+        `${INDENT[1]}${t(locale, 'trading.render.themes.endsWhen')}`,
+        ...invalidation.map((condition) => `${INDENT[2]}${condition}`),
+      ]
+    : []
+}
+
+/** A proposal's status is the heading it sits under, so its row starts at the maturity. An ended
+ *  theme has no maturity or odds left to state. */
 function renderStatus(line: ThemeLine, locale: Locale): string {
   const { status } = line.theme
+  const ended = status === 'invalidated'
   const facts = [
     ...(status === 'proposed' ? [] : [t(locale, `trading.themes.status.${status}`)]),
-    t(locale, `trading.themes.maturity.${line.theme.maturity}`),
-    ...(line.read === undefined ? [] : [renderOdds(line.read, locale)]),
+    ...(ended ? [] : [t(locale, `trading.themes.maturity.${line.theme.maturity}`)]),
+    ...(ended || line.read === undefined ? [] : [renderOdds(line.read, locale)]),
   ]
 
   return `${INDENT[1]}${facts.join(INLINE_SEPARATOR)}`
@@ -204,6 +239,31 @@ function renderReadAt(themeId: ThemeId, context: ReportContext): readonly string
       : t(locale, 'trading.render.themes.readAtGaps', { at, kinds })
 
   return [`${INDENT[1]}${line}`]
+}
+
+function renderChainFrom(themeId: ThemeId, context: ReportContext): readonly string[] {
+  const run = context.report.chainRuns.get(themeId)
+
+  return run === undefined
+    ? []
+    : [
+        `${INDENT[1]}${t(context.locale, 'trading.render.themes.chainFrom', {
+          at: formatInstant(context.locale, run.finishedAt, context.timezone),
+        })}`,
+      ]
+}
+
+/** Right under the status, so an ended theme says why and what to do before the read that ended
+ *  it. */
+function renderEnded(line: ThemeLine, locale: Locale): readonly string[] {
+  const condition = line.read?.invalidatedBy
+
+  return condition === undefined
+    ? []
+    : [
+        `${INDENT[1]}${t(locale, 'trading.render.themes.invalidated', { condition })}`,
+        `${INDENT[1]}${t(locale, 'trading.render.themes.chainEnded', { id: line.theme.id })}`,
+      ]
 }
 
 function renderOdds(read: ThemeRead, locale: Locale): string {
@@ -230,13 +290,8 @@ function renderRead(read: ThemeRead, locale: Locale): readonly string[] {
               .join(LIST_SEPARATOR),
           })}`,
         ]),
-    ...renderClaims(t(locale, 'trading.render.themes.why'), read.supporting),
-    ...renderClaims(t(locale, 'trading.render.themes.risk'), read.counter),
-    ...(read.invalidatedBy === undefined
-      ? []
-      : [
-          `${INDENT[1]}${t(locale, 'trading.render.themes.invalidated', { condition: read.invalidatedBy })}`,
-        ]),
+    ...renderClaims(t(locale, 'trading.render.themes.support'), read.supporting),
+    ...renderClaims(t(locale, 'trading.render.themes.against'), read.counter),
     ...(read.web.length === 0
       ? []
       : [
@@ -283,6 +338,15 @@ function renderNote(note: ThemeRunNote, locale: Locale): string {
     : t(locale, 'trading.render.themes.stockFailed', { ticker: note.subject ?? '', cause })
 }
 
+/** Sectors and companies are read only while a read keeps the theme active, so a weakening one
+ *  says why it has none rather than looking like a failed step. A proposal has none because it is
+ *  not approved yet, which its heading already says. */
+function renderChainSkipped(line: ThemeLine, locale: Locale): readonly string[] {
+  return line.theme.status !== 'proposed' && line.read?.status === 'weakening'
+    ? [`${INDENT[1]}${t(locale, 'trading.render.themes.chainSkipped')}`]
+    : []
+}
+
 function renderProposed(lines: readonly ThemeLine[], context: ReportContext): readonly string[] {
   const { locale } = context
   const discovery = context.run.notes.find(isDiscoveryNote)
@@ -298,7 +362,7 @@ function renderProposed(lines: readonly ThemeLine[], context: ReportContext): re
   const [first] = ranked
 
   if (first === undefined) {
-    return status.length > 0 || context.run.themeId !== undefined
+    return status.length > 0 || context.report.focus !== undefined
       ? status
       : [t(locale, 'trading.render.themes.noProposals')]
   }

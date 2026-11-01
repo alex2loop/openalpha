@@ -5,6 +5,7 @@ import type {
   RawConfig,
   RawLlm,
   RawLoop,
+  RawNotices,
   RawSchedule,
 } from '@/core/config/schema'
 import type { Locale } from '@/core/types/locale'
@@ -12,6 +13,8 @@ import { parseChannelAddress } from '@/core/channels'
 import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
 import { DEFAULT_MAX_DURATION_MS, DEFAULT_MAX_TOOL_CALLS, DEFAULT_MAX_TURNS } from '@/core/limits'
+import { REACHABILITY_TIMEOUT_MS } from '@/core/utils/reachability'
+import { MS_PER_SECOND } from '@/core/utils/time'
 
 // Caps are opt-in guardrails: 0 = uncapped, only tracked.
 const DEFAULT_MAX_DAILY_USD = 0
@@ -20,10 +23,17 @@ const DEFAULT_MAX_PER_RUN_USD = 0
 const DEFAULT_SOFT_WARN_RATIO = 0.8
 const DEFAULT_LANGUAGE = 'vi'
 const FALLBACK_TIMEZONE = 'UTC'
+const HTTPS_PROTOCOL = 'https:'
 const DEFAULT_TICK_SECONDS = 30
 const DEFAULT_MAX_PER_TICK = 5
 const DEFAULT_MAX_GLOBAL = 50
 const DEFAULT_SCHEDULER_APPROVAL_TIMEOUT_MS = 900_000
+// Long enough for a restart, a slow tick or a short outage; short enough that a morning slot is
+// never answered after the session it was for.
+const DEFAULT_LATE_GRACE_MS = 900_000
+// A slot is seen at the first tick after its time. Ticks chain after the previous one ends and each
+// may first wait out the reachability probe, so a grace under both skips on-time cron slots.
+const MIN_LATE_GRACE_MS = DEFAULT_TICK_SECONDS * MS_PER_SECOND + REACHABILITY_TIMEOUT_MS
 const DEFAULT_COMPACTION_THRESHOLD = 0.75
 const DEFAULT_MAX_COMPACTION_PASSES = 3
 const DEFAULT_APPROVAL_TIMEOUT_MS = 120_000
@@ -36,6 +46,8 @@ const DEFAULT_LLM_CREDENTIAL_COOLDOWN_MS = 900_000
 const DEFAULT_DELEGATION_DEPTH = 3
 const DEFAULT_MAX_DELEGATIONS = 32
 const DEFAULT_MAX_PARALLEL_DELEGATIONS = 5
+const DEFAULT_MAX_SPAWN_DURATION_MS = 600_000
+const DEFAULT_MAX_SPAWN_TURNS = 12
 const DEFAULT_MAX_UNASKED_FETCHES = 10
 const DEFAULT_API_PORT = 8765
 
@@ -58,6 +70,7 @@ export interface ResolvedSchedule {
   readonly maxPerTick: number
   readonly maxGlobal: number
   readonly approvalTimeoutMs: number
+  readonly lateGraceMs: number
   readonly failureTarget?: ChannelAddress
 }
 
@@ -72,6 +85,8 @@ export interface ResolvedLoop {
   readonly delegationDepth: number
   readonly maxDelegations: number
   readonly maxParallelDelegations: number
+  readonly maxSpawnDurationMs: number
+  readonly maxSpawnTurns: number
   readonly maxUnaskedFetches: number
 }
 
@@ -87,6 +102,15 @@ export interface ResolvedApi {
   readonly enabled: boolean
   readonly port: number
   readonly tokenEnv?: string
+  /** Order routes and the order tool over the API; off by default once `publicUrl` is set. */
+  readonly orders: boolean
+  /** The origin the daemon is reached at through a proxy: `https://host[:port]`, no path. */
+  readonly publicUrl?: string
+}
+
+export interface ResolvedNotices {
+  /** Notice kinds sent to a chat as well as the bell; `app` owns the kind names and checks them. */
+  readonly chat: readonly string[]
 }
 
 type MutableSchedule = { -readonly [K in keyof ResolvedSchedule]: ResolvedSchedule[K] }
@@ -135,6 +159,18 @@ export function resolveSchedule(raw: RawSchedule | undefined): ResolvedSchedule 
     maxPerTick: DEFAULT_MAX_PER_TICK,
     maxGlobal: DEFAULT_MAX_GLOBAL,
     approvalTimeoutMs: raw?.approval_timeout_ms ?? DEFAULT_SCHEDULER_APPROVAL_TIMEOUT_MS,
+    lateGraceMs: raw?.late_grace_ms ?? DEFAULT_LATE_GRACE_MS,
+  }
+
+  if (schedule.lateGraceMs < MIN_LATE_GRACE_MS) {
+    throw new OperatorConfigError(
+      `invalid schedule.late_grace_ms: ${schedule.lateGraceMs} is under one scheduler tick plus its network check (${MIN_LATE_GRACE_MS} ms)`,
+      {
+        key: 'errors.configLateGrace',
+        params: { value: schedule.lateGraceMs, min: MIN_LATE_GRACE_MS },
+      },
+      { path: ['schedule', 'late_grace_ms'] }
+    )
   }
 
   if (raw?.failure_target !== undefined) {
@@ -170,6 +206,8 @@ export function resolveLoop(raw: RawLoop | undefined): ResolvedLoop {
     delegationDepth: raw?.delegation_depth ?? DEFAULT_DELEGATION_DEPTH,
     maxDelegations: raw?.max_delegations ?? DEFAULT_MAX_DELEGATIONS,
     maxParallelDelegations: raw?.max_parallel_delegations ?? DEFAULT_MAX_PARALLEL_DELEGATIONS,
+    maxSpawnDurationMs: raw?.max_spawn_duration_ms ?? DEFAULT_MAX_SPAWN_DURATION_MS,
+    maxSpawnTurns: raw?.max_spawn_turns ?? DEFAULT_MAX_SPAWN_TURNS,
     maxUnaskedFetches: raw?.max_unasked_fetches ?? DEFAULT_MAX_UNASKED_FETCHES,
   }
 }
@@ -185,11 +223,49 @@ export function resolveLlm(raw: RawLlm | undefined): ResolvedLlm {
 }
 
 export function resolveApi(raw: RawApi | undefined): ResolvedApi {
+  const publicUrl = raw?.public_url === undefined ? undefined : resolvePublicUrl(raw.public_url)
+  const isLocalOnly = publicUrl === undefined
+
   return {
-    enabled: raw?.enabled ?? false,
+    enabled: raw?.enabled ?? true,
     port: raw?.port ?? DEFAULT_API_PORT,
     ...(raw?.token_env === undefined ? {} : { tokenEnv: raw.token_env }),
+    orders: raw?.orders ?? isLocalOnly,
+    ...(publicUrl === undefined ? {} : { publicUrl }),
   }
+}
+
+function resolvePublicUrl(raw: string): string {
+  const origin = toPublicOrigin(raw)
+
+  if (origin === undefined) {
+    // The value is never echoed: it may carry a user name, password or query secret.
+    throw new OperatorConfigError(
+      'invalid api.public_url',
+      { key: 'errors.configApiPublicUrl' },
+      { path: ['api', 'public_url'] }
+    )
+  }
+
+  return origin
+}
+
+// A spelling the browser would send back differently (path, query, userinfo, http) cannot be the
+// page's origin, so it is refused rather than trimmed. `href` keeps an empty `?` or `#` that
+// `search` and `hash` drop, so it is compared whole.
+function toPublicOrigin(raw: string): string | undefined {
+  if (!URL.canParse(raw)) {
+    return undefined
+  }
+
+  const url = new URL(raw)
+  const isOriginOnly = url.protocol === HTTPS_PROTOCOL && url.href === `${url.origin}/`
+
+  return isOriginOnly ? url.origin : undefined
+}
+
+export function resolveNotices(raw: RawNotices | undefined): ResolvedNotices {
+  return { chat: raw?.chat ?? [] }
 }
 
 // Cron, one-shot jobs, and the prompt's date block all read this one value, and every time the

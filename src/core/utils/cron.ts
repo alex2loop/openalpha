@@ -46,6 +46,12 @@ type MinuteResult =
   | { readonly kind: 'match'; readonly date: Date }
   | { readonly kind: 'skip'; readonly nextCursor: number }
 
+/** A cron slot answered more than `graceMs` after its clock time is work for a session that has
+ *  passed. The one lateness policy: the scheduler and the workflow trigger both ask it. */
+export function isSlotLate(slotAt: number, now: number, graceMs: number): boolean {
+  return now - slotAt > graceMs
+}
+
 // Find the first minute strictly after the minute containing `from` that satisfies the 5-field
 // cron expression.
 // `tz` omitted/UTC enables fast minute-stepping; a named tz forces Intl part extraction per minute.

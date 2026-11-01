@@ -12,7 +12,7 @@ import {
   renderDeclaredValue,
 } from '@/trading/render/format'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
-import { formatFlowIn, formatPriceIn } from '@/trading/render/money'
+import { formatFlowIn, formatPriceIn, formatSignedFlowIn } from '@/trading/render/money'
 
 /** Piotroski's checks. Printed beside the passed count, because a bare "3" reads as a score out
  *  of whatever the reader guesses, and a debate persona once read it as three of three. */
@@ -33,6 +33,7 @@ const METRIC_FORMATTERS: Readonly<
   count: formatCount,
   'checks-of-nine': (locale, value) => `${formatCount(locale, value)}/${ACCOUNTS_CHECK_COUNT}`,
   currency: (locale, value, quote) => formatFlowIn(locale, value, quote?.currency),
+  'signed-currency': (locale, value, quote) => formatSignedFlowIn(locale, value, quote?.currency),
   price: (locale, value, quote) => formatPriceIn(locale, value, quote),
 })
 

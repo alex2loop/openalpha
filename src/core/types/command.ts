@@ -1,5 +1,5 @@
 import type { ChannelId } from '@/core/channels'
-import type { AgentId, SessionId, UserId } from '@/core/ids'
+import type { AgentId, RunId, SessionId, UserId } from '@/core/ids'
 import type { LocalizedMessageParam } from '@/core/stream-events'
 import type { Locale } from '@/core/types/locale'
 /**
@@ -74,10 +74,14 @@ export type SlashResult =
 
 /** What a slash command adds to its session transcript: the line the operator ran, and the text it
  *  answered with. Recorded as a user row and an assistant row so the next turn reads a normal
- *  exchange. */
+ *  exchange, or, when `displayOnly`, so only the session's history shows it. */
 export interface CommandExchange {
   readonly invocation: string
   readonly output: string
+  /** The command's run, when it ran as one. */
+  readonly runId?: RunId
+  /** Kept for the reader of the session's history; never read back as model context. */
+  readonly displayOnly?: true
 }
 
 /** A long-running command reports the locale key of its current stage through this; the surface
@@ -89,12 +93,35 @@ export type ProgressReporter = (
   params?: Readonly<Record<string, string | number | LocalizedMessageParam>>
 ) => void
 
+/** What work the daemon starts on its own runs under once it shows as a command run. */
+export interface ScheduledRun {
+  readonly signal: AbortSignal
+  readonly progress: ProgressReporter
+}
+
+export interface ScheduledRequest<T> {
+  /** The command the run shows as. */
+  readonly name: string
+  readonly signal: AbortSignal
+  work(run: ScheduledRun): Promise<T>
+  /** True when the work found nothing to do. The run shows from its first stage, so such work,
+   *  reporting none, never shows as running and leaves no row in the activity log. */
+  isIdle?(value: T): boolean
+}
+
+/** Shows work the daemon starts on its own as a command run, the way a typed command shows: live
+ *  with its stages, stoppable, and in the activity log once it ends. */
+export type ScheduledRunner = <T>(request: ScheduledRequest<T>) => Promise<T>
+
 export interface SlashContext {
   readonly channel: ChannelId
   /** Stable per-inbound-request id; used as the idempotency key for non-idempotent commands. */
   readonly requestId: string
   /** The surface the command was dispatched from; compared against the command's declared surfaces. */
   readonly surface: CommandSurface
+  /** Where the answer is read, when not where it ran: the page runs the terminal's commands but
+   *  shows their text in a chat column, so it takes a channel's shape. */
+  readonly readsAs?: CommandSurface
   readonly userId: UserId
   readonly sessionId: SessionId
   /** The chat the command was typed in. Agent bindings are keyed by (channel, chatId). */
@@ -111,6 +138,16 @@ export interface SlashContext {
   readonly correlationId?: string
   /** Present when the surface can show incremental progress; commands treat it as fire-and-forget. */
   readonly progress?: ProgressReporter
+  /** Minted by the dispatcher for a long-running command, so work it starts can name its parent. A
+   *  surface that must name the run before it starts (a command it announces while it waits) mints
+   *  the id itself and the dispatcher keeps it. */
+  readonly runId?: RunId
+  /** A scheduled job's own line: its answer is delivered, and its session reopens every run and is
+   *  never swept, so only model-context (`echo`) rows are kept for it. */
+  readonly isScheduled?: true
+  /** Sent by a page button that shows the result where it was pressed: the session keeps nothing of
+   *  it, as the chat shows nothing. */
+  readonly isQuiet?: true
 }
 
 /**
@@ -128,12 +165,17 @@ export interface SlashInvocationPolicy {
   readonly cooldownMs?: number
   readonly idempotencyKey?: (ctx: SlashContext) => string
   readonly execution?: LongRunningExecution
+  /** The command never runs an agent turn: it never returns `kind: 'agent'`. Its exchange is
+   *  appended to the session transcript, which `appendCommandExchange` allows while a run holds the
+   *  session, so a surface may run it beside other work in the same chat instead of behind the
+   *  session's turn. */
+  readonly selfContained?: true
   /** What to use instead, shown where a surface this policy leaves out refuses the command. */
   readonly surfaceHint?: CommandMessageKey
-  /** `'echo'` records the invocation and its `text` output in the session transcript, so the next
-   *  agent turn in this session can be asked about it. Commands that only confirm a mutation, and
-   *  commands that report runtime state, leave it unset. */
-  readonly transcript?: 'echo'
+  /** Every answer is kept in the session's history, display-only by default. `'echo'` keeps a
+   *  `text` answer as model context instead, so the next agent turn can be asked about it. `'none'`
+   *  keeps nothing: the command moves the chat to another session, so its line belongs to neither. */
+  readonly transcript?: 'echo' | 'none'
 }
 
 export interface CommandGroup {

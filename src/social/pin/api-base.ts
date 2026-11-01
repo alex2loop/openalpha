@@ -1,12 +1,12 @@
 import type { FetchFn } from '@/core/ssrf/pinned-fetch'
 import { ValidationError } from '@/core/errors'
 import { NetworkPolicy } from '@/core/ssrf/network-policy'
+import { withoutTrailingSlashes } from '@/core/utils/url'
 
 const IPV4_LITERAL = /^\d{1,3}(\.\d{1,3}){3}$/
 const LOCAL_HOST = 'localhost'
 const LOCAL_SUFFIX = '.localhost'
 const TRAILING_DOT = /\.$/
-const TRAILING_SLASHES = /\/+$/
 const HTTPS_DEFAULT_PORT = ''
 
 /** The API host is the operator's choice, not code's, so these checks are its SSRF stance: https on
@@ -31,7 +31,7 @@ export function toApiBase(raw: string): string {
     })
   }
 
-  return `${url.origin}${url.pathname.replace(TRAILING_SLASHES, '')}`
+  return `${url.origin}${withoutTrailingSlashes(url.pathname)}`
 }
 
 /** The fetch for one request to the network: it dials the address the SSRF check cleared for the

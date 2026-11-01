@@ -5,13 +5,15 @@ import type { RestingExitStore } from '@/trading/features/order/store/resting-ex
 import type { OrderReceipt, RestingExit } from '@/trading/features/order/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { CurrencyCode, TradingDay } from '@/trading/kernel/instrument'
+import type { OrderFill, OrderFilledListener } from '@/trading/kernel/operator/notice'
 import type { BookedFill } from '@/trading/kernel/venue/fee'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { buildVenueFillKey } from '@/trading/features/ledger/sync'
 import { resolveDay, resolveInstrument } from '@/trading/features/market-data/resolve'
-import { toMirrorNumbers } from '@/trading/features/order/mirror'
+import { announceFill, toMirrorNumbers } from '@/trading/features/order/mirror'
 import { adapterFor } from '@/trading/features/order/routing'
 import { OrderError } from '@/trading/features/order/types'
 import { buildPositionKey } from '@/trading/kernel/instrument'
@@ -30,6 +32,9 @@ interface ExitTickDeps {
   readonly logger: Logger
   /** Whether the book already holds this sale, under the venue's key or as a row typed by hand. */
   isFillBooked(fill: VenueFill, signal: AbortSignal): Promise<boolean>
+  readonly onFilled: OrderFilledListener
+  /** Tells the operator a sale this tick booked. Started, never awaited: see `settleFill`. */
+  notifyFill(fill: OrderFill, signal: AbortSignal): Promise<void>
 }
 
 /** Rides the existing loop factory, so it owns no timer and no cadence: it holds a cursor in its
@@ -170,8 +175,59 @@ async function reconcile(deps: ExitTickDeps, exit: RestingExit, pass: TickPass):
     return
   }
 
-  await mirrorFill(deps, { exit, fill: status.fill, now: pass.now, signal: pass.signal })
+  await settleFill(deps, exit, { fill: status.fill, pass })
+}
+
+/** The sale is booked and the exit settled before anyone is told, so a listener or a channel that
+ *  fails can never leave a filled exit looking live. The notice is started and not awaited: the
+ *  tick walks every exit in turn, and a slow channel must not hold the next one. A crash between
+ *  the booking and the notice loses the notice and keeps the ledger row. */
+async function settleFill(
+  deps: ExitTickDeps,
+  exit: RestingExit,
+  parts: { readonly fill: OrderReceipt; readonly pass: TickPass }
+): Promise<void> {
+  const { fill, pass } = parts
+  const sale = await mirrorFill(deps, { exit, fill, now: pass.now, signal: pass.signal })
+
   await deps.resting.markSettled(exit.exitClientId, pass.signal)
+
+  // Already booked by a `/record sync` the operator ran: nothing new to announce.
+  if (sale === undefined) {
+    return
+  }
+
+  const booked = toOrderFill(sale, { fill, now: pass.now })
+
+  announceFill(deps, booked)
+  deps.notifyFill(booked, pass.signal).catch((err: unknown) => {
+    // Shutdown aborts the send; the sale is booked either way and nothing failed.
+    if (!isAbortError(err)) {
+      deps.logger.warn('trading.exit_fill_notice_failed', {
+        exitClientId: exit.exitClientId,
+        symbol: exit.symbol,
+        err: formatErrForLog(err),
+      })
+    }
+  })
+}
+
+function toOrderFill(
+  sale: VenueFill,
+  source: { readonly fill: OrderReceipt; readonly now: number }
+): OrderFill {
+  const { draft } = sale
+
+  return {
+    instrument: draft.instrument,
+    venue: draft.venue,
+    side: 'sell',
+    quantity: draft.quantity,
+    unitPrice: draft.unitPrice,
+    currency: draft.currency,
+    ...(draft.closeReason === undefined ? {} : { closeReason: draft.closeReason }),
+    at: source.fill.filledAt ?? source.now,
+  }
 }
 
 function isTerminalFill(fill: OrderReceipt): boolean {
@@ -200,10 +256,15 @@ function warnIfDiverged(
   })
 }
 
-/** The exit is dated by the session that produced it, from the fill's own stamp — never by
+/** The sale this pass booked, or undefined when the book already held it.
+ *
+ *  The exit is dated by the session that produced it, from the fill's own stamp — never by
  *  `Date.now()`. This tick may run hours later and across a day boundary, and dating an exit to the
  *  day it was noticed puts a trade on a day it did not happen. */
-async function mirrorFill(deps: ExitTickDeps, input: MirrorFillInput): Promise<void> {
+async function mirrorFill(
+  deps: ExitTickDeps,
+  input: MirrorFillInput
+): Promise<VenueFill | undefined> {
   const { exit, fill, now, signal } = input
 
   if (fill.filledAt === undefined) {
@@ -239,10 +300,12 @@ async function mirrorFill(deps: ExitTickDeps, input: MirrorFillInput): Promise<v
   // refused as exceeding the position, and a refusal leaves the exit guarding quantity it no longer
   // holds. A pass that books and fails before marking the row finds its own sale here next time.
   if (await deps.isFillBooked(booked, signal)) {
-    return
+    return undefined
   }
 
   await deps.portfolio.record({ ...booked, now, signal })
+
+  return booked
 }
 
 interface SaleParts {

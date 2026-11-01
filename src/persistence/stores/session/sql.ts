@@ -4,6 +4,8 @@ import { LLM_ATTEMPT_COLUMNS } from '@/persistence/stores/llm-attempt'
 // One owner of the session store's SQL text: lifecycle, transcript, attempt-linking, and route
 // cleanup statements. Callers bind parameters in the order each statement declares them.
 const PAYLOAD_COLS = 'role, content, tool_call_id, reasoning_blocks, is_error'
+// A display-only row is a slash command's turn kept for the reader; nothing the model reads sees it.
+const MODEL_ROWS = 'AND display_only = 0'
 // Every attempt against a model, billed whether or not it came back; an `external` row is a vendor
 // fee rather than a call. (COUNT(*) FILTER is not portable; the CASE form runs on both dialects.)
 const MODEL_CALLS_CASE = `CASE WHEN kind <> 'external' THEN 1 ELSE 0 END`
@@ -39,12 +41,14 @@ export interface SessionSql {
   readonly loadPayloadTail: string
   readonly loadTranscriptNewest: string
   readonly loadTranscriptBefore: string
+  readonly loadTranscriptRun: string
   readonly loadMessages: string
   readonly loadAttempts: string
   readonly loadTotals: string
   readonly insertMessage: string
   readonly nextIdx: string
-  readonly lastMessageAt: string
+  readonly lastModelMessageAt: string
+  readonly touchLastMessage: string
   readonly linkAttempt: string
   readonly linkedGroup: string
   readonly touchActivity: string
@@ -52,8 +56,10 @@ export interface SessionSql {
   readonly updateStatus: string
   readonly listRecent: string
   readonly latestIdForChannel: string
+  readonly channelOf: string
   readonly selectRun: string
   readonly removeRoutes: string
+  readonly removeBinding: string
   readonly removeMessages: string
   readonly detachAttempts: string
   readonly remove: string
@@ -63,6 +69,8 @@ export interface SessionSql {
   readonly countRunningByAgent: string
   readonly clearRoutesAll: string
   readonly clearRoutesByAgent: string
+  readonly clearBindingsAll: string
+  readonly clearBindingsByAgent: string
   readonly clearMessagesAll: string
   readonly clearMessagesByAgent: string
   readonly detachAttemptsAll: string
@@ -83,17 +91,18 @@ export function buildSessionSql(d: Dialect): SessionSql {
       `SELECT id FROM sessions WHERE id LIKE ${d.param(1)} ESCAPE '\\' ` +
       `ORDER BY CASE WHEN id = ${d.param(2)} THEN 0 ELSE 1 END, id LIMIT ${d.param(3)}`,
     loadMessages:
-      `SELECT idx, run_id, ${PAYLOAD_COLS}, created_at FROM session_messages ` +
+      `SELECT idx, run_id, ${PAYLOAD_COLS}, display_only, created_at FROM session_messages ` +
       `WHERE session_id = ${d.param(1)} ORDER BY idx`,
     loadAttempts: `SELECT ${LLM_ATTEMPT_COLUMNS.join(', ')} FROM llm_attempts WHERE session_id = ${d.param(1)} ORDER BY settled_at, id`,
     loadTotals: `SELECT ${TOTALS_FOLD_COLS} FROM llm_attempts WHERE session_id = ${d.param(1)}`,
     insertMessage:
-      `INSERT INTO session_messages (session_id, idx, run_id, ${PAYLOAD_COLS}, created_at) ` +
-      `VALUES (${d.paramList(9)})`,
+      `INSERT INTO session_messages (session_id, idx, run_id, ${PAYLOAD_COLS}, display_only, ` +
+      `created_at) VALUES (${d.paramList(10)})`,
     nextIdx: `SELECT MAX(idx) + 1 AS next FROM session_messages WHERE session_id = ${d.param(1)}`,
-    // The primary key is (session_id, idx), so the newest row is one index step.
-    lastMessageAt:
-      `SELECT created_at FROM session_messages WHERE session_id = ${d.param(1)} ` +
+    // The primary key is (session_id, idx), so the newest row is one index step. It dates what the
+    // model last saw, so a command's display row does not move it.
+    lastModelMessageAt:
+      `SELECT created_at FROM session_messages WHERE session_id = ${d.param(1)} ${MODEL_ROWS} ` +
       `ORDER BY idx DESC LIMIT 1`,
     linkAttempt:
       `UPDATE llm_attempts SET message_idx = ${d.param(1)} ` +
@@ -121,22 +130,36 @@ export function buildSessionSql(d: Dialect): SessionSql {
 
 type TranscriptSql = Pick<
   SessionSql,
-  'loadPayloads' | 'loadPayloadTail' | 'loadTranscriptNewest' | 'loadTranscriptBefore'
+  | 'loadPayloads'
+  | 'loadPayloadTail'
+  | 'loadTranscriptNewest'
+  | 'loadTranscriptBefore'
+  | 'loadTranscriptRun'
+  | 'touchLastMessage'
 >
 
-// Display pages read user/assistant rows newest first; the caller asks for one row past the page.
+// The model's payloads leave display-only rows out; display pages read user/assistant rows, those
+// included, newest first, and the caller asks for one row past the page.
 function buildTranscriptSql(d: Dialect): TranscriptSql {
-  const head = `SELECT idx, ${PAYLOAD_COLS} FROM session_messages WHERE session_id = ${d.param(1)} `
+  const head =
+    `SELECT idx, run_id, ${PAYLOAD_COLS} FROM session_messages ` +
+    `WHERE session_id = ${d.param(1)} `
   const roles = `AND role IN ('user', 'assistant') `
 
   return {
-    loadPayloads: `SELECT ${PAYLOAD_COLS} FROM session_messages WHERE session_id = ${d.param(1)} ORDER BY idx`,
+    loadPayloads:
+      `SELECT ${PAYLOAD_COLS} FROM session_messages WHERE session_id = ${d.param(1)} ` +
+      `${MODEL_ROWS} ORDER BY idx`,
     // Newest rows only, back in order: the subquery picks them, the outer sort restores idx order.
     loadPayloadTail:
       `SELECT ${PAYLOAD_COLS} FROM (SELECT idx, ${PAYLOAD_COLS} FROM session_messages ` +
-      `WHERE session_id = ${d.param(1)} ORDER BY idx DESC LIMIT ${d.param(2)}) AS tail ORDER BY idx`,
+      `WHERE session_id = ${d.param(1)} ${MODEL_ROWS} ORDER BY idx DESC LIMIT ${d.param(2)}) ` +
+      `AS tail ORDER BY idx`,
     loadTranscriptNewest: `${head}${roles}ORDER BY idx DESC LIMIT ${d.param(2)}`,
     loadTranscriptBefore: `${head}${roles}AND idx < ${d.param(2)} ORDER BY idx DESC LIMIT ${d.param(3)}`,
+    loadTranscriptRun: `${head}AND role = 'assistant' AND run_id = ${d.param(2)} ORDER BY idx DESC LIMIT ${d.param(3)}`,
+    // What the conversation list dates and orders the session by.
+    touchLastMessage: `UPDATE sessions SET last_message_at = ${d.param(1)} WHERE id = ${d.param(2)}`,
   }
 }
 
@@ -169,13 +192,25 @@ function buildClaimSql(d: Dialect): ClaimSql {
 
 type RemoveSql = Pick<
   SessionSql,
-  'selectRun' | 'removeRoutes' | 'removeMessages' | 'detachAttempts' | 'remove'
+  | 'channelOf'
+  | 'selectRun'
+  | 'removeRoutes'
+  | 'removeBinding'
+  | 'removeMessages'
+  | 'detachAttempts'
+  | 'remove'
 >
 
+// `channelOf` is the read a caller makes before it removes: only some channels' sessions may go.
 function buildRemoveSql(d: Dialect): RemoveSql {
   return {
+    channelOf: `SELECT channel FROM sessions WHERE id = ${d.param(1)}`,
     selectRun: `SELECT active_run_id FROM sessions WHERE id = ${d.param(1)}`,
     removeRoutes: `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} AND value = ${d.param(2)}`,
+    // The agent a chat is bound to, keyed (channel, chat id): the app's chat id is its session id.
+    removeBinding:
+      `DELETE FROM bindings WHERE chat_id = ${d.param(1)} ` +
+      `AND channel = (SELECT channel FROM sessions WHERE id = ${d.param(2)})`,
     removeMessages: `DELETE FROM session_messages WHERE session_id = ${d.param(1)}`,
     detachAttempts: detachAttemptsSql(`session_id = ${d.param(1)}`),
     remove: `DELETE FROM sessions WHERE id = ${d.param(1)}`,
@@ -197,6 +232,8 @@ type ClearSql = Pick<
   | 'countRunningByAgent'
   | 'clearRoutesAll'
   | 'clearRoutesByAgent'
+  | 'clearBindingsAll'
+  | 'clearBindingsByAgent'
   | 'clearMessagesAll'
   | 'clearMessagesByAgent'
   | 'detachAttemptsAll'
@@ -217,6 +254,13 @@ function buildClearSql(d: Dialect): ClearSql {
     clearRoutesByAgent:
       `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} ` +
       `AND value IN (SELECT id FROM sessions WHERE agent_id = ${d.param(2)})`,
+    // The agent a chat is bound to, keyed (channel, chat id): the app's chat id is its session id.
+    clearBindingsAll:
+      'DELETE FROM bindings WHERE chat_id IN ' +
+      '(SELECT id FROM sessions WHERE sessions.channel = bindings.channel)',
+    clearBindingsByAgent:
+      'DELETE FROM bindings WHERE chat_id IN ' +
+      `(SELECT id FROM sessions WHERE sessions.channel = bindings.channel AND sessions.agent_id = ${d.param(1)})`,
     clearMessagesAll: 'DELETE FROM session_messages',
     clearMessagesByAgent:
       `DELETE FROM session_messages WHERE session_id IN ` +

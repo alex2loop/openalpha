@@ -215,8 +215,10 @@ export interface ProviderChain {
    *  is expensive. */
   estimateMaxCost(input: {
     readonly requestedModel: string
+    /** The whole prompt, priced once at the dearer of the input and cache-write rates. */
     readonly inputTokens: number
     readonly cacheReadTokens: number
+    /** Extra cache-write tokens beyond the prompt; 0 for a pre-call estimate. */
     readonly cacheWriteTokens: number
     readonly maxTokens: number
     /** Priced with the reasoning widening the chain applies to a downgraded entry. */

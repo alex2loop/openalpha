@@ -8,6 +8,7 @@ import type {
 import { closestName } from '@/core/utils/text'
 
 import type { ResolvedSlashCommand } from '../types'
+import { unexpectedResult } from './result'
 
 const COMMAND_PREFIX = '/'
 const BOT_MENTION_RE = /@[^\s]+$/
@@ -103,7 +104,7 @@ export async function dispatchLine(options: DispatchLineOptions): Promise<SlashR
   const parsed = parseCommand(line)
 
   if (parsed === null) {
-    return { kind: 'message', messages: [{ key: 'slash.commandUnexpected' }] }
+    return unexpectedResult()
   }
 
   const resolved = resolve(parsed.raw, parsed.args)

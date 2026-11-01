@@ -4,7 +4,7 @@ Mọi khóa TOML, giá trị mặc định và biến môi trường. Một tệ
 
 Hai điều cần biết trước:
 
-- **Cấu hình chỉ được đọc một lần, lúc khởi động.** Đổi gì thì khởi động lại daemon. Không có nạp nóng,
+- **Cấu hình chỉ được đọc một lần, lúc khởi động.** Đổi gì thì khởi động lại dịch vụ nền (daemon). Không có nạp nóng,
   cũng không có trạng thái áp dụng nửa vời.
 - **Khóa lạ là lỗi.** Gõ sai thì `config validate` báo ngay, thay vì để một thiết lập nằm ở mặc định
   suốt ba tháng mà không ai hay.
@@ -18,10 +18,11 @@ openalpha config path       # tệp nào đang thật sự được đọc
 openalpha config validate   # có phân tích và phân giải được không
 openalpha config show       # cấu hình hiệu lực đã trộn, thông tin bí mật đã che
 openalpha config edit       # mở bằng $VISUAL hoặc $EDITOR
+openalpha config get budget.maxDailyUsd   # in một giá trị đã phân giải, theo đường dẫn dạng chấm
 ```
 
 `openalpha onboard` ghi một tệp khởi đầu khi chưa có tệp và đích không phải symlink. Chạy khi đã có cấu
-hình, nó đổi một phần (mô hình, bot Telegram, mức chi hoặc ngôn ngữ) và sao lưu tệp cũ cạnh đó trước, vì lần
+hình, nó đổi một phần (mô hình, bot Telegram, mức chi hoặc ngôn ngữ) và sao lưu tệp cũ cạnh đó trước (giữ 5 bản sao lưu mới nhất), vì lần
 ghi lại làm mất các dòng chú thích.
 
 Có hai tệp mẫu để tải: [config.minimal.toml](https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml)
@@ -135,7 +136,7 @@ hoặc `.../openai/v1`. Tên mô hình Claude mang tiền tố `anthropic.` củ
 
 ### `[[model_tiers.<name>]]` (tùy chọn)
 
-Một chuỗi dự phòng có tên mà agent đáng tin chọn được. Mỗi nhóm là một mảng bảng TOML dưới
+Một chuỗi dự phòng có tên mà agent chọn được: agent có sẵn, agent plugin đi kèm và agent của bạn. Mỗi nhóm là một mảng bảng TOML dưới
 `model_tiers.<name>`. Mục đầu là mô hình chính, các mục sau được thử theo thứ tự. Mỗi mục theo schema
 của `[[models]]` và thừa hưởng `[model_defaults]`. Mọi mục phải hỗ trợ gọi công cụ.
 
@@ -150,7 +151,7 @@ api_key_env = "ANTHROPIC_API_KEY"
 ```
 
 Tên nhóm bắt đầu bằng chữ thường, phần sau là chữ thường, chữ số, `_` hoặc `-`. Bỏ trống một nhóm chỉ
-là lỗi khi có agent đáng tin chọn nó.
+là lỗi khi có agent chọn nó.
 
 Các vai tranh luận ưu tiên nhóm tên `debate`. Có nhóm này thì mọi vai chạy trên chuỗi đó. Đây là chỗ
 nên ghim endpoint và đặt mốc hết giờ luồng chặt, trong khi chat vẫn dùng chuỗi chính:
@@ -171,7 +172,7 @@ Các tên nhóm sau được tra theo tên:
 | `delegate` | `reviewer` |
 | `debate` | các vai tranh luận giao dịch |
 | `themes` | vai phân tích chủ đề đứng sau `/themes`; mọi mục phải hỗ trợ gọi công cụ, vì nó có thể gọi `research` |
-| `extraction` | chỉ riêng tác vụ trích xuất vĩ mô của daemon, đọc số liệu vĩ mô VN từ báo cáo của cơ quan thống kê và báo chí |
+| `extraction` | chỉ riêng tác vụ trích xuất vĩ mô của dịch vụ nền, đọc số liệu vĩ mô VN từ báo cáo của cơ quan thống kê và báo chí |
 | `decisions` | lượt đọc tiêu đề chạy trước phiên tranh luận |
 
 Không có nhóm của mình thì agent hay tác vụ dùng chuỗi `[[models]]` toàn cục. `decisions` là ngoại lệ:
@@ -239,8 +240,8 @@ thì hãy ghi `api_key_env` riêng. `reasoning`, `max_tokens` và hai mốc hế
 Một hồ sơ agent chọn đúng một chuỗi có tên qua `model_tier`. Đây là cách duy nhất để agent chọn chuỗi
 mô hình; không có khóa `model` riêng cho từng agent. Nhóm phải có trong `[[model_tiers.<name>]]`.
 
-Chỉ hồ sơ đáng tin (có sẵn và plugin đi kèm) được đặt `model_tier`. Agent do người dùng viết hoặc hồ sơ
-plugin không đáng tin mà khai nó thì bị từ chối.
+Hồ sơ có sẵn, hồ sơ plugin đi kèm và agent do bạn viết được đặt `model_tier`, và mọi mục trong nhóm phải hỗ trợ
+gọi công cụ. Hồ sơ plugin không đáng tin mà khai nó thì bị từ chối. `reasoning` vẫn chỉ dành cho hồ sơ đáng tin.
 
 Không có `model_tier` thì agent dùng chuỗi `[[models]]`. Một vai có sẵn có thể mang lựa chọn ưu tiên
 riêng (các worker nghiên cứu ưu tiên `research`), và `model_tier` tường minh không ghi đè được nó.
@@ -265,13 +266,20 @@ Mọi trần mặc định `0`, nghĩa là không chặn. Từng khóa chặn c�
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `language` | chuỗi | `vi` | `en` hoặc `vi`. |
+| `language` | chuỗi | `vi` | `en` hoặc `vi`. Ngôn ngữ duy nhất mọi câu trả lời, bản tin và cảnh báo dùng; hồ sơ đầu tư không có ngôn ngữ riêng. |
 | `timezone` | chuỗi | múi giờ của máy (`UTC` nếu máy không báo) | Tên IANA, ví dụ `Asia/Ho_Chi_Minh`. Việc cron mới chụp lại giá trị này, trừ khi `--tz` ghi đè; lịch theo chu kỳ từ chối `--tz`. |
 | `currency` | chuỗi | `VND` | Mã ISO 4217 (ba chữ in hoa). Đồng tiền cơ sở của phần giao dịch; `onboard` hỏi ở lần thiết lập đầu và ghi vào đây. Cố định từ khi sổ có hồ sơ: đổi sau đó bị từ chối, và `doctor` báo chỗ lệch ở dòng `database`. |
 | `region` | chuỗi | `vn` | Khu vực chính: `vn` hoặc `us`. `us` đặt cổ phiếu và quỹ ETF Mỹ làm thị trường chính; hãy đi kèm `currency = "USD"` (không đổi được sau khi lưu hồ sơ đầu tiên), bắt đầu từ thư mục dữ liệu mới, và xem [`config.minimal.us.toml`](../config.minimal.us.toml). Báo cáo tài chính của doanh nghiệp Mỹ còn cần `SEC_CONTACT_EMAIL`, đặt bằng `onboard` hoặc `key set`. Khu vực cần có sàn giao dịch thị trường chính của nó, nên `global` (vàng thế giới, chỉ để tham chiếu) bị từ chối. Thị trường của khu vực này là bảng mặc định, và hồ sơ đầu tiên chỉ phân bổ cho các nhóm trong nước của nó cùng crypto. |
 
 Mọi khóa đều tùy chọn. `[locale]` không nhận khóa nào khác. `currency` và `region` cho biết bạn đang ở
 đâu, nên phần giao dịch đọc chúng ở đây thay vì giữ bản trùng dưới `[trading]`.
+
+`[locale] language` là cài đặt ngôn ngữ duy nhất. Hồ sơ giao dịch còn giữ trong kho một bản sao cũ tên `preferred-locale`, nhưng
+không có gì đọc nó: sửa ở đó không đổi gì, và hồ sơ mà ứng dụng hiện ra báo đúng khóa này.
+
+Phần chữ do mô hình viết, như luận điểm của một đề xuất hay phần đọc một chủ đề, giữ nguyên ngôn
+ngữ của phiên chạy đã viết ra nó. Đổi `language`, hoặc nhắn bot bằng ngôn ngữ khác, chỉ đổi phần nhãn
+xung quanh chứ không đổi phần chữ đã lưu; phiên chạy sau sẽ viết bằng ngôn ngữ mới.
 
 ### `[paths]`
 
@@ -285,14 +293,17 @@ Bố cục dưới `data_dir`:
 ```text
 {data_dir}/
   data/openalpha.sqlite             cơ sở dữ liệu SQLite mặc định (dữ liệu + bộ nhớ)
-  openalpha.pid                     tệp khóa của daemon
-  openalpha.ready                   ghi khi daemon đã sẵn sàng; những gì nó đang thiếu
-  daemon.stdout.log                 đầu ra lạc của daemon chạy nền, xóa trắng mỗi lần khởi động
-  daemon.stderr.log                 cảnh báo và lỗi của daemon chạy nền, xóa trắng mỗi lần khởi động
+  openalpha.pid                     tệp khóa của dịch vụ nền
+  openalpha.ready                   ghi khi dịch vụ nền đã sẵn sàng; những gì nó đang thiếu
+  daemon.stdout.log                 đầu ra lạc của dịch vụ nền chạy ở chế độ nền, xóa trắng mỗi lần khởi động
+  daemon.stderr.log                 cảnh báo và lỗi của dịch vụ nền chạy ở chế độ nền, xóa trắng mỗi lần khởi động
+  restart.json                      ghi ngay trước khi dịch vụ nền chạy lại, xóa khi dịch vụ nền mới báo chuyện đó
+  restart.stdout.log                chỉ trên Windows: đầu ra lạc của một lần khởi động lại từ API, nơi cần xem khi nó thất bại
+  restart.stderr.log                chỉ trên Windows: cảnh báo và lỗi của lần khởi động lại đó
   logs/daemon.log                   log chung mặc định (`[log] file`)
   logs/agents/<agentId>/agent.log   log chạy riêng theo agent, được giữ lại
   backups/                          bản sao lưu `db backup`, cùng ảnh chụp pre-migration/ và pre-rollback/
-    daily/                          bản sao hằng ngày của daemon, giữ `[retention] daily_backups` bản mới nhất
+    daily/                          bản sao hằng ngày của dịch vụ nền, giữ `[retention] daily_backups` bản mới nhất
   plugins/                          plugin đã cài
   workspaces/<agentId>/             thư mục nháp riêng của từng agent
     run/                            HOME của tiến trình con; chỉ `workspace cleanup` có xác nhận mới dọn
@@ -344,21 +355,32 @@ vào cấu hình bạn xem.
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, lượt chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, và bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ. |
+| `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, phiên chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ, và lịch sử mà ứng dụng đọc: các phiên chạy đã xong sau danh sách hoạt động, và thông báo trong chuông, đã đọc hay chưa. |
+| `history_days` | số nguyên | `1095` | Số dương, không nhỏ hơn `days` (đặt nhỏ hơn thì cấu hình bị từ chối khi nạp; bỏ trống thì không bao giờ dưới `days`). Giữ bao lâu kết quả theo dõi: gợi ý đã chấm và lệnh giữ (mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động, gợi ý chưa chấm thì không bao giờ bị xóa), dòng factor log và kết quả chủ đề đã chốt, ảnh chụp NAV, điểm số liệu vĩ mô cùng nguồn của chúng. Tài liệu vĩ mô được giữ ít nhất 800 ngày, để bộ trích xuất không phải trả tiền đọc lại một tháng. |
 | `inbox_days` | số nguyên | `7` | Số dương. Giữ bao lâu các mục inbox đã xong và đã hỏng, gồm cả nội dung. |
 | `daily_backups` | số nguyên | `3` | Từ `0`. Giữ bao nhiêu bản sao lưu SQLite hằng ngày trong `backups/daily/`; `0` là tắt. PostgreSQL bị bỏ qua (dùng `pg_dump`). |
 
 `days` còn điều khiển hai quy tắc về tệp:
 
-- Lúc daemon khởi động, tệp trong `workspaces/<agentId>/tmp/` cũ hơn `days` bị xóa một lần, trước khi
+- Lúc dịch vụ nền khởi động, tệp trong `workspaces/<agentId>/tmp/` cũ hơn `days` bị xóa một lần, trước khi
   nhận việc.
-- Trong lượt quét định kỳ của daemon, thư mục trong `logs/agents/` của agent không còn được cấu hình chỉ
+- Trong lượt quét định kỳ của dịch vụ nền, thư mục trong `logs/agents/` của agent không còn được cấu hình chỉ
   bị xóa khi đoạn log mới nhất của nó cũ hơn `days`.
 
 Nó không áp cho log chung hay log theo agent đang hoạt động (bị chặn bởi `[log].max_file_mb` và
 `[log].max_files`), cho tệp ở gốc thư mục làm việc, và cho `workspaces/<agentId>/run/`. Muốn xóa log
 theo agent ngay, kể cả agent đang cấu hình, dùng `openalpha logs clear`. Lệnh này không đụng tới log
 chung.
+
+### `[notices]`
+
+| Khóa | Kiểu | Mặc định | Ghi chú |
+|---|---|---|---|
+| `chat` | mảng chuỗi | `[]` | Các loại thông báo được gửi tới chat của bạn ngoài chuông. Loại hợp lệ: `call-scored`, `held-news`, `index-drop`; tên khác sẽ làm dịch vụ nền dừng lúc khởi động và nêu các loại hợp lệ. |
+
+Có ba loại tin chỉ vào chuông trong ứng dụng và không tới chat nào, trừ khi bạn liệt kê chúng ở đây: một đề xuất bạn nhận đã có kết quả, tin về mã bạn đang giữ, và chỉ số của khu vực giảm mạnh trong phiên.
+
+Tin về mã đang giữ chỉ gồm những mã dịch vụ nền đã đọc. Tiêu đề được lưu khi `/suggest` hoặc một cuộc trò chuyện về mã đó đọc chúng; không có gì tự đi lấy tin cho các mã bạn giữ theo lịch. Mọi thứ khác dịch vụ nền gửi tới chat vẫn như cũ.
 
 ### `[log]`
 
@@ -376,9 +398,20 @@ Thứ tự ưu tiên của mức log: `--log-level`, rồi `OPENALPHA_LOG_LEVEL`
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `check` | bool | `true` | Hỏi GitHub hai lần mỗi ngày xem đã có bản mới chưa. |
-| `auto` | bool | `false` | Tự cài bản sửa lỗi (chỉ đổi số cuối, như 1.0.5 lên 1.0.6) lúc 00:00-06:00 theo `[locale] timezone`, khi daemon chạy nền; không bao giờ cài khi thị trường bạn theo dõi đang trong phiên, kể cả giờ nghỉ trưa (crypto chạy cả ngày nên không tính). |
+| `auto` | bool | `false` | Tự cài bản sửa lỗi (chỉ đổi số cuối, như 1.0.5 lên 1.0.6) lúc 00:00-06:00 theo `[locale] timezone`, khi dịch vụ nền chạy ở chế độ nền; không bao giờ cài khi thị trường bạn theo dõi đang trong phiên, kể cả giờ nghỉ trưa (crypto chạy cả ngày nên không tính). |
 
-Khi có bản mới, CLI in một thông báo ngắn sau lệnh (tối đa mỗi ngày một lần), chat hiện thông báo đó dưới lời chào, `version` và `doctor version` báo lại, daemon ghi vào nhật ký, bản tin sáng gửi qua kênh kết thúc bằng thông báo đó, và bot nhắc trong chat riêng của bạn. Không có gì tự cài cho tới khi bạn chạy `openalpha upgrade` hoặc `/upgrade confirm`, trừ khi bật `auto`: khi đó daemon chạy nền tự cài bản sửa lỗi trong khung giờ ấy, nhắn bạn khi đã chạy lại (vào chat riêng bạn nhắn bot gần nhất), và quay về bản cũ nếu bản mới không khởi động được. Trên máy chủ, hãy đặt `[locale] timezone` để khung giờ rơi vào ban đêm. Bản chạy từ mã nguồn không bao giờ kiểm tra; trong CI chỉ `version` và `doctor --online` kiểm tra.
+Khi có bản mới, bạn sẽ thấy thông báo ở nhiều chỗ:
+
+- CLI in một thông báo ngắn sau lệnh (tối đa mỗi ngày một lần);
+- chat hiện thông báo dưới lời chào;
+- `version` và `doctor version` báo lại;
+- dịch vụ nền ghi vào nhật ký;
+- bản tin sáng gửi qua kênh kết thúc bằng thông báo đó;
+- bot nhắc trong chat riêng của bạn.
+
+Không có gì tự cài cho tới khi bạn chạy `openalpha upgrade` hoặc `/upgrade confirm`, trừ khi bật `auto`. Khi bật, dịch vụ nền chạy ở chế độ nền tự cài bản sửa lỗi trong khung giờ ấy, nhắn bạn khi đã chạy lại (vào chat riêng bạn nhắn bot gần nhất), và quay về bản cũ nếu bản mới không khởi động được. Trên máy chủ, hãy đặt `[locale] timezone` để khung giờ rơi vào ban đêm.
+
+Bản chạy từ mã nguồn không bao giờ kiểm tra. Trong CI, chỉ `version` và `doctor --online` kiểm tra.
 
 ### `[channels.telegram]`
 
@@ -391,7 +424,7 @@ Có mục này là Telegram được bật, trừ khi `enabled = false`. Vẫn c
 | `allowed_ids` | (chuỗi\|số)[] | `[]` | Danh sách cho phép ban đầu cho người dùng và chat Telegram. |
 | `operator_user_ids` | (chuỗi\|số)[] | `[]` | Người dùng được chạy lệnh chỉ dành cho operator. |
 | `token_env` | chuỗi | - | Biến môi trường chứa token. |
-| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. |
+| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. `~/` là thư mục nhà của bạn. |
 | `typing_indicator` | bool | `true` | Hiện "đang gõ" trong lúc sinh câu trả lời. |
 | `use_reactions` | bool | `true` | Dùng cảm xúc làm tín hiệu trạng thái ở nơi hỗ trợ. |
 | `markdown` | bool | `true` | Dựng Telegram MarkdownV2; `false` gửi văn bản thuần, kể cả khi trả lời theo luồng. |
@@ -415,7 +448,7 @@ khóa gửi tin đã liệt kê cho Telegram, cộng các khóa dưới đây. K
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `token_env` | chuỗi | - | Biến môi trường chứa token. |
-| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. |
+| `token_file` | chuỗi | - | Tệp mà nội dung đã cắt khoảng trắng chính là token. `~/` là thư mục nhà của bạn. |
 | `allowed_ids` | (chuỗi\|số)[] | `[]` | Danh sách cho phép ban đầu cho chat và người dùng. |
 | `operator_user_ids` | (chuỗi\|số)[] | `[]` | Người dùng được chạy lệnh operator. |
 | `dm_policy` | `pairing \| allowlist \| disabled` | `pairing`, hoặc `allowlist` khi đã có `allowed_ids` | Cách xét duyệt chat, và công tắc tắt kênh. Không có chế độ mở. |
@@ -444,11 +477,12 @@ Khóa là `zalo_personal`, trùng mã kênh. Liên kết đăng nhập bằng `o
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `approval_timeout_ms` | số nguyên | `900000` | 15 phút. Một việc theo lịch chờ người duyệt qua kênh lâu như vậy. Câu trả lời không bao giờ được lưu. Tối đa 2147483647 (khoảng 24 ngày). |
+| `late_grace_ms` | số nguyên | `900000` | 15 phút. Một việc cron được phép bắt đầu trễ tối đa chừng này so với giờ của nó, kể cả khi đang chạy lại sau một lần hỏng. Trễ hơn thì giờ đó bị bỏ qua và việc nhảy sang lần kế tiếp, không tính lần hỏng nào. Việc theo chu kỳ và việc chạy một lần không bao giờ bị bỏ qua. Báo cáo trong phiên dùng cùng giới hạn này. Tối thiểu 35000 (35 giây: một lần bộ lập lịch xem cộng một lần kiểm tra mạng nhanh): đặt thấp hơn thì bị từ chối khi khởi động, vì việc cron đúng giờ cũng có thể bị bỏ qua. Workflow có cron trigger theo cùng giới hạn này. Tối đa 2147483647 (khoảng 24 ngày). |
 | `failure_target` | chuỗi | - | `<channel>:<chatId>` nhận thông báo khi một việc bị tắt vì hỏng nhiều lần. |
 
 Bộ lập lịch cứ 30 giây xem có việc đến hạn không, mỗi lần khởi động tối đa 5 việc, và chạy tối đa 50
 việc cùng lúc. Cron tính theo phút và `schedule run-now` bỏ qua lượt xem này, nên một khoảng ngắn hơn
-chẳng được gì.
+chẳng được gì. Khi máy mất mạng, lượt xem này không khởi động việc nào: việc đến hạn chờ và không tính lần hỏng.
 
 ### `[loop]`
 
@@ -461,7 +495,9 @@ chẳng được gì.
 | `delegation_depth` | số nguyên | `3` | Độ sâu lồng agent con tối đa. |
 | `max_delegations` | số nguyên | `32` | Tổng số agent con cả một phiên chạy được khởi động. |
 | `max_parallel_delegations` | số nguyên | `5` | Số mục agent con tối đa một lời gọi `delegate_parallel` nhận. |
-| `max_unasked_fetches` | số nguyên | `10` | Số lần gọi `web_fetch` trong một lần chạy, kể cả lần đã hỏi, trước khi mọi lần sau đều hỏi bạn. `0` là lần nào cũng hỏi. |
+| `max_spawn_duration_ms` | số nguyên | `600000` | 10 phút: thời gian một agent con do `spawn` tạo làm việc trước khi bị dừng; phần đã đọc được trả về và đánh dấu là một phần. Tối đa 2147483647. |
+| `max_spawn_turns` | số nguyên | `12` | Số lượt mô hình mỗi agent con do `spawn` tạo có. |
+| `max_unasked_fetches` | số nguyên | `10` | Số lần gọi `web_fetch` trong một phiên chạy, kể cả lần đã hỏi, trước khi mọi lần sau đều hỏi bạn. `0` là lần nào cũng hỏi. |
 
 Việc nén phiên là cố định: một phiên được nén khi quá 500 tin nhắn hoặc khi đầy 75% cửa sổ ngữ cảnh,
 tối đa 3 lần mỗi phiên chạy.
@@ -472,7 +508,7 @@ tối đa 3 lần mỗi phiên chạy.
 |---|---|---|---|
 | `ttl_days` | số nguyên | `90` | Thời gian sống mặc định của các quan sát có hạn. |
 
-Một giá trị bộ nhớ được lưu bị chặn ở 16 KiB.
+Một giá trị bộ nhớ được lưu bị chặn ở 16 KiB. Trang văn phòng liệt kê các ghi chú ở Cài đặt > Bộ nhớ, theo từng agent và từng người nó đã trò chuyện cùng, thêm ghi chú bằng "+ Ghi nhớ" và quên một ghi chú với nút hoàn tác; một ghi chú tự quên sau `ttl_days` ngày kể từ lần cập nhật cuối.
 
 ### `[web_search]`
 
@@ -507,9 +543,24 @@ chính lẫn bên dự phòng. `ANYSEARCH_API_KEY` là tùy chọn; không có n
 thấp hơn. Nó trả tối đa 20 kết quả, gửi `[locale] language`, và không hỗ trợ lọc theo độ mới, nên một
 yêu cầu về độ mới được báo là chưa kiểm chứng.
 
-`deepseek` là lựa chọn tiết kiệm: khoảng 0,75 USD cho 1.000 lượt tìm, lượt nào không ra kết quả thì không mất tiền. Nó đọc tốt nguồn tiếng Việt lẫn tiếng Anh, có ngày đăng cho từng kết quả và lọc đúng theo độ mới, nên "tuần trước" là đúng tuần trước. Nó dùng chung `DEEPSEEK_API_KEY` với mô hình DeepSeek; hãy đặt `cost_per_search_usd = 0.00075` để khoản chi hiện trong tổng. DeepSeek chỉ nhận truy vấn ngắn (128 ký tự). Truy vấn dài bị cắt bớt từ cuối nhưng vẫn giữ danh sách trang bạn chọn; chỉ khi danh sách dài tới mức gần hết chỗ cho câu hỏi thì nó mới chuyển sang lọc trên kết quả. Trang loại trừ luôn được lọc trên kết quả, nên bạn vẫn chỉ nhận đúng các trang đã chọn. DeepSeek không nhận tham số ngôn ngữ, nên bản dịch máy của một trang (đường dẫn kiểu `/nl/`, `/de/`) bị bỏ khỏi kết quả, chỉ giữ trang đúng ngôn ngữ của bạn. Các lượt tìm được giãn nhịp theo giới hạn 5 lượt mỗi giây của DeepSeek.
+`deepseek` là lựa chọn tiết kiệm: khoảng 0,75 USD cho 1.000 lượt tìm, lượt nào không ra kết quả thì
+không mất tiền. Nó đọc tốt nguồn tiếng Việt lẫn tiếng Anh, có ngày đăng cho từng kết quả và lọc đúng
+theo độ mới, nên "tuần trước" là đúng tuần trước. Nó dùng chung `DEEPSEEK_API_KEY` với mô hình
+DeepSeek; hãy đặt `cost_per_search_usd = 0.00075` để khoản chi hiện trong tổng.
 
-Khóa chỉ lấy từ biến môi trường mà `api_key_env` và `fallback_api_key_env` nêu tên. Một lời gọi nhà
+Vài giới hạn cần biết:
+
+- DeepSeek chỉ nhận truy vấn ngắn (128 ký tự). Truy vấn dài bị cắt bớt từ cuối nhưng vẫn giữ danh sách
+  trang bạn chọn. Chỉ khi danh sách dài tới mức gần hết chỗ cho câu hỏi thì nó mới chuyển sang lọc
+  trên kết quả.
+- Trang loại trừ luôn được lọc trên kết quả, nên bạn vẫn chỉ nhận đúng các trang đã chọn.
+- DeepSeek không nhận tham số ngôn ngữ. Nên bản dịch máy của một trang (đường dẫn kiểu `/nl/`, `/de/`)
+  bị bỏ khỏi kết quả, chỉ giữ trang đúng ngôn ngữ của bạn.
+- Các lượt tìm được giãn nhịp theo giới hạn 5 lượt mỗi giây của DeepSeek.
+
+Khóa chỉ lấy từ biến môi trường mà `api_key_env` và `fallback_api_key_env` nêu tên.
+Cài đặt > Công cụ trên trang văn phòng đổi được `provider` (sau khi khởi động lại) và lưu chính khóa, còn
+tên biến và `base_url` vẫn nằm trong file này. Một lời gọi nhà
 cung cấp hết giờ sau 15 giây và thử lại lỗi tạm thời tối đa 3 lần, độ lùi cơ sở 800 ms. Nhà cung cấp
 hỏng 3 lần liên tiếp thì bị bỏ qua 1 phút. Cache giữ 100 mục mỗi TTL, và mỗi đoạn trích kết quả bị cắt
 ở 400 ký tự.
@@ -524,21 +575,58 @@ hỏng 3 lần liên tiếp thì bị bỏ qua 1 phút. Cache giữ 100 mục m�
 
 ### `[api]`
 
-API HTTP/WS (`/v1`) mà các ứng dụng khách dùng. `openalpha start` mở API khi `enabled = true`; một lệnh
-chạy một lần không bao giờ mở cổng. API chỉ nghe trên `127.0.0.1` và từ chối mọi máy khác, nên máy khác
-phải nối qua đường hầm SSH hoặc một reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)).
+API HTTP/WS (`/v1`) mà các ứng dụng khách dùng. `openalpha start` mở API theo mặc định (`enabled = true`);
+đặt `enabled = false` để tắt. Một lệnh chạy một lần không bao giờ mở cổng.
 
-Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở lần chạy đầu, quyền
+API chỉ nghe trên `127.0.0.1` và từ chối mọi máy khác. Nên máy khác phải nối qua đường hầm SSH hoặc một
+reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ nhận yêu cầu có `Host` là `127.0.0.1`,
+`localhost` hoặc `[::1]`, hoặc `public_url` khi đã đặt. `[::1]` chỉ là tên mà đường hầm hay proxy có thể gửi: dịch vụ nền không nghe trên IPv6.
+
+Ô sửa cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ MCP, mọi khóa
+`*_env` cùng mọi mục khác ghi tên biến môi trường (`[trading.sources]`,
+`[trading.venues.<id>] credentials`), `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
+`[update]` hay `[trading.orders] allow_unattended`; những mục đó bạn sửa ngay trong file này. Bản thân
+giá trị khóa thì lưu được từ Cài đặt > Nhà cung cấp, Sàn giao dịch và Công cụ; các mục này ghi
+`<thư mục dữ liệu>/env` giống `openalpha key set`.
+
+Bất cứ thứ gì đứng trước dịch vụ nền (proxy như Caddy hay nginx, `tailscale serve`, một tên miền) đều
+cần `public_url` đặt là địa chỉ trình duyệt mở. Chính nó bật các giới hạn khi bị phơi ra ngoài và cookie
+đăng nhập `__Host-`.
+
+Khi chưa đặt, dịch vụ nền chỉ bắt được proxy gửi `X-Forwarded-For` hoặc `Forwarded`, hay một `Host`
+không phải tên cục bộ. Nó từ chối chúng kèm một câu nêu tên `public_url`. Proxy không gửi cả hai (một
+`proxy_pass` nginx trần gửi `Host: 127.0.0.1:<cổng>` và không có tiêu đề chuyển tiếp nào) trông như yêu
+cầu cục bộ. Nên hãy đặt `public_url` trước khi mở ra ngoài, và cho nginx gửi
+`proxy_set_header Host $host;` cùng `proxy_set_header X-Forwarded-For $remote_addr;`.
+
+Đặt `public_url` cũng thu hẹp việc ứng dụng làm được, vì lúc này ứng dụng với tới được từ bên ngoài:
+
+- các đường đặt lệnh của API và `/trade` vẫn tắt cho tới khi đặt `orders = true`;
+- chat từ ứng dụng không chạy được lệnh shell, không ghi tệp và không dùng công cụ của máy chủ MCP hay
+  plugin, cũng không dùng công cụ mạng xã hội;
+- công việc tạo từ ứng dụng chỉ trả lời trong ứng dụng;
+- việc duyệt ghép nối cùng `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng kênh
+  chỉ đổi được trên máy chủ: bằng câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
+
+Khi đó trang cũng không lưu khóa nào và không bắt đầu đăng nhập ChatGPT: hãy dùng `openalpha key set` và
+`openalpha auth login chatgpt` trên máy chủ.
+
+Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở phiên chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
-không được dùng thay) và `start` in cảnh báo, phần còn lại của daemon vẫn chạy; cổng đã bị dùng thì
-`start` vẫn dừng.
-`openalpha api token` in mã ra; `openalpha api rotate` thay mã mới.
+không được dùng thay) và `start` in cảnh báo, phần còn lại của dịch vụ nền vẫn chạy. Cổng đã bị dùng cũng vậy:
+API không mở, `start` in cảnh báo nêu số cổng, phần còn lại của dịch vụ nền vẫn chạy; hãy giải phóng cổng hoặc
+đặt `[api] port` khác rồi khởi động lại. `openalpha api token` in mã ra và `openalpha api rotate` thay mã mới; xoay vòng sẽ đăng
+xuất mọi trình duyệt và khởi động lại dịch vụ nền đang chạy, nên mã cũ hết dùng được ngay. Trình duyệt không bao giờ
+giữ mã này: `openalpha web` in một liên kết dùng một lần để đăng nhập, còn `openalpha connect` in địa chỉ và token mà
+ứng dụng desktop dán vào (xem [Vận hành](van-hanh.md#chạy-api-trên-máy-chủ)).
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `enabled` | bool | `false` | Công tắc chính. |
+| `enabled` | bool | `true` | Công tắc chính. |
 | `port` | số nguyên | `8765` | Cổng TCP, 1024-65535. |
 | `token_env` | chuỗi | - | Biến môi trường chứa bearer token. Khi được đặt, token trong tệp bị bỏ qua. |
+| `orders` | bool | `true`, hoặc `false` khi đã đặt `public_url` | Cho ứng dụng đặt lệnh, hủy lệnh và tắt chức năng mua. |
+| `public_url` | chuỗi | - | Địa chỉ `https://` mà dịch vụ nền được truy cập qua proxy: chỉ tên máy và cổng nếu cần, không kèm đường dẫn. Dùng `https://<machine>.<tailnet>.ts.net` với `tailscale serve`. |
 
 ### `[[mcp.servers]]`
 
@@ -690,7 +778,8 @@ cooldown_sessions = 0          # số phiên chờ trước khi cùng một mã 
 debate_mode = "full"           # full: phe mua, phe bán, quản lý danh mục và người giao dịch; lean: một chuyên gia phân tích, rẻ hơn
 
 [trading.markets.equity-vn]
-holidays = ["2027-01-01"]      # ngày sàn nghỉ được công bố sau khi bản build của bạn đã ra
+holidays = ["2027-05-04"]      # ngày sàn nghỉ được công bố mà luật không tự cho ra
+open_days = ["2027-09-01"]     # ngày luật cho nghỉ nhưng sàn vẫn giao dịch
 maximum_stop_loss = 0.08       # điểm cắt lỗ không bao giờ xa quá 8% dưới giá vào (0.02-0.30)
 stop_loss_atr = 3              # khoảng cắt lỗ tính bằng số lần biên độ ngày trung bình (1-5)
 reward_risk = 3                # mục tiêu bằng bao nhiêu lần khoảng rủi ro (1-5)
@@ -703,14 +792,14 @@ send_times = []                # các mốc HH:MM theo múi giờ thị trườn
 
 [trading.alerts]
 breakout_range = 1.5           # một biến động phải đi bao nhiêu lần biên độ ngày trung bình thì mới báo
-breakout_sessions = 14         # số phiên đã chốt dùng để đo biên độ ngày trung bình
+breakout_sessions = 14         # số phiên đã chốt dùng để đo biên độ ngày trung bình; tối thiểu 5
 
 [trading.typed_prices]
 confirm_multiple = 10          # hỏi lại trước khi lưu giá gõ lệch giá thị trường từng này lần
 
 [trading.orders]
 maximum_stake_quote = 0        # 0 = không chặn; giá trị ước tính bằng USDT trên okx và binance
-maximum_open_trades = 0        # 0 = không chặn; vị thế mở cộng các lệnh chưa vào sổ
+maximum_open_trades = 0        # 0 = không chặn; vị thế mở cộng các lệnh chưa vào sổ; mua thêm mã đang giữ không tính là vị thế mới
 maximum_price_drift = 0.005    # một phân số, không phải phần trăm: 0.005 là nửa phần trăm
 allow_unattended = false       # cho phép đặt lệnh khi chế độ phê duyệt là "bypass"
 require_stop_loss = true       # từ chối lệnh mua không nêu mức cắt lỗ
@@ -820,7 +909,7 @@ hỏi. Nên đặt lệnh khi không có người trông cần **hai** quyết �
 `credentials` chứa **tên biến**, không bao giờ chứa giá trị. Tên khóa là của chính sàn: `okx` nhận `apiKey`, `secret` và `passphrase`, `binance` nhận `apiKey` và `secret`, còn trường nào khác sẽ làm khởi động dừng lại và nêu các trường sàn đó nhận. Mỗi cái được đọc
 theo đúng tên biến đó, hoặc nếu không có thì đọc cùng tên với tiền tố `OPENALPHA_`. Thiếu một cái không
 phải lỗi khởi động: sàn không có bộ nối, không đặt được lệnh nào, `/trade` chỉ nêu tên các khóa cần đặt,
-và daemon vẫn khởi động. Sàn vẫn là nơi giữ tài sản để bạn ghi sổ giao dịch; chỉ là không bao giờ được
+và dịch vụ nền vẫn khởi động. Sàn vẫn là nơi giữ tài sản để bạn ghi sổ lệnh; chỉ là không bao giờ được
 chọn khi định tuyến.
 
 `simulated` không phải chạy thử. Bộ nối vẫn ký, gửi và thăm dò một API thật trên môi trường demo của sàn
@@ -841,12 +930,16 @@ canh giữ, nên không có gì để đặt:
 - đối chiếu lệnh: lệnh thoát đang treo mỗi 60 giây, lệnh khớp bị sót mỗi 5 phút;
 - bản tin, kết cục đề xuất, sổ yếu tố, trích xuất vĩ mô và kết cục chủ đề.
 
-`intraday` kích hoạt ở các mốc trong `[trading.intraday] send_times`, không theo chu kỳ.
+`intraday` kích hoạt ở các mốc trong `[trading.intraday] send_times`, không theo chu kỳ. Báo cáo nào mà giờ của
+nó đã qua hơn `[schedule] late_grace_ms` trước khi gửi được (máy ngủ suốt mốc 14:00) thì bị bỏ qua chứ không gửi
+trễ; mốc kế tiếp vẫn gửi bình thường.
 
 `send_time` chỉ là một **mặc định**. `/brief enable 07:30` lưu giờ riêng lên dòng gửi, và chỉ dòng nào
 chưa có giờ riêng mới theo khóa này. Bản tin luôn được lập lịch theo múi giờ của **thị trường**, lấy từ
 lịch của khu vực `[locale] region`, không bao giờ từ `[locale] timezone` (nơi bạn đang ở). Một operator
 ở London không nhận bản tin vào 15:15 giờ Hà Nội.
+Bản tin là bức tranh trước giờ mở cửa, nên `send_time` phải sớm hơn giờ mở cửa của thị trường chính.
+Đặt muộn hơn thì dịch vụ nền từ chối khởi động, thay vì lặng lẽ bỏ bản tin mỗi sáng.
 
 Danh sách theo dõi trong hồ sơ là danh sách công cụ duy nhất được cấu hình. Bảng giá và các mục gợi ý
 trong bản tin đều suy ra từ nó và từ phần đang nắm trong sổ.
@@ -875,12 +968,22 @@ hình quyết định cái gì chạy và khi nào, cộng ba thứ thuộc quy�
   Crypto còn đặt lệnh mua chờ thấp hơn giá live nửa ATR cho mã đã tăng từ 25% trong một tuần; đó là
   chính sách của thị trường, không phải một khóa cấu hình.
 
-**Lịch giao dịch do từng thị trường quyết định, và chỉ có một thiết lập.** Giờ phiên và ngày cuối tuần
-nằm trong mã, và mỗi thị trường đi kèm bảng ngày sàn nghỉ của riêng nó. `[trading.markets.<id>]
-holidays` thêm các ngày nghỉ được công bố sau khi bản build của bạn ra đời. Nó cộng thêm vào các ngày có
-sẵn, không bao giờ thay thế. Một ngày rơi vào cuối tuần của chính thị trường đó là gõ nhầm và làm khởi
-động thất bại. Khi bảng của một thị trường kết thúc trước năm hiện tại, lúc khởi động hệ thống cảnh báo
-(`trading.holidays_outdated`).
+**Lịch giao dịch theo luật, với hai thiết lập.** Giờ phiên và ngày cuối tuần nằm trong mã. Các ngày
+nghỉ được tính từ Bộ luật Lao động cho năm nào cũng được, nên không có danh sách nào để bạn phải cập
+nhật: Tết Dương lịch, Tết Nguyên đán (năm ngày quanh mùng 1), Giỗ Tổ Hùng Vương, 30/4 và 1/5, Quốc
+khánh (2/9, từ 2021 thêm một ngày liền kề) và từ 2026 là Ngày Văn hóa Việt Nam (24/11). Ngày lễ rơi vào
+cuối tuần thì được nghỉ bù vào ngày làm việc kế tiếp. Chính phủ tự quyết kỳ nghỉ Tết của từng năm, còn
+lịch này giả định năm ngày quen thuộc; năm nào khác thì chỉnh bằng `holidays` và `open_days`. Có hai điều
+luật không biết thay bạn:
+
+- **Ngày nghỉ hoán đổi mà Chính phủ công bố.** Thêm vào `[trading.markets.<id>] holidays`. Các ngày đã
+  công bố cho tới nay (29/4/2024, 2/5/2025, 2/1/2026, 31/8/2026, và 3/9/2021 là ngày nghỉ thứ hai của
+  Quốc khánh năm đó) đã có sẵn, đối chiếu với dữ liệu giao dịch thật.
+- **Ngày luật cho nghỉ nhưng sàn vẫn giao dịch.** Ghi vào `open_days`. Nếu sàn chọn nghỉ 3/9 thay vì
+  1/9 cho dịp Quốc khánh, hãy đưa 1/9 vào `open_days` và 3/9 vào `holidays`.
+
+Hai danh sách của bạn được ưu tiên hơn luật. Một ngày rơi vào cuối tuần của chính thị trường đó, hoặc
+một ngày nằm ở cả hai danh sách, là gõ nhầm và làm khởi động thất bại.
 
 Phiên được đếm sau khi đã xảy ra: một phiên là một ngày đã có một cây nến. Nên bước chốt kết cục và
 thanh toán T+2 đọc lịch sử đã quan sát được chứ không đọc lịch dự phóng. Thanh toán chỉ quay về tính
@@ -895,7 +998,7 @@ cung cấp hoặc phần chỉnh kỹ thuật bên trong, và nằm trong mã. K
 nguồn sang host khác.
 
 Thứ duy nhất bạn đổi được là tên biến môi trường mà một nguồn đọc khóa của nó. Trong các nguồn có sẵn,
-chỉ `fred` và `coingecko` cần thông tin đăng nhập, và `[trading.sources]` đổi tên biến cho một trong
+chỉ `bls`, `fred` và `coingecko` cần thông tin đăng nhập, và `[trading.sources]` đổi tên biến cho một trong
 hai:
 
 ```toml
@@ -923,22 +1026,29 @@ API cũng dùng đúng các bước đó. Giá trị cấu hình nêu tên thị
 ký cũng lỗi ngay ở đây, không đợi tới lần dùng đầu tiên. Khóa chưa đặt của một mô hình mà chuỗi của nó vẫn còn
 mô hình khác trả lời được chỉ là cảnh báo, không làm lệnh thất bại.
 
-Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa. Một lần chạy liệt
-kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằng một con số), nên bạn sửa một lượt rồi mới
-chạy lại. Khóa gõ sai thì được gợi ý tên gần nhất, ví dụ `max_daly_usd` gợi ý `max_daily_usd`. `config
-validate` cũng đối chiếu tên nhà cung cấp trong `[[models]]` với danh mục, và báo biến môi trường của
-khóa còn thiếu như một mục trong cùng danh sách thay vì dừng ở đó. `--verbose` in thêm toàn bộ danh sách
-lỗi schema. Thiếu biến môi trường của khóa thì câu báo chỉ luôn lệnh lưu nó:
-`openalpha key set TÊN`, giống nhau trên mọi hệ. Khóa được giữ trong `<thư mục dữ liệu>/env`, mọi
-lệnh đều đọc tệp này lúc bắt đầu. Biến đặt trong môi trường luôn thắng tệp. Tệp chỉ giữ khóa dịch vụ,
-kể cả khóa mang tiền tố `OPENALPHA_` như `OPENALPHA_OPENROUTER_API_KEY`: các tên điều khiển chính
-OpenAlpha (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) hay cách chương trình khởi động (`PATH`,
-`NODE_OPTIONS`, `LD_*`...) bị bỏ qua, và `#` sau
-một dấu cách là chú thích. Tệp khóa theo `--data-dir`
-hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu hình. Thiếu khóa của mô hình chỉ chặn những việc cần
-gọi AI: `status`, `stop`, `/price`, `/portfolio`, `/record` và các lệnh miễn phí khác vẫn chạy, còn
-`openalpha start` vẫn khởi động kèm một dòng cảnh báo, chạy mọi việc không cần AI cho tới khi bạn lưu
-khóa bằng `openalpha key set <TÊN>` rồi chạy `openalpha restart --background`.
+Mọi lỗi đều được báo theo ngôn ngữ trong `[locale]` và nêu đúng thiết lập cần sửa.
+
+- Một phiên chạy liệt kê mọi chỗ sai của tệp (hiện tối đa 8, phần còn lại báo bằng một con số), nên bạn
+  sửa một lượt rồi mới chạy lại.
+- Khóa gõ sai thì được gợi ý tên gần nhất, ví dụ `max_daly_usd` gợi ý `max_daily_usd`.
+- `config validate` cũng đối chiếu tên nhà cung cấp trong `[[models]]` với danh mục. Nó báo biến môi
+  trường của khóa còn thiếu như một mục trong cùng danh sách thay vì dừng ở đó.
+- `--verbose` in thêm toàn bộ danh sách lỗi schema.
+
+Thiếu biến môi trường của khóa thì câu báo chỉ luôn lệnh lưu nó: `openalpha key set TÊN`, giống nhau
+trên mọi hệ. Khóa được giữ trong `<thư mục dữ liệu>/env`, mọi lệnh đều đọc tệp này lúc bắt đầu. Biến đặt
+trong môi trường luôn thắng tệp.
+
+Tệp chỉ giữ khóa dịch vụ, kể cả khóa mang tiền tố `OPENALPHA_` như `OPENALPHA_OPENROUTER_API_KEY`. Các
+tên điều khiển chính OpenAlpha (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) hay cách chương trình khởi
+động (`PATH`, `NODE_OPTIONS`, `LD_*`...) bị bỏ qua, và `#` sau một dấu cách là chú thích. Tệp khóa theo
+`--data-dir` hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu
+hình.
+
+Thiếu khóa của mô hình chỉ chặn những việc cần gọi AI. `status`, `stop`, `/price`, `/portfolio`,
+`/record` và các lệnh miễn phí khác vẫn chạy. `openalpha start` vẫn khởi động kèm một dòng cảnh báo,
+chạy mọi việc không cần AI cho tới khi bạn lưu khóa bằng `openalpha key set <TÊN>` rồi chạy
+`openalpha restart --background`.
 
 ```text
 config.toml có chỗ cần sửa:
@@ -946,5 +1056,5 @@ config.toml có chỗ cần sửa:
 - `budget.max_daly_usd`: không phải thiết lập mình biết, có phải ý bạn là `max_daily_usd`?
 Sửa xong rồi chạy lại nhé.
 
-Chưa có ANTHROPIC_API_KEY nên model anthropic/claude-sonnet-4-6 chưa chạy được. Lưu bằng `openalpha key set ANTHROPIC_API_KEY` rồi thử lại nhé.
+Chưa có ANTHROPIC_API_KEY nên mô hình AI chưa trả lời được: trò chuyện, phần tranh luận trong /suggest, /research, /themes và phần viết của bản tin sáng phải chờ, còn giá, điểm số và các mức giá vẫn dùng bình thường. Lưu bằng `openalpha key set ANTHROPIC_API_KEY`; nếu OpenAlpha đang chạy nền thì chạy thêm `openalpha restart --background`.
 ```

@@ -5,7 +5,7 @@ import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { OrderError } from '@/trading/features/order/types'
 import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
 import { etfBreaches, isBreached } from '@/trading/kernel/operator/exposure'
-import { positionCapOf } from '@/trading/kernel/operator/profile'
+import { isSegmentDisabled, positionCapOf } from '@/trading/kernel/operator/profile'
 
 interface OrderExposureInput {
   readonly profile: UserProfile
@@ -68,11 +68,20 @@ function positionBreach(input: OrderExposureInput, addedPctNav: number): readonl
 
 function segmentBreach(input: OrderExposureInput, addedPctNav: number): readonly CapBreach[] {
   const { book, profile, segment } = input
-  const crossed = crossedWeights({
-    heldPctNav: book.segmentValues.find((value) => value.segment === segment)?.weightPctNav ?? 0,
-    addedPctNav,
-    capPctNav: profile.caps[segment]?.maximumSegmentPctNav ?? 0,
-  })
+  const caps = profile.caps[segment]
+  const heldPctNav =
+    book.segmentValues.find((value) => value.segment === segment)?.weightPctNav ?? 0
+  // A switched-off segment holds nothing, so any buy into it crosses its zero ceiling. The sizer
+  // never proposes one; only a typed order or a tool call can reach it. A segment the profile
+  // records no caps for is not off, as in the draft direction, so its buys stay unmeasured here.
+  const crossed =
+    caps !== undefined && isSegmentDisabled(caps)
+      ? { combinedPctNav: heldPctNav + addedPctNav, capPctNav: 0 }
+      : crossedWeights({
+          heldPctNav,
+          addedPctNav,
+          capPctNav: caps?.maximumSegmentPctNav ?? 0,
+        })
 
   return crossed === undefined ? [] : [{ kind: 'segment', segment, ...crossed }]
 }

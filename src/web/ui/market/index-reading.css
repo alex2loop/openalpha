@@ -1,0 +1,30 @@
+.index-pick {
+  margin-bottom: var(--s2);
+}
+
+.ratio-row {
+  display: grid;
+  grid-template-columns: 5rem auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.ratio-row:first-child {
+  border-top: 0;
+}
+
+.ratio-row b {
+  font-weight: var(--weightMedium);
+}
+
+@media (max-width: 480px) {
+  .ratio-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .ratio-row .row-note {
+    grid-column: 1 / -1;
+  }
+}

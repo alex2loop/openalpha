@@ -23,6 +23,7 @@ import {
   buildResolvedSuggestions,
   buildSuggestions,
 } from '@/trading/markets/brief-sections'
+import { readUsEvents } from '@/trading/markets/equity-us/brief/events-read'
 import { buildRecent } from '@/trading/markets/equity-us/brief/recent-section'
 import {
   US_EQUITY_MACRO_DRIVERS,
@@ -73,12 +74,13 @@ export const US_BRIEF_HOME: BriefHome<UsBoard> = Object.freeze({
     }),
   // The US board ranks names by capitalisation, not by sector.
   sectorsOf: () => [],
+  readEvents: readUsEvents,
 })
 
 function buildUsNextActions(
   context: BriefContext<UsBoard>,
   sections: readonly BriefSectionResult[]
-): BriefSectionResult {
+): Promise<BriefSectionResult> {
   return buildNextActions(context, sections)
 }
 

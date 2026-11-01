@@ -3,9 +3,9 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-Each released section opens with an English summary paragraph followed by one `> ` line in
-Vietnamese; OpenAlpha shows both in its update notice. A release that users should install soon
-carries ` [IMPORTANT]` after its date.
+Each release opens with a short English summary; from 1.0.6 on, one `> ` line in Vietnamese follows
+it. OpenAlpha shows both in its update notice. A release you should install soon carries
+` [IMPORTANT]` after its date.
 
 ## [Unreleased]
 
@@ -21,534 +21,626 @@ carries ` [IMPORTANT]` after its date.
 - A book from before a market existed no longer refreshes it: the in-use set reads the resolved profile.
 - Tool, skill and usage wording no longer assumes a Vietnamese book.
 
-## [1.0.14] - 2026-10-21
+## [1.2.2] - 2026-10-30
 
-A VN quarter now reaches the analysis the evening its income statement lands, even before its cash
-flow does. The missing cash flow is filled from CafeF when its figures check out against the
-quarters already on file, and the analysis says when a quarter's cash flow is missing or a quarter
-is late. The assistant also asks before changing a preference it already remembers.
-> Một quý của cổ phiếu VN giờ vào phân tích ngay buổi tối kết quả kinh doanh được công bố, kể cả khi chưa có lưu chuyển tiền tệ. Phần còn thiếu được điền từ CafeF khi số liệu khớp với các quý đã có, và phân tích nói rõ khi quý thiếu lưu chuyển tiền tệ hoặc quý đến hạn mà chưa có. Trợ lý cũng hỏi bạn trước khi đổi một sở thích nó đã ghi nhớ.
+The ticker page now shows what the trader is waiting for before an entry, the full factor checklist
+and VN foreign net flow. Background work is visible as it happens: the office page, `start`,
+`status` and `/health` name the automatic jobs at work and why one failed. A retried scheduled job
+past its grace no longer goes out late, a channel `token_file` may start with `~/`, and a long list of
+QA fixes lands. The README and guides were reworked for newcomers. No database change.
+> Trang mã giờ cho thấy trợ lý đang chờ điều gì trước khi vào lệnh, đầy đủ bảng nhân tố và dòng tiền ròng khối ngoại. Việc chạy nền hiện ra ngay khi đang chạy: trang văn phòng, `start`, `status` và `/health` nêu các việc tự chạy đang làm và lý do việc nào hỏng. Việc theo lịch thử lại quá hạn không còn gửi trễ, `token_file` của kênh ghi được `~/`, cùng nhiều lỗi nhỏ được sửa. README và hướng dẫn được viết lại cho người mới. Không đổi cơ sở dữ liệu.
 
-### Changes
+### Office page
 
-- A quarter filed with a balance sheet and income statement is kept without its cash flow; its cash
-figures and the four-quarter cash totals stay blank rather than read as zero.
-- The new `cafef-statements` source supplies that cash flow, worked out from CafeF's year-to-date
-table, and only when its pre-tax profit matches the quarters already stored.
-- Two new notes on the accounts: a quarter is missing its cash flow, or the latest quarter is past
-its filing deadline and not in yet.
-- The "results are due" note now also shows on the deadline day itself, in suggestions and the
-morning brief.
-- Changing a preference the assistant already remembers no longer goes unheard: it asks you once
-in its next reply, and saves the change when you agree.
+- The ticker page and the Ideas call card show what the trader waits on before the entry, and the
+  factor checklist laid out as `/suggest` prints it: groups, rows and their readings at their own
+  depth, the quoted evidence muted.
+- VN foreign-flow factor rows carry the foreign desk's net flow over the same sessions, on every
+  surface.
+- The "Why?" dialog and the Ideas folds title each case by what it argues (case for buying, case for
+  waiting, facts checked against the sources) and drop the repeated label inside.
+- Slash commands typed in the page chat answer in chat shape, without padded columns, and a wrapped
+  line keeps its indent. `/transactions` there shows the chat's 10 rows.
+- The running chip and the jobs list follow every background pass live.
+- The settings page saves with the config's version, so a stale page can no longer put an older
+  config back.
 
-## [1.0.13] - 2026-10-21 [IMPORTANT]
+### Status and jobs
 
-Security and reliability fixes. The agent now asks before opening a web link it put together
-itself, which closes a way a page could carry your holdings out in a link. `upgrade --rollback`
-also takes the database back, a scheduled job hit by the spend cap is no longer switched off, and
-a VN sale can no longer exceed what you hold.
-> Bản sửa lỗi bảo mật và độ ổn định. Agent giờ hỏi bạn trước khi mở một link do nó tự ghép, chặn đường một trang web có thể mang danh mục của bạn ra ngoài qua link. `upgrade --rollback` đưa cả cơ sở dữ liệu về bản trước, việc định kỳ chạm trần chi phí không còn bị tắt, và lệnh bán cổ phiếu VN không thể vượt số bạn đang giữ.
-
-### Fixes
-
-- `upgrade --rollback` takes the database back to what the previous release reads before swapping
-(it asks first), and so does the automatic rollback after a release that will not start. A release
-older than the database's schema refuses to start instead of misreading it, and says how to get
-back; `doctor` fails the database check for it. A reinstall of the same release with the install
-script no longer makes `--rollback` undo that release's own migrations.
-- `db migrate down --to <id>` undoes every migration after `<id>`.
-- A scheduled job stopped by the daily, monthly or agent spend cap, or by the rate limit, is no
-longer counted as failing and switched off after three tries: it waits for the cap to reopen.
-- The agent asks before reading a web link it built or changed itself, one it adds headers to, or
-any page past `[loop] max_unasked_fetches` in a run (10 by default). Links you send and links a
-search or news read brought back open as before; text you forward, and a task one agent hands
-another, do not count as yours. This closes the way a hidden instruction on a page could carry
-your holdings or notes out in a link.
-- An MCP client calling a withheld tool by name over the HTTP API (`delegate`, `research`,
-`social_request` and the rest) is told it does not exist, as over stdio.
-- A sale of VN shares can no longer exceed what you hold, even by a few shares; the small margin for
-an exchange's rounding stays for coins bought with the fee taken in the coin.
-- VN prices scaled from thousands of dong land on the exact price step (4.03 reads 4,030, not
-4,030.0000000000005), so a bar that touched a stop is read as touching it.
-- Outbound requests also refuse `localhost.` and other blocked names written with a trailing dot,
-and IPv6 forms that carry a private IPv4 (`::ffff:0:a.b.c.d`) or the old site-local range.
-- Two starts racing over a stale pid file are much less likely to delete each other's claim.
-- `db restore` keeps a whole safety copy of the old database even when another reader blocks the
-WAL fold: the WAL moves with the copy instead of being dropped.
-- A daemon still starting after 90 seconds, often busy updating a large database, is left running:
-`upgrade` no longer rolls it back while it starts.
-- A segment with a 0% target opens no new position (the conservative level ships crypto that way);
-held names keep their exits.
-- The VN gold premium and its rank both read the SJC bar, the form the stored history holds.
-- A crypto funding read with a missing leg is retried instead of being kept for the whole day.
-- OKX lists only instruments that are trading.
-- The brief's position exits skip review-only stops and a take-profit already banked, and a crossed
-exit alert still waiting to send is no longer dropped when its plan changes.
-- A run that stops before answering no longer repeats the previous answer, and a scheduled job's
-history shows what that run alone cost.
-- An OpenRouter "no endpoints" or moderation refusal no longer disables a model or the provider.
-- `/approve`, `/deny` and `/pair` in chat accept any letter case and the `@bot` form; `/stop` works
-with slash commands off; Telegram's plain-text fallback no longer shows markup.
-- `db restore` keeps every replaced database in `backups/`, `db reset --yes` still backs up first,
-PostgreSQL refuses to reset `public`, and `db export` never deletes a folder it did not create.
-- Saving config from the API keeps the previous file beside it.
-- The installers check the pinned version strictly, and a failed Windows install reports failure.
-
-## [1.0.12] - 2026-10-20
-
-The brief opens with one market story and a look back at earlier ones, found by code at no cost.
-A brief before your first trade asks you to record it, and a sliver left by a full exit no longer
-counts as a holding anywhere.
-> Bản tin mở đầu bằng một câu chuyện thị trường và phần nhìn lại các câu chuyện trước, do code tìm, không tốn phí. Bản tin trước giao dịch đầu tiên nhắc bạn ghi sổ, và phần lẻ còn sót sau khi bán hết không còn bị tính là vị thế ở bất kỳ đâu.
-
-### Brief
-
-- One market story per morning: a hook, the figures behind it, a reading marked as inference, what
-could make it wrong, and what to watch next.
-- A look back checks each earlier story's watch conditions against today's figures.
-- Before your first recorded trade the brief drops the cash-reserve and discipline blocks and asks
-you to `/record` your trades.
-- A holding with no price yet no longer reads as an empty book: the brief says it cannot total the
-book this morning.
-- The losing-positions line counts only what can still be traded.
-
-### Portfolio
-
-- A sliver below the venue's smallest order is skipped by `/brief`, `/market`, `/refresh`, the chat
-assistant's portfolio and exit tools and the `/trade` open-trade cap. Its value still counts
-toward the total.
-- The residue notice says its tiny value is included in the total above.
-
-### Display
-
-- Source lines read "updated" instead of "as of".
-
-## [1.0.11] - 2026-10-20
-
-Fixes: `db reset` can back up first again, a rejected AI key is no longer reported as a rate limit,
-and a past day's USDT rate stays the same between calls. Source lines show the day.
-> Sửa lỗi: `db reset` sao lưu trước được trở lại, khóa AI bị từ chối không còn bị báo là quá giới hạn, và tỷ giá USDT của ngày đã qua không còn đổi giữa các lần gọi. Dòng nguồn ghi cả ngày.
+- `start`, `start --background`, `status` and `/health` say which automatic jobs are running and
+  which failed; `status` and the page give the reason. The market data sweep at each start shows as
+  one task. "Automatic jobs" (việc tự chạy) is now the one name on every surface.
+- A scheduled retry past `late_grace_ms` is skipped, as the guide says: a 07:30 brief retried at 08:00
+  no longer goes out as if on time.
 
 ### Fixes
 
-- `db reset` no longer stops when you accept its backup.
-- `| head` no longer prints a broken-pipe error.
-- A rejected AI key is reported as such on every message, not as a rate limit.
-- A past day's USDT rate uses that day's prices, so it no longer changes between calls.
-- A failed connection to the AI provider is not billed.
-- Telegram stops after repeated rejected tokens.
-- ChatGPT sign-in refreshes before it expires.
-
-### Display
-
-- Source lines show the day: "as of 19/10/2026 19:35".
-- A broken-stop alert is titled "Through its stop"; alert hints name `/suggest equity-vn:FPT`.
-- Costs print as "0.0142 USD".
-- Telegram never splits a message inside a code block.
-
-### Chat
-
-- `/memory` refuses keys with accents or spaces; search finds short terms.
-- Reinstalling a skill points at `--force`.
-- File search skips `.env` files.
-
-### API
-
-- `approval_requested` adds `label` and `expiresAt`.
-- `/v1/chat/history` pages by `idx` (`before`, `nextBefore`).
-
-## [1.0.10] - 2026-10-20
-
-Setup and chat explain themselves better: `onboard` tests the key it saves and says why a test failed,
-`key set` warns about a name the config never reads, and `/profile`, `/update` and `/alert` show what
-they do. Three config keys are renamed; an old name stops `start` and points at the sample.
-> Thiết lập và chat dễ hiểu hơn: `onboard` thử khóa vừa lưu và nói rõ vì sao thất bại, `key set` cảnh báo tên mà config không đọc, còn `/profile`, `/update` và `/alert` cho thấy chúng làm gì. Ba mục config được đổi tên; tên cũ làm `start` dừng và chỉ tới file mẫu.
-
-### Setup
-
-- `onboard` tests a key it just saved, and its next steps name `/brief enable`. A failed test in
-  `onboard` or `doctor --online` says why, such as a rejected key, and the model list shows each
-  model once.
-- `start` on a running daemon says to `restart --background`, and every restart hint uses that form.
-- A channel with no bot token names the variable and the `key set` command that saves it, in `start`
-  and in `doctor`.
-- `key set` warns when the config never reads the name you saved, and names the one you likely meant,
-  even for a short form such as `OPENROUTER_KEY`. `/profile set reserve` points at `reserve-pct-nav` the same way.
-
-### Chat
-
-- `/profile` shows itself bare, takes `20%` as well as `0.2`, and refuses a bad field or value in one
-  line with an example.
-- `/update` shows the row it replaced before the confirmation.
-- Commands read their words in any case, so `/refresh crypto FORCE` and `/profile enable Crypto` work.
-- A bare `/alert` lists your alerts.
-- The Vietnamese replies use one voice (the assistant says "mình") and one word for a quantity
-  ("khối lượng").
-
-### Config
-
-- Renamed keys, old to new:
-  - `[trading.themes] max_cost_usd` to `maximum_cost_usd`
-  - `[web_search] cache_ttl_seconds` to `cache_ttl_ms` (milliseconds)
-  - `[channels.*] gap_note_minutes` to `gap_note_ms` (milliseconds)
-
-  An old name now stops `start` with a message pointing at the sample.
-- A built-in venue's `credentials` refuse a field the venue does not read.
-- Zalo's pairing default follows Telegram's: with `allowed_ids` set and no `dm_policy`, strangers are
-  not offered a pairing code.
-
-### Fixes
-
-- The Zalo bot no longer stops after three scattered 401s; only three in a row stop it.
-- `cost --period week` starts on Monday, like `/transactions week`.
-- The distance-to-peak line in `/suggest` names its window: "240-session high", not "high 240".
-
-## [1.0.9] - 2026-10-19
-
-Setup is easier to answer and no longer freezes on macOS: pick from each list with the arrow keys, and
-a missing key for a fallback model is only a warning.
-> Thiết lập dễ trả lời hơn và không còn treo trên macOS: chọn trong từng danh sách bằng phím mũi tên, còn thiếu khóa của mô hình dự phòng chỉ là cảnh báo.
-
-### Setup
-
-- `onboard` lists are picked with ↑ and ↓ and Enter, ← goes back to the list question before it with the earlier answer marked, and a value not on the list (another currency,
-  model or provider) is the last line, which then asks you to type it. Without a terminal the list
-  stays numbered.
-- Re-running `onboard` on an existing config comes back to its menu after each saved change, so several
-  parts can be changed in one go; "Done, exit" leaves, and declining a save keeps the file as it was.
-
-### Fixes
-
-- On macOS, `curl ... install.sh | sh` froze at the first setup question: no key reached it, Ctrl-C
-  included. The installer now reads your answers from the terminal itself.
-- `config validate` no longer fails when only a fallback model's key is unset: it warns that the model
-  is skipped while the rest of the chain answers. `start` and `status` word that key the same way.
-
-## [1.0.8] - 2026-10-19
-
-OpenAlpha is safer to leave running and easier to drive: a daily backup, start at login, keys kept in a
-private file, typed answers to approval prompts on Zalo, a shorter `/record`, and notices for a crash, a
-missed brief or a channel that stays down. The first start adds one database column by itself (after a
-backup on SQLite).
-> OpenAlpha an toàn hơn khi để chạy lâu và dễ dùng hơn: sao lưu mỗi ngày, tự chạy khi đăng nhập, khóa lưu trong tệp riêng, trả lời duyệt lệnh bằng cách gõ trên Zalo, `/record` ngắn hơn, và báo khi daemon sập, lỡ bản tin hay kênh chat mất kết nối. Lần chạy đầu tự thêm một cột vào cơ sở dữ liệu (với SQLite thì sao lưu trước).
-
-### Operations
-
-- The daemon backs up the SQLite book once a day into `backups/daily/` and keeps the newest three
-  (`[retention] daily_backups`, `0` turns it off). PostgreSQL is skipped; use `pg_dump`.
-- `openalpha autostart enable|disable|status` starts OpenAlpha at login (launchd, systemd user unit,
-  Windows Run key), so the brief and alerts survive a restart. The Linux and Windows launchers are
-  untested on real machines.
-- `status` says when the daemon stopped unexpectedly, and the next start tells your chat once. A morning
-  brief that could not go out before the open (the daemon was down, or every try failed) now says so. A
-  brief whose build crosses the open still goes out, with a line first saying prices have moved.
-- A chat channel that stays down for 15 minutes is reported on another channel (with the reason), once
-  when it drops and once when it returns, and `status` lists it as `down`.
-- A button tapped after its prompt was answered or timed out replies that it is already answered or
-  expired.
-- SQLite gets `PRAGMA optimize` in the retention sweep.
-
-### Setup
-
-- `openalpha key set NAME` saves a key you type hidden into `~/.openalpha/env` (mode `0600`); `openalpha
-  key` lists which keys are set and where from; `key unset NAME` removes one. Every command reads that
-  file at start, and a variable set in your shell still wins. `onboard` offers to save the model key and
-  the Telegram token the same way, and every missing-key message now points at `key set`. The file holds
-  service keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY` included: the names that
-  steer OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how programs start (`PATH`,
-  `NODE_OPTIONS`, `LD_*`) are skipped, and an inline `# comment` is read as one.
-- `onboard` asks the currency of your book (VND, USD, or another 3-letter code) and writes it to
-  `[locale] currency`, since it is fixed once a profile is saved.
-- `openalpha provider list` works before any setup, without a config or a database.
-- `config.sample.toml` starts with the `[budget]` daily cap (`max_daily_usd = 2`) and `[locale]` on, and the
-  long guides carry a contents list.
-
-### Chat
-
-- A chat you pair is your default chat when the channel names no `fallback_chat_id`: the crash and
-  missed-brief notices, a channel-down report, and alerts and briefs armed from the terminal reach it
-  with nothing more to set.
-- `openalpha pair revoke` now stops everything the daemon sends to that chat, and it stays stopped
-  after a restart. Alerts and the morning brief armed there switch off at their next send instead of
-  retrying forever, so pairing again needs `/brief enable` and the alerts set again.
-- A fired alert opens with 🔔 and ends with its labelled id (`Alert id: 8290b3`).
-- A Vietnamese share price typed as the board figure is refused with the full price to send instead:
-  an `/alert` threshold (`FPT above 60` is 60 VND), a `/record` or `/update` price, and the same from
-  the chat agent's tools and the `/v1` API.
-- A price typed in `/record`, `/update` or `/alert create` that sits ten times or more from the name's
-  latest price, in any market (VN gold against the shop's board), is not saved until you confirm it:
-  the reply shows both figures with a "That price is right, save it" button, or send the line again
-  ending in `confirm`. The chat agent has to ask you first, and the `/v1` API asks the same when a
-  request sends `typedPrice` (`price_unconfirmed`, 422, with the figures in `unconfirmedPrice`).
-  `[trading.typed_prices] confirm_multiple` sets the multiple.
-- `/help` and the Telegram menu lead with the trading commands (`/setup` first under the book), and the
-  system commands (`/help`, `/stop` and the rest) close the list. The menu now lists `/help` and `/stop`.
-- Approval prompts and `/research thorough` plan reviews work on Zalo: each choice arrives as a short
-  code such as `/4821` to type back in the same chat. Only the operator's code counts, and a second
-  answer says it was already answered or has expired.
-- In a private Zalo Personal chat, replying to an answer continues from it, as on Telegram.
-- Alerts and the morning brief armed from the terminal now go to your chat (the first configured channel,
-  or `fallback_chat_id`) instead of being refused, while OpenAlpha runs in the background. A scheduled
-  daemon run whose origin is the terminal arms to the default chat the same way.
-- On Zalo a long command's progress line ends with `type /stop to cancel`, and a command waiting behind
-  another says nothing until it starts.
-
-### Trading
-
-- `/record buy|sell|rights` takes shorter lines: leave out the venue when one holds the market, the
-  currency, and the date (`/record buy FPT 100 58400`). A bare ticker is found only in lists already
-  stored, never over the network, and only when exactly one market matches; a crypto ticker keeps its
-  market (`crypto:BTC`), and the reply says so. Every confirmation now prints the market beside the ticker.
-- Buttons where no money moves: the rate check of a USDT `/record` and a proposed `/themes` theme each
-  offer their confirm as a button (a typed line on Zalo and the terminal).
-- `/delete <id>` now shows the row first; `/delete <id> confirm` removes it. Scripts that delete in one
-  step must add `confirm`.
-
-### Reports
-
-- On Telegram a message too long for one bubble (the brief) splits between sections, not inside one.
-  The `/portfolio` cash line states the cash share and its target, without a gap that read as a
-  relative percentage.
-- Icons are consistent: a market heading wears the market's own icon on `/portfolio`, `/alert list`
-  and `/watchlist` as in the brief and the intraday report, crypto is 🪙 and world gold 🥇, the brief
-  reads 📋 verdict, 💡 suggestions and 👀 watch list, `/reflect`'s acted section is 🤝, a clarifying
-  question is 🙋, and the agent's tools wear the icon of the section they fill.
-- Alerts open with the action: the headline, then for an exit the `/record sell` line to fill in, then a
-  `/suggest` link. Alert ids are six characters, and `/alert disable` takes them. A short id must be the
-  whole six characters for `/delete` and `/update` too, and one that matches several rows or alerts is
-  answered with their full ids.
-- On a phone `/transactions` shows 10 rows, `/portfolio` puts positions right after the warnings and keeps
-  three closed trips, and the brief shows what to do right under the verdict.
-- The footer after a command shows only the elapsed time until the session has called a model.
-- Failure and caveat messages say what to do next, and a failed command points at `openalpha logs`.
+- A channel `token_file` such as `~/.secrets/telegram-token` was read relative to the folder the
+  daemon started in, so the bot got no token; `~/` now means your home folder.
+- `config validate` and the office config editor refuse an unknown `[notices] chat` kind, which
+  before only stopped the daemon at start.
+- A chat or channel bound to a debate persona or research worker falls back to its entry agent;
+  `/agent`, `agent bind`, `chat --agent` and `schedule add` refuse them.
+- Model prices: `gemini-2.5-flash`, `gpt-oss-20b` and other bare ids no longer fall back to the
+  conservative rate when the OpenRouter feed is down.
+- A Gemini prompt blocked outright ends as filtered instead of retrying and cooling the model.
+- Two venue syncs at once no longer overwrite each other.
+- Telegram's restart backoff starts over after a healthy run.
+- Gold, SSI and VNDirect boards: one bad gold row no longer drops the board, and an SSI or VNDirect
+  board that reads partly is refused instead of tallied short.
+- CLI: `history show` is translated, `chat --max-turns 0` and a non-decimal `--max-cost-usd` are
+  refused, `agent pause|resume` refuses an id together with `--all`, `upgrade --check --rollback`
+  exits 2 like any usage error, and `--help` after `--` is read as an argument.
+- The `now` tool shows the time year first on a 24-hour clock in every language.
+- A shortened suggestion (call cards, the report the chat agent relays) says what it leaves out and
+  names `/suggest <market:ticker>` to see it in full, instead of a hint about a lean mode.
 
 ### For integrators
 
-- `DaemonTask.start(signal, options?)` takes a `DaemonStartOptions` object (`onReady`, `onHealth`,
-  `previousRun`) in place of the positional `onReady` handler.
+- A write that conflicts with another edit exits 18 (15 stays the loop halt).
+- `GET /v1/config` answers a version; `POST /v1/config` with `If-Match` is a conflict once the file
+  changed since.
+- `GET /v1/live` carries `tasks`, and a `tasks_changed` event follows each background pass; the
+  suggestion card answers `factors` and `watch`.
+- A blank chat frame on the socket is refused as malformed instead of starting a billed turn.
+
+### Docs
+
+- The README opens with the demo and why to use it, then a five-step quick start: install, check,
+  pick the web page (`openalpha start --background`, `openalpha web`) or `openalpha chat`, see a
+  first suggestion, then `/setup` and the ledger. The FAQ is its own section.
+- Windows installs with `irm .../install.ps1 | iex` in the PowerShell window you have open; the
+  installer adds itself to that window's PATH, so `openalpha` works there at once.
+- The gold examples write `gold-vn:SJC`, since SJC is also a stock ticker.
+- The sample configs say what the code does: `[[models]]` needs only `provider` after
+  `[model_defaults]`, the debate runs in three serial stages, a hand-traded broker can take
+  `markets`, agent run limits never exceed `[loop]`, and the minimal configs save the key with
+  `openalpha key set` and show `currency`.
+- Every guide was checked against the code in both languages; wrong defaults, quotes, flags and
+  names were corrected, and missing flags (`db export --table`, `logs --follow`, `config get` and
+  others) documented.
+
+## [1.2.1] - 2026-10-29
+
+VN market holidays are now worked out from the law for every year, so 2027 and later need no update
+from us. Scheduled jobs ride out a short network outage instead of switching themselves off, and a
+job whose time passed while the daemon was down waits for its next time rather than running late.
+The office page and API answer within about a second of `start`, instead of after up to a minute of
+loading market data, and a slow Telegram or Zalo no longer holds the start. A busy API port no longer
+stops the daemon. Several sizing and booking figures now include fees
+the way the order path charges them.
+> Ngày nghỉ của sàn VN giờ được tính theo luật cho mọi năm, nên từ 2027 trở đi không cần chờ bản cập nhật. Việc theo lịch không còn tự tắt chỉ vì mất mạng vài phút, và việc lỡ giờ khi dịch vụ nền đang tắt sẽ đợi lần kế tiếp thay vì chạy trễ. Trang văn phòng và API trả lời trong khoảng một giây sau khi khởi động, thay vì phải chờ tới một phút nạp dữ liệu thị trường, và Telegram hay Zalo chậm không còn làm chậm cả lúc khởi động. Cổng API bị chiếm không còn làm dịch vụ nền dừng lại. Một số con số về khối lượng và ghi sổ giờ đã tính phí đúng như khi đặt lệnh.
+
+### Calendar
+
+- VN closures follow Labor Code art. 112: New Year, Tet (with the usual days around it), Hung
+  Kings, 30/4, 1/5, National Day and its adjacent day, and Vietnam Culture Day from 2026, plus the
+  next weekday when one falls on a weekend. Swap days the government announces go under
+  `[trading.markets.<id>] holidays`; the new `open_days` reopens a day the rules close. A date in
+  both lists, or on the market's weekend, stops the start.
+- The "holiday table is out of date" warning is gone: there is no table to run out.
+- Checked against the real tape for 2020-2025: 29 April 2024 (a swap day) is closed, and National
+  Day 2021 took its second day on 3 September, not 1 September.
+
+### Scheduler and delivery
+
+- While the host is offline, due jobs wait and no failure is counted; only real failures still
+  switch a job off after three in a row.
+- A cron job more than `[schedule] late_grace_ms` (15 minutes) late skips to its next time; interval
+  and one-time jobs still run. The intraday report skips a send it woke too late for.
+- At shutdown, channels stop taking new messages at once (they wait for the next start) and queued
+  notices get their one last attempt before the channels close. A reply cut by the restart says so
+  instead of showing an error.
+- A message Telegram or Zalo refuses for good is not retried.
+- An API port already in use is reported as a degraded item; the daemon keeps running.
+- Start-up no longer waits for market data: the API binds first and `GET /v1/health` reports
+  `starting` until the daemon is ready (writes and live streams answer `unavailable` meanwhile).
+  The boot refresh runs in the background; only the trading loops that read market data wait for
+  its first pass, for at most a minute.
+- Telegram and Zalo check their token once at start; a slow network is retried by the polling loop
+  instead of holding the start, and the Telegram command menu is installed in the background. A
+  wrong token is still reported at start.
+- `status`, `start` and every other command list all the config problems `config validate` lists,
+  not only the first section's.
+- With a config that cannot be read, `doctor` checks only config, daemon and version and marks the
+  rest as waiting, instead of reporting on the defaults (`doctor web-search` showed duckduckgo ✓).
+- `/profile set reserve-pct-nav 5` names the allowed range instead of a message about pinned targets.
+- `/reflect` calls a repeated suggestion a suggestion, not an order.
+- `web` and `connect` say why the daemon has no API (its port taken by another program, say)
+  instead of reporting a refused token from whatever holds that port.
+- A run that stops on something you can fix, such as an unset key, is logged as a warning, not an
+  error.
+- A terminal command sent while the daemon is still starting waits for it, then runs there, instead
+  of running a second copy of the work (a `/refresh`, say) in the terminal.
+
+### Trading
+
+- A plan made from a recorded fill on or after an ex-date is priced on the new basis, and a plan
+  is only scaled by the ex-dates it has not absorbed yet. Same-day cash and share actions give one
+  reference price whatever order the provider lists them in.
+- Averaging down no longer counts a dividend with no published amount as zero, and says when some
+  dividends could not be counted.
+- The reminder to record a dividend is built from every event, not only the ones the brief shows.
+- An OKX rebate books as no fee; a Binance fill whose trades are not listed yet waits for
+  `/record sync` instead of booking a zero fee.
+- A buy into a switched-off segment shows as a cap breach and `order_place` refuses it.
+- Suggested buys and the batch cash check leave room for the fee, plus the price drift a market
+  order may fill through on an exchange `/trade` reaches; `/rebalance` leaves room for the fee.
+- One name with zero turnover no longer withholds the whole `/rebalance` plan.
+
+### Office page and API
+
+- The ticker card now really shows a corporate action's terms (1.2.0 promised them but showed only
+  the payment day): cash per share, new shares per 100, subscription price and payment day.
+- On a held position, a first exit that sits under your cost reads "Trim on a rebound to ..., still
+  below your cost" instead of "Take profit".
+- The VN event note groups its figures the Vietnamese way (`2.250.000 CP`, `10.000 đ/cp`) instead
+  of the provider's `2,250,000` and bare `10000`.
+- The sign-in lockout has its own error code, `locked`; other refusals show their reason, and a
+  sign-in link survives a daemon that is restarting.
+- Too many open tabs reads as such, not as offline.
+- `GET /v1/health` no longer carries a `status` that was always `ready`.
+- A request the client already dropped is answered 499 and logged at debug.
+- `POST /v1/respond` answers `not_found` for a request that is no longer waiting, instead of a
+  silent ok.
+- Chat history pages never start in the middle of a turn; rate-limited commands are not stored;
+  deleting a chat also removes its agent binding.
+
+## [1.2.0] - 2026-10-29 [IMPORTANT]
+
+Plans and exit alerts now follow a held VN stock across its ex-dividend date, so a dividend gap no
+longer reads as a stop being hit. On the office page, buttons run their command right where you
+press them, chat history keeps the commands you typed, and CLI chats can be deleted from the
+sessions list. Three database changes; the upgrade runs them for you.
+> Kế hoạch và cảnh báo thoát lệnh giờ theo đúng mã đang giữ qua ngày giao dịch không hưởng quyền, nên khoảng giảm giá do chia cổ tức không còn bị đọc nhầm là chạm mức cắt lỗ. Trên trang văn phòng, các nút chạy lệnh ngay tại chỗ, lịch sử trò chuyện giữ lại các câu lệnh bạn gõ, và xóa được cuộc trò chuyện CLI ngay trong danh sách. Có ba thay đổi cơ sở dữ liệu; lệnh nâng cấp tự chạy chúng.
+
+### Ex-dividend dates
+
+- On a cash dividend's ex-date, `/suggest` scales the stored bars and the standing stop and
+  take-profit by the dividend, so the morning plan and the exit alerts stand on the new price. A
+  share dividend, bonus issue or rights issue is priced the way the exchange sets the reference
+  price; an action with no published terms starts that day's plan fresh.
+- The brief's events and the ticker card show the terms: cash per share, share ratio,
+  subscription price and payment day. A held name with a dividend or share distribution gets a
+  line reminding you to record it.
+- Averaging down no longer reads every ex-date as a loss: the cost it compares against nets out
+  the dividends your shares already earned.
+- vndirect share dividends and bonus issues are labelled as such, not as splits.
+
+### The office page
+
+- A button that names a whole command runs it at once and waits in place while it runs. Refresh
+  data, Write today's brief again, Run again on Themes and Screen again show their result where
+  they sit and leave nothing in the chat; a refusal before the run starts shows under the button.
+- Analyze buttons on the ticker card, Opportunities and a `/suggest` answer offer a fresh
+  analysis once a call is stored.
+- The sessions list dates each chat by its last message and counts exchanges. Each row's menu
+  opens the chat in its own tab or deletes it (app and CLI chats, with Undo for a few seconds).
+  New messages from another channel show up while you read it.
+- A cleaner why dialog and folded panel rail. A half-typed line survives a button press, and
+  Enter while Safari composes a word (Vietnamese input) finishes the word, not the line. No cost
+  estimate beside buttons.
+
+### Chat history
+
+- Commands you type are kept in the chat's history on every channel and shown as they first
+  appeared, with the AI calls under an answer. The assistant never reads them back.
+- Scrolling near the top loads older messages.
+
+### Smaller changes
+
+- An order the ledger has not booked yet shows what the exchange filled, with the average fill
+  price, in bare `/trade`, `/trade reconcile` and the Orders tab.
+- A sale held back by settlement says so, instead of calling it smaller than a board lot.
+- Startup refuses a `[trading.briefs] send_time` at or after the home market's open; the brief
+  used to be skipped every morning.
+- A broken `config.toml` exits 2 on every command that needs it; `version` still runs, and `doctor`,
+  `onboard` and `config validate` still run and exit 1. `/cost` prints money and tokens like the run
+  footer.
+- `openalpha db import` reads exports from older releases, columns dropped or added since
+  included.
+
+### Upgrading
+
+- A new column marks command turns kept for display, columns nothing read leave `memory_kv`,
+  `notices`, `runs` and `trading_profiles`, and sessions get an indexed last-message time. Older
+  binaries cannot open the upgraded database; `openalpha upgrade --rollback` takes it back after
+  an `openalpha upgrade`.
+
+## [1.1.2] - 2026-10-28
+
+The office page's first-run checklist names the key your configured model reads, not another
+provider's. No database change.
+> Danh sách việc cần làm lần đầu trên trang văn phòng giờ ghi đúng tên khóa mà mô hình bạn cấu hình đọc, không còn ghi tên khóa của nhà cung cấp khác. Không đổi cơ sở dữ liệu.
+
+### Changes
+
+- "Connect an AI model" names the variable the first model in `[[models]]` reads its key from.
+  A model that signs in instead points to Settings > Providers.
+
+## [1.1.1] - 2026-10-28
+
+The office page now opens with no config edit: the API is on by default, still on `127.0.0.1`
+only. A second daemon on the same port stops with a clear message instead of sharing it. No
+database change.
+> Trang văn phòng giờ mở được mà không cần sửa cấu hình: API bật sẵn, vẫn chỉ nghe trên `127.0.0.1`. Dịch vụ nền thứ hai dùng cùng cổng sẽ dừng kèm thông báo rõ ràng thay vì dùng chung cổng. Không đổi cơ sở dữ liệu.
+
+### Changes
+
+- `[api] enabled` defaults to `true`; set it to `false` to keep the port closed. `openalpha start
+  --background` then `openalpha web` is all the office page needs.
+- Two daemons pointed at one `[api] port` no longer share the socket silently: the second stops
+  and says to run `openalpha stop` or pick another `[api] port`.
+- The starter config no longer writes `[api] enabled = true`.
+
+## [1.1.0] - 2026-10-28
+
+A new office page: your analysts work in a pixel-art office you open in the browser, with your
+book, ideas, markets, costs and chat beside it. The daemon now serves it, along with a `/v1` API
+for client apps. Six additive database changes; the upgrade runs them for you.
+> Trang văn phòng mới: các nhà phân tích AI làm việc trong một văn phòng pixel mở bằng trình duyệt, bên cạnh là danh mục, đề xuất, thị trường, chi phí và khung chat. Dịch vụ nền giờ phục vụ trang này cùng API `/v1` cho ứng dụng khách. Có sáu thay đổi cơ sở dữ liệu kiểu thêm mới; lệnh nâng cấp tự chạy chúng.
+
+### The office page
+
+- `openalpha web` prints a one-time sign-in link; `openalpha connect` signs in another device.
+  Signed-in browsers are listed, and `openalpha api rotate` signs them all out.
+- A 2D and a 3D office show every run as it happens: who is working, the step it is on, its
+  AI calls and its result on the room's whiteboard. Click a person or room for details.
+- The info panel has Today, Portfolio, Ideas and Market tabs. Office, Info only and narrow-screen
+  layouts share one floating command bar; the chat sits beside it.
+- The command bar suggests commands and arguments; forwarded commands run in the daemon like
+  local ones.
+- Approvals and questions from every channel, scheduled jobs and the AI cost report (daily chart,
+  per-run calls) are on the page. You can also record dividends, splits, rights and transfers,
+  reconcile with venues and sync fills there.
+- Light and dark themes, keyboard shortcuts, screen-reader text and touch layouts.
+
+### Daemon and API
+
+- An HTTP/WS API under `/v1` (off by default, `[api]`), with a bearer token from `openalpha api
+  token`. With `[api] public_url` set it withholds shell, file writes, external tools, pairing
+  approval and orders.
+- Live run feed, notices with read state, event-triggered jobs, agents created and edited from
+  the API, and a `spawn` tool for temporary child agents.
+- `restart` restarts in place; `doctor` shares the CLI probes and prints fix lines; the update
+  notice shows release notes.
+
+### Smaller changes
+
+- `openalpha mcp install --host muse` adds Muse Code.
+- Raising `reserve-pct-nav` past the cash target lifts the target with it; a cash target set
+  below the reserve is refused.
+- `schedule show` leaves out the next run of a paused job.
+- Vietnamese text now says "dịch vụ nền", "mô hình", "cuộc trò chuyện" and "phiên chạy"
+  throughout.
+
+### Upgrading
+
+- New tables for runs, notices, job event triggers and browser sessions, plus new columns for
+  debate models and run tickers. Older binaries cannot open the upgraded database; `openalpha
+  upgrade --rollback` takes it back after an `openalpha upgrade`.
+
+## [1.0.17] - 2026-10-23
+
+`/themes run <id>` reports on one theme, an ended theme says why and what to do, a leftover
+sliver no longer blanks NAV, and the chat agent no longer sees your loss figures. No database
+change.
+> `/themes run <id>` giờ báo cáo riêng một chủ đề, chủ đề đã kết thúc nói rõ lý do và việc cần làm, phần cổ phiếu lẻ còn sót không còn làm trống tổng tài sản, và trợ lý chat không còn thấy số lỗ của bạn. Không đổi cơ sở dữ liệu.
+
+### Themes
+
+- `/themes run <id>` reports on that theme alone, its sectors and companies included.
+- An ended theme is labelled "Ended", hides its odds, says why and suggests `/themes retire <id>`.
+- A proposed theme lists every condition that would end it, each naming a figure and a period.
+- The track record and "was" compare only scores made the same way.
+- A failed sector check keeps the previous sectors, dated; low-confidence names stay under their
+  sector instead of ranking among the top stocks.
+- Macro and quarter lookbacks are more careful, and each run reads headlines archived since the
+  last one.
+
+### Suggestions, portfolio and alerts
+
+- The report the chat agent relays drops your realized loss and how far a holding sits under
+  cost.
+- An unpriced sliver below the venue's smallest order counts at cost instead of blanking NAV.
+- Adding to a held name no longer counts against `maximum_open_trades`.
+- A segment with a target and nothing held now reports its drift.
+- `/update` keeps a row's note and exit leg.
+- Track record, calibration and debate history fold repeated calls and stay within their focus.
+- Exit alerts at an existing level no longer fail every minute; a missing price series is
+  retried every 15 minutes.
+- `/profile set preferred-locale` is gone: replies always follow `[locale] language`.
+- `/watchlist` and `/alert` show progress; `key set` suggests the name your config reads.
+
+### Docs
+
+- Fixed several command descriptions that had drifted from the code.
+
+## [1.0.16] - 2026-10-22
+
+VN funds are now treated as index trackers, `/rebalance` sells a holding back to its cap and says
+why a sale has to wait, and a call served again later in the day tells you when your book has
+changed since. No database change.
+> Quỹ ETF VN giờ được đối xử đúng là quỹ bám chỉ số, `/rebalance` giảm bớt mã vượt trần và nói rõ khi lệnh phải chờ, còn đề xuất được dùng lại trong ngày sẽ báo khi sổ của bạn đã đổi. Không đổi cơ sở dữ liệu.
+
+### Rebalancing
+
+- A holding past its per-name, fund or sector cap by more than the 5/25 band is sold back to the
+  cap (`over-cap`), even when its score is neutral. A name on your exclusion list is trimmed too.
+- A sector over its cap gives back its weak-scored names first and whole; if that is enough, the
+  other names keep their weight.
+- A sale held back says why: not enough has settled yet, or the name trades too thinly to sell in
+  one go.
+- When a fund or sector cap is what left a segment short, the names offered sit outside that cap.
+
+### VN funds
+
+- A fund gets a review level 3 ATR away with a 3:1 reward, is never counted in a sector and is
+  never sold for a weak score; the segment's core stays with the fund you hold unless another
+  leads by a clear margin.
+- Fund scores read the index the fund tracks and say when that index is behind.
+
+### Suggestions and the brief
+
+- Scores read the same everywhere, and `/themes` explains its 0-100 score.
+- `/suggest` and `/brief` name the plan's own reason for a sale; a sale under the plan's rules is
+  no longer held back by a side claim in the debate, and the debate is told which cap was passed.
+- A call served again after you record a trade or a deposit says the book has changed, and the
+  brief lists those names with `/suggest <ticker> force`.
+
+### Fixes
+
+- A held fund no longer raises "sector unknown".
+- The chat agent gets the same "factors disagree" wording as the CLI.
+- The brief no longer repeats `/rebalance`'s own notes.
+
+## [1.0.15] - 2026-10-21
+
+A VN stock you hold that closes at its ceiling is now proposed for a trim at the next open, and a
+held name no longer loses its exit plan when a later run that day sells or cannot price it. No database change.
+> Cổ phiếu VN bạn giữ mà đóng cửa ở giá trần giờ được đề xuất bán bớt ngay phiên mở cửa sau, và mã đang giữ không còn mất kế hoạch thoát khi một lần chạy sau trong ngày đề xuất bán hoặc không tính được giá. Không đổi cơ sở dữ liệu.
+
+### Selling a held name
+
+- New reason `ceiling-close`: a VN stock in a short-horizon segment that closed at or just under its
+  ceiling is proposed for a trim of your first take-profit share at the next open, while the gap is
+  still there.
+- A sale smaller than one board lot says so, instead of saying you already sold.
+- A held name the system wants to sell but holds says why the sale was due.
+- When a trim and an evidence reason sell the same number of shares, the evidence reason is named.
+- A name blocked at the ceiling or floor, or by full foreign room, says which.
+- The brief says why each held name is reduced.
+
+### Exit plans
+
+- A sale or an unpriced run on the day you record a buy keeps the rest of the position on its exit
+  plan, so stop and take-profit alerts keep watching it.
+- A holding with only a stop or only a take-profit counts as watched.
+
+### Your book
+
+- `/update` takes a bare ticker the way `/record` does; the other fields stay written out.
+  Dividend, split and distribution lines take a bare ticker too.
+- `/update` of a USDT row asks for `fx` only where the rate changes the book.
+- A crypto sale whose fee was taken in the coin is booked instead of skipped.
+
+### Fixes
+
+- A shared cost cap covers a whole workflow run, and the spend estimate no longer counts the prompt
+  twice.
+- A reply cut off at the length limit keeps the text it had.
+- Tapping an approval while its prompt is still sending now updates the prompt.
+- The agent's `hosts` list also limits pages `research` reads directly.
+- `/schedule edit` keeps the job's timezone; `onboard` keeps the newest 5 config backups.
+- One-letter and digit-leading crypto symbols (`S`, `1INCH`) are recognized.
+- `[trading.alerts] breakout_sessions` must be at least 5.
+
+## [1.0.14] - 2026-10-21
+
+A VN quarter reaches the analysis as soon as its income statement is out, even before its cash
+flow. The assistant also asks before changing a preference it already remembers.
+> Một quý của cổ phiếu VN vào phân tích ngay khi có kết quả kinh doanh, kể cả khi chưa có lưu chuyển tiền tệ. Trợ lý cũng hỏi bạn trước khi đổi một sở thích đã ghi nhớ.
+
+### Changes
+
+- A quarter without its cash flow is kept; its cash figures stay blank instead of reading as zero.
+- The missing cash flow is filled from CafeF (`cafef-statements`) when its profit matches the
+  quarters already stored.
+- New notes when a quarter has no cash flow or the latest quarter is late.
+- The "results are due" note also shows on the deadline day.
+- Changing a remembered preference: the assistant asks once and saves it when you agree.
+
+## [1.0.13] - 2026-10-21 [IMPORTANT]
+
+Security and reliability fixes. The agent asks before opening a link it built itself, so a web page
+can no longer leak your holdings through a link. `upgrade --rollback` also rolls back the database.
+> Sửa lỗi bảo mật và độ ổn định. Agent hỏi bạn trước khi mở link do nó tự ghép, nên trang web không thể lấy danh mục của bạn qua link. `upgrade --rollback` đưa cả cơ sở dữ liệu về bản trước.
+
+### Fixes
+
+- `upgrade --rollback` (and the automatic rollback) also takes the database back, after asking. An
+  older release refuses a newer database instead of misreading it.
+- `db migrate down --to <id>` undoes every migration after `<id>`.
+- A scheduled job stopped by a spend cap or rate limit waits instead of being switched off.
+- The agent asks before reading a link it built or changed, one with extra headers, or more than
+  `[loop] max_unasked_fetches` pages in a run (default 10). Links you send open as before.
+- A VN sale can no longer exceed what you hold.
+- VN prices land exactly on the price step, so a bar that touched a stop counts as touching it.
+- Outbound requests block more disguised local addresses.
+- `db restore` and `db reset` always keep a full backup first.
+- `upgrade` no longer rolls back a daemon that is just slow to start.
+- A segment with a 0% target opens no new position; held names keep their exits.
+- Smaller fixes to gold premium, crypto funding, OKX listings, brief exits, OpenRouter errors,
+  chat commands on Telegram and Zalo, and the installers.
+
+## [1.0.12] - 2026-10-20
+
+The brief opens with one market story and checks earlier ones, at no AI cost. A tiny leftover after
+a full sale no longer counts as a holding.
+> Bản tin mở đầu bằng một câu chuyện thị trường và soát lại các câu chuyện trước, không tốn phí AI. Phần lẻ còn sót sau khi bán hết không còn bị tính là vị thế.
+
+### Brief
+
+- One market story per morning: what happened, the numbers, a reading, what could prove it wrong
+  and what to watch.
+- Before your first recorded trade, the brief asks you to `/record` it.
+- A holding with no price yet no longer reads as an empty book.
+
+### Portfolio
+
+- A leftover below the venue's smallest order is skipped everywhere you plan or trade; its value
+  still counts in the total.
+
+## [1.0.11] - 2026-10-20
+
+Fixes: `db reset` can back up first again, a rejected AI key is reported correctly, and a past day's
+USDT rate no longer changes. Source lines show the day.
+> Sửa lỗi: `db reset` sao lưu trước được trở lại, khóa AI bị từ chối được báo đúng, và tỷ giá USDT của ngày đã qua không còn đổi. Dòng nguồn ghi cả ngày.
+
+### Fixes
+
+- `db reset` no longer stops when you accept its backup; `| head` prints no broken-pipe error.
+- A rejected AI key is reported as such, not as a rate limit; a failed connection is not billed.
+- Telegram stops after repeated rejected tokens; ChatGPT sign-in refreshes in time.
+- Source lines show the day; Telegram never splits a code block.
+
+### API
+
+- `approval_requested` adds `label` and `expiresAt`; `/v1/chat/history` pages by `idx`.
+
+## [1.0.10] - 2026-10-20
+
+Setup and chat explain themselves better, and three config keys are renamed.
+> Thiết lập và chat dễ hiểu hơn, và ba mục config được đổi tên.
+
+### Setup and chat
+
+- `onboard` tests the key it saves and says why a test failed.
+- `key set` warns when you save a name the config never reads.
+- `/profile`, `/update` and `/alert` show what they do; commands accept any letter case.
+
+### Config (action needed)
+
+- Renamed: `[trading.themes] max_cost_usd` to `maximum_cost_usd`, `[web_search] cache_ttl_seconds`
+  to `cache_ttl_ms`, `[channels.*] gap_note_minutes` to `gap_note_ms`. An old name stops `start`
+  and points at the sample.
+
+### Fixes
+
+- Zalo stops only after three 401s in a row; `cost --period week` starts on Monday.
+
+## [1.0.9] - 2026-10-19
+
+Setup no longer freezes on macOS, and its lists are picked with the arrow keys.
+> Thiết lập không còn treo trên macOS, và chọn danh sách bằng phím mũi tên.
+
+### Fixes
+
+- `curl ... install.sh | sh` no longer freezes at the first question on macOS.
+- `onboard` lists use ↑ ↓ and Enter; re-running it lets you change several parts in one go.
+- A missing key for a fallback model is only a warning.
+
+## [1.0.8] - 2026-10-19
+
+Safer to leave running: daily backups, start at login, keys in a private file, and notices when
+something goes wrong. The first start adds one database column (after a backup).
+> An toàn hơn khi để chạy lâu: sao lưu mỗi ngày, tự chạy khi đăng nhập, khóa lưu trong tệp riêng, và báo khi có sự cố. Lần chạy đầu tự thêm một cột vào cơ sở dữ liệu (sau khi sao lưu).
+
+### Running
+
+- Daily SQLite backup, newest three kept (`[retention] daily_backups`).
+- `openalpha autostart enable` starts OpenAlpha at login.
+- You are told about a crash, a missed brief, or a chat channel down for 15 minutes.
+
+### Setup
+
+- `openalpha key set NAME` saves a key to a private file; `onboard` offers the same.
+- `onboard` asks your book's currency.
+
+### Chat and trading
+
+- A paired chat is your default chat for notices, alerts and briefs.
+- `pair revoke` stops everything sent to that chat.
+- A typed price ten times off the market asks you to confirm before saving.
+- Approvals work on Zalo by typing a short code.
+- `/record` takes shorter lines: `/record buy FPT 100 58400`.
+- `/delete <id>` now shows the row first; `/delete <id> confirm` removes it (scripts must add
+  `confirm`).
+
+### For integrators
+
+- `DaemonTask.start(signal, options?)` takes an options object instead of a positional `onReady`.
 
 ## [1.0.7] - 2026-10-19
 
 Telegram replies keep their context, a quiet chat rechecks prices, and web search can use DeepSeek.
 No database change.
-> Trả lời một tin trong Telegram là OpenAlpha biết bạn hỏi tiếp tin nào, chat để lâu thì xem lại giá trước khi trả lời, tìm kiếm web dùng được DeepSeek.
+> Trả lời một tin trong Telegram là OpenAlpha biết bạn hỏi tiếp tin nào, chat để lâu thì xem lại giá trước khi trả lời, và tìm kiếm web dùng được DeepSeek.
 
-### Chat
-
-- In a private Telegram chat, replying to an answer continues from it; replying to an alert or brief
-  tells OpenAlpha which kind of message you mean, never your amounts.
-- After a quiet spell, the next answer rechecks prices. `gap_note_minutes` sets the quiet time per
-  channel (default `30`, `0` off).
-
-### Search
-
-- `[web_search] provider = "deepseek"`: about $0.75 per 1,000 searches, empty ones free, strong on
-  Vietnamese sources. Uses `DEEPSEEK_API_KEY`; set `cost_per_search_usd = 0.00075` to count the spend.
-  Queries over 128 characters are trimmed but keep the sites you chose.
-
-### Setup
-
-- `config validate`, `start` and `status` now name a wrong `[channels.*]` value or misspelt key
-  instead of failing with an unexplained error.
-
-### Fixes
-
-- DeepSeek web search no longer returns a site's machine-translated copies (a Dutch or German page
-  beside the Vietnamese original).
-- A chat replaced by `/new` or an agent switch now reads "done" in `history list` instead of staying
-  "open".
-- Reinstalling over an existing install prints "you're on the latest release" once, and
-  `upgrade` names the version you run.
+- Replying to an answer in a private Telegram chat continues from it.
+- After a quiet spell, the next answer rechecks prices.
+- `[web_search] provider = "deepseek"`: cheap and strong on Vietnamese sources.
+- `config validate` names a wrong `[channels.*]` value.
 
 ## [1.0.6] - 2026-10-18
 
 Updates are easy to see and install from chat, the debate reads its evidence more carefully, and
 Windows on ARM gets a native build. No database change.
-> Bản mới dễ thấy và cài được ngay trong chat, phần tranh luận đọc dữ liệu kỹ hơn, và Windows chip ARM có bản riêng.
+> Bản mới dễ thấy và cài ngay trong chat, phần tranh luận đọc dữ liệu kỹ hơn, và Windows chip ARM có bản riêng.
 
-### Updates
-
-- The notice says what changed, how many releases behind and whether one is important; checked
-  twice a day.
-- `/upgrade` shows what is new; `/upgrade confirm` installs it, restarts the bot and reports back.
-- `upgrade` and the install scripts restart a background daemon, roll back a release that will not
-  start, and `upgrade --rollback` goes back. A daemon started by v1.0.5 or earlier needs one
-  restart by hand. Outside Windows, a daemon in a terminal or under a service keeps running until
-  you restart it.
-- The operator is reminded in a private chat: weekly, daily for an important release.
-- `[update] auto = true` installs patch releases between 00:00 and 06:00, never mid-session.
-- A native build for Windows on ARM.
-
-### The debate
-
-- VN accounts show the five newest quarters; a failed news, coverage or calendar feed is said.
-- The company and sector are named, a price says when it was read, and the roles share one set of
-  rules.
-- Gold headlines credit the real newspaper behind Google News.
-- Win rates count only calls whose window has passed, and `/reflect` shows how certain each is.
-- The last closed call on a name gives the day it was made and the day it closed, and the debate
-  writes dates the way you do.
-
-### Your book
-
-- A buy too small to rest its stop-loss is refused.
-- Binance and OKX sync picks up a limit order that filled in part before it was cancelled.
-- A partial-profit plan rests only the stop; the target alert walks you through the sale.
-
-### Commands and setup
-
-- `doctor` warns about switches that act without asking and no longer flags the database after a
-  failed start; `config validate` reports an unknown section with the `[trading]` mistakes.
-- `config.minimal.en.toml`, an English starter config.
-- Leaving the chat closes its session; `history` deletes an idle open session.
-- `/overview` prints the gold macro table once; `plugin uninstall` refuses a plugin not installed.
-
-### For contributors
-
-- Release binaries are start-tested on their own platforms before publishing (`dry_run` rehearses
-  it); dependencies are audited weekly.
+- The update notice says what changed and whether it is important.
+- `/upgrade confirm` installs from chat and restarts the bot; `upgrade --rollback` goes back.
+- `[update] auto = true` installs patch releases overnight.
+- The debate names the company and sector, dates its prices and shows five quarters of VN accounts.
+- Win rates count only calls whose window has passed.
+- A buy too small to rest its stop is refused.
 
 ## [1.0.5] - 2026-10-18
 
-A friendlier first run: OpenAlpha starts without any key, says what each missing key holds back, and
-the README walks you from install to a daily routine. No database change.
+A friendlier first run: OpenAlpha starts without any key and says what each missing key holds back.
+No database change.
 
-### Running without keys
-
-- **`start` never stops for a missing key.** An unset AI, web search or MCP variable, a missing or
-  rejected bot token and a short API token each print one `!` line; data, alerts and the ledger run
-  on.
-- **`start` lists only what opened**, and `start --background` waits until the channels are up.
-- **`status` repeats what is missing** and flags a daemon left on an older release; `upgrade` stops
-  it.
-- **Commands that need a key name it.** `/suggest` shows the numbers and stores no undecided call;
-  `/trade` still prints its syntax; search refuses rather than fall back to DuckDuckGo; a scheduled
-  job or brief waits for the key instead of switching itself off.
-- **`doctor` and `config validate` list every problem in one pass**, suggest the nearest name for a
-  typo, and count an unset key once.
-- `config.minimal.toml` starts at a 2 USD daily AI cap, like `onboard`.
-
-### Your book
-
-- **Grouped numbers are refused, not guessed:** `100.000.000` or `58.400 VND` gets its plain form.
-- **A holding recorded near the price limit gets its exit plan**, and keeps it after `/brief`.
-- **Bring in an existing book** in a few lines, past losses included (trading guide).
-
-### Words and commands
-
-- **One word for a portfolio bucket: segment** (Vietnamese: nhóm); plain words replace jargon.
-- **`/suggest <ticker> full` always runs the whole debate**; a short run says who settled the hold.
-- **`openalpha help`, `--version`, `-v`**; `/help <name>` works with or without `/` and suggests the
-  nearest command.
-- **`/continue`** finds a stopped run; **`db reset`** offers a backup first; `db restore`, plugin
-  errors and `history` read in plain words.
-- Piped output shows progress on stderr only; English counts read "1 problem"; the brief says its
-  deployment figure covers the whole portfolio.
-- **README rebuilt** around a three-command try-out, a five-step install and a daily routine.
-
-### For integrators
-
-- `/v1/state` adds `degraded`: what the daemon started without, worded in its language.
-- `/v1/rebalance` renames the text field `sleeves` to `segments`.
-- An unset model key answers `unavailable` with the operator's sentence, and as an `error` frame on
-  `/v1/ws` chat.
+- `start` never stops for a missing key; it lists what is missing.
+- `doctor` and `config validate` list every problem at once.
+- Numbers like `100.000.000` are refused with their plain form.
+- One word for a portfolio bucket: segment.
+- `/v1/rebalance` renames `sleeves` to `segments`.
 
 ## [1.0.4] - 2026-10-16
 
-A readability and bookkeeping release: every report opens with its answer, and the ledger records
-the rate you actually paid for USDT. No database change.
+Easier reports and correct USDT bookkeeping: every report opens with its answer, and the ledger
+records the rate you paid for USDT. No database change.
 
-### Your book in USDT
-
-- **`fx <rate>` or `fx auto` on a `/record` line** books the rate you paid or that day's market rate;
-  put it on the USDT deposit (`/record deposit binance 1000 USDT 2026-08-14 fx 26600`).
-- **A venue holds USDT as its own cash** at an average cost. Buys spend it at that cost, so `fx` on
-  them is refused; a trade that runs short in one currency is refused, naming it.
-- **A USDT row with no rate waits** - `/record` shows the market rate and cash change, and
-  `/record confirm` writes it. `/update`, `portfolio_record` and `portfolio_update` ask for the rate.
-- **`/portfolio`, `/rebalance` and `/reconcile` read USDT** - cost, today's value, the currency move,
-  and the exchange balance. `/record sync` says which currencies it booked at market rates.
-
-### Reports
-
-- **`/suggest` opens with the call** (`BUY`, `NO ENTRY today`, `SIT TIGHT`), one price level per
-  line, reasons before evidence, fine print at the end.
-- **`/rebalance` titles itself with the plan** ("Today: BUY 4 names, ...") in three lines per order;
-  `/portfolio` splits cash from profit and loss.
-- **`/overview <market>`** shows one market; the brief's rows read as sentences and mark headlines in
-  another language; `/reflect` is half as long.
-- **`/help` lists commands in groups**, and system commands open with a titled heading.
-
-### Fixes
-
-- `/suggest` re-runs once a newer close is stored; `/rebalance` and the brief size on the settled
-  macro read.
-- Clearer errors for a mistyped `/record`, a short balance, a removed venue and a wrong config type.
-- Smaller fixes to `/themes`, `/profile`, `/price`, `config show`, `api rotate` and gold prices.
+- `fx <rate>` or `fx auto` on a `/record` line books your rate or the market's.
+- A venue holds USDT as its own cash at average cost.
+- `/suggest` opens with the call; `/rebalance` opens with the plan.
 
 ## [1.0.3] - 2026-10-15
 
-A hardening release: the same commands, with safer orders, a more honest track record and a daemon
-that rides out bad moments. The first start adds one database column by itself (after a backup).
+A hardening release: safer orders, a more honest track record and a sturdier daemon. The first
+start adds one database column (after a backup).
 
-### Orders and your book
-
-- A buy waits until every holding has a price, and an unclassified holding leaves no ETF room.
-- One fill books one row, whether `/trade`, `/record sync` or the exit check lands it first; OKX
-  sync reads its archive too and names a clock that needs syncing.
-
-### Suggestions and alerts
-
-- Win rates count a repeated call once, a resting buy that touched the target is scored
-  conservatively, and one damaged stored row no longer breaks `/suggest`.
-- Price alerts, trailing stops and the morning brief keep running after one failure; providers that
-  ask you to wait are rested instead of retried.
-
-### Channels and daemon
-
-- Telegram, Zalo and social posts retry with back-off and are never sent twice by mistake.
-- Shutdown, startup, logging, backups and retention each recover on their own; secrets are scrubbed
-  before tool output is cut, and a remembered shell approval covers exactly that command.
+- One fill books one row, whichever path records it first.
+- Alerts, trailing stops and the brief keep running after one failure.
+- Telegram, Zalo and social posts retry and never send twice.
 
 ## [1.0.2] - 2026-10-15
 
 The first public release: a self-hosted trading research analyst for Vietnamese stocks, gold and
 crypto. It finds ideas, argues both sides, sizes the trade against your whole book and keeps an
-honest record of its calls. It never places an order you did not approve.
+honest record. It never places an order you did not approve.
 
-### Getting started
+- One-line install for macOS, Linux and Windows; `openalpha onboard` sets it up.
+- A seven-persona debate; entry, stop, target and size are set by code.
+- `/reflect` scores past calls; the ledger is the truth for your book.
+- Orders on OKX and Binance through `/trade`, always approved.
+- CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
-- **One-line install** for macOS, Linux and Windows, checked against the release's checksums;
-  `openalpha onboard` sets up language, model, spending cap and Telegram.
-- **Keys stay out of files** - the config names the environment variable; a missing key stops only
-  what needs the model.
-- **`openalpha upgrade`** swaps in the latest release and keeps your data; `doctor` checks the rest.
-
-### Analysis
-
-- **A staged pipeline** with a seven-persona debate. Entry, stop, target, size and conviction are
-  fixed in code, and twelve stages can turn a call into a hold.
-- **Markets** - VN equities, crypto, VN gold, and world gold as a reference, each with its own
-  factors, sources and calendar. Stops and targets are tunable per market.
-- **A track record** - `/reflect` scores past calls against the index and caps the next call's
-  conviction.
-- **`/themes` and `/research`** - macro themes scored 0-100 in code, and web research with claim
-  checks.
-
-### Your book and orders
-
-- **The ledger is the truth** - positions are folds over your rows; `/portfolio`, `/rebalance` and
-  `/reconcile` read them.
-- **One order path** (`/trade`, `order_place`) on OKX and Binance: approved, capped, mirrored into
-  the ledger and crash-safe. Other brokers are recorded by hand.
-
-### Where you use it
-
-- **CLI, Telegram, Zalo, an HTTP/WS API and MCP**, with SQLite or PostgreSQL, many LLM providers
-  behind a fallback chain, and daily, monthly and per-run cost caps.
-- **The model never sees your money** - personas get weights and percentages, never amounts.
-
+[1.2.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.2
+[1.2.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.1
+[1.2.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.0
+[1.0.17]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.17
+[1.0.15]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.15
 [1.0.14]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.14
 [1.0.13]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.13
 [1.0.12]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.12

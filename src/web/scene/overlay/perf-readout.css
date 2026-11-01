@@ -1,0 +1,21 @@
+.perf-readout {
+  position: absolute;
+  top: var(--s1);
+  left: var(--s1);
+  padding: var(--s1) var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--ink2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.perf-title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.perf-line.is-over {
+  color: var(--dangerText);
+}

@@ -1,5 +1,5 @@
 import type { ChannelId } from '@/core/channels'
-import type { ChatBinding, ChatBindingStore, ChatSessionSelection } from '@/core/types/session'
+import type { ChatBinding, ChatBindingStore, ChatSessionReset } from '@/core/types/session'
 import type { Dialect, Storage } from '@/core/types/storage'
 import { channelId } from '@/core/channels'
 import { agentId, userId } from '@/core/ids'
@@ -54,7 +54,7 @@ export function createChatBindingStore(db: Storage, dialect: Dialect): ChatBindi
       await db.execute(sql.remove, [channel, chatId])
     },
 
-    selectSession: (selection) => selectSession(db, sql, selection),
+    resetSession: (reset) => resetSession(db, sql, reset),
 
     async list(): Promise<readonly ChatBinding[]> {
       const rows = await db.query<ListRow>(sql.list)
@@ -69,42 +69,33 @@ export function createChatBindingStore(db: Storage, dialect: Dialect): ChatBindi
   }
 }
 
-async function selectSession(
+async function resetSession(
   db: Storage,
   sql: ReturnType<typeof buildSql>,
-  selection: ChatSessionSelection
+  reset: ChatSessionReset
 ): Promise<void> {
   const now = Date.now()
-  const sessionKey = sessionRouteKey(selection.chatId, selection.userId)
+  const sessionKey = sessionRouteKey(reset.chatId, reset.userId)
 
   await db.transaction(async (tx) => {
     const routes = await tx.query<SessionRouteRow>(sql.listSessionRoutes, [
-      selection.channel,
-      selection.channel,
-      selection.chatId,
+      reset.channel,
+      reset.channel,
+      reset.chatId,
       ROUTE_KEY_PATTERN,
     ])
+    const keys = new Set([sessionKey, ...routes.map((route) => route.key)])
 
-    for (const route of routes) {
-      if (route.key !== sessionKey) {
-        await tx.execute(sql.removeSessionRoute, [selection.channel, route.key])
-      }
+    for (const key of keys) {
+      await tx.execute(sql.removeSessionRoute, [reset.channel, key])
     }
 
-    await tx.execute(sql.putSessionRoute, [selection.channel, sessionKey, selection.sessionId, now])
-
-    if (selection.agentId === undefined) {
-      await tx.execute(sql.remove, [selection.channel, selection.chatId])
+    if (reset.agentId === undefined) {
+      await tx.execute(sql.remove, [reset.channel, reset.chatId])
       return
     }
 
-    await tx.execute(sql.put, [
-      selection.channel,
-      selection.chatId,
-      selection.agentId,
-      selection.userId,
-      now,
-    ])
+    await tx.execute(sql.put, [reset.channel, reset.chatId, reset.agentId, reset.userId, now])
   })
 }
 
@@ -128,11 +119,6 @@ function buildSql(d: Dialect) {
       `WHERE c.channel = ${d.param(1)} AND s.channel = ${d.param(2)} ` +
       `AND s.chat_id = ${d.param(3)} AND c.key LIKE ${d.param(4)}`,
     removeSessionRoute: `DELETE FROM channel_state WHERE channel = ${d.param(1)} AND key = ${d.param(2)}`,
-    putSessionRoute: d.upsert('channel_state', {
-      keys: ['channel', 'key'],
-      cols: ['value', 'updated_at'],
-      rowCount: 1,
-    }),
     list: 'SELECT channel, chat_id, agent_id, user_id FROM bindings ORDER BY updated_at DESC',
   }
 }

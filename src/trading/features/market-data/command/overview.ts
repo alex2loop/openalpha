@@ -10,7 +10,7 @@ import { renderOverviewText } from '@/trading/features/market-data/render/overvi
 import { unsupportedCapability } from '@/trading/features/market-data/resolve'
 import { parseMember, usage } from '@/trading/kernel/surface/surface'
 import { marketAffordances } from '@/trading/render/affordance'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
 const USAGE: 'slash.tradingOverviewUsage' = 'slash.tradingOverviewUsage'
 
@@ -40,6 +40,7 @@ export function createOverviewCommand(deps: OverviewCommandDeps): SlashCommand {
       role: 'member',
       action: 'read',
       execution: { progressKey: 'slash.tradingOverviewProgress' },
+      selfContained: true,
       transcript: 'echo',
     },
     usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
@@ -94,7 +95,7 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
     text: renderOverviewText(
       ctx.locale,
       { overviews, macro, heldMarkets: deps.heldMarkets, now },
-      resolveRenderContext(deps.timezone, ctx.surface)
+      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
     ),
   }
 }

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { OwnershipFiling } from '@/trading/sources/adapters/sec/ownership'
 import type { SecTickerMap, TickerMapReader } from '@/trading/sources/adapters/sec/tickers'

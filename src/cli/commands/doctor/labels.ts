@@ -1,27 +1,8 @@
+import type { CheckName } from '@/core/types/doctor'
 import type { Locale } from '@/core/types/locale'
 import { type MessageKey, t } from '@/i18n'
 
-export const CHECK_NAMES = [
-  'config',
-  'models',
-  'data-dir',
-  'logging',
-  'database',
-  'daemon',
-  'channels',
-  'delivery',
-  'sources',
-  'trading',
-  'safety',
-  'venues',
-  'web-search',
-  'providers',
-  'telegram',
-  'zalo',
-  'version',
-] as const
-
-export type CheckName = (typeof CHECK_NAMES)[number]
+import type { DoctorSurface } from './types'
 
 const CHECK_LABEL_KEYS = {
   config: 'cli.doctorLabelConfig',
@@ -60,4 +41,27 @@ export function checkLabel(locale: Locale, check: CheckName): string {
 /** A row about one named thing a check found: a channel, a venue, a provider login. */
 export function subjectLabel(locale: Locale, kind: SubjectKind, subject: string): string {
   return t(locale, SUBJECT_LABEL_KEYS[kind], { subject })
+}
+
+/** The lines a check writes when it did not go online: the terminal names the flag, the page its
+ *  button, and the page never makes a model call at all. */
+const OFFLINE_KEYS = {
+  terminal: {
+    notProbed: 'cli.doctorNotProbed',
+    providers: 'cli.doctorNotProbed',
+    webSearch: 'cli.doctorWebSearchOffline',
+    neverChecked: 'cli.updateNeverChecked',
+  },
+  page: {
+    notProbed: 'cli.doctorNotProbedPage',
+    providers: 'cli.doctorProvidersNoCall',
+    webSearch: 'cli.doctorWebSearchOfflinePage',
+    neverChecked: 'cli.updateNeverCheckedPage',
+  },
+} as const satisfies Record<DoctorSurface, Record<string, MessageKey>>
+
+type OfflineLine = keyof (typeof OFFLINE_KEYS)['terminal']
+
+export function offlineKey(surface: DoctorSurface, line: OfflineLine): MessageKey {
+  return OFFLINE_KEYS[surface][line]
 }

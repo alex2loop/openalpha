@@ -213,12 +213,30 @@ function mergeNews(
 
   return available(
     rankHeadlines(
-      readable.flatMap((result) => result.value),
+      interleaveHeadlines(
+        readable.map((result) => result.value),
+        options.limit
+      ),
       { now: options.now, limit: options.limit }
     ),
     readable.flatMap((result) => result.provenance),
     caveats
   )
+}
+
+/** One headline from each market in turn, each list already ranked, so a market whose feed files
+ *  fresher and more often cannot take every slot of the region's read. A market with fewer
+ *  headlines than its turn leaves the slot to the others. */
+function interleaveHeadlines(
+  lists: readonly (readonly NewsItem[])[],
+  limit: number
+): readonly NewsItem[] {
+  const depth = Math.max(0, ...lists.map((list) => list.length))
+  const turns = Array.from({ length: depth }, (_, turn) =>
+    lists.flatMap((list) => list.slice(turn, turn + 1))
+  )
+
+  return turns.flat().slice(0, limit)
 }
 
 /** The region's own market answers, never whichever sibling registered first: a region holds several

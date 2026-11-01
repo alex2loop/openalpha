@@ -21,7 +21,7 @@ import { confirm, confirmDefaultYes, declined, defaultPrompt } from '@/cli/ui/pr
 import { expandHome } from '@/core/config/resolve'
 import { silentLogger } from '@/core/logging/logger'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { pluralKey, t } from '@/i18n'
+import { type MessageKey, pluralKey, t } from '@/i18n'
 import {
   ALL_TABLES,
   BACKUPS_SUBDIR,
@@ -29,6 +29,7 @@ import {
   backupSqlite,
   backupTarget,
   countRetention,
+  effectiveHistoryDays,
   openPersistence,
   type RetentionConfig,
   type RetentionCounts,
@@ -37,6 +38,7 @@ import {
   runRetention,
   TABLE_NAME_WIDTH,
 } from '@/persistence/api'
+import { HISTORY_FLOOR_DAYS } from '@/trading/api'
 
 const dbIntegrityCommand = createCommand({
   name: 'integrity',
@@ -106,9 +108,12 @@ const dbCleanupCommand = createCommand({
     const storage = app.resolve('storage')
     const dialect = app.resolve('dialect')
     const logger = app.resolve('logger')
+    // `--older-than` sets the general window only; the history window never drops below it.
     const config = {
       retentionDays,
+      historyRetentionDays: Math.max(app.config.retention.historyDays, retentionDays),
       inboxRetentionDays: app.config.retention.inboxDays,
+      historyFloors: HISTORY_FLOOR_DAYS,
     }
 
     if (flagBool(args, 'dryRun')) {
@@ -122,10 +127,15 @@ const dbCleanupCommand = createCommand({
     printRetentionCounts(app, counts, config)
     app.out(
       success(
-        t(locale, 'cli.dbPrunedSummary', {
-          general: retentionDays,
-          inbox: config.inboxRetentionDays,
-        })
+        t(
+          locale,
+          flooredScopes(config).length > 0 ? 'cli.dbPrunedSummaryFloored' : 'cli.dbPrunedSummary',
+          {
+            general: retentionDays,
+            history: config.historyRetentionDays,
+            inbox: config.inboxRetentionDays,
+          }
+        )
       )
     )
 
@@ -136,6 +146,8 @@ const dbCleanupCommand = createCommand({
 function printRetentionCounts(app: CliApp, counts: RetentionCounts, config: RetentionConfig): void {
   const locale = app.config.locale.language
   app.out(t(locale, 'cli.dbFieldGeneralWindow', { value: config.retentionDays }))
+  app.out(t(locale, 'cli.dbFieldHistoryWindow', { value: config.historyRetentionDays }))
+  printFlooredWindows(app, config)
   app.out(t(locale, 'cli.dbFieldInboxWindow', { value: config.inboxRetentionDays }))
   app.out(t(locale, 'cli.dbFieldSessions', { value: counts.sessions }))
   app.out(t(locale, 'cli.dbFieldSessionRoutes', { value: counts.sessionRoutes }))
@@ -147,6 +159,45 @@ function printRetentionCounts(app: CliApp, counts: RetentionCounts, config: Rete
   app.out(t(locale, 'cli.dbFieldAlertsTerminal', { value: counts.alertsTerminal }))
   app.out(t(locale, 'cli.dbFieldBriefSnapshots', { value: counts.briefSnapshots }))
   app.out(t(locale, 'cli.dbFieldLlmAttempts', { value: counts.llmAttempts }))
+  app.out(t(locale, 'cli.dbFieldRuns', { value: counts.runs }))
+  app.out(t(locale, 'cli.dbFieldNotices', { value: counts.notices }))
+  app.out(t(locale, 'cli.dbFieldRestingExits', { value: counts.restingExits }))
+  app.out(t(locale, 'cli.dbFieldSpentJobs', { value: counts.spentJobs }))
+  app.out(t(locale, 'cli.dbFieldSuggestions', { value: counts.suggestions }))
+  app.out(t(locale, 'cli.dbFieldFactorLog', { value: counts.factorLog }))
+  app.out(t(locale, 'cli.dbFieldThemeOutcomes', { value: counts.themeOutcomes }))
+  app.out(t(locale, 'cli.dbFieldThemeReads', { value: counts.themeReads }))
+  app.out(t(locale, 'cli.dbFieldThemeRuns', { value: counts.themeRuns }))
+  app.out(t(locale, 'cli.dbFieldNavSnapshots', { value: counts.navSnapshots }))
+  app.out(t(locale, 'cli.dbFieldSeriesPoints', { value: counts.seriesPoints }))
+  app.out(t(locale, 'cli.dbFieldSeriesProvenance', { value: counts.seriesProvenance }))
+  app.out(t(locale, 'cli.dbFieldMacroDocuments', { value: counts.macroDocuments }))
+  app.out(t(locale, 'cli.dbFieldSuggestionEvidence', { value: counts.suggestionEvidence }))
+}
+
+const FLOORED_WINDOWS = [
+  ['trackRecord', 'cli.dbFieldTrackRecordWindow'],
+  ['macroSeries', 'cli.dbFieldMacroSeriesWindow'],
+  ['macroDocuments', 'cli.dbFieldMacroDocumentsWindow'],
+] as const satisfies readonly (readonly [keyof RetentionConfig['historyFloors'], MessageKey])[]
+
+function printFlooredWindows(app: CliApp, config: RetentionConfig): void {
+  const locale = app.config.locale.language
+
+  for (const { key, value } of flooredScopes(config)) {
+    app.out(t(locale, key, { value }))
+  }
+}
+
+/** Only the scopes whose readers hold them past the history window, with the window they keep. */
+function flooredScopes(
+  config: RetentionConfig
+): readonly { readonly key: MessageKey; readonly value: number }[] {
+  const windows = effectiveHistoryDays(config)
+
+  return FLOORED_WINDOWS.flatMap(([scope, key]) =>
+    windows[scope] > config.historyRetentionDays ? [{ key, value: windows[scope] }] : []
+  )
 }
 
 const dbStatsCommand = createCommand({
@@ -201,7 +252,7 @@ const dbBackupCommand = createCommand({
       force: { type: 'boolean', describe: { key: 'cliHelp.flagDbBackupForce' } },
     },
   },
-  needs: { bootScope: 'persistence', startup: 'none', daemon: 'any' },
+  needs: { bootScope: 'persistence', startup: 'none', daemon: 'any', local: true },
   async run(args, app): Promise<number> {
     const locale = app.config.locale.language
 

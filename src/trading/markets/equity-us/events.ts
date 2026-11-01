@@ -1,6 +1,6 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { EventsRequest } from '@/trading/kernel/market/market-capability'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import { dedupeCaveats } from '@/trading/kernel/caveat'

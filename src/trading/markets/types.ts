@@ -1,6 +1,6 @@
 import type { CalculationVersion } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { CalendarPolicy } from '@/trading/kernel/config'
+import type { CalendarPolicy, SessionHours } from '@/trading/kernel/config'
 import type {
   FactorId,
   FactorRequest,
@@ -32,6 +32,7 @@ import type {
   EventsRequest,
   FlowsRequest,
   FuturesBasis,
+  IndexCapabilities,
   InstrumentRequest,
   InstrumentStatistics,
   MarketBriefRequest,
@@ -49,17 +50,17 @@ import type {
   DailyTradeSides,
   FlowSnapshot,
   FundingSnapshot,
-  MarketEvent,
   NewsItem,
   Quote,
   SentimentSnapshot,
 } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
 import type {
-  MarketRefreshAttempt,
   RefreshDataKind,
   RefreshKindResult,
+  StaleKindsRequest,
 } from '@/trading/kernel/market/refresh'
 import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
@@ -84,9 +85,7 @@ export interface TradingCalendar {
    *  state and no end-of-day refresh to schedule. Its bars are still settled days only — the day in
    *  progress is never evidence. Effective after any override, like `timezone`. */
   readonly continuous: boolean
-  /** The newest closure the exchange's published table reaches. Absent where the market observes
-   *  none beyond its weekend. */
-  readonly lastHoliday?: TradingDay
+  readonly hours?: SessionHours
   dayAt(epochMs: number): TradingDay
   isTradingDay(day: TradingDay): boolean
   addTradingDays(day: TradingDay, count: number): TradingDay
@@ -182,7 +181,7 @@ export interface MarketManifest {
   readonly admission?: AdmissionPolicy
 }
 
-interface MarketCapabilityMap {
+interface MarketCapabilityMap extends IndexCapabilities {
   readonly quote: { readonly request: QuoteRequest; readonly result: SourceResult<Quote> }
   readonly bars: {
     readonly request: BarsRequest
@@ -249,13 +248,6 @@ interface MarketCapabilityMap {
     readonly request: StaleKindsRequest
     readonly result: readonly RefreshDataKind[]
   }
-}
-
-/** The attempts the caller already read, so answering costs no second query. */
-export interface StaleKindsRequest {
-  readonly attempts: readonly MarketRefreshAttempt[]
-  readonly now: number
-  readonly signal: AbortSignal
 }
 
 /** A market reports what it actually replaced, per kind. A bare status cannot fill

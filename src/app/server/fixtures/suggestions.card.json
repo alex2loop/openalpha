@@ -19,6 +19,12 @@
       "Mỗi phiên mã này thường dao động khoảng 0,02898 USDT (7,34% giá vào lệnh); mức cắt lỗ đặt cách 2,00 lần biên độ đó.",
       "Khối lượng này tính trên tiền mặt bạn đang có. Nếu dùng ký quỹ, hãy xem đây là mức trần, không phải mức nên mua."
     ],
+    "factors": [
+      "Điểm tổng hợp: ▲ 0,42 · mạnh vừa",
+      "Xu hướng ▲ 0,61 · trung bình 20 phiên 0,3412 USDT",
+      "Khối lượng ▲ 0,35 · khối lượng so với trung bình 20 phiên 1,62×"
+    ],
+    "watch": ["Chờ một phiên đóng cửa trên 0,4100 USDT với khối lượng trên trung bình 20 phiên."],
     "details": [
       ["**Vì sao**", "Xu hướng tăng đều, khối lượng xác nhận."],
       ["**Điều làm luận điểm sai**", "Giá đóng cửa dưới 0,3366 USDT."]

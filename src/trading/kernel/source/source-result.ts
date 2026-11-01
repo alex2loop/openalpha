@@ -9,6 +9,7 @@ import type {
 } from '@/trading/kernel/instrument'
 import type { CashFlowToDate, FiledAccounts } from '@/trading/kernel/market/annual-accounts'
 import type { CommodityHistory } from '@/trading/kernel/market/commodity'
+import type { IndexContributions, IndexRatios } from '@/trading/kernel/market/index-reading'
 import type {
   AnalystRecommendation,
   Candle,
@@ -26,7 +27,6 @@ import type {
   InstrumentRecord,
   MacroSnapshot,
   MarketCapRecord,
-  MarketEvent,
   NewsItem,
   PositioningSnapshot,
   ProprietaryFlow,
@@ -34,6 +34,7 @@ import type {
   SentimentSnapshot,
   SessionQuote,
 } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { PolicyRateSnapshot } from '@/trading/kernel/market/policy-rates'
 import type { StatReport } from '@/trading/kernel/market/stat-report'
 import type { SupervisionSnapshot } from '@/trading/kernel/market/supervision'
@@ -72,6 +73,11 @@ export interface SourceKindMap {
   readonly statReports: readonly StatReport[]
   readonly commodityPrices: CommodityHistory
   readonly valuationRatios: ValuationRatios
+  /** What each name added to the index this session, from a day-less board that serves the session
+   *  running or the last one finished. */
+  readonly indexContributors: IndexContributions
+  /** The newest day of an index's own ratios. */
+  readonly indexValuation: IndexRatios
   readonly flows: readonly FlowSnapshot[]
   /** The leg alone, from a provider that publishes the proprietary desk ahead of the flows one. */
   readonly proprietaryFlows: readonly ProprietaryFlow[]
@@ -114,6 +120,8 @@ const SOURCE_KIND_MEMBERSHIP = {
   statReports: true,
   commodityPrices: true,
   valuationRatios: true,
+  indexContributors: true,
+  indexValuation: true,
   flows: true,
   proprietaryFlows: true,
   tradeSides: true,

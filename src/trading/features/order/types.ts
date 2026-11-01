@@ -19,6 +19,9 @@ import type {
 import { AppError } from '@/core/errors'
 import { formatQuantity } from '@/trading/render/format'
 
+export const TRADE_COMMAND_NAME = 'trade'
+export const ORDER_TOOL_NAME = 'order_place'
+
 export type {
   ExitReceipt,
   InstrumentLimits,
@@ -51,6 +54,7 @@ type OrderErrorCode =
   | 'order.no_position'
   | 'order.exit_conflict'
   | 'order.unmirrorable_fee'
+  | 'order.fee_unreported'
   | 'order.unpriced_fill'
   | 'order.unmirrorable'
   | 'order.book_moved'
@@ -140,9 +144,8 @@ export interface RestingExit {
   readonly placedAt: number
 }
 
-/** One row the operator still has to settle against the ledger, in the terms they staged it in.
- *  `orderId` is absent where the exchange never named one, which is the case that most needs a
- *  human: whether anything filled at all is not something this tree can answer. */
+/** A row the operator still has to settle against the ledger: `filledQuantity` falls under
+ *  `quantity` when the rest was cancelled, and with no `orderId` nobody knows what filled. */
 export interface UnmirroredIntent {
   readonly token: string
   readonly instrument: InstrumentRef
@@ -152,6 +155,8 @@ export interface UnmirroredIntent {
   readonly createdAt: number
   readonly failure: string
   readonly orderId?: string
+  readonly filledQuantity?: number
+  readonly averagePrice?: number
 }
 
 /** The operator's terms as they were staged. Never the verdict: quote, drift and caps are re-run
@@ -290,10 +295,8 @@ export interface PreparedOrder {
   readonly breaches: readonly CapBreach[]
 }
 
-type CapRejectionCode = 'stake' | 'openTrades' | 'cash' | 'stopLossRequired'
-
 export interface CapRejection {
-  readonly code: CapRejectionCode
+  readonly code: 'stake' | 'openTrades' | 'cash' | 'stopLossRequired'
   readonly limit: number
   readonly actual: number
   /** Which venue's cash the `cash` arm measured. Absent on every other code: a stake ceiling and an

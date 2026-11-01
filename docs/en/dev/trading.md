@@ -11,7 +11,7 @@ type SourceResult<T> = SourceAvailable<T> | SourceUnavailable
 
 interface SourceUnavailable {
   readonly kind: 'unavailable'
-  readonly reason: SourceUnavailableReason // 'unconfigured' | 'unsupported' | 'stale' | 'failed'
+  readonly reason: SourceUnavailableReason // 'unconfigured' | 'unsupported' | 'stale' | 'failed' | 'empty'
   readonly attemptedSourceIds: readonly SourceId[]
   readonly caveats: readonly Caveat[]
 }
@@ -40,6 +40,10 @@ resolveSettledDay(calendar, now) // today if settled, else the previous trading 
 - a market's quote capability drops a reading through `isLiveObservation` and falls back through `liveOrStoredQuote` ([stored-quote.ts](../../../src/trading/markets/stored-quote.ts)). The market owns the question, never the adapter.
 
 `upsertSeriesPoint` ([market-data store](../../../src/trading/features/market-data/store/market-data.ts)) answers whether the row landed. A pass counts only what it wrote, and `force` is what re-derives a stored day. A day the gold board history found no board on is not a `missingTargets` entry.
+
+## Which days are closed
+
+`CalendarPolicy.holidays` is a function from a year (and the calendar's own weekend test) to that year's closures, so a calendar answers `isTradingDay` for any year with no table to extend. VN's lives in [`markets/equity-vn/calendar/`](../../../src/trading/markets/equity-vn/calendar/closures.ts): the Labor Code art. 112 holidays (New Year, Tết, Hung Kings' Day, 30/4 and 1/5, National Day (a second adjacent day from 2021), from 2026 Vietnam Culture Day), each one that lands on a weekend moved to the next weekday not already closed, plus a short list of announced swap days and of the years the government put the second National Day holiday after 2 September, which follow no rule. Tết and the Hung Kings' Day come from the Vietnamese lunar calendar ([`lunar.ts`](../../../src/trading/markets/equity-vn/calendar/lunar.ts), Ho Ngoc Duc's algorithm at UTC+7, which is why some years differ from the Chinese date). `createTradingCalendar` works each year out once and keeps it in a small map. The operator's `holidays` and `open_days` are laid over the rules and win. Past days are still settled by the bars themselves, not by this calendar.
 
 ## The screen and the exclusion list
 
@@ -71,7 +75,9 @@ Some per-market sections (`reading`, `market-prices`, `market-quotes`, `market-b
 
 ## Themes scoring
 
-Theme, sector and stock reads share the `theme_reads` table (a level and a subject). Code scores each 0-100 in [`features/themes/score/`](../../../src/trading/features/themes/score/) from fixed weights; `SCORE_VERSION` is stored on the run, and the parts ride in the payload so a score can be recomputed.
+Theme, sector and stock reads share the `theme_reads` table (a level and a subject). Code scores each 0-100 in [`features/themes/score/`](../../../src/trading/features/themes/score/) from fixed weights; `SCORE_VERSION` is stored on the run, and the parts ride in the payload so a score can be recomputed. The track record reads only outcomes of runs stamped with the current `SCORE_VERSION`, so changing a weight, scale or coverage rule bumps it in the same commit. `check-strategy-version` digests the scoring files whole and fails until the change is re-recorded with `--write`.
+
+A run's news is `NewsArchiveStore.listArchived`: headlines archived (`fetched_at`) since the oldest last read of each subject the run reads, not published since, so a story the archive took in late is still read once.
 
 ## Valuation and the book
 
@@ -121,8 +127,11 @@ The routes the trading feature adds, served when `[api] enabled = true`. The res
 | `GET /v1/portfolio/nav` | `portfolio` |
 | `GET /v1/suggestions` | `suggestions` |
 | `GET /v1/suggestions/:id/card` | `suggestions` |
+| `GET /v1/suggestions/:id/debate` | `suggestions` |
 | `GET /v1/track-record` | `suggestions` |
 | `GET /v1/brief`, `PATCH /v1/brief` | - |
+
+A stored suggestion keeps the models that argued it in `suggestions.debate_models` (the sorted list joined by `,`, null on a row written before the column) and the claim ids the fact check refuted in its debate block (`refutedIds`, absent on an older row). `GET /v1/track-record` counts per model, over all time, only the scored calls of your own record (the default focus) whose `debate_models` names one model, folded with `independentCalls` and held to `MINIMUM_TRACK_RECORD_SAMPLE` like every rate; a call several models argued, and a row with no stored list, count for none. Each focus row and each agent's `record` also carries `targetCount`, the independent calls that closed on their target.
 
 ## VN factor research
 

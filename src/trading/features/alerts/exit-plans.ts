@@ -6,11 +6,12 @@ import type { ExitPlanner, RecordedPlanResult } from '@/trading/features/suggest
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type { Candle } from '@/trading/kernel/market/market-data'
 import type { StopCover } from '@/trading/kernel/operator/alert'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { OperationTickOptions } from '@/trading/kernel/store/page'
-import type { Market, MarketRegistry } from '@/trading/markets/types'
+import type { Market, MarketCapabilities, MarketRegistry } from '@/trading/markets/types'
 import type { StopPlacement } from '@/trading/render/stop-raised'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -29,6 +30,9 @@ import { INDENT } from '@/trading/render/layout'
 import { renderBoardScaleNotes } from '@/trading/render/money'
 import { renderStopRaised } from '@/trading/render/stop-raised'
 
+/** A series the market could not serve is asked again after this, not on every tick: the read
+ *  reaches a provider, and an outage would otherwise cost one request per held name a minute. */
+const TRAIL_RETRY_MS = 15 * 60_000
 /** A stop the operator set in the exchange's app is moved there by hand, never by `/trade exit`,
  *  which would place a second one beside it. */
 const PLACEMENT_BY_COVER: Readonly<Record<StopCover, StopPlacement>> = Object.freeze({
@@ -50,6 +54,8 @@ interface ExitPlanDeps {
    *  settled closes, so asking again inside one session re-reads a year of bars to reach the same
    *  answer - and reaches the provider whenever the store has not caught up yet. */
   readonly trailedThrough: LruMap<string, TradingDay>
+  /** Plan id to the instant its trail may read the series again after the market could not serve it. */
+  readonly trailRetryAt: LruMap<string, number>
   /** Plan id to the settled session a newer strategy version last tried to replace it in. */
   readonly replannedOn: LruMap<string, TradingDay>
   /** Whether a stop rests at the exchange behind each held name, keyed by `buildInstrumentKey`.
@@ -241,12 +247,7 @@ async function trailPlanStop(deps: ExitPlanDeps, input: TrailPlanInput): Promise
   const market = deps.markets.find(instrument.market)
   const bars = market?.capabilities.bars
 
-  if (
-    !(isLongPlan(plan) && armsExit(plan)) ||
-    market === null ||
-    market.trail === undefined ||
-    bars === undefined
-  ) {
+  if (!isTrailable(plan) || market === null || market.trail === undefined || bars === undefined) {
     return plan
   }
 
@@ -256,15 +257,9 @@ async function trailPlanStop(deps: ExitPlanDeps, input: TrailPlanInput): Promise
     return plan
   }
 
-  const series = await bars.run({
-    instrument,
-    asOf: settled,
-    now: options.now,
-    sessions: LEVEL_BARS_SESSIONS,
-    signal: options.signal,
-  })
+  const series = await readTrailSeries(deps, { plan, bars, settled, options })
 
-  if (series.kind !== 'available') {
+  if (series === undefined) {
     return plan
   }
 
@@ -275,11 +270,7 @@ async function trailPlanStop(deps: ExitPlanDeps, input: TrailPlanInput): Promise
     signal: options.signal,
   })
 
-  const raise = raiseOf(
-    plan,
-    market.trail.stopFor(series.value, bounds),
-    series.value.at(-1)?.close
-  )
+  const raise = raiseOf(plan, market.trail.stopFor(series, bounds), series.at(-1)?.close)
 
   if (raise === undefined) {
     deps.trailedThrough.set(plan.id, settled)
@@ -304,6 +295,40 @@ async function trailPlanStop(deps: ExitPlanDeps, input: TrailPlanInput): Promise
   await noticeStopRaised(deps, { ...input, market, ...raise })
 
   return { ...plan, trailingStop: raise.to }
+}
+
+/** The settled series a trail reads, or nothing when the market could not serve it: then the read
+ *  waits `TRAIL_RETRY_MS` rather than reaching the provider on every tick of an outage. */
+async function readTrailSeries(
+  deps: ExitPlanDeps,
+  input: {
+    readonly plan: StoredSuggestion
+    readonly bars: NonNullable<MarketCapabilities['bars']>
+    readonly settled: TradingDay
+    readonly options: OperationTickOptions
+  }
+): Promise<readonly Candle[] | undefined> {
+  const { plan, options } = input
+
+  if (options.now < (deps.trailRetryAt.get(plan.id) ?? 0)) {
+    return undefined
+  }
+
+  const series = await input.bars.run({
+    instrument: plan.instrument,
+    asOf: input.settled,
+    now: options.now,
+    sessions: LEVEL_BARS_SESSIONS,
+    signal: options.signal,
+  })
+
+  if (series.kind !== 'available') {
+    deps.trailRetryAt.set(plan.id, options.now + TRAIL_RETRY_MS)
+
+    return undefined
+  }
+
+  return series.value
 }
 
 /** The raise the trail asks for, or nothing where it asks for none. A trail past the close is a
@@ -403,9 +428,10 @@ async function placementOf(
   }
 }
 
-/** A plan whose position is long, which on a spot book is every one the trail applies to. The same question `findLatestExitPlan` selects on, so a row the arming pass reads as the
- *  holding's exit plan is never one the trail refuses: almost every held name carries a debated hold
- *  framed as a buy, and testing the action instead excluded all of them. */
-function isLongPlan(plan: StoredSuggestion): boolean {
-  return framedDirectionOf(plan) === 'buy'
+/** An armed plan whose position is long, which on a spot book is every one the trail applies to,
+ *  tested on the framing as `findLatestExitPlan` selects: almost every held name carries a debated
+ *  hold framed as a buy, and testing the action instead excluded all of them. A plan read off a
+ *  sale's standing exit is not trailed, because the row's own stop belongs to the sale. */
+function isTrailable(plan: StoredSuggestion): boolean {
+  return framedDirectionOf(plan) === 'buy' && armsExit(plan) && plan.standingExit === undefined
 }

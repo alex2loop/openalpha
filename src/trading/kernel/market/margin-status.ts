@@ -1,9 +1,5 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-data'
-
-/** How far back a margin-list row still describes today. HOSE republishes the list quarterly, so
- *  two cycles reach a row that took effect at the start of the previous one. */
-export const MARGIN_STATUS_LOOKBACK_SESSIONS = 130
+import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 
 const MARGIN_EVENT_KINDS: ReadonlySet<MarketEventKind> = new Set([
   'margin-eligible',

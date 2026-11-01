@@ -21,9 +21,9 @@
 # ==== AI models ===============================================================
 
 # ---- Models (required) ------------------------------------------------------
-# At least one entry, in fallback order. Every entry needs model; provider and
-# api_key_env must exist after merging [model_defaults]. A server on this machine
-# needs no api_key_env. `openalpha provider list` prints the known providers.
+# At least one entry, in fallback order. Every entry needs model; provider must
+# exist after merging [model_defaults]. api_key_env names where the key lives; a
+# server on this machine needs none. `openalpha provider list` prints the known providers.
 #
 # [model_defaults] is inherited by every [[models]] and [[model_tiers]] entry,
 # and an entry's own fields win. That is why the entries below are one line. An
@@ -34,7 +34,8 @@
 # An unset key variable never stops `openalpha start`: the daemon prints one warning
 # and keeps refreshing data, firing alerts and running the ledger. Chat, /suggest,
 # research and the morning brief's model sections wait until you save the variable
-# with `openalpha key set <NAME>` and run `openalpha restart --background`.
+# with `openalpha key set <NAME>` (or on the office page, Settings > Providers) and run
+# `openalpha restart --background`.
 # `openalpha doctor` and `openalpha config validate` still report it.
 
 [model_defaults]
@@ -67,6 +68,7 @@ model = "deepseek/deepseek-v4.1-flash"
 
 # Per-entry tuning, also settable in [model_defaults]. Keep max_tokens per entry:
 # a default would also cap the decisions tier below, which takes no output cap.
+# base_url = "http://127.0.0.1:11434/v1"   # endpoint override; default: the provider's catalog endpoint
 # reasoning = "default"            # default | off | low | medium | high
 # max_tokens = 8192                # cap on the reply for this entry
 # reasoning_required = false       # per entry only: endpoint rejects a disable payload
@@ -113,7 +115,7 @@ model = "anthropic/claude-haiku-5.5"
 # model = "gemini-2.5-flash"
 # api_key_env = "GOOGLE_API_KEY"
 
-# The six debate personas. Pick a fast model: the debate is four serial calls.
+# The six debate personas. Pick a fast model: the debate runs in three serial stages.
 [[model_tiers.debate]]
 model = "openai/gpt-6-luna"
 
@@ -138,7 +140,7 @@ model = "typesafe/jev-1.14"           # pin a version, never an alias
 # provider = "lmstudio"
 # model = "your-local-decision-model"
 
-# Workers reached through `delegate` / `delegate_parallel`.
+# Workers reached through `delegate`, `delegate_parallel` and `spawn`.
 # [[model_tiers.delegate]]
 # model = "anthropic/claude-haiku-5.5"
 
@@ -167,7 +169,7 @@ max_daily_usd = 2           # 0 = uncapped
 # ---- Locale -----------------------------------------------------------------
 
 [locale]
-language = "vi"                   # vi | en
+language = "vi"                   # vi | en; every reply, brief and alert uses it
 # timezone = "UTC"                # IANA tz; defaults to the host zone
 # currency = "VND"                # ISO 4217 operator base currency
 # region = "vn"                   # home market: vn | us (world gold owns global but is reference only). Leads the
@@ -202,10 +204,24 @@ language = "vi"                   # vi | en
 # ---- Retention --------------------------------------------------------------
 
 # [retention]
-# days = 90                       # prune old sessions/runs and removed-agent log dirs
+# days = 90                       # prune old sessions, run and notice history, and removed-agent log dirs; the ledger is never swept
+# history_days = 1095             # track record (scored suggestions, factor log, theme outcomes, NAV, macro series); at least days.
+#                                 # Tables read further back are kept that long anyway: the track record a year, macro series about 500 days, macro documents about 25 months.
 # inbox_days = 7                  # prune delivered/dead inbox rows
 # daily_backups = 3               # one SQLite snapshot a day in backups/daily/, this many kept; 0 turns it off
 # The cost ledger (llm_attempts) is kept 400 days whatever days is set to.
+
+
+# ---- Notices ----------------------------------------------------------------
+# These readings reach the bell in the app and no chat: a call you were given has
+# been scored (call-scored), news on a name you hold (held-news), and the region's
+# index falling hard in a session (index-drop). List a kind here to get it in your
+# chat as well. Held-name news covers only names the daemon has already read: a
+# /suggest or a chat about the name archived its headlines, and nothing fetches
+# news for your holdings on a schedule.
+
+# [notices]
+# chat = []                       # any of: call-scored, held-news, index-drop
 
 
 # ---- Logging ----------------------------------------------------------------
@@ -254,7 +270,8 @@ language = "vi"                   # vi | en
 # horizon (your profile picks the horizon per segment). Setting any level key
 # starts a separate track record for that market. Restart after editing.
 # [trading.markets.equity-vn]
-# holidays = ["2027-01-01"]          # closures announced after your build; added to the built-in ones
+# holidays = ["2027-05-04"]          # a closure the exchange announced that the law does not give
+# open_days = ["2027-09-01"]         # a day the law closes but the exchange trades
 # maximum_stop_loss = 0.08           # never more than 8% below entry (0.02-0.30); none by default
 # stop_loss_atr = 3                  # stop distance in average daily ranges (1-5); 1.5 / 3
 # reward_risk = 3                    # target as a multiple of that risk (1-5); 1.5 / 3
@@ -268,18 +285,19 @@ language = "vi"                   # vi | en
 # that day, with a notice; tomorrow's goes out as usual. Only /brief disable stops it.
 # The brief opens with a market story and a check of earlier ones; it calls no model and needs no key.
 # [trading.briefs]
-# send_time = "08:15"                # morning brief delivery (HH:MM), read in your home market's time zone
+# send_time = "08:15"                # morning brief delivery (HH:MM, home market's time zone, before the open)
 
 # Mid-session report for the market of your [locale] region (VN stocks by
 # default), on that market's hours and trading days. Off by default; name the
-# times to turn it on.
+# times to turn it on. A report that wakes later than [schedule] late_grace_ms
+# after its time (a laptop asleep through it) is skipped, not sent late.
 # [trading.intraday]
 # send_times = ["10:30", "14:00"]
 
 # Watchlist breakout alerts. /screen's universe and gates are code-owned.
 # [trading.alerts]
 # breakout_range = 1.5               # a move must travel this many average daily ranges to alert
-# breakout_sessions = 14             # sessions that average range is measured over
+# breakout_sessions = 14             # sessions that average range is measured over; at least 5
 
 # A price typed in /record, /update or /alert this many times above or below the name's latest
 # price is saved only once you confirm it.
@@ -289,7 +307,7 @@ language = "vi"                   # vi | en
 # Orders on okx and binance.
 # [trading.orders]
 # maximum_stake_quote = 0            # most one buy may spend, in USDT; 0 = uncapped
-# maximum_open_trades = 0            # max concurrent open trades a buy may add to; 0 = uncapped
+# maximum_open_trades = 0            # max open positions a new buy may add to (adding to a held name is not a new one); 0 = uncapped
 # maximum_price_drift = 0.005        # how far a limit may sit from the live quote, and the live quote
 #                                    # from the one you were shown (market orders), as a fraction
 # allow_unattended = false           # true = allow orders without interactive approval
@@ -304,6 +322,9 @@ language = "vi"                   # vi | en
 # secret); any other field stops boot. Every rule: docs/en/configuration.md#trading.
 # Give an exchange key Reading and Spot & Margin Trading only, never Withdrawals,
 # and pin it to your server's IP. `openalpha doctor venues --online` checks both.
+# The office page saves the key values (Settings > Exchanges) but never changes
+# credentials: the variable names are set here or from the CLI.
+#
 # A US broker you place orders at yourself (record fills by hand). us-broker already holds US stocks
 # with zero fees; give your own broker a name and its fees to replace it:
 # [trading.venues.schwab]
@@ -314,7 +335,6 @@ language = "vi"                   # vi | en
 # [trading.venues.coinbase]
 # default_for = ["crypto"]
 # fees = { buy = 0.006, sell = 0.006 }
-#
 # [trading.venues.binance]
 # default_for = ["crypto"]
 # fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }
@@ -330,14 +350,20 @@ language = "vi"                   # vi | en
 # [trading.venues.ssi]
 # default_for = ["equity-vn"]
 # fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
+# Keeping vps as the default too? Replace default_for with markets = ["equity-vn"]:
+# the broker holds that market without becoming its default. A built-in venue
+# (vps, binance, okx, gold-shop) cannot set markets.
 
 # Only markets you still use refresh: a segment on in /profile, or one where you
 # hold, watch or wait on a scored call. `/refresh <market>` loads any of them.
 # [trading.refresh]
 # interval_ms = 43200000             # ~12h ceiling; refresh anchors to each session's open and close
 
-# Rename a source's credential env var. Only coingecko, fred and sec-data take credentials.
+# Rename a source's credential env var. Only bls, coingecko, fred and sec-data take credentials.
+# Set here or from the CLI only; the office page saves the keys (Settings > Tools),
+# never these names.
 # [trading.sources]
+# bls = "MY_BLS_KEY"                   # default: BLS_API_KEY; optional, 500 calls a day instead of 25
 # coingecko = "MY_COINGECKO_KEY"     # default: COINGECKO_API_KEY
 # fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only VIX source
 # sec-data = "MY_SEC_EMAIL"          # default: SEC_CONTACT_EMAIL; a contact address SEC asks for, not a key
@@ -355,6 +381,8 @@ language = "vi"                   # vi | en
 # A channel whose token is unset or rejected by the platform does not start: the
 # daemon warns, runs without it and answers nobody there until you fix the token
 # and run `openalpha restart --background`.
+# While [api] public_url is set, allowed_ids, operator_user_ids, pairing and
+# dm_policy change only on the server (the CLI or this file), never from the app.
 
 # [channels.telegram]
 # enabled = true
@@ -367,7 +395,7 @@ language = "vi"                   # vi | en
 # markdown = true                    # bold, links and expandable detail blocks; false sends
 #                                    # plain text, streamed replies included
 # require_mention = true             # groups: only answer when mentioned
-# slash_commands = true              # intercept /new /stop /cancel /help and the core commands
+# slash_commands = true              # intercept /new /help and the core commands; /stop always works
 # typing_indicator = true
 # use_reactions = true
 # mid_stream_updates = true          # edit the placeholder while streaming
@@ -400,6 +428,7 @@ language = "vi"                   # vi | en
 
 # [schedule]
 # approval_timeout_ms = 900000       # a scheduled run's approval window (max 2147483647)
+# late_grace_ms = 900000             # how late a cron job (or an intraday report) may still start; a later time is skipped (min 35000, one scheduler look plus its network check; max 2147483647)
 # failure_target = "telegram:123456" # where "job disabled after N failures" goes
 
 
@@ -416,13 +445,17 @@ language = "vi"                   # vi | en
 # delegation_depth = 3               # max parent -> child delegate chain
 # max_delegations = 32               # total delegate calls per run tree
 # max_parallel_delegations = 5       # most children one delegate_parallel accepts
+# max_spawn_duration_ms = 600000     # time one spawned child agent gets before it is stopped (max 2147483647)
+# max_spawn_turns = 12               # model turns one spawned child agent gets
 # max_unasked_fetches = 10           # web_fetch calls per run before each one asks you; 0 = always ask
 
 
 # ---- Memory -----------------------------------------------------------------
 
 # [memory]
-# ttl_days = 90
+# ttl_days = 90                      # a note is forgotten this many days after its last update
+# The office page lists the notes per agent and person (Settings > Memory), adds one
+# with + Remember and forgets one with undo.
 
 
 # ---- Web search -------------------------------------------------------------
@@ -432,6 +465,8 @@ language = "vi"                   # vi | en
 # If api_key_env names a variable that is empty, only web search stops (the tool
 # and /research refuse, doctor and `config validate` say which variable to set);
 # an empty fallback_api_key_env just turns the fallback off.
+# The office page (Settings > Tools) switches provider and saves the key; api_key_env
+# and base_url stay in this file.
 
 # A paid provider, with a self-hosted SearXNG behind it:
 # [web_search]
@@ -442,6 +477,21 @@ language = "vi"                   # vi | en
 # fallback_base_url = "http://localhost:8080"
 # safe_search = 1                        # SearXNG only: 0 off, 1 moderate, 2 strict
 # cache_ttl_ms = 300000                  # query cache lifetime in milliseconds; 0 disables it
+
+# Your own SearXNG instance (keyless; enable the json format in settings.yml, search.formats):
+# [web_search]
+# provider = "searxng"
+# base_url = "http://localhost:8080"     # searxng only; a remote instance must use https
+# safe_search = 1
+
+# A paid provider with another paid one behind it (the fallback must differ from provider):
+# [web_search]
+# provider = "tavily"
+# api_key_env = "TAVILY_API_KEY"
+# cost_per_search_usd = 0.001
+# fallback_provider = "deepseek"
+# fallback_api_key_env = "DEEPSEEK_API_KEY"
+# fallback_cost_per_search_usd = 0.00075
 
 # exa, with its search mode:
 # [web_search]
@@ -461,16 +511,40 @@ language = "vi"                   # vi | en
 # ==== Connections =============================================================
 
 # ---- API server -------------------------------------------------------------
-# HTTP/WS API for client apps (off by default).
+# HTTP/WS API for client apps (on by default, loopback only). It gives a client app
+# a live feed of what the daemon is running: runs and their steps, pending
+# approvals, fills and spend caps reached. The daemon also serves the office page at
+# its own address (http://127.0.0.1:<port>/), which shows that feed.
 # Binds 127.0.0.1 only; on a server, reach it through an SSH tunnel or a reverse
-# proxy on the same host (docs/en/operations.md). Bearer token at
-# <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with
-# `openalpha api token`, replace it with `openalpha api rotate`.
+# proxy on the same host (docs/en/operations.md).
+# Anything in front of the daemon (a proxy such as Caddy or nginx, `tailscale serve`, a domain)
+# needs public_url set to the address the browser opens: it turns on the exposure limits and
+# the __Host- sign-in cookie. Without it the daemon only catches a proxy that sends
+# X-Forwarded-For or Forwarded, or a Host that is not a local name, and refuses those with a line
+# naming public_url. A proxy that sends neither (a bare nginx proxy_pass) looks local, so set
+# public_url first and have nginx send `proxy_set_header Host $host;` and
+# `proxy_set_header X-Forwarded-For $remote_addr;`.
+# Setting it keeps the order routes and /trade from the app off until orders = true, keeps
+# shell commands, file writes, tools from MCP servers or plugins and social network tools out of
+# chats from the app, keeps jobs made from the app answering only in the app, and makes pairing
+# approval, the channel access keys, saving keys and the ChatGPT sign-in server-only. The office
+# page's config editor leaves plugins, MCP commands, *_env keys and every other field naming an
+# environment variable ([trading.sources], a venue's credentials), base_url, [paths], [log] file,
+# [storage], [api], [update] and [trading.orders] allow_unattended to this file. The page saves
+# key values themselves (Settings > Providers, Exchanges, Tools) into the same file
+# `openalpha key set` writes.
+# Bearer token at <data_dir>/auth/api/token.json (0600) unless token_env is set; print it with
+# `openalpha api token`, replace it with `openalpha api rotate` (it signs every browser out
+# and restarts a running daemon, which retires the old token). `openalpha web` prints a one-time link that
+# opens the office page, good for 5 minutes; `openalpha connect` prints the address and
+# token the desktop app pastes. Keep them as private as the token itself.
 
 # [api]
-# enabled = false
+# enabled = true                     # false: no port is opened
 # port = 8765
 # token_env = "OPENALPHA_API_TOKEN"
+# orders = true                      # false by default once public_url is set
+# public_url = "https://alpha.example.com"   # or https://<machine>.<tailnet>.ts.net
 
 
 # ---- Serving OpenAlpha over MCP ---------------------------------------------

@@ -2,7 +2,7 @@ import type { SearchBackend } from '@/tools/web/search/types'
 import { runApiKeyProvider } from '@/tools/web/search/backends/api-key-provider'
 import { toFreeSearchResponse, toSearchResults } from '@/tools/web/search/result-parser'
 
-const TAVILY_ENDPOINT = 'https://api.tavily.com/search'
+export const TAVILY_ENDPOINT = 'https://api.tavily.com/search'
 const TAVILY_HEADER = 'Authorization'
 const TAVILY_BEARER_PREFIX = 'Bearer '
 

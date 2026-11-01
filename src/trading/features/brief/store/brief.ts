@@ -86,6 +86,8 @@ interface PreviousBriefOptions {
 }
 
 export interface BriefStore {
+  /** Whether a brief is stored for one day, whatever languages it was written in. */
+  hasOnDay(day: TradingDay, signal: AbortSignal): Promise<boolean>
   upsertSnapshot(snapshot: BriefSnapshot, signal: AbortSignal): Promise<void>
   /** Serves idempotent build and delivery; `findLatest` serves user reads. */
   findExact(options: ExactBriefOptions): Promise<BriefSnapshot | null>
@@ -97,6 +99,7 @@ export interface BriefStore {
 
 export function createBriefStore(deps: StoreDeps): BriefStore {
   return {
+    hasOnDay: (day, signal) => hasOnDay(deps, day, signal),
     upsertSnapshot: (snapshot, signal) => upsertSnapshot(deps, snapshot, signal),
     findExact: (options) => findExact(deps, options),
     findLatest: (options) => findLatest(deps, options),
@@ -135,6 +138,17 @@ async function upsertSnapshot(
       }),
     ]
   )
+}
+
+async function hasOnDay(deps: StoreDeps, day: TradingDay, signal: AbortSignal): Promise<boolean> {
+  assertNotAborted(signal)
+
+  const rows = await deps.db.query<{ readonly present: number }>(
+    `SELECT 1 AS present FROM brief_snapshots WHERE day = ${deps.dialect.param(1)} LIMIT 1`,
+    [day]
+  )
+
+  return rows.length > 0
 }
 
 async function findExact(

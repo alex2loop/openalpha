@@ -30,8 +30,8 @@ Không trang nào cần đọc code.
 | [nguon-du-lieu.md](nguon-du-lieu.md) | Nguồn nào trả lời việc gì, cần khóa nào, khi một nguồn lỗi thì sao |
 | [tro-ly.md](tro-ly.md) | Viết một agent, ghép đội, kỹ năng, chọn mô hình |
 | [an-toan.md](an-toan.md) | Phê duyệt, các lớp bảo vệ bạn, các lỗi bạn có thể gặp |
-| [ngan-sach.md](ngan-sach.md) | Hạn mức chi tiêu và xem một lượt chạy tốn bao nhiêu |
-| [van-hanh.md](van-hanh.md) | Vòng lặp nền, lịch chạy, heartbeat, chạy API trên máy chủ |
+| [ngan-sach.md](ngan-sach.md) | Hạn mức chi tiêu và xem một phiên chạy tốn bao nhiêu |
+| [van-hanh.md](van-hanh.md) | Vòng lặp nền, lịch chạy, heartbeat, chạy API trên máy chủ, trang văn phòng |
 | [luu-tru.md](luu-tru.md) | SQLite hay Postgres, sao lưu, xuất nhập, phiên và lịch sử |
 | [kenh.md](kenh.md) | Telegram và Zalo |
 | [nghien-cuu.md](nghien-cuu.md) | Nghiên cứu web có giới hạn, có trích nguồn |
@@ -44,7 +44,7 @@ thêm nguồn dữ liệu hay kênh mới, và lý do code được tổ chức 
 
 ## Đóng góp tài liệu
 
-Rất hoan nghênh chỗ sửa hay trang mới. Mỗi trang một chủ đề; đoạn nào hợp với hai trang thì nên dùng
-link thay vì chép lại. Viết bản tiếng Anh trong `en/` trước, thêm bản tiếng Việt với tên tiếng Việt, và
+Rất hoan nghênh chỗ sửa hay trang mới. Mỗi trang một chủ đề. Đoạn nào hợp với cả hai trang thì đặt
+link tới nó, đừng chép lại. Viết bản tiếng Anh trong `en/` trước, thêm bản tiếng Việt với tên tiếng Việt, và
 thêm một dòng vào cả hai bảng mục lục. Việc operator làm thì vào trang hướng dẫn; thứ chỉ developer cần
 thì vào `dev/`.

@@ -6,11 +6,11 @@ import type {
 } from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import { renderQuoteText } from '@/trading/features/market-data/render/quote'
 import { parseTickerRequest, usage } from '@/trading/kernel/surface/surface'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
-import { resolveRenderContext } from '@/trading/render/format'
+import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
 const USAGE: 'slash.tradingPriceUsage' = 'slash.tradingPriceUsage'
 /** How far ahead a quote names what is coming. Calendar days rather than sessions: the command has
@@ -35,6 +35,7 @@ export function createPriceCommand(deps: PriceCommandDeps): SlashCommand {
       role: 'member',
       action: 'read',
       execution: { progressKey: 'slash.tradingPriceProgress' },
+      selfContained: true,
       transcript: 'echo',
     },
     usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
@@ -63,7 +64,7 @@ async function run(deps: PriceCommandDeps, ctx: SlashContext): Promise<SlashResu
     return {
       kind: 'text',
       text: renderQuoteText(ctx.locale, result, {
-        context: resolveRenderContext(deps.timezone, ctx.surface),
+        context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       }),
     }
   }
@@ -71,7 +72,7 @@ async function run(deps: PriceCommandDeps, ctx: SlashContext): Promise<SlashResu
   return {
     kind: 'text',
     text: renderQuoteText(ctx.locale, result, {
-      context: resolveRenderContext(deps.timezone, ctx.surface),
+      context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       events: await upcoming(deps, {
         instrument: result.value.quote.instrument,
         fromDay: result.value.observed.day,

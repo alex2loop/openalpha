@@ -7,23 +7,25 @@ import { newerVersionOf, readUpdateState, refreshUpdateState } from '@/cli/updat
 import { BRAND } from '@/core/brand'
 import { type MessageKey, t } from '@/i18n'
 
-import type { DoctorProbe } from './types'
-import { checkLabel } from './labels'
+import type { DoctorProbe, DoctorSurface } from './types'
+import { checkLabel, offlineKey } from './labels'
 
-function statusKey(state: UpdateState): MessageKey {
+function statusKey(state: UpdateState, surface: DoctorSurface): MessageKey {
   if (state.checkedAt === 0) {
-    return 'cli.updateNeverChecked'
+    return offlineKey(surface, 'neverChecked')
   }
 
   return state.failed ? 'cli.updateUnchecked' : 'cli.updateUpToDate'
 }
 
 /** Never fails: being behind is a warning, and not knowing is fine. */
-export async function probeVersion(
-  config: ResolvedConfig,
-  online: boolean,
-  locale: Locale
-): Promise<DoctorProbe> {
+export async function probeVersion(options: {
+  readonly config: ResolvedConfig
+  readonly online: boolean
+  readonly surface: DoctorSurface
+  readonly locale: Locale
+}): Promise<DoctorProbe> {
+  const { config, online, locale } = options
   const name = checkLabel(locale, 'version')
 
   if (!config.update.check) {
@@ -44,5 +46,9 @@ export async function probeVersion(
     return { name, status: 'warn', detail: formatUpdateMessage(locale, latest) }
   }
 
-  return { name, status: 'ok', detail: t(locale, statusKey(state), { brand: BRAND.name }) }
+  return {
+    name,
+    status: 'ok',
+    detail: t(locale, statusKey(state, options.surface), { brand: BRAND.name }),
+  }
 }

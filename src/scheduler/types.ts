@@ -1,8 +1,10 @@
 import type { ChannelId } from '@/core/channels'
 import type { ResolvedConfig } from '@/core/config/resolve'
+import type { TaskPassListener } from '@/core/container'
 import type { AgentId, JobId, UserId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { RunInput, Runner, RunResult } from '@/engine/api'
+import type { EventFireClaim, EventJobMatch, JobEvent } from '@/scheduler/event/types'
 
 export interface DeliverySink {
   notify(target: DeliveryTarget, text: string): Promise<void>
@@ -36,6 +38,17 @@ export interface Job {
   readonly nextRunAt: number
   readonly consecutiveFailures: number
   readonly owner?: JobOwner
+  /** Set on an event job, which runs when an alert fires and has no time of its own. */
+  readonly event?: JobEvent
+}
+
+/** The fields an operator edit changes. A field left out is never written, so a tick's advance or
+ *  retry landing meanwhile keeps its own next-run and failure count. */
+export interface JobEdit {
+  readonly prompt?: string
+  readonly target?: DeliveryTarget
+  /** A new schedule restarts the job's cadence: it comes with the next run it implies. */
+  readonly schedule?: { readonly schedule: JobSchedule; readonly nextRunAt: number }
 }
 
 export interface JobStore {
@@ -45,8 +58,11 @@ export interface JobStore {
   advance(id: JobId, nextRunAt: number): Promise<void>
   disable(id: JobId): Promise<void>
   create(job: Job): Promise<boolean>
-  put(job: Job): Promise<void>
+  /** False when the job is gone. */
+  edit(id: JobId, edit: JobEdit): Promise<boolean>
   list(): Promise<readonly Job[]>
+  /** The jobs of one agent that are on. */
+  listEnabledOfAgent(agentId: AgentId): Promise<readonly Job[]>
   find(id: JobId): Promise<Job | undefined>
   findByPrefix(prefix: string, limit: number): Promise<readonly Job[]>
   remove(id: JobId): Promise<void>
@@ -68,6 +84,10 @@ export interface JobStore {
   ): Promise<Job | undefined>
   releaseRunNowClaimOwned(owner: JobOwner, id: JobId, token: string): Promise<void>
   clearRunNowClaims(claimedBeforeMs: number): Promise<void>
+  /** Enabled event jobs this alert starts. */
+  matchEvent(match: EventJobMatch): Promise<readonly Job[]>
+  /** True when the job's last fire is a full cooldown old, and records this one in the same step. */
+  claimEventFire(claim: EventFireClaim): Promise<boolean>
 }
 
 export type SchedulerCommandResult =
@@ -76,12 +96,16 @@ export type SchedulerCommandResult =
   | { readonly kind: 'ambiguous' }
   | { readonly kind: 'invalid' }
   | { readonly kind: 'rejected' }
+  /** A price job whose alert has fired or gone: turning it on would never run it. */
+  | { readonly kind: 'alert_inactive' }
 
 export interface SchedulerRunNowInput {
   /** Absent for the local operator console, which manages jobs regardless of who created them. */
   readonly owner?: JobOwner
   readonly idOrPrefix: string
   readonly requestId: string
+  /** Added to the job's prompt for this run only. The caller has rendered and validated it. */
+  readonly appendPrompt?: string
   /** Cancels the run. The daemon passes its shutdown signal; the CLI passes the command's. */
   readonly signal: AbortSignal
 }
@@ -93,8 +117,13 @@ export interface SchedulerCommands {
   resume(owner: JobOwner, idOrPrefix: string): Promise<SchedulerCommandResult>
   runNow(input: SchedulerRunNowInput): Promise<SchedulerCommandResult>
   remove(owner: JobOwner, idOrPrefix: string): Promise<SchedulerCommandResult>
-  /** Owner-independent removal, for the local operator console only. */
-  removeAny(idOrPrefix: string): Promise<SchedulerCommandResult>
+  /** Owner-independent removal, for the local operator console only. `fromOwnRun` is set by a job
+   *  removing itself from inside its own run: that run is not stopped, it finishes and delivers
+   *  on its own, and the row goes after it. The job is disabled and its alert retired at once. */
+  removeAny(
+    idOrPrefix: string,
+    options?: { readonly fromOwnRun?: boolean }
+  ): Promise<SchedulerCommandResult>
   pauseAny(idOrPrefix: string): Promise<SchedulerCommandResult>
   resumeAny(idOrPrefix: string): Promise<SchedulerCommandResult>
 }
@@ -171,8 +200,22 @@ interface SchedulerOccurrenceStore {
   markStale(nowMs: number): Promise<number>
 }
 
+/** What a job whose prompt is a slash command came to: the reply to deliver, or the turn the command
+ *  hands to an agent. */
+export type JobCommandAnswer =
+  | { readonly kind: 'text'; readonly text: string }
+  | { readonly kind: 'agent'; readonly message: string; readonly agentId?: AgentId }
+
+export interface JobCommandRun {
+  readonly signal: AbortSignal
+  /** Told once, before the command starts. */
+  readonly onWorkStart?: () => Promise<void>
+}
+
 // Consumer-side interface: `persistence` implements it, `app` binds it (as JobStore does).
 export interface SchedulerDeps {
+  /** Told each tick of the scheduler's own loop. */
+  readonly onTaskPass: TaskPassListener
   readonly jobStore: JobStore
   readonly runner: Runner
   readonly occurrences: SchedulerOccurrenceStore
@@ -180,6 +223,9 @@ export interface SchedulerDeps {
   readonly logger: Logger
   readonly config: ResolvedConfig
   readonly runInput: (job: Job) => RunInput
+  /** Runs a job whose prompt is a slash command the way a typed one runs, no model unless the
+   *  command needs one; undefined for a prompt that is not a command. */
+  readonly runCommand: (job: Job, run: JobCommandRun) => Promise<JobCommandAnswer | undefined>
   /** Surface-owned localized rendering for the operator-facing auto-disable notice. */
   readonly renderAutoDisableNotice: (jobId: JobId, consecutiveFailures: number) => string
   /** Surface-owned localized rendering for a run that stopped early with part of an answer. */
@@ -188,4 +234,8 @@ export interface SchedulerDeps {
   readonly defaultTarget: () => DeliveryTarget | undefined
   /** Where disabled-job alerts go, independently from the job's potentially broken target. */
   readonly failureTarget: () => DeliveryTarget | undefined
+  /** Told when an event job is removed, with the alert it was armed with. */
+  readonly onEventJobRemoved?: (alertId: string) => Promise<void>
+  /** Whether a price job's alert can still fire. */
+  readonly isEventAlertLive?: (alertId: string) => Promise<boolean>
 }

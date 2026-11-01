@@ -64,7 +64,7 @@ operator_user_ids = [123456789]
 | `enabled` | all | Set `false` to switch a configured channel off |
 | `token_env`, `token_file` | `telegram`, `zalo` | Bot token, read in that order. `zalo_personal` has no token; it uses the stored `profile` |
 | `allowed_ids` | all | Chats or users let in. On `telegram`, setting it turns pairing off unless `pairing = true` |
-| `operator_user_ids` | all | Who may run `/trade`, `/upgrade` and the in-chat pairing controls (`/pair`, `/approve`, `/deny`). Pairing controls work only from a chat listed in `allowed_ids`; in a group, list the group's own id there too. Without it, everyone the bot admits counts as the operator in their own private chat, so set it when you share the bot |
+| `operator_user_ids` | all | Who counts as the operator: who may run every command that reads or changes your book (`/trade`, `/record`, `/portfolio`, `/suggest`, `/alert`, `/brief`, `/themes` and the rest of the trading commands), plus `/config`, `/new`, `/social`, `/upgrade` and the in-chat pairing controls (`/pair`, `/approve`, `/deny`). Anyone else the bot admits gets the public commands only, such as `/price`. Pairing controls work only from a chat listed in `allowed_ids`; in a group, list the group's own id there too. Without it, everyone the bot admits counts as the operator in their own private chat, so set it when you share the bot |
 | `pairing` | `telegram` | Force pairing on or off |
 | `dm_policy` | `zalo` | `pairing`, `allowlist` or `disabled`. Defaults to `pairing`, or `allowlist` once `allowed_ids` is set, the same as Telegram |
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | The required opt-in, and which saved QR login to use |
@@ -83,9 +83,10 @@ channel without a valid token accepts no messages from anyone. Fix the token and
 A Telegram token revoked while the daemon runs is handled the same way: after three refusals in a row the channel stops,
 `/health` shows it down, and the down notice on another open channel says the token was refused.
 A bad configuration value (wrong type, misspelt key) still stops `start` with an error. Any other
-failure to check the token is a connection problem: the check is tried four times with a growing pause,
-and if the network is still down the channel stays up, shows as degraded, and keeps retrying in the
-background with a capped pause until it connects or the daemon stops. Zalo Personal has no token to
+failure to check the token is a connection problem: the check is made once at start-up and never holds
+the daemon back. If the network is down or slow the channel stays up, shows as degraded, and keeps
+retrying in the background with a capped pause until it connects or the daemon stops. Telegram's
+command menu is also set up in the background once the bot is reachable. Zalo Personal has no token to
 reject; it keeps retrying its login in the background the same way. If no channel is up, running from
 the CLI alone still works.
 
@@ -131,7 +132,9 @@ In a private chat with the operator, the bot mentions a new release at most once
 
 `/upgrade` shows what is new, and `/upgrade confirm` (or the "Update now" button) installs it. The bot goes quiet for about a minute while it restarts, then messages you that it is back on the new version. If the new release will not start, it goes back to the old one by itself and tells you.
 
-This works only for a daemon started with `start --background`, and only once the bot has no answer, research run, approval, brief or data refresh in progress; otherwise it asks you to try again. Only the operator may use it, as for `/trade`: without `operator_user_ids`, everyone the bot admits counts as the operator in their own private chat, so anyone sharing the bot should set it.
+This works only for a daemon started with `start --background`, and only when nothing is in progress: no answer, research run, approval, brief or data refresh. Otherwise the bot asks you to try again later.
+
+Only the operator may use it, as with `/trade`. Without `operator_user_ids`, everyone the bot lets in counts as the operator in their own private chat, so if you share the bot with others, set it.
 
 ## Approvals and plan reviews on Zalo
 
@@ -141,7 +144,19 @@ operator, and only until the prompt times out; typing it again, or after the tim
 was already answered or has expired. Two prompts open at once get different codes, and answering one
 leaves the other's codes live. A button tapped after its prompt was answered or timed out gets the same reply.
 
-`fallback_chat_id` also decides where an alert or the morning brief armed from the terminal goes: the first configured channel (Telegram, Zalo, Zalo Personal) with a fallback chat, a lone allowed id, or a lone paired chat. Pairing needs nothing more: the daemon picks the chat up from the first message you send after pairing. Revoke it with `pair revoke` and the daemon stops sending to that chat, from the next message on and across restarts. Alerts and the morning brief armed there switch off at their next send, so pairing again does not bring them back: run `/brief enable` again and set the alerts again. A group admitted through your account has no pairing of its own, so `pair revoke` does not reach it: to stop it, turn off the alerts and brief armed there or remove the bot from the group.
+`fallback_chat_id` also decides where an alert or the morning brief armed from the terminal goes: the
+first configured channel (Telegram, Zalo, Zalo Personal) with a fallback chat, a lone allowed id, or a
+lone paired chat.
+
+- **Pairing** needs nothing more. The daemon picks the chat up from the first message you send after
+  pairing.
+- **Revoking** with `pair revoke` makes the daemon stop sending to that chat, from the next message on
+  and across restarts. Alerts and the morning brief armed there switch off at their next send, so
+  pairing again does not bring them back: run `/brief enable` again and set the alerts again.
+- **A group** admitted through your account has no pairing of its own, so `pair revoke` does not reach
+  it. To stop it, turn off the alerts and brief armed there, or remove the bot from the group.
+- **The app** lists the chats paired on each channel and can unpair one, which does the same as
+  `pair revoke`.
 
 A channel that drops and stays down is reported on another one, and `status` lists it; see [Operations](operations.md#when-the-daemon-stops-or-misses-a-brief).
 
@@ -154,7 +169,9 @@ A channel that drops and stays down is reported on another one, and `status` lis
 2. **It is checked.** Stop and pairing commands are handled first. Slash commands go to the normal
    command dispatcher. Ordinary text is batched for a moment, then sent to the chat's agent and session.
 3. **It waits its turn.** Each chat session runs one task at a time, and the daily and monthly budget
-   checks run before anything new starts.
+   checks run before anything new starts. Commands that run on their own (`/suggest`, `/screen`, `/refresh` and
+   the like) are the exception: they run beside the session's turn, up to three at once per chat. One that has to
+   wait answers "Queued" with its place in line, and `/stop` or `/new` drops it. Either one also stops the commands already running.
 4. **You see it progress.** With `mid_stream_updates = true` on a channel that can edit messages
    (Telegram), one message updates live with the tool being used and the time elapsed. Elsewhere you get
    the final answer. Typing indicators and reactions show only where the channel and your config allow.

@@ -72,16 +72,38 @@ export const DEBATE_WAVES: readonly DebateWave[] = Object.freeze([
 ])
 
 export interface CalendarPolicy {
+  /** The exchange whose hours these are, a proper noun printed as is; absent where no one exchange
+   *  sets them (crypto, gold). */
+  readonly exchange?: string
   readonly timezone: string
   readonly sessionOpenLocalTime: string
   readonly sessionCloseLocalTime: string
   readonly breakStartLocalTime?: string
   readonly breakEndLocalTime?: string
+  /** Where continuous trading gives way to the closing call auction, which runs to the close.
+   *  Absent where the market fixes its close without one. */
+  readonly closeAuctionStartLocalTime?: string
   readonly weekendDays: readonly number[]
-  /** Weekdays the exchange is shut, as it published them. Absent where the tape trades every day
-   *  its weekend allows. */
-  readonly holidays?: readonly TradingDay[]
+  /** The weekdays the exchange is shut in a year, from the law that sets them; the caller names
+   *  which days are the weekend, so the law never restates it. Absent where the tape trades every
+   *  day its weekend allows. */
+  readonly holidays?: (
+    year: number,
+    isWeekend: (day: TradingDay) => boolean
+  ) => readonly TradingDay[]
   readonly continuous: boolean
+}
+
+/** The hours a market trades, as `HH:MM` on its own clock: what a surface times its open, lunch
+ *  and close from. A calendar that never closes has none. */
+export interface SessionHours {
+  /** The exchange whose hours these are, as its calendar names it. */
+  readonly exchange?: string
+  readonly timezone: string
+  readonly open: string
+  readonly close: string
+  readonly breaks?: readonly { readonly from: string; readonly to: string }[]
+  readonly closeAuction?: { readonly from: string; readonly to: string }
 }
 
 export interface SuggestionPolicy {
@@ -132,10 +154,8 @@ export interface OperationsPolicy {
   readonly deliveryLeaseMs: number
   readonly deliveryRetry: RetryPolicy
   /** A closed laptop wakes in the background with no network, and a tick spent there fails or
-   *  burns a delivery attempt. Every loop resolves this host first and waits `offlineRetryMs`
-   *  while it cannot. */
-  readonly reachabilityHost: string
-  readonly reachabilityTimeoutMs: number
+   *  burns a delivery attempt. Every loop probes the network first and waits this long while it
+   *  cannot reach it. */
   readonly offlineRetryMs: number
 }
 
@@ -216,8 +236,10 @@ export type VenueConfigs = Readonly<Partial<Record<VenueRef, VenueConfig>>>
 
 /** Everything one market is configured with. */
 export interface MarketConfig {
-  /** Closures the exchange announced after this build shipped, added to the market's own table. */
+  /** Closures the exchange announced that the market's own rules do not give, added to them. */
   readonly holidays: readonly TradingDay[]
+  /** Days the market's own rules close but the exchange trades. Wins over the rules. */
+  readonly openDays: readonly TradingDay[]
   /** The farthest below entry a stop may sit, as a fraction of entry. Absent means no ceiling. */
   readonly maximumStopLoss?: number
   /** Stop distance in ATRs, for whichever horizon the segment runs. Absent keeps the market's own. */

@@ -53,7 +53,7 @@ const DISCLOSURE_SUPERVISION: ReadonlySet<SupervisionLevel> = new Set(
   SUPERVISION_LEVELS.filter((level) => !RESTRICTED_SUPERVISION.has(level))
 )
 
-interface ScreenInput {
+export interface ScreenInput {
   readonly instrument: InstrumentRef
   readonly name?: string
   /** The market's own sector slug, for a caller that narrows the board to some sectors. */

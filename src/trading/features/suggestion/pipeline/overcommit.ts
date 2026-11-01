@@ -15,16 +15,19 @@ const MINIMUM_BUYS = 2
 interface OvercommitInput {
   readonly results: readonly SuggestionRunResult[]
   readonly markets: MarketRegistry
+  /** What a buy's cash draw exceeds its notional by: the sizer's own headroom for fee and drift. */
+  buyCashMultiple(market: MarketRef): number
   /** Asked for only once the set has two sized buys, and memoised by the batch's one clock read. */
   readContext(): Promise<SuggestionPortfolioContext>
   /** The room the book had before the batch, read as the sizer read it. */
   readOpenRisk(context: SuggestionPortfolioContext): Promise<OpenRisk | undefined>
 }
 
-/** A sized buy, with what it spends and what it stands to lose at its stop. */
+/** A sized buy, with the cash it draws and what it stands to lose at its stop. */
 interface SizedBuy {
   readonly market: MarketRef
-  readonly sizePctNav: number
+  /** The notional times the cash multiple: what the sizer held against spendable cash. */
+  readonly cashPctNav: number
   readonly units: number
   /** Market currency per unit, from the stored stop: a stop the run lifted to a held one sits above
    *  the entry-relative level the sizer budgeted, so the sum errs toward silence, never toward a
@@ -44,7 +47,7 @@ interface BookRead {
 export async function overcommittedBook(
   input: OvercommitInput
 ): Promise<readonly BatchOvercommit[]> {
-  const buys = input.results.flatMap(sizedBuyOf)
+  const buys = input.results.flatMap((result) => sizedBuyOf(result, input))
 
   if (buys.length < MINIMUM_BUYS) {
     return []
@@ -69,7 +72,7 @@ export async function overcommittedBook(
   ]
 }
 
-function sizedBuyOf(result: SuggestionRunResult): readonly SizedBuy[] {
+function sizedBuyOf(result: SuggestionRunResult, input: OvercommitInput): readonly SizedBuy[] {
   if (result.kind !== 'completed') {
     return []
   }
@@ -83,15 +86,15 @@ function sizedBuyOf(result: SuggestionRunResult): readonly SizedBuy[] {
   return [
     {
       market: suggestion.instrument.market,
-      sizePctNav: suggestion.sizePctNav,
+      cashPctNav: suggestion.sizePctNav * input.buyCashMultiple(suggestion.instrument.market),
       units: suggestion.units ?? 0,
       riskPerUnit: armsExit(suggestion) ? Math.max(suggestion.entry - suggestion.stop, 0) : 0,
     },
   ]
 }
 
-/** Cash is the sizer's own rule: spendable is what the book holds less the reserve, and one market
- *  may reach less of it. A market is named only where its reach is the narrower ceiling, so the
+/** Cash is the sizer's own rule: spendable is what the book holds less the reserve, a buy draws its
+ *  notional times the cash multiple, and one market may reach less of it. A market is named only where its reach is the narrower ceiling, so the
  *  whole book's line is never repeated under it. */
 function cashOvercommit(buys: readonly SizedBuy[], read: BookRead): readonly BatchOvercommit[] {
   const { context, navBase } = read
@@ -102,7 +105,7 @@ function cashOvercommit(buys: readonly SizedBuy[], read: BookRead): readonly Bat
   const needByMarket = new Map<MarketRef, number>()
 
   for (const buy of buys) {
-    needByMarket.set(buy.market, (needByMarket.get(buy.market) ?? 0) + buy.sizePctNav)
+    needByMarket.set(buy.market, (needByMarket.get(buy.market) ?? 0) + buy.cashPctNav)
   }
 
   const total = [...needByMarket.values()].reduce((sum, need) => sum + need, 0)

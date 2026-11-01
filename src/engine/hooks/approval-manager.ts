@@ -61,11 +61,12 @@ function evictOldest<K, V>(map: Map<K, V>, max: number): void {
   }
 }
 
-// A remembered approval covers the exact call the operator saw, never the tool by name: the shell
-// tool is unsandboxed and an external tool's server decides what its arguments do. Shell keys on a
+// A remembered approval covers what its key names. The shell tool is unsandboxed and an external
+// tool's server decides what its arguments do, so those two key on the exact call: shell on a
 // digest of the command as given (`/usr/bin/ls` and `./ls` differ) and its unscrubbed argv, an
-// external tool on a digest of its whole input; a different call re-prompts. Digesting keeps a
-// secret argument out of memory in clear and lets `["a b"]` and `["a", "b"]` differ. Only this key
+// external tool on a digest of its whole input; a different call re-prompts. Any other tool keys
+// on its name, so the approval covers the tool whatever its arguments. Digesting keeps a secret
+// argument out of memory in clear and lets `["a b"]` and `["a", "b"]` differ. Only this key
 // carries the full call - the prompt stays short.
 export function approvalKeyFor(call: PreparedToolCall): string {
   if (call.tool.capability === 'shell') {

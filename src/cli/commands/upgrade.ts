@@ -8,6 +8,7 @@ import { stopDaemonIfRunning } from '@/cli/commands/daemon/daemon'
 import { migrateDownArgs } from '@/cli/commands/db/migrate'
 import { liveDaemon } from '@/cli/daemon-guard'
 import { isInteractiveStderr } from '@/cli/env'
+import { usage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { formatArgIssue } from '@/cli/parsing/arg-issue'
 import { buildSelfArgv } from '@/cli/services'
@@ -76,11 +77,10 @@ async function runUpgrade(app: CliApp, options: UpgradeOptions): Promise<number>
   const locale = app.config.locale.language
 
   if (options.checkOnly && options.rollback) {
-    app.err(
-      fail(formatArgIssue(locale, { token: '--check/--rollback', code: 'conflicting_flags' }))
+    return usage(
+      app,
+      formatArgIssue(locale, { token: '--check/--rollback', code: 'conflicting_flags' })
     )
-
-    return 1
   }
 
   if (!isCompiledBinary()) {

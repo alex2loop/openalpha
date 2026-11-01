@@ -8,20 +8,24 @@ import {
   isRenderable,
   isShown,
 } from '@/trading/features/brief/render'
-import { renderStoryBlocks } from '@/trading/features/brief/story/render'
-import { renderVerdictBlock } from '@/trading/features/brief/verdict'
+import { renderStoryLines, type StoryLine } from '@/trading/features/brief/story/render'
+import { renderQuotedReading, renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { toPlainText } from '@/trading/render/fold'
 import { NOTICE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
+import { INDENT } from '@/trading/render/layout'
 import { toBriefSectionText } from '@/trading/render/section'
 
 export interface BriefText {
   readonly title: string
   /** The answer: the session sentence and the figures it rests on. */
   readonly verdict: readonly string[]
-  /** The review of earlier stories and today's story, as plain lines: empty when the brief tells none. */
-  readonly story: readonly string[]
+  /** The verdict's opening lines that are the session sentence, not figures. */
+  readonly readingLines: number
+  /** The review of earlier stories and today's story, each line with its role: empty when the
+   *  brief tells none. */
+  readonly story: readonly StoryLine[]
   /** Ready and unavailable sections in the brief's order. */
   readonly sections: readonly {
     /** Unique in the brief: a market's kind repeats once per market. */
@@ -32,6 +36,8 @@ export interface BriefText {
     readonly status: 'ready' | 'unavailable'
     readonly heading: string
     readonly lines: readonly string[]
+    /** Each line's depth, level with `lines`: 0 for a row, 1 for the detail under it. */
+    readonly depths: readonly number[]
   }[]
   /** Every caveat the brief carries, stated once, as the CLI words them. */
   readonly caveats: readonly string[]
@@ -65,9 +71,13 @@ export function renderBriefForSurface(
     title: briefTitle(locale, snapshot, timezone),
     // The first line is the block's own rule, which the app replaces with its card.
     verdict: renderVerdictBlock(locale, readable, context).slice(1).map(trim),
-    story: renderStoryBlocks(locale, readable, context)
+    readingLines: renderQuotedReading(locale, readable, context).length,
+    story: renderStoryLines(locale, readable, context)
       .flat()
-      .map((line) => toPlainText(trim(line).replace(HEADING_ICON_RE, ''))),
+      .map(({ role, text }) => ({
+        role,
+        text: toPlainText(trim(text).replace(HEADING_ICON_RE, '')),
+      })),
     sections: renderable
       .filter(
         (section) => !HIDDEN_KINDS.has(section.kind) && section.status !== 'omitted-by-policy'
@@ -85,12 +95,18 @@ export function renderBriefForSurface(
           status: section.status === 'ready' ? 'ready' : 'unavailable',
           heading: text.heading.replace(HEADING_ICON_RE, '').replaceAll('**', ''),
           lines: text.lines.map(trim),
+          depths: text.lines.map(depthOf),
         }
       }),
     caveats: renderCaveatLines(locale, caveatsOf(snapshot, renderable), { collapseInfo: true }).map(
       (line) => toPlainText(trim(line))
     ),
   }
+}
+
+/** How deep a rendered line sits, as `INDENT` places it: 0 for a row, 1 for its detail. */
+function depthOf(line: string): number {
+  return Math.max(0, (line.length - line.trimStart().length) / INDENT[1].length - 1)
 }
 
 function trim(line: string): string {

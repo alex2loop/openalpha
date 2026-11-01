@@ -1,26 +1,34 @@
-import { lookup } from 'node:dns/promises'
-
-import type { DaemonTask } from '@/core/container'
+import type { DaemonTask, TaskPassListener } from '@/core/container'
+import type { OperatorMessage } from '@/core/errors'
 import type { Logger } from '@/core/logging/logger'
 import type { OperationsPolicy } from '@/trading/kernel/config'
 import { type MissingEnvError, missingEnvOf } from '@/core/config/resolve'
+import { notifyPass, TASK_FAILED } from '@/core/container'
 import { ChannelError, isAbortError, LLMError, RunHalted, StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { settleWithin } from '@/core/utils/concurrency'
+import { probeHost, REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/utils/reachability'
 import { sleep } from '@/core/utils/time'
 
-export type OperationTick = (signal: AbortSignal) => Promise<void>
-export type Reachability = Pick<
-  OperationsPolicy,
-  'reachabilityHost' | 'reachabilityTimeoutMs' | 'offlineRetryMs'
->
+/** What a tick may say about its own pass without failing it. */
+export interface PassNotes {
+  /** A step that failed alone while the pass carried on; the pass reports it as its error. */
+  fail(): void
+}
+
+export type OperationTick = (signal: AbortSignal, notes: PassNotes) => Promise<void>
+type Reachability = Pick<OperationsPolicy, 'offlineRetryMs'>
 
 /** One bounded background loop: what each tick does, when the next one fires, and the host it
  *  waits on while offline. */
 interface LoopSpec {
   readonly name: string
+  /** The loop's fixed cadence; absent when each wait is worked out from the clock. */
+  readonly everyMs?: number
   nextDelayMs(now: number): number
   readonly tick: OperationTick
+  /** Settles when the loop may begin: its first tick, or the wait before it, comes after this. */
+  readonly after?: Promise<void>
+  readonly onTaskPass: TaskPassListener
   readonly logger: Logger
   readonly reachability: Reachability
 }
@@ -47,6 +55,10 @@ function createTask(spec: LoopSpec, options: { readonly delayed: boolean }): Dae
     name: spec.name,
     isWorking: () => state.ticking,
     async start(signal) {
+      if (spec.after !== undefined && !(await waitUntilSettled(spec.after, signal))) {
+        return
+      }
+
       if (options.delayed && !(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
         return
       }
@@ -54,6 +66,27 @@ function createTask(spec: LoopSpec, options: { readonly delayed: boolean }): Dae
       await runLoop(spec, { signal, state })
     },
   }
+}
+
+/** `false` means shutdown arrived first. The abort listener is armed with its own controller, so it
+ *  is gone whichever side wins. */
+async function waitUntilSettled(settled: Promise<void>, signal: AbortSignal): Promise<boolean> {
+  if (signal.aborted) {
+    return false
+  }
+
+  const listening = new AbortController()
+  const { promise: aborted, resolve } = Promise.withResolvers<void>()
+
+  signal.addEventListener('abort', () => resolve(), { once: true, signal: listening.signal })
+
+  try {
+    await Promise.race([settled, aborted])
+  } finally {
+    listening.abort()
+  }
+
+  return !signal.aborted
 }
 
 async function runLoop(
@@ -70,36 +103,78 @@ async function runLoop(
 
     state.ticking = true
 
+    let delayMs: number | undefined
+
     try {
-      if (!(await runTick(spec, signal, keyWarning))) {
-        return
-      }
+      delayMs = await runPass(spec, signal, keyWarning)
     } finally {
       state.ticking = false
     }
 
-    if (!(await waitForNextTick(spec.nextDelayMs(Date.now()), signal))) {
+    if (delayMs === undefined || !(await waitForNextTick(delayMs, signal))) {
       return
     }
   }
 }
 
+/** The tick between its two reports. `undefined` means stop; otherwise the wait until the next
+ *  pass, which is also what the report says the next one is due. */
+async function runPass(
+  spec: LoopSpec,
+  signal: AbortSignal,
+  keyWarning: { warned: boolean }
+): Promise<number | undefined> {
+  const at = Date.now()
+  const report = (phase: 'start' | 'end', extra: PassDetail): void =>
+    notifyPass(spec.onTaskPass, {
+      name: spec.name,
+      phase,
+      at,
+      ...(spec.everyMs === undefined ? {} : { everyMs: spec.everyMs }),
+      ...extra,
+    })
+  let detail: PassDetail = {}
+
+  report('start', detail)
+
+  try {
+    const outcome = await runTick(spec, signal, keyWarning)
+
+    if (outcome.stop) {
+      return undefined
+    }
+
+    const now = Date.now()
+    const delayMs = spec.nextDelayMs(now)
+
+    detail = {
+      nextAt: now + delayMs,
+      ...(outcome.error === undefined ? {} : { error: outcome.error }),
+    }
+
+    return delayMs
+  } catch (err: unknown) {
+    detail = { error: TASK_FAILED }
+
+    throw err
+  } finally {
+    report('end', detail)
+  }
+}
+
+interface PassDetail {
+  readonly error?: OperatorMessage
+  readonly nextAt?: number
+}
+
 /** `false` means stop. A tick waits out an offline stretch instead of running into it, so a fetch
  *  trips no source breaker and a send burns no delivery attempt. One warning per stretch. */
 async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<boolean> {
-  const { reachabilityHost, reachabilityTimeoutMs, offlineRetryMs } = spec.reachability
+  const { offlineRetryMs } = spec.reachability
   let warned = false
 
   for (;;) {
-    // The OS resolver, the path every outbound fetch takes: raw DNS or an address policy would gate
-    // on a different question than the one the tick is about to ask.
-    const resolved = lookup(reachabilityHost).then(
-      () => true,
-      () => false
-    )
-    const reachable = (await settleWithin(resolved, reachabilityTimeoutMs)) && (await resolved)
-
-    if (reachable) {
+    if (await probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS, signal)) {
       return true
     }
 
@@ -108,9 +183,11 @@ async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<
     }
 
     if (!warned) {
-      spec.logger.warn('trading.tick_offline', { operation: spec.name, host: reachabilityHost })
+      spec.logger.warn('trading.tick_offline', { operation: spec.name, host: REACHABILITY_HOST })
       warned = true
     }
+
+    reportOffline(spec)
 
     if (!(await waitForNextTick(offlineRetryMs, signal))) {
       return false
@@ -118,22 +195,54 @@ async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<
   }
 }
 
-/** `false` means stop. A boundary failure is logged and retried on the next interval; an invariant
+/** An offline stretch is the pass's error until the loop reaches the network again and runs. */
+function reportOffline(spec: LoopSpec): void {
+  const { offlineRetryMs } = spec.reachability
+  const at = Date.now()
+
+  notifyPass(spec.onTaskPass, {
+    name: spec.name,
+    phase: 'end',
+    at,
+    ...(spec.everyMs === undefined ? {} : { everyMs: spec.everyMs }),
+    error: { key: 'ui.task.offline', params: { host: REACHABILITY_HOST } },
+    nextAt: at + offlineRetryMs,
+  })
+}
+
+type TickOutcome =
+  | { readonly stop: true }
+  | { readonly stop: false; readonly error?: OperatorMessage }
+
+/** `stop` means shutdown. A boundary failure is logged and retried on the next interval; an invariant
  *  failure escapes to the quarantine around the loop rather than spinning forever getting the same
- *  thing wrong; an abort is shutdown, not a failure. An unset key is said once until the loop logs
+ *  thing wrong; an abort is shutdown only when the loop's own signal fired. An operator stopping the
+ *  pass's run ends that pass, and the loop waits for the next interval. An unset key is said once until the loop logs
  *  anything else: every tick in between would only repeat it. */
 async function runTick(
   spec: LoopSpec,
   signal: AbortSignal,
   keyWarning: { warned: boolean }
-): Promise<boolean> {
+): Promise<TickOutcome> {
+  let failed = false
+
   try {
-    await spec.tick(signal)
+    await spec.tick(signal, {
+      fail: () => {
+        failed = true
+      },
+    })
     keyWarning.warned = false
-    return true
+
+    return { stop: false, ...(failed ? { error: TASK_FAILED } : {}) }
   } catch (err: unknown) {
     if (isAbortError(err)) {
-      return false
+      if (signal.aborted) {
+        return { stop: true }
+      }
+
+      spec.logger.info('trading.tick_stopped', { operation: spec.name })
+      return { stop: false }
     }
 
     if (!isBoundaryFailure(err)) {
@@ -144,12 +253,12 @@ async function runTick(
 
     if (missing !== undefined) {
       warnKeyMissingOnce(spec, missing, keyWarning)
-      return true
+      return { stop: false, error: { key: 'ui.task.keyMissing', params: { env: missing.env } } }
     }
 
     spec.logger.warn('trading.tick_failed', { operation: spec.name, err: formatErrForLog(err) })
     keyWarning.warned = false
-    return true
+    return { stop: false, error: TASK_FAILED }
   }
 }
 

@@ -115,6 +115,19 @@ export async function finalizeTransaction(
   return toMonetaryTxn(draft, settledAt, conversion)
 }
 
+/** An edit states the figures the operator typed; what no edit can type survives it: the note,
+ *  and the leg a triggered exit filled on a sale that is still a sale. */
+export function withKeptAnnotations(draft: LedgerTxnDraft, previous: LedgerTxn): LedgerTxnDraft {
+  const note = draft.note ?? previous.note
+  const kept = note === undefined ? draft : { ...draft, note }
+
+  if (kept.kind !== 'sell' || kept.closeReason !== undefined || previous.kind !== 'sell') {
+    return kept
+  }
+
+  return previous.closeReason === undefined ? kept : { ...kept, closeReason: previous.closeReason }
+}
+
 /** A share-count adjustment moves no money, so it is the one arm that carries no conversion. */
 function isMonetaryDraft(draft: LedgerTxnDraft): draft is MonetaryDraft {
   return draft.kind !== 'split' && draft.kind !== 'distribution'

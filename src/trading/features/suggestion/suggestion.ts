@@ -13,12 +13,16 @@ import type { ScoredRow } from '@/trading/features/suggestion/pipeline/attributi
 import type { SuggestionBatchInput } from '@/trading/features/suggestion/pipeline/batch'
 import type {
   RunDebate,
+  SuggestionFlights,
   SuggestionPortfolioReader,
 } from '@/trading/features/suggestion/pipeline/types'
 import type { AgentFocusStore } from '@/trading/features/suggestion/store/agent-focus'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
+import type {
+  SuggestionDayOptions,
+  SuggestionDayRead,
+} from '@/trading/features/suggestion/store/suggestion-day'
 import type { SuggestionPageOptions } from '@/trading/features/suggestion/store/suggestion-list'
-import type { SuggestionCoverageRow } from '@/trading/features/suggestion/store/suggestion-outcome'
 import type { ActedSummary, RecordedFill } from '@/trading/features/suggestion/track-record/acted'
 import type {
   AgentFocusRef,
@@ -26,10 +30,10 @@ import type {
   FocusRecordView,
 } from '@/trading/features/suggestion/track-record/agent-record'
 import type { OutcomeResolutionDeps } from '@/trading/features/suggestion/track-record/outcome'
+import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type {
   ListResolvedSuggestionsOptions,
   OutcomeResolutionBatch,
-  TrackRecordCoverage,
   TrackRecordOptions,
   TrackRecordReport,
 } from '@/trading/features/suggestion/track-record/types'
@@ -45,11 +49,13 @@ import type { MarketRef, PortfolioSegment, TradingDay } from '@/trading/kernel/i
 import type { OperationTickOptions, Page } from '@/trading/kernel/store/page'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
+import type { VenueRegistry } from '@/trading/venues/types'
 import { ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { buildEnsureOptions } from '@/trading/features/market-data/market-data-run'
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { uniqueItems, watchlistItems } from '@/trading/features/suggestion/batch-items'
+import { buyCashMultipleOf } from '@/trading/features/suggestion/buy-cash'
 import { suggestionScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
 import { runSuggestionBatch } from '@/trading/features/suggestion/pipeline/batch'
 import {
@@ -63,8 +69,12 @@ import {
   buildFocusRecords,
   parseListedFocus,
 } from '@/trading/features/suggestion/track-record/agent-record'
+import { coverageOf } from '@/trading/features/suggestion/track-record/coverage'
+import {
+  buildModelRecords,
+  type ModelRecord,
+} from '@/trading/features/suggestion/track-record/model-record'
 import { resolvePendingOutcomes } from '@/trading/features/suggestion/track-record/outcome'
-import { canResolveOutcomes } from '@/trading/features/suggestion/track-record/resolvable'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
 import { marketRoundTripRate } from '@/trading/markets/cost'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -82,8 +92,11 @@ interface SuggestionServiceDeps {
     readonly signal: AbortSignal
   }): Promise<readonly RecordedFill[]>
   readonly config: TradingConfig
+  readonly venues: VenueRegistry
   readonly logger: Logger
   readonly runDebate: RunDebate
+  /** Where a call the track record has just scored is told. */
+  readonly notices: CallScoredNotices
   readonly ensure: EnsureMarketData
   /** The engine's configured run budget, minted once per logical batch. Trading never chooses a
    *  currency cap and never constructs an unlimited budget of its own. */
@@ -110,6 +123,10 @@ export interface SuggestionService {
   agentRecords(options: AgentRecordsOptions): Promise<readonly AgentRecordView[]>
   /** The same record per focus, the operator's own included, for `/reflect`. */
   focusRecords(options: { readonly signal: AbortSignal }): Promise<readonly FocusRecordView[]>
+  /** What each model earned on the calls it argued alone. */
+  modelRecords(signal: AbortSignal): Promise<readonly ModelRecord[]>
+  /** What one operator day added to the operator's own record: the calls made and the largest closes. */
+  dayDigest(options: Omit<SuggestionDayOptions, 'focusKeys'>): Promise<SuggestionDayRead>
 }
 
 interface ListSuggestionsOptions extends Omit<SuggestionPageOptions, 'focusKey'> {
@@ -130,8 +147,12 @@ export interface TrackRecordReflection {
   readonly acted?: ActedSummary
 }
 
+// The operator's record unless a focus is named: a focus call is a second opinion the operator
+// never acted on. Every read placed beside the track record counts the same population.
+const BOOK_FOCUS_KEYS = [DEFAULT_FOCUS_KEY]
+
 export function createSuggestionService(deps: SuggestionServiceDeps): SuggestionService {
-  const batchDeps = toBatchDeps(deps)
+  const batchDeps = toBatchDeps(deps, new Map())
 
   return {
     run: (request) => runOne({ deps, batchDeps }, request),
@@ -145,6 +166,9 @@ export function createSuggestionService(deps: SuggestionServiceDeps): Suggestion
     reflect: (options) => reflect(deps, options),
     agentRecords: (options) => buildAgentRecords(deps, { ...options, ...recordClock(deps) }),
     focusRecords: (options) => buildFocusRecords(deps, { ...options, ...recordClock(deps) }),
+    modelRecords: async (signal) =>
+      buildModelRecords(await deps.store.listScoredByModel({ focusKeys: BOOK_FOCUS_KEYS, signal })),
+    dayDigest: (options) => deps.store.readDay({ ...options, focusKeys: BOOK_FOCUS_KEYS }),
   }
 }
 
@@ -244,12 +268,17 @@ function toOutcomeDeps(deps: SuggestionServiceDeps): OutcomeResolutionDeps {
     markets: deps.markets,
     store: deps.store,
     logger: deps.logger,
+    notices: deps.notices,
+    agentFocuses: deps.agentFocuses,
     costs: deps.config.costs,
     defaultVenues: deps.config.defaultVenues,
   }
 }
 
-function toBatchDeps(deps: SuggestionServiceDeps): SuggestionBatchInput['deps'] {
+function toBatchDeps(
+  deps: SuggestionServiceDeps,
+  flights: SuggestionFlights
+): SuggestionBatchInput['deps'] {
   return {
     markets: deps.markets,
     stages: deps.stages,
@@ -257,7 +286,9 @@ function toBatchDeps(deps: SuggestionServiceDeps): SuggestionBatchInput['deps'] 
     portfolio: deps.portfolio,
     logger: deps.logger,
     runDebate: deps.runDebate,
+    flights,
     roundTripFeeFraction: (market) => marketRoundTripRate(deps.config, market),
+    buyCashMultiple: (market) => buyCashMultipleOf(deps, market),
     ...(deps.skillVersions === undefined ? {} : { skillVersions: deps.skillVersions }),
     ...(deps.personaVersions === undefined ? {} : { personaVersions: deps.personaVersions }),
   }
@@ -371,9 +402,7 @@ async function summarize(
   deps: SuggestionServiceDeps,
   options: TrackRecordOptions
 ): Promise<TrackRecordReport> {
-  // The operator's record unless a focus is named: a focus call is a second opinion the operator
-  // never acted on.
-  const focusKeys = [options.focusKey ?? DEFAULT_FOCUS_KEY]
+  const focusKeys = options.focusKey === undefined ? BOOK_FOCUS_KEYS : [options.focusKey]
   const rows = await deps.store.listResolved({
     limit: options.limit,
     focusKeys,
@@ -382,7 +411,13 @@ async function summarize(
   })
   const summary = summarizeTrackRecord(rows, MINIMUM_TRACK_RECORD_SAMPLE)
   const coverage = coverageOf(
-    await deps.store.coverage({ focusKeys, signal: options.signal }),
+    await deps.store.coverage({
+      focusKeys,
+      ...(options.strategyVersion === undefined
+        ? {}
+        : { strategyVersion: options.strategyVersion }),
+      signal: options.signal,
+    }),
     deps.markets
   )
 
@@ -398,7 +433,8 @@ async function reflect(
     (day, call) => (day === undefined || call.at < day ? call.at : day),
     undefined
   )
-  const factorRows = independentCalls(report.recent).map((row) =>
+  const calls = independentCalls(report.recent)
+  const factorRows = calls.map((row) =>
     suggestionScoredRow(row, marketRoundTripRate(deps.config, row.instrument.market))
   )
 
@@ -408,32 +444,5 @@ async function reflect(
 
   const fills = await deps.fills({ fromDay: oldest, signal: options.signal })
 
-  return { report, factorRows, acted: summarizeActed(report.recent, fills) }
-}
-
-function coverageOf(
-  rows: readonly SuggestionCoverageRow[],
-  markets: SuggestionServiceDeps['markets']
-): TrackRecordCoverage {
-  const pending = rows.filter((row) => row.state === 'pending')
-  // An unknown ref can never score either; reading it as merely pending promises a resolution
-  // that never arrives.
-  const unresolvable = pending.filter((row) => {
-    const market = markets.find(row.market)
-
-    return market === null || !canResolveOutcomes(market)
-  })
-
-  return {
-    actionable: sumCounts(rows),
-    resolved: sumCounts(rows.filter((row) => row.state === 'scored')),
-    pending: sumCounts(pending),
-    restated: sumCounts(rows.filter((row) => row.state === 'restated')),
-    unfilled: sumCounts(rows.filter((row) => row.state === 'unfilled')),
-    unresolvable: sumCounts(unresolvable),
-  }
-}
-
-function sumCounts(rows: readonly SuggestionCoverageRow[]): number {
-  return rows.reduce((sum, row) => sum + row.count, 0)
+  return { report, factorRows, acted: summarizeActed(calls, fills) }
 }

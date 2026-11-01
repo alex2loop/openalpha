@@ -8,6 +8,7 @@ import {
   renderClaims,
   renderScoreFacts,
   renderSectorName,
+  sortByScore,
   titleOf,
 } from '@/trading/features/themes/render/shared'
 import { toExpectedReturn } from '@/trading/features/themes/score/reads'
@@ -59,8 +60,11 @@ function renderSector(group: ScoreGroup<SectorRead>, input: Ranked): readonly st
     }),
     ...renderScoreFacts(context, { ...read, level: 'sector', subject: read.sector }),
   ]
-  const named = context.report.reads.stocks.some(
-    (stock) => stock.themeId === read.themeId && stock.sector === read.sector
+  const named = sortByScore(
+    context.report.reads.stocks.filter(
+      (stock) => stock.themeId === read.themeId && stock.sector === read.sector
+    ),
+    (stock) => stock.score
   )
   const failed = notesOf(context, read.themeId).some(
     (note) => note.level === 'stock' && note.sector === read.sector
@@ -70,15 +74,45 @@ function renderSector(group: ScoreGroup<SectorRead>, input: Ranked): readonly st
     `${input.rank}. ${head.join(INLINE_SEPARATOR)}`,
     `${INDENT[1]}${read.chain}`,
     ...renderAlsoUnder(group, context),
-    ...(named || failed ? [] : [`${INDENT[1]}${t(locale, 'trading.render.themes.noShortlist')}`]),
+    ...renderNamed(named, locale),
+    ...(named.length > 0 || failed
+      ? []
+      : [`${INDENT[1]}${t(locale, 'trading.render.themes.noShortlist')}`]),
   ]
 }
 
+/** Every name the sector's shortlist reached, so a theme whose names all rank below the top stocks
+ *  still shows them. */
+function renderNamed(stocks: readonly StockRead[], locale: Locale): readonly string[] {
+  return stocks.length === 0
+    ? []
+    : [
+        `${INDENT[1]}${t(locale, 'trading.render.themes.namedStocks', {
+          names: stocks.map((stock) => renderNamedStock(stock, locale)).join(LIST_SEPARATOR),
+        })}`,
+      ]
+}
+
+function renderNamedStock(stock: StockRead, locale: Locale): string {
+  if (stock.score === undefined) {
+    return stock.ticker
+  }
+
+  const key =
+    stock.score.confidence === 'low'
+      ? 'trading.render.themes.namedStockLow'
+      : 'trading.render.themes.namedStock'
+
+  return t(locale, key, { ticker: stock.ticker, score: stock.score.value })
+}
+
+/** Only names read with at least medium confidence: a score standing on a few of its parts (no
+ *  P/E, say) is not a lead, so it stays under its sector, marked, rather than ranking here. */
 export function renderTopStocks(context: ReportContext): readonly string[] {
-  const stocks = groupByScore(context.report.reads.stocks, (read) => read.ticker).slice(
-    0,
-    SHOWN_STOCKS
-  )
+  const stocks = groupByScore(
+    context.report.reads.stocks.filter((read) => read.score?.confidence !== 'low'),
+    (read) => read.ticker
+  ).slice(0, SHOWN_STOCKS)
 
   return stocks.length === 0
     ? []

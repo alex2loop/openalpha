@@ -1,4 +1,3 @@
-import type { Locale } from '@/core/types/locale'
 import type { ProfileStore } from '@/trading/features/profile/store'
 import type {
   GetProfileOptions,
@@ -13,10 +12,13 @@ import type {
 import type { CurrencyCode, MarketRef, Region } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { MarketManifest, MarketRegistry } from '@/trading/markets/types'
+import { ValidationError } from '@/core/errors'
 import { resetProfile, updateProfile } from '@/trading/features/profile/merge'
 import {
+  applyPinnedTargets,
   DEFAULT_SEED_WEIGHT,
   defaultProfile,
+  isBelowReserve,
   PROFILE_BOUNDS,
 } from '@/trading/features/profile/policy'
 import {
@@ -34,8 +36,6 @@ interface ProfileServiceDeps {
   /** The first stored profile fixes the currency, so a later config change cannot reinterpret
    *  historical facts. */
   readonly baseCurrency: CurrencyCode
-  /** The locale a seeded profile carries when the caller admits none of its own. */
-  readonly defaultLocale: Locale
   /** The operator's home region: a national market seeds a target only there. */
   readonly homeRegion: Region
   /** The markets some venue holds; the rest are read for reference and never sized. */
@@ -116,6 +116,15 @@ async function savePatch(
   options: UpdateProfileOptions
 ): Promise<UserProfile> {
   const current = (await resolve(deps, options)).profile
+  const { segmentTargets } = options.patch
+  const reservePctNav = options.patch.reservePctNav ?? current.reservePctNav
+
+  // Cash named below the reserve contradicts the operator's own two numbers: refused, not lifted.
+  if (segmentTargets !== undefined && isBelowReserve({ segmentTargets, reservePctNav })) {
+    throw new ValidationError('cash target is below the reserve', {
+      key: 'errors.profileCashBelowReserve',
+    })
+  }
 
   return deps.profiles.upsert(
     updateProfile(current, options.patch, contextOf(deps)),
@@ -152,16 +161,41 @@ async function resolve(
   const stored = await deps.profiles.find(options.signal)
 
   if (stored !== null) {
-    return { profile: withRegisteredSegments(stored, contextOf(deps)), saved: true }
+    const context = contextOf(deps)
+
+    return {
+      profile: withReserveFloor(withRegisteredSegments(stored, context), context),
+      saved: true,
+    }
   }
 
   const seeded = defaultProfile({
-    preferredLocale: options.defaultLocale,
     baseCurrency: deps.baseCurrency,
     segments: contextOf(deps).segments,
   })
 
   return { profile: seeded, saved: false }
+}
+
+/** A profile stored before cash was held to the reserve may plan cash under it: read with cash
+ *  lifted, unless its own pins leave no room, which its next edit has to settle. */
+function withReserveFloor(profile: UserProfile, context: ProfileContext): UserProfile {
+  if (!isBelowReserve(profile)) {
+    return profile
+  }
+
+  try {
+    return {
+      ...profile,
+      ...applyPinnedTargets({ ...profile, pinned: profile.pinnedTargets, ...context }),
+    }
+  } catch (error: unknown) {
+    if (error instanceof ValidationError) {
+      return profile
+    }
+
+    throw error
+  }
 }
 
 /** A national market seeds only at home; any other follows its own flag, seeded when absent. */

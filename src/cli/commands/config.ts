@@ -15,12 +15,8 @@ import { resolveConfigPath } from '@/cli/services'
 import { fail, success, warn } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { loadConfig } from '@/core/config/load'
-import {
-  combineInvalidConfigErrors,
-  InvalidConfigError,
-  resolveConfig,
-} from '@/core/config/resolve'
-import { extensionConfigErrors } from '@/core/config/validate'
+import { resolveConfig } from '@/core/config/resolve'
+import { withExtensionRefusals } from '@/core/config/validate'
 import { isSensitiveKey, redact } from '@/core/security/credentials'
 import { isPlainRecord } from '@/core/utils/collections'
 import { bindLocale, t } from '@/i18n'
@@ -200,25 +196,12 @@ async function configReport(app: CliApp): Promise<ConfigReport> {
   }
 }
 
-// Core refuses its own sections before any module reads its own, so those are checked over
-// defaults here and the run still lists both.
 function refusalProblems(err: unknown, app: CliApp): readonly string[] {
   const locale = app.config.locale.language
   const probe = app.configProbe
+  const refusals = probe === undefined ? [err] : withExtensionRefusals(err, probe.bootRefusals)
 
-  if (!(err instanceof InvalidConfigError) || err.unchecked === undefined || probe === undefined) {
-    return [terminalErrorMessage(err, locale)]
-  }
-
-  const extensions = extensionConfigErrors(err.unchecked, probe.bootRefusals)
-  const invalid = extensions.filter((extension) => extension instanceof InvalidConfigError)
-  const other = extensions.filter((extension) => !(extension instanceof InvalidConfigError))
-  const combined = invalid.reduce(
-    (all, extension) => combineInvalidConfigErrors(all, extension),
-    err
-  )
-
-  return [combined, ...other].map((refusal) => terminalErrorMessage(refusal, locale))
+  return refusals.map((refusal) => terminalErrorMessage(refusal, locale))
 }
 
 function modelProblems(config: ResolvedConfig, locale: Locale): readonly string[] {

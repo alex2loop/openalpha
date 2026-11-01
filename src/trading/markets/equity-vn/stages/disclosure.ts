@@ -3,6 +3,7 @@ import type { TradingDay } from '@/trading/kernel/instrument'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
 import type { Stage, StageDecision, StageInput } from '@/trading/markets/stage'
 import { MS_PER_DAY } from '@/core/utils/time'
+import { ETF_KIND } from '@/trading/kernel/instrument'
 import { nextDisclosure } from '@/trading/markets/disclosure-calendar'
 import {
   REPORT_NOTICE_DAYS,
@@ -35,7 +36,14 @@ async function evaluate(cache: CrossSectionCache, input: StageInput): Promise<St
   }
 
   const section = await cache.get(suggestion.at, input.signal)
-  const reportedOn = section.byTicker.get(suggestion.instrument.ticker)?.fundamental?.reportedOn
+  const evidence = section.byTicker.get(suggestion.instrument.ticker)
+
+  // A fund files no issuer accounts, so the reporting calendar says nothing about it.
+  if (evidence?.record.kind === ETF_KIND) {
+    return STAGE_PASS
+  }
+
+  const reportedOn = evidence?.fundamental?.reportedOn
   const caveats = [...dueCaveats(suggestion.at), ...overdueCaveats(suggestion.at, reportedOn)]
 
   return caveats.length === 0 ? STAGE_PASS : { kind: 'pass', caveats }

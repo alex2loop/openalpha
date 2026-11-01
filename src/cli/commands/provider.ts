@@ -27,6 +27,7 @@ const providerCmdModels: Command = createCommand({
 
 export const providerCommand: Group = createGroup({
   ...CLI_COMMAND_METADATA.provider,
+  needs: { local: true },
   subcommands: [providerCmdList, providerCmdModels],
 })
 

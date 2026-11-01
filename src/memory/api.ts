@@ -6,6 +6,7 @@ export type {
   MemoryImportance,
   MemoryListOptions,
   MemoryScope,
+  MemoryScopeEntries,
   MemoryWrite,
 } from '@/core/types/memory'
 export { memoryProvider } from '@/memory/services'

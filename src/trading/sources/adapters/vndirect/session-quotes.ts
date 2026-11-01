@@ -4,6 +4,7 @@ import type { InstrumentKind, MarketRef } from '@/trading/kernel/instrument'
 import type { SessionQuote } from '@/trading/kernel/market/market-data'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { SourceAdapterOptions } from '@/trading/sources/define'
+import { ValidationError } from '@/core/errors'
 import { ticker, tradingDay } from '@/trading/kernel/instrument'
 import { MARKET_PAGE_SIZE, VNDIRECT_ID } from '@/trading/sources/adapters/vndirect/client'
 import { createSource, parsedSource } from '@/trading/sources/define'
@@ -74,6 +75,12 @@ function toSessionQuotes(
 
   if (market === undefined) {
     return []
+  }
+
+  // One session of the whole market fits a page today; a full page means names past it were cut,
+  // and a tally of part of the board must not read as the board.
+  if (rows.length >= MARKET_PAGE_SIZE) {
+    throw new ValidationError('vndirect session read filled its page')
   }
 
   return dropInvalid(rows, (row) => toSessionQuote(row, market)).flat()

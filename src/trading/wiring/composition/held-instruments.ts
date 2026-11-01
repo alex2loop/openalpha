@@ -63,7 +63,7 @@ async function readHeld(app: App, signal: AbortSignal): Promise<readonly Instrum
   const services = app.resolve('tradingServices')
   const [positions, profile] = await Promise.all([
     services.portfolio.positionsAt({ now: Date.now(), signal }),
-    services.profiles.get({ defaultLocale: app.config.locale.language, signal }),
+    services.profiles.get({ signal }),
   ])
 
   return [...positions.map((position) => position.instrument), ...profile.watchlist]
