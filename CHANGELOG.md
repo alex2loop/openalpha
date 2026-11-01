@@ -21,6 +21,10 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 - A book from before a market existed no longer refreshes it: the in-use set reads the resolved profile.
 - Tool, skill and usage wording no longer assumes a Vietnamese book.
 
+### Fixes
+
+- The desktop app's first run (`setup write`) no longer refuses every config once the model's key is set.
+
 ## [1.2.2] - 2026-10-30
 
 The ticker page now shows what the trader is waiting for before an entry, the full factor checklist
