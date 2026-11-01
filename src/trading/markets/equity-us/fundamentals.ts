@@ -10,6 +10,9 @@ interface UsFundamentals {
   readonly bookToMarket?: number
   /** Gross profit over total assets: how much the assets earn before overheads. */
   readonly grossProfitability?: number
+  /** Net income over shareholders' equity, ranked only against the name's own listing sector. */
+  readonly returnOnEquity?: number
+  readonly sector?: string
 }
 
 /** The ranks the factors read, each against the board: absent where the name has no reading to rank. */
@@ -29,24 +32,33 @@ export function newestReport(
     .toSorted((left, right) => right.fiscalYear - left.fiscalYear)[0]
 }
 
-/** Banks and insurers report no gross profit, so their quality is absent, not zero. */
+/** Banks, insurers and most filers that tag no gross profit still earn on their equity. Equity at or
+ *  below zero (years of buybacks) makes the return meaningless, so it is absent, not ranked. */
 export function usFundamentalsOf(
   report: AnnualAccounts | undefined,
-  marketCap: number
+  marketCap: number,
+  sector: string | undefined
 ): UsFundamentals {
   const { netProfitToParent, totalEquity, grossProfit, totalAssets } = report?.lines ?? {}
 
   return {
+    ...(sector === undefined ? {} : { sector }),
     ...(netProfitToParent === undefined ? {} : { earningsYield: netProfitToParent / marketCap }),
     ...(totalEquity === undefined ? {} : { bookToMarket: totalEquity / marketCap }),
     ...(grossProfit === undefined || totalAssets === undefined || totalAssets <= 0
       ? {}
       : { grossProfitability: grossProfit / totalAssets }),
+    ...(netProfitToParent === undefined || totalEquity === undefined || totalEquity <= 0
+      ? {}
+      : { returnOnEquity: netProfitToParent / totalEquity }),
   }
 }
 
-/** Value is the mean of the earnings-yield and book-to-market ranks that exist; quality is the
- *  gross-profitability rank. A name with neither reading is simply absent from the map. */
+/** Value is the mean of the earnings-yield and book-to-market ranks that exist; quality is the mean of
+ *  the gross-profitability rank and the return-on-equity rank within the sector. Ranking the return
+ *  across sectors would read a bank's leverage as quality. A name missing a quality reading would
+ *  otherwise score on value alone, and cheap names are rarely the profitable ones: three in five on the
+ *  board tag no gross profit, and on 2026-10-30 they held all thirty top screen places. */
 export function rankFundamentals(
   entries: ReadonlyMap<Ticker, UsFundamentals>
 ): ReadonlyMap<Ticker, UsFundamentalRanks> {
@@ -56,6 +68,10 @@ export function rankFundamentals(
     bookToMarket: valuesOf(all, 'bookToMarket'),
     grossProfitability: valuesOf(all, 'grossProfitability'),
   }
+  const returnsBySector = Map.groupBy(
+    all.filter((entry) => entry.returnOnEquity !== undefined),
+    (entry) => entry.sector
+  )
   const ranks = new Map<Ticker, UsFundamentalRanks>()
 
   for (const [ticker, fundamentals] of entries) {
@@ -63,7 +79,13 @@ export function rankFundamentals(
       rankOf(populations.earningsYield, fundamentals.earningsYield),
       rankOf(populations.bookToMarket, fundamentals.bookToMarket),
     ])
-    const quality = rankOf(populations.grossProfitability, fundamentals.grossProfitability)
+    const quality = meanOf([
+      rankOf(populations.grossProfitability, fundamentals.grossProfitability),
+      rankOf(
+        valuesOf(returnsBySector.get(fundamentals.sector) ?? [], 'returnOnEquity'),
+        fundamentals.returnOnEquity
+      ),
+    ])
 
     ranks.set(ticker, {
       ...(value === undefined ? {} : { value }),
@@ -74,7 +96,10 @@ export function rankFundamentals(
   return ranks
 }
 
-function valuesOf(entries: readonly UsFundamentals[], key: keyof UsFundamentals): number[] {
+function valuesOf(
+  entries: readonly UsFundamentals[],
+  key: Exclude<keyof UsFundamentals, 'sector'>
+): number[] {
   return entries.flatMap((entry) => entry[key] ?? [])
 }
 

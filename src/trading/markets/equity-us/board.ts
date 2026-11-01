@@ -95,7 +95,8 @@ async function loadUsBoard(
         member.record.instrument.ticker,
         usFundamentalsOf(
           newestReport(accounts.get(member.record.instrument.ticker), asOf),
-          member.marketCap
+          member.marketCap,
+          member.record.sector
         ),
       ])
     )

@@ -24,7 +24,11 @@ export const FLOW_CONCEPTS: readonly Concept<FlowLine>[] = Object.freeze([
     ]),
   },
   { line: 'grossProfit', tags: Object.freeze(['GrossProfit']) },
-  { line: 'netProfitToParent', tags: Object.freeze(['NetIncomeLoss']) },
+  {
+    line: 'netProfitToParent',
+    // Several banks and utilities (PNC, Truist, AEP) tag only the figure after preferred dividends.
+    tags: Object.freeze(['NetIncomeLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic']),
+  },
   {
     line: 'operatingCashFlow',
     tags: Object.freeze(['NetCashProvidedByUsedInOperatingActivities']),
