@@ -7,6 +7,12 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+### Fixes
+
+- The desktop app's first run (`setup write`) no longer refuses every config once the model's key is set.
+
 ## [1.2.2] - 2026-10-30
 
 The ticker page now shows what the trader is waiting for before an entry, the full factor checklist

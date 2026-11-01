@@ -1,3 +1,5 @@
+import { parse as parseToml } from 'smol-toml'
+
 import type { SetupResult } from '@/app/server/wire/config'
 import type { CliApp, Command } from '@/cli/api'
 import { findProviderById } from '@/ai/api'
@@ -5,7 +7,7 @@ import { validateBootConfigTree } from '@/app/config-tree'
 import { buildProviderCatalog } from '@/app/server/cli/catalog'
 import { createCommand, isConfigPresent, starterConfigToml } from '@/cli/api'
 import { BRAND } from '@/core/brand'
-import { parseConfigToml, probeConfig } from '@/core/config/load'
+import { probeConfig } from '@/core/config/load'
 import { ConfigError } from '@/core/errors'
 import { createPrivateFileAtomic } from '@/core/security/private-files'
 
@@ -66,10 +68,12 @@ async function writeStarterConfig(app: CliApp, provider: string, model: string):
   return answer(app, { ok: true, configPath, keyEnv })
 }
 
-/** A schema problem is a refusal the app words; anything else is a fault. */
+/** A schema problem is a refusal the app words; anything else is a fault. The check takes the TOML
+ *  tree as written, as the config route does: an already parsed config carries its own `extensions`
+ *  key, which the check reads back as a section nobody claims. */
 function isValidConfig(content: string): boolean {
   try {
-    return validateBootConfigTree(parseConfigToml(content)).ok
+    return validateBootConfigTree(parseToml(content)).ok
   } catch (err: unknown) {
     if (err instanceof ConfigError) {
       return false
