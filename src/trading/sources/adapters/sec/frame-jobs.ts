@@ -1,12 +1,15 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { AccountLines } from '@/trading/kernel/market/annual-accounts'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { SHARES_CONCEPT } from '@/trading/sources/adapters/sec/concepts'
+import { SHARES_CONCEPT, US_GAAP_CONCEPTS } from '@/trading/sources/adapters/sec/concepts'
 import { utcDayOf, utcDayStartEpochMs, yearOf } from '@/trading/sources/rows/normalization'
 
 export const FRAME_CONCURRENCY = 4
 
 const FISCAL_YEAR_GRACE_DAYS = 7
+
+/** The frames and a domestic filer's facts are read in dollars. */
+export const US_GAAP_UNIT = 'USD'
 
 /** A frame that does not exist yet (a year not reported) is a business miss, not an outage. */
 export const BUSINESS_MISS_STATUSES = Object.freeze([404])
@@ -20,7 +23,8 @@ export interface FrameFact {
 export interface FrameJob {
   readonly taxonomy: string
   readonly tag: string
-  readonly unit: 'USD' | 'shares'
+  /** A currency, or `shares` for the cover-page count. */
+  readonly unit: string
   readonly period: string
   /** Where the answer lands: a line, and the year the cover-page share count is filed under. */
   readonly line: keyof AccountLines
@@ -51,7 +55,7 @@ export function usGaapJob(
   concept: { readonly line: keyof AccountLines; readonly tag: string; readonly priority: number },
   period: string
 ): FrameJob {
-  return { taxonomy: 'us-gaap', unit: 'USD', period, ...concept }
+  return { taxonomy: US_GAAP_CONCEPTS.taxonomy, unit: US_GAAP_UNIT, period, ...concept }
 }
 
 /** The year a period ending on `end` belongs to. A 52/53-week filer's year can end in the first days

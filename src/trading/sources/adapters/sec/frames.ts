@@ -16,6 +16,7 @@ import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { tradingDay } from '@/trading/kernel/instrument'
 import { SEC_CREDENTIAL, SEC_DATA_ID, toPaddedCik } from '@/trading/sources/adapters/sec/client'
+import { readCompanyFilings } from '@/trading/sources/adapters/sec/company-facts'
 import { FLOW_CONCEPTS, INSTANT_CONCEPTS } from '@/trading/sources/adapters/sec/concepts'
 import {
   BUSINESS_MISS_STATUSES,
@@ -46,6 +47,9 @@ const INSTANT_QUARTERS = Object.freeze([1, 2, 3, 4])
 /** A 10-K is due within 60 to 90 days of the year end; the frames carry no filing date, so the
  *  report counts as published at the latest of them. */
 const ANNUAL_FILING_DAYS = 90
+
+/** A foreign issuer's 20-F is due within four months. */
+const COMPANY_FILING_DAYS = 120
 
 const DAYS_PER_YEAR = 365
 const YEAR_END_TOLERANCE_DAYS = 14
@@ -102,18 +106,38 @@ async function loadAccounts(
   }
 
   const facts = answers.flatMap((answer) => (answer.kind === 'ok' ? [answer.value] : []))
-  const target = resolveRowTarget(context, map.fetchedAt)
-  const framed = toAnnual(facts, wanted, target)
+  const years = { target: resolveRowTarget(context, map.fetchedAt), filingDays: ANNUAL_FILING_DAYS }
+  const framed = toAnnual(facts, wanted, years)
   const recovered = await recoverGaps({ http, signal }, wanted, framed)
+  const annual = recovered.length === 0 ? framed : toAnnual([...facts, ...recovered], wanted, years)
+  const missed = await readMissedCompanies({ http, signal, target: years.target }, wanted, annual)
 
   return {
     kind: 'ok',
     fetchedAt: map.fetchedAt,
-    value: parsedSource({
-      annual: recovered.length === 0 ? framed : toAnnual([...facts, ...recovered], wanted, target),
-      quarters: [],
-    }),
+    value: parsedSource({ annual: [...annual, ...missed], quarters: [] }),
   }
+}
+
+/** The companies no frame answered for, read one by one, each stamped with its own currency. */
+async function readMissedCompanies(
+  read: { readonly http: SourceHttp; readonly signal: AbortSignal; readonly target: RowTarget },
+  wanted: ReadonlyMap<string, readonly Ticker[]>,
+  annual: readonly AnnualAccounts[]
+): Promise<readonly AnnualAccounts[]> {
+  const filed = new Set(annual.map((report) => report.instrument.ticker))
+  const missed = [...wanted]
+    .filter(([, codes]) => !codes.some((code) => filed.has(code)))
+    .map(([cik]) => cik)
+  const filings = await readCompanyFilings(read, missed)
+  const years = { target: read.target, filingDays: COMPANY_FILING_DAYS }
+
+  return filings.flatMap((filing) =>
+    toAnnual(filing.answers, wanted, years).map((report) => ({
+      ...report,
+      reportingCurrency: filing.currency,
+    }))
+  )
 }
 
 /** One company id can carry several tickers (the two Alphabet classes): each gets the same report. */
@@ -193,6 +217,12 @@ function toFacts(raw: unknown, wanted: ReadonlyMap<string, readonly Ticker[]>): 
   }).filter((fact) => wanted.has(fact.cik))
 }
 
+/** Where a year's rows are stamped, and how long after its end the report counts as published. */
+interface AnnualYears {
+  readonly target: RowTarget
+  readonly filingDays: number
+}
+
 interface YearAccumulator {
   readonly lines: { -readonly [K in keyof AccountLines]?: number }
   readonly priorities: Partial<Record<keyof AccountLines, number>>
@@ -205,9 +235,9 @@ interface YearAccumulator {
 function toAnnual(
   answers: readonly FrameAnswer[],
   wanted: ReadonlyMap<string, readonly Ticker[]>,
-  target: RowTarget
+  years: AnnualYears
 ): readonly AnnualAccounts[] {
-  const years = new Map<string, YearAccumulator>()
+  const entries = new Map<string, YearAccumulator>()
   const ordered = [
     ...answers.filter((answer) => answer.job.atYearEnd !== true),
     ...answers.filter((answer) => answer.job.atYearEnd === true),
@@ -215,13 +245,13 @@ function toAnnual(
 
   for (const { job, facts } of ordered) {
     for (const fact of facts) {
-      addFact(years, job, fact)
+      addFact(entries, job, fact)
     }
   }
 
-  return [...years]
-    .filter(([key, entry]) => isYearEnd(key, entry, years))
-    .flatMap(([key, entry]) => toRows(key, entry, { wanted, target }))
+  return [...entries]
+    .filter(([key, entry]) => isYearEnd(key, entry, entries))
+    .flatMap(([key, entry]) => toRows(key, entry, { wanted, years }))
 }
 
 /** A year-long flow that ends off the company's fiscal year end is a trailing twelve months a 10-Q
@@ -269,9 +299,10 @@ function addFact(years: Map<string, YearAccumulator>, job: FrameJob, fact: Frame
 function toRows(
   key: string,
   entry: YearAccumulator,
-  context: { readonly wanted: ReadonlyMap<string, readonly Ticker[]>; readonly target: RowTarget }
+  context: { readonly wanted: ReadonlyMap<string, readonly Ticker[]>; readonly years: AnnualYears }
 ): readonly AnnualAccounts[] {
-  const { wanted, target } = context
+  const { wanted, years } = context
+  const { target } = years
   const [cik = '', year = ''] = key.split('|')
 
   // A year with only balance-sheet instants has no report to speak of: the flows define it.
@@ -280,7 +311,7 @@ function toRows(
   }
 
   const publishedOn = tradingDay(
-    utcDayOf(utcDayStartEpochMs(entry.end) + ANNUAL_FILING_DAYS * MS_PER_DAY)
+    utcDayOf(utcDayStartEpochMs(entry.end) + years.filingDays * MS_PER_DAY)
   )
 
   return (wanted.get(cik) ?? []).map((code) => ({

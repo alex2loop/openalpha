@@ -94,8 +94,9 @@ interface StoredRead {
 /** Every macro read of a source with a profile goes through here: it is asked at most once a UTC
  *  day, not at all while no new print can exist, and a refused or failed read falls back to what the
  *  last good one stored. A spent daily quota is remembered until the UTC day turns, so later reads
- *  that day answer from the store without asking again. The quota behind the sources is shared by every process on the machine, so
- *  a boot or a refresh must never spend it on a figure already in hand. */
+ *  that day answer from the store without asking again. The quota behind the sources is shared by
+ *  every process on the machine, so a boot or a refresh must never spend it on a figure already in
+ *  hand. */
 export function gateMacroSource(
   source: RegisteredSource,
   options: MacroGateOptions
@@ -119,6 +120,20 @@ function gatedSource(source: Source<'macro'>, gate: Gate): Source<'macro'> {
   // The day a current but incomplete store was topped up: a series the profile gained since the
   // last write is asked for once, and a feed that still lacks it does not cost a read per call.
   let toppedUp: TradingDay | undefined
+  const answersFromStore = (stored: StoredRead, now: number): boolean => {
+    const today = utcDayOf(now)
+
+    if (!isCurrent(stored, gate.profile.cadence, now)) {
+      return false
+    }
+    if (isComplete(stored, gate.profile) || toppedUp === today) {
+      return true
+    }
+
+    toppedUp = today
+
+    return false
+  }
 
   return {
     ...source,
@@ -133,12 +148,8 @@ function gatedSource(source: Source<'macro'>, gate: Gate): Source<'macro'> {
       const now = gate.now()
       const today = utcDayOf(now)
 
-      if (stored !== undefined && isCurrent(stored, gate.profile.cadence, now)) {
-        if (isComplete(stored, gate.profile) || toppedUp === today) {
-          return cachedResult(gate.id, region, stored)
-        }
-
-        toppedUp = today
+      if (stored !== undefined && answersFromStore(stored, now)) {
+        return cachedResult(gate.id, region, stored)
       }
 
       const live =

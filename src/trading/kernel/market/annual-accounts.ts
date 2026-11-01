@@ -1,5 +1,5 @@
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type { CurrencyCode, InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 
 /** The Beneish ratios a tripped manipulation read names, in print order. Only the ratios that push
@@ -152,6 +152,9 @@ export interface AnnualAccounts {
   readonly lines: AccountLines
   readonly sourceId: SourceId
   readonly fetchedAt: number
+  /** The currency a filer reports in, set by a source that serves it unconverted. The market
+   *  converts the lines to its own currency before storing and drops the field. */
+  readonly reportingCurrency?: CurrencyCode
 }
 
 /** One final fiscal year read off its filed lines. A figure the lines cannot support is absent. */

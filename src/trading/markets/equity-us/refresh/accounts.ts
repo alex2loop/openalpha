@@ -6,6 +6,7 @@ import type { MarketDataRefreshRequest, MarketManifest } from '@/trading/markets
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
 import { loadUsMembers } from '@/trading/markets/equity-us/board'
 import { US_MARKET_REF } from '@/trading/markets/equity-us/policy'
+import { toMarketCurrency } from '@/trading/markets/equity-us/refresh/accounts-currency'
 import { emptyKindResult, toKindResult } from '@/trading/markets/refresh-result'
 
 interface AccountsOptions {
@@ -14,8 +15,9 @@ interface AccountsOptions {
   readonly request: MarketDataRefreshRequest
 }
 
-/** One read of the frames answers every board name at once. Without the SEC contact the source is
- *  unconfigured: the kind attempted nothing, so it records no attempt and asks again next time. */
+/** One read of the frames answers most board names at once; the rest are read one by one. Without
+ *  the SEC contact the source is unconfigured: the kind attempted nothing, so it records no attempt
+ *  and asks again next time. */
 export async function refreshUsAccounts(
   deps: MarketDeps,
   options: AccountsOptions
@@ -46,9 +48,14 @@ export async function refreshUsAccounts(
     return emptyKindResult('accounts', 'unavailable', result.caveats)
   }
 
-  await deps.marketDataStore.upsertAccounts(result.value, request.signal)
+  const converted = await toMarketCurrency(deps, result.value, {
+    currency: manifest.currency,
+    request,
+  })
 
-  const filed = new Set<Ticker>(result.value.annual.map((report) => report.instrument.ticker))
+  await deps.marketDataStore.upsertAccounts(converted.filed, request.signal)
+
+  const filed = new Set<Ticker>(converted.filed.annual.map((report) => report.instrument.ticker))
 
   return toKindResult({
     kind: 'accounts',
@@ -59,7 +66,7 @@ export async function refreshUsAccounts(
       provenance: result.provenance,
       caveats: [],
     })),
-    recordCount: result.value.annual.length,
-    caveats: result.caveats,
+    recordCount: converted.filed.annual.length,
+    caveats: [...result.caveats, ...converted.caveats],
   })
 }
