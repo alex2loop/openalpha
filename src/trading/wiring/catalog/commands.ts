@@ -104,6 +104,7 @@ interface TradingCommandDeps {
   readonly alerts: AlertService
   readonly briefs: BriefService
   readonly refreshMarketData: TradingServices['refreshMarketData']
+  readonly marketsInUse: TradingServices['marketsInUse']
   readonly markets: MarketRegistry
   readonly venues: VenueRegistry
   readonly config: TradingConfig
@@ -170,6 +171,7 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       defaultRegion,
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
+      marketsInUse: deps.marketsInUse,
     }),
     createMarketCommand({
       report: {

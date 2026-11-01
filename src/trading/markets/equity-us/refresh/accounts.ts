@@ -1,6 +1,8 @@
+import type { Caveat } from '@/trading/kernel/caveat'
 import type { Ticker } from '@/trading/kernel/instrument'
 import type { InstrumentRecord } from '@/trading/kernel/market/market-data'
 import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
+import type { SourceUnavailable } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { MarketDataRefreshRequest, MarketManifest } from '@/trading/markets/types'
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
@@ -48,7 +50,7 @@ export async function refreshUsAccounts(
   })
 
   if (result.kind === 'unavailable') {
-    return emptyKindResult('accounts', 'unavailable', result.caveats)
+    return emptyKindResult('accounts', 'unavailable', unavailableCaveats(result))
   }
 
   const converted = await toMarketCurrency(deps, result.value, {
@@ -72,4 +74,11 @@ export async function refreshUsAccounts(
     recordCount: converted.filed.annual.length,
     caveats: [...result.caveats, ...converted.caveats],
   })
+}
+
+/** No SEC contact means no source registered: a key fixes it, not a retry. */
+function unavailableCaveats(result: SourceUnavailable): readonly Caveat[] {
+  return result.reason === 'unconfigured'
+    ? [{ code: 'refresh.source-unconfigured', detail: { kind: 'accounts' } }]
+    : result.caveats
 }

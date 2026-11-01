@@ -4454,6 +4454,7 @@
     "caveat.refresh.validation-failed": "{kind}: dữ liệu trả về không đúng dạng nên đã bỏ đi thay vì lưu lại.",
     "caveat.refresh.previous-scope-kept": "{kind}: lần làm mới chưa xong, nên số liệu bạn đang xem vẫn là dữ liệu cũ.",
     "caveat.refresh.bank-sector-unmapped": "Đã gán ngành nhưng không mã nào thuộc nhóm ngân hàng; room ngoại mặc định của ngân hàng có thể sai.",
+    "caveat.refresh.source-unconfigured": "{kind}: chưa có nguồn nào được thiết lập. `openalpha doctor` cho biết cần đặt khóa nào.",
     "caveat.reporting.sample-below-minimum": "Quá ít đề xuất đã chốt để đưa ra con số đáng tin cậy.",
     "caveat.reporting.mixed-strategy-versions": "Kết quả này đến từ nhiều phiên bản chiến lược khác nhau, nên đừng đọc tổng số quá chặt.",
     "caveat.reporting.repeats-folded": "Có {count} đề xuất chỉ lặp lại đề xuất còn mở trên cùng mã, nên mình gộp vào đề xuất đầu: mỗi nhịp giá tính một lần.",

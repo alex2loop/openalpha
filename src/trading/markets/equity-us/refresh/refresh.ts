@@ -15,6 +15,7 @@ import type {
 import { assertNotAborted } from '@/core/errors'
 import { reportRefreshStage } from '@/trading/kernel/market/refresh'
 import { isSettled, resolveSettledDay } from '@/trading/markets/calendar'
+import { loadUsCoverage } from '@/trading/markets/equity-us/board'
 import {
   US_ACCOUNTS_STALE_MS,
   US_EVIDENCE_SESSIONS,
@@ -77,12 +78,13 @@ async function refreshBoardKinds(
   universe: readonly InstrumentRecord[]
 ): Promise<readonly RefreshKindResult[]> {
   const { deps, request, attempts } = input
+  const ranked = { ...input, due: await hasUnaskedFollowed(input, universe) }
 
   try {
-    const fundamentals = await runKind(input, 'fundamentals', () =>
+    const fundamentals = await runKind(ranked, 'fundamentals', () =>
       refreshUsFundamentals(deps, { universe, request })
     )
-    const accounts = await runKind(input, 'accounts', () =>
+    const accounts = await runKind(ranked, 'accounts', () =>
       refreshUsAccounts(deps, { manifest: input.manifest, universe, request })
     )
     const storedFrom = attempts.find((attempt) => attempt.result.kind === 'bars')?.result
@@ -100,6 +102,35 @@ async function refreshBoardKinds(
   } finally {
     input.board.invalidate()
   }
+}
+
+/** A stock watched or bought since the last accounts pass was never asked for its filings. Its
+ *  value and quality need them and a snapshot, so both kinds run now rather than at their weekly
+ *  cadence; a name asked and found with nothing filed waits for that cadence. The bars wait too,
+ *  since a name off the board is priced on demand. */
+async function hasUnaskedFollowed(
+  input: KindContext,
+  universe: readonly InstrumentRecord[]
+): Promise<boolean> {
+  const { deps, request, attempts } = input
+  const [coverage, accounts] = await Promise.all([
+    loadUsCoverage(deps, input.manifest, {
+      records: universe,
+      asOf: request.asOf,
+      now: request.now,
+      signal: request.signal,
+    }),
+    deps.marketDataStore.listAnnualAccounts({ market: US_MARKET_REF, signal: request.signal }),
+  ])
+  const filedNothing = new Set(
+    attempts.find((attempt) => attempt.result.kind === 'accounts')?.result.missingTargets
+  )
+
+  return coverage.followed.some(({ record }) => {
+    const { ticker } = record.instrument
+
+    return record.kind === 'equity' && !accounts.has(ticker) && !filedNothing.has(ticker)
+  })
 }
 
 export async function usStaleKinds(
@@ -175,9 +206,10 @@ async function refreshInstruments(
   return { result, universe: outcome.universe }
 }
 
-/** A stored attempt stands in for a pass unless the operator forced the run. */
+/** A stored attempt stands in for a pass unless the operator forced the run or the kind is due. */
 interface KindContext extends UsRefreshInput {
   readonly attempts: readonly MarketRefreshAttempt[]
+  readonly due?: boolean
 }
 
 async function runKind(
@@ -190,6 +222,7 @@ async function runKind(
 
   if (
     !input.request.forced &&
+    input.due !== true &&
     attempt !== undefined &&
     isKindCurrent(input.manifest.calendar, input.request.now, attempt)
   ) {

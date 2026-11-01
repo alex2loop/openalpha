@@ -54,7 +54,7 @@ import { lazyHeldInstruments } from '@/trading/wiring/composition/held-instrumen
 import { bindHostSeams } from '@/trading/wiring/composition/host-seams'
 import { buildMarketTicks } from '@/trading/wiring/composition/market-ticks'
 import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
-import { buildRefreshCoordinator } from '@/trading/wiring/composition/refresh'
+import { buildRefreshCoordinator, resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
 import { assertRegistryConsistency } from '@/trading/wiring/composition/registry-checks'
 import { createDomainServices } from '@/trading/wiring/composition/services'
 import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/source-registry'
@@ -246,7 +246,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     services,
     registries,
     stores,
-    refreshMarketData: ticks.refreshMarketData,
+    ticks,
     logger,
   })
 
@@ -287,7 +287,7 @@ interface SurfaceParts {
   readonly services: ReturnType<typeof createDomainServices> & WithThemes
   readonly registries: Registries
   readonly stores: TradingStores
-  readonly refreshMarketData: TradingServices['refreshMarketData']
+  readonly ticks: Pick<ReturnType<typeof buildMarketTicks>, 'refreshMarketData' | 'inUse'>
   readonly logger: Logger
 }
 
@@ -299,7 +299,8 @@ function buildSurfaces(options: BoundOptions, parts: SurfaceParts): TradingContr
   const contributions = buildContributions({
     services,
     config: options.tradingConfig,
-    refreshMarketData: parts.refreshMarketData,
+    refreshMarketData: parts.ticks.refreshMarketData,
+    marketsInUse: (signal) => resolveMarketsInUse(parts.ticks.inUse, signal),
     markets: registries.markets,
     venues: registries.venues,
     intradaySettings: stores.intradaySettings,

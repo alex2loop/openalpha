@@ -28,6 +28,8 @@ interface OverviewCommandDeps {
    *  page narrowed to markets outside that region carries none. */
   readonly defaultRegion: Region
   readonly heldMarkets: ReadonlySet<MarketRef>
+  /** What a bare `/overview` covers: the markets a segment, holding or watched name keeps in use. */
+  readonly marketsInUse: (signal: AbortSignal) => Promise<ReadonlySet<MarketRef>>
 }
 
 export function createOverviewCommand(deps: OverviewCommandDeps): SlashCommand {
@@ -48,8 +50,8 @@ export function createOverviewCommand(deps: OverviewCommandDeps): SlashCommand {
   }
 }
 
-/** Every market by default; named markets narrow the page to them, which is what each market's
- *  button under the full page opens. */
+/** The markets in use by default, as the brief reads them; named markets narrow the page to them,
+ *  which is what each market's button under the full page opens. */
 async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const known = deps.marketData.markets()
   const named = ctx.args.map((arg) => parseMember(arg, known))
@@ -59,6 +61,7 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
   }
 
   const markets = named.filter((market): market is MarketRef => market !== null)
+  const covered = markets.length === 0 ? [...(await deps.marketsInUse(ctx.signal))] : markets
 
   // One clock for the whole message, so the macro read and every market block are stamped with the
   // same instant rather than each with its own.
@@ -71,7 +74,7 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
       now,
       signal: ctx.signal,
       ...progress,
-      ...(markets.length === 0 ? {} : { markets }),
+      markets: covered,
     }),
     readsRegion(deps, markets)
       ? deps.marketData.macroRisk({

@@ -4454,6 +4454,7 @@
     "caveat.refresh.validation-failed": "{kind}: what came back did not look like valid data, so it was thrown out rather than stored.",
     "caveat.refresh.previous-scope-kept": "{kind}: the refresh did not finish, so what you are reading is still the older data.",
     "caveat.refresh.bank-sector-unmapped": "Sectors were mapped but nothing is classified as a bank; the bank foreign-room default may be off.",
+    "caveat.refresh.source-unconfigured": "{kind}: no source is set up yet. `openalpha doctor` names the key that turns it on.",
     "caveat.reporting.sample-below-minimum": "Too few resolved suggestions for a reliable figure.",
     "caveat.reporting.mixed-strategy-versions": "These results came from more than one version of the strategy, so read the totals loosely.",
     "caveat.reporting.repeats-folded": "{count} calls only repeated a call still open on that name, so I folded them into the first: one move counts once.",

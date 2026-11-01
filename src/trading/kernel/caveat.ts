@@ -209,6 +209,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'refresh.validation-failed', severity: 'warn' },
   { code: 'refresh.previous-scope-kept', severity: 'warn' },
   { code: 'refresh.bank-sector-unmapped', severity: 'warn' },
+  { code: 'refresh.source-unconfigured', severity: 'info' },
 ] as const)
 
 export type CaveatCode = (typeof CAVEAT_CODES)[number]['code']
