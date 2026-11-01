@@ -18,8 +18,9 @@
 | Terminal | `openalpha status` | cài đặt, cấu hình, vận hành máy |
 | Trong chat (`openalpha chat`) | `/portfolio` | mọi việc liên quan tới đầu tư |
 
-Chat chạy được cả qua Telegram/Zalo: khai kênh trong `config.toml` ([Kênh](kenh.md)), rồi ghép nối
-bằng `openalpha pair`.
+Chat chạy được cả qua Telegram/Zalo: Telegram nối ngay lúc `openalpha onboard`, Zalo khai trong
+`config.toml` ([Kênh](kenh.md)). Lần đầu nhắn bot, bạn nhận một mã: duyệt nó ở Cài đặt > Kênh nhắn tin
+trên trang văn phòng hoặc bằng `openalpha pair approve <mã>`.
 
 **Mỗi ngày - 2 tới 5 phút:**
 

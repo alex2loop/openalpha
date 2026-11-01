@@ -12,9 +12,9 @@ Tóm tắt: mọi nhà cung cấp đều bật sẵn. Bạn không cần bật g
 |---|---|---|
 | `bls` | `BLS_API_KEY` | Không mất gì: lạm phát Mỹ vẫn đọc được. Không có khóa thì nhà cung cấp cho 25 lượt gọi mỗi ngày trên mỗi địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì giới hạn là 500. |
 | `coingecko` | `COINGECKO_API_KEY` | Bạn mất bên dự phòng cuối cho bảng vốn hóa crypto, và mất luôn cách duy nhất để tra một coin nằm ngoài mọi bảng. Nó cũng không còn trong danh sách FX cho một coin thanh toán (như USDT) so với tiền pháp định. |
-| `fred` | `FRED_API_KEY` | Bạn mất các chuỗi chỉ riêng FRED công bố. Vĩ mô Mỹ vẫn đọc được từ `treasury` và `bls`, hai bên không cần khóa. |
+| `fred` | `FRED_API_KEY` | Bạn mất hai chuỗi chỉ FRED công bố: chỉ số đô la và VIX (mức lo sợ của thị trường). Điểm vĩ mô vẫn chấm được nhưng thiếu hai yếu tố này: điểm vĩ mô Mỹ mất khoảng 30% trọng số, bối cảnh vĩ mô cho cổ phiếu VN mất 20%, vàng mất 2 trong 7 yếu tố (đô la, trú ẩn an toàn). Vì vậy những ngày đô la mạnh lên hay thị trường hoảng loạn dễ bị bỏ sót. Lợi suất, lãi suất thực và lạm phát Mỹ vẫn đọc từ `treasury` và `bls`, hai bên không cần khóa. Khóa miễn phí, đăng ký tại [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html). |
 
-Lưu khóa bằng `openalpha key set <TÊN>` (hoặc ở Cài đặt > Công cụ trên trang văn phòng), rồi khởi động lại dịch vụ nền (daemon). Hoặc đặt biến trong shell hay môi trường. Đừng bao giờ ghi khóa vào tệp cấu hình. `openalpha key list` cho thấy cả hai biến và biến nào đã đặt.
+Lưu khóa bằng `openalpha key set <TÊN>` (hoặc ở Cài đặt > Công cụ trên trang văn phòng), rồi khởi động lại dịch vụ nền (daemon). Hoặc đặt biến trong shell hay môi trường. Đừng bao giờ ghi khóa vào tệp cấu hình. `openalpha key list` cho thấy các biến này và biến nào đã đặt.
 
 OpenAlpha cũng đọc cùng tên đó với tiền tố sản phẩm (`OPENALPHA_FRED_API_KEY`). Biến đã đặt nhưng để trống thì coi như chưa đặt. Muốn dùng tên biến khác thì đổi tên trong `config.toml`:
 
