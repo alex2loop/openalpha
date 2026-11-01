@@ -116,6 +116,9 @@ interface QuotaSpent {
 
 function gatedSource(source: Source<'macro'>, gate: Gate): Source<'macro'> {
   let quotaSpent: QuotaSpent | undefined
+  // The day a current but incomplete store was topped up: a series the profile gained since the
+  // last write is asked for once, and a feed that still lacks it does not cost a read per call.
+  let toppedUp: TradingDay | undefined
 
   return {
     ...source,
@@ -128,12 +131,16 @@ function gatedSource(source: Source<'macro'>, gate: Gate): Source<'macro'> {
 
       const stored = await readStored(gate, signal)
       const now = gate.now()
+      const today = utcDayOf(now)
 
       if (stored !== undefined && isCurrent(stored, gate.profile.cadence, now)) {
-        return cachedResult(gate.id, region, stored)
+        if (isComplete(stored, gate.profile) || toppedUp === today) {
+          return cachedResult(gate.id, region, stored)
+        }
+
+        toppedUp = today
       }
 
-      const today = utcDayOf(now)
       const live =
         quotaSpent?.day === today ? quotaSpent.result : await source.fetch(context, signal)
 
@@ -180,6 +187,10 @@ function newPrintPossible(observed: TradingDay, cadence: MacroCadence, today: Tr
 
 function monthIndex(day: TradingDay): number {
   return yearOf(day) * MONTHS_PER_YEAR + Number(day.slice(MONTH_START, MONTH_END))
+}
+
+function isComplete(stored: StoredRead, profile: MacroSourceProfile): boolean {
+  return profile.series.every((series) => stored.values[series] !== undefined)
 }
 
 function canStandIn(stored: StoredRead, profile: MacroSourceProfile, now: number): boolean {

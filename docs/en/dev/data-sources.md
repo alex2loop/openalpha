@@ -643,7 +643,8 @@ migration). On each fetch:
 
 1. Stored and written the same UTC day, or `cadence` is monthly and the stored observation is already the newest period a print can
    describe by today (`lagMonths` back, one more before `releaseDay`): serve the stored reading, `freshness: 'cached'` with its real
-   `fetchedAt`, no HTTP.
+   `fetchedAt`, no HTTP. A stored read missing a series the profile names (one added since the last write) is
+   asked for once that UTC day before it is served as it stands.
 2. Otherwise fetch. An answer is written back (`replace`); a failed write is logged (`trading.macro_read_unsaved`) and never fails the
    read, as an unreadable store is (`trading.macro_read_unreadable`).
 3. A refusal or failure serves the stored reading with its observation date and no caveat, while the newest observation is within
