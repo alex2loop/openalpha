@@ -1,14 +1,15 @@
 import type { CalendarPolicy, MarketConfig, SessionHours } from '@/trading/kernel/config'
 import type { SessionPhase, TradingDay, TradingSessionState } from '@/trading/kernel/instrument'
+import type { SessionMinutes } from '@/trading/markets/session-minutes'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { ConfigError } from '@/core/errors'
-import { LOCAL_TIME_RE, MS_PER_DAY, MS_PER_MINUTE, MS_PER_SECOND } from '@/core/utils/time'
+import { MS_PER_DAY, MS_PER_MINUTE, MS_PER_SECOND } from '@/core/utils/time'
 import { tradingDay } from '@/trading/kernel/instrument'
-import { createRuleClosures } from '@/trading/markets/rule-closures'
+import { createRuleClosures, createRuleEarlyCloses } from '@/trading/markets/rule-closures'
+import { MINUTES_PER_HOUR, minutesOfDay, resolveSession } from '@/trading/markets/session-minutes'
 import { cachedFormatter } from '@/trading/render/datetime'
 import { dayFromEpochSeconds } from '@/trading/sources/rows/normalization'
 
-const MINUTES_PER_HOUR = 60
 /** A policy whose weekends swallow more than a decade of calendar days in a row is malformed;
  *  walking it forever would hang the caller instead of naming the bad policy. */
 const MAXIMUM_DAYS_WITHOUT_SESSION = 3_650
@@ -55,13 +56,6 @@ export const CONTINUOUS_CALENDAR: CalendarPolicy = Object.freeze({
   continuous: true,
 })
 
-interface SessionMinutes {
-  readonly open: number
-  readonly close: number
-  readonly breakStart?: number
-  readonly breakEnd?: number
-}
-
 /** The closures the operator declared under `[trading.markets.<id>]` lay over the market's own
  *  rules: `holidays` close a day the rules leave open, `openDays` reopen one they close, and the
  *  operator wins. */
@@ -79,8 +73,11 @@ export function createTradingCalendar(
   // answered by the bars themselves - see `advanceObservedSessions`.
   const isTradingDay = (day: TradingDay): boolean =>
     !(isWeekend(day) || holidays.has(day)) && (openDays.has(day) || !ruleClosesDay(day))
+  const isEarlyClose = createRuleEarlyCloses(policy)
+  const closeOf = (day: TradingDay): number =>
+    session.earlyClose !== undefined && isEarlyClose(day) ? session.earlyClose : session.close
   const sessionCloseAt = (day: TradingDay): number =>
-    zonedEpochMs(day, session.close, policy.timezone)
+    zonedEpochMs(day, closeOf(day), policy.timezone)
 
   return {
     timezone: policy.timezone,
@@ -92,7 +89,8 @@ export function createTradingCalendar(
     sessionOpenAt: (day) => zonedEpochMs(day, session.open, policy.timezone),
     sessionCloseAt,
     tapeFinalAt: (day) => sessionCloseAt(day) + TAPE_SETTLE_LAG_MS,
-    sessionState: (epochMs) => resolveSessionState({ epochMs, policy, session, isTradingDay }),
+    sessionState: (epochMs) =>
+      resolveSessionState({ epochMs, policy, session, isTradingDay, closeOf }),
   }
 }
 
@@ -247,46 +245,6 @@ export function shiftCalendarDay(day: TradingDay, delta: number): TradingDay {
   return shiftDay(day, delta)
 }
 
-// Both bounds are validated at construction rather than at each state read: a malformed local time
-// is an operator config error, and the honest place to name it is where the policy enters.
-function resolveSession(policy: CalendarPolicy): SessionMinutes {
-  const open = minutesOfDay(policy.sessionOpenLocalTime, policy.timezone)
-  const close = minutesOfDay(policy.sessionCloseLocalTime, policy.timezone)
-
-  if (close <= open) {
-    throw new ConfigError(`calendar ${policy.timezone} closes before it opens`, undefined, [
-      'calendar',
-      policy.timezone,
-    ])
-  }
-
-  const breakStart = optionalMinutes(policy.breakStartLocalTime, policy.timezone)
-  const breakEnd = optionalMinutes(policy.breakEndLocalTime, policy.timezone)
-  const auctionStart = optionalMinutes(policy.closeAuctionStartLocalTime, policy.timezone)
-
-  if (breakStart !== undefined && breakEnd !== undefined && breakEnd <= breakStart) {
-    throw new ConfigError(`calendar ${policy.timezone} has an inverted break`, undefined, [
-      'calendar',
-      policy.timezone,
-    ])
-  }
-
-  if (auctionStart !== undefined && (auctionStart <= open || auctionStart >= close)) {
-    throw new ConfigError(
-      `calendar ${policy.timezone} has an auction outside its session`,
-      undefined,
-      ['calendar', policy.timezone]
-    )
-  }
-
-  return {
-    open,
-    close,
-    ...(breakStart === undefined ? {} : { breakStart }),
-    ...(breakEnd === undefined ? {} : { breakEnd }),
-  }
-}
-
 function addTradingDays(
   day: TradingDay,
   count: number,
@@ -322,12 +280,15 @@ interface SessionStateInput {
   readonly policy: CalendarPolicy
   readonly session: SessionMinutes
   isTradingDay(day: TradingDay): boolean
+  /** The minute the day's session ends, early on a day the rules shorten. */
+  closeOf(day: TradingDay): number
 }
 
 function resolveSessionState(input: SessionStateInput): TradingSessionState {
   const { policy, session } = input
+  const day = dayFromEpochSeconds(input.epochMs / MS_PER_SECOND, policy.timezone)
 
-  if (!input.isTradingDay(dayFromEpochSeconds(input.epochMs / MS_PER_SECOND, policy.timezone))) {
+  if (!input.isTradingDay(day)) {
     return 'closed'
   }
 
@@ -341,7 +302,7 @@ function resolveSessionState(input: SessionStateInput): TradingSessionState {
     return 'pre-open'
   }
 
-  if (minutes >= session.close) {
+  if (minutes >= input.closeOf(day)) {
     return 'post-close'
   }
 
@@ -421,23 +382,6 @@ function buildZoneFormatter(timezone: string): Intl.DateTimeFormat {
     minute: '2-digit',
     second: '2-digit',
   })
-}
-
-function optionalMinutes(raw: string | undefined, timezone: string): number | undefined {
-  return raw === undefined ? undefined : minutesOfDay(raw, timezone)
-}
-
-function minutesOfDay(raw: string, timezone: string): number {
-  const match = LOCAL_TIME_RE.exec(raw)
-
-  if (!match) {
-    throw new ConfigError(`calendar ${timezone} has an invalid local time: ${raw}`, undefined, [
-      'calendar',
-      timezone,
-    ])
-  }
-
-  return Number(match[1]) * MINUTES_PER_HOUR + Number(match[2])
 }
 
 /** Whether a day falls on the market's own weekend, which no holiday list needs to name. */

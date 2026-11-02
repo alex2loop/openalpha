@@ -15,8 +15,7 @@ const ANNOUNCED_CLOSURES: readonly TradingDay[] = Object.freeze(['2025-01-09'].m
 
 /** NYSE Rule 7.2: the nine fixed and weekday-rule holidays plus Good Friday. A holiday on a Saturday
  *  closes the Friday before and one on a Sunday the Monday after, except New Year's Day on a
- *  Saturday, which closes nothing (the Friday is the last session of the old year). Early closes
- *  are sessions, so they are not here. */
+ *  Saturday, which closes nothing (the Friday is the last session of the old year). */
 export function usClosuresOf(year: number): readonly TradingDay[] {
   const newYear = newYearObserved(year)
   const days = [
@@ -28,12 +27,23 @@ export function usClosuresOf(year: number): readonly TradingDay[] {
     ...(year >= JUNETEENTH_FIRST_YEAR ? [observed(dayOf(year, 6, 19))] : []),
     observed(dayOf(year, 7, 4)),
     nthWeekday(dayOf(year, 9, 1), MONDAY, 1),
-    nthWeekday(dayOf(year, 11, 1), THURSDAY, 4),
+    thanksgiving(year),
     observed(dayOf(year, 12, 25)),
     ...ANNOUNCED_CLOSURES,
   ]
 
   return [...new Set(days)].filter((day) => day.startsWith(`${year}-`)).sort()
+}
+
+/** The sessions NYSE ends at 13:00: the day after Thanksgiving, and July 3 and December 24 when
+ *  they trade. On a year either is a weekend or the observed holiday, the calendar's closures keep
+ *  it shut and nothing ends early. */
+export function usEarlyClosesOf(year: number): readonly TradingDay[] {
+  return [dayOf(year, 7, 3), shiftCalendarDay(thanksgiving(year), 1), dayOf(year, 12, 24)]
+}
+
+function thanksgiving(year: number): TradingDay {
+  return nthWeekday(dayOf(year, 11, 1), THURSDAY, 4)
 }
 
 function newYearObserved(year: number): TradingDay | undefined {

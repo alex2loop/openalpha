@@ -6,7 +6,7 @@ import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { marketRef, region, ticker } from '@/trading/kernel/instrument'
 import { RESTATEMENT_TOLERANCE } from '@/trading/markets/bar-restatement'
-import { usClosuresOf } from '@/trading/markets/equity-us/calendar/closures'
+import { usClosuresOf, usEarlyClosesOf } from '@/trading/markets/equity-us/calendar/closures'
 import { US_MACRO_DRIVERS } from '@/trading/markets/macro-risk'
 
 export const US_STRATEGY_VERSION = '1.0.0'
@@ -20,6 +20,7 @@ export const US_CALENDAR: CalendarPolicy = Object.freeze({
   sessionCloseLocalTime: '16:00',
   weekendDays: Object.freeze([0, 6]),
   holidays: usClosuresOf,
+  earlyCloses: Object.freeze({ localTime: '13:00', days: usEarlyClosesOf }),
   continuous: false,
 })
 

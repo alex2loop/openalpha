@@ -11,7 +11,7 @@ Use before proposing timing, a level, or a size for a US-listed stock or ETF. Th
 
 ## Sessions
 
-The regular session runs 09:30 to 16:00 New York time. This analyst plans only for that session; pre-market, after-hours and overnight trading are out of scope, so a price printed outside it is not the price an order fills at. The market's own calendar is the authority, including full holidays and the early closes around them. Do not infer a trading day from the weekday alone.
+The regular session runs 09:30 to 16:00 New York time. This analyst plans only for that session; pre-market, after-hours and overnight trading are out of scope, so a price printed outside it is not the price an order fills at. The market's own calendar is the authority, including full holidays and the 13:00 closes on the day after Thanksgiving, and on July 3 and December 24 when they trade. Do not infer a trading day or its close from the weekday alone.
 
 ## Ticks and price limits
 
@@ -19,7 +19,7 @@ Prices move in one-cent ticks, or a hundredth of a cent under one dollar. There 
 
 ## Settlement
 
-A sale settles in one business day (T+1). In a cash account the proceeds can still be used to buy the same day, and shares bought today can be sold today. Buying with unsettled money and then selling before it settles has account rules of its own, so name the broker's rule rather than assuming one.
+A sale settles in one business day (T+1). In a cash account the proceeds can still be used to buy the same day, and shares bought today can be sold today. Proceeds from a sale stay unsettled until the next business day. In a cash account, buying with them and selling that new position the same day, before the money settles, is a good-faith violation: three in twelve months restrict the account to settled cash for 90 days. When a plan sells one name to fund another and the new one may be sold again that day, say so and name the broker's rule rather than assuming one.
 
 ## Day trading
 
