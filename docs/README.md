@@ -1,8 +1,8 @@
 # Tài liệu OpenAlpha
 
-> **OpenAlpha trả lời bằng tiếng Anh nếu `[locale] language` không ghi `"vi"`;** máy bạn dùng tiếng
-> Việt thì `onboard` tự chọn tiếng Việt. Bản tiếng Anh nằm trong [`en/`](en/README.md) và là bản gốc
-> của các trang dưới đây.
+> **`onboard` thiết lập OpenAlpha bằng tiếng Anh, hoặc tiếng Việt khi máy bạn dùng tiếng Việt.** Config
+> không ghi `[locale] language` thì trả lời theo thị trường chính: sổ Việt Nam bằng tiếng Việt, sổ Mỹ
+> bằng tiếng Anh. Bản tiếng Anh nằm trong [`en/`](en/README.md) và là bản gốc của các trang dưới đây.
 >
 > **Một chữ bạn sẽ gặp nhiều:** *operator* chính là bạn - người giữ sổ, duyệt lệnh và chịu trách nhiệm
 > cho mọi quyết định. Tài liệu giữ nguyên chữ này vì nó cũng là tên một khái niệm trong cơ sở dữ liệu.

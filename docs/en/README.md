@@ -1,8 +1,9 @@
 # OpenAlpha docs
 
-> **OpenAlpha answers in English unless `[locale] language = "vi"` says otherwise;** `onboard` picks
-> Vietnamese for you when your computer runs in Vietnamese. These English pages are the originals;
-> each one has a Vietnamese twin in [`../`](../README.md).
+> **`onboard` sets up OpenAlpha in English, or in Vietnamese when your computer runs in Vietnamese.**
+> A config that names no `[locale] language` answers in its home market's: Vietnamese for a Vietnam
+> book, English for a US one. These English pages are the originals; each one has a Vietnamese twin
+> in [`../`](../README.md).
 >
 > **One word you will see a lot:** *operator* means you - the person who keeps the book, approves
 > orders and answers for every decision. It is also a name in the database, so the pages keep it.

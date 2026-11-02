@@ -266,7 +266,7 @@ Mọi trần mặc định `0`, nghĩa là không chặn. Từng khóa chặn c�
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `language` | chuỗi | `en` | `en` hoặc `vi`. Ngôn ngữ duy nhất mọi câu trả lời, bản tin và cảnh báo dùng; hồ sơ đầu tư không có ngôn ngữ riêng. |
+| `language` | chuỗi | theo `region`: `vi`, hoặc `en` khi `region = "us"` | `en` hoặc `vi`. Ngôn ngữ duy nhất mọi câu trả lời, bản tin và cảnh báo dùng; hồ sơ đầu tư không có ngôn ngữ riêng. |
 | `timezone` | chuỗi | múi giờ của máy (`UTC` nếu máy không báo) | Tên IANA, ví dụ `Asia/Ho_Chi_Minh`. Việc cron mới chụp lại giá trị này, trừ khi `--tz` ghi đè; lịch theo chu kỳ từ chối `--tz`. |
 | `currency` | chuỗi | `VND` | Mã ISO 4217 (ba chữ in hoa). Đồng tiền cơ sở của phần giao dịch; `onboard` hỏi ở lần thiết lập đầu và ghi vào đây. Cố định từ khi sổ có hồ sơ: đổi sau đó bị từ chối, và `doctor` báo chỗ lệch ở dòng `database`. |
 | `region` | chuỗi | `vn` | Khu vực chính: `vn` hoặc `us`. `us` đặt cổ phiếu và quỹ ETF Mỹ làm thị trường chính; hãy đi kèm `currency = "USD"` (không đổi được sau khi lưu hồ sơ đầu tiên), bắt đầu từ thư mục dữ liệu mới, và xem [`config.minimal.us.toml`](../config.minimal.us.toml). Báo cáo tài chính của doanh nghiệp Mỹ còn cần `SEC_CONTACT_EMAIL`, đặt bằng `onboard` hoặc `key set`. Khu vực cần có sàn giao dịch thị trường chính của nó, nên `global` (vàng thế giới, chỉ để tham chiếu) bị từ chối. Thị trường của khu vực này là bảng mặc định, và hồ sơ đầu tiên chỉ phân bổ cho các nhóm trong nước của nó cùng crypto. |
