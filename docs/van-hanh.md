@@ -412,7 +412,7 @@ vụ viết tay bên dưới, vốn vẫn là cách chạy một máy chủ API.
 Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụng khách nối vào.
 
 1. **Cài đặt.** Trên Linux hoặc macOS, chạy script cài đặt trong
-   [README](../README.md#bắt-đầu-nhanh) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường
+   [README](../README.vi.md#bắt-đầu-nhanh) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường
    dẫn mà `command -v openalpha` in ra (mặc định `~/.local/bin/openalpha`); unit bên dưới phải dùng
    đường dẫn đó.
 2. **Cấu hình.** `openalpha setup write <nhà cung cấp> <mô hình> [vn|us]` ghi vào tệp cấu hình đang dùng (mặc định

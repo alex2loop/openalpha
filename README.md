@@ -1,12 +1,12 @@
 <h1 align="center">OpenAlpha</h1>
 
 <p align="center">
-  <strong>Một hội đồng AI tranh luận trước mỗi đề xuất như <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
-  OpenAlpha là trợ lý AI đầu tư mã nguồn mở cài trên máy bạn, cho chứng khoán Việt Nam và Mỹ, vàng và crypto: AI phân tích, còn đặt lệnh hay không vẫn do bạn quyết.
+  <strong>A council of AI analysts that argues before every call, like <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, running on your machine and chatting over Telegram and Zalo, like <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
+  Meet OpenAlpha, an open-source AI investment assistant you install on your own computer, for Vietnamese and US stocks, gold and crypto: the AI does the analysis, and placing the order is still your call.
 </p>
 
 <p align="center">
-  <strong>🇻🇳 Tiếng Việt</strong> &bull; <strong><a href="README.en.md">🇬🇧 English</a></strong>
+  <strong><a href="README.vi.md">🇻🇳 Tiếng Việt</a></strong> &bull; <strong>🇬🇧 English</strong>
 </p>
 
 <p align="center">
@@ -15,93 +15,93 @@
 </p>
 
 <p align="center">
-  <img src="assets/readme/hero.vi.png" alt="Đề xuất yếu bị loại trước khi tới tay bạn, qua sáu bước: dữ liệu, bằng chứng, cổng chặn, tranh luận, kiểm tra, kết luận" width="100%" />
+  <img src="assets/readme/hero.en.png" alt="Weak ideas are dropped before they reach you, across six steps: data, evidence, gate, debate, stages, verdict" width="100%" />
 </p>
 
-Bạn hỏi một mã, OpenAlpha trả về một kế hoạch: mua ở đâu, cắt lỗ ở đâu, chốt lời ở đâu, mua bao nhiêu cho vừa danh mục của bạn, kèm lý do nên mua lẫn lý do nên tránh. Nó dành cho nhà đầu tư cá nhân tự quản danh mục, muốn thấy lập luận đằng sau mỗi đề xuất thay vì chỉ thấy một mã được phím.
+You ask about a name, and OpenAlpha gives you a plan back: where to buy, where to stop out, where to take profit, and how much fits the book you hold, with the case for buying next to the case against. It is for individual investors who run their own book and want the reasoning behind a call, not just a ticker.
 
-- **Chạy trên máy bạn.** Sổ, cấu hình và khóa API nằm ở máy bạn. AI chỉ thấy tỷ trọng, không bao giờ thấy số dư, giá đã mua hay tổng tài sản.
-- **Bạn duyệt mọi lệnh.** Mặc định chỉ gợi ý. Có khai khóa sàn thì lệnh nào cũng chờ bạn xác nhận.
-- **Một hội đồng AI tranh luận.** Phe mua, phe bán, người tổng hợp, bên giao dịch, quản trị rủi ro và người soát số liệu. Giá và khối lượng do code tính, AI chỉ lo phần *vì sao*.
-- **Năm thị trường.** Cổ phiếu Việt Nam (sâu nhất, nhờ dữ liệu trong nước), cổ phiếu và quỹ ETF Mỹ, crypto, vàng trong nước, và vàng thế giới để tham chiếu.
+- **Runs on your machine.** Your book, config and API keys stay local. The AI sees weights only, never a balance, a price paid or your total assets.
+- **You approve every order.** It suggests by default. With exchange keys set, every order waits for your confirmation.
+- **An AI council debates.** Bull, bear, a synthesizer, a trader, a risk analyst and a fact-checker. Code computes prices and size; the AI handles the *why*.
+- **Five markets.** Vietnamese equities (the deepest, with local data sources), US stocks and ETFs, crypto, Vietnamese gold, and world gold for reference.
 
-Đây là công cụ hỗ trợ phân tích, không phải lời khuyên đầu tư. Đề xuất có thể sai, và mọi quyết định là của bạn.
+It is an analysis aid, not investment advice. Suggestions can be wrong, and every decision is yours.
 
-<p><img src="assets/readme/new.vi.svg" height="24" alt="Mới" /></p>
+<p><img src="assets/readme/new.en.svg" height="24" alt="New" /></p>
 
 > [!TIP]
-> Cả đội AI của bạn làm việc trong một văn phòng pixel ngay trên trình duyệt. Nhìn ai đang làm gì, bấm vào một nhân vật để giao việc, liếc bảng thị trường bên cạnh. Mở bằng `openalpha web` · [xem cách dùng](#trang-văn-phòng).
+> Your whole AI team works in a pixel office right in your browser. See who is doing what, click a person to hand them work, and glance at the market panel beside it. Open it with `openalpha web` · [see how](#the-office-page).
 
 <p align="center">
-  <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-nh%C3%B3m%20h%E1%BB%97%20tr%E1%BB%A3-0068FF?style=for-the-badge" alt="Nhóm Zalo hỗ trợ" /></a><br/>
-  <sub>Cài chưa được, hay muốn nhận tin bản mới? Hỏi trong <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">nhóm Zalo OpenAlpha</a>.</sub>
+  <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-support%20group-0068FF?style=for-the-badge" alt="Zalo support group" /></a><br/>
+  <sub>Stuck on setup, or want release news? Ask in the <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">OpenAlpha Zalo group</a> (in Vietnamese).</sub>
 </p>
 
 <p align="center">
-  <a href="#xem-nó-làm-việc">Xem demo</a> · <a href="#vì-sao-dùng-openalpha">Vì sao dùng OpenAlpha</a> · <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> · <a href="#dùng-mỗi-ngày">Dùng mỗi ngày</a> · <a href="#trang-văn-phòng">Trang văn phòng</a> · <a href="#an-toàn">An toàn</a> · <a href="#câu-hỏi-thường-gặp">Hỏi đáp</a> · <a href="#tài-liệu">Tài liệu</a> · <a href="#góp-sức-cho-openalpha">Góp sức</a> · <a href="#độ-ổn-định-giấy-phép-và-miễn-trừ">Giấy phép</a>
+  <a href="#see-it-in-action">See it in action</a> · <a href="#why-openalpha">Why OpenAlpha</a> · <a href="#quick-start">Quick start</a> · <a href="#daily-use">Daily use</a> · <a href="#the-office-page">The office page</a> · <a href="#safety">Safety</a> · <a href="#faq">FAQ</a> · <a href="#documentation">Docs</a> · <a href="#contribute-to-openalpha">Contribute</a> · <a href="#stability-license-and-disclaimer">License</a>
 </p>
 
-## Xem nó làm việc
+## See it in action
 
-Một lần gõ `/suggest FPT` trông như thế này:
+Here is what one `/suggest FPT` looks like:
 
 <p align="center">
-  <img src="assets/readme/demo.vi.gif" alt="Gõ /suggest và nhận về kế hoạch: giá vào, cắt lỗ, chốt lời, khối lượng, cách quản lý vị thế" width="100%" />
+  <img src="assets/readme/demo.en.gif" alt="Type /suggest and get a plan back: entry, stop, take-profit, size, how to manage it" width="100%" />
 </p>
 
-### Một phiên chạy thật
+### A real run
 
-Mỗi đề xuất còn nói rõ lý do nên mua, lý do nên chờ, và điều gì sẽ chứng minh nó sai. Đây là một phiên chạy thật, đã rút gọn, che mã, giá và tỷ lệ:
+Every suggestion also gives the case for buying, the case for waiting, and what would prove it wrong. Here is a real run, trimmed, with the ticker, prices and percentages masked:
 
 ```
-Bạn:  /suggest XXX
+You:  /suggest XXX
 
-💡 XXX (16/10/2026): nên MUA, Mức tin cậy trung bình. Mua khoảng 400 XXX (~9.280.000 VND, chiếm 4,65% danh mục).
-  Vào lệnh xx,xx · Cắt lỗ xx,xx (▼ -x,xx%) · Chốt 33% tại xx,xx (▲ x,xx%) · Mục tiêu xa xx,xx (▲ x,xx%)
+💡 XXX (16/10/2026): BUY, Medium confidence. Buy about 400 XXX (~9,280,000 VND, 4.65% of your portfolio).
+  Entry xx.xx · Stop xx.xx (▼ -x.xx%) · Take 33% off at xx.xx (▲ x.xx%) · Far target xx.xx (▲ x.xx%)
 
-🎯 Cách quản lý vị thế
-  Đừng mua đuổi trên xx,xx. Mua trước 200 XXX, phần còn lại mua sau nếu giá quay lại và đứng vững.
-  Đã trừ phí: nếu chạm cắt lỗ, bạn mất khoảng 737.120 VND (0,37% danh mục).
+🎯 How to manage it
+  Don't chase it above xx.xx. Buy 200 XXX first, and add the rest later if the price comes back and holds.
+  After fees: if the stop is hit you lose about 737,120 VND (0.37% of your portfolio).
 
-🚩 Mình sai khi
-  Báo cáo năm 2026 ghi nhận dòng tiền hoạt động thấp hơn lợi nhuận.
+🚩 I am wrong if
+  The 2026 report shows operating cash flow below profit.
 
-💬 Tranh luận (3 bước sàng lọc)
-  🐂 Lý do nên mua: định giá hấp dẫn, lợi nhuận tăng, tiền ròng dương.
-  🐻 Lý do nên chờ: lợi nhuận đang cao hơn hẳn bình quân lịch sử; bốn quý gần nhất chưa kiểm toán.
+💬 Debate (3 review steps)
+  🐂 Case for buying: cheap on earnings, profit rising, net cash.
+  🐻 Case for waiting: profit runs well above its historical average; the last four quarters are unaudited.
 
-Đây là phân tích, không phải lệnh đặt - quyết định luôn thuộc về bạn.
-  Sau khi khớp lệnh, dán dòng này: /record buy vps equity-vn:XXX 400 xxxxx VND 2026-10-16
+This is analysis, not an order - the decision is always yours.
+  Once you have traded, paste this: /record buy vps equity-vn:XXX 400 xxxxx VND 2026-10-16
 ```
 
-### Một ngày dùng OpenAlpha
+### A day with OpenAlpha
 
-https://github.com/user-attachments/assets/bea5ab46-72bd-48f5-8a51-9260f09824d9
+https://github.com/user-attachments/assets/46ea9c20-cc72-4bfa-8bb6-272981615802
 
 <p align="center">
-  <sub>70 giây</sub>
+  <sub>70 seconds</sub>
 </p>
 
-## Vì sao dùng OpenAlpha
+## Why OpenAlpha
 
-- **Kỷ luật được viết sẵn.** Kế hoạch chốt khi bạn còn tỉnh táo, rồi giữ bạn đi đúng kế hoạch đó, kể cả khi thị trường đi xuống.
-- **Mạnh ở cổ phiếu Việt Nam.** Dữ liệu trong nước, số liệu vĩ mô chính thức kèm câu trích gốc, và luôn tính đến T+2.
-- **Đúng sai đều được chấm.** Mỗi đề xuất được theo dõi tới khi khép lại; `/reflect` cho biết nó đúng được bao nhiêu, và đề xuất sau bớt tự tin khi đề xuất trước sai nhiều.
+- **Discipline, written down in advance.** The plan is fixed while you are calm, then keeps you on it, falling markets included.
+- **Deepest in Vietnamese equities.** Local data, official macro figures with the source sentence quoted, and T+2 always accounted for.
+- **Every call gets scored.** Each suggestion is tracked until it closes; `/reflect` shows how often it was right, and later calls get less confident when earlier ones missed.
 
-**Không hợp nếu** bạn tìm một con bot tự chạy lệnh, hoặc muốn có ai đó quyết định thay bạn. Cả hai đều không có ở đây, và đó là chủ ý.
+**A bad fit if** you want a bot that trades by itself, or someone to decide for you. Neither exists here, and that is deliberate.
 
-## Bắt đầu nhanh
+## Quick start
 
-Bạn cần hai thứ:
+You need two things:
 
-- **Một máy tính** chạy macOS, Linux hoặc Windows 10/11 (máy Windows chip ARM cần Windows 11).
-- **Một cách để dùng AI**, chọn một trong hai:
-  - **Khóa OpenRouter** (dễ nhất): đăng ký [OpenRouter](https://openrouter.ai) rồi tạo khóa ở [openrouter.ai/keys](https://openrouter.ai/keys). Giữ khóa như mật khẩu, đừng gửi ai. OpenRouter có vài mô hình không tính phí; dùng mô hình trả phí thì thường chỉ tốn vài đô la mỗi tháng.
-  - **Gói ChatGPT đang trả tiền**: đăng nhập lúc cài, không cần khóa.
+- **A computer** running macOS, Linux or Windows 10/11 (Windows on ARM needs Windows 11).
+- **A way to use AI**, one of:
+  - **An OpenRouter key** (easiest): sign up at [OpenRouter](https://openrouter.ai) and create a key at [openrouter.ai/keys](https://openrouter.ai/keys). Keep it like a password. OpenRouter lists some models at no charge; a paid model usually costs a few dollars a month.
+  - **A paid ChatGPT plan**: sign in during install, no key needed.
 
-Bốn bước đầu mất khoảng 15 phút. Xong bước 3 là bạn đã xem được một đề xuất; bước 4 giúp đề xuất tính đúng theo số tiền bạn có; bước 5 làm sau cũng được.
+The first four steps take about 15 minutes. After step 3 you have seen a suggestion; step 4 sizes suggestions to the money you have; step 5 can wait.
 
-**1. Cài đặt.** Mở Terminal (macOS: nhấn ⌘ + Space, gõ `Terminal`; Windows: mở PowerShell từ menu Start), chép dòng đúng với máy của bạn vào rồi nhấn Enter. Phần sau dấu `#` chỉ là ghi chú, không cần gõ.
+**1. Install.** Open a terminal (macOS: press ⌘ + Space and type `Terminal`; Windows: open PowerShell from the Start menu), paste the line for your machine and press Enter. Anything after `#` is a note, not something to type.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh   # macOS, Linux
@@ -111,86 +111,86 @@ curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh
 irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex   # Windows
 ```
 
-Trình cài tải về một tệp chạy duy nhất rồi hỏi vài câu; cứ nhấn Enter để nhận lựa chọn gợi ý:
+The installer downloads one self-contained binary, then asks a few questions; press Enter to take the suggested answer:
 
-- **Ngôn ngữ**, **thị trường bạn giao dịch chính** (Việt Nam hoặc Mỹ) và **tiền tệ của sổ** (thường là VND, hoặc USD nếu chọn Mỹ). Tiền tệ chỉ chọn được một lần, nên chọn đúng loại tiền bạn dùng.
-- **Dịch vụ AI.** Có khóa OpenRouter thì chọn OpenRouter rồi dán khóa khi được hỏi. Dùng gói ChatGPT thì chọn "ChatGPT (subscription)": trình duyệt mở ra, bạn đăng nhập tài khoản ChatGPT như thường lệ; OpenAlpha dùng gói của bạn, không cần khóa và không tính thêm phí AI.
-- **Mức chi mỗi ngày** cho AI (tính bằng đô la, chặn chi quá mức này) và **Telegram** nếu muốn nhận tin qua điện thoại.
+- **Language**, **the market you mainly trade** (Vietnam or the United States) and **the currency of your book.** The currency is chosen once, so pick the money you actually use.
+- **AI service.** With an OpenRouter key, pick OpenRouter and paste the key when asked. On a ChatGPT plan, pick "ChatGPT (subscription)": your browser opens and you sign in to ChatGPT as usual; OpenAlpha runs on your plan, with no key and no extra AI charge.
+- **A daily spending cap** for AI (in US dollars, spending stops there) and **Telegram** if you want messages on your phone.
 
-Cuối cùng nó gửi thử một tin ngắn tới mô hình; thấy mô hình trả lời là xong. Muốn đổi lại câu trả lời nào (trừ tiền tệ) thì chạy `openalpha onboard` bất cứ lúc nào.
+At the end it sends the model one short test message; a reply means you are done. Run `openalpha onboard` any time to change any answer but the currency.
 
-**2. Mở cửa sổ mới và kiểm tra.** Đóng cửa sổ cũ, mở một cửa sổ mới (để máy nhận lệnh `openalpha`), rồi chạy:
-
-```bash
-openalpha doctor --online              # gửi một tin ngắn để thử mô hình
-```
-
-Lúc cài bỏ qua bước nối AI, hoặc thử mô hình báo thiếu khóa, thì làm bây giờ rồi chạy lại lệnh trên:
+**2. Open a new window and check.** Close the old window and open a new one (so it finds the `openalpha` command), then run:
 
 ```bash
-openalpha key set OPENROUTER_API_KEY   # khóa OpenRouter: dán khóa rồi Enter; màn hình không hiện gì là bình thường
-openalpha auth login chatgpt           # hoặc gói ChatGPT: đăng nhập trên trình duyệt
+openalpha doctor --online              # sends the model one short test message
 ```
 
-`openalpha key` cho biết khóa nào đã có và lấy từ đâu; khóa được giữ trong `~/.openalpha/env`, chỉ bạn đọc được. Các lệnh này dùng được cả trên Windows. Gói Claude (Pro, Max) không đăng nhập được kiểu này; muốn dùng Claude mà không cần khóa thì nối OpenAlpha vào Claude Code qua MCP ([Nâng cao](#nâng-cao)).
+Skipped connecting AI during install, or the test says a key is missing? Do it now, then run the line above again:
 
-**3. Mở OpenAlpha và xem đề xuất đầu tiên.** Có hai cách, dùng cách nào cũng được và đổi qua lại lúc nào cũng được, vì cả hai đọc chung một sổ:
+```bash
+openalpha key set OPENROUTER_API_KEY   # OpenRouter key: paste it and press Enter; nothing showing on screen is normal
+openalpha auth login chatgpt           # or a ChatGPT plan: sign in in your browser
+```
 
-- **Trên trình duyệt (dễ nhất nếu bạn ngại terminal).** Chạy hai lệnh dưới đây; trang [văn phòng](#trang-văn-phòng) mở ra, có ô câu lệnh ở dưới và các thẻ danh mục, đề xuất bên phải.
+`openalpha key` lists which keys are set and where they come from; keys are kept in `~/.openalpha/env`, readable only by you. These commands work on Windows too. A Claude plan (Pro, Max) cannot sign in this way; to use Claude without a key, connect OpenAlpha to Claude Code over MCP ([Advanced](#advanced)).
+
+**3. Open OpenAlpha and see your first suggestion.** There are two ways. Use either, and switch any time: both read the same book.
+
+- **In your browser (easiest if the terminal is not your thing).** Run the two lines below; the [office page](#the-office-page) opens, with a command box at the bottom and the portfolio and suggestion tabs on the right.
 
   ```bash
-  openalpha start --background   # chạy dịch vụ nền, nơi phục vụ trang web
-  openalpha web                  # mở trang trong trình duyệt (liên kết đăng nhập dùng một lần, 5 phút)
+  openalpha start --background   # runs the background service that serves the page
+  openalpha web                  # opens the page in your browser (one-time sign-in link, 5 minutes)
   ```
 
-  Lần sau muốn mở lại thì chỉ cần `openalpha web`.
-- **Trong terminal.** Chạy `openalpha chat` để mở cuộc trò chuyện với trợ lý ngay trong cửa sổ đó.
+  Next time, `openalpha web` alone opens it again.
+- **In the terminal.** Run `openalpha chat` to talk to the assistant right in that window.
 
-Từ đây, các dòng bắt đầu bằng `/` gõ vào ô câu lệnh của trang web hoặc vào `openalpha chat` (hoặc Telegram, Zalo), không gõ thẳng ở terminal. Gõ lần lượt:
+From here on, lines starting with `/` go into the page's command box or into `openalpha chat` (or Telegram, Zalo), not straight into the terminal. Type, one at a time:
 
 ```text
-/refresh       # nạp danh sách mã, giá, báo cáo tài chính (không gọi AI; lần đầu khoảng 5 phút)
-/suggest FPT   # trợ lý phân tích một mã: nên mua hay chờ, giá vào, cắt lỗ, chốt lời, kèm lý do
+/refresh       # loads symbol lists, prices, statements (no AI call; about 5 minutes the first time)
+/suggest FPT   # the assistant works through one name: buy or wait, entry, stop loss, take profit, and why
 ```
 
-Lần đầu `/refresh` lâu vì phải tải nhiều; những lần sau nhanh hơn nhiều. Trong lúc chờ, cứ để cửa sổ hoặc trang đó mở.
+The first `/refresh` is slow because there is a lot to fetch; later ones are much quicker. Keep the window or page open while it runs.
 
-**4. Khai khẩu vị và ghi số tiền bạn có.** Gõ `/setup` rồi trả lời vài câu: mức rủi ro chịu được và thị trường bạn chơi. Sau đó ghi số tiền bạn có ở từng nơi; đề xuất mua bao nhiêu đều tính từ sổ này, nên đừng bỏ qua. Đây chỉ là sổ ghi chép trên máy: OpenAlpha không nối vào tài khoản chứng khoán và không chuyển tiền thật. Thay số tiền và ngày trong ví dụ bằng của bạn; ngày viết theo kiểu năm-tháng-ngày, số tiền viết liền không dấu chấm. Mở mục thị trường bạn chơi:
+**4. Say how much risk you want and record the money you have.** Type `/setup` and answer a few questions: how much risk you can take and the markets you trade. Then record the money you hold at each place; how much each suggestion buys is worked out from this book, so don't skip it. It is only a record on your machine: OpenAlpha does not connect to your brokerage account and moves no money. Swap the amounts and dates in the examples for yours; dates are year-month-day, amounts are written without separators. Open the section for the market you trade:
 
 <details open>
-<summary><b>Cổ phiếu Việt Nam</b></summary>
+<summary><b>Vietnamese stocks</b></summary>
 
 ```text
-/record deposit vps 100000000 VND 2026-08-14              # nạp 100 triệu vào tài khoản VPS
-/suggest FPT                                              # soi một mã
-/record buy FPT 100 62000                                 # đặt lệnh trên app VPS, khớp rồi ghi lại ở đây (tự điền sàn, VND, hôm nay)
-/record sell FPT all 65000                                # bán hết khi cổ phiếu đã về (T+2: sau 2 ngày làm việc); bán một phần thì ghi số lượng
+/record deposit vps 100000000 VND 2026-08-14              # 100 million VND into the VPS account
+/suggest FPT                                              # take a deep look at one name
+/record buy FPT 100 62000                                 # place the order in your VPS app, record it here once it fills (venue, VND, today filled in)
+/record sell FPT all 65000                                # sell it all once the shares settle (T+2: two working days later); for part, give a quantity
 ```
 
-Giá ghi bằng VND nguyên: bảng điện hiện `62,00` thì ghi `62000`; giá gõ lệch từ 10 lần trở lên so với giá đang giao dịch thì sổ hỏi lại trước khi lưu. Phí bỏ trống thì sổ tự tính. Chỉ dùng VPS thì bỏ qua phần còn lại của mục này. Tài khoản ở công ty khác (SSI, TCBS, VNDIRECT...) thì thêm vào `~/.openalpha/config.toml` với biểu phí của bạn, rồi ghi `ssi` thay cho `vps`:
+Prices are in whole VND: a board price of `62.00` is recorded as `62000`, and a price ten times or more away from the latest one is asked back before it is saved. Leave the fee out and the book prices it. Only at VPS? Skip the rest of this section. With another broker (SSI, TCBS, VNDIRECT...), add it to `~/.openalpha/config.toml` with your own fee schedule, then record `ssi` instead of `vps`:
 
 ```toml
 [trading.venues.ssi]
-default_for = ["equity-vn"]                                # cổ phiếu VN ghi ở SSI thay vì VPS
+default_for = ["equity-vn"]                                # VN stocks book at SSI instead of VPS
 fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
 ```
 
-Có tài khoản ở cả VPS lẫn SSI thì thay dòng `default_for` bằng `markets = ["equity-vn"]`.
+With accounts at both VPS and SSI, swap the `default_for` line for `markets = ["equity-vn"]`.
 
 </details>
 
 <details>
 <summary><b>Crypto</b></summary>
 
-Nạp USDT mua qua P2P thì ghi kèm `fx` ở dòng nạp, là giá bạn thật sự trả cho mỗi USDT. Lệnh mua sau đó trả bằng số USDT này theo giá vốn ấy, nên không cần `fx`:
+USDT bought over P2P: add `fx` to the deposit, the rate you actually paid for each USDT. Buys then spend that USDT at that cost, so they take no `fx`:
 
 ```text
 /record deposit binance 1000 USDT 2026-08-14 fx 26600
 /record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14
-/record sell binance crypto:BTC all 65000                 # bán hết; tự điền USDT và hôm nay
+/record sell binance crypto:BTC all 65000                 # sell it all; USDT and today filled in
 ```
 
-Nạp VND vào sàn thì lệnh mua bằng USDT được quy theo tỷ giá thị trường ngày đó. Trợ lý cho bạn xem trước, đúng thì gõ `/record confirm` để ghi:
+VND paid into the exchange: a USDT buy converts at that day's market rate. The assistant shows you first; if it looks right, type `/record confirm` to record it:
 
 ```text
 /record deposit binance 26000000 VND 2026-08-14
@@ -198,274 +198,274 @@ Nạp VND vào sàn thì lệnh mua bằng USDT được quy theo tỷ giá th�
 /record confirm
 ```
 
-- Mới chơi crypto? Từng bước từ nạp USDT tới rút về, chênh lệch tỷ giá và đối chiếu USDT với sàn: [cẩm nang](docs/cam-nang.md#crypto-qua-p2p-từng-bước-cho-người-mới).
-- `binance` và `okx` có sẵn. Sàn khác (Bybit, Bitget...) thì khai như SSI ở trên, với `markets = ["crypto"]` và `fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }`.
-- Đã đặt khóa API của Binance hoặc OKX ([cách tạo và lưu khóa](docs/giao-dich.md#đặt-lệnh); chỉ bật quyền đọc và giao dịch, **không bao giờ bật quyền rút tiền**) thì `/record sync binance` tự lấy lệnh đã khớp, và `/trade` dựng sẵn lệnh thật để bạn duyệt:
+- New to crypto? A round trip from USDT deposit to withdrawal, currency moves and checking USDT against the exchange: [trading guide](docs/en/trading.md#foreign-cash-at-a-venue).
+- `binance` and `okx` are built in. For another exchange (Bybit, Bitget...), declare it like SSI above, with `markets = ["crypto"]` and `fees = { buy = 0.001, sell = 0.001, fee_asset = "base" }`.
+- With Binance or OKX API keys set ([how to create and save them](docs/en/trading.md#orders); enable only reading and trading, **never withdrawals**), `/record sync binance` pulls in your fills, and `/trade` stages a real order for you to approve:
 
 ```text
-/trade spot binance:BTC buy 0.001 limit 60000 tp 70000 sl 56000   # mua giới hạn, kèm chốt lời và cắt lỗ
-/trade confirm                                                     # chỉ lúc này lệnh mới lên sàn
+/trade spot binance:BTC buy 0.001 limit 60000 tp 70000 sl 56000   # limit buy with take-profit and stop-loss
+/trade confirm                                                     # only now does the order reach the exchange
 ```
 
 </details>
 
 <details>
-<summary><b>Vàng trong nước</b></summary>
+<summary><b>Vietnamese gold</b></summary>
 
-Nhóm này tắt sẵn. Bật nó lên rồi ghi như cổ phiếu; vàng và tiền mua vàng được ghi ở nơi giữ có sẵn `gold-shop` (tiệm vàng):
+This segment starts switched off. Switch it on, then record it like a stock; gold and the cash that buys it sit at the built-in `gold-shop`:
 
 ```text
 /profile enable gold-vn
-/price gold-vn:SJC             # giá mua vào, bán ra và chênh lệch hôm nay
+/price gold-vn:SJC             # today's buy-back, sell price and spread
 ```
 
 ```text
 /record deposit gold-shop 150000000 VND 2026-08-14
-/record buy gold-vn:SJC 1 140000000      # 1 lượng; tự điền tiệm vàng, VND và hôm nay
-/record sell gold-vn:SJC 1 145000000     # bán lại cho tiệm, theo giá tiệm mua vào
+/record buy gold-vn:SJC 1 140000000      # 1 tael; gold shop, VND and today filled in
+/record sell gold-vn:SJC 1 145000000     # sold back to the shop at its buy-back price
 ```
 
-Chữ `gold-vn:` cho biết đây là vàng, không phải cổ phiếu trùng mã SJC. Mua lẻ thì ghi theo lượng: 1 chỉ là `0.1`, giá vẫn ghi theo lượng. Vàng nhẫn ghi `PNJ-RING` hoặc `DOJI-RING`. Cắt lỗ và mục tiêu tính theo giá tiệm mua lại, tức số tiền bạn thực nhận khi bán. Muốn tách sổ theo từng tiệm (SJC, PNJ...) thì khai như SSI ở trên, với `markets = ["gold-vn"]` và `fees = { buy = 0, sell = 0 }`, rồi ghi tên tiệm thay cho `gold-shop`.
+The `gold-vn:` prefix says this is gold, not the stock that shares the SJC ticker. Smaller amounts are recorded in taels: 1 chỉ is `0.1`, and the price stays per tael. For ring gold use `PNJ-RING` or `DOJI-RING`. Stop and target are set from the shop's buy-back price, which is what you actually get when you sell. To keep each shop (SJC, PNJ...) apart, declare it like SSI above with `markets = ["gold-vn"]` and `fees = { buy = 0, sell = 0 }`, then record its name instead of `gold-shop`.
 
 </details>
 
-Vài điều dùng được cho mọi thị trường:
+A few things that work the same in every market:
 
-- **Rút tiền về:** gõ `/record withdrawal` kèm nơi giữ, số tiền, tiền tệ và ngày, ví dụ `/record withdrawal vps 1000000 VND 2026-08-21`.
-- **Lỡ ghi nhầm?** Gõ `/transactions` để thấy mã của từng dòng. Sửa bằng `/update <mã bút toán> ...`. Muốn xóa thì gõ `/delete <mã bút toán>` để xem lại cho chắc, rồi `/delete <mã bút toán> confirm`.
-- **Cổ tức, chia tách, chuyển tiền giữa hai nơi:** gõ riêng `/record`, trợ lý sẽ liệt kê đủ các kiểu ghi và cách viết từng kiểu.
-- **Vừa sửa `config.toml`** (ví dụ thêm công ty chứng khoán hay tiệm vàng)? Gõ `/exit` để thoát rồi mở lại `openalpha chat` là xong. Nếu OpenAlpha đang chạy nền thì chạy `openalpha restart` thay vào đó: nó giữ thiết lập cũ cho tới khi khởi động lại, và khi `[api]` bật thì cuộc trò chuyện chạy ngay bên trong nó.
+- **Taking money out:** type `/record withdrawal` with the venue, amount, currency and date, for example `/record withdrawal vps 1000000 VND 2026-08-21`.
+- **Recorded something wrong?** Type `/transactions` to see each row's id. Fix it with `/update <id> ...`. To remove it, `/delete <id>` shows the row first so you can check, then `/delete <id> confirm`.
+- **Dividends, splits, moving cash between two places:** type `/record` on its own and it lists every kind of row and how to write each one.
+- **Just edited `config.toml`** (say, to add a broker or a gold shop)? Type `/exit`, open `openalpha chat` again, and that's it. If OpenAlpha runs in the background, run `openalpha restart` instead: it keeps the old settings until it restarts, and with `[api]` on the chat runs inside it.
 
-Hướng dẫn đầy đủ về ghi sổ: [cẩm nang, phần ghi sổ](docs/cam-nang.md#24-ghi-sổ-danh-mục).
+Full guide to the ledger: [trading guide, the ledger](docs/en/trading.md#the-ledger).
 
-**5. Chạy nền và nhận bản tin sáng (không bắt buộc).** Bỏ qua bước này nếu bạn chỉ mở OpenAlpha khi cần. Làm bước này khi muốn nó tự nạp dữ liệu, tự gửi bản tin mỗi sáng và báo động giá cả khi bạn không mở nó. Dùng terminal thì gõ `/exit` để thoát cuộc trò chuyện trước; dùng trang web thì dịch vụ nền đã chạy từ bước 3, bỏ qua dòng đầu:
+**5. Run it in the background and get the morning brief (optional).** Skip this if you only open OpenAlpha when you need it. Do it when you want it to load data, send a brief every morning and raise price alerts while you are away. In the terminal, type `/exit` to leave the chat first; on the web page the background service has run since step 3, so skip the first line:
 
 ```bash
-openalpha start --background   # chạy dịch vụ nền (daemon); dữ liệu cũng tự nạp từ đây
-openalpha autostart enable     # tự chạy mỗi lần đăng nhập, kể cả sau khi khởi động lại máy
-openalpha status               # còn chạy không; openalpha stop để dừng
+openalpha start --background   # run the daemon; data refreshes itself from here
+openalpha autostart enable     # start it at every login, restarts included
+openalpha status               # is it running? openalpha stop stops it
 ```
 
-Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)). Lần đầu nhắn bot, bạn nhận một mã: duyệt nó ở Cài đặt > Kênh nhắn tin trên trang văn phòng (hoặc `openalpha pair approve <mã>`) thì bot mới trả lời. Rồi gõ `/brief enable 08:00` trong kênh đó để nhận bản tin trước giờ mở cửa. Vài tuần sau, `/reflect` cho biết các đề xuất cũ đúng được bao nhiêu.
+Connect Telegram or Zalo ([channels guide](docs/en/channels.md)). The first time you message the bot you get a code: approve it under Settings > Messaging channels on the office page (or `openalpha pair approve <code>`) and the bot starts replying. Then type `/brief enable 08:00` in that chat for a brief before the open. A few weeks in, `/reflect` shows how the old suggestions did.
 
 <details>
-<summary><b>Dùng trên Windows, đổi mô hình AI, cập nhật và gỡ cài đặt</b></summary>
+<summary><b>Using Windows, changing the AI model, updating and uninstalling</b></summary>
 
-**Dùng trên Windows**
+**Using Windows**
 
-- **Không cần quyền admin.** OpenAlpha cài vào thư mục `%USERPROFILE%\.local\bin` của riêng tài khoản bạn. Dữ liệu và cấu hình nằm ở `%USERPROFILE%\.openalpha`; trong hướng dẫn này thư mục đó được viết là `~/.openalpha`.
-- **Gõ `openalpha` mà báo không có lệnh này?** Mở một cửa sổ PowerShell mới rồi thử lại. Vẫn không được thì chạy thẳng `& "$HOME\.local\bin\openalpha.exe"`.
-- **Windows Defender chặn `openalpha.exe`?** Tệp chưa được ký số nên đôi khi bị báo nhầm là virus. Trình cài đã kiểm tra tệp trước khi cài. Muốn tự kiểm lại:
-  1. Chạy `Get-FileHash "$HOME\.local\bin\openalpha.exe"` để lấy mã của tệp.
-  2. So với dòng `openalpha-windows-x64.exe` (máy chip ARM: `openalpha-windows-arm64.exe`) trong tệp `SHA256SUMS` trên trang [Releases](https://github.com/alex2loop/openalpha/releases).
-  3. Khớp thì mở PowerShell bằng quyền Admin và cho phép thư mục đó: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Đừng tắt hẳn phần mềm diệt virus.
-- **Máy chip ARM?** Trình cài tự chọn bản dành cho ARM. Trước đây lỡ cài bản x64 thì chạy lại lệnh cài là được.
-- **Tiếng Việt hiện thành ký tự lạ?** Dùng Windows Terminal thay cho cửa sổ dòng lệnh cũ.
-- **Quen dùng WSL2?** Lệnh cài cho Linux (`curl ... | sh`) chạy được trong WSL2; khi đó dữ liệu nằm riêng trong WSL2.
+- **No admin rights needed.** OpenAlpha installs into `%USERPROFILE%\.local\bin`, a folder of your own account. Data and config live in `%USERPROFILE%\.openalpha`; this guide writes that folder as `~/.openalpha`.
+- **`openalpha` is not recognized?** Open a new PowerShell window and try again. Still nothing? Run it directly: `& "$HOME\.local\bin\openalpha.exe"`.
+- **Windows Defender blocks `openalpha.exe`?** The file is not code-signed, so it is sometimes flagged by mistake. The installer already checked it before installing. To check it yourself:
+  1. Run `Get-FileHash "$HOME\.local\bin\openalpha.exe"` to get the file's hash.
+  2. Compare it with the `openalpha-windows-x64.exe` line (ARM machines: `openalpha-windows-arm64.exe`) in `SHA256SUMS` on the [Releases](https://github.com/alex2loop/openalpha/releases) page.
+  3. If it matches, open PowerShell as Administrator and allow that folder: `Add-MpPreference -ExclusionPath "$HOME\.local\bin"`. Don't turn your antivirus off.
+- **ARM machine?** The installer picks the ARM build by itself. Installed the x64 build earlier? Run the install line again.
+- **Vietnamese text shows as garbage?** Use Windows Terminal instead of the old console window.
+- **Prefer WSL2?** The Linux install line (`curl ... | sh`) works there, and its data stays inside WSL2.
 
-**Cấu hình và mô hình AI**
+**Config and AI models**
 
-- **Muốn bỏ qua các câu hỏi lúc cài?** Tải sẵn [config.minimal.toml](config.minimal.toml): tệp cấu hình tối giản, chỉ cần khóa OpenRouter là chạy, dòng nào cũng có chú thích. Lệnh dưới đây **ghi đè** `config.toml` nếu bạn đã có:
+- **Rather skip the questions during install?** Download [config.minimal.en.toml](config.minimal.en.toml) first: a minimal config that runs with just an OpenRouter key, every line commented. The line below **overwrites** an existing `config.toml`:
 
   ```bash
-  curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -o ~/.openalpha/config.toml --create-dirs
+  curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -o ~/.openalpha/config.toml --create-dirs
   ```
 
   ```powershell
-  New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -OutFile "$HOME\.openalpha\config.toml"
+  New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -OutFile "$HOME\.openalpha\config.toml"
   ```
 
-- **Giao dịch cổ phiếu Mỹ?** Chọn Mỹ khi `onboard` hỏi thị trường bạn giao dịch chính, hoặc dùng [config.minimal.us.toml](config.minimal.us.toml) thay cho tệp ở trên; tệp này trả lời bằng tiếng Anh, muốn tiếng Việt thì đổi `language` thành `"vi"`. Chỉ tệp này mới thêm `[trading.venues.coinbase]` để Coinbase dẫn đầu báo giá crypto; sau `onboard` bạn tự thêm ([Giao dịch](docs/giao-dich.md#cổ-phiếu-mỹ)). Bắt đầu từ một thư mục dữ liệu mới: tiền tệ của sổ cố định khi hồ sơ đã lưu.
-- **Đổi mô hình AI:** chạy `openalpha onboard` rồi chọn "Mô hình AI". `openalpha provider list` liệt kê hơn 70 nhà cung cấp, `openalpha provider models` cho biết các mô hình và giá.
-- **Thêm mô hình dự phòng:** sửa `[[models]]` trong `config.toml`. Mục đầu là mô hình chính; mục sau chỉ được dùng khi mục trước lỗi hoặc treo:
+- **Trading US stocks?** Pick the United States when `onboard` asks which market you mainly trade, or take [config.minimal.us.toml](config.minimal.us.toml) in place of the file above. Only the file adds `[trading.venues.coinbase]`, which makes Coinbase lead crypto quotes; after `onboard` add it yourself ([Trading](docs/en/trading.md#us-stocks)). Start from a fresh data directory: the currency of the book is fixed once your profile is saved.
+- **Change the AI model:** run `openalpha onboard` and pick "AI model". `openalpha provider list` lists over 70 providers; `openalpha provider models` shows models and prices.
+- **Add a fallback model:** edit `[[models]]` in `config.toml`. The first entry is the main model; a later one is used only when the one before it fails or hangs:
 
   ```toml
-  [[models]]                                   # mô hình chính
+  [[models]]                                   # main model
   provider = "openrouter"
   model = "deepseek/deepseek-v4.1-flash"
   api_key_env = "OPENROUTER_API_KEY"
 
-  [[models]]                                   # dự phòng khi OpenRouter lỗi
+  [[models]]                                   # fallback when OpenRouter fails
   provider = "anthropic"
   model = "claude-sonnet-4-6"
   api_key_env = "ANTHROPIC_API_KEY"
   ```
 
-- **Không muốn trả tiền AI cho ai cả?** Chạy mô hình ngay trên máy qua Ollama hoặc vLLM.
-- **Tra cứu thêm:** [mô hình và nhà cung cấp](docs/tro-ly.md#mô-hình-và-nhà-cung-cấp) · [các khóa của `[[models]]`](docs/cau-hinh.md#models-bắt-buộc-ít-nhất-một) · [danh mục nhà cung cấp](docs/cau-hinh.md#danh-mục-nhà-cung-cấp) · [mọi tùy chọn cấu hình](docs/cau-hinh.md) · [config.sample.toml](config.sample.toml) (tệp mẫu đầy đủ).
+- **Rather not pay anyone for AI?** Run a model on your own machine through Ollama or vLLM.
+- **More:** [models and providers](docs/en/agents.md#models-and-providers) · [`[[models]]` keys](docs/en/configuration.md#models-required-at-least-one) · [provider catalog](docs/en/configuration.md#provider-catalog) · [every config option](docs/en/configuration.md) · [config.sample.toml](config.sample.toml) (the full sample).
 
-**Cập nhật, sao lưu và gỡ cài đặt**
+**Updating, backups and uninstalling**
 
-- **Cập nhật:** khi có bản mới, terminal nhắc mỗi ngày một lần kèm điểm đáng chú ý; bot trong chat riêng nhắc mỗi tuần (bản quan trọng thì mỗi ngày). Chạy `openalpha upgrade` để lên bản mới; dữ liệu và cấu hình giữ nguyên.
-- **Sao lưu:** `openalpha db backup` chụp lại sổ bất cứ lúc nào, kể cả khi dịch vụ nền đang chạy. Muốn quay về bản đã chụp thì dừng dịch vụ nền (`openalpha stop`) rồi chạy `openalpha db restore <tệp> --yes`.
-- **Làm lại cơ sở dữ liệu mà vẫn giữ sổ** (ít khi cần):
+- **Updates:** when a new release is out, the terminal mentions it once a day with what is worth knowing; in a private chat the bot mentions it weekly (daily for an important one). Run `openalpha upgrade` to move to it; your data and settings stay.
+- **Backups:** `openalpha db backup` snapshots the book at any time, even while the background service runs. To go back to a snapshot, stop the background service (`openalpha stop`) and run `openalpha db restore <file> --yes`.
+- **Rebuild the database and keep the book** (rarely needed):
 
   ```bash
-  openalpha stop                        # dừng dịch vụ nền trước
-  openalpha db export --out ./keep      # xuất sổ ra thư mục keep
-  openalpha db reset --yes              # xóa và tạo lại cơ sở dữ liệu
-  openalpha db import --in ./keep       # nạp lại sổ
-  openalpha start --background          # chạy lại, rồi gõ /refresh để tải lại dữ liệu thị trường
+  openalpha stop                        # stop the background service first
+  openalpha db export --out ./keep      # export the book to ./keep
+  openalpha db reset --yes              # wipe and recreate the database
+  openalpha db import --in ./keep       # load the book back
+  openalpha start --background          # start again, then type /refresh to reload market data
   ```
 
-  Chi tiết: [xuất và nhập](docs/luu-tru.md#xuất-và-nhập).
-- **Cài trên máy chủ hay trong CI?** Đặt `OPENALPHA_NO_ONBOARD=1` để bỏ các câu hỏi. Đầu tệp [install.sh](install.sh) và [install.ps1](install.ps1) liệt kê mọi tùy chọn, ví dụ `OPENALPHA_VERSION` để cài đúng một bản.
-- **Gỡ cài đặt:**
-  1. Muốn giữ sổ thì chạy `openalpha db export --out <thư-mục>` trước.
-  2. Chạy `openalpha stop`.
-  3. Xóa tệp `openalpha` trong `~/.local/bin` (Windows: `openalpha.exe`, và `openalpha.exe.old` nếu có).
-  4. Xóa thư mục `~/.openalpha` nếu muốn bỏ luôn sổ và cấu hình.
+  Details: [export and import](docs/en/storage.md#export-and-import).
+- **Installing on a server or in CI?** Set `OPENALPHA_NO_ONBOARD=1` to skip the questions. The top of [install.sh](install.sh) and [install.ps1](install.ps1) lists every option, such as `OPENALPHA_VERSION` to install one exact release.
+- **Uninstall:**
+  1. To keep your book, run `openalpha db export --out <folder>` first.
+  2. Run `openalpha stop`.
+  3. Delete the `openalpha` file in `~/.local/bin` (Windows: `openalpha.exe`, and `openalpha.exe.old` if present).
+  4. Delete the `~/.openalpha` folder if you want the book and settings gone too.
 
 </details>
 
-## Dùng mỗi ngày
+## Daily use
 
-Phần lớn câu lệnh hằng ngày chỉ tính trên dữ liệu đã có trong máy, không gọi AI. Câu lệnh nào gọi AI thì tính vào trần chi tiêu bạn đặt lúc cài.
+Most everyday commands work on data already on your machine and never call the AI. The ones that do count against the spending cap you set during install.
 
-| Bạn muốn | Gõ | Gọi AI? |
+| You want | Type | Calls the AI? |
 |---|---|---|
-| Bản tin trước giờ mở cửa | `/brief` · `/brief enable 08:00` | có: một lượt ngắn cho mỗi mã đang giữ hay theo dõi; mã đã soi trong ngày thì dùng lại |
-| Soi kỹ một mã | `/suggest FPT` | có |
-| Nghiên cứu một câu hỏi, có trích nguồn | `/research <câu hỏi>` | có (`quick` là mức nhẹ nhất) |
-| Chủ đề đầu tư đang hình thành | `/themes` | có, mặc định tối đa $1 mỗi lần |
-| Xếp hạng cả thị trường | `/screen equity-vn 20` | không |
-| Theo dõi giá vài mã | `/watchlist add FPT HPG` · `/watchlist` | không |
-| Nạp dữ liệu còn thiếu cho các thị trường bạn đang dùng (`force`: nạp lại hết) | `/refresh` · `/refresh equity-vn force` | không |
-| Bảng giá, vĩ mô, một mã | `/market` · `/overview` · `/price FPT` | không |
-| Xem danh mục, kéo về tỷ trọng mục tiêu | `/portfolio` · `/rebalance` | không |
-| Danh mục thật sự lời lỗ bao nhiêu, đã trừ tiền nạp rút | `/portfolio nav` | không |
-| Đồng bộ sổ với sàn (cần khóa API của sàn) | `/record sync okx` · `/reconcile` | không |
-| Xem các đề xuất cũ đúng được bao nhiêu | `/reflect` | không |
+| The morning read, before the open | `/brief` · `/brief enable 08:00` | yes: one short read per held or watched name; a name already read today is reused |
+| A deep read on one name | `/suggest FPT` | yes |
+| A question researched, with sources | `/research <question>` | yes (`quick` is the lightest depth) |
+| Themes forming in Vietnam | `/themes` | yes, at most $1 a run by default |
+| Rank a whole market | `/screen equity-vn 20` | no |
+| Follow a few names' prices | `/watchlist add FPT HPG` · `/watchlist` | no |
+| Load missing data for the markets you use (`force`: reload it all) | `/refresh` · `/refresh equity-vn force` | no |
+| Boards, macro, one price | `/market` · `/overview` · `/price FPT` | no |
+| See the book, steer it back to target | `/portfolio` · `/rebalance` | no |
+| How the book has really done, deposits taken out | `/portfolio nav` | no |
+| Catch the book up to the exchange (needs an exchange API key) | `/record sync okx` · `/reconcile` | no |
+| Find out how past suggestions did | `/reflect` | no |
 
-Câu lệnh gọi AI tốn bao nhiêu tùy mô hình bạn chọn: mô hình rẻ hơn thì tốn ít hơn, và `[budget]` luôn chặn trần. `openalpha cost` cho biết hôm nay, tuần này hay tháng này đã tốn bao nhiêu (`--breakdown` tách theo mô hình), còn trang văn phòng ghi cạnh mỗi câu lệnh mức nó thường tốn, lấy từ vài phiên chạy gần nhất ([ngân sách](docs/ngan-sach.md#xem-đã-tốn-bao-nhiêu)).
+What a command that calls the AI costs depends on the model you pick: a cheaper model costs less, and `[budget]` caps it either way. `openalpha cost` shows what today, the week or the month cost (`--breakdown` splits it by model), and the office page shows beside each command what it usually costs, taken from its last few runs ([budgets](docs/en/budgets.md#finding-out-what-cost)).
 
-Các con số trong README chỉ minh họa cú pháp, không phải gợi ý mua bán. Đủ mọi câu lệnh: `/help` trong cuộc trò chuyện, hoặc [bản đồ lệnh](docs/cam-nang.md#4-bản-đồ-lệnh).
+The figures in this README only illustrate the syntax; they are not trade ideas. Every command: `/help` in chat, or [commands.md](docs/en/commands.md).
 
-## Trang văn phòng
-
-<p align="center">
-  <img src="assets/readme/office.vi.gif" alt="Trang văn phòng của OpenAlpha: một văn phòng pixel nhìn từ trên xuống với kho dữ liệu, thư viện, phòng họp, sảnh, bàn cảnh báo và phòng trợ lý; các nhân vật đi lại theo phiên chạy thật của dịch vụ nền, dải giá chạy phía trên và ô câu lệnh ở dưới" width="100%" />
-</p>
-
-Trang văn phòng là một ô cửa kính nhìn vào dịch vụ nền: trợ lý, nhóm nghiên cứu và các agent của bạn làm việc trong từng phòng, và mỗi chuyển động là một phiên chạy, một bước hay một câu hỏi đang chờ bạn, không có gì diễn cho vui. Bên cạnh là danh mục, đề xuất, cuộc trò chuyện và ô câu lệnh. Trang không bao giờ đặt lệnh và không tự khởi động phiên chạy AI nào.
-
-Mở bằng `openalpha web` khi dịch vụ nền đang chạy ([bước 3](#bắt-đầu-nhanh) ở trên). Trang hiện gì, cách dùng và cách mở từ máy khác: [trang văn phòng](docs/van-hanh.md#trang-văn-phòng) · [chạy API trên máy chủ](docs/van-hanh.md#chạy-api-trên-máy-chủ). Cùng API đó cũng phục vụ ứng dụng của riêng bạn: xem [Nâng cao](#nâng-cao).
-
-## Cách nó hoạt động
-
-Với mỗi mã bạn hỏi, sáu nhà phân tích AI tranh luận theo ba vòng: phe mua, phe bán, người tổng hợp, rồi bên giao dịch, quản trị rủi ro và người soát lại số liệu. Với cổ phiếu Việt Nam, còn cả loạt bước kiểm tra có quyền chặn đề xuất lại. **Nhưng không ai trong số đó được viết ra một con số.** Giá vào, cắt lỗ, mục tiêu và khối lượng do code tính xong trước khi cuộc tranh luận bắt đầu. AI chỉ lo phần *vì sao* và phần *điều gì có thể khiến nhận định đó sai*.
+## The office page
 
 <p align="center">
-  <img src="assets/readme/debate.vi.png" alt="Hội đồng AI tranh luận theo ba vòng: hai phe, tổng hợp, kế hoạch và soát lại" width="100%" />
+  <img src="assets/readme/office.en.gif" alt="The OpenAlpha office page: a top-down pixel office with a data store, library, meeting room, lobby, alert desk and assistant room; the staff move as the daemon's real runs start and finish, a price tape scrolls across the top and a command box sits at the bottom" width="100%" />
 </p>
 
-### Kỷ luật thay cho cảm xúc
+The office page is a glass wall into the daemon: your assistant, the research crew and your own agents work in their rooms, and everything that moves is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. Beside it sit your portfolio, suggestions, chat and command box. The page never places an order and never starts an AI run by itself.
 
-<p align="center"><img src="assets/readme/discipline.vi.png" alt="Bỏ cảm xúc, giữ kỷ luật: thói quen cảm xúc và quy tắc OpenAlpha thay thế" width="100%" /></p>
+Open it with `openalpha web` while the background service runs ([step 3](#quick-start) above). What the page shows, how to use it and how to reach it from another machine: [the office page](docs/en/operations.md#the-office-page) · [run the API on a server](docs/en/operations.md#run-the-api-on-a-server). The same API serves your own app too: see [Advanced](#advanced).
 
-**Không FOMO, không gồng lỗ, không "chắc nó hồi".** Cái khó hiếm khi là kiến thức, mà là lúc bấm nút.
+## How it works
+
+For every name you ask about, six AI analysts argue it over three rounds: bull, bear, a synthesizer, then a trader, a risk analyst and a fact-checker. For a Vietnamese stock, a whole series of checks can each stop the idea. **Not one of them is allowed to write a number.** Entry, stop, target and size are computed in code before the debate even opens. The model's job is the *why*, and the *what would make this wrong*.
+
+<p align="center">
+  <img src="assets/readme/debate.en.png" alt="An AI panel argues in three rounds: two sides, synthesis, plan and check" width="100%" />
+</p>
+
+### Discipline instead of emotion
+
+<p align="center"><img src="assets/readme/discipline.en.png" alt="Lose the emotion, keep the discipline: emotional habits and the OpenAlpha rule that replaces each" width="100%" /></p>
+
+**No FOMO, no hoping a loser comes back.** The hard part is rarely knowledge; it is the moment you press the button.
 
 <details>
-<summary><b>Cách nó giữ kỷ luật, kể cả khi thị trường đi xuống</b></summary>
+<summary><b>How it keeps you disciplined, including when the market turns down</b></summary>
 
-- **Cắt lỗ chỉ được nâng, không được hạ.** Không có nút "dời xuống thêm chút nữa".
-- **Không cần dán mắt vào bảng điện.** Đặt mốc bằng `/alert create FPT above 130000` (giá đầy đủ, như khi `/record`); giá chạm mốc là OpenAlpha nhắn bạn qua Telegram hoặc Zalo (cần chạy nền và nối kênh, [bước 5](#bắt-đầu-nhanh)).
+- **A stop can only move up, never down.** There is no "just a little lower" button.
+- **No need to stare at the price board.** Set a level with `/alert create FPT above 130000` (the full price, as in `/record`); when the price reaches it, OpenAlpha messages you on Telegram or Zalo (needs the daemon and a connected chat, [step 5](#quick-start)).
 
-**Khi thị trường đi xuống,** mục tiêu không phải đoán đáy, mà là còn đủ vốn để chơi tiếp:
+**When the market turns down,** the goal is not to call the bottom but to keep enough capital to play the next round:
 
-- **Thị trường xấu thì tự thu nhỏ.** Trần từng nhóm siết lại và khối lượng đề xuất nhỏ đi.
-- **Có trần cho cả danh mục.** Nhiều lệnh nhỏ không cộng dồn thành một khoản cược lớn.
-- **Một lệnh tắt mua.** Khi đã khai khóa sàn, `/trade halt` chặn mọi lệnh mua mới qua OpenAlpha cho tới khi bạn gõ `/trade resume`; bán và cắt lỗ vẫn chạy.
+- **A weaker market means smaller positions.** Each segment's cap tightens and suggested sizes shrink.
+- **A cap on the whole portfolio.** Many small positions cannot add up to one big bet.
+- **One command stops buying.** With an exchange key set, `/trade halt` blocks every new buy through OpenAlpha until you type `/trade resume`; sells and stops keep working.
 
 </details>
 
-OpenAlpha không hứa bạn không lỗ. Nó giúp mỗi khoản lỗ nhỏ, có kế hoạch và biết trước.
+OpenAlpha does not promise you will never lose. It keeps each loss small, planned and known in advance.
 
 <details>
-<summary><b>Chỉnh mức cắt lỗ và chốt lời theo ý bạn</b></summary>
+<summary><b>Tuning your stop and take-profit</b></summary>
 
-OpenAlpha không dùng một mức % chung cho mọi mã, vì lãi 8% là xa với một mã ngân hàng đi chậm nhưng chỉ là dao động vài phiên với một mã nhỏ hay giật. Thay vào đó, cắt lỗ đặt theo mức dao động thường ngày của từng mã, còn mục tiêu xa gấp vài lần khoảng lỗ đó, nên tỷ lệ lời/lỗ luôn đúng như bạn chọn.
+OpenAlpha does not use one flat percentage for every name, because 8% is a long way for a slow bank stock and just a few days of noise for a jumpy small cap. Instead, the stop sits at a distance set by each name's normal daily range, and the target is a few times that distance, so your reward-to-risk stays what you chose.
 
-Muốn kiểu quen thuộc "lỗ tối đa 8%" thì thêm vào `config.toml` rồi khởi động lại:
+Want the familiar "never lose more than 8%" shape? Add this to `config.toml` and restart:
 
 ```toml
 [trading.markets.equity-vn]
-maximum_stop_loss = 0.08   # cắt lỗ không bao giờ xa quá 8% dưới giá vào
-reward_risk = 3            # mục tiêu xa gấp 3 lần khoảng lỗ: lỗ 8% thì mục tiêu khoảng +24%
+maximum_stop_loss = 0.08   # stop never sits more than 8% below entry
+reward_risk = 3            # target 3x the risk: an 8% stop means a target near +24%
 ```
 
-- **Chốt lời từng phần:** khi giá lên được một khoảng bằng khoảng lỗ, OpenAlpha gợi ý bán một phần để khóa lãi (mặc định một phần ba); phần còn lại đi tiếp, với mức cắt lỗ được nâng dần theo giá. Muốn bán một nửa thì gõ `/profile set take-profit-tranche-pct 0.5`.
-- **Đổi các mức này** thì thị trường đó bắt đầu một sổ thành tích mới, để `/reflect` không trộn kế hoạch cũ với kế hoạch mới.
-- Chi tiết: [đặt cắt lỗ và mục tiêu](docs/giao-dich.md#đặt-cắt-lỗ-và-mục-tiêu-theo-từng-thị-trường).
+- **Taking profit in parts:** once the price has gone up by one stop distance, OpenAlpha suggests selling part of the position to lock in a gain (a third by default); the rest rides on, with the stop raised behind the price. To sell half instead, type `/profile set take-profit-tranche-pct 0.5`.
+- **Changing these levels** starts a new track record for that market, so `/reflect` never mixes old plans with new ones.
+- Details: [setting the stop and target](docs/en/trading.md#setting-the-stop-and-target-per-market).
 
 </details>
 
-### Thị trường và dữ liệu
+### Markets and data
 
 <p align="center">
-  <img src="assets/readme/markets.vi.png" alt="Một trợ lý, năm thị trường: cổ phiếu Việt Nam, cổ phiếu và quỹ ETF Mỹ, tiền mã hóa, vàng thế giới, vàng trong nước" width="100%" />
+  <img src="assets/readme/markets.en.png" alt="One assistant, five markets: VN equities, US stocks and ETFs, crypto, world gold, VN gold" width="100%" />
 </p>
 
-| Thị trường | Mã thị trường | Có gì |
+| Market | Market id | What it brings |
 |---|---|---|
-| **Cổ phiếu Việt Nam** | `equity-vn` | Sâu nhất: theo dõi khối ngoại và tự doanh, lịch công bố thông tin, sức khỏe tài chính, và luôn tính đến T+2. |
-| **Cổ phiếu và quỹ ETF Mỹ** | `equity-us` | Sàng lọc 500 công ty Mỹ lớn nhất và một bảng quỹ, chấm đà giá và biến động bằng giá, giá trị và chất lượng bằng báo cáo tài chính của SEC (cần email liên hệ của bạn), và không gợi ý mua quỹ đòn bẩy hay quỹ đảo chiều. Đặt `region = "us"` và `currency = "USD"`, hoặc chọn Mỹ trong `onboard`. |
-| **Tiền mã hóa** | `crypto` | Chỉ giao ngay. Mua khi giá vượt đỉnh gần đây, cắt lỗ dời lên theo giá, đọc thêm dữ liệu phái sinh để biết thị trường đang dùng đòn bẩy nhiều hay ít. |
-| **Vàng trong nước** | `gold-vn` | So với giá thế giới để biết vàng thật sự tăng hay chỉ là tiệm nới chênh lệch. Tắt sẵn; bật bằng `/profile enable gold-vn`. |
-| **Vàng thế giới** | `gold` | Chỉ để tham chiếu: xem giá và làm mốc cho vàng trong nước. |
+| **VN equities** | `equity-vn` | The deepest: follows foreign and proprietary flow, the disclosure calendar and financial health, and always plans around T+2. |
+| **US stocks and ETFs** | `equity-us` | Screens the 500 largest US companies and a fund board, scores momentum and volatility from prices and value and quality from SEC accounts (with your contact email), and refuses to suggest buying leveraged or inverse funds. Set `region = "us"` and `currency = "USD"`, or pick the United States in `onboard`. |
+| **Crypto** | `crypto` | Spot only. Buys when price clears its recent high, with a stop that moves up behind the price, and reads the futures market to show how much leverage traders are using. |
+| **VN gold** | `gold-vn` | Compared with the world price, so you can tell a real move from a shop widening its spread. Off by default; switch it on with `/profile enable gold-vn`. |
+| **World gold** | `gold` | Reference only: its price, and the yardstick for VN gold. |
 
-Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã thì ghi thêm tên thị trường: `/suggest crypto:UNI`.
+A bare ticker is usually enough (`/price FPT`). Qualify it only where two markets could claim the same name: `/suggest crypto:UNI`.
 
 <p align="center">
-  <img src="assets/readme/sources.vi.png" alt="Nguồn dữ liệu chia theo từng thị trường: cổ phiếu Việt Nam, tiền mã hóa, vàng trong nước, vàng thế giới, vĩ mô Việt Nam, vĩ mô Mỹ và liên thị trường" width="100%" />
+  <img src="assets/readme/sources.en.png" alt="Data sources routed per market: VN equities, crypto, VN gold, world gold, VN macro, US macro and cross-market" width="100%" />
 </p>
 
-OpenAlpha lấy dữ liệu từ 37 nguồn, chia theo từng thị trường; nguồn nào lỗi thì nguồn dự phòng tự thay vào ([nguồn dữ liệu](docs/nguon-du-lieu.md)). Vài nguồn nhận thêm khóa miễn phí; nếu bạn theo dõi vàng hay vĩ mô Mỹ, nên lấy khóa ở [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html) rồi lưu bằng `openalpha key set FRED_API_KEY` để có chỉ số đô la và VIX ([chi tiết](docs/nguon-du-lieu.md#bạn-cần-làm-gì)). Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì phiên chạy tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo, Zalo cá nhân hoặc trang văn phòng.
+OpenAlpha routes 37 data sources per market; when one fails, a backup takes over by itself ([data sources](docs/en/data-sources.md)). A few sources take an extra free key; if you follow gold or US macro, get a key from the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html) and save it with `openalpha key set FRED_API_KEY` to get the dollar index and VIX ([details](docs/en/data-sources.md#what-you-need-to-do)). Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo, Zalo Personal or the office page.
 
-### Nghiên cứu có trích nguồn
+### Research with receipts
 
-Hỏi một câu cần dữ liệu mới từ bên ngoài, nhận về một báo cáo mà mỗi nhận định đều chỉ ra được nó đến từ đâu. Mô hình không tự lên mạng: code tìm và tải trang trước, nên mô hình không bịa ra được nguồn, và chỗ nào thiếu bằng chứng thì báo cáo nói thẳng là thiếu.
+Ask a question that needs fresh outside data, and get back a report where every claim can show where it came from. The model never goes online itself: code searches and fetches the pages first, so the model cannot invent a source, and where evidence is missing the report says so.
 
-**Nguồn tìm kiếm quyết định độ sâu.** Mặc định là DuckDuckGo: không cần khóa, không tốn tiền, nhưng ít kết quả, nên câu hỏi về số liệu mới thường về tay không. Chọn Exa, Tavily, Brave, Serper hay DeepSeek và dán khóa ở Cài đặt > Công cụ trên trang văn phòng (hoặc khai `[web_search]`, xem [cấu hình](docs/cau-hinh.md)) thì báo cáo có nhiều nguồn hơn hẳn; trong số đó DeepSeek rẻ nhất và mạnh về nguồn tiếng Việt.
+**The search provider sets the depth.** The default is DuckDuckGo: keyless and costs nothing, but thin, so a question about fresh figures often comes back empty. Pick Exa, Tavily, Brave, Serper or DeepSeek and paste its key under Settings > Tools on the office page (or set `[web_search]`, see [configuration](docs/en/configuration.md)) and the report draws on far more sources; of those, DeepSeek is the cheapest and strong on Vietnamese sources.
 
-Chi tiết: [docs/nghien-cuu.md](docs/nghien-cuu.md)
+Details: [docs/en/research.md](docs/en/research.md)
 
-## An toàn
+## Safety
 
-- **AI không thấy tiền của bạn.** Nhà phân tích chỉ biết tỷ trọng, không bao giờ thấy số dư, giá đã mua hay tổng tài sản.
-- **Không tự đặt lệnh.** Mặc định chỉ gợi ý. Chưa khai khóa sàn thì đường đặt lệnh không tồn tại; có khóa thì lệnh nào cũng chờ bạn xác nhận.
-- **Mọi thứ nằm trên máy bạn.** Sổ và cấu hình lưu ngay trên máy; khóa lấy từ biến môi trường hoặc từ `~/.openalpha/env` (chỉ bạn đọc được). OpenAlpha chỉ ghi vào tệp đó khi bạn nhập khóa qua `onboard` hoặc `openalpha key set`, và không bao giờ in khóa ra.
-- **Sổ được sao lưu mỗi ngày.** Khi chạy nền, OpenAlpha chép sổ SQLite vào `~/.openalpha/backups/daily/` và giữ ba bản mới nhất ([sao lưu và khôi phục](docs/luu-tru.md#sao-lưu-và-khôi-phục-sqlite)).
-- **Chi tiêu AI có trần.** Trần theo ngày đặt lúc cài; thêm trần theo tháng hoặc theo phiên chạy trong `[budget]`, để một vòng lặp lỗi không đốt tiền ([ngân sách](docs/ngan-sach.md)).
+- **The AI never sees your money.** The analyst gets weights only, never a balance, a price paid or your total assets.
+- **It places no orders on its own.** It suggests by default. Without exchange keys the order path does not exist; with them, every order waits for your confirmation.
+- **Everything stays on your machine.** The book and the config live locally; keys come from your environment or from `~/.openalpha/env` (readable only by you). OpenAlpha writes that file only when you type a key into `onboard` or `openalpha key set`, and never prints a key back.
+- **Your book is backed up every day.** While it runs in the background, OpenAlpha copies the SQLite book into `~/.openalpha/backups/daily/` and keeps the newest three ([backup and restore](docs/en/storage.md#sqlite-backup-and-restore)).
+- **AI spend has a ceiling.** A daily cap is set during install; add a monthly or per-run cap in `[budget]`, so a bad loop cannot run up a bill ([budgets](docs/en/budgets.md)).
 
-Mọi lớp bảo vệ còn lại: [an-toan.md](docs/an-toan.md) · [SECURITY.md](SECURITY.md).
+Every other safeguard: [safety.md](docs/en/safety.md) · [SECURITY.en.md](SECURITY.en.md).
 
-## Câu hỏi thường gặp
+## FAQ
 
-- **Tốn bao nhiêu tiền?** Bản thân OpenAlpha là mã nguồn mở theo giấy phép MIT; bạn chỉ trả cho nhà cung cấp AI. Bảng [Dùng mỗi ngày](#dùng-mỗi-ngày) ghi câu lệnh nào gọi AI, và `openalpha cost` cho biết chúng tốn bao nhiêu. Bạn đặt trần chi tiêu mỗi ngày lúc cài.
-- **Có cần máy mạnh không?** Không. AI chạy ở máy chủ của nhà cung cấp, máy bạn chỉ chạy một chương trình nhẹ. Chỉ khi muốn chạy mô hình ngay trên máy (Ollama) mới cần máy mạnh.
-- **Không biết lập trình có dùng được không?** Được. Bạn chỉ cần chép vài lệnh vào terminal một lần lúc cài; sau đó hỏi bằng tiếng Việt trên trang web, trong terminal, hoặc qua Telegram, Zalo.
-- **Đề xuất có đáng tin không?** Có thể sai, và nó không giấu điều đó: `/reflect` cho thấy thành tích thật của từng đề xuất cũ.
-- **Gặp lỗi thì làm gì?** Chạy `openalpha doctor`: nó chỉ ra thứ còn thiếu (khóa, kênh, dịch vụ nền). `openalpha logs` cho xem chi tiết. Vẫn kẹt thì hỏi trong [nhóm Zalo](https://zalo.me/g/yl7iqyfovvtyosujulea) hoặc mở [issue](https://github.com/alex2loop/openalpha/issues/new/choose).
+- **What does it cost?** OpenAlpha itself is open source under MIT; you pay only your AI provider. The [Daily use](#daily-use) table says which commands call the AI, and `openalpha cost` shows what they cost. You set a daily spending cap during setup.
+- **Do I need a powerful machine?** No. The AI runs on the provider's servers; your machine runs one light program. Only running a model locally (Ollama) needs real hardware.
+- **Can I use it without coding?** Yes. You paste a few commands into a terminal once, at install; after that you ask in plain language on the web page, in the terminal, or over Telegram or Zalo.
+- **Can I trust the suggestions?** They can be wrong, and it does not hide that: `/reflect` shows the real record of every past call.
+- **Something went wrong?** Run `openalpha doctor`: it names what is missing (a key, a channel, the daemon). `openalpha logs` shows the detail. Still stuck? Ask in the [Zalo group](https://zalo.me/g/yl7iqyfovvtyosujulea) or open an [issue](https://github.com/alex2loop/openalpha/issues/new/choose).
 
-## Tài liệu
+## Documentation
 
-Mới bắt đầu thì đọc [Cẩm nang sử dụng](docs/cam-nang.md): cài đặt, hồ sơ đầu tư, ghi sổ, bản đồ lệnh và ý nghĩa từng con số, viết cho nhà đầu tư, không cần biết lập trình. Mục lục đầy đủ: [docs/README.md](docs/README.md). Phần Nâng cao dưới đây dành cho người muốn mở rộng; bảng cuối trỏ tới trang đầy đủ của từng chủ đề.
+New here? Start with the [docs index](docs/en/README.md): it points you to the pages for setup, everyday commands and what each number means. No code needed for any of the guides. Advanced below is for when you want to extend it; the table at the end points to the full page for each topic.
 
-### Nâng cao
+### Advanced
 
 <details>
-<summary><b>Nhà phân tích của riêng bạn</b></summary>
+<summary><b>Your own analysts</b></summary>
 
-Ngoài nhà phân tích chính, bạn tạo thêm được nhà phân tích riêng chỉ bằng một tệp TOML: một đoạn dặn dò, danh sách công cụ được dùng và trần chi phí. Thêm `[focus]` là có một **ý kiến thứ hai** với khẩu vị riêng. Đề xuất của nó được chấm điểm tách riêng, không bao giờ đụng vào cắt lỗ, cảnh báo hay bản tin sáng của danh mục chính:
+Beside the main analyst, you can add analysts of your own, each one a TOML file: a brief, the tools it may use, and a spending cap. Give it a `[focus]` and it becomes a **second opinion** with its own taste. Its calls are scored apart and never touch the stops, alerts or morning brief of your main book:
 
 ```bash
-openalpha agent add ngan-hang      # tạo tệp mẫu, rồi `agent edit ngan-hang` để sửa
+openalpha agent add banks      # writes a starter file; `agent edit banks` to change it
 ```
 
 ```toml
-system_prompt = "Chỉ xem cổ phiếu ngân hàng, nắm giữ dài hạn, ưu tiên cổ tức đều."
-max_daily_usd = 0.5                 # trần chi phí riêng mỗi ngày
+system_prompt = "Look only at bank stocks, held long, with a steady dividend."
+max_daily_usd = 0.5                 # its own daily cap
 
 [focus]
 markets = ["equity-vn"]
@@ -476,85 +476,85 @@ horizon = "long"
 tools = ["suggestion_run", "suggestion_track_record", "market_screen", "market_price", "market_news"]
 ```
 
-Hỏi nó bằng `openalpha chat --agent ngan-hang`, hoặc gắn nó vào một nhóm Telegram/Zalo bằng `/agent ngan-hang`. `openalpha agent list` cho thấy nó đúng được bao nhiêu và hay đồng ý với các agent khác tới đâu; `agent pause ngan-hang` tắt nó ngay mà không cần khởi động lại. Chi tiết: [docs/tro-ly.md](docs/tro-ly.md)
+Ask it with `openalpha chat --agent banks`, or point a Telegram/Zalo chat at it with `/agent banks`. `openalpha agent list` shows how often it has been right and how often it agrees with your other agents; `agent pause banks` switches it off at once, with no restart. Details: [docs/en/agents.md](docs/en/agents.md)
 
 </details>
 
 <details>
-<summary><b>Cắm vào Claude Code, Cursor, VS Code... (MCP)</b></summary>
+<summary><b>Plug into Claude Code, Cursor, VS Code... (MCP)</b></summary>
 
-Chạy OpenAlpha như một máy chủ MCP trong Claude Code, Codex, Cursor, VS Code hay Gemini CLI: mô hình của chính ứng dụng ấy làm phần suy nghĩ, bạn không cần khóa AI riêng.
+Run OpenAlpha as an MCP server inside Claude Code, Codex, Cursor, VS Code or Gemini CLI: that app's own model does the thinking, so you need no AI provider key of your own.
 
 ```bash
-openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, muse, opencode, zed
+openalpha mcp install      # or --host codex, cursor, vscode, gemini, muse, opencode, zed
 ```
 
-Đề xuất tạo theo cách này được chấm điểm riêng trong `/reflect` (dưới tên `client:<model>`), và cách này không bao giờ đặt được lệnh. Chi tiết: [docs/dev/mo-rong.md](docs/dev/mo-rong.md)
+Suggestions written that way are scored separately in `/reflect` under `client:<model>`, and orders are never placed from there. Details: [docs/en/dev/extending.md](docs/en/dev/extending.md)
 
 </details>
 
 <details>
-<summary><b>Ứng dụng của riêng bạn (API)</b></summary>
+<summary><b>Your own app (API)</b></summary>
 
-Dịch vụ nền mở sẵn một API HTTP và WebSocket cục bộ trên `127.0.0.1`, có mã truy cập (`[api] enabled = false` để tắt). Ứng dụng khách nhận được sổ giao dịch, giá, đề xuất và cuộc trò chuyện của bạn, cùng một luồng trực tiếp về những gì dịch vụ nền đang chạy: từng phiên chạy và các bước của nó, phê duyệt và câu hỏi đang chờ trên mọi kênh, các lần khớp lệnh và lúc chạm hạn mức chi tiêu. Đây cũng là API mà [trang văn phòng](#trang-văn-phòng) dùng. Cách mở từ máy khác: [docs/van-hanh.md](docs/van-hanh.md#chạy-api-trên-máy-chủ).
+The daemon serves a local HTTP and WebSocket API on `127.0.0.1`, behind a token (`[api] enabled = false` turns it off). A client app gets your book, quotes, suggestions and chat, plus a live feed of what the daemon is running right now: each run and its steps, approvals and questions waiting on any channel, fills, and spend caps reached. It is also the API the [office page](#the-office-page) uses. How to reach it from another machine: [docs/en/operations.md](docs/en/operations.md#run-the-api-on-a-server).
 
 </details>
 
-### Tra cứu đầy đủ
+### Full reference
 
-| Chủ đề | Trang |
+| Topic | Page |
 |---|---|
-| Thị trường, đề xuất, sổ lệnh, danh mục, đặt lệnh | [giao-dich.md](docs/giao-dich.md) |
-| Mọi câu lệnh CLI và câu lệnh chat | [lenh.md](docs/lenh.md) |
-| Mọi khóa trong `config.toml` | [cau-hinh.md](docs/cau-hinh.md) |
-| Nguồn dữ liệu nào trả lời việc gì | [nguon-du-lieu.md](docs/nguon-du-lieu.md) |
-| Tích hợp AI: nhà phân tích riêng, kỹ năng, chọn mô hình | [tro-ly.md](docs/tro-ly.md) |
-| Nghiên cứu web có trích nguồn | [nghien-cuu.md](docs/nghien-cuu.md) |
-| Telegram và Zalo | [kenh.md](docs/kenh.md) |
-| Phê duyệt và các lớp bảo vệ | [an-toan.md](docs/an-toan.md) |
-| Ngân sách, dịch vụ nền và trang văn phòng, lưu trữ | [ngan-sach.md](docs/ngan-sach.md) · [van-hanh.md](docs/van-hanh.md) · [luu-tru.md](docs/luu-tru.md) |
-| SDK, MCP và mở rộng | [dev/mo-rong.md](docs/dev/mo-rong.md) |
+| Markets, suggestions, the ledger, the portfolio, placing orders | [trading.md](docs/en/trading.md) |
+| Every CLI and chat command | [commands.md](docs/en/commands.md) |
+| Every key in `config.toml` | [configuration.md](docs/en/configuration.md) |
+| Which data source answers what | [data-sources.md](docs/en/data-sources.md) |
+| AI integration: your own analysts, skills, choosing models | [agents.md](docs/en/agents.md) |
+| Web research with citations | [research.md](docs/en/research.md) |
+| Telegram and Zalo | [channels.md](docs/en/channels.md) |
+| Approvals and safeguards | [safety.md](docs/en/safety.md) |
+| Budgets, the daemon and the office page, storage | [budgets.md](docs/en/budgets.md) · [operations.md](docs/en/operations.md) · [storage.md](docs/en/storage.md) |
+| SDK, MCP and extending | [dev/extending.md](docs/en/dev/extending.md) |
 
-## Góp sức cho OpenAlpha
+## Contribute to OpenAlpha
 
-OpenAlpha là mã nguồn mở và hiện do một người vận hành, nên mỗi lần góp sức đều tạo khác biệt thật. Bạn không cần biết lập trình mới giúp được.
+OpenAlpha is open source and run by one person today, so every contribution makes a real difference. You do not need to write code to help.
 
-- **Dùng thật rồi kể lại.** Một lỗi kèm câu lệnh bạn đã chạy, điều bạn mong đợi và điều nhận được (nhớ nêu thị trường) giúp nhiều hơn mọi lời khen. Mở ở [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose).
-- **Tài liệu và câu chữ.** Câu nào khó hiểu, thuật ngữ nào chưa chuẩn, chỗ nào tiếng Việt và tiếng Anh lệch nhau: sửa thẳng trong `docs/` hoặc trong hai catalog `src/i18n/locales/`.
-- **Nguồn dữ liệu, sàn, công ty chứng khoán, thị trường mới.** Mỗi thứ là một thay đổi cục bộ: một adapter, một dòng đăng ký và các khóa ngôn ngữ. Mở issue trước cho mọi thay đổi về cấu trúc.
-- **Agent và skill.** Một nhà phân tích riêng chỉ là một tệp TOML; một nguồn dữ liệu dạng plugin là một tệp `sources.ts`.
+- **Use it for real, then tell us.** A bug report with the command you ran, what you expected and what you got (and the market) beats any compliment. Open it on [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose).
+- **Docs and wording.** A confusing sentence, a term that is off, a place where Vietnamese and English disagree: fix it in `docs/` or in the two catalogs under `src/i18n/locales/`.
+- **Data sources, exchanges, brokers, new markets.** Each is a local change: one adapter, one registration line and the locale keys. Open an issue first for anything structural.
+- **Agents and skills.** An analyst of your own is one TOML file; a plugin data source is one `sources.ts`.
 
-**Việc vừa sức cho người mới:** các issue gắn nhãn [good first issue](https://github.com/alex2loop/openalpha/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22). **Lộ trình:** chưa có trang riêng; việc định làm và ý tưởng mới được bàn trong [Issues](https://github.com/alex2loop/openalpha/issues). Những hướng đã chốt là sẽ không làm (tự đặt lệnh, bộ backtest...) nằm trong [CONTRIBUTING.md](CONTRIBUTING.md#những-thứ-sẽ-bị-từ-chối), kèm lý do.
+**Good first steps:** issues labelled [good first issue](https://github.com/alex2loop/openalpha/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22). **Roadmap:** there is no separate page yet; planned work and new ideas are discussed in [Issues](https://github.com/alex2loop/openalpha/issues). The directions already ruled out (auto-trading, a backtest harness...) are in [CONTRIBUTING.en.md](CONTRIBUTING.en.md#things-that-will-be-turned-down), with the reasons.
 
-### Chạy từ mã nguồn
+### Run from source
 
 ```bash
 git clone https://github.com/alex2loop/openalpha.git && cd openalpha
 bun install
 bun run dev -- onboard
 
-bun run check       # lint + typecheck + các cổng hợp đồng
-bun run lint:arch   # các cổng kiến trúc
+bun run check       # lint + typecheck + the contract gates
+bun run lint:arch   # the architecture gates
 ```
 
-Một thay đổi chỉ được nhận khi cả hai câu lệnh trên đều qua. Quy tắc nội bộ và bất biến nghiệp vụ: [AGENTS.md](AGENTS.md). Bản clone cập nhật bằng `git pull`.
+Both commands must pass before anything lands. House rules and the business invariants: [AGENTS.md](AGENTS.md). A clone updates with `git pull`.
 
-Kiến trúc: 16 mô-đun, phụ thuộc một chiều về phía lõi, không vòng lặp; 32 cổng chặn tự động làm build thất bại ngay khi một mô-đun vượt ranh giới. Góp mã: [CONTRIBUTING.md](CONTRIBUTING.md) · [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
+Architecture: 16 modules with no cycles, every dependency pointing toward the kernel; 32 gates break the build the moment a boundary does. Contributing: [CONTRIBUTING.en.md](CONTRIBUTING.en.md) · [Code of conduct](CODE_OF_CONDUCT.en.md).
 
-### Hỗ trợ và cộng đồng
+### Support and community
 
-- **Hỏi cách cài, cách dùng, nhận tin bản mới:** [nhóm Zalo OpenAlpha](https://zalo.me/g/yl7iqyfovvtyosujulea). Nhóm chỉ hỗ trợ dùng phần mềm, không bàn mã nào nên mua. Che khóa API trước khi dán cấu hình. Admin không bao giờ nhắn riêng để xin khóa hay tiền.
-- **Báo lỗi, đề xuất tính năng:** [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose). Lỗi chỉ được theo dõi khi có issue.
-- **Lỗ hổng bảo mật:** báo riêng theo [SECURITY.md](SECURITY.md), không đăng lên nhóm hay issue.
+- **Setup and usage questions, release news:** the [OpenAlpha Zalo group](https://zalo.me/g/yl7iqyfovvtyosujulea), in Vietnamese. It covers using the software, never which name to buy. Mask your API keys before pasting a config. Admins never message you privately for keys or money.
+- **Bugs and feature requests:** [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose). A bug is tracked only once it has an issue.
+- **Security vulnerabilities:** report privately per [SECURITY.en.md](SECURITY.en.md), never in the group or an issue.
 
-Thấy hữu ích? Cho repo một ⭐ để nhiều người biết tới.
+Find it useful? Give the repo a ⭐ so more people find it.
 
-## Độ ổn định, giấy phép và miễn trừ
+## Stability, license and disclaimer
 
-**Độ ổn định.** Đây là giai đoạn đầu của một công cụ đã được dùng thật hằng ngày trong nhiều tháng: ổn định ở những việc dùng mỗi ngày, còn thô ở những phần khác. Chưa có bộ test; giữa hai phiên bản có thể có thay đổi không tương thích; và chưa chuyển được tài sản giữa các sàn.
+**Stability.** This is an early-stage tool that has run live daily for months - so it is sure-footed at the things it does every day, and rough everywhere else. There is no test suite; breaking changes land between versions; and assets cannot yet move between venues.
 
-**Giấy phép.** Mã nguồn theo giấy phép MIT, dùng thế nào tùy bạn. Tên, logo và Bé Alpha thì không nằm trong giấy phép: xem [NOTICE.md](NOTICE.md#tên-và-logo-không-đi-kèm-giấy-phép).
+**License.** MIT, for the code. Use it however you want. The name, logo and Bé Alpha are not part of the license: see [NOTICE.en.md](NOTICE.en.md#name-and-logo-are-not-licensed).
 
-**Dữ liệu là chuyện khác.** OpenAlpha không đóng gói sẵn dữ liệu thị trường nào: nó lấy dữ liệu từ từng nhà cung cấp khi chạy, ngay trên máy bạn, và điều khoản sử dụng là chuyện giữa bạn với họ. [NOTICE.md](NOTICE.md) liệt kê mọi trang mà nó có thể đọc, và những gì nên kiểm tra trước khi bật một nguồn.
+**The data is a separate question.** OpenAlpha ships no market data - it reads from each provider at run time, on your machine, and their terms are between you and them. [NOTICE.en.md](NOTICE.en.md) names every host it can reach and what to check before you point it at one.
 
-OpenAlpha là trợ lý nghiên cứu và ghi sổ. Đề xuất ở đây mang tính tham khảo, **có thể sai, và không phải lời khuyên đầu tư**. OpenAlpha không biết hết hoàn cảnh của bạn, chỉ đặt lệnh khi bạn duyệt, và không ai đoán chắc được thị trường. Mọi quyết định là của bạn. Đừng đầu tư số tiền bạn không chịu mất được.
+OpenAlpha is a research and bookkeeping assistant. Its suggestions are educational, **can be wrong, and are not financial advice**. It does not know your full circumstances, it places an order only when you approve one, and markets do what they like. You own every decision. Never risk money you cannot afford to lose.

@@ -71,8 +71,8 @@ const releaseWorkflowText = await read('.github/workflows/release.yml')
 const checkWorkflowText = await read('.github/workflows/check.yml')
 const contributingEnText = await read('CONTRIBUTING.en.md')
 const contributingViText = await read('CONTRIBUTING.md')
-const readmeViText = await read('README.md')
-const readmeEnText = await read('README.en.md')
+const readmeViText = await read('README.vi.md')
+const readmeEnText = await read('README.md')
 
 const scripts = (JSON.parse(packageText) as { scripts: Record<string, string> }).scripts
 const contractGates = countGates(scripts.check, 'package.json scripts.check')
@@ -132,15 +132,15 @@ const pairs: readonly Pair[] = [
     what: 'total gate count (English README)',
     left: totalGates,
     leftWhere: 'package.json, both gate commands',
-    right: capture(readmeEnText, /(\d+) gates break the build/, 'README.en.md gate total'),
-    rightWhere: 'README.en.md',
+    right: capture(readmeEnText, /(\d+) gates break the build/, 'README.md gate total'),
+    rightWhere: 'README.md',
   },
   {
     what: 'total gate count (Vietnamese README)',
     left: totalGates,
     leftWhere: 'package.json, both gate commands',
-    right: capture(readmeViText, /(\d+) cổng chặn/, 'README.md gate total'),
-    rightWhere: 'README.md',
+    right: capture(readmeViText, /(\d+) cổng chặn/, 'README.vi.md gate total'),
+    rightWhere: 'README.vi.md',
   },
 ]
 

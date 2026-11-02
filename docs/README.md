@@ -9,7 +9,7 @@
 
 ## Bắt đầu ở đây
 
-Mới biết dự án? Đọc [README](../README.md) trước: OpenAlpha làm gì, từ chối làm gì, và một đề xuất mẫu
+Mới biết dự án? Đọc [README](../README.vi.md) trước: OpenAlpha làm gì, từ chối làm gì, và một đề xuất mẫu
 từ đầu đến cuối.
 
 Sau đó đọc **[Cẩm nang sử dụng](cam-nang.md)**. Đây là trang duy nhất bạn thật sự cần: cài đặt, hồ sơ

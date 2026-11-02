@@ -9,7 +9,7 @@
 
 ## Start here
 
-New? Read the [README](../../README.en.md) first: what OpenAlpha does, what it refuses to do, and one
+New? Read the [README](../../README.md) first: what OpenAlpha does, what it refuses to do, and one
 suggestion from start to finish.
 
 Already running it? [commands.md](commands.md) lists every command, and [trading.md](trading.md)

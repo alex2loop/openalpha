@@ -416,7 +416,7 @@ from the hand-written service below, which stays the way to run an API server.
 Run the daemon on a server you own and point a client app at it.
 
 1. **Install.** On Linux or macOS, run the install script from the
-   [README](../../README.en.md#quick-start) with `OPENALPHA_NO_ONBOARD=1` set. The
+   [README](../../README.md#quick-start) with `OPENALPHA_NO_ONBOARD=1` set. The
    command it installs is the path `command -v openalpha` prints (by default
    `~/.local/bin/openalpha`); the unit below must use it.
 2. **Configure.** `openalpha setup write <provider> <model> [vn|us]` writes the config file in use (by default
