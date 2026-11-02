@@ -32,6 +32,7 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 - In the app, US stocks get their own colour in the portfolio bars and a short name on the lobby agenda, and a class-share ticker such as BRK.B in a reply links to its page.
 - The desktop app's first run (`setup write`) no longer refuses every config once the model's key is set.
 - Settings in the app save again while the model's key is missing or was just saved and waits for a restart. Before, every row was refused, and switching provider took two restarts.
+- Switching provider in the app's model chain now starts from that provider's default model instead of keeping the old provider's model name, which the new one would refuse. A provider with no key saved yet gets a line and an "Add the key" button, and Test the connection waits for the restart instead of testing the models still running.
 
 ## [1.2.2] - 2026-10-30
 

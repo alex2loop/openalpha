@@ -709,8 +709,10 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
   - While `[api] public_url` is set, a channel's `allowed_ids`, `operator_user_ids`, `pairing` and
     `dm_policy` change only on the server too.
   - Checking or saving a change to one of those is refused, with a line naming each such field. The
-    model picker can still switch provider: that sets that provider's own key variable and drops the
-    old address.
+    model picker can still switch provider: that sets that provider's own key variable, starts from
+    its default model and drops the old address. A provider in the saved chain with no key yet gets a
+    line and an "Add the key" button that opens its card. Test the connection runs the models in use
+    now, so it waits for the restart after a saved change.
   - Each row says whether saving applies at once or needs a restart. The gear counts the changes
     waiting for one, and the Settings footer always has "Restart the daemon" (see above), with nothing
     waiting too.
