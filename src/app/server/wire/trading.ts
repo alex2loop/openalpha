@@ -83,7 +83,8 @@ export interface TradingOhlcvResponse {
 export interface MarketEventWire {
   readonly at: string
   readonly kind: MarketEventKind
-  /** The source's own title, in the language it publishes in. */
+  /** The source's own title, in the language it publishes in; for an event the daemon worded itself,
+   *  the event's kind in the daemon's language. */
   readonly title: string
   readonly detail?: string
   /** A cash dividend per share, in the market's price unit. */

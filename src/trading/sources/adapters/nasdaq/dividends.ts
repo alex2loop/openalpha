@@ -96,6 +96,7 @@ function toDividendEvent(
       at,
       kind: 'dividend-ex-date',
       title: title.value,
+      composedText: true,
       ...(context.instrument === undefined ? {} : { instrument: context.instrument }),
       ...cashOf(row),
       ...(paysOn === undefined ? {} : { paysOn, detail: `Paid ${paysOn}` }),

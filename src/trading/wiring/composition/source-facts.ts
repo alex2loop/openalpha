@@ -184,7 +184,11 @@ export const SOURCE_ENDPOINTS = Object.freeze({
  *  120 a minute keeps the monthly burst near three minutes.
  *
  *  `nasdaq` publishes no ceiling. A full sweep of the US board ran at about 120 a minute without a
- *  refusal, so that is the rate it is held to. */
+ *  refusal, so that is the rate it is held to.
+ *
+ *  `sec` and `sec-data` are one limit: SEC allows 10 a second per address across both hosts and
+ *  blocks the address for ten minutes past it. Each bucket refills at 200 a minute and holds one
+ *  token, so any second asks at most 1 + 200/60 of each, under nine together. */
 export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = Object.freeze({
   [sourceId('alternative-me')]: 30,
   [sourceId('binance')]: 600,
@@ -214,8 +218,8 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('pnj')]: 30,
   [sourceId('rss')]: 60,
   [sourceId('sbv')]: 10,
-  [sourceId('sec')]: 240,
-  [sourceId('sec-data')]: 240,
+  [sourceId('sec')]: 200,
+  [sourceId('sec-data')]: 200,
   [sourceId('ssi')]: 60,
   [sourceId('treasury')]: 60,
   [sourceId('vietcap')]: 60,
@@ -226,6 +230,14 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('vndirect-mkw')]: 60,
   [sourceId('vps')]: 30,
   [sourceId('yahoo')]: 60,
+})
+
+/** What a bucket may hold at once, for a provider metering a shorter window than a minute: the
+ *  default burst is a quarter of the minute's rate, which is more than that provider accepts in one
+ *  instant. Sustained throughput stays the declared rate. */
+export const SOURCE_BURST_LIMITS: Readonly<Partial<Record<SourceId, number>>> = Object.freeze({
+  [sourceId('sec')]: 1,
+  [sourceId('sec-data')]: 1,
 })
 
 /** The macro sources the gate fronts, each declaring its own series and release cadence. A plugin

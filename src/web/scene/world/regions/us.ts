@@ -2,6 +2,7 @@ import type { DayRange, RegionPack } from '@/web/scene/world/regions'
 import {
   ALL_DAY,
   around,
+  CRYPTO_TEMPLATE,
   FESTIVE_YEARS,
   hm,
   SHUT,
@@ -263,5 +264,21 @@ export const US_PACK = Object.freeze({
     { label: 'NYSE', zone: 'America/New_York' },
     { label: 'LSE', zone: 'Europe/London' },
     { label: 'UTC', zone: 'UTC' },
+  ],
+  exampleTicker: 'AAPL',
+  agentTemplates: [
+    {
+      name: 'ui.office.team.tplUsDividend',
+      prompt: 'ui.office.team.tplUsDividendPrompt',
+      hint: 'ui.office.team.tplUsDividendHint',
+      focus: { markets: ['equity-us'], horizon: 'long' },
+    },
+    {
+      name: 'ui.office.team.tplTech',
+      prompt: 'ui.office.team.tplTechPrompt',
+      hint: 'ui.office.team.tplTechHint',
+      focus: { markets: ['equity-us'], sectors: ['technology'] },
+    },
+    CRYPTO_TEMPLATE,
   ],
 } as const satisfies RegionPack)

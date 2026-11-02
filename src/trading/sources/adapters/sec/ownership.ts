@@ -1,3 +1,5 @@
+import type { InsiderRelationship } from '@/trading/kernel/market/market-event'
+
 /** A Form 4's transactions we read: one non-derivative line of an ownership document. */
 interface OwnershipTransaction {
   readonly code: string
@@ -9,8 +11,9 @@ interface OwnershipTransaction {
 
 export interface OwnershipFiling {
   readonly owner: string
-  /** The officer title, or the relationship when there is none. */
-  readonly role?: string
+  readonly officerTitle?: string
+  /** Only when the filing names no officer title. */
+  readonly relationship?: InsiderRelationship
   readonly transactions: readonly OwnershipTransaction[]
 }
 
@@ -33,29 +36,26 @@ export function parseOwnershipXml(text: string): OwnershipFiling | undefined {
     return undefined
   }
 
-  const role = roleOf(text)
+  const title = TITLE_RE.exec(text)?.[1]
+  const officerTitle = title === '' ? undefined : title
+  const relationship = officerTitle === undefined ? relationshipOf(text) : undefined
 
   return {
     owner,
-    ...(role === undefined ? {} : { role }),
+    ...(officerTitle === undefined ? {} : { officerTitle }),
+    ...(relationship === undefined ? {} : { relationship }),
     transactions: [...text.matchAll(TRANSACTION_RE)].flatMap((match) =>
       toTransaction(match[1] ?? '')
     ),
   }
 }
 
-function roleOf(text: string): string | undefined {
-  const title = TITLE_RE.exec(text)?.[1]
-
-  if (title !== undefined && title !== '') {
-    return title
-  }
-
+function relationshipOf(text: string): InsiderRelationship | undefined {
   if (DIRECTOR_RE.test(text)) {
-    return 'Director'
+    return 'director'
   }
 
-  return TEN_PERCENT_RE.test(text) ? '10% owner' : undefined
+  return TEN_PERCENT_RE.test(text) ? 'ten-percent-owner' : undefined
 }
 
 function toTransaction(block: string): OwnershipTransaction[] {

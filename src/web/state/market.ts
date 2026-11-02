@@ -10,6 +10,7 @@ import type {
 } from '@/app/server/wire/trading'
 import type { SessionPhase } from '@/app/server/wire/vocab'
 import { ROUTES } from '@/web/api/routes'
+import { packOf } from '@/web/scene/world/regions'
 import { createRouteBlock } from '@/web/state/block'
 import { wholeUnitsDisplay } from '@/web/text/figures'
 
@@ -20,9 +21,6 @@ const QUOTES_POLL_MS = 60_000
 type StopRow = StopsResponse['stops'][number]
 
 const TRADING_PHASES: ReadonlySet<SessionPhase> = new Set(['open', 'break'])
-// A ticker the home market's reader knows, for the examples an input shows.
-const EXAMPLE_TICKERS: Readonly<Record<string, string>> = Object.freeze({ vn: 'FPT', us: 'AAPL' })
-const DEFAULT_EXAMPLE_TICKER = 'FPT'
 
 export const marketsBlock = createRouteBlock(ROUTES.markets)
 export const overviewBlock = createRouteBlock(ROUTES.overview)
@@ -130,7 +128,7 @@ export function homeRegion(): string | undefined {
 
 /** A well-known ticker of the home market, for an input's example. */
 export function exampleTicker(): string {
-  return EXAMPLE_TICKERS[homeRegion() ?? ''] ?? DEFAULT_EXAMPLE_TICKER
+  return packOf(homeRegion()).exampleTicker
 }
 
 /** A market in this phase still trades today: open, or in its lunch break. */

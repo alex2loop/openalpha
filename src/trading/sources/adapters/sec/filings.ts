@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
-import type { MarketEvent } from '@/trading/kernel/market/market-event'
+import type { InsiderRelationship, MarketEvent } from '@/trading/kernel/market/market-event'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { OwnershipFiling } from '@/trading/sources/adapters/sec/ownership'
 import type { SecTickerMap, TickerMapReader } from '@/trading/sources/adapters/sec/tickers'
@@ -9,11 +9,12 @@ import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/defin
 import type { SourceFetchOutcome, SourceHttp } from '@/trading/sources/types'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { isLevelKind, tradingDay } from '@/trading/kernel/instrument'
+import { currencyCode, isLevelKind, tradingDay } from '@/trading/kernel/instrument'
 import { SEC_CREDENTIAL, SEC_DATA_ID, SEC_ID } from '@/trading/sources/adapters/sec/client'
 import { parseOwnershipXml } from '@/trading/sources/adapters/sec/ownership'
 import { createSource, parsedSource } from '@/trading/sources/define'
 import {
+  dropInvalid,
   parseRow,
   untrustedText,
   utcDayOf,
@@ -31,6 +32,13 @@ const EARNINGS_ITEM = '2.02'
 const OPEN_MARKET_PURCHASE = 'P'
 const BUSINESS_MISS_STATUSES = Object.freeze([404])
 const DAY_LENGTH = 10
+/** Form 4 states every price in dollars. */
+const FORM_4_CURRENCY = currencyCode('USD')
+/** The English a model reads in an event's title; a person reads the catalog's wording. */
+const RELATIONSHIP_LABELS: Readonly<Record<InsiderRelationship, string>> = Object.freeze({
+  director: 'Director',
+  'ten-percent-owner': '10% owner',
+})
 
 const SUBMISSIONS = z.object({
   filings: z.object({
@@ -127,8 +135,7 @@ async function loadEvents(
 
 function toFilings(raw: unknown): readonly Filing[] {
   const { recent } = parseRow(SUBMISSIONS, raw, 'sec submissions').filings
-
-  return recent.form.flatMap((form, index) => {
+  const rows = recent.form.flatMap((form, index) => {
     const day = recent.filingDate[index]
     const accession = recent.accessionNumber[index]
     const document = recent.primaryDocument[index]
@@ -138,13 +145,16 @@ function toFilings(raw: unknown): readonly Filing[] {
       : [
           {
             form,
-            day: tradingDay(day),
+            day,
             accession,
             document,
             items: (recent.items?.[index] ?? '').split(',').map((item) => item.trim()),
           },
         ]
   })
+
+  // A row with an unreadable date costs that row, never the name's other filings.
+  return dropInvalid(rows, (row) => ({ ...row, day: tradingDay(row.day) }))
 }
 
 function earningsEvents(read: {
@@ -162,6 +172,7 @@ function earningsEvents(read: {
       at: filing.day,
       kind: 'earnings-release' as const,
       title: `${ticker} 8-K item ${EARNINGS_ITEM}`,
+      composedText: true as const,
       ...(context.instrument === undefined ? {} : { instrument: context.instrument }),
       providerEventId: filing.accession,
     }))
@@ -212,6 +223,12 @@ async function readOwnership(
   return outcome.kind === 'ok' ? parseOwnershipXml(outcome.value) : undefined
 }
 
+interface PurchaseRead {
+  readonly document: OwnershipFiling
+  readonly ticker: Ticker
+  readonly filing: Filing
+}
+
 function toPurchases(
   document: OwnershipFiling | undefined,
   ticker: Ticker,
@@ -221,19 +238,45 @@ function toPurchases(
     return []
   }
 
-  return document.transactions
-    .filter((transaction) => transaction.code === OPEN_MARKET_PURCHASE)
-    .map((transaction) => {
-      const who =
-        document.role === undefined ? document.owner : `${document.owner} (${document.role})`
-      const price = transaction.price === undefined ? '' : ` at $${transaction.price}`
+  const read = { document, ticker, filing }
+  const purchases = document.transactions.filter(
+    (transaction) => transaction.code === OPEN_MARKET_PURCHASE
+  )
 
-      return {
-        at: tradingDay(transaction.day.slice(0, DAY_LENGTH)),
-        kind: 'insider-purchase' as const,
-        title: untrustedText(`${ticker} ${who}`, 'owner').value,
-        detail: untrustedText(`${transaction.shares} shares${price}`, 'detail').value,
-        providerEventId: filing.accession,
-      }
-    })
+  // A line with an unreadable date costs that line, never the filing's other purchases.
+  return dropInvalid(purchases, (transaction) => toPurchase(read, transaction))
+}
+
+function toPurchase(
+  read: PurchaseRead,
+  transaction: OwnershipFiling['transactions'][number]
+): MarketEvent {
+  const { document, ticker, filing } = read
+  const owner = untrustedText(document.owner, 'owner').value
+  const officerTitle =
+    document.officerTitle === undefined
+      ? undefined
+      : untrustedText(document.officerTitle, 'officerTitle').value
+  const role =
+    officerTitle ??
+    (document.relationship === undefined ? undefined : RELATIONSHIP_LABELS[document.relationship])
+  const who = role === undefined ? owner : `${owner} (${role})`
+  const price = transaction.price === undefined ? '' : ` at $${transaction.price}`
+
+  return {
+    at: tradingDay(transaction.day.slice(0, DAY_LENGTH)),
+    kind: 'insider-purchase',
+    title: `${ticker} ${who}`,
+    detail: untrustedText(`${transaction.shares} shares${price}`, 'detail').value,
+    composedText: true,
+    insider: {
+      owner,
+      ...(officerTitle === undefined ? {} : { officerTitle }),
+      ...(document.relationship === undefined ? {} : { relationship: document.relationship }),
+      shares: transaction.shares,
+      ...(transaction.price === undefined ? {} : { price: transaction.price }),
+      currency: FORM_4_CURRENCY,
+    },
+    providerEventId: filing.accession,
+  }
 }

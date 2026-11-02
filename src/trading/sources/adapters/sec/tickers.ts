@@ -4,6 +4,7 @@ import type { Ticker } from '@/trading/kernel/instrument'
 import type { SourceFetchOutcome, SourceHttp } from '@/trading/sources/types'
 import { ttlCache } from '@/core/utils/collections'
 import { ticker } from '@/trading/kernel/instrument'
+import { createSharedFlight, type SharedFlight } from '@/trading/kernel/shared-flight'
 import { SEC_CREDENTIAL, SEC_ID, toPaddedCik } from '@/trading/sources/adapters/sec/client'
 import { dropInvalid, parseRow } from '@/trading/sources/rows/normalization'
 
@@ -23,17 +24,13 @@ interface CachedMap {
   readonly fetchedAt: number
 }
 
-/** The map changes when a company lists or renames; one copy serves a day. */
+/** The map changes when a company lists or renames; one copy serves a day. Callers arriving on a
+ *  cold cache share the one download, which an abort of any single caller does not cancel. */
 export function createTickerMapReader(http: SourceHttp): TickerMapReader {
   const cache = ttlCache<string, CachedMap>(SEC_TICKER_MAP_TTL_MS, 1)
+  let pending: SharedFlight<SourceFetchOutcome<SecTickerMap>> | undefined
 
-  return async (signal) => {
-    const held = cache.get(TICKER_MAP_KEY)
-
-    if (held !== undefined) {
-      return { kind: 'ok', value: held.value, fetchedAt: held.fetchedAt }
-    }
-
+  async function load(signal: AbortSignal): Promise<SourceFetchOutcome<SecTickerMap>> {
     const outcome = await readTickerMap(http, signal)
 
     if (outcome.kind === 'ok') {
@@ -41,6 +38,28 @@ export function createTickerMapReader(http: SourceHttp): TickerMapReader {
     }
 
     return outcome
+  }
+
+  return (signal) => {
+    const held = cache.get(TICKER_MAP_KEY)
+
+    if (held !== undefined) {
+      return Promise.resolve({ kind: 'ok', value: held.value, fetchedAt: held.fetchedAt })
+    }
+
+    if (pending?.live !== true) {
+      const started = createSharedFlight(load)
+      const release = (): void => {
+        if (pending === started) {
+          pending = undefined
+        }
+      }
+
+      pending = started
+      started.work.then(release, release)
+    }
+
+    return pending.attach(signal)
   }
 }
 

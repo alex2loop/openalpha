@@ -1,4 +1,4 @@
-import type { DayRange, MinuteRange, ShopSign } from '@/web/scene/world/regions'
+import type { AgentTemplate, DayRange, MinuteRange, ShopSign } from '@/web/scene/world/regions'
 import { HOURS_PER_DAY, MINUTES_PER_HOUR, shiftDay } from '@/web/text/time-units'
 
 const FESTIVE_FIRST_YEAR = 2026
@@ -32,3 +32,11 @@ export const ALL_DAY: MinuteRange = [0, hm(HOURS_PER_DAY)]
 
 /** Never open. */
 export const SHUT: MinuteRange = [0, 0]
+
+/** The crypto starter agent, the same in every region. */
+export const CRYPTO_TEMPLATE = {
+  name: 'ui.office.team.tplCrypto',
+  prompt: 'ui.office.team.tplCryptoPrompt',
+  hint: 'ui.office.team.tplCryptoHint',
+  focus: { markets: ['crypto'], horizon: 'short' },
+} as const satisfies AgentTemplate

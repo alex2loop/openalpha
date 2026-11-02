@@ -39,6 +39,7 @@ import type {
 import {
   buildInstrumentKey,
   describeCaveat,
+  describeEvent,
   isBelowMinimumSize,
   isRecordedPlan,
   isUndecidedHold,
@@ -140,12 +141,14 @@ export function toCandleWire(candle: Candle): TradingCandleWire {
   }
 }
 
-export function toMarketEventWire(event: MarketEvent): MarketEventWire {
+export function toMarketEventWire(event: MarketEvent, locale: Locale): MarketEventWire {
+  const { title, detail } = describeEvent(locale, event)
+
   return {
     at: event.at,
     kind: event.kind,
-    title: event.title,
-    ...(event.detail === undefined ? {} : { detail: event.detail }),
+    title,
+    ...(detail === undefined ? {} : { detail }),
     ...(event.cashPerShare === undefined ? {} : { cashPerShare: event.cashPerShare }),
     ...(event.paysOn === undefined ? {} : { paysOn: event.paysOn }),
     ...(event.shareRatio === undefined ? {} : { shareRatio: event.shareRatio }),

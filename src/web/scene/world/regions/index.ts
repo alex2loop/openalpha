@@ -1,5 +1,6 @@
 import type { MessageKey } from '@/i18n'
 import type { BikeShape, CarSize, ChatterId, ErrandItem, ShopKind } from '@/web/scene/street-types'
+import type { AgentDraft } from '@/web/state/agents'
 import { type ActorId, type Point, WORLD } from '@/web/scene/types'
 import { FRIDAY, THURSDAY } from '@/web/scene/world/regions/pack-kit'
 import { US_PACK } from '@/web/scene/world/regions/us'
@@ -209,6 +210,15 @@ export interface WallClock {
   readonly zone: string
 }
 
+/** A first-run agent the empty team floor offers: the names of its card and the prompt the agent
+ *  form opens with, and the focus it starts on. */
+export interface AgentTemplate {
+  readonly name: MessageKey
+  readonly prompt: MessageKey
+  readonly hint: MessageKey
+  readonly focus: NonNullable<AgentDraft['focus']>
+}
+
 /** What the office knows of the city around it, keyed by the home region. Proper names (the
  *  street, stops, routes, park) are written here, untranslated; every generic word is a catalog
  *  key. `street` is the main street; `sideStreets` name the two that run down the building's sides;
@@ -246,6 +256,10 @@ export interface RegionPack {
   readonly restDayStaff: readonly ActorId[]
   /** The lobby's wall clocks, left to right. */
   readonly wallClocks: readonly WallClock[]
+  /** A well-known ticker of the home market, for an input's example. */
+  readonly exampleTicker: string
+  /** The agents the empty team floor offers to start from. */
+  readonly agentTemplates: readonly AgentTemplate[]
 }
 
 /** What sets a day apart: a report season, the derivatives' expiry, a festive stretch. */

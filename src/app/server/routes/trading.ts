@@ -124,16 +124,17 @@ async function handleTradingEvents(req: Request, ctx: ApiRouteContext): Promise<
   }
 
   const found = result.kind === 'available'
+  const locale = localeOf(ctx)
 
   return json({
     market: instrument.market,
     ticker: instrument.ticker,
-    events: found ? result.value.map(toMarketEventWire) : [],
+    events: found ? result.value.map((event) => toMarketEventWire(event, locale)) : [],
     provenance: found ? toProvenanceWires(result.provenance) : [],
     // An empty window is the answer, not a caution about it.
     caveats: toCaveatWires(
       result.caveats.filter((caveat) => caveat.code !== EMPTY_WINDOW),
-      localeOf(ctx)
+      locale
     ),
   } satisfies TradingEventsResponse)
 }

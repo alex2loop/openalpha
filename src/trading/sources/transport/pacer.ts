@@ -20,10 +20,12 @@ interface TokenBucket {
 }
 
 /** One continuously-refilling bucket per provider that declared a limit, so a burst is allowed up
- *  to a share of the minute's budget. No declared limit means unpaced, not zero. `clock` is monotonic: refill
+ *  to a share of the minute's budget, or to the provider's own `burstLimits` entry when that is
+ *  smaller. No declared limit means unpaced, not zero. `clock` is monotonic: refill
  *  is an elapsed-time measurement, and an NTP step would grant negative or inflated tokens. */
 export function createPacer(
   rateLimits: Readonly<Partial<Record<SourceId, number>>>,
+  burstLimits: Readonly<Partial<Record<SourceId, number>>>,
   clock: () => number = () => performance.now()
 ): Pacer {
   const buckets = new Map<SourceId, TokenBucket>()
@@ -38,7 +40,7 @@ export function createPacer(
       }
 
       // why-safe: the rate-limit record is keyed by SourceId; Object.entries widens the key.
-      buckets.set(id as SourceId, buildBucket(perMinute, clock))
+      buckets.set(id as SourceId, buildBucket(perMinute, burstLimits[id as SourceId], clock))
     }
   }
 
@@ -56,10 +58,17 @@ export function createPacer(
   }
 }
 
-function buildBucket(capacityPerMinute: number, clock: () => number): TokenBucket {
+function buildBucket(
+  capacityPerMinute: number,
+  burstLimit: number | undefined,
+  clock: () => number
+): TokenBucket {
   // At least one, so a provider limited to under four a minute is paced rather than made to wait
   // for a token it should have started with.
-  const burstCapacity = Math.max(1, capacityPerMinute * BURST_FRACTION)
+  const burstCapacity = Math.max(
+    1,
+    Math.min(capacityPerMinute * BURST_FRACTION, burstLimit ?? Number.POSITIVE_INFINITY)
+  )
 
   return { tokens: burstCapacity, capacityPerMinute, burstCapacity, lastRefillAt: clock() }
 }

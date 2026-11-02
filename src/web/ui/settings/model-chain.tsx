@@ -83,10 +83,10 @@ export function ModelChainRow({ openSection }: ChainProps) {
 }
 
 async function loadChain(abort: AbortSignal): Promise<ChainRead> {
-  const [tree, catalog, { credentials }] = await Promise.all([
+  const [tree, catalog, credentials] = await Promise.all([
     readConfigTree(abort),
     getJson(ROUTES.providers, { signal: abort }),
-    readCredentials(abort),
+    readCredentialsOrNone(abort),
   ])
   const models = Array.isArray(tree.models) ? tree.models : []
 
@@ -95,6 +95,19 @@ async function loadChain(abort: AbortSignal): Promise<ChainRead> {
     defaults: isTree(tree.model_defaults) ? tree.model_defaults : {},
     catalog,
     credentials,
+  }
+}
+
+// The key hint is a courtesy: a failed read leaves it out and the editor still opens.
+async function readCredentialsOrNone(abort: AbortSignal): Promise<readonly Credential[]> {
+  try {
+    return (await readCredentials(abort)).credentials
+  } catch (error: unknown) {
+    if (abort.aborted) {
+      throw error
+    }
+
+    return []
   }
 }
 

@@ -1,5 +1,13 @@
 import type { DayRange, RegionPack } from '@/web/scene/world/regions'
-import { ALL_DAY, around, FESTIVE_YEARS, hm, SHUT, sign } from '@/web/scene/world/regions/pack-kit'
+import {
+  ALL_DAY,
+  around,
+  CRYPTO_TEMPLATE,
+  FESTIVE_YEARS,
+  hm,
+  SHUT,
+  sign,
+} from '@/web/scene/world/regions/pack-kit'
 import { HOURS_PER_DAY } from '@/web/text/time-units'
 
 // The day of the lunar new year and of the 15th of the eighth lunar month, one per year.
@@ -363,5 +371,21 @@ export const VN_PACK = Object.freeze({
     { label: 'HOSE', zone: 'Asia/Ho_Chi_Minh' },
     { label: 'NYSE', zone: 'America/New_York' },
     { label: 'UTC', zone: 'UTC' },
+  ],
+  exampleTicker: 'FPT',
+  agentTemplates: [
+    {
+      name: 'ui.office.team.tplDividend',
+      prompt: 'ui.office.team.tplDividendPrompt',
+      hint: 'ui.office.team.tplDividendHint',
+      focus: { markets: ['equity-vn'], horizon: 'long' },
+    },
+    {
+      name: 'ui.office.team.tplBanks',
+      prompt: 'ui.office.team.tplBanksPrompt',
+      hint: 'ui.office.team.tplBanksHint',
+      focus: { markets: ['equity-vn'], sectors: ['banks'] },
+    },
+    CRYPTO_TEMPLATE,
   ],
 } as const satisfies RegionPack)

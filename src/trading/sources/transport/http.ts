@@ -106,7 +106,7 @@ export function createSourceHttp(
       failureRate: BREAKER_FAILURE_RATE,
       logger,
     }),
-    pacer: createPacer(facts.rateLimits),
+    pacer: createPacer(facts.rateLimits, facts.burstLimits),
     now,
     logger,
     failures: createFailureReporter(logger),

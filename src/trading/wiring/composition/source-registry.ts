@@ -23,6 +23,7 @@ import {
   createBuiltInSources,
   MACRO_SOURCE_PROFILES,
   PLAIN_USER_AGENT_SOURCES,
+  SOURCE_BURST_LIMITS,
   SOURCE_CREDENTIAL_ENV,
   SOURCE_CREDENTIALS,
   SOURCE_ENDPOINTS,
@@ -107,6 +108,7 @@ function toSourceFacts(plugin: PluginFacts, credentials: SourceFacts['credential
   return {
     endpoints: { ...SOURCE_ENDPOINTS, ...plugin.endpoints },
     rateLimits: { ...SOURCE_RATE_LIMITS, ...plugin.rateLimits },
+    burstLimits: SOURCE_BURST_LIMITS,
     feeds: RSS_FEEDS,
     credentials,
     plainUserAgentSources: PLAIN_USER_AGENT_SOURCES,
