@@ -1054,6 +1054,9 @@ Nên nhà cung cấp AI của client thấy nhiều nhất là những gì một
 Một kết luận "giữ nguyên" không đặt lệnh nào và mang theo `holdReasons` - các mã lý do bằng ngôn ngữ của
 bạn - nên mô hình giải thích vì sao thay vì đọc các mức giá của một lần giữ nguyên như một lệnh.
 
+`portfolio_view`, `portfolio_review` và `portfolio_rebalance` mang theo `segmentNames` - tên từng nhóm
+bằng ngôn ngữ của bạn - nên câu trả lời ghi "Vàng trong nước" thay vì `gold-vn`.
+
 **Thao tác ghi và phê duyệt.** Các nhánh ghi của `alert_manage` và `brief_manage` cần phê duyệt, nên một
 client không hỗ trợ elicitation chỉ liệt kê và xem được.
 

@@ -1,6 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type {
   CashSegmentTarget,
+  PortfolioFinding,
   RebalancePlanReady,
   RebalanceSizing,
   SegmentTarget,
@@ -210,4 +211,24 @@ export function renderCashLine(
     ...settledAmount,
     settled,
   })}`
+}
+
+/** Each segment's name in the operator's language, keyed by id, for the segments listed and the
+ *  ones the findings are about, so a reply names "Vietnam gold" rather than `gold-vn` while the id
+ *  stays usable as tool input. */
+export function segmentNames(
+  locale: Locale,
+  segments: readonly string[],
+  findings: readonly PortfolioFinding[] = []
+): Readonly<Record<string, string>> {
+  const about = findings.flatMap((finding) =>
+    typeof finding.subject.segment === 'string' ? [finding.subject.segment] : []
+  )
+
+  return Object.fromEntries(
+    [...new Set([...segments, ...about])].map((segment) => [
+      segment,
+      renderDeclaredValue(locale, `trading.segment.${segment}`),
+    ])
+  )
 }

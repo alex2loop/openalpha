@@ -1071,6 +1071,9 @@ So the client's AI provider sees at most what an order quantity implies.
 A hold places no order and carries `holdReasons` - its reason codes in your language - so the model
 explains why instead of reading the hold's levels as an order.
 
+`portfolio_view`, `portfolio_review` and `portfolio_rebalance` carry `segmentNames` - each segment's
+name in your language - so a reply says "Vietnam gold" rather than `gold-vn`.
+
 **Writes and approval.** The write arms of `alert_manage` and `brief_manage` need approval, so a
 client without elicitation can only list and show.
 
