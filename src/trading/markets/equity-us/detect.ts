@@ -3,6 +3,7 @@ import type { MarketDeps } from '@/trading/markets/deps'
 import type { MarketDetection, TickerCandidacy } from '@/trading/markets/detection'
 import { ETF_KIND } from '@/trading/kernel/instrument'
 import { US_MARKET_REF } from '@/trading/markets/equity-us/policy'
+import { detectListingMiss } from '@/trading/markets/listing-miss'
 
 /** One to five letters, with an optional single-letter class (`BRK.B`). */
 const US_TICKER_RE = /^[A-Z]{1,5}(\.[A-Z])?$/
@@ -28,7 +29,7 @@ export async function detect(deps: MarketDeps, options: DetectOptions): Promise<
   })
 
   if (record === null) {
-    return listingMiss(deps, options.signal)
+    return detectListingMiss(deps, US_MARKET_REF, options.signal)
   }
 
   if (record.status !== 'active') {
@@ -73,14 +74,4 @@ export async function search(
     name: record.name,
     instrumentKind: record.kind,
   }))
-}
-
-/** A miss over a populated listing is a real check; over an empty one it is a cold or failed
- *  refresh, not a market that does not list the name. Asked only on the miss path. */
-async function listingMiss(deps: MarketDeps, signal: AbortSignal): Promise<MarketDetection> {
-  const populated = await deps.marketDataStore.hasInstruments({ market: US_MARKET_REF, signal })
-
-  return populated
-    ? { kind: 'no-match', listingChecked: true }
-    : { kind: 'no-match', caveats: [{ code: 'market-data.universe-empty' }] }
 }

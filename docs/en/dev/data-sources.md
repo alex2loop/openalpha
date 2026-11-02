@@ -713,7 +713,7 @@ None of the rules is registration order:
 
 | The caller gave | Resolution | Owner |
 |---|---|---|
-| a bare ticker | `resolveInstrument` qualifies it through the registry; an unknown or ambiguous name becomes `market.ticker-unknown` / `market.ticker-ambiguous`, never a fallback market. One exception: on a read the operator typed (`/price`, `/suggest`, `market_price`), a symbol two markets list settles on the side they hold or watch, and the answer names the other market (`market.ticker-also-listed`); `/record` and `/update` never take it | `features/market-data/resolve.ts` |
+| a bare ticker | `resolveInstrument` qualifies it through the registry; an unknown or ambiguous name becomes `market.ticker-unknown` / `market.ticker-ambiguous`, never a fallback market. One exception: on a read the operator typed (`/price`, `/suggest`, `market_price`), a symbol two markets list settles on the side they hold or watch, and the answer names the other market (`market.ticker-also-listed`), asked from each market's stored listing or ranked board only (`boardOnly`), never a per-symbol lookup; `/record` and `/update` never take it | `features/market-data/resolve.ts` |
 | a market ref | `requireMarket`, which throws naming every registered id | `features/market-data/market-data-run.ts` |
 | nothing, on a market-scoped command | the owner of `[locale] region`: `markets.regionOwner(config.defaultRegion)` | `markets/registry.ts` |
 | a region, for a regional read | `markets.regionOwner(region)`, whose macro capability publishes the region's composite | `markets/registry.ts` |

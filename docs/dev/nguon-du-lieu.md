@@ -453,7 +453,7 @@ Không quy tắc nào dựa trên thứ tự đăng ký:
 
 | Bên gọi đưa | Cách xác định | Chủ sở hữu |
 |---|---|---|
-| một ticker trần | `resolveInstrument` định danh nó qua sổ đăng ký; tên không rõ hoặc mơ hồ thành `market.ticker-unknown` / `market.ticker-ambiguous`, không bao giờ rơi về một thị trường dự phòng. Một ngoại lệ: với lệnh đọc do người dùng gõ (`/price`, `/suggest`, `market_price`), ký hiệu có ở hai thị trường được chốt về bên bạn đang nắm giữ hoặc theo dõi, và câu trả lời nêu tên thị trường còn lại (`market.ticker-also-listed`); `/record` và `/update` không bao giờ đi đường này | `features/market-data/resolve.ts` |
+| một ticker trần | `resolveInstrument` định danh nó qua sổ đăng ký; tên không rõ hoặc mơ hồ thành `market.ticker-unknown` / `market.ticker-ambiguous`, không bao giờ rơi về một thị trường dự phòng. Một ngoại lệ: với lệnh đọc do người dùng gõ (`/price`, `/suggest`, `market_price`), ký hiệu có ở hai thị trường được chốt về bên bạn đang nắm giữ hoặc theo dõi, và câu trả lời nêu tên thị trường còn lại (`market.ticker-also-listed`), chỉ hỏi danh sách mã đã lưu hoặc bảng xếp hạng của từng thị trường (`boardOnly`), không bao giờ tra từng mã; `/record` và `/update` không bao giờ đi đường này | `features/market-data/resolve.ts` |
 | một mã thị trường | `requireMarket`, ném lỗi nêu mọi mã đã đăng ký | `features/market-data/market-data-run.ts` |
 | không gì, ở lệnh gắn với thị trường | chủ của `[locale] region`: `markets.regionOwner(config.defaultRegion)` | `markets/registry.ts` |
 | một khu vực, cho lần đọc theo khu vực | `markets.regionOwner(region)`, có năng lực vĩ mô công bố chỉ số tổng hợp của khu vực | `markets/registry.ts` |

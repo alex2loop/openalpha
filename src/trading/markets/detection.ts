@@ -29,9 +29,9 @@ export type MarketDetection =
        *  already holds the record, and a segment's ETF ceiling is measured by it. */
       readonly instrumentKind?: InstrumentKind
     }
-  /** `listingChecked`: a populated stored listing missed the name, so the miss is a real check. */
   | {
       readonly kind: 'no-match'
       readonly caveats?: readonly Caveat[]
+      /** A populated stored listing missed the name, so the miss is a real check. */
       readonly listingChecked?: true
     }
