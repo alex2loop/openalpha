@@ -15,7 +15,7 @@ export function createMarketSectorStrengthTool(
   return createTool({
     name: 'market_sector_strength',
     description:
-      'Rank the sectors and industries of one market by relative strength against its index - which sectors are leading and which are lagging, for sector rotation and the open-ended "which sector or industry should I buy" question. Sectors arrive strongest first. `excessReturnShort` and `excessReturnLong` measure leadership over 20 and 60 sessions as fractions (0.05 is 5%), never today, and a market whose own index could not be read publishes neither: `sessionReturn` is the only field that answers "which sector rose today", and a sector that did not trade this session has none. Buckets follow the market\'s own sector scheme (ICB level 2 for VN), so a name sits where its standard puts it, not where press tables group it. `sessionReturn` blends every board the market admits, capitalisation-weighted, while a broker screen usually shows one board: it reads a few tenths off theirs, and further on a small sector - say that yours spans the whole market. Each `sector` arrives already written in the operator\'s language: quote it exactly and never translate one yourself. Deterministic, no LLM. Deepen a favored sector with market_screen, then suggestion_run for one name.',
+      'Rank the sectors and industries of one market by relative strength against its index - which sectors are leading and which are lagging, for sector rotation and the open-ended "which sector or industry should I buy" question. Sectors arrive strongest first. `excessReturnShort` and `excessReturnLong` measure leadership over 20 and 60 sessions as fractions (0.05 is 5%), never today, and a market whose own index could not be read publishes neither: `sessionReturn` is the only field that answers "which sector rose today", and a sector that did not trade this session has none. Buckets follow the market\'s own sector scheme (ICB level 2 for VN, Nasdaq\'s sector for US), so a name sits where its standard puts it, not where press tables group it. `sessionReturn` blends every board the market admits, capitalisation-weighted, while a broker screen usually shows one board: it reads a few tenths off theirs, and further on a small sector - say that yours spans the whole market. Each `sector` arrives already written in the operator\'s language: quote it exactly and never translate one yourself. Deterministic, no LLM. Deepen a favored sector with market_screen, then suggestion_run for one name.',
     inputSchema: z.strictObject({ market: markets }),
     capability: 'net',
     eager: true,
@@ -33,7 +33,9 @@ export function createMarketSectorStrengthTool(
       const sectors = result.sectors.map(({ score: _score, ...entry }) => ({
         ...entry,
         sector: renderProvidedValue(ctx.locale, `trading.sector.${entry.sector}`, entry.sector),
-        foreignNetBase: formatSignedFlow(ctx.locale, entry.foreignNetBase),
+        ...(entry.foreignNetBase === undefined
+          ? {}
+          : { foreignNetBase: formatSignedFlow(ctx.locale, entry.foreignNetBase) }),
       }))
 
       return toAgentJson({ ...result, sectors })

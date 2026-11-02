@@ -3,6 +3,7 @@ import type { LevelPolicy } from '@/trading/kernel/factor'
 import type { BoardLotPolicy, Ticker, TickSizePolicy } from '@/trading/kernel/instrument'
 import type { AdmissionPolicy } from '@/trading/markets/admission'
 import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
+import type { SectorPolicy } from '@/trading/markets/sector-strength'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { marketRef, region, ticker } from '@/trading/kernel/instrument'
 import { RESTATEMENT_TOLERANCE } from '@/trading/markets/bar-restatement'
@@ -36,6 +37,15 @@ export const US_TICK: TickSizePolicy = Object.freeze({
 })
 
 export const US_BENCHMARK_TICKER: Ticker = ticker('SPY')
+/** The sector board's windows and floors, read against the benchmark fund. Nasdaq files every board
+ *  name under a sector, so the coverage floor only trips on a broken listing read. */
+export const US_SECTOR_POLICY: SectorPolicy = Object.freeze({
+  shortSessions: 20,
+  longSessions: 60,
+  minimumMembers: 3,
+  volatilityPenalty: 0.25,
+  minimumCoverage: 0.6,
+})
 /** Listed so a level row reads from the store like any name; Nasdaq charts both. */
 export const US_INDEX_TICKERS: readonly Ticker[] = Object.freeze([ticker('COMP'), ticker('NDX')])
 

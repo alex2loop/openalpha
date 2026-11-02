@@ -1,19 +1,26 @@
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { SectorStrength } from '@/trading/kernel/market/market-capability'
 import type { Candle } from '@/trading/kernel/market/market-data'
-import {
-  MINIMUM_SECTOR_MEMBERS,
-  SECTOR_LONG_SESSIONS,
-  SECTOR_SHORT_SESSIONS,
-  SECTOR_VOLATILITY_PENALTY,
-} from '@/trading/markets/equity-vn/policy'
 import { nSessionReturn, realizedVolatility, sessionChange } from '@/trading/markets/timeseries'
+
+/** Each market's own windows and floors: the sector board reads the windows its factors do. */
+export interface SectorPolicy {
+  readonly shortSessions: number
+  readonly longSessions: number
+  readonly minimumMembers: number
+  /** Realized volatility above the roll-up's own tolerance discounts a sector's score, once. */
+  readonly volatilityPenalty: number
+  /** Below this share of the universe carrying a sector, the ranking is a ranking of part of the
+   *  market wearing the market's authority. */
+  readonly minimumCoverage: number
+}
 
 export interface SectorMember {
   readonly ticker: Ticker
   readonly sector?: string
   readonly closes: readonly number[]
-  readonly foreignNetBase: number
+  /** Absent on a market that publishes no foreign flow, which leaves the sector without one. */
+  readonly foreignNetBase?: number
   /** Weights the session return. Absent until fundamentals are fetched, which leaves the name out
    *  of that one number rather than out of the sector. */
   readonly marketCap?: number
@@ -26,23 +33,26 @@ interface SectorInput {
   readonly members: readonly SectorMember[]
   readonly benchmark: readonly Candle[]
   readonly session: TradingDay
+  readonly policy: SectorPolicy
 }
 
 /** One aggregation, read by the market's sector board, the `sector-rotation` brief section and
  *  `foreign-flow-sectors`. Computing it per reader is how a brief ends up disagreeing with the board
  *  it is printed beside. */
 export function sectorStrength(input: SectorInput): readonly SectorStrength[] {
+  const { policy } = input
   const benchmarkCloses = input.benchmark.map((candle) => candle.close)
-  const short = nSessionReturn(benchmarkCloses, SECTOR_SHORT_SESSIONS)
-  const long = nSessionReturn(benchmarkCloses, SECTOR_LONG_SESSIONS)
+  const short = nSessionReturn(benchmarkCloses, policy.shortSessions)
+  const long = nSessionReturn(benchmarkCloses, policy.longSessions)
 
   return [...groupBySector(input.members)]
-    .filter(([, members]) => members.length >= MINIMUM_SECTOR_MEMBERS)
+    .filter(([, members]) => members.length >= policy.minimumMembers)
     .map(([sector, members]) =>
       strengthOf(sector, members, {
         ...(short === undefined ? {} : { benchmarkShort: short }),
         ...(long === undefined ? {} : { benchmarkLong: long }),
         session: input.session,
+        policy,
       })
     )
     .sort(byStrength)
@@ -88,9 +98,10 @@ interface SectorContext {
   readonly benchmarkShort?: number
   readonly benchmarkLong?: number
   readonly session: TradingDay
+  readonly policy: SectorPolicy
 }
 
-/** The two windows are the factor's own, from `policy.ts`, so the section and the factor cannot
+/** The two windows are the market's own factor windows, so the section and the factor cannot
  *  drift to different lookbacks. Volatility is penalized exactly once, here — the per-name
  *  rotation score does not apply it again. */
 function strengthOf(
@@ -98,10 +109,11 @@ function strengthOf(
   members: readonly SectorMember[],
   context: SectorContext
 ): SectorStrength {
-  const short = measuredMembers(members, (m) => nSessionReturn(m.closes, SECTOR_SHORT_SESSIONS))
-  const long = measuredMembers(members, (m) => nSessionReturn(m.closes, SECTOR_LONG_SESSIONS))
+  const { policy } = context
+  const short = measuredMembers(members, (m) => nSessionReturn(m.closes, policy.shortSessions))
+  const long = measuredMembers(members, (m) => nSessionReturn(m.closes, policy.longSessions))
   const volatilities = measuredMembers(members, (m) =>
-    realizedVolatility(m.closes, SECTOR_SHORT_SESSIONS)
+    realizedVolatility(m.closes, policy.shortSessions)
   )
   const excessReturnShort = excessOf(short, context.benchmarkShort)
   const excessReturnLong = excessOf(long, context.benchmarkLong)
@@ -113,7 +125,8 @@ function strengthOf(
     dailyVolatility === undefined
       ? undefined
       : (excessReturnShort + excessReturnLong) / 2 -
-        windowVolatilityOf(dailyVolatility) * SECTOR_VOLATILITY_PENALTY
+        windowVolatilityOf(dailyVolatility, policy.shortSessions) * policy.volatilityPenalty
+  const foreignNetBase = foreignNetOf(members)
 
   return {
     sector,
@@ -121,7 +134,7 @@ function strengthOf(
     ...(sessionReturn === undefined ? {} : { sessionReturn }),
     ...(excessReturnShort === undefined ? {} : { excessReturnShort }),
     ...(excessReturnLong === undefined ? {} : { excessReturnLong }),
-    foreignNetBase: members.reduce((sum, member) => sum + member.foreignNetBase, 0),
+    ...(foreignNetBase === undefined ? {} : { foreignNetBase }),
     ...(score === undefined ? {} : { score }),
   }
 }
@@ -146,8 +159,15 @@ function excessOf(measured: MeasuredMembers, benchmark: number | undefined): num
 
 /** A daily stdev subtracted from window returns is an order of magnitude too small to discount
  *  anything; sqrt(sessions) puts the penalty in the same units as the returns. */
-function windowVolatilityOf(dailyVolatility: number): number {
-  return dailyVolatility * Math.sqrt(SECTOR_SHORT_SESSIONS)
+function windowVolatilityOf(dailyVolatility: number, sessions: number): number {
+  return dailyVolatility * Math.sqrt(sessions)
+}
+
+/** Summed over the members that carry a flow; absent where none does. */
+function foreignNetOf(members: readonly SectorMember[]): number | undefined {
+  const flows = members.flatMap((member) => member.foreignNetBase ?? [])
+
+  return flows.length === 0 ? undefined : flows.reduce((sum, flow) => sum + flow, 0)
 }
 
 interface MeasuredMembers {

@@ -11,12 +11,11 @@ import { toHeadlineSection } from '@/trading/markets/brief-headlines'
 import { REGIME_SCALE_CAVEAT } from '@/trading/markets/brief-macro'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 import { latestNameSession, toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
-import { sectorCoveragePct } from '@/trading/markets/equity-vn/factors/sectors'
 import {
   FLOW_DEVIATION_SESSIONS,
-  MINIMUM_SECTOR_COVERAGE_FRACTION,
   VN_FX_PAIR,
   VN_MARKET_REGION,
+  VN_SECTOR_POLICY,
 } from '@/trading/markets/equity-vn/policy'
 import { staleIndexCaveats, toBreadth } from '@/trading/markets/equity-vn/tape/breadth'
 import { netFlowValue, proprietaryFlowValue } from '@/trading/markets/equity-vn/tape/flows'
@@ -28,6 +27,7 @@ import {
 } from '@/trading/markets/equity-vn/tape/session-totals'
 import { NEWS_ITEMS_PER_SECTION } from '@/trading/markets/news'
 import { boardRows, breadthRows, MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
+import { sectorCoveragePct } from '@/trading/markets/sector-strength'
 import { PERCENT_PER_UNIT } from '@/trading/sources/rows/normalization'
 
 // The market-wide half of the brief: sections that describe the exchange rather than the user.
@@ -147,7 +147,7 @@ export function buildBreadth(context: VnBriefContext): Promise<BriefSectionResul
 export function buildSectorRotation(context: VnBriefContext): Promise<BriefSectionResult> {
   const coverage = sectorCoverage(context)
 
-  if (context.sectors.length === 0 || coverage < MINIMUM_SECTOR_COVERAGE_FRACTION) {
+  if (context.sectors.length === 0 || coverage < VN_SECTOR_POLICY.minimumCoverage) {
     return Promise.resolve(
       absent('sector-rotation', [{ code: 'market-data.no-coverage', detail: { coverage } }])
     )
@@ -251,13 +251,14 @@ function foreignNameRows(names: readonly NameEvidence[]): readonly BriefSectionR
 /** The same names grouped by sector. Absent below the coverage floor rather than reported thin:
  *  `sector-rotation` already says the mapping is too sparse to read. */
 function foreignSectorRows(context: VnBriefContext): readonly BriefSectionRow[] {
-  if (sectorCoverage(context) < MINIMUM_SECTOR_COVERAGE_FRACTION) {
+  if (sectorCoverage(context) < VN_SECTOR_POLICY.minimumCoverage) {
     return []
   }
 
-  return context.sectors
-    .slice(0, MAXIMUM_NAMES_PER_LIST)
-    .map((row) => ({ sector: row.sector, foreignNetBase: row.foreignNetBase }))
+  return context.sectors.slice(0, MAXIMUM_NAMES_PER_LIST).map((row) => ({
+    sector: row.sector,
+    ...(row.foreignNetBase === undefined ? {} : { foreignNetBase: row.foreignNetBase }),
+  }))
 }
 
 export async function buildFx(context: VnBriefContext): Promise<BriefSectionResult> {

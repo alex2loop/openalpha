@@ -23,6 +23,7 @@ import { runUsQuote } from '@/trading/markets/equity-us/quote'
 import { previousUsScoreRegime } from '@/trading/markets/equity-us/refresh/macro'
 import { refreshUsMarket, usStaleKinds } from '@/trading/markets/equity-us/refresh/refresh'
 import { runUsScreen } from '@/trading/markets/equity-us/screen-capability'
+import { runUsSectors } from '@/trading/markets/equity-us/sectors'
 import { resolveMacroRisk } from '@/trading/markets/macro'
 import { statisticsFromCandles, statisticsSessions } from '@/trading/markets/statistics'
 
@@ -130,8 +131,11 @@ function briefCapability(
   }
 }
 
-function screenCapabilities(board: UsBoardCache): Pick<MarketCapabilities, 'screen'> {
-  return { screen: { kind: 'screen', run: (request) => runUsScreen(board, request) } }
+function screenCapabilities(board: UsBoardCache): Pick<MarketCapabilities, 'screen' | 'sectors'> {
+  return {
+    screen: { kind: 'screen', run: (request) => runUsScreen(board, request) },
+    sectors: { kind: 'sectors', run: (request) => runUsSectors(board, request) },
+  }
 }
 
 function overviewCapabilities(

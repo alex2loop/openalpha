@@ -16,9 +16,9 @@ import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { NameAccounts } from '@/trading/markets/equity-vn/accounts/board'
 import type { SupervisionCoverage } from '@/trading/markets/equity-vn/evidence/supervision'
-import type { SectorMember } from '@/trading/markets/equity-vn/factors/sectors'
 import type { IndexReviewProximity } from '@/trading/markets/equity-vn/index-review'
 import type { FactorInput } from '@/trading/markets/factor-scoring'
+import type { SectorMember } from '@/trading/markets/sector-strength'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { ticker } from '@/trading/kernel/instrument'
@@ -44,7 +44,6 @@ import {
   valuationMetrics,
   valuePercentiles,
 } from '@/trading/markets/equity-vn/factors/fundamental-ranks'
-import { sectorStrength } from '@/trading/markets/equity-vn/factors/sectors'
 import { indexReviewProximity } from '@/trading/markets/equity-vn/index-review'
 import {
   FLOW_DEVIATION_SESSIONS,
@@ -55,6 +54,7 @@ import {
   TREND_SLOPE_SESSIONS,
   VN_INDEX_TICKER,
   VN_MARKET_REF,
+  VN_SECTOR_POLICY,
 } from '@/trading/markets/equity-vn/policy'
 import { adjustedCloses, screenCandidate, toScreenInput } from '@/trading/markets/equity-vn/screen'
 import {
@@ -64,6 +64,7 @@ import {
   proprietaryFlowRatio,
 } from '@/trading/markets/equity-vn/tape/flows'
 import { scoreFactors } from '@/trading/markets/factor-scoring'
+import { sectorStrength } from '@/trading/markets/sector-strength'
 import {
   trailingAverage,
   trailingHigh,
@@ -211,6 +212,7 @@ export async function buildCrossSection(
       members: names.map(toSectorMember),
       benchmark: options.index,
       session,
+      policy: VN_SECTOR_POLICY,
     }),
     indexBars: options.index,
     benchmarks: options.benchmarks,
