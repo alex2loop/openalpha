@@ -17,8 +17,9 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 - Data from Nasdaq (listings, quotes, history, dividends) and SEC (annual accounts, earnings releases, insider purchases), the ten-year less three-month yield spread in the US macro composite, and Coinbase prices for crypto, converted to USDT.
 
 ### Changed
-- `/overview` with no market named now shows the markets you use (segments switched on, plus any market you hold or watch) instead of every market; `/overview gold` still reads world gold.
 
+- `/overview` with no market named now shows the markets you use (segments switched on, plus any market you hold or watch) instead of every market; `/overview gold` still reads world gold.
+- In Vietnamese the assistant always calls itself "mình"; some replies said "tôi".
 - A book from before a market existed no longer refreshes it: the in-use set reads the resolved profile.
 - Tool, skill and usage wording no longer assumes a Vietnamese book.
 - On a fresh Vietnam install, Vietnamese gold (`gold-vn`) now starts switched off until you enable it with `/profile enable`; world gold stays off, as it is read for reference only.
