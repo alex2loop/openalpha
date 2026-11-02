@@ -86,6 +86,8 @@ export interface TradingCalendar {
    *  progress is never evidence. Effective after any override, like `timezone`. */
   readonly continuous: boolean
   readonly hours?: SessionHours
+  /** The hours of one day: the regular ones, or an early close on a day the rules shorten. */
+  hoursOn(day: TradingDay): SessionHours | undefined
   dayAt(epochMs: number): TradingDay
   isTradingDay(day: TradingDay): boolean
   addTradingDays(day: TradingDay, count: number): TradingDay

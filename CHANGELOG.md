@@ -26,7 +26,7 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 ### Fixes
 
-- The US calendar ends the session at 13:00 New York time on the day after Thanksgiving, and on July 3 and December 24 when they trade, so a stock's day settles and reads as closed at the real bell.
+- The US calendar ends the session at 13:00 New York time on the day after Thanksgiving, and on July 3 and December 24 when they trade, so a stock's day settles and reads as closed at the real bell, and the app shows that day's 13:00 close.
 - The desktop app's first run (`setup write`) no longer refuses every config once the model's key is set.
 
 ## [1.2.2] - 2026-10-30

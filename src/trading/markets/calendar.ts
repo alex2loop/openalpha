@@ -74,8 +74,10 @@ export function createTradingCalendar(
   const isTradingDay = (day: TradingDay): boolean =>
     !(isWeekend(day) || holidays.has(day)) && (openDays.has(day) || !ruleClosesDay(day))
   const isEarlyClose = createRuleEarlyCloses(policy)
+  const endsEarly = (day: TradingDay): boolean =>
+    session.earlyClose !== undefined && isEarlyClose(day)
   const closeOf = (day: TradingDay): number =>
-    session.earlyClose !== undefined && isEarlyClose(day) ? session.earlyClose : session.close
+    (endsEarly(day) ? session.earlyClose : undefined) ?? session.close
   const sessionCloseAt = (day: TradingDay): number =>
     zonedEpochMs(day, closeOf(day), policy.timezone)
 
@@ -83,6 +85,11 @@ export function createTradingCalendar(
     timezone: policy.timezone,
     continuous: policy.continuous,
     ...(policy.continuous ? {} : { hours: toSessionHours(policy) }),
+    hoursOn: (day) => {
+      const close = endsEarly(day) ? policy.earlyCloses?.localTime : undefined
+
+      return policy.continuous ? undefined : toSessionHours(policy, close)
+    },
     isTradingDay,
     dayAt: (epochMs) => dayFromEpochSeconds(epochMs / MS_PER_SECOND, policy.timezone),
     addTradingDays: (day, count) => addTradingDays(day, count, isTradingDay),
@@ -94,10 +101,13 @@ export function createTradingCalendar(
   }
 }
 
-function toSessionHours(policy: CalendarPolicy): SessionHours {
+/** A shortened day ends at its early close, and so does any closing auction running to it. */
+function toSessionHours(
+  policy: CalendarPolicy,
+  close: string = policy.sessionCloseLocalTime
+): SessionHours {
   const { breakStartLocalTime: from, breakEndLocalTime: to } = policy
   const auctionFrom = policy.closeAuctionStartLocalTime
-  const close = policy.sessionCloseLocalTime
 
   return {
     ...(policy.exchange === undefined ? {} : { exchange: policy.exchange }),
@@ -215,6 +225,8 @@ export interface MarketDay {
   readonly tradesToday: boolean
   readonly nextTradingDay: TradingDay
   readonly phase: SessionPhase
+  /** Today's hours, which end early on a shortened session. */
+  readonly hours?: SessionHours
 }
 
 export function resolveMarketDay(calendar: TradingCalendar, now: number): MarketDay {
@@ -225,7 +237,12 @@ export function resolveMarketDay(calendar: TradingCalendar, now: number): Market
     tradesToday: calendar.isTradingDay(today),
     nextTradingDay: calendar.addTradingDays(today, 1),
     phase: sessionPhase(calendar, now),
+    ...optionalHours(calendar.hoursOn(today)),
   }
+}
+
+function optionalHours(hours: SessionHours | undefined): { readonly hours?: SessionHours } {
+  return hours === undefined ? {} : { hours }
 }
 
 /** The session an order placed at `now` fills in: today until the close, the next trading day after
