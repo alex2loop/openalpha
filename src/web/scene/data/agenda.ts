@@ -30,6 +30,7 @@ const ROWS_SHOWN = 4
 const CLOCK_SEPARATOR = ':'
 // A session row names its market this short, so the event itself fits the lobby screens.
 const MARKET_SHORT_KEYS: Readonly<Record<string, MessageKey>> = Object.freeze({
+  'equity-us': 'ui.office.agenda.market.equity-us',
   'equity-vn': 'ui.office.agenda.market.equity-vn',
   gold: 'ui.office.agenda.market.gold',
   'gold-vn': 'ui.office.agenda.market.gold-vn',

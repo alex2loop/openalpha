@@ -12,6 +12,7 @@ const SEGMENT_HUES: Readonly<Record<string, string>> = {
   cash: 'teal',
   crypto: 'violet',
   'equity-vn': 'blue',
+  'equity-us': 'pink',
   gold: 'yellow',
   'gold-vn': 'peach',
 }
