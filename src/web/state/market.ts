@@ -10,7 +10,6 @@ import type {
 } from '@/app/server/wire/trading'
 import type { SessionPhase } from '@/app/server/wire/vocab'
 import { ROUTES } from '@/web/api/routes'
-import { packOf } from '@/web/scene/world/regions'
 import { createRouteBlock } from '@/web/state/block'
 import { wholeUnitsDisplay } from '@/web/text/figures'
 
@@ -124,11 +123,6 @@ export function printDisplayOf(market: string): MarketWire['priceDisplay'] {
 /** The operator's region (`[locale] region`); absent until the markets are read. */
 export function homeRegion(): string | undefined {
   return marketsBlock.view.value.data?.homeRegion
-}
-
-/** A well-known ticker of the home market, for an input's example. */
-export function exampleTicker(): string {
-  return packOf(homeRegion()).exampleTicker
 }
 
 /** A market in this phase still trades today: open, or in its lunch break. */

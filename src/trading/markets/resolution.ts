@@ -354,15 +354,15 @@ function uncheckedMarketCaveats(
     )
 }
 
-/** A market never refreshed says nothing about a ticker the loaded markets miss, so "run /refresh"
- *  is the answer only while no market holds a universe. */
+/** A market never refreshed says nothing about a ticker another market's stored listing checked and
+ *  missed, so "run /refresh" is the answer only while no listing has been checked. */
 function missCaveats(detections: readonly MarketDetectionEntry[]): readonly Caveat[] {
   const caveats = detections.flatMap((entry) => entry.caveats)
-  const isAnyLoaded = detections.some(
-    (entry) => !entry.caveats.some((caveat) => caveat.code === UNIVERSE_EMPTY)
+  const isListingChecked = detections.some(
+    (entry) => entry.detection.kind === 'no-match' && entry.detection.listingChecked === true
   )
 
-  return isAnyLoaded ? caveats.filter((caveat) => caveat.code !== UNIVERSE_EMPTY) : caveats
+  return isListingChecked ? caveats.filter((caveat) => caveat.code !== UNIVERSE_EMPTY) : caveats
 }
 
 // One detector throwing must not fail resolution for the others: it becomes "does not match" plus a

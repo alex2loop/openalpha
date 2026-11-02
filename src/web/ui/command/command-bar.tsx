@@ -2,6 +2,7 @@ import type { RefObject, TargetedKeyboardEvent } from 'preact'
 import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
+import { regionPack } from '@/web/scene/data/home'
 import { selectAgent } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
 import { APP_CHANNEL, isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
@@ -14,7 +15,6 @@ import {
   sendFromInput,
   setInput,
 } from '@/web/state/command'
-import { exampleTicker } from '@/web/state/market'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import { ReadOnlyLine } from '@/web/ui/chat/session-view'
@@ -164,8 +164,8 @@ function CommandInput({ inputRef, list, options }: CommandInputProps) {
       role="combobox"
       aria-expanded={list.isOpen.value}
       aria-controls={LIST_ID}
-      aria-label={tr('ui.office.command.placeholder', { ticker: exampleTicker() })}
-      placeholder={tr('ui.office.command.placeholder', { ticker: exampleTicker() })}
+      aria-label={tr('ui.office.command.placeholder', { ticker: regionPack.value.exampleTicker })}
+      placeholder={tr('ui.office.command.placeholder', { ticker: regionPack.value.exampleTicker })}
       value={inputText.value}
       onFocus={() => (list.isOpen.value = true)}
       onBlur={() => resetList(list, false)}

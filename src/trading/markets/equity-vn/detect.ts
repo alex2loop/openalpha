@@ -1,4 +1,3 @@
-import type { Caveat } from '@/trading/kernel/caveat'
 import type { InstrumentMatch, InstrumentSearchRequest, Ticker } from '@/trading/kernel/instrument'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { MarketDetection, TickerCandidacy } from '@/trading/markets/types'
@@ -33,12 +32,13 @@ export async function detect(deps: MarketDeps, options: DetectOptions): Promise<
   })
 
   if (record === null) {
-    return { kind: 'no-match', caveats: await coldUniverseCaveats(deps, options.signal) }
+    return listingMiss(deps, options.signal)
   }
 
   if (record.status !== 'active') {
     return {
       kind: 'no-match',
+      listingChecked: true,
       caveats: [
         {
           code: 'market.ticker-not-active',
@@ -79,14 +79,12 @@ export async function search(
   }))
 }
 
-/** The same distinction `screen` draws: a published-but-empty universe is a cold or failed refresh,
- *  not a market that does not list the name. Asked only on the miss path, so a resolved ticker
- *  never pays for it. */
-async function coldUniverseCaveats(
-  deps: MarketDeps,
-  signal: AbortSignal
-): Promise<readonly Caveat[]> {
+/** A miss over a populated listing is a real check; over an empty one it is a cold or failed
+ *  refresh, not a market that does not list the name. Asked only on the miss path. */
+async function listingMiss(deps: MarketDeps, signal: AbortSignal): Promise<MarketDetection> {
   const populated = await deps.marketDataStore.hasInstruments({ market: VN_MARKET_REF, signal })
 
-  return populated ? [] : [{ code: 'market-data.universe-empty' }]
+  return populated
+    ? { kind: 'no-match', listingChecked: true }
+    : { kind: 'no-match', caveats: [{ code: 'market-data.universe-empty' }] }
 }

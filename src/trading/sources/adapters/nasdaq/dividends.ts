@@ -88,6 +88,7 @@ function toDividendEvent(
 
   const title = untrustedText(`${row.type} dividend ${row.amount}`, 'dividend')
   const paysOn = paymentDay(row.paymentDate)
+  const cash = cashOf(row)
 
   // The amount sizes the ex-date gap a level is moved by, so a cash row that states none (or not as a
   // positive dollar figure) carries no figure rather than a zero gap.
@@ -96,9 +97,11 @@ function toDividendEvent(
       at,
       kind: 'dividend-ex-date',
       title: title.value,
-      composedText: true,
+      // A row with no cash figure (a stock or special dividend stated as a ratio) keeps its own
+      // words, which say what kind it is; a cash row is worded from the kind and the amount.
+      ...(cash.cashPerShare === undefined ? {} : { composedText: true as const }),
       ...(context.instrument === undefined ? {} : { instrument: context.instrument }),
-      ...cashOf(row),
+      ...cash,
       ...(paysOn === undefined ? {} : { paysOn, detail: `Paid ${paysOn}` }),
     },
     title.caveats

@@ -304,7 +304,12 @@ export type MarketDetection =
        *  already holds the record, and a segment's ETF ceiling is measured by it. */
       readonly instrumentKind?: InstrumentKind
     }
-  | { readonly kind: 'no-match'; readonly caveats?: readonly Caveat[] }
+  | {
+      readonly kind: 'no-match'
+      readonly caveats?: readonly Caveat[]
+      /** The market keeps a stored listing and it is populated, so the miss is a real check. */
+      readonly listingChecked?: true
+    }
 
 export interface Market {
   readonly manifest: MarketManifest
