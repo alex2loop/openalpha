@@ -78,7 +78,9 @@ async function readCompanyFiling(
 }
 
 /** A filer that changed its reporting currency files the old years in the old one: the currency of
- *  its newest year is read, and years filed in another are left out rather than mixed in. */
+ *  its newest year is read, and years filed in another are left out rather than mixed in. A 20-F
+ *  can also tag a dollar convenience translation beside its own currency for the same year; the
+ *  currency with more facts is the one it reports in, so its history is the one kept. */
 function toCompanyFiling(
   cik: string,
   facts: Readonly<Record<string, Readonly<Record<string, unknown>>>>
@@ -98,10 +100,12 @@ function toCompanyFiling(
   const dated = filings.flatMap((filing) => {
     const newest = newestEnd(filing)
 
-    return newest === undefined ? [] : [{ filing, newest }]
+    return newest === undefined ? [] : [{ filing, newest, facts: factCount(filing) }]
   })
 
-  return dated.toSorted((left, right) => right.newest.localeCompare(left.newest))[0]?.filing
+  return dated.toSorted(
+    (left, right) => right.newest.localeCompare(left.newest) || right.facts - left.facts
+  )[0]?.filing
 }
 
 function historiesOf(
@@ -134,6 +138,10 @@ function answersOf(
       facts: history === undefined ? [] : annualConceptFacts(history, { cik, job }),
     }
   })
+}
+
+function factCount(filing: CompanyFiling): number {
+  return filing.answers.reduce((sum, answer) => sum + answer.facts.length, 0)
 }
 
 function newestEnd(filing: CompanyFiling): string | undefined {

@@ -19,7 +19,7 @@ const INDEX_SOURCE_ID = sourceId('nasdaq')
 
 interface RefreshUniverseOptions {
   /** Every record the market holds, delisted ones included, so a name that left can be kept as
-   *  delisted rather than forgotten. */
+   *  delisted rather than forgotten, and one missed once can be told from one missed twice. */
   readonly stored: readonly InstrumentRecord[]
   readonly now: number
   readonly signal: AbortSignal
@@ -113,12 +113,33 @@ function assembleUniverse(
   const indices = new Set<Ticker>(US_INDEX_TICKERS)
   const listed = fetched.filter((record) => !indices.has(record.instrument.ticker))
   const present = new Set<Ticker>(listed.map((record) => record.instrument.ticker))
-  const delisted = options.stored
+  const stocks = options.stored.filter((record) => !indices.has(record.instrument.ticker))
+  const lastRead = lastListingRead(stocks)
+  const absent = stocks
     .filter((record) => !present.has(record.instrument.ticker))
-    .filter((record) => !indices.has(record.instrument.ticker))
-    .map((record) => ({ ...record, status: 'delisted' as const }))
+    .map((record) => (isFirstMiss(record, lastRead) ? record : delist(record)))
 
-  return [...listed, ...delisted, ...indexRecords(options.now)]
+  return [...listed, ...absent, ...indexRecords(options.now)]
+}
+
+/** When the previous successful read was taken: every name it listed carries that instant. */
+function lastListingRead(stocks: readonly InstrumentRecord[]): number | undefined {
+  return stocks.reduce<number | undefined>(
+    (latest, record) =>
+      record.status === 'active' ? Math.max(latest ?? record.fetchedAt, record.fetchedAt) : latest,
+    undefined
+  )
+}
+
+/** The screener leaves a row out now and then, and a name marked delisted stops its bars and
+ *  refuses its price until the next weekly read. A name the previous read still listed keeps its
+ *  record through one miss; a second read without it delists it. */
+function isFirstMiss(record: InstrumentRecord, lastRead: number | undefined): boolean {
+  return record.status === 'active' && record.fetchedAt === lastRead
+}
+
+function delist(record: InstrumentRecord): InstrumentRecord {
+  return { ...record, status: 'delisted' }
 }
 
 function indexRecords(fetchedAt: number): readonly InstrumentRecord[] {

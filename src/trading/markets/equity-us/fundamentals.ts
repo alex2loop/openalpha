@@ -2,8 +2,8 @@ import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { AnnualAccounts } from '@/trading/kernel/market/annual-accounts'
 import { rankWithin } from '@/trading/markets/factor-scoring'
 
-/** Fewer peers than this cannot place a return: a lone name, or Berkshire's two classes with no
- *  listed sector, would read a made-up middle rank, so the return-on-equity rank is absent. */
+/** Fewer peers than this cannot place a return: a lone name would read a made-up middle rank, so the
+ *  return-on-equity rank is absent. */
 const MINIMUM_SECTOR_PEERS = 5
 
 /** What a name's newest filed year says against what the market pays for it. */
@@ -77,11 +77,13 @@ export function rankFundamentals(
     grossProfitability: valuesOf(all, 'grossProfitability'),
   }
   const returnsBySector = Map.groupBy(
-    all.filter((entry) => entry.returnOnEquity !== undefined),
+    all.filter((entry) => entry.returnOnEquity !== undefined && entry.sector !== undefined),
     (entry) => entry.sector
   )
+  // A name with no listed sector has no peers: the sectorless are not a sector of their own.
   const sectorReturns = (sector: string | undefined): number[] => {
-    const peers = valuesOf(returnsBySector.get(sector) ?? [], 'returnOnEquity')
+    const peers =
+      sector === undefined ? [] : valuesOf(returnsBySector.get(sector) ?? [], 'returnOnEquity')
 
     return peers.length < MINIMUM_SECTOR_PEERS ? [] : peers
   }
