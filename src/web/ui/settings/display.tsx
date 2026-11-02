@@ -1,7 +1,9 @@
 import { useMemo } from 'preact/hooks'
 
+import type { MarketWire } from '@/app/server/wire/market'
 import type { StatePayload } from '@/app/server/wire/system'
 import type { MessageKey } from '@/i18n'
+import { homeRegion, knownMarkets } from '@/web/state/market'
 import {
   COLOUR_PAIRS,
   type ColourPair,
@@ -66,6 +68,7 @@ export function DisplaySection({ reopen }: SectionProps) {
     <>
       <VersionRow reopen={reopen} />
       <LanguageRow />
+      <HomeMarketRow />
       <TimeZoneRow />
       <PreferenceRow
         title={tr('ui.office.settings.colours')}
@@ -140,6 +143,54 @@ function LanguageRow() {
         label={title}
         value={draft.value}
         options={LANGUAGES.map((value) => ({ value, label: tr(LANGUAGE_LABELS[value]) }))}
+        onChange={(value) => {
+          draft.value = value
+        }}
+      />
+    </SettingRow>
+  )
+}
+
+/** The regions a home can be: those whose own market writes a morning brief (world gold owns a
+ *  region but is read for reference only). Shown once the markets are read, so the draft starts
+ *  from the region in use. */
+function HomeMarketRow() {
+  const homes = knownMarkets.value.filter((market) => market.ownsRegion && market.hasBrief)
+  const current = homeRegion()
+
+  return current === undefined || homes.length < 2 ? null : (
+    <HomeMarketChoice key={current} homes={homes} current={current} />
+  )
+}
+
+function HomeMarketChoice(props: {
+  readonly homes: readonly MarketWire[]
+  readonly current: string
+}) {
+  const { draft, isChanged, markSaved } = useDraft(props.current)
+  const title = tr('ui.office.settings.homeMarket')
+
+  return (
+    <SettingRow
+      title={title}
+      note={tr('ui.office.settings.homeMarketNote')}
+      timing="restart"
+      isChanged={isChanged}
+      onSave={async () => {
+        await saveConfig(
+          (tree) => ({
+            ...tree,
+            locale: { ...(isTree(tree.locale) ? tree.locale : {}), region: draft.value },
+          }),
+          'homeMarket'
+        )
+        markSaved()
+      }}
+    >
+      <Segmented
+        label={title}
+        value={draft.value}
+        options={props.homes.map((market) => ({ value: market.region, label: market.regionLabel }))}
         onChange={(value) => {
           draft.value = value
         }}

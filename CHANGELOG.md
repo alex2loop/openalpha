@@ -19,6 +19,7 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 ### Changed
 
+- Settings > Display gains a Home market choice (Vietnam or the United States), applied at the next restart; the book keeps its currency. `/setup` now asks which of every tradable market you trade, your home market first, instead of only your home market and crypto.
 - `/overview` with no market named now shows the markets you use (segments switched on, plus any market you hold or watch) instead of every market; `/overview gold` still reads world gold.
 - In Vietnamese the assistant always calls itself "mình"; some replies said "tôi".
 - A book from before a market existed no longer refreshes it: the in-use set reads the resolved profile.

@@ -39,7 +39,6 @@ import { createSuggestCommand } from '@/trading/features/suggestion/command'
 import { suggestionReportDeps } from '@/trading/features/suggestion/report'
 import { createReflectCommand } from '@/trading/features/suggestion/track-record/command'
 import { createThemesCommand } from '@/trading/features/themes/command'
-import { marketRef, portfolioSegment } from '@/trading/kernel/instrument'
 import { SECTION_ICONS } from '@/trading/render/format'
 import { createSetupCommand } from '@/trading/wiring/catalog/setup'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
@@ -126,7 +125,7 @@ export function createTradingCommands(deps: TradingCommandDeps): readonly SlashC
 
   return [
     ...inGroup(BOOK_GROUP, [
-      createSetupCommand(setupHomeOf(deps)),
+      createSetupCommand(setupMarketsOf(deps)),
       ...ledgerWriteCommands(deps),
       ...bookCommands(deps),
       createTransactionsCommand({
@@ -284,13 +283,17 @@ function homeMarketOf(deps: TradingCommandDeps): { homeMarket?: MarketRef } {
   return owner === null ? {} : { homeMarket: owner.manifest.id }
 }
 
-/** A region with no owner keeps the VN question, the only market every build ships. */
-function setupHomeOf(deps: TradingCommandDeps): Parameters<typeof createSetupCommand>[0] {
-  const owner = deps.markets.regionOwner(deps.defaultRegion)
+/** The markets a venue trades, the home region's own first: what `/setup` asks the operator to
+ *  pick from. */
+function setupMarketsOf(deps: TradingCommandDeps): Parameters<typeof createSetupCommand>[0] {
+  const home = deps.markets.regionOwner(deps.defaultRegion)?.manifest.id
+  const held = deps.venues.heldMarkets()
 
-  return owner === null
-    ? { market: marketRef('equity-vn'), segment: portfolioSegment('equity-vn') }
-    : { market: owner.manifest.id, segment: owner.manifest.segment }
+  return deps.markets
+    .list()
+    .filter((market) => held.has(market.manifest.id))
+    .sort((left, right) => Number(right.manifest.id === home) - Number(left.manifest.id === home))
+    .map((market) => ({ market: market.manifest.id, segment: market.manifest.segment }))
 }
 
 /** The market a bare `/screen` reads: the one that speaks for the operator's own region, which is

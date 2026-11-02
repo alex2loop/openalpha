@@ -44,6 +44,7 @@ const RESTART_ROWS = [
   'models',
   'budget',
   'language',
+  'homeMarket',
   'timeZone',
   'raw',
   'credentials',

@@ -4,8 +4,11 @@ import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
 import { renderMarketName } from '@/trading/render/tool-detail'
 
-/** The market the operator's home region trades in: the question and the segment it switches. */
-interface SetupHome {
+// The prompt is the model's input, not a rendered list, so a plain comma join is enough.
+const MARKET_SEPARATOR = ', '
+
+/** A market the operator can trade, as the question names it and the segment it switches. */
+interface SetupMarket {
   readonly market: MarketRef
   readonly segment: PortfolioSegment
 }
@@ -15,8 +18,9 @@ interface SetupHome {
  *
  *  The instruction is rendered here, not by a surface. An `agent` result re-enters the run as a
  *  user turn, so `retryMessage` is the text the model reads — a key would reach it verbatim. The
- *  key stays in `messageKeys` so the locale gate still requires both translations. */
-export function createSetupCommand(home: SetupHome): SlashCommand {
+ *  key stays in `messageKeys` so the locale gate still requires both translations. `markets` puts
+ *  the home market first, then every other one a venue trades. */
+export function createSetupCommand(markets: readonly SetupMarket[]): SlashCommand {
   return {
     name: 'setup',
     description: { kind: 'localized', key: 'slash.tradingSetupHelp' },
@@ -26,8 +30,9 @@ export function createSetupCommand(home: SetupHome): SlashCommand {
       kind: 'agent',
       retryMessage: t(ctx.locale, 'slash.tradingSetupPrompt', {
         brand: BRAND.display,
-        homeMarket: renderMarketName(ctx.locale, home.market),
-        homeSegment: home.segment,
+        markets: markets
+          .map(({ market, segment }) => `${renderMarketName(ctx.locale, market)} (${segment})`)
+          .join(MARKET_SEPARATOR),
       }),
     }),
   }
