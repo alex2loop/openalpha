@@ -6,7 +6,7 @@ import type {
   DetectInstrumentOptions,
   MarketDetection,
   TickerCandidacy,
-} from '@/trading/markets/types'
+} from '@/trading/markets/detection'
 import {
   CRYPTO_MARKET_REF,
   CRYPTO_SYMBOL_RE,
@@ -67,7 +67,11 @@ export async function detectCrypto(
 
   const [first] = matches
 
-  return first ? matched(first) : detectByName(deps, options)
+  if (first !== undefined) {
+    return matched(first)
+  }
+
+  return options.boardOnly === true ? { kind: 'no-match' } : detectByName(deps, options)
 }
 
 /** The board is the top of the market, not the whole of it, and a coin past its window is still one

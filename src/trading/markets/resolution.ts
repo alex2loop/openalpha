@@ -1,9 +1,9 @@
 import type { TtlCache } from '@/core/utils/collections'
 import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
 import type { InstrumentRef, MarketRef, Ticker } from '@/trading/kernel/instrument'
+import type { DetectInstrumentOptions, MarketDetection } from '@/trading/markets/detection'
 import type {
   Market,
-  MarketDetection,
   MarketManifest,
   MarketResolution,
   ResolveMarketOptions,
@@ -22,6 +22,8 @@ const EXPLAINED_MISS_CODES: ReadonlySet<CaveatCode> = new Set([
   'market.ticker-not-active',
   'market.ticker-not-listed',
 ])
+const UNIVERSE_EMPTY = 'market-data.universe-empty'
+const BOARD_ONLY: Pick<DetectInstrumentOptions, 'boardOnly'> = Object.freeze({ boardOnly: true })
 
 export function nothingHeld(): Promise<readonly InstrumentRef[]> {
   return Promise.resolve([])
@@ -270,11 +272,15 @@ async function otherListingCaveats(
   winner: Market,
   options: ResolveMarketOptions
 ): Promise<readonly Caveat[]> {
-  const others = possible.filter((market) => market !== winner)
-  const detections = [
-    ...(await detectEach(others, 'stored', options)),
-    ...(options.detection === 'stored' ? [] : await detectEach(others, 'fetched', options)),
-  ]
+  const others = possible.filter(
+    (market) =>
+      market !== winner &&
+      (options.detection !== 'stored' || market.manifest.detection === 'stored')
+  )
+  // A courtesy note is never worth a per-symbol network lookup on every read.
+  const detections = await Promise.all(
+    others.map((market) => detectSafely(market, options, BOARD_ONLY))
+  )
 
   return matchedDetections(detections).map(
     (entry): Caveat => ({
@@ -332,8 +338,6 @@ function resolvedMarket(matched: MatchedMarket, caveats: readonly Caveat[]): Mar
   }
 }
 
-const UNIVERSE_EMPTY = 'market-data.universe-empty'
-
 /** Every caveat a detector attaches to a miss says it could not check. Over a single match those
  *  codes claim nothing resolved for a ticker that did, and hold the answer out of the resolution
  *  cache, so the markets left unchecked are named instead. */
@@ -369,10 +373,15 @@ function missCaveats(detections: readonly MarketDetectionEntry[]): readonly Cave
 // caveat naming the market. The caller's own abort is rethrown untouched.
 async function detectSafely(
   market: Market,
-  options: ResolveMarketOptions
+  options: ResolveMarketOptions,
+  scope: Pick<DetectInstrumentOptions, 'boardOnly'> = {}
 ): Promise<MarketDetectionEntry> {
   try {
-    const detection = await market.detect({ ticker: options.ticker, signal: options.signal })
+    const detection = await market.detect({
+      ticker: options.ticker,
+      signal: options.signal,
+      ...scope,
+    })
 
     return {
       market,

@@ -1,6 +1,6 @@
 import type { InstrumentMatch, InstrumentSearchRequest, Ticker } from '@/trading/kernel/instrument'
 import type { MarketDeps } from '@/trading/markets/deps'
-import type { MarketDetection, TickerCandidacy } from '@/trading/markets/types'
+import type { MarketDetection, TickerCandidacy } from '@/trading/markets/detection'
 import { ETF_KIND } from '@/trading/kernel/instrument'
 import { US_MARKET_REF } from '@/trading/markets/equity-us/policy'
 

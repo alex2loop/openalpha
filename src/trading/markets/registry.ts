@@ -1,12 +1,7 @@
 import type { MarketRef, PortfolioSegment, Region } from '@/trading/kernel/instrument'
+import type { DetectInstrumentOptions, MarketDetection } from '@/trading/markets/detection'
 import type { HeldInstruments } from '@/trading/markets/resolution'
-import type {
-  DetectInstrumentOptions,
-  Market,
-  MarketDetection,
-  MarketRegistry,
-  MarketResolution,
-} from '@/trading/markets/types'
+import type { Market, MarketRegistry, MarketResolution } from '@/trading/markets/types'
 import { ConfigError } from '@/core/errors'
 import { ttlCache } from '@/core/utils/collections'
 import { nothingHeld, resolveCached } from '@/trading/markets/resolution'
