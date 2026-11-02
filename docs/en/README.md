@@ -1,7 +1,8 @@
 # OpenAlpha docs
 
-> **Vietnamese is the product's default language.** These English pages are the originals; each one
-> has a Vietnamese twin in [`../`](../README.md).
+> **OpenAlpha answers in English unless `[locale] language = "vi"` says otherwise;** `onboard` picks
+> Vietnamese for you when your computer runs in Vietnamese. These English pages are the originals;
+> each one has a Vietnamese twin in [`../`](../README.md).
 >
 > **One word you will see a lot:** *operator* means you - the person who keeps the book, approves
 > orders and answers for every decision. It is also a name in the database, so the pages keep it.

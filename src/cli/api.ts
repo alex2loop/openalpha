@@ -48,6 +48,7 @@ export { offerOnboard } from '@/cli/commands/onboard/onboard'
 export {
   type HomeRegion,
   homeCurrencyOf,
+  homeLocaleOf,
   isHomeRegion,
 } from '@/cli/commands/onboard/settings-step'
 export { isBackgroundLaunch } from '@/cli/daemon-env'

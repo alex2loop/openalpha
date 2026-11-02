@@ -118,7 +118,7 @@ function VersionRow({ reopen }: SectionProps) {
 
 function LanguageRow() {
   const { draft, isChanged, markSaved } = useDraft<Language>(
-    state.value?.locale ?? LANGUAGES[0] ?? 'vi'
+    state.value?.locale ?? LANGUAGES[0] ?? 'en'
   )
   const title = tr('ui.office.settings.language')
 

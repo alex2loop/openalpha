@@ -11,6 +11,7 @@ import {
   askLanguage,
   type HomeRegion,
   homeCurrencyOf,
+  homeRegionOf,
 } from './settings-step'
 
 interface ModelAnswers {
@@ -115,7 +116,7 @@ async function askHomeMarketStep(ctx: AskContext, answers: FirstAnswers): Promis
 }
 
 async function askCurrencyStep(ctx: AskContext, answers: FirstAnswers): Promise<FirstAnswers> {
-  const fallback = homeCurrencyOf(answers.region ?? 'vn')
+  const fallback = homeCurrencyOf(answers.region ?? homeRegionOf(ctx.locale))
 
   return { ...answers, currency: await askCurrency(ctx, answers.currency ?? fallback) }
 }

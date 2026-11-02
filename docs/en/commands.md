@@ -450,7 +450,7 @@ openalpha config edit
   the way git reads it, so it may carry flags or a quoted path
   (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
 
-`onboard` walks you through a first setup: language, home market (Vietnam or the United States: it sets the currency default and, for the United States, asks for an SEC contact email), AI provider and model, an endpoint URL for a
+`onboard` walks you through a first setup: language, home market (Vietnam or the United States, offered to match the language you picked: it sets the currency default and, for the United States, asks for an SEC contact email), AI provider and model, an endpoint URL for a
 provider that needs one, the environment variable that holds your key, a daily spending cap ($2
 unless you change it) and, if you want, a Telegram bot.
 
@@ -475,7 +475,8 @@ start the setup.
 
 `setup write` writes the same starter file for the desktop app and refuses to
 replace an existing config. An optional last word, `vn` or `us`, sets the home market and the
-book's currency as onboarding does; left out, the book starts in Vietnam and VND.
+book's currency as onboarding does, along with the matching reply language (English for `us`);
+left out, the book starts in Vietnam, in VND and Vietnamese.
 
 ```text
 openalpha api token

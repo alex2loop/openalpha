@@ -30,6 +30,13 @@ const HOME_MARKETS = [
   readonly label: string
 }[]
 const VIETNAMESE_LOCALE_RE = /^vi/i
+/** The home market offered first follows the language chosen a step earlier. */
+const LOCALE_HOME_REGIONS = {
+  en: 'us',
+  vi: 'vn',
+} as const satisfies Record<Locale, HomeRegion>
+/** A config that names no region keeps a Vietnam book: trading's own default region. */
+const UNNAMED_HOME_REGION: HomeRegion = 'vn'
 
 /** The shell's own language picks the default, as the installer does. */
 export function shellLocale(): Locale {
@@ -53,6 +60,16 @@ export function isHomeRegion(value: string): value is HomeRegion {
   return HOME_MARKETS.some((market) => market.region === value)
 }
 
+export function homeRegionOf(locale: Locale): HomeRegion {
+  return LOCALE_HOME_REGIONS[locale]
+}
+
+/** The language a starter config is written in for its home market, so a file that names no
+ *  language does not pair a Vietnam book with English replies. */
+export function homeLocaleOf(region: HomeRegion = UNNAMED_HOME_REGION): Locale {
+  return LOCALES.find((locale) => homeRegionOf(locale) === region) ?? LOCALES[0]
+}
+
 export function homeCurrencyOf(region: HomeRegion): string {
   return HOME_MARKETS.find((market) => market.region === region)?.currency ?? CURRENCY_CHOICES[0]
 }
@@ -67,7 +84,7 @@ export async function askHomeMarket(ctx: AskContext, previous?: HomeRegion): Pro
       value: market.region,
     })),
     defaultIndex: Math.max(
-      HOME_MARKETS.findIndex((market) => market.region === previous),
+      HOME_MARKETS.findIndex((market) => market.region === (previous ?? homeRegionOf(ctx.locale))),
       0
     ),
   })

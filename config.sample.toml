@@ -169,7 +169,7 @@ max_daily_usd = 2           # 0 = uncapped
 # ---- Locale -----------------------------------------------------------------
 
 [locale]
-language = "vi"                   # vi | en; every reply, brief and alert uses it
+language = "en"                   # en | vi; every reply, brief and alert uses it (default en)
 # timezone = "UTC"                # IANA tz; defaults to the host zone
 # currency = "VND"                # ISO 4217 operator base currency
 # region = "vn"                   # home market: vn | us (world gold owns global but is reference only). Leads the

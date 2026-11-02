@@ -8,6 +8,7 @@ import { buildProviderCatalog } from '@/app/server/cli/catalog'
 import {
   createCommand,
   homeCurrencyOf,
+  homeLocaleOf,
   isConfigPresent,
   isHomeRegion,
   starterConfigToml,
@@ -21,7 +22,7 @@ const EXIT_REFUSED = 1
 
 /** The app's first run, before any config exists: `setup catalog` lists the providers, `setup write
  *  <provider> <model> [vn|us]` writes the starter config, the optional home market setting the
- *  region and the book's currency as onboarding does. Output is one JSON line. The key
+ *  region and the book's currency as onboarding does, and the language matching that market. Output is one JSON line. The key
  *  never passes through here: the config names its environment variable, and the app hands the
  *  value to the daemon it starts. */
 export const setupCommand: Command = createCommand({
@@ -81,6 +82,7 @@ async function writeStarterConfig(app: CliApp, choice: StarterChoice): Promise<n
 
   const content = starterConfigToml({
     model: { provider, model, ...(subscription ? {} : { apiKeyEnv: keyEnv }) },
+    language: homeLocaleOf(region),
     ...(region === undefined ? {} : { region, currency: homeCurrencyOf(region) }),
   })
 
