@@ -536,8 +536,8 @@ trigger lands at character 240 is, to the model, a skill with no trigger.
 `correlation-analysis`, `crowding-and-unwind`, `crypto-analysis`, `crypto-execution`, `drawdown-response`,
 `exit-management`, `gold-analysis`, `intrinsic-value`, `inversion`, `macro-liquidity-analysis`, `moat-analysis`,
 `portfolio-risk-analysis`, `profit-taking`, `quality-screen`, `recover`, `research-scoping`,
-`technical-analysis`, `track-record-reading`, `vn-daily-buy`, `vn-deep-dive`, `vn-dividend-analysis`,
-`vn-earnings-playbook`, `vn-execution`, `vn-market-rules`, `vn-sector-rotation`, `vn-valuation`.
+`technical-analysis`, `track-record-reading`, `us-execution`, `us-market-rules`, `us-valuation`,
+`vn-daily-buy`, `vn-deep-dive`, `vn-dividend-analysis`, `vn-earnings-playbook`, `vn-execution`, `vn-market-rules`, `vn-sector-rotation`, `vn-valuation`.
 
 Those names are **reserved**. A folder skill that reuses one is rejected, not silently shadowed, so nobody can
 replace `vn-execution` by dropping a folder in.

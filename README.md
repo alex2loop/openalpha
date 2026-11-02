@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Một hội đồng AI tranh luận trước mỗi đề xuất như <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, chạy trên máy bạn và trò chuyện qua Telegram, Zalo như <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
-  OpenAlpha là trợ lý AI đầu tư mã nguồn mở cài trên máy bạn, cho chứng khoán Việt Nam, vàng và crypto: AI phân tích, còn đặt lệnh hay không vẫn do bạn quyết.
+  OpenAlpha là trợ lý AI đầu tư mã nguồn mở cài trên máy bạn, cho chứng khoán Việt Nam và Mỹ, vàng và crypto: AI phân tích, còn đặt lệnh hay không vẫn do bạn quyết.
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@ Bạn hỏi một mã, OpenAlpha trả về một kế hoạch: mua ở đâu, c
 - **Chạy trên máy bạn.** Sổ, cấu hình và khóa API nằm ở máy bạn. AI chỉ thấy tỷ trọng, không bao giờ thấy số dư, giá đã mua hay tổng tài sản.
 - **Bạn duyệt mọi lệnh.** Mặc định chỉ gợi ý. Có khai khóa sàn thì lệnh nào cũng chờ bạn xác nhận.
 - **Một hội đồng AI tranh luận.** Phe mua, phe bán, người tổng hợp, bên giao dịch, quản trị rủi ro và người soát số liệu. Giá và khối lượng do code tính, AI chỉ lo phần *vì sao*.
-- **Bốn thị trường.** Cổ phiếu Việt Nam (sâu nhất, nhờ dữ liệu trong nước), crypto, vàng trong nước, và vàng thế giới để tham chiếu.
+- **Năm thị trường.** Cổ phiếu Việt Nam (sâu nhất, nhờ dữ liệu trong nước), cổ phiếu và quỹ ETF Mỹ, crypto, vàng trong nước, và vàng thế giới để tham chiếu.
 
 Đây là công cụ hỗ trợ phân tích, không phải lời khuyên đầu tư. Đề xuất có thể sai, và mọi quyết định là của bạn.
 
@@ -275,7 +275,7 @@ Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)). Lần đầu 
   New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -OutFile "$HOME\.openalpha\config.toml"
   ```
 
-- **Giao dịch cổ phiếu Mỹ?** Chọn Mỹ khi `onboard` hỏi thị trường bạn giao dịch chính, hoặc dùng [config.minimal.us.toml](config.minimal.us.toml) thay cho tệp ở trên. Bắt đầu từ một thư mục dữ liệu mới: tiền tệ của sổ cố định khi hồ sơ đã lưu.
+- **Giao dịch cổ phiếu Mỹ?** Chọn Mỹ khi `onboard` hỏi thị trường bạn giao dịch chính, hoặc dùng [config.minimal.us.toml](config.minimal.us.toml) thay cho tệp ở trên; tệp này trả lời bằng tiếng Anh, muốn tiếng Việt thì đổi `language` thành `"vi"`. Chỉ tệp này mới thêm `[trading.venues.coinbase]` để Coinbase dẫn đầu báo giá crypto; sau `onboard` bạn tự thêm ([Giao dịch](docs/giao-dich.md#cổ-phiếu-mỹ)). Bắt đầu từ một thư mục dữ liệu mới: tiền tệ của sổ cố định khi hồ sơ đã lưu.
 - **Đổi mô hình AI:** chạy `openalpha onboard` rồi chọn "Mô hình AI". `openalpha provider list` liệt kê hơn 70 nhà cung cấp, `openalpha provider models` cho biết các mô hình và giá.
 - **Thêm mô hình dự phòng:** sửa `[[models]]` trong `config.toml`. Mục đầu là mô hình chính; mục sau chỉ được dùng khi mục trước lỗi hoặc treo:
 
@@ -403,7 +403,7 @@ reward_risk = 3            # mục tiêu xa gấp 3 lần khoảng lỗ: lỗ 8%
 ### Thị trường và dữ liệu
 
 <p align="center">
-  <img src="assets/readme/markets.vi.png" alt="Một trợ lý, bốn thị trường: cổ phiếu Việt Nam, tiền mã hóa, vàng thế giới, vàng trong nước" width="100%" />
+  <img src="assets/readme/markets.vi.png" alt="Một trợ lý, năm thị trường: cổ phiếu Việt Nam, cổ phiếu và quỹ ETF Mỹ, tiền mã hóa, vàng thế giới, vàng trong nước" width="100%" />
 </p>
 
 | Thị trường | Mã thị trường | Có gì |

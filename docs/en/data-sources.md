@@ -190,7 +190,7 @@ Every provider is paced to a requests-per-minute rate. That rate is either its p
 |---|---|
 | 600 | `binance`, `binance-futures`, `bybit`, `okx`, `mexc` |
 | 300 | `cafef`, `vndirect` |
-| 240 | `sec`, `sec-data` |
+| 200 | `sec`, `sec-data` |
 | 120 | `fred`, `nasdaq`, `vietcap-statements` |
 | 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-mkw`, `yahoo` |
 | 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps` |

@@ -1,6 +1,6 @@
 ---
 name: us-market-rules
-description: The mechanical rules of the US stock market that decide whether an order is possible and when proceeds are usable: sessions, ticks, settlement, pauses. Use before any US order, or when a fill looks impossible.
+description: US market rules that decide whether an order is possible and when proceeds are usable: sessions, ticks, settlement, pauses. Use before any US order, or when a fill looks impossible.
 metadata:
   version: "1.0.0"
 ---

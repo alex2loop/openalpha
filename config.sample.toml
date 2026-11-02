@@ -283,7 +283,7 @@ language = "vi"                   # vi | en; every reply, brief and alert uses i
 
 # A morning brief that still cannot be delivered after a few tries is skipped for
 # that day, with a notice; tomorrow's goes out as usual. Only /brief disable stops it.
-# The brief opens with a market story and a check of earlier ones; it calls no model and needs no key.
+# The brief opens with a market story (Vietnam home only) and a check of earlier ones; it calls no model and needs no key.
 # [trading.briefs]
 # send_time = "08:15"                # morning brief delivery (HH:MM, home market's time zone, before the open)
 

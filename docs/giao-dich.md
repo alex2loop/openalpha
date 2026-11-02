@@ -40,7 +40,7 @@ Hai thị trường dùng chung khu vực `vn`, nên một trong hai phải đ�
 
 ### Cổ phiếu Mỹ
 
-Đặt `[locale] region = "us"` và `currency = "USD"`, hoặc chọn Mỹ khi `onboard` hỏi bạn giao dịch chủ yếu ở thị trường nào, rồi bắt đầu từ một thư mục dữ liệu mới: tiền tệ của sổ bị khóa ngay khi hồ sơ đầu tiên được lưu. Thị trường chính khi đó sàng lọc, chấm điểm, tranh luận và tính khối lượng cho cổ phiếu và quỹ ETF Mỹ, còn crypto được định giá qua Coinbase.
+Đặt `[locale] region = "us"` và `currency = "USD"`, hoặc chọn Mỹ khi `onboard` hỏi bạn giao dịch chủ yếu ở thị trường nào, rồi bắt đầu từ một thư mục dữ liệu mới: tiền tệ của sổ bị khóa ngay khi hồ sơ đầu tiên được lưu. Thị trường chính khi đó sàng lọc, chấm điểm, tranh luận và tính khối lượng cho cổ phiếu và quỹ ETF Mỹ. `onboard` chỉ ghi khu vực và tiền tệ; Coinbase chỉ dẫn đầu báo giá crypto khi bảng sàn nêu tên nó, như [`config.minimal.us.toml`](../config.minimal.us.toml) đã làm (xem "Crypto qua Coinbase" bên dưới).
 
 - **Sổ nằm ở đâu.** Cổ phiếu Mỹ nằm ở sàn có sẵn `us-broker`, không phí, và bạn tự ghi lệnh đã khớp: `/record buy us-broker equity-us:AAPL 10 214.13 USD`. Muốn dùng tên và phí của công ty chứng khoán riêng, thêm `[trading.venues.<tên>]` với `default_for = ["equity-us"]` và `fees`.
 - **Bán trong ngày.** Bán cổ phiếu Mỹ về tiền sau một ngày làm việc, nhưng tài khoản tiền mặt được bán cổ phiếu vừa mua cùng ngày, nên mua và bán trong một ngày đều ghi được.
@@ -49,7 +49,7 @@ Hai thị trường dùng chung khu vực `vn`, nên một trong hai phải đ�
 - **Chấm điểm khi thiếu SEC.** Đà giá và biến động chỉ cần giá. Giá trị và chất lượng lấy từ báo cáo tài chính của SEC, cần email liên hệ trong `SEC_CONTACT_EMAIL` (đặt bằng `onboard` hoặc `key set SEC_CONTACT_EMAIL`). Thiếu email thì giá trị và chất lượng ghi là thiếu dữ liệu, `/refresh` báo báo cáo tài chính chưa có nguồn, bảng nói rõ độ phủ chỉ một phần, và mã vẫn được xếp hạng bằng nửa còn lại. Chất lượng là trung bình của hai thứ hạng: lợi nhuận gộp trên tài sản so với cả bảng, và ROE so với các mã cùng ngành niêm yết, để đòn bẩy của ngân hàng không bị đọc thành chất lượng. Ngân hàng và phần lớn doanh nghiệp không ghi lợi nhuận gộp, nên với họ chất lượng chỉ là thứ hạng ROE. Doanh nghiệp nước ngoài (ASML, Toyota, TD Bank) nộp báo cáo theo chuẩn quốc tế hoặc bằng tiền nước họ, nên báo cáo được đọc từ hồ sơ của chính họ rồi quy ra đô la theo tỷ giá hôm nay. Số ít không có hồ sơ dạng dữ liệu thì chỉ được chấm bằng giá.
 - **Vừa công bố gần đây.** Công bố kết quả kinh doanh (8-K mục 2.02) và giao dịch mua trên thị trường của người nội bộ (Form 4) trong 90 ngày gần nhất vào phần tranh luận dưới tiêu đề riêng, tách khỏi các sự kiện sắp tới.
 - **Crypto qua Coinbase.** Với người dùng ở Mỹ, `[trading.venues.coinbase] default_for = ["crypto"]` đưa Coinbase lên đầu khi báo giá crypto. Coinbase báo giá bằng đô la còn sổ tính bằng USDT, nên mọi giá được chia cho giá đô la của USDT; ngày 2026-10-20 con số này là 0,99883 và giá BTC sau quy đổi lệch Binance 0,009%. Nếu ký hiệu của một đồng coin trùng với mã niêm yết ở Mỹ (SOL, LINK), `/price` và `/suggest` đọc đồng coin khi bạn chỉ nắm giữ hoặc theo dõi đồng coin, còn lại thì đọc cổ phiếu; cả hai trường hợp đều báo rằng bên kia cũng tồn tại, và `crypto:SOL` hay `equity-us:SOL` đọc đúng bên bạn ghi. `/record` và `/update` không bao giờ đoán: ký hiệu có ở cả hai thị trường thì phải ghi rõ thị trường, hoặc nêu một sàn chỉ giữ một trong hai.
-- **Bản tin sáng.** Bản tin sáng cho thị trường chính ở Mỹ được gửi mặc định lúc 08:15 giờ New York. Bản tin đọc khối thị trường Mỹ, khối crypto, sổ và các đề xuất của bạn, kèm danh sách "Vừa công bố gần đây" dưới khối Mỹ: kết quả kinh doanh và giao dịch mua của người nội bộ trong năm phiên gần nhất, cùng ngày giao dịch không hưởng cổ tức trong mười phiên tới, của các mã bạn nắm giữ hoặc theo dõi. Bản tin không có câu chuyện thị trường, vì câu chuyện chỉ đọc bảng giá Việt Nam.
+- **Bản tin sáng.** Bản tin sáng cho thị trường chính ở Mỹ được gửi mặc định lúc 08:15 giờ New York. Bản tin đọc khối thị trường Mỹ, khối crypto, sổ và các đề xuất của bạn, kèm danh sách "Hồ sơ công bố và ngày giao dịch không hưởng cổ tức" dưới khối Mỹ: kết quả kinh doanh và giao dịch mua của người nội bộ trong năm phiên gần nhất, cùng ngày giao dịch không hưởng cổ tức trong mười phiên tới, của các mã bạn nắm giữ hoặc theo dõi. Chưa đặt `SEC_CONTACT_EMAIL` thì phần hồ sơ công bố tắt, và danh sách ghi một dòng nhắc cách bật thay vì lặng lẽ để trống. Bản tin không có câu chuyện thị trường, vì câu chuyện chỉ đọc bảng giá Việt Nam.
 
 ### Nguồn dữ liệu
 
@@ -676,7 +676,7 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` ở mỗi
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
-Bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
+Khi thị trường chính là Việt Nam, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
 cùng phần nhìn lại các câu chuyện trước.
 
 - **Phần nhìn lại** đối chiếu các điều kiện theo dõi của một câu chuyện đã kể ở phiên trước với số liệu
@@ -975,7 +975,7 @@ Refresh phủ mọi thị trường bạn còn dùng. Một thị trường đư
 - nhóm của nó đang bật trong hồ sơ; hoặc
 - bạn đang nắm một mã ở đó, theo dõi một mã, chờ một đề xuất được chấm, hoặc có bản tin lên lịch dựng trên đó.
 
-Một nhóm đã tắt chỉ bị bỏ khi không còn gì trong số đó cần nó, nên cắt lỗ của một khoản đang nắm không bao giờ bị bỏ mặc không có giá. Chưa có hồ sơ thì mọi thị trường đều được làm mới. Không đọc được danh sách đó thì làm mới tất cả. Bản tin sáng mô tả đúng danh sách đó, và nêu tên một thị trường trên `/refresh` thì thị trường đó vẫn được làm mới.
+Một nhóm đã tắt chỉ bị bỏ khi không còn gì trong số đó cần nó, nên cắt lỗ của một khoản đang nắm không bao giờ bị bỏ mặc không có giá. Chưa lưu hồ sơ nào thì hồ sơ mặc định được tạo sẵn quyết định, nên bản cài mới chỉ làm mới thị trường chính của bạn và crypto, không phải mọi thị trường. Không đọc được danh sách đó thì làm mới tất cả. Bản tin sáng mô tả đúng danh sách đó, và nêu tên một thị trường trên `/refresh` thì thị trường đó vẫn được làm mới.
 
 Các thị trường được làm mới cùng lúc, không lần lượt. Chúng gần như không dùng chung nguồn, bộ điều tốc kiểm soát vài nguồn ít ỏi dùng chung, và bắt thị trường này chờ thị trường kia chỉ cộng dồn thời gian chờ của các máy chủ không liên quan.
 

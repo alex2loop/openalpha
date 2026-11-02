@@ -1,6 +1,6 @@
 ---
 name: us-valuation
-description: How to judge whether a US company is cheap or expensive and whether its profits are real: earnings yield, book-to-market, gross profitability, and the per-share distortions from buybacks and stock pay. Use when forming the valuation view on a US stock.
+description: Judges whether a US company is cheap or expensive and whether its profits are real: earnings yield, book-to-market, gross profitability, buyback distortions. Use for the valuation view on a US stock.
 metadata:
   version: "1.0.0"
 ---

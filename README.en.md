@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>A council of AI analysts that argues before every call, like <a href="https://github.com/TauricResearch/TradingAgents">TradingAgents</a>, running on your machine and chatting over Telegram and Zalo, like <a href="https://github.com/openclaw/openclaw">OpenClaw</a>.</strong><br/>
-  Meet OpenAlpha, an open-source AI investment assistant you install on your own computer, for Vietnamese stocks, gold and crypto: the AI does the analysis, and placing the order is still your call.
+  Meet OpenAlpha, an open-source AI investment assistant you install on your own computer, for Vietnamese and US stocks, gold and crypto: the AI does the analysis, and placing the order is still your call.
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@ You ask about a name, and OpenAlpha gives you a plan back: where to buy, where t
 - **Runs on your machine.** Your book, config and API keys stay local. The AI sees weights only, never a balance, a price paid or your total assets.
 - **You approve every order.** It suggests by default. With exchange keys set, every order waits for your confirmation.
 - **An AI council debates.** Bull, bear, a synthesizer, a trader, a risk analyst and a fact-checker. Code computes prices and size; the AI handles the *why*.
-- **Four markets.** Vietnamese equities (the deepest, with local data sources), crypto, Vietnamese gold, and world gold for reference.
+- **Five markets.** Vietnamese equities (the deepest, with local data sources), US stocks and ETFs, crypto, Vietnamese gold, and world gold for reference.
 
 It is an analysis aid, not investment advice. Suggestions can be wrong, and every decision is yours.
 
@@ -275,7 +275,7 @@ Connect Telegram or Zalo ([channels guide](docs/en/channels.md)). The first time
   New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -OutFile "$HOME\.openalpha\config.toml"
   ```
 
-- **Trading US stocks?** Pick the United States when `onboard` asks which market you mainly trade, or take [config.minimal.us.toml](config.minimal.us.toml) in place of the file above. Start from a fresh data directory: the currency of the book is fixed once your profile is saved.
+- **Trading US stocks?** Pick the United States when `onboard` asks which market you mainly trade, or take [config.minimal.us.toml](config.minimal.us.toml) in place of the file above. Only the file adds `[trading.venues.coinbase]`, which makes Coinbase lead crypto quotes; after `onboard` add it yourself ([Trading](docs/en/trading.md#us-stocks)). Start from a fresh data directory: the currency of the book is fixed once your profile is saved.
 - **Change the AI model:** run `openalpha onboard` and pick "AI model". `openalpha provider list` lists over 70 providers; `openalpha provider models` shows models and prices.
 - **Add a fallback model:** edit `[[models]]` in `config.toml`. The first entry is the main model; a later one is used only when the one before it fails or hangs:
 
@@ -403,7 +403,7 @@ reward_risk = 3            # target 3x the risk: an 8% stop means a target near 
 ### Markets and data
 
 <p align="center">
-  <img src="assets/readme/markets.en.png" alt="One assistant, four markets: VN equities, crypto, world gold, VN gold" width="100%" />
+  <img src="assets/readme/markets.en.png" alt="One assistant, five markets: VN equities, US stocks and ETFs, crypto, world gold, VN gold" width="100%" />
 </p>
 
 | Market | Market id | What it brings |

@@ -11,20 +11,20 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 ### Added
 
-- With a US home, the office page shows Lower Manhattan instead of Ho Chi Minh City: Broadway with its bike lane and yellow cabs, Bowling Green, a stepped glass tower carrying the board, a street food cart, and the Fourth of July, Thanksgiving and Christmas on the street. Inputs suggest a ticker from your own market (AAPL rather than FPT).
+- With a US home, the office page shows Lower Manhattan instead of Ho Chi Minh City: Broadway with its bike lane and yellow cabs, Bowling Green, a stepped glass tower carrying the board, a street food cart, and the Fourth of July, Thanksgiving and Christmas on the street. Inputs suggest a ticker from your own market (AAPL rather than FPT), the first-agent templates offer US dividends and tech instead of Vietnamese dividends and banks, and the weather follows the city as soon as the home changes.
 - US stocks and ETFs as a home market: `[locale] region = "us"` (or the new onboarding question) screens the 500 largest US companies and a fund board, scores them on twelve-month momentum, volatility and, with an SEC contact email, value and quality, and sizes them in dollars at the built-in `us-broker` venue. A leveraged or inverse fund is never suggested for purchase.
-- The morning brief for a US home, sent at 08:15 New York time: the US and crypto blocks, your suggestions, and a "Recently filed" list of earnings releases, insider purchases and coming ex-dividend dates for the names you hold or watch. Market warm-up now runs 90 minutes before each open, so Vietnam's moves from 08:00 to 07:30.
+- The morning brief for a US home, sent at 08:15 New York time: the US and crypto blocks, your suggestions, and a "Filings and ex-dividend dates" list of earnings releases, insider purchases and coming ex-dividend dates for the names you hold or watch. Without an SEC contact email the list says filings are off and how to turn them on. Market warm-up now runs 90 minutes before each open, so Vietnam's moves from 08:00 to 07:30.
 - In `/price` and `/suggest`, a bare symbol that a stock and a coin share (LINK, ATOM) reads the side you already hold or watch and says the other one exists; `/record` and `/update` still ask which market you mean.
-- Data from Nasdaq (listings, quotes, history, dividends) and SEC (annual accounts, earnings releases, insider purchases), the ten-year less three-month yield spread in the US macro composite, and Coinbase prices for crypto, converted to USDT.
+- Data from Nasdaq (listings, quotes, history, dividends) and SEC (annual accounts, earnings releases, insider purchases), the ten-year less three-month yield spread in the US macro composite, and Coinbase prices for crypto, converted to USDT. SEC calls are paced to stay under its limit of ten requests a second, and US filing and dividend events read in your language on the ticker page.
 
 ### Changed
 
 - Settings > Display gains a Home market choice (Vietnam or the United States), applied at the next restart; the book keeps its currency. `/setup` now asks which of every tradable market you trade, your home market first, instead of only your home market and crypto.
-- `/overview` with no market named now shows the markets you use (segments switched on, plus any market you hold or watch) instead of every market; `/overview gold` still reads world gold.
+- `/overview` with no market named now shows the markets you use (segments switched on, plus any market you hold or watch) instead of every market, and falls back to every market when that list cannot be read or is empty; `/overview gold` still reads world gold.
 - In Vietnamese the assistant always calls itself "mình"; some replies said "tôi".
 - A book from before a market existed no longer refreshes it: the in-use set reads the resolved profile.
 - Tool, skill and usage wording no longer assumes a Vietnamese book.
-- On a fresh Vietnam install, Vietnamese gold (`gold-vn`) now starts switched off until you enable it with `/profile enable`; world gold stays off, as it is read for reference only.
+- With no saved profile, the refresh covers only the markets the seeded profile switches on (your home market and crypto), not every market. Vietnamese gold (`gold-vn`) stays out until you enable it with `/profile enable`, and world gold stays out, as it is read for reference only.
 
 ### Fixes
 
@@ -32,7 +32,7 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 - In the app, US stocks get their own colour in the portfolio bars and a short name on the lobby agenda, and a class-share ticker such as BRK.B in a reply links to its page.
 - The desktop app's first run (`setup write`) no longer refuses every config once the model's key is set.
 - Settings in the app save again while the model's key is missing or was just saved and waits for a restart. Before, every row was refused, and switching provider took two restarts.
-- Switching provider in the app's model chain now starts from that provider's default model instead of keeping the old provider's model name, which the new one would refuse. A provider with no key saved yet gets a line and an "Add the key" button, and Test the connection waits for the restart instead of testing the models still running.
+- Switching provider in the app's model chain now starts from that provider's default model instead of keeping the old provider's model name, which the new one would refuse. A provider with no key saved yet gets a line and an "Add the key" button, and Test the connection waits for the restart instead of testing the models still running. The model chain still opens when the key list cannot be read.
 
 ## [1.2.2] - 2026-10-30
 

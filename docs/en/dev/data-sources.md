@@ -224,7 +224,7 @@ provider that cannot be reached is a composition bug, not a silent no-op.
 `SOURCE_ROUTES` (`sources/routes.ts`) is a table of `kind -> scope -> ordered source ids`. The table in reading order per market is
 on the [user page](../data-sources.md#routing). Scope resolves in this order, first hit wins:
 
-1. `context.market` (`equity-vn`, `crypto`, `gold`, `gold-vn`)
+1. `context.market` (`equity-vn`, `equity-us`, `crypto`, `gold`, `gold-vn`)
 2. `context.region` (`us`, `vn`) - for the cross-market kinds
 3. `'*'` (`ANY_SCOPE`) - where the kind has no owning scope at all (`fx`, the macro news tape)
 
@@ -429,7 +429,7 @@ One request, in order:
 3. **Inject the credential.** The request declares placement only; the transport reads the resolved secret. Where the secret may
    travel: [Security invariants](#security-invariants).
 4. **Pace.** A token bucket per provider that declared a limit, refilling continuously so the wait is computable without
-   polling. The bucket holds a quarter of the minute's budget (`BURST_FRACTION`, at least one token): a cold process spending
+   polling. The bucket holds a quarter of the minute's budget (`BURST_FRACTION`, at least one token, or the provider's own `SOURCE_BURST_LIMITS` entry when that is smaller): a cold process spending
    the whole minute at once is refused by a provider that meters a shorter window. Sustained throughput is still the declared
    rate. Pacing happens *before* the call rather than recovering after a 429: without it a wide watchlist trips the breaker and
    loses the provider for a cooldown. Every retry takes its own token, since a retry is another request the provider serves. A call whose budget runs out
@@ -479,7 +479,7 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
 - `cafef-statements` 60: publishes none; a page of about 33 KB, asked only for a name whose newest quarter lacks cash flow.
 - `vietcap-statements` 120: publishes none; a name costs three requests (four for a bank) and a refresh asks for about 120 names
   only when their reports are due.
-- `nasdaq` 120: publishes none; a full sweep of the US board ran at about that rate without a refusal. `sec` and `sec-data` 240.
+- `nasdaq` 120: publishes none; a full sweep of the US board ran at about that rate without a refusal. `sec` and `sec-data` 200: SEC allows 10 requests a second per address across both hosts and blocks the address for ten minutes past it. Each bucket holds one token (`SOURCE_BURST_LIMITS`, instead of the default quarter-minute burst), so any one second asks at most 1 + 200/60 of each host, under 9 together.
 - 60: `coinpaprika` publishes 10/s and 20,000/month; `coinlore` and `treasury` publish none (sweep-safe rate); `entrade`, `kbsec`,
   `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per sweep; `rss`
   is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo` serves gold `quote`/`bars`
@@ -713,7 +713,7 @@ None of the rules is registration order:
 
 | The caller gave | Resolution | Owner |
 |---|---|---|
-| a bare ticker | `resolveInstrument` qualifies it through the registry; an unknown or ambiguous name becomes `market.ticker-unknown` / `market.ticker-ambiguous`, never a fallback market | `features/market-data/resolve.ts` |
+| a bare ticker | `resolveInstrument` qualifies it through the registry; an unknown or ambiguous name becomes `market.ticker-unknown` / `market.ticker-ambiguous`, never a fallback market. One exception: on a read the operator typed (`/price`, `/suggest`, `market_price`), a symbol two markets list settles on the side they hold or watch, and the answer names the other market (`market.ticker-also-listed`); `/record` and `/update` never take it | `features/market-data/resolve.ts` |
 | a market ref | `requireMarket`, which throws naming every registered id | `features/market-data/market-data-run.ts` |
 | nothing, on a market-scoped command | the owner of `[locale] region`: `markets.regionOwner(config.defaultRegion)` | `markets/registry.ts` |
 | a region, for a regional read | `markets.regionOwner(region)`, whose macro capability publishes the region's composite | `markets/registry.ts` |

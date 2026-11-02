@@ -40,7 +40,7 @@ Two markets share region `vn`, so one of them has to define "a Vietnamese tradin
 
 ### US stocks
 
-Set `[locale] region = "us"` and `currency = "USD"`, or pick the United States when `onboard` asks which market you mainly trade, and start from a fresh data directory: the book's currency is fixed once the first profile is saved. The home market then screens, scores, debates and sizes US stocks and ETFs, and crypto is priced through Coinbase.
+Set `[locale] region = "us"` and `currency = "USD"`, or pick the United States when `onboard` asks which market you mainly trade, and start from a fresh data directory: the book's currency is fixed once the first profile is saved. The home market then screens, scores, debates and sizes US stocks and ETFs. `onboard` writes only the region and currency; Coinbase leads crypto quotes only when the venue table names it, as [`config.minimal.us.toml`](../../config.minimal.us.toml) does (see "Crypto through Coinbase" below).
 
 - **Where the book sits.** US shares are held at the built-in `us-broker` venue, with no fees, and you record your fills by hand: `/record buy us-broker equity-us:AAPL 10 214.13 USD`. To use your own broker's name and fees, add `[trading.venues.<name>]` with `default_for = ["equity-us"]` and its `fees`.
 - **Same-day sells.** A US sale settles cash in one business day, but a cash account may sell shares it bought the same day, so a buy and a sale on one day both book.
@@ -49,7 +49,7 @@ Set `[locale] region = "us"` and `currency = "USD"`, or pick the United States w
 - **Scoring without SEC.** Momentum and volatility read prices alone. Value and quality come from SEC accounts, which need a contact email in `SEC_CONTACT_EMAIL` (set by `onboard` or `key set SEC_CONTACT_EMAIL`). Without it value and quality read as unavailable, `/refresh` says the financial reports have no source set up, the board says its coverage is partial, and names still rate on the other half. Quality is the mean of two ranks: gross profit over assets against the whole board, and return on equity against the name's own listing sector, so a bank's leverage does not read as quality. Banks and most filers tag no gross profit, so for them quality is the return-on-equity rank alone. A foreign company (ASML, Toyota, TD Bank) files under international standards or in its home currency, so its accounts are read from its own filings and converted to dollars at today's rate. The few with no machine-readable filing rate on prices alone.
 - **Recently filed.** Earnings releases (8-K item 2.02) and open-market insider purchases (Form 4) from the last 90 days reach the debate under their own heading, apart from the dated events ahead.
 - **Crypto through Coinbase.** For a US operator, `[trading.venues.coinbase] default_for = ["crypto"]` leads the crypto quote with Coinbase. Coinbase quotes dollars and the book is in USDT, so every price is divided by USDT's own dollar price; on 2026-10-20 that was 0.99883, and the converted BTC price sat 0.009% from Binance's. If a coin's symbol is also a US listing (SOL, LINK), `/price` and `/suggest` read the coin when you hold or watch only the coin, and otherwise the stock; either way they say the other exists, and `crypto:SOL` or `equity-us:SOL` reads the side you name. `/record` and `/update` never guess: a symbol both markets list needs its market or a venue that holds only one of them.
-- **The brief.** The morning brief for a US home is sent at 08:15 New York time by default. It reads the US block, the crypto block, your book and your suggestions, plus a "Recently filed" list under the US block: the earnings releases and insider purchases of the last five sessions, and the ex-dividend dates in the next ten, for the names you hold or watch. It carries no market story, which reads Vietnam's tape only.
+- **The brief.** The morning brief for a US home is sent at 08:15 New York time by default. It reads the US block, the crypto block, your book and your suggestions, plus a "Filings and ex-dividend dates" list under the US block: the earnings releases and insider purchases of the last five sessions, and the ex-dividend dates in the next ten, for the names you hold or watch. Without `SEC_CONTACT_EMAIL` the filings half is off, and the list says so in one line, with how to turn it on, instead of staying quietly empty. It carries no market story, which reads Vietnam's tape only.
 
 ### Data sources
 
@@ -672,7 +672,7 @@ The screener band is `average daily range x breakout_range` on either side of th
 
 The two are kept apart because only one of them is a problem.
 
-The brief opens with one **market story**, found by code with no model call and no cost, and a look
+With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.
 
 - **The look back** checks the watch conditions of a story told on an earlier session against today's
@@ -966,7 +966,7 @@ Refresh covers every market you still use. A market counts as in use when:
 - its segment is switched on in your profile; or
 - you hold a name there, watch one, wait on a call to be scored, or get a scheduled brief built on it.
 
-A switched-off segment drops out only when none of those still needs it, so a holding's stop is never left without prices. With no profile yet, every market refreshes. If that list cannot be read, everything refreshes. The morning brief describes the same list, and naming a market on `/refresh` refreshes it either way.
+A switched-off segment drops out only when none of those still needs it, so a holding's stop is never left without prices. Until a profile is saved, the seeded default profile decides, so a fresh install refreshes only your home market and crypto, not every market. If that list cannot be read, everything refreshes. The morning brief describes the same list, and naming a market on `/refresh` refreshes it either way.
 
 Markets refresh at the same time, not one after another. They share almost no sources, the pacer controls the few they do share, and making each wait for the previous one would only add up the waiting time of unrelated hosts.
 

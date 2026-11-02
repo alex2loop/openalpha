@@ -100,7 +100,7 @@ Boundary rules (hard):
 Enforced by `scripts/check-registry-isolation.ts`.
 
 Layout:
-- One folder per market, named by its `MarketRef`: `markets/{gold,gold-vn,equity-vn,crypto}/`.
+- One folder per market, named by its `MarketRef`: `markets/{gold,gold-vn,equity-vn,equity-us,crypto}/`.
 - `market.ts` exports `create*Market`; it is the only file code outside `markets/` may import.
 - `api.ts` is the only file a sibling market may import, and exists only where one market derives from another (`gold-vn` prices a premium over `gold`).
 - Helpers all markets share live at the `markets/` root (`factor-scoring`, `levels`, `calendar`, `timeseries`); family-specific code stays in its market, published via its `api.ts`.
@@ -115,7 +115,7 @@ Resolution and regions:
 Calendars:
 - A market's weekend is what its tape publishes, verified, not assumed from the asset class (VN gold quotes Saturdays). `isSettled` requires `isTradingDay`, so a wrong weekend silently drops days.
 - Session-counted tolerances (`WORLD_CLOSE_LAG_SESSIONS`, `FX_LAG_SESSIONS`) read the same calendar; changing the weekend rule re-derives them in the same commit.
-- Exchange closures are calendar: `CalendarPolicy.holidays` is a function from a year to that year's closures (`vnClosuresOf`, `markets/equity-vn/calendar/`: Labor Code art. 112 plus the lunar conversion, with announced swap days listed beside the rules). A holiday is never a settled session.
+- Exchange closures are calendar: `CalendarPolicy.holidays` is a function from a year to that year's closures (`vnClosuresOf`, `markets/equity-vn/calendar/`: Labor Code art. 112 plus the lunar conversion, with announced swap days listed beside the rules). A holiday is never a settled session. `CalendarPolicy.earlyCloses` is the same shape for the days a session ends early (`usEarlyClosesOf`, `markets/equity-us/calendar/`, 13:00 local); a day the holidays close stays closed.
 - Operators layer `[trading.markets.<id>] holidays` (adds a closure) and `open_days` (reopens one the rules close) over the rules; the operator wins; boot refuses either on the market's own weekend. There is no table to run out.
 - Another market's bars are counted on that market's calendar, never the caller's.
 
@@ -136,7 +136,7 @@ Strategy versions:
 
 Anything not listed is derived or gate-checked.
 
-1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>])`; a market with exchange closures sets `CalendarPolicy.holidays` to a year-to-closures function kept in `markets/<ref>/calendar/`.
+1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>])`; a market with exchange closures sets `CalendarPolicy.holidays` (and `earlyCloses` for half days) to year-to-days functions kept in `markets/<ref>/calendar/`.
 2. Factor id tuple and a `FactorId` union arm in `trading/kernel/factor.ts` (`manifest.factorIds` is typed against it). The central edit is deliberate: a market with new factor ids ships in-tree, never as a plugin.
 3. One `markets.register(...)` line in `trading/wiring/composition/registration.ts`.
 4. Providers under `sources/`, routed in `SOURCE_ROUTES`, registered in `trading/wiring/composition/source-registry.ts`.
