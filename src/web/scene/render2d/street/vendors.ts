@@ -9,12 +9,13 @@ import {
   paintBanhMiCart,
   paintCartWord,
   paintCooler,
+  paintFoodCart,
   paintPhoCart,
 } from '@/web/scene/render2d/street/vendor-carts'
 import { paintCartCover } from '@/web/scene/render2d/street/weather'
 import {
-  BANH_MI_CART,
   isOpen,
+  PAVEMENT_CART,
   STOOL_ROW_Y,
   STOOL_ROWS,
   siteModeOf,
@@ -51,12 +52,12 @@ const TONES = Object.freeze({
 const GLOW = Object.freeze({ rgb: '255,214,130', from: 0.25, alpha: 0.5, rx: 12, ry: 3.4 })
 const TEA_GLOW = Object.freeze({ rx: 9, ry: 2.6 })
 // The cooks' and sellers' skin.
-const SKINS = Object.freeze({ pho: '#D9AE86', banhMi: '#D9AE86' })
+const SKINS = Object.freeze({ pho: '#D9AE86', banhMi: '#D9AE86', foodCart: '#C99A78' })
 // Steam: three puffs climbing over the pot, each this high and this faint at most.
 const STEAM = Object.freeze({ puffs: 3, rise: 3.4, alpha: 0.34, r: 0.5, grow: 0.6, sway: 0.55 })
 
-/** The pavement vendors: the phở and evening stools, the iced tea corner and the bánh mì cart by
- *  their hours on the static layer, the steam over the phở pot on the moving one. */
+/** The pavement vendors: the phở and evening stools, the iced tea corner, the bánh mì cart and the
+ *  food cart by their hours on the static layer, the steam over the phở pot on the moving one. */
 export const VENDORS_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
     const scene = citySceneOf(g, pack, minute)
@@ -67,7 +68,11 @@ export const VENDORS_PART: PaintPart = {
     paintTeaCorner(scene, { pack, carts })
 
     if (isOpen(pack, 'banhMi', minute.clock)) {
-      paintBanhMiCart(carts, { ...BANH_MI_CART, skin: SKINS.banhMi })
+      paintBanhMiCart(carts, { ...PAVEMENT_CART, skin: SKINS.banhMi })
+    }
+
+    if (isOpen(pack, 'foodCart', minute.clock)) {
+      paintFoodCart(carts, { ...PAVEMENT_CART, skin: SKINS.foodCart })
     }
   },
   paintMoving: (g, view) => paintSteam(g, view.vendors),

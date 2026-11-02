@@ -1,5 +1,5 @@
 import type { CityScene } from '@/web/scene/render2d/street/city-blocks'
-import type { RegionPack } from '@/web/scene/world/regions'
+import type { RegionPack, TowerLandmark } from '@/web/scene/world/regions'
 import { paintCityBack } from '@/web/scene/render2d/street/city-back'
 import { paintCrown, paintPodium } from '@/web/scene/render2d/street/landmark-parts'
 import {
@@ -31,10 +31,19 @@ const MULLION_LED_EVERY = 4
 /** The city behind the street: the city's back rows while the camera shows the sky above the
  *  framed view, the landmark tower in front of them and its podium at its foot, painted right
  *  after the sky and behind every building row. The tower is drawn in its design frame, scaled
- *  about its foot, moved to the pack's `landmark.foot` and hazed by its distance. */
+ *  about its foot, moved to the pack's `landmark.foot` and hazed by its distance. A `generic`
+ *  landmark paints nothing here (see `paintGenericFront`). */
 export function paintBackdrop(scene: CityScene, pack: RegionPack): void {
+  const { landmark } = pack
+
+  if (landmark.shape === 'tower') {
+    paintTowerBackdrop(scene, pack, landmark)
+  }
+}
+
+function paintTowerBackdrop(scene: CityScene, pack: RegionPack, landmark: TowerLandmark): void {
   const { minute, dark, lit } = scene
-  const { foot, scale } = pack.landmark
+  const { foot, scale } = landmark
   const isLobbyLit = isNightDark(dark) && !isLightsOut(pack, minute.minute)
 
   // As the mockup: the default framing shows only the low skyline; once the sky above it shows,
@@ -55,16 +64,16 @@ export function paintBackdrop(scene: CityScene, pack: RegionPack): void {
         h: TOWER_BOX.h * scale,
       },
     },
-    (layered) => paintTower(layered, { pack, isLobbyLit })
+    (layered) => paintTower(layered, { landmark, isLobbyLit })
   )
 }
 
 function paintTower(
   scene: CityScene,
-  at: { readonly pack: RegionPack; readonly isLobbyLit: boolean }
+  at: { readonly landmark: TowerLandmark; readonly isLobbyLit: boolean }
 ): void {
   const { g, minute, dark, lit } = scene
-  const { foot, scale, haze } = at.pack.landmark
+  const { foot, scale, haze } = at.landmark
   const tower: TowerPaint = {
     g,
     dark,

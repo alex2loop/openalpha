@@ -14,6 +14,7 @@ import {
   sendFromInput,
   setInput,
 } from '@/web/state/command'
+import { exampleTicker } from '@/web/state/market'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import { ReadOnlyLine } from '@/web/ui/chat/session-view'
@@ -163,8 +164,8 @@ function CommandInput({ inputRef, list, options }: CommandInputProps) {
       role="combobox"
       aria-expanded={list.isOpen.value}
       aria-controls={LIST_ID}
-      aria-label={tr('ui.office.command.placeholder')}
-      placeholder={tr('ui.office.command.placeholder')}
+      aria-label={tr('ui.office.command.placeholder', { ticker: exampleTicker() })}
+      placeholder={tr('ui.office.command.placeholder', { ticker: exampleTicker() })}
       value={inputText.value}
       onFocus={() => (list.isOpen.value = true)}
       onBlur={() => resetList(list, false)}

@@ -26,6 +26,21 @@ const SIGNS: readonly Sign[] = [
   { kind: 'crosswalk', at: { x: CROSSING.x + 20, y: FURNITURE.farY } },
   { kind: 'crosswalk', at: { x: CROSSING.x - 6, y: FURNITURE.nearY } },
 ]
+// The US limit plate: an upright white rectangle over the pole, its border inset, the two lines
+// of words and the number, as offsets from the plate's centre with the lettering size and width.
+const US_LIMIT = Object.freeze({
+  lift: 1.7,
+  w: 2.3,
+  h: 3.2,
+  inset: 0.13,
+  border: 0.14,
+  wordsY: [-1.05, -0.62],
+  wordSize: 0.42,
+  wordW: 1.8,
+  numberY: 0.55,
+  numberSize: 1.15,
+  numberW: 1.7,
+})
 const TURN_PLATE = Object.freeze({ x: -1.3, y: -6.7, w: 2.6, h: 1.7 })
 const SIGN_TONES = Object.freeze({
   metal: '#7C8190',
@@ -93,33 +108,22 @@ function paintSign(
     return
   }
 
-  const cy = top - 1.05
-
-  disc(g, {
-    x,
-    y: cy,
-    r: 1.15,
-    colour: tone(sign.kind === 'speed' ? SIGN_TONES.red : SIGN_TONES.blue),
-  })
-
   if (sign.kind === 'speed') {
-    disc(g, { x, y: cy, r: 0.84, colour: tone(SIGN_TONES.white) })
+    const limit = sign.limit === 'side' ? at.pack.speed.side : at.pack.speed.north
 
-    if (at.minute.detail > 0) {
-      const limit = sign.limit === 'side' ? at.pack.speed.side : at.pack.speed.north
-
-      paintLabel(g, String(limit), {
-        x,
-        y: cy + 0.06,
-        size: 0.95,
-        colour: tone(SIGN_TONES.ink),
-        maxW: 1.5,
-      })
-    }
-
+    paintSpeedLimit(g, {
+      foot: { x, y: top },
+      limit,
+      unit: at.pack.speed.unit,
+      tone,
+      detail: at.minute.detail,
+    })
     return
   }
 
+  const cy = top - 1.05
+
+  disc(g, { x, y: cy, r: 1.15, colour: tone(SIGN_TONES.blue) })
   g.strokeStyle = tone(SIGN_TONES.red)
   g.lineWidth = 0.28
   g.beginPath()
@@ -127,6 +131,105 @@ function paintSign(
   g.moveTo(x - 0.7, cy + 0.7)
   g.lineTo(x + 0.7, cy - 0.7)
   g.stroke()
+}
+
+// The limit sign on its pole: the European red-ringed disc, or the US plate where the limit is in
+// mph.
+function paintSpeedLimit(
+  g: CanvasRenderingContext2D,
+  at: {
+    readonly foot: Point
+    readonly limit: number
+    readonly unit: RegionPack['speed']['unit']
+    readonly tone: (hex: string) => string
+    readonly detail: number
+  }
+): void {
+  const { x, y } = at.foot
+  const { tone } = at
+
+  if (at.unit === 'mph') {
+    paintUsLimit(g, { x, y: y - US_LIMIT.lift, limit: at.limit, tone, detail: at.detail })
+    return
+  }
+
+  const cy = y - 1.05
+
+  disc(g, { x, y: cy, r: 1.15, colour: tone(SIGN_TONES.red) })
+  disc(g, { x, y: cy, r: 0.84, colour: tone(SIGN_TONES.white) })
+
+  if (at.detail > 0) {
+    paintLabel(g, String(at.limit), {
+      x,
+      y: cy + 0.06,
+      size: 0.95,
+      colour: tone(SIGN_TONES.ink),
+      maxW: 1.5,
+    })
+  }
+}
+
+// The US speed limit: SPEED LIMIT over the number on a white plate with a black border. The
+// catalog's words break in two at the space nearest their middle.
+function paintUsLimit(
+  g: CanvasRenderingContext2D,
+  at: {
+    readonly x: number
+    readonly y: number
+    readonly limit: number
+    readonly tone: (hex: string) => string
+    readonly detail: number
+  }
+): void {
+  const { x, y, tone } = at
+  const ink = tone(SIGN_TONES.ink)
+  const inset = US_LIMIT.inset
+
+  g.fillStyle = tone(SIGN_TONES.white)
+  g.fillRect(x - US_LIMIT.w / 2, y - US_LIMIT.h / 2, US_LIMIT.w, US_LIMIT.h)
+  g.strokeStyle = ink
+  g.lineWidth = US_LIMIT.border
+  g.strokeRect(
+    x - US_LIMIT.w / 2 + inset,
+    y - US_LIMIT.h / 2 + inset,
+    US_LIMIT.w - inset * 2,
+    US_LIMIT.h - inset * 2
+  )
+
+  if (at.detail === 0) {
+    return
+  }
+
+  const words = twoLines(tr('ui.office.street.speedLimit'))
+
+  for (const [index, line] of words.entries()) {
+    paintLabel(g, line, {
+      x,
+      y: y + (US_LIMIT.wordsY[index] ?? 0),
+      size: US_LIMIT.wordSize,
+      colour: ink,
+      maxW: US_LIMIT.wordW,
+    })
+  }
+
+  paintLabel(g, String(at.limit), {
+    x,
+    y: y + US_LIMIT.numberY,
+    size: US_LIMIT.numberSize,
+    colour: ink,
+    maxW: US_LIMIT.numberW,
+  })
+}
+
+// The words split at the space nearest the middle: one line when there is none.
+function twoLines(text: string): readonly string[] {
+  const middle = text.length / 2
+  const before = text.lastIndexOf(' ', middle)
+  const after = text.indexOf(' ', middle)
+  const isAfterNearer = before < 0 || (after >= 0 && after - middle < middle - before)
+  const cut = isAfterNearer ? after : before
+
+  return cut < 0 ? [text] : [text.slice(0, cut), text.slice(cut + 1)]
 }
 
 function paintCrosswalkSign(

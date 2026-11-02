@@ -1,8 +1,12 @@
 import type { HolidayId } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
-// Peach blossom and apricot: the tree colours of the Tết weeks, for the crowns that are not green.
-const BLOSSOMS = ['#F5A3BB', '#F6D24A'] as const
+// The crown colours of the Tết weeks (peach blossom, apricot) and of the Thanksgiving week
+// (orange, rust), for the crowns that are not green.
+const CROWNS: Readonly<Partial<Record<HolidayId, readonly [string, string]>>> = Object.freeze({
+  tet: ['#F5A3BB', '#F6D24A'],
+  thanksgiving: ['#D9822B', '#B8502A'],
+})
 const GREEN_LOOK = 0
 const LOOKS = 3
 const BULBS = ['#FF5A4D', '#FFD84A', '#5AD1FF', '#8CE06A', '#FF8CD9'] as const
@@ -14,12 +18,16 @@ const GLOW_R = 1.7
 const GLOW_FROM_DARK = 0.3
 const GLOW_ALPHA = 0.3
 
-/** The crown colour a tree of this `look` wears on `holiday`: blossom in the Tết weeks for all but
- *  the green look; none the rest of the year. */
-export function blossomOf(holiday: HolidayId | undefined, look: number): string | undefined {
+/** The crown colour a tree of this `look` wears on `holiday`: blossom in the Tết weeks and autumn
+ *  leaves at Thanksgiving for all but the green look; none the rest of the year. */
+export function crownOf(holiday: HolidayId | undefined, look: number): string | undefined {
   const turn = look % LOOKS
 
-  return holiday === 'tet' && turn !== GREEN_LOOK ? BLOSSOMS[turn - 1] : undefined
+  if (holiday === undefined || turn === GREEN_LOOK) {
+    return undefined
+  }
+
+  return CROWNS[holiday]?.[turn - 1]
 }
 
 /** Christmas lights scattered over a crown centred at `x`, `y`: coloured bulbs, glowing after

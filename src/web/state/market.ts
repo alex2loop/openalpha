@@ -20,6 +20,9 @@ const QUOTES_POLL_MS = 60_000
 type StopRow = StopsResponse['stops'][number]
 
 const TRADING_PHASES: ReadonlySet<SessionPhase> = new Set(['open', 'break'])
+// A ticker the home market's reader knows, for the examples an input shows.
+const EXAMPLE_TICKERS: Readonly<Record<string, string>> = Object.freeze({ vn: 'FPT', us: 'AAPL' })
+const DEFAULT_EXAMPLE_TICKER = 'FPT'
 
 export const marketsBlock = createRouteBlock(ROUTES.markets)
 export const overviewBlock = createRouteBlock(ROUTES.overview)
@@ -123,6 +126,11 @@ export function printDisplayOf(market: string): MarketWire['priceDisplay'] {
 /** The operator's region (`[locale] region`); absent until the markets are read. */
 export function homeRegion(): string | undefined {
   return marketsBlock.view.value.data?.homeRegion
+}
+
+/** A well-known ticker of the home market, for an input's example. */
+export function exampleTicker(): string {
+  return EXAMPLE_TICKERS[homeRegion() ?? ''] ?? DEFAULT_EXAMPLE_TICKER
 }
 
 /** A market in this phase still trades today: open, or in its lunch break. */

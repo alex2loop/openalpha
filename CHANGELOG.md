@@ -11,6 +11,7 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 ### Added
 
+- With a US home, the office page shows Lower Manhattan instead of Ho Chi Minh City: Broadway with its bike lane and yellow cabs, Bowling Green, a stepped glass tower carrying the board, a street food cart, and the Fourth of July, Thanksgiving and Christmas on the street. Inputs suggest a ticker from your own market (AAPL rather than FPT).
 - US stocks and ETFs as a home market: `[locale] region = "us"` (or the new onboarding question) screens the 500 largest US companies and a fund board, scores them on twelve-month momentum, volatility and, with an SEC contact email, value and quality, and sizes them in dollars at the built-in `us-broker` venue. A leveraged or inverse fund is never suggested for purchase.
 - The morning brief for a US home, sent at 08:15 New York time: the US and crypto blocks, your suggestions, and a "Recently filed" list of earnings releases, insider purchases and coming ex-dividend dates for the names you hold or watch. Market warm-up now runs 90 minutes before each open, so Vietnam's moves from 08:00 to 07:30.
 - In `/price` and `/suggest`, a bare symbol that a stock and a coin share (LINK, ATOM) reads the side you already hold or watch and says the other one exists; `/record` and `/update` still ask which market you mean.

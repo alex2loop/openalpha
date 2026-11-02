@@ -28,14 +28,22 @@ const TONES = Object.freeze({
   crate: '#E8C94A',
   breadCart: '#9B7A52',
   breadTop: '#C9A878',
-  breadWheel: '#171B26',
   glassCase: '#F2F0EA',
   baguette: '#E8C94A',
-  parasol: ['#D8514B', '#F2EFE6'],
-  parasolRim: '#D8514B',
   signInk: '#FFFFFF',
   breadInk: '#F8E7C4',
+  steelCart: '#C3CBD2',
+  steelTop: '#E3E8EC',
+  steelWindow: '#6E7883',
+  steelLid: '#8E98A3',
+  steelInk: '#2B3440',
 })
+// The striped parasols over the pavement carts: bánh mì in red and cream, the food cart in teal
+// and cream (no brand's colours).
+const PARASOL = Object.freeze({
+  banhMi: ['#D8514B', '#F2EFE6'],
+  foodCart: ['#2F8F83', '#F2EFE6'],
+} as const)
 // The cook or seller standing behind a cart, as the mockup draws a vendor: white shirt and cap,
 // an apron close up.
 const VENDOR = Object.freeze({
@@ -165,19 +173,8 @@ export function paintBanhMiCart(scene: CartScene, at: Point & { readonly skin: s
   const { x, y } = at
   const tone = (hex: string): string => shadeOf(scene, hex)
 
-  g.fillStyle = 'rgba(0,0,0,.16)'
-  g.fillRect(x - 4.8, y, 9.6, 2.4)
-  paintVendor(scene, { x, y, skin: at.skin })
-  g.fillStyle = tone(TONES.breadCart)
-  g.fillRect(x - 4, y - 3, 8, 2.8)
-  g.fillStyle = tone(TONES.breadTop)
-  g.fillRect(x - 4, y - 3.4, 8, 0.8)
-  g.fillStyle = tone(TONES.breadWheel)
-  g.beginPath()
-  g.arc(x - 2.8, y + 0.1, 0.8, 0, Math.PI * 2)
-  g.arc(x + 2.8, y + 0.1, 0.8, 0, Math.PI * 2)
-  g.fill()
-  paintParasol(scene, { x, y })
+  paintBoxCart(scene, { ...at, body: TONES.breadCart, top: TONES.breadTop })
+  paintParasol(scene, { x, y, stripes: PARASOL.banhMi })
 
   if (scene.detail > 0) {
     g.fillStyle = tone(TONES.glassCase)
@@ -195,8 +192,59 @@ export function paintBanhMiCart(scene: CartScene, at: Point & { readonly skin: s
   })
 }
 
-// The bánh mì cart's pole and striped parasol with its rim.
-function paintParasol(scene: CartScene, at: Point): void {
+/** The food cart: the vendor, a stainless steel cart with a service window and a warmer lid,
+ *  wheels, the teal striped parasol, the word on the cart close up. */
+export function paintFoodCart(scene: CartScene, at: Point & { readonly skin: string }): void {
+  const { g } = scene
+  const { x, y } = at
+  const tone = (hex: string): string => shadeOf(scene, hex)
+
+  paintBoxCart(scene, { ...at, body: TONES.steelCart, top: TONES.steelTop })
+  paintParasol(scene, { x, y, stripes: PARASOL.foodCart })
+
+  if (scene.detail > 0) {
+    g.fillStyle = tone(TONES.steelWindow)
+    g.fillRect(x - 3.4, y - 2.7, 2.6, 1.2)
+    g.fillStyle = tone(TONES.steelLid)
+    g.fillRect(x + 0.6, y - 3.8, 2.4, 0.5)
+  }
+
+  paintCartWord(scene, {
+    key: 'ui.office.street.vendor.foodCart',
+    x: x + 1.4,
+    y: y - 1.7,
+    maxW: 4.4,
+    ink: TONES.steelInk,
+  })
+}
+
+// A box cart's shadow, the vendor standing behind it, its body, top and two wheels.
+function paintBoxCart(
+  scene: CartScene,
+  at: Point & { readonly skin: string; readonly body: string; readonly top: string }
+): void {
+  const { g } = scene
+  const { x, y } = at
+
+  g.fillStyle = 'rgba(0,0,0,.16)'
+  g.fillRect(x - 4.8, y, 9.6, 2.4)
+  paintVendor(scene, { x, y, skin: at.skin })
+  g.fillStyle = shadeOf(scene, at.body)
+  g.fillRect(x - 4, y - 3, 8, 2.8)
+  g.fillStyle = shadeOf(scene, at.top)
+  g.fillRect(x - 4, y - 3.4, 8, 0.8)
+  g.fillStyle = shadeOf(scene, TONES.wheel)
+  g.beginPath()
+  g.arc(x - 2.8, y + 0.1, 0.8, 0, Math.PI * 2)
+  g.arc(x + 2.8, y + 0.1, 0.8, 0, Math.PI * 2)
+  g.fill()
+}
+
+// A pavement cart's pole and striped parasol; the rim takes the first stripe's colour.
+function paintParasol(
+  scene: CartScene,
+  at: Point & { readonly stripes: readonly [string, string] }
+): void {
   const { g } = scene
   const { x, y } = at
 
@@ -204,7 +252,7 @@ function paintParasol(scene: CartScene, at: Point): void {
   g.fillRect(x - 0.1, y - 8.2, 0.3, 5)
 
   for (let index = 0; index < 6; index++) {
-    g.fillStyle = shadeOf(scene, TONES.parasol[index % 2] ?? TONES.glassCase)
+    g.fillStyle = shadeOf(scene, at.stripes[index % 2] ?? TONES.glassCase)
     g.beginPath()
     g.moveTo(x + 0.05, y - 8.2)
     g.lineTo(x - 5 + index * 1.667, y - 5.8)
@@ -213,7 +261,7 @@ function paintParasol(scene: CartScene, at: Point): void {
     g.fill()
   }
 
-  g.fillStyle = shadeOf(scene, TONES.parasolRim)
+  g.fillStyle = shadeOf(scene, at.stripes[0])
   g.fillRect(x - 5, y - 5.9, 10, 0.35)
 }
 

@@ -42,8 +42,9 @@ export const TEA_CORNER = Object.freeze({
     { x: WORLD.w + 16.2, y: 9.6, facing: 'east', via: undefined },
   ],
 } as const)
-/** The bánh mì glass cart on the far pavement, clear of the park gates, the pigeons and the doors. */
-export const BANH_MI_CART = Object.freeze({ x: 80, y: PAVEMENT.farKerb - 0.8 })
+/** Where the pack's pavement cart (the bánh mì glass cart, the food cart) stands on the far
+ *  pavement, clear of the park gates, the pigeons and the doors. */
+export const PAVEMENT_CART = Object.freeze({ x: 80, y: PAVEMENT.farKerb - 0.8 })
 /** Everyone at the vendors' stools at once: every stool taken. */
 const MAX_VENDOR_PEOPLE = 11
 const ARRIVE_CHANCE = 0.015

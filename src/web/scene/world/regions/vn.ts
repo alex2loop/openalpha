@@ -1,8 +1,7 @@
-import type { DayRange, MinuteRange, RegionPack, ShopSign } from '@/web/scene/world/regions'
-import { HOURS_PER_DAY, MINUTES_PER_HOUR, shiftDay } from '@/web/text/time-units'
+import type { DayRange, RegionPack } from '@/web/scene/world/regions'
+import { ALL_DAY, around, FESTIVE_YEARS, hm, SHUT, sign } from '@/web/scene/world/regions/pack-kit'
+import { HOURS_PER_DAY } from '@/web/text/time-units'
 
-const FESTIVE_FIRST_YEAR = 2026
-const FESTIVE_LAST_YEAR = 2035
 // The day of the lunar new year and of the 15th of the eighth lunar month, one per year.
 const TET_DAYS = [
   '2026-02-17',
@@ -28,26 +27,10 @@ const MID_AUTUMN_DAYS = [
   '2034-09-27',
   '2035-09-16',
 ]
-const FESTIVE_YEARS = Array.from(
-  { length: FESTIVE_LAST_YEAR - FESTIVE_FIRST_YEAR + 1 },
-  (_, index) => FESTIVE_FIRST_YEAR + index
-)
 const TET_DAYS_BEFORE = 14
 const TET_DAYS_AFTER = 7
 const MID_AUTUMN_DAYS_BEFORE = 12
 const MID_AUTUMN_DAYS_AFTER = 1
-
-const hm = (hours: number, minutes = 0): number => hours * MINUTES_PER_HOUR + minutes
-const around = (day: string, daysBefore: number, daysAfter: number): DayRange => [
-  shiftDay(day, -daysBefore),
-  shiftDay(day, daysAfter),
-]
-
-const sign = (band: string, ink: string, awning?: readonly [string, string]): ShopSign =>
-  awning === undefined ? { band, ink } : { band, ink, awning }
-
-const ALL_DAY: MinuteRange = [0, hm(HOURS_PER_DAY)]
-const SHUT: MinuteRange = [0, 0]
 
 /** The Vietnam pack: Ho Chi Minh City's financial district, and the office's own day. */
 export const VN_PACK = Object.freeze({
@@ -60,6 +43,7 @@ export const VN_PACK = Object.freeze({
     east: { lanes: 2, oneWay: false },
     turnSign: true,
     habits: true,
+    bikeLane: false,
   },
   street: 'Hàm Nghi',
   sideStreets: { west: 'Hồ Tùng Mậu', east: 'Hải Triều' },
@@ -72,7 +56,7 @@ export const VN_PACK = Object.freeze({
     caps: true,
     ratio: [75, 40],
   },
-  speed: { north: 60, side: 50 },
+  speed: { north: 60, side: 50, unit: 'km/h' },
   stops: [
     { name: 'Tháp Tài chính', routes: ['03', '19'], side: 'far' },
     { name: 'Hồ Tùng Mậu', routes: ['45', '56'], side: 'far' },
@@ -338,6 +322,7 @@ export const VN_PACK = Object.freeze({
       ],
       flowerBike: [[hm(6), hm(9, 30)]],
       eveningStools: [[hm(17, 30), hm(23)]],
+      foodCart: [],
     },
     crew: {
       receptionist: [[hm(8), hm(18)]],
@@ -355,6 +340,8 @@ export const VN_PACK = Object.freeze({
     ),
     'quoc-khanh': FESTIVE_YEARS.map((year): DayRange => [`${year}-08-28`, `${year}-09-03`]),
     noel: FESTIVE_YEARS.map((year): DayRange => [`${year}-12-10`, `${year}-12-26`]),
+    jul4: [],
+    thanksgiving: [],
   },
   vendors: ['pho', 'tea', 'banhMi', 'flowerBike', 'eveningStools'],
   chatter: ['honk', 'eh', 'hello', 'hey'],

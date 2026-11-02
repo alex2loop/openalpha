@@ -1,3 +1,4 @@
+import type { RoadLayout } from '@/web/scene/world/regions'
 import { WORLD } from '@/web/scene/types'
 import { STREET_RECT } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
@@ -9,6 +10,9 @@ const FAR_TREE_GAP_SPREAD = 18
 export const METRES_PER_PX = 0.5
 /** The north street in world y: the far pavement's back edge, the road's far and near kerbs. */
 export const NORTH = Object.freeze({ farTop: -30, roadTop: -18, roadBottom: -4.6 })
+/** The painted bike lane along the north street's near kerb, in px of road width; cars keep out
+ *  of it. */
+export const BIKE_LANE_PX = 1.9
 /** A side street's road, as distances out from the building's side wall. */
 export const SIDE_ROAD = Object.freeze({ from: 24, to: 52 })
 /** The zebra across the north street, west of the building, and how far before it each way the
@@ -31,6 +35,15 @@ export const FAR_TREES: readonly { readonly x: number; readonly kind: number }[]
 /** The world x of a point `distance` out from the building's west (-1) or east (1) wall. */
 export function sideX(side: -1 | 1, distance: number): number {
   return side < 0 ? -distance : WORLD.w + distance
+}
+
+/** The north street's carriageway in world y, where the cars drive and the lane lines are laid:
+ *  the road without the bike lane's strip, when the pack's road has one along the near kerb. */
+export function carriageOf(road: RoadLayout): { readonly top: number; readonly bottom: number } {
+  return {
+    top: NORTH.roadTop,
+    bottom: road.bikeLane ? NORTH.roadBottom - BIKE_LANE_PX : NORTH.roadBottom,
+  }
 }
 
 function farTreesOf(): { readonly x: number; readonly kind: number }[] {
