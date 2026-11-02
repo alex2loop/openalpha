@@ -75,7 +75,7 @@ export function createTradingCalendar(
     !(isWeekend(day) || holidays.has(day)) && (openDays.has(day) || !ruleClosesDay(day))
   const isEarlyClose = createRuleEarlyCloses(policy)
   const endsEarly = (day: TradingDay): boolean =>
-    session.earlyClose !== undefined && isEarlyClose(day)
+    session.earlyClose !== undefined && isTradingDay(day) && isEarlyClose(day)
   const closeOf = (day: TradingDay): number =>
     (endsEarly(day) ? session.earlyClose : undefined) ?? session.close
   const sessionCloseAt = (day: TradingDay): number =>

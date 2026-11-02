@@ -20,6 +20,7 @@ import {
   US_VOLATILITY_SESSIONS,
 } from '@/trading/markets/equity-us/policy'
 import { runUsQuote } from '@/trading/markets/equity-us/quote'
+import { previousUsScoreRegime } from '@/trading/markets/equity-us/refresh/macro'
 import { refreshUsMarket, usStaleKinds } from '@/trading/markets/equity-us/refresh/refresh'
 import { runUsScreen } from '@/trading/markets/equity-us/screen-capability'
 import { resolveMacroRisk } from '@/trading/markets/macro'
@@ -34,7 +35,7 @@ export function usCapabilities(
 ): MarketCapabilities {
   return {
     ...priceCapabilities(deps, manifest),
-    ...newsCapabilities(deps),
+    ...newsCapabilities(deps, manifest),
     ...screenCapabilities(board),
     ...accountsCapabilities(deps, board),
     ...overviewCapabilities(deps, manifest, board),
@@ -54,12 +55,24 @@ function priceCapabilities(
   }
 }
 
-function newsCapabilities(deps: MarketDeps): Pick<MarketCapabilities, 'news' | 'macroRisk'> {
+function newsCapabilities(
+  deps: MarketDeps,
+  manifest: MarketManifest
+): Pick<MarketCapabilities, 'news' | 'macroRisk'> {
   return {
     news: { kind: 'news', run: (request) => runUsNews(deps, request) },
     macroRisk: {
       kind: 'macroRisk',
-      run: (request) => resolveMacroRisk(deps, request, US_EQUITY_MACRO_DRIVERS),
+      run: async (request) => {
+        const previous = await previousUsScoreRegime({
+          deps,
+          manifest,
+          asOf: request.asOf,
+          signal: request.signal,
+        })
+
+        return resolveMacroRisk(deps, request, { policy: US_EQUITY_MACRO_DRIVERS, ...previous })
+      },
     },
   }
 }

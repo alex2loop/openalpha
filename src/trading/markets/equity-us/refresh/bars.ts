@@ -42,6 +42,7 @@ interface BarsPass extends BarsOptions {
   readonly deps: MarketDeps
   readonly historyFromDay: TradingDay
   readonly asOfSettled: boolean
+  readonly recordsByTicker: ReadonlyMap<Ticker, InstrumentRecord>
 }
 
 type Fetched = readonly TargetOutcome<readonly BarRecord[]>[]
@@ -58,6 +59,7 @@ export async function refreshUsBars(
     deps,
     historyFromDay: manifest.calendar.addTradingDays(request.asOf, -US_EVIDENCE_SESSIONS),
     asOfSettled: isSettled(manifest.calendar, request.asOf, request.now),
+    recordsByTicker: new Map(options.universe.map((record) => [record.instrument.ticker, record])),
   }
   const { tailFromDay, tail, full, rebuilt } = await fetchWindows(
     pass,
@@ -137,9 +139,6 @@ async function fetchWindows(
 
 /** The board, the names the operator holds or watches off it, the fund board and the indices. */
 async function barTargets(deps: MarketDeps, pass: BarsPass): Promise<readonly InstrumentRef[]> {
-  const byRecord = new Map<Ticker, InstrumentRecord>(
-    pass.universe.map((record) => [record.instrument.ticker, record])
-  )
   const coverage = await loadUsCoverage(deps, pass.manifest, {
     records: pass.universe,
     asOf: pass.request.asOf,
@@ -147,12 +146,12 @@ async function barTargets(deps: MarketDeps, pass: BarsPass): Promise<readonly In
     signal: pass.request.signal,
   })
   const funds = US_SCREEN_ETFS.flatMap((code) => {
-    const record = byRecord.get(code)
+    const record = pass.recordsByTicker.get(code)
 
     return record?.kind === ETF_KIND ? [record.instrument] : []
   })
   const indices = US_INDEX_TICKERS.flatMap((code) => {
-    const record = byRecord.get(code)
+    const record = pass.recordsByTicker.get(code)
 
     return record === undefined ? [] : [record.instrument]
   })
@@ -189,7 +188,7 @@ async function fetchBars(
   instrument: InstrumentRef,
   window: DayWindow
 ): Promise<TargetOutcome<readonly BarRecord[]>> {
-  const kind = pass.universe.find((record) => record.instrument.ticker === instrument.ticker)?.kind
+  const kind = pass.recordsByTicker.get(instrument.ticker)?.kind
   const result = await pass.deps.sources.resolve({
     kind: 'bars',
     context: {

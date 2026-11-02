@@ -1,7 +1,7 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { RegionRequest } from '@/trading/kernel/market/market-capability'
-import type { MacroSnapshot } from '@/trading/kernel/market/market-data'
+import type { MacroSnapshot, MarketRegime } from '@/trading/kernel/market/market-data'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
@@ -53,13 +53,20 @@ export function mergeMacroValues(reads: readonly SourceResult<MacroSnapshot>[]):
   return { values, observationDates }
 }
 
+interface MacroRiskOptions {
+  readonly policy?: MacroDriverPolicy
+  /** The score's band on the market's last rated read, held against flicker at a band edge. */
+  readonly previousScoreRegime?: MarketRegime
+}
+
 /** The composite every market reads that has no macro formula of its own. The view is labelled with
  *  the region asked about; the series behind it are US ones whatever market reads them. */
 export async function resolveMacroRisk(
   deps: MarketDeps,
   request: RegionRequest,
-  policy: MacroDriverPolicy = US_MACRO_DRIVERS
+  options: MacroRiskOptions = {}
 ): Promise<SourceResult<MacroRiskView>> {
+  const { policy = US_MACRO_DRIVERS, previousScoreRegime } = options
   const reads = await deps.macro.get(MACRO_COMPOSITE_REGION, request.asOf, request.signal)
   const { values, observationDates } = mergeMacroValues(reads)
   const provenance = reads.flatMap(provenanceOf)
@@ -81,6 +88,7 @@ export async function resolveMacroRisk(
         region: request.region,
         asOf: request.asOf,
         provenance,
+        ...(previousScoreRegime === undefined ? {} : { previousScoreRegime }),
       },
       policy
     ),

@@ -60,8 +60,8 @@ export const US_MINIMUM_RISK_REWARD = 1
 
 const YEAR_SESSIONS = 252
 const MONTH_SESSIONS = 21
-/** The calendar counts weekdays while a factor counts traded sessions, so a year's holidays go
- *  before a name misses a day of its own. */
+/** The calendar already skips NYSE holidays, so the slack only covers a provider missing a day of
+ *  its own. */
 const EVIDENCE_SLACK_SESSIONS = 20
 
 /** The deepest window any factor needs (twelve months, skipping the latest), plus the slack above,
@@ -147,8 +147,6 @@ export const US_TREND_YEARS = 5
 
 /** A snapshot older than this many sessions belongs to a name that has left the kept set. */
 export const US_BOARD_SNAPSHOT_SESSIONS = 5
-/** A year of closes: the momentum window needs it and a younger listing has no measured year. */
-export const US_MINIMUM_HISTORY_SESSIONS = YEAR_SESSIONS
 /** Median daily traded value below which an order in size moves the price. */
 export const US_MINIMUM_TRADED_VALUE_USD = 1_000_000
 /** Daily volatility (standard deviation of daily returns) above which a name is an outlier. */
@@ -169,6 +167,9 @@ export const US_RESTATEMENT_TOLERANCE = RESTATEMENT_TOLERANCE
 export const US_MOMENTUM_SESSIONS = YEAR_SESSIONS
 /** The latest month is left out of the twelve-month return: it reverses. */
 export const US_MOMENTUM_SKIP_SESSIONS = MONTH_SESSIONS
+/** The closes the momentum return reads (its window and the skipped month, plus the base close): a
+ *  younger listing has no measured year. */
+export const US_MINIMUM_HISTORY_SESSIONS = US_MOMENTUM_SESSIONS + US_MOMENTUM_SKIP_SESSIONS + 1
 export const US_VOLATILITY_SESSIONS = 63
 export const US_LIQUIDITY_SESSIONS = 20
 export const US_TREND_SESSIONS = 50

@@ -58,7 +58,7 @@ export async function refreshUsMacro(input: MacroRefreshInput): Promise<RefreshK
       region: US_MARKET_REGION,
       asOf,
       provenance,
-      ...(await previousScoreRegime(input, asOf)),
+      ...(await previousUsScoreRegime({ deps, manifest, asOf, signal: request.signal })),
     },
     US_EQUITY_MACRO_DRIVERS
   )
@@ -119,17 +119,24 @@ function toMacroResult(
   }
 }
 
+interface PreviousScoreRegimeInput {
+  readonly deps: MarketDeps
+  readonly manifest: MarketManifest
+  readonly asOf: TradingDay
+  readonly signal: AbortSignal
+}
+
 /** A stored read older than a few sessions says nothing about today: the daemon was off, not the
  *  market calm. */
-async function previousScoreRegime(
-  input: MacroRefreshInput,
-  asOf: TradingDay
+export async function previousUsScoreRegime(
+  input: PreviousScoreRegimeInput
 ): Promise<{ previousScoreRegime?: MarketRegime }> {
+  const { asOf } = input
   const previous = await input.deps.marketDataStore.findMacroRiskBefore({
     region: US_MARKET_REGION,
     formulaVersion: MACRO_FORMULA_VERSION,
     beforeDay: asOf,
-    signal: input.request.signal,
+    signal: input.signal,
   })
   const oldest = input.manifest.calendar.addTradingDays(asOf, -US_REGIME_MEMORY_SESSIONS)
 

@@ -18,14 +18,14 @@ Use when a thesis leans on management, on growth, or on a corporate action. A bu
    - a rights issue to fund a project is a decision to judge by test 1;
    - a rights issue to fund losses or repay debt is the warning, and it is the commonest one here.
 3. **Are buybacks and issuance on the right side of value?** A repurchase below the business's value helps the remaining owners; above it, it harms them. Issuance is the mirror. Judge each against `intrinsic-value`'s range, not against the price at the time.
-4. **Is the dividend a policy or an event?** the market's dividend skill owns the cover and the dates; this test asks only whether payments follow a stated policy the board has kept, or arrive after asset sales and vanish after them.
+4. **Is the dividend a policy or an event?** On a VN name `vn-dividend-analysis` owns the cover and the dates; on a US name the cover is read from the cash flow in the ANNUAL ACCOUNTS and `us-valuation` owns the buyback side. This test asks only whether payments follow a stated policy the board has kept, or arrive after asset sales and vanish after them.
 5. **Is management candid?** Did last year's stated targets get met, and does this year's annual report say so where they did not? Related-party revenue and receivables, and whether they grew faster than the rest. A change of auditor, or a qualified opinion, without an explanation in the report.
 
 ## Structures that change the reading
 
 - **State ownership.** A divestment timetable is a catalyst and a governance change at once; a state holder that appoints management answers to policy, and test 5 is read against policy targets rather than owner ones.
 - **Holding companies.** The listed entity may not control subsidiary cash. Tests 1 and 4 are read at the level that holds the cash, and the report says which.
-- **Pledged insider shares.** Not an allocation decision, but it converts a price fall into forced selling; the market's deep-dive skill carries it, and it is repeated here because a manager whose shares are pledged has an incentive the owners do not.
+- **Pledged insider shares.** Not an allocation decision, but it converts a price fall into forced selling; `quality-screen` carries it, with `vn-deep-dive` on a VN name, and it is repeated here because a manager whose shares are pledged has an incentive the owners do not.
 
 ## Output
 

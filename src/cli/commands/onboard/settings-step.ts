@@ -91,8 +91,9 @@ export async function askSecContact(ctx: AskContext): Promise<string | undefined
   })
 }
 
-/** The book's currency is fixed by the first saved profile, and nothing before onboard asks, so a USD
- *  user would lock into VND before touching config. VND leads; another 3-letter code may be typed. */
+/** The book's currency is fixed by the first saved profile, and nothing before onboard asks, so a user
+ *  would lock into the wrong currency before touching config. The default follows the home market;
+ *  another 3-letter code may be typed. */
 export async function askCurrency(ctx: AskContext, previous?: string): Promise<string> {
   const listed: readonly string[] = CURRENCY_CHOICES
 

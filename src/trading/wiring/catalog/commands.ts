@@ -171,6 +171,7 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
       marketsInUse: deps.marketsInUse,
+      logger: deps.logger,
     }),
     createMarketCommand({
       report: {
