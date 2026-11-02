@@ -264,6 +264,9 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   carries. `POST /v1/config` and `/v1/config/validate` put the file's value back wherever the body
   still holds `redacted` (an array item is matched by its `name`, else its place); one the file has
   no value for is `invalid_body` with `fields`. `version` is an opaque token for the file as read.
+  Both check the tree as boot does: a key variable the daemon's environment leaves unset is not a
+  refusal, since the daemon starts without it and a key saved through `/v1/credentials` is read only
+  after a restart.
 - **`POST /v1/config`** sent with `If-Match: <version>` is `conflict`, with a sentence in the daemon's
   language, when the file has changed since that read (another tab, the CLI, a hand edit), so a stale
   tree never puts an older file back; without the header the write is not checked. The result's

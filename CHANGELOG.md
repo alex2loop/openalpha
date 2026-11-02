@@ -31,6 +31,7 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 - The US calendar ends the session at 13:00 New York time on the day after Thanksgiving, and on July 3 and December 24 when they trade, so a stock's day settles and reads as closed at the real bell, and the app shows that day's 13:00 close.
 - In the app, US stocks get their own colour in the portfolio bars and a short name on the lobby agenda, and a class-share ticker such as BRK.B in a reply links to its page.
 - The desktop app's first run (`setup write`) no longer refuses every config once the model's key is set.
+- Settings in the app save again while the model's key is missing or was just saved and waits for a restart. Before, every row was refused, and switching provider took two restarts.
 
 ## [1.2.2] - 2026-10-30
 

@@ -1,4 +1,4 @@
-import type { ResolvedConfig } from '@/core/config/resolve'
+import type { ConfigResolveOptions, ResolvedConfig } from '@/core/config/resolve'
 import type { ConfigCheck } from '@/core/config/validate'
 import type { SocialConfig } from '@/social/api'
 import type { TradingConfig } from '@/trading/api'
@@ -41,8 +41,11 @@ export function bootRefusals(config: ResolvedConfig): readonly unknown[] {
   ].filter((refusal) => refusal !== undefined)
 }
 
-export function validateBootConfigTree(tree: unknown): ConfigCheck {
-  return validateConfigTree(tree, resolveBootExtensions)
+export function validateBootConfigTree(
+  tree: unknown,
+  options?: Pick<ConfigResolveOptions, 'deferMissingKeys'>
+): ConfigCheck {
+  return validateConfigTree(tree, resolveBootExtensions, options)
 }
 
 function resolveClaimedSections(config: ResolvedConfig): BootExtensions {
