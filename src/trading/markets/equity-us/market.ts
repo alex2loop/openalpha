@@ -82,6 +82,7 @@ export function usManifest(config: TradingConfig): MarketManifest {
     playbook: {
       analysis: ['us-valuation', 'quality-screen'],
       execution: ['us-execution', 'us-market-rules'],
+      fundAnalysis: ['macro-liquidity-analysis'],
     },
     // Both kinds screen, one at a time: the two composites are averages over different factors.
     screenableKinds: ['equity', 'etf'],
