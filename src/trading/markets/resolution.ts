@@ -223,7 +223,7 @@ async function resolve(
   const caveats = detections.flatMap((entry) => entry.caveats)
 
   if (matches.length === 0) {
-    return unresolved(options.ticker, caveats)
+    return unresolved(options.ticker, missCaveats(detections))
   }
 
   const [first] = matches
@@ -352,6 +352,17 @@ function uncheckedMarketCaveats(
         detail: { ticker, market: entry.market.manifest.id },
       })
     )
+}
+
+/** A market never refreshed says nothing about a ticker the loaded markets miss, so "run /refresh"
+ *  is the answer only while no market holds a universe. */
+function missCaveats(detections: readonly MarketDetectionEntry[]): readonly Caveat[] {
+  const caveats = detections.flatMap((entry) => entry.caveats)
+  const isAnyLoaded = detections.some(
+    (entry) => !entry.caveats.some((caveat) => caveat.code === UNIVERSE_EMPTY)
+  )
+
+  return isAnyLoaded ? caveats.filter((caveat) => caveat.code !== UNIVERSE_EMPTY) : caveats
 }
 
 // One detector throwing must not fail resolution for the others: it becomes "does not match" plus a
