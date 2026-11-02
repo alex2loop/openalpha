@@ -54,6 +54,10 @@ const COMPANY_FILING_DAYS = 120
 const DAYS_PER_YEAR = 365
 const YEAR_END_TOLERANCE_DAYS = 14
 
+/** Two tags for one line agree to within a few percent; a gap this wide is a filer's scale slip
+ *  (thousands or millions tagged as dollars), which the frames serve as filed. */
+const SCALE_SLIP_RATIO = 500
+
 const FRAME = z.object({ data: z.array(z.unknown()) })
 
 const FACT = z.object({ cik: z.number(), end: z.string(), val: z.number() })
@@ -289,7 +293,10 @@ function addFact(years: Map<string, YearAccumulator>, job: FrameJob, fact: Frame
     return
   }
 
-  if (held === undefined || job.priority < held) {
+  if (
+    held === undefined ||
+    outranks(job.priority, fact.value, { held, value: entry.lines[job.line] })
+  ) {
     entry.lines[job.line] = fact.value
     entry.priorities[job.line] = job.priority
   }
@@ -299,6 +306,50 @@ function addFact(years: Map<string, YearAccumulator>, job: FrameJob, fact: Frame
   }
 
   years.set(key, entry)
+}
+
+/** An earlier-listed tag wins, unless the two disagree by a scale slip: then the larger figure is
+ *  the one filed in dollars. Arista's 2025 net income is framed as 3,511 under `NetIncomeLoss` and
+ *  3,511,400,000 under the available-to-common tag. */
+function outranks(
+  priority: number,
+  value: number,
+  current: { readonly held: number; readonly value: number | undefined }
+): boolean {
+  const { held, value: heldValue } = current
+
+  if (heldValue !== undefined && isScaleSlip(value, heldValue)) {
+    return Math.abs(value) > Math.abs(heldValue)
+  }
+
+  return priority < held
+}
+
+function isScaleSlip(left: number, right: number): boolean {
+  const small = Math.min(Math.abs(left), Math.abs(right))
+  const large = Math.max(Math.abs(left), Math.abs(right))
+
+  return small > 0 && large / small >= SCALE_SLIP_RATIO
+}
+
+/** A net income with no second tag to check against is read against the year's operating cash flow:
+ *  a scale slip apart from it is left out rather than rescaled by a guess. Medtronic's 2026 net
+ *  income is framed as 4,801 beside 7,330,000,000 of operating cash flow. */
+function withoutSlippedProfit(lines: AccountLines): AccountLines {
+  const { netProfitToParent: profit, operatingCashFlow: cash } = lines
+
+  if (
+    profit === undefined ||
+    cash === undefined ||
+    Math.abs(profit) >= Math.abs(cash) ||
+    !isScaleSlip(profit, cash)
+  ) {
+    return lines
+  }
+
+  const { netProfitToParent: _, ...kept } = lines
+
+  return kept
 }
 
 function toRows(
@@ -323,7 +374,7 @@ function toRows(
     instrument: { market: target.market, ticker: code },
     fiscalYear: Number(year),
     publishedOn,
-    lines: entry.lines,
+    lines: withoutSlippedProfit(entry.lines),
     sourceId: SEC_DATA_ID,
     fetchedAt: target.fetchedAt,
   }))

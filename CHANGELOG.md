@@ -33,6 +33,7 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 - A US name the weekly Nasdaq listing leaves out once is no longer marked delisted for the week, which stopped its prices and refused `/price`; it is delisted only when the next listing leaves it out too.
 - The analysts debating a US fund now read the macro-liquidity method, as for a Vietnamese fund, instead of the stock valuation and quality methods a fund has no accounts for.
+- A US company whose net income SEC serves at the wrong scale (Arista's 2025 income read as $3,511 instead of $3.5 billion) no longer ranks near the bottom on value and quality: the correctly scaled figure is taken where a second tag files one, and the line is left out where none does.
 - A US company with no listed sector gets no return-on-equity rank instead of being ranked against every other sectorless company as if they shared one, and a foreign filer that tags a dollar convenience translation beside its own currency keeps the accounts in the currency it reports in.
 - The US calendar ends the session at 13:00 New York time on the day after Thanksgiving, and on July 3 and December 24 when they trade, so a stock's day settles and reads as closed at the real bell, and the app shows that day's 13:00 close.
 - In the app, US stocks get their own colour in the portfolio bars and a short name on the lobby agenda, and a class-share ticker such as BRK.B in a reply links to its page.
