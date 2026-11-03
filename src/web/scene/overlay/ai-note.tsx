@@ -6,7 +6,7 @@ import './ai-note.css'
  *  is machine-written, whichever card or bubble it shows in. */
 export function AiNote() {
   return (
-    <p class="ai-note glass" role="note">
+    <p class="ai-note glass is-strong" role="note">
       {tr('ui.office.scene.aiNote')}
     </p>
   )

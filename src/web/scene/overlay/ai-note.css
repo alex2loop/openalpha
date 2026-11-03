@@ -6,7 +6,8 @@
   margin: 0;
   padding: 4px 12px;
   border-radius: 12px;
-  color: var(--ink2);
-  font: var(--typeCaption);
+  color: var(--ink);
+  font: var(--typeCaptionStrong);
+  text-shadow: none;
   pointer-events: none;
 }
