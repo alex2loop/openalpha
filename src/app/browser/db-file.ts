@@ -37,7 +37,7 @@ export type DbFileVerdict = 'ok' | 'invalid' | 'newer-schema' | 'from-installed'
 /** Whether `bytes` is a database this build may replace its own with, judged in a scratch copy in
  *  memory so nothing of the working database is touched. Same rule as the boot for a schema ahead
  *  of this build: a migration id it does not declare. Never throws. */
-export async function judgeDbFile(
+export async function toDbFileVerdict(
   files: DatabaseFiles,
   bytes: Uint8Array,
   logger: Logger
@@ -51,7 +51,7 @@ export async function judgeDbFile(
   try {
     scratch = files.openScratch(bytes)
 
-    return await judgeScratch(scratch)
+    return await toScratchVerdict(scratch)
   } catch (err: unknown) {
     // A file sqlite refuses is the visitor's file, not a fault of ours.
     if (isUnreadableDatabase(err)) {
@@ -74,7 +74,7 @@ function hasSqliteHeader(bytes: Uint8Array): boolean {
   return new TextDecoder('latin1').decode(bytes.subarray(0, SQLITE_HEADER.length)) === SQLITE_HEADER
 }
 
-async function judgeScratch(scratch: Storage): Promise<DbFileVerdict> {
+async function toScratchVerdict(scratch: Storage): Promise<DbFileVerdict> {
   const integrity = await scratch.query<{ readonly quick_check: string }>('PRAGMA quick_check')
 
   if (integrity.length !== 1 || integrity[0]?.quick_check !== 'ok') {
