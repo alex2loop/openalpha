@@ -44,13 +44,29 @@ interface StopsCoverage {
   }): Promise<readonly InstrumentRef[]>
 }
 
-/** What one parsed `/suggest <name>` does and says. Absent, the command runs the full pipeline and
- *  prints the suggestion. An edition that may only analyse binds its own: the line is parsed the
- *  same way either side of it, and `/suggest stops` is not part of it. */
+type SlashKey = `slash.${string}`
+
+/** What one parsed `/suggest <name>` does and says. */
 type SuggestRunner = (request: SuggestionRequest, ctx: SlashContext) => Promise<SlashResult>
 
+/** An edition that may only analyse binds this: the line is parsed the same way either side of it,
+ *  `run` answers the parsed name, and `/suggest stops` - which would run the full pipeline over the
+ *  whole book - answers `stopsRefusal`. The words are its own too, since the pipeline's describe a
+ *  verdict and levels the edition never produces. */
+export interface SuggestAnalysis {
+  readonly run: SuggestRunner
+  readonly keys: {
+    readonly help: SlashKey
+    readonly usage: SlashKey
+    readonly progress: SlashKey
+    readonly stopsRefusal: SlashKey
+    /** Everything else `run` may answer with. */
+    readonly answers: readonly SlashKey[]
+  }
+}
+
 interface SuggestCommandDeps extends SuggestionReportDeps {
-  readonly run?: SuggestRunner
+  readonly analysis?: SuggestAnalysis
   readonly suggestions: Pick<
     SuggestionService,
     'run' | 'runBatch' | 'summarize' | 'listResolved' | 'get'
@@ -69,20 +85,26 @@ interface SuggestOptions {
 }
 
 export function createSuggestCommand(deps: SuggestCommandDeps): SlashCommand {
+  const { analysis } = deps
+  const usageKey = analysis?.keys.usage ?? USAGE
+
   return {
     name: 'suggest',
-    description: { kind: 'localized', key: 'slash.tradingSuggestHelp' },
-    messageKeys: [USAGE, STOPS_EMPTY],
+    description: { kind: 'localized', key: analysis?.keys.help ?? 'slash.tradingSuggestHelp' },
+    messageKeys:
+      analysis === undefined
+        ? [USAGE, STOPS_EMPTY]
+        : [usageKey, analysis.keys.stopsRefusal, ...analysis.keys.answers],
     policy: {
       surfaces: ['channel', 'repl'],
       role: 'operator',
       action: 'costly',
-      execution: { progressKey: 'slash.tradingSuggestProgress' },
+      execution: { progressKey: analysis?.keys.progress ?? 'slash.tradingSuggestProgress' },
       selfContained: true,
     },
     // The subject is a ticker and `stops` is its exception, so only the options complete.
     completeFor: (args) => (args.length === 1 ? [] : OPTIONS),
-    usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
+    usage: () => ({ key: usageKey, values: buildUsageValues(deps) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -100,7 +122,9 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
   }
 
   if (subject === STOPS_ARG) {
-    return runStops(deps, ctx, options)
+    return deps.analysis === undefined
+      ? runStops(deps, ctx, options)
+      : usage(deps.analysis.keys.stopsRefusal)
   }
 
   const { mode, force } = options
@@ -124,15 +148,15 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),
   }
 
-  if (deps.run !== undefined) {
-    return deps.run(suggestion, ctx)
+  if (deps.analysis !== undefined) {
+    return deps.analysis.run(suggestion, ctx)
   }
 
   return renderRun(deps, ctx, { result: await deps.suggestions.run(suggestion), mode })
 }
 
 function suggestUsage(deps: SuggestCommandDeps): SlashResult {
-  return usage(USAGE, buildUsageValues(deps))
+  return usage(deps.analysis?.keys.usage ?? USAGE, buildUsageValues(deps))
 }
 
 function buildUsageValues(deps: SuggestCommandDeps): CommandMessageValues {

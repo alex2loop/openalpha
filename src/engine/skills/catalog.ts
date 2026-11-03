@@ -1,15 +1,14 @@
 import type { SkillVisibility } from '@/engine/skills/availability'
-import type { SkillDoc } from '@/engine/skills/load'
+import type { SkillDoc } from '@/engine/skills/skill-text'
 import type { SkillMeta } from '@/engine/skills/types'
-import { abortError, ConfigError } from '@/core/errors'
+import { abortError } from '@/core/errors'
 import { isSkillVisible } from '@/engine/skills/availability'
+import { assertNotReservedName, parseEmbedded } from '@/engine/skills/embedded-catalog'
 import {
   loadSkillIndexFingerprint,
   loadSkillIndexFromDirs,
   readSkillDoc,
-  toSkillDoc,
 } from '@/engine/skills/load'
-import { readSkillMeta } from '@/engine/skills/skill-text'
 
 export interface SkillCatalog {
   list(visibility: SkillVisibility, signal: AbortSignal): Promise<readonly SkillMeta[]>
@@ -83,51 +82,12 @@ export function createSkillCatalog(options: {
   }
 }
 
-function parseEmbedded(texts: readonly string[]): {
-  readonly metas: ReadonlyMap<string, SkillMeta>
-  readonly docs: ReadonlyMap<string, SkillDoc>
-} {
-  const metas = new Map<string, SkillMeta>()
-  const docs = new Map<string, SkillDoc>()
-
-  for (const [index, text] of texts.entries()) {
-    const meta = readSkillMeta(text)
-
-    if (meta === undefined) {
-      throw new ConfigError(
-        `embedded skill at index ${index} is malformed or exceeds the size limit`
-      )
-    }
-
-    if (metas.has(meta.name)) {
-      throw new ConfigError(`duplicate embedded skill '${meta.name}'`)
-    }
-
-    // A bundled skill is prose that shapes what the product recommends, so it carries a version an
-    // edit must bump; without one, advice changes while every version field stays identical.
-    if (meta.version === undefined || meta.version.trim() === '') {
-      throw new ConfigError(`embedded skill '${meta.name}' must declare a non-empty version`)
-    }
-
-    metas.set(meta.name, meta)
-    docs.set(meta.name, toSkillDoc(text))
-  }
-
-  return { metas, docs }
-}
-
 function assertNoReservedSkills(
   skills: readonly SkillMeta[],
   reserved: ReadonlyMap<string, SkillMeta>
 ): void {
   for (const skill of skills) {
     assertNotReservedName(skill.name, reserved)
-  }
-}
-
-function assertNotReservedName(name: string, reserved: ReadonlyMap<string, SkillMeta>): void {
-  if (reserved.has(name)) {
-    throw new ConfigError(`skill '${name}' is reserved by an embedded skill`)
   }
 }
 

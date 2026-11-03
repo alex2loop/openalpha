@@ -31,6 +31,7 @@ import type {
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { BookReads } from '@/trading/wiring/composition/edition'
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import { createAlertService } from '@/trading/features/alerts/alerts'
 import { createBriefService } from '@/trading/features/brief/brief'
@@ -90,6 +91,8 @@ interface DomainServiceDeps {
   readonly venues: VenueRegistry
   /** Built beside the market registry so the markets and the money read one conversion path. */
   readonly fx: FxRates
+  /** What an edition that stores no suggestion answers itself; absent reads the store. */
+  readonly reads?: Pick<BookReads, 'reduceVerdicts' | 'exitPlans'>
 }
 
 function buildProfiles(deps: DomainServiceDeps): ProfileService {
@@ -117,7 +120,7 @@ function buildPortfolio(parts: BookParts): PortfolioService {
     ledger: deps.stores.ledger,
     profile,
     exitPlans,
-    reduceVerdicts: createReduceVerdicts(deps.stores.suggestion),
+    reduceVerdicts: deps.reads?.reduceVerdicts ?? createReduceVerdicts(deps.stores.suggestion),
     markets: deps.markets,
     venues: deps.venues,
     logger: deps.logger,
@@ -273,7 +276,9 @@ function buildBookWithPlans(parts: Omit<BookParts, 'exitPlans'>): {
 } {
   const lazyExitPlans: ExitPlanner = { plan: (options) => exitPlans.plan(options) }
   const portfolio = buildPortfolio({ ...parts, exitPlans: lazyExitPlans })
-  const exitPlans = buildExitPlanner(parts.deps, { portfolio, profiles: parts.profile })
+  const exitPlans =
+    parts.deps.reads?.exitPlans ??
+    buildExitPlanner(parts.deps, { portfolio, profiles: parts.profile })
 
   return { portfolio, exitPlans }
 }

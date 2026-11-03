@@ -1,3 +1,4 @@
+import type { GuardedFetchOptions, GuardedResponse } from '@/core/ssrf/fetch-guard'
 import { abortError, ToolError } from '@/core/errors'
 import { hasLikelySecret } from '@/core/security/credentials'
 import { type DnsLookupFn, defaultDnsLookup } from '@/core/ssrf/dns'
@@ -41,17 +42,6 @@ const FORBIDDEN_HEADER_NAMES: ReadonlySet<string> = new Set([
 ])
 
 export type { DnsLookupFn }
-
-interface GuardedFetchOptions {
-  readonly allowlist?: readonly string[]
-  readonly dnsLookup?: DnsLookupFn
-}
-
-/** A pinned request constructs its own `Response`, whose `url` is always empty — hence `finalUrl`. */
-interface GuardedResponse {
-  readonly response: Response
-  readonly finalUrl: string
-}
 
 interface FetchHopState {
   readonly redirectsLeft: number

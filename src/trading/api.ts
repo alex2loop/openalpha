@@ -31,11 +31,17 @@ export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
 
 // ── Boot & composition ───────────────────────────────────────────────────────
 
+// ── Boot & composition ───────────────────────────────────────────────────────
+
+export type { BookReads, TradingEdition } from '@/trading/wiring/composition/edition'
 export type { SourceHost } from '@/trading/wiring/composition/source-hosts'
 export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'
 export { PROFILE_CURRENCY_SQL } from '@/trading/features/profile/store'
+export { BROWSER_FEEDS, withReachableFeeds } from '@/trading/sources/adapters/rss'
+export { SOURCE_ROUTES, toBrowserRoutes } from '@/trading/sources/routes'
 export { HOST_SLOW_REQUEST_TIMEOUT_MS } from '@/trading/wiring/composition/host-seams'
 export { createTradingRegistrationProvider } from '@/trading/wiring/composition/registration'
+export { BROWSER_REACHABLE_SOURCES } from '@/trading/wiring/composition/source-facts'
 export { listSourceHosts } from '@/trading/wiring/composition/source-hosts'
 export { unavailableSources } from '@/trading/wiring/composition/source-registry'
 export { createTradingStoresProvider } from '@/trading/wiring/composition/stores'
@@ -119,6 +125,7 @@ export type {
   SuggestionId,
   SuggestionListStatus,
   SuggestionOutcome,
+  SuggestionRequest,
   SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
 export type { Caveat, CaveatCode, CaveatSeverity, HoldReasonCode } from '@/trading/kernel/caveat'
@@ -204,7 +211,10 @@ export {
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
 export { ORDER_TOOL_NAME, TRADE_COMMAND_NAME } from '@/trading/features/order/types'
-export { renderAnalysisText } from '@/trading/features/suggestion/analysis/render'
+export {
+  renderAnalysisFailure,
+  renderAnalysisText,
+} from '@/trading/features/suggestion/analysis/render'
 export { createAnalysisService } from '@/trading/features/suggestion/analysis/run'
 export { AnalysisError, analysisId } from '@/trading/features/suggestion/analysis/types'
 export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'

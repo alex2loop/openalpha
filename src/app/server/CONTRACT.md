@@ -7,7 +7,7 @@ this document — neither imports the other.
 - **TS types** (canonical, machine-checked): [`wire/`](wire/) — `system.ts`, `config.ts`,
   `sign-in.ts`, `chat.ts`, `events.ts`, `live.ts`, `activity.ts`, `notices.ts`, `trading.ts`, `track-record.ts`, `debate.ts`, `digest.ts`, `market.ts`, `money.ts`,
   `orders.ts`, `agents.ts`, `jobs.ts`, `tasks.ts`, `models.ts`, `outbound.ts`, `watchlist.ts`, `portfolio-shares.ts`,
-  `errors.ts`, `socket.ts`, `exec.ts`, `vocab.ts`. Route handlers MUST NOT redefine
+  `errors.ts`, `socket.ts`, `exec.ts`, `worker.ts`, `vocab.ts`. Route handlers MUST NOT redefine
   these shapes. The folder is self-contained: a file in it imports only its siblings and
   `core/types`, so a client can compile it alone (`scripts/check-dag.ts` enforces this), and
   `vocab.ts` holds the closed vocabularies written out, checked against the daemon's own.
@@ -31,7 +31,13 @@ this document — neither imports the other.
 - **Surfaces:** the routes and the chat/slash runners do not depend on the transport: a route group
   runs under whatever `authorize` its surface injects, and a runner writes frames to a `FrameSink`.
   Everything in this section (bind, Host, peer, token, cookie, the socket caps) is the daemon's own
-  surface; a browser worker serves the same groups to its page with one caller and no socket.
+  surface; a browser worker serves the same groups to its page with one caller and no socket. Its
+  messages are `WorkerCall` (`start`, `keys`, `locale`, `http`, `frame`, `abort`) and `WorkerReply`
+  (`ready`, `refused`, `http`, `frame`) in `wire/worker.ts`: `http` carries a request and answers with
+  the status and body the route gave, `frame` carries the `ClientFrame` and `ServerFrame` of section
+  5, and a `frame` that is not a command (a line not starting with `/`) is answered with an error
+  frame. `ready` carries the capabilities of the edition; `refused` says why the database cannot be
+  served (`locked`, `taken-over`, `unsupported`, `newer-schema`, `storage-full`).
 - **Bind:** `127.0.0.1` only (loopback). The `/v1` HTTP routes also verify the request **peer** is
   loopback (defense in depth); `GET /`, its chunks and the `/v1/ws` handshake are answered before
   that check, so the bind alone guards them (the handshake adds the Origin allow-list below). A

@@ -29,6 +29,10 @@ const ASSIGNMENT_RE = new RegExp(
   'gi'
 )
 
+const KNOWN_SECRET_MIN_CHARS = 8
+const KNOWN_SECRET_LIMIT = 16
+const KNOWN_SECRETS = new Set<string>()
+
 // Compiled once at module load; 'g' flag requires reset per-use via SECRET_PATTERNS_NONGLOBAL.
 const SECRET_PATTERNS: readonly RegExp[] = [
   // First, so a key header sharing a line with a key name or cookie is never split off its body.
@@ -178,7 +182,32 @@ export function scrubCredentials(input: string): string {
     out = out.replace(re, '[REDACTED]')
   }
 
+  for (const secret of KNOWN_SECRETS) {
+    out = out.replaceAll(secret, '[REDACTED]')
+  }
+
   return out
+}
+
+/** A value the host knows is a secret (a key the visitor pasted), scrubbed wherever it appears: the
+ *  patterns above only know the shapes of vendors that have one. Process-wide on purpose, because
+ *  every scrub site in the process must see it. The newest are kept; a value too short to be a key
+ *  would shred ordinary text and is ignored. */
+export function registerKnownSecret(value: string): void {
+  if (value.length < KNOWN_SECRET_MIN_CHARS) {
+    return
+  }
+
+  KNOWN_SECRETS.delete(value)
+  KNOWN_SECRETS.add(value)
+
+  for (const oldest of KNOWN_SECRETS) {
+    if (KNOWN_SECRETS.size <= KNOWN_SECRET_LIMIT) {
+      break
+    }
+
+    KNOWN_SECRETS.delete(oldest)
+  }
 }
 
 export interface StreamScrubber {

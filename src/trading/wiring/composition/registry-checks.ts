@@ -112,7 +112,7 @@ function assertConfiguredReferencesExist(
 
   assertBriefSendTimeBeforeOpen(homeOwners, config.briefs.sendTime, Date.now())
   assertConfiguredMarketsExist(markets, config)
-  assertDefaultVenuesHold(config, venues)
+  assertDefaultVenuesHold(config, { venues, markets })
 }
 
 /** A delivery with no time of its own follows `[trading.briefs] send_time`; at or past the open it
@@ -161,11 +161,20 @@ function assertConfiguredMarketsExist(markets: MarketRegistry, config: TradingCo
 
 /** A default the ledger would refuse fills every unattended row with a venue the validator then
  *  rejects, so the operator learns at the write rather than at boot. A custom venue's markets come
- *  from its own section, so a `default_for` outside its `markets` lands here too. */
-function assertDefaultVenuesHold(config: TradingConfig, venues: VenueRegistry): void {
+ *  from its own section, so a `default_for` outside its `markets` lands here too. A market the
+ *  edition does not build has no ledger rows to default. */
+function assertDefaultVenuesHold(
+  config: TradingConfig,
+  registries: { readonly venues: VenueRegistry; readonly markets: MarketRegistry }
+): void {
+  const { venues, markets } = registries
   const unheld: string[] = []
 
   for (const [market, ref] of Object.entries(config.defaultVenues)) {
+    if (markets.find(marketRef(market)) === null) {
+      continue
+    }
+
     const venue = ref === undefined ? null : venues.find(ref)
 
     if (venue === null || !venue.manifest.markets.includes(marketRef(market))) {

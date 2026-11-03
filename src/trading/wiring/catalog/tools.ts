@@ -9,6 +9,7 @@ import type { SuggestionService } from '@/trading/features/suggestion/suggestion
 import type { ThemeService } from '@/trading/features/themes/types'
 import type { DefaultVenues, TradingCosts } from '@/trading/kernel/config'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import { createAlertManageTool } from '@/trading/features/alerts/tools'
 import { createBriefBuildTool, createBriefManageTool } from '@/trading/features/brief/tools'
 import { createMarketAccountsTool } from '@/trading/features/market-data/tools/accounts'
@@ -71,6 +72,8 @@ interface TradingToolDeps {
   /** Absent when the exchange credentials are not configured, in which case the model is not
    *  offered a tool that can only fail. */
   readonly order?: OrderService
+  /** What an edition that is not the installed version narrows; absent offers every tool. */
+  readonly edition?: TradingEdition
 }
 
 // The schema names only the regions whose market builds a brief; `findOrBuildBrief` refuses any other.
@@ -90,6 +93,14 @@ function briefTools(
 }
 
 export function createTradingTools(deps: TradingToolDeps): readonly ToolDefinition[] {
+  const offered = deps.edition?.tools
+
+  return offered === undefined
+    ? buildTradingTools(deps)
+    : buildTradingTools(deps).filter((tool) => offered.has(tool.name))
+}
+
+function buildTradingTools(deps: TradingToolDeps): readonly ToolDefinition[] {
   const { alerts, briefs, marketData, portfolio, profiles } = deps
   const markets = marketInput(marketData.markets())
   const regions = regionInput(marketData.regions())

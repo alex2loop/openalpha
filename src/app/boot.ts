@@ -3,7 +3,6 @@ import { join } from 'node:path'
 
 import type { RuntimeAssets } from '@/app/providers'
 import type { BootExtensionOptions, Booted, BootGate, BootOptions } from '@/app/types'
-import type { KeyValidator } from '@/commands/api'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { App } from '@/core/container'
 import type { Logger, LoggerResource } from '@/core/logging/logger'
@@ -19,6 +18,7 @@ import { startNoticeLog } from '@/app/activity/notice-log'
 import { startRunLog } from '@/app/activity/run-log'
 import { createAgentLogsProvider } from '@/app/agent-registry'
 import { loadAssets } from '@/app/assets'
+import { commandKeyValidator } from '@/app/command-keys'
 import { resolveBootExtensions } from '@/app/config-tree'
 import { createDeliveryHub, type DeliveryHub } from '@/app/delivery'
 import { createAlertFiredListener } from '@/app/event-jobs'
@@ -39,7 +39,6 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { ensurePrivateDirectory } from '@/core/security/private-files'
 import { probeHost } from '@/core/utils/reachability'
 import { WORKSPACES_DIR_NAME } from '@/engine/api'
-import { hasOwnMessage } from '@/i18n'
 import { openPersistence } from '@/persistence/node-api'
 import { assertSpawnToolsRegistered } from '@/tools/api'
 import { createTradingRegistrationProvider, createTradingStoresProvider } from '@/trading/api'
@@ -57,13 +56,6 @@ const CHILD_ENV_ALLOW: ReadonlySet<string> = new Set([
   'TEMP',
   'TMP',
 ])
-
-/** The operator reads what a loop does, never its task id. A loop with no entry here is described
- *  by `trading.loop.unknown` rather than by its raw name. */
-/** The one locale gate: every contributed command key must resolve in both catalogs. */
-const commandKeyValidator: KeyValidator = {
-  resolvesEverywhere: (key) => hasOwnMessage('en', key) && hasOwnMessage('vi', key),
-}
 
 export const passThroughBootGate: BootGate = async () => ({ verdict: 'ok' })
 

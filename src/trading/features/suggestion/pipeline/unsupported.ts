@@ -3,7 +3,7 @@ import type { MarketResolution } from '@/trading/markets/types'
 
 export function unsupported(
   resolution: Exclude<MarketResolution, { readonly kind: 'resolved' }>
-): SuggestionRunResult {
+): Extract<SuggestionRunResult, { readonly kind: 'unsupported' }> {
   const base = { kind: 'unsupported', ticker: resolution.ticker } as const
 
   if (resolution.kind === 'ambiguous-market') {

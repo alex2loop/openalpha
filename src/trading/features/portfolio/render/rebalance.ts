@@ -30,6 +30,7 @@ import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layou
 import { formatMoney } from '@/trading/render/money'
 import { renderSubject } from '@/trading/render/subject'
 
+import { renderGapRows } from './rebalance-gaps'
 import { renderOrders, splitBreaches } from './rebalance-orders'
 import { printedSegmentShares, renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
@@ -43,8 +44,13 @@ interface PlanSums {
   readonly buys: number
 }
 
+/** What a plan is written as: the orders that bring the book to it, or only the gaps. */
+export type RebalanceForm = 'orders' | 'gaps'
+
 export interface RebalanceRenderOptions {
   readonly context: RenderContext
+  /** Absent writes orders, as the installed version does. */
+  readonly form?: RebalanceForm
   readonly listedOnly: boolean
   /** Present on an operator surface only. Without it the orders print weights alone. */
   readonly sizing?: RebalanceSizing | null
@@ -75,20 +81,21 @@ export function renderRebalanceText(
   }
 
   const sizing = options.sizing ?? null
+  const gaps = options.form === 'gaps'
 
   return joinSections([
     [
       renderSectionTitle(SECTION_ICONS.advice, renderRebalanceTitle(locale, advice, options)),
-      ...renderOrders(locale, advice, options),
+      ...(gaps ? renderGapRows(locale, advice, sizing) : renderOrders(locale, advice, options)),
       ...renderBreachLine(locale, advice),
-      ...renderAfterPlan(locale, advice, options),
+      ...(gaps ? [] : renderAfterPlan(locale, advice, options)),
     ],
     [
       ...renderSegments(locale, advice.allocation, options.context),
       ...renderEtfCapLines(locale, advice.allocation),
       renderCashLine(locale, advice, sizing),
     ],
-    renderStanceLines(locale, advice),
+    gaps ? [] : renderStanceLines(locale, advice),
     renderNotes(locale, advice.findings, [...advice.cashSegment.caveats, ...advice.caveats]),
     [
       ...renderNavLine(locale, sizing, options),
@@ -107,6 +114,10 @@ export function renderRebalanceTitle(
 ): string {
   const sizing = options.sizing ?? null
   const sums = sizing === null ? undefined : planSums(advice, sizing)
+
+  if (options.form === 'gaps') {
+    return t(locale, 'trading.render.rebalance.gapsTitle')
+  }
 
   if (sizing === null || sums === undefined || sums.buys + sums.sells === 0) {
     return t(locale, 'trading.render.rebalance.title')

@@ -15,6 +15,7 @@ import { type AgentId, LOCAL_USER_ID, type UserId } from '@/core/ids'
 import { isMemoryKey } from '@/core/memory-key'
 import { rejectIfSecret } from '@/core/security/credentials'
 import { hasBlockingThreat, scanOutput } from '@/core/security/sanitize'
+import { utf8ByteLength } from '@/core/utils/text'
 import { MS_PER_DAY } from '@/core/utils/time'
 
 const IMPORTANCE_VALUES = Object.freeze({
@@ -267,7 +268,7 @@ function assertKey(key: string): void {
 // Bound the stored value: an unbounded write per key is a growth leak. Byte length, not char
 // count, because the column is sized in bytes and multi-byte text would exceed a char-based cap.
 function assertWithinLimit(value: string, maxValueBytes: number): void {
-  const bytes = Buffer.byteLength(value, 'utf8')
+  const bytes = utf8ByteLength(value)
 
   if (bytes > maxValueBytes) {
     throw new ValidationError(

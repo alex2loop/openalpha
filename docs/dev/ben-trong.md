@@ -48,8 +48,8 @@ từ đĩa). Chỉ `app`, `cli` và barrel SDK import một `node-api`, và hai 
 `bun run check:browser` dựng bundle đó rồi chỉ ra mọi import phá lời hứa này. Một factory di động cần khả năng chỉ có ở máy chủ thì nhận nó dưới dạng
 hàm phía người dùng và `app` gắn vào: thư mục nháp của lượt chạy (`RunOnceDeps.prepareWorkspace`), nhật
 ký chi phí chưa ghi (`Services.unrecordedSpend`), phép thăm dò mạng sau các vòng trading
-(`ReachabilityProbe`), bản chụp trước migration (`MigrateOptions.backup`) và nguồn thông tin xác thực
-mô hình (`createAiProvider`). Có ba ngoại lệ:
+(`ReachabilityProbe`), bản chụp trước migration (`MigrateOptions.backup`), nguồn thông tin xác thực
+mô hình (`createAiProvider`) và cách tải một trang văn bản (`FetchGuard`: dịch vụ nền kiểm tra và ghim từng bước nhảy, trình duyệt chỉ có `fetch` của chính nó). Có ba ngoại lệ:
 
 - `core` không có barrel. Các tệp công khai của nó được liệt kê trong `CORE_PUBLIC` ở
   `scripts/check-dag.ts` và được import trực tiếp. Thêm một tệp vào đó là thao tác review được để mở rộng
@@ -61,6 +61,18 @@ Không module nào dùng `export *`.
 
 *Vì sao:* bề mặt có tên rõ ràng ngăn việc ghép nối vô tình và tránh nạp các phụ thuộc kernel không liên
 quan.
+
+**Gốc dựng của trình duyệt.** `src/app/browser/` là gốc dựng thứ hai bên cạnh gốc của dịch vụ nền, cho
+engine chạy trong Web Worker. Nó liệt kê cùng các provider theo cùng thứ tự và bỏ những gì một trang
+không thể có (kênh chat, bộ lập lịch, plugin, MCP, agent riêng của người vận hành). Phần khác biệt
+được gắn ở đó: key mô hình được đọc ở mỗi yêu cầu từ một keyring (`keys.ts`) nên đổi key có tác dụng
+từ lần gọi kế tiếp; `fetch` của chính trang là `FetchGuard`; lưu trữ là engine SQLite WASM dưới khóa
+thẻ. Trang nói chuyện với worker bằng `WorkerCall` / `WorkerReply` (`app/server/wire/worker.ts`):
+`http` chạy đúng các handler route mà dịch vụ nền phục vụ, `frame` chạy đúng các frame chat, và chỉ
+dòng bắt đầu bằng `/` là lệnh. Những gì bản web thu hẹp gói trong một giá trị, `TradingEdition`, truyền
+vào phần đăng ký trading: các thị trường được dựng, lệnh và công cụ được mở, `/suggest` thành phân
+tích, rebalance viết thành các khoảng lệch, và `BookReads`, các lần đọc đề xuất và kế hoạch thoát mà
+bản web luôn trả về rỗng vì không bao giờ lưu cái nào. Trường nào vắng thì là bản cài.
 
 ### AD-3: Interface thuộc về bên tiêu thụ
 

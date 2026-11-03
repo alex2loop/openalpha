@@ -16,6 +16,7 @@ import type { TradingConfig } from '@/trading/kernel/config'
 import type { MarketRef, Region } from '@/trading/kernel/instrument'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import { createAlertCommand } from '@/trading/features/alerts/command'
 import { createBriefCommand } from '@/trading/features/brief/command'
@@ -116,9 +117,19 @@ interface TradingCommandDeps {
   readonly defaultRegion: Region
   /** Absent when no exchange key is configured: `/trade` then only names the keys it needs. */
   readonly order?: OrderService
+  /** What an edition that is not the installed version narrows; absent offers everything. */
+  readonly edition?: TradingEdition
 }
 
 export function createTradingCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
+  const offered = deps.edition?.commands
+
+  return offered === undefined
+    ? buildTradingCommands(deps)
+    : buildTradingCommands(deps).filter((command) => offered.has(command.name))
+}
+
+function buildTradingCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
   const { alerts, defaultRegion, marketData, portfolio, profiles } = deps
   const timezone = deps.config.displayTimezone
   const costs = deps.config.costs
@@ -215,7 +226,7 @@ function bookCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       profiles,
       marketData,
       timezone,
-      alerts,
+      alerts: deps.edition?.reads?.stopDistances ?? alerts,
       venues,
       ...orders,
     }),
@@ -225,6 +236,7 @@ function bookCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       marketData,
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
+      ...(deps.edition?.rebalance === undefined ? {} : { form: deps.edition.rebalance }),
     }),
     createReconcileCommand({ portfolio, timezone, baseCurrency: deps.config.baseCurrency }),
     createWatchlistCommand({ profiles, marketData, timezone }),
@@ -272,6 +284,7 @@ function suggestionCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       ...suggestionReportDeps({ suggestions, marketData, profiles }, deps.config),
       coverage: alerts,
       venues: deps.venues,
+      ...(deps.edition?.suggest === undefined ? {} : { analysis: deps.edition.suggest }),
     }),
     createReflectCommand({ suggestions, factorLog: deps.factorLog }),
   ]

@@ -1,10 +1,9 @@
 import type { DeliveryHub } from '@/app/delivery'
-import type { KernelDeps } from '@/app/services'
+import type { KernelDeps } from '@/app/run-services'
 import type { BootExtensionOptions } from '@/app/types'
 import type { SessionModelSelection } from '@/commands/api'
 import type { App, Bind, ServiceProvider } from '@/core/container'
 import type { ToolDefinition } from '@/core/tool'
-import type { CliCommandDef } from '@/core/types/cli-command'
 import type { Plugin } from '@/core/types/plugin'
 import type { Workflow } from '@/engine/api'
 import type { UserAgentSource } from '@/engine/node-api'
@@ -18,19 +17,19 @@ import { createUserAgentsProvider, liveAgentsProvider } from '@/app/agent-regist
 import { coreCommands } from '@/app/chat-commands'
 import { createDaemonTask } from '@/app/daemon'
 import { createBootExtensionRegistration } from '@/app/extensions'
-import { apiServiceProvider } from '@/app/server/feature'
 import {
-  buildSchedulerDeps,
-  buildToolServices,
-  createKernelProvider,
+  bindRunReads,
+  createCliCommandsProvider,
   createMcpSessionLifecycle,
   extendHooks,
   toAgentRegistry,
-} from '@/app/services'
+} from '@/app/run-services'
+import { apiServiceProvider } from '@/app/server/feature'
+import { buildDaemonToolServices, buildSchedulerDeps, createKernelProvider } from '@/app/services'
 import { createSelfUpgrade } from '@/app/update/install'
 import { createOperatorNotices, createReleaseUpdates } from '@/app/update/releases'
 import { createHealthSummary, createSpendReader } from '@/app/views'
-import { channelsProvider } from '@/channels/api'
+import { channelsProvider } from '@/channels/node-api'
 import { createCommandsProvider, createSessionModelSelection } from '@/commands/api'
 import { OperatorConfigError } from '@/core/config/operator-errors'
 import { engineProvider } from '@/engine/api'
@@ -42,15 +41,6 @@ import { createPluginsProvider } from '@/plugins/api'
 import { createSchedulerProvider } from '@/scheduler/api'
 import { toolsProvider } from '@/tools/node-api'
 import { resolveTradingConfig, TRADING_SKILLS } from '@/trading/api'
-
-declare module '@/core/container' {
-  interface Services {
-    /** Contributed CLI command definitions. The CLI entry adapts and validates them after boot;
-     *  built-ins never pass through here (`cli/registry.ts` stays static so preflight stays
-     *  pre-boot). */
-    cliCommands: readonly CliCommandDef[]
-  }
-}
 
 // spec §14 — the canonical order. Every `extend` target must already exist via an earlier `bind`,
 // so this list is load-bearing: never reorder it without walking the 9 constraints below.
@@ -230,17 +220,6 @@ async function assertProfileCurrency(
   return profile
 }
 
-// Step 8b: the empty base the trading and plugins providers extend. App owns it because no domain
-// module may know the CLI exists, and the CLI cannot register providers.
-function createCliCommandsProvider(): ServiceProvider {
-  return {
-    name: 'cli-commands',
-    register(bind): void {
-      bind('cliCommands', () => [])
-    },
-  }
-}
-
 // Step 11: MCP tools land last, so they see the plugin-merged registry and not just the built-ins.
 // A name already in the registry is NOT overwritten: an external server does not get to redefine a
 // built-in tool by claiming its name.
@@ -270,20 +249,6 @@ function bindNoticeSeams(bind: Bind, delivery: DeliveryHub): void {
   bind('deliveredNotices', () => delivery.onDelivered)
 }
 
-// What a run reads before it starts, bound here because only the composition root can see both the
-// engine and the stores: the session's prior transcript and totals, and an agent's spend today.
-function bindRunReads(bind: Bind): void {
-  bind(
-    'sessionHistory',
-    (app) => (sessionId, limit) => app.resolve('sessionStore').loadHistory(sessionId, limit)
-  )
-  bind('priorTotals', (app) => (sessionId) => app.resolve('sessionStore').loadTotals(sessionId))
-  bind(
-    'agentSpentToday',
-    (app) => (id, nowMs) => app.resolve('llmAttemptStore').totalForBillingAgent(id, nowMs)
-  )
-}
-
 // The bindings that exist only because the composition root can see every module at once: the tool
 // handles, the persistence/memory/skills hooks, the session trail, and the scheduler's deps.
 function createAppProvider(
@@ -309,7 +274,7 @@ function createAppProvider(
       bind('selfUpgrade', (app) => createSelfUpgrade(app, delivery))
       bind('releaseUpdates', (app) => createReleaseUpdates(app, app.resolve('selfUpgrade')))
       bind('spendReader', (app) => createSpendReader(app))
-      bind('toolServices', buildToolServices)
+      bind('toolServices', buildDaemonToolServices)
       bind('mcpSessionLifecycle', createMcpSessionLifecycle)
       bind('daemonTask', (app) => createDaemonTask(app, delivery))
       bindNoticeSeams(bind, delivery)

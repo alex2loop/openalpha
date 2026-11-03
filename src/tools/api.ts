@@ -9,7 +9,9 @@ export type {
   ScopedNewJob,
   ScopedNewJobSchedule,
 } from '@/tools/schedule/types'
+export type { WebRetrievalService } from '@/tools/web/retrieval-service'
 export { assertSpawnToolsRegistered, resolveChildMaxDurationMs } from '@/tools/delegation/spawn'
+export { createPortableToolsProvider } from '@/tools/portable-services'
 export { SCHEDULER_MAX_JOBS } from '@/tools/schedule/policy'
 export {
   assertInterval,
@@ -21,4 +23,5 @@ export {
   resolveTimezone,
   validateJobPrompt,
 } from '@/tools/schedule/validate'
+export { createWebRetrievalService } from '@/tools/web/retrieval-service'
 export { listSearchHosts } from '@/tools/web/search/hosts'

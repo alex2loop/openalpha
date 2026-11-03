@@ -1,5 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { MarketDataService } from '@/trading/features/market-data/types'
+import type { RebalanceForm } from '@/trading/features/portfolio/render/rebalance'
 import type { RebalanceText } from '@/trading/features/portfolio/render/rebalance-surface'
 import type { AbsoluteRebalancePlan, PortfolioService } from '@/trading/features/portfolio/types'
 import type { ProfileService } from '@/trading/features/profile/types'
@@ -27,6 +28,7 @@ interface RebalanceViewDeps {
   readonly profiles: Pick<ProfileService, 'get'>
   readonly marketData: Pick<MarketDataService, 'quoteConvention'>
   readonly timezone: string
+  readonly form?: RebalanceForm
 }
 
 /** The plan and the lines `/rebalance` would print for it, written from the same options the
@@ -49,6 +51,7 @@ function createRebalanceViews(deps: RebalanceViewDeps): RebalanceViews {
         plan,
         text: renderRebalanceForSurface(request.locale, plan, {
           context: resolveRenderContext(deps.timezone, NOTICE_SURFACE),
+          ...(deps.form === undefined ? {} : { form: deps.form }),
           ...(plan.freshness === undefined ? {} : { freshness: plan.freshness }),
           entryTranchePct: profile.entryTranchePct,
           maximumSectorPctNav: profile.maximumSectorPctNav,
@@ -67,12 +70,14 @@ function createRebalanceViews(deps: RebalanceViewDeps): RebalanceViews {
 /** The view service over a built aggregate; the one line registration adds. */
 export function buildRebalanceViews(
   services: Pick<RebalanceViewDeps, 'portfolio' | 'profiles' | 'marketData'>,
-  config: { readonly displayTimezone: string }
+  config: { readonly displayTimezone: string },
+  form?: RebalanceForm
 ): RebalanceViews {
   return createRebalanceViews({
     portfolio: services.portfolio,
     profiles: services.profiles,
     marketData: services.marketData,
     timezone: config.displayTimezone,
+    ...(form === undefined ? {} : { form }),
   })
 }

@@ -14,6 +14,7 @@ import {
   renderRebalanceTitle,
   renderStanceLines,
 } from './rebalance'
+import { renderGapEntries } from './rebalance-gaps'
 import { emptyPlanLine, groupHeading, renderOrderRows } from './rebalance-orders'
 import { renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
@@ -62,27 +63,55 @@ export function renderRebalanceForSurface(
   return {
     headline: headlineOf(locale, advice, sized),
     groups,
-    orders: renderOrderRows(locale, advice, sized).map((entry) => ({
-      instrument: entry.row.instrument,
-      group: entry.group === 'breach' ? 'first' : 'later',
-      line: entry.text
-        .split('\n')
-        .map((line) => line.trimStart())
-        .join('\n'),
-    })),
+    orders: orderEntries(locale, advice, sized),
     segments: trimmed([
       ...renderSegments(locale, advice.allocation, options.context),
       ...renderEtfCapLines(locale, advice.allocation),
       renderCashLine(locale, advice, plan.sizing),
     ]),
     notes: trimmed([
-      ...(advice.rebalance.some((row) => fractionDirection(row.changePctNav) !== 'down')
-        ? [t(locale, 'trading.render.rebalance.evidenceCheck')]
-        : []),
-      ...renderStanceLines(locale, advice),
+      ...(sized.form === 'gaps' ? [] : orderNotes(locale, advice)),
       ...renderNotes(locale, advice.findings, [...advice.cashSegment.caveats, ...advice.caveats]),
     ]),
   }
+}
+
+/** The lines under each group: orders, or only the gaps when the form says so. */
+function orderEntries(
+  locale: Locale,
+  advice: RebalancePlanReady,
+  options: RebalanceRenderOptions
+): RebalanceText['orders'] {
+  if (options.form === 'gaps') {
+    return renderGapEntries(locale, advice, options.sizing ?? null).map((entry) => ({
+      instrument: entry.row.instrument,
+      group: 'later',
+      line: trimmedBlock(entry.text),
+    }))
+  }
+
+  return renderOrderRows(locale, advice, options).map((entry) => ({
+    instrument: entry.row.instrument,
+    group: entry.group === 'breach' ? 'first' : 'later',
+    line: trimmedBlock(entry.text),
+  }))
+}
+
+/** What stands beside an order list: the sizing caveat and how hard today's plan leans. */
+function orderNotes(locale: Locale, advice: RebalancePlanReady): readonly string[] {
+  return [
+    ...(advice.rebalance.some((row) => fractionDirection(row.changePctNav) !== 'down')
+      ? [t(locale, 'trading.render.rebalance.evidenceCheck')]
+      : []),
+    ...renderStanceLines(locale, advice),
+  ]
+}
+
+function trimmedBlock(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => line.trimStart())
+    .join('\n')
 }
 
 function headlineOf(
@@ -94,7 +123,7 @@ function headlineOf(
     renderRebalanceTitle(locale, advice, options),
     ...(advice.rebalance.length === 0 ? [emptyPlanLine(locale, advice)] : []),
     ...renderBreachLine(locale, advice),
-    ...renderAfterPlan(locale, advice, options),
+    ...(options.form === 'gaps' ? [] : renderAfterPlan(locale, advice, options)),
     ...renderNavLine(locale, options.sizing ?? null, options),
     renderProfileStamp(locale, advice.policy.profile),
   ])

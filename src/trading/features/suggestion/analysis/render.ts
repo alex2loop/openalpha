@@ -1,12 +1,15 @@
 import type { Locale } from '@/core/types/locale'
-import type { AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
+import type { AnalysisFailure, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { ArguingRole } from '@/trading/features/suggestion/debate/claims'
 import type { AnalysisCase } from '@/trading/features/suggestion/debate/types'
-import { formatDay, t } from '@/i18n'
+import { LLM_ERROR_CODES } from '@/core/llm'
+import { formatDay, type MessageKey, t } from '@/i18n'
 import { isClaimBy, isUnsupportedRole } from '@/trading/features/suggestion/debate/claims'
 import { claimIdsWithVerdict } from '@/trading/features/suggestion/debate/types'
+import { unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
 import { stripStance } from '@/trading/features/suggestion/render/debate'
 import { renderCitationLines } from '@/trading/features/suggestion/render/sections'
+import { renderUnsupportedReason } from '@/trading/features/suggestion/render/verdict'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { formatCount, renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layout'
@@ -144,4 +147,22 @@ function closingLines(locale: Locale, record: AnalysisRecord): readonly string[]
         ]),
     t(locale, 'trading.analysis.install-for-verdict'),
   ]
+}
+
+/** Why a run stored nothing, in the reader's language: the name it could not resolve, or the
+ *  provider's own reason a role did not answer. */
+export function renderAnalysisFailure(locale: Locale, failure: AnalysisFailure): string {
+  if (failure.kind === 'unresolved') {
+    return renderUnsupportedReason(locale, unsupported(failure.resolution))
+  }
+
+  return t(locale, 'trading.analysis.not-finished', {
+    reason: t(locale, reasonKeyOf(failure.caveat.detail?.cause)),
+  })
+}
+
+function reasonKeyOf(cause: unknown): MessageKey {
+  const known = LLM_ERROR_CODES.find((code) => code === cause)
+
+  return known === undefined ? 'llmErrors.fatal' : `llmErrors.${known}`
 }

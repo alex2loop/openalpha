@@ -55,6 +55,8 @@ interface SourceRegistryOptions {
   /** Which providers serve each scope, in order; absent is every built-in route, the daemon's. A
    *  built-in provider the table leaves out is not registered. */
   readonly routes?: SourceRouteTable | undefined
+  readonly plainUserAgentSources?: ReadonlySet<SourceId> | undefined
+  readonly feeds?: Readonly<Record<string, string>> | undefined
 }
 
 /** Built and closed in one call. Adding a provider is one import plus one spread here — the
@@ -73,7 +75,7 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
   const credentialEnv = withCredentialAliases({ ...declaredEnv, ...options.credentialEnv })
   const credentials = resolveCredentials(options.env, credentialEnv)
   const registry = createSourceRegistry(mergedRoutes, options.logger)
-  const facts = toSourceFacts(plugin, credentials, options.requestShape)
+  const facts = toSourceFacts(plugin, credentials, options)
 
   assertEveryRoutedSourcePaced(facts.rateLimits)
 
@@ -141,16 +143,16 @@ function registerBuiltInSources(
 function toSourceFacts(
   plugin: PluginFacts,
   credentials: SourceFacts['credentials'],
-  requestShape: RequestShape
+  options: Pick<SourceRegistryOptions, 'requestShape' | 'plainUserAgentSources' | 'feeds'>
 ): SourceFacts {
   return {
     endpoints: { ...SOURCE_ENDPOINTS, ...plugin.endpoints },
     rateLimits: { ...SOURCE_RATE_LIMITS, ...plugin.rateLimits },
     burstLimits: SOURCE_BURST_LIMITS,
-    feeds: RSS_FEEDS,
+    feeds: options.feeds ?? RSS_FEEDS,
     credentials,
-    plainUserAgentSources: PLAIN_USER_AGENT_SOURCES,
-    requestShape,
+    plainUserAgentSources: options.plainUserAgentSources ?? PLAIN_USER_AGENT_SOURCES,
+    requestShape: options.requestShape,
   }
 }
 

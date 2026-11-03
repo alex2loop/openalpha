@@ -1,3 +1,4 @@
+import type { MessageKey } from '@/i18n'
 import type {
   CurrencyCode,
   MarketRef,
@@ -52,6 +53,9 @@ export type DebateRole = DebateWaveSpec['roles'][number]
 export interface DebateWavePlan {
   readonly wave: DebateWave
   readonly roles: readonly DebateRole[]
+  /** The progress line this wave reports under when its shared one describes a debate the run
+   *  does not hold. */
+  readonly progressKey?: MessageKey
 }
 
 /** Every role a mode runs, in the order its budget slices are cut. */
@@ -63,7 +67,11 @@ export const DEBATE_MODE_ROLES = Object.freeze({
 /** The analysis-only path: both sides argue and the claims are verified, and nothing after. It is
  *  not a `DebateMode`, so no option list, config key or tool enum offers it. */
 export const ANALYSIS_WAVES = Object.freeze([
-  { wave: 'cases', roles: ['bull-researcher', 'bear-researcher'] },
+  {
+    wave: 'cases',
+    roles: ['bull-researcher', 'bear-researcher'],
+    progressKey: 'trading.analysis.progress.cases',
+  },
   { wave: 'verification', roles: ['claim-verifier'] },
 ] as const satisfies readonly DebateWavePlan[])
 

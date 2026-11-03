@@ -4,6 +4,7 @@ import type { IntradaySettingsStore } from '@/trading/features/market-data/store
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingContributions } from '@/trading/wiring/composition/registry-checks'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import type { createDomainServices } from '@/trading/wiring/composition/services'
@@ -22,6 +23,7 @@ interface ContributionsInput {
   readonly intradaySettings: IntradaySettingsStore
   readonly ledger: LedgerStore
   readonly logger: Logger
+  readonly edition?: TradingEdition
 }
 
 /** The built surface definitions, in one place so the locale gate and every `extend` read the same
@@ -34,6 +36,7 @@ export function buildContributions(input: ContributionsInput): TradingContributi
       defaultVenues: input.config.defaultVenues,
       baseCurrency: input.config.baseCurrency,
       displayTimezone: input.config.displayTimezone,
+      ...(input.edition === undefined ? {} : { edition: input.edition }),
     }),
     commands: createTradingCommands({
       portfolio: input.services.portfolio,
@@ -54,6 +57,7 @@ export function buildContributions(input: ContributionsInput): TradingContributi
       ledger: input.ledger,
       logger: input.logger,
       defaultRegion: input.config.defaultRegion,
+      ...(input.edition === undefined ? {} : { edition: input.edition }),
       ...(input.services.order === undefined ? {} : { order: input.services.order }),
     }),
     cliCommands: [],

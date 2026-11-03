@@ -26,16 +26,22 @@ async function runOperatorBatch(
   return batch.results
 }
 
+interface LazyBriefParts {
+  readonly venues: VenueRegistry
+  /** The reads an edition that stores no suggestion answers itself. */
+  readonly reads?: Partial<BriefServices>
+}
+
 /** Each method resolves the owning service at call time, so a market can be built before the
  *  services that depend on the market registry exist. A market never holds a service reference. */
 export function lazyBriefServices(
   app: App,
   config: TradingConfig,
-  venues: VenueRegistry
+  parts: LazyBriefParts
 ): BriefServices {
+  const { venues } = parts
   const services = (): TradingServices => app.resolve('tradingServices')
-
-  return {
+  const base: BriefServices = {
     listResolvedSuggestions: (o) =>
       services().suggestions.listResolved({
         resolvedAfter: o.since,
@@ -67,6 +73,8 @@ export function lazyBriefServices(
       return previous?.sections ?? null
     },
   }
+
+  return { ...base, ...parts.reads }
 }
 
 /** The brief describes only markets the operator still reads: a switched-off segment would otherwise

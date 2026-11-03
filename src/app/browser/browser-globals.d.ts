@@ -22,4 +22,7 @@ declare global {
   }
 
   const FileSystemFileHandle: { readonly prototype: object } | undefined
+
+  /** The worker's own address: the wasm file sits beside the script. */
+  const location: { readonly href: string }
 }

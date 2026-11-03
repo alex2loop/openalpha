@@ -3,15 +3,19 @@ import type { LedgerStore } from '@/trading/features/ledger/store/ledger'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { VenueListings } from '@/trading/kernel/venue/catalog'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import { marketRef, venueRef } from '@/trading/kernel/instrument'
 import { createBinanceVenue } from '@/trading/venues/binance/venue'
 import { createVenueListings } from '@/trading/venues/listings'
 import { createManualVenue } from '@/trading/venues/manual'
 import { createOkxVenue } from '@/trading/venues/okx/venue'
 import { createVenueRegistry } from '@/trading/venues/registry'
+import { isMarketBuilt } from '@/trading/wiring/composition/edition'
 
 interface VenueOptions {
   readonly tradingConfig: TradingConfig
+  /** A hand-traded venue holding a market the edition does not build is left out. */
+  readonly edition?: TradingEdition | undefined
   readonly env: Readonly<Record<string, string | undefined>>
 }
 
@@ -66,16 +70,14 @@ function registerVenues(venues: VenueRegistry, options: VenueOptions, logger: Lo
       ...(binance === undefined ? {} : { credentialEnv: binance.credentialEnv }),
     })
   )
-  venues.register(createManualVenue({ id: venueRef('vps'), markets: [marketRef('equity-vn')] }))
-  venues.register(createManualVenue({ id: venueRef('gold-shop'), markets: [marketRef('gold-vn')] }))
-  venues.register(
-    createManualVenue({ id: venueRef('us-broker'), markets: [marketRef('equity-us')] })
-  )
+  registerManual(venues, options, { id: venueRef('vps'), markets: [marketRef('equity-vn')] })
+  registerManual(venues, options, { id: venueRef('gold-shop'), markets: [marketRef('gold-vn')] })
+  registerManual(venues, options, { id: venueRef('us-broker'), markets: [marketRef('equity-us')] })
 
   // Only a declared broker carries `markets`; a built-in venue's are the lines above.
   for (const [id, config] of Object.entries(options.tradingConfig.venues)) {
     if (config?.markets !== undefined) {
-      venues.register(createManualVenue({ id: venueRef(id), markets: config.markets }))
+      registerManual(venues, options, { id: venueRef(id), markets: config.markets })
     }
   }
 
@@ -87,5 +89,15 @@ function registerVenues(venues: VenueRegistry, options: VenueOptions, logger: Lo
     if (missingCredentials !== undefined) {
       logger.warn('trading.order_credentials_missing', { venue: id, variables: missingCredentials })
     }
+  }
+}
+
+function registerManual(
+  venues: VenueRegistry,
+  options: VenueOptions,
+  venue: Parameters<typeof createManualVenue>[0]
+): void {
+  if (venue.markets.every((market) => isMarketBuilt(options.edition, market))) {
+    venues.register(createManualVenue(venue))
   }
 }

@@ -9,7 +9,10 @@ import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
-import { renderRebalanceText } from '@/trading/features/portfolio/render/rebalance'
+import {
+  type RebalanceForm,
+  renderRebalanceText,
+} from '@/trading/features/portfolio/render/rebalance'
 import { parseTickers, usage } from '@/trading/kernel/surface/surface'
 import { planAffordances } from '@/trading/render/affordance'
 import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
@@ -26,6 +29,8 @@ interface AdviceCommandDeps {
   readonly heldMarkets: ReadonlySet<MarketRef>
   /** The operator's own clock, so every rendered instant reads in one zone. */
   readonly timezone: string
+  /** Absent writes orders; an edition that may not state them writes the gaps. */
+  readonly form?: RebalanceForm
 }
 
 export function createRebalanceCommand(deps: AdviceCommandDeps): SlashCommand {
@@ -68,6 +73,7 @@ async function run(deps: AdviceCommandDeps, ctx: SlashContext): Promise<SlashRes
       context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       listedOnly,
       sizing,
+      ...(deps.form === undefined ? {} : { form: deps.form }),
       ...(freshness === undefined ? {} : { freshness }),
       entryTranchePct: profile.entryTranchePct,
       maximumSectorPctNav: profile.maximumSectorPctNav,

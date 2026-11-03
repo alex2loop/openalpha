@@ -129,7 +129,7 @@ function reportWave(context: RoleCallContext, role: DebateRole): void {
     return
   }
 
-  context.request.progress?.(`trading.progress.debate.${current.wave}`, {
+  context.request.progress?.(current.progressKey ?? `trading.progress.debate.${current.wave}`, {
     ticker: context.request.ticker,
     step: step + 1,
     total: waves.length,

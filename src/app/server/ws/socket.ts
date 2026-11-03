@@ -8,22 +8,15 @@ import type { ClientFrame, ServerFrame } from '@/app/server/wire/socket'
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { ChatClient } from '@/app/server/ws/runs'
 import type { App } from '@/core/container'
-import { API_CHANNEL } from '@/app/server/channel'
 import { CHAT_CLIENT_ID_MAX } from '@/app/server/wire/chat'
 import {
   CONTRACT_REFUSED_CLOSE_CODE,
   CONTRACT_REFUSED_REASON_PREFIX,
   CONTRACT_VERSION,
 } from '@/app/server/wire/socket'
-import { handleChatFrame, steerDroppedText } from '@/app/server/ws/frames'
-import {
-  abortCommandRuns,
-  dropWaitingCommands,
-  sendRunError,
-  toLaneTag,
-} from '@/app/server/ws/runs'
-import { toApprovalWire, WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
-import { sessionId as brandSessionId } from '@/core/ids'
+import { closeChatClient, followChatBus } from '@/app/server/ws/chat-client'
+import { handleChatFrame } from '@/app/server/ws/frames'
+import { sendRunError, toLaneTag } from '@/app/server/ws/runs'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 
@@ -105,69 +98,7 @@ export const wsHandlers = {
       closeIfSignedOut(ws, ws.data.browserSessionId)
     }
 
-    const { bus } = ws.data.services
-    // Subscribed one topic at a time on purpose: iterating the union would collapse the
-    // payload types into their intersection, which no event satisfies.
-    const offs = [
-      // Every channel's approval is shown; only an API one is `answerable`, since a channel run's
-      // approval resolves on its own channel.
-      bus.on('approval_requested', (e) => {
-        relay(ws, toApprovalWire(e, ws.data.services.locale))
-      }),
-      bus.on('approval_resolved', (e) => {
-        relay(ws, WIRE_NORMALIZERS.approval_resolved(e))
-      }),
-      bus.on('clarification_requested', (e) => {
-        relay(ws, WIRE_NORMALIZERS.clarification_requested(e))
-      }),
-      bus.on('budget_warning', (e) => {
-        relay(ws, WIRE_NORMALIZERS.budget_warning(e))
-      }),
-      bus.on('pairing_requested', (e) => {
-        relay(ws, WIRE_NORMALIZERS.pairing_requested(e))
-      }),
-      // A steer the run accepted but ended before reading: the operator has to send it again.
-      bus.on('steering_dropped', (e) => {
-        if (e.channel === API_CHANNEL && ws.data.activeRuns.has(e.sessionId)) {
-          const id = ws.data.steerIds.get(e.sessionId)
-
-          ws.data.steerIds.delete(e.sessionId)
-          sendFrame(ws, {
-            type: 'chat',
-            kind: 'steer_dropped',
-            text: steerDroppedText(ws.data.services.locale, e.count),
-            ...toLaneTag(id),
-          })
-        }
-      }),
-      // `/new` moves the chat to a session of its own: the commands still running for the old one
-      // stop, the ones waiting were already dropped by the lane, and every page on it is told to
-      // leave it.
-      bus.on('chat_session_reset', (e) => {
-        if (e.channel === API_CHANNEL) {
-          abortCommandRuns(ws.data, brandSessionId(e.chatId))
-
-          if (e.cause === 'new') {
-            sendFrame(ws, { type: 'chat', kind: 'reset', sessionId: e.chatId })
-          }
-        }
-      }),
-      bus.on('provider_fallback', (e) => {
-        const ownsRun =
-          ws.data.activeRuns.has(e.sessionId) ||
-          (e.chatId !== undefined && ws.data.activeRuns.has(brandSessionId(e.chatId)))
-
-        if (e.channel === API_CHANNEL && ownsRun) {
-          relay(ws, WIRE_NORMALIZERS.provider_fallback(e))
-        }
-      }),
-    ]
-
-    ws.data.off = (): void => {
-      for (const off of offs) {
-        off()
-      }
-    }
+    ws.data.off = followChatBus({ sink: toSocketSink(ws), client: ws.data })
   },
 
   // Bun does not catch a rejected async handler and the daemon exits on an unhandled rejection,
@@ -315,16 +246,7 @@ function closeSocket(ws: ServerWebSocket<WsData>): void {
     // Listener cleanup must not prevent the socket's owned runs from being cancelled.
   }
 
-  dropWaitingCommands(ws.data)
-  ws.data.steerIds.clear()
-
-  for (const [sessionId, controllers] of ws.data.activeRuns) {
-    for (const controller of controllers) {
-      controller.abort()
-    }
-
-    ws.data.services.runControl.abortSession(sessionId, sessionId)
-  }
+  closeChatClient(ws.data)
 }
 
 function relay(ws: ServerWebSocket<WsData>, event: WireEvent): boolean {

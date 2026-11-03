@@ -5,6 +5,7 @@ import type {
   WebSearchProvider,
 } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
+import type { FetchGuard } from '@/core/ssrf/fetch-guard'
 import type { Locale } from '@/core/types/locale'
 import type {
   ResearchContentsInput,
@@ -23,7 +24,7 @@ import { deepseekSearch } from '@/tools/web/search/backends/deepseek'
 import { duckduckgoSearch } from '@/tools/web/search/backends/duckduckgo'
 import { exaSearch } from '@/tools/web/search/backends/exa'
 import { exaContents } from '@/tools/web/search/backends/exa-contents'
-import { searxngSearch } from '@/tools/web/search/backends/searxng'
+import { createSearxngSearch } from '@/tools/web/search/backends/searxng'
 import { serperSearch } from '@/tools/web/search/backends/serper'
 import { tavilySearch } from '@/tools/web/search/backends/tavily'
 import { normalizeProviderUrls } from '@/tools/web/search/domains'
@@ -49,16 +50,18 @@ const MAX_UTF8_BYTES_PER_CHARACTER = 4
 // after extraction, so the transport read needs its own, larger bound.
 const DIRECT_FETCH_MAX_READ_BYTES = 1_024 * 1_024
 
-const PROVIDERS = {
-  anysearch: anysearchSearch,
-  brave: braveSearch,
-  deepseek: deepseekSearch,
-  duckduckgo: duckduckgoSearch,
-  exa: exaSearch,
-  searxng: searxngSearch,
-  serper: serperSearch,
-  tavily: tavilySearch,
-} as const satisfies Readonly<Record<WebSearchProvider, SearchBackend>>
+function createBackends(guard: FetchGuard): Readonly<Record<WebSearchProvider, SearchBackend>> {
+  return {
+    anysearch: anysearchSearch,
+    brave: braveSearch,
+    deepseek: deepseekSearch,
+    duckduckgo: duckduckgoSearch,
+    exa: exaSearch,
+    searxng: createSearxngSearch(guard),
+    serper: serperSearch,
+    tavily: tavilySearch,
+  }
+}
 
 const IMPLICIT_DUCKDUCKGO = Object.freeze({ provider: 'duckduckgo' as const })
 
@@ -108,6 +111,8 @@ interface WebRetrievalState {
   readonly config: ResolvedConfig
   readonly logger: Logger
   readonly runner: ProviderRunner
+  readonly guard: FetchGuard
+  readonly backends: Readonly<Record<WebSearchProvider, SearchBackend>>
 }
 
 interface ResearchSearchExecution {
@@ -118,23 +123,24 @@ interface ResearchSearchExecution {
 
 export function createWebRetrievalService(
   config: ResolvedConfig,
-  logger: Logger
+  logger: Logger,
+  guard: FetchGuard
 ): WebRetrievalService {
   logUnsetKeys(config.webSearch, logger)
 
   const runner = createProviderRunner(config.webSearch)
-  const state = { config, logger, runner }
+  const state = { config, logger, runner, guard, backends: createBackends(guard) }
 
   return {
     // Research searches never implicitly fall back to DuckDuckGo; general search does. Intentional asymmetry.
     searchDefault: (input) => searchConfigured(input, 'default', state),
     searchFallback: (input) => searchConfigured(input, 'fallback', state),
     retrieveContents: (input) => retrieveContents(input, config, runner),
-    fetchDirect: (input) => fetchDirect(input, config, runner),
+    fetchDirect: (input) => fetchDirect(input, { config, runner, guard }),
     searchGeneral: (input) => searchGeneral(input, state),
     fetchGeneral: (input) => {
       assertRetrievalActive(input.signal)
-      return fetchGeneralPage(input, GENERAL_WEB_MAX_BYTES)
+      return fetchGeneralPage(input, { maxBytes: GENERAL_WEB_MAX_BYTES, guard })
     },
   }
 }
@@ -173,7 +179,7 @@ async function searchGeneral(
   const { config, logger, runner } = state
   const configured = defaultSearchProvider(config)
   const first = await runner.search({
-    backend: PROVIDERS[configured.provider],
+    backend: state.backends[configured.provider],
     configured,
     role: 'default',
     request: toSearchRequest(input, config, logger),
@@ -204,7 +210,7 @@ async function searchGeneral(
       : {}),
   })
   const second = await runner.search({
-    backend: PROVIDERS[fallback.provider],
+    backend: state.backends[fallback.provider],
     configured: fallback,
     role: 'fallback',
     request: toSearchRequest(input, config, logger),
@@ -235,7 +241,7 @@ async function searchResearch(
   const { input, configured, role } = execution
   const { config, logger, runner } = state
   const run = await runner.search({
-    backend: PROVIDERS[configured.provider],
+    backend: state.backends[configured.provider],
     configured,
     role,
     request: toSearchRequest(input, config, logger),
@@ -329,8 +335,7 @@ async function retrieveContents(
 
 async function fetchDirect(
   input: ResearchDirectFetchInput,
-  config: ResolvedConfig,
-  runner: ProviderRunner
+  state: Pick<WebRetrievalState, 'config' | 'runner' | 'guard'>
 ): Promise<ResearchDirectFetchOutcome> {
   assertRetrievalActive(input.signal)
   const startedAt = performance.now()
@@ -346,7 +351,7 @@ async function fetchDirect(
     input.cacheScope === undefined
       ? undefined
       : JSON.stringify(['direct', input.cacheScope, canonicalUrl])
-  const hit = key === undefined ? undefined : runner.readDirect(key)
+  const hit = key === undefined ? undefined : state.runner.readDirect(key)
 
   if (hit !== undefined) {
     return {
@@ -359,14 +364,13 @@ async function fetchDirect(
   try {
     const content = await fetchDirectPage({
       ...input,
+      guard: state.guard,
       url: canonicalUrl,
-      timeoutMs: config.webSearch.timeoutMs,
-      maxReadBytes: DIRECT_FETCH_MAX_READ_BYTES,
-      maxBytes: config.research.maxFullTextBytesPerSource,
+      ...directFetchLimits(state.config),
     })
 
     if (key !== undefined) {
-      runner.writeDirect(key, content)
+      state.runner.writeDirect(key, content)
     }
 
     return {
@@ -380,6 +384,16 @@ async function fetchDirect(
     }
 
     return directFetchFailure(canonicalUrl, startedAt, directFetchFailureCode(error))
+  }
+}
+
+function directFetchLimits(
+  config: ResolvedConfig
+): Pick<Parameters<typeof fetchDirectPage>[0], 'timeoutMs' | 'maxReadBytes' | 'maxBytes'> {
+  return {
+    timeoutMs: config.webSearch.timeoutMs,
+    maxReadBytes: DIRECT_FETCH_MAX_READ_BYTES,
+    maxBytes: config.research.maxFullTextBytesPerSource,
   }
 }
 

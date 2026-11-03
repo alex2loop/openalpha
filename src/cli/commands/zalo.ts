@@ -5,7 +5,7 @@ import {
   parseZaloPersonalConfig,
   type ZaloPersonalLoginOutcome,
   type ZaloPersonalLoginProgress,
-} from '@/channels/api'
+} from '@/channels/node-api'
 import { createCommand, createGroup, type Group } from '@/cli/command'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'

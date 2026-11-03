@@ -69,6 +69,7 @@ export { toMissingSearchKeyError } from '@/core/config/resolvers/web-search'
 export {
   EXA_SEARCH_TYPES,
   type ExaSearchType,
+  parseRawConfig,
   WEB_SEARCH_PROVIDERS,
 } from '@/core/config/schema'
 export { CURRENCY_CODE_PATTERN } from '@/core/config/schema-sections'

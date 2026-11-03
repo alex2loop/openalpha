@@ -9,7 +9,7 @@ import {
   type ZaloPersonalBlocker,
   type ZaloPersonalChannelConfig,
   zaloPersonalBlocker,
-} from '@/channels/api'
+} from '@/channels/node-api'
 import { BRAND } from '@/core/brand'
 import { setEnvCommand } from '@/core/config/operator-errors'
 import { type MessageKey, t } from '@/i18n'

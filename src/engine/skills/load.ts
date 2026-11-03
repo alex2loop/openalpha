@@ -11,6 +11,7 @@ import {
   buildSkillMeta,
   isSafeSkillName,
   SKILL_MAX_BYTES,
+  type SkillDoc,
   stripRoleBoundaries,
 } from '@/engine/skills/skill-text'
 
@@ -115,11 +116,6 @@ function fingerprintFromEntries(
   return hash.digest('hex')
 }
 
-export interface SkillDoc {
-  readonly text: string
-  readonly size: number
-}
-
 // The first dir holding a readable SKILL.md for `name` wins, matching the index's shadowing order.
 // Every path that puts skill text in front of a model reads through here, so the role-boundary
 // strip happens once, at the read. `size` stays the on-disk byte count the reader is charged for.
@@ -150,10 +146,6 @@ export async function readSkillDoc(
  * boundaries stripped once, `size` the text's own byte count so prompt accounting charges the same
  * units either way.
  */
-export function toSkillDoc(text: string): SkillDoc {
-  return { text: stripRoleBoundaries(text), size: Buffer.byteLength(text, 'utf8') }
-}
-
 async function readSkill(
   skillsDir: string,
   name: string,

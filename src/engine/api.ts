@@ -216,6 +216,7 @@ export { parseResearchJson, toResearchOutputContract } from '@/engine/research/e
 export { composeAbort, TIMEOUT_ABORT } from '@/engine/run-registry'
 export { engineProvider } from '@/engine/services'
 export { currentSkillPlatform, resolveSkillPlatform } from '@/engine/skills/availability'
+export { createEmbeddedSkillCatalog } from '@/engine/skills/embedded-catalog'
 export { parseFrontmatter } from '@/engine/skills/frontmatter'
 export { readSkillMeta, readSkillName, toSkillBody } from '@/engine/skills/skill-text'
 export { evaluateSkillContent, isAllowed } from '@/engine/skills/validate'

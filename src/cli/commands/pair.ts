@@ -1,6 +1,6 @@
 import type { CliApp } from '@/cli/types'
 import type { ChannelId } from '@/core/channels'
-import { findChannelDefinition } from '@/channels/api'
+import { findChannelDefinition } from '@/channels/node-api'
 import { createCommand, createGroup, type Group } from '@/cli/command'
 import { usage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'

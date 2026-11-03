@@ -1,5 +1,6 @@
 import type { SkillMeta } from '@/engine/skills/types'
 import { scanSkill } from '@/core/security/sanitize'
+import { utf8ByteLength } from '@/core/utils/text'
 import { parseFrontmatter, stripFrontmatter } from '@/engine/skills/frontmatter'
 
 // agentskills.io spec limits. Clamping description prevents oversized values bloating the
@@ -129,4 +130,14 @@ function parseList(raw: string | undefined): readonly string[] | undefined {
   const items = parts.map((part) => part.trim()).filter((part) => part.length > 0)
 
   return items.length > 0 ? items : undefined
+}
+
+export interface SkillDoc {
+  readonly text: string
+  /** The byte count the reader is charged for. */
+  readonly size: number
+}
+
+export function toSkillDoc(text: string): SkillDoc {
+  return { text: stripRoleBoundaries(text), size: utf8ByteLength(text) }
 }

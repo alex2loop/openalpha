@@ -1,7 +1,7 @@
+import type { FetchGuard } from '@/core/ssrf/fetch-guard'
 import type { SearchBackend, SearchRequest, SearchResult } from '@/tools/web/search/types'
 import { ToolError } from '@/core/errors'
 import { parseRetryAfterMs, readCappedText } from '@/core/http-client'
-import { NetworkPolicy } from '@/core/ssrf/network-policy'
 import { isPlainRecord } from '@/core/utils/collections'
 import { isLoopbackUrl } from '@/core/utils/url'
 import { parseJsonBody } from '@/tools/web/search/body-cap'
@@ -36,26 +36,28 @@ interface DiagnosticNames {
   readonly values: string[]
 }
 
-export const searxngSearch: SearchBackend = async (request) => {
-  if (!request.baseUrl) {
-    throw new SearchProviderError('invalid_request', 'SearXNG is not configured')
+export function createSearxngSearch(guard: FetchGuard): SearchBackend {
+  return async (request) => {
+    if (!request.baseUrl) {
+      throw new SearchProviderError('invalid_request', 'SearXNG is not configured')
+    }
+
+    const response = await fetchSearxng(guard, request)
+
+    if (!response.ok) {
+      await handleSearxngHttpError(response)
+    }
+
+    const text = await readCappedText(response, SEARXNG_MAX_BYTES)
+    const value: unknown = parseJsonBody(text)
+
+    const parsed = toFreeSearchResponse(handleSearxngPayload(value, request), request)
+
+    return request.recency === 'week' ? { ...parsed, freshness: 'unverified' } : parsed
   }
-
-  const response = await fetchSearxng(request)
-
-  if (!response.ok) {
-    await handleSearxngHttpError(response)
-  }
-
-  const text = await readCappedText(response, SEARXNG_MAX_BYTES)
-  const value: unknown = parseJsonBody(text)
-
-  const parsed = toFreeSearchResponse(handleSearxngPayload(value, request), request)
-
-  return request.recency === 'week' ? { ...parsed, freshness: 'unverified' } : parsed
 }
 
-async function fetchSearxng(request: SearchRequest): Promise<Response> {
+async function fetchSearxng(guard: FetchGuard, request: SearchRequest): Promise<Response> {
   if (!request.baseUrl) {
     throw new ToolError('unexpected', 'SearXNG baseUrl is required')
   }
@@ -65,11 +67,11 @@ async function fetchSearxng(request: SearchRequest): Promise<Response> {
   const fetchInit: RequestInit = { signal: request.signal }
 
   if (isLoopbackUrl(endpoint)) {
-    return NetworkPolicy.guardedLoopbackFetch(endpoint, fetchInit)
+    return guard.guardedLoopbackFetch(endpoint, fetchInit)
   }
 
   const hostname = new URL(endpoint).hostname
-  const guarded = await NetworkPolicy.guardedFetch(endpoint, fetchInit, {
+  const guarded = await guard.guardedFetch(endpoint, fetchInit, {
     allowlist: [hostname],
     ...(request.dnsLookup === undefined ? {} : { dnsLookup: request.dnsLookup }),
   })

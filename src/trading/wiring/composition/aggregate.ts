@@ -6,6 +6,7 @@ import type { createConfiguredRunBudget } from '@/engine/api'
 import type { IntradayReportDeps } from '@/trading/features/market-data/intraday/report'
 import type { HeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { RebalanceForm } from '@/trading/features/portfolio/render/rebalance'
 import type { OperationPolicy, TradingConfig } from '@/trading/kernel/config'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
@@ -51,6 +52,7 @@ interface AggregateOptions {
   readonly reachability: ReachabilityProbe
   /** `[schedule] late_grace_ms`: the one lateness bound a timed send shares with the scheduler. */
   readonly lateGraceMs: number
+  readonly edition?: { readonly rebalance?: RebalanceForm }
   recipient(): DeliveryAddress | undefined
 }
 
@@ -93,7 +95,11 @@ export function toAggregate(
     defaultRegion: options.tradingConfig.defaultRegion,
     focusScope: toFocusScope(parts.services.marketData.markets(), registries.markets),
     suggestionCards: buildSuggestionCards(parts.services, options.tradingConfig, parts.stores),
-    rebalanceViews: buildRebalanceViews(parts.services, options.tradingConfig),
+    rebalanceViews: buildRebalanceViews(
+      parts.services,
+      options.tradingConfig,
+      options.edition?.rebalance
+    ),
     appViews: buildAppViews(parts.services, options.tradingConfig),
     daemonTasks: buildDaemonTasks(
       parts,

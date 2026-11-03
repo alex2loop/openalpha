@@ -12,6 +12,7 @@ export type {
 } from '@/core/types/session'
 export type { Dialect, DialectName, FtsSearch, Storage, Transaction } from '@/core/types/storage'
 export type { OpenedPersistence } from '@/persistence/connection'
+export type { ConfigOverrideStore } from '@/persistence/stores/config-override'
 export type {
   BrowserSessionRow,
   BrowserSessionStore,
@@ -67,6 +68,7 @@ export { drainPages, RETENTION_DELETE_LIMIT } from '@/persistence/retention-page
 export { createPersistenceProvider } from '@/persistence/services'
 export { bindChunkSize } from '@/persistence/sql/syntax'
 export { createChannelInbox } from '@/persistence/stores/channel/inbox'
+export { createConfigOverrideStore } from '@/persistence/stores/config-override'
 export { stampLastMessages } from '@/persistence/stores/session/shown-rows'
 export {
   ALL_TABLE_NAMES,
