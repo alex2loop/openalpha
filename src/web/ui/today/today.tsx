@@ -30,7 +30,7 @@ export function Today() {
           <Macro />
           <OtherMarkets />
           <Events />
-          <News />
+          {!isAnalysisOnly.value && <News />}
           {offers('agents') && <AgentDay />}
         </>
       )}

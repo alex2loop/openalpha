@@ -16,6 +16,7 @@ import {
   SUGGEST_STOPS_ARG,
   setInput,
 } from '@/web/state/command'
+import { isAnalysisOnly, offers } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
 import { findRun, hasChildren, type Run, runs } from '@/web/state/live'
 import { canRemember, toAttributeName } from '@/web/state/memory'
@@ -281,13 +282,18 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
 
 // The first name the answer reported on: analyze it, or, under an analysis that may have handed back
 // a stored call, run that same line again from scratch; or start an alert on it, which waits in the
-// box for its price.
+// box for its price. An edition that stores no call has nothing to run again, and one with no
+// scheduler no alert.
 function NextSteps({ turn }: { readonly turn: Turn }) {
   const ticker = turn.tickers?.[0]
   const words = commandWordsOf(turn.text)
   const [command, subject, ...options] = words
   const isSuggest = command === SUGGEST_COMMAND
-  const canForce = isSuggest && subject !== SUGGEST_STOPS_ARG && !options.includes(FORCE_ARG)
+  const canForce =
+    isSuggest &&
+    !isAnalysisOnly.value &&
+    subject !== SUGGEST_STOPS_ARG &&
+    !options.includes(FORCE_ARG)
   const fresh = [...words, FORCE_ARG].join(' ')
 
   if (ticker === undefined) {
@@ -300,9 +306,11 @@ function NextSteps({ turn }: { readonly turn: Turn }) {
       {canForce && (
         <RunButton command={fresh} label={tr('ui.office.common.suggestFresh')} size="small" />
       )}
-      <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
-        {tr('ui.office.common.setAlert')}
-      </Button>
+      {offers('schedules') && (
+        <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
+          {tr('ui.office.common.setAlert')}
+        </Button>
+      )}
     </>
   )
 }

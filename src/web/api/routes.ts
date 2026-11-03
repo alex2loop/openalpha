@@ -72,7 +72,6 @@ import type {
   PairingList,
   PairingRevokeResult,
 } from '@/app/server/wire/sign-in'
-import type { StorageStatusResponse } from '@/app/server/wire/storage'
 import type {
   BriefScheduleWire,
   Capabilities,
@@ -218,8 +217,6 @@ export const ROUTES = Object.freeze({
   suggestionDebate: (suggestionId: string) =>
     route<DebateWire>(`/v1/suggestions/${encodeURIComponent(suggestionId)}/debate`, 'suggestions'),
   analyses: route<AnalysesResponse>('/v1/analyses'),
-  // Only the web edition serves it.
-  storage: route<StorageStatusResponse>('/v1/storage'),
   screen: route<ScreenResponse>('/v1/screen', undefined, { timeout: 'slow' }),
   trackRecord: route<TradingTrackRecordResponse>('/v1/track-record', 'suggestions'),
   research: route<ResearchResponse>('/v1/research'),

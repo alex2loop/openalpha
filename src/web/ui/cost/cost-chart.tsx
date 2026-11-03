@@ -2,6 +2,7 @@ import { type Signal, useSignal } from '@preact/signals'
 
 import type { CostReport } from '@/app/server/wire/system'
 import { formatDay } from '@/i18n'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { locale } from '@/web/state/session'
 import { formatUsd, PERCENT } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
@@ -16,8 +17,9 @@ const MIN_DAYS_FOR_TWO_LABELS = 4
 
 type CostDay = CostReport['days'][number]
 
-/** One bar per day, scaled to the period's highest; a bar opens that day's runs and their calls.
- *  The line above names the day under the pointer or focus, the latest day otherwise. */
+/** One bar per day, scaled to the period's highest; a bar opens that day's runs and their calls
+ *  where the edition keeps them. The line above names the day under the pointer or focus, the
+ *  latest day otherwise. */
 export function CostChart({ days }: { readonly days: readonly CostDay[] }) {
   const shown = useSignal<string | undefined>(undefined)
   const latest = days[days.length - 1]
@@ -38,7 +40,7 @@ export function CostChart({ days }: { readonly days: readonly CostDay[] }) {
           <b class="cost-figure">{formatSpent(readout.costUsd, undefined)}</b>
         </p>
         <CostPlot days={days} highest={highest} latest={latest} shown={shown} />
-        <p class="meta">{tr('ui.office.cost.pickDay')}</p>
+        {!isAnalysisOnly.value && <p class="meta">{tr('ui.office.cost.pickDay')}</p>}
       </div>
     </>
   )
@@ -122,7 +124,7 @@ function CostBar({
         formatDay(locale.value, entry.day),
         formatSpent(entry.costUsd, undefined),
       ])}
-      onClick={() => openActivityDialog({ day: entry.day })}
+      onClick={isAnalysisOnly.value ? undefined : () => openActivityDialog({ day: entry.day })}
       onPointerEnter={show}
       onPointerLeave={hide}
       onFocus={show}

@@ -54,6 +54,7 @@ import { syncTwin } from '@/web/scene/overlay/twin'
 import { isOnFloor } from '@/web/scene/sim/actors/poses'
 import { isActorId, isCrewId, ownAgentIdOf } from '@/web/scene/sim/actors/roster'
 import { projection, view } from '@/web/scene/view'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { selectedActor } from '@/web/state/focus'
 import { pending, runs } from '@/web/state/live'
@@ -113,7 +114,13 @@ export function startOverlay(deps: PassDeps): OverlayPass {
     isSettling: false,
     expiresAt: Number.POSITIVE_INFINITY,
   }
-  const stops = [startSpeech(onWireEvent), startPastCalls(), startDeskReads(), effect(askSeries)]
+  const stops = [
+    startSpeech(onWireEvent),
+    // An analysis-only edition stores no call to recall.
+    ...(isAnalysisOnly.value ? [] : [startPastCalls()]),
+    startDeskReads(),
+    effect(askSeries),
+  ]
 
   readOverlayFont(deps.scene)
 

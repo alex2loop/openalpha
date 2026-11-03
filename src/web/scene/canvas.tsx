@@ -13,7 +13,7 @@ import { ledItems, startLed } from '@/web/scene/data/led'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
 import { sourceLights, startSourceLights } from '@/web/scene/data/source-lights'
 import { coolerOffer, startTeamCalls } from '@/web/scene/data/team-calls'
-import { todayRuns } from '@/web/scene/data/today-runs'
+import { startTodayRuns, todayRuns } from '@/web/scene/data/today-runs'
 import { startWeather, weather } from '@/web/scene/data/weather'
 import { AddDesk } from '@/web/scene/overlay/add-desk'
 import { AgentCards } from '@/web/scene/overlay/agent-card'
@@ -193,13 +193,20 @@ function keepLastFrame(element: HTMLElement, draw: () => void): void {
 }
 
 // The scene's own data reads, each returning its stop. An analysis-only edition has no board of
-// stored calls, alerts, stops or tasks to read, and no third-party weather feed to call.
+// stored calls, alerts, stops, runs or tasks to read, and no third-party weather feed to call.
 function startReads(): (() => void)[] {
   return [
     startHome(),
     ...(isAnalysisOnly.value
       ? []
-      : [startBoard(), startRoomStatus(), startAgenda(), startTeamCalls(), startWeather()]),
+      : [
+          startBoard(),
+          startRoomStatus(),
+          startAgenda(),
+          startTeamCalls(),
+          startTodayRuns(),
+          startWeather(),
+        ]),
     startExDividends(),
     startSourceLights(),
   ]

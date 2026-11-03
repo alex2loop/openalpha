@@ -201,7 +201,7 @@ export async function stopTurn(turn: Turn): Promise<void> {
     return
   }
 
-  finishTurn(turn.localId, 'stopped')
+  endAsStopped(turn.localId)
 }
 
 /** The next message opens a new session. Turns still running keep going and stay in view. */
@@ -256,6 +256,16 @@ function updateTurn(localId: string, update: (turn: Turn) => Turn): void {
 function finishTurn(localId: string, status: TurnStatus): void {
   updateTurn(localId, (turn) =>
     isFinished(turn) ? turn : { ...turn, status, doneAt: performance.now() }
+  )
+  doneCallbacks.delete(localId)
+}
+
+// A stop the run took ends its turn as stopped, also when the run's `done` came before the reply.
+function endAsStopped(localId: string): void {
+  updateTurn(localId, (turn) =>
+    isFinished(turn) && turn.status !== 'done'
+      ? turn
+      : { ...turn, status: 'stopped', doneAt: turn.doneAt ?? performance.now() }
   )
   doneCallbacks.delete(localId)
 }

@@ -8,6 +8,7 @@ import { EditionFooter } from '@/web/edition/guide/footer'
 import { openConnectFailed } from '@/web/edition/keys-panel'
 import { holdKey, OPENROUTER, workerKeys } from '@/web/edition/keys-store'
 import { type ConnectResult, finishOpenRouterConnect } from '@/web/edition/openrouter-oauth'
+import { askToKeepData } from '@/web/edition/persistence'
 import { Refused } from '@/web/edition/refused'
 import { type EditionPhase, editionPhase, startEdition } from '@/web/edition/worker-link'
 import { declareWebEdition } from '@/web/state/edition'
@@ -28,6 +29,8 @@ if (canRunPage()) {
   const phaseKind = computed(() => editionPhase.value.kind)
 
   declareWebEdition()
+  // It never rejects; the answer is read back by the storage line.
+  askToKeepData().catch(() => undefined)
   // The page is announced in the language it shows, also before the office runs and when it refuses.
   effect(() => {
     document.documentElement.lang = locale.value

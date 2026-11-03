@@ -12,6 +12,10 @@ import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
 import { openSettings } from '@/web/ui/settings/settings'
 
+// The brief is the last step; the web edition has no chat step before it.
+const BRIEF_INDEX = 5
+const WEB_BRIEF_INDEX = 4
+
 interface StepProps {
   readonly index: number
   readonly title: string
@@ -20,7 +24,8 @@ interface StepProps {
   readonly children: ComponentChildren
 }
 
-/** "Bắt đầu với {brand}": five steps for a daemon with no model, no profile and an empty book. */
+/** "Bắt đầu với {brand}": five steps (four on the web) for a daemon with no model, no profile and an
+ *  empty book. */
 export function FirstRun() {
   const firstRun = state.value?.firstRun
 
@@ -32,7 +37,7 @@ export function FirstRun() {
         <ProfileStep isDone={firstRun?.profileSaved === true} />
         <BookStep isDone={firstRun?.bookEmpty === false} />
         {!isAnalysisOnly.value && <ChatStep />}
-        <BriefStep />
+        <BriefStep index={isAnalysisOnly.value ? WEB_BRIEF_INDEX : BRIEF_INDEX} />
       </div>
     </section>
   )
@@ -159,9 +164,9 @@ function WebModelStep({ isDone }: { readonly isDone: boolean }) {
 
 // The daemon's brief waits for a model to answer it; the web edition's reads the market and needs
 // no key.
-function BriefStep() {
+function BriefStep({ index }: { readonly index: number }) {
   return (
-    <Step index={5} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
+    <Step index={index} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
       <p class="meta">
         {tr(editionKey('ui.office.firstRun.briefBody', 'ui.office.edition.firstRun.briefBody'))}
       </p>
