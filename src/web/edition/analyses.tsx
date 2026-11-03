@@ -3,6 +3,7 @@ import { useEffect } from 'preact/hooks'
 import type { AnalysesResponse } from '@/app/server/wire/analysis'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { CompareLink } from '@/web/edition/install-line'
 import { useBlockRead } from '@/web/state/block'
 import { onWireEvent } from '@/web/state/events'
 import { tr } from '@/web/text/tr'
@@ -47,7 +48,9 @@ export function Analyses({ instrument }: AnalysesProps) {
             {analyses.map((analysis) => (
               <AnalysisCard key={analysis.id} analysis={analysis} />
             ))}
-            <p class="meta">{tr('trading.analysis.web-scope')}</p>
+            <p class="meta">
+              {tr('trading.analysis.web-scope')} <CompareLink row="verdict-levels" />
+            </p>
           </>
         )
       }
