@@ -77,6 +77,7 @@ jobs:
     timeout-minutes: 15
     env:
       WEB_APP_URL: ${{ vars.WEB_APP_URL }}
+      WRANGLER: wrangler@4.157.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -93,12 +94,12 @@ jobs:
 
       - run: bun run build:site --app-url="$WEB_APP_URL" --noindex
 
-      - run: bunx wrangler@4.157.0 deploy -c deploy/web/wrangler.toml
+      - run: bunx "$WRANGLER" deploy -c deploy/web/wrangler.toml
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - run: bunx wrangler@4.157.0 deploy -c deploy/site/wrangler.toml
+      - run: bunx "$WRANGLER" deploy -c deploy/site/wrangler.toml
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
