@@ -42,7 +42,7 @@ export function KeysPanel() {
         <SlotRow key={slot} slot={slot} />
       ))}
       <ActionRow title={tr('ui.office.edition.keys.chatgptTitle')}>
-        <InstallLine line="ui.office.edition.keys.chatgptInstall" />
+        <InstallLine row="chatgpt-plan" />
       </ActionRow>
     </>
   )

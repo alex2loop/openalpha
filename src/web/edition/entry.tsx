@@ -3,14 +3,16 @@ import { computed, effect, untracked } from '@preact/signals'
 import { bootOffice, canRunPage, renderPage } from '@/web/boot'
 import { openConsentDialog } from '@/web/edition/consent-dialog'
 import { startDataStatus } from '@/web/edition/data-status'
+import { EditionFooter } from '@/web/edition/guide/footer'
 import { openConnectFailed } from '@/web/edition/keys-panel'
 import { holdKey, workerKeys } from '@/web/edition/keys-store'
 import { type ConnectResult, finishOpenRouterConnect } from '@/web/edition/openrouter-oauth'
 import { Refused } from '@/web/edition/refused'
-import { editionPhase, startEdition } from '@/web/edition/worker-link'
+import { type EditionPhase, editionPhase, startEdition } from '@/web/edition/worker-link'
 import { declareWebEdition } from '@/web/state/edition'
 import { state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
+import { ModalHost } from '@/web/ui/kit/modal'
 import { openSettings } from '@/web/ui/settings/settings'
 import { App } from '@/web/ui/shell/app'
 import { StatusLine } from '@/web/ui/shell/status-line'
@@ -28,7 +30,7 @@ if (canRunPage()) {
 
   declareWebEdition()
 
-  renderPage(<EditionApp />)
+  renderPage(<EditionShell />)
   addEventListener(
     'pagehide',
     () => {
@@ -60,9 +62,22 @@ if (canRunPage()) {
   })
 }
 
-function EditionApp() {
+// The footer is under every phase, so its links work on a refusal and while the office loads. The
+// office mounts its own dialog host once it has a session; until then the shell holds one.
+function EditionShell() {
   const phase = editionPhase.value
+  const isOfficeLoaded = phase.kind === 'ready' && state.value !== undefined
 
+  return (
+    <div class="edition-shell">
+      <EditionApp phase={phase} />
+      {!isOfficeLoaded && <ModalHost />}
+      <EditionFooter />
+    </div>
+  )
+}
+
+function EditionApp({ phase }: { readonly phase: EditionPhase }) {
   switch (phase.kind) {
     case 'starting':
       return <StatusLine text={tr('ui.office.loading')} />
