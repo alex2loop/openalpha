@@ -161,7 +161,7 @@
     "src/trading/sources/adapters/vndirect/market-read.ts#createMarketRead": 53,
     "src/trading/sources/registry.ts#failoverSources": 41,
     "src/trading/sources/transport/health.ts#createSourceHealthLog": 48,
-    "src/trading/wiring/catalog/tools.ts#buildTradingTools": 46,
+    "src/trading/wiring/catalog/tools.ts#createTradingTools": 46,
     "src/trading/wiring/composition/registration.ts#buildTrading": 45,
     "src/trading/wiring/composition/services.ts#createDomainServices": 52,
     "src/trading/wiring/composition/themes.ts#buildThemeService": 41,

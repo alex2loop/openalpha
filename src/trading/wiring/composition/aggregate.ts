@@ -6,7 +6,7 @@ import type { createConfiguredRunBudget } from '@/engine/api'
 import type { IntradayReportDeps } from '@/trading/features/market-data/intraday/report'
 import type { HeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
-import type { RebalanceForm } from '@/trading/features/portfolio/render/rebalance'
+import type { RebalanceForm } from '@/trading/features/portfolio/types'
 import type { OperationPolicy, TradingConfig } from '@/trading/kernel/config'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type {

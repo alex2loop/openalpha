@@ -7,6 +7,7 @@ import type {
   ProviderCatalogResponse,
 } from '@/app/server/wire/config'
 import type { ApiRouteContext, ApiRouteGroup, ApiRouteSpec } from '@/app/types'
+import type { Logger } from '@/core/logging/logger'
 import type { ConfigOverrideStore } from '@/persistence/api'
 import { findProviderById } from '@/ai/api'
 import { SHIPPED_TIERS, type TierOverrides, TierOverridesSchema } from '@/app/browser/config'
@@ -36,6 +37,7 @@ const ConfigBodySchema = z.strictObject({ model_tiers: TierOverridesSchema })
  *  bad row can never keep the page from opening. */
 export async function readTierOverrides(
   store: ConfigOverrideStore,
+  logger: Logger,
   signal: AbortSignal
 ): Promise<TierOverrides> {
   const payload = await store.read(TIERS_SECTION, signal)
@@ -44,18 +46,30 @@ export async function readTierOverrides(
     return {}
   }
 
-  try {
-    const parsed = TierOverridesSchema.safeParse(JSON.parse(payload))
+  const parsed = TierOverridesSchema.safeParse(parseJson(payload))
 
-    return parsed.success ? parsed.data : {}
+  if (!parsed.success) {
+    logger.warn('browser.config_override_invalid', { section: TIERS_SECTION })
+  }
+
+  return parsed.success ? parsed.data : {}
+}
+
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
   } catch {
-    // Not JSON: the same as never saved.
-    return {}
+    // Not JSON: it fails the schema like any other payload that is not a set of tiers.
+    return undefined
   }
 }
 
 async function handleConfigGet(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const overrides = await readTierOverrides(ctx.app.resolve('configOverrides'), req.signal)
+  const overrides = await readTierOverrides(
+    ctx.app.resolve('configOverrides'),
+    ctx.app.resolve('logger'),
+    req.signal
+  )
   const config = { model_tiers: { ...SHIPPED_TIERS, ...overrides } }
 
   return json({

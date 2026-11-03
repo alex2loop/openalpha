@@ -28,6 +28,8 @@ import {
   sqliteDialect,
 } from '@/persistence/api'
 
+const DB_NAME = 'openalpha.db'
+
 /** Why the database cannot be served, in the words the page maps to its own lines. */
 type Refusal = 'locked' | 'taken-over' | 'unsupported' | 'newer-schema' | 'storage-full'
 
@@ -58,47 +60,40 @@ export type OpenedRoot =
   | { readonly kind: 'opened'; readonly root: BrowserRoot }
   | { readonly kind: 'refused'; readonly reason: Refusal }
 
-const DB_NAME = 'openalpha.db'
-
 /** Opens the database under the tab lock, migrates it, reads what the visitor changed of the
  *  config, and composes the engine over it. Anything that stops the database being served comes
  *  back as the refusal the page words; the lock is released on every path that does not return a
  *  root. */
 export async function openBrowserRoot(input: RootInput): Promise<OpenedRoot> {
-  const opened = await openSqliteWasm({
-    name: DB_NAME,
-    wasmUrl: input.wasmUrl,
-    logger: input.logger,
-    steal: input.steal,
-  })
-
-  if (opened.kind !== 'opened') {
-    return { kind: 'refused', reason: opened.kind === 'locked' ? 'locked' : 'unsupported' }
-  }
-
   try {
+    const opened = await openSqliteWasm({
+      name: DB_NAME,
+      wasmUrl: input.wasmUrl,
+      logger: input.logger,
+      steal: input.steal,
+    })
+
+    if (opened.kind !== 'opened') {
+      return { kind: 'refused', reason: opened.kind === 'locked' ? 'locked' : 'unsupported' }
+    }
+
     return { kind: 'opened', root: await composeRoot(input, opened) }
   } catch (err: unknown) {
-    await opened.storage.close()
+    input.logger.error('browser.root_failed', { err: formatErrForLog(err) })
 
-    return refuse(err, input.logger)
+    return { kind: 'refused', reason: toRefusal(err) }
   }
 }
 
-function refuse(err: unknown, logger: BrowserLogger): OpenedRoot {
+function toRefusal(err: unknown): Refusal {
   if (err instanceof SchemaAheadError) {
-    return { kind: 'refused', reason: 'newer-schema' }
+    return 'newer-schema'
   }
 
-  if (err instanceof StorageFullError) {
-    return { kind: 'refused', reason: 'storage-full' }
-  }
-
-  logger.error('browser.root_failed', { err: formatErrForLog(err) })
-
-  return { kind: 'refused', reason: 'unsupported' }
+  return err instanceof StorageFullError ? 'storage-full' : 'unsupported'
 }
 
+// The lock is released and the shutdown signal raised on every path that does not return a root.
 async function composeRoot(
   input: RootInput,
   opened: { readonly storage: Storage; readonly lost: Promise<void> }
@@ -106,24 +101,31 @@ async function composeRoot(
   const { storage } = opened
   const shutdown = new AbortController()
 
-  await migrate(storage, sqliteDialect, { logger: input.logger })
+  try {
+    await migrate(storage, sqliteDialect, { logger: input.logger })
 
-  const overrides = await readTierOverrides(
-    createConfigOverrideStore(storage, sqliteDialect),
-    shutdown.signal
-  )
-  const config = resolveBrowserConfig(input.locale, overrides)
-  const app = createBrowserApp({
-    config,
-    persistence: { storage, dialect: sqliteDialect },
-    keyring: input.keyring,
-    logger: input.logger,
-    signal: shutdown.signal,
-  })
+    const overrides = await readTierOverrides(
+      createConfigOverrideStore(storage, sqliteDialect),
+      input.logger,
+      shutdown.signal
+    )
+    const app = createBrowserApp({
+      config: resolveBrowserConfig(input.locale, overrides),
+      persistence: { storage, dialect: sqliteDialect },
+      keyring: input.keyring,
+      logger: input.logger,
+      signal: shutdown.signal,
+    })
 
-  await prepareApp(app)
+    await prepareApp(app)
 
-  return assembleRoot({ input, app, opened, shutdown })
+    return assembleRoot({ input, app, opened, shutdown })
+  } catch (err: unknown) {
+    shutdown.abort()
+    await storage.close()
+
+    throw err
+  }
 }
 
 // Resolved here so a misconfigured composition fails at start, not at the first command; the cost
@@ -198,7 +200,7 @@ function describeKnown(app: App, name: string): string | undefined {
 
 function createChatClient(app: App): ChatClient {
   return {
-    services: toWsServices(app),
+    services: createWsServices(app),
     activeRuns: new Map(),
     commandRuns: new Map(),
     steerIds: new Map(),
@@ -207,7 +209,7 @@ function createChatClient(app: App): ChatClient {
 
 // The same handles the daemon's socket runs a chat on, with the two a page does not have: orders
 // are never on, and there is no browser session to check.
-function toWsServices(app: App): WsServices {
+function createWsServices(app: App): WsServices {
   return {
     agents: app.resolve('agents'),
     apiOrders: false,

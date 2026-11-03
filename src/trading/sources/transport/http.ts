@@ -352,7 +352,8 @@ function send(
     path: target.path,
     maxBytes: request.maxBytes ?? MAXIMUM_RESPONSE_BYTES,
     signal: prepared.signal,
-    hostTimeoutMs: request.attemptTimeoutMs ?? ATTEMPT_TIMEOUT_MS,
+    hostTimeoutMs:
+      request.attemptTimeoutMs ?? input.state.facts.attemptTimeoutMs ?? ATTEMPT_TIMEOUT_MS,
     ...(prepared.query ? { query: { ...prepared.query } } : {}),
     ...(jsonBody === undefined
       ? { ...(prepared.headers ? { headers: { ...prepared.headers } } : {}) }

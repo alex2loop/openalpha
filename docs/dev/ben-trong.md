@@ -66,11 +66,11 @@ quan.
 engine chạy trong Web Worker. Nó liệt kê cùng các provider theo cùng thứ tự và bỏ những gì một trang
 không thể có (kênh chat, bộ lập lịch, plugin, MCP, agent riêng của người vận hành). Phần khác biệt
 được gắn ở đó: key mô hình được đọc ở mỗi yêu cầu từ một keyring (`keys.ts`) nên đổi key có tác dụng
-từ lần gọi kế tiếp; `fetch` của chính trang là `FetchGuard`; lưu trữ là engine SQLite WASM dưới khóa
+từ yêu cầu kế tiếp; `fetch` của chính trang là `FetchGuard`; lưu trữ là engine SQLite WASM dưới khóa
 thẻ. Trang nói chuyện với worker bằng `WorkerCall` / `WorkerReply` (`app/server/wire/worker.ts`):
 `http` chạy đúng các handler route mà dịch vụ nền phục vụ, `frame` chạy đúng các frame chat, và chỉ
 dòng bắt đầu bằng `/` là lệnh. Những gì bản web thu hẹp gói trong một giá trị, `TradingEdition`, truyền
-vào phần đăng ký trading: các thị trường được dựng, lệnh và công cụ được mở, `/suggest` thành phân
+vào phần đăng ký trading: các thị trường được dựng, lệnh được mở, `/suggest` thành phân
 tích, rebalance viết thành các khoảng lệch, và `BookReads`, các lần đọc đề xuất và kế hoạch thoát mà
 bản web luôn trả về rỗng vì không bao giờ lưu cái nào. Trường nào vắng thì là bản cài.
 

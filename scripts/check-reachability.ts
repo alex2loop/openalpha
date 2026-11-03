@@ -36,7 +36,8 @@ const CANDIDATE_SUFFIXES: readonly string[] = [
   '/api.ts',
 ]
 
-// A file outside the import graph on purpose, with the reason it stays. `path`.
+// A file outside the import graph on purpose, with the reason it stays. `path`. Empty today; the
+// gate's machinery for a file that must stay.
 const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([])
 
 // Bundled by the browser build, imported by no daemon entry: its imports are as live as a bin's.

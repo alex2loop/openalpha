@@ -10,7 +10,7 @@ import type { MacroGateOptions, MacroReadStore } from '@/trading/sources/macro-g
 import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
 import type { SourceRoutes } from '@/trading/sources/registry'
 import type { SourceRouteTable } from '@/trading/sources/routes'
-import type { SourceFacts } from '@/trading/sources/types'
+import type { HostSourceFacts, SourceFacts } from '@/trading/sources/types'
 import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog, resolveCredential } from '@/core/security/credentials'
@@ -55,8 +55,8 @@ interface SourceRegistryOptions {
   /** Which providers serve each scope, in order; absent is every built-in route, the daemon's. A
    *  built-in provider the table leaves out is not registered. */
   readonly routes?: SourceRouteTable | undefined
-  readonly plainUserAgentSources?: ReadonlySet<SourceId> | undefined
-  readonly feeds?: Readonly<Record<string, string>> | undefined
+  /** What a host that is not the daemon states for itself of how its requests present. */
+  readonly facts?: HostSourceFacts | undefined
 }
 
 /** Built and closed in one call. Adding a provider is one import plus one spread here — the
@@ -143,16 +143,17 @@ function registerBuiltInSources(
 function toSourceFacts(
   plugin: PluginFacts,
   credentials: SourceFacts['credentials'],
-  options: Pick<SourceRegistryOptions, 'requestShape' | 'plainUserAgentSources' | 'feeds'>
+  options: Pick<SourceRegistryOptions, 'requestShape' | 'facts'>
 ): SourceFacts {
   return {
     endpoints: { ...SOURCE_ENDPOINTS, ...plugin.endpoints },
     rateLimits: { ...SOURCE_RATE_LIMITS, ...plugin.rateLimits },
     burstLimits: SOURCE_BURST_LIMITS,
-    feeds: options.feeds ?? RSS_FEEDS,
+    feeds: RSS_FEEDS,
     credentials,
-    plainUserAgentSources: options.plainUserAgentSources ?? PLAIN_USER_AGENT_SOURCES,
+    plainUserAgentSources: PLAIN_USER_AGENT_SOURCES,
     requestShape: options.requestShape,
+    ...options.facts,
   }
 }
 

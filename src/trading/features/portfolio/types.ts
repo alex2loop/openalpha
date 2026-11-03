@@ -424,3 +424,6 @@ export interface PortfolioService {
    *  no credentials, answers `unsupported`. */
   reconcile(options: PortfolioAtOptions): Promise<readonly VenueReconciliation[]>
 }
+
+/** What a rebalance plan is written as: the orders that bring the book to it, or only the gaps. */
+export type RebalanceForm = 'orders' | 'gaps'

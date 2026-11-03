@@ -11,12 +11,13 @@ import {
   renderBreachLine,
   renderNavLine,
   renderNotes,
+  renderPlanNotes,
+  renderPlanTables,
   renderRebalanceTitle,
   renderStanceLines,
 } from './rebalance'
 import { renderGapEntries } from './rebalance-gaps'
 import { emptyPlanLine, groupHeading, renderOrderRows } from './rebalance-orders'
-import { renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
 type RebalanceGroup = 'first' | 'later'
 
@@ -43,10 +44,14 @@ export function renderRebalanceForSurface(
   options: SurfaceOptions
 ): RebalanceText {
   const { advice } = plan
-  const groups = {
-    first: groupHeading(locale, 'groupBreach'),
-    later: groupHeading(locale, 'groupDrift'),
-  }
+  // A gaps plan has no order groups to head.
+  const groups =
+    options.form === 'gaps'
+      ? { first: '', later: '' }
+      : {
+          first: groupHeading(locale, 'groupBreach'),
+          later: groupHeading(locale, 'groupDrift'),
+        }
 
   if (advice.kind === 'unavailable') {
     return {
@@ -64,14 +69,10 @@ export function renderRebalanceForSurface(
     headline: headlineOf(locale, advice, sized),
     groups,
     orders: orderEntries(locale, advice, sized),
-    segments: trimmed([
-      ...renderSegments(locale, advice.allocation, options.context),
-      ...renderEtfCapLines(locale, advice.allocation),
-      renderCashLine(locale, advice, plan.sizing),
-    ]),
+    segments: trimmed(renderPlanTables(locale, advice, sized)),
     notes: trimmed([
       ...(sized.form === 'gaps' ? [] : orderNotes(locale, advice)),
-      ...renderNotes(locale, advice.findings, [...advice.cashSegment.caveats, ...advice.caveats]),
+      ...renderPlanNotes(locale, advice, sized),
     ]),
   }
 }
@@ -119,11 +120,13 @@ function headlineOf(
   advice: RebalancePlanReady,
   options: RebalanceRenderOptions
 ): readonly string[] {
+  const gaps = options.form === 'gaps'
+
   return trimmed([
     renderRebalanceTitle(locale, advice, options),
-    ...(advice.rebalance.length === 0 ? [emptyPlanLine(locale, advice)] : []),
-    ...renderBreachLine(locale, advice),
-    ...(options.form === 'gaps' ? [] : renderAfterPlan(locale, advice, options)),
+    ...(gaps || advice.rebalance.length > 0 ? [] : [emptyPlanLine(locale, advice)]),
+    ...(gaps ? [] : renderBreachLine(locale, advice)),
+    ...(gaps ? [] : renderAfterPlan(locale, advice, options)),
     ...renderNavLine(locale, options.sizing ?? null, options),
     renderProfileStamp(locale, advice.policy.profile),
   ])

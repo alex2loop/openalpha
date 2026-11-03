@@ -37,6 +37,8 @@ const CORE_TABLES = [
   { name: 'runs', pk: ['run_id'] },
   { name: 'notices', pk: ['id'] },
   { name: 'browser_sessions', pk: ['id'] },
+  // Durable: the operator's own choice, written nowhere else.
+  { name: 'config_overrides', pk: ['section'], durable: true },
 ] as const satisfies readonly DbTable[]
 
 // The data an operator actually accumulates: everything above is bounded by process lifetime,
@@ -72,8 +74,6 @@ const TRADING_TABLES = [
   { name: 'suggestions', pk: ['id'], durable: true },
   // Durable: an analysis is a model's answer on a bundle that cannot be rebuilt.
   { name: 'suggestion_analyses', pk: ['id'], durable: true },
-  // Durable: the operator's own choice, written nowhere else.
-  { name: 'config_overrides', pk: ['section'], durable: true },
   { name: 'agent_focuses', pk: ['agent_id', 'focus_key'], durable: true },
   { name: 'factor_log', pk: ['id'], durable: true },
   { name: 'ledger_entries', pk: ['id'], durable: true },

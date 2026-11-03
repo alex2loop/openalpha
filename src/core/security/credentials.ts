@@ -288,7 +288,11 @@ export function hasLikelySecret(input: string): boolean {
   if (!input) {
     return false
   }
-  return SECRET_PATTERNS_NONGLOBAL.some((re) => re.test(input))
+
+  return (
+    SECRET_PATTERNS_NONGLOBAL.some((re) => re.test(input)) ||
+    [...KNOWN_SECRETS].some((secret) => input.includes(secret))
+  )
 }
 
 export function isSensitiveKey(key: string): boolean {

@@ -1,10 +1,15 @@
 import type { App } from '@/core/container'
+import type { RequestShape } from '@/core/http-client'
+import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
+import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
+import type { SourceRouteTable } from '@/trading/sources/routes'
+import type { HostSourceFacts } from '@/trading/sources/types'
 import type { VenueRegistry } from '@/trading/venues/types'
-import type { BoundOptions } from '@/trading/wiring/composition/registration-options'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import { createFxRates } from '@/trading/features/market-data/reads/fx'
 import { createAdmissionStage } from '@/trading/features/suggestion/pipeline/admission'
 import { createAveragingDownStage } from '@/trading/features/suggestion/pipeline/averaging-down'
@@ -26,6 +31,18 @@ import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
 import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/source-registry'
 import { buildVenues } from '@/trading/wiring/composition/venues'
 
+/** What the registries read of the registration's options, named here so the registration need not
+ *  export its own. */
+interface RegistryOptions {
+  readonly tradingConfig: TradingConfig
+  readonly env: Readonly<Record<string, string | undefined>>
+  readonly pluginModules: readonly LoadedSourceModule[]
+  readonly requestShape: RequestShape
+  readonly routes?: SourceRouteTable
+  readonly sourceFacts?: HostSourceFacts
+  readonly edition?: TradingEdition
+}
+
 export interface Registries {
   readonly markets: MarketRegistry
   readonly sources: SourceRegistry
@@ -46,7 +63,7 @@ const MARKET_FACTORIES = [
 
 /** Created and closed once, inside the lazy factory. Nothing above this function ever sees a
  *  registry, mutable or otherwise. */
-export function buildRegistries(app: App, options: BoundOptions): Registries {
+export function buildRegistries(app: App, options: RegistryOptions): Registries {
   const logger = app.resolve('logger')
   const stores = app.resolve('tradingStores')
   const sources = buildSources(app, options)
@@ -64,7 +81,9 @@ export function buildRegistries(app: App, options: BoundOptions): Registries {
     venueListings: listings,
     briefServices: lazyBriefServices(app, options.tradingConfig, {
       venues,
-      ...(options.edition?.reads === undefined ? {} : { reads: options.edition.reads.brief }),
+      ...(options.edition?.reads === undefined
+        ? {}
+        : { reads: { ...options.edition.reads.brief, stopDistances: async () => undefined } }),
     }),
   }
 
@@ -88,7 +107,7 @@ export function buildRegistries(app: App, options: BoundOptions): Registries {
   return { markets, sources, stages, venues, fx }
 }
 
-function buildSources(app: App, options: BoundOptions): SourceRegistry {
+function buildSources(app: App, options: RegistryOptions): SourceRegistry {
   const logger = app.resolve('logger')
   const stores = app.resolve('tradingStores')
 
@@ -102,8 +121,7 @@ function buildSources(app: App, options: BoundOptions): SourceRegistry {
       macroReads: stores.marketData,
       requestShape: options.requestShape,
       routes: options.routes,
-      plainUserAgentSources: options.plainUserAgentSources,
-      feeds: options.feeds,
+      facts: options.sourceFacts,
     }),
     { archive: stores.newsArchive, logger }
   )

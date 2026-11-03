@@ -3,15 +3,11 @@ import { z } from 'zod'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import { findProviderById } from '@/ai/api'
-import {
-  BROWSER_AI_PROVIDERS,
-  BROWSER_KEY_VARIABLES,
-  readSearchSelection,
-} from '@/app/browser/keys'
+import { BROWSER_AI_PROVIDERS, listKeyVariables, readSearchSelection } from '@/app/browser/keys'
 import { parseRawConfig, resolveConfig } from '@/core/config/resolve'
+import { freezeDeep } from '@/core/utils/freeze'
 
-/** The tiers a visitor may change. The rest (`decisions`, `themes`, `delegate`) keep their shipped
- *  chain: the page never offers them. */
+/** The tiers a visitor may change. The rest keep their shipped chain: the page never offers them. */
 const EDITABLE_TIERS = Object.freeze([
   'debate',
   'research',
@@ -47,20 +43,24 @@ export const TierOverridesSchema = z.strictObject({
 export type TierOverrides = z.infer<typeof TierOverridesSchema>
 type TierEntry = z.infer<typeof TierEntrySchema>
 
-/** The shipped starting point: the installed version's minimal config, on OpenRouter. */
+/** The shipped starting point: the installed version's minimal config, on OpenRouter. Its models,
+ *  daily cap and tiers are kept in step with `config.minimal.toml` by hand. */
 const SHIPPED_PROVIDER = 'openrouter'
+const SHIPPED_PRIMARY_MODEL = 'deepseek/deepseek-v4.1-flash'
 const SHIPPED_MODEL = 'anthropic/claude-haiku-5.5'
+const DAILY_SPEND_CAP_USD = 2
 
 /** What the editable tiers hold until the visitor changes them. */
-export const SHIPPED_TIERS: Required<TierOverrides> = Object.freeze({
+export const SHIPPED_TIERS: Required<TierOverrides> = freezeDeep({
   debate: [{ provider: SHIPPED_PROVIDER, model: 'openai/gpt-6-luna' }],
   research: [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
   'research-heavy': [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
   extraction: [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
 })
 
+// The headline tier (`decisions`) is left out on purpose: its endpoint reads its key itself, which
+// the keyring cannot supply, and an absent tier turns the headline read off cleanly.
 const HIDDEN_TIERS = {
-  decisions: [{ provider: 'openrouter-decisions', model: 'typesafe/jev-1.14' }],
   themes: [{ model: SHIPPED_MODEL }],
 }
 
@@ -71,18 +71,18 @@ export function resolveBrowserConfig(
   const raw = parseRawConfig({
     locale: { language: locale },
     model_defaults: {
-      provider: 'openrouter',
-      api_key_env: 'OPENROUTER_API_KEY',
+      provider: SHIPPED_PROVIDER,
+      api_key_env: findProviderById(SHIPPED_PROVIDER)?.apiKeyEnv,
       provider_sort: 'latency',
     },
-    models: [{ model: 'deepseek/deepseek-v4.1-flash' }],
+    models: [{ model: SHIPPED_PRIMARY_MODEL }],
     model_tiers: { ...HIDDEN_TIERS, ...toRawTiers({ ...SHIPPED_TIERS, ...overrides }) },
-    budget: { max_daily_usd: 2 },
+    budget: { max_daily_usd: DAILY_SPEND_CAP_USD },
     api: { enabled: false, orders: false },
   })
 
   return resolveConfig(raw, {
-    env: Object.fromEntries(BROWSER_KEY_VARIABLES.map((name) => [name, KEY_PLACEHOLDER])),
+    env: Object.fromEntries(listKeyVariables().map((name) => [name, KEY_PLACEHOLDER])),
     homeDir: HOME_DIR,
     dataDir: DATA_DIR,
   })

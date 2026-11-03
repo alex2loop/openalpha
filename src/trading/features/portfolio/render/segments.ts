@@ -43,19 +43,27 @@ interface SegmentShares {
   readonly targetPctNav: number
 }
 
+interface SegmentRenderOptions {
+  readonly context: RenderContext
+  /** A plan written as gaps names no order, so a shortfall is never "nothing to buy yet". */
+  readonly gaps: boolean
+}
+
 export function renderSegments(
   locale: Locale,
   rows: readonly SegmentTarget[],
-  context: RenderContext
+  options: SegmentRenderOptions
 ): readonly string[] {
   const block: SegmentBlock = {
     columns: REBALANCE_COLUMNS,
-    rows: printedSegmentShares(rows).map(([row, shares]) => toSegmentRow(locale, row, shares)),
+    rows: printedSegmentShares(rows).map(([row, shares]) =>
+      toSegmentRow(locale, row, { shares, gaps: options.gaps })
+    ),
     disabled: [],
     legend: 'trading.render.segment.legendRebalance',
   }
 
-  return renderSegmentBlock(locale, block, context)
+  return renderSegmentBlock(locale, block, options.context)
 }
 
 /** Each kept segment with the share columns as this message will print them — read by the table and
@@ -91,7 +99,14 @@ function apportionColumn(
 }
 
 /** Cash is a reserve segment bounded by a floor, not a cap, so its cap cell has nothing to print. */
-function toSegmentRow(locale: Locale, row: SegmentTarget, shares: SegmentShares): SegmentRow {
+interface SegmentRowShares {
+  readonly shares: SegmentShares
+  readonly gaps: boolean
+}
+
+function toSegmentRow(locale: Locale, row: SegmentTarget, printed: SegmentRowShares): SegmentRow {
+  const { shares } = printed
+
   return {
     name: renderDeclaredValue(locale, `trading.segment.${row.segment}`),
     cash: row.segment === CASH_SEGMENT,
@@ -100,7 +115,7 @@ function toSegmentRow(locale: Locale, row: SegmentTarget, shares: SegmentShares)
       formatFixedFraction(locale, shares.afterPlanPctNav),
       formatFixedFraction(locale, shares.targetPctNav),
       row.capPctNav === undefined ? undefined : formatFixedFraction(locale, row.capPctNav),
-      renderGap(locale, row, shares),
+      renderGap(locale, row, printed),
     ],
     bar: { now: shares.currentPctNav, mark: shares.targetPctNav },
   }
@@ -115,7 +130,8 @@ function toSegmentRow(locale: Locale, row: SegmentTarget, shares: SegmentShares)
  *  The verdict reads the segment's own numbers, so no rounding unit can decide whether it is in
  *  band; the magnitude reads the apportioned ones, so subtracting the two printed columns gives
  *  the printed figure. */
-function renderGap(locale: Locale, row: SegmentTarget, shares: SegmentShares): string {
+function renderGap(locale: Locale, row: SegmentTarget, printed: SegmentRowShares): string {
+  const { shares } = printed
   const gap = row.afterPlanPctNav - row.targetPctNav
   const direction = fractionDirection(gap)
 
@@ -127,18 +143,19 @@ function renderGap(locale: Locale, row: SegmentTarget, shares: SegmentShares): s
     return t(locale, 'trading.render.rebalance.gapInBand')
   }
 
-  const printed = formatFixedFraction(
+  const magnitude = formatFixedFraction(
     locale,
     Math.abs(shares.afterPlanPctNav - shares.targetPctNav)
   )
 
   if (direction === 'up') {
-    return t(locale, 'trading.render.rebalance.gapOver', { gap: printed })
+    return t(locale, 'trading.render.rebalance.gapOver', { gap: magnitude })
   }
 
-  const key = row.afterPlanPctNav > row.currentPctNav ? 'gapUnder' : 'gapUnreachable'
+  const placeable = printed.gaps || row.afterPlanPctNav > row.currentPctNav
+  const key = placeable ? 'gapUnder' : 'gapUnreachable'
 
-  return t(locale, `trading.render.rebalance.${key}`, { gap: printed })
+  return t(locale, `trading.render.rebalance.${key}`, { gap: magnitude })
 }
 
 /** One line per segment that bounds its ETFs, under the table rather than in it: the ceiling binds

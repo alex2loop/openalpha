@@ -366,7 +366,7 @@ async function fetchDirect(
       ...input,
       guard: state.guard,
       url: canonicalUrl,
-      ...directFetchLimits(state.config),
+      ...resolveDirectFetchLimits(state.config),
     })
 
     if (key !== undefined) {
@@ -387,9 +387,13 @@ async function fetchDirect(
   }
 }
 
-function directFetchLimits(
-  config: ResolvedConfig
-): Pick<Parameters<typeof fetchDirectPage>[0], 'timeoutMs' | 'maxReadBytes' | 'maxBytes'> {
+interface DirectFetchLimits {
+  readonly timeoutMs: number
+  readonly maxReadBytes: number
+  readonly maxBytes: number
+}
+
+function resolveDirectFetchLimits(config: ResolvedConfig): DirectFetchLimits {
   return {
     timeoutMs: config.webSearch.timeoutMs,
     maxReadBytes: DIRECT_FETCH_MAX_READ_BYTES,

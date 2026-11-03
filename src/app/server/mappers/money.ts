@@ -163,10 +163,10 @@ function toFindingWire(finding: Finding): RebalanceResponse['findings'][number] 
 
 function toChangeWire(
   change: PositionChange,
-  sizing: AbsoluteRebalancePlan['sizing'],
+  view: Pick<RebalanceView, 'form'> & { readonly sizing: AbsoluteRebalancePlan['sizing'] },
   locale: Locale
 ): Extract<RebalanceResponse, { readonly status: 'ready' }>['changes'][number] {
-  const order = sizing?.byInstrument.get(buildInstrumentKey(change.instrument))
+  const order = view.sizing?.byInstrument.get(buildInstrumentKey(change.instrument))
 
   return {
     instrument: toInstrumentWire(change.instrument),
@@ -180,13 +180,16 @@ function toChangeWire(
     ...(order === undefined
       ? {}
       : {
-          order: {
-            valueBase: order.valueBase,
-            quantity: order.quantity,
-            boardLot: order.boardLot,
-            unitPrice: order.unitPrice,
-            currency: order.currency,
-          },
+          order:
+            view.form === 'gaps'
+              ? { valueBase: order.valueBase, currency: order.currency }
+              : {
+                  valueBase: order.valueBase,
+                  quantity: order.quantity,
+                  boardLot: order.boardLot,
+                  unitPrice: order.unitPrice,
+                  currency: order.currency,
+                },
         }),
     caveats: toCaveatWires(change.caveats, locale),
   }
@@ -219,7 +222,9 @@ export function toRebalanceWire(view: RebalanceView, locale: Locale): RebalanceR
       driftBandPctNav: percent(segment.driftBandPctNav),
       ...(segment.capPctNav === undefined ? {} : { capPctNav: percent(segment.capPctNav) }),
     })),
-    changes: advice.rebalance.map((change) => toChangeWire(change, sizing, locale)),
+    changes: advice.rebalance.map((change) =>
+      toChangeWire(change, { form: view.form, sizing }, locale)
+    ),
     cash: {
       cashPctNav: percent(advice.cashSegment.cashPctNav),
       liquidReservePctNav: percent(advice.cashSegment.liquidReservePctNav),

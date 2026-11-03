@@ -139,7 +139,7 @@ Anything not listed is derived or gate-checked.
 
 1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>])`; a market with exchange closures sets `CalendarPolicy.holidays` (and `earlyCloses` for half days) to year-to-days functions kept in `markets/<ref>/calendar/`.
 2. Factor id tuple and a `FactorId` union arm in `trading/kernel/factor.ts` (`manifest.factorIds` is typed against it). The central edit is deliberate: a market with new factor ids ships in-tree, never as a plugin.
-3. One `markets.register(...)` line in `trading/wiring/composition/registration.ts`.
+3. One entry in `MARKET_FACTORIES` in `trading/wiring/composition/registries.ts`. An edition that ships a subset (the browser) names its markets in `TradingEdition.markets`; `isMarketBuilt` filters registration, hand-traded venues and the `default_for` check, so nothing else lists markets.
 4. Providers under `sources/`, routed in `SOURCE_ROUTES`, registered in `trading/wiring/composition/source-registry.ts`.
 5. Locale keys in both `src/i18n/locales/en.json` and `vi.json`: `trading.market.<ref>`, `trading.region.<region>`, `trading.segment.<segment>`, `trading.factor.<id>` per factor. Composition throws listing what is missing.
 6. A venue that lists it. A market no venue holds is read for reference only (world gold): its segment stays off (`SegmentDescriptor.held`) and `/profile enable` refuses it.

@@ -11,15 +11,26 @@ import { nowTool } from '@/tools/system/now'
 // how a page is fetched.
 const PORTABLE_TOOLS: readonly ToolDefinition[] = [calcTool, nowTool, researchTool]
 
-export function createPortableToolsProvider(
-  webRetrieval: (app: App) => WebRetrievalService
-): ServiceProvider {
+interface ToolsProviderOptions {
+  readonly tools: readonly ToolDefinition[]
+  readonly webRetrieval: (app: App) => WebRetrievalService
+}
+
+/** Step 6 for every host: the tool registry, the retrieval service the web tools read through, and
+ *  the revision guard. A host chooses the tools and how a page is fetched. */
+export function createToolsProvider(options: ToolsProviderOptions): ServiceProvider {
   return {
     name: 'tools',
     register(bind): void {
       bind('fileRevisionGuard', createFileRevisionGuard)
-      bind('webRetrieval', webRetrieval)
-      bind('tools', () => new Map(PORTABLE_TOOLS.map((tool) => [tool.name, tool])))
+      bind('webRetrieval', options.webRetrieval)
+      bind('tools', () => new Map(options.tools.map((tool) => [tool.name, tool])))
     },
   }
+}
+
+export function createPortableToolsProvider(
+  webRetrieval: (app: App) => WebRetrievalService
+): ServiceProvider {
+  return createToolsProvider({ tools: PORTABLE_TOOLS, webRetrieval })
 }

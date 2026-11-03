@@ -4,11 +4,13 @@ import type { SlashCommand } from '@/core/types/command'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
 import { isValidSendTime } from '@/trading/features/brief/schedule'
 import { marketRef } from '@/trading/kernel/instrument'
 import { tradingLocaleKeys } from '@/trading/locale-manifest'
+import { isMarketBuilt } from '@/trading/wiring/composition/edition'
 import { TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
 import { BUILT_IN_VENUES } from '@/trading/wiring/config-defaults'
 import { MARKETS_CONFIG_KEY, VENUES_CONFIG_KEY } from '@/trading/wiring/config-schema'
@@ -40,7 +42,7 @@ export function assertRegistryConsistency(
   config: TradingConfig,
   presentation: RegistryPresentation
 ): void {
-  assertConfiguredReferencesExist(markets, config, presentation.venues)
+  assertConfiguredReferencesExist(markets, config, presentation)
   assertVenueMarketsExist(markets, presentation.venues)
   assertDistinctScopeNames(markets, presentation.venues)
   assertLocaleCoverage(markets, presentation)
@@ -50,6 +52,7 @@ interface RegistryPresentation {
   readonly keys: KeyValidator
   readonly contributions: TradingContributions
   readonly venues: VenueRegistry
+  readonly edition?: TradingEdition | undefined
 }
 
 /** A venue claiming a market nobody built holds positions no calendar dates and no source prices.
@@ -95,8 +98,9 @@ function assertDistinctScopeNames(markets: MarketRegistry, venues: VenueRegistry
 function assertConfiguredReferencesExist(
   markets: MarketRegistry,
   config: TradingConfig,
-  venues: VenueRegistry
+  presentation: RegistryPresentation
 ): void {
+  const { venues, edition } = presentation
   const held = venues.heldMarkets()
   const homeOwners = markets
     .list()
@@ -112,7 +116,7 @@ function assertConfiguredReferencesExist(
 
   assertBriefSendTimeBeforeOpen(homeOwners, config.briefs.sendTime, Date.now())
   assertConfiguredMarketsExist(markets, config)
-  assertDefaultVenuesHold(config, { venues, markets })
+  assertDefaultVenuesHold(config, { venues, edition })
 }
 
 /** A delivery with no time of its own follows `[trading.briefs] send_time`; at or past the open it
@@ -161,17 +165,17 @@ function assertConfiguredMarketsExist(markets: MarketRegistry, config: TradingCo
 
 /** A default the ledger would refuse fills every unattended row with a venue the validator then
  *  rejects, so the operator learns at the write rather than at boot. A custom venue's markets come
- *  from its own section, so a `default_for` outside its `markets` lands here too. A market the
- *  edition does not build has no ledger rows to default. */
+ *  from its own section, so a `default_for` outside its `markets` lands here too. Only a market the
+ *  edition leaves unbuilt is skipped, so a typo still fails. */
 function assertDefaultVenuesHold(
   config: TradingConfig,
-  registries: { readonly venues: VenueRegistry; readonly markets: MarketRegistry }
+  registries: { readonly venues: VenueRegistry; readonly edition: TradingEdition | undefined }
 ): void {
-  const { venues, markets } = registries
+  const { venues, edition } = registries
   const unheld: string[] = []
 
   for (const [market, ref] of Object.entries(config.defaultVenues)) {
-    if (markets.find(marketRef(market)) === null) {
+    if (!isMarketBuilt(edition, marketRef(market))) {
       continue
     }
 

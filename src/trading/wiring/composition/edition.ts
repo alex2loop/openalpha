@@ -1,7 +1,6 @@
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefServices } from '@/trading/features/brief/types'
-import type { RebalanceForm } from '@/trading/features/portfolio/render/rebalance'
-import type { ReduceVerdicts } from '@/trading/features/portfolio/types'
+import type { RebalanceForm, ReduceVerdicts } from '@/trading/features/portfolio/types'
 import type { SuggestAnalysis } from '@/trading/features/suggestion/command'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
@@ -23,7 +22,6 @@ export interface BookReads {
     | 'positionExits'
     | 'unwatchedPositions'
     | 'stalePositions'
-    | 'stopDistances'
   >
 }
 
@@ -35,9 +33,6 @@ export interface TradingEdition {
   readonly markets?: ReadonlySet<MarketRef>
   /** The slash commands offered, by name. */
   readonly commands?: ReadonlySet<string>
-  /** The tools an agent turn is offered, by name. A command may hand the conversation to an agent
-   *  (`/setup`), so what it may reach is narrowed the way the commands are. */
-  readonly tools?: ReadonlySet<string>
   /** `/suggest` where the full pipeline is not offered. */
   readonly suggest?: SuggestAnalysis
   /** How a rebalance plan is written: as orders, or as the gaps to the plan. */

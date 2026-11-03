@@ -129,12 +129,14 @@ interface RebalanceChangeWire {
   readonly targetPctNav: number
   readonly changePctNav: number
   readonly reason: 'fill-gap' | 'core-fill' | 'trim' | 'weak-signal' | 'off-policy' | 'over-cap'
-  /** The order this change works out to, lot-rounded. Absent when the plan could not be sized. */
+  /** What this change is worth in money, and the order it works out to, lot-rounded. Absent when
+   *  the plan could not be sized. A plan written as gaps (the web) carries the value and the
+   *  currency only: no quantity, lot or price. */
   readonly order?: {
     readonly valueBase: number
-    readonly quantity: number
-    readonly boardLot: number
-    readonly unitPrice: number
+    readonly quantity?: number
+    readonly boardLot?: number
+    readonly unitPrice?: number
     readonly currency: string
   }
   readonly caveats: readonly TradingWireCaveat[]

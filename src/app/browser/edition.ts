@@ -2,7 +2,7 @@ import type { BrowserKeyring } from '@/app/browser/keys'
 import type { App } from '@/core/container'
 import type { SlashContext, SlashResult } from '@/core/types/command'
 import type { BookReads, TradingEdition } from '@/trading/api'
-import { hasAiKey } from '@/app/browser/keys'
+import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
   marketRef,
@@ -12,7 +12,7 @@ import {
 } from '@/trading/api'
 
 /** The commands a visitor has: the ledger and the book, the market reads, `/suggest` as an
- *  analysis, the brief while the page is open, and research. Nothing that places an order, reads a
+ *  analysis and the brief while the page is open. Nothing that places an order, reads a
  *  venue, watches while the tab is closed or runs the full suggestion pipeline. */
 const COMMANDS: ReadonlySet<string> = new Set([
   'market',
@@ -20,7 +20,6 @@ const COMMANDS: ReadonlySet<string> = new Set([
   'price',
   'screen',
   'watchlist',
-  'setup',
   'record',
   'update',
   'delete',
@@ -31,37 +30,6 @@ const COMMANDS: ReadonlySet<string> = new Set([
   'refresh',
   'suggest',
   'brief',
-  'research',
-])
-
-/** The tools the chat agent is handed when a command hands it the conversation (`/setup`): the
- *  market reads, the ledger and the profile, and the brief. Not the suggestion pipeline, the
- *  track record, alerts, themes, the brief's schedule or the rebalance and review reads, whose
- *  answers name an order or a verdict. */
-const TOOLS: ReadonlySet<string> = new Set([
-  'market_price',
-  'market_bars',
-  'market_overview',
-  'market_events',
-  'macro_risk',
-  'market_screen',
-  'market_sector_strength',
-  'market_sentiment',
-  'market_funding',
-  'market_accounts',
-  'vn_foreign_flow',
-  'vn_futures_basis',
-  'market_news',
-  'portfolio_view',
-  'portfolio_history',
-  'profile_view',
-  'profile_update',
-  'profile_segment',
-  'watchlist_update',
-  'portfolio_record',
-  'portfolio_update',
-  'portfolio_remove',
-  'brief_build',
 ])
 
 /** VN equities, crypto and gold read from sources a browser reaches; VN gold prices a premium over
@@ -89,7 +57,6 @@ const EMPTY_READS: BookReads = {
     positionExits: async () => [],
     unwatchedPositions: async () => [],
     stalePositions: async () => [],
-    stopDistances: async () => [],
   },
 }
 
@@ -97,7 +64,6 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
   return {
     markets: MARKETS,
     commands: COMMANDS,
-    tools: TOOLS,
     suggest: {
       run: (request, ctx) => analyse(app, keyring, { request, ctx }),
       keys: {
@@ -126,7 +92,7 @@ async function analyse(
 ): Promise<SlashResult> {
   const { request, ctx } = call
 
-  if (!hasAiKey(keyring.env())) {
+  if (!hasAiKey(keyring.env(), readModelProvider(app.config))) {
     return { kind: 'message', messages: [{ key: NEEDS_KEY }] }
   }
 

@@ -91,6 +91,24 @@ interface BrowserProviderInput {
  *  offered. */
 const VIRTUAL_WORKSPACE = Object.freeze({ path: '/', dev: 0, ino: 0 })
 
+/** A page waits longer on a slow edge than a daemon does: treasury answered in about 9.2 s, which a
+ *  10 s default clears by under a second. */
+const SOURCE_ATTEMPT_TIMEOUT_MS = 15_000
+
+/** The most unrecorded spend a tab remembers: it is read once, at start, so a longer tail has no
+ *  reader. */
+const MAX_SPEND_ENTRIES = 1_000
+
+const refuseJobs = (): Promise<never> =>
+  Promise.reject(new ConfigError('this edition has no scheduler'))
+
+const NO_JOBS: ScopedJobStore = {
+  add: refuseJobs,
+  list: refuseJobs,
+  resolveIdPrefix: refuseJobs,
+  remove: refuseJobs,
+}
+
 const NO_SENDER: TradingNoticeSender = {
   send: async () => 'unavailable',
   resolveRecipient: async () => undefined,
@@ -154,8 +172,11 @@ function createBrowserTradingProvider(
       toBrowserRoutes(SOURCE_ROUTES, BROWSER_REACHABLE_SOURCES),
       BROWSER_FEEDS
     ),
-    plainUserAgentSources: new Set(),
-    feeds: BROWSER_FEEDS,
+    sourceFacts: {
+      plainUserAgentSources: new Set(),
+      feeds: BROWSER_FEEDS,
+      attemptTimeoutMs: SOURCE_ATTEMPT_TIMEOUT_MS,
+    },
     reachability: async () => true,
     edition: (app) => createBrowserEdition(app, keyring),
   })
@@ -178,13 +199,14 @@ function createBrowserKernelProvider(kernel: KernelDeps): ServiceProvider {
 
 function createMemorySpendLog(): {
   append(entry: UnrecordedSpend): Promise<void>
-  load(now: number): Promise<UnrecordedSpendLoad>
+  load(): Promise<UnrecordedSpendLoad>
 } {
   const entries: UnrecordedSpend[] = []
 
   return {
     append: async (entry) => {
       entries.push(entry)
+      entries.splice(0, Math.max(0, entries.length - MAX_SPEND_ENTRIES))
     },
     load: async () => ({ entries: [...entries], damaged: false, path: '' }),
   }
@@ -211,17 +233,6 @@ function createBrowserAppProvider(): ServiceProvider {
   }
 }
 
-const NO_JOBS: ScopedJobStore = {
-  add: refuseJobs,
-  list: refuseJobs,
-  resolveIdPrefix: refuseJobs,
-  remove: refuseJobs,
-}
-
-function refuseJobs(): Promise<never> {
-  return Promise.reject(new ConfigError('this edition has no scheduler'))
-}
-
 // Step 15: the api's data. There is no listener: the page asks through the worker, so only the
 // route table and what the status routes read of the host are bound.
 function createBrowserApiProvider(keyring: BrowserKeyring): ServiceProvider {
@@ -229,7 +240,7 @@ function createBrowserApiProvider(keyring: BrowserKeyring): ServiceProvider {
     name: 'api',
     register(bind): void {
       bind('apiRoutes', () => buildApiRoutes(BROWSER_ROUTE_GROUPS))
-      bind('systemHost', () => createBrowserSystemHost(keyring))
+      bind('systemHost', (app) => createBrowserSystemHost(keyring, app.config))
     },
   }
 }

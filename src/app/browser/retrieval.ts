@@ -14,10 +14,8 @@ interface RetrievalParts {
   readonly keyring: BrowserKeyring
 }
 
-/** The retrieval service reads its search key once, when it is built, and the visitor may paste a
- *  search key at any time. So the service is rebuilt whenever the key it was built with is not the
- *  one the keyring holds, and every call goes to the current one: a key change applies to the next
- *  call, and a call already on the wire keeps the service it started with. */
+/** The service reads its search key when built, so it is rebuilt whenever the keyring holds another
+ *  one; every call goes to the current service. */
 export function createBrowserRetrieval(parts: RetrievalParts): WebRetrievalService {
   let built: { readonly fingerprint: string; readonly service: WebRetrievalService } | undefined
 

@@ -30,14 +30,6 @@ export function renderGapEntries(
   }))
 }
 
-export function renderGapRows(
-  locale: Locale,
-  advice: RebalancePlanReady,
-  sizing: RebalanceSizing | null
-): readonly string[] {
-  return renderGapEntries(locale, advice, sizing).map((entry) => `${INDENT[1]}${entry.text}`)
-}
-
 function renderGap(locale: Locale, row: PositionChange): string {
   const side = fractionDirection(row.changePctNav) === 'down' ? 'Over' : 'Under'
   const gap = t(locale, `trading.render.rebalance.gap${side}`, {

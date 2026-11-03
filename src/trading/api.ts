@@ -31,8 +31,6 @@ export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
 
 // ── Boot & composition ───────────────────────────────────────────────────────
 
-// ── Boot & composition ───────────────────────────────────────────────────────
-
 export type { BookReads, TradingEdition } from '@/trading/wiring/composition/edition'
 export type { SourceHost } from '@/trading/wiring/composition/source-hosts'
 export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'

@@ -36,7 +36,6 @@ export function buildContributions(input: ContributionsInput): TradingContributi
       defaultVenues: input.config.defaultVenues,
       baseCurrency: input.config.baseCurrency,
       displayTimezone: input.config.displayTimezone,
-      ...(input.edition === undefined ? {} : { edition: input.edition }),
     }),
     commands: createTradingCommands({
       portfolio: input.services.portfolio,

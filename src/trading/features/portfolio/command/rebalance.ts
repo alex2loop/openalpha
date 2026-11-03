@@ -5,14 +5,11 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
-import type { PortfolioService } from '@/trading/features/portfolio/types'
+import type { PortfolioService, RebalanceForm } from '@/trading/features/portfolio/types'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
-import {
-  type RebalanceForm,
-  renderRebalanceText,
-} from '@/trading/features/portfolio/render/rebalance'
+import { renderRebalanceText } from '@/trading/features/portfolio/render/rebalance'
 import { parseTickers, usage } from '@/trading/kernel/surface/surface'
 import { planAffordances } from '@/trading/render/affordance'
 import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'

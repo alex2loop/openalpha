@@ -2,6 +2,7 @@ import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
 import type {
   PortfolioFinding,
+  RebalanceForm,
   RebalancePlanReady,
   RebalancePlanResult,
   RebalanceSizing,
@@ -30,7 +31,7 @@ import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layou
 import { formatMoney } from '@/trading/render/money'
 import { renderSubject } from '@/trading/render/subject'
 
-import { renderGapRows } from './rebalance-gaps'
+import { renderGapEntries } from './rebalance-gaps'
 import { renderOrders, splitBreaches } from './rebalance-orders'
 import { printedSegmentShares, renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
@@ -43,9 +44,6 @@ interface PlanSums {
   readonly sells: number
   readonly buys: number
 }
-
-/** What a plan is written as: the orders that bring the book to it, or only the gaps. */
-export type RebalanceForm = 'orders' | 'gaps'
 
 export interface RebalanceRenderOptions {
   readonly context: RenderContext
@@ -86,23 +84,59 @@ export function renderRebalanceText(
   return joinSections([
     [
       renderSectionTitle(SECTION_ICONS.advice, renderRebalanceTitle(locale, advice, options)),
-      ...(gaps ? renderGapRows(locale, advice, sizing) : renderOrders(locale, advice, options)),
-      ...renderBreachLine(locale, advice),
+      ...(gaps ? renderGapLines(locale, advice, sizing) : renderOrders(locale, advice, options)),
+      ...(gaps ? [] : renderBreachLine(locale, advice)),
       ...(gaps ? [] : renderAfterPlan(locale, advice, options)),
     ],
-    [
-      ...renderSegments(locale, advice.allocation, options.context),
-      ...renderEtfCapLines(locale, advice.allocation),
-      renderCashLine(locale, advice, sizing),
-    ],
+    renderPlanTables(locale, advice, options),
     gaps ? [] : renderStanceLines(locale, advice),
-    renderNotes(locale, advice.findings, [...advice.cashSegment.caveats, ...advice.caveats]),
+    renderPlanNotes(locale, advice, options),
     [
       ...renderNavLine(locale, sizing, options),
       `${INDENT[1]}${renderProfileStamp(locale, advice.policy.profile)}`,
     ].map((line) => line.trimStart()),
     ...(options.listedOnly ? [[t(locale, 'trading.render.rebalance.listedOnly')]] : []),
   ])
+}
+
+function renderGapLines(
+  locale: Locale,
+  advice: RebalancePlanReady,
+  sizing: RebalanceSizing | null
+): readonly string[] {
+  return renderGapEntries(locale, advice, sizing).map((entry) => `${INDENT[1]}${entry.text}`)
+}
+
+/** The segment table and what stands under it. A gaps plan leaves out the cash line, whose split
+ *  names a deposit to make, and the table drops "nothing to buy yet". */
+export function renderPlanTables(
+  locale: Locale,
+  advice: RebalancePlanReady,
+  options: RebalanceRenderOptions
+): readonly string[] {
+  const gaps = options.form === 'gaps'
+
+  return [
+    ...renderSegments(locale, advice.allocation, { context: options.context, gaps }),
+    ...renderEtfCapLines(locale, advice.allocation),
+    ...(gaps ? [] : [renderCashLine(locale, advice, options.sizing ?? null)]),
+  ]
+}
+
+/** What the plan's own caveats and findings say. A gaps plan leaves out the regime caveat, which
+ *  says how much of a buy today allows. */
+export function renderPlanNotes(
+  locale: Locale,
+  advice: RebalancePlanReady,
+  options: RebalanceRenderOptions
+): readonly string[] {
+  const caveats = [...advice.cashSegment.caveats, ...advice.caveats]
+
+  return renderNotes(
+    locale,
+    advice.findings,
+    options.form === 'gaps' ? caveats.filter((caveat) => caveat.code !== REGIME_CAVEAT) : caveats
+  )
 }
 
 /** The plan in one line, as the page's own title: how many orders on each side and what they move

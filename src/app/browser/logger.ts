@@ -22,12 +22,12 @@ export interface BrowserLogger extends Logger {
  *  when they are written, so a page can show what went wrong and nothing a key could ride in. */
 export function createBrowserLogger(limit: number): BrowserLogger {
   const ring: LogRecord[] = []
-  const root = writeTo(ring, limit, {})
+  const root = createWriter(ring, limit, {})
 
   return { ...root, recent: () => [...ring] }
 }
 
-function writeTo(ring: LogRecord[], limit: number, bindings: Record<string, unknown>): Logger {
+function createWriter(ring: LogRecord[], limit: number, bindings: Record<string, unknown>): Logger {
   const keep = (level: Level, msg: string, fields?: Record<string, unknown>): void => {
     ring.push({
       level,
@@ -48,7 +48,7 @@ function writeTo(ring: LogRecord[], limit: number, bindings: Record<string, unkn
     // Below a warning nothing is kept: the ring is for what a visitor may need to report.
     info: () => undefined,
     debug: () => undefined,
-    child: (extra) => writeTo(ring, limit, { ...bindings, ...extra }),
+    child: (extra) => createWriter(ring, limit, { ...bindings, ...extra }),
   }
 }
 

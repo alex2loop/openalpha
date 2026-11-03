@@ -66,12 +66,12 @@ No module uses `export *`.
 **The browser root.** `src/app/browser/` is a second composition root beside the daemon's, for the
 engine running in a Web Worker. It lists the same providers in the same order and leaves out what a
 page cannot have (channels, scheduler, plugins, MCP, the operator's own agents). What differs is bound
-there: the model keys are read on every request from a keyring (`keys.ts`), so a change applies to the
-next call; the page's own `fetch` is the `FetchGuard`; storage is the SQLite WASM engine under a tab
+there: the model keys are read on every request from a keyring (`keys.ts`), so a change applies from the
+next request; the page's own `fetch` is the `FetchGuard`; storage is the SQLite WASM engine under a tab
 lock. The page talks to the worker with `WorkerCall` / `WorkerReply` (`app/server/wire/worker.ts`):
 `http` runs the same route handlers the daemon serves, `frame` runs the same chat frames, and only
 lines that start with `/` are commands. What the web narrows is one value, `TradingEdition`, passed to
-the trading registration: the markets built, the commands and tools offered, `/suggest` as an analysis,
+the trading registration: the markets built, the commands offered, `/suggest` as an analysis,
 the rebalance written as gaps, and `BookReads`, the reads of suggestions and exit plans that answer
 empty because the edition never stores either. Every field absent is the installed version.
 

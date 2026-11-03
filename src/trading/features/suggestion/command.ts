@@ -103,7 +103,7 @@ export function createSuggestCommand(deps: SuggestCommandDeps): SlashCommand {
       selfContained: true,
     },
     // The subject is a ticker and `stops` is its exception, so only the options complete.
-    completeFor: (args) => (args.length === 1 ? [] : OPTIONS),
+    completeFor: (args) => (args.length === 1 || analysis !== undefined ? [] : OPTIONS),
     usage: () => ({ key: usageKey, values: buildUsageValues(deps) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
@@ -117,7 +117,7 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
   const [subject, ...rest] = ctx.args.map((arg) => arg.toLowerCase())
   const options = parseSuggestOptions(rest)
 
-  if (subject === undefined || options === null) {
+  if (subject === undefined || options === null || isUnofferedOption(deps, options)) {
     return suggestUsage(deps)
   }
 
@@ -153,6 +153,12 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
   }
 
   return renderRun(deps, ctx, { result: await deps.suggestions.run(suggestion), mode })
+}
+
+/** An analysis has no depth to choose and no stored answer to run past, so the words that name them
+ *  are not options there. */
+function isUnofferedOption(deps: SuggestCommandDeps, options: SuggestOptions): boolean {
+  return deps.analysis !== undefined && (options.mode !== null || options.force)
 }
 
 function suggestUsage(deps: SuggestCommandDeps): SlashResult {

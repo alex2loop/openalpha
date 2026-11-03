@@ -434,7 +434,6 @@ export const TRADING_ROUTES = [
     method: 'GET',
     path: '/v1/analyses',
     auth: true,
-    capability: 'suggestions',
     handler: handleTradingAnalyses,
   },
   {

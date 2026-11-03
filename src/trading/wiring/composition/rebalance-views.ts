@@ -1,8 +1,11 @@
 import type { Locale } from '@/core/types/locale'
 import type { MarketDataService } from '@/trading/features/market-data/types'
-import type { RebalanceForm } from '@/trading/features/portfolio/render/rebalance'
 import type { RebalanceText } from '@/trading/features/portfolio/render/rebalance-surface'
-import type { AbsoluteRebalancePlan, PortfolioService } from '@/trading/features/portfolio/types'
+import type {
+  AbsoluteRebalancePlan,
+  PortfolioService,
+  RebalanceForm,
+} from '@/trading/features/portfolio/types'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { TickerRequest } from '@/trading/kernel/instrument'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
@@ -12,6 +15,8 @@ import { NOTICE_SURFACE, resolveRenderContext } from '@/trading/render/format'
 export interface RebalanceView {
   readonly plan: AbsoluteRebalancePlan
   readonly text: RebalanceText
+  /** How the plan was written, so a wire that carries it states no more than the text does. */
+  readonly form: RebalanceForm
 }
 
 export interface RebalanceViews {
@@ -49,6 +54,7 @@ function createRebalanceViews(deps: RebalanceViewDeps): RebalanceViews {
 
       return {
         plan,
+        form: deps.form ?? 'orders',
         text: renderRebalanceForSurface(request.locale, plan, {
           context: resolveRenderContext(deps.timezone, NOTICE_SURFACE),
           ...(deps.form === undefined ? {} : { form: deps.form }),
