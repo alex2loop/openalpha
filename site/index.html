@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -15,8 +15,10 @@
     var th = localStorage.getItem("office.theme");
     if (th === "light" || th === "dark") d.setAttribute("data-theme", th);
     var lg = localStorage.getItem("oa.lang");
-    if (lg === "en") d.setAttribute("lang", "en");
+    if (lg === "vi") d.setAttribute("lang", "vi");
   } catch (e) { /* storage blocked: the page still renders */ }
+  var asked = new URLSearchParams(location.search).get("lang");
+  if (asked === "vi" || asked === "en") d.setAttribute("lang", asked);
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches) d.classList.add("rv");
 })();
 </script>
@@ -551,7 +553,7 @@ code, pre { font-variant-ligatures: none; }
       </div>
       <button type="button" class="iconbtn" id="theme" aria-label="Giao diện"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg><span class="sr" id="theme-label"></span></button>
       <i class="tools-sep" aria-hidden="true"></i>
-      <a class="btn btn-commit btn-regular top-cta" href="https://example.com/" target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      <a class="btn btn-commit btn-regular top-cta" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
       <button type="button" class="iconbtn burger" id="burger" aria-expanded="false" aria-controls="menu" data-aria-vi="Menu" data-aria-en="Menu" aria-label="Menu"><svg class="icon i-menu" aria-hidden="true"><use href="#i-menu"/></svg><svg class="icon i-x" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
   </div>
@@ -565,7 +567,7 @@ code, pre { font-variant-ligatures: none; }
         <li><a class="ml" href="#oss"><span class="mn">05</span><span class="vi" lang="vi">Mã nguồn mở</span><span class="en" lang="en">Open source</span></a></li>
         <li><a class="ml" href="#faq"><span class="mn">06</span><span class="vi" lang="vi">Hỏi đáp</span><span class="en" lang="en">FAQ</span></a></li>
       </ol>
-      <a class="btn btn-commit btn-large" href="https://example.com/" target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      <a class="btn btn-commit btn-large" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
     </div>
   </div>
 </header>
@@ -577,7 +579,7 @@ code, pre { font-variant-ligatures: none; }
     <h1 data-hero><span class="vi" lang="vi">Một hội đồng AI <span class="grad">cãi nhau</span> trước khi bạn đọc phân tích</span><span class="en" lang="en">A council of AI analysts <span class="grad">argues</span> before you read the analysis</span></h1>
     <p class="lead" data-hero><span class="vi" lang="vi">Trợ lý AI mã nguồn mở cho cổ phiếu Việt Nam, crypto và vàng: lập luận hai phía, bằng chứng, rủi ro. Quyết định là của bạn.</span><span class="en" lang="en">An open-source AI assistant for Vietnamese stocks, crypto and gold: both sides, the evidence, the risks. The decision is yours.</span></p>
     <div class="cta-row" data-hero>
-      <a class="btn btn-ai btn-large" href="https://example.com/" target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      <a class="btn btn-ai btn-large" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
       <a class="btn btn-large" href="#install"><span class="vi" lang="vi">Cài trên máy</span><span class="en" lang="en">Install on your machine</span></a>
     </div>
     <p class="riskline" data-hero><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span><span class="vi" lang="vi">Dùng key AI của bạn. Công cụ phân tích, không phải lời khuyên đầu tư.</span><span class="en" lang="en">Uses your own AI key. An analysis tool, not investment advice.</span></span></p>
@@ -715,7 +717,7 @@ code, pre { font-variant-ligatures: none; }
         <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Bản tin sáng khi trang đang mở</span><span class="en" lang="en">Morning brief while the page is open</span></span></li>
         <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Không có cảnh báo, không nối sàn</span><span class="en" lang="en">No alerts, no exchange link</span></span></li>
       </ul>
-      <a class="btn btn-ai btn-large" href="https://example.com/" target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      <a class="btn btn-ai btn-large" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
     </article>
     <article class="card col" data-reveal data-delay="0.00">
       <h3><span class="tile" style="--c: var(--tc-violet)"><svg class="icon" aria-hidden="true"><use href="#i-cpu"/></svg></span><span class="vi" lang="vi">Bản cài trên máy</span><span class="en" lang="en">Installed version</span></h3>
@@ -830,7 +832,7 @@ code, pre { font-variant-ligatures: none; }
     <p class="eyebrow"><span class="vi" lang="vi">Bắt đầu</span><span class="en" lang="en">Get started</span></p>
     <h2><span class="vi" lang="vi">Xem hội đồng AI làm việc trên mã bạn quan tâm</span><span class="en" lang="en">Watch the AI council work on a ticker you care about</span></h2>
     <div class="cta-row center">
-      <a class="btn btn-white btn-large" href="https://example.com/" target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      <a class="btn btn-white btn-large" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
       <a class="btn btn-ghost-white btn-large" href="#install"><span class="vi" lang="vi">Cài trên máy</span><span class="en" lang="en">Install on your machine</span></a>
     </div>
   </div>
@@ -880,18 +882,23 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked: the choice lasts this visit only */ } },
 };
 
-/* Language: vi first, en on request. */
+/* Language: ?lang=vi|en in the link wins, then the saved choice, else English. */
 const TEXT = {
   vi: { themeAuto: "Giao diện: theo hệ thống", themeLight: "Giao diện: sáng", themeDark: "Giao diện: tối", copy: "Sao chép", copied: "Đã chép" },
   en: { themeAuto: "Theme: system", themeLight: "Theme: light", themeDark: "Theme: dark", copy: "Copy", copied: "Copied" },
 };
-const lang = () => (root.lang === "en" ? "en" : "vi");
+const lang = () => (root.lang === "vi" ? "vi" : "en");
 
 function setLang(next) {
   root.lang = next;
   document.title = TITLES[next];
   for (const b of $$("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === next));
   for (const el of $$("[data-aria-vi]")) el.setAttribute("aria-label", el.dataset[next === "en" ? "ariaEn" : "ariaVi"]);
+  for (const a of $$("[data-app-link]")) {
+    const url = new URL(a.getAttribute("href"), location.href);
+    url.searchParams.set("lang", next);
+    a.setAttribute("href", url.toString());
+  }
   renderTheme();
   store.set("oa.lang", next);
 }
