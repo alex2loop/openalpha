@@ -3,6 +3,7 @@ import type { MarketDataStore } from '@/trading/features/market-data/store/marke
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
+import type { BriefActionCode } from '@/trading/kernel/operator/brief-section'
 import type { VenueListings } from '@/trading/kernel/venue/catalog'
 import type { MacroCache } from '@/trading/markets/macro-cache'
 import type { StageRegistry } from '@/trading/markets/stage'
@@ -42,6 +43,9 @@ export interface MarketDeps {
    *  is one request per name and the screened board is too many: the refresh then fetches
    *  statements for the book, the watchlist and these names alone. */
   readonly viewedInstruments?: (options: ViewedOptions) => Promise<readonly InstrumentRef[]>
+  /** What the brief never tells the reader to do next: each reads as if it never fired. Absent
+   *  states every action. */
+  readonly omitBriefActions?: ReadonlySet<BriefActionCode>
 }
 
 interface ViewedOptions {

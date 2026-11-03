@@ -164,7 +164,11 @@ export type {
   StopDistance,
 } from '@/trading/kernel/operator/alert'
 export type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
-export type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+export type {
+  BriefActionCode,
+  BriefSectionKind,
+  BriefSectionResult,
+} from '@/trading/kernel/operator/brief-section'
 export type { FocusScope } from '@/trading/kernel/operator/focus'
 export type {
   AlertFired,

@@ -48,8 +48,10 @@ export async function buildNextActions(
 
   // Ready with no rows, never omitted: this is a core section, so omitting it would suppress the
   // whole brief on a morning that simply needs nothing. The renderer already skips an empty one.
+  const omitted = context.deps.omitBriefActions
+
   return ready('next-actions', [
-    ...[...codes, ...marketCodes].map((code) => ({ code })),
+    ...[...codes, ...marketCodes].filter((code) => !omitted?.has(code)).map((code) => ({ code })),
     ...heldEventTickers(context, events, 'dividend-ex-date').map((ticker) => ({
       ticker,
       code: 'record-dividend' as const,

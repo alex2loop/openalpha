@@ -217,6 +217,7 @@ function subjectOf(parts: SubjectParts): CaseSubject {
     instrument: subject.instrument,
     asOf: parts.asOf,
     factorsHeading: ANALYSIS_FACTORS_HEADING,
+    withoutAnalystCoverage: true,
     ...(parts.evidenceThrough === undefined ? {} : { evidenceThrough: parts.evidenceThrough }),
     ...(subject.name === undefined ? {} : { name: subject.name }),
     ...(subject.sector === undefined ? {} : { sector: subject.sector }),

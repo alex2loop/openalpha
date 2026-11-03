@@ -9,6 +9,7 @@ import type {
   AbsoluteRebalancePlan,
   PortfolioAssessment,
   PortfolioService,
+  RebalanceForm,
   ReduceVerdicts,
   ValuedBook,
 } from '@/trading/features/portfolio/types'
@@ -76,6 +77,9 @@ interface PortfolioServiceDeps extends PortfolioViewDeps {
   readonly logger: Logger
   /** The locale a profile is seeded with when the caller has no admitted one of its own. */
   readonly defaultLocale: Locale
+  /** Absent plans the orders; `gaps` plans only where held names stand against the targets, so no
+   *  score, regime or watchlist name is read for it. */
+  readonly rebalanceForm?: RebalanceForm
 }
 
 export function createPortfolioService(deps: PortfolioServiceDeps): PortfolioService {
@@ -176,6 +180,7 @@ async function rebalance(
 
   const asOf = resolveAsOf(deps, options.now)
   const request = { asOf, now: options.now, signal: options.signal }
+  const gaps = deps.rebalanceForm === 'gaps'
   // The macro read needs only the day, so it overlaps the valuation instead of waiting behind it.
   const [context, regimes] = await Promise.all([
     loadAdviceContext(deps, options),
@@ -183,11 +188,11 @@ async function rebalance(
   ])
   const { valued, profile } = context
   // Guard before side effects: a book with no NAV to size yields the same advice whatever the
-  // screen returns, so screening and pricing a wider universe would be cost with no reader.
+  // screen returns, so screening and pricing a wider universe would be cost with no reader. A gaps
+  // plan reads what is held and nothing else.
   const sizable = resolveSizingBasis(valued).kind === 'sizable'
-  const instruments = sizable
-    ? candidateInstruments(valued, named?.instruments ?? profile.watchlist)
-    : valued.positions.map((entry) => entry.position.instrument)
+  const beyondBook = sizable && !gaps ? (named?.instruments ?? profile.watchlist) : []
+  const instruments = candidateInstruments(valued, beyondBook)
   const statistics = await loadInstrumentStatistics(deps, { instruments, ...request })
   const { candidates, standingReduces } = await loadAdviceInputs(deps, {
     sizable,
@@ -207,8 +212,8 @@ async function rebalance(
   })
 
   // A plan scoped to the caller's segments is read for its rows, never for the candidate caveats,
-  // so screening a board for names would be a read nobody prints.
-  if (options.segments !== undefined) {
+  // so screening a board for names would be a read nobody prints. A gaps plan names no candidate.
+  if (options.segments !== undefined || gaps) {
     return plan
   }
 
@@ -268,6 +273,11 @@ async function resolveSegmentRegimes(
   options: MarketRequest,
   segments: readonly PortfolioSegment[] | undefined
 ): Promise<ReadonlyMap<PortfolioSegment, RegimeScale>> {
+  // A gaps plan sizes no buy, so no regime scales one and the macro is never read.
+  if (deps.rebalanceForm === 'gaps') {
+    return new Map()
+  }
+
   const entries = await Promise.all(
     deps.markets
       .list()
@@ -337,6 +347,7 @@ function buildAdvice(input: {
       assessment: assess(deps, { profile, valued, instrumentKinds, statistics: input.statistics }),
       candidates: input.candidates,
       rebalancePolicy: DEFAULT_REBALANCE_POLICY,
+      ...(deps.rebalanceForm === undefined ? {} : { form: deps.rebalanceForm }),
       standingReduces: input.standingReduces,
       regimes: input.regimes,
       reachableCashBase: reachableCashByMarket(deps.venues, valued.book),

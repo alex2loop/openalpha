@@ -4,7 +4,7 @@ import type {
   RebalancePlanReady,
   RebalanceSizing,
 } from '@/trading/features/portfolio/types'
-import type { Caveat } from '@/trading/kernel/caveat'
+import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
 import { t } from '@/i18n'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { formatFixedFraction, fractionDirection } from '@/trading/render/format'
@@ -14,26 +14,40 @@ import { formatMoney } from '@/trading/render/money'
 
 export const REGIME_CAVEAT = 'portfolio.regime-risk'
 
-/** The plan caveats a gaps plan leaves out: each says what to buy or sell, or names a candidate
- *  to look at, and a gaps plan states neither. The regime caveat says how much of a buy today
- *  allows. */
-const GAPS_DROPPED_CAVEATS: ReadonlySet<string> = new Set([
-  REGIME_CAVEAT,
-  'portfolio.candidates-available',
-  'portfolio.candidates-by-name',
-  'portfolio.candidates-outside-cap',
-  'portfolio.increase-below-minimum',
-  'portfolio.increases-underfunded',
-  'portfolio.reduce-standing',
-  'portfolio.reduction-below-minimum',
-  'portfolio.reduction-illiquid',
-  'portfolio.reduction-unsettled',
-  'portfolio.segment-no-candidates',
-])
+type PortfolioCaveatCode = Extract<CaveatCode, `portfolio.${string}`>
+
+/** Every portfolio caveat and whether a gaps plan states it. A drop names a buy, a size, a
+ *  candidate or a score, which a gaps plan states none of; the keys are exhaustive, so a new
+ *  portfolio caveat cannot ship without this decision. */
+const GAPS_CAVEATS = {
+  'portfolio.valuation-partial': 'keep',
+  'portfolio.concentration-unchecked': 'keep',
+  'portfolio.targets-renormalized': 'drop',
+  'portfolio.targets-unfilled': 'drop',
+  'portfolio.too-few-candidates': 'drop',
+  'portfolio.shared-cap-full': 'drop',
+  'portfolio.core-unfilled': 'drop',
+  'portfolio.segment-no-candidates': 'drop',
+  'portfolio.candidates-available': 'drop',
+  'portfolio.candidates-outside-cap': 'drop',
+  'portfolio.candidates-by-name': 'drop',
+  'portfolio.holding-signal-missing': 'drop',
+  'portfolio.increases-underfunded': 'drop',
+  'portfolio.increase-below-minimum': 'drop',
+  'portfolio.reduce-standing': 'drop',
+  'portfolio.reduction-below-minimum': 'drop',
+  'portfolio.reduction-unsettled': 'drop',
+  'portfolio.reduction-illiquid': 'drop',
+  'portfolio.candidate-illiquid': 'drop',
+  'portfolio.unmeasured-volatility': 'drop',
+  [REGIME_CAVEAT]: 'drop',
+} as const satisfies Record<PortfolioCaveatCode, 'keep' | 'drop'>
+
+const GAPS_DECISIONS: Readonly<Partial<Record<CaveatCode, 'keep' | 'drop'>>> = GAPS_CAVEATS
 
 /** True for a caveat a gaps plan keeps: its text, surface notes and wire all ask this one. */
 export function isGapsCaveat(caveat: Caveat): boolean {
-  return !GAPS_DROPPED_CAVEATS.has(caveat.code)
+  return GAPS_DECISIONS[caveat.code] !== 'drop'
 }
 
 interface RenderedGap {

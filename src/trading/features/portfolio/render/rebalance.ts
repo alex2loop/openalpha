@@ -319,14 +319,15 @@ export function renderStanceLines(locale: Locale, advice: RebalancePlanReady): r
  *  ceiling binding on a calm day. */
 function renderDeploymentLines(locale: Locale, advice: RebalancePlanReady): readonly string[] {
   const statedByRegime = advice.caveats.some((caveat) => caveat.code === REGIME_CAVEAT)
+  const scale = advice.policy.deploymentScale
 
-  if (advice.policy.deploymentScale >= 1 || statedByRegime) {
+  if (scale === undefined || scale >= 1 || statedByRegime) {
     return []
   }
 
   return [
     `${INDENT[1]}${t(locale, 'trading.render.rebalance.deployment', {
-      deployment: formatFraction(locale, advice.policy.deploymentScale),
+      deployment: formatFraction(locale, scale),
     })}`,
   ]
 }

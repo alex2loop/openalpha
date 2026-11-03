@@ -5,7 +5,7 @@ import type { RebalanceForm, ReduceVerdicts } from '@/trading/features/portfolio
 import type { SuggestAnalysis } from '@/trading/features/suggestion/command'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
-import type { BriefSectionKind } from '@/trading/kernel/operator/brief-section'
+import type { BriefActionCode, BriefSectionKind } from '@/trading/kernel/operator/brief-section'
 import type { MarketDeps } from '@/trading/markets/deps'
 
 /** The reads of a book that holds no suggestion and plans no exit: each answers empty, which every
@@ -44,6 +44,8 @@ export interface TradingEdition {
   readonly screen?: ScreenForm
   /** Brief sections left out: each reads as omitted, which every surface already hides. */
   readonly briefOmits?: ReadonlySet<BriefSectionKind>
+  /** Next actions the brief never lists, whatever fired them: each reads as if it never fired. */
+  readonly briefActionOmits?: ReadonlySet<BriefActionCode>
   /** What an edition that stores no suggestion and plans no exit answers itself. */
   readonly reads?: BookReads
   /** See `MarketDeps.pagedBackfill`. */

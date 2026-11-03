@@ -24,6 +24,7 @@ import { driftBand } from '@/trading/features/portfolio/folds/policy'
 import { underfundedCaveats } from '@/trading/features/portfolio/folds/rebalance-caveat'
 import { increaseRows, segmentBudgets } from '@/trading/features/portfolio/folds/rebalance-increase'
 import { reductionRows } from '@/trading/features/portfolio/folds/rebalance-reduce'
+import { sizeOf, toChange } from '@/trading/features/portfolio/folds/rebalance-step'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 
 interface RebalancePlan {
@@ -145,4 +146,79 @@ function withUnits(row: PositionChange, sizing: RebalanceSizing): PositionChange
   const size = sizing.byInstrument.get(buildInstrumentKey(row.instrument))
 
   return size === undefined ? row : { ...row, units: size.quantity }
+}
+
+interface GapPlan {
+  readonly rows: readonly PositionChange[]
+  readonly sizes: ReadonlyMap<string, OrderSize>
+}
+
+/** Where each held name stands against the weight the visitor's own segment targets give it: the
+ *  names of a segment outside its band are scaled together to that segment's target, an excluded
+ *  one keeping its weight. No score, regime, cash or lot enters, so the rows say how far a name is
+ *  from a target and never what to do about it. Caps stay findings: they read the book as it is. */
+export function gapRows(input: AdviceInput, nav: number): GapPlan {
+  const current = currentPositionWeights(input.valued, nav)
+  const drifting = driftingSegments(input, nav)
+  const excluded = new Set(input.profile.exclusions.map(buildInstrumentKey))
+  const held = input.candidates.filter(
+    (candidate) => drifting.has(candidate.segment) && heldWeight(current, candidate) > 0
+  )
+  const rows: PositionChange[] = []
+  const sizes = new Map<string, OrderSize>()
+
+  for (const segment of new Set(held.map((candidate) => candidate.segment))) {
+    const members = held.filter((candidate) => candidate.segment === segment)
+    const target = input.profile.segmentTargets[segment] ?? 0
+    const scale = segmentScale(members, { current, excluded, target })
+
+    for (const candidate of members) {
+      const key = buildInstrumentKey(candidate.instrument)
+      const weight = heldWeight(current, candidate)
+      const wanted = excluded.has(key) ? weight : weight * scale
+
+      if (Math.abs(wanted - weight) >= input.rebalancePolicy.minimumChangePctNav) {
+        const row = toChange({
+          candidate,
+          currentPctNav: weight,
+          targetPctNav: wanted,
+          reason: { kind: wanted > weight ? 'fill-gap' : 'trim' },
+        })
+
+        rows.push(row)
+        sizes.set(key, sizeOf(row, candidate, nav))
+      }
+    }
+  }
+
+  return { rows, sizes }
+}
+
+interface SegmentShares {
+  readonly current: ReadonlyMap<string, number>
+  readonly excluded: ReadonlySet<string>
+  readonly target: number
+}
+
+/** What the segment's other names are multiplied by so the segment lands on its target once the
+ *  excluded ones keep what they hold. */
+function segmentScale(members: readonly PortfolioCandidate[], shares: SegmentShares): number {
+  let spared = 0
+  let scalable = 0
+
+  for (const candidate of members) {
+    const weight = heldWeight(shares.current, candidate)
+
+    if (shares.excluded.has(buildInstrumentKey(candidate.instrument))) {
+      spared += weight
+    } else {
+      scalable += weight
+    }
+  }
+
+  return scalable > 0 ? Math.max(0, shares.target - spared) / scalable : 0
+}
+
+function heldWeight(current: ReadonlyMap<string, number>, candidate: PortfolioCandidate): number {
+  return current.get(buildInstrumentKey(candidate.instrument)) ?? 0
 }

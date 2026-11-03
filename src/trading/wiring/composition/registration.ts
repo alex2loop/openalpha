@@ -324,10 +324,7 @@ function buildServices(
     defaultLocale: app.config.locale.language,
     skillVersions: skillVersions(),
     personaVersions: personaVersions(),
-    ...(options.edition?.reads === undefined ? {} : { reads: options.edition.reads }),
-    ...(options.edition?.briefOmits === undefined
-      ? {}
-      : { briefOmits: options.edition.briefOmits }),
+    ...(options.edition === undefined ? {} : { edition: options.edition }),
   })
 
   return {

@@ -1,7 +1,13 @@
 import type { BrowserKeyring } from '@/app/browser/keys'
 import type { App } from '@/core/container'
 import type { SlashContext, SlashResult } from '@/core/types/command'
-import type { BookReads, BriefSectionKind, InstrumentRef, TradingEdition } from '@/trading/api'
+import type {
+  BookReads,
+  BriefActionCode,
+  BriefSectionKind,
+  InstrumentRef,
+  TradingEdition,
+} from '@/trading/api'
 import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
@@ -41,9 +47,19 @@ const MARKETS: ReadonlySet<ReturnType<typeof marketRef>> = new Set([
   marketRef('gold-vn'),
 ])
 
-/** Brief sections that rank names by composite: the watchlist ordered by score, and which names
- *  entered or left the top of the board. The web ranks nothing. */
-const BRIEF_OMITS: ReadonlySet<BriefSectionKind> = new Set(['watchlist-leading', 'screen-delta'])
+/** Brief sections that rank names by composite (the watchlist ordered by score, which names
+ *  entered or left the top of the board) or state what the web has none of: the standing rules for
+ *  stops, entries and tranches, and the cash posture a plan would leave. */
+const BRIEF_OMITS: ReadonlySet<BriefSectionKind> = new Set([
+  'watchlist-leading',
+  'screen-delta',
+  'discipline',
+  'deposit-rate',
+])
+
+/** The next action that tells the reader when to buy. The others name a record to make or a
+ *  command to read. */
+const BRIEF_ACTION_OMITS: ReadonlySet<BriefActionCode> = new Set(['avoid-chasing'])
 
 const NEEDS_KEY = 'slash.tradingSuggestAnalysisNeedsKey'
 
@@ -84,6 +100,7 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
     rebalance: 'gaps',
     screen: 'board',
     briefOmits: BRIEF_OMITS,
+    briefActionOmits: BRIEF_ACTION_OMITS,
     reads: EMPTY_READS,
     pagedBackfill: true,
     viewed: ({ signal }) => viewedInstruments(app, signal),

@@ -40,7 +40,8 @@ this document — neither imports the other.
   served (`locked`, `taken-over`, `unsupported`, `newer-schema`, `storage-full`). `export-db` answers
   with the database as one SQLite file; `open-db` checks a file the visitor picked in a scratch
   database (SQLite header, every migration id declared by this build, no row an installed version
-  wrote in `suggestions`, `alerts`, `resting_exits` or `order_intents`), then replaces the database
+  wrote in a table only it fills: stored calls, alerts, resting exits, order intents, the buying halt,
+  focus and factor records, themes), then replaces the database
   and starts again, and answers why when it did not. Both run on the lifecycle queue, so neither
   meets a start or a restart half-done.
 - **Bind:** `127.0.0.1` only (loopback). The `/v1` HTTP routes also verify the request **peer** is
@@ -212,7 +213,7 @@ this document — neither imports the other.
 | PATCH · DELETE | `/v1/ledger/:id` | yes | `{ draft, typedPrice? }` (PATCH, the whole row; an edit that leaves out a rate where one applies is refused with `fields` on `operatorFxRate`, as POST) | `LedgerWriteResponse` | — |
 | GET | `/v1/stops` | yes | — | `StopsResponse` (`price`: the mark `distanceToStopPct` was measured from, absent when unpriced; `review`: a fund's lower level is a review, not a sale; `cover`: `placed` / `venue` / `none` stop order at the exchange, absent where none could rest) | `stops.json` |
 | GET | `/v1/venues` | yes | — | `VenuesResponse` (every venue a trade can be recorded at and the markets it holds) | `venues.json` |
-| GET | `/v1/rebalance` | yes | — | `RebalanceResponse` (`text`: the CLI's lines for this plan; the numbers beside them are for prefilling a ledger row) | `rebalance.json`, `rebalance.unavailable.json` |
+| GET | `/v1/rebalance` | yes | — | `RebalanceResponse` (`text`: the CLI's lines for this plan; the numbers beside them are for prefilling a ledger row. A plan written as gaps, which is what a browser worker serves, leaves out `deploymentScale`, `cash`, each segment's `afterPlanPctNav` and each change's `reason`, and carries an order's `valueBase` and `currency` only) | `rebalance.json`, `rebalance.unavailable.json` |
 | GET | `/v1/reconcile` | yes | — | `ReconcileResponse` (`text`: the CLI's `matched` and `cashNote` sentences, each `null` where it would not be true; `canSync`: the venue lists its fills, so `POST /v1/ledger/sync` can book them; each mismatch's `cash`: the asset is the venue's cash currency, which a deposit or withdrawal corrects rather than a trade) | `reconcile.json` |
 | GET · POST | `/v1/alerts` | yes | `?limit&cursor` (GET); `AlertCreateBody` (POST) | `AlertsResponse` (`activeCount`: active alerts in all, not on the page) / `AlertWire` | `alerts.json` |
 | DELETE | `/v1/alerts/:id` | yes | — | `AlertDisableResponse` | — |
