@@ -92,12 +92,20 @@ import {
 } from '@/trading/sources/adapters/vietcap/client'
 import { createVietcapSources } from '@/trading/sources/adapters/vietcap/sources'
 import {
+  createVietcombankSources,
+  VIETCOMBANK_DEFAULT_ENDPOINT,
+} from '@/trading/sources/adapters/vietcombank'
+import {
   VNDIRECT_DEFAULT_ENDPOINT,
   VNDIRECT_MKW_DEFAULT_ENDPOINT,
 } from '@/trading/sources/adapters/vndirect/client'
 import { VNDIRECT_MACRO_PROFILE } from '@/trading/sources/adapters/vndirect/macro'
 import { createVndirectSources } from '@/trading/sources/adapters/vndirect/sources'
 import { createVpsSources, VPS_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/vps'
+import {
+  createVpsBoardSources,
+  VPS_BOARD_DEFAULT_ENDPOINT,
+} from '@/trading/sources/adapters/vps-board'
 import { createYahooSources, YAHOO_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/yahoo'
 
 /** Collected from each adapter module's own constant. An endpoint is a provider fact, not an
@@ -138,9 +146,12 @@ export const SOURCE_ENDPOINTS = Object.freeze({
   [sourceId('vietcap-board')]: VIETCAP_DEFAULT_ENDPOINT,
   [sourceId('vietcap-chart')]: VIETCAP_DEFAULT_ENDPOINT,
   [sourceId('vietcap-statements')]: VIETCAP_STATEMENTS_ENDPOINT,
+  [sourceId('vietcombank')]: VIETCOMBANK_DEFAULT_ENDPOINT,
   [sourceId('vndirect')]: VNDIRECT_DEFAULT_ENDPOINT,
+  [sourceId('vndirect-index')]: VNDIRECT_DEFAULT_ENDPOINT,
   [sourceId('vndirect-mkw')]: VNDIRECT_MKW_DEFAULT_ENDPOINT,
   [sourceId('vps')]: VPS_DEFAULT_ENDPOINT,
+  [sourceId('vps-board')]: VPS_BOARD_DEFAULT_ENDPOINT,
   [sourceId('yahoo')]: YAHOO_DEFAULT_ENDPOINT,
 })
 
@@ -178,6 +189,17 @@ export const SOURCE_ENDPOINTS = Object.freeze({
  *  `vndirect-mkw` publishes no ceiling. A read is made when the Market tab asks and the daemon holds a
  *  list for about a minute while the session trades, so 60 a minute is far above the peak and still
  *  catches a runaway.
+ *
+ *  `vietcombank` publishes no ceiling. A window is one request a weekday, at most 45 on the longest
+ *  window it accepts, and it is read only where `yahoo` answered nothing. 33 days took 2.7 s at 120
+ *  a minute against 18 s at 60, and 120 still catches a runaway.
+ *
+ *  `vndirect-index` shares a host with `vndirect` and its 300 a minute, but is asked once per index
+ *  (a page per 500 sessions) when the market refreshes its level bars, so 60 a minute is far above
+ *  the peak.
+ *
+ *  `vps-board` publishes no ceiling. A read is two requests, made once per universe refresh, so 30 a
+ *  minute is far above the peak.
  *
  *  `vietcap-statements` publishes no ceiling. A name costs three requests, four for a bank, and a
  *  refresh asks for the board and the book, about 120 names, only when their reports are due, so
@@ -226,9 +248,12 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('vietcap-board')]: 30,
   [sourceId('vietcap-chart')]: 30,
   [sourceId('vietcap-statements')]: 120,
+  [sourceId('vietcombank')]: 120,
   [sourceId('vndirect')]: 300,
+  [sourceId('vndirect-index')]: 60,
   [sourceId('vndirect-mkw')]: 60,
   [sourceId('vps')]: 30,
+  [sourceId('vps-board')]: 30,
   [sourceId('yahoo')]: 60,
 })
 
@@ -321,6 +346,8 @@ export function createBuiltInSources(adapters: SourceAdapterOptions): readonly R
     ...createCafefSources(adapters),
     ...createVietcapSources(adapters),
     ...createVpsSources(adapters),
+    ...createVpsBoardSources(adapters),
+    ...createVietcombankSources(adapters),
     ...createHsxSources(adapters),
     ...createSsiSources(adapters),
     ...createPnjSources(adapters),
