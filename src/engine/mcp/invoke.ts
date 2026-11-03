@@ -14,7 +14,6 @@ import type { RunOnceDeps } from '@/engine/types/run-deps'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { RunHalted, ToolError } from '@/core/errors'
 import { DEFAULT_AGENT_ID, LOCAL_USER_ID } from '@/core/ids'
-import { prepareAgentScratchDir } from '@/core/security/agent-directories'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MCP_SERVE_CALL_TIMEOUT_MS, MCP_TOOL_RESULT_MAX_BYTES } from '@/engine/constants'
 import { assembleRun } from '@/engine/loop/context'
@@ -81,7 +80,7 @@ async function invokeTool(
     return toolFailure(MCP_ABORTED_MESSAGE)
   }
 
-  const workspace = await prepareAgentScratchDir(runDeps.config.paths.dataDir, agent.id)
+  const workspace = await runDeps.prepareWorkspace(agent.id)
   const services = buildRunServices({ deps: runDeps, agent })
   const approval: RunOptions =
     input.approval === undefined

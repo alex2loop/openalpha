@@ -10,6 +10,10 @@ export const DEFAULT_MAX_DURATION_MS = 900_000
 export const REACHABILITY_HOST = 'example.com'
 export const REACHABILITY_TIMEOUT_MS = 5_000
 
+/** Whether the network answers. The host owns how it asks: the daemon resolves a name, a page that
+ *  never runs the background loops has nothing to ask. */
+export type ReachabilityProbe = (signal: AbortSignal) => Promise<boolean>
+
 /** Caps a run reports back so a hint can name what was in force, not what ships by default. */
 interface HintLimits {
   readonly maxTurns: number

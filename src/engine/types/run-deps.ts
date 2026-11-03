@@ -4,6 +4,7 @@ import type { EventBus } from '@/core/events'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { LLMMessage } from '@/core/llm'
 import type { Logger } from '@/core/logging/logger'
+import type { WorkspaceIdentity } from '@/core/security/path-policy'
 import type { ToolDefinition } from '@/core/tool'
 import type { AgentPauseStore } from '@/core/types/agent-pause'
 import type { LLMUsageTotals } from '@/core/types/usage'
@@ -17,6 +18,10 @@ import type {
 } from '@/engine/types/cost'
 import type { Compactor, Hooks, RunInput, RunOptions, ToolExecutor } from '@/engine/types/run'
 
+/** The private scratch directory a run's shell and file tools work in. The host owns where it is and
+ *  how it is kept private: `app` binds the daemon's data-dir folder, the browser a virtual one. */
+export type PrepareWorkspace = (agentId: AgentId) => Promise<WorkspaceIdentity>
+
 export interface RunOnceDeps {
   readonly agents: ReadonlyMap<string, AgentProfile>
   readonly tools: ReadonlyMap<string, ToolDefinition>
@@ -28,6 +33,7 @@ export interface RunOnceDeps {
   readonly llmAttemptSink: LLMAttemptSink
   readonly unrecordedSpend: UnrecordedSpendLog
   readonly pricing: Pricing
+  readonly prepareWorkspace: PrepareWorkspace
   readonly rateLimiter: RateLimiter
   readonly logger: Logger
   readonly bus: EventBus

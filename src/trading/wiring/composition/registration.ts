@@ -1,5 +1,6 @@
 import type { App, Bind, Extend, ServiceProvider, TaskPassListener } from '@/core/container'
 import type { RequestShape } from '@/core/http-client'
+import type { ReachabilityProbe } from '@/core/limits'
 import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
 import type { Hooks } from '@/engine/api'
@@ -93,6 +94,8 @@ interface TradingRegistrationOptions {
   readonly pluginModules: readonly LoadedSourceModule[]
   /** How every source request presents itself: the daemon's or a page's. */
   readonly requestShape: RequestShape
+  /** How the loops tell the network is up: the daemon resolves a name. */
+  readonly reachability: ReachabilityProbe
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider

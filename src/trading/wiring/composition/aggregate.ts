@@ -1,4 +1,5 @@
 import type { TaskPassListener } from '@/core/container'
+import type { ReachabilityProbe } from '@/core/limits'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { createConfiguredRunBudget } from '@/engine/api'
@@ -47,6 +48,7 @@ interface AggregateOptions {
   readonly onFilled: OrderFilledListener
   readonly onAlertsChecked: (at: number) => void
   readonly onTaskPass: TaskPassListener
+  readonly reachability: ReachabilityProbe
   /** `[schedule] late_grace_ms`: the one lateness bound a timed send shares with the scheduler. */
   readonly lateGraceMs: number
   recipient(): DeliveryAddress | undefined
@@ -174,6 +176,7 @@ function buildDaemonTasks(
     refreshMarketData: parts.refreshMarketData,
     firstSweep: options.firstSweep,
     logger: parts.logger,
+    reachability: options.reachability,
   })
 }
 

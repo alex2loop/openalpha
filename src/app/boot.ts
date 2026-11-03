@@ -12,6 +12,7 @@ import type { OpenedPersistence } from '@/persistence/api'
 import type { SocialConfig } from '@/social/api'
 import type { TradingConfig } from '@/trading/api'
 import '@/app/events'
+
 import type { NoticeLog } from '@/app/activity/notice-log'
 import type { RunLog } from '@/app/activity/run-log'
 import { startNoticeLog } from '@/app/activity/notice-log'
@@ -32,9 +33,11 @@ import { resolveConfig } from '@/core/config/resolve'
 import { createApp } from '@/core/container'
 import { ConfigError } from '@/core/errors'
 import { DAEMON_REQUEST_SHAPE } from '@/core/http-client'
+import { REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/limits'
 import { createLoggerResource } from '@/core/logging/logger'
 import { formatErrForLog } from '@/core/security/credentials'
 import { ensurePrivateDirectory } from '@/core/security/private-files'
+import { probeHost } from '@/core/utils/reachability'
 import { WORKSPACES_DIR_NAME } from '@/engine/api'
 import { hasOwnMessage } from '@/i18n'
 import { openPersistence } from '@/persistence/node-api'
@@ -232,6 +235,7 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
       keys: commandKeyValidator,
       pluginModules: input.assets.pluginSourceModules,
       requestShape: DAEMON_REQUEST_SHAPE,
+      reachability: (signal) => probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS, signal),
     }),
   })
 }

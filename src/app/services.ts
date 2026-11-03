@@ -32,6 +32,7 @@ import { formatRunResultBody } from '@/channels/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { RunHalted } from '@/core/errors'
 import { LOCAL_USER_ID, sessionId } from '@/core/ids'
+import { prepareAgentScratchDir } from '@/core/security/agent-directories'
 import { hashString } from '@/core/utils/hash'
 import {
   createAvailableDelegatesModifier,
@@ -43,6 +44,7 @@ import {
   reminderModifier,
   WORKSPACES_DIR_NAME,
 } from '@/engine/api'
+import { createUnrecordedSpendLog } from '@/engine/node-api'
 import { t } from '@/i18n'
 import { createChannelInbox } from '@/persistence/api'
 
@@ -92,6 +94,15 @@ export function createKernelProvider(kernel: KernelDeps): ServiceProvider {
       bind('sessionQueue', () => kernel.sessionQueue)
       bind('commandLane', () => kernel.commandLane)
       bind('childEnvBase', () => kernel.childEnvBase)
+      // Host-bound services the engine names by interface only: the daemon keeps both under its
+      // data dir.
+      bind(
+        'prepareWorkspace',
+        (app) => (agentId) => prepareAgentScratchDir(app.config.paths.dataDir, agentId)
+      )
+      bind('unrecordedSpend', (app) =>
+        createUnrecordedSpendLog(app.config.paths.dataDir, app.config.locale.timezone)
+      )
       bind('taskStatus', (app) => createTaskStatusBoard(app.config.locale.language))
       bind('inboundInbox', (app) =>
         createChannelInbox(app.resolve('storage'), app.resolve('dialect'))

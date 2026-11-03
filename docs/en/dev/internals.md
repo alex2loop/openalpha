@@ -46,7 +46,11 @@ Cross-module imports use `@/<module>/api`, plus `@/<module>/node-api` for the Bu
 of a module that has them (a sqlite engine, a token file, an MCP stdio client, plugin files read from
 disk). Only `app`, `cli` and the SDK barrel import a `node-api`, and neither door re-exports the
 other: `api` reaches no Bun or Node builtin, so the browser bundle can import it, and
-`bun run check:browser` builds that bundle and names any import that breaks the promise. Three
+`bun run check:browser` builds that bundle and names any import that breaks the promise. A portable factory that needs a host-only capability
+takes it as a consumer-side function and `app` binds it: the run's scratch directory
+(`RunOnceDeps.prepareWorkspace`), the unrecorded-spend log (`Services.unrecordedSpend`), the
+network probe behind the trading loops (`ReachabilityProbe`), the pre-migration snapshot
+(`MigrateOptions.backup`) and the model credential sources (`createAiProvider`). Three
 exceptions:
 
 - `core` has no barrel. Its public files are listed in `CORE_PUBLIC` in `scripts/check-dag.ts` and

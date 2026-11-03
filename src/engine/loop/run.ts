@@ -14,7 +14,6 @@ import type {
 } from '@/engine/types/run'
 import type { RunOnceDeps } from '@/engine/types/run-deps'
 import { RunHalted, ValidationError } from '@/core/errors'
-import { prepareAgentScratchDir } from '@/core/security/agent-directories'
 import { scrubCredentials } from '@/core/security/credentials'
 import { EMPTY_LLM_USAGE_TOTALS } from '@/core/types/usage'
 import { agentCapRejection } from '@/engine/budget/agent-cap'
@@ -225,7 +224,7 @@ interface PrepareRunInput {
 
 async function prepareRun(input: PrepareRunInput): Promise<PreparedRun> {
   const { deps, input: runInput, options, agent, userMessage } = input
-  const workspace = await prepareAgentScratchDir(deps.config.paths.dataDir, agent.id)
+  const workspace = await deps.prepareWorkspace(agent.id)
   const runDeps: RunDeps = {
     tools: deps.tools,
     config: deps.config,
