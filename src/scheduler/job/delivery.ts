@@ -6,6 +6,7 @@ import type {
   SchedulerRunOutcome,
 } from '@/scheduler/types'
 import { formatErrForLog } from '@/core/security/credentials'
+import { withLeadParagraph } from '@/core/utils/text'
 import { CRON_AUTO_DISABLE_THRESHOLD, UNCOUNTED_HALT_MESSAGES } from '@/scheduler/job/outcome'
 
 interface AutoDisableNoticeInput {
@@ -88,5 +89,5 @@ async function notify(job: Job, deps: SchedulerDeps, text: string): Promise<void
 
   const label = deps.renderAiLabel(job)
 
-  await deps.notifier.notify(target, label === undefined ? text : `${label}\n\n${text}`)
+  await deps.notifier.notify(target, withLeadParagraph(label, text))
 }

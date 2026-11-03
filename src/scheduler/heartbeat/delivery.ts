@@ -9,6 +9,7 @@ import { parseChannelAddress } from '@/core/channels'
 import { formatErrForLog } from '@/core/security/credentials'
 import { lruMap } from '@/core/utils/collections'
 import { hashString } from '@/core/utils/hash'
+import { withLeadParagraph } from '@/core/utils/text'
 
 const DELIVERY_CACHE_MAX = 200
 
@@ -55,7 +56,7 @@ export async function deliverHeartbeatResult(options: DeliverOptions): Promise<v
       agentId,
       taskName: task.name,
       target,
-      text: label === undefined ? text : `${label}\n\n${text}`,
+      text: withLeadParagraph(label, text),
       fingerprint,
       logger,
       notifier,

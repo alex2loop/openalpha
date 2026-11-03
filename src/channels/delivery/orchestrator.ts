@@ -122,7 +122,7 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
     useMarkup,
     afterApproval: prompts.prompted(),
     elapsedMs: performance.now() - startedAt,
-    label: result.reason === 'completed' ? label : undefined,
+    label: result.completionCode === undefined && result.text.trim() !== '' ? label : undefined,
   })
 }
 

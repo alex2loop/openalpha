@@ -79,6 +79,11 @@ export function decodeUtf8(bytes: Uint8Array): string {
   return UTF8_DECODER.decode(bytes)
 }
 
+/** `lead` as the first paragraph of `text`; no lead leaves the text as it is. */
+export function withLeadParagraph(lead: string | undefined, text: string): string {
+  return lead === undefined ? text : `${lead}\n\n${text}`
+}
+
 export function stripAnsi(text: string): string {
   return text.replace(ANSI_ESCAPE_RE, '')
 }
