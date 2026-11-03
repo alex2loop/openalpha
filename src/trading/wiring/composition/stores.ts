@@ -16,6 +16,7 @@ import type { RestingExitStore } from '@/trading/features/order/store/resting-ex
 import type { NavSnapshotStore } from '@/trading/features/portfolio/nav/types'
 import type { ProfileStore } from '@/trading/features/profile/store'
 import type { AgentFocusStore } from '@/trading/features/suggestion/store/agent-focus'
+import type { AnalysisStore } from '@/trading/features/suggestion/store/analysis'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { FactorLogStore } from '@/trading/features/suggestion/track-record/factor-log-types'
 import type { ThemeStore } from '@/trading/features/themes/store'
@@ -36,6 +37,7 @@ import { createRestingExitStore } from '@/trading/features/order/store/resting-e
 import { createNavSnapshotStore } from '@/trading/features/portfolio/store/nav-snapshot'
 import { createProfileStore } from '@/trading/features/profile/store'
 import { createAgentFocusStore } from '@/trading/features/suggestion/store/agent-focus'
+import { createAnalysisStore } from '@/trading/features/suggestion/store/analysis'
 import { createSuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import { createFactorLogStore } from '@/trading/features/suggestion/track-record/factor-log-store'
 import { createThemeStore } from '@/trading/features/themes/store'
@@ -47,6 +49,7 @@ export interface TradingStores {
   readonly navSnapshot: NavSnapshotStore
   readonly profile: ProfileStore
   readonly suggestion: SuggestionStore
+  readonly analysis: AnalysisStore
   readonly agentFocuses: AgentFocusStore
   readonly factorLog: FactorLogStore
   readonly alert: AlertStore
@@ -95,6 +98,7 @@ const createTradingStores = (options: CreateTradingStoresOptions): TradingStores
     navSnapshot: createNavSnapshotStore(deps),
     profile: createProfileStore(deps),
     suggestion: createSuggestionStore({ ...deps, logger: options.logger }),
+    analysis: createAnalysisStore({ ...deps, logger: options.logger }),
     agentFocuses: createAgentFocusStore(deps),
     factorLog: createFactorLogStore(deps),
     alert: createAlertStore(deps),

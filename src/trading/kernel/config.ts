@@ -48,11 +48,29 @@ type DebateWave = DebateWaveSpec['wave']
 
 export type DebateRole = DebateWaveSpec['roles'][number]
 
+/** One wave as a role runner reads it, whichever list it came from. */
+export interface DebateWavePlan {
+  readonly wave: DebateWave
+  readonly roles: readonly DebateRole[]
+}
+
 /** Every role a mode runs, in the order its budget slices are cut. */
 export const DEBATE_MODE_ROLES = Object.freeze({
   full: Object.freeze(DEBATE_MODE_WAVES.full.flatMap((spec) => spec.roles)),
   lean: Object.freeze(DEBATE_MODE_WAVES.lean.flatMap((spec) => spec.roles)),
 }) satisfies Readonly<Record<DebateMode, readonly DebateRole[]>>
+
+/** The analysis-only path: both sides argue and the claims are verified, and nothing after. It is
+ *  not a `DebateMode`, so no option list, config key or tool enum offers it. */
+export const ANALYSIS_WAVES = Object.freeze([
+  { wave: 'cases', roles: ['bull-researcher', 'bear-researcher'] },
+  { wave: 'verification', roles: ['claim-verifier'] },
+] as const satisfies readonly DebateWavePlan[])
+
+/** Every role the analysis runs, in the order its budget slices are cut. */
+export const ANALYSIS_ROLES: readonly DebateRole[] = Object.freeze(
+  ANALYSIS_WAVES.flatMap((spec) => spec.roles)
+)
 
 /** Why a run argued at the shallow depth. Only `lean` carries one: `full` is the depth a reader
  *  expects. Decided once and carried, because a stored row cannot tell a typed `lean` from a

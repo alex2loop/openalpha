@@ -61,7 +61,7 @@ Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,
 `funding_snapshots`, `fx_rates`, `macro_snapshots`, `series_points`, `series_provenance`,
 `macro_documents`, `news_items`, `market_refresh_attempts`, `ledger_entries`, `nav_snapshots`,
-`trading_profiles`, `suggestions`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
+`trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
 `theme_reads`, `theme_outcomes` and `agent_focuses`.
 
@@ -96,6 +96,12 @@ impossible.
 
 `first_missed_at` is when the exchange started denying the order exists. It clears the moment the
 exchange answers again.
+
+**Analyses.** `suggestion_analyses` keeps what an analysis-only run read and argued: the bull and bear
+case with the claims the evidence checked, kept apart from `suggestions` because it names no verdict,
+size, entry, stop or target and so is never scored. It is durable, since a read is a model's answer
+on a bundle that cannot be rebuilt. The installed daemon's own `/suggest` writes none; the rows
+arrive from a database restored from the web edition and are listed by `GET /v1/analyses`.
 
 **Themes.** These tables back `/themes`, and all are durable: a read is a model's answer on a bundle
 that cannot be rebuilt.

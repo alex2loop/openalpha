@@ -1,4 +1,5 @@
 import type { PricedLevels } from '@/trading/features/suggestion/pipeline/levels'
+import type { DraftCalendar } from '@/trading/features/suggestion/pipeline/market-reads'
 import type { StageRunResult } from '@/trading/features/suggestion/pipeline/stages'
 import type {
   DraftDirection,
@@ -12,7 +13,7 @@ import type {
   SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
 import type { FactorScore } from '@/trading/kernel/factor'
-import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type { RegimeScale } from '@/trading/kernel/market/market-data'
 import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
@@ -29,12 +30,7 @@ import {
   levelDirectionFor,
 } from '@/trading/features/suggestion/pipeline/direction'
 import { buildDraft, finalize } from '@/trading/features/suggestion/pipeline/draft'
-import {
-  draftInputFor,
-  instrumentEvents,
-  recentEvents,
-  upcomingEvents,
-} from '@/trading/features/suggestion/pipeline/draft-input'
+import { draftInputFor } from '@/trading/features/suggestion/pipeline/draft-input'
 import { joinOrStartSuggestion } from '@/trading/features/suggestion/pipeline/flight'
 import { holdFrom } from '@/trading/features/suggestion/pipeline/hold'
 import {
@@ -43,14 +39,14 @@ import {
   reuseOrCooldown,
 } from '@/trading/features/suggestion/pipeline/identity'
 import { buildLevelsFor } from '@/trading/features/suggestion/pipeline/levels'
+import {
+  readInstrumentEvents,
+  toDraftCalendar,
+} from '@/trading/features/suggestion/pipeline/market-reads'
 import { openRiskOf } from '@/trading/features/suggestion/pipeline/open-risk'
-import { longestOutcomeWindowSessions } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { runStages } from '@/trading/features/suggestion/pipeline/stages'
 import { outsideFocus, unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
-import { standingMarginEvent } from '@/trading/kernel/market/margin-status'
-import { eventsFromDay } from '@/trading/kernel/market/market-event'
 import { isOutsideFocus, runHorizon } from '@/trading/kernel/operator/focus'
-import { isSourceFailed } from '@/trading/kernel/source/source-result'
 import { regimeFor } from '@/trading/markets/macro-risk'
 
 /** The one ordered runner: resolve, reuse and cooldown gates, prepare, deterministic gate stages,
@@ -333,46 +329,14 @@ function readRunInputs(
     timed(options, 'factors', () =>
       market.factors({ instrument, asOf, now: request.now, signal: request.signal })
     ),
-    market.capabilities.events?.run({
+    readInstrumentEvents({
+      market,
       instrument,
-      // The range end, not the run day: `runEvents` asks the capability as of it, so a forward
-      // reader sees nothing unless this reaches past today.
-      asOf: market.manifest.calendar.addTradingDays(
-        asOf,
-        longestOutcomeWindowSessions(market.manifest.defaultCalendar)
-      ),
+      asOf,
       now: request.now,
-      fromDay: eventsFromDay(market.manifest.calendar, asOf),
       signal: request.signal,
     }),
   ])
-}
-
-/** One read of this name's events answers both halves a draft needs. */
-interface DraftCalendar {
-  readonly events: readonly MarketEvent[]
-  /** Past rows too: an ex-date the stored series has not caught up to moves today's levels. */
-  readonly instrumentEvents: readonly MarketEvent[]
-  readonly recent: readonly MarketEvent[]
-  readonly standingMargin?: MarketEvent
-  readonly calendarFailed?: true
-}
-
-function toDraftCalendar(
-  events: SourceResult<readonly MarketEvent[]> | undefined,
-  instrument: InstrumentRef,
-  asOf: TradingDay
-): DraftCalendar {
-  const own = instrumentEvents(events, instrument)
-  const standing = standingMarginEvent(own, asOf)
-
-  return {
-    events: upcomingEvents(own, asOf),
-    instrumentEvents: own,
-    recent: recentEvents(own, asOf),
-    ...(standing === undefined ? {} : { standingMargin: standing }),
-    ...(isSourceFailed(events) ? { calendarFailed: true } : {}),
-  }
 }
 
 function calendarFieldsOf(

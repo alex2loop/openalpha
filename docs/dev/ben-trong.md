@@ -243,7 +243,10 @@ lượt của dịch vụ đề xuất rồi chờ nó, và chỉ lượt khởi
 giao dịch thêm các vai tranh luận (`bull-researcher`, `bear-researcher`, `portfolio-manager`, `trader`,
 `risk-analyst`, `claim-verifier`, `market-analyst`), do quy trình đề xuất lập lịch chứ không do người dùng
 chọn, cùng `theme-analyst` do `/themes` chạy. Agent của người dùng và của plugin không thay được các mã
-được bảo vệ.
+được bảo vệ. Một lần chạy chỉ-phân-tích (`/suggest` của bản web) dùng lại hai bước trong số đó, hai bên tăng
+giảm và bước đối chiếu luận điểm, trên bằng chứng dựng mà không cần một quyết định nháp, rồi lưu thành một
+bản ghi phân tích riêng; đó không phải một chế độ tranh luận, nên không danh sách tùy chọn hay khóa cấu hình
+nào đưa ra nó.
 
 Một [đội](../tro-ly.md#đội-và-ủy-quyền) được suy ra từ cấu hình: một agent điều phối có danh sách
 `delegates` và dùng `delegate` hoặc `delegate_parallel`. Không có thực thể Đội nào được lưu. Phiên chạy

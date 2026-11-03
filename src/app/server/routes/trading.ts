@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import type { AnalysesResponse } from '@/app/server/wire/analysis'
 import type { ApiErrorCode } from '@/app/server/wire/errors'
 import type { BriefScheduleWire } from '@/app/server/wire/system'
 import type {
@@ -13,6 +14,7 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { SourceResult } from '@/trading/api'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { toAnalysisWire } from '@/app/server/mappers/analysis'
 import {
   toBriefScheduleWire,
   toBriefSnapshotWire,
@@ -45,6 +47,7 @@ import {
 } from '@/app/server/routes/params'
 import { bindLocale } from '@/i18n'
 import {
+  analysisId,
   DEFAULT_NAV_WINDOW,
   NAV_WINDOWS,
   region,
@@ -263,6 +266,29 @@ async function handleTradingSuggestions(req: Request, ctx: ApiRouteContext): Pro
   } satisfies TradingSuggestionsResponse)
 }
 
+async function handleTradingAnalyses(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const query = new URL(req.url).searchParams
+  const limit = parseLimit(query.get('limit'), SURFACE_LIMITS.maximumTrackRecordItems)
+  const cursor = parseOptionalBranded(query.get('cursor'), analysisId)
+  const instrument = parseOptionalInstrument(query)
+
+  if (limit === null || cursor === null || instrument === null) {
+    return apiError('invalid_body')
+  }
+
+  const page = await hostOf(ctx).listAnalyses({
+    ...(instrument === undefined ? {} : { instrument }),
+    ...(cursor === undefined ? {} : { cursor }),
+    limit,
+    signal: req.signal,
+  })
+
+  return json({
+    analyses: page.items.map((record) => toAnalysisWire(record, localeOf(ctx))),
+    ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
+  } satisfies AnalysesResponse)
+}
+
 async function handleSuggestionCard(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const id = parsePathId(req, suggestionId, 1)
 
@@ -403,6 +429,13 @@ export const TRADING_ROUTES = [
     auth: true,
     capability: 'suggestions',
     handler: handleTradingSuggestions,
+  },
+  {
+    method: 'GET',
+    path: '/v1/analyses',
+    auth: true,
+    capability: 'suggestions',
+    handler: handleTradingAnalyses,
   },
   {
     method: 'GET',

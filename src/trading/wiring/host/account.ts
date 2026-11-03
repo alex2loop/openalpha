@@ -33,7 +33,7 @@ type BriefMethods = Pick<
   'getBrief' | 'rescheduleBrief' | 'getBriefDelivery' | 'nextIntraday'
 >
 
-type SuggestionMethods = Pick<AccountMethods, 'getSuggestion' | 'getDayDigest'>
+type SuggestionMethods = Pick<AccountMethods, 'getSuggestion' | 'getDayDigest' | 'listAnalyses'>
 
 type BookMethods = Pick<
   AccountMethods,
@@ -113,6 +113,16 @@ function suggestionMethods(deps: TradingHostDeps): SuggestionMethods {
     getSuggestion: (request) =>
       scoped(deps, request.signal, (scope) =>
         deps.services.suggestions.get(request.suggestionId, scope.signal)
+      ),
+
+    listAnalyses: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.analyses.list({
+          ...(request.instrument === undefined ? {} : { instrument: request.instrument }),
+          limit: bounded(request.limit, deps.limits.maximumTrackRecordItems),
+          ...(request.cursor === undefined ? {} : { cursor: request.cursor }),
+          signal: scope.signal,
+        })
       ),
 
     getDayDigest: (request) =>
