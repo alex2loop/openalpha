@@ -4,6 +4,7 @@ import {
   INDEX_GROUP,
   MARKET_GROUP,
   MONEY_GROUP,
+  RUN_GROUP,
   SYSTEM_CORE_GROUP,
   TRADING_GROUP,
   WATCHLIST_GROUP,
@@ -29,17 +30,20 @@ const WITHHELD_ROUTES: readonly WithheldRoute[] = Object.freeze([
   { path: '/v1/ledger/sync' },
   { path: '/v1/reconcile' },
   { path: '/v1/brief', method: 'PATCH' },
+  { path: '/v1/runs/:runId/calls' },
 ])
 
 /** The route groups the web's features need: the market reads, the trading reads (suggestions'
  *  analyses sit beside them), the ledger and the book, the watchlist, the index reads, the status
- *  routes, and the config the model tiers are edited through. Every other group (chat, agents, jobs,
- *  orders, sign-in, memory, the host's own) answers `not_found`. */
+ *  routes, the run stop (the page's Stop and the jobs list), and the config the model tiers are
+ *  edited through. Every other group (chat, agents, jobs, orders, sign-in, memory, the host's own)
+ *  answers `not_found`. */
 export const BROWSER_ROUTE_GROUPS: readonly ApiRouteGroup[] = Object.freeze(
   [
     SYSTEM_CORE_GROUP,
     MARKET_GROUP,
     TRADING_GROUP,
+    RUN_GROUP,
     MONEY_GROUP,
     WATCHLIST_GROUP,
     INDEX_GROUP,
