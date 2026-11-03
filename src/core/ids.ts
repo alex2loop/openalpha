@@ -89,6 +89,7 @@ let counter = 0
 export function buildUuidV7(timestampMs: number): string {
   const bytes = crypto.getRandomValues(new Uint8Array(UUID_BYTES))
 
+  // Order holds only within the 12-bit counter range per millisecond; a different `timestampMs` reseeds it.
   counter =
     timestampMs === lastTimestampMs
       ? (counter + 1) & UUID_V7_COUNTER_MASK

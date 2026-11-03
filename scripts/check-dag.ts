@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path'
 
 import { lineAt, scanImports } from './import-scan'
 
-const SRC = `${import.meta.dir}/../src`
+const SRC = resolve(import.meta.dir, '../src')
 
 const ALLOWED: Readonly<Record<string, readonly string[]>> = {
   core: [],
@@ -281,15 +281,22 @@ const wireIssue = (file: string, specifier: string): string | null => {
   return `wire/ may import only wire/ and core/types, not '${specifier}'`
 }
 
-// A module's two doors stay disjoint: one importing the other would drag the Node half into the
-// portable one, or the portable half in twice.
-const isDoorCrossing = (file: string, depModule: string, subpath: string | undefined): boolean => {
-  const doorOf = (name: string): string => `${SRC}/${depModule}/${name}.ts`
+// A module's two doors stay disjoint: the portable one never reaches the Node half, and nothing
+// inside the module but its own node-api leans on that half.
+const doorCrossingIssue = (file: string, moduleName: string, specifier: string): string | null => {
+  const door = (name: string): string => `${SRC}/${moduleName}/${name}.ts`
+  const alias = new RegExp(`^@/${moduleName}/(${API_SUBPATH}|${NODE_API_SUBPATH})$`).exec(specifier)
+  const target = alias?.[1] === undefined ? resolveRelative(file, specifier) : door(alias[1])
 
-  return (
-    (file === doorOf(API_SUBPATH) && subpath === NODE_API_SUBPATH) ||
-    (file === doorOf(NODE_API_SUBPATH) && subpath === API_SUBPATH)
-  )
+  if (target === door(NODE_API_SUBPATH) && file !== door(NODE_API_SUBPATH)) {
+    return `'${moduleName}/node-api' is the Node-only door; only app and cli import it, never its own module`
+  }
+
+  if (target === door(API_SUBPATH) && file === door(NODE_API_SUBPATH)) {
+    return `'${moduleName}/node-api' never re-exports '${moduleName}/api'`
+  }
+
+  return null
 }
 
 const checkFile = (file: string, importer: Importer, source: string): void => {
@@ -319,12 +326,10 @@ const checkFile = (file: string, importer: Importer, source: string): void => {
       if (targetModule && targetModule !== importer.name) depModule = targetModule
     }
 
-    if (depModule === importer.name && isDoorCrossing(file, depModule, subpath)) {
-      violations.push({
-        file,
-        line: lineAt(source, found.index),
-        message: `'@/${depModule}/api' and '@/${depModule}/node-api' never re-export each other`,
-      })
+    const doorIssue = doorCrossingIssue(file, importer.name, found.specifier)
+
+    if (doorIssue !== null) {
+      violations.push({ file, line: lineAt(source, found.index), message: doorIssue })
       continue
     }
 

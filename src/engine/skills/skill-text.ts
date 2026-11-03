@@ -19,12 +19,12 @@ export const SKILL_MAX_BYTES = 1_048_576
 // Replaces a description flagged by the injection scanner — the skill stays indexable.
 const NEUTRAL_DESCRIPTION = '(description removed: flagged content)'
 
-// Strip chat-role tag lines so a SKILL.md cannot inject a fake role boundary that some models read
-// as a system-prompt update.
 export function isSafeSkillName(name: string): boolean {
   return SAFE_NAME_RE.test(name)
 }
 
+// Strip chat-role tag lines so a SKILL.md cannot inject a fake role boundary that some models read
+// as a system-prompt update.
 export function stripRoleBoundaries(raw: string): string {
   return raw
     .split('\n')
