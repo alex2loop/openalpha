@@ -1,5 +1,6 @@
 import { signal } from '@preact/signals'
 
+import { canPickSaveFile } from '@/web/edition/file-save'
 import { openPrivacy } from '@/web/edition/legal/privacy'
 import { readStorage, writeStorage } from '@/web/state/storage'
 import { tr } from '@/web/text/tr'
@@ -65,7 +66,7 @@ function Card() {
           <h3>{tr('ui.office.edition.guide.first.save.title')}</h3>
           <p>
             {tr(
-              'showSaveFilePicker' in window
+              canPickSaveFile()
                 ? 'ui.office.edition.guide.first.save.body'
                 : 'ui.office.edition.guide.first.save.bodyManual'
             )}

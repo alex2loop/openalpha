@@ -37,7 +37,8 @@ interface FileAutosave {
   schedule(): void
   /** Writes a copy now, changed or not; resolves when it has settled. */
   flush(): Promise<void>
-  /** Clears the timer and the listener and waits for a write in flight. Idempotent. */
+  /** Clears the timer and the listener, writes the change still waiting and waits for a write in
+   *  flight. Idempotent. */
   stop(): Promise<void>
 }
 
@@ -108,7 +109,7 @@ function createFileAutosave(options: FileAutosaveOptions): FileAutosave {
       isStopped = true
       clearTimeout(timer)
       lifetime.abort()
-      await tail
+      await (isDirty ? save() : tail)
     },
   }
 }
@@ -151,6 +152,7 @@ export function startFileSave(): () => void {
 
 async function restore(abort: AbortSignal): Promise<void> {
   const handle = canPickSaveFile() ? await loadHandle() : undefined
+  const permission = await handle?.queryPermission(PERMISSION)
 
   if (abort.aborted) {
     return
@@ -158,7 +160,7 @@ async function restore(abort: AbortSignal): Promise<void> {
 
   if (handle === undefined) {
     saveStatus.value = { kind: 'none' }
-  } else if ((await handle.queryPermission(PERMISSION)) === 'granted' && !abort.aborted) {
+  } else if (permission === 'granted') {
     activate(handle)
   } else {
     pause(handle, false)

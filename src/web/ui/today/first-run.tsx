@@ -157,7 +157,8 @@ function WebModelStep({ isDone }: { readonly isDone: boolean }) {
   )
 }
 
-// The brief runs at once; it waits for a model to answer it.
+// The daemon's brief waits for a model to answer it; the web edition's reads the market and needs
+// no key.
 function BriefStep() {
   return (
     <Step index={5} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
@@ -169,7 +170,7 @@ function BriefStep() {
           command={BRIEF_COMMAND}
           label={tr('ui.office.firstRun.briefCta')}
           size="small"
-          disabled={!isModelReady.value}
+          disabled={!(isAnalysisOnly.value || isModelReady.value)}
         />
       </div>
     </Step>

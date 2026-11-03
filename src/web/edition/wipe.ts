@@ -4,21 +4,36 @@ import { stopEdition } from '@/web/edition/worker-link'
 const REMOVE_ATTEMPTS = 8
 const REMOVE_RETRY_MS = 250
 
-/** "Xoá toàn bộ dữ liệu trên máy": ends the worker (which lets go of the database files), deletes
- *  the remembered save file, everything the page keeps in the browser's private file storage, then the keys, agreements and
- *  settings in `localStorage` and `sessionStorage`. Throws when a file cannot be removed, after
- *  every attempt, so the caller can say the wipe did not finish. */
+/** "Xoá toàn bộ dữ liệu trên máy": clears the keys, agreements and settings in `localStorage` and
+ *  `sessionStorage` first, so a later failure cannot leave them behind; then forgets the save file
+ *  while the worker can still answer its last copy, ends the worker (which lets go of the database
+ *  files) and deletes everything the page keeps in the browser's private file storage. Throws when a
+ *  file cannot be removed, after every attempt, so the caller can say the wipe did not finish. */
 export async function wipeEverything(): Promise<void> {
-  stopEdition()
-  // The picked file stays where it is; the page no longer remembers it.
-  await forgetSaveFile()
+  clearBrowserStorage()
 
-  const root = await navigator.storage.getDirectory()
-
-  for await (const name of root.keys()) {
-    await removeWithRetry(root, name)
+  try {
+    // The picked file stays where it is; the page no longer remembers it.
+    await forgetSaveFile()
+  } catch {
+    // A handle store the browser will not open holds nothing the wipe can still reach.
+  } finally {
+    stopEdition()
   }
 
+  const root = await navigator.storage.getDirectory()
+  const names: string[] = []
+
+  for await (const name of root.keys()) {
+    names.push(name)
+  }
+
+  for (const name of names) {
+    await removeWithRetry(root, name)
+  }
+}
+
+function clearBrowserStorage(): void {
   try {
     localStorage.clear()
     sessionStorage.clear()

@@ -65,6 +65,7 @@ async function loadTiers(abort: AbortSignal): Promise<TiersRead> {
   ])
   const tiers = isTree(tree.model_tiers) ? tree.model_tiers : {}
 
+  // Safe: `fromEntries` widens the keys to `string`; `TIERS` holds every key of the record.
   return {
     saved: Object.fromEntries(
       TIERS.map((tier) => [tier, toChoices(tiers[tier])])
@@ -83,6 +84,7 @@ function toChoices(entries: unknown): readonly ModelChoice[] {
 }
 
 function TierEditor({ read }: { readonly read: TiersRead }) {
+  // Safe: as above, `TIERS` holds every key of `Drafts`.
   const drafts = useMemo(
     () => Object.fromEntries(TIERS.map((tier) => [tier, signal(read.saved[tier])])) as Drafts,
     []

@@ -17,7 +17,7 @@ interface Connection {
   readonly retryAt?: number
 }
 
-export function resolveBrowserLocale(): UiLocale {
+function resolveBrowserLocale(): UiLocale {
   const primary = navigator.language.split('-')[0]?.toLowerCase()
 
   return primary === 'en' || primary === 'vi' ? primary : FALLBACK_UI_LOCALE

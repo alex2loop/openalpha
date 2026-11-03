@@ -4,6 +4,7 @@ import type { ChatSessionsResponse } from '@/app/server/wire/chat'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { ClientFrame } from '@/app/server/wire/socket'
 import { stopRun } from '@/web/state/approvals'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { type ChatServerFrame, onChatFrame, sendFrame } from '@/web/state/feed'
 import { findFinishedTickers } from '@/web/state/live'
@@ -186,14 +187,13 @@ export function dropWaiting(turn: Turn): void {
 
 /** True when "Dừng" can reach the turn: by its run, or by cancelling its own session. */
 export function canStop(turn: Turn): boolean {
-  return turn.runId !== undefined || resolveSession(turn) !== undefined
+  return turn.runId !== undefined || stopSessionOf(turn) !== undefined
 }
 
 /** A command stops by its run (throws `ApiFailure`); anything else cancels what runs in its
- *  session, the turn's own or else the page's: a frame that named none leaves the turn without one.
- *  A cancel the socket cannot send needs none: a dropped socket already stopped it. */
+ *  session. A cancel the socket cannot send needs none: a dropped socket already stopped it. */
 export async function stopTurn(turn: Turn): Promise<void> {
-  const session = resolveSession(turn)
+  const session = stopSessionOf(turn)
 
   if (turn.runId !== undefined) {
     await stopRun(turn.runId)
@@ -222,6 +222,11 @@ export function startSession(): void {
 /** Forgets every pending `onDone`: what they would apply belongs to a choice already undone. */
 export function dropDoneCallbacks(): void {
   doneCallbacks.clear()
+}
+
+// The web edition's frames can name no session, which leaves the turn with the page's.
+function stopSessionOf(turn: Turn): string | undefined {
+  return isAnalysisOnly.value ? resolveSession(turn) : turn.sessionId
 }
 
 function resolveSession(turn: Turn): string | undefined {

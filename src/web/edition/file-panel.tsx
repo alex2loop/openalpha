@@ -12,6 +12,7 @@ import {
   type SaveStatus,
   saveStatus,
 } from '@/web/edition/file-save'
+import { cliName } from '@/web/edition/guide/product'
 import { requestDbExport, requestDbOpen } from '@/web/edition/worker-link'
 import { state } from '@/web/state/session'
 import { formatWhen } from '@/web/text/time'
@@ -22,6 +23,8 @@ import { ActionRow } from '@/web/ui/settings/row'
 
 const EXPORT_MIME = 'application/vnd.sqlite3'
 const EXPORT_FILE_KEY = 'ui.office.edition.file.suggestedName'
+/** The download starts when the click returns; the file's address is let go a moment later. */
+const DOWNLOAD_REVOKE_MS = 2_000
 
 const OPEN_REFUSAL: Readonly<Record<Exclude<DbOpenOutcome, 'opened'>, MessageKey>> = Object.freeze({
   invalid: 'ui.office.edition.file.open.invalid',
@@ -119,7 +122,7 @@ function MoveRow() {
       title={tr('ui.office.edition.file.move.title')}
       note={tr('ui.office.edition.file.move.note')}
       button={tr('ui.office.edition.file.move.button')}
-      command={tr('ui.office.edition.file.move.command')}
+      command={tr('ui.office.edition.file.move.command', { cliName: cliName() })}
     />
   )
 }
@@ -168,9 +171,12 @@ async function downloadDatabase(): Promise<void> {
   try {
     link.href = url
     link.download = tr(EXPORT_FILE_KEY)
+    link.hidden = true
+    document.body.append(link)
     link.click()
+    await new Promise((resolve) => setTimeout(resolve, DOWNLOAD_REVOKE_MS))
   } finally {
-    // The download has started by the time the click returns.
+    link.remove()
     URL.revokeObjectURL(url)
   }
 }

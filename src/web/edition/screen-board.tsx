@@ -9,6 +9,7 @@ import {
   boardFactors,
   type Candidate,
   FACTOR_SORT_PREFIX,
+  resolveSortKey,
   SORT_BASE_KEYS,
   type SortDirection,
   sortCandidates,
@@ -75,7 +76,9 @@ async function readBoard(market: string, abort: AbortSignal): Promise<ScreenResp
     cursor = answer.next
   }
 
-  return { ...first, candidates: names }
+  const { next: _firstCursor, ...board } = first
+
+  return { ...board, candidates: names }
 }
 
 interface PageRead {
@@ -97,7 +100,8 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
   }
 
   const factors = boardFactors(board.candidates)
-  const sorted = sortCandidates(board.candidates, sortKey.value, sortDirection.value)
+  const key = resolveSortKey(sortKey.value, factors)
+  const sorted = sortCandidates(board.candidates, key, sortDirection.value)
 
   return (
     <>
@@ -107,7 +111,7 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
           {line}
         </p>
       ))}
-      <SortBar factors={factors} />
+      <SortBar factors={factors} sortBy={key} />
       {sorted.map((candidate) => (
         <NameRow key={candidate.instrument.ticker} candidate={candidate} market={market} />
       ))}
@@ -120,14 +124,20 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
   )
 }
 
-function SortBar({ factors }: { readonly factors: readonly BoardFactor[] }) {
+function SortBar({
+  factors,
+  sortBy,
+}: {
+  readonly factors: readonly BoardFactor[]
+  readonly sortBy: string
+}) {
   const label = tr('ui.office.edition.screen.sortBy')
 
   return (
     <div class="sort-bar">
       <select
         aria-label={label}
-        value={sortKey.value}
+        value={sortBy}
         onChange={(event) => {
           sortKey.value = event.currentTarget.value
         }}

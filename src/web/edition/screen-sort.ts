@@ -28,6 +28,15 @@ export function boardFactors(candidates: readonly Candidate[]): readonly BoardFa
   return [...found.values()]
 }
 
+/** The key to sort by: the visitor's choice, or the ticker when this board has no such factor (the
+ *  choice outlives the market it was made on). */
+export function resolveSortKey(key: string, factors: readonly BoardFactor[]): string {
+  const isBase = SORT_BASE_KEYS.some((base) => base === key)
+  const isFactor = factors.some(({ id }) => key === `${FACTOR_SORT_PREFIX}${id}`)
+
+  return isBase || isFactor ? key : SORT_BASE_KEYS[0]
+}
+
 /** The names in the order the visitor chose. A name with no figure for the key goes last in either
  *  direction, so a gap is never read as the smallest or the largest. A factor sorts on its score,
  *  which orders names exactly as its percentile does. */

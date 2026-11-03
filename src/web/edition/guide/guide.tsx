@@ -1,7 +1,7 @@
 import type { MessageKey } from '@/i18n'
 import { openCompare } from '@/web/edition/guide/compare'
 import { openFirstRun } from '@/web/edition/guide/first-run'
-import { INSTALL_URL, productName } from '@/web/edition/guide/product'
+import { cliName, INSTALL_URL } from '@/web/edition/guide/product'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
@@ -38,8 +38,7 @@ export function openGuide(): void {
 }
 
 function GuideBody() {
-  // The installed command is the lower-case name of the product.
-  const params = { installUrl: INSTALL_URL, cliName: productName().toLowerCase() }
+  const params = { installUrl: INSTALL_URL, cliName: cliName() }
 
   return (
     <div class="guide">

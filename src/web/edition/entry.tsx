@@ -6,7 +6,7 @@ import { startDataStatus } from '@/web/edition/data-status'
 import { startFileSave } from '@/web/edition/file-save'
 import { EditionFooter } from '@/web/edition/guide/footer'
 import { openConnectFailed } from '@/web/edition/keys-panel'
-import { holdKey, workerKeys } from '@/web/edition/keys-store'
+import { holdKey, OPENROUTER, workerKeys } from '@/web/edition/keys-store'
 import { type ConnectResult, finishOpenRouterConnect } from '@/web/edition/openrouter-oauth'
 import { Refused } from '@/web/edition/refused'
 import { type EditionPhase, editionPhase, startEdition } from '@/web/edition/worker-link'
@@ -17,8 +17,6 @@ import { ModalHost } from '@/web/ui/kit/modal'
 import { openSettings } from '@/web/ui/settings/settings'
 import { App } from '@/web/ui/shell/app'
 import { StatusLine } from '@/web/ui/shell/status-line'
-
-const OPENROUTER = 'openrouter'
 
 if (canRunPage()) {
   const lifetime = new AbortController()

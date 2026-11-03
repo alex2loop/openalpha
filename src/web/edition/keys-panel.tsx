@@ -8,7 +8,9 @@ import {
   forgetKey,
   heldKeys,
   holdKey,
+  KEY_SLOTS,
   type KeySlot,
+  OPENROUTER,
   SLOT_PROVIDERS,
 } from '@/web/edition/keys-store'
 import { beginOpenRouterConnect } from '@/web/edition/openrouter-oauth'
@@ -28,9 +30,6 @@ export function openConnectFailed(): void {
   })
 }
 
-const SLOTS: readonly KeySlot[] = ['ai', 'search']
-const OPENROUTER = 'openrouter'
-
 /** Key AI và tìm kiếm: one key per AI provider and one for web search. Each is its own field because
  *  DeepSeek's AI key and its search key are different keys. A key is sent to its provider only after
  *  the visitor agreed to that provider, and "Xóa key" takes that provider's key and agreement. */
@@ -38,7 +37,7 @@ export function KeysPanel() {
   return (
     <>
       <p class="meta">{tr('ui.office.edition.keys.intro')}</p>
-      {SLOTS.map((slot) => (
+      {KEY_SLOTS.map((slot) => (
         <SlotRow key={slot} slot={slot} />
       ))}
       <ActionRow title={tr('ui.office.edition.keys.chatgptTitle')}>

@@ -6,7 +6,7 @@ import { setApiTransport } from '@/web/api/client'
 import { setFeedSocketFactory } from '@/web/api/socket'
 import { createWorkerTransport } from '@/web/edition/transport'
 import { createWorkerFeedSocket } from '@/web/edition/worker-socket'
-import { preferredLocale, resolveBrowserLocale } from '@/web/state/session'
+import { preferredLocale } from '@/web/state/session'
 import { readStorage, writeStorage } from '@/web/state/storage'
 
 /** A stable name: the build writes the worker next to the page under it. */
@@ -14,9 +14,14 @@ const WORKER_URL = '/worker.js'
 /** The most a request may wait for the worker, a backstop over the page's own per-route timeouts. */
 const REQUEST_TIMEOUT_MS = 180_000
 const LOCALE_KEY = 'oa.edition.locale'
+const LOCALE_PARAM = 'lang'
+const DEFAULT_LOCALE: Locale = 'en'
 
 type Locale = StatePayload['locale']
-type Refusal = Extract<WorkerReply, { readonly kind: 'refused' }>['reason']
+type WorkerRefusal = Extract<WorkerReply, { readonly kind: 'refused' }>['reason']
+/** What the worker refused with, or `worker-failed` when the worker itself broke (it did not load,
+ *  or an error escaped it) and has no reason to give. */
+type Refusal = WorkerRefusal | 'worker-failed'
 
 /** Where the worker stands. `restarting` is a deliberate restart of the engine (a new language or
  *  model tier): the page waits for the next `ready`. */
@@ -44,7 +49,7 @@ function hasBrowserSupport(): boolean {
  *  page: terminating a worker frees the tab lock, which is how the database is let go. `keys` is
  *  asked at every start, so a restart carries the keys held now. Returns the way to stop. */
 export function startEdition(keys: () => BrowserKeys): () => void {
-  preferredLocale.value = storedLocale() ?? resolveBrowserLocale()
+  preferredLocale.value = startingLocale()
   readKeys = keys
 
   if (!hasBrowserSupport()) {
@@ -61,7 +66,7 @@ export function startEdition(keys: () => BrowserKeys): () => void {
   setApiTransport(transport.send)
   setFeedSocketFactory((deps) => createWorkerFeedSocket(next, deps))
   next.addEventListener('message', onReply, { signal: lifetime.signal })
-  next.addEventListener('error', () => refuse('unsupported'), { signal: lifetime.signal })
+  next.addEventListener('error', () => refuse('worker-failed'), { signal: lifetime.signal })
   start(false)
 
   stopWorker = () => {
@@ -90,16 +95,27 @@ export function postToWorker(call: WorkerCall): void {
   worker?.postMessage(call)
 }
 
-/** The language the page runs in, the one the visitor last chose or the browser's. */
+/** The language the page runs in: the one the link asked for, the one the visitor last chose, or
+ *  English. */
 export function currentLocale(): Locale {
   return preferredLocale.value
 }
 
 /** Restarts the engine in the worker, which stops the work in flight and reads the config and keys
  *  again. The caller has asked the visitor first. */
-export function restartEngine(locale: Locale = currentLocale()): void {
-  editionPhase.value = { kind: 'restarting' }
+export function restartEngine(): void {
+  restartIn(currentLocale())
+}
+
+/** The visitor's own choice of language: kept for the next visit, and the engine restarts in it.
+ *  The caller has asked the visitor first. */
+export function chooseLanguage(locale: Locale): void {
   writeStorage('local', LOCALE_KEY, locale)
+  restartIn(locale)
+}
+
+function restartIn(locale: Locale): void {
+  editionPhase.value = { kind: 'restarting' }
   preferredLocale.value = locale
   postToWorker({ kind: 'locale', locale })
 }
@@ -154,6 +170,7 @@ function askWorker<K extends 'db-exported' | 'db-opened'>(
         const reply = event.data
 
         if (reply.kind === kind && reply.id === call.id) {
+          // Safe: the comparison above is the narrowing, which TS cannot carry through the generic.
           settle(() => resolve(reply as Extract<WorkerReply, { readonly kind: K }>))
         }
       },
@@ -184,8 +201,19 @@ function refuse(reason: Refusal): void {
   editionPhase.value = { kind: 'refused', reason }
 }
 
-function storedLocale(): Locale | undefined {
-  const stored = readStorage('local', LOCALE_KEY)
+// A language in the link is the visitor's choice and is kept; never the browser's language.
+function startingLocale(): Locale {
+  const requested = toLocale(new URLSearchParams(location.search).get(LOCALE_PARAM))
 
-  return stored === 'vi' || stored === 'en' ? stored : undefined
+  if (requested !== undefined) {
+    writeStorage('local', LOCALE_KEY, requested)
+
+    return requested
+  }
+
+  return toLocale(readStorage('local', LOCALE_KEY)) ?? DEFAULT_LOCALE
+}
+
+function toLocale(value: string | null | undefined): Locale | undefined {
+  return value === 'vi' || value === 'en' ? value : undefined
 }

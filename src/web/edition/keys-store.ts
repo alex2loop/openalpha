@@ -8,12 +8,16 @@ import { readStorage, removeStorage, writeStorage } from '@/web/state/storage'
 const KEYS_STORAGE_KEY = 'oa.keys'
 const CONSENT_STORAGE_KEY = 'oa.consent'
 
-export type KeySlot = 'ai' | 'search'
+/** The two places a key goes: the AI model, and web search. */
+export const KEY_SLOTS = Object.freeze(['ai', 'search'] as const)
+export type KeySlot = (typeof KEY_SLOTS)[number]
+/** The provider the page offers first, and the one its sign-in flow connects. */
+export const OPENROUTER = 'openrouter'
 
 /** The providers a browser can call, per slot, in the order the page offers them. DeepSeek is in
  *  both: its AI key and its search key are different keys, so each slot holds its own. */
 export const SLOT_PROVIDERS = Object.freeze({
-  ai: ['openrouter', 'openai', 'deepseek', 'anthropic', 'gemini', 'xai', 'mistral'],
+  ai: [OPENROUTER, 'openai', 'deepseek', 'anthropic', 'gemini', 'xai', 'mistral'],
   search: ['tavily', 'serper', 'deepseek'],
 } as const satisfies Record<KeySlot, readonly string[]>)
 
@@ -92,12 +96,12 @@ function workerKeysOf(keys: Held, agreed: Consents): BrowserKeys {
 }
 
 function persistHeld(): void {
-  const remembered = { ai: rememberedOf('ai'), search: rememberedOf('search') }
+  const remembered = KEY_SLOTS.map((slot) => [slot, rememberedOf(slot)] as const)
 
-  if (Object.keys(remembered.ai).length + Object.keys(remembered.search).length === 0) {
+  if (remembered.every(([, entries]) => Object.keys(entries).length === 0)) {
     removeStorage('local', KEYS_STORAGE_KEY)
   } else {
-    writeStorage('local', KEYS_STORAGE_KEY, JSON.stringify(remembered))
+    writeStorage('local', KEYS_STORAGE_KEY, JSON.stringify(Object.fromEntries(remembered)))
   }
 }
 

@@ -14,10 +14,11 @@ const LINES: Readonly<Record<Refusal, MessageKey>> = Object.freeze({
   unsupported: 'ui.office.edition.storage.unsupported',
   'newer-schema': 'ui.office.edition.storage.newerData',
   'storage-full': 'ui.office.edition.storage.full',
+  'worker-failed': 'ui.office.edition.storage.workerFailed',
 })
 
 // Locked offers to take the database here; a browser that cannot keep data has nothing to try
-// again; every other state is cured by reading the page again.
+// again; every other state, a worker that broke included, is cured by reading the page again.
 function Action({ reason }: { readonly reason: Refusal }) {
   if (reason === 'locked') {
     return (
@@ -36,7 +37,7 @@ function Action({ reason }: { readonly reason: Refusal }) {
 
 /** A full page in place of the office when the database cannot be served: another tab holds it
  *  (take it here, or stay), another tab took it, the browser cannot keep it, it is newer than this
- *  page, or the device is out of room. The page offers the one thing that can help and nothing else. */
+ *  page, the device is out of room, or the worker broke. The page offers the one thing that can help and nothing else. */
 export function Refused({ reason }: { readonly reason: Refusal }) {
   return (
     <main class="edition-refused">

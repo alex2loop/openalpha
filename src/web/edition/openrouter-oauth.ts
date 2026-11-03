@@ -59,7 +59,7 @@ export async function finishOpenRouterConnect(
     `${location.pathname}${params.size > 0 ? `?${params}` : ''}${location.hash}`
   )
 
-  if (verifier === undefined || (returned !== null && returned !== expected)) {
+  if (verifier === undefined || returned !== expected) {
     return { failed: true }
   }
 
