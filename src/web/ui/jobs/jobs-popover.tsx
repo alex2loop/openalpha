@@ -16,7 +16,7 @@ import {
   UpcomingSection,
   WaitingSection,
 } from '@/web/ui/jobs/schedule-sections'
-import { UpkeepSection } from '@/web/ui/jobs/upkeep-section'
+import { LiveUpkeepSection, UpkeepSection } from '@/web/ui/jobs/upkeep-section'
 import { Button } from '@/web/ui/kit/button'
 import { JOBS_POPOVER_ID, Popover } from '@/web/ui/kit/popover'
 import { useLoad } from '@/web/ui/kit/use-load'
@@ -38,12 +38,13 @@ export function JobsPopover({ anchor }: { readonly anchor: RefObject<HTMLElement
   )
 }
 
-// A page with no scheduler has nothing waiting or upcoming: what runs now, from the live feed, is
-// all there is to show.
+// A page with no scheduler has nothing waiting or upcoming: what runs now and how its own upkeep
+// (the refresh, the history load) fared, both from the live feed, is all there is to show.
 function JobsBody() {
   return isAnalysisOnly.value ? (
     <div class="popover-scroll">
       <RunningSection />
+      <LiveUpkeepSection />
     </div>
   ) : (
     <DaemonJobsBody />

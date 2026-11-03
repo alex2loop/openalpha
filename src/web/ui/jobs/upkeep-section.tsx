@@ -15,8 +15,6 @@ import { openSettings } from '@/web/ui/settings/settings'
  *  toggle lists them all with cadence and last pass. The live feed keeps the list current once it
  *  has one; until then the popover's own read stands. */
 export function UpkeepSection({ tasks }: { readonly tasks: LoadState<TasksResponse> }) {
-  const isExpanded = useSignal(false)
-
   if (tasks.status === 'loading') {
     return <h3 class="sub-head">{tr('ui.office.jobs.maintenance')}</h3>
   }
@@ -30,12 +28,36 @@ export function UpkeepSection({ tasks }: { readonly tasks: LoadState<TasksRespon
     )
   }
 
-  const all = backgroundTasks.value ?? tasks.value.tasks
-  const shown = isExpanded.value ? all : all.filter(isFailing)
+  return (
+    <>
+      <h3 class="sub-head">{tr('ui.office.jobs.maintenance')}</h3>
+      <UpkeepList all={backgroundTasks.value ?? tasks.value.tasks} />
+    </>
+  )
+}
+
+/** The same list for a page with no task route: only what the live feed says. */
+export function LiveUpkeepSection() {
+  const all = backgroundTasks.value
+
+  if (all === undefined || all.length === 0) {
+    return null
+  }
 
   return (
     <>
       <h3 class="sub-head">{tr('ui.office.jobs.maintenance')}</h3>
+      <UpkeepList all={all} />
+    </>
+  )
+}
+
+function UpkeepList({ all }: { readonly all: readonly TaskStatusWire[] }) {
+  const isExpanded = useSignal(false)
+  const shown = isExpanded.value ? all : all.filter(isFailing)
+
+  return (
+    <>
       <button
         type="button"
         class="upkeep-toggle"

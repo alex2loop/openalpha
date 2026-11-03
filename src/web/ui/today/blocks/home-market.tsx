@@ -1,3 +1,4 @@
+import { DataStatus } from '@/web/edition/data-status'
 import { readBlock, withCautions } from '@/web/state/block'
 import { homeRegion, knownMarkets, overviewBlock, selectOverview } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
@@ -25,7 +26,12 @@ export function HomeMarket() {
       reading={withCautions(readBlock(overviewBlock), blocks)}
       dataTo={board?.asOf}
     >
-      {() => <MarketSections blocks={blocks} />}
+      {() => (
+        <>
+          <DataStatus />
+          <MarketSections blocks={blocks} />
+        </>
+      )}
     </BlockFrame>
   )
 }

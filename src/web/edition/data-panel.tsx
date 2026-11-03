@@ -1,4 +1,5 @@
 import { ApiFailure } from '@/web/api/client'
+import { StorageStatus } from '@/web/edition/storage-status'
 import { wipeEverything } from '@/web/edition/wipe'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -34,6 +35,7 @@ export function DataPanel() {
           {tr('ui.office.edition.data.wipe')}
         </Button>
       </ActionRow>
+      <StorageStatus />
       <Credits />
     </>
   )
