@@ -12,7 +12,6 @@ import type {
 import type { Locale } from '@/core/types/locale'
 import type {
   AbsoluteRebalancePlan,
-  Caveat,
   HeldStopView,
   LedgerEntry,
   LedgerWriteResult,
@@ -27,7 +26,7 @@ import {
   toInstrumentWire,
   toSuggestionWire,
 } from '@/app/server/mappers/trading'
-import { buildInstrumentKey, isGapsCaveat } from '@/trading/api'
+import { buildInstrumentKey, keptCaveats } from '@/trading/api'
 
 type ReadyAdvice = Extract<AbsoluteRebalancePlan['advice'], { readonly kind: 'ready' }>
 type PositionChange = ReadyAdvice['rebalance'][number]
@@ -196,11 +195,6 @@ function toChangeWire(
         }),
     caveats: toCaveatWires(keptCaveats(change.caveats, view.form), locale),
   }
-}
-
-/** A gaps plan's wire carries the caveats its text does. */
-function keptCaveats(caveats: readonly Caveat[], form: RebalanceView['form']): readonly Caveat[] {
-  return form === 'gaps' ? caveats.filter(isGapsCaveat) : caveats
 }
 
 export function toRebalanceWire(view: RebalanceView, locale: Locale): RebalanceResponse {

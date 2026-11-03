@@ -1,6 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type {
   PositionChange,
+  RebalanceForm,
   RebalancePlanReady,
   RebalanceSizing,
 } from '@/trading/features/portfolio/types'
@@ -45,9 +46,16 @@ const GAPS_CAVEATS = {
 
 const GAPS_DECISIONS: Readonly<Partial<Record<CaveatCode, 'keep' | 'drop'>>> = GAPS_CAVEATS
 
-/** True for a caveat a gaps plan keeps: its text, surface notes and wire all ask this one. */
-export function isGapsCaveat(caveat: Caveat): boolean {
-  return GAPS_DECISIONS[caveat.code] !== 'drop'
+/** The caveats a plan of `form` states; a gaps plan's text, surface notes and wire all read this. */
+export function keptCaveats(
+  caveats: readonly Caveat[],
+  form: RebalanceForm | undefined
+): readonly Caveat[] {
+  if (form !== 'gaps') {
+    return caveats
+  }
+
+  return caveats.filter((caveat) => GAPS_DECISIONS[caveat.code] !== 'drop')
 }
 
 interface RenderedGap {

@@ -31,7 +31,7 @@ import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layou
 import { formatMoney } from '@/trading/render/money'
 import { renderSubject } from '@/trading/render/subject'
 
-import { isGapsCaveat, REGIME_CAVEAT, renderGapEntries } from './rebalance-gaps'
+import { keptCaveats, REGIME_CAVEAT, renderGapEntries } from './rebalance-gaps'
 import { renderOrders, splitBreaches } from './rebalance-orders'
 import { printedSegmentShares, renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
@@ -131,11 +131,7 @@ export function renderPlanNotes(
 ): readonly string[] {
   const caveats = [...advice.cashSegment.caveats, ...advice.caveats]
 
-  return renderNotes(
-    locale,
-    advice.findings,
-    options.form === 'gaps' ? caveats.filter(isGapsCaveat) : caveats
-  )
+  return renderNotes(locale, advice.findings, keptCaveats(caveats, options.form))
 }
 
 /** The plan in one line, as the page's own title: how many orders on each side and what they move
