@@ -22,6 +22,7 @@ export function toAnalysisWire(record: AnalysisRecord, locale: Locale): Analysis
     })),
     citations: record.citations.map((citation) => ({ ...citation })),
     caveats: toCaveatWires(record.caveats, locale),
+    aiGenerated: true,
     models: [...result.models],
     ...(record.evidenceThrough === undefined ? {} : { evidenceThrough: record.evidenceThrough }),
   }

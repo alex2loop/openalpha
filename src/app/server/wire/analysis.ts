@@ -42,7 +42,9 @@ export interface AnalysisWire {
   readonly claims: readonly AnalysisClaimWire[]
   readonly citations: readonly AnalysisCitationWire[]
   readonly caveats: readonly TradingWireCaveat[]
-  /** The models that argued it, sorted. */
+  /** Always true: the text is machine-written, and every view of it must say so. */
+  readonly aiGenerated: true
+  /** The models that argued it, sorted; shown beside the AI label. */
   readonly models: readonly string[]
 }
 

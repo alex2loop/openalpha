@@ -29,14 +29,18 @@ const SIDES = {
 
 const SIDE_ORDER = Object.freeze(['bull-researcher', 'bear-researcher'] as const)
 
+const MODEL_SEPARATOR = ', '
+
 /** Both sides, what the evidence refuted, and what would make each wrong, in the reader's language.
- *  There is no verdict to print: none was produced. The two closing lines are fixed and never
- *  conditional, so no view of an analysis can omit them. */
+ *  There is no verdict to print: none was produced, and nothing here weighs one side over the
+ *  other. The AI label opens it and the install line closes it, both fixed and never conditional,
+ *  so no view of an analysis can omit them. */
 export function renderAnalysisText(locale: Locale, record: AnalysisRecord): string {
   const { result } = record
   const cases = { 'bull-researcher': result.bull, 'bear-researcher': result.bear }
 
   return joinSections([
+    [t(locale, 'trading.analysis.ai-generated', { models: result.models.join(MODEL_SEPARATOR) })],
     ...SIDE_ORDER.map((side) =>
       renderCaseLines(locale, { side, record, analysisCase: cases[side] })
     ),
@@ -139,6 +143,5 @@ function closingLines(locale: Locale, record: AnalysisRecord): readonly string[]
           }),
         ]),
     t(locale, 'trading.analysis.install-for-verdict'),
-    t(locale, 'trading.analysis.not-advice'),
   ]
 }

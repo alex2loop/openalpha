@@ -35,6 +35,7 @@
       ],
       "citations": [],
       "caveats": [],
+      "aiGenerated": true,
       "models": ["openai/gpt-6-luna"]
     }
   ],

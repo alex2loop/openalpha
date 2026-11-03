@@ -23,7 +23,8 @@ const CASE_INSTRUCTIONS = [
   'Nobody is deciding whether to trade, so assume no position, entry, price level or size and',
   'never recommend one. The reader wants the strongest honest case for your side on this evidence.',
   'The opposing side is written separately by another model, so do not balance them yourself:',
-  'no conceding, no closing "however", and never rate how convincing your own case is. Where the',
+  'no conceding, no closing "however", and never rate how convincing your own case is. End on',
+  'your last point: no overall view, no weighing of the two sides and no lean either way. Where the',
   'evidence is thin, say what the case rests on instead of how strong it is.',
 ].join(' ')
 

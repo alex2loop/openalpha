@@ -106,6 +106,7 @@ giảm và các luận điểm mà dữ liệu đã đối chiếu. Bảng tách
 lượng, giá vào, cắt lỗ hay mục tiêu nên không bao giờ được chấm điểm. Bảng này bền, vì một nhận định là câu
 trả lời của mô hình trên một gói bằng chứng không thể dựng lại. `/suggest` của bản cài trên máy không ghi
 dòng nào; các dòng đến từ cơ sở dữ liệu khôi phục từ bản web và được `GET /v1/analyses` liệt kê.
+Mọi màn hình hiển thị một nhận định đều mở đầu bằng dòng nói đây là nội dung do AI tạo và nêu tên các mô hình, và không màn nào kết thúc bằng việc nghiêng về một bên.
 
 **Chủ đề.** Các bảng này phục vụ `/themes`, và đều bền. Một nhận định là câu trả lời của mô hình trên một
 gói bằng chứng, và không thể dựng lại.
