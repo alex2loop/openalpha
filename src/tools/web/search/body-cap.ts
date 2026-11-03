@@ -1,9 +1,10 @@
+import { utf8ByteLength } from '@/core/utils/text'
 import { SearchProviderError } from '@/tools/web/search/errors'
 
 const SEARCH_BODY_MAX_BYTES = 2_097_152
 
 export function parseJsonBody(raw: string): unknown {
-  if (Buffer.byteLength(raw, 'utf8') > SEARCH_BODY_MAX_BYTES) {
+  if (utf8ByteLength(raw) > SEARCH_BODY_MAX_BYTES) {
     throw new SearchProviderError('content_limit', 'search response exceeds size cap')
   }
   try {

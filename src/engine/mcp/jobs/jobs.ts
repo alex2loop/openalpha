@@ -17,6 +17,7 @@ import { RunHalted } from '@/core/errors'
 import { sessionId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
+import { utf8ByteLength } from '@/core/utils/text'
 import { MCP_CALL_WAIT_MS } from '@/engine/constants'
 import { toolFailure } from '@/engine/mcp/invoke'
 import {
@@ -359,7 +360,7 @@ function answersRefusal(
   job: McpJob,
   answers: readonly McpJobAnswerItem[]
 ): McpJobRefusal | undefined {
-  if (answers.some((item) => Buffer.byteLength(item.output, 'utf8') > MAX_ANSWER_BYTES)) {
+  if (answers.some((item) => utf8ByteLength(item.output) > MAX_ANSWER_BYTES)) {
     return 'too_large'
   }
 

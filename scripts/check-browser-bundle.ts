@@ -11,6 +11,7 @@ import { buildBrowser } from './browser-build'
 const ROOT = resolve(import.meta.dir, '..')
 const ENTRY = resolve(ROOT, 'src/app/browser/worker.ts')
 const SRC_PREFIX = 'src/'
+const SOURCE_SUFFIX = '.ts'
 const NODE_PREFIX = 'node:'
 const BUN_PREFIX = 'bun:'
 const BUN_MODULE = 'bun'
@@ -34,7 +35,16 @@ const DENIED_MODULES: ReadonlySet<string> = new Set([
 // caller, and it never runs without venue keys, which the web does not hold.
 const CRYPTO_MODULE = 'crypto'
 const CRYPTO_ALLOWED_PREFIX = 'src/trading/venues/'
-const BUN_GLOBAL_RE = /\bBun\./
+// Host globals a browser worker does not define; a bare reference throws at call time.
+const HOST_GLOBAL_RES: ReadonlyMap<string, RegExp> = new Map([
+  ['Bun.', /\bBun\./],
+  ['Buffer', /\bBuffer\b/],
+  ['process.', /(?<![.\w])process\./],
+  ['__dirname', /\b__dirname\b/],
+  ['__filename', /\b__filename\b/],
+  ['require(', /(?<![.\w])require\(/],
+  ['setImmediate', /\bsetImmediate\b/],
+])
 const COMMENT_LINE_RE = /^\s*(?:\/\/|\/?\*)/
 
 type Logs = Bun.BuildOutput['logs']
@@ -137,9 +147,11 @@ async function leaksOf(metafile: Bun.BuildMetafile, parents: Parents): Promise<r
     }
   }
 
-  const sources = Object.keys(metafile.inputs).filter((file) => file.startsWith(SRC_PREFIX))
+  const sources = Object.keys(metafile.inputs).filter(
+    (file) => file.startsWith(SRC_PREFIX) && file.endsWith(SOURCE_SUFFIX)
+  )
 
-  return [...leaks, ...(await bunReferences(sources))]
+  return [...leaks, ...(await hostGlobalReferences(sources))]
 }
 
 function deniedImport(specifier: string, source: string): string | undefined {
@@ -222,15 +234,17 @@ function sourcesOf(file: string, parents: Parents): string[] {
   return [...found]
 }
 
-async function bunReferences(sources: readonly string[]): Promise<readonly Leak[]> {
+async function hostGlobalReferences(sources: readonly string[]): Promise<readonly Leak[]> {
   const found = await Promise.all(
     sources.map(async (source) => {
       const lines = (await Bun.file(resolve(ROOT, source)).text()).split('\n')
 
       return lines.flatMap((line, index) =>
-        BUN_GLOBAL_RE.test(line) && !COMMENT_LINE_RE.test(line)
-          ? [{ source, what: `Bun. (line ${index + 1})` }]
-          : []
+        COMMENT_LINE_RE.test(line)
+          ? []
+          : [...HOST_GLOBAL_RES].flatMap(([name, re]) =>
+              re.test(line) ? [{ source, what: `${name} (line ${index + 1})` }] : []
+            )
       )
     })
   )

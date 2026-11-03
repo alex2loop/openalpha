@@ -99,5 +99,5 @@ async function readErrorBody(response: Response): Promise<string> {
     await reader.cancel().catch(() => undefined)
   }
 
-  return new TextDecoder().decode(Buffer.concat(chunks))
+  return new Blob(chunks).text()
 }

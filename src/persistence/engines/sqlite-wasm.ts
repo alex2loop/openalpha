@@ -8,6 +8,7 @@ import { toStorageError } from '@/persistence/errors'
 
 export const DB_LOCK_NAME = 'openalpha-db'
 
+const LOCK_FAILED = 'database lock request failed'
 const PRAGMAS = ['PRAGMA foreign_keys = ON', 'PRAGMA journal_mode = TRUNCATE'] as const
 // Another tab's handles free a moment after its lock does (a stolen lock, a page still unloading),
 // so the first install can lose that race by a few hundred milliseconds.
@@ -93,19 +94,24 @@ function acquireLock(locks: BrowserLockManager, steal: boolean): Promise<LockHol
   return new Promise((resolve, reject) => {
     const freed = Promise.withResolvers<void>()
     const stolen = Promise.withResolvers<void>()
+    const fail = (err: unknown): void => reject(toStorageError(err, LOCK_FAILED))
 
-    locks
-      .request(DB_LOCK_NAME, { ifAvailable: !steal, steal }, async (lock) => {
-        resolve(lock === null ? null : { release: freed.resolve, stolen: stolen.promise })
+    try {
+      locks
+        .request(DB_LOCK_NAME, { ifAvailable: !steal, steal }, async (lock) => {
+          resolve(lock === null ? null : { release: freed.resolve, stolen: stolen.promise })
 
-        if (lock !== null) {
-          await freed.promise
-        }
-      })
-      .catch((err: unknown) => {
-        reject(toStorageError(err, 'database lock request failed'))
-        stolen.resolve()
-      })
+          if (lock !== null) {
+            await freed.promise
+          }
+        })
+        .catch((err: unknown) => {
+          fail(err)
+          stolen.resolve()
+        })
+    } catch (err: unknown) {
+      fail(err)
+    }
   })
 }
 
@@ -127,7 +133,7 @@ async function openDatabase(
     return { db, pool }
   } catch (err: unknown) {
     closeQuietly(db)
-    pool.pauseVfs()
+    pauseQuietly(pool)
 
     throw toStorageError(err, `sqlite wasm open failed: ${options.name}`)
   }
@@ -154,6 +160,14 @@ async function installPool(sqlite3: Sqlite3Static): Promise<SAHPoolUtil> {
 
       await new Promise((resolve) => setTimeout(resolve, INSTALL_RETRY_MS))
     }
+  }
+}
+
+function pauseQuietly(pool: SAHPoolUtil): void {
+  try {
+    pool.pauseVfs()
+  } catch {
+    // The open failure already on its way to the caller is the one worth reporting.
   }
 }
 

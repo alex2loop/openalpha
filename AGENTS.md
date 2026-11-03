@@ -33,7 +33,7 @@ In doubt: stop and ask. Never silently pick.
 bun run lint            # Biome lint + autofix
 bun run typecheck       # gen + tsc (Bun never type-checks; the only type gate)
 bun run check           # Biome + typecheck + contract gates, incl. check:browser (CI)
-bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin
+bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin or host global
 bun run lint:arch       # depth, trading/registry/feature isolation, locale, report figures,
                         # caveats, vi terminology, pricing, agent skills, strategy version (CI)
 bun run gen             # regenerate the migration registry

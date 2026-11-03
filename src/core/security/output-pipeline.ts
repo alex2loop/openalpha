@@ -2,7 +2,14 @@ import { scrubCredentials } from '@/core/security/credentials'
 import { escapeXml, scanOutput, type Threat, wrapToolResult } from '@/core/security/sanitize'
 import { estimateTextTokens } from '@/core/stream-events'
 import { isPlainRecord } from '@/core/utils/collections'
-import { isContinuationByte, reduceOutput, stripAnsi } from '@/core/utils/text'
+import {
+  decodeUtf8,
+  encodeUtf8,
+  isContinuationByte,
+  reduceOutput,
+  stripAnsi,
+  utf8ByteLength,
+} from '@/core/utils/text'
 
 /** Of a capped result, the share kept from the start and from the end; the rest is the marker's. */
 const HEAD_SHARE = 0.7
@@ -38,7 +45,7 @@ interface CappedText {
 type JsonScalar = boolean | number | string | null
 
 function process(raw: string, options: ProcessOptions): ToolResultContent {
-  const rawBytes = Buffer.byteLength(raw, 'utf8')
+  const rawBytes = utf8ByteLength(raw)
 
   if (rawBytes > RAW_SCRUB_MAX_BYTES) {
     return toOversizeResult(rawBytes, options.toolName)
@@ -51,7 +58,7 @@ function process(raw: string, options: ProcessOptions): ToolResultContent {
   const escaped = escapeXml(normalizeOutput(scrubbed))
   // Escaping grows a result up to fivefold, so it is capped escaped and net of the envelope it
   // travels in: what reaches the model is at most `maxBytes`.
-  const envelopeBytes = Buffer.byteLength(wrapToolResult('', options.toolName, threats), 'utf8')
+  const envelopeBytes = utf8ByteLength(wrapToolResult('', options.toolName, threats))
   const capped = headTailCap(escaped, Math.max(0, options.maxBytes - envelopeBytes))
 
   return {
@@ -85,7 +92,7 @@ function compactStructured(text: string): string | undefined {
     return undefined
   }
 
-  if (Buffer.byteLength(text, 'utf8') > STRUCTURED_INPUT_MAX_BYTES) {
+  if (utf8ByteLength(text) > STRUCTURED_INPUT_MAX_BYTES) {
     return text
   }
 
@@ -185,10 +192,7 @@ function isWithinStructuredGrowth(original: string, candidate: string): boolean 
 }
 
 function isBoundedScalar(value: unknown): value is JsonScalar {
-  return (
-    isExactScalar(value) &&
-    Buffer.byteLength(JSON.stringify(value), 'utf8') <= STRUCTURED_CELL_MAX_BYTES
-  )
+  return isExactScalar(value) && utf8ByteLength(JSON.stringify(value)) <= STRUCTURED_CELL_MAX_BYTES
 }
 
 function isExactScalar(value: unknown): value is JsonScalar {
@@ -221,17 +225,17 @@ function hasAllowedDepth(value: unknown, depth: number): boolean {
 
 // Head-tail window over UTF-8 bytes: returns pieces when total exceeds maxBytes.
 function headTailCap(text: string, maxBytes: number): CappedText {
-  const byteLen = Buffer.byteLength(text, 'utf8')
+  const byteLen = utf8ByteLength(text)
 
   if (byteLen <= maxBytes) {
     return { text, truncated: false }
   }
 
-  const buf = Buffer.from(text, 'utf8')
+  const buf = encodeUtf8(text)
   const headEnd = alignToUtf8Start(buf, Math.floor(maxBytes * HEAD_SHARE))
   const tailStart = findUtf8Start(buf, byteLen - Math.floor(maxBytes * TAIL_SHARE))
-  const head = buf.subarray(0, headEnd).toString('utf8')
-  const tail = buf.subarray(tailStart).toString('utf8')
+  const head = decodeUtf8(buf.subarray(0, headEnd))
+  const tail = decodeUtf8(buf.subarray(tailStart))
   const dropped = tailStart - headEnd
 
   return {

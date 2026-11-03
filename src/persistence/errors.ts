@@ -1,6 +1,7 @@
 import { AppError, StorageError } from '@/core/errors'
 
 const SQLITE_FULL = 13
+const SQLITE_IOERR = 10
 const QUOTA_EXCEEDED = 'QuotaExceededError'
 const CAUSE_DEPTH = 3
 
@@ -22,7 +23,10 @@ export function toStorageError(err: unknown, message: string): Error {
 }
 
 // Bun's driver names the result in `code`, sqlite-wasm in `resultCode`, and the browser throws a
-// DOMException named for the quota; the failing write may sit a few causes down.
+// DOMException named for the quota; the failing write may sit a few causes down. The OPFS VFS
+// catches that DOMException, logs it to the console and returns SQLITE_IOERR, so sqlite-wasm
+// reports a full quota as a bare `resultCode` 10 with no cause: only sqlite-wasm sets `resultCode`,
+// so the daemon's driver never reads an I/O error as a full disk.
 function isStorageFull(err: unknown, depth = 0): boolean {
   if (!(err instanceof Error) || depth >= CAUSE_DEPTH) {
     return false
@@ -35,6 +39,7 @@ function isStorageFull(err: unknown, depth = 0): boolean {
     err.name === QUOTA_EXCEEDED ||
     code === 'SQLITE_FULL' ||
     resultCode === SQLITE_FULL ||
+    resultCode === SQLITE_IOERR ||
     isStorageFull(err.cause, depth + 1)
   )
 }
