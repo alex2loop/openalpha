@@ -9,7 +9,7 @@ import { join, resolve } from 'node:path'
 import { buildBrowser } from './browser-build'
 
 const ROOT = resolve(import.meta.dir, '..')
-const ENTRY = resolve(ROOT, 'scripts/browser-entry.ts')
+const ENTRY = resolve(ROOT, 'src/app/browser/worker.ts')
 const SRC_PREFIX = 'src/'
 const NODE_PREFIX = 'node:'
 const BUN_PREFIX = 'bun:'

@@ -18,6 +18,8 @@
   },
   "include": [
     "../src/markdown.d.ts",
+    "./browser-build.ts",
+    "./check-browser-bundle.ts",
     "./check-research-integrity-regressions.ts",
     "./check-trading-locale.ts",
     "./check-vi-terminology.ts",
