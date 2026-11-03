@@ -42,7 +42,12 @@ independent of delivery surfaces.
 
 ### AD-2: Public module APIs are explicit
 
-Cross-module imports use `@/<module>/api`. Three exceptions:
+Cross-module imports use `@/<module>/api`, plus `@/<module>/node-api` for the Bun/Node-only exports
+of a module that has them (a sqlite engine, a token file, an MCP stdio client, plugin files read from
+disk). Only `app`, `cli` and the SDK barrel import a `node-api`, and neither door re-exports the
+other: `api` reaches no Bun or Node builtin, so the browser bundle can import it, and
+`bun run check:browser` builds that bundle and names any import that breaks the promise. Three
+exceptions:
 
 - `core` has no barrel. Its public files are listed in `CORE_PUBLIC` in `scripts/check-dag.ts` and
   imported directly. Adding a file there is the reviewable act that widens the kernel.

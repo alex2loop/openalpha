@@ -33,6 +33,7 @@ In doubt: stop and ask. Never silently pick.
 bun run lint            # Biome lint + autofix
 bun run typecheck       # gen + tsc (Bun never type-checks; the only type gate)
 bun run check           # Biome + typecheck + contract gates (CI)
+bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin
 bun run lint:arch       # depth, trading/registry/feature isolation, locale, report figures,
                         # caveats, vi terminology, pricing, agent skills, strategy version (CI)
 bun run gen             # regenerate the migration registry
@@ -76,7 +77,7 @@ A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src
 
 Boundary rules (hard):
 
-1. A module's public API is `@/<module>/api` and nothing deeper. No internal barrels, no `export *`.
+1. A module's public API is `@/<module>/api`, plus `@/<module>/node-api` for Bun/Node-only exports where the module has them; only `app` and `cli` import a `node-api`. Nothing deeper. No internal barrels, no `export *`.
 2. Kernel exception: `core` and `i18n` have no `api.ts` (it would close a cycle and force every consumer to load `zod`/`pino`/`undici`).
    - `core`'s public surface is enumerated in `CORE_PUBLIC` (`scripts/check-dag.ts`); consumers deep-import it (`@/core/errors`). A new `core/` file is internal until added there; that edit is the reviewable act of widening the kernel.
    - Internal: `core/ssrf/{ipv4,ipv6,dns,ssrf}` (facades `ssrf/network-policy`, `ssrf/pinned-fetch`), `core/security/prompt-injection` (facade `security/sanitize`), `core/config/{schema,paths}` (facades `config/load`, `config/resolve`). Import the facade.
@@ -426,7 +427,7 @@ Leaks are production incidents and review-blocking. For every acquired resource 
 ### Modules and exports
 
 - Minimize exports. No `export let`. An unused export is a bug: wire every export to a caller (`scripts/check-unused-exports.ts`), path helpers included.
-- Sanctioned barrels, the only barrel files: the SDK `src/index.ts`, each module's `api.ts`, a market's `api.ts`. Everything else imports directly via `@/*`. `noBarrelFile` is waived for exactly those paths in `biome.json`; widen that list only alongside the rule it serves.
+- Sanctioned barrels, the only barrel files: the SDK `src/index.ts`, each module's `api.ts` and `node-api.ts`, a market's `api.ts`. Everything else imports directly via `@/*`. `noBarrelFile` is waived for exactly those paths in `biome.json`; widen that list only alongside the rule it serves.
 
 ### Import paths
 

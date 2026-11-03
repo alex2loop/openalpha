@@ -41,7 +41,11 @@ các module nghiệp vụ không bị buộc vào các bề mặt phân phối.
 
 ### AD-2: API công khai của module là tường minh
 
-Import giữa các module dùng `@/<module>/api`. Có ba ngoại lệ:
+Import giữa các module dùng `@/<module>/api`, cộng với `@/<module>/node-api` cho các export chỉ chạy
+được trên Bun/Node của module nào có chúng (engine sqlite, tệp token, client MCP stdio, tệp plugin đọc
+từ đĩa). Chỉ `app`, `cli` và barrel SDK import một `node-api`, và hai cửa không re-export lẫn nhau:
+`api` không chạm tới builtin nào của Bun hay Node nên bundle trình duyệt import được nó, và
+`bun run check:browser` dựng bundle đó rồi chỉ ra mọi import phá lời hứa này. Có ba ngoại lệ:
 
 - `core` không có barrel. Các tệp công khai của nó được liệt kê trong `CORE_PUBLIC` ở
   `scripts/check-dag.ts` và được import trực tiếp. Thêm một tệp vào đó là thao tác review được để mở rộng

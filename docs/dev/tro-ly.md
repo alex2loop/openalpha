@@ -200,7 +200,7 @@ Mục lục trong prompt được dựng ở [engine/hooks/available-skills.ts](
 hoặc `<dir>/<name>/SKILL.md` an toàn đầu tiên. Nó tính kích thước vào ngân sách của phiên chạy
 (`SKILL_VIEW_RUN_BUDGET_BYTES`, 262.144; phiên chạy con bắt đầu với ngân sách riêng). Tên không thấy, không tồn tại hoặc
 không an toàn cho `ToolError('file_not_found')`; hết ngân sách cho `payload_too_large`. Tệp quá `SKILL_MAX_BYTES` (1 MiB,
-[engine/skills/load.ts](../../src/engine/skills/load.ts)) không bao giờ được nạp.
+[engine/skills/skill-text.ts](../../src/engine/skills/skill-text.ts)) không bao giờ được nạp.
 
 Cài đặt đi qua CLI ([cli/commands/skill.ts](../../src/cli/commands/skill.ts)) và tệp khóa
 ([engine/skills/lockfile.ts](../../src/engine/skills/lockfile.ts)), không bao giờ qua công cụ của agent. Kết quả quét nặng nhẹ
