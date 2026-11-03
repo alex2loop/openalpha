@@ -1,6 +1,5 @@
 import type { MessageKey } from '@/i18n'
-import type { EditionPhase } from '@/web/edition/worker-link'
-import { takeOver } from '@/web/edition/worker-link'
+import { type EditionPhase, takeOver } from '@/web/edition/worker-link'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 
@@ -37,7 +36,8 @@ function Action({ reason }: { readonly reason: Refusal }) {
 
 /** A full page in place of the office when the database cannot be served: another tab holds it
  *  (take it here, or stay), another tab took it, the browser cannot keep it, it is newer than this
- *  page, the device is out of room, or the worker broke. The page offers the one thing that can help and nothing else. */
+ *  page, the device is out of room, or the worker broke. The page offers the one thing that can
+ *  help and nothing else. */
 export function Refused({ reason }: { readonly reason: Refusal }) {
   return (
     <main class="edition-refused">

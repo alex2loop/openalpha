@@ -5,12 +5,12 @@ import type { ProviderCatalogResponse } from '@/app/server/wire/config'
 import type { MessageKey } from '@/i18n'
 import { getJson, sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { askRestart } from '@/web/edition/restart-confirm'
 import { restartEngine } from '@/web/edition/worker-link'
 import { isTree, readConfigTree } from '@/web/state/settings'
 import { readText } from '@/web/text/fields'
 import { toFailureText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
-import { askConfirm } from '@/web/ui/kit/confirm'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
 import { ChoiceLine, defaultModelOf, type ModelChoice } from '@/web/ui/settings/model-chain'
@@ -160,14 +160,10 @@ function TierRow({ tier, draft, catalog }: TierRowProps) {
   )
 }
 
-// The restart stops the work in flight, so the visitor is asked first; the page then waits for the
-// engine to come back.
+// The page waits for the engine to come back after the restart.
 function askToSave(drafts: Drafts): void {
-  askConfirm({
-    title: tr('ui.office.edition.restart.title'),
-    lines: [tr('ui.office.edition.restart.body'), tr('ui.office.edition.restart.kept')],
+  askRestart({
     confirmLabel: tr('ui.office.edition.tiers.confirm'),
-    keepLabel: tr('ui.office.edition.common.later'),
     confirm: async () => {
       const body = {
         model_tiers: Object.fromEntries(

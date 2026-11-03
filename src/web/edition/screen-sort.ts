@@ -1,5 +1,9 @@
 import type { ScreenResponse } from '@/app/server/wire/market'
 
+export const SORT_BASE_KEYS = Object.freeze(['ticker', 'price', 'change'] as const)
+/** A sort key that names a factor: the prefix, then the factor id. */
+export const FACTOR_SORT_PREFIX = 'factor:'
+
 export type Candidate = ScreenResponse['candidates'][number]
 export type SortDirection = 'asc' | 'desc'
 
@@ -8,10 +12,6 @@ export interface BoardFactor {
   readonly id: string
   readonly label: string
 }
-
-export const SORT_BASE_KEYS = Object.freeze(['ticker', 'price', 'change'] as const)
-/** A sort key that names a factor: the prefix, then the factor id. */
-export const FACTOR_SORT_PREFIX = 'factor:'
 
 /** The factors the board's names read, in the order they first appear. */
 export function boardFactors(candidates: readonly Candidate[]): readonly BoardFactor[] {

@@ -1,4 +1,4 @@
-import { type LegalPage, openLegalPage } from '@/web/edition/legal/legal-doc'
+import { type LegalPage, type OpenLegalOptions, openLegalPage } from '@/web/edition/legal/legal-doc'
 
 const PAGE: LegalPage = {
   title: 'ui.office.edition.legal.ai.title',
@@ -15,6 +15,6 @@ const PAGE: LegalPage = {
 }
 
 /** The AI notice page. */
-export function openAiNotice(options: { readonly back?: (() => void) | undefined } = {}): void {
+export function openAiNotice(options: OpenLegalOptions = {}): void {
   openLegalPage(PAGE, options)
 }

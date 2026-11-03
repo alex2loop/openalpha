@@ -6,6 +6,8 @@ const VERIFIER_KEY = 'oa.oauth.verifier'
 const STATE_KEY = 'oa.oauth.state'
 const VERIFIER_BYTES = 48
 const STATE_BYTES = 16
+/** The most the page waits for OpenRouter to trade the code for a key. */
+const EXCHANGE_TIMEOUT_MS = 15_000
 const CHALLENGE_METHOD = 'S256'
 const CODE_PARAM = 'code'
 const STATE_PARAM = 'state'
@@ -51,6 +53,7 @@ export async function finishOpenRouterConnect(
 
   removeStorage('session', VERIFIER_KEY)
   removeStorage('session', STATE_KEY)
+
   params.delete(CODE_PARAM)
   params.delete(STATE_PARAM)
   history.replaceState(
@@ -82,16 +85,20 @@ async function exchange(
         code_verifier: verifier,
         code_challenge_method: CHALLENGE_METHOD,
       }),
-      signal,
+      signal: AbortSignal.any([signal, AbortSignal.timeout(EXCHANGE_TIMEOUT_MS)]),
     })
     const body: unknown = response.ok ? await response.json() : undefined
 
-    return typeof body === 'object' &&
+    if (
+      typeof body === 'object' &&
       body !== null &&
       'key' in body &&
       typeof body.key === 'string'
-      ? body.key
-      : undefined
+    ) {
+      return body.key
+    }
+
+    return undefined
   } catch {
     return undefined
   }

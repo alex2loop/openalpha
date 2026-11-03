@@ -1,4 +1,4 @@
-import { type LegalPage, openLegalPage } from '@/web/edition/legal/legal-doc'
+import { type LegalPage, type OpenLegalOptions, openLegalPage } from '@/web/edition/legal/legal-doc'
 
 const PAGE: LegalPage = {
   title: 'ui.office.edition.legal.terms.title',
@@ -16,6 +16,6 @@ const PAGE: LegalPage = {
 }
 
 /** The terms of use page. */
-export function openTerms(options: { readonly back?: (() => void) | undefined } = {}): void {
+export function openTerms(options: OpenLegalOptions = {}): void {
   openLegalPage(PAGE, options)
 }

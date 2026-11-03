@@ -18,6 +18,7 @@ export function createWorkerFeedSocket(worker: Worker, deps: FeedSocketDeps): Fe
     },
     { signal: lifetime.signal }
   )
+
   deps.onStatus('live')
   deps.onOpen()
 

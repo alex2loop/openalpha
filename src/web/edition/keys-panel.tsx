@@ -3,9 +3,8 @@ import { type Signal, useSignal } from '@preact/signals'
 import { openConsentDialog } from '@/web/edition/consent-dialog'
 import { InstallLine } from '@/web/edition/install-line'
 import {
-  consentGiven,
-  consentId,
   forgetKey,
+  hasConsent,
   heldKeys,
   holdKey,
   KEY_SLOTS,
@@ -63,7 +62,7 @@ function SlotRow({ slot }: { readonly slot: KeySlot }) {
 
 function HeldKey({ slot, provider }: { readonly slot: KeySlot; readonly provider: string }) {
   const info = providerInfo(slot, provider)
-  const isAgreed = consentGiven.value[consentId(slot, provider)] !== undefined
+  const isAgreed = hasConsent(slot, provider)
 
   return (
     <div class="key-held">
@@ -124,7 +123,7 @@ function KeyForm({ slot }: { readonly slot: KeySlot }) {
         {tr('ui.office.edition.keys.remember')}
       </label>
       <p class="meta">{tr('ui.office.edition.keys.rememberNote')}</p>
-      <SaveRow slot={slot} draft={draft} />
+      <SaveKeyRow slot={slot} draft={draft} />
     </div>
   )
 }
@@ -175,7 +174,7 @@ function KeyFields({ slot, draft }: { readonly slot: KeySlot; readonly draft: Ke
   )
 }
 
-function SaveRow({ slot, draft }: { readonly slot: KeySlot; readonly draft: KeyDraft }) {
+function SaveKeyRow({ slot, draft }: { readonly slot: KeySlot; readonly draft: KeyDraft }) {
   const info = providerInfo(slot, draft.provider.value)
   const held = heldKeys.value[slot]
   const isReplacing =
@@ -192,7 +191,7 @@ function SaveRow({ slot, draft }: { readonly slot: KeySlot; readonly draft: KeyD
     holdKey(slot, { provider, key, remembered: draft.isRemembered.value })
     draft.text.value = ''
 
-    if (consentGiven.value[consentId(slot, provider)] === undefined) {
+    if (!hasConsent(slot, provider)) {
       openConsentDialog(slot, provider)
     }
   }

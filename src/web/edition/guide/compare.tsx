@@ -23,10 +23,6 @@ export function openCompare(row?: FeatureId): void {
   })
 }
 
-function rowAnchor(id: FeatureId): string {
-  return `compare-${id}`
-}
-
 function CompareBody({ row }: { readonly row: FeatureId | undefined }) {
   useEffect(() => {
     if (row !== undefined) {
@@ -79,4 +75,8 @@ function FeatureRow({ feature }: { readonly feature: Feature }) {
       {'reason' in feature && <p class="meta">{tr(feature.reason)}</p>}
     </article>
   )
+}
+
+function rowAnchor(id: FeatureId): string {
+  return `compare-${id}`
 }

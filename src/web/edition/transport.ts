@@ -80,6 +80,7 @@ async function send(ctx: SendContext, request: Request): Promise<Response> {
         request.signal.removeEventListener('abort', onAbort)
       },
     })
+
     call(worker, {
       kind: 'http',
       id,

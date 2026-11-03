@@ -38,19 +38,11 @@ let stopWorker: (() => void) | undefined
 let readKeys: () => BrowserKeys = () => ({})
 let settleBeforeRestart: () => Promise<void> = () => Promise.resolve()
 
-function hasBrowserSupport(): boolean {
-  return (
-    typeof Worker === 'function' &&
-    'locks' in navigator &&
-    typeof navigator.storage?.getDirectory === 'function'
-  )
-}
-
 /** Starts the worker, routes the page's `/v1` requests and feed through it, and ends it with the
  *  page: terminating a worker frees the tab lock, which is how the database is let go. `keys` is
  *  asked at every start, so a restart carries the keys held now. Returns the way to stop. */
 export function startEdition(keys: () => BrowserKeys): () => void {
-  preferredLocale.value = startingLocale()
+  preferredLocale.value = resolveStartingLocale()
   readKeys = keys
 
   if (!hasBrowserSupport()) {
@@ -79,6 +71,14 @@ export function startEdition(keys: () => BrowserKeys): () => void {
   }
 
   return stopEdition
+}
+
+function hasBrowserSupport(): boolean {
+  return (
+    typeof Worker === 'function' &&
+    'locks' in navigator &&
+    typeof navigator.storage?.getDirectory === 'function'
+  )
 }
 
 /** Ends the worker now; the page keeps showing what it has. Safe to call twice. */
@@ -195,6 +195,7 @@ function askWorker<K extends 'db-exported' | 'db-opened'>(
     target.addEventListener('error', () => settle(() => reject(new Error('worker failed'))), {
       signal: done.signal,
     })
+
     target.postMessage(call)
   })
 }
@@ -218,7 +219,7 @@ function refuse(reason: Refusal): void {
 }
 
 // A language in the link is the visitor's choice and is kept; never the browser's language.
-function startingLocale(): Locale {
+function resolveStartingLocale(): Locale {
   const requested = toLocale(new URLSearchParams(location.search).get(LOCALE_PARAM))
 
   if (requested !== undefined) {

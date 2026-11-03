@@ -10,7 +10,9 @@ import {
   forgetSaveFile,
   resumeSaveFile,
   type SaveStatus,
+  SQLITE_MIME,
   saveStatus,
+  suggestedFileName,
 } from '@/web/edition/file-save'
 import { cliName } from '@/web/edition/guide/product'
 import { requestDbExport, requestDbOpen } from '@/web/edition/worker-link'
@@ -21,8 +23,6 @@ import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { ActionRow } from '@/web/ui/settings/row'
 
-const EXPORT_MIME = 'application/vnd.sqlite3'
-const EXPORT_FILE_KEY = 'ui.office.edition.file.suggestedName'
 /** The download starts when the click returns; the file's address is let go a moment later. */
 const DOWNLOAD_REVOKE_MS = 2_000
 
@@ -60,7 +60,7 @@ function SaveRow() {
   return (
     <ActionRow
       title={tr('ui.office.edition.file.save.title')}
-      summary={describeSave(status)}
+      summary={toSaveSummary(status)}
       note={failure.value ?? tr('ui.office.edition.file.save.note')}
     >
       {status.kind === 'paused' ? (
@@ -85,7 +85,7 @@ function SaveRow() {
   )
 }
 
-function describeSave(status: SaveStatus): string {
+function toSaveSummary(status: SaveStatus): string {
   const timeZone = state.value?.timeZone
 
   switch (status.kind) {
@@ -165,12 +165,12 @@ function ExportAction({ title, note, button, command }: ExportActionProps) {
 
 async function downloadDatabase(): Promise<void> {
   const bytes = await requestDbExport()
-  const url = URL.createObjectURL(new Blob([bytes], { type: EXPORT_MIME }))
+  const url = URL.createObjectURL(new Blob([bytes], { type: SQLITE_MIME }))
   const link = document.createElement('a')
 
   try {
     link.href = url
-    link.download = tr(EXPORT_FILE_KEY)
+    link.download = suggestedFileName()
     link.hidden = true
     document.body.append(link)
     link.click()

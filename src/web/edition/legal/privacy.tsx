@@ -1,4 +1,4 @@
-import { type LegalPage, openLegalPage } from '@/web/edition/legal/legal-doc'
+import { type LegalPage, type OpenLegalOptions, openLegalPage } from '@/web/edition/legal/legal-doc'
 
 const PAGE: LegalPage = {
   title: 'ui.office.edition.legal.privacy.title',
@@ -20,6 +20,6 @@ const PAGE: LegalPage = {
 }
 
 /** The privacy policy page. */
-export function openPrivacy(options: { readonly back?: (() => void) | undefined } = {}): void {
+export function openPrivacy(options: OpenLegalOptions = {}): void {
   openLegalPage(PAGE, options)
 }

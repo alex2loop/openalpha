@@ -20,27 +20,11 @@ const HANDLE_DB = 'oa.file'
 const HANDLE_STORE = 'handles'
 const HANDLE_KEY = 'save'
 const PERMISSION = { mode: 'readwrite' } as const
-const PICKER_TYPE = 'application/vnd.sqlite3'
 const PICKER_EXTENSIONS = ['.db', '.sqlite']
+const SUGGESTED_NAME_KEY = 'ui.office.edition.file.suggestedName'
 
-interface FileAutosaveOptions {
-  readonly handle: FileSystemFileHandle
-  /** The database as one file; called once per copy. */
-  readonly read: () => Promise<ArrayBuffer>
-  readonly debounceMs: number
-  readonly onSaved: (at: number) => void
-  readonly onFailed: () => void
-}
-
-interface FileAutosave {
-  /** Marks the data changed: a copy is written after the debounce. */
-  schedule(): void
-  /** Writes a copy now, changed or not; resolves when it has settled. */
-  flush(): Promise<void>
-  /** Clears the timer and the listener, writes the change still waiting and waits for a write in
-   *  flight. Idempotent. */
-  stop(): Promise<void>
-}
+/** The media type of the database as one file, for a download and for the save picker. */
+export const SQLITE_MIME = 'application/vnd.sqlite3'
 
 /** Where the copy stands. `paused` is a file the page cannot write without the visitor: the
  *  browser forgot its permission, or the last write failed. */
@@ -63,6 +47,135 @@ let pausedHandle: FileSystemFileHandle | undefined
 /** Whether this browser lets a page write a file the visitor picked (Chromium). */
 export function canPickSaveFile(): boolean {
   return typeof window.showSaveFilePicker === 'function'
+}
+
+/** The name offered for the file, whether it is saved by the picker or downloaded. */
+export function suggestedFileName(): string {
+  return tr(SUGGESTED_NAME_KEY)
+}
+
+/** Starts the copy the visitor chose on an earlier visit: the stored file is written again only
+ *  when the browser still lets the page, and never asks on load. Returns the way to stop. */
+export function startFileSave(): () => void {
+  const lifetime = new AbortController()
+  const releaseRestart = holdRestartFor(stopActive)
+
+  restore(lifetime.signal).catch(() => {
+    saveStatus.value = { kind: 'none' }
+  })
+
+  return () => {
+    releaseRestart()
+    lifetime.abort()
+    stopActive().catch(() => undefined)
+  }
+}
+
+async function restore(abort: AbortSignal): Promise<void> {
+  const handle = canPickSaveFile() ? await loadHandle() : undefined
+  const permission = await handle?.queryPermission(PERMISSION)
+
+  if (abort.aborted) {
+    return
+  }
+
+  if (handle === undefined) {
+    saveStatus.value = { kind: 'none' }
+  } else if (permission === 'granted') {
+    activate(handle)
+  } else {
+    pause(handle, false)
+  }
+}
+
+/** The visitor picks the file: from now on a copy goes there. The first copy is written at once. */
+export async function chooseSaveFile(): Promise<void> {
+  const picker = window.showSaveFilePicker
+  let handle: FileSystemFileHandle
+
+  if (picker === undefined) {
+    return
+  }
+
+  try {
+    handle = await picker.call(window, {
+      suggestedName: suggestedFileName(),
+      types: [
+        {
+          description: tr('ui.office.edition.file.pickerType'),
+          accept: { [SQLITE_MIME]: PICKER_EXTENSIONS },
+        },
+      ],
+    })
+  } catch (error: unknown) {
+    // A dismissed picker is an answer, not a failure.
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return
+    }
+
+    throw error
+  }
+
+  await storeHandle(handle)
+  await stopActive()
+  await activate(handle).autosave.flush()
+}
+
+/** "Tiếp tục lưu vào file": asked on a click, never on load. */
+export async function resumeSaveFile(): Promise<void> {
+  const handle = pausedHandle ?? active?.handle
+
+  if (handle === undefined || (await handle.requestPermission(PERMISSION)) !== 'granted') {
+    return
+  }
+
+  await stopActive()
+  await activate(handle).autosave.flush()
+}
+
+/** Stops copying and forgets the file; the file itself stays where it is. */
+export async function forgetSaveFile(): Promise<void> {
+  await stopActive()
+  pausedHandle = undefined
+  saveStatus.value = { kind: 'none' }
+  await withHandleStore('readwrite', (store) => store.delete(HANDLE_KEY))
+}
+
+function activate(handle: FileSystemFileHandle): Active {
+  const autosave = createFileAutosave({
+    handle,
+    read: requestDbExport,
+    debounceMs: AUTOSAVE_DEBOUNCE_MS,
+    onSaved: (savedAt) => {
+      saveStatus.value = { kind: 'active', name: handle.name, savedAt }
+    },
+    onFailed: () => pause(handle, true),
+  })
+
+  pausedHandle = undefined
+  saveStatus.value = { kind: 'active', name: handle.name }
+  active = { handle, autosave, stopTriggers: watchWrites(autosave) }
+
+  return active
+}
+
+interface FileAutosaveOptions {
+  readonly handle: FileSystemFileHandle
+  /** The database as one file; called once per copy. */
+  readonly read: () => Promise<ArrayBuffer>
+  readonly debounceMs: number
+  readonly onSaved: (at: number) => void
+  readonly onFailed: () => void
+}
+
+interface FileAutosave {
+  /** Marks the data changed: a copy is written after the debounce. */
+  schedule(): void
+  /** Writes a copy now, changed or not; resolves when it has settled. */
+  flush(): Promise<void>
+  /** Clears the timer and the listener, writes the change still waiting and waits for a write in
+   *  flight. Idempotent. */
+  stop(): Promise<void>
 }
 
 /** Writes a full copy to a swap file that replaces the target when it closes, so a tab closed
@@ -133,111 +246,6 @@ async function writeCopy(options: FileAutosaveOptions): Promise<boolean> {
 
     return false
   }
-}
-
-/** Starts the copy the visitor chose on an earlier visit: the stored file is written again only
- *  when the browser still lets the page, and never asks on load. Returns the way to stop. */
-export function startFileSave(): () => void {
-  const lifetime = new AbortController()
-  const releaseRestart = holdRestartFor(stopActive)
-
-  restore(lifetime.signal).catch(() => {
-    saveStatus.value = { kind: 'none' }
-  })
-
-  return () => {
-    releaseRestart()
-    lifetime.abort()
-    stopActive().catch(() => undefined)
-  }
-}
-
-async function restore(abort: AbortSignal): Promise<void> {
-  const handle = canPickSaveFile() ? await loadHandle() : undefined
-  const permission = await handle?.queryPermission(PERMISSION)
-
-  if (abort.aborted) {
-    return
-  }
-
-  if (handle === undefined) {
-    saveStatus.value = { kind: 'none' }
-  } else if (permission === 'granted') {
-    activate(handle)
-  } else {
-    pause(handle, false)
-  }
-}
-
-/** The visitor picks the file: from now on a copy goes there. The first copy is written at once. */
-export async function chooseSaveFile(): Promise<void> {
-  const picker = window.showSaveFilePicker
-  let handle: FileSystemFileHandle
-
-  if (picker === undefined) {
-    return
-  }
-
-  try {
-    handle = await picker.call(window, {
-      suggestedName: tr('ui.office.edition.file.suggestedName'),
-      types: [
-        {
-          description: tr('ui.office.edition.file.pickerType'),
-          accept: { [PICKER_TYPE]: PICKER_EXTENSIONS },
-        },
-      ],
-    })
-  } catch (error: unknown) {
-    // A dismissed picker is an answer, not a failure.
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      return
-    }
-
-    throw error
-  }
-
-  await storeHandle(handle)
-  await stopActive()
-  await activate(handle).autosave.flush()
-}
-
-/** "Tiếp tục lưu vào file": asked on a click, never on load. */
-export async function resumeSaveFile(): Promise<void> {
-  const handle = pausedHandle ?? active?.handle
-
-  if (handle === undefined || (await handle.requestPermission(PERMISSION)) !== 'granted') {
-    return
-  }
-
-  await stopActive()
-  await activate(handle).autosave.flush()
-}
-
-/** Stops copying and forgets the file; the file itself stays where it is. */
-export async function forgetSaveFile(): Promise<void> {
-  await stopActive()
-  pausedHandle = undefined
-  saveStatus.value = { kind: 'none' }
-  await withHandleStore('readwrite', (store) => store.delete(HANDLE_KEY))
-}
-
-function activate(handle: FileSystemFileHandle): Active {
-  const autosave = createFileAutosave({
-    handle,
-    read: requestDbExport,
-    debounceMs: AUTOSAVE_DEBOUNCE_MS,
-    onSaved: (savedAt) => {
-      saveStatus.value = { kind: 'active', name: handle.name, savedAt }
-    },
-    onFailed: () => pause(handle, true),
-  })
-
-  pausedHandle = undefined
-  saveStatus.value = { kind: 'active', name: handle.name }
-  active = { handle, autosave, stopTriggers: watchWrites(autosave) }
-
-  return active
 }
 
 function pause(handle: FileSystemFileHandle, failed: boolean): void {

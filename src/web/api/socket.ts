@@ -35,7 +35,7 @@ export interface FeedSocket {
 
 type FeedSocketFactory = (deps: FeedSocketDeps) => FeedSocket
 
-let factory: FeedSocketFactory = createFeedSocket
+let factory: FeedSocketFactory | undefined
 
 /** Replaces what `openFeedSocket` builds; the default is the daemon's `/v1/ws` socket. */
 export function setFeedSocketFactory(next: FeedSocketFactory): void {
@@ -44,7 +44,7 @@ export function setFeedSocketFactory(next: FeedSocketFactory): void {
 
 /** The page's one feed, over the daemon's socket or whatever `setFeedSocketFactory` installed. */
 export function openFeedSocket(deps: FeedSocketDeps): FeedSocket {
-  return factory(deps)
+  return (factory ?? createFeedSocket)(deps)
 }
 
 // One feed socket's mutable state; `connection` owns the listeners of the current `WebSocket`.

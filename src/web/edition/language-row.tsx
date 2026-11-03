@@ -1,6 +1,6 @@
+import { askRestart } from '@/web/edition/restart-confirm'
 import { chooseLanguage, currentLocale } from '@/web/edition/worker-link'
 import { tr } from '@/web/text/tr'
-import { askConfirm } from '@/web/ui/kit/confirm'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { ActionRow } from '@/web/ui/settings/row'
 
@@ -26,11 +26,8 @@ export function LanguageRow() {
             return
           }
 
-          askConfirm({
-            title: tr('ui.office.edition.restart.title'),
-            lines: [tr('ui.office.edition.restart.body'), tr('ui.office.edition.restart.kept')],
+          askRestart({
             confirmLabel: tr('ui.office.edition.language.confirm'),
-            keepLabel: tr('ui.office.edition.common.later'),
             confirm: () => chooseLanguage(next),
           })
         }}

@@ -30,6 +30,7 @@ const SCREEN_PAGE_LIMIT = 50
 /** A board of two thousand names is not a screen; the loop ends there however the answers read. */
 const MAX_SCREEN_PAGES = 40
 const FACTOR_VALUE_DIGITS = 2
+const PERCENTILE_DIGITS = 0
 
 const SORT_LABELS = Object.freeze({
   ticker: 'ui.office.edition.screen.sort.ticker',
@@ -193,7 +194,7 @@ function NameRow({
         </p>
         {(candidate.factors ?? []).map((factor) => (
           <p key={factor.id} class="meta">
-            {factorLine(factor)}
+            {toFactorLine(factor)}
           </p>
         ))}
       </div>
@@ -204,7 +205,7 @@ function NameRow({
   )
 }
 
-function factorLine(factor: NonNullable<Candidate['factors']>[number]): string {
+function toFactorLine(factor: NonNullable<Candidate['factors']>[number]): string {
   const value = `${factor.value > 0 ? '+' : ''}${formatFixed(factor.value, FACTOR_VALUE_DIGITS)}`
 
   return factor.percentile === undefined
@@ -212,6 +213,6 @@ function factorLine(factor: NonNullable<Candidate['factors']>[number]): string {
     : tr('ui.office.edition.screen.factorLine', {
         label: factor.label,
         value,
-        pct: formatFixed(factor.percentile, 0),
+        pct: formatFixed(factor.percentile, PERCENTILE_DIGITS),
       })
 }

@@ -13,7 +13,7 @@ export interface LegalPage {
   readonly sections: readonly MessageKey[]
 }
 
-interface OpenLegalOptions {
+export interface OpenLegalOptions {
   /** Where the visitor came from; the page then offers a way back there. */
   readonly back?: (() => void) | undefined
 }
