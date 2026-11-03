@@ -1005,7 +1005,7 @@ Một giá trị, [TradingEdition](../../src/trading/wiring/composition/edition.
 | `briefActionOmits` | không | `avoid-chasing`, hành động tiếp theo duy nhất nói với người đọc khi nào nên mua |
 | `reads` | các lần đọc đã lưu | `BookReads` trả về rỗng: không kết luận giảm bớt, không kế hoạch thoát khi ghi một giao dịch, không khoảng cách tới mức dừng, không gì cho phần quét của bản tin, các nhận định đã chốt, cảnh báo đã kích hoạt hay theo dõi thoát, nên `/brief` của bản web không gọi mô hình và bỏ các phần đề xuất. Mọi bên đọc coi rỗng là vắng, không bao giờ là số không |
 | `pagedBackfill` | ghi một lần ở cuối | lần nạp lịch sử VN đầu tiên ghi từng cửa sổ một |
-| `viewed` | báo cáo tài chính cho cả bảng đã lọc | tên các phân tích mới nhất đã lưu, bên cạnh các mã đang giữ và theo dõi |
+| `refreshOmits` | mọi loại làm mới thị trường có | `accounts`: bản web không có nguồn báo cáo tài chính, nên loại này không chạy và không báo lỗi |
 
 ### Dựng
 

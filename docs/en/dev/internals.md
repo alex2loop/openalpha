@@ -986,7 +986,7 @@ One value, [TradingEdition](../../../src/trading/wiring/composition/edition.ts),
 | `briefActionOmits` | nothing | `avoid-chasing`, the one next action that tells the reader when to buy |
 | `reads` | the stored reads | `BookReads` answering empty: no reduce verdict, no exit plan when a trade is recorded, no stop distance, nothing for the brief's sweep, resolved calls, fired alerts or exit watch, so the web's `/brief` makes no model call and leaves the suggestion sections out. Every reader takes empty as absent, never zero |
 | `pagedBackfill` | one write at the end | the first VN history backfill writes a window at a time |
-| `viewed` | statements for the screened board | the names of the newest stored analyses beside the held and watched names |
+| `refreshOmits` | every refresh kind the market has | `accounts`: the web has no statements source, so that kind neither runs nor reports a failure |
 
 ### Build
 
