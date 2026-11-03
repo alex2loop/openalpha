@@ -3,6 +3,7 @@ import type { RunId, SessionId } from '@/core/ids'
 import type { RunDeadline } from '@/core/tool'
 import type { RunHandle, RunIdentity, RunLifecycle, RunRegistry } from '@/engine/types/run'
 import { RunHalted } from '@/core/errors'
+import { unrefTimer } from '@/core/utils/time'
 
 // A private symbol cannot collide with a caller-supplied abort reason, so `signal.reason ===
 // TIMEOUT_ABORT` is an unambiguous "the duration limit fired" test.
@@ -116,7 +117,7 @@ export function composeAbort(
 }
 
 function armTimeout(controller: AbortController, ms: number): ReturnType<typeof setTimeout> {
-  return setTimeout(() => controller.abort(TIMEOUT_ABORT), ms).unref()
+  return unrefTimer(setTimeout(() => controller.abort(TIMEOUT_ABORT), ms))
 }
 
 function abortChatEntries(

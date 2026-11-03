@@ -13,6 +13,7 @@ import type {
 import { RunHalted, ToolError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { OutputPipeline } from '@/core/security/output-pipeline'
+import { unrefTimer } from '@/core/utils/time'
 import { settleExternalCharge } from '@/engine/budget/attempt-settlement'
 import { addUsage } from '@/engine/budget/usage'
 import { parseToolInput } from '@/engine/loop/tools/arg-parse'
@@ -144,10 +145,12 @@ function armToolGuard(run: RunView, timeoutMs: number | undefined): ToolGuard {
       return
     }
 
-    timer = setTimeout(() => {
-      controller.abort()
-      reject(new ToolError('timeout', `tool timed out after ${capMs}ms`))
-    }, capMs).unref()
+    timer = unrefTimer(
+      setTimeout(() => {
+        controller.abort()
+        reject(new ToolError('timeout', `tool timed out after ${capMs}ms`))
+      }, capMs)
+    )
     runSignal.addEventListener('abort', onAbort, { once: true })
   })
 
