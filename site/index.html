@@ -10,16 +10,31 @@
 <script>
 /* Runs before paint: the saved theme and language, and the hidden start state of the reveals. */
 (function () {
-  var d = document.documentElement;
+  var root = document.documentElement;
+
   try {
-    var th = localStorage.getItem("office.theme");
-    if (th === "light" || th === "dark") d.setAttribute("data-theme", th);
-    var lg = localStorage.getItem("oa.lang");
-    if (lg === "vi") d.setAttribute("lang", "vi");
+    var savedTheme = localStorage.getItem("office.theme");
+
+    if (savedTheme === "light" || savedTheme === "dark") {
+      root.setAttribute("data-theme", savedTheme);
+    }
+
+    var savedLang = localStorage.getItem("oa.lang");
+
+    if (savedLang === "vi") {
+      root.setAttribute("lang", "vi");
+    }
   } catch (e) { /* storage blocked: the page still renders */ }
-  var asked = new URLSearchParams(location.search).get("lang");
-  if (asked === "vi" || asked === "en") d.setAttribute("lang", asked);
-  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) d.classList.add("rv");
+
+  var askedLang = new URLSearchParams(location.search).get("lang");
+
+  if (askedLang === "vi" || askedLang === "en") {
+    root.setAttribute("lang", askedLang);
+  }
+
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    root.classList.add("rv");
+  }
 })();
 </script>
 <style>
@@ -865,172 +880,321 @@ code, pre { font-variant-ligatures: none; }
 
 <script type="module">
 const MOTION_URL = "vendor/motion-13.5.1.js";
-/* The UMD build sets globalThis.Motion; served from this site so the page loads nothing from a CDN. */
-const loadMotion = () => new Promise((resolve, reject) => {
-  const tag = document.createElement("script");
-  tag.src = MOTION_URL;
-  tag.onload = () => (window.Motion ? resolve(window.Motion) : reject(new Error("motion missing")));
-  tag.onerror = reject;
-  document.head.append(tag);
-});
-const TITLES = { vi: 'OpenAlpha: hội đồng AI tranh luận trước khi bạn đọc phân tích', en: 'OpenAlpha: an AI council that argues before you read the analysis' };
+const MOTION_BAIL_MS = 5000;
+const COPY_RESET_MS = 1600;
+const LANG_STORAGE_KEY = "oa.lang";
+const THEME_STORAGE_KEY = "office.theme";
+const THEMES = ["system", "light", "dark"];
+const THEME_LABEL_KEYS = { system: "themeAuto", light: "themeLight", dark: "themeDark" };
+const EASE = [0.22, 1, 0.36, 1];
+const RISE_SECONDS = 0.75;
+const HERO_STAGGER_SECONDS = 0.06;
+const HERO_RISE_PX = 16;
+const HERO_ART_DELAY_SECONDS = 0.25;
+const HERO_ART_RISE_PX = 28;
+const REVEAL_RISE_PX = 18;
+const TITLES = {
+  vi: 'OpenAlpha: hội đồng AI tranh luận trước khi bạn đọc phân tích',
+  en: 'OpenAlpha: an AI council that argues before you read the analysis',
+};
+const TEXT = {
+  vi: {
+    themeAuto: "Giao diện: theo hệ thống",
+    themeLight: "Giao diện: sáng",
+    themeDark: "Giao diện: tối",
+    copy: "Sao chép",
+    copied: "Đã chép",
+  },
+  en: {
+    themeAuto: "Theme: system",
+    themeLight: "Theme: light",
+    themeDark: "Theme: dark",
+    copy: "Copy",
+    copied: "Copied",
+  },
+};
+
 const root = document.documentElement;
-const $ = (s, el = document) => el.querySelector(s);
-const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const query = (selector, scope = document) => scope.querySelector(selector);
+const queryAll = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const store = {
-  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked: the choice lasts this visit only */ } },
+  get(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* storage blocked: the choice lasts this visit only */
+    }
+  },
 };
 
 /* Language: ?lang=vi|en in the link wins, then the saved choice, else English. */
-const TEXT = {
-  vi: { themeAuto: "Giao diện: theo hệ thống", themeLight: "Giao diện: sáng", themeDark: "Giao diện: tối", copy: "Sao chép", copied: "Đã chép" },
-  en: { themeAuto: "Theme: system", themeLight: "Theme: light", themeDark: "Theme: dark", copy: "Copy", copied: "Copied" },
-};
 const lang = () => (root.lang === "vi" ? "vi" : "en");
 
 function setLang(next) {
   root.lang = next;
   document.title = TITLES[next];
-  for (const b of $$("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === next));
-  for (const el of $$("[data-aria-vi]")) el.setAttribute("aria-label", el.dataset[next === "en" ? "ariaEn" : "ariaVi"]);
-  for (const a of $$("[data-app-link]")) {
-    const url = new URL(a.getAttribute("href"), location.href);
-    url.searchParams.set("lang", next);
-    a.setAttribute("href", url.toString());
+
+  for (const button of queryAll("[data-lang]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.lang === next));
   }
+
+  for (const element of queryAll("[data-aria-vi]")) {
+    element.setAttribute("aria-label", element.dataset[next === "en" ? "ariaEn" : "ariaVi"]);
+  }
+
+  for (const link of queryAll("[data-app-link]")) {
+    const url = new URL(link.getAttribute("href"), location.href);
+
+    url.searchParams.set("lang", next);
+    link.setAttribute("href", url.toString());
+  }
+
   renderTheme();
-  store.set("oa.lang", next);
+  store.set(LANG_STORAGE_KEY, next);
 }
-for (const b of $$("[data-lang]")) b.addEventListener("click", () => setLang(b.dataset.lang));
+
+for (const button of queryAll("[data-lang]")) {
+  button.addEventListener("click", () => setLang(button.dataset.lang));
+}
 
 /* Theme: system -> light -> dark, the dashboard's data-theme switch. */
-const THEMES = ["system", "light", "dark"];
-let theme = THEMES.includes(store.get("office.theme")) ? store.get("office.theme") : "system";
+let theme = THEMES.includes(store.get(THEME_STORAGE_KEY)) ? store.get(THEME_STORAGE_KEY) : "system";
 
 function renderTheme() {
-  if (theme === "system") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", theme);
-  const label = TEXT[lang()][theme === "system" ? "themeAuto" : theme === "light" ? "themeLight" : "themeDark"];
-  $("#theme").setAttribute("aria-label", label);
-  $("#theme").title = label;
-  $("#theme-label").textContent = label;
+  if (theme === "system") {
+    root.removeAttribute("data-theme");
+  } else {
+    root.setAttribute("data-theme", theme);
+  }
+
+  const label = TEXT[lang()][THEME_LABEL_KEYS[theme]];
+  const toggle = query("#theme");
+
+  toggle.setAttribute("aria-label", label);
+  toggle.title = label;
+  query("#theme-label").textContent = label;
 }
-$("#theme").addEventListener("click", () => {
+
+query("#theme").addEventListener("click", () => {
   theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
-  store.set("office.theme", theme);
+  store.set(THEME_STORAGE_KEY, theme);
   renderTheme();
 });
+
 setLang(lang());
 
 /* Install tabs and copy. */
-const term = $("[data-tabs]");
-const tabs = $$('[role="tab"]', term);
-function selectTab(tab) {
-  for (const t of tabs) {
-    const on = t === tab;
-    t.setAttribute("aria-selected", String(on));
-    t.classList.toggle("is-on", on);
-    t.tabIndex = on ? 0 : -1;
-    $("#" + t.getAttribute("aria-controls")).hidden = !on;
+const terminal = query("[data-tabs]");
+const tabs = queryAll('[role="tab"]', terminal);
+let copiedTimer;
+
+function selectTab(selected) {
+  for (const tab of tabs) {
+    const isOn = tab === selected;
+
+    tab.setAttribute("aria-selected", String(isOn));
+    tab.classList.toggle("is-on", isOn);
+    tab.tabIndex = isOn ? 0 : -1;
+    query("#" + tab.getAttribute("aria-controls")).hidden = !isOn;
   }
 }
-for (const t of tabs) {
-  t.addEventListener("click", () => selectTab(t));
-  t.addEventListener("keydown", (e) => {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    const next = tabs[(tabs.indexOf(t) + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+
+for (const tab of tabs) {
+  tab.addEventListener("click", () => selectTab(tab));
+  tab.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+      return;
+    }
+
+    const step = event.key === "ArrowRight" ? 1 : tabs.length - 1;
+    const next = tabs[(tabs.indexOf(tab) + step) % tabs.length];
+
     selectTab(next);
     next.focus();
   });
 }
-let copyTimer;
-$("[data-copy]").addEventListener("click", async (e) => {
-  const btn = e.currentTarget;
-  const pane = $('[role="tabpanel"]:not([hidden])', term);
-  const line = pane.textContent.split("\n").filter((l) => !l.startsWith("#")).join("").replace(/^[$>]\s*/, "").trim();
-  try { await navigator.clipboard.writeText(line); } catch { return; }
-  const label = $(`.${lang()}`, btn);
+
+query("[data-copy]").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const pane = query('[role="tabpanel"]:not([hidden])', terminal);
+  const command = pane.textContent
+    .split("\n")
+    .filter((text) => !text.startsWith("#"))
+    .join("")
+    .replace(/^[$>]\s*/, "")
+    .trim();
+
+  try {
+    await navigator.clipboard.writeText(command);
+  } catch {
+    return;
+  }
+
+  const label = query(`.${lang()}`, button);
+
   label.textContent = TEXT[lang()].copied;
-  clearTimeout(copyTimer);
-  copyTimer = setTimeout(() => { label.textContent = TEXT[lang()].copy; }, 1600);
+  clearTimeout(copiedTimer);
+  copiedTimer = setTimeout(() => {
+    label.textContent = TEXT[lang()].copy;
+  }, COPY_RESET_MS);
 });
 
 /* Header: one sentinel at the top flips data-scrolled (hairline + blur), no scroll handler. */
-const bar = $("#bar");
-new IntersectionObserver(([e]) => root.toggleAttribute("data-scrolled", !e.isIntersecting)).observe($(".sentinel"));
+const bar = query("#bar");
+const scrollObserver = new IntersectionObserver(([entry]) => {
+  root.toggleAttribute("data-scrolled", !entry.isIntersecting);
+});
+
+scrollObserver.observe(query(".sentinel"));
 
 /* Mobile menu: closes on a link, Escape or when the desktop nav takes over. */
-const burger = $("#burger");
+const burger = query("#burger");
+const isMenuOpen = () => burger.getAttribute("aria-expanded") === "true";
+
 function setMenu(open) {
   burger.setAttribute("aria-expanded", String(open));
   bar.classList.toggle("menu-open", open);
 }
-burger.addEventListener("click", () => setMenu(burger.getAttribute("aria-expanded") !== "true"));
-for (const a of $$("#menu a")) a.addEventListener("click", () => setMenu(false));
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && burger.getAttribute("aria-expanded") === "true") { setMenu(false); burger.focus(); }
+
+burger.addEventListener("click", () => setMenu(!isMenuOpen()));
+
+for (const link of queryAll("#menu a")) {
+  link.addEventListener("click", () => setMenu(false));
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && isMenuOpen()) {
+    setMenu(false);
+    burger.focus();
+  }
 });
-matchMedia("(min-width: 1024px)").addEventListener("change", (e) => { if (e.matches) setMenu(false); });
+matchMedia("(min-width: 1024px)").addEventListener("change", (event) => {
+  if (event.matches) {
+    setMenu(false);
+  }
+});
 
 /* Journey: the nav marks the section being read; a pin lights once the reading line (60% of the
    viewport) has passed it, including nodes already above the fold after an anchor jump. */
-const navLinks = $$(".nav a");
+const navLinks = queryAll(".nav a");
 const spy = new IntersectionObserver((entries) => {
-  for (const e of entries) {
-    if (!e.isIntersecting) continue;
-    for (const a of navLinks) a.setAttribute("aria-current", String(a.getAttribute("href") === "#" + e.target.id));
+  for (const entry of entries) {
+    if (!entry.isIntersecting) {
+      continue;
+    }
+
+    for (const link of navLinks) {
+      link.setAttribute("aria-current", String(link.getAttribute("href") === "#" + entry.target.id));
+    }
   }
 }, { rootMargin: "-35% 0px -60% 0px" });
-for (const sec of $$(".journey > .sec[id]")) spy.observe(sec);
 const lit = new IntersectionObserver((entries) => {
-  for (const e of entries) {
-    if (e.isIntersecting || e.boundingClientRect.top < 0) { e.target.classList.add("on"); lit.unobserve(e.target); }
+  for (const entry of entries) {
+    if (entry.isIntersecting || entry.boundingClientRect.top < 0) {
+      entry.target.classList.add("on");
+      lit.unobserve(entry.target);
+    }
   }
 }, { rootMargin: "0px 0px -40% 0px" });
-for (const n of $$(".pin")) lit.observe(n);
+
+for (const section of queryAll(".journey > .sec[id]")) {
+  spy.observe(section);
+}
+
+for (const pin of queryAll(".pin")) {
+  lit.observe(pin);
+}
 
 /* Motion (https://motion.dev, pinned in MOTION_URL). The reveals are hidden by CSS only while
    .rv is on; if the library does not load, .rv comes off and the page simply shows. */
-const EASE = [0.22, 1, 0.36, 1];
-const settle = (el) => { el.style.removeProperty("opacity"); el.style.removeProperty("transform"); el.setAttribute("data-shown", ""); };
+/* The UMD build sets globalThis.Motion; served from this site so the page loads nothing from a CDN. */
+function loadMotion() {
+  return new Promise((resolve, reject) => {
+    const tag = document.createElement("script");
+
+    tag.src = MOTION_URL;
+    tag.onload = () => (window.Motion ? resolve(window.Motion) : reject(new Error("motion missing")));
+    tag.onerror = reject;
+    document.head.append(tag);
+  });
+}
+
+function settle(element) {
+  element.style.removeProperty("opacity");
+  element.style.removeProperty("transform");
+  element.setAttribute("data-shown", "");
+}
 
 async function startMotion() {
-  if (!root.classList.contains("rv")) return;
-  const bail = setTimeout(() => root.classList.remove("rv"), 5000);
-  let lib;
-  try { lib = await loadMotion(); } catch { clearTimeout(bail); root.classList.remove("rv"); return; }
-  clearTimeout(bail);
-  const { animate, inView, scroll } = lib;
-  const rise = (el, delay, y) => animate(
-    el,
-    { opacity: [0, 1], transform: [`translateY(${y}px)`, "translateY(0px)"] },
-    { duration: 0.75, delay, ease: EASE },
-  ).then(() => settle(el));
-
-  $$("[data-hero], [data-hero-art]").forEach((el, i) => {
-    if (el.hasAttribute("data-hero-art")) rise(el, 0.25, 28); else rise(el, 0.06 * i, 16);
-  });
-  /* The one scroll-linked effect: each rail segment fills as the reading line passes its section. */
-  for (const rail of $$(".rail")) {
-    scroll(
-      animate(rail.firstElementChild, { transform: ["scaleY(0)", "scaleY(1)"] }, { ease: "linear" }),
-      { target: rail.parentElement, offset: ["start 60%", "end 60%"] },
-    );
+  if (!root.classList.contains("rv")) {
+    return;
   }
-  for (const el of $$("[data-reveal]")) {
-    inView(el, () => { rise(el, Number(el.dataset.delay || 0), 18); }, { margin: "0px 0px -60px 0px" });
+
+  const bail = setTimeout(() => root.classList.remove("rv"), MOTION_BAIL_MS);
+  let motion;
+
+  try {
+    motion = await loadMotion();
+  } catch {
+    clearTimeout(bail);
+    root.classList.remove("rv");
+
+    return;
+  }
+
+  clearTimeout(bail);
+
+  const { animate, inView, scroll } = motion;
+  const rise = (element, delay, offsetY) =>
+    animate(
+      element,
+      { opacity: [0, 1], transform: [`translateY(${offsetY}px)`, "translateY(0px)"] },
+      { duration: RISE_SECONDS, delay, ease: EASE },
+    ).then(() => settle(element));
+
+  queryAll("[data-hero], [data-hero-art]").forEach((element, index) => {
+    if (element.hasAttribute("data-hero-art")) {
+      rise(element, HERO_ART_DELAY_SECONDS, HERO_ART_RISE_PX);
+    } else {
+      rise(element, HERO_STAGGER_SECONDS * index, HERO_RISE_PX);
+    }
+  });
+
+  /* The one scroll-linked effect: each rail segment fills as the reading line passes its section. */
+  for (const rail of queryAll(".rail")) {
+    const fill = animate(rail.firstElementChild, { transform: ["scaleY(0)", "scaleY(1)"] }, { ease: "linear" });
+
+    scroll(fill, { target: rail.parentElement, offset: ["start 60%", "end 60%"] });
+  }
+
+  for (const element of queryAll("[data-reveal]")) {
+    inView(element, () => {
+      rise(element, Number(element.dataset.delay || 0), REVEAL_RISE_PX);
+    }, { margin: "0px 0px -60px 0px" });
   }
 }
-startMotion();
 
+startMotion();
 </script>
 <script>
 (() => {
   const dialog = document.getElementById('zoom');
-  if (!dialog || typeof dialog.showModal !== 'function') return;
+
+  if (!dialog || typeof dialog.showModal !== 'function') {
+    return;
+  }
+
   const open = () => dialog.showModal();
+
   document.querySelector('[data-zoom-open]').addEventListener('click', open);
-  document.querySelectorAll('.win img').forEach((img) => img.addEventListener('click', open));
+  document.querySelectorAll('.win img').forEach((image) => image.addEventListener('click', open));
   dialog.addEventListener('click', () => dialog.close());
 })();
 </script>
