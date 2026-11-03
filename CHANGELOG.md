@@ -11,35 +11,32 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 ### Added
 
-- Sector strength for US stocks: ask which sectors lead or lag and the office page's sector block ranks the US board by Nasdaq's sector against SPY over 20 and 60 sessions, with today's move.
-- With a US home, the office page shows Lower Manhattan instead of Ho Chi Minh City: Broadway with its bike lane and yellow cabs, Bowling Green, a stepped glass tower carrying the board, a street food cart, and the Fourth of July, Thanksgiving and Christmas on the street. Inputs suggest a ticker from your own market (AAPL rather than FPT), the first-agent templates offer US dividends and tech instead of Vietnamese dividends and banks, and the weather follows the city as soon as the home changes.
-- US stocks and ETFs as a home market: `[locale] region = "us"` (or the new onboarding question) screens the 500 largest US companies and a fund board, scores them on twelve-month momentum, volatility and, with an SEC contact email, value and quality, and sizes them in dollars at the built-in `us-broker` venue. A leveraged or inverse fund is never suggested for purchase.
-- The morning brief for a US home, sent at 08:15 New York time: the US and crypto blocks, your suggestions, and a "Filings and ex-dividend dates" list of earnings releases, insider purchases and coming ex-dividend dates for the names you hold or watch. Without an SEC contact email the list says filings are off and how to turn them on. Market warm-up now runs 90 minutes before each open, so Vietnam's moves from 08:00 to 07:30.
-- In `/price` and `/suggest`, a bare symbol that a stock and a coin share (LINK, ATOM) reads the side you already hold or watch and says the other one exists; `/record` and `/update` still ask which market you mean.
-- Data from Nasdaq (listings, quotes, history, dividends) and SEC (annual accounts, earnings releases, insider purchases), the ten-year less three-month yield spread in the US macro composite, and Coinbase prices for crypto, converted to USDT. SEC calls are paced to stay under its limit of ten requests a second, and US filing and dividend events read in your language on the ticker page.
+- US stocks and ETFs as a home market (`[locale] region = "us"` or the onboarding question): the 500 largest US companies and a fund board, scored on momentum, volatility and, with an SEC contact email, value and quality, sized in dollars at the `us-broker` venue. Leveraged and inverse funds are never suggested for purchase.
+- US sector strength: sectors ranked against SPY over 20 and 60 sessions, in chat and on the office page.
+- A morning brief for a US home at 08:15 New York time, with a "Filings and ex-dividend dates" list for the names you hold or watch. Market warm-up now runs 90 minutes before each open (Vietnam: 07:30).
+- New data: Nasdaq (listings, quotes, history, dividends), SEC (annual accounts, earnings releases, insider purchases), the US 10-year less 3-month yield spread, and Coinbase crypto prices.
+- The office page shows Lower Manhattan for a US home, with its own holidays, weather and ticker suggestions.
+- `/price` and `/suggest` read a symbol shared by a stock and a coin (LINK, ATOM) as the one you hold or watch, and name the other.
 
 ### Changed
 
-- The README on GitHub now opens in English (`README.md`); the Vietnamese one moved to `README.vi.md`, and each links to the other at the top.
-- `onboard` now starts in English unless your computer runs in Vietnamese, and offers the home market that matches the language you pick (Vietnam for Vietnamese, the United States for English). A config that names no `[locale] language` answers in its home market's language, so an existing Vietnam book keeps Vietnamese and a US one answers in English; the desktop app's first run writes that language into the file. The app falls back to English when your browser is in neither language.
-- Settings > Display gains a Home market choice (Vietnam or the United States), applied at the next restart; the book keeps its currency. `/setup` now asks which of every tradable market you trade, your home market first, instead of only your home market and crypto.
-- `/overview` with no market named now shows the markets you use (segments switched on, plus any market you hold or watch) instead of every market, and falls back to every market when that list cannot be read or is empty; `/overview gold` still reads world gold.
-- In Vietnamese the assistant always calls itself "mình"; some replies said "tôi".
-- A book from before a market existed no longer refreshes it: the in-use set reads the resolved profile.
-- Tool, skill and usage wording no longer assumes a Vietnamese book.
-- With no saved profile, the refresh covers only the markets the seeded profile switches on (your home market and crypto), not every market. Vietnamese gold (`gold-vn`) stays out until you enable it with `/profile enable`, and world gold stays out, as it is read for reference only.
+- English is the default: the README opens in English (Vietnamese in `README.vi.md`), and `onboard` starts in English unless your computer runs in Vietnamese. A config without `[locale] language` answers in its home market's language, so existing Vietnam books stay Vietnamese.
+- Settings > Display can switch the home market; `/setup` asks about every tradable market. When a saved profile keeps the new home market switched off, `/profile` and the morning brief say so and name `/profile enable`.
+- `/overview` with no market shows only the markets you use.
+- Refresh covers only the markets your profile uses; Vietnamese gold stays off until `/profile enable`.
+- In Vietnamese the assistant always calls itself "mình".
 
 ### Fixes
 
-- A US name the weekly Nasdaq listing leaves out once is no longer marked delisted for the week, which stopped its prices and refused `/price`; it is delisted only when the next listing leaves it out too.
-- The analysts debating a US fund now read the macro-liquidity method, as for a Vietnamese fund, instead of the stock valuation and quality methods a fund has no accounts for.
-- A US company whose net income SEC serves at the wrong scale (Arista's 2025 income read as $3,511 instead of $3.5 billion) no longer ranks near the bottom on value and quality: the correctly scaled figure is taken where a second tag files one, and the line is left out where none does.
-- A US company with no listed sector gets no return-on-equity rank instead of being ranked against every other sectorless company as if they shared one, and a foreign filer that tags a dollar convenience translation beside its own currency keeps the accounts in the currency it reports in.
-- The US calendar ends the session at 13:00 New York time on the day after Thanksgiving, and on July 3 and December 24 when they trade, so a stock's day settles and reads as closed at the real bell, and the app shows that day's 13:00 close.
-- In the app, US stocks get their own colour in the portfolio bars and a short name on the lobby agenda, and a class-share ticker such as BRK.B in a reply links to its page.
-- The desktop app's first run (`setup write`) no longer refuses every config once the model's key is set.
-- Settings in the app save again while the model's key is missing or was just saved and waits for a restart. Before, every row was refused, and switching provider took two restarts.
-- Switching provider in the app's model chain now starts from that provider's default model instead of keeping the old provider's model name, which the new one would refuse. A provider with no key saved yet gets a line and an "Add the key" button, and Test the connection waits for the restart instead of testing the models still running. The model chain still opens when the key list cannot be read.
+- `/screen crypto` keeps only coins a venue you trade at lists (the default venue, an exchange with your key, or one your book names), instead of any venue the app knows. A book kept at OKX no longer sees a coin only Binance sells at the top of the board.
+- A US name missing from one weekly Nasdaq listing is no longer delisted until the next listing confirms it.
+- SEC net income filed at the wrong scale (Arista's 2025 read as $3,511) no longer drags a company's value and quality ranks.
+- Sectorless US names get no return-on-equity rank, and a foreign filer's accounts stay in its reporting currency.
+- The US calendar closes at 13:00 on early-close days (day after Thanksgiving, July 3, December 24).
+- Analysts debating a US fund read the macro-liquidity method instead of stock valuation methods.
+- The app's settings save again while a model key is missing or pending restart, switching provider picks that provider's default model, and the desktop first run no longer refuses a config with a key set.
+- In the app, the restart line after a settings change sits on the same glass as the offline bar instead of floating bare over the office. The command box leads with a chat mark instead of a `/` that looked already typed, and pressing `/` on an empty box starts a command with the `/` in place. The market picker on Ideas > Opportunities uses the short segment names on one row instead of wrapping full market names over two.
+- US stocks get their own colour and short name in the app, and class-share tickers such as BRK.B link to their page.
 
 ## [1.2.2] - 2026-10-30
 

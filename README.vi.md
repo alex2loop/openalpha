@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <strong>🇻🇳 Tiếng Việt</strong> &bull; <strong><a href="README.md">🇬🇧 English</a></strong>
+  <strong><a href="README.md">🇬🇧 English</a></strong> &bull; <strong>🇻🇳 Tiếng Việt</strong>
 </p>
 
 <p align="center">
@@ -31,6 +31,8 @@ Bạn hỏi một mã, OpenAlpha trả về một kế hoạch: mua ở đâu, c
 
 > [!TIP]
 > Cả đội AI của bạn làm việc trong một văn phòng pixel ngay trên trình duyệt. Nhìn ai đang làm gì, bấm vào một nhân vật để giao việc, liếc bảng thị trường bên cạnh. Mở bằng `openalpha web` · [xem cách dùng](#trang-văn-phòng).
+>
+> Đã có cổ phiếu và quỹ ETF Mỹ: sàng lọc và chấm điểm 500 công ty Mỹ lớn nhất, xếp hạng ngành so với SPY, và bản tin sáng lúc 08:15 giờ New York. Chọn Mỹ khi chạy `onboard`, hoặc thêm vào sổ đang dùng bằng `/profile enable equity-us` · [xem chi tiết](#thị-trường-và-dữ-liệu).
 
 <p align="center">
   <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-nh%C3%B3m%20h%E1%BB%97%20tr%E1%BB%A3-0068FF?style=for-the-badge" alt="Nhóm Zalo hỗ trợ" /></a><br/>
@@ -275,7 +277,7 @@ Nối Telegram hoặc Zalo ([hướng dẫn kênh](docs/kenh.md)). Lần đầu 
   New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.toml -OutFile "$HOME\.openalpha\config.toml"
   ```
 
-- **Giao dịch cổ phiếu Mỹ?** Chọn Mỹ khi `onboard` hỏi thị trường bạn giao dịch chính, hoặc dùng [config.minimal.us.toml](config.minimal.us.toml) thay cho tệp ở trên; tệp này trả lời bằng tiếng Anh, muốn tiếng Việt thì đổi `language` thành `"vi"`. Chỉ tệp này mới thêm `[trading.venues.coinbase]` để Coinbase dẫn đầu báo giá crypto; sau `onboard` bạn tự thêm ([Giao dịch](docs/giao-dich.md#cổ-phiếu-mỹ)). Bắt đầu từ một thư mục dữ liệu mới: tiền tệ của sổ cố định khi hồ sơ đã lưu.
+- **Giao dịch cổ phiếu Mỹ?** Chọn Mỹ khi `onboard` hỏi thị trường bạn giao dịch chính, hoặc dùng [config.minimal.us.toml](config.minimal.us.toml) thay cho tệp ở trên; tệp này trả lời bằng tiếng Anh, muốn tiếng Việt thì đổi `language` thành `"vi"`. Chỉ tệp này mới thêm `[trading.venues.coinbase]` để Coinbase dẫn đầu báo giá crypto; sau `onboard` bạn tự thêm ([Giao dịch](docs/giao-dich.md#cổ-phiếu-mỹ)). Bắt đầu từ một thư mục dữ liệu mới: tiền tệ của sổ cố định khi hồ sơ đã lưu. Muốn thêm cổ phiếu Mỹ vào sổ đang dùng thì chỉ cần chạy `/profile enable equity-us`.
 - **Đổi mô hình AI:** chạy `openalpha onboard` rồi chọn "Mô hình AI". `openalpha provider list` liệt kê hơn 70 nhà cung cấp, `openalpha provider models` cho biết các mô hình và giá.
 - **Thêm mô hình dự phòng:** sửa `[[models]]` trong `config.toml`. Mục đầu là mô hình chính; mục sau chỉ được dùng khi mục trước lỗi hoặc treo:
 
@@ -347,7 +349,7 @@ Các con số trong README chỉ minh họa cú pháp, không phải gợi ý mu
   <img src="assets/readme/office.vi.gif" alt="Trang văn phòng của OpenAlpha: một văn phòng pixel nhìn từ trên xuống với kho dữ liệu, thư viện, phòng họp, sảnh, bàn cảnh báo và phòng trợ lý; các nhân vật đi lại theo phiên chạy thật của dịch vụ nền, dải giá chạy phía trên và ô câu lệnh ở dưới" width="100%" />
 </p>
 
-Trang văn phòng là một ô cửa kính nhìn vào dịch vụ nền: trợ lý, nhóm nghiên cứu và các agent của bạn làm việc trong từng phòng, và mỗi chuyển động là một phiên chạy, một bước hay một câu hỏi đang chờ bạn, không có gì diễn cho vui. Bên cạnh là danh mục, đề xuất, cuộc trò chuyện và ô câu lệnh. Trang không bao giờ đặt lệnh và không tự khởi động phiên chạy AI nào.
+Trang văn phòng là một ô cửa kính nhìn vào dịch vụ nền: trợ lý, nhóm nghiên cứu và các agent của bạn làm việc trong từng phòng, và mỗi chuyển động là một phiên chạy, một bước hay một câu hỏi đang chờ bạn, không có gì diễn cho vui. Con phố bên ngoài đổi theo thị trường chính: TP.HCM, hoặc Lower Manhattan với taxi vàng và các ngày lễ Mỹ khi thị trường chính là Mỹ. Bên cạnh là danh mục, đề xuất, cuộc trò chuyện và ô câu lệnh. Trang không bao giờ đặt lệnh và không tự khởi động phiên chạy AI nào.
 
 Mở bằng `openalpha web` khi dịch vụ nền đang chạy ([bước 3](#bắt-đầu-nhanh) ở trên). Trang hiện gì, cách dùng và cách mở từ máy khác: [trang văn phòng](docs/van-hanh.md#trang-văn-phòng) · [chạy API trên máy chủ](docs/van-hanh.md#chạy-api-trên-máy-chủ). Cùng API đó cũng phục vụ ứng dụng của riêng bạn: xem [Nâng cao](#nâng-cao).
 
@@ -409,7 +411,7 @@ reward_risk = 3            # mục tiêu xa gấp 3 lần khoảng lỗ: lỗ 8%
 | Thị trường | Mã thị trường | Có gì |
 |---|---|---|
 | **Cổ phiếu Việt Nam** | `equity-vn` | Sâu nhất: theo dõi khối ngoại và tự doanh, lịch công bố thông tin, sức khỏe tài chính, và luôn tính đến T+2. |
-| **Cổ phiếu và quỹ ETF Mỹ** | `equity-us` | Sàng lọc 500 công ty Mỹ lớn nhất và một bảng quỹ, chấm đà giá và biến động bằng giá, giá trị và chất lượng bằng báo cáo tài chính của SEC (cần email liên hệ của bạn), và không gợi ý mua quỹ đòn bẩy hay quỹ đảo chiều. Đặt `region = "us"` và `currency = "USD"`, hoặc chọn Mỹ trong `onboard`. |
+| **Cổ phiếu và quỹ ETF Mỹ** | `equity-us` | Sàng lọc 500 công ty Mỹ lớn nhất và một bảng quỹ, chấm đà giá và biến động bằng giá, giá trị và chất lượng bằng báo cáo tài chính của SEC (cần email liên hệ của bạn), và không gợi ý mua quỹ đòn bẩy hay quỹ đảo chiều. Xếp hạng các ngành Mỹ so với SPY, và khi thị trường chính là Mỹ, bản tin sáng đến lúc 08:15 giờ New York kèm lịch công bố kết quả kinh doanh, giao dịch mua của người nội bộ và ngày giao dịch không hưởng cổ tức của các mã bạn nắm hoặc theo dõi. Đặt `region = "us"` và `currency = "USD"`, hoặc chọn Mỹ trong `onboard`. |
 | **Tiền mã hóa** | `crypto` | Chỉ giao ngay. Mua khi giá vượt đỉnh gần đây, cắt lỗ dời lên theo giá, đọc thêm dữ liệu phái sinh để biết thị trường đang dùng đòn bẩy nhiều hay ít. |
 | **Vàng trong nước** | `gold-vn` | So với giá thế giới để biết vàng thật sự tăng hay chỉ là tiệm nới chênh lệch. Tắt sẵn; bật bằng `/profile enable gold-vn`. |
 | **Vàng thế giới** | `gold` | Chỉ để tham chiếu: xem giá và làm mốc cho vàng trong nước. |
@@ -417,10 +419,10 @@ reward_risk = 3            # mục tiêu xa gấp 3 lần khoảng lỗ: lỗ 8%
 Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã thì ghi thêm tên thị trường: `/suggest crypto:UNI`.
 
 <p align="center">
-  <img src="assets/readme/sources.vi.png" alt="Nguồn dữ liệu chia theo từng thị trường: cổ phiếu Việt Nam, tiền mã hóa, vàng trong nước, vàng thế giới, vĩ mô Việt Nam, vĩ mô Mỹ và liên thị trường" width="100%" />
+  <img src="assets/readme/sources.vi.png" alt="Nguồn dữ liệu chia theo từng thị trường: cổ phiếu Việt Nam, cổ phiếu Mỹ, tiền mã hóa, vàng trong nước, vàng thế giới, vĩ mô Việt Nam, vĩ mô Mỹ và liên thị trường" width="100%" />
 </p>
 
-OpenAlpha lấy dữ liệu từ 37 nguồn, chia theo từng thị trường; nguồn nào lỗi thì nguồn dự phòng tự thay vào ([nguồn dữ liệu](docs/nguon-du-lieu.md)). Vài nguồn nhận thêm khóa miễn phí; nếu bạn theo dõi vàng hay vĩ mô Mỹ, nên lấy khóa ở [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html) rồi lưu bằng `openalpha key set FRED_API_KEY` để có chỉ số đô la và VIX ([chi tiết](docs/nguon-du-lieu.md#bạn-cần-làm-gì)). Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì phiên chạy tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo, Zalo cá nhân hoặc trang văn phòng.
+OpenAlpha lấy dữ liệu từ 39 nguồn, chia theo từng thị trường; nguồn nào lỗi thì nguồn dự phòng tự thay vào ([nguồn dữ liệu](docs/nguon-du-lieu.md)). Vài nguồn nhận thêm khóa miễn phí; nếu bạn theo dõi vàng hay vĩ mô Mỹ, nên lấy khóa ở [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html) rồi lưu bằng `openalpha key set FRED_API_KEY` để có chỉ số đô la và VIX ([chi tiết](docs/nguon-du-lieu.md#bạn-cần-làm-gì)). Với cổ phiếu Mỹ, lưu một email bạn có đọc bằng `openalpha key set SEC_CONTACT_EMAIL`: SEC yêu cầu mọi bên gọi dữ liệu phải ghi email liên hệ, và có email này thì mình mới chấm được giá trị, chất lượng, cùng lịch công bố kết quả kinh doanh và giao dịch mua của người nội bộ. Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì phiên chạy tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo, Zalo cá nhân hoặc trang văn phòng.
 
 ### Nghiên cứu có trích nguồn
 

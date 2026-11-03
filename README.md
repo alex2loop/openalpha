@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="README.vi.md">🇻🇳 Tiếng Việt</a></strong> &bull; <strong>🇬🇧 English</strong>
+  <strong>🇬🇧 English</strong> &bull; <strong><a href="README.vi.md">🇻🇳 Tiếng Việt</a></strong>
 </p>
 
 <p align="center">
@@ -31,6 +31,8 @@ It is an analysis aid, not investment advice. Suggestions can be wrong, and ever
 
 > [!TIP]
 > Your whole AI team works in a pixel office right in your browser. See who is doing what, click a person to hand them work, and glance at the market panel beside it. Open it with `openalpha web` · [see how](#the-office-page).
+>
+> US stocks and ETFs are in: the 500 largest US companies screened and scored, sectors ranked against SPY, and a morning brief at 08:15 New York time. Pick the United States in `onboard`, or add them to the book you already keep with `/profile enable equity-us` · [see what it covers](#markets-and-data).
 
 <p align="center">
   <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-support%20group-0068FF?style=for-the-badge" alt="Zalo support group" /></a><br/>
@@ -275,7 +277,7 @@ Connect Telegram or Zalo ([channels guide](docs/en/channels.md)). The first time
   New-Item -ItemType Directory -Force "$HOME\.openalpha" | Out-Null; irm https://raw.githubusercontent.com/alex2loop/openalpha/main/config.minimal.en.toml -OutFile "$HOME\.openalpha\config.toml"
   ```
 
-- **Trading US stocks?** Pick the United States when `onboard` asks which market you mainly trade, or take [config.minimal.us.toml](config.minimal.us.toml) in place of the file above. Only the file adds `[trading.venues.coinbase]`, which makes Coinbase lead crypto quotes; after `onboard` add it yourself ([Trading](docs/en/trading.md#us-stocks)). Start from a fresh data directory: the currency of the book is fixed once your profile is saved.
+- **Trading US stocks?** Pick the United States when `onboard` asks which market you mainly trade, or take [config.minimal.us.toml](config.minimal.us.toml) in place of the file above. Only the file adds `[trading.venues.coinbase]`, which makes Coinbase lead crypto quotes; after `onboard` add it yourself ([Trading](docs/en/trading.md#us-stocks)). Start from a fresh data directory: the currency of the book is fixed once your profile is saved. To add US stocks to a book you already keep, run `/profile enable equity-us` instead.
 - **Change the AI model:** run `openalpha onboard` and pick "AI model". `openalpha provider list` lists over 70 providers; `openalpha provider models` shows models and prices.
 - **Add a fallback model:** edit `[[models]]` in `config.toml`. The first entry is the main model; a later one is used only when the one before it fails or hangs:
 
@@ -347,7 +349,7 @@ The figures in this README only illustrate the syntax; they are not trade ideas.
   <img src="assets/readme/office.en.gif" alt="The OpenAlpha office page: a top-down pixel office with a data store, library, meeting room, lobby, alert desk and assistant room; the staff move as the daemon's real runs start and finish, a price tape scrolls across the top and a command box sits at the bottom" width="100%" />
 </p>
 
-The office page is a glass wall into the daemon: your assistant, the research crew and your own agents work in their rooms, and everything that moves is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. Beside it sit your portfolio, suggestions, chat and command box. The page never places an order and never starts an AI run by itself.
+The office page is a glass wall into the daemon: your assistant, the research crew and your own agents work in their rooms, and everything that moves is a real run, a real step or a real question waiting for you; nothing is scripted to look busy. Outside, the street follows your home market: Ho Chi Minh City, or Lower Manhattan with its yellow cabs and holidays for a US home. Beside it sit your portfolio, suggestions, chat and command box. The page never places an order and never starts an AI run by itself.
 
 Open it with `openalpha web` while the background service runs ([step 3](#quick-start) above). What the page shows, how to use it and how to reach it from another machine: [the office page](docs/en/operations.md#the-office-page) · [run the API on a server](docs/en/operations.md#run-the-api-on-a-server). The same API serves your own app too: see [Advanced](#advanced).
 
@@ -409,7 +411,7 @@ reward_risk = 3            # target 3x the risk: an 8% stop means a target near 
 | Market | Market id | What it brings |
 |---|---|---|
 | **VN equities** | `equity-vn` | The deepest: follows foreign and proprietary flow, the disclosure calendar and financial health, and always plans around T+2. |
-| **US stocks and ETFs** | `equity-us` | Screens the 500 largest US companies and a fund board, scores momentum and volatility from prices and value and quality from SEC accounts (with your contact email), and refuses to suggest buying leveraged or inverse funds. Set `region = "us"` and `currency = "USD"`, or pick the United States in `onboard`. |
+| **US stocks and ETFs** | `equity-us` | Screens the 500 largest US companies and a fund board, scores momentum and volatility from prices and value and quality from SEC accounts (with your contact email), and refuses to suggest buying leveraged or inverse funds. Ranks US sectors against SPY, and with a US home the morning brief lands at 08:15 New York time with the earnings releases, insider buys and ex-dividend dates of the names you hold or watch. Set `region = "us"` and `currency = "USD"`, or pick the United States in `onboard`. |
 | **Crypto** | `crypto` | Spot only. Buys when price clears its recent high, with a stop that moves up behind the price, and reads the futures market to show how much leverage traders are using. |
 | **VN gold** | `gold-vn` | Compared with the world price, so you can tell a real move from a shop widening its spread. Off by default; switch it on with `/profile enable gold-vn`. |
 | **World gold** | `gold` | Reference only: its price, and the yardstick for VN gold. |
@@ -417,10 +419,10 @@ reward_risk = 3            # target 3x the risk: an 8% stop means a target near 
 A bare ticker is usually enough (`/price FPT`). Qualify it only where two markets could claim the same name: `/suggest crypto:UNI`.
 
 <p align="center">
-  <img src="assets/readme/sources.en.png" alt="Data sources routed per market: VN equities, crypto, VN gold, world gold, VN macro, US macro and cross-market" width="100%" />
+  <img src="assets/readme/sources.en.png" alt="Data sources routed per market: VN equities, US equities, crypto, VN gold, world gold, VN macro, US macro and cross-market" width="100%" />
 </p>
 
-OpenAlpha routes 37 data sources per market; when one fails, a backup takes over by itself ([data sources](docs/en/data-sources.md)). A few sources take an extra free key; if you follow gold or US macro, get a key from the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html) and save it with `openalpha key set FRED_API_KEY` to get the dollar index and VIX ([details](docs/en/data-sources.md#what-you-need-to-do)). Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo, Zalo Personal or the office page.
+OpenAlpha routes 39 data sources per market; when one fails, a backup takes over by itself ([data sources](docs/en/data-sources.md)). A few sources take an extra free key; if you follow gold or US macro, get a key from the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html) and save it with `openalpha key set FRED_API_KEY` to get the dollar index and VIX ([details](docs/en/data-sources.md#what-you-need-to-do)). For US stocks, save any email you read with `openalpha key set SEC_CONTACT_EMAIL`: SEC asks every caller to name a contact, and it unlocks value and quality scores, earnings releases and insider buys. Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo, Zalo Personal or the office page.
 
 ### Research with receipts
 
