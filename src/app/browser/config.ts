@@ -94,20 +94,14 @@ export function resolveBrowserSearch(
   env: Readonly<Record<string, string | undefined>>
 ): ResolvedConfig['webSearch'] {
   const selected = readSearchSelection(env)
+  // No fallback is named: the resolver refuses one equal to the provider, and a research search
+  // that comes back empty is then reported empty instead of reaching a backend the page's
+  // connect-src does not allow.
   const raw = parseRawConfig({
     models: [],
     ...(selected === undefined
       ? {}
-      : {
-          // The fallback is the same backend, so an empty answer stays empty instead of reaching
-          // a backend the page's connect-src does not allow.
-          web_search: {
-            provider: selected.provider,
-            api_key_env: selected.variable,
-            fallback_provider: selected.provider,
-            fallback_api_key_env: selected.variable,
-          },
-        }),
+      : { web_search: { provider: selected.provider, api_key_env: selected.variable } }),
   })
 
   return resolveConfig(raw, { env, homeDir: HOME_DIR, dataDir: DATA_DIR }).webSearch
