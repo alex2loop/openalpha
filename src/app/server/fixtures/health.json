@@ -12,7 +12,7 @@
     "orders": false,
     "analysisOnly": false,
     "venues": true,
-    "channels": false,
+    "channels": true,
     "schedules": true,
     "agents": true,
     "chatgpt": true
