@@ -251,7 +251,21 @@ export function renderSourceLines(
   suggestion: StoredSuggestion,
   detail: SuggestionDetail = 'compact'
 ): readonly string[] {
-  const { citations } = suggestion
+  return renderCitationLines(locale, {
+    citations: suggestion.citations,
+    title: sourcesTitle(locale, suggestion),
+    detail,
+  })
+}
+
+interface CitationList {
+  readonly citations: readonly SuggestionCitation[]
+  readonly title: string
+  readonly detail: SuggestionDetail
+}
+
+export function renderCitationLines(locale: Locale, list: CitationList): readonly string[] {
+  const { citations, detail } = list
 
   if (citations.length === 0) {
     return []
@@ -261,7 +275,7 @@ export function renderSourceLines(
   const hiddenCount = citations.length - shown.length
 
   return [
-    renderSectionTitle(SECTION_ICONS.sources, sourcesTitle(locale, suggestion)),
+    renderSectionTitle(SECTION_ICONS.sources, list.title),
     ...shown.map((citation) => `${INDENT[1]}${renderCitation(locale, citation)}`),
     ...(hiddenCount > 0 ? [renderOverflowLine(locale, hiddenCount)] : []),
   ]

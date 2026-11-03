@@ -86,9 +86,15 @@ export function debatePlaybook(
   input: Pick<DebateInput, 'depth' | 'draft'>,
   manifest: MarketManifest
 ): readonly string[] {
-  const kind = input.draft.instrumentKind
-  const roles = DEBATE_MODE_ROLES[input.depth.mode]
+  return playbookOf(DEBATE_MODE_ROLES[input.depth.mode], manifest, input.draft.instrumentKind)
+}
 
+/** The skills a set of roles read between them, sorted, for whichever run recorded them. */
+export function playbookOf(
+  roles: readonly DebateRole[],
+  manifest: MarketManifest,
+  kind: InstrumentKind | undefined
+): readonly string[] {
   return [...new Set(roles.flatMap((role) => rolePlaybook(role, manifest, kind)))].sort()
 }
 

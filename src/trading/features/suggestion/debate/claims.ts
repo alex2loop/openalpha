@@ -35,7 +35,7 @@ export function claimsOf(role: ArguingRole, source: ResearchCase): readonly Deba
 }
 
 /** Whether the role minted this claim, read back off the id the way `claimsOf` wrote it. */
-function isClaimBy(role: ArguingRole, claim: { readonly id: string }): boolean {
+export function isClaimBy(role: ArguingRole, claim: { readonly id: string }): boolean {
   return claim.id.startsWith(`${CLAIM_PREFIXES[role]}-`)
 }
 

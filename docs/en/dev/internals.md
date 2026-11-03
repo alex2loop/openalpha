@@ -242,7 +242,9 @@ flight map and waits on it, and the starter alone is billed.
 Trading adds the debate personas (`bull-researcher`, `bear-researcher`, `portfolio-manager`, `trader`,
 `risk-analyst`, `claim-verifier`, `market-analyst`), scheduled by the suggestion pipeline and not
 user-selectable, plus `theme-analyst`, run by `/themes`. User and plugin agents cannot replace protected
-ids.
+ids. An analysis-only run (the web edition's `/suggest`) reuses two of those waves, the bull and bear
+cases and the claim check, over evidence built without a drafted decision, and stores a separate
+analysis record; it is not a debate mode, so no option list or config key offers it.
 
 A [team](../agents.md#teams-and-delegation) is derived from config: an orchestrator with a `delegates`
 roster using `delegate` or `delegate_parallel`. There is no stored Team entity. A child run inherits the

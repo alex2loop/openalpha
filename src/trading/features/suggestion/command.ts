@@ -8,7 +8,7 @@ import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { RenderView } from '@/trading/features/suggestion/render/view'
 import type { SuggestionReportDeps } from '@/trading/features/suggestion/report'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
-import type { SuggestionRunResult } from '@/trading/features/suggestion/types'
+import type { SuggestionRequest, SuggestionRunResult } from '@/trading/features/suggestion/types'
 import type { DebateMode } from '@/trading/kernel/config'
 import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
@@ -44,7 +44,13 @@ interface StopsCoverage {
   }): Promise<readonly InstrumentRef[]>
 }
 
+/** What one parsed `/suggest <name>` does and says. Absent, the command runs the full pipeline and
+ *  prints the suggestion. An edition that may only analyse binds its own: the line is parsed the
+ *  same way either side of it, and `/suggest stops` is not part of it. */
+type SuggestRunner = (request: SuggestionRequest, ctx: SlashContext) => Promise<SlashResult>
+
 interface SuggestCommandDeps extends SuggestionReportDeps {
+  readonly run?: SuggestRunner
   readonly suggestions: Pick<
     SuggestionService,
     'run' | 'runBatch' | 'summarize' | 'listResolved' | 'get'
@@ -104,7 +110,7 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
     return suggestUsage(deps)
   }
 
-  const result = await deps.suggestions.run({
+  const suggestion: SuggestionRequest = {
     locale: ctx.locale,
     channel: ctx.channel,
     billingSessionId: ctx.sessionId,
@@ -116,9 +122,13 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
     now: Date.now(),
     signal: ctx.signal,
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),
-  })
+  }
 
-  return renderRun(deps, ctx, { result, mode })
+  if (deps.run !== undefined) {
+    return deps.run(suggestion, ctx)
+  }
+
+  return renderRun(deps, ctx, { result: await deps.suggestions.run(suggestion), mode })
 }
 
 function suggestUsage(deps: SuggestCommandDeps): SlashResult {

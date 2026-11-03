@@ -5,6 +5,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
 import type { Hooks } from '@/engine/api'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { DebateDeps } from '@/trading/features/suggestion/debate/call'
 import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
 import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { TradingConfig } from '@/trading/kernel/config'
@@ -318,6 +319,18 @@ function buildServices(
   parts: ServiceParts
 ): ReturnType<typeof createDomainServices> & WithThemes {
   const { logger, registries, stores } = parts
+  const debate: DebateDeps = {
+    runner: { run: (input, runOptions) => app.resolve('runner').run(input, runOptions) },
+    logger,
+    maximumTurnsPerRole: app.config.loop.maxTurns,
+    markets: registries.markets,
+    // An absent `decisions` tier turns the headline read off rather than binding a dead chain.
+    decisionsChain: app.resolve('llmChains').findTier(DECISIONS_MODEL_TIER),
+    recordAttempt: app.resolve('attemptRecorder'),
+    onRoleOutput: options.onRoleOutput,
+    store: stores.suggestion,
+    playbooks: toPlaybookLibrary(TRADING_SKILLS),
+  }
   const domain = createDomainServices({
     ...registries,
     stores,
@@ -331,18 +344,8 @@ function buildServices(
     config: options.tradingConfig,
     // Composed here rather than passed in: the debate reads the closed market registry, which does
     // not exist until this function has built it.
-    runDebate: createRunDebate({
-      runner: { run: (input, runOptions) => app.resolve('runner').run(input, runOptions) },
-      logger,
-      maximumTurnsPerRole: app.config.loop.maxTurns,
-      markets: registries.markets,
-      // An absent `decisions` tier turns the headline read off rather than binding a dead chain.
-      decisionsChain: app.resolve('llmChains').findTier(DECISIONS_MODEL_TIER),
-      recordAttempt: app.resolve('attemptRecorder'),
-      onRoleOutput: options.onRoleOutput,
-      store: stores.suggestion,
-      playbooks: toPlaybookLibrary(TRADING_SKILLS),
-    }),
+    runDebate: createRunDebate(debate),
+    debate,
     createSuggestionBudget: () => parts.createSuggestionBudget(),
     defaultLocale: app.config.locale.language,
     skillVersions: skillVersions(),

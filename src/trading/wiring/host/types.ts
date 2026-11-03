@@ -19,6 +19,7 @@ import type { NavHistory, NavWindow } from '@/trading/features/portfolio/nav/typ
 import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
 import type { VenueChoice } from '@/trading/features/portfolio/venues'
 import type { WatchlistResult } from '@/trading/features/profile/types'
+import type { AnalysisId, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { SuggestionCard } from '@/trading/features/suggestion/render/card'
 import type { AgentFocusRef } from '@/trading/features/suggestion/track-record/agent-record'
 import type {
@@ -180,6 +181,13 @@ interface TradingSuggestionsRequest {
   readonly focusKey?: string
   readonly instrument?: InstrumentRef
   readonly cursor?: SuggestionId
+  readonly limit: number
+  readonly signal: AbortSignal
+}
+
+interface TradingAnalysesRequest {
+  readonly instrument?: InstrumentRef
+  readonly cursor?: AnalysisId
   readonly limit: number
   readonly signal: AbortSignal
 }
@@ -356,6 +364,8 @@ export interface TradingHost {
   /** The decision card for one stored suggestion, in the operator's language; `null` for an id the
    *  store does not hold. */
   getSuggestionCard(request: TradingSuggestionRequest): Promise<SuggestionCard | null>
+  /** What analysis-only runs stored, newest first. */
+  listAnalyses(request: TradingAnalysesRequest): Promise<Page<AnalysisRecord, AnalysisId>>
   /** One stored suggestion as it was written; `null` for an id the store does not hold. */
   getSuggestion(request: TradingSuggestionRequest): Promise<StoredSuggestion | null>
   getTrackRecord(request: TradingTrackRecordRequest): Promise<TradingTrackRecordView>

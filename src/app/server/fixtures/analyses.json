@@ -1,0 +1,42 @@
+{
+  "analyses": [
+    {
+      "id": "0197c3a8-5d10-7a4e-9b2f-3c6d1e8f4a07",
+      "instrument": { "market": "equity-vn", "ticker": "FPT" },
+      "at": "2026-11-03",
+      "evidenceThrough": "2026-11-03",
+      "authoredLocale": "vi",
+      "createdAt": 1793590800000,
+      "bull": {
+        "stance": "bullish",
+        "summary": "Lợi nhuận quý gần nhất tăng đều và dòng tiền ngoại đang quay lại.",
+        "claims": ["Lợi nhuận sau thuế quý 3 tăng so với cùng kỳ."],
+        "invalidators": ["Lợi nhuận quý tới giảm so với cùng kỳ."],
+        "citations": []
+      },
+      "bear": {
+        "stance": "bearish",
+        "summary": "Định giá đã cao hơn mức trung bình của chính cổ phiếu.",
+        "claims": ["Hệ số P/E cao hơn trung bình năm năm."],
+        "invalidators": ["Hệ số P/E về dưới trung bình năm năm."],
+        "citations": []
+      },
+      "claims": [
+        {
+          "id": "bull-1",
+          "text": "Lợi nhuận sau thuế quý 3 tăng so với cùng kỳ.",
+          "verdict": "supported"
+        },
+        {
+          "id": "bear-1",
+          "text": "Hệ số P/E cao hơn trung bình năm năm.",
+          "verdict": "insufficient"
+        }
+      ],
+      "citations": [],
+      "caveats": [],
+      "models": ["openai/gpt-6-luna"]
+    }
+  ],
+  "nextCursor": "0197c3a8-5d10-7a4e-9b2f-3c6d1e8f4a06"
+}

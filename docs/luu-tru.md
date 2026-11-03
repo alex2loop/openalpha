@@ -63,7 +63,7 @@ Phần giao dịch có các bảng riêng: `instruments`, `daily_bars`, `fundame
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,
 `funding_snapshots`, `fx_rates`, `macro_snapshots`, `series_points`, `series_provenance`,
 `macro_documents`, `news_items`, `market_refresh_attempts`, `ledger_entries`, `nav_snapshots`,
-`trading_profiles`, `suggestions`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
+`trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
 `theme_reads`, `theme_outcomes` và `agent_focuses`.
 
@@ -100,6 +100,12 @@ không cho điều đó xảy ra.
   lệnh mỗi sàn.
 
 `first_missed_at` là lúc sàn bắt đầu báo không có lệnh đó. Cột này được xóa ngay khi sàn trả lời lại.
+
+**Phân tích.** `suggestion_analyses` giữ những gì một lần chạy chỉ-phân-tích đã đọc và lập luận: bên tăng, bên
+giảm và các luận điểm mà dữ liệu đã đối chiếu. Bảng tách khỏi `suggestions` vì nó không nêu kết luận, khối
+lượng, giá vào, cắt lỗ hay mục tiêu nên không bao giờ được chấm điểm. Bảng này bền, vì một nhận định là câu
+trả lời của mô hình trên một gói bằng chứng không thể dựng lại. `/suggest` của bản cài trên máy không ghi
+dòng nào; các dòng đến từ cơ sở dữ liệu khôi phục từ bản web và được `GET /v1/analyses` liệt kê.
 
 **Chủ đề.** Các bảng này phục vụ `/themes`, và đều bền. Một nhận định là câu trả lời của mô hình trên một
 gói bằng chứng, và không thể dựng lại.

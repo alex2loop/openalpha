@@ -5,10 +5,9 @@ import type { AttemptRecorder } from '@/engine/api'
 import type { HeadlinesRead } from '@/trading/features/suggestion/citation'
 import type { HeadlineReads } from '@/trading/features/suggestion/pipeline/headline-reads'
 import type { DebateInput } from '@/trading/features/suggestion/pipeline/types'
-import type { SuggestionDirection } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { FactorResult, FactorScore, TradeLevels } from '@/trading/kernel/factor'
-import type { PriceDisplay, Ticker } from '@/trading/kernel/instrument'
+import type { FactorResult } from '@/trading/kernel/factor'
+import type { InstrumentRef, PriceDisplay, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { AccountsHistory } from '@/trading/kernel/market/annual-accounts'
 import type { AnalystRecommendation, NewsItem } from '@/trading/kernel/market/market-data'
 import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
@@ -17,6 +16,11 @@ import type { Market } from '@/trading/markets/types'
 import { t } from '@/i18n'
 import { bankedShareOf } from '@/trading/features/suggestion/exit-plan/first-exit'
 import { accountsSection } from '@/trading/features/suggestion/pipeline/accounts-evidence'
+import {
+  adjudicationSection,
+  decisionLine,
+  levelSection,
+} from '@/trading/features/suggestion/pipeline/decision-evidence'
 import { readHeadlines } from '@/trading/features/suggestion/pipeline/headline-reads'
 import {
   type PromptMetricInput,
@@ -34,41 +38,12 @@ import {
 import { portfolioSection } from '@/trading/features/suggestion/pipeline/portfolio-evidence'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
-import { promptWholePercent } from '@/trading/prompt-text'
 import { renderDeclaredValue, renderProvidedValue, renderScoreBand } from '@/trading/render/format'
-import { formatPrice } from '@/trading/render/money'
 
 /** An event that moves no price, told as such: a bare ex-date reads as a reset worth waiting out. */
 const EVENT_NOTES: Partial<Record<MarketEventKind, string>> = Object.freeze({
   'meeting-ex-date': 'no price adjustment: it carries only the right to attend the meeting',
 })
-
-interface DecisionFraming {
-  readonly question: string
-  readonly entry: string
-  readonly stop: string
-  readonly target: string
-}
-
-/** What the run is deciding, and what each level is for once it has been decided. `buildRoundedLevels`
- *  mirrors the triple on a reduce — stop above entry, target below — so the two sides need different
- *  words for the same three fields. Keyed on `framedDirectionOf`, the same function the research
- *  sides are framed by, so the levels and the cases can never describe opposite trades. */
-const FRAMINGS = Object.freeze({
-  buy: {
-    question: 'whether to buy this name.',
-    entry: 'where the buy goes on',
-    stop: 'below entry: where the idea is wrong and the position closes',
-    target: 'above entry: where the idea has paid off',
-  },
-  reduce: {
-    question:
-      'whether to sell down a position the operator already holds. Every level below prices that sale, so "entry" means entering the sale, and the triple is the mirror of a buy: a stop above entry is correct here, not an error.',
-    entry: 'where the sale goes on',
-    stop: 'above entry: where selling proves to have been the wrong call',
-    target: 'below entry: where the sale has paid off',
-  },
-} as const satisfies Record<SuggestionDirection, DecisionFraming>)
 
 const MAXIMUM_INSTRUMENT_NAME_CHARS = 120
 const WHITESPACE_RE = /\s+/g
@@ -76,8 +51,8 @@ const WHITESPACE_RE = /\s+/g
 const EVENTS_UNAVAILABLE =
   'UPCOMING EVENTS: unavailable - the corporate calendar failed this run; never assume nothing is scheduled.'
 
-const RUNNER_TARGET =
-  'above entry: the far level the reward is measured to, which few entries reach; nothing is sold there'
+const FACTORS_HEADING =
+  'FACTORS (each band is the verdict for BUYING, not the level of the thing named - a bearish band on a factor whose name is a quantity means that quantity argues against the buy; an abstained factor is not a zero). A price level is printed with how far the current price sits from it; a window in sessions is a span, never a price:'
 
 /** Enough to tell two multiples apart, few enough that no persona reads spurious precision. A
  *  count and a đồng figure carry none, and a rank carries none it earned. Prices ignore this and
@@ -109,6 +84,46 @@ interface EvidenceBundleOptions {
   readonly logger: Logger
 }
 
+/** What the evidence is read about, and nothing a drafted decision adds. The debate fills it from its
+ *  draft; the analysis has no draft, so it states each of these itself. */
+export interface CaseSubject
+  extends Pick<
+    DebateInput,
+    'request' | 'factors' | 'name' | 'sector' | 'upcomingEvents' | 'recentEvents' | 'calendarFailed'
+  > {
+  readonly instrument: InstrumentRef
+  /** The day every source is asked as of. */
+  readonly asOf: TradingDay
+  /** The newest settled session the readings stand on; absent reads as `asOf`. */
+  readonly evidenceThrough?: TradingDay
+  readonly indexTier?: string
+  /** The price a factor's price level is stated against. Absent prints the bare level. */
+  readonly referencePrice?: number
+  /** What the factor rows are said to mean, which the question being argued decides. */
+  readonly factorsHeading: string
+}
+
+/** Every section a case reads, in the order they print. The debate slots its own sections between
+ *  the groups, so they travel apart and `caseText` is the one place that joins them alone. */
+export interface CaseEvidence {
+  readonly instrument: string
+  /** The measured readings: factors, then annual accounts. */
+  readonly readings: readonly string[]
+  /** What was reported: events, filings, headlines, analyst coverage. */
+  readonly reports: readonly string[]
+  readonly sources: ReadonlyMap<string, NewsItem>
+  readonly headlinesRead: HeadlinesRead
+  readonly caveats: readonly Caveat[]
+}
+
+interface CaseEvidenceOptions {
+  readonly market: Market
+  readonly subject: CaseSubject
+  readonly decisionsChain?: ProviderChain
+  readonly recordAttempt: AttemptRecorder
+  readonly logger: Logger
+}
+
 interface EvidenceReads {
   readonly news: SourceResult<readonly NewsItem[]> | undefined
   readonly marketNews: SourceResult<readonly NewsItem[]> | undefined
@@ -124,19 +139,69 @@ interface InstrumentFacts {
 
 export async function buildEvidenceBundle(options: EvidenceBundleOptions): Promise<EvidenceBundle> {
   const { market, input } = options
-  const { instrument } = input.draft
-  const now = input.request.now
-  const signal = input.request.signal
-  const reads = await readEvidenceSources(market, input)
+  const { draft } = input
+  const evidence = await buildCaseEvidence({
+    market,
+    subject: caseSubjectOf(input),
+    ...(options.decisionsChain === undefined ? {} : { decisionsChain: options.decisionsChain }),
+    recordAttempt: options.recordAttempt,
+    logger: options.logger,
+  })
+  const levels = levelSection({
+    levels: input.proposedLevels,
+    direction: framedDirectionOf(draft),
+    banked: bankedShareOf(draft, market.trail !== undefined),
+    locale: input.request.locale,
+    display: market.manifest.priceDisplay,
+  })
+
+  return {
+    caveats: evidence.caveats,
+    sources: evidence.sources,
+    headlinesRead: evidence.headlinesRead,
+    adjudication: adjudicationSection(input),
+    portfolio: portfolioSection(input.exposure),
+    text: joinSections([
+      `${evidence.instrument}\n${decisionLine(draft)}`,
+      ...evidence.readings,
+      levels,
+      ...evidence.reports,
+    ]),
+  }
+}
+
+/** The debate's reference is the price the draft was made at: the live quote, else its entry. */
+function caseSubjectOf(input: DebateInput): CaseSubject {
+  const { draft } = input
+  const referencePrice = draft.quote?.price ?? draft.entry
+
+  return {
+    ...input,
+    instrument: draft.instrument,
+    asOf: draft.at,
+    factorsHeading: FACTORS_HEADING,
+    ...(draft.evidenceThrough === undefined ? {} : { evidenceThrough: draft.evidenceThrough }),
+    ...(draft.indexTier === undefined ? {} : { indexTier: draft.indexTier }),
+    ...(referencePrice === undefined ? {} : { referencePrice }),
+  }
+}
+
+/** Everything the personas read about one instrument that does not depend on a decision having been
+ *  drafted. */
+export async function buildCaseEvidence(options: CaseEvidenceOptions): Promise<CaseEvidence> {
+  const { market, subject } = options
+  const { instrument } = subject
+  const { now, signal } = subject.request
+  const reads = await readEvidenceSources(market, subject)
   const { news, marketNews, recommendations, accounts } = reads
   const ownRanked = headlines(news, now)
-  const facts = instrumentFactsOf(input)
+  const facts = instrumentFactsOf(subject)
   const read = await readHeadlines({
     ...facts,
     ...(options.decisionsChain === undefined ? {} : { chain: options.decisionsChain }),
     recordAttempt: options.recordAttempt,
     logger: options.logger,
-    request: input.request,
+    request: subject.request,
     instrument,
     assetClass: market.manifest.assetClass,
     own: ownRanked,
@@ -154,16 +219,30 @@ export async function buildEvidenceBundle(options: EvidenceBundleOptions): Promi
     ]),
     sources: new Map([...read.own, ...read.market].map((item) => [item.url, item])),
     headlinesRead: { own: read.own.length, market: read.market.length, costUsd: read.costUsd },
-    adjudication: adjudicationSection(input),
-    portfolio: portfolioSection(input.exposure),
-    text: evidenceText(input, market, { read, reads, facts }),
+    instrument: instrumentSection(subject, facts),
+    readings: [
+      factorSection(subject, market.manifest.priceDisplay),
+      accountsSection(reads.accounts, {
+        locale: subject.request.locale,
+        currency: market.manifest.currency,
+      }),
+    ],
+    reports: reportSections(subject, market, { read, reads }),
   }
 }
 
-function readEvidenceSources(market: Market, input: DebateInput): Promise<EvidenceReads> {
-  const { instrument } = input.draft
-  const { now, signal } = input.request
-  const asOf = input.draft.at
+/** The shared sections alone, as an analysis reads them. */
+export function caseText(evidence: CaseEvidence): string {
+  return joinSections([evidence.instrument, ...evidence.readings, ...evidence.reports])
+}
+
+function joinSections(sections: readonly string[]): string {
+  return sections.filter((section) => section.length > 0).join('\n\n')
+}
+
+function readEvidenceSources(market: Market, subject: CaseSubject): Promise<EvidenceReads> {
+  const { instrument, asOf } = subject
+  const { now, signal } = subject.request
 
   return Promise.all([
     market.capabilities.news?.run({
@@ -184,49 +263,36 @@ function readEvidenceSources(market: Market, input: DebateInput): Promise<Eviden
   }))
 }
 
-interface EvidenceSections {
+interface ReportReads {
   readonly read: HeadlineReads
   readonly reads: EvidenceReads
-  readonly facts: InstrumentFacts
 }
 
-function evidenceText(input: DebateInput, market: Market, sections: EvidenceSections): string {
+function reportSections(
+  subject: CaseSubject,
+  market: Market,
+  { read, reads }: ReportReads
+): readonly string[] {
   const display = market.manifest.priceDisplay
-  const { reads } = sections
   const consensus = reads.recommendations?.kind === 'available' ? reads.recommendations.value : []
 
   return [
-    instrumentSection(input, sections.facts),
-    factorSection(input, display),
-    accountsSection(reads.accounts, {
-      locale: input.request.locale,
-      currency: market.manifest.currency,
-    }),
-    levelSection({
-      levels: input.proposedLevels,
-      direction: framedDirectionOf(input.draft),
-      banked: bankedShareOf(input.draft, market.trail !== undefined),
-      locale: input.request.locale,
-      display,
-    }),
-    eventsSection(input),
-    recentEventsSection(input),
-    newsSection(sections.read.own, reads.news, market.manifest.calendar),
+    eventsSection(subject),
+    recentEventsSection(subject),
+    newsSection(read.own, reads.news, market.manifest.calendar),
     marketNewsSection({
-      items: sections.read.market,
-      subject: input.draft.instrument.ticker,
+      items: read.market,
+      subject: subject.instrument.ticker,
       read: reads.marketNews,
       calendar: market.manifest.calendar,
     }),
     consensusSection({
       rows: consensus,
-      locale: input.request.locale,
+      locale: subject.request.locale,
       display,
       read: reads.recommendations,
     }),
   ]
-    .filter((section) => section.length > 0)
-    .join('\n\n')
 }
 
 /** These sections are optional narrative, so a provider that answered with nothing is a fact about
@@ -251,9 +317,9 @@ function instrumentName(name: string | undefined, ticker: Ticker): string | unde
     : line
 }
 
-function instrumentFactsOf(input: DebateInput): InstrumentFacts {
-  const name = instrumentName(input.name, input.draft.instrument.ticker)
-  const { sector } = input
+function instrumentFactsOf(subject: CaseSubject): InstrumentFacts {
+  const name = instrumentName(subject.name, subject.instrument.ticker)
+  const { sector } = subject
 
   return {
     ...(name === undefined ? {} : { name }),
@@ -261,7 +327,7 @@ function instrumentFactsOf(input: DebateInput): InstrumentFacts {
       ? {}
       : {
           sectorLabel: renderProvidedValue(
-            input.request.locale,
+            subject.request.locale,
             `trading.sector.${sector}`,
             sector
           ),
@@ -269,36 +335,34 @@ function instrumentFactsOf(input: DebateInput): InstrumentFacts {
   }
 }
 
-function instrumentSection(input: DebateInput, facts: InstrumentFacts): string {
-  const { locale } = input.request
-  const { ticker, market } = input.draft.instrument
-  const tier = input.draft.indexTier
+function instrumentSection(subject: CaseSubject, facts: InstrumentFacts): string {
+  const { locale } = subject.request
+  const { ticker, market } = subject.instrument
+  const tier = subject.indexTier
   const basket = tier === undefined ? '' : ` (${tier} constituent)`
   const marketLabel = renderDeclaredValue(locale, `trading.market.${market}`)
-  const subject = [ticker, facts.name, facts.sectorLabel, `on ${marketLabel}${basket}`]
+  const label = [ticker, facts.name, facts.sectorLabel, `on ${marketLabel}${basket}`]
     .filter((part) => part !== undefined)
     .join(' - ')
 
   return [
-    `INSTRUMENT: ${subject}`,
+    `INSTRUMENT: ${label}`,
     'Every claim is about this instrument; never substitute another company, coin, or ticker.',
-    `AS OF: ${input.draft.evidenceThrough ?? input.draft.at}`,
-    `DECISION: ${FRAMINGS[framedDirectionOf(input.draft)].question}`,
+    `AS OF: ${subject.evidenceThrough ?? subject.asOf}`,
   ].join('\n')
 }
 
-function factorSection(input: DebateInput, display: PriceDisplay | undefined): string {
-  const { factors, request, draft } = input
+function factorSection(subject: CaseSubject, display: PriceDisplay | undefined): string {
+  const { factors, request, referencePrice } = subject
 
   if (factors.results.length === 0) {
     return ''
   }
 
-  const referencePrice = draft.quote?.price ?? draft.entry
   const context: FactorRowContext = { locale: request.locale, display, referencePrice }
 
   return [
-    'FACTORS (each band is the verdict for BUYING, not the level of the thing named - a bearish band on a factor whose name is a quantity means that quantity argues against the buy; an abstained factor is not a zero). A price level is printed with how far the current price sits from it; a window in sessions is a span, never a price:',
+    subject.factorsHeading,
     ...factors.results.map((factor) => factorRow(factor, context)),
   ].join('\n')
 }
@@ -314,7 +378,7 @@ interface FactorRowContext {
  *  the id itself into its prose. No role output references one, so nothing downstream reads it.
  *
  *  The measured quantities go through the surface's own renderer, so a value the persona republishes
- *  cannot be scaled differently from the one the operator reads. Unlike the composite score below,
+ *  cannot be scaled differently from the one the operator reads. Unlike the deterministic conviction,
  *  they are inputs rather than a verdict: a persona arguing from the multiple is arguing from
  *  evidence the reader can check, not talking the system's own conclusion upward. */
 function factorRow(factor: FactorResult, context: FactorRowContext): string {
@@ -339,79 +403,13 @@ function factorRow(factor: FactorResult, context: FactorRowContext): string {
     : `- ${label}: ${band} (measured: ${measured})`
 }
 
-function adjudicationSection(input: DebateInput): string {
-  const conviction = `DETERMINISTIC CONVICTION: ${input.draft.conviction}`
-
-  return [conviction, confidenceRow(input.factors)].join('\n')
-}
-
-/** Stated against the market's floors, not as numbers: the conviction already drops a band for a
- *  shortfall, and a bare ratio below one invites a role to cut it again. */
-function confidenceRow(factors: FactorScore): string {
-  return factors.coverageBelowMinimum || factors.agreementBelowMinimum
-    ? 'CONFIDENCE: the factors cover too little of the model or disagree too much, and the conviction above is already one band lower for it. Do not lower it again for this.'
-    : 'CONFIDENCE: the factors cover enough of the model and agree enough for this market. That is already in the conviction above, so it is no reason to raise or lower it.'
-}
-
-interface LevelSectionInput {
-  readonly levels: TradeLevels | undefined
-  readonly direction: SuggestionDirection
-  /** The share sold at the take-profit; below one, the rest rides the trail with no fixed exit. */
-  readonly banked: number
-  readonly locale: Locale
-  readonly display: PriceDisplay | undefined
-}
-
-/** The levels are stated as fixed. A persona reasons about timing and conditions around them; it
- *  cannot move them, and its schema has nowhere to return one. Each one says what it is for on the
- *  framed side, because the triple alone is ambiguous: a sale's stop sits above its entry, and a
- *  role reading the bare field names against the buy convention reports the plan as inverted. */
-function levelSection(input: LevelSectionInput): string {
-  const { levels, locale, display } = input
-
-  if (levels === undefined) {
-    return 'LEVELS: unavailable — no entry, stop, or target has been computed.'
-  }
-
-  const { banked } = input
-  const framing = FRAMINGS[input.direction]
-  const runner = banked < 1
-
-  return [
-    'LEVELS (fixed, computed deterministically — quote them as they stand, never alter them):',
-    `- entry ${formatPrice(locale, levels.entry, display)} — ${entryPurpose(levels, framing)}`,
-    `- stop ${formatPrice(locale, levels.stop, display)} — ${framing.stop}`,
-    ...(runner
-      ? [
-          `- take-profit ${formatPrice(locale, levels.takeProfit, display)} — ${promptWholePercent(banked)} of the position is sold here; the rest has no fixed exit and rides a rising stop`,
-        ]
-      : []),
-    `- target ${formatPrice(locale, levels.target, display)} — ${runner ? RUNNER_TARGET : framing.target}`,
-  ].join('\n')
-}
-
-/** A resting entry is said to be one, or every role reads the limit as the price trading now. */
-function entryPurpose(levels: TradeLevels, framing: DecisionFraming): string {
-  const { resting } = levels
-
-  if (resting === undefined) {
-    return framing.entry
-  }
-
-  return (
-    `a buy limit resting below the live price for ${resting.validSessions} sessions, because ` +
-    `the name ran ${promptWholePercent(resting.run)} over its last ${resting.runSessions}; ` +
-    'it fills only on a dip to it'
-  )
-}
-
 /** Dated facts, not forecasts: a persona weighs when the tape resets, it does not guess the size of
  *  the dividend or the market's reaction to it. */
-function eventsSection(input: DebateInput): string {
-  const events = input.upcomingEvents ?? []
+function eventsSection(subject: CaseSubject): string {
+  const events = subject.upcomingEvents ?? []
 
   if (events.length === 0) {
-    return input.calendarFailed === true ? EVENTS_UNAVAILABLE : ''
+    return subject.calendarFailed === true ? EVENTS_UNAVAILABLE : ''
   }
 
   return [
@@ -422,8 +420,8 @@ function eventsSection(input: DebateInput): string {
 
 /** Already public: a persona may weigh that a release landed or an insider bought, and may not
  *  read an outcome into it that the row does not state. */
-function recentEventsSection(input: DebateInput): string {
-  const events = input.recentEvents ?? []
+function recentEventsSection(subject: CaseSubject): string {
+  const events = subject.recentEvents ?? []
 
   if (events.length === 0) {
     return ''

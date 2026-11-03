@@ -93,6 +93,13 @@ export type {
   ValuedPosition,
 } from '@/trading/features/portfolio/types'
 export type { VenueChoice } from '@/trading/features/portfolio/venues'
+export type { AnalysisService } from '@/trading/features/suggestion/analysis/run'
+export type {
+  AnalysisFailure,
+  AnalysisId,
+  AnalysisRecord,
+  AnalysisRequest,
+} from '@/trading/features/suggestion/analysis/types'
 export type {
   RoleOutput,
   RoleOutputListener,
@@ -197,6 +204,9 @@ export {
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
 export { ORDER_TOOL_NAME, TRADE_COMMAND_NAME } from '@/trading/features/order/types'
+export { renderAnalysisText } from '@/trading/features/suggestion/analysis/render'
+export { createAnalysisService } from '@/trading/features/suggestion/analysis/run'
+export { AnalysisError, analysisId } from '@/trading/features/suggestion/analysis/types'
 export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
 export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/render/debate-view'
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'

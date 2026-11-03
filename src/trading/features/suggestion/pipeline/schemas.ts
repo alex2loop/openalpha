@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { SuggestionCitation } from '@/trading/features/suggestion/citation'
 import type {
+  AnalysisCase,
   AnalystCase,
   ClaimVerification,
   ResearchCase,
@@ -33,7 +34,7 @@ export const MAXIMUM_INVALIDATORS = 4
 /** A reviewing role is handed every researcher's list at once, so its selection is bounded by the
  *  sum, not by one role's cap. The verifier must return a verdict per claim, so a tighter bound
  *  would make obeying its own instruction a schema violation. */
-const MAXIMUM_REVIEWED_CLAIMS = MAXIMUM_CLAIMS * 2
+export const MAXIMUM_REVIEWED_CLAIMS = MAXIMUM_CLAIMS * 2
 /** The verifier is handed the prior call's conditions beside the claims and told to verdict every
  *  one of them, so its answer is bounded by both caps. Sized on the claims alone, a correct answer
  *  on a name with a previous thesis overran the schema — and the repair re-ask could not clear it,
@@ -83,6 +84,18 @@ export const BULL_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
   stance: z.enum(['bullish', 'neutral']),
 })
 export const BEAR_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
+  stance: z.enum(['bearish', 'neutral']),
+})
+
+/** The analysis has no manager and no later run to check it, so each side states for itself what
+ *  would make its case wrong: the reader is the only one left to watch for it. */
+const ANALYSIS_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
+  invalidators: z.array(claimText).max(MAXIMUM_INVALIDATORS),
+})
+export const BULL_ANALYSIS_SCHEMA = ANALYSIS_CASE_SCHEMA.extend({
+  stance: z.enum(['bullish', 'neutral']),
+})
+export const BEAR_ANALYSIS_SCHEMA = ANALYSIS_CASE_SCHEMA.extend({
   stance: z.enum(['bearish', 'neutral']),
 })
 
@@ -155,6 +168,10 @@ function toCitation(raw: z.infer<typeof CITATION_SCHEMA>): SuggestionCitation {
 }
 
 export function toResearchCase(raw: z.infer<typeof RESEARCH_CASE_SCHEMA>): ResearchCase {
+  return { ...raw, citations: raw.citations.map(toCitation) }
+}
+
+export function toAnalysisCase(raw: z.infer<typeof ANALYSIS_CASE_SCHEMA>): AnalysisCase {
   return { ...raw, citations: raw.citations.map(toCitation) }
 }
 
