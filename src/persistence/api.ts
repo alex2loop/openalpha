@@ -36,7 +36,14 @@ export type {
   StoredSessionMessage,
   TranscriptMessage,
 } from '@/persistence/types'
-export { SchemaAheadError } from '@/persistence/errors'
+export { sqliteDialect } from '@/persistence/engines/sqlite-dialect'
+export {
+  DB_LOCK_NAME,
+  type OpenSqliteWasmResult,
+  openSqliteWasm,
+  type SqliteWasmOptions,
+} from '@/persistence/engines/sqlite-wasm'
+export { SchemaAheadError, StorageFullError } from '@/persistence/errors'
 export { MIGRATIONS } from '@/persistence/migrations/registry.generated'
 export {
   hasTable,

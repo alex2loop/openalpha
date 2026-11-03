@@ -1,9 +1,42 @@
 import { AppError, StorageError } from '@/core/errors'
 
+const SQLITE_FULL = 13
+const QUOTA_EXCEEDED = 'QuotaExceededError'
+const CAUSE_DEPTH = 3
+
+/** The disk or the browser's storage quota has no room left: a caller stops writing and tells
+ *  the operator instead of retrying. */
+export class StorageFullError extends StorageError {
+  override readonly code = 'storage-full' as const
+}
+
 // Storage→Caller boundary (spec Pillar A). A typed AppError from the caller's own transaction
-// callback passes through untouched; anything else becomes a StorageError.
+// callback passes through untouched; anything else becomes a StorageError, and a full disk or
+// browser quota its own subclass so a surface can say so.
 export function toStorageError(err: unknown, message: string): Error {
-  return err instanceof AppError ? err : new StorageError(message, err)
+  if (err instanceof AppError) {
+    return err
+  }
+
+  return isStorageFull(err) ? new StorageFullError(message, err) : new StorageError(message, err)
+}
+
+// Bun's driver names the result in `code`, sqlite-wasm in `resultCode`, and the browser throws a
+// DOMException named for the quota; the failing write may sit a few causes down.
+function isStorageFull(err: unknown, depth = 0): boolean {
+  if (!(err instanceof Error) || depth >= CAUSE_DEPTH) {
+    return false
+  }
+
+  const code = 'code' in err ? err.code : undefined
+  const resultCode = 'resultCode' in err ? err.resultCode : undefined
+
+  return (
+    err.name === QUOTA_EXCEEDED ||
+    code === 'SQLITE_FULL' ||
+    resultCode === SQLITE_FULL ||
+    isStorageFull(err.cause, depth + 1)
+  )
 }
 
 /** A database a newer release migrated is one this binary cannot reason about: an older release

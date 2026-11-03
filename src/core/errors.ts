@@ -366,7 +366,7 @@ export class ConfigError extends AppError {
 }
 
 export class StorageError extends AppError {
-  readonly code = 'storage' as const
+  readonly code: 'storage' | 'storage-full' = 'storage'
 }
 
 interface ChannelErrorOptions {

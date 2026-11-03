@@ -18,6 +18,7 @@
   },
   "include": [
     "../src/markdown.d.ts",
+    "../src/app/browser/browser-globals.d.ts",
     "./browser-build.ts",
     "./check-browser-bundle.ts",
     "./check-research-integrity-regressions.ts",

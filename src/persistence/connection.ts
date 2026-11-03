@@ -2,7 +2,8 @@ import type { ResolvedStorageConfig } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage } from '@/core/types/storage'
 import { openPostgres, postgresDialect, resetPostgres } from '@/persistence/engines/postgres'
-import { openSqlite, resetSqlite, sqliteDialect } from '@/persistence/engines/sqlite'
+import { openSqlite, resetSqlite } from '@/persistence/engines/sqlite'
+import { sqliteDialect } from '@/persistence/engines/sqlite-dialect'
 
 export interface OpenedPersistence {
   readonly storage: Storage

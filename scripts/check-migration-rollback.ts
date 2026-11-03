@@ -6,7 +6,8 @@ import type { Storage } from '@/core/types/storage'
 import type { Migration } from '@/persistence/types'
 import { StorageError } from '@/core/errors'
 import { silentLogger } from '@/core/logging/silent-logger'
-import { openSqlite, sqliteDialect } from '@/persistence/engines/sqlite'
+import { openSqlite } from '@/persistence/engines/sqlite'
+import { sqliteDialect } from '@/persistence/engines/sqlite-dialect'
 import { MIGRATIONS } from '@/persistence/migrations/registry.generated'
 import {
   migrate,
