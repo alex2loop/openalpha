@@ -13,7 +13,7 @@ export type KeySlot = 'ai' | 'search'
 /** The providers a browser can call, per slot, in the order the page offers them. DeepSeek is in
  *  both: its AI key and its search key are different keys, so each slot holds its own. */
 export const SLOT_PROVIDERS = Object.freeze({
-  ai: ['openrouter', 'openai', 'deepseek'],
+  ai: ['openrouter', 'openai', 'deepseek', 'anthropic', 'gemini', 'xai', 'mistral'],
   search: ['tavily', 'serper', 'deepseek'],
 } as const satisfies Record<KeySlot, readonly string[]>)
 
@@ -24,7 +24,8 @@ interface HeldKey {
   readonly remembered: boolean
 }
 
-type Held = Readonly<Partial<Record<KeySlot, HeldKey>>>
+/** The AI slot holds one key per provider; the search slot holds one key. */
+type Held = Readonly<Record<KeySlot, Readonly<Record<string, HeldKey>>>>
 /** `slot:provider` to the epoch ms the visitor agreed. */
 type Consents = Readonly<Record<string, number>>
 
@@ -46,9 +47,12 @@ export function workerKeys(): BrowserKeys {
 }
 
 /** Holds a key for `slot`. It reaches the worker at once when the provider is agreed to, else when
- *  `grantConsent` is called. */
+ *  `grantConsent` is called. An AI key replaces only its own provider's key; a search key replaces
+ *  the search key held. */
 export function holdKey(slot: KeySlot, entry: HeldKey): void {
-  held.value = { ...held.value, [slot]: entry }
+  const kept = slot === 'ai' ? held.value.ai : {}
+
+  held.value = { ...held.value, [slot]: { ...kept, [entry.provider]: entry } }
   persistHeld()
   publish()
 }
@@ -59,20 +63,14 @@ export function grantConsent(slot: KeySlot, provider: string): void {
   publish()
 }
 
-/** "Xoá key": the key and the visitor's agreement for its provider go, so nothing more is sent. */
-export function forgetKey(slot: KeySlot): void {
-  const entry = held.value[slot]
-  const { [slot]: removed, ...rest } = held.value
+/** "Xóa key": one provider's key and the visitor's agreement for it go, so nothing more is sent. */
+export function forgetKey(slot: KeySlot, provider: string): void {
+  const { [provider]: removed, ...rest } = held.value[slot]
+  const { [consentId(slot, provider)]: gone, ...remaining } = consents.value
 
-  held.value = rest
-
-  if (entry !== undefined) {
-    const { [consentId(slot, entry.provider)]: gone, ...remaining } = consents.value
-
-    consents.value = remaining
-    writeStorage('local', CONSENT_STORAGE_KEY, JSON.stringify(remaining))
-  }
-
+  held.value = { ...held.value, [slot]: rest }
+  consents.value = remaining
+  writeStorage('local', CONSENT_STORAGE_KEY, JSON.stringify(remaining))
   persistHeld()
   publish()
 }
@@ -84,47 +82,50 @@ function publish(): void {
 }
 
 function workerKeysOf(keys: Held, agreed: Consents): BrowserKeys {
-  const out: {
-    ai?: { provider: string; key: string }
-    search?: { provider: string; key: string }
-  } = {}
+  const sendable = (slot: KeySlot) =>
+    Object.values(keys[slot])
+      .filter((entry) => agreed[consentId(slot, entry.provider)] !== undefined)
+      .map(({ provider, key }) => ({ provider, key }))
+  const [search] = sendable('search')
 
-  for (const slot of ['ai', 'search'] as const) {
-    const entry = keys[slot]
-
-    if (entry !== undefined && agreed[consentId(slot, entry.provider)] !== undefined) {
-      out[slot] = { provider: entry.provider, key: entry.key }
-    }
-  }
-
-  return out
+  return { ai: sendable('ai'), ...(search === undefined ? {} : { search }) }
 }
 
 function persistHeld(): void {
-  const remembered = Object.fromEntries(
-    Object.entries(held.value).filter(([, entry]) => entry.remembered)
-  )
+  const remembered = { ai: rememberedOf('ai'), search: rememberedOf('search') }
 
-  if (Object.keys(remembered).length === 0) {
+  if (Object.keys(remembered.ai).length + Object.keys(remembered.search).length === 0) {
     removeStorage('local', KEYS_STORAGE_KEY)
   } else {
     writeStorage('local', KEYS_STORAGE_KEY, JSON.stringify(remembered))
   }
 }
 
+function rememberedOf(slot: KeySlot): Readonly<Record<string, string>> {
+  return Object.fromEntries(
+    Object.values(held.value[slot])
+      .filter((entry) => entry.remembered)
+      .map((entry) => [entry.provider, entry.key])
+  )
+}
+
 function readHeld(): Held {
   const parsed = parseObject(readStorage('local', KEYS_STORAGE_KEY))
-  const out: { ai?: HeldKey; search?: HeldKey } = {}
 
-  for (const slot of ['ai', 'search'] as const) {
-    const entry = parsed[slot]
+  return { ai: readSlot('ai', parsed.ai), search: readSlot('search', parsed.search) }
+}
 
-    if (isRecord(entry) && typeof entry.provider === 'string' && typeof entry.key === 'string') {
-      out[slot] = { provider: entry.provider, key: entry.key, remembered: true }
-    }
-  }
+// Only a provider the slot offers and a text key survive: anything else in storage is dropped.
+function readSlot(slot: KeySlot, stored: unknown): Readonly<Record<string, HeldKey>> {
+  const entries = isRecord(stored) ? Object.entries(stored) : []
 
-  return out
+  return Object.fromEntries(
+    entries.flatMap(([provider, key]) =>
+      typeof key === 'string' && SLOT_PROVIDERS[slot].some((offered) => offered === provider)
+        ? [[provider, { provider, key, remembered: true }]]
+        : []
+    )
+  )
 }
 
 function readConsents(): Consents {

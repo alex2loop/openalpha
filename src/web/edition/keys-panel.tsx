@@ -31,9 +31,9 @@ export function openConnectFailed(): void {
 const SLOTS: readonly KeySlot[] = ['ai', 'search']
 const OPENROUTER = 'openrouter'
 
-/** Key AI và tìm kiếm: one key for the AI provider and one for web search. Each is its own field
- *  because DeepSeek's AI key and its search key are different keys. A key is sent to its provider
- *  only after the visitor agreed to that provider, and "Xoá key" takes the key and the agreement. */
+/** Key AI và tìm kiếm: one key per AI provider and one for web search. Each is its own field because
+ *  DeepSeek's AI key and its search key are different keys. A key is sent to its provider only after
+ *  the visitor agreed to that provider, and "Xóa key" takes that provider's key and agreement. */
 export function KeysPanel() {
   return (
     <>
@@ -49,15 +49,15 @@ export function KeysPanel() {
 }
 
 function SlotRow({ slot }: { readonly slot: KeySlot }) {
-  const entry = heldKeys.value[slot]
-
   return (
     <ActionRow
       title={tr(`ui.office.edition.keys.${slot}.title`)}
       note={tr(`ui.office.edition.keys.${slot}.note`)}
     >
-      {entry !== undefined && <HeldKey slot={slot} provider={entry.provider} />}
-      <KeyForm slot={slot} isReplacing={entry !== undefined} />
+      {Object.values(heldKeys.value[slot]).map((entry) => (
+        <HeldKey key={entry.provider} slot={slot} provider={entry.provider} />
+      ))}
+      <KeyForm slot={slot} />
     </ActionRow>
   )
 }
@@ -87,7 +87,7 @@ function HeldKey({ slot, provider }: { readonly slot: KeySlot; readonly provider
             confirmLabel: tr('ui.office.edition.keys.remove'),
             isDestructive: true,
             keepLabel: tr('ui.office.edition.common.keep'),
-            confirm: () => forgetKey(slot),
+            confirm: () => forgetKey(slot, provider),
           })
         }
       >
@@ -103,7 +103,7 @@ interface KeyDraft {
   readonly isRemembered: Signal<boolean>
 }
 
-function KeyForm({ slot, isReplacing }: { readonly slot: KeySlot; readonly isReplacing: boolean }) {
+function KeyForm({ slot }: { readonly slot: KeySlot }) {
   const draft: KeyDraft = {
     provider: useSignal<string>(SLOT_PROVIDERS[slot][0]),
     text: useSignal(''),
@@ -125,7 +125,7 @@ function KeyForm({ slot, isReplacing }: { readonly slot: KeySlot; readonly isRep
         {tr('ui.office.edition.keys.remember')}
       </label>
       <p class="meta">{tr('ui.office.edition.keys.rememberNote')}</p>
-      <SaveRow slot={slot} draft={draft} isReplacing={isReplacing} />
+      <SaveRow slot={slot} draft={draft} />
     </div>
   )
 }
@@ -176,14 +176,11 @@ function KeyFields({ slot, draft }: { readonly slot: KeySlot; readonly draft: Ke
   )
 }
 
-interface SaveRowProps {
-  readonly slot: KeySlot
-  readonly draft: KeyDraft
-  readonly isReplacing: boolean
-}
-
-function SaveRow({ slot, draft, isReplacing }: SaveRowProps) {
+function SaveRow({ slot, draft }: { readonly slot: KeySlot; readonly draft: KeyDraft }) {
   const info = providerInfo(slot, draft.provider.value)
+  const held = heldKeys.value[slot]
+  const isReplacing =
+    slot === 'ai' ? held[draft.provider.value] !== undefined : Object.keys(held).length > 0
 
   function save(): void {
     const key = draft.text.value.trim()

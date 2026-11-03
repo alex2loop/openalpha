@@ -2,8 +2,9 @@ import type { ChainEntry, Transport } from '@/ai/types'
 import type { LLMMessage, LLMRequest, ThinkingBlock } from '@/core/llm'
 import type { ToolSchema } from '@/core/tool'
 import { ANTHROPIC_TRANSPORT_NAME, anthropicRouter } from '@/ai/adapters/anthropic/stream'
+import { resolveAuthHeaders } from '@/ai/adapters/auth-headers'
 import { EPHEMERAL_CACHE_CONTROL, toCachedTextBlocks } from '@/ai/adapters/cache-control'
-import { keyedHeaders, resolveEndpointUrl, runStream } from '@/ai/adapters/runner'
+import { resolveEndpointUrl, runStream } from '@/ai/adapters/runner'
 import { contentBlocks, textOf } from '@/core/utils/message'
 
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -11,7 +12,7 @@ const ANTHROPIC_VERSION = '2023-06-01'
 type WireMessage = Record<string, unknown>
 
 export const anthropicTransport: Transport = {
-  stream(req, entry, onEvent) {
+  async stream(req, entry, onEvent) {
     // Hosts serving the Anthropic wire format from another vendor (MiniMax) authenticate with a
     // bearer token, and reject thinking signatures minted by api.anthropic.com.
     const isThirdParty = entry.provider.authStyle === 'bearer'
@@ -19,13 +20,14 @@ export const anthropicTransport: Transport = {
       'anthropic-version': ANTHROPIC_VERSION,
       'content-type': 'application/json',
       accept: 'text/event-stream',
-      ...keyedHeaders(
-        entry.apiKey,
+      ...(await resolveAuthHeaders(
+        req,
+        entry,
         isThirdParty ? { authorization: `Bearer ${entry.apiKey}` } : { 'x-api-key': entry.apiKey }
-      ),
+      )),
     }
 
-    return runStream({
+    return await runStream({
       url: resolveEndpointUrl(entry.baseUrl, 'v1/messages'),
       init: {
         method: 'POST',

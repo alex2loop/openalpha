@@ -8,18 +8,16 @@ const NOTHING_SENT = { usage: REFUSED_USAGE, usageSource: 'estimated' } as const
 
 /** An API key when the model has one, else the provider's login or cloud account. Runs inside the
  *  attempt boundary: a corrupted token file throws a raw ConfigError, which must become a
- *  fallback-eligible LLMError here rather than escape and skip the rest of the provider chain. */
+ *  fallback-eligible LLMError here rather than escape and skip the rest of the provider chain.
+ *  `keyHeaders` is how the transport's wire carries a plain API key; a host that supplies its own
+ *  credentials (the browser) answers the wire's headers itself. */
 export async function resolveAuthHeaders(
   req: LLMRequest,
-  entry: ChainEntry
+  entry: ChainEntry,
+  keyHeaders: Readonly<Record<string, string>> = toBearerOrKeyHeader(entry)
 ): Promise<Readonly<Record<string, string>>> {
   if (entry.credentials === undefined) {
-    return keyedHeaders(
-      entry.apiKey,
-      entry.provider.authStyle === 'api_key_header'
-        ? { 'api-key': entry.apiKey }
-        : { authorization: `Bearer ${entry.apiKey}` }
-    )
+    return keyedHeaders(entry.apiKey, keyHeaders)
   }
 
   try {
@@ -39,4 +37,10 @@ export async function resolveAuthHeaders(
       ...NOTHING_SENT,
     })
   }
+}
+
+function toBearerOrKeyHeader(entry: ChainEntry): Readonly<Record<string, string>> {
+  return entry.provider.authStyle === 'api_key_header'
+    ? { 'api-key': entry.apiKey }
+    : { authorization: `Bearer ${entry.apiKey}` }
 }

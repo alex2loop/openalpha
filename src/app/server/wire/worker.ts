@@ -13,10 +13,10 @@ interface BrowserKey {
   readonly key: string
 }
 
-/** The keys the visitor holds: one for the AI provider, one for web search. Either may be absent;
- *  the features that need a missing one stay visible and say so. */
+/** The keys the visitor holds: one per AI provider, one for web search. Any may be absent; the
+ *  features that need a missing one stay visible and say so. */
 export interface BrowserKeys {
-  readonly ai?: BrowserKey
+  readonly ai?: readonly BrowserKey[]
   readonly search?: BrowserKey
 }
 

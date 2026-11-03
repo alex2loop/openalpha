@@ -4,8 +4,20 @@ import { type CredentialSource, findProviderById } from '@/ai/api'
 import { LLMError } from '@/core/errors'
 import { registerKnownSecret } from '@/core/security/credentials'
 
-/** The AI providers whose API answers a browser; a key for any other is ignored. */
-export const BROWSER_AI_PROVIDERS = Object.freeze(['openrouter', 'openai', 'deepseek'] as const)
+/** The AI providers whose API answers a browser; a key for any other is ignored. Each has its own
+ *  key variable, so a visitor can hold one key per provider. */
+export const BROWSER_AI_PROVIDERS = Object.freeze([
+  'openrouter',
+  'openai',
+  'deepseek',
+  'anthropic',
+  'gemini',
+  'xai',
+  'mistral',
+] as const)
+
+/** Anthropic answers a browser only to a request that declares the visitor chose to call it. */
+const ANTHROPIC_BROWSER_HEADER = 'anthropic-dangerous-direct-browser-access'
 
 /** The provider the page offers first, and the one a missing key is asked for. */
 const DEFAULT_AI_PROVIDER = 'openrouter' satisfies (typeof BROWSER_AI_PROVIDERS)[number]
@@ -70,9 +82,23 @@ export function createKeyringCredentials(keyring: BrowserKeyring): readonly Cred
         throw new LLMError('auth', `no ${provider} key is set`)
       }
 
-      return { authorization: `Bearer ${key}` }
+      return toKeyHeaders(provider, key)
     },
   }))
+}
+
+/** The headers a provider's wire takes a key in. Only these ride the request: a browser call is
+ *  preflighted, and a provider that lists the headers it allows (Mistral: Authorization and
+ *  Content-Type) refuses any other. */
+function toKeyHeaders(provider: BrowserAiProvider, key: string): Readonly<Record<string, string>> {
+  switch (findProviderById(provider)?.transport) {
+    case 'anthropic_messages':
+      return { 'x-api-key': key, [ANTHROPIC_BROWSER_HEADER]: 'true' }
+    case 'gemini_generate':
+      return { 'x-goog-api-key': key }
+    default:
+      return { authorization: `Bearer ${key}` }
+  }
 }
 
 /** Every variable name a key can arrive under: the config resolves against these, so a feature that
@@ -110,10 +136,12 @@ export function readSearchSelection(
 
 function toEnv(keys: BrowserKeys): KeyEnv {
   const env: Record<string, string | undefined> = {}
-  const { ai, search } = keys
+  const { ai = [], search } = keys
 
-  if (ai !== undefined && isAiProvider(ai.provider)) {
-    env[aiKeyVariable(ai.provider)] = ai.key.trim() || undefined
+  for (const entry of ai) {
+    if (isAiProvider(entry.provider)) {
+      env[aiKeyVariable(entry.provider)] = entry.key.trim() || undefined
+    }
   }
 
   const searchVariable = search === undefined ? undefined : SEARCH_KEY_VARIABLES[search.provider]

@@ -24,6 +24,26 @@ const PROVIDERS: Readonly<Record<string, ProviderInfo>> = Object.freeze({
     keyUrl: 'https://platform.deepseek.com/api_keys',
     policyUrl: 'https://cdn.deepseek.com/policies/en-US/deepseek-privacy-policy.html',
   },
+  [consentId('ai', 'anthropic')]: {
+    name: 'Anthropic',
+    keyUrl: 'https://platform.claude.com/settings/keys',
+    policyUrl: 'https://www.anthropic.com/legal/privacy',
+  },
+  [consentId('ai', 'gemini')]: {
+    name: 'Google Gemini',
+    keyUrl: 'https://aistudio.google.com/apikey',
+    policyUrl: 'https://ai.google.dev/gemini-api/terms',
+  },
+  [consentId('ai', 'xai')]: {
+    name: 'xAI',
+    keyUrl: 'https://console.x.ai',
+    policyUrl: 'https://x.ai/legal/privacy-policy',
+  },
+  [consentId('ai', 'mistral')]: {
+    name: 'Mistral',
+    keyUrl: 'https://console.mistral.ai/api-keys',
+    policyUrl: 'https://legal.mistral.ai/terms/privacy-policy',
+  },
   [consentId('search', 'tavily')]: {
     name: 'Tavily',
     keyUrl: 'https://app.tavily.com/home',
