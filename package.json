@@ -37,6 +37,7 @@
     "gen": "bun scripts/gen-migrations.ts",
     "migration:new": "bun scripts/new-migration.ts",
     "version:bump": "bun scripts/bump-version.ts",
+    "wrangler": "deploy/node_modules/.bin/wrangler",
     "db:snapshot": "bun run src/app/main.ts db export --out ./.backup --force --config ./config.toml"
   },
   "dependencies": {

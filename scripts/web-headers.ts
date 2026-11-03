@@ -6,6 +6,7 @@ const NOINDEX_HEADER = 'X-Robots-Tag: noindex, nofollow'
 const MAXIMUM_LINE_LENGTH = 2000
 
 const HARDENING_HEADERS: readonly string[] = [
+  'Strict-Transport-Security: max-age=31536000; includeSubDomains',
   'Referrer-Policy: no-referrer',
   'X-Content-Type-Options: nosniff',
   'Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), ' +
