@@ -133,6 +133,7 @@ core/logging/logger
 core/logging/paths
 core/logging/retention
 core/memory-key
+core/scoped-value
 core/security/agent-directories
 core/security/binary
 core/security/credentials

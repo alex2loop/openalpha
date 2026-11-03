@@ -100,6 +100,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'http-client',
   'security/agent-directories',
   'security/binary',
+  'scoped-value',
   'session-queue',
   'security/credentials',
   'security/output-pipeline',

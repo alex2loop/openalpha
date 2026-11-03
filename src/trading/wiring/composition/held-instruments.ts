@@ -1,9 +1,8 @@
-import { AsyncLocalStorage } from 'node:async_hooks'
-
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { HeldInstruments } from '@/trading/markets/resolution'
+import { createScopedValue } from '@/core/scoped-value'
 import { formatErrForLog } from '@/core/security/credentials'
 import { ttlCache } from '@/core/utils/collections'
 
@@ -19,10 +18,13 @@ const HELD_READ_TIMEOUT_MS = 5_000
  *  is what keeps valuing the book from waiting on itself; the marker follows the read's own async
  *  context, so an unrelated caller running beside it still sees the real answer. A failed read is
  *  logged and cached empty for the same few seconds, so a broken store is asked once, not on every
- *  resolution. */
+ *  resolution. A runtime without async tracking (a browser worker) cannot tell which caller sits
+ *  inside the read, so every caller arriving while it is in flight answers empty: a bare ticker
+ *  then reports the ambiguity instead of taking the held side, and concurrent callers no longer
+ *  share the read. */
 export function lazyHeldInstruments(app: App, logger: Logger): HeldInstruments {
   const recent = ttlCache<string, readonly InstrumentRef[]>(HELD_CACHE_TTL_MS, 1)
-  const inside = new AsyncLocalStorage<true>()
+  const inside = createScopedValue<true>()
   let inflight: Promise<readonly InstrumentRef[]> | undefined
 
   const read = async (): Promise<readonly InstrumentRef[]> => {
@@ -41,7 +43,7 @@ export function lazyHeldInstruments(app: App, logger: Logger): HeldInstruments {
   }
 
   return async () => {
-    if (inside.getStore() === true) {
+    if (inside.get() === true || (!inside.tracksAsync && inflight !== undefined)) {
       return []
     }
 
