@@ -3,10 +3,11 @@ import type { BrowserLogger } from '@/app/browser/logger'
 import type { BrowserRoot, OpenedRoot } from '@/app/browser/root'
 import type { ApiError } from '@/app/server/wire/errors'
 import type { ClientFrame } from '@/app/server/wire/socket'
-import type { WorkerCall, WorkerReply } from '@/app/server/wire/worker'
+import type { DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/worker'
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { Locale } from '@/core/types/locale'
-import { openBrowserRoot } from '@/app/browser/root'
+import { checkDbFile, type DbFileVerdict } from '@/app/browser/db-file'
+import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
 import { handleHttp } from '@/app/server/http/dispatch'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
 import { closeChatClient, followChatBus } from '@/app/server/ws/chat-client'
@@ -14,6 +15,7 @@ import { handleChatFrame } from '@/app/server/ws/frames'
 import { toLaneTag } from '@/app/server/ws/runs'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
+import { StorageFullError } from '@/persistence/api'
 
 /** A request reaches the same route table the daemon serves; only the host of its URL is made up. */
 const REQUEST_ORIGIN = 'http://worker.invalid'
@@ -107,6 +109,10 @@ async function dispatchCall(call: WorkerCall, ctx: BridgeContext): Promise<void>
       return serveHttp(ctx, call)
     case 'frame':
       return serveFrame(ctx, call.frame)
+    case 'export-db':
+      return enqueue(state, () => serveExport(ctx, call.id))
+    case 'open-db':
+      return enqueue(state, () => serveOpen(ctx, call.id, new Uint8Array(call.bytes)))
     case 'abort':
       // An id nobody holds (settled, or never sent) is ignored.
       state.controllers.get(call.id)?.abort()
@@ -246,6 +252,93 @@ async function serveHttp(
   } finally {
     controllers.delete(call.id)
   }
+}
+
+const VERDICT_OUTCOME: Record<Exclude<DbFileVerdict, 'ok'>, DbOpenOutcome> = {
+  invalid: 'invalid',
+  'newer-schema': 'newer-schema',
+  'from-installed': 'from-installed',
+}
+
+// On the lifecycle queue, so the read never meets a start or a restart half-done; the database
+// serializes it behind its own statements.
+async function serveExport(ctx: BridgeContext, id: string): Promise<void> {
+  const { root } = ctx.state
+  let bytes: ArrayBuffer | null = null
+
+  try {
+    const file = await root?.files.exportBytes()
+
+    bytes = file === undefined ? null : toArrayBuffer(file)
+  } catch (err: unknown) {
+    ctx.logger.error('browser.db_export_failed', { err: formatErrForLog(err) })
+  }
+
+  ctx.post({ kind: 'db-exported', id, bytes })
+}
+
+// A file is judged in a scratch copy first; only a good one is swapped in, and then the engine
+// starts again over it, the way a locale change does. A refusal, a failed swap or a start that
+// cannot serve the new file leaves the database and the engine as they were.
+async function serveOpen(ctx: BridgeContext, id: string, bytes: Uint8Array): Promise<void> {
+  const { outcome, previous } = await replaceDatabase(ctx, bytes)
+  let final = outcome
+
+  if (previous !== undefined) {
+    await start(ctx, false)
+
+    if (ctx.state.root === undefined && !ctx.state.closed) {
+      await restoreOld(ctx, previous)
+      final = 'failed'
+    }
+  }
+
+  ctx.post({ kind: 'db-opened', id, outcome: final })
+}
+
+interface Replacement {
+  readonly outcome: DbOpenOutcome
+  /** The content the swap replaced; present only when the swap happened. */
+  readonly previous?: Uint8Array
+}
+
+async function replaceDatabase(ctx: BridgeContext, bytes: Uint8Array): Promise<Replacement> {
+  const { root } = ctx.state
+
+  if (root === undefined) {
+    return { outcome: 'failed' }
+  }
+
+  try {
+    const verdict = await checkDbFile(root.files, bytes, ctx.logger)
+
+    if (verdict !== 'ok') {
+      return { outcome: VERDICT_OUTCOME[verdict] }
+    }
+
+    return { outcome: 'opened', previous: await root.files.replaceWith(bytes) }
+  } catch (err: unknown) {
+    ctx.logger.error('browser.db_open_failed', { err: formatErrForLog(err) })
+
+    return { outcome: err instanceof StorageFullError ? 'storage-full' : 'failed' }
+  }
+}
+
+// The new file did not start: the old content goes back and the old database starts again.
+async function restoreOld(ctx: BridgeContext, previous: Uint8Array): Promise<void> {
+  try {
+    if (!(await restoreDatabase(ctx, previous))) {
+      ctx.logger.error('browser.db_restore_locked', {})
+    }
+  } catch (err: unknown) {
+    ctx.logger.error('browser.db_restore_failed', { err: formatErrForLog(err) })
+  }
+
+  await start(ctx, false)
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
 }
 
 function buildRequest(

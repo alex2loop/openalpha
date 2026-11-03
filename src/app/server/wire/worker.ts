@@ -29,14 +29,29 @@ export type WorkerCall =
   | { kind: 'http'; id: string; method: string; path: string; body?: string }
   | { kind: 'frame'; frame: ClientFrame }
   | { kind: 'abort'; id: string }
+  | { kind: 'export-db'; id: string }
+  | { kind: 'open-db'; id: string; bytes: ArrayBuffer }
 
 /** Why the worker could not (or can no longer) serve the page. */
 type WorkerRefusal = 'locked' | 'taken-over' | 'unsupported' | 'newer-schema' | 'storage-full'
 
+/** How `open-db` ended. Anything but `opened` left the database the page already had. */
+export type DbOpenOutcome =
+  | 'opened'
+  | 'invalid'
+  | 'newer-schema'
+  | 'from-installed'
+  | 'storage-full'
+  | 'failed'
+
 /** Worker -> page. `ready` answers `start` with what this edition offers; `refused` says the
- *  database is not available and why. */
+ *  database is not available and why. `db-exported` answers `export-db` with every committed page of
+ *  the database as one SQLite file (`null` when there is none to read); `db-opened` answers
+ *  `open-db`, which replaced the database with the file's bytes only when it says `opened`. */
 export type WorkerReply =
   | { kind: 'ready'; capabilities: Capabilities }
   | { kind: 'refused'; reason: WorkerRefusal }
   | { kind: 'http'; id: string; status: number; body: string }
   | { kind: 'frame'; frame: ServerFrame }
+  | { kind: 'db-exported'; id: string; bytes: ArrayBuffer | null }
+  | { kind: 'db-opened'; id: string; outcome: DbOpenOutcome }

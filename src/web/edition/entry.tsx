@@ -4,6 +4,7 @@ import { bootOffice, canRunPage, renderPage } from '@/web/boot'
 import { openConsentDialog } from '@/web/edition/consent-dialog'
 import { startDataStatus } from '@/web/edition/data-status'
 import { EditionFooter } from '@/web/edition/guide/footer'
+import { startFileSave } from '@/web/edition/file-save'
 import { openConnectFailed } from '@/web/edition/keys-panel'
 import { holdKey, workerKeys } from '@/web/edition/keys-store'
 import { type ConnectResult, finishOpenRouterConnect } from '@/web/edition/openrouter-oauth'
@@ -53,8 +54,10 @@ if (canRunPage()) {
 
     const stopOffice = untracked(() => bootOffice({}))
     const stopDataStatus = startDataStatus()
+    const stopSave = startFileSave()
 
     return () => {
+      stopSave()
       stopOffice()
       stopDataStatus()
       state.value = undefined

@@ -8,6 +8,7 @@ import type { ApiRouteContext } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
 import type { Storage } from '@/core/types/storage'
+import type { DatabaseFiles } from '@/persistence/api'
 import { resolveBrowserConfig } from '@/app/browser/config'
 import { readTierOverrides } from '@/app/browser/config-routes'
 import { authorizeVisitor } from '@/app/browser/host'
@@ -31,6 +32,12 @@ import {
 
 const DB_NAME = 'openalpha.db'
 
+interface OpenedStorage {
+  readonly storage: Storage
+  readonly files: DatabaseFiles
+  readonly lost: Promise<void>
+}
+
 /** Why the database cannot be served, in the words the page maps to its own lines. */
 type Refusal = 'locked' | 'taken-over' | 'unsupported' | 'newer-schema' | 'storage-full'
 
@@ -51,6 +58,8 @@ export interface BrowserRoot {
   readonly route: ApiRouteContext
   readonly chat: ChatClient
   readonly capabilities: Capabilities
+  /** The database as a file: read out, checked and swapped. */
+  readonly files: DatabaseFiles
   /** Settles when another tab takes the database. */
   readonly lost: Promise<void>
   /** Releases the live feed and the database; safe to call twice. */
@@ -86,6 +95,33 @@ export async function openBrowserRoot(input: RootInput): Promise<OpenedRoot> {
   }
 }
 
+/** Puts `bytes` back as the working database when a replacement could not be started: opens the
+ *  database under the lock, swaps, and lets go, building nothing else. False when the lock was not
+ *  free. */
+export async function restoreDatabase(
+  input: Pick<RootInput, 'wasmUrl' | 'logger'>,
+  bytes: Uint8Array
+): Promise<boolean> {
+  const opened = await openSqliteWasm({
+    name: DB_NAME,
+    wasmUrl: input.wasmUrl,
+    logger: input.logger,
+    steal: false,
+  })
+
+  if (opened.kind !== 'opened') {
+    return false
+  }
+
+  try {
+    await opened.files.replaceWith(bytes)
+
+    return true
+  } finally {
+    await opened.storage.close()
+  }
+}
+
 function toRefusal(err: unknown): Refusal {
   if (err instanceof SchemaAheadError) {
     return 'newer-schema'
@@ -95,10 +131,7 @@ function toRefusal(err: unknown): Refusal {
 }
 
 // The lock is released and the shutdown signal raised on every path that does not return a root.
-async function composeRoot(
-  input: RootInput,
-  opened: { readonly storage: Storage; readonly lost: Promise<void> }
-): Promise<BrowserRoot> {
+async function composeRoot(input: RootInput, opened: OpenedStorage): Promise<BrowserRoot> {
   const { storage } = opened
   const shutdown = new AbortController()
 
@@ -145,7 +178,7 @@ async function prepareApp(app: App): Promise<void> {
 interface AssembleParts {
   readonly input: RootInput
   readonly app: App
-  readonly opened: { readonly storage: Storage; readonly lost: Promise<void> }
+  readonly opened: OpenedStorage
   readonly shutdown: AbortController
 }
 
@@ -179,6 +212,7 @@ function assembleRoot(parts: AssembleParts): BrowserRoot {
     route,
     chat,
     capabilities,
+    files: opened.files,
     lost: opened.lost,
     close: () => {
       closed ??= (async () => {

@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals'
 
 import type { StatePayload } from '@/app/server/wire/system'
-import type { BrowserKeys, WorkerCall, WorkerReply } from '@/app/server/wire/worker'
+import type { BrowserKeys, DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/worker'
 import { setApiTransport } from '@/web/api/client'
 import { setFeedSocketFactory } from '@/web/api/socket'
 import { createWorkerTransport } from '@/web/edition/transport'
@@ -102,6 +102,68 @@ export function restartEngine(locale: Locale = currentLocale()): void {
   writeStorage('local', LOCALE_KEY, locale)
   preferredLocale.value = locale
   postToWorker({ kind: 'locale', locale })
+}
+
+/** The database as one SQLite file. Rejects when the worker has none to give or does not answer. */
+export async function requestDbExport(): Promise<ArrayBuffer> {
+  const reply = await askWorker({ kind: 'export-db', id: crypto.randomUUID() }, 'db-exported')
+
+  return reply.bytes ?? Promise.reject(new Error('the database could not be read'))
+}
+
+/** Replaces the database with a file's bytes. On `opened` the office starts again over the new
+ *  data; any other outcome left everything as it was. */
+export async function requestDbOpen(bytes: ArrayBuffer): Promise<DbOpenOutcome> {
+  const reply = await askWorker({ kind: 'open-db', id: crypto.randomUUID(), bytes }, 'db-opened')
+
+  if (reply.outcome === 'opened') {
+    // Two writes in a row: the office stops on the first and boots again on the second.
+    editionPhase.value = { kind: 'restarting' }
+    editionPhase.value = { kind: 'ready' }
+  }
+
+  return reply.outcome
+}
+
+// The listener and the timer of one call are released the moment it settles.
+function askWorker<K extends 'db-exported' | 'db-opened'>(
+  call: Extract<WorkerCall, { readonly id: string }>,
+  kind: K
+): Promise<Extract<WorkerReply, { readonly kind: K }>> {
+  const target = worker
+
+  if (target === undefined) {
+    return Promise.reject(new Error('worker is not running'))
+  }
+
+  return new Promise((resolve, reject) => {
+    const done = new AbortController()
+    const settle = (finish: () => void): void => {
+      clearTimeout(timer)
+      done.abort()
+      finish()
+    }
+    const timer = setTimeout(
+      () => settle(() => reject(new Error('worker call timed out'))),
+      REQUEST_TIMEOUT_MS
+    )
+
+    target.addEventListener(
+      'message',
+      (event: MessageEvent<WorkerReply>) => {
+        const reply = event.data
+
+        if (reply.kind === kind && reply.id === call.id) {
+          settle(() => resolve(reply as Extract<WorkerReply, { readonly kind: K }>))
+        }
+      },
+      { signal: done.signal }
+    )
+    target.addEventListener('error', () => settle(() => reject(new Error('worker failed'))), {
+      signal: done.signal,
+    })
+    target.postMessage(call)
+  })
 }
 
 function start(steal: boolean): void {
