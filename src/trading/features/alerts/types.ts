@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { BrandTag } from '@/core/ids'
 import type { Caveat, DeliveryErrorCode } from '@/trading/kernel/caveat'
 import type { InstrumentRef, TickerRequest } from '@/trading/kernel/instrument'
@@ -88,7 +86,7 @@ export function isLiveAlert(alert: Alert | null): boolean {
 
 export function buildLeaseToken(): LeaseToken {
   // why-safe: a freshly minted UUID is the token brand's entire value space.
-  return randomUUID() as LeaseToken
+  return crypto.randomUUID() as LeaseToken
 }
 
 export function alertOrigin(raw: string): AlertOrigin {

@@ -1,9 +1,8 @@
-import { createHash } from 'node:crypto'
-
 import type { InstrumentRef, MarketRef, Ticker } from '@/trading/kernel/instrument'
 import type { NewsItem } from '@/trading/kernel/market/market-data'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
+import { sha256Hex } from '@/core/utils/hash'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { marketRef, ticker } from '@/trading/kernel/instrument'
 import { toBindChunks } from '@/trading/kernel/store/store-row'
@@ -108,7 +107,7 @@ export interface NewsArchiveStore {
 }
 
 function toNewsId(url: string): string {
-  return createHash('sha256').update(url).digest('hex').slice(0, NEWS_ID_HEX_LENGTH)
+  return sha256Hex(url).slice(0, NEWS_ID_HEX_LENGTH)
 }
 
 function toNewsValues(options: ArchiveNewsOptions, item: NewsItem): readonly unknown[] {

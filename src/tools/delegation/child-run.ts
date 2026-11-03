@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { z } from 'zod'
 
 import type { AgentId } from '@/core/ids'
@@ -252,7 +250,7 @@ interface ChildRunInputSpec {
 export function childRunInput(ctx: ToolInvocationContext, spec: ChildRunInputSpec): RunInput {
   return {
     agentId: spec.agentId,
-    sessionId: sessionId(randomUUID()),
+    sessionId: sessionId(crypto.randomUUID()),
     userId: ctx.userId,
     channel: ctx.channel,
     userMessage: spec.userMessage,

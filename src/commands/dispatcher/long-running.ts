@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { ChannelId } from '@/core/channels'
 import type { BusEventMap, EventBus } from '@/core/events'
 import type { RunId, SessionId } from '@/core/ids'
@@ -120,7 +118,7 @@ async function runWithEvents(
   command: SlashCommand
 ): Promise<SlashResult> {
   const start: RunStart = {
-    id: context.runId ?? runId(randomUUID()),
+    id: context.runId ?? runId(crypto.randomUUID()),
     name: command.name,
     channel: context.channel,
     chatId: context.chatId,
@@ -144,7 +142,7 @@ function runScheduled<T>(state: CommandRunState, request: ScheduledRequest<T>): 
   const scheduled: RunStart = {
     name: request.name,
     signal: request.signal,
-    id: runId(randomUUID()),
+    id: runId(crypto.randomUUID()),
     channel: SCHEDULE_CHANNEL,
     chatId: SCHEDULE_CHAT_ID,
     sessionId: SCHEDULE_SESSION_ID,

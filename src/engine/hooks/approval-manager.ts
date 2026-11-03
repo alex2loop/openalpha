@@ -1,9 +1,7 @@
-import { createHash } from 'node:crypto'
-
 import type { SessionId } from '@/core/ids'
 import type { ApprovalManager } from '@/engine/hooks/approval'
 import type { PreparedToolCall, ToolGateResult } from '@/engine/types/run'
-import { canonicalJson } from '@/core/utils/hash'
+import { canonicalJson, sha256Hex } from '@/core/utils/hash'
 import { MAX_TRACKED_APPROVAL_SESSIONS } from '@/engine/constants'
 
 export function createApprovalManager(): ApprovalManager {
@@ -79,7 +77,7 @@ export function approvalKeyFor(call: PreparedToolCall): string {
 }
 
 function digest(value: unknown): string {
-  return createHash('sha256').update(canonicalJson(value)).digest('hex')
+  return sha256Hex(canonicalJson(value))
 }
 
 function commandOf(input: unknown): readonly string[] | undefined {

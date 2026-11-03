@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { z } from 'zod'
 
 import type { Logger } from '@/core/logging/logger'
@@ -163,7 +161,7 @@ async function attemptRole<T>(
   const result = await deps.runner.run(
     {
       agentId: agentId(context.role),
-      sessionId: sessionId(randomUUID()),
+      sessionId: sessionId(crypto.randomUUID()),
       userId: LOCAL_USER_ID,
       channel: context.request.channel,
       userMessage: localizedMessage(context.prompt.message, context.request.locale),

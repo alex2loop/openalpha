@@ -108,7 +108,7 @@ export async function findCurrentSnapshot(
     return { kind: 'absent' }
   }
 
-  const revision = await profileRevisionOf(input.profile)
+  const revision = profileRevisionOf(input.profile)
 
   return snapshot.profileRevision === revision ? { kind: 'current', snapshot } : { kind: 'stale' }
 }
@@ -187,7 +187,7 @@ export async function findOrBuildBrief(
     sections: [...tryPlanStory(deps, input, { brief, previous }), ...brief.sections],
     caveats,
     scorecardShownThisMonth: request.scorecardShownThisMonth,
-    profileRevision: await profileRevisionOf(profile),
+    profileRevision: profileRevisionOf(profile),
   })
 }
 

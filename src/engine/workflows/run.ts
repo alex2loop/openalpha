@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { ChannelId } from '@/core/channels'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { TaskPassListener } from '@/core/container'
@@ -240,7 +238,7 @@ function createWorkflowRunContext(
       },
       createInput: (agent, userMessage) => ({
         agentId: agent,
-        sessionId: sessionId(randomUUID()),
+        sessionId: sessionId(crypto.randomUUID()),
         userId: LOCAL_USER_ID,
         channel: WORKFLOW_CHANNEL_ID,
         userMessage,
@@ -252,7 +250,7 @@ function createWorkflowRunContext(
     options: { chatId: invocation.chatId, parentSignal: invocation.parentSignal, budgetSlice },
     createInput: (agent, userMessage) => ({
       agentId: agent,
-      sessionId: sessionId(randomUUID()),
+      sessionId: sessionId(crypto.randomUUID()),
       userId: invocation.userId,
       channel: invocation.channel,
       userMessage,

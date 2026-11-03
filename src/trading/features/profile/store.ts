@@ -134,7 +134,7 @@ async function upsert(
  *  artifact printed, and a cache keyed only on the day would serve the old ones back. Key order is
  *  sorted rather than inherited from whatever built the record, because a digest that drifted
  *  between two equal profiles would rebuild that artifact for nothing. */
-export function profileRevisionOf(profile: UserProfile | null): Promise<string> {
+export function profileRevisionOf(profile: UserProfile | null): string {
   return sha256Hex(canonicalJson(profile === null ? null : toPayload(profile)))
 }
 

@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { z } from 'zod'
 
 import type {
@@ -162,7 +160,7 @@ async function insertMany(
 
 function toInsertParams(entry: FactorLogEntry): readonly unknown[] {
   return [
-    randomUUID(),
+    crypto.randomUUID(),
     entry.instrument.market,
     entry.instrument.ticker,
     entry.day,

@@ -208,7 +208,7 @@ class EvidenceAdmissionState implements ResolutionState {
     const derived: DerivedExcerpt = {
       sourceId,
       text,
-      textHash: await sha256Hex(normalizeExcerptText(text)),
+      textHash: sha256Hex(normalizeExcerptText(text)),
     }
 
     if (signal.aborted) {

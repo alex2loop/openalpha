@@ -201,7 +201,7 @@ async function writeLockedSkill(input: LockedSkillInput): Promise<number> {
   lock[name] = {
     source: fetched.source,
     installed_at: Date.now(),
-    hash: await sha256Hex(fetched.text),
+    hash: sha256Hex(fetched.text),
     trust: fetched.trust,
     verdict,
   }

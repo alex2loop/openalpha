@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 
 import type { ResolvedConfig } from '@/core/config/resolve'
@@ -346,7 +345,7 @@ function optionalEnvFields(
 
 function buildIdentity(input: RunInput, options: RunOptions): RunIdentity {
   const identity: RunIdentity = {
-    runId: runId(randomUUID()),
+    runId: runId(crypto.randomUUID()),
     sessionId: input.sessionId,
     billingSessionId:
       options.billingSessionId === undefined ? input.sessionId : options.billingSessionId,

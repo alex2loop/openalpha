@@ -38,7 +38,7 @@ interface FinalizeOptions {
 /** The fixed-order tagged tuple every draft canonicalizes to. Absent optional fields occupy `null`
  *  so an omitted note cannot shift a later field into an earlier position and collide with a
  *  different transaction. */
-export async function buildRequestFingerprint(options: FinalizeOptions): Promise<string> {
+export function buildRequestFingerprint(options: FinalizeOptions): string {
   const { draft } = options
   const head = [draft.kind, draft.at, draft.note ?? null]
 

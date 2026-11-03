@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { z } from 'zod'
 
 import type { ChannelId } from '@/core/channels'
@@ -44,7 +42,7 @@ export const askClarificationTool = createTool({
   presentation: { label: 'Ask clarification', emoji: '🙋' },
   async execute(args, ctx): Promise<ToolResult> {
     ctx.bus.emit('clarification_requested', {
-      requestId: randomUUID(),
+      requestId: crypto.randomUUID(),
       runId: ctx.runId,
       askedAt: Date.now(),
       sessionId: ctx.sessionId,

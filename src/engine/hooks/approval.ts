@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { ToolErrorCode } from '@/core/errors'
 import type { EventBus } from '@/core/events'
 import type { RunId, SessionId } from '@/core/ids'
@@ -325,7 +323,7 @@ function emitApprovalRequested(
 async function awaitEventDecision(deps: EventDecisionDeps): Promise<DecisionOutcome> {
   const { bus, run } = deps
   // One bus carries every run's prompts, so the key must be unique across all of them.
-  const requestId = randomUUID()
+  const requestId = crypto.randomUUID()
   const timeoutMs = run.env.limits.approvalTimeoutMs
   // One clock read: the timer below and every surface's prompt expire at the same instant.
   const askedAt = Date.now()

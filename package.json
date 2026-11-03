@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
+    "@noble/hashes": "^2.4.0",
     "@preact/signals": "2.11.4",
     "pg": "^8.23.1",
     "pino": "^10.4.0",

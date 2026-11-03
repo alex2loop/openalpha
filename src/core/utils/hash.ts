@@ -1,25 +1,17 @@
-import { createHash } from 'node:crypto'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { bytesToHex } from '@noble/hashes/utils.js'
+
+const HASH_STRING_LENGTH = 16
 
 // 16-char sha256 prefix for content-dedup / loop-detection fingerprints (not security).
 export function hashString(s: string): string {
-  return createHash('sha256').update(s).digest('hex').slice(0, 16)
+  return sha256Hex(s).slice(0, HASH_STRING_LENGTH)
 }
 
-// Full lowercase SHA-256 hex digest of a string via Web Crypto. Used for evidence-excerpt text
-// hashing, where the full digest is the dedup/comparison key (not a security boundary).
-export async function sha256Hex(s: string): Promise<string> {
-  const data = new TextEncoder().encode(s)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return bufferToHex(digest)
-}
-
-function bufferToHex(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let out = ''
-  for (const byte of bytes) {
-    out += byte.toString(16).padStart(2, '0')
-  }
-  return out
+// Full lowercase SHA-256 hex digest of a string. Used for evidence-excerpt text hashing and
+// persisted ids, where the full digest is the dedup/comparison key (not a security boundary).
+export function sha256Hex(s: string): string {
+  return bytesToHex(sha256(new TextEncoder().encode(s)))
 }
 
 /** JSON with every object's keys in code-unit order, so equal values always serialize alike. */

@@ -262,8 +262,7 @@ async function findReplay(
 
   if (
     isResolvedDraft(draft) &&
-    existing.requestFingerprint !==
-      (await buildRequestFingerprint({ draft, signal: mutation.signal }))
+    existing.requestFingerprint !== buildRequestFingerprint({ draft, signal: mutation.signal })
   ) {
     throw new ConflictError(
       `idempotency key ${mutation.idempotencyKey} was reused with a different request`
@@ -278,7 +277,7 @@ async function recordEntry(
   mutation: ResolvedRecord,
   assertValid: AssertLedgerValid
 ): Promise<RecordedEntry> {
-  const requestFingerprint = await buildRequestFingerprint({
+  const requestFingerprint = buildRequestFingerprint({
     draft: mutation.draft,
     signal: mutation.signal,
   })

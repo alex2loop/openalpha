@@ -1,10 +1,10 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { sha256Hex } from '@/core/utils/hash'
 
 const ALPHANUMERIC_RE = /^[A-Za-z0-9]+$/
 
 /** For a host that streams a tool call without an id: the result must name the call it answers. */
 export function buildToolCallId(): string {
-  return `call_${randomUUID()}`
+  return `call_${crypto.randomUUID()}`
 }
 
 /** Rewrites an id another host minted into the shape this one accepts. The same id always maps to
@@ -14,5 +14,5 @@ export function toWireToolCallId(id: string, length: number | undefined): string
     return id
   }
 
-  return createHash('sha256').update(id).digest('hex').slice(0, length)
+  return sha256Hex(id).slice(0, length)
 }
