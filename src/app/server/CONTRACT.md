@@ -272,7 +272,8 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   `horizons` map changes only the markets it names.
 - **`/v1/profile` settings an edition does not offer** (`riskCapacity`, `riskWillingness`,
   `maximumSectorPctNav`, `reservePctNav`, `regimeScale`, `riskPerTradePctNav`) are absent from
-  the response; a client shows an absent one as missing, never as 0.
+  the response, and a patch that carries one is refused as `validation`; a client shows an absent
+  one as missing, never as 0.
 - **`preferredLocale`** in a profile response is `[locale] language`, the one language every reply
   uses; the profile has none of its own, so it is not a patch key.
 - **`/v1/providers/test`** makes one tiny call through the saved primary model. `code` is the provider's

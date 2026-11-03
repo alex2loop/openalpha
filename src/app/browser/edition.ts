@@ -64,13 +64,15 @@ const BRIEF_ACTION_OMITS: ReadonlySet<BriefActionCode> = new Set(['avoid-chasing
 /** Statements come from a source no browser reaches, so a refresh does not ask for them. */
 const REFRESH_OMITS: NonNullable<TradingEdition['refreshOmits']> = new Set(['accounts'])
 
-/** The settings the page reads: the risk level and goal an analysis is framed by, the horizon, the
- *  cash reserve, and the targets and caps the gaps are measured against. */
+/** The settings the page reads: the risk level, goal and horizon it states, the cash reserve and
+ *  the sector cap its findings measure against, and the targets and caps the gaps are measured
+ *  against. */
 const PROFILE_FIELDS: ReadonlySet<ProfileSetField> = new Set([
   'risk-level',
   'goal',
   'horizon',
   'reserve-pct-nav',
+  'maximum-sector-pct-nav',
   'segment-target',
   'segment-cap',
   'position-cap',
@@ -115,10 +117,7 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
     briefActionOmits: BRIEF_ACTION_OMITS,
     profile: {
       fields: PROFILE_FIELDS,
-      keys: {
-        usage: 'slash.tradingProfileAnalysisUsage',
-        installedOnly: 'slash.tradingProfileInstalledOnly',
-      },
+      usage: 'slash.tradingProfileAnalysisUsage',
     },
     reads: EMPTY_READS,
     pagedBackfill: true,

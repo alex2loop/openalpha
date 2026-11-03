@@ -16,8 +16,8 @@ import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { closestName } from '@/core/utils/text'
 import {
+  assertOffered,
   offeredFields,
-  PROFILE_SET_FIELDS,
   parseProfilePatch,
   parseSegmentPolicyRequest,
   profileFieldValues,
@@ -68,14 +68,10 @@ type Profiles = Pick<
 >
 
 /** Where an edition offers fewer settings than the installed version: the ones it prints and
- *  accepts, and the words it answers with. */
+ *  accepts, and the usage text it answers with. */
 export interface ProfileEdition {
   readonly fields: ReadonlySet<ProfileSetField>
-  readonly keys: {
-    readonly usage: CommandMessageKey
-    /** The answer to a setting only the installed version has. */
-    readonly installedOnly: CommandMessageKey
-  }
+  readonly usage: CommandMessageKey
 }
 
 interface ProfileCommandDeps {
@@ -91,10 +87,7 @@ export function createProfileCommand(deps: ProfileCommandDeps): SlashCommand {
   return {
     name: 'profile',
     description: { kind: 'localized', key: 'slash.tradingProfileHelp' },
-    messageKeys:
-      edition === undefined
-        ? [USAGE, ...REFUSAL_KEYS]
-        : [edition.keys.usage, edition.keys.installedOnly, ...REFUSAL_KEYS],
+    messageKeys: [edition?.usage ?? USAGE, ...REFUSAL_KEYS],
     policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
     completeFor: (args) => completeProfile(deps, args),
     usage: () => ({ key: usageKeyOf(deps), values: buildUsageValues(deps.profiles) }),
@@ -148,12 +141,7 @@ async function runSet(
     return usageFor(deps)
   }
 
-  if (deps.edition !== undefined && isInstalledOnly(deps.edition, field)) {
-    return {
-      kind: 'message',
-      messages: [{ key: deps.edition.keys.installedOnly, values: { field } }],
-    }
-  }
+  assertOffered(fieldsOf(deps), [field])
 
   const segments = deps.profiles.segments()
   const policy = parseSegmentPolicyRequest({ field, values, segments })
@@ -176,13 +164,6 @@ async function runSet(
   })
 
   return shown(deps, ctx, profile)
-}
-
-/** A setting the installed version has and this edition does not offer. */
-function isInstalledOnly(edition: ProfileEdition, field: string): boolean {
-  const known = parseMember(field, PROFILE_SET_FIELDS)
-
-  return known !== null && !edition.fields.has(known)
 }
 
 async function runReset(
@@ -317,7 +298,7 @@ function usageFor(deps: ProfileCommandDeps): SlashResult {
 }
 
 function usageKeyOf(deps: ProfileCommandDeps): CommandMessageKey {
-  return deps.edition?.keys.usage ?? USAGE
+  return deps.edition?.usage ?? USAGE
 }
 
 function fieldsOf(deps: ProfileCommandDeps): readonly ProfileSetField[] {
