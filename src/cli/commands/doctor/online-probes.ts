@@ -4,13 +4,8 @@ import type { CredentialSource, ProviderEntry, StoredTokens } from '@/ai/api'
 import type { ResolvedConfig, ResolvedModel } from '@/core/config/resolve'
 import type { LLMErrorCode } from '@/core/llm'
 import type { Locale } from '@/core/types/locale'
-import {
-  createClient,
-  createCredentialSources,
-  createTokenFile,
-  findProviderById,
-  missingKeyErrors,
-} from '@/ai/api'
+import { createClient, findProviderById, missingKeyErrors } from '@/ai/api'
+import { createCredentialSources, createTokenFile } from '@/ai/node-api'
 import { resolveSecret, TELEGRAM_API_BASE, ZALO_API_BASE } from '@/channels/api'
 import { providerFailureSpecOf, terminalErrorMessage } from '@/cli/error-output'
 import { BRAND } from '@/core/brand'
@@ -19,8 +14,7 @@ import { toMissingSearchKeyError } from '@/core/config/resolve'
 import { LLMError } from '@/core/errors'
 import { httpRequest } from '@/core/http-client'
 import { silentLogger } from '@/core/logging/logger'
-import { NetworkPolicy } from '@/core/ssrf/network-policy'
-import { withoutTrailingSlashes } from '@/core/utils/url'
+import { isLoopbackUrl, withoutTrailingSlashes } from '@/core/utils/url'
 import { t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
@@ -420,7 +414,7 @@ function modelProbeFailure(err: unknown, model: ResolvedModel, locale: Locale): 
   const url = model.baseUrl ?? provider?.baseUrl ?? ''
   const unreachable = err instanceof LLMError && UNREACHABLE_CODES.has(err.code)
 
-  if (unreachable && NetworkPolicy.isLoopbackUrl(url)) {
+  if (unreachable && isLoopbackUrl(url)) {
     const name = provider?.displayName ?? model.provider
 
     return t(locale, 'cli.doctorLocalServerDown', { url, provider: name })

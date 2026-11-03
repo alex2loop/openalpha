@@ -1,4 +1,3 @@
-export type { TokenFile } from '@/ai/auth/token-file'
 export type {
   AuthorizationRequest,
   AuthProvider,
@@ -20,15 +19,10 @@ export type { ModelPriceResolution, PriceSource, Pricing } from '@/ai/cost/prici
 export type { ModelPrice } from '@/ai/types'
 export { haltDetailOf } from '@/ai/adapters/errors'
 export { hasIdentityEnv, IDENTITY_ENV } from '@/ai/auth/cloud/identity'
-export { createCredentialSources } from '@/ai/auth/credentials'
-export { listAuthHosts } from '@/ai/auth/hosts'
-export { awaitLoopbackCode } from '@/ai/auth/loopback'
-export { CHATGPT_PROVIDER_ID } from '@/ai/auth/providers/chatgpt'
-export { AUTH_PROVIDERS, authProviderByLoginName, loginNames } from '@/ai/auth/registry'
-export { createTokenFile } from '@/ai/auth/token-file'
 export {
   buildUnknownProviderMessage,
   CATALOG_MODELS,
+  CHATGPT_PROVIDER_ID,
   findProviderById,
   PROVIDERS,
   providerById,

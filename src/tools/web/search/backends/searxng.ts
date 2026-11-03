@@ -3,6 +3,7 @@ import { ToolError } from '@/core/errors'
 import { parseRetryAfterMs, readCappedText } from '@/core/http-client'
 import { NetworkPolicy } from '@/core/ssrf/network-policy'
 import { isPlainRecord } from '@/core/utils/collections'
+import { isLoopbackUrl } from '@/core/utils/url'
 import { parseJsonBody } from '@/tools/web/search/body-cap'
 import { filterSearchResults, toDomainQuery, toHttpUrl } from '@/tools/web/search/domains'
 import {
@@ -63,7 +64,7 @@ async function fetchSearxng(request: SearchRequest): Promise<Response> {
   const endpoint = url.toString()
   const fetchInit: RequestInit = { signal: request.signal }
 
-  if (NetworkPolicy.isLoopbackUrl(endpoint)) {
+  if (isLoopbackUrl(endpoint)) {
     return NetworkPolicy.guardedLoopbackFetch(endpoint, fetchInit)
   }
 

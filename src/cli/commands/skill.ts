@@ -23,16 +23,8 @@ import { createPrivateFileAtomic, replacePrivateFileAtomic } from '@/core/securi
 import { NetworkPolicy } from '@/core/ssrf/network-policy'
 import { sha256Hex } from '@/core/utils/hash'
 import { sanitizeDisplayText } from '@/core/utils/text'
-import {
-  ensureSkillsDirectory,
-  evaluateSkillContent,
-  isAllowed,
-  readLock,
-  readSkillName,
-  resolveLockPath,
-  resolveSkillPlatform,
-  writeLock,
-} from '@/engine/api'
+import { evaluateSkillContent, isAllowed, readSkillName, resolveSkillPlatform } from '@/engine/api'
+import { ensureSkillsDirectory, readLock, resolveLockPath, writeLock } from '@/engine/node-api'
 import { t } from '@/i18n'
 
 const SKILL_FILE = 'SKILL.md'

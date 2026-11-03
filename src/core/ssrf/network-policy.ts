@@ -3,12 +3,12 @@ import { hasLikelySecret } from '@/core/security/credentials'
 import { type DnsLookupFn, defaultDnsLookup } from '@/core/ssrf/dns'
 import { createPinnedFetch, type FetchFn } from '@/core/ssrf/pinned-fetch'
 import { assertEndpointSafe, assertHostAllowlisted, parseHttpsUrl } from '@/core/ssrf/ssrf'
+import { isLoopbackUrl, LOOPBACK_HOSTS } from '@/core/utils/url'
 
 const REDIRECT_MAX = 5
 // Whole-chain bound for a caller that supplies no signal of its own; a never-settling signal there
 // would let one stalled hop hold its socket forever.
 const GUARDED_FETCH_TIMEOUT_MS = 60_000
-const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '[::1]'])
 const SENSITIVE_HEADERS = new Set([
   'authorization',
   'cookie',
@@ -281,14 +281,6 @@ function parseLoopbackUrl(endpoint: string): URL {
   return url
 }
 
-function isLoopbackUrl(endpoint: string): boolean {
-  try {
-    return LOOPBACK_HOSTS.has(new URL(endpoint).hostname)
-  } catch {
-    return false
-  }
-}
-
 function resolveFetchSignal(init: RequestInit): AbortSignal {
   if (init.signal?.aborted) {
     throw abortError(init.signal)
@@ -427,5 +419,4 @@ export const NetworkPolicy = {
   guardedFetch,
   guardedLoopbackFetch,
   guardedServerFetch,
-  isLoopbackUrl,
 } as const

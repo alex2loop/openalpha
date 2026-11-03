@@ -1,5 +1,6 @@
 import type { ProviderEntry } from '@/ai/api'
-import { AUTH_PROVIDERS, hasIdentityEnv, IDENTITY_ENV } from '@/ai/api'
+import { hasIdentityEnv, IDENTITY_ENV } from '@/ai/api'
+import { AUTH_PROVIDERS } from '@/ai/node-api'
 import { getEnv } from '@/cli/env'
 import { style } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'

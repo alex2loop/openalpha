@@ -29,8 +29,8 @@ import {
   isEntryAgent,
   isValidAgentId,
   RESERVED_AGENT_IDS,
-  userAgentFile,
 } from '@/engine/api'
+import { userAgentFile } from '@/engine/node-api'
 import { t } from '@/i18n'
 import { pauseJobsOfAgent } from '@/scheduler/api'
 

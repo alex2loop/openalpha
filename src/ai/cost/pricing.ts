@@ -8,7 +8,7 @@ import { cacheOpenRouterPrices, openRouterPriceOf } from '@/ai/cost/openrouter-p
 import { isOpenRouterFeedDue, loadOpenRouterPrices } from '@/ai/openrouter-feed'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { NetworkPolicy } from '@/core/ssrf/network-policy'
+import { isLoopbackUrl } from '@/core/utils/url'
 
 // USD per million tokens. A vendor-qualified id resolves through its unqualified tail, so one feed
 // row serves both `gemini-2.5-pro` and `google/gemini-2.5-pro`.
@@ -244,7 +244,7 @@ function isSamePrice(a: ModelPrice, b: ModelPrice): boolean {
 // pricing feed — override or fallback pricing only.
 function isLocalProvider(entry: ResolvedModel): boolean {
   const baseUrl = entry.baseUrl ?? catalogBaseUrl(entry.provider)
-  return baseUrl !== undefined && NetworkPolicy.isLoopbackUrl(baseUrl)
+  return baseUrl !== undefined && isLoopbackUrl(baseUrl)
 }
 
 // An entry whose provider id isn't in the catalog (should not happen post config-resolve) is

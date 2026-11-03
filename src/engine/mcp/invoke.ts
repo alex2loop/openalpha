@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { ProgressMessage } from '@/core/stream-events'
 import type { ToolCall, ToolResult } from '@/core/tool'
 import type { RunResultReason } from '@/core/types/run'
@@ -127,7 +125,7 @@ async function invokeTool(
     return await executeTrackedMcpTool({
       deps,
       run: { identity, env, state, services },
-      call: { id: randomUUID(), name: input.name, input: input.input },
+      call: { id: crypto.randomUUID(), name: input.name, input: input.input },
       controller,
       ...(input.progress === undefined ? {} : { observer: progressObserver(input.progress) }),
     })

@@ -7,7 +7,7 @@ import { reportPass } from '@/core/container'
 import { pruneRemovedAgentLogs } from '@/core/logging/retention'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
-import { pruneExpiredRunCaches, pruneExpiredWorkspaceTmp } from '@/engine/api'
+import { pruneExpiredRunCaches, pruneExpiredWorkspaceTmp } from '@/engine/node-api'
 import { optimizeSqlite, runRetention } from '@/persistence/api'
 import {
   BACKUPS_SUBDIR,

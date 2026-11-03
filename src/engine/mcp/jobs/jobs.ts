@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { Logger } from '@/core/logging/logger'
 import type { ToolResult } from '@/core/tool'
 import type { PendingRequest, RequestBroker } from '@/engine/mcp/jobs/broker'
@@ -108,7 +106,7 @@ async function startJob(state: JobsState, call: McpJobStart): Promise<McpJobRepl
   }
 
   const job: McpJob = {
-    id: randomUUID(),
+    id: crypto.randomUUID(),
     controller: new AbortController(),
     viewedAt: new Map(),
     closed: false,

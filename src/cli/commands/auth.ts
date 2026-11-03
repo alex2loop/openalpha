@@ -8,7 +8,7 @@ import {
   awaitLoopbackCode,
   createTokenFile,
   loginNames,
-} from '@/ai/api'
+} from '@/ai/node-api'
 import { createCommand, createGroup, type Group } from '@/cli/command'
 import { terminalErrorMessage, usage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'

@@ -2,7 +2,7 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
 import type { ToolDefinition } from '@/core/tool'
 import { formatErrForLog } from '@/core/security/credentials'
-import { connectServer } from '@/engine/api'
+import { connectServer } from '@/engine/node-api'
 
 interface ConnectedMcpServer {
   readonly name: string

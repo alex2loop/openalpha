@@ -1,9 +1,9 @@
-import { CHATGPT_PROVIDER_ID } from '@/ai/auth/providers/chatgpt'
 import { BRAND } from '@/core/brand'
 import { LLMError, type OperatorMessage } from '@/core/errors'
-import { NetworkPolicy } from '@/core/ssrf/network-policy'
 import { closestName } from '@/core/utils/text'
-import { hostOfUrl } from '@/core/utils/url'
+import { hostOfUrl, isLoopbackUrl } from '@/core/utils/url'
+
+export const CHATGPT_PROVIDER_ID = 'openai-chatgpt'
 
 const OPENAI_CHAT = {
   transport: 'openai_chat',
@@ -277,6 +277,6 @@ export function requiresApiKey(provider: ProviderEntry, baseUrl: string): boolea
   return (
     provider.authKind !== 'oauth_subscription' &&
     provider.identity === undefined &&
-    !NetworkPolicy.isLoopbackUrl(baseUrl)
+    !isLoopbackUrl(baseUrl)
   )
 }

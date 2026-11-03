@@ -5,8 +5,9 @@ import type { OperationsPolicy } from '@/trading/kernel/config'
 import { type MissingEnvError, missingEnvOf } from '@/core/config/operator-errors'
 import { notifyPass, TASK_FAILED } from '@/core/container'
 import { ChannelError, isAbortError, LLMError, RunHalted, StorageError } from '@/core/errors'
+import { REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/limits'
 import { formatErrForLog } from '@/core/security/credentials'
-import { probeHost, REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/utils/reachability'
+import { probeHost } from '@/core/utils/reachability'
 import { sleep } from '@/core/utils/time'
 
 /** What a tick may say about its own pass without failing it. */

@@ -11,7 +11,7 @@ import type {
 } from '@/app/server/wire/sign-in'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
-import { authProviderByLoginName, awaitLoopbackCode, createTokenFile } from '@/ai/api'
+import { authProviderByLoginName, awaitLoopbackCode, createTokenFile } from '@/ai/node-api'
 import { buildServerOnlyText, isApiExposed } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { isExposedOnDisk } from '@/app/server/routes/config'

@@ -1,8 +1,8 @@
+import type { CredentialSource } from '@/ai/auth/types'
 import type { ProviderChainRegistry } from '@/ai/chain/registry'
 import type { Pricing } from '@/ai/cost/pricing'
 import type { ResolvedConfig, ResolvedModel } from '@/core/config/resolve'
-import type { Bind, ServiceProvider } from '@/core/container'
-import { createCredentialSources } from '@/ai/auth/credentials'
+import type { App, Bind, ServiceProvider } from '@/core/container'
 import { createProviderChainRegistry } from '@/ai/chain/registry'
 import { createClientModelChain } from '@/ai/client-model/chain'
 import { createConfiguredPricing } from '@/ai/cost/pricing'
@@ -16,10 +16,10 @@ declare module '@/core/container' {
 }
 
 // `logger` is bound by the composition root before persistence, so `ai` must register
-// after it — provider order in app/providers.ts is load-bearing. `env` is the boot environment,
-// where the cloud sign-ins find their credentials.
+// after it — provider order in app/providers.ts is load-bearing. The host owns how a model call is
+// signed in: the daemon reads token files and cloud identities, the browser holds none.
 export function createAiProvider(
-  env: Readonly<Record<string, string | undefined>>
+  credentialSources: (app: App) => readonly CredentialSource[]
 ): ServiceProvider {
   return {
     name: 'ai',
@@ -45,11 +45,7 @@ export function createAiProvider(
           logger: app.resolve('logger'),
           bus: app.resolve('bus'),
           pricing,
-          credentials: createCredentialSources({
-            dataDir: app.config.paths.dataDir,
-            logger: app.resolve('logger'),
-            env,
-          }),
+          credentials: credentialSources(app),
           ...(isClientModelSource(app.config.modelSource)
             ? { primary: createClientModelChain(app.resolve('clientModelBroker')) }
             : {}),

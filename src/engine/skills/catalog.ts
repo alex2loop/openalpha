@@ -7,9 +7,9 @@ import {
   loadSkillIndexFingerprint,
   loadSkillIndexFromDirs,
   readSkillDoc,
-  readSkillMeta,
   toSkillDoc,
 } from '@/engine/skills/load'
+import { readSkillMeta } from '@/engine/skills/skill-text'
 
 export interface SkillCatalog {
   list(visibility: SkillVisibility, signal: AbortSignal): Promise<readonly SkillMeta[]>

@@ -20,7 +20,7 @@ import { startUpdateWatch } from '@/app/update/watch'
 import { startChannels } from '@/channels/api'
 import { type AppError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { startScheduledWorkflows } from '@/engine/api'
+import { startScheduledWorkflows } from '@/engine/node-api'
 
 /** What the daemon holds of its API once it is up: what it started without, and the step that lets it
  *  answer everything. Both are inert when the API is off or could not open. */

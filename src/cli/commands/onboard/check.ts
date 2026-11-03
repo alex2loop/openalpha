@@ -1,5 +1,6 @@
 import type { ProviderEntry } from '@/ai/api'
-import { AUTH_PROVIDERS, createTokenFile, hasIdentityEnv } from '@/ai/api'
+import { hasIdentityEnv } from '@/ai/api'
+import { AUTH_PROVIDERS, createTokenFile } from '@/ai/node-api'
 import { authCommand } from '@/cli/commands/auth'
 import { probeProviders } from '@/cli/commands/doctor/online-probes'
 import { getEnv } from '@/cli/env'

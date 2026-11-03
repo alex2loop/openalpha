@@ -12,8 +12,12 @@ import type { Locale } from '@/core/types/locale'
 import { parseChannelAddress } from '@/core/channels'
 import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
-import { DEFAULT_MAX_DURATION_MS, DEFAULT_MAX_TOOL_CALLS, DEFAULT_MAX_TURNS } from '@/core/limits'
-import { REACHABILITY_TIMEOUT_MS } from '@/core/utils/reachability'
+import {
+  DEFAULT_MAX_DURATION_MS,
+  DEFAULT_MAX_TOOL_CALLS,
+  DEFAULT_MAX_TURNS,
+  REACHABILITY_TIMEOUT_MS,
+} from '@/core/limits'
 import { MS_PER_SECOND } from '@/core/utils/time'
 
 // Caps are opt-in guardrails: 0 = uncapped, only tracked.

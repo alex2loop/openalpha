@@ -6,11 +6,13 @@ import type { App, Bind, ServiceProvider } from '@/core/container'
 import type { ToolDefinition } from '@/core/tool'
 import type { CliCommandDef } from '@/core/types/cli-command'
 import type { Plugin } from '@/core/types/plugin'
-import type { UserAgentSource, Workflow } from '@/engine/api'
+import type { Workflow } from '@/engine/api'
+import type { UserAgentSource } from '@/engine/node-api'
 import type { OpenedPersistence } from '@/persistence/api'
 import type { PluginAssets } from '@/plugins/api'
 import type { LoadedSourceModule, UserProfile } from '@/trading/api'
 import { createAiProvider } from '@/ai/api'
+import { createCredentialSources } from '@/ai/node-api'
 import { createUserAgentsProvider, liveAgentsProvider } from '@/app/agent-registry'
 import { coreCommands } from '@/app/chat-commands'
 import { createDaemonTask } from '@/app/daemon'
@@ -30,7 +32,8 @@ import { createHealthSummary, createSpendReader } from '@/app/views'
 import { channelsProvider } from '@/channels/api'
 import { createCommandsProvider, createSessionModelSelection } from '@/commands/api'
 import { OperatorConfigError } from '@/core/config/operator-errors'
-import { addWorkflow, createSkillCatalog, engineProvider, resolveSkillsDir } from '@/engine/api'
+import { engineProvider } from '@/engine/api'
+import { addWorkflow, createSkillCatalog, resolveSkillsDir } from '@/engine/node-api'
 import { bindLocale } from '@/i18n'
 import { memoryProvider } from '@/memory/api'
 import { createPersistenceProvider } from '@/persistence/api'
@@ -139,7 +142,13 @@ export function buildProviders(options: BuildProvidersOptions): ProviderAssembly
     options.tradingStores, // 2
     createBaseCurrencyGuardProvider(), // 2b
     memoryProvider, // 3
-    createAiProvider(options.env), // 4
+    createAiProvider((app) =>
+      createCredentialSources({
+        dataDir: app.config.paths.dataDir,
+        logger: app.resolve('logger'),
+        env: options.env,
+      })
+    ), // 4
     engineProvider, // 5
     toolsProvider, // 6
     channelsProvider, // 7
