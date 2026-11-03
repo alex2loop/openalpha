@@ -101,7 +101,8 @@ One kind is defined but **unrouted**: crypto spot-ETF net flows. No provider has
 
 **The VN scraping sources and the gold boards are fragile**, and being on by default does not change that:
 
-- `vndirect`, `entrade` and `vietcap` read undocumented internal broker endpoints with no SLA.
+- `vndirect`, `vndirect-index`, `entrade`, `vietcap` and `vps-board` read undocumented internal broker endpoints with no SLA.
+- `vietcombank` reads the bank's own website feed.
 - `cafef` reads a consumer site's own AJAX handler and publishes rows whose value and volume contradict each other; those rows are dropped, not filed.
 - `pnj` reads a storefront's own endpoint.
 - `giavang` is a community API run by one operator.

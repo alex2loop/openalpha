@@ -101,7 +101,8 @@ Có một loại được khai nhưng **chưa định tuyến**: dòng tiền r�
 
 **Các nguồn scrape VN và các bảng vàng khá mong manh**, và việc chúng bật mặc định không thay đổi điều đó:
 
-- `vndirect`, `entrade` và `vietcap` đọc các endpoint nội bộ của công ty chứng khoán: không tài liệu, không SLA.
+- `vndirect`, `vndirect-index`, `entrade`, `vietcap` và `vps-board` đọc các endpoint nội bộ của công ty chứng khoán: không tài liệu, không SLA.
+- `vietcombank` đọc nguồn cấp trên website của chính ngân hàng.
 - `cafef` đọc chính AJAX handler của một trang tiêu dùng, và công bố các dòng mà giá trị với khối lượng tự mâu thuẫn nhau; các dòng đó bị bỏ chứ không được ghi.
 - `pnj` đọc endpoint của chính cửa hàng.
 - `giavang` là API cộng đồng do một người vận hành.

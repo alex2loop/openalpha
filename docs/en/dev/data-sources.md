@@ -280,6 +280,7 @@ share sweep's failures the one an index needs. Same host, separate breaker. Prov
   future asked of it would spend a request to say nothing. An empty page is a settled miss and the route moves on.
 - The last page of a long window carries no `totalElements`; `getJsonPages` stops on a short page. Two replies came back truncated while
   measuring, which the transport's retry covers.
+- Stored index volume keeps the `entrade` basis on held days until `/refresh equity-vn force` re-bases the window, so `market_bars` can show both bases meanwhile.
 
 `vps` is last. With `entrade` declining them, the ETF benchmarks VNDIAMOND, VNFINLEAD, VNFINSELECT, VNMIDCAP, VNSHINE and VNX50
 still had `vietcap-chart` and `vps` behind `vndirect-index`, so no single refusal takes them out. VPS Securities' feed carries them 707 sessions deep against vietcap's 673, every
