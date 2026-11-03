@@ -1,4 +1,4 @@
-import type { ApiRouteGroup } from '@/app/types'
+import type { ApiRouteGroup, ApiRouteSpec } from '@/app/types'
 import { BROWSER_CONFIG_GROUP } from '@/app/browser/config-routes'
 import {
   INDEX_GROUP,
@@ -9,18 +9,26 @@ import {
   WATCHLIST_GROUP,
 } from '@/app/server/http/routes'
 
+/** A path and what is under it; with a `method`, only that method is withheld and the path's reads
+ *  stay served (`PATCH /v1/brief` schedules a daemon send, `GET /v1/brief` is the web's). */
+interface WithheldRoute {
+  readonly path: string
+  readonly method?: string
+}
+
 /** Routes a group carries that the web does not serve: they are the daemon's (alerts that fire while
  *  the tab is closed, themes, the venue sync) or name a verdict, a stop or a plan (suggestions and
  *  their cards and debates, the track record, the stops, the reconcile). They answer `not_found`, so
  *  the capabilities read off the table read false too. The analyses route stays: it is the web's. */
-const WITHHELD_PATHS: readonly string[] = Object.freeze([
-  '/v1/alerts',
-  '/v1/themes',
-  '/v1/stops',
-  '/v1/suggestions',
-  '/v1/track-record',
-  '/v1/ledger/sync',
-  '/v1/reconcile',
+const WITHHELD_ROUTES: readonly WithheldRoute[] = Object.freeze([
+  { path: '/v1/alerts' },
+  { path: '/v1/themes' },
+  { path: '/v1/stops' },
+  { path: '/v1/suggestions' },
+  { path: '/v1/track-record' },
+  { path: '/v1/ledger/sync' },
+  { path: '/v1/reconcile' },
+  { path: '/v1/brief', method: 'PATCH' },
 ])
 
 /** The route groups the web's features need: the market reads, the trading reads (suggestions'
@@ -38,10 +46,14 @@ export const BROWSER_ROUTE_GROUPS: readonly ApiRouteGroup[] = Object.freeze(
     BROWSER_CONFIG_GROUP,
   ].map((group) => ({
     name: group.name,
-    routes: group.routes.filter((route) => !isWithheld(route.path)),
+    routes: group.routes.filter((route) => !isWithheld(route)),
   }))
 )
 
-function isWithheld(path: string): boolean {
-  return WITHHELD_PATHS.some((withheld) => path === withheld || path.startsWith(`${withheld}/`))
+function isWithheld(route: ApiRouteSpec): boolean {
+  return WITHHELD_ROUTES.some(
+    ({ path, method }) =>
+      (method === undefined || method === route.method) &&
+      (route.path === path || route.path.startsWith(`${path}/`))
+  )
 }

@@ -146,6 +146,7 @@ core/security/private-files
 core/security/sanitize
 core/session-queue
 core/ssrf/fetch-guard
+core/ssrf/host-allowlist
 core/ssrf/network-policy
 core/ssrf/pinned-fetch
 core/stream-events

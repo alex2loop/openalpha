@@ -111,6 +111,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'security/private-files',
   'security/sanitize',
   'ssrf/fetch-guard',
+  'ssrf/host-allowlist',
   'ssrf/network-policy',
   'ssrf/pinned-fetch',
   'utils/collections',

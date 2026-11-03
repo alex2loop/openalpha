@@ -2,8 +2,9 @@ import type { GuardedFetchOptions, GuardedResponse } from '@/core/ssrf/fetch-gua
 import { abortError, ToolError } from '@/core/errors'
 import { hasLikelySecret } from '@/core/security/credentials'
 import { type DnsLookupFn, defaultDnsLookup } from '@/core/ssrf/dns'
+import { assertHostAllowlisted } from '@/core/ssrf/host-allowlist'
 import { createPinnedFetch, type FetchFn } from '@/core/ssrf/pinned-fetch'
-import { assertEndpointSafe, assertHostAllowlisted, parseHttpsUrl } from '@/core/ssrf/ssrf'
+import { assertEndpointSafe, parseHttpsUrl } from '@/core/ssrf/ssrf'
 import { isLoopbackUrl, LOOPBACK_HOSTS } from '@/core/utils/url'
 
 const REDIRECT_MAX = 5

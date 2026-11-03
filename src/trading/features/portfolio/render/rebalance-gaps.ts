@@ -4,12 +4,37 @@ import type {
   RebalancePlanReady,
   RebalanceSizing,
 } from '@/trading/features/portfolio/types'
+import type { Caveat } from '@/trading/kernel/caveat'
 import { t } from '@/i18n'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { formatFixedFraction, fractionDirection } from '@/trading/render/format'
 import { renderKindBadge } from '@/trading/render/kind-badge'
 import { INDENT } from '@/trading/render/layout'
 import { formatMoney } from '@/trading/render/money'
+
+export const REGIME_CAVEAT = 'portfolio.regime-risk'
+
+/** The plan caveats a gaps plan leaves out: each says what to buy or sell, or names a candidate
+ *  to look at, and a gaps plan states neither. The regime caveat says how much of a buy today
+ *  allows. */
+const GAPS_DROPPED_CAVEATS: ReadonlySet<string> = new Set([
+  REGIME_CAVEAT,
+  'portfolio.candidates-available',
+  'portfolio.candidates-by-name',
+  'portfolio.candidates-outside-cap',
+  'portfolio.increase-below-minimum',
+  'portfolio.increases-underfunded',
+  'portfolio.reduce-standing',
+  'portfolio.reduction-below-minimum',
+  'portfolio.reduction-illiquid',
+  'portfolio.reduction-unsettled',
+  'portfolio.segment-no-candidates',
+])
+
+/** True for a caveat a gaps plan keeps: its text, surface notes and wire all ask this one. */
+export function isGapsCaveat(caveat: Caveat): boolean {
+  return !GAPS_DROPPED_CAVEATS.has(caveat.code)
+}
 
 interface RenderedGap {
   readonly row: PositionChange

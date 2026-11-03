@@ -31,12 +31,11 @@ import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layou
 import { formatMoney } from '@/trading/render/money'
 import { renderSubject } from '@/trading/render/subject'
 
-import { renderGapEntries } from './rebalance-gaps'
+import { isGapsCaveat, REGIME_CAVEAT, renderGapEntries } from './rebalance-gaps'
 import { renderOrders, splitBreaches } from './rebalance-orders'
 import { printedSegmentShares, renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
 const DRIFT_FINDING = 'segment-drift'
-const REGIME_CAVEAT = 'portfolio.regime-risk'
 
 interface PlanSums {
   readonly sold: number
@@ -123,8 +122,8 @@ export function renderPlanTables(
   ]
 }
 
-/** What the plan's own caveats and findings say. A gaps plan leaves out the regime caveat, which
- *  says how much of a buy today allows. */
+/** What the plan's own caveats and findings say. A gaps plan keeps only the caveats that name no
+ *  action and no candidate. */
 export function renderPlanNotes(
   locale: Locale,
   advice: RebalancePlanReady,
@@ -135,7 +134,7 @@ export function renderPlanNotes(
   return renderNotes(
     locale,
     advice.findings,
-    options.form === 'gaps' ? caveats.filter((caveat) => caveat.code !== REGIME_CAVEAT) : caveats
+    options.form === 'gaps' ? caveats.filter(isGapsCaveat) : caveats
   )
 }
 

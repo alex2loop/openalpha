@@ -81,6 +81,8 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
     venueListings: listings,
     briefServices: lazyBriefServices(app, options.tradingConfig, {
       venues,
+      // The book's `stopDistances` answers [] ("measured, none set"); the brief takes undefined
+      // for "no stop read at all", so a section states no stop instead of one per losing name.
       ...(options.edition?.reads === undefined
         ? {}
         : { reads: { ...options.edition.reads.brief, stopDistances: async () => undefined } }),
