@@ -309,7 +309,7 @@
 
 /* The icon-only island: the agent list stays the tap target, laid invisibly over the portrait. */
 .command-bar.is-floating:has(.command-input:focus, .command-input:not(:placeholder-shown))
-:is(.who-chip, .command-chat),
+  :is(.who-chip, .command-chat),
 :root[data-layout="phone"] .command-bar.is-floating :is(.who-chip, .command-send) {
   width: var(--islandH);
   padding: 0;
