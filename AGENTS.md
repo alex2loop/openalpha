@@ -46,6 +46,7 @@ bun scripts/check-strategy-version.ts --write   # re-record policy digests
 ```
 src/       # engine, cli, trading, channels, persistence, ai, memory, plugins, social, ...
 scripts/   # the gate suite (`bun run check`, `bun run lint:arch`)
+site/      # public homepage: static files, no build; vendors its one script (no runtime CDN)
 ```
 
 A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src/app/server/CONTRACT.md`).
