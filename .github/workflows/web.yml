@@ -1,0 +1,89 @@
+name: web
+
+# Deploys the web edition and the homepage to Cloudflare as static assets, from the tag the release
+# workflow just published and only while that tag is the latest release. It is separate from the
+# release workflow and never bumps a version or writes to the repository.
+#
+# It stays idle until the operator has added what a deploy needs: the secrets CLOUDFLARE_API_TOKEN
+# and CLOUDFLARE_ACCOUNT_ID and the repository variable WEB_APP_URL (the address of the web app,
+# which the homepage links to). With any of them missing the run ends green and deploys nothing.
+# Run it by hand to deploy the latest release again.
+on:
+  workflow_run:
+    workflows: [release]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancelled: a half-finished deploy would leave the app and the homepage on different tags.
+concurrency:
+  group: web
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.plan.outputs.deploy }}
+      tag: ${{ steps.plan.outputs.tag }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WEB_APP_URL: ${{ vars.WEB_APP_URL }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Decide
+        id: plan
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$WEB_APP_URL" ]; then
+            echo "Cloudflare secrets or WEB_APP_URL are not set: nothing to deploy"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tag="v$(jq -r .version package.json)"
+          latest="$(gh release view --json tagName --jq .tagName)"
+          if [ "$tag" != "$latest" ]; then
+            echo "$tag is not the latest release ($latest): nothing to deploy"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: plan
+    if: needs.plan.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WEB_APP_URL: ${{ vars.WEB_APP_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/tags/${{ needs.plan.outputs.tag }}
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run build:web
+
+      - run: bun run build:site --app-url="$WEB_APP_URL"
+
+      - run: bunx wrangler@4.157.0 deploy -c deploy/web/wrangler.toml
+
+      - run: bunx wrangler@4.157.0 deploy -c deploy/site/wrangler.toml

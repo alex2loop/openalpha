@@ -34,6 +34,14 @@ export function listSearchHosts(search: ResolvedWebSearch): readonly string[] {
   return [...primary, ...fallback].flatMap((choice) => hostOf(choice))
 }
 
+/** The hosts of the named hosted backends, for a caller that holds the provider names and no
+ *  config. A name with no hosted endpoint adds nothing. */
+export function listSearchProviderHosts(providers: readonly string[]): readonly string[] {
+  return Object.entries(SEARCH_ENDPOINTS)
+    .filter(([provider]) => providers.includes(provider))
+    .flatMap(([, url]) => hostOfUrl(url) ?? [])
+}
+
 function hostOf(choice: SearchBackendChoice): readonly string[] {
   const url = choice.provider === 'searxng' ? choice.baseUrl : SEARCH_ENDPOINTS[choice.provider]
   const host = url === undefined ? undefined : hostOfUrl(url)

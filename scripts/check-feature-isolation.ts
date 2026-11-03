@@ -57,7 +57,7 @@ const FEATURE_DEPENDENCIES: Readonly<Record<string, readonly string[]>> = Object
 /** The measured tree, not an aspiration: a ceiling nothing can reach is a ceiling nobody enforces.
  *  These are a ratchet - a number that falls is edited down with it, and raising one is the
  *  reviewable act that says the module grew on purpose, so its reason belongs in that commit. */
-const CEILINGS = Object.freeze({ files: 604, exportedTypes: 1043, exportedFns: 1286 })
+const CEILINGS = Object.freeze({ files: 604, exportedTypes: 1043, exportedFns: 1287 })
 
 interface Allowlist {
   readonly edges: readonly string[]

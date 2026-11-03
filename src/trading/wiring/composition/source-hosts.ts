@@ -1,8 +1,12 @@
 import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
 import { hostOfUrl } from '@/core/utils/url'
-import { RSS_FEEDS } from '@/trading/sources/adapters/rss'
+import { sourceId } from '@/trading/kernel/source/source-id'
+import { BROWSER_FEEDS, RSS_FEEDS } from '@/trading/sources/adapters/rss'
 import { SOURCE_ROUTES } from '@/trading/sources/routes'
-import { SOURCE_ENDPOINTS } from '@/trading/wiring/composition/source-facts'
+import {
+  BROWSER_REACHABLE_SOURCES,
+  SOURCE_ENDPOINTS,
+} from '@/trading/wiring/composition/source-facts'
 import { splitPluginModules } from '@/trading/wiring/composition/source-registry'
 
 type SourceHostKind = 'data' | 'news' | 'plugin'
@@ -43,6 +47,17 @@ export function listSourceHosts(
   }
 
   return [...byHost.values()]
+}
+
+/** The hosts a page may reach: the endpoints of the sources a browser answers and the news feeds it
+ *  can read, from the same tables the page's routes are built from. */
+export function listBrowserSourceHosts(): readonly string[] {
+  const endpoints = Object.entries(SOURCE_ENDPOINTS)
+    .filter(([id]) => BROWSER_REACHABLE_SOURCES.has(sourceId(id)))
+    .flatMap(([, endpoint]) => toHosts(endpoint, 'data'))
+  const feeds = Object.values(BROWSER_FEEDS).flatMap((feed) => toHosts(feed, 'news'))
+
+  return [...new Set([...endpoints, ...feeds].map((entry) => entry.host))]
 }
 
 function toHosts(

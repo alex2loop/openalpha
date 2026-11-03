@@ -20,6 +20,8 @@
     "../src/markdown.d.ts",
     "../src/app/browser/browser-globals.d.ts",
     "./browser-build.ts",
+    "./build-site.ts",
+    "./build-web.ts",
     "./check-browser-bundle.ts",
     "./check-research-integrity-regressions.ts",
     "./check-trading-locale.ts",
@@ -27,6 +29,7 @@
     "./evaluate-research-routing.ts",
     "./research-*.ts",
     "./research-*/**/*.ts",
-    "./sdk-embedder-smoke.ts"
+    "./sdk-embedder-smoke.ts",
+    "./web-headers.ts"
   ]
 }
