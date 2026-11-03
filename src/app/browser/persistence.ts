@@ -32,7 +32,9 @@ export async function requestPersistence(app: App, logger: Logger): Promise<void
       await store.write(PERSISTENCE_SECTION, JSON.stringify({ persisted }), Date.now())
     }
   } catch (err: unknown) {
-    logger.warn('browser.persistence_failed', { err: formatErrForLog(err) })
+    if (!app.signal.aborted) {
+      logger.warn('browser.persistence_failed', { err: formatErrForLog(err) })
+    }
   }
 }
 

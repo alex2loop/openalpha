@@ -215,7 +215,8 @@ interface BarWindowWriteResult {
  *  paired with a tail fetch erases history, and a tail delete paired with a full fetch leaves the
  *  pre-restatement rows the rebuild exists to replace. A pass holds at most two windows, so it is at
  *  most two commits, except the web's first history load, which calls this once per fetch window
- *  (the tail is trimmed only with the last). Returns the rows written, which is the population the kind now stands for. */
+ *  (the tail is trimmed only with the last). Returns the rows written, which is the population the
+ *  kind now stands for. */
 export async function writeBarWindows(
   options: BarWindowWriteOptions
 ): Promise<BarWindowWriteResult> {

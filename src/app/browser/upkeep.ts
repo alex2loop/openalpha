@@ -43,7 +43,10 @@ export function startBrowserUpkeep(app: App, logger: Logger): () => Promise<void
     everyMs: RETENTION_INTERVAL_MS,
     pass: () => runUpkeepPass(context),
     onError: (err) => {
-      logger.warn('browser.upkeep_failed', { err: formatErrForLog(err) })
+      // A pass cut short by closing the page is not a failure.
+      if (!app.signal.aborted) {
+        logger.warn('browser.upkeep_failed', { err: formatErrForLog(err) })
+      }
     },
   })
 

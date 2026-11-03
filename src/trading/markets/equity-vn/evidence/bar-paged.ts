@@ -23,26 +23,36 @@ interface PagedHistory {
   readonly recordCount: number
 }
 
+interface WindowWrite {
+  readonly fetched: readonly BarOutcome[]
+  readonly chunk: DayWindow
+  readonly isLast: boolean
+}
+
 /** Stands in for the records of a name every window answered for: they are in the store already,
  *  and the outcome only still carries its provenance and caveats. */
 const WRITTEN: readonly BarRecord[] = Object.freeze([])
 
-/** The web's first history load: names with no stored bar at all, on a board wide enough to share
- *  windows. A forced pass and a restatement rebuild are not it, and keep the one write at the end
- *  on every edition; so does an edition that did not ask for paged writes. */
+/** The web's first history load: a market with no completed pass on record, so a retry after a load
+ *  cut short pages again however many rows it left, on a board wide enough to share windows. A
+ *  forced pass and a restatement rebuild are not it, and keep the one write at the end on every
+ *  edition; so does an edition that did not ask for paged writes. */
 export function splitInitialHistory(
   scope: EvidenceScope,
-  rebuild: readonly InstrumentRef[],
-  latest: ReadonlyMap<Ticker, unknown>
+  rebuild: readonly InstrumentRef[]
 ): { readonly initial: readonly InstrumentRef[]; readonly rest: readonly InstrumentRef[] } {
-  if (scope.deps.pagedBackfill !== true || scope.request.forced === true) {
+  if (
+    scope.deps.pagedBackfill !== true ||
+    scope.request.forced === true ||
+    scope.storedFrom !== undefined
+  ) {
     return { initial: [], rest: rebuild }
   }
 
   const board = new Set(
     tradeableTargets(scope.universe, BOARD_KINDS).map((target) => target.ticker)
   )
-  const initial = rebuild.filter((target) => board.has(target.ticker) && !latest.has(target.ticker))
+  const initial = rebuild.filter((target) => board.has(target.ticker))
 
   if (initial.length < BACKFILL_MINIMUM_TARGETS) {
     return { initial: [], rest: rebuild }
@@ -109,12 +119,6 @@ export async function fetchPagedHistory(
       0
     ),
   }
-}
-
-interface WindowWrite {
-  readonly fetched: readonly BarOutcome[]
-  readonly chunk: DayWindow
-  readonly isLast: boolean
 }
 
 /** The names the store refused for joining a different adjustment basis. */

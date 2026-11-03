@@ -40,10 +40,10 @@ export interface TradingEdition {
   readonly rebalance?: RebalanceForm
   /** What an edition that stores no suggestion and plans no exit answers itself. */
   readonly reads?: BookReads
-  /** The names the visitor looked at, where statements are fetched for the book, the watchlist and
-   *  these alone instead of the whole screened board. */
   /** See `MarketDeps.pagedBackfill`. */
   readonly pagedBackfill?: true
+  /** The names the visitor looked at, where statements are fetched for the book, the watchlist and
+   *  these alone instead of the whole screened board. */
   readonly viewed?: MarketDeps['viewedInstruments']
 }
 

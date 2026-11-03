@@ -31,6 +31,13 @@ import { MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
 import { toKindResult } from '@/trading/markets/refresh-result'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 
+interface BackfillInput {
+  readonly rebuild: readonly InstrumentRef[]
+  /** Names the tail showed restated: refetched whole, never paged. */
+  readonly repeat: readonly InstrumentRef[]
+  readonly closes: ReadonlyMap<Ticker, ReadonlyMap<TradingDay, number>>
+}
+
 /** What a pass tells the write beside its windows: the names the provider re-adjusted, and the rows
  *  the paged windows already wrote. */
 interface BarTally {
@@ -79,7 +86,6 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
     rebuild: window.rebuild,
     repeat: targets.filter((target) => restated.has(target.ticker)),
     closes,
-    latest,
   })
 
   return writeBars(
@@ -94,19 +100,11 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
   )
 }
 
-interface BackfillInput {
-  readonly rebuild: readonly InstrumentRef[]
-  /** Names the tail showed restated: refetched whole, never paged. */
-  readonly repeat: readonly InstrumentRef[]
-  readonly closes: ReadonlyMap<Ticker, ReadonlyMap<TradingDay, number>>
-  readonly latest: ReadonlyMap<Ticker, unknown>
-}
-
 async function backfillHistory(
   scope: EvidenceScope,
   input: BackfillInput
 ): Promise<{ readonly writes: readonly BarWrite[]; readonly tally: BarTally }> {
-  const { initial, rest } = splitInitialHistory(scope, input.rebuild, input.latest)
+  const { initial, rest } = splitInitialHistory(scope, input.rebuild)
   const paged = await fetchPagedHistory(scope, initial)
   const full = await fetchBackfill(scope, [...rest, ...input.repeat])
   // Judged on the deep window too, not only the tail: a forced pass rebuilds every name without a
