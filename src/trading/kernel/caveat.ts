@@ -33,6 +33,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'market.ticker-unknown', severity: 'warn' },
   { code: 'market.ticker-not-listed', severity: 'warn' },
   { code: 'market.ticker-ambiguous', severity: 'warn' },
+  { code: 'market.ticker-also-listed', severity: 'warn' },
   { code: 'market.ticker-shared', severity: 'warn' },
   { code: 'market.ticker-not-active', severity: 'warn' },
   { code: 'market.tokenized-equity', severity: 'warn' },
@@ -45,6 +46,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'market.distribution-session', severity: 'warn' },
   { code: 'market.index-review-eve', severity: 'warn' },
   { code: 'market.index-review-session', severity: 'warn' },
+  { code: 'market.leveraged-fund', severity: 'warn' },
   { code: 'market.foreign-flip', severity: 'warn' },
   { code: 'market.washout-held', severity: 'warn' },
   { code: 'market.leverage-led', severity: 'warn' },
@@ -198,6 +200,8 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'alert.price-unavailable', severity: 'warn' },
   { code: 'brief.book-unpriced', severity: 'warn' },
   { code: 'brief.call-outdated', severity: 'warn' },
+  { code: 'brief.filings-unconfigured', severity: 'info' },
+  { code: 'brief.home-segment-off', severity: 'warn' },
   { code: 'brief.names-capped', severity: 'warn' },
   { code: 'brief.section-unavailable', severity: 'warn' },
   { code: 'refresh.no-available-provider', severity: 'warn' },
@@ -207,6 +211,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'refresh.validation-failed', severity: 'warn' },
   { code: 'refresh.previous-scope-kept', severity: 'warn' },
   { code: 'refresh.bank-sector-unmapped', severity: 'warn' },
+  { code: 'refresh.source-unconfigured', severity: 'info' },
 ] as const)
 
 export type CaveatCode = (typeof CAVEAT_CODES)[number]['code']
@@ -325,6 +330,7 @@ export const HOLD_REASON_CODES = Object.freeze([
   'market-not-tradeable',
   'history-not-adjusted',
   'index-review-session',
+  'leveraged-fund',
   'no-rebalance-needed',
   'evidence-sold',
   'recorded-entry',

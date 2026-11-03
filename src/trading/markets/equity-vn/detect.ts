@@ -1,9 +1,9 @@
-import type { Caveat } from '@/trading/kernel/caveat'
 import type { InstrumentMatch, InstrumentSearchRequest, Ticker } from '@/trading/kernel/instrument'
 import type { MarketDeps } from '@/trading/markets/deps'
-import type { MarketDetection, TickerCandidacy } from '@/trading/markets/types'
+import type { MarketDetection, TickerCandidacy } from '@/trading/markets/detection'
 import { exposureSectorOf } from '@/trading/kernel/instrument'
 import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
+import { detectListingMiss } from '@/trading/markets/listing-miss'
 
 /** VN listings are 3-letter share codes, longer fund codes (FUEVFVND), index codes, and dated
  *  future codes. Nothing here is a dot- or dash-bearing symbol, so those are exact rejections. */
@@ -33,12 +33,13 @@ export async function detect(deps: MarketDeps, options: DetectOptions): Promise<
   })
 
   if (record === null) {
-    return { kind: 'no-match', caveats: await coldUniverseCaveats(deps, options.signal) }
+    return detectListingMiss(deps, VN_MARKET_REF, options.signal)
   }
 
   if (record.status !== 'active') {
     return {
       kind: 'no-match',
+      listingChecked: true,
       caveats: [
         {
           code: 'market.ticker-not-active',
@@ -77,16 +78,4 @@ export async function search(
     name: record.name,
     instrumentKind: record.kind,
   }))
-}
-
-/** The same distinction `screen` draws: a published-but-empty universe is a cold or failed refresh,
- *  not a market that does not list the name. Asked only on the miss path, so a resolved ticker
- *  never pays for it. */
-async function coldUniverseCaveats(
-  deps: MarketDeps,
-  signal: AbortSignal
-): Promise<readonly Caveat[]> {
-  const populated = await deps.marketDataStore.hasInstruments({ market: VN_MARKET_REF, signal })
-
-  return populated ? [] : [{ code: 'market-data.universe-empty' }]
 }

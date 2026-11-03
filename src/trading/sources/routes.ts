@@ -17,19 +17,22 @@ export const ANY_SCOPE = '*'
 
 export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
   quote: {
+    'equity-us': [sourceId('nasdaq')],
     // vndirect leads for shares: its session row is written while the market trades. It declines a
     // level outright, so an index or a future falls to `vietcap-chart`, whose intraday series keeps
     // advancing through the session where entrade's truncates its newest bars for some windows and
     // answers hours behind without failing. Neither miss is visible to a failover, which is why the
     // market ages every reading it is handed.
     'equity-vn': [sourceId('vndirect'), sourceId('vietcap-chart'), sourceId('entrade')],
-    // Listing order; `withVenueQuoteLead` moves the market's default venue to the front. All three
+    // Listing order; `withVenueQuoteLead` moves the market's default venue to the front. All four
     // are keyless and unmetered by the month, which matters because the alert loop reads a quote
-    // per watched coin every tick.
-    crypto: [sourceId('binance'), sourceId('okx'), sourceId('mexc')],
+    // per watched coin every tick. coinbase is last: it prices in dollars and converts through
+    // USDT, so it costs two requests a coin, and it is the one a US operator can always reach.
+    crypto: [sourceId('binance'), sourceId('okx'), sourceId('mexc'), sourceId('coinbase')],
     gold: [sourceId('yahoo'), sourceId('binance')],
   },
   bars: {
+    'equity-us': [sourceId('nasdaq')],
     // vndirect declines an index outright and entrade charts only the four headline ones, so the
     // ETF benchmarks reach `vietcap-chart` last rather than first — the two above it keep serving
     // the series they already do, at the depth they already have. vps stands behind it for those
@@ -41,21 +44,30 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
       sourceId('vietcap-chart'),
       sourceId('vps'),
     ],
-    crypto: [sourceId('binance'), sourceId('bybit'), sourceId('mexc'), sourceId('yahoo')],
+    crypto: [
+      sourceId('binance'),
+      sourceId('bybit'),
+      sourceId('mexc'),
+      sourceId('coinbase'),
+      sourceId('yahoo'),
+    ],
     gold: [sourceId('yahoo'), sourceId('binance')],
   },
-  instruments: { 'equity-vn': [sourceId('vndirect')] },
+  instruments: { 'equity-us': [sourceId('nasdaq')], 'equity-vn': [sourceId('vndirect')] },
   // The whole board in one read, so the count is a request rather than a fan-out. vndirect leads:
   // its rows are the same ones the settled evidence is built from, so a count off them and a count
   // off the stored session measure one population. The fallback registers under its own id: a
   // market-wide read must not open the breaker on the per-name kinds that share its host.
   sessionQuotes: { 'equity-vn': [sourceId('vndirect'), sourceId('vietcap-board')] },
-  fundamentals: { 'equity-vn': [sourceId('vndirect')] },
-  accounts: { 'equity-vn': [sourceId('vietcap-statements')] },
+  fundamentals: { 'equity-us': [sourceId('nasdaq')], 'equity-vn': [sourceId('vndirect')] },
+  accounts: { 'equity-us': [sourceId('sec-data')], 'equity-vn': [sourceId('vietcap-statements')] },
   // Fills a quarter's missing cash flow and is not a failover for `accounts`: the refresh asks for it
   // only where the primary reply lacks that statement.
   cashFlowToDate: { 'equity-vn': [sourceId('cafef-statements')] },
-  events: { 'equity-vn': [sourceId('vndirect')] },
+  events: {
+    'equity-us': [sourceId('nasdaq'), sourceId('sec-data')],
+    'equity-vn': [sourceId('vndirect')],
+  },
   flows: { 'equity-vn': [sourceId('vndirect')] },
   // Not a failover for `flows`: cafef publishes the proprietary desk alone, and two sessions ahead
   // of the endpoint that carries both legs. The flows reader asks for it only where that leg is
@@ -137,6 +149,7 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
   // has both partition the requests rather than failing over: one serves an instrument, the other
   // refuses to, so a market read never stands in for a name's own coverage.
   news: {
+    'equity-us': [sourceId('google-news'), sourceId('rss')],
     'equity-vn': [sourceId('vndirect'), sourceId('rss')],
     crypto: [sourceId('google-news'), sourceId('rss')],
     gold: [sourceId('rss')],

@@ -38,9 +38,9 @@ import {
   resolveTradeability,
   toVnExchange,
 } from '@/trading/markets/equity-vn/tradeability'
-import { medianTurnover } from '@/trading/markets/equity-vn/turnover'
 import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
 import { realizedVolatility, sessionChange } from '@/trading/markets/timeseries'
+import { medianTurnover } from '@/trading/markets/turnover'
 
 const PERCENT_PER_UNIT = 100
 

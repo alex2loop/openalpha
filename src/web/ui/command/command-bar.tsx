@@ -2,6 +2,7 @@ import type { RefObject, TargetedKeyboardEvent } from 'preact'
 import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
+import { regionPack } from '@/web/scene/data/home'
 import { selectAgent } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
 import { APP_CHANNEL, isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
@@ -26,7 +27,7 @@ import {
 import { WhoChip } from '@/web/ui/command/who-chip'
 import { Button } from '@/web/ui/kit/button'
 import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
-import { ChatIcon, SendIcon, SlashIcon } from '@/web/ui/kit/icons'
+import { ChatIcon, SendIcon } from '@/web/ui/kit/icons'
 
 import './command.css'
 
@@ -96,7 +97,7 @@ function Composer({ isFloating }: { readonly isFloating: boolean }) {
           />
         )}
         <div class={isFloating ? `command-field ${FIELD_ISLAND}` : 'command-field'}>
-          <SlashIcon class="command-mark" />
+          <ChatIcon class="command-mark" />
           <CommandInput inputRef={input} list={list} options={options} />
           <kbd class="command-key">{COMMAND_PREFIX}</kbd>
         </div>
@@ -163,8 +164,8 @@ function CommandInput({ inputRef, list, options }: CommandInputProps) {
       role="combobox"
       aria-expanded={list.isOpen.value}
       aria-controls={LIST_ID}
-      aria-label={tr('ui.office.command.placeholder')}
-      placeholder={tr('ui.office.command.placeholder')}
+      aria-label={tr('ui.office.command.placeholder', { ticker: regionPack.value.exampleTicker })}
+      placeholder={tr('ui.office.command.placeholder', { ticker: regionPack.value.exampleTicker })}
       value={inputText.value}
       onFocus={() => (list.isOpen.value = true)}
       onBlur={() => resetList(list, false)}

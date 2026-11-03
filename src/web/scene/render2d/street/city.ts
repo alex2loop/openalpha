@@ -25,7 +25,14 @@ import { STREET_BOTTOM, STREET_RECT } from '@/web/scene/view'
 import { shopRowSpanOf } from '@/web/scene/world/frontage'
 import { holidayOf, isWithin } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
-import { FAR_TREE_Y, FAR_TREES, METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
+import {
+  BIKE_LANE_PX,
+  carriageOf,
+  FAR_TREE_Y,
+  FAR_TREES,
+  METRES_PER_PX,
+  NORTH,
+} from '@/web/scene/world/street-layout'
 import { MINUTES_PER_DAY } from '@/web/text/time-units'
 
 const TILE_PX = 0.4 / METRES_PER_PX
@@ -50,6 +57,7 @@ const TONES = Object.freeze({
   median: { day: '#C8332D', night: '#6A6E80', share: 0.5 },
   tactile: { day: '#B6A878', night: '#2A2A3A', share: 0.6 },
   tactileDot: { day: '#9C8E60', night: '#2A2A3A', share: 0.6 },
+  bikeLane: { day: '#3E8E5E', night: '#1E2A2E', share: 0.75, edgeLift: 0.05, edgeH: 0.28 },
 })
 const TILE_JOINT = 'rgba(70,62,52,.075)'
 const STAR = '#FFFFFF'
@@ -222,7 +230,11 @@ function paintNorthStreet(scene: CityScene, pack: RegionPack): void {
   ])
   fillTone(scene, GROUND_TONES.kerb, [STREET_LEFT, NORTH.roadTop - 1, STREET_RECT.w, 1])
   fillTone(scene, GROUND_TONES.kerb, [STREET_LEFT, NORTH.roadBottom, STREET_RECT.w, 1.4])
-  paintRoadMarks(scene, road.north)
+  paintRoadMarks(scene, road)
+
+  if (road.bikeLane) {
+    paintBikeLane(scene, carriageOf(road).bottom)
+  }
 
   for (const tree of FAR_TREES) {
     if (row === undefined || tree.x < row[0] || tree.x > row[1]) {
@@ -264,10 +276,12 @@ function paintFarPavement(scene: CityScene): void {
   }
 }
 
-// The median with its red and white kerb bands, or a centre line; then the lane lines.
-function paintRoadMarks(scene: CityScene, north: RoadLayout['north']): void {
-  const { roadTop, roadBottom } = NORTH
-  const mid = (roadTop + roadBottom) / 2
+// The median with its red and white kerb bands, or a centre line; then the lane lines. They keep
+// to the carriageway the cars drive in.
+function paintRoadMarks(scene: CityScene, road: RoadLayout): void {
+  const { north } = road
+  const carriage = carriageOf(road)
+  const mid = (carriage.top + carriage.bottom) / 2
 
   if (north.median) {
     for (let x = Math.floor(STREET_LEFT / 3) * 3, band = 0; x < STREET_RIGHT; x += 3, band++) {
@@ -281,15 +295,24 @@ function paintRoadMarks(scene: CityScene, north: RoadLayout['north']): void {
     return
   }
 
-  const span = (roadBottom - roadTop) / north.carriageways
+  const span = (carriage.bottom - carriage.top) / north.carriageways
 
   for (let carriageway = 0; carriageway < north.carriageways; carriageway++) {
     for (let lane = 1; lane < north.lanesEach; lane++) {
-      const y = roadTop + carriageway * span + (lane * span) / north.lanesEach
+      const y = carriage.top + carriageway * span + (lane * span) / north.lanesEach
 
       paintDashes(scene, { y: y - 0.15, h: 0.3, dash: 4, gap: 6 })
     }
   }
+}
+
+// The painted bike lane along the near kerb, from `top` down: a green strip under a white edge
+// line.
+function paintBikeLane(scene: CityScene, top: number): void {
+  const { edgeLift, edgeH } = TONES.bikeLane
+
+  fillTone(scene, TONES.bikeLane, [STREET_LEFT, top, STREET_RECT.w, BIKE_LANE_PX])
+  fillTone(scene, GROUND_TONES.line, [STREET_LEFT, top - edgeLift, STREET_RECT.w, edgeH])
 }
 
 function paintDashes(

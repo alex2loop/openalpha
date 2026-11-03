@@ -22,18 +22,18 @@ import { available, dedupeProvenance, unavailable } from '@/trading/kernel/sourc
 import { settledBars } from '@/trading/markets/bars'
 import { QUARTER_GAP_CODES } from '@/trading/markets/equity-vn/accounts/quarter-gaps'
 import { buildVnBrief } from '@/trading/markets/equity-vn/brief/compose'
+import { VN_BRIEF_HOME } from '@/trading/markets/equity-vn/brief/vn-context'
 import { runMacroRisk } from '@/trading/markets/equity-vn/evidence/macro-evidence'
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
 import { toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
-import { sectorCoveragePct } from '@/trading/markets/equity-vn/factors/sectors'
 import {
   BASIS_SESSIONS,
   LIQUIDITY_SESSIONS,
-  MINIMUM_SECTOR_COVERAGE_FRACTION,
   VN_EVIDENCE_SESSIONS,
   VN_MARKET_REF,
   VN_MARKET_REGION,
   VN_RECOMMENDATION_SESSIONS,
+  VN_SECTOR_POLICY,
   VOLATILITY_SESSIONS,
 } from '@/trading/markets/equity-vn/policy'
 import { sourceBars } from '@/trading/markets/equity-vn/refresh/bars'
@@ -50,6 +50,7 @@ import { createIndexContributors } from '@/trading/markets/equity-vn/tape/index-
 import { createIndexValuation } from '@/trading/markets/equity-vn/tape/index-valuation'
 import { runOverview } from '@/trading/markets/equity-vn/tape/overview'
 import { vnQuote } from '@/trading/markets/equity-vn/tape/quote'
+import { sectorCoveragePct } from '@/trading/markets/sector-strength'
 import { realizedVolatility } from '@/trading/markets/timeseries'
 
 /** `quote`, `events`, `news`, and `flows` are pure delegation: this market adds routing, not
@@ -135,8 +136,9 @@ function briefCapability(
           services,
           request,
           calendar: manifest.calendar,
-          cross: () => crossSection.get(request.asOf, request.signal),
-          crossAt: (day) => crossSection.get(day, request.signal),
+          home: VN_BRIEF_HOME,
+          board: () => crossSection.get(request.asOf, request.signal),
+          boardAt: (day) => crossSection.get(day, request.signal),
         }),
     },
   }
@@ -151,7 +153,7 @@ async function runSectors(
   const cross = await cache.get(request.asOf, request.signal)
   const coverage = sectorCoveragePct(cross.names.map(toSectorMember))
 
-  if (cross.sectors.length === 0 || coverage < MINIMUM_SECTOR_COVERAGE_FRACTION) {
+  if (cross.sectors.length === 0 || coverage < VN_SECTOR_POLICY.minimumCoverage) {
     return {
       asOf: request.asOf,
       sectors: [],

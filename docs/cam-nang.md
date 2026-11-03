@@ -25,7 +25,7 @@ trên trang văn phòng hoặc bằng `openalpha pair approve <mã>`.
 **Mỗi ngày - 2 tới 5 phút:**
 
 ```bash
-> /brief                 # bản tin sáng (cổ phiếu VN)
+> /brief                 # bản tin sáng của thị trường chính
 > /overview              # phông rủi ro chung và mọi thị trường - miễn phí
 > /screen                # top mã theo mô hình yếu tố - miễn phí
 > /market                # giá mã đang nắm và mã đang theo dõi - miễn phí
@@ -104,8 +104,8 @@ curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh
 irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex   # Windows
 ```
 
-Trình cài tự chạy `openalpha onboard` và hỏi ngôn ngữ, tiền tệ của sổ, dịch vụ AI, mức chi mỗi ngày và
-Telegram. Ở câu dịch vụ AI, có khóa OpenRouter thì chọn OpenRouter và dán khóa; dùng gói ChatGPT thì chọn
+Trình cài tự chạy `openalpha onboard` và hỏi ngôn ngữ, thị trường chính (Việt Nam hoặc Mỹ), tiền tệ của sổ,
+dịch vụ AI, mức chi mỗi ngày và Telegram. Chọn Mỹ thì nó hỏi thêm email liên hệ cho SEC (xem [mục 3](#3-các-thị-trường)). Ở câu dịch vụ AI, có khóa OpenRouter thì chọn OpenRouter và dán khóa; dùng gói ChatGPT thì chọn
 "ChatGPT (subscription)" để đăng nhập trên trình duyệt, không cần khóa. Xong thì mở một cửa sổ mới và chạy:
 
 ```bash
@@ -140,7 +140,7 @@ openalpha chat
 > /profile set goal grow
 ```
 
-`<nhóm>` là `equity-vn`, `crypto` hoặc `gold-vn`. Các trường `...-pct-nav` và `regime-scale` nhận
+`<nhóm>` là `equity-vn`, `equity-us`, `crypto` hoặc `gold-vn`. Các trường `...-pct-nav` và `regime-scale` nhận
 phân số 0 tới 1 (`0.2` là 20%).
 
 | Trường | Giá trị | Ý nghĩa |
@@ -208,7 +208,7 @@ chạm sàn. Cú pháp cố định theo vị trí, ngày dạng `YYYY-MM-DD`:
 /delete <mã bút toán> confirm           # xóa thật
 ```
 
-`<sàn>` là nơi giữ tiền hay tài sản: `vps` cho chứng khoán VN, `okx` hoặc `binance` cho crypto,
+`<sàn>` là nơi giữ tiền hay tài sản: `vps` cho chứng khoán VN, `us-broker` cho cổ phiếu Mỹ, `okx` hoặc `binance` cho crypto,
 `gold-shop` cho vàng trong nước. Dùng công ty chứng khoán khác (SSI, TCBS, VNDIRECT...) thì khai nó
 trong `[trading.venues.<tên>]` ([Cấu hình](cau-hinh.md#trading)) rồi ghi `<tên>` ở đây. **Mỗi dòng
 đều phải ghi sàn**, kể cả nạp và rút tiền: cùng một đồng coin ở hai nơi giữ là hai vị thế với hai
@@ -240,7 +240,7 @@ Bốn điều cần nhớ:
 - **Phí bỏ trống được** với `buy` và `sell`: sổ tính theo `fees` của `[trading.venues.<sàn>]`. Dòng
   xác nhận cho biết mức đã dùng, và lệch bao nhiêu nếu phí bạn gõ lệch xa. `rights` luôn phải ghi
   phí vì quyền mua không tính theo biểu phí môi giới thường.
-- `<thị trường>` là mã của hệ thống: `equity-vn`, `gold`, `gold-vn`, `crypto`
+- `<thị trường>` là mã của hệ thống: `equity-vn`, `equity-us`, `gold`, `gold-vn`, `crypto`
   ([mục 3](#3-các-thị-trường)), không phải tên sàn như HOSE.
 - Ngày là **ngày giao dịch thật**, nên ghi bù lệnh cũ vẫn đúng: sổ tự sắp lại theo ngày. Lệnh mua
   cổ phiếu VN tự đóng dấu thanh toán T+2.
@@ -425,6 +425,7 @@ tin.
 | Thị trường | Khu vực | Loại tài sản | Tiền tệ | Ghi chú |
 |---|---|---|---|---|
 | `equity-vn` | `vn` | cổ phiếu VN | VND | sâu nhất: có sàng lọc, dòng tiền ngoại, basis phái sinh, bản tin sáng |
+| `equity-us` | `us` | cổ phiếu và quỹ ETF Mỹ | USD | sàng lọc 500 công ty Mỹ lớn nhất và một bảng quỹ; giá trị và chất lượng cần email liên hệ cho SEC; sổ ghi ở sàn `us-broker` |
 | `crypto` | `global` | tiền mã hóa | USDT | không bao giờ đóng cửa; có sàng lọc, funding, tâm lý |
 | `gold` | `global` | vàng thế giới (XAU) | USD | chỉ để tham chiếu: hỏi giá và làm mốc cho `gold-vn`; không sàn nào giữ nên nhóm này luôn tắt |
 | `gold-vn` | `vn` | vàng miếng/nhẫn (SJC, PNJ, DOJI) | VND | định giá chênh lệch so với `gold`; tắt sẵn trong hồ sơ mới |
@@ -432,8 +433,12 @@ tin.
 Mã tự định tuyến: `/price FPT` biết là cổ phiếu VN, `/price BTC` là crypto. Chỉ khi một mã tồn tại ở
 nhiều thị trường mới phải ghi `thị-trường:mã` (`/price equity-vn:UNI`).
 
-**Cổ phiếu và ETF Mỹ nằm ngoài phạm vi.** `/suggest NVDA` trả lời "Chưa thị trường nào mình theo dõi có mã NVDA" thay vì đoán
-bừa.
+**Cổ phiếu và ETF Mỹ dùng được theo hai cách.**
+
+- **Làm thị trường chính.** Chọn Mỹ ở câu hỏi thị trường chính của `onboard`, hoặc đặt `[locale] region = "us"` trong `config.toml`. Sổ khi đó tính bằng đô la, ghi ở sàn `us-broker`, và `/screen equity-us` hay `/suggest NVDA` chạy thẳng, không cần gõ thêm gì.
+- **Chỉ ghé qua.** Giữ Việt Nam làm thị trường chính và ghi rõ thị trường trước mã: `/suggest equity-us:NVDA`, `/price equity-us:AAPL`. Gõ trơn `/suggest NVDA` thì vẫn nhận câu "Chưa thị trường nào mình theo dõi có mã NVDA", vì mình không đoán bừa. Nhóm `equity-us` khi đó tắt sẵn: muốn nó vào tỷ trọng mục tiêu và được nạp dữ liệu hằng ngày thì bật bằng `/profile enable equity-us`. Mã Mỹ bạn đang nắm hoặc theo dõi thì được nạp dữ liệu dù nhóm tắt.
+
+Giá trị và chất lượng của cổ phiếu Mỹ lấy từ báo cáo tài chính nộp cho SEC, nên cần email liên hệ của bạn trong biến `SEC_CONTACT_EMAIL` (`onboard` hỏi khi bạn chọn Mỹ). Thiếu email thì mã vẫn được chấm, chỉ bằng đà giá và biến động. Chi tiết: [Giao dịch](giao-dich.md#cổ-phiếu-mỹ).
 
 Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.md).
 
@@ -723,7 +728,7 @@ Mỗi thị trường có đúng một mô hình yếu tố. Sàng lọc có hai
 đề xuất dùng. Vì vậy "đứng đầu bảng" và "đủ mạnh để gợi ý" không mâu thuẫn nhau. Top mã chỉ để tham
 khảo; không có gì tự chạy theo nó.
 
-Chỉ `equity-vn` và `crypto` có sàng lọc. Với `gold` và `gold-vn`, hỏi giá trực tiếp (`/price XAUUSD`,
+Chỉ `equity-vn`, `equity-us` và `crypto` có sàng lọc. Với `gold` và `gold-vn`, hỏi giá trực tiếp (`/price XAUUSD`,
 `/price SJC`) hoặc `/suggest` theo mã.
 
 ### 6.2 Chế độ rủi ro vĩ mô
@@ -1033,8 +1038,8 @@ Chỉ áp dụng cho cổ phiếu VN.
 | Lệnh dừng vì chạm ngân sách | `openalpha config edit` nâng trần, hoặc chờ chu kỳ mới |
 | `/brief` báo chưa có bản tin | Bản tin chỉ có ở `equity-vn`; kiểm tra khu vực nhà trong cấu hình có phải `vn` |
 | `/screen gold` báo lỗi | `gold` và `gold-vn` không có sàng lọc - dùng `/price` hoặc `/suggest` theo mã |
-| `/screen` báo sai tên thị trường | Dùng đúng mã: `equity-vn`, `gold`, `gold-vn`, `crypto` |
-| `/suggest NVDA` báo không hỗ trợ | Cổ phiếu Mỹ nằm ngoài phạm vi - xem [mục 3](#3-các-thị-trường) |
+| `/screen` báo sai tên thị trường | Dùng đúng mã: `equity-vn`, `equity-us`, `gold`, `gold-vn`, `crypto` |
+| `/suggest NVDA` báo chưa thị trường nào có mã đó | Thị trường chính đang là Việt Nam: viết `/suggest equity-us:NVDA`, hoặc chọn Mỹ làm thị trường chính - xem [mục 3](#3-các-thị-trường) |
 | `/market` không có dòng theo dõi nào | `/watchlist add FPT` rồi thử lại |
 | Đặt tỷ trọng mục tiêu không ăn | `/profile set segment-target <nhóm> <tỷ lệ>` (0 tới 1 hoặc 0% tới 100%, nhóm đang bật); `/profile show` để xem lại |
 | Dữ liệu VN có vẻ cũ | `/refresh equity-vn`, hoặc `/refresh equity-vn force` để nạp lại toàn bộ |

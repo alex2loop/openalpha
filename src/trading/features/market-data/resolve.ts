@@ -30,12 +30,18 @@ type InstrumentResolution =
       readonly market: Market
       readonly instrument: InstrumentRef
       readonly instrumentKind?: InstrumentKind
+      /** What resolving the name had to say, for a read to carry beside its own: a second market
+       *  listing the same symbol, when the caller asked. */
+      readonly caveats: readonly Caveat[]
     }
   | { readonly kind: 'unresolved'; readonly result: SourceUnavailable }
 
 interface ResolveInstrumentOptions {
   readonly ticker: Ticker
   readonly market?: MarketRef
+  /** A read the operator typed: the side they hold or watch wins a shared symbol, and the read says
+   *  which other market lists it. */
+  readonly operatorRead?: boolean
   readonly signal: AbortSignal
 }
 
@@ -106,6 +112,7 @@ export async function resolveInstrument(
   const resolution = await markets.resolve({
     ticker: options.ticker,
     ...(options.market === undefined ? {} : { market: options.market }),
+    ...(options.operatorRead === true ? { operatorRead: true } : {}),
     signal: options.signal,
   })
 
@@ -114,6 +121,7 @@ export async function resolveInstrument(
       kind: 'resolved',
       market: resolution.market,
       instrument: resolution.instrument,
+      caveats: otherListingsOf(resolution.caveats),
       ...(resolution.instrumentKind === undefined
         ? {}
         : { instrumentKind: resolution.instrumentKind }),
@@ -121,6 +129,12 @@ export async function resolveInstrument(
   }
 
   return { kind: 'unresolved', result: unavailable('unsupported', [], resolution.caveats) }
+}
+
+/** Only the note about another listing travels with a read: the rest of a resolution's caveats
+ *  describe how the ticker was found, and the read states its own. */
+function otherListingsOf(caveats: readonly Caveat[]): readonly Caveat[] {
+  return caveats.filter((caveat) => caveat.code === 'market.ticker-also-listed')
 }
 
 /** A symbol typed in full, resolved the way a suggestion resolves it: the only way to find a coin or

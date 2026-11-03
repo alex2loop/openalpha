@@ -1,6 +1,6 @@
 import type { CityScene } from '@/web/scene/render2d/street/city-blocks'
 import type { Point } from '@/web/scene/types'
-import { blossomOf } from '@/web/scene/render2d/street/festive-trees'
+import { crownOf } from '@/web/scene/render2d/street/festive-trees'
 import { mixTone } from '@/web/scene/render2d/street/tone'
 import { HEIGHT_K } from '@/web/scene/view'
 import { createRng, seedOf } from '@/web/scene/world/rng'
@@ -131,7 +131,7 @@ export function paintBigTree(scene: CityScene, tree: BigTree): void {
   const look = tree.kind % BIG_RADII.length
   const radius = (BIG_RADII[look] ?? BIG_RADII[0]) * tree.scale
   const crownY = tree.y - (9 + look * 1.5) * HEIGHT_K * tree.scale * 0.7 - radius * 0.45
-  const base = blossomOf(scene.holiday, look) ?? TREE_TONES[look] ?? TREE_TONES[0]
+  const base = crownOf(scene.holiday, look) ?? TREE_TONES[look] ?? TREE_TONES[0]
   const body = mixTone(
     mixTone(base, NIGHT.tree, dark * NIGHT.treeShare),
     BIG.deepen,

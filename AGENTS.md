@@ -100,14 +100,14 @@ Boundary rules (hard):
 Enforced by `scripts/check-registry-isolation.ts`.
 
 Layout:
-- One folder per market, named by its `MarketRef`: `markets/{gold,gold-vn,equity-vn,crypto}/`.
+- One folder per market, named by its `MarketRef`: `markets/{gold,gold-vn,equity-vn,equity-us,crypto}/`.
 - `market.ts` exports `create*Market`; it is the only file code outside `markets/` may import.
 - `api.ts` is the only file a sibling market may import, and exists only where one market derives from another (`gold-vn` prices a premium over `gold`).
 - Helpers all markets share live at the `markets/` root (`factor-scoring`, `levels`, `calendar`, `timeseries`); family-specific code stays in its market, published via its `api.ts`.
 
 Resolution and regions:
 - Resolution is local-first. `manifest.detection` is `'stored' | 'fetched'` (where `detect` reads from); declare `stored` only for a detector that does not fetch.
-- An unqualified ticker asks stored markets first; one match ends it. The operator names the other market to reach it (`/suggest crypto:HDB`). Ambiguity is reported only within one tier.
+- An unqualified ticker asks stored markets first; one match ends it. The operator names the other market to reach it (`/suggest crypto:HDB`). Ambiguity is reported only within one tier. On a read the operator typed (`operatorRead`: `/price`, `market_price`, `/suggest`) a held or watched instrument carrying the ticker settles which market it means (`HeldInstruments`, read in `wiring/composition/held-instruments.ts`), and the answer names every other market listing the symbol (`market.ticker-also-listed`), read from each market's stored listing or ranked board only (`DetectInstrumentOptions.boardOnly`), never a per-symbol lookup. A write never takes the held side: `/record` and `/update` keep the ambiguity report, since a row booked on the wrong market corrupts the book silently while a wrong read shows itself. A stored-only ask (`detection: 'stored'`) never consults a fetching market, held or not.
 - One market speaks for each region: `ownsRegion` elects it; boot rejects none or two. Its calendar is the region's trading day and its macro capability the region's composite. Never pick a market by registration order for a region-level read.
 - A non-owner market declaring `macroRisk` still gates its own segment and publishes the composite on its `/overview` block (`MarketDataOverview.macro`). A read that gates must be printed.
 - A region's regime reads its own market first: driver tables sit beside the policy (`VN_MACRO_DRIVERS`, `CRYPTO_MACRO_DRIVERS`); `US_MACRO_DRIVERS` is what US-priced segments read. A table weighing a US series takes its band from `US_DRIVER_BANDS`. VN stress confirmers only lower what its drivers produce.
@@ -115,7 +115,7 @@ Resolution and regions:
 Calendars:
 - A market's weekend is what its tape publishes, verified, not assumed from the asset class (VN gold quotes Saturdays). `isSettled` requires `isTradingDay`, so a wrong weekend silently drops days.
 - Session-counted tolerances (`WORLD_CLOSE_LAG_SESSIONS`, `FX_LAG_SESSIONS`) read the same calendar; changing the weekend rule re-derives them in the same commit.
-- Exchange closures are calendar: `CalendarPolicy.holidays` is a function from a year to that year's closures (`vnClosuresOf`, `markets/equity-vn/calendar/`: Labor Code art. 112 plus the lunar conversion, with announced swap days listed beside the rules). A holiday is never a settled session.
+- Exchange closures are calendar: `CalendarPolicy.holidays` is a function from a year to that year's closures (`vnClosuresOf`, `markets/equity-vn/calendar/`: Labor Code art. 112 plus the lunar conversion, with announced swap days listed beside the rules). A holiday is never a settled session. `CalendarPolicy.earlyCloses` is the same shape for the days a session ends early (`usEarlyClosesOf`, `markets/equity-us/calendar/`, 13:00 local); a day the holidays close stays closed.
 - Operators layer `[trading.markets.<id>] holidays` (adds a closure) and `open_days` (reopens one the rules close) over the rules; the operator wins; boot refuses either on the market's own weekend. There is no table to run out.
 - Another market's bars are counted on that market's calendar, never the caller's.
 
@@ -136,7 +136,7 @@ Strategy versions:
 
 Anything not listed is derived or gate-checked.
 
-1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>])`; a market with exchange closures sets `CalendarPolicy.holidays` to a year-to-closures function kept in `markets/<ref>/calendar/`.
+1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>])`; a market with exchange closures sets `CalendarPolicy.holidays` (and `earlyCloses` for half days) to year-to-days functions kept in `markets/<ref>/calendar/`.
 2. Factor id tuple and a `FactorId` union arm in `trading/kernel/factor.ts` (`manifest.factorIds` is typed against it). The central edit is deliberate: a market with new factor ids ships in-tree, never as a plugin.
 3. One `markets.register(...)` line in `trading/wiring/composition/registration.ts`.
 4. Providers under `sources/`, routed in `SOURCE_ROUTES`, registered in `trading/wiring/composition/source-registry.ts`.

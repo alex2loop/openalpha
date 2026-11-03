@@ -21,7 +21,11 @@ const DEFAULT_MAX_DAILY_USD = 0
 const DEFAULT_MAX_MONTHLY_USD = 0
 const DEFAULT_MAX_PER_RUN_USD = 0
 const DEFAULT_SOFT_WARN_RATIO = 0.8
-const DEFAULT_LANGUAGE = 'vi'
+const DEFAULT_LANGUAGE = 'en'
+// A config that names no language answers in its home market's: one that names no region either
+// keeps the Vietnam book trading defaults to, as every install before English became the default did.
+const UNNAMED_REGION = 'vn'
+const REGION_LANGUAGES: Readonly<Record<string, Locale>> = Object.freeze({ us: 'en', vn: 'vi' })
 const FALLBACK_TIMEZONE = 'UTC'
 const HTTPS_PROTOCOL = 'https:'
 const DEFAULT_TICK_SECONDS = 30
@@ -125,7 +129,8 @@ export function resolveBudget(raw: RawBudget | undefined): ResolvedBudget {
 }
 
 export function resolveLocale(raw: RawConfig['locale']): ResolvedLocale {
-  const language = raw?.language ?? DEFAULT_LANGUAGE
+  const language =
+    raw?.language ?? REGION_LANGUAGES[raw?.region ?? UNNAMED_REGION] ?? DEFAULT_LANGUAGE
 
   if (language !== 'en' && language !== 'vi') {
     throw new OperatorConfigError(

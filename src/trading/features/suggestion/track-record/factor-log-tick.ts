@@ -1,8 +1,10 @@
 import type { Logger } from '@/core/logging/logger'
 import type {
+  FactorLogCaptureResult,
   FactorLogId,
   FactorLogService,
 } from '@/trading/features/suggestion/track-record/factor-log-types'
+import type { MarketRef } from '@/trading/kernel/instrument'
 import { formatErrForLog } from '@/core/security/credentials'
 
 interface FactorLogTickDeps {
@@ -16,22 +18,17 @@ interface FactorLogTickDeps {
  *  page is walked, for the reason the outcome tick gives. */
 export function createFactorLogTick(
   deps: FactorLogTickDeps
-): (signal: AbortSignal) => Promise<void> {
-  return async (signal) => {
+): (markets: readonly MarketRef[], signal: AbortSignal) => Promise<void> {
+  return async (markets, signal) => {
     const now = Date.now()
-    const capture = await deps.factorLog.capture({ now, signal })
+    const capture = await deps.factorLog.capture({ now, markets, signal })
 
     if (capture.captured.length > 0) {
       deps.logger.info('trading.factor_log_captured', { boards: capture.captured })
     }
 
     for (const skip of capture.skipped) {
-      if (skip.reason === 'capture-failed') {
-        deps.logger.warn('trading.factor_log_capture_failed', {
-          market: skip.market,
-          err: formatErrForLog(skip.error),
-        })
-      }
+      logSkip(deps.logger, skip)
     }
 
     let cursor: FactorLogId | undefined
@@ -46,5 +43,26 @@ export function createFactorLogTick(
 
       cursor = batch.nextCursor
     } while (cursor !== undefined)
+  }
+}
+
+type Skip = FactorLogCaptureResult['skipped'][number]
+
+function logSkip(logger: Logger, skip: Skip): void {
+  if (skip.reason === 'capture-failed') {
+    logger.warn('trading.factor_log_capture_failed', {
+      market: skip.market,
+      err: formatErrForLog(skip.error),
+    })
+  }
+
+  // Lost for good once the next session settles: capture asks only for the newest settled day.
+  if (skip.reason === 'evidence-lagging' || skip.reason === 'universe-empty') {
+    logger.warn('trading.factor_log_capture_deferred', {
+      market: skip.market,
+      reason: skip.reason,
+      day: skip.day,
+      dataThroughDay: skip.dataThroughDay,
+    })
   }
 }

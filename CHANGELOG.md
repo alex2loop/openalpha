@@ -7,6 +7,44 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.3.0] - 2026-11-03
+
+US stocks and ETFs can now be your home market: the 500 largest US companies and a fund board,
+sector strength against SPY, a morning brief at 08:15 New York time with filings and ex-dividend
+dates, and Lower Manhattan on the office page. English is the default language. `/screen crypto`
+keeps only coins a venue you trade at lists, and the app's restart line, command box and market
+picker are easier to read. No database change.
+> Cổ phiếu và ETF Mỹ giờ có thể là thị trường chính: 500 công ty lớn nhất nước Mỹ và bảng quỹ, sức mạnh ngành so với SPY, bản tin sáng lúc 08:15 giờ New York kèm báo cáo nộp SEC và ngày giao dịch không hưởng quyền, cùng phố Lower Manhattan trên trang văn phòng. Tiếng Anh là ngôn ngữ mặc định. `/screen crypto` chỉ giữ coin mà sàn bạn đang giao dịch niêm yết, còn dòng khởi động lại, ô lệnh và ô chọn thị trường trong ứng dụng dễ đọc hơn. Không đổi cơ sở dữ liệu.
+
+### Added
+
+- US stocks and ETFs as a home market (`[locale] region = "us"` or the onboarding question): the 500 largest US companies and a fund board, scored on momentum, volatility and, with an SEC contact email, value and quality, sized in dollars at the `us-broker` venue. Leveraged and inverse funds are never suggested for purchase.
+- US sector strength: sectors ranked against SPY over 20 and 60 sessions, in chat and on the office page.
+- A morning brief for a US home at 08:15 New York time, with a "Filings and ex-dividend dates" list for the names you hold or watch. Market warm-up now runs 90 minutes before each open (Vietnam: 07:30).
+- New data: Nasdaq (listings, quotes, history, dividends), SEC (annual accounts, earnings releases, insider purchases), the US 10-year less 3-month yield spread, and Coinbase crypto prices.
+- The office page shows Lower Manhattan for a US home, with its own holidays, weather and ticker suggestions.
+- `/price` and `/suggest` read a symbol shared by a stock and a coin (LINK, ATOM) as the one you hold or watch, and name the other.
+
+### Changed
+
+- English is the default: the README opens in English (Vietnamese in `README.vi.md`), and `onboard` starts in English unless your computer runs in Vietnamese. A config without `[locale] language` answers in its home market's language, so existing Vietnam books stay Vietnamese.
+- Settings > Display can switch the home market; `/setup` asks about every tradable market. When a saved profile keeps the new home market switched off, `/profile` and the morning brief say so and name `/profile enable`.
+- `/overview` with no market shows only the markets you use.
+- Refresh covers only the markets your profile uses; Vietnamese gold stays off until `/profile enable`.
+- In Vietnamese the assistant always calls itself "mình".
+
+### Fixes
+
+- `/screen crypto` keeps only coins a venue you trade at lists (the default venue, an exchange with your key, or one your book names), instead of any venue the app knows. A book kept at OKX no longer sees a coin only Binance sells at the top of the board.
+- A US name missing from one weekly Nasdaq listing is no longer delisted until the next listing confirms it.
+- SEC net income filed at the wrong scale (Arista's 2025 read as $3,511) no longer drags a company's value and quality ranks.
+- Sectorless US names get no return-on-equity rank, and a foreign filer's accounts stay in its reporting currency.
+- The US calendar closes at 13:00 on early-close days (day after Thanksgiving, July 3, December 24).
+- Analysts debating a US fund read the macro-liquidity method instead of stock valuation methods.
+- The app's settings save again while a model key is missing or pending restart, switching provider picks that provider's default model, and the desktop first run no longer refuses a config with a key set.
+- In the app, the restart line after a settings change sits on the same glass as the offline bar instead of floating bare over the office. The command box leads with a chat mark instead of a `/` that looked already typed, and pressing `/` on an empty box starts a command with the `/` in place. The market picker on Ideas > Opportunities uses the short segment names on one row instead of wrapping full market names over two.
+- US stocks get their own colour and short name in the app, and class-share tickers such as BRK.B link to their page.
+
 ## [1.2.2] - 2026-10-30
 
 The ticker page now shows what the trader is waiting for before an entry, the full factor checklist
@@ -622,6 +660,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.3.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.3.0
 [1.2.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.2
 [1.2.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.1
 [1.2.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.0

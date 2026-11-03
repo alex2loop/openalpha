@@ -68,11 +68,18 @@ import {
 import { createHsxSources, HSX_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/hsx'
 import { createKbsecSources, KBSEC_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/kbsec'
 import { createMexcSources, MEXC_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/mexc'
+import { NASDAQ_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/nasdaq/client'
+import { createNasdaqSources } from '@/trading/sources/adapters/nasdaq/sources'
 import { createNsoSources, NSO_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/nso'
 import { createOkxSources, OKX_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/okx'
 import { createPnjSources, PNJ_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/pnj'
 import { createRssSources } from '@/trading/sources/adapters/rss'
 import { createSbvSources, SBV_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/sbv'
+import {
+  SEC_DATA_DEFAULT_ENDPOINT,
+  SEC_DEFAULT_ENDPOINT,
+} from '@/trading/sources/adapters/sec/client'
+import { createSecSources } from '@/trading/sources/adapters/sec/sources'
 import { createSsiSources, SSI_DEFAULT_ENDPOINT } from '@/trading/sources/adapters/ssi'
 import {
   createTreasurySources,
@@ -118,10 +125,13 @@ export const SOURCE_ENDPOINTS = Object.freeze({
   [sourceId('hsx')]: HSX_DEFAULT_ENDPOINT,
   [sourceId('kbsec')]: KBSEC_DEFAULT_ENDPOINT,
   [sourceId('mexc')]: MEXC_DEFAULT_ENDPOINT,
+  [sourceId('nasdaq')]: NASDAQ_DEFAULT_ENDPOINT,
   [sourceId('nso')]: NSO_DEFAULT_ENDPOINT,
   [sourceId('okx')]: OKX_DEFAULT_ENDPOINT,
   [sourceId('pnj')]: PNJ_DEFAULT_ENDPOINT,
   [sourceId('sbv')]: SBV_DEFAULT_ENDPOINT,
+  [sourceId('sec')]: SEC_DEFAULT_ENDPOINT,
+  [sourceId('sec-data')]: SEC_DATA_DEFAULT_ENDPOINT,
   [sourceId('ssi')]: SSI_DEFAULT_ENDPOINT,
   [sourceId('treasury')]: TREASURY_DEFAULT_ENDPOINT,
   [sourceId('vietcap')]: VIETCAP_DEFAULT_ENDPOINT,
@@ -171,7 +181,14 @@ export const SOURCE_ENDPOINTS = Object.freeze({
  *
  *  `vietcap-statements` publishes no ceiling. A name costs three requests, four for a bank, and a
  *  refresh asks for the board and the book, about 120 names, only when their reports are due, so
- *  120 a minute keeps the monthly burst near three minutes. */
+ *  120 a minute keeps the monthly burst near three minutes.
+ *
+ *  `nasdaq` publishes no ceiling. A full sweep of the US board ran at about 120 a minute without a
+ *  refusal, so that is the rate it is held to.
+ *
+ *  `sec` and `sec-data` are one limit: SEC allows 10 a second per address across both hosts and
+ *  blocks the address for ten minutes past it. Each bucket refills at 200 a minute and holds one
+ *  token, so any second asks at most 1 + 200/60 of each, under nine together. */
 export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = Object.freeze({
   [sourceId('alternative-me')]: 30,
   [sourceId('binance')]: 600,
@@ -195,11 +212,14 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('hsx')]: 60,
   [sourceId('kbsec')]: 60,
   [sourceId('mexc')]: 600,
+  [sourceId('nasdaq')]: 120,
   [sourceId('nso')]: 10,
   [sourceId('okx')]: 600,
   [sourceId('pnj')]: 30,
   [sourceId('rss')]: 60,
   [sourceId('sbv')]: 10,
+  [sourceId('sec')]: 200,
+  [sourceId('sec-data')]: 200,
   [sourceId('ssi')]: 60,
   [sourceId('treasury')]: 60,
   [sourceId('vietcap')]: 60,
@@ -210,6 +230,14 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('vndirect-mkw')]: 60,
   [sourceId('vps')]: 30,
   [sourceId('yahoo')]: 60,
+})
+
+/** What a bucket may hold at once, for a provider metering a shorter window than a minute: the
+ *  default burst is a quarter of the minute's rate, which is more than that provider accepts in one
+ *  instant. Sustained throughput stays the declared rate. */
+export const SOURCE_BURST_LIMITS: Readonly<Partial<Record<SourceId, number>>> = Object.freeze({
+  [sourceId('sec')]: 1,
+  [sourceId('sec-data')]: 1,
 })
 
 /** The macro sources the gate fronts, each declaring its own series and release cadence. A plugin
@@ -258,6 +286,16 @@ export const SOURCE_CREDENTIALS: Readonly<Record<string, SourceCredentialFacts>>
     adds: 'trading.source.credential.coingecko',
   },
   [sourceId('fred')]: { variable: 'FRED_API_KEY', adds: 'trading.source.credential.fred' },
+  [sourceId('sec-data')]: {
+    variable: 'SEC_CONTACT_EMAIL',
+    adds: 'trading.source.credential.sec',
+  },
+})
+
+/** A host SEC serves from a second origin shares the first's credential: `sec` has no source of its
+ *  own, so it is not routed and not listed, yet its requests carry the same contact. */
+export const CREDENTIAL_ALIASES: Readonly<Partial<Record<SourceId, SourceId>>> = Object.freeze({
+  [sourceId('sec')]: sourceId('sec-data'),
 })
 
 export const SOURCE_CREDENTIAL_ENV: Readonly<Partial<Record<SourceId, string>>> = Object.freeze(
@@ -274,6 +312,8 @@ export function createBuiltInSources(adapters: SourceAdapterOptions): readonly R
     ...createRssSources(adapters),
     ...createGoogleNewsSources(adapters),
     ...createVndirectSources(adapters),
+    ...createNasdaqSources(adapters),
+    ...createSecSources(adapters),
     ...createSbvSources(adapters),
     ...createNsoSources(adapters),
     ...createEntradeSources(adapters),

@@ -1,5 +1,5 @@
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type { CurrencyCode, InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 
 /** The Beneish ratios a tripped manipulation read names, in print order. Only the ratios that push
@@ -64,7 +64,7 @@ export const ACCOUNTS_QUARTER_FIELDS = Object.freeze([
 ] as const)
 export type AccountsQuarterField = (typeof ACCOUNTS_QUARTER_FIELDS)[number]
 
-/** One audited annual report's lines, in dong. Expenses are stored as positive amounts, so a
+/** One audited annual report's lines, in the market's currency. Expenses are stored as positive amounts, so a
  *  reversal reads as a negative one. A line the provider did not publish is absent, and every score
  *  that needs it abstains rather than reading zero. */
 export interface AccountLines {
@@ -90,6 +90,8 @@ export interface AccountLines {
   readonly longTermCustomerAdvances?: number
   /** Minority interests included, as the consolidated statement carries it. */
   readonly totalEquity?: number
+  /** Shares in issue, as the filer's cover page states them. */
+  readonly sharesOutstanding?: number
   readonly minorityInterests?: number
   /** Charter capital in common shares, which over the par value is the share count. */
   readonly commonShareCapital?: number
@@ -150,6 +152,9 @@ export interface AnnualAccounts {
   readonly lines: AccountLines
   readonly sourceId: SourceId
   readonly fetchedAt: number
+  /** The currency a filer reports in, set by a source that serves it unconverted. The market
+   *  converts the lines to its own currency before storing and drops the field. */
+  readonly reportingCurrency?: CurrencyCode
 }
 
 /** One final fiscal year read off its filed lines. A figure the lines cannot support is absent. */

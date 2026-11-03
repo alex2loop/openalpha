@@ -11,6 +11,7 @@ import type {
   NewsArchiveStore,
 } from '@/trading/features/market-data/store/news-archive'
 import type { SourceRegistry } from '@/trading/markets/types'
+import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { askExtraction } from '@/trading/features/market-data/macro-extract/ask'
 import { PRESS_SERIES, REPORT_SERIES } from '@/trading/features/market-data/macro-extract/catalogue'
@@ -39,6 +40,9 @@ interface MacroExtractDeps {
   readonly recordAttempt: AttemptRecorder
   readonly batchSize: number
   readonly logger: Logger
+  /** The extraction reads Vietnamese statistics for VN equities; a book that does not hold them
+   *  has no use for the spend. A read that fails runs it, as the refresh sweep does. */
+  readonly isEquityVnInUse: (signal: AbortSignal) => Promise<boolean>
 }
 
 interface TickContext {
@@ -180,9 +184,28 @@ export function createMacroExtractTick(
   deps: MacroExtractDeps
 ): (signal: AbortSignal) => Promise<void> {
   return async (signal) => {
+    if (!(await isInUse(deps, signal))) {
+      return
+    }
+
     const context: TickContext = { now: Date.now(), signal }
 
     await readReports(deps, context)
     await readPress(deps, context)
+  }
+}
+
+/** Failing open: not knowing what is in use runs the extraction, as the refresh sweeps everything. */
+async function isInUse(deps: MacroExtractDeps, signal: AbortSignal): Promise<boolean> {
+  try {
+    return await deps.isEquityVnInUse(signal)
+  } catch (err: unknown) {
+    if (signal.aborted) {
+      throw err
+    }
+
+    deps.logger.warn('trading.macro_extract_in_use_failed', { err: formatErrForLog(err) })
+
+    return true
   }
 }

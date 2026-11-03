@@ -1,11 +1,14 @@
 import type { MessageKey } from '@/i18n'
 import type { BikeShape, CarSize, ChatterId, ErrandItem, ShopKind } from '@/web/scene/street-types'
+import type { AgentDraft } from '@/web/state/agents'
 import { type ActorId, type Point, WORLD } from '@/web/scene/types'
+import { FRIDAY, THURSDAY } from '@/web/scene/world/regions/pack-kit'
+import { US_PACK } from '@/web/scene/world/regions/us'
 import { VN_PACK } from '@/web/scene/world/regions/vn'
 import { METRES_PER_PX, NORTH } from '@/web/scene/world/street-layout'
 import { MINUTES_PER_DAY } from '@/web/text/time-units'
 
-type RegionPackId = 'vn'
+type RegionPackId = 'vn' | 'us'
 
 /** From one minute of the page day to another, the end excluded. */
 export type MinuteRange = readonly [number, number]
@@ -60,6 +63,8 @@ export interface RoadLayout {
   readonly east: SideStreet
   readonly turnSign: boolean
   readonly habits: boolean
+  /** A painted bike lane along the near kerb of the main road. */
+  readonly bikeLane: boolean
 }
 
 /** A street name plate: colours, the inset frame, the street word over the name (`caps`: sign
@@ -120,9 +125,9 @@ export interface VehicleMix {
 }
 
 /** `pho`, `tea` and `banhMi` name their sign word: `ui.office.street.vendor.<id>`. */
-export type VendorId = 'pho' | 'tea' | 'banhMi' | 'flowerBike' | 'eveningStools'
+export type VendorId = 'pho' | 'tea' | 'banhMi' | 'flowerBike' | 'eveningStools' | 'foodCart'
 
-export type HolidayId = 'tet' | 'trung-thu' | 'quoc-khanh' | 'noel'
+export type HolidayId = 'tet' | 'trung-thu' | 'quoc-khanh' | 'noel' | 'jul4' | 'thanksgiving'
 
 /** The catalog keys of the words the delivery box, the taxi roof and the sanitation truck show. */
 export interface StreetWords {
@@ -185,20 +190,33 @@ export interface StreetCrowd {
   readonly lunchQueue: number
 }
 
-/** Where a region's tower foot stands in the street canvas, its scale about the foot and how
- *  hazed it is. */
-export interface Landmark {
+/** The curved glass shaft with a spire: where its foot stands in the street canvas, its scale
+ *  about the foot and how hazed it is. */
+export interface TowerLandmark {
   readonly shape: 'tower'
   readonly foot: Point
   readonly scale: number
   readonly haze: number
 }
 
+/** A region's landmark: the `tower`, or a `generic` stepped crown over a fin-and-glass facade,
+ *  built on the frontage building itself. */
+export type Landmark = TowerLandmark | { readonly shape: 'generic' }
+
 /** A lobby wall clock: the exchange or standard it keeps (a proper name, untranslated) and the
  *  zone it reads. */
 export interface WallClock {
   readonly label: string
   readonly zone: string
+}
+
+/** A first-run agent the empty team floor offers: the names of its card and the prompt the agent
+ *  form opens with, and the focus it starts on. */
+export interface AgentTemplate {
+  readonly name: MessageKey
+  readonly prompt: MessageKey
+  readonly hint: MessageKey
+  readonly focus: NonNullable<AgentDraft['focus']>
 }
 
 /** What the office knows of the city around it, keyed by the home region. Proper names (the
@@ -214,7 +232,9 @@ export interface RegionPack {
   readonly sideStreets: { readonly west: string; readonly east: string }
   readonly park: string
   readonly plate: PlateStyle
-  readonly speed: { readonly north: number; readonly side: number }
+  /** The posted limits in the city's own unit: the sign prints them as written, traffic cruises
+   *  on them converted. */
+  readonly speed: { readonly north: number; readonly side: number; readonly unit: 'km/h' | 'mph' }
   readonly stops: readonly BusStop[]
   readonly shops: readonly ShopRow[]
   readonly vehicles: VehicleMix
@@ -229,23 +249,40 @@ export interface RegionPack {
   readonly words: StreetWords
   readonly landmark: Landmark
   readonly earningsSeasons: readonly MonthDayRange[]
-  readonly expiryRule: 'third-thursday'
+  /** The monthly derivatives expiry: VN30 futures settle on the third Thursday, US equity options
+   *  on the third Friday. */
+  readonly expiryRule: 'third-thursday' | 'third-friday'
   /** The people who are in on a day the market is shut (alerts and chat run every day). */
   readonly restDayStaff: readonly ActorId[]
   /** The lobby's wall clocks, left to right. */
   readonly wallClocks: readonly WallClock[]
+  /** A well-known ticker of the home market, for an input's example. */
+  readonly exampleTicker: string
+  /** The agents the empty team floor offers to start from. */
+  readonly agentTemplates: readonly AgentTemplate[]
 }
 
 /** What sets a day apart: a report season, the derivatives' expiry, a festive stretch. */
 export type SpecialDay = 'earnings' | 'expiry' | 'festive'
 
 const DEFAULT_PACK: RegionPackId = 'vn'
-const THURSDAY = 4
-// The third Thursday of a month is always one of these dates.
+const EXPIRY_WEEKDAY: Readonly<Record<RegionPack['expiryRule'], number>> = Object.freeze({
+  'third-thursday': THURSDAY,
+  'third-friday': FRIDAY,
+})
+// The third of any weekday in a month is always one of these dates.
 const THIRD_WEEK = Object.freeze({ from: 15, to: 21 })
-const HOLIDAYS: readonly HolidayId[] = ['tet', 'trung-thu', 'quoc-khanh', 'noel']
+const HOLIDAYS: readonly HolidayId[] = [
+  'tet',
+  'trung-thu',
+  'quoc-khanh',
+  'noel',
+  'jul4',
+  'thanksgiving',
+]
 const REGION_PACKS: Readonly<Record<RegionPackId, RegionPack>> = Object.freeze({
   vn: VN_PACK,
+  us: US_PACK,
 } satisfies Record<RegionPackId, RegionPack>)
 
 /** The pack keyed by `homeRegion`, else the default one. */
@@ -310,8 +347,7 @@ export function specialDaysOf(
     (season) => season.month === month && (date ?? 0) >= season.from && (date ?? 0) <= season.to
   )
   const isExpiry =
-    pack.expiryRule === 'third-thursday' &&
-    new Date(`${day}T00:00:00Z`).getUTCDay() === THURSDAY &&
+    new Date(`${day}T00:00:00Z`).getUTCDay() === EXPIRY_WEEKDAY[pack.expiryRule] &&
     (date ?? 0) >= THIRD_WEEK.from &&
     (date ?? 0) <= THIRD_WEEK.to
 

@@ -5,8 +5,17 @@ import type { ProviderCatalogResponse } from '@/app/server/wire/config'
 import { translateDisplayText } from '@/i18n'
 import { getJson, sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { type Credential, pickProvider, readCredentials } from '@/web/state/credentials'
 import { locale } from '@/web/state/session'
-import { type ConfigTree, isTree, readConfigTree, saveConfig } from '@/web/state/settings'
+import {
+  type ConfigTree,
+  isTree,
+  pendingRestart,
+  type RestartRow,
+  readConfigTree,
+  type SettingsSection,
+  saveConfig,
+} from '@/web/state/settings'
 import { readText } from '@/web/text/fields'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { toErrorText, toFailureText, tr } from '@/web/text/tr'
@@ -25,6 +34,9 @@ const PROVIDER_BOUND_KEYS: ReadonlySet<string> = new Set([
   'provider_allow_fallbacks',
 ])
 
+const MODELS_ROW: RestartRow = 'models'
+const KEYS_SECTION: SettingsSection = 'providers'
+
 // A provider "Thêm mô hình" named: the editor adds a line for it the next time it opens.
 const preselected = signal<string | undefined>(undefined)
 
@@ -32,6 +44,11 @@ interface ChainRead {
   readonly entries: readonly ConfigTree[]
   readonly defaults: ConfigTree
   readonly catalog: ProviderCatalogResponse
+  readonly credentials: readonly Credential[]
+}
+
+interface ChainProps {
+  readonly openSection: (section: SettingsSection) => void
 }
 
 /** One entry of the chain as the operator edits it: who serves it and which model. */
@@ -51,7 +68,7 @@ export function preselectModelProvider(provider: string): void {
 
 /** Nhà cung cấp và model: the models the daemon tries in order. A change is written to the
  *  config file and applies when the daemon next starts. */
-export function ModelChainRow() {
+export function ModelChainRow({ openSection }: ChainProps) {
   const chain = useLoad(loadChain).value
 
   if (chain.status === 'loading') {
@@ -62,13 +79,14 @@ export function ModelChainRow() {
     return <p class="failure-line">{toFailureText(chain.failure)}</p>
   }
 
-  return <ChainEditor chain={chain.value} />
+  return <ChainEditor chain={chain.value} openSection={openSection} />
 }
 
 async function loadChain(abort: AbortSignal): Promise<ChainRead> {
-  const [tree, catalog] = await Promise.all([
+  const [tree, catalog, credentials] = await Promise.all([
     readConfigTree(abort),
     getJson(ROUTES.providers, { signal: abort }),
+    readCredentialsOrNone(abort),
   ])
   const models = Array.isArray(tree.models) ? tree.models : []
 
@@ -76,10 +94,24 @@ async function loadChain(abort: AbortSignal): Promise<ChainRead> {
     entries: models.filter(isTree),
     defaults: isTree(tree.model_defaults) ? tree.model_defaults : {},
     catalog,
+    credentials,
   }
 }
 
-function ChainEditor({ chain }: { readonly chain: ChainRead }) {
+// The key hint is a courtesy: a failed read leaves it out and the editor still opens.
+async function readCredentialsOrNone(abort: AbortSignal): Promise<readonly Credential[]> {
+  try {
+    return (await readCredentials(abort)).credentials
+  } catch (error: unknown) {
+    if (abort.aborted) {
+      throw error
+    }
+
+    return []
+  }
+}
+
+function ChainEditor({ chain, openSection }: ChainProps & { readonly chain: ChainRead }) {
   const { entries, defaults, catalog } = chain
   const { draft, isChanged, markSaved } = useDraft(
     entries.map((entry) => ({
@@ -88,16 +120,9 @@ function ChainEditor({ chain }: { readonly chain: ChainRead }) {
     }))
   )
 
-  useEffect(() => {
-    const provider = preselected.peek()
+  usePreselected(draft, catalog)
 
-    if (provider === undefined) {
-      return
-    }
-
-    preselected.value = undefined
-    draft.value = [...draft.value, { provider, model: defaultModelOf(catalog, provider) }]
-  }, [])
+  const keyless = isChanged ? [] : keylessProviders(draft.value, chain)
 
   return (
     <SettingRow
@@ -107,7 +132,7 @@ function ChainEditor({ chain }: { readonly chain: ChainRead }) {
       isReady={draft.value.every((choice) => choice.model.trim() !== '')}
       extra={<TestButton />}
       onSave={async () => {
-        await saveConfig((tree) => withChoices(tree, draft.value, catalog), 'models')
+        await saveConfig((tree) => withChoices(tree, draft.value, catalog), MODELS_ROW)
         markSaved()
       }}
     >
@@ -121,8 +146,69 @@ function ChainEditor({ chain }: { readonly chain: ChainRead }) {
           catalog={catalog}
         />
       ))}
+      {keyless.map((provider) => (
+        <KeyHint key={provider.id} provider={provider} openSection={openSection} />
+      ))}
     </SettingRow>
   )
+}
+
+type CatalogProvider = ProviderCatalogResponse['providers'][number]
+
+function KeyHint({ provider, openSection }: ChainProps & { readonly provider: CatalogProvider }) {
+  return (
+    <div class="setting-actions">
+      <p class="meta">
+        {tr('ui.office.settings.modelKeyMissing', { provider: provider.displayName })}
+      </p>
+      <Button
+        size="small"
+        onClick={() => {
+          pickProvider(provider.id)
+          openSection(KEYS_SECTION)
+        }}
+      >
+        {tr('ui.office.settings.addKey')}
+      </Button>
+    </div>
+  )
+}
+
+// The saved chain's providers whose key variable holds nothing the daemon will read: no saved key
+// and none in its environment. A provider without a key variable signs in or needs none.
+function keylessProviders(
+  choices: readonly ModelChoice[],
+  { entries, defaults, catalog, credentials }: ChainRead
+): readonly CatalogProvider[] {
+  const keyless = choices.filter((choice, index) => {
+    const entry = withChoice(entries[index] ?? {}, choice, { defaults, catalog })
+    const keyVar =
+      readText(entry.api_key_env) ??
+      (choice.provider === readText(defaults.provider) ? readText(defaults.api_key_env) : undefined)
+    const credential = credentials.find((held) => held.name === keyVar)
+
+    return credential !== undefined && !credential.set && !credential.fromShell
+  })
+  const ids = new Set(keyless.map((choice) => choice.provider))
+
+  return catalog.providers.filter((provider) => ids.has(provider.id))
+}
+
+// Adds a line for the provider "Thêm mô hình" named, once, when the editor opens.
+function usePreselected(
+  draft: Signal<readonly ModelChoice[]>,
+  catalog: ProviderCatalogResponse
+): void {
+  useEffect(() => {
+    const provider = preselected.peek()
+
+    if (provider === undefined) {
+      return
+    }
+
+    preselected.value = undefined
+    draft.value = [...draft.value, { provider, model: defaultModelOf(catalog, provider) }]
+  }, [])
 }
 
 function defaultModelOf(catalog: ProviderCatalogResponse, provider: string): string {
@@ -154,7 +240,12 @@ function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
       <select
         aria-label={tr('ui.office.settings.models')}
         value={choice.provider}
-        onChange={(event) => edit({ provider: event.currentTarget.value })}
+        onChange={(event) => {
+          const provider = event.currentTarget.value
+
+          // A model name belongs to its provider, so another provider starts from its own default.
+          edit({ provider, model: defaultModelOf(catalog, provider) })
+        }}
       >
         {providers.map((entry) => (
           <option key={entry.id} value={entry.id}>
@@ -178,8 +269,13 @@ function TestButton() {
   const result = useSignal<TestResult | undefined>(undefined)
   const isBusy = useSignal(false)
   const running = useRef<AbortController | undefined>(undefined)
+  const isStale = pendingRestart.value.includes(MODELS_ROW)
 
   useEffect(() => () => running.current?.abort(), [])
+
+  if (isStale) {
+    return <span class="meta">{tr('ui.office.settings.testAfterRestart')}</span>
+  }
 
   return (
     <>

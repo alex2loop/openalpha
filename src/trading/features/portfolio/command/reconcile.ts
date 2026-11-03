@@ -1,5 +1,6 @@
 import type { SlashCommand, SlashContext, SlashResult } from '@/core/types/command'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
+import type { CurrencyCode } from '@/trading/kernel/instrument'
 import { renderReconcileText } from '@/trading/features/portfolio/render/reconcile'
 import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 
@@ -8,6 +9,8 @@ import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
 interface ReconcileCommandDeps {
   readonly portfolio: Pick<PortfolioService, 'reconcile'>
   readonly timezone: string
+  /** The book's currency, named when the only cash a venue holds is in it. */
+  readonly baseCurrency: CurrencyCode
 }
 
 export function createReconcileCommand(deps: ReconcileCommandDeps): SlashCommand {
@@ -31,10 +34,9 @@ async function run(deps: ReconcileCommandDeps, ctx: SlashContext): Promise<Slash
 
   return {
     kind: 'text',
-    text: renderReconcileText(
-      ctx.locale,
-      reconciled,
-      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
-    ),
+    text: renderReconcileText(ctx.locale, reconciled, {
+      context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
+      baseCurrency: deps.baseCurrency,
+    }),
   }
 }

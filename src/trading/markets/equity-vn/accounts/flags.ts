@@ -4,16 +4,10 @@ import type {
   AccountsYear,
   AnnualAccounts,
 } from '@/trading/kernel/market/annual-accounts'
+import type { TrendWindow } from '@/trading/markets/accounts-history'
 import { isBankLines } from '@/trading/kernel/market/annual-accounts'
-import { growthOf, ratioOf, sumOf, totalOf } from '@/trading/markets/equity-vn/accounts/lines'
+import { growthOf, ratioOf, sumOf, totalOf } from '@/trading/markets/accounts-lines'
 import { VN_ACCOUNTS_POLICY } from '@/trading/markets/equity-vn/factor-policy'
-
-/** The reports a trend is read over: the base year and the years after it, newest last. */
-export interface TrendWindow {
-  readonly base: AnnualAccounts
-  readonly newest: AnnualAccounts
-  readonly flows: readonly AnnualAccounts[]
-}
 
 interface FlagsInput {
   readonly reports: readonly AnnualAccounts[]

@@ -4,34 +4,45 @@ import { yearOf } from '@/trading/sources/rows/normalization'
 
 const MAXIMUM_CACHED_YEARS = 32
 
-/** Whether the policy's own rules close a day. A year's closures are worked out once; the years
- *  asked about are few, and the cap keeps a walk over a malformed range from growing the map
- *  without end. */
+/** Whether the policy's own rules close a day. */
 export function createRuleClosures(
   policy: CalendarPolicy,
   isWeekend: (day: TradingDay) => boolean
 ): (day: TradingDay) => boolean {
   const { holidays } = policy
 
-  if (holidays === undefined) {
-    return () => false
-  }
+  return holidays === undefined
+    ? () => false
+    : createYearlyDays((year) => holidays(year, isWeekend))
+}
 
+/** Whether the policy's own rules end a day's session early. */
+export function createRuleEarlyCloses(policy: CalendarPolicy): (day: TradingDay) => boolean {
+  const { earlyCloses } = policy
+
+  return earlyCloses === undefined ? () => false : createYearlyDays(earlyCloses.days)
+}
+
+/** A year's days are worked out once; the years asked about are few, and the cap keeps a walk over
+ *  a malformed range from growing the map without end. */
+function createYearlyDays(
+  daysOf: (year: number) => readonly TradingDay[]
+): (day: TradingDay) => boolean {
   const years = new Map<number, ReadonlySet<TradingDay>>()
 
   return (day) => {
     const year = yearOf(day)
-    let closed = years.get(year)
+    let days = years.get(year)
 
-    if (closed === undefined) {
+    if (days === undefined) {
       if (years.size >= MAXIMUM_CACHED_YEARS) {
         years.clear()
       }
 
-      closed = new Set(holidays(year, isWeekend))
-      years.set(year, closed)
+      days = new Set(daysOf(year))
+      years.set(year, days)
     }
 
-    return closed.has(day)
+    return days.has(day)
   }
 }

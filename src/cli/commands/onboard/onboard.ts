@@ -100,7 +100,7 @@ async function firstSetup(shellCtx: AskContext, configPath: string): Promise<num
   )
   shellCtx.app.out(hint(t(shellCtx.locale, 'cli.onboardWritesTo', { path: configPath })))
 
-  const { language, currency, chosen } = await askFirstAnswers(shellCtx)
+  const { language, region, currency, chosen } = await askFirstAnswers(shellCtx)
   const ctx: AskContext = { ...shellCtx, locale: language }
   const dailyBudgetUsd = await askBudget(ctx, STARTER_DAILY_BUDGET_USD)
   const telegramTokenEnv = await askTelegram(ctx)
@@ -108,6 +108,7 @@ async function firstSetup(shellCtx: AskContext, configPath: string): Promise<num
   const content = starterConfigToml({
     model: chosen.starter,
     language,
+    region,
     currency,
     dailyBudgetUsd,
     ...telegram,
@@ -123,7 +124,7 @@ async function firstSetup(shellCtx: AskContext, configPath: string): Promise<num
 
   await writeStarterConfig(configPath, content)
   ctx.app.out(success(t(ctx.locale, 'cli.onboardWrote', { path: configPath })))
-  await finishModelChange(ctx, { chosen, configPath, firstRun: true, ...telegram })
+  await finishModelChange(ctx, { chosen, configPath, firstRun: true, region, ...telegram })
 
   return 0
 }

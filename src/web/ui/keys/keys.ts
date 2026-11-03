@@ -4,8 +4,8 @@ import type { MessageKey } from '@/i18n'
 import type { PanelTab, PanelView } from '@/web/state/panel'
 import { stopFollow, view, ZOOM_KEYS } from '@/web/scene/view'
 import { agents } from '@/web/state/agents'
-import { isChatOpen, setChatOpen } from '@/web/state/chat'
-import { focusInput } from '@/web/state/command'
+import { COMMAND_PREFIX, isChatOpen, setChatOpen } from '@/web/state/chat'
+import { fillInput, focusInput, inputText } from '@/web/state/command'
 import { toggleInfoOnly } from '@/web/state/pane'
 import { openView, panelView } from '@/web/state/panel'
 import {
@@ -226,7 +226,7 @@ function handlePlainKey(key: string, context: KeyContext): boolean {
 function handleNamedKey(key: string, { deps, viewed }: KeyContext): boolean {
   switch (key.toLowerCase()) {
     case INPUT_KEY:
-      focusInput()
+      startCommand()
       return true
     case LIST_KEY:
       deps.openList()
@@ -288,4 +288,13 @@ function endFollow(): boolean {
   stopFollow()
 
   return true
+}
+
+/** The key swallows its own "/": an empty box takes it back, so what follows reads as a command. */
+function startCommand(): void {
+  if (inputText.peek() === '') {
+    fillInput(COMMAND_PREFIX)
+  } else {
+    focusInput()
+  }
 }

@@ -44,6 +44,24 @@ export const ICB_SUPERSECTORS = Object.freeze([
   'utilities',
 ] as const)
 
+/** The sectors the US listing publishes (Nasdaq's screener taxonomy), kept apart from ICB: its
+ *  `finance` spans banks, insurers and asset managers, so it maps onto no single ICB supersector.
+ *  Listed here only to carry a translation, as ICB is. */
+export const US_LISTING_SECTORS = Object.freeze([
+  'basic-materials',
+  'consumer-discretionary',
+  'consumer-staples',
+  'energy',
+  'finance',
+  'health-care',
+  'industrials',
+  'miscellaneous',
+  'real-estate',
+  'technology',
+  'telecommunications',
+  'utilities',
+] as const)
+
 export const MARKET_REGIMES = Object.freeze(['risk-on', 'neutral', 'risk-off'] as const)
 export type MarketRegime = (typeof MARKET_REGIMES)[number]
 

@@ -14,6 +14,9 @@ import { describeRows, sectionOfRows } from '@/web/ui/settings/restart-rows'
 
 import '@/web/ui/dialogs/dialogs.css'
 
+// The offline bar's own glass, so the line reads over the scene.
+const RESTART_BAR_CLASS = 'offline-bar glass is-strong'
+
 interface RestartRequest {
   /** Leads back to Cài đặt, where the dialog was opened from. */
   readonly onBack?: () => void
@@ -176,7 +179,7 @@ function DoneLine({ note, applied, onSee }: DoneLineProps) {
   const section = sectionOfRows(applied)
 
   return (
-    <div class="offline-bar" role="status">
+    <div class={RESTART_BAR_CLASS} role="status">
       <strong>{note === '' ? tr('ui.restartDone') : note}</strong>
       {applied.length > 0 && (
         <span class="offline-bar-detail">
@@ -197,7 +200,7 @@ function DoneLine({ note, applied, onSee }: DoneLineProps) {
 
 function FailedLine({ detail }: { readonly detail: string }) {
   return (
-    <div class="offline-bar" role="alert">
+    <div class={RESTART_BAR_CLASS} role="alert">
       <strong>{tr('ui.office.restart.failed')}</strong>
       <span class="offline-bar-detail">{detail}</span>
       <Button size="small" onClick={dismissRestart}>
@@ -209,7 +212,7 @@ function FailedLine({ detail }: { readonly detail: string }) {
 
 function WaitingLine({ refused }: { readonly refused: number }) {
   return (
-    <div class="offline-bar" role="status">
+    <div class={RESTART_BAR_CLASS} role="status">
       <strong>{tr('ui.office.offline.restarting')}</strong>
       <span class="offline-bar-detail">{tr('ui.office.restart.running')}</span>
       {refused > 0 && (

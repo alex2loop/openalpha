@@ -1,3 +1,4 @@
+import type { Logger } from '@/core/logging/logger'
 import type {
   CommandMessageValues,
   SlashCommand,
@@ -6,6 +7,8 @@ import type {
 } from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { MarketRef, Region } from '@/trading/kernel/instrument'
+import { isAbortError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 import { renderOverviewText } from '@/trading/features/market-data/render/overview'
 import { unsupportedCapability } from '@/trading/features/market-data/resolve'
 import { parseMember, usage } from '@/trading/kernel/surface/surface'
@@ -28,6 +31,9 @@ interface OverviewCommandDeps {
    *  page narrowed to markets outside that region carries none. */
   readonly defaultRegion: Region
   readonly heldMarkets: ReadonlySet<MarketRef>
+  /** What a bare `/overview` covers: the markets a segment, holding or watched name keeps in use. */
+  readonly marketsInUse: (signal: AbortSignal) => Promise<ReadonlySet<MarketRef>>
+  readonly logger: Logger
 }
 
 export function createOverviewCommand(deps: OverviewCommandDeps): SlashCommand {
@@ -48,8 +54,8 @@ export function createOverviewCommand(deps: OverviewCommandDeps): SlashCommand {
   }
 }
 
-/** Every market by default; named markets narrow the page to them, which is what each market's
- *  button under the full page opens. */
+/** The markets in use by default, as the brief reads them; named markets narrow the page to them,
+ *  which is what each market's button under the full page opens. */
 async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashResult> {
   const known = deps.marketData.markets()
   const named = ctx.args.map((arg) => parseMember(arg, known))
@@ -59,6 +65,7 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
   }
 
   const markets = named.filter((market): market is MarketRef => market !== null)
+  const covered = markets.length === 0 ? await defaultMarkets(deps, ctx.signal) : markets
 
   // One clock for the whole message, so the macro read and every market block are stamped with the
   // same instant rather than each with its own.
@@ -71,7 +78,7 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
       now,
       signal: ctx.signal,
       ...progress,
-      ...(markets.length === 0 ? {} : { markets }),
+      markets: covered,
     }),
     readsRegion(deps, markets)
       ? deps.marketData.macroRisk({
@@ -98,6 +105,29 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
       resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
     ),
   }
+}
+
+/** A page with nothing to show is worse than a wide one, so a failed or empty read of what is in use
+ *  covers every market. */
+async function defaultMarkets(
+  deps: OverviewCommandDeps,
+  signal: AbortSignal
+): Promise<readonly MarketRef[]> {
+  try {
+    const inUse = await deps.marketsInUse(signal)
+
+    if (inUse.size > 0) {
+      return [...inUse]
+    }
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
+    deps.logger.warn('trading.overview_markets_in_use_failed', { err: formatErrForLog(err) })
+  }
+
+  return deps.marketData.markets()
 }
 
 function buildUsageValues(deps: OverviewCommandDeps): CommandMessageValues {

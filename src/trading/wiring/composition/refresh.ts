@@ -3,6 +3,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
 import type { BriefDelivery } from '@/trading/features/brief/types'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { ProfileService } from '@/trading/features/profile/types'
 import type { RestatementDeps } from '@/trading/features/suggestion/exit-plan/restatement'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
@@ -33,8 +34,11 @@ interface RestatementNotice {
 
 interface MarketsInUseDeps {
   readonly markets: MarketRegistry
-  readonly stores: Pick<TradingStores, 'profile' | 'suggestion' | 'briefDelivery'>
+  readonly stores: Pick<TradingStores, 'suggestion' | 'briefDelivery'>
   readonly book: ReturnType<typeof createTradeableBook>
+  /** The resolved profile, stored or seeded: a segment the stored one never named is off, so a book
+   *  from before a market existed does not start refreshing it. */
+  readonly profiles: Pick<ProfileService, 'get'>
 }
 
 function briefMarket(markets: MarketRegistry, brief: BriefDelivery | null): MarketRef[] {
@@ -79,7 +83,7 @@ export function buildRefreshCoordinator(
 interface RefreshTickParts {
   readonly markets: MarketRegistry
   readonly stores: TradingStores
-  readonly book: ReturnType<typeof createTradeableBook>
+  readonly inUse: MarketsInUseDeps
   readonly refresh: RefreshMarketData
   readonly logger: Logger
 }
@@ -98,10 +102,10 @@ export function buildRefreshTick(
   return createRefreshTick({
     refresh: parts.refresh,
     markets: resolveRefreshMarkets(markets),
-    inUse: (signal) => resolveMarketsInUse({ markets, stores, book: parts.book }, signal),
+    inUse: (signal) => resolveMarketsInUse(parts.inUse, signal),
     recordTradeSides: createTradeSidesTick({
       profiles: stores.profile,
-      book: parts.book,
+      book: parts.inUse.book,
       markets,
       marketDataStore: stores.marketData,
       logger,
@@ -122,23 +126,19 @@ export function resolveRefreshMarkets(markets: MarketRegistry): readonly MarketR
 
 /** The markets something the operator relies on still reads: a segment switched on, a holding, a
  *  watched name, a call waiting to be scored, or the market a scheduled brief is built on. A
- *  switched-off segment drops out only once none of those needs its prices. With no profile yet
- *  nothing is known to be unused, so every market stays in. */
+ *  switched-off segment drops out only once none of those needs its prices. With no profile saved
+ *  the seeded one decides, so a fresh install refreshes only the segments its home market seeds. */
 export async function resolveMarketsInUse(
   deps: MarketsInUseDeps,
   signal: AbortSignal
 ): Promise<ReadonlySet<MarketRef>> {
   const all = deps.markets.list()
   const [profile, positions, coverage, brief] = await Promise.all([
-    deps.stores.profile.find(signal),
+    deps.profiles.get({ signal }),
     deps.book.tradeableHoldingsAt({ now: Date.now(), signal }),
     deps.stores.suggestion.coverage({ signal }),
     deps.stores.briefDelivery.find(signal),
   ])
-
-  if (profile === null) {
-    return new Set(all.map((market) => market.manifest.id))
-  }
 
   const off = disabledSegments(profile.caps)
 

@@ -117,6 +117,8 @@ export interface DebateInput {
   /** This name's own dated corporate actions inside the holding window: timing a persona must weigh
    *  but may not speculate past. */
   readonly upcomingEvents?: readonly MarketEvent[]
+  /** Earnings releases and insider buying already filed, under a heading of their own. */
+  readonly recentEvents?: readonly MarketEvent[]
   /** The calendar read failed, which an empty `upcomingEvents` would otherwise read as nothing
    *  scheduled. */
   readonly calendarFailed?: true
@@ -219,6 +221,8 @@ export interface Prepared {
   readonly upcomingEvents: readonly MarketEvent[]
   /** Past rows too: a dividend that already went ex is owed to the units bought before it. */
   readonly instrumentEvents: readonly MarketEvent[]
+  /** Filings already public that the debate may weigh, apart from the dated events ahead. */
+  readonly recentEvents: readonly MarketEvent[]
   readonly calendarFailed?: true
   readonly openRisk?: OpenRisk
   readonly direction: DraftDirection

@@ -25,6 +25,7 @@ const MACRO_FEED_KEY = 'macro'
 export const RSS_FEEDS: Readonly<Record<string, string>> = Object.freeze({
   crypto: 'https://www.coindesk.com/arc/outboundfeeds/rss',
   gold: 'https://news.google.com/rss/search?q=(gold+price+OR+silver+price+OR+"precious+metals")+when:2d&hl=en-US&gl=US&ceid=US:en',
+  'equity-us': 'https://www.cnbc.com/id/15839069/device/rss/rss.html',
   'equity-vn': 'https://cafef.vn/thi-truong-chung-khoan.rss',
   'economy-vn': 'https://cafef.vn/vi-mo-dau-tu.rss',
   'politics-vn': 'https://vnexpress.net/rss/thoi-su.rss',
@@ -37,6 +38,7 @@ export const RSS_FEEDS: Readonly<Record<string, string>> = Object.freeze({
 const SCOPE_FEEDS: Readonly<Record<string, readonly string[]>> = Object.freeze({
   crypto: ['crypto', 'economy-global'],
   gold: ['gold'],
+  'equity-us': ['equity-us', 'economy-global'],
   'equity-vn': ['equity-vn', 'economy-vn', 'politics-vn'],
   'gold-vn': ['gold-vn'],
   [MACRO_FEED_KEY]: [MACRO_FEED_KEY],

@@ -32,7 +32,8 @@ export interface SourceRequest {
   readonly attemptTimeoutMs?: number
   /** Per-request retry cap; absent means RETRY_MAXIMUM_ATTEMPTS. */
   readonly maxAttempts?: number
-  /** Per-request response cap, only ever below MAXIMUM_RESPONSE_BYTES. */
+  /** Per-request response cap, declared by the adapter that knows what its endpoint returns;
+   *  absent means MAXIMUM_RESPONSE_BYTES. */
   readonly maxBytes?: number
   readonly signal: AbortSignal
 }
@@ -77,6 +78,9 @@ export interface SourceFacts {
   /** One origin, or a list for transport failover across the same backend. */
   readonly endpoints: Readonly<Partial<Record<SourceId, string | readonly string[]>>>
   readonly rateLimits: Readonly<Partial<Record<SourceId, number>>>
+  /** The most a provider's bucket holds at once, where its limit is metered over a shorter window
+   *  than a minute; a provider absent here bursts to its default share of the minute. */
+  readonly burstLimits: Readonly<Partial<Record<SourceId, number>>>
   /** Keyed by the feed id an adapter names — the market ref, for RSS. */
   readonly feeds: Readonly<Record<string, string>>
   /** Resolved from the environment at composition; the raw secret never enters a config object. */

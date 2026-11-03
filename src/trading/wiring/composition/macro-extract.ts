@@ -6,7 +6,8 @@ import { EXTRACTION_MODEL_TIER } from '@/trading/kernel/config'
 
 export function buildMacroExtractTick(
   app: App,
-  sources: SourceRegistry
+  sources: SourceRegistry,
+  isEquityVnInUse: (signal: AbortSignal) => Promise<boolean>
 ): (policy: OperationPolicy) => (signal: AbortSignal) => Promise<void> {
   const chains = app.resolve('llmChains')
   const stores = app.resolve('tradingStores')
@@ -20,5 +21,6 @@ export function buildMacroExtractTick(
       recordAttempt: app.resolve('attemptRecorder'),
       batchSize: policy.batchSize,
       logger: app.resolve('logger'),
+      isEquityVnInUse,
     })
 }

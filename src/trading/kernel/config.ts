@@ -91,6 +91,12 @@ export interface CalendarPolicy {
     year: number,
     isWeekend: (day: TradingDay) => boolean
   ) => readonly TradingDay[]
+  /** The trading days the session ends early in a year, from the same law, and the local time it
+   *  ends then. A day the holidays close stays closed. */
+  readonly earlyCloses?: {
+    readonly localTime: string
+    readonly days: (year: number) => readonly TradingDay[]
+  }
   readonly continuous: boolean
 }
 

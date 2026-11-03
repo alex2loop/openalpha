@@ -2,6 +2,7 @@ import { type Signal, useSignal } from '@preact/signals'
 
 import type { AlertWire } from '@/app/server/wire/market'
 import type { InstrumentRefWire, TradingProfileResponse } from '@/app/server/wire/trading'
+import { regionPack } from '@/web/scene/data/home'
 import { readBlock } from '@/web/state/block'
 import { findQuote, keyOf, profileBlock } from '@/web/state/market'
 import { addWatch, qualifyName, removeWatch, useAlerts } from '@/web/state/watch'
@@ -125,7 +126,9 @@ function AddName({ failure }: { readonly failure: Signal<string | undefined> }) 
       <input
         type="text"
         value={name.value}
-        placeholder={tr('ui.office.book.addPlaceholder')}
+        placeholder={tr('ui.office.book.addPlaceholder', {
+          ticker: regionPack.value.exampleTicker,
+        })}
         aria-label={tr('ui.office.book.addName')}
         onInput={(event) => {
           name.value = event.currentTarget.value

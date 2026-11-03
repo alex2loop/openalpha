@@ -11,12 +11,8 @@ import type { MarketDataRefreshRequest, TradingCalendar } from '@/trading/market
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { isSameInstrument } from '@/trading/kernel/instrument'
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
+import { isAdmissibleFlows } from '@/trading/markets/admissibility'
 import { buildPayloadRejectedCaveat, reportedCaveats } from '@/trading/markets/equity-vn/caveats'
-import { isAdmissibleFlows } from '@/trading/markets/equity-vn/evidence/admissibility'
-import {
-  resolveCoveredFrom,
-  resolveFetchWindow,
-} from '@/trading/markets/equity-vn/evidence/fetch-window'
 import { NO_DESK_DAYS, readFlows } from '@/trading/markets/equity-vn/evidence/flow-evidence'
 import {
   VN_FLOW_SESSIONS,
@@ -25,6 +21,7 @@ import {
   VN_SOURCE_CONCURRENCY,
 } from '@/trading/markets/equity-vn/policy'
 import { BOARD_KINDS, tradeableTargets } from '@/trading/markets/equity-vn/refresh/targets'
+import { resolveCoveredFrom, resolveFetchWindow } from '@/trading/markets/fetch-window'
 import { buildRejectedOutcome, toKindResult } from '@/trading/markets/refresh-result'
 import { RATIO_BATCH_TICKERS } from '@/trading/sources/adapters/vndirect/client'
 

@@ -32,10 +32,27 @@ The **market id** and the **portfolio segment** are two names for the same thing
 |---|---|---|---|---|---|
 | `gold` | `global` | gold | `gold` | USD | yes |
 | `gold-vn` | `vn` | gold | `gold-vn` | VND | no |
+| `equity-us` | `us` | equity | `equity-us` | USD | yes |
 | `equity-vn` | `vn` | equity | `equity-vn` | VND | yes |
 | `crypto` | `global` | crypto | `crypto` | USDT | no |
 
 Two markets share region `vn`, so one of them has to define "a Vietnamese trading day". The brief's schedule and every cross-market as-of date rely on it. Equity does that for `vn`, world gold does it for `global`, and crypto never closes. Startup refuses to run if a region has no such market or two.
+
+### US stocks
+
+Set `[locale] region = "us"` and `currency = "USD"`, or pick the United States when `onboard` asks which market you mainly trade, and start from a fresh data directory: the book's currency is fixed once the first profile is saved. The home market then screens, scores, debates and sizes US stocks and ETFs. `onboard` writes only the region and currency; Coinbase leads crypto quotes only when the venue table names it, as [`config.minimal.us.toml`](../../config.minimal.us.toml) does (see "Crypto through Coinbase" below).
+
+Moving an existing book's home to the US keeps the profile you saved, so US stocks stay switched off until you turn them on. `/profile` and the morning brief both say so, and `/profile enable equity-us` turns them on. Nothing is switched on for you, because turning a segment on re-splits your targets.
+
+- **Where the book sits.** US shares are held at the built-in `us-broker` venue, with no fees, and you record your fills by hand: `/record buy us-broker equity-us:AAPL 10 214.13 USD`. To use your own broker's name and fees, add `[trading.venues.<name>]` with `default_for = ["equity-us"]` and its `fees`.
+- **Same-day sells.** A US sale settles cash in one business day, but a cash account may sell shares it bought the same day, so a buy and a sale on one day both book.
+- **The board.** The screen ranks the 500 largest US companies by market value, plus the funds on the fund board (`/screen equity-us etf`); it does not carry an S&P 500 list. A stock you hold that slips just past rank 500 (within rank 550) stays on the board itself. Anything you hold or watch is refreshed every day wherever it ranks, funds included: its prices, market value and filings are kept, and a stock's value and quality are ranked against the board. Any other listed ticker still answers `/price` and `/suggest`, read on demand, but without a market value it is scored with lower conviction and says so. The Nasdaq Composite shares its ticker with a New York-listed stock; the index wins, so write `/price equity-us:COMP` for the index.
+- **Sector strength.** `market_sector_strength` and the office page's sector block group the board by Nasdaq's sector and rank each against SPY over 20 and 60 sessions. The US publishes no foreign flow, so a US sector carries none.
+- **Funds are reviewed, not stopped.** A fund's level is a place to look again, not a stop to arm. A leveraged or inverse fund resets every day and drifts from its index, so a buy is refused; if you already hold one, you still get a real stop.
+- **Scoring without SEC.** Momentum and volatility read prices alone. Value and quality come from SEC accounts, which need a contact email in `SEC_CONTACT_EMAIL` (set by `onboard` or `key set SEC_CONTACT_EMAIL`). Without it value and quality read as unavailable, `/refresh` says the financial reports have no source set up, the board says its coverage is partial, and names still rate on the other half. Quality is the mean of two ranks: gross profit over assets against the whole board, and return on equity against the name's own listing sector, so a bank's leverage does not read as quality. Banks and most filers tag no gross profit, so for them quality is the return-on-equity rank alone. A foreign company (ASML, Toyota, TD Bank) files under international standards or in its home currency, so its accounts are read from its own filings and converted to dollars at today's rate. The few with no machine-readable filing rate on prices alone.
+- **Recently filed.** Earnings releases (8-K item 2.02) and open-market insider purchases (Form 4) from the last 90 days reach the debate under their own heading, apart from the dated events ahead.
+- **Crypto through Coinbase.** For a US operator, `[trading.venues.coinbase] default_for = ["crypto"]` leads the crypto quote with Coinbase. Coinbase quotes dollars and the book is in USDT, so every price is divided by USDT's own dollar price; on 2026-10-20 that was 0.99883, and the converted BTC price sat 0.009% from Binance's. If a coin's symbol is also a US listing (SOL, LINK), `/price` and `/suggest` read the coin when you hold or watch only the coin, and otherwise the stock; either way they say the other exists, and `crypto:SOL` or `equity-us:SOL` reads the side you name. `/record` and `/update` never guess: a symbol both markets list needs its market or a venue that holds only one of them.
+- **The brief.** The morning brief for a US home is sent at 08:15 New York time by default. It reads the US block, the crypto block, your book and your suggestions, plus a "Filings and ex-dividend dates" list under the US block: the earnings releases and insider purchases of the last five sessions, and the ex-dividend dates in the next ten, for the names you hold or watch. Without `SEC_CONTACT_EMAIL` the filings half is off, and the list says so in one line, with how to turn it on, instead of staying quietly empty. It carries no market story, which reads Vietnam's tape only.
 
 ### Data sources
 
@@ -69,9 +86,11 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `fred-csv` | monthly commodity series no daily feed carries (coal, rice, pork, steel), behind `vndirect` | no |
 | `vietcap-statements` | VN financial statements: full years plus discrete quarters (below) | no |
 | `treasury` `bls` `fred` | US macro series, merged rather than failed over | `fred` needs `FRED_API_KEY`; `bls` takes an optional `BLS_API_KEY` |
+| `nasdaq` | US listings, market caps, quotes, split-adjusted daily history and dividends; ex-dividend dates cover Nasdaq-listed names only | no |
+| `sec-data` | US annual accounts, earnings releases and insider purchases; it reads the ticker map and insider filings from SEC's second host, `sec` | `SEC_CONTACT_EMAIL`: not a key but a contact email, which SEC asks every reader to send |
 | `coinpaprika` | the ranked crypto board and seven-day change, keyless, one request; first fallback behind `coinmarketcap`; it measures 24-hour volume lower, so `/screen crypto` says when the ranking came from it or any other fallback | no |
 | `coinmarketcap` `coinlore` | the ranked crypto board the screen picks its universe from, keyless, one request; `coinlore` sits third | no |
-| `coinbase` | the USD price of a settlement coin, from a venue that trades the pair | no |
+| `coinbase` | the USD price of a settlement coin, from a venue that trades the pair; also crypto prices and daily bars converted to USDT, the last provider a US operator can always reach | no |
 | `er-api` | fiat FX, behind `yahoo` | no |
 | `cftc` | gold futures positioning: the weekly Commitments of Traders report | no |
 
@@ -656,7 +675,7 @@ The screener band is `average daily range x breakout_range` on either side of th
 
 The two are kept apart because only one of them is a problem.
 
-The brief opens with one **market story**, found by code with no model call and no cost, and a look
+With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.
 
 - **The look back** checks the watch conditions of a story told on an earlier session against today's
@@ -941,7 +960,7 @@ Only the `[trading.refresh]` cadence can be configured. The alert loop and resti
 Refresh follows the trading calendar, not a fixed interval. It fires at two moments:
 
 - when each session settles (the close plus the auction lag, the same moment that decides whether a session counts as settled);
-- 60 minutes before each open, so the morning brief and the first screen read fresh data without waiting for a fetch.
+- 90 minutes before each open, so the morning brief and the first screen read fresh data without waiting for a fetch.
 
 Every market with its own hours sets its own tick. The configured interval still applies, as a ceiling, to markets that never close and to an empty registry.
 
@@ -950,7 +969,7 @@ Refresh covers every market you still use. A market counts as in use when:
 - its segment is switched on in your profile; or
 - you hold a name there, watch one, wait on a call to be scored, or get a scheduled brief built on it.
 
-A switched-off segment drops out only when none of those still needs it, so a holding's stop is never left without prices. With no profile yet, every market refreshes. If that list cannot be read, everything refreshes. The morning brief describes the same list, and naming a market on `/refresh` refreshes it either way.
+A switched-off segment drops out only when none of those still needs it, so a holding's stop is never left without prices. Until a profile is saved, the seeded default profile decides, so a fresh install refreshes only your home market and crypto, not every market. If that list cannot be read, everything refreshes. The morning brief describes the same list, and naming a market on `/refresh` refreshes it either way.
 
 Markets refresh at the same time, not one after another. They share almost no sources, the pacer controls the few they do share, and making each wait for the previous one would only add up the waiting time of unrelated hosts.
 
@@ -960,6 +979,8 @@ Inside the VN board the same idea applies. Price history, financial ratios and t
 
 `/refresh <market>` sweeps only that market. A name that is not a registered market gets the usage line instead of silently doing nothing. A command that joins a sweep already running says so and names the market it waits on. Every progress line names its market; without the name, the line would flicker between the markets sharing it.
 
+**Only coins you can buy where you trade.** The crypto screen keeps a coin only if one of the venues you trade at lists it: the market's default venue (`default_for`), any exchange whose key you saved, and any venue a row of your book names. A coin none of them lists lands under "Removed" with that reason, so a book kept at OKX is never offered a coin only Binance sells. When none of those venues publishes a listing, or the book cannot be read, every venue that holds crypto counts, so the board never comes back empty.
+
 **What reading the board cost travels with the pass.** The crypto sweep plans against the ranked market-cap board, and its sources publish different depths (750 rows, 250 and 100). A sweep that fell back to a shallower source covers only part of the field, yet every count it reports would describe that part as the whole.
 
 So the board's own caveats and `market-data.universe-shallow` reach the result, just as `/screen` and `/overview` already report about the same sweep. A result where every target failed still gets `source.no-available-provider`.
@@ -968,7 +989,7 @@ So the board's own caveats and `market-data.universe-shallow` reach the result, 
 
 **Who was in charge of a session is recorded once, or not at all.** Every refresh records the buy/sell aggressor split (whether buyers or sellers drove the trades) for each name you hold or watch. Neither source behind it lets you ask for a date. `kbsec` answers with whatever session its board holds right now, and `vietcap` pages backwards from the newest trades. So the split can only be read between the moment the session settles and the next open.
 
-The refresh schedule puts two passes inside that window (15:15 and 08:00 for a VN board). After the open, that session is gone for good. So a name the sweep could not record is named under its market in the `/refresh` view: a miss that no later pass can fill is a permanent hole in the series. The sweep covers only the markets that refresh covered, so `/refresh crypto` spends none of a VN source's budget.
+The refresh schedule puts two passes inside that window (15:15 and 07:30 for a VN board). After the open, that session is gone for good. So a name the sweep could not record is named under its market in the `/refresh` view: a miss that no later pass can fill is a permanent hole in the series. The sweep covers only the markets that refresh covered, so `/refresh crypto` spends none of a VN source's budget.
 
 A name you neither hold nor watch is never swept, and that includes every buy candidate. For those, `/suggest` reads the buy/sell split itself for the session it is judging, and stores nothing. A stored row would otherwise show up in a brief section that lists the names you follow. Both readers ask for the same day, so a stored row from an earlier session never stands in for the session being judged.
 

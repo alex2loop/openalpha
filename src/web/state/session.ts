@@ -8,7 +8,7 @@ import { ApiFailure, getJson, setSlowRequestMs } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { signInWithCode } from '@/web/api/sign-in'
 
-const FALLBACK_UI_LOCALE: UiLocale = 'vi'
+const FALLBACK_UI_LOCALE: UiLocale = 'en'
 type UiLocale = StatePayload['locale']
 
 /** The feed socket's state; `retryAt` (epoch ms) is when an `offline` socket tries again. */

@@ -14,9 +14,10 @@ import type {
   ThemeTransition,
   ThemeTransitionOutcome,
 } from '@/trading/features/themes/types'
+import type { MarketRef } from '@/trading/kernel/instrument'
 import { t } from '@/i18n'
 import { firstProposedTheme, renderThemeReportText } from '@/trading/features/themes/render/report'
-import { THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
+import { THEME_MARKET, THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 import { parseBranded, parseMember, usage } from '@/trading/kernel/surface/surface'
 
 const SHOW_ACTION = 'show'
@@ -56,6 +57,8 @@ const CHANGE_POLICY: SlashInvocationPolicy = Object.freeze({
 interface ThemesCommandDeps {
   readonly themes: ThemeService
   readonly timezone: string
+  /** The market the operator's home region trades in, when it is not the one themes cover. */
+  readonly homeMarket?: MarketRef
 }
 
 function render(deps: ThemesCommandDeps, ctx: SlashContext, report: ThemeReport): SlashResult {
@@ -169,6 +172,23 @@ async function run(deps: ThemesCommandDeps, ctx: SlashContext): Promise<SlashRes
     : runTransition(deps, ctx, { action, id })
 }
 
+/** Themes map onto one market. Where the operator's home is another, the report still prints, but
+ *  its first line says it will not line up with the holdings the operator actually has. */
+function withHomeNote(
+  deps: ThemesCommandDeps,
+  ctx: SlashContext,
+  result: SlashResult
+): SlashResult {
+  if (deps.homeMarket === undefined || deps.homeMarket === THEME_MARKET || result.kind !== 'text') {
+    return result
+  }
+
+  return {
+    ...result,
+    text: `${t(ctx.locale, 'trading.themes.homeNotCovered')}\n\n${result.text}`,
+  }
+}
+
 /** One command, three costs: a bare `/themes` or `run <id>` calls the model, `show` reads the
  *  store, a verb moves one theme. All three are the operator's, so the menu lists one role. */
 export function createThemesCommand(deps: ThemesCommandDeps): SlashCommand {
@@ -195,6 +215,6 @@ export function createThemesCommand(deps: ThemesCommandDeps): SlashCommand {
     },
     completeFor: (args) => (args.length === 1 ? ACTIONS : []),
     usage: () => ({ key: USAGE }),
-    run: async (ctx): Promise<SlashResult> => run(deps, ctx),
+    run: async (ctx): Promise<SlashResult> => withHomeNote(deps, ctx, await run(deps, ctx)),
   }
 }

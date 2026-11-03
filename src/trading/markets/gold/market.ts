@@ -8,12 +8,8 @@ import type {
 import type { Candle, Quote } from '@/trading/kernel/market/market-data'
 import type { SourceContext, SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
-import type {
-  Market,
-  MarketDetection,
-  MarketManifest,
-  TickerCandidacy,
-} from '@/trading/markets/types'
+import type { MarketDetection, TickerCandidacy } from '@/trading/markets/detection'
+import type { Market, MarketManifest } from '@/trading/markets/types'
 import { GOLD_FACTOR_IDS } from '@/trading/kernel/factor'
 import { currencyCode, portfolioSegment, quoteUnit } from '@/trading/kernel/instrument'
 import { MACRO_FORMULA_VERSION } from '@/trading/kernel/market/macro-series'

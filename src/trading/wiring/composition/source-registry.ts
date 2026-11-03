@@ -19,9 +19,11 @@ import { createSourceRegistry, isRoutedSource, mergeSourceRoutes } from '@/tradi
 import { SOURCE_ROUTES, withVenueQuoteLead } from '@/trading/sources/routes'
 import { createSourceHttp } from '@/trading/sources/transport/http'
 import {
+  CREDENTIAL_ALIASES,
   createBuiltInSources,
   MACRO_SOURCE_PROFILES,
   PLAIN_USER_AGENT_SOURCES,
+  SOURCE_BURST_LIMITS,
   SOURCE_CREDENTIAL_ENV,
   SOURCE_CREDENTIALS,
   SOURCE_ENDPOINTS,
@@ -62,7 +64,7 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
 
   assertConfiguredSourcesTakeCredentials(options.credentialEnv, declaredEnv)
 
-  const credentialEnv = { ...declaredEnv, ...options.credentialEnv }
+  const credentialEnv = withCredentialAliases({ ...declaredEnv, ...options.credentialEnv })
   const credentials = resolveCredentials(options.env, credentialEnv)
   const registry = createSourceRegistry(mergedRoutes, options.logger)
   const facts = toSourceFacts(plugin, credentials)
@@ -106,6 +108,7 @@ function toSourceFacts(plugin: PluginFacts, credentials: SourceFacts['credential
   return {
     endpoints: { ...SOURCE_ENDPOINTS, ...plugin.endpoints },
     rateLimits: { ...SOURCE_RATE_LIMITS, ...plugin.rateLimits },
+    burstLimits: SOURCE_BURST_LIMITS,
     feeds: RSS_FEEDS,
     credentials,
     plainUserAgentSources: PLAIN_USER_AGENT_SOURCES,
@@ -329,6 +332,24 @@ export function unavailableSources(options: {
   }
 
   return missing.sort((left, right) => left.source.localeCompare(right.source))
+}
+
+/** An aliased host reads whichever variable its owner does, so an operator renaming the owner's
+ *  carries both. */
+function withCredentialAliases(
+  credentialEnv: Readonly<Partial<Record<SourceId, string>>>
+): Readonly<Partial<Record<SourceId, string>>> {
+  const aliased: Partial<Record<SourceId, string>> = { ...credentialEnv }
+
+  for (const [alias, owner] of Object.entries(CREDENTIAL_ALIASES)) {
+    const variable = owner === undefined ? undefined : credentialEnv[owner]
+
+    if (variable !== undefined) {
+      aliased[sourceId(alias)] = variable
+    }
+  }
+
+  return aliased
 }
 
 function resolveCredentials(

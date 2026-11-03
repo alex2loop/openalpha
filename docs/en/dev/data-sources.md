@@ -224,7 +224,7 @@ provider that cannot be reached is a composition bug, not a silent no-op.
 `SOURCE_ROUTES` (`sources/routes.ts`) is a table of `kind -> scope -> ordered source ids`. The table in reading order per market is
 on the [user page](../data-sources.md#routing). Scope resolves in this order, first hit wins:
 
-1. `context.market` (`equity-vn`, `crypto`, `gold`, `gold-vn`)
+1. `context.market` (`equity-vn`, `equity-us`, `crypto`, `gold`, `gold-vn`)
 2. `context.region` (`us`, `vn`) - for the cross-market kinds
 3. `'*'` (`ANY_SCOPE`) - where the kind has no owning scope at all (`fx`, the macro news tape)
 
@@ -292,7 +292,7 @@ the monthly series no free daily feed has.
 
 - A `vietcap-statements` call returns eight years, so `annual_accounts` is neither durable nor archived: a refetch rebuilds it.
   A quarter is kept with a balance sheet and income statement alone, because the provider files its cash flow later; a year still needs all three statements. A partial quarter leaves its cash lines absent, and every trailing sum, free cash flow and cash conversion that needs them goes absent with it, never zero. The `cash_flow_source_id` column is set when the cash lines came from `cafef-statements`.
-  The 34 quarters go to `quarterly_accounts` and are read as a trailing year past the newest audited one, and the newest five also as quarter rows against the same quarter a year earlier (`AccountsHistory.quarters`, built in `markets/equity-vn/accounts/quarters.ts`).
+  The 34 quarters go to `quarterly_accounts` and are read as a trailing year past the newest audited one, and the newest five also as quarter rows against the same quarter a year earlier (`AccountsHistory.quarters`, built in `markets/accounts-quarters.ts`).
 - A bank is recognised from its balance sheet, never its sector. The provider zero-fills the codes of other families, so a
   positive customer-loans line (`bsb104`) marks a bank and `isBankLines` (`kernel/market/annual-accounts.ts`) tests for it. The
   optional `NOTE` section costs only the bank lines when absent. Outflow lines are stored sign-flipped (`OUTFLOW_LINES`).
@@ -407,7 +407,7 @@ the health log. These constants are the global defaults - what a request gets wh
 | `ATTEMPT_TIMEOUT_MS` | 10,000 | per-attempt deadline inside that budget (bulk default) |
 | `RETRY_MAXIMUM_ATTEMPTS` | 3 | bulk default |
 | `RETRY_INITIAL_DELAY_MS` / `RETRY_MAXIMUM_DELAY_MS` | 500 / 5,000 | backoff bounds |
-| `MAXIMUM_RESPONSE_BYTES` | 2 MiB | body cap |
+| `MAXIMUM_RESPONSE_BYTES` | 2 MiB | body cap, unless the request declares its own (`sec-data` company facts: 8 MiB) |
 | `MAXIMUM_PAGES` | 20 | follow-up pages one fetch chases |
 | `PAGE_SET_BUDGET_MS` | 120,000 | ceiling over a whole page set; without it a twenty-page read is twenty request budgets in series |
 | `BREAKER_FAILURE_THRESHOLD` | 3 | consecutive failures before the breaker opens |
@@ -429,7 +429,7 @@ One request, in order:
 3. **Inject the credential.** The request declares placement only; the transport reads the resolved secret. Where the secret may
    travel: [Security invariants](#security-invariants).
 4. **Pace.** A token bucket per provider that declared a limit, refilling continuously so the wait is computable without
-   polling. The bucket holds a quarter of the minute's budget (`BURST_FRACTION`, at least one token): a cold process spending
+   polling. The bucket holds a quarter of the minute's budget (`BURST_FRACTION`, at least one token, or the provider's own `SOURCE_BURST_LIMITS` entry when that is smaller): a cold process spending
    the whole minute at once is refused by a provider that meters a shorter window. Sustained throughput is still the declared
    rate. Pacing happens *before* the call rather than recovering after a 429: without it a wide watchlist trips the breaker and
    loses the provider for a cooldown. Every retry takes its own token, since a retry is another request the provider serves. A call whose budget runs out
@@ -479,6 +479,7 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
 - `cafef-statements` 60: publishes none; a page of about 33 KB, asked only for a name whose newest quarter lacks cash flow.
 - `vietcap-statements` 120: publishes none; a name costs three requests (four for a bank) and a refresh asks for about 120 names
   only when their reports are due.
+- `nasdaq` 120: publishes none; a full sweep of the US board ran at about that rate without a refusal. `sec` and `sec-data` 200: SEC allows 10 requests a second per address across both hosts and blocks the address for ten minutes past it. Each bucket holds one token (`SOURCE_BURST_LIMITS`, instead of the default quarter-minute burst), so any one second asks at most 1 + 200/60 of each host, under 9 together.
 - 60: `coinpaprika` publishes 10/s and 20,000/month; `coinlore` and `treasury` publish none (sweep-safe rate); `entrade`, `kbsec`,
   `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per sweep; `rss`
   is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo` serves gold `quote`/`bars`
@@ -643,7 +644,8 @@ migration). On each fetch:
 
 1. Stored and written the same UTC day, or `cadence` is monthly and the stored observation is already the newest period a print can
    describe by today (`lagMonths` back, one more before `releaseDay`): serve the stored reading, `freshness: 'cached'` with its real
-   `fetchedAt`, no HTTP.
+   `fetchedAt`, no HTTP. A stored read missing a series the profile names (one added since the last write) is
+   asked for once that UTC day before it is served as it stands.
 2. Otherwise fetch. An answer is written back (`replace`); a failed write is logged (`trading.macro_read_unsaved`) and never fails the
    read, as an unreadable store is (`trading.macro_read_unreadable`).
 3. A refusal or failure serves the stored reading with its observation date and no caveat, while the newest observation is within
@@ -711,7 +713,7 @@ None of the rules is registration order:
 
 | The caller gave | Resolution | Owner |
 |---|---|---|
-| a bare ticker | `resolveInstrument` qualifies it through the registry; an unknown or ambiguous name becomes `market.ticker-unknown` / `market.ticker-ambiguous`, never a fallback market | `features/market-data/resolve.ts` |
+| a bare ticker | `resolveInstrument` qualifies it through the registry; an unknown or ambiguous name becomes `market.ticker-unknown` / `market.ticker-ambiguous`, never a fallback market. One exception: on a read the operator typed (`/price`, `/suggest`, `market_price`), a symbol two markets list settles on the side they hold or watch, and the answer names the other market (`market.ticker-also-listed`), asked from each market's stored listing or ranked board only (`boardOnly`), never a per-symbol lookup; `/record` and `/update` never take it | `features/market-data/resolve.ts` |
 | a market ref | `requireMarket`, which throws naming every registered id | `features/market-data/market-data-run.ts` |
 | nothing, on a market-scoped command | the owner of `[locale] region`: `markets.regionOwner(config.defaultRegion)` | `markets/registry.ts` |
 | a region, for a regional read | `markets.regionOwner(region)`, whose macro capability publishes the region's composite | `markets/registry.ts` |
@@ -802,7 +804,7 @@ a provenance stamp.
   scrubs what is logged.
 - **POST is a read.** `jsonBody` exists for providers with no GET equivalent, only for reads: the retry policy replays the
   request, so a body that mutated anything would replay too.
-- **Bodies are capped** at 2 MiB, and non-2xx bodies are discarded by the core HTTP seam, which is why only a
+- **Bodies are capped** at 2 MiB unless the adapter declares its own cap, and non-2xx bodies are discarded by the core HTTP seam, which is why only a
   provider-documented *status* can mark a business miss.
 - **Fetched text is sanitized** before it reaches an agent: `normalization.ts` runs the prompt-injection scan and raises
   `source.content-sanitized` rather than passing markup through.
@@ -862,6 +864,10 @@ export function createSources(kit) {
 - **Per-market source folders.** Sources are shared (`vndirect` serves VN equities and VN macro, `yahoo` serves gold and FX), so
   no market owns them.
 - **Ranking providers by recent success.** See [Health demotes, it never promotes](#health-demotes-it-never-promotes).
+
+## US sources
+
+`nasdaq` loads the listing in four requests (the whole stock list is 2.19 MB against the 2 MiB response cap, so it is asked per exchange) and treats the body's `status.rCode` 400 as a missing symbol, because the HTTP status is 200. `sec-data` reads company-wide XBRL frames: flows from `CY<y>`, balance-sheet instants from all four `CY<y>Q<n>I` frames (each kept only for the fiscal year that closes on its date, so a June or January year end gets its own balance sheet, not December's), and the cover-page share count from `CY<y>Q4I`. Seven years are read: six reported ones for the five-year trend, plus the year in progress. A frame keeps one fact per company, so a 52/53-week filer whose years end on either side of a half-year boundary (Sysco: 2023-07-01 then 2024-06-29) loses one of them; for each company with an interior gap, at most 25 per read, the missing years are read back from the company's own concept history (`companyconcept`, annual-report facts only) and a failed read leaves the gap. A company no frame answers at all (the frames hold only US GAAP facts in dollars, so a foreign issuer is in none) is read from `companyfacts`, one request each, largest first and at most 150: `ifrs-full` tags where the filer uses them, else `us-gaap`, from 10-K, 20-F and 40-F facts, in the currency of its newest year (years filed in another are left out), counted published 120 days after the year end. The report carries `reportingCurrency`; the US accounts refresh converts every money line at the latest `fx` rate before storing and drops the field, and a currency with no rate leaves its reports out with the fx caveat. `coinbase` converts its dollar products to USDT through `USDT-USD`, dropping a bar day with no peg close.
 
 ## Source map
 

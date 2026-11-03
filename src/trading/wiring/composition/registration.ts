@@ -38,22 +38,22 @@ import { createRoundTripStage } from '@/trading/features/suggestion/pipeline/rou
 import { createStageRegistry } from '@/trading/features/suggestion/pipeline/stage-registry'
 import { DECISIONS_MODEL_TIER } from '@/trading/kernel/config'
 import { createCryptoMarket } from '@/trading/markets/crypto/market'
+import { createUsEquityMarket } from '@/trading/markets/equity-us/market'
 import { createVnEquityMarket } from '@/trading/markets/equity-vn/market'
 import { createGoldMarket } from '@/trading/markets/gold/market'
 import { createVnGoldMarket } from '@/trading/markets/gold-vn/market'
 import { macroCache } from '@/trading/markets/macro-cache'
 import { createMarketRegistry } from '@/trading/markets/registry'
-import { createVenueListings } from '@/trading/venues/listings'
 import { buildTradingAgents, personaVersions } from '@/trading/wiring/catalog/agents'
 import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
 import { toAggregate } from '@/trading/wiring/composition/aggregate'
 import { lazyBriefServices } from '@/trading/wiring/composition/brief-services'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
-import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
+import { lazyHeldInstruments } from '@/trading/wiring/composition/held-instruments'
 import { bindHostSeams } from '@/trading/wiring/composition/host-seams'
-import { buildMacroExtractTick } from '@/trading/wiring/composition/macro-extract'
+import { buildMarketTicks } from '@/trading/wiring/composition/market-ticks'
 import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
-import { buildRefreshCoordinator, buildRefreshTick } from '@/trading/wiring/composition/refresh'
+import { buildRefreshCoordinator, resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
 import { assertRegistryConsistency } from '@/trading/wiring/composition/registry-checks'
 import { createDomainServices } from '@/trading/wiring/composition/services'
 import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/source-registry'
@@ -232,11 +232,12 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     logger,
     createSuggestionBudget: budget,
   })
-  const refreshMarketData = buildRefreshTick(options, {
-    markets: registries.markets,
+  const ticks = buildMarketTicks(app, {
+    registries,
     stores,
-    book: createTradeableBook({ portfolio: services.portfolio, venues: registries.venues }),
+    services,
     refresh,
+    scheduled: options,
     logger,
   })
 
@@ -244,7 +245,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     services,
     registries,
     stores,
-    refreshMarketData,
+    ticks,
     logger,
   })
 
@@ -253,8 +254,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
       {
         services,
         refresh,
-        refreshMarketData,
-        macroExtractTick: buildMacroExtractTick(app, registries.sources),
+        ...ticks,
         stores,
         logger,
         defaultLocale: app.config.locale.language,
@@ -286,7 +286,7 @@ interface SurfaceParts {
   readonly services: ReturnType<typeof createDomainServices> & WithThemes
   readonly registries: Registries
   readonly stores: TradingStores
-  readonly refreshMarketData: TradingServices['refreshMarketData']
+  readonly ticks: Pick<ReturnType<typeof buildMarketTicks>, 'refreshMarketData' | 'inUse'>
   readonly logger: Logger
 }
 
@@ -298,7 +298,8 @@ function buildSurfaces(options: BoundOptions, parts: SurfaceParts): TradingContr
   const contributions = buildContributions({
     services,
     config: options.tradingConfig,
-    refreshMarketData: parts.refreshMarketData,
+    refreshMarketData: parts.ticks.refreshMarketData,
+    marketsInUse: (signal) => resolveMarketsInUse(parts.ticks.inUse, signal),
     markets: registries.markets,
     venues: registries.venues,
     intradaySettings: stores.intradaySettings,
@@ -388,8 +389,8 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
     { archive: stores.newsArchive, logger }
   )
   const stages = createStageRegistry()
-  const markets = createMarketRegistry()
-  const venues = buildVenues(options, logger)
+  const markets = createMarketRegistry(lazyHeldInstruments(app, logger))
+  const { registry: venues, listings } = buildVenues(options, { logger, book: stores.ledger })
   const fx = createFxRates({ sources, store: stores.fxRate, logger })
   const deps: MarketDeps = {
     config: options.tradingConfig,
@@ -398,7 +399,7 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
     marketDataStore: stores.marketData,
     macro: macroCache(sources),
     stages,
-    venueListings: createVenueListings(venues, logger),
+    venueListings: listings,
     briefServices: lazyBriefServices(app, options.tradingConfig, venues),
   }
 
@@ -410,6 +411,7 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
   markets.register(createGoldMarket(deps))
   markets.register(createVnGoldMarket(deps))
   markets.register(createVnEquityMarket(deps))
+  markets.register(createUsEquityMarket(deps))
   markets.register(createCryptoMarket(deps))
   markets.close()
   stages.close()

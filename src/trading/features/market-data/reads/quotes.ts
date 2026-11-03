@@ -78,7 +78,7 @@ export async function runQuote(
       ...(previousClose === undefined ? {} : { previousClose }),
     },
     result.provenance,
-    result.caveats
+    [...result.caveats, ...resolved.caveats]
   )
 }
 

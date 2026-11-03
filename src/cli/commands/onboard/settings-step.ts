@@ -15,7 +15,28 @@ const LANGUAGE_NAME_KEYS = {
   vi: 'cli.onboardLanguageVi',
 } as const satisfies Record<Locale, string>
 const CURRENCY_CHOICES = ['VND', 'USD'] as const
+const SEC_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const SEC_CONTACT_ENV = 'SEC_CONTACT_EMAIL'
+
+/** The market a book is mainly held in; it sets the home region and the book's currency. */
+export type HomeRegion = 'vn' | 'us'
+
+const HOME_MARKETS = [
+  { region: 'vn', currency: 'VND', label: 'cli.onboardHomeMarketVn' },
+  { region: 'us', currency: 'USD', label: 'cli.onboardHomeMarketUs' },
+] as const satisfies readonly {
+  readonly region: HomeRegion
+  readonly currency: string
+  readonly label: string
+}[]
 const VIETNAMESE_LOCALE_RE = /^vi/i
+/** The home market offered first follows the language chosen a step earlier. */
+const LOCALE_HOME_REGIONS = {
+  en: 'us',
+  vi: 'vn',
+} as const satisfies Record<Locale, HomeRegion>
+/** A config that names no region keeps a Vietnam book: trading's own default region. */
+const UNNAMED_HOME_REGION: HomeRegion = 'vn'
 
 /** The shell's own language picks the default, as the installer does. */
 export function shellLocale(): Locale {
@@ -35,8 +56,61 @@ export async function askLanguage(ctx: AskContext): Promise<Locale> {
   })
 }
 
-/** The book's currency is fixed by the first saved profile, and nothing before onboard asks, so a USD
- *  user would lock into VND before touching config. VND leads; another 3-letter code may be typed. */
+export function isHomeRegion(value: string): value is HomeRegion {
+  return HOME_MARKETS.some((market) => market.region === value)
+}
+
+export function homeRegionOf(locale: Locale): HomeRegion {
+  return LOCALE_HOME_REGIONS[locale]
+}
+
+/** The language a starter config is written in for its home market, so a file that names no
+ *  language does not pair a Vietnam book with English replies. */
+export function homeLocaleOf(region: HomeRegion = UNNAMED_HOME_REGION): Locale {
+  return LOCALES.find((locale) => homeRegionOf(locale) === region) ?? LOCALES[0]
+}
+
+export function homeCurrencyOf(region: HomeRegion): string {
+  return HOME_MARKETS.find((market) => market.region === region)?.currency ?? CURRENCY_CHOICES[0]
+}
+
+/** Which market the operator mainly trades: the answer the home region and the currency default
+ *  both follow, so a US operator is not asked to start from VND. */
+export async function askHomeMarket(ctx: AskContext, previous?: HomeRegion): Promise<HomeRegion> {
+  return await askChoice(ctx, {
+    question: t(ctx.locale, 'cli.onboardPromptHomeMarket'),
+    choices: HOME_MARKETS.map((market) => ({
+      label: t(ctx.locale, market.label),
+      value: market.region,
+    })),
+    defaultIndex: Math.max(
+      HOME_MARKETS.findIndex((market) => market.region === (previous ?? homeRegionOf(ctx.locale))),
+      0
+    ),
+  })
+}
+
+/** SEC asks every reader for a contact; it is read back as a line, not a secret, so the prompt
+ *  shows what is typed. Empty skips and turns US accounts off. */
+export async function askSecContact(ctx: AskContext): Promise<string | undefined> {
+  ctx.app.out(t(ctx.locale, 'cli.onboardSecEmailIntro'))
+
+  return await askUntilValid(ctx, t(ctx.locale, 'cli.onboardPromptSecEmail'), (answer) => {
+    const email = answer.trim()
+
+    if (email === '') {
+      return accept<string | undefined>(undefined)
+    }
+
+    return SEC_EMAIL_RE.test(email)
+      ? accept<string | undefined>(email)
+      : refuse(t(ctx.locale, 'cli.onboardSecEmailInvalid'))
+  })
+}
+
+/** The book's currency is fixed by the first saved profile, and nothing before onboard asks, so a user
+ *  would lock into the wrong currency before touching config. The default follows the home market;
+ *  another 3-letter code may be typed. */
 export async function askCurrency(ctx: AskContext, previous?: string): Promise<string> {
   const listed: readonly string[] = CURRENCY_CHOICES
 

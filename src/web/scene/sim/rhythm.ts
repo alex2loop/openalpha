@@ -84,8 +84,8 @@ export const incomeAgent: ReadonlySignal<AgentWire | undefined> = computed(() =>
 )
 
 /** Who the day keeps at their desk, each with the line that says why: on an ex-dividend day from
- *  the open to the lunch nap the income agent (else the analyst), through an expiry day's session
- *  the trader and the risk analyst. */
+ *  the open to the lunch nap (the close where the pack has no nap) the income agent (else the
+ *  analyst), through an expiry day's session the trader and the risk analyst. */
 export const deskHolds: ReadonlySignal<readonly LifeLine[]> = computed(() => {
   const { phase, special } = moment.value
 
@@ -94,7 +94,7 @@ export const deskHolds: ReadonlySignal<readonly LifeLine[]> = computed(() => {
   }
 
   const tickers = [...new Set(exDividendToday.value.map((held) => held.ticker))]
-  const isExDay = tickers.length > 0 && pageMinute.value.minute < regionPack.value.officeLife.nap[0]
+  const isExDay = tickers.length > 0 && pageMinute.value.minute < exDayHoldEnd()
   const agent = incomeAgent.value
 
   return [
@@ -223,6 +223,16 @@ function isAuction(
   return (
     auction !== undefined && isInRange(at.minute, [toMinute(auction.from), toMinute(auction.to)])
   )
+}
+
+// The ex-dividend hold ends when the lunch nap starts, else when the session closes.
+function exDayHoldEnd(): number {
+  const { nap } = regionPack.value.officeLife
+  const close = homeMarket.value?.session?.close
+
+  const hasNap = nap[1] > nap[0]
+
+  return hasNap || close === undefined ? nap[0] : toMinute(close)
 }
 
 // From the open for the pack's quiet minutes.

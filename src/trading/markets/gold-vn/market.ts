@@ -5,15 +5,10 @@ import type { InstrumentRequest } from '@/trading/kernel/market/market-capabilit
 import type { GoldBoard, GoldBoardRow, Quote } from '@/trading/kernel/market/market-data'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
+import type { MarketDetection, TickerCandidacy } from '@/trading/markets/detection'
 import type { FactorInput } from '@/trading/markets/factor-scoring'
 import type { BoardCache, BoardSnapshot } from '@/trading/markets/gold-vn/board'
-import type {
-  Market,
-  MarketDetection,
-  MarketManifest,
-  TickerCandidacy,
-  TradingCalendar,
-} from '@/trading/markets/types'
+import type { Market, MarketManifest, TradingCalendar } from '@/trading/markets/types'
 import { sourcedCaveat } from '@/trading/kernel/caveat'
 import { VN_GOLD_FACTOR_IDS } from '@/trading/kernel/factor'
 import { currencyCode, portfolioSegment, quoteUnit, region } from '@/trading/kernel/instrument'

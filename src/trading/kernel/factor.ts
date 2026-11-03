@@ -50,8 +50,30 @@ export type VnEquityFactorId = (typeof VN_EQUITY_FACTOR_IDS)[number]
 export const VN_ETF_FACTOR_IDS = Object.freeze(['index-trend', 'index-momentum'] as const)
 export type VnEtfFactorId = (typeof VN_ETF_FACTOR_IDS)[number]
 
+export const US_EQUITY_FACTOR_IDS = Object.freeze([
+  'value',
+  'quality',
+  'momentum',
+  'volatility',
+] as const)
+export type UsEquityFactorId = (typeof US_EQUITY_FACTOR_IDS)[number]
+
+export const US_ETF_FACTOR_IDS = Object.freeze([
+  'index-trend',
+  'index-momentum',
+  'volatility',
+  'high-proximity',
+] as const)
+export type UsEtfFactorId = (typeof US_ETF_FACTOR_IDS)[number]
+
 // `VnGoldFactorId` is a superset of `GoldFactorId`, so world gold's ids arrive through it.
-export type FactorId = VnGoldFactorId | CryptoFactorId | VnEquityFactorId | VnEtfFactorId
+export type FactorId =
+  | VnGoldFactorId
+  | CryptoFactorId
+  | VnEquityFactorId
+  | VnEtfFactorId
+  | UsEquityFactorId
+  | UsEtfFactorId
 
 /** Every factor id any market can score, deduped — the VN gold set extends the global one and
  *  several markets share `trend` and `high-proximity`. The locale manifest reads this instead of asking
@@ -62,6 +84,8 @@ export const FACTOR_IDS: readonly FactorId[] = Object.freeze([
     ...CRYPTO_FACTOR_IDS,
     ...VN_EQUITY_FACTOR_IDS,
     ...VN_ETF_FACTOR_IDS,
+    ...US_EQUITY_FACTOR_IDS,
+    ...US_ETF_FACTOR_IDS,
   ]),
 ])
 const KNOWN_FACTOR_IDS: ReadonlySet<string> = new Set(FACTOR_IDS)

@@ -537,8 +537,8 @@ hoạt rơi vào ký tự thứ 240 thì với mô hình là một kỹ năng kh
 `correlation-analysis`, `crowding-and-unwind`, `crypto-analysis`, `crypto-execution`, `drawdown-response`,
 `exit-management`, `gold-analysis`, `intrinsic-value`, `inversion`, `macro-liquidity-analysis`, `moat-analysis`,
 `portfolio-risk-analysis`, `profit-taking`, `quality-screen`, `recover`, `research-scoping`, `technical-analysis`,
-`track-record-reading`, `vn-daily-buy`, `vn-deep-dive`, `vn-dividend-analysis`, `vn-earnings-playbook`,
-`vn-execution`, `vn-market-rules`, `vn-sector-rotation`, `vn-valuation`.
+`track-record-reading`, `us-execution`, `us-market-rules`, `us-valuation`, `vn-daily-buy`, `vn-deep-dive`,
+`vn-dividend-analysis`, `vn-earnings-playbook`, `vn-execution`, `vn-market-rules`, `vn-sector-rotation`, `vn-valuation`.
 
 Các tên đó là **tên dành riêng**. Một kỹ năng thư mục dùng lại một trong số đó bị từ chối chứ không lặng lẽ bị che, nên
 không ai thay được `vn-execution` bằng cách thả một thư mục vào.

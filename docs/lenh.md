@@ -441,9 +441,10 @@ openalpha config edit
   được đọc như git đọc, nên có thể kèm cờ hoặc đường dẫn đặt trong dấu nháy
   (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
 
-`onboard` dẫn bạn qua lần thiết lập đầu: ngôn ngữ, nhà cung cấp AI và mô hình, URL endpoint nếu nhà
-cung cấp cần, tên biến môi trường chứa key, mức chi tối đa mỗi ngày ($2 nếu bạn không đổi) và, nếu
-muốn, một bot Telegram.
+`onboard` dẫn bạn qua lần thiết lập đầu: ngôn ngữ, thị trường chính (Việt Nam hoặc Mỹ, gợi ý sẵn theo ngôn ngữ
+vừa chọn: quyết định tiền tệ mặc định, và với Mỹ thì hỏi thêm email liên hệ cho SEC), nhà cung cấp AI và mô hình, URL endpoint
+nếu nhà cung cấp cần, tên biến môi trường chứa key, mức chi tối đa mỗi ngày ($2 nếu bạn không đổi) và,
+nếu muốn, một bot Telegram.
 
 - Câu có danh sách thì bạn chọn bằng phím ↑ ↓ rồi nhấn Enter. ← quay lại câu danh sách trước đó, với
   đáp án cũ vẫn được đánh dấu.
@@ -464,7 +465,9 @@ tên `config.toml.<thời-điểm>.bak`. Mỗi lần đổi để lại một b�
 nhất và tự xóa bản cũ hơn. Khi chưa có cấu hình, gõ `openalpha` trần hoặc bất kỳ lệnh nào cần cấu hình
 đều sẽ mời bạn bắt đầu thiết lập.
 
-`setup write` ghi cùng tệp khởi điểm cho ứng dụng desktop và không ghi đè cấu hình đã có.
+`setup write` ghi cùng tệp khởi điểm cho ứng dụng desktop và không ghi đè cấu hình đã có. Một từ
+tùy chọn ở cuối, `vn` hoặc `us`, đặt thị trường chính và tiền tệ của sổ như onboard, kèm ngôn ngữ trả lời hợp với thị trường đó (`us`
+thì tiếng Anh); bỏ trống thì sổ bắt đầu ở Việt Nam, bằng VND và tiếng Việt.
 
 ```text
 openalpha api token
@@ -722,14 +725,14 @@ ghi sổ và `/trade`.
 | `/watchlist` | `/watchlist` - giá trực tiếp của các mã bạn theo dõi, tối đa mười hai mã (mã đang nắm xem ở `/portfolio`) (danh sách dài hơn bị cắt và có nói rõ); `/watchlist add <mã>...`; `/watchlist remove <mã>...` |
 | `/price` | `/price <mã>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ. Thị trường niêm yết bảng hai chiều của đại lý (vàng VN) in cả hai chiều và chênh lệch giữa chúng, chứ không in cặp đóng cửa/trực tiếp: một bảng không nêu giá khớp cuối, và không giữ chuỗi ngày nào để đối chiếu giá đóng |
 | `/market` | `/market` - một thị trường đang ở đâu ngay lúc này, đặt cạnh phiên gần nhất đã chốt; `/market enable\|disable` - bật hoặc tắt các lần gửi theo lịch (chúng đi tới chat mặc định, không nhất thiết là chat này) |
-| `/overview` | `/overview` - mọi thị trường đang thế nào, kèm khối vĩ mô; `/overview <thị trường>...` - chỉ in các thị trường đó, ví dụ `/overview crypto` |
+| `/overview` | `/overview` - các thị trường bạn đang dùng thế nào (nhóm đang bật, cộng thị trường có mã bạn giữ hoặc theo dõi), kèm khối vĩ mô; `/overview <thị trường>...` - chỉ in các thị trường đó, ví dụ `/overview crypto` |
 | `/screen` | `/screen [thị-trường] [số dòng] [loại]`, thứ tự tùy ý. Thị trường mặc định là thị trường mà lịch của `[locale] region` nêu tên; `loại` thu hẹp về một loại công cụ mà thị trường đó niêm yết. Mã nằm trong danh sách loại trừ của bạn vẫn được xếp hạng và được đánh dấu, không bị ẩn |
 | `/suggest` | Tiêu ngân sách LLM cho một mã. Xem [Đề xuất](#đề-xuất) |
 | `/themes` | `/themes` - tìm các chủ đề đầu tư đang hình thành ở Việt Nam và tiêu ngân sách LLM; `/themes run <id>` - soát lại một chủ đề đang theo dõi, không tìm chủ đề mới và chỉ báo cáo chủ đề đó, với một phần nhỏ chi phí; `/themes show` - đọc báo cáo đã lưu, không gọi mô hình; `/themes approve\|reject\|retire <id>` - chuyển trạng thái một chủ đề. Chỉ operator dùng được |
 | `/rebalance` | `/rebalance`; `/rebalance <mã>...` - tính khoảng cách tới mục tiêu, không cân nhắc bằng chứng và không gọi mô hình. Xem [`/rebalance` tính những gì](#rebalance-tính-những-gì) |
 | `/reflect` | `/reflect` - các đề xuất trước đây thực tế chạy ra sao |
 | `/alert` | `/alert` hoặc `/alert list [số dòng]` để xem danh sách; `/alert create <mã> above\|below <ngưỡng>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ; `/alert disable <id>` (mã ngắn mà danh sách và thông báo in ra; khớp nhiều thì câu trả lời liệt kê mã đầy đủ). Danh sách gồm cả các dòng cảnh báo thoát và sàng lọc do hệ thống đặt, bên cạnh dòng của bạn |
-| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Bản tin mở đầu bằng câu chuyện thị trường và phần nhìn lại các câu chuyện trước. Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) và [Bản tin khi chưa có sổ](#bản-tin-khi-chưa-có-sổ) |
+| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Khi thị trường chính là Việt Nam, bản tin mở đầu bằng câu chuyện thị trường và phần nhìn lại các câu chuyện trước. Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) và [Bản tin khi chưa có sổ](#bản-tin-khi-chưa-có-sổ) |
 | `/refresh` | `/refresh [thị-trường] [force]`, thứ tự tùy ý. Không nêu thị trường thì chỉ làm mới các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn đang giữ mã, theo dõi mã hay còn gợi ý chờ chấm điểm. Thị trường còn lại được liệt kê là bỏ qua; gõ thẳng tên thì vẫn nạp. `force` tải lại bất kể dữ liệu nào đang mới. Vàng thế giới đọc giá trực tiếp nên không có gì để nạp, và lệnh nói rõ điều đó. Một loại dữ liệu trải ra nhiều công cụ sẽ báo đã tới đâu |
 | `/sources` | `/sources` - nhà cung cấp nào đã ngừng trả lời, hoặc một dòng duy nhất nếu không có. Trạng thái cầu dao là bộ nhớ của chính tiến trình này, nên một lần gọi CLI mới báo rằng chưa gọi nhà cung cấp nào, chứ không khẳng định mọi thứ khỏe |
 | `/reconcile` | `/reconcile` - đối chiếu sổ với những gì sàn báo; sàn chưa có khóa API thì được nêu tên kèm các biến còn thiếu |
@@ -1050,6 +1053,9 @@ Nên nhà cung cấp AI của client thấy nhiều nhất là những gì một
 
 Một kết luận "giữ nguyên" không đặt lệnh nào và mang theo `holdReasons` - các mã lý do bằng ngôn ngữ của
 bạn - nên mô hình giải thích vì sao thay vì đọc các mức giá của một lần giữ nguyên như một lệnh.
+
+`portfolio_view`, `portfolio_review` và `portfolio_rebalance` mang theo `segmentNames` - tên từng nhóm
+bằng ngôn ngữ của bạn - nên câu trả lời ghi "Vàng trong nước" thay vì `gold-vn`.
 
 **Thao tác ghi và phê duyệt.** Các nhánh ghi của `alert_manage` và `brief_manage` cần phê duyệt, nên một
 client không hỗ trợ elicitation chỉ liệt kê và xem được.

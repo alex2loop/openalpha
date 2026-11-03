@@ -1,14 +1,15 @@
 # Tài liệu OpenAlpha
 
-> **Tiếng Việt là ngôn ngữ mặc định của sản phẩm.** Bản tiếng Anh nằm trong [`en/`](en/README.md) và
-> là bản gốc của các trang dưới đây.
+> **`onboard` thiết lập OpenAlpha bằng tiếng Anh, hoặc tiếng Việt khi máy bạn dùng tiếng Việt.** Config
+> không ghi `[locale] language` thì trả lời theo thị trường chính: sổ Việt Nam bằng tiếng Việt, sổ Mỹ
+> bằng tiếng Anh. Bản tiếng Anh nằm trong [`en/`](en/README.md) và là bản gốc của các trang dưới đây.
 >
 > **Một chữ bạn sẽ gặp nhiều:** *operator* chính là bạn - người giữ sổ, duyệt lệnh và chịu trách nhiệm
 > cho mọi quyết định. Tài liệu giữ nguyên chữ này vì nó cũng là tên một khái niệm trong cơ sở dữ liệu.
 
 ## Bắt đầu ở đây
 
-Mới biết dự án? Đọc [README](../README.md) trước: OpenAlpha làm gì, từ chối làm gì, và một đề xuất mẫu
+Mới biết dự án? Đọc [README](../README.vi.md) trước: OpenAlpha làm gì, từ chối làm gì, và một đề xuất mẫu
 từ đầu đến cuối.
 
 Sau đó đọc **[Cẩm nang sử dụng](cam-nang.md)**. Đây là trang duy nhất bạn thật sự cần: cài đặt, hồ sơ

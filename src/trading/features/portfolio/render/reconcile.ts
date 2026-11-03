@@ -1,5 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { VenueReconciliation } from '@/trading/features/portfolio/folds/reconcile'
+import type { CurrencyCode } from '@/trading/kernel/instrument'
 import type { RenderContext } from '@/trading/render/format'
 import { BRAND } from '@/core/brand'
 import { t } from '@/i18n'
@@ -22,24 +23,28 @@ export interface ReconcileSentences {
 
 export function reconcileSentences(
   locale: Locale,
-  reconciliations: readonly VenueReconciliation[]
+  reconciliations: readonly VenueReconciliation[],
+  baseCurrency: CurrencyCode
 ): ReconcileSentences {
   const hasBreaks = reconciliations.some((entry) => entry.mismatches.length > 0)
   const answered = reconciliations.some((entry) => entry.uncompared === undefined)
 
   return {
     matched: !hasBreaks && answered ? t(locale, 'trading.render.reconcile.matched') : null,
-    cashNote: hasBreaks ? t(locale, 'trading.render.reconcile.cashNote') : null,
+    cashNote: hasBreaks
+      ? t(locale, 'trading.render.reconcile.cashNote', { currency: baseCurrency })
+      : null,
   }
 }
 
 export function renderReconcileText(
   locale: Locale,
   reconciliations: readonly VenueReconciliation[],
-  context: RenderContext
+  display: { readonly context: RenderContext; readonly baseCurrency: CurrencyCode }
 ): string {
+  const { context, baseCurrency } = display
   const breaks = reconciliations.filter((entry) => entry.mismatches.length > 0)
-  const sentences = reconcileSentences(locale, reconciliations)
+  const sentences = reconcileSentences(locale, reconciliations, baseCurrency)
 
   return joinSections([
     [

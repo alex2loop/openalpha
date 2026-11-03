@@ -14,9 +14,11 @@ node_modules/
 # run reads stays local, because it names the env vars holding live keys.
 config.toml
 config.*.toml
+config.toml.*.bak
 !config.sample.toml
 !config.minimal.toml
 !config.minimal.en.toml
+!config.minimal.us.toml
 
 # Runtime data. data_dir defaults to ~/.openalpha, but --data-dir can point it
 # at the working tree — without these a contributor would commit their ledger,

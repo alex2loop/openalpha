@@ -94,8 +94,9 @@ interface StoredRead {
 /** Every macro read of a source with a profile goes through here: it is asked at most once a UTC
  *  day, not at all while no new print can exist, and a refused or failed read falls back to what the
  *  last good one stored. A spent daily quota is remembered until the UTC day turns, so later reads
- *  that day answer from the store without asking again. The quota behind the sources is shared by every process on the machine, so
- *  a boot or a refresh must never spend it on a figure already in hand. */
+ *  that day answer from the store without asking again. The quota behind the sources is shared by
+ *  every process on the machine, so a boot or a refresh must never spend it on a figure already in
+ *  hand. */
 export function gateMacroSource(
   source: RegisteredSource,
   options: MacroGateOptions
@@ -116,6 +117,23 @@ interface QuotaSpent {
 
 function gatedSource(source: Source<'macro'>, gate: Gate): Source<'macro'> {
   let quotaSpent: QuotaSpent | undefined
+  // The day a current but incomplete store was topped up: a series the profile gained since the
+  // last write is asked for once, and a feed that still lacks it does not cost a read per call.
+  let toppedUp: TradingDay | undefined
+  const answersFromStore = (stored: StoredRead, now: number): boolean => {
+    const today = utcDayOf(now)
+
+    if (!isCurrent(stored, gate.profile.cadence, now)) {
+      return false
+    }
+    if (isComplete(stored, gate.profile) || toppedUp === today) {
+      return true
+    }
+
+    toppedUp = today
+
+    return false
+  }
 
   return {
     ...source,
@@ -128,12 +146,12 @@ function gatedSource(source: Source<'macro'>, gate: Gate): Source<'macro'> {
 
       const stored = await readStored(gate, signal)
       const now = gate.now()
+      const today = utcDayOf(now)
 
-      if (stored !== undefined && isCurrent(stored, gate.profile.cadence, now)) {
+      if (stored !== undefined && answersFromStore(stored, now)) {
         return cachedResult(gate.id, region, stored)
       }
 
-      const today = utcDayOf(now)
       const live =
         quotaSpent?.day === today ? quotaSpent.result : await source.fetch(context, signal)
 
@@ -180,6 +198,10 @@ function newPrintPossible(observed: TradingDay, cadence: MacroCadence, today: Tr
 
 function monthIndex(day: TradingDay): number {
   return yearOf(day) * MONTHS_PER_YEAR + Number(day.slice(MONTH_START, MONTH_END))
+}
+
+function isComplete(stored: StoredRead, profile: MacroSourceProfile): boolean {
+  return profile.series.every((series) => stored.values[series] !== undefined)
 }
 
 function canStandIn(stored: StoredRead, profile: MacroSourceProfile, now: number): boolean {

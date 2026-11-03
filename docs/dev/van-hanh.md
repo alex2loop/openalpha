@@ -32,7 +32,7 @@ tiên vẫn có nơi gửi tới.
 - `tapeFinalAt` của từng thị trường: giờ đóng phiên cộng độ trễ khớp lệnh định kỳ. Đây chính là mốc
   quyết định một phiên có được tính là đã chốt hay không, nên một lượt làm mới không neo vào bảng giá mà
   sau đó chính nó từ chối lưu;
-- 60 phút trước giờ mở của từng thị trường, để bản tin và bảng lọc đọc dữ liệu đã làm ấm;
+- 90 phút trước giờ mở của từng thị trường, để bản tin và bảng lọc đọc dữ liệu đã làm ấm;
 - `interval_ms` đã cấu hình, là cái trần và là phương án dự phòng khi sổ đăng ký rỗng.
 
 Thị trường chạy liên tục không có giờ mở, nên chỉ neo vào lúc sang ngày UTC. Hai neo cách nhau dưới 60

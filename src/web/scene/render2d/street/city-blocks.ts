@@ -3,7 +3,7 @@ import type { StreetMinute } from '@/web/scene/render2d/street/paint'
 import type { Point } from '@/web/scene/types'
 import type { HolidayId } from '@/web/scene/world/regions'
 import { drawSprite, staticPxOf } from '@/web/scene/render2d/street/detail'
-import { blossomOf, paintCrownLights } from '@/web/scene/render2d/street/festive-trees'
+import { crownOf, paintCrownLights } from '@/web/scene/render2d/street/festive-trees'
 import { paintGroundShadow } from '@/web/scene/render2d/street/shadow'
 import { DARK_STEPS, isNightDark, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
 import { HEIGHT_K } from '@/web/scene/view'
@@ -187,7 +187,7 @@ export function paintTree(scene: CityScene, at: Point, kind: number): void {
   const radius = CROWN_RADII[look] ?? CROWN_RADII[0]
   const crownY = at.y - (TRUNK_PX + look * TRUNK_STEP_PX) * HEIGHT_K - radius * 0.4
   const darkStep = Math.round(scene.dark * DARK_STEPS)
-  const blossom = blossomOf(scene.holiday, look)
+  const blossom = crownOf(scene.holiday, look)
 
   paintGroundShadow(g, scene.minute, { at, w: radius * 1.6, h: at.y - crownY + radius })
   g.fillStyle = mixTone(TREE_TRUNK, TREE_TRUNK_NIGHT, scene.dark * TRUNK_NIGHT)

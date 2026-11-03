@@ -1,4 +1,4 @@
-import type { ResolvedConfig } from '@/core/config/resolve'
+import type { ConfigResolveOptions, ResolvedConfig } from '@/core/config/resolve'
 import {
   combineInvalidConfigErrors,
   InvalidConfigError,
@@ -23,10 +23,11 @@ export type ConfigCheck =
 
 export function validateConfigTree(
   tree: unknown,
-  assertResolved: (config: ResolvedConfig) => void
+  assertResolved: (config: ResolvedConfig) => void,
+  options?: Pick<ConfigResolveOptions, 'deferMissingKeys'>
 ): ConfigCheck {
   try {
-    assertResolved(resolveConfig(parseRawConfig(tree)))
+    assertResolved(resolveConfig(parseRawConfig(tree), options))
 
     return { ok: true }
   } catch (err: unknown) {

@@ -34,7 +34,7 @@ compatibility default, not a claim of authorisation, and it does not change whos
 
 ## Providers this project can read
 
-34 adapters under [`src/trading/sources/adapters/`](src/trading/sources/adapters/), reaching these
+37 adapters under [`src/trading/sources/adapters/`](src/trading/sources/adapters/), reaching these
 hosts. None is enabled by reading this list: a market's routes decide what is asked, and a
 key-required provider that has no credential is never registered at all.
 
@@ -51,6 +51,11 @@ key-required provider that has no credential is never registered at all.
 
 **US macro, rates and futures positioning** - `fred.stlouisfed.org`, `api.stlouisfed.org`,
 `api.bls.gov`, `home.treasury.gov`, `www.federalreserve.gov`, `publicreporting.cftc.gov`
+
+**US equities and filings** - `api.nasdaq.com`, `data.sec.gov`, `www.sec.gov`. `api.nasdaq.com` is
+Nasdaq's own website backend, not a documented API. SEC asks every reader to name a contact in the
+user agent, so its requests carry the email you set in `SEC_CONTACT_EMAIL`, and without it the SEC
+source stays off.
 
 **Prices, FX and news** - `query1.finance.yahoo.com`, `open.er-api.com`, `news.google.com`,
 `www.cnbc.com`, `www.coindesk.com`, `vnexpress.net`

@@ -1,4 +1,4 @@
-import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type { CurrencyCode, InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 
 export const MARKET_EVENT_KINDS = Object.freeze([
   'dividend-ex-date',
@@ -12,6 +12,8 @@ export const MARKET_EVENT_KINDS = Object.freeze([
   'last-trading-day',
   'margin-eligible',
   'margin-ineligible',
+  'earnings-release',
+  'insider-purchase',
 ] as const)
 export type MarketEventKind = (typeof MARKET_EVENT_KINDS)[number]
 
@@ -28,12 +30,31 @@ export function eventsFromDay(
   return calendar.addTradingDays(asOf, -EVENTS_LOOKBACK_SESSIONS)
 }
 
+export type InsiderRelationship = 'director' | 'ten-percent-owner'
+
+/** What an insider bought, kept as facts so a reader words it in its own language. */
+export interface InsiderPurchase {
+  readonly owner: string
+  /** The officer title as the filing writes it; absent for a director or a large holder. */
+  readonly officerTitle?: string
+  readonly relationship?: InsiderRelationship
+  readonly shares: number
+  /** Per share, in `currency`; absent when the filing states it only in a footnote. */
+  readonly price?: number
+  readonly currency: CurrencyCode
+}
+
 export interface MarketEvent {
   readonly at: TradingDay
   readonly kind: MarketEventKind
+  /** The provider's own words, or English the adapter wrote itself where `composedText` is set. */
   readonly title: string
   readonly instrument?: InstrumentRef
   readonly detail?: string
+  /** `title` and `detail` are the adapter's English, for a model and the logs: a reader showing the
+   *  event to a person words it from the kind and the facts below, in the person's language. */
+  readonly composedText?: true
+  readonly insider?: InsiderPurchase
   readonly providerEventId?: string
   /** A cash dividend's amount per share, in the market's price unit; absent where not published. */
   readonly cashPerShare?: number

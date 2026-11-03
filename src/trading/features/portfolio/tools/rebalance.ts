@@ -3,6 +3,7 @@ import type { ToolDefinition, ToolResult } from '@/core/tool'
 import type { AgentPortfolio, RebalancePlanResult } from '@/trading/features/portfolio/types'
 import { createTool } from '@/core/tool'
 import { pluralKey } from '@/i18n'
+import { segmentNames } from '@/trading/features/portfolio/render/segments'
 import { toAgentJson } from '@/trading/kernel/surface/agent-json'
 import { noInput } from '@/trading/kernel/surface/surface'
 
@@ -10,7 +11,7 @@ export function createPortfolioRebalanceTool(portfolio: AgentPortfolio): ToolDef
   return createTool({
     name: 'portfolio_rebalance',
     description:
-      'Propose portfolio changes: segment targets, per-position buys and sells, and the cash segment. A line carrying `units` states the quantity to buy or sell: always give that number.',
+      'Propose portfolio changes: segment targets, per-position buys and sells, and the cash segment. A line carrying `units` states the quantity to buy or sell: always give that number. Name a segment by `segmentNames`, never by its id.',
     inputSchema: noInput,
     capability: 'read',
     presentation: { label: 'Rebalance', emoji: '⚖️' },
@@ -22,7 +23,14 @@ export function createPortfolioRebalanceTool(portfolio: AgentPortfolio): ToolDef
           : await portfolio.rebalance(options)
 
       return {
-        content: toAgentJson(advice),
+        content: toAgentJson({
+          ...advice,
+          segmentNames: segmentNames(
+            ctx.locale,
+            advice.kind === 'ready' ? advice.allocation.map((row) => row.segment) : [],
+            advice.findings
+          ),
+        }),
         isError: false,
         display: adviceDisplay(advice),
       }

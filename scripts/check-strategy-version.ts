@@ -19,6 +19,10 @@ const POLICY_SOURCES: Readonly<Record<string, readonly string[]>> = {
     'src/trading/markets/equity-vn/factors/fundamental-components.ts',
   ],
   gold: ['src/trading/markets/gold/policy.ts', 'src/trading/markets/gold-vn/policy.ts'],
+  'equity-us': [
+    'src/trading/markets/equity-us/policy.ts',
+    'src/trading/markets/equity-us/factor-policy.ts',
+  ],
 }
 /** Theme scores are arithmetic over named weights and scales rather than one policy literal, so
  *  the whole of each file that computes one counts, its version line aside. */

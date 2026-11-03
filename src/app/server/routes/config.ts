@@ -36,6 +36,9 @@ const SERVER_ONLY_KIND = 'config_server_only'
 const TESTED_MODEL_KEYS = ['base_url', 'api_key_env'] as const
 // Carries the `version` a GET answered; a write sent without it is not checked.
 const IF_MATCH_HEADER = 'if-match'
+// Boot runs without an unset key and a key saved here lands only at the next restart, so the check
+// waives it as boot does; otherwise a daemon missing its key could save nothing.
+const BOOT_RESOLVE = { deferMissingKeys: true } as const
 
 async function handleConfigGet(_req: Request, ctx: ApiRouteContext): Promise<Response> {
   const { configPath } = await probeConfig({ configPath: ctx.app.configPath })
@@ -56,7 +59,7 @@ async function handleConfigValidate(req: Request, ctx: ApiRouteContext): Promise
   const { configPath } = await probeConfig({ configPath: ctx.app.configPath })
   const disk = await readDiskConfig(configPath)
   const restored = toRestoredConfig(body, disk)
-  const checked = validateBootConfigTree(restored)
+  const checked = validateBootConfigTree(restored, BOOT_RESOLVE)
   const refusals = isPlainRecord(restored)
     ? writeRefusals(restored, disk, isExposed(ctx, restored, disk))
     : []
@@ -103,7 +106,7 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
   const body = toRestoredConfig(await readJsonBody(req, MAX_CONFIG_BYTES), disk)
 
   // Validate before writing: a config that cannot resolve would take the daemon down on next boot.
-  if (!(validateBootConfigTree(body).ok && isPlainRecord(body))) {
+  if (!(validateBootConfigTree(body, BOOT_RESOLVE).ok && isPlainRecord(body))) {
     return apiError('invalid_body')
   }
 

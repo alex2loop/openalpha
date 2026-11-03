@@ -266,10 +266,10 @@ Mọi trần mặc định `0`, nghĩa là không chặn. Từng khóa chặn c�
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `language` | chuỗi | `vi` | `en` hoặc `vi`. Ngôn ngữ duy nhất mọi câu trả lời, bản tin và cảnh báo dùng; hồ sơ đầu tư không có ngôn ngữ riêng. |
+| `language` | chuỗi | theo `region`: `vi`, hoặc `en` khi `region = "us"` | `en` hoặc `vi`. Ngôn ngữ duy nhất mọi câu trả lời, bản tin và cảnh báo dùng; hồ sơ đầu tư không có ngôn ngữ riêng. |
 | `timezone` | chuỗi | múi giờ của máy (`UTC` nếu máy không báo) | Tên IANA, ví dụ `Asia/Ho_Chi_Minh`. Việc cron mới chụp lại giá trị này, trừ khi `--tz` ghi đè; lịch theo chu kỳ từ chối `--tz`. |
 | `currency` | chuỗi | `VND` | Mã ISO 4217 (ba chữ in hoa). Đồng tiền cơ sở của phần giao dịch; `onboard` hỏi ở lần thiết lập đầu và ghi vào đây. Cố định từ khi sổ có hồ sơ: đổi sau đó bị từ chối, và `doctor` báo chỗ lệch ở dòng `database`. |
-| `region` | chuỗi | `vn` | Khu vực chính; hiện chỉ có `vn`. Khu vực cần có sàn giao dịch thị trường chính của nó, nên `global` (vàng thế giới, chỉ để tham chiếu) bị từ chối. Thị trường của khu vực này là bảng mặc định, và hồ sơ đầu tiên chỉ phân bổ cho các nhóm trong nước của nó cùng crypto. |
+| `region` | chuỗi | `vn` | Khu vực chính: `vn` hoặc `us`. `us` đặt cổ phiếu và quỹ ETF Mỹ làm thị trường chính; hãy đi kèm `currency = "USD"` (không đổi được sau khi lưu hồ sơ đầu tiên), bắt đầu từ thư mục dữ liệu mới, và xem [`config.minimal.us.toml`](../config.minimal.us.toml). Báo cáo tài chính của doanh nghiệp Mỹ còn cần `SEC_CONTACT_EMAIL`, đặt bằng `onboard` hoặc `key set`. Khu vực cần có sàn giao dịch thị trường chính của nó, nên `global` (vàng thế giới, chỉ để tham chiếu) bị từ chối. Thị trường của khu vực này là bảng mặc định, và hồ sơ đầu tiên chỉ phân bổ cho các nhóm trong nước của nó cùng crypto. |
 
 Mọi khóa đều tùy chọn. `[locale]` không nhận khóa nào khác. `currency` và `region` cho biết bạn đang ở
 đâu, nên phần giao dịch đọc chúng ở đây thay vì giữ bản trùng dưới `[trading]`.
@@ -833,8 +833,8 @@ maximum_cost_usd = 1.0             # mức tối đa một lượt /themes đư�
 ```
 
 Bảng của một sàn nhận `default_for`, `markets` (chỉ sàn ghi tay), `fees` và, với OKX và Binance,
-`credentials` cùng `simulated`. `okx`, `binance`, `vps` và `gold-shop` đi kèm sẵn với thị trường và mức
-phí công bố như trên, nên bảng của một trong số đó chỉ nêu những gì bạn muốn đổi. `openalpha config
+`credentials` cùng `simulated`. `okx`, `binance`, `vps`, `gold-shop` và `us-broker` đi kèm sẵn với thị trường và mức
+phí công bố như trên (`us-broker` không thu phí), nên bảng của một trong số đó chỉ nêu những gì bạn muốn đổi. `openalpha config
 validate` kiểm tra tất cả những điều này.
 
 ### Công ty chứng khoán bạn giao dịch bằng tay
@@ -854,7 +854,7 @@ trường và phải khai `fees`:
 
 ### Sàn mặc định theo thị trường
 
-Mặc định có sẵn: `equity-vn` ở `vps`, `gold-vn` ở `gold-shop`, `crypto` ở `binance`. Vàng thế giới
+Mặc định có sẵn: `equity-us` ở `us-broker`, `equity-vn` ở `vps`, `gold-vn` ở `gold-shop`, `crypto` ở `binance`. Vàng thế giới
 (`gold`) không có sàn nào. Nó chỉ để tham chiếu (giá vàng, và mức chênh mà `gold-vn` so với nó), nên
 nhóm này luôn tắt và `/profile enable gold` bị từ chối.
 
@@ -998,8 +998,8 @@ cung cấp hoặc phần chỉnh kỹ thuật bên trong, và nằm trong mã. K
 nguồn sang host khác.
 
 Thứ duy nhất bạn đổi được là tên biến môi trường mà một nguồn đọc khóa của nó. Trong các nguồn có sẵn,
-chỉ `bls`, `fred` và `coingecko` cần thông tin đăng nhập, và `[trading.sources]` đổi tên biến cho một trong
-hai:
+chỉ `bls`, `coingecko`, `fred` và `sec-data` cần thông tin đăng nhập (của `sec-data` là email liên hệ mà SEC yêu cầu, `SEC_CONTACT_EMAIL`), và `[trading.sources]` đổi tên biến cho một trong
+số đó:
 
 ```toml
 [trading.sources]

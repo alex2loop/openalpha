@@ -28,7 +28,7 @@ advisory land together, and you are credited unless you ask otherwise.
 ## Supported versions
 
 Only `main` is supported — fixes land there and nothing older is backported. Pin
-a tag or a commit if you need stability, and read [the stability notice](README.en.md#stability-license-and-disclaimer)
+a tag or a commit if you need stability, and read [the stability notice](README.md#stability-license-and-disclaimer)
 before relying on any of it.
 
 ## What is in scope

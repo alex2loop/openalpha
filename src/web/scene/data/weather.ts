@@ -1,6 +1,7 @@
 import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { WeatherNow } from '@/web/scene/sky-types'
+import type { RegionPack } from '@/web/scene/world/regions'
 import { startPoll } from '@/web/api/poll'
 import { clockMode, pageMinute } from '@/web/scene/clock/clock'
 import { regionPack } from '@/web/scene/data/home'
@@ -52,9 +53,12 @@ const SEED = Object.freeze({
   rainCloud: 0.85,
 })
 
+type Geo = RegionPack['geo']
+
 interface Reading {
   readonly now: WeatherNow
   readonly atMs: number
+  readonly geo: Geo
 }
 
 interface SeededDay {
@@ -63,19 +67,23 @@ interface SeededDay {
 }
 
 const reading = signal<Reading | undefined>(undefined)
-// One call at most a poll period apart, however often the poll is restarted.
+// One call at most a poll period apart for one place, however often the poll is restarted.
 let lastCallAt = Number.NEGATIVE_INFINITY
+let lastCallGeo: Geo | undefined
 
 /** The weather the office shows: the last live reading in real time with motion not reduced
- *  while it is under `WEATHER_MAX_AGE_MS` old, else the day's seeded weather. */
+ *  while it is under `WEATHER_MAX_AGE_MS` old and was read for the home city, else the day's seeded
+ *  weather. */
 export const weather: ReadonlySignal<WeatherNow> = computed(() => {
   const held = reading.value
   const { day, minute } = pageMinute.value
-  const isFresh = held !== undefined && Date.now() - held.atMs <= WEATHER_MAX_AGE_MS
+  const { id, geo } = regionPack.value
+  const isFresh =
+    held !== undefined && held.geo === geo && Date.now() - held.atMs <= WEATHER_MAX_AGE_MS
 
   return clockMode.value.kind === 'real' && !reducedMotion.value && isFresh
     ? held.now
-    : seededAt(seededDayOf(day, regionPack.value.id), minute)
+    : seededAt(seededDayOf(day, id), minute)
 })
 
 /** When the live reading shown was taken (epoch ms); absent while the seeded weather shows. */
@@ -111,17 +119,15 @@ export function startWeather(): () => void {
 }
 
 // A failed or malformed answer keeps the last good reading; `weather` lets it age out.
-async function loadWeather(
-  geo: { readonly lat: number; readonly lon: number },
-  pollSignal: AbortSignal
-): Promise<void> {
+async function loadWeather(geo: Geo, pollSignal: AbortSignal): Promise<void> {
   const nowMs = Date.now()
 
-  if (nowMs - lastCallAt < WEATHER_POLL_MS - WEATHER_CALL_SLACK_MS) {
+  if (geo === lastCallGeo && nowMs - lastCallAt < WEATHER_POLL_MS - WEATHER_CALL_SLACK_MS) {
     return
   }
 
   lastCallAt = nowMs
+  lastCallGeo = geo
 
   const url = new URL(WEATHER_URL)
 
@@ -141,7 +147,7 @@ async function loadWeather(
     const now = response.ok ? toWeather(await response.json()) : undefined
 
     if (now !== undefined) {
-      reading.value = { now, atMs: Date.now() }
+      reading.value = { now, atMs: Date.now(), geo }
     }
   } catch {
     // Offline, blocked or timed out: the last reading stands until it ages out.

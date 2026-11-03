@@ -76,6 +76,9 @@ export interface FactorLogStore {
 export interface FactorLogService {
   capture(options: {
     readonly now: number
+    /** The markets the pass just refreshed: one nobody uses has no board to log, and asking it
+     *  would report an empty universe on every pass. */
+    readonly markets: readonly MarketRef[]
     readonly signal: AbortSignal
   }): Promise<FactorLogCaptureResult>
   resolvePending(options: OperationTickOptions<FactorLogId>): Promise<FactorLogResolveBatch>
@@ -96,6 +99,10 @@ export interface FactorLogCaptureResult {
     readonly reason: FactorLogSkipReason
     /** Set for `capture-failed`: what the market's capture threw. */
     readonly error?: unknown
+    /** Set for `universe-empty` and `evidence-lagging`: the session the board was asked for. */
+    readonly day?: TradingDay
+    /** Set for `evidence-lagging`: the newest session the evidence reached. */
+    readonly dataThroughDay?: TradingDay
   }[]
 }
 

@@ -1,7 +1,7 @@
 import type { DebateClaim } from '@/trading/features/suggestion/debate/types'
 
 const FIGURE_RE =
-  /(\d+(?:[.,]\d+)*)\s*(%|nghìn tỷ|ngàn tỷ|tỷ|triệu|nghìn|ngàn|trillion|billion|million|thousand|tn|bn|m|k)?(?!\p{L})/giu
+  /(\d+(?:[.,]\d+)*)(?:\s*(%|nghìn tỷ|ngàn tỷ|tỷ|triệu|nghìn|ngàn|trillion|billion|million|thousand|tn|bn|m|k)|(b|t))?(?!\p{L})/giu
 const SCALES: Readonly<Record<string, number>> = Object.freeze({
   'nghìn tỷ': 1e12,
   'ngàn tỷ': 1e12,
@@ -10,6 +10,9 @@ const SCALES: Readonly<Record<string, number>> = Object.freeze({
   tỷ: 1e9,
   billion: 1e9,
   bn: 1e9,
+  // Only directly after the digits ("$3.4B", "1.2T"): a spaced "3 T-bills" is not a trillion.
+  b: 1e9,
+  t: 1e12,
   triệu: 1e6,
   million: 1e6,
   m: 1e6,
@@ -54,7 +57,7 @@ export function unmatchedFigureCount(claims: readonly DebateClaim[], evidence: s
 
 function figuresIn(text: string): readonly Figure[] {
   return [...text.matchAll(FIGURE_RE)].flatMap((match) => {
-    const figure = toFigure(match[1] ?? '', match[2]?.toLowerCase())
+    const figure = toFigure(match[1] ?? '', (match[2] ?? match[3])?.toLowerCase())
 
     return figure === undefined ? [] : [figure]
   })

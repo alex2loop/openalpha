@@ -1,3 +1,4 @@
+import type { SettingsSection } from '@/web/state/settings'
 import { agents } from '@/web/state/agents'
 import { openView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
@@ -9,11 +10,15 @@ import { ModelChainRow } from '@/web/ui/settings/model-chain'
 import { ActionRow } from '@/web/ui/settings/row'
 
 /** Agent và AI: the operator's own agents, the models the daemon tries in order, and the AI budget. */
-export function AgentsSection() {
+export function AgentsSection({
+  openSection,
+}: {
+  readonly openSection: (section: SettingsSection) => void
+}) {
   return (
     <>
       <OwnAgents />
-      <ModelChainRow />
+      <ModelChainRow openSection={openSection} />
       <BudgetRow />
     </>
   )

@@ -39,7 +39,7 @@ không làm thay đổi điều khoản của ai áp dụng lên bạn.
 
 ## Những nhà cung cấp dự án này có thể đọc
 
-34 adapter dưới [`src/trading/sources/adapters/`](src/trading/sources/adapters/), chạm tới
+37 adapter dưới [`src/trading/sources/adapters/`](src/trading/sources/adapters/), chạm tới
 những host dưới đây. Đọc danh sách này không bật cái nào cả: các route của một thị trường
 quyết định cái gì được hỏi, và một nhà cung cấp cần khóa mà chưa có khóa thì không được đăng
 ký ngay từ đầu.
@@ -57,6 +57,11 @@ ký ngay từ đầu.
 
 **Vĩ mô, lãi suất và vị thế phái sinh Mỹ** - `fred.stlouisfed.org`, `api.stlouisfed.org`,
 `api.bls.gov`, `home.treasury.gov`, `www.federalreserve.gov`, `publicreporting.cftc.gov`
+
+**Cổ phiếu và hồ sơ Mỹ** - `api.nasdaq.com`, `data.sec.gov`, `www.sec.gov`. `api.nasdaq.com` là
+backend của chính website Nasdaq, không phải một API được công bố. SEC yêu cầu mọi người đọc nêu
+một liên hệ trong user agent, nên request tới đó mang email bạn đặt trong `SEC_CONTACT_EMAIL`;
+không có email thì nguồn SEC tắt.
 
 **Giá, tỷ giá và tin tức** - `query1.finance.yahoo.com`, `open.er-api.com`, `news.google.com`,
 `www.cnbc.com`, `www.coindesk.com`, `vnexpress.net`

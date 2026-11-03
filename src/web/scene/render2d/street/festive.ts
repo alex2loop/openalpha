@@ -1,33 +1,24 @@
 import type { PaintPart } from '@/web/scene/render2d/street/paint'
-import type { Rect } from '@/web/scene/types'
 import type { RegionPack } from '@/web/scene/world/regions'
-import { STREET_LEFT, STREET_RIGHT } from '@/web/scene/render2d/street/city-ground'
+import {
+  DRESSED_FOOT_Y,
+  dressedShopsOf,
+  type HangAt,
+  paintGarland,
+} from '@/web/scene/render2d/street/festive-dress'
+import { paintFlags, paintVnFlag } from '@/web/scene/render2d/street/festive-flags'
+import { paintJul4, paintThanksgiving } from '@/web/scene/render2d/street/festive-us'
 import { paintLabel } from '@/web/scene/render2d/street/label'
 import { mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
-import { sheltersOf } from '@/web/scene/sim/street/flows'
-import { frontageOf, shopRowSpanOf, shopSpansOf } from '@/web/scene/world/frontage'
-import { holidayOf } from '@/web/scene/world/regions'
-import { CROSSING, FAR_TREES, KERB_Y, NORTH } from '@/web/scene/world/street-layout'
+import { frontageOf } from '@/web/scene/world/frontage'
+import { type HolidayId, holidayOf } from '@/web/scene/world/regions'
 import { tr } from '@/web/text/tr'
 
 const GOLD = '#E8B94A'
 const RED = '#D8271C'
 const AMBER = '#E8A01E'
-const STRING_Y = -26.4
-const STRING_SAG = 2.4
-const STRING_REACH = 72
-const STRING_STEPS = 12
-const STRING_PER_PX = 6
-const ROW_EDGE = 12
 const LANTERN_PITCH = 8
 const STAR_PITCH = 11
-const ROW_FLAG_PITCH = 25.2
-const KERB_FLAG_PITCH = 54
-const FLAG_CLEAR = Object.freeze({ shelter: 20, crossing: 14, row: 8 })
-const ROW_BASE_Y = NORTH.farTop - 0.6
-const ROW_FLAG_Y = NORTH.farTop - 0.2
-// A big flag stands on each side of the frontage's top.
-const FRONTAGE_FLAG = Object.freeze({ drop: 24, inset: 5, w: 11, h: 7 })
 const BANNER_RED = '#B3201A'
 const POT = Object.freeze({ clay: '#B5593A', leaf: '#3F8F4F', fruit: '#F28C1C', night: '#2A1A18' })
 const FRUIT_SPOTS = [
@@ -38,111 +29,43 @@ const FRUIT_SPOTS = [
   [-1.1, -1.5],
 ] as const
 
+type HolidayPainter = (g: CanvasRenderingContext2D, pack: RegionPack, dark: number) => void
+
+// Christmas has no dress here: its lights are the trees' own.
+const HOLIDAY_PAINTERS: Readonly<Partial<Record<HolidayId, HolidayPainter>>> = Object.freeze({
+  tet: paintTet,
+  'trung-thu': paintMidAutumn,
+  'quoc-khanh': paintNationalDay,
+  jul4: paintJul4,
+  thanksgiving: paintThanksgiving,
+})
+
 /** The street's holiday dress by the real date, one answer a day: on Tết lantern strings, kumquat
  *  pots and the greeting on the frontage; on Trung thu star lanterns; on Quốc khánh flags on the
- *  kerb poles, the shop row and the frontage. The trees' blossom and Christmas lights are the
- *  trees' own. */
+ *  kerb poles, the shop row and the frontage; the US days are `festive-us`. The trees' blossom,
+ *  autumn crowns and Christmas lights are the trees' own. */
 export const FESTIVE_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
     const holiday = holidayOf(pack, minute.day)
-    const dark = minute.light.dark
 
-    if (holiday === 'tet') {
-      paintTet(g, pack, dark)
-    } else if (holiday === 'trung-thu') {
-      paintStrings(g, pack, { dark, hang: star })
-      paintRow(g, pack, { dark, hang: star, pitch: STAR_PITCH })
-    } else if (holiday === 'quoc-khanh') {
-      paintFlags(g, pack, dark)
+    if (holiday !== undefined) {
+      HOLIDAY_PAINTERS[holiday]?.(g, pack, minute.light.dark)
     }
   },
 }
 
-/** Where an ornament hangs, which one it is along its string or row, and how dark it is. */
-interface HangAt {
-  readonly x: number
-  readonly y: number
-  readonly index: number
-  readonly dark: number
-}
-
-interface Hang {
-  readonly dark: number
-  readonly hang: (g: CanvasRenderingContext2D, at: HangAt) => void
-}
-
 function paintTet(g: CanvasRenderingContext2D, pack: RegionPack, dark: number): void {
-  paintStrings(g, pack, { dark, hang: lantern })
-  paintRow(g, pack, { dark, hang: lantern, pitch: LANTERN_PITCH })
+  paintGarland(g, pack, { dark, hang: lantern, pitch: LANTERN_PITCH })
   paintPots(g, pack, dark)
   paintBanner(g, pack)
 }
 
-// A string of ornaments sagging between each pair of neighbouring far trees outside the shop row.
-function paintStrings(g: CanvasRenderingContext2D, pack: RegionPack, hang: Hang): void {
-  const row = shopRowSpanOf(pack.shops)
-
-  for (let i = 0; i < FAR_TREES.length - 1; i++) {
-    const a = FAR_TREES[i]?.x ?? 0
-    const b = FAR_TREES[i + 1]?.x ?? 0
-    const isNearRow = row !== undefined && a > row[0] - ROW_EDGE && b < row[1] + ROW_EDGE
-
-    if (b - a <= STRING_REACH && !isNearRow) {
-      hangString(
-        g,
-        { from: a, to: b, count: Math.max(3, Math.round((b - a) / STRING_PER_PX)) },
-        hang
-      )
-    }
-  }
+function paintMidAutumn(g: CanvasRenderingContext2D, pack: RegionPack, dark: number): void {
+  paintGarland(g, pack, { dark, hang: star, pitch: STAR_PITCH })
 }
 
-function hangString(
-  g: CanvasRenderingContext2D,
-  string: { readonly from: number; readonly to: number; readonly count: number },
-  hang: Hang
-): void {
-  const length = string.to - string.from
-  const sagAt = (u: number): number => STRING_Y + Math.sin(u * Math.PI) * STRING_SAG
-
-  g.strokeStyle = 'rgba(60,40,30,.55)'
-  g.lineWidth = 0.22
-  g.beginPath()
-
-  for (let i = 0; i <= STRING_STEPS; i++) {
-    const u = i / STRING_STEPS
-
-    if (i === 0) {
-      g.moveTo(string.from, sagAt(u))
-    } else {
-      g.lineTo(string.from + length * u, sagAt(u))
-    }
-  }
-
-  g.stroke()
-
-  for (let i = 1; i < string.count; i++) {
-    const u = i / string.count
-
-    hang.hang(g, { x: string.from + length * u, y: sagAt(u) + 0.6, index: i, dark: hang.dark })
-  }
-}
-
-// Ornaments hung along the top of the shop row.
-function paintRow(
-  g: CanvasRenderingContext2D,
-  pack: RegionPack,
-  row: Hang & { readonly pitch: number }
-): void {
-  const span = shopRowSpanOf(pack.shops)
-
-  if (span === undefined) {
-    return
-  }
-
-  for (let x = span[0] + 4; x < span[1] - 6; x += row.pitch) {
-    row.hang(g, { x, y: ROW_BASE_Y, index: Math.floor(x / row.pitch), dark: row.dark })
-  }
+function paintNationalDay(g: CanvasRenderingContext2D, pack: RegionPack, dark: number): void {
+  paintFlags(g, pack, { dark, paint: paintVnFlag })
 }
 
 function lantern(g: CanvasRenderingContext2D, at: HangAt): void {
@@ -226,11 +149,9 @@ function paintStar(g: CanvasRenderingContext2D, o: Ornament): void {
 
 // A kumquat pot in front of every other shop that sells something.
 function paintPots(g: CanvasRenderingContext2D, pack: RegionPack, dark: number): void {
-  const spans = shopSpansOf(pack.shops).filter((span) => span.row.item !== undefined)
-
-  for (const span of spans.filter((_, index) => index % 2 === 0)) {
+  for (const span of dressedShopsOf(pack)) {
     const x = span.x + Math.min(2.4, span.w * 0.2)
-    const y = NORTH.farTop + 0.7
+    const y = DRESSED_FOOT_Y
 
     g.fillStyle = mixTone(POT.clay, POT.night, dark * 0.5)
     g.fillRect(x - 1.2, y - 1.1, 2.4, 1.5)
@@ -272,80 +193,4 @@ function paintBanner(g: CanvasRenderingContext2D, pack: RegionPack): void {
     colour: '#FFFFFF',
     maxW: banner.w - 14,
   })
-}
-
-// Flags on the far kerb's poles, along the shop row and either side of the frontage's top.
-function paintFlags(g: CanvasRenderingContext2D, pack: RegionPack, dark: number): void {
-  const row = shopRowSpanOf(pack.shops)
-  const stops = sheltersOf(pack).filter((shelter) => shelter.stop.side === 'far')
-  const isClear = (x: number): boolean =>
-    (row === undefined || x <= row[0] - FLAG_CLEAR.row || x >= row[1] + FLAG_CLEAR.row) &&
-    stops.every((shelter) => Math.abs(shelter.x - x) >= FLAG_CLEAR.shelter) &&
-    Math.abs(x - CROSSING.x) >= FLAG_CLEAR.crossing
-
-  for (
-    let x = Math.ceil((STREET_LEFT + 10) / KERB_FLAG_PITCH) * KERB_FLAG_PITCH;
-    x < STREET_RIGHT;
-    x += KERB_FLAG_PITCH
-  ) {
-    if (isClear(x)) {
-      paintFlag(g, { x, y: KERB_Y.far + 0.1, w: 4.8, h: 3.1, dark })
-    }
-  }
-
-  if (row !== undefined) {
-    for (let x = row[0] + 10; x < row[1] - 8; x += ROW_FLAG_PITCH) {
-      paintFlag(g, { x, y: ROW_FLAG_Y, w: 3.6, h: 2.3, dark })
-    }
-  }
-
-  paintFrontageFlags(g, frontageOf(pack.shops)?.body, dark)
-}
-
-function paintFrontageFlags(
-  g: CanvasRenderingContext2D,
-  body: Rect | undefined,
-  dark: number
-): void {
-  if (body === undefined) {
-    return
-  }
-
-  const { drop, inset, w, h } = FRONTAGE_FLAG
-  const y = body.y + drop
-
-  paintFlag(g, { x: body.x + inset, y, w, h, dark })
-  paintFlag(g, { x: body.x + body.w - inset - w, y, w, h, dark })
-}
-
-// A flag on its pole: red field, yellow star.
-function paintFlag(
-  g: CanvasRenderingContext2D,
-  flag: {
-    readonly x: number
-    readonly y: number
-    readonly w: number
-    readonly h: number
-    readonly dark: number
-  }
-): void {
-  const { x, y, w, h, dark } = flag
-  const top = y - h * 2.2
-
-  g.fillStyle = mixTone('#8A6B3E', NIGHT_TONE, dark * 0.5)
-  g.fillRect(x - 0.18, top, 0.36, h * 2.2)
-  g.fillStyle = mixTone('#DA251D', NIGHT_TONE, dark * 0.4)
-  g.fillRect(x + 0.18, top, w, h)
-  g.fillStyle = '#FFDE00'
-  g.beginPath()
-
-  for (let i = 0; i < 10; i++) {
-    const angle = -Math.PI / 2 + i * (Math.PI / 5)
-    const reach = i % 2 === 0 ? h * 0.42 : h * 0.2
-
-    g.lineTo(x + 0.18 + w / 2 + Math.cos(angle) * reach, top + h / 2 + Math.sin(angle) * reach)
-  }
-
-  g.closePath()
-  g.fill()
 }

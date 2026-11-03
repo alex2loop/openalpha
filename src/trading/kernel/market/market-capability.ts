@@ -257,7 +257,8 @@ export interface SectorStrength {
    *  answer the window: an excess against nothing is the sector's own return wearing a lead. */
   readonly excessReturnShort?: number
   readonly excessReturnLong?: number
-  readonly foreignNetBase: number
+  /** Absent on a market that publishes no foreign flow. */
+  readonly foreignNetBase?: number
   readonly score?: number
 }
 

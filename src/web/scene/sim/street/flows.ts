@@ -9,7 +9,14 @@ import type {
 import type { BusStop, RegionPack, SideStreet } from '@/web/scene/world/regions'
 import { WORLD } from '@/web/scene/types'
 import { STREET_RECT } from '@/web/scene/view'
-import { METRES_PER_PX, NORTH, SHELTER_X, SIDE_ROAD, sideX } from '@/web/scene/world/street-layout'
+import {
+  carriageOf,
+  METRES_PER_PX,
+  NORTH,
+  SHELTER_X,
+  SIDE_ROAD,
+  sideX,
+} from '@/web/scene/world/street-layout'
 import { MINUTES_PER_HOUR, SECONDS_PER_MINUTE } from '@/web/text/time-units'
 
 // The north street runs this far past each side wall; a vehicle enters and leaves there.
@@ -17,6 +24,7 @@ const NORTH_REACH_PX = 314
 // Traffic cruises at this share of the posted limit.
 const CRUISE_SHARE = 0.85
 const METRES_PER_KM = 1_000
+const KMH_PER_MPH = 1.609_344
 const SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR
 // A motorbike's columns across its carriageway, as shares of the half width: the kerb slot it
 // slips along, the middle and the inner one it bunches into.
@@ -132,7 +140,8 @@ function northFlowOf(
   pack: RegionPack,
   at: { readonly index: number; readonly count: number }
 ): Flow {
-  const band = (NORTH.roadBottom - NORTH.roadTop) / at.count
+  const carriage = carriageOf(pack.road)
+  const band = (carriage.bottom - carriage.top) / at.count
   const dir = pack.road.north.oneWay || at.index > 0 ? 1 : -1
   const half = (band / 2) * dir
   const side = dir < 0 ? 'far' : 'near'
@@ -143,11 +152,11 @@ function northFlowOf(
     axis: 'x',
     dir,
     heading: dir > 0 ? 'east' : 'west',
-    line: NORTH.roadTop + band * (at.index + 0.5),
+    line: carriage.top + band * (at.index + 0.5),
     halfWidth: band / 2,
     from: -NORTH_REACH_PX,
     to: WORLD.w + NORTH_REACH_PX,
-    cruise: cruiseOf(pack.speed.north),
+    cruise: cruiseOf(pack.speed.north, pack.speed.unit),
     columns: [half * KERB_SHARE, 0, half * INNER_SHARE],
     stops: mine.map((shelter) => shelter.x).sort((a, b) => (a - b) * dir),
     routes: mine.flatMap((shelter) => shelter.stop.routes),
@@ -174,7 +183,7 @@ function sideFlowsOf(
       halfWidth: isTwoWay ? offset : offset * 2,
       from: NORTH.roadBottom,
       to: STREET_RECT.y + STREET_RECT.h,
-      cruise: cruiseOf(pack.speed.side),
+      cruise: cruiseOf(pack.speed.side, pack.speed.unit),
       columns: [0, 0, 0],
       stops: [],
       routes: [],
@@ -183,7 +192,10 @@ function sideFlowsOf(
   )
 }
 
-function cruiseOf(limitKmh: number): number {
+// A limit in the pack's own unit, as px a second.
+function cruiseOf(limit: number, unit: RegionPack['speed']['unit']): number {
+  const limitKmh = unit === 'mph' ? limit * KMH_PER_MPH : limit
+
   return ((limitKmh * METRES_PER_KM) / SECONDS_PER_HOUR / METRES_PER_PX) * CRUISE_SHARE
 }
 

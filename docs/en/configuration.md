@@ -269,10 +269,10 @@ cap are in [Cost and budgets](budgets.md).
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `language` | string | `vi` | `en` or `vi`. The one language every reply, brief and alert is written in; the investment profile has none of its own. |
+| `language` | string | from `region`: `vi`, or `en` with `region = "us"` | `en` or `vi`. The one language every reply, brief and alert is written in; the investment profile has none of its own. |
 | `timezone` | string | host zone (`UTC` if none) | IANA name, for example `Asia/Ho_Chi_Minh`. New cron jobs snapshot this value unless `--tz` overrides it; interval schedules reject `--tz`. |
 | `currency` | string | `VND` | ISO 4217 code (three capital letters). Trading's base currency; `onboard` asks it on first setup and writes it here. Fixed once your book has a profile: a later change is refused, and `doctor` names the mismatch on its `database` row. |
-| `region` | string | `vn` | Home region; only `vn` today. A region needs a venue that trades its main market, so `global` (world gold, read for reference only) is refused. Its market is the default board, and a first profile seeds only its national segments plus crypto. |
+| `region` | string | `vn` | Home region: `vn` or `us`. `us` makes US stocks and ETFs the home market; pair it with `currency = "USD"`, which cannot change after the first profile is saved, start from a fresh data directory, and see [`config.minimal.us.toml`](../../config.minimal.us.toml). US company accounts also need `SEC_CONTACT_EMAIL`, set by `onboard` or `key set`. A region needs a venue that trades its main market, so `global` (world gold, read for reference only) is refused. Its market is the default board, and a first profile seeds only its national segments plus crypto. |
 
 All keys are optional. `[locale]` accepts no other keys. `currency` and `region` say where you are,
 so trading reads them here rather than keeping copies under `[trading]`.
@@ -838,8 +838,8 @@ maximum_cost_usd = 1.0             # most one /themes run may spend, research in
 ```
 
 A venue table takes `default_for`, `markets` (hand-traded venues only), `fees` and, for OKX and
-Binance, `credentials` and `simulated`. `okx`, `binance`, `vps` and `gold-shop` are built in with
-their markets and the published fee rates above, so a table for one of them states only what you
+Binance, `credentials` and `simulated`. `okx`, `binance`, `vps`, `gold-shop` and `us-broker` are built in with
+their markets and the published fee rates above (`us-broker` charges no fees), so a table for one of them states only what you
 change. `openalpha config validate` checks all of this.
 
 ### A broker you trade by hand
@@ -859,7 +859,7 @@ market and must declare `fees`:
 
 ### Default venue per market
 
-Built-in defaults: `equity-vn` at `vps`, `gold-vn` at `gold-shop`, `crypto` at `binance`. World gold
+Built-in defaults: `equity-us` at `us-broker`, `equity-vn` at `vps`, `gold-vn` at `gold-shop`, `crypto` at `binance`. World gold
 (`gold`) has no venue. It is read for reference (its price, and the premium `gold-vn` is quoted
 against), so its segment stays off and `/profile enable gold` is refused.
 
@@ -1005,7 +1005,7 @@ market-data retention window are not your choice. They are provider facts or int
 they live in code. No config can point a source at another host.
 
 The one thing you can change is the name of the environment variable a source reads its key from.
-Of the built-in sources only `bls`, `fred` and `coingecko` take a credential, and `[trading.sources]`
+Of the built-in sources only `bls`, `coingecko`, `fred` and `sec-data` take a credential (`sec-data`'s is the contact email SEC asks for, `SEC_CONTACT_EMAIL`), and `[trading.sources]`
 renames the variable for one of them:
 
 ```toml

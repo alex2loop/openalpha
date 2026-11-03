@@ -3,6 +3,7 @@ import { AUTH_PROVIDERS, createTokenFile, hasIdentityEnv } from '@/ai/api'
 import { authCommand } from '@/cli/commands/auth'
 import { probeProviders } from '@/cli/commands/doctor/online-probes'
 import { getEnv } from '@/cli/env'
+import { writeEnvFileValue } from '@/cli/env-file'
 import { fail, hint, info, success } from '@/cli/ui/colors'
 import { confirmDefaultYes } from '@/cli/ui/prompt'
 import { BRAND } from '@/core/brand'
@@ -11,8 +12,10 @@ import { t } from '@/i18n'
 
 import type { AskContext } from './ask'
 import type { ModelAnswer } from './model-step'
+import { isEnvSet } from './model-step'
 import { printNextSteps } from './next-steps'
 import { offerSaveKeys } from './save-key'
+import { askSecContact, type HomeRegion, SEC_CONTACT_ENV } from './settings-step'
 
 /** Signs in, tries the model once and lists what is left, after any write that set a model. */
 export async function finishModelChange(
@@ -21,6 +24,7 @@ export async function finishModelChange(
     readonly chosen: ModelAnswer
     readonly configPath: string
     readonly firstRun: boolean
+    readonly region?: HomeRegion
     readonly telegramTokenEnv?: string
   }
 ): Promise<void> {
@@ -29,7 +33,13 @@ export async function finishModelChange(
   await offerSignIn(ctx, chosen.provider)
 
   const signedIn = await isSignedIn(ctx, chosen.provider)
-  const saved = await offerSaveKeys(ctx, [chosen.starter.apiKeyEnv, change.telegramTokenEnv])
+  const saved = new Set(
+    await offerSaveKeys(ctx, [chosen.starter.apiKeyEnv, change.telegramTokenEnv])
+  )
+
+  if (change.region === 'us' && (await offerSecContact(ctx))) {
+    saved.add(SEC_CONTACT_ENV)
+  }
 
   // A call with no login or cloud account yet can only fail; the next steps already say what to set.
   if (signedIn && hasCloudAccount(chosen.provider)) {
@@ -42,8 +52,31 @@ export async function finishModelChange(
     signedIn,
     saved,
     firstRun: change.firstRun,
+    ...(change.region === undefined ? {} : { region: change.region }),
     ...(change.telegramTokenEnv === undefined ? {} : { telegramTokenEnv: change.telegramTokenEnv }),
   })
+}
+
+/** The contact SEC asks for: shown as typed, saved to the key file, and in this process too so
+ *  what follows reads it. Already set, or left empty, it is not asked or saved; true when saved. */
+async function offerSecContact(ctx: AskContext): Promise<boolean> {
+  if (isEnvSet(SEC_CONTACT_ENV)) {
+    return false
+  }
+
+  const value = await askSecContact(ctx)
+
+  if (value === undefined) {
+    return false
+  }
+
+  const { path } = ctx.app.keyFile
+
+  await writeEnvFileValue({ path, name: SEC_CONTACT_ENV, value })
+  getEnv()[SEC_CONTACT_ENV] = value
+  ctx.app.out(success(t(ctx.locale, 'cli.keySaved', { name: SEC_CONTACT_ENV, path })))
+
+  return true
 }
 
 /** True once a subscription provider holds a login; providers that take no login always are. */

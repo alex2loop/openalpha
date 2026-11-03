@@ -12,6 +12,7 @@ import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { RefreshDataKind } from '@/trading/kernel/market/refresh'
 import type { AdmissionPolicy } from '@/trading/markets/admission'
 import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
+import type { SectorPolicy } from '@/trading/markets/sector-strength'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { currencyCode, fxPair, marketRef, region, ticker } from '@/trading/kernel/instrument'
 import { vnClosuresOf } from '@/trading/markets/equity-vn/calendar/closures'
@@ -300,8 +301,6 @@ export const VN_TURNOVER_REFERENCE_SESSIONS = 20
 export const VN_BOARD_ORDER: readonly string[] = Object.freeze(['HOSE', 'HNX', 'UPCOM'])
 
 export const VN_MA_SESSIONS = 50
-export const SECTOR_SHORT_SESSIONS = 20
-export const SECTOR_LONG_SESSIONS = 60
 
 /** Slack on top of the deepest window, spent twice over: the calendar counts weekdays while a
  *  factor counts traded sessions, so a year's ~11 holidays go before a name misses a day of its
@@ -433,12 +432,13 @@ export const VN_ADMISSION: AdmissionPolicy = Object.freeze({
   }),
 })
 
-export const MINIMUM_SECTOR_MEMBERS = 3
-/** Realized volatility above the roll-up's own tolerance discounts a sector's score, once. */
-export const SECTOR_VOLATILITY_PENALTY = 0.25
-/** Below this share of the universe carrying a sector, the ranking is a ranking of a third of the
- *  market wearing the market's authority. */
-export const MINIMUM_SECTOR_COVERAGE_FRACTION = 0.6
+export const VN_SECTOR_POLICY: SectorPolicy = Object.freeze({
+  shortSessions: 20,
+  longSessions: 60,
+  minimumMembers: 3,
+  volatilityPenalty: 0.25,
+  minimumCoverage: 0.6,
+})
 
 export const DOWNSIDE_BAND_PROXIMITY_FRACTION = 0.15
 export const MARGIN_CASCADE_UNIVERSE_FRACTION = 0.1

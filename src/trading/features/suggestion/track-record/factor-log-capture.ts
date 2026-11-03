@@ -20,6 +20,7 @@ interface CaptureDeps {
 
 interface CaptureOptions {
   readonly now: number
+  readonly markets: readonly MarketRef[]
   readonly signal: AbortSignal
 }
 
@@ -27,6 +28,8 @@ type Skip = {
   readonly market: MarketRef
   readonly reason: FactorLogSkipReason
   readonly error?: unknown
+  readonly day?: TradingDay
+  readonly dataThroughDay?: TradingDay
 }
 type Captured = { readonly market: MarketRef; readonly day: TradingDay; readonly rows: number }
 
@@ -46,7 +49,9 @@ export async function captureBoards(
   const captured: Captured[] = []
   const skipped: Skip[] = []
 
-  for (const market of deps.markets.list()) {
+  const asked = new Set(options.markets)
+
+  for (const market of deps.markets.list().filter((entry) => asked.has(entry.manifest.id))) {
     const result = await captureIsolated(deps, market, options)
 
     if ('reason' in result) {
@@ -108,19 +113,33 @@ async function captureMarket(
   )
 
   if (boards.every(({ board }) => board.candidates.length === 0)) {
-    return { market: id, reason: 'universe-empty' }
+    return { market: id, reason: 'universe-empty', day }
   }
 
-  if (
-    boards.some(({ board }) => board.dataThroughDay !== undefined && board.dataThroughDay < day)
-  ) {
-    return { market: id, reason: 'evidence-lagging' }
+  const lagging = earliestLag(boards, day)
+
+  if (lagging !== undefined) {
+    return { market: id, reason: 'evidence-lagging', day, dataThroughDay: lagging }
   }
 
   const entries = boards.flatMap(({ kind, board }) => boardEntries(market, { day, kind }, board))
   const rows = await deps.store.insertMany(entries, options.signal)
 
   return { market: id, day, rows }
+}
+
+/** The oldest evidence among the boards that has not reached the session, so the log line names
+ *  the board holding the capture back. */
+function earliestLag(
+  boards: readonly { readonly board: ScreenResult }[],
+  day: TradingDay
+): TradingDay | undefined {
+  const lagging = boards
+    .map(({ board }) => board.dataThroughDay)
+    .filter((through): through is TradingDay => through !== undefined && through < day)
+    .toSorted()
+
+  return lagging[0]
 }
 
 /** Every kind the market ranks gets its own board, so funds are logged beside shares rather than

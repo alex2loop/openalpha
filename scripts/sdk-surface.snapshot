@@ -21,6 +21,7 @@ cli:EditorExit
 cli:EnvFileLoad
 cli:GlobalFlags
 cli:Group
+cli:HomeRegion
 cli:KeyEnvGroup
 cli:KeyFile
 cli:Needs
@@ -54,12 +55,15 @@ cli:formatTerminalError
 cli:formatUpdateNotice
 cli:getEnv
 cli:hint
+cli:homeCurrencyOf
+cli:homeLocaleOf
 cli:installProcessTerminal
 cli:isBackgroundLaunch
 cli:isCompiledBinary
 cli:isConfigPresent
 cli:isDaemonReady
 cli:isForwardable
+cli:isHomeRegion
 cli:isRestartRequested
 cli:isRuntimeEnvName
 cli:isUpdateCheckEnabled

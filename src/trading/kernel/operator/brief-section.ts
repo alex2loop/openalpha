@@ -52,6 +52,7 @@ export const BRIEF_SECTION_ORDER = Object.freeze([
   'disclosures',
   'index-review',
   'events',
+  'recent',
   'headlines',
   'cost',
   'suggestions',

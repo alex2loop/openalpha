@@ -2,8 +2,8 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { InstrumentRef, Ticker } from '@/trading/kernel/instrument'
 import type { BarRecord } from '@/trading/kernel/market/market-data'
 import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
+import type { DayWindow } from '@/trading/markets/admissibility'
 import type { BarWrite } from '@/trading/markets/bars'
-import type { DayWindow } from '@/trading/markets/equity-vn/evidence/admissibility'
 import type { EvidenceScope } from '@/trading/markets/equity-vn/evidence/evidence'
 import type { TargetOutcome } from '@/trading/markets/refresh-result'
 import type { TradingCalendar } from '@/trading/markets/types'
@@ -11,15 +11,11 @@ import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
+import { admissibleCandles } from '@/trading/markets/admissibility'
 import { isRestated, RESTATEMENT_TAIL_SESSIONS } from '@/trading/markets/bar-restatement'
 import { hasRebuiltWindow, writeBarWindows } from '@/trading/markets/bars'
 import { buildPayloadRejectedCaveat, reportedCaveats } from '@/trading/markets/equity-vn/caveats'
-import { admissibleCandles } from '@/trading/markets/equity-vn/evidence/admissibility'
 import { invalidateWhenWritten, settledOnly } from '@/trading/markets/equity-vn/evidence/evidence'
-import {
-  resolveCoveredFrom,
-  resolveFetchWindow,
-} from '@/trading/markets/equity-vn/evidence/fetch-window'
 import {
   VN_EVIDENCE_SESSIONS,
   VN_MARKET_REF,
@@ -31,6 +27,7 @@ import {
   seriesClass,
   tradeableTargets,
 } from '@/trading/markets/equity-vn/refresh/targets'
+import { resolveCoveredFrom, resolveFetchWindow } from '@/trading/markets/fetch-window'
 import { MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
 import { buildRejectedOutcome, toKindResult } from '@/trading/markets/refresh-result'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'

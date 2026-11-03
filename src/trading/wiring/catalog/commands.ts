@@ -103,6 +103,7 @@ interface TradingCommandDeps {
   readonly alerts: AlertService
   readonly briefs: BriefService
   readonly refreshMarketData: TradingServices['refreshMarketData']
+  readonly marketsInUse: TradingServices['marketsInUse']
   readonly markets: MarketRegistry
   readonly venues: VenueRegistry
   readonly config: TradingConfig
@@ -124,7 +125,7 @@ export function createTradingCommands(deps: TradingCommandDeps): readonly SlashC
 
   return [
     ...inGroup(BOOK_GROUP, [
-      createSetupCommand(),
+      createSetupCommand(setupMarketsOf(deps)),
       ...ledgerWriteCommands(deps),
       ...bookCommands(deps),
       createTransactionsCommand({
@@ -148,7 +149,11 @@ export function createTradingCommands(deps: TradingCommandDeps): readonly SlashC
     ...inGroup(ANALYSIS_GROUP, [
       ...suggestionCommands(deps),
       createBriefCommand({ briefs: deps.briefs, defaultRegion, timezone }),
-      createThemesCommand({ themes: deps.themes, timezone }),
+      createThemesCommand({
+        themes: deps.themes,
+        timezone,
+        ...homeMarketOf(deps),
+      }),
       createProfileCommand({ profiles, timezone }),
     ]),
   ]
@@ -165,6 +170,8 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       defaultRegion,
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
+      marketsInUse: deps.marketsInUse,
+      logger: deps.logger,
     }),
     createMarketCommand({
       report: {
@@ -219,7 +226,7 @@ function bookCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
     }),
-    createReconcileCommand({ portfolio, timezone }),
+    createReconcileCommand({ portfolio, timezone, baseCurrency: deps.config.baseCurrency }),
     createWatchlistCommand({ profiles, marketData, timezone }),
   ]
 }
@@ -268,6 +275,26 @@ function suggestionCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
     }),
     createReflectCommand({ suggestions, factorLog: deps.factorLog }),
   ]
+}
+
+/** The market the operator's home region trades in, when there is one. */
+function homeMarketOf(deps: TradingCommandDeps): { homeMarket?: MarketRef } {
+  const owner = deps.markets.regionOwner(deps.defaultRegion)
+
+  return owner === null ? {} : { homeMarket: owner.manifest.id }
+}
+
+/** The markets a venue trades, the home region's own first: what `/setup` asks the operator to
+ *  pick from. */
+function setupMarketsOf(deps: TradingCommandDeps): Parameters<typeof createSetupCommand>[0] {
+  const home = deps.markets.regionOwner(deps.defaultRegion)?.manifest.id
+  const held = deps.venues.heldMarkets()
+
+  return deps.markets
+    .list()
+    .filter((market) => held.has(market.manifest.id))
+    .sort((left, right) => Number(right.manifest.id === home) - Number(left.manifest.id === home))
+    .map((market) => ({ market: market.manifest.id, segment: market.manifest.segment }))
 }
 
 /** The market a bare `/screen` reads: the one that speaks for the operator's own region, which is

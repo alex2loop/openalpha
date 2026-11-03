@@ -32,6 +32,7 @@ import { buildDraft, finalize } from '@/trading/features/suggestion/pipeline/dra
 import {
   draftInputFor,
   instrumentEvents,
+  recentEvents,
   upcomingEvents,
 } from '@/trading/features/suggestion/pipeline/draft-input'
 import { joinOrStartSuggestion } from '@/trading/features/suggestion/pipeline/flight'
@@ -75,6 +76,7 @@ export async function runSuggestion(options: SuggestionRunOptions): Promise<Sugg
   const resolution = await deps.markets.resolve({
     ticker: request.ticker,
     ...(request.market === undefined ? {} : { market: request.market }),
+    operatorRead: true,
     signal: request.signal,
   })
 
@@ -351,6 +353,7 @@ interface DraftCalendar {
   readonly events: readonly MarketEvent[]
   /** Past rows too: an ex-date the stored series has not caught up to moves today's levels. */
   readonly instrumentEvents: readonly MarketEvent[]
+  readonly recent: readonly MarketEvent[]
   readonly standingMargin?: MarketEvent
   readonly calendarFailed?: true
 }
@@ -366,6 +369,7 @@ function toDraftCalendar(
   return {
     events: upcomingEvents(own, asOf),
     instrumentEvents: own,
+    recent: recentEvents(own, asOf),
     ...(standing === undefined ? {} : { standingMargin: standing }),
     ...(isSourceFailed(events) ? { calendarFailed: true } : {}),
   }
@@ -373,10 +377,11 @@ function toDraftCalendar(
 
 function calendarFieldsOf(
   calendar: DraftCalendar
-): Pick<Prepared, 'upcomingEvents' | 'instrumentEvents' | 'calendarFailed'> {
+): Pick<Prepared, 'upcomingEvents' | 'instrumentEvents' | 'recentEvents' | 'calendarFailed'> {
   return {
     upcomingEvents: calendar.events,
     instrumentEvents: calendar.instrumentEvents,
+    recentEvents: calendar.recent,
     ...(calendar.calendarFailed === true ? { calendarFailed: true } : {}),
   }
 }

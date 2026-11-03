@@ -16,6 +16,7 @@ interface ContributionsInput {
   readonly services: ReturnType<typeof createDomainServices> & WithThemes
   readonly config: TradingConfig
   readonly refreshMarketData: TradingServices['refreshMarketData']
+  readonly marketsInUse: TradingServices['marketsInUse']
   readonly markets: MarketRegistry
   readonly venues: VenueRegistry
   readonly intradaySettings: IntradaySettingsStore
@@ -45,6 +46,7 @@ export function buildContributions(input: ContributionsInput): TradingContributi
       suggestions: input.services.suggestions,
       factorLog: input.services.factorLog,
       refreshMarketData: input.refreshMarketData,
+      marketsInUse: input.marketsInUse,
       markets: input.markets,
       venues: input.venues,
       config: input.config,

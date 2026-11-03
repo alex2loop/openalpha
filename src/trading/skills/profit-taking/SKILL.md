@@ -11,7 +11,7 @@ Use when a held position has reached its first target or has run past it. `exit-
 
 ## What the system already does with a winner
 
-The take-profit and the target are two different prices. On a market that trails its stop (VN shares, crypto), `takeProfitTranchePct` banks a share of the position at the take-profit and the rest rides the trailing stop: it has no fixed exit, and the target is only what the reward:risk is measured to. VN shares and long-horizon crypto set the take-profit one risk unit above entry; the other short horizons set it at the target. A position already held gets the same split from the row's `takeProfitTranchePct`.
+The take-profit and the target are two different prices. On a market that trails its stop (VN and US shares, crypto), `takeProfitTranchePct` banks a share of the position at the take-profit and the rest rides the trailing stop: it has no fixed exit, and the target is only what the reward:risk is measured to. VN and US shares and long-horizon crypto set the take-profit one risk unit above entry; the other short horizons set it at the target. A position already held gets the same split from the row's `takeProfitTranchePct`.
 
 The trail is the only thing that moves the stop, from the first session, and never within one ATR of the last close. The plan never moves it to entry at the take-profit: measured on the stored boards, a stop pulled up to breakeven cut more winners than it saved, so recommending one contradicts the plan the record is scored on.
 
@@ -31,7 +31,7 @@ Which side of that trade is right depends on the edge, and the operator's own re
 
 ## Costs the ladder pays twice
 
-Every partial exit pays the spread and the commission again, and each market charges differently for the privilege: a VN sale returns cash only after settlement, so a laddered exit is also a laddered return of buying power, and domestic gold pays a dealer spread on both sides of every slice. Two exits in a wide-spread instrument can cost more than the difference the ladder was trying to capture. Say so when it is true.
+Every partial exit pays the spread and the commission again, and each market charges differently for the privilege: a VN sale returns cash only after settlement (a US sale settles in one business day, though the shares can be sold the day they were bought), so a laddered exit is also a laddered return of buying power, and domestic gold pays a dealer spread on both sides of every slice. Two exits in a wide-spread instrument can cost more than the difference the ladder was trying to capture. Say so when it is true.
 
 ## Discipline
 

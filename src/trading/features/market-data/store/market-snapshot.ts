@@ -56,7 +56,7 @@ const metricsSchema = z.object({
   freeFloatPct: z.number().finite().optional(),
 })
 
-interface FundamentalRow {
+export interface FundamentalRow {
   readonly market: string
   readonly ticker: string
   readonly as_of: string
@@ -394,7 +394,7 @@ function toMetrics(record: FundamentalSnapshot): z.infer<typeof metricsSchema> {
   }
 }
 
-function toFundamental(row: FundamentalRow): FundamentalSnapshot {
+export function toFundamental(row: FundamentalRow): FundamentalSnapshot {
   const metrics = parseJson(row.payload, 'fundamental snapshot', (value) =>
     metricsSchema.parse(value)
   )

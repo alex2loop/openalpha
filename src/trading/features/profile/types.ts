@@ -82,6 +82,8 @@ export interface ProfileService {
   segments(): readonly PortfolioSegment[]
   /** Those of them some venue holds, the only ones that can be switched on. */
   heldSegments(): readonly PortfolioSegment[]
+  /** The home market's segment, when a venue holds it: the one the morning brief is written around. */
+  homeSegment(): PortfolioSegment | undefined
   /** Switches one segment off or back on. Off is a cap of zero, which every sizer already reads as
    *  no room, so nothing there is screened, sized, or bought. */
   updateSegment(options: UpdateSegmentOptions): Promise<UserProfile>

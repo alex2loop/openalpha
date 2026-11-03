@@ -1,6 +1,7 @@
 import type { PaintPart } from '@/web/scene/render2d/street/paint'
 import type { Frontage } from '@/web/scene/world/frontage'
 import { litShareOf } from '@/web/scene/render2d/street/city'
+import { paintGenericFront } from '@/web/scene/render2d/street/landmark-generic'
 import { paintBoard } from '@/web/scene/render2d/street/led-board'
 import { LED } from '@/web/scene/render2d/street/led-face'
 import { isNightDark, mixTone, NIGHT_TONE } from '@/web/scene/render2d/street/tone'
@@ -31,8 +32,9 @@ const MULLION_PITCH = 5.5
 
 /** The building across from the office on the far pavement, one storey taller than a shop front:
  *  windows in rows lit like its neighbours', a glass shopfront with the door at the centre, and
- *  the housing of the rented LED board and ticker band on its face. The board and the band
- *  themselves, and the holiday greeting, are painted over it. */
+ *  the housing of the rented LED board and ticker band on its face. A pack whose landmark is
+ *  `generic` has the stepped-crown facade instead of the wall and shopfront. The board and the
+ *  band themselves, and the holiday greeting, are painted over it. */
 export const FRONTAGE_PART: PaintPart = {
   paintStatic: (g, pack, minute) => {
     const frontage = frontageOf(pack.shops)
@@ -66,9 +68,24 @@ function paintBuilding(g: CanvasRenderingContext2D, frontage: Frontage, light: L
   const isLit = isNight && !isLightsOut(pack, minute)
   const night = (hex: string, share: number): string => mixTone(hex, NIGHT_TONE, light.dark * share)
   const { body } = frontage
+  const litShare = isNight ? litShareOf(pack, minute) : 0
+  const { shape } = pack.landmark
 
-  paintWall(g, frontage, { night, share: isNight ? litShareOf(pack, minute) : 0, isLit })
-  paintShopfront(g, frontage, { night, isShopLit: isLit && isWithin(pack.hours.shopsLit, minute) })
+  switch (shape) {
+    case 'tower':
+      paintWall(g, frontage, { night, share: litShare, isLit })
+      paintShopfront(g, frontage, {
+        night,
+        isShopLit: isLit && isWithin(pack.hours.shopsLit, minute),
+      })
+      break
+    case 'generic':
+      paintGenericFront(g, frontage, { night, share: litShare, isLit, dark: light.dark })
+      break
+    default:
+      shape satisfies never
+  }
+
   g.fillStyle = HOUSING
   g.fillRect(
     frontage.board.x - HOUSING_PAD,

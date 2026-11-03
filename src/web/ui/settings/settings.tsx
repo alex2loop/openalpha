@@ -125,7 +125,7 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
     case 'schedule':
       return <ScheduleSection reopen={reopen} />
     case 'agents':
-      return <AgentsSection />
+      return <AgentsSection openSection={openSection} />
     case 'channels':
       return <ChannelsSection />
     case 'providers':

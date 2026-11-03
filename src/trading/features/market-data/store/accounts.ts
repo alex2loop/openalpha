@@ -28,6 +28,7 @@ const LINE = z.number().finite().optional()
 // from the adapter must not make the stored years unreadable.
 const LINES_SHAPE = {
   totalAssets: LINE,
+  sharesOutstanding: LINE,
   currentAssets: LINE,
   currentLiabilities: LINE,
   longTermDebt: LINE,

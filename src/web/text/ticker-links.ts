@@ -1,7 +1,8 @@
 type TextPart = { readonly text: string } | { readonly ticker: string }
 
-// Capitals and digits standing alone: a letter either side makes it part of a longer word.
-const TICKER_WORD = /(?<![\p{L}\p{N}])[A-Z][A-Z0-9]{1,9}(?![\p{L}\p{N}])/gu
+// Capitals and digits standing alone, with a share class after a dot (BRK.B): a letter either side
+// makes it part of a longer word, and a sentence's closing dot is not a class.
+const TICKER_WORD = /(?<![\p{L}\p{N}])[A-Z][A-Z0-9]{1,9}(?:\.[A-Z]{1,2})?(?![\p{L}\p{N}])/gu
 
 /** Splits one paragraph so each known ticker's first mention is a link; capitals that name no
  *  held, watched or run ticker (VND, ETF, HOSE) stay text. */

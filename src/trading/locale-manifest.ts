@@ -69,6 +69,7 @@ import {
   ICB_SUPERSECTORS,
   INDEX_REVIEW_KINDS,
   MARKET_REGIMES,
+  US_LISTING_SECTORS,
 } from '@/trading/kernel/market/market-data'
 import { MARKET_EVENT_KINDS } from '@/trading/kernel/market/market-event'
 import {
@@ -164,6 +165,7 @@ export const TRADING_CODE_GROUPS: readonly CodeGroup[] = Object.freeze([
   { prefix: 'trading.accounts-trend', members: ACCOUNTS_TREND_FIELDS },
   { prefix: 'trading.instrument-kind', members: INSTRUMENT_KINDS },
   { prefix: 'trading.sector', members: ICB_SUPERSECTORS },
+  { prefix: 'trading.sector', members: US_LISTING_SECTORS },
   { prefix: 'trading.ledger.kind', members: LEDGER_TXN_KINDS },
   { prefix: 'trading.render.ledger.syncSkipReason', members: SYNC_SKIP_REASONS },
   { prefix: 'trading.gold.form', members: VN_GOLD_FORMS },

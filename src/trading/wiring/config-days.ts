@@ -3,6 +3,7 @@ import { OperatorConfigError } from '@/core/config/resolve'
 import { marketRef } from '@/trading/kernel/instrument'
 import { isWeekendDay } from '@/trading/markets/calendar'
 import { cryptoManifest } from '@/trading/markets/crypto/market'
+import { usManifest } from '@/trading/markets/equity-us/market'
 import { vnManifest } from '@/trading/markets/equity-vn/market'
 import { goldManifest } from '@/trading/markets/gold/market'
 import { goldVnManifest } from '@/trading/markets/gold-vn/market'
@@ -40,7 +41,7 @@ function assertDaysAgree(config: TradingConfig, label: string): void {
  *  change it was meant to make is not there. Every offender in one throw. */
 function assertDaysAreWeekdays(config: TradingConfig, label: string): void {
   const policies = new Map(
-    [cryptoManifest, goldManifest, goldVnManifest, vnManifest]
+    [cryptoManifest, goldManifest, goldVnManifest, usManifest, vnManifest]
       .map((build) => build(config))
       .map((manifest) => [manifest.id, manifest.defaultCalendar])
   )

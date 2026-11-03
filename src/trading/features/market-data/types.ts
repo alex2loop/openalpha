@@ -65,6 +65,9 @@ export interface MarketDataPerMarketRequest extends MarketDataRequest {
 export interface MarketDataInstrumentRequest extends MarketDataRequest {
   readonly ticker: Ticker
   readonly market?: MarketRef
+  /** A read the operator typed: the side they hold or watch wins a shared symbol, and the read says
+   *  which other market lists it. */
+  readonly operatorRead?: boolean
 }
 
 export interface MarketDataQuoteRequest extends MarketDataInstrumentRequest, PreviousCloseOption {}

@@ -1,14 +1,16 @@
 # OpenAlpha docs
 
-> **Vietnamese is the product's default language.** These English pages are the originals; each one
-> has a Vietnamese twin in [`../`](../README.md).
+> **`onboard` sets up OpenAlpha in English, or in Vietnamese when your computer runs in Vietnamese.**
+> A config that names no `[locale] language` answers in its home market's: Vietnamese for a Vietnam
+> book, English for a US one. These English pages are the originals; each one has a Vietnamese twin
+> in [`../`](../README.md).
 >
 > **One word you will see a lot:** *operator* means you - the person who keeps the book, approves
 > orders and answers for every decision. It is also a name in the database, so the pages keep it.
 
 ## Start here
 
-New? Read the [README](../../README.en.md) first: what OpenAlpha does, what it refuses to do, and one
+New? Read the [README](../../README.md) first: what OpenAlpha does, what it refuses to do, and one
 suggestion from start to finish.
 
 Already running it? [commands.md](commands.md) lists every command, and [trading.md](trading.md)

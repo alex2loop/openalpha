@@ -39,6 +39,8 @@ export type MarketEventKind =
   | 'last-trading-day'
   | 'margin-eligible'
   | 'margin-ineligible'
+  | 'earnings-release'
+  | 'insider-purchase'
 
 export type BriefSectionKind =
   | 'thesis-review'
@@ -90,6 +92,7 @@ export type BriefSectionKind =
   | 'disclosures'
   | 'index-review'
   | 'events'
+  | 'recent'
   | 'headlines'
   | 'cost'
   | 'suggestions'

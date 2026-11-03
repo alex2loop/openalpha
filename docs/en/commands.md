@@ -450,7 +450,7 @@ openalpha config edit
   the way git reads it, so it may carry flags or a quoted path
   (`"/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl" -w`).
 
-`onboard` walks you through a first setup: language, AI provider and model, an endpoint URL for a
+`onboard` walks you through a first setup: language, home market (Vietnam or the United States, offered to match the language you picked: it sets the currency default and, for the United States, asks for an SEC contact email), AI provider and model, an endpoint URL for a
 provider that needs one, the environment variable that holds your key, a daily spending cap ($2
 unless you change it) and, if you want, a Telegram bot.
 
@@ -474,7 +474,9 @@ deleted for you. When no config exists, a bare `openalpha` and any command that 
 start the setup.
 
 `setup write` writes the same starter file for the desktop app and refuses to
-replace an existing config.
+replace an existing config. An optional last word, `vn` or `us`, sets the home market and the
+book's currency as onboarding does, along with the matching reply language (English for `us`);
+left out, the book starts in Vietnam, in VND and Vietnamese.
 
 ```text
 openalpha api token
@@ -737,14 +739,14 @@ The rest fit in a line.
 | `/watchlist` | `/watchlist` - live quotes for the names you follow, at most twelve (what you hold is on `/portfolio`) (a longer list is truncated and says so); `/watchlist add <ticker>...`; `/watchlist remove <ticker>...` |
 | `/price` | `/price <ticker>`, or `market:ticker` where a bare name is ambiguous. A market that quotes a two-sided dealer board (VN gold) prints both sides and the spread instead of a settled/live pair: a board states no last trade and keeps no daily series to close against |
 | `/market` | `/market` - where one market is right now, beside the last session that settled; `/market enable\|disable` - turn the scheduled sends on or off (they go to the default chat, not necessarily this one) |
-| `/overview` | `/overview` - how every market is doing, macro block included; `/overview <market>...` - only those markets, e.g. `/overview crypto` |
+| `/overview` | `/overview` - how the markets you use are doing (segments switched on, plus any market you hold or watch), macro block included; `/overview <market>...` - only those markets, e.g. `/overview crypto` |
 | `/screen` | `/screen [market] [count] [kind]`, in any order. The market defaults to the one whose calendar `[locale] region` names; `kind` narrows to one instrument kind the market lists. A name on your exclusion list still ranks and is marked, never hidden |
 | `/suggest` | Spends LLM budget on one name. See [Suggestions](#suggestions) |
 | `/themes` | `/themes` - looks for investment themes forming in Vietnam and spends LLM budget; `/themes run <id>` - re-checks one tracked theme, looks for no new ones and reports on it alone, for a fraction of the cost; `/themes show` - reads the stored report, no model call; `/themes approve\|reject\|retire <id>` - moves one theme. Operator only |
 | `/rebalance` | `/rebalance`; `/rebalance <ticker>...` - sizes the gap to target, weighing no evidence and calling no model. See [What /rebalance sizes](#what-rebalance-sizes) |
 | `/reflect` | `/reflect` - how past suggestions actually performed |
 | `/alert` | `/alert` or `/alert list [count]` lists them; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous; `/alert disable <id>` (the short id the list and the notice print; if it matches several, the reply lists their full ids). The list includes system-armed exit and screener rows beside your own |
-| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. The brief opens with the market story and a look back at earlier ones. See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
+| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. With a Vietnam home, the brief opens with the market story and a look back at earlier ones. See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
 | `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
 | `/reconcile` | `/reconcile` - compare the book against what the venue reports; an exchange with no API key yet is named with the variables it is waiting for |
@@ -1069,6 +1071,9 @@ So the client's AI provider sees at most what an order quantity implies.
 
 A hold places no order and carries `holdReasons` - its reason codes in your language - so the model
 explains why instead of reading the hold's levels as an order.
+
+`portfolio_view`, `portfolio_review` and `portfolio_rebalance` carry `segmentNames` - each segment's
+name in your language - so a reply says "Vietnam gold" rather than `gold-vn`.
 
 **Writes and approval.** The write arms of `alert_manage` and `brief_manage` need approval, so a
 client without elicitation can only list and show.

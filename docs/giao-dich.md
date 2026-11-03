@@ -32,10 +32,27 @@ Một lệnh vào đã duyệt có thể để lại **một** lệnh chốt l�
 |---|---|---|---|---|---|
 | `gold` | `global` | vàng | `gold` | USD | có |
 | `gold-vn` | `vn` | vàng | `gold-vn` | VND | không |
+| `equity-us` | `us` | cổ phiếu | `equity-us` | USD | có |
 | `equity-vn` | `vn` | cổ phiếu | `equity-vn` | VND | có |
 | `crypto` | `global` | crypto | `crypto` | USDT | không |
 
 Hai thị trường dùng chung khu vực `vn`, nên một trong hai phải định nghĩa "một ngày giao dịch Việt Nam" là gì. Lịch của bản tin và mọi ngày as-of liên thị trường đều dựa vào đó. Cổ phiếu giữ vai này cho `vn`, vàng thế giới giữ cho `global`, còn crypto thì không bao giờ đóng cửa. Khi khởi động, hệ thống từ chối chạy nếu một khu vực không có thị trường nào như vậy, hoặc có tới hai.
+
+### Cổ phiếu Mỹ
+
+Đặt `[locale] region = "us"` và `currency = "USD"`, hoặc chọn Mỹ khi `onboard` hỏi bạn giao dịch chủ yếu ở thị trường nào, rồi bắt đầu từ một thư mục dữ liệu mới: tiền tệ của sổ bị khóa ngay khi hồ sơ đầu tiên được lưu. Thị trường chính khi đó sàng lọc, chấm điểm, tranh luận và tính khối lượng cho cổ phiếu và quỹ ETF Mỹ. `onboard` chỉ ghi khu vực và tiền tệ; Coinbase chỉ dẫn đầu báo giá crypto khi bảng sàn nêu tên nó, như [`config.minimal.us.toml`](../config.minimal.us.toml) đã làm (xem "Crypto qua Coinbase" bên dưới).
+
+Đổi thị trường chính của một sổ đang dùng sang Mỹ thì hồ sơ đã lưu vẫn giữ nguyên, nên cổ phiếu Mỹ vẫn tắt cho tới khi bạn bật. `/profile` và bản tin sáng đều nhắc điều này, và `/profile enable equity-us` sẽ bật nhóm đó. Mình không tự bật giúp, vì bật một nhóm là chia lại tỷ trọng mục tiêu của bạn.
+
+- **Sổ nằm ở đâu.** Cổ phiếu Mỹ nằm ở sàn có sẵn `us-broker`, không phí, và bạn tự ghi lệnh đã khớp: `/record buy us-broker equity-us:AAPL 10 214.13 USD`. Muốn dùng tên và phí của công ty chứng khoán riêng, thêm `[trading.venues.<tên>]` với `default_for = ["equity-us"]` và `fees`.
+- **Bán trong ngày.** Bán cổ phiếu Mỹ về tiền sau một ngày làm việc, nhưng tài khoản tiền mặt được bán cổ phiếu vừa mua cùng ngày, nên mua và bán trong một ngày đều ghi được.
+- **Bảng xếp hạng.** Bảng sàng lọc xếp 500 công ty Mỹ vốn hóa lớn nhất, cộng các quỹ trên bảng quỹ (`/screen equity-us etf`); không có danh sách S&P 500. Cổ phiếu bạn đang giữ mà tụt khỏi hạng 500 một chút (vẫn trong hạng 550) được giữ lại ngay trên bảng. Mọi mã bạn nắm giữ hoặc theo dõi, kể cả quỹ, đều được làm mới hằng ngày dù đứng hạng nào: giá, vốn hóa và báo cáo của nó được lưu lại, và điểm giá trị, chất lượng của cổ phiếu được xếp hạng so với bảng. Mã niêm yết khác vẫn trả lời `/price` và `/suggest`, mình đọc dữ liệu ngay lúc hỏi, nhưng không có vốn hóa nên điểm bị hạ độ tin cậy và có nói rõ. Chỉ số Nasdaq Composite trùng mã với một cổ phiếu niêm yết ở New York; chỉ số được giữ lại, nên viết `/price equity-us:COMP` để xem chỉ số.
+- **Sức mạnh ngành.** `market_sector_strength` và khối ngành trên trang văn phòng gom bảng xếp hạng theo ngành của Nasdaq và so từng ngành với SPY qua 20 và 60 phiên. Mỹ không công bố dòng tiền khối ngoại, nên ngành Mỹ không có số này.
+- **Quỹ được xem lại, không đặt cắt lỗ.** Mức của quỹ là chỗ để xem lại, không phải lệnh cắt lỗ. Quỹ đòn bẩy hoặc đảo chiều cân lại mỗi ngày nên lệch dần khỏi chỉ số, vì vậy mình không gợi ý mua loại này; nếu bạn đang giữ, mình vẫn đặt mức cắt lỗ thật.
+- **Chấm điểm khi thiếu SEC.** Đà giá và biến động chỉ cần giá. Giá trị và chất lượng lấy từ báo cáo tài chính của SEC, cần email liên hệ trong `SEC_CONTACT_EMAIL` (đặt bằng `onboard` hoặc `key set SEC_CONTACT_EMAIL`). Thiếu email thì giá trị và chất lượng ghi là thiếu dữ liệu, `/refresh` báo báo cáo tài chính chưa có nguồn, bảng nói rõ độ phủ chỉ một phần, và mã vẫn được xếp hạng bằng nửa còn lại. Chất lượng là trung bình của hai thứ hạng: lợi nhuận gộp trên tài sản so với cả bảng, và ROE so với các mã cùng ngành niêm yết, để đòn bẩy của ngân hàng không bị đọc thành chất lượng. Ngân hàng và phần lớn doanh nghiệp không ghi lợi nhuận gộp, nên với họ chất lượng chỉ là thứ hạng ROE. Doanh nghiệp nước ngoài (ASML, Toyota, TD Bank) nộp báo cáo theo chuẩn quốc tế hoặc bằng tiền nước họ, nên báo cáo được đọc từ hồ sơ của chính họ rồi quy ra đô la theo tỷ giá hôm nay. Số ít không có hồ sơ dạng dữ liệu thì chỉ được chấm bằng giá.
+- **Vừa công bố gần đây.** Công bố kết quả kinh doanh (8-K mục 2.02) và giao dịch mua trên thị trường của người nội bộ (Form 4) trong 90 ngày gần nhất vào phần tranh luận dưới tiêu đề riêng, tách khỏi các sự kiện sắp tới.
+- **Crypto qua Coinbase.** Với người dùng ở Mỹ, `[trading.venues.coinbase] default_for = ["crypto"]` đưa Coinbase lên đầu khi báo giá crypto. Coinbase báo giá bằng đô la còn sổ tính bằng USDT, nên mọi giá được chia cho giá đô la của USDT; ngày 2026-10-20 con số này là 0,99883 và giá BTC sau quy đổi lệch Binance 0,009%. Nếu ký hiệu của một đồng coin trùng với mã niêm yết ở Mỹ (SOL, LINK), `/price` và `/suggest` đọc đồng coin khi bạn chỉ nắm giữ hoặc theo dõi đồng coin, còn lại thì đọc cổ phiếu; cả hai trường hợp đều báo rằng bên kia cũng tồn tại, và `crypto:SOL` hay `equity-us:SOL` đọc đúng bên bạn ghi. `/record` và `/update` không bao giờ đoán: ký hiệu có ở cả hai thị trường thì phải ghi rõ thị trường, hoặc nêu một sàn chỉ giữ một trong hai.
+- **Bản tin sáng.** Bản tin sáng cho thị trường chính ở Mỹ được gửi mặc định lúc 08:15 giờ New York. Bản tin đọc khối thị trường Mỹ, khối crypto, sổ và các đề xuất của bạn, kèm danh sách "Hồ sơ công bố và ngày giao dịch không hưởng cổ tức" dưới khối Mỹ: kết quả kinh doanh và giao dịch mua của người nội bộ trong năm phiên gần nhất, cùng ngày giao dịch không hưởng cổ tức trong mười phiên tới, của các mã bạn nắm giữ hoặc theo dõi. Chưa đặt `SEC_CONTACT_EMAIL` thì phần hồ sơ công bố tắt, và danh sách ghi một dòng nhắc cách bật thay vì lặng lẽ để trống. Bản tin không có câu chuyện thị trường, vì câu chuyện chỉ đọc bảng giá Việt Nam.
 
 ### Nguồn dữ liệu
 
@@ -69,9 +86,11 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `fred-csv` | các chuỗi hàng hóa hằng tháng mà không feed hằng ngày nào mang (than, gạo, thịt lợn, thép), đứng sau `vndirect` | không |
 | `vietcap-statements` | báo cáo tài chính VN: năm đầy đủ cộng các quý riêng (xem bên dưới) | không |
 | `treasury` `bls` `fred` | các chuỗi vĩ mô Mỹ, trộn lại chứ không dự phòng cho nhau | `fred` cần `FRED_API_KEY`; `bls` nhận `BLS_API_KEY` tùy chọn |
+| `nasdaq` | danh sách niêm yết, vốn hóa, báo giá, lịch sử ngày đã điều chỉnh chia tách và cổ tức của Mỹ; ngày không hưởng cổ tức chỉ có cho mã niêm yết trên Nasdaq | không |
+| `sec-data` | báo cáo năm, công bố kết quả kinh doanh và giao dịch mua của người nội bộ ở Mỹ; đọc bảng mã và hồ sơ của người nội bộ từ máy chủ thứ hai của SEC, `sec` | `SEC_CONTACT_EMAIL`: không phải khóa mà là email liên hệ, SEC yêu cầu mọi người đọc gửi kèm |
 | `coinpaprika` | bảng crypto xếp hạng và mức đổi bảy ngày, không khóa, trong một yêu cầu; dự phòng đầu tiên sau `coinmarketcap`; nguồn này đo khối lượng 24 giờ thấp hơn, nên `/screen crypto` báo khi thứ hạng lấy từ nó hoặc từ bất kỳ nguồn dự phòng nào khác | không |
 | `coinmarketcap` `coinlore` | bảng crypto xếp hạng mà khâu sàng lọc chọn tập công cụ từ đó, không khóa, trong một yêu cầu; `coinlore` đứng thứ ba | không |
-| `coinbase` | giá USD của một coin thanh toán, từ một sàn có giao dịch cặp đó | không |
+| `coinbase` | giá USD của một coin thanh toán, từ một sàn có giao dịch cặp đó; cũng báo giá và nến ngày của crypto đã quy đổi sang USDT, nguồn cuối cùng mà người dùng ở Mỹ luôn gọi được | không |
 | `er-api` | FX tiền pháp định, đứng sau `yahoo` | không |
 | `cftc` | positioning hợp đồng tương lai vàng: báo cáo Commitments of Traders hằng tuần | không |
 
@@ -660,7 +679,7 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` ở mỗi
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
-Bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
+Khi thị trường chính là Việt Nam, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
 cùng phần nhìn lại các câu chuyện trước.
 
 - **Phần nhìn lại** đối chiếu các điều kiện theo dõi của một câu chuyện đã kể ở phiên trước với số liệu
@@ -950,7 +969,7 @@ Chỉ nhịp `[trading.refresh]` là cấu hình được. Vòng cảnh báo và
 Refresh đi theo lịch giao dịch, không theo một khoảng cố định. Nó chạy vào hai thời điểm:
 
 - khi mỗi phiên chốt (giờ đóng cộng độ trễ khớp lệnh, cũng là thời điểm quyết định một phiên có được coi là đã chốt không);
-- 60 phút trước mỗi giờ mở, để bản tin sáng và lần sàng lọc đầu tiên đọc dữ liệu mới mà không phải chờ tải.
+- 90 phút trước mỗi giờ mở, để bản tin sáng và lần sàng lọc đầu tiên đọc dữ liệu mới mà không phải chờ tải.
 
 Thị trường nào có giờ riêng thì có nhịp riêng. Khoảng đã cấu hình vẫn áp dụng, như một mức trần, cho thị trường không bao giờ đóng cửa và cho một registry rỗng.
 
@@ -959,7 +978,7 @@ Refresh phủ mọi thị trường bạn còn dùng. Một thị trường đư
 - nhóm của nó đang bật trong hồ sơ; hoặc
 - bạn đang nắm một mã ở đó, theo dõi một mã, chờ một đề xuất được chấm, hoặc có bản tin lên lịch dựng trên đó.
 
-Một nhóm đã tắt chỉ bị bỏ khi không còn gì trong số đó cần nó, nên cắt lỗ của một khoản đang nắm không bao giờ bị bỏ mặc không có giá. Chưa có hồ sơ thì mọi thị trường đều được làm mới. Không đọc được danh sách đó thì làm mới tất cả. Bản tin sáng mô tả đúng danh sách đó, và nêu tên một thị trường trên `/refresh` thì thị trường đó vẫn được làm mới.
+Một nhóm đã tắt chỉ bị bỏ khi không còn gì trong số đó cần nó, nên cắt lỗ của một khoản đang nắm không bao giờ bị bỏ mặc không có giá. Chưa lưu hồ sơ nào thì hồ sơ mặc định được tạo sẵn quyết định, nên bản cài mới chỉ làm mới thị trường chính của bạn và crypto, không phải mọi thị trường. Không đọc được danh sách đó thì làm mới tất cả. Bản tin sáng mô tả đúng danh sách đó, và nêu tên một thị trường trên `/refresh` thì thị trường đó vẫn được làm mới.
 
 Các thị trường được làm mới cùng lúc, không lần lượt. Chúng gần như không dùng chung nguồn, bộ điều tốc kiểm soát vài nguồn ít ỏi dùng chung, và bắt thị trường này chờ thị trường kia chỉ cộng dồn thời gian chờ của các máy chủ không liên quan.
 
@@ -969,6 +988,8 @@ Bên trong thị trường chứng khoán Việt Nam cũng vậy. Lịch sử gi
 
 `/refresh <thị trường>` chỉ quét thị trường đó. Tên không phải thị trường đã đăng ký thì nhận dòng hướng dẫn cách dùng, thay vì lặng lẽ không làm gì. Lệnh nhập vào một lượt quét đang chạy sẽ báo vậy và nêu tên thị trường nó đang chờ. Mọi dòng tiến độ đều nêu tên thị trường; không có tên, dòng đó sẽ nhấp nháy giữa các thị trường dùng chung nó.
 
+**Chỉ coin bạn mua được ở nơi bạn giao dịch.** Bảng sàng lọc crypto chỉ giữ một coin khi có ít nhất một sàn bạn đang giao dịch niêm yết nó: sàn mặc định của thị trường (`default_for`), sàn bạn đã lưu khóa API, và sàn có tên trong một dòng của sổ. Coin không sàn nào trong số đó niêm yết sẽ nằm ở mục "Bị loại" kèm lý do, nên sổ giao dịch ở OKX sẽ không được gợi ý một coin chỉ Binance bán. Khi không sàn nào trong số đó công bố danh sách niêm yết, hoặc không đọc được sổ, mọi sàn có crypto đều được tính, để bảng không bao giờ trống.
+
 **Chi phí đọc bảng đi cùng phiên chạy.** Lượt quét crypto lập kế hoạch trên bảng vốn hóa xếp hạng, và các nguồn của bảng này công bố độ sâu khác nhau (750 dòng, 250 và 100). Một lượt quét phải lùi về nguồn nông hơn chỉ phủ một phần thị trường, nhưng mọi số đếm nó báo lại mô tả phần đó như thể là toàn bộ.
 
 Vì vậy các lưu ý của chính bảng cùng `market-data.universe-shallow` được chuyển tới kết quả, giống cách `/screen` và `/overview` vốn đã báo về cùng lượt quét. Một kết quả mà mọi mục tiêu đều hỏng vẫn nhận `source.no-available-provider`.
@@ -977,7 +998,7 @@ Vì vậy các lưu ý của chính bảng cùng `market-data.universe-shallow` 
 
 **Ai đã điều khiển một phiên được ghi một lần, hoặc không ghi.** Mỗi lần refresh ghi tỷ lệ bên mua/bên bán chủ động (bên nào đã chủ động khớp lệnh) cho mỗi mã bạn nắm hoặc theo dõi. Không nguồn nào đứng sau nó cho phép hỏi theo ngày. `kbsec` trả về phiên mà bảng của nó đang giữ lúc đó, còn `vietcap` lật trang ngược từ các lệnh khớp mới nhất. Nên tỷ lệ này chỉ đọc được trong khoảng từ lúc phiên chốt tới lần mở cửa kế tiếp.
 
-Lịch refresh đặt hai lượt trong khoảng đó (15:15 và 08:00 với bảng VN). Sau giờ mở cửa thì phiên đó mất hẳn. Vì vậy mã nào lượt quét không ghi được sẽ được nêu tên dưới thị trường của nó trong màn hình `/refresh`: một chỗ hụt mà không lượt nào sau lấp được là một lỗ hổng vĩnh viễn trong chuỗi. Lượt quét chỉ phủ các thị trường mà refresh phủ, nên `/refresh crypto` không tốn ngân sách của nguồn VN nào.
+Lịch refresh đặt hai lượt trong khoảng đó (15:15 và 07:30 với bảng VN). Sau giờ mở cửa thì phiên đó mất hẳn. Vì vậy mã nào lượt quét không ghi được sẽ được nêu tên dưới thị trường của nó trong màn hình `/refresh`: một chỗ hụt mà không lượt nào sau lấp được là một lỗ hổng vĩnh viễn trong chuỗi. Lượt quét chỉ phủ các thị trường mà refresh phủ, nên `/refresh crypto` không tốn ngân sách của nguồn VN nào.
 
 Mã bạn không nắm cũng không theo dõi thì không bao giờ bị quét, và đó là mọi ứng viên mua. Với những mã này, `/suggest` tự đọc tỷ lệ mua/bán của phiên nó đang xét, và không lưu gì. Nếu lưu, dòng đó sẽ lọt vào một mục bản tin liệt kê các mã bạn theo dõi. Cả hai bên đọc đều hỏi cùng một ngày, nên một dòng đã lưu của phiên trước không bao giờ thay cho phiên đang được xét.
 

@@ -38,6 +38,7 @@ export function createMarketPriceTool(
       const result = await marketData.quote({
         ticker: args.ticker,
         ...(args.market === undefined ? {} : { market: args.market }),
+        operatorRead: true,
         withPreviousClose: true,
         now,
         signal: ctx.signal,
