@@ -16,9 +16,10 @@ export interface DatabaseFiles {
   /** A read-only in-memory copy of `bytes` to look inside before anything is replaced. The caller
    *  closes it. Throws when the bytes do not open as a database. */
   openScratch(bytes: Uint8Array): Storage
-  /** Swaps `bytes` in for the working database. When anything fails the previous content is put
-   *  back and the error is thrown, so the working database is never half replaced. */
-  replaceWith(bytes: Uint8Array): Promise<void>
+  /** Swaps `bytes` in for the working database and answers the content it replaced. When anything
+   *  fails the previous content is put back and the error is thrown, so the working database is
+   *  never half replaced. */
+  replaceWith(bytes: Uint8Array): Promise<Uint8Array>
 }
 
 /** What the files need of the engine: the live connection (replaced by a swap) and the pool that
@@ -58,7 +59,7 @@ function serialize(engine: FileEngine): Uint8Array {
 
 // The old content is held in memory while the file is overwritten in place, because the pool has
 // no rename: a failed write or reopen puts it back.
-async function swap(options: FilesOptions, bytes: Uint8Array): Promise<void> {
+async function swap(options: FilesOptions, bytes: Uint8Array): Promise<Uint8Array> {
   const { engine, path } = options
   const previous = serialize(engine)
 
@@ -67,6 +68,8 @@ async function swap(options: FilesOptions, bytes: Uint8Array): Promise<void> {
   try {
     await engine.pool.importDb(path, bytes)
     engine.db = options.reopen()
+
+    return previous
   } catch (err: unknown) {
     await putBack(options, previous)
 

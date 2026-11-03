@@ -94,6 +94,33 @@ export async function openBrowserRoot(input: RootInput): Promise<OpenedRoot> {
   }
 }
 
+/** Puts `bytes` back as the working database when a replacement could not be started: opens the
+ *  database under the lock, swaps, and lets go, building nothing else. False when the lock was not
+ *  free. */
+export async function restoreDatabase(
+  input: Pick<RootInput, 'wasmUrl' | 'logger'>,
+  bytes: Uint8Array
+): Promise<boolean> {
+  const opened = await openSqliteWasm({
+    name: DB_NAME,
+    wasmUrl: input.wasmUrl,
+    logger: input.logger,
+    steal: false,
+  })
+
+  if (opened.kind !== 'opened') {
+    return false
+  }
+
+  try {
+    await opened.files.replaceWith(bytes)
+
+    return true
+  } finally {
+    await opened.storage.close()
+  }
+}
+
 function toRefusal(err: unknown): Refusal {
   if (err instanceof SchemaAheadError) {
     return 'newer-schema'

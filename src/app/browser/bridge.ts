@@ -7,7 +7,7 @@ import type { DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/w
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { Locale } from '@/core/types/locale'
 import { checkDbFile, type DbFileVerdict } from '@/app/browser/db-file'
-import { openBrowserRoot } from '@/app/browser/root'
+import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
 import { handleHttp } from '@/app/server/http/dispatch'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
 import { closeChatClient, followChatBus } from '@/app/server/ws/chat-client'
@@ -278,43 +278,63 @@ async function serveExport(ctx: BridgeContext, id: string): Promise<void> {
 }
 
 // A file is judged in a scratch copy first; only a good one is swapped in, and then the engine
-// starts again over it, the way a locale change does. A refusal or a failed swap leaves the
-// database and the engine as they were.
+// starts again over it, the way a locale change does. A refusal, a failed swap or a start that
+// cannot serve the new file leaves the database and the engine as they were.
 async function serveOpen(ctx: BridgeContext, id: string, bytes: Uint8Array): Promise<void> {
-  let outcome = await replaceDatabase(ctx, bytes)
+  const { outcome, previous } = await replaceDatabase(ctx, bytes)
+  let final = outcome
 
-  if (outcome === 'opened') {
+  if (previous !== undefined) {
     await start(ctx, false)
 
-    // A start that was refused has already told the page why.
-    outcome = ctx.state.root === undefined ? 'failed' : outcome
+    if (ctx.state.root === undefined && !ctx.state.closed) {
+      await restoreOld(ctx, previous)
+      final = 'failed'
+    }
   }
 
-  ctx.post({ kind: 'db-opened', id, outcome })
+  ctx.post({ kind: 'db-opened', id, outcome: final })
 }
 
-async function replaceDatabase(ctx: BridgeContext, bytes: Uint8Array): Promise<DbOpenOutcome> {
+interface Replacement {
+  readonly outcome: DbOpenOutcome
+  /** The content the swap replaced; present only when the swap happened. */
+  readonly previous?: Uint8Array
+}
+
+async function replaceDatabase(ctx: BridgeContext, bytes: Uint8Array): Promise<Replacement> {
   const { root } = ctx.state
 
   if (root === undefined) {
-    return 'failed'
+    return { outcome: 'failed' }
   }
 
   try {
     const verdict = await checkDbFile(root.files, bytes, ctx.logger)
 
     if (verdict !== 'ok') {
-      return VERDICT_OUTCOME[verdict]
+      return { outcome: VERDICT_OUTCOME[verdict] }
     }
 
-    await root.files.replaceWith(bytes)
-
-    return 'opened'
+    return { outcome: 'opened', previous: await root.files.replaceWith(bytes) }
   } catch (err: unknown) {
     ctx.logger.error('browser.db_open_failed', { err: formatErrForLog(err) })
 
-    return err instanceof StorageFullError ? 'storage-full' : 'failed'
+    return { outcome: err instanceof StorageFullError ? 'storage-full' : 'failed' }
   }
+}
+
+// The new file did not start: the old content goes back and the old database starts again.
+async function restoreOld(ctx: BridgeContext, previous: Uint8Array): Promise<void> {
+  try {
+    if (!(await restoreDatabase(ctx, previous))) {
+      ctx.logger.error('browser.db_restore_locked', {})
+    }
+  } catch (err: unknown) {
+    ctx.logger.error('browser.db_restore_failed', { err: formatErrForLog(err) })
+  }
+
+  await start(ctx, false)
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
