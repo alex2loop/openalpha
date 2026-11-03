@@ -3,7 +3,7 @@ import type { AnalysisFailure, AnalysisRecord } from '@/trading/features/suggest
 import type { ArguingRole } from '@/trading/features/suggestion/debate/claims'
 import type { AnalysisCase } from '@/trading/features/suggestion/debate/types'
 import { LLM_ERROR_CODES } from '@/core/llm'
-import { formatDay, type MessageKey, t } from '@/i18n'
+import { formatDay, type MessageKey, renderAiLabel, t } from '@/i18n'
 import { isClaimBy, isUnsupportedRole } from '@/trading/features/suggestion/debate/claims'
 import { claimIdsWithVerdict } from '@/trading/features/suggestion/debate/types'
 import { unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
@@ -32,8 +32,6 @@ const SIDES = {
 
 const SIDE_ORDER = Object.freeze(['bull-researcher', 'bear-researcher'] as const)
 
-const MODEL_SEPARATOR = ', '
-
 /** Both sides, what the evidence refuted, and what would make each wrong, in the reader's language.
  *  There is no verdict to print: none was produced, and nothing here weighs one side over the
  *  other. The AI label opens it and the install line closes it, both fixed and never conditional,
@@ -43,7 +41,7 @@ export function renderAnalysisText(locale: Locale, record: AnalysisRecord): stri
   const cases = { 'bull-researcher': result.bull, 'bear-researcher': result.bear }
 
   return joinSections([
-    [t(locale, 'trading.analysis.ai-generated', { models: result.models.join(MODEL_SEPARATOR) })],
+    [renderAiLabel(locale, result.models)],
     ...SIDE_ORDER.map((side) =>
       renderCaseLines(locale, { side, record, analysisCase: cases[side] })
     ),
@@ -145,7 +143,7 @@ function closingLines(locale: Locale, record: AnalysisRecord): readonly string[]
             day: formatDay(locale, evidenceThrough),
           }),
         ]),
-    t(locale, 'trading.analysis.install-for-verdict'),
+    t(locale, 'trading.analysis.web-scope'),
   ]
 }
 

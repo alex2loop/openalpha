@@ -288,6 +288,8 @@ Một phiên chạy kết thúc theo một trong bốn cách:
 
 `error` không phải giữ nguyên. Giữ nguyên nghĩa là "đã đánh giá và bác bỏ", và là một câu trả lời thật kèm các mã lý do dẫn tới nó. `error` nghĩa là việc đánh giá chưa bao giờ được ghi.
 
+Một đề xuất có luận điểm hoặc có phiên tranh luận đứng sau thì, ở bất cứ nơi nào bạn đọc nó (`/suggest`, ứng dụng chat, thẻ đề xuất và hộp Vì sao? trên trang văn phòng), mở đầu bằng một dòng nói đây là nội dung do AI tạo, có thể sai và không phải khuyến nghị đầu tư, kèm tên các mô hình đã lập luận khi đề xuất có lưu chúng. Dòng này được thêm lúc hiển thị: nó không bao giờ được lưu cùng đề xuất và không mô hình nào đọc nó.
+
 #### Độ sâu tranh luận
 
 Hai chế độ, đặt bằng `[trading.suggestions] debate_mode` và ghi đè được theo từng yêu cầu (`/suggest FPT lean`, hoặc `mode` trên `suggestion_run` của MCP):
@@ -808,6 +810,8 @@ Một mã đã được đề xuất trong ngày thì được phục vụ từ 
 
 Chi phí của bản tin nằm dưới một đường kẻ ở tận cuối, vì nó thuộc về cả bản tin. Việc tách theo thị trường giúp một con số không bị báo hai lần dưới hai tiêu đề: mức chênh vàng trong nước thuộc khối của `gold-vn`, còn vị thế hợp đồng tương lai thuộc khối của `gold`.
 
+Bản tin có một đề xuất do mô hình lập luận (mục đề xuất) thì mở đầu bằng cùng dòng nội dung do AI tạo, trong CLI, trong ứng dụng chat và trên trang văn phòng; bản tin không có đề xuất nào thì không.
+
 **Thời điểm.** Giờ gửi mặc định là 08:15 theo múi giờ **của thị trường**: 08:15 ở TP.HCM, không phải 08:15 UTC và không phải giờ ở nơi bạn đang ngồi.
 
 Bản tin chỉ được gửi trước giờ mở cửa. Thị trường giao dịch suốt ngày, hoặc ngày thị trường nghỉ, vẫn tính là trước giờ mở. Nên bản tin không bao giờ được dựng hay gửi giữa phiên hoặc sau giờ đóng. Trước khi tốn token nào, một phép kiểm nhanh xác nhận phiên trước đã tạo ra một cây nến.
@@ -874,6 +878,8 @@ Các lệnh:
 - `/themes show` hiện mọi chủ đề còn trong danh sách (đang theo dõi, đã kết thúc hoặc chờ duyệt) như lần đọc cuối, miễn phí. Chủ đề đã bỏ hoặc đã dừng theo dõi không hiện nữa.
 - `/themes approve|reject|retire <id>` chuyển trạng thái một chủ đề.
 - Qua MCP chỉ có công cụ chỉ-đọc `themes_view`.
+
+Báo cáo `/themes` mở đầu bằng cùng dòng nội dung do AI tạo, kèm tên các mô hình đằng sau các lần đọc của nó; danh sách chủ đề trên trang văn phòng cũng mở đầu bằng dòng này. Mô hình được hỏi về báo cáo sau đó đọc nó mà không có dòng ấy.
 
 Chuyên viên phân tích chủ đề dùng `[[model_tiers.themes]]` khi được cấu hình, nếu không thì dùng `[[models]]`.
 

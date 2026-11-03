@@ -7,6 +7,10 @@
   border-left: 1px solid var(--border);
 }
 
+.chat-panel > .ai-label {
+  margin: var(--s1) 10px;
+}
+
 .chat-unread {
   position: absolute;
   top: 4px;

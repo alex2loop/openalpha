@@ -6,6 +6,7 @@ import { BRIEF_COMMAND, BRIEF_NAME, FORCE_ARG } from '@/web/state/command'
 import { onCommandFinished } from '@/web/state/events'
 import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
+import { AiLabel } from '@/web/ui/kit/ai-label'
 import { Fold } from '@/web/ui/kit/fold'
 import { InlineMarkdown } from '@/web/ui/markdown/markdown'
 import { NoteList } from '@/web/ui/markdown/report-notes'
@@ -52,6 +53,7 @@ export function BriefPage({ content, onClose, onReload }: BriefPageProps) {
       onClose={onClose}
     >
       <div class="flow reader-brief">
+        {text.aiGenerated !== false && <AiLabel />}
         <Verdict text={text} />
         {blocks.map((block) => (
           <Story key={block.id} block={block} />

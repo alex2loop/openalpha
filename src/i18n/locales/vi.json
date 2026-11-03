@@ -173,6 +173,7 @@
     "office.perf.streetPaint": "Vẽ lại phố: {ms} ms (mức {budget} ms)",
     "office.scene.view": "Cách xem văn phòng",
     "office.scene.viewTip": "3D cần máy có card đồ họa; 2D nhẹ hơn.",
+    "office.scene.aiNote": "Các agent ở đây, cùng những gì họ nói hay đăng, đều là AI. Có thể sai, và không phải khuyến nghị đầu tư.",
     "office.scene.mode2d": "2D",
     "office.scene.mode3d": "3D",
     "office.scene.no3d": "Máy này không vẽ được 3D",
@@ -3784,6 +3785,10 @@
     "shutdown": "Đang tắt.",
     "agentPaused": "Agent này đang tạm dừng. Bật lại bằng `{brand} agent resume <id>`."
   },
+  "aiLabel": {
+    "named": "Nội dung do AI tạo ({models}), có thể sai. Mình đưa phân tích để bạn tự cân nhắc, không phải khuyến nghị đầu tư.",
+    "unnamed": "Nội dung do AI tạo, có thể sai. Mình đưa phân tích để bạn tự cân nhắc, không phải khuyến nghị đầu tư."
+  },
   "trading": {
     "finding.position-cap-breach": "{ticker} chiếm {weight} danh mục, vượt trần {cap} cho từng mã trong nhóm {segment}.",
     "finding.segment-cap-breach": "Nhóm {segment} chiếm {weight} danh mục, vượt trần {cap}.",
@@ -5479,7 +5484,6 @@
     "render.suggestion.sourcesRead": "Nguồn ({cited} trích dẫn · đã đọc {own} tin {ticker}, {market} tin thị trường)",
     "render.suggestion.disclaimer": "Đây là phân tích, không phải lệnh đặt - quyết định luôn thuộc về bạn. Giao dịch qua công ty chứng khoán hoặc sàn, sau đó dùng /record để sổ sách luôn trung thực.",
     "render.suggestion.disclaimerApp": "Đây là phân tích, không phải lệnh đặt - quyết định luôn thuộc về bạn.",
-    "analysis.ai-generated": "Nội dung do AI tạo ({models}), có thể sai. Mình đưa phân tích để bạn tự cân nhắc, không phải khuyến nghị đầu tư.",
     "analysis.case-bull": "Vì sao {ticker} có thể tăng",
     "analysis.case-bear": "Vì sao {ticker} có thể giảm",
     "analysis.case-unsupported": "Dữ liệu phản bác mọi luận điểm của phía này, nên mình không nhắc lại lập luận của họ.",
@@ -5488,7 +5492,7 @@
     "analysis.unchecked": "Luận điểm mình chưa kiểm được bằng dữ liệu: {count}",
     "analysis.wrong-bull": "Phía tăng sai nếu",
     "analysis.wrong-bear": "Phía giảm sai nếu",
-    "analysis.install-for-verdict": "Kết luận mua/bán và các mức giá chỉ có trong bản cài trên máy bạn.",
+    "analysis.web-scope": "Bản web đưa phân tích hai chiều để bạn tự cân nhắc. Xem thêm khác biệt với bản cài trên máy.",
     "analysis.not-finished": "Mình chưa phân tích xong ({reason}) nên chưa lưu gì.",
     "analysis.progress.cases": "{ticker} · Phân tích {step}/{total}: cân nhắc lý do tăng và lý do giảm…",
     "debate.lean.requested": "phiên chạy này yêu cầu độ sâu rút gọn",

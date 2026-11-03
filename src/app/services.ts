@@ -21,13 +21,14 @@ import { createScopedJobStore } from '@/app/scoped-jobs'
 import { createSocialHeartbeatTasks } from '@/app/social'
 import { createTaskStatusBoard } from '@/app/task-status'
 import { formatRunResultBody } from '@/channels/api'
+import { commandHeadOf, scheduledCommandLine } from '@/commands/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { LOCAL_USER_ID, sessionId } from '@/core/ids'
 import { prepareAgentScratchDir } from '@/core/security/agent-directories'
 import { hashString } from '@/core/utils/hash'
 import { WORKSPACES_DIR_NAME } from '@/engine/api'
 import { createUnrecordedSpendLog } from '@/engine/node-api'
-import { t } from '@/i18n'
+import { renderAiLabel, t } from '@/i18n'
 import { createChannelInbox } from '@/persistence/api'
 
 // A job owns one stable session so consecutive fires continue one conversation. A shared heartbeat
@@ -105,6 +106,10 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
         count: consecutiveFailures,
       }),
     renderPartialNotice: (result) => formatRunResultBody(result, app.config.locale.language),
+    renderAiLabel: (job) =>
+      commandHeadOf(scheduledCommandLine(job.prompt)) === null
+        ? renderAiLabel(app.config.locale.language, [])
+        : undefined,
     defaultTarget: () => delivery.defaultRecipient(),
     failureTarget: () => app.config.schedule.failureTarget ?? delivery.defaultRecipient(),
     onEventJobRemoved: createAlertRetirer(app),
@@ -116,6 +121,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
       pauses: app.resolve('agentPauseStore'),
       runMaxDurationMs: app.config.loop.maxDurationMs,
       notifier: delivery.sink,
+      renderAiLabel: () => renderAiLabel(app.config.locale.language, []),
       logger: app.resolve('logger'),
       workspaceDir: (agent) => workspaceDirFor(app, agent.id),
       runInput: (input) => heartbeatRunInput(input),

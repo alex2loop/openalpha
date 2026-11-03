@@ -177,6 +177,9 @@ A channel that drops and stays down is reported on another one, and `status` lis
    the final answer. Typing indicators and reactions show only where the channel and your config allow.
 5. **The answer arrives**, split and escaped to fit the chat app, with a cost footer and a localized
    note if the run stopped early.
+   The first answer of a chat's session also carries, in its footer, a line saying replies are
+   AI-generated, can be wrong and are not investment advice; later answers in that session do not, until
+   the daemon restarts. A scheduled job whose prompt is not a slash command carries the line above its answer.
 
 If the daemon dies mid-run, the message is retried later, up to 3 attempts, then given up and logged. If sending fails (a network blip, say), each retry waits longer than the last: about 10 seconds, then 20.
 If a run finished but sending the answer failed, only the final message is sent again; the agent is not

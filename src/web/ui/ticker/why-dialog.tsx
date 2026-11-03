@@ -15,6 +15,7 @@ import { ABSENT_CELL } from '@/web/text/glyphs'
 import { formatWhen } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 import { buildDebateParts, readDebate } from '@/web/ui/ideas/debate-folds'
+import { CallAiLabel } from '@/web/ui/kit/ai-label'
 import { Button } from '@/web/ui/kit/button'
 import { Fold } from '@/web/ui/kit/fold'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
@@ -115,6 +116,7 @@ function WhyFooter({ subject }: { readonly subject: WhySubject }) {
 function WhyBody({ subject }: { readonly subject: WhySubject }) {
   return (
     <div class="flow">
+      <CallAiLabel call={subject.call} />
       {subject.kind === 'past' && <PastResult call={subject.call} />}
       <Reason call={subject.call} />
       {subject.kind === 'plan' && <StoredDebateView call={subject.call} />}

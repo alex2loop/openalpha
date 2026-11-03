@@ -120,10 +120,13 @@ function toTextResult(result: Record<string, unknown>): SlashResult {
   }
 
   const affordances = toAffordances(result.affordances)
+  const echoText =
+    typeof result.echoText === 'string' ? renderCommandText(result.echoText) : undefined
 
   return {
     kind: 'text',
     text: rendered,
+    ...(echoText === undefined || echoText === '' ? {} : { echoText }),
     ...(affordances.length === 0 ? {} : { affordances }),
   }
 }

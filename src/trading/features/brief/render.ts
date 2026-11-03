@@ -5,7 +5,7 @@ import type { MarketRef } from '@/trading/kernel/instrument'
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
 import { formatSpendUsd } from '@/core/utils/cost'
-import { formatDay, t } from '@/i18n'
+import { formatDay, renderAiLabel, t } from '@/i18n'
 import { renderStoryLines } from '@/trading/features/brief/story/render'
 import { renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -36,6 +36,12 @@ const REBALANCE_OWN_CAVEATS: ReadonlySet<string> = new Set([
   'portfolio.reduction-below-minimum',
   'portfolio.reduction-unsettled',
   'portfolio.reduction-illiquid',
+])
+/** The sections that carry a call a model argued; everything else in the brief is code reading data,
+ *  and a label on it would claim a model wrote what none did. */
+const AI_SECTION_KINDS: ReadonlySet<BriefSectionKind> = new Set([
+  'suggestions',
+  'cross-asset-suggestions',
 ])
 /** What an uncapped budget prints where a limit would go. */
 const UNLIMITED_MARK = '∞'
@@ -87,20 +93,27 @@ const BLOCK_ICONS = Object.freeze({
   actions: SECTION_ICONS.suggestion,
 } as const satisfies Record<BlockName, string>)
 
+/** `preface` is a line the delivery adds under the AI label and above the title. */
 export function renderBriefText(
   locale: Locale,
   snapshot: BriefSnapshot,
-  context: RenderContext
+  context: RenderContext & { readonly preface?: string }
 ): string {
   // The verdict quotes the market sections the blocks below fold away, so it reads them all.
-  const readable = snapshot.sections.filter(isRenderable)
-  const renderable = readable.filter(isShown)
+  const { readable, renderable, hasAiCalls } = readSections(snapshot)
+
+  const preface = context.preface === undefined ? [] : [context.preface]
 
   if (renderable.length === 0) {
-    return renderEmptyLine(
-      SECTION_ICONS.brief,
-      t(locale, 'trading.brief.empty', { date: formatDay(locale, snapshot.asOf) })
-    )
+    return joinSections([
+      preface,
+      [
+        renderEmptyLine(
+          SECTION_ICONS.brief,
+          t(locale, 'trading.brief.empty', { date: formatDay(locale, snapshot.asOf) })
+        ),
+      ],
+    ])
   }
 
   const footer = renderCostFooter(locale, snapshot.sections)
@@ -111,6 +124,8 @@ export function renderBriefText(
   const [stories, rest] = partition(afterActions, (section) => STORY_KINDS.has(section.kind))
 
   return joinSections([
+    hasAiCalls ? [renderAiLabel(locale, [])] : [],
+    preface,
     [title(locale, snapshot, context.timezone)],
     ...renderStoryLines(locale, stories, context).map((block) => block.map((entry) => entry.text)),
     renderVerdictBlock(locale, readable, context),
@@ -120,6 +135,22 @@ export function renderBriefText(
     renderCaveatLines(locale, caveatsOf(snapshot, renderable), { collapseInfo: true }),
     footer === null ? [] : footer,
   ])
+}
+
+/** The sections a brief reads from (`readable`), the ones it prints (`renderable`), and whether any of
+ *  those carries a call a model argued. */
+export function readSections(snapshot: BriefSnapshot): {
+  readonly readable: readonly BriefSectionResult[]
+  readonly renderable: readonly BriefSectionResult[]
+  readonly hasAiCalls: boolean
+} {
+  const readable = snapshot.sections.filter(isRenderable)
+  const renderable = readable.filter(isShown)
+  const hasAiCalls = renderable.some(
+    (section) => section.status === 'ready' && AI_SECTION_KINDS.has(section.kind)
+  )
+
+  return { readable, renderable, hasAiCalls }
 }
 
 function partition<T>(
@@ -176,7 +207,7 @@ function toBlocks(sections: readonly BriefSectionResult[]): readonly BriefBlock[
 
 /** A market keeps its headline reading; the rest of its sections are a tap away on
  *  `/overview <market>`, and a pushed message is read on a phone. */
-export function isShown(section: BriefSectionResult): boolean {
+function isShown(section: BriefSectionResult): boolean {
   return section.market === undefined || MARKET_HEADLINE_KINDS.some((kind) => kind === section.kind)
 }
 
@@ -277,6 +308,6 @@ function renderCostFooter(
 
 /** A section that failed still renders, so its title and caveat say so: dropping it makes an
  *  outage look like a quiet morning. One that reported nothing carries no caveat and stays out. */
-export function isRenderable(section: BriefSectionResult): boolean {
+function isRenderable(section: BriefSectionResult): boolean {
   return section.status === 'ready' ? section.rows.length > 0 : section.caveats.length > 0
 }

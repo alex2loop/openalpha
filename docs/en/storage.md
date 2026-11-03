@@ -103,7 +103,7 @@ case with the claims the evidence checked, kept apart from `suggestions` because
 size, entry, stop or target and so is never scored. It is durable, since a read is a model's answer
 on a bundle that cannot be rebuilt. The installed daemon's own `/suggest` writes none; the rows
 arrive from a database restored from the web edition and are listed by `GET /v1/analyses`.
-Every view of one opens with a line saying it is AI-generated and naming the models, and none ends by weighing one side over the other.
+Every view of one opens with a line saying it is AI-generated, naming the models when the record has them, and none ends by weighing one side over the other.
 
 **Themes.** These tables back `/themes`, and all are durable: a read is a model's answer on a bundle
 that cannot be rebuilt.

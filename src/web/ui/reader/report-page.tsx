@@ -2,6 +2,7 @@ import type { ReaderContent } from '@/web/ui/reader/load-report'
 import { pluralKey } from '@/i18n'
 import { fillInput } from '@/web/state/command'
 import { tr } from '@/web/text/tr'
+import { AiLabel } from '@/web/ui/kit/ai-label'
 import { ReportView } from '@/web/ui/markdown/markdown'
 import { plainTextOf } from '@/web/ui/markdown/parse'
 import { reportOutline } from '@/web/ui/reader/outline'
@@ -35,6 +36,7 @@ export function ReportPage({ content, onClose }: ReportPageProps) {
         fillInput(`${tr('ui.office.reader.quote', { quote, title })} `)
       }}
     >
+      <AiLabel />
       <ReportView doc={doc} isAnchored />
     </ReaderPage>
   )
