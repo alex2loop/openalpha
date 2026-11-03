@@ -30,7 +30,7 @@ const KEY_PLACEHOLDER = 'browser-managed-key'
 const SHIPPED_PROVIDER = 'openrouter'
 const SHIPPED_PRIMARY_MODEL = 'deepseek/deepseek-v4.1-flash'
 const SHIPPED_MODEL = 'anthropic/claude-haiku-5.5'
-const DAILY_SPEND_CAP_USD = 2
+const DAILY_SPEND_CAP_USD = 5
 
 // The headline tier (`decisions`) is left out on purpose: its endpoint reads its key itself, which
 // the keyring cannot supply, and an absent tier turns the headline read off cleanly.
