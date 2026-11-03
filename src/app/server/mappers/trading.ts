@@ -28,6 +28,7 @@ import type {
   NavHistory,
   NewsItem,
   PortfolioView,
+  ProfileSetField,
   QuoteBoard,
   QuoteBoardItem,
   SourceProvenance,
@@ -170,13 +171,17 @@ export function toNewsItemWire(item: NewsItem): TradingNewsItemWire {
 
 /** `preferredLocale` is the one language every reply is written in, `[locale] language`: the
  *  profile carries none of its own. */
-export function toProfileWire(profile: UserProfile, locale: Locale): TradingProfileResponse {
+export function toProfileWire(
+  profile: UserProfile,
+  locale: Locale,
+  fields: readonly ProfileSetField[]
+): TradingProfileResponse {
   return {
     preferredLocale: locale,
     baseCurrency: profile.baseCurrency,
     riskLevel: profile.riskLevel,
-    riskCapacity: profile.riskCapacity,
-    riskWillingness: profile.riskWillingness,
+    ...(fields.includes('risk-capacity') ? { riskCapacity: profile.riskCapacity } : {}),
+    ...(fields.includes('risk-willingness') ? { riskWillingness: profile.riskWillingness } : {}),
     horizons: { ...profile.horizons },
     goal: profile.goal,
     watchlist: profile.watchlist.map(toInstrumentWire),
@@ -191,10 +196,14 @@ export function toProfileWire(profile: UserProfile, locale: Locale): TradingProf
         },
       ])
     ),
-    maximumSectorPctNav: profile.maximumSectorPctNav,
-    reservePctNav: profile.reservePctNav,
-    regimeScale: profile.regimeScale,
-    riskPerTradePctNav: profile.riskPerTradePctNav,
+    ...(fields.includes('maximum-sector-pct-nav')
+      ? { maximumSectorPctNav: profile.maximumSectorPctNav }
+      : {}),
+    ...(fields.includes('reserve-pct-nav') ? { reservePctNav: profile.reservePctNav } : {}),
+    ...(fields.includes('regime-scale') ? { regimeScale: profile.regimeScale } : {}),
+    ...(fields.includes('risk-per-trade-pct-nav')
+      ? { riskPerTradePctNav: profile.riskPerTradePctNav }
+      : {}),
   }
 }
 

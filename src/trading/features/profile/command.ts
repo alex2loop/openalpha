@@ -1,10 +1,12 @@
 import type {
   CommandMessage,
+  CommandMessageKey,
   CommandMessageValues,
   SlashCommand,
   SlashContext,
   SlashResult,
 } from '@/core/types/command'
+import type { ProfileSetField } from '@/trading/features/profile/patch'
 import type {
   ProfileService,
   SegmentPolicyRequest,
@@ -14,6 +16,7 @@ import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { closestName } from '@/core/utils/text'
 import {
+  offeredFields,
   PROFILE_SET_FIELDS,
   parseProfilePatch,
   parseSegmentPolicyRequest,
@@ -64,19 +67,37 @@ type Profiles = Pick<
   | 'updateSegmentPolicy'
 >
 
+/** Where an edition offers fewer settings than the installed version: the ones it prints and
+ *  accepts, and the words it answers with. */
+export interface ProfileEdition {
+  readonly fields: ReadonlySet<ProfileSetField>
+  readonly keys: {
+    readonly usage: CommandMessageKey
+    /** The answer to a setting only the installed version has. */
+    readonly installedOnly: CommandMessageKey
+  }
+}
+
 interface ProfileCommandDeps {
   readonly profiles: Profiles
   readonly timezone: string
+  /** Absent offers every setting under the installed version's words. */
+  readonly edition?: ProfileEdition | undefined
 }
 
 export function createProfileCommand(deps: ProfileCommandDeps): SlashCommand {
+  const { edition } = deps
+
   return {
     name: 'profile',
     description: { kind: 'localized', key: 'slash.tradingProfileHelp' },
-    messageKeys: [USAGE, ...REFUSAL_KEYS],
+    messageKeys:
+      edition === undefined
+        ? [USAGE, ...REFUSAL_KEYS]
+        : [edition.keys.usage, edition.keys.installedOnly, ...REFUSAL_KEYS],
     policy: { surfaces: ['channel', 'repl'], role: 'operator', action: 'mutate' },
-    completeFor: (args) => completeProfile(deps.profiles, args),
-    usage: () => ({ key: USAGE, values: buildUsageValues(deps.profiles) }),
+    completeFor: (args) => completeProfile(deps, args),
+    usage: () => ({ key: usageKeyOf(deps), values: buildUsageValues(deps.profiles) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -86,7 +107,7 @@ async function run(deps: ProfileCommandDeps, ctx: SlashContext): Promise<SlashRe
   const [action, ...rest] = ctx.args.map((arg) => arg.toLowerCase())
 
   if (action === undefined || action === SHOW_ACTION) {
-    return rest.length === 0 ? runShow(deps, ctx) : usageFor(deps.profiles)
+    return rest.length === 0 ? runShow(deps, ctx) : usageFor(deps)
   }
 
   if (action === SET_ACTION) {
@@ -100,12 +121,12 @@ async function run(deps: ProfileCommandDeps, ctx: SlashContext): Promise<SlashRe
   const kind = parseMember(action, SEGMENT_TOGGLES)
 
   if (kind === null) {
-    return usageFor(deps.profiles)
+    return usageFor(deps)
   }
 
   const segment = rest.length === 1 ? parseMember(rest[0], deps.profiles.segments()) : null
 
-  return segment === null ? usageFor(deps.profiles) : runSegment(deps, ctx, { kind, segment })
+  return segment === null ? usageFor(deps) : runSegment(deps, ctx, { kind, segment })
 }
 
 async function runShow(deps: ProfileCommandDeps, ctx: SlashContext): Promise<SlashResult> {
@@ -124,7 +145,14 @@ async function runSet(
   const [field, ...values] = rest
 
   if (field === undefined) {
-    return usageFor(deps.profiles)
+    return usageFor(deps)
+  }
+
+  if (deps.edition !== undefined && isInstalledOnly(deps.edition, field)) {
+    return {
+      kind: 'message',
+      messages: [{ key: deps.edition.keys.installedOnly, values: { field } }],
+    }
   }
 
   const segments = deps.profiles.segments()
@@ -139,7 +167,7 @@ async function runSet(
   if (patch === null) {
     const profile = await deps.profiles.get({ signal: ctx.signal })
 
-    return buildSetRefusal(deps.profiles, field, openSegmentsOf(deps.profiles, profile))
+    return buildSetRefusal(deps, field, openSegmentsOf(deps.profiles, profile))
   }
 
   const profile = await deps.profiles.update({
@@ -150,13 +178,20 @@ async function runSet(
   return shown(deps, ctx, profile)
 }
 
+/** A setting the installed version has and this edition does not offer. */
+function isInstalledOnly(edition: ProfileEdition, field: string): boolean {
+  const known = parseMember(field, PROFILE_SET_FIELDS)
+
+  return known !== null && !edition.fields.has(known)
+}
+
 async function runReset(
   deps: ProfileCommandDeps,
   ctx: SlashContext,
   rest: readonly string[]
 ): Promise<SlashResult> {
   if (rest.length !== 0) {
-    return usageFor(deps.profiles)
+    return usageFor(deps)
   }
 
   const profile = await deps.profiles.reset({
@@ -194,7 +229,7 @@ async function runPolicy(
 
 /** Values come from the parser that accepts them, so the two cannot drift. A numeric field admits
  *  no list and completes to nothing. */
-function completeProfile(profiles: Profiles, args: readonly string[]): readonly string[] {
+function completeProfile(deps: ProfileCommandDeps, args: readonly string[]): readonly string[] {
   if (args.length === 1) {
     return ACTIONS
   }
@@ -202,7 +237,7 @@ function completeProfile(profiles: Profiles, args: readonly string[]): readonly 
   const [action, field] = args
 
   if (parseMember(action, SEGMENT_TOGGLES) !== null) {
-    return args.length === 2 ? profiles.heldSegments() : []
+    return args.length === 2 ? deps.profiles.heldSegments() : []
   }
 
   if (action !== SET_ACTION) {
@@ -210,21 +245,21 @@ function completeProfile(profiles: Profiles, args: readonly string[]): readonly 
   }
 
   if (args.length === 2) {
-    return PROFILE_SET_FIELDS
+    return fieldsOf(deps)
   }
 
   return field === undefined
     ? []
-    : profileFieldValues({ field, index: args.length - 3, segments: profiles.segments() })
+    : profileFieldValues({ field, index: args.length - 3, segments: deps.profiles.segments() })
 }
 
 /** One line a phone fits: what this field takes and an example of it, never the whole usage text. */
 function buildSetRefusal(
-  profiles: Profiles,
+  deps: ProfileCommandDeps,
   field: string,
   open: readonly PortfolioSegment[]
 ): SlashResult {
-  return { kind: 'message', messages: [buildRefusalMessage(profiles, field, open)] }
+  return { kind: 'message', messages: [buildRefusalMessage(deps, field, open)] }
 }
 
 /** An example must run as typed, so it names a segment that is switched on. */
@@ -235,14 +270,14 @@ function openSegmentsOf(profiles: Profiles, profile: UserProfile): readonly Port
 }
 
 function buildRefusalMessage(
-  profiles: Profiles,
+  deps: ProfileCommandDeps,
   field: string,
   open: readonly PortfolioSegment[]
 ): CommandMessage {
   const shape = toFieldShape(field)
 
   if (shape === 'unknown') {
-    const near = closestName(field, PROFILE_SET_FIELDS)
+    const near = closestName(field, fieldsOf(deps))
 
     return near === undefined
       ? { key: 'slash.tradingProfileFieldUnknown', values: { field } }
@@ -250,7 +285,7 @@ function buildRefusalMessage(
   }
 
   if (shape === 'choice') {
-    const choices = profileFieldValues({ field, index: 0, segments: profiles.segments() })
+    const choices = profileFieldValues({ field, index: 0, segments: deps.profiles.segments() })
 
     return {
       key: 'slash.tradingProfileSetChoice',
@@ -277,8 +312,16 @@ function buildSegmentExample(field: string, open: readonly PortfolioSegment[]): 
 }
 
 /** The usage line names the segments a venue holds; a reference-only one is refused by name. */
-function usageFor(profiles: Profiles): SlashResult {
-  return usage(USAGE, buildUsageValues(profiles))
+function usageFor(deps: ProfileCommandDeps): SlashResult {
+  return usage(usageKeyOf(deps), buildUsageValues(deps.profiles))
+}
+
+function usageKeyOf(deps: ProfileCommandDeps): CommandMessageKey {
+  return deps.edition?.keys.usage ?? USAGE
+}
+
+function fieldsOf(deps: ProfileCommandDeps): readonly ProfileSetField[] {
+  return offeredFields(deps.edition?.fields)
 }
 
 function buildUsageValues(profiles: Profiles): CommandMessageValues {
@@ -296,6 +339,7 @@ function shown(deps: ProfileCommandDeps, ctx: SlashContext, profile: UserProfile
     text: renderProfileText(ctx.locale, profile, {
       context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       homeSegment: deps.profiles.homeSegment(),
+      fields: fieldsOf(deps),
     }),
   }
 }

@@ -98,6 +98,7 @@ export type {
   ValuedPosition,
 } from '@/trading/features/portfolio/types'
 export type { VenueChoice } from '@/trading/features/portfolio/venues'
+export type { ProfileSetField } from '@/trading/features/profile/patch'
 export type { AnalysisService } from '@/trading/features/suggestion/analysis/run'
 export type {
   AnalysisFailure,

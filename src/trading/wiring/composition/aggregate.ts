@@ -6,8 +6,6 @@ import type { createConfiguredRunBudget } from '@/engine/api'
 import type { IntradayReportDeps } from '@/trading/features/market-data/intraday/report'
 import type { HeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
-import type { ScreenForm } from '@/trading/features/market-data/types'
-import type { RebalanceForm } from '@/trading/features/portfolio/types'
 import type { OperationPolicy, TradingConfig } from '@/trading/kernel/config'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
@@ -18,6 +16,7 @@ import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import type { createDomainServices } from '@/trading/wiring/composition/services'
 import type { TradingStores } from '@/trading/wiring/composition/stores'
@@ -27,6 +26,7 @@ import { runVenueSync } from '@/trading/features/ledger/sync-run'
 import { renderMarketShow } from '@/trading/features/market-data/command/market'
 import { createHeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import { createNavSnapshotTick } from '@/trading/features/portfolio/nav/snapshot'
+import { offeredFields } from '@/trading/features/profile/patch'
 import { sessionPhase } from '@/trading/markets/calendar'
 import { NOTICE_SURFACE } from '@/trading/render/format'
 import { buildAppViews } from '@/trading/wiring/composition/app-views'
@@ -53,7 +53,7 @@ interface AggregateOptions {
   readonly reachability: ReachabilityProbe
   /** `[schedule] late_grace_ms`: the one lateness bound a timed send shares with the scheduler. */
   readonly lateGraceMs: number
-  readonly edition?: { readonly rebalance?: RebalanceForm; readonly screen?: ScreenForm }
+  readonly edition?: Pick<TradingEdition, 'profile' | 'rebalance' | 'screen'>
   recipient(): DeliveryAddress | undefined
 }
 
@@ -101,6 +101,7 @@ export function toAggregate(
       options.tradingConfig,
       options.edition?.rebalance
     ),
+    profileFields: offeredFields(options.edition?.profile?.fields),
     appViews: buildAppViews(parts.services, options.tradingConfig, options.edition?.screen),
     daemonTasks: buildDaemonTasks(
       parts,

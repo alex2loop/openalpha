@@ -201,9 +201,10 @@ function sourceErrorCode(result: UnavailableResult): ApiErrorCode {
 }
 
 async function handleTradingProfileGet(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const profile = await hostOf(ctx).getProfile(req.signal)
+  const host = hostOf(ctx)
+  const profile = await host.getProfile(req.signal)
 
-  return json(toProfileWire(profile, localeOf(ctx)))
+  return json(toProfileWire(profile, localeOf(ctx), host.profileFields()))
 }
 
 async function handleTradingProfileUpdate(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -214,12 +215,13 @@ async function handleTradingProfileUpdate(req: Request, ctx: ApiRouteContext): P
     return apiError('invalid_body')
   }
 
-  const profile = await hostOf(ctx).updateProfile({
+  const host = hostOf(ctx)
+  const profile = await host.updateProfile({
     ...request,
     signal: req.signal,
   })
 
-  return json(toProfileWire(profile, localeOf(ctx)))
+  return json(toProfileWire(profile, localeOf(ctx), host.profileFields()))
 }
 
 async function handleTradingPortfolio(req: Request, ctx: ApiRouteContext): Promise<Response> {

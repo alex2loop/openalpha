@@ -38,14 +38,31 @@ const GOAL_FIELD = 'goal'
 /** The fields that take two words: the segment, then the value it carries. */
 const SEGMENT_VALUE_COUNT = 2
 
+/** A field `/profile set` accepts. */
+export type ProfileSetField =
+  | (typeof RISK_FIELDS)[number]
+  | typeof HORIZON_FIELD
+  | typeof GOAL_FIELD
+  | (typeof FRACTION_FIELDS)[number]
+  | (typeof SEGMENT_POLICY_FIELDS)[number]
+
 /** Every field name `/profile set` accepts, in the order the usage line reads them. */
-export const PROFILE_SET_FIELDS: readonly string[] = Object.freeze([
+export const PROFILE_SET_FIELDS: readonly ProfileSetField[] = Object.freeze([
   ...RISK_FIELDS,
   HORIZON_FIELD,
   GOAL_FIELD,
   ...FRACTION_FIELDS,
   ...SEGMENT_POLICY_FIELDS,
 ])
+
+/** The fields an edition offers, in reading order; no edition narrowing is every one. */
+export function offeredFields(
+  offered: ReadonlySet<ProfileSetField> | undefined
+): readonly ProfileSetField[] {
+  return offered === undefined
+    ? PROFILE_SET_FIELDS
+    : PROFILE_SET_FIELDS.filter((field) => offered.has(field))
+}
 
 /** What a `/profile set` field takes, so a refusal can show the shape that was missed. */
 type ProfileFieldShape = 'choice' | 'share' | 'segment-value' | 'unknown'
