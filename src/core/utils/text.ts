@@ -11,6 +11,11 @@ const SUGGESTION_DISTANCE_DIVISOR = 3
 const NAME_WORD_SEPARATOR_RE = /[-_]/
 const MIN_RUN = 2
 const MIDDLE_ELISION = '\n\n[...]\n\n'
+const UTF8_ONE_BYTE_MAX = 0x80
+const UTF8_TWO_BYTE_MAX = 0x800
+const UTF8_THREE_BYTE_MAX = 0x10000
+const SURROGATE_MIN = 0xd800
+const SURROGATE_MAX = 0xdfff
 const UTF8_ENCODER = new TextEncoder()
 // A byte-order mark is content here, not a header: kept, as a Node buffer keeps it.
 const UTF8_DECODER = new TextDecoder('utf-8', { ignoreBOM: true })
@@ -42,7 +47,28 @@ const MARKDOWN_LINK_RE = /!?\[([^[\]]*)\]\([^[)]*\)/g
 
 /** The size of `text` once encoded as UTF-8: the unit every byte budget is written in. */
 export function utf8ByteLength(text: string): number {
-  return UTF8_ENCODER.encode(text).byteLength
+  let bytes = 0
+
+  for (const char of text) {
+    const code = char.codePointAt(0) ?? 0
+
+    if (code < UTF8_ONE_BYTE_MAX) {
+      bytes += 1
+    } else if (code < UTF8_TWO_BYTE_MAX) {
+      bytes += 2
+    } else if (code < UTF8_THREE_BYTE_MAX || isSurrogate(code)) {
+      bytes += 3
+    } else {
+      bytes += 4
+    }
+  }
+
+  return bytes
+}
+
+// A lone surrogate encodes as U+FFFD, three bytes, like Buffer.byteLength.
+function isSurrogate(code: number): boolean {
+  return code >= SURROGATE_MIN && code <= SURROGATE_MAX
 }
 
 export function encodeUtf8(text: string): Uint8Array {

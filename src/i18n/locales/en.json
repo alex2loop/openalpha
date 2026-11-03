@@ -69,7 +69,7 @@
     "office.edition.storage.takeOver": "Use in this tab",
     "office.edition.storage.takenOver": "Another tab took over your data, so I stopped here. Nothing is lost; reload this tab if you want it back.",
     "office.edition.storage.unsupported": "This browser cannot keep your data on this device (I need private file storage and tab locks). Try a recent Chrome, Edge, Firefox or Safari.",
-    "office.edition.storage.full": "This device is out of storage, so I stopped saving. Free some space or export your data, then try again.",
+    "office.edition.storage.full": "I could not save that, and this device may be out of storage, so I stopped writing. Free some space or export your data, then try again.",
     "office.edition.storage.newerData": "Your data was saved by a newer version of the app, and this one cannot read it safely, so I have not touched it. Reload the page to get the latest version.",
     "office.signIn.title": "Open the {brand} office",
     "office.signIn.body": "Run this command on the server to open the office page:",

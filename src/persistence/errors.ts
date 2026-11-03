@@ -5,7 +5,7 @@ const SQLITE_IOERR = 10
 const QUOTA_EXCEEDED = 'QuotaExceededError'
 const CAUSE_DEPTH = 3
 
-/** The disk or the browser's storage quota has no room left: a caller stops writing and tells
+/** The disk or the browser's storage quota may have no room left: a caller stops writing and tells
  *  the operator instead of retrying. */
 export class StorageFullError extends StorageError {
   override readonly code = 'storage-full' as const
@@ -22,11 +22,7 @@ export function toStorageError(err: unknown, message: string): Error {
   return isStorageFull(err) ? new StorageFullError(message, err) : new StorageError(message, err)
 }
 
-// Bun's driver names the result in `code`, sqlite-wasm in `resultCode`, and the browser throws a
-// DOMException named for the quota; the failing write may sit a few causes down. The OPFS VFS
-// catches that DOMException, logs it to the console and returns SQLITE_IOERR, so sqlite-wasm
-// reports a full quota as a bare `resultCode` 10 with no cause: only sqlite-wasm sets `resultCode`,
-// so the daemon's driver never reads an I/O error as a full disk.
+// The OPFS VFS flattens a full quota into a bare sqlite-wasm `resultCode` 10, so any I/O error counts.
 function isStorageFull(err: unknown, depth = 0): boolean {
   if (!(err instanceof Error) || depth >= CAUSE_DEPTH) {
     return false

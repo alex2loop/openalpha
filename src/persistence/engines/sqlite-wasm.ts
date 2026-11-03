@@ -132,8 +132,8 @@ async function openDatabase(
 
     return { db, pool }
   } catch (err: unknown) {
-    closeQuietly(db)
-    pauseQuietly(pool)
+    quietly(() => db?.close())
+    quietly(() => pool.pauseVfs())
 
     throw toStorageError(err, `sqlite wasm open failed: ${options.name}`)
   }
@@ -163,17 +163,9 @@ async function installPool(sqlite3: Sqlite3Static): Promise<SAHPoolUtil> {
   }
 }
 
-function pauseQuietly(pool: SAHPoolUtil): void {
+function quietly(release: () => void): void {
   try {
-    pool.pauseVfs()
-  } catch {
-    // The open failure already on its way to the caller is the one worth reporting.
-  }
-}
-
-function closeQuietly(db: Database | undefined): void {
-  try {
-    db?.close()
+    release()
   } catch {
     // The open failure already on its way to the caller is the one worth reporting.
   }
@@ -274,7 +266,7 @@ function rollback(engine: Engine, seal: () => void): void {
     // Stuck inside BEGIN IMMEDIATE the connection would block every later writer: close it so the
     // failure is loud.
     engine.logger.error('sqlite_wasm.rollback_failed', { err: formatErrForLog(err) })
-    closeQuietly(engine.db)
+    quietly(() => engine.db.close())
     seal()
   }
 }

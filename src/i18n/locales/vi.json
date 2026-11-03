@@ -69,7 +69,7 @@
     "office.edition.storage.takeOver": "Dùng ở thẻ này",
     "office.edition.storage.takenOver": "Một thẻ khác vừa lấy dữ liệu của bạn, nên mình dừng ở đây. Không mất gì cả; bạn tải lại thẻ này nếu muốn lấy lại.",
     "office.edition.storage.unsupported": "Trình duyệt này chưa lưu được dữ liệu của bạn trên máy (mình cần kho tệp riêng và khóa giữa các thẻ). Bạn thử Chrome, Edge, Firefox hoặc Safari bản mới nhé.",
-    "office.edition.storage.full": "Máy đã hết chỗ lưu nên mình dừng ghi. Bạn giải phóng bớt dung lượng hoặc xuất dữ liệu ra, rồi thử lại nhé.",
+    "office.edition.storage.full": "Mình chưa lưu được và có thể máy đã hết chỗ lưu, nên mình dừng ghi. Bạn giải phóng bớt dung lượng hoặc xuất dữ liệu ra, rồi thử lại nhé.",
     "office.edition.storage.newerData": "Dữ liệu của bạn đã được một bản mới hơn của ứng dụng lưu, bản này không đọc an toàn được nên mình chưa đụng vào. Bạn tải lại trang để lấy bản mới nhất.",
     "office.signIn.title": "Mở văn phòng {brand}",
     "office.signIn.body": "Chạy lệnh này trên máy chủ để mở trang văn phòng:",
