@@ -395,13 +395,22 @@ async function settleCompletedHeartbeatTask(
     await deliverHeartbeatResult({
       agentId: agent.id,
       task,
-      text:
-        task.run === undefined
-          ? outcome.notificationText
-          : toUntrustedNotice(outcome.notificationText),
+      ...toHeartbeatNotice(task, deps, outcome.notificationText),
       logger: deps.logger,
       notifier: deps.notifier,
       state,
     })
   }
+}
+
+/** An agent's answer is model prose and carries the AI label; a command's output is quoted as the
+ *  untrusted text it is. */
+function toHeartbeatNotice(
+  task: RunHeartbeatTaskInput['task'],
+  deps: HeartbeatDeps,
+  text: string
+): { readonly text: string; readonly label?: string } {
+  return task.run === undefined
+    ? { text, label: deps.renderAiLabel() }
+    : { text: toUntrustedNotice(text) }
 }

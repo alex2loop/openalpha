@@ -5,23 +5,27 @@ import { renderAiLabel } from '@/i18n'
 
 const LABELLED_SESSION_CAPACITY = 2_000
 
-export type AiLabeler = (sessionId: SessionId) => string | undefined
+export interface PendingLabel {
+  readonly text: string
+  /** Called when a model reply reached the chat, so a refusal or a failed run never uses it up. */
+  markDelivered(): void
+}
 
-/** The label a session's first reply carries since this daemon started: a session that was
+export type AiLabeler = (sessionId: SessionId) => PendingLabel | undefined
+
+/** The label a session's first delivered reply carries since this daemon started: a session that was
  *  labelled once is not labelled again until a restart, which covers a session from before the
  *  label existed. Held in memory so no lookup can fail; a capped map only ever repeats a label. */
 export function createAiLabeler(locale: Locale): AiLabeler {
-  const labelled = lruMap<SessionId, true>(LABELLED_SESSION_CAPACITY)
+  const delivered = lruMap<SessionId, true>(LABELLED_SESSION_CAPACITY)
 
-  return (sessionId) => {
-    if (labelled.get(sessionId) !== undefined) {
-      return undefined
-    }
-
-    labelled.set(sessionId, true)
-
-    return renderAiLabel(locale, [])
-  }
+  return (sessionId) =>
+    delivered.get(sessionId) === undefined
+      ? {
+          text: renderAiLabel(locale, []),
+          markDelivered: () => delivered.set(sessionId, true),
+        }
+      : undefined
 }
 
 /** The footer is what a reply-to cuts off before a quote reaches a model, so the label lives there;

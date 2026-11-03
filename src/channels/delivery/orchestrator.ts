@@ -9,7 +9,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { SessionActivity } from '@/core/types/session'
 import type { ResearchPlanDecision, ResearchPlanReview, Runner, RunResult } from '@/engine/api'
-import { type AiLabeler, withAiLabel } from '@/channels/delivery/ai-label'
+import { type AiLabeler, type PendingLabel, withAiLabel } from '@/channels/delivery/ai-label'
 import { AnswerUndelivered } from '@/channels/delivery/answer'
 import { buildAbortCallbackData } from '@/channels/delivery/callbacks'
 import {
@@ -122,7 +122,7 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
     useMarkup,
     afterApproval: prompts.prompted(),
     elapsedMs: performance.now() - startedAt,
-    label,
+    label: result.reason === 'completed' ? label : undefined,
   })
 }
 
@@ -319,8 +319,7 @@ interface Delivery {
   readonly afterApproval: boolean
   /** Wall time of the whole exchange, measured with performance.now(). */
   readonly elapsedMs: number
-  /** The AI label a session's first reply carries; undefined on every later one. */
-  readonly label: string | undefined
+  readonly label: PendingLabel | undefined
 }
 
 interface AnswerSend {
@@ -351,6 +350,7 @@ async function deliverResult(deps: OrchestratorDeps, delivery: Delivery): Promis
       useMarkup: delivery.useMarkup,
       afterApproval: delivery.afterApproval,
     })
+    delivery.label?.markDelivered()
   } catch (err: unknown) {
     throw new AnswerUndelivered(answer, err)
   }
@@ -384,7 +384,7 @@ function toFinalAnswer(locale: Locale, delivery: Delivery): FinalAnswer {
     ...(combined.reactionRef === undefined ? {} : { reactionRef: combined.reactionRef }),
     body: plan === undefined ? body : `${formatPlanBlock(plan)}\n\n${body}`,
     footer: withAiLabel(
-      delivery.label,
+      delivery.label?.text,
       formatChannelFooter(locale, result.totals, {
         ...(metric === undefined ? {} : { contextPct: metric.contextPct }),
         elapsedMs: delivery.elapsedMs,

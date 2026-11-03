@@ -272,6 +272,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
       pauses: app.resolve('agentPauseStore'),
       runMaxDurationMs: app.config.loop.maxDurationMs,
       notifier: delivery.sink,
+      renderAiLabel: () => renderAiLabel(app.config.locale.language, []),
       logger: app.resolve('logger'),
       workspaceDir: (agent) => workspaceDirFor(app, agent.id),
       runInput: (input) => heartbeatRunInput(input),

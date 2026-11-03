@@ -32,7 +32,6 @@ import { joinSections } from '@/trading/render/layout'
 const USAGE: 'slash.tradingSuggestUsage' = 'slash.tradingSuggestUsage'
 const STOPS_EMPTY: 'slash.tradingSuggestStopsEmpty' = 'slash.tradingSuggestStopsEmpty'
 const STOPS_ARG = 'stops'
-const LEADING_NEWLINE = /^\n/
 const STOPS_DEBATE_MODE = 'lean' satisfies DebateMode
 const DEBATE_MODE_OPTIONS = DEBATE_MODES.join('|')
 /** Re-runs past today's stored verdict instead of returning it. Operator-only: the gates exist to
@@ -227,15 +226,7 @@ async function runStops(
     return usage(STOPS_EMPTY)
   }
 
-  // The verdict block opens with a newline that marks it a block for a tool's line; here the label
-  // and the block are joined as sections instead.
-  return {
-    kind: 'text',
-    text: joinSections([
-      aiLabelLines(ctx.locale, batch.results),
-      [text.replace(LEADING_NEWLINE, '')],
-    ]),
-  }
+  return { kind: 'text', text: joinSections([aiLabelLines(ctx.locale, batch.results), [text]]) }
 }
 
 /** The label for a read whose calls carry model-written text, naming the models that argued them.

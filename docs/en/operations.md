@@ -364,6 +364,8 @@ window. It is best-effort and lives in memory only, in a bounded list of 200 ent
 a full list forgets old entries and a duplicate may come back. A rejected notification is never
 remembered, so the next eligible run retries it.
 
+A task that asks the agent a question delivers the answer under the AI-generated line; the line is not part of what a repeat is compared on. A task that runs a command delivers its output as it is.
+
 ### Backoff
 
 A run that never finishes (aborted, errored or halted) delays the task's next run by

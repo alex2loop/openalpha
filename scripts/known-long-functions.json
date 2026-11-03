@@ -81,7 +81,7 @@
     "src/persistence/stores/social/memberships.ts#createSocialMembershipState": 49,
     "src/persistence/stores/social/writes.ts#createSocialWrites": 47,
     "src/plugins/services.ts#createPluginsProvider": 46,
-    "src/scheduler/heartbeat/runner.ts#settleCompletedHeartbeatTask": 50,
+    "src/scheduler/heartbeat/runner.ts#settleCompletedHeartbeatTask": 47,
     "src/scheduler/services.ts#createSchedulerProvider": 58,
     "src/social/skill/fetch.ts#fetchSkillFile": 41,
     "src/tools/shell/process.ts#readCappedStream": 48,

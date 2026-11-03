@@ -27,13 +27,15 @@ interface DeliverOptions {
   readonly agentId: AgentProfile['id']
   readonly task: HeartbeatTask
   readonly text: string
+  /** Shown above `text`; never part of the duplicate fingerprint. */
+  readonly label?: string
   readonly logger: Logger
   readonly notifier: DeliverySink
   readonly state: HeartbeatRuntimeState
 }
 
 export async function deliverHeartbeatResult(options: DeliverOptions): Promise<void> {
-  const { agentId, task, text, logger, notifier, state } = options
+  const { agentId, task, text, label, logger, notifier, state } = options
 
   if (task.deliver === undefined) {
     return
@@ -53,7 +55,7 @@ export async function deliverHeartbeatResult(options: DeliverOptions): Promise<v
       agentId,
       taskName: task.name,
       target,
-      text,
+      text: label === undefined ? text : `${label}\n\n${text}`,
       fingerprint,
       logger,
       notifier,

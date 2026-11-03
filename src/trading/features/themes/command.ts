@@ -19,6 +19,7 @@ import { renderAiLabel, t } from '@/i18n'
 import { firstProposedTheme, renderThemeReportText } from '@/trading/features/themes/render/report'
 import { THEME_MARKET, THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 import { parseBranded, parseMember, usage } from '@/trading/kernel/surface/surface'
+import { joinSections } from '@/trading/render/layout'
 
 const SHOW_ACTION = 'show'
 const RUN_ACTION = 'run'
@@ -64,8 +65,8 @@ interface ThemesCommandDeps {
 function render(deps: ThemesCommandDeps, ctx: SlashContext, report: ThemeReport): SlashResult {
   const body = renderThemeReportText(report, { locale: ctx.locale, timezone: deps.timezone })
   // The label is for the reader; the model that is asked about the report next reads the body alone.
-  const text =
-    report.run === undefined ? body : `${renderAiLabel(ctx.locale, modelsOf(report))}\n\n${body}`
+  const label = report.run === undefined ? [] : [renderAiLabel(ctx.locale, modelsOf(report))]
+  const text = joinSections([label, [body]])
   const proposed = firstProposedTheme(report)
 
   if (proposed === undefined) {

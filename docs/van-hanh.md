@@ -361,6 +361,8 @@ hết sức và chỉ nằm trong bộ nhớ, trong một danh sách giới hạ
 đầy đều làm nó quên mục cũ, và một thông báo trùng có thể quay lại. Thông báo bị từ chối không bao giờ
 được nhớ, nên phiên chạy đủ điều kiện kế tiếp sẽ thử lại.
 
+Tác vụ nhờ agent trả lời thì gửi câu trả lời dưới dòng nội dung do AI tạo; dòng này không nằm trong phần dùng để so sánh sự lặp lại. Tác vụ chạy một lệnh thì gửi kết quả nguyên trạng.
+
 ### Khoảng chờ tăng dần
 
 Phiên chạy không bao giờ xong (bị hủy, lỗi hay bị dừng) làm phiên chạy kế tiếp của tác vụ bị hoãn thêm
