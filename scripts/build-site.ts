@@ -15,7 +15,8 @@ const PAGE_FILE = 'index.html'
 const HEADERS_FILE = '_headers'
 const APP_PLACEHOLDER = 'https://example.com/'
 const HTTPS_PROTOCOL = 'https:'
-// An inline script or style block, matched the way the HTML parser ends it: at the first closing tag.
+// An inline script or style block, matched the way the HTML parser ends it: at the first closing
+// tag.
 const INLINE_BLOCK_RE = /<(script|style)\b([^>]*)>([\s\S]*?)<\/\1>/g
 const SCRIPT_SRC_RE = /\bsrc\s*=/
 
@@ -41,11 +42,13 @@ await Bun.write(
 console.log(`build-site: wrote ${OUT_DIR}`)
 
 function parseAppUrl(raw: string | undefined): string {
-  if (raw === undefined || !URL.canParse(raw) || new URL(raw).protocol !== HTTPS_PROTOCOL) {
+  const url = raw === undefined || !URL.canParse(raw) ? undefined : new URL(raw)
+
+  if (url?.protocol !== HTTPS_PROTOCOL) {
     throw new Error('build-site: pass --app-url=<https address of the web app>')
   }
 
-  return new URL(raw).href
+  return url.href
 }
 
 // The page carries its own scripts and styles inline, so each block is allowed by its hash and the

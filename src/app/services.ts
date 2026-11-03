@@ -19,7 +19,6 @@ import { toJobSessionId } from '@/app/job-session'
 import { bindKernel, buildToolServices, toAgentRegistry } from '@/app/run-services'
 import { createScopedJobStore } from '@/app/scoped-jobs'
 import { createSocialHeartbeatTasks } from '@/app/social'
-import { createTaskStatusBoard } from '@/app/task-status'
 import { formatRunResultBody } from '@/channels/api'
 import { commandHeadOf, scheduledCommandLine } from '@/commands/api'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
@@ -71,7 +70,6 @@ export function createKernelProvider(kernel: KernelDeps): ServiceProvider {
       bind('unrecordedSpend', (app) =>
         createUnrecordedSpendLog(app.config.paths.dataDir, app.config.locale.timezone)
       )
-      bind('taskStatus', (app) => createTaskStatusBoard(app.config.locale.language))
       bind('inboundInbox', (app) =>
         createChannelInbox(app.resolve('storage'), app.resolve('dialect'))
       )

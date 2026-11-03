@@ -23,7 +23,6 @@ import {
   extendHooks,
 } from '@/app/run-services'
 import { buildApiRoutes } from '@/app/server/http/routes'
-import { createTaskStatusBoard } from '@/app/task-status'
 import { createSpendReader } from '@/app/views'
 import { createCommandsProvider, createResearchCommand } from '@/commands/api'
 import { createCommandLane } from '@/core/command-lane'
@@ -48,6 +47,33 @@ import {
   toBrowserRoutes,
   withReachableFeeds,
 } from '@/trading/api'
+
+/** A page keeps its workspace nowhere: the identity is a label no tool reads, since no file tool is
+ *  offered. */
+const VIRTUAL_WORKSPACE = Object.freeze({ path: '/', dev: 0, ino: 0 })
+
+/** A page waits longer on a slow edge than a daemon does: treasury answered in about 9.2 s, which a
+ *  10 s default clears by under a second. */
+const SOURCE_ATTEMPT_TIMEOUT_MS = 15_000
+
+/** The most unrecorded spend a tab remembers: it is read once, at start, so a longer tail has no
+ *  reader. */
+const MAX_SPEND_ENTRIES = 1_000
+
+const refuseJobs = (): Promise<never> =>
+  Promise.reject(new ConfigError('this edition has no scheduler'))
+
+const NO_JOBS: ScopedJobStore = {
+  add: refuseJobs,
+  list: refuseJobs,
+  resolveIdPrefix: refuseJobs,
+  remove: refuseJobs,
+}
+
+const NO_SENDER: TradingNoticeSender = {
+  send: async () => 'unavailable',
+  resolveRecipient: async () => undefined,
+}
 
 interface BrowserAppInput {
   readonly config: ResolvedConfig
@@ -85,33 +111,6 @@ interface BrowserProviderInput {
   readonly persistence: OpenedPersistence
   readonly tradingConfig: TradingConfig
   readonly keyring: BrowserKeyring
-}
-
-/** A page keeps its workspace nowhere: the identity is a label no tool reads, since no file tool is
- *  offered. */
-const VIRTUAL_WORKSPACE = Object.freeze({ path: '/', dev: 0, ino: 0 })
-
-/** A page waits longer on a slow edge than a daemon does: treasury answered in about 9.2 s, which a
- *  10 s default clears by under a second. */
-const SOURCE_ATTEMPT_TIMEOUT_MS = 15_000
-
-/** The most unrecorded spend a tab remembers: it is read once, at start, so a longer tail has no
- *  reader. */
-const MAX_SPEND_ENTRIES = 1_000
-
-const refuseJobs = (): Promise<never> =>
-  Promise.reject(new ConfigError('this edition has no scheduler'))
-
-const NO_JOBS: ScopedJobStore = {
-  add: refuseJobs,
-  list: refuseJobs,
-  resolveIdPrefix: refuseJobs,
-  remove: refuseJobs,
-}
-
-const NO_SENDER: TradingNoticeSender = {
-  send: async () => 'unavailable',
-  resolveRecipient: async () => undefined,
 }
 
 /** The browser's provider list, in `app/providers.ts` order and under its constraints: a provider
@@ -192,7 +191,6 @@ function createBrowserKernelProvider(kernel: KernelDeps): ServiceProvider {
       bindKernel(bind, kernel)
       bind('prepareWorkspace', () => async () => VIRTUAL_WORKSPACE)
       bind('unrecordedSpend', () => createMemorySpendLog())
-      bind('taskStatus', (app) => createTaskStatusBoard(app.config.locale.language))
     },
   }
 }

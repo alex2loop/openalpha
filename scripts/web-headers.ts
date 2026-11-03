@@ -1,13 +1,15 @@
 // The `_headers` file both static sites ship. Cloudflare applies it to every asset it serves; the
 // hardening set is shared so the two sites cannot drift apart.
 const NOINDEX_HEADER = 'X-Robots-Tag: noindex, nofollow'
-// Cloudflare drops a `_headers` line past this length, and the policy line grows with every host.
+// Cloudflare drops a `_headers` line past this length, and the policy line grows with every
+// host.
 const MAXIMUM_LINE_LENGTH = 2000
 
 const HARDENING_HEADERS: readonly string[] = [
   'Referrer-Policy: no-referrer',
   'X-Content-Type-Options: nosniff',
-  'Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
+  'Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), ' +
+    'interest-cohort=()',
 ]
 
 /** The directives no page of either site has a use for. */
@@ -39,7 +41,8 @@ export function buildHeadersFile(
 
   if (tooLong !== undefined) {
     throw new Error(
-      `web-headers: a _headers line is ${tooLong.length} characters, over the ${MAXIMUM_LINE_LENGTH} Cloudflare allows: ${tooLong.slice(0, 40)}...`
+      `web-headers: a _headers line is ${tooLong.length} characters, over the ` +
+        `${MAXIMUM_LINE_LENGTH} Cloudflare allows: ${tooLong.slice(0, 40)}...`
     )
   }
 

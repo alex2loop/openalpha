@@ -44,7 +44,8 @@ const HOST_GLOBAL_RES: ReadonlyMap<string, RegExp> = new Map([
   ['__filename', /\b__filename\b/],
   ['require(', /(?<![.\w])require\(/],
   ['setImmediate', /\bsetImmediate\b/],
-  // A browser timer is a number: `.unref()` and `.ref()` throw on it. `unrefTimer` is the one caller.
+  // A browser timer is a number: `.unref()` and `.ref()` throw on it. `unrefTimer` is the one
+  // caller.
   ['.unref(', /\.unref\(/],
   ['.ref(', /\.ref\(/],
 ])
@@ -99,7 +100,6 @@ function printBuildErrors(errors: Logs, parents: Parents): void {
 
   for (const error of errors) {
     const file = error.position?.file ?? '(no file)'
-
     const relative = file.startsWith(ROOT) ? file.slice(ROOT.length + 1) : file
 
     console.log(`  ${relative}${importersNote(relative, parents)}`)

@@ -1,6 +1,7 @@
 import type { BrowserKeyring } from '@/app/browser/keys'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { Capabilities } from '@/app/server/wire/system'
+import type { WorkerRefusal } from '@/app/server/wire/worker'
 import type { ChatClient } from '@/app/server/ws/runs'
 import type { WsServices } from '@/app/server/ws/services'
 import type { ApiRouteContext } from '@/app/types'
@@ -18,6 +19,7 @@ import { hydrateCostTracker } from '@/app/cost-hydration'
 import { createLiveFeed } from '@/app/server/feed/live'
 import { buildCapabilities } from '@/app/server/http/capabilities'
 import { describeCommand } from '@/commands/api'
+import { BRAND } from '@/core/brand'
 import { formatErrForLog } from '@/core/security/credentials'
 import { RUN_LEASE_SLACK_MS } from '@/engine/api'
 import { bindLocale } from '@/i18n'
@@ -30,16 +32,13 @@ import {
   sqliteDialect,
 } from '@/persistence/api'
 
-const DB_NAME = 'openalpha.db'
+const DB_NAME = `${BRAND.name}.db`
 
 interface OpenedStorage {
   readonly storage: Storage
   readonly files: DatabaseFiles
   readonly lost: Promise<void>
 }
-
-/** Why the database cannot be served, in the words the page maps to its own lines. */
-type Refusal = 'locked' | 'taken-over' | 'unsupported' | 'newer-schema' | 'storage-full'
 
 interface RootInput {
   readonly locale: Locale
@@ -68,7 +67,7 @@ export interface BrowserRoot {
 
 export type OpenedRoot =
   | { readonly kind: 'opened'; readonly root: BrowserRoot }
-  | { readonly kind: 'refused'; readonly reason: Refusal }
+  | { readonly kind: 'refused'; readonly reason: WorkerRefusal }
 
 /** Opens the database under the tab lock, migrates it, reads what the visitor changed of the
  *  config, and composes the engine over it. Anything that stops the database being served comes
@@ -122,7 +121,7 @@ export async function restoreDatabase(
   }
 }
 
-function toRefusal(err: unknown): Refusal {
+function toRefusal(err: unknown): WorkerRefusal {
   if (err instanceof SchemaAheadError) {
     return 'newer-schema'
   }

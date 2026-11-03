@@ -13,6 +13,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { StorageFullError } from '@/persistence/api'
 
 const HISTORY_FULL: NonNullable<TaskPass['error']> = { key: 'ui.office.edition.history.full' }
+
 /** The refresh reports under the name the daemon's own pass uses, so the page's task list reads the
  *  same on both editions; a pass that found no room says so. */
 const REFRESH_PASS = {
@@ -20,6 +21,7 @@ const REFRESH_PASS = {
   everyMs: RETENTION_INTERVAL_MS,
   failure: (err: unknown) => (err instanceof StorageFullError ? HISTORY_FULL : undefined),
 }
+
 /** Works only while a first refresh is loading the history the factor board reads. */
 const HISTORY_TASK = 'browser.history'
 

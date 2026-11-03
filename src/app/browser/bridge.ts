@@ -6,7 +6,7 @@ import type { DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/w
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
-import { type DbFileVerdict, validateDbFile } from '@/app/browser/db-file'
+import { type DbFileVerdict, judgeDbFile } from '@/app/browser/db-file'
 import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
 import { handleHttp } from '@/app/server/http/dispatch'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
@@ -294,7 +294,7 @@ async function replaceDatabase(ctx: BridgeContext, bytes: Uint8Array): Promise<R
     return { outcome: 'failed' }
   }
 
-  const verdict = await validateDbFile(root.files, bytes, ctx.logger)
+  const verdict = await judgeDbFile(root.files, bytes, ctx.logger)
 
   if (verdict !== 'ok') {
     return { outcome: VERDICT_OUTCOME[verdict] }
