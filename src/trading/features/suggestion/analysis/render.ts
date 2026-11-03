@@ -1,4 +1,3 @@
-import type { BudgetHaltDetail } from '@/core/errors'
 import type { Locale } from '@/core/types/locale'
 import type { AnalysisFailure, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { ArguingRole } from '@/trading/features/suggestion/debate/claims'
@@ -33,12 +32,13 @@ const SIDES = {
 
 const SIDE_ORDER = Object.freeze(['bull-researcher', 'bear-researcher'] as const)
 
-/** The ceilings a call is refused at before it is sent, when its estimated cost would cross one. */
-const SPEND_CAP_CAUSES: readonly BudgetHaltDetail[] = Object.freeze([
-  'run_budget',
-  'daily_cap',
-  'monthly_cap',
-  'agent_daily_cap',
+/** The ceilings a call is refused at before it is sent, when its estimated cost would cross one: a
+ *  single call above the run's ceiling, which a cheaper model fixes, or a period already spent. */
+const SPEND_CAP_KEYS = new Map<unknown, MessageKey>([
+  ['run_budget', 'trading.analysis.over-cap'],
+  ['daily_cap', 'trading.analysis.cap-spent'],
+  ['monthly_cap', 'trading.analysis.cap-spent'],
+  ['agent_daily_cap', 'trading.analysis.cap-spent'],
 ])
 
 /** Both sides, what the evidence refuted, and what would make each wrong, in the reader's language.
@@ -175,8 +175,10 @@ export function renderAnalysisFailure(locale: Locale, failure: AnalysisFailure):
 }
 
 function reasonKeyOf(cause: unknown): MessageKey {
-  if (SPEND_CAP_CAUSES.some((code) => code === cause)) {
-    return 'trading.analysis.over-cap'
+  const capKey = SPEND_CAP_KEYS.get(cause)
+
+  if (capKey !== undefined) {
+    return capKey
   }
 
   const known = LLM_ERROR_CODES.find((code) => code === cause)

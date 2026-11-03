@@ -5802,6 +5802,7 @@
     "analysis.web-scope": "The web edition gives you both sides to weigh yourself. See how it differs from the installed version.",
     "analysis.not-finished": "I could not finish this analysis ({reason}), so I saved nothing.",
     "analysis.over-cap": "one call's estimated cost is above the spend cap; try a cheaper model",
+    "analysis.cap-spent": "the spend cap for this period is used up; try again once it resets",
     "analysis.progress.cases": "{ticker} · Analysis {step}/{total}: weighing the case for a rise and a fall…",
     "debate.lean.requested": "this run asked for the shallow depth",
     "debate.lean.configured": "config sets the shallow depth",
