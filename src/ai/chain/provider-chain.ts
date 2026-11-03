@@ -175,7 +175,7 @@ export function createProviderChain(deps: ProviderChainDeps): ProviderChain {
     },
     estimateMaxCost: (input) =>
       estimateChainCeiling(
-        { entries: deps.entries, tuning: deps.tuning, pricing: deps.pricing },
+        { entries: withHeldCredentials(deps.entries), tuning: deps.tuning, pricing: deps.pricing },
         input
       ),
   }
