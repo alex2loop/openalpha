@@ -25,20 +25,22 @@ import { MS_PER_DAY } from '@/core/utils/time'
 import { type MessageKey, pluralKey, t } from '@/i18n'
 import {
   ALL_TABLES,
+  countRetention,
+  effectiveHistoryDays,
+  type RetentionConfig,
+  type RetentionCounts,
+  runRetention,
+  TABLE_NAME_WIDTH,
+} from '@/persistence/api'
+import {
   BACKUPS_SUBDIR,
   backupAndPrune,
   backupSqlite,
   backupTarget,
-  countRetention,
-  effectiveHistoryDays,
   openPersistence,
-  type RetentionConfig,
-  type RetentionCounts,
   resetPersistence,
   restoreSqlite,
-  runRetention,
-  TABLE_NAME_WIDTH,
-} from '@/persistence/api'
+} from '@/persistence/node-api'
 import { HISTORY_FLOOR_DAYS } from '@/trading/api'
 
 const dbIntegrityCommand = createCommand({

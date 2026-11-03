@@ -157,6 +157,11 @@ const WEB_DIR = `${SRC}/web/`
 // index.ts sits above every module, like `app`, and is checked, not skipped.
 const BARREL_DEPS: readonly string[] = [...(ALLOWED.app ?? []), 'app']
 const NO_DEEP_ALLOW: ReadonlySet<string> = new Set()
+// `@/<module>/node-api` carries a module's Bun/Node-only exports. The browser bundle never reaches
+// one, so only the surfaces that run on the host import it: `app`, `cli` and the SDK barrel.
+const NODE_API_SUBPATH = 'node-api'
+const API_SUBPATH = 'api'
+const NODE_API_IMPORTERS: ReadonlySet<string> = new Set(['app', 'cli', 'index.ts'])
 // i18n is a single-file leaf; only the bare specifier is importable.
 const KERNEL_MODULES = new Set(['core', 'i18n'])
 const MODULE_NAME_RE = /^[a-z0-9-]+$/
@@ -275,6 +280,17 @@ const wireIssue = (file: string, specifier: string): string | null => {
   return `wire/ may import only wire/ and core/types, not '${specifier}'`
 }
 
+// A module's two doors stay disjoint: one importing the other would drag the Node half into the
+// portable one, or the portable half in twice.
+const isDoorCrossing = (file: string, depModule: string, subpath: string | undefined): boolean => {
+  const doorOf = (name: string): string => `${SRC}/${depModule}/${name}.ts`
+
+  return (
+    (file === doorOf(API_SUBPATH) && subpath === NODE_API_SUBPATH) ||
+    (file === doorOf(NODE_API_SUBPATH) && subpath === API_SUBPATH)
+  )
+}
+
 const checkFile = (file: string, importer: Importer, source: string): void => {
   for (const found of scanImports(source)) {
     const wire = wireIssue(file, found.specifier)
@@ -300,6 +316,15 @@ const checkFile = (file: string, importer: Importer, source: string): void => {
       const target = resolveRelative(file, found.specifier)
       const targetModule = target ? moduleOf(target) : null
       if (targetModule && targetModule !== importer.name) depModule = targetModule
+    }
+
+    if (depModule === importer.name && isDoorCrossing(file, depModule, subpath)) {
+      violations.push({
+        file,
+        line: lineAt(source, found.index),
+        message: `'@/${depModule}/api' and '@/${depModule}/node-api' never re-export each other`,
+      })
+      continue
     }
 
     if (!depModule || depModule === importer.name) continue
@@ -333,7 +358,18 @@ const checkFile = (file: string, importer: Importer, source: string): void => {
       continue
     }
 
-    if (subpath !== 'api' && !importer.deepAllow.has(found.specifier)) {
+    if (subpath === NODE_API_SUBPATH) {
+      if (!NODE_API_IMPORTERS.has(importer.name)) {
+        violations.push({
+          file,
+          line,
+          message: `'@/${depModule}/node-api' is imported only by app and cli`,
+        })
+      }
+      continue
+    }
+
+    if (subpath !== API_SUBPATH && !importer.deepAllow.has(found.specifier)) {
       violations.push({
         file,
         line,

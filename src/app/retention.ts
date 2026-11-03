@@ -8,14 +8,13 @@ import { pruneRemovedAgentLogs } from '@/core/logging/retention'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
 import { pruneExpiredRunCaches, pruneExpiredWorkspaceTmp } from '@/engine/api'
+import { optimizeSqlite, runRetention } from '@/persistence/api'
 import {
   BACKUPS_SUBDIR,
   backupAndPrune,
   backupTarget,
   newestBackupAt,
-  optimizeSqlite,
-  runRetention,
-} from '@/persistence/api'
+} from '@/persistence/node-api'
 import { HISTORY_FLOOR_DAYS } from '@/trading/api'
 
 const RETENTION_INTERVAL_MS = 6 * MS_PER_HOUR

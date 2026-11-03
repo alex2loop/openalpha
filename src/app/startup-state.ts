@@ -1,11 +1,9 @@
-import { join } from 'node:path'
-
 import type { App } from '@/core/container'
 import type { UnrecordedSpend, UnrecordedSpendLoad } from '@/engine/api'
 import { formatErrForLog } from '@/core/security/credentials'
 import { dayBoundsInZone } from '@/core/utils/time'
 import { RUN_LEASE_SLACK_MS } from '@/engine/api'
-import { BACKUPS_SUBDIR, migrate } from '@/persistence/api'
+import { migrateWithBackup } from '@/persistence/node-api'
 
 export async function hydrateStartupState(app: App, mode: 'cli' | 'daemon'): Promise<void> {
   await migrateStartupSchema(app)
@@ -24,8 +22,8 @@ export async function hydrateStartupState(app: App, mode: 'cli' | 'daemon'): Pro
 
 // Idempotent, and the first thing to touch the database: every store below assumes its tables exist.
 export async function migrateStartupSchema(app: App): Promise<void> {
-  await migrate(app.resolve('storage'), app.resolve('dialect'), {
-    backupDir: join(app.config.paths.dataDir, BACKUPS_SUBDIR),
+  await migrateWithBackup(app.resolve('storage'), app.resolve('dialect'), {
+    dataDir: app.config.paths.dataDir,
     logger: app.resolve('logger'),
   })
 }

@@ -37,7 +37,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { ensurePrivateDirectory } from '@/core/security/private-files'
 import { WORKSPACES_DIR_NAME } from '@/engine/api'
 import { hasOwnMessage } from '@/i18n'
-import { openPersistence } from '@/persistence/api'
+import { openPersistence } from '@/persistence/node-api'
 import { assertSpawnToolsRegistered } from '@/tools/api'
 import { createTradingRegistrationProvider, createTradingStoresProvider } from '@/trading/api'
 

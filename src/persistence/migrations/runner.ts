@@ -1,16 +1,11 @@
-import { join } from 'node:path'
-
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage, Transaction } from '@/core/types/storage'
 import type { Migration } from '@/persistence/types'
-import { BRAND } from '@/core/brand'
-import { OperatorConfigError } from '@/core/config/operator-errors'
 import { StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { BACKUPS_SUBDIR, backupAndPrune, backupTarget } from '@/persistence/backup'
+import { SchemaAheadError } from '@/persistence/errors'
 import { MIGRATIONS } from '@/persistence/migrations/registry.generated'
 
-const PRE_MIGRATION_SUBDIR = 'pre-migration'
 // Any stable string works: hashtext(...) only needs a consistent input so every process derives
 // the same advisory-lock key. Distinct from any other lock name used elsewhere (e.g. the ledger's).
 const MIGRATION_LOCK_NAME = 'persistence_migrations'
@@ -28,8 +23,8 @@ export interface MigrateOptions {
   readonly logger: Logger
   /** Trading and plugins append theirs; ids must be unique and are applied in lexicographic order. */
   readonly migrations?: readonly Migration[]
-  /** Where to write a pre-migration snapshot (sqlite only). Omitted by `db reset` (nothing to snapshot). */
-  readonly backupDir?: string
+  /** Writes the pre-migration snapshot (sqlite only); the host owns where and how. Omitted by `db reset` (nothing to snapshot). */
+  readonly backup?: (db: Storage, dialect: Dialect) => Promise<void>
 }
 
 /** `orphan` = applied to this DB but no longer declared — a downgrade or a deleted migration. */
@@ -79,26 +74,10 @@ export async function migrate(
   )
 
   if (result.orphans.length > 0) {
-    throw schemaAheadError(result.orphans)
+    throw new SchemaAheadError(result.orphans)
   }
 
   return result.applied
-}
-
-/** A database a newer release migrated is one this binary cannot reason about: an older release
- *  reading it misreads rows (a revoked chat read as approved), so it stops before touching it. */
-function schemaAheadError(orphans: readonly string[]): OperatorConfigError {
-  return new OperatorConfigError(
-    `database schema is ahead of this release: ${orphans.join(', ')}`,
-    {
-      key: 'errors.dbSchemaAhead',
-      params: {
-        upgrade: `${BRAND.name} upgrade`,
-        restore: `${BRAND.name} db restore <file>`,
-        folder: join(BACKUPS_SUBDIR, PRE_MIGRATION_SUBDIR),
-      },
-    }
-  )
 }
 
 function undeclaredIds(
@@ -120,7 +99,7 @@ interface MaybeBackupOptions {
 async function maybeBackupBeforeMigrating(input: MaybeBackupOptions): Promise<void> {
   const { db, dialect, migrations, options } = input
 
-  if (dialect.name !== 'sqlite' || options.backupDir === undefined) {
+  if (dialect.name !== 'sqlite' || options.backup === undefined) {
     return
   }
 
@@ -135,14 +114,7 @@ async function maybeBackupBeforeMigrating(input: MaybeBackupOptions): Promise<vo
     return
   }
 
-  const target = backupTarget(join(options.backupDir, PRE_MIGRATION_SUBDIR))
-
-  try {
-    await backupAndPrune({ db, target, logger: options.logger })
-    options.logger.info('migration.backup_taken', { path: target })
-  } catch (err: unknown) {
-    options.logger.warn('migration.backup_failed', { path: target, err: formatErrForLog(err) })
-  }
+  await options.backup(db, dialect)
 }
 
 /** Read-only counterpart of migrate(): what the DB has, what it is missing, what it no longer knows. */

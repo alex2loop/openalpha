@@ -6,9 +6,9 @@ import { t } from '@/i18n'
 import {
   MIGRATION_IDS_SQL,
   MIGRATIONS_TABLE,
-  openPersistence,
   POSTGRES_MIGRATIONS_TABLE_SQL,
 } from '@/persistence/api'
+import { openPersistence } from '@/persistence/node-api'
 
 import type { DoctorFinding, DoctorStatus } from './types'
 import { migrationFinding } from './local-probes'
