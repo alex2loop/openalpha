@@ -31,7 +31,7 @@ import type {
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
-import type { BookReads } from '@/trading/wiring/composition/edition'
+import type { BookReads, TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import { createAlertService } from '@/trading/features/alerts/alerts'
 import { createBriefService } from '@/trading/features/brief/brief'
@@ -93,6 +93,7 @@ interface DomainServiceDeps {
   readonly fx: FxRates
   /** What an edition that stores no suggestion answers itself; absent reads the store. */
   readonly reads?: Pick<BookReads, 'reduceVerdicts' | 'exitPlans'>
+  readonly briefOmits?: TradingEdition['briefOmits']
 }
 
 function buildProfiles(deps: DomainServiceDeps): ProfileService {
@@ -396,6 +397,7 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
     sender: deps.sender,
     config: deps.config,
     logger: deps.logger,
+    ...(deps.briefOmits === undefined ? {} : { omitSections: deps.briefOmits }),
     createSuggestionBudget: () => deps.createSuggestionBudget(),
   })
 

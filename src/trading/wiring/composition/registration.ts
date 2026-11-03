@@ -325,6 +325,9 @@ function buildServices(
     skillVersions: skillVersions(),
     personaVersions: personaVersions(),
     ...(options.edition?.reads === undefined ? {} : { reads: options.edition.reads }),
+    ...(options.edition?.briefOmits === undefined
+      ? {}
+      : { briefOmits: options.edition.briefOmits }),
   })
 
   return {

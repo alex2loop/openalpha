@@ -9,7 +9,6 @@ import type {
   OverviewMoversWire,
   OverviewMoverWire,
   OverviewResponse,
-  ScreenResponse,
   SectorsResponse,
   SourcesResponse,
 } from '@/app/server/wire/market'
@@ -30,8 +29,6 @@ import type {
   MarketEventKind,
   MarketView,
   RiskLevel,
-  ScreenAnswer,
-  ScreenView,
   SessionPhase,
   SourceFreshness,
   SourceStatus,
@@ -76,33 +73,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   typedPrice: Same<Vocab.TypedPrice, TypedPrice>
 }
 
-type ScreenedCandidate = ScreenView['candidates'][number]
 type OverviewRow = MarketDataOverview['rows'][number]
-
-function toCandidateWire(candidate: ScreenedCandidate): ScreenResponse['candidates'][number] {
-  const quote = candidate.price?.quote
-
-  return {
-    instrument: toInstrumentWire(candidate.instrument),
-    ...(candidate.name === undefined ? {} : { name: candidate.name }),
-    ...(quote === undefined ? {} : { price: quote.price }),
-    ...(quote?.changePct === undefined ? {} : { changePct: quote.changePct }),
-  }
-}
-
-export function toScreenWire(market: string, answer: ScreenAnswer): ScreenResponse {
-  const { view, card } = answer
-
-  return {
-    market,
-    asOf: view.asOf,
-    ...(view.dataThroughDay === undefined ? {} : { dataThroughDay: view.dataThroughDay }),
-    board: view.board ?? 'rank',
-    universeSize: view.universeSize,
-    candidates: view.candidates.map(toCandidateWire),
-    card,
-  }
-}
 
 /** Absent for a market that never closes: it has neither hours nor a day. */
 function toSessionWire({ session, day }: MarketView): MarketSessionWire | undefined {

@@ -165,7 +165,9 @@ export const ROUTES = Object.freeze({
     route<OkAnswer>(`/v1/jobs/${encodeURIComponent(jobId)}/${action}`),
   board: route<BoardResponse>('/v1/board'),
   digest: route<DigestWire>('/v1/digest'),
-  sectors: route<SectorsResponse>('/v1/sectors'),
+  // The host runs these whole-market reads to its slow ceiling (they may refresh a cold market, or
+  // join the first history load on the web), so the page waits as long, as for `marketSession`.
+  sectors: route<SectorsResponse>('/v1/sectors', undefined, { timeout: 'slow' }),
   indexContributors: route<IndexContributorsResponse>('/v1/index-contributors'),
   indexValuation: route<IndexValuationResponse>('/v1/index-valuation'),
   chatRecent: route<ChatRecentResponse>('/v1/chat/recent'),
@@ -174,7 +176,7 @@ export const ROUTES = Object.freeze({
   chatSessions: route<ChatSessionsResponse>('/v1/chat/sessions'),
   chatSessionDelete: (sessionId: string) =>
     route<ChatSessionDeletedWire>(`/v1/chat/sessions/${encodeURIComponent(sessionId)}`),
-  overview: route<OverviewResponse>('/v1/overview'),
+  overview: route<OverviewResponse>('/v1/overview', undefined, { timeout: 'slow' }),
   markets: route<MarketsResponse>('/v1/markets'),
   quotes: route<TradingQuotesResponse>('/v1/quotes', 'quotes'),
   portfolio: route<TradingPortfolioResponse>('/v1/portfolio', 'portfolio'),
@@ -218,10 +220,10 @@ export const ROUTES = Object.freeze({
   analyses: route<AnalysesResponse>('/v1/analyses'),
   // Only the web edition serves it.
   storage: route<StorageStatusResponse>('/v1/storage'),
-  screen: route<ScreenResponse>('/v1/screen'),
+  screen: route<ScreenResponse>('/v1/screen', undefined, { timeout: 'slow' }),
   trackRecord: route<TradingTrackRecordResponse>('/v1/track-record', 'suggestions'),
   research: route<ResearchResponse>('/v1/research'),
-  macro: route<MacroResponse>('/v1/macro'),
+  macro: route<MacroResponse>('/v1/macro', undefined, { timeout: 'slow' }),
   // It reads the sources for the session, so the daemon may run it to its slow ceiling.
   marketSession: route<MarketSessionResponse>('/v1/market', undefined, { timeout: 'slow' }),
   themes: route<ThemesResponse>('/v1/themes', undefined, { daemonOnly: true }),

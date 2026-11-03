@@ -4,12 +4,27 @@
 import type { InstrumentRefWire, TradingWireCaveat } from '@/app/server/wire/trading'
 import type { SessionPhase, TypedPrice } from '@/app/server/wire/vocab'
 
-/** A ranked name's identity and live price; what the board says about it is in `card`. */
+/** What one factor read for a name of a `list` board. */
+interface ScreenFactorWire {
+  readonly id: string
+  /** The factor's name in the operator's language. */
+  readonly label: string
+  /** The factor's score for this name, from -1 to +1. */
+  readonly value: number
+  /** Percent-valued, 0-100: the share of the board's names this score is above. Absent where fewer
+   *  than two names carry the factor, which leaves nothing to place it against. */
+  readonly percentile?: number
+}
+
+/** A name's identity and live price; on a ranked board what the board says about it is in `card`,
+ *  on a `list` board its factors are here. */
 interface ScreenCandidateWire {
   readonly instrument: InstrumentRefWire
   readonly name?: string
   readonly price?: number
   readonly changePct?: number
+  /** `list` boards only: the factors that fired for the name, in a fixed order. */
+  readonly factors?: readonly ScreenFactorWire[]
 }
 
 /** One ranked name as `/screen` prints it: its row, then the caution, prices and top factors. */
@@ -30,15 +45,24 @@ interface ScreenCardWire {
   readonly caveats: readonly string[]
 }
 
-/** GET /v1/screen?market&kind&limit — ranked best first; no limit is the board `/screen` prints.
- *  `board: 'gate'` states per name whether it cleared, with no rank. */
+/** GET /v1/screen?market&kind&limit&cursor — ranked best first; no limit is the board `/screen`
+ *  prints. `board: 'gate'` states per name whether it cleared, with no rank. `board: 'list'` is an
+ *  edition that ranks nothing: every priced name in ticker order, a page of `limit` names from
+ *  `cursor` with `next` for the one after, each with its factors' scores and percentiles, and no
+ *  composite, rating or rank anywhere, `card` included. */
 export interface ScreenResponse {
   readonly market: string
   readonly asOf: string
   readonly dataThroughDay?: string
-  readonly board: 'rank' | 'gate'
+  readonly board: 'rank' | 'gate' | 'list'
   readonly universeSize: number
   readonly candidates: readonly ScreenCandidateWire[]
+  /** `list` boards only: the names on the whole board, not just this page. */
+  readonly total?: number
+  /** `list` boards only: the cursor of the next page; absent on the last. */
+  readonly next?: string
+  /** `list` boards only: names that cleared the gates but had no price, so are not listed. */
+  readonly unpriced?: number
   /** The lines `/screen` prints for this board, in the operator's language; the app shows them as
    *  is, so the board reads the same in the app, the CLI and Telegram. */
   readonly card: ScreenCardWire

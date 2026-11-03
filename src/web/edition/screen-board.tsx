@@ -3,45 +3,51 @@ import { signal } from '@preact/signals'
 import type { ScreenResponse } from '@/app/server/wire/market'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { DataStatus } from '@/web/edition/data-status'
+import {
+  type BoardFactor,
+  boardFactors,
+  type Candidate,
+  FACTOR_SORT_PREFIX,
+  SORT_BASE_KEYS,
+  type SortDirection,
+  sortCandidates,
+} from '@/web/edition/screen-sort'
 import { useBlockRead } from '@/web/state/block'
 import { openTicker } from '@/web/state/known-tickers'
 import { printDisplayOf } from '@/web/state/market'
-import { formatPrice, formatSignedPercent } from '@/web/text/figures'
+import { formatFixed, formatPrice, formatSignedPercent } from '@/web/text/figures'
+import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
-import { Segmented } from '@/web/ui/kit/segmented'
 import { AnalyzeButton } from '@/web/ui/ticker/analyze-button'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
-/** The most names one read of the board returns (the daemon's own cap). */
-const SCREEN_READ_LIMIT = 50
+/** The names one page of the board holds (the most `/v1/screen` serves at a time). */
+const SCREEN_PAGE_LIMIT = 50
+/** A board of two thousand names is not a screen; the loop ends there however the answers read. */
+const MAX_SCREEN_PAGES = 40
+const FACTOR_VALUE_DIGITS = 2
 
-type SortKey = 'ticker' | 'price' | 'change'
-type SortDirection = 'asc' | 'desc'
-type Candidate = ScreenResponse['candidates'][number]
-
-const SORT_KEYS = Object.freeze(['ticker', 'price', 'change'] as const)
 const SORT_LABELS = Object.freeze({
   ticker: 'ui.office.edition.screen.sort.ticker',
   price: 'ui.office.edition.screen.sort.price',
   change: 'ui.office.edition.screen.sort.change',
-} as const satisfies Record<SortKey, string>)
+} as const)
 
 // The visitor's choice. It starts on the ticker's own letters: an order that says nothing about
 // which name is better, and the one control that is always there to change.
-const sortKey = signal<SortKey>('ticker')
+const sortKey = signal<string>('ticker')
 const sortDirection = signal<SortDirection>('asc')
 
-/** Màn lọc on the web: the names the market read returned, with their price and move, in the order
- *  the visitor picks. The page ranks nothing and rates nothing: it prints figures and the control
- *  that orders them. */
+/** Màn lọc on the web: every priced name the market read returned, with its price and move and what
+ *  each factor read for it and where that sits on the board, in the order the visitor picks. The
+ *  page ranks nothing and rates nothing: it prints figures and the control that orders them. */
 export function ScreenBoard({ market }: { readonly market: string }) {
-  const reading = useBlockRead(
-    (abort) =>
-      getJson(ROUTES.screen, { query: { market, limit: SCREEN_READ_LIMIT }, signal: abort }),
-    { capability: ROUTES.screen.capability }
-  )
+  const reading = useBlockRead((abort) => readBoard(market, abort), {
+    capability: ROUTES.screen.capability,
+  })
 
   return (
     <BlockFrame
@@ -56,17 +62,52 @@ export function ScreenBoard({ market }: { readonly market: string }) {
   )
 }
 
+// The board is read whole, a page at a time, so the visitor sorts every name and not a page of them.
+async function readBoard(market: string, abort: AbortSignal): Promise<ScreenResponse> {
+  const first = await readPage({ market, abort })
+  const names = [...first.candidates]
+  let cursor = first.next
+
+  for (let page = 1; cursor !== undefined && page < MAX_SCREEN_PAGES; page++) {
+    const answer = await readPage({ market, cursor, abort })
+
+    names.push(...answer.candidates)
+    cursor = answer.next
+  }
+
+  return { ...first, candidates: names }
+}
+
+interface PageRead {
+  readonly market: string
+  readonly cursor?: string
+  readonly abort: AbortSignal
+}
+
+function readPage({ market, cursor, abort }: PageRead): Promise<ScreenResponse> {
+  return getJson(ROUTES.screen, {
+    query: { market, limit: SCREEN_PAGE_LIMIT, ...(cursor === undefined ? {} : { cursor }) },
+    signal: abort,
+  })
+}
+
 function Names({ board, market }: { readonly board: ScreenResponse; readonly market: string }) {
   if (board.candidates.length === 0) {
     return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
+  const factors = boardFactors(board.candidates)
   const sorted = sortCandidates(board.candidates, sortKey.value, sortDirection.value)
 
   return (
     <>
-      <p class="meta">{tr('ui.office.edition.screen.note')}</p>
-      <SortBar />
+      <DataStatus />
+      {board.card.notes.map((line) => (
+        <p key={line} class="meta">
+          {line}
+        </p>
+      ))}
+      <SortBar factors={factors} />
       {sorted.map((candidate) => (
         <NameRow key={candidate.instrument.ticker} candidate={candidate} market={market} />
       ))}
@@ -79,17 +120,29 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
   )
 }
 
-function SortBar() {
+function SortBar({ factors }: { readonly factors: readonly BoardFactor[] }) {
+  const label = tr('ui.office.edition.screen.sortBy')
+
   return (
     <div class="sort-bar">
-      <Segmented
-        label={tr('ui.office.edition.screen.sortBy')}
+      <select
+        aria-label={label}
         value={sortKey.value}
-        options={SORT_KEYS.map((value) => ({ value, label: tr(SORT_LABELS[value]) }))}
-        onChange={(value) => {
-          sortKey.value = value
+        onChange={(event) => {
+          sortKey.value = event.currentTarget.value
         }}
-      />
+      >
+        {SORT_BASE_KEYS.map((key) => (
+          <option key={key} value={key}>
+            {tr(SORT_LABELS[key])}
+          </option>
+        ))}
+        {factors.map(({ id, label: name }) => (
+          <option key={id} value={`${FACTOR_SORT_PREFIX}${id}`}>
+            {name}
+          </option>
+        ))}
+      </select>
       <Button
         size="small"
         onClick={() => {
@@ -128,6 +181,11 @@ function NameRow({
             ? ''
             : ` · ${formatSignedPercent(candidate.changePct)}`}
         </p>
+        {(candidate.factors ?? []).map((factor) => (
+          <p key={factor.id} class="meta">
+            {factorLine(factor)}
+          </p>
+        ))}
       </div>
       <div class="opportunity-ask">
         <AnalyzeButton name={`${market}:${ticker}`} isAnalyzed={false} size="small" />
@@ -136,30 +194,14 @@ function NameRow({
   )
 }
 
-// A name with no figure for the chosen key goes last in either direction, so a gap is never read as
-// the smallest or the largest.
-function sortCandidates(
-  candidates: readonly Candidate[],
-  key: SortKey,
-  direction: SortDirection
-): readonly Candidate[] {
-  const sign = direction === 'asc' ? 1 : -1
+function factorLine(factor: NonNullable<Candidate['factors']>[number]): string {
+  const value = `${factor.value > 0 ? '+' : ''}${formatFixed(factor.value, FACTOR_VALUE_DIGITS)}`
 
-  return [...candidates].sort((a, b) =>
-    key === 'ticker'
-      ? sign * a.instrument.ticker.localeCompare(b.instrument.ticker)
-      : compareFigures(figureOf(a, key), figureOf(b, key), sign)
-  )
-}
-
-function figureOf(candidate: Candidate, key: 'price' | 'change'): number | undefined {
-  return key === 'price' ? candidate.price : candidate.changePct
-}
-
-function compareFigures(left: number | undefined, right: number | undefined, sign: number): number {
-  if (left === undefined) {
-    return right === undefined ? 0 : 1
-  }
-
-  return right === undefined ? -1 : sign * (left - right)
+  return factor.percentile === undefined
+    ? joinInline([factor.label, value])
+    : tr('ui.office.edition.screen.factorLine', {
+        label: factor.label,
+        value,
+        pct: formatFixed(factor.percentile, 0),
+      })
 }

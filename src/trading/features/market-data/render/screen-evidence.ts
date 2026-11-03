@@ -12,6 +12,7 @@ import { screenRating } from '@/trading/markets/screen-rating'
 import { toFoldLines } from '@/trading/render/fold'
 import {
   formatCount,
+  formatPercentRank,
   formatScoreValue,
   formatWholeFraction,
   renderDeclaredValue,
@@ -48,6 +49,43 @@ export function renderCandidateBlock(
   board: ScreenBoard
 ): readonly string[] {
   return [renderRow(locale, row), ...candidateEvidenceLines(locale, row.candidate, board)]
+}
+
+/** One name of a board listing: who it is, its prices, then what each factor read and where that
+ *  sits among the board's names. No rating, composite or rank, and no bar: those would order the
+ *  list by merit, which the reader's own sort is there to do. Factors in a fixed order, so two names
+ *  line up. */
+export function renderBoardBlock(
+  locale: Locale,
+  candidate: ScreenedCandidate,
+  board: ScreenBoard
+): readonly string[] {
+  const { ticker } = candidate.instrument
+  const heading =
+    candidate.name === undefined ? ticker : `${ticker}${INLINE_SEPARATOR}${candidate.name.trim()}`
+
+  return [
+    `${INDENT[1]}${heading}`,
+    ...renderCandidatePrices(locale, candidate, board),
+    ...candidate.factors
+      .filter((factor) => factor.weight !== undefined)
+      .toSorted((left, right) => left.id.localeCompare(right.id))
+      .map((factor) => `${INDENT[2]}${renderBoardFactor(locale, factor, candidate.percentiles)}`),
+  ]
+}
+
+function renderBoardFactor(
+  locale: Locale,
+  factor: ScreenedCandidate['factors'][number],
+  percentiles: ScreenedCandidate['percentiles']
+): string {
+  const percentile = percentiles?.[factor.id]
+  const parts = [
+    `${renderDeclaredValue(locale, `trading.factor.${factor.id}`)} ${formatScoreValue(locale, factor.score)}`,
+    ...(percentile === undefined ? [] : [formatPercentRank(locale, percentile)]),
+  ]
+
+  return parts.join(INLINE_SEPARATOR)
 }
 
 /** Rank, verdict, and the composite the rank was taken on: the band alone cannot say whether the

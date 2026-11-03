@@ -248,25 +248,18 @@ function boardMethods(
   return {
     // An unregistered market is refused inside the service, the one holder of the registry.
     screen: (request) =>
-      scopedSlow(deps, request.signal, async (scope) => {
-        const kind =
-          request.instrumentKind === undefined ? {} : { instrumentKind: request.instrumentKind }
-        const view = await deps.services.marketData.screen({
+      scopedSlow(deps, request.signal, (scope) =>
+        deps.services.appViews.screen({
           market: request.market,
+          ...(request.instrumentKind === undefined
+            ? {}
+            : { instrumentKind: request.instrumentKind }),
           limit: bounded(request.limit, deps.limits.maximumScreenCandidates),
-          ...kind,
           now: scope.now,
           signal: scope.signal,
-        })
-        const card = deps.services.appViews.screen({
-          market: request.market,
-          ...kind,
-          view,
           locale: deps.defaultLocale,
         })
-
-        return { view, card }
-      }),
+      ),
 
     getOverview: (signal) =>
       scopedSlow(deps, signal, (scope) =>

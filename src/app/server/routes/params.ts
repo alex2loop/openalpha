@@ -176,6 +176,18 @@ export function parseLimit(raw: string | null, maximum: number): number | null {
   return Number.isInteger(value) && value > 0 && value <= maximum ? value : null
 }
 
+/** Where a page of a list starts, as the previous page's `next` said: whole, non-negative, safe.
+ *  Absent is the start; `null` when malformed (400). */
+export function parsePageOffset(raw: string | null): number | null {
+  if (raw === null) {
+    return 0
+  }
+
+  const value = DIGITS_RE.test(raw) ? Number(raw) : Number.NaN
+
+  return Number.isSafeInteger(value) ? value : null
+}
+
 /** An epoch-ms cursor (`before`); `null` when it is not a safe non-negative integer (400). */
 function parseEpochMs(raw: string): number | null {
   const value = DIGITS_RE.test(raw) ? Number(raw) : Number.NaN

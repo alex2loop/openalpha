@@ -25,10 +25,12 @@ export interface AgentRecordSummary extends AgentRecordView {
   readonly lines: readonly string[]
 }
 
-/** A screen read with the CLI's own lines for it. */
+/** A screen read with the CLI's own lines for it. A `board` view also names the factors it reads, in
+ *  the operator's language, keyed by factor id. */
 export interface ScreenAnswer {
   readonly view: ScreenView
   readonly card: ScreenCard
+  readonly factorLabels?: Readonly<Record<string, string>>
 }
 
 /** A holding's planned stop, and who stands behind it at the exchange. `cover` is absent where

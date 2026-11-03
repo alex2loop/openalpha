@@ -1,9 +1,11 @@
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefServices } from '@/trading/features/brief/types'
+import type { ScreenForm } from '@/trading/features/market-data/types'
 import type { RebalanceForm, ReduceVerdicts } from '@/trading/features/portfolio/types'
 import type { SuggestAnalysis } from '@/trading/features/suggestion/command'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
+import type { BriefSectionKind } from '@/trading/kernel/operator/brief-section'
 import type { MarketDeps } from '@/trading/markets/deps'
 
 /** The reads of a book that holds no suggestion and plans no exit: each answers empty, which every
@@ -38,6 +40,10 @@ export interface TradingEdition {
   readonly suggest?: SuggestAnalysis
   /** How a rebalance plan is written: as orders, or as the gaps to the plan. */
   readonly rebalance?: RebalanceForm
+  /** How a screen answers: the best names ranked, or every priced name for the reader to sort. */
+  readonly screen?: ScreenForm
+  /** Brief sections left out: each reads as omitted, which every surface already hides. */
+  readonly briefOmits?: ReadonlySet<BriefSectionKind>
   /** What an edition that stores no suggestion and plans no exit answers itself. */
   readonly reads?: BookReads
   /** See `MarketDeps.pagedBackfill`. */

@@ -5,9 +5,10 @@ import type { InstrumentKind, MarketRef, PriceDisplay } from '@/trading/kernel/i
 import type { ScreenResult } from '@/trading/kernel/market/market-capability'
 import type { ScreenRating } from '@/trading/markets/screen-rating'
 import type { RenderContext } from '@/trading/render/format'
-import { t } from '@/i18n'
+import { pluralKey, t } from '@/i18n'
 import {
   metricsFold,
+  renderBoardBlock,
   renderCandidateBlock,
 } from '@/trading/features/market-data/render/screen-evidence'
 import {
@@ -46,6 +47,8 @@ interface ScreenRenderRequest {
   /** Named when the board was narrowed to one kind. A market that screens both equities and ETFs
    *  produces two boards that are otherwise indistinguishable in the output. */
   readonly instrumentKind?: InstrumentKind
+  /** Names of a board listing printed in text; absent prints them all. */
+  readonly shown?: number
 }
 
 export function renderScreenText(
@@ -53,6 +56,10 @@ export function renderScreenText(
   request: ScreenRenderRequest,
   result: ScreenView
 ): string {
+  if (result.form === 'board') {
+    return renderBoardText(locale, request, result)
+  }
+
   if (result.candidates.length === 0) {
     // An empty universe never reached the gates, so saying nothing cleared them names the wrong
     // cause; the caveat below carries the real one.
@@ -109,6 +116,10 @@ export function renderScreenCard(
   request: ScreenRenderRequest,
   result: ScreenView
 ): ScreenCard {
+  if (result.form === 'board') {
+    return renderBoardCard(locale, request, result)
+  }
+
   const board = boardOf(request, result)
   const empty = result.candidates.length === 0
 
@@ -144,6 +155,115 @@ export function renderScreenCard(
     movers: trimmed(renderMoverLines(locale, result.movers)),
     caveats: trimmed(renderCaveatLines(locale, result.caveats)),
   }
+}
+
+/** The whole priced board in ticker order, each name with its prices and its factors' readings. A
+ *  chat holds a screenful, so `shown` cuts how many names print, never which are on the board. */
+function renderBoardText(locale: Locale, request: ScreenRenderRequest, result: ScreenView): string {
+  const board = boardOf(request, result)
+  const shown = result.candidates.slice(0, request.shown ?? result.candidates.length)
+
+  return joinSections([
+    [
+      `${renderSectionTitle(SECTION_ICONS.screen, renderBoardTitle(locale, request, result))}${renderAsOf(locale, result.dataThroughDay ?? result.asOf)}`,
+      ...renderBoardNotes(locale, request, result),
+      ...(shown.length < result.candidates.length
+        ? [
+            `${INDENT[1]}${t(locale, 'trading.render.screen.boardShown', {
+              shown: formatCount(locale, shown.length),
+              count: formatCount(locale, result.candidates.length),
+            })}`,
+          ]
+        : []),
+      ...shown.flatMap((candidate) => renderBoardBlock(locale, candidate, board)),
+      ...metricsFold(locale, shown, board),
+      ...renderProvenanceLine(locale, result.provenance, request.context.timezone),
+    ],
+    renderRejectionLines(locale, result.rejections),
+    renderCaveatLines(locale, result.caveats),
+  ])
+}
+
+/** The app lists the names itself, from the structured candidates; the card carries what surrounds
+ *  them. */
+function renderBoardCard(
+  locale: Locale,
+  request: ScreenRenderRequest,
+  result: ScreenView
+): ScreenCard {
+  return {
+    title: `${renderBoardTitle(locale, request, result)}${renderAsOf(locale, result.dataThroughDay ?? result.asOf)}`,
+    notes: trimmed(renderBoardNotes(locale, request, result)),
+    rows: [],
+    metrics: [],
+    provenance: trimmed(
+      result.candidates.length === 0
+        ? []
+        : renderProvenanceLine(locale, result.provenance, request.context.timezone)
+    ),
+    rejections: trimmed(renderRejectionLines(locale, result.rejections)),
+    movers: [],
+    caveats: trimmed(renderCaveatLines(locale, result.caveats)),
+  }
+}
+
+/** A board that priced nothing says so rather than reading as every name being filtered out. */
+function renderBoardTitle(
+  locale: Locale,
+  request: ScreenRenderRequest,
+  result: ScreenView
+): string {
+  const market = renderDeclaredValue(locale, `trading.market.${request.market}`)
+  const unpriced = result.unpriced ?? 0
+
+  if (result.candidates.length === 0) {
+    return unpriced > 0
+      ? t(locale, 'trading.render.screen.boardNoPrices', {
+          market,
+          count: formatCount(locale, unpriced),
+        })
+      : renderEmptyTitle(locale, request, result)
+  }
+
+  const count = formatCount(locale, result.candidates.length)
+
+  return request.instrumentKind === undefined
+    ? t(locale, 'trading.render.screen.boardTitle', { market, count })
+    : t(locale, 'trading.render.screen.boardTitleKind', {
+        market,
+        count,
+        kind: renderDeclaredValue(locale, `trading.instrument-kind.${request.instrumentKind}`),
+      })
+}
+
+function renderBoardNotes(
+  locale: Locale,
+  request: ScreenRenderRequest,
+  result: ScreenView
+): readonly string[] {
+  const unpriced = result.unpriced ?? 0
+
+  if (result.candidates.length === 0) {
+    return []
+  }
+
+  return [
+    ...renderBoardUnitLine(locale, request, result),
+    `${INDENT[1]}${t(locale, 'trading.render.screen.boardNote')}`,
+    ...(unpriced === 0
+      ? []
+      : [
+          `${INDENT[1]}${t(
+            locale,
+            pluralKey(
+              unpriced,
+              'trading.render.screen.boardUnpricedOne',
+              'trading.render.screen.boardUnpriced'
+            ),
+            { count: formatCount(locale, unpriced) }
+          )}`,
+        ]),
+  ]
 }
 
 function trimmed(lines: readonly string[]): readonly string[] {

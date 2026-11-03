@@ -1,4 +1,5 @@
 import type { SessionHours } from '@/trading/kernel/config'
+import type { FactorId } from '@/trading/kernel/factor'
 import type {
   BoardLotPolicy,
   CurrencyCode,
@@ -142,8 +143,16 @@ export interface MarketDataNewsRequest extends MarketDataRequest {
   readonly limit: number
 }
 
+/** How a screen answers. `ranked` is the best names by composite, as the installed version prints
+ *  them. `board` is every priced name in ticker order with what each factor read and where that sits
+ *  on the whole board: no composite, rating or rank, so the reader picks the order. */
+export type ScreenForm = 'ranked' | 'board'
+
 export interface MarketDataScreenRequest extends MarketDataMarketRequest {
+  /** Names printed when `ranked`; a `board` carries every priced name and the caller pages it. */
   readonly limit: number
+  /** Absent is `ranked`. */
+  readonly form?: ScreenForm
   readonly instrumentKind?: InstrumentKind
   /** Narrows the board to these sector slugs; a market that files none ignores it. */
   readonly sectors?: readonly string[]
@@ -158,6 +167,9 @@ export interface ExclusionReader {
 /** A ranked candidate plus what the operator's own policy says about it. The mark is never set by a
  *  market - a market ranks instruments and knows nothing about who is reading. */
 export interface ScreenedCandidate extends ScreenCandidate {
+  /** On a `board`: for each factor that fired, the share of the board's names whose reading of it is
+   *  below this one's, as a percent. Absent where no factor fired or the answer is `ranked`. */
+  readonly percentiles?: Readonly<Partial<Record<FactorId, number>>>
   readonly excluded?: true
   /** Off the exchange's margin list on the board's day. A broker will not lend against it, and the
    *  list is where every name under exchange supervision lands. */
@@ -166,6 +178,10 @@ export interface ScreenedCandidate extends ScreenCandidate {
 
 export interface ScreenView extends Omit<ScreenResult, 'candidates'> {
   readonly candidates: readonly ScreenedCandidate[]
+  /** `board` when the candidates are the whole priced board in ticker order. Absent is `ranked`. */
+  readonly form?: ScreenForm
+  /** On a `board`: names the board holds that had no price, so it left them out rather than guess. */
+  readonly unpriced?: number
 }
 
 export interface MarketDataService {

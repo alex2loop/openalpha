@@ -195,7 +195,12 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       config: deps.config,
       settings: deps.intradaySettings,
     }),
-    createScreenCommand({ marketData, timezone, ...screenDefaultMarket(deps) }),
+    createScreenCommand({
+      marketData,
+      timezone,
+      ...screenDefaultMarket(deps),
+      ...(deps.edition?.screen === undefined ? {} : { form: deps.edition.screen }),
+    }),
     createRefreshCommand({
       refreshMarketData: deps.refreshMarketData,
       markets: resolveRefreshMarkets(deps.markets),

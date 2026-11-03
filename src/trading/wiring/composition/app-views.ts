@@ -2,8 +2,11 @@ import type { CommandMessage } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
 import type { EpochRange } from '@/core/utils/time'
 import type { BriefDelivery, BriefService, BriefSnapshot } from '@/trading/features/brief/types'
-import type { ScreenCard } from '@/trading/features/market-data/render/screen'
-import type { MarketDataService, ScreenView } from '@/trading/features/market-data/types'
+import type {
+  MarketDataService,
+  ScreenForm,
+  ScreenView,
+} from '@/trading/features/market-data/types'
 import type { FocusCall } from '@/trading/features/suggestion/store/suggestion-outcome'
 import type {
   SuggestionService,
@@ -20,6 +23,7 @@ import type {
 import type { InstrumentKind, MarketRef, Region, TradingDay } from '@/trading/kernel/instrument'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
+import type { ScreenAnswer } from '@/trading/wiring/host/view-types'
 import { t } from '@/i18n'
 import { type BriefText, renderBriefForSurface } from '@/trading/features/brief/surface'
 import { renderMacroLean } from '@/trading/features/market-data/render/overview'
@@ -35,10 +39,12 @@ import { NOTICE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/tra
 
 interface AppViewDeps {
   readonly briefs: Pick<BriefService, 'getLatest' | 'reschedule' | 'hasOnDay'>
-  readonly marketData: Pick<MarketDataService, 'macroRisk' | 'quoteConvention'>
+  readonly marketData: Pick<MarketDataService, 'macroRisk' | 'quoteConvention' | 'screen'>
   readonly suggestions: Pick<SuggestionService, 'reflect' | 'modelRecords' | 'dayDigest'>
   readonly themes: Pick<ThemeService, 'show' | 'transition'>
   readonly timezone: string
+  /** How a screen answers on this edition; absent is the ranked board. */
+  readonly screenForm?: ScreenForm
 }
 
 /** What the host serves an app beside the data: the CLI's own lines for it, written in the operator's
@@ -107,12 +113,15 @@ export interface AppViews {
     readonly text: ReflectText
     readonly byModel: readonly ModelRecord[]
   }>
+  /** The board read and the lines the CLI prints for it, in the form this edition answers. */
   screen(request: {
     readonly market: MarketRef
     readonly instrumentKind?: InstrumentKind
-    readonly view: ScreenView
+    readonly limit: number
+    readonly now: number
+    readonly signal: AbortSignal
     readonly locale: Locale
-  }): ScreenCard
+  }): Promise<ScreenAnswer>
   themes(request: { readonly locale: Locale; readonly signal: AbortSignal }): Promise<ThemesView>
   changeTheme(request: {
     readonly themeId: ThemeId
@@ -122,18 +131,43 @@ export interface AppViews {
   }): Promise<ThemeChangeView>
 }
 
-function screenCard(deps: AppViewDeps, request: Parameters<AppViews['screen']>[0]): ScreenCard {
-  const display = deps.marketData.quoteConvention(request.market)?.display
-
-  return renderScreenCard(
-    request.locale,
+async function screen(
+  deps: AppViewDeps,
+  request: Parameters<AppViews['screen']>[0]
+): Promise<ScreenAnswer> {
+  const { market, instrumentKind, limit, now, signal, locale } = request
+  const kind = instrumentKind === undefined ? {} : { instrumentKind }
+  const view = await deps.marketData.screen({
+    market,
+    limit,
+    now,
+    signal,
+    ...kind,
+    ...(deps.screenForm === undefined ? {} : { form: deps.screenForm }),
+  })
+  const display = deps.marketData.quoteConvention(market)?.display
+  const card = renderScreenCard(
+    locale,
     {
-      market: request.market,
+      market,
       context: resolveRenderContext(deps.timezone, NOTICE_SURFACE),
       ...(display === undefined ? {} : { display }),
-      ...(request.instrumentKind === undefined ? {} : { instrumentKind: request.instrumentKind }),
+      ...kind,
     },
-    request.view
+    view
+  )
+
+  return view.form === 'board'
+    ? { view, card, factorLabels: factorLabels(view, locale) }
+    : { view, card }
+}
+
+/** Each factor a board's names read, named for the operator, so the app never owns a catalog key. */
+function factorLabels(view: ScreenView, locale: Locale): Readonly<Record<string, string>> {
+  const ids = new Set(view.candidates.flatMap((candidate) => candidate.factors.map(({ id }) => id)))
+
+  return Object.fromEntries(
+    [...ids].map((id) => [id, renderDeclaredValue(locale, `trading.factor.${id}`)])
   )
 }
 
@@ -212,9 +246,14 @@ async function dayDigest(
 
 export function buildAppViews(
   services: Pick<AppViewDeps, 'briefs' | 'marketData' | 'suggestions' | 'themes'>,
-  config: { readonly displayTimezone: string }
+  config: { readonly displayTimezone: string },
+  screenForm?: ScreenForm
 ): AppViews {
-  const deps: AppViewDeps = { ...services, timezone: config.displayTimezone }
+  const deps: AppViewDeps = {
+    ...services,
+    timezone: config.displayTimezone,
+    ...(screenForm === undefined ? {} : { screenForm }),
+  }
 
   return {
     rescheduleBrief: async (request) => {
@@ -240,7 +279,7 @@ export function buildAppViews(
     macro: (request) => macro(deps, request),
     trackRecord: (request) => trackRecord(deps, request),
     dayDigest: (request) => dayDigest(deps, request),
-    screen: (request) => screenCard(deps, request),
+    screen: (request) => screen(deps, request),
     themes: (request) => themes(deps, request),
     changeTheme: (request) => changeTheme(deps, request),
   }

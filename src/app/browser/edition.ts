@@ -1,7 +1,7 @@
 import type { BrowserKeyring } from '@/app/browser/keys'
 import type { App } from '@/core/container'
 import type { SlashContext, SlashResult } from '@/core/types/command'
-import type { BookReads, InstrumentRef, TradingEdition } from '@/trading/api'
+import type { BookReads, BriefSectionKind, InstrumentRef, TradingEdition } from '@/trading/api'
 import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
@@ -41,6 +41,10 @@ const MARKETS: ReadonlySet<ReturnType<typeof marketRef>> = new Set([
   marketRef('gold-vn'),
 ])
 
+/** Brief sections that rank names by composite: the watchlist ordered by score, and which names
+ *  entered or left the top of the board. The web ranks nothing. */
+const BRIEF_OMITS: ReadonlySet<BriefSectionKind> = new Set(['watchlist-leading', 'screen-delta'])
+
 const NEEDS_KEY = 'slash.tradingSuggestAnalysisNeedsKey'
 
 /** How many of the newest analyses name the instruments the visitor looked at. */
@@ -78,6 +82,8 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
       },
     },
     rebalance: 'gaps',
+    screen: 'board',
+    briefOmits: BRIEF_OMITS,
     reads: EMPTY_READS,
     pagedBackfill: true,
     viewed: ({ signal }) => viewedInstruments(app, signal),

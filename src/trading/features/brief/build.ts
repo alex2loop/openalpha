@@ -15,7 +15,7 @@ import type {
   TradingDay,
 } from '@/trading/kernel/instrument'
 import type { MarketBriefRequest } from '@/trading/kernel/market/market-capability'
-import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
@@ -30,6 +30,7 @@ import { profileRevisionOf } from '@/trading/features/profile/store'
 import { ticker } from '@/trading/kernel/instrument'
 import { disabledSegments } from '@/trading/kernel/operator/profile'
 import { isDeliverable } from '@/trading/markets/brief-deliverability'
+import { omitted } from '@/trading/markets/brief-sections'
 
 const BRIEF_WATCHLIST_LIMIT_PER_SCOPE = 20
 /** The section whose rows record which names were eligible on the day it was built. */
@@ -60,6 +61,8 @@ export interface BriefBuildDeps {
   readonly config: TradingConfig
   readonly ensure: EnsureMarketData
   readonly logger: Logger
+  /** Sections this edition leaves out of every brief it builds; absent builds them all. */
+  readonly omitSections?: ReadonlySet<BriefSectionKind>
   /** The brief's own budget; its two suggestion sections draw from this and never from a caller's
    *  parent run. */
   createSuggestionBudget(): Budget
@@ -178,7 +181,8 @@ export async function findOrBuildBrief(
   const request = buildRequest(deps, { ...input, profile, previous })
 
   input.progress?.('trading.progress.brief.sections')
-  const brief = await capability.run(request)
+  const built = await capability.run(request)
+  const brief = { ...built, sections: withoutOmitted(built.sections, deps.omitSections) }
 
   logDegradedSections(deps, input, brief.sections)
   input.progress?.('trading.progress.brief.persist')
@@ -189,6 +193,19 @@ export async function findOrBuildBrief(
     scorecardShownThisMonth: request.scorecardShownThisMonth,
     profileRevision: profileRevisionOf(profile),
   })
+}
+
+/** A section the edition leaves out is kept as omitted, the state every surface hides, so the
+ *  snapshot still says the brief was built without it. */
+function withoutOmitted(
+  sections: readonly BriefSectionResult[],
+  omit: ReadonlySet<BriefSectionKind> | undefined
+): readonly BriefSectionResult[] {
+  if (omit === undefined) {
+    return sections
+  }
+
+  return sections.map((section) => (omit.has(section.kind) ? omitted(section.kind) : section))
 }
 
 /** A profile saved before the home moved can keep the new home market switched off. */

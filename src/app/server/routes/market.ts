@@ -16,14 +16,15 @@ import {
   toMacroWire,
   toMarketsWire,
   toOverviewWire,
-  toScreenWire,
   toSearchWire,
 } from '@/app/server/mappers/market'
+import { toScreenPage, toScreenWire } from '@/app/server/mappers/screen'
 import {
   hostOf,
   localeOf,
   parseLimit,
   parseOptionalBranded,
+  parsePageOffset,
   parsePathId,
   parseTickerRequest,
   readJsonBody,
@@ -52,7 +53,8 @@ const ALERT_BODY: z.ZodType<AlertCreateBody> = z.object({
 })
 
 /** `market` is required: the default market is the one that owns the operator's region, and only
- *  the registry knows which that is. */
+ *  the registry knows which that is. `cursor` pages a `list` board (the previous page's `next`); the
+ *  board itself is read and cached whole. */
 async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const query = new URL(req.url).searchParams
   const market = parseOptionalBranded(query.get('market'), marketRef)
@@ -61,10 +63,11 @@ async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Respons
     query.get('limit') === null
       ? SURFACE_LIMITS.defaultScreenCandidates
       : parseLimit(query.get('limit'), SURFACE_LIMITS.maximumScreenCandidates)
+  const offset = parsePageOffset(query.get('cursor'))
   const kind = query.get('kind')
   const isFresh = query.get('fresh') === FRESH_FLAG
 
-  if (market === undefined || market === null || limit === null) {
+  if (market === undefined || market === null || limit === null || offset === null) {
     return apiError('invalid_body')
   }
 
@@ -86,7 +89,9 @@ async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Respons
     return toScreenWire(market, answer)
   }
 
-  return json(await cachedScreen(`${market}|${kind ?? ''}|${limit ?? ''}`, read, isFresh))
+  const board = await cachedScreen(`${market}|${kind ?? ''}|${limit}`, read, isFresh)
+
+  return json(toScreenPage(board, { offset, limit }))
 }
 
 async function handleInstrumentSearch(req: Request, ctx: ApiRouteContext): Promise<Response> {

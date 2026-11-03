@@ -8,6 +8,7 @@ import type {
   MarketDataService,
   ScreenView,
 } from '@/trading/features/market-data/types'
+import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type {
   InstrumentKind,
@@ -60,6 +61,7 @@ import {
 } from '@/trading/features/market-data/reads/quotes'
 import { runSentiment } from '@/trading/features/market-data/reads/sentiment'
 import { resolveDay, searchInstruments } from '@/trading/features/market-data/resolve'
+import { toBoardView } from '@/trading/features/market-data/screen-board'
 import { pricedCandidate } from '@/trading/features/market-data/screen-caution'
 import { unsupportedScreen, unsupportedSectors } from '@/trading/features/market-data/unsupported'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -70,6 +72,8 @@ import { countByGate } from '@/trading/markets/screen-partition'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const SCREEN_QUOTE_CONCURRENCY = 4
+/** A limit no board reaches: the market cuts to it after ranking, so it cuts nothing. */
+const WHOLE_BOARD = Number.POSITIVE_INFINITY
 /** Enough to carry every name a crypto screen examines, so its board is always fully explained.
  *  A VN screen gates its whole universe and truncates; the counts still cover all of it. */
 const SCREEN_LOG_REJECTIONS = 40
@@ -188,7 +192,8 @@ async function runScreen(
   const ensured = await deps.ensure(buildEnsureOptions(options.market, options))
   const result = await market.capabilities.screen?.run({
     market: options.market,
-    limit: options.limit,
+    // A board is every name the gates cleared, so nothing is cut before its prices are read.
+    limit: options.form === 'board' ? WHOLE_BOARD : options.limit,
     asOf,
     now: options.now,
     signal: options.signal,
@@ -202,6 +207,27 @@ async function runScreen(
 
   logScreen(deps.logger, options, result)
 
+  const view = await decorateScreen(deps, { market, options, result, ensured, asOf }, reader)
+
+  return options.form === 'board' ? toBoardView(view) : view
+}
+
+interface ScreenRead {
+  readonly market: Market
+  readonly options: MarketDataScreenRequest
+  readonly result: ScreenResult
+  readonly ensured: readonly Caveat[]
+  readonly asOf: TradingDay
+}
+
+/** What the operator's own state adds to the market's answer: live prices, the names they excluded,
+ *  the margin list, and the caveats those reads raise. */
+async function decorateScreen(
+  deps: MarketDataRunDeps,
+  read: ScreenRead,
+  reader: ExclusionReader
+): Promise<ScreenView> {
+  const { market, options, result, ensured, asOf } = read
   const marked = await markExcluded({
     candidates: await withPrices(market, result.candidates, options),
     reader,
@@ -225,7 +251,8 @@ async function runScreen(
       ...result.caveats,
       ...ensured,
       ...settledEvidenceCaveats(market, options.now),
-      ...convictionDriftCaveats(result.bandCounts),
+      // How wide the top band runs is a claim about the ranking, which a board does not print.
+      ...(options.form === 'board' ? [] : convictionDriftCaveats(result.bandCounts)),
       ...marked.caveats,
     ]),
   }
@@ -279,7 +306,10 @@ async function withPrices(
     now: options.now,
     signal: options.signal,
   }
-  const fetchMissing = candidates.length <= SURFACE_LIMITS.maximumScreenCandidates
+  // A board lists only priced names, so every name is priced; any other request past the cap is a
+  // bulk score read, which leaves the names a sweep did not price without one.
+  const fetchMissing =
+    options.form === 'board' || candidates.length <= SURFACE_LIMITS.maximumScreenCandidates
 
   return mapWithConcurrency(candidates, SCREEN_QUOTE_CONCURRENCY, async (candidate) => {
     const quote =
