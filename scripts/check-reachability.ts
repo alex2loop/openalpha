@@ -42,6 +42,8 @@ const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([])
 
 // Bundled by the browser build, imported by no daemon entry: its imports are as live as a bin's.
 const BROWSER_ENTRY = 'src/app/browser/worker.ts'
+// The web edition's page, built beside the worker: its `<script src>` reaches the page's entry.
+const WEB_EDITION_ENTRY = 'src/web/edition/index.html'
 
 const FROM_RE = /\bfrom\s*['"]([^'"]+)['"]/g
 const DYNAMIC_RE = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g
@@ -155,6 +157,7 @@ function collectEntries(manifest: Record<string, unknown>): readonly Entry[] {
   }
 
   found.push({ file: BROWSER_ENTRY, why: 'the browser build (scripts/browser-build.ts)' })
+  found.push({ file: WEB_EDITION_ENTRY, why: 'the web edition page (scripts/browser-build.ts)' })
 
   return found
 }

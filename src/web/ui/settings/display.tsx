@@ -3,6 +3,8 @@ import { useMemo } from 'preact/hooks'
 import type { MarketWire } from '@/app/server/wire/market'
 import type { StatePayload } from '@/app/server/wire/system'
 import type { MessageKey } from '@/i18n'
+import { LanguageRow as EditionLanguageRow } from '@/web/edition/language-row'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { homeRegion, knownMarkets } from '@/web/state/market'
 import {
   COLOUR_PAIRS,
@@ -64,12 +66,14 @@ const LANGUAGES = Object.keys(LANGUAGE_LABELS) as readonly Language[]
 /** Hiển thị: the daemon's version, the language and time zone it uses (read once at start), and
  *  how this page looks in this browser (applies at once). */
 export function DisplaySection({ reopen }: SectionProps) {
+  const isWeb = isAnalysisOnly.value
+
   return (
     <>
-      <VersionRow reopen={reopen} />
-      <LanguageRow />
-      <HomeMarketRow />
-      <TimeZoneRow />
+      {!isWeb && <VersionRow reopen={reopen} />}
+      {isWeb ? <EditionLanguageRow /> : <LanguageRow />}
+      {!isWeb && <HomeMarketRow />}
+      {!isWeb && <TimeZoneRow />}
       <PreferenceRow
         title={tr('ui.office.settings.colours')}
         note={tr('ui.office.settings.coloursNote')}
@@ -97,8 +101,8 @@ export function DisplaySection({ reopen }: SectionProps) {
         onChange={setDetailLevel}
       />
       <LightByHourRow />
-      <AttentionRows />
-      <BrowserSessionsRow />
+      {!isWeb && <AttentionRows />}
+      {!isWeb && <BrowserSessionsRow />}
     </>
   )
 }

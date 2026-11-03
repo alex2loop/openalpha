@@ -7,6 +7,7 @@ import { ViewSwitch } from '@/web/scene/overlay/view-switch'
 import { WeatherChip } from '@/web/scene/overlay/weather-chip'
 import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { runningCount, workingTasks } from '@/web/state/live'
 import { isInfoOnly, toggleInfoOnly } from '@/web/state/pane'
 import { brand, isFirstRun } from '@/web/state/session'
@@ -48,13 +49,13 @@ export function Header() {
       {hasScene && <ViewSwitch />}
       <InfoOnlyToggle />
       {hasScene && <ClockControl />}
-      {hasScene && <WeatherChip />}
-      <BellButton anchor={bellAnchor} />
+      {hasScene && !isAnalysisOnly.value && <WeatherChip />}
+      {!isAnalysisOnly.value && <BellButton anchor={bellAnchor} />}
       <KeysButton />
       <GearButton />
       <JobsPopover anchor={jobsAnchor} />
       <CostPopover anchor={costAnchor} />
-      <BellPopover anchor={bellAnchor} />
+      {!isAnalysisOnly.value && <BellPopover anchor={bellAnchor} />}
     </header>
   )
 }

@@ -9,7 +9,7 @@ const SEEN_STORAGE_KEY = 'office.seenCalls'
 // The newest calls the operator has looked at; an older one never comes back as open.
 const SEEN_MAX = 200
 
-export type IdeasTab = 'open' | 'screen' | 'record'
+export type IdeasTab = 'open' | 'screen' | 'record' | 'analyses'
 
 /** The Đề xuất sub-tab; it outlives the panel's remounts, so the way back restores it. */
 export const ideasTab = signal<IdeasTab>('open')

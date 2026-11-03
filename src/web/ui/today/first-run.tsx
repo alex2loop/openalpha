@@ -3,6 +3,7 @@ import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { BRIEF_COMMAND } from '@/web/state/command'
+import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { isModelReady, loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
@@ -30,7 +31,7 @@ export function FirstRun() {
         <ModelStep isDone={isModelReady.value} />
         <ProfileStep isDone={firstRun?.profileSaved === true} />
         <BookStep isDone={firstRun?.bookEmpty === false} />
-        <ChatStep />
+        {!isAnalysisOnly.value && <ChatStep />}
         <BriefStep />
       </div>
     </section>
@@ -40,7 +41,9 @@ export function FirstRun() {
 function ProfileStep({ isDone }: { readonly isDone: boolean }) {
   return (
     <Step index={2} title={tr('ui.office.common.profile')} isDone={isDone}>
-      <p class="meta">{tr('ui.office.firstRun.profileBody')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.firstRun.profileBody', 'ui.office.edition.firstRun.profileBody'))}
+      </p>
       <div class="step-actions">
         <Button size="small" onClick={() => openSettings('profile')}>
           {tr('ui.office.firstRun.profileCta')}
@@ -56,7 +59,9 @@ function BookStep({ isDone }: { readonly isDone: boolean }) {
 
   return (
     <Step index={3} title={tr('ui.office.firstRun.bookTitle')} isDone={isDone || isSkipped.value}>
-      <p class="meta">{tr('ui.office.firstRun.bookBody')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.firstRun.bookBody', 'ui.office.edition.firstRun.bookBody'))}
+      </p>
       <div class="step-actions">
         <Button size="small" onClick={() => openTradeDialog()}>
           {tr('ui.office.common.recordTrade')}
@@ -109,6 +114,10 @@ function ModelStep({ isDone }: { readonly isDone: boolean }) {
   const recheck = useRecheck()
   const envVar = state.value?.firstRun.modelKeyEnv
 
+  if (isAnalysisOnly.value) {
+    return <WebModelStep isDone={isDone} />
+  }
+
   return (
     <Step index={1} title={tr('ui.office.firstRun.modelTitle')} isDone={isDone}>
       {!isDone && (
@@ -129,11 +138,32 @@ function ModelStep({ isDone }: { readonly isDone: boolean }) {
   )
 }
 
+// The web edition runs the market, the screen and the ledger with no key at all; a key of the
+// visitor's own unlocks the AI parts.
+function WebModelStep({ isDone }: { readonly isDone: boolean }) {
+  return (
+    <Step index={1} title={tr('ui.office.edition.firstRun.keyTitle')} isDone={isDone} isOptional>
+      {!isDone && (
+        <>
+          <p class="meta">{tr('ui.office.edition.firstRun.keyBody')}</p>
+          <div class="step-actions">
+            <Button size="small" onClick={() => openSettings('providers')}>
+              {tr('ui.office.edition.firstRun.keyCta')}
+            </Button>
+          </div>
+        </>
+      )}
+    </Step>
+  )
+}
+
 // The brief runs at once; it waits for a model to answer it.
 function BriefStep() {
   return (
     <Step index={5} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
-      <p class="meta">{tr('ui.office.firstRun.briefBody')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.firstRun.briefBody', 'ui.office.edition.firstRun.briefBody'))}
+      </p>
       <div class="step-actions">
         <RunButton
           command={BRIEF_COMMAND}

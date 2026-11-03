@@ -77,8 +77,17 @@ export class ApiFailure extends Error {
   }
 }
 
+/** Carries one request to whoever answers `/v1`: the daemon over `fetch` here, a worker in the web edition. */
+type ApiTransport = (request: Request) => Promise<Response>
+
 // The daemon's slow ceiling from `GET /v1/state`; a slow route is only reached once state loaded.
 let slowRequestMs: number | undefined
+let transport: ApiTransport = (outgoing) => fetch(outgoing)
+
+/** Replaces how every `/v1` request is sent; the default is `fetch`. */
+export function setApiTransport(send: ApiTransport): void {
+  transport = send
+}
 
 /** Set from each `GET /v1/state`, so a `slow` route waits as long as the daemon may run it. */
 export function setSlowRequestMs(ms: number): void {
@@ -104,13 +113,15 @@ async function request<T>(def: RouteDef<T>, init: ApiRequest): Promise<T> {
   const signal = init.signal === undefined ? timeout : AbortSignal.any([init.signal, timeout])
 
   try {
-    const response = await fetch(buildUrl(def.path, init.query), {
-      method: init.method,
-      credentials: 'same-origin',
-      headers: buildHeaders(init),
-      body: init.body === undefined ? null : JSON.stringify(init.body),
-      signal,
-    })
+    const response = await transport(
+      new Request(buildUrl(def.path, init.query), {
+        method: init.method,
+        credentials: 'same-origin',
+        headers: buildHeaders(init),
+        body: init.body === undefined ? null : JSON.stringify(init.body),
+        signal,
+      })
+    )
 
     if (!response.ok) {
       throw await toApiFailure(response)

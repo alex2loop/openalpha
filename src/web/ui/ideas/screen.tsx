@@ -5,7 +5,9 @@ import type { ScreenResponse } from '@/app/server/wire/market'
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { ScreenBoard } from '@/web/edition/screen-board'
 import { type BlockReading, useBlock, useBlockRead } from '@/web/state/block'
+import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
@@ -42,7 +44,7 @@ export function Opportunities() {
       {markets.length > 1 && (
         <Segmented
           isTabs
-          label={tr('ui.office.ideas.screen')}
+          label={tr(editionKey('ui.office.ideas.screen', 'ui.office.edition.screen.title'))}
           value={market.market}
           options={markets.map((held) => ({ value: held.market, label: held.segmentLabel }))}
           onChange={(value) => {
@@ -50,7 +52,11 @@ export function Opportunities() {
           }}
         />
       )}
-      <Board key={market.market} market={market.market} />
+      {isAnalysisOnly.value ? (
+        <ScreenBoard key={market.market} market={market.market} />
+      ) : (
+        <Board key={market.market} market={market.market} />
+      )}
     </>
   )
 }

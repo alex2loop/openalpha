@@ -5,7 +5,7 @@ import { nextDelayMs } from '@/web/api/backoff'
 import { getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
-import { type ConnectionStatus, createFeedSocket, type FeedSocket } from '@/web/api/socket'
+import { type ConnectionStatus, type FeedSocket, openFeedSocket } from '@/web/api/socket'
 import { publishWireEvent } from '@/web/state/events'
 import {
   appendStep,
@@ -77,7 +77,7 @@ export function startFeed(): () => void {
   }
   const { signal } = feed.lifetime
 
-  feed.socket = createFeedSocket({
+  feed.socket = openFeedSocket({
     url: buildFeedUrl,
     onFrame: (frame) => routeFrame(feed, frame),
     onStatus: setConnection,

@@ -1,7 +1,11 @@
 import type { JSX } from 'preact'
 import { signal } from '@preact/signals'
 
-import { pluralKey } from '@/i18n'
+import { type MessageKey, pluralKey } from '@/i18n'
+import { DataPanel } from '@/web/edition/data-panel'
+import { KeysPanel } from '@/web/edition/keys-panel'
+import { TierChain } from '@/web/edition/tier-chain'
+import { isAnalysisOnly } from '@/web/state/edition'
 import {
   pendingRestart,
   SECTION_TITLES,
@@ -60,6 +64,22 @@ const SECTION_TILES: Readonly<
   advanced: { colour: 'gray', icon: <LockIcon /> },
 })
 
+// What the web edition keeps of Cài đặt: the profile, the keys, the model tiers, the data on this
+// device and the display. The rest (memory, schedules, agents, channels, exchanges, tools, the
+// daemon's own health) needs a host the page does not have.
+const WEB_SECTIONS: ReadonlySet<SettingsSection> = new Set([
+  'profile',
+  'providers',
+  'agents',
+  'data',
+  'display',
+])
+const WEB_SECTION_TITLES: Readonly<Partial<Record<SettingsSection, MessageKey>>> = Object.freeze({
+  providers: 'ui.office.edition.keys.title',
+  agents: 'ui.office.edition.tiers.title',
+  data: 'ui.office.edition.data.title',
+})
+
 // The section last open, so the way back from a form lands where the operator left.
 const chosen = signal<SettingsSection>('profile')
 
@@ -69,7 +89,10 @@ export function openSettings(section?: SettingsSection): void {
     chosen.value = section
   }
 
-  loadUpdate(new AbortController().signal).catch(() => undefined)
+  if (!isAnalysisOnly.value) {
+    loadUpdate(new AbortController().signal).catch(() => undefined)
+  }
+
   openModal({
     title: tr('ui.office.settings.title'),
     body: <SettingsBody />,
@@ -86,16 +109,29 @@ function openSection(section: SettingsSection): void {
   chosen.value = section
 }
 
+function sectionsShown(): readonly SettingsSection[] {
+  return isAnalysisOnly.value
+    ? SETTINGS_SECTIONS.filter((section) => WEB_SECTIONS.has(section))
+    : SETTINGS_SECTIONS
+}
+
+function titleOf(section: SettingsSection): MessageKey {
+  return (isAnalysisOnly.value ? WEB_SECTION_TITLES[section] : undefined) ?? SECTION_TITLES[section]
+}
+
 function SettingsBody() {
+  const shown = sectionsShown()
+  const open = shown.includes(chosen.value) ? chosen.value : (shown[0] ?? chosen.value)
+
   return (
     <div class="settings">
       <nav class="settings-nav" aria-label={tr('ui.office.settings.title')}>
-        {SETTINGS_SECTIONS.map((section) => (
+        {shown.map((section) => (
           <button
             key={section}
             type="button"
-            class={section === chosen.value ? 'is-on' : ''}
-            aria-current={section === chosen.value ? 'page' : undefined}
+            class={section === open ? 'is-on' : ''}
+            aria-current={section === open ? 'page' : undefined}
             onClick={() => {
               chosen.value = section
             }}
@@ -103,20 +139,24 @@ function SettingsBody() {
             <span class="tile" style={`--c: var(--tc-${SECTION_TILES[section].colour})`}>
               {SECTION_TILES[section].icon}
             </span>
-            {tr(SECTION_TITLES[section])}
+            {tr(titleOf(section))}
           </button>
         ))}
       </nav>
       <div class="settings-form">
         <UpdateStrip reopen={reopen} />
-        <h3 class="settings-section">{tr(SECTION_TITLES[chosen.value])}</h3>
-        <SectionView section={chosen.value} />
+        <h3 class="settings-section">{tr(titleOf(open))}</h3>
+        <SectionView section={open} />
       </div>
     </div>
   )
 }
 
 function SectionView({ section }: { readonly section: SettingsSection }) {
+  if (isAnalysisOnly.value) {
+    return <WebSectionView section={section} />
+  }
+
   switch (section) {
     case 'profile':
       return <ProfileSection reopen={reopen} />
@@ -143,10 +183,30 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
   }
 }
 
+function WebSectionView({ section }: { readonly section: SettingsSection }) {
+  switch (section) {
+    case 'providers':
+      return <KeysPanel />
+    case 'agents':
+      return <TierChain />
+    case 'data':
+      return <DataPanel />
+    case 'display':
+      return <DisplaySection reopen={reopen} />
+    default:
+      return <ProfileSection reopen={reopen} />
+  }
+}
+
 // What waits for a restart, with the way to do it; with nothing pending, how saving works and a
-// plain restart.
+// plain restart. The web edition has no daemon to restart: its own restarts are asked where they
+// are made.
 function SettingsFooter() {
   const rows = pendingRestart.value
+
+  if (isAnalysisOnly.value) {
+    return <Button onClick={closeModal}>{tr('ui.office.common.close')}</Button>
+  }
 
   if (rows.length === 0) {
     return (

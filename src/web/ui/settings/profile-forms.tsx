@@ -2,6 +2,7 @@ import type { TradingProfileResponse } from '@/app/server/wire/trading'
 import type { InvestmentGoal, InvestmentHorizon, RiskLevel } from '@/app/server/wire/vocab'
 import { pluralKey } from '@/i18n'
 import { readBlock } from '@/web/state/block'
+import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { profileBlock } from '@/web/state/market'
 import { isSegmentOn, saveProfilePatch } from '@/web/state/profile'
 import { segmentName } from '@/web/text/segment'
@@ -47,8 +48,10 @@ export function ProfileSection({ reopen }: SectionProps) {
 
   return (
     <>
-      <p class="meta">{tr('ui.office.settings.profileNote')}</p>
-      <p class="meta">{tr('ui.office.memory.learned')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.settings.profileNote', 'ui.office.edition.profile.note'))}
+      </p>
+      {!isAnalysisOnly.value && <p class="meta">{tr('ui.office.memory.learned')}</p>}
       <RiskRow profile={data} />
       <GoalRow profile={data} />
       <HorizonRow profile={data} />
@@ -63,7 +66,7 @@ function RiskRow({ profile }: { readonly profile: TradingProfileResponse }) {
   return (
     <SettingRow
       title={tr('ui.office.settings.risk')}
-      note={tr('ui.office.settings.riskNote')}
+      note={tr(editionKey('ui.office.settings.riskNote', 'ui.office.edition.profile.riskNote'))}
       timing="now"
       isChanged={isChanged}
       onSave={async () => {
@@ -90,7 +93,7 @@ function GoalRow({ profile }: { readonly profile: TradingProfileResponse }) {
   return (
     <SettingRow
       title={title}
-      note={tr('ui.office.settings.goalNote')}
+      note={tr(editionKey('ui.office.settings.goalNote', 'ui.office.edition.profile.goalNote'))}
       timing="now"
       isChanged={isChanged}
       onSave={async () => {
@@ -118,7 +121,9 @@ function HorizonRow({ profile }: { readonly profile: TradingProfileResponse }) {
   return (
     <SettingRow
       title={tr('ui.office.common.horizon')}
-      note={tr('ui.office.settings.horizonNote')}
+      note={tr(
+        editionKey('ui.office.settings.horizonNote', 'ui.office.edition.profile.horizonNote')
+      )}
       timing="now"
       isChanged={isChanged}
       onSave={async () => {

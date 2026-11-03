@@ -64,6 +64,7 @@ import {
 import { ROOMS, roomById } from '@/web/scene/world/rooms'
 import { agents } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { selectActor, selectedActor, takeFocusRequest } from '@/web/state/focus'
 import { unseenCalls } from '@/web/state/ideas'
@@ -191,15 +192,14 @@ function keepLastFrame(element: HTMLElement, draw: () => void): void {
   }
 }
 
-// The scene's own data reads, each returning its stop.
+// The scene's own data reads, each returning its stop. An analysis-only edition has no board of
+// stored calls, alerts, stops or tasks to read, and no third-party weather feed to call.
 function startReads(): (() => void)[] {
   return [
     startHome(),
-    startBoard(),
-    startRoomStatus(),
-    startAgenda(),
-    startTeamCalls(),
-    startWeather(),
+    ...(isAnalysisOnly.value
+      ? []
+      : [startBoard(), startRoomStatus(), startAgenda(), startTeamCalls(), startWeather()]),
     startExDividends(),
     startSourceLights(),
   ]

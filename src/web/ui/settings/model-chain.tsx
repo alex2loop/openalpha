@@ -52,7 +52,7 @@ interface ChainProps {
 }
 
 /** One entry of the chain as the operator edits it: who serves it and which model. */
-interface ModelChoice {
+export interface ModelChoice {
   readonly provider: string
   readonly model: string
 }
@@ -211,7 +211,7 @@ function usePreselected(
   }, [])
 }
 
-function defaultModelOf(catalog: ProviderCatalogResponse, provider: string): string {
+export function defaultModelOf(catalog: ProviderCatalogResponse, provider: string): string {
   return catalog.providers.find((entry) => entry.id === provider)?.defaultModel ?? ''
 }
 
@@ -222,7 +222,8 @@ interface ChoiceLineProps {
   readonly catalog: ProviderCatalogResponse
 }
 
-function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
+/** One entry of a chain: its provider and its model, edited into `draft` at `index`. */
+export function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
   const providers = catalog.providers.some((entry) => entry.id === choice.provider)
     ? catalog.providers
     : [...catalog.providers, { id: choice.provider, displayName: choice.provider }]
