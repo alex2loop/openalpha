@@ -143,6 +143,15 @@ function lookup(locale: Locale, ns: string, field: string): string | undefined {
 
 /** True when a message key resolves in the given locale (or the fallback). Key is a bare string so
  *  i18n stays a dependency-free localization leaf; callers pass their own typed keys. */
+/** `value` as a locale this build has a catalog for, else undefined. */
+export function toLocale(value: string | null | undefined): Locale | undefined {
+  return isLocale(value) ? value : undefined
+}
+
+function isLocale(value: string | null | undefined): value is Locale {
+  return typeof value === 'string' && Object.hasOwn(CATALOGS, value)
+}
+
 export function hasMessage(locale: Locale, key: string): boolean {
   return hasOwnMessage(locale, key) || hasOwnMessage(FALLBACK_LOCALE, key)
 }

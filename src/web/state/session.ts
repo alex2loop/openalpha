@@ -2,6 +2,7 @@ import { computed, signal } from '@preact/signals'
 
 import type { StatePayload } from '@/app/server/wire/system'
 import type { ConnectionStatus } from '@/web/api/socket'
+import { toLocale } from '@/i18n'
 import { noteSignedIn } from '@/web/api/auth-state'
 import { nextDelayMs } from '@/web/api/backoff'
 import { ApiFailure, getJson, setSlowRequestMs } from '@/web/api/client'
@@ -18,9 +19,7 @@ interface Connection {
 }
 
 function resolveBrowserLocale(): UiLocale {
-  const primary = navigator.language.split('-')[0]?.toLowerCase()
-
-  return primary === 'en' || primary === 'vi' ? primary : FALLBACK_UI_LOCALE
+  return toLocale(navigator.language.split('-')[0]?.toLowerCase()) ?? FALLBACK_UI_LOCALE
 }
 
 /** The language the page uses before a session says another: the browser's, or the one an edition

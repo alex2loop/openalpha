@@ -2,6 +2,7 @@ import { signal } from '@preact/signals'
 
 import type { StatePayload } from '@/app/server/wire/system'
 import type { BrowserKeys, DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/worker'
+import { toLocale } from '@/i18n'
 import { setApiTransport } from '@/web/api/client'
 import { setFeedSocketFactory } from '@/web/api/socket'
 import { createWorkerTransport } from '@/web/edition/transport'
@@ -229,8 +230,4 @@ function resolveStartingLocale(): Locale {
   }
 
   return toLocale(readStorage('local', LOCALE_KEY)) ?? DEFAULT_LOCALE
-}
-
-function toLocale(value: string | null | undefined): Locale | undefined {
-  return value === 'vi' || value === 'en' ? value : undefined
 }
