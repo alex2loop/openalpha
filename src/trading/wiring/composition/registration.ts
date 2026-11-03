@@ -44,7 +44,6 @@ import { createGoldMarket } from '@/trading/markets/gold/market'
 import { createVnGoldMarket } from '@/trading/markets/gold-vn/market'
 import { macroCache } from '@/trading/markets/macro-cache'
 import { createMarketRegistry } from '@/trading/markets/registry'
-import { createVenueListings } from '@/trading/venues/listings'
 import { buildTradingAgents, personaVersions } from '@/trading/wiring/catalog/agents'
 import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
 import { toAggregate } from '@/trading/wiring/composition/aggregate'
@@ -391,7 +390,7 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
   )
   const stages = createStageRegistry()
   const markets = createMarketRegistry(lazyHeldInstruments(app, logger))
-  const venues = buildVenues(options, logger)
+  const { registry: venues, listings } = buildVenues(options, { logger, book: stores.ledger })
   const fx = createFxRates({ sources, store: stores.fxRate, logger })
   const deps: MarketDeps = {
     config: options.tradingConfig,
@@ -400,7 +399,7 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
     marketDataStore: stores.marketData,
     macro: macroCache(sources),
     stages,
-    venueListings: createVenueListings(venues, logger),
+    venueListings: listings,
     briefServices: lazyBriefServices(app, options.tradingConfig, venues),
   }
 

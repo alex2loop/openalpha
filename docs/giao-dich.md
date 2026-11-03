@@ -988,6 +988,8 @@ Bên trong thị trường chứng khoán Việt Nam cũng vậy. Lịch sử gi
 
 `/refresh <thị trường>` chỉ quét thị trường đó. Tên không phải thị trường đã đăng ký thì nhận dòng hướng dẫn cách dùng, thay vì lặng lẽ không làm gì. Lệnh nhập vào một lượt quét đang chạy sẽ báo vậy và nêu tên thị trường nó đang chờ. Mọi dòng tiến độ đều nêu tên thị trường; không có tên, dòng đó sẽ nhấp nháy giữa các thị trường dùng chung nó.
 
+**Chỉ coin bạn mua được ở nơi bạn giao dịch.** Bảng sàng lọc crypto chỉ giữ một coin khi có ít nhất một sàn bạn đang giao dịch niêm yết nó: sàn mặc định của thị trường (`default_for`), sàn bạn đã lưu khóa API, và sàn có tên trong một dòng của sổ. Coin không sàn nào trong số đó niêm yết sẽ nằm ở mục "Bị loại" kèm lý do, nên sổ giao dịch ở OKX sẽ không được gợi ý một coin chỉ Binance bán. Khi không sàn nào trong số đó công bố danh sách niêm yết, hoặc không đọc được sổ, mọi sàn có crypto đều được tính, để bảng không bao giờ trống.
+
 **Chi phí đọc bảng đi cùng phiên chạy.** Lượt quét crypto lập kế hoạch trên bảng vốn hóa xếp hạng, và các nguồn của bảng này công bố độ sâu khác nhau (750 dòng, 250 và 100). Một lượt quét phải lùi về nguồn nông hơn chỉ phủ một phần thị trường, nhưng mọi số đếm nó báo lại mô tả phần đó như thể là toàn bộ.
 
 Vì vậy các lưu ý của chính bảng cùng `market-data.universe-shallow` được chuyển tới kết quả, giống cách `/screen` và `/overview` vốn đã báo về cùng lượt quét. Một kết quả mà mọi mục tiêu đều hỏng vẫn nhận `source.no-available-provider`.

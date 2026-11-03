@@ -1,5 +1,6 @@
 import type { Logger } from '@/core/logging/logger'
-import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
+import type { DefaultVenues } from '@/trading/kernel/config'
+import type { MarketRef, Ticker, VenueRef } from '@/trading/kernel/instrument'
 import type {
   VenueCatalog,
   VenueInstrument,
@@ -17,13 +18,27 @@ interface VenueAnswer {
   readonly prices: ReadonlyMap<Ticker, number>
 }
 
-/** The union of every catalog serving a market. One venue failing costs its own names and not the
- *  gate: a name the survivors list is listed, whatever the venue that could not answer carries.
- *  Only a market where nothing answered degrades to `unavailable`. */
-export function createVenueListings(venues: VenueRegistry, logger: Logger): VenueListings {
+/** The venues the operator's book names, read from the ledger. */
+interface VenueBook {
+  listVenues(signal: AbortSignal): Promise<ReadonlySet<VenueRef>>
+}
+
+interface VenueListingsDeps {
+  readonly venues: VenueRegistry
+  readonly defaultVenues: DefaultVenues
+  readonly book: VenueBook
+  readonly logger: Logger
+}
+
+/** The union of the catalogs of the venues the operator trades the market at. One venue failing
+ *  costs its own names and not the gate: a name the survivors list is listed, whatever the venue
+ *  that could not answer carries. Only a market where nothing answered degrades to `unavailable`. */
+export function createVenueListings(deps: VenueListingsDeps): VenueListings {
+  const { logger } = deps
+
   return {
     async readListing(market: MarketRef, signal: AbortSignal): Promise<VenueListing> {
-      const catalogs = venues.listing(market)
+      const catalogs = await catalogsInUse(deps, market, signal)
 
       if (catalogs.length === 0) {
         return { kind: 'none' }
@@ -61,6 +76,44 @@ function mergePrices(answers: readonly VenueAnswer[]): ReadonlyMap<Ticker, numbe
   }
 
   return prices
+}
+
+/** A venue is in use when it is the market's default, holds the operator's key, or carries a row of
+ *  the book. Where none of those publishes a catalog, or the book cannot be read, every catalog
+ *  serving the market counts, so the board stays open rather than empty. */
+async function catalogsInUse(
+  deps: VenueListingsDeps,
+  market: MarketRef,
+  signal: AbortSignal
+): Promise<readonly Venue[]> {
+  const catalogs = deps.venues.listing(market)
+  const inUse = await venuesInUse(deps, market, signal)
+  const used = catalogs.filter((venue) => inUse?.has(venue.manifest.id) === true)
+
+  return used.length === 0 ? catalogs : used
+}
+
+async function venuesInUse(
+  deps: VenueListingsDeps,
+  market: MarketRef,
+  signal: AbortSignal
+): Promise<ReadonlySet<VenueRef> | undefined> {
+  const defaultVenue = deps.defaultVenues[market]
+  const keyed = deps.venues.tradable(market).map((venue) => venue.manifest.id)
+
+  try {
+    const booked = await deps.book.listVenues(signal)
+
+    return new Set([...keyed, ...booked, ...(defaultVenue === undefined ? [] : [defaultVenue])])
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
+    deps.logger.warn('trading.venue_book_unreadable', { market, err: formatErrForLog(err) })
+
+    return undefined
+  }
 }
 
 interface ListOneInput {

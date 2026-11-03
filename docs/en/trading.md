@@ -979,6 +979,8 @@ Inside the VN board the same idea applies. Price history, financial ratios and t
 
 `/refresh <market>` sweeps only that market. A name that is not a registered market gets the usage line instead of silently doing nothing. A command that joins a sweep already running says so and names the market it waits on. Every progress line names its market; without the name, the line would flicker between the markets sharing it.
 
+**Only coins you can buy where you trade.** The crypto screen keeps a coin only if one of the venues you trade at lists it: the market's default venue (`default_for`), any exchange whose key you saved, and any venue a row of your book names. A coin none of them lists lands under "Removed" with that reason, so a book kept at OKX is never offered a coin only Binance sells. When none of those venues publishes a listing, or the book cannot be read, every venue that holds crypto counts, so the board never comes back empty.
+
 **What reading the board cost travels with the pass.** The crypto sweep plans against the ranked market-cap board, and its sources publish different depths (750 rows, 250 and 100). A sweep that fell back to a shallower source covers only part of the field, yet every count it reports would describe that part as the whole.
 
 So the board's own caveats and `market-data.universe-shallow` reach the result, just as `/screen` and `/overview` already report about the same sweep. A result where every target failed still gets `source.no-available-provider`.

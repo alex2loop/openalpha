@@ -6,7 +6,7 @@ import type {
   LedgerPageOptions,
   LedgerTxn,
 } from '@/trading/features/ledger/types'
-import type { InstrumentRef } from '@/trading/kernel/instrument'
+import type { InstrumentRef, VenueRef } from '@/trading/kernel/instrument'
 import type { BookChange, LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { Page } from '@/trading/kernel/store/page'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
@@ -17,6 +17,7 @@ import {
   toEntry,
   transactionColumns,
 } from '@/trading/features/ledger/store/ledger-row'
+import { venueRef } from '@/trading/kernel/instrument'
 import { ledgerEntryId } from '@/trading/kernel/operator/book'
 import { toPage } from '@/trading/kernel/store/store-row'
 
@@ -85,6 +86,8 @@ export interface LedgerStore {
   ): Promise<LedgerEntry>
   /** The whole bounded ledger, for folding only — surfaces page instead. */
   listAll(signal: AbortSignal): Promise<readonly LedgerEntry[]>
+  /** Every venue a row names, as custodian or as a transfer's source. */
+  listVenues(signal: AbortSignal): Promise<ReadonlySet<VenueRef>>
   /** Whether any row was written or corrected after `from`, and whether one of them is this
    *  instrument's. */
   bookChangeSince(instrument: InstrumentRef, from: number, signal: AbortSignal): Promise<BookChange>
@@ -117,6 +120,7 @@ export function createLedgerStore(deps: LedgerStoreDeps): LedgerStore {
     deleteValidated: (id, assertValid, signal) =>
       deleteValidated(deps, { subject: id, assertValid, signal }),
     listAll: (signal) => listAll(deps, signal),
+    listVenues: (signal) => listVenues(deps, signal),
     bookChangeSince: (instrument, from, signal) =>
       bookChangeSince(deps, { instrument, from, signal }),
     listIdsMatching: (ref, signal) => listIdsMatching(deps, ref, signal),
@@ -376,6 +380,20 @@ async function listAll(
   const rows = await deps.db.query<LedgerRow>('SELECT * FROM ledger_entries', [])
 
   return rows.map(toEntry)
+}
+
+async function listVenues(
+  deps: LedgerStoreDeps,
+  signal: AbortSignal
+): Promise<ReadonlySet<VenueRef>> {
+  assertNotAborted(signal)
+
+  const rows = await deps.db.query<{ readonly venue: string }>(
+    'SELECT venue FROM ledger_entries WHERE venue IS NOT NULL UNION SELECT from_venue FROM ledger_entries WHERE from_venue IS NOT NULL',
+    []
+  )
+
+  return new Set(rows.map((row) => venueRef(row.venue)))
 }
 
 /** A suffix match, not a scan in memory: the write path already reads the whole table once inside

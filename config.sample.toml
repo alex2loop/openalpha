@@ -321,6 +321,8 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # rates whole, and credentials name environment variables, never values, for
 # the fields the venue reads (okx: apiKey, secret, passphrase; binance: apiKey,
 # secret); any other field stops boot. Every rule: docs/en/configuration.md#trading.
+# /screen crypto ranks only coins listed at a venue you trade at: the default_for
+# venue, an exchange with a key, or one your book names.
 # Give an exchange key Reading and Spot & Margin Trading only, never Withdrawals,
 # and pin it to your server's IP. `openalpha doctor venues --online` checks both.
 # The office page saves the key values (Settings > Exchanges) but never changes

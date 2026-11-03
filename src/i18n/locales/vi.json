@@ -4630,7 +4630,7 @@
     "screen.outside-focus": "Agent này theo dõi {focus}, không theo dõi {market}.",
     "screen.gate.below-minimum-turnover": "Thanh khoản quá thấp - khó bán ra với giá hợp lý khi cần",
     "screen.gate.below-minimum-traded-sessions": "Nhiều phiên liền không có giao dịch - mức giá không ai khớp thì không thể dựa vào để tính toán",
-    "screen.gate.not-listed-on-venue": "Không sàn nào bạn đang giữ tài sản niêm yết mã này - không có chỗ để mua từ sổ này",
+    "screen.gate.not-listed-on-venue": "Không sàn nào bạn đang giao dịch niêm yết mã này, nên không có chỗ để mua từ sổ này",
     "screen.gate.venue-price-diverged": "Giá ở đây lệch xa so với giá sàn bạn đang giữ tài sản niêm yết - các mức trong kế hoạch sẽ không khớp được ở đó",
     "screen.gate.venue-book-too-thin": "Sổ lệnh trên sàn bạn đang giữ tài sản quá mỏng để khớp một lệnh cỡ này - mã vẫn giao dịch bình thường, chỉ là sàn của bạn không gánh nổi",
     "screen.gate.no-price-history": "Không nguồn nào cung cấp được lịch sử giá của mã này - thiếu dữ liệu phía mình, không phải do mã",
