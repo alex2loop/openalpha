@@ -1,6 +1,7 @@
 import type { RebalanceResponse, RebalanceTextWire } from '@/app/server/wire/money'
 import { ROUTES } from '@/web/api/routes'
 import { readBlock, useBlock } from '@/web/state/block'
+import { editionKey } from '@/web/state/edition'
 import { holdingsBlock } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
 import { SegmentBars } from '@/web/ui/book/segment-bars'
@@ -57,7 +58,9 @@ function Steps({ plan }: { readonly plan: RebalanceResponse }) {
       </div>
       {plan.status === 'ready' && <Orders text={text} />}
       <ReportNotes lines={text.notes} />
-      <p class="meta">{tr('ui.office.book.rebalanceNote')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.book.rebalanceNote', 'ui.office.edition.rebalance.note'))}
+      </p>
     </>
   )
 }

@@ -15,6 +15,7 @@ import {
   sendFromInput,
   setInput,
 } from '@/web/state/command'
+import { offers } from '@/web/state/edition'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import { ReadOnlyLine } from '@/web/ui/chat/session-view'
@@ -85,7 +86,9 @@ function Composer({ isFloating }: { readonly isFloating: boolean }) {
 
   return (
     <>
-      {!isChatOnly.value && <WhoChip island={isFloating ? ISLAND : undefined} />}
+      {!isChatOnly.value && offers('agents') && (
+        <WhoChip island={isFloating ? ISLAND : undefined} />
+      )}
       <div class="command-box">
         {list.isOpen.value && options.length > 0 && (
           <SuggestPopover

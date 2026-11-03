@@ -1,5 +1,6 @@
 import type { MessageKey } from '@/i18n'
 import { readBlock, withCautions } from '@/web/state/block'
+import { isAnalysisOnly } from '@/web/state/edition'
 import {
   knownMarkets,
   marketsBlock,
@@ -52,7 +53,9 @@ export function Market() {
           isTabs
           label={tr('ui.office.panel.market')}
           value={subTab}
-          options={SUB_TABS.map((value) => ({ value, label: tr(SUB_TAB_KEYS[value]) }))}
+          options={SUB_TABS.filter((value) => value !== 'themes' || !isAnalysisOnly.value).map(
+            (value) => ({ value, label: tr(SUB_TAB_KEYS[value]) })
+          )}
           onChange={(value) => {
             marketSubTab.value = value
           }}

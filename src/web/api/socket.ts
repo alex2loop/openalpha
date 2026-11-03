@@ -17,7 +17,7 @@ const STABLE_AFTER_MS = 10_000
 
 export type ConnectionStatus = 'connecting' | 'live' | 'offline' | 'full' | 'refused' | 'outdated'
 
-interface FeedSocketDeps {
+export interface FeedSocketDeps {
   readonly url: () => string
   readonly onFrame: (frame: ServerFrame) => void
   /** `retryAt` (epoch ms) rides with `offline` while a retry is armed: when the next attempt starts. */
@@ -31,6 +31,20 @@ export interface FeedSocket {
   /** Connects at once while a retry waits; otherwise does nothing. */
   retryNow(): void
   close(): void
+}
+
+type FeedSocketFactory = (deps: FeedSocketDeps) => FeedSocket
+
+let factory: FeedSocketFactory = createFeedSocket
+
+/** Replaces what `openFeedSocket` builds; the default is the daemon's `/v1/ws` socket. */
+export function setFeedSocketFactory(next: FeedSocketFactory): void {
+  factory = next
+}
+
+/** The page's one feed, over the daemon's socket or whatever `setFeedSocketFactory` installed. */
+export function openFeedSocket(deps: FeedSocketDeps): FeedSocket {
+  return factory(deps)
 }
 
 // One feed socket's mutable state; `connection` owns the listeners of the current `WebSocket`.
@@ -49,7 +63,7 @@ interface SocketState {
  *  daemon why: a browser exposes no handshake status, so `/v1/health`, `/v1/state` and a plain read of
  *  the feed path tell an absent daemon (`offline`) and a daemon whose sockets are all taken (`full`),
  *  both retried with backoff, from an ended sign-in (`refused`, never retried). */
-export function createFeedSocket(deps: FeedSocketDeps): FeedSocket {
+function createFeedSocket(deps: FeedSocketDeps): FeedSocket {
   const state: SocketState = {
     deps,
     lifetime: new AbortController(),

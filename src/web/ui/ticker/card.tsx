@@ -3,7 +3,9 @@ import { useEffect } from 'preact/hooks'
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { Analyses } from '@/web/edition/analyses'
 import { useBlockRead } from '@/web/state/block'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { CardActions } from '@/web/ui/ticker/actions'
 import { CardAlerts } from '@/web/ui/ticker/alerts'
@@ -43,11 +45,17 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
   return (
     <>
       <PriceBlock ticker={ticker} market={market} levels={planLevels(standing)} />
-      <PlanBlock reading={plan} ticker={ticker} market={market} />
+      {!isAnalysisOnly.value && <PlanBlock reading={plan} ticker={ticker} market={market} />}
       <HoldingBlock ticker={ticker} market={market} />
-      <OpinionsBlock ticker={ticker} market={market} plan={standing} />
-      <PastCalls ticker={ticker} market={market} />
-      <CardAlerts ticker={ticker} market={market} />
+      {isAnalysisOnly.value ? (
+        <Analyses instrument={{ market, ticker }} />
+      ) : (
+        <>
+          <OpinionsBlock ticker={ticker} market={market} plan={standing} />
+          <PastCalls ticker={ticker} market={market} />
+          <CardAlerts ticker={ticker} market={market} />
+        </>
+      )}
       <EventsBlock ticker={ticker} market={market} />
       <CardActions
         ticker={ticker}

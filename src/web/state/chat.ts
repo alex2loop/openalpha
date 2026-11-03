@@ -4,6 +4,7 @@ import type { ChatSessionsResponse } from '@/app/server/wire/chat'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { ClientFrame } from '@/app/server/wire/socket'
 import { stopRun } from '@/web/state/approvals'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { type ChatServerFrame, onChatFrame, sendFrame } from '@/web/state/feed'
 import { findFinishedTickers } from '@/web/state/live'
@@ -186,18 +187,25 @@ export function dropWaiting(turn: Turn): void {
 
 /** True when "Dừng" can reach the turn: by its run, or by cancelling its own session. */
 export function canStop(turn: Turn): boolean {
-  return turn.runId !== undefined || turn.sessionId !== undefined
+  return turn.runId !== undefined || resolveSession(turn) !== undefined
 }
 
 /** A command stops by its run (throws `ApiFailure`); anything else cancels what runs in its
- *  session. A cancel the socket cannot send needs none: a dropped socket already stopped it. */
+ *  session. The web edition serves no run-stop route, so there a turn whose session is known is
+ *  cancelled by it, which also stops the session's running commands. A cancel the socket cannot
+ *  send needs none: a dropped socket already stopped it. */
 export async function stopTurn(turn: Turn): Promise<void> {
-  if (turn.runId !== undefined) {
+  // The turn's own session, else the page's: a frame that named none leaves the turn without one.
+  const session = resolveSession(turn)
+  const isBySession = session !== undefined && (isAnalysisOnly.value || turn.runId === undefined)
+
+  if (isBySession) {
+    if (!sendFrame({ type: 'cancel', sessionId: session })) {
+      return
+    }
+  } else if (turn.runId !== undefined) {
     await stopRun(turn.runId)
-  } else if (
-    turn.sessionId === undefined ||
-    !sendFrame({ type: 'cancel', sessionId: turn.sessionId })
-  ) {
+  } else {
     return
   }
 

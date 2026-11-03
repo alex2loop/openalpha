@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact'
 
+import { editionKey } from '@/web/state/edition'
 import { unseenCalls } from '@/web/state/ideas'
 import { backStack, openView, type PanelTab, type PanelView, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
@@ -15,7 +16,11 @@ interface TabSpec {
 const PANEL_TABS: readonly TabSpec[] = Object.freeze([
   { tab: 'today', icon: <SunIcon />, label: () => tr('ui.office.common.today') },
   { tab: 'book', icon: <PieIcon />, label: () => tr('trading.render.affordance.portfolio') },
-  { tab: 'ideas', icon: <BulbIcon />, label: () => tr('ui.office.panel.ideas') },
+  {
+    tab: 'ideas',
+    icon: <BulbIcon />,
+    label: () => tr(editionKey('ui.office.panel.ideas', 'ui.office.edition.analysis.tab')),
+  },
   { tab: 'market', icon: <GlobeIcon />, label: () => tr('ui.office.panel.market') },
 ])
 

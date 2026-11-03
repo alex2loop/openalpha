@@ -1,5 +1,6 @@
 import type { ActivityResponse, ResearchResponse } from '@/app/server/wire/activity'
 import type { AgentDeletedWire, AgentDetailWire, AgentsResponse } from '@/app/server/wire/agents'
+import type { AnalysesResponse } from '@/app/server/wire/analysis'
 import type {
   ChatHistoryResponse,
   ChatRecentResponse,
@@ -110,6 +111,9 @@ export interface RouteDef<T> {
   readonly path: string
   /** The `state.capabilities` flag that says the daemon runs this route. */
   readonly capability?: keyof Capabilities
+  /** An analysis-only edition does not serve this route (it fires while the tab is closed, or it
+   *  names a verdict, a stop or a plan), so a block over it is absent there and never asks. */
+  readonly daemonOnly?: true
   /** `slow`: the daemon may run it up to its slow ceiling, so the client waits that long. */
   readonly timeout?: 'slow'
   // Never set: it carries `T` so a call infers the response type from the route.
@@ -123,6 +127,7 @@ interface OkAnswer {
 
 interface RouteOptions {
   readonly timeout?: 'slow'
+  readonly daemonOnly?: true
 }
 
 export const ROUTES = Object.freeze({
@@ -178,9 +183,12 @@ export const ROUTES = Object.freeze({
   ledgerPreview: route<LedgerPreviewResponse>('/v1/ledger/preview', 'portfolio'),
   ledgerRow: (entryId: string) =>
     route<LedgerWriteResponse>(`/v1/ledger/${encodeURIComponent(entryId)}`, 'portfolio'),
-  ledgerSync: route<LedgerSyncResponse>('/v1/ledger/sync', 'portfolio', { timeout: 'slow' }),
+  ledgerSync: route<LedgerSyncResponse>('/v1/ledger/sync', 'portfolio', {
+    timeout: 'slow',
+    daemonOnly: true,
+  }),
   rebalance: route<RebalanceResponse>('/v1/rebalance', 'portfolio'),
-  reconcile: route<ReconcileResponse>('/v1/reconcile', 'portfolio'),
+  reconcile: route<ReconcileResponse>('/v1/reconcile', 'portfolio', { daemonOnly: true }),
   trade: route<TradeStatusResponse>('/v1/trade', 'orders'),
   // The daemon runs a confirm and an exit cancel to its slow ceiling, so the page waits as long.
   tradeConfirm: (token: string) =>
@@ -197,7 +205,7 @@ export const ROUTES = Object.freeze({
     ),
   tradeHalt: route<TradeActionResponse>('/v1/trade/halt', 'orders'),
   tradeReconcile: route<ReconcileOrdersResponse>('/v1/trade/reconcile', 'orders'),
-  stops: route<StopsResponse>('/v1/stops', 'portfolio'),
+  stops: route<StopsResponse>('/v1/stops', 'portfolio', { daemonOnly: true }),
   suggestions: route<TradingSuggestionsResponse>('/v1/suggestions', 'suggestions'),
   suggestionCard: (suggestionId: string) =>
     route<SuggestionCardResponse>(
@@ -206,13 +214,14 @@ export const ROUTES = Object.freeze({
     ),
   suggestionDebate: (suggestionId: string) =>
     route<DebateWire>(`/v1/suggestions/${encodeURIComponent(suggestionId)}/debate`, 'suggestions'),
+  analyses: route<AnalysesResponse>('/v1/analyses'),
   screen: route<ScreenResponse>('/v1/screen'),
   trackRecord: route<TradingTrackRecordResponse>('/v1/track-record', 'suggestions'),
   research: route<ResearchResponse>('/v1/research'),
   macro: route<MacroResponse>('/v1/macro'),
   // It reads the sources for the session, so the daemon may run it to its slow ceiling.
   marketSession: route<MarketSessionResponse>('/v1/market', undefined, { timeout: 'slow' }),
-  themes: route<ThemesResponse>('/v1/themes'),
+  themes: route<ThemesResponse>('/v1/themes', undefined, { daemonOnly: true }),
   themeTransition: (themeId: string, transition: ThemeTransitionWire) =>
     route<ThemeTransitionResult>(
       `/v1/themes/${encodeURIComponent(themeId)}/${encodeURIComponent(transition)}`
@@ -221,7 +230,7 @@ export const ROUTES = Object.freeze({
   events: route<TradingEventsResponse>('/v1/events', 'ohlcv'),
   news: route<TradingNewsResponse>('/v1/news'),
   brief: route<TradingBriefResponse>('/v1/brief'),
-  briefSchedule: route<BriefScheduleWire>('/v1/brief'),
+  briefSchedule: route<BriefScheduleWire>('/v1/brief', undefined, { daemonOnly: true }),
   providers: route<ProviderCatalogResponse>('/v1/providers'),
   providersTest: route<ProviderTestResult>('/v1/providers/test'),
   config: route<ConfigResponse>('/v1/config'),
@@ -252,7 +261,7 @@ export const ROUTES = Object.freeze({
   venues: route<VenuesResponse>('/v1/venues', 'portfolio'),
   profile: route<TradingProfileResponse>('/v1/profile'),
   watchlist: route<WatchlistUpdateResponse>('/v1/watchlist'),
-  alerts: route<AlertsResponse>('/v1/alerts'),
+  alerts: route<AlertsResponse>('/v1/alerts', undefined, { daemonOnly: true }),
   alertCreate: route<AlertWire>('/v1/alerts'),
   alertRow: (alertId: string) =>
     route<AlertDisableResponse>(`/v1/alerts/${encodeURIComponent(alertId)}`),
@@ -271,5 +280,6 @@ function route<T>(
     path,
     ...(capability === undefined ? {} : { capability }),
     ...(options.timeout === undefined ? {} : { timeout: options.timeout }),
+    ...(options.daemonOnly === undefined ? {} : { daemonOnly: true as const }),
   }
 }

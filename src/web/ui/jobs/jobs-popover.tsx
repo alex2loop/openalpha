@@ -4,6 +4,7 @@ import type { TasksResponse } from '@/app/server/wire/tasks'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { ASSISTANT } from '@/web/scene/sim/actors/roster'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { type Run, runs, workingTasks } from '@/web/state/live'
 import { loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
@@ -37,7 +38,19 @@ export function JobsPopover({ anchor }: { readonly anchor: RefObject<HTMLElement
   )
 }
 
+// A page with no scheduler has nothing waiting or upcoming: what runs now, from the live feed, is
+// all there is to show.
 function JobsBody() {
+  return isAnalysisOnly.value ? (
+    <div class="popover-scroll">
+      <RunningSection />
+    </div>
+  ) : (
+    <DaemonJobsBody />
+  )
+}
+
+function DaemonJobsBody() {
   const tasks = useLoad(loadTasks).value
   const schedules = state.value?.schedules ?? []
 

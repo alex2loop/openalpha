@@ -1,6 +1,7 @@
 import { useSignal } from '@preact/signals'
 
 import { openBook } from '@/web/state/book'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { keyOf, watchedNames } from '@/web/state/market'
 import { addWatch, qualifyName } from '@/web/state/watch'
 import { toErrorText, tr } from '@/web/text/tr'
@@ -60,9 +61,11 @@ export function CardActions({ ticker, market, isAnalyzed }: CardActionsProps) {
 function FormButtons({ ticker, market }: Pick<CardActionsProps, 'ticker' | 'market'>) {
   return (
     <>
-      <Button onClick={() => openAlertDialog({ ticker, market })}>
-        {tr('ui.office.ticker.alertCta')}
-      </Button>
+      {!isAnalysisOnly.value && (
+        <Button onClick={() => openAlertDialog({ ticker, market })}>
+          {tr('ui.office.ticker.alertCta')}
+        </Button>
+      )}
       <Button onClick={() => openTradeDialog({ ticker, market })}>
         {tr('ui.office.common.recordTrade')}
       </Button>

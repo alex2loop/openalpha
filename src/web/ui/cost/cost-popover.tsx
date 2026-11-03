@@ -4,6 +4,7 @@ import type { ActivityResponse, ActivityRowWire } from '@/app/server/wire/activi
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { cost, costFailure } from '@/web/state/cost'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { state } from '@/web/state/session'
 import { formatChildrenLine } from '@/web/text/activity'
 import { formatUsdCents } from '@/web/text/figures'
@@ -72,7 +73,7 @@ function CostBody() {
           spentUsd={view?.monthUsd}
           capUsd={view?.caps.monthlyUsd}
         />
-        <ByJob />
+        {!isAnalysisOnly.value && <ByJob />}
         {view !== undefined && (view.caps.dailyUsd > 0 || view.caps.monthlyUsd > 0) && (
           <p class="meta cost-note">
             {tr('ui.office.cost.note', { percent: Math.round(view.caps.warnRatio * PERCENT) })}

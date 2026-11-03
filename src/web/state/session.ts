@@ -17,13 +17,15 @@ interface Connection {
   readonly retryAt?: number
 }
 
-function resolveBrowserLocale(): UiLocale {
+export function resolveBrowserLocale(): UiLocale {
   const primary = navigator.language.split('-')[0]?.toLowerCase()
 
   return primary === 'en' || primary === 'vi' ? primary : FALLBACK_UI_LOCALE
 }
 
-const browserLocale = resolveBrowserLocale()
+/** The language the page uses before a session says another: the browser's, or the one an edition
+ *  restored from what the visitor chose. */
+export const preferredLocale = signal<UiLocale>(resolveBrowserLocale())
 
 /** The product name from `GET /v1/health`, known before sign-in. */
 export const brand = signal<string | undefined>(undefined)
@@ -37,8 +39,8 @@ export const connection = signal<Connection>({ status: 'connecting' })
 export const state = signal<StatePayload | undefined>(undefined)
 /** Why the last `GET /v1/state` failed; cleared by the next success. */
 export const sessionFailure = signal<ApiFailure | undefined>(undefined)
-/** The browser's language until a session loads, then the daemon's. */
-export const locale = computed<UiLocale>(() => state.value?.locale ?? browserLocale)
+/** The preferred language until a session loads, then the daemon's. */
+export const locale = computed<UiLocale>(() => state.value?.locale ?? preferredLocale.value)
 
 /** A model can answer: a key or login is set, or the connected client answers. */
 export const isModelReady = computed(() => state.value?.firstRun.modelReady === true)

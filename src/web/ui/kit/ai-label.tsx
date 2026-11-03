@@ -1,15 +1,17 @@
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import { renderAiLabel } from '@/i18n'
 import { locale } from '@/web/state/session'
+import { modelDisplayName } from '@/web/text/model-name'
 
 import './ai-label.css'
 
 /** The line every AI-written view opens with: what wrote it, that it can be wrong, and that it is
- *  not advice. Naming no model reads the unnamed variant. */
+ *  not advice. Models show by their display names, never their ids; naming none reads the unnamed
+ *  variant. */
 export function AiLabel({ models = [] }: { readonly models?: readonly string[] }) {
   return (
     <p class="ai-label" role="note">
-      {renderAiLabel(locale.value, models)}
+      {renderAiLabel(locale.value, models.map(modelDisplayName))}
     </p>
   )
 }

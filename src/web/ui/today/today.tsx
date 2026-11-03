@@ -1,3 +1,4 @@
+import { isAnalysisOnly, offers } from '@/web/state/edition'
 import { isFirstRun } from '@/web/state/session'
 import { AgentDay } from '@/web/ui/today/blocks/agent-day'
 import { Book } from '@/web/ui/today/blocks/book'
@@ -22,15 +23,15 @@ export function Today() {
       ) : (
         <>
           <SessionLine />
-          <NeedsYou />
-          <WorthWatching />
+          {!isAnalysisOnly.value && <NeedsYou />}
+          {!isAnalysisOnly.value && <WorthWatching />}
           <Book />
           <HomeMarket />
           <Macro />
           <OtherMarkets />
           <Events />
           <News />
-          <AgentDay />
+          {offers('agents') && <AgentDay />}
         </>
       )}
       <SetupNotices />

@@ -6,6 +6,7 @@ import type { RouteDef } from '@/web/api/routes'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { startPoll } from '@/web/api/poll'
 import { createSingleFlight } from '@/web/api/single-flight'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { connection, state } from '@/web/state/session'
 import { mergeCautions } from '@/web/text/caution-text'
 
@@ -38,6 +39,8 @@ export interface BlockReading<T> extends BlockView<T> {
 interface BlockOptions {
   /** A route the daemon does not run makes the block `absent`, never `failed`. */
   readonly capability?: keyof Capabilities | undefined
+  /** A route an analysis-only edition does not serve: the block is `absent` there. */
+  readonly daemonOnly?: true | undefined
 }
 
 interface ReadOptions extends BlockOptions {
@@ -69,7 +72,7 @@ function createBlock<T>(
   const daemonWait = createDaemonWait()
 
   async function load(abort: AbortSignal): Promise<void> {
-    if (isAbsent(options.capability)) {
+    if (isAbsent(options)) {
       view.value = { state: 'absent', cautions: [] }
       return
     }
@@ -148,7 +151,10 @@ function createDaemonWait(): DaemonWait {
 
 /** A block over one route: its query is fixed for the block's life. */
 export function createRouteBlock<T>(def: RouteDef<T>, query?: BlockQuery): Block<T> {
-  return createBlock(readRoute(def, query), { capability: def.capability })
+  return createBlock(readRoute(def, query), {
+    capability: def.capability,
+    daemonOnly: def.daemonOnly,
+  })
 }
 
 /** A block read for as long as the component is mounted; the read and its options are taken once. */
@@ -167,7 +173,11 @@ export function useBlockRead<T>(
 export function useBlock<T>(def: RouteDef<T>, options: RouteOptions = {}): BlockReading<T> {
   const { query, everyMs } = options
 
-  return useBlockRead(readRoute(def, query), { capability: def.capability, everyMs })
+  return useBlockRead(readRoute(def, query), {
+    capability: def.capability,
+    daemonOnly: def.daemonOnly,
+    everyMs,
+  })
 }
 
 /** The reading with the warnings of the parts of a response one frame shows, when the response
@@ -190,8 +200,11 @@ export function readBlock<T>(block: Block<T>): BlockReading<T> {
   return { ...block.view.value, retry: block.retry }
 }
 
-function isAbsent(capability: keyof Capabilities | undefined): boolean {
-  return capability !== undefined && state.value?.capabilities[capability] === false
+function isAbsent({ capability, daemonOnly }: BlockOptions): boolean {
+  return (
+    (capability !== undefined && state.value?.capabilities[capability] === false) ||
+    (daemonOnly === true && isAnalysisOnly.value)
+  )
 }
 
 function toReadView<T>(data: T): BlockView<T> {
