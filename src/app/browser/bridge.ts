@@ -6,7 +6,7 @@ import type { ClientFrame } from '@/app/server/wire/socket'
 import type { DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/worker'
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { Locale } from '@/core/types/locale'
-import { checkDbFile, type DbFileVerdict } from '@/app/browser/db-file'
+import { type DbFileVerdict, validateDbFile } from '@/app/browser/db-file'
 import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
 import { handleHttp } from '@/app/server/http/dispatch'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
@@ -20,6 +20,13 @@ import { StorageFullError } from '@/persistence/api'
 /** A request reaches the same route table the daemon serves; only the host of its URL is made up. */
 const REQUEST_ORIGIN = 'http://worker.invalid'
 const JSON_CONTENT_TYPE = 'application/json'
+
+const VERDICT_OUTCOME: Record<Exclude<DbFileVerdict, 'ok'>, DbOpenOutcome> = {
+  invalid: 'invalid',
+  'newer-schema': 'newer-schema',
+  'from-installed': 'from-installed',
+  failed: 'failed',
+}
 
 /** What a started worker holds between calls. `root` is absent until `start` opens the database and
  *  again after the page is told it lost it. */
@@ -254,12 +261,6 @@ async function serveHttp(
   }
 }
 
-const VERDICT_OUTCOME: Record<Exclude<DbFileVerdict, 'ok'>, DbOpenOutcome> = {
-  invalid: 'invalid',
-  'newer-schema': 'newer-schema',
-  'from-installed': 'from-installed',
-}
-
 // On the lifecycle queue, so the read never meets a start or a restart half-done; the database
 // serializes it behind its own statements.
 async function serveExport(ctx: BridgeContext, id: string): Promise<void> {
@@ -281,7 +282,7 @@ async function serveExport(ctx: BridgeContext, id: string): Promise<void> {
 // starts again over it, the way a locale change does. A refusal, a failed swap or a start that
 // cannot serve the new file leaves the database and the engine as they were.
 async function serveOpen(ctx: BridgeContext, id: string, bytes: Uint8Array): Promise<void> {
-  const { outcome, previous } = await replaceDatabase(ctx, bytes)
+  const { outcome, previous, swapFailed } = await replaceDatabase(ctx, bytes)
   let final = outcome
 
   if (previous !== undefined) {
@@ -291,6 +292,10 @@ async function serveOpen(ctx: BridgeContext, id: string, bytes: Uint8Array): Pro
       await restoreOld(ctx, previous)
       final = 'failed'
     }
+  } else if (swapFailed === true) {
+    // The swap may have left the connection closed and the storage sealed: start over the file as
+    // it now is rather than keep serving through that handle.
+    await start(ctx, false)
   }
 
   ctx.post({ kind: 'db-opened', id, outcome: final })
@@ -300,27 +305,32 @@ interface Replacement {
   readonly outcome: DbOpenOutcome
   /** The content the swap replaced; present only when the swap happened. */
   readonly previous?: Uint8Array
+  /** The swap itself threw, so the root's connection cannot be trusted. */
+  readonly swapFailed?: true
 }
 
 async function replaceDatabase(ctx: BridgeContext, bytes: Uint8Array): Promise<Replacement> {
-  const { root } = ctx.state
+  const { root, closed } = ctx.state
 
-  if (root === undefined) {
+  if (root === undefined || closed) {
     return { outcome: 'failed' }
   }
 
+  const verdict = await validateDbFile(root.files, bytes, ctx.logger)
+
+  if (verdict !== 'ok') {
+    return { outcome: VERDICT_OUTCOME[verdict] }
+  }
+
   try {
-    const verdict = await checkDbFile(root.files, bytes, ctx.logger)
-
-    if (verdict !== 'ok') {
-      return { outcome: VERDICT_OUTCOME[verdict] }
-    }
-
     return { outcome: 'opened', previous: await root.files.replaceWith(bytes) }
   } catch (err: unknown) {
     ctx.logger.error('browser.db_open_failed', { err: formatErrForLog(err) })
 
-    return { outcome: err instanceof StorageFullError ? 'storage-full' : 'failed' }
+    return {
+      outcome: err instanceof StorageFullError ? 'storage-full' : 'failed',
+      swapFailed: true,
+    }
   }
 }
 
@@ -337,8 +347,20 @@ async function restoreOld(ctx: BridgeContext, previous: Uint8Array): Promise<voi
   await start(ctx, false)
 }
 
+// The engine's export is a fresh copy nobody else holds, so an exactly sized one is handed over
+// as it is; a view into a larger or shared buffer is copied.
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
+  const { buffer } = bytes
+
+  if (
+    buffer instanceof ArrayBuffer &&
+    bytes.byteOffset === 0 &&
+    bytes.byteLength === buffer.byteLength
+  ) {
+    return buffer
+  }
+
+  return bytes.slice().buffer
 }
 
 function buildRequest(

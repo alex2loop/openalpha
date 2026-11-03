@@ -248,8 +248,8 @@ function createStorage(engine: Engine): {
     engine,
     path: `/${engine.name}`,
     reopen: () => openPoolDatabase(engine.pool, engine.name),
+    seal,
     run: (operation) => enqueue(operation, 'sqlite file operation failed'),
-    logger: engine.logger,
   })
 
   return { storage, files }

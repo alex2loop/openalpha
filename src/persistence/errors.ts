@@ -2,6 +2,8 @@ import { AppError, StorageError } from '@/core/errors'
 
 const SQLITE_FULL = 13
 const SQLITE_IOERR = 10
+const SQLITE_NOMEM = 7
+const PRIMARY_RESULT_CODE_MASK = 0xff
 const QUOTA_EXCEEDED = 'QuotaExceededError'
 const CAUSE_DEPTH = 3
 
@@ -38,6 +40,22 @@ function isStorageFull(err: unknown, depth = 0): boolean {
     resultCode === SQLITE_IOERR ||
     isStorageFull(err.cause, depth + 1)
   )
+}
+
+/** sqlite itself refused the bytes (not a database, corrupt), as against the tab failing while it
+ *  looked, such as running out of memory: the first is a fact about the file, the second is not. */
+export function isUnreadableDatabase(err: unknown, depth = 0): boolean {
+  if (!(err instanceof Error) || depth >= CAUSE_DEPTH) {
+    return false
+  }
+
+  const resultCode = 'resultCode' in err ? err.resultCode : undefined
+
+  if (typeof resultCode === 'number') {
+    return (resultCode & PRIMARY_RESULT_CODE_MASK) !== SQLITE_NOMEM
+  }
+
+  return isUnreadableDatabase(err.cause, depth + 1)
 }
 
 /** A database a newer release migrated is one this binary cannot reason about: an older release

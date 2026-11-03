@@ -18,7 +18,8 @@ export interface DatabaseFiles {
   openScratch(bytes: Uint8Array): Storage
   /** Swaps `bytes` in for the working database and answers the content it replaced. When anything
    *  fails the previous content is put back and the error is thrown, so the working database is
-   *  never half replaced. */
+   *  never half replaced. When the previous content cannot be put back either, the storage is
+   *  sealed: every later request is refused rather than served by a closed connection. */
   replaceWith(bytes: Uint8Array): Promise<Uint8Array>
 }
 
@@ -28,6 +29,7 @@ interface FileEngine {
   db: Database
   readonly pool: SAHPoolUtil
   readonly sqlite3: Sqlite3Static
+  readonly logger: Logger
 }
 
 interface FilesOptions {
@@ -35,8 +37,9 @@ interface FilesOptions {
   /** The VFS path of the working database. */
   readonly path: string
   readonly reopen: () => Database
+  /** Refuses every later request and frees the engine. */
+  readonly seal: () => void
   readonly run: <T>(operation: () => Promise<T>) => Promise<T>
-  readonly logger: Logger
 }
 
 export function createDatabaseFiles(options: FilesOptions): DatabaseFiles {
@@ -58,12 +61,19 @@ function serialize(engine: FileEngine): Uint8Array {
 }
 
 // The old content is held in memory while the file is overwritten in place, because the pool has
-// no rename: a failed write or reopen puts it back.
+// no rename: a failed write or reopen puts it back. A connection that cannot be closed, or old
+// content that cannot be put back, leaves a closed or unknown handle: the storage is sealed.
 async function swap(options: FilesOptions, bytes: Uint8Array): Promise<Uint8Array> {
   const { engine, path } = options
   const previous = serialize(engine)
 
-  engine.db.close()
+  try {
+    engine.db.close()
+  } catch (err: unknown) {
+    options.seal()
+
+    throw toStorageError(err, 'sqlite database close failed')
+  }
 
   try {
     await engine.pool.importDb(path, bytes)
@@ -71,18 +81,24 @@ async function swap(options: FilesOptions, bytes: Uint8Array): Promise<Uint8Arra
 
     return previous
   } catch (err: unknown) {
-    await putBack(options, previous)
+    if (!(await putBack(options, previous))) {
+      options.seal()
+    }
 
     throw toStorageError(err, 'sqlite database replace failed')
   }
 }
 
-async function putBack(options: FilesOptions, previous: Uint8Array): Promise<void> {
+async function putBack(options: FilesOptions, previous: Uint8Array): Promise<boolean> {
   try {
     await options.engine.pool.importDb(options.path, previous)
     options.engine.db = options.reopen()
+
+    return true
   } catch (err: unknown) {
-    options.logger.error('sqlite_wasm.restore_failed', { err: formatErrForLog(err) })
+    options.engine.logger.error('sqlite_wasm.restore_failed', { err: formatErrForLog(err) })
+
+    return false
   }
 }
 

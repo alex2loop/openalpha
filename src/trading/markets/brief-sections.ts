@@ -69,6 +69,18 @@ export function omitted(kind: BriefSectionKind): BriefSectionResult {
   return { kind, status: 'omitted-by-policy', caveats: [] }
 }
 
+/** `sections` with every kind in `omit` read as omitted, the state every surface hides. */
+export function withoutOmitted(
+  sections: readonly BriefSectionResult[],
+  omit: ReadonlySet<BriefSectionKind> | undefined
+): readonly BriefSectionResult[] {
+  if (omit === undefined) {
+    return sections
+  }
+
+  return sections.map((section) => (omit.has(section.kind) ? omitted(section.kind) : section))
+}
+
 export function absent(
   kind: BriefSectionKind,
   caveats: readonly Caveat[] = []

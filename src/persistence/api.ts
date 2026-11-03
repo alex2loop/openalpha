@@ -45,7 +45,7 @@ export {
   openSqliteWasm,
   type SqliteWasmOptions,
 } from '@/persistence/engines/sqlite-wasm'
-export { SchemaAheadError, StorageFullError } from '@/persistence/errors'
+export { isUnreadableDatabase, SchemaAheadError, StorageFullError } from '@/persistence/errors'
 export { MIGRATIONS } from '@/persistence/migrations/registry.generated'
 export {
   hasTable,
