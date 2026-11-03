@@ -7,7 +7,14 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
-## [Unreleased]
+## [1.3.0] - 2026-11-03
+
+US stocks and ETFs can now be your home market: the 500 largest US companies and a fund board,
+sector strength against SPY, a morning brief at 08:15 New York time with filings and ex-dividend
+dates, and Lower Manhattan on the office page. English is the default language. `/screen crypto`
+keeps only coins a venue you trade at lists, and the app's restart line, command box and market
+picker are easier to read. No database change.
+> Cổ phiếu và ETF Mỹ giờ có thể là thị trường chính: 500 công ty lớn nhất nước Mỹ và bảng quỹ, sức mạnh ngành so với SPY, bản tin sáng lúc 08:15 giờ New York kèm báo cáo nộp SEC và ngày giao dịch không hưởng quyền, cùng phố Lower Manhattan trên trang văn phòng. Tiếng Anh là ngôn ngữ mặc định. `/screen crypto` chỉ giữ coin mà sàn bạn đang giao dịch niêm yết, còn dòng khởi động lại, ô lệnh và ô chọn thị trường trong ứng dụng dễ đọc hơn. Không đổi cơ sở dữ liệu.
 
 ### Added
 
@@ -653,6 +660,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.3.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.3.0
 [1.2.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.2
 [1.2.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.1
 [1.2.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.0
