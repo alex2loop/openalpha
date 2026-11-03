@@ -228,8 +228,8 @@ a.news-item:hover b {
 }
 
 .step.is-done .step-num {
-  background: var(--ink);
-  color: var(--canvas);
+  background: color-mix(in srgb, var(--tc-green) var(--tile-mix), transparent);
+  color: var(--tc-green);
 }
 
 .step-num svg {
