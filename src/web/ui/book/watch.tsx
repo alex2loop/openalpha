@@ -4,6 +4,7 @@ import type { AlertWire } from '@/app/server/wire/market'
 import type { InstrumentRefWire, TradingProfileResponse } from '@/app/server/wire/trading'
 import { regionPack } from '@/web/scene/data/home'
 import { readBlock } from '@/web/state/block'
+import { offers } from '@/web/state/edition'
 import { findQuote, keyOf, profileBlock } from '@/web/state/market'
 import { addWatch, qualifyName, removeWatch, useAlerts } from '@/web/state/watch'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
@@ -20,8 +21,6 @@ import './book.css'
 
 /** Theo dõi: the names you watch, and the price alerts you set. */
 export function Watch() {
-  const alerts = useAlerts()
-
   return (
     <>
       <BlockFrame
@@ -32,15 +31,23 @@ export function Watch() {
       >
         {(profile) => <WatchList profile={profile} />}
       </BlockFrame>
-      <BlockFrame
-        title={tr('ui.office.common.priceAlerts')}
-        colour="pink"
-        icon={<BellIcon />}
-        reading={alerts}
-      >
-        {(answer) => <AlertList alerts={answer.alerts} />}
-      </BlockFrame>
+      {offers('schedules') && <PriceAlerts />}
     </>
+  )
+}
+
+function PriceAlerts() {
+  const alerts = useAlerts()
+
+  return (
+    <BlockFrame
+      title={tr('ui.office.common.priceAlerts')}
+      colour="pink"
+      icon={<BellIcon />}
+      reading={alerts}
+    >
+      {(answer) => <AlertList alerts={answer.alerts} />}
+    </BlockFrame>
   )
 }
 

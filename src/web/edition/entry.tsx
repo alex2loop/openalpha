@@ -11,7 +11,7 @@ import { type ConnectResult, finishOpenRouterConnect } from '@/web/edition/openr
 import { Refused } from '@/web/edition/refused'
 import { type EditionPhase, editionPhase, startEdition } from '@/web/edition/worker-link'
 import { declareWebEdition } from '@/web/state/edition'
-import { state } from '@/web/state/session'
+import { locale, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { ModalHost } from '@/web/ui/kit/modal'
 import { openSettings } from '@/web/ui/settings/settings'
@@ -28,6 +28,10 @@ if (canRunPage()) {
   const phaseKind = computed(() => editionPhase.value.kind)
 
   declareWebEdition()
+  // The page is announced in the language it shows, also before the office runs and when it refuses.
+  effect(() => {
+    document.documentElement.lang = locale.value
+  })
 
   renderPage(<EditionShell />)
   addEventListener(

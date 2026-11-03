@@ -1,11 +1,13 @@
 import { useEffect } from 'preact/hooks'
 
 import type { AnalysesResponse } from '@/app/server/wire/analysis'
+import { formatDay } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { CompareLink } from '@/web/edition/install-line'
 import { useBlockRead } from '@/web/state/block'
 import { onWireEvent } from '@/web/state/events'
+import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { AiLabel } from '@/web/ui/kit/ai-label'
 import { BulbIcon } from '@/web/ui/kit/icons'
@@ -65,19 +67,24 @@ function AnalysisCard({ analysis }: { readonly analysis: Analysis }) {
   return (
     <article class="analysis-card">
       <h3 class="sub-head">
-        {tr('ui.office.edition.analysis.head', { ticker, day: analysis.at })}
+        {tr('ui.office.edition.analysis.head', {
+          ticker,
+          day: formatDay(locale.value, analysis.at),
+        })}
       </h3>
       <AiLabel models={analysis.models} />
       {analysis.evidenceThrough !== undefined && (
         <p class="meta">
-          {tr('ui.office.edition.analysis.through', { day: analysis.evidenceThrough })}
+          {tr('ui.office.edition.analysis.through', {
+            day: formatDay(locale.value, analysis.evidenceThrough),
+          })}
         </p>
       )}
       <SideView side={analysis.bull} title={tr('trading.analysis.case-bull', params)} />
       <SideView side={analysis.bear} title={tr('trading.analysis.case-bear', params)} />
       <ClaimList analysis={analysis} />
       {analysis.caveats.map((caveat) => (
-        <p key={caveat.code} class="meta">
+        <p key={`${caveat.code}:${caveat.text}`} class="meta">
           {caveat.text}
         </p>
       ))}

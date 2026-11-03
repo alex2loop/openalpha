@@ -1,6 +1,6 @@
 import { effect, signal } from '@preact/signals'
 
-import { requestDbExport } from '@/web/edition/worker-link'
+import { holdRestartFor, requestDbExport } from '@/web/edition/worker-link'
 import { onCommandFinished } from '@/web/state/events'
 import { ledgerRevision } from '@/web/state/trade'
 import { tr } from '@/web/text/tr'
@@ -139,12 +139,14 @@ async function writeCopy(options: FileAutosaveOptions): Promise<boolean> {
  *  when the browser still lets the page, and never asks on load. Returns the way to stop. */
 export function startFileSave(): () => void {
   const lifetime = new AbortController()
+  const releaseRestart = holdRestartFor(stopActive)
 
   restore(lifetime.signal).catch(() => {
     saveStatus.value = { kind: 'none' }
   })
 
   return () => {
+    releaseRestart()
     lifetime.abort()
     stopActive().catch(() => undefined)
   }

@@ -36,6 +36,7 @@ export const editionPhase = signal<EditionPhase>({ kind: 'starting' })
 let worker: Worker | undefined
 let stopWorker: (() => void) | undefined
 let readKeys: () => BrowserKeys = () => ({})
+let settleBeforeRestart: () => Promise<void> = () => Promise.resolve()
 
 function hasBrowserSupport(): boolean {
   return (
@@ -114,10 +115,25 @@ export function chooseLanguage(locale: Locale): void {
   restartIn(locale)
 }
 
+/** What must finish before the engine restarts, because it asks the engine for something (the copy
+ *  of the data in the visitor's file). Returns the way to release it. */
+export function holdRestartFor(settle: () => Promise<void>): () => void {
+  settleBeforeRestart = settle
+
+  return () => {
+    settleBeforeRestart = () => Promise.resolve()
+  }
+}
+
+// The restart goes on whether or not the wait succeeds: a failed copy says so on its own status.
 function restartIn(locale: Locale): void {
-  editionPhase.value = { kind: 'restarting' }
-  preferredLocale.value = locale
-  postToWorker({ kind: 'locale', locale })
+  const restart = (): void => {
+    editionPhase.value = { kind: 'restarting' }
+    preferredLocale.value = locale
+    postToWorker({ kind: 'locale', locale })
+  }
+
+  settleBeforeRestart().then(restart, restart)
 }
 
 /** The database as one SQLite file. Rejects when the worker has none to give or does not answer. */

@@ -3,7 +3,7 @@ import { readBlock } from '@/web/state/block'
 import { heldPositions, holdingsBlock } from '@/web/state/market'
 import { formatPrice, formatSignedPercent, toneOfPercent, WHOLE_DISPLAY } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
-import { EmptyBookActions } from '@/web/ui/book/empty-actions'
+import { EmptyBookActions, emptyBookKey } from '@/web/ui/book/empty-actions'
 import { toMovePercent, Unrealized } from '@/web/ui/book/unrealized'
 import { CoinIcon } from '@/web/ui/kit/icons'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
@@ -29,7 +29,7 @@ function PnlRows({ book }: { readonly book: TradingPortfolioResponse }) {
   if (held.length === 0) {
     return (
       <>
-        <p class="empty-note">{tr('ui.office.book.empty')}</p>
+        <p class="empty-note">{tr(emptyBookKey())}</p>
         <EmptyBookActions />
       </>
     )

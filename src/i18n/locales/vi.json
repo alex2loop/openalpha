@@ -176,6 +176,7 @@
     "office.edition.firstRun.profileBody": "Khẩu vị rủi ro, mục tiêu, kỳ hạn và tỷ trọng mục tiêu từng nhóm. Mình dùng để so danh mục của bạn với mức bạn đặt.",
     "office.edition.firstRun.bookBody": "Ghi các mã bạn đang giữ để mình tính danh mục. Chưa có gì thì bỏ qua.",
     "office.edition.firstRun.briefBody": "Mình dựng bản tin từ số liệu đã tải và sổ của bạn khi bạn gõ /brief lúc trang đang mở. Không cần key AI.",
+    "office.edition.book.empty": "Chưa có giao dịch nào. Ghi các mã bạn đang giữ để mình tính danh mục.",
     "office.edition.analysis.tab": "Phân tích",
     "office.edition.analysis.title": "Phân tích đã chạy",
     "office.edition.analysis.empty": "Chưa có phân tích nào. Gõ /suggest kèm tên mã vào ô lệnh (cần key AI).",

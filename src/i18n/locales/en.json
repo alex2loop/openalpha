@@ -176,6 +176,7 @@
     "office.edition.firstRun.profileBody": "Risk appetite, goal, horizon and the target weight of each segment. I use them to compare your portfolio with the targets you set.",
     "office.edition.firstRun.bookBody": "Record the names you hold so I can work out your portfolio. Skip this if you hold nothing yet.",
     "office.edition.firstRun.briefBody": "I build the brief from the data already loaded and your ledger when you type /brief while the page is open. It needs no AI key.",
+    "office.edition.book.empty": "No trades yet. Record what you hold so I can work out your portfolio.",
     "office.edition.analysis.tab": "Analysis",
     "office.edition.analysis.title": "Analyses I ran",
     "office.edition.analysis.empty": "No analysis yet. Type /suggest with a name in the command box (needs an AI key).",

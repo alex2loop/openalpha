@@ -79,6 +79,13 @@ export function forgetKey(slot: KeySlot, provider: string): void {
   publish()
 }
 
+/** Forgets every key and agreement held in this page's memory. The wipe clears the storage itself,
+ *  and a worker it is about to end needs no word of it. */
+export function dropHeldKeys(): void {
+  held.value = { ai: {}, search: {} }
+  consents.value = {}
+}
+
 // The worker applies a key from its next request; the session is read again so `modelReady` follows.
 function publish(): void {
   postToWorker({ kind: 'keys', keys: workerKeys() })

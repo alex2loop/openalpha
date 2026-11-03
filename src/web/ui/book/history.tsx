@@ -3,11 +3,12 @@ import { useEffect } from 'preact/hooks'
 
 import type { LedgerEntryWire } from '@/app/server/wire/money'
 import { ROUTES } from '@/web/api/routes'
+import { offers } from '@/web/state/edition'
 import { state } from '@/web/state/session'
 import { clearFlashedEntry, flashedEntry, type LedgerKind } from '@/web/state/trade'
 import { boardScaleNotes } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
-import { EmptyBookActions } from '@/web/ui/book/empty-actions'
+import { EmptyBookActions, emptyBookKey } from '@/web/ui/book/empty-actions'
 import { LedgerRow } from '@/web/ui/book/ledger-row'
 import { openReconcileDialog } from '@/web/ui/book/reconcile-dialog'
 import { useLedger } from '@/web/ui/book/use-ledger'
@@ -61,9 +62,11 @@ export function History() {
         <Button size="small" onClick={() => openTradeDialog()}>
           {tr('ui.office.common.recordTrade')}
         </Button>
-        <Button size="small" onClick={openReconcileDialog}>
-          {tr('ui.office.reconcile.open')}
-        </Button>
+        {offers('venues') && (
+          <Button size="small" onClick={openReconcileDialog}>
+            {tr('ui.office.reconcile.open')}
+          </Button>
+        )}
         <FilterMenu filter={filter} page={page} />
       </div>
       <LedgerBody
@@ -149,15 +152,12 @@ function EmptyLedger({
   }
 
   // Loaded rows with none of this kind say so; the book itself is empty only when nothing loaded.
-  const key =
-    isFiltered && ledger.rows.value.length > 0
-      ? 'ui.office.book.filterEmpty'
-      : 'ui.office.book.empty'
+  const isBookEmpty = !isFiltered || ledger.rows.value.length === 0
 
   return (
     <>
-      <p class="meta">{tr(key)}</p>
-      {key === 'ui.office.book.empty' && <EmptyBookActions />}
+      <p class="meta">{tr(isBookEmpty ? emptyBookKey() : 'ui.office.book.filterEmpty')}</p>
+      {isBookEmpty && <EmptyBookActions />}
     </>
   )
 }

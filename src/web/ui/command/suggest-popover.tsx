@@ -1,6 +1,7 @@
 import type { MessageKey } from '@/i18n'
 import { agents, selectedAgentId } from '@/web/state/agents'
 import { ALERT_CREATE_COMMAND, SUGGEST_COMMAND, WATCHLIST_ADD_COMMAND } from '@/web/state/command'
+import { offers } from '@/web/state/edition'
 import { commands, estimateText } from '@/web/state/estimates'
 import { panelView } from '@/web/state/panel'
 import { joinInline } from '@/web/text/glyphs'
@@ -203,7 +204,14 @@ function buildAgentContext(agentId: string): readonly Starter[] {
 function buildTickerContext(ticker: string): readonly Starter[] {
   return [
     { text: `${SUGGEST_COMMAND} ${ticker}`, label: 'ui.office.command.ctxSuggest' },
-    { text: `${ALERT_CREATE_COMMAND} ${ticker} `, label: 'ui.office.command.ctxAlert' },
+    ...(offers('schedules')
+      ? [
+          {
+            text: `${ALERT_CREATE_COMMAND} ${ticker} `,
+            label: 'ui.office.command.ctxAlert' as const,
+          },
+        ]
+      : []),
     { text: `${WATCHLIST_ADD_COMMAND} ${ticker}`, label: 'ui.office.command.ctxWatch' },
   ]
 }
