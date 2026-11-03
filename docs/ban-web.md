@@ -19,7 +19,7 @@ Bản web là công cụ phân tích để bạn tự dùng. Mỗi phân tích �
    /portfolio
    ```
 
-   Đổi mã, khối lượng và giá cho đúng giao dịch của bạn; các dòng trên chỉ minh họa cách gõ. Nếu trang chưa biết một mã, gõ `/refresh equity-vn` rồi thử lại, hoặc nêu rõ thị trường: `equity-vn:FPT`. `/transactions` liệt kê sổ; `/update <mã giao dịch> buy FPT 100 61500` (dòng đã sửa, bỏ chữ `/record`) và `/delete <mã giao dịch>` sửa hoặc xóa một dòng theo mã giao dịch mà `/transactions` in ra, và `/delete` hỏi bạn xác nhận.
+   Đổi mã, khối lượng và giá cho đúng giao dịch của bạn; các dòng trên chỉ minh họa cách gõ. Nếu trang chưa biết một mã, gõ `/refresh equity-vn` rồi thử lại, hoặc nêu rõ thị trường: `equity-vn:FPT`. `/transactions` liệt kê sổ; `/update <mã giao dịch> buy vps equity-vn:FPT 100 61500 VND 0 2026-11-03` (ghi đủ: loại, sàn, mã, khối lượng, giá, tiền tệ, phí, ngày) và `/delete <mã giao dịch>` sửa hoặc xóa một dòng theo mã giao dịch mà `/transactions` in ra, và `/delete` hỏi bạn xác nhận.
 5. **Chạy một phân tích.** `/suggest FPT` đặt lập luận bên tăng và bên giảm cạnh nhau trên cùng một bộ dữ liệu, kèm các luận điểm bị dữ liệu phản bác và điều gì sẽ làm mỗi bên sai. Hai bên dùng cùng dữ liệu nên hãy đọc song song, đừng đếm xem bên nào nhiều ý hơn. Bạn bấm "Dừng" giữa chừng được; phiên chạy chưa xong thì không lưu gì. Mọi kết quả ghi mốc dữ liệu và mô hình AI đã dùng, kèm nhãn "do AI tạo" đi theo bản ghi khi bạn lưu hoặc xuất. **Phân tích do AI tạo, có thể sai và không phải khuyến nghị đầu tư. Đầu tư luôn có rủi ro, kể cả có thể mất vốn.**
 6. **Lưu dữ liệu ra file.** Trình duyệt có thể xóa dữ liệu của trang khi máy thiếu chỗ, mà sổ giao dịch thì không tải lại được. Xem [dữ liệu nằm ở đâu](#dữ-liệu-nằm-ở-đâu).
 
