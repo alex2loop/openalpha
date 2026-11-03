@@ -23,6 +23,7 @@ import {
   scheduleGuardOf,
 } from '@/trading/features/brief/schedule'
 import { resolveDay } from '@/trading/features/market-data/resolve'
+import { withoutOmitted } from '@/trading/markets/brief-sections'
 
 type EnableBriefRejection = Extract<EnableBriefResult, { kind: 'rejected' }>['reason']
 
@@ -65,6 +66,17 @@ function build(deps: BriefServiceDeps, options: BuildBriefOptions): Promise<Brie
  *  read is absent rather than an error: the vocabulary it was written in is the store's problem, and
  *  taking a surface down over a derived artifact is worse than showing the empty state. */
 async function getLatest(
+  deps: BriefServiceDeps,
+  options: GetLatestBriefOptions
+): Promise<BriefSnapshot | null> {
+  const snapshot = await findLatestSnapshot(deps, options)
+
+  return snapshot === null
+    ? null
+    : { ...snapshot, sections: withoutOmitted(snapshot.sections, deps.omitSections) }
+}
+
+async function findLatestSnapshot(
   deps: BriefServiceDeps,
   options: GetLatestBriefOptions
 ): Promise<BriefSnapshot | null> {

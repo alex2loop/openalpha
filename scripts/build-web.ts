@@ -4,6 +4,7 @@
 // nothing here runs on a server. `--noindex` is the staging flag.
 import { cp, mkdir, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { parseArgs } from 'node:util'
 
 import { listBrowserHosts } from '@/app/browser/hosts'
 
@@ -44,6 +45,8 @@ async function buildEntry(entry: string): Promise<void> {
   }
 }
 
+const { values } = parseArgs({ options: { noindex: { type: 'boolean' } } })
+
 await rm(OUT_DIR, { recursive: true, force: true })
 await mkdir(OUT_DIR, { recursive: true })
 await buildEntry(PAGE_ENTRY)
@@ -52,7 +55,7 @@ await cp(WASM_SOURCE, resolve(OUT_DIR, WASM_FILE))
 await Bun.write(
   resolve(OUT_DIR, HEADERS_FILE),
   buildHeadersFile(pageDirectives(listBrowserHosts()), {
-    noindex: process.argv.includes('--noindex'),
+    noindex: values.noindex === true,
   })
 )
 

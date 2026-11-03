@@ -31,12 +31,10 @@ jobs:
       deploy: ${{ steps.plan.outputs.deploy }}
       tag: ${{ steps.plan.outputs.tag }}
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
       WEB_APP_URL: ${{ vars.WEB_APP_URL }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      RELEASED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -45,13 +43,25 @@ jobs:
       - name: Decide
         id: plan
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$WEB_APP_URL" ]; then
+          if [ "$HAS_CLOUDFLARE" != "true" ] || [ -z "$WEB_APP_URL" ]; then
             echo "Cloudflare secrets or WEB_APP_URL are not set: nothing to deploy"
             echo "deploy=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           tag="v$(jq -r .version package.json)"
-          latest="$(gh release view --json tagName --jq .tagName)"
+          if ! latest="$(gh release view --json tagName --jq .tagName 2>&1)"; then
+            case "$latest" in
+              *"release not found"*)
+                echo "There is no release yet: nothing to deploy"
+                echo "deploy=false" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+              *)
+                echo "$latest"
+                exit 1
+                ;;
+            esac
+          fi
           if [ "$tag" != "$latest" ]; then
             echo "$tag is not the latest release ($latest): nothing to deploy"
             echo "deploy=false" >> "$GITHUB_OUTPUT"
@@ -66,8 +76,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       WEB_APP_URL: ${{ vars.WEB_APP_URL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -80,10 +88,17 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - run: bun run build:web
+      # Both answer on workers.dev until a production domain exists; drop --noindex with the move.
+      - run: bun run build:web --noindex
 
-      - run: bun run build:site --app-url="$WEB_APP_URL"
+      - run: bun run build:site --app-url="$WEB_APP_URL" --noindex
 
       - run: bunx wrangler@4.157.0 deploy -c deploy/web/wrangler.toml
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - run: bunx wrangler@4.157.0 deploy -c deploy/site/wrangler.toml
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

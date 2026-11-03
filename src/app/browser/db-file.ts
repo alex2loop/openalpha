@@ -2,22 +2,42 @@ import type { Logger } from '@/core/logging/logger'
 import type { Storage } from '@/core/types/storage'
 import type { DatabaseFiles } from '@/persistence/api'
 import { formatErrForLog } from '@/core/security/credentials'
-import { hasTable, MIGRATIONS_TABLE, migrationStatus, sqliteDialect } from '@/persistence/api'
+import {
+  hasTable,
+  isUnreadableDatabase,
+  MIGRATIONS_TABLE,
+  migrationStatus,
+  sqliteDialect,
+} from '@/persistence/api'
 
 /** Tables only an installed version writes: a stored call, an alert, a resting exit, an order
- *  intent. A file holding a row of one would put stops and targets on web surfaces, and saving it
- *  back would lose them from the installed book. `brief_snapshots` is not here on purpose: the web
- *  builds briefs too, so its own export carries those rows. */
-const INSTALLED_ONLY_TABLES = ['suggestions', 'alerts', 'resting_exits', 'order_intents'] as const
+ *  intent, the focus and factor records its runs keep, the buying halt, the themes. A file holding
+ *  a row of one would put stops and targets on web surfaces, and saving it back would lose them
+ *  from the installed book. `brief_snapshots` is not here on purpose: the web builds briefs too,
+ *  so its own export carries those rows. */
+const INSTALLED_ONLY_TABLES = [
+  'suggestions',
+  'alerts',
+  'resting_exits',
+  'order_intents',
+  'order_settings',
+  'agent_focuses',
+  'factor_log',
+  'themes',
+  'theme_runs',
+  'theme_reads',
+  'theme_outcomes',
+] as const
 
 const SQLITE_HEADER = 'SQLite format 3\0'
 
-export type DbFileVerdict = 'ok' | 'invalid' | 'newer-schema' | 'from-installed'
+/** `failed` is the tab being unable to look (memory), not a verdict on the file. */
+export type DbFileVerdict = 'ok' | 'invalid' | 'newer-schema' | 'from-installed' | 'failed'
 
 /** Whether `bytes` is a database this build may replace its own with, judged in a scratch copy in
  *  memory so nothing of the working database is touched. Same rule as the boot for a schema ahead
- *  of this build: a migration id it does not declare. */
-export async function checkDbFile(
+ *  of this build: a migration id it does not declare. Never throws. */
+export async function validateDbFile(
   files: DatabaseFiles,
   bytes: Uint8Array,
   logger: Logger
@@ -33,12 +53,20 @@ export async function checkDbFile(
 
     return await judge(scratch)
   } catch (err: unknown) {
-    // A file the engine cannot read is the visitor's file, not a fault of ours.
-    logger.warn('browser.db_file_unreadable', { err: formatErrForLog(err) })
+    // A file sqlite refuses is the visitor's file, not a fault of ours.
+    if (isUnreadableDatabase(err)) {
+      logger.warn('browser.db_file_unreadable', { err: formatErrForLog(err) })
 
-    return 'invalid'
+      return 'invalid'
+    }
+
+    logger.error('browser.db_file_check_failed', { err: formatErrForLog(err) })
+
+    return 'failed'
   } finally {
-    await scratch?.close()
+    await scratch?.close().catch((err: unknown) => {
+      logger.warn('browser.db_scratch_close_failed', { err: formatErrForLog(err) })
+    })
   }
 }
 

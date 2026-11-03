@@ -30,7 +30,7 @@ import { profileRevisionOf } from '@/trading/features/profile/store'
 import { ticker } from '@/trading/kernel/instrument'
 import { disabledSegments } from '@/trading/kernel/operator/profile'
 import { isDeliverable } from '@/trading/markets/brief-deliverability'
-import { omitted } from '@/trading/markets/brief-sections'
+import { withoutOmitted } from '@/trading/markets/brief-sections'
 
 const BRIEF_WATCHLIST_LIMIT_PER_SCOPE = 20
 /** The section whose rows record which names were eligible on the day it was built. */
@@ -164,7 +164,7 @@ export async function findOrBuildBrief(
     const existing = await findCurrentSnapshot(deps, { ...input, profile })
 
     if (existing.kind === 'current') {
-      return { kind: 'ready', snapshot: existing.snapshot, reused: true }
+      return { kind: 'ready', snapshot: visibleSnapshot(deps, existing.snapshot), reused: true }
     }
   }
 
@@ -182,30 +182,22 @@ export async function findOrBuildBrief(
 
   input.progress?.('trading.progress.brief.sections')
   const built = await capability.run(request)
-  const brief = { ...built, sections: withoutOmitted(built.sections, deps.omitSections) }
 
-  logDegradedSections(deps, input, brief.sections)
+  logDegradedSections(deps, input, withoutOmitted(built.sections, deps.omitSections))
   input.progress?.('trading.progress.brief.persist')
 
   return persist(deps, input, {
-    sections: [...tryPlanStory(deps, input, { brief, previous }), ...brief.sections],
+    sections: [...tryPlanStory(deps, input, { brief: built, previous }), ...built.sections],
     caveats,
     scorecardShownThisMonth: request.scorecardShownThisMonth,
     profileRevision: profileRevisionOf(profile),
   })
 }
 
-/** A section the edition leaves out is kept as omitted, the state every surface hides, so the
- *  snapshot still says the brief was built without it. */
-function withoutOmitted(
-  sections: readonly BriefSectionResult[],
-  omit: ReadonlySet<BriefSectionKind> | undefined
-): readonly BriefSectionResult[] {
-  if (omit === undefined) {
-    return sections
-  }
-
-  return sections.map((section) => (omit.has(section.kind) ? omitted(section.kind) : section))
+/** What leaves the brief service: the edition's omitted sections read as omitted. The store keeps
+ *  them whole, because the next build recovers its eligible names from one. */
+function visibleSnapshot(deps: BriefBuildDeps, snapshot: BriefSnapshot): BriefSnapshot {
+  return { ...snapshot, sections: withoutOmitted(snapshot.sections, deps.omitSections) }
 }
 
 /** A profile saved before the home moved can keep the new home market switched off. */
@@ -280,7 +272,10 @@ async function persist(
 ): Promise<BriefResult> {
   const { sections } = composed
 
-  if (!isDeliverable(sections, deps.config.briefs.coreSections)) {
+  // Judged on what the edition shows: a section it hides cannot make a brief worth sending.
+  if (
+    !isDeliverable(withoutOmitted(sections, deps.omitSections), deps.config.briefs.coreSections)
+  ) {
     return { kind: 'suppressed', reason: 'no-deliverable-content' }
   }
 
@@ -298,7 +293,7 @@ async function persist(
 
   await deps.store.upsertSnapshot(snapshot, input.signal)
 
-  return { kind: 'ready', snapshot, reused: false }
+  return { kind: 'ready', snapshot: visibleSnapshot(deps, snapshot), reused: false }
 }
 
 /** One line per build, not per section: a builder that throws throws for every name it would have
