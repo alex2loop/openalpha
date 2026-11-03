@@ -62,7 +62,7 @@ import {
 import { runSentiment } from '@/trading/features/market-data/reads/sentiment'
 import { resolveDay, searchInstruments } from '@/trading/features/market-data/resolve'
 import { toBoardView } from '@/trading/features/market-data/screen-board'
-import { pricedCandidate } from '@/trading/features/market-data/screen-caution'
+import { closedCandidate, pricedCandidate } from '@/trading/features/market-data/screen-caution'
 import { unsupportedScreen, unsupportedSectors } from '@/trading/features/market-data/unsupported'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { ECONOMY_FEED_SCOPE } from '@/trading/kernel/source/source-result'
@@ -287,7 +287,10 @@ function logScreen(logger: Logger, options: MarketDataScreenRequest, result: Scr
  *  outside the session, which for a VN board is most of the day. Best-effort per name: a name
  *  whose quote fails keeps its rank-only row, and so carries no caution either. A market that swept
  *  the universe already answered; where it did not, the per-name fetch is bounded by the board a
- *  surface can show, past which the request is a bulk score read rather than a board. */
+ *  surface can show, past which the request is a bulk score read rather than a board. A whole
+ *  board (`form: 'board'`) never asks per name: a page that browses every name would spend one
+ *  live request each against a rate limit, so a name the sweep did not price reads at the settled
+ *  close the market carried. */
 async function withPrices(
   market: Market,
   candidates: readonly ScreenCandidate[],
@@ -306,21 +309,19 @@ async function withPrices(
     now: options.now,
     signal: options.signal,
   }
-  // A board lists only priced names, so every name is priced; any other request past the cap is a
-  // bulk score read, which leaves the names a sweep did not price without one.
-  const fetchMissing =
-    options.form === 'board' || candidates.length <= SURFACE_LIMITS.maximumScreenCandidates
+  const isBoard = options.form === 'board'
+  const fetchMissing = !isBoard && candidates.length <= SURFACE_LIMITS.maximumScreenCandidates
 
   return mapWithConcurrency(candidates, SCREEN_QUOTE_CONCURRENCY, async (candidate) => {
     const quote =
       candidate.liveQuote ??
       (fetchMissing ? await quotedValue(scope, candidate.instrument) : undefined)
 
-    if (quote === undefined) {
-      return candidate
+    if (quote !== undefined) {
+      return pricedCandidate(candidate, quote, freshnessOf(scope, quote.observedAt, options.now))
     }
 
-    return pricedCandidate(candidate, quote, freshnessOf(scope, quote.observedAt, options.now))
+    return isBoard ? closedCandidate(candidate, scope.calendar) : candidate
   })
 }
 

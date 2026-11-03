@@ -5,6 +5,7 @@ import type {
 } from '@/trading/kernel/market/market-capability'
 import type { Quote, QuoteFreshness } from '@/trading/kernel/market/market-data'
 import type { ScreenCautionCode } from '@/trading/kernel/screen-codes'
+import type { TradingCalendar } from '@/trading/markets/types'
 import { isGappedPastClose } from '@/trading/markets/statistics'
 import { changeAgainstClose } from '@/trading/sources/rows/normalization'
 
@@ -18,6 +19,29 @@ export function pricedCandidate(
   const caution = cautionOf(candidate, price)
 
   return { ...candidate, price, ...(caution === undefined ? {} : { caution }) }
+}
+
+/** The candidate priced at the settled close it carries, dated by its own session. Left as it is
+ *  where the market carried none: an unpriced name is absent, never zero. */
+export function closedCandidate(
+  candidate: ScreenCandidate,
+  calendar: TradingCalendar
+): ScreenCandidate {
+  const { previousClose } = candidate
+
+  if (previousClose === undefined) {
+    return candidate
+  }
+
+  const observedAt = calendar.sessionCloseAt(previousClose.at)
+  const quote: Quote = {
+    instrument: candidate.instrument,
+    price: previousClose.price,
+    ...(previousClose.changePct === undefined ? {} : { changePct: previousClose.changePct }),
+    observedAt,
+  }
+
+  return pricedCandidate(candidate, quote, { kind: 'close', day: previousClose.at, observedAt })
 }
 
 /** What contradicts the rank: a caution the market already published off stored evidence, else
