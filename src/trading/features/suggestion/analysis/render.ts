@@ -67,9 +67,8 @@ interface CaseView {
  *  evidence contradicts, the same rule the debate's own role output follows. */
 function renderCaseLines(locale: Locale, view: CaseView): readonly string[] {
   const { side, record } = view
-  const { claims, verification } = record.result
-  const refuted = new Set(claimIdsWithVerdict(verification, 'refuted'))
-  const body = isUnsupportedRole(side, claims, refuted)
+  const { claims } = record.result
+  const body = isUnsupportedRole(side, claims, refutedIdsOf(record))
     ? t(locale, 'trading.analysis.case-unsupported')
     : stripStance(view.analysisCase.summary)
 
@@ -84,7 +83,7 @@ function renderCaseLines(locale: Locale, view: CaseView): readonly string[] {
 
 function renderRefutedLines(locale: Locale, record: AnalysisRecord): readonly string[] {
   const { claims, verification } = record.result
-  const refuted = new Set(claimIdsWithVerdict(verification, 'refuted'))
+  const refuted = refutedIdsOf(record)
   const rows = SIDE_ORDER.flatMap((side) =>
     claims
       .filter((claim) => refuted.has(claim.id) && isClaimBy(side, claim))
@@ -114,6 +113,10 @@ function renderRefutedLines(locale: Locale, record: AnalysisRecord): readonly st
         ]
       : []),
   ]
+}
+
+function refutedIdsOf(record: AnalysisRecord): ReadonlySet<string> {
+  return new Set(claimIdsWithVerdict(record.result.verification, 'refuted'))
 }
 
 /** What the side itself says would make it wrong. Silent for a side that named nothing. */

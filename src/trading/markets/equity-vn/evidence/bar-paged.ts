@@ -2,19 +2,18 @@ import type { InstrumentRef, Ticker } from '@/trading/kernel/instrument'
 import type { BarRecord } from '@/trading/kernel/market/market-data'
 import type { DayWindow } from '@/trading/markets/admissibility'
 import type { EvidenceScope } from '@/trading/markets/equity-vn/evidence/evidence'
-import { dedupeCaveats } from '@/trading/kernel/caveat'
-import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { writeBarWindows } from '@/trading/markets/bars'
 import {
   BACKFILL_MINIMUM_TARGETS,
   type BarOutcome,
+  boardTickers,
   chunkWindows,
   fetchAllBars,
   fullWindow,
+  joinOutcomes,
 } from '@/trading/markets/equity-vn/evidence/bar-fetch'
 import { invalidateWhenWritten } from '@/trading/markets/equity-vn/evidence/evidence'
 import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
-import { BOARD_KINDS, tradeableTargets } from '@/trading/markets/equity-vn/refresh/targets'
 
 /** What the paged load already put in the store: the names it holds as outcomes with no records
  *  left in them, the ones fetched whole after it, and the rows written for the first. */
@@ -49,9 +48,7 @@ export function splitInitialHistory(
     return { initial: [], rest: rebuild }
   }
 
-  const board = new Set(
-    tradeableTargets(scope.universe, BOARD_KINDS).map((target) => target.ticker)
-  )
+  const board = boardTickers(scope)
   const initial = rebuild.filter((target) => board.has(target.ticker))
 
   if (initial.length < BACKFILL_MINIMUM_TARGETS) {
@@ -90,13 +87,13 @@ export async function fetchPagedHistory(
     for (const outcome of fetched) {
       const { ticker } = outcome.instrument
       const held = merged.get(ticker)
-      const settled = afterWrite(outcome, refused.has(ticker))
+      const settled = toWritten(outcome, refused.has(ticker))
 
       counts.set(
         ticker,
         (counts.get(ticker) ?? 0) + (settled.value === undefined ? 0 : (outcome.value?.length ?? 0))
       )
-      merged.set(ticker, held === undefined ? settled : mergeWritten(held, settled))
+      merged.set(ticker, held === undefined ? settled : joinOutcomes(held, settled, () => WRITTEN))
     }
   }
 
@@ -143,19 +140,10 @@ async function writeWindow(
 
 /** A window the store refused, for joining a different adjustment basis, reads as one that did not
  *  answer for the name. */
-function afterWrite(outcome: BarOutcome, refused: boolean): BarOutcome {
+function toWritten(outcome: BarOutcome, refused: boolean): BarOutcome {
   const { instrument, provenance, caveats } = outcome
 
   return outcome.value === undefined || refused
     ? { instrument, provenance, caveats }
     : { instrument, value: WRITTEN, provenance, caveats }
-}
-
-function mergeWritten(held: BarOutcome, window: BarOutcome): BarOutcome {
-  const provenance = dedupeProvenance([...held.provenance, ...window.provenance])
-  const caveats = dedupeCaveats([...held.caveats, ...window.caveats])
-
-  return held.value === undefined || window.value === undefined
-    ? { instrument: held.instrument, provenance, caveats }
-    : { instrument: held.instrument, value: WRITTEN, provenance, caveats }
 }

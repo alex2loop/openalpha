@@ -136,13 +136,13 @@ async function screen(
   request: Parameters<AppViews['screen']>[0]
 ): Promise<ScreenAnswer> {
   const { market, instrumentKind, limit, now, signal, locale } = request
-  const kind = instrumentKind === undefined ? {} : { instrumentKind }
+  const kindOption = instrumentKind === undefined ? {} : { instrumentKind }
   const view = await deps.marketData.screen({
     market,
     limit,
     now,
     signal,
-    ...kind,
+    ...kindOption,
     ...(deps.screenForm === undefined ? {} : { form: deps.screenForm }),
   })
   const display = deps.marketData.quoteConvention(market)?.display
@@ -152,7 +152,7 @@ async function screen(
       market,
       context: resolveRenderContext(deps.timezone, NOTICE_SURFACE),
       ...(display === undefined ? {} : { display }),
-      ...kind,
+      ...kindOption,
     },
     view
   )
