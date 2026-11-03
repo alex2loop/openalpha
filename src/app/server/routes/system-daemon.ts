@@ -41,6 +41,20 @@ const MODEL_CHECKS: ReadonlySet<CheckName> = new Set(['providers'])
 // Providers whose unreadable login was already logged, per app: bounded by the configured models.
 const unreadableLogins = new WeakMap<App, Set<string>>()
 
+/** The daemon offers every feature but the analysis-only suggestion; what is down or unkeyed shows
+ *  in `degraded` and in the per-route capabilities. */
+const DAEMON_FEATURES: FeatureCapabilities = Object.freeze({
+  analysisOnly: false,
+  venues: true,
+  channels: true,
+  schedules: true,
+  agents: true,
+  chatgpt: true,
+})
+
+type Translate = ReturnType<typeof bindLocale>['translate']
+type ProviderCheck = Pick<DoctorCheck, 'name' | 'ok' | 'detail'>
+
 /** The daemon's answers for itself: its pid, whether it can restart, what it started without and
  *  whether a model is ready, which need the CLI, the process and the key files. */
 export function createDaemonSystemHost(app: App): SystemHost {
@@ -57,17 +71,6 @@ export function createDaemonSystemHost(app: App): SystemHost {
   }
 }
 
-/** The daemon offers every feature but the analysis-only suggestion; what is down or unkeyed shows
- *  in `degraded` and in the per-route capabilities. */
-const DAEMON_FEATURES: FeatureCapabilities = Object.freeze({
-  analysisOnly: false,
-  venues: true,
-  channels: true,
-  schedules: true,
-  agents: true,
-  chatgpt: true,
-})
-
 /** A model is ready when any configured one passes the check `doctor` runs on it, or when the
  *  connected client answers every call. */
 async function readModelReady(app: App): ReturnType<SystemHost['modelReady']> {
@@ -83,9 +86,6 @@ async function readModelReady(app: App): ReturnType<SystemHost['modelReady']> {
     ...(modelKeyEnv === undefined ? {} : { modelKeyEnv }),
   }
 }
-
-type Translate = ReturnType<typeof bindLocale>['translate']
-type ProviderCheck = Pick<DoctorCheck, 'name' | 'ok' | 'detail'>
 
 /** The CLI's `doctor` checks, with its words: `detail` is shown as written. */
 async function handleDoctor(req: Request, ctx: ApiRouteContext): Promise<Response> {

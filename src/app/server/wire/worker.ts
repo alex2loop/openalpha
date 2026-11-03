@@ -15,6 +15,7 @@ export type BrowserAiProvider =
   | 'gemini'
   | 'xai'
   | 'mistral'
+
 /** The hosted search backends a page can use. */
 export type BrowserSearchProvider = 'tavily' | 'serper' | 'deepseek'
 
@@ -45,7 +46,12 @@ export type WorkerCall =
   | { kind: 'open-db'; id: string; bytes: ArrayBuffer }
 
 /** Why the worker could not (or can no longer) serve the page. */
-type WorkerRefusal = 'locked' | 'taken-over' | 'unsupported' | 'newer-schema' | 'storage-full'
+export type WorkerRefusal =
+  | 'locked'
+  | 'taken-over'
+  | 'unsupported'
+  | 'newer-schema'
+  | 'storage-full'
 
 /** How `open-db` ended. Anything but `opened` left the database the page already had. */
 export type DbOpenOutcome =

@@ -15,6 +15,7 @@ import type {
   Runner,
 } from '@/engine/api'
 import type { ScopedJobStore } from '@/tools/api'
+import { createTaskStatusBoard } from '@/app/task-status'
 import { RunHalted } from '@/core/errors'
 import {
   createAvailableDelegatesModifier,
@@ -48,14 +49,16 @@ export interface KernelDeps {
   readonly childEnvBase: Readonly<Record<string, string>>
 }
 
-/** Steps 0a-0c. These exist before the container does: boot needs the logger to report on the
- *  async loads that feed the providers, so they are constructed there and handed in. */
+/** Steps 0a-0c, and the task board every surface reports its passes on. The handles exist before the
+ *  container does: boot needs the logger to report on the async loads that feed the providers, so
+ *  they are constructed there and handed in. */
 export function bindKernel(bind: Bind, kernel: KernelDeps): void {
   bind('logger', () => kernel.logger)
   bind('bus', () => kernel.bus)
   bind('sessionQueue', () => kernel.sessionQueue)
   bind('commandLane', () => kernel.commandLane)
   bind('childEnvBase', () => kernel.childEnvBase)
+  bind('taskStatus', (app) => createTaskStatusBoard(app.config.locale.language))
 }
 
 // Step 8b: the empty base the trading and plugins providers extend. App owns it because no domain
@@ -182,9 +185,9 @@ export function buildToolServices(app: App, jobs: ScopedJobStore): ToolServices 
 
 // Resolved at call time, not at build time: `runner` needs the tool executor, the executor needs
 // these services, and these services need the runner (delegate/delegate_parallel launch child
-// runs). Deferring
-// the lookup to the first delegation breaks the construction cycle without a second Runner instance
-// — the container memoizes, so every call gets the same one the rest of the process uses.
+// runs). Deferring the lookup to the first delegation breaks the construction cycle without a
+// second Runner instance: the container memoizes, so every call gets the same one the rest of the
+// process uses.
 function lazyRunner(app: App): Runner {
   return { run: (input, options) => app.resolve('runner').run(input, options) }
 }

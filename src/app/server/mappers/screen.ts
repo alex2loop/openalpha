@@ -5,23 +5,6 @@ import { toInstrumentWire } from '@/app/server/mappers/trading'
 type ScreenedCandidate = ScreenView['candidates'][number]
 type CandidateWire = ScreenResponse['candidates'][number]
 
-/** Where a page of a `list` board starts and how many names it holds. */
-interface ScreenPage {
-  readonly offset: number
-  readonly limit: number
-}
-
-function toCandidateWire(candidate: ScreenedCandidate): CandidateWire {
-  const quote = candidate.price?.quote
-
-  return {
-    instrument: toInstrumentWire(candidate.instrument),
-    ...(candidate.name === undefined ? {} : { name: candidate.name }),
-    ...(quote === undefined ? {} : { price: quote.price }),
-    ...(quote?.changePct === undefined ? {} : { changePct: quote.changePct }),
-  }
-}
-
 export function toScreenWire(market: string, answer: ScreenAnswer): ScreenResponse {
   const { view, card } = answer
 
@@ -64,6 +47,23 @@ function toListedWire(candidate: ScreenedCandidate, answer: ScreenAnswer): Candi
     })
 
   return { ...toCandidateWire(candidate), factors }
+}
+
+function toCandidateWire(candidate: ScreenedCandidate): CandidateWire {
+  const quote = candidate.price?.quote
+
+  return {
+    instrument: toInstrumentWire(candidate.instrument),
+    ...(candidate.name === undefined ? {} : { name: candidate.name }),
+    ...(quote === undefined ? {} : { price: quote.price }),
+    ...(quote?.changePct === undefined ? {} : { changePct: quote.changePct }),
+  }
+}
+
+/** Where a page of a `list` board starts and how many names it holds. */
+interface ScreenPage {
+  readonly offset: number
+  readonly limit: number
 }
 
 /** One page of a `list` board, cut from the whole board the host read; any other board is one page.

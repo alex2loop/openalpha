@@ -25,6 +25,19 @@ const MAX_MODEL_CHARS = 200
  *  key builds its chain; the real key is read from the keyring on each request. */
 const KEY_PLACEHOLDER = 'browser-managed-key'
 
+/** The shipped starting point: the installed version's minimal config, on OpenRouter. Its models,
+ *  daily cap and tiers are kept in step with `config.minimal.toml` by hand. */
+const SHIPPED_PROVIDER = 'openrouter'
+const SHIPPED_PRIMARY_MODEL = 'deepseek/deepseek-v4.1-flash'
+const SHIPPED_MODEL = 'anthropic/claude-haiku-5.5'
+const DAILY_SPEND_CAP_USD = 2
+
+// The headline tier (`decisions`) is left out on purpose: its endpoint reads its key itself, which
+// the keyring cannot supply, and an absent tier turns the headline read off cleanly.
+const HIDDEN_TIERS = {
+  themes: [{ model: SHIPPED_MODEL }],
+}
+
 const TierEntrySchema = z.strictObject({
   provider: z.enum(BROWSER_AI_PROVIDERS),
   model: z.string().trim().min(1).max(MAX_MODEL_CHARS),
@@ -43,13 +56,6 @@ export const TierOverridesSchema = z.strictObject({
 export type TierOverrides = z.infer<typeof TierOverridesSchema>
 type TierEntry = z.infer<typeof TierEntrySchema>
 
-/** The shipped starting point: the installed version's minimal config, on OpenRouter. Its models,
- *  daily cap and tiers are kept in step with `config.minimal.toml` by hand. */
-const SHIPPED_PROVIDER = 'openrouter'
-const SHIPPED_PRIMARY_MODEL = 'deepseek/deepseek-v4.1-flash'
-const SHIPPED_MODEL = 'anthropic/claude-haiku-5.5'
-const DAILY_SPEND_CAP_USD = 2
-
 /** What the editable tiers hold until the visitor changes them. */
 export const SHIPPED_TIERS: Required<TierOverrides> = freezeDeep({
   debate: [{ provider: SHIPPED_PROVIDER, model: 'openai/gpt-6-luna' }],
@@ -57,12 +63,6 @@ export const SHIPPED_TIERS: Required<TierOverrides> = freezeDeep({
   'research-heavy': [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
   extraction: [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
 })
-
-// The headline tier (`decisions`) is left out on purpose: its endpoint reads its key itself, which
-// the keyring cannot supply, and an absent tier turns the headline read off cleanly.
-const HIDDEN_TIERS = {
-  themes: [{ model: SHIPPED_MODEL }],
-}
 
 export function resolveBrowserConfig(
   locale: Locale,
