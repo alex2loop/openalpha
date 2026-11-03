@@ -122,7 +122,9 @@ export function holdRestartFor(settle: () => Promise<void>): () => void {
   settleBeforeRestart = settle
 
   return () => {
-    settleBeforeRestart = () => Promise.resolve()
+    if (settleBeforeRestart === settle) {
+      settleBeforeRestart = () => Promise.resolve()
+    }
   }
 }
 

@@ -10,11 +10,14 @@ import type {
 import type { WebRetrievalService } from '@/tools/api'
 import { resolveBrowserSearch } from '@/app/browser/config'
 import { readSearchSelection } from '@/app/browser/keys'
-import { type LruMap, lruMap } from '@/core/utils/collections'
+import { type TtlCache, ttlCache } from '@/core/utils/collections'
+import { MS_PER_MINUTE } from '@/core/utils/time'
 import { createWebRetrievalService } from '@/tools/api'
 
-/** How many search results keep their text for the page read that asks for them. */
+/** How many search results keep their text for the page read that asks for them, and for how long:
+ *  a later run searches again, so older text never answers its read. */
 const HELD_RESULTS = 256
+const HELD_RESULTS_TTL_MS = 10 * MS_PER_MINUTE
 const TEXT_SEPARATOR = '\n\n'
 
 interface RetrievalParts {
@@ -29,7 +32,7 @@ interface RetrievalParts {
  *  reading one returns what the search provider sent for it: a page read must never end with no text
  *  because the browser refused the request. */
 export function createBrowserRetrieval(parts: RetrievalParts): WebRetrievalService {
-  const sent = lruMap<string, string>(HELD_RESULTS)
+  const sent = ttlCache<string, string>(HELD_RESULTS_TTL_MS, HELD_RESULTS)
   let built: { readonly fingerprint: string; readonly service: WebRetrievalService } | undefined
 
   const current = (): WebRetrievalService => {
@@ -68,7 +71,7 @@ export function createBrowserRetrieval(parts: RetrievalParts): WebRetrievalServi
 
 /** Keeps the text of each result the provider sent, so the read of that page can answer with it. */
 function holdResults(
-  sent: LruMap<string, string>,
+  sent: TtlCache<string, string>,
   outcome: ResearchSearchOutcome
 ): ResearchSearchOutcome {
   if (outcome.kind !== 'results') {

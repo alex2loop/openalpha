@@ -12,9 +12,9 @@ import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
 import { openSettings } from '@/web/ui/settings/settings'
 
-// The brief is the last step; the web edition has no chat step before it.
-const BRIEF_INDEX = 5
-const WEB_BRIEF_INDEX = 4
+interface NumberedStep {
+  readonly index: number
+}
 
 interface StepProps {
   readonly index: number
@@ -28,24 +28,25 @@ interface StepProps {
  *  empty book. */
 export function FirstRun() {
   const firstRun = state.value?.firstRun
+  const steps: ((index: number) => ComponentChildren)[] = [
+    (index) => <ModelStep key="model" index={index} isDone={isModelReady.value} />,
+    (index) => <ProfileStep key="profile" index={index} isDone={firstRun?.profileSaved === true} />,
+    (index) => <BookStep key="book" index={index} isDone={firstRun?.bookEmpty === false} />,
+    ...(isAnalysisOnly.value ? [] : [(index: number) => <ChatStep key="chat" index={index} />]),
+    (index) => <BriefStep key="brief" index={index} />,
+  ]
 
   return (
     <section class="block">
       <h2 class="block-head">{tr('ui.office.firstRun.title')}</h2>
-      <div class="steps">
-        <ModelStep isDone={isModelReady.value} />
-        <ProfileStep isDone={firstRun?.profileSaved === true} />
-        <BookStep isDone={firstRun?.bookEmpty === false} />
-        {!isAnalysisOnly.value && <ChatStep />}
-        <BriefStep index={isAnalysisOnly.value ? WEB_BRIEF_INDEX : BRIEF_INDEX} />
-      </div>
+      <div class="steps">{steps.map((renderStep, position) => renderStep(position + 1))}</div>
     </section>
   )
 }
 
-function ProfileStep({ isDone }: { readonly isDone: boolean }) {
+function ProfileStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
   return (
-    <Step index={2} title={tr('ui.office.common.profile')} isDone={isDone}>
+    <Step index={index} title={tr('ui.office.common.profile')} isDone={isDone}>
       <p class="meta">
         {tr(editionKey('ui.office.firstRun.profileBody', 'ui.office.edition.firstRun.profileBody'))}
       </p>
@@ -59,11 +60,15 @@ function ProfileStep({ isDone }: { readonly isDone: boolean }) {
 }
 
 // The book can also be left empty on purpose: "Chưa có, bỏ qua" counts the step as done.
-function BookStep({ isDone }: { readonly isDone: boolean }) {
+function BookStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
   const isSkipped = useSignal(false)
 
   return (
-    <Step index={3} title={tr('ui.office.firstRun.bookTitle')} isDone={isDone || isSkipped.value}>
+    <Step
+      index={index}
+      title={tr('ui.office.firstRun.bookTitle')}
+      isDone={isDone || isSkipped.value}
+    >
       <p class="meta">
         {tr(editionKey('ui.office.firstRun.bookBody', 'ui.office.edition.firstRun.bookBody'))}
       </p>
@@ -84,9 +89,9 @@ function BookStep({ isDone }: { readonly isDone: boolean }) {
   )
 }
 
-function ChatStep() {
+function ChatStep({ index }: NumberedStep) {
   return (
-    <Step index={4} title={tr('ui.office.firstRun.chatTitle')} isDone={false} isOptional>
+    <Step index={index} title={tr('ui.office.firstRun.chatTitle')} isDone={false} isOptional>
       <p class="meta">{tr('ui.office.firstRun.chatBody')}</p>
       <div class="step-actions">
         <Button size="small" onClick={() => openSettings('channels')}>
@@ -115,16 +120,16 @@ function Step({ index, title, isDone, isOptional, children }: StepProps) {
 }
 
 // The key itself is never typed here: the page only names the variable the daemon reads.
-function ModelStep({ isDone }: { readonly isDone: boolean }) {
+function ModelStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
   const recheck = useRecheck()
   const envVar = state.value?.firstRun.modelKeyEnv
 
   if (isAnalysisOnly.value) {
-    return <WebModelStep isDone={isDone} />
+    return <WebModelStep index={index} isDone={isDone} />
   }
 
   return (
-    <Step index={1} title={tr('ui.office.firstRun.modelTitle')} isDone={isDone}>
+    <Step index={index} title={tr('ui.office.firstRun.modelTitle')} isDone={isDone}>
       {!isDone && (
         <>
           <p class="meta">
@@ -145,9 +150,14 @@ function ModelStep({ isDone }: { readonly isDone: boolean }) {
 
 // The web edition runs the market, the screen and the ledger with no key at all; a key of the
 // visitor's own unlocks the AI parts.
-function WebModelStep({ isDone }: { readonly isDone: boolean }) {
+function WebModelStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
   return (
-    <Step index={1} title={tr('ui.office.edition.firstRun.keyTitle')} isDone={isDone} isOptional>
+    <Step
+      index={index}
+      title={tr('ui.office.edition.firstRun.keyTitle')}
+      isDone={isDone}
+      isOptional
+    >
       {!isDone && (
         <>
           <p class="meta">{tr('ui.office.edition.firstRun.keyBody')}</p>
@@ -164,7 +174,7 @@ function WebModelStep({ isDone }: { readonly isDone: boolean }) {
 
 // The daemon's brief waits for a model to answer it; the web edition's reads the market and needs
 // no key.
-function BriefStep({ index }: { readonly index: number }) {
+function BriefStep({ index }: NumberedStep) {
   return (
     <Step index={index} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
       <p class="meta">

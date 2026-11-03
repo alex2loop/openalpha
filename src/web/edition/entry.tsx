@@ -30,8 +30,7 @@ if (canRunPage()) {
 
   declareWebEdition()
   watchKeyStorage(lifetime.signal)
-  // It never rejects; the answer is read back by the storage line.
-  askToKeepData().catch(() => undefined)
+  askToKeepData()
   // The page is announced in the language it shows, also before the office runs and when it refuses.
   effect(() => {
     document.documentElement.lang = locale.value
