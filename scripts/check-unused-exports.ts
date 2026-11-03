@@ -43,10 +43,7 @@ const BARREL_FILES: ReadonlySet<string> = new Set(['api.ts', 'node-api.ts', 'ind
 const BARREL_WAIVER = 'lint/performance/noBarrelFile'
 
 // Public facades AGENTS.md keeps deliberately callerless. `path#name`.
-const KNOWN_UNUSED: ReadonlySet<string> = new Set<string>([
-  // The page's request shape, for the browser composition's source transport; drop once it is read.
-  'src/core/http-client.ts#PAGE_REQUEST_SHAPE',
-])
+const KNOWN_UNUSED: ReadonlySet<string> = new Set<string>([])
 
 const DECLARATION_RE =
   /^export\s+(?:declare\s+)?(?:abstract\s+)?(?:async\s+)?(?:function|const|let|class|interface|type|enum)\s+(\w+)/gm

@@ -20,6 +20,7 @@ import type { MarketDeps } from '@/trading/markets/deps'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
+import type { SourceRouteTable } from '@/trading/sources/routes'
 import type { VenueRegistry } from '@/trading/venues/types'
 import type {
   KeyValidator,
@@ -95,6 +96,7 @@ interface TradingRegistrationOptions {
   readonly pluginModules: readonly LoadedSourceModule[]
   /** How every source request presents itself: the daemon's or a page's. */
   readonly requestShape: RequestShape
+  readonly routes?: SourceRouteTable
   /** How the loops tell the network is up: the daemon resolves a name. */
   readonly reachability: ReachabilityProbe
 }
@@ -413,6 +415,7 @@ function buildSources(app: App, options: BoundOptions): SourceRegistry {
       defaultVenues: options.tradingConfig.defaultVenues,
       macroReads: stores.marketData,
       requestShape: options.requestShape,
+      routes: options.routes,
     }),
     { archive: stores.newsArchive, logger }
   )

@@ -289,6 +289,40 @@ export const PLAIN_USER_AGENT_SOURCES: ReadonlySet<SourceId> = new Set([
   sourceId('fred-csv'),
 ])
 
+/** The providers a page can read straight from the browser: `scripts/research-browser-cors.ts`
+ *  measures each adapter's real request path with an `Origin` header, and this is what passed. A
+ *  provider that tightens CORS later leaves the set by editing this line, and its feature reads as
+ *  off in the page. */
+export const BROWSER_REACHABLE_SOURCES: ReadonlySet<SourceId> = new Set<SourceId>([
+  sourceId('alternative-me'),
+  sourceId('binance'),
+  sourceId('binance-futures'),
+  sourceId('bls'),
+  sourceId('bybit'),
+  sourceId('cafef'),
+  sourceId('cafef-statements'),
+  sourceId('cftc'),
+  sourceId('coinbase'),
+  sourceId('coingecko'),
+  sourceId('coinlore'),
+  sourceId('coinpaprika'),
+  sourceId('er-api'),
+  sourceId('giavang'),
+  sourceId('kbsec'),
+  sourceId('nso'),
+  sourceId('okx'),
+  sourceId('pnj'),
+  sourceId('rss'),
+  sourceId('treasury'),
+  sourceId('vietcap-statements'),
+  sourceId('vietcombank'),
+  sourceId('vndirect'),
+  sourceId('vndirect-index'),
+  sourceId('vndirect-mkw'),
+  sourceId('vps'),
+  sourceId('vps-board'),
+])
+
 interface SourceCredentialFacts {
   readonly variable: string
   /** What setting it adds. Every credentialed source is optional: a keyless provider covers its

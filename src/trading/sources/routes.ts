@@ -194,6 +194,32 @@ export function withVenueQuoteLead(
   })
 }
 
+/** The table a page serves: only providers a browser can reach, in the same order. A scope left
+ *  with none is dropped, which reads as not served and never as failed. */
+export function toBrowserRoutes(
+  routes: SourceRouteTable,
+  reachable: ReadonlySet<SourceId>
+): SourceRouteTable {
+  const kinds = Object.entries(routes).map(([kind, scopes]) => [
+    kind,
+    reachableScopes(scopes, reachable),
+  ])
+
+  // why-safe: the entries are the table's own kinds, each mapped to a scope table.
+  return Object.freeze(Object.fromEntries(kinds)) as SourceRouteTable
+}
+
+function reachableScopes(
+  scopes: Readonly<Record<string, readonly SourceId[]>>,
+  reachable: ReadonlySet<SourceId>
+): Readonly<Record<string, readonly SourceId[]>> {
+  const kept = Object.entries(scopes)
+    .map(([scope, ids]) => [scope, ids.filter((id) => reachable.has(id))] as const)
+    .filter(([, ids]) => ids.length > 0)
+
+  return Object.freeze(Object.fromEntries(kept))
+}
+
 /** A plugin may open a scope no built-in serves, or stand behind one that exists. It can never be
  *  tried before a first-party provider, so a plugin cannot quietly become the primary for a market
  *  the runtime already covers. */
