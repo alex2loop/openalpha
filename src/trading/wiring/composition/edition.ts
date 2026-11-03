@@ -41,6 +41,8 @@ export interface TradingEdition {
   readonly suggest?: SuggestAnalysis
   /** How a rebalance plan is written: as orders, or as the gaps to the plan. */
   readonly rebalance?: RebalanceForm
+  /** An overview that states no deploy line, where the edition has no plan to deploy toward. */
+  readonly overviewOmitsDeployment?: true
   /** How a screen answers: the best names ranked, or every priced name for the reader to sort. */
   readonly screen?: ScreenForm
   /** Brief sections left out: each reads as omitted, which every surface already hides. */
