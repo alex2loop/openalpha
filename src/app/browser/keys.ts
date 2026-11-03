@@ -1,4 +1,8 @@
-import type { BrowserKeys } from '@/app/server/wire/worker'
+import type {
+  BrowserAiProvider,
+  BrowserKeys,
+  BrowserSearchProvider,
+} from '@/app/server/wire/worker'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import { type CredentialSource, findProviderById } from '@/ai/api'
 import { LLMError } from '@/core/errors'
@@ -14,7 +18,7 @@ export const BROWSER_AI_PROVIDERS = Object.freeze([
   'gemini',
   'xai',
   'mistral',
-] as const)
+] as const satisfies readonly BrowserAiProvider[])
 
 /** Anthropic answers a browser only to a request that declares the visitor chose to call it. */
 const ANTHROPIC_BROWSER_HEADER = 'anthropic-dangerous-direct-browser-access'
@@ -32,7 +36,7 @@ const SEARCH_KEY_VARIABLES: Readonly<Record<string, string>> = Object.freeze({
   tavily: 'TAVILY_API_KEY',
   serper: 'SERPER_API_KEY',
   deepseek: 'DEEPSEEK_SEARCH_API_KEY',
-})
+} satisfies Record<BrowserSearchProvider, string>)
 
 /** The hosted search backends a page can use. */
 export const BROWSER_SEARCH_PROVIDERS: readonly string[] = Object.freeze(
@@ -40,7 +44,6 @@ export const BROWSER_SEARCH_PROVIDERS: readonly string[] = Object.freeze(
 )
 
 type KeyEnv = Readonly<Record<string, string | undefined>>
-type BrowserAiProvider = (typeof BROWSER_AI_PROVIDERS)[number]
 
 export interface BrowserKeyring {
   /** Replaces the keys. Each value joins the credential scrubber first, so a record written after

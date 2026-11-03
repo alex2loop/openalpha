@@ -1,6 +1,10 @@
 import { type ReadonlySignal, signal } from '@preact/signals'
 
-import type { BrowserKeys } from '@/app/server/wire/worker'
+import type {
+  BrowserAiProvider,
+  BrowserKeys,
+  BrowserSearchProvider,
+} from '@/app/server/wire/worker'
 import { postToWorker } from '@/web/edition/worker-link'
 import { loadSession } from '@/web/state/session'
 import { readStorage, removeStorage, writeStorage } from '@/web/state/storage'
@@ -19,7 +23,10 @@ export const OPENROUTER = 'openrouter'
 export const SLOT_PROVIDERS = Object.freeze({
   ai: [OPENROUTER, 'openai', 'deepseek', 'anthropic', 'gemini', 'xai', 'mistral'],
   search: ['tavily', 'serper', 'deepseek'],
-} as const satisfies Record<KeySlot, readonly string[]>)
+} as const satisfies {
+  readonly ai: readonly BrowserAiProvider[]
+  readonly search: readonly BrowserSearchProvider[]
+})
 
 interface HeldKey {
   readonly provider: string

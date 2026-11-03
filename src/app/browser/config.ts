@@ -98,7 +98,16 @@ export function resolveBrowserSearch(
     models: [],
     ...(selected === undefined
       ? {}
-      : { web_search: { provider: selected.provider, api_key_env: selected.variable } }),
+      : {
+          // The fallback is the same backend, so an empty answer stays empty instead of reaching
+          // a backend the page's connect-src does not allow.
+          web_search: {
+            provider: selected.provider,
+            api_key_env: selected.variable,
+            fallback_provider: selected.provider,
+            fallback_api_key_env: selected.variable,
+          },
+        }),
   })
 
   return resolveConfig(raw, { env, homeDir: HOME_DIR, dataDir: DATA_DIR }).webSearch

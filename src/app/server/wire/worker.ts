@@ -6,6 +6,18 @@ import type { ClientFrame, ServerFrame } from '@/app/server/wire/socket'
 import type { Capabilities } from '@/app/server/wire/system'
 import type { Locale } from '@/core/types/locale'
 
+/** The AI providers whose API answers a browser; the page offers them and the worker reads their keys. */
+export type BrowserAiProvider =
+  | 'openrouter'
+  | 'openai'
+  | 'deepseek'
+  | 'anthropic'
+  | 'gemini'
+  | 'xai'
+  | 'mistral'
+/** The hosted search backends a page can use. */
+export type BrowserSearchProvider = 'tavily' | 'serper' | 'deepseek'
+
 /** One key the visitor pasted: which provider it belongs to and the secret itself. It lives in the
  *  worker's memory and is never written to a log, a run row or an attempt row. */
 interface BrowserKey {
