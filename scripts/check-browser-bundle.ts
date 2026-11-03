@@ -71,7 +71,7 @@ function report(logs: Logs, leaks: readonly Leak[], parents: Parents): void {
   console.log('check-browser-bundle: FAIL')
   printBuildErrors(errors, parents)
   printLeaks(leaks)
-  process.exit(1)
+  process.exitCode = 1
 }
 
 function printBuildErrors(errors: Logs, parents: Parents): void {
@@ -188,7 +188,13 @@ function importersNote(file: string, parents: Parents): string {
 }
 
 function packageOf(file: string): string {
-  const parts = file.slice(file.lastIndexOf(PACKAGES_DIR) + PACKAGES_DIR.length).split('/')
+  const at = file.lastIndexOf(PACKAGES_DIR)
+
+  if (at < 0) {
+    return file
+  }
+
+  const parts = file.slice(at + PACKAGES_DIR.length).split('/')
 
   return parts[0]?.startsWith('@') === true ? parts.slice(0, 2).join('/') : (parts[0] ?? file)
 }
