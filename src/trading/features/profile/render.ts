@@ -8,9 +8,13 @@ import type {
   RiskCapSet,
   UserProfile,
 } from '@/trading/kernel/operator/profile'
-import type { RenderContext } from '@/trading/render/format'
 import type { SegmentBlock, SegmentColumn, SegmentRow } from '@/trading/render/segment-block'
 import { pluralKey, t } from '@/i18n'
+import {
+  type LimitOptions,
+  renderLimitsLine,
+  renderTrancheLine,
+} from '@/trading/features/profile/render-limits'
 import { CASH_SEGMENT } from '@/trading/kernel/instrument'
 import { disabledSegments, isSegmentDisabled } from '@/trading/kernel/operator/profile'
 import {
@@ -42,8 +46,7 @@ const PROFILE_COLUMNS: readonly SegmentColumn[] = Object.freeze([
   { labelKey: 'trading.render.segment.columnEtfCore', align: 'right' },
 ])
 
-interface ProfileTextOptions {
-  readonly context: RenderContext
+interface ProfileTextOptions extends LimitOptions {
   readonly homeSegment?: PortfolioSegment | undefined
 }
 
@@ -80,19 +83,8 @@ export function renderProfileText(
         context,
         1
       ),
-      ...renderLimitsLine(locale, profile, context),
-      ...toFactLines(
-        [
-          t(locale, 'trading.render.profile.entryTranche', {
-            entry: formatFixedFraction(locale, profile.entryTranchePct),
-          }),
-          t(locale, 'trading.render.profile.takeProfitTranche', {
-            takeProfit: formatFixedFraction(locale, profile.takeProfitTranchePct),
-          }),
-        ],
-        context,
-        1
-      ),
+      ...renderLimitsLine(locale, profile, options),
+      ...renderTrancheLine(locale, profile, options),
     ],
     ...renderAllocation(locale, profile, options),
     [`${INDENT[1]}${t(locale, 'trading.render.profile.next')}`],
@@ -129,46 +121,6 @@ function renderHomeOff(
       id: homeSegment,
     })}`,
   ]
-}
-
-/** A full regime scale is the absence of a limit, so it earns no words - the same rule
- *  `/rebalance` already applies to its own deployment line. */
-function renderLimitsLine(
-  locale: Locale,
-  profile: UserProfile,
-  context: RenderContext
-): readonly string[] {
-  const first = t(locale, 'trading.render.profile.limits', {
-    first: t(locale, 'trading.render.profile.limitRiskPerTrade', {
-      riskPerTrade: formatFraction(locale, profile.riskPerTradePctNav),
-    }),
-  })
-  const regime =
-    profile.regimeScale >= 1
-      ? []
-      : [
-          t(locale, 'trading.render.profile.limitsRegime', {
-            regime: formatFraction(locale, profile.regimeScale),
-          }),
-        ]
-
-  return toFactLines(
-    [
-      first,
-      t(locale, 'trading.render.profile.limitOpenRisk', {
-        openRisk: formatFraction(locale, profile.maximumOpenRiskPctNav),
-      }),
-      t(locale, 'trading.render.profile.limitSector', {
-        sector: formatFraction(locale, profile.maximumSectorPctNav),
-      }),
-      t(locale, 'trading.render.profile.limitReserve', {
-        reserve: formatFraction(locale, profile.reservePctNav),
-      }),
-      ...regime,
-    ],
-    context,
-    1
-  )
 }
 
 /** Targets are the superset: `seedTargets` seeds every segment there, cash included, while caps seed

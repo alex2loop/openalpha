@@ -1,6 +1,7 @@
 import type { SegmentPolicyRequest } from '@/trading/features/profile/types'
 import type { PortfolioSegment } from '@/trading/kernel/instrument'
 import type { ProfilePatch } from '@/trading/kernel/operator/profile'
+import { ValidationError } from '@/core/errors'
 import { SEGMENT_POLICY_FIELDS } from '@/trading/features/profile/types'
 import {
   INVESTMENT_GOALS,
@@ -38,14 +39,64 @@ const GOAL_FIELD = 'goal'
 /** The fields that take two words: the segment, then the value it carries. */
 const SEGMENT_VALUE_COUNT = 2
 
+/** A field `/profile set` accepts. */
+export type ProfileSetField =
+  | (typeof RISK_FIELDS)[number]
+  | typeof HORIZON_FIELD
+  | typeof GOAL_FIELD
+  | (typeof FRACTION_FIELDS)[number]
+  | (typeof SEGMENT_POLICY_FIELDS)[number]
+
 /** Every field name `/profile set` accepts, in the order the usage line reads them. */
-export const PROFILE_SET_FIELDS: readonly string[] = Object.freeze([
+const PROFILE_SET_FIELDS: readonly ProfileSetField[] = Object.freeze([
   ...RISK_FIELDS,
   HORIZON_FIELD,
   GOAL_FIELD,
   ...FRACTION_FIELDS,
   ...SEGMENT_POLICY_FIELDS,
 ])
+
+/** The patch key each setting writes, so a wire patch is judged by the same names a command is. */
+const PATCH_KEY_FIELDS: ReadonlyMap<string, ProfileSetField> = new Map<string, ProfileSetField>([
+  ['riskLevel', 'risk-level'],
+  ['riskCapacity', 'risk-capacity'],
+  ['riskWillingness', 'risk-willingness'],
+  ['horizons', HORIZON_FIELD],
+  ['goal', GOAL_FIELD],
+  ...FRACTION_FIELDS.map((field): [string, ProfileSetField] => [FRACTION_PATCH_KEYS[field], field]),
+])
+
+/** The fields an edition offers, in reading order; no edition narrowing is every one. */
+export function offeredFields(
+  offered: ReadonlySet<ProfileSetField> | undefined
+): readonly ProfileSetField[] {
+  return offered === undefined
+    ? PROFILE_SET_FIELDS
+    : PROFILE_SET_FIELDS.filter((field) => offered.has(field))
+}
+
+/** Refuses a setting the edition does not offer. A command names the field it was given and a wire
+ *  patch the keys it carries; both pass here, so they refuse alike. A name that is no setting is
+ *  left to the caller's own refusal. */
+export function assertOffered(offered: readonly ProfileSetField[], names: readonly string[]): void {
+  const declined = names.find((name) => {
+    const known = parseMember(name, PROFILE_SET_FIELDS)
+
+    return known !== null && !offered.includes(known)
+  })
+
+  if (declined !== undefined) {
+    throw new ValidationError(`${declined} is not offered by this edition`, {
+      key: 'errors.profileInstalledOnly',
+      params: { field: declined },
+    })
+  }
+}
+
+/** The settings a patch writes. */
+export function settingsOf(patch: object): readonly string[] {
+  return Object.keys(patch).flatMap((key) => PATCH_KEY_FIELDS.get(key) ?? [])
+}
 
 /** What a `/profile set` field takes, so a refusal can show the shape that was missed. */
 type ProfileFieldShape = 'choice' | 'share' | 'segment-value' | 'unknown'

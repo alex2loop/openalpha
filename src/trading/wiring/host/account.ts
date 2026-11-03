@@ -10,6 +10,7 @@ import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import type { HeldStopView } from '@/trading/wiring/host/view-types'
 import { reconcileSentences } from '@/trading/features/portfolio/render/reconcile'
 import { toSegmentShares } from '@/trading/features/portfolio/render/segment-shares'
+import { assertOffered, settingsOf } from '@/trading/features/profile/patch'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { bounded, profileOf, resolveRegion, scoped, scopedSlow } from '@/trading/wiring/host/scope'
 
@@ -148,13 +149,16 @@ function recordMethods(
     // this host is closed over, and that profile is auto-provisioned at first boot.
     getProfile: (signal) => scoped(deps, signal, (scope) => profileOf(deps, scope)),
 
+    // The text command refuses the same settings through the same check.
     updateProfile: (request) =>
-      scoped(deps, request.signal, (scope) =>
-        deps.services.profiles.update({
+      scoped(deps, request.signal, (scope) => {
+        assertOffered(deps.services.profileFields, settingsOf(request.patch))
+
+        return deps.services.profiles.update({
           patch: request.patch,
           signal: scope.signal,
         })
-      ),
+      }),
 
     listSuggestions: (request) =>
       scoped(deps, request.signal, (scope) =>

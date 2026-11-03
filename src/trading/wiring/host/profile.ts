@@ -3,11 +3,13 @@ import { ValidationError } from '@/core/errors'
 import { parseTickers } from '@/trading/kernel/surface/surface'
 import { scoped } from '@/trading/wiring/host/scope'
 
-export type ProfileMethods = Pick<TradingHost, 'updateWatchlist' | 'getSetup'>
+export type ProfileMethods = Pick<TradingHost, 'updateWatchlist' | 'getSetup' | 'profileFields'>
 
-/** The profile's watchlist edit and the two facts a first run turns on. */
+/** The profile's watchlist edit, the two facts a first run turns on and the settings on offer. */
 export function profileMethods(deps: TradingHostDeps): ProfileMethods {
   return {
+    profileFields: () => deps.services.profileFields,
+
     // Names arrive as an operator types them (`fpt`, `crypto:hdb`) and resolve as `/watchlist`
     // resolves them: a name nothing matches, or two markets claim, refuses the whole call.
     updateWatchlist: (request) =>

@@ -165,7 +165,7 @@ function buildTradingCommands(deps: TradingCommandDeps): readonly SlashCommand[]
         timezone,
         ...homeMarketOf(deps),
       }),
-      createProfileCommand({ profiles, timezone }),
+      createProfileCommand({ profiles, timezone, edition: deps.edition?.profile }),
     ]),
   ]
 }

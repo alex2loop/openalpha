@@ -2,6 +2,7 @@ import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefServices } from '@/trading/features/brief/types'
 import type { ScreenForm } from '@/trading/features/market-data/types'
 import type { RebalanceForm, ReduceVerdicts } from '@/trading/features/portfolio/types'
+import type { ProfileEdition } from '@/trading/features/profile/command'
 import type { SuggestAnalysis } from '@/trading/features/suggestion/command'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
@@ -46,6 +47,8 @@ export interface TradingEdition {
   readonly briefOmits?: ReadonlySet<BriefSectionKind>
   /** Next actions the brief never lists, whatever fired them: each reads as if it never fired. */
   readonly briefActionOmits?: ReadonlySet<BriefActionCode>
+  /** The `/profile` settings printed and accepted, where only some feed what the edition does. */
+  readonly profile?: ProfileEdition
   /** What an edition that stores no suggestion and plans no exit answers itself. */
   readonly reads?: BookReads
   /** See `MarketDeps.pagedBackfill`. */

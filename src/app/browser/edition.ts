@@ -1,7 +1,13 @@
 import type { BrowserKeyring } from '@/app/browser/keys'
 import type { App } from '@/core/container'
 import type { SlashContext, SlashResult } from '@/core/types/command'
-import type { BookReads, BriefActionCode, BriefSectionKind, TradingEdition } from '@/trading/api'
+import type {
+  BookReads,
+  BriefActionCode,
+  BriefSectionKind,
+  ProfileSetField,
+  TradingEdition,
+} from '@/trading/api'
 import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
@@ -58,6 +64,20 @@ const BRIEF_ACTION_OMITS: ReadonlySet<BriefActionCode> = new Set(['avoid-chasing
 /** Statements come from a source no browser reaches, so a refresh does not ask for them. */
 const REFRESH_OMITS: NonNullable<TradingEdition['refreshOmits']> = new Set(['accounts'])
 
+/** The settings the page reads: the risk level, goal and horizon it states, the cash reserve and
+ *  the sector cap its findings measure against, and the targets and caps the gaps are measured
+ *  against. */
+const PROFILE_FIELDS: ReadonlySet<ProfileSetField> = new Set([
+  'risk-level',
+  'goal',
+  'horizon',
+  'reserve-pct-nav',
+  'maximum-sector-pct-nav',
+  'segment-target',
+  'segment-cap',
+  'position-cap',
+])
+
 const NEEDS_KEY = 'slash.tradingSuggestAnalysisNeedsKey'
 
 /** Nothing here stores a suggestion or plans an exit, so every read of one answers empty: no
@@ -95,6 +115,10 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
     screen: 'board',
     briefOmits: BRIEF_OMITS,
     briefActionOmits: BRIEF_ACTION_OMITS,
+    profile: {
+      fields: PROFILE_FIELDS,
+      usage: 'slash.tradingProfileAnalysisUsage',
+    },
     reads: EMPTY_READS,
     pagedBackfill: true,
     refreshOmits: REFRESH_OMITS,

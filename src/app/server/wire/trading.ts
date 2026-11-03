@@ -131,22 +131,24 @@ interface RiskCapWire {
   readonly maximumSegmentPctNav: number
 }
 
+/** A setting marked optional is absent where the edition does not offer it; a client shows an absent
+ *  one as missing, never as 0. */
 export interface TradingProfileResponse {
   readonly preferredLocale: Locale
   readonly baseCurrency: string
   readonly riskLevel: RiskLevel
-  readonly riskCapacity: RiskLevel
-  readonly riskWillingness: RiskLevel
+  readonly riskCapacity?: RiskLevel
+  readonly riskWillingness?: RiskLevel
   readonly horizons: Readonly<Record<string, InvestmentHorizon>>
   readonly goal: InvestmentGoal
   readonly watchlist: readonly InstrumentRefWire[]
   readonly exclusions: readonly InstrumentRefWire[]
   readonly segmentTargets: Readonly<Record<string, number>>
   readonly caps: Readonly<Record<string, RiskCapWire>>
-  readonly maximumSectorPctNav: number
-  readonly reservePctNav: number
-  readonly regimeScale: number
-  readonly riskPerTradePctNav: number
+  readonly maximumSectorPctNav?: number
+  readonly reservePctNav?: number
+  readonly regimeScale?: number
+  readonly riskPerTradePctNav?: number
 }
 
 export interface AbsolutePositionWire {

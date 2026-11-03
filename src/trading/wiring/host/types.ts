@@ -18,6 +18,7 @@ import type {
 import type { NavHistory, NavWindow } from '@/trading/features/portfolio/nav/types'
 import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
 import type { VenueChoice } from '@/trading/features/portfolio/venues'
+import type { ProfileSetField } from '@/trading/features/profile/patch'
 import type { WatchlistResult } from '@/trading/features/profile/types'
 import type { AnalysisId, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { SuggestionCard } from '@/trading/features/suggestion/render/card'
@@ -340,6 +341,8 @@ export interface TradingHost {
   /** Every source's health as this process has seen it. */
   listSources(): readonly SourceStatus[]
   getProfile(signal: AbortSignal): Promise<UserProfile>
+  /** The profile settings this edition offers, which the profile wire is limited to. */
+  profileFields(): readonly ProfileSetField[]
   updateProfile(request: TradingProfileUpdateRequest): Promise<UserProfile>
   /** Adds or removes names; an add that names one nothing resolves saves nothing. */
   updateWatchlist(request: TradingWatchlistRequest): Promise<WatchlistResult>

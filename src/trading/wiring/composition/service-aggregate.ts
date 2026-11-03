@@ -7,6 +7,7 @@ import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { OrderService } from '@/trading/features/order/types'
 import type { NavService } from '@/trading/features/portfolio/nav/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
+import type { ProfileSetField } from '@/trading/features/profile/patch'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { AnalysisService } from '@/trading/features/suggestion/analysis/run'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
@@ -38,6 +39,8 @@ export interface TradingServices {
   readonly suggestionCards: SuggestionCards
   /** The rebalance plan with the lines `/rebalance` prints for it, for an app surface. */
   readonly rebalanceViews: RebalanceViews
+  /** The `/profile set` settings the edition offers, which the profile wire is limited to. */
+  readonly profileFields: readonly ProfileSetField[]
   /** The brief, the macro read and the track record with the CLI's lines for each. */
   readonly appViews: AppViews
   readonly factorLog: FactorLogService
