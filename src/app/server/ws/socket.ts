@@ -7,20 +7,7 @@ import type { WireEvent } from '@/app/server/wire/events'
 import type { ClientFrame, ServerFrame } from '@/app/server/wire/socket'
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { ChatClient } from '@/app/server/ws/runs'
-import type { SlashDispatcher } from '@/commands/api'
 import type { App } from '@/core/container'
-import type { EventBus } from '@/core/events'
-import type { SessionId } from '@/core/ids'
-import type { Logger } from '@/core/logging/logger'
-import type { Locale } from '@/core/types/locale'
-import type {
-  ChatBindingStore,
-  CommandLane,
-  SessionOpener,
-  SessionQueue,
-} from '@/core/types/session'
-import type { AgentProfile, Runner } from '@/engine/api'
-import type { BrowserSessionStore } from '@/persistence/api'
 import { API_CHANNEL } from '@/app/server/channel'
 import { CHAT_CLIENT_ID_MAX } from '@/app/server/wire/chat'
 import {
@@ -62,29 +49,6 @@ const WS_FRAME: z.ZodType<ClientFrame> = z.discriminatedUnion('type', [
   z.object({ type: z.literal('drop'), sessionId: z.string(), id: z.string() }),
   z.object({ type: z.literal('hello'), contractVersion: z.number() }),
 ])
-
-/** Server-owned interface: a socket aborts the runs it owns and steers the one running. */
-interface WsRunControl {
-  abortSession(sessionId: SessionId, chatId: string): boolean
-  steer(sessionId: SessionId, chatId: string, text: string): boolean
-}
-
-export interface WsServices {
-  readonly agents: ReadonlyMap<string, AgentProfile>
-  /** `[api] orders`: whether `/trade` may run from the app. */
-  readonly apiOrders: boolean
-  readonly bindings: ChatBindingStore
-  readonly browserSessions: Pick<BrowserSessionStore, 'has'>
-  readonly bus: EventBus
-  readonly commandLane: CommandLane
-  readonly locale: Locale
-  readonly logger: Logger
-  readonly runControl: WsRunControl
-  readonly runner: Runner
-  readonly sessionQueue: SessionQueue
-  readonly sessions: SessionOpener
-  readonly slashDispatcher: SlashDispatcher
-}
 
 export interface WsData extends ChatClient {
   readonly kind: 'feed'

@@ -22,22 +22,22 @@ export interface Capabilities extends FeatureCapabilities {
   readonly orders: boolean
 }
 
-/** What the process serving the api runs, named by whoever builds it: the daemon from what it
- *  started, the browser worker from what a page can do. A client hides what is false rather than
- *  offering it and failing. */
+/** Which features this edition offers, fixed by the edition that serves the api (the daemon, or
+ *  the browser worker) and never by live state: a channel that is down or a venue with no key still
+ *  reads true, and shows in `degraded` and the per-route capabilities. A client hides what is false
+ *  rather than offering it and failing. */
 export interface FeatureCapabilities {
-  /** A suggestion is an analysis with no entry, stop, size or target, and the page lays out gaps,
-   *  not orders. */
+  /** Suggestions are analysis only: no entry, stop, size or target, and gaps, not orders. */
   readonly analysisOnly: boolean
-  /** Exchange venues are connected: the book can be synced and a trade placed at one. */
+  /** The edition has exchange venues: syncing the book and placing a trade at one. */
   readonly venues: boolean
-  /** Chat channels (Telegram, Zalo) are configured and run. */
+  /** The edition has chat channels (Telegram, Zalo). */
   readonly channels: boolean
-  /** The scheduler runs jobs: the morning brief, alerts and the operator's own. */
+  /** The edition has the scheduler: the morning brief, alerts and the operator's own jobs. */
   readonly schedules: boolean
-  /** The operator's own agents can be listed, edited and run. */
+  /** The edition has the operator's own agents: list, edit and run. */
   readonly agents: boolean
-  /** The ChatGPT subscription login is available here. */
+  /** The edition has the ChatGPT subscription login. */
   readonly chatgpt: boolean
 }
 

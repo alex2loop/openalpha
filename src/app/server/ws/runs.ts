@@ -1,6 +1,6 @@
 import type { LaneTag } from '@/app/server/wire/chat'
 import type { FrameSink } from '@/app/server/ws/frame-sink'
-import type { WsServices } from '@/app/server/ws/socket'
+import type { WsServices } from '@/app/server/ws/services'
 import type { OperatorMessage } from '@/core/errors'
 import type { EventBus } from '@/core/events'
 import type { RunId, SessionId } from '@/core/ids'

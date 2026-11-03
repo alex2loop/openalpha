@@ -106,8 +106,12 @@ export async function handleHttp(req: Request, ctx: ApiRouteContext): Promise<Re
 }
 
 /** A route behind auth: the surface's `authorize`, then the capability, then the handler with the
- *  browser session it came from. */
-async function runAuthorized(
+ *  browser session it came from. A throwing `authorize` answers through the same error boundary. */
+function runAuthorized(route: ApiRouteSpec, req: Request, ctx: ApiRouteContext): Promise<Response> {
+  return guardRoute({ route, req, app: ctx.app }, () => authorizeAndRun(route, req, ctx))
+}
+
+async function authorizeAndRun(
   route: ApiRouteSpec,
   req: Request,
   ctx: ApiRouteContext
@@ -139,15 +143,26 @@ async function runAuthorized(
 /** The one error boundary for the whole route table. Without it a throwing handler answers with a
  *  Bun-generated 500 carrying a stack trace, which is exactly the leak `wire/errors.ts` forbids:
  *  every non-2xx body is `{ error: { code } }` and never an internal message. */
-async function runHandler(
+function runHandler(
   route: ApiRouteSpec,
   req: Request,
   handlerCtx: ApiRouteContext
 ): Promise<Response> {
-  const { app } = handlerCtx
+  return guardRoute({ route, req, app: handlerCtx.app }, () => route.handler(req, handlerCtx))
+}
 
+interface GuardedRoute {
+  readonly route: ApiRouteSpec
+  readonly req: Request
+  readonly app: App
+}
+
+async function guardRoute(
+  { route, req, app }: GuardedRoute,
+  work: () => Promise<Response>
+): Promise<Response> {
   try {
-    return await route.handler(req, handlerCtx)
+    return await work()
   } catch (err: unknown) {
     if (req.signal.aborted && isCancellation(err)) {
       app.resolve('logger').debug('api.request_aborted', {

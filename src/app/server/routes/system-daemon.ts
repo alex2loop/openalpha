@@ -13,7 +13,6 @@ import type { Locale } from '@/core/types/locale'
 import { findProviderById } from '@/ai/api'
 import { createTokenFile } from '@/ai/node-api'
 import { SHUTDOWN_DRAIN_MS } from '@/app/daemon'
-import { isApiExposed } from '@/app/server/exposure'
 import { apiTokenPath } from '@/app/server/http/auth'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { localeOf } from '@/app/server/routes/params'
@@ -54,24 +53,20 @@ export function createDaemonSystemHost(app: App): SystemHost {
     }),
     degraded: () => readDaemonDegraded(app, process.pid),
     modelReady: () => readModelReady(app),
-    features: () => readFeatures(app),
+    features: () => DAEMON_FEATURES,
   }
 }
 
-/** What the daemon runs, read off its own table and config. */
-function readFeatures(app: App): FeatureCapabilities {
-  const routes = app.resolve('apiRoutes')
-  const has = (path: string): boolean => routes.some((route) => route.path === path)
-
-  return {
-    analysisOnly: false,
-    venues: has('/v1/venues'),
-    channels: Object.keys(app.config.channels).length > 0,
-    schedules: has('/v1/jobs'),
-    agents: has('/v1/agents'),
-    chatgpt: has('/v1/auth/chatgpt') && !isApiExposed(app.config.api),
-  }
-}
+/** The daemon offers every feature but the analysis-only suggestion; what is down or unkeyed shows
+ *  in `degraded` and in the per-route capabilities. */
+const DAEMON_FEATURES: FeatureCapabilities = Object.freeze({
+  analysisOnly: false,
+  venues: true,
+  channels: true,
+  schedules: true,
+  agents: true,
+  chatgpt: true,
+})
 
 /** A model is ready when any configured one passes the check `doctor` runs on it, or when the
  *  connected client answers every call. */

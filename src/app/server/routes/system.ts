@@ -66,7 +66,7 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
     app.resolve('jobStore').list(),
     readBriefSchedule(app, req.signal),
     host.degraded(),
-    readFirstRun(app, req.signal),
+    readFirstRun(app, host, req.signal),
   ])
 
   return json({
@@ -91,10 +91,14 @@ async function handleState(req: Request, ctx: ApiRouteContext): Promise<Response
 }
 
 /** The model's readiness is the host's word; the setup is the trading host's. */
-async function readFirstRun(app: App, signal: AbortSignal): Promise<StatePayload['firstRun']> {
+async function readFirstRun(
+  app: App,
+  host: SystemHost,
+  signal: AbortSignal
+): Promise<StatePayload['firstRun']> {
   const [setup, model] = await Promise.all([
     app.resolve('tradingHost').getSetup(signal),
-    app.resolve('systemHost').modelReady(),
+    host.modelReady(),
   ])
 
   return { ...model, ...setup }

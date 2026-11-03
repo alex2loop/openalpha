@@ -319,11 +319,14 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   optional sections exist; the client greys unbuilt tabs rather than inferring from a 404. `ohlcv`,
   `quotes`, `portfolio`, `suggestions` and `orders` are true exactly when their route is registered
   (`orders` also needs a venue that can place and `[api] orders`). `analysisOnly`, `venues`, `channels`,
-  `schedules`, `agents` and `chatgpt` are the serving process's own word for what it runs, set by
-  whoever builds it: the daemon sets `analysisOnly` false, `venues`, `schedules` and `agents` when
-  their routes are served, `channels` when a `[channels]` entry is configured, and `chatgpt` when the
-  login route is served and `public_url` is unset. A client hides what is false rather than offering
-  it and failing.
+  `schedules`, `agents` and `chatgpt` say which features the serving edition offers, fixed by the
+  edition and never by live state (a channel that is down or a venue with no key still reads true;
+  `degraded` and the per-route capabilities carry that). The daemon: `analysisOnly` false, the other
+  five true. `analysisOnly`: suggestions are analysis with no entry, stop, size or target, and gaps,
+  not orders. `venues`: exchange venues (sync the book, place a trade). `channels`: chat channels
+  (Telegram, Zalo). `schedules`: the scheduler (brief, alerts, the operator's jobs). `agents`: the
+  operator's own agents. `chatgpt`: the ChatGPT subscription login. A client hides what is false
+  rather than offering it and failing.
 - **`/v1/health`**: `status` is `starting` (with `ok: false`) until the daemon has started every
   subsystem, then `ready` (with `ok: true`); native clients read `ok`, which is false while starting. See Starting above. A daemon that is stopped refuses the
   connection. `contractVersion` is the `/v1/ws` contract it speaks (the `hello` handshake's number), so a client

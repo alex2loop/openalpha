@@ -28,7 +28,8 @@ import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
 import { SYSTEM_DAEMON_ROUTES } from '@/app/server/routes/system-daemon'
 
 // The groups that need the host process: key and config files, the sign-in cookie, the restart,
-// the shell, the filesystem. A browser worker never takes these.
+// the shell, the filesystem. A browser worker never takes these. `orders` is here by policy, not
+// for a leak: the web edition shows gaps, not orders.
 const SYSTEM_DAEMON_GROUP: ApiRouteGroup = { name: 'system-daemon', routes: SYSTEM_DAEMON_ROUTES }
 const RESTART_GROUP: ApiRouteGroup = { name: 'restart', routes: RESTART_ROUTES }
 const AGENT_EDIT_GROUP: ApiRouteGroup = { name: 'agent-edit', routes: AGENT_EDIT_ROUTES }

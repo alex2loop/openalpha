@@ -1,7 +1,7 @@
 import type { LaneTag } from '@/app/server/wire/chat'
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { ChatClient, ChatLink } from '@/app/server/ws/runs'
-import type { WsServices } from '@/app/server/ws/socket'
+import type { WsServices } from '@/app/server/ws/services'
 import type { HelpRequest, SlashDispatcher } from '@/commands/api'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { SlashContext, SlashResult } from '@/core/types/command'
