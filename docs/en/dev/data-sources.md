@@ -184,7 +184,7 @@ timezone, candle construction, text sanitizing, tracking-parameter stripping) an
 | `feeds` | `RSS_FEEDS` in `adapters/rss.ts` | a feed outside the allowlist is never fetched |
 | `credentials` | resolved from the environment at composition | the raw secret never enters a config object |
 | `plainUserAgentSources` | `PLAIN_USER_AGENT_SOURCES` in `composition/source-facts.ts` | which providers refuse a browser user agent - measured, not guessed |
-| `requestShape` | `DAEMON_REQUEST_SHAPE` in `core/http-client.ts`, passed at boot | the headers every request adds, and whether it follows a redirect |
+| `requestShape` | `DAEMON_REQUEST_SHAPE` in `core/http-client.ts`, passed at boot; the browser root passes `PAGE_REQUEST_SHAPE` | the headers every request adds, and whether it follows a redirect |
 
 Every daemon request goes out with `BROWSER_HEADERS` from `core/http-client.ts`, the headers of `DAEMON_REQUEST_SHAPE` (also the
 default in `buildInit`, so venues, tools and channels inherit it), and fails on a redirect rather than following it: a common browser user agent plus its language header, because a client sending neither is what
@@ -435,6 +435,22 @@ unpaced primary was routed first for.
   failure, and here that answer is the useful fact: a desk that traded nothing still closes the gap.
 
 Both check the caller's signal before doing work and throw on abort.
+
+### The browser route set
+
+A page can read only the providers whose server lets a web page call it (CORS), so the web edition serves a subset of `SOURCE_ROUTES`. Three pieces make it:
+
+- **`BROWSER_REACHABLE_SOURCES`** in `composition/source-facts.ts`: the provider ids that passed the measurement below, alphabetical. A provider that tightens CORS later leaves the set by deleting its line, and the feature it served reads as off in the page.
+- **`toBrowserRoutes(routes, reachable)`** in `sources/routes.ts`: keeps the table's order, drops every id not in the set and drops a scope left with no provider. An emptied scope is then *not served*, never failed. The browser root passes the result as the registry's `routes` option; absent, the registry takes `SOURCE_ROUTES` (the daemon). A built-in provider the table leaves out has no failover position, so it is not registered at all.
+- **`BROWSER_FEEDS`** in `adapters/rss.ts` and `withReachableFeeds`: `rss` stays in the set because one feed (CNBC) answers a browser, but each feed is a separate origin. The browser root passes only the readable feeds as the `feeds` fact, and a news scope whose feeds are all unreadable loses `rss` yet keeps its key, so a lookup never falls through to the `*` scope.
+
+Host-stated facts travel with it (`HostSourceFacts`: `plainUserAgentSources`, `feeds`, `attemptTimeoutMs`). A page cannot set `user-agent`, so the browser passes an empty `plainUserAgentSources`, and a longer attempt deadline than the daemon's (`SOURCE_ATTEMPT_TIMEOUT_MS`, 15 s), because a slow edge (`treasury` was measured at about nine seconds) would otherwise clear the default by under a second.
+
+**The request shape differs too.** `DAEMON_REQUEST_SHAPE` sends `BROWSER_HEADERS` and treats a redirect as a failure. `PAGE_REQUEST_SHAPE` sends no header of its own and follows redirects: any header outside the CORS-safelisted few forces a preflight the provider may not answer, and a page reads a manual redirect as an opaque response. `NetworkPolicy` takes no shape (its manual redirect is the SSRF per-hop check, not presentation); the page's `fetch` is bound as a `FetchGuard` instead (https only, no credentials, no IP literal or local name, no secret in the URL, the caller's allowlist, a deadline).
+
+**Measuring.** `scripts/research-browser-cors.ts` is the authority for the set. It runs every routed adapter against a recording `fetch` under `PAGE_REQUEST_SHAPE`, so the request it measures is the one the real adapter and transport build (path, parameters and headers), never a host root, which misreports: cafef's root has no CORS header while its `GDTuDoanh.ashx` sends `*`. It then sends each recorded request once with an `Origin` header, follows redirects by hand because a browser checks every hop, and sends an `OPTIONS` preflight first when the request is not simple. It is read-only (GET and OPTIONS to public endpoints, one request per provider origin), reads a credential only from the environment and lists a keyed provider as not measured without one. It prints each result, the ids that pass, the two diffs against `BROWSER_REACHABLE_SOURCES` (in the set but failing; passing but not in it) and the browser route table with each cell `full`, `reduced` or `off`. It stands outside the runtime on purpose, because it fires real requests the runtime never sends this way.
+
+A bare client is not a page: a provider whose WAF or CORS depends on headers a page sends can pass the script and fail in a real browser (`vietcap-statements` did: 45 of 45 requests failed from a page, so it left the set), and one that blocks a headless user agent (`vndirect`) needs a headful browser to check. Re-measure from a real page before adding an id, and let the script's diff drive every edit of the set. The page's content security policy derives its `connect-src` hosts from the same tables, so an id added here reaches the policy at the next `build:web` and nothing else lists hosts.
 
 ## Transport
 
@@ -921,6 +937,7 @@ export function createSources(kit) {
 - Transport: [sources/transport/http.ts](../../../src/trading/sources/transport/http.ts), [pacer.ts](../../../src/trading/sources/transport/pacer.ts), [health.ts](../../../src/trading/sources/transport/health.ts), [http-failure.ts](../../../src/trading/sources/transport/http-failure.ts)
 - Caches: [sources/settled-bars.ts](../../../src/trading/sources/settled-bars.ts), [sources/coalesce.ts](../../../src/trading/sources/coalesce.ts), [markets/macro-cache.ts](../../../src/trading/markets/macro-cache.ts)
 - Composition and facts: [wiring/composition/source-facts.ts](../../../src/trading/wiring/composition/source-facts.ts), [wiring/composition/source-registry.ts](../../../src/trading/wiring/composition/source-registry.ts)
+- Browser route set: `toBrowserRoutes` in [sources/routes.ts](../../../src/trading/sources/routes.ts), `BROWSER_REACHABLE_SOURCES` in [source-facts.ts](../../../src/trading/wiring/composition/source-facts.ts), [scripts/research-browser-cors.ts](../../../scripts/research-browser-cors.ts), hosts for the policy in [wiring/composition/source-hosts.ts](../../../src/trading/wiring/composition/source-hosts.ts)
 - Plugin sources: [sources/plugin-module.ts](../../../src/trading/sources/plugin-module.ts)
 - Freshness rule: [markets/calendar.ts](../../../src/trading/markets/calendar.ts), [markets/live-reading.ts](../../../src/trading/markets/live-reading.ts), [markets/stored-quote.ts](../../../src/trading/markets/stored-quote.ts)
 - Macro extraction: [features/market-data/macro-extract/](../../../src/trading/features/market-data/macro-extract/)

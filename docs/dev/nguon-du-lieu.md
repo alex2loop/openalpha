@@ -146,7 +146,7 @@ Các hàm phân tích dùng chung nằm ở `sources/rows/normalization.ts` (ki�
 | `feeds` | `RSS_FEEDS` trong `adapters/rss.ts` | một feed ngoài danh sách cho phép không bao giờ được tải |
 | `credentials` | phân giải từ môi trường lúc composition | bí mật thô không bao giờ vào một đối tượng cấu hình |
 | `plainUserAgentSources` | `PLAIN_USER_AGENT_SOURCES` trong `composition/source-facts.ts` | nhà cung cấp nào từ chối user agent trình duyệt - đã đo, không đoán |
-| `requestShape` | `DAEMON_REQUEST_SHAPE` trong `core/http-client.ts`, truyền vào lúc khởi động | các header mọi yêu cầu thêm vào, và có đi theo chuyển hướng hay không |
+| `requestShape` | `DAEMON_REQUEST_SHAPE` trong `core/http-client.ts`, truyền vào lúc khởi động; gốc dựng của trình duyệt truyền `PAGE_REQUEST_SHAPE` | các header mọi yêu cầu thêm vào, và có đi theo chuyển hướng hay không |
 
 Mọi yêu cầu daemon gửi đi đều mang `BROWSER_HEADERS` từ `core/http-client.ts`, tức các header của `DAEMON_REQUEST_SHAPE` (cũng là mặc định trong `buildInit`, nên sàn, công cụ và kênh đều thừa hưởng), và coi một chuyển hướng là thất bại chứ không đi theo: chuỗi user agent của một trình duyệt phổ biến cùng header ngôn ngữ đi kèm, vì client không khai cả hai chính là dấu hiệu để hệ thống chống bot nhận diện. Tên sản phẩm không bao giờ bị tự khai với nhà cung cấp.
 
@@ -263,6 +263,22 @@ Không sắp theo **độ mới của lần thành công**: cách đó xếp h�
   `proprietaryFlows` trộn vì lý do còn lại. Nó chỉ có một nhà cung cấp, nhưng cơ chế dự phòng sẽ coi câu trả lời "không có dòng nào" là một lần hỏng, trong khi ở đây chính câu trả lời đó mới là thông tin đáng có: một khối tự doanh không giao dịch gì cũng là một khoảng trống đã được lấp.
 
 Cả hai đều kiểm tín hiệu của bên gọi trước khi làm việc và ném lỗi khi bị hủy.
+
+### Bộ tuyến của trình duyệt
+
+Một trang chỉ đọc được những nhà cung cấp mà máy chủ cho phép trang web gọi (CORS), nên bản web phục vụ một tập con của `SOURCE_ROUTES`. Ba phần tạo nên nó:
+
+- **`BROWSER_REACHABLE_SOURCES`** trong `composition/source-facts.ts`: các mã nhà cung cấp đã qua phép đo bên dưới, theo thứ tự chữ cái. Nhà cung cấp nào siết CORS về sau thì ra khỏi tập bằng cách xóa dòng của nó, và tính năng nó phục vụ hiện là tắt trong trang.
+- **`toBrowserRoutes(routes, reachable)`** trong `sources/routes.ts`: giữ nguyên thứ tự của bảng, bỏ mọi mã không nằm trong tập và bỏ phạm vi không còn nhà cung cấp nào. Phạm vi bị rỗng khi đó là *không được phục vụ*, không bao giờ là thất bại. Gốc dựng của trình duyệt truyền kết quả làm tùy chọn `routes` của sổ đăng ký; vắng thì sổ đăng ký dùng `SOURCE_ROUTES` (dịch vụ nền). Nhà cung cấp có sẵn mà bảng bỏ ra thì không có vị trí dự phòng nên hoàn toàn không được đăng ký.
+- **`BROWSER_FEEDS`** trong `adapters/rss.ts` và `withReachableFeeds`: `rss` ở lại trong tập vì có một feed (CNBC) trả lời được cho trình duyệt, nhưng mỗi feed là một origin riêng. Gốc dựng của trình duyệt chỉ truyền các feed đọc được làm dữ kiện `feeds`, và một phạm vi tin mà mọi feed đều không đọc được thì mất `rss` nhưng giữ khóa của nó, nên một lần tra không bao giờ rơi xuống phạm vi `*`.
+
+Các dữ kiện do bên chủ nhà tự khai đi cùng (`HostSourceFacts`: `plainUserAgentSources`, `feeds`, `attemptTimeoutMs`). Một trang không đặt được `user-agent`, nên trình duyệt truyền `plainUserAgentSources` rỗng, và hạn chờ một lần thử dài hơn của dịch vụ nền (`SOURCE_ATTEMPT_TIMEOUT_MS`, 15 giây), vì một biên chậm (`treasury` từng đo được khoảng chín giây) nếu không sẽ chỉ vượt mặc định chưa tới một giây.
+
+**Hình dạng yêu cầu cũng khác.** `DAEMON_REQUEST_SHAPE` gửi `BROWSER_HEADERS` và coi chuyển hướng là thất bại. `PAGE_REQUEST_SHAPE` không gửi header riêng nào và đi theo chuyển hướng: mọi header ngoài vài header được CORS cho phép sẵn đều buộc một preflight mà nhà cung cấp có thể không trả lời, và một trang đọc chuyển hướng thủ công như một phản hồi đục. `NetworkPolicy` không nhận hình dạng nào (chuyển hướng thủ công của nó là phép kiểm SSRF từng bước nhảy, không phải cách trình bày); thay vào đó `fetch` của trang được gắn làm `FetchGuard` (chỉ https, không thông tin đăng nhập, không địa chỉ IP trần hay tên cục bộ, không bí mật trong URL, danh sách cho phép của bên gọi, một hạn chót).
+
+**Đo.** `scripts/research-browser-cors.ts` là thẩm quyền cho tập này. Nó chạy mọi bộ nối có tuyến trên một `fetch` ghi lại dưới `PAGE_REQUEST_SHAPE`, nên yêu cầu được đo chính là yêu cầu mà bộ nối thật và kênh truyền dựng (đường dẫn, tham số và header), không bao giờ là gốc của host, thứ đo sai: gốc của cafef không có header CORS trong khi `GDTuDoanh.ashx` của nó gửi `*`. Sau đó nó gửi từng yêu cầu đã ghi một lần với header `Origin`, đi theo chuyển hướng bằng tay vì trình duyệt kiểm từng bước nhảy, và gửi `OPTIONS` preflight trước khi yêu cầu không phải loại đơn giản. Nó chỉ đọc (GET và OPTIONS tới các endpoint công khai, một yêu cầu cho mỗi origin nhà cung cấp), chỉ đọc thông tin đăng nhập từ môi trường và liệt kê nhà cung cấp cần khóa là chưa đo nếu thiếu khóa. Nó in từng kết quả, các mã qua phép đo, hai phần chênh so với `BROWSER_REACHABLE_SOURCES` (có trong tập nhưng không qua; qua nhưng không có trong tập) và bảng tuyến của trình duyệt với mỗi ô là `full`, `reduced` hoặc `off`. Nó nằm ngoài runtime có chủ ý, vì nó bắn các yêu cầu thật mà runtime không bao giờ gửi theo cách này.
+
+Một client trần không phải một trang: nhà cung cấp có WAF hoặc CORS phụ thuộc vào header mà trang gửi có thể qua script nhưng hỏng trong trình duyệt thật (`vietcap-statements` đã vậy: 45 trên 45 yêu cầu hỏng từ một trang nên nó ra khỏi tập), và nhà cung cấp chặn user agent headless (`vndirect`) cần một trình duyệt có giao diện để kiểm. Hãy đo lại từ một trang thật trước khi thêm một mã, và để phần chênh của script dẫn dắt mọi lần sửa tập. Chính sách bảo mật nội dung của trang suy ra các host `connect-src` từ cùng các bảng này, nên một mã thêm vào đây tới được chính sách ở lần `build:web` kế tiếp và không có nơi nào khác liệt kê host.
 
 ## Kênh truyền
 
@@ -581,6 +597,7 @@ export function createSources(kit) {
 - Kênh truyền: [sources/transport/http.ts](../../src/trading/sources/transport/http.ts), [pacer.ts](../../src/trading/sources/transport/pacer.ts), [health.ts](../../src/trading/sources/transport/health.ts), [http-failure.ts](../../src/trading/sources/transport/http-failure.ts)
 - Cache: [sources/settled-bars.ts](../../src/trading/sources/settled-bars.ts), [sources/coalesce.ts](../../src/trading/sources/coalesce.ts), [markets/macro-cache.ts](../../src/trading/markets/macro-cache.ts)
 - Composition và dữ kiện: [wiring/composition/source-facts.ts](../../src/trading/wiring/composition/source-facts.ts), [wiring/composition/source-registry.ts](../../src/trading/wiring/composition/source-registry.ts)
+- Bộ tuyến của trình duyệt: `toBrowserRoutes` trong [sources/routes.ts](../../src/trading/sources/routes.ts), `BROWSER_REACHABLE_SOURCES` trong [source-facts.ts](../../src/trading/wiring/composition/source-facts.ts), [scripts/research-browser-cors.ts](../../scripts/research-browser-cors.ts), host cho chính sách ở [wiring/composition/source-hosts.ts](../../src/trading/wiring/composition/source-hosts.ts)
 - Nguồn từ plugin: [sources/plugin-module.ts](../../src/trading/sources/plugin-module.ts)
 - Quy tắc độ mới: [markets/calendar.ts](../../src/trading/markets/calendar.ts), [markets/live-reading.ts](../../src/trading/markets/live-reading.ts), [markets/stored-quote.ts](../../src/trading/markets/stored-quote.ts)
 - Trích xuất vĩ mô: [features/market-data/macro-extract/](../../src/trading/features/market-data/macro-extract/)
