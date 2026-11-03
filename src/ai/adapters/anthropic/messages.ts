@@ -23,7 +23,9 @@ export const anthropicTransport: Transport = {
       ...(await resolveAuthHeaders(
         req,
         entry,
-        isThirdParty ? { authorization: `Bearer ${entry.apiKey}` } : { 'x-api-key': entry.apiKey }
+        isThirdParty
+          ? (apiKey) => ({ authorization: `Bearer ${apiKey}` })
+          : (apiKey) => ({ 'x-api-key': apiKey })
       )),
     }
 

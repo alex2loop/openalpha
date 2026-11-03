@@ -79,8 +79,7 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
     macro: macroCache(sources),
     stages,
     venueListings: listings,
-    ...(options.edition?.pagedBackfill === true ? { pagedBackfill: true as const } : {}),
-    ...(options.edition?.viewed === undefined ? {} : { viewedInstruments: options.edition.viewed }),
+    ...editionMarketDeps(options.edition),
     briefServices: lazyBriefServices(app, options.tradingConfig, {
       venues,
       // The book's `stopDistances` answers [] ("measured, none set"); the brief takes undefined
@@ -109,6 +108,19 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
   stages.close()
 
   return { markets, sources, stages, venues, fx }
+}
+
+/** What an edition changes in what every market is handed; absent is the installed version. */
+function editionMarketDeps(
+  edition: TradingEdition | undefined
+): Pick<MarketDeps, 'pagedBackfill' | 'viewedInstruments' | 'omitBriefActions'> {
+  return {
+    ...(edition?.pagedBackfill === true ? { pagedBackfill: true as const } : {}),
+    ...(edition?.viewed === undefined ? {} : { viewedInstruments: edition.viewed }),
+    ...(edition?.briefActionOmits === undefined
+      ? {}
+      : { omitBriefActions: edition.briefActionOmits }),
+  }
 }
 
 function buildSources(app: App, options: RegistryOptions): SourceRegistry {

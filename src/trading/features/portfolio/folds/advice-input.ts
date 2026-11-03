@@ -1,6 +1,10 @@
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
 import type { RebalancePolicy } from '@/trading/features/portfolio/folds/policy'
-import type { PortfolioAssessment, ValuedBook } from '@/trading/features/portfolio/types'
+import type {
+  PortfolioAssessment,
+  RebalanceForm,
+  ValuedBook,
+} from '@/trading/features/portfolio/types'
 import type { EvidenceReduceReasonCode } from '@/trading/kernel/caveat'
 import type { MarketRef, PortfolioSegment } from '@/trading/kernel/instrument'
 import type { RegimeScale } from '@/trading/kernel/market/market-data'
@@ -26,4 +30,6 @@ export interface AdviceInput {
   buyCashMultiple(market: MarketRef): number
   /** False when no profile has been stored, so `profile` is the seeded default. */
   readonly profileSaved: boolean
+  /** Absent writes the orders, as the installed version does. */
+  readonly form?: RebalanceForm
 }

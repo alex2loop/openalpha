@@ -33,6 +33,9 @@ interface MarketsView {
   readonly overviews: readonly MarketDataOverview[]
   readonly macro: SourceResult<MacroRiskView>
   readonly heldMarkets: ReadonlySet<MarketRef>
+  /** False where no plan states a buy size: the macro keeps its regime and drivers and leaves out
+   *  how much of a planned buy to put to work. */
+  readonly statesDeployment: boolean
   /** The one clock read the whole message is stamped with. */
   readonly now: number
 }
@@ -69,7 +72,7 @@ export function renderOverviewText(
       })
     }),
     renderCaveatLines(locale, caveatsOf(view), { collapseInfo: true }),
-    [`${INDENT[1]}${t(locale, 'trading.render.macro.next')}`],
+    view.statesDeployment ? [`${INDENT[1]}${t(locale, 'trading.render.macro.next')}`] : [],
   ])
 }
 
@@ -133,7 +136,7 @@ function macroBlock(
   const [composite = [], ...rest] = renderMacroSections(locale, {
     view: macro,
     context,
-    held: true,
+    held: view.statesDeployment,
   })
 
   return [[rule, ...composite], ...rest]
@@ -158,7 +161,7 @@ function marketBlock(
     overview,
     region: view.macro,
     context,
-    held: view.heldMarkets.has(overview.market),
+    held: view.statesDeployment && view.heldMarkets.has(overview.market),
     ...(block.sharedWith === undefined ? {} : { sharedWith: block.sharedWith }),
   })
 

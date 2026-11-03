@@ -66,6 +66,10 @@ export interface AuthProvider {
   loginWithDeviceCode?(input: DeviceCodeInput): Promise<OAuthTokens>
 }
 
+/** How a transport's wire carries a plain API key. A source that holds a key and no login shapes
+ *  its answer with it, so the wire stays the transport's to state. */
+export type KeyHeaders = (apiKey: string) => Readonly<Record<string, string>>
+
 // Consumer-side: the transport declares the headers it needs. `provider` is the catalog id this
 // source authenticates, so the chain can never hand one provider another's tokens. No `signal`
 // parameter: the token refresh behind this call is single-flight and shared across every concurrent
@@ -73,5 +77,5 @@ export interface AuthProvider {
 // another turn's in-flight refresh.
 export interface CredentialSource {
   readonly provider: string
-  authHeaders(): Promise<Readonly<Record<string, string>>>
+  authHeaders(keyHeaders: KeyHeaders): Promise<Readonly<Record<string, string>>>
 }

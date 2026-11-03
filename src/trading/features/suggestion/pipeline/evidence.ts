@@ -101,6 +101,9 @@ export interface CaseSubject
   readonly referencePrice?: number
   /** What the factor rows are said to mean, which the question being argued decides. */
   readonly factorsHeading: string
+  /** Leaves out the analysts' ratings and target prices, which are not read at all: a case that is
+   *  published must not republish a third party's rating or price level. */
+  readonly withoutAnalystCoverage?: true
 }
 
 /** Every section a case reads, in the order they print. The debate slots its own sections between
@@ -253,7 +256,9 @@ function readEvidenceSources(market: Market, subject: CaseSubject): Promise<Evid
       signal,
     }),
     market.capabilities.news?.run({ asOf, now, limit: MAXIMUM_EVIDENCE_NEWS_ITEMS, signal }),
-    market.capabilities.recommendations?.run({ instrument, asOf, now, signal }),
+    subject.withoutAnalystCoverage === true
+      ? undefined
+      : market.capabilities.recommendations?.run({ instrument, asOf, now, signal }),
     market.capabilities.accounts?.run({ instrument, asOf, now, signal }),
   ]).then(([news, marketNews, recommendations, accounts]) => ({
     news,

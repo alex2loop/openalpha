@@ -1,11 +1,11 @@
 import type { BrowserKeyring } from '@/app/browser/keys'
-import type { BrowserLogger } from '@/app/browser/logger'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { Capabilities } from '@/app/server/wire/system'
 import type { ChatClient } from '@/app/server/ws/runs'
 import type { WsServices } from '@/app/server/ws/services'
 import type { ApiRouteContext } from '@/app/types'
 import type { App } from '@/core/container'
+import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { Storage } from '@/core/types/storage'
 import type { DatabaseFiles } from '@/persistence/api'
@@ -45,7 +45,7 @@ interface RootInput {
   readonly locale: Locale
   readonly steal: boolean
   readonly keyring: BrowserKeyring
-  readonly logger: BrowserLogger
+  readonly logger: Logger
   readonly wasmUrl: string
   /** Where the live feed's events go: to the page. */
   readonly broadcast: (event: WireEvent) => void

@@ -75,30 +75,25 @@ export function createBrowserKeyring(): BrowserKeyring {
 export function createKeyringCredentials(keyring: BrowserKeyring): readonly CredentialSource[] {
   return BROWSER_AI_PROVIDERS.map((provider) => ({
     provider,
-    async authHeaders() {
+    async authHeaders(keyHeaders) {
       const key = keyring.env()[aiKeyVariable(provider)]
 
       if (key === undefined) {
         throw new LLMError('auth', `no ${provider} key is set`)
       }
 
-      return toKeyHeaders(provider, key)
+      return { ...keyHeaders(key), ...toBrowserHeaders(provider) }
     },
   }))
 }
 
-/** The headers a provider's wire takes a key in. Only these ride the request: a browser call is
- *  preflighted, and a provider that lists the headers it allows (Mistral: Authorization and
- *  Content-Type) refuses any other. */
-function toKeyHeaders(provider: BrowserAiProvider, key: string): Readonly<Record<string, string>> {
-  switch (findProviderById(provider)?.transport) {
-    case 'anthropic_messages':
-      return { 'x-api-key': key, [ANTHROPIC_BROWSER_HEADER]: 'true' }
-    case 'gemini_generate':
-      return { 'x-goog-api-key': key }
-    default:
-      return { authorization: `Bearer ${key}` }
-  }
+/** What a page's call adds to the transport's own headers: only what a provider insists on for a
+ *  browser origin. A browser call is preflighted, and a provider that lists the headers it allows
+ *  (Mistral: Authorization and Content-Type) refuses any other. */
+function toBrowserHeaders(provider: BrowserAiProvider): Readonly<Record<string, string>> {
+  return findProviderById(provider)?.transport === 'anthropic_messages'
+    ? { [ANTHROPIC_BROWSER_HEADER]: 'true' }
+    : {}
 }
 
 /** Every variable name a key can arrive under: the config resolves against these, so a feature that

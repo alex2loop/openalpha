@@ -31,7 +31,7 @@ import type {
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
-import type { BookReads, TradingEdition } from '@/trading/wiring/composition/edition'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import { createAlertService } from '@/trading/features/alerts/alerts'
 import { createBriefService } from '@/trading/features/brief/brief'
@@ -91,9 +91,7 @@ interface DomainServiceDeps {
   readonly venues: VenueRegistry
   /** Built beside the market registry so the markets and the money read one conversion path. */
   readonly fx: FxRates
-  /** What an edition that stores no suggestion answers itself; absent reads the store. */
-  readonly reads?: Pick<BookReads, 'reduceVerdicts' | 'exitPlans'>
-  readonly briefOmits?: TradingEdition['briefOmits']
+  readonly edition?: Pick<TradingEdition, 'reads' | 'briefOmits' | 'rebalance'>
 }
 
 function buildProfiles(deps: DomainServiceDeps): ProfileService {
@@ -116,12 +114,13 @@ interface BookParts {
 
 function buildPortfolio(parts: BookParts): PortfolioService {
   const { deps, marketData, fx, profile, exitPlans } = parts
+  const { edition } = deps
 
   return createPortfolioService({
     ledger: deps.stores.ledger,
     profile,
     exitPlans,
-    reduceVerdicts: deps.reads?.reduceVerdicts ?? createReduceVerdicts(deps.stores.suggestion),
+    reduceVerdicts: edition?.reads?.reduceVerdicts ?? createReduceVerdicts(deps.stores.suggestion),
     markets: deps.markets,
     venues: deps.venues,
     logger: deps.logger,
@@ -133,6 +132,7 @@ function buildPortfolio(parts: BookParts): PortfolioService {
     defaultRegion: deps.config.defaultRegion,
     costs: deps.config.costs,
     defaultLocale: deps.defaultLocale,
+    ...(edition?.rebalance === undefined ? {} : { rebalanceForm: edition.rebalance }),
   })
 }
 
@@ -278,7 +278,7 @@ function buildBookWithPlans(parts: Omit<BookParts, 'exitPlans'>): {
   const lazyExitPlans: ExitPlanner = { plan: (options) => exitPlans.plan(options) }
   const portfolio = buildPortfolio({ ...parts, exitPlans: lazyExitPlans })
   const exitPlans =
-    parts.deps.reads?.exitPlans ??
+    parts.deps.edition?.reads?.exitPlans ??
     buildExitPlanner(parts.deps, { portfolio, profiles: parts.profile })
 
   return { portfolio, exitPlans }
@@ -397,7 +397,7 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
     sender: deps.sender,
     config: deps.config,
     logger: deps.logger,
-    ...(deps.briefOmits === undefined ? {} : { omitSections: deps.briefOmits }),
+    ...(deps.edition?.briefOmits === undefined ? {} : { omitSections: deps.edition.briefOmits }),
     createSuggestionBudget: () => deps.createSuggestionBudget(),
   })
 

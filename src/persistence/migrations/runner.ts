@@ -59,6 +59,8 @@ export interface RollbackMigrationOptions {
   readonly migrations?: readonly Migration[]
 }
 
+/** Throws `SchemaAheadError`, whose message is English only; `migrateWithBackup` turns it into the
+ *  operator's message, so a daemon caller goes through that. */
 export async function migrate(
   db: Storage,
   dialect: Dialect,
