@@ -133,6 +133,7 @@ core/logging/inspection
 core/logging/logger
 core/logging/paths
 core/logging/retention
+core/logging/silent-logger
 core/memory-key
 core/scoped-value
 core/security/agent-directories

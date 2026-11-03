@@ -58,7 +58,7 @@ import { createMcpSurface } from '@/engine/mcp/surface'
 import { createRateLimiter } from '@/engine/rate-limiter'
 import { createResearchCoordinator } from '@/engine/research/coordinator'
 import { createRunRegistry } from '@/engine/run-registry'
-import { BUILT_IN_WORKFLOWS } from '@/engine/workflows/discover'
+import { BUILT_IN_WORKFLOWS } from '@/engine/workflows/built-in'
 
 // Consumer-side interface: the loop needs the session's prior transcript, but `engine` has no edge to
 // `persistence`. It names the shape; the composition root binds an implementation over the session

@@ -4,7 +4,8 @@ import { notifyPass } from '@/core/container'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
-import { isBoundaryFailure, logRefreshDegradations, refreshDegradations } from '@/trading/api'
+import { logRefreshDegradations, refreshDegradations } from '@/trading/api'
+import { isBoundaryFailure } from '@/trading/node-api'
 
 const BOOT_REFRESH_BUDGET_MS = 60_000
 

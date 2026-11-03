@@ -32,8 +32,6 @@ const WorkflowTomlSchema = z.strictObject({
     .min(1, 'workflow.toml needs at least one [[steps]] entry'),
 })
 
-export const BUILT_IN_WORKFLOWS: readonly Workflow[] = []
-
 // The cron expression is validated eagerly, at creation: a bad schedule must fail at load, not
 // silently never fire.
 function createWorkflow(wf: Workflow): Workflow {

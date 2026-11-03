@@ -1,5 +1,6 @@
 import type { BrandTag } from '@/core/ids'
 import { ValidationError } from '@/core/errors'
+import { buildUuidV7 } from '@/core/ids'
 
 const TICKER_RE = /^[A-Z0-9][A-Z0-9._-]{0,31}$/
 const TRADING_DAY_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -343,7 +344,7 @@ export function isIdRef(raw: string): boolean {
 }
 
 export function buildUuidV7Id<T extends string>(now: number, label: string): T {
-  return parseUuidV7Id<T>(Bun.randomUUIDv7(undefined, now), label)
+  return parseUuidV7Id<T>(buildUuidV7(now), label)
 }
 
 export function buildInstrumentKey(ref: InstrumentRef): string {

@@ -26,7 +26,7 @@ import {
   mcpToolSourceKey,
   type PluginAssets,
 } from '@/plugins/api'
-import { loadPluginSourceModules } from '@/trading/api'
+import { loadPluginSourceModules } from '@/trading/node-api'
 
 const WORKFLOWS_DIR = 'workflows'
 

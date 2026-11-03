@@ -5,6 +5,7 @@ import type { ResolvedLog } from '@/core/config/resolve'
 import type { AgentId } from '@/core/ids'
 import { ConfigError } from '@/core/errors'
 import { isPathId, agentId as toAgentId } from '@/core/ids'
+import { silentLogger } from '@/core/logging/silent-logger'
 import { prepareAgentLogFile } from '@/core/security/agent-directories'
 import {
   formatErrForLog,
@@ -94,22 +95,6 @@ interface LifecyclePlan {
   readonly closeDestination?: boolean
   readonly onTerminal: () => void
   readonly onComplete?: () => void
-}
-
-export const silentLogger: Logger = {
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  info() {},
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  warn() {},
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  error() {},
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  fatal() {},
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  debug() {},
-  child(): Logger {
-    return this
-  },
 }
 
 export async function createLoggerResource(

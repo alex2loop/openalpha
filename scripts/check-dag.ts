@@ -75,6 +75,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'logging/logger',
   'logging/paths',
   'logging/retention',
+  'logging/silent-logger',
   'logging/inspection',
   'memory-key',
   'stream-events',

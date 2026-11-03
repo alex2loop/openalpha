@@ -20,7 +20,7 @@ import { fail, hint, style, success } from '@/cli/ui/colors'
 import { formatBytes } from '@/cli/ui/format'
 import { confirm, confirmDefaultYes, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { expandHome } from '@/core/config/resolve'
-import { silentLogger } from '@/core/logging/logger'
+import { silentLogger } from '@/core/logging/silent-logger'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { type MessageKey, pluralKey, t } from '@/i18n'
 import {
