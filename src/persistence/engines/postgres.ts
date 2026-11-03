@@ -2,7 +2,7 @@ import type { Pool, PoolClient, QueryResultRow } from 'pg'
 
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage, Transaction } from '@/core/types/storage'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError, StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { toStorageError } from '@/persistence/errors'

@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 
 import { START_TIMEOUT_MS } from '@/cli/commands/daemon/background'
 import { BRAND } from '@/core/brand'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { PRIVATE_FILE_MODE } from '@/core/security/private-files'
 import { MS_PER_SECOND, sleep } from '@/core/utils/time'
 

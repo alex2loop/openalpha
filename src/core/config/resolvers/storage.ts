@@ -1,3 +1,4 @@
+import type { ConfigHost, DataLocation } from '@/core/config/paths'
 import type { RawStorage } from '@/core/config/schema'
 import { MissingEnvError } from '@/core/config/operator-errors'
 import { resolveSqliteDatabasePath } from '@/core/config/paths'
@@ -8,16 +9,17 @@ export type ResolvedStorageConfig =
 
 export function resolveStorageConfig(
   raw: RawStorage | undefined,
-  dataDir: string
+  location: DataLocation,
+  env: ConfigHost['env']
 ): ResolvedStorageConfig {
   if (raw === undefined || raw.engine === 'sqlite') {
     return {
       engine: 'sqlite',
-      path: resolveSqliteDatabasePath(dataDir, raw?.path),
+      path: resolveSqliteDatabasePath(location, raw?.path),
     }
   }
 
-  const url = process.env[raw.url_env]
+  const url = env[raw.url_env]
 
   if (url === undefined || url === '') {
     throw new MissingEnvError(raw.url_env, 'storage', {

@@ -9,9 +9,12 @@ const DEFAULT_MAX_BYTES = 2_097_152 // 2 MiB
 const DEFAULT_ACCEPT = 'application/json'
 const NO_ERROR_BODY_STATUSES: readonly number[] = Object.freeze([])
 
+const BUN_VERSION: string | undefined = globalThis.Bun?.version
+const RUNTIME_AGENT = BUN_VERSION === undefined ? '' : ` Bun/${BUN_VERSION}`
+
 /** What this process is, said plainly. Only for a provider that refuses a browser: FRED's edge
  *  resets the stream for one, which is a dead connection rather than a status to fail over on. */
-export const USER_AGENT = `${BRAND.name}/${BRAND.version} Bun/${Bun.version}`
+export const USER_AGENT = `${BRAND.name}/${BRAND.version}${RUNTIME_AGENT}`
 
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
@@ -24,6 +27,22 @@ export const BROWSER_HEADERS: Readonly<Record<string, string>> = Object.freeze({
   'user-agent': BROWSER_USER_AGENT,
   'accept-language': 'en-US,en;q=0.9',
 })
+
+/** How an outbound request presents itself, which differs by who sends it. */
+export interface RequestShape {
+  readonly headers: Readonly<Record<string, string>>
+  readonly redirect: NonNullable<RequestInit['redirect']>
+}
+
+/** Browser-like headers; a 3xx fails the host, so a trusted host never hands the request on. */
+export const DAEMON_REQUEST_SHAPE: RequestShape = Object.freeze({
+  headers: BROWSER_HEADERS,
+  redirect: 'manual',
+})
+
+/** No header of its own, so no forced preflight; follows, as a page's manual redirect is opaque. */
+export const PAGE_REQUEST_SHAPE: RequestShape = Object.freeze({ headers: {}, redirect: 'follow' })
+
 const DELTA_SECONDS_RE = /^\d+$/
 // Month and day stay loose: RFC 7231 prefers `21 Oct 2025`, but servers do send `21 October 2025`
 // and a single-digit day, and rejecting those drops the back-off hint entirely.
@@ -93,6 +112,7 @@ interface HttpRequestOptions {
   hostTimeoutMs?: number
   signal: AbortSignal
   fetchImpl?: FetchFn // injectable for tests/observability; defaults to global fetch
+  shape?: RequestShape // defaults to DAEMON_REQUEST_SHAPE
 }
 
 interface HttpResponse {
@@ -135,8 +155,8 @@ type Attempt =
     }
 
 // GET/POST a fixed trusted-host endpoint under one shared timeout, falling over to the next
-// host on network failure / non-2xx, with a size cap. Redirects are not followed: a 3xx fails
-// the attempt like any other non-2xx. Not for streaming (LLM) or user-supplied URLs — those go
+// host on network failure / non-2xx, with a size cap. The shape decides redirects; the daemon's
+// fails a 3xx like any other non-2xx. Not for streaming (LLM) or user-supplied URLs — those go
 // through NetworkPolicy.guardedFetch (SSRF-guarded).
 export async function httpRequest(req: HttpRequestOptions): Promise<HttpResponse> {
   if (req.signal.aborted) {
@@ -251,11 +271,12 @@ async function requestKeyless(req: KeylessGetOptions, request: FixedHostRequest)
 }
 
 function buildInit(req: Omit<HttpRequestOptions, 'timeoutMs'>, signal: AbortSignal): RequestInit {
+  const shape = req.shape ?? DAEMON_REQUEST_SHAPE
   const init: RequestInit = {
     method: req.method ?? 'GET',
-    headers: { accept: DEFAULT_ACCEPT, ...BROWSER_HEADERS, ...req.headers },
+    headers: { accept: DEFAULT_ACCEPT, ...shape.headers, ...req.headers },
     signal,
-    redirect: 'manual',
+    redirect: shape.redirect,
   }
 
   // Same exactOptionalPropertyTypes reason as keylessGet: omit the key when there's no body.
@@ -449,7 +470,9 @@ async function readCapped(
   }
 
   return {
-    text: new TextDecoder('utf-8').decode(Buffer.concat(chunks), { stream: truncated }),
+    text: new TextDecoder('utf-8').decode(await new Blob(chunks).arrayBuffer(), {
+      stream: truncated,
+    }),
     truncated,
   }
 }

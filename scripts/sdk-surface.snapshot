@@ -116,6 +116,7 @@ core/brand
 core/channels
 core/command-lane
 core/config/load
+core/config/operator-errors
 core/config/resolve
 core/config/validate
 core/container

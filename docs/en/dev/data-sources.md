@@ -184,9 +184,10 @@ timezone, candle construction, text sanitizing, tracking-parameter stripping) an
 | `feeds` | `RSS_FEEDS` in `adapters/rss.ts` | a feed outside the allowlist is never fetched |
 | `credentials` | resolved from the environment at composition | the raw secret never enters a config object |
 | `plainUserAgentSources` | `PLAIN_USER_AGENT_SOURCES` in `composition/source-facts.ts` | which providers refuse a browser user agent - measured, not guessed |
+| `requestShape` | `DAEMON_REQUEST_SHAPE` in `core/http-client.ts`, passed at boot | the headers every request adds, and whether it follows a redirect |
 
-Every request goes out with `BROWSER_HEADERS` from `core/http-client.ts` (also the default in `buildInit`, so venues, tools and
-channels inherit it): a common browser user agent plus its language header, because a client sending neither is what
+Every daemon request goes out with `BROWSER_HEADERS` from `core/http-client.ts`, the headers of `DAEMON_REQUEST_SHAPE` (also the
+default in `buildInit`, so venues, tools and channels inherit it), and fails on a redirect rather than following it: a common browser user agent plus its language header, because a client sending neither is what
 bot-detection fingerprints. The product name is never volunteered to a provider.
 
 `PLAIN_USER_AGENT_SOURCES` is the opt-out list: `fred` and its keyless sibling `fred-csv`. FRED's edge resets the connection on a

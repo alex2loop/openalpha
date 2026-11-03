@@ -289,7 +289,7 @@ function preservesCodeAndBounds(): void {
 }
 
 function resolvesDefaultSearch(): void {
-  const resolved = resolveWebSearch(undefined)
+  const resolved = resolveWebSearch(undefined, process.env)
   assert(resolved.provider === 'duckduckgo', 'zero-config search must resolve DuckDuckGo')
 }
 

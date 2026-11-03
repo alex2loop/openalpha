@@ -1,4 +1,5 @@
 import type { App, Bind, Extend, ServiceProvider, TaskPassListener } from '@/core/container'
+import type { RequestShape } from '@/core/http-client'
 import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
 import type { Hooks } from '@/engine/api'
@@ -57,7 +58,6 @@ import { buildRefreshCoordinator, resolveMarketsInUse } from '@/trading/wiring/c
 import { assertRegistryConsistency } from '@/trading/wiring/composition/registry-checks'
 import { createDomainServices } from '@/trading/wiring/composition/services'
 import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/source-registry'
-import { createTradingStores } from '@/trading/wiring/composition/stores'
 import { buildThemeService } from '@/trading/wiring/composition/themes'
 import { buildVenues } from '@/trading/wiring/composition/venues'
 import { createTradingHooks } from '@/trading/wiring/profile-context'
@@ -91,6 +91,8 @@ interface TradingRegistrationOptions {
   recipient(): DeliveryAddress | undefined
   readonly keys: KeyValidator
   readonly pluginModules: readonly LoadedSourceModule[]
+  /** How every source request presents itself: the daemon's or a page's. */
+  readonly requestShape: RequestShape
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider
@@ -137,23 +139,6 @@ interface Registries {
   /** Not a registry, but built here: the markets read rates through the same path the ledger and
    *  the portfolio do, so one outage cannot leave a book converted and a brief unconverted. */
   readonly fx: FxRates
-}
-
-/** Provider step 2: the stores need storage and the dialect, and nothing else needs them yet. */
-export function createTradingStoresProvider(config: TradingConfig): ServiceProvider {
-  return {
-    name: 'trading-stores',
-    register(bind: Bind): void {
-      bind('tradingStores', (app) =>
-        createTradingStores({
-          db: app.resolve('storage'),
-          dialect: app.resolve('dialect'),
-          logger: app.resolve('logger'),
-          maximumEntries: config.maximumLedgerEntries,
-        })
-      )
-    },
-  }
 }
 
 /** Provider step 9: after the registries it extends, because `extend` before the matching `bind`
@@ -377,17 +362,7 @@ function buildServices(
 function buildRegistries(app: App, options: BoundOptions): Registries {
   const logger = app.resolve('logger')
   const stores = app.resolve('tradingStores')
-  const sources = withNewsArchive(
-    createConfiguredSourceRegistry({
-      env: options.env,
-      logger,
-      pluginModules: options.pluginModules,
-      credentialEnv: options.tradingConfig.sourceCredentialEnv,
-      defaultVenues: options.tradingConfig.defaultVenues,
-      macroReads: stores.marketData,
-    }),
-    { archive: stores.newsArchive, logger }
-  )
+  const sources = buildSources(app, options)
   const stages = createStageRegistry()
   const markets = createMarketRegistry(lazyHeldInstruments(app, logger))
   const { registry: venues, listings } = buildVenues(options, { logger, book: stores.ledger })
@@ -417,6 +392,24 @@ function buildRegistries(app: App, options: BoundOptions): Registries {
   stages.close()
 
   return { markets, sources, stages, venues, fx }
+}
+
+function buildSources(app: App, options: BoundOptions): SourceRegistry {
+  const logger = app.resolve('logger')
+  const stores = app.resolve('tradingStores')
+
+  return withNewsArchive(
+    createConfiguredSourceRegistry({
+      env: options.env,
+      logger,
+      pluginModules: options.pluginModules,
+      credentialEnv: options.tradingConfig.sourceCredentialEnv,
+      defaultVenues: options.tradingConfig.defaultVenues,
+      macroReads: stores.marketData,
+      requestShape: options.requestShape,
+    }),
+    { archive: stores.newsArchive, logger }
+  )
 }
 
 /** The profile reader is the store, not the portfolio service: injecting the service here would

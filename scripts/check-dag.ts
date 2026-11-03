@@ -95,6 +95,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'types/storage',
   'types/usage',
   'config/load',
+  'config/operator-errors',
   'config/resolve',
   'config/validate',
   'http-client',

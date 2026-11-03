@@ -10,7 +10,7 @@ import type {
   ThemeStepFailure,
 } from '@/trading/features/themes/types'
 import { BRAND } from '@/core/brand'
-import { setEnvCommand } from '@/core/config/resolve'
+import { setEnvCommand } from '@/core/config/operator-errors'
 import { t } from '@/i18n'
 import { MAXIMUM_NEWS_ITEMS } from '@/trading/features/themes/evidence/news'
 import { renderTopSectors, renderTopStocks } from '@/trading/features/themes/render/opportunities'

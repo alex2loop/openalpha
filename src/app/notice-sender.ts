@@ -8,7 +8,7 @@ import { resolveDefaultRecipient } from '@/channels/api'
 import { readUpdateLine } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
-import { OperatorConfigError, setEnvCommand } from '@/core/config/resolve'
+import { OperatorConfigError, setEnvCommand } from '@/core/config/operator-errors'
 import { t } from '@/i18n'
 import {
   NOTICE_KINDS,

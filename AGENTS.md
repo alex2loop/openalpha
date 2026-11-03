@@ -178,7 +178,7 @@ A source feeds the evidence pipeline (stored, provenance-stamped, factor-scored,
 
 - Evidence-grade data is a first-party adapter (`sources/adapters/`) with parser, schema, rate limit and failover route. Data the agent reads but never derives from is an MCP tool the operator connects.
 - `SOURCE_ROUTES` owns which providers serve which scope, in order; `covers` answers only whether a request's shape is servable. A source may read `context.market` to stamp what it parsed; it never tests it to decide whether it serves and never constructs a `MarketRef` or `Region`.
-- Endpoints, rate limits and credential variable names are code-owned (`SourceFacts`): no config can redirect a request; credentials come only from the environment. News: `RSS_FEEDS` is the allowlist and the URL is the pinned target. Outbound requests use `BROWSER_HEADERS` (`core/http-client.ts`).
+- Endpoints, rate limits and credential variable names are code-owned (`SourceFacts`): no config can redirect a request; credentials come only from the environment. News: `RSS_FEEDS` is the allowlist and the URL is the pinned target. Daemon requests use `DAEMON_REQUEST_SHAPE` (`BROWSER_HEADERS`, no redirect followed; `core/http-client.ts`), handed to the transport in `SourceFacts.requestShape`.
 - Route order ranks quality: a provider that answers wrongly without failing sits behind one that does not (`vietcap-chart` leads `entrade` for both VN level kinds). An adapter refuses a level series holding a frozen bar rather than serving it short, and the market ages every reading.
 - A transport code never reaches the operator raw: `SourceSummary.lastFailureCode` is a `CaveatCode`, rendered by `/sources` as `trading.source.failure.<code>` via `renderProvidedValue`.
 - A refresh pass counts what the store wrote, not what it handed over: without `force` a held day is kept (`ON CONFLICT DO NOTHING`); `upsertSeriesPoint` says whether the row landed.
@@ -421,7 +421,7 @@ Leaks are production incidents and review-blocking. For every acquired resource 
 
 - Guard-clause early returns. No boolean params for branching (options object or two functions).
 - Throw only typed `Error` subclasses from the hierarchy (`RunHalted`, domain `*Error` carrying a `code`; `src/core/errors.ts`). Never raw `throw new Error()`. An empty catch needs a comment.
-- A setup failure the operator can fix (a config value, a path, a key, a cron field) throws `OperatorConfigError` with a keyed `errors.*` message, so it reads in `[locale]`; a schema failure goes through `toInvalidConfigError` (both via `@/core/config/resolve`). A bare `ConfigError` is internal: surfaces print a generic localized line and keep its English for `--verbose`.
+- A setup failure the operator can fix (a config value, a path, a key, a cron field) throws `OperatorConfigError` with a keyed `errors.*` message, so it reads in `[locale]`; a schema failure goes through `toInvalidConfigError` (both from `@/core/config/operator-errors`). A bare `ConfigError` is internal: surfaces print a generic localized line and keep its English for `--verbose`.
 
 ### Modules and exports
 
@@ -469,12 +469,12 @@ Cited by `scripts/check-imports.ts`.
 
 | File | Owns |
 |---|---|
-| `core/config/paths.ts` | Where configured data lives (pure sync string math): `expandHome`, `resolveDataDir`, `resolveConfigFile`, `resolveDataRelative`, `resolveSqliteDatabasePath`. Internal; use the `config/resolve` facade |
+| `core/config/paths.ts` | Where configured data lives (pure sync string math over a `ConfigHost`: `env` and `homeDir`, handed in by the entry, never read here): `expandHome`, `resolveDataDir`, `resolveConfigFile`, `resolveDataRelative`, `resolveSqliteDatabasePath`. Internal; use the `config/resolve` facade |
 | `core/logging/paths.ts` | Agent log locations and segment files: `isLogSegmentName`, `resolveAgentLogFile`, `resolveAgentLogsDir`; sole owner of `AGENT_LOG_SEGMENTS` / `AGENT_LOG_FILE_NAME`. Public |
 | `core/security/agent-directories.ts` | Creating private scratch/log dirs without a symlink race (`prepareAgentScratchDir`, `prepareAgentLogFile`; TOCTOU defense over `security/private-files` and `security/path-policy`). Public |
 
 - `expandHome` expands only `~` and `~/...`.
-- Configured paths use `resolveDataRelative(path, dataDir)` (`~/` to home, absolute as-is, relative joins `dataDir`); no bare `expandHome` in `resolve.ts` for `[log] file`.
+- Configured paths use `resolveDataRelative(path, { dataDir, homeDir })` (`~/` to home, absolute as-is, relative joins `dataDir`); no bare `expandHome` in `resolve.ts` for `[log] file`.
 - A path that may start with `~` (`--config ~/foo.toml`) runs `expandHome` before `isAbsolute` / `join(cwd, ...)`.
 
 ### File structure and declaration order

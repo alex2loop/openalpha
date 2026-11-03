@@ -1,3 +1,4 @@
+import type { DataLocation } from '@/core/config/paths'
 import type { RawConfig } from '@/core/config/schema'
 import { resolveDataRelative } from '@/core/config/paths'
 
@@ -17,12 +18,12 @@ export interface ResolvedLog {
 
 export function resolveLog(
   raw: RawConfig['log'],
-  dataDir: string,
+  location: DataLocation,
   logLevel?: LogLevel
 ): ResolvedLog {
   const log: { level: LogLevel; file: string; maxFileMb: number; maxFiles: number } = {
     level: logLevel ?? raw?.level ?? DEFAULT_LOG_LEVEL,
-    file: resolveDataRelative(raw?.file ?? DEFAULT_LOG_FILE, dataDir),
+    file: resolveDataRelative(raw?.file ?? DEFAULT_LOG_FILE, location),
     maxFileMb: raw?.max_file_mb ?? DEFAULT_LOG_MAX_FILE_MB,
     maxFiles: raw?.max_files ?? DEFAULT_LOG_MAX_FILES,
   }

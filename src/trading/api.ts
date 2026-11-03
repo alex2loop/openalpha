@@ -37,12 +37,10 @@ export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'
 export { PROFILE_CURRENCY_SQL } from '@/trading/features/profile/store'
 export { loadPluginSourceModules } from '@/trading/sources/plugin-module'
 export { HOST_SLOW_REQUEST_TIMEOUT_MS } from '@/trading/wiring/composition/host-seams'
-export {
-  createTradingRegistrationProvider,
-  createTradingStoresProvider,
-} from '@/trading/wiring/composition/registration'
+export { createTradingRegistrationProvider } from '@/trading/wiring/composition/registration'
 export { listSourceHosts } from '@/trading/wiring/composition/source-hosts'
 export { unavailableSources } from '@/trading/wiring/composition/source-registry'
+export { createTradingStoresProvider } from '@/trading/wiring/composition/stores'
 export { auditVenueKeys } from '@/trading/wiring/composition/venue-keys'
 export { resolveTradingConfig, TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
 export { HISTORY_FLOOR_DAYS } from '@/trading/wiring/config-defaults'

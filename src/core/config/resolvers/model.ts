@@ -1,3 +1,4 @@
+import type { ConfigHost } from '@/core/config/paths'
 import type { RawModel, RawModelDefaults } from '@/core/config/schema'
 import type { ProviderRouting, ReasoningMode } from '@/core/llm'
 import { MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
@@ -45,6 +46,7 @@ export interface ResolveModelInput {
   readonly entry: RawModel
   readonly defaults?: RawModelDefaults
   readonly path: readonly (string | number)[]
+  readonly env: ConfigHost['env']
   /** An unset key env var is not a config error; the chain registry skips a tier that needs it. */
   readonly apiKeyOptional?: true
   /** An unset key env var is recorded on the entry rather than thrown. */
@@ -66,7 +68,7 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
     )
   }
 
-  const envKey = apiKeyEnv === undefined ? undefined : process.env[apiKeyEnv]
+  const envKey = apiKeyEnv === undefined ? undefined : input.env[apiKeyEnv]
   const apiKey = envKey === '' ? undefined : envKey
   const missingEnv =
     apiKey === undefined ? missingEnvOf(input, `model ${provider}/${entry.model}`) : undefined

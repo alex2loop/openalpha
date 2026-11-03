@@ -1,6 +1,6 @@
 import type { ChannelId } from '@/core/channels'
 import { BRAND } from '@/core/brand'
-import { OperatorConfigError, setEnvCommand } from '@/core/config/resolve'
+import { OperatorConfigError, setEnvCommand } from '@/core/config/operator-errors'
 
 /** The channel a token error names: its config id and the name the operator knows it by. */
 interface TokenOwner {

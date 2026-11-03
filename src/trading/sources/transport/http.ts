@@ -318,10 +318,7 @@ function sendWithRetry(input: RetriedSend): Promise<string> {
 
       sent += 1
 
-      return send(input.target, request, {
-        ...input.prepared,
-        signal: budget,
-      })
+      return send(input, { ...input.prepared, signal: budget })
     },
     retryOptions(state, input)
   )
@@ -343,13 +340,14 @@ function abortedOutcome<T>(state: SourceHttpState, request: SourceRequest): Sour
 }
 
 function send(
-  target: RequestTarget,
-  request: SourceRequest,
+  input: RetriedSend,
   prepared: PreparedRequest & { readonly signal: AbortSignal }
 ): Promise<string> {
+  const { target, request } = input
   const { jsonBody } = request
 
   return httpRequestWithSignal({
+    shape: input.state.facts.requestShape,
     hosts: target.hosts,
     path: target.path,
     maxBytes: request.maxBytes ?? MAXIMUM_RESPONSE_BYTES,

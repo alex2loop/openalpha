@@ -4,7 +4,7 @@ import type { AgentProfile } from '@/engine/api'
 import type { HeartbeatTask } from '@/scheduler/api'
 import type { SocialAgentDirectory, SocialConfig, SocialNotifier } from '@/social/api'
 import { SOCIAL_CHANNEL } from '@/core/channels'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
 import { agentId } from '@/core/ids'
 import {

@@ -10,7 +10,7 @@ import type {
 } from '@/core/types/plugin'
 import { BRAND } from '@/core/brand'
 import { channelId } from '@/core/channels'
-import { OperatorConfigError, toInvalidConfigError } from '@/core/config/resolve'
+import { OperatorConfigError, toInvalidConfigError } from '@/core/config/operator-errors'
 import { agentId, isPathId } from '@/core/ids'
 import { isSlashCommandName } from '@/core/utils/text'
 

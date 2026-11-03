@@ -146,8 +146,9 @@ Các hàm phân tích dùng chung nằm ở `sources/rows/normalization.ts` (ki�
 | `feeds` | `RSS_FEEDS` trong `adapters/rss.ts` | một feed ngoài danh sách cho phép không bao giờ được tải |
 | `credentials` | phân giải từ môi trường lúc composition | bí mật thô không bao giờ vào một đối tượng cấu hình |
 | `plainUserAgentSources` | `PLAIN_USER_AGENT_SOURCES` trong `composition/source-facts.ts` | nhà cung cấp nào từ chối user agent trình duyệt - đã đo, không đoán |
+| `requestShape` | `DAEMON_REQUEST_SHAPE` trong `core/http-client.ts`, truyền vào lúc khởi động | các header mọi yêu cầu thêm vào, và có đi theo chuyển hướng hay không |
 
-Mọi yêu cầu đi ra đều mang `BROWSER_HEADERS` từ `core/http-client.ts` (cũng là mặc định trong `buildInit`, nên sàn, công cụ và kênh đều thừa hưởng): chuỗi user agent của một trình duyệt phổ biến cùng header ngôn ngữ đi kèm, vì client không khai cả hai chính là dấu hiệu để hệ thống chống bot nhận diện. Tên sản phẩm không bao giờ bị tự khai với nhà cung cấp.
+Mọi yêu cầu daemon gửi đi đều mang `BROWSER_HEADERS` từ `core/http-client.ts`, tức các header của `DAEMON_REQUEST_SHAPE` (cũng là mặc định trong `buildInit`, nên sàn, công cụ và kênh đều thừa hưởng), và coi một chuyển hướng là thất bại chứ không đi theo: chuỗi user agent của một trình duyệt phổ biến cùng header ngôn ngữ đi kèm, vì client không khai cả hai chính là dấu hiệu để hệ thống chống bot nhận diện. Tên sản phẩm không bao giờ bị tự khai với nhà cung cấp.
 
 `PLAIN_USER_AGENT_SOURCES` là danh sách chọn không dùng user agent trình duyệt: `fred` và `fred-csv` (bản không khóa của nó). Máy chủ biên của FRED ngắt kết nối khi gặp chuỗi trình duyệt, và điều này đến dưới dạng **không có mã HTTP nào cả**, nên cơ chế dự phòng không đọc được đó là một lần từ chối. Thêm một mã vào đó cũng phải qua phép đo hai chiều ấy: thăm dò trên mọi host nhà cung cấp (2026-09-21), chuỗi trình duyệt nhanh bằng hoặc hơn ở mọi nơi khác, còn `home.treasury.gov` làm chậm chuỗi trần tới 18,0 giây so với 1,7 giây - chắc chắn hết giờ với hạn chót của một lần thử.
 

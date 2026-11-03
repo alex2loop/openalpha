@@ -1,3 +1,4 @@
+import type { RequestShape } from '@/core/http-client'
 import type { Logger } from '@/core/logging/logger'
 import type { MessageKey } from '@/i18n'
 import type { DefaultVenues } from '@/trading/kernel/config'
@@ -9,7 +10,7 @@ import type { MacroGateOptions, MacroReadStore } from '@/trading/sources/macro-g
 import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
 import type { SourceRoutes } from '@/trading/sources/registry'
 import type { SourceFacts } from '@/trading/sources/types'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog, resolveCredential } from '@/core/security/credentials'
 import { sourceId } from '@/trading/kernel/source/source-id'
@@ -49,6 +50,7 @@ interface SourceRegistryOptions {
   readonly defaultVenues: DefaultVenues
   /** Where a macro source's last good read is kept, so a boot or refresh need not ask again. */
   readonly macroReads: MacroReadStore
+  readonly requestShape: RequestShape
 }
 
 /** Built and closed in one call. Adding a provider is one import plus one spread here — the
@@ -67,7 +69,7 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
   const credentialEnv = withCredentialAliases({ ...declaredEnv, ...options.credentialEnv })
   const credentials = resolveCredentials(options.env, credentialEnv)
   const registry = createSourceRegistry(mergedRoutes, options.logger)
-  const facts = toSourceFacts(plugin, credentials)
+  const facts = toSourceFacts(plugin, credentials, options.requestShape)
 
   assertEveryRoutedSourcePaced(facts.rateLimits)
 
@@ -104,7 +106,11 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
   return registry
 }
 
-function toSourceFacts(plugin: PluginFacts, credentials: SourceFacts['credentials']): SourceFacts {
+function toSourceFacts(
+  plugin: PluginFacts,
+  credentials: SourceFacts['credentials'],
+  requestShape: RequestShape
+): SourceFacts {
   return {
     endpoints: { ...SOURCE_ENDPOINTS, ...plugin.endpoints },
     rateLimits: { ...SOURCE_RATE_LIMITS, ...plugin.rateLimits },
@@ -112,6 +118,7 @@ function toSourceFacts(plugin: PluginFacts, credentials: SourceFacts['credential
     feeds: RSS_FEEDS,
     credentials,
     plainUserAgentSources: PLAIN_USER_AGENT_SOURCES,
+    requestShape,
   }
 }
 

@@ -1,3 +1,4 @@
+import type { Bind, ServiceProvider } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage } from '@/core/types/storage'
 import type { AlertStore } from '@/trading/features/alerts/store/alert'
@@ -18,6 +19,7 @@ import type { AgentFocusStore } from '@/trading/features/suggestion/store/agent-
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { FactorLogStore } from '@/trading/features/suggestion/track-record/factor-log-types'
 import type { ThemeStore } from '@/trading/features/themes/store'
+import type { TradingConfig } from '@/trading/kernel/config'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { createAlertStore } from '@/trading/features/alerts/store/alert'
 import { createBriefStore } from '@/trading/features/brief/store/brief'
@@ -61,6 +63,23 @@ export interface TradingStores {
   readonly themes: ThemeStore
 }
 
+/** Provider step 2: the stores need storage and the dialect, and nothing else needs them yet. */
+export function createTradingStoresProvider(config: TradingConfig): ServiceProvider {
+  return {
+    name: 'trading-stores',
+    register(bind: Bind): void {
+      bind('tradingStores', (app) =>
+        createTradingStores({
+          db: app.resolve('storage'),
+          dialect: app.resolve('dialect'),
+          logger: app.resolve('logger'),
+          maximumEntries: config.maximumLedgerEntries,
+        })
+      )
+    },
+  }
+}
+
 interface CreateTradingStoresOptions {
   readonly db: Storage
   readonly dialect: Dialect
@@ -68,7 +87,7 @@ interface CreateTradingStoresOptions {
   readonly maximumEntries: number
 }
 
-export const createTradingStores = (options: CreateTradingStoresOptions): TradingStores => {
+const createTradingStores = (options: CreateTradingStoresOptions): TradingStores => {
   const deps: StoreDeps = { db: options.db, dialect: options.dialect }
 
   return Object.freeze({

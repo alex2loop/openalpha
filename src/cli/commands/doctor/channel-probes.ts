@@ -11,7 +11,7 @@ import {
   zaloPersonalBlocker,
 } from '@/channels/api'
 import { BRAND } from '@/core/brand'
-import { setEnvCommand } from '@/core/config/resolve'
+import { setEnvCommand } from '@/core/config/operator-errors'
 import { type MessageKey, t } from '@/i18n'
 
 import type { DoctorEnvironment, DoctorProbe } from './types'

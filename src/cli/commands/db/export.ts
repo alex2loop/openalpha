@@ -1,5 +1,6 @@
 import type { FileHandle } from 'node:fs/promises'
 import { mkdir, mkdtemp, open, readdir, rename, rm } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
@@ -60,7 +61,7 @@ export const dbExportCommand: Command = createCommand({
       )
     }
 
-    const dir = resolve(expandHome(out))
+    const dir = resolve(expandHome(out, homedir()))
 
     if (!flagBool(args, 'force') && (await hasEntries(dir))) {
       return usage(app, t(locale, 'cli.dbExportDirNotEmpty', { dir }))

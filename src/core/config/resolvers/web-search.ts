@@ -1,3 +1,4 @@
+import type { ConfigHost } from '@/core/config/paths'
 import type { ExaSearchType, RawWebSearch, WEB_SEARCH_PROVIDERS } from '@/core/config/schema'
 import { MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
 import { MS_PER_MINUTE } from '@/core/utils/time'
@@ -60,12 +61,15 @@ export interface ResolvedWebSearch {
   readonly safeSearch?: 0 | 1 | 2
 }
 
-export function resolveWebSearch(raw: RawWebSearch | undefined): ResolvedWebSearch {
+export function resolveWebSearch(
+  raw: RawWebSearch | undefined,
+  env: ConfigHost['env']
+): ResolvedWebSearch {
   const provider = raw?.provider ?? 'duckduckgo'
-  const { apiKey, missingEnv } = readEnvKey(raw?.api_key_env)
+  const { apiKey, missingEnv } = readEnvKey(raw?.api_key_env, env)
   const baseUrl = raw?.base_url
   const costPerSearchUsd = raw?.cost_per_search_usd
-  const fallbackKey = readEnvKey(raw?.fallback_api_key_env)
+  const fallbackKey = readEnvKey(raw?.fallback_api_key_env, env)
 
   assertProviderRequirements({
     provider,
@@ -228,12 +232,12 @@ interface EnvKeyRead {
 
 /** A named variable that is empty reads as `missingEnv`, not as no key at all: the operator asked
  *  for a key and the environment did not supply it. */
-function readEnvKey(name: string | undefined): EnvKeyRead {
+function readEnvKey(name: string | undefined, env: ConfigHost['env']): EnvKeyRead {
   if (name === undefined) {
     return {}
   }
 
-  const value = process.env[name]?.trim()
+  const value = env[name]?.trim()
 
   return value === undefined || value === '' ? { missingEnv: name } : { apiKey: value }
 }

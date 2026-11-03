@@ -1,4 +1,5 @@
 import { stat } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
@@ -261,7 +262,7 @@ const dbBackupCommand = createCommand({
     }
 
     const explicitPath = flagString(args, 'path')
-    const explicit = explicitPath === undefined ? undefined : expandHome(explicitPath)
+    const explicit = explicitPath === undefined ? undefined : expandHome(explicitPath, homedir())
 
     if (explicit !== undefined && !flagBool(args, 'force') && (await Bun.file(explicit).exists())) {
       return usage(app, t(locale, 'cli.dbBackupTargetExists', { target: explicit }))
@@ -295,7 +296,7 @@ const dbRestoreCommand = createCommand({
     }
 
     const sourceFlag = flagString(args, 'source')
-    const source = sourceFlag === undefined ? undefined : expandHome(sourceFlag)
+    const source = sourceFlag === undefined ? undefined : expandHome(sourceFlag, homedir())
 
     if (source === undefined) {
       return usage(app, t(locale, 'cli.dbRestoreUsage'))

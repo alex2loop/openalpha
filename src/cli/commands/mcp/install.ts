@@ -1,4 +1,5 @@
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 import type { Command } from '@/cli/command'
@@ -50,7 +51,7 @@ async function installIntoHost(args: ParsedArgs, app: CliApp): Promise<number> {
     return 0
   }
 
-  const path = join(expandHome(skillDir), BRAND.name, SKILL_FILE_NAME)
+  const path = join(expandHome(skillDir, homedir()), BRAND.name, SKILL_FILE_NAME)
 
   try {
     const skill = buildHostSkill(await resolveMcpSurface(app).instructions())
@@ -75,7 +76,7 @@ async function installIntoHost(args: ParsedArgs, app: CliApp): Promise<number> {
 
 async function installAnalyst(app: CliApp, agentDir: string): Promise<number> {
   const locale = app.config.locale.language
-  const path = join(expandHome(agentDir), `${ANALYST_AGENT_NAME}${AGENT_FILE_EXTENSION}`)
+  const path = join(expandHome(agentDir, homedir()), `${ANALYST_AGENT_NAME}${AGENT_FILE_EXTENSION}`)
 
   app.out('')
   app.out(style.heading(t(locale, 'cli.mcpInstallAgentHeading')))

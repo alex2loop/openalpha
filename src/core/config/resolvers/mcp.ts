@@ -1,3 +1,4 @@
+import type { ConfigHost } from '@/core/config/paths'
 import type { RawMcp } from '@/core/config/schema'
 import { isEnvName, MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
 
@@ -24,6 +25,12 @@ export interface ResolvedMcp {
 
 interface ResolveMcpOptions {
   readonly deferMissingEnv: boolean
+  readonly env: ConfigHost['env']
+}
+
+interface PlaceholderSite {
+  readonly serverName: string
+  readonly path: readonly (string | number)[]
 }
 
 type RawMcpServer = NonNullable<RawMcp['servers']>[number]
@@ -47,7 +54,7 @@ export function resolveMcp(raw: RawMcp | undefined, options: ResolveMcpOptions):
       seen.add(server.name)
 
       try {
-        return [resolveServer(server, index)]
+        return [resolveServer(server, index, options.env)]
       } catch (err: unknown) {
         if (options.deferMissingEnv && err instanceof MissingEnvError) {
           unset.push(err)
@@ -77,26 +84,33 @@ function placeholderNamesOf(raw: RawMcp | undefined): readonly string[] {
   return [...new Set(names.filter(isEnvName))].sort()
 }
 
-function resolveServer(server: RawMcpServer, index: number): ResolvedMcpServer {
+function resolveServer(
+  server: RawMcpServer,
+  index: number,
+  env: ConfigHost['env']
+): ResolvedMcpServer {
+  const at = (...path: readonly (string | number)[]): PlaceholderSite => ({
+    serverName: server.name,
+    path: ['mcp', 'servers', index, ...path],
+  })
+
   if (server.transport === 'stdio') {
     return {
       name: server.name,
       transport: 'stdio',
-      command: interpolateEnv(server.command, server.name, ['mcp', 'servers', index, 'command']),
+      command: interpolateEnv(server.command, env, at('command')),
       args:
-        server.args?.map((arg, argIndex) =>
-          interpolateEnv(arg, server.name, ['mcp', 'servers', index, 'args', argIndex])
-        ) ?? [],
+        server.args?.map((arg, argIndex) => interpolateEnv(arg, env, at('args', argIndex))) ?? [],
       env: Object.fromEntries(
         Object.entries(server.env ?? {}).map(([key, value]) => [
           key,
-          interpolateEnv(value, server.name, ['mcp', 'servers', index, 'env', key]),
+          interpolateEnv(value, env, at('env', key)),
         ])
       ),
     }
   }
 
-  const url = interpolateEnv(server.url, server.name, ['mcp', 'servers', index, 'url'])
+  const url = interpolateEnv(server.url, env, at('url'))
   assertMcpUrl(url, server.name, ['mcp', 'servers', index, 'url'])
 
   return { name: server.name, transport: 'http', url }
@@ -130,11 +144,9 @@ function assertMcpUrl(raw: string, serverName: string, path: readonly (string | 
 
 // An unset or empty placeholder would reach the server as a late, silent auth failure. Only the
 // template is scanned: an env value may itself contain `${`.
-function interpolateEnv(
-  value: string,
-  serverName: string,
-  path: readonly (string | number)[]
-): string {
+function interpolateEnv(value: string, env: ConfigHost['env'], site: PlaceholderSite): string {
+  const { serverName, path } = site
+
   return value.replace(PLACEHOLDER_RE, (_match, name: string) => {
     if (!isEnvName(name)) {
       throw new OperatorConfigError(
@@ -147,7 +159,7 @@ function interpolateEnv(
       )
     }
 
-    const resolved = process.env[name]
+    const resolved = env[name]
 
     if (resolved === undefined || resolved === '') {
       throw new MissingEnvError(name, `mcp server "${serverName}"`, {

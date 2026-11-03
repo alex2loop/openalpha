@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 
 import { z } from 'zod'
 
 import type { ChannelId } from '@/core/channels'
-import { expandHome, toInvalidConfigError } from '@/core/config/resolve'
+import { toInvalidConfigError } from '@/core/config/operator-errors'
+import { expandHome } from '@/core/config/resolve'
 import { MS_PER_MINUTE } from '@/core/utils/time'
 
 const CHANNELS_CONFIG_SECTION = 'channels'
@@ -169,7 +171,7 @@ export function resolveSecret(
 function readSecretFile(path: string): string {
   try {
     // Boot-time only: channels are constructed during startup, never per message.
-    return readFileSync(expandHome(path), 'utf8').trim()
+    return readFileSync(expandHome(path, homedir()), 'utf8').trim()
   } catch {
     // Unreadable secret file is indistinguishable from an unset one here; `doctor` diagnoses it.
     return ''

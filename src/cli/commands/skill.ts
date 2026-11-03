@@ -1,4 +1,5 @@
 import { open, readFile, stat, unlink } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import { z } from 'zod'
@@ -14,7 +15,8 @@ import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { flagBool, flagString } from '@/cli/parsing/args'
 import { resolveSkillCatalog } from '@/cli/services'
 import { fail, hint, style, success } from '@/cli/ui/colors'
-import { expandHome, OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
+import { expandHome } from '@/core/config/resolve'
 import { ConfigError, isAbortError, isErrno, ToolError } from '@/core/errors'
 import { readCappedText } from '@/core/http-client'
 import { createPrivateFileAtomic, replacePrivateFileAtomic } from '@/core/security/private-files'
@@ -372,7 +374,7 @@ async function resolveSource(source: string, signal: AbortSignal): Promise<Fetch
     return { text: await fetchSkillText(source, signal), source, trust: 'community' }
   }
 
-  const localPath = expandHome(source)
+  const localPath = expandHome(source, homedir())
   const path = localPath.endsWith(SKILL_FILE) ? localPath : join(localPath, SKILL_FILE)
   const text = await readLocalSkillText(path, source)
 

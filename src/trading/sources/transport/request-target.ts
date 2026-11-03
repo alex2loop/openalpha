@@ -1,7 +1,7 @@
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { SourceFacts, SourceRequest } from '@/trading/sources/types'
-import { OperatorConfigError } from '@/core/config/resolve'
-import { BROWSER_HEADERS, USER_AGENT } from '@/core/http-client'
+import { OperatorConfigError } from '@/core/config/operator-errors'
+import { USER_AGENT } from '@/core/http-client'
 
 const TRAILING_SLASH_RE = /\/$/
 
@@ -128,5 +128,7 @@ export function prepareOutbound(
 }
 
 function identityFor(facts: SourceFacts, id: SourceId): Readonly<Record<string, string>> {
-  return facts.plainUserAgentSources.has(id) ? { 'user-agent': USER_AGENT } : BROWSER_HEADERS
+  return facts.plainUserAgentSources.has(id)
+    ? { 'user-agent': USER_AGENT }
+    : facts.requestShape.headers
 }

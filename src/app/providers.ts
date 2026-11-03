@@ -29,7 +29,7 @@ import { createOperatorNotices, createReleaseUpdates } from '@/app/update/releas
 import { createHealthSummary, createSpendReader } from '@/app/views'
 import { channelsProvider } from '@/channels/api'
 import { createCommandsProvider, createSessionModelSelection } from '@/commands/api'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { addWorkflow, createSkillCatalog, engineProvider, resolveSkillsDir } from '@/engine/api'
 import { bindLocale } from '@/i18n'
 import { memoryProvider } from '@/memory/api'

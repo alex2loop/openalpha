@@ -1,3 +1,4 @@
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { RuntimeAssets } from '@/app/providers'
@@ -26,9 +27,11 @@ import { assertSocialToolRules, createSocialProvider } from '@/app/social'
 import { hydrateStartupState, migrateStartupSchema } from '@/app/startup-state'
 import { BRAND } from '@/core/brand'
 import { loadConfig } from '@/core/config/load'
-import { OperatorConfigError, resolveConfig } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
+import { resolveConfig } from '@/core/config/resolve'
 import { createApp } from '@/core/container'
 import { ConfigError } from '@/core/errors'
+import { DAEMON_REQUEST_SHAPE } from '@/core/http-client'
 import { createLoggerResource } from '@/core/logging/logger'
 import { formatErrForLog } from '@/core/security/credentials'
 import { ensurePrivateDirectory } from '@/core/security/private-files'
@@ -228,6 +231,7 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
       recipient: () => input.delivery.defaultRecipient(),
       keys: commandKeyValidator,
       pluginModules: input.assets.pluginSourceModules,
+      requestShape: DAEMON_REQUEST_SHAPE,
     }),
   })
 }
@@ -280,6 +284,8 @@ async function resolveBootConfig(options: BootOptions): Promise<ResolvedBootConf
     ...(options.dataDir === undefined ? {} : { dataDir: options.dataDir }),
   })
   const config = resolveConfig(raw, {
+    env: options.env,
+    homeDir: homedir(),
     ...(options.dataDir === undefined ? {} : { dataDir: options.dataDir }),
     ...(options.logLevel === undefined ? {} : { logLevel: options.logLevel }),
     ...(options.modelSource === undefined ? {} : { modelSource: options.modelSource }),

@@ -1,9 +1,7 @@
 import type { ConfigResolveOptions, ResolvedConfig } from '@/core/config/resolve'
-import {
-  combineInvalidConfigErrors,
-  InvalidConfigError,
-  resolveConfig,
-} from '@/core/config/resolve'
+import { readConfigHost } from '@/core/config/load'
+import { combineInvalidConfigErrors, InvalidConfigError } from '@/core/config/operator-errors'
+import { resolveConfig } from '@/core/config/resolve'
 import { parseRawConfig } from '@/core/config/schema'
 import { ConfigError } from '@/core/errors'
 
@@ -27,7 +25,7 @@ export function validateConfigTree(
   options?: Pick<ConfigResolveOptions, 'deferMissingKeys'>
 ): ConfigCheck {
   try {
-    assertResolved(resolveConfig(parseRawConfig(tree), options))
+    assertResolved(resolveConfig(parseRawConfig(tree), { ...options, ...readConfigHost() }))
 
     return { ok: true }
   } catch (err: unknown) {
@@ -79,7 +77,7 @@ function extensionConfigErrors(
   refusals: (config: ResolvedConfig) => readonly unknown[]
 ): readonly unknown[] {
   try {
-    return refusals(resolveConfig(parseRawConfig(extensions)))
+    return refusals(resolveConfig(parseRawConfig(extensions), readConfigHost()))
   } catch (err: unknown) {
     return [err]
   }
