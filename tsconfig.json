@@ -6,5 +6,5 @@
     }
   },
   "include": ["src"],
-  "exclude": ["src/web"]
+  "exclude": ["src/web", "src/app/browser", "src/persistence/engines/sqlite-wasm.ts"]
 }

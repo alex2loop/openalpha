@@ -37,7 +37,10 @@ const CANDIDATE_SUFFIXES: readonly string[] = [
 ]
 
 // A file outside the import graph on purpose, with the reason it stays. `path`.
-const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([])
+const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([
+  // The browser worker root: bundled by the browser build, imported by no daemon entry.
+  'src/app/browser/worker.ts',
+])
 
 const FROM_RE = /\bfrom\s*['"]([^'"]+)['"]/g
 const DYNAMIC_RE = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g

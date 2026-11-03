@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "WebWorker"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/app/browser", "src/persistence/engines/sqlite-wasm.ts"]
+}
