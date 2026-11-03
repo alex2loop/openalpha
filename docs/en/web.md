@@ -38,7 +38,7 @@ A feature that needs a key you have not added does not run until you paste that 
 
 ## Web against installed
 
-Each row below is one job. "Why the web version stops short" gives the reason for each gap. The page shows the same table under "Web and installed versions", and the "Installed version" column is the one-line hint it shows where the web version stops.
+Each row below is one job. "Why the web version stops short" gives the reason for each gap. The page shows the same rows under "Web and installed versions", each reason as a line under its row, and the "Installed version" column is the one-line hint it shows where the web version stops.
 
 | Job | Web version | Installed version | Why the web version stops short |
 |---|---|---|---|

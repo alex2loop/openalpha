@@ -38,7 +38,7 @@ Mục nào cần key mà bạn chưa thêm thì chưa chạy được, cho tới
 
 ## Bản web và bản cài
 
-Mỗi hàng dưới đây là một việc. Cột "Vì sao bản web chưa làm hết" nêu lý do cho từng chỗ thiếu. Trang hiện cùng bảng này ở mục "Bản web và bản cài", và cột "Bản cài" cũng là dòng gợi ý ngắn mà trang hiện đúng chỗ bản web dừng.
+Mỗi hàng dưới đây là một việc. Cột "Vì sao bản web chưa làm hết" nêu lý do cho từng chỗ thiếu. Trang hiện cùng các hàng này ở mục "Bản web và bản cài", lý do nằm thành một dòng dưới mỗi hàng, và cột "Bản cài" cũng là dòng gợi ý ngắn mà trang hiện đúng chỗ bản web dừng.
 
 | Việc | Bản web | Bản cài | Vì sao bản web chưa làm hết |
 |---|---|---|---|
