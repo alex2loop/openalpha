@@ -12,6 +12,7 @@ export type {
 } from '@/core/types/session'
 export type { Dialect, DialectName, FtsSearch, Storage, Transaction } from '@/core/types/storage'
 export type { OpenedPersistence } from '@/persistence/connection'
+export type { DatabaseFiles } from '@/persistence/engines/sqlite-wasm-files'
 export type { ConfigOverrideStore } from '@/persistence/stores/config-override'
 export type {
   BrowserSessionRow,

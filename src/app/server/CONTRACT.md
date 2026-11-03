@@ -32,12 +32,17 @@ this document — neither imports the other.
   runs under whatever `authorize` its surface injects, and a runner writes frames to a `FrameSink`.
   Everything in this section (bind, Host, peer, token, cookie, the socket caps) is the daemon's own
   surface; a browser worker serves the same groups to its page with one caller and no socket. Its
-  messages are `WorkerCall` (`start`, `keys`, `locale`, `http`, `frame`, `abort`) and `WorkerReply`
-  (`ready`, `refused`, `http`, `frame`) in `wire/worker.ts`: `http` carries a request and answers with
+  messages are `WorkerCall` (`start`, `keys`, `locale`, `http`, `frame`, `abort`, `export-db`, `open-db`) and `WorkerReply`
+  (`ready`, `refused`, `http`, `frame`, `db-exported`, `db-opened`) in `wire/worker.ts`: `http` carries a request and answers with
   the status and body the route gave, `frame` carries the `ClientFrame` and `ServerFrame` of section
   5, and a `frame` that is not a command (a line not starting with `/`) is answered with an error
   frame. `ready` carries the capabilities of the edition; `refused` says why the database cannot be
-  served (`locked`, `taken-over`, `unsupported`, `newer-schema`, `storage-full`).
+  served (`locked`, `taken-over`, `unsupported`, `newer-schema`, `storage-full`). `export-db` answers
+  with the database as one SQLite file; `open-db` checks a file the visitor picked in a scratch
+  database (SQLite header, every migration id declared by this build, no row an installed version
+  wrote in `suggestions`, `alerts`, `resting_exits` or `order_intents`), then replaces the database
+  and starts again, and answers why when it did not. Both run on the lifecycle queue, so neither
+  meets a start or a restart half-done.
 - **Bind:** `127.0.0.1` only (loopback). The `/v1` HTTP routes also verify the request **peer** is
   loopback (defense in depth); `GET /`, its chunks and the `/v1/ws` handshake are answered before
   that check, so the bind alone guards them (the handshake adds the Origin allow-list below). A

@@ -1,4 +1,5 @@
 import { ApiFailure } from '@/web/api/client'
+import { FilePanel } from '@/web/edition/file-panel'
 import { wipeEverything } from '@/web/edition/wipe'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -10,6 +11,7 @@ import { ActionRow } from '@/web/ui/settings/row'
 export function DataPanel() {
   return (
     <>
+      <FilePanel />
       <ActionRow
         title={tr('ui.office.edition.data.where')}
         note={tr('ui.office.edition.data.whereBody')}

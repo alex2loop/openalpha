@@ -2,6 +2,7 @@ import { computed, effect, untracked } from '@preact/signals'
 
 import { bootOffice, canRunPage, renderPage } from '@/web/boot'
 import { openConsentDialog } from '@/web/edition/consent-dialog'
+import { startFileSave } from '@/web/edition/file-save'
 import { openConnectFailed } from '@/web/edition/keys-panel'
 import { holdKey, workerKeys } from '@/web/edition/keys-store'
 import { type ConnectResult, finishOpenRouterConnect } from '@/web/edition/openrouter-oauth'
@@ -49,8 +50,10 @@ if (canRunPage()) {
     connect?.then(showConnect).catch(() => undefined)
 
     const stopOffice = untracked(() => bootOffice({}))
+    const stopSave = startFileSave()
 
     return () => {
+      stopSave()
       stopOffice()
       state.value = undefined
     }

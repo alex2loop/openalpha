@@ -1,9 +1,12 @@
-import type { BindingSpec, Database, SAHPoolUtil, Sqlite3Static } from '@sqlite.org/sqlite-wasm'
+import type { Database, SAHPoolUtil, Sqlite3Static } from '@sqlite.org/sqlite-wasm'
 
 import type { Logger } from '@/core/logging/logger'
 import type { Storage, Transaction } from '@/core/types/storage'
+import type { DatabaseFiles } from '@/persistence/engines/sqlite-wasm-files'
 import { StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { createDatabaseFiles } from '@/persistence/engines/sqlite-wasm-files'
+import { createTransaction } from '@/persistence/engines/sqlite-wasm-sql'
 import { toStorageError } from '@/persistence/errors'
 
 export const DB_LOCK_NAME = 'openalpha-db'
@@ -27,7 +30,12 @@ export interface SqliteWasmOptions {
 }
 
 export type OpenSqliteWasmResult =
-  | { readonly kind: 'opened'; readonly storage: Storage; readonly lost: Promise<void> }
+  | {
+      readonly kind: 'opened'
+      readonly storage: Storage
+      readonly files: DatabaseFiles
+      readonly lost: Promise<void>
+    }
   | { readonly kind: 'locked' }
   | { readonly kind: 'unsupported' }
 
@@ -38,8 +46,11 @@ interface LockHold {
 }
 
 interface Engine {
-  readonly db: Database
+  // Replaced when a file the visitor picked is swapped in.
+  db: Database
   readonly pool: SAHPoolUtil
+  readonly sqlite3: Sqlite3Static
+  readonly name: string
   readonly hold: LockHold
   readonly logger: Logger
 }
@@ -64,15 +75,20 @@ export async function openSqliteWasm(options: SqliteWasmOptions): Promise<OpenSq
   }
 
   try {
-    const { db, pool } = await openDatabase(options)
-    const storage = createStorage({ db, pool, hold, logger: options.logger })
+    const opened = await openDatabase(options)
+    const { storage, files } = createStorage({
+      ...opened,
+      name: options.name,
+      hold,
+      logger: options.logger,
+    })
     const lost = hold.stolen.then(() => {
       options.logger.warn('sqlite_wasm.lock_lost', { name: options.name })
 
       return storage.close()
     })
 
-    return { kind: 'opened', storage, lost }
+    return { kind: 'opened', storage, files, lost }
   } catch (err: unknown) {
     hold.release()
 
@@ -117,25 +133,35 @@ function acquireLock(locks: BrowserLockManager, steal: boolean): Promise<LockHol
 
 async function openDatabase(
   options: SqliteWasmOptions
-): Promise<{ readonly db: Database; readonly pool: SAHPoolUtil }> {
+): Promise<{ readonly db: Database; readonly pool: SAHPoolUtil; readonly sqlite3: Sqlite3Static }> {
   const sqlite3 = await loadSqlite(options.wasmUrl)
   const pool = await installPool(sqlite3)
+
+  try {
+    return { db: openPoolDatabase(pool, options.name), pool, sqlite3 }
+  } catch (err: unknown) {
+    quietly(() => pool.pauseVfs())
+
+    throw err
+  }
+}
+
+function openPoolDatabase(pool: SAHPoolUtil, name: string): Database {
   let db: Database | undefined
 
   try {
     // The VFS takes absolute paths only.
-    db = new pool.OpfsSAHPoolDb(`/${options.name}`)
+    db = new pool.OpfsSAHPoolDb(`/${name}`)
 
     for (const pragma of PRAGMAS) {
       db.exec(pragma)
     }
 
-    return { db, pool }
+    return db
   } catch (err: unknown) {
     quietly(() => db?.close())
-    quietly(() => pool.pauseVfs())
 
-    throw toStorageError(err, `sqlite wasm open failed: ${options.name}`)
+    throw toStorageError(err, `sqlite wasm open failed: ${name}`)
   }
 }
 
@@ -171,8 +197,11 @@ function quietly(release: () => void): void {
   }
 }
 
-function createStorage(engine: Engine): Storage {
-  const tx = createTransaction(engine.db)
+function createStorage(engine: Engine): {
+  readonly storage: Storage
+  readonly files: DatabaseFiles
+} {
+  const tx = createTransaction(() => engine.db)
   // One connection, and BEGIN IMMEDIATE is per-connection: a bare query/execute run while a
   // transaction is mid-flight would land inside it. Every op chains on this tail. The tail is
   // replaced, never appended.
@@ -197,7 +226,7 @@ function createStorage(engine: Engine): Storage {
     return next.catch((err: unknown) => Promise.reject(toStorageError(err, boundary)))
   }
 
-  return {
+  const storage: Storage = {
     query<T>(sql: string, params?: readonly unknown[]) {
       return enqueue(() => tx.query<T>(sql, params), 'sqlite query failed')
     },
@@ -215,6 +244,15 @@ function createStorage(engine: Engine): Storage {
       return closeTask
     },
   }
+  const files = createDatabaseFiles({
+    engine,
+    path: `/${engine.name}`,
+    reopen: () => openPoolDatabase(engine.pool, engine.name),
+    run: (operation) => enqueue(operation, 'sqlite file operation failed'),
+    logger: engine.logger,
+  })
+
+  return { storage, files }
 }
 
 // Handles first, lock last: the next holder must find the files free the moment it is granted.
@@ -248,7 +286,7 @@ async function runTransaction<T>(
   }
 
   try {
-    const result = await fn(createTransaction(db))
+    const result = await fn(createTransaction(() => db))
     db.exec('COMMIT')
 
     return result
@@ -269,29 +307,4 @@ function rollback(engine: Engine, seal: () => void): void {
     quietly(() => engine.db.close())
     seal()
   }
-}
-
-function createTransaction(db: Database): Transaction {
-  return {
-    query: async <T>(sql: string, params: readonly unknown[] = []) =>
-      // why-safe: `T` is the caller's claim about its own SQL; sqlite returns untyped rows either way.
-      db.exec({
-        sql,
-        rowMode: 'object',
-        returnValue: 'resultRows',
-        ...bindingOf(params),
-      }) as unknown as T[],
-    execute: async (sql: string, params: readonly unknown[] = []) => {
-      db.exec({ sql, ...bindingOf(params) })
-
-      return { changes: db.changes() }
-    },
-  }
-}
-
-// An empty binding is left out so a multi-statement script (DDL) runs as one.
-function bindingOf(params: readonly unknown[]): { readonly bind?: BindingSpec } {
-  // why-safe: the Storage contract carries `unknown` params by design; sqlite rejects at runtime
-  // any value it cannot bind.
-  return params.length === 0 ? {} : { bind: params as BindingSpec }
 }
