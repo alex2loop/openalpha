@@ -108,7 +108,7 @@ async function runAnalysis(
   budget.charge(read.evidence.headlinesRead.costUsd)
 
   const context: RoleCallContext = {
-    deps: deps.debate,
+    deps: { ...deps.debate, statesRefusals: true },
     request,
     market,
     instrumentKind: subject.instrumentKind,

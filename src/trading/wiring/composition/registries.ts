@@ -113,10 +113,10 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
 /** What an edition changes in what every market is handed; absent is the installed version. */
 function editionMarketDeps(
   edition: TradingEdition | undefined
-): Pick<MarketDeps, 'pagedBackfill' | 'viewedInstruments' | 'omitBriefActions'> {
+): Pick<MarketDeps, 'pagedBackfill' | 'omitRefreshKinds' | 'omitBriefActions'> {
   return {
     ...(edition?.pagedBackfill === true ? { pagedBackfill: true as const } : {}),
-    ...(edition?.viewed === undefined ? {} : { viewedInstruments: edition.viewed }),
+    ...(edition?.refreshOmits === undefined ? {} : { omitRefreshKinds: edition.refreshOmits }),
     ...(edition?.briefActionOmits === undefined
       ? {}
       : { omitBriefActions: edition.briefActionOmits }),

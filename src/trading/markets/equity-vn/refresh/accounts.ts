@@ -25,7 +25,7 @@ import {
   VN_SOURCE_CONCURRENCY,
 } from '@/trading/markets/equity-vn/policy'
 import { fillCashFlow } from '@/trading/markets/equity-vn/refresh/cash-flow-fill'
-import { followedTickersIn, heldTickersIn } from '@/trading/markets/held-tickers'
+import { heldTickersIn } from '@/trading/markets/held-tickers'
 import {
   buildRejectedOutcome,
   buildSkippedResult,
@@ -92,29 +92,14 @@ export async function refreshAccounts(
   })
 }
 
-/** The screened board and the book, or, where statements are one request per name and the whole
- *  board is too many, the book, the watchlist and the names the visitor looked at. */
+/** The screened board, where every buy comes from, and the book, whose long-horizon sale reads the
+ *  score. */
 async function wantedNames(
   scope: EvidenceScope,
   crossSection: VnMacroCrossSection
 ): Promise<ReadonlySet<string>> {
   const { request, deps } = scope
   const read = { now: request.now, signal: request.signal }
-
-  if (deps.viewedInstruments !== undefined) {
-    const [{ followed }, viewed] = await Promise.all([
-      followedTickersIn(deps, VN_MARKET_REF, read),
-      deps.viewedInstruments(read),
-    ])
-
-    return new Set([
-      ...followed,
-      ...viewed
-        .filter((instrument) => instrument.market === VN_MARKET_REF)
-        .map((instrument) => instrument.ticker),
-    ])
-  }
-
   const [cross, held] = await Promise.all([
     crossSection.get(resolveSettledDay(scope.calendar, request.now), request.signal),
     heldTickersIn(deps, VN_MARKET_REF, read),

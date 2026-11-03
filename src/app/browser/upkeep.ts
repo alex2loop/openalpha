@@ -1,6 +1,5 @@
 import type { App, TaskPass, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
-import { requestPersistence } from '@/app/browser/persistence'
 import { refreshMarketsInUse } from '@/app/market-sweep'
 import {
   RETENTION_INTERVAL_MS,
@@ -40,8 +39,8 @@ interface UpkeepContext {
  *  cuts a long refresh short first). */
 export function startBrowserUpkeep(app: App, logger: Logger): () => Promise<void> {
   const context: UpkeepContext = { app, logger, storageFull: false }
-  const persistence = requestPersistence(app, logger)
-  const stopPasses = createPeriodicPass({
+
+  return createPeriodicPass({
     everyMs: RETENTION_INTERVAL_MS,
     pass: () => runUpkeepPass(context),
     onError: (err) => {
@@ -51,11 +50,6 @@ export function startBrowserUpkeep(app: App, logger: Logger): () => Promise<void
       }
     },
   })
-
-  return async () => {
-    await stopPasses()
-    await persistence
-  }
 }
 
 async function runUpkeepPass(context: UpkeepContext): Promise<void> {
