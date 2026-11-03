@@ -24,4 +24,4 @@ export {
   validateJobPrompt,
 } from '@/tools/schedule/validate'
 export { createWebRetrievalService } from '@/tools/web/retrieval-service'
-export { listSearchHosts } from '@/tools/web/search/hosts'
+export { listSearchHosts, listSearchProviderHosts } from '@/tools/web/search/hosts'

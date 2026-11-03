@@ -1,6 +1,6 @@
 import { ApiFailure } from '@/web/api/client'
-import { StorageStatus } from '@/web/edition/storage-status'
 import { FilePanel } from '@/web/edition/file-panel'
+import { StorageStatus } from '@/web/edition/storage-status'
 import { wipeEverything } from '@/web/edition/wipe'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'

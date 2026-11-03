@@ -1,0 +1,15 @@
+# The homepage: the static `site/` folder, no Worker script, no logs kept on the operator's side.
+# Build first: bun run build:site --app-url=<web app address> (add --noindex for staging).
+name = "openalpha-site-staging"
+compatibility_date = "2026-11-03"
+
+# Staging answers on workers.dev. For the real domain: drop the next two lines, rename the Worker,
+# and add `routes = [{ pattern = "<domain>", custom_domain = true }, { pattern = "www.<domain>", custom_domain = true }]`.
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "../../dist/site"
+
+[observability]
+enabled = false

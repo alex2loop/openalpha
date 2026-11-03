@@ -22,6 +22,11 @@ const SEARCH_KEY_VARIABLES: Readonly<Record<string, string>> = Object.freeze({
   deepseek: 'DEEPSEEK_SEARCH_API_KEY',
 })
 
+/** The hosted search backends a page can use. */
+export const BROWSER_SEARCH_PROVIDERS: readonly string[] = Object.freeze(
+  Object.keys(SEARCH_KEY_VARIABLES)
+)
+
 type KeyEnv = Readonly<Record<string, string | undefined>>
 type BrowserAiProvider = (typeof BROWSER_AI_PROVIDERS)[number]
 
