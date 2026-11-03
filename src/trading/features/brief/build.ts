@@ -8,7 +8,12 @@ import type { EnsureMarketData } from '@/trading/features/market-data/ops/refres
 import type { ProfileStore } from '@/trading/features/profile/store'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { InstrumentRef, Region, TradingDay } from '@/trading/kernel/instrument'
+import type {
+  InstrumentRef,
+  PortfolioSegment,
+  Region,
+  TradingDay,
+} from '@/trading/kernel/instrument'
 import type { MarketBriefRequest } from '@/trading/kernel/market/market-capability'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
@@ -23,6 +28,7 @@ import { buildBriefSnapshotId } from '@/trading/features/brief/types'
 import { buildEnsureOptions } from '@/trading/features/market-data/market-data-run'
 import { profileRevisionOf } from '@/trading/features/profile/store'
 import { ticker } from '@/trading/kernel/instrument'
+import { disabledSegments } from '@/trading/kernel/operator/profile'
 import { isDeliverable } from '@/trading/markets/brief-deliverability'
 
 const BRIEF_WATCHLIST_LIMIT_PER_SCOPE = 20
@@ -41,9 +47,16 @@ interface ComposedBrief {
   readonly profileRevision: string
 }
 
+/** The resolved profile, which switches a market newer than the saved row off. */
+interface HomeProfile {
+  get(options: { readonly signal: AbortSignal }): Promise<UserProfile>
+  homeSegment(): PortfolioSegment | undefined
+}
+
 export interface BriefBuildDeps {
   readonly store: BriefStore
   readonly profiles: ProfileStore
+  readonly profile: HomeProfile
   readonly config: TradingConfig
   readonly ensure: EnsureMarketData
   readonly logger: Logger
@@ -154,7 +167,10 @@ export async function findOrBuildBrief(
 
   input.progress?.('trading.progress.brief.data')
 
-  const caveats = await deps.ensure(buildEnsureOptions(input.market.manifest.id, input))
+  const caveats = [
+    ...(await deps.ensure(buildEnsureOptions(input.market.manifest.id, input))),
+    ...(await homeOffCaveats(deps, input.signal)),
+  ]
 
   // Read once: the request wants the day before for its deltas, and the story step wants it for
   // the stories still open. A same-day rebuild reads the same row, so it rebuilds the same result.
@@ -173,6 +189,24 @@ export async function findOrBuildBrief(
     scorecardShownThisMonth: request.scorecardShownThisMonth,
     profileRevision: await profileRevisionOf(profile),
   })
+}
+
+/** A profile saved before the home moved can keep the new home market switched off. */
+async function homeOffCaveats(
+  deps: BriefBuildDeps,
+  signal: AbortSignal
+): Promise<readonly Caveat[]> {
+  const segment = deps.profile.homeSegment()
+
+  if (segment === undefined) {
+    return []
+  }
+
+  const { caps } = await deps.profile.get({ signal })
+
+  return disabledSegments(caps).has(segment)
+    ? [{ code: 'brief.home-segment-off', detail: { segment } }]
+    : []
 }
 
 interface StoryContext {

@@ -54,7 +54,14 @@ const ACTIONS: readonly string[] = Object.freeze([
 
 type Profiles = Pick<
   ProfileService,
-  'get' | 'update' | 'reset' | 'segments' | 'heldSegments' | 'updateSegment' | 'updateSegmentPolicy'
+  | 'get'
+  | 'update'
+  | 'reset'
+  | 'segments'
+  | 'heldSegments'
+  | 'homeSegment'
+  | 'updateSegment'
+  | 'updateSegmentPolicy'
 >
 
 interface ProfileCommandDeps {
@@ -286,10 +293,9 @@ function buildUsageValues(profiles: Profiles): CommandMessageValues {
 function shown(deps: ProfileCommandDeps, ctx: SlashContext, profile: UserProfile): SlashResult {
   return {
     kind: 'text',
-    text: renderProfileText(
-      ctx.locale,
-      profile,
-      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
-    ),
+    text: renderProfileText(ctx.locale, profile, {
+      context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
+      homeSegment: deps.profiles.homeSegment(),
+    }),
   }
 }

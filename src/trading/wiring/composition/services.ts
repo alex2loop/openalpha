@@ -360,6 +360,7 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
     deliveries: deps.stores.briefDelivery,
     defaultLocale: deps.defaultLocale,
     profiles: deps.stores.profile,
+    profile: profiles,
     markets: deps.markets,
     ensure,
     sender: deps.sender,

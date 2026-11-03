@@ -42,14 +42,19 @@ const PROFILE_COLUMNS: readonly SegmentColumn[] = Object.freeze([
   { labelKey: 'trading.render.segment.columnEtfCore', align: 'right' },
 ])
 
+interface ProfileTextOptions {
+  readonly context: RenderContext
+  readonly homeSegment?: PortfolioSegment | undefined
+}
+
 /** The allocation policy and the caps are what `/rebalance` measures every gap against, so a profile
  *  that names only the labels leaves the reader unable to check the report. */
 export function renderProfileText(
   locale: Locale,
   profile: UserProfile,
-  context: RenderContext
+  options: ProfileTextOptions
 ): string {
-  const disabled = disabledSegments(profile.caps)
+  const { context } = options
 
   return joinSections([
     [
@@ -89,9 +94,41 @@ export function renderProfileText(
         1
       ),
     ],
-    renderSegmentBlock(locale, segmentBlockOf(locale, profile, disabled), context),
+    ...renderAllocation(locale, profile, options),
     [`${INDENT[1]}${t(locale, 'trading.render.profile.next')}`],
   ])
+}
+
+function renderAllocation(
+  locale: Locale,
+  profile: UserProfile,
+  options: ProfileTextOptions
+): readonly (readonly string[])[] {
+  const disabled = disabledSegments(profile.caps)
+
+  return [
+    renderSegmentBlock(locale, segmentBlockOf(locale, profile, disabled), options.context),
+    renderHomeOff(locale, options.homeSegment, disabled),
+  ]
+}
+
+/** A home market switched off leaves the brief with no calls on its own board, so the profile says
+ *  so and names the command, rather than listing it among the other switched-off segments. */
+function renderHomeOff(
+  locale: Locale,
+  homeSegment: PortfolioSegment | undefined,
+  disabled: ReadonlySet<string>
+): readonly string[] {
+  if (homeSegment === undefined || !disabled.has(homeSegment)) {
+    return []
+  }
+
+  return [
+    `${INDENT[1]}${t(locale, 'trading.render.profile.homeOff', {
+      segment: renderDeclaredValue(locale, `trading.segment.${homeSegment}`),
+      id: homeSegment,
+    })}`,
+  ]
 }
 
 /** A full regime scale is the absence of a limit, so it earns no words - the same rule

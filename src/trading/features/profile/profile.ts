@@ -9,7 +9,7 @@ import type {
   UpdateWatchlistOptions,
   WatchlistResult,
 } from '@/trading/features/profile/types'
-import type { CurrencyCode, MarketRef, Region } from '@/trading/kernel/instrument'
+import type { CurrencyCode, MarketRef, PortfolioSegment, Region } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { MarketManifest, MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
@@ -69,6 +69,8 @@ export function createProfileService(deps: ProfileServiceDeps): ProfileService {
       contextOf(deps)
         .segments.filter((descriptor) => descriptor.held)
         .map((descriptor) => descriptor.id),
+
+    homeSegment: () => homeSegmentOf(deps),
 
     updateSegment: (options) => saveSegment(deps, options),
 
@@ -196,6 +198,14 @@ function withReserveFloor(profile: UserProfile, context: ProfileContext): UserPr
 
     throw error
   }
+}
+
+function homeSegmentOf(deps: ProfileServiceDeps): PortfolioSegment | undefined {
+  const owner = deps.markets.regionOwner(deps.homeRegion)
+
+  return owner !== null && deps.heldMarkets.has(owner.manifest.id)
+    ? owner.manifest.segment
+    : undefined
 }
 
 /** A national market seeds only at home; any other follows its own flag, seeded when absent. */

@@ -201,6 +201,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'brief.book-unpriced', severity: 'warn' },
   { code: 'brief.call-outdated', severity: 'warn' },
   { code: 'brief.filings-unconfigured', severity: 'info' },
+  { code: 'brief.home-segment-off', severity: 'warn' },
   { code: 'brief.names-capped', severity: 'warn' },
   { code: 'brief.section-unavailable', severity: 'warn' },
   { code: 'refresh.no-available-provider', severity: 'warn' },
