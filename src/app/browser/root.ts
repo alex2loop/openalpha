@@ -169,14 +169,16 @@ function assembleRoot(parts: AssembleParts): BrowserRoot {
   })
   const route: ApiRouteContext = { app, live, authorize: authorizeVisitor, isReady: () => true }
   let closed: Promise<void> | undefined
-  // Started last: nothing after it can throw and leave it running with no one to stop it.
+  const chat = createChatClient(app)
+  const capabilities = buildCapabilities(app)
+  // Started after everything that can throw, so a failed assembly never leaves it running.
   const stopUpkeep = startBrowserUpkeep(app, app.resolve('logger'))
 
   return {
     app,
     route,
-    chat: createChatClient(app),
-    capabilities: buildCapabilities(app),
+    chat,
+    capabilities,
     lost: opened.lost,
     close: () => {
       closed ??= (async () => {

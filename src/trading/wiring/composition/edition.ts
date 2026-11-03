@@ -42,6 +42,8 @@ export interface TradingEdition {
   readonly reads?: BookReads
   /** The names the visitor looked at, where statements are fetched for the book, the watchlist and
    *  these alone instead of the whole screened board. */
+  /** See `MarketDeps.pagedBackfill`. */
+  readonly pagedBackfill?: true
   readonly viewed?: MarketDeps['viewedInstruments']
 }
 

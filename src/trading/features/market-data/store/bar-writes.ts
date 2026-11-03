@@ -34,6 +34,9 @@ export interface UpsertBarsOptions {
   readonly fromDay: TradingDay
   readonly toDay: TradingDay
   readonly records: readonly BarRecord[]
+  /** False for a window that is not the last of a pass: the tail past a name's newest supplied
+   *  session is only the tail once the final window has been written. Default true. */
+  readonly trimTail?: boolean
   readonly signal: AbortSignal
 }
 
@@ -186,7 +189,8 @@ async function writeBars(
     grouped.flatMap((entry) => entry.records),
     BAR_COLS.length
   )
-  const trims = grouped.flatMap((entry) => trimOf(entry, options.toDay))
+  const trims =
+    options.trimTail === false ? [] : grouped.flatMap((entry) => trimOf(entry, options.toDay))
   const p = deps.dialect.param
 
   await deps.db.transaction(async (tx) => {

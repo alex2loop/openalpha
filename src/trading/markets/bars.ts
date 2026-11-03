@@ -197,6 +197,8 @@ interface BarWindowWriteOptions {
   readonly market: MarketRef
   readonly toDay: TradingDay
   readonly writes: readonly BarWrite[]
+  /** See `UpsertBarsOptions.trimTail`. */
+  readonly trimTail?: boolean
   readonly signal: AbortSignal
 }
 
@@ -212,7 +214,8 @@ interface BarWindowWriteResult {
 /** One delete-and-write per window the pass fetched over, never per name: a full-window delete
  *  paired with a tail fetch erases history, and a tail delete paired with a full fetch leaves the
  *  pre-restatement rows the rebuild exists to replace. A pass holds at most two windows, so it is at
- *  most two commits. Returns the rows written, which is the population the kind now stands for. */
+ *  most two commits, except the web's first history load, which calls this once per fetch window
+ *  (the tail is trimmed only with the last). Returns the rows written, which is the population the kind now stands for. */
 export async function writeBarWindows(
   options: BarWindowWriteOptions
 ): Promise<BarWindowWriteResult> {
@@ -247,6 +250,7 @@ export async function writeBarWindows(
         fromDay,
         toDay: options.toDay,
         records,
+        ...(options.trimTail === undefined ? {} : { trimTail: options.trimTail }),
         signal: options.signal,
       }))
     )

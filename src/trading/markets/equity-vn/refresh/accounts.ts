@@ -42,8 +42,9 @@ interface TargetInput {
 
 /** The names a report can act on: the screened board, where every buy comes from, and the book,
  *  whose long-horizon sale reads the score. A watched name off the board fails admission before
- *  any gate reads it. Runs after macro, so the cross-section it reads is the one macro just built;
- *  a write drops it for the next reader. */
+ *  any gate reads it. Where an edition names the names the visitor looked at (`wantedNames`), only
+ *  the book, the watchlist and those are fetched. Runs after macro, so the cross-section it reads
+ *  is the one macro just built; a write drops it for the next reader. */
 export async function refreshAccounts(
   scope: EvidenceScope,
   crossSection: VnMacroCrossSection

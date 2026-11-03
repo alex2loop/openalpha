@@ -79,6 +79,7 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
     },
     rebalance: 'gaps',
     reads: EMPTY_READS,
+    pagedBackfill: true,
     viewed: ({ signal }) => viewedInstruments(app, signal),
   }
 }

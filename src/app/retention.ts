@@ -3,7 +3,11 @@ import { join } from 'node:path'
 import type { App, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { WorkspaceCleanupResult } from '@/engine/api'
-import { RETENTION_INTERVAL_MS, runPortableRetention } from '@/app/portable-retention'
+import {
+  RETENTION_INTERVAL_MS,
+  RETENTION_PASS,
+  runPortableRetention,
+} from '@/app/portable-retention'
 import { reportPass } from '@/core/container'
 import { pruneRemovedAgentLogs } from '@/core/logging/retention'
 import { createPeriodicPass } from '@/core/periodic-pass'
@@ -19,7 +23,6 @@ import {
 } from '@/persistence/node-api'
 
 const DAILY_BACKUPS_SUBDIR = 'daily'
-const RETENTION_PASS = { name: 'retention', everyMs: RETENTION_INTERVAL_MS }
 
 /** Sweeps every retention scope now and then every few hours; the returned stop waits out a sweep
  *  in flight. */

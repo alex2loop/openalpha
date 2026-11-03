@@ -1,27 +1,33 @@
 import type { App, TaskPass, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import { requestPersistence } from '@/app/browser/persistence'
-import { RETENTION_INTERVAL_MS, runPortableRetention } from '@/app/portable-retention'
+import { refreshMarketsInUse } from '@/app/market-sweep'
+import {
+  RETENTION_INTERVAL_MS,
+  RETENTION_PASS,
+  runPortableRetention,
+} from '@/app/portable-retention'
 import { notifyPass, reportPass } from '@/core/container'
-import { isAbortError } from '@/core/errors'
 import { createPeriodicPass } from '@/core/periodic-pass'
 import { formatErrForLog } from '@/core/security/credentials'
 import { StorageFullError } from '@/persistence/api'
-import { isBoundaryFailure, logRefreshDegradations, refreshDegradations } from '@/trading/api'
 
-/** The refresh and the sweep report under the names the daemon's own passes use, so the page's task
- *  list reads the same on both editions. */
-const REFRESH_PASS = { name: 'trading.refresh', everyMs: RETENTION_INTERVAL_MS }
-const RETENTION_PASS = { name: 'retention', everyMs: RETENTION_INTERVAL_MS }
+const HISTORY_FULL: NonNullable<TaskPass['error']> = { key: 'ui.office.edition.history.full' }
+/** The refresh reports under the name the daemon's own pass uses, so the page's task list reads the
+ *  same on both editions; a pass that found no room says so. */
+const REFRESH_PASS = {
+  name: 'trading.refresh',
+  everyMs: RETENTION_INTERVAL_MS,
+  failure: (err: unknown) => (err instanceof StorageFullError ? HISTORY_FULL : undefined),
+}
 /** Works only while a first refresh is loading the history the factor board reads. */
 const HISTORY_TASK = 'browser.history'
-const HISTORY_FULL: NonNullable<TaskPass['error']> = { key: 'ui.office.edition.history.full' }
 
 interface UpkeepContext {
   readonly app: App
   readonly logger: Logger
-  /** Set once a write found no room: the refresh stops until the page is reloaded, the sweep goes
-   *  on because deleting is what makes room. */
+  /** Set when a write found no room: the refresh waits, the sweep goes on because deleting is what
+   *  makes room, and a sweep that deleted rows lets the refresh try again. */
   storageFull: boolean
 }
 
@@ -48,17 +54,34 @@ export function startBrowserUpkeep(app: App, logger: Logger): () => Promise<void
 }
 
 async function runUpkeepPass(context: UpkeepContext): Promise<void> {
-  const listener = context.app.resolve('taskStatus').listener
+  const { app, logger } = context
+  const listener = app.resolve('taskStatus').listener
 
   if (!context.storageFull) {
-    await reportPass(listener, REFRESH_PASS, () => refreshInUse(context, listener))
+    await refreshUnlessFull(context, listener)
   }
 
   // A shutdown that cut the refresh short has no database left to sweep.
-  if (!context.app.signal.aborted) {
-    await reportPass(listener, RETENTION_PASS, () =>
-      runPortableRetention(context.app, context.logger)
+  if (!app.signal.aborted) {
+    const freed = await reportPass(listener, RETENTION_PASS, () =>
+      runPortableRetention(app, logger)
     )
+
+    context.storageFull &&= freed === 0
+  }
+}
+
+// The pass already reported why it ended, and the sweep that follows is what makes room.
+async function refreshUnlessFull(
+  context: UpkeepContext,
+  listener: TaskPassListener
+): Promise<void> {
+  try {
+    await reportPass(listener, REFRESH_PASS, () => refreshInUse(context, listener))
+  } catch (err: unknown) {
+    if (!(err instanceof StorageFullError)) {
+      throw err
+    }
   }
 }
 
@@ -74,15 +97,24 @@ async function refreshInUse(context: UpkeepContext, listener: TaskPassListener):
   }
 
   try {
-    await sweepMarketData(context)
+    await refreshMarketsInUse(
+      { app: context.app, logger: context.logger, signal: context.app.signal },
+      (err) => {
+        if (err instanceof StorageFullError) {
+          throw err
+        }
+
+        context.logger.warn('browser.refresh_failed', { err: formatErrForLog(err) })
+      }
+    )
   } catch (err: unknown) {
-    if (!(err instanceof StorageFullError)) {
-      throw err
+    if (err instanceof StorageFullError) {
+      context.storageFull = true
+      error = HISTORY_FULL
+      context.logger.warn('browser.history_storage_full', { err: formatErrForLog(err) })
     }
 
-    context.storageFull = true
-    error = HISTORY_FULL
-    context.logger.warn('browser.history_storage_full', { err: formatErrForLog(err) })
+    throw err
   } finally {
     if (loading) {
       notifyPass(listener, {
@@ -105,31 +137,4 @@ async function isHistoryLoading(app: App): Promise<boolean> {
   )
 
   return attempts.every((stored) => stored.length === 0)
-}
-
-// An unreachable source degrades the pass and the next one retries; offline reads the same way, as
-// the caveats the refresh result already carries. Only an error that is this code being wrong stops it.
-async function sweepMarketData(context: UpkeepContext): Promise<void> {
-  const { app, logger } = context
-
-  try {
-    const results = await app
-      .resolve('tradingServices')
-      .refreshMarketData({ signal: app.signal, scheduled: true })
-    const degradations = refreshDegradations(results)
-
-    if (degradations.length > 0) {
-      logRefreshDegradations({ logger, forced: false, degradations })
-    }
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      return
-    }
-
-    if (err instanceof StorageFullError || !isBoundaryFailure(err)) {
-      throw err
-    }
-
-    logger.warn('browser.refresh_failed', { err: formatErrForLog(err) })
-  }
 }

@@ -21,6 +21,7 @@ declare global {
     readonly storage?: {
       readonly getDirectory?: () => Promise<unknown>
       readonly persist?: () => Promise<boolean>
+      readonly persisted?: () => Promise<boolean>
     }
   }
 

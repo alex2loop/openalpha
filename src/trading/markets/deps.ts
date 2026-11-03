@@ -38,6 +38,9 @@ export interface MarketDeps {
   /** Names the visitor looked at that no book or watchlist holds. Present only where a statement
    *  is one request per name and the screened board is too many: the refresh then fetches
    *  statements for the book, the watchlist and these names alone. */
+  /** The web's first history load writes each fetch window before the next is fetched, so a page
+   *  never holds a whole year of bars. Absent: one write at the end, whatever the market's size. */
+  readonly pagedBackfill?: true
   readonly viewedInstruments?: (options: ViewedOptions) => Promise<readonly InstrumentRef[]>
 }
 
