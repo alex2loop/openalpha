@@ -150,6 +150,7 @@ export async function buildEvidenceBundle(options: EvidenceBundleOptions): Promi
     recordAttempt: options.recordAttempt,
     logger: options.logger,
   })
+
   const levels = levelSection({
     levels: input.proposedLevels,
     direction: framedDirectionOf(draft),
@@ -195,10 +196,12 @@ export async function buildCaseEvidence(options: CaseEvidenceOptions): Promise<C
   const { market, subject } = options
   const { instrument } = subject
   const { now, signal } = subject.request
+
   const reads = await readEvidenceSources(market, subject)
   const { news, marketNews, recommendations, accounts } = reads
   const ownRanked = headlines(news, now)
   const facts = instrumentFactsOf(subject)
+
   const read = await readHeadlines({
     ...facts,
     ...(options.decisionsChain === undefined ? {} : { chain: options.decisionsChain }),

@@ -177,7 +177,9 @@ export function scrubCredentials(input: string): string {
   if (!input) {
     return input
   }
+
   let out = input
+
   for (const re of SECRET_PATTERNS) {
     out = out.replace(re, '[REDACTED]')
   }

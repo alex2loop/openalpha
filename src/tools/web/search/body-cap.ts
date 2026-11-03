@@ -7,6 +7,7 @@ export function parseJsonBody(raw: string): unknown {
   if (utf8ByteLength(raw) > SEARCH_BODY_MAX_BYTES) {
     throw new SearchProviderError('content_limit', 'search response exceeds size cap')
   }
+
   try {
     const value: unknown = JSON.parse(raw)
     return value

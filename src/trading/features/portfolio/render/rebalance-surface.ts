@@ -44,6 +44,7 @@ export function renderRebalanceForSurface(
   options: SurfaceOptions
 ): RebalanceText {
   const { advice } = plan
+
   // A gaps plan has no order groups to head.
   const groups =
     options.form === 'gaps'

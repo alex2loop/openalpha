@@ -240,6 +240,7 @@ function alignBack(buf: Uint8Array, offset: number): number {
   while (i > 0 && i < buf.byteLength && isContinuationByte(buf[i])) {
     i -= 1
   }
+
   return i
 }
 
@@ -248,6 +249,7 @@ function alignForward(buf: Uint8Array, offset: number): number {
   while (i < buf.byteLength && isContinuationByte(buf[i])) {
     i += 1
   }
+
   return i
 }
 

@@ -188,6 +188,7 @@ class EvidenceAdmissionState implements ResolutionState {
     signal: AbortSignal
   ): Promise<void> {
     const referenceKey = candidateReferenceKey(scope, candidate.ref)
+
     if (this.excerptIdByRef.has(referenceKey)) {
       this.pushGap({
         code: 'duplicate_reference',
@@ -198,6 +199,7 @@ class EvidenceAdmissionState implements ResolutionState {
     }
 
     const sourceId = this.resolveExcerptSource(candidate)
+
     if (sourceId === undefined) {
       return
     }
