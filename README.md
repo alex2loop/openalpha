@@ -94,6 +94,8 @@ https://github.com/user-attachments/assets/46ea9c20-cc72-4bfa-8bb6-272981615802
 
 ## Quick start
 
+To look around before installing, the web version runs in your browser with no account: [what it does and where it differs](docs/en/web.md).
+
 You need two things:
 
 - **A computer** running macOS, Linux or Windows 10/11 (Windows on ARM needs Windows 11).

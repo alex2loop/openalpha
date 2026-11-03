@@ -94,6 +94,8 @@ https://github.com/user-attachments/assets/bea5ab46-72bd-48f5-8a51-9260f09824d9
 
 ## Bắt đầu nhanh
 
+Muốn xem qua trước khi cài, bản web chạy ngay trong trình duyệt, không cần tài khoản: [nó làm được gì và khác bản cài ở đâu](docs/ban-web.md).
+
 Bạn cần hai thứ:
 
 - **Một máy tính** chạy macOS, Linux hoặc Windows 10/11 (máy Windows chip ARM cần Windows 11).

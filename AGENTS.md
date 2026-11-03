@@ -33,7 +33,9 @@ In doubt: stop and ask. Never silently pick.
 bun run lint            # Biome lint + autofix
 bun run typecheck       # gen + tsc (Bun never type-checks; the only type gate)
 bun run check           # Biome + typecheck + contract gates, incl. check:browser (CI)
-bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin or host global
+bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin, host global or timer method
+bun run build:web       # static web edition into dist/web (add --noindex for staging); deploy/web/wrangler.toml serves it
+bun run build:site      # homepage into dist/site; needs --app-url=<https address of the web edition>
 bun run lint:arch       # depth, trading/registry/feature isolation, locale, report figures,
                         # caveats, vi terminology, pricing, agent skills, strategy version (CI)
 bun run gen             # regenerate the migration registry
@@ -47,6 +49,7 @@ bun scripts/check-strategy-version.ts --write   # re-record policy digests
 src/       # engine, cli, trading, channels, persistence, ai, memory, plugins, social, ...
 scripts/   # the gate suite (`bun run check`, `bun run lint:arch`)
 site/      # public homepage: static files, no build; vendors its one script (no runtime CDN)
+deploy/    # wrangler.toml per static project (web edition, homepage); Cloudflare Workers Static Assets, no script
 ```
 
 A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src/app/server/CONTRACT.md`).
@@ -72,7 +75,7 @@ A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src
 | `social` | core, engine, i18n | Agent social networks joined by skill |
 | `trading` | core, engine, persistence, i18n | Self-contained bounded context |
 | `channels` | core, engine, commands, i18n | Channel definitions, delivery, adapters |
-| `web` | i18n; type-only app/server/wire | Office page: Preact UI and Canvas scene, served by the daemon |
+| `web` | i18n; type-only app/server/wire | Office page: Preact UI and Canvas scene, served by the daemon, or as static files by the web edition (`web/edition/`) |
 | `cli` | all except `app` | Terminal surface |
 | `app` | all | Entry and sole composition root |
 
@@ -88,7 +91,16 @@ Boundary rules (hard):
 4. `core` has no finance vocabulary. Nothing imports `trading` except `app`, `cli` (via its public API) and the SDK barrel.
 5. Domain modules never import surfaces (`cli`, `channels`, `server`). Surfaces never import `app`, except `web`, which takes type-only `app/server/wire`.
 6. No `RunContext` god-object: the Run owns its state; services are injected.
-7. Provider order in `app/providers.ts` is load-bearing (prologue + 15 steps, 9 constraints, incl. step 8b `cliCommands`). Read it before reordering.
+7. Provider order in `app/providers.ts` is load-bearing (prologue + 15 steps, 9 constraints, incl. step 8b `cliCommands`). Read it before reordering. The browser root (`app/browser/providers.ts`) lists the same providers in the same order and obeys the same constraints.
+
+### Browser entry
+
+`src/app/browser/` is the second composition root: the web edition's engine, running in a Web Worker (`worker.ts` is the entry; `bun run check:browser` bundles it and is the portability gate; `scripts/build-web.ts` ships it). It takes the daemon's provider list in the daemon's order and under its constraints (a provider extends only what an earlier one bound), leaves out what a page cannot have (channels, scheduler, plugins, MCP, user agents, social), and binds what differs: model keys read per request from a keyring, the page's own `fetch` as `FetchGuard`, SQLite WASM on OPFS under a tab lock, `PAGE_REQUEST_SHAPE`.
+
+- An edition narrows trading with one value, `TradingEdition` (`trading/wiring/composition/edition.ts`): markets, commands, `/suggest` as an analysis, rebalance as gaps, screen as a board, brief omissions, `BookReads`. A field absent is the installed version, so no consumer tests which edition runs. `Capabilities` is fixed per edition (what it offers, not live state).
+- The sources a page reads are a measured subset: `BROWSER_REACHABLE_SOURCES` (source-facts), applied with `toBrowserRoutes(SOURCE_ROUTES, ...)`, measured by `scripts/research-browser-cors.ts` on each adapter's real request path, never a host root. The page's CSP lists its hosts from the same tables.
+- The web never computes or shows a verdict, size, entry, stop, target, conviction, rating or rank, and rebalance carries gaps only; a route that would is withheld in `app/browser/routes.ts`, a read that would answers empty.
+- Details and the deploy and incident runbook: [docs/en/dev/internals.md](docs/en/dev/internals.md#the-web-edition).
 
 ### Trading layout
 
@@ -180,7 +192,7 @@ A source feeds the evidence pipeline (stored, provenance-stamped, factor-scored,
 
 - Evidence-grade data is a first-party adapter (`sources/adapters/`) with parser, schema, rate limit and failover route. Data the agent reads but never derives from is an MCP tool the operator connects.
 - `SOURCE_ROUTES` owns which providers serve which scope, in order; `covers` answers only whether a request's shape is servable. A source may read `context.market` to stamp what it parsed; it never tests it to decide whether it serves and never constructs a `MarketRef` or `Region`.
-- Endpoints, rate limits and credential variable names are code-owned (`SourceFacts`): no config can redirect a request; credentials come only from the environment. News: `RSS_FEEDS` is the allowlist and the URL is the pinned target. Daemon requests use `DAEMON_REQUEST_SHAPE` (`BROWSER_HEADERS`, no redirect followed; `core/http-client.ts`), handed to the transport in `SourceFacts.requestShape`.
+- Endpoints, rate limits and credential variable names are code-owned (`SourceFacts`): no config can redirect a request; credentials come only from the environment. News: `RSS_FEEDS` is the allowlist and the URL is the pinned target. Daemon requests use `DAEMON_REQUEST_SHAPE` (`BROWSER_HEADERS`, no redirect followed; `core/http-client.ts`), handed to the transport in `SourceFacts.requestShape`; the browser root hands `PAGE_REQUEST_SHAPE` (no header, redirects followed) and the route table `toBrowserRoutes` leaves.
 - Route order ranks quality: a provider that answers wrongly without failing sits behind one that does not (`vietcap-chart` leads `entrade` for both VN level kinds). An adapter refuses a level series holding a frozen bar rather than serving it short, and the market ages every reading.
 - A transport code never reaches the operator raw: `SourceSummary.lastFailureCode` is a `CaveatCode`, rendered by `/sources` as `trading.source.failure.<code>` via `renderProvidedValue`.
 - A refresh pass counts what the store wrote, not what it handed over: without `force` a held day is kept (`ON CONFLICT DO NOTHING`); `upsertSeriesPoint` says whether the row landed.

@@ -6,9 +6,9 @@ These pages are for people changing OpenAlpha or building on it. Running it as a
 
 | Page | What is in it |
 |---|---|
-| [internals.md](internals.md) | Architecture decisions, the feature inventory, display contracts, MCP |
+| [internals.md](internals.md) | Architecture decisions, the feature inventory, display contracts, MCP, the web edition (browser root, build, deploy, incident runbook) |
 | [extending.md](extending.md) | The SDK surface, embedding the runtime, the app container, plugins |
-| [data-sources.md](data-sources.md) | The source contract, adapters, registration, routing, errors, cache |
+| [data-sources.md](data-sources.md) | The source contract, adapters, registration, routing (and the browser route set), errors, cache |
 | [trading.md](trading.md) | Contracts behind suggestions, alerts, the book, venues and the HTTP API |
 | [agents.md](agents.md) | The agent loader, delegation, skills, the model chain, retries, caching |
 | [budgets.md](budgets.md) | Cost admission, settlement and how a budget is sliced across a run tree |
