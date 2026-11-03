@@ -73,6 +73,7 @@ function assertPreDnsSafe(hostname: string): void {
   if (BLOCKED_HOSTS.some((h) => isHostGlobMatch(h, name))) {
     throw new ToolError('host_blocked', `host ${hostname} matches blocked-host pattern`)
   }
+
   if (!IP_LITERAL_RE.test(hostname)) {
     return
   }

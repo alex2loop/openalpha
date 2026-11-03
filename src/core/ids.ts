@@ -4,6 +4,7 @@ const UUID_BYTES = 16
 const UUID_V7_TIMESTAMP_BYTES = 6
 const UUID_V7_VERSION = 0x70
 const UUID_V7_VARIANT = 0x80
+const UUID_VARIANT_KEEP_MASK = 0x3f
 const UUID_V7_COUNTER_MASK = 0xfff
 // A fresh millisecond seeds below half the range, so a burst has room to count up without wrapping.
 const UUID_V7_COUNTER_SEED_MASK = 0x7ff
@@ -103,7 +104,7 @@ export function buildUuidV7(timestampMs: number): string {
 
   bytes[6] = UUID_V7_VERSION | (counter >> 8)
   bytes[7] = counter & (BYTE_RANGE - 1)
-  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | UUID_V7_VARIANT
+  bytes[8] = ((bytes[8] ?? 0) & UUID_VARIANT_KEEP_MASK) | UUID_V7_VARIANT
 
   const hex = [...bytes].map((byte) => byte.toString(HEX_RADIX).padStart(2, '0')).join('')
 

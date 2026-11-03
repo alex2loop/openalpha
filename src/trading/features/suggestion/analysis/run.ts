@@ -171,13 +171,16 @@ async function readEvidence(
   const { market, instrument } = subject
   const { now, signal } = request
   const asOf = resolveDay(market, now)
+
   const [factors, events, bars] = await Promise.all([
     market.factors({ instrument, asOf, now, signal }),
     readInstrumentEvents({ market, instrument, asOf, now, signal }),
     market.capabilities.bars?.run({ instrument, asOf, now, sessions: LEVEL_BARS_SESSIONS, signal }),
   ])
+
   const newest = bars?.kind === 'available' ? bars.value[bars.value.length - 1] : undefined
   const evidenceThrough = newest?.at
+
   const evidence = await buildCaseEvidence({
     market,
     subject: subjectOf({

@@ -193,7 +193,7 @@ async function runScreen(
   const result = await market.capabilities.screen?.run({
     market: options.market,
     // A board is every name the gates cleared, so nothing is cut before its prices are read.
-    limit: options.form === 'board' ? WHOLE_BOARD : options.limit,
+    limit: isBoardForm(options) ? WHOLE_BOARD : options.limit,
     asOf,
     now: options.now,
     signal: options.signal,
@@ -209,7 +209,7 @@ async function runScreen(
 
   const view = await decorateScreen(deps, { market, options, result, ensured, asOf }, reader)
 
-  return options.form === 'board' ? toBoardView(view) : view
+  return isBoardForm(options) ? toBoardView(view) : view
 }
 
 interface ScreenRead {
@@ -252,7 +252,7 @@ async function decorateScreen(
       ...ensured,
       ...settledEvidenceCaveats(market, options.now),
       // How wide the top band runs is a claim about the ranking, which a board does not print.
-      ...(options.form === 'board' ? [] : convictionDriftCaveats(result.bandCounts)),
+      ...(isBoardForm(options) ? [] : convictionDriftCaveats(result.bandCounts)),
       ...marked.caveats,
     ]),
   }
@@ -309,7 +309,7 @@ async function withPrices(
     now: options.now,
     signal: options.signal,
   }
-  const isBoard = options.form === 'board'
+  const isBoard = isBoardForm(options)
   const fetchMissing = !isBoard && candidates.length <= SURFACE_LIMITS.maximumScreenCandidates
 
   return mapWithConcurrency(candidates, SCREEN_QUOTE_CONCURRENCY, async (candidate) => {
@@ -323,6 +323,10 @@ async function withPrices(
 
     return isBoard ? closedCandidate(candidate, scope.calendar) : candidate
   })
+}
+
+function isBoardForm(options: MarketDataScreenRequest): boolean {
+  return options.form === 'board'
 }
 
 interface QuoteScope {

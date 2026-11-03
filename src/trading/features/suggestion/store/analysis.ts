@@ -13,17 +13,15 @@ import { LOCALES } from '@/core/types/locale'
 import { definedOnly } from '@/core/utils/collections'
 import { analysisId } from '@/trading/features/suggestion/analysis/types'
 import { CLAIM_VERDICTS, RESEARCH_STANCES } from '@/trading/features/suggestion/debate/types'
+import {
+  type CitationPayload,
+  citationSchema,
+} from '@/trading/features/suggestion/store/suggestion-payload'
 import { ticker as brandTicker, marketRef, tradingDay } from '@/trading/kernel/instrument'
 import { caveatsSchema } from '@/trading/kernel/store/store-payload'
 import { parseJson, toPage } from '@/trading/kernel/store/store-row'
 
 const COLUMNS = 'id, market, ticker, at, evidence_through, payload, created_at'
-
-const citationSchema = z.strictObject({
-  url: z.string(),
-  title: z.string().optional(),
-  publishedAt: z.number().finite().optional(),
-})
 
 const caseSchema = z.strictObject({
   stance: z.enum(RESEARCH_STANCES),
@@ -56,7 +54,6 @@ const payloadSchema = z.strictObject({
 })
 
 type AnalysisPayload = z.infer<typeof payloadSchema>
-type CitationPayload = z.infer<typeof citationSchema>
 
 interface AnalysisRow {
   readonly id: string
@@ -146,6 +143,7 @@ async function listPage(
     `SELECT ${COLUMNS} FROM suggestion_analyses${where} ORDER BY id DESC LIMIT ${p(params.length)}`,
     params
   )
+
   // Paged on the rows, not on what they parsed to, so the cursor clears one it could not read.
   const page = toPage(rows, options.limit, (row) => analysisId(row.id))
 

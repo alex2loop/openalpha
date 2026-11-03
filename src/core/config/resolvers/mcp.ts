@@ -110,8 +110,9 @@ function resolveServer(
     }
   }
 
-  const url = interpolateEnv(server.url, env, at('url'))
-  assertMcpUrl(url, server.name, ['mcp', 'servers', index, 'url'])
+  const urlSite = at('url')
+  const url = interpolateEnv(server.url, env, urlSite)
+  assertMcpUrl(url, server.name, urlSite.path)
 
   return { name: server.name, transport: 'http', url }
 }

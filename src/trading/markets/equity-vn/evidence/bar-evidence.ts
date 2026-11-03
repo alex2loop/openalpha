@@ -1,19 +1,19 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
-import type { BarRecord } from '@/trading/kernel/market/market-data'
 import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
 import type { DayWindow } from '@/trading/markets/admissibility'
 import type { BarWrite } from '@/trading/markets/bars'
 import type { EvidenceScope } from '@/trading/markets/equity-vn/evidence/evidence'
-import type { TargetOutcome } from '@/trading/markets/refresh-result'
-import { dedupeCaveats } from '@/trading/kernel/caveat'
-import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { isRestated, RESTATEMENT_TAIL_SESSIONS } from '@/trading/markets/bar-restatement'
 import { hasRebuiltWindow, writeBarWindows } from '@/trading/markets/bars'
 import {
   BACKFILL_MINIMUM_TARGETS,
+  type BarOutcome,
+  boardTickers,
   chunkWindows,
   fetchAllBars,
+  fullWindow,
+  joinOutcomes,
 } from '@/trading/markets/equity-vn/evidence/bar-fetch'
 import {
   fetchPagedHistory,
@@ -21,11 +21,7 @@ import {
 } from '@/trading/markets/equity-vn/evidence/bar-paged'
 import { invalidateWhenWritten } from '@/trading/markets/equity-vn/evidence/evidence'
 import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
-import {
-  BOARD_KINDS,
-  barTargets,
-  tradeableTargets,
-} from '@/trading/markets/equity-vn/refresh/targets'
+import { barTargets } from '@/trading/markets/equity-vn/refresh/targets'
 import { resolveCoveredFrom, resolveFetchWindow } from '@/trading/markets/fetch-window'
 import { MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
 import { toKindResult } from '@/trading/markets/refresh-result'
@@ -64,6 +60,7 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
     forced: scope.request.forced,
     ...(scope.storedFrom === undefined ? {} : { storedFrom: scope.storedFrom }),
   })
+
   // Matched on ticker, never object identity: `barTargets` runs its list through
   // `dedupeInstruments`, which is free to return new objects.
   const rebuilding = new Set(window.rebuild.map((target) => target.ticker))
@@ -72,6 +69,7 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
     fromDay: window.tailFromDay,
     signal: scope.request.signal,
   })
+
   const tail = await fetchAllBars(
     scope,
     targets.filter((target) => !rebuilding.has(target.ticker)),
@@ -82,6 +80,7 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
       .filter((outcome) => isRestated(closes.get(outcome.instrument.ticker), outcome.value))
       .map((outcome) => outcome.instrument.ticker)
   )
+
   const back = await backfillHistory(scope, {
     rebuild: window.rebuild,
     repeat: targets.filter((target) => restated.has(target.ticker)),
@@ -107,6 +106,7 @@ async function backfillHistory(
   const { initial, rest } = splitInitialHistory(scope, input.rebuild)
   const paged = await fetchPagedHistory(scope, initial)
   const full = await fetchBackfill(scope, [...rest, ...input.repeat])
+
   // Judged on the deep window too, not only the tail: a forced pass rebuilds every name without a
   // tail, and naming none of them left old-basis plans behind history that now matched its source.
   // A window that did not come back keeps the basis it had, so its plans still describe the series.
@@ -130,11 +130,9 @@ async function backfillHistory(
 async function fetchBackfill(
   scope: EvidenceScope,
   targets: readonly InstrumentRef[]
-): Promise<readonly TargetOutcome<readonly BarRecord[]>[]> {
-  const window = { fromDay: scope.fromDay, toDay: scope.request.asOf }
-  const board = new Set(
-    tradeableTargets(scope.universe, BOARD_KINDS).map((target) => target.ticker)
-  )
+): Promise<readonly BarOutcome[]> {
+  const window = fullWindow(scope)
+  const board = boardTickers(scope)
   const shared = targets.filter((target) => board.has(target.ticker))
 
   if (shared.length < BACKFILL_MINIMUM_TARGETS) {
@@ -156,13 +154,16 @@ async function fetchBackfill(
 }
 
 /** Windows run in sequence and names inside them concurrently, so every name in a pass asks the
- *  provider for the same span and reads its slice of one market-wide answer. */
+ *  provider for the same span and reads its slice of one market-wide answer. A name survives only
+ *  while every window answered for it: the write clears the whole span before writing, so a gap
+ *  left by one failed window would erase history rather than leave it. The caller refetches the
+ *  losers over the whole span instead. */
 async function fetchChunkedBars(
   scope: EvidenceScope,
   targets: readonly InstrumentRef[],
   window: DayWindow
-): Promise<readonly TargetOutcome<readonly BarRecord[]>[]> {
-  const merged = new Map<Ticker, TargetOutcome<readonly BarRecord[]>>()
+): Promise<readonly BarOutcome[]> {
+  const merged = new Map<Ticker, BarOutcome>()
 
   for (const chunk of chunkWindows(scope.calendar, window)) {
     for (const outcome of await fetchAllBars(scope, targets, chunk)) {
@@ -170,34 +171,12 @@ async function fetchChunkedBars(
 
       merged.set(
         outcome.instrument.ticker,
-        held === undefined ? outcome : mergeChunk(held, outcome)
+        held === undefined ? outcome : joinOutcomes(held, outcome, (all, next) => [...all, ...next])
       )
     }
   }
 
   return [...merged.values()]
-}
-
-/** A name survives only while every window answered for it: the write clears the whole span
- *  before writing, so a gap left by one failed window would erase history rather than leave it.
- *  The caller refetches the losers over the whole span instead. */
-function mergeChunk(
-  held: TargetOutcome<readonly BarRecord[]>,
-  chunk: TargetOutcome<readonly BarRecord[]>
-): TargetOutcome<readonly BarRecord[]> {
-  const provenance = dedupeProvenance([...held.provenance, ...chunk.provenance])
-  const caveats = dedupeCaveats([...held.caveats, ...chunk.caveats])
-
-  if (held.value === undefined || chunk.value === undefined) {
-    return { instrument: held.instrument, provenance, caveats }
-  }
-
-  return {
-    instrument: held.instrument,
-    value: [...held.value, ...chunk.value],
-    provenance,
-    caveats,
-  }
 }
 
 /** Only a write reaching back to `scope.fromDay` rebuilt a name's history; a tail write caught it

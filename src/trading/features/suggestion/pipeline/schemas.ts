@@ -83,6 +83,7 @@ const RESEARCH_CASE_SCHEMA = z.strictObject({
 export const BULL_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
   stance: z.enum(['bullish', 'neutral']),
 })
+
 export const BEAR_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
   stance: z.enum(['bearish', 'neutral']),
 })
@@ -92,9 +93,11 @@ export const BEAR_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
 const ANALYSIS_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
   invalidators: z.array(claimText).max(MAXIMUM_INVALIDATORS),
 })
+
 export const BULL_ANALYSIS_SCHEMA = ANALYSIS_CASE_SCHEMA.extend({
   stance: z.enum(['bullish', 'neutral']),
 })
+
 export const BEAR_ANALYSIS_SCHEMA = ANALYSIS_CASE_SCHEMA.extend({
   stance: z.enum(['bearish', 'neutral']),
 })

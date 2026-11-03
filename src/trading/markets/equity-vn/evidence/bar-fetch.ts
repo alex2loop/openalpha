@@ -1,11 +1,13 @@
-import type { InstrumentRef } from '@/trading/kernel/instrument'
+import type { InstrumentRef, Ticker } from '@/trading/kernel/instrument'
 import type { BarRecord } from '@/trading/kernel/market/market-data'
 import type { DayWindow } from '@/trading/markets/admissibility'
 import type { EvidenceScope } from '@/trading/markets/equity-vn/evidence/evidence'
 import type { TargetOutcome } from '@/trading/markets/refresh-result'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
+import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
+import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { admissibleCandles } from '@/trading/markets/admissibility'
 import { buildPayloadRejectedCaveat, reportedCaveats } from '@/trading/markets/equity-vn/caveats'
 import { settledOnly } from '@/trading/markets/equity-vn/evidence/evidence'
@@ -14,7 +16,11 @@ import {
   VN_MARKET_REF,
   VN_SOURCE_CONCURRENCY,
 } from '@/trading/markets/equity-vn/policy'
-import { seriesClass } from '@/trading/markets/equity-vn/refresh/targets'
+import {
+  BOARD_KINDS,
+  seriesClass,
+  tradeableTargets,
+} from '@/trading/markets/equity-vn/refresh/targets'
 import { buildRejectedOutcome } from '@/trading/markets/refresh-result'
 
 /** Sessions per window when a name's whole history is fetched, sized to that same ceiling: one deep
@@ -47,11 +53,32 @@ export function fullWindow(scope: EvidenceScope): DayWindow {
   return { fromDay: scope.fromDay, toDay: scope.request.asOf }
 }
 
+/** The names listed on the board: only those share a market-wide window. */
+export function boardTickers(scope: EvidenceScope): ReadonlySet<Ticker> {
+  return new Set(tradeableTargets(scope.universe, BOARD_KINDS).map((target) => target.ticker))
+}
+
+/** Two answers for one name, kept only while both carried bars; `join` says what the bars become. */
+export function joinOutcomes(
+  held: BarOutcome,
+  next: BarOutcome,
+  join: (held: readonly BarRecord[], next: readonly BarRecord[]) => readonly BarRecord[]
+): BarOutcome {
+  const provenance = dedupeProvenance([...held.provenance, ...next.provenance])
+  const caveats = dedupeCaveats([...held.caveats, ...next.caveats])
+
+  if (held.value === undefined || next.value === undefined) {
+    return { instrument: held.instrument, provenance, caveats }
+  }
+
+  return { instrument: held.instrument, value: join(held.value, next.value), provenance, caveats }
+}
+
 export function fetchAllBars(
   scope: EvidenceScope,
   targets: readonly InstrumentRef[],
   window: DayWindow
-): Promise<readonly TargetOutcome<readonly BarRecord[]>[]> {
+): Promise<readonly BarOutcome[]> {
   const progress = createRefreshProgress(
     scope.request.progress,
     { market: VN_MARKET_REF, kind: 'bars' },
@@ -71,7 +98,7 @@ async function fetchBars(
   scope: EvidenceScope,
   instrument: InstrumentRef,
   window: DayWindow
-): Promise<TargetOutcome<readonly BarRecord[]>> {
+): Promise<BarOutcome> {
   const result = await scope.deps.sources.resolve({
     kind: 'bars',
     context: {

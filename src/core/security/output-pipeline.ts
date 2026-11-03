@@ -97,6 +97,7 @@ function compactStructured(text: string): string | undefined {
   }
 
   let value: unknown
+
   try {
     value = JSON.parse(trimmed)
   } catch {

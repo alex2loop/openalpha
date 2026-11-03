@@ -241,11 +241,11 @@ function renderBoardNotes(
   request: ScreenRenderRequest,
   result: ScreenView
 ): readonly string[] {
-  const unpriced = result.unpriced ?? 0
-
   if (result.candidates.length === 0) {
     return []
   }
+
+  const unpriced = result.unpriced ?? 0
 
   return [
     ...renderBoardUnitLine(locale, request, result),

@@ -1,3 +1,4 @@
+import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { StopDistance } from '@/trading/kernel/operator/alert'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { BriefContext } from '@/trading/markets/brief-context'
@@ -14,12 +15,7 @@ export async function buildUnwatchedPositions(context: BriefContext): Promise<Br
     signal: context.request.signal,
   })
 
-  return rows.length === 0
-    ? omitted('unwatched-positions')
-    : ready(
-        'unwatched-positions',
-        rows.map((instrument) => ({ ticker: instrument.ticker }))
-      )
+  return tickerSection('unwatched-positions', rows)
 }
 
 /** Held past the window its segment is scored over with the price gone nowhere: capital that could be
@@ -32,10 +28,17 @@ export async function buildStalePositions(context: BriefContext): Promise<BriefS
     ...(marks === undefined ? {} : { marks }),
   })
 
+  return tickerSection('stale-positions', rows)
+}
+
+function tickerSection(
+  kind: 'unwatched-positions' | 'stale-positions',
+  rows: readonly InstrumentRef[]
+): BriefSectionResult {
   return rows.length === 0
-    ? omitted('stale-positions')
+    ? omitted(kind)
     : ready(
-        'stale-positions',
+        kind,
         rows.map((instrument) => ({ ticker: instrument.ticker }))
       )
 }

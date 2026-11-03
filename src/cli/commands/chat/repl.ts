@@ -160,6 +160,7 @@ export async function repl(session: ChatSession): Promise<number> {
 
   const offInterrupt = app.terminal.onInterrupt(onSigint)
   const offTerminate = app.terminal.onTerminate(onSigterm)
+
   printBanner(promptedSession)
 
   for (const line of await takeUpdateNotice(app.config)) {
@@ -349,6 +350,7 @@ function armOneShotInterrupts(session: ChatSession, controller: AbortController)
       state.controller?.abort()
     }
   }
+
   const offInterrupt = app.terminal.onInterrupt(onSignal)
   const offTerminate = app.terminal.onTerminate(onSignal)
 
@@ -381,6 +383,7 @@ async function runOneShotTurn(
   }
 
   state.controller = controller
+
   // A one-shot has no banner, and stdout carries the answer alone, so the label goes to stderr.
   app.err(aiLabelLine(session))
 

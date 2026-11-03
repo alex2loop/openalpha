@@ -3,13 +3,14 @@ import type { Database, SAHPoolUtil, Sqlite3Static } from '@sqlite.org/sqlite-wa
 import type { Logger } from '@/core/logging/logger'
 import type { Storage, Transaction } from '@/core/types/storage'
 import type { DatabaseFiles } from '@/persistence/engines/sqlite-wasm-files'
+import { BRAND } from '@/core/brand'
 import { StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createDatabaseFiles } from '@/persistence/engines/sqlite-wasm-files'
 import { createTransaction } from '@/persistence/engines/sqlite-wasm-sql'
 import { toStorageError } from '@/persistence/errors'
 
-export const DB_LOCK_NAME = 'openalpha-db'
+export const DB_LOCK_NAME = `${BRAND.name}-db`
 
 const LOCK_FAILED = 'database lock request failed'
 const PRAGMAS = ['PRAGMA foreign_keys = ON', 'PRAGMA journal_mode = TRUNCATE'] as const
@@ -169,6 +170,7 @@ function openPoolDatabase(pool: SAHPoolUtil, name: string): Database {
 // the module.
 async function loadSqlite(wasmUrl: string): Promise<Sqlite3Static> {
   const { default: init } = await import('@sqlite.org/sqlite-wasm')
+
   // why-safe: the declared signature omits the options argument; the module reads `locateFile`.
   const initWithOptions = init as unknown as InitSqlite
 
@@ -202,6 +204,7 @@ function createStorage(engine: Engine): {
   readonly files: DatabaseFiles
 } {
   const tx = createTransaction(() => engine.db)
+
   // One connection, and BEGIN IMMEDIATE is per-connection: a bare query/execute run while a
   // transaction is mid-flight would land inside it. Every op chains on this tail. The tail is
   // replaced, never appended.

@@ -25,7 +25,7 @@ import { parseJson } from '@/trading/kernel/store/store-row'
 // The stored shape of a suggestion's aggregate, apart from the row mapper that reads and writes it:
 // the schema is what a stored row is validated against, the mapping is what the domain does with it.
 
-const citationSchema = z.strictObject({
+export const citationSchema = z.strictObject({
   url: z.string(),
   title: z.string().optional(),
   publishedAt: z.number().finite().optional(),
