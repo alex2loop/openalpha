@@ -798,7 +798,7 @@
     "office.keys.title": "Phím tắt",
     "office.keys.note": "Phím tắt tắt khi con trỏ đang ở ô nhập. Không phím nào duyệt được khi thông báo đang đóng.",
     "office.keys.list": "Bảng phím tắt này",
-    "office.keys.focusInput": "Vào ô nhập",
+    "office.keys.focusInput": "Vào ô nhập; / khi ô trống thì mở sẵn một lệnh",
     "office.keys.tabs": "Mở Hôm nay / Danh mục / Đề xuất / Thị trường",
     "office.keys.back": "Mở lại thứ đang xem (agent, mã)",
     "office.keys.bell": "Thông báo và việc chờ duyệt",

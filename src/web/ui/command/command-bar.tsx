@@ -27,7 +27,7 @@ import {
 import { WhoChip } from '@/web/ui/command/who-chip'
 import { Button } from '@/web/ui/kit/button'
 import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
-import { ChatIcon, SendIcon, SlashIcon } from '@/web/ui/kit/icons'
+import { ChatIcon, SendIcon } from '@/web/ui/kit/icons'
 
 import './command.css'
 
@@ -97,7 +97,7 @@ function Composer({ isFloating }: { readonly isFloating: boolean }) {
           />
         )}
         <div class={isFloating ? `command-field ${FIELD_ISLAND}` : 'command-field'}>
-          <SlashIcon class="command-mark" />
+          <ChatIcon class="command-mark" />
           <CommandInput inputRef={input} list={list} options={options} />
           <kbd class="command-key">{COMMAND_PREFIX}</kbd>
         </div>

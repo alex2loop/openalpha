@@ -86,15 +86,6 @@ export function PlusIcon({ class: className }: IconProps) {
   )
 }
 
-// The command box's lead mark: a slash, for "/ to see commands".
-export function SlashIcon({ class: className }: IconProps) {
-  return (
-    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
-      <path d="m9 18 6-12" />
-    </svg>
-  )
-}
-
 export function ExternalIcon({ class: className }: IconProps) {
   return (
     <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>

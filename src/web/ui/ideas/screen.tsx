@@ -41,9 +41,10 @@ export function Opportunities() {
     <>
       {markets.length > 1 && (
         <Segmented
+          isTabs
           label={tr('ui.office.ideas.screen')}
           value={market.market}
-          options={markets.map((held) => ({ value: held.market, label: held.label }))}
+          options={markets.map((held) => ({ value: held.market, label: held.segmentLabel }))}
           onChange={(value) => {
             screenMarket.value = value
           }}
