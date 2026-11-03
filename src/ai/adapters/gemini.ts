@@ -90,7 +90,7 @@ export const geminiTransport: Transport = {
         headers: {
           'content-type': 'application/json',
           accept: 'text/event-stream',
-          ...(await resolveAuthHeaders(req, entry, { 'x-goog-api-key': entry.apiKey })),
+          ...(await resolveAuthHeaders(req, entry, (apiKey) => ({ 'x-goog-api-key': apiKey }))),
         },
         body: JSON.stringify(buildBody(req, entry)),
         signal: req.signal,

@@ -1,10 +1,10 @@
 import type { BrowserKeyring } from '@/app/browser/keys'
-import type { BrowserLogger } from '@/app/browser/logger'
 import type { BrowserRoot, OpenedRoot } from '@/app/browser/root'
 import type { ApiError } from '@/app/server/wire/errors'
 import type { ClientFrame } from '@/app/server/wire/socket'
 import type { DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/worker'
 import type { FrameSink } from '@/app/server/ws/frame-sink'
+import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import { type DbFileVerdict, validateDbFile } from '@/app/browser/db-file'
 import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
@@ -34,8 +34,6 @@ interface BridgeState {
   root?: BrowserRoot | undefined
   stopFeed?: (() => void) | undefined
   locale: Locale
-  /** Set by `shutdown`: nothing opens a database after it. */
-  closed: boolean
   /** The last lifecycle operation; the next one waits on it. Replaced, never appended to. */
   tail: Promise<void>
   /** One per request in flight, keyed by the page's id and removed when the request settles. */
@@ -45,12 +43,9 @@ interface BridgeState {
 interface BridgeContext {
   readonly post: (reply: WorkerReply) => void
   readonly keyring: BrowserKeyring
-  readonly logger: BrowserLogger
+  readonly logger: Logger
   readonly wasmUrl: string
   readonly state: BridgeState
-  /** Aborts every request in flight, stops the chat client and the bus listeners, and closes the
-   *  database, after any start still opening it. Idempotent. */
-  shutdown(): Promise<void>
 }
 
 export function createBridgeContext(
@@ -58,7 +53,6 @@ export function createBridgeContext(
 ): BridgeContext {
   const state: BridgeState = {
     locale: options.locale,
-    closed: false,
     tail: Promise.resolve(),
     controllers: new Map(),
   }
@@ -69,11 +63,6 @@ export function createBridgeContext(
     logger: options.logger,
     wasmUrl: options.wasmUrl,
     state,
-    shutdown: () => {
-      state.closed = true
-
-      return enqueue(state, () => releaseRoot(state, options.logger))
-    },
   }
 }
 
@@ -147,10 +136,6 @@ async function start(ctx: BridgeContext, steal: boolean): Promise<void> {
 
   await releaseRoot(state, ctx.logger)
 
-  if (state.closed) {
-    return
-  }
-
   const opened = await openBrowserRoot({
     locale: state.locale,
     steal,
@@ -173,13 +158,6 @@ async function serve(ctx: BridgeContext, opened: OpenedRoot): Promise<void> {
   }
 
   const { root } = opened
-
-  // A shutdown that came while the database was opening has nobody left to serve.
-  if (state.closed) {
-    await root.close()
-
-    return
-  }
 
   state.root = root
   state.stopFeed = followChatBus({ sink: createSink(ctx), client: root.chat })
@@ -204,7 +182,7 @@ function watchLoss(ctx: BridgeContext, root: BrowserRoot): void {
 }
 
 // Cleanup logs and goes on: a failure here must not stop the next start from opening the lock.
-async function releaseRoot(state: BridgeState, logger: BrowserLogger): Promise<void> {
+async function releaseRoot(state: BridgeState, logger: Logger): Promise<void> {
   const { root, stopFeed } = state
 
   state.root = undefined
@@ -288,7 +266,7 @@ async function serveOpen(ctx: BridgeContext, id: string, bytes: Uint8Array): Pro
   if (previous !== undefined) {
     await start(ctx, false)
 
-    if (ctx.state.root === undefined && !ctx.state.closed) {
+    if (ctx.state.root === undefined) {
       await restoreOld(ctx, previous)
       final = 'failed'
     }
@@ -310,9 +288,9 @@ interface Replacement {
 }
 
 async function replaceDatabase(ctx: BridgeContext, bytes: Uint8Array): Promise<Replacement> {
-  const { root, closed } = ctx.state
+  const { root } = ctx.state
 
-  if (root === undefined || closed) {
+  if (root === undefined) {
     return { outcome: 'failed' }
   }
 

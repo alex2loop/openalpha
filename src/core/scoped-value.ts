@@ -1,5 +1,7 @@
 import type { AsyncLocalStorage } from 'node:async_hooks'
 
+import { ConfigError } from '@/core/errors'
+
 type AsyncStorageClass = typeof AsyncLocalStorage
 
 /** A value visible to everything a function calls, without threading it through the seams between.
@@ -19,14 +21,25 @@ export function createScopedValue<T>(): ScopedValue<T> {
 }
 
 // `node:async_hooks` is reached through the process, never imported: the browser build denies the
-// specifier, and a browser worker has no `process` at all.
+// specifier, and a browser worker has no `process` at all. A runtime that has a process but cannot
+// hand the module over refuses to start: the synchronous scope would silently lose every value at
+// the first await.
 function findAsyncStorage(): AsyncStorageClass | undefined {
   const processRef: typeof process | undefined = globalThis.process
-  const asyncHooks = processRef?.getBuiltinModule?.('node:async_hooks')
 
-  return typeof asyncHooks?.AsyncLocalStorage === 'function'
-    ? asyncHooks.AsyncLocalStorage
-    : undefined
+  if (processRef === undefined) {
+    return undefined
+  }
+
+  const asyncHooks = processRef.getBuiltinModule?.('node:async_hooks')
+
+  if (typeof asyncHooks?.AsyncLocalStorage !== 'function') {
+    throw new ConfigError(
+      'this runtime cannot hand over node:async_hooks, which the daemon needs to follow a value across awaits'
+    )
+  }
+
+  return asyncHooks.AsyncLocalStorage
 }
 
 function createTrackedScope<T>(storage: AsyncLocalStorage<T>): ScopedValue<T> {

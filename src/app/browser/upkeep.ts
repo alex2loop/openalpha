@@ -74,7 +74,8 @@ async function runUpkeepPass(context: UpkeepContext): Promise<void> {
   }
 }
 
-// The pass already reported why it ended, and the sweep that follows is what makes room.
+// The pass already reported why it ended. A refresh that failed costs that pass its refresh, never
+// its sweep: deleting is what makes room, and the next sweep is hours away.
 async function refreshUnlessFull(
   context: UpkeepContext,
   listener: TaskPassListener
@@ -82,8 +83,8 @@ async function refreshUnlessFull(
   try {
     await reportPass(listener, REFRESH_PASS, () => refreshInUse(context, listener))
   } catch (err: unknown) {
-    if (!(err instanceof StorageFullError)) {
-      throw err
+    if (!(err instanceof StorageFullError || context.app.signal.aborted)) {
+      context.logger.warn('browser.refresh_pass_failed', { err: formatErrForLog(err) })
     }
   }
 }
