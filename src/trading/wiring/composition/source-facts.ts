@@ -314,7 +314,6 @@ export const BROWSER_REACHABLE_SOURCES: ReadonlySet<SourceId> = new Set<SourceId
   sourceId('pnj'),
   sourceId('rss'),
   sourceId('treasury'),
-  sourceId('vietcap-statements'),
   sourceId('vietcombank'),
   sourceId('vndirect'),
   sourceId('vndirect-index'),

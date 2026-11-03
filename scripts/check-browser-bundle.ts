@@ -44,7 +44,12 @@ const HOST_GLOBAL_RES: ReadonlyMap<string, RegExp> = new Map([
   ['__filename', /\b__filename\b/],
   ['require(', /(?<![.\w])require\(/],
   ['setImmediate', /\bsetImmediate\b/],
+  // A browser timer is a number: `.unref()` and `.ref()` throw on it. `unrefTimer` is the one caller.
+  ['.unref(', /\.unref\(/],
+  ['.ref(', /\.ref\(/],
 ])
+const TIMER_METHODS: ReadonlySet<string> = new Set(['.unref(', '.ref('])
+const TIMER_METHOD_OWNER = 'src/core/utils/time.ts'
 const COMMENT_LINE_RE = /^\s*(?:\/\/|\/?\*)/
 
 type Logs = Bun.BuildOutput['logs']
@@ -234,6 +239,10 @@ function sourcesOf(file: string, parents: Parents): string[] {
   return [...found]
 }
 
+function isOwnTimerMethod(name: string, source: string): boolean {
+  return TIMER_METHODS.has(name) && source === TIMER_METHOD_OWNER
+}
+
 async function hostGlobalReferences(sources: readonly string[]): Promise<readonly Leak[]> {
   const found = await Promise.all(
     sources.map(async (source) => {
@@ -243,7 +252,9 @@ async function hostGlobalReferences(sources: readonly string[]): Promise<readonl
         COMMENT_LINE_RE.test(line)
           ? []
           : [...HOST_GLOBAL_RES].flatMap(([name, re]) =>
-              re.test(line) ? [{ source, what: `${name} (line ${index + 1})` }] : []
+              re.test(line) && !isOwnTimerMethod(name, source)
+                ? [{ source, what: `${name} (line ${index + 1})` }]
+                : []
             )
       )
     })

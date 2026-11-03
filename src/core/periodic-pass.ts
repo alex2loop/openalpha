@@ -1,3 +1,5 @@
+import { unrefTimer } from '@/core/utils/time'
+
 interface PeriodicPassOptions {
   readonly everyMs: number
   readonly pass: () => Promise<void>
@@ -24,12 +26,8 @@ export function createPeriodicPass(options: PeriodicPassOptions): () => Promise<
       })
   }
 
-  const timer = setInterval(run, options.everyMs)
-
-  // A pass is never worth holding a process open for; a browser timer is a number with no unref.
-  if (hasUnref(timer)) {
-    timer.unref()
-  }
+  // A pass is never worth holding a process open for.
+  const timer = unrefTimer(setInterval(run, options.everyMs))
 
   // The first pass is not deferred an interval: whatever accrued while nothing ran is due now.
   run()
@@ -56,8 +54,4 @@ function reportQuietly(onError: (err: unknown) => void, err: unknown): void {
   } catch {
     // Nowhere left to report to.
   }
-}
-
-function hasUnref(timer: unknown): timer is { unref(): void } {
-  return typeof timer === 'object' && timer !== null && 'unref' in timer
 }
