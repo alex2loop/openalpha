@@ -78,6 +78,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'logging/silent-logger',
   'logging/inspection',
   'memory-key',
+  'periodic-pass',
   'stream-events',
   'tool',
   'types/agent-pause',

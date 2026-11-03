@@ -1,5 +1,5 @@
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { InstrumentRef, Ticker } from '@/trading/kernel/instrument'
+import type { InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { BarRecord } from '@/trading/kernel/market/market-data'
 import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
 import type { DayWindow } from '@/trading/markets/admissibility'
@@ -38,6 +38,7 @@ const BACKFILL_CHUNK_SESSIONS = 20
 /** Below this many names the backfill asks per name instead — a market-wide window costs the same
  *  pages whether one name needs it or all of them do. */
 const BACKFILL_MINIMUM_TARGETS = 50
+const NO_PAGED_WRITES: PagedWrites = Object.freeze({ recordCount: 0, restated: new Set<Ticker>() })
 
 /** Every instrument whose price series a factor reads, plus the reference legs the index and basis
  *  views need. Two passes: one shared tail window the provider answers market-wide, then the full
@@ -71,21 +72,16 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
     targets.filter((target) => !rebuilding.has(target.ticker)),
     { fromDay: window.tailFromDay, toDay: scope.request.asOf }
   )
-  const restated = new Set(
-    tail
-      .filter((outcome) => isRestated(closes.get(outcome.instrument.ticker), outcome.value))
-      .map((outcome) => outcome.instrument.ticker)
+  const restated = new Set(restatedIn(closes, tail))
+  const { outcomes: full, paged } = await fetchBackfill(
+    scope,
+    [...window.rebuild, ...targets.filter((target) => restated.has(target.ticker))],
+    closes
   )
-  const full = await fetchBackfill(scope, [
-    ...window.rebuild,
-    ...targets.filter((target) => restated.has(target.ticker)),
-  ])
   // Judged on the deep window too, not only the tail: a forced pass rebuilds every name without a
   // tail, and naming none of them left old-basis plans behind history that now matched its source.
   // A window that did not come back keeps the basis it had, so its plans still describe the series.
-  const rebuilt = full
-    .filter((outcome) => isRestated(closes.get(outcome.instrument.ticker), outcome.value))
-    .map((outcome) => outcome.instrument.ticker)
+  const rebuilt = [...restatedIn(closes, full), ...paged.restated]
 
   return writeBars(
     scope,
@@ -95,9 +91,34 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
         .map((outcome) => ({ outcome, fromDay: window.tailFromDay })),
       ...full.map((outcome) => ({ outcome, fromDay: scope.fromDay })),
     ],
-    rebuilt
+    { restated: rebuilt, writtenCount: paged.recordCount }
   )
 }
+
+type BarCloses = ReadonlyMap<Ticker, ReadonlyMap<TradingDay, number>>
+type BarOutcome = TargetOutcome<readonly BarRecord[]>
+
+function restatedIn(closes: BarCloses, outcomes: readonly BarOutcome[]): readonly Ticker[] {
+  return outcomes
+    .filter((outcome) => isRestated(closes.get(outcome.instrument.ticker), outcome.value))
+    .map((outcome) => outcome.instrument.ticker)
+}
+
+/** What the chunked windows have already put in the store, window by window. */
+interface PagedWrites {
+  readonly recordCount: number
+  /** Names whose stored closes disagreed with a window fetched for them. */
+  readonly restated: ReadonlySet<Ticker>
+}
+
+interface Backfill {
+  readonly outcomes: readonly BarOutcome[]
+  readonly paged: PagedWrites
+}
+
+/** Stands in for the records of a name every window answered for: they are in the store already,
+ *  and the outcome only still carries its provenance and caveats. */
+const WRITTEN: readonly BarRecord[] = Object.freeze([])
 
 /** One deep window is a request per name; a run of short ones is a few paged reads the whole board
  *  shares. Under the minimum that inverts, so a repair of a handful of names still asks per name.
@@ -108,19 +129,20 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
  *  deep request they would have taken anyway. */
 async function fetchBackfill(
   scope: EvidenceScope,
-  targets: readonly InstrumentRef[]
-): Promise<readonly TargetOutcome<readonly BarRecord[]>[]> {
-  const window = { fromDay: scope.fromDay, toDay: scope.request.asOf }
+  targets: readonly InstrumentRef[],
+  closes: BarCloses
+): Promise<Backfill> {
+  const window = fullWindow(scope)
   const board = new Set(
     tradeableTargets(scope.universe, BOARD_KINDS).map((target) => target.ticker)
   )
   const shared = targets.filter((target) => board.has(target.ticker))
 
   if (shared.length < BACKFILL_MINIMUM_TARGETS) {
-    return fetchAllBars(scope, targets, window)
+    return { outcomes: await fetchAllBars(scope, targets, window), paged: NO_PAGED_WRITES }
   }
 
-  const chunked = await fetchChunkedBars(scope, shared, window)
+  const { outcomes: chunked, paged } = await fetchChunkedBars(scope, shared, closes)
   const single = [
     ...targets.filter((target) => !board.has(target.ticker)),
     ...chunked
@@ -128,33 +150,58 @@ async function fetchBackfill(
       .map((outcome) => outcome.instrument),
   ]
 
-  return [
-    ...chunked.filter((outcome) => outcome.value !== undefined),
-    ...(await fetchAllBars(scope, single, window)),
-  ]
+  return {
+    outcomes: [
+      ...chunked.filter((outcome) => outcome.value !== undefined),
+      ...(await fetchAllBars(scope, single, window)),
+    ],
+    paged,
+  }
+}
+
+function fullWindow(scope: EvidenceScope): DayWindow {
+  return { fromDay: scope.fromDay, toDay: scope.request.asOf }
 }
 
 /** Windows run in sequence and names inside them concurrently, so every name in a pass asks the
- *  provider for the same span and reads its slice of one market-wide answer. */
+ *  provider for the same span and reads its slice of one market-wide answer. Each window is written
+ *  before the next is fetched, so no more than one window of bars is ever held. */
 async function fetchChunkedBars(
   scope: EvidenceScope,
   targets: readonly InstrumentRef[],
-  window: DayWindow
-): Promise<readonly TargetOutcome<readonly BarRecord[]>[]> {
-  const merged = new Map<Ticker, TargetOutcome<readonly BarRecord[]>>()
+  closes: BarCloses
+): Promise<Backfill> {
+  const merged = new Map<Ticker, BarOutcome>()
+  const restated = new Set<Ticker>()
+  let recordCount = 0
 
-  for (const chunk of chunkWindows(scope.calendar, window)) {
-    for (const outcome of await fetchAllBars(scope, targets, chunk)) {
-      const held = merged.get(outcome.instrument.ticker)
+  for (const chunk of chunkWindows(scope.calendar, fullWindow(scope))) {
+    const fetched = await fetchAllBars(scope, targets, chunk)
+    const written = await writeBarWindows({
+      deps: scope.deps,
+      market: VN_MARKET_REF,
+      toDay: chunk.toDay,
+      writes: fetched.map((outcome) => ({ outcome, fromDay: chunk.fromDay })),
+      signal: scope.request.signal,
+    })
+    const refused = new Set<string>(written.conflicted.map((instrument) => instrument.ticker))
 
-      merged.set(
-        outcome.instrument.ticker,
-        held === undefined ? outcome : mergeChunk(held, outcome)
-      )
+    recordCount += written.recordCount
+
+    for (const outcome of fetched) {
+      const { ticker } = outcome.instrument
+      const held = merged.get(ticker)
+      const settled = afterWrite(outcome, refused.has(ticker))
+
+      if (isRestated(closes.get(ticker), outcome.value)) {
+        restated.add(ticker)
+      }
+
+      merged.set(ticker, held === undefined ? settled : mergeChunk(held, settled))
     }
   }
 
-  return [...merged.values()]
+  return { outcomes: [...merged.values()], paged: { recordCount, restated } }
 }
 
 /** Oldest first, so the merged series is already in the order every reader expects. */
@@ -173,13 +220,21 @@ function chunkWindows(calendar: TradingCalendar, window: DayWindow): readonly Da
   return chunks
 }
 
-/** A name survives only while every window answered for it: the write clears the whole span
- *  before writing, so a gap left by one failed window would erase history rather than leave it.
- *  The caller refetches the losers over the whole span instead. */
-function mergeChunk(
-  held: TargetOutcome<readonly BarRecord[]>,
-  chunk: TargetOutcome<readonly BarRecord[]>
-): TargetOutcome<readonly BarRecord[]> {
+/** A name whose window the store refused, for joining a different adjustment basis, reads as one
+ *  the window did not answer for: the single deep request that follows asks again, and reports it
+ *  if it is refused again. */
+function afterWrite(outcome: BarOutcome, refused: boolean): BarOutcome {
+  const { instrument, provenance, caveats } = outcome
+
+  return outcome.value === undefined || refused
+    ? { instrument, provenance, caveats }
+    : { instrument, value: WRITTEN, provenance, caveats }
+}
+
+/** A name survives only while every window answered for it: a window that failed leaves a gap the
+ *  coverage test counts rather than dates, so the caller refetches the losers over the whole span
+ *  instead. */
+function mergeChunk(held: BarOutcome, chunk: BarOutcome): BarOutcome {
   const provenance = dedupeProvenance([...held.provenance, ...chunk.provenance])
   const caveats = dedupeCaveats([...held.caveats, ...chunk.caveats])
 
@@ -187,12 +242,7 @@ function mergeChunk(
     return { instrument: held.instrument, provenance, caveats }
   }
 
-  return {
-    instrument: held.instrument,
-    value: [...held.value, ...chunk.value],
-    provenance,
-    caveats,
-  }
+  return { instrument: held.instrument, value: WRITTEN, provenance, caveats }
 }
 
 function fetchAllBars(
@@ -266,15 +316,18 @@ async function fetchBars(
 async function writeBars(
   scope: EvidenceScope,
   writes: readonly BarWrite[],
-  restatedTargets: readonly string[]
+  tally: { readonly restated: readonly string[]; readonly writtenCount: number }
 ): Promise<RefreshKindResult> {
-  const { recordCount, conflicted } = await writeBarWindows({
+  const finalWrite = await writeBarWindows({
     deps: scope.deps,
     market: VN_MARKET_REF,
     toDay: scope.request.asOf,
     writes,
     signal: scope.request.signal,
   })
+
+  const { conflicted } = finalWrite
+  const recordCount = finalWrite.recordCount + tally.writtenCount
 
   invalidateWhenWritten(scope, recordCount)
 
@@ -287,7 +340,7 @@ async function writeBars(
     recordCount,
     coveredFrom: resolveCoveredFrom(scope.storedFrom, scope.fromDay),
     // A refused write leaves the old bars standing, so the name is not one this pass rebuilt.
-    restatedTargets: restatedTargets.filter((name) => !refused.has(name)),
+    restatedTargets: tally.restated.filter((name) => !refused.has(name)),
     caveats: basisConflictCaveats(conflicted),
   })
 }

@@ -1,7 +1,7 @@
 import type { BrowserKeyring } from '@/app/browser/keys'
 import type { App } from '@/core/container'
 import type { SlashContext, SlashResult } from '@/core/types/command'
-import type { BookReads, TradingEdition } from '@/trading/api'
+import type { BookReads, InstrumentRef, TradingEdition } from '@/trading/api'
 import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
@@ -43,6 +43,9 @@ const MARKETS: ReadonlySet<ReturnType<typeof marketRef>> = new Set([
 
 const NEEDS_KEY = 'slash.tradingSuggestAnalysisNeedsKey'
 
+/** How many of the newest analyses name the instruments the visitor looked at. */
+const VIEWED_ANALYSES = 30
+
 /** Nothing here stores a suggestion or plans an exit, so every read of one answers empty: no
  *  verdict closes a name, no plan is written when a trade is recorded, no stop distance is listed,
  *  and the brief's sweep, resolved calls, fired alerts and exit watch have nothing to say. */
@@ -76,7 +79,17 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
     },
     rebalance: 'gaps',
     reads: EMPTY_READS,
+    viewed: ({ signal }) => viewedInstruments(app, signal),
   }
+}
+
+// What the visitor asked an analysis of: the one record of a name looked at that outlives the tab.
+async function viewedInstruments(app: App, signal: AbortSignal): Promise<readonly InstrumentRef[]> {
+  const page = await app
+    .resolve('tradingStores')
+    .analysis.listPage({ limit: VIEWED_ANALYSES, signal })
+
+  return page.items.map((record) => record.instrument)
 }
 
 interface AnalysisCall {

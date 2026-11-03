@@ -31,6 +31,7 @@ const LABEL_KEYS: ReadonlyMap<string, MessageKey> = new Map([
   ['update', 'ui.task.update'],
   ['social', 'ui.task.social'],
   ['channels.watch', 'ui.task.channels.watch'],
+  ['browser.history', 'ui.office.edition.history.task'],
   ['workflows', 'ui.task.workflows'],
 ])
 

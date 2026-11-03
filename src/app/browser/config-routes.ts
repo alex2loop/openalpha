@@ -6,12 +6,14 @@ import type {
   ConfigWriteResult,
   ProviderCatalogResponse,
 } from '@/app/server/wire/config'
+import type { StorageStatusResponse } from '@/app/server/wire/storage'
 import type { ApiRouteContext, ApiRouteGroup, ApiRouteSpec } from '@/app/types'
 import type { Logger } from '@/core/logging/logger'
 import type { ConfigOverrideStore } from '@/persistence/api'
 import { findProviderById } from '@/ai/api'
 import { SHIPPED_TIERS, type TierOverrides, TierOverridesSchema } from '@/app/browser/config'
 import { BROWSER_AI_PROVIDERS } from '@/app/browser/keys'
+import { readPersistence } from '@/app/browser/persistence'
 import { json } from '@/app/server/http/dispatch'
 import { localeOf, readJsonBody, toBodyFieldLabel } from '@/app/server/routes/params'
 import { toFieldValidationError } from '@/core/field-errors'
@@ -121,6 +123,12 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
   } satisfies ConfigWriteResult)
 }
 
+async function handleStorage(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const persisted = await readPersistence(ctx.app.resolve('configOverrides'), req.signal)
+
+  return json({ persisted } satisfies StorageStatusResponse)
+}
+
 function handleProviders(): Promise<Response> {
   const providers = BROWSER_AI_PROVIDERS.flatMap((id) => {
     const entry = findProviderById(id)
@@ -146,10 +154,12 @@ function handleProviders(): Promise<Response> {
 const CONFIG_ROUTES: readonly ApiRouteSpec[] = [
   { method: 'GET', path: '/v1/config', auth: true, handler: handleConfigGet },
   { method: 'GET', path: '/v1/providers', auth: true, handler: handleProviders },
+  { method: 'GET', path: '/v1/storage', auth: true, handler: handleStorage },
   { method: 'POST', path: '/v1/config/validate', auth: true, handler: handleConfigValidate },
   { method: 'POST', path: '/v1/config', auth: true, handler: handleConfigPut },
 ]
 
 /** The config routes the page edits the model tiers with: the same paths and shapes as the
- *  daemon's, over the browser database instead of a file. */
+ *  daemon's, over the browser database instead of a file; and what the browser answered about
+ *  keeping the data. */
 export const BROWSER_CONFIG_GROUP: ApiRouteGroup = { name: 'config', routes: CONFIG_ROUTES }

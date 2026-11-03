@@ -4,6 +4,7 @@ import type { RebalanceForm, ReduceVerdicts } from '@/trading/features/portfolio
 import type { SuggestAnalysis } from '@/trading/features/suggestion/command'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
+import type { MarketDeps } from '@/trading/markets/deps'
 
 /** The reads of a book that holds no suggestion and plans no exit: each answers empty, which every
  *  reader takes as absent, never as zero. They are the verdict the book would close a name on, the
@@ -39,6 +40,9 @@ export interface TradingEdition {
   readonly rebalance?: RebalanceForm
   /** What an edition that stores no suggestion and plans no exit answers itself. */
   readonly reads?: BookReads
+  /** The names the visitor looked at, where statements are fetched for the book, the watchlist and
+   *  these alone instead of the whole screened board. */
+  readonly viewed?: MarketDeps['viewedInstruments']
 }
 
 /** Whether an edition builds `market`: every market, unless it names the ones it ships. */

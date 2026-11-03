@@ -12,6 +12,7 @@ import { resolveBrowserConfig } from '@/app/browser/config'
 import { readTierOverrides } from '@/app/browser/config-routes'
 import { authorizeVisitor } from '@/app/browser/host'
 import { createBrowserApp } from '@/app/browser/providers'
+import { startBrowserUpkeep } from '@/app/browser/upkeep'
 import { hydrateCostTracker } from '@/app/cost-hydration'
 import { createLiveFeed } from '@/app/server/feed/live'
 import { buildCapabilities } from '@/app/server/http/capabilities'
@@ -168,6 +169,8 @@ function assembleRoot(parts: AssembleParts): BrowserRoot {
   })
   const route: ApiRouteContext = { app, live, authorize: authorizeVisitor, isReady: () => true }
   let closed: Promise<void> | undefined
+  // Started last: nothing after it can throw and leave it running with no one to stop it.
+  const stopUpkeep = startBrowserUpkeep(app, app.resolve('logger'))
 
   return {
     app,
@@ -179,6 +182,7 @@ function assembleRoot(parts: AssembleParts): BrowserRoot {
       closed ??= (async () => {
         shutdown.abort()
         live.stop()
+        await stopUpkeep()
         await opened.storage.close()
       })()
 

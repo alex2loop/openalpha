@@ -18,7 +18,10 @@ declare global {
 
   interface Navigator {
     readonly locks?: BrowserLockManager
-    readonly storage?: { readonly getDirectory?: () => Promise<unknown> }
+    readonly storage?: {
+      readonly getDirectory?: () => Promise<unknown>
+      readonly persist?: () => Promise<boolean>
+    }
   }
 
   const FileSystemFileHandle: { readonly prototype: object } | undefined

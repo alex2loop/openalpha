@@ -3,21 +3,21 @@ import { join } from 'node:path'
 import type { App, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { WorkspaceCleanupResult } from '@/engine/api'
+import { RETENTION_INTERVAL_MS, runPortableRetention } from '@/app/portable-retention'
 import { reportPass } from '@/core/container'
 import { pruneRemovedAgentLogs } from '@/core/logging/retention'
+import { createPeriodicPass } from '@/core/periodic-pass'
 import { formatErrForLog } from '@/core/security/credentials'
-import { MS_PER_DAY, MS_PER_HOUR } from '@/core/utils/time'
+import { MS_PER_DAY } from '@/core/utils/time'
 import { pruneExpiredRunCaches, pruneExpiredWorkspaceTmp } from '@/engine/node-api'
-import { optimizeSqlite, runRetention } from '@/persistence/api'
+import { optimizeSqlite } from '@/persistence/api'
 import {
   BACKUPS_SUBDIR,
   backupAndPrune,
   backupTarget,
   newestBackupAt,
 } from '@/persistence/node-api'
-import { HISTORY_FLOOR_DAYS } from '@/trading/api'
 
-const RETENTION_INTERVAL_MS = 6 * MS_PER_HOUR
 const DAILY_BACKUPS_SUBDIR = 'daily'
 const RETENTION_PASS = { name: 'retention', everyMs: RETENTION_INTERVAL_MS }
 
@@ -28,51 +28,19 @@ export function startRetention(
   logger: Logger,
   onTaskPass: TaskPassListener
 ): () => Promise<void> {
-  let inFlight: Promise<void> | null = null
-
-  const sweep = (): void => {
-    if (inFlight !== null) {
-      return
-    }
-
-    inFlight = reportPass(onTaskPass, RETENTION_PASS, () => runRetentionSweep(app, logger))
-      .catch((err: unknown) => {
-        logger.warn('retention.failed', { err: formatErrForLog(err) })
-      })
-      .finally(() => {
-        inFlight = null
-      })
-  }
-
-  const timer = setInterval(sweep, RETENTION_INTERVAL_MS)
-  // A pruning sweep is never worth holding the process open for.
-  timer.unref()
-  // Run the first sweep immediately so a long-lived daemon does not wait a full interval
-  // before reclaiming anything created while it was down.
-  sweep()
-
-  return async () => {
-    clearInterval(timer)
-    if (inFlight !== null) {
-      await inFlight
-    }
-  }
+  return createPeriodicPass({
+    everyMs: RETENTION_INTERVAL_MS,
+    pass: () => reportPass(onTaskPass, RETENTION_PASS, () => runRetentionSweep(app, logger)),
+    onError: (err) => {
+      logger.warn('retention.failed', { err: formatErrForLog(err) })
+    },
+  })
 }
 
 async function runRetentionSweep(app: App, logger: Logger): Promise<void> {
   const cutoffAt = retentionCutoffAt(app)
 
-  await runRetention(app.resolve('storage'), app.resolve('dialect'), {
-    config: {
-      retentionDays: app.config.retention.days,
-      historyRetentionDays: app.config.retention.historyDays,
-      inboxRetentionDays: app.config.retention.inboxDays,
-      historyFloors: HISTORY_FLOOR_DAYS,
-    },
-    logger,
-  }).catch((err: unknown) => {
-    logger.warn('retention.database_failed', { err: formatErrForLog(err) })
-  })
+  await runPortableRetention(app, logger)
 
   await runWorkspaceTmpRetention(app, logger, cutoffAt)
   await runRunCacheRetention(app, logger, cutoffAt)
