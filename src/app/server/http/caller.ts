@@ -6,7 +6,6 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR, MS_PER_SECOND } from '@/core/utils/time'
 
 export const SESSION_IDLE_MS = 30 * MS_PER_DAY
-export const SET_COOKIE = 'Set-Cookie'
 /** A session's `lastSeenAt` moves at most this often, so a busy page writes once an hour. */
 const SESSION_TOUCH_MS = MS_PER_HOUR
 const SESSION_COOKIE_PREFIX = 'oa_session'

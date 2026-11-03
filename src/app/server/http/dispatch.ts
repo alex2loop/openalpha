@@ -1,5 +1,3 @@
-import type { AuthOutcome } from '@/app/server/http/auth'
-import type { Caller } from '@/app/server/http/caller'
 import type {
   ApiError,
   ApiErrorCode,
@@ -9,8 +7,6 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import type { Locale } from '@/core/types/locale'
-import { isAuthLocked, isLoopback, resolveAuthOutcome } from '@/app/server/http/auth'
-import { resolveCaller, SET_COOKIE } from '@/app/server/http/caller'
 import { buildCapabilities } from '@/app/server/http/capabilities'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
@@ -21,6 +17,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale, t } from '@/i18n'
 import { PriceUnconfirmedError } from '@/trading/api'
 
+export const SET_COOKIE = 'Set-Cookie'
 const PARAM_PREFIX = ':'
 const SERVER_ERROR_STATUS = 500
 // Nobody reads the answer to a request the client already dropped; the status only labels it.
@@ -88,11 +85,6 @@ function isCapabilityDenied(app: App, route: ApiRouteSpec): boolean {
 }
 
 export async function handleHttp(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  // Defence in depth: Bun.serve already binds 127.0.0.1, so a non-loopback peer should be impossible.
-  if (!isLoopback(ctx.ip)) {
-    return apiError('forbidden')
-  }
-
   const url = new URL(req.url)
   const route = ctx.app
     .resolve('apiRoutes')
@@ -113,14 +105,14 @@ export async function handleHttp(req: Request, ctx: ApiRouteContext): Promise<Re
   return isCapabilityDenied(ctx.app, route) ? apiError('unavailable') : runHandler(route, req, ctx)
 }
 
-/** A route behind auth: the bearer token or the session cookie, then the capability, then the
- *  handler with the browser session it came from. */
+/** A route behind auth: the surface's `authorize`, then the capability, then the handler with the
+ *  browser session it came from. */
 async function runAuthorized(
   route: ApiRouteSpec,
   req: Request,
   ctx: ApiRouteContext
 ): Promise<Response> {
-  const caller = await resolveAuthorizedCaller(req, ctx)
+  const caller = await ctx.authorize(req, ctx)
 
   if (caller instanceof Response) {
     return caller
@@ -261,36 +253,4 @@ export function toErrorCode(err: unknown): ApiErrorCode {
   }
 
   return err instanceof ChannelError ? 'upstream_failed' : 'internal'
-}
-
-/** Who sent the request, or the refusal to answer instead. HTTP and the socket upgrade both ask
- *  here, so a cookie and a token are judged alike on each. */
-export async function resolveAuthorizedCaller(
-  req: Request,
-  ctx: Pick<ApiRouteContext, 'app' | 'token' | 'peer' | 'pageOrigin' | 'cookieName'>
-): Promise<Caller | Response> {
-  // One clock read per request: the lockout window, the failure it records and the session's
-  // idle cutoff must agree.
-  const now = Date.now()
-  const caller = await resolveCaller(req, {
-    token: ctx.token,
-    sessions: ctx.app.resolve('browserSessionStore'),
-    pageOrigin: ctx.pageOrigin,
-    cookieName: ctx.cookieName,
-    now,
-    locked: isAuthLocked(ctx.peer, now),
-    logger: ctx.app.resolve('logger'),
-  })
-
-  return toAuthRefusal(resolveAuthOutcome(ctx.peer, caller.credential, now)) ?? caller
-}
-
-/** The one place an auth verdict becomes a status. HTTP and the WebSocket upgrade refuse alike, so
- *  a lockout cannot read as a bad token on one surface and a ban on the other. */
-export function toAuthRefusal(outcome: AuthOutcome): Response | null {
-  if (outcome === 'locked') {
-    return apiError('locked')
-  }
-
-  return outcome === 'ok' ? null : apiError('unauthorized')
 }

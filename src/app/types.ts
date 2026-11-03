@@ -1,6 +1,8 @@
 import type { DeliveryHub } from '@/app/delivery'
 import type { LiveFeed } from '@/app/server/feed/live'
+import type { Caller } from '@/app/server/http/caller'
 import type { SignInCodes } from '@/app/server/http/sign-in-codes'
+import type { SystemHost } from '@/app/server/routes/system'
 import type { ChannelDefinition } from '@/channels/api'
 import type { Command, Group, KeyFile } from '@/cli/api'
 import type { KeyValidator } from '@/commands/api'
@@ -44,19 +46,31 @@ type ServerStarter = (
   env: Readonly<Record<string, string | undefined>>
 ) => Promise<ApiHandle>
 
-export interface ApiRouteContext {
-  readonly app: App
+/** What only the daemon's HTTP surface knows about a request: the peer, the page it belongs to and
+ *  the secrets that sign it in. The browser worker has none of it. */
+export interface DaemonRequest {
   readonly token: string
-  readonly live: LiveFeed
   readonly ip: string | null
   /** Who the request counts as for the auth lockout, as `resolvePeerKey` found it. */
   readonly peer: string
   /** The origin of the page the request belongs to, as `resolvePageOrigin` found it. */
   readonly pageOrigin: string
   readonly cookieName: string
+  readonly codes: SignInCodes
+}
+
+/** Who sent the request, or the refusal to answer instead. The surface that serves the routes
+ *  decides what a caller is: the daemon judges a token or a cookie, the worker has one caller. */
+export type Authorize = (req: Request, ctx: ApiRouteContext) => Promise<Caller | Response>
+
+export interface ApiRouteContext {
+  readonly app: App
+  readonly live: LiveFeed
+  readonly authorize: Authorize
   /** False while the daemon is still starting its subsystems. */
   isReady(): boolean
-  readonly codes: SignInCodes
+  /** Present on the daemon's HTTP surface only; a route that needs it reads it through `daemonOf`. */
+  readonly daemon?: DaemonRequest
   /** The browser session the request came from; absent for the bearer token and on open routes. */
   readonly browserSessionId?: string
 }
@@ -77,11 +91,23 @@ export interface ApiRouteSpec {
   handler(req: Request, ctx: ApiRouteContext): Promise<Response>
 }
 
+/** A named run of routes one surface takes whole; a surface lists the groups it serves. */
+export interface ApiRouteGroup {
+  readonly name: string
+  readonly routes: readonly ApiRouteSpec[]
+}
+
+/** The composed table, checked once: no two routes share a method and path. */
+export type ApiRouteTable = readonly ApiRouteSpec[]
+
 declare module '@/core/container' {
   interface Services {
     // The HTTP/WS API (src/app/server); the daemon starts it only with [api] enabled.
     apiStarter: ServerStarter
-    apiRoutes: readonly ApiRouteSpec[]
+    apiRoutes: ApiRouteTable
+    /** What the process running the api answers for itself: its pid, restart and login state, and
+     *  which optional features it runs. The daemon binds the CLI-dependent parts. */
+    systemHost: SystemHost
     /** The key file the entry loaded before boot: where `/v1/credentials` writes, and which names
      *  it set in the environment. */
     keyFile: KeyFile

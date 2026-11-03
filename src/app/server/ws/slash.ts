@@ -1,8 +1,7 @@
-import type { ServerWebSocket } from 'bun'
-import { randomUUID } from 'node:crypto'
-
 import type { LaneTag } from '@/app/server/wire/chat'
-import type { WsData, WsServices } from '@/app/server/ws/socket'
+import type { FrameSink } from '@/app/server/ws/frame-sink'
+import type { ChatClient, ChatLink } from '@/app/server/ws/runs'
+import type { WsServices } from '@/app/server/ws/socket'
 import type { HelpRequest, SlashDispatcher } from '@/commands/api'
 import type { AgentId, SessionId } from '@/core/ids'
 import type { SlashContext, SlashResult } from '@/core/types/command'
@@ -12,13 +11,12 @@ import { resolveAgentId } from '@/app/server/ws/chat'
 import {
   type CommandStartWatch,
   registerCommandRun,
-  send,
   sendOperatorFailure,
   sendRunError,
   toLaneTag,
   toTurnTag,
   trackLaneItem,
-  unregisterSocketRun,
+  unregisterRun,
   watchCommandStart,
 } from '@/app/server/ws/runs'
 import { HELP_COMMAND, parseHelpLine, renderCommandHelp, renderMessages } from '@/commands/api'
@@ -32,7 +30,7 @@ import { TRADE_COMMAND_NAME } from '@/trading/api'
 type ResolvedSlash = ReturnType<SlashDispatcher['resolve']>
 
 interface SlashRun {
-  readonly ws: ServerWebSocket<WsData>
+  readonly link: ChatLink
   readonly sessionId: SessionId
   readonly line: string
   readonly resolved: ResolvedSlash
@@ -50,55 +48,59 @@ interface SlashRun {
   readonly clientId?: string
 }
 
-/** A message to run as an agent turn; `id` is the client's id for the message that asked. */
+/** A message to run as an agent turn in `sessionId`; `id` is the client's id for the message that
+ *  asked. */
 export interface ChatRunRequest extends LaneTag {
+  readonly sessionId: SessionId
   readonly message: string
   readonly agentId?: AgentId
 }
 
-/** One slash line and the client's id for it, when the client sent one. */
+/** One slash line in `sessionId` and the client's id for it, when the client sent one. */
 interface SlashLine extends LaneTag {
+  readonly sessionId: SessionId
   readonly line: string
   readonly quiet?: true
 }
 
 /** Returns the message to run as a turn, or null when the slash command was terminal. */
 export async function runSlash(
-  ws: ServerWebSocket<WsData>,
-  sessionId: SessionId,
-  input: SlashLine
+  input: SlashLine,
+  sink: FrameSink,
+  client: ChatClient
 ): Promise<ChatRunRequest | null> {
-  const { line } = input
+  const { line, sessionId } = input
+  const link: ChatLink = { sink, client }
   const controller = new AbortController()
-  const resolved = ws.data.services.slashDispatcher.resolve(line)
+  const resolved = client.services.slashDispatcher.resolve(line)
   const longRunning = resolved?.policy.execution !== undefined
 
-  if (resolved?.command.name === TRADE_COMMAND_NAME && !ws.data.services.apiOrders) {
-    sendOperatorFailure(ws, { key: 'errors.apiOrdersOff' }, toLaneTag(input.id))
+  if (resolved?.command.name === TRADE_COMMAND_NAME && !client.services.apiOrders) {
+    sendOperatorFailure(link, { key: 'errors.apiOrdersOff' }, toLaneTag(input.id))
 
     return null
   }
 
-  if (longRunning && !registerCommandRun(ws, sessionId, controller)) {
+  if (longRunning && !registerCommandRun(link, sessionId, controller)) {
     return null
   }
 
   const isQuiet = input.quiet === true && longRunning
   const base = toSlashRun(
-    { ws, sessionId, line, resolved, controller, longRunning, isQuiet },
+    { link, sessionId, line, resolved, controller, longRunning, isQuiet },
     input.id
   )
   const help = parseHelpLine(line)
 
   if (help !== null) {
-    sendChat(base, renderHelp(ws.data.services, help))
+    sendChat(base, renderHelp(client.services, help))
 
     return null
   }
 
   const run: SlashRun =
     isQuiet && base.ctx.runId !== undefined
-      ? { ...base, quietStart: watchCommandStart(ws.data.services.bus, base.ctx.runId) }
+      ? { ...base, quietStart: watchCommandStart(client.services.bus, base.ctx.runId) }
       : base
 
   try {
@@ -116,7 +118,7 @@ export async function runSlash(
     run.quietStart?.stop()
 
     if (longRunning) {
-      unregisterSocketRun(ws, sessionId, controller)
+      unregisterRun(client, sessionId, controller)
     }
   }
 }
@@ -137,9 +139,9 @@ function toSlashRun(
   input: Omit<SlashRun, 'ctx' | 'tag' | 'inLane' | 'clientId' | 'quietStart'>,
   clientId: string | undefined
 ): SlashRun {
-  const { ws, sessionId, resolved, controller, longRunning, isQuiet } = input
-  const { services } = ws.data
-  const requestId = randomUUID()
+  const { link, sessionId, resolved, controller, longRunning, isQuiet } = input
+  const { services } = link.client
+  const requestId = crypto.randomUUID()
   const inLane = longRunning && resolved?.policy.selfContained === true
   const tag: LaneTag = inLane ? { id: clientId ?? requestId } : toLaneTag(clientId)
   const ctx: SlashContext = {
@@ -157,11 +159,11 @@ function toSlashRun(
     args: [],
     // Named here, before the command starts, so a queued command can tell the client which run
     // it will be; the dispatcher keeps it.
-    ...(longRunning ? { runId: brandRunId(randomUUID()) } : {}),
+    ...(longRunning ? { runId: brandRunId(crypto.randomUUID()) } : {}),
     ...(isQuiet ? { isQuiet: true } : {}),
     progress: (key, params) => {
       if (!controller.signal.aborted) {
-        send(ws, {
+        link.sink.send({
           type: 'chat',
           kind: 'progress',
           text: bindLocale(services.locale).translate(key, params),
@@ -175,7 +177,8 @@ function toSlashRun(
 }
 
 async function execute(run: SlashRun): Promise<SlashResult | null> {
-  const { ws, sessionId, controller, longRunning, tag } = run
+  const { link, sessionId, controller, longRunning, tag } = run
+  const { services } = link.client
 
   if (run.inLane && tag.id !== undefined) {
     return runInLane(run, tag.id)
@@ -187,19 +190,19 @@ async function execute(run: SlashRun): Promise<SlashResult | null> {
 
   // Held behind the session's turn: a client that tagged the line hears that it waits, and when it
   // begins.
-  const hasWaited = run.clientId !== undefined && ws.data.services.sessionQueue.depth(sessionId) > 0
+  const hasWaited = run.clientId !== undefined && services.sessionQueue.depth(sessionId) > 0
 
   if (hasWaited) {
-    send(ws, { type: 'chat', kind: 'queued', ...toTurnTag(run.clientId, sessionId) })
+    link.sink.send({ type: 'chat', kind: 'queued', ...toTurnTag(run.clientId, sessionId) })
   }
 
-  return ws.data.services.sessionQueue.enqueue(sessionId, async () => {
+  return services.sessionQueue.enqueue(sessionId, async () => {
     if (controller.signal.aborted) {
       return null
     }
 
     if (hasWaited && run.clientId !== undefined) {
-      send(ws, { type: 'chat', kind: 'started', id: run.clientId, sessionId })
+      link.sink.send({ type: 'chat', kind: 'started', id: run.clientId, sessionId })
     }
 
     return dispatchSlash(run)
@@ -209,8 +212,8 @@ async function execute(run: SlashRun): Promise<SlashResult | null> {
 /** A self-contained command runs beside the session's turn. It waits only when the chat already has
  *  as many commands running as the lane allows, and says so while it does. */
 async function runInLane(run: SlashRun, id: string): Promise<SlashResult | null> {
-  const { ws, sessionId, controller, ctx } = run
-  const { services } = ws.data
+  const { link, sessionId, controller, ctx } = run
+  const { services } = link.client
   const registration = await openLaneRegistration(services, sessionId)
 
   // The socket may have closed while the route was being opened.
@@ -220,21 +223,21 @@ async function runInLane(run: SlashRun, id: string): Promise<SlashResult | null>
     return null
   }
 
-  trackLaneItem(ws, controller, id)
+  trackLaneItem(link.client, controller, id)
 
   return await services.commandLane.enqueue({
     key: toCommandLaneKey(API_CHANNEL, sessionId),
     id,
     registration,
     onWaiting: (position) => {
-      send(ws, { type: 'chat', kind: 'queued', id, position })
+      link.sink.send({ type: 'chat', kind: 'queued', id, position })
     },
     task: async () => {
       if (controller.signal.aborted) {
         return null
       }
 
-      send(ws, {
+      link.sink.send({
         type: 'chat',
         kind: 'started',
         id,
@@ -250,7 +253,7 @@ async function runInLane(run: SlashRun, id: string): Promise<SlashResult | null>
  *  it started. Any other command ends quietly, as it always has. */
 function endWithoutResult(run: SlashRun): null {
   if (run.tag.id !== undefined) {
-    send(run.ws, { type: 'chat', kind: 'dropped', id: run.tag.id })
+    run.link.sink.send({ type: 'chat', kind: 'dropped', id: run.tag.id })
   }
 
   return null
@@ -275,11 +278,11 @@ async function openLaneRegistration(
 }
 
 function handleSlashFailure(run: SlashRun, err: unknown): null {
-  const { ws, controller, tag } = run
-  const { services } = ws.data
+  const { link, controller, tag } = run
+  const { services } = link.client
 
   if (err instanceof RunHalted && err.code === 'queue_full') {
-    send(ws, {
+    link.sink.send({
       type: 'chat',
       kind: 'error',
       code: 'unavailable',
@@ -300,7 +303,7 @@ function handleSlashFailure(run: SlashRun, err: unknown): null {
   }
 
   services.logger.warn('api.ws_slash_failed', { err: formatErrForLog(err) })
-  sendRunError(ws, err, tag.id)
+  sendRunError(link, err, tag.id)
 
   return null
 }
@@ -318,8 +321,8 @@ async function openSession(services: WsServices, sessionId: SessionId): Promise<
 }
 
 async function dispatchSlash(run: SlashRun): ReturnType<SlashDispatcher['dispatch']> {
-  const { ws, line, ctx, resolved } = run
-  const { services } = ws.data
+  const { link, line, ctx, resolved } = run
+  const { services } = link.client
 
   await openSession(services, ctx.sessionId)
 
@@ -334,7 +337,7 @@ async function dispatchSlash(run: SlashRun): ReturnType<SlashDispatcher['dispatc
 function handleSlashResult(run: SlashRun, result: SlashResult): ChatRunRequest | null {
   switch (result.kind) {
     case 'message':
-      sendAnswer(run, renderMessages(bindLocale(run.ws.data.services.locale), result))
+      sendAnswer(run, renderMessages(bindLocale(run.link.client.services.locale), result))
       return null
     case 'text':
       sendAnswer(run, result.text)
@@ -346,6 +349,7 @@ function handleSlashResult(run: SlashRun, result: SlashResult): ChatRunRequest |
       }
 
       return {
+        sessionId: run.sessionId,
         message: result.retryMessage,
         ...(result.agentId === undefined ? {} : { agentId: result.agentId }),
         ...toLaneTag(run.clientId),
@@ -369,19 +373,25 @@ function sendAnswer(run: SlashRun, text: string): void {
   } else if (run.quietStart.hasStarted()) {
     sendSlashDone(run)
   } else {
-    send(run.ws, { type: 'chat', kind: 'error', code: 'unavailable', message: text, ...run.tag })
+    run.link.sink.send({
+      type: 'chat',
+      kind: 'error',
+      code: 'unavailable',
+      message: text,
+      ...run.tag,
+    })
   }
 }
 
 function sendChat(run: SlashRun, delta: string): void {
-  send(run.ws, { type: 'chat', kind: 'text', delta, ...run.tag })
+  run.link.sink.send({ type: 'chat', kind: 'text', delta, ...run.tag })
   sendSlashDone(run)
 }
 
 function sendSlashDone(run: SlashRun): void {
   const { ctx } = run
 
-  send(run.ws, {
+  run.link.sink.send({
     type: 'chat',
     kind: 'done',
     reason: 'slash',

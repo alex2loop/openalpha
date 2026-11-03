@@ -28,6 +28,10 @@ this document — neither imports the other.
   steering). A second WebSocket, `GET /v1/exec`, runs one CLI command
   in the daemon for the operator's own terminal; it admits only a loopback peer with the bearer
   token, no `Origin` and no proxy header (section 6). No SSE.
+- **Surfaces:** the routes and the chat/slash runners do not depend on the transport: a route group
+  runs under whatever `authorize` its surface injects, and a runner writes frames to a `FrameSink`.
+  Everything in this section (bind, Host, peer, token, cookie, the socket caps) is the daemon's own
+  surface; a browser worker serves the same groups to its page with one caller and no socket.
 - **Bind:** `127.0.0.1` only (loopback). The `/v1` HTTP routes also verify the request **peer** is
   loopback (defense in depth); `GET /`, its chunks and the `/v1/ws` handshake are answered before
   that check, so the bind alone guards them (the handshake adds the Origin allow-list below). A
@@ -312,8 +316,14 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   same key finds the exit the first call placed instead of resting a second; a call without the
   header is its own request, and a blank or over-200-character key is a 400.
 - **Capabilities**: `HealthResponse.capabilities` + `StatePayload.capabilities` tell the client which
-  optional sections exist (a flag is true exactly when its route is registered); the client greys unbuilt
-  tabs rather than inferring from a 404.
+  optional sections exist; the client greys unbuilt tabs rather than inferring from a 404. `ohlcv`,
+  `quotes`, `portfolio`, `suggestions` and `orders` are true exactly when their route is registered
+  (`orders` also needs a venue that can place and `[api] orders`). `analysisOnly`, `venues`, `channels`,
+  `schedules`, `agents` and `chatgpt` are the serving process's own word for what it runs, set by
+  whoever builds it: the daemon sets `analysisOnly` false, `venues`, `schedules` and `agents` when
+  their routes are served, `channels` when a `[channels]` entry is configured, and `chatgpt` when the
+  login route is served and `public_url` is unset. A client hides what is false rather than offering
+  it and failing.
 - **`/v1/health`**: `status` is `starting` (with `ok: false`) until the daemon has started every
   subsystem, then `ready` (with `ok: true`); native clients read `ok`, which is false while starting. See Starting above. A daemon that is stopped refuses the
   connection. `contractVersion` is the `/v1/ws` contract it speaks (the `hello` handshake's number), so a client

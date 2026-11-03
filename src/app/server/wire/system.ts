@@ -13,13 +13,32 @@ export const COST_ESTIMATE_SAMPLE = 10
 /** Sections whose backing store may not exist yet — the client greys the unbuilt tab instead of
  *  guessing from a 404. Only the sections that actually vary are listed (chat/approve/stream/health
  *  are always on). Echoed by GET /v1/health (unauth) and GET /v1/state. */
-export interface Capabilities {
+export interface Capabilities extends FeatureCapabilities {
   readonly ohlcv: boolean
   readonly quotes: boolean
   readonly portfolio: boolean
   readonly suggestions: boolean
   /** A venue can place orders and `[api] orders` is on: the /v1/trade routes answer. */
   readonly orders: boolean
+}
+
+/** What the process serving the api runs, named by whoever builds it: the daemon from what it
+ *  started, the browser worker from what a page can do. A client hides what is false rather than
+ *  offering it and failing. */
+export interface FeatureCapabilities {
+  /** A suggestion is an analysis with no entry, stop, size or target, and the page lays out gaps,
+   *  not orders. */
+  readonly analysisOnly: boolean
+  /** Exchange venues are connected: the book can be synced and a trade placed at one. */
+  readonly venues: boolean
+  /** Chat channels (Telegram, Zalo) are configured and run. */
+  readonly channels: boolean
+  /** The scheduler runs jobs: the morning brief, alerts and the operator's own. */
+  readonly schedules: boolean
+  /** The operator's own agents can be listed, edited and run. */
+  readonly agents: boolean
+  /** The ChatGPT subscription login is available here. */
+  readonly chatgpt: boolean
 }
 
 /** One thing the daemon started without, worded in its language: a channel left down with the

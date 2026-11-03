@@ -3,9 +3,10 @@ import type { ServerWebSocket, WebSocketHandler } from 'bun'
 import { z } from 'zod'
 
 import type { ExecTerminal } from '@/app/server/exec/terminal'
-import type { ChatBody } from '@/app/server/wire/chat'
 import type { WireEvent } from '@/app/server/wire/events'
-import type { ClientFrame } from '@/app/server/wire/socket'
+import type { ClientFrame, ServerFrame } from '@/app/server/wire/socket'
+import type { FrameSink } from '@/app/server/ws/frame-sink'
+import type { ChatClient } from '@/app/server/ws/runs'
 import type { SlashDispatcher } from '@/commands/api'
 import type { App } from '@/core/container'
 import type { EventBus } from '@/core/events'
@@ -27,18 +28,14 @@ import {
   CONTRACT_REFUSED_REASON_PREFIX,
   CONTRACT_VERSION,
 } from '@/app/server/wire/socket'
-import { resolveSessionId, runChat } from '@/app/server/ws/chat'
+import { handleChatFrame, steerDroppedText } from '@/app/server/ws/frames'
 import {
   abortCommandRuns,
-  abortSocketSession,
   dropWaitingCommands,
-  send,
   sendRunError,
   toLaneTag,
 } from '@/app/server/ws/runs'
-import { runSlash } from '@/app/server/ws/slash'
 import { toApprovalWire, WIRE_NORMALIZERS } from '@/app/server/ws/wire-events'
-import { toCommandLaneKey } from '@/core/command-lane'
 import { sessionId as brandSessionId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
@@ -89,18 +86,10 @@ export interface WsServices {
   readonly slashDispatcher: SlashDispatcher
 }
 
-export interface WsData {
+export interface WsData extends ChatClient {
   readonly kind: 'feed'
-  readonly services: WsServices
   /** The browser session that opened the socket; absent for a bearer-token client. */
   readonly browserSessionId?: string
-  readonly activeRuns: Map<SessionId, Set<AbortController>>
-  /** The slash commands among `activeRuns`, so a chat reset stops them without stopping the agent turn
-   *  that shares the session's set. The value is the lane entry id of a self-contained command. */
-  readonly commandRuns: Map<AbortController, string | undefined>
-  /** The id of the last tagged steer each session's running turn took, so a later `steer_dropped`
-   *  names it. One per session, read once, cleared when the session's last run ends. */
-  readonly steerIds: Map<SessionId, string>
   closed: boolean
   off?: () => void
 }
@@ -179,10 +168,10 @@ export const wsHandlers = {
           const id = ws.data.steerIds.get(e.sessionId)
 
           ws.data.steerIds.delete(e.sessionId)
-          send(ws, {
+          sendFrame(ws, {
             type: 'chat',
             kind: 'steer_dropped',
-            text: steerDroppedText(ws, e.count),
+            text: steerDroppedText(ws.data.services.locale, e.count),
             ...toLaneTag(id),
           })
         }
@@ -192,10 +181,10 @@ export const wsHandlers = {
       // leave it.
       bus.on('chat_session_reset', (e) => {
         if (e.channel === API_CHANNEL) {
-          abortCommandRuns(ws, brandSessionId(e.chatId))
+          abortCommandRuns(ws.data, brandSessionId(e.chatId))
 
           if (e.cause === 'new') {
-            send(ws, { type: 'chat', kind: 'reset', sessionId: e.chatId })
+            sendFrame(ws, { type: 'chat', kind: 'reset', sessionId: e.chatId })
           }
         }
       }),
@@ -224,7 +213,7 @@ export const wsHandlers = {
       await handleMessage(ws, raw)
     } catch (err: unknown) {
       ws.data.services.logger.warn('api.ws_message_failed', { err: formatErrForLog(err) })
-      sendRunError(ws, err)
+      sendRunError({ sink: toSocketSink(ws), client: ws.data }, err)
     }
   },
 
@@ -247,14 +236,16 @@ async function handleMessage(ws: ServerWebSocket<WsData>, raw: string | Buffer):
     return
   }
 
-  if (frame.type === 'hello' || frame.type === 'cancel' || frame.type === 'drop') {
-    handleControl(ws, frame)
+  if (frame.type === 'hello') {
+    answerHello(ws, frame.contractVersion)
 
     return
   }
 
-  if (admissionClosed) {
-    send(ws, {
+  const sink = toSocketSink(ws)
+
+  if (admissionClosed && (frame.type === 'chat' || frame.type === 'steer')) {
+    sink.send({
       type: 'chat',
       kind: 'error',
       code: 'unavailable',
@@ -265,55 +256,25 @@ async function handleMessage(ws: ServerWebSocket<WsData>, raw: string | Buffer):
     return
   }
 
-  const session = resolveSessionId(frame.sessionId)
+  await handleChatFrame(frame, sink, ws.data)
+}
 
-  if (frame.type === 'steer' && steer(ws, session, frame)) {
-    return
-  }
-
-  const line = frame.message.trim()
-  const quiet = frame.type === 'chat' && frame.quiet === true ? { quiet: true as const } : {}
-  const request = line.startsWith('/')
-    ? await runSlash(ws, session, { line, ...toLaneTag(frame.id), ...quiet })
-    : { message: frame.message, ...toLaneTag(frame.id) }
-
-  if (request !== null) {
-    await runChat(ws, session, request)
+/** The socket as the runners see it: frames out, and whether the client is gone. */
+function toSocketSink(ws: ServerWebSocket<WsData>): FrameSink {
+  return {
+    send: (frame): void => {
+      sendFrame(ws, frame)
+    },
+    get closed(): boolean {
+      return ws.data.closed
+    },
   }
 }
 
-/** A steer joins the turn already running, at its next turn boundary. A turn that already ended
- *  cannot take it, and it is not run on its own: the client stopped reading that reply, so it is
- *  sent back as dropped. A slash command is never steered; it runs as an ordinary message. */
-function steer(ws: ServerWebSocket<WsData>, session: SessionId, frame: ChatBody): boolean {
-  const { message, id } = frame
-
-  if (message.trim().startsWith('/')) {
-    return false
-  }
-
-  if (ws.data.services.runControl.steer(session, session, message)) {
-    if (id !== undefined) {
-      ws.data.steerIds.set(session, id)
-    }
-
-    send(ws, { type: 'chat', kind: 'steered', ...toLaneTag(id) })
-  } else {
-    send(ws, {
-      type: 'chat',
-      kind: 'steer_dropped',
-      text: steerDroppedText(ws, 1),
-      ...toLaneTag(id),
-    })
-  }
-
-  return true
-}
-
-function steerDroppedText(ws: ServerWebSocket<WsData>, count: number): string {
-  const key = count === 1 ? 'channel.steeringDroppedOne' : 'channel.steeringDropped'
-
-  return bindLocale(ws.data.services.locale).translate(key, { count })
+/** False when the socket dropped the frame (closed, or its buffer is full): Bun answers 0 then,
+ *  -1 for a frame queued behind backpressure, and the byte count otherwise. */
+function sendFrame(ws: ServerWebSocket<WsData>, frame: ServerFrame): boolean {
+  return ws.send(JSON.stringify(frame)) !== 0
 }
 
 /** Sends one event to every open socket and says how many took it; a dropped frame is not one. */
@@ -390,7 +351,7 @@ function closeSocket(ws: ServerWebSocket<WsData>): void {
     // Listener cleanup must not prevent the socket's owned runs from being cancelled.
   }
 
-  dropWaitingCommands(ws)
+  dropWaitingCommands(ws.data)
   ws.data.steerIds.clear()
 
   for (const [sessionId, controllers] of ws.data.activeRuns) {
@@ -403,7 +364,7 @@ function closeSocket(ws: ServerWebSocket<WsData>): void {
 }
 
 function relay(ws: ServerWebSocket<WsData>, event: WireEvent): boolean {
-  return send(ws, { type: 'wire_event', ...event })
+  return sendFrame(ws, { type: 'wire_event', ...event })
 }
 
 function parseFrame(raw: string): ClientFrame | null {
@@ -424,28 +385,10 @@ function parseFrame(raw: string): ClientFrame | null {
   return result.success ? result.data : null
 }
 
-/** The frames that carry no message: the handshake, an interrupt and a command pulled from the
- *  line. The lane rejects the dropped command, and the socket that ran it answers `dropped`. */
-function handleControl(
-  ws: ServerWebSocket<WsData>,
-  frame: Extract<ClientFrame, { readonly type: 'hello' | 'cancel' | 'drop' }>
-): void {
-  if (frame.type === 'cancel') {
-    abortSocketSession(ws, resolveSessionId(frame.sessionId))
-
-    return
-  }
-
-  if (frame.type === 'drop') {
-    const key = toCommandLaneKey(API_CHANNEL, resolveSessionId(frame.sessionId))
-
-    ws.data.services.commandLane.drop(key, frame.id)
-
-    return
-  }
-
-  if (frame.contractVersion === CONTRACT_VERSION) {
-    send(ws, { type: 'welcome', contractVersion: CONTRACT_VERSION })
+/** The handshake: a client built for another contract is refused with a close the client reads. */
+function answerHello(ws: ServerWebSocket<WsData>, contractVersion: number): void {
+  if (contractVersion === CONTRACT_VERSION) {
+    sendFrame(ws, { type: 'welcome', contractVersion: CONTRACT_VERSION })
   } else {
     ws.close(
       CONTRACT_REFUSED_CLOSE_CODE,
