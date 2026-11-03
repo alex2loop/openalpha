@@ -4,6 +4,7 @@ import { useEffect } from 'preact/hooks'
 import type { TradingProfileResponse } from '@/app/server/wire/trading'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { editionKey } from '@/web/state/edition'
 import { findMarket } from '@/web/state/market'
 import { saveProfilePatch } from '@/web/state/profile'
 import { formatPercent } from '@/web/text/figures'
@@ -81,7 +82,9 @@ function TargetsBody({ open }: { readonly open: OpenTargets }) {
         ))}
       </div>
       <TotalLine total={total} />
-      <p class="meta">{tr('ui.office.targets.note')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.targets.note', 'ui.office.edition.targets.note'))}
+      </p>
     </div>
   )
 }
