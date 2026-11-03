@@ -99,15 +99,14 @@ function renderBrief(
   payload: Extract<TradingNotice['payload'], { readonly kind: 'brief' }>,
   timezone: string
 ): string {
-  const body = renderBriefText(
-    locale,
-    payload.snapshot,
-    resolveRenderContext(timezone, UNATTENDED_SURFACE)
-  )
+  const context = resolveRenderContext(timezone, UNATTENDED_SURFACE)
 
-  return payload.sentAfterOpen === true
-    ? `${t(locale, 'trading.brief.sentAfterOpen')}\n\n${body}`
-    : body
+  return renderBriefText(locale, payload.snapshot, {
+    ...context,
+    ...(payload.sentAfterOpen === true
+      ? { preface: t(locale, 'trading.brief.sentAfterOpen') }
+      : {}),
+  })
 }
 
 /** The bell-only readings: a scored call, news on a holding, the index falling. */

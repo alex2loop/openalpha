@@ -173,6 +173,7 @@
     "office.perf.streetPaint": "Street repaint: {ms} ms (budget {budget} ms)",
     "office.scene.view": "Office view",
     "office.scene.viewTip": "3D needs a graphics card; 2D is lighter.",
+    "office.scene.aiNote": "The agents here, and what they say or post, are AI. They can be wrong, and none of it is investment advice.",
     "office.scene.mode2d": "2D",
     "office.scene.mode3d": "3D",
     "office.scene.no3d": "This device cannot draw 3D",
@@ -3778,6 +3779,10 @@
     "shutdown": "Shutting down.",
     "agentPaused": "This agent is paused. Turn it back on with `{brand} agent resume <id>`."
   },
+  "aiLabel": {
+    "named": "AI-generated content ({models}), and it can be wrong. I am giving you analysis to weigh yourself, not investment advice.",
+    "unnamed": "AI-generated content, and it can be wrong. I am giving you analysis to weigh yourself, not investment advice."
+  },
   "trading": {
     "finding.position-cap-breach": "{ticker} is {weight} of your portfolio, above the {cap} per-name cap for {segment}.",
     "finding.segment-cap-breach": "The {segment} segment is {weight} of your portfolio, above its {cap} cap.",
@@ -5470,7 +5475,6 @@
     "render.suggestion.sourcesRead": "Sources ({cited} cited · read {own} on {ticker}, {market} market)",
     "render.suggestion.disclaimer": "This is analysis, not an order - the decision is always yours. Trade with your broker or exchange, then /record it here so your book stays honest.",
     "render.suggestion.disclaimerApp": "This is analysis, not an order - the decision is always yours.",
-    "analysis.ai-generated": "AI-generated content ({models}), and it can be wrong. I am giving you analysis to weigh yourself, not investment advice.",
     "analysis.case-bull": "Why {ticker} could rise",
     "analysis.case-bear": "Why {ticker} could fall",
     "analysis.case-unsupported": "The evidence contradicts every claim this side made, so I am not repeating its argument.",

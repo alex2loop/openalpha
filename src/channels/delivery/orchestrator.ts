@@ -9,6 +9,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { SessionActivity } from '@/core/types/session'
 import type { ResearchPlanDecision, ResearchPlanReview, Runner, RunResult } from '@/engine/api'
+import { type AiLabeler, withAiLabel } from '@/channels/delivery/ai-label'
 import { AnswerUndelivered } from '@/channels/delivery/answer'
 import { buildAbortCallbackData } from '@/channels/delivery/callbacks'
 import {
@@ -43,6 +44,7 @@ export interface OrchestratorDeps {
   readonly intakeSignal: AbortSignal
   readonly sent: SentMessages
   readonly sessions: SessionActivity
+  readonly aiLabeler: AiLabeler
   /** Channel-owned deep-plan review; the prompted chat supplies the explicit start or cancel. */
   readonly reviewPlan: (chatId: string, input: ResearchPlanReview) => Promise<ResearchPlanDecision>
 }
@@ -74,8 +76,7 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
     locale,
     reviewPlan: (input) => deps.reviewPlan(combined.chatId, input),
   })
-  const startedAt = performance.now()
-  const prompts = watchApprovalPrompts(deps, combined)
+  const { startedAt, prompts, label } = beginExchange(deps, exchange)
   let result: RunResult
 
   // Inside the try: `typing` arms a repeating ping that only settleExchange clears.
@@ -121,7 +122,16 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
     useMarkup,
     afterApproval: prompts.prompted(),
     elapsedMs: performance.now() - startedAt,
+    label,
   })
+}
+
+function beginExchange(deps: OrchestratorDeps, exchange: Exchange) {
+  return {
+    startedAt: performance.now(),
+    prompts: watchApprovalPrompts(deps, exchange.combined),
+    label: deps.aiLabeler(exchange.sessionId),
+  }
 }
 
 // Batched messages arrive here as one: one lead per run, and a burst keeps only its last reply.
@@ -309,6 +319,8 @@ interface Delivery {
   readonly afterApproval: boolean
   /** Wall time of the whole exchange, measured with performance.now(). */
   readonly elapsedMs: number
+  /** The AI label a session's first reply carries; undefined on every later one. */
+  readonly label: string | undefined
 }
 
 interface AnswerSend {
@@ -371,10 +383,13 @@ function toFinalAnswer(locale: Locale, delivery: Delivery): FinalAnswer {
     anchorMessageId: combined.messageId,
     ...(combined.reactionRef === undefined ? {} : { reactionRef: combined.reactionRef }),
     body: plan === undefined ? body : `${formatPlanBlock(plan)}\n\n${body}`,
-    footer: formatChannelFooter(locale, result.totals, {
-      ...(metric === undefined ? {} : { contextPct: metric.contextPct }),
-      elapsedMs: delivery.elapsedMs,
-    }),
+    footer: withAiLabel(
+      delivery.label,
+      formatChannelFooter(locale, result.totals, {
+        ...(metric === undefined ? {} : { contextPct: metric.contextPct }),
+        elapsedMs: delivery.elapsedMs,
+      })
+    ),
     completed: result.reason === 'completed',
   }
 }

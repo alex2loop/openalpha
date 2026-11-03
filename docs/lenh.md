@@ -135,6 +135,9 @@ openalpha chat [-m <nội dung>] [-a <agent>] [--mode manual|bypass]
 Bỏ `--message` thì vào REPL, tức một cuộc trò chuyện liên tục. Có `--message` thì chạy một phát: hỏi
 một câu, nhận một câu trả lời.
 
+Banner mở đầu của REPL có một dòng nói các câu trả lời do AI tạo, có thể sai và không phải khuyến nghị đầu
+tư. Chạy một phát thì in đúng dòng đó ra stderr trước lượt hỏi, nên câu trả lời qua pipe vẫn sạch.
+
 Chạy một phát chỉ hỏi bạn phê duyệt được khi stdin là terminal. Với stdin qua pipe hoặc rỗng thì không
 có ai để hỏi. Vì vậy ở chế độ thủ công, một lời gọi nguy hiểm bị chặn do không có ai phê duyệt. Nó
 không bao giờ được duyệt ngầm. `--mode bypass` luôn phải do chính bạn gõ.
@@ -590,7 +593,7 @@ sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>`
 `memory search <câu hỏi>` trả về 10 kết quả, thêm `--limit <n>` để đổi số này. `history list` hiện 20 cuộc
 trò chuyện gần nhất, thêm `--limit <n>` để đổi số này.
 
-`history clear` xóa mọi cuộc trò chuyện, hoặc mọi cuộc trò chuyện của một agent. Hãy đọc phần trợ giúp và câu hỏi
+`history show` mở đầu bằng dòng nội dung do AI tạo khi cuộc trò chuyện có câu trả lời do mô hình viết. `history clear` xóa mọi cuộc trò chuyện, hoặc mọi cuộc trò chuyện của một agent. Hãy đọc phần trợ giúp và câu hỏi
 xác nhận trước khi chạy.
 
 `cost` nhận `--period day|week|month` (`week` tính từ thứ Hai, như `/transactions week`), hoặc một
@@ -921,6 +924,10 @@ khớp.
 
 Tùy chọn đứng theo thứ tự bất kỳ sau mã; dùng `thị-trường:mã` khi một tên trần mơ hồ. Lệnh này tiêu ngân
 sách LLM, nên được dựng để khỏi tiêu hai lần.
+
+Kết quả có luận điểm hoặc có phiên tranh luận đứng sau thì mở đầu bằng một dòng nói đây là nội dung do AI tạo,
+có thể sai và không phải khuyến nghị đầu tư, kèm tên các mô hình đã lập luận khi đề xuất có lưu chúng.
+`/suggest stops` cũng mở đầu bằng dòng này.
 
 Câu trả lời hôm nay được dùng lại miễn phí (ở thị trường chạy liên tục, là mọi câu trả lời trong 4 giờ
 gần nhất) cho tới khi có giá đóng cửa mới hơn phiên nó đã đọc. Nên đề xuất làm lúc phiên đang chạy sẽ

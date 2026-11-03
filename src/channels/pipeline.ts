@@ -30,6 +30,7 @@ import type {
 } from '@/core/types/session'
 import type { AgentRegistry, CostTracker, Runner, RunRegistry } from '@/engine/api'
 import { type ActiveSlashRuns, createActiveSlashRuns } from '@/channels/delivery/active-runs'
+import { createAiLabeler } from '@/channels/delivery/ai-label'
 import { dispatchCallbackQuery } from '@/channels/delivery/callbacks'
 import { createTextChoices, type TextChoices } from '@/channels/delivery/choices'
 import { createGate } from '@/channels/delivery/gate'
@@ -377,6 +378,7 @@ function orchestratorDeps(deps: PipelineDeps, parts: HandlerParts): Orchestrator
     intakeSignal: deps.intakeSignal,
     sent: parts.sent,
     sessions: deps.sessions,
+    aiLabeler: createAiLabeler(deps.locale),
     reviewPlan: (chatId, input) => parts.planReviewer.reviewPlan(chatId, input),
   }
 }

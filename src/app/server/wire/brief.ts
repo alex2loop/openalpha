@@ -1,6 +1,9 @@
 /** The brief as the CLI prints it, without its icons and indents. */
 export interface BriefTextWire {
   readonly title: string
+  /** True when a section carries a call a model argued: the page opens with the AI label. A page
+   *  labels unless this is false, so a daemon that predates the field is labelled too. */
+  readonly aiGenerated: boolean
   /** The answer: the session sentence and the figures it rests on. */
   readonly verdict: readonly string[]
   /** How many of the verdict's opening lines are the session sentence; the rest are figures. */

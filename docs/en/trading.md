@@ -288,6 +288,8 @@ A run ends in one of four ways:
 
 An `error` is not a hold. A hold means "evaluated and rejected" and is a real answer with the reason codes that produced it. An error means the evaluation was never recorded.
 
+A suggestion that carries a thesis or a debate opens, wherever you read it (`/suggest`, a chat app, the office page's call card and its Why? dialog), with one line saying it is AI-generated, can be wrong and is not investment advice, naming the models that argued it when the call kept them. The line is added when the answer is shown: it is never stored with the call, and no model reads it.
+
 #### Debate depth
 
 Two modes, set by `[trading.suggestions] debate_mode` and overridable per request (`/suggest FPT lean`, or `mode` on the MCP `suggestion_run`):
@@ -802,6 +804,8 @@ A name already suggested today is served from its row at no cost.
 
 What the brief cost sits below a rule at the very end, since it belongs to the whole brief. Splitting by market keeps a figure from being reported twice under two headings: the domestic gold premium belongs to `gold-vn`'s block, and futures positioning to `gold`'s.
 
+A brief that holds a call a model argued (a suggestions section) opens with the same AI-generated line, in the CLI, in a chat app and on the office page; a brief with none does not.
+
 **Timing.** The default send time is 08:15 in the **market's** timezone: 08:15 in Ho Chi Minh City, not 08:15 UTC and not wherever you happen to be.
 
 A brief is only sent before the open. A market that trades round the clock, or a day the market is shut, counts as before the open. So a brief is never built or sent mid-session or after the close. Before any tokens are spent, a quick check confirms the previous session produced a bar.
@@ -867,6 +871,8 @@ Commands:
 - `/themes show` shows every theme still on the list (tracked, invalidated or waiting for approval) as it was last read, for free. Rejected and retired themes drop off.
 - `/themes approve|reject|retire <id>` moves a theme.
 - Over MCP only the read-only `themes_view` tool is exposed.
+
+A `/themes` report opens with the same AI-generated line, naming the models behind its reads; the themes list on the office page opens with it too. A model asked about the report afterwards reads it without that line.
 
 The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]` otherwise.
 

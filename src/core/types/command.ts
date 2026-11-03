@@ -67,6 +67,9 @@ export type SlashResult =
   | {
       readonly kind: 'text'
       readonly text: string
+      /** What an echoing command keeps as model context instead of `text`, when the shown text
+       *  carries lines no model should read back. */
+      readonly echoText?: string
       readonly affordances?: readonly Affordance[]
     }
   | { readonly kind: 'agent'; readonly retryMessage: string; readonly agentId?: AgentId }

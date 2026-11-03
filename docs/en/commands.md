@@ -134,6 +134,9 @@ openalpha chat [-m <text>] [-a <agent>] [--mode manual|bypass]
 Without `--message` you get the REPL, an ongoing conversation. With it you get one shot: one question,
 one answer.
 
+The REPL's start banner carries a line saying replies are AI-generated, can be wrong and are not investment
+advice. A one shot prints the same line on stderr before its turn, so a piped answer stays clean.
+
 A one shot can ask you to approve something only while stdin is a terminal. With piped or empty stdin
 there is nobody to ask. So in manual mode a dangerous call is blocked as approval-unavailable. It is
 never approved quietly. `--mode bypass` always has to be typed by you.
@@ -604,7 +607,7 @@ full-text index. `memory list --prefix <text>` keeps only the keys that start wi
 `memory search <query>` returns 10 results unless you pass `--limit <n>`. `history list` shows the 20
 most recent sessions unless you pass `--limit <n>`.
 
-`history clear` deletes every session, or every session of one agent. Read its help and confirmation
+`history show` opens with the AI-generated line when the session holds a reply a model wrote. `history clear` deletes every session, or every session of one agent. Read its help and confirmation
 prompt before you run it.
 
 `cost` takes `--period day|week|month` (`week` starts on Monday, like `/transactions week`) or an
@@ -937,6 +940,10 @@ it is synced for the part that filled.
 
 Options go in any order after the ticker; use `market:ticker` where a bare name is ambiguous. This
 spends LLM budget, so it is built to avoid spending it twice.
+
+A result that carries a thesis or a debate opens with one line saying it is AI-generated, can be wrong and
+is not investment advice, naming the models that argued it when the call kept them. `/suggest stops` opens
+with it too.
 
 Today's answer is reused for free (on a continuous market, any answer under 4 hours old) until a
 newer close is stored than the one it read. So a call made while the session traded runs again after

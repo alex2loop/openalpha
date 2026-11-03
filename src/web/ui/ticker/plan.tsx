@@ -9,6 +9,7 @@ import { locale } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
+import { CallAiLabel } from '@/web/ui/kit/ai-label'
 import { Button } from '@/web/ui/kit/button'
 import { CopyButton } from '@/web/ui/kit/copy-button'
 import { ListIcon } from '@/web/ui/kit/icons'
@@ -92,6 +93,7 @@ function PlanBody({ plan, ticker, market }: PlanBodyProps) {
 
   return (
     <>
+      <CallAiLabel call={plan} />
       <p>
         <b>{verdict}</b> <span class="meta">{formatDay(locale.value, plan.at)}</span>
       </p>

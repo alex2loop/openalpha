@@ -5,8 +5,7 @@ import {
   briefTitle,
   caveatsOf,
   FOLDED_SECTION_KINDS,
-  isRenderable,
-  isShown,
+  readSections,
 } from '@/trading/features/brief/render'
 import { renderStoryLines, type StoryLine } from '@/trading/features/brief/story/render'
 import { renderQuotedReading, renderVerdictBlock } from '@/trading/features/brief/verdict'
@@ -19,6 +18,8 @@ import { toBriefSectionText } from '@/trading/render/section'
 
 export interface BriefText {
   readonly title: string
+  /** True when a section carries a call a model argued, so the page opens with the AI label. */
+  readonly aiGenerated: boolean
   /** The answer: the session sentence and the figures it rests on. */
   readonly verdict: readonly string[]
   /** The verdict's opening lines that are the session sentence, not figures. */
@@ -63,12 +64,12 @@ export function renderBriefForSurface(
   timezone: string
 ): BriefText {
   const context = resolveRenderContext(timezone, NOTICE_SURFACE)
-  const readable = snapshot.sections.filter(isRenderable)
-  const renderable = readable.filter(isShown)
+  const { readable, renderable, hasAiCalls } = readSections(snapshot)
   const order = (kind: BriefSectionKind): number => BRIEF_SECTION_ORDER.indexOf(kind)
 
   return {
     title: briefTitle(locale, snapshot, timezone),
+    aiGenerated: hasAiCalls,
     // The first line is the block's own rule, which the app replaces with its card.
     verdict: renderVerdictBlock(locale, readable, context).slice(1).map(trim),
     readingLines: renderQuotedReading(locale, readable, context).length,

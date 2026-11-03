@@ -19,7 +19,7 @@ import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { agentId, sessionId as brandSessionId, type SessionId } from '@/core/ids'
 import { formatUsd } from '@/core/utils/cost'
 import { sanitizeDisplayText } from '@/core/utils/text'
-import { pluralKey, t } from '@/i18n'
+import { pluralKey, renderAiLabel, t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
 const DEFAULT_LIMIT = 20
@@ -100,6 +100,11 @@ const historyShowCommand = createCommand({
 
 function printSessionDetails(app: CliApp, snapshot: SessionSnapshot): void {
   const locale = app.config.locale.language
+
+  // A command's own answer is stored display-only and carries its label; a model's reply does not.
+  if (snapshot.messages.some((m) => m.message.role === 'assistant' && m.displayOnly !== true)) {
+    app.out(style.muted(renderAiLabel(locale, [])))
+  }
 
   app.out(style.heading(t(locale, 'cli.historySessionHeading', { id: snapshot.session.id })))
   printMetadata(app, snapshot.session)

@@ -15,7 +15,7 @@ import type {
   ThemeTransitionOutcome,
 } from '@/trading/features/themes/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
-import { t } from '@/i18n'
+import { renderAiLabel, t } from '@/i18n'
 import { firstProposedTheme, renderThemeReportText } from '@/trading/features/themes/render/report'
 import { THEME_MARKET, THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 import { parseBranded, parseMember, usage } from '@/trading/kernel/surface/surface'
@@ -62,16 +62,20 @@ interface ThemesCommandDeps {
 }
 
 function render(deps: ThemesCommandDeps, ctx: SlashContext, report: ThemeReport): SlashResult {
-  const text = renderThemeReportText(report, { locale: ctx.locale, timezone: deps.timezone })
+  const body = renderThemeReportText(report, { locale: ctx.locale, timezone: deps.timezone })
+  // The label is for the reader; the model that is asked about the report next reads the body alone.
+  const text =
+    report.run === undefined ? body : `${renderAiLabel(ctx.locale, modelsOf(report))}\n\n${body}`
   const proposed = firstProposedTheme(report)
 
   if (proposed === undefined) {
-    return { kind: 'text', text }
+    return { kind: 'text', text, echoText: body }
   }
 
   return {
     kind: 'text',
     text,
+    echoText: body,
     affordances: [
       {
         label: t(ctx.locale, 'trading.render.affordance.approveTheme'),
@@ -79,6 +83,16 @@ function render(deps: ThemesCommandDeps, ctx: SlashContext, report: ThemeReport)
       },
     ],
   }
+}
+
+/** The models behind the reads the report prints, sorted; empty for a run stored before they were
+ *  kept. */
+function modelsOf(report: ThemeReport): readonly string[] {
+  const reads = [...report.reads.themes, ...report.reads.sectors]
+
+  return [
+    ...new Set(reads.flatMap((read) => (read.model === undefined ? [] : [read.model]))),
+  ].sort()
 }
 
 /** Every tracked theme and a search for new ones, or one tracked theme alone. */
@@ -183,9 +197,12 @@ function withHomeNote(
     return result
   }
 
+  const note = t(ctx.locale, 'trading.themes.homeNotCovered')
+
   return {
     ...result,
-    text: `${t(ctx.locale, 'trading.themes.homeNotCovered')}\n\n${result.text}`,
+    text: `${note}\n\n${result.text}`,
+    ...(result.echoText === undefined ? {} : { echoText: `${note}\n\n${result.echoText}` }),
   }
 }
 

@@ -4,15 +4,21 @@ import type {
   SlashContext,
   SlashResult,
 } from '@/core/types/command'
+import type { Locale } from '@/core/types/locale'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { RenderView } from '@/trading/features/suggestion/render/view'
 import type { SuggestionReportDeps } from '@/trading/features/suggestion/report'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
-import type { SuggestionRequest, SuggestionRunResult } from '@/trading/features/suggestion/types'
+import type {
+  StoredSuggestion,
+  SuggestionRequest,
+  SuggestionRunResult,
+} from '@/trading/features/suggestion/types'
 import type { DebateMode } from '@/trading/kernel/config'
 import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { VenueRegistry } from '@/trading/venues/types'
+import { renderAiLabel } from '@/i18n'
 import { renderSuggestionText } from '@/trading/features/suggestion/render/suggestion'
 import { renderBatchVerdicts } from '@/trading/features/suggestion/render/verdict'
 import { resolveRenderView, storedOf } from '@/trading/features/suggestion/report'
@@ -21,10 +27,12 @@ import { dedupeInstruments } from '@/trading/kernel/instrument'
 import { DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
 import { parseMember, parseTickerRequest, usage } from '@/trading/kernel/surface/surface'
 import { answerSurfaceOf } from '@/trading/render/format'
+import { joinSections } from '@/trading/render/layout'
 
 const USAGE: 'slash.tradingSuggestUsage' = 'slash.tradingSuggestUsage'
 const STOPS_EMPTY: 'slash.tradingSuggestStopsEmpty' = 'slash.tradingSuggestStopsEmpty'
 const STOPS_ARG = 'stops'
+const LEADING_NEWLINE = /^\n/
 const STOPS_DEBATE_MODE = 'lean' satisfies DebateMode
 const DEBATE_MODE_OPTIONS = DEBATE_MODES.join('|')
 /** Re-runs past today's stored verdict instead of returning it. Operator-only: the gates exist to
@@ -215,7 +223,37 @@ async function runStops(
   })
   const text = renderBatchVerdicts(ctx.locale, batch)
 
-  return text === undefined ? usage(STOPS_EMPTY) : { kind: 'text', text }
+  if (text === undefined) {
+    return usage(STOPS_EMPTY)
+  }
+
+  // The verdict block opens with a newline that marks it a block for a tool's line; here the label
+  // and the block are joined as sections instead.
+  return {
+    kind: 'text',
+    text: joinSections([
+      aiLabelLines(ctx.locale, batch.results),
+      [text.replace(LEADING_NEWLINE, '')],
+    ]),
+  }
+}
+
+/** The label for a read whose calls carry model-written text, naming the models that argued them.
+ *  Empty when none does: a call with neither a debate nor a thesis has nothing a model wrote. */
+function aiLabelLines(locale: Locale, results: readonly SuggestionRunResult[]): readonly string[] {
+  const written = results
+    .map(storedOf)
+    .filter(
+      (call): call is StoredSuggestion => call?.debate !== undefined || call?.thesis !== undefined
+    )
+
+  if (written.length === 0) {
+    return []
+  }
+
+  const models = new Set(written.flatMap((call) => call.debate?.models ?? []))
+
+  return [renderAiLabel(locale, [...models].sort())]
 }
 
 /** A typed depth stands. Otherwise coverage runs lean, except when forced: the pipeline reads an
@@ -249,12 +287,17 @@ async function renderRun(
 
   return {
     kind: 'text',
-    text: renderSuggestionText({
-      ...view,
-      result,
-      operatorFigures: 'shown',
-      ...(market === undefined ? {} : venueFields(deps.venues, market)),
-    }),
+    text: joinSections([
+      aiLabelLines(ctx.locale, [result]),
+      [
+        renderSuggestionText({
+          ...view,
+          result,
+          operatorFigures: 'shown',
+          ...(market === undefined ? {} : venueFields(deps.venues, market)),
+        }),
+      ],
+    ]),
   }
 }
 

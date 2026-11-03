@@ -64,7 +64,7 @@ function toExchange(input: ExchangeInput): CommandExchange | undefined {
   switch (result.kind) {
     case 'text':
       return isEcho
-        ? { invocation, output: result.text, ...run }
+        ? { invocation, output: result.echoText ?? result.text, ...run }
         : { invocation, output: result.text, ...run, displayOnly: true }
     case 'message':
       return {

@@ -86,5 +86,7 @@ async function notify(job: Job, deps: SchedulerDeps, text: string): Promise<void
     return
   }
 
-  await deps.notifier.notify(target, text)
+  const label = deps.renderAiLabel(job)
+
+  await deps.notifier.notify(target, label === undefined ? text : `${label}\n\n${text}`)
 }

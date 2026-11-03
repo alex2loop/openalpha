@@ -230,6 +230,9 @@ export interface SchedulerDeps {
   readonly renderAutoDisableNotice: (jobId: JobId, consecutiveFailures: number) => string
   /** Surface-owned localized rendering for a run that stopped early with part of an answer. */
   readonly renderPartialNotice: (result: RunResult) => string
+  /** Surface-owned AI label for a job whose answer is a model's prose; absent for a job whose
+   *  prompt is a slash command, whose own text already carries what it needs. */
+  readonly renderAiLabel: (job: Job) => string | undefined
   /** Where a target-less job's output goes; undefined = drop it. Late-bound until channels start. */
   readonly defaultTarget: () => DeliveryTarget | undefined
   /** Where disabled-job alerts go, independently from the job's potentially broken target. */

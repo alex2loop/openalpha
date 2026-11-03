@@ -6,6 +6,7 @@ import { tr } from '@/web/text/tr'
 import { MessageList } from '@/web/ui/chat/message-list'
 import { SessionView } from '@/web/ui/chat/session-view'
 import { openSessionsDialog } from '@/web/ui/chat/sessions-dialog'
+import { AiLabel } from '@/web/ui/kit/ai-label'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { CloseIcon, HistoryIcon, PlusIcon } from '@/web/ui/kit/icons'
@@ -25,6 +26,7 @@ export function ChatPanel() {
   return (
     <aside class="chat-panel chrome-glass" aria-label={tr('ui.office.chat.title')}>
       <ChatHead />
+      <AiLabel />
       {viewed === undefined ? (
         <MessageList />
       ) : (
