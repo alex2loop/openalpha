@@ -2,7 +2,7 @@ import { Glob } from 'bun'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 
-const SRC = `${import.meta.dir}/../src`
+const SRC = resolve(import.meta.dir, '../src')
 if (!existsSync(SRC)) {
   console.error(`check-cycles: SRC not found: ${SRC} (run from repo root via \`bun scripts/check-cycles.ts\`)`)
   process.exit(1)
