@@ -1,5 +1,6 @@
 import { signal } from '@preact/signals'
 
+import { openPrivacy } from '@/web/edition/legal/privacy'
 import { readStorage, writeStorage } from '@/web/state/storage'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -9,6 +10,7 @@ import './guide.css'
 
 const SEEN_STORAGE_KEY = 'oa.edition.firstRunSeen'
 const STEPS = Object.freeze(['nokey', 'key', 'save'] as const)
+const KEY_STEP = STEPS.indexOf('key')
 
 const step = signal(0)
 
@@ -49,6 +51,12 @@ function Card() {
         <>
           <h3>{tr('ui.office.edition.guide.first.key.title')}</h3>
           <p>{tr('ui.office.edition.guide.first.key.body')}</p>
+          <Button
+            kind="tertiary"
+            onClick={() => openPrivacy({ back: () => openFirstRun(KEY_STEP) })}
+          >
+            {tr('ui.office.edition.guide.first.key.privacy')}
+          </Button>
         </>
       )
     default:
