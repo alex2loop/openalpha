@@ -154,7 +154,7 @@ export function createProviderChain(deps: ProviderChainDeps): ProviderChain {
       const request: LLMRequest = { ...req, messages: repairToolPairs(req.messages) }
 
       const ordered = await orderAfterCooldownWait({
-        entries: deps.entries,
+        entries: withHeldCredentials(deps.entries),
         tracker,
         refusals,
         req: request,
@@ -179,6 +179,15 @@ export function createProviderChain(deps: ProviderChainDeps): ProviderChain {
         input
       ),
   }
+}
+
+/** An entry whose credentials source holds none steps aside, as a model with an unset key does at
+ *  boot: asking it only replaces the refusal of the entry that was asked with its own. When none
+ *  holds any, the first one's refusal says which key to set. */
+function withHeldCredentials(entries: readonly ChainEntry[]): readonly ChainEntry[] {
+  const held = entries.filter((entry) => entry.credentials?.hasCredentials?.() !== false)
+
+  return held.length === 0 ? entries : held
 }
 
 async function runChain(

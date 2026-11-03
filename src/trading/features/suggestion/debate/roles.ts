@@ -13,6 +13,7 @@ import {
   isRetryableHalt,
   languageName,
   parseResearchJson,
+  providerReasonOf,
   toResearchOutputContract,
 } from '@/engine/api'
 import { formatDay } from '@/i18n'
@@ -32,6 +33,9 @@ export interface RoleRunDeps {
   readonly runner: Runner
   readonly logger: Logger
   readonly maximumTurnsPerRole: number
+  /** A failed role carries the provider's own words for refusing it, which only a reader who can act
+   *  on them is shown. Absent: the failure names its cause alone. */
+  readonly statesRefusals?: true
 }
 
 /** The role's own output schema: parsed once, and rendered into its strict JSON contract. */
@@ -250,6 +254,8 @@ function haltFailure(deps: RoleRunDeps, role: DebateRole, result: RunResult): Ro
         }),
   })
 
+  const reason = deps.statesRefusals === true ? providerReasonOf(result) : undefined
+
   return {
     kind: 'failed',
     caveat: {
@@ -258,6 +264,7 @@ function haltFailure(deps: RoleRunDeps, role: DebateRole, result: RunResult): Ro
         role,
         cause: haltCause(result),
         ...(result.missingEnv === undefined ? {} : { env: result.missingEnv }),
+        ...(reason === undefined ? {} : { reason }),
       },
     },
   }

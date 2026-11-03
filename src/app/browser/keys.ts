@@ -78,6 +78,7 @@ export function createBrowserKeyring(): BrowserKeyring {
 export function createKeyringCredentials(keyring: BrowserKeyring): readonly CredentialSource[] {
   return BROWSER_AI_PROVIDERS.map((provider) => ({
     provider,
+    hasCredentials: () => keyring.env()[aiKeyVariable(provider)] !== undefined,
     async authHeaders(keyHeaders) {
       const key = keyring.env()[aiKeyVariable(provider)]
 

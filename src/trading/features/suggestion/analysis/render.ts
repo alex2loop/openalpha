@@ -12,7 +12,7 @@ import { renderCitationLines } from '@/trading/features/suggestion/render/sectio
 import { renderUnsupportedReason } from '@/trading/features/suggestion/render/verdict'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { formatCount, renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
-import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layout'
+import { INDENT, INLINE_SEPARATOR, joinSections, renderSectionTitle } from '@/trading/render/layout'
 
 type AnalysisSide = Extract<ArguingRole, 'bull-researcher' | 'bear-researcher'>
 
@@ -150,15 +150,18 @@ function closingLines(locale: Locale, record: AnalysisRecord): readonly string[]
   ]
 }
 
-/** Why a run stored nothing, in the reader's language: the name it could not resolve, or the
- *  provider's own reason a role did not answer. */
+/** Why a run stored nothing, in the reader's language: the name it could not resolve, or why a role
+ *  did not answer, with the provider's own words where it gave them. */
 export function renderAnalysisFailure(locale: Locale, failure: AnalysisFailure): string {
   if (failure.kind === 'unresolved') {
     return renderUnsupportedReason(locale, unsupported(failure.resolution))
   }
 
+  const { cause, reason } = failure.caveat.detail ?? {}
+  const wording = t(locale, reasonKeyOf(cause))
+
   return t(locale, 'trading.analysis.not-finished', {
-    reason: t(locale, reasonKeyOf(failure.caveat.detail?.cause)),
+    reason: typeof reason === 'string' ? `${wording}${INLINE_SEPARATOR}${reason}` : wording,
   })
 }
 

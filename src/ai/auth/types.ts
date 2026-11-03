@@ -77,5 +77,8 @@ export type KeyHeaders = (apiKey: string) => Readonly<Record<string, string>>
 // another turn's in-flight refresh.
 export interface CredentialSource {
   readonly provider: string
+  /** Absent means the source always answers. A source that can know it holds nothing says so, so the
+   *  chain does not send a request it already knows will be refused. */
+  hasCredentials?(): boolean
   authHeaders(keyHeaders: KeyHeaders): Promise<Readonly<Record<string, string>>>
 }
