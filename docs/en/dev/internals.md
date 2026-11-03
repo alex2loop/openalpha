@@ -995,6 +995,24 @@ One value, [TradingEdition](../../../src/trading/wiring/composition/edition.ts),
 
 `bun run check:browser` is the gate ([scripts/check-browser-bundle.ts](../../../scripts/check-browser-bundle.ts), part of `bun run check`). It builds the worker bundle and names the source file behind every import a browser cannot honour: a Bun or Node builtin, a host global (`Bun.`, `Buffer`, `process.`, `__dirname`, `require(`, `setImmediate`) and a timer method a browser timer lacks (`.unref()` and `.ref()`; `unrefTimer` in `core/utils/time.ts` is the one caller). It scans source lines, so a string that merely contains one of them can trip it. `check-reachability` treats the worker, the page's `index.html` and `hosts.ts` as entry points.
 
+### Running it locally
+
+There is no dev server and no hot reload: build, serve `dist/web`, rebuild after each change and reload the tab.
+
+```bash
+bun run build:web
+bunx wrangler@4.157.0 dev -c deploy/web/wrangler.toml --port 8788
+```
+
+Open `http://localhost:8788/?lang=vi` (or `?lang=en`). `wrangler dev` applies `_headers` as Cloudflare does, so a content security policy violation shows up locally; a plain static server (`bunx serve dist/web`) runs the page without those headers. `localhost` is a secure context, so the private file system and the tab lock work. Its data is separate from staging's (another origin); "Delete all data" clears it. Use a headful Chrome: vndirect's firewall refuses the headless user agent.
+
+The homepage needs no build to look at: open `site/index.html` (its app links stay `https://example.com/`). For working links, build it against an https app address, since `build:site` accepts no other, then serve it the same way:
+
+```bash
+bun run build:site --app-url=https://openalpha-web-staging.chuyencuadev.workers.dev/
+bunx wrangler@4.157.0 dev -c deploy/site/wrangler.toml --port 8789
+```
+
 ### Deploy
 
 Two Cloudflare Workers Static Assets projects with no script: the homepage (apex and `www`) and the app (`app.*`). Each has a `wrangler.toml` under `deploy/` (`deploy/web/`, `deploy/site/`): `[assets]` pointing at `dist/`, `[observability] enabled = false`, `preview_urls = false`, no `main`, no not-found handling (unknown paths answer 404). The operator keeps Workers Logs, Logpush and Web Analytics off and never reads logs; Cloudflare still adds its own `nel` and `report-to` headers and keeps request logs under its own policy.

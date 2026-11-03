@@ -1014,6 +1014,24 @@ Một giá trị, [TradingEdition](../../src/trading/wiring/composition/edition.
 
 `bun run check:browser` là cổng kiểm ([scripts/check-browser-bundle.ts](../../scripts/check-browser-bundle.ts), một phần của `bun run check`). Nó dựng bundle của worker và chỉ ra tệp nguồn đứng sau mọi import mà trình duyệt không đáp ứng được: một builtin của Bun hay Node, một biến toàn cục của host (`Bun.`, `Buffer`, `process.`, `__dirname`, `require(`, `setImmediate`) và một phương thức timer mà timer của trình duyệt không có (`.unref()` và `.ref()`; `unrefTimer` trong `core/utils/time.ts` là nơi gọi duy nhất). Nó quét theo dòng nguồn, nên một chuỗi chỉ chứa một trong số đó cũng có thể làm nó báo. `check-reachability` coi worker, `index.html` của trang và `hosts.ts` là điểm vào.
 
+### Chạy trên máy
+
+Không có dev server và không tự nạp lại: dựng, phục vụ `dist/web`, dựng lại sau mỗi lần sửa rồi tải lại thẻ.
+
+```bash
+bun run build:web
+bunx wrangler@4.157.0 dev -c deploy/web/wrangler.toml --port 8788
+```
+
+Mở `http://localhost:8788/?lang=vi` (hoặc `?lang=en`). `wrangler dev` áp `_headers` như Cloudflare, nên một vi phạm chính sách bảo mật nội dung lộ ra ngay trên máy; một server tĩnh thường (`bunx serve dist/web`) chạy trang mà không có các header đó. `localhost` là ngữ cảnh an toàn, nên kho tệp riêng và khóa giữa các thẻ chạy được. Dữ liệu của nó tách khỏi staging (khác origin); "Xóa toàn bộ dữ liệu" xóa nó. Dùng Chrome có giao diện: tường lửa của vndirect từ chối user agent của chế độ headless.
+
+Trang chủ xem được mà không cần dựng: mở `site/index.html` (các link sang ứng dụng vẫn là `https://example.com/`). Muốn link chạy được thì dựng với một địa chỉ ứng dụng https, vì `build:site` không nhận địa chỉ khác, rồi phục vụ cùng cách:
+
+```bash
+bun run build:site --app-url=https://openalpha-web-staging.chuyencuadev.workers.dev/
+bunx wrangler@4.157.0 dev -c deploy/site/wrangler.toml --port 8789
+```
+
 ### Triển khai
 
 Hai dự án Cloudflare Workers Static Assets không có script: trang chủ (apex và `www`) và ứng dụng (`app.*`). Mỗi dự án có một `wrangler.toml` dưới `deploy/` (`deploy/web/`, `deploy/site/`): `[assets]` trỏ vào `dist/`, `[observability] enabled = false`, `preview_urls = false`, không `main`, không xử lý not-found (đường dẫn lạ trả 404). Bên vận hành tắt Workers Logs, Logpush và Web Analytics và không bao giờ đọc nhật ký; Cloudflare vẫn tự thêm các header `nel` và `report-to` và giữ nhật ký yêu cầu theo chính sách của họ.
