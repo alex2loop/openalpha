@@ -254,19 +254,47 @@ board responses, and put a 4 MiB board read in the same token bucket as the per-
 every HOSE index, so a board sweep's failures must not black out the series the ETF factors score against; it serves `bars` and
 `quote` under one id because they share host and path, so a fourth id would buy no isolation.
 
-**VN `bars` order.** `vndirect` publishes no index rows (it declines them in `covers`, so an index costs it no request) and
-`entrade` already charts some at the depths this tree reads, so `vietcap-chart` is third. Which indices `entrade` carries varies;
-it answers `invalid symbol` for the rest and the route falls through. `vietcap-chart`'s `to` bound includes a bar stamped at
-exactly that second and rounds up otherwise, and its daily series carries today's still-forming bar, so the adapter drops
-anything past the settled day instead of trusting the bound.
+**VN `bars` order.** `vndirect` publishes no index rows (it declines them in `covers`, so an index costs it no request), so
+`vndirect-index` is the first provider an index reaches. Measured 2026-11-03: its closes were identical to `vps` over 953 sessions
+(VNINDEX, VN30) and to `vietcap-chart` and `vps` over the whole 280-session window on all ten indices read (VNINDEX, VN30, VN100,
+VNMIDCAP, VNDIAMOND, VNX50, VNFINLEAD, VNFINSELECT, VNSHINE, VNMITECH), so a provider switch fires no `isRestated`. VNINDEX runs
+back to 2017-08 (2,294 sessions). `entrade` is behind it because it answers wrongly without failing: its stored closes for VN100
+and VNMITECH disagreed with all three others on 22 sessions each (2026-04-01 to 2026-06-09), and its stored VNINDEX and VN30 volumes sat 8% from
+`vndirect-index`'s on average (up to 84%). It still charts some indices at the depths this tree
+reads, and answers `invalid symbol` for the rest, so the route falls through. `vietcap-chart` is fourth. Its `to` bound includes a
+bar stamped at exactly that second and rounds up otherwise, and its daily series carries today's still-forming bar, so the adapter
+drops anything past the settled day instead of trusting the bound.
 
-`vps` is last. With three providers six indices still had one source: the ETF benchmarks VNDIAMOND, VNFINLEAD, VNFINSELECT,
-VNMIDCAP, VNSHINE and VNX50 are declined by `vndirect` and answered `invalid symbol` by `entrade`, so one `vietcap-chart` refusal
-took all six out. VPS Securities' feed carries them 707 sessions deep against vietcap's 673, every close identical over 125
-sessions measured. Provider facts the adapter owns: the feed spells VNMIDCAP `VNMID`, and its `to` bound rounds **up** to the
-day, so the settled day is applied to the parsed candles rather than trusted to the query. Its turnover is matched orders only,
-17% under vietcap's (which adds the put-through leg after the session), so it may only back a provider whose volume no factor
-reads. The ETF factor reads closes and `isRestated` weighs the close, so nothing downstream sees the difference.
+**`vndirect-index` registers under its own id**, so an index outage cannot open the breaker the share kinds' bars share, nor a
+share sweep's failures the one an index needs. Same host, separate breaker. Provider facts the adapter owns:
+
+- `/v4/vnmarket_prices?q=code:<ticker>~date:gte:<from>~date:lte:<to>&sort=date`, one request an index (a page per 500 sessions).
+  The code is the exchange's spelling except for VNMIDCAP, which is `VNMID` here as at `vps`. The HNX index is `HNX`; `HNXINDEX`
+  answers an empty page.
+- The reply is newest first whatever `sort` asks, and carries today's still-forming row, dated `2026:11:03` in some replies and
+  `2026-11-03` in others. A final row is stamped 15:01 or later. The adapter drops a row whose day does not parse and anything past the
+  settled day, then sorts oldest first.
+- Volume is `accumulatedVol` (matched plus put-through, the figure `vietcap-chart` publishes); `nmVolume` alone is 17% under it.
+  No turnover is stored, as for every other level provider.
+- `covers` takes an `index` and no `future`: the endpoint carries no futures contract (`VN30F1M` answers an empty page), so a
+  future asked of it would spend a request to say nothing. An empty page is a settled miss and the route moves on.
+- The last page of a long window carries no `totalElements`; `getJsonPages` stops on a short page. Two replies came back truncated while
+  measuring, which the transport's retry covers.
+
+`vps` is last. With `entrade` declining them, the ETF benchmarks VNDIAMOND, VNFINLEAD, VNFINSELECT, VNMIDCAP, VNSHINE and VNX50
+still had `vietcap-chart` and `vps` behind `vndirect-index`, so no single refusal takes them out. VPS Securities' feed carries them 707 sessions deep against vietcap's 673, every
+close identical over 125 sessions measured. Provider facts the adapter owns: the feed spells VNMIDCAP `VNMID`, and its `to` bound
+rounds **up** to the day, so the settled day is applied to the parsed candles rather than trusted to the query. Its turnover is
+matched orders only, 17% under vietcap's (which adds the put-through leg after the session), so it may only back a provider whose
+volume no factor reads. The ETF factor reads closes and `isRestated` weighs the close, so nothing downstream sees the difference.
+
+**`indexMembership` order.** `vietcap` leads and `vps-board` (`bgapidatafeed.vps.com.vn/getlistckindex/<index>`, a JSON array of
+tickers) backs it. Both read the pair of baskets through one loader (`rows/index-baskets.ts`), every basket or none. Measured
+2026-11-03, the two VN30 lists were identical (30 of 30), but VPS's VN100 list ran behind: nine names on each side differed, and
+four of its own VN30 names (BSR, MCH, TCX, VPL) were missing from it, where vietcap's lists nest. A basket pair that does not nest
+would stamp a large cap as mid cap, a wrong tier rather than a missing one, so `vps-board` refuses a pair whose VN30 is not inside
+its VN100 (`source.payload-rejected`); on that day it answered nothing and the stored tiers stood. It registers apart from `vps`
+because it is another host. An unknown index answers 200 with an empty body, which this tree never asks for.
 
 **`sbv`** reads the State Bank's policy rates and interbank averages off its rate page. A page whose wording changes fails the
 parse and writes nothing; no value is guessed. The page shows today only, so history is what `refreshPolicyRates` (the VN `macro`
@@ -340,7 +368,17 @@ split), which `Candle` models as absent rather than zero.
   `er-api` split a pair into two ISO codes, so a seven-character `USDTVND` fails their `covers`.
 - `coinbase` leads the pair it trades because the crypto book is valued through that rate; `okx` backs it because coinbase's
   book is the deeper one.
-- `fxHistory` is `yahoo` alone: the coin providers quote spot, not dated history, and `er-api` publishes today's board only.
+- `fxHistory` is `yahoo`, then `vietcombank` for the VND pairs: the coin providers quote spot, not dated history, and `er-api`
+  publishes today's board only. Measured 2026-11-03 over the 60 sessions 2026-08-10 to 2026-10-30, with every day present and a
+  request taking 0.5 s: the bank's transfer buy rate sat 194 VND (0.75%) below Yahoo's on average (range 120 to 264), where the
+  midpoint of its transfer buy and sell rates sat 4 VND away (range -70 to +74), so the adapter publishes the midpoint. The bank
+  sets its board once or twice a day, so a day's rate is not the market's close: its daily moves correlate 0.23 with Yahoo's, and its
+  5-session moves differ by 0.12% on average (at most 0.41%). It therefore only backs `yahoo`, and a window it answers is whole or
+  refused.
+- `vietcombank` asks `api/exchangerates?date=<day>` a weekday at a time: the board repeats Friday's rates on a weekend, which is no
+  new reading, and a day it has no board for answers `Count` 0. The window is capped at 63 calendar days, about a month of sessions
+  and 45 requests; the gold premium's 108-session backfill is declined and stays with `yahoo`. A failed day fails the window, so a
+  hole is never stored as a day the bank did not publish.
 - A fiat pair reaches `yahoo` untouched. A coin's dollar leg (`USDTUSD`, the bridge leg of a `USDTVND` rate) reads Yahoo's
   `USDT-USD` listing, refused unless it answers as a cryptocurrency. Without it, a past day's rate carried today's peg and moved
   on every call while naming that day.
@@ -485,9 +523,13 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
   `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per sweep; `rss`
   is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo` serves gold `quote`/`bars`
   plus the fiat `fx` leg; `coinbase` is one pair per conversion.
+- `vietcombank` 120: publishes none; a window is one request a weekday, at most 45, read only where `yahoo` answered nothing. A 33-day window took 18 s through the pacer at 60 a
+  minute and 2.7 s at 120. `vndirect-index` 60: one request an
+  index (a page per 500 sessions) when the market refreshes its level bars.
 - 30: `giavang` serves `goldBoard` and `goldBoardHistory` (history is the SJC bar only); `pnj` is the PNJ ring and the SJC bar when
   `giavang` does not answer; `vietcap-board` one board read is four requests; `vietcap-chart` per-name, the first provider that
-  charts every HOSE index; `vps` per-name, the `bars` failover for the indices only it and `vietcap-chart` carry; `fred-csv`
+  charts every HOSE index; `vps` per-name, the `bars` failover for the indices only it and `vietcap-chart` carry; `vps-board` two requests a
+  universe refresh; `fred-csv`
   monthly commodity series; `alternative-me` one `sentiment` read per run.
 - `cftc` 20: one weekly file. `sbv` 10, `nso` 10: publish none; one page / one monthly report.
 

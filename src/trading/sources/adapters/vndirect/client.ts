@@ -40,6 +40,11 @@ export const VNDIRECT_MKW_ID = sourceId('vndirect-mkw')
  *  request would carry it. */
 export const VNDIRECT_MKW_REFERER = 'https://mkw.vndirect.com.vn/'
 
+/** The index history registers apart from the per-name kinds, so an index outage cannot open the
+ *  breaker that serves every share's bars, nor a share sweep's failures the one an index needs.
+ *  Same host, separate blast radius. */
+export const VNDIRECT_INDEX_ID = sourceId('vndirect-index')
+
 /** The index a request names, which both index feeds read from `ticker`: an index is a symbol of
  *  its own here, never an instrument of the market. */
 export function contextIndex({ ticker }: SourceContext): IndexCode | undefined {

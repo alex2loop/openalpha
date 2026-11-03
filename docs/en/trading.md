@@ -71,8 +71,10 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `mexc` | crypto bars and quotes for names neither `binance` nor `bybit` list | no |
 | `coingecko` | last fallback for the crypto board; the only source that looks up one symbol past every board; the rate a settlement coin trades at against a fiat | `COINGECKO_API_KEY` |
 | `vndirect` | VN instruments, bars, fundamentals, events, flows, foreign room, street recommendations, VN macro, daily commodity prices, VN news | no |
-| `entrade` | VN quotes and bars; behind `vietcap-chart` for a quote on a level, ahead of it for bars (it charts only the four headline indices) | no |
+| `vndirect-index` | levels for the indices the daemon reads: the daily history, ahead of `entrade` and `vietcap-chart`; kept apart from `vndirect` so an index outage does not pause the share bars | no |
+| `entrade` | VN quotes and bars; behind `vietcap-chart` for a quote on a level, behind `vndirect-index` for index bars (it charts only the four headline indices) | no |
 | `vietcap` | VN index basket membership (`vn30`, `vn100`) and per-name trade sides | no |
+| `vps-board` | VN index basket membership, behind `vietcap`; it answers only when its VN30 names all sit inside its VN100 list | no |
 | `kbsec` | VN per-name trade sides, ahead of `vietcap` | no |
 | `hsx` `ssi` | names under exchange supervision, merged across the HOSE listing service and a broker board that also carries HNX | no |
 | `vietcap-board` | the live VN board in one read: session quotes and foreign room, behind `vndirect` for both | no |
@@ -92,6 +94,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `coinmarketcap` `coinlore` | the ranked crypto board the screen picks its universe from, keyless, one request; `coinlore` sits third | no |
 | `coinbase` | the USD price of a settlement coin, from a venue that trades the pair; also crypto prices and daily bars converted to USDT, the last provider a US operator can always reach | no |
 | `er-api` | fiat FX, behind `yahoo` | no |
+| `vietcombank` | the dong's FX history, behind `yahoo`: the midpoint of the bank's transfer buy and sell rates, a weekday at a time | no |
 | `cftc` | gold futures positioning: the weekly Commitments of Traders report | no |
 
 One kind is defined but **unrouted**: crypto spot-ETF net flows. No provider has been verified against a live response, so the brief's `etf-flows` section reports `unavailable` instead of failing.
