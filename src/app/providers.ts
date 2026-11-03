@@ -39,7 +39,7 @@ import { memoryProvider } from '@/memory/api'
 import { createPersistenceProvider } from '@/persistence/api'
 import { createPluginsProvider } from '@/plugins/api'
 import { createSchedulerProvider } from '@/scheduler/api'
-import { toolsProvider } from '@/tools/api'
+import { toolsProvider } from '@/tools/node-api'
 import { resolveTradingConfig, TRADING_SKILLS } from '@/trading/api'
 
 declare module '@/core/container' {

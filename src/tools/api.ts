@@ -21,5 +21,4 @@ export {
   resolveTimezone,
   validateJobPrompt,
 } from '@/tools/schedule/validate'
-export { toolsProvider } from '@/tools/services'
 export { listSearchHosts } from '@/tools/web/search/hosts'
