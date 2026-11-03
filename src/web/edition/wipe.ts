@@ -6,11 +6,12 @@ const REMOVE_ATTEMPTS = 8
 const REMOVE_RETRY_MS = 250
 
 /** "Xoá toàn bộ dữ liệu trên máy": clears the keys, agreements and settings in `localStorage` and
- *  `sessionStorage`, and the keys held in memory, first, so a later failure cannot leave them behind
- *  or write them back; then forgets the save file while the worker can still answer its last copy,
- *  ends the worker (which lets go of the database files) and deletes everything the page keeps in
- *  the browser's private file storage, then clears the two storages once more. Throws when a file
- *  cannot be removed, after every attempt, so the caller can say the wipe did not finish. */
+ *  `sessionStorage`, and the keys held in memory (the worker is told, so a run in flight stops
+ *  spending them), first, so a later failure cannot leave them behind or write them back; then
+ *  forgets the save file while the worker can still answer its last copy, ends the worker (which
+ *  lets go of the database files) and deletes everything the page keeps in the browser's private
+ *  file storage, then clears the two storages once more. Throws when a file cannot be removed,
+ *  after every attempt, so the caller can say the wipe did not finish. */
 export async function wipeEverything(): Promise<void> {
   clearBrowserStorage()
   dropHeldKeys()

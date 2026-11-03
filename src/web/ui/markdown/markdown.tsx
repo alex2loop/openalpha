@@ -210,9 +210,12 @@ function InlineView({ node, context }: { node: Inline; context: RenderContext })
       return <NoteView n={node.n} context={context} />
     case 'link':
       return (
-        <a href={node.href} title={node.href} target="_blank" rel="noopener noreferrer">
-          {node.text}
-        </a>
+        <>
+          <a href={node.href} title={node.href} target="_blank" rel="noopener noreferrer">
+            {node.text}
+          </a>
+          {node.host !== undefined && <span class="md-link-host">{node.host}</span>}
+        </>
       )
   }
 }

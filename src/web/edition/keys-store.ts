@@ -124,17 +124,67 @@ export function forgetKey(slot: KeySlot, provider: string): void {
   publish()
 }
 
-/** Forgets every key and agreement held in this page's memory. The wipe clears the storage itself,
- *  and a worker it is about to end needs no word of it. */
+/** Forgets every key and agreement held in this page's memory and tells the worker, so a run in
+ *  flight stops spending at once. The wipe clears the storage itself and ends the worker after. */
 export function dropHeldKeys(): void {
-  held.value = { ai: {}, search: {} }
-  consents.value = {}
+  clearHeld()
+  sendKeys()
+}
+
+/** Follows the other tabs of this browser until `lifetime` aborts: a key or an agreement removed
+ *  there is removed here, and "Delete all data" there empties this page too. */
+export function watchKeyStorage(lifetime: AbortSignal): void {
+  addEventListener('storage', onStorageChange, { signal: lifetime })
 }
 
 // The worker applies a key from its next request; the session is read again so `modelReady` follows.
 function publish(): void {
-  postToWorker({ kind: 'keys', keys: workerKeys() })
+  sendKeys()
   loadSession(new AbortController().signal).catch(() => undefined)
+}
+
+function sendKeys(): void {
+  postToWorker({ kind: 'keys', keys: workerKeys() })
+}
+
+function clearHeld(): void {
+  held.value = { ai: {}, search: {} }
+  consents.value = {}
+}
+
+// A cleared storage (`key` null) is "Delete all data" elsewhere.
+function onStorageChange({ key }: StorageEvent): void {
+  const isWatched = key === null || key === KEYS_STORAGE_KEY || key === CONSENT_STORAGE_KEY
+
+  if (!isWatched) {
+    return
+  }
+
+  if (key === null) {
+    clearHeld()
+  } else {
+    syncFromStorage()
+  }
+
+  publish()
+}
+
+// The remembered keys become what the storage holds, so a key removed in another tab goes and this
+// page never writes it back. A key only this page holds stays; the search slot holds one key.
+function syncFromStorage(): void {
+  const stored = readHeld()
+
+  held.value = { ai: syncSlot('ai', stored.ai), search: syncSlot('search', stored.search) }
+  consents.value = readConsents()
+}
+
+function syncSlot(slot: KeySlot, stored: Held[KeySlot]): Held[KeySlot] {
+  const unsaved = Object.fromEntries(
+    Object.entries(held.value[slot]).filter(([, entry]) => !entry.remembered)
+  )
+  const kept = slot === 'search' && Object.keys(unsaved).length > 0 ? {} : stored
+
+  return { ...kept, ...unsaved }
 }
 
 function workerKeysOf(keys: Held, agreed: Consents): BrowserKeys {

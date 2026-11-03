@@ -59,6 +59,15 @@
   text-underline-offset: 2px;
 }
 
+.md-link-host {
+  margin-left: 4px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--sunken);
+  color: var(--ink2);
+  font: var(--typeCode);
+}
+
 .md sup a {
   text-decoration: none;
   color: var(--ink2);

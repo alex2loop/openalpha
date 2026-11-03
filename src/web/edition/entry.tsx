@@ -6,7 +6,7 @@ import { startDataStatus } from '@/web/edition/data-status'
 import { startFileSave } from '@/web/edition/file-save'
 import { EditionFooter } from '@/web/edition/guide/footer'
 import { openConnectFailed } from '@/web/edition/keys-panel'
-import { holdKey, OPENROUTER, workerKeys } from '@/web/edition/keys-store'
+import { holdKey, OPENROUTER, watchKeyStorage, workerKeys } from '@/web/edition/keys-store'
 import { type ConnectResult, finishOpenRouterConnect } from '@/web/edition/openrouter-oauth'
 import { askToKeepData } from '@/web/edition/persistence'
 import { Refused } from '@/web/edition/refused'
@@ -29,6 +29,7 @@ if (canRunPage()) {
   const phaseKind = computed(() => editionPhase.value.kind)
 
   declareWebEdition()
+  watchKeyStorage(lifetime.signal)
   // It never rejects; the answer is read back by the storage line.
   askToKeepData().catch(() => undefined)
   // The page is announced in the language it shows, also before the office runs and when it refuses.
