@@ -1,3 +1,4 @@
+import type { BudgetHaltDetail } from '@/core/errors'
 import type { Locale } from '@/core/types/locale'
 import type { AnalysisFailure, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { ArguingRole } from '@/trading/features/suggestion/debate/claims'
@@ -31,6 +32,14 @@ const SIDES = {
 } as const satisfies Record<AnalysisSide, unknown>
 
 const SIDE_ORDER = Object.freeze(['bull-researcher', 'bear-researcher'] as const)
+
+/** The ceilings a call is refused at before it is sent, when its estimated cost would cross one. */
+const SPEND_CAP_CAUSES: readonly BudgetHaltDetail[] = Object.freeze([
+  'run_budget',
+  'daily_cap',
+  'monthly_cap',
+  'agent_daily_cap',
+])
 
 /** Both sides, what the evidence refuted, and what would make each wrong, in the reader's language.
  *  There is no verdict to print: none was produced, and nothing here weighs one side over the
@@ -166,6 +175,10 @@ export function renderAnalysisFailure(locale: Locale, failure: AnalysisFailure):
 }
 
 function reasonKeyOf(cause: unknown): MessageKey {
+  if (SPEND_CAP_CAUSES.some((code) => code === cause)) {
+    return 'trading.analysis.over-cap'
+  }
+
   const known = LLM_ERROR_CODES.find((code) => code === cause)
 
   return known === undefined ? 'llmErrors.fatal' : `llmErrors.${known}`

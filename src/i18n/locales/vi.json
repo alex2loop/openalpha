@@ -5800,6 +5800,7 @@
     "analysis.wrong-bear": "Phía giảm sai nếu",
     "analysis.web-scope": "Bản web đưa phân tích hai chiều để bạn tự cân nhắc. Xem thêm khác biệt với bản cài trên máy.",
     "analysis.not-finished": "Mình chưa phân tích xong ({reason}) nên chưa lưu gì.",
+    "analysis.over-cap": "chi phí ước tính của một lượt gọi vượt mức chi tối đa; thử mô hình AI rẻ hơn",
     "analysis.progress.cases": "{ticker} · Phân tích {step}/{total}: cân nhắc lý do tăng và lý do giảm…",
     "debate.lean.requested": "phiên chạy này yêu cầu độ sâu rút gọn",
     "debate.lean.configured": "cấu hình đặt độ sâu rút gọn",
