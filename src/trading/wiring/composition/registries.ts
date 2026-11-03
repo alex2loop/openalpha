@@ -79,6 +79,8 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
     macro: macroCache(sources),
     stages,
     venueListings: listings,
+    ...(options.edition?.pagedBackfill === true ? { pagedBackfill: true as const } : {}),
+    ...(options.edition?.viewed === undefined ? {} : { viewedInstruments: options.edition.viewed }),
     briefServices: lazyBriefServices(app, options.tradingConfig, {
       venues,
       // The book's `stopDistances` answers [] ("measured, none set"); the brief takes undefined

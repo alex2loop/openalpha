@@ -120,6 +120,9 @@ interface ReportedPassSpec {
   readonly everyMs: number
   /** True when the next wait starts after the pass ends, not when it starts. */
   readonly chained?: boolean
+  /** What a failed pass says, where the failure has a reason worth giving; absent or undefined
+   *  for the generic one. */
+  readonly failure?: (err: unknown) => OperatorMessage | undefined
 }
 
 /** Runs one pass and reports its two edges to the listener, the failure included, which still
@@ -131,14 +134,14 @@ export async function reportPass<T>(
 ): Promise<T> {
   const at = Date.now()
   const { name, everyMs } = spec
-  let failed = false
+  let failure: OperatorMessage | undefined
 
   notifyPass(listener, { name, phase: 'start', at, everyMs })
 
   try {
     return await run()
   } catch (err: unknown) {
-    failed = true
+    failure = spec.failure?.(err) ?? TASK_FAILED
 
     throw err
   } finally {
@@ -148,7 +151,7 @@ export async function reportPass<T>(
       at,
       everyMs,
       nextAt: (spec.chained === true ? Date.now() : at) + everyMs,
-      ...(failed ? { error: TASK_FAILED } : {}),
+      ...(failure === undefined ? {} : { error: failure }),
     })
   }
 }

@@ -12,6 +12,7 @@ import { resolveBrowserConfig } from '@/app/browser/config'
 import { readTierOverrides } from '@/app/browser/config-routes'
 import { authorizeVisitor } from '@/app/browser/host'
 import { createBrowserApp } from '@/app/browser/providers'
+import { startBrowserUpkeep } from '@/app/browser/upkeep'
 import { hydrateCostTracker } from '@/app/cost-hydration'
 import { createLiveFeed } from '@/app/server/feed/live'
 import { buildCapabilities } from '@/app/server/http/capabilities'
@@ -168,17 +169,22 @@ function assembleRoot(parts: AssembleParts): BrowserRoot {
   })
   const route: ApiRouteContext = { app, live, authorize: authorizeVisitor, isReady: () => true }
   let closed: Promise<void> | undefined
+  const chat = createChatClient(app)
+  const capabilities = buildCapabilities(app)
+  // Started after everything that can throw, so a failed assembly never leaves it running.
+  const stopUpkeep = startBrowserUpkeep(app, app.resolve('logger'))
 
   return {
     app,
     route,
-    chat: createChatClient(app),
-    capabilities: buildCapabilities(app),
+    chat,
+    capabilities,
     lost: opened.lost,
     close: () => {
       closed ??= (async () => {
         shutdown.abort()
         live.stop()
+        await stopUpkeep()
         await opened.storage.close()
       })()
 
