@@ -14,6 +14,7 @@ node_modules/
 # run reads stays local, because it names the env vars holding live keys.
 config.toml
 config.*.toml
+config.toml.*.bak
 !config.sample.toml
 !config.minimal.toml
 !config.minimal.en.toml
