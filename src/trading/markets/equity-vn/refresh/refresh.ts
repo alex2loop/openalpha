@@ -110,7 +110,12 @@ export async function refreshMarketData(
   // No stored scope means no provider subject to attempt, so the evidence kinds report an
   // unattempted absence rather than a failed fetch.
   if (universe.universe.length === 0) {
-    return [instruments, ...EVIDENCE_KINDS.map((kind) => emptyKindResult(kind, 'unavailable', []))]
+    return [
+      instruments,
+      ...EVIDENCE_KINDS.filter((kind) => !isOmitted(deps, kind)).map((kind) =>
+        emptyKindResult(kind, 'unavailable', [])
+      ),
+    ]
   }
 
   const fromDay = options.manifest.calendar.addTradingDays(request.asOf, -VN_EVIDENCE_SESSIONS)
@@ -163,12 +168,20 @@ async function runEvidence(
   const results: RefreshKindResult[] = []
 
   for (const stage of stages) {
-    results.push(
-      ...(await mapWithConcurrency(stage, stage.length, (entry) => runKind(pass, entry)))
-    )
+    const kept = stage.filter((entry) => !isOmitted(pass.deps, entry.kind))
+
+    if (kept.length > 0) {
+      results.push(
+        ...(await mapWithConcurrency(kept, kept.length, (entry) => runKind(pass, entry)))
+      )
+    }
   }
 
   return results
+}
+
+function isOmitted(deps: MarketDeps, kind: RefreshDataKind): boolean {
+  return deps.omitRefreshKinds?.has(kind) ?? false
 }
 
 async function runKind(pass: EvidencePass, entry: EvidenceRun): Promise<RefreshKindResult> {

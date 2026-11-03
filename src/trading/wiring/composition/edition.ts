@@ -5,8 +5,8 @@ import type { RebalanceForm, ReduceVerdicts } from '@/trading/features/portfolio
 import type { SuggestAnalysis } from '@/trading/features/suggestion/command'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
+import type { RefreshDataKind } from '@/trading/kernel/market/refresh'
 import type { BriefActionCode, BriefSectionKind } from '@/trading/kernel/operator/brief-section'
-import type { MarketDeps } from '@/trading/markets/deps'
 
 /** The reads of a book that holds no suggestion and plans no exit: each answers empty, which every
  *  reader takes as absent, never as zero. They are the verdict the book would close a name on, the
@@ -50,9 +50,8 @@ export interface TradingEdition {
   readonly reads?: BookReads
   /** See `MarketDeps.pagedBackfill`. */
   readonly pagedBackfill?: true
-  /** The names the visitor looked at, where statements are fetched for the book, the watchlist and
-   *  these alone instead of the whole screened board. */
-  readonly viewed?: MarketDeps['viewedInstruments']
+  /** Data kinds a refresh leaves out because no source serves them. */
+  readonly refreshOmits?: ReadonlySet<RefreshDataKind>
 }
 
 /** Whether an edition builds `market`: every market, unless it names the ones it ships. */

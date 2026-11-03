@@ -1,13 +1,7 @@
 import type { BrowserKeyring } from '@/app/browser/keys'
 import type { App } from '@/core/container'
 import type { SlashContext, SlashResult } from '@/core/types/command'
-import type {
-  BookReads,
-  BriefActionCode,
-  BriefSectionKind,
-  InstrumentRef,
-  TradingEdition,
-} from '@/trading/api'
+import type { BookReads, BriefActionCode, BriefSectionKind, TradingEdition } from '@/trading/api'
 import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
@@ -61,10 +55,10 @@ const BRIEF_OMITS: ReadonlySet<BriefSectionKind> = new Set([
  *  command to read. */
 const BRIEF_ACTION_OMITS: ReadonlySet<BriefActionCode> = new Set(['avoid-chasing'])
 
-const NEEDS_KEY = 'slash.tradingSuggestAnalysisNeedsKey'
+/** Statements come from a source no browser reaches, so a refresh does not ask for them. */
+const REFRESH_OMITS: NonNullable<TradingEdition['refreshOmits']> = new Set(['accounts'])
 
-/** How many of the newest analyses name the instruments the visitor looked at. */
-const VIEWED_ANALYSES = 30
+const NEEDS_KEY = 'slash.tradingSuggestAnalysisNeedsKey'
 
 /** Nothing here stores a suggestion or plans an exit, so every read of one answers empty: no
  *  verdict closes a name, no plan is written when a trade is recorded, no stop distance is listed,
@@ -103,17 +97,8 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
     briefActionOmits: BRIEF_ACTION_OMITS,
     reads: EMPTY_READS,
     pagedBackfill: true,
-    viewed: ({ signal }) => viewedInstruments(app, signal),
+    refreshOmits: REFRESH_OMITS,
   }
-}
-
-// What the visitor asked an analysis of: the one record of a name looked at that outlives the tab.
-async function viewedInstruments(app: App, signal: AbortSignal): Promise<readonly InstrumentRef[]> {
-  const page = await app
-    .resolve('tradingStores')
-    .analysis.listPage({ limit: VIEWED_ANALYSES, signal })
-
-  return page.items.map((record) => record.instrument)
 }
 
 interface AnalysisCall {
