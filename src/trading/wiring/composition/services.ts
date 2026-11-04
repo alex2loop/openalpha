@@ -3,10 +3,7 @@ import type { Budget } from '@/core/types/budget'
 import type { Locale } from '@/core/types/locale'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
-import type {
-  EnsureMarketData,
-  RefreshMarketData,
-} from '@/trading/features/market-data/ops/refresh'
+import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type { ExclusionReader, MarketDataService } from '@/trading/features/market-data/types'
 import type { OrderService } from '@/trading/features/order/types'
 import type { NavService } from '@/trading/features/portfolio/nav/types'
@@ -37,7 +34,6 @@ import { createAlertService } from '@/trading/features/alerts/alerts'
 import { createBriefService } from '@/trading/features/brief/brief'
 import { buildVenueFillKey } from '@/trading/features/ledger/sync'
 import { createMarketDataService } from '@/trading/features/market-data/market-data'
-import { createEnsureMarketData } from '@/trading/features/market-data/ops/refresh'
 import { createOrderService } from '@/trading/features/order/execute'
 import { OrderError } from '@/trading/features/order/types'
 import { createNavService } from '@/trading/features/portfolio/nav/history'
@@ -73,7 +69,7 @@ interface DomainServiceDeps {
   readonly markets: MarketRegistry
   readonly sources: SourceRegistry
   readonly stages: StageRegistry
-  readonly refresh: RefreshMarketData
+  readonly ensure: EnsureMarketData
   readonly sender: TradingNoticeSender
   recipient(): DeliveryAddress | undefined
   readonly onFilled: OrderFilledListener
@@ -152,12 +148,7 @@ function buildNav(deps: DomainServiceDeps, profiles: ProfileService): NavService
  *  through it, and the portfolio seam the suggestion pipeline needs is the portfolio service's own
  *  read path rather than a second one that could value a book differently. */
 export function createDomainServices(deps: DomainServiceDeps): DomainServices {
-  const { fx } = deps
-  const ensure = createEnsureMarketData({
-    markets: deps.markets,
-    marketDataStore: deps.stores.marketData,
-    refresh: deps.refresh,
-  })
+  const { fx, ensure } = deps
   // The store's own read, not the service's: `find` never seeds, and a screen must not be what
   // creates a profile row for an operator who has never set one.
   const exclusions: ExclusionReader = {

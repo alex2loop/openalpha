@@ -29,6 +29,7 @@ import type { TradingStores } from '@/trading/wiring/composition/stores'
 import type { WithThemes } from '@/trading/wiring/composition/themes'
 import { ConfigError } from '@/core/errors'
 import { createConfiguredRunBudget } from '@/engine/api'
+import { createEnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import { createRunDebate } from '@/trading/features/suggestion/debate/debate'
 import { toPlaybookLibrary } from '@/trading/features/suggestion/debate/playbook'
 import { DECISIONS_MODEL_TIER } from '@/trading/kernel/config'
@@ -308,7 +309,13 @@ function buildServices(
   const domain = createDomainServices({
     ...registries,
     stores,
-    refresh: parts.refresh,
+    ensure: createEnsureMarketData({
+      markets: registries.markets,
+      marketDataStore: stores.marketData,
+      refresh: parts.refresh,
+      signal: app.signal,
+      logger,
+    }),
     logger,
     sender: options.sender,
     recipient: options.recipient,

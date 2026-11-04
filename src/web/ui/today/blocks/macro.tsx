@@ -3,6 +3,7 @@ import type { MessageKey } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { openMarketTab } from '@/web/state/market-tab'
+import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { GlobeIcon } from '@/web/ui/kit/icons'
@@ -20,6 +21,8 @@ export const MACRO_POLL_MS = 300_000
 /** "Bối cảnh vĩ mô": the risk regime and the daemon's one-sentence lean. */
 export function Macro() {
   const reading = useBlock(ROUTES.macro, { everyMs: MACRO_POLL_MS })
+
+  useRereadAfterRefresh(reading.retry)
 
   return (
     <BlockFrame

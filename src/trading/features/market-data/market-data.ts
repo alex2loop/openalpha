@@ -1,6 +1,6 @@
 import type { Logger } from '@/core/logging/logger'
 import type { MarketDataRunDeps } from '@/trading/features/market-data/market-data-run'
-import type { EnsureMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type {
   ExclusionReader,
   MarketDataMarketRequest,

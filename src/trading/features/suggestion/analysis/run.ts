@@ -1,7 +1,7 @@
 import type { ProviderChain } from '@/core/llm'
 import type { Budget } from '@/core/types/budget'
 import type { AttemptRecorder } from '@/engine/api'
-import type { EnsureMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type {
   AnalysisId,
   AnalysisRecord,

@@ -24,11 +24,13 @@ import {
   requireMarket,
   withinRange,
 } from '@/trading/features/market-data/market-data-run'
+import { FIRST_LOAD_PENDING } from '@/trading/features/market-data/ops/ensure'
 import {
   resolveDay,
   resolveInstrument,
   unsupportedCapability,
 } from '@/trading/features/market-data/resolve'
+import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { available } from '@/trading/kernel/source/source-result'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 import { rankHeadlines } from '@/trading/markets/news'
@@ -254,14 +256,21 @@ export async function runMacroRisk(
     return unsupportedCapability()
   }
 
-  await deps.ensure(buildEnsureOptions(market.manifest.id, options))
-
-  return market.capabilities.macroRisk.run({
+  const ensured = await deps.ensure(
+    buildEnsureOptions(market.manifest.id, options, { partialAnswer: true })
+  )
+  const result = await market.capabilities.macroRisk.run({
     region: options.region,
     asOf: resolveSettledDay(market.manifest.calendar, options.now),
     now: options.now,
     signal: options.signal,
   })
+
+  // Only this note rides along: the refresh's own caveats were never part of a macro answer, and
+  // the stale warning belongs to the board reads that already carry it.
+  return ensured.includes(FIRST_LOAD_PENDING)
+    ? { ...result, caveats: dedupeCaveats([...result.caveats, FIRST_LOAD_PENDING]) }
+    : result
 }
 
 /** Exactly one registered market implements the basis, so the range is the whole selector and no

@@ -1,6 +1,6 @@
 import type { Logger } from '@/core/logging/logger'
 import type { Budget } from '@/core/types/budget'
-import type { EnsureMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type { MarketDataRequest } from '@/trading/features/market-data/types'
 import type { ProfileStore } from '@/trading/features/profile/store'
 import type {

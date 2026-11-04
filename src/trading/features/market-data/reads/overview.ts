@@ -61,7 +61,9 @@ async function runOverview(
 ): Promise<MarketDataOverview> {
   const market = requireMarket(deps, options.market)
   const asOf = resolveDay(market, options.now)
-  const ensured = await deps.ensure(buildEnsureOptions(options.market, options))
+  const ensured = await deps.ensure(
+    buildEnsureOptions(options.market, options, { partialAnswer: true })
+  )
   const macro = await segmentMacroOf(market, {
     now: options.now,
     signal: options.signal,

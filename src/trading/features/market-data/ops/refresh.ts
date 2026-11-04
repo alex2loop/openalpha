@@ -6,14 +6,12 @@ import type { NewsArchiveStore } from '@/trading/features/market-data/store/news
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
-  MarketRefreshAttempt,
   RefreshAllMarketDataOptions,
   RefreshKindResult,
   RefreshKindStatus,
   RefreshMarketDataOptions,
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
-import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -50,73 +48,6 @@ interface RefreshCoordinatorDeps {
   readonly newsArchive: Pick<NewsArchiveStore, 'deleteFetchedBefore'>
   readonly universeLimit: number
   readonly logger: Logger
-}
-
-export interface EnsureMarketDataOptions {
-  readonly market: MarketRef
-  readonly now: number
-  readonly signal: AbortSignal
-  readonly progress?: StageReporter
-}
-
-export type EnsureMarketData = (options: EnsureMarketDataOptions) => Promise<readonly Caveat[]>
-
-interface EnsureMarketDataDeps {
-  readonly markets: MarketRegistry
-  readonly marketDataStore: Pick<MarketDataStore, 'listRefreshAttempts'>
-  readonly refresh: RefreshMarketData
-}
-
-/** The one owner of "a read found no daemon", and only that: a market with nothing stored is warmed
- *  so a fresh install answers, and from then on `/refresh` and the scheduled tick own currency. A
- *  read that refetched whenever a kind aged made the first command after every rollover pay for the
- *  whole board, which is a fetch the operator did not ask for and cannot see coming. What the store
- *  does hold answers instead, carrying the session it stands for. */
-export function createEnsureMarketData(deps: EnsureMarketDataDeps): EnsureMarketData {
-  return async (options) => {
-    const attempts = await deps.marketDataStore.listRefreshAttempts({
-      market: options.market,
-      signal: options.signal,
-    })
-    const populated = attempts.filter((attempt) => attempt.result.recordCount > 0)
-
-    if (populated.length === 0) {
-      const result = await deps.refresh({
-        market: options.market,
-        now: options.now,
-        signal: options.signal,
-        ...(options.progress === undefined ? {} : { progress: options.progress }),
-      })
-
-      return result.caveats
-    }
-
-    return buildStaleCaveats(deps, options, populated)
-  }
-}
-
-/** The market names the kinds a refresh would refetch, because only it knows their cadences —
- *  holding every kind to the settled day warns about a listing set replaced weekly and names a
- *  command that will correctly decline to run. The oldest of those kinds dates the caveat: a board
- *  priced through Friday whose flows stop on Wednesday is two sessions behind. */
-async function buildStaleCaveats(
-  deps: EnsureMarketDataDeps,
-  options: EnsureMarketDataOptions,
-  populated: readonly MarketRefreshAttempt[]
-): Promise<readonly Caveat[]> {
-  const market = deps.markets.find(options.market)
-  const stale =
-    (await market?.capabilities.staleKinds?.run({
-      attempts: populated,
-      now: options.now,
-      signal: options.signal,
-    })) ?? []
-  const [asOf] = populated
-    .filter((attempt) => stale.includes(attempt.result.kind))
-    .map((attempt) => attempt.asOf)
-    .sort()
-
-  return asOf === undefined ? [] : [{ code: 'market-data.evidence-stale', detail: { asOf } }]
 }
 
 export type RefreshMarketData = (

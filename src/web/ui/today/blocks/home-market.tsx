@@ -1,6 +1,7 @@
 import { DataStatus } from '@/web/edition/data-status'
 import { readBlock, withCautions } from '@/web/state/block'
 import { homeRegion, knownMarkets, overviewBlock, selectOverview } from '@/web/state/market'
+import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { tr } from '@/web/text/tr'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { BlockFrame } from '@/web/ui/today/block-frame'
@@ -9,6 +10,9 @@ import { MarketSections, selectBoard } from '@/web/ui/today/blocks/market-sectio
 /** "Thị trường Việt Nam" or "Thị trường Mỹ": the home region's markets, titled by that region (the
  *  generic home market until the region is read). */
 export function HomeMarket() {
+  // The overview is shared with the other markets' block, so this one re-read serves both.
+  useRereadAfterRefresh(overviewBlock.retry)
+
   const blocks = selectOverview('home')
   const board = selectBoard(blocks)
   const home = homeRegion()
