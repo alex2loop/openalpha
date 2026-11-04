@@ -13,8 +13,8 @@ name: web
 #
 # The build job runs the repository's code and its dependencies and holds no secret. The deploy job
 # holds the secrets, only downloads what the build job made, and runs the wrangler pinned in
-# deploy/package.json and deploy/bun.lock. The Environment carries the required reviewers and the
-# tag restriction.
+# deploy/package.json and deploy/bun.lock. The Environment carries the required reviewers and lets
+# only main (where a run after a release starts) and v* tags (a run by hand on a tag) deploy.
 on:
   workflow_run:
     workflows: [release]
