@@ -17,7 +17,7 @@ import { ChoiceLine, defaultModelOf, type ModelChoice } from '@/web/ui/settings/
 import { ActionRow } from '@/web/ui/settings/row'
 
 /** The tiers a visitor may change, in the order the page lists them. The worker refuses any other. */
-const TIERS = ['debate', 'research', 'research-heavy', 'extraction'] as const
+const TIERS = ['debate', 'research', 'research-heavy'] as const
 /** Most models one tier may try in turn. */
 const MAX_CHAIN = 3
 
@@ -28,13 +28,11 @@ const TIER_TITLES = Object.freeze({
   debate: 'ui.office.edition.tiers.debate',
   research: 'ui.office.edition.tiers.research',
   'research-heavy': 'ui.office.edition.tiers.researchHeavy',
-  extraction: 'ui.office.edition.tiers.extraction',
 } as const satisfies Record<Tier, MessageKey>)
 const TIER_HINTS = Object.freeze({
   debate: 'ui.office.edition.tiers.debateHint',
   research: 'ui.office.edition.tiers.researchHint',
   'research-heavy': 'ui.office.edition.tiers.researchHeavyHint',
-  extraction: 'ui.office.edition.tiers.extractionHint',
 } as const satisfies Record<Tier, MessageKey>)
 
 interface TiersRead {

@@ -8,12 +8,7 @@ import { parseRawConfig, resolveConfig } from '@/core/config/resolve'
 import { freezeDeep } from '@/core/utils/freeze'
 
 /** The tiers a visitor may change. The rest keep their shipped chain: the page never offers them. */
-const EDITABLE_TIERS = Object.freeze([
-  'debate',
-  'research',
-  'research-heavy',
-  'extraction',
-] as const)
+const EDITABLE_TIERS = Object.freeze(['debate', 'research', 'research-heavy'] as const)
 
 /** Where the engine keeps what it writes. There is no disk: the name is a stable label that the
  *  few paths derived from it share. */
@@ -35,8 +30,10 @@ const DAILY_SPEND_CAP_USD = 5
 
 // The headline tier (`decisions`) is left out on purpose: its endpoint reads its key itself, which
 // the keyring cannot supply, and an absent tier turns the headline read off cleanly.
+// Extraction reads macro reports, which only the installed version's daemon does.
 const HIDDEN_TIERS = {
   themes: [{ model: SHIPPED_MODEL }],
+  extraction: [{ model: SHIPPED_MODEL }],
 }
 
 const TierEntrySchema = z.strictObject({
@@ -51,7 +48,6 @@ export const TierOverridesSchema = z.strictObject({
   debate: TierChainSchema.optional(),
   research: TierChainSchema.optional(),
   'research-heavy': TierChainSchema.optional(),
-  extraction: TierChainSchema.optional(),
 })
 
 export type TierOverrides = z.infer<typeof TierOverridesSchema>
@@ -62,7 +58,6 @@ export const SHIPPED_TIERS: Required<TierOverrides> = freezeDeep({
   debate: [{ provider: SHIPPED_PROVIDER, model: 'openai/gpt-6-luna' }],
   research: [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
   'research-heavy': [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
-  extraction: [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
 })
 
 export function resolveBrowserConfig(
