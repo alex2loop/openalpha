@@ -1,6 +1,6 @@
 import { type Signal, signal } from '@preact/signals'
 
-import { type Bound, hasLimits, withinLimits } from '@/web/edition/screen-bounds'
+import { type Bound, boundId, hasLimits, withinLimits } from '@/web/edition/screen-bounds'
 import {
   type BaseSortKey,
   type Candidate,
@@ -13,6 +13,13 @@ import { readStorage, writeStorage } from '@/web/state/storage'
 
 const STORAGE_PREFIX = 'oa.edition.screenView.'
 const NO_SECTOR = ''
+/** The size fields a view saved before the limits became a table kept at its top level, and the limit
+ *  each now is. */
+const LEGACY_LIMITS = Object.freeze({
+  minTurnover: boundId('turnover', 'min'),
+  minMarketCap: boundId('marketCap', 'min'),
+  maxMarketCap: boundId('marketCap', 'max'),
+})
 /** The market's first kind, which the board serves when none is asked. */
 export const DEFAULT_KIND = ''
 
@@ -166,7 +173,7 @@ function toView(stored: Record<string, unknown>): BoardView {
 
     return typeof value === 'string' ? value : DEFAULT_VIEW[key]
   }
-  const { scope, direction, bounds } = stored
+  const { scope, direction } = stored
 
   return {
     kind: text('kind'),
@@ -174,17 +181,18 @@ function toView(stored: Record<string, unknown>): BoardView {
     direction: direction === 'desc' ? 'desc' : 'asc',
     scope: scope === 'held' || scope === 'watched' ? scope : 'all',
     sector: text('sector'),
-    bounds: toBounds(bounds),
+    bounds: toBounds(stored),
   }
 }
 
-function toBounds(stored: unknown): BoardView['bounds'] {
-  if (typeof stored !== 'object' || stored === null) {
-    return DEFAULT_VIEW.bounds
-  }
+// A limit typed in the table wins over the same limit a view saved by an older page kept beside it.
+function toBounds(stored: Record<string, unknown>): BoardView['bounds'] {
+  const { bounds } = stored
+  const legacy = Object.entries(LEGACY_LIMITS).map(([field, id]) => [id, stored[field]])
+  const current = typeof bounds === 'object' && bounds !== null ? Object.entries(bounds) : []
 
   return Object.fromEntries(
-    Object.entries(stored).filter(
+    [...legacy, ...current].filter(
       (entry): entry is [string, string] => typeof entry[1] === 'string'
     )
   )

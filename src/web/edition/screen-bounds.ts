@@ -58,6 +58,11 @@ export function boardBounds(
   ]
 }
 
+/** The id of the limit on one side of a figure. */
+export function boundId(figure: string, side: Bound['side']): string {
+  return `${figure}:${side}`
+}
+
 interface Figure {
   /** What names it in a limit's id. */
   readonly figure: string
@@ -78,7 +83,7 @@ function boundsOf({ figure, limit, sessions, read }: Figure): readonly Bound[] {
       ? []
       : [
           {
-            id: `${figure}:${side}`,
+            id: boundId(figure, side),
             label,
             ...(sessions === undefined ? {} : { sessions }),
             side,
