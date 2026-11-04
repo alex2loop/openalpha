@@ -1657,6 +1657,7 @@
     "office.news.none": "No news yet. The news sources answer as usual.",
     "office.news.noMatch": "No news matches \"{query}\".",
     "office.news.failed": "I couldn't read the news sources, so this is not \"no news\".",
+    "office.news.unserved": "The web version cannot read {region} market news: those news sources do not let a browser read them. News for a single ticker is still on the ticker page.",
     "office.themes.rerun": "Run again",
     "office.themes.running": "Running...",
     "office.themes.proposed": "New themes waiting for you",

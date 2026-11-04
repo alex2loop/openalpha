@@ -107,7 +107,7 @@ The web version can only read sources that let a browser call them directly. Whe
 | World gold spot | World gold is priced off PAXG on Binance, which can sit under a percent from the spot price; domestic gold still works |
 | VN30 and VN100 membership | The one source a browser can read publishes a list the app refuses for now, so the factor board does not know which basket a name is in |
 | Yearly financial statements of VN stocks | Factors built on them are missing on the web board; the board says which |
-| Most news feeds | News from VNDIRECT (VN stocks) and CNBC (economy, US markets) remains |
+| Most news feeds | News from VNDIRECT (VN stocks) and CNBC (economy, US markets) remains. The Market panel's News tab for Vietnam is empty with a note saying so; news for a single VN ticker is still on its ticker page |
 
 A source may change or block browsers at any time; the feature that needs it then pauses and the page says so. The installed version reads all of the above, with fallbacks when one fails.
 

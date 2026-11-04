@@ -123,9 +123,11 @@ function FailedStrip<T>({ title, reading, failedText }: FailedStripProps<T>) {
       <Button kind="tertiary" onClick={reading.retry}>
         {tr('ui.office.common.retry')}
       </Button>
-      <Button kind="tertiary" onClick={() => openSettings('data')}>
-        {tr('ui.office.today.doctor')}
-      </Button>
+      {!isAnalysisOnly.value && (
+        <Button kind="tertiary" onClick={() => openSettings('data')}>
+          {tr('ui.office.today.doctor')}
+        </Button>
+      )}
     </div>
   )
 }
