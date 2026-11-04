@@ -8,13 +8,13 @@ import {
   formatFraction,
   formatMultiple,
   formatPercent,
-  formatPercentRank,
   formatRatio,
   formatSignedPercent,
   renderDeclaredValue,
 } from '@/trading/render/format'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 import { formatFlowIn, formatPriceIn, formatSignedFlowIn } from '@/trading/render/money'
+import { formatPercentRank } from '@/trading/render/rank'
 
 /** Piotroski's checks. Printed beside the passed count, because a bare "3" reads as a score out
  *  of whatever the reader guesses, and a debate persona once read it as three of three. */

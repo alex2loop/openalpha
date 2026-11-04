@@ -6,13 +6,10 @@ import type { PriceDisplay } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type { RenderContext } from '@/trading/render/format'
 import { t } from '@/i18n'
-import {
-  formatPercentRank,
-  formatSignedPercent,
-  renderDeclaredValue,
-} from '@/trading/render/format'
+import { formatSignedPercent, renderDeclaredValue } from '@/trading/render/format'
 import { INDENT, toFactLines } from '@/trading/render/layout'
 import { type MetricReading, metricReadings } from '@/trading/render/metric'
+import { formatPercentRank } from '@/trading/render/rank'
 
 const MONTH_CHANGE_ID = 'month-change'
 

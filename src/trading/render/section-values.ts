@@ -32,7 +32,6 @@ import {
   formatHeadline,
   formatMultiple,
   formatPercent,
-  formatPercentRank,
   formatRatio,
   formatScore,
   formatScoreValue,
@@ -46,6 +45,7 @@ import {
   scoreBar,
 } from '@/trading/render/format'
 import { formatFixedPrice } from '@/trading/render/money'
+import { formatPercentRank } from '@/trading/render/rank'
 
 const NUMERIC_FIELDS: ReadonlySet<string> = new Set(BRIEF_NUMERIC_FIELDS)
 

@@ -229,39 +229,6 @@ export function formatFixedPercent(locale: Locale, percent: number): string {
   return formatFixedFraction(locale, percent / PERCENT_PER_UNIT)
 }
 
-/** Each wording of a standing; its two ends have their own keys (`…Lowest`, `…Highest`), since
- *  "above 0% of the names" reads oddly where "lowest on the board" says the same. */
-const RANK_KEYS = Object.freeze({
-  better: 'trading.render.layout.percentRank',
-  plain: 'trading.render.layout.percentRankPlain',
-  time: 'trading.render.layout.timeRank',
-} as const)
-const RANK_TOP = 100
-
-/** A rank over a few dozen peers, where every decimal is quantization rather than precision:
- *  84.78th of 46 names is the 85th, and printing the remainder claims a resolution it lacks. The
- *  standing is worded rather than written `p78`, a notation no message ever defined - it is still
- *  not a share, and what it says is how many of its peers this reading is above. `plain`, for a
- *  surface that passes no judgement, says it as a count of peers rather than as being better;
- *  `time` is where a series stands against its own past, a share of the window and never "better
- *  than", since a higher premium or a larger net long is neither better nor worse. */
-export function formatPercentRank(
-  locale: Locale,
-  percent: number,
-  wording: keyof typeof RANK_KEYS = 'better'
-): string {
-  const pct = Math.round(percent)
-  const key = RANK_KEYS[wording]
-
-  if (pct <= 0) {
-    return t(locale, `${key}Lowest`)
-  }
-
-  return pct >= RANK_TOP
-    ? t(locale, `${key}Highest`)
-    : t(locale, key, { pct: formatCount(locale, pct) })
-}
-
 /** A 0-1 index as whole percent. Coverage and agreement are folds over weights, not measured
  *  quantities: a second decimal on them claims a resolution the fold never had. */
 export function formatWholeFraction(locale: Locale, fraction: number): string {
