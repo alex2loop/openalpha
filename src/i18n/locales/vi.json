@@ -106,7 +106,7 @@
     "office.edition.keys.removeAsk": "Xóa key {provider}?",
     "office.edition.keys.removeBody": "Mình xóa key và cả việc bạn đã đồng ý gửi tới {provider}. Muốn dùng lại, bạn dán key và đồng ý lại.",
     "office.edition.keys.connect": "Kết nối OpenRouter",
-    "office.edition.keys.connectNote": "Đăng nhập ở OpenRouter để mình nhận key, không cần dán; ô \"Ghi nhớ trên máy này\" bên dưới áp dụng cho cả key này. Hoặc dán key ở dưới.",
+    "office.edition.keys.connectNote": "Đăng nhập ở OpenRouter để mình nhận key, không cần dán; ô \"Ghi nhớ trên máy này\" ở trên áp dụng cho cả key này. Hoặc dán key ở dưới.",
     "office.edition.keys.connectFailed": "Mình chưa nhận được key từ OpenRouter. Bạn thử lại, hoặc dán key vào ô trong Cài đặt.",
     "office.edition.keys.chatgptTitle": "Gói ChatGPT",
     "office.edition.tiers.title": "Hạng mô hình",

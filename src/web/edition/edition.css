@@ -47,7 +47,8 @@
   gap: var(--s2);
 }
 
-/* The note under "remember" explains that box, so it sits close under it. */
+/* The note under "remember" explains that box, so it sits close under it; the box leads the form so
+   it is chosen before Connect leaves the page. */
 .key-form > label + .meta {
   margin-top: calc(var(--s1) * -1);
 }

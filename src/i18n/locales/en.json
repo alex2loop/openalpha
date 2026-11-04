@@ -106,7 +106,7 @@
     "office.edition.keys.removeAsk": "Delete the {provider} key?",
     "office.edition.keys.removeBody": "I delete the key and your agreement to send to {provider}. To use it again, paste a key and agree again.",
     "office.edition.keys.connect": "Connect OpenRouter",
-    "office.edition.keys.connectNote": "Sign in at OpenRouter and I receive a key, no pasting; the \"Remember on this device\" box below applies to it too. Or paste a key below.",
+    "office.edition.keys.connectNote": "Sign in at OpenRouter and I receive a key, no pasting; the \"Remember on this device\" box above applies to it too. Or paste a key below.",
     "office.edition.keys.connectFailed": "I did not receive a key from OpenRouter. Try again, or paste a key in Settings.",
     "office.edition.keys.chatgptTitle": "ChatGPT plan",
     "office.edition.tiers.title": "Model tiers",
