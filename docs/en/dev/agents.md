@@ -289,7 +289,9 @@ first attempt, 500 ms backoff, 60 s transient cooldown, 900 s credential cooldow
 Adapters ([ai/adapters/runner.ts](../../../src/ai/adapters/runner.ts)) emit normalized text, reasoning, tool calls,
 usage and completion events. One malformed frame is skipped and logged; an unusable or incomplete stream fails the
 attempt. The total stream is capped at 4 MiB, or 1 KiB per output token when larger, and the response reader is
-cancelled in cleanup on success, failure, timeout and abort.
+cancelled in cleanup on success, failure, timeout and abort. A provider request never follows a redirect
+(`redirect: 'error'` in `openSseStream`, so a key header never goes on to another address); one fails the attempt as a
+`transient` network error.
 
 Reasoning accepts `default`, `off`, `low`, `medium`, `high`, translated per provider. Reasoning tokens are a subset
 of output usage: reported separately, never charged twice.

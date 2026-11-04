@@ -287,7 +287,9 @@ Mặc định ([core/config/resolvers/runtime.ts](../../src/core/config/resolver
 Các bộ nối ([ai/adapters/runner.ts](../../src/ai/adapters/runner.ts)) phát ra văn bản, phần suy luận, lời gọi công cụ, lượng
 dùng và sự kiện hoàn tất đã chuẩn hóa. Một khung hỏng lẻ bị bỏ qua và ghi log; một luồng không dùng được hoặc dở dang làm
 hỏng cả lần thử. Tổng luồng bị chặn ở 4 MiB, hoặc 1 KiB cho mỗi token đầu ra khi con số đó lớn hơn, và bộ đọc phản hồi bị hủy
-trong khâu dọn dẹp dù thành công, hỏng, hết giờ hay bị hủy.
+trong khâu dọn dẹp dù thành công, hỏng, hết giờ hay bị hủy. Yêu cầu tới nhà cung cấp không bao giờ đi theo chuyển hướng
+(`redirect: 'error'` trong `openSseStream`, nên header chứa key không đi tiếp sang địa chỉ khác); gặp chuyển hướng thì lần
+thử hỏng như một lỗi mạng `transient`.
 
 Mức suy luận nhận `default`, `off`, `low`, `medium`, `high`, được dịch riêng cho từng nhà cung cấp. Token suy luận là tập
 con của token đầu ra: báo riêng, không bao giờ tính tiền hai lần.
