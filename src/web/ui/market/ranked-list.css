@@ -2,6 +2,7 @@
   --rankedColumnMin: 230px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--rankedColumnMin), 1fr));
+  align-items: start;
   gap: var(--s3);
 }
 
