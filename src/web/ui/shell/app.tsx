@@ -47,14 +47,7 @@ export function App() {
   }
 
   if (state.value === undefined) {
-    const failure = sessionFailure.value
-
-    return (
-      <StatusLine
-        text={failure === undefined ? tr('ui.office.loading') : toFailureText(failure)}
-        isBusy={failure === undefined}
-      />
-    )
+    return <SessionWait />
   }
 
   const { status } = connection.value
@@ -96,5 +89,17 @@ function PageBottom({ hasCommandBar }: { readonly hasCommandBar: boolean }) {
       <ReaderHost />
       <Announcer />
     </>
+  )
+}
+
+// Before the first state arrives: the office loading, or why the session could not start.
+function SessionWait() {
+  const failure = sessionFailure.value
+
+  return (
+    <StatusLine
+      text={failure === undefined ? tr('ui.office.loading') : toFailureText(failure)}
+      isBusy={failure === undefined}
+    />
   )
 }
