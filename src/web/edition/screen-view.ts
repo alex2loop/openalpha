@@ -37,12 +37,13 @@ export interface BoardView {
   readonly bounds: Readonly<Record<string, string>>
 }
 
-/** No filter applied, ordered by the ticker's own letters: an order that says nothing about which
- *  name is better. */
+/** No filter applied, the most traded names first, as a price board lists them: an order anyone can
+ *  check, which says nothing about which name is better. A board without traded value falls back
+ *  through `resolveSortKey`. */
 const DEFAULT_VIEW: BoardView = Object.freeze({
   kind: DEFAULT_KIND,
-  sort: 'ticker' satisfies BaseSortKey,
-  direction: 'asc',
+  sort: 'turnover' satisfies BaseSortKey,
+  direction: 'desc',
   scope: 'all',
   sector: NO_SECTOR,
   bounds: Object.freeze({}),

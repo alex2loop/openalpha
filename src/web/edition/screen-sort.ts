@@ -210,14 +210,26 @@ export interface SortChoices {
   readonly factors: readonly BoardFactor[]
 }
 
-/** The key to sort by: the visitor's choice, or the ticker when this board has no such sort (the
- *  choice outlives the market it was made on and the figures a board carries). */
-export function resolveSortKey(key: string, { baseKeys, metrics, factors }: SortChoices): string {
-  const isBase = baseKeys.some((base) => base === key)
-  const isMetric = metrics.some((column) => key === `${METRIC_SORT_PREFIX}${metricKey(column)}`)
-  const isFactor = factors.some(({ id }) => key === `${FACTOR_SORT_PREFIX}${id}`)
+/** The sort a board falls back to: its traded value, as a price board lists names, then the 24-hour
+ *  traded value where that is what the board carries, then the ticker. Each is a figure anyone can
+ *  check, never an order the model chose. */
+const LIQUIDITY_SORTS: readonly string[] = Object.freeze([
+  'turnover' satisfies BaseSortKey,
+  `${METRIC_SORT_PREFIX}volume-24h`,
+])
 
-  return isBase || isMetric || isFactor ? key : TICKER_SORT
+/** The key to sort by: the visitor's choice, or the board's liquidity sort when this board has no
+ *  such sort (the choice outlives the market it was made on and the figures a board carries). */
+export function resolveSortKey(key: string, choices: SortChoices): string {
+  return [key, ...LIQUIDITY_SORTS].find((candidate) => isOffered(candidate, choices)) ?? TICKER_SORT
+}
+
+function isOffered(key: string, { baseKeys, metrics, factors }: SortChoices): boolean {
+  return (
+    baseKeys.some((base) => base === key) ||
+    metrics.some((column) => key === `${METRIC_SORT_PREFIX}${metricKey(column)}`) ||
+    factors.some(({ id }) => key === `${FACTOR_SORT_PREFIX}${id}`)
+  )
 }
 
 /** The names in the order the visitor chose. A name with no figure for the key goes last in either
