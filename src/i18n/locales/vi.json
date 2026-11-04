@@ -259,7 +259,6 @@
     "office.edition.history.loading": "Mình đang tải lịch sử giá. Bảng yếu tố chưa đủ dữ liệu cho tới khi xong, còn các phần khác dùng được ngay.",
     "office.edition.history.full": "Mình dừng tải lịch sử giá vì có thể máy đã hết chỗ lưu. Bạn xuất dữ liệu ra hoặc giải phóng bớt dung lượng, rồi tải lại trang để mình tải tiếp nhé.",
     "office.edition.history.offline": "Máy đang không có mạng nên mình chưa lấy được gì mới. Mình đang hiển thị dữ liệu đã lưu lần trước.",
-    "office.edition.history.dataAt": "Cập nhật lúc {time}",
     "office.edition.guide.title": "Hướng dẫn dùng bản web",
     "office.edition.guide.intro": "Mỗi mục dưới đây ngắn và có câu lệnh thật để bạn gõ vào ô nhập câu lệnh ở cuối trang. Muốn xem bản web làm được gì so với bản cài, mở \"Bản web và bản cài\".",
     "office.edition.guide.reopenFirstRun": "Xem lại phần giới thiệu ban đầu",

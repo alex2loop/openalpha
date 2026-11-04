@@ -158,13 +158,11 @@ export function ReadLine({ readAt, dataTo, readKey = 'ui.office.today.readAt' }:
     return null
   }
 
-  // The web edition says once per panel when its data was fetched ("Dữ liệu lúc"), so a card there
-  // does not repeat a read time.
   const facts = [
     ...(dataTo === undefined
       ? []
       : [tr('ui.office.today.dataTo', { time: formatDay(locale.value, dataTo) })]),
-    ...(isAnalysisOnly.value ? [] : [tr(readKey, { time: formatClock(readAt, timeZone) })]),
+    tr(readKey, { time: formatClock(readAt, timeZone) }),
   ]
 
   return facts.length === 0 ? null : <p class="meta block-read">{joinInline(facts)}</p>
