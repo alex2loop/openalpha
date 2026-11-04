@@ -32,6 +32,8 @@ import {
 } from '@/web/ui/dialogs/trade-kinds'
 
 // The daemon's zone is always known once the page is up; this only types the lookup.
+/** The kind a fresh form opens on. */
+export const DEFAULT_KIND: LedgerKind = 'buy'
 const FALLBACK_ZONE = 'UTC'
 const KEY_BYTES = 16
 const MARKET_SEPARATOR = ':'
@@ -99,7 +101,7 @@ export function createTradeForm(start: TradeStart): TradeForm {
 
   return {
     start,
-    kind: signal(entry?.kind ?? start.kind ?? 'buy'),
+    kind: signal(entry?.kind ?? start.kind ?? DEFAULT_KIND),
     ticker: signal(
       entry !== undefined && 'instrument' in entry ? entry.instrument.ticker : (start.ticker ?? '')
     ),

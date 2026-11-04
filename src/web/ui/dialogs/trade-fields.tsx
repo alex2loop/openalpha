@@ -12,13 +12,19 @@ import { toVenueName } from '@/web/text/venue'
 import { describeFailure, type FormFailure } from '@/web/ui/dialogs/field-errors'
 import { FieldNote } from '@/web/ui/dialogs/field-note'
 import { fieldPathsOf, OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
-import { chooseVenue, marketOf, offerVenues, type TradeForm } from '@/web/ui/dialogs/trade-state'
+import {
+  chooseVenue,
+  DEFAULT_KIND,
+  marketOf,
+  offerVenues,
+  type TradeForm,
+} from '@/web/ui/dialogs/trade-state'
 import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 import { Segmented } from '@/web/ui/kit/segmented'
 
 export const PRICE_FIELD_ID = 'trade-price'
 const MAIN_KINDS: readonly LedgerKind[] = Object.freeze(['buy', 'sell'])
-// The menu's first line, standing for "Khác" until a kind is picked.
+// The menu's first line: it stands for no other kind, and picking it goes back to a buy.
 const OTHER_VALUE = ''
 
 interface FieldProps {
@@ -68,14 +74,10 @@ export function KindRow({ form }: { readonly form: TradeForm }) {
         onChange={(event) => {
           const picked = OTHER_KINDS.find((other) => other.kind === event.currentTarget.value)
 
-          if (picked !== undefined) {
-            pickKind(form, picked.kind)
-          }
+          pickKind(form, picked?.kind ?? DEFAULT_KIND)
         }}
       >
-        <option value={OTHER_VALUE} disabled>
-          {tr('ui.office.trade.other')}
-        </option>
+        <option value={OTHER_VALUE}>{tr('ui.office.trade.other')}</option>
         {OTHER_KINDS.map((other) => (
           <option key={other.kind} value={other.kind}>
             {joinInline([tr(`trading.ledger.kind.${other.kind}`), tr(other.hint)])}
