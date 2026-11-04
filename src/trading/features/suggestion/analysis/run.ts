@@ -173,7 +173,11 @@ function toRecord(parts: RecordParts): AnalysisRecord {
     ...boardScaleOf(subject.market.manifest),
     caveats: read.evidence.caveats,
     ...(read.evidenceThrough === undefined ? {} : { evidenceThrough: read.evidenceThrough }),
-    ...(read.evidenceClose === undefined ? {} : { evidenceClose: read.evidenceClose }),
+    // A reference series is another instrument in another unit: its close is no price of this name
+    // to set the live quote against.
+    ...(read.evidenceClose === undefined || subject.market.manifest.referenceBarsOnly === true
+      ? {}
+      : { evidenceClose: read.evidenceClose }),
   }
 }
 
