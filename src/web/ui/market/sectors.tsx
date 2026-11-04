@@ -1,8 +1,10 @@
 import type { SectorsResponse } from '@/app/server/wire/market'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
+import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { findMarket, selectRegionOverview } from '@/web/state/market'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
+import { locale } from '@/web/state/session'
 import { formatSignedFraction, PERCENT } from '@/web/text/figures'
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
@@ -13,8 +15,12 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 
 // The strongest and the weakest sectors shown before the rest fold away.
 const SECTORS_PER_END = 5
+// The windows of the two excess returns the wire carries, in sessions.
+const EXCESS_SHORT_SESSIONS = 20
+const EXCESS_LONG_SESSIONS = 60
 
-/** The sector table of each market of the region that files sectors, strongest first. */
+/** The sector table of each market of the region that files sectors: strongest first, and on the
+ *  web edition by name with the excess returns over the index, which rank nothing. */
 export function Sectors({ region }: { readonly region: string }) {
   const markets = selectRegionOverview(region)
     .map((block) => block.market)
@@ -47,6 +53,10 @@ function MarketSectors({ market }: { readonly market: string }) {
 }
 
 function SectorTable({ sectors }: { readonly sectors: SectorsResponse['sectors'] }) {
+  if (isAnalysisOnly.value) {
+    return <SectorList rows={byName(sectors).map(excessRow)} />
+  }
+
   const rows = sectors.map(sectorRow)
 
   if (rows.length <= 2 * SECTORS_PER_END) {
@@ -66,8 +76,8 @@ function SectorTable({ sectors }: { readonly sectors: SectorsResponse['sectors']
 function SectorList({ rows }: { readonly rows: readonly RankedRow[] }) {
   return (
     <RankedList
-      title={tr('ui.office.market.sectorsRanked')}
-      note={tr('ui.office.market.sectorsNote')}
+      title={tr(editionKey('ui.office.market.sectorsRanked', 'ui.office.market.sectorsByName'))}
+      note={tr(editionKey('ui.office.market.sectorsNote', 'ui.office.market.sectorsExcessNote'))}
       rows={rows}
     />
   )
@@ -79,5 +89,23 @@ function sectorRow(entry: SectorsResponse['sectors'][number]): RankedRow {
     label: sectorName(entry.sector),
     figure: entry.score === undefined ? '' : formatSignedFraction(entry.score),
     changePct: entry.sessionReturn === undefined ? undefined : entry.sessionReturn * PERCENT,
+  }
+}
+
+function byName(sectors: SectorsResponse['sectors']): SectorsResponse['sectors'] {
+  return [...sectors].sort((a, b) =>
+    sectorName(a.sector).localeCompare(sectorName(b.sector), locale.value)
+  )
+}
+
+function excessRow(entry: SectorsResponse['sectors'][number]): RankedRow {
+  return {
+    ...sectorRow(entry),
+    figure: tr('ui.office.market.sectorsExcess', {
+      short: formatSignedFraction(entry.excessReturnShort),
+      shortSessions: EXCESS_SHORT_SESSIONS,
+      long: formatSignedFraction(entry.excessReturnLong),
+      longSessions: EXCESS_LONG_SESSIONS,
+    }),
   }
 }

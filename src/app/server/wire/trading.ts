@@ -5,7 +5,9 @@
 // Additive-only within v1. camelCase keys, no snake_case on the wire, no field renames.
 
 import type { BriefTextWire } from '@/app/server/wire/brief'
+import type { PortfolioPnlWire } from '@/app/server/wire/portfolio-pnl'
 import type { PortfolioSharesWire } from '@/app/server/wire/portfolio-shares'
+import type { QuoteDetailWire } from '@/app/server/wire/quote-detail'
 import type { ByModelWire } from '@/app/server/wire/track-record'
 import type {
   AssetClass,
@@ -40,7 +42,7 @@ export interface TradingWireProvenance {
   readonly freshness: SourceFreshness
 }
 
-export interface TradingQuoteWire {
+export interface TradingQuoteWire extends QuoteDetailWire {
   readonly ticker: string
   readonly label: string
   readonly region: string
@@ -176,36 +178,7 @@ export interface AbsolutePositionWire {
   readonly caveats: readonly TradingWireCaveat[]
 }
 
-interface NavPointWire {
-  readonly day: string
-  readonly nav: number
-  readonly index: number
-}
-
-export interface NavBenchmarkWire {
-  readonly legs: readonly {
-    readonly segment: string
-    readonly weight: number
-    readonly instrument?: InstrumentRefWire
-  }[]
-  readonly points: readonly { readonly day: string; readonly index: number }[]
-  readonly periodReturn: number
-}
-
-export interface TradingNavResponse {
-  readonly window: string
-  readonly baseCurrency: string
-  readonly firstDay?: string
-  readonly recordedCount: number
-  readonly points: readonly NavPointWire[]
-  readonly periodReturn?: number
-  readonly maximumDrawdown?: number
-  readonly currentDrawdown?: number
-  readonly benchmark?: NavBenchmarkWire
-  readonly benchmarkGap?: string
-}
-
-export interface TradingPortfolioResponse {
+export interface TradingPortfolioResponse extends PortfolioPnlWire {
   readonly asOf: string
   readonly baseCurrency: string
   readonly navBase?: number

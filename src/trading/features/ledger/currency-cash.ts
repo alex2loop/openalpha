@@ -105,6 +105,8 @@ export function applyCurrencyCashTxn(
 
     if (txn.kind === 'deposit') {
       state.netDepositsBase += costBase
+    } else {
+      state.dividendsBase += costBase
     }
 
     return

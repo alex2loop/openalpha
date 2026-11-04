@@ -674,7 +674,8 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     your book with "See the portfolio" (its value, what it holds, names past their stop, and the
     take-profit orders waiting at the exchange); the Vietnamese and other markets (each with its top
     gainers and losers of the session, or of the last 24 hours for a market that never closes, with
-    their turnover); upcoming events; top headlines; and what the agents did today, including work
+    their turnover; a dealer's rows, such as VN gold, state the dealer's buying and selling price and
+    the spread between them); upcoming events; top headlines; and what the agents did today, including work
     that ran while the page was closed. The macro and news blocks carry "See the full reading", which
     opens the Market tab. Anything the daemon started without, such as a missing exchange key, closes
     the tab. Above all of it sits a "Getting started" card until you finish or hide it: connect an AI
@@ -686,16 +687,20 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     browser only. It shows only in a browser that opened the office before a profile was saved or a
     trade recorded. "Show the getting-started steps again" at the foot of the Today tab brings it
     back until the page is reloaded.
-  - *Portfolio* holds overview, performance, history, rebalance and the watchlist with its price
-    alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
+  - *Portfolio* holds overview (with the ex-dividend dates, meetings and listings coming up in the
+    next 14 days for what you hold), performance (your book's value over 1 month, 3 months, 6 months,
+    1 year or everything on record, the span you pick kept in this browser), history, rebalance and
+    the watchlist with its price alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
     and deleted here, with undo, and History checks the ledger against your venues (see
     [Trading](trading.md#on-the-office-page)).
   - *Market* holds the full macro reading, the last closed session, the news and your themes (below).
   - *Ideas* holds open plans, the opportunities screen, the track record and research results, with a
     count of new calls you have not seen.
   - Click a ticker anywhere and its card opens: price (with "Refresh price", which reads that one name
-    live), the last sessions charted on price and date axes with the plan levels, your holding, "Why?"
-    for the reasoning behind a call, earlier calls and what your own agents think. Under the plan's
+    live; a dealer's board, such as VN gold, adds its buying price, selling price and spread), the
+    session's low, high and volume (the live session's when the price is live, else the last
+    settled session's, dated), the last sessions charted on price and date axes with the plan levels, your holding, "Why?" for the
+    reasoning behind a call, earlier calls and what your own agents think. Under the plan's
     levels sit "What it is waiting for" (what the trader still waits on before the entry, when it
     does) and "How each factor reads", the same lines `/suggest` prints. A call card under Ideas
     shows both too.
@@ -764,7 +769,9 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
 - **The macro reading in full**: the regime and lean; one line with the 12-month deposit rate and the
   USD/VND rate (a part with no reading is left out); the drivers left out because they have no
   reading yet; how much of the model has data; and, in Advanced, the scale and a table of what makes
-  the number, strongest pull first.
+  the number, strongest pull first, each row dated by the day its reading was observed and with the
+  figures at the two ends of its bar. The web edition names no regime and gives no composite, scale
+  or weights: it lists each driver's own reading, in the order the read gives them.
 - **The region's prices**, with each market's top gainers and losers (the five strongest moves above
   its liquidity floor, side by side on a wide panel).
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the
@@ -774,8 +781,9 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   has them, with its date beside the title.
 - **Sector strength** ranks the sectors from strongest to weakest with today's move. It shows the five
   strongest and the five weakest, with the rest behind "Show all" when a market files more than ten
-  (only for a market that files sectors). These blocks read again together with the rest, never on a
-  timer of their own.
+  (only for a market that files sectors). The web edition ranks nothing: it lists the sectors by name,
+  each with today's move and its gap to the index over 20 and 60 sessions. These blocks read again
+  together with the rest, never on a timer of their own.
 - **For Vietnam, an index picker** for VN-Index, VN30 or HNX:
   - the five names that lifted and the five that weighed on that index this session, each with its
     price and the points it added, signed, then a line with what the listed names added up to (not

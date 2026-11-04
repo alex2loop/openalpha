@@ -4,6 +4,11 @@
   "navBase": 250000000,
   "cashBase": 50000000,
   "availableCashBase": 45000000,
+  "netDepositsBase": 240000000,
+  "realizedPnlBase": 4200000,
+  "dividendsBase": 1500000,
+  "totalPnlBase": 10000000,
+  "feesBase": 160000,
   "positions": [
     {
       "instrument": {

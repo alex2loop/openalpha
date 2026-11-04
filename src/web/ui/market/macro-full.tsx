@@ -1,8 +1,12 @@
 import type { MacroResponse } from '@/app/server/wire/market'
+import { formatDay } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
+import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { isAdvanced } from '@/web/state/prefs'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
+import { locale } from '@/web/state/session'
+import { toCaveatText } from '@/web/text/caveat-text'
 import {
   formatFixed,
   formatFixedFraction,
@@ -16,19 +20,21 @@ import { tr } from '@/web/text/tr'
 import { Fold } from '@/web/ui/kit/fold'
 import { GlobeIcon } from '@/web/ui/kit/icons'
 import { BlockFrame } from '@/web/ui/today/block-frame'
-import { MACRO_POLL_MS, MacroReading } from '@/web/ui/today/blocks/macro'
+import {
+  formatDriverValue,
+  MACRO_POLL_MS,
+  type MacroDriver,
+  MacroReading,
+  type ReadyMacro,
+} from '@/web/ui/today/blocks/macro'
 
 const SCORE_DIGITS = 2
-const LEVEL_DIGITS = 2
 const INFO_SEVERITY = 'info'
 const DEPOSIT_RATE_SERIES = 'deposit-rate-12m'
 const USD_VND_SERIES = 'usd-vnd'
 const UNSERVED_REASON = 'unserved'
 // Where a driver with no band between its two ends sits.
 const MIDDLE_POSITION = 0.5
-
-type ReadyMacro = Extract<MacroResponse, { readonly status: 'ready' }>
-type MacroDriver = ReadyMacro['drivers'][number]
 
 /** The region's macro reading in full: the regime and lean at every level, what is missing and how
  *  much of the model read in; in Nâng cao also the scale and the drivers behind the score. */
@@ -58,33 +64,14 @@ export function MacroFull({ region }: { readonly region: string }) {
 
 function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
   const range = macro.scoreRange
-  const unserved = macro.missing.filter((driver) => driver.reason === UNSERVED_REASON)
-  const absent = macro.missing.filter((driver) => driver.reason !== UNSERVED_REASON)
-
-  const reading = [
-    ...(absent.length === 0
-      ? []
-      : [
-          tr('ui.office.market.missing', { names: joinList(absent.map((driver) => driver.label)) }),
-        ]),
-    ...(unserved.length === 0
-      ? []
-      : [
-          tr('ui.office.market.unserved', {
-            names: joinList(unserved.map((driver) => driver.label)),
-          }),
-        ]),
-    ...(macro.coverage < 1
-      ? [tr('ui.office.market.coverage', { share: formatFixedFraction(macro.coverage) })]
-      : []),
-  ]
+  const reading = readingLines(macro)
 
   return (
     <>
       <div class="stack meta">
         <RatesLine readings={macro.readings} />
         {reading.length > 0 && <p>{joinInline(reading)}</p>}
-        {isAdvanced.value && (
+        {isAdvanced.value && !isAnalysisOnly.value && (
           <p>
             {tr('ui.office.market.scale', {
               score: formatFixed(macro.score, SCORE_DIGITS),
@@ -99,6 +86,32 @@ function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
       {isAdvanced.value && <DriverTable drivers={macro.drivers} />}
     </>
   )
+}
+
+// What the read left out and how much of the model it covers, one line each where there is any.
+function readingLines(macro: ReadyMacro): string[] {
+  const unserved = macro.missing.filter((driver) => driver.reason === UNSERVED_REASON)
+  const absent = macro.missing.filter((driver) => driver.reason !== UNSERVED_REASON)
+
+  return [
+    ...(absent.length === 0
+      ? []
+      : [
+          tr(editionKey('ui.office.market.missing', 'ui.office.market.missingWeb'), {
+            names: joinList(absent.map((driver) => driver.label)),
+          }),
+        ]),
+    ...(unserved.length === 0
+      ? []
+      : [
+          tr('ui.office.market.unserved', {
+            names: joinList(unserved.map((driver) => driver.label)),
+          }),
+        ]),
+    ...(macro.coverage < 1
+      ? [tr('ui.office.market.coverage', { share: formatFixedFraction(macro.coverage) })]
+      : []),
+  ]
 }
 
 // The deposit rate and the exchange rate the region's read carried, each left out when it has none.
@@ -117,24 +130,37 @@ function RatesLine({ readings }: { readonly readings: ReadyMacro['readings'] }) 
   return rates.length === 0 ? null : <p>{joinInline(rates)}</p>
 }
 
+// The daemon's table is ordered by pull on its composite; the web edition's has no composite, so
+// its rows stay in the order the read gives them.
 function DriverTable({ drivers }: { readonly drivers: ReadyMacro['drivers'] }) {
-  const ranked = [...drivers].sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
+  const rows = isAnalysisOnly.value
+    ? drivers
+    : [...drivers].sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
 
   return (
     <>
-      <h3 class="sub-head">{tr('ui.office.market.drivers')}</h3>
-      <table class="macro-drivers" title={tr('ui.office.market.driversNote')}>
+      <h3 class="sub-head">
+        {tr(editionKey('ui.office.market.drivers', 'ui.office.market.driversWeb'))}
+      </h3>
+      <table
+        class="macro-drivers"
+        title={tr(editionKey('ui.office.market.driversNote', 'ui.office.market.driversWebNote'))}
+      >
         <thead>
           <tr>
             <th />
             <th class="num">{tr('ui.office.market.col.reading')}</th>
             <th>{tr('ui.office.market.col.position')}</th>
-            <th class="num">{tr('ui.office.market.col.weight')}</th>
-            <th class="num">{tr('ui.office.market.col.contribution')}</th>
+            {!isAnalysisOnly.value && (
+              <>
+                <th class="num">{tr('ui.office.market.col.weight')}</th>
+                <th class="num">{tr('ui.office.market.col.contribution')}</th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
-          {ranked.map((driver) => (
+          {rows.map((driver) => (
             <DriverRow key={driver.id} driver={driver} />
           ))}
         </tbody>
@@ -146,19 +172,32 @@ function DriverTable({ drivers }: { readonly drivers: ReadyMacro['drivers'] }) {
 function DriverRow({ driver }: { readonly driver: MacroDriver }) {
   return (
     <tr>
-      <td>{driver.label}</td>
-      <td class="num">
-        {driver.unit === 'percent'
-          ? formatFixedFraction(driver.value / PERCENT)
-          : formatFixed(driver.value, LEVEL_DIGITS)}
-      </td>
       <td>
-        <span class="macro-track">
-          <span class="macro-dot" style={`left: ${positionOf(driver) * PERCENT}%`} />
+        {driver.label}
+        <span class="meta macro-asof">
+          {tr('ui.office.market.driverAsOf', { day: formatDay(locale.value, driver.asOf) })}
         </span>
       </td>
-      <td class="num">{formatFixedFraction(driver.weight)}</td>
-      <td class="num">{formatFixed(driver.contribution, SCORE_DIGITS)}</td>
+      <td class="num">{formatDriverValue(driver)}</td>
+      <td>
+        <span class="macro-range">
+          <span class="num">
+            {formatDriverValue({ unit: driver.unit, value: driver.bearishAt })}
+          </span>
+          <span class="macro-track">
+            <span class="macro-dot" style={`left: ${positionOf(driver) * PERCENT}%`} />
+          </span>
+          <span class="num">
+            {formatDriverValue({ unit: driver.unit, value: driver.bullishAt })}
+          </span>
+        </span>
+      </td>
+      {!isAnalysisOnly.value && (
+        <>
+          <td class="num">{formatFixedFraction(driver.weight)}</td>
+          <td class="num">{formatFixed(driver.contribution, SCORE_DIGITS)}</td>
+        </>
+      )}
     </tr>
   )
 }
@@ -186,7 +225,7 @@ function InfoNotes({ caveats }: { readonly caveats: MacroResponse['caveats'] }) 
     <Fold title={tr('trading.render.suggestion.sources')}>
       {notes.map((note) => (
         <p key={note.text} class="meta">
-          {note.text}
+          {toCaveatText(note)}
         </p>
       ))}
     </Fold>

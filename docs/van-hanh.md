@@ -667,7 +667,8 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     duyệt, mã thủng cắt lỗ; bấm "Mở" để xem trong chuông); những gì đáng xem; danh mục của bạn với nút
     "Xem danh mục" (giá trị, đang giữ gì, mã thủng cắt lỗ và các lệnh chốt lời đang chờ ở sàn); thị
     trường Việt Nam và các thị trường khác (mỗi thị trường kèm các mã tăng mạnh nhất và giảm mạnh nhất
-    của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch); sự kiện sắp
+    của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch; hàng của đại
+    lý như vàng VN nêu giá mua vào, giá bán ra và chênh lệch giữa hai giá); sự kiện sắp
     tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
     và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví
     dụ chưa có khóa API của sàn, nằm ở cuối thẻ. Trên cùng là thẻ "Bắt đầu với" cho tới khi bạn làm
@@ -678,8 +679,10 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     bước bắt buộc đã tích, hoặc ngay khi bạn bấm "Ẩn hướng dẫn"; cả hai chỉ được nhớ trên trình duyệt
     này. Thẻ chỉ hiện trên trình duyệt đã mở văn phòng trước khi có hồ sơ được lưu hay giao dịch được
     ghi. Nút "Xem lại các bước bắt đầu" ở cuối thẻ Hôm nay mở lại thẻ cho đến khi bạn tải lại trang.
-  - *Danh mục* gồm tổng quan, hiệu quả, lịch sử, cân bằng lại và danh sách theo dõi cùng cảnh báo giá,
-    thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
+  - *Danh mục* gồm tổng quan (kèm ngày giao dịch không hưởng cổ tức, đại hội cổ đông và niêm yết
+    trong 14 ngày tới của các mã bạn đang giữ), hiệu quả (giá trị danh mục trong 1 tháng, 3 tháng, 6 tháng, 1 năm hoặc
+    toàn bộ lịch sử; khoảng bạn chọn được nhớ trên trình duyệt này), lịch sử, cân bằng lại và danh
+    sách theo dõi cùng cảnh báo giá, thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
     có hoàn tác, còn Lịch sử đối chiếu sổ với các sàn của bạn (xem
     [Giao dịch](giao-dich.md#trên-trang-văn-phòng)).
   - *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên gần nhất đã chốt, tin tức và các chủ đề của bạn (ở
@@ -687,8 +690,10 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
   - *Đề xuất* gồm các kế hoạch đang mở, màn hình cơ hội, thành tích và kết quả nghiên cứu, kèm số đề
     xuất mới bạn chưa xem.
   - Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng
-    mã đó), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng các mức của kế hoạch, mã bạn đang
-    giữ, "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
+    mã đó; bảng giá của đại lý như vàng VN thêm giá mua vào, giá bán ra và chênh lệch), mức thấp nhất,
+    cao nhất và khối lượng của phiên (của phiên đang chạy khi giá là giá trực tiếp, nếu không thì của
+    phiên đã chốt gần nhất, có ghi ngày), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng
+    các mức của kế hoạch, mã bạn đang giữ, "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
     Dưới các mức của kế hoạch là "Đang chờ điều gì" (điều kiện người giao dịch còn chờ trước khi vào
     lệnh, nếu có) và "Từng yếu tố chấm ra sao", đúng những dòng `/suggest` in ra. Thẻ đề xuất ở mục
     Đề xuất cũng có hai phần này.
@@ -757,7 +762,9 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
 - **Đầy đủ số đọc vĩ mô**: trạng thái và chiều nghiêng; một dòng lãi suất tiền gửi 12 tháng và tỷ giá
   USD/VND (phần nào chưa có số thì bỏ); những thành phần bị để ngoài vì chưa có số đọc; phần mô hình
   đã có dữ liệu; và ở mức Nâng cao thì thêm thang đo cùng bảng các thành phần tạo nên con số, lực kéo
-  mạnh nhất đứng đầu.
+  mạnh nhất đứng đầu, mỗi dòng ghi ngày số liệu được ghi nhận và hai số ở hai đầu thanh của nó. Bản
+  web không nêu trạng thái và không có điểm tổng hợp, thang đo hay trọng số: chỉ liệt kê số đọc riêng
+  của từng thành phần, theo thứ tự nguồn trả về.
 - **Giá của vùng đó**, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động
   mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng).
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
@@ -766,8 +773,9 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   nên khi chưa có thì danh sách lấy từ phiên gần nhất đã có số liệu, kèm ngày bên cạnh tiêu đề.
 - **Sức mạnh ngành** xếp các ngành từ mạnh đến yếu, kèm biến động hôm nay. Khối hiện năm ngành mạnh
   nhất và năm ngành yếu nhất, phần còn lại nằm sau "Xem tất cả" khi thị trường có hơn mười ngành (chỉ
-  có cho thị trường có phân ngành). Các khối này đọc lại cùng lúc với phần còn lại, không theo chu kỳ
-  riêng.
+  có cho thị trường có phân ngành). Bản web không xếp hạng gì: các ngành xếp theo tên, mỗi ngành kèm
+  biến động hôm nay và mức chênh so với chỉ số sau 20 và 60 phiên. Các khối này đọc lại cùng lúc với
+  phần còn lại, không theo chu kỳ riêng.
 - **Với Việt Nam, một ô chọn chỉ số** VN-Index, VN30 hoặc HNX:
   - năm mã kéo lên và năm mã kéo xuống chỉ số đó trong phiên, mỗi mã kèm giá và số điểm nó góp, có
     dấu, rồi một dòng cộng tổng phần các mã trong danh sách góp (không phải toàn bộ biến động của chỉ

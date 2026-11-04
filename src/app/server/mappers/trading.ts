@@ -1,15 +1,14 @@
 // One mapper per wire shape. A handler calls its service, then its mapper — it never assembles a
 // wire object inline, so a projection can only be wrong in one place. `toSuggestionWire` in
 // particular has two call sites (/v1/suggestions and /v1/track-record) and one definition.
+import type { DealerBoardWire, SessionRangeWire } from '@/app/server/wire/quote-detail'
 import type {
   AbsolutePositionWire,
   InstrumentRefWire,
   MarketEventWire,
-  NavBenchmarkWire,
   SuggestionCardWire,
   SuggestionWire,
   TradingCandleWire,
-  TradingNavResponse,
   TradingNewsItemWire,
   TradingPortfolioResponse,
   TradingProfileResponse,
@@ -24,8 +23,6 @@ import type {
   Caveat,
   InstrumentRef,
   MarketEvent,
-  NavBenchmark,
-  NavHistory,
   NewsItem,
   PortfolioView,
   ProfileSetField,
@@ -124,11 +121,35 @@ function toQuoteWire(item: QuoteBoardItem, locale: Locale): TradingQuoteWire {
     ...(item.changePct === undefined ? {} : { changePct: item.changePct }),
     ...(item.closedOn === undefined ? {} : { closedOn: item.closedOn }),
     ...(isStale(item) ? { staleAt: item.observed.observedAt } : {}),
+    ...(item.board === undefined ? {} : { board: toDealerBoardWire(item.board) }),
+    ...(item.session === undefined
+      ? {}
+      : { session: toSessionRangeWire(item.session, item.observed.day) }),
     provenance: toProvenanceWires(item.provenance),
     caveats: toCaveatWires(item.caveats, locale),
     kind: item.kind,
     market: item.market,
     assetClass: item.assetClass,
+  }
+}
+
+function toSessionRangeWire(
+  session: NonNullable<QuoteBoardItem['session']>,
+  day: string
+): SessionRangeWire {
+  return {
+    day,
+    low: session.low,
+    high: session.high,
+    ...(session.volume === undefined ? {} : { volume: session.volume }),
+  }
+}
+
+export function toDealerBoardWire(board: NonNullable<QuoteBoardItem['board']>): DealerBoardWire {
+  return {
+    buyPrice: board.buyPrice,
+    sellPrice: board.sellPrice,
+    ...(board.spreadPct === undefined ? {} : { spread: board.spreadPct }),
   }
 }
 
@@ -221,44 +242,16 @@ export function toPortfolioWire(sized: PortfolioView, locale: Locale): TradingPo
     ...(book.navBase === undefined ? {} : { navBase: book.navBase }),
     cashBase: book.book.cashBase,
     availableCashBase: book.book.availableCashBase,
+    netDepositsBase: book.book.netDepositsBase,
+    realizedPnlBase: book.realizedPnlBase,
+    dividendsBase: book.book.dividendsBase,
+    ...(book.navBase === undefined
+      ? {}
+      : { totalPnlBase: book.navBase - book.book.netDepositsBase }),
+    ...(book.feesBase === undefined ? {} : { feesBase: book.feesBase }),
     positions: book.positions.map((position) => toPositionWire(position, context)),
     shares: { segments: sized.shares },
     caveats: toCaveatWires(book.caveats, locale),
-  }
-}
-
-function toNavBenchmarkWire(benchmark: NavBenchmark): NavBenchmarkWire {
-  return {
-    legs: benchmark.legs.map((leg) => ({
-      segment: leg.segment,
-      weight: leg.weight,
-      ...(leg.instrument === undefined ? {} : { instrument: toInstrumentWire(leg.instrument) }),
-    })),
-    points: benchmark.points.map((point) => ({ day: point.day, index: point.index })),
-    periodReturn: benchmark.periodReturn,
-  }
-}
-
-/** Absent figures stay absent: a history too thin to measure sends no return and no drawdown at
- *  all rather than a zero a client would draw as a flat line. */
-export function toNavWire(history: NavHistory): TradingNavResponse {
-  return {
-    window: history.window,
-    baseCurrency: history.baseCurrency,
-    ...(history.firstDay === undefined ? {} : { firstDay: history.firstDay }),
-    recordedCount: history.recordedCount,
-    points: history.points.map((point) => ({
-      day: point.day,
-      nav: point.navBase,
-      index: point.index,
-    })),
-    ...(history.periodReturn === undefined ? {} : { periodReturn: history.periodReturn }),
-    ...(history.maximumDrawdown === undefined ? {} : { maximumDrawdown: history.maximumDrawdown }),
-    ...(history.currentDrawdown === undefined ? {} : { currentDrawdown: history.currentDrawdown }),
-    ...(history.benchmark === undefined
-      ? {}
-      : { benchmark: toNavBenchmarkWire(history.benchmark) }),
-    ...(history.benchmarkGap === undefined ? {} : { benchmarkGap: history.benchmarkGap }),
   }
 }
 

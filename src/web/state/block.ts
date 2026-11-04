@@ -9,6 +9,7 @@ import { createSingleFlight } from '@/web/api/single-flight'
 import { isAnalysisOnly } from '@/web/state/edition'
 import { connection, state } from '@/web/state/session'
 import { mergeCautions } from '@/web/text/caution-text'
+import { toCaveatText } from '@/web/text/caveat-text'
 
 const STOPPING = 'stopping'
 
@@ -18,6 +19,7 @@ type BlockQuery = Readonly<Record<string, string | number>>
 type BlockStatus = 'loading' | 'ready' | 'stale' | 'failed' | 'absent'
 
 interface WireCaveat {
+  readonly code?: string
   readonly severity: string
   readonly text: string
 }
@@ -241,5 +243,5 @@ function isWireCaveat(value: unknown): value is WireCaveat {
 
 // A by-design note (`info`) is not a warning; the same sentence from two sources shows once.
 function toCautions(caveats: readonly WireCaveat[]): readonly string[] {
-  return mergeCautions(caveats.filter((caveat) => caveat.severity === 'warn').map((c) => c.text))
+  return mergeCautions(caveats.filter((caveat) => caveat.severity === 'warn').map(toCaveatText))
 }
