@@ -2355,7 +2355,7 @@
     "customVenueMarketName": "{venue} is the name of a market, so a venue cannot take it. Pick another name.",
     "customVenueDuplicate": "You already have a venue called {venue}.",
     "customVenueInvalid": "These venues cannot be used. Check each name, market and fee.",
-    "customVenueInUse": "{count} rows in your book still name {venue}. Delete or correct them first, then remove the venue.",
+    "customVenueInUse": "Your book still names {venue} (rows: {count}). Delete or correct those rows first, then remove the venue.",
     "noticeKindUnknown": "[notices] chat names an unknown notice kind: {kind}. Valid kinds: {kinds}.",
     "abort": "✗ Cancelled.",
     "abortHint": "Send a new message to start again.",
