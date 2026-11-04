@@ -527,9 +527,12 @@ OpenAlpha is open source and run by one person today, so every contribution make
 - **Docs and wording.** A confusing sentence, a term that is off, a place where Vietnamese and English disagree: fix it in `docs/` or in the two catalogs under `src/i18n/locales/`.
 - **Data sources, exchanges, brokers, new markets.** Each is a local change: one adapter, one registration line and the locale keys. Open an issue first for anything structural.
 - **Agents and skills.** An analyst of your own is one TOML file; a plugin data source is one `sources.ts`.
-- **Buy me a coffee.** If OpenAlpha is useful to you, you can support it at [buymeacoffee.com/alex2loop](https://buymeacoffee.com/alex2loop). It is voluntary and unlocks no feature or private support.
 
 **Good first steps:** issues labelled [good first issue](https://github.com/alex2loop/openalpha/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22). **Roadmap:** there is no separate page yet; planned work and new ideas are discussed in [Issues](https://github.com/alex2loop/openalpha/issues). The directions already ruled out (auto-trading, a backtest harness...) are in [CONTRIBUTING.en.md](CONTRIBUTING.en.md#things-that-will-be-turned-down), with the reasons.
+
+### Back the project
+
+If OpenAlpha is useful to you, you can [buy me a coffee](https://buymeacoffee.com/alex2loop). It is voluntary: it unlocks no feature or private support, and OpenAlpha stays free whether you give or not.
 
 ### Run from source
 
