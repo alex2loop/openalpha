@@ -1,0 +1,65 @@
+.fact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--s1) var(--s3);
+  margin-top: var(--s1);
+}
+
+.fact-group {
+  min-width: 0;
+}
+
+.fact-heading {
+  margin: 0 0 2px;
+  color: var(--ink3);
+  font: var(--typeCaptionStrong);
+}
+
+.fact-list {
+  display: grid;
+  margin: 0;
+}
+
+/* The label takes what the value leaves; a value too long to sit beside it wraps under, on the
+   right, rather than over it. */
+.fact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--s2);
+  padding: 2px 0;
+  font: var(--typeBody);
+}
+
+.fact > dt {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink2);
+}
+
+.fact > dd {
+  flex: 0 1 auto;
+  max-width: 100%;
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.fact-rank {
+  color: var(--ink3);
+  font-size: var(--sizeCaption);
+}
+
+.fact-more {
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink2);
+  font: var(--typeEmphasis);
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -79,6 +79,13 @@ interface MetricFactOptions {
 /** How a line of readings is written: the options a fact takes, and what the facts are joined with. */
 type MetricLineOptions = Omit<MetricFactOptions, 'row'> & { readonly separator?: string }
 
+/** One reading with its label and its value kept apart, for a surface that lays them out itself. */
+export interface MetricReading {
+  readonly metric: FactorMetric
+  readonly label: string
+  readonly value: string
+}
+
 /** One fact per reading, for a surface that decides where they are joined. A reading never splits:
  *  its label and its number are one thing to read. */
 export function metricFacts(
@@ -86,6 +93,20 @@ export function metricFacts(
   metrics: readonly FactorMetric[] | undefined,
   options: MetricFactOptions = {}
 ): readonly string[] {
+  return metricReadings(locale, metrics, options).map(({ label, value }) =>
+    options.row === true
+      ? t(locale, 'trading.render.metric.row', { label, value })
+      : `${label} ${value}`
+  )
+}
+
+/** The readings of `metricFacts` before the label and the value are joined; a `row` label comes
+ *  capitalised. */
+export function metricReadings(
+  locale: Locale,
+  metrics: readonly FactorMetric[] | undefined,
+  options: MetricFactOptions = {}
+): readonly MetricReading[] {
   if (metrics === undefined) {
     return []
   }
@@ -98,14 +119,12 @@ export function metricFacts(
 
   return readings.map((metric) => {
     const label = metricLabel(locale, metric, options.labels ?? 'full')
-    const value = formatMetric(locale, metric, options)
 
-    return options.row === true
-      ? t(locale, 'trading.render.metric.row', {
-          label: `${label.charAt(0).toUpperCase()}${label.slice(1)}`,
-          value,
-        })
-      : `${label} ${value}`
+    return {
+      metric,
+      label: options.row === true ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : label,
+      value: formatMetric(locale, metric, options),
+    }
   })
 }
 

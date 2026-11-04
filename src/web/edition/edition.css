@@ -76,28 +76,14 @@
   width: min(17rem, 100%);
 }
 
-/* One cell per fact on columns of a set width, so rows read alike at any card width; a reading
-   stays whole where its cell holds it. */
-.screen-facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--factW)), 1fr));
-  gap: 2px var(--s2);
-}
-
-.screen-facts.is-figures {
-  --factW: 11rem;
-}
-
-.screen-facts.is-readings {
-  --factW: 14rem;
-}
-
-.screen-facts.is-factors {
-  --factW: 18rem;
-}
-
-.screen-fact-value {
-  display: inline-block;
+/* The sector reads as a small muted tag after the price and the move. */
+.screen-sector {
+  margin-inline-start: var(--s1);
+  padding: 1px var(--s1);
+  border-radius: 8px;
+  background: var(--sunken);
+  color: var(--ink3);
+  font-size: var(--sizeCaption);
 }
 
 /* The error log: one entry per line, long messages and stacks wrapping inside the dialog. */

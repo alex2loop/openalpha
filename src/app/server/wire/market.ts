@@ -34,6 +34,23 @@ interface ScreenFactorWire {
   readonly metrics?: readonly ScreenFigureWire[]
 }
 
+/** Where a fact of a name is listed: price and liquidity, valuation and quality, money flow, and
+ *  derivatives, in that order. */
+type ScreenFactGroup = 'price' | 'valuation' | 'flow' | 'derivatives'
+
+/** One thing a board reads for a name, written as the CLI lists it: the label capitalised, the
+ *  value with its unit, and where the name sits among the board's names on the factor behind it
+ *  (`rank`, plain words). Each reading once, in a fixed order. */
+export interface ScreenFactWire {
+  readonly id: string
+  readonly label: string
+  readonly value: string
+  readonly rank?: string
+  readonly group: ScreenFactGroup
+  /** A reading a page may keep behind a "more" control. */
+  readonly secondary?: true
+}
+
 /** A name's identity and live price; on a ranked board what the board says about it is in `card`,
  *  on a `list` board its factors are here. */
 interface ScreenCandidateWire {
@@ -49,6 +66,10 @@ interface ScreenCandidateWire {
   readonly turnover?: number
   readonly monthChangePct?: number
   readonly foreignNet?: number
+  /** What the board reads for the name, grouped and each reading once, as the CLI lists them. */
+  readonly facts?: readonly ScreenFactWire[]
+  /** The factors that had nothing to read for the name, in the operator's language. */
+  readonly missing?: readonly string[]
   /** `list` boards only: the factors that fired for the name, in a fixed order. */
   readonly factors?: readonly ScreenFactorWire[]
   /** `list` boards only: the plain values the market states beside the factors (where the name

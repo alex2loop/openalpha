@@ -1,6 +1,7 @@
 import type { BriefText } from '@/trading/features/brief/surface'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { ScreenCard } from '@/trading/features/market-data/render/screen'
+import type { BoardFact } from '@/trading/features/market-data/render/screen-facts'
 import type { MarketDescription, ScreenView } from '@/trading/features/market-data/types'
 import type { VenueReconciliation } from '@/trading/features/portfolio/folds/reconcile'
 import type { ReconcileSentences } from '@/trading/features/portfolio/render/reconcile'
@@ -35,17 +36,25 @@ interface ScreenReading {
   readonly text: string
 }
 
+/** What a name reads on a board, grouped and each reading once as the CLI's board lists them, and
+ *  the factors that had nothing to read for it, in the operator's language. */
+interface ScreenNameFacts {
+  readonly facts: readonly BoardFact[]
+  readonly missing: readonly string[]
+}
+
 /** A screen read with the CLI's own lines for it. A `board` view also names the factors it reads, in
  *  the operator's language, keyed by factor id, and writes what each name's factors read, keyed by
  *  ticker and then factor id, and the plain values its market states for each name, keyed by ticker.
  *  `kinds` names, in the operator's language, the kinds a market with more than one can be narrowed
- *  to. */
+ *  to. Every form names the facts of each name, keyed by ticker. */
 export interface ScreenAnswer {
   readonly view: ScreenView
   readonly card: ScreenCard
   readonly factorLabels?: Readonly<Record<string, string>>
   readonly factorReadings?: Readonly<Record<string, Readonly<Record<string, string>>>>
   readonly nameReadings?: Readonly<Record<string, readonly ScreenReading[]>>
+  readonly nameFacts?: Readonly<Record<string, ScreenNameFacts>>
   readonly kinds?: readonly { readonly kind: InstrumentKind; readonly label: string }[]
 }
 

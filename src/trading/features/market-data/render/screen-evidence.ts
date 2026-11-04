@@ -1,38 +1,38 @@
 import type { Locale } from '@/core/types/locale'
 import type { ScreenedCandidate } from '@/trading/features/market-data/types'
-import type { FactorId, FactorResult } from '@/trading/kernel/factor'
+import type { FactorId } from '@/trading/kernel/factor'
 import type { CurrencyCode, PriceDisplay, TradingDay } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type { RenderContext } from '@/trading/render/format'
 import { t } from '@/i18n'
+import {
+  boardFacts,
+  missingFactorLabels,
+  renderBoardFactLines,
+} from '@/trading/features/market-data/render/screen-facts'
 import { byDistinctiveness } from '@/trading/markets/factor-scoring'
 import { screenRating } from '@/trading/markets/screen-rating'
 import { toFoldLines } from '@/trading/render/fold'
 import {
   formatCount,
-  formatPercentRank,
   formatScoreValue,
   formatSignedFixedPercent,
-  formatWholeFraction,
   renderDeclaredValue,
   renderTopFactorFacts,
   SEVERITY_MARKS,
 } from '@/trading/render/format'
 import { renderQuoteFreshness } from '@/trading/render/freshness'
-import { INDENT, toFactLines, toRowLines } from '@/trading/render/layout'
-import { metricFacts, renderMetricLine } from '@/trading/render/metric'
+import { INDENT, toRowLines } from '@/trading/render/layout'
 import { formatFixedPrice, formatPrice } from '@/trading/render/money'
 import { quoteBoardMoveOf } from '@/trading/render/price-pair'
-
-/** Coverage at or above this says the whole model spoke, which is the ordinary case and therefore
- *  not worth a clause on every row. */
-const FULL_COVERAGE = 1
 
 interface CandidateRow {
   readonly candidate: ScreenedCandidate
   readonly index: number
   readonly gated: boolean
 }
+
+const LIST_SEPARATOR = ', '
 
 /** What every row on one board shares: how it quotes, the clock its times are read on, and what
  *  each factor reads as across the whole board. */
@@ -62,7 +62,6 @@ export function renderCandidateBlock(
         ...rowFacts(locale, row),
         ...renderPriceFacts(locale, candidate, board),
         ...renderTopFactorFacts(locale, distinctive),
-        ...renderReadingFacts(locale, candidate, board),
       ],
       board.context,
       1
@@ -71,68 +70,26 @@ export function renderCandidateBlock(
   ]
 }
 
-/** One name of a board listing as one row: its ticker, its price, then what each factor read and
- *  where that sits among the board's names. No rating, composite or rank, and no bar: those would
- *  order the list by merit, which the reader's own sort is there to do. Factors in a fixed order,
- *  so two names line up. */
+/** One name of a board listing as one row: its ticker and its price, then its facts by group. No
+ *  rating, composite or rank, and no bar: those would order the list by merit, which the reader's
+ *  own sort is there to do. Facts in a fixed order, so two names line up. */
 export function renderBoardRow(
   locale: Locale,
   candidate: ScreenedCandidate,
   board: ScreenBoard
 ): readonly string[] {
-  return toRowLines(
-    [
-      candidate.instrument.ticker,
-      ...renderPriceFacts(locale, candidate, board),
-      ...candidate.factors
-        .filter((factor) => factor.weight !== undefined)
-        .toSorted((left, right) => left.id.localeCompare(right.id))
-        .map((factor) => renderBoardFactor(locale, { candidate, factor }, board))
-        .filter((fact) => fact !== ''),
-      ...renderReadingFacts(locale, candidate, board),
-    ],
-    board.context,
-    1
-  )
-}
-
-/** The plain values the market states beside the factors, short-labelled like a factor's own. */
-function renderReadingFacts(
-  locale: Locale,
-  candidate: ScreenCandidate,
-  board: ScreenBoard
-): readonly string[] {
-  return metricFacts(locale, candidate.readings, {
-    labels: BOARD_READING.labels,
-    canonical: BOARD_READING.canonical,
-    ...(board.display === undefined ? {} : { quote: { display: board.display } }),
-  })
-}
-
-/** What the factor read in the quantities it was scored on, and where that sits on the board. The
- *  score itself is left off: it is the composite's ingredient, and the board ranks nothing. A factor
- *  with no stated reading is named instead, and one with neither reading nor place says nothing. */
-function renderBoardFactor(
-  locale: Locale,
-  row: { readonly candidate: ScreenedCandidate; readonly factor: FactorResult },
-  board: ScreenBoard
-): string {
-  const { candidate, factor } = row
-  const percentile = candidate.percentiles?.[factor.id]
-  const reading =
-    renderMetricLine(locale, factor.metrics, {
-      ...BOARD_READING,
-      ...(board.display === undefined ? {} : { quote: { display: board.display } }),
-    }) ?? ''
-
-  if (percentile === undefined) {
-    return reading
-  }
-
-  return t(locale, 'trading.render.screen.boardFactor', {
-    reading: reading === '' ? renderDeclaredValue(locale, `trading.factor.${factor.id}`) : reading,
-    rank: formatPercentRank(locale, percentile, 'plain'),
-  })
+  return [
+    ...toRowLines(
+      [
+        candidate.instrument.ticker,
+        ...renderPriceFacts(locale, candidate, board),
+        ...missingSegment(locale, candidate),
+      ],
+      board.context,
+      1
+    ),
+    ...renderBoardFactLines(locale, boardFacts(locale, candidate, board), board.context),
+  ]
 }
 
 /** How a board writes a factor's quantities: short labels, each reading once, joined by commas. A
@@ -163,7 +120,7 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
     t(locale, 'trading.render.screen.score', {
       score: formatScoreValue(locale, candidate.composite.score),
     }),
-    ...coverageSegment(locale, candidate.composite.coverage),
+    ...missingSegment(locale, candidate),
     ...(candidate.excluded === true ? [t(locale, 'trading.render.screen.excluded')] : []),
     ...(candidate.marginIneligible === true
       ? [t(locale, 'trading.render.screen.margin-ineligible')]
@@ -171,16 +128,12 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
   ]
 }
 
-function coverageSegment(locale: Locale, coverage: number): readonly string[] {
-  if (coverage >= FULL_COVERAGE) {
-    return []
-  }
+function missingSegment(locale: Locale, candidate: ScreenCandidate): readonly string[] {
+  const missing = missingFactorLabels(locale, candidate)
 
-  return [
-    t(locale, 'trading.render.screen.coverage', {
-      coverage: formatWholeFraction(locale, coverage),
-    }),
-  ]
+  return missing.length === 0
+    ? []
+    : [t(locale, 'trading.render.screen.missing', { factors: missing.join(LIST_SEPARATOR) })]
 }
 
 /** One block for the whole table rather than three lines under every name: the readings are what a
@@ -202,7 +155,7 @@ function candidateMetricBlock(
   candidate: ScreenedCandidate,
   board: ScreenBoard
 ): readonly string[] {
-  const facts = toFactLines(candidateMetricFacts(locale, candidate, board), board.context, 1)
+  const facts = renderBoardFactLines(locale, boardFacts(locale, candidate, board), board.context)
 
   return facts.length === 0 ? [] : [candidate.instrument.ticker, ...facts]
 }
@@ -217,25 +170,6 @@ function renderCautionLine(locale: Locale, candidate: ScreenCandidate): readonly
   }
 
   return [`${INDENT[2]}${SEVERITY_MARKS.warn} ${t(locale, `trading.screen.caution.${caution}`)}`]
-}
-
-/** One row per name, in a fixed order, so two names are only comparable when their numbers line up. */
-function candidateMetricFacts(
-  locale: Locale,
-  candidate: ScreenCandidate,
-  board: ScreenBoard
-): readonly string[] {
-  // The board scale travels because it decides what the number means; the currency does not, since
-  // the two price rows above each name already carry it.
-  return metricFacts(
-    locale,
-    candidate.factors.flatMap((factor) => factor.metrics ?? []),
-    {
-      labels: 'short',
-      canonical: true,
-      ...(board.display === undefined ? {} : { quote: { display: board.display } }),
-    }
-  )
 }
 
 /** The reading a row stands on and what it moved, as one fact; the unit is stated once above the

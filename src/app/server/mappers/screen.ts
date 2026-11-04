@@ -20,7 +20,7 @@ export function toScreenWire(market: string, answer: ScreenAnswer): ScreenRespon
     candidates:
       view.form === 'board'
         ? view.candidates.map((candidate) => toListedWire(candidate, answer))
-        : view.candidates.map(toCandidateWire),
+        : view.candidates.map((candidate) => toCandidateWire(candidate, answer)),
     ...(view.form === 'board'
       ? { total: view.candidates.length, unpriced: view.unpriced ?? 0 }
       : {}),
@@ -55,7 +55,7 @@ function toListedWire(candidate: ScreenedCandidate, answer: ScreenAnswer): Candi
   const { coverage } = candidate.composite
 
   return {
-    ...toCandidateWire(candidate),
+    ...toCandidateWire(candidate, answer),
     ...(candidate.sector === undefined ? {} : { sector: candidate.sector }),
     ...(candidate.marketCap === undefined ? {} : { marketCap: candidate.marketCap }),
     ...(candidate.turnover === undefined ? {} : { turnover: candidate.turnover }),
@@ -68,14 +68,17 @@ function toListedWire(candidate: ScreenedCandidate, answer: ScreenAnswer): Candi
   }
 }
 
-function toCandidateWire(candidate: ScreenedCandidate): CandidateWire {
+function toCandidateWire(candidate: ScreenedCandidate, answer: ScreenAnswer): CandidateWire {
   const quote = candidate.price?.quote
+  const named = answer.nameFacts?.[candidate.instrument.ticker]
 
   return {
     instrument: toInstrumentWire(candidate.instrument),
     ...(candidate.name === undefined ? {} : { name: candidate.name }),
     ...(quote === undefined ? {} : { price: quote.price }),
     ...(quote?.changePct === undefined ? {} : { changePct: quote.changePct }),
+    ...(named === undefined || named.facts.length === 0 ? {} : { facts: named.facts }),
+    ...(named === undefined || named.missing.length === 0 ? {} : { missing: named.missing }),
   }
 }
 

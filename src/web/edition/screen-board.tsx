@@ -5,7 +5,6 @@ import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { DataStatus } from '@/web/edition/data-status'
 import { boardBounds } from '@/web/edition/screen-bounds'
-import { type Fact, factorFacts, figureFacts, readingFacts } from '@/web/edition/screen-columns'
 import { KindSelect, ScreenControls } from '@/web/edition/screen-controls'
 import {
   boardBaseKeys,
@@ -26,9 +25,11 @@ import {
 import { useBlockRead } from '@/web/state/block'
 import { openTicker } from '@/web/state/known-tickers'
 import { heldPositions, keyOf, printDisplayOf, watchedNames } from '@/web/state/market'
-import { formatFixed, formatPrice, formatSignedPercent, PERCENT } from '@/web/text/figures'
-import { joinInline } from '@/web/text/glyphs'
+import { formatPrice, formatSignedPercent } from '@/web/text/figures'
+import { joinInline, joinList } from '@/web/text/glyphs'
+import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
+import { FactGrid } from '@/web/ui/kit/fact-grid'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { AnalyzeButton } from '@/web/ui/ticker/analyze-button'
 import { WatchButton } from '@/web/ui/ticker/watch-button'
@@ -38,8 +39,6 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 const SCREEN_PAGE_LIMIT = 50
 /** A board of two thousand names is not a screen; the loop ends there however the answers read. */
 const MAX_SCREEN_PAGES = 40
-// A coverage reads as a whole percent: `80%` of the factors had data.
-const COVERAGE_DIGITS = 0
 
 /** Màn lọc on the web: every priced name the market read returned, with its price and move, the
  *  plain values its market states and what each factor read for it and where that sits on the board,
@@ -262,10 +261,11 @@ function NameRow({
           {candidate.changePct === undefined
             ? ''
             : ` · ${formatSignedPercent(candidate.changePct)}`}
+          {candidate.sector !== undefined && (
+            <span class="screen-sector">{sectorName(candidate.sector)}</span>
+          )}
         </p>
-        <Facts facts={figureFacts(candidate)} kind="figures" />
-        <Facts facts={readingFacts(candidate)} kind="readings" />
-        <Facts facts={factorFacts(candidate)} kind="factors" />
+        <FactGrid facts={candidate.facts ?? []} />
         <NameNotes candidate={candidate} />
         {failure.value !== undefined && <p class="failure-line">{failure.value}</p>}
       </div>
@@ -278,36 +278,14 @@ function NameRow({
 }
 
 // What the page says about the name's place on the board rather than about the name: that the
-// operator excluded it, and that some factors had no data to read.
+// operator excluded it, and which factors had no data to read.
 function NameNotes({ candidate }: { readonly candidate: Candidate }) {
   const notes = [
     ...(candidate.excluded === true ? [tr('ui.office.edition.screen.excluded')] : []),
-    ...(candidate.coverage === undefined
+    ...(candidate.missing === undefined
       ? []
-      : [
-          tr('ui.office.edition.screen.coverage', {
-            pct: formatFixed(candidate.coverage * PERCENT, COVERAGE_DIGITS),
-          }),
-        ]),
+      : [tr('trading.render.screen.missing', { factors: joinList(candidate.missing) })]),
   ]
 
   return notes.length === 0 ? null : <p class="meta">{joinInline(notes)}</p>
-}
-
-// Each kind lays its facts on a grid of its own width, so the rows of a board read alike.
-function Facts({ facts, kind }: { readonly facts: readonly Fact[]; readonly kind: string }) {
-  if (facts.length === 0) {
-    return null
-  }
-
-  return (
-    <div class={`meta screen-facts is-${kind}`}>
-      {facts.map(({ label, value }) => (
-        <span key={label ?? value}>
-          {label === undefined ? '' : `${label} `}
-          <span class="screen-fact-value">{value}</span>
-        </span>
-      ))}
-    </div>
-  )
 }

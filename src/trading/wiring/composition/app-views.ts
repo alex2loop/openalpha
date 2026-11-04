@@ -35,6 +35,7 @@ import { type BriefText, renderBriefForSurface } from '@/trading/features/brief/
 import { renderMacroLean } from '@/trading/features/market-data/render/overview'
 import { renderScreenCard } from '@/trading/features/market-data/render/screen'
 import { BOARD_READING } from '@/trading/features/market-data/render/screen-evidence'
+import { boardFacts, missingFactorLabels } from '@/trading/features/market-data/render/screen-facts'
 import {
   type ReflectText,
   renderReflectForSurface,
@@ -173,16 +174,16 @@ async function screen(
 
   const kinds = screenKindsOf(deps, { market, locale })
 
+  const named = { view, card, ...kinds, nameFacts: nameFacts(view, locale, display) }
+
   return view.form === 'board'
     ? {
-        view,
-        card,
-        ...kinds,
+        ...named,
         factorLabels: factorLabels(view, locale),
         factorReadings: factorReadings(view, locale, display),
         nameReadings: nameReadings(view, locale, display),
       }
-    : { view, card, ...kinds }
+    : named
 }
 
 /** The kinds a market's screen can be narrowed to, where it holds more than one: a market with a
@@ -201,6 +202,24 @@ function screenKindsOf(
           label: renderDeclaredValue(request.locale, `trading.instrument-kind.${kind}`),
         })),
       }
+}
+
+/** What each name reads on the board and what it lacks, as the CLI's board lists them: the one
+ *  source of the page's grid and of the text. */
+function nameFacts(
+  view: ScreenView,
+  locale: Locale,
+  display: PriceDisplay | undefined
+): NonNullable<ScreenAnswer['nameFacts']> {
+  return Object.fromEntries(
+    view.candidates.map((candidate) => [
+      candidate.instrument.ticker,
+      {
+        facts: boardFacts(locale, candidate, { display }),
+        missing: missingFactorLabels(locale, candidate),
+      },
+    ])
+  )
 }
 
 /** What each name's market states beside its factors, as the CLI's own board rows word them. */
