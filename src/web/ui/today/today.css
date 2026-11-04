@@ -83,6 +83,23 @@
   border-top: 0;
 }
 
+/* Both sides of a dealer's quote take a line of their own where one line cannot hold them. */
+@media (max-width: 480px) {
+  .row.dealer-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .dealer-row .row-price {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .dealer-row .meta {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
 .row.is-breach {
   margin-inline: calc(var(--s1) * -1);
   padding-inline: var(--s1);

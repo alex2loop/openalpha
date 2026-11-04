@@ -113,7 +113,7 @@ function DealerRow({
   const { sides, spread } = formatDealerBoard(row.instrument.market, board)
 
   return (
-    <div class="row">
+    <div class="row dealer-row">
       <b>
         <TickerLink ticker={row.instrument.ticker} market={row.instrument.market} />
       </b>
