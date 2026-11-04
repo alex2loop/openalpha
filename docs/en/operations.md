@@ -764,7 +764,8 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
 - **The macro reading in full**: the regime and lean; one line with the 12-month deposit rate and the
   USD/VND rate (a part with no reading is left out); the drivers left out because they have no
   reading yet; how much of the model has data; and, in Advanced, the scale and a table of what makes
-  the number, strongest pull first.
+  the number, strongest pull first. The web edition names no regime and gives no composite, scale or
+  weights: it lists each driver's own reading, in the order the read gives them.
 - **The region's prices**, with each market's top gainers and losers (the five strongest moves above
   its liquidity floor, side by side on a wide panel).
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the
@@ -774,8 +775,9 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   has them, with its date beside the title.
 - **Sector strength** ranks the sectors from strongest to weakest with today's move. It shows the five
   strongest and the five weakest, with the rest behind "Show all" when a market files more than ten
-  (only for a market that files sectors). These blocks read again together with the rest, never on a
-  timer of their own.
+  (only for a market that files sectors). The web edition ranks nothing: it lists the sectors by name,
+  each with today's move and its gap to the index over 20 and 60 sessions. These blocks read again
+  together with the rest, never on a timer of their own.
 - **For Vietnam, an index picker** for VN-Index, VN30 or HNX:
   - the five names that lifted and the five that weighed on that index this session, each with its
     price and the points it added, signed, then a line with what the listed names added up to (not

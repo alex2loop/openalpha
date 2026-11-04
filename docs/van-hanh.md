@@ -757,7 +757,8 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
 - **Đầy đủ số đọc vĩ mô**: trạng thái và chiều nghiêng; một dòng lãi suất tiền gửi 12 tháng và tỷ giá
   USD/VND (phần nào chưa có số thì bỏ); những thành phần bị để ngoài vì chưa có số đọc; phần mô hình
   đã có dữ liệu; và ở mức Nâng cao thì thêm thang đo cùng bảng các thành phần tạo nên con số, lực kéo
-  mạnh nhất đứng đầu.
+  mạnh nhất đứng đầu. Bản web không nêu trạng thái và không có điểm tổng hợp, thang đo hay trọng số:
+  chỉ liệt kê số đọc riêng của từng thành phần, theo thứ tự nguồn trả về.
 - **Giá của vùng đó**, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động
   mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng).
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
@@ -766,8 +767,9 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   nên khi chưa có thì danh sách lấy từ phiên gần nhất đã có số liệu, kèm ngày bên cạnh tiêu đề.
 - **Sức mạnh ngành** xếp các ngành từ mạnh đến yếu, kèm biến động hôm nay. Khối hiện năm ngành mạnh
   nhất và năm ngành yếu nhất, phần còn lại nằm sau "Xem tất cả" khi thị trường có hơn mười ngành (chỉ
-  có cho thị trường có phân ngành). Các khối này đọc lại cùng lúc với phần còn lại, không theo chu kỳ
-  riêng.
+  có cho thị trường có phân ngành). Bản web không xếp hạng gì: các ngành xếp theo tên, mỗi ngành kèm
+  biến động hôm nay và mức chênh so với chỉ số sau 20 và 60 phiên. Các khối này đọc lại cùng lúc với
+  phần còn lại, không theo chu kỳ riêng.
 - **Với Việt Nam, một ô chọn chỉ số** VN-Index, VN30 hoặc HNX:
   - năm mã kéo lên và năm mã kéo xuống chỉ số đó trong phiên, mỗi mã kèm giá và số điểm nó góp, có
     dấu, rồi một dòng cộng tổng phần các mã trong danh sách góp (không phải toàn bộ biến động của chỉ
