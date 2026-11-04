@@ -37,6 +37,8 @@ export interface SuggestOption {
   readonly label: string
   readonly detail?: string
   readonly fill?: string
+  /** A ticker typed alone: picking the row opens its card instead of filling the box. */
+  readonly instrument?: { readonly ticker: string; readonly market: string }
   /** Picking the row also hands what is typed next to this agent. */
   readonly agentId?: string
 }
@@ -87,7 +89,7 @@ export function SuggestPopover({ id, options, usage, activeIndex, onPick }: Sugg
   return (
     <div
       id={id}
-      class="suggest-popover glass is-strong"
+      class="suggest-popover solid-pop"
       role="listbox"
       aria-label={tr('ui.office.command.suggestions')}
     >
@@ -231,12 +233,15 @@ function listArgs(text: string, candidates: readonly string[]): readonly Suggest
 function listTickers(text: string, matches: readonly Match[]): readonly SuggestOption[] {
   const head = text.trimStart().split(WORD_BREAK).slice(0, -1).join(' ')
 
-  return matches.map((match) => ({
-    key: `ticker:${match.instrument.market}:${match.instrument.ticker}`,
+  return matches.map(({ instrument, name }) => ({
+    key: `ticker:${instrument.market}:${instrument.ticker}`,
     section: 'ticker',
-    label: match.instrument.ticker,
-    ...(match.name === undefined ? {} : { detail: match.name }),
-    fill: head === '' ? match.instrument.ticker : `${head} ${match.instrument.ticker}`,
+    label: instrument.ticker,
+    ...(name === undefined || name === instrument.ticker ? {} : { detail: name }),
+    fill: head === '' ? instrument.ticker : `${head} ${instrument.ticker}`,
+    ...(head === ''
+      ? { instrument: { ticker: instrument.ticker, market: instrument.market } }
+      : {}),
   }))
 }
 

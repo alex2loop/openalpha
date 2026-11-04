@@ -12,10 +12,12 @@ import {
   notSent,
   recall,
   registerInput,
+  runCommand,
   sendFromInput,
   setInput,
 } from '@/web/state/command'
 import { offers } from '@/web/state/edition'
+import { openTicker, openTickerOrElse } from '@/web/state/known-tickers'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import { ReadOnlyLine } from '@/web/ui/chat/session-view'
@@ -34,6 +36,8 @@ import './command.css'
 
 const LIST_ID = 'command-suggestions'
 const COMMAND_PREFIX = '/'
+// One word of letters, digits and the dots or dashes a symbol carries: it may be a ticker.
+const BARE_TICKER_RE = /^[A-Za-z0-9._-]{1,12}$/
 // The key code browsers give a key an input method takes.
 const IME_KEY_CODE = 229
 // A floating bar's islands: glass, the field denser since it carries the text.
@@ -141,7 +145,7 @@ function SendButton({ list, isFloating }: SendButtonProps) {
         aria-label={label}
         title={label}
         disabled={typed === ''}
-        onClick={() => send(list)}
+        onClick={() => submit(undefined, list)}
       >
         <SendIcon />
       </button>
@@ -149,7 +153,7 @@ function SendButton({ list, isFloating }: SendButtonProps) {
   }
 
   return (
-    <Button kind="commit" disabled={typed === ''} onClick={() => send(list)}>
+    <Button kind="commit" disabled={typed === ''} onClick={() => submit(undefined, list)}>
       {label}
     </Button>
   )
@@ -213,18 +217,30 @@ function send(list: ListState): void {
   resetList(list, false)
 }
 
-// A fill row puts its text in the box; the send row sends what is typed.
+// A bare ticker row opens its card, a fill row puts its text in the box, the send row sends what is
+// typed.
 function pick(option: SuggestOption, list: ListState): void {
+  if (option.instrument !== undefined) {
+    openTicker(option.instrument.ticker, option.instrument.market)
+    setInput('')
+    resetList(list, false)
+    return
+  }
+
   if (option.fill === undefined) {
     send(list)
     return
   }
 
+  fill(option, option.fill, list)
+}
+
+function fill(option: SuggestOption, text: string, list: ListState): void {
   if (option.agentId !== undefined) {
     selectAgent(option.agentId)
   }
 
-  setInput(option.fill)
+  setInput(text)
   resetList(list, true)
 }
 
@@ -259,11 +275,7 @@ function handleKey(key: string, { list, options }: KeyContext): boolean {
     case 'Tab':
       return complete(chosen, { list, options })
     case 'Enter':
-      if (chosen !== undefined) {
-        pick(chosen, list)
-      } else {
-        send(list)
-      }
+      submit(chosen, list)
       return true
     case ESCAPE_KEY:
       resetList(list, false)
@@ -271,6 +283,26 @@ function handleKey(key: string, { list, options }: KeyContext): boolean {
     default:
       return false
   }
+}
+
+// A word alone is looked up as a ticker, as the placeholder says, and sent as chat only when it names
+// none; anything longer is a sentence. A chat tab has no card to open.
+function submit(chosen: SuggestOption | undefined, list: ListState): void {
+  const typed = inputText.value.trim()
+
+  if (chosen !== undefined) {
+    pick(chosen, list)
+    return
+  }
+
+  if (isChatOnly.value || !BARE_TICKER_RE.test(typed)) {
+    send(list)
+    return
+  }
+
+  setInput('')
+  resetList(list, false)
+  openTickerOrElse(typed.toUpperCase(), () => runCommand(typed))
 }
 
 // On an empty box, or one holding a recalled line, the arrows walk what was sent.
@@ -305,7 +337,7 @@ function complete(chosen: SuggestOption | undefined, { list, options }: KeyConte
     return false
   }
 
-  pick(target, list)
+  fill(target, target.fill, list)
 
   return true
 }
