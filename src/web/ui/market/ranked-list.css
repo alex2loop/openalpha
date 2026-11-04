@@ -1,11 +1,16 @@
 .ranked-lists {
-  --rankedColumnMin: 170px;
+  --rankedColumnMin: 230px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--rankedColumnMin), 1fr));
   gap: var(--s3);
 }
 
-/* A long name (a coin like USELESS) ends in an ellipsis instead of running into the figure. */
+/* The name keeps room for a coin like USELESS; only a longer one ends in an ellipsis, and the
+   column width keeps the figure and the move beside it. */
+.row.ranked-row {
+  grid-template-columns: minmax(9ch, 1fr) auto auto;
+}
+
 .ranked-label {
   min-width: 0;
   overflow: hidden;

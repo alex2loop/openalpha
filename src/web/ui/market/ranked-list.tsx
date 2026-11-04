@@ -42,7 +42,7 @@ export function RankedList({ title, note, rows }: RankedListProps) {
       </h4>
       <div class="row-list">
         {rows.map((row) => (
-          <div key={row.key} class="row">
+          <div key={row.key} class="row ranked-row">
             <b class="ranked-label">{row.label}</b>
             <span class="meta">{row.figure}</span>
             <RowMove row={row} />
