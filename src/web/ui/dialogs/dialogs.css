@@ -26,17 +26,6 @@
   max-width: none;
 }
 
-/* The other-kinds menu while a buy or a sale is picked: a prompt to choose, not a choice. */
-.trade-form select.is-unset {
-  color: var(--ink3);
-  font-style: italic;
-}
-
-.trade-form select.is-unset option {
-  color: var(--ink);
-  font-style: normal;
-}
-
 :root[data-layout="phone"] .trade-form .form-row {
   grid-template-columns: minmax(0, 1fr);
 }

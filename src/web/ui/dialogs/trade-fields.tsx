@@ -12,20 +12,14 @@ import { toVenueName } from '@/web/text/venue'
 import { describeFailure, type FormFailure } from '@/web/ui/dialogs/field-errors'
 import { FieldNote } from '@/web/ui/dialogs/field-note'
 import { fieldPathsOf, OTHER_KINDS } from '@/web/ui/dialogs/trade-kinds'
-import {
-  chooseVenue,
-  DEFAULT_KIND,
-  marketOf,
-  offerVenues,
-  type TradeForm,
-} from '@/web/ui/dialogs/trade-state'
+import { chooseVenue, marketOf, offerVenues, type TradeForm } from '@/web/ui/dialogs/trade-state'
 import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 import { Segmented } from '@/web/ui/kit/segmented'
 
 export const PRICE_FIELD_ID = 'trade-price'
 const MAIN_KINDS: readonly LedgerKind[] = Object.freeze(['buy', 'sell'])
-// The menu's first line: it stands for no other kind, and picking it goes back to a buy.
-const OTHER_VALUE = ''
+// The third button: it opens the menu of every other kind, on its first entry.
+const OTHER_CHOICE = 'other'
 
 interface FieldProps {
   readonly id: string
@@ -55,38 +49,57 @@ interface VenueFieldProps {
   readonly path: string
 }
 
-/** Mua | Bán | Khác ▾: the menu names each other kind with what it is for. */
+/** Mua | Bán | Khác: the menu of the other kinds shows only under Khác, each named with what it is
+ *  for. */
 export function KindRow({ form }: { readonly form: TradeForm }) {
   const kind = form.kind.value
   const isOther = !MAIN_KINDS.includes(kind)
 
   return (
     <div class="form-row">
-      <Segmented
+      <Segmented<LedgerKind | typeof OTHER_CHOICE>
         label={tr('ui.office.common.recordTrade')}
-        value={kind}
-        options={MAIN_KINDS.map((value) => ({ value, label: tr(`trading.ledger.kind.${value}`) }))}
-        onChange={(value) => pickKind(form, value)}
+        value={isOther ? OTHER_CHOICE : kind}
+        options={[
+          ...MAIN_KINDS.map((value) => ({ value, label: tr(`trading.ledger.kind.${value}`) })),
+          { value: OTHER_CHOICE, label: tr('ui.office.trade.other') },
+        ]}
+        onChange={(choice) => pickKind(form, toKind(choice, kind))}
       />
-      <select
-        class={isOther ? undefined : 'is-unset'}
-        aria-label={tr('ui.office.trade.other')}
-        value={isOther ? kind : OTHER_VALUE}
-        onChange={(event) => {
-          const picked = OTHER_KINDS.find((other) => other.kind === event.currentTarget.value)
+      {isOther && (
+        <select
+          aria-label={tr('ui.office.trade.other')}
+          value={kind}
+          onChange={(event) => {
+            const picked = OTHER_KINDS.find((other) => other.kind === event.currentTarget.value)
 
-          pickKind(form, picked?.kind ?? DEFAULT_KIND)
-        }}
-      >
-        <option value={OTHER_VALUE}>{tr('ui.office.trade.other')}</option>
-        {OTHER_KINDS.map((other) => (
-          <option key={other.kind} value={other.kind}>
-            {joinInline([tr(`trading.ledger.kind.${other.kind}`), tr(other.hint)])}
-          </option>
-        ))}
-      </select>
+            if (picked !== undefined) {
+              pickKind(form, picked.kind)
+            }
+          }}
+        >
+          {OTHER_KINDS.map((other) => (
+            <option key={other.kind} value={other.kind}>
+              {joinInline([tr(`trading.ledger.kind.${other.kind}`), tr(other.hint)])}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   )
+}
+
+// Khác opens on the menu's first kind; a kind already under it stays put.
+function toKind(choice: LedgerKind | typeof OTHER_CHOICE, current: LedgerKind): LedgerKind {
+  if (choice !== OTHER_CHOICE) {
+    return choice
+  }
+
+  if (!MAIN_KINDS.includes(current)) {
+    return current
+  }
+
+  return OTHER_KINDS[0]?.kind ?? current
 }
 
 function pickKind(form: TradeForm, kind: LedgerKind): void {

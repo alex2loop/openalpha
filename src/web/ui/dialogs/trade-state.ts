@@ -33,7 +33,7 @@ import {
 
 // The daemon's zone is always known once the page is up; this only types the lookup.
 /** The kind a fresh form opens on. */
-export const DEFAULT_KIND: LedgerKind = 'buy'
+const DEFAULT_KIND: LedgerKind = 'buy'
 const FALLBACK_ZONE = 'UTC'
 const KEY_BYTES = 16
 const MARKET_SEPARATOR = ':'
