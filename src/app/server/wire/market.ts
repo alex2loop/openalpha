@@ -206,7 +206,7 @@ export type MacroResponse =
       readonly missing: readonly {
         readonly id: string
         readonly label: string
-        readonly reason: 'no-observation' | 'observation-only' | 'fetch-error'
+        readonly reason: 'no-observation' | 'observation-only' | 'fetch-error' | 'unserved'
       }[]
       readonly caveats: readonly TradingWireCaveat[]
     }

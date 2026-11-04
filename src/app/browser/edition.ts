@@ -64,6 +64,13 @@ const BRIEF_ACTION_OMITS: ReadonlySet<BriefActionCode> = new Set(['avoid-chasing
 /** Statements come from a source no browser reaches, so a refresh does not ask for them. */
 const REFRESH_OMITS: NonNullable<TradingEdition['refreshOmits']> = new Set(['accounts'])
 
+/** The two US macro series only FRED publishes, and a browser cannot read FRED: the broad dollar
+ *  index and the VIX read as not served on the web. */
+const MACRO_UNSERVED: NonNullable<TradingEdition['macroUnserved']> = new Set([
+  'usd-index',
+  'us-volatility',
+])
+
 /** The settings the page reads: the risk level, goal and horizon it states, the cash reserve and
  *  the sector cap its findings measure against, and the targets and caps the gaps are measured
  *  against. */
@@ -123,6 +130,7 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
     reads: EMPTY_READS,
     pagedBackfill: true,
     refreshOmits: REFRESH_OMITS,
+    macroUnserved: MACRO_UNSERVED,
   }
 }
 

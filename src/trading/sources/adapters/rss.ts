@@ -98,14 +98,16 @@ function newsSource(options: SourceAdapterOptions): RegisteredSource {
     covers: (context) =>
       context.instrument === undefined &&
       (context.market !== undefined || context.region === undefined),
-    load: (context, signal) => loadFeeds(options, feedsFor(context), signal),
+    load: (context, signal) => loadFeeds(options, feedsFor(options, context), signal),
   })
 }
 
-function feedsFor(context: SourceContext): readonly string[] {
+// A scope reads the feeds this build reaches: one a browser cannot read is not asked for, so it
+// never shows as a failure beside the ones that answered.
+function feedsFor(options: SourceAdapterOptions, context: SourceContext): readonly string[] {
   const scope = context.feedScope ?? context.market ?? MACRO_FEED_KEY
 
-  return SCOPE_FEEDS[scope] ?? [scope]
+  return (SCOPE_FEEDS[scope] ?? [scope]).filter((id) => Object.hasOwn(options.feeds, id))
 }
 
 async function loadFeeds(

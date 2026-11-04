@@ -1,3 +1,4 @@
+import { editionKey } from '@/web/state/edition'
 import { tr } from '@/web/text/tr'
 import { SHORTCUT_ROWS } from '@/web/ui/keys/keys'
 import { Button } from '@/web/ui/kit/button'
@@ -29,7 +30,7 @@ function KeyList() {
                 <kbd key={cap}>{cap}</kbd>
               ))}
             </dt>
-            <dd>{tr(row.does)}</dd>
+            <dd>{tr(row.webDoes === undefined ? row.does : editionKey(row.does, row.webDoes))}</dd>
           </div>
         ))}
       </dl>

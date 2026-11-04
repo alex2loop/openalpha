@@ -14,6 +14,8 @@ import { available, unavailable } from '@/trading/kernel/source/source-result'
 
 export interface SourceAdapterOptions {
   readonly http: SourceHttp
+  /** The news feeds this build can reach, by id: a scope's other feeds are not asked for. */
+  readonly feeds: Readonly<Record<string, string>>
 }
 
 export interface ParsedSource<T> {

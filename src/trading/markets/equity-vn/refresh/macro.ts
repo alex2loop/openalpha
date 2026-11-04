@@ -86,13 +86,14 @@ interface MacroResultInput {
 
 /** The kind's targets are the drivers of the composite: one stored absent renormalizes over the rest
  *  and reads like a whole model, so naming it here is what lets the repair pass fetch it once its
- *  source publishes. Caveats come from whatever was read; targets only from what was stored, since a
+ *  source publishes. A series no source serves here is no target: nothing could fetch it. Caveats come from whatever was read; targets only from what was stored, since a
  *  pass that wrote no row reached none. */
 function buildMacroResult(input: MacroResultInput): RefreshKindResult {
   const { result, recordCount } = input
   const evaluated = result.kind === 'available' ? result.value.view : undefined
   const stored = recordCount > 0 ? evaluated : undefined
-  const missingTargets = stored?.missing.map((entry) => entry.id) ?? []
+  const missingTargets =
+    stored?.missing.filter((entry) => entry.reason !== 'unserved').map((entry) => entry.id) ?? []
   const successfulTargetCount = stored?.drivers.length ?? 0
   const targetCount = successfulTargetCount + missingTargets.length
   const caveats = dedupeCaveats([...(evaluated?.caveats ?? []), ...result.caveats])

@@ -8,7 +8,7 @@ import type {
   MarketRegime,
   NewsItem,
 } from '@/trading/kernel/market/market-data'
-import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
+import type { MacroMissingReason, MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import type {
   SourceKind,
@@ -124,6 +124,7 @@ export async function resolveVnMacroRisk(
   }
 
   const evaluation = buildEvaluation({
+    deps,
     reads,
     globalValues,
     cross,
@@ -170,6 +171,7 @@ async function resolveTrailingFxRate(
 }
 
 interface BuildEvaluationInput {
+  readonly deps: MarketDeps
   readonly reads: MacroReads
   readonly globalValues: ReturnType<typeof mergeMacroValues>
   readonly cross: CrossSection
@@ -186,7 +188,7 @@ function buildEvaluation(input: BuildEvaluationInput): {
   readonly values: Readonly<Partial<Record<MacroSeriesId, number>>>
   readonly view: MacroRiskView
 } {
-  const { reads, globalValues, cross, news, trailingFxRate, asOf } = input
+  const { deps, reads, globalValues, cross, news, trailingFxRate, asOf } = input
   const local = reads.local
   const fxRate = reads.fx.kind === 'available' ? reads.fx.value.rate : undefined
 
@@ -205,6 +207,7 @@ function buildEvaluation(input: BuildEvaluationInput): {
     base: {
       values,
       observationDates: { ...globalValues.observationDates, ...observationDates },
+      missingReasons: unservedReasons(deps.unservedMacro),
       region: VN_MARKET_REGION,
       asOf,
       provenance: readProvenance(reads),
@@ -221,6 +224,12 @@ function buildEvaluation(input: BuildEvaluationInput): {
   })
 
   return { values, view }
+}
+
+function unservedReasons(
+  unserved: MarketDeps['unservedMacro']
+): Readonly<Partial<Record<MacroSeriesId, MacroMissingReason>>> {
+  return Object.fromEntries([...(unserved ?? [])].map((id) => [id, 'unserved']))
 }
 
 /** Both callers read through the same resolver, so a brief and a live macro call cannot

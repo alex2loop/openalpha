@@ -31,3 +31,9 @@ export function offers(feature: keyof FeatureCapabilities): boolean {
 export function editionKey(daemon: MessageKey, web: MessageKey): MessageKey {
   return isAnalysisOnly.value ? web : daemon
 }
+
+/** The name of the panel's third tab: the daemon's calls, the web's analyses. Every place that names
+ *  the tab (the tab bar, its sub-tabs, the back row, the shortcut list) reads it here. */
+export function ideasTabKey(): MessageKey {
+  return editionKey('ui.office.panel.ideas', 'ui.office.edition.analysis.tab')
+}

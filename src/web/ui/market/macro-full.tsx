@@ -23,6 +23,7 @@ const LEVEL_DIGITS = 2
 const INFO_SEVERITY = 'info'
 const DEPOSIT_RATE_SERIES = 'deposit-rate-12m'
 const USD_VND_SERIES = 'usd-vnd'
+const UNSERVED_REASON = 'unserved'
 // Where a driver with no band between its two ends sits.
 const MIDDLE_POSITION = 0.5
 
@@ -57,13 +58,20 @@ export function MacroFull({ region }: { readonly region: string }) {
 
 function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
   const range = macro.scoreRange
+  const unserved = macro.missing.filter((driver) => driver.reason === UNSERVED_REASON)
+  const absent = macro.missing.filter((driver) => driver.reason !== UNSERVED_REASON)
 
   const reading = [
-    ...(macro.missing.length === 0
+    ...(absent.length === 0
       ? []
       : [
-          tr('ui.office.market.missing', {
-            names: joinList(macro.missing.map((driver) => driver.label)),
+          tr('ui.office.market.missing', { names: joinList(absent.map((driver) => driver.label)) }),
+        ]),
+    ...(unserved.length === 0
+      ? []
+      : [
+          tr('ui.office.market.unserved', {
+            names: joinList(unserved.map((driver) => driver.label)),
           }),
         ]),
     ...(macro.coverage < 1

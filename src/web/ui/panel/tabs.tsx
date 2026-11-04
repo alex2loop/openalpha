@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact'
 
-import { editionKey } from '@/web/state/edition'
+import { ideasTabKey } from '@/web/state/edition'
 import { unseenCalls } from '@/web/state/ideas'
 import { backStack, openView, type PanelTab, type PanelView, panelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
@@ -19,7 +19,7 @@ const PANEL_TABS: readonly TabSpec[] = Object.freeze([
   {
     tab: 'ideas',
     icon: <BulbIcon />,
-    label: () => tr(editionKey('ui.office.panel.ideas', 'ui.office.edition.analysis.tab')),
+    label: () => tr(ideasTabKey()),
   },
   { tab: 'market', icon: <GlobeIcon />, label: () => tr('ui.office.panel.market') },
 ])

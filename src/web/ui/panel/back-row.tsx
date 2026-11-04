@@ -1,3 +1,4 @@
+import { ideasTabKey } from '@/web/state/edition'
 import { backStack, goBack, type PanelView } from '@/web/state/panel'
 import { tr } from '@/web/text/tr'
 import { ChevronLeftIcon } from '@/web/ui/kit/icons'
@@ -33,5 +34,5 @@ function placeOf(view: PanelView): string {
     return tr('trading.render.affordance.portfolio')
   }
 
-  return view.tab === 'ideas' ? tr('ui.office.panel.ideas') : tr('ui.office.common.today')
+  return view.tab === 'ideas' ? tr(ideasTabKey()) : tr('ui.office.common.today')
 }

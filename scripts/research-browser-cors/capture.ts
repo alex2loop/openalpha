@@ -165,7 +165,7 @@ async function recordFetches(probe: CellProbe, context: SourceContext): Promise<
 function findSource(probe: CellProbe): RegisteredSource | undefined {
   const http = createSourceHttp(facts, Date.now, silentLogger)
 
-  return createBuiltInSources({ http }).find(
+  return createBuiltInSources({ http, feeds: facts.feeds }).find(
     (source) => source.kind === probe.kind && source.id === probe.id
   )
 }

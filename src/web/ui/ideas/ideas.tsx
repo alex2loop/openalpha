@@ -1,6 +1,6 @@
 import type { MessageKey } from '@/i18n'
 import { Analyses } from '@/web/edition/analyses'
-import { editionKey, isAnalysisOnly } from '@/web/state/edition'
+import { ideasTabKey, isAnalysisOnly } from '@/web/state/edition'
 import { type IdeasTab, ideasTab } from '@/web/state/ideas'
 import { tr } from '@/web/text/tr'
 import { OpenIdeas } from '@/web/ui/ideas/open'
@@ -33,7 +33,7 @@ export function Ideas() {
     <>
       <Segmented
         isTabs
-        label={tr(editionKey('ui.office.panel.ideas', 'ui.office.edition.analysis.tab'))}
+        label={tr(ideasTabKey())}
         value={tab}
         options={IDEAS_TABS.filter((spec) => shown.has(spec.value)).map((spec) => ({
           value: spec.value,

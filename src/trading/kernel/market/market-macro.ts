@@ -4,7 +4,8 @@ import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { MarketRegime } from '@/trading/kernel/market/market-data'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 
-export type MacroMissingReason = 'no-observation' | 'observation-only' | 'fetch-error'
+/** `unserved`: no source in this edition publishes the series, which is not a day it went missing. */
+export type MacroMissingReason = 'no-observation' | 'observation-only' | 'fetch-error' | 'unserved'
 
 export interface MissingMacroDriver {
   readonly id: MacroSeriesId

@@ -79,7 +79,7 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
 
   assertEveryRoutedSourcePaced(facts.rateLimits)
 
-  const adapters = { http: createSourceHttp(facts, Date.now, options.logger) }
+  const adapters = { http: createSourceHttp(facts, Date.now, options.logger), feeds: facts.feeds }
   const skipped = new Set<SourceId>()
   const registeredKeys = new Set<string>()
 

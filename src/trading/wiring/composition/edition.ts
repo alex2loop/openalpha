@@ -6,6 +6,7 @@ import type { ProfileEdition } from '@/trading/features/profile/command'
 import type { SuggestAnalysis } from '@/trading/features/suggestion/command'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
+import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { RefreshDataKind } from '@/trading/kernel/market/refresh'
 import type { BriefActionCode, BriefSectionKind } from '@/trading/kernel/operator/brief-section'
 
@@ -57,6 +58,9 @@ export interface TradingEdition {
   readonly pagedBackfill?: true
   /** Data kinds a refresh leaves out because no source serves them. */
   readonly refreshOmits?: ReadonlySet<RefreshDataKind>
+  /** Macro series no source serves: each reads as not served here, never as absent today, and a
+   *  refresh does not count it missing. */
+  readonly macroUnserved?: ReadonlySet<MacroSeriesId>
 }
 
 /** Whether an edition builds `market`: every market, unless it names the ones it ships. */
