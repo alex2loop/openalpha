@@ -28,6 +28,7 @@ import type {
   MarketDataOverview,
   MarketEventKind,
   MarketView,
+  NavWindow,
   RiskLevel,
   SessionPhase,
   SourceFreshness,
@@ -54,6 +55,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   investmentGoal: true,
   investmentHorizon: true,
   marketEventKind: true,
+  navWindow: true,
   riskLevel: true,
   sessionPhase: true,
   sourceFreshness: true,
@@ -67,6 +69,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   investmentGoal: Same<Vocab.InvestmentGoal, InvestmentGoal>
   investmentHorizon: Same<Vocab.InvestmentHorizon, InvestmentHorizon>
   marketEventKind: Same<Vocab.MarketEventKind, MarketEventKind>
+  navWindow: Same<Vocab.NavWindow, NavWindow>
   riskLevel: Same<Vocab.RiskLevel, RiskLevel>
   sessionPhase: Same<Vocab.SessionPhase, SessionPhase>
   sourceFreshness: Same<Vocab.SourceFreshness, SourceFreshness>

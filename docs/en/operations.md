@@ -686,8 +686,9 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     browser only. It shows only in a browser that opened the office before a profile was saved or a
     trade recorded. "Show the getting-started steps again" at the foot of the Today tab brings it
     back until the page is reloaded.
-  - *Portfolio* holds overview, performance, history, rebalance and the watchlist with its price
-    alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
+  - *Portfolio* holds overview, performance (your book's value over 1 month, 3 months, 6 months,
+    1 year or everything on record, the span you pick kept in this browser), history, rebalance and
+    the watchlist with its price alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
     and deleted here, with undo, and History checks the ledger against your venues (see
     [Trading](trading.md#on-the-office-page)).
   - *Market* holds the full macro reading, the last closed session, the news and your themes (below).

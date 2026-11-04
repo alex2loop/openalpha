@@ -16,6 +16,7 @@ import type {
   InvestmentGoal,
   InvestmentHorizon,
   MarketEventKind,
+  NavWindow,
   RiskLevel,
   SourceFreshness,
 } from '@/app/server/wire/vocab'
@@ -193,7 +194,7 @@ export interface NavBenchmarkWire {
 }
 
 export interface TradingNavResponse {
-  readonly window: string
+  readonly window: NavWindow
   readonly baseCurrency: string
   readonly firstDay?: string
   readonly recordedCount: number
