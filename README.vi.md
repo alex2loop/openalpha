@@ -531,10 +531,6 @@ OpenAlpha là mã nguồn mở và hiện do một người vận hành, nên m�
 
 **Việc vừa sức cho người mới:** các issue gắn nhãn [good first issue](https://github.com/alex2loop/openalpha/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22). **Lộ trình:** chưa có trang riêng; việc định làm và ý tưởng mới được bàn trong [Issues](https://github.com/alex2loop/openalpha/issues). Những hướng đã chốt là sẽ không làm (tự đặt lệnh, bộ backtest...) nằm trong [CONTRIBUTING.md](CONTRIBUTING.md#những-thứ-sẽ-bị-từ-chối), kèm lý do.
 
-### Ủng hộ dự án
-
-Nếu OpenAlpha có ích với bạn, bạn có thể [mời một ly cà phê](https://buymeacoffee.com/alex2loop). Ủng hộ là tự nguyện: không mở thêm tính năng hay hỗ trợ riêng, và OpenAlpha vẫn miễn phí dù bạn có ủng hộ hay không.
-
 ### Chạy từ mã nguồn
 
 ```bash
