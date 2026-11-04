@@ -257,8 +257,8 @@ async function lookupSymbol<TRow>(
     return rejectSymbol(caches, symbol, 'source.symbol-not-found')
   }
 
-  const outcome = await deps.lookups.share(providerRequestKey(request), signal, () =>
-    deps.options.http.getJson(request, (raw, fetchedAt) => ({
+  const outcome = await deps.lookups.share(providerRequestKey(request), signal, (shared) =>
+    deps.options.http.getJson({ ...request, signal: shared }, (raw, fetchedAt) => ({
       rows: spec.parse(raw),
       fetchedAt,
     }))

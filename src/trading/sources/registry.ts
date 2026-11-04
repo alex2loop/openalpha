@@ -113,7 +113,9 @@ export function createSourceRegistry(routes: SourceRoutes, logger: Logger): Sour
       const key = sourceRequestKey(options.kind, options.context)
 
       return fresh.read({ kind: options.kind, key, signal: options.signal }, () =>
-        coalescer.share(key, options.signal, () => resolveSource(state, phase.entries(), options))
+        coalescer.share(key, options.signal, (signal) =>
+          resolveSource(state, phase.entries(), { ...options, signal })
+        )
       )
     },
     resolveAll: (options) => resolveAllSources(state, phase.entries(), options),

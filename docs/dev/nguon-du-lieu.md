@@ -452,7 +452,7 @@ Profile là toàn bộ phần riêng của từng nguồn: `series`, `cadence` (
 
 **Lần đọc toàn thị trường** (`sources/adapters/vndirect/market-read.ts`) - một lượt quét refresh hỏi `vndirect` từng mã một trên cùng một cửa sổ, trong khi nhà cung cấp trả cả thị trường cho mỗi truy vấn, nên bên gọi đầu tiên đọc cả cửa sổ và mọi bên gọi sau lấy phần của mình. Ô nhớ duy nhất trượt tới sau mỗi lần trúng (nhàn rỗi 60 giây) và không sống quá năm phút. Một lần đọc hỏng là lỗi của riêng mỗi bên gọi chứ không dự phòng theo từng mã, vì làm vậy sẽ biến một lần nhà cung cấp hỏng thành một yêu cầu cho mỗi mã.
 
-Ngoài các cache, `resolve` cho các yêu cầu giống hệt nhau dưới cùng một tín hiệu dùng chung một lần đọc đang chạy (`sources/coalesce.ts`). Mục đó bị bỏ ngay khi xong, nên không gì được trả lời từ một lần đọc cũ; nó chỉ ngăn các ứng viên danh mục được chấm cùng lúc mỗi bên tải riêng cùng một bảng toàn thị trường.
+Ngoài các cache, `resolve` và lớp truyền tải HTTP (`sources/transport/wire.ts`, chỉ các GET giống hệt) cho các yêu cầu giống hệt nhau dùng chung một lần đọc đang chạy (`sources/coalesce.ts`), bất kể mỗi bên gọi giữ tín hiệu nào. Lần đọc chung chạy dưới tín hiệu riêng, chỉ bị hủy khi mọi bên đang chờ đã hủy; bên nào hủy thì chỉ bên đó bị từ chối. Mục đó bị bỏ ngay khi xong, nên không gì được trả lời từ một lần đọc cũ; nó chỉ ngăn các ứng viên danh mục được chấm cùng lúc mỗi bên tải riêng cùng một bảng toàn thị trường, và hai thị trường cùng đọc một chuỗi vĩ mô cùng lúc mỗi bên tốn một lượt hạn mức.
 
 ## Các tính năng giao dịch dùng nguồn thế nào
 

@@ -739,9 +739,11 @@ same window, while the provider serves a whole market per query, so the first ca
 its slice. The single slot slides forward on each hit (60 seconds idle) and cannot outlive five minutes. A failed read is each
 caller's own failure rather than a fallback per ticker, which would turn one provider failure into one request per name.
 
-Beside the caches, `resolve` shares one in-flight read between identical requests made under the same signal
-(`sources/coalesce.ts`). The entry is dropped the moment it settles, so nothing is answered from an earlier read; it only stops
-candidates scored together from each downloading the same market-wide board.
+Beside the caches, `resolve` and the HTTP transport (`sources/transport/wire.ts`, identical GETs only) share one in-flight read
+between identical requests (`sources/coalesce.ts`), whatever signal each caller holds. The shared read runs under its own signal,
+which aborts only once every caller waiting on it has aborted; a caller that aborts is rejected alone. The entry is dropped the
+moment it settles, so nothing is answered from an earlier read; it only stops candidates scored together from each downloading the
+same market-wide board, and two markets reading one macro series at once from each spending a call of its quota.
 
 ## How trading features use sources
 
