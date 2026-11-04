@@ -7,7 +7,8 @@ import { scaleLinear, toPolylinePoints } from '@/web/ui/kit/line-path'
 const FALLBACK_WIDTH = 360
 const MIN_WIDTH = 240
 const HEIGHT = 172
-// Room on the left for the price ticks, on the right for each level's name, below for the dates.
+// Room on the left for the price ticks, on the right for each level's name (only where the chart has
+// levels to name), below for the dates.
 const PRICE_GUTTER = 60
 const LABEL_GUTTER = 64
 const DATE_GUTTER = 18
@@ -82,7 +83,7 @@ function useWidth(): { readonly ref: { current: HTMLDivElement | null }; readonl
  *  pixel of its card's width, so the plot stretches and the labels keep their size. */
 export function PriceChart({ bars, levels, formatPrice, formatDay }: PriceChartProps) {
   const { ref, width } = useWidth()
-  const plotRight = width - LABEL_GUTTER
+  const plotRight = width - (levels.length > 0 ? LABEL_GUTTER : PAD)
   const values = [...bars.map((bar) => bar.close), ...levels.map((level) => level.value)]
   const low = Math.min(...values)
   const high = Math.max(...values)
