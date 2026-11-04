@@ -122,7 +122,7 @@ What the less obvious ones do:
 - Crypto prices lead with your crypto default venue (`default_for` under `[trading.venues.<id>]`, `binance` unless you set one), when that venue is also a data provider. A plan priced anywhere else would quote a number you could not get your order filled at.
 - `mexc` backs `binance` for prices and is third for history. It lists coins the big venues do not. But volume on the long tail of small coins is the least trustworthy, so it answers only for a name the majors decline.
 - `okx` does not list every coin. A coin it lacks is skipped, and the skip does not count as a failure.
-- `coingecko` serves the market-cap board and one FX rate, not the price path. The alert loop reads a price for every watched coin on every tick, and a provider metered by the month would burn its quota there.
+- `coingecko` serves the market-cap board, one FX rate and the dong's FX history, not the price path. The alert loop reads a price for every watched coin on every tick, and a provider metered by the month would burn its quota there.
 
 One kind is defined and has no provider: spot-ETF net flows for crypto. The brief's `etf-flows` section reports `unavailable`. That is expected, not an outage.
 

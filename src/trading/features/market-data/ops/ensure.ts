@@ -10,10 +10,8 @@ import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sleep } from '@/core/utils/time'
 
-/** The longest a partial-answer read waits on a first refresh. The first kind landing in the store
- *  ends the wait (the listing, about 11 s into a cold VN refresh); this ceiling only covers a
- *  refresh that stores nothing for longer, so the read still answers well inside the 120 s the host
- *  allows it, with room left for the answer itself. */
+/** Ceiling for a refresh that stores nothing: the first kind landing (the VN listing, about 11 s in)
+ *  ends the wait sooner. Keeps the read well inside the 120 s the host allows it. */
 const FIRST_LOAD_BUDGET_MS = 30_000
 /** How often the wait looks for a stored kind. It reads the store, never a provider. */
 const FIRST_KIND_POLL_MS = 500
@@ -37,6 +35,8 @@ interface EnsureMarketDataDeps {
   readonly markets: MarketRegistry
   readonly marketDataStore: Pick<MarketDataStore, 'listRefreshAttempts'>
   readonly refresh: RefreshMarketData
+  /** Markets whose refresh started on an empty store and has not settled; the coordinator owns it. */
+  readonly firstLoading: ReadonlySet<MarketRef>
   /** The app's lifetime. A refresh a read starts belongs to it, not to the read: a partial answer
    *  returns while that refresh goes on, and the read's own signal ends only the waiting. */
   readonly signal: AbortSignal
@@ -49,35 +49,23 @@ interface EnsureMarketDataDeps {
  *  whole board, which is a fetch the operator did not ask for and cannot see coming. What the store
  *  does hold answers instead, carrying the session it stands for. */
 export function createEnsureMarketData(deps: EnsureMarketDataDeps): EnsureMarketData {
-  // The market's first load while it runs, so a read that finds a half-filled store still knows it
-  // is half-filled. One entry per market at most (bounded by the market count); gone once the load
-  // settles, on success, failure or abort alike.
-  const loads = new Map<MarketRef, Promise<unknown>>()
-
   return async (options) => {
     const populated = await listPopulated(deps, options.market, options.signal)
-    const isLoading = loads.has(options.market)
 
-    if (populated.length > 0 && !isLoading) {
+    if (populated.length > 0 && !deps.firstLoading.has(options.market)) {
       return buildStaleCaveats(deps, options, populated)
     }
 
     if (options.partialAnswer === true) {
-      return populated.length > 0
-        ? FIRST_LOAD_PENDING_ANSWER
-        : answerAfterFirstKind(deps, loads, options)
+      return populated.length > 0 ? FIRST_LOAD_PENDING_ANSWER : answerAfterFirstKind(deps, options)
     }
 
-    const result = await trackLoad(
-      loads,
-      options.market,
-      deps.refresh({
-        market: options.market,
-        now: options.now,
-        signal: options.signal,
-        ...(options.progress === undefined ? {} : { progress: options.progress }),
-      })
-    )
+    const result = await deps.refresh({
+      market: options.market,
+      now: options.now,
+      signal: options.signal,
+      ...(options.progress === undefined ? {} : { progress: options.progress }),
+    })
 
     return result.caveats
   }
@@ -85,39 +73,34 @@ export function createEnsureMarketData(deps: EnsureMarketDataDeps): EnsureMarket
 
 /** Joins the market's first refresh until its first kind is stored, the budget runs out or the
  *  refresh ends, whichever is first, and then answers from the store. The refresh is not the read's:
- *  it keeps running after this returns, and a failure it meets then is logged here because no read
- *  is left to carry it. */
+ *  it keeps running after this returns, so its failure is logged here, once, whether or not the read
+ *  is still waiting to carry it. */
 async function answerAfterFirstKind(
   deps: EnsureMarketDataDeps,
-  loads: Map<MarketRef, Promise<unknown>>,
   options: EnsureMarketDataOptions
 ): Promise<readonly Caveat[]> {
   const { progress } = options
   // Ends the poll and the budget timer on every way out; the read's own abort ends them too.
   const waiting = new AbortController()
   const signal = AbortSignal.any([options.signal, waiting.signal])
-  const refreshing = trackLoad(
-    loads,
-    options.market,
-    deps.refresh({
-      market: options.market,
-      now: options.now,
-      signal: deps.signal,
-      // A line after the read has answered would be painted on a command that already ended.
-      ...(progress === undefined
-        ? {}
-        : {
-            progress: (key, params) => {
-              if (!waiting.signal.aborted) {
-                progress(key, params)
-              }
-            },
-          }),
-    })
-  )
+  const refreshing = deps.refresh({
+    market: options.market,
+    now: options.now,
+    signal: deps.signal,
+    // A line after the read has answered would be painted on a command that already ended.
+    ...(progress === undefined
+      ? {}
+      : {
+          progress: (key, params) => {
+            if (!waiting.signal.aborted) {
+              progress(key, params)
+            }
+          },
+        }),
+  })
 
   refreshing.catch((err: unknown) => {
-    if (waiting.signal.aborted && !isAbortError(err)) {
+    if (!isAbortError(err)) {
       deps.logger.warn('market-data.first_load_refresh_failed', {
         market: options.market,
         err: formatErrForLog(err),
@@ -168,28 +151,6 @@ async function buildStaleCaveats(
     .sort()
 
   return asOf === undefined ? [] : [{ code: 'market-data.evidence-stale', detail: { asOf } }]
-}
-
-/** The first load a read starts is the one every later read of the market answers against: the
- *  entry is the load that began it, and a read that only joins one leaves it alone. The identity
- *  check keeps a settling load from removing the next one's entry. */
-function trackLoad<T>(
-  loads: Map<MarketRef, Promise<unknown>>,
-  market: MarketRef,
-  load: Promise<T>
-): Promise<T> {
-  if (!loads.has(market)) {
-    const evict = (): void => {
-      if (loads.get(market) === load) {
-        loads.delete(market)
-      }
-    }
-
-    loads.set(market, load)
-    load.then(evict, evict)
-  }
-
-  return load
 }
 
 async function listPopulated(

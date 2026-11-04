@@ -352,7 +352,7 @@ is also a provider: a plan priced anywhere else quotes a number the operator can
 name; one it lacks answers code `51001`, which the adapter maps to a business miss so failover moves on without counting a
 provider failure. The three quote providers are keyless and not metered by the month, which matters because the alert loop reads a
 quote per watched coin every tick; a metered primary would burn its quota on a background loop. That is why CoinGecko serves the
-market-cap board and one rate read, not the quote path.
+market-cap board, one rate read and the dong's FX history, not the quote path.
 
 Binance asks for `symbolStatus=TRADING`: a pair it has halted keeps answering with its last trade forever, and the filter turns it
 into the 400 that failover already understands. Unfiltered, a halted LITUSDT would quote 0.743 while OKX, Bybit and MEXC trade it

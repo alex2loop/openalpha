@@ -54,8 +54,12 @@ async function listServedFiles(dir: string): Promise<readonly string[]> {
 // The rule for every path, as name (lower case) to value.
 async function readPageHeaders(dir: string): Promise<ReadonlyMap<string, string>> {
   const lines = (await Bun.file(resolve(dir, HEADERS_FILE)).text()).split('\n')
-  const start = lines.indexOf(ALL_PATHS_RULE)
+  const start = lines.findIndex((line) => line.trim() === ALL_PATHS_RULE)
   const headers = new Map<string, string>()
+
+  if (start === -1) {
+    throw new Error(`deploy-drift: ${HEADERS_FILE} has no ${ALL_PATHS_RULE} rule`)
+  }
 
   for (const line of lines.slice(start + 1)) {
     const match = HEADER_LINE_RE.exec(line)

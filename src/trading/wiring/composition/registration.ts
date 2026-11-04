@@ -9,6 +9,7 @@ import type { DebateDeps } from '@/trading/features/suggestion/debate/call'
 import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
 import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { TradingConfig } from '@/trading/kernel/config'
+import type { MarketRef } from '@/trading/kernel/instrument'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type {
   AlertFiredListener,
@@ -212,11 +213,11 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
   const registries = buildRegistries(app, options)
   const budget = (): ReturnType<typeof createConfiguredRunBudget> =>
     createConfiguredRunBudget(app.config)
-  const refresh = buildRefreshCoordinator(app, options, registries.markets)
+  const coordinator = buildRefreshCoordinator(app, options, registries.markets)
   const services = buildServices(app, options, {
     registries,
     stores,
-    refresh,
+    ...coordinator,
     logger,
     createSuggestionBudget: budget,
   })
@@ -224,7 +225,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     registries,
     stores,
     services,
-    refresh,
+    refresh: coordinator.refresh,
     scheduled: options,
     logger,
   })
@@ -241,7 +242,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     services: toAggregate(
       {
         services,
-        refresh,
+        refresh: coordinator.refresh,
         ...ticks,
         stores,
         logger,
@@ -295,6 +296,7 @@ interface ServiceParts {
   readonly registries: Registries
   readonly stores: TradingStores
   readonly refresh: RefreshMarketData
+  readonly firstLoading: ReadonlySet<MarketRef>
   readonly logger: Logger
   createSuggestionBudget(): ReturnType<typeof createConfiguredRunBudget>
 }
@@ -313,6 +315,7 @@ function buildServices(
       markets: registries.markets,
       marketDataStore: stores.marketData,
       refresh: parts.refresh,
+      firstLoading: parts.firstLoading,
       signal: app.signal,
       logger,
     }),

@@ -48,13 +48,19 @@ function briefMarket(markets: MarketRegistry, brief: BriefDelivery | null): Mark
   return market === null ? [] : [market.manifest.id]
 }
 
+interface BuiltRefreshCoordinator {
+  readonly refresh: RefreshMarketData
+  /** Written by the coordinator alone; `ensure` reads it. */
+  readonly firstLoading: ReadonlySet<MarketRef>
+}
+
 /** Every refresh path closes the plans a rebuilt series invalidated: only the pass that rebuilt it
  *  reports the rebuild. A caller that joined that pass repeats the close and finds nothing open. */
 export function buildRefreshCoordinator(
   app: App,
   notice: RestatementNotice,
   markets: MarketRegistry
-): RefreshMarketData {
+): BuiltRefreshCoordinator {
   const stores = app.resolve('tradingStores')
   const restatement: RestatementDeps = {
     suggestions: stores.suggestion,
@@ -63,20 +69,25 @@ export function buildRefreshCoordinator(
     logger: app.resolve('logger'),
     defaultLocale: app.config.locale.language,
   }
+  const firstLoading = new Set<MarketRef>()
   const coordinator = createRefreshCoordinator({
     markets,
     marketDataStore: stores.marketData,
     newsArchive: stores.newsArchive,
     universeLimit: UNIVERSE_REFRESH_LIMIT,
+    firstLoading,
     logger: restatement.logger,
   })
 
-  return async (options) => {
-    const result = await coordinator(options)
+  return {
+    firstLoading,
+    refresh: async (options) => {
+      const result = await coordinator(options)
 
-    await clearRestatedPlans(restatement, result, options.signal)
+      await clearRestatedPlans(restatement, result, options.signal)
 
-    return result
+      return result
+    },
   }
 }
 

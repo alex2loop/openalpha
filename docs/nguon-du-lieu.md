@@ -122,7 +122,7 @@ Vài nguồn ít hiển nhiên làm gì:
 - Giá crypto đặt sàn mặc định của `crypto` lên đầu (`default_for` trong `[trading.venues.<id>]`, mặc định `binance`), khi sàn đó cũng là nhà cung cấp dữ liệu. Một kế hoạch định giá ở nơi khác sẽ báo một con số mà lệnh của bạn không khớp được.
 - `mexc` dự phòng cho `binance` ở giá và đứng thứ ba ở lịch sử. Nó niêm yết những coin các sàn lớn không có. Nhưng khối lượng ở đuôi dài các coin nhỏ là kém đáng tin nhất, nên nó chỉ trả lời cho mã mà các sàn lớn từ chối.
 - `okx` không niêm yết mọi coin. Coin nó thiếu bị bỏ qua, và lần bỏ qua đó không tính là một lần hỏng.
-- `coingecko` phục vụ bảng vốn hóa và một tỷ giá FX, không phục vụ đường giá. Vòng cảnh báo đọc giá của mọi coin đang theo dõi ở mỗi nhịp, và một nhà cung cấp tính hạn mức theo tháng sẽ tiêu hết hạn mức vào đó.
+- `coingecko` phục vụ bảng vốn hóa, một tỷ giá FX và lịch sử tỷ giá đồng, không phục vụ đường giá. Vòng cảnh báo đọc giá của mọi coin đang theo dõi ở mỗi nhịp, và một nhà cung cấp tính hạn mức theo tháng sẽ tiêu hết hạn mức vào đó.
 
 Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền ròng của ETF spot crypto. Mục `etf-flows` của bản tin báo `unavailable`. Đó là điều bình thường, không phải sự cố.
 

@@ -47,6 +47,9 @@ interface RefreshCoordinatorDeps {
   readonly marketDataStore: MarketDataStore
   readonly newsArchive: Pick<NewsArchiveStore, 'deleteFetchedBefore'>
   readonly universeLimit: number
+  /** Markets whose refresh started on a store with no kind and has not settled, so a read finding
+   *  a half-filled store still knows it. Written only here; one entry per market at most. */
+  readonly firstLoading: Set<MarketRef>
   readonly logger: Logger
 }
 
@@ -114,7 +117,30 @@ async function runRefreshAfter(
     await preceding.catch(() => undefined)
   }
 
-  return runRefresh(deps, options)
+  return runTrackingFirstLoad(deps, options)
+}
+
+/** Same-market flights run one after another, so the mark is this flight's alone: set before the
+ *  first fetch and cleared once it settles, on success, failure or abort alike. */
+async function runTrackingFirstLoad(
+  deps: RefreshCoordinatorDeps,
+  options: RefreshMarketDataOptions
+): Promise<RefreshMarketDataResult> {
+  const stored = await deps.marketDataStore.listRefreshAttempts({
+    market: options.market,
+    signal: options.signal,
+  })
+  const isFirstLoad = stored.every((attempt) => attempt.result.recordCount === 0)
+
+  if (isFirstLoad) {
+    deps.firstLoading.add(options.market)
+  }
+
+  try {
+    return await runRefresh(deps, options)
+  } finally {
+    deps.firstLoading.delete(options.market)
+  }
 }
 
 interface RefreshOperationDeps {

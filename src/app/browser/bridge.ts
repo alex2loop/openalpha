@@ -19,7 +19,6 @@ import { StorageFullError } from '@/persistence/api'
 
 /** A request reaches the same route table the daemon serves; only the host of its URL is made up. */
 const REQUEST_ORIGIN = 'http://worker.invalid'
-const JSON_CONTENT_TYPE = 'application/json'
 
 const VERDICT_OUTCOME: Record<Exclude<DbFileVerdict, 'ok'>, DbOpenOutcome> = {
   invalid: 'invalid',
@@ -345,16 +344,14 @@ function buildRequest(
   call: Extract<WorkerCall, { readonly kind: 'http' }>,
   signal: AbortSignal
 ): Request {
-  // A body defaults to JSON; the page's own content-type, when it sent one, wins.
-  const init: RequestInit =
-    call.body === undefined
-      ? { method: call.method, signal, headers: call.headers }
-      : {
-          method: call.method,
-          signal,
-          body: call.body,
-          headers: { 'content-type': JSON_CONTENT_TYPE, ...call.headers },
-        }
+  // The page's request already carries its content-type (a string body always gets one), so the
+  // headers go through as sent.
+  const init: RequestInit = {
+    method: call.method,
+    signal,
+    headers: call.headers,
+    ...(call.body === undefined ? {} : { body: call.body }),
+  }
 
   return new Request(new URL(call.path, REQUEST_ORIGIN).toString(), init)
 }

@@ -10,6 +10,18 @@ interface StoredFlag {
   readonly set: () => void
 }
 
+export function createStoredFlag(key: string): StoredFlag {
+  const flag = signal(readStorage('local', key) === STORED_FLAG)
+
+  return {
+    flag,
+    set: () => {
+      flag.value = true
+      writeStorage('local', key, STORED_FLAG)
+    },
+  }
+}
+
 // Private windows, blocked site data and a full quota all throw here; each reads as absent.
 export function readStorage(area: StorageArea, key: string): string | undefined {
   try {
@@ -37,16 +49,4 @@ export function removeStorage(area: StorageArea, key: string): void {
 
 function resolveStorage(area: StorageArea): Storage {
   return area === 'session' ? sessionStorage : localStorage
-}
-
-export function createStoredFlag(key: string): StoredFlag {
-  const flag = signal(readStorage('local', key) === STORED_FLAG)
-
-  return {
-    flag,
-    set: () => {
-      flag.value = true
-      writeStorage('local', key, STORED_FLAG)
-    },
-  }
 }
