@@ -25,7 +25,7 @@ import {
   provenanceOf,
   unavailable,
 } from '@/trading/kernel/source/source-result'
-import { reportedCaveats, unavailableCaveats } from '@/trading/markets/equity-vn/caveats'
+import { unavailableCaveats } from '@/trading/markets/equity-vn/caveats'
 import {
   deriveVnMacroRisk,
   foreignFlowStress,
@@ -250,16 +250,16 @@ function readCaveats(reads: MacroReads): readonly Caveat[] {
  *  A provider that missed while another answered is not reported at all, the same way failover
  *  stays quiet about a primary it passed over. What the merge ended up without is the composite's
  *  coverage check to state, in the name of the driver that is absent rather than the vendor that
- *  refused — a reader cannot act on either, but only one of them is the fact. */
+ *  refused — a reader cannot act on either, but only one of them is the fact. When none answered,
+ *  a leg this edition does not serve is no failure (`unavailableCaveats`), and a missing key is
+ *  not one either: its provider is never registered, so it makes no leg, and boot and `doctor`
+ *  name the variable. */
 function globalCaveats(reads: readonly SourceResult<MacroSnapshot>[]): readonly Caveat[] {
   const served = reads.filter((read) => read.kind === 'available')
 
   return served.length > 0
     ? served.flatMap((read) => read.caveats)
-    : reportedCaveats(
-        reads.flatMap((read) => read.caveats),
-        'macro'
-      )
+    : reads.flatMap((read) => readCaveatsOf(read, 'macro'))
 }
 
 function readCaveatsOf(result: SourceResult<unknown>, kind: SourceKind): readonly Caveat[] {

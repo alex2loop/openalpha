@@ -112,8 +112,9 @@ export async function backfillPremium(
     (day) => request.forced || !held.has(day)
   )
   const [earliest] = wanted
+  const latest = wanted.at(-1)
 
-  if (earliest === undefined) {
+  if (earliest === undefined || latest === undefined) {
     return EMPTY_PREMIUM_PASS
   }
 
@@ -121,7 +122,7 @@ export async function backfillPremium(
   // Any wider and a source that answers a day a request is asked for rates nothing reads.
   const fx = {
     fromDay: input.calendar.addTradingDays(earliest, -FX_LAG_SESSIONS),
-    toDay: wanted.at(-1) ?? toDay,
+    toDay: latest,
   }
   const read = await readOperands(input, request, { window, fx })
   const { operands } = read

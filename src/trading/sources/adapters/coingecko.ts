@@ -14,6 +14,7 @@ import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/defin
 import type { SourceRequest } from '@/trading/sources/types'
 import { ValidationError } from '@/core/errors'
 import { MS_PER_DAY, MS_PER_SECOND } from '@/core/utils/time'
+import { currencyCode, fxPair } from '@/trading/kernel/instrument'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { boardObservedAt, createCryptoBoard } from '@/trading/sources/adapters/crypto-board'
 import { createCryptoFx } from '@/trading/sources/adapters/crypto-fx'
@@ -42,16 +43,16 @@ const MAXIMUM_PER_PAGE = 250
 /** The one change window the sweep asks for beyond the day: what the screen chooses its board on. */
 const SWEEP_CHANGE_WINDOW = '7d'
 const SIMPLE_PRICE_PATH = '/simple/price'
-/** The coins this source can price in a fiat, by the id CoinGecko knows them under. */
 const TETHER_ID = 'tether'
+/** The coins this source can price in a fiat, by the id CoinGecko knows them under. */
 const FX_COIN_IDS: Readonly<Record<string, string>> = Object.freeze({ USDT: TETHER_ID })
-/** The one dated pair read through a coin: USDT stands for the dollar, priced in dong. Measured
- *  2026-11-04 over the 108 sessions of the gold premium's window against Yahoo's `USDVND=X`: 0.06%
- *  apart on average and 0.24% at the most, a point stamped for day D against the close of D. */
-const FX_HISTORY_PAIR = 'USDVND'
-const FX_HISTORY_FIAT = 'vnd'
+/** The one dated pair read through a coin: USDT stands for the dollar, priced in dong. */
+const FX_HISTORY_FROM = currencyCode('USD')
+const FX_HISTORY_TO = currencyCode('VND')
+const FX_HISTORY_PAIR = fxPair(FX_HISTORY_FROM, FX_HISTORY_TO)
+const FX_HISTORY_FIAT = FX_HISTORY_TO.toLowerCase()
 const MARKET_CHART_RANGE_PATH = `/coins/${TETHER_ID}/market_chart/range`
-/** How far back the keyless band reads a series. */
+/** The longest window the keyless band reads in one request. */
 const MAXIMUM_FX_HISTORY_DAYS = 365
 const TOKEN_FX_PROXY_CAVEAT: Caveat = {
   code: 'source.token-fx-proxy',
@@ -81,6 +82,11 @@ const MARKET_CHART = z.object({ prices: z.array(z.tuple([z.number(), z.number()]
 /** Prices keyed by coin id, then by the lowercase fiat code the request asked for, with the stamp
  *  sharing that inner object. */
 const SIMPLE_PRICE = z.record(z.string(), z.record(z.string(), z.number()))
+
+interface FxHistoryWindow {
+  readonly fromDay: TradingDay
+  readonly toDay: TradingDay
+}
 
 export function createCoinGeckoSources(options: SourceAdapterOptions): readonly RegisteredSource[] {
   return [
@@ -184,11 +190,6 @@ function toFxReading(payload: z.infer<typeof SIMPLE_PRICE>): CryptoFxReading {
     rate: priced[1],
     ...(stamp === undefined ? {} : { observedAt: stamp * MS_PER_SECOND }),
   }
-}
-
-interface FxHistoryWindow {
-  readonly fromDay: TradingDay
-  readonly toDay: TradingDay
 }
 
 /** Behind `yahoo`, ahead of the bank: a window costs one request however long it is. A point is

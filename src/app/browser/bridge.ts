@@ -345,12 +345,16 @@ function buildRequest(
   call: Extract<WorkerCall, { readonly kind: 'http' }>,
   signal: AbortSignal
 ): Request {
-  const init: RequestInit = { method: call.method, signal, headers: call.headers }
-
-  if (call.body !== undefined) {
-    init.body = call.body
-    init.headers = { 'content-type': JSON_CONTENT_TYPE, ...call.headers }
-  }
+  // A body defaults to JSON; the page's own content-type, when it sent one, wins.
+  const init: RequestInit =
+    call.body === undefined
+      ? { method: call.method, signal, headers: call.headers }
+      : {
+          method: call.method,
+          signal,
+          body: call.body,
+          headers: { 'content-type': JSON_CONTENT_TYPE, ...call.headers },
+        }
 
   return new Request(new URL(call.path, REQUEST_ORIGIN).toString(), init)
 }
