@@ -1,13 +1,7 @@
 import type { ComponentChildren } from 'preact'
 
 import type { TradingPortfolioResponse } from '@/app/server/wire/trading'
-import {
-  formatPrice,
-  formatSignedPercent,
-  PERCENT,
-  toneOfPercent,
-  WHOLE_DISPLAY,
-} from '@/web/text/figures'
+import { formatPrice, formatSignedFraction, toneOfPercent, WHOLE_DISPLAY } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 
 /** What was put in, what closed trades and dividends made, the fees still in the cost of what is
@@ -38,7 +32,7 @@ export function PnlTotals({ book }: { readonly book: TradingPortfolioResponse })
         <FigureRow label={tr('ui.office.book.totalPnl')} signedBy={totalPnlBase}>
           {money(totalPnlBase)}
           {netDepositsBase !== undefined && netDepositsBase > 0 && (
-            <> ({formatSignedPercent((totalPnlBase / netDepositsBase) * PERCENT)})</>
+            <> ({formatSignedFraction(totalPnlBase / netDepositsBase)})</>
           )}
         </FigureRow>
       )}
