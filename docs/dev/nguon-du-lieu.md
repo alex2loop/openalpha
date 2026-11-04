@@ -165,6 +165,8 @@ Nguồn cần khóa mà không có thì không được đăng ký, nên loại 
 
 Đăng ký diễn ra theo pha: `createSourceRegistry` mở một pha đăng ký, mọi nguồn có sẵn và nguồn plugin đăng ký, rồi `close()`. Nguồn nào có cặp `(kind, id)` không có vị trí trong bảng tuyến sẽ bị từ chối với `source <kind>:<id> has no failover position`: nhà cung cấp không với tới được là lỗi lắp ráp (composition), không phải thứ lặng lẽ bị vô hiệu.
 
+`resolve` giữ câu trả lời khả dụng gần nhất của một nhóm dữ liệu chậm đổi, theo từng sổ đăng ký (`sources/freshness.ts`): `funding` 15 phút, `sentiment` 3 giờ, `positioning` 6 giờ, khóa theo nhóm và toàn bộ ngữ cảnh, có giới hạn theo nhóm. Thất bại không bao giờ được giữ, câu trả lời của người gọi đã hủy cũng không. Báo giá không được đệm: nhịp tải của trang là thứ làm mới nó. Câu trả lời giữ nguyên dấu nguồn gốc ban đầu nên không bao giờ trông mới hơn thực tế.
+
 ## Định tuyến
 
 `SOURCE_ROUTES` (`sources/routes.ts`) là một bảng `loại -> phạm vi -> danh sách mã nguồn có thứ tự`. Bảng theo thứ tự đọc cho từng thị trường nằm ở [trang người dùng](../nguon-du-lieu.md#định-tuyến). Phạm vi được xác định theo thứ tự sau, trúng cái nào dùng cái đó:

@@ -20,6 +20,7 @@ import { unavailable } from '@/trading/kernel/source/source-result'
 import { createRegistrationPhase } from '@/trading/registry-lifecycle'
 import { createRequestCoalescer, sourceRequestKey } from '@/trading/sources/coalesce'
 import { toRegisteredSource } from '@/trading/sources/define'
+import { createFreshReads } from '@/trading/sources/freshness'
 import { ANY_SCOPE, type SourceRouteTable } from '@/trading/sources/routes'
 
 export type SourceRoutes = Readonly<Record<'firstParty' | 'plugins', SourceRouteTable>>
@@ -96,6 +97,7 @@ export function createSourceRegistry(routes: SourceRoutes, logger: Logger): Sour
     announced: withCooldown(ROUTE_EXHAUSTED_LOG_COOLDOWN_MS),
   }
   const coalescer = createRequestCoalescer()
+  const fresh = createFreshReads()
 
   return {
     register(source) {
@@ -107,10 +109,13 @@ export function createSourceRegistry(routes: SourceRoutes, logger: Logger): Sour
     },
     close: phase.close,
     list: () => phase.entries().map((source) => source.summary()),
-    resolve: (options) =>
-      coalescer.share(sourceRequestKey(options.kind, options.context), options.signal, () =>
-        resolveSource(state, phase.entries(), options)
-      ),
+    resolve: (options) => {
+      const key = sourceRequestKey(options.kind, options.context)
+
+      return fresh.read({ kind: options.kind, key, signal: options.signal }, () =>
+        coalescer.share(key, options.signal, () => resolveSource(state, phase.entries(), options))
+      )
+    },
     resolveAll: (options) => resolveAllSources(state, phase.entries(), options),
   }
 }

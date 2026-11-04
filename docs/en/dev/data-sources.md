@@ -220,6 +220,11 @@ Registration is phased: `createSourceRegistry` opens a phase, every built-in and
 source whose `(kind, id)` has no position in the route table is rejected with `source <kind>:<id> has no failover position`: a
 provider that cannot be reached is a composition bug, not a silent no-op.
 
+`resolve` keeps a slow kind's last available answer per registry (`sources/freshness.ts`): `funding` 15 minutes, `sentiment` 3 hours,
+`positioning` 6 hours, keyed by kind and the whole context, bounded per kind. A failure is never kept, nor an answer whose caller
+aborted. A quote is not cached: the page's poll is what renews it. The answer keeps its original provenance stamp, so it never reads
+fresher than it is.
+
 ## Routing
 
 `SOURCE_ROUTES` (`sources/routes.ts`) is a table of `kind -> scope -> ordered source ids`. The table in reading order per market is
