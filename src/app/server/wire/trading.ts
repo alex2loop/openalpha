@@ -18,7 +18,6 @@ import type {
   InvestmentGoal,
   InvestmentHorizon,
   MarketEventKind,
-  NavWindow,
   RiskLevel,
   SourceFreshness,
 } from '@/app/server/wire/vocab'
@@ -177,35 +176,6 @@ export interface AbsolutePositionWire {
   readonly weightPctNav?: number
   /** Projected from the singular `ValuedPosition.caveat` as a zero-or-one-element array. */
   readonly caveats: readonly TradingWireCaveat[]
-}
-
-interface NavPointWire {
-  readonly day: string
-  readonly nav: number
-  readonly index: number
-}
-
-export interface NavBenchmarkWire {
-  readonly legs: readonly {
-    readonly segment: string
-    readonly weight: number
-    readonly instrument?: InstrumentRefWire
-  }[]
-  readonly points: readonly { readonly day: string; readonly index: number }[]
-  readonly periodReturn: number
-}
-
-export interface TradingNavResponse {
-  readonly window: NavWindow
-  readonly baseCurrency: string
-  readonly firstDay?: string
-  readonly recordedCount: number
-  readonly points: readonly NavPointWire[]
-  readonly periodReturn?: number
-  readonly maximumDrawdown?: number
-  readonly currentDrawdown?: number
-  readonly benchmark?: NavBenchmarkWire
-  readonly benchmarkGap?: string
 }
 
 export interface TradingPortfolioResponse extends PortfolioPnlWire {

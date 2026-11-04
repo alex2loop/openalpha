@@ -20,12 +20,12 @@ import {
   toBriefSnapshotWire,
   toBriefTextWire,
 } from '@/app/server/mappers/brief'
+import { toNavWire } from '@/app/server/mappers/nav'
 import { toTrackRecordWire } from '@/app/server/mappers/track-record'
 import {
   toCandleWire,
   toCaveatWires,
   toMarketEventWire,
-  toNavWire,
   toNewsItemWire,
   toPortfolioWire,
   toProfileWire,

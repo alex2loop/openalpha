@@ -1,4 +1,4 @@
-import type { TradingNavResponse } from '@/app/server/wire/trading'
+import type { TradingNavResponse } from '@/app/server/wire/nav'
 import type { NavWindow } from '@/app/server/wire/vocab'
 import { formatDay } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'

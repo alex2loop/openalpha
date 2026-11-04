@@ -1,4 +1,4 @@
-import type { TradingNavResponse } from '@/app/server/wire/trading'
+import type { TradingNavResponse } from '@/app/server/wire/nav'
 import { tr } from '@/web/text/tr'
 import { scaleLinear, toPolylinePoints } from '@/web/ui/kit/line-path'
 

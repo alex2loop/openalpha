@@ -55,6 +55,7 @@ import type {
   StopsResponse,
   VenuesResponse,
 } from '@/app/server/wire/money'
+import type { TradingNavResponse } from '@/app/server/wire/nav'
 import type { BoardResponse, NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
 import type {
   ConfirmOrderResponse,
@@ -95,7 +96,6 @@ import type {
   SuggestionCardResponse,
   TradingBriefResponse,
   TradingEventsResponse,
-  TradingNavResponse,
   TradingNewsResponse,
   TradingOhlcvResponse,
   TradingPortfolioResponse,
