@@ -4,3 +4,18 @@
   grid-template-columns: repeat(auto-fit, minmax(var(--rankedColumnMin), 1fr));
   gap: var(--s3);
 }
+
+/* A long name (a coin like USELESS) ends in an ellipsis instead of running into the figure. */
+.ranked-label {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ranked-label > * {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: start;
+}
