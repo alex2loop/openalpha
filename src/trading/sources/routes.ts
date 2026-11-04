@@ -146,11 +146,15 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
     ],
   },
   // Yahoo leads: the coin providers quote a pair's spot, not its dated history, and er-api
-  // publishes today's board only; Yahoo also dates a coin's dollar leg (`USDT-USD`). vietcombank
-  // backs it for the VND pairs alone: the bank's board is set once or twice a day, so a day's rate
-  // is not the market's close, and it reaches a pair only when Yahoo failed to answer. A pair nobody
+  // publishes today's board only; Yahoo also dates a coin's dollar leg (`USDT-USD`). coingecko backs
+  // it for USDVND alone, as USDT's price in dong, one request however long the window: a proxy, so
+  // below Yahoo, and the lead where Yahoo is unreachable (the web edition). vietcombank is last for
+  // the VND pairs: the bank's board is set once or twice a day, so a day's rate is not the market's
+  // close, and a window costs it a request a weekday, so it reaches only a short one. A pair nobody
   // carries history for leaves the confirmer silent.
-  fxHistory: { [ANY_SCOPE]: [sourceId('yahoo'), sourceId('vietcombank')] },
+  fxHistory: {
+    [ANY_SCOPE]: [sourceId('yahoo'), sourceId('coingecko'), sourceId('vietcombank')],
+  },
   // Per market, not ANY_SCOPE: rss serves only the markets RSS_FEEDS names a feed for. The
   // ANY_SCOPE arm is the macro tape, which is nobody's market. The two providers in a market that
   // has both partition the requests rather than failing over: one serves an instrument, the other

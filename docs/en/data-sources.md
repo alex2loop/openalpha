@@ -11,7 +11,7 @@ You need nothing to get started. A few providers take a key that you can add lat
 | Provider | Variable | Without it |
 |---|---|---|
 | `bls` | `BLS_API_KEY` | Nothing is lost: US inflation reads either way. Without a key the provider allows 25 calls a day per IP address, shared by every program behind that address. With a key the limit is 500. |
-| `coingecko` | `COINGECKO_API_KEY` | You lose the last fallback for the crypto market-cap board, and the only way to look up a coin ranked below every board. It also drops out of the FX list for a settlement coin (such as USDT) against a fiat currency. |
+| `coingecko` | `COINGECKO_API_KEY` | Nothing is lost: it reads either way. Without a key the provider allows a small number of calls a minute per IP address, shared by every program behind that address. With a key you get a monthly allowance of your own. |
 | `fred` | `FRED_API_KEY` | You lose the two series only FRED publishes: the dollar index and VIX (the market's fear gauge). The macro score still rates, without these two drivers: the US macro score loses about 30% of its weight, the macro backdrop for VN stocks 20%, and gold 2 of its 7 factors (dollar, safe haven). So days when the dollar strengthens or the market panics are easy to miss. US yields, the real rate and inflation still read from `treasury` and `bls`, which need no key. The key is free: sign up on the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html). |
 | `sec-data` | `SEC_CONTACT_EMAIL` | Not a key: SEC asks every reader to say who is calling, so this is your contact email. Without it the SEC source stays off. US value and quality read as unavailable, and so do US earnings releases and insider purchases. |
 
@@ -90,7 +90,7 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 | **Not tied to one market** | |
 | US macro (merged) | `treasury`, `bls`, `fred` |
 | FX rates | `coinbase`, `okx`, `coingecko`, `yahoo`, `er-api` |
-| FX history | `yahoo`, `vietcombank` |
+| FX history | `yahoo`, `coingecko`, `vietcombank` |
 | Commodity prices | `vndirect`, `fred-csv` |
 | News for the macro picture | `rss` |
 
@@ -138,7 +138,8 @@ One kind is defined and has no provider: spot-ETF net flows for crypto. The brie
 The Vietnamese scraping sources (they read web pages and internal endpoints, not official feeds) and the gold boards are fragile. Being on by default does not change that:
 
 - `vndirect`, `vndirect-index`, `vndirect-mkw`, `entrade`, `vietcap` and `vps-board` read undocumented internal broker endpoints with no service guarantee.
-- `vietcombank` reads the bank's own website feed. It is asked for FX history only when `yahoo` has nothing. The bank sets its rates once or twice a day, so it reports a day's rate (the midpoint of its transfer buy and sell rates), not a market close.
+- `coingecko` gives the dong's FX history as the price of USDT in dong, one request for the whole window. It is a stand-in for the dollar rate, within a few tenths of a percent of Yahoo's over the last 108 sessions, and a note says so wherever it is used.
+- `vietcombank` reads the bank's own website feed. It is asked for FX history only when `yahoo` and `coingecko` have nothing, and only for a short window. The bank sets its rates once or twice a day, so it reports a day's rate (the midpoint of its transfer buy and sell rates), not a market close.
 - `cafef` reads a consumer site's own handler. It publishes rows whose value and volume contradict each other. Those rows are dropped.
 - `pnj` reads a storefront's own endpoint.
 - `giavang` is a community API run by one operator.

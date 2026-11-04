@@ -190,10 +190,9 @@ export const SOURCE_ENDPOINTS = Object.freeze({
  *  list for about a minute while the session trades, so 60 a minute is far above the peak and still
  *  catches a runaway.
  *
- *  `vietcombank` publishes no ceiling. A window is one request a weekday, at most 94 on the longest
- *  window it accepts (the gold premium's first fill), and it is read only where `yahoo` answered
- *  nothing; a pass that only tops the premium up asks for a few days. 33 days took 2.7 s at 120 a
- *  minute against 18 s at 60, and 120 still catches a runaway.
+ *  `vietcombank` publishes no ceiling. A window is one request a weekday, at most 45 on the longest
+ *  window it accepts, and it is read only where `yahoo` and `coingecko` answered nothing. 33 days
+ *  took 2.7 s at 120 a minute against 18 s at 60, and 120 still catches a runaway.
  *
  *  `vndirect-index` shares a host with `vndirect` and its 300 a minute, but is asked once per index
  *  (a page per 500 sessions) when the market refreshes its level bars, so 60 a minute is far above
@@ -343,6 +342,7 @@ export const SOURCE_CREDENTIALS: Readonly<Record<string, SourceCredentialFacts>>
   [sourceId('coingecko')]: {
     variable: 'COINGECKO_API_KEY',
     adds: 'trading.source.credential.coingecko',
+    keylessTier: true,
   },
   [sourceId('fred')]: { variable: 'FRED_API_KEY', adds: 'trading.source.credential.fred' },
   [sourceId('sec-data')]: {

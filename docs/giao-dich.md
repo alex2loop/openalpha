@@ -69,7 +69,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `binance` `binance-futures` `alternative-me` | giá và nến crypto; funding, open interest (kèm mức đổi) và tỷ lệ long/short; tâm lý | không |
 | `bybit` | nến crypto cho các mã mà spot `binance` không niêm yết | không |
 | `mexc` | nến và giá crypto cho các mã mà cả `binance` lẫn `bybit` đều không niêm yết | không |
-| `coingecko` | nguồn dự phòng cuối cho bảng crypto; nguồn duy nhất tra một ký hiệu nằm ngoài mọi bảng; tỷ giá mà một coin thanh toán giao dịch so với một tiền pháp định | `COINGECKO_API_KEY` |
+| `coingecko` | nguồn dự phòng cuối cho bảng crypto; nguồn duy nhất tra một ký hiệu nằm ngoài mọi bảng; tỷ giá mà một coin thanh toán giao dịch so với một tiền pháp định; lịch sử tỷ giá đồng bằng giá USDT tính theo đồng, đứng sau `yahoo` | `COINGECKO_API_KEY` (tùy chọn) |
 | `vndirect` | công cụ VN, nến, dữ liệu cơ bản, sự kiện, dòng tiền, room ngoại, khuyến nghị của giới môi giới, vĩ mô VN, giá hàng hóa hằng ngày, tin tức VN | không |
 | `vndirect-index` | chỉ số mà daemon đọc: lịch sử ngày, đứng trước `entrade` và `vietcap-chart`; tách riêng khỏi `vndirect` để một lần hỏng của chỉ số không làm tạm dừng nến cổ phiếu | không |
 | `entrade` | giá và nến VN; đứng sau `vietcap-chart` cho giá của một chỉ số, đứng sau `vndirect-index` ở nến chỉ số (nó chỉ vẽ bốn chỉ số tiêu đề) | không |
@@ -94,7 +94,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `coinmarketcap` `coinlore` | bảng crypto xếp hạng mà khâu sàng lọc chọn tập công cụ từ đó, không khóa, trong một yêu cầu; `coinlore` đứng thứ ba | không |
 | `coinbase` | giá USD của một coin thanh toán, từ một sàn có giao dịch cặp đó; cũng báo giá và nến ngày của crypto đã quy đổi sang USDT, nguồn cuối cùng mà người dùng ở Mỹ luôn gọi được | không |
 | `er-api` | FX tiền pháp định, đứng sau `yahoo` | không |
-| `vietcombank` | lịch sử tỷ giá đồng, đứng sau `yahoo`: trung điểm giữa giá mua chuyển khoản và giá bán của ngân hàng, mỗi ngày làm việc một lần đọc | không |
+| `vietcombank` | lịch sử tỷ giá đồng, đứng sau `yahoo` và `coingecko`: trung điểm giữa giá mua chuyển khoản và giá bán của ngân hàng, mỗi ngày làm việc một lần đọc | không |
 | `cftc` | positioning hợp đồng tương lai vàng: báo cáo Commitments of Traders hằng tuần | không |
 
 Có một loại được khai nhưng **chưa định tuyến**: dòng tiền ròng của ETF spot crypto. Chưa nhà cung cấp nào được kiểm chứng trên phản hồi thật, nên mục `etf-flows` của bản tin báo `unavailable` chứ không hỏng.

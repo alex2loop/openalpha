@@ -11,7 +11,7 @@ Tóm tắt: mọi nhà cung cấp đều bật sẵn. Bạn không cần bật g
 | Nhà cung cấp | Biến | Nếu không có |
 |---|---|---|
 | `bls` | `BLS_API_KEY` | Không mất gì: lạm phát Mỹ vẫn đọc được. Không có khóa thì nhà cung cấp cho 25 lượt gọi mỗi ngày trên mỗi địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì giới hạn là 500. |
-| `coingecko` | `COINGECKO_API_KEY` | Bạn mất bên dự phòng cuối cho bảng vốn hóa crypto, và mất luôn cách duy nhất để tra một coin nằm ngoài mọi bảng. Nó cũng không còn trong danh sách FX cho một coin thanh toán (như USDT) so với tiền pháp định. |
+| `coingecko` | `COINGECKO_API_KEY` | Không mất gì: nó đọc được cả hai cách. Không có khóa, nhà cung cấp cho một số ít lần gọi mỗi phút theo địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì bạn có hạn mức riêng mỗi tháng. |
 | `fred` | `FRED_API_KEY` | Bạn mất hai chuỗi chỉ FRED công bố: chỉ số đô la và VIX (mức lo sợ của thị trường). Điểm vĩ mô vẫn chấm được nhưng thiếu hai yếu tố này: điểm vĩ mô Mỹ mất khoảng 30% trọng số, bối cảnh vĩ mô cho cổ phiếu VN mất 20%, vàng mất 2 trong 7 yếu tố (đô la, trú ẩn an toàn). Vì vậy những ngày đô la mạnh lên hay thị trường hoảng loạn dễ bị bỏ sót. Lợi suất, lãi suất thực và lạm phát Mỹ vẫn đọc từ `treasury` và `bls`, hai bên không cần khóa. Khóa miễn phí, đăng ký tại [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html). |
 | `sec-data` | `SEC_CONTACT_EMAIL` | Không phải khóa: SEC yêu cầu mọi người đọc cho biết ai đang gọi, nên đây là email liên hệ của bạn. Không có thì nguồn SEC tắt. Giá trị và chất lượng của cổ phiếu Mỹ đọc thành không có số liệu, công bố kết quả kinh doanh và giao dịch mua của người nội bộ cũng vậy. |
 
@@ -90,7 +90,7 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 | **Không gắn với một thị trường** | |
 | Vĩ mô Mỹ (trộn) | `treasury`, `bls`, `fred` |
 | Tỷ giá FX | `coinbase`, `okx`, `coingecko`, `yahoo`, `er-api` |
-| Lịch sử FX | `yahoo`, `vietcombank` |
+| Lịch sử FX | `yahoo`, `coingecko`, `vietcombank` |
 | Giá hàng hóa | `vndirect`, `fred-csv` |
 | Tin tức cho dòng tin vĩ mô | `rss` |
 
@@ -138,7 +138,8 @@ Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền r�
 Các nguồn scrape Việt Nam (chúng đọc trang web và endpoint nội bộ, không phải feed chính thức) và các bảng vàng khá mong manh. Việc chúng bật mặc định không thay đổi điều đó:
 
 - `vndirect`, `vndirect-index`, `vndirect-mkw`, `entrade`, `vietcap` và `vps-board` đọc các endpoint nội bộ của công ty chứng khoán, không tài liệu, không cam kết dịch vụ.
-- `vietcombank` đọc nguồn cấp trên website của chính ngân hàng. Nó chỉ được hỏi lịch sử FX khi `yahoo` không có gì. Ngân hàng đặt tỷ giá một hay hai lần mỗi ngày, nên nó cho tỷ giá của ngày (trung điểm giữa giá mua chuyển khoản và giá bán), không phải giá đóng cửa của thị trường.
+- `coingecko` cho lịch sử tỷ giá đồng bằng giá USDT tính theo đồng, một yêu cầu cho cả cửa sổ. Đây là đồ thế chỗ cho tỷ giá đô la, lệch Yahoo vài phần mười phần trăm trong 108 phiên gần nhất, và một ghi chú nói rõ điều đó ở mọi nơi nó được dùng.
+- `vietcombank` đọc nguồn cấp trên website của chính ngân hàng. Nó chỉ được hỏi lịch sử FX khi `yahoo` và `coingecko` không có gì, và chỉ cho cửa sổ ngắn. Ngân hàng đặt tỷ giá một hay hai lần mỗi ngày, nên nó cho tỷ giá của ngày (trung điểm giữa giá mua chuyển khoản và giá bán), không phải giá đóng cửa của thị trường.
 - `cafef` đọc chính handler của một trang tiêu dùng. Nó công bố các dòng mà giá trị với khối lượng tự mâu thuẫn nhau. Những dòng đó bị bỏ.
 - `pnj` đọc endpoint của chính cửa hàng.
 - `giavang` là API cộng đồng do một người vận hành.

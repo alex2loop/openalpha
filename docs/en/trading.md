@@ -69,7 +69,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `binance` `binance-futures` `alternative-me` | crypto quotes and bars; funding, open interest (with its change) and long/short ratio; sentiment | no |
 | `bybit` | crypto bars for names `binance` spot does not list | no |
 | `mexc` | crypto bars and quotes for names neither `binance` nor `bybit` list | no |
-| `coingecko` | last fallback for the crypto board; the only source that looks up one symbol past every board; the rate a settlement coin trades at against a fiat | `COINGECKO_API_KEY` |
+| `coingecko` | last fallback for the crypto board; the only source that looks up one symbol past every board; the rate a settlement coin trades at against a fiat; the dong's FX history as USDT's price in dong, behind `yahoo` | `COINGECKO_API_KEY` (optional) |
 | `vndirect` | VN instruments, bars, fundamentals, events, flows, foreign room, street recommendations, VN macro, daily commodity prices, VN news | no |
 | `vndirect-index` | levels for the indices the daemon reads: the daily history, ahead of `entrade` and `vietcap-chart`; kept apart from `vndirect` so an index outage does not pause the share bars | no |
 | `entrade` | VN quotes and bars; behind `vietcap-chart` for a quote on a level, behind `vndirect-index` for index bars (it charts only the four headline indices) | no |
@@ -94,7 +94,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `coinmarketcap` `coinlore` | the ranked crypto board the screen picks its universe from, keyless, one request; `coinlore` sits third | no |
 | `coinbase` | the USD price of a settlement coin, from a venue that trades the pair; also crypto prices and daily bars converted to USDT, the last provider a US operator can always reach | no |
 | `er-api` | fiat FX, behind `yahoo` | no |
-| `vietcombank` | the dong's FX history, behind `yahoo`: the midpoint of the bank's transfer buy and sell rates, a weekday at a time | no |
+| `vietcombank` | the dong's FX history, behind `yahoo` and `coingecko`: the midpoint of the bank's transfer buy and sell rates, a weekday at a time | no |
 | `cftc` | gold futures positioning: the weekly Commitments of Traders report | no |
 
 One kind is defined but **unrouted**: crypto spot-ETF net flows. No provider has been verified against a live response, so the brief's `etf-flows` section reports `unavailable` instead of failing.

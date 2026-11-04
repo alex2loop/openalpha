@@ -26,12 +26,10 @@ const RATES_PATH = '/api/exchangerates'
 const VND_PAIR_RE = /^([A-Z]{3})VND$/
 const SATURDAY = 5
 
-/** The feed answers one day a request, so a window costs a request per weekday: at most 94 on the
- *  longest window accepted. That length is the gold premium's: 108 counter sessions plus the 2 an
- *  operand rate may lag (`GOLD_VN_PREMIUM_WINDOW_DAYS`, `FX_LAG_SESSIONS`), on a calendar that
- *  shuts only on Sundays, so 110 sessions is 18 weeks and 2 sessions, 129 calendar days at the most.
- *  Anything longer is declined rather than spent; the stress confirmer's month is about 45. */
-const MAXIMUM_WINDOW_DAYS = 129
+/** The feed answers one day a request, so a window costs a request per weekday. A month of
+ *  sessions (the stress confirmer's window) is about 45 calendar days; anything longer is declined
+ *  rather than spent: the gold premium's 108-session backfill is `coingecko`'s, one request. */
+const MAXIMUM_WINDOW_DAYS = 63
 
 const RATES_RESPONSE = z.object({ Data: z.array(z.unknown()) })
 

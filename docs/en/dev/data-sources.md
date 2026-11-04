@@ -369,18 +369,23 @@ split), which `Candle` models as absent rather than zero.
   `er-api` split a pair into two ISO codes, so a seven-character `USDTVND` fails their `covers`.
 - `coinbase` leads the pair it trades because the crypto book is valued through that rate; `okx` backs it because coinbase's
   book is the deeper one.
-- `fxHistory` is `yahoo`, then `vietcombank` for the VND pairs: the coin providers quote spot, not dated history, and `er-api`
+- `fxHistory` is `yahoo`, then `coingecko` for `USDVND`, then `vietcombank` for the VND pairs: the coin providers quote spot, not dated history, and `er-api`
   publishes today's board only. Measured 2026-11-03 over the 60 sessions 2026-08-10 to 2026-10-30, with every day present and a
   request taking 0.5 s: the bank's transfer buy rate sat 194 VND (0.75%) below Yahoo's on average (range 120 to 264), where the
   midpoint of its transfer buy and sell rates sat 4 VND away (range -70 to +74), so the adapter publishes the midpoint. The bank
   sets its board once or twice a day, so a day's rate is not the market's close: its daily moves correlate 0.23 with Yahoo's, and its
   5-session moves differ by 0.12% on average (at most 0.41%). It therefore only backs `yahoo`, and a window it answers is whole or
   refused.
+- `coingecko` answers `USDVND` only, as USDT's price in dong from `/coins/tether/market_chart/range` with a daily interval: one request
+  a window, up to 365 days, where the bank costs one a weekday. A proxy, so it sits below `yahoo` and carries `source.token-fx-proxy`;
+  it leads where `yahoo` is unreachable (the web edition), ahead of the bank. Measured 2026-11-04 over the 108 sessions of the gold
+  premium's window against Yahoo's `USDVND=X`: 0.06% apart on average, 0.24% at the most, and 0.09% / 0.23% against ten bank midpoints. A
+  point is stamped 00:00 UTC, 07:00 in Vietnam, and read as that UTC day's rate, which the premium's lag rule then lets price that day or
+  a later one, never an earlier one. A reading of the day in progress appended after the midnight point is dropped.
 - `vietcombank` asks `api/exchangerates?date=<day>` a weekday at a time: the board repeats Friday's rates on a weekend, which is no
-  new reading, and a day it has no board for answers `Count` 0. The window is capped at 129 calendar days, at most 94 requests: the
-  gold premium's 108 sessions plus the 2 its rate may lag. The premium asks only for the span its missing days need, so a top-up
-  costs a few requests and only a first fill pays the full window. A failed day fails the window, so a
-  hole is never stored as a day the bank did not publish.
+  new reading, and a day it has no board for answers `Count` 0. The window is capped at 63 calendar days, about a month of sessions
+  and 45 requests; the gold premium's 108-session backfill is declined and belongs to `coingecko`, or `yahoo`. A failed day fails the
+  window, so a hole is never stored as a day the bank did not publish.
 - A fiat pair reaches `yahoo` untouched. A coin's dollar leg (`USDTUSD`, the bridge leg of a `USDTVND` rate) reads Yahoo's
   `USDT-USD` listing, refused unless it answers as a cryptocurrency. Without it, a past day's rate carried today's peg and moved
   on every call while naming that day.
@@ -541,7 +546,7 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
   `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per sweep; `rss`
   is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo` serves gold `quote`/`bars`
   plus the fiat `fx` leg; `coinbase` is one pair per conversion.
-- `vietcombank` 120: publishes none; a window is one request a weekday, at most 94 (the gold premium's first fill; a top-up asks for a few days), read only where `yahoo` answered nothing. A 33-day window took 18 s through the pacer at 60 a
+- `vietcombank` 120: publishes none; a window is one request a weekday, at most 45, read only where `yahoo` and `coingecko` answered nothing. A 33-day window took 18 s through the pacer at 60 a
   minute and 2.7 s at 120. `vndirect-index` 60: one request an
   index (a page per 500 sessions) when the market refreshes its level bars.
 - 30: `giavang` serves `goldBoard` and `goldBoardHistory` (history is the SJC bar only); `pnj` is the PNJ ring and the SJC bar when
@@ -565,9 +570,9 @@ Three figures limit a burst rather than the quota that binds them, because a tok
   the breaker and a human to react.
 - `coinmarketcap` (30) publishes no ceiling for its keyless subset and answers `1022` once an anonymous caller has used it up
   (measured recovering within a minute of going idle). The figure stops the burst, and the next provider covers a refusal.
-- `coingecko` (10) is keyed (`COINGECKO_API_KEY`; the adapter targets a Demo plan of 10,000 calls a month), so without the key it is
-  not registered. It sits last on the market-cap route, reached only when its key is set and the keyless boards have failed or a
-  coin is past every window.
+- `coingecko` (10) takes an optional key (`COINGECKO_API_KEY`; the adapter targets a Demo plan of 10,000 calls a month) and has a keyless
+  tier: a band shared per IP address, so it registers either way and the key only buys a steadier allowance. It sits last on the
+  market-cap route, reached when the other boards have failed or a coin is past every window, and second on `fxHistory`.
 
 The pacer treats an absent limit as unpaced, not zero. No built-in reaches that path but a plugin can, so a manifest omitting
 `rateLimitPerMinute` gets `PLUGIN_DEFAULT_RATE_LIMIT_PER_MINUTE` (30). A limit of zero is a `ConfigError` (the manifest schema
