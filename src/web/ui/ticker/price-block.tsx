@@ -9,7 +9,7 @@ import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
-import { boardScaleNotes, formatBarePrice, formatMarketPrice } from '@/web/text/market-price'
+import { boardScaleNotes, formatMarketPrice, toTickFormatter } from '@/web/text/market-price'
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
@@ -105,7 +105,7 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
           <PriceChart
             bars={bars}
             levels={levels}
-            formatPrice={(value) => formatBarePrice(market, value, facts.kind)}
+            formatPrice={toTickFormatter(market, facts.kind)}
             formatDay={(day) => formatDay(locale.value, day)}
           />
           <p class="meta">

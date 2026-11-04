@@ -20,6 +20,8 @@
 .price-chart {
   display: block;
   width: 100%;
+  /* The drawing is 360 units wide: past that its labels grow beyond the caption size. */
+  max-width: 360px;
   margin: var(--s1) 0;
 }
 

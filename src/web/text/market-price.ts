@@ -6,6 +6,8 @@ import { tr } from '@/web/text/tr'
 const INDEX_KIND = 'index'
 // Rounds away the binary noise of a product like 27.8 x 1000.
 const WHOLE_UNIT_PRECISION = 1_000_000
+const TICK_DIGITS_MAX = 8
+const TICK_TOLERANCE = 1e-6
 
 /** A price as its market prints it: a board-scaled market without a currency, any other beside its
  *  currency. An index publishes a level, which has no board scale and no currency. */
@@ -26,9 +28,33 @@ export function formatMarketPrice(
     : price
 }
 
-/** The figure alone, in the market's board scale, for a place the currency is said once nearby. */
-export function formatBarePrice(market: string, value: number, kind?: string): string {
-  return formatPrice(value, kind === INDEX_KIND ? undefined : printDisplayOf(market))
+/** Prints a chart tick: the board's figure at only the decimals its spacing needs, so a whole step
+ *  prints no `,00`. */
+export function toTickFormatter(
+  market: string,
+  kind?: string
+): (value: number, step: number) => string {
+  const display = displayOf(market, kind)
+  const divisor = display?.divisor ?? 1
+
+  return (value, step) => {
+    const scaled = step / divisor
+    const decimals = Array.from({ length: TICK_DIGITS_MAX + 1 }, (_, digits) => digits).find(
+      (digits) =>
+        Math.abs(Math.round(scaled * 10 ** digits) - scaled * 10 ** digits) < TICK_TOLERANCE
+    )
+
+    return formatPrice(value, { divisor, decimals: decimals ?? TICK_DIGITS_MAX })
+  }
+}
+
+// The figure alone, in the market's board scale, for a place the currency is said once nearby.
+function formatBarePrice(market: string, value: number, kind?: string): string {
+  return formatPrice(value, displayOf(market, kind))
+}
+
+function displayOf(market: string, kind?: string): ReturnType<typeof printDisplayOf> {
+  return kind === INDEX_KIND ? undefined : printDisplayOf(market)
 }
 
 /** A price typed as the board prints it, in the whole currency units the daemon takes: a VN share

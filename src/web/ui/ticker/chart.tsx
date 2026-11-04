@@ -4,7 +4,7 @@ import { scaleLinear, toPolylinePoints } from '@/web/ui/kit/line-path'
 const WIDTH = 360
 const HEIGHT = 172
 // Room on the left for the price ticks, on the right for each level's name, below for the dates.
-const PRICE_GUTTER = 48
+const PRICE_GUTTER = 60
 const LABEL_GUTTER = 64
 const DATE_GUTTER = 18
 const PAD = 6
@@ -40,8 +40,8 @@ interface ChartBar {
 interface PriceChartProps {
   readonly bars: readonly ChartBar[]
   readonly levels: readonly ChartLevel[]
-  /** A tick's price as the market prints it. */
-  readonly formatPrice: (value: number) => string
+  /** A tick's price as the market prints it, at the decimals the tick spacing needs. */
+  readonly formatPrice: (value: number, step: number) => string
   /** A full date, for the tick where the range crosses into a new year. */
   readonly formatDay: (day: string) => string
 }
@@ -55,6 +55,7 @@ export function PriceChart({ bars, levels, formatPrice, formatDay }: PriceChartP
   const high = Math.max(...values)
   const margin = (high - low) * Y_MARGIN
   const domain: [number, number] = [low - margin, high + margin]
+  const { step, values: ticks } = priceTicks(domain)
   const toY = (value: number): number => scaleLinear(value, domain, [PLOT_BOTTOM - PAD, PAD])
   const toX = (index: number): number =>
     scaleLinear(index, [0, bars.length - 1], [PLOT_LEFT, PLOT_RIGHT])
@@ -67,11 +68,11 @@ export function PriceChart({ bars, levels, formatPrice, formatDay }: PriceChartP
       role="img"
       aria-label={tr('ui.office.ticker.sessions', { count: bars.length })}
     >
-      {priceTicks(domain).map((value) => (
+      {ticks.map((value) => (
         <g key={value} class="chart-axis">
           <line x1={PLOT_LEFT} x2={PLOT_RIGHT} y1={toY(value)} y2={toY(value)} />
           <text x={PLOT_LEFT - PAD} y={toY(value) + LABEL_DROP} text-anchor="end">
-            {formatPrice(value)}
+            {formatPrice(value, step)}
           </text>
         </g>
       ))}
@@ -113,11 +114,16 @@ function DateAxis({ bars, formatDay, toX }: DateAxisProps) {
   )
 }
 
+interface PriceTicks {
+  readonly step: number
+  readonly values: readonly number[]
+}
+
 // Round prices spaced evenly inside the domain: the smallest nice step that leaves at most
 // PRICE_TICKS of them.
-function priceTicks([low, high]: readonly [number, number]): readonly number[] {
+function priceTicks([low, high]: readonly [number, number]): PriceTicks {
   if (!(high > low)) {
-    return [low]
+    return { step: Math.abs(low), values: [low] }
   }
 
   const power = 10 ** Math.floor(Math.log10((high - low) / PRICE_TICKS))
@@ -131,7 +137,10 @@ function priceTicks([low, high]: readonly [number, number]): readonly number[] {
   const first = Math.ceil(low / step)
 
   // Multiplied, never summed, so no rounding error builds up from one tick to the next.
-  return Array.from({ length: countOf(step) }, (_, order) => (first + order) * step)
+  return {
+    step,
+    values: Array.from({ length: countOf(step) }, (_, order) => (first + order) * step),
+  }
 }
 
 // The end ticks align inward, so neither runs past the plot.
