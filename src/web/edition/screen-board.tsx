@@ -1,22 +1,28 @@
-import { signal } from '@preact/signals'
+import { useSignal } from '@preact/signals'
 
 import type { ScreenResponse } from '@/app/server/wire/market'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { DataStatus } from '@/web/edition/data-status'
+import { figureLine } from '@/web/edition/screen-columns'
+import { ScreenControls } from '@/web/edition/screen-controls'
+import { downloadBoardCsv } from '@/web/edition/screen-csv'
 import {
-  type BoardFactor,
+  boardBaseKeys,
   boardFactors,
   type Candidate,
-  FACTOR_SORT_PREFIX,
-  resolveSortKey,
-  SORT_BASE_KEYS,
-  type SortDirection,
   sortCandidates,
 } from '@/web/edition/screen-sort'
+import {
+  boardSectors,
+  filterCandidates,
+  type OwnNames,
+  resolveView,
+  viewOf,
+} from '@/web/edition/screen-view'
 import { useBlockRead } from '@/web/state/block'
 import { openTicker } from '@/web/state/known-tickers'
-import { printDisplayOf } from '@/web/state/market'
+import { heldPositions, keyOf, printDisplayOf, watchedNames } from '@/web/state/market'
 import { formatFixed, formatPrice, formatSignedPercent } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -31,17 +37,8 @@ const SCREEN_PAGE_LIMIT = 50
 const MAX_SCREEN_PAGES = 40
 const FACTOR_VALUE_DIGITS = 2
 const PERCENTILE_DIGITS = 0
-
-const SORT_LABELS = Object.freeze({
-  ticker: 'ui.office.edition.screen.sort.ticker',
-  price: 'ui.office.edition.screen.sort.price',
-  change: 'ui.office.edition.screen.sort.change',
-} as const)
-
-// The visitor's choice. It starts on the ticker's own letters: an order that says nothing about
-// which name is better, and the one control that is always there to change.
-const sortKey = signal<string>('ticker')
-const sortDirection = signal<SortDirection>('asc')
+// `2026-11-03`: a day, however the read stamps it.
+const DAY_LENGTH = 10
 
 /** Màn lọc on the web: every priced name the market read returned, with its price and move and what
  *  each factor read for it and where that sits on the board, in the order the visitor picks. The
@@ -100,9 +97,15 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
     return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
+  const baseKeys = boardBaseKeys(board.candidates)
   const factors = boardFactors(board.candidates)
-  const key = resolveSortKey(sortKey.value, factors)
-  const sorted = sortCandidates(board.candidates, key, sortDirection.value)
+  const sectors = boardSectors(board.candidates)
+  const view = resolveView(viewOf(market).value, { baseKeys, factors, sectors })
+  const shown = sortCandidates(
+    filterCandidates(board.candidates, view, ownNames()),
+    view.sort,
+    view.direction
+  )
 
   return (
     <>
@@ -112,8 +115,16 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
           {line}
         </p>
       ))}
-      <SortBar factors={factors} sortBy={key} />
-      {sorted.map((candidate) => (
+      <ScreenControls
+        market={market}
+        view={view}
+        baseKeys={baseKeys}
+        factors={factors}
+        sectors={sectors}
+      />
+      <BoardTally board={board} market={market} shown={shown} file={{ baseKeys, factors }} />
+      {shown.length === 0 && <p class="empty-note">{tr('ui.office.edition.screen.filter.none')}</p>}
+      {shown.map((candidate) => (
         <NameRow key={candidate.instrument.ticker} candidate={candidate} market={market} />
       ))}
       {[...board.card.caveats, ...board.card.provenance].map((line) => (
@@ -125,49 +136,49 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
   )
 }
 
-function SortBar({
-  factors,
-  sortBy,
-}: {
-  readonly factors: readonly BoardFactor[]
-  readonly sortBy: string
-}) {
-  const label = tr('ui.office.edition.screen.sortBy')
+interface TallyProps {
+  readonly board: ScreenResponse
+  readonly market: string
+  readonly shown: readonly Candidate[]
+  readonly file: Pick<Parameters<typeof downloadBoardCsv>[0], 'baseKeys' | 'factors'>
+}
+
+/** How many names the filters leave, and the way to take them as a file. */
+function BoardTally({ board, market, shown, file }: TallyProps) {
+  const day = (board.dataThroughDay ?? board.asOf).slice(0, DAY_LENGTH)
+  const failure = useSignal<string | undefined>(undefined)
 
   return (
     <div class="sort-bar">
-      <select
-        aria-label={label}
-        value={sortBy}
-        onChange={(event) => {
-          sortKey.value = event.currentTarget.value
-        }}
-      >
-        {SORT_BASE_KEYS.map((key) => (
-          <option key={key} value={key}>
-            {tr(SORT_LABELS[key])}
-          </option>
-        ))}
-        {factors.map(({ id, label: name }) => (
-          <option key={id} value={`${FACTOR_SORT_PREFIX}${id}`}>
-            {name}
-          </option>
-        ))}
-      </select>
+      <p class="meta">
+        {tr('ui.office.edition.screen.filter.count', {
+          shown: shown.length,
+          total: board.candidates.length,
+        })}
+      </p>
       <Button
         size="small"
+        disabled={shown.length === 0}
         onClick={() => {
-          sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+          failure.value = undefined
+          downloadBoardCsv({ market, day, rows: shown, ...file }).catch(() => {
+            failure.value = tr('ui.office.edition.screen.csv.failed')
+          })
         }}
       >
-        {tr(
-          sortDirection.value === 'asc'
-            ? 'ui.office.edition.screen.ascending'
-            : 'ui.office.edition.screen.descending'
-        )}
+        {tr('ui.office.edition.screen.csv.export')}
       </Button>
+      {failure.value !== undefined && <p class="meta">{failure.value}</p>}
     </div>
   )
+}
+
+/** The visitor's own names on this board; reading the signals makes the board follow them. */
+function ownNames(): OwnNames {
+  return {
+    held: new Set(heldPositions.value.map(({ instrument }) => keyOf(instrument))),
+    watched: new Set(watchedNames.value.map(keyOf)),
+  }
 }
 
 function NameRow({
@@ -192,6 +203,7 @@ function NameRow({
             ? ''
             : ` · ${formatSignedPercent(candidate.changePct)}`}
         </p>
+        <FigureLine candidate={candidate} />
         {(candidate.factors ?? []).map((factor) => (
           <p key={factor.id} class="meta">
             {toFactorLine(factor)}
@@ -215,4 +227,10 @@ function toFactorLine(factor: NonNullable<Candidate['factors']>[number]): string
         value,
         pct: formatFixed(factor.percentile, PERCENTILE_DIGITS),
       })
+}
+
+function FigureLine({ candidate }: { readonly candidate: Candidate }) {
+  const line = figureLine(candidate)
+
+  return line === '' ? null : <p class="meta">{line}</p>
 }

@@ -82,6 +82,10 @@
   align-items: center;
 }
 
+.screen-size {
+  width: 11rem;
+}
+
 /* The error log: one entry per line, long messages and stacks wrapping inside the dialog. */
 .error-log {
   display: grid;

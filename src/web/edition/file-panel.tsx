@@ -4,6 +4,7 @@ import { useRef } from 'preact/hooks'
 import type { DbOpenOutcome } from '@/app/server/wire/worker'
 import type { MessageKey } from '@/i18n'
 import { ApiFailure } from '@/web/api/client'
+import { downloadBlob } from '@/web/edition/download'
 import {
   canPickSaveFile,
   chooseSaveFile,
@@ -22,9 +23,6 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { ActionRow } from '@/web/ui/settings/row'
-
-/** The download starts when the click returns; the file's address is let go a moment later. */
-const DOWNLOAD_REVOKE_MS = 2_000
 
 const OPEN_REFUSAL: Readonly<Record<Exclude<DbOpenOutcome, 'opened'>, MessageKey>> = Object.freeze({
   invalid: 'ui.office.edition.file.open.invalid',
@@ -165,20 +163,8 @@ function ExportAction({ title, note, button, command }: ExportActionProps) {
 
 async function downloadDatabase(): Promise<void> {
   const bytes = await requestDbExport()
-  const url = URL.createObjectURL(new Blob([bytes], { type: SQLITE_MIME }))
-  const link = document.createElement('a')
 
-  try {
-    link.href = url
-    link.download = suggestedFileName()
-    link.hidden = true
-    document.body.append(link)
-    link.click()
-    await new Promise((resolve) => setTimeout(resolve, DOWNLOAD_REVOKE_MS))
-  } finally {
-    link.remove()
-    URL.revokeObjectURL(url)
-  }
+  await downloadBlob(new Blob([bytes], { type: SQLITE_MIME }), suggestedFileName())
 }
 
 function OpenRow() {

@@ -39,10 +39,12 @@ import {
   toVnExchange,
 } from '@/trading/markets/equity-vn/tradeability'
 import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
-import { realizedVolatility, sessionChange } from '@/trading/markets/timeseries'
+import { nSessionReturn, realizedVolatility, sessionChange } from '@/trading/markets/timeseries'
 import { medianTurnover } from '@/trading/markets/turnover'
 
 const PERCENT_PER_UNIT = 100
+/** About a trading month: the move a browsing board prints beside the price. */
+const MONTH_SESSIONS = 20
 
 /** The two bands, each read positively by its own gate, so a supervised name fails exactly one and
  *  the reported reason names what is actually wrong with it. The second is derived rather than
@@ -204,6 +206,8 @@ interface RankOptions {
 export interface RankedEvidence {
   readonly factorsByTicker: ReadonlyMap<Ticker, RankedFactors>
   readonly signalsByTicker: ReadonlyMap<Ticker, readonly TapeReading[]>
+  /** The foreign desk's net over the flow window, for the names that reported one. */
+  readonly foreignNetByTicker?: ReadonlyMap<Ticker, number>
 }
 
 export function rankSurvivors(
@@ -220,7 +224,11 @@ export function rankSurvivors(
         composite:
           scoredFactors === undefined ? UNSCORED_COMPOSITE : factorComposite(scoredFactors),
         factors: scoredFactors?.factors ?? [],
-        ...rowExtras(candidate, evidence.signalsByTicker.get(candidate.instrument.ticker) ?? []),
+        ...rowExtras(
+          candidate,
+          evidence.signalsByTicker.get(candidate.instrument.ticker) ?? [],
+          evidence.foreignNetByTicker?.get(candidate.instrument.ticker)
+        ),
         ...(options.foreignOperator && candidate.foreignRoomExhausted === true
           ? { caution: 'foreign-room-exhausted' as const }
           : {}),
@@ -244,14 +252,22 @@ export function rankSurvivors(
 /** What a row carries only when the market had it, kept out of the shape otherwise. */
 function rowExtras(
   candidate: ScreenInput,
-  readings: readonly TapeReading[]
+  readings: readonly TapeReading[],
+  foreignNet: number | undefined
 ): Partial<ScreenCandidate> {
   const previousClose = lastAdjustedClose(candidate.bars)
-  const volatilityDaily = realizedVolatility(adjustedCloses(candidate.bars), VOLATILITY_SESSIONS)
+  const closes = adjustedCloses(candidate.bars)
+  const volatilityDaily = realizedVolatility(closes, VOLATILITY_SESSIONS)
+  const monthChange = nSessionReturn(closes, MONTH_SESSIONS)
+  const turnover = medianTurnover(candidate.bars, LIQUIDITY_SESSIONS)
 
   return {
     ...(candidate.name === undefined ? {} : { name: candidate.name }),
     ...(candidate.sector === undefined ? {} : { sector: candidate.sector }),
+    ...(candidate.marketCap === undefined ? {} : { marketCap: candidate.marketCap }),
+    ...(turnover === undefined ? {} : { turnover }),
+    ...(monthChange === undefined ? {} : { monthChangePct: monthChange * PERCENT_PER_UNIT }),
+    ...(foreignNet === undefined ? {} : { foreignNet }),
     ...(previousClose === undefined ? {} : { previousClose }),
     ...(candidate.lockPrice === undefined ? {} : { lockPrice: candidate.lockPrice }),
     ...(volatilityDaily === undefined ? {} : { volatilityDaily }),

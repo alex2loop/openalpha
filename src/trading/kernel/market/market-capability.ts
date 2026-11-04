@@ -173,6 +173,13 @@ export interface ScreenCandidate {
   readonly name?: string
   /** The market's sector slug for the name, where it files one. */
   readonly sector?: string
+  /** What the browsing board filters and sorts on beside the factors: market value, the median
+   *  daily traded value, the move over about a month (percent) and the foreign desk's net over the
+   *  same month, each in the market's currency. Absent where the market holds no such figure. */
+  readonly marketCap?: number
+  readonly turnover?: number
+  readonly monthChangePct?: number
+  readonly foreignNet?: number
   /** The whole fold, not its parts: the rank, how much of the model stood behind it, whether the
    *  factors agreed, and the band that reads all three. Splitting them let a row show a score with
    *  no scale beside it. */

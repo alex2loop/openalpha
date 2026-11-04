@@ -19,6 +19,7 @@ import { supervisionCaveats } from '@/trading/markets/equity-vn/evidence/supervi
 import { scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
 import { DEFAULT_SCREEN_KIND } from '@/trading/markets/equity-vn/policy'
 import { rankSurvivors, screenCandidate, toScreenInput } from '@/trading/markets/equity-vn/screen'
+import { foreignNetFlow } from '@/trading/markets/equity-vn/tape/flows'
 import { tapeReadings } from '@/trading/markets/equity-vn/tape/signals'
 import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
 import { partitionByGate } from '@/trading/markets/screen-partition'
@@ -111,6 +112,7 @@ function rankedEvidence(
 ): RankedEvidence {
   const factorsByTicker = new Map<Ticker, RankedFactors>()
   const signalsByTicker = new Map<Ticker, readonly TapeReading[]>()
+  const foreignNetByTicker = new Map<Ticker, number>()
 
   for (const candidate of survivors) {
     const evidence = cross.byTicker.get(candidate.instrument.ticker)
@@ -125,9 +127,16 @@ function rankedEvidence(
       candidate.instrument.ticker,
       evidence === undefined ? [] : tapeReadings(evidence)
     )
+
+    const foreignNet =
+      evidence === undefined ? undefined : foreignNetFlow(evidence.flows, evidence.bars)
+
+    if (foreignNet !== undefined) {
+      foreignNetByTicker.set(candidate.instrument.ticker, foreignNet.value)
+    }
   }
 
-  return { factorsByTicker, signalsByTicker }
+  return { factorsByTicker, signalsByTicker, foreignNetByTicker }
 }
 
 function toRankedFactors(scored: FactorScore): RankedFactors {

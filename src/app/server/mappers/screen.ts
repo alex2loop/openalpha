@@ -46,7 +46,15 @@ function toListedWire(candidate: ScreenedCandidate, answer: ScreenAnswer): Candi
       }
     })
 
-  return { ...toCandidateWire(candidate), factors }
+  return {
+    ...toCandidateWire(candidate),
+    ...(candidate.sector === undefined ? {} : { sector: candidate.sector }),
+    ...(candidate.marketCap === undefined ? {} : { marketCap: candidate.marketCap }),
+    ...(candidate.turnover === undefined ? {} : { turnover: candidate.turnover }),
+    ...(candidate.monthChangePct === undefined ? {} : { monthChangePct: candidate.monthChangePct }),
+    ...(candidate.foreignNet === undefined ? {} : { foreignNet: candidate.foreignNet }),
+    factors,
+  }
 }
 
 function toCandidateWire(candidate: ScreenedCandidate): CandidateWire {

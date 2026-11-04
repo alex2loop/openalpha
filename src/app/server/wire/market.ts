@@ -23,6 +23,14 @@ interface ScreenCandidateWire {
   readonly name?: string
   readonly price?: number
   readonly changePct?: number
+  /** `list` boards only, each absent where the market holds no such figure: the market's sector
+   *  slug, the market value, the median daily traded value (both in the market's currency), the
+   *  move over about a month (a percent) and the foreign desk's net over that month (currency). */
+  readonly sector?: string
+  readonly marketCap?: number
+  readonly turnover?: number
+  readonly monthChangePct?: number
+  readonly foreignNet?: number
   /** `list` boards only: the factors that fired for the name, in a fixed order. */
   readonly factors?: readonly ScreenFactorWire[]
 }

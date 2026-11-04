@@ -1,6 +1,17 @@
 import type { ScreenResponse } from '@/app/server/wire/market'
 
-export const SORT_BASE_KEYS = Object.freeze(['ticker', 'price', 'change'] as const)
+/** The sorts the board offers beside its factors, each reading one field of a name. */
+export const BASE_SORTS = Object.freeze({
+  ticker: undefined,
+  price: 'price',
+  change: 'changePct',
+  month: 'monthChangePct',
+  turnover: 'turnover',
+  marketCap: 'marketCap',
+  foreignNet: 'foreignNet',
+} as const)
+
+export type BaseSortKey = keyof typeof BASE_SORTS
 /** A sort key that names a factor: the prefix, then the factor id. */
 export const FACTOR_SORT_PREFIX = 'factor:'
 
@@ -11,6 +22,19 @@ export type SortDirection = 'asc' | 'desc'
 export interface BoardFactor {
   readonly id: string
   readonly label: string
+}
+
+const TICKER_SORT: BaseSortKey = 'ticker'
+const BASE_KEYS = Object.freeze(Object.keys(BASE_SORTS) as BaseSortKey[])
+
+/** The base sorts this board can offer: the ticker always, the rest where some name carries the
+ *  figure (a market that publishes no foreign flow has nothing to order by it). */
+export function boardBaseKeys(candidates: readonly Candidate[]): readonly BaseSortKey[] {
+  return BASE_KEYS.filter((key) => {
+    const field = BASE_SORTS[key]
+
+    return field === undefined || candidates.some((candidate) => candidate[field] !== undefined)
+  })
 }
 
 /** The factors the board's names read, in the order they first appear. */
@@ -28,13 +52,17 @@ export function boardFactors(candidates: readonly Candidate[]): readonly BoardFa
   return [...found.values()]
 }
 
-/** The key to sort by: the visitor's choice, or the ticker when this board has no such factor (the
- *  choice outlives the market it was made on). */
-export function resolveSortKey(key: string, factors: readonly BoardFactor[]): string {
-  const isBase = SORT_BASE_KEYS.some((base) => base === key)
+/** The key to sort by: the visitor's choice, or the ticker when this board has no such sort (the
+ *  choice outlives the market it was made on and the figures a board carries). */
+export function resolveSortKey(
+  key: string,
+  baseKeys: readonly BaseSortKey[],
+  factors: readonly BoardFactor[]
+): string {
+  const isBase = baseKeys.some((base) => base === key)
   const isFactor = factors.some(({ id }) => key === `${FACTOR_SORT_PREFIX}${id}`)
 
-  return isBase || isFactor ? key : SORT_BASE_KEYS[0]
+  return isBase || isFactor ? key : TICKER_SORT
 }
 
 /** The names in the order the visitor chose. A name with no figure for the key goes last in either
@@ -48,7 +76,7 @@ export function sortCandidates(
   const sign = direction === 'asc' ? 1 : -1
 
   return [...candidates].sort((left, right) =>
-    key === 'ticker'
+    key === TICKER_SORT
       ? sign * left.instrument.ticker.localeCompare(right.instrument.ticker)
       : compareFigures(figureOf(left, key), figureOf(right, key), sign)
   )
@@ -61,7 +89,10 @@ function figureOf(candidate: Candidate, key: string): number | undefined {
     return candidate.factors?.find((factor) => factor.id === id)?.value
   }
 
-  return key === 'price' ? candidate.price : candidate.changePct
+  const base = BASE_KEYS.find((known) => known === key)
+  const field = base === undefined ? undefined : BASE_SORTS[base]
+
+  return field === undefined ? undefined : candidate[field]
 }
 
 function compareFigures(left: number | undefined, right: number | undefined, sign: number): number {
