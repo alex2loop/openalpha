@@ -679,8 +679,10 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     bước bắt buộc đã tích, hoặc ngay khi bạn bấm "Ẩn hướng dẫn"; cả hai chỉ được nhớ trên trình duyệt
     này. Thẻ chỉ hiện trên trình duyệt đã mở văn phòng trước khi có hồ sơ được lưu hay giao dịch được
     ghi. Nút "Xem lại các bước bắt đầu" ở cuối thẻ Hôm nay mở lại thẻ cho đến khi bạn tải lại trang.
-  - *Danh mục* gồm tổng quan, hiệu quả, lịch sử, cân bằng lại và danh sách theo dõi cùng cảnh báo giá,
-    thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
+  - *Danh mục* gồm tổng quan (kèm ngày giao dịch không hưởng cổ tức, đại hội cổ đông và niêm yết
+    trong 14 ngày tới của các mã bạn đang giữ), hiệu quả (giá trị danh mục trong 1 tháng, 3 tháng, 6 tháng, 1 năm hoặc
+    toàn bộ lịch sử; khoảng bạn chọn được nhớ trên trình duyệt này), lịch sử, cân bằng lại và danh
+    sách theo dõi cùng cảnh báo giá, thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
     có hoàn tác, còn Lịch sử đối chiếu sổ với các sàn của bạn (xem
     [Giao dịch](giao-dich.md#trên-trang-văn-phòng)).
   - *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên gần nhất đã chốt, tin tức và các chủ đề của bạn (ở

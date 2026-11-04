@@ -10,19 +10,24 @@ import { SegmentBars } from '@/web/ui/book/segment-bars'
 import { Unrealized } from '@/web/ui/book/unrealized'
 import { PieIcon } from '@/web/ui/kit/icons'
 import { BlockFrame } from '@/web/ui/today/block-frame'
+import { Events } from '@/web/ui/today/blocks/events'
 
-/** Tổng quan: the total, what is held and how the segments stand against their targets. */
+/** Tổng quan: the total, what is held and how the segments stand against their targets, then the
+ *  dates coming up for what is held. */
 export function Overview() {
   return (
-    <BlockFrame
-      title={tr('ui.office.book.total')}
-      colour="green"
-      icon={<PieIcon />}
-      reading={readBlock(holdingsBlock)}
-      readKey="ui.office.book.pricedAt"
-    >
-      {(book) => <OverviewBody book={book} />}
-    </BlockFrame>
+    <>
+      <BlockFrame
+        title={tr('ui.office.book.total')}
+        colour="green"
+        icon={<PieIcon />}
+        reading={readBlock(holdingsBlock)}
+        readKey="ui.office.book.pricedAt"
+      >
+        {(book) => <OverviewBody book={book} />}
+      </BlockFrame>
+      {heldPositions.value.length > 0 && <Events />}
+    </>
   )
 }
 
