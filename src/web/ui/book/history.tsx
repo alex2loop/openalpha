@@ -58,17 +58,7 @@ export function History() {
   return (
     <section class="block">
       <BlockHead title={tr('ui.office.book.history')} colour="gray" icon={<HistoryIcon />} />
-      <div class="step-actions">
-        <Button size="small" onClick={() => openTradeDialog()}>
-          {tr('ui.office.common.recordTrade')}
-        </Button>
-        {offers('venues') && (
-          <Button size="small" onClick={openReconcileDialog}>
-            {tr('ui.office.reconcile.open')}
-          </Button>
-        )}
-        <FilterMenu filter={filter} page={page} />
-      </div>
+      <LedgerTools filter={filter} page={page} isEmpty={ledger.rows.value.length === 0} />
       <LedgerBody
         ledger={ledger}
         shown={shown}
@@ -77,6 +67,36 @@ export function History() {
       />
       <LedgerPager ledger={ledger} total={kept.length} page={page} />
     </section>
+  )
+}
+
+interface LedgerToolsProps {
+  readonly filter: Signal<KindFilter>
+  readonly page: Signal<number>
+  readonly isEmpty: boolean
+}
+
+// An empty book has nothing to filter, and its own line already offers the first trade; a venue's
+// reconcile still stands, since it is how a connected exchange's trades come in.
+function LedgerTools({ filter, page, isEmpty }: LedgerToolsProps) {
+  if (isEmpty && !offers('venues')) {
+    return null
+  }
+
+  return (
+    <div class="step-actions">
+      {!isEmpty && (
+        <Button size="small" onClick={() => openTradeDialog()}>
+          {tr('ui.office.common.recordTrade')}
+        </Button>
+      )}
+      {offers('venues') && (
+        <Button size="small" onClick={openReconcileDialog}>
+          {tr('ui.office.reconcile.open')}
+        </Button>
+      )}
+      {!isEmpty && <FilterMenu filter={filter} page={page} />}
+    </div>
   )
 }
 
