@@ -1,4 +1,4 @@
-import type { OverviewResponse } from '@/app/server/wire/market'
+import type { OverviewResponse } from '@/app/server/wire/overview'
 import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
 import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
 import {
@@ -11,6 +11,7 @@ import { formatDealerBoard } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { Movers } from '@/web/ui/today/blocks/movers'
+import { Readings } from '@/web/ui/today/blocks/readings'
 
 const ROWS_SHOWN = 5
 
@@ -25,7 +26,7 @@ export function MarketSections({ blocks }: { readonly blocks: OverviewResponse['
   return blocks.map((block) => <MarketSection key={block.market} block={block} />)
 }
 
-/** One market's rows, breadth and foreign flow, as the overview reads them. */
+/** One market's rows, movers, readings, breadth and foreign flow, as the overview reads them. */
 function MarketSection({ block }: { readonly block: OverviewBlock }) {
   const market = findMarket(block.market)
 
@@ -43,6 +44,7 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
         ))}
       </div>
       <Movers movers={block.movers} currency={block.currency} />
+      <Readings block={block} />
       <div class="stack meta">
         {block.breadth !== undefined && (
           <p>

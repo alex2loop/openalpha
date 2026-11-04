@@ -1,4 +1,4 @@
-import type { OverviewMoversWire } from '@/app/server/wire/market'
+import type { OverviewMoversWire } from '@/app/server/wire/overview'
 import { formatCompactAmount } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'

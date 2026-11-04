@@ -3,6 +3,7 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
+import type { BriefSectionKind } from '@/trading/kernel/operator/brief-section'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { RenderContext } from '@/trading/render/format'
 import { t } from '@/i18n'
@@ -14,7 +15,13 @@ import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { wholeMarketSections } from '@/trading/markets/overview-sections'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { formatClock } from '@/trading/render/datetime'
-import { formatScoreValue, renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
+import {
+  formatScoreValue,
+  NOTICE_SURFACE,
+  renderDeclaredValue,
+  resolveRenderContext,
+  SECTION_ICONS,
+} from '@/trading/render/format'
 import {
   INDENT,
   INLINE_SEPARATOR,
@@ -24,7 +31,7 @@ import {
   renderProvenanceLine,
   renderSectionTitle,
 } from '@/trading/render/layout'
-import { renderBlockRule, renderBriefSection } from '@/trading/render/section'
+import { renderBlockRule, renderBriefSection, toBriefSectionText } from '@/trading/render/section'
 
 /** Everything the read carries, so the renderer never asks a service for a second one. The macro
  *  read is the region's, not any market's: its drivers price every asset in the message, which is
@@ -74,6 +81,50 @@ export function renderOverviewText(
     renderCaveatLines(locale, caveatsOf(view), { collapseInfo: true }),
     view.statesDeployment ? [`${INDENT[1]}${t(locale, 'trading.render.macro.next')}`] : [],
   ])
+}
+
+/** The sections of a market's overview an app lays out under the rows it already draws. */
+const SURFACE_SECTION_KINDS: ReadonlySet<BriefSectionKind> = new Set(['premium'])
+
+/** One section as `/overview` prints it, its lines indented as the CLI indents them. */
+interface OverviewSurfaceSection {
+  readonly kind: BriefSectionKind
+  readonly heading: string
+  readonly lines: readonly string[]
+}
+
+interface OverviewSurfaceText {
+  readonly sections: readonly OverviewSurfaceSection[]
+  /** The line the CLI ends the block on: which sources the sections came from, and when. Present
+   *  only with sections. */
+  readonly sources?: string
+}
+
+/** The same sections `/overview` prints for this market, for an app to draw: the CLI's own
+ *  headings, labels and figures. A figure the CLI places against its own history (where the premium
+ *  sits among past sessions) is left out; the app states the reading and leaves the placing. */
+export function renderOverviewForSurface(
+  locale: Locale,
+  overview: MarketDataOverview,
+  timezone: string
+): OverviewSurfaceText {
+  const { premiumRank, ...unranked } = overview
+  const context = resolveRenderContext(timezone, NOTICE_SURFACE)
+  const sections = wholeMarketSections(unranked).flatMap((section) => {
+    if (section.status !== 'ready' || !SURFACE_SECTION_KINDS.has(section.kind)) {
+      return []
+    }
+
+    const { heading, lines } = toBriefSectionText(locale, section, context)
+
+    return [{ kind: section.kind, heading, lines }]
+  })
+  const [line] = renderProvenanceLine(locale, overview.provenance, timezone)
+
+  return {
+    sections,
+    ...(sections.length === 0 || line === undefined ? {} : { sources: line.trimStart() }),
+  }
 }
 
 /** How many drivers the lean names. Two: one reads as the only cause, and four is a list nobody

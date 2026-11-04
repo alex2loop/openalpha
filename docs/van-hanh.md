@@ -668,7 +668,8 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     "Xem danh mục" (giá trị, đang giữ gì, mã thủng cắt lỗ và các lệnh chốt lời đang chờ ở sàn); thị
     trường Việt Nam và các thị trường khác (mỗi thị trường kèm các mã tăng mạnh nhất và giảm mạnh nhất
     của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch; hàng của đại
-    lý như vàng VN nêu giá mua vào, giá bán ra và chênh lệch giữa hai giá); sự kiện sắp
+    lý như vàng VN nêu giá mua vào, giá bán ra và chênh lệch giữa hai giá, rồi mức chênh lệch của vàng
+    VN với vàng thế giới); sự kiện sắp
     tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
     và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví
     dụ chưa có khóa API của sàn, nằm ở cuối thẻ. Trên cùng là thẻ "Bắt đầu với" cho tới khi bạn làm
@@ -766,7 +767,9 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   web không nêu trạng thái và không có điểm tổng hợp, thang đo hay trọng số: chỉ liệt kê số đọc riêng
   của từng thành phần, theo thứ tự nguồn trả về.
 - **Giá của vùng đó**, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động
-  mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng).
+  mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng). Dưới mỗi thị
+  trường là các số đọc riêng của nó, đúng lời văn và thứ tự `/overview` in ra, kèm dòng nguồn và giờ
+  đọc: vàng VN nêu chênh lệch với vàng thế giới, một con số thuần, không nói nó nằm ở đâu so với lịch sử.
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
   và bán ròng nhiều nhất; và năm mã giao dịch nhiều nhất. Giá trị rút gọn (như 76,5 tỷ), và ghi rõ
   khoảng thời gian đo khi không phải một phiên. Nhà cung cấp công bố số tự doanh trễ khoảng một phiên,

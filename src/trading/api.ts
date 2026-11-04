@@ -218,6 +218,7 @@ export {
   renderIndexDropNotice,
 } from '@/trading/features/market-data/ops/held-watch-notice'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
+export { renderOverviewForSurface } from '@/trading/features/market-data/render/overview'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
 export { ORDER_TOOL_NAME, TRADE_COMMAND_NAME } from '@/trading/features/order/types'
 export {

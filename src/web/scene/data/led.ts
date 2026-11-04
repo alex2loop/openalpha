@@ -1,6 +1,7 @@
 import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
 
-import type { MarketWire, OverviewResponse } from '@/app/server/wire/market'
+import type { MarketWire } from '@/app/server/wire/market'
+import type { OverviewResponse } from '@/app/server/wire/overview'
 import { homeMarket } from '@/web/scene/data/home'
 import { knownMarkets, overviewBlock } from '@/web/state/market'
 import { tapeRows } from '@/web/state/tape'

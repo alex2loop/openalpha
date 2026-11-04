@@ -1,4 +1,4 @@
-import type { OverviewLeadersWire, OverviewResponse } from '@/app/server/wire/market'
+import type { OverviewLeadersWire, OverviewResponse } from '@/app/server/wire/overview'
 import { formatDay, type MessageKey } from '@/i18n'
 import { findMarket, overviewBlock, selectRegionOverview } from '@/web/state/market'
 import { locale } from '@/web/state/session'

@@ -1,7 +1,8 @@
 import { computed, type ReadonlySignal } from '@preact/signals'
 
-import type { MarketWire, OverviewResponse } from '@/app/server/wire/market'
+import type { MarketWire } from '@/app/server/wire/market'
 import type { StopsResponse } from '@/app/server/wire/money'
+import type { OverviewResponse } from '@/app/server/wire/overview'
 import type {
   AbsolutePositionWire,
   InstrumentRefWire,

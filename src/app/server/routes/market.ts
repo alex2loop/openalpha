@@ -147,7 +147,7 @@ async function handleOverview(req: Request, ctx: ApiRouteContext): Promise<Respo
     ...blocks.filter((block) => !home.has(block.market)),
   ]
 
-  return json(toOverviewWire(ordered, localeOf(ctx)))
+  return json(toOverviewWire(ordered, localeOf(ctx), ctx.app.config.locale.timezone))
 }
 
 async function handleMacro(req: Request, ctx: ApiRouteContext): Promise<Response> {

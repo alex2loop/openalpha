@@ -50,6 +50,14 @@
           "price": 143000000
         }
       ],
+      "sections": [
+        {
+          "kind": "premium",
+          "heading": "Premium over world",
+          "lines": ["  3.12%"]
+        }
+      ],
+      "sources": "Data from giavang, updated 08/10/2026 16:30",
       "caveats": [
         {
           "code": "source.futures-proxy",

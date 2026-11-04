@@ -675,7 +675,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     take-profit orders waiting at the exchange); the Vietnamese and other markets (each with its top
     gainers and losers of the session, or of the last 24 hours for a market that never closes, with
     their turnover; a dealer's rows, such as VN gold, state the dealer's buying and selling price and
-    the spread between them); upcoming events; top headlines; and what the agents did today, including work
+    the spread between them, then how far VN gold sits above world gold); upcoming events; top headlines; and what the agents did today, including work
     that ran while the page was closed. The macro and news blocks carry "See the full reading", which
     opens the Market tab. Anything the daemon started without, such as a missing exchange key, closes
     the tab. Above all of it sits a "Getting started" card until you finish or hide it: connect an AI
@@ -773,7 +773,10 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   figures at the two ends of its bar. The web edition names no regime and gives no composite, scale
   or weights: it lists each driver's own reading, in the order the read gives them.
 - **The region's prices**, with each market's top gainers and losers (the five strongest moves above
-  its liquidity floor, side by side on a wide panel).
+  its liquidity floor, side by side on a wide panel). Under each market come its own readings, in the
+  words and order `/overview` prints them, with the line naming the sources and when they were read:
+  VN gold states its premium over world gold as a plain figure, without saying where it sits against
+  its own history.
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the
   proprietary desks bought and sold most on net; and the five most traded. Amounts are compact (like
   76.5B), with the span measured when it is not one session. The provider publishes the

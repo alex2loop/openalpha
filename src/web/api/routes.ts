@@ -34,7 +34,6 @@ import type {
   MacroResponse,
   MarketSessionResponse,
   MarketsResponse,
-  OverviewResponse,
   ScreenResponse,
   SectorsResponse,
   SourcesResponse,
@@ -64,6 +63,7 @@ import type {
   TradeStatusResponse,
 } from '@/app/server/wire/orders'
 import type { OutboundResponse } from '@/app/server/wire/outbound'
+import type { OverviewResponse } from '@/app/server/wire/overview'
 import type {
   BrowserSessionEndResult,
   BrowserSessionList,

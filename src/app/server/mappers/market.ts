@@ -4,14 +4,16 @@ import type {
   MacroResponse,
   MarketSessionWire,
   MarketsResponse,
+  SectorsResponse,
+  SourcesResponse,
+} from '@/app/server/wire/market'
+import type {
   OverviewLeadersWire,
   OverviewLeaderWire,
   OverviewMoversWire,
   OverviewMoverWire,
   OverviewResponse,
-  SectorsResponse,
-  SourcesResponse,
-} from '@/app/server/wire/market'
+} from '@/app/server/wire/overview'
 import type * as Vocab from '@/app/server/wire/vocab'
 import type { Locale } from '@/core/types/locale'
 import type {
@@ -39,7 +41,12 @@ import type {
   TypedPrice,
 } from '@/trading/api'
 import { toCaveatWires, toDealerBoardWire, toInstrumentWire } from '@/app/server/mappers/trading'
-import { changeAgainstClose, MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
+import {
+  changeAgainstClose,
+  MACRO_SCORE_RANGE,
+  parseExitLevel,
+  renderOverviewForSurface,
+} from '@/trading/api'
 
 // A closed vocabulary the wire copies in `wire/vocab.ts` must match its trading source both ways, so
 // a value added on either side fails typecheck here.
@@ -177,13 +184,19 @@ type OverviewMover = OverviewMovers['gainers'][number]
 
 export function toOverviewWire(
   blocks: readonly MarketDataOverview[],
-  locale: Locale
+  locale: Locale,
+  timezone: string
 ): OverviewResponse {
-  return { markets: blocks.map((block) => toOverviewBlockWire(block, locale)) }
+  return { markets: blocks.map((block) => toOverviewBlockWire(block, locale, timezone)) }
 }
 
-function toOverviewBlockWire(block: MarketDataOverview, locale: Locale): OverviewBlockWire {
+function toOverviewBlockWire(
+  block: MarketDataOverview,
+  locale: Locale,
+  timezone: string
+): OverviewBlockWire {
   const { breadth, foreignNetValue, leaders, movers } = block
+  const { sections, sources } = renderOverviewForSurface(locale, block, timezone)
 
   return {
     market: block.market,
@@ -204,6 +217,8 @@ function toOverviewBlockWire(block: MarketDataOverview, locale: Locale): Overvie
     ...(foreignNetValue === undefined ? {} : { foreignNetValue }),
     ...(leaders === undefined ? {} : { leaders: toLeadersWire(leaders) }),
     ...(movers === undefined ? {} : { movers: toMoversWire(movers) }),
+    ...(sections.length === 0 ? {} : { sections }),
+    ...(sources === undefined ? {} : { sources }),
     caveats: toCaveatWires(block.caveats, locale),
   }
 }
