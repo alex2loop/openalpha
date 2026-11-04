@@ -1,5 +1,5 @@
 import { isAnalysisOnly, offers } from '@/web/state/edition'
-import { isFirstRun } from '@/web/state/session'
+import { isGuideShown } from '@/web/state/first-run'
 import { AgentDay } from '@/web/ui/today/blocks/agent-day'
 import { Book } from '@/web/ui/today/blocks/book'
 import { Events } from '@/web/ui/today/blocks/events'
@@ -13,27 +13,23 @@ import { NeedsYou } from '@/web/ui/today/needs-you'
 import { SessionLine } from '@/web/ui/today/session-line'
 import { SetupNotices } from '@/web/ui/today/setup-notices'
 
-/** Hôm nay: the home market's day, what waits for the operator, then what is worth a look, in a
- *  fixed order; what the daemon started without closes the tab. */
+/** Hôm nay: the first-run guide while it shows, then the home market's day, what waits for the
+ *  operator and what is worth a look, in a fixed order; what the daemon started without closes the
+ *  tab. */
 export function Today() {
   return (
     <>
-      {isFirstRun.value ? (
-        <FirstRun />
-      ) : (
-        <>
-          <SessionLine />
-          {!isAnalysisOnly.value && <NeedsYou />}
-          {!isAnalysisOnly.value && <WorthWatching />}
-          <Book />
-          <HomeMarket />
-          <Macro />
-          <OtherMarkets />
-          <Events />
-          {!isAnalysisOnly.value && <News />}
-          {offers('agents') && <AgentDay />}
-        </>
-      )}
+      {isGuideShown.value && <FirstRun />}
+      <SessionLine />
+      {!isAnalysisOnly.value && <NeedsYou />}
+      {!isAnalysisOnly.value && <WorthWatching />}
+      <Book />
+      <HomeMarket />
+      <Macro />
+      <OtherMarkets />
+      <Events />
+      {!isAnalysisOnly.value && <News />}
+      {offers('agents') && <AgentDay />}
       <SetupNotices />
     </>
   )

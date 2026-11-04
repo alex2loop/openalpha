@@ -670,7 +670,13 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch); sự kiện sắp
     tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
     và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví
-    dụ chưa có khóa API của sàn, nằm ở cuối thẻ.
+    dụ chưa có khóa API của sàn, nằm ở cuối thẻ. Trên cùng là thẻ "Bắt đầu với" cho tới khi bạn làm
+    xong hoặc ẩn đi: kết nối mô hình AI (không bắt buộc ở bản web), hồ sơ đầu tư, danh mục hiện có,
+    Telegram (bản cài, không bắt buộc) và bản tin `/brief` đầu tiên. Mỗi bước được tích khi xong: hồ
+    sơ đã lưu hoặc "Giữ mặc định" (hồ sơ chưa từng lưu chạy bằng mức mặc định), một giao dịch đã ghi
+    hoặc "Chưa có, bỏ qua", một lần `/brief` đã chạy xong trên trình duyệt này. Thẻ tự mất khi mọi
+    bước bắt buộc đã tích, hoặc ngay khi bạn bấm "Ẩn hướng dẫn"; cả hai chỉ được nhớ trên trình duyệt
+    này.
   - *Danh mục* gồm tổng quan, hiệu quả, lịch sử, cân bằng lại và danh sách theo dõi cùng cảnh báo giá,
     thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
     có hoàn tác, còn Lịch sử đối chiếu sổ với các sàn của bạn (xem

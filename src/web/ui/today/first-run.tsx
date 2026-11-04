@@ -1,9 +1,16 @@
 import type { ComponentChildren } from 'preact'
-import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { BRIEF_COMMAND } from '@/web/state/command'
 import { editionKey, isAnalysisOnly } from '@/web/state/edition'
+import {
+  hideGuide,
+  isBookDone,
+  isBriefDone,
+  isProfileDone,
+  keepProfileDefaults,
+  skipBook,
+} from '@/web/state/first-run'
 import { isModelReady, loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
@@ -24,35 +31,46 @@ interface StepProps {
   readonly children: ComponentChildren
 }
 
-/** "Bắt đầu với {brand}": five steps (four on the web) for a daemon with no model, no profile and an
- *  empty book. */
+/** "Bắt đầu với {brand}": five steps (four on the web) above the day's blocks, until every
+ *  required one is done or the visitor hides it. */
 export function FirstRun() {
-  const firstRun = state.value?.firstRun
   const steps: ((index: number) => ComponentChildren)[] = [
     (index) => <ModelStep key="model" index={index} isDone={isModelReady.value} />,
-    (index) => <ProfileStep key="profile" index={index} isDone={firstRun?.profileSaved === true} />,
-    (index) => <BookStep key="book" index={index} isDone={firstRun?.bookEmpty === false} />,
+    (index) => <ProfileStep key="profile" index={index} />,
+    (index) => <BookStep key="book" index={index} />,
     ...(isAnalysisOnly.value ? [] : [(index: number) => <ChatStep key="chat" index={index} />]),
     (index) => <BriefStep key="brief" index={index} />,
   ]
 
   return (
     <section class="block">
-      <h2 class="block-head">{tr('ui.office.firstRun.title')}</h2>
+      <h2 class="block-head">
+        {tr('ui.office.firstRun.title')}
+        <span class="block-grow" />
+        <Button kind="ghost" size="small" onClick={hideGuide}>
+          {tr('ui.office.firstRun.hide')}
+        </Button>
+      </h2>
       <div class="steps">{steps.map((renderStep, position) => renderStep(position + 1))}</div>
     </section>
   )
 }
 
-function ProfileStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
+// A daemon that never saved a profile runs on seeded defaults, so the step says so and lets the
+// visitor keep them.
+function ProfileStep({ index }: NumberedStep) {
   return (
-    <Step index={index} title={tr('ui.office.common.profile')} isDone={isDone}>
+    <Step index={index} title={tr('ui.office.common.profile')} isDone={isProfileDone.value}>
       <p class="meta">
         {tr(editionKey('ui.office.firstRun.profileBody', 'ui.office.edition.firstRun.profileBody'))}
       </p>
+      <p class="meta">{tr('ui.office.firstRun.profileDefaults')}</p>
       <div class="step-actions">
         <Button size="small" onClick={() => openSettings('profile')}>
           {tr('ui.office.firstRun.profileCta')}
+        </Button>
+        <Button size="small" onClick={keepProfileDefaults}>
+          {tr('ui.office.firstRun.profileKeep')}
         </Button>
       </div>
     </Step>
@@ -60,15 +78,9 @@ function ProfileStep({ index, isDone }: NumberedStep & { readonly isDone: boolea
 }
 
 // The book can also be left empty on purpose: "Chưa có, bỏ qua" counts the step as done.
-function BookStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
-  const isSkipped = useSignal(false)
-
+function BookStep({ index }: NumberedStep) {
   return (
-    <Step
-      index={index}
-      title={tr('ui.office.firstRun.bookTitle')}
-      isDone={isDone || isSkipped.value}
-    >
+    <Step index={index} title={tr('ui.office.firstRun.bookTitle')} isDone={isBookDone.value}>
       <p class="meta">
         {tr(editionKey('ui.office.firstRun.bookBody', 'ui.office.edition.firstRun.bookBody'))}
       </p>
@@ -76,12 +88,7 @@ function BookStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }
         <Button size="small" onClick={() => openTradeDialog()}>
           {tr('ui.office.common.recordTrade')}
         </Button>
-        <Button
-          size="small"
-          onClick={() => {
-            isSkipped.value = true
-          }}
-        >
+        <Button size="small" onClick={skipBook}>
           {tr('ui.office.firstRun.bookSkip')}
         </Button>
       </div>
@@ -176,7 +183,7 @@ function WebModelStep({ index, isDone }: NumberedStep & { readonly isDone: boole
 // no key.
 function BriefStep({ index }: NumberedStep) {
   return (
-    <Step index={index} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
+    <Step index={index} title={tr('ui.office.firstRun.briefTitle')} isDone={isBriefDone.value}>
       <p class="meta">
         {tr(editionKey('ui.office.firstRun.briefBody', 'ui.office.edition.firstRun.briefBody'))}
       </p>

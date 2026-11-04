@@ -12,6 +12,7 @@ import { startCost } from '@/web/state/cost'
 import { isAnalysisOnly, offers } from '@/web/state/edition'
 import { startEstimates } from '@/web/state/estimates'
 import { startFeed } from '@/web/state/feed'
+import { startFirstRun } from '@/web/state/first-run'
 import { startMarket } from '@/web/state/market'
 import { startNotices } from '@/web/state/notices'
 import { disposePrefs } from '@/web/state/prefs'
@@ -123,6 +124,7 @@ function startLive({ chatTab }: OfficeOptions): () => void {
 function startOffice(): readonly (() => void)[] {
   return [
     startCost(),
+    startFirstRun(),
     ...(offers('agents') ? [startAgents(), startAgentFormRequests()] : []),
     startMarket(),
     ...(isAnalysisOnly.value ? [] : [startRestartWatch(), startUpdate()]),
