@@ -229,11 +229,26 @@ export function formatFixedPercent(locale: Locale, percent: number): string {
   return formatFixedFraction(locale, percent / PERCENT_PER_UNIT)
 }
 
+/** Each wording of a standing, with its two ends named: "above 0% of the names" reads oddly where
+ *  "lowest on the board" says the same. */
 const RANK_KEYS = Object.freeze({
-  better: 'trading.render.layout.percentRank',
-  plain: 'trading.render.layout.percentRankPlain',
-  time: 'trading.render.layout.timeRank',
+  better: {
+    between: 'trading.render.layout.percentRank',
+    lowest: 'trading.render.layout.percentRankLowest',
+    highest: 'trading.render.layout.percentRankHighest',
+  },
+  plain: {
+    between: 'trading.render.layout.percentRankPlain',
+    lowest: 'trading.render.layout.percentRankPlainLowest',
+    highest: 'trading.render.layout.percentRankPlainHighest',
+  },
+  time: {
+    between: 'trading.render.layout.timeRank',
+    lowest: 'trading.render.layout.timeRankLowest',
+    highest: 'trading.render.layout.timeRankHighest',
+  },
 } as const)
+const RANK_TOP = 100
 
 /** A rank over a few dozen peers, where every decimal is quantization rather than precision:
  *  84.78th of 46 names is the 85th, and printing the remainder claims a resolution it lacks. The
@@ -247,7 +262,16 @@ export function formatPercentRank(
   percent: number,
   wording: keyof typeof RANK_KEYS = 'better'
 ): string {
-  return t(locale, RANK_KEYS[wording], { pct: formatCount(locale, Math.round(percent)) })
+  const pct = Math.round(percent)
+  const keys = RANK_KEYS[wording]
+
+  if (pct <= 0) {
+    return t(locale, keys.lowest)
+  }
+
+  return pct >= RANK_TOP
+    ? t(locale, keys.highest)
+    : t(locale, keys.between, { pct: formatCount(locale, pct) })
 }
 
 /** A 0-1 index as whole percent. Coverage and agreement are folds over weights, not measured
