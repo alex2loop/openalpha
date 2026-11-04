@@ -1,6 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type { FactorMetric, FactorMetricUnit } from '@/trading/kernel/factor-metric'
 import type { QuotedIn } from '@/trading/render/money'
+import { t } from '@/i18n'
 import { FACTOR_METRIC_IDS, FACTOR_METRIC_UNITS } from '@/trading/kernel/factor-metric'
 import {
   formatCount,
@@ -62,6 +63,9 @@ interface MetricFactOptions {
    *  how far the name sits off its year, and keying on the id alone let whichever factor came last
    *  silently replace the other. Ordered by id, then by window. */
   readonly canonical?: true
+  /** Each reading as `Label: value` with the label capitalised, for a surface that lists them down
+   *  the page where the others pack them across it. */
+  readonly row?: true
 }
 
 /** One fact per reading, for a surface that decides where they are joined. A reading never splits:
@@ -77,11 +81,17 @@ export function metricFacts(
 
   const readings = options.canonical === true ? canonicalReadings(metrics) : metrics
 
-  return readings.map(
-    (metric) =>
-      `${metricLabel(locale, metric, options.labels ?? 'full')} ` +
-      formatMetric(locale, metric, options.quote)
-  )
+  return readings.map((metric) => {
+    const label = metricLabel(locale, metric, options.labels ?? 'full')
+    const value = formatMetric(locale, metric, options.quote)
+
+    return options.row === true
+      ? t(locale, 'trading.render.metric.row', {
+          label: `${label.charAt(0).toUpperCase()}${label.slice(1)}`,
+          value,
+        })
+      : `${label} ${value}`
+  })
 }
 
 function canonicalReadings(metrics: readonly FactorMetric[]): readonly FactorMetric[] {

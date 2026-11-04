@@ -2,6 +2,7 @@ import type { Locale } from '@/core/types/locale'
 import type { AnalysisFailure, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { ArguingRole } from '@/trading/features/suggestion/debate/claims'
 import type { AnalysisCase } from '@/trading/features/suggestion/debate/types'
+import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import { LLM_ERROR_CODES } from '@/core/llm'
 import { formatDay, type MessageKey, renderAiLabel, t } from '@/i18n'
 import { isClaimBy, isUnsupportedRole } from '@/trading/features/suggestion/debate/claims'
@@ -42,6 +43,55 @@ const SPEND_CAP_KEYS = new Map<unknown, MessageKey>([
   ['agent_daily_cap', 'trading.analysis.cap-spent'],
 ])
 
+type FigureGroup = 'valuation' | 'growth' | 'quality' | 'price' | 'flows'
+
+/** The figure groups in the order they print. */
+const FIGURE_GROUP_TITLES = {
+  valuation: 'trading.analysis.figures-valuation',
+  growth: 'trading.analysis.figures-growth',
+  quality: 'trading.analysis.figures-quality',
+  price: 'trading.analysis.figures-price',
+  flows: 'trading.analysis.figures-flows',
+} as const satisfies Record<FigureGroup, MessageKey>
+
+const FIGURE_GROUPS = Object.freeze(Object.keys(FIGURE_GROUP_TITLES) as FigureGroup[])
+
+/** Where each reading is listed. One with no group is no figure: a trigger or a stop reference,
+ *  which the reader is never shown as a level, and the count of peers a rank was taken among, a
+ *  ranking word and no reading of the name. */
+const FIGURE_GROUP_OF = Object.freeze({
+  pe: 'valuation',
+  'average-profit-pe': 'valuation',
+  pb: 'valuation',
+  'value-percentile': 'valuation',
+  'earnings-growth': 'growth',
+  'revenue-growth': 'growth',
+  'return-on-equity': 'quality',
+  'return-on-assets': 'quality',
+  'debt-to-equity': 'quality',
+  'gross-margin': 'quality',
+  'quality-percentile': 'quality',
+  'accounts-score': 'quality',
+  'return-on-invested-capital': 'quality',
+  'interest-cover': 'quality',
+  'net-debt-to-ebitda': 'quality',
+  'bad-debt-ratio': 'quality',
+  'watch-list-ratio': 'quality',
+  'provision-cover': 'quality',
+  'casa-share': 'quality',
+  'cost-to-income': 'quality',
+  'capital-adequacy': 'quality',
+  'net-interest-to-assets': 'quality',
+  'trend-average': 'price',
+  'year-high': 'price',
+  'relative-volume': 'flows',
+  'funding-daily': 'flows',
+  'foreign-net-flow': 'flows',
+  'ranked-peers': undefined,
+  'breakout-trigger': undefined,
+  'trailing-low': undefined,
+} as const satisfies Readonly<Record<FactorMetricId, FigureGroup | undefined>>)
+
 /** Both sides, what the evidence refuted, and what would make each wrong, in the reader's language.
  *  There is no verdict to print: none was produced, and nothing here weighs one side over the
  *  other. The AI label opens it and the install line closes it, both fixed and never conditional,
@@ -57,7 +107,7 @@ export function renderAnalysisText(locale: Locale, record: AnalysisRecord): stri
     ),
     renderRefutedLines(locale, record),
     ...SIDE_ORDER.map((side) => renderWrongLines(locale, side, cases[side])),
-    renderFigureLines(locale, record),
+    renderFigureLines(locale, record.figures),
     renderCitationLines(locale, {
       citations: [...record.citations, ...record.headlines],
       title: t(locale, 'trading.analysis.sources'),
@@ -146,19 +196,28 @@ function renderWrongLines(
   ]
 }
 
-/** The readings the roles argued from, as the screen board prints them: each value or rank among
- *  peers on its own row. No factor's score, weight or the composite, which would weigh one side. */
-function renderFigureLines(locale: Locale, record: AnalysisRecord): readonly string[] {
-  if (record.figures.length === 0) {
-    return []
-  }
+/** The readings both sides argued from, each under its group as a row of its own: a value, or the
+ *  name's place on the board where the reading is one. No factor's score, weight or the composite,
+ *  which would weigh one side over the other. */
+function renderFigureLines(locale: Locale, figures: readonly FactorMetric[]): readonly string[] {
+  const groups = FIGURE_GROUPS.flatMap((group) => {
+    const rows = metricFacts(
+      locale,
+      figures.filter((metric) => FIGURE_GROUP_OF[metric.id] === group),
+      { canonical: true, row: true }
+    )
 
-  return [
-    renderSectionTitle(SECTION_ICONS.factors, t(locale, 'trading.analysis.figures')),
-    ...metricFacts(locale, record.figures, { canonical: true }).map(
-      (fact) => `${INDENT[1]}${fact}`
-    ),
-  ]
+    return rows.length === 0
+      ? []
+      : [
+          `${INDENT[1]}${t(locale, FIGURE_GROUP_TITLES[group])}`,
+          ...rows.map((row) => `${INDENT[2]}${row}`),
+        ]
+  })
+
+  return groups.length === 0
+    ? []
+    : [renderSectionTitle(SECTION_ICONS.factors, t(locale, 'trading.analysis.figures')), ...groups]
 }
 
 function closingLines(locale: Locale, record: AnalysisRecord): readonly string[] {

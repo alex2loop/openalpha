@@ -19,7 +19,7 @@ import type {
 import type { SuggestionRequest } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorScore } from '@/trading/kernel/factor'
-import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { NewsItem } from '@/trading/kernel/market/market-data'
 import type { Page } from '@/trading/kernel/store/page'
@@ -55,9 +55,6 @@ import {
 import { ANALYSIS_ROLES, ANALYSIS_WAVES } from '@/trading/kernel/config'
 import { DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
 import { LEVEL_BARS_SESSIONS } from '@/trading/markets/levels'
-
-/** Readings that are a trigger or a stop reference, which the reader is never shown as a level. */
-const LEVEL_READINGS: ReadonlySet<FactorMetricId> = new Set(['breakout-trigger', 'trailing-low'])
 
 /** What the persona calls and the headline read need beyond the role runner. */
 interface AnalysisDebateDeps extends RoleCallDeps {
@@ -236,9 +233,7 @@ async function readEvidence(
   return {
     asOf,
     evidence,
-    figures: factors.results
-      .flatMap((factor) => factor.metrics ?? [])
-      .filter((metric) => !LEVEL_READINGS.has(metric.id)),
+    figures: factors.results.flatMap((factor) => factor.metrics ?? []),
     ...(evidenceThrough === undefined ? {} : { evidenceThrough }),
   }
 }
