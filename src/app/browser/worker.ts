@@ -1,3 +1,4 @@
+import '@/app/browser/zod-jitless'
 import type { WorkerCall, WorkerReply } from '@/app/server/wire/worker'
 import { createBridgeContext, handleWorkerCall } from '@/app/browser/bridge'
 import { createBrowserKeyring } from '@/app/browser/keys'
