@@ -200,8 +200,7 @@
       "sections": [
         {
           "kind": "derivatives",
-          "heading": "Derivatives",
-          "note": "at 08/10/2026 16:30",
+          "heading": "Derivatives (at 08/10/2026 16:30)",
           "facts": [
             { "id": "funding", "label": "Funding rate", "value": "▲ 0.01%" },
             { "id": "openInterest", "label": "Open interest", "value": "12 billion USD" },
@@ -211,8 +210,7 @@
         },
         {
           "kind": "taker-flow",
-          "heading": "Order flow",
-          "note": "07/10/2026 session",
+          "heading": "Order flow (07/10/2026 session)",
           "facts": [
             { "id": "takerBuyPct", "label": "Buyers crossing the spread", "value": "51.2%" }
           ]
