@@ -50,6 +50,10 @@ interface RefreshCoordinatorDeps {
   /** Markets whose refresh started on a store with no kind and has not settled, so a read finding
    *  a half-filled store still knows it. Written only here; one entry per market at most. */
   readonly firstLoading: Set<MarketRef>
+  /** Markets whose first refresh rejected and that no later refresh has completed since, so a read
+   *  finding the half-filled store does not call it complete. Written only here; one entry per
+   *  market at most. */
+  readonly firstLoadFailed: Set<MarketRef>
   readonly logger: Logger
 }
 
@@ -121,7 +125,9 @@ async function runRefreshAfter(
 }
 
 /** Same-market flights run one after another, so the mark is this flight's alone: set before the
- *  first fetch and cleared once it settles, on success, failure or abort alike. */
+ *  first fetch and cleared once it settles, on success, failure or abort alike. A first load that
+ *  rejects, a cancelled read's included, leaves the store half-filled, so it is remembered until a
+ *  later flight completes. */
 async function runTrackingFirstLoad(
   deps: RefreshCoordinatorDeps,
   options: RefreshMarketDataOptions
@@ -137,7 +143,17 @@ async function runTrackingFirstLoad(
   }
 
   try {
-    return await runRefresh(deps, options)
+    const result = await runRefresh(deps, options)
+
+    deps.firstLoadFailed.delete(options.market)
+
+    return result
+  } catch (err: unknown) {
+    if (isFirstLoad) {
+      deps.firstLoadFailed.add(options.market)
+    }
+
+    throw err
   } finally {
     deps.firstLoading.delete(options.market)
   }

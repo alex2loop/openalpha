@@ -17,6 +17,10 @@ const FIRST_LOAD_BUDGET_MS = 30_000
 const FIRST_KIND_POLL_MS = 500
 /** Carried by an answer given while the market's first refresh is still running. */
 export const FIRST_LOAD_PENDING: Caveat = Object.freeze({ code: 'market-data.first-load-pending' })
+/** Carried while the market's first refresh stopped partway and no refresh has completed since. */
+export const FIRST_LOAD_INCOMPLETE: Caveat = Object.freeze({
+  code: 'market-data.first-load-incomplete',
+})
 const FIRST_LOAD_PENDING_ANSWER: readonly Caveat[] = Object.freeze([FIRST_LOAD_PENDING])
 
 export interface EnsureMarketDataOptions {
@@ -37,6 +41,8 @@ interface EnsureMarketDataDeps {
   readonly refresh: RefreshMarketData
   /** Markets whose refresh started on an empty store and has not settled; the coordinator owns it. */
   readonly firstLoading: ReadonlySet<MarketRef>
+  /** Markets whose first refresh rejected and no later one has completed; the coordinator owns it. */
+  readonly firstLoadFailed: ReadonlySet<MarketRef>
   /** The app's lifetime. A refresh a read starts belongs to it, not to the read: a partial answer
    *  returns while that refresh goes on, and the read's own signal ends only the waiting. */
   readonly signal: AbortSignal
@@ -53,7 +59,9 @@ export function createEnsureMarketData(deps: EnsureMarketDataDeps): EnsureMarket
     const populated = await listPopulated(deps, options.market, options.signal)
 
     if (populated.length > 0 && !deps.firstLoading.has(options.market)) {
-      return buildStaleCaveats(deps, options, populated)
+      const stale = await buildStaleCaveats(deps, options, populated)
+
+      return deps.firstLoadFailed.has(options.market) ? [FIRST_LOAD_INCOMPLETE, ...stale] : stale
     }
 
     if (options.partialAnswer === true) {

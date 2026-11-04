@@ -24,7 +24,10 @@ import {
   requireMarket,
   withinRange,
 } from '@/trading/features/market-data/market-data-run'
-import { FIRST_LOAD_PENDING } from '@/trading/features/market-data/ops/ensure'
+import {
+  FIRST_LOAD_INCOMPLETE,
+  FIRST_LOAD_PENDING,
+} from '@/trading/features/market-data/ops/ensure'
 import {
   resolveDay,
   resolveInstrument,
@@ -266,11 +269,15 @@ export async function runMacroRisk(
     signal: options.signal,
   })
 
-  // Only this note rides along: the refresh's own caveats were never part of a macro answer, and
+  // Only these notes ride along: the refresh's own caveats were never part of a macro answer, and
   // the stale warning belongs to the board reads that already carry it.
-  return ensured.includes(FIRST_LOAD_PENDING)
-    ? { ...result, caveats: dedupeCaveats([...result.caveats, FIRST_LOAD_PENDING]) }
-    : result
+  const notes = ensured.filter(
+    (caveat) => caveat === FIRST_LOAD_PENDING || caveat === FIRST_LOAD_INCOMPLETE
+  )
+
+  return notes.length === 0
+    ? result
+    : { ...result, caveats: dedupeCaveats([...result.caveats, ...notes]) }
 }
 
 /** Exactly one registered market implements the basis, so the range is the whole selector and no

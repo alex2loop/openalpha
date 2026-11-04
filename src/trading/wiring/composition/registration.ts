@@ -297,6 +297,7 @@ interface ServiceParts {
   readonly stores: TradingStores
   readonly refresh: RefreshMarketData
   readonly firstLoading: ReadonlySet<MarketRef>
+  readonly firstLoadFailed: ReadonlySet<MarketRef>
   readonly logger: Logger
   createSuggestionBudget(): ReturnType<typeof createConfiguredRunBudget>
 }
@@ -316,6 +317,7 @@ function buildServices(
       marketDataStore: stores.marketData,
       refresh: parts.refresh,
       firstLoading: parts.firstLoading,
+      firstLoadFailed: parts.firstLoadFailed,
       signal: app.signal,
       logger,
     }),

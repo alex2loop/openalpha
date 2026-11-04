@@ -52,6 +52,7 @@ interface BuiltRefreshCoordinator {
   readonly refresh: RefreshMarketData
   /** Written by the coordinator alone; `ensure` reads it. */
   readonly firstLoading: ReadonlySet<MarketRef>
+  readonly firstLoadFailed: ReadonlySet<MarketRef>
 }
 
 /** Every refresh path closes the plans a rebuilt series invalidated: only the pass that rebuilt it
@@ -70,17 +71,20 @@ export function buildRefreshCoordinator(
     defaultLocale: app.config.locale.language,
   }
   const firstLoading = new Set<MarketRef>()
+  const firstLoadFailed = new Set<MarketRef>()
   const coordinator = createRefreshCoordinator({
     markets,
     marketDataStore: stores.marketData,
     newsArchive: stores.newsArchive,
     universeLimit: UNIVERSE_REFRESH_LIMIT,
     firstLoading,
+    firstLoadFailed,
     logger: restatement.logger,
   })
 
   return {
     firstLoading,
+    firstLoadFailed,
     refresh: async (options) => {
       const result = await coordinator(options)
 

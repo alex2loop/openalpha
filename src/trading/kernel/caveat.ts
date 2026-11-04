@@ -85,6 +85,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'market-data.quote-not-live', severity: 'warn' },
   { code: 'market-data.evidence-stale', severity: 'warn' },
   { code: 'market-data.first-load-pending', severity: 'warn' },
+  { code: 'market-data.first-load-incomplete', severity: 'warn' },
   { code: 'market-data.series-stale', severity: 'warn' },
   { code: 'market-data.funding-crowded', severity: 'warn' },
   { code: 'market-data.volatility-abstained-at-high', severity: 'info' },

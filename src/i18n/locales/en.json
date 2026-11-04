@@ -4702,6 +4702,7 @@
     "caveat.market-data.quote-not-live": "{ticker} has not printed a price newer than the last settled close, so that close is shown rather than a live one.",
     "caveat.market-data.evidence-stale": "Working from data that stands at the {asOf} session, not the current reading. Run /refresh to replace it.",
     "caveat.market-data.first-load-pending": "This market is loading for the first time, so this uses what is stored so far. Read it again after it finishes loading.",
+    "caveat.market-data.first-load-incomplete": "The first load stopped partway, so this data is incomplete. Run /refresh to finish loading it.",
     "caveat.market-data.series-stale": "{ticker}: its daily series stops at the {asOf} session, so it is ranked on older data than its peers.",
     "caveat.market-data.funding-crowded": "Perpetual funding is {rate} a day over {days} days: the side paying it is crowded and gets liquidated first.",
     "caveat.market-data.volatility-abstained-at-high": "{ticker} is within {proximity} of its {sessions}-session high, so the volatility factor did not vote.",
