@@ -905,6 +905,7 @@
     "office.today.homeUnknown": "Home market",
     "office.today.other": "Other markets",
     "office.today.events": "Upcoming events",
+    "office.today.noEvents": "No events in the next {days} days for the names you hold.",
     "office.today.news": "Top headlines",
     "office.today.agentDay": "What the agents did today",
     "office.today.seeAll": "See all",

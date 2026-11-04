@@ -120,7 +120,6 @@
   --stageTopH: calc(var(--s1) * 2 + var(--controlH) + var(--tapeH));
   --stageBottomH: calc(var(--islandH) + var(--s2) * 2);
   /* The info panel floating over the scene and its bottom sheet on a narrow screen. */
-  --sheetH: 64%;
   --sheetMs: 280ms;
   --gripW: 38px;
   --gripH: 5px;

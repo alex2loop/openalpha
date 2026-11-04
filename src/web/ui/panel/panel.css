@@ -35,9 +35,10 @@
   margin: calc(var(--stageTopH) + var(--s1)) var(--s2) var(--stageBottomH) 0;
 }
 
+/* The sheet fills the information pane, so the office's switch and tape never show behind it. */
 .panel.is-sheet {
   align-self: end;
-  height: var(--sheetH);
+  height: calc(100% - var(--s2) * 2);
   margin: var(--s2);
 }
 
@@ -96,11 +97,21 @@
   padding: 0 var(--s1);
 }
 
-/* Under the width the four labelled tabs and the count take (they fit the default panel in both
-   languages), each tab keeps its icon and the label stays its title. */
+/* Under the width the four tabs and the count take side by side (they fit the default panel in both
+   languages), each tab stacks its label under its icon. */
 @container (width < 376px) {
-  .panel-tabs .seg-label {
-    display: none;
+  .panel-tabs button {
+    position: relative;
+    flex-direction: column;
+    gap: 1px;
+    padding: 3px 2px;
+    font-size: var(--sizeCaption);
+  }
+
+  .panel-tabs .seg-badge {
+    position: absolute;
+    top: 1px;
+    right: 2px;
   }
 }
 
@@ -151,6 +162,7 @@
 
 .panel.glass .panel-head {
   border-bottom-color: var(--glassSeam);
+  background: rgb(var(--glassTint) / var(--glassTagA));
 }
 
 .panel.glass .panel-body {

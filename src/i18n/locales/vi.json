@@ -905,6 +905,7 @@
     "office.today.homeUnknown": "Thị trường của bạn",
     "office.today.other": "Thị trường khác",
     "office.today.events": "Sự kiện sắp tới",
+    "office.today.noEvents": "Chưa có sự kiện nào trong {days} ngày tới cho các mã bạn đang giữ.",
     "office.today.news": "Tin nổi bật",
     "office.today.agentDay": "Hôm nay agent đã làm",
     "office.today.seeAll": "Xem tất cả",
