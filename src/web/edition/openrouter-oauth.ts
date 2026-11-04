@@ -4,6 +4,8 @@ const AUTH_URL = 'https://openrouter.ai/auth'
 const EXCHANGE_URL = 'https://openrouter.ai/api/v1/auth/keys'
 const VERIFIER_KEY = 'oa.oauth.verifier'
 const STATE_KEY = 'oa.oauth.state'
+const REMEMBER_KEY = 'oa.oauth.remember'
+const REMEMBERED = 'yes'
 const VERIFIER_BYTES = 48
 const STATE_BYTES = 16
 /** The most the page waits for OpenRouter to trade the code for a key. */
@@ -14,13 +16,20 @@ const STATE_PARAM = 'state'
 
 /** OpenRouter's PKCE flow: the visitor signs in at OpenRouter, which sends the page back with a
  *  one-time `code`; the page trades it, with the verifier it kept, for a key of the visitor's own.
- *  The exchange endpoint answers cross-origin calls, so no server of ours is involved. */
-export async function beginOpenRouterConnect(): Promise<void> {
+ *  The exchange endpoint answers cross-origin calls, so no server of ours is involved. Whether the
+ *  key is to be remembered rides the round trip beside the verifier. */
+export async function beginOpenRouterConnect(isRemembered: boolean): Promise<void> {
   const verifier = randomToken(VERIFIER_BYTES)
   const state = randomToken(STATE_BYTES)
 
   writeStorage('session', VERIFIER_KEY, verifier)
   writeStorage('session', STATE_KEY, state)
+
+  if (isRemembered) {
+    writeStorage('session', REMEMBER_KEY, REMEMBERED)
+  } else {
+    removeStorage('session', REMEMBER_KEY)
+  }
 
   const query = new URLSearchParams({
     callback_url: `${location.origin}${location.pathname}`,
@@ -33,7 +42,9 @@ export async function beginOpenRouterConnect(): Promise<void> {
 }
 
 /** The outcome of a page load that OpenRouter sent the visitor back to. */
-export type ConnectResult = { readonly key: string } | { readonly failed: true }
+export type ConnectResult =
+  | { readonly key: string; readonly isRemembered: boolean }
+  | { readonly failed: true }
 
 /** Reads a callback out of the address, once, and leaves the address clean. Absent when this page
  *  load is not one. */
@@ -50,9 +61,11 @@ export async function finishOpenRouterConnect(
   const verifier = readStorage('session', VERIFIER_KEY)
   const expected = readStorage('session', STATE_KEY)
   const returned = params.get(STATE_PARAM)
+  const isRemembered = readStorage('session', REMEMBER_KEY) === REMEMBERED
 
   removeStorage('session', VERIFIER_KEY)
   removeStorage('session', STATE_KEY)
+  removeStorage('session', REMEMBER_KEY)
 
   params.delete(CODE_PARAM)
   params.delete(STATE_PARAM)
@@ -68,7 +81,7 @@ export async function finishOpenRouterConnect(
 
   const key = await exchange(code, verifier, signal)
 
-  return key === undefined ? { failed: true } : { key }
+  return key === undefined ? { failed: true } : { key, isRemembered }
 }
 
 async function exchange(

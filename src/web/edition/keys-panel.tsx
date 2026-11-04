@@ -112,7 +112,9 @@ function KeyForm({ slot }: { readonly slot: KeySlot }) {
 
   return (
     <div class="key-form">
-      {slot === 'ai' && draft.provider.value === OPENROUTER && <ConnectRow />}
+      {slot === 'ai' && draft.provider.value === OPENROUTER && (
+        <ConnectRow isRemembered={draft.isRemembered.value} />
+      )}
       <KeyFields slot={slot} draft={draft} />
       <label>
         <input
@@ -130,13 +132,14 @@ function KeyForm({ slot }: { readonly slot: KeySlot }) {
   )
 }
 
-function ConnectRow() {
+// The "remember" box below applies to the key OpenRouter hands back, as it does to a pasted one.
+function ConnectRow({ isRemembered }: { readonly isRemembered: boolean }) {
   return (
     <div class="setting-actions">
       <Button
         size="small"
         kind="ai"
-        onClick={() => beginOpenRouterConnect().catch(() => undefined)}
+        onClick={() => beginOpenRouterConnect(isRemembered).catch(() => undefined)}
       >
         {tr('ui.office.edition.keys.connect')}
       </Button>

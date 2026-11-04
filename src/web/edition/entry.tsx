@@ -98,8 +98,8 @@ function EditionApp({ phase }: { readonly phase: EditionPhase }) {
   }
 }
 
-// A key OpenRouter handed over is held in this page's memory and sent to nobody until the visitor
-// agrees to it.
+// A key OpenRouter handed over is held as the visitor chose before leaving, and sent to nobody until
+// the visitor agrees to it.
 function showConnect(result: ConnectResult | undefined): void {
   if (result === undefined) {
     return
@@ -111,7 +111,7 @@ function showConnect(result: ConnectResult | undefined): void {
     return
   }
 
-  holdKey('ai', { provider: OPENROUTER, key: result.key, remembered: false })
+  holdKey('ai', { provider: OPENROUTER, key: result.key, remembered: result.isRemembered })
   openSettings('providers')
   openConsentDialog('ai', OPENROUTER)
 }
