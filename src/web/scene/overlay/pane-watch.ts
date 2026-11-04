@@ -1,10 +1,15 @@
 import { effect } from '@preact/signals'
 
 import type { createSimLoop } from '@/web/scene/sim/loop'
-import { showHome } from '@/web/scene/view'
-import { fittedFloorScale } from '@/web/scene/world/framing'
+import { showHome, topCover } from '@/web/scene/view'
+import { fittedFloorScale, homeCenterOf, type PaneCover } from '@/web/scene/world/framing'
 import { breakpoint } from '@/web/state/breakpoints'
 import { collapsed, isFloating, PANEL_ELEMENT_ID } from '@/web/state/panel'
+
+/** Marks what floats over the scene's top: the home view frames the floor below all of it. */
+export const STAGE_COVER_CLASS = 'stage-cover'
+
+const COVER_GAP_TOKEN = '--s1'
 
 /** A resize or a move to a screen of another density draws again, and the home view follows the
  *  pane and, on the frame after it folds, unfolds or starts or stops floating, the panel; the
@@ -30,6 +35,11 @@ export function watchPane(
 
   placeHome(element)
   resize.observe(element)
+
+  for (const cover of coversOf()) {
+    resize.observe(cover)
+  }
+
   watchResolution(loop.wake, listeners.signal)
 
   return () => {
@@ -40,13 +50,37 @@ export function watchPane(
   }
 }
 
-// While the camera holds the home view, it keeps the floor centred left of the floating panel.
+// While the camera holds the home view, it keeps the floor centred left of the floating panel and
+// below the bars over the pane's top.
 function placeHome(element: HTMLElement): void {
   const pane = { w: element.clientWidth, h: element.clientHeight }
 
   if (pane.w > 0 && pane.h > 0) {
-    showHome(pane, fittedFloorScale(pane, breakpoint.peek()), panelCoverOf(element))
+    const cover: PaneCover = { right: panelCoverOf(element), top: topCoverOf(element) }
+    const scale = fittedFloorScale(pane, breakpoint.peek(), cover.top)
+
+    topCover.value = cover.top
+    showHome(pane, scale, homeCenterOf(scale, cover))
   }
+}
+
+// The CSS px of the pane's top the floating bars and notes cover, down to the lowest edge and a gap.
+function topCoverOf(element: HTMLElement): number {
+  const covers = coversOf()
+
+  if (covers.length === 0) {
+    return 0
+  }
+
+  const top = element.getBoundingClientRect().top
+  const gap = Number.parseFloat(getComputedStyle(element).getPropertyValue(COVER_GAP_TOKEN))
+  const bottom = Math.max(...covers.map((cover) => cover.getBoundingClientRect().bottom))
+
+  return Math.max(0, bottom - top + gap)
+}
+
+function coversOf(): readonly Element[] {
+  return [...document.querySelectorAll(`.${STAGE_COVER_CLASS}`)]
 }
 
 // The CSS px the floating panel covers at the pane's right edge.

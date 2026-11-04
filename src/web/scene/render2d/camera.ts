@@ -19,8 +19,12 @@ export interface Fit {
 /** The framing rectangle fitted to the pane at its true scale, as the mockup fills it: the floor
  *  is painted at the whole zoom under it and stretched pixel for pixel, so a fraction neither
  *  blurs nor seams. */
-export function fitFloor(viewport: Size, dpr: number, breakpoint: Breakpoint): Fit {
-  return fitAt(fittedFloorScale(viewport, breakpoint), dpr)
+export function fitFloor(
+  viewport: Size,
+  dpr: number,
+  spec: { readonly breakpoint: Breakpoint; readonly topCover: number }
+): Fit {
+  return fitAt(fittedFloorScale(viewport, spec.breakpoint, spec.topCover), dpr)
 }
 
 /** A room with its walls and a tenth to spare, in whole device steps below `FINE_DPR` so two

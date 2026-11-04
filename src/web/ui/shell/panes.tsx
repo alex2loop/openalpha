@@ -1,6 +1,7 @@
 import { computed } from '@preact/signals'
 
 import { SceneCanvas } from '@/web/scene/canvas'
+import { STAGE_COVER_CLASS } from '@/web/scene/overlay/pane-watch'
 import { StillBackdrop } from '@/web/scene/overlay/still-backdrop'
 import { FloorRow } from '@/web/scene/overlay/toolbar'
 import { breakpoint } from '@/web/state/breakpoints'
@@ -42,7 +43,7 @@ function Stage() {
     <>
       <div class="stage">
         <SceneCanvas />
-        <div class="stage-top">
+        <div class={`stage-top ${STAGE_COVER_CLASS}`}>
           <FloorRow />
           <Tape />
         </div>

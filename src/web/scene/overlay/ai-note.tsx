@@ -1,3 +1,4 @@
+import { STAGE_COVER_CLASS } from '@/web/scene/overlay/pane-watch'
 import { tr } from '@/web/text/tr'
 
 import './ai-note.css'
@@ -6,7 +7,7 @@ import './ai-note.css'
  *  is machine-written, whichever card or bubble it shows in. */
 export function AiNote() {
   return (
-    <p class="ai-note glass is-strong" role="note">
+    <p class={`ai-note glass is-strong ${STAGE_COVER_CLASS}`} role="note">
       {tr('ui.office.scene.aiNote')}
     </p>
   )

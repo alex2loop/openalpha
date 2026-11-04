@@ -41,7 +41,14 @@ import {
   type Size,
   WORLD,
 } from '@/web/scene/types'
-import { clampPan, reportProjection, view, visibleRect, ZOOM_STEP } from '@/web/scene/view'
+import {
+  clampPan,
+  reportProjection,
+  topCover,
+  view,
+  visibleRect,
+  ZOOM_STEP,
+} from '@/web/scene/view'
 import { TEAM_FLOOR } from '@/web/scene/world/floors'
 import { propsOn } from '@/web/scene/world/props'
 import { roomById } from '@/web/scene/world/rooms'
@@ -213,7 +220,7 @@ function paintFrame(surface: Surface, sim: SimView, now: number): boolean {
 // overlays.
 function placeCamera(surface: Surface, pane: Size, dpr: number): Fit {
   const camera = view.value
-  const base = fitFloor(pane, dpr, breakpoint.value)
+  const base = fitFloor(pane, dpr, { breakpoint: breakpoint.value, topCover: topCover.value })
   const room = camera.room === undefined ? undefined : roomById(camera.room)
   const fit = resolveFit({ base, room: room?.rect, steps: camera.zoomSteps, pane, dpr })
   const center = clampPan(camera.center, fit.scale, pane)
