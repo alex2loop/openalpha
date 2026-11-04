@@ -69,14 +69,6 @@ function HeldKey({ slot, provider }: { readonly slot: KeySlot; readonly provider
   return (
     <div class="key-held">
       <p>{tr('ui.office.edition.keys.held', { provider: info.name })}</p>
-      {!isAgreed && (
-        <p class="strip is-caution">
-          {tr('ui.office.edition.keys.unsent')}{' '}
-          <Button size="small" onClick={() => openConsentDialog(slot, provider)}>
-            {tr('ui.office.edition.keys.review')}
-          </Button>
-        </p>
-      )}
       <Button
         size="small"
         kind="destructive"
@@ -93,6 +85,14 @@ function HeldKey({ slot, provider }: { readonly slot: KeySlot; readonly provider
       >
         {tr('ui.office.edition.keys.remove')}
       </Button>
+      {!isAgreed && (
+        <p class="strip is-caution">
+          {tr('ui.office.edition.keys.unsent')}{' '}
+          <Button size="small" onClick={() => openConsentDialog(slot, provider)}>
+            {tr('ui.office.edition.keys.review')}
+          </Button>
+        </p>
+      )}
     </div>
   )
 }
