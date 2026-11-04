@@ -14,12 +14,14 @@ import { type BrowserOverrides, SHIPPED_TIERS, TierOverridesSchema } from '@/app
 import {
   assertCustomVenues,
   assertRowsStay,
+  CUSTOM_VENUE_LIMITS,
   CustomVenuesSchema,
   parseCustomVenues,
 } from '@/app/browser/custom-venues'
 import { BROWSER_AI_PROVIDERS } from '@/app/browser/keys'
 import { json } from '@/app/server/http/dispatch'
 import { localeOf, readJsonBody, toBodyFieldLabel } from '@/app/server/routes/params'
+import { type OperatorMessage, operatorMessageOf, ValidationError } from '@/core/errors'
 import { toFieldValidationError } from '@/core/field-errors'
 import { hashString } from '@/core/utils/hash'
 import { bindLocale } from '@/i18n'
@@ -34,15 +36,20 @@ declare module '@/core/container' {
 /** The sections the browser keeps: the model tiers and the hand-traded venues a visitor may change. */
 const TIERS_SECTION = 'model_tiers'
 const VENUES_SECTION = 'custom_venues'
+/** The config view's limits for the venues section: what the page checks a form against. */
+const VENUE_LIMITS_KEY = 'custom_venue_limits'
 const MAX_BODY_BYTES = 16 * 1024
 // There is no file and no secret in what this group serves: the fields the contract carries stay empty.
 const NO_FILE = ''
 
-// A save names the sections it changes; the others keep what they hold.
-const ConfigBodySchema = z.strictObject({
-  [TIERS_SECTION]: TierOverridesSchema.optional(),
-  [VENUES_SECTION]: CustomVenuesSchema.optional(),
-})
+// A save names the sections it changes; the others keep what they hold. One that names none
+// changes nothing, so it is refused instead of reporting a restart.
+const ConfigBodySchema = z
+  .strictObject({
+    [TIERS_SECTION]: TierOverridesSchema.optional(),
+    [VENUES_SECTION]: CustomVenuesSchema.optional(),
+  })
+  .refine((body) => Object.values(body).some((section) => section !== undefined))
 
 interface OverrideSection<T> {
   readonly name: string
@@ -112,7 +119,11 @@ function parseJson(text: string): unknown {
 }
 
 function toConfigView({ tiers, venues }: BrowserOverrides): Record<string, unknown> {
-  return { [TIERS_SECTION]: { ...SHIPPED_TIERS, ...tiers }, [VENUES_SECTION]: venues }
+  return {
+    [TIERS_SECTION]: { ...SHIPPED_TIERS, ...tiers },
+    [VENUES_SECTION]: venues,
+    [VENUE_LIMITS_KEY]: CUSTOM_VENUE_LIMITS,
+  }
 }
 
 async function handleConfigGet(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -134,21 +145,47 @@ async function handleConfigGet(req: Request, ctx: ApiRouteContext): Promise<Resp
 
 async function handleConfigValidate(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const parsed = ConfigBodySchema.safeParse(await readJsonBody(req, MAX_BODY_BYTES))
+  const { translate } = bindLocale(localeOf(ctx))
+  const issues = parsed.success
+    ? await venueIssues(ctx, parsed.data[VENUES_SECTION], req.signal)
+    : toFieldValidationError(parsed.error, 'config', toBodyFieldLabel).fields
 
-  if (parsed.success) {
-    return json({ ok: true } satisfies ConfigValidation)
+  return json(
+    issues.length === 0
+      ? ({ ok: true } satisfies ConfigValidation)
+      : ({
+          ok: false,
+          issues: issues.map(({ path, message }) => ({
+            path,
+            message: translate(message.key, message.params),
+          })),
+        } satisfies ConfigValidation)
+  )
+}
+
+/** The refusal POST would raise for these venues, as an issue on the section. */
+async function venueIssues(
+  ctx: ApiRouteContext,
+  venues: BrowserOverrides['venues'] | undefined,
+  signal: AbortSignal
+): Promise<readonly { readonly path: string; readonly message: OperatorMessage }[]> {
+  if (venues === undefined) {
+    return []
   }
 
-  const { translate } = bindLocale(localeOf(ctx))
-  const refusal = toFieldValidationError(parsed.error, 'config', toBodyFieldLabel)
+  try {
+    await assertVenueChange(ctx, venues, signal)
 
-  return json({
-    ok: false,
-    issues: refusal.fields.map(({ path, message }) => ({
-      path,
-      message: translate(message.key, message.params),
-    })),
-  } satisfies ConfigValidation)
+    return []
+  } catch (err: unknown) {
+    const message = err instanceof ValidationError ? operatorMessageOf(err) : undefined
+
+    if (message === undefined) {
+      throw err
+    }
+
+    return [{ path: VENUES_SECTION, message }]
+  }
 }
 
 // A write lands for the next start: the page asks to stop running work and restarts the worker,

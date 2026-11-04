@@ -241,6 +241,7 @@ export {
   isVenueRefShape,
   marketRef,
   region,
+  SLUG_MAX_CHARS,
   ticker,
   tradingDay,
   venueRef,

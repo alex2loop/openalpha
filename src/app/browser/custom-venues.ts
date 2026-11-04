@@ -8,6 +8,7 @@ import {
   isVenueRefShape,
   marketRef,
   resolveTradingConfig,
+  SLUG_MAX_CHARS,
   TRADING_CONFIG_SECTION,
   VN_EQUITY_SELL_TAX,
   venueRef,
@@ -18,12 +19,24 @@ import {
 const MAX_CUSTOM_VENUES = 8
 
 /** The installed config refuses a rate above five percent a side as a misplaced decimal; the page
- *  states the same ceiling so a typo is told apart from a fee. */
+ *  reads the same ceiling from the config view so a typo is told apart from a fee. */
 const MAX_FEE_PERCENT = 5
 
 /** The markets a venue the visitor adds may hold. World gold is read for reference and no venue
  *  holds it, so it is not offered. */
 const CUSTOM_VENUE_MARKETS = Object.freeze(['equity-vn', 'crypto', 'gold-vn'] as const)
+
+/** A fee is typed as a percent and stored as the fraction the config reads. */
+const PERCENT = 100
+
+/** What the page needs to refuse a form the worker would refuse, so it states no limit of its own. */
+export const CUSTOM_VENUE_LIMITS = Object.freeze({
+  markets: CUSTOM_VENUE_MARKETS,
+  maxVenues: MAX_CUSTOM_VENUES,
+  maxFeePercent: MAX_FEE_PERCENT,
+  saleTaxPercent: VN_EQUITY_SELL_TAX * PERCENT,
+  maxIdChars: SLUG_MAX_CHARS,
+})
 
 const CustomVenueSchema = z.strictObject({
   id: z.string().refine(isVenueRefShape, 'must be a venue id'),
@@ -132,10 +145,11 @@ function assertResolves(venues: CustomVenues): void {
   }
 }
 
-// A rate is a fraction of the value, never a percent. A Vietnamese stock sale also carries the
-// statutory tax on top of the broker's fee, so leaving it out would understate every sale.
+// A rate is a fraction of the value, never a percent, and is not rounded: a fee finer than a
+// rounding step must not become zero. A Vietnamese stock sale also carries the statutory tax on top
+// of the broker's fee, so leaving it out would understate every sale.
 function toRawVenue(venue: CustomVenue): object {
-  const rate = Number((venue.fee_percent / 100).toFixed(6))
+  const rate = venue.fee_percent / PERCENT
 
   return {
     markets: [venue.market],

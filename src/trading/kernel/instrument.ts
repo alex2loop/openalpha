@@ -8,7 +8,9 @@ const TRADING_DAY_RE = /^\d{4}-\d{2}-\d{2}$/
  *  `USDT` can be a currency without every other code loosening. */
 const CURRENCY_RE = /^[A-Z]{3,4}$/
 export const FIAT_CODE_LENGTH = 3
-const SLUG_RE = /^[a-z][a-z0-9-]{0,31}$/
+/** The longest market ref, venue ref or other slug. */
+export const SLUG_MAX_CHARS = 32
+const SLUG_RE = new RegExp(`^[a-z][a-z0-9-]{0,${SLUG_MAX_CHARS - 1}}$`)
 const STRATEGY_ID_RE = /^[a-z][a-z0-9-]{0,63}$/
 const UUID_V7_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 /** Eight decimals is what a spot lot or tick size is ever quoted to, and step arithmetic needs a
