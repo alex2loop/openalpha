@@ -50,6 +50,11 @@ select {
   color: inherit;
 }
 
+a {
+  color: var(--link);
+  text-underline-offset: 2px;
+}
+
 /* Every text field and menu: one height, edge and type, so a row of them lines up with its
    buttons. `:where` keeps these at no specificity, so a class (the command box) still wins. */
 :where(

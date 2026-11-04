@@ -54,7 +54,7 @@
 }
 
 .md a {
-  color: inherit;
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 2px;
 }

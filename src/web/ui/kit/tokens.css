@@ -132,6 +132,8 @@
   --tc-teal: #0f766e;
   --tc-gray: #5f5f75;
   --tc-violet: #7c3aed;
+  /* A link in running text: a colour of its own, so it reads apart from the words around it. */
+  --link: var(--tc-blue);
   --tile-mix: 14%;
   --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
   --onAi: #ffffff;
