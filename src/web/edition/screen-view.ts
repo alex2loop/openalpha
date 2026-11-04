@@ -4,9 +4,12 @@ import { type Bound, boundId, hasLimits, withinLimits } from '@/web/edition/scre
 import {
   type BaseSortKey,
   type Candidate,
+  NO_SORT,
   resolveSortKey,
+  resolveThenKey,
   type SortChoices,
   type SortDirection,
+  type SortOrder,
 } from '@/web/edition/screen-sort'
 import { keyOf } from '@/web/state/market'
 import { readStorage, writeStorage } from '@/web/state/storage'
@@ -32,6 +35,9 @@ export interface BoardView {
   readonly kind: string
   readonly sort: string
   readonly direction: SortDirection
+  /** The sort that orders names the first one leaves tied; none by default. */
+  readonly thenSort: string
+  readonly thenDirection: SortDirection
   readonly scope: Scope
   readonly sector: string
   readonly bounds: Readonly<Record<string, string>>
@@ -44,6 +50,8 @@ const DEFAULT_VIEW: BoardView = Object.freeze({
   kind: DEFAULT_KIND,
   sort: 'turnover' satisfies BaseSortKey,
   direction: 'desc',
+  thenSort: NO_SORT,
+  thenDirection: 'desc',
   scope: 'all',
   sector: NO_SECTOR,
   bounds: Object.freeze({}),
@@ -78,6 +86,21 @@ export function updateView(market: string, change: Partial<BoardView>): void {
   writeStorage('local', `${STORAGE_PREFIX}${market}`, JSON.stringify(view.value))
 }
 
+/** Chooses the market's first sort. A second sort the same as it is dropped. */
+export function setSort(market: string, sort: string): void {
+  const { thenSort } = viewOf(market).value
+
+  updateView(market, { sort, ...(thenSort === sort ? { thenSort: NO_SORT } : {}) })
+}
+
+/** The sorts the view asks for, first to last. */
+export function sortOrdersOf(view: BoardView): readonly SortOrder[] {
+  return [
+    { key: view.sort, direction: view.direction },
+    ...(view.thenSort === NO_SORT ? [] : [{ key: view.thenSort, direction: view.thenDirection }]),
+  ]
+}
+
 /** Puts the market's board back on its first kind, for a saved kind the market does not serve. */
 export function clearKind(market: string): void {
   updateView(market, { kind: DEFAULT_KIND })
@@ -85,9 +108,9 @@ export function clearKind(market: string): void {
 
 /** Drops every filter and keeps the kind and the order. */
 export function clearFilters(market: string): void {
-  const { kind, sort, direction } = viewOf(market).value
+  const { kind, sort, direction, thenSort, thenDirection } = viewOf(market).value
 
-  updateView(market, { ...DEFAULT_VIEW, kind, sort, direction })
+  updateView(market, { ...DEFAULT_VIEW, kind, sort, direction, thenSort, thenDirection })
 }
 
 export function isFiltered(view: BoardView, bounds: readonly Bound[]): boolean {
@@ -129,9 +152,12 @@ interface BoardChoices extends SortChoices {
 /** The view with each choice this board cannot honour dropped: a sort or a sector it does not
  *  have (the view outlives the data it was made on) reads as the default. */
 export function resolveView(view: BoardView, choices: BoardChoices): BoardView {
+  const sort = resolveSortKey(view.sort, choices)
+
   return {
     ...view,
-    sort: resolveSortKey(view.sort, choices),
+    sort,
+    thenSort: resolveThenKey(view.thenSort, sort, choices),
     sector: choices.sectors.includes(view.sector) ? view.sector : NO_SECTOR,
   }
 }
@@ -169,17 +195,19 @@ function readView(market: string): BoardView {
 
 // Each field is read on its own, so a view saved by an older page keeps what still fits.
 function toView(stored: Record<string, unknown>): BoardView {
-  const text = (key: 'kind' | 'sort' | 'sector'): string => {
+  const text = (key: 'kind' | 'sort' | 'thenSort' | 'sector'): string => {
     const value = stored[key]
 
     return typeof value === 'string' ? value : DEFAULT_VIEW[key]
   }
-  const { scope, direction } = stored
+  const { scope, direction, thenDirection } = stored
 
   return {
     kind: text('kind'),
     sort: text('sort'),
     direction: direction === 'desc' ? 'desc' : 'asc',
+    thenSort: text('thenSort'),
+    thenDirection: thenDirection === 'asc' ? 'asc' : DEFAULT_VIEW.thenDirection,
     scope: scope === 'held' || scope === 'watched' ? scope : 'all',
     sector: text('sector'),
     bounds: toBounds(stored),

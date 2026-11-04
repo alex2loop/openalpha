@@ -38,6 +38,8 @@ export const FACTOR_SORT_PREFIX = 'factor:'
 /** A sort key that names a measured quantity: the prefix, then the column's key. */
 export const METRIC_SORT_PREFIX = 'metric:'
 const TICKER_SORT: BaseSortKey = 'ticker'
+/** The key of a sort that is not chosen: the second sort of a board that orders by one figure. */
+export const NO_SORT = ''
 const SESSIONS_SEPARATOR = ':'
 const BASE_KEYS = Object.freeze(Object.keys(BASE_SORTS) as BaseSortKey[])
 
@@ -224,6 +226,12 @@ export function resolveSortKey(key: string, choices: SortChoices): string {
   return [key, ...LIQUIDITY_SORTS].find((candidate) => isOffered(candidate, choices)) ?? TICKER_SORT
 }
 
+/** The key that orders names the first sort leaves tied: the visitor's choice where this board
+ *  offers it and it is not the first sort's own, else none. */
+export function resolveThenKey(key: string, sortKey: string, choices: SortChoices): string {
+  return key !== sortKey && isOffered(key, choices) ? key : NO_SORT
+}
+
 function isOffered(key: string, { baseKeys, metrics, factors }: SortChoices): boolean {
   return (
     baseKeys.some((base) => base === key) ||
@@ -232,21 +240,39 @@ function isOffered(key: string, { baseKeys, metrics, factors }: SortChoices): bo
   )
 }
 
-/** The names in the order the visitor chose. A name with no figure for the key goes last in either
- *  direction, so a gap is never read as the smallest or the largest. A factor sorts on its
- *  percentile on the board. */
+/** One sort the visitor chose: what to order by and which way. */
+export interface SortOrder {
+  readonly key: string
+  readonly direction: SortDirection
+}
+
+/** The names in the order the visitor chose: by the first sort, and by each later one only among
+ *  names the earlier ones leave tied (or all lacking the figure). A name with no figure for a key
+ *  goes last in either direction, so a gap is never read as the smallest or the largest. A factor
+ *  sorts on its percentile on the board. */
 export function sortCandidates(
   candidates: readonly Candidate[],
-  key: string,
-  direction: SortDirection
+  orders: readonly SortOrder[]
 ): readonly Candidate[] {
+  return [...candidates].sort((left, right) => {
+    for (const order of orders) {
+      const result = compareBy(left, right, order)
+
+      if (result !== 0) {
+        return result
+      }
+    }
+
+    return 0
+  })
+}
+
+function compareBy(left: Candidate, right: Candidate, { key, direction }: SortOrder): number {
   const sign = direction === 'asc' ? 1 : -1
 
-  return [...candidates].sort((left, right) =>
-    key === TICKER_SORT
-      ? sign * left.instrument.ticker.localeCompare(right.instrument.ticker)
-      : compareFigures(figureOf(left, key), figureOf(right, key), sign)
-  )
+  return key === TICKER_SORT
+    ? sign * left.instrument.ticker.localeCompare(right.instrument.ticker)
+    : compareFigures(figureOf(left, key), figureOf(right, key), sign)
 }
 
 function figureOf(candidate: Candidate, key: string): number | undefined {

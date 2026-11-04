@@ -21,6 +21,7 @@ import {
   filterCandidates,
   type OwnNames,
   resolveView,
+  sortOrdersOf,
   viewOf,
 } from '@/web/edition/screen-view'
 import { useBlockRead } from '@/web/state/block'
@@ -232,8 +233,7 @@ function arrange(board: ScreenResponse, market: string) {
   const view = resolveView(viewOf(market).value, choices)
   const shown = sortCandidates(
     filterCandidates(board.candidates, view, { own: ownNames(), bounds: choices.bounds }),
-    view.sort,
-    view.direction
+    sortOrdersOf(view)
   )
 
   return { choices, view, shown }

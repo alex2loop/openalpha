@@ -1,4 +1,5 @@
 import type { ScreenResponse } from '@/app/server/wire/market'
+import type { MessageKey } from '@/i18n'
 import type { Bound } from '@/web/edition/screen-bounds'
 import { labelled, SORT_LABELS } from '@/web/edition/screen-columns'
 import {
@@ -8,6 +9,7 @@ import {
   METRIC_SORT_PREFIX,
   type MetricColumn,
   metricKey,
+  NO_SORT,
   type SortDirection,
 } from '@/web/edition/screen-sort'
 import {
@@ -15,6 +17,7 @@ import {
   clearFilters,
   isFiltered,
   type Scope,
+  setSort,
   updateView,
 } from '@/web/edition/screen-view'
 import { sectorName } from '@/web/text/segment'
@@ -54,41 +57,87 @@ export function ScreenControls(props: ControlsProps) {
 }
 
 function SortBar({ market, view, baseKeys, metrics, factors }: ControlsProps) {
-  const direction: SortDirection = view.direction
+  const options = [
+    ...baseKeys.map((key) => ({ value: key, label: tr(SORT_LABELS[key]) })),
+    ...metrics.map((column) => ({
+      value: `${METRIC_SORT_PREFIX}${metricKey(column)}`,
+      label: labelled(column.label, column.sessions),
+    })),
+    ...factors.map(({ id, label }) => ({ value: `${FACTOR_SORT_PREFIX}${id}`, label })),
+  ]
 
   return (
-    <div class="sort-bar">
-      <select
-        aria-label={tr('ui.office.edition.screen.sortBy')}
+    <>
+      <SortRow
+        label="ui.office.edition.screen.sortBy"
         value={view.sort}
-        onChange={(event) => updateView(market, { sort: event.currentTarget.value })}
-      >
-        {baseKeys.map((key) => (
-          <option key={key} value={key}>
-            {tr(SORT_LABELS[key])}
-          </option>
-        ))}
-        {metrics.map((column) => (
-          <option key={metricKey(column)} value={`${METRIC_SORT_PREFIX}${metricKey(column)}`}>
-            {labelled(column.label, column.sessions)}
-          </option>
-        ))}
-        {factors.map(({ id, label }) => (
-          <option key={id} value={`${FACTOR_SORT_PREFIX}${id}`}>
-            {label}
-          </option>
-        ))}
-      </select>
-      <Button
-        size="small"
-        onClick={() => updateView(market, { direction: direction === 'asc' ? 'desc' : 'asc' })}
-      >
-        {tr(
-          direction === 'asc'
-            ? 'ui.office.edition.screen.ascending'
-            : 'ui.office.edition.screen.descending'
-        )}
-      </Button>
+        direction={view.direction}
+        options={options}
+        onSort={(sort) => setSort(market, sort)}
+        onDirection={(direction) => updateView(market, { direction })}
+      />
+      <SortRow
+        label="ui.office.edition.screen.thenBy"
+        value={view.thenSort}
+        direction={view.thenDirection}
+        options={options.filter(({ value }) => value !== view.sort)}
+        onSort={(thenSort) => updateView(market, { thenSort })}
+        onDirection={(thenDirection) => updateView(market, { thenDirection })}
+        isOptional
+      />
+    </>
+  )
+}
+
+interface SortOption {
+  readonly value: string
+  readonly label: string
+}
+
+interface SortRowProps {
+  readonly label: MessageKey
+  readonly value: string
+  readonly direction: SortDirection
+  readonly options: readonly SortOption[]
+  readonly onSort: (sort: string) => void
+  readonly onDirection: (direction: SortDirection) => void
+  /** The sort may be left unchosen, and has no direction then. */
+  readonly isOptional?: true
+}
+
+function SortRow({
+  label,
+  value,
+  direction,
+  options,
+  onSort,
+  onDirection,
+  isOptional,
+}: SortRowProps) {
+  return (
+    <div class="sort-bar">
+      <label class="sort-key">
+        <span>{tr(label)}</span>
+        <select value={value} onChange={(event) => onSort(event.currentTarget.value)}>
+          {isOptional === true && (
+            <option value={NO_SORT}>{tr('ui.office.edition.screen.sortNone')}</option>
+          )}
+          {options.map(({ value: key, label: name }) => (
+            <option key={key} value={key}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {value !== NO_SORT && (
+        <Button size="small" onClick={() => onDirection(direction === 'asc' ? 'desc' : 'asc')}>
+          {tr(
+            direction === 'asc'
+              ? 'ui.office.edition.screen.ascending'
+              : 'ui.office.edition.screen.descending'
+          )}
+        </Button>
+      )}
     </div>
   )
 }

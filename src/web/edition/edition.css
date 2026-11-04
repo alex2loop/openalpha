@@ -72,6 +72,21 @@
   align-items: center;
 }
 
+/* A sort reads as its name, the menu and the direction on one line; a long figure name is cut
+   inside the menu rather than pushing the line wider than the screen. */
+.sort-key {
+  display: flex;
+  flex: 1 1 14rem;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.sort-key select {
+  flex: 1;
+  min-width: 0;
+}
+
 .screen-size {
   width: min(17rem, 100%);
 }

@@ -204,6 +204,8 @@
     "office.edition.analysis.head": "{ticker} · {day}",
     "office.edition.screen.title": "Screen",
     "office.edition.screen.sortBy": "Sort by",
+    "office.edition.screen.thenBy": "Then by",
+    "office.edition.screen.sortNone": "None",
     "office.edition.screen.sort.ticker": "Name",
     "office.edition.screen.sort.price": "Price",
     "office.edition.screen.sort.change": "Day's move",
