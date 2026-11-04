@@ -143,3 +143,7 @@
   margin-inline-start: auto;
   margin-bottom: var(--s2);
 }
+
+.market-refresh > .meta {
+  margin: 0;
+}

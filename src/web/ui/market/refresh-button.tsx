@@ -1,6 +1,7 @@
 import { useSignal } from '@preact/signals'
 
 import type { MarketWire } from '@/app/server/wire/market'
+import { DataStatus } from '@/web/edition/data-status'
 import { marketsBlock, overviewBlock } from '@/web/state/market'
 import { marketRegion } from '@/web/state/market-tab'
 import {
@@ -17,8 +18,8 @@ interface RefreshMarketsButtonProps {
   readonly size?: ButtonSize
 }
 
-/** "Cập nhật dữ liệu" for the markets of the region in view; the blocks read again when the run
- *  ends. */
+/** "Cập nhật dữ liệu" for the markets of the region in view, beside when the data was fetched; the
+ *  blocks read again when the run ends. */
 export function RefreshButton() {
   const region = marketRegion.value
 
@@ -33,6 +34,7 @@ export function RefreshButton() {
 
   return (
     <div class="market-refresh">
+      <DataStatus />
       <RefreshMarketsButton markets={refreshableMarkets(region)} />
     </div>
   )

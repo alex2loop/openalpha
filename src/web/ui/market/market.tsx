@@ -1,5 +1,4 @@
 import type { MessageKey } from '@/i18n'
-import { DataStatus } from '@/web/edition/data-status'
 import { readBlock, withCautions } from '@/web/state/block'
 import { isAnalysisOnly } from '@/web/state/edition'
 import {
@@ -110,7 +109,6 @@ function SubTabBody({ subTab }: { readonly subTab: MarketSubTab }) {
 function MarketView({ region }: { readonly region: string }) {
   return (
     <>
-      <DataStatus />
       <MacroFull region={region} />
       <RegionPrices region={region} />
       <Flows region={region} />
