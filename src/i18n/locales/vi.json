@@ -4701,6 +4701,7 @@
     "caveat.market-data.evidence-settled-only": "Lịch sử giá dùng để xếp hạng chỉ tính đến phiên đã chốt; chỉ số công bố liên tục vẫn là giá trị hiện tại.",
     "caveat.market-data.quote-not-live": "{ticker} chưa khớp giá nào mới hơn giá đóng cửa phiên gần nhất, nên bảng hiển thị giá đóng cửa đó thay vì giá trực tiếp.",
     "caveat.market-data.evidence-stale": "Đang dùng dữ liệu dừng ở phiên {asOf}, chưa phải số hiện hành. Chạy /refresh để cập nhật.",
+    "caveat.market-data.refresh-failed": "Lần làm mới gần nhất của {kind} không thành công; dữ liệu không mới hơn phiên {asOf}.",
     "caveat.market-data.first-load-pending": "Dữ liệu thị trường này đang tải lần đầu, nên kết quả chỉ dùng phần đã lưu. Hãy đọc lại sau khi tải xong.",
     "caveat.market-data.first-load-incomplete": "Lần tải đầu đã dừng giữa chừng nên dữ liệu chưa đầy đủ. Chạy /refresh để tải nốt.",
     "caveat.market-data.series-stale": "{ticker}: chuỗi giá ngày dừng ở phiên {asOf}, nên đang được xếp hạng trên dữ liệu cũ hơn các mã còn lại.",

@@ -9,6 +9,7 @@ import type { MarketRegistry } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sleep } from '@/core/utils/time'
+import { DEGRADED_STATUSES } from '@/trading/features/market-data/ops/refresh'
 
 /** Ceiling for a refresh that stores nothing: the first kind landing (the VN listing, about 11 s in)
  *  ends the wait sooner. Keeps the read well inside the 120 s the host allows it. */
@@ -56,10 +57,11 @@ interface EnsureMarketDataDeps {
  *  does hold answers instead, carrying the session it stands for. */
 export function createEnsureMarketData(deps: EnsureMarketDataDeps): EnsureMarketData {
   return async (options) => {
-    const populated = await listPopulated(deps, options.market, options.signal)
+    const attempts = await listAttempts(deps, options.market, options.signal)
+    const populated = attempts.filter(isPopulated)
 
     if (populated.length > 0 && !deps.firstLoading.has(options.market)) {
-      const stale = await buildStaleCaveats(deps, options, populated)
+      const stale = await buildStaleCaveats(deps, options, attempts)
 
       return deps.firstLoadFailed.has(options.market) ? [FIRST_LOAD_INCOMPLETE, ...stale] : stale
     }
@@ -132,7 +134,7 @@ async function untilFirstKindStored(
   market: MarketRef,
   signal: AbortSignal
 ): Promise<void> {
-  while ((await listPopulated(deps, market, signal)).length === 0) {
+  while (!(await listAttempts(deps, market, signal)).some(isPopulated)) {
     await sleep(FIRST_KIND_POLL_MS, signal)
   }
 }
@@ -140,12 +142,20 @@ async function untilFirstKindStored(
 /** The market names the kinds a refresh would refetch, because only it knows their cadences —
  *  holding every kind to the settled day warns about a listing set replaced weekly and names a
  *  command that will correctly decline to run. The oldest of those kinds dates the caveat: a board
- *  priced through Friday whose flows stop on Wednesday is two sessions behind. */
+ *  priced through Friday whose flows stop on Wednesday is two sessions behind.
+ *
+ *  A kind whose latest attempt settled short reads as current by its stamps, since the failed pass
+ *  is the newest one, so its status speaks instead: one caveat naming the kind, which also takes it
+ *  out of the stale date. The stamp is the session the attempt stood for, so the data is no newer
+ *  than it and may be older. */
 async function buildStaleCaveats(
   deps: EnsureMarketDataDeps,
   options: EnsureMarketDataOptions,
-  populated: readonly MarketRefreshAttempt[]
+  attempts: readonly MarketRefreshAttempt[]
 ): Promise<readonly Caveat[]> {
+  const populated = attempts.filter(isPopulated)
+  const failed = attempts.filter((attempt) => DEGRADED_STATUSES.has(attempt.result.status))
+  const failedKinds = new Set(failed.map((attempt) => attempt.result.kind))
   const market = deps.markets.find(options.market)
   const stale =
     (await market?.capabilities.staleKinds?.run({
@@ -154,19 +164,31 @@ async function buildStaleCaveats(
       signal: options.signal,
     })) ?? []
   const [asOf] = populated
-    .filter((attempt) => stale.includes(attempt.result.kind))
+    .filter(
+      (attempt) => stale.includes(attempt.result.kind) && !failedKinds.has(attempt.result.kind)
+    )
     .map((attempt) => attempt.asOf)
     .sort()
+  const refreshFailed = failed.map(
+    (attempt): Caveat => ({
+      code: 'market-data.refresh-failed',
+      detail: { kind: attempt.result.kind, asOf: attempt.asOf },
+    })
+  )
 
-  return asOf === undefined ? [] : [{ code: 'market-data.evidence-stale', detail: { asOf } }]
+  return asOf === undefined
+    ? refreshFailed
+    : [{ code: 'market-data.evidence-stale', detail: { asOf } }, ...refreshFailed]
 }
 
-async function listPopulated(
+async function listAttempts(
   deps: EnsureMarketDataDeps,
   market: MarketRef,
   signal: AbortSignal
 ): Promise<readonly MarketRefreshAttempt[]> {
-  const attempts = await deps.marketDataStore.listRefreshAttempts({ market, signal })
+  return deps.marketDataStore.listRefreshAttempts({ market, signal })
+}
 
-  return attempts.filter((attempt) => attempt.result.recordCount > 0)
+function isPopulated(attempt: MarketRefreshAttempt): boolean {
+  return attempt.result.recordCount > 0
 }
