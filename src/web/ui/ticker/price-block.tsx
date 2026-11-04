@@ -1,9 +1,11 @@
+import { useEffect } from 'preact/hooks'
+
 import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
 import { formatDay, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
-import { findMarket, findQuote, keyOf, stopsBlock } from '@/web/state/market'
+import { findMarket, findQuote, keyOf, quotesBlock, stopsBlock } from '@/web/state/market'
 import { isRefreshable, useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
@@ -17,7 +19,7 @@ import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { RefreshMarketsButton } from '@/web/ui/market/refresh-button'
 import { type ChartLevel, PriceChart } from '@/web/ui/ticker/chart'
-import { useLiveQuote } from '@/web/ui/ticker/live-quote'
+import { type LiveQuote, useLiveQuote } from '@/web/ui/ticker/live-quote'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 // Calendar days read, enough to hold the sessions shown across weekends and holidays.
@@ -44,6 +46,8 @@ interface PriceFacts {
   readonly readAt?: number
   /** When a price too old to be live was read, in a session still trading. */
   readonly staleAt?: number
+  /** The last settled close, beside a live price so the two are not read as one. */
+  readonly close?: { readonly day: string; readonly value: number }
 }
 
 /** The name, its price with the session it belongs to, and the last 30 sessions with the plan's
@@ -59,6 +63,7 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   const board = findQuote(ticker, market)
   const quote = newerQuote(live.quote, board)
   const label = board?.label
+  useLiveWhileTrading({ ticker, market }, { quote, live })
 
   return (
     <BlockFrame
@@ -83,6 +88,24 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
       )}
     </BlockFrame>
   )
+}
+
+// A market that is trading shows its live price, not the close the board fell back to: one read
+// when the page opens, the same one the Lấy giá mới button makes.
+function useLiveWhileTrading(
+  { ticker, market }: { readonly ticker: string; readonly market: string },
+  { quote, live }: { readonly quote: TradingQuoteWire | undefined; readonly live: LiveQuote }
+): void {
+  const isBoardKnown = quotesBlock.view.value.data !== undefined
+  const isOpen = findMarket(market)?.session?.phase === 'open'
+  const canQuote = state.value?.capabilities.quotes !== false
+  const isClose = quote === undefined || quote.closedOn !== undefined
+
+  useEffect(() => {
+    if (isBoardKnown && isOpen && canQuote && isClose) {
+      live.refresh()
+    }
+  }, [ticker, market, isBoardKnown, isOpen])
 }
 
 interface PriceBodyProps extends PriceBlockProps {
@@ -164,6 +187,14 @@ function PriceHead({ market, facts }: { readonly market: string; readonly facts:
           </span>
         )}
       </p>
+      {facts.close !== undefined && (
+        <p class="meta">
+          {tr('ui.office.ticker.closeRow', {
+            day: formatDay(locale.value, facts.close.day),
+            price: formatMarketPrice(market, facts.close.value, facts.kind),
+          })}
+        </p>
+      )}
     </>
   )
 }
@@ -222,6 +253,7 @@ function resolvePrice(
       kind: quote.kind,
       session: describeSession(market, quote.closedOn),
       ...toQuoteTimes(quote),
+      ...liveClose(quote, bars),
     }
   }
 
@@ -243,6 +275,18 @@ function resolvePrice(
   return last === undefined
     ? undefined
     : { value: last.close, session: describeSession(market, last.at) }
+}
+
+// A live price states the last settled close beside it, dated, never one in place of the other.
+function liveClose(
+  quote: TradingQuoteWire,
+  bars: readonly TradingCandleWire[]
+): Pick<PriceFacts, 'close'> {
+  const last = bars.at(-1)
+
+  return quote.closedOn !== undefined || quote.staleAt !== undefined || last === undefined
+    ? {}
+    : { close: { day: last.at, value: last.close } }
 }
 
 // When the quote was taken: the newest of its sources' own reading times.

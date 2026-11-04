@@ -90,8 +90,14 @@ function legendLines(
   block: SegmentBlock,
   context: RenderContext
 ): readonly string[] {
+  // The legend explains the ceiling mark, so it waits for a bar that prints one: a book with no
+  // value has shares that are not numbers, and its bars are not drawn.
   const drawn =
-    context.charts && context.layout === 'lines' && block.rows.some((row) => row.bar !== undefined)
+    context.layout === 'lines' &&
+    block.rows.some(
+      (row) =>
+        row.bar?.mark !== undefined && renderBar(row.bar, CHART_CELLS.line, context) !== undefined
+    )
 
   return drawn && block.legend !== undefined
     ? [`${INDENT[1]}${t(locale, block.legend, BAR_MARKS)}`]

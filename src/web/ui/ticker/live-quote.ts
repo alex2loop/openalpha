@@ -7,7 +7,7 @@ import { ROUTES } from '@/web/api/routes'
 import { createSingleFlight } from '@/web/api/single-flight'
 import { toErrorText, tr } from '@/web/text/tr'
 
-interface LiveQuote {
+export interface LiveQuote {
   /** The last price read on request; absent until the operator asks. */
   readonly quote: TradingQuoteWire | undefined
   readonly failure: string | undefined
