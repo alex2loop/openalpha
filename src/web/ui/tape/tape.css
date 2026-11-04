@@ -11,8 +11,10 @@
   white-space: nowrap;
 }
 
+/* An empty tape keeps its row, so the scene below is framed once and does not move when the
+   first prices arrive. */
 .tape.is-empty {
-  display: none;
+  visibility: hidden;
 }
 
 .tape-track {
