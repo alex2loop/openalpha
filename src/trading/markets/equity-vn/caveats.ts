@@ -1,5 +1,9 @@
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { SourceKind, SourceProvenance } from '@/trading/kernel/source/source-result'
+import type {
+  SourceKind,
+  SourceProvenance,
+  SourceUnavailable,
+} from '@/trading/kernel/source/source-result'
 import { sourcedCaveat } from '@/trading/kernel/caveat'
 
 /** What to report for a read that produced nothing usable: an otherwise unexplained loss gets the
@@ -10,6 +14,17 @@ export function reportedCaveats(caveats: readonly Caveat[], kind: SourceKind): r
   return caveats.length > 0
     ? caveats
     : [{ code: 'source.no-available-provider', detail: { sourceKind: kind } }]
+}
+
+/** `reportedCaveats` for a leg that came back unavailable. A leg this edition does not serve (no
+ *  route, or none covering the request, and nothing said about why) is the designed degradation the
+ *  caller already reads around, not a failure: only a read that tried and lost is named. */
+export function unavailableCaveats(result: SourceUnavailable, kind: SourceKind): readonly Caveat[] {
+  const isUnserved =
+    (result.reason === 'unconfigured' || result.reason === 'unsupported') &&
+    result.caveats.length === 0
+
+  return isUnserved ? [] : reportedCaveats(result.caveats, kind)
 }
 
 export function buildPayloadRejectedCaveat(

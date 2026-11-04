@@ -10,7 +10,11 @@ import type {
 } from '@/trading/kernel/market/market-data'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceId } from '@/trading/kernel/source/source-id'
-import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
+import type {
+  SourceKind,
+  SourceProvenance,
+  SourceResult,
+} from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
 import type { TradingCalendar } from '@/trading/markets/types'
@@ -21,7 +25,7 @@ import {
   provenanceOf,
   unavailable,
 } from '@/trading/kernel/source/source-result'
-import { reportedCaveats } from '@/trading/markets/equity-vn/caveats'
+import { reportedCaveats, unavailableCaveats } from '@/trading/markets/equity-vn/caveats'
 import {
   deriveVnMacroRisk,
   foreignFlowStress,
@@ -233,10 +237,10 @@ export async function runMacroRisk(
 
 function readCaveats(reads: MacroReads): readonly Caveat[] {
   return dedupeCaveats([
-    ...readCaveatsOf(reads.local),
+    ...readCaveatsOf(reads.local, 'macro'),
     ...globalCaveats(reads.global),
-    ...readCaveatsOf(reads.news),
-    ...readCaveatsOf(reads.fx),
+    ...readCaveatsOf(reads.news, 'news'),
+    ...readCaveatsOf(reads.fx, 'fx'),
   ])
 }
 
@@ -258,8 +262,8 @@ function globalCaveats(reads: readonly SourceResult<MacroSnapshot>[]): readonly 
       )
 }
 
-function readCaveatsOf(result: SourceResult<unknown>): readonly Caveat[] {
-  return result.kind === 'available' ? result.caveats : reportedCaveats(result.caveats, 'macro')
+function readCaveatsOf(result: SourceResult<unknown>, kind: SourceKind): readonly Caveat[] {
+  return result.kind === 'available' ? result.caveats : unavailableCaveats(result, kind)
 }
 
 function readProvenance(reads: MacroReads): readonly SourceProvenance[] {
