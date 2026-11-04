@@ -73,7 +73,7 @@
 }
 
 .screen-size {
-  width: 11rem;
+  width: min(17rem, 100%);
 }
 
 /* One cell per fact on columns of a set width, so rows read alike at any card width; a reading
