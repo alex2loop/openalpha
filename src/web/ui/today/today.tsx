@@ -15,9 +15,9 @@ import { NeedsYou } from '@/web/ui/today/needs-you'
 import { SessionLine } from '@/web/ui/today/session-line'
 import { SetupNotices } from '@/web/ui/today/setup-notices'
 
-/** Hôm nay: the first-run guide while it shows, else a missing model, then the home market's day, what waits for the
- *  operator and what is worth a look, in a fixed order; what the daemon started without closes the
- *  tab. */
+/** Hôm nay: the first-run guide while it shows, else a missing model; then the home market's day,
+ *  what waits for the operator and what is worth a look, in a fixed order. What the daemon started
+ *  without closes the tab. */
 export function Today() {
   return (
     <>

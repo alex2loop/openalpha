@@ -86,7 +86,8 @@ async function send(ctx: SendContext, request: Request): Promise<Response> {
       id,
       method: request.method,
       path: `${url.pathname}${url.search}`,
-      // The routes read headers (`Idempotency-Key` on a ledger write): dropping them refuses the write.
+      // The routes read headers (`Idempotency-Key` on a ledger write); dropping them refuses the
+      // write.
       headers: Object.fromEntries(request.headers),
       ...(body === undefined || body === '' ? {} : { body }),
     })

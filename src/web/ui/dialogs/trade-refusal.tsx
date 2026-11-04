@@ -10,8 +10,8 @@ import { Button } from '@/web/ui/kit/button'
 // The daemon files a cash shortfall under the amount, as the save does.
 const CASH_PATH = 'amount'
 
-/** The book's refusal of a draft, as the preview answered it. A cash shortfall also names the cash
- *  to put there first. */
+/** The book's refusal of a draft, as the preview answered it; absent when it gave no message. A cash
+ *  shortfall also names the cash to put there first. */
 export function toPreviewRefusal(
   draft: LedgerDraft,
   failure: ApiFailure

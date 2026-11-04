@@ -22,7 +22,7 @@ import {
   shownPaths,
   useVenues,
 } from '@/web/ui/dialogs/trade-fields'
-import { FxFailure, RateField, useFxPreview } from '@/web/ui/dialogs/trade-fx'
+import { FxFailure, RateField, usePreview } from '@/web/ui/dialogs/trade-fx'
 import {
   bookedRate,
   shapeOf,
@@ -82,7 +82,7 @@ function TradeBody({ open }: { readonly open: OpenTrade }) {
   const preview = describeTrade(form)
 
   useVenues(form)
-  useFxPreview(form)
+  usePreview(form)
 
   return (
     <div class="dialog-form trade-form">

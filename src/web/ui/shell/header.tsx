@@ -8,9 +8,10 @@ import { WeatherChip } from '@/web/scene/overlay/weather-chip'
 import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
 import { isAnalysisOnly } from '@/web/state/edition'
+import { isFirstRunOver } from '@/web/state/first-run'
 import { runningCount, workingTasks } from '@/web/state/live'
 import { isInfoOnly, toggleInfoOnly } from '@/web/state/pane'
-import { brand, isFirstRun } from '@/web/state/session'
+import { brand } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { BellButton } from '@/web/ui/bell/bell-button'
 import { BellPopover } from '@/web/ui/bell/bell-popover'
@@ -44,10 +45,10 @@ export function Header() {
         {brand.value}
       </div>
       <RunningChip anchor={jobsAnchor} />
-      <span class="header-grow">
+      <div class="header-grow">
         <AiNote />
-      </span>
-      {!isFirstRun.value && <CostChip anchor={costAnchor} />}
+      </div>
+      {isFirstRunOver.value && <CostChip anchor={costAnchor} />}
       {hasScene && <ViewSwitch />}
       <InfoOnlyToggle />
       {hasScene && <ClockControl />}

@@ -1,9 +1,9 @@
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
+import { isFirstRunOver } from '@/web/state/first-run'
 import { freshCalls, keyOf, stopBreaches } from '@/web/state/market'
 import { reducedMotion } from '@/web/state/prefs'
-import { isFirstRun } from '@/web/state/session'
 import { type TapeRow, tapeRows } from '@/web/state/tape'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
@@ -21,7 +21,7 @@ export function Tape() {
   const breached = new Set(stopBreaches.value.map((stop) => keyOf(stop.instrument)))
   const called = new Set(freshCalls.value.map((call) => keyOf(call.instrument)))
   const resolveNote = (row: TapeRow): Note => {
-    if (isFirstRun.value) {
+    if (!isFirstRunOver.value) {
       return undefined
     }
 

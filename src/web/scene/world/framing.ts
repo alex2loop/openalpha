@@ -5,6 +5,9 @@ import { FRONTAGE_FACE_TOP } from '@/web/scene/world/frontage'
 
 // Below the narrow width the floor never draws under one CSS pixel per world pixel; the rest pans.
 const NARROW_MIN_SCALE = 1
+// A pane shorter than the bars covering it fits nothing; the floor then draws at this sliver, never
+// at zero or mirrored.
+const MIN_FIT_SCALE = 0.01
 // Leaves a sliver of the pane around the frame.
 const FRAME_FILL = 0.98
 // A room fills the pane with a tenth of itself to spare round its walls.
@@ -33,7 +36,7 @@ function fitFloorScale(pane: Size, topCover: number): number {
   const wide = pane.w / FRAME_RECT.w
   const tall = Math.min(pane.h / FRAME_RECT.h, (pane.h - topCover) / CLEAR_FRAME.h)
 
-  return Math.min(wide, tall) * FRAME_FILL
+  return Math.max(Math.min(wide, tall) * FRAME_FILL, MIN_FIT_SCALE)
 }
 
 /** The fitted floor's CSS px per world px as both renderers draw it, never under

@@ -37,6 +37,8 @@
 
 /* Red like a warning, and never the market red that says a price fell. */
 .header-ai-note {
+  /* The warning glyph reads at the caption's cap height; larger crowds the one-line sentence. */
+  --aiNoteIconSize: 12px;
   display: flex;
   align-items: center;
   gap: var(--s0);
@@ -48,14 +50,16 @@
 
 .header-ai-note svg {
   flex: none;
-  width: 12px;
-  height: 12px;
+  width: var(--aiNoteIconSize);
+  height: var(--aiNoteIconSize);
 }
 
 .header-ai-shortest {
   display: none;
 }
 
+/* 260px is the room the short sentence needs beside its glyph; a container query cannot read a
+   token, so the number stays here. */
 @container (width < 260px) {
   .header-ai-short {
     display: none;

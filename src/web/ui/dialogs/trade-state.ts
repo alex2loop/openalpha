@@ -31,9 +31,9 @@ import {
   withStatedRate,
 } from '@/web/ui/dialogs/trade-kinds'
 
-// The daemon's zone is always known once the page is up; this only types the lookup.
 /** The kind a fresh form opens on. */
 const DEFAULT_KIND: LedgerKind = 'buy'
+// The daemon's zone is always known once the page is up; this only types the lookup.
 const FALLBACK_ZONE = 'UTC'
 const KEY_BYTES = 16
 const MARKET_SEPARATOR = ':'
@@ -81,11 +81,12 @@ export interface TradeForm {
   readonly currency: Signal<string>
   readonly rate: Signal<string>
   readonly note: Signal<string>
-  /** The day's market rate the daemon asked for; absent where no rate applies. */
+  /** The day's market rate the preview answered; absent where no rate applies. */
   readonly fxRate: Signal<FxRate | undefined>
-  /** Whether that ask is settled, under way, or failed: only a settled one lets the row save. */
+  /** Whether the preview ask for a rated row is settled, under way, or failed: only a settled one
+   *  lets the row save. */
   readonly fxStatus: Signal<'idle' | 'pending' | 'failed'>
-  /** Bumped by Thử lại to ask again. */
+  /** Bumped by Thử lại to ask the preview again. */
   readonly fxRetry: Signal<number>
   /** The preview's refusal of the draft; it holds nothing back, the save asks the daemon again. */
   readonly refusal: Signal<PreviewRefusal | undefined>

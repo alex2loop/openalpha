@@ -20,21 +20,30 @@ const PREVIEW_DELAY_MS = 400
 const INCOMPLETE = 'incomplete'
 
 /** Asks the daemon about every complete draft: whether the book would refuse it, and, when the draft
- *  settles in a currency other than the book's, whether the row takes a rate. The rate field shows
- *  only when it answers one, and only a row that may take one waits on the answer to save. A newer
- *  draft cancels the ask before it, and closing the dialog cancels the last. */
-export function useFxPreview(form: TradeForm): void {
+ *  settles in a currency other than the book's, whether the row takes a rate. The refusal and the
+ *  rate describe only the draft in the form: an edit drops both until the new answer. The rate field
+ *  shows only when it answers one, and only a row that may take one waits on the answer to save. A
+ *  newer draft cancels the ask before it, and closing the dialog cancels the last. */
+export function usePreview(form: TradeForm): void {
   const draft = buildPreviewDraft(form)
   const print = draft === undefined ? INCOMPLETE : JSON.stringify(draft)
   const isRated = draft !== undefined && isRateCurrency(draft)
   const retry = form.fxRetry.value
 
   useEffect(() => {
+    form.refusal.value = undefined
+
     // An incomplete draft keeps the last rate answer and is refused on save as it stands.
     if (draft === undefined) {
       form.fxStatus.value = 'idle'
-      form.refusal.value = undefined
       return undefined
+    }
+
+    // A row that takes no rate drops the last one now, not after the ask: nothing may state it.
+    if (isRated) {
+      form.fxStatus.value = 'pending'
+    } else {
+      applyRate(form, undefined)
     }
 
     const controller = new AbortController()
@@ -42,8 +51,6 @@ export function useFxPreview(form: TradeForm): void {
       () => askPreview(form, { draft, isRated, signal: controller.signal }),
       PREVIEW_DELAY_MS
     )
-
-    form.fxStatus.value = isRated ? 'pending' : 'idle'
 
     return () => {
       clearTimeout(timer)
@@ -69,7 +76,6 @@ function askPreview(
   previewLedger({ draft, ...(replacing === undefined ? {} : { replacing }) }, signal).then(
     (answer) => {
       if (!signal.aborted) {
-        form.refusal.value = undefined
         applyRate(form, answer.fxRate)
       }
     },
