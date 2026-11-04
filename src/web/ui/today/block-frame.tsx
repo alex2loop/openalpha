@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact'
 
 import type { BlockReading } from '@/web/state/block'
 import { formatDay, type MessageKey } from '@/i18n'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { locale, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatClock } from '@/web/text/time'
@@ -155,12 +156,14 @@ export function ReadLine({ readAt, dataTo, readKey = 'ui.office.today.readAt' }:
     return null
   }
 
+  // The web edition says once per panel when its data was fetched ("Dữ liệu lúc"), so a card there
+  // does not repeat a read time.
   const facts = [
     ...(dataTo === undefined
       ? []
       : [tr('ui.office.today.dataTo', { time: formatDay(locale.value, dataTo) })]),
-    tr(readKey, { time: formatClock(readAt, timeZone) }),
+    ...(isAnalysisOnly.value ? [] : [tr(readKey, { time: formatClock(readAt, timeZone) })]),
   ]
 
-  return <p class="meta block-read">{joinInline(facts)}</p>
+  return facts.length === 0 ? null : <p class="meta block-read">{joinInline(facts)}</p>
 }
