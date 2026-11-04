@@ -51,7 +51,7 @@
 }
 
 .cost-note {
-  margin-top: var(--s1);
+  margin: var(--s1) 0;
 }
 
 .cost-readout {
