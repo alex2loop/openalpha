@@ -1,7 +1,7 @@
 import { useEffect } from 'preact/hooks'
 
 import { type FeatureId, WEB_FEATURES } from '@/web/edition/guide/features'
-import { INSTALL_URL } from '@/web/edition/guide/product'
+import { installUrl } from '@/web/edition/guide/product'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
@@ -42,7 +42,7 @@ function CompareBody({ row }: { readonly row: FeatureId | undefined }) {
         <p>{tr('ui.office.edition.compare.install.body')}</p>
         <a
           class="btn btn-commit btn-regular"
-          href={INSTALL_URL}
+          href={installUrl()}
           target="_blank"
           rel="noopener noreferrer"
         >
