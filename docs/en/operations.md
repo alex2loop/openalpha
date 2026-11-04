@@ -693,7 +693,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     the watchlist with its price alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
     and deleted here, with undo, and History checks the ledger against your venues (see
     [Trading](trading.md#on-the-office-page)).
-  - *Market* holds the full macro reading, the last closed session, the news and your themes (below).
+  - *Market* holds the full macro reading, the market session, the news and your themes (below).
   - *Ideas* holds open plans, the opportunities screen, the track record and research results, with a
     count of new calls you have not seen.
   - Click a ticker anywhere and its card opens: price (with "Refresh price", which reads that one name
@@ -796,7 +796,7 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   from its read, so a second ask inside it costs no provider read. The valuation is what the last
   refresh stored, and reads again when a refresh ends. Each of these blocks, and Money flow, says
   under its title which day its data is up to and when it was read.
-- **The last closed session** as `/market` writes it (the line about scheduled updates only for the
+- **The market session** as `/market` writes it (the line about scheduled updates only for the
   home region). It is read when you open it and on Refresh, never on a timer.
 
 A part with nothing to show is left out, and one that could not be read says why.

@@ -1680,7 +1680,7 @@
     "office.market.unserved": "The web version cannot read these (their source does not let a browser read it), so I'm leaving them out: {names}",
     "office.market.coverage": "Data for {share} of the model",
     "office.market.coverageWeb": "Read {read} of {total} data series",
-    "office.market.session": "Last closed session",
+    "office.market.session": "Market session",
     "office.market.sessionLoading": "Reading the session from the sources; this takes a few seconds.",
     "office.market.refresh": "Refresh",
     "office.market.note": "Note",

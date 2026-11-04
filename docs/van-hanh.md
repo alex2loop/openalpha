@@ -685,7 +685,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     sách theo dõi cùng cảnh báo giá, thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
     có hoàn tác, còn Lịch sử đối chiếu sổ với các sàn của bạn (xem
     [Giao dịch](giao-dich.md#trên-trang-văn-phòng)).
-  - *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên gần nhất đã chốt, tin tức và các chủ đề của bạn (ở
+  - *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên thị trường, tin tức và các chủ đề của bạn (ở
     dưới).
   - *Đề xuất* gồm các kế hoạch đang mở, màn hình cơ hội, thành tích và kết quả nghiên cứu, kèm số đề
     xuất mới bạn chưa xem.
@@ -788,7 +788,7 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   đọc, nên hỏi lại trong phút đó không tốn lượt đọc nguồn. Còn định giá là số lượt làm mới gần nhất đã
   lưu, và được đọc lại khi một lượt làm mới xong. Các khối này và Dòng tiền theo mã ghi dưới tiêu đề
   dữ liệu đến ngày nào và đọc lúc nào.
-- **Phiên gần nhất đã chốt** đúng như `/market` viết (dòng về bản cập nhật định kỳ chỉ có ở vùng nhà).
+- **Phiên thị trường** đúng như `/market` viết (dòng về bản cập nhật định kỳ chỉ có ở vùng nhà).
   Phần này được đọc khi bạn mở và khi bấm Làm mới, không bao giờ theo chu kỳ.
 
 Phần nào không có gì để hiện thì bị bỏ, và phần nào không đọc được thì nói rõ vì sao.

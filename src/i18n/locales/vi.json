@@ -1680,7 +1680,7 @@
     "office.market.unserved": "Bản web chưa đọc được (nguồn không cho trình duyệt đọc) nên mình để ngoài: {names}",
     "office.market.coverage": "Đủ dữ liệu cho {share} mô hình",
     "office.market.coverageWeb": "Đọc được {read}/{total} chuỗi số liệu",
-    "office.market.session": "Phiên gần nhất đã chốt",
+    "office.market.session": "Phiên thị trường",
     "office.market.sessionLoading": "Mình đang đọc phiên từ nguồn dữ liệu, mất vài giây.",
     "office.market.refresh": "Làm mới",
     "office.market.note": "Ghi chú",
