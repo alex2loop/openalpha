@@ -107,7 +107,7 @@ function KeyForm({ slot }: { readonly slot: KeySlot }) {
   const draft: KeyDraft = {
     provider: useSignal<string>(SLOT_PROVIDERS[slot][0]),
     text: useSignal(''),
-    isRemembered: useSignal(false),
+    isRemembered: useSignal(true),
   }
 
   return (
@@ -123,9 +123,11 @@ function KeyForm({ slot }: { readonly slot: KeySlot }) {
         {tr('ui.office.edition.keys.remember')}
       </label>
       <p class="meta">{tr('ui.office.edition.keys.rememberNote')}</p>
-      {slot === 'ai' && draft.provider.value === OPENROUTER && (
-        <ConnectRow isRemembered={draft.isRemembered.value} />
-      )}
+      {slot === 'ai' &&
+        draft.provider.value === OPENROUTER &&
+        heldKeys.value.ai[OPENROUTER] === undefined && (
+          <ConnectRow isRemembered={draft.isRemembered.value} />
+        )}
       <KeyFields slot={slot} draft={draft} />
       <SaveKeyRow slot={slot} draft={draft} />
     </div>
