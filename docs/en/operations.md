@@ -674,7 +674,8 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     your book with "See the portfolio" (its value, what it holds, names past their stop, and the
     take-profit orders waiting at the exchange); the Vietnamese and other markets (each with its top
     gainers and losers of the session, or of the last 24 hours for a market that never closes, with
-    their turnover); upcoming events; top headlines; and what the agents did today, including work
+    their turnover; a dealer's rows, such as VN gold, state the dealer's buying and selling price and
+    the spread between them); upcoming events; top headlines; and what the agents did today, including work
     that ran while the page was closed. The macro and news blocks carry "See the full reading", which
     opens the Market tab. Anything the daemon started without, such as a missing exchange key, closes
     the tab. Above all of it sits a "Getting started" card until you finish or hide it: connect an AI
@@ -694,8 +695,9 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
   - *Ideas* holds open plans, the opportunities screen, the track record and research results, with a
     count of new calls you have not seen.
   - Click a ticker anywhere and its card opens: price (with "Refresh price", which reads that one name
-    live), the last sessions charted on price and date axes with the plan levels, your holding, "Why?"
-    for the reasoning behind a call, earlier calls and what your own agents think. Under the plan's
+    live; a dealer's board, such as VN gold, adds its buying price, selling price and spread), the
+    last sessions charted on price and date axes with the plan levels, your holding, "Why?" for the
+    reasoning behind a call, earlier calls and what your own agents think. Under the plan's
     levels sit "What it is waiting for" (what the trader still waits on before the entry, when it
     does) and "How each factor reads", the same lines `/suggest` prints. A call card under Ideas
     shows both too.

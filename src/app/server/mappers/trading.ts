@@ -1,6 +1,7 @@
 // One mapper per wire shape. A handler calls its service, then its mapper — it never assembles a
 // wire object inline, so a projection can only be wrong in one place. `toSuggestionWire` in
 // particular has two call sites (/v1/suggestions and /v1/track-record) and one definition.
+import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
 import type {
   AbsolutePositionWire,
   InstrumentRefWire,
@@ -124,11 +125,20 @@ function toQuoteWire(item: QuoteBoardItem, locale: Locale): TradingQuoteWire {
     ...(item.changePct === undefined ? {} : { changePct: item.changePct }),
     ...(item.closedOn === undefined ? {} : { closedOn: item.closedOn }),
     ...(isStale(item) ? { staleAt: item.observed.observedAt } : {}),
+    ...(item.board === undefined ? {} : { board: toDealerBoardWire(item.board) }),
     provenance: toProvenanceWires(item.provenance),
     caveats: toCaveatWires(item.caveats, locale),
     kind: item.kind,
     market: item.market,
     assetClass: item.assetClass,
+  }
+}
+
+export function toDealerBoardWire(board: NonNullable<QuoteBoardItem['board']>): DealerBoardWire {
+  return {
+    buyPrice: board.buyPrice,
+    sellPrice: board.sellPrice,
+    ...(board.spreadPct === undefined ? {} : { spread: board.spreadPct }),
   }
 }
 

@@ -37,7 +37,7 @@ import type {
   TradingSectorsView,
   TypedPrice,
 } from '@/trading/api'
-import { toCaveatWires, toInstrumentWire } from '@/app/server/mappers/trading'
+import { toCaveatWires, toDealerBoardWire, toInstrumentWire } from '@/app/server/mappers/trading'
 import { changeAgainstClose, MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
 
 // A closed vocabulary the wire copies in `wire/vocab.ts` must match its trading source both ways, so
@@ -144,6 +144,7 @@ export function toSearchWire(matches: readonly InstrumentMatch[]): InstrumentSea
  *  every surface measures it; otherwise the settled close stands. */
 function toOverviewRowWire(row: OverviewRow): OverviewResponse['markets'][number]['rows'][number] {
   const instrument = toInstrumentWire(row.instrument)
+  const board = row.quote?.board
 
   if (row.live !== undefined) {
     const changePct = changeAgainstClose(row.live.price, row.quote?.price, row.live.changePct)
@@ -161,6 +162,7 @@ function toOverviewRowWire(row: OverviewRow): OverviewResponse['markets'][number
     ...(row.quote === undefined ? {} : { price: row.quote.price }),
     ...(row.changePct === undefined ? {} : { changePct: row.changePct }),
     ...(row.closedOn === undefined ? {} : { closedOn: row.closedOn }),
+    ...(board === undefined ? {} : { board: toDealerBoardWire(board) }),
   }
 }
 

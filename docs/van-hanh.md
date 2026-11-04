@@ -667,7 +667,8 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     duyệt, mã thủng cắt lỗ; bấm "Mở" để xem trong chuông); những gì đáng xem; danh mục của bạn với nút
     "Xem danh mục" (giá trị, đang giữ gì, mã thủng cắt lỗ và các lệnh chốt lời đang chờ ở sàn); thị
     trường Việt Nam và các thị trường khác (mỗi thị trường kèm các mã tăng mạnh nhất và giảm mạnh nhất
-    của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch); sự kiện sắp
+    của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch; hàng của đại
+    lý như vàng VN nêu giá mua vào, giá bán ra và chênh lệch giữa hai giá); sự kiện sắp
     tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
     và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví
     dụ chưa có khóa API của sàn, nằm ở cuối thẻ. Trên cùng là thẻ "Bắt đầu với" cho tới khi bạn làm
@@ -687,7 +688,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
   - *Đề xuất* gồm các kế hoạch đang mở, màn hình cơ hội, thành tích và kết quả nghiên cứu, kèm số đề
     xuất mới bạn chưa xem.
   - Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng
-    mã đó), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng các mức của kế hoạch, mã bạn đang
+    mã đó; bảng giá của đại lý như vàng VN thêm giá mua vào, giá bán ra và chênh lệch), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng các mức của kế hoạch, mã bạn đang
     giữ, "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
     Dưới các mức của kế hoạch là "Đang chờ điều gì" (điều kiện người giao dịch còn chờ trước khi vào
     lệnh, nếu có) và "Từng yếu tố chấm ra sao", đúng những dòng `/suggest` in ra. Thẻ đề xuất ở mục

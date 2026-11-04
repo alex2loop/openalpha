@@ -1,5 +1,6 @@
 import { useEffect } from 'preact/hooks'
 
+import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
 import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
 import { formatDay, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
@@ -11,7 +12,12 @@ import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
-import { boardScaleNotes, formatMarketPrice, toTickFormatter } from '@/web/text/market-price'
+import {
+  boardScaleNotes,
+  formatDealerBoard,
+  formatMarketPrice,
+  toTickFormatter,
+} from '@/web/text/market-price'
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
@@ -48,6 +54,8 @@ interface PriceFacts {
   readonly staleAt?: number
   /** The last settled close, beside a live price so the two are not read as one. */
   readonly close?: { readonly day: string; readonly value: number }
+  /** A dealer's two sides, where `value` is the sell price. */
+  readonly board?: DealerBoardWire
 }
 
 /** The name, its price with the session it belongs to, and the last 30 sessions with the plan's
@@ -190,6 +198,7 @@ function PriceHead({ market, facts }: { readonly market: string; readonly facts:
           </span>
         )}
       </p>
+      {facts.board !== undefined && <DealerLine market={market} board={facts.board} />}
       {facts.close !== undefined && (
         <p class="meta">
           {tr('ui.office.ticker.closeRow', {
@@ -200,6 +209,18 @@ function PriceHead({ market, facts }: { readonly market: string; readonly facts:
       )}
     </>
   )
+}
+
+function DealerLine({
+  market,
+  board,
+}: {
+  readonly market: string
+  readonly board: DealerBoardWire
+}) {
+  const { sides, spread } = formatDealerBoard(market, board)
+
+  return <p class="meta">{joinInline([sides, ...(spread === undefined ? [] : [spread])])}</p>
 }
 
 // A name the daemon cannot find bars for has none to draw, which is an answer: the card says so.
@@ -254,6 +275,7 @@ function resolvePrice(
       value: quote.last,
       ...(quote.changePct === undefined ? {} : { changePct: quote.changePct }),
       kind: quote.kind,
+      ...(quote.board === undefined ? {} : { board: quote.board }),
       session: describeSession(market, quote.closedOn),
       ...toQuoteTimes(quote),
       ...liveClose(quote, bars),

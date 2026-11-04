@@ -1,6 +1,7 @@
+import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
 import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
-import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
-import { ABSENT_CELL } from '@/web/text/glyphs'
+import { formatFixedFraction, formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
+import { ABSENT_CELL, joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
 const INDEX_KIND = 'index'
@@ -20,7 +21,30 @@ export function formatMarketPrice(
     return ABSENT_CELL
   }
 
-  const price = formatBarePrice(market, value, kind)
+  return withCurrency(market, formatBarePrice(market, value, kind), kind)
+}
+
+/** A dealer's two sides, each labelled, with the currency said once after them where the market has
+ *  no board scale, and the gap between them where the board gives one. */
+export function formatDealerBoard(
+  market: string,
+  board: DealerBoardWire
+): { readonly sides: string; readonly spread?: string } {
+  const display = printDisplayOf(market)
+  const sides = joinInline([
+    tr('ui.office.dealer.buy', { price: formatPrice(board.buyPrice, display) }),
+    tr('ui.office.dealer.sell', { price: formatPrice(board.sellPrice, display) }),
+  ])
+
+  return {
+    sides: withCurrency(market, sides),
+    ...(board.spread === undefined
+      ? {}
+      : { spread: tr('ui.office.dealer.spread', { spread: formatFixedFraction(board.spread) }) }),
+  }
+}
+
+function withCurrency(market: string, price: string, kind?: string): string {
   const currency = findMarket(market)?.currency
 
   return kind !== INDEX_KIND && priceDisplayOf(market) === undefined && currency !== undefined

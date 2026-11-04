@@ -1,4 +1,5 @@
 import type { OverviewResponse } from '@/app/server/wire/market'
+import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
 import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
 import {
   formatPrice,
@@ -6,6 +7,7 @@ import {
   formatSignedPercent,
   toneOfPercent,
 } from '@/web/text/figures'
+import { formatDealerBoard } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { Movers } from '@/web/ui/today/blocks/movers'
@@ -74,6 +76,10 @@ interface OverviewRowProps {
 }
 
 function OverviewRow({ row, currency, hasBoard }: OverviewRowProps) {
+  if (row.board !== undefined) {
+    return <DealerRow row={row} board={row.board} />
+  }
+
   // A level market (an index) has no price currency and prints its bare level.
   const { market } = row.instrument
   const price = formatPrice(row.price, currency === undefined ? undefined : printDisplayOf(market))
@@ -92,6 +98,27 @@ function OverviewRow({ row, currency, hasBoard }: OverviewRowProps) {
           {formatSignedPercent(row.changePct)}
         </span>
       )}
+    </div>
+  )
+}
+
+// A dealer's row states both sides and the gap between them, not a last price and a move.
+function DealerRow({
+  row,
+  board,
+}: {
+  readonly row: OverviewBlock['rows'][number]
+  readonly board: DealerBoardWire
+}) {
+  const { sides, spread } = formatDealerBoard(row.instrument.market, board)
+
+  return (
+    <div class="row">
+      <b>
+        <TickerLink ticker={row.instrument.ticker} market={row.instrument.market} />
+      </b>
+      <span class="row-price">{sides}</span>
+      <span class="meta">{spread}</span>
     </div>
   )
 }

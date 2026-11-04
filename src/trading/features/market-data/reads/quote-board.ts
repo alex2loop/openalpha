@@ -6,6 +6,7 @@ import type {
   QuoteBoardRequest,
 } from '@/trading/kernel/market/market-capability'
 import type { MarketRegistry } from '@/trading/markets/types'
+import { definedOnly } from '@/core/utils/collections'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { freshnessOf } from '@/trading/features/market-data/reads/freshness'
 import { settledCloseBefore } from '@/trading/features/market-data/reads/previous-close'
@@ -89,7 +90,7 @@ async function quoteBoardItemFor(
     return null
   }
 
-  const { price, changePct, observedAt, session } = result.value
+  const { price, changePct, observedAt, session, board } = result.value
 
   if (!Number.isFinite(price)) {
     return null
@@ -122,7 +123,7 @@ async function quoteBoardItemFor(
     currency: market.manifest.currency,
     market: market.manifest.id,
     assetClass: market.manifest.assetClass,
-    ...(session === undefined ? {} : { session }),
+    ...definedOnly({ session, board }),
     ...(session?.volume === undefined ? {} : { sessionVolume: session.volume }),
     last: price,
     ...(changePct === undefined || !Number.isFinite(changePct) ? {} : { changePct }),

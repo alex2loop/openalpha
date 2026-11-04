@@ -1,6 +1,7 @@
 // The /v1 market contract: the screen board, instrument search, the market overview and the macro
 // regime. Same rules as `wire/trading.ts`. `changePct` is a percent, as on `/v1/quotes`.
 
+import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
 import type { InstrumentRefWire, TradingWireCaveat } from '@/app/server/wire/trading'
 import type { SessionPhase, TypedPrice } from '@/app/server/wire/vocab'
 
@@ -96,6 +97,8 @@ interface OverviewRowWire {
   readonly closedOn?: string
   /** When the live reading was taken. */
   readonly observedAt?: number
+  /** Both sides of a dealer's board; `price` is then its sell price. */
+  readonly board?: DealerBoardWire
 }
 
 /** A ranked name and the session figure it is ranked by, in the market's currency. */

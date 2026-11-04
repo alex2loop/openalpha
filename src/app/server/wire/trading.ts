@@ -6,6 +6,7 @@
 
 import type { BriefTextWire } from '@/app/server/wire/brief'
 import type { PortfolioSharesWire } from '@/app/server/wire/portfolio-shares'
+import type { QuoteDetailWire } from '@/app/server/wire/quote-detail'
 import type { ByModelWire } from '@/app/server/wire/track-record'
 import type {
   AssetClass,
@@ -40,7 +41,7 @@ export interface TradingWireProvenance {
   readonly freshness: SourceFreshness
 }
 
-export interface TradingQuoteWire {
+export interface TradingQuoteWire extends QuoteDetailWire {
   readonly ticker: string
   readonly label: string
   readonly region: string

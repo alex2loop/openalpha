@@ -24,6 +24,7 @@ import type {
 } from '@/trading/kernel/market/index-reading'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type {
+  DealerBoard,
   MarketRegime,
   Quote,
   QuoteFreshness,
@@ -346,6 +347,8 @@ export interface QuoteBoardItem {
   /** Volume the session has accumulated, absent where the provider serves no intraday series. Zero
    *  separates a name that has not traded today from one that traded and closed unchanged. */
   readonly sessionVolume?: number
+  /** Both sides where the market quotes a dealer board; `last` is then its sell price. */
+  readonly board?: DealerBoard
   /** What the intraday series has recorded today. Absent on a close, and on a live read from a
    *  provider that serves no intraday series — the same condition `sessionVolume` answers for. */
   readonly session?: SessionSoFar
