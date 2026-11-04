@@ -19,6 +19,7 @@
   display: grid;
   flex-basis: 100%;
   gap: var(--s3);
+  margin-top: var(--s1);
 }
 
 /* A held key reads as one framed line: which key, then what can be done with it. */
@@ -44,6 +45,11 @@
 .key-form {
   display: grid;
   gap: var(--s2);
+}
+
+/* The note under "remember" explains that box, so it sits close under it. */
+.key-form > label + .meta {
+  margin-top: calc(var(--s1) * -1);
 }
 
 .key-form input[type="password"] {
