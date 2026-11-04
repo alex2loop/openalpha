@@ -2,7 +2,7 @@ import type { Locale } from '@/core/types/locale'
 import type { AnalysisFailure, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { ArguingRole } from '@/trading/features/suggestion/debate/claims'
 import type { AnalysisCase } from '@/trading/features/suggestion/debate/types'
-import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
+import type { FactorMetricId } from '@/trading/kernel/factor-metric'
 import { LLM_ERROR_CODES } from '@/core/llm'
 import { formatDay, type MessageKey, renderAiLabel, t } from '@/i18n'
 import { isClaimBy, isUnsupportedRole } from '@/trading/features/suggestion/debate/claims'
@@ -15,6 +15,7 @@ import { renderCaveatLines } from '@/trading/render/caveat'
 import { formatCount, renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR, joinSections, renderSectionTitle } from '@/trading/render/layout'
 import { metricFacts } from '@/trading/render/metric'
+import { renderBoardScaleNotes } from '@/trading/render/money'
 
 type AnalysisSide = Extract<ArguingRole, 'bull-researcher' | 'bear-researcher'>
 
@@ -107,7 +108,7 @@ export function renderAnalysisText(locale: Locale, record: AnalysisRecord): stri
     ),
     renderRefutedLines(locale, record),
     ...SIDE_ORDER.map((side) => renderWrongLines(locale, side, cases[side])),
-    renderFigureLines(locale, record.figures),
+    renderFigureLines(locale, record),
     renderCitationLines(locale, {
       citations: [...record.citations, ...record.headlines],
       title: t(locale, 'trading.analysis.sources'),
@@ -199,12 +200,17 @@ function renderWrongLines(
 /** The readings both sides argued from, each under its group as a row of its own: a value, or the
  *  name's place on the board where the reading is one. No factor's score, weight or the composite,
  *  which would weigh one side over the other. */
-function renderFigureLines(locale: Locale, figures: readonly FactorMetric[]): readonly string[] {
+function renderFigureLines(locale: Locale, record: AnalysisRecord): readonly string[] {
+  const { boardScale, figures } = record
   const groups = FIGURE_GROUPS.flatMap((group) => {
     const rows = metricFacts(
       locale,
       figures.filter((metric) => FIGURE_GROUP_OF[metric.id] === group),
-      { canonical: true, row: true }
+      {
+        canonical: true,
+        row: true,
+        ...(boardScale === undefined ? {} : { quote: { display: boardScale.display } }),
+      }
     )
 
     return rows.length === 0
@@ -217,7 +223,22 @@ function renderFigureLines(locale: Locale, figures: readonly FactorMetric[]): re
 
   return groups.length === 0
     ? []
-    : [renderSectionTitle(SECTION_ICONS.factors, t(locale, 'trading.analysis.figures')), ...groups]
+    : [
+        renderSectionTitle(SECTION_ICONS.factors, t(locale, 'trading.analysis.figures')),
+        ...renderScaleNotes(locale, record),
+        ...groups,
+      ]
+}
+
+/** A board-scaled market's prices read bare, so the scale is said once above them. */
+function renderScaleNotes(locale: Locale, record: AnalysisRecord): readonly string[] {
+  const { boardScale, instrument } = record
+
+  return boardScale === undefined
+    ? []
+    : renderBoardScaleNotes(locale, [{ market: instrument.market, ...boardScale }]).map(
+        (note) => `${INDENT[1]}${note}`
+      )
 }
 
 function closingLines(locale: Locale, record: AnalysisRecord): readonly string[] {

@@ -74,8 +74,8 @@ export function resolveSortKey(
 }
 
 /** The names in the order the visitor chose. A name with no figure for the key goes last in either
- *  direction, so a gap is never read as the smallest or the largest. A factor sorts on its score,
- *  which orders names exactly as its percentile does. */
+ *  direction, so a gap is never read as the smallest or the largest. A factor sorts on its
+ *  percentile on the board. */
 export function sortCandidates(
   candidates: readonly Candidate[],
   key: string,
@@ -94,7 +94,7 @@ function figureOf(candidate: Candidate, key: string): number | undefined {
   if (key.startsWith(FACTOR_SORT_PREFIX)) {
     const id = key.slice(FACTOR_SORT_PREFIX.length)
 
-    return candidate.factors?.find((factor) => factor.id === id)?.value
+    return candidate.factors?.find((factor) => factor.id === id)?.percentile
   }
 
   const base = BASE_KEYS.find((known) => known === key)

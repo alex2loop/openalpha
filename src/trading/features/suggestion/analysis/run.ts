@@ -153,9 +153,19 @@ function toRecord(parts: RecordParts): AnalysisRecord {
     citations,
     headlines: uncitedHeadlines(read.evidence.sources, citations),
     figures: read.figures,
+    ...boardScaleOf(subject.market.manifest),
     caveats: read.evidence.caveats,
     ...(read.evidenceThrough === undefined ? {} : { evidenceThrough: read.evidenceThrough }),
   }
+}
+
+/** The scale the figures' prices are read in, where the market's board prints one. */
+function boardScaleOf(
+  manifest: ResolvedSubject['market']['manifest']
+): Pick<AnalysisRecord, 'boardScale'> {
+  const { currency, priceDisplay } = manifest
+
+  return priceDisplay === undefined ? {} : { boardScale: { currency, display: priceDisplay } }
 }
 
 /** What the roles were handed and no claim cited, own coverage first as the bundle orders it. */

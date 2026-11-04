@@ -35,11 +35,13 @@
   margin: calc(var(--stageTopH) + var(--s1)) var(--s2) var(--stageBottomH) 0;
 }
 
-/* The sheet fills the information pane, so the office's switch and tape never show behind it. */
+/* The sheet covers the whole information pane on an opaque tint, so the office's switch and tape
+   never show behind it. */
 .panel.is-sheet {
-  align-self: end;
-  height: calc(100% - var(--s2) * 2);
-  margin: var(--s2);
+  --glassAlpha: 1;
+
+  height: 100%;
+  border-radius: 0;
 }
 
 @keyframes panel-float-in {

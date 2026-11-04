@@ -20,7 +20,13 @@ import type {
   ThemeTransition,
   ThemeTransitionOutcome,
 } from '@/trading/features/themes/types'
-import type { InstrumentKind, MarketRef, Region, TradingDay } from '@/trading/kernel/instrument'
+import type {
+  InstrumentKind,
+  MarketRef,
+  PriceDisplay,
+  Region,
+  TradingDay,
+} from '@/trading/kernel/instrument'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { ScreenAnswer } from '@/trading/wiring/host/view-types'
@@ -28,6 +34,7 @@ import { t } from '@/i18n'
 import { type BriefText, renderBriefForSurface } from '@/trading/features/brief/surface'
 import { renderMacroLean } from '@/trading/features/market-data/render/overview'
 import { renderScreenCard } from '@/trading/features/market-data/render/screen'
+import { BOARD_READING } from '@/trading/features/market-data/render/screen-evidence'
 import {
   type ReflectText,
   renderReflectForSurface,
@@ -36,6 +43,7 @@ import { toThemeTransitionMessage } from '@/trading/features/themes/command'
 import { renderThemeReportText } from '@/trading/features/themes/render/report'
 import { CLOSED_THEME_STATUSES } from '@/trading/features/themes/types'
 import { NOTICE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
+import { renderMetricLine } from '@/trading/render/metric'
 
 interface AppViewDeps {
   readonly briefs: Pick<BriefService, 'getLatest' | 'reschedule' | 'hasOnDay'>
@@ -158,8 +166,37 @@ async function screen(
   )
 
   return view.form === 'board'
-    ? { view, card, factorLabels: factorLabels(view, locale) }
+    ? {
+        view,
+        card,
+        factorLabels: factorLabels(view, locale),
+        factorReadings: factorReadings(view, locale, display),
+      }
     : { view, card }
+}
+
+/** What each name's factors read in the quantities they were scored on, as the CLI's board rows
+ *  write them; a factor that states none is left out. */
+function factorReadings(
+  view: ScreenView,
+  locale: Locale,
+  display: PriceDisplay | undefined
+): Readonly<Record<string, Readonly<Record<string, string>>>> {
+  return Object.fromEntries(
+    view.candidates.map((candidate) => [
+      candidate.instrument.ticker,
+      Object.fromEntries(
+        candidate.factors.flatMap((factor) => {
+          const reading = renderMetricLine(locale, factor.metrics, {
+            ...BOARD_READING,
+            ...(display === undefined ? {} : { quote: { display } }),
+          })
+
+          return reading === undefined ? [] : [[factor.id, reading] as const]
+        })
+      ),
+    ])
+  )
 }
 
 /** Each factor a board's names read, named for the operator, so the app never owns a catalog key. */

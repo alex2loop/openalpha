@@ -1,7 +1,11 @@
+import { useEffect, useRef, useState } from 'preact/hooks'
+
 import { tr } from '@/web/text/tr'
 import { scaleLinear, toPolylinePoints } from '@/web/ui/kit/line-path'
 
-const WIDTH = 360
+// The width drawn before the card is measured, and the least one that still holds the gutters.
+const FALLBACK_WIDTH = 360
+const MIN_WIDTH = 240
 const HEIGHT = 172
 // Room on the left for the price ticks, on the right for each level's name, below for the dates.
 const PRICE_GUTTER = 60
@@ -9,7 +13,6 @@ const LABEL_GUTTER = 64
 const DATE_GUTTER = 18
 const PAD = 6
 const PLOT_LEFT = PRICE_GUTTER
-const PLOT_RIGHT = WIDTH - LABEL_GUTTER
 const PLOT_BOTTOM = HEIGHT - DATE_GUTTER
 // The y-scale reaches this far past the highest and lowest value, so no line sits on the edge.
 const Y_MARGIN = 0.06
@@ -46,10 +49,40 @@ interface PriceChartProps {
   readonly formatDay: (day: string) => string
 }
 
+// The width of the element the ref is put on, followed until the component unmounts.
+function useWidth(): { readonly ref: { current: HTMLDivElement | null }; readonly width: number } {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [width, setWidth] = useState(FALLBACK_WIDTH)
+
+  useEffect(() => {
+    const element = ref.current
+
+    if (element === null) {
+      return undefined
+    }
+
+    const observer = new ResizeObserver(([entry]) => {
+      const measured = entry?.contentRect.width ?? 0
+
+      if (measured > 0) {
+        setWidth(Math.max(MIN_WIDTH, Math.round(measured)))
+      }
+    })
+
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [])
+
+  return { ref, width }
+}
+
 /** The closes as a line over price and date axes, with the plan's levels dashed across it. The
- *  scale holds the levels too, so a stop far below the price still shows. Pure drawing: it reads
- *  nothing and listens to nothing. */
+ *  scale holds the levels too, so a stop far below the price still shows. It draws one unit per
+ *  pixel of its card's width, so the plot stretches and the labels keep their size. */
 export function PriceChart({ bars, levels, formatPrice, formatDay }: PriceChartProps) {
+  const { ref, width } = useWidth()
+  const plotRight = width - LABEL_GUTTER
   const values = [...bars.map((bar) => bar.close), ...levels.map((level) => level.value)]
   const low = Math.min(...values)
   const high = Math.max(...values)
@@ -58,35 +91,52 @@ export function PriceChart({ bars, levels, formatPrice, formatDay }: PriceChartP
   const { step, values: ticks } = priceTicks(domain)
   const toY = (value: number): number => scaleLinear(value, domain, [PLOT_BOTTOM - PAD, PAD])
   const toX = (index: number): number =>
-    scaleLinear(index, [0, bars.length - 1], [PLOT_LEFT, PLOT_RIGHT])
+    scaleLinear(index, [0, bars.length - 1], [PLOT_LEFT, plotRight])
   const line = bars.map((bar, index) => ({ x: toX(index), y: toY(bar.close) }))
 
   return (
-    <svg
-      class="price-chart"
-      viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      role="img"
-      aria-label={tr('ui.office.ticker.sessions', { count: bars.length })}
-    >
-      {ticks.map((value) => (
-        <g key={value} class="chart-axis">
-          <line x1={PLOT_LEFT} x2={PLOT_RIGHT} y1={toY(value)} y2={toY(value)} />
-          <text x={PLOT_LEFT - PAD} y={toY(value) + LABEL_DROP} text-anchor="end">
-            {formatPrice(value, step)}
-          </text>
-        </g>
-      ))}
-      <DateAxis bars={bars} formatDay={formatDay} toX={toX} />
+    <div class="price-chart" ref={ref}>
+      <svg
+        width={width}
+        height={HEIGHT}
+        viewBox={`0 0 ${width} ${HEIGHT}`}
+        role="img"
+        aria-label={tr('ui.office.ticker.sessions', { count: bars.length })}
+      >
+        {ticks.map((value) => (
+          <g key={value} class="chart-axis">
+            <line x1={PLOT_LEFT} x2={plotRight} y1={toY(value)} y2={toY(value)} />
+            <text x={PLOT_LEFT - PAD} y={toY(value) + LABEL_DROP} text-anchor="end">
+              {formatPrice(value, step)}
+            </text>
+          </g>
+        ))}
+        <DateAxis bars={bars} formatDay={formatDay} toX={toX} />
+        <LevelLines levels={levels} toY={toY} plotRight={plotRight} />
+        <polyline class="chart-line" points={toPolylinePoints(line)} />
+      </svg>
+    </div>
+  )
+}
+
+interface LevelLinesProps {
+  readonly levels: readonly ChartLevel[]
+  readonly toY: (value: number) => number
+  readonly plotRight: number
+}
+
+function LevelLines({ levels, toY, plotRight }: LevelLinesProps) {
+  return (
+    <>
       {levels.map((level) => (
         <g key={level.key} class={`chart-level is-${level.key}`}>
-          <line x1={PLOT_LEFT} x2={PLOT_RIGHT} y1={toY(level.value)} y2={toY(level.value)} />
-          <text x={PLOT_RIGHT + PAD} y={toY(level.value) + LABEL_DROP}>
+          <line x1={PLOT_LEFT} x2={plotRight} y1={toY(level.value)} y2={toY(level.value)} />
+          <text x={plotRight + PAD} y={toY(level.value) + LABEL_DROP}>
             {tr(`ui.office.ticker.${level.key}`)}
           </text>
         </g>
       ))}
-      <polyline class="chart-line" points={toPolylinePoints(line)} />
-    </svg>
+    </>
   )
 }
 

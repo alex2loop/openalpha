@@ -229,6 +229,9 @@ export const OPERATOR_DETAIL_CODES: ReadonlySet<string> = new Set(
   CAVEAT_CODES.flatMap((entry) => ('operatorDetail' in entry ? [entry.code] : []))
 )
 
+/** What an edition without `/sources` stamps on the notes that point to it. */
+export const WITHOUT_SOURCES_DETAIL = Object.freeze({ withoutSources: 1 })
+
 export function isCaveatCode(code: string): code is CaveatCode {
   return CAVEAT_CODE_SET.has(code)
 }

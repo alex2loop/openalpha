@@ -32,8 +32,9 @@ const CODE_GROUP_PREFIXES = TRADING_CODE_GROUPS.map((group) => `${group.prefix}.
 /** What fits under a row on a phone: two sentences. */
 const NOTE_MAXIMUM_CHARACTERS = 120
 const NOTE_PREFIXES = ['trading.caveat.', 'trading.finding.']
-/** `One` is a code's singular sentence; `Withheld` states it without the operator's own figure. */
-const VARIANT_SUFFIXES = ['One', 'Withheld'] as const
+/** `One` is a code's singular sentence; `Withheld` states it without the operator's own figure;
+ *  `WithoutSources` leaves out the pointer to `/sources`, for an edition that has no such command. */
+const VARIANT_SUFFIXES = ['One', 'Withheld', 'WithoutSources'] as const
 const USAGE_KEY = /^slash\.\w*Usage$/
 const RANK_NOTATION = /\bp\d{1,3}\b/
 

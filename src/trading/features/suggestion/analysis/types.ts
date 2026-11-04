@@ -9,7 +9,12 @@ import type {
 import type { SuggestionRequest } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorMetric } from '@/trading/kernel/factor-metric'
-import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type {
+  CurrencyCode,
+  InstrumentRef,
+  PriceDisplay,
+  TradingDay,
+} from '@/trading/kernel/instrument'
 import type { MarketResolution } from '@/trading/markets/types'
 import { AppError } from '@/core/errors'
 import { buildUuidV7Id, parseUuidV7Id } from '@/trading/kernel/instrument'
@@ -61,6 +66,9 @@ export interface AnalysisRecord {
   /** The factor readings both sides argued from, each as published: a value or a rank among peers.
    *  Never a factor's score, weight or the composite, which would weigh one side over the other. */
   readonly figures: readonly FactorMetric[]
+  /** How the market's board prints a price, for the price readings among the figures. Absent where
+   *  the market prints plain amounts, and on a row stored before it was kept. */
+  readonly boardScale?: { readonly currency: CurrencyCode; readonly display: PriceDisplay }
   readonly caveats: readonly Caveat[]
 }
 

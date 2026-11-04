@@ -3,6 +3,7 @@ import type { MarketDataStore } from '@/trading/features/market-data/store/marke
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
+import type { MacroMissingReason } from '@/trading/kernel/market/market-macro'
 import type { RefreshDataKind } from '@/trading/kernel/market/refresh'
 import type { BriefActionCode } from '@/trading/kernel/operator/brief-section'
 import type { VenueListings } from '@/trading/kernel/venue/catalog'
@@ -43,9 +44,9 @@ export interface MarketDeps {
   /** The data kinds a refresh leaves out because no source serves them: none is run, so none reads
    *  as a failed fetch. Absent refreshes every kind the market has. */
   readonly omitRefreshKinds?: ReadonlySet<RefreshDataKind>
-  /** The macro series no source serves here: each reads as not served, never as absent today, and
-   *  the refresh does not count it missing. Absent states every series. */
-  readonly unservedMacro?: ReadonlySet<MacroSeriesId>
+  /** The macro series no source serves here, each with the reason it reads missing for (`unserved`):
+   *  never as absent today, and the refresh does not count it missing. Absent states every series. */
+  readonly unservedMacro?: Readonly<Partial<Record<MacroSeriesId, MacroMissingReason>>>
   /** What the brief never tells the reader to do next: each reads as if it never fired. Absent
    *  states every action. */
   readonly omitBriefActions?: ReadonlySet<BriefActionCode>

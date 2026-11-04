@@ -92,13 +92,15 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
 }
 
 // A market that is trading shows its live price, not the close the board fell back to: one read
-// when the page opens, the same one the Lấy giá mới button makes.
+// when the page opens, the same one the Lấy giá mới button makes. A market with no session never
+// closes, so it is always trading.
 function useLiveWhileTrading(
   { ticker, market }: { readonly ticker: string; readonly market: string },
   { quote, live }: { readonly quote: TradingQuoteWire | undefined; readonly live: LiveQuote }
 ): void {
   const isBoardKnown = quotesBlock.view.value.data !== undefined
-  const isOpen = findMarket(market)?.session?.phase === 'open'
+  const held = findMarket(market)
+  const isOpen = held !== undefined && (held.session === undefined || held.session.phase === 'open')
   const canQuote = state.value?.capabilities.quotes !== false
   const isClose = quote === undefined || quote.closedOn !== undefined
 

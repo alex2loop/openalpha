@@ -8,7 +8,7 @@ import type {
   MarketRegime,
   NewsItem,
 } from '@/trading/kernel/market/market-data'
-import type { MacroMissingReason, MacroRiskView } from '@/trading/kernel/market/market-macro'
+import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import type {
   SourceKind,
@@ -207,7 +207,7 @@ function buildEvaluation(input: BuildEvaluationInput): {
     base: {
       values,
       observationDates: { ...globalValues.observationDates, ...observationDates },
-      missingReasons: unservedReasons(deps.unservedMacro),
+      ...(deps.unservedMacro === undefined ? {} : { missingReasons: deps.unservedMacro }),
       region: VN_MARKET_REGION,
       asOf,
       provenance: readProvenance(reads),
@@ -224,12 +224,6 @@ function buildEvaluation(input: BuildEvaluationInput): {
   })
 
   return { values, view }
-}
-
-function unservedReasons(
-  unserved: MarketDeps['unservedMacro']
-): Readonly<Partial<Record<MacroSeriesId, MacroMissingReason>>> {
-  return Object.fromEntries([...(unserved ?? [])].map((id) => [id, 'unserved']))
 }
 
 /** Both callers read through the same resolver, so a brief and a live macro call cannot

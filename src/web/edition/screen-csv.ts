@@ -31,7 +31,8 @@ interface BoardFile {
 }
 
 /** Saves the rows as a CSV: the columns the board shows, in the page's language, every number raw
- *  (a percent as a percent, an amount in the market's currency) so a spreadsheet can use it. */
+ *  (a percent as a percent, an amount in the market's currency) so a spreadsheet can use it, and
+ *  a factor's reading as the board writes it. */
 export async function downloadBoardCsv(board: BoardFile): Promise<void> {
   const columns = columnsOf(board)
   const lines = [
@@ -67,7 +68,7 @@ function columnsOf({ rows, baseKeys, factors }: BoardFile): readonly Column[] {
         : [{ header: tr(figureHeader(key)), cell: (c: Candidate) => numeric(c[field]) }]
     }),
     ...factors.flatMap(({ id, label }) => [
-      { header: label, cell: (c: Candidate) => numeric(factorOf(c, id)?.value) },
+      { header: label, cell: (c: Candidate) => quoted(factorOf(c, id)?.reading) },
       {
         header: tr('ui.office.edition.screen.csv.percentile', { label }),
         cell: (c: Candidate) => numeric(factorOf(c, id)?.percentile),

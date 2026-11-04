@@ -20,7 +20,7 @@ import {
 } from '@/trading/render/format'
 import { renderQuoteFreshness } from '@/trading/render/freshness'
 import { INDENT, toFactLines, toRowLines } from '@/trading/render/layout'
-import { metricFacts } from '@/trading/render/metric'
+import { metricFacts, renderMetricLine } from '@/trading/render/metric'
 import { formatFixedPrice, formatPrice } from '@/trading/render/money'
 import { quoteBoardMoveOf } from '@/trading/render/price-pair'
 
@@ -104,24 +104,29 @@ function renderBoardFactor(
 ): string {
   const { candidate, factor } = row
   const percentile = candidate.percentiles?.[factor.id]
-  const readings = metricFacts(locale, factor.metrics, {
-    labels: 'short',
-    canonical: true,
-    ...(board.display === undefined ? {} : { quote: { display: board.display } }),
-  })
+  const reading =
+    renderMetricLine(locale, factor.metrics, {
+      ...BOARD_READING,
+      ...(board.display === undefined ? {} : { quote: { display: board.display } }),
+    }) ?? ''
 
   if (percentile === undefined) {
-    return readings.join(', ')
+    return reading
   }
 
   return t(locale, 'trading.render.screen.boardFactor', {
-    reading:
-      readings.length > 0
-        ? readings.join(', ')
-        : renderDeclaredValue(locale, `trading.factor.${factor.id}`),
+    reading: reading === '' ? renderDeclaredValue(locale, `trading.factor.${factor.id}`) : reading,
     rank: formatPercentRank(locale, percentile),
   })
 }
+
+/** How a board writes a factor's quantities: short labels, each reading once, joined by commas. A
+ *  board row and an app's factor cell write them alike. */
+export const BOARD_READING = Object.freeze({
+  labels: 'short',
+  canonical: true,
+  separator: ', ',
+} as const)
 
 /** Rank, verdict, and the composite the rank was taken on: the band alone cannot say whether the
  *  name above is a length clear or a hair ahead. Coverage joins them only when it is short of the

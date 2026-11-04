@@ -43,11 +43,11 @@ const METRIC_FORMATTERS: Readonly<
 export function renderMetricLine(
   locale: Locale,
   metrics: readonly FactorMetric[] | undefined,
-  quote?: Partial<QuotedIn>
+  options: MetricLineOptions = {}
 ): string | undefined {
-  const facts = metricFacts(locale, metrics, quote === undefined ? {} : { quote })
+  const facts = metricFacts(locale, metrics, options)
 
-  return facts.length === 0 ? undefined : facts.join(INLINE_SEPARATOR)
+  return facts.length === 0 ? undefined : facts.join(options.separator ?? INLINE_SEPARATOR)
 }
 
 /** One name's readings have the page to themselves; a board's are read down a column, where the
@@ -67,6 +67,9 @@ interface MetricFactOptions {
    *  the page where the others pack them across it. */
   readonly row?: true
 }
+
+/** How a line of readings is written: the options a fact takes, and what the facts are joined with. */
+type MetricLineOptions = Omit<MetricFactOptions, 'row'> & { readonly separator?: string }
 
 /** One fact per reading, for a surface that decides where they are joined. A reading never splits:
  *  its label and its number are one thing to read. */

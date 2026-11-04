@@ -76,15 +76,24 @@
   width: 11rem;
 }
 
-/* A fact wraps as a whole: its label may drop to the next line, its reading never splits. */
+/* One cell per fact on columns of a set width, so rows read alike at any card width; a reading
+   stays whole where its cell holds it. */
 .screen-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--factW)), 1fr));
+  gap: 2px var(--s2);
+}
+
+.screen-facts.is-figures {
+  --factW: 11rem;
+}
+
+.screen-facts.is-factors {
+  --factW: 18rem;
 }
 
 .screen-fact-value {
-  white-space: nowrap;
+  display: inline-block;
 }
 
 /* The error log: one entry per line, long messages and stacks wrapping inside the dialog. */

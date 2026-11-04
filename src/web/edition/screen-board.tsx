@@ -200,7 +200,8 @@ function NameRow({
             ? ''
             : ` · ${formatSignedPercent(candidate.changePct)}`}
         </p>
-        <Facts facts={[...figureFacts(candidate), ...factorFacts(candidate)]} />
+        <Facts facts={figureFacts(candidate)} kind="figures" />
+        <Facts facts={factorFacts(candidate)} kind="factors" />
       </div>
       <div class="opportunity-ask">
         <AnalyzeButton name={`${market}:${ticker}`} isAnalyzed={false} size="small" />
@@ -209,9 +210,14 @@ function NameRow({
   )
 }
 
-function Facts({ facts }: { readonly facts: readonly Fact[] }) {
+// Each kind lays its facts on a grid of its own width, so the rows of a board read alike.
+function Facts({ facts, kind }: { readonly facts: readonly Fact[]; readonly kind: string }) {
+  if (facts.length === 0) {
+    return null
+  }
+
   return (
-    <div class="meta screen-facts">
+    <div class={`meta screen-facts is-${kind}`}>
       {facts.map(({ label, value }) => (
         <span key={label ?? value}>
           {label === undefined ? '' : `${label} `}

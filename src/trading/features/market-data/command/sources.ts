@@ -3,6 +3,7 @@ import type { MarketDataService } from '@/trading/features/market-data/types'
 import { renderSourcesText } from '@/trading/features/market-data/render/sources'
 import { usage } from '@/trading/kernel/surface/surface'
 
+export const SOURCES_COMMAND_NAME = 'sources'
 const USAGE: 'slash.tradingSourcesUsage' = 'slash.tradingSourcesUsage'
 
 interface SourcesCommandDeps {
@@ -15,7 +16,7 @@ interface SourcesCommandDeps {
  *  that made the requests — which is why this is a command and not a doctor probe. */
 export function createSourcesCommand(deps: SourcesCommandDeps): SlashCommand {
   return {
-    name: 'sources',
+    name: SOURCES_COMMAND_NAME,
     description: { kind: 'localized', key: 'slash.tradingSourcesHelp' },
     messageKeys: [USAGE],
     policy: { surfaces: ['channel', 'repl'], role: 'member', action: 'read' },

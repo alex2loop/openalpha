@@ -1,15 +1,18 @@
 import type { App } from '@/core/container'
 import type { RequestShape } from '@/core/http-client'
+import type { CaveatCode } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
+import type { SourceKind, SourceKindMap, SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { StageRegistry } from '@/trading/markets/stage'
-import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
+import type { MarketRegistry, ResolveSourceOptions, SourceRegistry } from '@/trading/markets/types'
 import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
 import type { SourceRouteTable } from '@/trading/sources/routes'
 import type { HostSourceFacts } from '@/trading/sources/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import type { TradingEdition } from '@/trading/wiring/composition/edition'
+import { SOURCES_COMMAND_NAME } from '@/trading/features/market-data/command/sources'
 import { createFxRates } from '@/trading/features/market-data/reads/fx'
 import { createAdmissionStage } from '@/trading/features/suggestion/pipeline/admission'
 import { createAveragingDownStage } from '@/trading/features/suggestion/pipeline/averaging-down'
@@ -17,6 +20,7 @@ import { createDeploymentStage } from '@/trading/features/suggestion/pipeline/de
 import { createExclusionStage } from '@/trading/features/suggestion/pipeline/exclusion'
 import { createRoundTripStage } from '@/trading/features/suggestion/pipeline/round-trip'
 import { createStageRegistry } from '@/trading/features/suggestion/pipeline/stage-registry'
+import { WITHOUT_SOURCES_DETAIL } from '@/trading/kernel/caveat'
 import { createCryptoMarket } from '@/trading/markets/crypto/market'
 import { createUsEquityMarket } from '@/trading/markets/equity-us/market'
 import { createVnEquityMarket } from '@/trading/markets/equity-vn/market'
@@ -117,7 +121,13 @@ function editionMarketDeps(
   return {
     ...(edition?.pagedBackfill === true ? { pagedBackfill: true as const } : {}),
     ...(edition?.refreshOmits === undefined ? {} : { omitRefreshKinds: edition.refreshOmits }),
-    ...(edition?.macroUnserved === undefined ? {} : { unservedMacro: edition.macroUnserved }),
+    ...(edition?.macroUnserved === undefined
+      ? {}
+      : {
+          unservedMacro: Object.fromEntries(
+            [...edition.macroUnserved].map((id) => [id, 'unserved'])
+          ),
+        }),
     ...(edition?.briefActionOmits === undefined
       ? {}
       : { omitBriefActions: edition.briefActionOmits }),
@@ -128,7 +138,7 @@ function buildSources(app: App, options: RegistryOptions): SourceRegistry {
   const logger = app.resolve('logger')
   const stores = app.resolve('tradingStores')
 
-  return withNewsArchive(
+  const registry = withNewsArchive(
     createConfiguredSourceRegistry({
       env: options.env,
       logger,
@@ -142,4 +152,44 @@ function buildSources(app: App, options: RegistryOptions): SourceRegistry {
     }),
     { archive: stores.newsArchive, logger }
   )
+
+  return options.edition?.commands?.has(SOURCES_COMMAND_NAME) === false
+    ? withoutSourcesPointer(registry)
+    : registry
+}
+
+/** The outage notes whose sentence ends by sending the reader to `/sources`. */
+const SOURCES_POINTER_CODES: ReadonlySet<CaveatCode> = new Set([
+  'source.unavailable',
+  'source.breaker-open',
+])
+
+function unpointed<T>(result: SourceResult<T>): SourceResult<T> {
+  return {
+    ...result,
+    caveats: result.caveats.map((caveat) =>
+      SOURCES_POINTER_CODES.has(caveat.code)
+        ? { ...caveat, detail: { ...caveat.detail, ...WITHOUT_SOURCES_DETAIL } }
+        : caveat
+    ),
+  }
+}
+
+/** For an edition with no `/sources`: every outage note a read carries is marked, so its sentence
+ *  leaves the pointer out. Every read in every market passes through the registry, so marking here
+ *  needs no caller to remember it. */
+function withoutSourcesPointer(registry: SourceRegistry): SourceRegistry {
+  return Object.freeze({
+    ...registry,
+    async resolve<K extends SourceKind>(
+      options: ResolveSourceOptions<K>
+    ): Promise<SourceResult<SourceKindMap[K]>> {
+      return unpointed(await registry.resolve(options))
+    },
+    async resolveAll<K extends SourceKind>(
+      options: ResolveSourceOptions<K>
+    ): Promise<readonly SourceResult<SourceKindMap[K]>[]> {
+      return (await registry.resolveAll(options)).map(unpointed)
+    },
+  })
 }

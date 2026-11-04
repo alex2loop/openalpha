@@ -18,7 +18,12 @@ import {
   citationSchema,
   factorMetricsSchema,
 } from '@/trading/features/suggestion/store/suggestion-payload'
-import { ticker as brandTicker, marketRef, tradingDay } from '@/trading/kernel/instrument'
+import {
+  ticker as brandTicker,
+  currencyCode,
+  marketRef,
+  tradingDay,
+} from '@/trading/kernel/instrument'
 import { caveatsSchema } from '@/trading/kernel/store/store-payload'
 import { parseJson, toPage } from '@/trading/kernel/store/store-row'
 
@@ -54,6 +59,12 @@ const payloadSchema = z.strictObject({
   // Absent on a row stored before the analysis kept what it read.
   headlines: z.array(citationSchema).default([]),
   figures: factorMetricsSchema.default([]),
+  boardScale: z
+    .strictObject({
+      currency: z.string(),
+      display: z.strictObject({ divisor: z.number(), decimals: z.number() }),
+    })
+    .optional(),
   caveats: caveatsSchema,
 })
 
@@ -115,6 +126,7 @@ async function create(
         citations: record.citations,
         headlines: record.headlines,
         figures: record.figures,
+        boardScale: record.boardScale,
         caveats: record.caveats,
       }),
       record.createdAt,
@@ -197,6 +209,14 @@ function toRecord(row: AnalysisRow): AnalysisRecord {
       value: raw.value,
       ...definedOnly({ sessions: raw.sessions }),
     })),
+    ...(payload.boardScale === undefined
+      ? {}
+      : {
+          boardScale: {
+            currency: currencyCode(payload.boardScale.currency),
+            display: payload.boardScale.display,
+          },
+        }),
     caveats: payload.caveats,
     ...(row.evidence_through === null ? {} : { evidenceThrough: tradingDay(row.evidence_through) }),
   }

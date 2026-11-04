@@ -1,7 +1,11 @@
 import type { Locale } from '@/core/types/locale'
 import type { Caveat, CaveatDetail, CaveatSeverity } from '@/trading/kernel/caveat'
 import { hasMessage, type MessageKey, t } from '@/i18n'
-import { caveatSeverity, OPERATOR_DETAIL_CODES } from '@/trading/kernel/caveat'
+import {
+  caveatSeverity,
+  OPERATOR_DETAIL_CODES,
+  WITHOUT_SOURCES_DETAIL,
+} from '@/trading/kernel/caveat'
 import { isCurrencyCode } from '@/trading/kernel/instrument'
 import { toFoldLines } from '@/trading/render/fold'
 import {
@@ -160,13 +164,19 @@ function withheldOf(locale: Locale, caveat: RenderedCaveat): readonly RenderedCa
   return hasMessage(locale, key) ? [{ ...caveat, key: key as MessageKey }] : []
 }
 
-/** A caveat whose `count` is 1 reads from its `<code>One` sentence when the catalog carries one. */
+/** A caveat whose `count` is 1 reads from its `<code>One` sentence when the catalog carries one,
+ *  and one stamped `withoutSources` from its `<code>WithoutSources` sentence. */
 function messageKey(locale: Locale, caveat: Caveat): MessageKey {
   const key = `trading.caveat.${caveat.code}` as const
-  const one = `${key}One`
+  const variants = [
+    ...(caveat.detail?.withoutSources === WITHOUT_SOURCES_DETAIL.withoutSources
+      ? [`${key}WithoutSources`]
+      : []),
+    ...(caveat.detail?.count === 1 ? [`${key}One`] : []),
+  ]
 
-  // why-safe: `hasMessage` proves the singular resolves before the string is treated as a key.
-  return caveat.detail?.count === 1 && hasMessage(locale, one) ? (one as MessageKey) : key
+  // why-safe: `hasMessage` proves the variant resolves before the string is treated as a key.
+  return (variants.find((variant) => hasMessage(locale, variant)) ?? key) as MessageKey
 }
 
 /** `renderSubject` prints a number without a unit, which for money is a different figure in every

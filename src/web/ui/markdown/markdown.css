@@ -95,6 +95,10 @@
   font-weight: var(--weightSemibold);
 }
 
+.note-mark {
+  margin-inline-end: 0.4em;
+}
+
 .note-list {
   margin: 0;
   padding: 0;

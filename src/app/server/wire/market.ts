@@ -9,10 +9,11 @@ interface ScreenFactorWire {
   readonly id: string
   /** The factor's name in the operator's language. */
   readonly label: string
-  /** The factor's score for this name, from -1 to +1. */
-  readonly value: number
-  /** Percent-valued, 0-100: the share of the board's names this score is above. Absent where fewer
-   *  than two names carry the factor, which leaves nothing to place it against. */
+  /** What the factor read for this name, in the quantities it was scored on, as the CLI writes
+   *  them (`P/E 12,3`); absent where the factor states none. Never its score. */
+  readonly reading?: string
+  /** Percent-valued, 0-100: the share of the board's names this reading is above. Absent where
+   *  fewer than two names carry the factor, which leaves nothing to place it against. */
   readonly percentile?: number
 }
 
@@ -56,7 +57,7 @@ interface ScreenCardWire {
 /** GET /v1/screen?market&kind&limit&cursor — ranked best first; no limit is the board `/screen`
  *  prints. `board: 'gate'` states per name whether it cleared, with no rank. `board: 'list'` is an
  *  edition that ranks nothing: every priced name in ticker order, a page of `limit` names from
- *  `cursor` with `next` for the one after, each with its factors' scores and percentiles, and no
+ *  `cursor` with `next` for the one after, each with its factors' readings and percentiles, and no
  *  composite, rating or rank anywhere, `card` included. */
 export interface ScreenResponse {
   readonly market: string

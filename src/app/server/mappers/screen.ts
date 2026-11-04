@@ -29,19 +29,20 @@ function boardKindOf(view: ScreenView): ScreenResponse['board'] {
   return view.form === 'board' ? 'list' : (view.board ?? 'rank')
 }
 
-/** A name of the whole board: no composite, band or rating, only what each factor read and where it
- *  sits among the board's names. Fixed factor order, so two names line up. */
+/** A name of the whole board: no composite, band, rating or score, only what each factor read and
+ *  where it sits among the board's names. Fixed factor order, so two names line up. */
 function toListedWire(candidate: ScreenedCandidate, answer: ScreenAnswer): CandidateWire {
   const factors = candidate.factors
     .filter((factor) => factor.weight !== undefined)
     .toSorted((left, right) => left.id.localeCompare(right.id))
     .map((factor) => {
       const percentile = candidate.percentiles?.[factor.id]
+      const reading = answer.factorReadings?.[candidate.instrument.ticker]?.[factor.id]
 
       return {
         id: factor.id,
         label: answer.factorLabels?.[factor.id] ?? factor.id,
-        value: factor.score,
+        ...(reading === undefined ? {} : { reading }),
         ...(percentile === undefined ? {} : { percentile }),
       }
     })

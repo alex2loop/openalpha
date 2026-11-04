@@ -4,13 +4,12 @@ import {
   formatCompactAmount,
   formatFixed,
   formatSignedCompactAmount,
-  formatSignedFixed,
   formatSignedPercent,
 } from '@/web/text/figures'
+import { joinList } from '@/web/text/glyphs'
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
 
-const FACTOR_VALUE_DIGITS = 2
 const PERCENTILE_DIGITS = 0
 
 /** What names each sort, in the sort menu, the figures under a name and the CSV header. */
@@ -55,20 +54,21 @@ export function figureFacts(candidate: Candidate): readonly Fact[] {
   ]
 }
 
-/** What each factor read for the name and where that sits on the board. */
+/** What each factor read for the name in the quantities it was scored on, and where that sits on
+ *  the board; a factor with neither says nothing. */
 export function factorFacts(candidate: Candidate): readonly Fact[] {
-  return (candidate.factors ?? []).map(({ label, value, percentile }) => {
-    const reading = formatSignedFixed(value, FACTOR_VALUE_DIGITS)
-
-    return {
-      label,
-      value:
-        percentile === undefined
-          ? reading
-          : tr('ui.office.edition.screen.factorValue', {
-              value: reading,
+  return (candidate.factors ?? []).flatMap(({ label, reading, percentile }): readonly Fact[] => {
+    const parts = [
+      ...(reading === undefined ? [] : [reading]),
+      ...(percentile === undefined
+        ? []
+        : [
+            tr('ui.office.edition.screen.factorPlace', {
               pct: formatFixed(percentile, PERCENTILE_DIGITS),
             }),
-    }
+          ]),
+    ]
+
+    return parts.length === 0 ? [] : [{ label, value: joinList(parts) }]
   })
 }
