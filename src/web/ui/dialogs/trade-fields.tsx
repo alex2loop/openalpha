@@ -69,6 +69,7 @@ export function KindRow({ form }: { readonly form: TradeForm }) {
         onChange={(value) => pickKind(form, value)}
       />
       <select
+        class={isOther ? undefined : 'is-unset'}
         aria-label={tr('ui.office.trade.other')}
         value={isOther ? kind : OTHER_VALUE}
         onChange={(event) => {

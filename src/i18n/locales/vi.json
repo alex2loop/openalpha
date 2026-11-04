@@ -1973,7 +1973,7 @@
     "office.advanced.notToml": "Mình chưa đọc được file này: {reason}",
     "office.advanced.note": "Giá trị bí mật hiện là {placeholder}; cứ để nguyên thì giữ giá trị cũ. Plugin, câu lệnh của máy chủ MCP, biến chứa khóa, địa chỉ và đường dẫn file chỉ đổi được bằng câu lệnh hoặc sửa thẳng trong config.toml.",
     "office.trade.groupedNumber": "Viết số không có dấu ngăn nghìn, ví dụ 1000.",
-    "office.trade.other": "Loại khác (cổ tức, chia tách, nạp/rút…)",
+    "office.trade.other": "Khác: cổ tức, chia tách, nạp/rút…",
     "office.trade.hint.dividend": "tiền thực nhận",
     "office.trade.hint.distribution": "số cổ phiếu nhận thêm",
     "office.trade.hint.split": "đổi số cổ phiếu",
