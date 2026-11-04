@@ -20,7 +20,7 @@ import { JobsPopover } from '@/web/ui/jobs/jobs-popover'
 import { LIST_KEY } from '@/web/ui/keys/keys'
 import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
 import { Chip } from '@/web/ui/kit/chip'
-import { CoinIcon, InfoOnlyIcon } from '@/web/ui/kit/icons'
+import { CoinIcon, InfoOnlyIcon, WarningIcon } from '@/web/ui/kit/icons'
 import { closePopover, JOBS_POPOVER_ID, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
 import { GearButton } from '@/web/ui/settings/gear-button'
 
@@ -44,7 +44,9 @@ export function Header() {
         {brand.value}
       </div>
       <RunningChip anchor={jobsAnchor} />
-      <span class="header-grow" />
+      <span class="header-grow">
+        <AiNote />
+      </span>
       {!isFirstRun.value && <CostChip anchor={costAnchor} />}
       {hasScene && <ViewSwitch />}
       <InfoOnlyToggle />
@@ -85,6 +87,19 @@ function RunningChip({ anchor }: AnchorProps) {
         runningTextOf(count)
       )}
     </Chip>
+  )
+}
+
+// What the agents say at their desks and post on social networks is machine-written, so the header
+// says so in red, on one line in the room the controls leave: the short sentence where it fits,
+// else the shortest. The full sentence stays in the tip.
+function AiNote() {
+  return (
+    <p class="header-ai-note" role="note" title={tr('ui.office.scene.aiNote')}>
+      <WarningIcon />
+      <span class="header-ai-short">{tr('ui.office.scene.aiNoteShort')}</span>
+      <span class="header-ai-shortest">{tr('ui.office.scene.aiNoteShortest')}</span>
+    </p>
   )
 }
 

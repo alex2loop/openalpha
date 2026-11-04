@@ -17,7 +17,6 @@ import { startTodayRuns, todayRuns } from '@/web/scene/data/today-runs'
 import { startWeather, weather } from '@/web/scene/data/weather'
 import { AddDesk } from '@/web/scene/overlay/add-desk'
 import { AgentCards } from '@/web/scene/overlay/agent-card'
-import { AiNote } from '@/web/scene/overlay/ai-note'
 import { BoardButtons } from '@/web/scene/overlay/board-buttons'
 import { EmptyTeam } from '@/web/scene/overlay/empty-team'
 import { sceneHandOff } from '@/web/scene/overlay/hand-off'
@@ -118,7 +117,6 @@ export function SceneCanvas() {
       <Toolbar />
       <PerfReadout renderer={renderer} />
       <ViewNote />
-      <AiNote />
     </div>
   )
 }
