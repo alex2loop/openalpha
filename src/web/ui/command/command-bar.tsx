@@ -8,8 +8,8 @@ import { breakpoint } from '@/web/state/breakpoints'
 import { APP_CHANNEL, isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
 import {
   inputText,
-  isNotSent,
   isRecalling,
+  notSent,
   recall,
   registerInput,
   sendFromInput,
@@ -39,6 +39,10 @@ const IME_KEY_CODE = 229
 // A floating bar's islands: glass, the field denser since it carries the text.
 const ISLAND = 'command-island glass'
 const FIELD_ISLAND = `${ISLAND} is-strong`
+const NOT_SENT_KEY = {
+  offline: 'ui.office.command.notSent',
+  'key-like': 'ui.office.command.keyLike',
+} as const
 
 /** The popover's state: which row the arrows chose, whether Tab listed every command, and whether
  *  Esc closed it until the next keystroke. */
@@ -104,12 +108,12 @@ function Composer({ isFloating }: { readonly isFloating: boolean }) {
           <CommandInput inputRef={input} list={list} options={options} />
           <kbd class="command-key">{COMMAND_PREFIX}</kbd>
         </div>
-        {isNotSent.value && (
+        {notSent.value !== undefined && (
           <p
             class={isFloating ? 'command-not-sent glass is-strong' : 'command-not-sent'}
             role="alert"
           >
-            {tr('ui.office.command.notSent')}
+            {tr(NOT_SENT_KEY[notSent.value])}
           </p>
         )}
       </div>

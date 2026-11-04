@@ -771,6 +771,7 @@
     "office.command.run": "Run the command",
     "office.command.offline": "Not sent: the connection dropped. Press it again once it is back.",
     "office.command.notSent": "Not sent yet, reconnecting. Your text is still in the box.",
+    "office.command.keyLike": "This line holds something that looks like a key, so it was not sent. Paste keys in Settings > AI and search keys. Your text is still in the box.",
     "office.command.estRange": "about {low}-{high} USD",
     "office.command.estLeft": "{left} USD left today",
     "office.command.ctxSuggestOne": "Analyze one name",

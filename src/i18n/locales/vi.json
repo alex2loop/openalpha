@@ -771,6 +771,7 @@
     "office.command.run": "Chạy câu lệnh",
     "office.command.offline": "Chưa gửi được vì đang mất kết nối. Kết nối lại rồi bấm lần nữa nhé.",
     "office.command.notSent": "Chưa gửi được, đang kết nối lại. Câu của bạn vẫn còn trong ô.",
+    "office.command.keyLike": "Dòng này có thứ trông như một key nên chưa được gửi. Hãy dán key ở Cài đặt > Key AI và tìm kiếm. Câu của bạn vẫn còn trong ô.",
     "office.command.estRange": "khoảng {low}-{high} USD",
     "office.command.estLeft": "còn {left} USD hôm nay",
     "office.command.ctxSuggestOne": "Phân tích một mã",
