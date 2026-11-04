@@ -300,6 +300,7 @@ h1 { margin-top: 18px; font-size: clamp(34px, 7.2vw, 58px); line-height: 1.08; l
 .grad { background: var(--aiText); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 26px; }
 .cta-row.center { justify-content: center; }
+.cta-row + .fine { margin-top: 12px; }
 
 .hero-art { position: relative; margin: 0; }
 .hero-art::before { content: ""; position: absolute; inset: -10% -8%; z-index: -1; background: radial-gradient(closest-side, color-mix(in srgb, var(--tc-violet) calc(var(--glowMix) + 8%), transparent), transparent); }
@@ -805,7 +806,9 @@ code, pre { font-variant-ligatures: none; }
   </div>
   <div class="cta-row" data-reveal data-delay="0.00" style="margin-top:0">
     <a class="btn btn-commit btn-large vi" lang="vi" href="https://github.com/alex2loop/openalpha/blob/main/README.vi.md" target="_blank" rel="noopener noreferrer">Xem trên GitHub<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(mở tab mới)</span></a><a class="btn btn-commit btn-large en" lang="en" href="https://github.com/alex2loop/openalpha/blob/main/README.md" target="_blank" rel="noopener noreferrer">View on GitHub<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(opens in a new tab)</span></a>
+    <a class="btn btn-large" href="https://buymeacoffee.com/alex2loop" target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Mời một ly cà phê</span><span class="en" lang="en">Buy me a coffee</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
   </div>
+  <p class="fine"><span class="vi" lang="vi">Ủng hộ là tự nguyện, không mở thêm tính năng hay hỗ trợ riêng.</span><span class="en" lang="en">Support is voluntary and unlocks no feature or private support.</span></p>
 </section>
 
 
