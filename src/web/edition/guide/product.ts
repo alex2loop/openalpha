@@ -1,6 +1,6 @@
 import { brand, locale } from '@/web/state/session'
 
-import { repository } from '../../../../package.json' with { type: 'json' }
+import { funding, repository } from '../../../../package.json' with { type: 'json' }
 
 const GIT_URL_PREFIX_RE = /^git\+/
 const GIT_URL_SUFFIX_RE = /\.git$/
@@ -10,6 +10,9 @@ const README_FILE = { en: 'README.md', vi: 'README.vi.md' } as const
 /** The public source repository, derived from the package manifest like the rest of the product's
  *  identity. */
 export const REPO_URL = repository.url.replace(GIT_URL_PREFIX_RE, '').replace(GIT_URL_SUFFIX_RE, '')
+
+/** Where a visitor can support the project, from the package manifest's `funding`. */
+export const FUNDING_URL = funding
 
 /** Where the install lines for each platform are: the README in the page's language. */
 export function installUrl(): string {

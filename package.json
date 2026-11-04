@@ -10,6 +10,7 @@
     "url": "git+https://github.com/alex2loop/openalpha.git"
   },
   "homepage": "https://github.com/alex2loop/openalpha#readme",
+  "funding": "https://buymeacoffee.com/alex2loop",
   "bugs": {
     "url": "https://github.com/alex2loop/openalpha/issues"
   },
