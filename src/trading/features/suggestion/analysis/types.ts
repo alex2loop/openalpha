@@ -15,7 +15,10 @@ import type {
   PriceDisplay,
   TradingDay,
 } from '@/trading/kernel/instrument'
-import type { MarketResolution } from '@/trading/markets/types'
+import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
+import type { MacroUnit } from '@/trading/kernel/market/market-macro'
+import type { MarketResolution, NameContext } from '@/trading/markets/types'
 import { AppError } from '@/core/errors'
 import { buildUuidV7Id, parseUuidV7Id } from '@/trading/kernel/instrument'
 
@@ -69,6 +72,26 @@ export interface AnalysisRecord {
   /** How the market's board prints a price, for the price readings among the figures. Absent where
    *  the market prints plain amounts, and on a row stored before it was kept. */
   readonly boardScale?: { readonly currency: CurrencyCode; readonly display: PriceDisplay }
+  /** The currency the money readings are in. Absent on a row stored before it was kept. */
+  readonly currency?: CurrencyCode
+  /** The medians of the name's own sector, beside the readings of the name that have one. Absent
+   *  where the market has no sector view of the name or the sector is too thin to state one. */
+  readonly sector?: NonNullable<NameContext['sector']>
+  /** The name's dated events in the days ahead, soonest first and as the provider worded them. */
+  readonly upcoming?: readonly Pick<
+    MarketEvent,
+    'at' | 'kind' | 'title' | 'detail' | 'composedText'
+  >[]
+  /** Where the market stands, as plain numbers: its heaviest macro series and the session's
+   *  breadth. No regime and no composite, which would be a verdict. */
+  readonly backdrop?: {
+    readonly macro: readonly {
+      readonly id: MacroSeriesId
+      readonly unit: MacroUnit
+      readonly value: number
+    }[]
+    readonly breadth?: NonNullable<NameContext['breadth']>
+  }
   readonly caveats: readonly Caveat[]
 }
 

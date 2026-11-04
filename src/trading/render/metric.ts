@@ -10,6 +10,7 @@ import {
   formatPercent,
   formatPercentRank,
   formatRatio,
+  formatSignedPercent,
   renderDeclaredValue,
 } from '@/trading/render/format'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
@@ -30,6 +31,7 @@ const METRIC_FORMATTERS: Readonly<
   multiple: formatMultiple,
   fraction: formatFraction,
   percent: formatPercent,
+  'signed-percent': formatSignedPercent,
   'percent-rank': formatPercentRank,
   count: formatCount,
   'checks-of-nine': (locale, value) => `${formatCount(locale, value)}/${ACCOUNTS_CHECK_COUNT}`,

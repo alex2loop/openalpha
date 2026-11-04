@@ -17,6 +17,10 @@ export const MARKET_EVENT_KINDS = Object.freeze([
 ] as const)
 export type MarketEventKind = (typeof MARKET_EVENT_KINDS)[number]
 
+/** How many days ahead a surface lists a name's dated events: far enough to plan around an ex-date,
+ *  near enough that the list is about now. */
+export const EVENTS_AHEAD_DAYS = 14
+
 /** How far back a name's events read reaches. HOSE republishes the margin list quarterly, so two
  *  cycles reach a row that took effect at the start of the previous one. */
 const EVENTS_LOOKBACK_SESSIONS = 130

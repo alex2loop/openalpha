@@ -4,6 +4,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { AnalysisId, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { SuggestionCitation } from '@/trading/features/suggestion/citation'
 import type { AnalysisCase, ClaimVerification } from '@/trading/features/suggestion/debate/types'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { Page, PageOptions } from '@/trading/kernel/store/page'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
@@ -24,6 +25,8 @@ import {
   marketRef,
   tradingDay,
 } from '@/trading/kernel/instrument'
+import { MACRO_SERIES_IDS } from '@/trading/kernel/market/macro-series'
+import { MARKET_EVENT_KINDS } from '@/trading/kernel/market/market-event'
 import { caveatsSchema } from '@/trading/kernel/store/store-payload'
 import { parseJson, toPage } from '@/trading/kernel/store/store-row'
 
@@ -65,6 +68,35 @@ const payloadSchema = z.strictObject({
       display: z.strictObject({ divisor: z.number(), decimals: z.number() }),
     })
     .optional(),
+  currency: z.string().optional(),
+  sector: z.strictObject({ code: z.string(), medians: factorMetricsSchema }).optional(),
+  // A block a later build cannot read costs that block, never the analysis around it: a renamed
+  // event kind or series id would otherwise leave the whole row off the page.
+  upcoming: z
+    .array(
+      z.strictObject({
+        at: z.string(),
+        kind: z.enum(MARKET_EVENT_KINDS),
+        title: z.string(),
+        detail: z.string().optional(),
+        composedText: z.literal(true).optional(),
+      })
+    )
+    .optional()
+    .catch(undefined),
+  backdrop: z
+    .strictObject({
+      macro: z.array(
+        z.strictObject({
+          id: z.enum(MACRO_SERIES_IDS),
+          unit: z.enum(['percent', 'level']),
+          value: z.number(),
+        })
+      ),
+      breadth: z.strictObject({ advancers: z.number(), decliners: z.number() }).optional(),
+    })
+    .optional()
+    .catch(undefined),
   caveats: caveatsSchema,
 })
 
@@ -127,6 +159,10 @@ async function create(
         headlines: record.headlines,
         figures: record.figures,
         boardScale: record.boardScale,
+        currency: record.currency,
+        sector: record.sector,
+        upcoming: record.upcoming,
+        backdrop: record.backdrop,
         caveats: record.caveats,
       }),
       record.createdAt,
@@ -204,11 +240,7 @@ function toRecord(row: AnalysisRow): AnalysisRecord {
     },
     citations: payload.citations.map(toCitation),
     headlines: payload.headlines.map(toCitation),
-    figures: payload.figures.map((raw) => ({
-      id: raw.id,
-      value: raw.value,
-      ...definedOnly({ sessions: raw.sessions }),
-    })),
+    figures: payload.figures.map(toFigure),
     ...(payload.boardScale === undefined
       ? {}
       : {
@@ -218,8 +250,49 @@ function toRecord(row: AnalysisRow): AnalysisRecord {
           },
         }),
     caveats: payload.caveats,
+    ...contextOf(payload),
     ...(row.evidence_through === null ? {} : { evidenceThrough: tradingDay(row.evidence_through) }),
   }
+}
+
+/** The groups stored beside the figures, each present only where the run read it. */
+function contextOf(
+  payload: AnalysisPayload
+): Pick<AnalysisRecord, 'currency' | 'sector' | 'upcoming' | 'backdrop'> {
+  const { backdrop } = payload
+
+  return {
+    ...(payload.currency === undefined ? {} : { currency: currencyCode(payload.currency) }),
+    ...(payload.sector === undefined ? {} : { sector: toSector(payload.sector) }),
+    ...(payload.upcoming === undefined
+      ? {}
+      : {
+          upcoming: payload.upcoming.map(({ at, kind, title, detail, composedText }) => ({
+            at: tradingDay(at),
+            kind,
+            title,
+            ...definedOnly({ detail, composedText }),
+          })),
+        }),
+    ...(backdrop === undefined
+      ? {}
+      : {
+          backdrop: {
+            macro: backdrop.macro,
+            ...(backdrop.breadth === undefined ? {} : { breadth: backdrop.breadth }),
+          },
+        }),
+  }
+}
+
+function toSector(
+  raw: NonNullable<AnalysisPayload['sector']>
+): NonNullable<AnalysisRecord['sector']> {
+  return { code: raw.code, medians: raw.medians.map(toFigure) }
+}
+
+function toFigure(raw: AnalysisPayload['figures'][number]): FactorMetric {
+  return { id: raw.id, value: raw.value, ...definedOnly({ sessions: raw.sessions }) }
 }
 
 function toCase(raw: z.infer<typeof caseSchema>): AnalysisCase {

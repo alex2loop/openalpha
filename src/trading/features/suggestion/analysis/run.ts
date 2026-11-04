@@ -21,9 +21,12 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorScore } from '@/trading/kernel/factor'
 import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { TradingDay } from '@/trading/kernel/instrument'
-import type { NewsItem } from '@/trading/kernel/market/market-data'
+import type { Candle, FundingSnapshot, NewsItem } from '@/trading/kernel/market/market-data'
+import type { MarketEvent } from '@/trading/kernel/market/market-event'
+import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
+import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Page } from '@/trading/kernel/store/page'
-import type { MarketRegistry, MarketResolution } from '@/trading/markets/types'
+import type { Market, MarketRegistry, MarketResolution, NameContext } from '@/trading/markets/types'
 import { abortError } from '@/core/errors'
 import { createBudgetSlicesWithin } from '@/engine/api'
 import { buildEnsureOptions } from '@/trading/features/market-data/market-data-run'
@@ -55,6 +58,18 @@ import {
 import { ANALYSIS_ROLES, ANALYSIS_WAVES } from '@/trading/kernel/config'
 import { DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
 import { LEVEL_BARS_SESSIONS } from '@/trading/markets/levels'
+import {
+  backdropReadings,
+  barReadings,
+  benchmarkOf,
+  fundingReadings,
+  nearestEvents,
+  optionally,
+} from '@/trading/markets/name-readings'
+
+/** How many of the name's dated events the analysis lists: the nearest, since a longer list buries
+ *  the one that moves the tape. */
+const UPCOMING_EVENTS_SHOWN = 3
 
 /** What the persona calls and the headline read need beyond the role runner. */
 interface AnalysisDebateDeps extends RoleCallDeps {
@@ -153,6 +168,8 @@ function toRecord(parts: RecordParts): AnalysisRecord {
     citations,
     headlines: uncitedHeadlines(read.evidence.sources, citations),
     figures: read.figures,
+    currency: subject.market.manifest.currency,
+    ...read.context,
     ...boardScaleOf(subject.market.manifest),
     caveats: read.evidence.caveats,
     ...(read.evidenceThrough === undefined ? {} : { evidenceThrough: read.evidenceThrough }),
@@ -201,6 +218,8 @@ async function resolveSubject(
 interface EvidenceRead {
   readonly asOf: TradingDay
   readonly figures: readonly FactorMetric[]
+  /** What the run read beside the factors: the sector, the dated events and the market's backdrop. */
+  readonly context: Pick<AnalysisRecord, 'sector' | 'upcoming' | 'backdrop'>
   readonly evidenceThrough?: TradingDay
   readonly evidence: CaseEvidence
 }
@@ -214,14 +233,16 @@ async function readEvidence(
   const { now, signal } = request
   const asOf = resolveDay(market, now)
 
-  const [factors, events, bars] = await Promise.all([
+  const [factors, events, bars, beside] = await Promise.all([
     market.factors({ instrument, asOf, now, signal }),
     readInstrumentEvents({ market, instrument, asOf, now, signal }),
     market.capabilities.bars?.run({ instrument, asOf, now, sessions: LEVEL_BARS_SESSIONS, signal }),
+    readBeside(deps, subject, { asOf, now, signal }),
   ])
 
   const newest = bars?.kind === 'available' ? bars.value[bars.value.length - 1] : undefined
   const evidenceThrough = newest?.at
+  const calendar = toDraftCalendar(events, instrument, asOf)
 
   const evidence = await buildCaseEvidence({
     market,
@@ -230,7 +251,7 @@ async function readEvidence(
       subject,
       factors,
       asOf,
-      calendar: toDraftCalendar(events, instrument, asOf),
+      calendar,
       ...(evidenceThrough === undefined ? {} : { evidenceThrough }),
     }),
     ...(deps.debate.decisionsChain === undefined
@@ -239,13 +260,100 @@ async function readEvidence(
     recordAttempt: deps.debate.recordAttempt,
     logger: deps.debate.logger,
   })
+  const nameContext = beside.context?.kind === 'available' ? beside.context.value : undefined
 
   return {
     asOf,
     evidence,
-    figures: factors.results.flatMap((factor) => factor.metrics ?? []),
+    figures: figuresOf(subject.market, { bars, beside, factors }),
+    context: {
+      ...(nameContext?.sector === undefined ? {} : { sector: nameContext.sector }),
+      ...upcomingOf(calendar.events, asOf),
+      ...backdropOf(beside.macro, nameContext?.breadth),
+    },
     ...(evidenceThrough === undefined ? {} : { evidenceThrough }),
   }
+}
+
+interface FigureReads {
+  readonly bars: SourceResult<readonly Candle[]> | undefined
+  readonly beside: BesideReads
+  readonly factors: FactorScore
+}
+
+/** Every reading in one list. The factors' own come last, so one of them replaces a reading of the
+ *  same name and window that the bars gave. */
+function figuresOf(market: Market, reads: FigureReads): readonly FactorMetric[] {
+  const { bars, beside, factors } = reads
+  const context = beside.context?.kind === 'available' ? beside.context.value : undefined
+
+  return [
+    ...(bars?.kind === 'available'
+      ? barReadings({
+          manifest: market.manifest,
+          candles: bars.value,
+          ...(beside.indexBars?.kind === 'available' ? { benchmark: beside.indexBars.value } : {}),
+        })
+      : []),
+    ...(context?.figures ?? []),
+    ...(beside.funding?.kind === 'available' ? fundingReadings(beside.funding.value) : []),
+    ...factors.results.flatMap((factor) => factor.metrics ?? []),
+  ]
+}
+
+interface BesideReads {
+  readonly indexBars: SourceResult<readonly Candle[]> | undefined
+  readonly context: SourceResult<NameContext> | undefined
+  readonly macro: SourceResult<MacroRiskView> | undefined
+  readonly funding: SourceResult<FundingSnapshot> | undefined
+}
+
+/** What the run reads beside the factors, each of which the analysis can do without: the market's
+ *  index, what the market holds about the name, its macro series and, where it has one, its
+ *  perpetual's positioning. */
+async function readBeside(
+  deps: AnalysisServiceDeps,
+  subject: ResolvedSubject,
+  when: { readonly asOf: TradingDay; readonly now: number; readonly signal: AbortSignal }
+): Promise<BesideReads> {
+  const { market, instrument } = subject
+  const { capabilities, manifest } = market
+  const benchmark = benchmarkOf(manifest, instrument)
+  const read = <T>(name: string, run: Promise<T> | undefined) =>
+    optionally(deps.debate.logger, name, run)
+  const [indexBars, context, macro, funding] = await Promise.all([
+    read(
+      'benchmark',
+      benchmark === undefined
+        ? undefined
+        : capabilities.bars?.run({ ...when, instrument: benchmark, sessions: LEVEL_BARS_SESSIONS })
+    ),
+    read('context', capabilities.context?.run({ ...when, instrument })),
+    read('macro', capabilities.macroRisk?.run({ ...when, region: manifest.region })),
+    read('funding', capabilities.funding?.run({ ...when, instrument })),
+  ])
+
+  return { indexBars, context, macro, funding }
+}
+
+function upcomingOf(
+  events: readonly MarketEvent[],
+  asOf: TradingDay
+): Pick<AnalysisRecord, 'upcoming'> {
+  const upcoming = nearestEvents(events, asOf, UPCOMING_EVENTS_SHOWN)
+
+  return upcoming.length === 0 ? {} : { upcoming }
+}
+
+function backdropOf(
+  macro: SourceResult<MacroRiskView> | undefined,
+  breadth: NonNullable<AnalysisRecord['backdrop']>['breadth']
+): Pick<AnalysisRecord, 'backdrop'> {
+  const readings = macro?.kind === 'available' ? backdropReadings(macro.value) : []
+
+  return readings.length === 0 && breadth === undefined
+    ? {}
+    : { backdrop: { macro: readings, ...(breadth === undefined ? {} : { breadth }) } }
 }
 
 interface SubjectParts {

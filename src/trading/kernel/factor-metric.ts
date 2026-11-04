@@ -26,11 +26,20 @@ export const FACTOR_METRIC_IDS = Object.freeze([
   'ranked-peers',
   'trend-average',
   'year-high',
+  'distance-from-high',
+  'distance-from-low',
+  'average-range',
+  'relative-return',
   'breakout-trigger',
   'funding-daily',
+  'open-interest-change',
+  'long-short-ratio',
+  'world-gold-premium',
   'trailing-low',
+  'median-turnover',
   'relative-volume',
   'foreign-net-flow',
+  'foreign-room-left',
 ] as const)
 export type FactorMetricId = (typeof FACTOR_METRIC_IDS)[number]
 
@@ -39,13 +48,14 @@ export type FactorMetricId = (typeof FACTOR_METRIC_IDS)[number]
  *  multiple is not a ratio either: a P/E is read as a number and a reading against its own baseline
  *  is read as `2,31×`, which is what keeps it from being taken for a quantity. `fraction` and
  *  `percent` print identically and differ by a hundredfold: a fraction is a 0-1 share, a percent is
- *  already percent-valued (12.5). The producer declares which it publishes; a name ending in `Pct`
+ *  already percent-valued (12.5); a signed percent is the same value printed with its sign. The producer declares which it publishes; a name ending in `Pct`
  *  has already been wrong once. */
 export type FactorMetricUnit =
   | 'ratio'
   | 'multiple'
   | 'fraction'
   | 'percent'
+  | 'signed-percent'
   | 'percent-rank'
   | 'count'
   | 'checks-of-nine'
@@ -81,11 +91,20 @@ export const FACTOR_METRIC_UNITS = Object.freeze({
   'ranked-peers': 'count',
   'trend-average': 'price',
   'year-high': 'price',
+  'distance-from-high': 'signed-percent',
+  'distance-from-low': 'signed-percent',
+  'average-range': 'percent',
+  'relative-return': 'signed-percent',
   'breakout-trigger': 'price',
   'funding-daily': 'percent',
+  'open-interest-change': 'signed-percent',
+  'long-short-ratio': 'ratio',
+  'world-gold-premium': 'signed-percent',
   'trailing-low': 'price',
+  'median-turnover': 'currency',
   'relative-volume': 'multiple',
   'foreign-net-flow': 'signed-currency',
+  'foreign-room-left': 'fraction',
 } as const satisfies Readonly<Record<FactorMetricId, FactorMetricUnit>>)
 
 export interface FactorMetric {

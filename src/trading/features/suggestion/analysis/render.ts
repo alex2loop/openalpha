@@ -2,7 +2,8 @@ import type { Locale } from '@/core/types/locale'
 import type { AnalysisFailure, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { ArguingRole } from '@/trading/features/suggestion/debate/claims'
 import type { AnalysisCase } from '@/trading/features/suggestion/debate/types'
-import type { FactorMetricId } from '@/trading/kernel/factor-metric'
+import type { FactorMetricId, FactorMetricUnit } from '@/trading/kernel/factor-metric'
+import type { MacroUnit } from '@/trading/kernel/market/market-macro'
 import { LLM_ERROR_CODES } from '@/core/llm'
 import { formatDay, type MessageKey, renderAiLabel, t } from '@/i18n'
 import { isClaimBy, isUnsupportedRole } from '@/trading/features/suggestion/debate/claims'
@@ -12,9 +13,15 @@ import { stripStance } from '@/trading/features/suggestion/render/debate'
 import { renderCitationLines } from '@/trading/features/suggestion/render/sections'
 import { renderUnsupportedReason } from '@/trading/features/suggestion/render/verdict'
 import { renderCaveatLines } from '@/trading/render/caveat'
-import { formatCount, renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
+import { describeEvent } from '@/trading/render/event'
+import {
+  formatCount,
+  renderDeclaredValue,
+  renderProvidedValue,
+  SECTION_ICONS,
+} from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR, joinSections, renderSectionTitle } from '@/trading/render/layout'
-import { metricFacts } from '@/trading/render/metric'
+import { formatUnitValue, metricFacts, renderMetricLine } from '@/trading/render/metric'
 import { renderBoardScaleNotes } from '@/trading/render/money'
 
 type AnalysisSide = Extract<ArguingRole, 'bull-researcher' | 'bear-researcher'>
@@ -44,18 +51,42 @@ const SPEND_CAP_KEYS = new Map<unknown, MessageKey>([
   ['agent_daily_cap', 'trading.analysis.cap-spent'],
 ])
 
-type FigureGroup = 'valuation' | 'growth' | 'quality' | 'price' | 'flows'
+type MetricGroup =
+  | 'valuation'
+  | 'growth'
+  | 'quality'
+  | 'price'
+  | 'flows'
+  | 'positioning'
+  | 'premium'
 
-/** The figure groups in the order they print. */
+/** The groups with no metric of their own: the sector's medians, the name's dated events and the
+ *  market's backdrop are read off their own fields. */
+type FigureGroup = MetricGroup | 'sector' | 'events' | 'market'
+
+/** The figure groups in the order they print: the name's own accounts, then the sector it sits in,
+ *  how it trades, what its market adds, what is coming and where the market stands. */
 const FIGURE_GROUP_TITLES = {
   valuation: 'trading.analysis.figures-valuation',
   growth: 'trading.analysis.figures-growth',
   quality: 'trading.analysis.figures-quality',
+  sector: 'trading.analysis.figures-sector',
   price: 'trading.analysis.figures-price',
   flows: 'trading.analysis.figures-flows',
+  positioning: 'trading.analysis.figures-positioning',
+  premium: 'trading.analysis.figures-premium',
+  events: 'trading.analysis.figures-events',
+  market: 'trading.analysis.figures-market',
 } as const satisfies Record<FigureGroup, MessageKey>
 
 const FIGURE_GROUPS = Object.freeze(Object.keys(FIGURE_GROUP_TITLES) as FigureGroup[])
+
+/** A macro series' unit as the unit its value is printed in: a rate is already a percent, and an
+ *  index is a level against its own base. */
+const MACRO_METRIC_UNITS = Object.freeze({
+  percent: 'percent',
+  level: 'ratio',
+} as const satisfies Record<MacroUnit, FactorMetricUnit>)
 
 /** Where each reading is listed. One with no group is no figure: a trigger or a stop reference,
  *  which the reader is never shown as a level, and the count of peers a rank was taken among, a
@@ -85,13 +116,22 @@ const FIGURE_GROUP_OF = Object.freeze({
   'net-interest-to-assets': 'quality',
   'trend-average': 'price',
   'year-high': 'price',
+  'distance-from-high': 'price',
+  'distance-from-low': 'price',
+  'average-range': 'price',
+  'relative-return': 'price',
+  'median-turnover': 'flows',
   'relative-volume': 'flows',
-  'funding-daily': 'flows',
   'foreign-net-flow': 'flows',
+  'foreign-room-left': 'flows',
+  'funding-daily': 'positioning',
+  'open-interest-change': 'positioning',
+  'long-short-ratio': 'positioning',
+  'world-gold-premium': 'premium',
   'ranked-peers': undefined,
   'breakout-trigger': undefined,
   'trailing-low': undefined,
-} as const satisfies Readonly<Record<FactorMetricId, FigureGroup | undefined>>)
+} as const satisfies Readonly<Record<FactorMetricId, MetricGroup | undefined>>)
 
 /** Both sides, what the evidence refuted, and what would make each wrong, in the reader's language.
  *  There is no verdict to print: none was produced, and nothing here weighs one side over the
@@ -201,22 +241,13 @@ function renderWrongLines(
  *  name's place on the board where the reading is one. No factor's score, weight or the composite,
  *  which would weigh one side over the other. */
 function renderFigureLines(locale: Locale, record: AnalysisRecord): readonly string[] {
-  const { boardScale, figures } = record
   const groups = FIGURE_GROUPS.flatMap((group) => {
-    const rows = metricFacts(
-      locale,
-      figures.filter((metric) => FIGURE_GROUP_OF[metric.id] === group),
-      {
-        canonical: true,
-        row: true,
-        ...(boardScale === undefined ? {} : { quote: { display: boardScale.display } }),
-      }
-    )
+    const rows = figureRows(locale, record, group)
 
     return rows.length === 0
       ? []
       : [
-          `${INDENT[1]}${t(locale, FIGURE_GROUP_TITLES[group])}`,
+          `${INDENT[1]}${t(locale, FIGURE_GROUP_TITLES[group], { sector: sectorLabel(locale, record) })}`,
           ...rows.map((row) => `${INDENT[2]}${row}`),
         ]
   })
@@ -228,6 +259,98 @@ function renderFigureLines(locale: Locale, record: AnalysisRecord): readonly str
         ...renderScaleNotes(locale, record),
         ...groups,
       ]
+}
+
+function figureRows(locale: Locale, record: AnalysisRecord, group: FigureGroup): readonly string[] {
+  switch (group) {
+    case 'sector':
+      return sectorRows(locale, record)
+    case 'events':
+      return eventRows(locale, record)
+    case 'market':
+      return backdropRows(locale, record)
+    default:
+      return metricRows(locale, record, group)
+  }
+}
+
+/** The money readings carry their currency, which the market's price scale never does: a price on
+ *  a board prints bare under the scale note, and a traded value does not. */
+function metricRows(locale: Locale, record: AnalysisRecord, group: MetricGroup): readonly string[] {
+  const { boardScale, currency } = record
+
+  return metricFacts(
+    locale,
+    record.figures.filter((metric) => FIGURE_GROUP_OF[metric.id] === group),
+    {
+      canonical: true,
+      row: true,
+      quote: {
+        ...(group === 'flows' && currency !== undefined ? { currency } : {}),
+        ...(boardScale === undefined ? {} : { display: boardScale.display }),
+      },
+    }
+  )
+}
+
+/** The medians as one line: they sit beside the readings of the name above, which carry the
+ *  name's own side of each pair. */
+function sectorRows(locale: Locale, record: AnalysisRecord): readonly string[] {
+  const line = renderMetricLine(locale, record.sector?.medians, {
+    canonical: true,
+    labels: 'short',
+  })
+
+  return line === undefined ? [] : [line]
+}
+
+function sectorLabel(locale: Locale, record: AnalysisRecord): string {
+  const code = record.sector?.code
+
+  return code === undefined ? '' : renderProvidedValue(locale, `trading.sector.${code}`, code)
+}
+
+function eventRows(locale: Locale, record: AnalysisRecord): readonly string[] {
+  return (record.upcoming ?? []).map((event) => {
+    const { title, detail } = describeEvent(locale, event)
+
+    return t(locale, 'trading.render.metric.row', {
+      label: formatDay(locale, event.at),
+      value: detail === undefined ? title : `${title}${INLINE_SEPARATOR}${detail}`,
+    })
+  })
+}
+
+/** The market's heaviest series and the session's breadth, as numbers with their names. */
+function backdropRows(locale: Locale, record: AnalysisRecord): readonly string[] {
+  const { backdrop } = record
+
+  if (backdrop === undefined) {
+    return []
+  }
+
+  const macro = backdrop.macro.map((reading) =>
+    t(locale, 'trading.render.metric.row', {
+      label: renderDeclaredValue(locale, `trading.macro.series.${reading.id}`),
+      value: formatUnitValue(locale, {
+        unit: MACRO_METRIC_UNITS[reading.unit],
+        value: reading.value,
+      }),
+    })
+  )
+  const { breadth } = backdrop
+
+  return [
+    ...(macro.length === 0 ? [] : [macro.join(INLINE_SEPARATOR)]),
+    ...(breadth === undefined
+      ? []
+      : [
+          t(locale, 'trading.analysis.breadth', {
+            advancers: formatCount(locale, breadth.advancers),
+            decliners: formatCount(locale, breadth.decliners),
+          }),
+        ]),
+  ]
 }
 
 /** A board-scaled market's prices read bare, so the scale is said once above them. */
