@@ -3,13 +3,12 @@ import type { RefreshMarketData } from '@/trading/features/market-data/ops/refre
 import type { MarketDataStore } from '@/trading/features/market-data/store/market-data'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef } from '@/trading/kernel/instrument'
-import type { MarketRefreshAttempt } from '@/trading/kernel/market/refresh'
+import type { MarketRefreshAttempt, RefreshKindStatus } from '@/trading/kernel/market/refresh'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sleep } from '@/core/utils/time'
-import { DEGRADED_STATUSES } from '@/trading/features/market-data/ops/refresh'
 
 /** Ceiling for a refresh that stores nothing: the first kind landing (the VN listing, about 11 s in)
  *  ends the wait sooner. Keeps the read well inside the 120 s the host allows it. */
@@ -23,6 +22,9 @@ export const FIRST_LOAD_INCOMPLETE: Caveat = Object.freeze({
   code: 'market-data.first-load-incomplete',
 })
 const FIRST_LOAD_PENDING_ANSWER: readonly Caveat[] = Object.freeze([FIRST_LOAD_PENDING])
+/** A kind whose last pass stored nothing new. `partial` is left out: a wide board where a few names
+ *  are never served settles partial on every pass, and a caveat that never clears is noise. */
+const FAILED_STATUSES: ReadonlySet<RefreshKindStatus> = new Set(['retained', 'unavailable'])
 
 export interface EnsureMarketDataOptions {
   readonly market: MarketRef
@@ -154,7 +156,7 @@ async function buildStaleCaveats(
   attempts: readonly MarketRefreshAttempt[]
 ): Promise<readonly Caveat[]> {
   const populated = attempts.filter(isPopulated)
-  const failed = attempts.filter((attempt) => DEGRADED_STATUSES.has(attempt.result.status))
+  const failed = attempts.filter((attempt) => FAILED_STATUSES.has(attempt.result.status))
   const failedKinds = new Set(failed.map((attempt) => attempt.result.kind))
   const market = deps.markets.find(options.market)
   const stale =

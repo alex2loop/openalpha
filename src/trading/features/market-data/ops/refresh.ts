@@ -26,7 +26,7 @@ import { resolveSettledDay } from '@/trading/markets/calendar'
  *  name in a wide universe is not a report. */
 const MISSING_TARGET_SAMPLE = 8
 /** Statuses that settled short of the population the kind was asked for. */
-export const DEGRADED_STATUSES: ReadonlySet<RefreshKindStatus> = new Set([
+const DEGRADED_STATUSES: ReadonlySet<RefreshKindStatus> = new Set([
   'partial',
   'retained',
   'unavailable',
