@@ -2,7 +2,11 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Candle, FxRatePoint, GoldBoardPoint } from '@/trading/kernel/market/market-data'
 import type { SourceId } from '@/trading/kernel/source/source-id'
-import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
+import type {
+  SourceKind,
+  SourceProvenance,
+  SourceResult,
+} from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type {
   MarketDataRefreshRequest,
@@ -34,8 +38,9 @@ export interface PremiumBackfillDeps {
  *  instead of each inventing a status for the same series. */
 export interface PremiumPass {
   readonly written: readonly TradingDay[]
-  /** Days no point could be computed for that a later pass may still fill: an operand leg that did
-   *  not arrive, or one too far from the day to price it. */
+  /** Days no point could be computed for that a later pass may still fill: an operand too far from
+   *  the day to price it. Empty on a failed fetch, which names its leg in `caveats` instead: the
+   *  counter published nothing wrong on those days. */
   readonly missing: readonly TradingDay[]
   /** Days the counter published nothing on. No retry fills them, so a shortfall counted against
    *  them never clears; a vendor that stops publishing altogether is caught by the percentile's
@@ -62,6 +67,13 @@ const EMPTY_PREMIUM_PASS: PremiumPass = Object.freeze({
 interface DaySpan {
   readonly fromDay: TradingDay
   readonly toDay: TradingDay
+}
+
+/** What each operand leg is asked for. The history and world bars read the whole percentile window;
+ *  the rate only what the wanted days can price against. */
+interface OperandSpans {
+  readonly window: DaySpan
+  readonly fx: DaySpan
 }
 
 interface Operands {
@@ -99,18 +111,24 @@ export async function backfillPremium(
   const wanted = windowDays(input.calendar, fromDay).filter(
     (day) => request.forced || !held.has(day)
   )
+  const [earliest] = wanted
 
-  if (wanted.length === 0) {
+  if (earliest === undefined) {
     return EMPTY_PREMIUM_PASS
   }
 
-  const read = await readOperands(input, request, window)
+  // A rate prices a day from up to `FX_LAG_SESSIONS` sessions before it and never from a later one.
+  // Any wider and a source that answers a day a request is asked for rates nothing reads.
+  const fx = {
+    fromDay: input.calendar.addTradingDays(earliest, -FX_LAG_SESSIONS),
+    toDay: wanted.at(-1) ?? toDay,
+  }
+  const read = await readOperands(input, request, { window, fx })
   const { operands } = read
 
   if (operands === null) {
     return {
       ...EMPTY_PREMIUM_PASS,
-      missing: wanted.filter((day) => !held.has(day)),
       attempted: wanted.length,
       fetchFailed: true,
       provenance: read.provenance,
@@ -214,8 +232,9 @@ function windowDays(calendar: TradingCalendar, fromDay: TradingDay): readonly Tr
 async function readOperands(
   input: PremiumBackfillDeps,
   request: MarketDataRefreshRequest,
-  window: DaySpan
+  spans: OperandSpans
 ): Promise<OperandRead> {
+  const { window } = spans
   const [history, world, fx] = await Promise.all([
     readBoardHistory(input, request, window),
     // The same count in the world's five-session week spans more calendar days than the counter's
@@ -227,19 +246,15 @@ async function readOperands(
       sessions: GOLD_VN_PREMIUM_WINDOW_DAYS,
       signal: request.signal,
     }),
-    input.deps.sources.resolve({
-      kind: 'fxHistory',
-      context: {
-        ticker: fxPair(USD_VND.fromCurrency, USD_VND.toCurrency),
-        fromDay: window.fromDay,
-        toDay: window.toDay,
-      },
-      signal: request.signal,
-    }),
+    readFxHistory(input, request, spans.fx),
   ])
   const historyProvenance = provenanceOf(history)
   const provenance = [...historyProvenance, ...provenanceOf(world), ...provenanceOf(fx)]
-  const caveats = [...history.caveats, ...world.caveats, ...fx.caveats]
+  const caveats = [
+    ...legCaveats(history, 'goldBoardHistory'),
+    ...legCaveats(world, 'bars'),
+    ...legCaveats(fx, 'fxHistory'),
+  ]
   const [stamp] = historyProvenance
 
   if (
@@ -285,6 +300,32 @@ function readBoardHistory(
     },
     signal: request.signal,
   })
+}
+
+function readFxHistory(
+  input: PremiumBackfillDeps,
+  request: MarketDataRefreshRequest,
+  span: DaySpan
+): Promise<SourceResult<readonly FxRatePoint[]>> {
+  return input.deps.sources.resolve({
+    kind: 'fxHistory',
+    context: {
+      ticker: fxPair(USD_VND.fromCurrency, USD_VND.toCurrency),
+      fromDay: span.fromDay,
+      toDay: span.toDay,
+    },
+    signal: request.signal,
+  })
+}
+
+/** A leg that did not arrive and said nothing still gets named, or the row reads "could not fetch"
+ *  with no way to tell which of the three operands it was. */
+function legCaveats(result: SourceResult<unknown>, kind: SourceKind): readonly Caveat[] {
+  if (result.kind === 'available' || result.caveats.length > 0) {
+    return result.caveats
+  }
+
+  return [{ code: 'source.no-available-provider', detail: { sourceKind: kind } }]
 }
 
 /** Bounded by the parser's own point cap, so this map cannot grow with the page. */

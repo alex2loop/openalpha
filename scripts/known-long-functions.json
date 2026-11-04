@@ -147,7 +147,7 @@
     "src/trading/markets/equity-vn/tape/overview.ts#runOverview": 47,
     "src/trading/markets/gold-vn/board.ts#resolveSnapshot": 42,
     "src/trading/markets/gold-vn/market.ts#createVnGoldMarket": 45,
-    "src/trading/markets/gold-vn/premium-backfill.ts#readOperands": 45,
+    "src/trading/markets/gold-vn/premium-backfill.ts#readOperands": 42,
     "src/trading/markets/gold/market.ts#createGoldMarket": 42,
     "src/trading/markets/gold/overview.ts#runGoldOverview": 49,
     "src/trading/markets/levels.ts#buildLevels": 50,

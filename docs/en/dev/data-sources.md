@@ -377,8 +377,9 @@ split), which `Candle` models as absent rather than zero.
   5-session moves differ by 0.12% on average (at most 0.41%). It therefore only backs `yahoo`, and a window it answers is whole or
   refused.
 - `vietcombank` asks `api/exchangerates?date=<day>` a weekday at a time: the board repeats Friday's rates on a weekend, which is no
-  new reading, and a day it has no board for answers `Count` 0. The window is capped at 63 calendar days, about a month of sessions
-  and 45 requests; the gold premium's 108-session backfill is declined and stays with `yahoo`. A failed day fails the window, so a
+  new reading, and a day it has no board for answers `Count` 0. The window is capped at 129 calendar days, at most 94 requests: the
+  gold premium's 108 sessions plus the 2 its rate may lag. The premium asks only for the span its missing days need, so a top-up
+  costs a few requests and only a first fill pays the full window. A failed day fails the window, so a
   hole is never stored as a day the bank did not publish.
 - A fiat pair reaches `yahoo` untouched. A coin's dollar leg (`USDTUSD`, the bridge leg of a `USDTVND` rate) reads Yahoo's
   `USDT-USD` listing, refused unless it answers as a cryptocurrency. Without it, a past day's rate carried today's peg and moved
@@ -540,7 +541,7 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
   `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per sweep; `rss`
   is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo` serves gold `quote`/`bars`
   plus the fiat `fx` leg; `coinbase` is one pair per conversion.
-- `vietcombank` 120: publishes none; a window is one request a weekday, at most 45, read only where `yahoo` answered nothing. A 33-day window took 18 s through the pacer at 60 a
+- `vietcombank` 120: publishes none; a window is one request a weekday, at most 94 (the gold premium's first fill; a top-up asks for a few days), read only where `yahoo` answered nothing. A 33-day window took 18 s through the pacer at 60 a
   minute and 2.7 s at 120. `vndirect-index` 60: one request an
   index (a page per 500 sessions) when the market refreshes its level bars.
 - 30: `giavang` serves `goldBoard` and `goldBoardHistory` (history is the SJC bar only); `pnj` is the PNJ ring and the SJC bar when
