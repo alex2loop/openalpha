@@ -49,10 +49,11 @@ export function App() {
   if (state.value === undefined) {
     const failure = sessionFailure.value
 
-    return failure === undefined ? (
-      <StatusLine text={tr('ui.office.loading')} isBusy />
-    ) : (
-      <StatusLine text={toFailureText(failure)} />
+    return (
+      <StatusLine
+        text={failure === undefined ? tr('ui.office.loading') : toFailureText(failure)}
+        isBusy={failure === undefined}
+      />
     )
   }
 
