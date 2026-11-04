@@ -1,5 +1,5 @@
 import { downloadBlob } from '@/web/edition/download'
-import { SORT_LABELS } from '@/web/edition/screen-columns'
+import { labelled, SORT_LABELS } from '@/web/edition/screen-columns'
 import {
   BASE_SORTS,
   type BaseSortKey,
@@ -71,7 +71,7 @@ function columnsOf({ rows, baseKeys, metrics, factors }: BoardFile): readonly Co
         : [{ header: tr(figureHeader(key)), cell: (c: Candidate) => numeric(c[field]) }]
     }),
     ...metrics.map((column) => ({
-      header: tr(column.label),
+      header: labelled(column.label, column.sessions),
       cell: (c: Candidate) => numeric(metricOf(c, column)),
     })),
     ...factors.flatMap(({ id, label }) => [

@@ -1,12 +1,13 @@
 import type { ScreenResponse } from '@/app/server/wire/market'
 import type { Bound } from '@/web/edition/screen-bounds'
-import { SORT_LABELS } from '@/web/edition/screen-columns'
+import { labelled, SORT_LABELS } from '@/web/edition/screen-columns'
 import {
   type BaseSortKey,
   type BoardFactor,
   FACTOR_SORT_PREFIX,
   METRIC_SORT_PREFIX,
   type MetricColumn,
+  metricKey,
   type SortDirection,
 } from '@/web/edition/screen-sort'
 import {
@@ -67,9 +68,9 @@ function SortBar({ market, view, baseKeys, metrics, factors }: ControlsProps) {
             {tr(SORT_LABELS[key])}
           </option>
         ))}
-        {metrics.map(({ key, label }) => (
-          <option key={key} value={`${METRIC_SORT_PREFIX}${key}`}>
-            {tr(label)}
+        {metrics.map((column) => (
+          <option key={metricKey(column)} value={`${METRIC_SORT_PREFIX}${metricKey(column)}`}>
+            {labelled(column.label, column.sessions)}
           </option>
         ))}
         {factors.map(({ id, label }) => (
@@ -98,10 +99,10 @@ function FilterBar({ market, view, sectors, bounds, kinds }: ControlsProps) {
       {kinds !== undefined && <KindSelect market={market} view={view} kinds={kinds} />}
       <ScopeSelect market={market} view={view} />
       {sectors.length > 0 && <SectorSelect market={market} view={view} sectors={sectors} />}
-      {bounds.map(({ id, label }) => (
+      {bounds.map(({ id, label, sessions }) => (
         <LimitInput
           key={id}
-          label={tr(label)}
+          label={labelled(label, sessions)}
           value={view.bounds[id] ?? ''}
           onInput={(typed) => updateView(market, { bounds: { ...view.bounds, [id]: typed } })}
         />

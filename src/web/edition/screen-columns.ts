@@ -24,6 +24,11 @@ export const SORT_LABELS: Readonly<Record<BaseSortKey, MessageKey>> = Object.fre
   foreignNet: 'ui.office.edition.screen.sort.foreignNet',
 })
 
+/** A label that may name the span its figure is measured over (`{sessions}`), as the wire states it. */
+export function labelled(label: MessageKey, sessions?: number): string {
+  return tr(label, sessions === undefined ? {} : { sessions })
+}
+
 /** The figures a name carries beyond its price and day's move, in the order they print, each with
  *  how the page writes it. */
 const FIGURE_FORMATS: readonly (readonly [BaseSortKey, (value: number | undefined) => string])[] =

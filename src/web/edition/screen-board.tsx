@@ -190,12 +190,14 @@ function EmptyBoard({
 /** What the board offers to order and filter by, the visitor's view with each choice it cannot
  *  honour dropped, and the names that pass, in the visitor's order. */
 function arrange(board: ScreenResponse, market: string) {
+  const baseKeys = boardBaseKeys(board.candidates)
+  const metrics = boardMetrics(board.candidates)
   const choices = {
-    baseKeys: boardBaseKeys(board.candidates),
-    metrics: boardMetrics(board.candidates),
+    baseKeys,
+    metrics,
     factors: boardFactors(board.candidates),
     sectors: boardSectors(board.candidates),
-    bounds: boardBounds(board.candidates),
+    bounds: boardBounds(baseKeys, metrics),
   }
   const view = resolveView(viewOf(market).value, choices)
   const shown = sortCandidates(

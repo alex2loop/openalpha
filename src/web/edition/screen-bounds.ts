@@ -1,20 +1,26 @@
 import type { MessageKey } from '@/i18n'
-import { type Candidate, metricOf } from '@/web/edition/screen-sort'
+import {
+  BASE_LIMITS,
+  type BaseSortKey,
+  baseFigureOf,
+  type Candidate,
+  type Limit,
+  type MetricColumn,
+  metricKey,
+  metricOf,
+} from '@/web/edition/screen-sort'
 import { toDecimal } from '@/web/text/decimal'
 
-/** The size inputs are typed in billions: a VN market value in whole units runs to fifteen digits. */
-const BILLION = 1_000_000_000
-/** A share the wire states as a fraction (`0.12`) is typed as a percent (`12`). */
-const PERCENT_TO_FRACTION = 0.01
 const NEGATIVE_MARK = '-'
-const WEEK_SESSIONS = 7
-const MONTH_SESSIONS = 30
+const SIDES = Object.freeze(['min', 'max'] as const)
 
 /** One value limit the visitor can set: which figure of a name it bounds, from which side, and the
  *  scale between what is typed and what the name carries. */
 export interface Bound {
   readonly id: string
   readonly label: MessageKey
+  /** The span the label names, where the figure has one. */
+  readonly sessions?: number
   readonly side: 'min' | 'max'
   readonly scale: number
   readonly read: (candidate: Candidate) => number | undefined
@@ -26,93 +32,61 @@ interface ActiveBound {
   readonly limit: number
 }
 
-/** Every limit the page can offer, in the order it offers them. A bound is shown only where the
- *  board carries its figure, so a market without it has no dead field. */
-const BOUNDS: readonly Bound[] = Object.freeze([
-  {
-    id: 'minTurnover',
-    label: 'ui.office.edition.screen.filter.minTurnover',
-    side: 'min',
-    scale: BILLION,
-    read: (candidate) => candidate.turnover,
-  },
-  {
-    id: 'minMarketCap',
-    label: 'ui.office.edition.screen.filter.minMarketCap',
-    side: 'min',
-    scale: BILLION,
-    read: (candidate) => marketCapOf(candidate),
-  },
-  {
-    id: 'maxMarketCap',
-    label: 'ui.office.edition.screen.filter.maxMarketCap',
-    side: 'max',
-    scale: BILLION,
-    read: (candidate) => marketCapOf(candidate),
-  },
-  {
-    id: 'minVolume24h',
-    label: 'ui.office.edition.screen.filter.minVolume24h',
-    side: 'min',
-    scale: BILLION,
-    read: (candidate) => metricOf(candidate, { id: 'volume-24h' }),
-  },
-  {
-    id: 'maxPe',
-    label: 'ui.office.edition.screen.filter.maxPe',
-    side: 'max',
-    scale: 1,
-    read: (candidate) => metricOf(candidate, { id: 'pe' }),
-  },
-  {
-    id: 'maxDistanceFromHigh',
-    label: 'ui.office.edition.screen.filter.maxDistanceFromHigh',
-    side: 'max',
-    scale: 1,
-    read: (candidate) => distanceBelowHigh(candidate),
-  },
-  {
-    id: 'minRelativeReturn',
-    label: 'ui.office.edition.screen.filter.minRelativeReturn',
-    side: 'min',
-    scale: 1,
-    read: (candidate) => metricOf(candidate, { id: 'relative-return' }),
-  },
-  {
-    id: 'maxAverageRange',
-    label: 'ui.office.edition.screen.filter.maxAverageRange',
-    side: 'max',
-    scale: 1,
-    read: (candidate) => metricOf(candidate, { id: 'average-range' }),
-  },
-  {
-    id: 'minForeignRoom',
-    label: 'ui.office.edition.screen.filter.minForeignRoom',
-    side: 'min',
-    scale: PERCENT_TO_FRACTION,
-    read: (candidate) => metricOf(candidate, { id: 'foreign-room-left' }),
-  },
-  {
-    id: 'minWeekChange',
-    label: 'ui.office.edition.screen.filter.minWeekChange',
-    side: 'min',
-    scale: 1,
-    read: (candidate) => metricOf(candidate, { id: 'price-change', sessions: WEEK_SESSIONS }),
-  },
-  {
-    id: 'minMonthChange',
-    label: 'ui.office.edition.screen.filter.minMonthChange',
-    side: 'min',
-    scale: 1,
-    read: (candidate) => metricOf(candidate, { id: 'price-change', sessions: MONTH_SESSIONS }),
-  },
-])
+/** The limits this board can honour: those of the base figures and the measured quantities it
+ *  offers, so a market without a figure has no dead field. A limit is named by its figure and its
+ *  side (`turnover:min`). */
+export function boardBounds(
+  baseKeys: readonly BaseSortKey[],
+  metrics: readonly MetricColumn[]
+): readonly Bound[] {
+  return [
+    ...baseKeys.flatMap((key) =>
+      boundsOf({
+        figure: key,
+        limit: BASE_LIMITS[key],
+        read: (candidate) => baseFigureOf(candidate, key),
+      })
+    ),
+    ...metrics.flatMap((column) =>
+      boundsOf({
+        figure: metricKey(column),
+        limit: column.limit,
+        sessions: column.sessions,
+        read: (candidate) => metricOf(candidate, column),
+      })
+    ),
+  ]
+}
 
-/** The bounds this board can honour: those whose figure some name carries. */
-export function boardBounds(candidates: readonly Candidate[]): readonly Bound[] {
-  return BOUNDS.filter((bound) =>
-    candidates.some((candidate) => bound.read(candidate) !== undefined)
-  )
+interface Figure {
+  /** What names it in a limit's id. */
+  readonly figure: string
+  readonly limit: Limit | undefined
+  readonly sessions?: number | undefined
+  readonly read: Bound['read']
+}
+
+function boundsOf({ figure, limit, sessions, read }: Figure): readonly Bound[] {
+  if (limit === undefined) {
+    return []
+  }
+
+  return SIDES.flatMap((side): readonly Bound[] => {
+    const label = limit[side]
+
+    return label === undefined
+      ? []
+      : [
+          {
+            id: `${figure}:${side}`,
+            label,
+            ...(sessions === undefined ? {} : { sessions }),
+            side,
+            scale: limit.scale,
+            read: limit.isBelow === true ? (candidate) => negated(read(candidate)) : read,
+          },
+        ]
+  })
 }
 
 /** Whether the visitor has set any limit the board offers. */
@@ -157,16 +131,8 @@ function isWithin(candidate: Candidate, { bound, limit }: ActiveBound): boolean 
   return bound.side === 'min' ? value >= limit : value <= limit
 }
 
-function marketCapOf(candidate: Candidate): number | undefined {
-  return candidate.marketCap ?? metricOf(candidate, { id: 'market-cap' })
-}
-
-// The wire states how far below the high a name stands as a negative percent; the limit is typed as
-// the distance, so a name 8% under its high passes a limit of 10.
-function distanceBelowHigh(candidate: Candidate): number | undefined {
-  const distance = metricOf(candidate, { id: 'distance-from-high' })
-
-  return distance === undefined ? undefined : -distance
+function negated(value: number | undefined): number | undefined {
+  return value === undefined ? undefined : -value
 }
 
 /** The typed limit in the figure's own unit; a leading minus is kept, since a move can limit below
