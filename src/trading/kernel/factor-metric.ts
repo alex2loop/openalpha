@@ -55,8 +55,8 @@ export type FactorMetricId = (typeof FACTOR_METRIC_IDS)[number]
  *  multiple is not a ratio either: a P/E is read as a number and a reading against its own baseline
  *  is read as `2,31×`, which is what keeps it from being taken for a quantity. `fraction` and
  *  `percent` print identically and differ by a hundredfold: a fraction is a 0-1 share, a percent is
- *  already percent-valued (12.5); a signed percent is the same value printed with its sign. The producer declares which it publishes; a name ending in `Pct`
- *  has already been wrong once. */
+ *  already percent-valued (12.5); a signed percent is the same value printed with its sign. The
+ *  producer declares which it publishes; a name ending in `Pct` has already been wrong once. */
 export type FactorMetricUnit =
   | 'ratio'
   | 'multiple'
