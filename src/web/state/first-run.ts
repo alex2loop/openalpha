@@ -1,15 +1,16 @@
-import { computed, type ReadonlySignal, signal } from '@preact/signals'
+import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
 
 import { BRIEF_NAME } from '@/web/state/command'
 import { isAnalysisOnly } from '@/web/state/edition'
 import { onCommandFinished } from '@/web/state/events'
-import { isModelReady, state } from '@/web/state/session'
+import { isFirstRun, isModelReady, state } from '@/web/state/session'
 import { readStorage, writeStorage } from '@/web/state/storage'
 
 const PROFILE_KEPT_KEY = 'office.firstRun.profileKept'
 const BOOK_SKIPPED_KEY = 'office.firstRun.bookSkipped'
 const BRIEF_RAN_KEY = 'office.firstRun.briefRan'
 const HIDDEN_KEY = 'office.firstRun.hidden'
+const STARTED_KEY = 'office.firstRun.started'
 const STORED = '1'
 const COMPLETED = 'completed'
 
@@ -19,6 +20,9 @@ const profileKept = signal(isStored(PROFILE_KEPT_KEY))
 const bookSkipped = signal(isStored(BOOK_SKIPPED_KEY))
 const briefRan = signal(isStored(BRIEF_RAN_KEY))
 const hidden = signal(isStored(HIDDEN_KEY))
+// Set the first time this browser sees a first run, so a daemon set up long before never shows the
+// checklist, while one set up here keeps it until its steps are done.
+const started = signal(isStored(STARTED_KEY))
 
 /** A profile was saved, or the visitor chose to keep the defaults the daemon starts on. */
 export const isProfileDone = computed(
@@ -41,20 +45,36 @@ const areRequiredStepsDone = computed(
     briefRan.value
 )
 
-/** The checklist shows from the first loaded session until every required step is done or the
- *  visitor hides it. */
+/** The checklist shows from a first run until every required step is done or the visitor hides
+ *  it. */
 export const isGuideShown = computed(
-  () => state.value !== undefined && !hidden.value && !areRequiredStepsDone.value
+  () =>
+    state.value !== undefined &&
+    (started.value || isFirstRun.value) &&
+    !hidden.value &&
+    !areRequiredStepsDone.value
 )
 
-/** Watches for a `/brief` run that completes; the returned function stops it. */
+/** Notes a first run once it is seen, and watches for a `/brief` run that completes; the returned
+ *  function stops both. */
 export function startFirstRun(): () => void {
-  return onCommandFinished(BRIEF_NAME, (outcome) => {
+  const stopStart = effect(() => {
+    if (isFirstRun.value && !started.peek()) {
+      started.value = true
+      writeStorage('local', STARTED_KEY, STORED)
+    }
+  })
+  const stopBrief = onCommandFinished(BRIEF_NAME, (outcome) => {
     if (outcome === COMPLETED) {
       briefRan.value = true
       writeStorage('local', BRIEF_RAN_KEY, STORED)
     }
   })
+
+  return () => {
+    stopStart()
+    stopBrief()
+  }
 }
 
 export function keepProfileDefaults(): void {

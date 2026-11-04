@@ -683,7 +683,8 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     profile or "Keep the defaults" (a profile you never saved runs on default levels), a recorded
     trade or "Nothing yet, skip", a `/brief` that finished in this browser. The card goes away once
     every required step is ticked, or at once with "Hide this guide"; both are remembered in this
-    browser only.
+    browser only. It shows only in a browser that opened the office before a profile was saved or a
+    trade recorded.
   - *Portfolio* holds overview, performance, history, rebalance and the watchlist with its price
     alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
     and deleted here, with undo, and History checks the ledger against your venues (see
