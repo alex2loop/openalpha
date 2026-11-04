@@ -6,6 +6,7 @@ import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { isAdvanced } from '@/web/state/prefs'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale } from '@/web/state/session'
+import { toCaveatText } from '@/web/text/caveat-text'
 import {
   formatFixed,
   formatFixedFraction,
@@ -224,7 +225,7 @@ function InfoNotes({ caveats }: { readonly caveats: MacroResponse['caveats'] }) 
     <Fold title={tr('trading.render.suggestion.sources')}>
       {notes.map((note) => (
         <p key={note.text} class="meta">
-          {note.text}
+          {toCaveatText(note)}
         </p>
       ))}
     </Fold>
