@@ -88,6 +88,10 @@
   --factW: 11rem;
 }
 
+.screen-facts.is-readings {
+  --factW: 14rem;
+}
+
 .screen-facts.is-factors {
   --factW: 18rem;
 }

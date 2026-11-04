@@ -4,12 +4,14 @@ import type { ScreenResponse } from '@/app/server/wire/market'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { DataStatus } from '@/web/edition/data-status'
-import { type Fact, factorFacts, figureFacts } from '@/web/edition/screen-columns'
+import { boardBounds } from '@/web/edition/screen-bounds'
+import { type Fact, factorFacts, figureFacts, readingFacts } from '@/web/edition/screen-columns'
 import { ScreenControls } from '@/web/edition/screen-controls'
 import { downloadBoardCsv } from '@/web/edition/screen-csv'
 import {
   boardBaseKeys,
   boardFactors,
+  boardMetrics,
   type Candidate,
   sortCandidates,
 } from '@/web/edition/screen-sort'
@@ -23,11 +25,13 @@ import {
 import { useBlockRead } from '@/web/state/block'
 import { openTicker } from '@/web/state/known-tickers'
 import { heldPositions, keyOf, printDisplayOf, watchedNames } from '@/web/state/market'
-import { formatPrice, formatSignedPercent } from '@/web/text/figures'
+import { formatFixed, formatPrice, formatSignedPercent } from '@/web/text/figures'
+import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { AnalyzeButton } from '@/web/ui/ticker/analyze-button'
+import { WatchButton } from '@/web/ui/ticker/watch-button'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 /** The names one page of the board holds (the most `/v1/screen` serves at a time). */
@@ -36,12 +40,21 @@ const SCREEN_PAGE_LIMIT = 50
 const MAX_SCREEN_PAGES = 40
 // `2026-11-03`: a day, however the read stamps it.
 const DAY_LENGTH = 10
+const PERCENT = 100
 
-/** Màn lọc on the web: every priced name the market read returned, with its price and move and what
- *  each factor read for it and where that sits on the board, in the order the visitor picks. The
- *  page ranks nothing and rates nothing: it prints figures and the control that orders them. */
+/** Màn lọc on the web: every priced name the market read returned, with its price and move, the
+ *  plain values its market states and what each factor read for it and where that sits on the board,
+ *  in the order the visitor picks. The page ranks nothing and rates nothing: it prints figures and
+ *  the control that orders them. */
 export function ScreenBoard({ market }: { readonly market: string }) {
-  const reading = useBlockRead((abort) => readBoard(market, abort), {
+  // The kind is part of the read, so choosing another mounts the board afresh.
+  const { kind } = viewOf(market).value
+
+  return <KindBoard key={kind} market={market} kind={kind} />
+}
+
+function KindBoard({ market, kind }: { readonly market: string; readonly kind: string }) {
+  const reading = useBlockRead((abort) => readBoard({ market, kind, abort }), {
     capability: ROUTES.screen.capability,
   })
 
@@ -58,14 +71,21 @@ export function ScreenBoard({ market }: { readonly market: string }) {
   )
 }
 
+interface BoardRead {
+  readonly market: string
+  /** Empty asks for the market's own first kind. */
+  readonly kind: string
+  readonly abort: AbortSignal
+}
+
 // The board is read whole, a page at a time, so the visitor sorts every name and not a page of them.
-async function readBoard(market: string, abort: AbortSignal): Promise<ScreenResponse> {
-  const first = await readPage({ market, abort })
+async function readBoard({ market, kind, abort }: BoardRead): Promise<ScreenResponse> {
+  const first = await readPage({ market, kind, abort })
   const names = [...first.candidates]
   let cursor = first.next
 
   for (let page = 1; cursor !== undefined && page < MAX_SCREEN_PAGES; page++) {
-    const answer = await readPage({ market, cursor, abort })
+    const answer = await readPage({ market, kind, cursor, abort })
 
     names.push(...answer.candidates)
     cursor = answer.next
@@ -76,15 +96,18 @@ async function readBoard(market: string, abort: AbortSignal): Promise<ScreenResp
   return { ...board, candidates: names }
 }
 
-interface PageRead {
-  readonly market: string
+interface PageRead extends BoardRead {
   readonly cursor?: string
-  readonly abort: AbortSignal
 }
 
-function readPage({ market, cursor, abort }: PageRead): Promise<ScreenResponse> {
+function readPage({ market, kind, cursor, abort }: PageRead): Promise<ScreenResponse> {
   return getJson(ROUTES.screen, {
-    query: { market, limit: SCREEN_PAGE_LIMIT, ...(cursor === undefined ? {} : { cursor }) },
+    query: {
+      market,
+      limit: SCREEN_PAGE_LIMIT,
+      ...(kind === '' ? {} : { kind }),
+      ...(cursor === undefined ? {} : { cursor }),
+    },
     signal: abort,
   })
 }
@@ -94,15 +117,7 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
     return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
-  const baseKeys = boardBaseKeys(board.candidates)
-  const factors = boardFactors(board.candidates)
-  const sectors = boardSectors(board.candidates)
-  const view = resolveView(viewOf(market).value, { baseKeys, factors, sectors })
-  const shown = sortCandidates(
-    filterCandidates(board.candidates, view, ownNames()),
-    view.sort,
-    view.direction
-  )
+  const { choices, view, shown } = arrange(board, market)
 
   return (
     <>
@@ -115,15 +130,16 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
       <ScreenControls
         market={market}
         view={view}
-        baseKeys={baseKeys}
-        factors={factors}
-        sectors={sectors}
+        {...choices}
+        bounds={boardBounds(board.candidates)}
+        kinds={board.kinds}
       />
-      <BoardTally board={board} market={market} shown={shown} file={{ baseKeys, factors }} />
+      <BoardTally board={board} market={market} shown={shown} file={choices} />
       {shown.length === 0 && <p class="empty-note">{tr('ui.office.edition.screen.filter.none')}</p>}
       {shown.map((candidate) => (
         <NameRow key={candidate.instrument.ticker} candidate={candidate} market={market} />
       ))}
+      <Rejections lines={board.card.rejections} />
       {[...board.card.caveats, ...board.card.provenance].map((line) => (
         <p key={line} class="meta">
           {line}
@@ -133,11 +149,47 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
   )
 }
 
+/** What the board offers to order and filter by, the visitor's view with each choice it cannot
+ *  honour dropped, and the names that pass, in the visitor's order. */
+function arrange(board: ScreenResponse, market: string) {
+  const choices = {
+    baseKeys: boardBaseKeys(board.candidates),
+    metrics: boardMetrics(board.candidates),
+    factors: boardFactors(board.candidates),
+    sectors: boardSectors(board.candidates),
+  }
+  const view = resolveView(viewOf(market).value, choices)
+  const shown = sortCandidates(
+    filterCandidates(board.candidates, view, ownNames()),
+    view.sort,
+    view.direction
+  )
+
+  return { choices, view, shown }
+}
+
+// What the gates left out, and why, as the CLI words it: a board of the names that cleared them
+// would otherwise say nothing about the rest.
+function Rejections({ lines }: { readonly lines: readonly string[] }) {
+  if (lines.length === 0) {
+    return null
+  }
+
+  return (
+    <details class="meta">
+      <summary>{tr('ui.office.edition.screen.rejections')}</summary>
+      {lines.map((line) => (
+        <p key={line}>{line}</p>
+      ))}
+    </details>
+  )
+}
+
 interface TallyProps {
   readonly board: ScreenResponse
   readonly market: string
   readonly shown: readonly Candidate[]
-  readonly file: Pick<Parameters<typeof downloadBoardCsv>[0], 'baseKeys' | 'factors'>
+  readonly file: Pick<Parameters<typeof downloadBoardCsv>[0], 'baseKeys' | 'metrics' | 'factors'>
 }
 
 /** How many names the filters leave, and the way to take them as a file. */
@@ -186,6 +238,7 @@ function NameRow({
   readonly market: string
 }) {
   const { ticker } = candidate.instrument
+  const failure = useSignal<string | undefined>(undefined)
 
   return (
     <div class="opportunity">
@@ -201,13 +254,34 @@ function NameRow({
             : ` · ${formatSignedPercent(candidate.changePct)}`}
         </p>
         <Facts facts={figureFacts(candidate)} kind="figures" />
+        <Facts facts={readingFacts(candidate)} kind="readings" />
         <Facts facts={factorFacts(candidate)} kind="factors" />
+        <NameNotes candidate={candidate} />
+        {failure.value !== undefined && <p class="failure-line">{failure.value}</p>}
       </div>
       <div class="opportunity-ask">
         <AnalyzeButton name={`${market}:${ticker}`} isAnalyzed={false} size="small" />
+        <WatchButton ticker={ticker} market={market} failure={failure} size="small" />
       </div>
     </div>
   )
+}
+
+// What the page says about the name's place on the board rather than about the name: that the
+// operator excluded it, and that some factors had no data to read.
+function NameNotes({ candidate }: { readonly candidate: Candidate }) {
+  const notes = [
+    ...(candidate.excluded === true ? [tr('ui.office.edition.screen.excluded')] : []),
+    ...(candidate.coverage === undefined
+      ? []
+      : [
+          tr('ui.office.edition.screen.coverage', {
+            pct: formatFixed(candidate.coverage * PERCENT, 0),
+          }),
+        ]),
+  ]
+
+  return notes.length === 0 ? null : <p class="meta">{joinInline(notes)}</p>
 }
 
 // Each kind lays its facts on a grid of its own width, so the rows of a board read alike.

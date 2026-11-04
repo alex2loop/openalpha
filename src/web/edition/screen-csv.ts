@@ -5,6 +5,8 @@ import {
   type BaseSortKey,
   type BoardFactor,
   type Candidate,
+  type MetricColumn,
+  metricOf,
 } from '@/web/edition/screen-sort'
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
@@ -27,6 +29,7 @@ interface BoardFile {
   readonly day: string
   readonly rows: readonly Candidate[]
   readonly baseKeys: readonly BaseSortKey[]
+  readonly metrics: readonly MetricColumn[]
   readonly factors: readonly BoardFactor[]
 }
 
@@ -47,7 +50,7 @@ export async function downloadBoardCsv(board: BoardFile): Promise<void> {
   )
 }
 
-function columnsOf({ rows, baseKeys, factors }: BoardFile): readonly Column[] {
+function columnsOf({ rows, baseKeys, metrics, factors }: BoardFile): readonly Column[] {
   return [
     { header: tr('ui.office.edition.screen.csv.ticker'), cell: (c) => quoted(c.instrument.ticker) },
     { header: tr('ui.office.edition.screen.csv.name'), cell: (c) => quoted(c.name?.trim()) },
@@ -67,6 +70,10 @@ function columnsOf({ rows, baseKeys, factors }: BoardFile): readonly Column[] {
         ? []
         : [{ header: tr(figureHeader(key)), cell: (c: Candidate) => numeric(c[field]) }]
     }),
+    ...metrics.map((column) => ({
+      header: tr(column.label),
+      cell: (c: Candidate) => numeric(metricOf(c, column)),
+    })),
     ...factors.flatMap(({ id, label }) => [
       { header: label, cell: (c: Candidate) => quoted(factorOf(c, id)?.reading) },
       {

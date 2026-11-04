@@ -1,8 +1,12 @@
+import type { ScreenResponse } from '@/app/server/wire/market'
+import type { Bound } from '@/web/edition/screen-bounds'
 import { SORT_LABELS } from '@/web/edition/screen-columns'
 import {
   type BaseSortKey,
   type BoardFactor,
   FACTOR_SORT_PREFIX,
+  METRIC_SORT_PREFIX,
+  type MetricColumn,
   type SortDirection,
 } from '@/web/edition/screen-sort'
 import {
@@ -28,27 +32,27 @@ interface ControlsProps {
   /** The visitor's view with each choice the board cannot honour already dropped. */
   readonly view: BoardView
   readonly baseKeys: readonly BaseSortKey[]
+  readonly metrics: readonly MetricColumn[]
   readonly factors: readonly BoardFactor[]
   readonly sectors: readonly string[]
+  /** The limits the board's figures allow. */
+  readonly bounds: readonly Bound[]
+  /** The kinds of instrument the market lists, where it lists more than one. */
+  readonly kinds: ScreenResponse['kinds']
 }
 
 /** The order and the filters the visitor sets on the board. Every choice is theirs and every
  *  default is neutral: ticker order, nothing filtered out. */
-export function ScreenControls({ market, view, baseKeys, factors, sectors }: ControlsProps) {
+export function ScreenControls(props: ControlsProps) {
   return (
     <>
-      <SortBar market={market} view={view} baseKeys={baseKeys} factors={factors} />
-      <FilterBar market={market} view={view} baseKeys={baseKeys} sectors={sectors} />
+      <SortBar {...props} />
+      <FilterBar {...props} />
     </>
   )
 }
 
-function SortBar({
-  market,
-  view,
-  baseKeys,
-  factors,
-}: Pick<ControlsProps, 'market' | 'view' | 'baseKeys' | 'factors'>) {
+function SortBar({ market, view, baseKeys, metrics, factors }: ControlsProps) {
   const direction: SortDirection = view.direction
 
   return (
@@ -61,6 +65,11 @@ function SortBar({
         {baseKeys.map((key) => (
           <option key={key} value={key}>
             {tr(SORT_LABELS[key])}
+          </option>
+        ))}
+        {metrics.map(({ key, label }) => (
+          <option key={key} value={`${METRIC_SORT_PREFIX}${key}`}>
+            {tr(label)}
           </option>
         ))}
         {factors.map(({ id, label }) => (
@@ -83,40 +92,20 @@ function SortBar({
   )
 }
 
-function FilterBar({
-  market,
-  view,
-  baseKeys,
-  sectors,
-}: Pick<ControlsProps, 'market' | 'view' | 'baseKeys' | 'sectors'>) {
+function FilterBar({ market, view, sectors, bounds, kinds }: ControlsProps) {
   return (
     <div class="sort-bar">
-      <select
-        aria-label={tr('ui.office.edition.screen.filter.scope')}
-        value={view.scope}
-        onChange={(event) => updateView(market, { scope: toScope(event.currentTarget.value) })}
-      >
-        {SCOPES.map((scope) => (
-          <option key={scope} value={scope}>
-            {tr(SCOPE_LABELS[scope])}
-          </option>
-        ))}
-      </select>
-      {sectors.length > 0 && (
-        <select
-          aria-label={tr('ui.office.edition.screen.filter.sector')}
-          value={view.sector}
-          onChange={(event) => updateView(market, { sector: event.currentTarget.value })}
-        >
-          <option value="">{tr('ui.office.edition.screen.filter.sectorAll')}</option>
-          {sectors.map((sector) => (
-            <option key={sector} value={sector}>
-              {sectorName(sector)}
-            </option>
-          ))}
-        </select>
-      )}
-      <SizeFilters market={market} view={view} baseKeys={baseKeys} />
+      {kinds !== undefined && <KindSelect market={market} view={view} kinds={kinds} />}
+      <ScopeSelect market={market} view={view} />
+      {sectors.length > 0 && <SectorSelect market={market} view={view} sectors={sectors} />}
+      {bounds.map(({ id, label }) => (
+        <LimitInput
+          key={id}
+          label={tr(label)}
+          value={view.bounds[id] ?? ''}
+          onInput={(typed) => updateView(market, { bounds: { ...view.bounds, [id]: typed } })}
+        />
+      ))}
       {isFiltered(view) && (
         <Button size="small" onClick={() => clearFilters(market)}>
           {tr('ui.office.edition.screen.filter.clear')}
@@ -126,40 +115,68 @@ function FilterBar({
   )
 }
 
-// Offered only where the board carries the figure, so a market without it shows no dead field.
-function SizeFilters({
-  market,
-  view,
-  baseKeys,
-}: Pick<ControlsProps, 'market' | 'view' | 'baseKeys'>) {
+function ScopeSelect({ market, view }: Pick<ControlsProps, 'market' | 'view'>) {
   return (
-    <>
-      {baseKeys.includes('turnover') && (
-        <SizeInput
-          label={tr('ui.office.edition.screen.filter.minTurnover')}
-          value={view.minTurnover}
-          onInput={(minTurnover) => updateView(market, { minTurnover })}
-        />
-      )}
-      {baseKeys.includes('marketCap') && (
-        <>
-          <SizeInput
-            label={tr('ui.office.edition.screen.filter.minMarketCap')}
-            value={view.minMarketCap}
-            onInput={(minMarketCap) => updateView(market, { minMarketCap })}
-          />
-          <SizeInput
-            label={tr('ui.office.edition.screen.filter.maxMarketCap')}
-            value={view.maxMarketCap}
-            onInput={(maxMarketCap) => updateView(market, { maxMarketCap })}
-          />
-        </>
-      )}
-    </>
+    <select
+      aria-label={tr('ui.office.edition.screen.filter.scope')}
+      value={view.scope}
+      onChange={(event) => updateView(market, { scope: toScope(event.currentTarget.value) })}
+    >
+      {SCOPES.map((scope) => (
+        <option key={scope} value={scope}>
+          {tr(SCOPE_LABELS[scope])}
+        </option>
+      ))}
+    </select>
   )
 }
 
-function SizeInput({
+function SectorSelect({
+  market,
+  view,
+  sectors,
+}: Pick<ControlsProps, 'market' | 'view' | 'sectors'>) {
+  return (
+    <select
+      aria-label={tr('ui.office.edition.screen.filter.sector')}
+      value={view.sector}
+      onChange={(event) => updateView(market, { sector: event.currentTarget.value })}
+    >
+      <option value="">{tr('ui.office.edition.screen.filter.sectorAll')}</option>
+      {sectors.map((sector) => (
+        <option key={sector} value={sector}>
+          {sectorName(sector)}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+// Choosing a kind asks for another board, so the board reads again; the first kind is the one the
+// market serves when none is asked.
+function KindSelect({
+  market,
+  view,
+  kinds,
+}: Pick<ControlsProps, 'market' | 'view'> & {
+  readonly kinds: NonNullable<ControlsProps['kinds']>
+}) {
+  return (
+    <select
+      aria-label={tr('ui.office.edition.screen.filter.kind')}
+      value={view.kind === '' ? kinds[0]?.kind : view.kind}
+      onChange={(event) => updateView(market, { kind: event.currentTarget.value })}
+    >
+      {kinds.map(({ kind, label }) => (
+        <option key={kind} value={kind}>
+          {label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function LimitInput({
   label,
   value,
   onInput,

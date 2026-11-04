@@ -54,8 +54,14 @@ export function figureFacts(candidate: Candidate): readonly Fact[] {
   ]
 }
 
+/** The plain values the name's market states beside its factors, as the CLI words them. */
+export function readingFacts(candidate: Candidate): readonly Fact[] {
+  return (candidate.readings ?? []).map(({ text }) => ({ value: text }))
+}
+
 /** What each factor read for the name in the quantities it was scored on, and where that sits on
- *  the board; a factor with neither says nothing. */
+ *  the board; a factor with neither says nothing. A reading that opens with the factor's own name
+ *  says it once. */
 export function factorFacts(candidate: Candidate): readonly Fact[] {
   return (candidate.factors ?? []).flatMap(({ label, reading, percentile }): readonly Fact[] => {
     const parts = [
@@ -68,7 +74,12 @@ export function factorFacts(candidate: Candidate): readonly Fact[] {
             }),
           ]),
     ]
+    const value = joinList(parts)
 
-    return parts.length === 0 ? [] : [{ label, value: joinList(parts) }]
+    if (parts.length === 0) {
+      return []
+    }
+
+    return [value.toLowerCase().startsWith(label.toLowerCase()) ? { value } : { label, value }]
   })
 }

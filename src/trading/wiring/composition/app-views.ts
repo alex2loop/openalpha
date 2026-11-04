@@ -203,7 +203,7 @@ function screenKindsOf(
       }
 }
 
-/** What each name's market states beside its factors, one line per value, in the CLI's own words. */
+/** What each name's market states beside its factors, as the CLI's own board rows word them. */
 function nameReadings(
   view: ScreenView,
   locale: Locale,
@@ -212,13 +212,13 @@ function nameReadings(
   const quote = display === undefined ? {} : { quote: { display } }
 
   return Object.fromEntries(
-    view.candidates.flatMap((candidate) =>
-      candidate.readings === undefined
+    view.candidates.flatMap(({ instrument, readings }) =>
+      readings === undefined
         ? []
         : [
             [
-              candidate.instrument.ticker,
-              candidate.readings.map((reading) => ({
+              instrument.ticker,
+              readings.map((reading) => ({
                 id: reading.id,
                 ...(reading.sessions === undefined ? {} : { sessions: reading.sessions }),
                 value: reading.value,

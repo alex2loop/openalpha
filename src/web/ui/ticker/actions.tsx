@@ -1,14 +1,13 @@
 import { useSignal } from '@preact/signals'
 
-import { openBook } from '@/web/state/book'
 import { isAnalysisOnly } from '@/web/state/edition'
-import { keyOf, watchedNames } from '@/web/state/market'
-import { addWatch, qualifyName } from '@/web/state/watch'
-import { toErrorText, tr } from '@/web/text/tr'
+import { qualifyName } from '@/web/state/watch'
+import { tr } from '@/web/text/tr'
 import { openAlertDialog } from '@/web/ui/dialogs/alert-dialog'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { AnalyzeButton } from '@/web/ui/ticker/analyze-button'
+import { WatchButton } from '@/web/ui/ticker/watch-button'
 
 interface CardActionsProps {
   readonly ticker: string
@@ -22,36 +21,10 @@ interface CardActionsProps {
  *  forms. */
 export function CardActions({ ticker, market, isAnalyzed }: CardActionsProps) {
   const failure = useSignal<string | undefined>(undefined)
-  const isBusy = useSignal(false)
-  const isWatched = watchedNames.value.some(
-    (instrument) => keyOf(instrument) === keyOf({ market, ticker })
-  )
-
-  function watch(): void {
-    isBusy.value = true
-    failure.value = undefined
-    addWatch(qualifyName({ market, ticker }))
-      .then((refusal) => {
-        failure.value = refusal
-      })
-      .catch((error: unknown) => {
-        failure.value = toErrorText(error)
-      })
-      .finally(() => {
-        isBusy.value = false
-      })
-  }
-
   return (
     <div class="card-actions">
       <AnalyzeButton name={qualifyName({ market, ticker })} isAnalyzed={isAnalyzed} />
-      {isWatched ? (
-        <Button onClick={() => openBook('watch')}>{tr('ui.office.ticker.watching')}</Button>
-      ) : (
-        <Button disabled={isBusy.value} onClick={watch}>
-          {tr('ui.office.ticker.watchCta')}
-        </Button>
-      )}
+      <WatchButton ticker={ticker} market={market} failure={failure} />
       <FormButtons ticker={ticker} market={market} />
       {failure.value !== undefined && <p class="failure-line">{failure.value}</p>}
     </div>

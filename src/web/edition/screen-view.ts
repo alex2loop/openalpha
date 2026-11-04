@@ -1,46 +1,44 @@
 import { type Signal, signal } from '@preact/signals'
 
+import { hasLimits, withinLimits } from '@/web/edition/screen-bounds'
 import {
   type BaseSortKey,
-  type BoardFactor,
   type Candidate,
   resolveSortKey,
+  type SortChoices,
   type SortDirection,
 } from '@/web/edition/screen-sort'
 import { keyOf } from '@/web/state/market'
 import { readStorage, writeStorage } from '@/web/state/storage'
-import { toDecimal } from '@/web/text/decimal'
 
 const STORAGE_PREFIX = 'oa.edition.screenView.'
-/** The size inputs are typed in billions: a VN market value in whole units runs to fifteen digits. */
-const BILLION = 1_000_000_000
 const NO_SECTOR = ''
+/** The market's first kind, which the board serves when none is asked. */
+const DEFAULT_KIND = ''
 
 /** Which of the visitor's own names the board shows. */
 export type Scope = 'all' | 'held' | 'watched'
 
-/** What the visitor chose for one market's board: its order and its filters. Sizes are kept as
- *  typed, so the field reads back as the visitor wrote it. */
+/** What the visitor chose for one market's board: the kind of instrument it lists, its order and its
+ *  filters. Limits are kept as typed, so a field reads back as the visitor wrote it. */
 export interface BoardView {
+  readonly kind: string
   readonly sort: string
   readonly direction: SortDirection
   readonly scope: Scope
   readonly sector: string
-  readonly minTurnover: string
-  readonly minMarketCap: string
-  readonly maxMarketCap: string
+  readonly bounds: Readonly<Record<string, string>>
 }
 
 /** No filter applied, ordered by the ticker's own letters: an order that says nothing about which
  *  name is better. */
 const DEFAULT_VIEW: BoardView = Object.freeze({
+  kind: DEFAULT_KIND,
   sort: 'ticker' satisfies BaseSortKey,
   direction: 'asc',
   scope: 'all',
   sector: NO_SECTOR,
-  minTurnover: '',
-  minMarketCap: '',
-  maxMarketCap: '',
+  bounds: Object.freeze({}),
 })
 
 /** The keys of the visitor's own names on this board: `market:ticker`. */
@@ -72,62 +70,49 @@ export function updateView(market: string, change: Partial<BoardView>): void {
   writeStorage('local', `${STORAGE_PREFIX}${market}`, JSON.stringify(view.value))
 }
 
-/** Drops every filter and keeps the order. */
+/** Drops every filter and keeps the kind and the order. */
 export function clearFilters(market: string): void {
-  const { sort, direction } = viewOf(market).value
+  const { kind, sort, direction } = viewOf(market).value
 
-  updateView(market, { ...DEFAULT_VIEW, sort, direction })
+  updateView(market, { ...DEFAULT_VIEW, kind, sort, direction })
 }
 
 export function isFiltered(view: BoardView): boolean {
   return (
     view.scope !== DEFAULT_VIEW.scope ||
     view.sector !== DEFAULT_VIEW.sector ||
-    [view.minTurnover, view.minMarketCap, view.maxMarketCap].some((size) => size.trim() !== '')
+    hasLimits(view.bounds)
   )
 }
 
-/** The names that pass every filter, in the order given. A name with no figure for a size filter
- *  does not pass it: the page cannot say it clears a bar nobody measured. */
+/** The names that pass every filter, in the order given. */
 export function filterCandidates(
   candidates: readonly Candidate[],
   view: BoardView,
   own: OwnNames
 ): readonly Candidate[] {
-  const minTurnover = sizeOf(view.minTurnover)
-  const minMarketCap = sizeOf(view.minMarketCap)
-  const maxMarketCap = sizeOf(view.maxMarketCap)
-
-  return candidates.filter((candidate) => {
-    const { turnover, marketCap, sector } = candidate
-
-    return (
-      isInScope(candidate, view.scope, own) &&
-      (view.sector === NO_SECTOR || sector === view.sector) &&
-      (minTurnover === undefined || (turnover !== undefined && turnover >= minTurnover)) &&
-      (minMarketCap === undefined || (marketCap !== undefined && marketCap >= minMarketCap)) &&
-      (maxMarketCap === undefined || (marketCap !== undefined && marketCap <= maxMarketCap))
-    )
-  })
+  return withinLimits(
+    candidates.filter(
+      (candidate) =>
+        isInScope(candidate, view.scope, own) &&
+        (view.sector === NO_SECTOR || candidate.sector === view.sector)
+    ),
+    view.bounds
+  )
 }
 
 /** What a board can honour of the visitor's choices. */
-interface BoardChoices {
-  readonly baseKeys: readonly BaseSortKey[]
-  readonly factors: readonly BoardFactor[]
+interface BoardChoices extends SortChoices {
   readonly sectors: readonly string[]
 }
 
 /** The view with each choice this board cannot honour dropped: a sort or a sector it does not
  *  have (the view outlives the data it was made on) reads as the default. */
-export function resolveView(
-  view: BoardView,
-  { baseKeys, factors, sectors }: BoardChoices
-): BoardView {
+export function resolveView(view: BoardView, choices: BoardChoices): BoardView {
   return {
     ...view,
-    sort: resolveSortKey(view.sort, baseKeys, factors),
-    sector: sectors.includes(view.sector) ? view.sector : NO_SECTOR,
+    sort: resolveSortKey(view.sort, choices),
+    sector: choices.sectors.includes(view.sector) ? view.sector : NO_SECTOR,
   }
 }
 
@@ -142,13 +127,6 @@ function isInScope(candidate: Candidate, scope: Scope, own: OwnNames): boolean {
   }
 
   return (scope === 'held' ? own.held : own.watched).has(keyOf(candidate.instrument))
-}
-
-/** The typed size in whole units; absent for an empty or unreadable field, which filters nothing. */
-function sizeOf(text: string): number | undefined {
-  const billions = toDecimal(text)
-
-  return billions === undefined ? undefined : billions * BILLION
 }
 
 function readView(market: string): BoardView {
@@ -169,24 +147,33 @@ function readView(market: string): BoardView {
   }
 }
 
-type TextField = 'sort' | 'sector' | 'minTurnover' | 'minMarketCap' | 'maxMarketCap'
-
 // Each field is read on its own, so a view saved by an older page keeps what still fits.
 function toView(stored: Record<string, unknown>): BoardView {
-  const text = (key: TextField): string => {
+  const text = (key: 'kind' | 'sort' | 'sector'): string => {
     const value = stored[key]
 
     return typeof value === 'string' ? value : DEFAULT_VIEW[key]
   }
-  const { scope, direction } = stored
+  const { scope, direction, bounds } = stored
 
   return {
+    kind: text('kind'),
     sort: text('sort'),
     direction: direction === 'desc' ? 'desc' : 'asc',
     scope: scope === 'held' || scope === 'watched' ? scope : 'all',
     sector: text('sector'),
-    minTurnover: text('minTurnover'),
-    minMarketCap: text('minMarketCap'),
-    maxMarketCap: text('maxMarketCap'),
+    bounds: toBounds(bounds),
   }
+}
+
+function toBounds(stored: unknown): BoardView['bounds'] {
+  if (typeof stored !== 'object' || stored === null) {
+    return DEFAULT_VIEW.bounds
+  }
+
+  return Object.fromEntries(
+    Object.entries(stored).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string'
+    )
+  )
 }
