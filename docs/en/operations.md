@@ -696,7 +696,8 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     count of new calls you have not seen.
   - Click a ticker anywhere and its card opens: price (with "Refresh price", which reads that one name
     live; a dealer's board, such as VN gold, adds its buying price, selling price and spread), the
-    last sessions charted on price and date axes with the plan levels, your holding, "Why?" for the
+    session's low, high and volume (the live session's when the price is live, else the last
+    settled session's, dated), the last sessions charted on price and date axes with the plan levels, your holding, "Why?" for the
     reasoning behind a call, earlier calls and what your own agents think. Under the plan's
     levels sit "What it is waiting for" (what the trader still waits on before the entry, when it
     does) and "How each factor reads", the same lines `/suggest` prints. A call card under Ideas

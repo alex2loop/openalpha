@@ -1,16 +1,28 @@
 import { useEffect } from 'preact/hooks'
 
-import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
+import type { DealerBoardWire, SessionRangeWire } from '@/app/server/wire/quote-detail'
 import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
 import { formatDay, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
-import { findMarket, findQuote, keyOf, quotesBlock, stopsBlock } from '@/web/state/market'
+import {
+  findMarket,
+  findQuote,
+  keyOf,
+  printDisplayOf,
+  quotesBlock,
+  stopsBlock,
+} from '@/web/state/market'
 import { isRefreshable, useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
-import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import {
+  formatCompactAmount,
+  formatPrice,
+  formatSignedPercent,
+  toneOfPercent,
+} from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import {
   boardScaleNotes,
@@ -133,7 +145,7 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
 
   return (
     <>
-      <PriceHead market={market} facts={facts} />
+      <PriceHead market={market} facts={facts} range={sessionRangeOf(quote, bars)} />
       {bars.length > 1 && (
         <>
           <PriceChart
@@ -172,7 +184,13 @@ function NoPrice({ market }: { readonly market: string }) {
 }
 
 // The price with its move, a warning when it is stale, and where it comes from: scale, session, time.
-function PriceHead({ market, facts }: { readonly market: string; readonly facts: PriceFacts }) {
+interface PriceHeadProps {
+  readonly market: string
+  readonly facts: PriceFacts
+  readonly range: SessionRangeWire | undefined
+}
+
+function PriceHead({ market, facts, range }: PriceHeadProps) {
   const timeZone = state.value?.timeZone
   const readText =
     facts.readAt === undefined || timeZone === undefined
@@ -199,6 +217,7 @@ function PriceHead({ market, facts }: { readonly market: string; readonly facts:
         )}
       </p>
       {facts.board !== undefined && <DealerLine market={market} board={facts.board} />}
+      {range !== undefined && <p class="meta">{formatSessionRange(market, range)}</p>}
       {facts.close !== undefined && (
         <p class="meta">
           {tr('ui.office.ticker.closeRow', {
@@ -221,6 +240,45 @@ function DealerLine({
   const { sides, spread } = formatDealerBoard(market, board)
 
   return <p class="meta">{joinInline([sides, ...(spread === undefined ? [] : [spread])])}</p>
+}
+
+// A live session's range when the quote carries one, else the last settled bar's, dated either way.
+function sessionRangeOf(
+  quote: TradingQuoteWire | undefined,
+  bars: readonly TradingCandleWire[]
+): SessionRangeWire | undefined {
+  if (quote?.session !== undefined) {
+    return quote.session
+  }
+
+  const last = bars.at(-1)
+
+  if (last === undefined) {
+    return undefined
+  }
+
+  return {
+    day: last.at,
+    low: last.low,
+    high: last.high,
+    ...(last.volume > 0 ? { volume: last.volume } : {}),
+  }
+}
+
+function formatSessionRange(market: string, range: SessionRangeWire): string {
+  const display = printDisplayOf(market)
+  const bounds = {
+    day: formatDay(locale.value, range.day),
+    low: formatPrice(range.low, display),
+    high: formatPrice(range.high, display),
+  }
+
+  return range.volume === undefined
+    ? tr('trading.render.quote.session', bounds)
+    : tr('trading.render.quote.sessionVolume', {
+        ...bounds,
+        volume: formatCompactAmount(range.volume),
+      })
 }
 
 // A name the daemon cannot find bars for has none to draw, which is an answer: the card says so.

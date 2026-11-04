@@ -11,8 +11,19 @@ export interface DealerBoardWire {
   readonly spread?: number
 }
 
+/** The lowest and highest price a session has printed so far, with the trading day it belongs to
+ *  (`YYYY-MM-DD`: a provider whose series has not opened today answers with the previous
+ *  session's). `volume` is what has traded, absent where the provider's series carries none. */
+export interface SessionRangeWire {
+  readonly day: string
+  readonly low: number
+  readonly high: number
+  readonly volume?: number
+}
+
 /** What a quote carries beyond its price: the board of a dealer, whose `last` is then the sell
- *  price. */
+ *  price, and the range of a live session from a provider that serves an intraday series. */
 export interface QuoteDetailWire {
   readonly board?: DealerBoardWire
+  readonly session?: SessionRangeWire
 }
