@@ -1,14 +1,19 @@
 import type { ScreenedCandidate, ScreenView } from '@/trading/features/market-data/types'
 import type { FactorId } from '@/trading/kernel/factor'
+import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { rankWithin } from '@/trading/markets/factor-scoring'
 
 const PERCENT = 100
 /** One reading has nothing to be placed against, so a factor that fired for fewer names has none. */
 const MINIMUM_PEERS = 2
+/** The price levels a name's entry and stop are read from: a board that rates nothing and advises
+ *  nothing never lists them. */
+const LEVEL_METRICS: ReadonlySet<FactorMetricId> = new Set(['breakout-trigger', 'trailing-low'])
 
 /** The whole priced board as a list to browse: ticker order, which says nothing about merit, and
- *  for each factor that fired where the name's reading sits among the board's. A name with no price
+ *  for each factor that fired where the name's reading sits among the board's. No reading is a
+ *  price level (`LEVEL_METRICS`). A name with no price
  *  is left out and counted: the board prices what it lists, and a missing price is absent, not zero.
  *  The composite stays on the candidate for the callers that rank, and no renderer of this form
  *  reads it. */
@@ -20,10 +25,30 @@ export function toBoardView(view: ScreenView): ScreenView {
     ...view,
     form: 'board',
     candidates: priced
-      .map((candidate) => withPercentiles(candidate, percentiles.get(keyOf(candidate))))
+      .map((candidate) =>
+        withPercentiles(withoutLevels(candidate), percentiles.get(keyOf(candidate)))
+      )
       .toSorted((left, right) => compareTickers(left, right)),
     unpriced: view.candidates.length - priced.length,
   }
+}
+
+function withoutLevels(candidate: ScreenedCandidate): ScreenedCandidate {
+  const readings = candidate.readings?.filter(isNotLevel)
+
+  return {
+    ...candidate,
+    ...(readings === undefined ? {} : { readings }),
+    factors: candidate.factors.map((factor) =>
+      factor.metrics === undefined
+        ? factor
+        : { ...factor, metrics: factor.metrics.filter(isNotLevel) }
+    ),
+  }
+}
+
+function isNotLevel({ id }: FactorMetric): boolean {
+  return !LEVEL_METRICS.has(id)
 }
 
 function withPercentiles(

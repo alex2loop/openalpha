@@ -81,7 +81,6 @@ const SECONDARY_READINGS: ReadonlySet<FactorMetricId> = new Set([
   'return-on-invested-capital',
   'interest-cover',
   'net-debt-to-ebitda',
-  'bad-debt-ratio',
   'watch-list-ratio',
   'provision-cover',
   'casa-share',
