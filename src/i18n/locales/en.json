@@ -4403,7 +4403,7 @@
     "metric-short.funding-daily": "funding",
     "metric-short.trailing-low": "low prior {sessions}",
     "metric-short.relative-volume": "vol/avg {sessions}",
-    "metric-short.foreign-net-flow": "foreign net {sessions}",
+    "metric-short.foreign-net-flow": "foreign net {sessions} sessions",
     "prompt-metric.priceLevel": "{label} at {level}",
     "prompt-metric.priceGap": "{label} at {level}, current price is {gap} from it",
     "conviction.low": "Low confidence",

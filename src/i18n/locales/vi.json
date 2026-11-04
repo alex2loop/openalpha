@@ -4403,7 +4403,7 @@
     "metric-short.funding-daily": "phí funding",
     "metric-short.trailing-low": "đáy {sessions} phiên trước",
     "metric-short.relative-volume": "khối lượng/TB{sessions}",
-    "metric-short.foreign-net-flow": "ngoại ròng {sessions}p",
+    "metric-short.foreign-net-flow": "ngoại ròng {sessions} phiên",
     "prompt-metric.priceLevel": "{label} tại {level}",
     "prompt-metric.priceGap": "{label} tại {level}, giá hiện tại cách mức này {gap}",
     "conviction.low": "Mức tin cậy thấp",
