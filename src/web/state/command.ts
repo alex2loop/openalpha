@@ -15,6 +15,8 @@ const LETTER_RE = /[A-Za-z]/
 const DIGIT_RE = /\d/
 // A ledger row's full id is a UUID, which a `/update` or `/delete` line may carry.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const URL_PREFIX_RE = /^https?:\/\//i
+const WHITESPACE_RE = /\s+/
 
 export const SUGGEST_COMMAND = '/suggest'
 // A command's run is named without the slash.
@@ -164,8 +166,12 @@ function holdUnsent(text: string): void {
   }
 }
 
+// A web address in a /research question is not a key, however long its path.
 function hasKeyLikeToken(text: string): boolean {
-  return (text.match(KEY_LIKE_RUN_RE) ?? []).some(isKeyLike)
+  return text
+    .split(WHITESPACE_RE)
+    .filter((word) => !URL_PREFIX_RE.test(word))
+    .some((word) => (word.match(KEY_LIKE_RUN_RE) ?? []).some(isKeyLike))
 }
 
 // A key mixes letters and digits; a long word, a number or a UUID does not count.
