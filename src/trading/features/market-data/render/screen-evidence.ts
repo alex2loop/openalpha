@@ -10,6 +10,7 @@ import { screenRating } from '@/trading/markets/screen-rating'
 import { toFoldLines } from '@/trading/render/fold'
 import {
   formatCount,
+  formatPercentRank,
   formatScoreValue,
   formatSignedFixedPercent,
   formatWholeFraction,
@@ -130,9 +131,7 @@ function renderBoardFactor(
 
   return t(locale, 'trading.render.screen.boardFactor', {
     reading: reading === '' ? renderDeclaredValue(locale, `trading.factor.${factor.id}`) : reading,
-    rank: t(locale, 'trading.render.screen.boardRank', {
-      pct: formatCount(locale, Math.round(percentile)),
-    }),
+    rank: formatPercentRank(locale, percentile, true),
   })
 }
 

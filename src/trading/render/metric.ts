@@ -32,7 +32,7 @@ const METRIC_FORMATTERS: Readonly<
   fraction: formatFraction,
   percent: formatPercent,
   'signed-percent': formatSignedPercent,
-  'percent-rank': formatPercentRank,
+  'percent-rank': (locale, value) => formatPercentRank(locale, value),
   count: formatCount,
   'checks-of-nine': (locale, value) => `${formatCount(locale, value)}/${ACCOUNTS_CHECK_COUNT}`,
   currency: (locale, value, quote) => formatFlowIn(locale, value, quote?.currency),
@@ -71,6 +71,8 @@ interface MetricFactOptions {
   /** Leave out the readings that place the name among its peers: a surface that prints the place
    *  itself would state it twice. */
   readonly withoutRanks?: true
+  /** Say a rank as a count of peers the reading is above, not as being better than them. */
+  readonly plainRanks?: true
 }
 
 /** How a line of readings is written: the options a fact takes, and what the facts are joined with. */
@@ -95,7 +97,7 @@ export function metricFacts(
 
   return readings.map((metric) => {
     const label = metricLabel(locale, metric, options.labels ?? 'full')
-    const value = formatMetric(locale, metric, options.quote)
+    const value = formatMetric(locale, metric, options)
 
     return options.row === true
       ? t(locale, 'trading.render.metric.row', {
@@ -132,12 +134,14 @@ function metricLabel(locale: Locale, metric: FactorMetric, width: MetricLabelWid
   )
 }
 
-function formatMetric(locale: Locale, metric: FactorMetric, quote?: Partial<QuotedIn>): string {
-  return formatUnitValue(
-    locale,
-    { unit: FACTOR_METRIC_UNITS[metric.id], value: metric.value },
-    quote
-  )
+function formatMetric(locale: Locale, metric: FactorMetric, options: MetricFactOptions): string {
+  const unit = FACTOR_METRIC_UNITS[metric.id]
+
+  if (unit === 'percent-rank' && options.plainRanks === true) {
+    return formatPercentRank(locale, metric.value, true)
+  }
+
+  return formatUnitValue(locale, { unit, value: metric.value }, options.quote)
 }
 
 export interface UnitValue {

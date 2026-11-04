@@ -292,6 +292,7 @@ function metricRows(locale: Locale, record: AnalysisRecord, group: MetricGroup):
     {
       canonical: true,
       row: true,
+      plainRanks: true,
       quote: {
         ...(group === 'flows' && currency !== undefined ? { currency } : {}),
         ...(boardScale === undefined ? {} : { display: boardScale.display }),
