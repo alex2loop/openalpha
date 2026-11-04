@@ -8,6 +8,7 @@ import type {
   AnalysisRequest,
   AnalysisResult,
 } from '@/trading/features/suggestion/analysis/types'
+import type { SuggestionCitation } from '@/trading/features/suggestion/citation'
 import type { RoleCallContext, RoleCallDeps } from '@/trading/features/suggestion/debate/call'
 import type { CaseEvidence, CaseSubject } from '@/trading/features/suggestion/pipeline/evidence'
 import type { DraftCalendar } from '@/trading/features/suggestion/pipeline/market-reads'
@@ -18,7 +19,9 @@ import type {
 import type { SuggestionRequest } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorScore } from '@/trading/kernel/factor'
+import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import type { TradingDay } from '@/trading/kernel/instrument'
+import type { NewsItem } from '@/trading/kernel/market/market-data'
 import type { Page } from '@/trading/kernel/store/page'
 import type { MarketRegistry, MarketResolution } from '@/trading/markets/types'
 import { abortError } from '@/core/errors'
@@ -52,6 +55,9 @@ import {
 import { ANALYSIS_ROLES, ANALYSIS_WAVES } from '@/trading/kernel/config'
 import { DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
 import { LEVEL_BARS_SESSIONS } from '@/trading/markets/levels'
+
+/** Readings that are a trigger or a stop reference, which the reader is never shown as a level. */
+const LEVEL_READINGS: ReadonlySet<FactorMetricId> = new Set(['breakout-trigger', 'trailing-low'])
 
 /** What the persona calls and the headline read need beyond the role runner. */
 interface AnalysisDebateDeps extends RoleCallDeps {
@@ -118,25 +124,53 @@ async function runAnalysis(
     models: new Set<string>(),
   }
   const result = await argue(context, caseText(read.evidence))
-  const record: AnalysisRecord = {
+  const record = toRecord({ request, subject, read, result })
+
+  await deps.store.create(record, request.signal)
+
+  return record
+}
+
+interface RecordParts {
+  readonly request: SuggestionRequest
+  readonly subject: ResolvedSubject
+  readonly read: EvidenceRead
+  readonly result: AnalysisResult
+}
+
+function toRecord(parts: RecordParts): AnalysisRecord {
+  const { request, subject, read, result } = parts
+  const citations = citationsFrom(
+    read.evidence.sources,
+    [result.bull, result.bear],
+    result.verification
+  )
+
+  return {
     id: buildAnalysisId(request.now),
     instrument: subject.instrument,
     at: read.asOf,
     authoredLocale: request.locale,
     createdAt: request.now,
     result,
-    citations: citationsFrom(
-      read.evidence.sources,
-      [result.bull, result.bear],
-      result.verification
-    ),
+    citations,
+    headlines: uncitedHeadlines(read.evidence.sources, citations),
+    figures: read.figures,
     caveats: read.evidence.caveats,
     ...(read.evidenceThrough === undefined ? {} : { evidenceThrough: read.evidenceThrough }),
   }
+}
 
-  await deps.store.create(record, request.signal)
+/** What the roles were handed and no claim cited, own coverage first as the bundle orders it. */
+function uncitedHeadlines(
+  sources: ReadonlyMap<string, NewsItem>,
+  citations: readonly SuggestionCitation[]
+): readonly SuggestionCitation[] {
+  const cited = new Set(citations.map((citation) => citation.url))
 
-  return record
+  return [...sources.values()]
+    .filter((item) => !cited.has(item.url))
+    .map(({ url, title, publishedAt }) => ({ url, title, publishedAt }))
 }
 
 async function resolveSubject(
@@ -159,6 +193,7 @@ async function resolveSubject(
 
 interface EvidenceRead {
   readonly asOf: TradingDay
+  readonly figures: readonly FactorMetric[]
   readonly evidenceThrough?: TradingDay
   readonly evidence: CaseEvidence
 }
@@ -198,7 +233,14 @@ async function readEvidence(
     logger: deps.debate.logger,
   })
 
-  return { asOf, evidence, ...(evidenceThrough === undefined ? {} : { evidenceThrough }) }
+  return {
+    asOf,
+    evidence,
+    figures: factors.results
+      .flatMap((factor) => factor.metrics ?? [])
+      .filter((metric) => !LEVEL_READINGS.has(metric.id)),
+    ...(evidenceThrough === undefined ? {} : { evidenceThrough }),
+  }
 }
 
 interface SubjectParts {

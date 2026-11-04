@@ -13,6 +13,7 @@ import { renderUnsupportedReason } from '@/trading/features/suggestion/render/ve
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { formatCount, renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR, joinSections, renderSectionTitle } from '@/trading/render/layout'
+import { metricFacts } from '@/trading/render/metric'
 
 type AnalysisSide = Extract<ArguingRole, 'bull-researcher' | 'bear-researcher'>
 
@@ -56,9 +57,10 @@ export function renderAnalysisText(locale: Locale, record: AnalysisRecord): stri
     ),
     renderRefutedLines(locale, record),
     ...SIDE_ORDER.map((side) => renderWrongLines(locale, side, cases[side])),
+    renderFigureLines(locale, record),
     renderCitationLines(locale, {
-      citations: record.citations,
-      title: t(locale, 'trading.render.suggestion.sources'),
+      citations: [...record.citations, ...record.headlines],
+      title: t(locale, 'trading.analysis.sources'),
       detail: 'compact',
     }),
     renderCaveatLines(locale, record.caveats),
@@ -128,19 +130,34 @@ function refutedIdsOf(record: AnalysisRecord): ReadonlySet<string> {
   return new Set(claimIdsWithVerdict(record.result.verification, 'refuted'))
 }
 
-/** What the side itself says would make it wrong. Silent for a side that named nothing. */
+/** What the side itself says would make it wrong, or that it named nothing checkable. */
 function renderWrongLines(
   locale: Locale,
   side: AnalysisSide,
   analysisCase: AnalysisCase
 ): readonly string[] {
-  if (analysisCase.invalidators.length === 0) {
+  const { invalidators } = analysisCase
+
+  return [
+    renderSectionTitle(SECTION_ICONS.invalidators, t(locale, SIDES[side].wrong)),
+    ...(invalidators.length === 0
+      ? [`${INDENT[1]}${t(locale, 'trading.analysis.wrong-none')}`]
+      : invalidators.map((condition) => `${INDENT[1]}${condition}`)),
+  ]
+}
+
+/** The readings the roles argued from, as the screen board prints them: each value or rank among
+ *  peers on its own row. No factor's score, weight or the composite, which would weigh one side. */
+function renderFigureLines(locale: Locale, record: AnalysisRecord): readonly string[] {
+  if (record.figures.length === 0) {
     return []
   }
 
   return [
-    renderSectionTitle(SECTION_ICONS.invalidators, t(locale, SIDES[side].wrong)),
-    ...analysisCase.invalidators.map((condition) => `${INDENT[1]}${condition}`),
+    renderSectionTitle(SECTION_ICONS.factors, t(locale, 'trading.analysis.figures')),
+    ...metricFacts(locale, record.figures, { canonical: true }).map(
+      (fact) => `${INDENT[1]}${fact}`
+    ),
   ]
 }
 

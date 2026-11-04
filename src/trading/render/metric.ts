@@ -1,7 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type { FactorMetric, FactorMetricUnit } from '@/trading/kernel/factor-metric'
 import type { QuotedIn } from '@/trading/render/money'
-import { FACTOR_METRIC_UNITS } from '@/trading/kernel/factor-metric'
+import { FACTOR_METRIC_IDS, FACTOR_METRIC_UNITS } from '@/trading/kernel/factor-metric'
 import {
   formatCount,
   formatFraction,
@@ -56,6 +56,12 @@ type MetricLabelWidth = 'full' | 'short'
 interface MetricFactOptions {
   readonly quote?: Partial<QuotedIn>
   readonly labels?: MetricLabelWidth
+  /** Each reading once, in a fixed order: the same metric can back two factors, and two names are
+   *  only comparable when their numbers line up. A reading is identified by its window as well as
+   *  its id - the trailing high over 20 sessions is the breakout trigger and the one over 200 is
+   *  how far the name sits off its year, and keying on the id alone let whichever factor came last
+   *  silently replace the other. Ordered by id, then by window. */
+  readonly canonical?: true
 }
 
 /** One fact per reading, for a surface that decides where they are joined. A reading never splits:
@@ -69,10 +75,25 @@ export function metricFacts(
     return []
   }
 
-  return metrics.map(
+  const readings = options.canonical === true ? canonicalReadings(metrics) : metrics
+
+  return readings.map(
     (metric) =>
       `${metricLabel(locale, metric, options.labels ?? 'full')} ` +
       formatMetric(locale, metric, options.quote)
+  )
+}
+
+function canonicalReadings(metrics: readonly FactorMetric[]): readonly FactorMetric[] {
+  const byReading = new Map(
+    metrics.map((metric) => [`${metric.id}:${metric.sessions ?? ''}`, metric])
+  )
+  const readings = [...byReading.values()]
+
+  return FACTOR_METRIC_IDS.flatMap((id) =>
+    readings
+      .filter((metric) => metric.id === id)
+      .toSorted((left, right) => (left.sessions ?? 0) - (right.sessions ?? 0))
   )
 }
 

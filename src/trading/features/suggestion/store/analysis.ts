@@ -16,6 +16,7 @@ import { CLAIM_VERDICTS, RESEARCH_STANCES } from '@/trading/features/suggestion/
 import {
   type CitationPayload,
   citationSchema,
+  factorMetricsSchema,
 } from '@/trading/features/suggestion/store/suggestion-payload'
 import { ticker as brandTicker, marketRef, tradingDay } from '@/trading/kernel/instrument'
 import { caveatsSchema } from '@/trading/kernel/store/store-payload'
@@ -50,6 +51,9 @@ const payloadSchema = z.strictObject({
     models: z.array(z.string()),
   }),
   citations: z.array(citationSchema),
+  // Absent on a row stored before the analysis kept what it read.
+  headlines: z.array(citationSchema).default([]),
+  figures: factorMetricsSchema.default([]),
   caveats: caveatsSchema,
 })
 
@@ -109,6 +113,8 @@ async function create(
         authoredLocale: record.authoredLocale,
         result: record.result,
         citations: record.citations,
+        headlines: record.headlines,
+        figures: record.figures,
         caveats: record.caveats,
       }),
       record.createdAt,
@@ -185,6 +191,12 @@ function toRecord(row: AnalysisRow): AnalysisRecord {
       verification: toVerification(result.verification),
     },
     citations: payload.citations.map(toCitation),
+    headlines: payload.headlines.map(toCitation),
+    figures: payload.figures.map((raw) => ({
+      id: raw.id,
+      value: raw.value,
+      ...definedOnly({ sessions: raw.sessions }),
+    })),
     caveats: payload.caveats,
     ...(row.evidence_through === null ? {} : { evidenceThrough: tradingDay(row.evidence_through) }),
   }

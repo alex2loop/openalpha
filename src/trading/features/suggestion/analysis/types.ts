@@ -8,6 +8,7 @@ import type {
 } from '@/trading/features/suggestion/debate/types'
 import type { SuggestionRequest } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { MarketResolution } from '@/trading/markets/types'
 import { AppError } from '@/core/errors'
@@ -54,6 +55,12 @@ export interface AnalysisRecord {
   readonly createdAt: number
   readonly result: AnalysisResult
   readonly citations: readonly SuggestionCitation[]
+  /** The headlines both sides were handed that no claim cited, so the reader can open what the
+   *  analysis read and not only what it leaned on. */
+  readonly headlines: readonly SuggestionCitation[]
+  /** The factor readings both sides argued from, each as published: a value or a rank among peers.
+   *  Never a factor's score, weight or the composite, which would weigh one side over the other. */
+  readonly figures: readonly FactorMetric[]
   readonly caveats: readonly Caveat[]
 }
 

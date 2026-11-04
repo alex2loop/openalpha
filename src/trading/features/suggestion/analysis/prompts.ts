@@ -34,7 +34,8 @@ const WRONG_INSTRUCTIONS = [
   'a number crossing a level, a filing, a rate, a state changing. Not a price move, which',
   'nobody can check against anything. Each is about this instrument, the market it trades in, or a',
   'driver the evidence below names. Each stands alone under the claim length, no conditionals and',
-  'no hedges. An empty list is better than a vague one.',
+  'no hedges. Always give at least one: the reader has no other way to check you, and the evidence',
+  'below always names a number, a filing, a rate or a driver that would show you wrong.',
 ].join(' ')
 
 const SIDE_BRIEFS = {

@@ -1,12 +1,10 @@
 import type { Locale } from '@/core/types/locale'
 import type { ScreenedCandidate } from '@/trading/features/market-data/types'
 import type { FactorId } from '@/trading/kernel/factor'
-import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { CurrencyCode, PriceDisplay } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type { RenderContext } from '@/trading/render/format'
 import { t } from '@/i18n'
-import { FACTOR_METRIC_IDS } from '@/trading/kernel/factor-metric'
 import { byDistinctiveness } from '@/trading/markets/factor-scoring'
 import { screenRating } from '@/trading/markets/screen-rating'
 import { toFoldLines } from '@/trading/render/fold'
@@ -180,36 +178,23 @@ function renderCautionLine(locale: Locale, candidate: ScreenCandidate): readonly
   return [`${INDENT[2]}${SEVERITY_MARKS.warn} ${t(locale, `trading.screen.caution.${caution}`)}`]
 }
 
-/** One row per name, in a fixed order: the same metric can back two factors, and two names are only
- *  comparable when their numbers line up. A reading is identified by its window as well as its id —
- *  the trailing high over 20 sessions is the breakout trigger and the one over 200 is how far the
- *  name sits off its year, and keying on the id alone let whichever factor came last silently
- *  replace the other. Ordered by id, then by window, so two names line up on both. */
+/** One row per name, in a fixed order, so two names are only comparable when their numbers line up. */
 function candidateMetricFacts(
   locale: Locale,
   candidate: ScreenCandidate,
   board: ScreenBoard
 ): readonly string[] {
-  const byReading = new Map<string, FactorMetric>()
-
-  for (const factor of candidate.factors) {
-    for (const metric of factor.metrics ?? []) {
-      byReading.set(`${metric.id}:${metric.sessions ?? ''}`, metric)
-    }
-  }
-
-  const readings = [...byReading.values()]
-  const ordered = FACTOR_METRIC_IDS.flatMap((id) =>
-    readings
-      .filter((metric) => metric.id === id)
-      .toSorted((left, right) => (left.sessions ?? 0) - (right.sessions ?? 0))
-  )
   // The board scale travels because it decides what the number means; the currency does not, since
   // the two price rows above each name already carry it.
-  return metricFacts(locale, ordered, {
-    labels: 'short',
-    ...(board.display === undefined ? {} : { quote: { display: board.display } }),
-  })
+  return metricFacts(
+    locale,
+    candidate.factors.flatMap((factor) => factor.metrics ?? []),
+    {
+      labels: 'short',
+      canonical: true,
+      ...(board.display === undefined ? {} : { quote: { display: board.display } }),
+    }
+  )
 }
 
 /** The same two dated rows `/price` and `/portfolio` print, so a board row and a lookup of one name

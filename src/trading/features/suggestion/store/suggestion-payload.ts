@@ -49,7 +49,7 @@ const factorMetricSchema = z.strictObject({
 // printed and nothing more: the factor's score, weight and provenance are still what was stored.
 // Rejecting the array instead would make one renamed metric id unread every suggestion written
 // before the rename.
-const factorMetricsSchema = z
+export const factorMetricsSchema = z
   .array(z.unknown())
   .transform((entries) => readableMembers(entries, factorMetricSchema))
 
