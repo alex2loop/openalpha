@@ -168,7 +168,7 @@ function renderBoardText(locale: Locale, request: ScreenRenderRequest, result: S
     [
       `${renderSectionTitle(SECTION_ICONS.screen, renderBoardTitle(locale, request, result))}${renderAsOf(locale, result.dataThroughDay ?? result.asOf)}`,
       ...(result.candidates.length === 0 ? [] : renderPriceUnitLine(locale, request, result)),
-      ...toFactLines(notes, request.context, 1),
+      ...cardNote(notes),
       ...shown.flatMap((candidate) => renderBoardRow(locale, candidate, board)),
       ...renderProvenanceLine(locale, result.provenance, request.context.timezone),
     ],

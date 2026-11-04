@@ -28,7 +28,6 @@ const IDENTICAL_ALLOWED: ReadonlySet<string> = new Set([
   'trading.quote-unit.currency-per-coin',
   'trading.render.screen.row',
   'trading.render.screen.boardFactor',
-  'trading.render.screen.boardFactorBare',
   'trading.render.screen.gateRow',
   'trading.render.themes.namedStock',
   'trading.render.watchlist.row',

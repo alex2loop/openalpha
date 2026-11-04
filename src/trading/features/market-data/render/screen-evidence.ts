@@ -1,6 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { ScreenedCandidate } from '@/trading/features/market-data/types'
-import type { FactorId } from '@/trading/kernel/factor'
+import type { FactorId, FactorResult } from '@/trading/kernel/factor'
 import type { CurrencyCode, PriceDisplay, TradingDay } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type { RenderContext } from '@/trading/render/format'
@@ -86,30 +86,41 @@ export function renderBoardRow(
       ...candidate.factors
         .filter((factor) => factor.weight !== undefined)
         .toSorted((left, right) => left.id.localeCompare(right.id))
-        .map((factor) => renderBoardFactor(locale, factor, candidate.percentiles)),
+        .map((factor) => renderBoardFactor(locale, { candidate, factor }, board))
+        .filter((fact) => fact !== ''),
     ],
     board.context,
     1
   )
 }
 
+/** What the factor read in the quantities it was scored on, and where that sits on the board. The
+ *  score itself is left off: it is the composite's ingredient, and the board ranks nothing. A factor
+ *  with no stated reading is named instead, and one with neither reading nor place says nothing. */
 function renderBoardFactor(
   locale: Locale,
-  factor: ScreenedCandidate['factors'][number],
-  percentiles: ScreenedCandidate['percentiles']
+  row: { readonly candidate: ScreenedCandidate; readonly factor: FactorResult },
+  board: ScreenBoard
 ): string {
-  const percentile = percentiles?.[factor.id]
-  const reading = {
-    label: renderDeclaredValue(locale, `trading.factor.${factor.id}`),
-    value: formatScoreValue(locale, factor.score),
+  const { candidate, factor } = row
+  const percentile = candidate.percentiles?.[factor.id]
+  const readings = metricFacts(locale, factor.metrics, {
+    labels: 'short',
+    canonical: true,
+    ...(board.display === undefined ? {} : { quote: { display: board.display } }),
+  })
+
+  if (percentile === undefined) {
+    return readings.join(', ')
   }
 
-  return percentile === undefined
-    ? t(locale, 'trading.render.screen.boardFactorBare', reading)
-    : t(locale, 'trading.render.screen.boardFactor', {
-        ...reading,
-        rank: formatPercentRank(locale, percentile),
-      })
+  return t(locale, 'trading.render.screen.boardFactor', {
+    reading:
+      readings.length > 0
+        ? readings.join(', ')
+        : renderDeclaredValue(locale, `trading.factor.${factor.id}`),
+    rank: formatPercentRank(locale, percentile),
+  })
 }
 
 /** Rank, verdict, and the composite the rank was taken on: the band alone cannot say whether the
