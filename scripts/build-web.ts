@@ -46,6 +46,7 @@ function pageDirectives(hosts: readonly string[]): readonly string[] {
   return [
     "default-src 'self'",
     "script-src 'self' 'wasm-unsafe-eval'",
+    "require-trusted-types-for 'script'",
     "worker-src 'self'",
     `connect-src 'self' ${hosts.map((host) => `https://${host}`).join(' ')}`,
     "img-src 'self' data: blob:",

@@ -6,6 +6,7 @@ import { toLocale } from '@/i18n'
 import { setApiTransport } from '@/web/api/client'
 import { setFeedSocketFactory } from '@/web/api/socket'
 import { createWorkerTransport } from '@/web/edition/transport'
+import { allowWorkerScript } from '@/web/edition/trusted-types'
 import { createWorkerFeedSocket } from '@/web/edition/worker-socket'
 import { preferredLocale } from '@/web/state/session'
 import { readStorage, writeStorage } from '@/web/state/storage'
@@ -51,6 +52,8 @@ export function startEdition(keys: () => BrowserKeys): () => void {
 
     return () => undefined
   }
+
+  allowWorkerScript(WORKER_URL)
 
   const next = new Worker(WORKER_URL, { type: 'module' })
   const transport = createWorkerTransport(next, REQUEST_TIMEOUT_MS)
