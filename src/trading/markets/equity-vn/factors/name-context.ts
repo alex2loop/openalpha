@@ -21,6 +21,9 @@ const SECTOR_MEDIAN_IDS = Object.freeze([
   'earnings-growth',
 ] as const satisfies readonly FactorMetricId[])
 
+/** The medians of each sector a pass has asked for, held for as long as the pass is. */
+const MEDIANS_BY_PASS = new WeakMap<CrossSection, Map<string, readonly FactorMetric[]>>()
+
 /** The sector's medians, the room left to foreigners and the day's breadth, all off the pass the
  *  screen already made, so asking costs no provider read. */
 export function nameContext(cross: CrossSection, evidence: NameEvidence): NameContext {
@@ -63,9 +66,9 @@ export function boardReadings(
   ]
 }
 
-/** The same readings the factors print for each name, so a median and the reading beside it share a
- *  definition: a loss-maker has no P/E to put in either. A sector too thin to rank within pools with
- *  the rest of the board there, so a median over its few names would be the pool's by another name. */
+/** The sector's medians the name has a reading of itself, off the same readings the factors print
+ *  for each name, so a median and the reading beside it share a definition: a loss-maker has no
+ *  P/E to put in either. */
 function sectorMedians(cross: CrossSection, evidence: NameEvidence): NameContext['sector'] {
   const code = evidence.record.sector
 
@@ -73,25 +76,50 @@ function sectorMedians(cross: CrossSection, evidence: NameEvidence): NameContext
     return undefined
   }
 
+  const own = readingsOf(evidence)
+  const medians = mediansOf(cross, code).filter(({ id }) =>
+    own.some((reading) => reading.id === id)
+  )
+
+  return medians.length === 0 ? undefined : { code, medians }
+}
+
+/** A sector's medians are the same for each of its names, so a pass takes them once per sector. */
+function mediansOf(cross: CrossSection, code: string): readonly FactorMetric[] {
+  const sectors = MEDIANS_BY_PASS.get(cross) ?? new Map<string, readonly FactorMetric[]>()
+  const known = sectors.get(code)
+
+  if (known !== undefined) {
+    return known
+  }
+
+  const medians = takeMedians(cross, code)
+
+  sectors.set(code, medians)
+  MEDIANS_BY_PASS.set(cross, sectors)
+
+  return medians
+}
+
+/** A sector too thin to rank within pools with the rest of the board there, so a median over its
+ *  few names would be the pool's by another name. */
+function takeMedians(cross: CrossSection, code: string): readonly FactorMetric[] {
   const peers = cross.names
     .filter((name) => name.record.kind === 'equity' && name.record.sector === code)
     .map(readingsOf)
 
   if (peers.length < SECTOR_RANK_MINIMUM_MEMBERS) {
-    return undefined
+    return []
   }
 
-  const own = readingsOf(evidence)
-  const medians = SECTOR_MEDIAN_IDS.flatMap((id): readonly FactorMetric[] => {
+  return SECTOR_MEDIAN_IDS.flatMap((id): readonly FactorMetric[] => {
     const values = peers.flatMap((readings) =>
       readings.filter((reading) => reading.id === id).map((reading) => reading.value)
     )
     const value = values.length < SECTOR_RANK_MINIMUM_MEMBERS ? undefined : median(values)
 
-    return value === undefined || !own.some((reading) => reading.id === id) ? [] : [{ id, value }]
+    return value === undefined ? [] : [{ id, value }]
   })
-
-  return medians.length === 0 ? undefined : { code, medians }
 }
 
 function readingsOf(name: NameEvidence): readonly FactorMetric[] {
