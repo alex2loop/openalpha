@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'preact/hooks'
 
 import type { ScreenResponse } from '@/app/server/wire/market'
 import type { SuggestionWire } from '@/app/server/wire/trading'
+import type { Candidate } from '@/web/edition/screen-sort'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { ScreenBoard } from '@/web/edition/screen-board'
@@ -17,6 +18,7 @@ import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
 import { isInfoLine, joinInline, splitInline, withoutLeadingIcon } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
+import { FactGrid } from '@/web/ui/kit/fact-grid'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { AnalyzeButton, isStoredAnswer } from '@/web/ui/ticker/analyze-button'
@@ -191,7 +193,7 @@ function BoardBody({ board, analyzed }: BoardBodyProps) {
         })}
       </p>
       {card.rows.map((row) => (
-        <Opportunity key={row.key} row={row} analyzed={analyzed} />
+        <Opportunity key={row.key} row={row} facts={factsOf(board, row)} analyzed={analyzed} />
       ))}
       {card.caveats.map((caveat) => (
         <p key={caveat} class={isInfoLine(caveat) ? 'meta' : 'strip is-caution'}>
@@ -210,6 +212,13 @@ function BoardBody({ board, analyzed }: BoardBodyProps) {
 
 type Row = ScreenResponse['card']['rows'][number]
 
+// What the board read for the row's name, laid out as the Screen board lays it.
+function factsOf(board: ScreenResponse, row: Row): NonNullable<Candidate['facts']> {
+  const [, ticker] = row.key.split(MARKET_SEPARATOR)
+
+  return board.candidates.find((candidate) => candidate.instrument.ticker === ticker)?.facts ?? []
+}
+
 // The score is one segment of the daemon's row line; simple drops it and keeps every other.
 function lineOf(row: Row): string {
   if (isAdvanced.value) {
@@ -223,9 +232,11 @@ function lineOf(row: Row): string {
 
 function Opportunity({
   row,
+  facts,
   analyzed,
 }: {
   readonly row: Row
+  readonly facts: NonNullable<Candidate['facts']>
   readonly analyzed: ReadonlySet<string>
 }) {
   const [market, ticker] = row.key.split(MARKET_SEPARATOR)
@@ -246,6 +257,7 @@ function Opportunity({
             {line}
           </p>
         ))}
+        <FactGrid facts={facts} />
       </div>
       <div class="opportunity-ask">
         <AnalyzeButton
