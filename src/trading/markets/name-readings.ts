@@ -1,5 +1,5 @@
 import type { Logger } from '@/core/logging/logger'
-import type { FactorMetric } from '@/trading/kernel/factor-metric'
+import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { Candle, FundingSnapshot } from '@/trading/kernel/market/market-data'
@@ -36,9 +36,19 @@ const RANGE_SESSIONS = 14
 /** The drivers a market backdrop lists, heaviest first: enough to say where the tape and the price
  *  of money stand, few enough to be one line. */
 const BACKDROP_DRIVERS = 2
+/** What a board row prints of the series' readings: where the name sits in its year, how far it
+ *  swings and its move against the index. The liquidity readings are the board's own columns. */
+const BOARD_BAR_READING_IDS: ReadonlySet<FactorMetricId> = new Set([
+  'distance-from-high',
+  'average-range',
+  'relative-return',
+])
+
+/** What the series' readings ask of a market: how to treat its bars. */
+export type BarsManifest = Pick<MarketManifest, 'assetClass' | 'referenceBarsOnly'>
 
 interface BarReadingsInput {
-  readonly manifest: MarketManifest
+  readonly manifest: BarsManifest
   readonly candles: readonly Candle[]
   /** The market's own index over the same sessions. Absent where the market names none. */
   readonly benchmark?: readonly Candle[]
@@ -72,9 +82,14 @@ export function barReadings(input: BarReadingsInput): readonly FactorMetric[] {
   ]
 }
 
+/** The series readings a board row carries beside its factors. */
+export function boardBarReadings(input: BarReadingsInput): readonly FactorMetric[] {
+  return barReadings(input).filter((reading) => BOARD_BAR_READING_IDS.has(reading.id))
+}
+
 /** A share's unadjusted bar prices a split as a crash, so an equity reads only its adjusted rows;
  *  a coin has no split to mis-price and its venues publish raw rows by nature. */
-function usableCandles(candles: readonly Candle[], manifest: MarketManifest): readonly Candle[] {
+function usableCandles(candles: readonly Candle[], manifest: BarsManifest): readonly Candle[] {
   return candles.filter(
     (candle) =>
       candle.close > 0 && (manifest.assetClass !== 'equity' || candle.adjustment === 'adjusted')
@@ -154,25 +169,34 @@ function liquidity(candles: readonly Candle[]): readonly FactorMetric[] {
 }
 
 /** Where the perpetual's positioning stands: what longs pay, how the open contracts changed and how
- *  accounts split. The open-interest change is the contract count's, never the notional's. */
+ *  accounts split. */
 export function fundingReadings(snapshot: FundingSnapshot): readonly FactorMetric[] {
-  const { openInterestChange, longShortRatio } = snapshot
-
   return [
     { id: 'funding-daily', value: snapshot.fundingDailyPct },
-    ...(openInterestChange === undefined
-      ? []
-      : [
-          {
-            id: 'open-interest-change' as const,
-            value: openInterestChange.value * PERCENT_PER_UNIT,
-            sessions: openInterestChange.sessions,
-          },
-        ]),
-    ...(longShortRatio === undefined
-      ? []
-      : [{ id: 'long-short-ratio' as const, value: longShortRatio }]),
+    ...openInterestReading(snapshot),
+    ...longShortReading(snapshot),
   ]
+}
+
+/** The change is the contract count's, never the notional's. */
+export function openInterestReading(snapshot: FundingSnapshot): readonly FactorMetric[] {
+  const { openInterestChange } = snapshot
+
+  return openInterestChange === undefined
+    ? []
+    : [
+        {
+          id: 'open-interest-change',
+          value: openInterestChange.value * PERCENT_PER_UNIT,
+          sessions: openInterestChange.sessions,
+        },
+      ]
+}
+
+export function longShortReading(snapshot: FundingSnapshot): readonly FactorMetric[] {
+  const { longShortRatio } = snapshot
+
+  return longShortRatio === undefined ? [] : [{ id: 'long-short-ratio', value: longShortRatio }]
 }
 
 interface BackdropReading {

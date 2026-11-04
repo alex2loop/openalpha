@@ -45,9 +45,15 @@ import { CLOSED_THEME_STATUSES } from '@/trading/features/themes/types'
 import { NOTICE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
 import { renderMetricLine } from '@/trading/render/metric'
 
+/** A kind filter needs at least two kinds to choose between. */
+const MINIMUM_CHOICES = 2
+
 interface AppViewDeps {
   readonly briefs: Pick<BriefService, 'getLatest' | 'reschedule' | 'hasOnDay'>
-  readonly marketData: Pick<MarketDataService, 'macroRisk' | 'quoteConvention' | 'screen'>
+  readonly marketData: Pick<
+    MarketDataService,
+    'macroRisk' | 'quoteConvention' | 'screen' | 'screenableKinds'
+  >
   readonly suggestions: Pick<SuggestionService, 'reflect' | 'modelRecords' | 'dayDigest'>
   readonly themes: Pick<ThemeService, 'show' | 'transition'>
   readonly timezone: string
@@ -165,14 +171,63 @@ async function screen(
     view
   )
 
+  const kinds = screenKindsOf(deps, { market, locale })
+
   return view.form === 'board'
     ? {
         view,
         card,
+        ...kinds,
         factorLabels: factorLabels(view, locale),
         factorReadings: factorReadings(view, locale, display),
+        nameReadings: nameReadings(view, locale, display),
       }
-    : { view, card }
+    : { view, card, ...kinds }
+}
+
+/** The kinds a market's screen can be narrowed to, where it holds more than one: a market with a
+ *  single kind has nothing to choose. */
+function screenKindsOf(
+  deps: AppViewDeps,
+  request: Pick<Parameters<AppViews['screen']>[0], 'market' | 'locale'>
+): Pick<ScreenAnswer, 'kinds'> {
+  const kinds = deps.marketData.screenableKinds().get(request.market) ?? []
+
+  return kinds.length < MINIMUM_CHOICES
+    ? {}
+    : {
+        kinds: kinds.map((kind) => ({
+          kind,
+          label: renderDeclaredValue(request.locale, `trading.instrument-kind.${kind}`),
+        })),
+      }
+}
+
+/** What each name's market states beside its factors, one line per value, in the CLI's own words. */
+function nameReadings(
+  view: ScreenView,
+  locale: Locale,
+  display: PriceDisplay | undefined
+): NonNullable<ScreenAnswer['nameReadings']> {
+  const quote = display === undefined ? {} : { quote: { display } }
+
+  return Object.fromEntries(
+    view.candidates.flatMap((candidate) =>
+      candidate.readings === undefined
+        ? []
+        : [
+            [
+              candidate.instrument.ticker,
+              candidate.readings.map((reading) => ({
+                id: reading.id,
+                ...(reading.sessions === undefined ? {} : { sessions: reading.sessions }),
+                value: reading.value,
+                text: renderMetricLine(locale, [reading], { ...BOARD_READING, ...quote }) ?? '',
+              })),
+            ] as const,
+          ]
+    )
+  )
 }
 
 /** What each name's factors read in the quantities they were scored on, as the CLI's board rows

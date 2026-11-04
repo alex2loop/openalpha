@@ -1,5 +1,6 @@
 import type { InstrumentStatus } from '@/trading/kernel/caveat'
 import type { FactorComposite, FactorResult } from '@/trading/kernel/factor'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { InstrumentKind, InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { PreviousClose, ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type {
@@ -208,6 +209,8 @@ export interface RankedEvidence {
   readonly signalsByTicker: ReadonlyMap<Ticker, readonly TapeReading[]>
   /** The foreign desk's net over the flow window, for the names that reported one. */
   readonly foreignNetByTicker?: ReadonlyMap<Ticker, number>
+  /** The plain values a board prints beside the factors. */
+  readonly readingsByTicker?: ReadonlyMap<Ticker, readonly FactorMetric[]>
 }
 
 export function rankSurvivors(
@@ -224,11 +227,11 @@ export function rankSurvivors(
         composite:
           scoredFactors === undefined ? UNSCORED_COMPOSITE : factorComposite(scoredFactors),
         factors: scoredFactors?.factors ?? [],
-        ...rowExtras(
-          candidate,
-          evidence.signalsByTicker.get(candidate.instrument.ticker) ?? [],
-          evidence.foreignNetByTicker?.get(candidate.instrument.ticker)
-        ),
+        ...rowExtras(candidate, {
+          readings: evidence.signalsByTicker.get(candidate.instrument.ticker) ?? [],
+          foreignNet: evidence.foreignNetByTicker?.get(candidate.instrument.ticker),
+          metrics: evidence.readingsByTicker?.get(candidate.instrument.ticker) ?? [],
+        }),
         ...(options.foreignOperator && candidate.foreignRoomExhausted === true
           ? { caution: 'foreign-room-exhausted' as const }
           : {}),
@@ -249,12 +252,17 @@ export function rankSurvivors(
     .map((entry) => entry.candidate)
 }
 
+/** What the per-name reads add to a row beside the scored factors. */
+interface RowReads {
+  readonly readings: readonly TapeReading[]
+  readonly foreignNet: number | undefined
+  readonly metrics: readonly FactorMetric[]
+}
+
 /** What a row carries only when the market had it, kept out of the shape otherwise. */
-function rowExtras(
-  candidate: ScreenInput,
-  readings: readonly TapeReading[],
-  foreignNet: number | undefined
-): Partial<ScreenCandidate> {
+function rowExtras(candidate: ScreenInput, reads: RowReads): Partial<ScreenCandidate> {
+  const { readings, foreignNet, metrics } = reads
+
   const previousClose = lastAdjustedClose(candidate.bars)
   const closes = adjustedCloses(candidate.bars)
   const volatilityDaily = realizedVolatility(closes, VOLATILITY_SESSIONS)
@@ -272,6 +280,7 @@ function rowExtras(
     ...(candidate.lockPrice === undefined ? {} : { lockPrice: candidate.lockPrice }),
     ...(volatilityDaily === undefined ? {} : { volatilityDaily }),
     ...(readings.length === 0 ? {} : { signals: readings.map((reading) => reading.signal) }),
+    ...(metrics.length === 0 ? {} : { readings: metrics }),
   }
 }
 

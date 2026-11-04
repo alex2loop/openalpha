@@ -27,6 +27,7 @@ import {
   VOLATILITY_RANGE,
 } from '@/trading/markets/crypto/policy'
 import { optionalRaw, percentileWithin, toSeries } from '@/trading/markets/evidence'
+import { longShortReading, openInterestReading } from '@/trading/markets/name-readings'
 import {
   realizedVolatility,
   relativeVolume,
@@ -154,6 +155,7 @@ export function cryptoFactorInputs(
 function barFactorInputs(evidence: CryptoAssetEvidence): readonly FactorInput<CryptoFactorId>[] {
   const closes = evidence.candles.map((candle) => candle.close)
   const abstained = isBreakingOut(closes)
+  const volatility = realizedVolatility(closes, CRYPTO_VOLATILITY_SESSIONS)
 
   return [
     {
@@ -165,7 +167,8 @@ function barFactorInputs(evidence: CryptoAssetEvidence): readonly FactorInput<Cr
     },
     {
       id: 'volatility',
-      ...optionalRaw(abstained ? undefined : volatilityPercentile(closes)),
+      ...optionalRaw(abstained ? undefined : volatilityPercentile(volatility)),
+      ...factorMetrics(volatilityMetrics(volatility)),
       // An abstention is a decision, not a gap: without this the row also reports its input as
       // missing, which prints a warning over the note that already explains the silence.
       ...(abstained ? { inapplicable: true } : {}),
@@ -192,12 +195,16 @@ function feedFactorInputs(evidence: CryptoAssetEvidence): readonly FactorInput<C
     {
       id: 'long-short',
       ...optionalRaw(longShortPercentile(evidence.funding.value)),
+      ...factorMetrics(
+        evidence.funding.value === undefined ? [] : longShortReading(evidence.funding.value)
+      ),
       provenance: evidence.funding.provenance,
       caveats: [],
     },
     {
       id: 'turnover-velocity',
       ...optionalRaw(turnoverPercentile(evidence)),
+      ...factorMetrics(turnoverMetrics(evidence)),
       provenance: evidence.marketCap.provenance,
       caveats: evidence.marketCap.caveats,
     },
@@ -270,15 +277,14 @@ function fundingMetrics(snapshot: FundingSnapshot | undefined): {
 } {
   return snapshot === undefined
     ? {}
-    : {
-        metrics: [
-          {
-            id: 'funding-daily',
-            value: snapshot.fundingDailyPct,
-            sessions: Math.round(snapshot.windowDays),
-          },
-        ],
-      }
+    : factorMetrics([
+        {
+          id: 'funding-daily',
+          value: snapshot.fundingDailyPct,
+          sessions: Math.round(snapshot.windowDays),
+        },
+        ...openInterestReading(snapshot),
+      ])
 }
 
 function crowdedFundingCaveats(snapshot: FundingSnapshot | undefined): readonly Caveat[] {
@@ -313,20 +319,36 @@ function longShortPercentile(snapshot: FundingSnapshot | undefined): number | un
   return ratio === undefined ? undefined : percentileWithin(ratio, LONG_SHORT_RANGE)
 }
 
+function turnoverPercentile(evidence: CryptoAssetEvidence): number | undefined {
+  const ratio = turnoverRatio(evidence)
+
+  return ratio === undefined ? undefined : percentileWithin(ratio, TURNOVER_RATIO_RANGE)
+}
+
+function turnoverMetrics(evidence: CryptoAssetEvidence): readonly FactorMetric[] {
+  const ratio = turnoverRatio(evidence)
+
+  return ratio === undefined ? [] : [{ id: 'volume-to-market-cap', value: ratio }]
+}
+
 /** Both terms come off the same universe row, so a venue-scoped numerator can never be divided by a
  *  market-wide denominator. Bars carry one exchange's volume and would be a few percent of it. */
-function turnoverPercentile(evidence: CryptoAssetEvidence): number | undefined {
+function turnoverRatio(evidence: CryptoAssetEvidence): number | undefined {
   const [record] = evidence.marketCap.value ?? []
 
   return record === undefined || record.marketCapUsd <= 0 || record.totalVolumeUsd <= 0
     ? undefined
-    : percentileWithin(record.totalVolumeUsd / record.marketCapUsd, TURNOVER_RATIO_RANGE)
+    : record.totalVolumeUsd / record.marketCapUsd
 }
 
-function volatilityPercentile(closes: readonly number[]): number | undefined {
-  const volatility = realizedVolatility(closes, CRYPTO_VOLATILITY_SESSIONS)
-
+function volatilityPercentile(volatility: number | undefined): number | undefined {
   return volatility === undefined ? undefined : percentileWithin(volatility, VOLATILITY_RANGE)
+}
+
+function volatilityMetrics(volatility: number | undefined): readonly FactorMetric[] {
+  return volatility === undefined
+    ? []
+    : [{ id: 'daily-volatility', value: volatility, sessions: CRYPTO_VOLATILITY_SESSIONS }]
 }
 
 /** Whether the last close sits inside the breakout band under the 20-session high. A name there has

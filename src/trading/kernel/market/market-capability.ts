@@ -5,6 +5,7 @@ import type { Locale } from '@/core/types/locale'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { BandCounts } from '@/trading/kernel/conviction'
 import type { FactorComposite, FactorResult } from '@/trading/kernel/factor'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type {
   AssetClass,
   CurrencyCode,
@@ -180,6 +181,10 @@ export interface ScreenCandidate {
   readonly turnover?: number
   readonly monthChangePct?: number
   readonly foreignNet?: number
+  /** Plain values a board prints beside the factors, each in its own unit and none of them a score:
+   *  where the name stands in its year, how far it swings, what the market holds about it. Absent
+   *  where the market has none to state. */
+  readonly readings?: readonly FactorMetric[]
   /** The whole fold, not its parts: the rank, how much of the model stood behind it, whether the
    *  factors agreed, and the band that reads all three. Splitting them let a row show a score with
    *  no scale beside it. */

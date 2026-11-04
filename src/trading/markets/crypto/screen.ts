@@ -1,4 +1,5 @@
 import type { FactorComposite, FactorResult } from '@/trading/kernel/factor'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { InstrumentRef, Ticker } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type { Candle, MarketCapRecord, Quote } from '@/trading/kernel/market/market-data'
@@ -16,9 +17,11 @@ import {
 } from '@/trading/markets/crypto/policy'
 import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
 import { averageTrueRange, hasIntradayRange } from '@/trading/markets/levels'
-import { realizedVolatility } from '@/trading/markets/timeseries'
+import { nSessionReturn, realizedVolatility } from '@/trading/markets/timeseries'
 
 const PERCENT_SCALE = 100
+/** The days a board lists a coin's move over: a week and a month. */
+const BOARD_CHANGE_DAYS: readonly number[] = Object.freeze([7, 30])
 
 /** What the candle gates read, and nothing else: the suggestion path holds a series and no board
  *  row, and inventing a quote to satisfy a screen shape is how the two drift apart. Unexported on
@@ -110,6 +113,7 @@ export function rankCryptoSurvivors(
       ...(scoredFactors === undefined || scoredFactors.signals.length === 0
         ? {}
         : { signals: scoredFactors.signals.map((reading) => reading.signal) }),
+      readings: boardReadings(candidate),
       liveQuote: candidate.liveQuote,
       ...(newest === undefined ? {} : { previousClose: { price: newest.close, at: newest.at } }),
       ...(volatilityDaily === undefined ? {} : { volatilityDaily }),
@@ -123,6 +127,24 @@ export function rankCryptoSurvivors(
       right.composite.score - left.composite.score ||
       left.instrument.ticker.localeCompare(right.instrument.ticker)
   )
+}
+
+/** What a board lists of a coin beyond its factors: its size, what it traded over the last day and
+ *  how far it moved over a week and a month. A move the series is too short for is absent. */
+function boardReadings(candidate: CryptoScreenInput): readonly FactorMetric[] {
+  const closes = candidate.candles.map((candle) => candle.close)
+
+  return [
+    { id: 'market-cap', value: candidate.marketCapUsd },
+    { id: 'volume-24h', value: candidate.totalVolumeUsd },
+    ...BOARD_CHANGE_DAYS.flatMap((days): readonly FactorMetric[] => {
+      const change = nSessionReturn(closes, days)
+
+      return change === undefined
+        ? []
+        : [{ id: 'price-change', value: change * PERCENT_SCALE, sessions: days }]
+    }),
+  ]
 }
 
 /** No series at all is a gap in our coverage, not a young coin: "too little history" said of a

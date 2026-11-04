@@ -62,6 +62,7 @@ export function renderCandidateBlock(
         ...rowFacts(locale, row),
         ...renderPriceFacts(locale, candidate, board),
         ...renderTopFactorFacts(locale, distinctive),
+        ...renderReadingFacts(locale, candidate, board),
       ],
       board.context,
       1
@@ -88,10 +89,24 @@ export function renderBoardRow(
         .toSorted((left, right) => left.id.localeCompare(right.id))
         .map((factor) => renderBoardFactor(locale, { candidate, factor }, board))
         .filter((fact) => fact !== ''),
+      ...renderReadingFacts(locale, candidate, board),
     ],
     board.context,
     1
   )
+}
+
+/** The plain values the market states beside the factors, short-labelled like a factor's own. */
+function renderReadingFacts(
+  locale: Locale,
+  candidate: ScreenCandidate,
+  board: ScreenBoard
+): readonly string[] {
+  return metricFacts(locale, candidate.readings, {
+    labels: BOARD_READING.labels,
+    canonical: BOARD_READING.canonical,
+    ...(board.display === undefined ? {} : { quote: { display: board.display } }),
+  })
 }
 
 /** What the factor read in the quantities it was scored on, and where that sits on the board. The

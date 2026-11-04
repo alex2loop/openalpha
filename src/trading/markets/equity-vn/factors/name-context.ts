@@ -9,6 +9,7 @@ import {
 } from '@/trading/markets/equity-vn/factors/fundamental-ranks'
 import { SECTOR_RANK_MINIMUM_MEMBERS } from '@/trading/markets/equity-vn/policy'
 import { toBreadth } from '@/trading/markets/equity-vn/tape/breadth'
+import { type BarsManifest, boardBarReadings } from '@/trading/markets/name-readings'
 import { median } from '@/trading/markets/timeseries'
 
 /** The readings a sector median is taken of: the multiples, the return on equity and the earnings
@@ -38,6 +39,28 @@ export function nameContext(cross: CrossSection, evidence: NameEvidence): NameCo
       ? {}
       : { breadth: { advancers: breadth.advancers, decliners: breadth.decliners } }),
   }
+}
+
+/** The plain values a board row carries beside its factors: where the name stands against its year
+ *  and the index, how far it swings, the room left to foreigners and the sector's median P/E. All
+ *  of it comes off the pass the screen already made. */
+export function boardReadings(
+  cross: CrossSection,
+  evidence: NameEvidence,
+  manifest: BarsManifest
+): readonly FactorMetric[] {
+  const room = foreignRoomLeft(evidence.record)
+  const sectorPe = sectorMedians(cross, evidence)?.medians.find(({ id }) => id === 'pe')
+
+  return [
+    ...boardBarReadings({
+      manifest,
+      candles: evidence.bars.map(({ candle }) => candle),
+      benchmark: cross.indexBars,
+    }),
+    ...(room === undefined ? [] : [room]),
+    ...(sectorPe === undefined ? [] : [{ id: 'sector-pe' as const, value: sectorPe.value }]),
+  ]
 }
 
 /** The same readings the factors print for each name, so a median and the reading beside it share a

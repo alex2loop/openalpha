@@ -5,6 +5,9 @@ import { toInstrumentWire } from '@/app/server/mappers/trading'
 type ScreenedCandidate = ScreenView['candidates'][number]
 type CandidateWire = ScreenResponse['candidates'][number]
 
+/** Every factor of the model had data. */
+const FULL_COVERAGE = 1
+
 export function toScreenWire(market: string, answer: ScreenAnswer): ScreenResponse {
   const { view, card } = answer
 
@@ -21,6 +24,7 @@ export function toScreenWire(market: string, answer: ScreenAnswer): ScreenRespon
     ...(view.form === 'board'
       ? { total: view.candidates.length, unpriced: view.unpriced ?? 0 }
       : {}),
+    ...(answer.kinds === undefined ? {} : { kinds: answer.kinds }),
     card,
   }
 }
@@ -44,8 +48,11 @@ function toListedWire(candidate: ScreenedCandidate, answer: ScreenAnswer): Candi
         label: answer.factorLabels?.[factor.id] ?? factor.id,
         ...(reading === undefined ? {} : { reading }),
         ...(percentile === undefined ? {} : { percentile }),
+        ...(factor.metrics === undefined ? {} : { metrics: factor.metrics }),
       }
     })
+  const readings = answer.nameReadings?.[candidate.instrument.ticker]
+  const { coverage } = candidate.composite
 
   return {
     ...toCandidateWire(candidate),
@@ -54,6 +61,9 @@ function toListedWire(candidate: ScreenedCandidate, answer: ScreenAnswer): Candi
     ...(candidate.turnover === undefined ? {} : { turnover: candidate.turnover }),
     ...(candidate.monthChangePct === undefined ? {} : { monthChangePct: candidate.monthChangePct }),
     ...(candidate.foreignNet === undefined ? {} : { foreignNet: candidate.foreignNet }),
+    ...(candidate.excluded === true ? { excluded: true as const } : {}),
+    ...(coverage < FULL_COVERAGE ? { coverage } : {}),
+    ...(readings === undefined ? {} : { readings }),
     factors,
   }
 }

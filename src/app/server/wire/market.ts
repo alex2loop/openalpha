@@ -4,6 +4,20 @@
 import type { InstrumentRefWire, TradingWireCaveat } from '@/app/server/wire/trading'
 import type { SessionPhase, TypedPrice } from '@/app/server/wire/vocab'
 
+/** One measured quantity of a name: what it is, over how many sessions where it is a window, and
+ *  its value in the unit the market publishes it in (a percent as a percent, an amount in the
+ *  market's currency), so a page can order and filter on it. */
+interface ScreenFigureWire {
+  readonly id: string
+  readonly sessions?: number
+  readonly value: number
+}
+
+/** A plain value a market states beside a name's factors, with the words the CLI writes for it. */
+interface ScreenReadingWire extends ScreenFigureWire {
+  readonly text: string
+}
+
 /** What one factor read for a name of a `list` board. */
 interface ScreenFactorWire {
   readonly id: string
@@ -15,6 +29,8 @@ interface ScreenFactorWire {
   /** Percent-valued, 0-100: the share of the board's names this reading is above. Absent where
    *  fewer than two names carry the factor, which leaves nothing to place it against. */
   readonly percentile?: number
+  /** The quantities behind `reading`, as numbers. Absent where the factor states none. */
+  readonly metrics?: readonly ScreenFigureWire[]
 }
 
 /** A name's identity and live price; on a ranked board what the board says about it is in `card`,
@@ -34,6 +50,15 @@ interface ScreenCandidateWire {
   readonly foreignNet?: number
   /** `list` boards only: the factors that fired for the name, in a fixed order. */
   readonly factors?: readonly ScreenFactorWire[]
+  /** `list` boards only: the plain values the market states beside the factors (where the name
+   *  stands in its year, how far it swings, its size, its move over a week), in a fixed order.
+   *  Never a score. */
+  readonly readings?: readonly ScreenReadingWire[]
+  /** `list` boards only: the name is on the operator's exclusion list. */
+  readonly excluded?: true
+  /** `list` boards only: the share (0-1) of the model's factors that had data for the name; absent
+   *  when every one did. */
+  readonly coverage?: number
 }
 
 /** One ranked name as `/screen` prints it: its row, then the caution, prices and top factors. */
@@ -72,6 +97,9 @@ export interface ScreenResponse {
   readonly next?: string
   /** `list` boards only: names that cleared the gates but had no price, so are not listed. */
   readonly unpriced?: number
+  /** The kinds the market's screen can be narrowed to, named in the operator's language, where it
+   *  has more than one; the first is the board served when `kind` is not asked. */
+  readonly kinds?: readonly { readonly kind: string; readonly label: string }[]
   /** The lines `/screen` prints for this board, in the operator's language; the app shows them as
    *  is, so the board reads the same in the app, the CLI and Telegram. */
   readonly card: ScreenCardWire

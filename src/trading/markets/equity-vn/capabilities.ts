@@ -45,7 +45,7 @@ import {
   findIndexInstrument,
   loadUniverse,
 } from '@/trading/markets/equity-vn/refresh/universe'
-import { runScreen } from '@/trading/markets/equity-vn/screen-capability'
+import { runScreen, type ScreenOptions } from '@/trading/markets/equity-vn/screen-capability'
 import { buildFuturesBasis } from '@/trading/markets/equity-vn/tape/basis'
 import { createIndexContributors } from '@/trading/markets/equity-vn/tape/index-contributors'
 import { createIndexValuation } from '@/trading/markets/equity-vn/tape/index-valuation'
@@ -94,8 +94,7 @@ export function vnCapabilities(
     },
     screen: {
       kind: 'screen',
-      run: (request) =>
-        runScreen(crossSection, request, deps.config.defaultRegion !== VN_MARKET_REGION),
+      run: (request) => runScreen(crossSection, request, screenOptions(deps, manifest)),
     },
     ...boardCapabilities(crossSection),
     macroRisk: {
@@ -124,6 +123,12 @@ function boardCapabilities(
     accounts: { kind: 'accounts', run: (request) => runAccounts(crossSection, request) },
     context: { kind: 'context', run: (request) => runContext(crossSection, request) },
   }
+}
+
+/** A foreign account cannot buy a name with no room, so the board warns only an operator whose home
+ *  is not this region. */
+function screenOptions(deps: MarketDeps, manifest: MarketManifest): ScreenOptions {
+  return { foreignOperator: deps.config.defaultRegion !== VN_MARKET_REGION, manifest }
 }
 
 /** A market with no brief seam bound publishes no brief, rather than one that throws. */

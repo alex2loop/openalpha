@@ -40,6 +40,13 @@ export const FACTOR_METRIC_IDS = Object.freeze([
   'relative-volume',
   'foreign-net-flow',
   'foreign-room-left',
+  'sector-pe',
+  'proprietary-net-flow',
+  'market-cap',
+  'volume-24h',
+  'price-change',
+  'volume-to-market-cap',
+  'daily-volatility',
 ] as const)
 export type FactorMetricId = (typeof FACTOR_METRIC_IDS)[number]
 
@@ -105,6 +112,13 @@ export const FACTOR_METRIC_UNITS = Object.freeze({
   'relative-volume': 'multiple',
   'foreign-net-flow': 'signed-currency',
   'foreign-room-left': 'fraction',
+  'sector-pe': 'ratio',
+  'proprietary-net-flow': 'signed-currency',
+  'market-cap': 'currency',
+  'volume-24h': 'currency',
+  'price-change': 'signed-percent',
+  'volume-to-market-cap': 'fraction',
+  'daily-volatility': 'fraction',
 } as const satisfies Readonly<Record<FactorMetricId, FactorMetricUnit>>)
 
 export interface FactorMetric {
