@@ -152,19 +152,19 @@ export function renderOverviewSection(
   const lines =
     context.layout === 'table'
       ? toTable(
-          facts.facts.map((fact) => [`${fact.label}:`, factText(locale, fact)]),
+          facts.facts.map((fact) => [`${fact.label}:`, factText(fact)]),
           ['left', 'left']
         )
       : facts.facts.map((fact) =>
           t(locale, 'trading.render.metric.row', {
             label: fact.label,
-            value: factText(locale, fact),
+            value: factText(fact),
           })
         )
 
   return [heading, ...lines.map((line) => `${INDENT[1]}${line}`)].join('\n')
 }
 
-function factText(_locale: Locale, fact: OverviewFact): string {
+function factText(fact: OverviewFact): string {
   return fact.rank === undefined ? fact.value : `${fact.value}${INLINE_SEPARATOR}${fact.rank}`
 }

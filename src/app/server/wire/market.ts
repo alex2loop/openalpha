@@ -44,7 +44,6 @@ export interface ScreenFactWire {
   readonly id: string
   readonly label: string
   readonly value: string
-  readonly rank?: string
   readonly group: ScreenFactGroup
   /** A reading a page may keep behind a "more" control. */
   readonly secondary?: true

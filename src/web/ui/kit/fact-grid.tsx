@@ -31,9 +31,8 @@ interface FactHeading {
 }
 
 /** What the daemon read, laid out as it lists it: a heading per group, each fact a label on the
- *  left and its value on the right. A board's facts
- *  take the screen's group headings; another list names its own. The rarely needed readings wait
- *  behind a toggle. */
+ *  left and its value on the right. A board's facts take the screen's group headings; another list
+ *  names its own. The rarely needed readings wait behind a toggle. */
 export function FactGrid({
   facts,
   headings,
