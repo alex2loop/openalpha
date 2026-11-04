@@ -88,6 +88,22 @@ export function formatFixed(value: number | undefined, digits: number): string {
   return formatterFor(digits).format(value)
 }
 
+/** A number at fixed decimals led by its sign; one that rounds to zero carries none. A missing one
+ *  prints `ABSENT_CELL`. */
+export function formatSignedFixed(value: number | undefined, digits: number): string {
+  if (value === undefined || !Number.isFinite(value)) {
+    return ABSENT_CELL
+  }
+
+  const magnitude = formatFixed(Math.abs(value), digits)
+
+  if (ZERO_TEXT.test(magnitude)) {
+    return magnitude
+  }
+
+  return `${value > 0 ? '+' : '-'}${magnitude}`
+}
+
 /** A share of the whole, given as a fraction (`0.1425`), at fixed decimals so a column lines up:
  *  `14,25%`, as `/portfolio` prints it. */
 export function formatFixedFraction(fraction: number | undefined): string {

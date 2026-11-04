@@ -1,7 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type { ScreenedCandidate } from '@/trading/features/market-data/types'
 import type { FactorId } from '@/trading/kernel/factor'
-import type { CurrencyCode, PriceDisplay } from '@/trading/kernel/instrument'
+import type { CurrencyCode, PriceDisplay, TradingDay } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type { RenderContext } from '@/trading/render/format'
 import { t } from '@/i18n'
@@ -12,14 +12,17 @@ import {
   formatCount,
   formatPercentRank,
   formatScoreValue,
+  formatSignedFixedPercent,
   formatWholeFraction,
   renderDeclaredValue,
-  renderTopFactorLines,
+  renderTopFactorFacts,
   SEVERITY_MARKS,
 } from '@/trading/render/format'
-import { INDENT, INLINE_SEPARATOR, toFactLines } from '@/trading/render/layout'
+import { renderQuoteFreshness } from '@/trading/render/freshness'
+import { INDENT, toFactLines, toRowLines } from '@/trading/render/layout'
 import { metricFacts } from '@/trading/render/metric'
-import { renderPricePair } from '@/trading/render/price-pair'
+import { formatFixedPrice, formatPrice } from '@/trading/render/money'
+import { quoteBoardMoveOf } from '@/trading/render/price-pair'
 
 /** Coverage at or above this says the whole model spoke, which is the ordinary case and therefore
  *  not worth a clause on every row. */
@@ -38,38 +41,56 @@ export interface ScreenBoard {
   readonly display: PriceDisplay | undefined
   readonly context: RenderContext
   readonly medians: ReadonlyMap<FactorId, number>
+  /** The session the board's evidence ends at: a price from any other session says so. */
+  readonly day: TradingDay
 }
 
-/** One name's whole block: the ranked row, then what that rank was taken on. */
+/** One name as one row: its rank and verdict, the price it stands at, then the factors that most
+ *  explain it. Facts wrap whole, so a narrow chat never splits a number from its label. A caution
+ *  sits under the row because it changes how the row reads. */
 export function renderCandidateBlock(
   locale: Locale,
   row: CandidateRow,
   board: ScreenBoard
 ): readonly string[] {
-  return [renderRow(locale, row), ...candidateEvidenceLines(locale, row.candidate, board)]
+  const { candidate } = row
+  const distinctive = byDistinctiveness(candidate.factors, board.medians)
+
+  return [
+    ...toRowLines(
+      [
+        ...rowFacts(locale, row),
+        ...renderPriceFacts(locale, candidate, board),
+        ...renderTopFactorFacts(locale, distinctive),
+      ],
+      board.context,
+      1
+    ),
+    ...renderCautionLine(locale, candidate),
+  ]
 }
 
-/** One name of a board listing: who it is, its prices, then what each factor read and where that
- *  sits among the board's names. No rating, composite or rank, and no bar: those would order the
- *  list by merit, which the reader's own sort is there to do. Factors in a fixed order, so two names
- *  line up. */
-export function renderBoardBlock(
+/** One name of a board listing as one row: its ticker, its price, then what each factor read and
+ *  where that sits among the board's names. No rating, composite or rank, and no bar: those would
+ *  order the list by merit, which the reader's own sort is there to do. Factors in a fixed order,
+ *  so two names line up. */
+export function renderBoardRow(
   locale: Locale,
   candidate: ScreenedCandidate,
   board: ScreenBoard
 ): readonly string[] {
-  const { ticker } = candidate.instrument
-  const heading =
-    candidate.name === undefined ? ticker : `${ticker}${INLINE_SEPARATOR}${candidate.name.trim()}`
-
-  return [
-    `${INDENT[1]}${heading}`,
-    ...renderCandidatePrices(locale, candidate, board),
-    ...candidate.factors
-      .filter((factor) => factor.weight !== undefined)
-      .toSorted((left, right) => left.id.localeCompare(right.id))
-      .map((factor) => `${INDENT[2]}${renderBoardFactor(locale, factor, candidate.percentiles)}`),
-  ]
+  return toRowLines(
+    [
+      candidate.instrument.ticker,
+      ...renderPriceFacts(locale, candidate, board),
+      ...candidate.factors
+        .filter((factor) => factor.weight !== undefined)
+        .toSorted((left, right) => left.id.localeCompare(right.id))
+        .map((factor) => renderBoardFactor(locale, factor, candidate.percentiles)),
+    ],
+    board.context,
+    1
+  )
 }
 
 function renderBoardFactor(
@@ -78,12 +99,17 @@ function renderBoardFactor(
   percentiles: ScreenedCandidate['percentiles']
 ): string {
   const percentile = percentiles?.[factor.id]
-  const parts = [
-    `${renderDeclaredValue(locale, `trading.factor.${factor.id}`)} ${formatScoreValue(locale, factor.score)}`,
-    ...(percentile === undefined ? [] : [formatPercentRank(locale, percentile)]),
-  ]
+  const reading = {
+    label: renderDeclaredValue(locale, `trading.factor.${factor.id}`),
+    value: formatScoreValue(locale, factor.score),
+  }
 
-  return parts.join(INLINE_SEPARATOR)
+  return percentile === undefined
+    ? t(locale, 'trading.render.screen.boardFactorBare', reading)
+    : t(locale, 'trading.render.screen.boardFactor', {
+        ...reading,
+        rank: formatPercentRank(locale, percentile),
+      })
 }
 
 /** Rank, verdict, and the composite the rank was taken on: the band alone cannot say whether the
@@ -93,9 +119,10 @@ function renderBoardFactor(
  *  A gate board's rows carry no ordinal. Each name stands against its own absolute bands, so a
  *  numbered list would read as the selection between them the composite cannot make - the same
  *  reason its heading is not "top N of M". */
-function renderRow(locale: Locale, row: CandidateRow): string {
+function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
   const { candidate } = row
-  const segments = [
+
+  return [
     t(locale, row.gated ? 'trading.render.screen.gateRow' : 'trading.render.screen.row', {
       rank: formatCount(locale, row.index + 1),
       ticker: candidate.instrument.ticker,
@@ -110,8 +137,6 @@ function renderRow(locale: Locale, row: CandidateRow): string {
       ? [t(locale, 'trading.render.screen.margin-ineligible')]
       : []),
   ]
-
-  return `${INDENT[1]}${segments.join(INLINE_SEPARATOR)}`
 }
 
 function coverageSegment(locale: Locale, coverage: number): readonly string[] {
@@ -123,22 +148,6 @@ function coverageSegment(locale: Locale, coverage: number): readonly string[] {
     t(locale, 'trading.render.screen.coverage', {
       coverage: formatWholeFraction(locale, coverage),
     }),
-  ]
-}
-
-/** Why this name ranks where it does, then the quantities those scores were computed from — a
- *  normalized score cannot be checked against a filing and these can. */
-function candidateEvidenceLines(
-  locale: Locale,
-  candidate: ScreenedCandidate,
-  board: ScreenBoard
-): readonly string[] {
-  const distinctive = byDistinctiveness(candidate.factors, board.medians)
-
-  return [
-    ...renderCautionLine(locale, candidate),
-    ...renderCandidatePrices(locale, candidate, board),
-    ...renderTopFactorLines(locale, distinctive).map((line) => `${INDENT[2]}${line}`),
   ]
 }
 
@@ -197,37 +206,37 @@ function candidateMetricFacts(
   )
 }
 
-/** The same two dated rows `/price` and `/portfolio` print, so a board row and a lookup of one name
- *  read alike. A market publishing no ranked series answers with its own close-marked quote. */
-function renderCandidatePrices(
+/** The reading a row stands on and what it moved, as one fact; the unit is stated once above the
+ *  rows. A close is dated only when it is not the board's own session, and a live price names its
+ *  clock, so a row never passes a stale price off as today's. */
+function renderPriceFacts(
   locale: Locale,
   candidate: ScreenCandidate,
   board: ScreenBoard
 ): readonly string[] {
   const { previousClose, price } = candidate
-  const close =
-    previousClose ??
-    (price === undefined || price.observed.kind === 'live'
-      ? undefined
-      : { price: price.quote.price, at: price.observed.day })
 
-  return renderPricePair(
-    locale,
-    {
-      timezone: board.context.timezone,
-      ...(close === undefined ? {} : { previousClose: close }),
-      ...(price === undefined
-        ? {}
-        : {
-            live: {
-              price: price.quote.price,
-              ...(price.quote.changePct === undefined ? {} : { changePct: price.quote.changePct }),
-              observed: price.observed,
-            },
-          }),
-      ...(board.currency === undefined ? {} : { currency: board.currency }),
-      ...(board.display === undefined ? {} : { display: board.display }),
-    },
-    { context: board.context, depth: 2 }
-  )
+  if (price === undefined) {
+    return []
+  }
+
+  const { currency, display } = board
+  const move = quoteBoardMoveOf({
+    last: price.quote.price,
+    observed: price.observed,
+    ...(price.quote.changePct === undefined ? {} : { changePct: price.quote.changePct }),
+    ...(previousClose === undefined ? {} : { previousClose }),
+  })
+  const amount =
+    display !== undefined || currency === undefined
+      ? formatPrice(locale, price.quote.price, display)
+      : formatFixedPrice(locale, price.quote.price, currency)
+  const isOwnClose = price.observed.kind === 'close' && price.observed.day === board.day
+
+  return [
+    move === undefined ? amount : `${amount} ${formatSignedFixedPercent(locale, move)}`,
+    ...(isOwnClose
+      ? []
+      : [renderQuoteFreshness(locale, price.observed, { timezone: board.context.timezone })]),
+  ]
 }

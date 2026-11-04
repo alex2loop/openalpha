@@ -427,10 +427,8 @@ const TOP_FACTOR_COUNT = 3
  *  - choosing on score alone would promote whichever factor merely holds the largest number. Once
  *  chosen, they read strongest support first and strongest objection last, as every other factor
  *  list does. Abstained factors score exactly zero and are skipped: an abstention is not weak
- *  evidence. One line each: a label runs from eleven to twenty-eight characters, so inline the
- *  bars land somewhere different on every row and cannot be read down the page. The bar already
- *  quantizes the band, so a word beside it would say the same thing a third time. */
-export function renderTopFactorLines(
+ *  evidence. The sign on each score carries its direction, so no glyph repeats it. */
+export function renderTopFactorFacts(
   locale: Locale,
   entries: readonly { readonly id: string; readonly score: number }[]
 ): readonly string[] {
@@ -440,6 +438,6 @@ export function renderTopFactorLines(
     .toSorted((left, right) => right.score - left.score)
     .map(
       (entry) =>
-        `${scoreBar(locale, entry.score)} ${renderDeclaredValue(locale, `trading.factor.${entry.id}`)} ${formatScoreValue(locale, entry.score)}`
+        `${renderDeclaredValue(locale, `trading.factor.${entry.id}`)} ${formatScoreValue(locale, entry.score)}`
     )
 }

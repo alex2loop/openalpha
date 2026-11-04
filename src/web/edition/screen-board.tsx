@@ -4,7 +4,7 @@ import type { ScreenResponse } from '@/app/server/wire/market'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { DataStatus } from '@/web/edition/data-status'
-import { figureLine } from '@/web/edition/screen-columns'
+import { type Fact, factorFacts, figureFacts } from '@/web/edition/screen-columns'
 import { ScreenControls } from '@/web/edition/screen-controls'
 import { downloadBoardCsv } from '@/web/edition/screen-csv'
 import {
@@ -23,8 +23,7 @@ import {
 import { useBlockRead } from '@/web/state/block'
 import { openTicker } from '@/web/state/known-tickers'
 import { heldPositions, keyOf, printDisplayOf, watchedNames } from '@/web/state/market'
-import { formatFixed, formatPrice, formatSignedPercent } from '@/web/text/figures'
-import { joinInline } from '@/web/text/glyphs'
+import { formatPrice, formatSignedPercent } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -35,8 +34,6 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 const SCREEN_PAGE_LIMIT = 50
 /** A board of two thousand names is not a screen; the loop ends there however the answers read. */
 const MAX_SCREEN_PAGES = 40
-const FACTOR_VALUE_DIGITS = 2
-const PERCENTILE_DIGITS = 0
 // `2026-11-03`: a day, however the read stamps it.
 const DAY_LENGTH = 10
 
@@ -203,12 +200,7 @@ function NameRow({
             ? ''
             : ` · ${formatSignedPercent(candidate.changePct)}`}
         </p>
-        <FigureLine candidate={candidate} />
-        {(candidate.factors ?? []).map((factor) => (
-          <p key={factor.id} class="meta">
-            {toFactorLine(factor)}
-          </p>
-        ))}
+        <Facts facts={[...figureFacts(candidate), ...factorFacts(candidate)]} />
       </div>
       <div class="opportunity-ask">
         <AnalyzeButton name={`${market}:${ticker}`} isAnalyzed={false} size="small" />
@@ -217,20 +209,15 @@ function NameRow({
   )
 }
 
-function toFactorLine(factor: NonNullable<Candidate['factors']>[number]): string {
-  const value = `${factor.value > 0 ? '+' : ''}${formatFixed(factor.value, FACTOR_VALUE_DIGITS)}`
-
-  return factor.percentile === undefined
-    ? joinInline([factor.label, value])
-    : tr('ui.office.edition.screen.factorLine', {
-        label: factor.label,
-        value,
-        pct: formatFixed(factor.percentile, PERCENTILE_DIGITS),
-      })
-}
-
-function FigureLine({ candidate }: { readonly candidate: Candidate }) {
-  const line = figureLine(candidate)
-
-  return line === '' ? null : <p class="meta">{line}</p>
+function Facts({ facts }: { readonly facts: readonly Fact[] }) {
+  return (
+    <div class="meta screen-facts">
+      {facts.map(({ label, value }) => (
+        <span key={label ?? value}>
+          {label === undefined ? '' : `${label} `}
+          <span class="screen-fact-value">{value}</span>
+        </span>
+      ))}
+    </div>
+  )
 }

@@ -8,7 +8,7 @@ import type { RenderContext } from '@/trading/render/format'
 import { pluralKey, t } from '@/i18n'
 import {
   metricsFold,
-  renderBoardBlock,
+  renderBoardRow,
   renderCandidateBlock,
 } from '@/trading/features/market-data/render/screen-evidence'
 import {
@@ -28,10 +28,12 @@ import {
 } from '@/trading/render/format'
 import {
   INDENT,
+  INLINE_SEPARATOR,
   joinSections,
   renderAsOf,
   renderProvenanceLine,
   renderSectionTitle,
+  toFactLines,
 } from '@/trading/render/layout'
 import { renderBoardScaleNotes } from '@/trading/render/money'
 
@@ -77,8 +79,7 @@ export function renderScreenText(
     [
       `${renderSectionTitle(SECTION_ICONS.screen, renderTitle(locale, request, result))}${renderAsOf(locale, result.dataThroughDay ?? result.asOf)}`,
       ...renderBoardUnitLine(locale, request, result),
-      ...renderScaleLine(locale),
-      ...renderNoBuysLine(locale, result.candidates),
+      ...toFactLines(rankedNoteFacts(locale, result.candidates), request.context, 1),
       ...result.candidates.flatMap((candidate, index) =>
         renderCandidateBlock(locale, { candidate, index, gated: result.board === 'gate' }, board)
       ),
@@ -131,8 +132,7 @@ export function renderScreenCard(
       ? []
       : trimmed([
           ...renderBoardUnitLine(locale, request, result),
-          ...renderScaleLine(locale),
-          ...renderNoBuysLine(locale, result.candidates),
+          ...cardNote(rankedNoteFacts(locale, result.candidates)),
         ]),
     rows: result.candidates.map((candidate, index) => {
       const [line = '', ...evidence] = renderCandidateBlock(
@@ -157,26 +157,19 @@ export function renderScreenCard(
   }
 }
 
-/** The whole priced board in ticker order, each name with its prices and its factors' readings. A
- *  chat holds a screenful, so `shown` cuts how many names print, never which are on the board. */
+/** The whole priced board in ticker order, one row per name. A chat holds a screenful, so `shown`
+ *  cuts how many names print, never which are on the board. */
 function renderBoardText(locale: Locale, request: ScreenRenderRequest, result: ScreenView): string {
   const board = boardOf(request, result)
   const shown = result.candidates.slice(0, request.shown ?? result.candidates.length)
+  const notes = boardNoteFacts(locale, result, shown.length)
 
   return joinSections([
     [
       `${renderSectionTitle(SECTION_ICONS.screen, renderBoardTitle(locale, request, result))}${renderAsOf(locale, result.dataThroughDay ?? result.asOf)}`,
-      ...renderBoardNotes(locale, request, result),
-      ...(shown.length < result.candidates.length
-        ? [
-            `${INDENT[1]}${t(locale, 'trading.render.screen.boardShown', {
-              shown: formatCount(locale, shown.length),
-              count: formatCount(locale, result.candidates.length),
-            })}`,
-          ]
-        : []),
-      ...shown.flatMap((candidate) => renderBoardBlock(locale, candidate, board)),
-      ...metricsFold(locale, shown, board),
+      ...(result.candidates.length === 0 ? [] : renderPriceUnitLine(locale, request, result)),
+      ...toFactLines(notes, request.context, 1),
+      ...shown.flatMap((candidate) => renderBoardRow(locale, candidate, board)),
       ...renderProvenanceLine(locale, result.provenance, request.context.timezone),
     ],
     renderRejectionLines(locale, result.rejections),
@@ -185,21 +178,28 @@ function renderBoardText(locale: Locale, request: ScreenRenderRequest, result: S
 }
 
 /** The app lists the names itself, from the structured candidates; the card carries what surrounds
- *  them. */
+ *  them. The page is the board, so it is not told where the board is. */
 function renderBoardCard(
   locale: Locale,
   request: ScreenRenderRequest,
   result: ScreenView
 ): ScreenCard {
+  const hasNames = result.candidates.length > 0
+
   return {
     title: `${renderBoardTitle(locale, request, result)}${renderAsOf(locale, result.dataThroughDay ?? result.asOf)}`,
-    notes: trimmed(renderBoardNotes(locale, request, result)),
+    notes: trimmed(
+      hasNames
+        ? [
+            ...renderPriceUnitLine(locale, request, result),
+            ...cardNote(boardNoteFacts(locale, result)),
+          ]
+        : []
+    ),
     rows: [],
     metrics: [],
     provenance: trimmed(
-      result.candidates.length === 0
-        ? []
-        : renderProvenanceLine(locale, result.provenance, request.context.timezone)
+      hasNames ? renderProvenanceLine(locale, result.provenance, request.context.timezone) : []
     ),
     rejections: trimmed(renderRejectionLines(locale, result.rejections)),
     movers: [],
@@ -236,24 +236,19 @@ function renderBoardTitle(
       })
 }
 
-function renderBoardNotes(
-  locale: Locale,
-  request: ScreenRenderRequest,
-  result: ScreenView
-): readonly string[] {
-  if (result.candidates.length === 0) {
-    return []
-  }
-
+/** What a reader needs before the rows, as short facts that wrap whole: how the names are ordered,
+ *  what the chat leaves out, and where the board's own controls are. `shown` is set only where
+ *  names were cut for a chat, which is also the only place a pointer to the page helps. */
+function boardNoteFacts(locale: Locale, result: ScreenView, shown?: number): readonly string[] {
   const unpriced = result.unpriced ?? 0
 
   return [
-    ...renderBoardUnitLine(locale, request, result),
-    `${INDENT[1]}${t(locale, 'trading.render.screen.boardNote')}`,
+    t(locale, 'trading.render.screen.boardNote'),
+    ...(shown === undefined ? [] : [t(locale, 'trading.render.screen.boardTools')]),
     ...(unpriced === 0
       ? []
       : [
-          `${INDENT[1]}${t(
+          t(
             locale,
             pluralKey(
               unpriced,
@@ -261,9 +256,22 @@ function renderBoardNotes(
               'trading.render.screen.boardUnpriced'
             ),
             { count: formatCount(locale, unpriced) }
-          )}`,
+          ),
+        ]),
+    ...(shown === undefined || shown >= result.candidates.length
+      ? []
+      : [
+          t(locale, 'trading.render.screen.boardShown', {
+            shown: formatCount(locale, shown),
+            count: formatCount(locale, result.candidates.length),
+          }),
         ]),
   ]
+}
+
+/** An app lays its own lines out, so its notes are one line however long. */
+function cardNote(facts: readonly string[]): readonly string[] {
+  return facts.length === 0 ? [] : [`${INDENT[1]}${facts.join(INLINE_SEPARATOR)}`]
 }
 
 function trimmed(lines: readonly string[]): readonly string[] {
@@ -338,33 +346,57 @@ function renderBoardUnitLine(
   ]).map((note) => `${INDENT[1]}${note}`)
 }
 
+/** A board that prints bare prices says what they are in, once: the board's scale where the market
+ *  has one, else its currency. */
+function renderPriceUnitLine(
+  locale: Locale,
+  request: ScreenRenderRequest,
+  result: ScreenResult
+): readonly string[] {
+  const scaled = renderBoardUnitLine(locale, request, result)
+
+  if (scaled.length > 0 || result.currency === undefined) {
+    return scaled
+  }
+
+  return [
+    `${INDENT[1]}${t(locale, 'trading.render.screen.boardUnit', {
+      market: renderDeclaredValue(locale, `trading.market.${request.market}`),
+      currency: result.currency,
+    })}`,
+  ]
+}
+
 function boardOf(request: ScreenRenderRequest, result: ScreenResult): ScreenBoard {
   return {
     currency: result.currency,
     display: request.display,
     context: request.context,
     medians: boardMedians(result.candidates.map((candidate) => candidate.factors)),
+    day: result.dataThroughDay ?? result.asOf,
   }
 }
 
-/** The scale the factor rows under each name are measured on. One scale for every market, so it is
- *  stated once above the board. */
-function renderScaleLine(locale: Locale): readonly string[] {
+/** What a ranked board's numbers mean and, when nothing on it clears the bar, that this is the
+ *  market's condition and not a scoring failure. One scale for every market, so it is stated once
+ *  above the board. */
+function rankedNoteFacts(
+  locale: Locale,
+  candidates: readonly ScreenedCandidate[]
+): readonly string[] {
   return [
-    `${INDENT[1]}${t(locale, 'trading.render.screen.scale', {
+    t(locale, 'trading.render.screen.scale', {
       mild: formatScoreValue(locale, MILD_SCORE_AT),
       extreme: formatScoreValue(locale, EXTREME_SCORE_AT),
-    })}`,
+    }),
+    ...noBuysFact(locale, candidates),
   ]
 }
 
 /** A board of nothing but holds otherwise reads as a scoring failure rather than the market
  *  condition it is. Scoped to what is shown: the board is truncated to the requested size, so
  *  "nothing here clears the bar" is the exact claim and "nothing in the market does" is not. */
-function renderNoBuysLine(
-  locale: Locale,
-  candidates: readonly ScreenedCandidate[]
-): readonly string[] {
+function noBuysFact(locale: Locale, candidates: readonly ScreenedCandidate[]): readonly string[] {
   const [first] = candidates
   // A name the operator asked to skip is never bought, so its rating clears nothing.
   const buyable = candidates.some(
@@ -375,11 +407,9 @@ function renderNoBuysLine(
     return []
   }
 
-  const leader = screenRating(first)
-
   return [
-    `${INDENT[1]}${t(locale, 'trading.render.screen.noBuys', {
-      rating: renderDeclaredValue(locale, `trading.rating.${leader}`),
-    })}`,
+    t(locale, 'trading.render.screen.noBuys', {
+      rating: renderDeclaredValue(locale, `trading.rating.${screenRating(first)}`),
+    }),
   ]
 }

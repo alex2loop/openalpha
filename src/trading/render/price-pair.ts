@@ -210,7 +210,9 @@ export function liveMoveOf(pair: PriceReadings): number | undefined {
  *  the pair: the live reading's where a live row would render, the settled close's own otherwise.
  *  Asked here rather than re-derived, because a row that measures its own close against itself
  *  prints every settled session flat. */
-export function quoteBoardMoveOf(item: QuoteBoardItem): number | undefined {
+export function quoteBoardMoveOf(
+  item: Pick<QuoteBoardItem, 'last' | 'changePct' | 'observed' | 'previousClose'>
+): number | undefined {
   const readings: PriceReadings = {
     ...(item.previousClose === undefined ? {} : { previousClose: item.previousClose }),
     live: {

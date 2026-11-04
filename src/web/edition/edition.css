@@ -86,6 +86,17 @@
   width: 11rem;
 }
 
+/* A fact wraps as a whole: its label may drop to the next line, its reading never splits. */
+.screen-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
+.screen-fact-value {
+  white-space: nowrap;
+}
+
 /* The error log: one entry per line, long messages and stacks wrapping inside the dialog. */
 .error-log {
   display: grid;

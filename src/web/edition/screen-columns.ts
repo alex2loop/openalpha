@@ -2,12 +2,16 @@ import type { MessageKey } from '@/i18n'
 import { BASE_SORTS, type BaseSortKey, type Candidate } from '@/web/edition/screen-sort'
 import {
   formatCompactAmount,
+  formatFixed,
   formatSignedCompactAmount,
+  formatSignedFixed,
   formatSignedPercent,
 } from '@/web/text/figures'
-import { joinInline } from '@/web/text/glyphs'
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
+
+const FACTOR_VALUE_DIGITS = 2
+const PERCENTILE_DIGITS = 0
 
 /** What names each sort, in the sort menu, the figures under a name and the CSV header. */
 export const SORT_LABELS: Readonly<Record<BaseSortKey, MessageKey>> = Object.freeze({
@@ -30,17 +34,42 @@ const FIGURE_FORMATS: readonly (readonly [BaseSortKey, (value: number | undefine
     ['foreignNet', formatSignedCompactAmount],
   ])
 
-/** The sector, then each figure the name has, as one line; empty when it has none. */
-export function figureLine(candidate: Candidate): string {
-  const figures = FIGURE_FORMATS.flatMap(([key, format]) => {
+/** One thing the board says about a name: its label, where it has one, and the reading that must
+ *  not be split from it. */
+export interface Fact {
+  readonly label?: string
+  readonly value: string
+}
+
+/** The sector, then each figure the name has beyond its price and day's move. */
+export function figureFacts(candidate: Candidate): readonly Fact[] {
+  const figures = FIGURE_FORMATS.flatMap(([key, format]): readonly Fact[] => {
     const field = BASE_SORTS[key]
     const value = field === undefined ? undefined : candidate[field]
 
-    return value === undefined ? [] : [`${tr(SORT_LABELS[key])} ${format(value)}`]
+    return value === undefined ? [] : [{ label: tr(SORT_LABELS[key]), value: format(value) }]
   })
 
-  return joinInline([
-    ...(candidate.sector === undefined ? [] : [sectorName(candidate.sector)]),
+  return [
+    ...(candidate.sector === undefined ? [] : [{ value: sectorName(candidate.sector) }]),
     ...figures,
-  ])
+  ]
+}
+
+/** What each factor read for the name and where that sits on the board. */
+export function factorFacts(candidate: Candidate): readonly Fact[] {
+  return (candidate.factors ?? []).map(({ label, value, percentile }) => {
+    const reading = formatSignedFixed(value, FACTOR_VALUE_DIGITS)
+
+    return {
+      label,
+      value:
+        percentile === undefined
+          ? reading
+          : tr('ui.office.edition.screen.factorValue', {
+              value: reading,
+              pct: formatFixed(percentile, PERCENTILE_DIGITS),
+            }),
+    }
+  })
 }
