@@ -12,6 +12,7 @@
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/alex2loop/openalpha/check.yml?branch=main&style=flat-square&label=check" alt="check" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
+  <a href="https://buymeacoffee.com/alex2loop"><img src="https://img.shields.io/badge/%E2%98%95-%E1%BB%A6ng%20h%E1%BB%99-ffdd00?style=flat-square" alt="☕ Ủng hộ" /></a>
 </p>
 
 <p align="center">
