@@ -8,6 +8,8 @@ import { formatDay } from '@/i18n'
 import {
   heldPositions,
   holdingsBlock,
+  homeRegion,
+  knownMarkets,
   printDisplayOf,
   quotesBlock,
   watchedNames,
@@ -189,12 +191,22 @@ export function offerVenues(form: TradeForm): readonly VenueChoice[] {
   const market = namesInstrument(form.kind.value) ? resolveKnownMarket(form) : undefined
 
   if (market === undefined) {
-    return form.venues.value
+    return homeVenuesFirst(form.venues.value)
   }
 
   const holding = form.venues.value.filter((choice) => choice.markets.includes(market))
 
   return holding.length === 0 ? form.venues.value : holding
+}
+
+// Those holding the home region's market lead, so a form with no name yet opens at the venue there.
+function homeVenuesFirst(venues: readonly VenueChoice[]): readonly VenueChoice[] {
+  const region = homeRegion()
+  const home = knownMarkets.value.find((market) => market.region === region && market.ownsRegion)
+  const holdsHome = (choice: VenueChoice): number =>
+    Number(home !== undefined && choice.markets.includes(home.market))
+
+  return [...venues].sort((left, right) => holdsHome(right) - holdsHome(left))
 }
 
 /** Picks the first venue and currency on offer where none is chosen. */
