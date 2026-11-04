@@ -106,18 +106,24 @@ function NewsGroups({
       {toDayGroups(shown, timeZone).map((group) => (
         <section key={group.day}>
           <h3 class="sub-head">{dayLabel(group.day, today)}</h3>
-          <NewsItems items={group.items} />
+          <NewsItems items={group.items} isDated />
         </section>
       ))}
     </>
   )
 }
 
-function NewsItems({ items }: { readonly items: readonly TradingNewsItemWire[] }) {
+function NewsItems({
+  items,
+  isDated = false,
+}: {
+  readonly items: readonly TradingNewsItemWire[]
+  readonly isDated?: boolean
+}) {
   return (
     <>
       {items.map((item) => (
-        <NewsItem key={item.url} item={item} />
+        <NewsItem key={item.url} item={item} isDated={isDated} />
       ))}
     </>
   )

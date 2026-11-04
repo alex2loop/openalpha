@@ -30,7 +30,7 @@ function thanksgivingOf(year: number): string {
 /** The United States pack: Lower Manhattan on Broadway, and the office's own day. */
 export const US_PACK = Object.freeze({
   id: 'us',
-  city: 'New York',
+  city: 'ui.office.street.cityUs',
   geo: { lat: 40.7069, lon: -74.0113 },
   road: {
     north: { carriageways: 1, lanesEach: 2, oneWay: true, median: false },

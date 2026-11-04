@@ -44,6 +44,7 @@ import {
   isBelowMinimumSize,
   isRecordedPlan,
   isUndecidedHold,
+  publisherOf,
   shownCall,
 } from '@/trading/api'
 
@@ -160,10 +161,13 @@ export function toMarketEventWire(event: MarketEvent, locale: Locale): MarketEve
 }
 
 export function toNewsItemWire(item: NewsItem): TradingNewsItemWire {
+  const publisher = publisherOf(item)
+
   return {
     title: item.title,
     url: item.url,
     sourceIds: [...item.sourceIds],
+    ...(publisher === undefined ? {} : { publisher }),
     publishedAt: item.publishedAt,
     ...(item.summary === undefined ? {} : { summary: item.summary }),
   }

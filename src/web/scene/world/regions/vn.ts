@@ -43,7 +43,7 @@ const MID_AUTUMN_DAYS_AFTER = 1
 /** The Vietnam pack: Ho Chi Minh City's financial district, and the office's own day. */
 export const VN_PACK = Object.freeze({
   id: 'vn',
-  city: 'TP. Hồ Chí Minh',
+  city: 'ui.office.street.cityVn',
   geo: { lat: 10.7716, lon: 106.7044 },
   road: {
     north: { carriageways: 2, lanesEach: 2, oneWay: false, median: true },

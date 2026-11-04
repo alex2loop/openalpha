@@ -63,7 +63,7 @@ export function ClockControl() {
         {sceneZone.value !== timeZone && (
           <span class="clock-market">
             {tr('ui.office.clock.marketTime', {
-              place: regionPack.value.city,
+              place: tr(regionPack.value.city),
               time: formatClock(pageNow(), sceneZone.value),
             })}
           </span>

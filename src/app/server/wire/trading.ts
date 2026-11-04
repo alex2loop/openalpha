@@ -109,7 +109,10 @@ export interface TradingEventsResponse {
 export interface TradingNewsItemWire {
   readonly title: string
   readonly url: string
+  /** The adapters that served it (`rss`), which are not names a reader knows. */
   readonly sourceIds: readonly string[]
+  /** The outlet's own domain, from the feed's publisher link or the article's: what to credit. */
+  readonly publisher?: string
   readonly publishedAt: number
   readonly summary?: string
 }

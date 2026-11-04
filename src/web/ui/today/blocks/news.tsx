@@ -4,7 +4,7 @@ import { useBlock } from '@/web/state/block'
 import { openMarketTab } from '@/web/state/market-tab'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
-import { formatWhen } from '@/web/text/time'
+import { formatClock, formatWhen } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { NewsIcon } from '@/web/ui/kit/icons'
@@ -41,13 +41,24 @@ export function News() {
   )
 }
 
-/** One headline with its sources and time; it opens the article in a new tab. */
-export function NewsItem({ item }: { readonly item: TradingNewsItemWire }) {
+interface NewsItemProps {
+  readonly item: TradingNewsItemWire
+  /** The item sits under its day's heading, so only the time of day is left to say. */
+  readonly isDated?: boolean
+}
+
+/** One headline with its publisher and time; it opens the article in a new tab. */
+export function NewsItem({ item, isDated }: NewsItemProps) {
   const timeZone = state.value?.timeZone
-  const facts = [
-    ...item.sourceIds,
-    ...(timeZone === undefined ? [] : [formatWhen(item.publishedAt, timeZone)]),
-  ]
+  const when =
+    timeZone === undefined
+      ? []
+      : [
+          isDated === true
+            ? formatClock(item.publishedAt, timeZone)
+            : formatWhen(item.publishedAt, timeZone),
+        ]
+  const facts = [...(item.publisher === undefined ? [] : [item.publisher]), ...when]
   const body = (
     <>
       <b>{item.title}</b>

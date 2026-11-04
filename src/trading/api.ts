@@ -29,6 +29,7 @@ export { keptCaveats } from '@/trading/features/portfolio/render/rebalance-gaps'
 export { isIndexCode } from '@/trading/kernel/market/index-reading'
 export { TYPED_PRICES } from '@/trading/kernel/surface/surface'
 export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
+export { publisherOf } from '@/trading/markets/news'
 
 // ── Boot & composition ───────────────────────────────────────────────────────
 
