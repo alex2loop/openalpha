@@ -6,3 +6,54 @@
   color: var(--ink2);
   text-align: center;
 }
+
+.status-stack {
+  display: grid;
+  justify-items: center;
+  gap: var(--s2);
+}
+
+/* Three blocks of the AI gradient, each rising and settling in turn. */
+.status-build {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 28px;
+}
+
+.status-build > i {
+  width: 10px;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ai);
+  transform-origin: bottom;
+  animation: status-build 1.2s ease-in-out infinite;
+}
+
+.status-build > i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.status-build > i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes status-build {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleY(0.3);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-build > i {
+    opacity: 0.6;
+    animation: none;
+  }
+}

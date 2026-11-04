@@ -88,9 +88,9 @@ function EditionShell() {
 function EditionApp({ phase }: { readonly phase: EditionPhase }) {
   switch (phase.kind) {
     case 'starting':
-      return <StatusLine text={tr('ui.office.loading')} />
+      return <StatusLine text={tr('ui.office.loading')} isBusy />
     case 'restarting':
-      return <StatusLine text={tr('ui.office.edition.restarting')} />
+      return <StatusLine text={tr('ui.office.edition.restarting')} isBusy />
     case 'refused':
       return <Refused reason={phase.reason} />
     case 'ready':

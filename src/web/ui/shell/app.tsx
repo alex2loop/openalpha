@@ -35,11 +35,11 @@ export function App() {
   }
 
   if (isStarting.value) {
-    return <StatusLine text={tr('ui.office.starting')} />
+    return <StatusLine text={tr('ui.office.starting')} isBusy />
   }
 
   if (brand.value === undefined) {
-    return <StatusLine text={tr('ui.office.loading')} />
+    return <StatusLine text={tr('ui.office.loading')} isBusy />
   }
 
   if (authState.value !== 'ok') {
@@ -49,8 +49,10 @@ export function App() {
   if (state.value === undefined) {
     const failure = sessionFailure.value
 
-    return (
-      <StatusLine text={failure === undefined ? tr('ui.office.loading') : toFailureText(failure)} />
+    return failure === undefined ? (
+      <StatusLine text={tr('ui.office.loading')} isBusy />
+    ) : (
+      <StatusLine text={toFailureText(failure)} />
     )
   }
 
