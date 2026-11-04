@@ -29,7 +29,7 @@ export function toFactorResult(raw: FactorResultPayload): FactorResult {
   }
 }
 
-function toFactorMetric(raw: FactorMetricPayload): FactorMetric {
+export function toFactorMetric(raw: FactorMetricPayload): FactorMetric {
   return {
     id: raw.id,
     value: raw.value,

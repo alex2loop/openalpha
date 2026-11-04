@@ -1,5 +1,5 @@
 import type { MessageKey } from '@/i18n'
-import { BASE_SORTS, type BaseSortKey, type Candidate } from '@/web/edition/screen-sort'
+import { type BaseSortKey, baseFigureOf, type Candidate } from '@/web/edition/screen-sort'
 import {
   formatCompactAmount,
   formatFixed,
@@ -44,8 +44,7 @@ export interface Fact {
 /** The sector, then each figure the name has beyond its price and day's move. */
 export function figureFacts(candidate: Candidate): readonly Fact[] {
   const figures = FIGURE_FORMATS.flatMap(([key, format]): readonly Fact[] => {
-    const field = BASE_SORTS[key]
-    const value = field === undefined ? undefined : candidate[field]
+    const value = baseFigureOf(candidate, key)
 
     return value === undefined ? [] : [{ label: tr(SORT_LABELS[key]), value: format(value) }]
   })

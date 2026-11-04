@@ -63,6 +63,7 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   const board = findQuote(ticker, market)
   const quote = newerQuote(live.quote, board)
   const label = board?.label
+
   useLiveWhileTrading({ ticker, market }, { quote, live })
 
   return (

@@ -12,8 +12,11 @@ export const BASE_SORTS = Object.freeze({
 } as const)
 
 export type BaseSortKey = keyof typeof BASE_SORTS
+
 /** A sort key that names a factor: the prefix, then the factor id. */
 export const FACTOR_SORT_PREFIX = 'factor:'
+const TICKER_SORT: BaseSortKey = 'ticker'
+const BASE_KEYS = Object.freeze(Object.keys(BASE_SORTS) as BaseSortKey[])
 
 export type Candidate = ScreenResponse['candidates'][number]
 export type SortDirection = 'asc' | 'desc'
@@ -24,17 +27,22 @@ export interface BoardFactor {
   readonly label: string
 }
 
-const TICKER_SORT: BaseSortKey = 'ticker'
-const BASE_KEYS = Object.freeze(Object.keys(BASE_SORTS) as BaseSortKey[])
-
 /** The base sorts this board can offer: the ticker always, the rest where some name carries the
  *  figure (a market that publishes no foreign flow has nothing to order by it). */
 export function boardBaseKeys(candidates: readonly Candidate[]): readonly BaseSortKey[] {
-  return BASE_KEYS.filter((key) => {
-    const field = BASE_SORTS[key]
+  return BASE_KEYS.filter(
+    (key) =>
+      key === TICKER_SORT ||
+      candidates.some((candidate) => baseFigureOf(candidate, key) !== undefined)
+  )
+}
 
-    return field === undefined || candidates.some((candidate) => candidate[field] !== undefined)
-  })
+/** What the name carries for a base sort: absent for the ticker, which is no figure, and for a
+ *  figure its market does not publish. */
+export function baseFigureOf(candidate: Candidate, key: BaseSortKey): number | undefined {
+  const field = BASE_SORTS[key]
+
+  return field === undefined ? undefined : candidate[field]
 }
 
 /** The factors the board's names read, in the order they first appear. */
@@ -90,9 +98,8 @@ function figureOf(candidate: Candidate, key: string): number | undefined {
   }
 
   const base = BASE_KEYS.find((known) => known === key)
-  const field = base === undefined ? undefined : BASE_SORTS[base]
 
-  return field === undefined ? undefined : candidate[field]
+  return base === undefined ? undefined : baseFigureOf(candidate, base)
 }
 
 function compareFigures(left: number | undefined, right: number | undefined, sign: number): number {

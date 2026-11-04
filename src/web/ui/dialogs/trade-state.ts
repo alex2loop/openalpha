@@ -203,10 +203,10 @@ export function offerVenues(form: TradeForm): readonly VenueChoice[] {
 function homeVenuesFirst(venues: readonly VenueChoice[]): readonly VenueChoice[] {
   const region = homeRegion()
   const home = knownMarkets.value.find((market) => market.region === region && market.ownsRegion)
-  const holdsHome = (choice: VenueChoice): number =>
-    Number(home !== undefined && choice.markets.includes(home.market))
+  const holdsHome = (choice: VenueChoice): boolean =>
+    home !== undefined && choice.markets.includes(home.market)
 
-  return [...venues].sort((left, right) => holdsHome(right) - holdsHome(left))
+  return [...venues].sort((left, right) => Number(holdsHome(right)) - Number(holdsHome(left)))
 }
 
 /** Picks the first venue and currency on offer where none is chosen. */

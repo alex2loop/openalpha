@@ -10,7 +10,7 @@ import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
 
 // Excel reads a file as the local code page unless a byte-order mark says UTF-8.
-const BYTE_ORDER_MARK = '﻿'
+const BYTE_ORDER_MARK = '\uFEFF'
 const LINE_BREAK = '\r\n'
 const CSV_MIME = 'text/csv;charset=utf-8'
 // A cell opening with one of these is a formula to a spreadsheet; a leading quote keeps it text.

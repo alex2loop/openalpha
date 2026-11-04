@@ -37,15 +37,20 @@ export function toTickFormatter(
   const display = displayOf(market, kind)
   const divisor = display?.divisor ?? 1
 
-  return (value, step) => {
-    const scaled = step / divisor
-    const decimals = Array.from({ length: TICK_DIGITS_MAX + 1 }, (_, digits) => digits).find(
-      (digits) =>
-        Math.abs(Math.round(scaled * 10 ** digits) - scaled * 10 ** digits) < TICK_TOLERANCE
-    )
+  return (value, step) => formatPrice(value, { divisor, decimals: decimalsOf(step / divisor) })
+}
 
-    return formatPrice(value, { divisor, decimals: decimals ?? TICK_DIGITS_MAX })
+// The fewest decimals that write the step exactly, up to the most a tick ever needs.
+function decimalsOf(step: number): number {
+  for (let digits = 0; digits < TICK_DIGITS_MAX; digits++) {
+    const scaled = step * 10 ** digits
+
+    if (Math.abs(Math.round(scaled) - scaled) < TICK_TOLERANCE) {
+      return digits
+    }
   }
+
+  return TICK_DIGITS_MAX
 }
 
 // The figure alone, in the market's board scale, for a place the currency is said once nearby.

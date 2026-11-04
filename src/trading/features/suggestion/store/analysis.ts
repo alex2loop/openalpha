@@ -13,6 +13,7 @@ import { LOCALES } from '@/core/types/locale'
 import { definedOnly } from '@/core/utils/collections'
 import { analysisId } from '@/trading/features/suggestion/analysis/types'
 import { CLAIM_VERDICTS, RESEARCH_STANCES } from '@/trading/features/suggestion/debate/types'
+import { toFactorMetric } from '@/trading/features/suggestion/store/factor-payload'
 import {
   type CitationPayload,
   citationSchema,
@@ -192,11 +193,7 @@ function toRecord(row: AnalysisRow): AnalysisRecord {
     },
     citations: payload.citations.map(toCitation),
     headlines: payload.headlines.map(toCitation),
-    figures: payload.figures.map((raw) => ({
-      id: raw.id,
-      value: raw.value,
-      ...definedOnly({ sessions: raw.sessions }),
-    })),
+    figures: payload.figures.map(toFactorMetric),
     caveats: payload.caveats,
     ...(row.evidence_through === null ? {} : { evidenceThrough: tradingDay(row.evidence_through) }),
   }

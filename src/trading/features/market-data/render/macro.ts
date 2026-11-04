@@ -32,6 +32,12 @@ import { INDENT, renderProvenanceLine } from '@/trading/render/layout'
 import { apportion, SCORE_QUANTUM, WEIGHT_QUANTUM } from '@/trading/render/number'
 
 const FULL_COVERAGE = 1
+const MISSING_KEYS: Readonly<Record<MacroMissingReason, MessageKey>> = Object.freeze({
+  'no-observation': 'trading.render.macro.driverMissingNoObservation',
+  'observation-only': 'trading.render.macro.driverMissingNoObservation',
+  'fetch-error': 'trading.render.macro.driverMissingFetchError',
+  unserved: 'trading.render.macro.driverMissingUnserved',
+})
 
 /** The region and the regime it is in, which is what a reader wants before any of the arithmetic.
  *  `/overview` heads its macro block with it. */
@@ -215,18 +221,7 @@ function renderMissing(locale: Locale, entry: MissingMacroDriver): string {
     })
   }
 
-  return t(locale, missingKey(entry.reason), { series })
-}
-
-const MISSING_KEYS: Readonly<Record<MacroMissingReason, MessageKey>> = Object.freeze({
-  'no-observation': 'trading.render.macro.driverMissingNoObservation',
-  'observation-only': 'trading.render.macro.driverMissingNoObservation',
-  'fetch-error': 'trading.render.macro.driverMissingFetchError',
-  unserved: 'trading.render.macro.driverMissingUnserved',
-})
-
-function missingKey(reason: MacroMissingReason): MessageKey {
-  return MISSING_KEYS[reason]
+  return t(locale, MISSING_KEYS[entry.reason], { series })
 }
 
 function renderLoweredLine(locale: Locale, view: MacroRiskView): readonly string[] {
