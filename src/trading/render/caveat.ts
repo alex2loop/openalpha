@@ -19,6 +19,8 @@ import { renderSubject } from '@/trading/render/subject'
 
 const UNFILLED_PARAM_RE = /\{\w+\}/
 const WITHHELD_KEY_SUFFIX = 'Withheld'
+/** The catalog's sentence that states a fact with no ranking, rating or advice in it. */
+export const PLAIN_KEY_SUFFIX = 'Plain'
 
 /** A stored caveat carries the detail shape of the build that wrote it, so a message it can no
  *  longer fill is dropped rather than shown with a raw placeholder. Two caveats that reach the same
@@ -44,7 +46,7 @@ export function renderCaveatLines(
   options: CaveatRenderOptions = {}
 ): readonly string[] {
   const shown = caveats.flatMap((caveat) => {
-    const rendered = toRendered(locale, caveat)
+    const rendered = toRendered(locale, caveat, options.plain === true)
 
     return options.withholdOperatorFigures === true ? withheldOf(locale, rendered) : [rendered]
   })
@@ -74,6 +76,9 @@ interface CaveatRenderOptions {
   /** For a text a model relays: a caveat built on the operator's own money reads from its
    *  `<code>Withheld` sentence, which states the fact without the figure, or is left out. */
   readonly withholdOperatorFigures?: boolean
+  /** For an edition that shows no ranking, rating or advice: a caveat reads from its `<code>Plain`
+   *  sentence, which states the fact alone, when the catalog carries one. */
+  readonly plain?: boolean
 }
 
 interface RenderedLine {
@@ -119,7 +124,7 @@ function collapsedLines(locale: Locale, lines: readonly RenderedLine[]): readonl
   ]
 }
 
-function toRendered(locale: Locale, caveat: Caveat): RenderedCaveat {
+function toRendered(locale: Locale, caveat: Caveat, isPlain = false): RenderedCaveat {
   const raw = caveat.detail ?? {}
   const detail = renderSubject(locale, raw)
 
@@ -129,7 +134,7 @@ function toRendered(locale: Locale, caveat: Caveat): RenderedCaveat {
 
   return {
     code: caveat.code,
-    key: messageKey(locale, caveat),
+    key: messageKey(locale, caveat, isPlain),
     severity: caveatSeverity(caveat),
     detail: {
       ...detail,
@@ -166,9 +171,10 @@ function withheldOf(locale: Locale, caveat: RenderedCaveat): readonly RenderedCa
 
 /** A caveat whose `count` is 1 reads from its `<code>One` sentence when the catalog carries one,
  *  and one stamped `withoutSources` from its `<code>WithoutSources` sentence. */
-function messageKey(locale: Locale, caveat: Caveat): MessageKey {
+function messageKey(locale: Locale, caveat: Caveat, isPlain: boolean): MessageKey {
   const key = `trading.caveat.${caveat.code}` as const
   const variants = [
+    ...(isPlain ? [`${key}${PLAIN_KEY_SUFFIX}`] : []),
     ...(caveat.detail?.withoutSources === WITHOUT_SOURCES_DETAIL.withoutSources
       ? [`${key}WithoutSources`]
       : []),

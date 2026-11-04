@@ -33,8 +33,9 @@ const CODE_GROUP_PREFIXES = TRADING_CODE_GROUPS.map((group) => `${group.prefix}.
 const NOTE_MAXIMUM_CHARACTERS = 120
 const NOTE_PREFIXES = ['trading.caveat.', 'trading.finding.']
 /** `One` is a code's singular sentence; `Withheld` states it without the operator's own figure;
- *  `WithoutSources` leaves out the pointer to `/sources`, for an edition that has no such command. */
-const VARIANT_SUFFIXES = ['One', 'Withheld', 'WithoutSources'] as const
+ *  `WithoutSources` leaves out the pointer to `/sources`, for an edition that has no such command;
+ *  `Plain` states the fact alone, for an edition that shows no ranking, rating or advice. */
+const VARIANT_SUFFIXES = ['One', 'Withheld', 'WithoutSources', 'Plain'] as const
 const USAGE_KEY = /^slash\.\w*Usage$/
 const RANK_NOTATION = /\bp\d{1,3}\b/
 

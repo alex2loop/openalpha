@@ -108,10 +108,21 @@ function readingLines(macro: ReadyMacro): string[] {
             names: joinList(unserved.map((driver) => driver.label)),
           }),
         ]),
-    ...(macro.coverage < 1
-      ? [tr('ui.office.market.coverage', { share: formatFixedFraction(macro.coverage) })]
-      : []),
+    ...(macro.coverage < 1 ? [coverageLine(macro)] : []),
   ]
+}
+
+// The daemon states the share of the model that read in; the web edition, which has no model to
+// cover, states how many of the series did.
+function coverageLine(macro: ReadyMacro): string {
+  if (!isAnalysisOnly.value) {
+    return tr('ui.office.market.coverage', { share: formatFixedFraction(macro.coverage) })
+  }
+
+  return tr('ui.office.market.coverageWeb', {
+    read: macro.drivers.length,
+    total: macro.drivers.length + macro.missing.length,
+  })
 }
 
 // The deposit rate and the exchange rate the region's read carried, each left out when it has none.

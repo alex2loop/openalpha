@@ -10,7 +10,6 @@ import { screenRating } from '@/trading/markets/screen-rating'
 import { toFoldLines } from '@/trading/render/fold'
 import {
   formatCount,
-  formatPercentRank,
   formatScoreValue,
   formatSignedFixedPercent,
   formatWholeFraction,
@@ -131,7 +130,9 @@ function renderBoardFactor(
 
   return t(locale, 'trading.render.screen.boardFactor', {
     reading: reading === '' ? renderDeclaredValue(locale, `trading.factor.${factor.id}`) : reading,
-    rank: formatPercentRank(locale, percentile),
+    rank: t(locale, 'trading.render.screen.boardRank', {
+      pct: formatCount(locale, Math.round(percentile)),
+    }),
   })
 }
 
@@ -141,6 +142,7 @@ export const BOARD_READING = Object.freeze({
   labels: 'short',
   canonical: true,
   separator: ', ',
+  withoutRanks: true,
 } as const)
 
 /** Rank, verdict, and the composite the rank was taken on: the band alone cannot say whether the

@@ -172,8 +172,8 @@ function renderBoardText(locale: Locale, request: ScreenRenderRequest, result: S
       ...shown.flatMap((candidate) => renderBoardRow(locale, candidate, board)),
       ...renderProvenanceLine(locale, result.provenance, request.context.timezone),
     ],
-    renderRejectionLines(locale, result.rejections),
-    renderCaveatLines(locale, result.caveats),
+    renderRejectionLines(locale, result.rejections, true),
+    renderCaveatLines(locale, result.caveats, { plain: true }),
   ])
 }
 
@@ -201,9 +201,9 @@ function renderBoardCard(
     provenance: trimmed(
       hasNames ? renderProvenanceLine(locale, result.provenance, request.context.timezone) : []
     ),
-    rejections: trimmed(renderRejectionLines(locale, result.rejections)),
+    rejections: trimmed(renderRejectionLines(locale, result.rejections, true)),
     movers: [],
-    caveats: trimmed(renderCaveatLines(locale, result.caveats)),
+    caveats: trimmed(renderCaveatLines(locale, result.caveats, { plain: true })),
   }
 }
 

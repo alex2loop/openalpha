@@ -68,6 +68,9 @@ interface MetricFactOptions {
   /** Each reading as `Label: value` with the label capitalised, for a surface that lists them down
    *  the page where the others pack them across it. */
   readonly row?: true
+  /** Leave out the readings that place the name among its peers: a surface that prints the place
+   *  itself would state it twice. */
+  readonly withoutRanks?: true
 }
 
 /** How a line of readings is written: the options a fact takes, and what the facts are joined with. */
@@ -84,7 +87,11 @@ export function metricFacts(
     return []
   }
 
-  const readings = options.canonical === true ? canonicalReadings(metrics) : metrics
+  const ordered = options.canonical === true ? canonicalReadings(metrics) : metrics
+  const readings =
+    options.withoutRanks === true
+      ? ordered.filter((metric) => FACTOR_METRIC_UNITS[metric.id] !== 'percent-rank')
+      : ordered
 
   return readings.map((metric) => {
     const label = metricLabel(locale, metric, options.labels ?? 'full')

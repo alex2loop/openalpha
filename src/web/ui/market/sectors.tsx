@@ -77,7 +77,10 @@ function SectorList({ rows }: { readonly rows: readonly RankedRow[] }) {
   return (
     <RankedList
       title={tr(editionKey('ui.office.market.sectorsRanked', 'ui.office.market.sectorsByName'))}
-      note={tr(editionKey('ui.office.market.sectorsNote', 'ui.office.market.sectorsExcessNote'))}
+      note={tr(editionKey('ui.office.market.sectorsNote', 'ui.office.market.sectorsExcessNote'), {
+        shortSessions: EXCESS_SHORT_SESSIONS,
+        longSessions: EXCESS_LONG_SESSIONS,
+      })}
       rows={rows}
     />
   )
