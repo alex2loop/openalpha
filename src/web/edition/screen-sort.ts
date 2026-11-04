@@ -21,7 +21,7 @@ export const BASE_LIMITS: Readonly<Partial<Record<BaseSortKey, Limit>>> = Object
 })
 
 /** The sorts the board offers beside its factors, each reading one field of a name. */
-export const BASE_SORTS = Object.freeze({
+const BASE_SORTS = Object.freeze({
   ticker: undefined,
   price: 'price',
   change: 'changePct',

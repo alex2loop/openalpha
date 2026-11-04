@@ -7,7 +7,6 @@ import { DataStatus } from '@/web/edition/data-status'
 import { boardBounds } from '@/web/edition/screen-bounds'
 import { type Fact, factorFacts, figureFacts, readingFacts } from '@/web/edition/screen-columns'
 import { KindSelect, ScreenControls } from '@/web/edition/screen-controls'
-import { downloadBoardCsv } from '@/web/edition/screen-csv'
 import {
   boardBaseKeys,
   boardFactors,
@@ -30,7 +29,6 @@ import { heldPositions, keyOf, printDisplayOf, watchedNames } from '@/web/state/
 import { formatFixed, formatPrice, formatSignedPercent, PERCENT } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
-import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { AnalyzeButton } from '@/web/ui/ticker/analyze-button'
 import { WatchButton } from '@/web/ui/ticker/watch-button'
@@ -40,8 +38,6 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 const SCREEN_PAGE_LIMIT = 50
 /** A board of two thousand names is not a screen; the loop ends there however the answers read. */
 const MAX_SCREEN_PAGES = 40
-// `2026-11-03`: a day, however the read stamps it.
-const DAY_LENGTH = 10
 // A coverage reads as a whole percent: `80%` of the factors had data.
 const COVERAGE_DIGITS = 0
 
@@ -153,7 +149,7 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
         </p>
       ))}
       <ScreenControls market={market} view={view} {...choices} kinds={board.kinds} />
-      <BoardTally board={board} market={market} shown={shown} file={choices} />
+      <BoardTally shown={shown.length} total={board.candidates.length} />
       {shown.length === 0 && <p class="empty-note">{tr('ui.office.edition.screen.filter.none')}</p>}
       {shown.map((candidate) => (
         <NameRow key={candidate.instrument.ticker} candidate={candidate} market={market} />
@@ -227,39 +223,11 @@ function Rejections({ lines }: { readonly lines: readonly string[] }) {
   )
 }
 
-interface TallyProps {
-  readonly board: ScreenResponse
-  readonly market: string
-  readonly shown: readonly Candidate[]
-  readonly file: Pick<Parameters<typeof downloadBoardCsv>[0], 'baseKeys' | 'metrics' | 'factors'>
-}
-
-/** How many names the filters leave, and the way to take them as a file. */
-function BoardTally({ board, market, shown, file }: TallyProps) {
-  const day = (board.dataThroughDay ?? board.asOf).slice(0, DAY_LENGTH)
-  const failure = useSignal<string | undefined>(undefined)
-
+/** How many names the filters leave. */
+function BoardTally({ shown, total }: { readonly shown: number; readonly total: number }) {
   return (
     <div class="sort-bar">
-      <p class="meta">
-        {tr('ui.office.edition.screen.filter.count', {
-          shown: shown.length,
-          total: board.candidates.length,
-        })}
-      </p>
-      <Button
-        size="small"
-        disabled={shown.length === 0}
-        onClick={() => {
-          failure.value = undefined
-          downloadBoardCsv({ market, day, rows: shown, ...file }).catch(() => {
-            failure.value = tr('ui.office.edition.screen.csv.failed')
-          })
-        }}
-      >
-        {tr('ui.office.edition.screen.csv.export')}
-      </Button>
-      {failure.value !== undefined && <p class="meta">{failure.value}</p>}
+      <p class="meta">{tr('ui.office.edition.screen.filter.count', { shown, total })}</p>
     </div>
   )
 }
