@@ -101,22 +101,20 @@ const SECONDARY_READINGS: ReadonlySet<FactorMetricId> = new Set([
 const UNMEASURED_GROUP: BoardGroup = 'price'
 
 /** One fact of a name on a board: a reading with its label and value apart, for a page to lay out
- *  as it likes and for the text below to join. `rank` is where the name sits among the board's
- *  names on the factor the reading backs. */
+ *  as it likes and for the text below to join. A factor's place among the board's names is a fact of
+ *  its own, valued as that place: the score it is taken on is no one of the readings listed. */
 export interface BoardFact {
   readonly id: string
   readonly label: string
   readonly value: string
-  readonly rank?: string
   readonly group: BoardGroup
   /** A reading a page may keep behind a "more" control. */
   readonly secondary?: true
 }
 
 /** What a name reads on a board, each reading once, grouped and in a fixed order so two names line
- *  up: the plain values its market states, then what each factor that fired for it read. A factor's
- *  place among the board's names rides on its first reading, or stands as a fact of its own where
- *  the factor states none. */
+ *  up: the plain values its market states, then what each factor that fired for it read, and where
+ *  the name sits among the board's names on each of those factors. */
 export function boardFacts(
   locale: Locale,
   candidate: ScreenedCandidate,
@@ -139,23 +137,18 @@ export function boardFacts(
 
   for (const factor of firedFactors(candidate)) {
     const percentile = candidate.percentiles?.[factor.id]
-    const rank = percentile === undefined ? '' : formatPercentRank(locale, percentile, 'plain')
     const readings = read(factor.metrics?.filter(({ id }) => BOARD_GROUP_OF[id] !== undefined))
 
-    readings.forEach((reading, index) => {
-      addFact(
-        found,
-        `${reading.metric.id}:${reading.metric.sessions ?? ''}`,
-        toFact(reading, index === 0 ? rank : '')
-      )
-    })
+    for (const reading of readings) {
+      addFact(found, `${reading.metric.id}:${reading.metric.sessions ?? ''}`, toFact(reading))
+    }
 
-    if (readings.length === 0 && rank !== '') {
+    if (percentile !== undefined) {
       addFact(found, factor.id, {
         id: factor.id,
         label: renderDeclaredValue(locale, `trading.factor.${factor.id}`),
-        value: rank,
-        group: UNMEASURED_GROUP,
+        value: formatPercentRank(locale, percentile, 'plain'),
+        group: readings[0] === undefined ? UNMEASURED_GROUP : toFact(readings[0]).group,
       })
     }
   }
@@ -203,27 +196,22 @@ interface OwnFacts {
   readonly read: (metrics: readonly FactorMetric[]) => readonly MetricReading[]
 }
 
-function toFact({ metric, label, value }: MetricReading, rank = ''): BoardFact {
+function toFact({ metric, label, value }: MetricReading): BoardFact {
   const group = BOARD_GROUP_OF[metric.id]
 
   return {
     id: metric.id,
     label,
     value,
-    ...(rank === '' ? {} : { rank }),
     group: group ?? UNMEASURED_GROUP,
     ...(SECONDARY_READINGS.has(metric.id) ? { secondary: true as const } : {}),
   }
 }
 
-/** A reading two sources state keeps its first form and gains the place the second one carries. */
+/** A reading two sources state keeps its first form. */
 function addFact(found: Map<string, BoardFact>, key: string, fact: BoardFact): void {
-  const known = found.get(key)
-
-  if (known === undefined) {
+  if (!found.has(key)) {
     found.set(key, fact)
-  } else if (known.rank === undefined && fact.rank !== undefined) {
-    found.set(key, { ...known, rank: fact.rank })
   }
 }
 
@@ -242,8 +230,8 @@ export function missingFactorLabels(locale: Locale, candidate: ScreenCandidate):
     .map((factor) => renderDeclaredValue(locale, `trading.factor.${factor.id}`))
 }
 
-/** The facts as lines of text, a heading over each group: `Label: value`, then where the name sits
- *  in brackets. A fact never splits across lines. */
+/** The facts as lines of text, a heading over each group: `Label: value`. A fact never splits across
+ *  lines. */
 export function renderBoardFactLines(
   locale: Locale,
   facts: readonly BoardFact[],
@@ -264,9 +252,5 @@ export function renderBoardFactLines(
 }
 
 function renderBoardFact(locale: Locale, fact: BoardFact): string {
-  const reading = t(locale, 'trading.render.metric.row', { label: fact.label, value: fact.value })
-
-  return fact.rank === undefined
-    ? reading
-    : t(locale, 'trading.render.screen.boardFactor', { reading, rank: fact.rank })
+  return t(locale, 'trading.render.metric.row', { label: fact.label, value: fact.value })
 }

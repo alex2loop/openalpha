@@ -5629,7 +5629,6 @@
     "render.screen.boardNote": "Xếp theo thứ tự mã, không mã nào được xếp trên mã nào",
     "render.screen.boardTools": "Muốn lọc, sắp xếp hoặc xuất CSV, bạn mở bảng Màn lọc trên trang",
     "render.screen.boardUnit": "{market}: giá tính bằng {currency}",
-    "render.screen.boardFactor": "{reading} ({rank})",
     "render.screen.boardUnpriced": "{count} mã chưa có giá nên chưa liệt kê",
     "render.screen.boardUnpricedOne": "{count} mã chưa có giá nên chưa liệt kê",
     "render.screen.boardShown": "Mình in {shown} trong {count} mã; thêm số mã sau lệnh để xem thêm",
