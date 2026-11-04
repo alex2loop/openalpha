@@ -63,6 +63,7 @@ function toCaveatWire(caveat: Caveat, locale: Locale): TradingWireCaveat[] {
       ...(caveat.detail === undefined ? {} : { data: caveat.detail }),
       severity: described.severity,
       text: described.message,
+      ...(described.plain === undefined ? {} : { plain: described.plain }),
     },
   ]
 }

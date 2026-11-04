@@ -30,6 +30,9 @@ export interface TradingWireCaveat {
   readonly data?: Readonly<Record<string, string | number>>
   readonly severity: CaveatSeverity
   readonly text: string
+  /** The same fact worded with no ranking, rating or advice, for the web edition; absent where the
+   *  catalog has no such sentence and `text` already reads that way. */
+  readonly plain?: string
 }
 
 /** Freshness lives on each row, never as one aggregate: a response assembled from four sources has

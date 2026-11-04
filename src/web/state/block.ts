@@ -19,9 +19,9 @@ type BlockQuery = Readonly<Record<string, string | number>>
 type BlockStatus = 'loading' | 'ready' | 'stale' | 'failed' | 'absent'
 
 interface WireCaveat {
-  readonly code?: string
   readonly severity: string
   readonly text: string
+  readonly plain?: string
 }
 
 /** What a block shows: the last good `data` and its `readAt` survive a failed refresh. `cautions`

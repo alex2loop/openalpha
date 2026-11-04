@@ -33,11 +33,26 @@ export const PLAIN_KEY_SUFFIX = 'Plain'
 export function describeCaveat(
   locale: Locale,
   caveat: Caveat
-): { readonly severity: CaveatSeverity; readonly message: string } | undefined {
+):
+  | { readonly severity: CaveatSeverity; readonly message: string; readonly plain?: string }
+  | undefined {
   const rendered = toRendered(locale, caveat)
-  const message = t(locale, rendered.key, rendered.detail)
+  const message = filledMessage(locale, rendered)
 
-  return UNFILLED_PARAM_RE.test(message) ? undefined : { severity: rendered.severity, message }
+  if (message === undefined) {
+    return undefined
+  }
+
+  // The sentence for an edition that states no ranking, rating or advice, where the catalog has one.
+  const plainRendered = toRendered(locale, caveat, true)
+  const plain =
+    plainRendered.key === rendered.key ? undefined : filledMessage(locale, plainRendered)
+
+  return {
+    severity: rendered.severity,
+    message,
+    ...(plain === undefined ? {} : { plain }),
+  }
 }
 
 export function renderCaveatLines(
@@ -52,9 +67,9 @@ export function renderCaveatLines(
   })
   const lines = distinctLines(
     mergeSubjects(shown).flatMap((caveat) => {
-      const message = t(locale, caveat.key, caveat.detail)
+      const message = filledMessage(locale, caveat)
 
-      return UNFILLED_PARAM_RE.test(message) ? [] : [{ severity: caveat.severity, message }]
+      return message === undefined ? [] : [{ severity: caveat.severity, message }]
     })
   )
 
@@ -122,6 +137,13 @@ function collapsedLines(locale: Locale, lines: readonly RenderedLine[]): readonl
       notes.map((line) => line.message)
     ),
   ]
+}
+
+/** The sentence with every placeholder filled, or undefined when the stored detail cannot fill it. */
+function filledMessage(locale: Locale, { key, detail }: RenderedCaveat): string | undefined {
+  const message = t(locale, key, detail)
+
+  return UNFILLED_PARAM_RE.test(message) ? undefined : message
 }
 
 function toRendered(locale: Locale, caveat: Caveat, isPlain = false): RenderedCaveat {
