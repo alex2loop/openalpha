@@ -13,3 +13,18 @@ directory = "../../dist/site"
 
 [observability]
 enabled = false
+
+# Production: deployed with `--env production`. No workers.dev address and no route yet, so the Worker
+# exists (a deploy token can be scoped to it) but nobody can reach it until the domain is attached:
+# add `routes = [{ pattern = "<domain>", custom_domain = true }, { pattern = "www.<domain>", custom_domain = true }]`
+# here and build without --noindex.
+[env.production]
+name = "openalpha-site"
+workers_dev = false
+preview_urls = false
+
+[env.production.assets]
+directory = "../../dist/site"
+
+[env.production.observability]
+enabled = false

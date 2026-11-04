@@ -142,8 +142,8 @@ jobs:
             echo "Cloudflare secrets are not set in the production environment: nothing to deploy"
             exit 0
           fi
-          bun run wrangler deploy -c deploy/web/wrangler.toml
-          bun run wrangler deploy -c deploy/site/wrangler.toml
+          bun run wrangler deploy -c deploy/web/wrangler.toml --env production
+          bun run wrangler deploy -c deploy/site/wrangler.toml --env production
           echo "deployed=true" >> "$GITHUB_OUTPUT"
 
       # What visitors now get must be byte for byte what the build job made, headers included.
