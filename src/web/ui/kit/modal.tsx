@@ -3,7 +3,7 @@ import { signal } from '@preact/signals'
 import { useEffect, useLayoutEffect } from 'preact/hooks'
 
 import { tr } from '@/web/text/tr'
-import { ESCAPE_KEY, listFocusable, trapFocus } from '@/web/ui/kit/focus-trap'
+import { ESCAPE_KEY, trapFocus } from '@/web/ui/kit/focus-trap'
 import { CloseIcon } from '@/web/ui/kit/icons'
 import { closePopover, openPopoverId, resolveFocusReturn } from '@/web/ui/kit/popover'
 
@@ -16,6 +16,8 @@ const TITLE_ID = 'modal-title'
 // The dialog's main action: Enter presses it, and it takes focus when the body has no field. A
 // destructive button never is one.
 const MAIN_BUTTON = '.modal-foot .btn-commit:not(:disabled), .modal-foot .btn-ai:not(:disabled)'
+// A link or a button in the body is not a field: focusing it on open only draws a ring around it.
+const BODY_FIELD = '.modal-body :is(input, select, textarea):not(:disabled)'
 // Input types that are one line of text; Enter in any other control keeps its own meaning.
 const TEXT_INPUT_TYPES: ReadonlySet<string> = new Set([
   'text',
@@ -208,9 +210,20 @@ function pressMain(event: KeyboardEvent): void {
 
 // A field in the body takes focus first, else the main (safe) footer button, else the dialog.
 function focusFirst(): void {
-  const [field] = listFocusable('.modal-body')
-  const main = document.querySelector(MAIN_BUTTON)
-  const target = field ?? (main instanceof HTMLElement ? main : document.getElementById(DIALOG_ID))
+  const target = firstElementOf([BODY_FIELD, MAIN_BUTTON]) ?? document.getElementById(DIALOG_ID)
 
   target?.focus()
+}
+
+// The first selector, in the order given, that matches an element.
+function firstElementOf(selectors: readonly string[]): HTMLElement | undefined {
+  for (const selector of selectors) {
+    const element = document.querySelector(selector)
+
+    if (element instanceof HTMLElement) {
+      return element
+    }
+  }
+
+  return undefined
 }

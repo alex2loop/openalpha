@@ -39,6 +39,14 @@ export function openFirstRun(from = 0): void {
 }
 
 function Card() {
+  return (
+    <div class="first-run-card">
+      <CardContent />
+    </div>
+  )
+}
+
+function CardContent() {
   switch (STEPS[step.value]) {
     case 'nokey':
       return (

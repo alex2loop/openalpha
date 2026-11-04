@@ -41,7 +41,9 @@ function LegalBody({ sections }: { readonly sections: readonly MessageKey[] }) {
 
   return (
     <div class="legal-doc">
-      <p class="meta">{tr('ui.office.edition.legal.version', params)}</p>
+      <div class="meta">
+        <Markdown text={tr('ui.office.edition.legal.version', params)} isLinked={false} />
+      </div>
       {sections.map((key) => (
         <Markdown key={key} text={tr(key, params)} isLinked={false} />
       ))}

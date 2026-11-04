@@ -25,9 +25,30 @@
 
 .guide,
 .compare,
-.legal-doc {
+.legal-doc,
+.first-run-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s2);
+}
+
+.first-run-card h3,
+.first-run-card p {
+  margin: 0;
+}
+
+.first-run-card .btn {
+  justify-self: start;
+}
+
+/* Legal tables are prose: their cells wrap instead of widening the page. */
+.legal-doc .md-table td,
+.legal-doc .md-table th {
+  white-space: normal;
+}
+
+.legal-doc .md-table table {
+  width: 100%;
 }
 
 .compare-row {
