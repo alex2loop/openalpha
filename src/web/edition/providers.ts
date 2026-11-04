@@ -41,7 +41,7 @@ const PROVIDERS = Object.freeze({
     gemini: {
       name: 'Google Gemini',
       keyUrl: 'https://aistudio.google.com/apikey',
-      policyUrl: 'https://ai.google.dev/gemini-api/terms',
+      policyUrl: 'https://policies.google.com/privacy',
     },
     xai: {
       name: 'xAI',
