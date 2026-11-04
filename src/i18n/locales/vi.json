@@ -796,6 +796,7 @@
     "office.who.tip": "Ai sẽ nhận câu bạn gõ",
     "office.chat.title": "Trò chuyện",
     "office.chat.hide": "Ẩn khung chat",
+    "office.chat.resize": "Kéo để đổi độ rộng khung chat, bấm đúp để về mặc định",
     "office.chat.toggle": "Hiện / ẩn khung chat (C)",
     "office.chat.newSession": "Cuộc trò chuyện mới",
     "office.chat.oldSessions": "Cuộc trò chuyện cũ",

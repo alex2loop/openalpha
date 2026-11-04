@@ -796,6 +796,7 @@
     "office.who.tip": "Who receives what you type",
     "office.chat.title": "Chat",
     "office.chat.hide": "Hide the chat",
+    "office.chat.resize": "Drag to resize the chat, double-click to reset",
     "office.chat.toggle": "Show or hide the chat (C)",
     "office.chat.newSession": "New session",
     "office.chat.oldSessions": "Earlier sessions",

@@ -409,6 +409,11 @@ kbd {
   text-align: center;
 }
 
+/* A button, or a row of them, straight after a paragraph stands clear of its last line. */
+p + :is(.btn, .step-actions) {
+  margin-top: var(--s1);
+}
+
 .strip {
   display: flex;
   align-items: center;
