@@ -7,13 +7,17 @@ import { BRAND } from '@/core/brand'
 import { StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createDatabaseFiles } from '@/persistence/engines/sqlite-wasm-files'
-import { createTransaction } from '@/persistence/engines/sqlite-wasm-sql'
+import { createTransaction, TRUSTED_SCHEMA_OFF } from '@/persistence/engines/sqlite-wasm-sql'
 import { toStorageError } from '@/persistence/errors'
 
 export const DB_LOCK_NAME = `${BRAND.name}-db`
 
 const LOCK_FAILED = 'database lock request failed'
-const PRAGMAS = ['PRAGMA foreign_keys = ON', 'PRAGMA journal_mode = TRUNCATE'] as const
+const PRAGMAS = [
+  'PRAGMA foreign_keys = ON',
+  'PRAGMA journal_mode = TRUNCATE',
+  TRUSTED_SCHEMA_OFF,
+] as const
 // Another tab's handles free a moment after its lock does (a stolen lock, a page still unloading),
 // so the first install can lose that race by a few hundred milliseconds.
 const INSTALL_ATTEMPTS = 25

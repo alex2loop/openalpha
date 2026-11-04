@@ -4,7 +4,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Storage } from '@/core/types/storage'
 import { StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { createTransaction } from '@/persistence/engines/sqlite-wasm-sql'
+import { createTransaction, TRUSTED_SCHEMA_OFF } from '@/persistence/engines/sqlite-wasm-sql'
 import { toStorageError } from '@/persistence/errors'
 
 /** The working database as a file: what leaves the tab and what a file the visitor picked is
@@ -16,6 +16,9 @@ export interface DatabaseFiles {
   /** A read-only in-memory copy of `bytes` to look inside before anything is replaced. The caller
    *  closes it. Throws when the bytes do not open as a database. */
   openScratch(bytes: Uint8Array): Storage
+  /** An empty writable in-memory database, to build what a fresh one holds (the schema this
+   *  build's migrations make) for comparison. The caller closes it. */
+  openBlank(): Storage
   /** Swaps `bytes` in for the working database and answers the content it replaced. When anything
    *  fails the previous content is put back and the error is thrown, so the working database is
    *  never half replaced. When the previous content cannot be put back either, the storage is
@@ -48,6 +51,7 @@ export function createDatabaseFiles(options: FilesOptions): DatabaseFiles {
   return {
     exportBytes: () => run(async () => serialize(engine)),
     openScratch: (bytes) => openScratch(engine.sqlite3, bytes),
+    openBlank: () => toScratchStorage(openMemoryDb(engine.sqlite3)),
     replaceWith: (bytes) => run(() => swap(options, bytes)),
   }
 }
@@ -103,8 +107,8 @@ async function putBack(options: FilesOptions, previous: Uint8Array): Promise<boo
 }
 
 function openScratch(sqlite3: Sqlite3Static, bytes: Uint8Array): Storage {
-  const { capi, wasm, oo1 } = sqlite3
-  const db = new oo1.DB(':memory:')
+  const { capi, wasm } = sqlite3
+  const db = openMemoryDb(sqlite3)
 
   try {
     // Freed by sqlite when the database closes, or at once when the load fails.
@@ -124,6 +128,24 @@ function openScratch(sqlite3: Sqlite3Static, bytes: Uint8Array): Storage {
     throw new StorageError('sqlite scratch open failed', err)
   }
 
+  return toScratchStorage(db)
+}
+
+function openMemoryDb(sqlite3: Sqlite3Static): Database {
+  const db = new sqlite3.oo1.DB(':memory:')
+
+  try {
+    db.exec(TRUSTED_SCHEMA_OFF)
+  } catch (err: unknown) {
+    db.close()
+
+    throw new StorageError('sqlite scratch open failed', err)
+  }
+
+  return db
+}
+
+function toScratchStorage(db: Database): Storage {
   const tx = createTransaction(() => db)
 
   return {

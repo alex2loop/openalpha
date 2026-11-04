@@ -2,6 +2,11 @@ import type { BindingSpec, Database } from '@sqlite.org/sqlite-wasm'
 
 import type { Transaction } from '@/core/types/storage'
 
+/** Set on every connection: a trigger, view, CHECK or default in the file may then call only the
+ *  functions SQLite marks innocuous, so a database a visitor imports cannot run anything wider
+ *  inside the page's own writes. */
+export const TRUSTED_SCHEMA_OFF = 'PRAGMA trusted_schema = OFF'
+
 /** `read` is asked at every statement: replacing the database file puts a new connection under a
  *  storage that is already in use. */
 export function createTransaction(read: () => Database): Transaction {
