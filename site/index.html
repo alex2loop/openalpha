@@ -245,6 +245,10 @@ html[data-scrolled] .top { background: color-mix(in srgb, var(--canvas) 72%, tra
 .top-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .tools-sep { width: 1px; height: 18px; margin-inline: 4px; background: var(--hair); }
 .top-cta { display: none; margin-left: 4px; }
+/* The support link stays in reach at every width as the cup alone; its words read on hover and to
+   a screen reader. The bar has no room for them beside the menu. */
+.top-coffee { margin-left: 4px; padding-inline: 10px; }
+.top-coffee-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .iconbtn { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--ink2); cursor: pointer; transition: background-color 0.18s, color 0.18s; }
 .iconbtn:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
 .iconbtn .icon { width: 17px; height: 17px; }
@@ -572,6 +576,7 @@ code, pre { font-variant-ligatures: none; }
       </div>
       <button type="button" class="iconbtn" id="theme" aria-label="Giao diện"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg><span class="sr" id="theme-label"></span></button>
       <i class="tools-sep" aria-hidden="true"></i>
+      <a class="btn btn-coffee btn-regular top-coffee" href="https://buymeacoffee.com/alex2loop" data-title-vi="Mời một ly cà phê" data-title-en="Buy me a coffee" title="Mời một ly cà phê" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">☕</span><span class="top-coffee-label"><span class="vi" lang="vi">Mời một ly cà phê</span><span class="en" lang="en">Buy me a coffee</span></span><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
       <a class="btn btn-commit btn-regular top-cta" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng thử trên web</span><span class="en" lang="en">Try it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
       <button type="button" class="iconbtn burger" id="burger" aria-expanded="false" aria-controls="menu" data-aria-vi="Menu" data-aria-en="Menu" aria-label="Menu"><svg class="icon i-menu" aria-hidden="true"><use href="#i-menu"/></svg><svg class="icon i-x" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
@@ -953,6 +958,10 @@ function setLang(next) {
 
   for (const element of queryAll("[data-aria-vi]")) {
     element.setAttribute("aria-label", element.dataset[next === "en" ? "ariaEn" : "ariaVi"]);
+  }
+
+  for (const element of queryAll("[data-title-vi]")) {
+    element.setAttribute("title", element.dataset[next === "en" ? "titleEn" : "titleVi"]);
   }
 
   for (const link of queryAll("[data-app-link]")) {
