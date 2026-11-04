@@ -77,7 +77,7 @@ export function barReadings(input: BarReadingsInput): readonly FactorMetric[] {
     ...distance('distance-from-high', last, trailingHigh(closes, HIGH_LOW_SESSIONS)),
     ...distance('distance-from-low', last, trailingLow(closes, HIGH_LOW_SESSIONS)),
     ...averageRange(candles, last),
-    ...moveAgainstIndex(candles, usableCandles(input.benchmark ?? [], manifest)),
+    ...moveAgainstIndex(candles, indexCandles(input.benchmark ?? [])),
     ...liquidity(candles),
   ]
 }
@@ -94,6 +94,12 @@ function usableCandles(candles: readonly Candle[], manifest: BarsManifest): read
     (candle) =>
       candle.close > 0 && (manifest.assetClass !== 'equity' || candle.adjustment === 'adjusted')
   )
+}
+
+/** An index has no split to mis-price, and the VN index series is stored raw, so unlike a share's
+ *  its bars are not held to the adjusted ones. */
+function indexCandles(candles: readonly Candle[]): readonly Candle[] {
+  return candles.filter((candle) => candle.close > 0)
 }
 
 function distance(
