@@ -1,4 +1,4 @@
-import { computed, effect, type ReadonlySignal } from '@preact/signals'
+import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
 
 import { BRIEF_NAME } from '@/web/state/command'
 import { isAnalysisOnly } from '@/web/state/edition'
@@ -24,6 +24,9 @@ const hidden = createStoredFlag(HIDDEN_KEY)
 // Set the first time this browser sees a first run, so a daemon set up long before never shows the
 // checklist, while one set up here keeps it until its steps are done.
 const started = createStoredFlag(STARTED_KEY)
+// Opened again from Hôm nay after the first run: for this page's life only, and never a reason to
+// hold back what a first run holds back.
+const reviewing = signal(false)
 
 /** A profile was saved, or the visitor chose to keep the defaults the daemon starts on. */
 export const isProfileDone = computed(
@@ -46,9 +49,9 @@ const areRequiredStepsDone = computed(
     isBriefDone.value
 )
 
-/** The checklist shows from a first run until every required step is done or the visitor hides
- *  it. */
-export const isGuideShown = computed(
+// The checklist's own run: from a first run until every required step is done or the visitor hides
+// it.
+const isFirstRunOpen = computed(
   () =>
     state.value !== undefined &&
     (started.flag.value || isFirstRun.value) &&
@@ -56,9 +59,18 @@ export const isGuideShown = computed(
     !areRequiredStepsDone.value
 )
 
-/** The first run is over: the checklist is not showing, because it finished, was hidden, or never
- *  applied to this daemon. What a first run holds back (the cost chip, the tape's notes) reads this. */
-export const isFirstRunOver = computed(() => !isGuideShown.value)
+/** The checklist shows while the first run is open, or while the visitor reads it again. */
+export const isGuideShown = computed(
+  () => state.value !== undefined && (isFirstRunOpen.value || reviewing.value)
+)
+
+/** The first run is over: it finished, was hidden, or never applied to this daemon. What a first
+ *  run holds back (the cost chip, the tape's notes) reads this; reading the checklist again does not
+ *  reopen it. */
+export const isFirstRunOver = computed(() => !isFirstRunOpen.value)
+
+/** True while the checklist shows only because the visitor opened it again. */
+export const isGuideReviewed: ReadonlySignal<boolean> = reviewing
 
 /** Notes a first run once it is seen, latches the guide done when its required steps first are, and
  *  watches for a `/brief` run that completes; the returned function stops all three. */
@@ -95,5 +107,10 @@ export function skipBook(): void {
 }
 
 export function hideGuide(): void {
+  reviewing.value = false
   hidden.set()
+}
+
+export function showGuideAgain(): void {
+  reviewing.value = true
 }

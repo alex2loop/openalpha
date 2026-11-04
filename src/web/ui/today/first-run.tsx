@@ -7,8 +7,10 @@ import {
   hideGuide,
   isBookDone,
   isBriefDone,
+  isGuideReviewed,
   isProfileDone,
   keepProfileDefaults,
+  showGuideAgain,
   skipBook,
 } from '@/web/state/first-run'
 import { isModelReady, loadSession, state } from '@/web/state/session'
@@ -42,8 +44,17 @@ export function FirstRun() {
     (index) => <BriefStep key="brief" index={index} />,
   ]
 
+  const section = useRef<HTMLElement>(null)
+
+  // Opened again from the foot of the tab: bring it into view, since it renders at the top.
+  useEffect(() => {
+    if (isGuideReviewed.peek()) {
+      section.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    }
+  }, [])
+
   return (
-    <section class="block">
+    <section ref={section} class="block">
       <h2 class="block-head">
         {tr('ui.office.firstRun.title')}
         <span class="block-grow" />
@@ -53,6 +64,17 @@ export function FirstRun() {
       </h2>
       <div class="steps">{steps.map((renderStep, position) => renderStep(position + 1))}</div>
     </section>
+  )
+}
+
+/** Past the first run, the foot of Hôm nay offers the checklist again. */
+export function GuideAgain() {
+  return (
+    <div class="step-actions">
+      <Button kind="ghost" size="small" onClick={showGuideAgain}>
+        {tr('ui.office.firstRun.show')}
+      </Button>
+    </div>
   )
 }
 

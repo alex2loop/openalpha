@@ -677,7 +677,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     hoặc "Chưa có, bỏ qua", một lần `/brief` đã chạy xong trên trình duyệt này. Thẻ tự mất khi mọi
     bước bắt buộc đã tích, hoặc ngay khi bạn bấm "Ẩn hướng dẫn"; cả hai chỉ được nhớ trên trình duyệt
     này. Thẻ chỉ hiện trên trình duyệt đã mở văn phòng trước khi có hồ sơ được lưu hay giao dịch được
-    ghi.
+    ghi. Nút "Xem lại các bước bắt đầu" ở cuối thẻ Hôm nay mở lại thẻ cho đến khi bạn tải lại trang.
   - *Danh mục* gồm tổng quan, hiệu quả, lịch sử, cân bằng lại và danh sách theo dõi cùng cảnh báo giá,
     thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
     có hoàn tác, còn Lịch sử đối chiếu sổ với các sàn của bạn (xem

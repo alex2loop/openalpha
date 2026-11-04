@@ -176,7 +176,7 @@ function EmptyLedger({
 
   return (
     <>
-      <p class="meta">{tr(isBookEmpty ? emptyBookKey() : 'ui.office.book.filterEmpty')}</p>
+      <p class="empty-note">{tr(isBookEmpty ? emptyBookKey() : 'ui.office.book.filterEmpty')}</p>
       {isBookEmpty && <EmptyBookActions />}
     </>
   )

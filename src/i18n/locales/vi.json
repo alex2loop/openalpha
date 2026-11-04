@@ -917,6 +917,7 @@
     "office.firstRun.title": "Bắt đầu với {brand}",
     "office.firstRun.optional": "không bắt buộc",
     "office.firstRun.hide": "Ẩn hướng dẫn",
+    "office.firstRun.show": "Xem lại các bước bắt đầu",
     "office.firstRun.modelTitle": "Kết nối mô hình AI",
     "office.firstRun.modelBody": "Mình chưa có khóa cho mô hình này. Lưu {envVar} ở Cài đặt › Nhà cung cấp, khởi động lại dịch vụ nền, rồi bấm Kiểm tra lại. Khóa nằm trên máy chủ và không hiện lại nữa.",
     "office.firstRun.modelBodyNoKey": "Mô hình đầu tiên chưa trả lời được. Đăng nhập hoặc xem lại thiết lập ở Cài đặt › Nhà cung cấp, rồi bấm Kiểm tra lại.",

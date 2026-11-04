@@ -917,6 +917,7 @@
     "office.firstRun.title": "Getting started with {brand}",
     "office.firstRun.optional": "optional",
     "office.firstRun.hide": "Hide this guide",
+    "office.firstRun.show": "Show the getting-started steps again",
     "office.firstRun.modelTitle": "Connect an AI model",
     "office.firstRun.modelBody": "I don't have a key for this model yet. Save {envVar} in Settings › Providers, restart the daemon, then press Check again. The key stays on the server and is never shown again.",
     "office.firstRun.modelBodyNoKey": "The first model cannot answer yet. Sign in or check its settings in Settings › Providers, then press Check again.",

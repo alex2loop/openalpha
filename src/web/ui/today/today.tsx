@@ -10,14 +10,14 @@ import { Macro } from '@/web/ui/today/blocks/macro'
 import { News } from '@/web/ui/today/blocks/news'
 import { OtherMarkets } from '@/web/ui/today/blocks/other-markets'
 import { WorthWatching } from '@/web/ui/today/blocks/worth-watching'
-import { FirstRun, ModelSetup, modelTitle } from '@/web/ui/today/first-run'
+import { FirstRun, GuideAgain, ModelSetup, modelTitle } from '@/web/ui/today/first-run'
 import { NeedsYou } from '@/web/ui/today/needs-you'
 import { SessionLine } from '@/web/ui/today/session-line'
 import { SetupNotices } from '@/web/ui/today/setup-notices'
 
 /** Hôm nay: the first-run guide while it shows, else a missing model; then the home market's day,
  *  what waits for the operator and what is worth a look, in a fixed order. What the daemon started
- *  without closes the tab. */
+ *  without closes the tab, then the way back to the guide. */
 export function Today() {
   return (
     <>
@@ -34,6 +34,7 @@ export function Today() {
       {!isAnalysisOnly.value && <News />}
       {offers('agents') && <AgentDay />}
       <SetupNotices />
+      {!isGuideShown.value && <GuideAgain />}
     </>
   )
 }

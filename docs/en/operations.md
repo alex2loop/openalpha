@@ -684,7 +684,8 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     trade or "Nothing yet, skip", a `/brief` that finished in this browser. The card goes away once
     every required step is ticked, or at once with "Hide this guide"; both are remembered in this
     browser only. It shows only in a browser that opened the office before a profile was saved or a
-    trade recorded.
+    trade recorded. "Show the getting-started steps again" at the foot of the Today tab brings it
+    back until the page is reloaded.
   - *Portfolio* holds overview, performance, history, rebalance and the watchlist with its price
     alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
     and deleted here, with undo, and History checks the ledger against your venues (see
