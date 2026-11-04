@@ -120,7 +120,9 @@ function useLiveWhileTrading(
 ): void {
   const isBoardKnown = quotesBlock.view.value.data !== undefined
   const held = findMarket(market)
-  const isOpen = held !== undefined && (held.session === undefined || held.session.phase === 'open')
+  const isOpen =
+    held !== undefined &&
+    (held.hasBoard === true || held.session === undefined || held.session.phase === 'open')
   const canQuote = state.value?.capabilities.quotes !== false
   const isClose = quote === undefined || quote.closedOn !== undefined
 
@@ -286,7 +288,8 @@ function readBars(ticker: string, market: string): (abort: AbortSignal) => Promi
   return async (abort) => {
     const timeZone = state.value?.timeZone
 
-    if (timeZone === undefined) {
+    // A dealer's board has no series of its own: the bars held for it are world gold in USD.
+    if (timeZone === undefined || findMarket(market)?.hasBoard === true) {
       return { bars: [] }
     }
 
