@@ -106,7 +106,7 @@ function FilterBar({ market, view, sectors, bounds, kinds }: ControlsProps) {
           onInput={(typed) => updateView(market, { bounds: { ...view.bounds, [id]: typed } })}
         />
       ))}
-      {isFiltered(view) && (
+      {isFiltered(view, bounds) && (
         <Button size="small" onClick={() => clearFilters(market)}>
           {tr('ui.office.edition.screen.filter.clear')}
         </Button>

@@ -115,25 +115,36 @@ export function boardBounds(candidates: readonly Candidate[]): readonly Bound[] 
   )
 }
 
-/** Whether the visitor has filled in any limit. */
-export function hasLimits(typed: Readonly<Record<string, string>>): boolean {
-  return Object.values(typed).some((text) => text.trim() !== '')
+/** Whether the visitor has set any limit the board offers. */
+export function hasLimits(
+  bounds: readonly Bound[],
+  typed: Readonly<Record<string, string>>
+): boolean {
+  return activeLimits(bounds, typed).length > 0
 }
 
 /** The names within every limit the visitor typed. A name with no figure for a limit does not pass
  *  it: the page cannot say it clears a bar nobody measured. A field that is empty or unreadable
- *  limits nothing. */
+ *  limits nothing, and neither does a limit the board does not offer (a view outlives its data). */
 export function withinLimits(
   candidates: readonly Candidate[],
+  bounds: readonly Bound[],
   typed: Readonly<Record<string, string>>
 ): readonly Candidate[] {
-  const active = BOUNDS.flatMap((bound): readonly ActiveBound[] => {
+  const active = activeLimits(bounds, typed)
+
+  return candidates.filter((candidate) => active.every((limit) => isWithin(candidate, limit)))
+}
+
+function activeLimits(
+  bounds: readonly Bound[],
+  typed: Readonly<Record<string, string>>
+): readonly ActiveBound[] {
+  return bounds.flatMap((bound): readonly ActiveBound[] => {
     const limit = limitOf(typed[bound.id] ?? '', bound.scale)
 
     return limit === undefined ? [] : [{ bound, limit }]
   })
-
-  return candidates.filter((candidate) => active.every((limit) => isWithin(candidate, limit)))
 }
 
 function isWithin(candidate: Candidate, { bound, limit }: ActiveBound): boolean {

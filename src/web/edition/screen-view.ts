@@ -1,6 +1,6 @@
 import { type Signal, signal } from '@preact/signals'
 
-import { hasLimits, withinLimits } from '@/web/edition/screen-bounds'
+import { type Bound, hasLimits, withinLimits } from '@/web/edition/screen-bounds'
 import {
   type BaseSortKey,
   type Candidate,
@@ -82,19 +82,25 @@ export function clearFilters(market: string): void {
   updateView(market, { ...DEFAULT_VIEW, kind, sort, direction })
 }
 
-export function isFiltered(view: BoardView): boolean {
+export function isFiltered(view: BoardView, bounds: readonly Bound[]): boolean {
   return (
     view.scope !== DEFAULT_VIEW.scope ||
     view.sector !== DEFAULT_VIEW.sector ||
-    hasLimits(view.bounds)
+    hasLimits(bounds, view.bounds)
   )
+}
+
+/** What the filters read beside the view: the visitor's own names and the limits the board offers. */
+interface FilterContext {
+  readonly own: OwnNames
+  readonly bounds: readonly Bound[]
 }
 
 /** The names that pass every filter, in the order given. */
 export function filterCandidates(
   candidates: readonly Candidate[],
   view: BoardView,
-  own: OwnNames
+  { own, bounds }: FilterContext
 ): readonly Candidate[] {
   return withinLimits(
     candidates.filter(
@@ -102,6 +108,7 @@ export function filterCandidates(
         isInScope(candidate, view.scope, own) &&
         (view.sector === NO_SECTOR || candidate.sector === view.sector)
     ),
+    bounds,
     view.bounds
   )
 }

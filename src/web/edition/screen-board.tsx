@@ -151,13 +151,7 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
           {line}
         </p>
       ))}
-      <ScreenControls
-        market={market}
-        view={view}
-        {...choices}
-        bounds={boardBounds(board.candidates)}
-        kinds={board.kinds}
-      />
+      <ScreenControls market={market} view={view} {...choices} kinds={board.kinds} />
       <BoardTally board={board} market={market} shown={shown} file={choices} />
       {shown.length === 0 && <p class="empty-note">{tr('ui.office.edition.screen.filter.none')}</p>}
       {shown.map((candidate) => (
@@ -201,10 +195,11 @@ function arrange(board: ScreenResponse, market: string) {
     metrics: boardMetrics(board.candidates),
     factors: boardFactors(board.candidates),
     sectors: boardSectors(board.candidates),
+    bounds: boardBounds(board.candidates),
   }
   const view = resolveView(viewOf(market).value, choices)
   const shown = sortCandidates(
-    filterCandidates(board.candidates, view, ownNames()),
+    filterCandidates(board.candidates, view, { own: ownNames(), bounds: choices.bounds }),
     view.sort,
     view.direction
   )
