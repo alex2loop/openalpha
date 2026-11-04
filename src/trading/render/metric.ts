@@ -71,8 +71,9 @@ interface MetricFactOptions {
   /** Leave out the readings that place the name among its peers: a surface that prints the place
    *  itself would state it twice. */
   readonly withoutRanks?: true
-  /** Say a rank as a count of peers the reading is above, not as being better than them. */
-  readonly plainRanks?: true
+  /** Say a rank as a count of peers the reading is above, not as being better than them: for a
+   *  surface that passes no judgement. */
+  readonly plain?: true
 }
 
 /** How a line of readings is written: the options a fact takes, and what the facts are joined with. */
@@ -137,8 +138,8 @@ function metricLabel(locale: Locale, metric: FactorMetric, width: MetricLabelWid
 function formatMetric(locale: Locale, metric: FactorMetric, options: MetricFactOptions): string {
   const unit = FACTOR_METRIC_UNITS[metric.id]
 
-  if (unit === 'percent-rank' && options.plainRanks === true) {
-    return formatPercentRank(locale, metric.value, true)
+  if (unit === 'percent-rank') {
+    return formatPercentRank(locale, metric.value, options.plain === true ? 'plain' : 'better')
   }
 
   return formatUnitValue(locale, { unit, value: metric.value }, options.quote)

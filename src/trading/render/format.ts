@@ -229,19 +229,25 @@ export function formatFixedPercent(locale: Locale, percent: number): string {
   return formatFixedFraction(locale, percent / PERCENT_PER_UNIT)
 }
 
+const RANK_KEYS = Object.freeze({
+  better: 'trading.render.layout.percentRank',
+  plain: 'trading.render.layout.percentRankPlain',
+  time: 'trading.render.layout.timeRank',
+} as const)
+
 /** A rank over a few dozen peers, where every decimal is quantization rather than precision:
  *  84.78th of 46 names is the 85th, and printing the remainder claims a resolution it lacks. The
  *  standing is worded rather than written `p78`, a notation no message ever defined - it is still
- *  not a share, and what it says is how many of its peers this reading is above. A surface that
- *  passes no judgement (`isPlain`) says it as a count of peers rather than as being better. */
-export function formatPercentRank(locale: Locale, percent: number, isPlain = false): string {
-  return t(
-    locale,
-    isPlain ? 'trading.render.layout.percentRankPlain' : 'trading.render.layout.percentRank',
-    {
-      pct: formatCount(locale, Math.round(percent)),
-    }
-  )
+ *  not a share, and what it says is how many of its peers this reading is above. `plain`, for a
+ *  surface that passes no judgement, says it as a count of peers rather than as being better;
+ *  `time` is where a series stands against its own past, a share of the window and never "better
+ *  than", since a higher premium or a larger net long is neither better nor worse. */
+export function formatPercentRank(
+  locale: Locale,
+  percent: number,
+  wording: keyof typeof RANK_KEYS = 'better'
+): string {
+  return t(locale, RANK_KEYS[wording], { pct: formatCount(locale, Math.round(percent)) })
 }
 
 /** A 0-1 index as whole percent. Coverage and agreement are folds over weights, not measured

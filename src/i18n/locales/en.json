@@ -207,7 +207,6 @@
     "office.edition.screen.sort.ticker": "Name",
     "office.edition.screen.sort.price": "Price",
     "office.edition.screen.sort.change": "Day's move",
-    "office.edition.screen.factorPlace": "above {pct}% of the names on the board",
     "office.edition.screen.ascending": "Ascending",
     "office.edition.screen.descending": "Descending",
     "office.edition.screen.sort.month": "1-month move",

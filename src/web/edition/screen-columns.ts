@@ -72,7 +72,7 @@ export function factorFacts(candidate: Candidate): readonly Fact[] {
     const place =
       percentile === undefined
         ? undefined
-        : tr('ui.office.edition.screen.factorPlace', {
+        : tr('trading.render.layout.percentRankPlain', {
             pct: formatFixed(percentile, PERCENTILE_DIGITS),
           })
 

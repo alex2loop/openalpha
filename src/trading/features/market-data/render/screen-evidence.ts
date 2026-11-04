@@ -131,7 +131,7 @@ function renderBoardFactor(
 
   return t(locale, 'trading.render.screen.boardFactor', {
     reading: reading === '' ? renderDeclaredValue(locale, `trading.factor.${factor.id}`) : reading,
-    rank: formatPercentRank(locale, percentile, true),
+    rank: formatPercentRank(locale, percentile, 'plain'),
   })
 }
 
