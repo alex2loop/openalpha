@@ -87,6 +87,12 @@
   min-width: 0;
 }
 
+/* Both sort names take one width, so the two menus start in one column. */
+.sort-key > span {
+  flex: none;
+  min-width: 4.5em;
+}
+
 .screen-size {
   width: min(17rem, 100%);
 }
