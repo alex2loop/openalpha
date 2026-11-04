@@ -1,12 +1,12 @@
 import { useSignal } from '@preact/signals'
 
 import type { ScreenResponse } from '@/app/server/wire/market'
-import { getJson } from '@/web/api/client'
+import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { DataStatus } from '@/web/edition/data-status'
 import { boardBounds } from '@/web/edition/screen-bounds'
 import { type Fact, factorFacts, figureFacts, readingFacts } from '@/web/edition/screen-columns'
-import { ScreenControls } from '@/web/edition/screen-controls'
+import { KindSelect, ScreenControls } from '@/web/edition/screen-controls'
 import { downloadBoardCsv } from '@/web/edition/screen-csv'
 import {
   boardBaseKeys,
@@ -17,6 +17,8 @@ import {
 } from '@/web/edition/screen-sort'
 import {
   boardSectors,
+  clearKind,
+  DEFAULT_KIND,
   filterCandidates,
   type OwnNames,
   resolveView,
@@ -78,8 +80,30 @@ interface BoardRead {
   readonly abort: AbortSignal
 }
 
+// A kind the market does not serve (the choice outlives the market's lists) puts the visitor back
+// on the first kind, whether the read is refused or answers with a list that lacks it.
+async function readBoard(read: BoardRead): Promise<ScreenResponse> {
+  const { market, kind } = read
+
+  try {
+    const board = await readWholeBoard(read)
+
+    if (kind !== DEFAULT_KIND && board.kinds?.some((listed) => listed.kind === kind) !== true) {
+      clearKind(market)
+    }
+
+    return board
+  } catch (error) {
+    if (kind !== DEFAULT_KIND && error instanceof ApiFailure) {
+      clearKind(market)
+    }
+
+    throw error
+  }
+}
+
 // The board is read whole, a page at a time, so the visitor sorts every name and not a page of them.
-async function readBoard({ market, kind, abort }: BoardRead): Promise<ScreenResponse> {
+async function readWholeBoard({ market, kind, abort }: BoardRead): Promise<ScreenResponse> {
   const first = await readPage({ market, kind, abort })
   const names = [...first.candidates]
   let cursor = first.next
@@ -105,7 +129,7 @@ function readPage({ market, kind, cursor, abort }: PageRead): Promise<ScreenResp
     query: {
       market,
       limit: SCREEN_PAGE_LIMIT,
-      ...(kind === '' ? {} : { kind }),
+      ...(kind === DEFAULT_KIND ? {} : { kind }),
       ...(cursor === undefined ? {} : { cursor }),
     },
     signal: abort,
@@ -114,7 +138,7 @@ function readPage({ market, kind, cursor, abort }: PageRead): Promise<ScreenResp
 
 function Names({ board, market }: { readonly board: ScreenResponse; readonly market: string }) {
   if (board.candidates.length === 0) {
-    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
+    return <EmptyBoard kinds={board.kinds} market={market} />
   }
 
   const { choices, view, shown } = arrange(board, market)
@@ -145,6 +169,26 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
           {line}
         </p>
       ))}
+    </>
+  )
+}
+
+// A kind with no names still offers the others, so the visitor is never left on it.
+function EmptyBoard({
+  kinds,
+  market,
+}: {
+  readonly kinds: ScreenResponse['kinds']
+  readonly market: string
+}) {
+  return (
+    <>
+      {kinds !== undefined && (
+        <div class="sort-bar">
+          <KindSelect market={market} view={viewOf(market).value} kinds={kinds} />
+        </div>
+      )}
+      <p class="empty-note">{tr('ui.office.today.empty')}</p>
     </>
   )
 }

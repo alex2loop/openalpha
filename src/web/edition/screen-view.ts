@@ -14,7 +14,7 @@ import { readStorage, writeStorage } from '@/web/state/storage'
 const STORAGE_PREFIX = 'oa.edition.screenView.'
 const NO_SECTOR = ''
 /** The market's first kind, which the board serves when none is asked. */
-const DEFAULT_KIND = ''
+export const DEFAULT_KIND = ''
 
 /** Which of the visitor's own names the board shows. */
 export type Scope = 'all' | 'held' | 'watched'
@@ -68,6 +68,11 @@ export function updateView(market: string, change: Partial<BoardView>): void {
 
   view.value = { ...view.value, ...change }
   writeStorage('local', `${STORAGE_PREFIX}${market}`, JSON.stringify(view.value))
+}
+
+/** Puts the market's board back on its first kind, for a saved kind the market does not serve. */
+export function clearKind(market: string): void {
+  updateView(market, { kind: DEFAULT_KIND })
 }
 
 /** Drops every filter and keeps the kind and the order. */

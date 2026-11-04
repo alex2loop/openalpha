@@ -154,7 +154,7 @@ function SectorSelect({
 
 // Choosing a kind asks for another board, so the board reads again; the first kind is the one the
 // market serves when none is asked.
-function KindSelect({
+export function KindSelect({
   market,
   view,
   kinds,
