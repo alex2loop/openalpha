@@ -355,7 +355,7 @@ export interface TradingHost {
   getReconcile(request: TradingSignalRequest): Promise<ReconcileView>
   listLedger(request: TradingLedgerPageRequest): Promise<Page<LedgerEntry, LedgerEntryId>>
   previewLedger(
-    request: Pick<TradingLedgerRecordRequest, 'draft' | 'signal'> &
+    request: Pick<TradingLedgerRecordRequest, 'draft' | 'signal' | 'typedPrice'> &
       Partial<TradingLedgerDeleteRequest>
   ): ReturnType<TradingServices['portfolio']['previewRecord']>
   recordLedger(request: TradingLedgerRecordRequest): Promise<LedgerWriteResult>

@@ -35,8 +35,13 @@ const LEDGER_BODY = z.object({
   draft: z.unknown(),
   typedPrice: z.enum(TYPED_PRICES).exactOptional(),
 })
-// An edit previews against the book without the row it replaces.
-const PREVIEW_BODY = z.object({ draft: z.unknown(), replacing: z.string().exactOptional() })
+// An edit previews against the book without the row it replaces; `typedPrice` asks the same price
+// check a save runs.
+const PREVIEW_BODY = z.object({
+  draft: z.unknown(),
+  replacing: z.string().exactOptional(),
+  typedPrice: z.enum(TYPED_PRICES).exactOptional(),
+})
 const SYNC_BODY: z.ZodType<LedgerSyncBody> = z.object({ venue: z.string().min(1) })
 
 async function handleLedgerList(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -86,6 +91,7 @@ async function handleLedgerPreview(req: Request, ctx: ApiRouteContext): Promise<
   const preview = await hostOf(ctx).previewLedger({
     draft: parsed.data.draft,
     ...(replacing === undefined ? {} : { entryId: replacing }),
+    ...(parsed.data.typedPrice === undefined ? {} : { typedPrice: parsed.data.typedPrice }),
     signal: req.signal,
   })
   const { transaction } = preview

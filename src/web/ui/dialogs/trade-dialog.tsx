@@ -30,17 +30,17 @@ import {
   toLedgerDraft,
   withStatedRate,
 } from '@/web/ui/dialogs/trade-kinds'
-import { PreviewRefusalNote } from '@/web/ui/dialogs/trade-refusal'
+import { FarPriceNote, PreviewRefusalNote } from '@/web/ui/dialogs/trade-refusal'
 import {
   buildTradeDraft,
   createTradeForm,
-  describeTrade,
   keyFor,
   newIdempotencyKey,
   snapshotTrade,
   type TradeForm,
   type TradeStart,
 } from '@/web/ui/dialogs/trade-state'
+import { describeTrade } from '@/web/ui/dialogs/trade-summary'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
@@ -100,6 +100,7 @@ function TradeBody({ open }: { readonly open: OpenTrade }) {
       <RateField form={form} />
       <FxFailure form={form} />
       {preview !== undefined && <p class="meta">{preview}</p>}
+      <FarPriceNote form={form} />
       <PreviewRefusalNote form={form} />
       {question.value !== undefined && (
         <PriceQuestion

@@ -1,5 +1,6 @@
 import { type Signal, signal } from '@preact/signals'
 
+import type { UnconfirmedPriceWire } from '@/app/server/wire/errors'
 import type { LedgerEntryWire, LedgerPreviewResponse } from '@/app/server/wire/money'
 import type { LedgerDraft, LedgerKind } from '@/web/state/trade'
 import type { FormFailure } from '@/web/ui/dialogs/field-errors'
@@ -13,11 +14,10 @@ import {
 } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { isAmbiguousGrouping } from '@/web/text/decimal'
-import { formatFieldFigure, formatPrice, formatQuantity } from '@/web/text/figures'
-import { formatMarketPrice, toWholeUnits } from '@/web/text/market-price'
+import { formatFieldFigure, formatPrice } from '@/web/text/figures'
+import { toWholeUnits } from '@/web/text/market-price'
 import { buildDayKey } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
-import { toVenueName } from '@/web/text/venue'
 import {
   bookedRate,
   marketCurrency,
@@ -90,6 +90,8 @@ export interface TradeForm {
   readonly fxRetry: Signal<number>
   /** The preview's refusal of the draft; it holds nothing back, the save asks the daemon again. */
   readonly refusal: Signal<PreviewRefusal | undefined>
+  /** The market price the daemon measured the typed one against, when it is too far from it. */
+  readonly farPrice: Signal<UnconfirmedPriceWire | undefined>
   readonly venues: Signal<readonly VenueChoice[]>
   readonly question: Signal<string | undefined>
   readonly failure: Signal<FormFailure | undefined>
@@ -124,6 +126,7 @@ export function createTradeForm(start: TradeStart): TradeForm {
     fxStatus: signal('idle'),
     fxRetry: signal(0),
     refusal: signal(undefined),
+    farPrice: signal(undefined),
     venues: signal([]),
     question: signal(undefined),
     failure: signal(undefined),
@@ -252,26 +255,6 @@ export function buildPreviewDraft(form: TradeForm): LedgerDraft | undefined {
 /** The market the typed name is booked in; absent while it is unknown. */
 export function marketOf(form: TradeForm): string | undefined {
   return resolveMarket(form, readTicker(form))
-}
-
-/** "Sẽ ghi: mua 100 FPT giá 125,00 tại VPS, ngày 22/10/2026."; absent until a trade is complete. */
-export function describeTrade(form: TradeForm): string | undefined {
-  const build = buildTradeDraft(form)
-
-  if (build.kind === 'invalid' || !('unitPrice' in build.draft)) {
-    return undefined
-  }
-
-  const { draft } = build
-
-  return tr('ui.office.trade.preview', {
-    side: tr(`trading.ledger.kind.${draft.kind}`),
-    quantity: formatQuantity(draft.quantity),
-    ticker: draft.instrument.ticker,
-    price: formatMarketPrice(draft.instrument.market, draft.unitPrice),
-    venue: toVenueName(draft.venue),
-    day: formatDay(locale.value, draft.at),
-  })
 }
 
 /** The key to send the draft under: a new one whenever the body changed since the last attempt,

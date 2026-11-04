@@ -1,6 +1,9 @@
 import type { ApiFailure } from '@/web/api/client'
 import type { LedgerDraft } from '@/web/state/trade'
 import type { PreviewRefusal, TradeForm } from '@/web/ui/dialogs/trade-state'
+import { formatDay } from '@/i18n'
+import { locale } from '@/web/state/session'
+import { formatMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { toVenueName } from '@/web/text/venue'
 import { pickKind } from '@/web/ui/dialogs/trade-fields'
@@ -54,6 +57,31 @@ export function PreviewRefusalNote({ form }: { readonly form: TradeForm }) {
           })}
         </Button>
       )}
+    </div>
+  )
+}
+
+/** The typed price against the market's own, when the daemon found them too far apart: a warning,
+ *  since the save asks the operator to confirm the price and has the last word. */
+export function FarPriceNote({ form }: { readonly form: TradeForm }) {
+  const far = form.farPrice.value
+
+  if (far === undefined) {
+    return null
+  }
+
+  const { market, ticker } = far.instrument
+
+  return (
+    <div class="strip is-caution" role="alert">
+      <span>
+        {tr('ui.office.trade.priceFar', {
+          ticker,
+          price: formatMarketPrice(market, far.price),
+          latest: formatMarketPrice(market, far.latest.price),
+          day: formatDay(locale.value, far.latest.at),
+        })}
+      </span>
     </div>
   )
 }

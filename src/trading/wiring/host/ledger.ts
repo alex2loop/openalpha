@@ -119,6 +119,7 @@ function previewLedger(
       deps.services.portfolio.previewRecord({
         draft: parseDraft(schemas.record, request.draft),
         ...(request.entryId === undefined ? {} : { replacing: request.entryId }),
+        ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
         now: scope.now,
         signal: scope.signal,
       })

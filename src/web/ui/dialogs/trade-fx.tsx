@@ -10,7 +10,7 @@ import { previewLedger } from '@/web/state/trade'
 import { formatFieldFigure } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { TextField } from '@/web/ui/dialogs/trade-fields'
-import { currencyOf } from '@/web/ui/dialogs/trade-kinds'
+import { currencyOf, shapeOf } from '@/web/ui/dialogs/trade-kinds'
 import { toPreviewRefusal } from '@/web/ui/dialogs/trade-refusal'
 import { buildPreviewDraft, type TradeForm } from '@/web/ui/dialogs/trade-state'
 import { Button } from '@/web/ui/kit/button'
@@ -32,6 +32,7 @@ export function usePreview(form: TradeForm): void {
 
   useEffect(() => {
     form.refusal.value = undefined
+    form.farPrice.value = undefined
 
     // An incomplete draft keeps the last rate answer and is refused on save as it stands.
     if (draft === undefined) {
@@ -72,8 +73,13 @@ function askPreview(
 ): void {
   const { draft, isRated, signal } = ask
   const replacing = form.start.entry?.id
+  const request = { draft, ...(replacing === undefined ? {} : { replacing }) }
 
-  previewLedger({ draft, ...(replacing === undefined ? {} : { replacing }) }, signal).then(
+  if (shapeOf(draft.kind) === 'priced') {
+    askPriceCheck(form, request, signal)
+  }
+
+  previewLedger(request, signal).then(
     (answer) => {
       if (!signal.aborted) {
         applyRate(form, answer.fxRate)
@@ -101,6 +107,20 @@ function askPreview(
       applyRate(form, undefined)
     }
   )
+}
+
+// The save's price check, asked apart from the book's: it answers before the cash check does, so one
+// ask would show only the price. Any answer but a price too far from the market is the other ask's.
+function askPriceCheck(
+  form: TradeForm,
+  request: { readonly draft: LedgerDraft; readonly replacing?: string },
+  signal: AbortSignal
+): void {
+  previewLedger({ ...request, typedPrice: 'unconfirmed' }, signal).catch((error: unknown) => {
+    if (!signal.aborted && error instanceof ApiFailure && error.code === 'price_unconfirmed') {
+      form.farPrice.value = error.unconfirmedPrice
+    }
+  })
 }
 
 // The field keeps a rate the operator typed; one still showing the last market rate follows the

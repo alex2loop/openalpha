@@ -119,6 +119,7 @@ function assertAffordable(state: FoldState, txn: LedgerTxn): void {
 
   if (isShortfall(available, outflow)) {
     const held = inRowCurrency(state, txn, Math.max(available, 0))
+    const needed = inRowCurrency(state, txn, outflow)
 
     throw new ValidationError(
       `${txn.kind} on ${txn.at} needs more settled cash than ${venue} holds`,
@@ -128,6 +129,7 @@ function assertAffordable(state: FoldState, txn: LedgerTxn): void {
           venue: venueParam(venue),
           day: { day: txn.at },
           available: moneyParam(held.amount, held.currency),
+          needed: moneyParam(needed.amount, needed.currency),
           currency: held.currency,
         },
       }
