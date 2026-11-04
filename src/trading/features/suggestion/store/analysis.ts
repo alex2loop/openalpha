@@ -69,9 +69,12 @@ const payloadSchema = z.strictObject({
     })
     .optional(),
   currency: z.string().optional(),
-  sector: z.strictObject({ code: z.string(), medians: factorMetricsSchema }).optional(),
   // A block a later build cannot read costs that block, never the analysis around it: a renamed
-  // event kind or series id would otherwise leave the whole row off the page.
+  // event kind, metric id or series id would otherwise leave the whole row off the page.
+  sector: z
+    .strictObject({ code: z.string(), medians: factorMetricsSchema })
+    .optional()
+    .catch(undefined),
   upcoming: z
     .array(
       z.strictObject({
