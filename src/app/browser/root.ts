@@ -62,6 +62,8 @@ export interface BrowserRoot {
   readonly files: DatabaseFiles
   /** Settles when another tab takes the database. */
   readonly lost: Promise<void>
+  /** Runs the upkeep pass now if the last one is an interval old; the page calls it on waking. */
+  wake(): void
   /** Releases the live feed and the database; safe to call twice. */
   close(): Promise<void>
 }
@@ -205,7 +207,7 @@ function assembleRoot(parts: AssembleParts): BrowserRoot {
   const chat = createChatClient(app)
   const capabilities = buildCapabilities(app)
   // Started after everything that can throw, so a failed assembly never leaves it running.
-  const stopUpkeep = startBrowserUpkeep(app, app.resolve('logger'))
+  const upkeep = startBrowserUpkeep(app, app.resolve('logger'))
 
   return {
     app,
@@ -214,11 +216,12 @@ function assembleRoot(parts: AssembleParts): BrowserRoot {
     capabilities,
     files: opened.files,
     lost: opened.lost,
+    wake: upkeep.runIfDue,
     close: () => {
       closed ??= (async () => {
         shutdown.abort()
         live.stop()
-        await stopUpkeep()
+        await upkeep.stop()
         await opened.storage.close()
       })()
 

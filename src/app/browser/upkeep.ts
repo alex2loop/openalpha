@@ -7,7 +7,7 @@ import {
   runPortableRetention,
 } from '@/app/portable-retention'
 import { notifyPass, reportPass } from '@/core/container'
-import { createPeriodicPass } from '@/core/periodic-pass'
+import { createPeriodicPass, type PeriodicPass } from '@/core/periodic-pass'
 import { formatErrForLog } from '@/core/security/credentials'
 import { StorageFullError } from '@/persistence/api'
 
@@ -36,8 +36,8 @@ interface UpkeepContext {
  *  use, then the database sweep, now and every few hours. The first refresh of an empty profile is
  *  the history backfill: the market writes the history a window at a time, and the sweep waits for
  *  it. The returned stop ends the schedule and waits out the pass in flight (the app's own signal
- *  cuts a long refresh short first). */
-export function startBrowserUpkeep(app: App, logger: Logger): () => Promise<void> {
+ *  cuts a long refresh short first); `runIfDue` is the page's nudge after a sleep. */
+export function startBrowserUpkeep(app: App, logger: Logger): PeriodicPass {
   const context: UpkeepContext = { app, logger, storageFull: false }
 
   return createPeriodicPass({

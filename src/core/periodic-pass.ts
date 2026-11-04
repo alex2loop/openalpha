@@ -7,18 +7,27 @@ interface PeriodicPassOptions {
   readonly onError: (err: unknown) => void
 }
 
+export interface PeriodicPass {
+  /** Clears the timer and waits out the pass in flight; safe to call twice. */
+  readonly stop: () => Promise<void>
+  /** Runs a pass now when the last one started at least `everyMs` ago by the wall clock, which
+   *  keeps counting while a sleeping machine's timers do not; otherwise does nothing. */
+  readonly runIfDue: () => void
+}
+
 /** Runs `pass` now and every `everyMs`, never two at once: a tick that finds one in flight is
- *  skipped. A failed pass is reported and waits for the next tick. The returned stop clears the
- *  timer and waits out the pass in flight, and is safe to call twice. */
-export function createPeriodicPass(options: PeriodicPassOptions): () => Promise<void> {
+ *  skipped. A failed pass is reported and waits for the next tick. */
+export function createPeriodicPass(options: PeriodicPassOptions): PeriodicPass {
   let inFlight: Promise<void> | null = null
   let stopped = false
+  let lastStartedAt = 0
 
   const run = (): void => {
     if (stopped || inFlight !== null) {
       return
     }
 
+    lastStartedAt = Date.now()
     inFlight = attempt(options.pass)
       .catch((err: unknown) => reportQuietly(options.onError, err))
       .finally(() => {
@@ -32,13 +41,20 @@ export function createPeriodicPass(options: PeriodicPassOptions): () => Promise<
   // The first pass is not deferred an interval: whatever accrued while nothing ran is due now.
   run()
 
-  return async () => {
-    stopped = true
-    clearInterval(timer)
+  return {
+    stop: async () => {
+      stopped = true
+      clearInterval(timer)
 
-    if (inFlight !== null) {
-      await inFlight
-    }
+      if (inFlight !== null) {
+        await inFlight
+      }
+    },
+    runIfDue: () => {
+      if (Date.now() - lastStartedAt >= options.everyMs) {
+        run()
+      }
+    },
   }
 }
 

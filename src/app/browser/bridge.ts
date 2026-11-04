@@ -100,6 +100,11 @@ async function dispatchCall(call: WorkerCall, ctx: BridgeContext): Promise<void>
           await start(ctx, false)
         }
       })
+    case 'wake':
+      // No root yet, or one just released: the start that follows runs its own first pass.
+      state.root?.wake()
+
+      return
     case 'http':
       return serveHttp(ctx, call)
     case 'frame':

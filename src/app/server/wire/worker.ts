@@ -34,11 +34,13 @@ export interface BrowserKeys {
 }
 
 /** Page -> worker. `start` opens the database and boots the engine; `steal` takes the database from
- *  another tab. `http` answers with an `http` reply of the same `id`; `abort` cancels one by `id`. */
+ *  another tab. `wake` says the page is back in view or online: the engine refreshes if a pass is
+ *  due. `http` answers with an `http` reply of the same `id`; `abort` cancels one by `id`. */
 export type WorkerCall =
   | { kind: 'start'; locale: Locale; keys: BrowserKeys; steal: boolean }
   | { kind: 'keys'; keys: BrowserKeys }
   | { kind: 'locale'; locale: Locale }
+  | { kind: 'wake' }
   | {
       kind: 'http'
       id: string

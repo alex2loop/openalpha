@@ -37,7 +37,7 @@ export function startRetention(
     onError: (err) => {
       logger.warn('retention.failed', { err: formatErrForLog(err) })
     },
-  })
+  }).stop
 }
 
 async function runRetentionSweep(app: App, logger: Logger): Promise<void> {

@@ -64,6 +64,7 @@ export function startEdition(keys: () => BrowserKeys): () => void {
   setFeedSocketFactory((deps) => createWorkerFeedSocket(next, deps))
   next.addEventListener('message', onReply, { signal: lifetime.signal })
   next.addEventListener('error', () => refuse('worker-failed'), { signal: lifetime.signal })
+  watchWake(lifetime.signal)
   start(false)
 
   stopWorker = () => {
@@ -75,6 +76,23 @@ export function startEdition(keys: () => BrowserKeys): () => void {
   }
 
   return stopEdition
+}
+
+// A sleeping laptop stalls the worker's timers: coming back into view or back online asks the engine
+// to refresh if a pass is due.
+function watchWake(lifetime: AbortSignal): void {
+  const wake = (): void => postToWorker({ kind: 'wake' })
+
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (document.visibilityState === 'visible') {
+        wake()
+      }
+    },
+    { signal: lifetime }
+  )
+  addEventListener('online', wake, { signal: lifetime })
 }
 
 function hasBrowserSupport(): boolean {
