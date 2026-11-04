@@ -116,6 +116,7 @@ button.research-row {
 
 .opportunity {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: flex-start;
   padding: 9px 0;
@@ -128,6 +129,12 @@ button.research-row {
 
 .opportunity-main {
   flex: 1;
+  min-width: 0;
+}
+
+/* What was read for the name runs the card's full width, under the name and its buttons. */
+.opportunity-body {
+  flex: 1 0 100%;
   min-width: 0;
 }
 

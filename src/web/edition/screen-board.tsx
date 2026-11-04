@@ -265,13 +265,15 @@ function NameRow({
             <span class="screen-sector">{sectorName(candidate.sector)}</span>
           )}
         </p>
-        <FactGrid facts={candidate.facts ?? []} />
-        <NameNotes candidate={candidate} />
-        {failure.value !== undefined && <p class="failure-line">{failure.value}</p>}
       </div>
       <div class="opportunity-ask">
         <AnalyzeButton name={`${market}:${ticker}`} isAnalyzed={false} size="small" />
         <WatchButton ticker={ticker} market={market} failure={failure} size="small" />
+      </div>
+      <div class="opportunity-body">
+        <FactGrid facts={candidate.facts ?? []} />
+        <NameNotes candidate={candidate} />
+        {failure.value !== undefined && <p class="failure-line">{failure.value}</p>}
       </div>
     </div>
   )

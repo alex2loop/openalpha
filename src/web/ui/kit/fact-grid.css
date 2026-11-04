@@ -20,27 +20,24 @@
   margin: 0;
 }
 
-/* The label takes what the value leaves; a value too long to sit beside it wraps under, on the
-   right, rather than over it. */
+/* The label takes what the value leaves and wraps itself; the value always holds the right edge,
+   with the name's place among its peers on a muted line under it. */
 .fact {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  justify-content: space-between;
   gap: 0 var(--s2);
   padding: 2px 0;
   font: var(--typeBody);
 }
 
 .fact > dt {
-  flex: 1 1 auto;
   min-width: 0;
   color: var(--ink2);
 }
 
 .fact > dd {
-  flex: 0 1 auto;
-  max-width: 100%;
+  max-width: 60vw;
   margin: 0;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -48,6 +45,7 @@
 }
 
 .fact-rank {
+  display: block;
   color: var(--ink3);
   font-size: var(--sizeCaption);
 }

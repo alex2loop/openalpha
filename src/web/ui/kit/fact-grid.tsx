@@ -1,7 +1,6 @@
 import { useSignal } from '@preact/signals'
 
 import type { ScreenFactWire } from '@/app/server/wire/market'
-import { INLINE_SEPARATOR } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
 import './fact-grid.css'
@@ -15,7 +14,7 @@ const GROUPS: readonly ScreenFactWire['group'][] = Object.freeze([
 ])
 
 /** What the daemon read for a name, laid out as it lists it: a heading per group, each fact a label
- *  on the left and its value on the right with the name's place among its peers as a muted suffix.
+ *  on the left and its value on the right with the name's place among its peers muted under it.
  *  The rarely needed readings wait behind a toggle. */
 export function FactGrid({ facts }: { readonly facts: readonly ScreenFactWire[] }) {
   const isMore = useSignal(false)
@@ -67,9 +66,7 @@ function FactGroup({
             <dt>{label}</dt>
             <dd>
               {value}
-              {rank !== undefined && (
-                <span class="fact-rank">{` ${INLINE_SEPARATOR} ${rank}`}</span>
-              )}
+              {rank !== undefined && <span class="fact-rank">{rank}</span>}
             </dd>
           </div>
         ))}

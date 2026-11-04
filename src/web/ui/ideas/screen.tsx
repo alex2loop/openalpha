@@ -257,7 +257,6 @@ function Opportunity({
             {line}
           </p>
         ))}
-        <FactGrid facts={facts} />
       </div>
       <div class="opportunity-ask">
         <AnalyzeButton
@@ -265,6 +264,9 @@ function Opportunity({
           isAnalyzed={ticker !== undefined && analyzed.has(ticker)}
           size="small"
         />
+      </div>
+      <div class="opportunity-body">
+        <FactGrid facts={facts} />
       </div>
     </div>
   )
