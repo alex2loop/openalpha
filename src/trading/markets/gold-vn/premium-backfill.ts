@@ -364,8 +364,8 @@ function coveredSpan(
   return { fromDay, toDay }
 }
 
-/** A day the history reached and found no board on: the counter published nothing. A day outside
- *  the span is one this fetch never covered, which a later one may. */
+/** A day the history reached and found no board on, or one before where the vendor's history
+ *  starts: neither is coming. A day past the span's end is one a later fetch may still bring. */
 function isUnpublished(operands: Operands, day: TradingDay): boolean {
   const { covered } = operands
 
@@ -373,7 +373,7 @@ function isUnpublished(operands: Operands, day: TradingDay): boolean {
     return false
   }
 
-  return day >= covered.fromDay && day <= covered.toDay
+  return day <= covered.toDay
 }
 
 /** `historyPremiumOf` computes the premium; this only assembles the day's operands and refuses the
