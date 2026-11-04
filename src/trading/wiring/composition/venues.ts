@@ -4,6 +4,7 @@ import type { TradingConfig } from '@/trading/kernel/config'
 import type { VenueListings } from '@/trading/kernel/venue/catalog'
 import type { VenueRegistry } from '@/trading/venues/types'
 import type { TradingEdition } from '@/trading/wiring/composition/edition'
+import { TRADE_COMMAND_NAME } from '@/trading/features/order/types'
 import { marketRef, venueRef } from '@/trading/kernel/instrument'
 import { createBinanceVenue } from '@/trading/venues/binance/venue'
 import { createVenueListings } from '@/trading/venues/listings'
@@ -82,6 +83,12 @@ function registerVenues(venues: VenueRegistry, options: VenueOptions, logger: Lo
   }
 
   venues.close()
+
+  // A missing exchange key matters only where orders can be placed; an edition without `/trade`
+  // never reads one.
+  if (options.edition?.commands?.has(TRADE_COMMAND_NAME) === false) {
+    return
+  }
 
   for (const venue of venues.list()) {
     const { id, missingCredentials } = venue.manifest
