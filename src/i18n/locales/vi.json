@@ -334,7 +334,6 @@
     "office.edition.compare.cost.installed": "Bản cài cho thấy chi phí mỗi phiên chạy và có hạn mức chi theo ngày, theo tháng và theo từng phiên chạy (tùy chọn).",
     "office.edition.compare.cost.reason": "Trang có một hạn mức chi theo ngày để chặn chạy quá tay, nhưng nó tính theo giá niêm yết nên chỉ là ước tính; hạn mức thật là hạn mức bạn đặt cho key ở nhà cung cấp.",
     "office.edition.legal.version": "Bản web {brand}. Phiên bản {policyVersion}, có hiệu lực từ {effectiveDate}. Bản tiếng Việt là bản chuẩn.",
-    "office.edition.legal.missing": "**[chưa điền: {field}]**",
     "office.edition.legal.back": "Quay lại",
     "office.edition.legal.privacy.title": "Chính sách quyền riêng tư",
     "office.edition.legal.privacy.s1": "## 1. Tóm tắt\n\n- Sổ giao dịch, danh mục, kết quả phân tích và key của bạn nằm trong trình duyệt của bạn. Bên vận hành không nhận, không lưu và không xem chúng.\n- Bản web không có tài khoản. Nó không hỏi email, số điện thoại hay bất kỳ thông tin liên lạc nào của bạn, và trang không đặt cookie.\n- Khi bạn dùng một tính năng AI (`/suggest`, `/research`), trình duyệt của bạn gửi nội dung thẳng tới nhà cung cấp bạn chọn, bằng key của bạn. Trang nói rõ gửi gì và tới ai, và bạn đồng ý riêng cho từng nhà cung cấp trước lần gửi đầu tiên.\n- Trang được phục vụ dưới dạng tệp tĩnh. Bên vận hành không bật phân tích truy cập hay nhật ký do mình quản lý, và không đọc hay xuất nhật ký nào. Cloudflare, bên phục vụ trang, xử lý yêu cầu theo chính sách của họ (mục 7).",

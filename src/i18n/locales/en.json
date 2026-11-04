@@ -334,7 +334,6 @@
     "office.edition.compare.cost.installed": "The installed version shows the cost of each run and has optional daily, monthly and per-run spend limits.",
     "office.edition.compare.cost.reason": "The page has a daily spend limit of its own to stop a run getting out of hand, but it counts at list prices so it is only an estimate; the real limit is the one you set on your key at the provider.",
     "office.edition.legal.version": "{brand} web version. Version {policyVersion}, effective {effectiveDate}. The Vietnamese text is authoritative.",
-    "office.edition.legal.missing": "**[not filled in: {field}]**",
     "office.edition.legal.back": "Back",
     "office.edition.legal.privacy.title": "Privacy policy",
     "office.edition.legal.privacy.s1": "## 1. Summary\n\n- Your ledger, portfolio, analysis results and keys live in your browser. The operator does not receive, store or see them.\n- The web version has no accounts. It does not ask for your email, phone number or any other contact detail, and the page sets no cookie.\n- When you use an AI feature (`/suggest`, `/research`), your browser sends the content straight to the provider you chose, with your key. The page says what is sent and to whom, and you consent separately for each provider before the first send.\n- The page is served as static files. The operator turns on no traffic analytics or logs of its own, and neither reads nor exports any log. Cloudflare, which serves the page, handles requests under its own policy (section 7).",
