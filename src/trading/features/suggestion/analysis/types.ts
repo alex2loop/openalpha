@@ -59,6 +59,9 @@ export interface AnalysisRecord {
   readonly at: TradingDay
   /** The newest settled session the readings stand on. Absent when no bar series reached the run. */
   readonly evidenceThrough?: TradingDay
+  /** The settled close on `evidenceThrough`, in the market's own price units: the price the run
+   *  stands on. Absent when no bar series reached the run, and on a row stored before it was kept. */
+  readonly evidenceClose?: number
   readonly authoredLocale: Locale
   readonly createdAt: number
   readonly result: AnalysisResult

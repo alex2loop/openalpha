@@ -5970,6 +5970,8 @@
     "analysis.figures-events": "Sự kiện sắp tới",
     "analysis.figures-market": "Bối cảnh thị trường",
     "analysis.breadth": "Phiên gần nhất: {advancers} mã tăng, {decliners} mã giảm",
+    "analysis.price-run": "Giá lúc phân tích {price}",
+    "analysis.price-now": "Hiện tại {price} ({change})",
     "render.metric.row": "{label}: {value}",
     "analysis.web-scope": "Bản web đưa phân tích hai chiều để bạn tự cân nhắc. Xem thêm khác biệt với bản cài trên máy.",
     "analysis.not-finished": "Mình chưa phân tích xong ({reason}) nên chưa lưu gì.",

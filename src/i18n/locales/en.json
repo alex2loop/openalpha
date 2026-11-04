@@ -5970,6 +5970,8 @@
     "analysis.figures-events": "Upcoming events",
     "analysis.figures-market": "Market backdrop",
     "analysis.breadth": "Latest session: {advancers} advancers, {decliners} decliners",
+    "analysis.price-run": "Price when analysed {price}",
+    "analysis.price-now": "Now {price} ({change})",
     "render.metric.row": "{label}: {value}",
     "analysis.web-scope": "The web edition gives you both sides to weigh yourself. See how it differs from the installed version.",
     "analysis.not-finished": "I could not finish this analysis ({reason}), so I saved nothing.",

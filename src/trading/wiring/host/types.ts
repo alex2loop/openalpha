@@ -367,8 +367,11 @@ export interface TradingHost {
   /** The decision card for one stored suggestion, in the operator's language; `null` for an id the
    *  store does not hold. */
   getSuggestionCard(request: TradingSuggestionRequest): Promise<SuggestionCard | null>
-  /** What analysis-only runs stored, newest first. */
-  listAnalyses(request: TradingAnalysesRequest): Promise<Page<AnalysisRecord, AnalysisId>>
+  /** What analysis-only runs stored, newest first, each with the name's price now (`last`, in the
+   *  units of its stored close) where a quote could be read. */
+  listAnalyses(
+    request: TradingAnalysesRequest
+  ): Promise<Page<AnalysisRecord & { readonly last?: number }, AnalysisId>>
   /** One stored suggestion as it was written; `null` for an id the store does not hold. */
   getSuggestion(request: TradingSuggestionRequest): Promise<StoredSuggestion | null>
   getTrackRecord(request: TradingTrackRecordRequest): Promise<TradingTrackRecordView>

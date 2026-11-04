@@ -101,7 +101,7 @@ exchange answers again.
 **Analyses.** `suggestion_analyses` keeps what an analysis-only run read and argued: the bull and bear
 case with the claims the evidence checked, kept apart from `suggestions` because it names no verdict,
 size, entry, stop or target and so is never scored. It is durable, since a read is a model's answer
-on a bundle that cannot be rebuilt. The installed daemon's own `/suggest` writes none; the rows
+on a bundle that cannot be rebuilt. It also keeps the settled close the run stood on, which the list sets beside the price now; a row stored before that has none and shows no price line. The installed daemon's own `/suggest` writes none; the rows
 arrive from a database restored from the web edition and are listed by `GET /v1/analyses`.
 Every view of one opens with a line saying it is AI-generated, naming the models when the record has them, and none ends by weighing one side over the other.
 

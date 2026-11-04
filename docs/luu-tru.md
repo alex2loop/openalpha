@@ -105,7 +105,7 @@ không cho điều đó xảy ra.
 **Phân tích.** `suggestion_analyses` giữ những gì một lần chạy chỉ-phân-tích đã đọc và lập luận: bên tăng, bên
 giảm và các luận điểm mà dữ liệu đã đối chiếu. Bảng tách khỏi `suggestions` vì nó không nêu kết luận, khối
 lượng, giá vào, cắt lỗ hay mục tiêu nên không bao giờ được chấm điểm. Bảng này bền, vì một nhận định là câu
-trả lời của mô hình trên một gói bằng chứng không thể dựng lại. `/suggest` của bản cài trên máy không ghi
+trả lời của mô hình trên một gói bằng chứng không thể dựng lại. Bảng còn giữ giá đóng cửa của phiên mà lần chạy dựa vào, danh sách đặt nó cạnh giá hiện tại; dòng cũ hơn không có giá này nên không hiện dòng giá. `/suggest` của bản cài trên máy không ghi
 dòng nào; các dòng đến từ cơ sở dữ liệu khôi phục từ bản web và được `GET /v1/analyses` liệt kê.
 Mọi màn hình hiển thị một nhận định đều mở đầu bằng dòng nói đây là nội dung do AI tạo và nêu tên các mô hình khi bản ghi có, và không màn nào kết thúc bằng việc nghiêng về một bên.
 

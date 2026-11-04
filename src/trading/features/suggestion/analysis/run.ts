@@ -173,6 +173,7 @@ function toRecord(parts: RecordParts): AnalysisRecord {
     ...boardScaleOf(subject.market.manifest),
     caveats: read.evidence.caveats,
     ...(read.evidenceThrough === undefined ? {} : { evidenceThrough: read.evidenceThrough }),
+    ...(read.evidenceClose === undefined ? {} : { evidenceClose: read.evidenceClose }),
   }
 }
 
@@ -221,6 +222,7 @@ interface EvidenceRead {
   /** What the run read beside the factors: the sector, the dated events and the market's backdrop. */
   readonly context: Pick<AnalysisRecord, 'sector' | 'upcoming' | 'backdrop'>
   readonly evidenceThrough?: TradingDay
+  readonly evidenceClose?: number
   readonly evidence: CaseEvidence
 }
 
@@ -271,7 +273,7 @@ async function readEvidence(
       ...upcomingOf(calendar.events, asOf),
       ...backdropOf(beside.macro, nameContext?.breadth),
     },
-    ...(evidenceThrough === undefined ? {} : { evidenceThrough }),
+    ...(newest === undefined ? {} : { evidenceThrough: newest.at, evidenceClose: newest.close }),
   }
 }
 

@@ -11,9 +11,10 @@ export interface AnalysisWire {
   readonly at: string
   readonly authoredLocale: Locale
   readonly createdAt: number
-  /** The text `/suggest` answers with, written again in the request's language: the AI label, both
-   *  sides, what the evidence refuted, the figures read, the sources and the closing lines. The one
-   *  layout of an analysis, so the list and the chat cannot differ. */
+  /** The text `/suggest` answers with, written again in the request's language: the AI label, the
+   *  price when analysed and now, both sides, what the evidence refuted, the figures read, the
+   *  sources and the closing lines. The one layout of an analysis, so the list and the chat cannot
+   *  differ. */
   readonly text: string
 }
 

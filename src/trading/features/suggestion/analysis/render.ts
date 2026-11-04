@@ -16,13 +16,14 @@ import { renderCaveatLines } from '@/trading/render/caveat'
 import { describeEvent } from '@/trading/render/event'
 import {
   formatCount,
+  formatSignedFixedPercent,
   renderDeclaredValue,
   renderProvidedValue,
   SECTION_ICONS,
 } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR, joinSections, renderSectionTitle } from '@/trading/render/layout'
 import { formatUnitValue, metricFacts, renderMetricLine } from '@/trading/render/metric'
-import { renderBoardScaleNotes } from '@/trading/render/money'
+import { formatPriceIn, renderBoardScaleNotes } from '@/trading/render/money'
 
 type AnalysisSide = Extract<ArguingRole, 'bull-researcher' | 'bear-researcher'>
 
@@ -41,6 +42,8 @@ const SIDES = {
 } as const satisfies Record<AnalysisSide, unknown>
 
 const SIDE_ORDER = Object.freeze(['bull-researcher', 'bear-researcher'] as const)
+
+const PERCENT_PER_UNIT = 100
 
 /** The ceilings a call is refused at before it is sent, when its estimated cost would cross one: a
  *  single call above the run's ceiling, which a cheaper model fixes, or a period already spent. */
@@ -143,13 +146,15 @@ const FIGURE_GROUP_OF = Object.freeze({
 /** Both sides, what the evidence refuted, and what would make each wrong, in the reader's language.
  *  There is no verdict to print: none was produced, and nothing here weighs one side over the
  *  other. The AI label opens it and the install line closes it, both fixed and never conditional,
- *  so no view of an analysis can omit them. */
-export function renderAnalysisText(locale: Locale, record: AnalysisRecord): string {
+ *  so no view of an analysis can omit them. `last` is the name's price now, in the same units as
+ *  the close the run stood on, for a view that has read one. */
+export function renderAnalysisText(locale: Locale, record: AnalysisRecord, last?: number): string {
   const { result } = record
   const cases = { 'bull-researcher': result.bull, 'bear-researcher': result.bear }
 
   return joinSections([
     [renderAiLabel(locale, result.models)],
+    renderPriceLines(locale, record, last),
     ...SIDE_ORDER.map((side) =>
       renderCaseLines(locale, { side, record, analysisCase: cases[side] })
     ),
@@ -164,6 +169,39 @@ export function renderAnalysisText(locale: Locale, record: AnalysisRecord): stri
     renderCaveatLines(locale, record.caveats),
     closingLines(locale, record),
   ])
+}
+
+/** The price the run stood on and, where a quote was read, the price now and how far it moved
+ *  since: a plain price change, not a call. A row stored before the close was kept states neither. */
+function renderPriceLines(
+  locale: Locale,
+  record: AnalysisRecord,
+  last: number | undefined
+): readonly string[] {
+  const { evidenceClose: close, boardScale, currency } = record
+
+  if (close === undefined || !(close > 0)) {
+    return []
+  }
+
+  const quote = {
+    ...(currency === undefined ? {} : { currency }),
+    ...(boardScale === undefined ? {} : { display: boardScale.display }),
+  }
+  const parts = [
+    t(locale, 'trading.analysis.price-run', { price: formatPriceIn(locale, close, quote) }),
+  ]
+
+  if (last !== undefined && Number.isFinite(last)) {
+    parts.push(
+      t(locale, 'trading.analysis.price-now', {
+        price: formatPriceIn(locale, last, quote),
+        change: formatSignedFixedPercent(locale, (last / close - 1) * PERCENT_PER_UNIT),
+      })
+    )
+  }
+
+  return [parts.join(INLINE_SEPARATOR), ...renderScaleNotes(locale, record)]
 }
 
 interface CaseView {

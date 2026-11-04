@@ -59,6 +59,8 @@ const payloadSchema = z.strictObject({
     models: z.array(z.string()),
   }),
   citations: z.array(citationSchema),
+  // Absent on a row stored before the analysis kept the close it stood on.
+  evidenceClose: z.number().optional(),
   // Absent on a row stored before the analysis kept what it read.
   headlines: z.array(citationSchema).default([]),
   figures: factorMetricsSchema.default([]),
@@ -158,6 +160,7 @@ async function create(
       JSON.stringify({
         authoredLocale: record.authoredLocale,
         result: record.result,
+        evidenceClose: record.evidenceClose,
         citations: record.citations,
         headlines: record.headlines,
         figures: record.figures,
@@ -255,6 +258,7 @@ function toRecord(row: AnalysisRow): AnalysisRecord {
     caveats: payload.caveats,
     ...contextOf(payload),
     ...(row.evidence_through === null ? {} : { evidenceThrough: tradingDay(row.evidence_through) }),
+    ...(payload.evidenceClose === undefined ? {} : { evidenceClose: payload.evidenceClose }),
   }
 }
 
