@@ -107,7 +107,7 @@ Bản web chỉ đọc được những nguồn cho phép trình duyệt gọi t
 | Vàng thế giới giao ngay | Giá vàng thế giới lấy theo PAXG trên Binance, có thể lệch dưới 1% so với giá giao ngay; vàng trong nước vẫn có |
 | Thành phần VN30 và VN100 | Nguồn duy nhất trình duyệt đọc được đang đăng một danh sách mà ứng dụng từ chối, nên bảng yếu tố không biết mã thuộc rổ nào |
 | Báo cáo tài chính năm của cổ phiếu VN | Các yếu tố dựa trên báo cáo ấy thiếu ở bảng của bản web; bảng nói rõ yếu tố nào |
-| Phần lớn nguồn tin | Còn tin từ VNDIRECT (cổ phiếu VN) và CNBC (kinh tế, thị trường Mỹ). Tab Tin tức của bảng Thị trường cho Việt Nam để trống và có dòng giải thích; tin của từng mã VN vẫn có ở trang mã |
+| Phần lớn nguồn tin | Còn tin từ VNDIRECT (cổ phiếu VN) và CNBC (kinh tế, thị trường Mỹ). Tab Tin tức của bảng Thị trường cho Việt Nam để trống và có dòng giải thích; tin của từng mã cổ phiếu VN vẫn được đọc làm bằng chứng khi bạn chạy `/suggest` cho mã đó |
 
 Nguồn có thể đổi hoặc chặn trình duyệt bất cứ lúc nào; khi đó tính năng cần nó tạm dừng và trang nói rõ. Bản cài đọc đủ các nguồn trên, có nguồn dự phòng khi một nguồn lỗi.
 

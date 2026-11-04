@@ -1657,7 +1657,7 @@
     "office.news.none": "Chưa có tin nào. Nguồn tin vẫn phản hồi bình thường.",
     "office.news.noMatch": "Không có tin nào khớp \"{query}\".",
     "office.news.failed": "Mình chưa đọc được nguồn tin, nên đây không phải là \"không có tin\".",
-    "office.news.unserved": "Bản web chưa đọc được tin thị trường {region}: các nguồn tin này không cho trình duyệt đọc. Tin của từng mã vẫn có ở trang mã.",
+    "office.news.unserved": "Bản web chưa đọc được tin thị trường {region}: các nguồn tin này không cho trình duyệt đọc. Tin của từng mã cổ phiếu VN vẫn được đọc khi bạn phân tích mã đó.",
     "office.themes.rerun": "Chạy lại",
     "office.themes.running": "Đang chạy...",
     "office.themes.proposed": "Chủ đề mới chờ bạn quyết",
