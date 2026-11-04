@@ -10,11 +10,6 @@ import {
   renderMacroHeading,
   renderMacroSections,
 } from '@/trading/features/market-data/render/macro'
-import {
-  type OverviewFactSection,
-  renderOverviewSection,
-  toOverviewFacts,
-} from '@/trading/features/market-data/render/overview-facts'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { wholeMarketSections } from '@/trading/markets/overview-sections'
 import { renderCaveatLines } from '@/trading/render/caveat'
@@ -29,7 +24,8 @@ import {
   renderProvenanceLine,
   renderSectionTitle,
 } from '@/trading/render/layout'
-import { renderBlockRule } from '@/trading/render/section'
+import { renderBlockRule, renderBriefSection, renderSectionHeading } from '@/trading/render/section'
+import { type SectionFact, toSectionFacts } from '@/trading/render/section-facts'
 
 /** Everything the read carries, so the renderer never asks a service for a second one. The macro
  *  read is the region's, not any market's: its drivers price every asset in the message, which is
@@ -86,10 +82,17 @@ export function renderOverviewText(
  *  the premium sits among past sessions) is left out; the app states the reading and leaves the
  *  placing. */
 interface OverviewSurfaceText {
-  readonly sections: readonly OverviewFactSection[]
+  readonly sections: readonly OverviewSurfaceSection[]
   /** The line the CLI ends the block on: which sources the sections came from, and when. Present
    *  only with sections. */
   readonly sources?: string
+}
+
+/** A section `/overview` states as facts: the CLI's heading over its facts. */
+interface OverviewSurfaceSection {
+  readonly kind: string
+  readonly heading: string
+  readonly facts: readonly SectionFact[]
 }
 
 /** The same fact sections `/overview` prints for this market, for an app to draw. */
@@ -100,9 +103,11 @@ export function renderOverviewForSurface(
 ): OverviewSurfaceText {
   const { premiumRank, ...unranked } = overview
   const sections = wholeMarketSections(unranked).flatMap((section) => {
-    const facts = toOverviewFacts(locale, section, timezone)
+    const facts = toSectionFacts(locale, section)
 
-    return facts === undefined ? [] : [facts]
+    return facts === undefined
+      ? []
+      : [{ kind: section.kind, heading: renderSectionHeading(locale, section, timezone), facts }]
   })
   const [line] = renderProvenanceLine(locale, overview.provenance, timezone)
 
@@ -205,7 +210,7 @@ function marketBlock(
     [`${renderBlockRule(overview.icon, name)}${blockStamp(locale, overview)}`, ...macro],
     ...macroRest,
     ...wholeMarketSections(overview).map((section) => [
-      renderOverviewSection(locale, section, context),
+      renderBriefSection(locale, section, context),
     ]),
     renderProvenanceLine(locale, overview.provenance, context.timezone),
   ]

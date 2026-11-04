@@ -18,11 +18,7 @@ export function Readings({ block }: { readonly block: OverviewBlock }) {
         facts={sections.flatMap(({ kind, facts }) =>
           facts.map((fact) => ({ ...fact, group: kind }))
         )}
-        headings={sections.map(({ kind, heading, note }) => ({
-          group: kind,
-          text: heading,
-          ...(note === undefined ? {} : { note }),
-        }))}
+        headings={sections.map(({ kind, heading }) => ({ group: kind, text: heading }))}
       />
       {sources !== undefined && <p class="meta">{sources}</p>}
     </div>

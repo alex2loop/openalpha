@@ -23,11 +23,10 @@ interface Fact {
   readonly secondary?: true
 }
 
-/** A heading over the facts of one `group`, with the date they were read at muted beside it. */
+/** A heading over the facts of one `group`. */
 interface FactHeading {
   readonly group: string
   readonly text: string
-  readonly note?: string
 }
 
 /** What the daemon read, laid out as it lists it: a heading per group, each fact a label on the
@@ -53,11 +52,10 @@ export function FactGrid({
 
   return (
     <div class="fact-grid">
-      {groups.map(({ group, text, note }) => (
+      {groups.map(({ group, text }) => (
         <FactGroup
           key={group}
           heading={text}
-          note={note}
           facts={shown.filter((fact) => fact.group === group)}
         />
       ))}
@@ -79,11 +77,9 @@ export function FactGrid({
 
 function FactGroup({
   heading,
-  note,
   facts,
 }: {
   readonly heading: string
-  readonly note: string | undefined
   readonly facts: readonly Fact[]
 }) {
   if (facts.length === 0) {
@@ -92,10 +88,7 @@ function FactGroup({
 
   return (
     <section class="fact-group">
-      <h4 class="fact-heading">
-        {heading}
-        {note !== undefined && <span class="fact-note"> · {note}</span>}
-      </h4>
+      <h4 class="fact-heading">{heading}</h4>
       <dl class="fact-list">
         {facts.map(({ id, label, value }) => (
           <div key={id + label} class="fact">

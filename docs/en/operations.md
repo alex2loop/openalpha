@@ -776,7 +776,7 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   or weights: it lists each driver's own reading, in the order the read gives them.
 - **The region's prices**, with each market's top gainers and losers (the five strongest moves above
   its liquidity floor, side by side on a wide panel). Under each market come its own readings, each a
-  label and its value under a group heading, in the labels, figures and order `/overview` prints them,
+  label and its value under a group heading, in the labels, figures and order `/overview` and `/brief` print them,
   with the line naming the sources and when they were read:
   VN gold states its premium over world gold as a plain figure, without saying where it sits against
   its own history; crypto states funding, open interest and how it compares with recent sessions, the

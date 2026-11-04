@@ -68,13 +68,12 @@ interface OverviewFactWire {
   readonly value: string
 }
 
-/** A group of readings `/overview` prints under one heading, as the CLI words it: the heading,
- *  the date the group was read at (`note`, once, where the group states one) and its facts in the
+/** A group of readings `/overview` and `/brief` print under one heading, as the CLI words it: the
+ *  heading (with the time or session it was read at, where it states one) and its facts in the
  *  CLI's order. Never a score, rank, label or advice. */
 interface OverviewSectionWire {
   readonly kind: string
   readonly heading: string
-  readonly note?: string
   readonly facts: readonly OverviewFactWire[]
 }
 

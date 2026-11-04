@@ -15,10 +15,6 @@
   font: var(--typeCaptionStrong);
 }
 
-.fact-note {
-  font: var(--typeCaption);
-}
-
 .fact-list {
   display: grid;
   margin: 0;
