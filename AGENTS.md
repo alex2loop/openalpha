@@ -48,7 +48,7 @@ bun scripts/check-strategy-version.ts --write   # re-record policy digests
 ```
 src/       # engine, cli, trading, channels, persistence, ai, memory, plugins, social, ...
 scripts/   # the gate suite (`bun run check`, `bun run lint:arch`)
-site/      # public homepage: static files, no build; vendors its one script (no runtime CDN)
+site/      # public homepage: static files stamped by `build:site` (link previews, app URL); vendors its one script (no runtime CDN)
 deploy/    # wrangler.toml per static project (web edition, homepage); Cloudflare Workers Static Assets, no script
 ```
 

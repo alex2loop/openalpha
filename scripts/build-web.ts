@@ -12,12 +12,8 @@ import { listBrowserHosts } from '@/app/browser/hosts'
 import { BRAND } from '@/core/brand'
 
 import { buildBrowser } from './browser-build'
-import {
-  PREVIEW_IMAGE_FILE,
-  PREVIEW_IMAGE_SOURCE,
-  parseHttpsUrl,
-  stampLinkPreview,
-} from './link-preview'
+import { PREVIEW_IMAGE_FILE, PREVIEW_IMAGE_SOURCE, stampLinkPreview } from './link-preview'
+import { HEADERS_FILE, PAGE_FILE, parseHttpsUrl } from './web-files'
 import { buildHeadersFile, LOCKED_DIRECTIVES } from './web-headers'
 
 const ROOT = resolve(import.meta.dir, '..')
@@ -26,8 +22,6 @@ const PAGE_ENTRY = resolve(ROOT, 'src/web/edition/index.html')
 const WORKER_ENTRY = resolve(ROOT, 'src/app/browser/worker.ts')
 const WASM_SOURCE = resolve(ROOT, 'node_modules/@sqlite.org/sqlite-wasm/dist/sqlite3.wasm')
 const WASM_FILE = 'sqlite3.wasm'
-const HEADERS_FILE = '_headers'
-const PAGE_FILE = 'index.html'
 const BRAND_PLACEHOLDER = '{{brand}}'
 
 const { values } = parseArgs({

@@ -7,14 +7,13 @@ import { cp, mkdir, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
-import { parseHttpsUrl, stampLinkPreview } from './link-preview'
+import { stampLinkPreview } from './link-preview'
 import { buildHeadersFile, LOCKED_DIRECTIVES } from './web-headers'
+import { HEADERS_FILE, PAGE_FILE, parseHttpsUrl } from './web-files'
 
 const ROOT = resolve(import.meta.dir, '..')
 const SOURCE_DIR = resolve(ROOT, 'site')
 const OUT_DIR = resolve(ROOT, 'dist/site')
-const PAGE_FILE = 'index.html'
-const HEADERS_FILE = '_headers'
 const APP_PLACEHOLDER = 'https://example.com/'
 // An inline script or style block, matched the way the HTML parser ends it: at the first closing
 // tag.

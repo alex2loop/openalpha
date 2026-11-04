@@ -5,18 +5,18 @@
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
-const HEADERS_FILE = '_headers'
-const INDEX_FILE = 'index.html'
-const HTTPS_PROTOCOL = 'https:'
+import { HEADERS_FILE, PAGE_FILE, parseHttpsUrl } from './web-files'
+
 const ALL_PATHS_RULE = '/*'
 const HEADER_LINE_RE = /^\s+([A-Za-z-]+):\s*(.+)$/
 // A fresh deploy can take a moment to reach every edge.
 const ATTEMPTS = 6
 const RETRY_MS = 10_000
+const REQUEST_TIMEOUT_MS = 30_000
 
 const { values } = parseArgs({ options: { dist: { type: 'string' }, url: { type: 'string' } } })
 const distDir = resolve(parseRequired(values.dist, '--dist=<built folder>'))
-const baseUrl = parseBaseUrl(values.url)
+const baseUrl = parseHttpsUrl(values.url, 'deploy-drift: pass --url=<https address>')
 const files = await listServedFiles(distDir)
 const headers = await readPageHeaders(distDir)
 
@@ -45,17 +45,6 @@ function parseRequired(raw: string | undefined, usage: string): string {
   return raw
 }
 
-function parseBaseUrl(raw: string | undefined): string {
-  const href = parseRequired(raw, '--url=<https address>')
-  const url = URL.canParse(href) ? new URL(href) : undefined
-
-  if (url?.protocol !== HTTPS_PROTOCOL) {
-    throw new Error('deploy-drift: --url must be an https address')
-  }
-
-  return url.href
-}
-
 async function listServedFiles(dir: string): Promise<readonly string[]> {
   const names = await Array.fromAsync(new Bun.Glob('**/*').scan({ cwd: dir, onlyFiles: true }))
 
@@ -78,6 +67,10 @@ async function readPageHeaders(dir: string): Promise<ReadonlyMap<string, string>
     headers.set(match[1].toLowerCase(), match[2].trim())
   }
 
+  if (headers.size === 0) {
+    throw new Error(`deploy-drift: ${HEADERS_FILE} has no ${ALL_PATHS_RULE} rule with headers`)
+  }
+
   return headers
 }
 
@@ -85,8 +78,7 @@ async function fileDrift(files: readonly string[], dir: string): Promise<readonl
   const drift: string[] = []
 
   for (const name of files) {
-    const response = await fetch(new URL(toServedPath(name), baseUrl))
-    const served = response.ok ? sha256(await response.arrayBuffer()) : `HTTP ${response.status}`
+    const served = await fetchServed(new URL(toServedPath(name), baseUrl))
     const built = sha256(await Bun.file(resolve(dir, name)).arrayBuffer())
 
     if (served !== built) {
@@ -97,15 +89,36 @@ async function fileDrift(files: readonly string[], dir: string): Promise<readonl
   return drift
 }
 
+// What the address serves for a file: its hash, or why there is none.
+async function fetchServed(url: URL): Promise<string> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+
+    return response.ok ? sha256(await response.arrayBuffer()) : `HTTP ${response.status}`
+  } catch (err) {
+    return `request failed (${describeError(err)})`
+  }
+}
+
 // The assets server answers a folder's page at the folder, not at index.html.
 function toServedPath(name: string): string {
-  return name === INDEX_FILE || name.endsWith(`/${INDEX_FILE}`)
-    ? name.slice(0, -INDEX_FILE.length)
+  return name === PAGE_FILE || name.endsWith(`/${PAGE_FILE}`)
+    ? name.slice(0, -PAGE_FILE.length)
     : name
 }
 
 async function headerDrift(expected: ReadonlyMap<string, string>): Promise<readonly string[]> {
-  const response = await fetch(baseUrl, { method: 'HEAD' })
+  let response: Response
+
+  try {
+    response = await fetch(baseUrl, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
+  } catch (err) {
+    return [`headers: request failed (${describeError(err)})`]
+  }
+
   const drift: string[] = []
 
   for (const [name, value] of expected) {
@@ -117,6 +130,10 @@ async function headerDrift(expected: ReadonlyMap<string, string>): Promise<reado
   }
 
   return drift
+}
+
+function describeError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 function sha256(bytes: ArrayBuffer): string {

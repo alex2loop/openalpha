@@ -15,20 +15,9 @@ const PREVIEW_IMAGE_HEIGHT = 630
 const PREVIEW_IMAGE_ALT = `${BRAND.display} logo beside a screenshot of its office view`
 const LOCALE = 'en_US'
 const ALTERNATE_LOCALE = 'vi_VN'
-const HTTPS_PROTOCOL = 'https:'
 const HEAD_END = '</head>'
 const TITLE_RE = /<title>([^<]*)<\/title>/
 const DESCRIPTION_RE = /<meta\s+name="description"\s+content="([^"]*)"/
-
-export function parseHttpsUrl(raw: string | undefined, failure: string): string {
-  const url = raw === undefined || !URL.canParse(raw) ? undefined : new URL(raw)
-
-  if (url?.protocol !== HTTPS_PROTOCOL) {
-    throw new Error(failure)
-  }
-
-  return url.href
-}
 
 export function stampLinkPreview(html: string, pageUrl: string): string {
   if (!html.includes(HEAD_END)) {
@@ -39,17 +28,17 @@ export function stampLinkPreview(html: string, pageUrl: string): string {
   const description = textOf(html, DESCRIPTION_RE, 'description')
   const tags = [
     `<link rel="canonical" href="${pageUrl}" />`,
-    property('og:type', 'website'),
-    property('og:site_name', BRAND.display),
-    property('og:title', title),
-    property('og:description', description),
-    property('og:url', pageUrl),
-    property('og:image', new URL(PREVIEW_IMAGE_FILE, pageUrl).href),
-    property('og:image:width', String(PREVIEW_IMAGE_WIDTH)),
-    property('og:image:height', String(PREVIEW_IMAGE_HEIGHT)),
-    property('og:image:alt', PREVIEW_IMAGE_ALT),
-    property('og:locale', LOCALE),
-    property('og:locale:alternate', ALTERNATE_LOCALE),
+    buildProperty('og:type', 'website'),
+    buildProperty('og:site_name', BRAND.display),
+    buildProperty('og:title', title),
+    buildProperty('og:description', description),
+    buildProperty('og:url', pageUrl),
+    buildProperty('og:image', new URL(PREVIEW_IMAGE_FILE, pageUrl).href),
+    buildProperty('og:image:width', String(PREVIEW_IMAGE_WIDTH)),
+    buildProperty('og:image:height', String(PREVIEW_IMAGE_HEIGHT)),
+    buildProperty('og:image:alt', PREVIEW_IMAGE_ALT),
+    buildProperty('og:locale', LOCALE),
+    buildProperty('og:locale:alternate', ALTERNATE_LOCALE),
     '<meta name="twitter:card" content="summary_large_image" />',
   ]
 
@@ -67,6 +56,6 @@ function textOf(html: string, pattern: RegExp, what: string): string {
   return text.replaceAll('"', '&quot;')
 }
 
-function property(name: string, content: string): string {
+function buildProperty(name: string, content: string): string {
   return `<meta property="${name}" content="${content}" />`
 }
