@@ -1,3 +1,4 @@
+import type { CommandSurface } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef } from '@/trading/kernel/instrument'
@@ -17,7 +18,6 @@ import { renderCaveatLines } from '@/trading/render/caveat'
 import { formatClock } from '@/trading/render/datetime'
 import {
   formatScoreValue,
-  NOTICE_SURFACE,
   renderDeclaredValue,
   resolveRenderContext,
   SECTION_ICONS,
@@ -83,6 +83,9 @@ export function renderOverviewText(
   ])
 }
 
+/** The terminal's line, so the page groups a row's figures as `/overview` prints them. */
+const SURFACE_LINE: CommandSurface = 'repl'
+
 /** The sections of a market's overview an app lays out under the rows it already draws. */
 const SURFACE_SECTION_KINDS: ReadonlySet<BriefSectionKind> = new Set([
   'premium',
@@ -114,7 +117,7 @@ export function renderOverviewForSurface(
   timezone: string
 ): OverviewSurfaceText {
   const { premiumRank, ...unranked } = overview
-  const context = resolveRenderContext(timezone, NOTICE_SURFACE)
+  const context = resolveRenderContext(timezone, SURFACE_LINE)
   const sections = wholeMarketSections(unranked).flatMap((section) => {
     if (section.status !== 'ready' || !SURFACE_SECTION_KINDS.has(section.kind)) {
       return []
