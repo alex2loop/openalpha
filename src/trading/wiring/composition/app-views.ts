@@ -32,6 +32,7 @@ import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { ScreenAnswer } from '@/trading/wiring/host/view-types'
 import { t } from '@/i18n'
 import { type BriefText, renderBriefForSurface } from '@/trading/features/brief/surface'
+import { FIRST_LOAD_PENDING } from '@/trading/features/market-data/ops/ensure'
 import { renderMacroLean } from '@/trading/features/market-data/render/overview'
 import { renderScreenCard } from '@/trading/features/market-data/render/screen'
 import { BOARD_READING } from '@/trading/features/market-data/render/screen-evidence'
@@ -174,7 +175,15 @@ async function screen(
 
   const kinds = screenKindsOf(deps, { market, locale })
 
-  const named = { view, card, ...kinds, nameFacts: nameFacts(view, locale, display) }
+  const named = {
+    view,
+    card,
+    ...kinds,
+    nameFacts: nameFacts(view, locale, display),
+    ...(view.caveats.some(({ code }) => code === FIRST_LOAD_PENDING.code)
+      ? { isLoading: true as const }
+      : {}),
+  }
 
   return view.form === 'board'
     ? {

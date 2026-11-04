@@ -25,6 +25,7 @@ export function toScreenWire(market: string, answer: ScreenAnswer): ScreenRespon
       ? { total: view.candidates.length, unpriced: view.unpriced ?? 0 }
       : {}),
     ...(answer.kinds === undefined ? {} : { kinds: answer.kinds }),
+    ...(answer.isLoading === true ? { isLoading: true as const } : {}),
     card,
   }
 }

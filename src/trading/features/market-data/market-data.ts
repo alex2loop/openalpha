@@ -154,8 +154,6 @@ function screenRefusal(
 ): ScreenView | undefined {
   const kinds = market.manifest.screenableKinds ?? []
 
-  // Before the refresh, not after: a kind this market does not hold asks for a board that cannot
-  // exist, and answering it with an empty one is indistinguishable from every name being rejected.
   if (options.instrumentKind !== undefined && !kinds.includes(options.instrumentKind)) {
     return unscreenableKind({
       asOf,
@@ -189,7 +187,9 @@ async function runScreen(
     return refused
   }
 
-  const ensured = await deps.ensure(buildEnsureOptions(options.market, options))
+  // A board is a browse the visitor repeats: a market on its first load answers from what is stored.
+  const answer = isBoardForm(options) ? { partialAnswer: true as const } : undefined
+  const ensured = await deps.ensure(buildEnsureOptions(options.market, options, answer))
   const result = await market.capabilities.screen?.run({
     market: options.market,
     // A board is every name the gates cleared, so nothing is cut before its prices are read.

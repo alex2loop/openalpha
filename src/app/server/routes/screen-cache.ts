@@ -2,7 +2,8 @@ import type { ScreenResponse } from '@/app/server/wire/market'
 
 /** A board read refreshes a cold market and prices every candidate, which takes seconds, while the
  *  board moves on quotes, not on clicks. Within the fresh window the same board is served as is;
- *  past it and within the kept window it is still served at once while a re-read runs behind it. */
+ *  past it and within the kept window it is still served at once while a re-read runs behind it. A board
+ *  read while the market's first load runs is never kept: the next ask reads again. */
 const SCREEN_FRESH_MS = 60_000
 const SCREEN_KEPT_MS = 15 * 60_000
 
@@ -63,7 +64,7 @@ function start(key: string, read: () => Promise<ScreenResponse>): Promise<Screen
 
   boards.set(key, { readAt: Date.now(), response, answered: false, rereading: false })
   response.then(
-    () => settle(key, response),
+    (board) => (board.isLoading === true ? drop(key, response) : settle(key, response)),
     () => drop(key, response)
   )
 
@@ -76,7 +77,10 @@ function reread(key: string, held: Board, read: () => Promise<ScreenResponse>): 
 
   boards.set(key, { ...held, rereading: true })
   response.then(
-    () => boards.set(key, { readAt: Date.now(), response, answered: true, rereading: false }),
+    (board) =>
+      board.isLoading === true
+        ? drop(key, held.response)
+        : boards.set(key, { readAt: Date.now(), response, answered: true, rereading: false }),
     () => {
       const current = boards.get(key)
 

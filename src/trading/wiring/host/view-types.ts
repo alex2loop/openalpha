@@ -56,6 +56,8 @@ export interface ScreenAnswer {
   readonly nameReadings?: Readonly<Record<string, readonly ScreenReading[]>>
   readonly nameFacts?: Readonly<Record<string, ScreenNameFacts>>
   readonly kinds?: readonly { readonly kind: InstrumentKind; readonly label: string }[]
+  /** The market's first load is still running: the board is what is stored so far. */
+  readonly isLoading?: true
 }
 
 /** A holding's planned stop, and who stands behind it at the exchange. `cover` is absent where

@@ -122,6 +122,8 @@ export interface ScreenResponse {
   /** The kinds the market's screen can be narrowed to, named in the operator's language, where it
    *  has more than one; the first is the board served when `kind` is not asked. */
   readonly kinds?: readonly { readonly kind: string; readonly label: string }[]
+  /** The market's first load still runs: the board is what is stored so far (see CONTRACT.md). */
+  readonly isLoading?: true
   /** The lines `/screen` prints for this board, in the operator's language; the app shows them as
    *  is, so the board reads the same in the app, the CLI and Telegram. */
   readonly card: ScreenCardWire

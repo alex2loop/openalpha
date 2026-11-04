@@ -1,4 +1,5 @@
 import { useSignal } from '@preact/signals'
+import { useEffect } from 'preact/hooks'
 
 import type { ScreenResponse } from '@/app/server/wire/market'
 import { ApiFailure, getJson } from '@/web/api/client'
@@ -25,6 +26,7 @@ import {
 import { useBlockRead } from '@/web/state/block'
 import { openTicker } from '@/web/state/known-tickers'
 import { heldPositions, keyOf, printDisplayOf, watchedNames } from '@/web/state/market'
+import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { formatPrice, formatSignedPercent } from '@/web/text/figures'
 import { joinInline, joinList } from '@/web/text/glyphs'
 import { sectorName } from '@/web/text/segment'
@@ -39,6 +41,8 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 const SCREEN_PAGE_LIMIT = 50
 /** A board of two thousand names is not a screen; the loop ends there however the answers read. */
 const MAX_SCREEN_PAGES = 40
+/** How long a board read during the market's first load waits before it asks again. */
+const FIRST_LOAD_RECHECK_MS = 15_000
 
 /** Màn lọc on the web: every priced name the market read returned, with its price and move, the
  *  plain values its market states and what each factor read for it and where that sits on the board,
@@ -55,6 +59,20 @@ function KindBoard({ market, kind }: { readonly market: string; readonly kind: s
   const reading = useBlockRead((abort) => readBoard({ market, kind, abort }), {
     capability: ROUTES.screen.capability,
   })
+  const isLoading = reading.data?.isLoading === true
+
+  // Reads again when a `/refresh` ends, and every few seconds while the first load runs: that load
+  // belongs to the page's own worker, which says nothing when it ends.
+  useRereadAfterRefresh(reading.retry)
+  useEffect(() => {
+    if (!isLoading) {
+      return undefined
+    }
+
+    const timer = setTimeout(reading.retry, FIRST_LOAD_RECHECK_MS)
+
+    return () => clearTimeout(timer)
+  }, [isLoading, reading.readAt])
 
   return (
     <BlockFrame
@@ -134,7 +152,7 @@ function readPage({ market, kind, cursor, abort }: PageRead): Promise<ScreenResp
 
 function Names({ board, market }: { readonly board: ScreenResponse; readonly market: string }) {
   if (board.candidates.length === 0) {
-    return <EmptyBoard kinds={board.kinds} market={market} />
+    return <EmptyBoard kinds={board.kinds} caveats={board.card.caveats} market={market} />
   }
 
   const { choices, view, shown } = arrange(board, market)
@@ -166,9 +184,11 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
 // A kind with no names still offers the others, so the visitor is never left on it.
 function EmptyBoard({
   kinds,
+  caveats,
   market,
 }: {
   readonly kinds: ScreenResponse['kinds']
+  readonly caveats: readonly string[]
   readonly market: string
 }) {
   return (
@@ -178,9 +198,23 @@ function EmptyBoard({
           <KindSelect market={market} view={viewOf(market).value} kinds={kinds} />
         </div>
       )}
-      <p class="empty-note">{tr('ui.office.today.empty')}</p>
+      <EmptyNote lines={caveats} />
     </>
   )
+}
+
+// The board's own caveats say why it is empty (the first load still running, or stopped partway);
+// without them the market simply has no name to list.
+function EmptyNote({ lines }: { readonly lines: readonly string[] }) {
+  if (lines.length === 0) {
+    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
+  }
+
+  return lines.map((line) => (
+    <p key={line} class="meta">
+      {line}
+    </p>
+  ))
 }
 
 /** What the board offers to order and filter by, the visitor's view with each choice it cannot
