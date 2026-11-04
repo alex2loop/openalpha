@@ -119,13 +119,18 @@
 
 .ledger-row {
   display: grid;
-  grid-template-columns: 74px minmax(0, 1.2fr) 58px minmax(0, 1fr) minmax(0, 1.4fr) 36px;
+  grid-template-columns: 86px minmax(0, 1.2fr) 58px minmax(0, 1fr) minmax(0, 1.4fr) 36px;
   gap: 8px;
   align-items: center;
   padding: 6px 0;
   border-top: 1px solid var(--border);
   font-size: var(--sizeBody);
   font-variant-numeric: tabular-nums;
+}
+
+/* A money row (a deposit, a dividend) has no quantity: its amount takes both figure columns. */
+.ledger-row .is-wide {
+  grid-column: span 2;
 }
 
 .ledger-row:first-child {
