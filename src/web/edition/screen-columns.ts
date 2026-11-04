@@ -11,7 +11,6 @@ import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
 
 const PERCENTILE_DIGITS = 0
-const WORD_BREAK = /\s+/
 
 /** What names each sort, in the sort menu, the figures under a name and the CSV header. */
 export const SORT_LABELS: Readonly<Record<BaseSortKey, MessageKey>> = Object.freeze({
@@ -65,40 +64,22 @@ export function readingFacts(candidate: Candidate): readonly Fact[] {
   return (candidate.readings ?? []).map(({ text }) => ({ value: text }))
 }
 
-/** What each factor read for the name in the quantities it was scored on, and where that sits on
- *  the board; a factor with neither says nothing. Words the reading opens with that the factor's
- *  name already says (at its start or its end) are said once. */
+/** What each factor read for the name in the quantities it was scored on, as the CLI words them (a
+ *  reading names its own quantity), and where that sits on the board. A factor with a place but no
+ *  reading is named instead; one with neither says nothing. */
 export function factorFacts(candidate: Candidate): readonly Fact[] {
   return (candidate.factors ?? []).flatMap(({ label, reading, percentile }): readonly Fact[] => {
-    const parts = [
-      ...(reading === undefined ? [] : [withoutRepeat(label, reading)]),
-      ...(percentile === undefined
-        ? []
-        : [
-            tr('ui.office.edition.screen.factorPlace', {
-              pct: formatFixed(percentile, PERCENTILE_DIGITS),
-            }),
-          ]),
-    ].filter((part) => part !== '')
+    const place =
+      percentile === undefined
+        ? undefined
+        : tr('ui.office.edition.screen.factorPlace', {
+            pct: formatFixed(percentile, PERCENTILE_DIGITS),
+          })
 
-    return parts.length === 0 ? [] : [{ label, value: joinList(parts) }]
-  })
-}
-
-/** The reading without the leading words the label already holds at its start or at its end:
- *  "Dòng tiền khối ngoại" over "ngoại ròng 20 phiên" reads on as "ròng 20 phiên". */
-function withoutRepeat(label: string, reading: string): string {
-  const named = label.toLowerCase().split(WORD_BREAK)
-  const words = reading.split(WORD_BREAK)
-  const lead = words.map((word) => word.toLowerCase())
-
-  for (let size = Math.min(named.length, words.length); size > 0; size--) {
-    const head = lead.slice(0, size).join(' ')
-
-    if (named.slice(0, size).join(' ') === head || named.slice(-size).join(' ') === head) {
-      return words.slice(size).join(' ')
+    if (reading !== undefined) {
+      return [{ value: joinList(place === undefined ? [reading] : [reading, place]) }]
     }
-  }
 
-  return reading
+    return place === undefined ? [] : [{ label, value: place }]
+  })
 }
