@@ -7,7 +7,9 @@ name: web
 # It stays idle until the operator has added what a deploy needs: the repository variable WEB_APP_URL
 # (the address of the web app, which the homepage links to) and, in the GitHub Environment
 # `production`, the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. With any of them missing
-# the run ends green and deploys nothing. Run it by hand to deploy the latest release again.
+# the run ends green and deploys nothing. Run it by hand to deploy the latest release again. After a
+# deploy it compares what both addresses serve with the build (scripts/deploy-drift.ts); the
+# repository variable SITE_URL is the homepage's address.
 #
 # The build job runs the repository's code and its dependencies and holds no secret. The deploy job
 # holds the secrets, only downloads what the build job made, and runs the wrangler pinned in
@@ -131,6 +133,7 @@ jobs:
 
       # The app first, since the homepage links to it.
       - name: Deploy
+        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -141,3 +144,18 @@ jobs:
           fi
           bun run wrangler deploy -c deploy/web/wrangler.toml
           bun run wrangler deploy -c deploy/site/wrangler.toml
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+
+      # What visitors now get must be byte for byte what the build job made, headers included.
+      - name: Compare with the build
+        if: steps.deploy.outputs.deployed == 'true'
+        env:
+          WEB_APP_URL: ${{ vars.WEB_APP_URL }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          bun scripts/deploy-drift.ts --dist=dist/web --url="$WEB_APP_URL"
+          if [ -n "$SITE_URL" ]; then
+            bun scripts/deploy-drift.ts --dist=dist/site --url="$SITE_URL"
+          else
+            echo "SITE_URL is not set: the homepage was not compared"
+          fi
