@@ -5,21 +5,48 @@ import { tr } from '@/web/text/tr'
 
 import './fact-grid.css'
 
-/** The groups in the order the daemon lists them. */
-const GROUPS: readonly ScreenFactWire['group'][] = Object.freeze([
+/** The groups of a board's facts in the order the daemon lists them. */
+const SCREEN_GROUPS: readonly ScreenFactWire['group'][] = Object.freeze([
   'price',
   'valuation',
   'flow',
   'derivatives',
 ])
 
-/** What the daemon read for a name, laid out as it lists it: a heading per group, each fact a label
- *  on the left and its value on the right with the name's place among its peers muted under it.
- *  The rarely needed readings wait behind a toggle. */
-export function FactGrid({ facts }: { readonly facts: readonly ScreenFactWire[] }) {
+/** One reading of the grid: a label on the left and its value on the right. `group` names the
+ *  heading it sits under. */
+interface Fact {
+  readonly id: string
+  readonly label: string
+  readonly value: string
+  readonly group: string
+  readonly secondary?: true
+}
+
+/** A heading over the facts of one `group`, with the date they were read at muted beside it. */
+interface FactHeading {
+  readonly group: string
+  readonly text: string
+  readonly note?: string
+}
+
+/** What the daemon read, laid out as it lists it: a heading per group, each fact a label on the
+ *  left and its value on the right. A board's facts
+ *  take the screen's group headings; another list names its own. The rarely needed readings wait
+ *  behind a toggle. */
+export function FactGrid({
+  facts,
+  headings,
+}: {
+  readonly facts: readonly Fact[]
+  readonly headings?: readonly FactHeading[]
+}) {
   const isMore = useSignal(false)
   const hasMore = facts.some((fact) => fact.secondary === true)
   const shown = isMore.value ? facts : facts.filter((fact) => fact.secondary !== true)
+  const groups: readonly FactHeading[] =
+    headings ??
+    SCREEN_GROUPS.map((group) => ({ group, text: tr(`trading.render.screen.group.${group}`) }))
 
   if (facts.length === 0) {
     return null
@@ -27,8 +54,13 @@ export function FactGrid({ facts }: { readonly facts: readonly ScreenFactWire[] 
 
   return (
     <div class="fact-grid">
-      {GROUPS.map((group) => (
-        <FactGroup key={group} group={group} facts={shown.filter((fact) => fact.group === group)} />
+      {groups.map(({ group, text, note }) => (
+        <FactGroup
+          key={group}
+          heading={text}
+          note={note}
+          facts={shown.filter((fact) => fact.group === group)}
+        />
       ))}
       {hasMore && (
         <button
@@ -47,11 +79,13 @@ export function FactGrid({ facts }: { readonly facts: readonly ScreenFactWire[] 
 }
 
 function FactGroup({
-  group,
+  heading,
+  note,
   facts,
 }: {
-  readonly group: ScreenFactWire['group']
-  readonly facts: readonly ScreenFactWire[]
+  readonly heading: string
+  readonly note: string | undefined
+  readonly facts: readonly Fact[]
 }) {
   if (facts.length === 0) {
     return null
@@ -59,15 +93,15 @@ function FactGroup({
 
   return (
     <section class="fact-group">
-      <h4 class="fact-heading">{tr(`trading.render.screen.group.${group}`)}</h4>
+      <h4 class="fact-heading">
+        {heading}
+        {note !== undefined && <span class="fact-note"> · {note}</span>}
+      </h4>
       <dl class="fact-list">
-        {facts.map(({ id, label, value, rank }) => (
+        {facts.map(({ id, label, value }) => (
           <div key={id + label} class="fact">
             <dt>{label}</dt>
-            <dd>
-              {value}
-              {rank !== undefined && <span class="fact-rank">{rank}</span>}
-            </dd>
+            <dd>{value}</dd>
           </div>
         ))}
       </dl>

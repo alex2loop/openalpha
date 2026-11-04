@@ -1,10 +1,10 @@
 import type { OverviewResponse } from '@/app/server/wire/overview'
-import { DepthLines, indentOf, toDepthLine } from '@/web/ui/markdown/depth-lines'
+import { FactGrid } from '@/web/ui/kit/fact-grid'
 
 type OverviewBlock = OverviewResponse['markets'][number]
 
-/** The readings `/overview` prints under a market's rows, each under its heading and in the CLI's
- *  own words, then the sources they came from. A market with none leaves the block out. */
+/** The readings `/overview` prints under a market's rows, each fact a label and its value under the
+ *  CLI's heading, then the sources they came from. A market with none leaves the block out. */
 export function Readings({ block }: { readonly block: OverviewBlock }) {
   const { sections, sources } = block
 
@@ -14,16 +14,16 @@ export function Readings({ block }: { readonly block: OverviewBlock }) {
 
   return (
     <div class="flow">
-      {sections.map((section) => {
-        const base = Math.min(...section.lines.map(indentOf))
-
-        return (
-          <div key={section.kind} class="flow">
-            <h4 class="sub-head">{section.heading}</h4>
-            <DepthLines lines={section.lines.map((line) => toDepthLine(line, base))} />
-          </div>
-        )
-      })}
+      <FactGrid
+        facts={sections.flatMap(({ kind, facts }) =>
+          facts.map((fact) => ({ ...fact, group: kind }))
+        )}
+        headings={sections.map(({ kind, heading, note }) => ({
+          group: kind,
+          text: heading,
+          ...(note === undefined ? {} : { note }),
+        }))}
+      />
       {sources !== undefined && <p class="meta">{sources}</p>}
     </div>
   )

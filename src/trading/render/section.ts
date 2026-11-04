@@ -198,7 +198,7 @@ export function renderSectionHeading(
 /** The title params a builder cannot resolve: an instant reads in the operator's locale and clock,
  *  and a trading day reads day-first in both — only this renderer holds either. Every day-valued
  *  param is converted, not a named few, or the next title to carry one prints its ISO form. */
-function titleParamsOf(
+export function titleParamsOf(
   section: BriefSectionResult,
   locale: Locale,
   timezone: string

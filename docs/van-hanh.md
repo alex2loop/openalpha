@@ -769,8 +769,8 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   của từng thành phần, theo thứ tự nguồn trả về.
 - **Giá của vùng đó**, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động
   mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng). Dưới mỗi thị
-  trường là các số đọc riêng của nó, đúng lời văn và thứ tự `/overview` in ra, kèm dòng nguồn và giờ
-  đọc: vàng VN nêu chênh lệch với vàng thế giới, một con số thuần, không nói nó nằm ở đâu so với lịch sử;
+  trường là các số đọc riêng của nó, mỗi số một nhãn và một giá trị dưới tiêu đề của nhóm, đúng nhãn,
+  số và thứ tự `/overview` in ra, kèm dòng nguồn và giờ đọc: vàng VN nêu chênh lệch với vàng thế giới, một con số thuần, không nói nó nằm ở đâu so với lịch sử;
   crypto nêu phí funding, hợp đồng mở và so với các phiên gần đây, tỷ lệ mua/bán, phần bên mua chủ động
   khớp lệnh, và chỉ số sợ hãi - tham lam kèm nguồn công bố nó. Nguồn nào trình duyệt không đọc được thì
   dòng đó không hiện, không báo lỗi.

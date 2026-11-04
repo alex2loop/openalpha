@@ -53,8 +53,8 @@
       "sections": [
         {
           "kind": "premium",
-          "heading": "Premium over world",
-          "lines": ["  3.12%"]
+          "heading": "Domestic price",
+          "facts": [{ "id": "premium", "label": "Premium over world", "value": "3.12%" }]
         }
       ],
       "sources": "Data from giavang, updated 08/10/2026 16:30",
@@ -200,18 +200,28 @@
       "sections": [
         {
           "kind": "derivatives",
-          "heading": "Derivatives (at 08/10/2026 16:30)",
-          "lines": [
-            "  funding rate ▲ 0.01% · open interest 12 billion USD · contracts vs 30-session 1.12×",
-            "    long/short ratio 1.80"
+          "heading": "Derivatives",
+          "note": "at 08/10/2026 16:30",
+          "facts": [
+            { "id": "funding", "label": "Funding rate", "value": "▲ 0.01%" },
+            { "id": "openInterest", "label": "Open interest", "value": "12 billion USD" },
+            { "id": "oiRatio", "label": "Contracts vs 30-session", "value": "1.12×" },
+            { "id": "longShortRatio", "label": "Long/short ratio", "value": "1.80" }
           ]
         },
         {
           "kind": "taker-flow",
-          "heading": "Buyers crossing the spread (07/10/2026 session)",
-          "lines": ["  51.2%"]
+          "heading": "Order flow",
+          "note": "07/10/2026 session",
+          "facts": [
+            { "id": "takerBuyPct", "label": "Buyers crossing the spread", "value": "51.2%" }
+          ]
         },
-        { "kind": "sentiment", "heading": "Sentiment", "lines": ["  Fear 25/100"] }
+        {
+          "kind": "sentiment",
+          "heading": "Sentiment",
+          "facts": [{ "id": "sentimentScore", "label": "Market sentiment", "value": "Fear 25/100" }]
+        }
       ],
       "sources": "Data from binance-futures, alternative-me, updated 08/10/2026 16:30",
       "caveats": [

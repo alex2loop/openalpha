@@ -60,13 +60,22 @@ export interface OverviewMoverWire {
   readonly turnover: number
 }
 
-/** A group of readings `/overview` prints under one heading, as the CLI words it: the heading and
- *  each line with the indent the CLI gives it (a row two spaces, the detail under it four), so the
- *  page reads as the CLI does. Never a score, rank, label or advice. */
+/** One reading, written as the CLI lists it: the label capitalised and the value with its unit.
+ *  Where it stands against its own history is left out: this wire states readings, not placings. */
+interface OverviewFactWire {
+  readonly id: string
+  readonly label: string
+  readonly value: string
+}
+
+/** A group of readings `/overview` prints under one heading, as the CLI words it: the heading,
+ *  the date the group was read at (`note`, once, where the group states one) and its facts in the
+ *  CLI's order. Never a score, rank, label or advice. */
 interface OverviewSectionWire {
   readonly kind: string
   readonly heading: string
-  readonly lines: readonly string[]
+  readonly note?: string
+  readonly facts: readonly OverviewFactWire[]
 }
 
 /** GET /v1/overview — one block per registered market. */
