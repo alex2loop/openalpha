@@ -30,6 +30,7 @@ import {
   toLedgerDraft,
   withStatedRate,
 } from '@/web/ui/dialogs/trade-kinds'
+import { PreviewRefusalNote } from '@/web/ui/dialogs/trade-refusal'
 import {
   buildTradeDraft,
   createTradeForm,
@@ -99,6 +100,7 @@ function TradeBody({ open }: { readonly open: OpenTrade }) {
       <RateField form={form} />
       <FxFailure form={form} />
       {preview !== undefined && <p class="meta">{preview}</p>}
+      <PreviewRefusalNote form={form} />
       {question.value !== undefined && (
         <PriceQuestion
           question={question.value}

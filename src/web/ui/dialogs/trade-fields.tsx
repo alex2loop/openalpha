@@ -102,7 +102,7 @@ function toKind(choice: LedgerKind | typeof OTHER_CHOICE, current: LedgerKind): 
   return OTHER_KINDS[0]?.kind ?? current
 }
 
-function pickKind(form: TradeForm, kind: LedgerKind): void {
+export function pickKind(form: TradeForm, kind: LedgerKind): void {
   form.kind.value = kind
   chooseVenue(form)
   touch(form)

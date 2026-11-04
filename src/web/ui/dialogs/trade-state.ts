@@ -46,6 +46,13 @@ interface VenueChoice {
 
 type FxRate = NonNullable<LedgerPreviewResponse['fxRate']>
 
+/** Why the book would refuse the draft as it stands, asked before the save. `deposit` is the cash a
+ *  shortfall asks for first: the venue and currency a Nạp tiền row would fill. */
+export interface PreviewRefusal {
+  readonly message: string
+  readonly deposit?: { readonly venue: string; readonly currency: string }
+}
+
 /** The row being edited, or what a new one starts from. */
 export interface TradeStart {
   readonly entry?: LedgerEntryWire
@@ -80,6 +87,8 @@ export interface TradeForm {
   readonly fxStatus: Signal<'idle' | 'pending' | 'failed'>
   /** Bumped by Thử lại to ask again. */
   readonly fxRetry: Signal<number>
+  /** The preview's refusal of the draft; it holds nothing back, the save asks the daemon again. */
+  readonly refusal: Signal<PreviewRefusal | undefined>
   readonly venues: Signal<readonly VenueChoice[]>
   readonly question: Signal<string | undefined>
   readonly failure: Signal<FormFailure | undefined>
@@ -113,6 +122,7 @@ export function createTradeForm(start: TradeStart): TradeForm {
     fxRate: signal(undefined),
     fxStatus: signal('idle'),
     fxRetry: signal(0),
+    refusal: signal(undefined),
     venues: signal([]),
     question: signal(undefined),
     failure: signal(undefined),

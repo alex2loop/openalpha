@@ -118,6 +118,8 @@ function assertAffordable(state: FoldState, txn: LedgerTxn): void {
     (state.byVenue.get(venue)?.available ?? 0) - currencyCashAvailableBase(state, venue)
 
   if (isShortfall(available, outflow)) {
+    const held = inRowCurrency(state, txn, Math.max(available, 0))
+
     throw new ValidationError(
       `${txn.kind} on ${txn.at} needs more settled cash than ${venue} holds`,
       {
@@ -125,12 +127,27 @@ function assertAffordable(state: FoldState, txn: LedgerTxn): void {
         params: {
           venue: venueParam(venue),
           day: { day: txn.at },
-          available: moneyParam(Math.max(available, 0), state.baseCurrency),
-          currency: state.baseCurrency,
+          available: moneyParam(held.amount, held.currency),
+          currency: held.currency,
         },
       }
     )
   }
+}
+
+/** The base cash a row can draw on, worded in the row's own currency at the rate the row converts
+ *  at: a USDT buy that finds no USDT is told how much USDT the venue's base cash is worth, not a
+ *  base figure beside a row that never mentioned it. The comparison itself stays in base. */
+function inRowCurrency(
+  state: FoldState,
+  txn: LedgerTxn,
+  baseAmount: number
+): { readonly amount: number; readonly currency: CurrencyCode } {
+  if (!('conversion' in txn) || txn.conversion.rate <= 0) {
+    return { amount: baseAmount, currency: state.baseCurrency }
+  }
+
+  return { amount: baseAmount / txn.conversion.rate, currency: txn.currency }
 }
 
 function assertCurrencyCashCovers(

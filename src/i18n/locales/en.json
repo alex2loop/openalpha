@@ -1999,6 +1999,7 @@
     "office.trade.badAmount": "The amount must be a number above 0.",
     "office.trade.fxPrefill": "The market rate on {day}",
     "office.trade.fxPreviewFailed": "I couldn't read the day's rate, so I can't save this yet.",
+    "office.trade.depositFirst": "Deposit {currency} at {venue}",
     "office.trade.badRate": "Enter the rate you paid, a number above 0.",
     "office.trade.badDelta": "The share count must be a whole number other than 0."
   },

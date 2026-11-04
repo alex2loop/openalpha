@@ -11,63 +11,65 @@ import { formatFieldFigure } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { TextField } from '@/web/ui/dialogs/trade-fields'
 import { currencyOf } from '@/web/ui/dialogs/trade-kinds'
+import { toPreviewRefusal } from '@/web/ui/dialogs/trade-refusal'
 import { buildPreviewDraft, type TradeForm } from '@/web/ui/dialogs/trade-state'
 import { Button } from '@/web/ui/kit/button'
 
 // The ask waits for typing to pause, so a figure typed digit by digit asks once.
 const PREVIEW_DELAY_MS = 400
 const INCOMPLETE = 'incomplete'
-// A row in the book's currency, or one that moves no money, takes no rate.
-const NO_RATE = 'no-rate'
 
-/** Asks the daemon whether the row takes a rate whenever the draft settles in a currency other than
- *  the book's; the rate field shows only when it answers one. A newer draft cancels the ask before
- *  it, and closing the dialog cancels the last. */
+/** Asks the daemon about every complete draft: whether the book would refuse it, and, when the draft
+ *  settles in a currency other than the book's, whether the row takes a rate. The rate field shows
+ *  only when it answers one, and only a row that may take one waits on the answer to save. A newer
+ *  draft cancels the ask before it, and closing the dialog cancels the last. */
 export function useFxPreview(form: TradeForm): void {
   const draft = buildPreviewDraft(form)
-  const print = previewKeyOf(draft, holdingsBlock.view.value.data?.baseCurrency)
+  const print = draft === undefined ? INCOMPLETE : JSON.stringify(draft)
+  const isRated = draft !== undefined && isRateCurrency(draft)
   const retry = form.fxRetry.value
 
   useEffect(() => {
-    // An incomplete draft keeps the last answer and is refused on save as it stands.
+    // An incomplete draft keeps the last rate answer and is refused on save as it stands.
     if (draft === undefined) {
       form.fxStatus.value = 'idle'
-      return undefined
-    }
-
-    if (print === NO_RATE) {
-      applyRate(form, undefined)
+      form.refusal.value = undefined
       return undefined
     }
 
     const controller = new AbortController()
-    const timer = setTimeout(() => askRate(form, draft, controller.signal), PREVIEW_DELAY_MS)
+    const timer = setTimeout(
+      () => askPreview(form, { draft, isRated, signal: controller.signal }),
+      PREVIEW_DELAY_MS
+    )
 
-    form.fxStatus.value = 'pending'
+    form.fxStatus.value = isRated ? 'pending' : 'idle'
 
     return () => {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [print, retry])
+  }, [print, isRated, retry])
 }
 
-function previewKeyOf(draft: LedgerDraft | undefined, base: string | undefined): string {
-  if (draft === undefined) {
-    return INCOMPLETE
-  }
-
+// A row in the book's currency, or one that moves no money, takes no rate.
+function isRateCurrency(draft: LedgerDraft): boolean {
   const currency = currencyOf(draft)
 
-  return currency === undefined || currency === base ? NO_RATE : JSON.stringify(draft)
+  return currency !== undefined && currency !== holdingsBlock.view.value.data?.baseCurrency
 }
 
-function askRate(form: TradeForm, draft: LedgerDraft, signal: AbortSignal): void {
+function askPreview(
+  form: TradeForm,
+  ask: { readonly draft: LedgerDraft; readonly isRated: boolean; readonly signal: AbortSignal }
+): void {
+  const { draft, isRated, signal } = ask
   const replacing = form.start.entry?.id
 
   previewLedger({ draft, ...(replacing === undefined ? {} : { replacing }) }, signal).then(
     (answer) => {
       if (!signal.aborted) {
+        form.refusal.value = undefined
         applyRate(form, answer.fxRate)
       }
     },
@@ -76,13 +78,21 @@ function askRate(form: TradeForm, draft: LedgerDraft, signal: AbortSignal): void
         return
       }
 
-      // A draft the book refuses takes no rate; the save shows the daemon's own sentence.
+      // A draft the book refuses takes no rate; the refusal shows under the preview, and the save
+      // asks the daemon again.
       if (error instanceof ApiFailure && error.code === 'invalid_body') {
+        form.refusal.value = toPreviewRefusal(draft, error)
         applyRate(form, undefined)
         return
       }
 
-      form.fxStatus.value = 'failed'
+      // A rated row cannot save without its answer; any other row never needed one.
+      if (isRated) {
+        form.fxStatus.value = 'failed'
+        return
+      }
+
+      applyRate(form, undefined)
     }
   )
 }
