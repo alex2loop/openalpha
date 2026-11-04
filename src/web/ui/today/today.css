@@ -83,21 +83,21 @@
   border-top: 0;
 }
 
-/* Both sides of a dealer's quote take a line of their own where one line cannot hold them. */
-@media (max-width: 480px) {
-  .row.dealer-row {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
+/* A dealer's row: the name and the spread on one line, both sides of the quote on the next, so a
+   narrow panel never pushes the long quote over the name. */
+.row.dealer-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 2px;
+}
 
-  .dealer-row .row-price {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
+.dealer-row .row-price {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
 
-  .dealer-row .meta {
-    grid-column: 2;
-    grid-row: 1;
-  }
+.dealer-row .meta {
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .row.is-breach {

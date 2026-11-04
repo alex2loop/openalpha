@@ -1,9 +1,11 @@
 import { computed, signal } from '@preact/signals'
 
+import { formatDay } from '@/i18n'
 import { isAnalysisOnly } from '@/web/state/edition'
 import { onCommandFinished } from '@/web/state/events'
 import { backgroundTasks } from '@/web/state/live'
-import { state } from '@/web/state/session'
+import { locale, state } from '@/web/state/session'
+import { joinInline } from '@/web/text/glyphs'
 import { formatWhen } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
@@ -55,22 +57,28 @@ export function startDataStatus(): () => void {
 /** Where market data is shown on the web: how old it is, that the price history is still loading,
  *  or that the device is offline and the figures are the ones stored last time. Nothing on the
  *  daemon, which is always connected and keeps its own tasks in view. */
-export function DataStatus() {
+export function DataStatus({ dataTo }: { readonly dataTo?: string | undefined }) {
   const timeZone = state.value?.timeZone
 
   if (!isAnalysisOnly.value) {
     return null
   }
 
+  // The session the figures stand for and the time they were fetched read as one line.
+  const facts = [
+    ...(dataTo === undefined
+      ? []
+      : [tr('ui.office.today.dataTo', { time: formatDay(locale.value, dataTo) })]),
+    ...(dataAt.value === undefined || timeZone === undefined
+      ? []
+      : [tr('ui.office.edition.history.dataAt', { time: formatWhen(dataAt.value, timeZone) })]),
+  ]
+
   return (
     <>
       {isOffline.value && <p class="meta">{tr('ui.office.edition.history.offline')}</p>}
       {isHistoryLoading.value && <p class="meta">{tr('ui.office.edition.history.loading')}</p>}
-      {dataAt.value !== undefined && timeZone !== undefined && (
-        <p class="meta">
-          {tr('ui.office.edition.history.dataAt', { time: formatWhen(dataAt.value, timeZone) })}
-        </p>
-      )}
+      {facts.length > 0 && <p class="meta">{joinInline(facts)}</p>}
     </>
   )
 }

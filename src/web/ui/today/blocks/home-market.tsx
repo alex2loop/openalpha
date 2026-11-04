@@ -1,5 +1,6 @@
 import { DataStatus } from '@/web/edition/data-status'
 import { readBlock, withCautions } from '@/web/state/block'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { homeRegion, knownMarkets, overviewBlock, selectOverview } from '@/web/state/market'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { tr } from '@/web/text/tr'
@@ -29,10 +30,11 @@ export function HomeMarket() {
       icon={<TrendIcon />}
       reading={withCautions(readBlock(overviewBlock), blocks)}
       dataTo={board?.asOf}
+      showReadLine={!isAnalysisOnly.value}
     >
       {() => (
         <>
-          <DataStatus />
+          <DataStatus dataTo={board?.asOf} />
           <MarketSections blocks={blocks} />
         </>
       )}
