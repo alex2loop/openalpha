@@ -5,6 +5,7 @@
 // Additive-only within v1. camelCase keys, no snake_case on the wire, no field renames.
 
 import type { BriefTextWire } from '@/app/server/wire/brief'
+import type { PortfolioPnlWire } from '@/app/server/wire/portfolio-pnl'
 import type { PortfolioSharesWire } from '@/app/server/wire/portfolio-shares'
 import type { ByModelWire } from '@/app/server/wire/track-record'
 import type {
@@ -206,7 +207,7 @@ export interface TradingNavResponse {
   readonly benchmarkGap?: string
 }
 
-export interface TradingPortfolioResponse {
+export interface TradingPortfolioResponse extends PortfolioPnlWire {
   readonly asOf: string
   readonly baseCurrency: string
   readonly navBase?: number

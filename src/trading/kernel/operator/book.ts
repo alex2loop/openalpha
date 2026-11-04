@@ -106,6 +106,9 @@ export interface Book {
   readonly cashBase: number
   readonly availableCashBase: number
   readonly netDepositsBase: number
+  /** Every dividend received, at the base value of its day: already inside the realized result, not
+   *  something to add to it. */
+  readonly dividendsBase: number
   /** Cash split by the venue holding it. The totals above stay the whole-book figures every
    *  NAV, return and reserve reading wants; this answers what a buy at one venue can reach. Each
    *  venue's figure includes its currency cash at cost, so every reader of reachable cash keeps

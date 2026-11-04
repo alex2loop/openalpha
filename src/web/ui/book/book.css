@@ -14,6 +14,10 @@
   white-space: nowrap;
 }
 
+.row.figure-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .row-end {
   display: inline-flex;
   align-items: center;
