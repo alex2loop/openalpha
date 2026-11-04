@@ -7,7 +7,7 @@ import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type { RenderContext } from '@/trading/render/format'
 import { t } from '@/i18n'
 import { formatSignedPercent, renderDeclaredValue } from '@/trading/render/format'
-import { INDENT, toFactLines } from '@/trading/render/layout'
+import { INDENT, INLINE_SEPARATOR, toFactLines } from '@/trading/render/layout'
 import { type MetricReading, metricReadings } from '@/trading/render/metric'
 import { formatPercentRank } from '@/trading/render/rank'
 
@@ -101,8 +101,9 @@ const SECONDARY_READINGS: ReadonlySet<FactorMetricId> = new Set([
 const UNMEASURED_GROUP: BoardGroup = 'price'
 
 /** One fact of a name on a board: a reading with its label and value apart, for a page to lay out
- *  as it likes and for the text below to join. A factor's place among the board's names is a fact of
- *  its own, valued as that place: the score it is taken on is no one of the readings listed. */
+ *  as it likes and for the text below to join. A factor's place among the board's names joins the
+ *  reading of the factor's own name; with no such reading it is a fact of its own, valued as that
+ *  place, since the score it is taken on is none of the readings listed. */
 export interface BoardFact {
   readonly id: string
   readonly label: string
@@ -144,7 +145,7 @@ export function boardFacts(
     }
 
     if (percentile !== undefined) {
-      addFact(found, factor.id, {
+      addPlace(found, {
         id: factor.id,
         label: renderDeclaredValue(locale, `trading.factor.${factor.id}`),
         value: formatPercentRank(locale, percentile, 'plain'),
@@ -206,6 +207,22 @@ function toFact({ metric, label, value }: MetricReading): BoardFact {
     group: group ?? UNMEASURED_GROUP,
     ...(SECONDARY_READINGS.has(metric.id) ? { secondary: true as const } : {}),
   }
+}
+
+/** A factor's place goes on the line of the reading named as the factor is, so one quantity reads on
+ *  one line; with none it is a fact of its own. */
+function addPlace(found: Map<string, BoardFact>, place: BoardFact): void {
+  const named = [...found.entries()].find(([, stated]) => stated.label === place.label)
+
+  if (named === undefined) {
+    addFact(found, place.id, place)
+
+    return
+  }
+
+  const [key, fact] = named
+
+  found.set(key, { ...fact, value: `${fact.value}${INLINE_SEPARATOR}${place.value}` })
 }
 
 /** A reading two sources state keeps its first form. */

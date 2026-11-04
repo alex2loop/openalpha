@@ -38,8 +38,9 @@ interface ScreenFactorWire {
 type ScreenFactGroup = 'price' | 'valuation' | 'flow' | 'derivatives'
 
 /** One thing a board reads for a name, written as the CLI lists it: the label capitalised, the
- *  value with its unit. A factor's place among the board's names is a fact of its own, labelled with
- *  the factor and valued in plain words. Each reading once, in a fixed order. */
+ *  value with its unit. A factor's place among the board's names joins the reading of the same name,
+ *  else it is a fact of its own, labelled with the factor and valued in plain words. Each reading
+ *  once, in a fixed order. */
 export interface ScreenFactWire {
   readonly id: string
   readonly label: string
