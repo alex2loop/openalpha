@@ -56,20 +56,25 @@ interface EnsureMarketDataDeps {
  *  so a fresh install answers, and from then on `/refresh` and the scheduled tick own currency. A
  *  read that refetched whenever a kind aged made the first command after every rollover pay for the
  *  whole board, which is a fetch the operator did not ask for and cannot see coming. What the store
- *  does hold answers instead, carrying the session it stands for. */
+ *  does hold answers instead, carrying the session it stands for.
+ *
+ *  A market is warmed once any of its kinds has an attempt row, whatever that pass stored: a pass
+ *  that found nothing new, or failed, is still an answer, and reading it as absent refetched on
+ *  every read. A failed first attempt is reported as `refresh-failed`, and the scheduled tick or
+ *  `/refresh` retries it. */
 export function createEnsureMarketData(deps: EnsureMarketDataDeps): EnsureMarketData {
   return async (options) => {
     const attempts = await listAttempts(deps, options.market, options.signal)
-    const populated = attempts.filter(isPopulated)
+    const refreshed = attempts.length > 0
 
-    if (populated.length > 0 && !deps.firstLoading.has(options.market)) {
+    if (refreshed && !deps.firstLoading.has(options.market)) {
       const stale = await buildStaleCaveats(deps, options, attempts)
 
       return deps.firstLoadFailed.has(options.market) ? [FIRST_LOAD_INCOMPLETE, ...stale] : stale
     }
 
     if (options.partialAnswer === true) {
-      return populated.length > 0 ? FIRST_LOAD_PENDING_ANSWER : answerAfterFirstKind(deps, options)
+      return refreshed ? FIRST_LOAD_PENDING_ANSWER : answerAfterFirstKind(deps, options)
     }
 
     const result = await deps.refresh({
@@ -83,10 +88,10 @@ export function createEnsureMarketData(deps: EnsureMarketDataDeps): EnsureMarket
   }
 }
 
-/** Joins the market's first refresh until its first kind is stored, the budget runs out or the
- *  refresh ends, whichever is first, and then answers from the store. The refresh is not the read's:
- *  it keeps running after this returns, so its failure is logged here, once, whether or not the read
- *  is still waiting to carry it. */
+/** Joins the market's first refresh until its first kind has an attempt on record, the budget runs
+ *  out or the refresh ends, whichever is first, and then answers from the store. The refresh is not
+ *  the read's: it keeps running after this returns, so its failure is logged here, once, whether or
+ *  not the read is still waiting to carry it. */
 async function answerAfterFirstKind(
   deps: EnsureMarketDataDeps,
   options: EnsureMarketDataOptions
@@ -123,7 +128,7 @@ async function answerAfterFirstKind(
   try {
     return await Promise.race([
       refreshing.then((result) => result.caveats),
-      untilFirstKindStored(deps, options.market, signal).then(() => FIRST_LOAD_PENDING_ANSWER),
+      untilFirstKindAttempted(deps, options.market, signal).then(() => FIRST_LOAD_PENDING_ANSWER),
       sleep(FIRST_LOAD_BUDGET_MS, signal).then(() => FIRST_LOAD_PENDING_ANSWER),
     ])
   } finally {
@@ -131,12 +136,12 @@ async function answerAfterFirstKind(
   }
 }
 
-async function untilFirstKindStored(
+async function untilFirstKindAttempted(
   deps: EnsureMarketDataDeps,
   market: MarketRef,
   signal: AbortSignal
 ): Promise<void> {
-  while (!(await listAttempts(deps, market, signal)).some(isPopulated)) {
+  while ((await listAttempts(deps, market, signal)).length === 0) {
     await sleep(FIRST_KIND_POLL_MS, signal)
   }
 }
@@ -149,23 +154,23 @@ async function untilFirstKindStored(
  *  A kind whose latest attempt settled short reads as current by its stamps, since the failed pass
  *  is the newest one, so its status speaks instead: one caveat naming the kind, which also takes it
  *  out of the stale date. The stamp is the session the attempt stood for, so the data is no newer
- *  than it and may be older. */
+ *  than it and may be older. Every attempt is judged, whatever it stored: staleness reads the stamp,
+ *  and a pass that found nothing new still stands for its session. */
 async function buildStaleCaveats(
   deps: EnsureMarketDataDeps,
   options: EnsureMarketDataOptions,
   attempts: readonly MarketRefreshAttempt[]
 ): Promise<readonly Caveat[]> {
-  const populated = attempts.filter(isPopulated)
   const failed = attempts.filter((attempt) => FAILED_STATUSES.has(attempt.result.status))
   const failedKinds = new Set(failed.map((attempt) => attempt.result.kind))
   const market = deps.markets.find(options.market)
   const stale =
     (await market?.capabilities.staleKinds?.run({
-      attempts: populated,
+      attempts,
       now: options.now,
       signal: options.signal,
     })) ?? []
-  const [asOf] = populated
+  const [asOf] = attempts
     .filter(
       (attempt) => stale.includes(attempt.result.kind) && !failedKinds.has(attempt.result.kind)
     )
@@ -189,8 +194,4 @@ async function listAttempts(
   signal: AbortSignal
 ): Promise<readonly MarketRefreshAttempt[]> {
   return deps.marketDataStore.listRefreshAttempts({ market, signal })
-}
-
-function isPopulated(attempt: MarketRefreshAttempt): boolean {
-  return attempt.result.recordCount > 0
 }

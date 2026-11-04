@@ -136,7 +136,7 @@ async function runTrackingFirstLoad(
     market: options.market,
     signal: options.signal,
   })
-  const isFirstLoad = stored.every((attempt) => attempt.result.recordCount === 0)
+  const isFirstLoad = stored.length === 0
 
   if (isFirstLoad) {
     deps.firstLoading.add(options.market)
