@@ -167,10 +167,14 @@ const DEFAULT_OPERATIONS_POLICY: OperationsPolicy = Object.freeze({
   offlineRetryMs: OFFLINE_RETRY_MS,
 })
 
+/** The personal income tax every Vietnamese stock sale carries, whichever broker it goes through: a
+ *  share of the proceeds, billed on top of the broker's own fee. */
+export const VN_EQUITY_SELL_TAX = 0.001
+
 /** The published retail rates for the venues an install holds out of the box. Wrong for any
  *  operator on a different tier, which is why the confirmation states the rate it used. */
 const DEFAULT_TRADING_COSTS: TradingCosts = Object.freeze({
-  [venueRef('vps')]: Object.freeze({ buy: 0.0015, sell: 0.0015, sellTax: 0.001 }),
+  [venueRef('vps')]: Object.freeze({ buy: 0.0015, sell: 0.0015, sellTax: VN_EQUITY_SELL_TAX }),
   // A gold shop bills no commission: what it keeps is the gap between its two prices, and a row
   // books the side it filled at, so the spread is already in the basis and the proceeds.
   [venueRef('gold-shop')]: Object.freeze({ buy: 0, sell: 0 }),

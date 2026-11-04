@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import { findProviderById } from '@/ai/api'
+import { type CustomVenues, toRawVenues } from '@/app/browser/custom-venues'
 import { BROWSER_AI_PROVIDERS, listKeyVariables, readSearchSelection } from '@/app/browser/keys'
 import { parseRawConfig, resolveConfig } from '@/core/config/resolve'
 import { freezeDeep } from '@/core/utils/freeze'
@@ -50,8 +51,14 @@ export const TierOverridesSchema = z.strictObject({
   'research-heavy': TierChainSchema.optional(),
 })
 
-export type TierOverrides = z.infer<typeof TierOverridesSchema>
+type TierOverrides = z.infer<typeof TierOverridesSchema>
 type TierEntry = z.infer<typeof TierEntrySchema>
+
+/** Everything the visitor changed of the shipped config. */
+export interface BrowserOverrides {
+  readonly tiers: TierOverrides
+  readonly venues: CustomVenues
+}
 
 /** What the editable tiers hold until the visitor changes them. */
 export const SHIPPED_TIERS: Required<TierOverrides> = freezeDeep({
@@ -60,10 +67,7 @@ export const SHIPPED_TIERS: Required<TierOverrides> = freezeDeep({
   'research-heavy': [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
 })
 
-export function resolveBrowserConfig(
-  locale: Locale,
-  overrides: TierOverrides = {}
-): ResolvedConfig {
+export function resolveBrowserConfig(locale: Locale, overrides: BrowserOverrides): ResolvedConfig {
   const raw = parseRawConfig({
     locale: { language: locale },
     model_defaults: {
@@ -72,7 +76,10 @@ export function resolveBrowserConfig(
       provider_sort: 'latency',
     },
     models: [{ model: SHIPPED_PRIMARY_MODEL }],
-    model_tiers: { ...HIDDEN_TIERS, ...toRawTiers({ ...SHIPPED_TIERS, ...overrides }) },
+    model_tiers: { ...HIDDEN_TIERS, ...toRawTiers({ ...SHIPPED_TIERS, ...overrides.tiers }) },
+    ...(overrides.venues.length === 0
+      ? {}
+      : { trading: { venues: toRawVenues(overrides.venues) } }),
     budget: { max_daily_usd: DAILY_SPEND_CAP_USD },
     api: { enabled: false, orders: false },
   })

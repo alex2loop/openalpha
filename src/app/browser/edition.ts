@@ -40,7 +40,7 @@ const COMMANDS: ReadonlySet<string> = new Set([
 
 /** VN equities, crypto and gold read from sources a browser reaches; VN gold prices a premium over
  *  gold. US equities need sources it cannot. */
-const MARKETS: ReadonlySet<ReturnType<typeof marketRef>> = new Set([
+export const BROWSER_MARKETS: ReadonlySet<ReturnType<typeof marketRef>> = new Set([
   marketRef('equity-vn'),
   marketRef('crypto'),
   marketRef('gold'),
@@ -99,7 +99,7 @@ const EMPTY_READS: BookReads = {
 
 export function createBrowserEdition(app: App, keyring: BrowserKeyring): TradingEdition {
   return {
-    markets: MARKETS,
+    markets: BROWSER_MARKETS,
     commands: COMMANDS,
     suggest: {
       run: (request, ctx) => analyse(app, keyring, { request, ctx }),

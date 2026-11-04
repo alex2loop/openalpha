@@ -5,6 +5,7 @@ import { type MessageKey, pluralKey } from '@/i18n'
 import { DataPanel } from '@/web/edition/data-panel'
 import { KeysPanel } from '@/web/edition/keys-panel'
 import { TierChain } from '@/web/edition/tier-chain'
+import { VenuesPanel } from '@/web/edition/venues-panel'
 import { isAnalysisOnly } from '@/web/state/edition'
 import {
   pendingRestart,
@@ -64,19 +65,21 @@ const SECTION_TILES: Readonly<
   advanced: { colour: 'gray', icon: <LockIcon /> },
 })
 
-// What the web edition keeps of Cài đặt: the profile, the keys, the model tiers, the data on this
-// device and the display. The rest (memory, schedules, agents, channels, exchanges, tools, the
-// daemon's own health) needs a host the page does not have.
+// What the web edition keeps of Cài đặt: the profile, the keys, the model tiers, the hand-traded
+// venues, the data on this device and the display. The rest (memory, schedules, agents, channels,
+// tools, the daemon's own health) needs a host the page does not have.
 const WEB_SECTIONS: ReadonlySet<SettingsSection> = new Set([
   'profile',
   'providers',
   'agents',
+  'exchanges',
   'data',
   'display',
 ])
 const WEB_SECTION_TITLES: Readonly<Partial<Record<SettingsSection, MessageKey>>> = Object.freeze({
   providers: 'ui.office.edition.keys.title',
   agents: 'ui.office.edition.tiers.title',
+  exchanges: 'ui.office.edition.venues.title',
   data: 'ui.office.edition.data.title',
 })
 
@@ -189,6 +192,8 @@ function WebSectionView({ section }: { readonly section: SettingsSection }) {
       return <KeysPanel />
     case 'agents':
       return <TierChain />
+    case 'exchanges':
+      return <VenuesPanel />
     case 'data':
       return <DataPanel />
     case 'display':

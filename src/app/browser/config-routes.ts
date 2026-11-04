@@ -10,7 +10,13 @@ import type { ApiRouteContext, ApiRouteGroup, ApiRouteSpec } from '@/app/types'
 import type { Logger } from '@/core/logging/logger'
 import type { ConfigOverrideStore } from '@/persistence/api'
 import { findProviderById } from '@/ai/api'
-import { SHIPPED_TIERS, type TierOverrides, TierOverridesSchema } from '@/app/browser/config'
+import { type BrowserOverrides, SHIPPED_TIERS, TierOverridesSchema } from '@/app/browser/config'
+import {
+  assertCustomVenues,
+  assertRowsStay,
+  CustomVenuesSchema,
+  parseCustomVenues,
+} from '@/app/browser/custom-venues'
 import { BROWSER_AI_PROVIDERS } from '@/app/browser/keys'
 import { json } from '@/app/server/http/dispatch'
 import { localeOf, readJsonBody, toBodyFieldLabel } from '@/app/server/routes/params'
@@ -25,52 +31,98 @@ declare module '@/core/container' {
   }
 }
 
-/** The one section the browser keeps: the model tiers a visitor may change. */
+/** The sections the browser keeps: the model tiers and the hand-traded venues a visitor may change. */
 const TIERS_SECTION = 'model_tiers'
+const VENUES_SECTION = 'custom_venues'
 const MAX_BODY_BYTES = 16 * 1024
 // There is no file and no secret in what this group serves: the fields the contract carries stay empty.
 const NO_FILE = ''
 
-const ConfigBodySchema = z.strictObject({ model_tiers: TierOverridesSchema })
+// A save names the sections it changes; the others keep what they hold.
+const ConfigBodySchema = z.strictObject({
+  [TIERS_SECTION]: TierOverridesSchema.optional(),
+  [VENUES_SECTION]: CustomVenuesSchema.optional(),
+})
 
-/** The overrides saved before this start, or none: a payload that no longer parses is ignored, so a
+interface OverrideSection<T> {
+  readonly name: string
+  readonly empty: T
+  /** The value a stored payload holds, or `undefined` when it is not one this edition boots with. */
+  readonly accept: (value: unknown) => T | undefined
+}
+
+const TIERS: OverrideSection<BrowserOverrides['tiers']> = {
+  name: TIERS_SECTION,
+  empty: {},
+  accept: (value) => {
+    const parsed = TierOverridesSchema.safeParse(value)
+
+    return parsed.success ? parsed.data : undefined
+  },
+}
+
+const VENUES: OverrideSection<BrowserOverrides['venues']> = {
+  name: VENUES_SECTION,
+  empty: [],
+  accept: parseCustomVenues,
+}
+
+/** The overrides saved before this start, or none: a section that no longer parses is ignored, so a
  *  bad row can never keep the page from opening. */
-export async function readTierOverrides(
+export async function readBrowserOverrides(
   store: ConfigOverrideStore,
   logger: Logger,
   signal: AbortSignal
-): Promise<TierOverrides> {
-  const payload = await store.read(TIERS_SECTION, signal)
+): Promise<BrowserOverrides> {
+  const [tiers, venues] = await Promise.all([
+    readSection(store, TIERS, { logger, signal }),
+    readSection(store, VENUES, { logger, signal }),
+  ])
+
+  return { tiers, venues }
+}
+
+async function readSection<T>(
+  store: ConfigOverrideStore,
+  section: OverrideSection<T>,
+  context: { readonly logger: Logger; readonly signal: AbortSignal }
+): Promise<T> {
+  const payload = await store.read(section.name, context.signal)
 
   if (payload === undefined) {
-    return {}
+    return section.empty
   }
 
-  const parsed = TierOverridesSchema.safeParse(parseJson(payload))
+  const accepted = section.accept(parseJson(payload))
 
-  if (!parsed.success) {
-    logger.warn('browser.config_override_invalid', { section: TIERS_SECTION })
+  if (accepted === undefined) {
+    context.logger.warn('browser.config_override_invalid', { section: section.name })
   }
 
-  return parsed.success ? parsed.data : {}
+  return accepted ?? section.empty
 }
 
 function parseJson(text: string): unknown {
   try {
     return JSON.parse(text)
   } catch {
-    // Not JSON: it fails the schema like any other payload that is not a set of tiers.
+    // Not JSON: it fails the section's schema like any other payload that is not its shape.
     return undefined
   }
 }
 
+function toConfigView({ tiers, venues }: BrowserOverrides): Record<string, unknown> {
+  return { [TIERS_SECTION]: { ...SHIPPED_TIERS, ...tiers }, [VENUES_SECTION]: venues }
+}
+
 async function handleConfigGet(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const overrides = await readTierOverrides(
-    ctx.app.resolve('configOverrides'),
-    ctx.app.resolve('logger'),
-    req.signal
+  const config = toConfigView(
+    await readBrowserOverrides(
+      ctx.app.resolve('configOverrides'),
+      ctx.app.resolve('logger'),
+      req.signal
+    )
   )
-  const config = { model_tiers: { ...SHIPPED_TIERS, ...overrides } }
 
   return json({
     config,
@@ -108,17 +160,43 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
     throw toFieldValidationError(parsed.error, 'config', toBodyFieldLabel)
   }
 
-  await ctx.app
-    .resolve('configOverrides')
-    .write(TIERS_SECTION, JSON.stringify(parsed.data.model_tiers), Date.now())
+  const store = ctx.app.resolve('configOverrides')
+  const { model_tiers: tiers, custom_venues: venues } = parsed.data
+  const now = Date.now()
+
+  if (venues !== undefined) {
+    await assertVenueChange(ctx, venues, req.signal)
+    await store.write(VENUES_SECTION, JSON.stringify(venues), now)
+  }
+
+  if (tiers !== undefined) {
+    await store.write(TIERS_SECTION, JSON.stringify(tiers), now)
+  }
+
+  const saved = await readBrowserOverrides(store, ctx.app.resolve('logger'), req.signal)
 
   return json({
     ok: true,
     restartRequired: true,
-    version: hashString(
-      JSON.stringify({ model_tiers: { ...SHIPPED_TIERS, ...parsed.data.model_tiers } })
-    ),
+    version: hashString(JSON.stringify(toConfigView(saved))),
   } satisfies ConfigWriteResult)
+}
+
+async function assertVenueChange(
+  ctx: ApiRouteContext,
+  after: BrowserOverrides['venues'],
+  signal: AbortSignal
+): Promise<void> {
+  assertCustomVenues(after)
+
+  const { venues: before } = await readBrowserOverrides(
+    ctx.app.resolve('configOverrides'),
+    ctx.app.resolve('logger'),
+    signal
+  )
+  const rows = await ctx.app.resolve('tradingStores').ledger.listAll(signal)
+
+  assertRowsStay({ before, after, rows })
 }
 
 function handleProviders(): Promise<Response> {

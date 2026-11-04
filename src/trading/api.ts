@@ -46,7 +46,11 @@ export { unavailableSources } from '@/trading/wiring/composition/source-registry
 export { createTradingStoresProvider } from '@/trading/wiring/composition/stores'
 export { auditVenueKeys } from '@/trading/wiring/composition/venue-keys'
 export { resolveTradingConfig, TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
-export { HISTORY_FLOOR_DAYS } from '@/trading/wiring/config-defaults'
+export {
+  BUILT_IN_VENUES,
+  HISTORY_FLOOR_DAYS,
+  VN_EQUITY_SELL_TAX,
+} from '@/trading/wiring/config-defaults'
 
 // ── Daemon support ───────────────────────────────────────────────────────────
 
@@ -234,6 +238,7 @@ export {
 export { THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 export {
   buildInstrumentKey,
+  isVenueRefShape,
   marketRef,
   region,
   ticker,

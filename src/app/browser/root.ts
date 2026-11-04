@@ -11,7 +11,7 @@ import type { Locale } from '@/core/types/locale'
 import type { Storage } from '@/core/types/storage'
 import type { DatabaseFiles } from '@/persistence/api'
 import { resolveBrowserConfig } from '@/app/browser/config'
-import { readTierOverrides } from '@/app/browser/config-routes'
+import { readBrowserOverrides } from '@/app/browser/config-routes'
 import { authorizeVisitor } from '@/app/browser/host'
 import { createLabelledRunner } from '@/app/browser/labelled-runner'
 import { createBrowserApp } from '@/app/browser/providers'
@@ -138,7 +138,7 @@ async function composeRoot(input: RootInput, opened: OpenedStorage): Promise<Bro
   try {
     await migrate(storage, sqliteDialect, { logger: input.logger })
 
-    const overrides = await readTierOverrides(
+    const overrides = await readBrowserOverrides(
       createConfigOverrideStore(storage, sqliteDialect),
       input.logger,
       shutdown.signal
