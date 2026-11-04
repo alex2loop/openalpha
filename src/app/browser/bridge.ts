@@ -345,11 +345,11 @@ function buildRequest(
   call: Extract<WorkerCall, { readonly kind: 'http' }>,
   signal: AbortSignal
 ): Request {
-  const init: RequestInit = { method: call.method, signal }
+  const init: RequestInit = { method: call.method, signal, headers: call.headers }
 
   if (call.body !== undefined) {
     init.body = call.body
-    init.headers = { 'content-type': JSON_CONTENT_TYPE }
+    init.headers = { 'content-type': JSON_CONTENT_TYPE, ...call.headers }
   }
 
   return new Request(new URL(call.path, REQUEST_ORIGIN).toString(), init)

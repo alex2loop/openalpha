@@ -39,7 +39,14 @@ export type WorkerCall =
   | { kind: 'start'; locale: Locale; keys: BrowserKeys; steal: boolean }
   | { kind: 'keys'; keys: BrowserKeys }
   | { kind: 'locale'; locale: Locale }
-  | { kind: 'http'; id: string; method: string; path: string; body?: string }
+  | {
+      kind: 'http'
+      id: string
+      method: string
+      path: string
+      headers: Readonly<Record<string, string>>
+      body?: string
+    }
   | { kind: 'frame'; frame: ClientFrame }
   | { kind: 'abort'; id: string }
   | { kind: 'export-db'; id: string }
