@@ -32,7 +32,6 @@ import {
   formatHeadline,
   formatMultiple,
   formatPercent,
-  formatPercentRank,
   formatRatio,
   formatScore,
   formatScoreValue,
@@ -229,7 +228,7 @@ const VALUE_FORMATTERS = Object.freeze({
   openInterest: formatFlow,
   pendingCount: formatCount,
   premium: formatFraction,
-  premiumPercentile: formatPercentRank,
+  premiumPercentile: formatTimeRank,
   previousFlow: formatFlow,
   previousFraction: formatFixedFraction,
   previousMultiple: formatMultiple,
@@ -270,8 +269,16 @@ const VALUE_FORMATTERS = Object.freeze({
   volatilityDaily: formatFraction,
   weekChange: formatSignedFlow,
   winRate: formatFraction,
-  yearPercentile: formatPercentRank,
+  yearPercentile: formatTimeRank,
 } satisfies Record<BriefNumericField, (locale: Locale, value: number) => string>)
+
+/** Where a series stands against its own past: a share of the window, never "better than", since a
+ *  higher premium or a larger net long is neither better nor worse. */
+function formatTimeRank(locale: Locale, percent: number): string {
+  return t(locale, 'trading.render.layout.timeRank', {
+    pct: formatCount(locale, Math.round(percent)),
+  })
+}
 
 /** The same bar and band `/suggest` prints, so one score reads identically on both surfaces. */
 function bandedScore(locale: Locale, score: number): string {
