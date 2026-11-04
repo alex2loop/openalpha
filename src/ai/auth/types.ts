@@ -80,5 +80,8 @@ export interface CredentialSource {
   /** Absent means the source always answers. A source that can know it holds nothing says so, so the
    *  chain does not send a request it already knows will be refused. */
   hasCredentials?(): boolean
+  /** Set where the call leaves a web page: it is preflighted, so the transport adds no optional
+   *  header a provider's CORS list may refuse. */
+  readonly isPageCaller?: true
   authHeaders(keyHeaders: KeyHeaders): Promise<Readonly<Record<string, string>>>
 }

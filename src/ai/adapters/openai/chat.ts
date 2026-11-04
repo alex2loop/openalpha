@@ -101,12 +101,13 @@ interface OpenAiRouterState {
 
 export const openaiTransport: Transport = {
   async stream(req, entry, onEvent) {
-    const isOpenRouter = isOpenRouterHost(entry.baseUrl)
+    // OpenRouter's preflight does not allow its own metadata header, so a page never asks for it.
+    const asksMetadata = isOpenRouterHost(entry.baseUrl) && entry.credentials?.isPageCaller !== true
     const headers: Record<string, string> = {
       'content-type': 'application/json',
       accept: 'text/event-stream',
       ...(await resolveAuthHeaders(req, entry)),
-      ...(isOpenRouter ? { [OPENROUTER_METADATA_HEADER]: OPENROUTER_METADATA_ENABLED } : {}),
+      ...(asksMetadata ? { [OPENROUTER_METADATA_HEADER]: OPENROUTER_METADATA_ENABLED } : {}),
     }
 
     return await runStream({
