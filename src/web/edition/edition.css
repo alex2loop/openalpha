@@ -14,10 +14,36 @@
   margin: 0;
 }
 
-.key-held,
+/* A slot's held keys, then the form, across the row's whole width. */
+.key-slot {
+  display: grid;
+  flex-basis: 100%;
+  gap: var(--s3);
+}
+
+/* A held key reads as one framed line: which key, then what can be done with it. */
+.key-held {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1) var(--s2);
+  padding: var(--s1) var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.key-held > p {
+  margin: 0;
+}
+
+.key-held > .strip {
+  flex-basis: 100%;
+}
+
 .key-form {
   display: grid;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .key-form input[type="password"] {

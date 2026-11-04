@@ -52,10 +52,12 @@ function SlotRow({ slot }: { readonly slot: KeySlot }) {
       title={tr(`ui.office.edition.keys.${slot}.title`)}
       note={tr(`ui.office.edition.keys.${slot}.note`)}
     >
-      {Object.values(heldKeys.value[slot]).map((entry) => (
-        <HeldKey key={entry.provider} slot={slot} provider={entry.provider} />
-      ))}
-      <KeyForm slot={slot} />
+      <div class="key-slot">
+        {Object.values(heldKeys.value[slot]).map((entry) => (
+          <HeldKey key={entry.provider} slot={slot} provider={entry.provider} />
+        ))}
+        <KeyForm slot={slot} />
+      </div>
     </ActionRow>
   )
 }
