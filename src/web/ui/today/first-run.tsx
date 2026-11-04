@@ -126,56 +126,53 @@ function Step({ index, title, isDone, isOptional, children }: StepProps) {
   )
 }
 
-// The key itself is never typed here: the page only names the variable the daemon reads.
 function ModelStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
-  const recheck = useRecheck()
-  const envVar = state.value?.firstRun.modelKeyEnv
-
-  if (isAnalysisOnly.value) {
-    return <WebModelStep index={index} isDone={isDone} />
-  }
-
   return (
-    <Step index={index} title={tr('ui.office.firstRun.modelTitle')} isDone={isDone}>
-      {!isDone && (
-        <>
-          <p class="meta">
-            {envVar === undefined
-              ? tr('ui.office.firstRun.modelBodyNoKey')
-              : tr('ui.office.firstRun.modelBody', { envVar })}
-          </p>
-          <div class="step-actions">
-            <Button size="small" onClick={recheck}>
-              {tr('ui.office.common.recheck')}
-            </Button>
-          </div>
-        </>
-      )}
+    <Step index={index} title={modelTitle()} isDone={isDone} isOptional={isAnalysisOnly.value}>
+      {!isDone && <ModelSetup />}
     </Step>
   )
 }
 
-// The web edition runs the market, the screen and the ledger with no key at all; a key of the
-// visitor's own unlocks the AI parts.
-function WebModelStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
+/** The model step's title: a key of the visitor's own on the web edition, a model the daemon can
+ *  reach on the installed version. */
+export function modelTitle(): string {
+  return tr(editionKey('ui.office.firstRun.modelTitle', 'ui.office.edition.firstRun.keyTitle'))
+}
+
+/** What to do while no model can answer: on the web edition, add a key of the visitor's own (the
+ *  market, the screen and the ledger run without one); on the installed version, the variable the
+ *  daemon reads, and a recheck. The key itself is never typed here on the installed version. */
+export function ModelSetup() {
+  const recheck = useRecheck()
+  const envVar = state.value?.firstRun.modelKeyEnv
+
+  if (isAnalysisOnly.value) {
+    return (
+      <>
+        <p class="meta">{tr('ui.office.edition.firstRun.keyBody')}</p>
+        <div class="step-actions">
+          <Button size="small" onClick={() => openSettings('providers')}>
+            {tr('ui.office.edition.firstRun.keyCta')}
+          </Button>
+        </div>
+      </>
+    )
+  }
+
   return (
-    <Step
-      index={index}
-      title={tr('ui.office.edition.firstRun.keyTitle')}
-      isDone={isDone}
-      isOptional
-    >
-      {!isDone && (
-        <>
-          <p class="meta">{tr('ui.office.edition.firstRun.keyBody')}</p>
-          <div class="step-actions">
-            <Button size="small" onClick={() => openSettings('providers')}>
-              {tr('ui.office.edition.firstRun.keyCta')}
-            </Button>
-          </div>
-        </>
-      )}
-    </Step>
+    <>
+      <p class="meta">
+        {envVar === undefined
+          ? tr('ui.office.firstRun.modelBodyNoKey')
+          : tr('ui.office.firstRun.modelBody', { envVar })}
+      </p>
+      <div class="step-actions">
+        <Button size="small" onClick={recheck}>
+          {tr('ui.office.common.recheck')}
+        </Button>
+      </div>
+    </>
   )
 }
 
