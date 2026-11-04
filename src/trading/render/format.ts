@@ -229,24 +229,12 @@ export function formatFixedPercent(locale: Locale, percent: number): string {
   return formatFixedFraction(locale, percent / PERCENT_PER_UNIT)
 }
 
-/** Each wording of a standing, with its two ends named: "above 0% of the names" reads oddly where
- *  "lowest on the board" says the same. */
+/** Each wording of a standing; its two ends have their own keys (`…Lowest`, `…Highest`), since
+ *  "above 0% of the names" reads oddly where "lowest on the board" says the same. */
 const RANK_KEYS = Object.freeze({
-  better: {
-    between: 'trading.render.layout.percentRank',
-    lowest: 'trading.render.layout.percentRankLowest',
-    highest: 'trading.render.layout.percentRankHighest',
-  },
-  plain: {
-    between: 'trading.render.layout.percentRankPlain',
-    lowest: 'trading.render.layout.percentRankPlainLowest',
-    highest: 'trading.render.layout.percentRankPlainHighest',
-  },
-  time: {
-    between: 'trading.render.layout.timeRank',
-    lowest: 'trading.render.layout.timeRankLowest',
-    highest: 'trading.render.layout.timeRankHighest',
-  },
+  better: 'trading.render.layout.percentRank',
+  plain: 'trading.render.layout.percentRankPlain',
+  time: 'trading.render.layout.timeRank',
 } as const)
 const RANK_TOP = 100
 
@@ -263,15 +251,15 @@ export function formatPercentRank(
   wording: keyof typeof RANK_KEYS = 'better'
 ): string {
   const pct = Math.round(percent)
-  const keys = RANK_KEYS[wording]
+  const key = RANK_KEYS[wording]
 
   if (pct <= 0) {
-    return t(locale, keys.lowest)
+    return t(locale, `${key}Lowest`)
   }
 
   return pct >= RANK_TOP
-    ? t(locale, keys.highest)
-    : t(locale, keys.between, { pct: formatCount(locale, pct) })
+    ? t(locale, `${key}Highest`)
+    : t(locale, key, { pct: formatCount(locale, pct) })
 }
 
 /** A 0-1 index as whole percent. Coverage and agreement are folds over weights, not measured
