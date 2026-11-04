@@ -197,6 +197,23 @@
         "decliners": 80,
         "measured": 148
       },
+      "sections": [
+        {
+          "kind": "derivatives",
+          "heading": "Derivatives (at 08/10/2026 16:30)",
+          "lines": [
+            "  funding rate ▲ 0.01% · open interest 12 billion USD · contracts vs 30-session 1.12×",
+            "    long/short ratio 1.80"
+          ]
+        },
+        {
+          "kind": "taker-flow",
+          "heading": "Buyers crossing the spread (07/10/2026 session)",
+          "lines": ["  51.2%"]
+        },
+        { "kind": "sentiment", "heading": "Sentiment", "lines": ["  Fear 25/100"] }
+      ],
+      "sources": "Data from binance-futures, alternative-me, updated 08/10/2026 16:30",
       "caveats": [
         {
           "code": "market-data.evidence-settled-only",

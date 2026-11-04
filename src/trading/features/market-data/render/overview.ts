@@ -84,7 +84,12 @@ export function renderOverviewText(
 }
 
 /** The sections of a market's overview an app lays out under the rows it already draws. */
-const SURFACE_SECTION_KINDS: ReadonlySet<BriefSectionKind> = new Set(['premium'])
+const SURFACE_SECTION_KINDS: ReadonlySet<BriefSectionKind> = new Set([
+  'premium',
+  'derivatives',
+  'taker-flow',
+  'sentiment',
+])
 
 /** One section as `/overview` prints it, its lines indented as the CLI indents them. */
 interface OverviewSurfaceSection {
