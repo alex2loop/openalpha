@@ -10,10 +10,10 @@ import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sleep } from '@/core/utils/time'
 
-/** Ceiling for a refresh that stores nothing: the first kind landing (the VN listing, about 11 s in)
- *  ends the wait sooner. Keeps the read well inside the 120 s the host allows it. */
+/** Ceiling for a refresh that records nothing: the first kind's attempt (the VN listing, about 11 s
+ *  in) ends the wait sooner. Keeps the read well inside the 120 s the host allows it. */
 const FIRST_LOAD_BUDGET_MS = 30_000
-/** How often the wait looks for a stored kind. It reads the store, never a provider. */
+/** How often the wait looks for an attempt row. It reads the store, never a provider. */
 const FIRST_KIND_POLL_MS = 500
 /** Carried by an answer given while the market's first refresh is still running. */
 export const FIRST_LOAD_PENDING: Caveat = Object.freeze({ code: 'market-data.first-load-pending' })
@@ -32,7 +32,7 @@ export interface EnsureMarketDataOptions {
   readonly signal: AbortSignal
   readonly progress?: StageReporter
   /** The read persists nothing and spends nothing, and the next one repeats it, so while the market
-   *  has no stored kind it may answer from the first one to land instead of the whole refresh. */
+   *  has no attempt row it may answer from the first one to land instead of the whole refresh. */
   readonly partialAnswer?: true
 }
 
@@ -64,7 +64,10 @@ interface EnsureMarketDataDeps {
  *  `/refresh` retries it. */
 export function createEnsureMarketData(deps: EnsureMarketDataDeps): EnsureMarketData {
   return async (options) => {
-    const attempts = await listAttempts(deps, options.market, options.signal)
+    const attempts = await deps.marketDataStore.listRefreshAttempts({
+      market: options.market,
+      signal: options.signal,
+    })
     const refreshed = attempts.length > 0
 
     if (refreshed && !deps.firstLoading.has(options.market)) {
@@ -141,7 +144,7 @@ async function untilFirstKindAttempted(
   market: MarketRef,
   signal: AbortSignal
 ): Promise<void> {
-  while ((await listAttempts(deps, market, signal)).length === 0) {
+  while ((await deps.marketDataStore.listRefreshAttempts({ market, signal })).length === 0) {
     await sleep(FIRST_KIND_POLL_MS, signal)
   }
 }
@@ -186,12 +189,4 @@ async function buildStaleCaveats(
   return asOf === undefined
     ? refreshFailed
     : [{ code: 'market-data.evidence-stale', detail: { asOf } }, ...refreshFailed]
-}
-
-async function listAttempts(
-  deps: EnsureMarketDataDeps,
-  market: MarketRef,
-  signal: AbortSignal
-): Promise<readonly MarketRefreshAttempt[]> {
-  return deps.marketDataStore.listRefreshAttempts({ market, signal })
 }

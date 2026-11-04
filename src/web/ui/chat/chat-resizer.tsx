@@ -14,11 +14,11 @@ const KEY_STEPS: ReadonlyMap<string, number> = new Map([
   ['ArrowLeft', KEY_STEP_PX],
   ['ArrowRight', -KEY_STEP_PX],
 ])
-const STORED_WIDTH = Number(readStorage('local', WIDTH_KEY))
+const storedWidth = Number(readStorage('local', WIDTH_KEY))
 
 /** The width this viewer dragged the docked chat to; absent keeps the layout's own width. */
 const chatWidth = signal<number | undefined>(
-  Number.isFinite(STORED_WIDTH) && STORED_WIDTH >= MIN_WIDTH_PX ? STORED_WIDTH : undefined
+  Number.isFinite(storedWidth) && storedWidth >= MIN_WIDTH_PX ? storedWidth : undefined
 )
 
 /** The chat's left edge on a wide screen: drag or arrow keys to widen it, a double click to reset. */
@@ -43,9 +43,12 @@ export function ChatResizer() {
   )
 }
 
-/** The inline style that applies the dragged width, or none. */
+/** The inline style that applies the dragged width, or none. Capped by the window's share, so a width
+ *  dragged on a larger window never crowds out the office on a smaller one. */
 export function chatWidthStyle(): string | undefined {
-  return chatWidth.value === undefined ? undefined : `--chatPanelW: ${chatWidth.value}px`
+  return chatWidth.value === undefined
+    ? undefined
+    : `--chatPanelW: min(${chatWidth.value}px, ${MAX_WIDTH_SHARE * 100}vw)`
 }
 
 // The panel's right edge stays put, so the width is that edge less the pointer. Moves end on release

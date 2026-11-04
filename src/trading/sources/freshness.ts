@@ -35,15 +35,15 @@ interface FreshReads {
  *  next read, and a read whose caller aborted may have been cut short, so it is never kept. Each
  *  kind not named in `SOURCE_MAX_AGE_MS` passes straight through. */
 export function createFreshReads(): FreshReads {
-  const caches = new Map<SourceKind, TtlCache<string, SourceResult<unknown>>>(
-    SOURCE_KINDS.flatMap((kind) => {
-      const maxAgeMs = SOURCE_MAX_AGE_MS[kind]
+  const caches = new Map<SourceKind, TtlCache<string, SourceResult<unknown>>>()
 
-      return maxAgeMs === undefined
-        ? []
-        : [[kind, ttlCache<string, SourceResult<unknown>>(maxAgeMs, MAX_ENTRIES_PER_KIND)] as const]
-    })
-  )
+  for (const kind of SOURCE_KINDS) {
+    const maxAgeMs = SOURCE_MAX_AGE_MS[kind]
+
+    if (maxAgeMs !== undefined) {
+      caches.set(kind, ttlCache(maxAgeMs, MAX_ENTRIES_PER_KIND))
+    }
+  }
 
   return {
     async read<R extends SourceResult<unknown>>(

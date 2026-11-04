@@ -54,11 +54,13 @@ export function History() {
     (entry) => filter.value === 'all' || entry.kind === filter.value
   )
   const shown = kept.slice(page.value * LEDGER_PAGE, (page.value + 1) * LEDGER_PAGE)
+  const isBookEmpty =
+    ledger.rows.value.length === 0 && ledger.failure.value === undefined && !ledger.isLoading.value
 
   return (
     <section class="block">
       <BlockHead title={tr('ui.office.book.history')} colour="gray" icon={<HistoryIcon />} />
-      <LedgerTools filter={filter} page={page} isEmpty={ledger.rows.value.length === 0} />
+      <LedgerTools filter={filter} page={page} isEmpty={isBookEmpty} />
       <LedgerBody
         ledger={ledger}
         shown={shown}
@@ -76,8 +78,8 @@ interface LedgerToolsProps {
   readonly isEmpty: boolean
 }
 
-// An empty book has nothing to filter, and its own line already offers the first trade; a venue's
-// reconcile still stands, since it is how a connected exchange's trades come in.
+// A loaded, empty book has nothing to filter, and its own line already offers the first trade; a
+// venue's reconcile still stands, since it is how a connected exchange's trades come in.
 function LedgerTools({ filter, page, isEmpty }: LedgerToolsProps) {
   if (isEmpty && !offers('venues')) {
     return null

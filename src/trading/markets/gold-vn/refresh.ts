@@ -33,14 +33,14 @@ export async function refreshPremium(
  *  whatever it wrote: without it every read refetches the vendor history. Never from `finally`: a
  *  throw or abort leaves no row, so the next pass repairs it. */
 async function settleAttempt(
-  input: PremiumBackfillDeps,
+  refreshDeps: PremiumBackfillDeps,
   request: MarketDataRefreshRequest,
   result: RefreshKindResult
 ): Promise<void> {
-  await input.deps.marketDataStore.upsertRefreshAttempt(
+  await refreshDeps.deps.marketDataStore.upsertRefreshAttempt(
     {
       market: GOLD_VN_MARKET_REF,
-      asOf: resolveSettledDay(input.calendar, request.now),
+      asOf: resolveSettledDay(refreshDeps.calendar, request.now),
       attemptedAt: request.now,
       result,
     },
