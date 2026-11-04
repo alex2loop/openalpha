@@ -27,7 +27,7 @@ import {
 import { useBlockRead } from '@/web/state/block'
 import { openTicker } from '@/web/state/known-tickers'
 import { heldPositions, keyOf, printDisplayOf, watchedNames } from '@/web/state/market'
-import { formatFixed, formatPrice, formatSignedPercent } from '@/web/text/figures'
+import { formatFixed, formatPrice, formatSignedPercent, PERCENT } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -42,7 +42,8 @@ const SCREEN_PAGE_LIMIT = 50
 const MAX_SCREEN_PAGES = 40
 // `2026-11-03`: a day, however the read stamps it.
 const DAY_LENGTH = 10
-const PERCENT = 100
+// A coverage reads as a whole percent: `80%` of the factors had data.
+const COVERAGE_DIGITS = 0
 
 /** Màn lọc on the web: every priced name the market read returned, with its price and move, the
  *  plain values its market states and what each factor read for it and where that sits on the board,
@@ -317,7 +318,7 @@ function NameNotes({ candidate }: { readonly candidate: Candidate }) {
       ? []
       : [
           tr('ui.office.edition.screen.coverage', {
-            pct: formatFixed(candidate.coverage * PERCENT, 0),
+            pct: formatFixed(candidate.coverage * PERCENT, COVERAGE_DIGITS),
           }),
         ]),
   ]

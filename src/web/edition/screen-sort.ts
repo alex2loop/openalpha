@@ -1,10 +1,11 @@
 import type { ScreenResponse } from '@/app/server/wire/market'
 import type { MessageKey } from '@/i18n'
+import { PERCENT } from '@/web/text/figures'
 
 /** The size limits are typed in billions: a VN market value in whole units runs to fifteen digits. */
 const BILLION = 1_000_000_000
 /** A share the wire states as a fraction (`0.12`) is typed as a percent (`12`). */
-const PERCENT_TO_FRACTION = 0.01
+const PERCENT_TO_FRACTION = 1 / PERCENT
 
 /** A market value is limited the same way whichever field the market states it in. */
 const MARKET_CAP_LIMIT: Limit = Object.freeze({
