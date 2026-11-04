@@ -1,5 +1,5 @@
 # The web edition: static assets only, no Worker script, no logs kept on the operator's side.
-# Build first: bun run build:web (add --noindex for staging).
+# Build first: bun run build:web --app-url=<web app address> (add --noindex for staging).
 name = "openalpha-web-staging"
 compatibility_date = "2026-11-03"
 

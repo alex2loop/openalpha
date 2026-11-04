@@ -34,8 +34,8 @@ bun run lint            # Biome lint + autofix
 bun run typecheck       # gen + tsc (Bun never type-checks; the only type gate)
 bun run check           # Biome + typecheck + contract gates, incl. check:browser (CI)
 bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin, host global or timer method
-bun run build:web       # static web edition into dist/web (add --noindex for staging); deploy/web/wrangler.toml serves it
-bun run build:site      # homepage into dist/site; needs --app-url=<https address of the web edition>
+bun run build:web       # static web edition into dist/web; needs --app-url=<https address of the web edition> (add --noindex for staging); deploy/web/wrangler.toml serves it
+bun run build:site      # homepage into dist/site; needs --app-url=<https address of the web edition> and --site-url=<https address of the homepage>
 bun run lint:arch       # depth, trading/registry/feature isolation, locale, report figures,
                         # caveats, vi terminology, pricing, agent skills, strategy version (CI)
 bun run gen             # regenerate the migration registry

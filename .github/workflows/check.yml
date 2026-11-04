@@ -40,9 +40,9 @@ jobs:
 
       # What the deploy builds, so a broken page bundle, a CSP or inline-block hash, or a `_headers`
       # line past its limit fails here rather than after a release is tagged.
-      - run: bun run build:web --noindex
+      - run: bun run build:web --app-url=https://app.example.com/ --noindex
 
-      - run: bun run build:site --app-url=https://example.com/ --noindex
+      - run: bun run build:site --app-url=https://app.example.com/ --site-url=https://example.com/ --noindex
 
   # No gate here runs Windows code paths; this builds the Windows binary natively and drives the
   # lifecycle a Windows operator uses: install script syntax, version, background start, stop.

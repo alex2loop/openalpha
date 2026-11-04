@@ -4,12 +4,13 @@ name: web
 # workflow just published and only while that tag is the latest release. It is separate from the
 # release workflow and never bumps a version or writes to the repository.
 #
-# It stays idle until the operator has added what a deploy needs: the repository variable WEB_APP_URL
-# (the address of the web app, which the homepage links to) and, in the GitHub Environment
-# `production`, the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. With any of them missing
-# the run ends green and deploys nothing. Run it by hand to deploy the latest release again. After a
-# deploy it compares what both addresses serve with the build (scripts/deploy-drift.ts); the
-# repository variable SITE_URL is the homepage's address.
+# It stays idle until the operator has added what a deploy needs: the repository variables
+# WEB_APP_URL (the address of the web app, which the homepage links to) and SITE_URL (the
+# homepage's address); each build writes its page's own address into its link preview tags. In the
+# GitHub Environment `production` it also needs the secrets CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID. With any of them missing the run ends green and deploys nothing. Run it by
+# hand to deploy the latest release again. After a deploy it compares what both addresses serve with
+# the build (scripts/deploy-drift.ts).
 #
 # The build job runs the repository's code and its dependencies and holds no secret. The deploy job
 # holds the secrets, only downloads what the build job made, and runs the wrangler pinned in
@@ -39,6 +40,7 @@ jobs:
       tag: ${{ steps.plan.outputs.tag }}
     env:
       WEB_APP_URL: ${{ vars.WEB_APP_URL }}
+      SITE_URL: ${{ vars.SITE_URL }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
@@ -51,6 +53,11 @@ jobs:
         run: |
           if [ -z "$WEB_APP_URL" ]; then
             echo "WEB_APP_URL is not set: nothing to deploy"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$SITE_URL" ]; then
+            echo "SITE_URL is not set: nothing to deploy"
             echo "deploy=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -83,6 +90,7 @@ jobs:
     timeout-minutes: 15
     env:
       WEB_APP_URL: ${{ vars.WEB_APP_URL }}
+      SITE_URL: ${{ vars.SITE_URL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -95,9 +103,9 @@ jobs:
       - run: bun install --frozen-lockfile
 
       # Both answer on workers.dev until a production domain exists; drop --noindex with the move.
-      - run: bun run build:web --noindex
+      - run: bun run build:web --app-url="$WEB_APP_URL" --noindex
 
-      - run: bun run build:site --app-url="$WEB_APP_URL" --noindex
+      - run: bun run build:site --app-url="$WEB_APP_URL" --site-url="$SITE_URL" --noindex
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -154,8 +162,4 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}
         run: |
           bun scripts/deploy-drift.ts --dist=dist/web --url="$WEB_APP_URL"
-          if [ -n "$SITE_URL" ]; then
-            bun scripts/deploy-drift.ts --dist=dist/site --url="$SITE_URL"
-          else
-            echo "SITE_URL is not set: the homepage was not compared"
-          fi
+          bun scripts/deploy-drift.ts --dist=dist/site --url="$SITE_URL"
