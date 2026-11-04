@@ -20,6 +20,7 @@ export const SETTINGS_SECTIONS = [
   'exchanges',
   'tools',
   'data',
+  'errorLog',
   'display',
   'advanced',
 ] as const
@@ -35,6 +36,7 @@ export const SECTION_TITLES = Object.freeze({
   exchanges: 'ui.office.settings.exchanges',
   tools: 'ui.office.settings.tools',
   data: 'ui.office.settings.data',
+  errorLog: 'ui.office.edition.errorLog.title',
   display: 'ui.office.settings.display',
   advanced: 'ui.office.settings.advanced',
 } as const satisfies Record<SettingsSection, MessageKey>)

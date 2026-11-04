@@ -5,6 +5,7 @@
 import type { ClientFrame, ServerFrame } from '@/app/server/wire/socket'
 import type { Capabilities } from '@/app/server/wire/system'
 import type { Locale } from '@/core/types/locale'
+import type { LogEntry } from '@/core/types/log-entry'
 
 /** The AI providers whose API answers a browser; the page offers them and the worker reads their keys. */
 export type BrowserAiProvider =
@@ -74,7 +75,8 @@ export type DbOpenOutcome =
 /** Worker -> page. `ready` answers `start` with what this edition offers; `refused` says the
  *  database is not available and why. `db-exported` answers `export-db` with every committed page of
  *  the database as one SQLite file (`null` when there is none to read); `db-opened` answers
- *  `open-db`, which replaced the database with the file's bytes only when it says `opened`. */
+ *  `open-db`, which replaced the database with the file's bytes only when it says `opened`. `log`
+ *  pushes one scrubbed warn, error or fatal line of the worker's logger; nothing answers it. */
 export type WorkerReply =
   | { kind: 'ready'; capabilities: Capabilities }
   | { kind: 'refused'; reason: WorkerRefusal }
@@ -82,3 +84,4 @@ export type WorkerReply =
   | { kind: 'frame'; frame: ServerFrame }
   | { kind: 'db-exported'; id: string; bytes: ArrayBuffer | null }
   | { kind: 'db-opened'; id: string; outcome: DbOpenOutcome }
+  | { kind: 'log'; entry: LogEntry }

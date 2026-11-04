@@ -3,6 +3,7 @@ import { signal } from '@preact/signals'
 
 import { type MessageKey, pluralKey } from '@/i18n'
 import { DataPanel } from '@/web/edition/data-panel'
+import { ErrorLogPanel } from '@/web/edition/error-log-panel'
 import { KeysPanel } from '@/web/edition/keys-panel'
 import { TierChain } from '@/web/edition/tier-chain'
 import { VenuesPanel } from '@/web/edition/venues-panel'
@@ -28,6 +29,7 @@ import {
   TargetIcon,
   TrendIcon,
   UserIcon,
+  WarningIcon,
 } from '@/web/ui/kit/icons'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { AdvancedSection } from '@/web/ui/settings/advanced'
@@ -61,12 +63,13 @@ const SECTION_TILES: Readonly<
   exchanges: { colour: 'green', icon: <TrendIcon /> },
   tools: { colour: 'teal', icon: <TargetIcon /> },
   data: { colour: 'teal', icon: <PlugIcon /> },
+  errorLog: { colour: 'pink', icon: <WarningIcon /> },
   display: { colour: 'gray', icon: <EyeIcon /> },
   advanced: { colour: 'gray', icon: <LockIcon /> },
 })
 
 // What the web edition keeps of Cài đặt: the profile, the keys, the model tiers, the hand-traded
-// venues, the data on this device and the display. The rest (memory, schedules, agents, channels,
+// venues, the data on this device, its error log and the display. The rest (memory, schedules, agents, channels,
 // tools, the daemon's own health) needs a host the page does not have.
 const WEB_SECTIONS: ReadonlySet<SettingsSection> = new Set([
   'profile',
@@ -74,8 +77,11 @@ const WEB_SECTIONS: ReadonlySet<SettingsSection> = new Set([
   'agents',
   'exchanges',
   'data',
+  'errorLog',
   'display',
 ])
+// The web edition's worker is the only one that pushes its log to the page.
+const WEB_ONLY_SECTION: SettingsSection = 'errorLog'
 const WEB_SECTION_TITLES: Readonly<Partial<Record<SettingsSection, MessageKey>>> = Object.freeze({
   providers: 'ui.office.edition.keys.title',
   agents: 'ui.office.edition.tiers.title',
@@ -113,9 +119,9 @@ function openSection(section: SettingsSection): void {
 }
 
 function sectionsShown(): readonly SettingsSection[] {
-  return isAnalysisOnly.value
-    ? SETTINGS_SECTIONS.filter((section) => WEB_SECTIONS.has(section))
-    : SETTINGS_SECTIONS
+  return SETTINGS_SECTIONS.filter((section) =>
+    isAnalysisOnly.value ? WEB_SECTIONS.has(section) : section !== WEB_ONLY_SECTION
+  )
 }
 
 function titleOf(section: SettingsSection): MessageKey {
@@ -196,6 +202,8 @@ function WebSectionView({ section }: { readonly section: SettingsSection }) {
       return <VenuesPanel />
     case 'data':
       return <DataPanel />
+    case 'errorLog':
+      return <ErrorLogPanel />
     case 'display':
       return <DisplaySection reopen={reopen} />
     default:

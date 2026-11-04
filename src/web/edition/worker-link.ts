@@ -5,6 +5,7 @@ import type { BrowserKeys, DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/
 import { toLocale } from '@/i18n'
 import { setApiTransport } from '@/web/api/client'
 import { setFeedSocketFactory } from '@/web/api/socket'
+import { recordLogEntry } from '@/web/edition/error-log'
 import { createWorkerTransport } from '@/web/edition/transport'
 import { allowWorkerScript } from '@/web/edition/trusted-types'
 import { createWorkerFeedSocket } from '@/web/edition/worker-socket'
@@ -235,6 +236,8 @@ function onReply(event: MessageEvent<WorkerReply>): void {
     editionPhase.value = { kind: 'ready' }
   } else if (message.kind === 'refused') {
     refuse(message.reason)
+  } else if (message.kind === 'log') {
+    recordLogEntry(message.entry)
   }
 }
 

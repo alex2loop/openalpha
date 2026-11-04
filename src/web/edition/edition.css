@@ -80,3 +80,19 @@
   gap: 8px;
   align-items: center;
 }
+
+/* The error log: one entry per line, long messages and stacks wrapping inside the dialog. */
+.error-log {
+  display: grid;
+  gap: var(--s1);
+  max-height: 24rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.error-log li {
+  overflow-wrap: anywhere;
+  font-size: var(--sizeBody);
+}

@@ -129,6 +129,7 @@ core/ids
 core/limits
 core/llm
 core/logging/correlation
+core/logging/entry-log
 core/logging/inspection
 core/logging/logger
 core/logging/paths
@@ -160,6 +161,7 @@ core/types/doctor
 core/types/event-job
 core/types/exact
 core/types/locale
+core/types/log-entry
 core/types/memory
 core/types/plugin
 core/types/run
