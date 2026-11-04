@@ -766,8 +766,9 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
 - **The macro reading in full**: the regime and lean; one line with the 12-month deposit rate and the
   USD/VND rate (a part with no reading is left out); the drivers left out because they have no
   reading yet; how much of the model has data; and, in Advanced, the scale and a table of what makes
-  the number, strongest pull first. The web edition names no regime and gives no composite, scale or
-  weights: it lists each driver's own reading, in the order the read gives them.
+  the number, strongest pull first, each row dated by the day its reading was observed and with the
+  figures at the two ends of its bar. The web edition names no regime and gives no composite, scale
+  or weights: it lists each driver's own reading, in the order the read gives them.
 - **The region's prices**, with each market's top gainers and losers (the five strongest moves above
   its liquidity floor, side by side on a wide panel).
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the

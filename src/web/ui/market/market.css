@@ -47,6 +47,10 @@
   white-space: nowrap;
 }
 
+.macro-asof {
+  display: block;
+}
+
 .macro-track {
   position: relative;
   display: block;
@@ -64,6 +68,16 @@
   border-radius: 50%;
   background: var(--ink);
   transform: translate(-50%, -50%);
+}
+
+.macro-range {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.macro-range .macro-track {
+  flex: 1;
 }
 
 .theme-row {

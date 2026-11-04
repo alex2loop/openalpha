@@ -1,9 +1,11 @@
 import type { MacroResponse } from '@/app/server/wire/market'
+import { formatDay } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { isAdvanced } from '@/web/state/prefs'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
+import { locale } from '@/web/state/session'
 import {
   formatFixed,
   formatFixedFraction,
@@ -169,11 +171,24 @@ function DriverTable({ drivers }: { readonly drivers: ReadyMacro['drivers'] }) {
 function DriverRow({ driver }: { readonly driver: MacroDriver }) {
   return (
     <tr>
-      <td>{driver.label}</td>
+      <td>
+        {driver.label}
+        <span class="meta macro-asof">
+          {tr('ui.office.market.driverAsOf', { day: formatDay(locale.value, driver.asOf) })}
+        </span>
+      </td>
       <td class="num">{formatDriverValue(driver)}</td>
       <td>
-        <span class="macro-track">
-          <span class="macro-dot" style={`left: ${positionOf(driver) * PERCENT}%`} />
+        <span class="macro-range">
+          <span class="num">
+            {formatDriverValue({ unit: driver.unit, value: driver.bearishAt })}
+          </span>
+          <span class="macro-track">
+            <span class="macro-dot" style={`left: ${positionOf(driver) * PERCENT}%`} />
+          </span>
+          <span class="num">
+            {formatDriverValue({ unit: driver.unit, value: driver.bullishAt })}
+          </span>
         </span>
       </td>
       {!isAnalysisOnly.value && (

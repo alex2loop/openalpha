@@ -758,8 +758,9 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
 - **Đầy đủ số đọc vĩ mô**: trạng thái và chiều nghiêng; một dòng lãi suất tiền gửi 12 tháng và tỷ giá
   USD/VND (phần nào chưa có số thì bỏ); những thành phần bị để ngoài vì chưa có số đọc; phần mô hình
   đã có dữ liệu; và ở mức Nâng cao thì thêm thang đo cùng bảng các thành phần tạo nên con số, lực kéo
-  mạnh nhất đứng đầu. Bản web không nêu trạng thái và không có điểm tổng hợp, thang đo hay trọng số:
-  chỉ liệt kê số đọc riêng của từng thành phần, theo thứ tự nguồn trả về.
+  mạnh nhất đứng đầu, mỗi dòng ghi ngày số liệu được ghi nhận và hai số ở hai đầu thanh của nó. Bản
+  web không nêu trạng thái và không có điểm tổng hợp, thang đo hay trọng số: chỉ liệt kê số đọc riêng
+  của từng thành phần, theo thứ tự nguồn trả về.
 - **Giá của vùng đó**, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động
   mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng).
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
