@@ -69,12 +69,18 @@ export const FOLDED_SECTION_KINDS = [
   'economy-headlines',
 ] as const satisfies readonly BriefSectionKind[]
 
-/** `recent` covers the names the brief covers (held, watched, else the most traded), a handful of
- *  lines: a filing on one of them is the decision-relevant reading a market block can carry. */
+/** What a market block prints. `recent` covers the names the brief covers (held, watched, else the
+ *  most traded), a handful of lines: a filing on one of them is the decision-relevant reading a
+ *  market block can carry. The derivatives, order flow, sentiment and premium readings are a few
+ *  labelled facts each, as `/overview` prints them. */
 const MARKET_HEADLINE_KINDS = [
   'market-prices',
   'breadth',
   'recent',
+  'derivatives',
+  'taker-flow',
+  'sentiment',
+  'premium',
 ] as const satisfies readonly BriefSectionKind[]
 
 /** The blocks that belong to no market, and the kinds each collects. Macro heads the markets

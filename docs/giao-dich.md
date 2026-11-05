@@ -685,6 +685,8 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` ở mỗi
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
+Khối của mỗi thị trường in giá, độ rộng, tin của các mã bản tin theo dõi, và khi thị trường có số liệu: phái sinh, dòng tiền của bên mua chủ động, tâm lý và chênh lệch giá vàng trong nước với thế giới, mỗi số một dòng "Nhãn: giá trị" như `/overview`. Phần còn lại của thị trường xem bằng `/overview <thị trường>`. Bản tin trên CLI, Telegram và trang văn phòng có cùng các khối theo cùng thứ tự.
+
 Khi thị trường chính là Việt Nam, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
 cùng phần nhìn lại các câu chuyện trước.
 

@@ -681,6 +681,8 @@ The screener band is `average daily range x breakout_range` on either side of th
 
 The two are kept apart because only one of them is a problem.
 
+Each market's block prints its prices, breadth, news on the names the brief covers and, where the market has them, derivatives, buyers crossing the spread, sentiment and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. The rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
+
 With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.
 
