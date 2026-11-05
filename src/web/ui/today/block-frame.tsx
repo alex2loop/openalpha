@@ -47,7 +47,7 @@ export function BlockFrame<T>(props: BlockFrameProps<T>) {
   const { title, colour, icon, reading, action, children } = props
 
   return (
-    <section class="block">
+    <section class="block" style={`--c: var(--tc-${colour})`}>
       <BlockHead title={title} colour={colour} icon={icon}>
         {reading.state !== 'absent' && action}
       </BlockHead>

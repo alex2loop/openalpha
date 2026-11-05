@@ -46,6 +46,8 @@
   --canvas: #f2f2f6;
   --surface: #ffffff;
   --sunken: #e7e7ee;
+  /* A see-through wash of the ink: a frameless control's hover on any surface, glass included. */
+  --hoverWash: color-mix(in srgb, var(--ink) 7%, transparent);
   --segHi: rgba(255, 255, 255, 0.9);
   --border: #dbdbe4;
   --ink: #1b1b29;

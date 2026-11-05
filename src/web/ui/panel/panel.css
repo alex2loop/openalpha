@@ -150,11 +150,13 @@
 }
 
 .panel-body {
+  --panelBodyPad: var(--s3);
+
   flex: 1;
   min-height: 0;
   overflow: auto;
   overflow-x: hidden;
-  padding: var(--s3);
+  padding: var(--panelBodyPad);
 }
 
 .panel-body > * {
