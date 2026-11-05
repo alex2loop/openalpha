@@ -24,18 +24,8 @@ const KEY_PLACEHOLDER = 'browser-managed-key'
 /** The shipped starting point, on OpenRouter. The main model is the one `/suggest` argues on. */
 const SHIPPED_PROVIDER = 'openrouter'
 const SHIPPED_MAIN_MODEL = 'openai/gpt-6-luna'
-const HIDDEN_TIER_MODEL = 'anthropic/claude-haiku-5.5'
 /** The web's own cap, above the installed version's: a visitor's key pays for each run. */
 const DAILY_SPEND_CAP_USD = 5
-
-// The headline tier (`decisions`) is left out on purpose: its endpoint reads its key itself, which
-// the keyring cannot supply, and an absent tier turns the headline read off cleanly.
-// Extraction reads macro reports, which only the installed version's daemon does. Both are kept in
-// step with `config.minimal.toml` by hand.
-const HIDDEN_TIERS = {
-  themes: [{ model: HIDDEN_TIER_MODEL }],
-  extraction: [{ model: HIDDEN_TIER_MODEL }],
-}
 
 const TierEntrySchema = z.strictObject({
   provider: z.enum(BROWSER_AI_PROVIDERS),
@@ -77,7 +67,7 @@ export function resolveBrowserConfig(locale: Locale, overrides: BrowserOverrides
       provider_sort: 'latency',
     },
     models: overrides.models.map(toRawModel),
-    model_tiers: { ...HIDDEN_TIERS, ...toRawTiers(overrides.tiers) },
+    model_tiers: toRawTiers(overrides.tiers),
     ...(overrides.venues.length === 0
       ? {}
       : { trading: { venues: toRawVenues(overrides.venues) } }),
