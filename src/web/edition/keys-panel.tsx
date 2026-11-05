@@ -18,7 +18,7 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { openModal } from '@/web/ui/kit/modal'
-import { type DraftSlot, useDraft } from '@/web/ui/settings/draft'
+import { type DraftSlot, useBagDraft } from '@/web/ui/settings/draft'
 import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
 interface SlotProps extends SectionProps {
@@ -124,7 +124,7 @@ const KEY_DRAFTS: Readonly<Record<KeySlot, DraftSlot<KeyDraft>>> = {
 }
 
 function KeyForm({ slot, reopen }: SlotProps) {
-  const draft = useDraft(KEY_DRAFTS[slot], () => ({
+  const draft = useBagDraft(KEY_DRAFTS[slot], () => ({
     provider: signal<string>(SLOT_PROVIDERS[slot][0]),
     text: signal(''),
     isRemembered: signal(true),

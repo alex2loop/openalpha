@@ -15,7 +15,7 @@ import { Button } from '@/web/ui/kit/button'
 import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
-import { type DraftSlot, useDraft } from '@/web/ui/settings/draft'
+import { type DraftSlot, useBagDraft } from '@/web/ui/settings/draft'
 import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
 // The page offers its button only for a form with a name, a fee within the worker's ceiling and a
@@ -176,7 +176,7 @@ interface AddFormProps extends SectionProps {
 }
 
 function AddForm({ saved, limits, reopen }: AddFormProps) {
-  const fields = useDraft(ADD_DRAFT, () => ({
+  const fields = useBagDraft(ADD_DRAFT, () => ({
     name: signal(''),
     market: signal(toFirstMarket(limits)),
     fee: signal(''),

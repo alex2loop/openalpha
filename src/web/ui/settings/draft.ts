@@ -15,7 +15,7 @@ export type DraftSlot<T extends object> = WeakMap<DraftBag, T>
 export const DraftBagContext = createContext<DraftBag>({})
 
 /** The panel's draft in this Cài đặt, made by `create` the first time. */
-export function useDraft<T extends object>(slot: DraftSlot<T>, create: () => T): T {
+export function useBagDraft<T extends object>(slot: DraftSlot<T>, create: () => T): T {
   const bag = useContext(DraftBagContext)
   const held = slot.get(bag)
 
@@ -38,7 +38,7 @@ export interface HeldValue<T> {
 
 /** A row's edit, kept in this Cài đặt's bag: it comes back after a question that replaced Cài đặt. */
 export function useHeldDraft<T>(slot: DraftSlot<HeldValue<T>>, initial: T): Draft<T> {
-  const { draft, saved } = useDraft(slot, () => ({
+  const { draft, saved } = useBagDraft(slot, () => ({
     draft: signal(initial),
     saved: signal(initial),
   }))

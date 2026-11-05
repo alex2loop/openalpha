@@ -16,7 +16,7 @@ import { Button } from '@/web/ui/kit/button'
 import { Fold } from '@/web/ui/kit/fold'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
-import { type DraftSlot, useDraft } from '@/web/ui/settings/draft'
+import { type DraftSlot, useBagDraft } from '@/web/ui/settings/draft'
 import { ChoiceLine, defaultModelOf, type ModelChoice } from '@/web/ui/settings/model-chain'
 import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
@@ -100,7 +100,7 @@ function toChoices(entries: unknown): readonly ModelChoice[] {
 }
 
 function ModelsEditor({ read, reopen }: SectionProps & { readonly read: ModelsRead }) {
-  const drafts = useDraft(MODELS_DRAFT, () => toDrafts(read.saved))
+  const drafts = useBagDraft(MODELS_DRAFT, () => toDrafts(read.saved))
   const savedBody = useMemo(() => JSON.stringify(toBody(toDrafts(read.saved))), [])
   const chains = [drafts.main, ...TIERS.map((tier) => drafts.tiers[tier])]
   const isChanged = JSON.stringify(toBody(drafts)) !== savedBody

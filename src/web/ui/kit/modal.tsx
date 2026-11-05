@@ -35,6 +35,9 @@ interface ModalSpec {
   readonly footer: ComponentChild
   /** True while closing would lose what the operator typed: Esc or an outside click then asks once. */
   readonly dirty?: () => boolean
+  /** Where Esc, an outside click and the close button go instead of closing: back to the dialog
+   *  that opened this question. */
+  readonly onDismiss?: () => void
   readonly wide?: true
 }
 
@@ -138,7 +141,7 @@ function ModalView({ entry }: { readonly entry: OpenModal }) {
             class="btn btn-ghost btn-small"
             title={tr('ui.office.common.close')}
             aria-label={tr('ui.office.common.close')}
-            onClick={closeModal}
+            onClick={() => leaveModal(entry)}
           >
             <CloseIcon />
           </button>
@@ -190,7 +193,17 @@ function dismiss(entry: OpenModal): void {
     return
   }
 
-  closeModal()
+  leaveModal(entry)
+}
+
+// The way out of a dialog: its own return when it has one, else a plain close.
+function leaveModal(entry: OpenModal): void {
+  if (entry.spec.onDismiss === undefined) {
+    closeModal()
+    return
+  }
+
+  entry.spec.onDismiss()
 }
 
 function pressMain(event: KeyboardEvent): void {

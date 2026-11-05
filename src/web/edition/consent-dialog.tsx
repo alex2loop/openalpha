@@ -6,7 +6,7 @@ import { openModal } from '@/web/ui/kit/modal'
 
 /** The notice before the first send to a provider: what leaves this device, to whom, and the one
  *  button that agrees. Nothing is sent to the provider until it is pressed, and each provider and
- *  each kind of key (AI, search) is its own agreement. `onBack` is where both buttons return, Cài đặt
+ *  each kind of key (AI, search) is its own agreement. `onBack` is where both buttons, Esc and the close button return, Cài đặt
  *  when it opened the notice. */
 export function openConsentDialog(
   slot: KeySlot,
@@ -51,5 +51,6 @@ export function openConsentDialog(
         <Button onClick={leave}>{tr('ui.office.edition.consent.decline')}</Button>
       </>
     ),
+    ...(onBack === undefined ? {} : { onDismiss: leave }),
   })
 }
