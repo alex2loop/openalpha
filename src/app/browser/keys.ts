@@ -26,9 +26,6 @@ const ANTHROPIC_BROWSER_HEADER = 'anthropic-dangerous-direct-browser-access'
 /** The provider the page offers first, and the one a missing key is asked for. */
 const DEFAULT_AI_PROVIDER = 'openrouter' satisfies (typeof BROWSER_AI_PROVIDERS)[number]
 
-/** The tier whose first model decides which AI key a run needs: `/suggest` argues on it. */
-const MODEL_TIER = 'debate'
-
 /** The search providers that passed the CORS check, with the variable each one's key is read from.
  *  DeepSeek search has a variable of its own, so a DeepSeek AI key is never taken for a search key
  *  and a search key is never taken for an AI key. */
@@ -111,9 +108,14 @@ export function aiKeyVariable(provider: BrowserAiProvider): string {
   return findProviderById(provider)?.apiKeyEnv ?? ''
 }
 
-/** The AI provider a run needs a key for: the one its `debate` tier names first. */
-export function readModelProvider(config: Pick<ResolvedConfig, 'modelTiers'>): BrowserAiProvider {
-  const named = config.modelTiers[MODEL_TIER]?.[0]?.provider
+/** The AI provider a run needs a key for: the first model of `tier` when the visitor set that
+ *  tier, else the main model's. */
+export function readModelProvider(
+  config: Pick<ResolvedConfig, 'models' | 'modelTiers'>,
+  tier?: string
+): BrowserAiProvider {
+  const tierModel = tier === undefined ? undefined : config.modelTiers[tier]?.[0]
+  const named = (tierModel ?? config.models[0])?.provider
 
   return BROWSER_AI_PROVIDERS.find((provider) => provider === named) ?? DEFAULT_AI_PROVIDER
 }

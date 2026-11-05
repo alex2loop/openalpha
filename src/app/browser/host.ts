@@ -27,7 +27,7 @@ export function createBrowserSystemHost(
   keyring: BrowserKeyring,
   config: ResolvedConfig
 ): SystemHost {
-  // The key a run needs is the one its model tier names, not any key the visitor happens to hold.
+  // The key a run needs is the main model's, not any key the visitor happens to hold.
   const provider = readModelProvider(config)
 
   return {

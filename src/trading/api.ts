@@ -26,6 +26,7 @@ export type {
 } from '@/trading/wiring/host/view-types'
 export { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
 export { keptCaveats } from '@/trading/features/portfolio/render/rebalance-gaps'
+export { DEBATE_MODEL_TIER } from '@/trading/kernel/config'
 export { isIndexCode } from '@/trading/kernel/market/index-reading'
 export { TYPED_PRICES } from '@/trading/kernel/surface/surface'
 export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'

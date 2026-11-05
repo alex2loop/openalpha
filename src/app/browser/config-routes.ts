@@ -10,7 +10,13 @@ import type { ApiRouteContext, ApiRouteGroup, ApiRouteSpec } from '@/app/types'
 import type { Logger } from '@/core/logging/logger'
 import type { ConfigOverrideStore } from '@/persistence/api'
 import { findProviderById } from '@/ai/api'
-import { type BrowserOverrides, SHIPPED_TIERS, TierOverridesSchema } from '@/app/browser/config'
+import {
+  type BrowserOverrides,
+  ModelChainSchema,
+  SHIPPED_MODELS,
+  SHIPPED_TIERS,
+  TierOverridesSchema,
+} from '@/app/browser/config'
 import {
   assertCustomVenues,
   assertRowsStay,
@@ -33,7 +39,9 @@ declare module '@/core/container' {
   }
 }
 
-/** The sections the browser keeps: the model tiers and the hand-traded venues a visitor may change. */
+/** The sections the browser keeps: the main model, its tier overrides and the hand-traded venues a
+ *  visitor may change. */
+const MODELS_SECTION = 'models'
 const TIERS_SECTION = 'model_tiers'
 const VENUES_SECTION = 'custom_venues'
 /** The config view's limits for the venues section: what the page checks a form against. */
@@ -46,6 +54,7 @@ const NO_FILE = ''
 // changes nothing, so it is refused instead of reporting a restart.
 const ConfigBodySchema = z
   .strictObject({
+    [MODELS_SECTION]: ModelChainSchema.optional(),
     [TIERS_SECTION]: TierOverridesSchema.optional(),
     [VENUES_SECTION]: CustomVenuesSchema.optional(),
   })
@@ -58,9 +67,19 @@ interface OverrideSection<T> {
   readonly accept: (value: unknown) => T | undefined
 }
 
+const MODELS: OverrideSection<BrowserOverrides['models']> = {
+  name: MODELS_SECTION,
+  empty: SHIPPED_MODELS,
+  accept: (value) => {
+    const parsed = ModelChainSchema.safeParse(value)
+
+    return parsed.success ? parsed.data : undefined
+  },
+}
+
 const TIERS: OverrideSection<BrowserOverrides['tiers']> = {
   name: TIERS_SECTION,
-  empty: {},
+  empty: SHIPPED_TIERS,
   accept: (value) => {
     const parsed = TierOverridesSchema.safeParse(value)
 
@@ -81,12 +100,13 @@ export async function readBrowserOverrides(
   logger: Logger,
   signal: AbortSignal
 ): Promise<BrowserOverrides> {
-  const [tiers, venues] = await Promise.all([
+  const [models, tiers, venues] = await Promise.all([
+    readSection(store, MODELS, { logger, signal }),
     readSection(store, TIERS, { logger, signal }),
     readSection(store, VENUES, { logger, signal }),
   ])
 
-  return { tiers, venues }
+  return { models, tiers, venues }
 }
 
 async function readSection<T>(
@@ -118,9 +138,10 @@ function parseJson(text: string): unknown {
   }
 }
 
-function toConfigView({ tiers, venues }: BrowserOverrides): Record<string, unknown> {
+function toConfigView({ models, tiers, venues }: BrowserOverrides): Record<string, unknown> {
   return {
-    [TIERS_SECTION]: { ...SHIPPED_TIERS, ...tiers },
+    [MODELS_SECTION]: models,
+    [TIERS_SECTION]: tiers,
     [VENUES_SECTION]: venues,
     [VENUE_LIMITS_KEY]: CUSTOM_VENUE_LIMITS,
   }
@@ -198,12 +219,16 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
   }
 
   const store = ctx.app.resolve('configOverrides')
-  const { model_tiers: tiers, custom_venues: venues } = parsed.data
+  const { models, model_tiers: tiers, custom_venues: venues } = parsed.data
   const now = Date.now()
 
   if (venues !== undefined) {
     await assertVenueChange(ctx, venues, req.signal)
     await store.write(VENUES_SECTION, JSON.stringify(venues), now)
+  }
+
+  if (models !== undefined) {
+    await store.write(MODELS_SECTION, JSON.stringify(models), now)
   }
 
   if (tiers !== undefined) {
@@ -265,7 +290,7 @@ const CONFIG_ROUTES: readonly ApiRouteSpec[] = [
   { method: 'POST', path: '/v1/config', auth: true, handler: handleConfigPut },
 ]
 
-/** The config routes the page edits the model tiers with: the same paths and shapes as the
+/** The config routes the page edits the main model and its tier overrides with: the same paths and shapes as the
  *  daemon's, over the browser database instead of a file; and what the browser answered about
  *  keeping the data. */
 export const BROWSER_CONFIG_GROUP: ApiRouteGroup = { name: 'config', routes: CONFIG_ROUTES }

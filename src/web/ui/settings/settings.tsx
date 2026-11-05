@@ -5,7 +5,7 @@ import { type MessageKey, pluralKey } from '@/i18n'
 import { DataPanel } from '@/web/edition/data-panel'
 import { ErrorLogPanel } from '@/web/edition/error-log-panel'
 import { KeysPanel } from '@/web/edition/keys-panel'
-import { TierChain } from '@/web/edition/tier-chain'
+import { ModelChains } from '@/web/edition/model-chains'
 import { VenuesPanel } from '@/web/edition/venues-panel'
 import { isAnalysisOnly } from '@/web/state/edition'
 import {
@@ -197,7 +197,7 @@ function WebSectionView({ section }: { readonly section: SettingsSection }) {
     case 'providers':
       return <KeysPanel />
     case 'agents':
-      return <TierChain />
+      return <ModelChains />
     case 'exchanges':
       return <VenuesPanel />
     case 'data':

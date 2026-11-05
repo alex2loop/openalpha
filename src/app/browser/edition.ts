@@ -11,6 +11,7 @@ import type {
 import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
+  DEBATE_MODEL_TIER,
   marketRef,
   renderAnalysisBody,
   renderAnalysisFailure,
@@ -169,7 +170,7 @@ async function analyse(
   const { request, ctx } = call
   const { analyses } = app.resolve('tradingServices')
 
-  if (!hasAiKey(keyring.env(), readModelProvider(app.config))) {
+  if (!hasAiKey(keyring.env(), readModelProvider(app.config, DEBATE_MODEL_TIER))) {
     const failure = await analyses.refusalOf(request, ctx.signal)
 
     return failure === undefined

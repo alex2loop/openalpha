@@ -8,7 +8,7 @@ import { BROWSER_AI_PROVIDERS, listKeyVariables, readSearchSelection } from '@/a
 import { parseRawConfig, resolveConfig } from '@/core/config/resolve'
 import { freezeDeep } from '@/core/utils/freeze'
 
-/** The tiers a visitor may change. The rest keep their shipped chain: the page never offers them. */
+/** The tiers a visitor may override. The rest keep their shipped chain: the page never offers them. */
 const EDITABLE_TIERS = Object.freeze(['debate', 'research', 'research-heavy'] as const)
 
 /** Where the engine keeps what it writes. There is no disk: the name is a stable label that the
@@ -21,11 +21,11 @@ const MAX_MODEL_CHARS = 200
  *  key builds its chain; the real key is read from the keyring on each request. */
 const KEY_PLACEHOLDER = 'browser-managed-key'
 
-/** The shipped starting point: the installed version's minimal config, on OpenRouter. Its models
- *  and tiers are kept in step with `config.minimal.toml` by hand. */
+/** The shipped starting point, on OpenRouter. The main model is the one `/suggest` argues on; the
+ *  research tiers are kept in step with `config.minimal.toml` by hand. */
 const SHIPPED_PROVIDER = 'openrouter'
-const SHIPPED_PRIMARY_MODEL = 'deepseek/deepseek-v4.1-flash'
-const SHIPPED_MODEL = 'anthropic/claude-haiku-5.5'
+const SHIPPED_MAIN_MODEL = 'openai/gpt-6-luna'
+const SHIPPED_RESEARCH_MODEL = 'anthropic/claude-haiku-5.5'
 /** The web's own cap, above the installed version's: a visitor's key pays for each run. */
 const DAILY_SPEND_CAP_USD = 5
 
@@ -33,8 +33,8 @@ const DAILY_SPEND_CAP_USD = 5
 // the keyring cannot supply, and an absent tier turns the headline read off cleanly.
 // Extraction reads macro reports, which only the installed version's daemon does.
 const HIDDEN_TIERS = {
-  themes: [{ model: SHIPPED_MODEL }],
-  extraction: [{ model: SHIPPED_MODEL }],
+  themes: [{ model: SHIPPED_RESEARCH_MODEL }],
+  extraction: [{ model: SHIPPED_RESEARCH_MODEL }],
 }
 
 const TierEntrySchema = z.strictObject({
@@ -42,29 +42,37 @@ const TierEntrySchema = z.strictObject({
   model: z.string().trim().min(1).max(MAX_MODEL_CHARS),
 })
 
-const TierChainSchema = z.array(TierEntrySchema).min(1).max(MAX_CHAIN_ENTRIES)
+/** An ordered chain of provider and model: the first is tried first, the rest are fallbacks. */
+export const ModelChainSchema = z.array(TierEntrySchema).min(1).max(MAX_CHAIN_ENTRIES)
 
-/** What the visitor changed: a chain of provider and model per editable tier, nothing else. */
+/** The tiers the visitor gave a chain of their own; a tier left out uses the main model. */
 export const TierOverridesSchema = z.strictObject({
-  debate: TierChainSchema.optional(),
-  research: TierChainSchema.optional(),
-  'research-heavy': TierChainSchema.optional(),
+  debate: ModelChainSchema.optional(),
+  research: ModelChainSchema.optional(),
+  'research-heavy': ModelChainSchema.optional(),
 })
 
+type ModelChain = z.infer<typeof ModelChainSchema>
 type TierOverrides = z.infer<typeof TierOverridesSchema>
 type TierEntry = z.infer<typeof TierEntrySchema>
 
 /** Everything the visitor changed of the shipped config. */
 export interface BrowserOverrides {
+  readonly models: ModelChain
   readonly tiers: TierOverrides
   readonly venues: CustomVenues
 }
 
-/** What the editable tiers hold until the visitor changes them. */
-export const SHIPPED_TIERS: Required<TierOverrides> = freezeDeep({
-  debate: [{ provider: SHIPPED_PROVIDER, model: 'openai/gpt-6-luna' }],
-  research: [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
-  'research-heavy': [{ provider: SHIPPED_PROVIDER, model: SHIPPED_MODEL }],
+/** The main model until the visitor changes it. */
+export const SHIPPED_MODELS: ModelChain = freezeDeep([
+  { provider: SHIPPED_PROVIDER, model: SHIPPED_MAIN_MODEL },
+])
+
+/** The tiers that run on their own model until the visitor changes them; `debate` is absent, so it
+ *  uses the main model. */
+export const SHIPPED_TIERS: TierOverrides = freezeDeep({
+  research: [{ provider: SHIPPED_PROVIDER, model: SHIPPED_RESEARCH_MODEL }],
+  'research-heavy': [{ provider: SHIPPED_PROVIDER, model: SHIPPED_RESEARCH_MODEL }],
 })
 
 export function resolveBrowserConfig(locale: Locale, overrides: BrowserOverrides): ResolvedConfig {
@@ -75,8 +83,8 @@ export function resolveBrowserConfig(locale: Locale, overrides: BrowserOverrides
       api_key_env: findProviderById(SHIPPED_PROVIDER)?.apiKeyEnv,
       provider_sort: 'latency',
     },
-    models: [{ model: SHIPPED_PRIMARY_MODEL }],
-    model_tiers: { ...HIDDEN_TIERS, ...toRawTiers({ ...SHIPPED_TIERS, ...overrides.tiers }) },
+    models: overrides.models.map(toRawModel),
+    model_tiers: { ...HIDDEN_TIERS, ...toRawTiers(overrides.tiers) },
     ...(overrides.venues.length === 0
       ? {}
       : { trading: { venues: toRawVenues(overrides.venues) } }),
