@@ -21,7 +21,7 @@ interface WithheldRoute {
 /** Routes a group carries that the web does not serve: they are the daemon's (alerts that fire while
  *  the tab is closed, themes, the venue sync) or name a verdict, a stop or a plan (suggestions and
  *  their cards and debates, the track record, the stops, the reconcile) or answer an agent's
- *  approval request (the web runs no agent). They answer `not_found`, so
+ *  approval request (no tool the web's chat may call asks for one). They answer `not_found`, so
  *  the capabilities read off the table read false too. The analyses route stays: it is the web's. */
 const WITHHELD_ROUTES: readonly WithheldRoute[] = Object.freeze([
   { path: '/v1/alerts' },

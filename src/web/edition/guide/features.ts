@@ -56,7 +56,7 @@ export const WEB_FEATURES = [
   },
   {
     id: 'chat-tools',
-    web: 'installed-only',
+    web: 'partial',
     reason: 'ui.office.edition.compare.chat-tools.reason',
   },
   { id: 'mcp', web: 'installed-only', reason: 'ui.office.edition.compare.mcp.reason' },

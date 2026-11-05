@@ -13,6 +13,7 @@ const SECTIONS: readonly MessageKey[] = Object.freeze([
   'ui.office.edition.guide.section.record',
   'ui.office.edition.guide.section.screen',
   'ui.office.edition.guide.section.analysis',
+  'ui.office.edition.guide.section.chat',
   'ui.office.edition.guide.section.datatime',
   'ui.office.edition.guide.section.missing',
   'ui.office.edition.guide.section.move',
