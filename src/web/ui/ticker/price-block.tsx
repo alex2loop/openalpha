@@ -2,7 +2,7 @@ import { useEffect } from 'preact/hooks'
 
 import type { DealerBoardWire, SessionRangeWire } from '@/app/server/wire/quote-detail'
 import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
-import { formatDay, termOfTicker, translateDisplayText } from '@/i18n'
+import { formatDay, termOfKind, termOfTicker, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
@@ -85,7 +85,7 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   const quote = newerQuote(live.quote, board)
   const label = board?.label
   // An index, a fund or world gold says what it is, in the glossary's words.
-  const term = termOfTicker(ticker)
+  const term = termOfTicker(ticker) ?? (quote === undefined ? undefined : termOfKind(quote.kind))
 
   useLiveWhileTrading({ ticker, market }, { quote, live })
 

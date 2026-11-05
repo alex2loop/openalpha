@@ -11,14 +11,15 @@ export const GLOSSARY_GROUPS = Object.freeze([
 export type GlossaryGroup = (typeof GLOSSARY_GROUPS)[number]
 
 /** What a term is known by outside the glossary: the ids of the facts and readings that carry it,
- *  the tickers that name it and the markets it is the name of. Matching is by id, never by a
- *  label's translated text. */
+ *  the tickers that name it, the markets it is the name of and the instrument kinds it explains.
+ *  Matching is by id, never by a label's translated text. */
 interface GlossaryTerm {
   readonly id: string
   readonly group: GlossaryGroup
   readonly facts?: readonly string[]
   readonly tickers?: readonly string[]
   readonly markets?: readonly string[]
+  readonly kinds?: readonly string[]
 }
 
 /** Every term, in the order its group lists it. A term's text lives in the catalogs under
@@ -28,7 +29,15 @@ export const GLOSSARY_TERMS = [
   { id: 'vn-index', group: 'index', tickers: ['VNINDEX'] },
   { id: 'vn30', group: 'index', tickers: ['VN30'] },
   { id: 'vn100', group: 'index', tickers: ['VN100'] },
+  { id: 'vnmidcap', group: 'index', tickers: ['VNMIDCAP'] },
+  { id: 'vnx50', group: 'index', tickers: ['VNX50'] },
+  { id: 'vndiamond', group: 'index', tickers: ['VNDIAMOND'] },
+  { id: 'vnfinlead', group: 'index', tickers: ['VNFINLEAD'] },
+  { id: 'vnfinselect', group: 'index', tickers: ['VNFINSELECT'] },
+  { id: 'vnmitech', group: 'index', tickers: ['VNMITECH'] },
+  { id: 'vnshine', group: 'index', tickers: ['VNSHINE'] },
   { id: 'hnx-index', group: 'index', tickers: ['HNX'] },
+  { id: 'etf', group: 'index', kinds: ['etf'] },
   { id: 'spy', group: 'index', tickers: ['SPY'] },
   { id: 'ndx', group: 'index', tickers: ['NDX'] },
   { id: 'world-gold', group: 'index', tickers: ['XAUUSD'], markets: ['gold'] },
@@ -110,6 +119,11 @@ export function termOfFact(factId: string): GlossaryTermId | undefined {
 /** The term a ticker names (an index, an ETF, world gold). */
 export function termOfTicker(ticker: string): GlossaryTermId | undefined {
   return termWhere((term) => term.tickers, ticker)
+}
+
+/** The term an instrument kind is (a fund), for a name the glossary does not list by ticker. */
+export function termOfKind(kind: string): GlossaryTermId | undefined {
+  return termWhere((term) => term.kinds, kind)
 }
 
 /** The glossary group a heading explains, by the heading's id. */

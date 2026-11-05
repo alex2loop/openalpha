@@ -20,6 +20,7 @@ export {
   groupOfHeading,
   matchesGlossaryQuery,
   termOfFact,
+  termOfKind,
   termOfMarket,
   termOfTicker,
 } from './glossary'
