@@ -1,5 +1,6 @@
 import type { JSX } from 'preact'
 import { signal } from '@preact/signals'
+import { useContext } from 'preact/hooks'
 
 import { type MessageKey, pluralKey } from '@/i18n'
 import { DataPanel } from '@/web/edition/data-panel'
@@ -40,6 +41,7 @@ import { ProvidersSection } from '@/web/ui/settings/credentials/providers'
 import { ToolsSection } from '@/web/ui/settings/credentials/tools'
 import { DataSection } from '@/web/ui/settings/data-section'
 import { DisplaySection } from '@/web/ui/settings/display'
+import { type DraftBag, DraftBagContext } from '@/web/ui/settings/draft'
 import { MemorySection } from '@/web/ui/settings/memory'
 import { ProfileSection } from '@/web/ui/settings/profile-forms'
 import { openRestartDialog } from '@/web/ui/settings/restart'
@@ -92,8 +94,9 @@ const WEB_SECTION_TITLES: Readonly<Partial<Record<SettingsSection, MessageKey>>>
 // The section last open, so the way back from a form lands where the operator left.
 const chosen = signal<SettingsSection>('profile')
 
-/** Opens Cài đặt on `section`, or on the one last open. */
-export function openSettings(section?: SettingsSection): void {
+/** Opens Cài đặt on `section`, or on the one last open. `drafts` is the bag of the Cài đặt a
+ *  question replaced, so what was typed there comes back. */
+export function openSettings(section?: SettingsSection, drafts: DraftBag = {}): void {
   if (section !== undefined) {
     chosen.value = section
   }
@@ -104,7 +107,11 @@ export function openSettings(section?: SettingsSection): void {
 
   openModal({
     title: tr('ui.office.settings.title'),
-    body: <SettingsBody />,
+    body: (
+      <DraftBagContext.Provider value={drafts}>
+        <SettingsBody />
+      </DraftBagContext.Provider>
+    ),
     footer: <SettingsFooter />,
     wide: true,
   })
@@ -193,15 +200,18 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
 }
 
 function WebSectionView({ section }: { readonly section: SettingsSection }) {
+  const drafts = useContext(DraftBagContext)
+  const reopenKeepingDrafts = () => openSettings(undefined, drafts)
+
   switch (section) {
     case 'providers':
-      return <KeysPanel reopen={reopen} />
+      return <KeysPanel reopen={reopenKeepingDrafts} />
     case 'agents':
-      return <ModelChains reopen={reopen} />
+      return <ModelChains reopen={reopenKeepingDrafts} />
     case 'exchanges':
-      return <VenuesPanel reopen={reopen} />
+      return <VenuesPanel reopen={reopenKeepingDrafts} />
     case 'data':
-      return <DataPanel reopen={reopen} />
+      return <DataPanel reopen={reopenKeepingDrafts} />
     case 'errorLog':
       return <ErrorLogPanel />
     case 'display':

@@ -1,4 +1,4 @@
-import { type Signal, useSignal } from '@preact/signals'
+import { type Signal, signal } from '@preact/signals'
 
 import { translateDisplayText } from '@/i18n'
 import { ApiFailure, sendJson } from '@/web/api/client'
@@ -15,6 +15,7 @@ import { Button } from '@/web/ui/kit/button'
 import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
+import { type DraftSlot, useDraft } from '@/web/ui/settings/draft'
 import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
 // The page offers its button only for a form with a name, a fee within the worker's ceiling and a
@@ -167,17 +168,19 @@ interface AddDraft {
   readonly fee: Signal<string>
 }
 
+const ADD_DRAFT: DraftSlot<AddDraft> = new WeakMap()
+
 interface AddFormProps extends SectionProps {
   readonly saved: readonly Venue[]
   readonly limits: Limits
 }
 
 function AddForm({ saved, limits, reopen }: AddFormProps) {
-  const fields: AddDraft = {
-    name: useSignal(''),
-    market: useSignal(limits.markets[0] ?? ''),
-    fee: useSignal(''),
-  }
+  const fields = useDraft(ADD_DRAFT, () => ({
+    name: signal(''),
+    market: signal(toFirstMarket(limits)),
+    fee: signal(''),
+  }))
   const id = toVenueId(fields.name.value, limits.maxIdChars)
   const percent = toPercent(fields.fee.value, limits.maxFeePercent)
   const draft: Venue | undefined =
@@ -203,6 +206,7 @@ function AddForm({ saved, limits, reopen }: AddFormProps) {
                   confirmLabel: tr('ui.office.edition.venues.confirm'),
                   venues: [...saved, draft],
                   onBack: reopen,
+                  onSaved: () => clearDraft(fields, limits),
                 })
               }
             }}
@@ -213,6 +217,17 @@ function AddForm({ saved, limits, reopen }: AddFormProps) {
       </div>
     </ActionRow>
   )
+}
+
+function toFirstMarket({ markets }: Limits): string {
+  return markets[0] ?? ''
+}
+
+// What was typed is spent once the venue is saved.
+function clearDraft({ name, market, fee }: AddDraft, limits: Limits): void {
+  name.value = ''
+  market.value = toFirstMarket(limits)
+  fee.value = ''
 }
 
 function toFeeNote({ maxFeePercent, saleTaxPercent }: Limits): string {
@@ -275,12 +290,21 @@ interface SaveAsk {
   readonly confirmLabel: string
   readonly venues: readonly Venue[]
   readonly onBack: () => void
+  readonly onSaved?: () => void
   readonly isDestructive?: true
 }
 
 // An add and a removal are one flow: the venues are saved, then the engine restarts.
-function askToSave({ confirmLabel, venues, onBack, isDestructive }: SaveAsk): void {
-  askRestart({ confirmLabel, isDestructive, onBack, confirm: () => save(venues) })
+function askToSave({ confirmLabel, venues, onBack, onSaved, isDestructive }: SaveAsk): void {
+  askRestart({
+    confirmLabel,
+    isDestructive,
+    onBack,
+    confirm: async () => {
+      await save(venues)
+      onSaved?.()
+    },
+  })
 }
 
 // The page waits for the engine to come back after the restart.
