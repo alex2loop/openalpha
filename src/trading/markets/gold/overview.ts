@@ -65,7 +65,7 @@ export async function runGoldOverview(load: GoldOverviewLoad): Promise<MarketDat
     priceCurrency: manifest.currency,
     icon: manifest.icon,
     rows,
-    ...(range === undefined ? {} : { range }),
+    ...(range === undefined || deps.readingsOnly === true ? {} : { range }),
     ...(contracts === undefined ? {} : { positioning: contracts }),
     provenance: dedupeProvenance([
       ...provenanceOf(bars),

@@ -15,13 +15,19 @@ import type {
 } from '@/trading/kernel/market/market-overview'
 import type { AgentWriter, PriceWriter } from '@/trading/kernel/surface/agent-json'
 import { createTool } from '@/core/tool'
-import { agentMacro } from '@/trading/features/market-data/tools/macro-risk'
+import {
+  agentMacro,
+  type MacroPayloadOptions,
+} from '@/trading/features/market-data/tools/macro-risk'
 import { fractionToPct, toAgentJson } from '@/trading/kernel/surface/agent-json'
 import { noInput } from '@/trading/kernel/surface/surface'
 import { formatFlow, formatSignedFlow } from '@/trading/render/format'
 import { formatPrice, formatScaledPrice } from '@/trading/render/money'
 
-export function createMarketOverviewTool(marketData: MarketDataService): ToolDefinition {
+export function createMarketOverviewTool(
+  marketData: MarketDataService,
+  options: MacroPayloadOptions = {}
+): ToolDefinition {
   return createTool({
     name: 'market_overview',
     description:
@@ -37,12 +43,16 @@ export function createMarketOverviewTool(marketData: MarketDataService): ToolDef
       const overviews = await marketData.overview({ now: Date.now(), signal: ctx.signal })
 
       return toAgentJson(
-        overviews.map((overview) =>
-          toPayload(overview, {
+        overviews.map((overview) => {
+          const payload = toPayload(overview, {
             locale: ctx.locale,
             price: priceWriterOf(marketData, overview, ctx.locale),
           })
-        )
+
+          return options.readingsOnly === true
+            ? withMacroReadings(payload, overview, ctx.locale)
+            : payload
+        })
       )
     },
   })
@@ -127,6 +137,19 @@ function toPayload(overview: MarketDataOverview, writer: AgentWriter): Record<st
           },
         }),
   }
+}
+
+/** An edition that makes no call states the macro inputs, not the regime they were scored into. */
+function withMacroReadings(
+  payload: Record<string, unknown>,
+  overview: MarketDataOverview,
+  locale: Locale
+): Record<string, unknown> {
+  const { macro } = overview
+
+  return macro === undefined
+    ? payload
+    : { ...payload, macro: agentMacro(macro, locale, { readingsOnly: true }) }
 }
 
 /** Every roll-up the market computed from its settled tape, under one key that names the session

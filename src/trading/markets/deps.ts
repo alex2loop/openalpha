@@ -42,7 +42,7 @@ export interface MarketDeps {
    *  never holds a whole year of bars. Absent: one write at the end, whatever the market's size. */
   readonly pagedBackfill?: true
   /** An edition that states readings and no placing: VN gold's premium carries no rank against its
-   *  own history. Absent ranks it. */
+   *  own history, and an index overview carries no support or resistance range. Absent states both. */
   readonly readingsOnly?: true
   /** The data kinds a refresh leaves out because no source serves them: none is run, so none reads
    *  as a failed fetch. Absent refreshes every kind the market has. */
