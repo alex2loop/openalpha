@@ -278,5 +278,6 @@ function briefContext(deps: BriefCommandDeps, ctx: SlashContext) {
   return {
     ...resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
     ...(deps.plainCaveats === true ? { plain: true as const } : {}),
+    ...(ctx.hasAiLabel === true ? { hasAiLabel: true as const } : {}),
   }
 }

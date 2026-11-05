@@ -33,6 +33,7 @@ gains two tables; the upgrade runs them for you.
 - `/suggest` refuses an index or a futures contract (VN-Index, VN30, VN30F1M) before any AI call and points to an ETF that tracks the index; `/record` and `/update` refuse a row naming one. The ticker card of a level shows no "Analyze this name", "Record a trade", plan, holding or past-call blocks.
 - Quotes carry the name's own kind, so an index prints as a level, not as a price divided by the board scale.
 - The AI label reads "AI-generated content. I am giving you analysis to weigh yourself, not investment advice.", with no model name.
+- Where the label already shows (the REPL banner, the chat panel of the office page and the web version), `/suggest`, `/brief` and `/themes` answers no longer repeat it; a one shot, a chat app and a scheduled run keep it.
 - The Market tab and Today list only the markets you switched on; world gold stays as a reference. Each market's section opens on one green band.
 - The header's layout control reads "Office | Focus" instead of an icon.
 

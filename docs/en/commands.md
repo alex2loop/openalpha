@@ -136,6 +136,9 @@ one answer.
 
 The REPL's start banner carries a line saying replies are AI-generated and are not investment
 advice. A one shot prints the same line on stderr before its turn, so a piped answer stays clean.
+Where a surface already shows that line (the REPL banner, the chat panel on the office page and the
+web version), the answers of `/suggest`, `/brief` and `/themes` do not repeat it; a one shot, a chat
+app and a scheduled run keep it.
 
 A one shot can ask you to approve something only while stdin is a terminal. With piped or empty stdin
 there is nobody to ask. So in manual mode a dangerous call is blocked as approval-unavailable. It is

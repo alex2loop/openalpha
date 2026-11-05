@@ -99,11 +99,16 @@ const BLOCK_ICONS = Object.freeze({
   actions: SECTION_ICONS.suggestion,
 } as const satisfies Record<BlockName, string>)
 
-/** `preface` is a line the delivery adds under the AI label and above the title. */
+/** `preface` is a line the delivery adds under the AI label and above the title; `hasAiLabel` is a
+ *  surface that already shows the label, so the brief does not repeat it. */
 export function renderBriefText(
   locale: Locale,
   snapshot: BriefSnapshot,
-  context: RenderContext & { readonly preface?: string; readonly plain?: true }
+  context: RenderContext & {
+    readonly preface?: string
+    readonly plain?: true
+    readonly hasAiLabel?: true
+  }
 ): string {
   // The verdict quotes the market sections the blocks below fold away, so it reads them all.
   const { readable, renderable, hasAiCalls, nextActions, stories, blocks } = readSections(
@@ -128,7 +133,7 @@ export function renderBriefText(
   const footer = renderCostFooter(locale, snapshot.sections)
 
   return joinSections([
-    hasAiCalls ? [renderAiLabel(locale)] : [],
+    hasAiCalls && context.hasAiLabel !== true ? [renderAiLabel(locale)] : [],
     preface,
     [title(locale, snapshot, context.timezone)],
     ...renderStoryLines(locale, stories, context).map((block) => block.map((entry) => entry.text)),

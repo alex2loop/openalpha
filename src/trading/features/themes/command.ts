@@ -64,8 +64,10 @@ interface ThemesCommandDeps {
 
 function render(deps: ThemesCommandDeps, ctx: SlashContext, report: ThemeReport): SlashResult {
   const body = renderThemeReportText(report, { locale: ctx.locale, timezone: deps.timezone })
-  // The label is for the reader; the model that is asked about the report next reads the body alone.
-  const label = report.run === undefined ? [] : [renderAiLabel(ctx.locale)]
+  // The label is for the reader, where the surface does not already show it; the model that is asked
+  // about the report next reads the body alone.
+  const label =
+    report.run === undefined || ctx.hasAiLabel === true ? [] : [renderAiLabel(ctx.locale)]
   const text = joinSections([label, [body]])
   const proposed = firstProposedTheme(report)
 
