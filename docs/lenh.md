@@ -137,9 +137,9 @@ một câu, nhận một câu trả lời.
 
 Banner mở đầu của REPL có một dòng nói các câu trả lời do AI tạo và không phải khuyến nghị đầu
 tư. Chạy một phát thì in đúng dòng đó ra stderr trước lượt hỏi, nên câu trả lời qua pipe vẫn sạch.
-Ở nơi đã hiện sẵn dòng này (banner của REPL, khung trò chuyện trên trang văn phòng và bản web), câu trả
-lời của `/suggest`, `/brief` và `/themes` không lặp lại nó; chạy một phát, ứng dụng chat và việc chạy
-theo lịch thì vẫn giữ.
+Ở nơi đã hiện sẵn dòng này (banner của REPL, khung trò chuyện trên trang văn phòng và bản web), không
+câu trả lời nào ở đó lặp lại nó: không `/suggest`, `/brief` hay `/themes`, và trên bản web cả câu trả
+lời trò chuyện; chạy một phát, ứng dụng chat và việc chạy theo lịch thì vẫn giữ.
 
 Chạy một phát chỉ hỏi bạn phê duyệt được khi stdin là terminal. Với stdin qua pipe hoặc rỗng thì không
 có ai để hỏi. Vì vậy ở chế độ thủ công, một lời gọi nguy hiểm bị chặn do không có ai phê duyệt. Nó

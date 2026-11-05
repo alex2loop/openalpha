@@ -12,12 +12,13 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 OpenAlpha now runs in the browser at web.openalpha.link: market data, your book and a two-sided
 analysis on your own AI key, all inside the tab. Market terms explain themselves, the brief and
 `/overview` share one set of labelled facts, and `/suggest` and `/record` refuse an index or a
-futures contract. The database gains two tables; the upgrade runs them for you.
-> OpenAlpha giờ chạy ngay trên trình duyệt tại web.openalpha.link: dữ liệu thị trường, sổ của bạn và phân tích hai chiều bằng key AI của bạn, tất cả trong tab. Thuật ngữ thị trường tự giải thích, bản tin và `/overview` dùng chung một bộ số liệu có nhãn, còn `/suggest` và `/record` từ chối chỉ số và hợp đồng tương lai. Cơ sở dữ liệu thêm hai bảng; lệnh nâng cấp tự chạy chúng.
+futures contract. On the web you can also chat with the assistant, which looks things up and explains but makes no buy or sell call. The database gains two tables; the upgrade runs them for you.
+> OpenAlpha giờ chạy ngay trên trình duyệt tại web.openalpha.link: dữ liệu thị trường, sổ của bạn và phân tích hai chiều bằng key AI của bạn, tất cả trong tab. Thuật ngữ thị trường tự giải thích, bản tin và `/overview` dùng chung một bộ số liệu có nhãn, còn `/suggest` và `/record` từ chối chỉ số và hợp đồng tương lai. Trên bản web bạn cũng trò chuyện được với trợ lý: tra cứu và giải thích, không đưa lời khuyên mua bán. Cơ sở dữ liệu thêm hai bảng; lệnh nâng cấp tự chạy chúng.
 
 ### Added
 
 - The web edition and its homepage (openalpha.link). Keys stay on your device, AI spend is capped at 5 USD a day, and the database saves to and loads from a file. Chat history comes back after a reload.
+- On the web, chat with the assistant in plain words; it only reads and gives no buy, sell or hold call, size or price level. Settings has one main AI model, with optional models for analysis and research.
 - A glossary of 39 terms in Vietnamese and English: a dotted word opens its definition, and `/glossary [term]` prints it anywhere.
 - The brief, `/overview` and the office page state crypto funding, open interest, long/short ratio, taker buy share, fear and greed and the VN gold premium as labelled facts.
 - The screen board shows each name's readings in one grid, with value limits and a second sort.
