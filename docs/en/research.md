@@ -164,7 +164,7 @@ chat lists the run's steps as they happen.
   agents with it.
 - The finished answer is the report. Each footnote number jumps to the numbered sources under that
   answer, and two research answers in one chat keep their numbers apart.
-- A report opened in the reader starts with one line saying it is AI-generated, can be wrong and is not
+- A report opened in the reader starts with one line saying it is AI-generated and is not
   investment advice. In the terminal and in a chat app the same line comes with the conversation (see
   [Commands](commands.md#chat)).
 - Once the run is listed, "Open as a report" opens that run's answer in the reader, whatever was said

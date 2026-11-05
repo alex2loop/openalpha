@@ -103,7 +103,7 @@ function printSessionDetails(app: CliApp, snapshot: SessionSnapshot): void {
 
   // A command's own answer is stored display-only and carries its label; a model's reply does not.
   if (snapshot.messages.some((m) => m.message.role === 'assistant' && m.displayOnly !== true)) {
-    app.out(style.muted(renderAiLabel(locale, [])))
+    app.out(style.muted(renderAiLabel(locale)))
   }
 
   app.out(style.heading(t(locale, 'cli.historySessionHeading', { id: snapshot.session.id })))

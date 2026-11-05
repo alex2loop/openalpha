@@ -106,7 +106,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
     renderPartialNotice: (result) => formatRunResultBody(result, app.config.locale.language),
     renderAiLabel: (job) =>
       commandHeadOf(scheduledCommandLine(job.prompt)) === null
-        ? renderAiLabel(app.config.locale.language, [])
+        ? renderAiLabel(app.config.locale.language)
         : undefined,
     defaultTarget: () => delivery.defaultRecipient(),
     failureTarget: () => app.config.schedule.failureTarget ?? delivery.defaultRecipient(),
@@ -119,7 +119,7 @@ export function buildSchedulerDeps(app: App, delivery: DeliveryHub): SchedulerTa
       pauses: app.resolve('agentPauseStore'),
       runMaxDurationMs: app.config.loop.maxDurationMs,
       notifier: delivery.sink,
-      renderAiLabel: () => renderAiLabel(app.config.locale.language, []),
+      renderAiLabel: () => renderAiLabel(app.config.locale.language),
       logger: app.resolve('logger'),
       workspaceDir: (agent) => workspaceDirFor(app, agent.id),
       runInput: (input) => heartbeatRunInput(input),

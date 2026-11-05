@@ -153,7 +153,7 @@ export function renderAnalysisText(locale: Locale, record: AnalysisRecord, last?
   const cases = { 'bull-researcher': result.bull, 'bear-researcher': result.bear }
 
   return joinSections([
-    [renderAiLabel(locale, result.models)],
+    [renderAiLabel(locale)],
     renderPriceLines(locale, record, last),
     ...SIDE_ORDER.map((side) =>
       renderCaseLines(locale, { side, record, analysisCase: cases[side] })

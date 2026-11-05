@@ -288,7 +288,7 @@ A run ends in one of four ways:
 
 An `error` is not a hold. A hold means "evaluated and rejected" and is a real answer with the reason codes that produced it. An error means the evaluation was never recorded.
 
-A suggestion that carries a thesis or a debate opens, wherever you read it (`/suggest`, a chat app, the office page's call card and its Why? dialog), with one line saying it is AI-generated, can be wrong and is not investment advice, naming the models that argued it when the call kept them. The line is added when the answer is shown: it is never stored with the call, and no model reads it.
+A suggestion that carries a thesis or a debate opens, wherever you read it (`/suggest`, a chat app, the office page's call card and its Why? dialog), with one line saying it is AI-generated and is not investment advice. The line is added when the answer is shown: it is never stored with the call, and no model reads it.
 
 #### Debate depth
 
@@ -874,7 +874,7 @@ Commands:
 - `/themes approve|reject|retire <id>` moves a theme.
 - Over MCP only the read-only `themes_view` tool is exposed.
 
-A `/themes` report opens with the same AI-generated line, naming the models behind its reads; the themes list on the office page opens with it too. A model asked about the report afterwards reads it without that line.
+A `/themes` report opens with the same AI-generated line; the themes list on the office page opens with it too. A model asked about the report afterwards reads it without that line.
 
 The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]` otherwise.
 

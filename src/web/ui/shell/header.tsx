@@ -45,9 +45,7 @@ export function Header() {
         {brand.value}
       </div>
       <RunningChip anchor={jobsAnchor} />
-      <div class="header-grow">
-        <AiNote />
-      </div>
+      <div class="header-grow">{isAnalysisOnly.value && <AiNote />}</div>
       {isFirstRunOver.value && <CostChip anchor={costAnchor} />}
       {hasScene && <ViewSwitch />}
       <InfoOnlyToggle />
@@ -91,9 +89,10 @@ function RunningChip({ anchor }: AnchorProps) {
   )
 }
 
-// What the agents say at their desks and post on social networks is machine-written, so the header
-// says so in red, on one line in the room the controls leave: the short sentence where it fits,
-// else the shortest. The full sentence stays in the tip.
+// A web visitor meets the analysis before any view's own label, so the web header says in red that
+// it is AI's and not advice, on one line in the room the controls leave: the short sentence where it
+// fits, else the shortest. The full sentence stays in the tip. Every AI-written view carries its own
+// label, so the installed version's header says nothing more.
 function AiNote() {
   return (
     <p class="header-ai-note" role="note" title={tr('ui.office.scene.aiNote')}>

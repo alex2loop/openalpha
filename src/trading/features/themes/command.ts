@@ -65,7 +65,7 @@ interface ThemesCommandDeps {
 function render(deps: ThemesCommandDeps, ctx: SlashContext, report: ThemeReport): SlashResult {
   const body = renderThemeReportText(report, { locale: ctx.locale, timezone: deps.timezone })
   // The label is for the reader; the model that is asked about the report next reads the body alone.
-  const label = report.run === undefined ? [] : [renderAiLabel(ctx.locale, modelsOf(report))]
+  const label = report.run === undefined ? [] : [renderAiLabel(ctx.locale)]
   const text = joinSections([label, [body]])
   const proposed = firstProposedTheme(report)
 
@@ -84,16 +84,6 @@ function render(deps: ThemesCommandDeps, ctx: SlashContext, report: ThemeReport)
       },
     ],
   }
-}
-
-/** The models behind the reads the report prints, sorted; empty for a run stored before they were
- *  kept. */
-function modelsOf(report: ThemeReport): readonly string[] {
-  const reads = [...report.reads.themes, ...report.reads.sectors]
-
-  return [
-    ...new Set(reads.flatMap((read) => (read.model === undefined ? [] : [read.model]))),
-  ].sort()
 }
 
 /** Every tracked theme and a search for new ones, or one tracked theme alone. */

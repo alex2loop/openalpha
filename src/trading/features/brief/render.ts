@@ -128,7 +128,7 @@ export function renderBriefText(
   const footer = renderCostFooter(locale, snapshot.sections)
 
   return joinSections([
-    hasAiCalls ? [renderAiLabel(locale, [])] : [],
+    hasAiCalls ? [renderAiLabel(locale)] : [],
     preface,
     [title(locale, snapshot, context.timezone)],
     ...renderStoryLines(locale, stories, context).map((block) => block.map((entry) => entry.text)),

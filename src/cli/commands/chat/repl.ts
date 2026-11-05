@@ -196,9 +196,7 @@ function printBanner(session: ChatSession): void {
 }
 
 function aiLabelLine(session: ChatSession): string {
-  const { app, display } = session
-
-  return style.muted(renderAiLabel(app.config.locale.language, [display.model]))
+  return style.muted(renderAiLabel(session.app.config.locale.language))
 }
 
 async function loop(session: ChatSession, prompt: PromptFn): Promise<number> {

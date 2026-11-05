@@ -19,7 +19,6 @@ const CATALOGS: Record<Locale, Catalog> = { en, vi }
 const PARAM_RE = /\{(\w+)\}/g
 const FALLBACK_LOCALE: Locale = 'en'
 const SENTENCE_STOP = '.'
-const MODEL_SEPARATOR = ', '
 // Their detail is addressed to the model, not the operator reading the tool line.
 const MODEL_DETAIL_ERROR_CODES: ReadonlySet<string> = new Set([
   'approval_denied',
@@ -100,12 +99,11 @@ export function runCompletionMessage(
   return t(locale, RUN_COMPLETION_KEYS[code], { model })
 }
 
-/** The one line every AI-written result carries, as a reader meets it: what wrote it, that it can
- *  be wrong, and that it is not advice. Render-only: it never enters a prompt or a stored row. */
-export function renderAiLabel(locale: Locale, models: readonly string[]): string {
-  return models.length === 0
-    ? t(locale, 'aiLabel.unnamed')
-    : t(locale, 'aiLabel.named', { models: models.join(MODEL_SEPARATOR) })
+/** The one line every AI-written result carries, as a reader meets it: that an AI wrote it and
+ *  that it is analysis, not advice. The footer names the model. Render-only: it never enters a
+ *  prompt or a stored row. */
+export function renderAiLabel(locale: Locale): string {
+  return t(locale, 'aiLabel.line')
 }
 
 // A dotless key names no namespace, so it can never resolve — splitting it anyway would yield a

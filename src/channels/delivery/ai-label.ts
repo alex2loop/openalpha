@@ -22,7 +22,7 @@ export function createAiLabeler(locale: Locale): AiLabeler {
   return (sessionId) =>
     delivered.get(sessionId) === undefined
       ? {
-          text: renderAiLabel(locale, []),
+          text: renderAiLabel(locale),
           markDelivered: () => delivered.set(sessionId, true),
         }
       : undefined

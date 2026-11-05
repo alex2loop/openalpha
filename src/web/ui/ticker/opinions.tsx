@@ -58,7 +58,7 @@ export function OpinionsBlock({ ticker, market, plan }: OpinionsProps) {
 function OpinionRows({ opinions }: { readonly opinions: readonly Opinion[] }) {
   return (
     <>
-      <AiLabel models={modelsOf(opinions)} />
+      <AiLabel />
       {opinions.map(({ agent, call }) => (
         <div key={agent.id} class="opinion">
           <b>{agent.name}</b>
@@ -81,10 +81,6 @@ function OpinionRows({ opinions }: { readonly opinions: readonly Opinion[] }) {
       <p class="meta">{tr('ui.office.ticker.opinionNote')}</p>
     </>
   )
-}
-
-function modelsOf(opinions: readonly Opinion[]): readonly string[] {
-  return [...new Set(opinions.flatMap(({ call }) => call.models ?? []))].sort()
 }
 
 // How many of them go against the plan, or that they stand with it; nothing without a plan.

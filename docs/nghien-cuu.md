@@ -166,7 +166,7 @@ liệt kê các bước của phiên chạy ngay khi chúng diễn ra.
   agent con của nó.
 - Câu trả lời cuối cùng chính là báo cáo. Mỗi số chú thích nhảy tới nguồn được đánh số ngay dưới câu
   trả lời đó, và hai câu trả lời nghiên cứu trong cùng một cuộc trò chuyện giữ số của riêng mình.
-- Báo cáo mở trong trình đọc bắt đầu bằng một dòng nói đây là nội dung do AI tạo, có thể sai và không phải
+- Báo cáo mở trong trình đọc bắt đầu bằng một dòng nói đây là nội dung do AI tạo và không phải
   khuyến nghị đầu tư. Trong terminal và trong ứng dụng chat, dòng này đi cùng cuộc trò chuyện (xem
   [Lệnh](lenh.md#chat)).
 - Khi phiên chạy đã có trong danh sách, "Mở dạng báo cáo" mở đúng câu trả lời của phiên chạy đó trong

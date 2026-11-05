@@ -288,7 +288,7 @@ Một phiên chạy kết thúc theo một trong bốn cách:
 
 `error` không phải giữ nguyên. Giữ nguyên nghĩa là "đã đánh giá và bác bỏ", và là một câu trả lời thật kèm các mã lý do dẫn tới nó. `error` nghĩa là việc đánh giá chưa bao giờ được ghi.
 
-Một đề xuất có luận điểm hoặc có phiên tranh luận đứng sau thì, ở bất cứ nơi nào bạn đọc nó (`/suggest`, ứng dụng chat, thẻ đề xuất và hộp Vì sao? trên trang văn phòng), mở đầu bằng một dòng nói đây là nội dung do AI tạo, có thể sai và không phải khuyến nghị đầu tư, kèm tên các mô hình đã lập luận khi đề xuất có lưu chúng. Dòng này được thêm lúc hiển thị: nó không bao giờ được lưu cùng đề xuất và không mô hình nào đọc nó.
+Một đề xuất có luận điểm hoặc có phiên tranh luận đứng sau thì, ở bất cứ nơi nào bạn đọc nó (`/suggest`, ứng dụng chat, thẻ đề xuất và hộp Vì sao? trên trang văn phòng), mở đầu bằng một dòng nói đây là nội dung do AI tạo và không phải khuyến nghị đầu tư. Dòng này được thêm lúc hiển thị: nó không bao giờ được lưu cùng đề xuất và không mô hình nào đọc nó.
 
 #### Độ sâu tranh luận
 
@@ -881,7 +881,7 @@ Các lệnh:
 - `/themes approve|reject|retire <id>` chuyển trạng thái một chủ đề.
 - Qua MCP chỉ có công cụ chỉ-đọc `themes_view`.
 
-Báo cáo `/themes` mở đầu bằng cùng dòng nội dung do AI tạo, kèm tên các mô hình đằng sau các lần đọc của nó; danh sách chủ đề trên trang văn phòng cũng mở đầu bằng dòng này. Mô hình được hỏi về báo cáo sau đó đọc nó mà không có dòng ấy.
+Báo cáo `/themes` mở đầu bằng cùng dòng nội dung do AI tạo; danh sách chủ đề trên trang văn phòng cũng mở đầu bằng dòng này. Mô hình được hỏi về báo cáo sau đó đọc nó mà không có dòng ấy.
 
 Chuyên viên phân tích chủ đề dùng `[[model_tiers.themes]]` khi được cấu hình, nếu không thì dùng `[[models]]`.
 

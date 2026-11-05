@@ -134,7 +134,7 @@ openalpha chat [-m <text>] [-a <agent>] [--mode manual|bypass]
 Without `--message` you get the REPL, an ongoing conversation. With it you get one shot: one question,
 one answer.
 
-The REPL's start banner carries a line saying replies are AI-generated, can be wrong and are not investment
+The REPL's start banner carries a line saying replies are AI-generated and are not investment
 advice. A one shot prints the same line on stderr before its turn, so a piped answer stays clean.
 
 A one shot can ask you to approve something only while stdin is a terminal. With piped or empty stdin
@@ -941,8 +941,8 @@ it is synced for the part that filled.
 Options go in any order after the ticker; use `market:ticker` where a bare name is ambiguous. This
 spends LLM budget, so it is built to avoid spending it twice.
 
-A result that carries a thesis or a debate opens with one line saying it is AI-generated, can be wrong and
-is not investment advice, naming the models that argued it when the call kept them. `/suggest stops` opens
+A result that carries a thesis or a debate opens with one line saying it is AI-generated and
+is not investment advice. `/suggest stops` opens
 with it too.
 
 Today's answer is reused for free (on a continuous market, any answer under 4 hours old) until a

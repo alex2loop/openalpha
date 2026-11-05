@@ -272,9 +272,7 @@ function aiLabelLines(locale: Locale, results: readonly SuggestionRunResult[]): 
     return []
   }
 
-  const models = new Set(written.flatMap((call) => call.debate?.models ?? []))
-
-  return [renderAiLabel(locale, [...models].sort())]
+  return [renderAiLabel(locale)]
 }
 
 /** A typed depth stands. Otherwise coverage runs lean, except when forced: the pipeline reads an

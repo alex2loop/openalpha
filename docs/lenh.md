@@ -135,7 +135,7 @@ openalpha chat [-m <nội dung>] [-a <agent>] [--mode manual|bypass]
 Bỏ `--message` thì vào REPL, tức một cuộc trò chuyện liên tục. Có `--message` thì chạy một phát: hỏi
 một câu, nhận một câu trả lời.
 
-Banner mở đầu của REPL có một dòng nói các câu trả lời do AI tạo, có thể sai và không phải khuyến nghị đầu
+Banner mở đầu của REPL có một dòng nói các câu trả lời do AI tạo và không phải khuyến nghị đầu
 tư. Chạy một phát thì in đúng dòng đó ra stderr trước lượt hỏi, nên câu trả lời qua pipe vẫn sạch.
 
 Chạy một phát chỉ hỏi bạn phê duyệt được khi stdin là terminal. Với stdin qua pipe hoặc rỗng thì không
@@ -925,8 +925,8 @@ khớp.
 Tùy chọn đứng theo thứ tự bất kỳ sau mã; dùng `thị-trường:mã` khi một tên trần mơ hồ. Lệnh này tiêu ngân
 sách LLM, nên được dựng để khỏi tiêu hai lần.
 
-Kết quả có luận điểm hoặc có phiên tranh luận đứng sau thì mở đầu bằng một dòng nói đây là nội dung do AI tạo,
-có thể sai và không phải khuyến nghị đầu tư, kèm tên các mô hình đã lập luận khi đề xuất có lưu chúng.
+Kết quả có luận điểm hoặc có phiên tranh luận đứng sau thì mở đầu bằng một dòng nói đây là nội dung do AI tạo
+và không phải khuyến nghị đầu tư.
 `/suggest stops` cũng mở đầu bằng dòng này.
 
 Câu trả lời hôm nay được dùng lại miễn phí (ở thị trường chạy liên tục, là mọi câu trả lời trong 4 giờ
