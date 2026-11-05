@@ -8,6 +8,7 @@ import { getJson, sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { askRestart } from '@/web/edition/restart-confirm'
 import { restartEngine } from '@/web/edition/worker-link'
+import { markModelChosen } from '@/web/state/first-run'
 import { isTree, readConfigTree } from '@/web/state/settings'
 import { readText } from '@/web/text/fields'
 import { toFailureText, tr } from '@/web/text/tr'
@@ -262,6 +263,7 @@ function askToSave(drafts: Drafts, reopen: () => void): void {
     onBack: reopen,
     confirm: async () => {
       await sendJson('POST', ROUTES.configWrite, { body: toBody(drafts) })
+      markModelChosen()
       restartEngine()
     },
   })

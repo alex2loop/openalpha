@@ -8,18 +8,23 @@ import {
   isBookDone,
   isBriefDone,
   isGuideReviewed,
+  isModelChosen,
   isProfileDone,
   keepProfileDefaults,
+  markModelChosen,
   showGuideAgain,
   skipBook,
 } from '@/web/state/first-run'
 import { isModelReady, loadSession, state } from '@/web/state/session'
+import { isTree, readConfigTree } from '@/web/state/settings'
+import { readText } from '@/web/text/fields'
 import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { openGlossary } from '@/web/ui/glossary/glossary-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
+import { useLoad } from '@/web/ui/kit/use-load'
 import { openSettings } from '@/web/ui/settings/settings'
 
 interface NumberedStep {
@@ -34,11 +39,14 @@ interface StepProps {
   readonly children: ComponentChildren
 }
 
-/** "Bắt đầu với {brand}": five steps (four on the web) above the day's blocks, until every
- *  required one is done or the visitor hides it. */
+/** "Bắt đầu với {brand}": five steps (the web's are the key, the model, the profile, the book and
+ *  the brief) above the day's blocks, until every required one is done or the visitor hides it. */
 export function FirstRun() {
   const steps: ((index: number) => ComponentChildren)[] = [
     (index) => <ModelStep key="model" index={index} isDone={isModelReady.value} />,
+    ...(isAnalysisOnly.value
+      ? [(index: number) => <ChooseModelStep key="chooseModel" index={index} />]
+      : []),
     (index) => <ProfileStep key="profile" index={index} />,
     (index) => <BookStep key="book" index={index} />,
     ...(isAnalysisOnly.value ? [] : [(index: number) => <ChatStep key="chat" index={index} />]),
@@ -124,6 +132,57 @@ function BookStep({ index }: NumberedStep) {
       </div>
     </Step>
   )
+}
+
+// The web edition ships a model, so the step only shows it and where to change it; "Giữ mặc định"
+// and a saved model both count as done.
+function ChooseModelStep({ index }: NumberedStep) {
+  const isDone = isModelChosen.value
+
+  return (
+    <Step
+      index={index}
+      title={tr('ui.office.edition.firstRun.chooseModelTitle')}
+      isDone={isDone}
+      isOptional
+    >
+      {!isDone && <ChooseModelBody />}
+    </Step>
+  )
+}
+
+function ChooseModelBody() {
+  const model = useMainModel()
+
+  return (
+    <>
+      {model !== undefined && (
+        <p class="meta">{tr('ui.office.edition.firstRun.chooseModelCurrent', { model })}</p>
+      )}
+      <p class="meta">{tr('ui.office.edition.firstRun.chooseModelBody')}</p>
+      <div class="step-actions">
+        <Button size="small" onClick={() => openSettings('agents')}>
+          {tr('ui.office.edition.firstRun.chooseModelCta')}
+        </Button>
+        <Button size="small" onClick={markModelChosen}>
+          {tr('ui.office.edition.firstRun.chooseModelKeep')}
+        </Button>
+      </div>
+    </>
+  )
+}
+
+// The model the page runs on now, as the config the settings read holds it; absent until read.
+function useMainModel(): string | undefined {
+  const config = useLoad(readConfigTree).value
+
+  if (config.status !== 'ready') {
+    return undefined
+  }
+
+  const [main] = Array.isArray(config.value.models) ? config.value.models : []
+
+  return isTree(main) ? readText(main.model) : undefined
 }
 
 function ChatStep({ index }: NumberedStep) {

@@ -7,6 +7,7 @@ import { isFirstRun, isModelReady, state } from '@/web/state/session'
 import { createStoredFlag } from '@/web/state/storage'
 
 const PROFILE_KEPT_KEY = 'office.firstRun.profileKept'
+const MODEL_CHOSEN_KEY = 'office.firstRun.modelChosen'
 const BOOK_SKIPPED_KEY = 'office.firstRun.bookSkipped'
 const BRIEF_RAN_KEY = 'office.firstRun.briefRan'
 const HIDDEN_KEY = 'office.firstRun.hidden'
@@ -16,6 +17,7 @@ const COMPLETED = 'completed'
 // Each answer is this viewer's alone, so it lives in the browser; where storage is blocked it holds
 // for the session.
 const profileKept = createStoredFlag(PROFILE_KEPT_KEY)
+const modelChosen = createStoredFlag(MODEL_CHOSEN_KEY)
 const bookSkipped = createStoredFlag(BOOK_SKIPPED_KEY)
 const briefRan = createStoredFlag(BRIEF_RAN_KEY)
 // Set by the visitor, or when the required steps were first all done, so a key removed or a ledger
@@ -32,6 +34,8 @@ const reviewing = signal(false)
 export const isProfileDone = computed(
   () => state.value?.firstRun.profileSaved === true || profileKept.flag.value
 )
+/** The visitor saved a model, or chose to keep the one the page starts on. */
+export const isModelChosen: ReadonlySignal<boolean> = modelChosen.flag
 /** The ledger holds a row, or the visitor said there is nothing to record yet. */
 export const isBookDone = computed(
   () => state.value?.firstRun.bookEmpty === false || bookSkipped.flag.value
@@ -100,6 +104,10 @@ export function startFirstRun(): () => void {
 
 export function keepProfileDefaults(): void {
   profileKept.set()
+}
+
+export function markModelChosen(): void {
+  modelChosen.set()
 }
 
 export function skipBook(): void {
