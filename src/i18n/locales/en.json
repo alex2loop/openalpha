@@ -4448,7 +4448,7 @@
     "metric-short.return-on-equity": "ROE",
     "metric-short.debt-to-equity": "debt/equity",
     "metric-short.gross-margin": "gross margin",
-    "metric-short.funding-daily": "funding",
+    "metric-short.funding-daily": "funding rate",
     "metric-short.trailing-low": "low prior {sessions}",
     "metric-short.relative-volume": "vol/avg {sessions}",
     "metric-short.foreign-net-flow": "foreign net {sessions} sessions",
