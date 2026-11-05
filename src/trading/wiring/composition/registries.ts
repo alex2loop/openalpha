@@ -119,15 +119,11 @@ function editionMarketDeps(
   edition: TradingEdition | undefined
 ): Pick<
   MarketDeps,
-  | 'pagedBackfill'
-  | 'overviewReadingsOnly'
-  | 'omitRefreshKinds'
-  | 'omitBriefActions'
-  | 'unservedMacro'
+  'pagedBackfill' | 'readingsOnly' | 'omitRefreshKinds' | 'omitBriefActions' | 'unservedMacro'
 > {
   return {
     ...(edition?.pagedBackfill === true ? { pagedBackfill: true as const } : {}),
-    ...(edition?.overviewReadingsOnly === true ? { overviewReadingsOnly: true as const } : {}),
+    ...(edition?.readingsOnly === true ? { readingsOnly: true as const } : {}),
     ...(edition?.refreshOmits === undefined ? {} : { omitRefreshKinds: edition.refreshOmits }),
     ...(edition?.macroUnserved === undefined
       ? {}

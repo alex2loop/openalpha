@@ -29,6 +29,7 @@ import type {
 } from '@/trading/kernel/instrument'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { ScreenAnswer } from '@/trading/wiring/host/view-types'
 import { t } from '@/i18n'
 import { type BriefText, renderBriefForSurface } from '@/trading/features/brief/surface'
@@ -61,6 +62,8 @@ interface AppViewDeps {
   readonly timezone: string
   /** How a screen answers on this edition; absent is the ranked board. */
   readonly screenForm?: ScreenForm
+  /** The brief's caveats in their plain form, for an edition that makes no call. */
+  readonly plainCaveats?: true
 }
 
 /** What the host serves an app beside the data: the CLI's own lines for it, written in the operator's
@@ -367,12 +370,13 @@ async function dayDigest(
 export function buildAppViews(
   services: Pick<AppViewDeps, 'briefs' | 'marketData' | 'suggestions' | 'themes'>,
   config: { readonly displayTimezone: string },
-  screenForm?: ScreenForm
+  edition?: Pick<TradingEdition, 'screen' | 'readingsOnly'>
 ): AppViews {
   const deps: AppViewDeps = {
     ...services,
     timezone: config.displayTimezone,
-    ...(screenForm === undefined ? {} : { screenForm }),
+    ...(edition?.screen === undefined ? {} : { screenForm: edition.screen }),
+    ...(edition?.readingsOnly === true ? { plainCaveats: true as const } : {}),
   }
 
   return {
@@ -393,7 +397,12 @@ export function buildAppViews(
       return {
         snapshot,
         text:
-          snapshot === null ? null : renderBriefForSurface(request.locale, snapshot, deps.timezone),
+          snapshot === null
+            ? null
+            : renderBriefForSurface(request.locale, snapshot, {
+                timezone: deps.timezone,
+                ...(deps.plainCaveats === true ? { plain: true as const } : {}),
+              }),
       }
     },
     macro: (request) => macro(deps, request),

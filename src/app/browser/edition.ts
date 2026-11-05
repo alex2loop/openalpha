@@ -136,7 +136,7 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
       },
     },
     rebalance: 'gaps',
-    overviewReadingsOnly: true,
+    readingsOnly: true,
     screen: 'board',
     briefOmits: BRIEF_OMITS,
     briefActionOmits: BRIEF_ACTION_OMITS,

@@ -54,7 +54,7 @@ export async function runVnGoldOverview(load: VnGoldOverviewLoad): Promise<Marke
     icon: load.manifest.icon,
     rows: board === undefined ? [] : board.board.rows.map((row) => toRow(row, board.observedAt)),
     ...(premium === undefined ? {} : { premium: premium.premium }),
-    ...(premium?.ranking === undefined || deps.overviewReadingsOnly === true
+    ...(premium?.ranking === undefined || deps.readingsOnly === true
       ? {}
       : { premiumRank: premium.ranking }),
     provenance: provenanceOf(snapshot),

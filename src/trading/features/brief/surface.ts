@@ -60,8 +60,13 @@ const HEADING_ICON_RE = /^(?:\p{Extended_Pictographic}|\uFE0F|\s)+/u
 export function renderBriefForSurface(
   locale: Locale,
   snapshot: BriefSnapshot,
-  timezone: string
+  options: {
+    readonly timezone: string
+    /** The caveats in their plain form, for an edition that makes no call. */
+    readonly plain?: true
+  }
 ): BriefText {
+  const { timezone } = options
   const context = resolveRenderContext(timezone, NOTICE_SURFACE)
   const { readable, renderable, hasAiCalls, stories, nextActions, blocks } = readSections(
     locale,
@@ -94,9 +99,10 @@ export function renderBriefForSurface(
           })
         )
     ),
-    caveats: renderCaveatLines(locale, caveatsOf(snapshot, renderable), { collapseInfo: true }).map(
-      (line) => toPlainText(trim(line))
-    ),
+    caveats: renderCaveatLines(locale, caveatsOf(snapshot, renderable), {
+      collapseInfo: true,
+      plain: options.plain === true,
+    }).map((line) => toPlainText(trim(line))),
   }
 }
 

@@ -43,10 +43,10 @@ export interface TradingEdition {
   readonly suggest?: SuggestAnalysis
   /** How a rebalance plan is written: as orders, or as the gaps to the plan. */
   readonly rebalance?: RebalanceForm
-  /** An overview whose macro states its drivers' readings and no regime, score or deploy line, which
-   *  leaves out the index's support and resistance and VN gold's rank against its own history: an
-   *  edition that makes no call. */
-  readonly overviewReadingsOnly?: true
+  /** An edition that states readings and makes no call: the overview's macro gives its drivers'
+   *  readings and no regime, score or deploy line, the index's support and resistance and VN gold's
+   *  rank against its own history leave, and the brief's caveats read in their plain form. */
+  readonly readingsOnly?: true
   /** How a screen answers: the best names ranked, or every priced name for the reader to sort. */
   readonly screen?: ScreenForm
   /** Brief sections left out: each reads as omitted, which every surface already hides. */

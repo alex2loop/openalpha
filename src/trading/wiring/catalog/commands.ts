@@ -159,7 +159,7 @@ function buildTradingCommands(deps: TradingCommandDeps): readonly SlashCommand[]
     ...inGroup(MARKET_GROUP, marketCommands(deps)),
     ...inGroup(ANALYSIS_GROUP, [
       ...suggestionCommands(deps),
-      createBriefCommand({ briefs: deps.briefs, defaultRegion, timezone }),
+      createBriefCommand({ briefs: deps.briefs, defaultRegion, timezone, ...plainCaveatsOf(deps) }),
       createThemesCommand({
         themes: deps.themes,
         timezone,
@@ -168,6 +168,11 @@ function buildTradingCommands(deps: TradingCommandDeps): readonly SlashCommand[]
       createProfileCommand({ profiles, timezone, edition: deps.edition?.profile }),
     ]),
   ]
+}
+
+/** The brief's caveats in their plain form where the edition makes no call. */
+function plainCaveatsOf(deps: TradingCommandDeps): { readonly plainCaveats?: true } {
+  return deps.edition?.readingsOnly === true ? { plainCaveats: true } : {}
 }
 
 function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
@@ -181,7 +186,7 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       defaultRegion,
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
-      ...(deps.edition?.overviewReadingsOnly === true ? { statesComposite: false as const } : {}),
+      ...(deps.edition?.readingsOnly === true ? { statesComposite: false as const } : {}),
       marketsInUse: deps.marketsInUse,
       logger: deps.logger,
     }),

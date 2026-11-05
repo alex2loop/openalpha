@@ -102,7 +102,7 @@ export function toAggregate(
       options.edition?.rebalance
     ),
     profileFields: offeredFields(options.edition?.profile?.fields),
-    appViews: buildAppViews(parts.services, options.tradingConfig, options.edition?.screen),
+    appViews: buildAppViews(parts.services, options.tradingConfig, options.edition),
     daemonTasks: buildDaemonTasks(
       parts,
       { ...options, firstSweep: firstSweep.promise },

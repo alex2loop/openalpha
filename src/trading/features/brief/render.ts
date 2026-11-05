@@ -103,7 +103,7 @@ const BLOCK_ICONS = Object.freeze({
 export function renderBriefText(
   locale: Locale,
   snapshot: BriefSnapshot,
-  context: RenderContext & { readonly preface?: string }
+  context: RenderContext & { readonly preface?: string; readonly plain?: true }
 ): string {
   // The verdict quotes the market sections the blocks below fold away, so it reads them all.
   const { readable, renderable, hasAiCalls, nextActions, stories, blocks } = readSections(
@@ -136,7 +136,10 @@ export function renderBriefText(
     // Right under the verdict that counts them, with no header of their own: what to do first.
     ...nextActions.map((section) => toBriefSectionText(locale, section, context).lines),
     ...blocks.flatMap((block) => renderBlock(locale, block, context)),
-    renderCaveatLines(locale, caveatsOf(snapshot, renderable), { collapseInfo: true }),
+    renderCaveatLines(locale, caveatsOf(snapshot, renderable), {
+      collapseInfo: true,
+      plain: context.plain === true,
+    }),
     footer === null ? [] : footer,
   ])
 }
