@@ -76,7 +76,7 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
       {!isFinished(turn) && <RunningStep turn={turn} />}
       <ReplyText
         text={turn.reply}
-        isProse={turn.kind !== 'slash' || isResearchTurn(turn)}
+        isProse={turn.byAgent === true}
         scope={isResearchTurn(turn) ? turn.localId : undefined}
       />
       <SteerLine turn={turn} />

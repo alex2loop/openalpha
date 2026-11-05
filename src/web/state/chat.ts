@@ -62,6 +62,8 @@ export interface Turn {
   /** The who-chip's `/agent`: its reply shows as a system line. */
   readonly isSystem?: true
   readonly steer?: SteerNote
+  /** An agent turn answers it: a plain message always, a command once it handed its turn to one. */
+  readonly byAgent?: true
   readonly tickers?: readonly string[]
   readonly preferences?: readonly SavedPreference[]
 }
@@ -141,10 +143,13 @@ export function sendMessage(text: string, opts: SendOptions = {}): boolean {
     doneCallbacks.set(localId, opts.onDone)
   }
 
+  const isCommand = message.startsWith(COMMAND_PREFIX)
+
   addTurn({
     localId,
     text: message,
-    kind: message.startsWith(COMMAND_PREFIX) ? 'slash' : 'ask',
+    kind: isCommand ? 'slash' : 'ask',
+    ...(isCommand ? {} : { byAgent: true }),
     status: 'sending',
     reply: '',
     steps: [],
@@ -371,7 +376,7 @@ function toStarted(turn: Turn, runId: string | undefined, session: string | unde
   return {
     ...turn,
     status: 'running',
-    ...(runId === undefined ? {} : { runId, isInLane: true }),
+    ...(runId === undefined ? { byAgent: true } : { runId, isInLane: true }),
     ...(session === undefined ? {} : { sessionId: session }),
   }
 }

@@ -3,7 +3,6 @@ import { COMMAND_PREFIX, USER_ROLE } from '@/web/state/chat'
 import { canRemember } from '@/web/state/memory'
 import { tr } from '@/web/text/tr'
 import { commandWordOf } from '@/web/ui/chat/command-link'
-import { RESEARCH_COMMAND } from '@/web/ui/chat/research-steps'
 import { openRememberDialog } from '@/web/ui/dialogs/remember-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { DepthLines, toDepthLine } from '@/web/ui/markdown/depth-lines'
@@ -135,10 +134,7 @@ function HistoryMessage({ entry }: { readonly entry: HistoryEntry }) {
 
   return (
     <div class="chat-card">
-      <ReplyText
-        text={message.content}
-        isProse={command === undefined || command === RESEARCH_COMMAND}
-      />
+      <ReplyText text={message.content} isProse={message.byAgent === true} />
       {entry.isRunEnd && message.runId !== undefined && (
         <RunCalls key={message.runId} runId={message.runId} isRunning={false} command={command} />
       )}
