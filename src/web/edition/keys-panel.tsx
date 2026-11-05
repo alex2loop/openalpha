@@ -18,7 +18,11 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { openModal } from '@/web/ui/kit/modal'
-import { ActionRow } from '@/web/ui/settings/row'
+import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
+
+interface SlotProps extends SectionProps {
+  readonly slot: KeySlot
+}
 
 /** OpenRouter sent the visitor back without a key: say so and point to pasting one. */
 export function openConnectFailed(): void {
@@ -32,12 +36,12 @@ export function openConnectFailed(): void {
 /** Key AI và tìm kiếm: one key per AI provider and one for web search. Each is its own field because
  *  DeepSeek's AI key and its search key are different keys. A key is sent to its provider only after
  *  the visitor agreed to that provider, and "Xóa key" takes that provider's key and agreement. */
-export function KeysPanel() {
+export function KeysPanel({ reopen }: SectionProps) {
   return (
     <>
       <p class="meta">{tr('ui.office.edition.keys.intro')}</p>
       {KEY_SLOTS.map((slot) => (
-        <SlotRow key={slot} slot={slot} />
+        <SlotRow key={slot} slot={slot} reopen={reopen} />
       ))}
       <ActionRow title={tr('ui.office.edition.keys.chatgptTitle')}>
         <InstallLine row="chatgpt-plan" />
@@ -46,7 +50,7 @@ export function KeysPanel() {
   )
 }
 
-function SlotRow({ slot }: { readonly slot: KeySlot }) {
+function SlotRow({ slot, reopen }: SlotProps) {
   return (
     <ActionRow
       title={tr(`ui.office.edition.keys.${slot}.title`)}
@@ -54,15 +58,19 @@ function SlotRow({ slot }: { readonly slot: KeySlot }) {
     >
       <div class="key-slot">
         {Object.values(heldKeys.value[slot]).map((entry) => (
-          <HeldKey key={entry.provider} slot={slot} provider={entry.provider} />
+          <HeldKey key={entry.provider} slot={slot} provider={entry.provider} reopen={reopen} />
         ))}
-        <KeyForm slot={slot} />
+        <KeyForm slot={slot} reopen={reopen} />
       </div>
     </ActionRow>
   )
 }
 
-function HeldKey({ slot, provider }: { readonly slot: KeySlot; readonly provider: string }) {
+interface HeldKeyProps extends SlotProps {
+  readonly provider: string
+}
+
+function HeldKey({ slot, provider, reopen }: HeldKeyProps) {
   const info = providerInfo(slot, provider)
   const isAgreed = hasConsent(slot, provider)
 
@@ -79,6 +87,7 @@ function HeldKey({ slot, provider }: { readonly slot: KeySlot; readonly provider
             confirmLabel: tr('ui.office.edition.keys.remove'),
             isDestructive: true,
             keepLabel: tr('ui.office.edition.common.keep'),
+            onBack: reopen,
             confirm: () => forgetKey(slot, provider),
           })
         }
@@ -88,7 +97,10 @@ function HeldKey({ slot, provider }: { readonly slot: KeySlot; readonly provider
       {!isAgreed && (
         <p class="strip is-caution">
           {tr('ui.office.edition.keys.unsent')}{' '}
-          <Button size="small" onClick={() => openConsentDialog(slot, provider)}>
+          <Button
+            size="small"
+            onClick={() => openConsentDialog(slot, provider, { onBack: reopen })}
+          >
             {tr('ui.office.edition.keys.review')}
           </Button>
         </p>
@@ -103,7 +115,7 @@ interface KeyDraft {
   readonly isRemembered: Signal<boolean>
 }
 
-function KeyForm({ slot }: { readonly slot: KeySlot }) {
+function KeyForm({ slot, reopen }: SlotProps) {
   const draft: KeyDraft = {
     provider: useSignal<string>(SLOT_PROVIDERS[slot][0]),
     text: useSignal(''),
@@ -129,7 +141,7 @@ function KeyForm({ slot }: { readonly slot: KeySlot }) {
           <ConnectRow isRemembered={draft.isRemembered.value} />
         )}
       <KeyFields slot={slot} draft={draft} />
-      <SaveKeyRow slot={slot} draft={draft} />
+      <SaveKeyRow slot={slot} draft={draft} reopen={reopen} />
     </div>
   )
 }
@@ -181,7 +193,11 @@ function KeyFields({ slot, draft }: { readonly slot: KeySlot; readonly draft: Ke
   )
 }
 
-function SaveKeyRow({ slot, draft }: { readonly slot: KeySlot; readonly draft: KeyDraft }) {
+interface SaveKeyRowProps extends SlotProps {
+  readonly draft: KeyDraft
+}
+
+function SaveKeyRow({ slot, draft, reopen }: SaveKeyRowProps) {
   const info = providerInfo(slot, draft.provider.value)
   const held = heldKeys.value[slot]
   const isReplacing =
@@ -199,7 +215,7 @@ function SaveKeyRow({ slot, draft }: { readonly slot: KeySlot; readonly draft: K
     draft.text.value = ''
 
     if (!hasConsent(slot, provider)) {
-      openConsentDialog(slot, provider)
+      openConsentDialog(slot, provider, { onBack: reopen })
     }
   }
 

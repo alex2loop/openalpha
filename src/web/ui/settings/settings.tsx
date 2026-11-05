@@ -195,7 +195,7 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
 function WebSectionView({ section }: { readonly section: SettingsSection }) {
   switch (section) {
     case 'providers':
-      return <KeysPanel />
+      return <KeysPanel reopen={reopen} />
     case 'agents':
       return <ModelChains />
     case 'exchanges':

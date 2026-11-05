@@ -6,10 +6,16 @@ import { openModal } from '@/web/ui/kit/modal'
 
 /** The notice before the first send to a provider: what leaves this device, to whom, and the one
  *  button that agrees. Nothing is sent to the provider until it is pressed, and each provider and
- *  each kind of key (AI, search) is its own agreement. */
-export function openConsentDialog(slot: KeySlot, provider: string): void {
+ *  each kind of key (AI, search) is its own agreement. `onBack` is where both buttons return, Cài đặt
+ *  when it opened the notice. */
+export function openConsentDialog(
+  slot: KeySlot,
+  provider: string,
+  { onBack }: { readonly onBack?: () => void } = {}
+): void {
   const info = providerInfo(slot, provider)
   const params = { provider: info.name }
+  const leave = () => (onBack === undefined ? handle.close() : onBack())
   const handle = openModal({
     title: tr('ui.office.edition.consent.title', params),
     body: (
@@ -37,12 +43,12 @@ export function openConsentDialog(slot: KeySlot, provider: string): void {
           kind="commit"
           onClick={() => {
             grantConsent(slot, provider)
-            handle.close()
+            leave()
           }}
         >
           {tr('ui.office.edition.consent.agree', params)}
         </Button>
-        <Button onClick={() => handle.close()}>{tr('ui.office.edition.consent.decline')}</Button>
+        <Button onClick={leave}>{tr('ui.office.edition.consent.decline')}</Button>
       </>
     ),
   })
