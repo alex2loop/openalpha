@@ -890,8 +890,9 @@ fill is matched, is in [Trading](trading.md).
 
 A bare ticker is looked up only in the lists already stored, among the markets a venue holds (only the
 named venue's, when one is named). No network request is made. It is accepted only when exactly one
-market matches; otherwise the reply names the `market:ticker` forms to type. Every confirmation prints
-the market beside the ticker.
+market matches; otherwise the reply names the `market:ticker` forms to type. A market you switched off
+(`/profile`) is not searched, so a coin symbol that is also a US fund never books as the fund: write
+`equity-us:BTC` for that one. Every confirmation prints the market beside the ticker.
 
 The line expands to the full form before any number is read. So a grouped number such as `58.400` is
 refused exactly as in the full form. Example: `/record buy FPT 100 58400`.

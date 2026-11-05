@@ -30,8 +30,8 @@ import { macroCache } from '@/trading/markets/macro-cache'
 import { createMarketRegistry } from '@/trading/markets/registry'
 import { lazyBriefServices } from '@/trading/wiring/composition/brief-services'
 import { isMarketBuilt } from '@/trading/wiring/composition/edition'
-import { lazyHeldInstruments } from '@/trading/wiring/composition/held-instruments'
 import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
+import { lazyOperatorUse } from '@/trading/wiring/composition/operator-use'
 import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/source-registry'
 import { buildVenues } from '@/trading/wiring/composition/venues'
 
@@ -72,7 +72,7 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
   const stores = app.resolve('tradingStores')
   const sources = buildSources(app, options)
   const stages = createStageRegistry()
-  const markets = createMarketRegistry(lazyHeldInstruments(app, logger))
+  const markets = createMarketRegistry(lazyOperatorUse(app, logger))
   const { registry: venues, listings } = buildVenues(options, { logger, book: stores.ledger })
   const fx = createFxRates({ sources, store: stores.fxRate, logger })
   const deps: MarketDeps = {

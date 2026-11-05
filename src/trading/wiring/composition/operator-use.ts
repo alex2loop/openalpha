@@ -1,10 +1,11 @@
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
-import type { InstrumentRef } from '@/trading/kernel/instrument'
-import type { HeldInstruments } from '@/trading/markets/resolution'
+import type { OperatorUse, ReadOperatorUse } from '@/trading/markets/operator-use'
 import { createScopedValue } from '@/core/scoped-value'
 import { formatErrForLog } from '@/core/security/credentials'
 import { ttlCache } from '@/core/utils/collections'
+import { disabledSegments } from '@/trading/kernel/operator/profile'
+import { NOTHING_USED } from '@/trading/markets/operator-use'
 
 const HELD_CACHE_TTL_MS = 5_000
 const HELD_CACHE_KEY = 'held'
@@ -12,7 +13,8 @@ const HELD_CACHE_KEY = 'held'
  *  would for an operator who holds nothing. */
 const HELD_READ_TIMEOUT_MS = 5_000
 
-/** What the operator holds or watches, read when a bare ticker needs a side chosen. The services
+/** What the operator holds, watches and has switched off, read when a bare ticker needs a market
+ *  chosen. The services
  *  that read it need the market registry this feeds, so each call resolves them at call time.
  *  Concurrent callers share one read. A name resolved from inside that read answers empty, which
  *  is what keeps valuing the book from waiting on itself; the marker follows the read's own async
@@ -22,29 +24,29 @@ const HELD_READ_TIMEOUT_MS = 5_000
  *  inside the read, so every caller arriving while it is in flight answers empty: a bare ticker
  *  then reports the ambiguity instead of taking the held side, and concurrent callers no longer
  *  share the read. */
-export function lazyHeldInstruments(app: App, logger: Logger): HeldInstruments {
-  const recent = ttlCache<string, readonly InstrumentRef[]>(HELD_CACHE_TTL_MS, 1)
+export function lazyOperatorUse(app: App, logger: Logger): ReadOperatorUse {
+  const recent = ttlCache<string, OperatorUse>(HELD_CACHE_TTL_MS, 1)
   const inside = createScopedValue<true>()
-  let inflight: Promise<readonly InstrumentRef[]> | undefined
+  let inflight: Promise<OperatorUse> | undefined
 
-  const read = async (): Promise<readonly InstrumentRef[]> => {
+  const read = async (): Promise<OperatorUse> => {
     try {
-      const held = await readHeld(app, AbortSignal.timeout(HELD_READ_TIMEOUT_MS))
+      const use = await readUse(app, AbortSignal.timeout(HELD_READ_TIMEOUT_MS))
 
-      recent.set(HELD_CACHE_KEY, held)
+      recent.set(HELD_CACHE_KEY, use)
 
-      return held
+      return use
     } catch (err: unknown) {
       logger.warn('trading.held_read_failed', { err: formatErrForLog(err) })
-      recent.set(HELD_CACHE_KEY, [])
+      recent.set(HELD_CACHE_KEY, NOTHING_USED)
 
-      return []
+      return NOTHING_USED
     }
   }
 
   return async () => {
     if (inside.get() === true || (!inside.tracksAsync && inflight !== undefined)) {
-      return []
+      return NOTHING_USED
     }
 
     const cached = recent.get(HELD_CACHE_KEY)
@@ -61,12 +63,16 @@ export function lazyHeldInstruments(app: App, logger: Logger): HeldInstruments {
   }
 }
 
-async function readHeld(app: App, signal: AbortSignal): Promise<readonly InstrumentRef[]> {
+async function readUse(app: App, signal: AbortSignal): Promise<OperatorUse> {
   const services = app.resolve('tradingServices')
   const [positions, profile] = await Promise.all([
     services.portfolio.positionsAt({ now: Date.now(), signal }),
     services.profiles.get({ signal }),
   ])
+  const off = disabledSegments(profile.caps)
 
-  return [...positions.map((position) => position.instrument), ...profile.watchlist]
+  return {
+    instruments: [...positions.map((position) => position.instrument), ...profile.watchlist],
+    switchedOff: new Set(services.profiles.heldSegments().filter((segment) => off.has(segment))),
+  }
 }

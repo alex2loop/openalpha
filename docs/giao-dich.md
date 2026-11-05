@@ -1099,7 +1099,7 @@ Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background
 
 Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không phủ: nến, tin tuyển chọn, sức mạnh ngành, dòng tiền ngoại, rà soát danh mục, bảng thành tích. Agent gọi các công cụ giao dịch có kiểu.
 
-Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán.
+Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán. Thị trường mà nhóm bạn đã tắt, và bạn không nắm giữ hay theo dõi mã nào ở đó, sẽ không được tìm khi gõ mã trần: `BTC` được hiểu là đồng coin, còn quỹ Mỹ cùng tên phải gõ `equity-us:BTC`. Vàng thế giới không phải nhóm bạn tắt nên `XAUUSD` vẫn đọc được.
 
 **HTTP** (chỉ trên máy này, xác thực bằng bearer token). `openalpha start` mở một API cục bộ theo mặc định (`[api] enabled = false` để tắt) (xem [`[api]`](cau-hinh.md)).
 

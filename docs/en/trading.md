@@ -1090,7 +1090,7 @@ They arrive only while OpenAlpha runs in the background (`openalpha start --back
 
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.
 
-You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing.
+You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing. A market whose segment you switched off, and where you hold or watch nothing, is not searched for a bare ticker: `BTC` reads as the coin, and the US fund of that name needs `equity-us:BTC`. World gold is never switched off by you, so `XAUUSD` stays readable.
 
 **HTTP** (on this machine only, with a bearer token). `openalpha start` serves a local API by default (`[api] enabled = false` turns it off) (see [`[api]`](configuration.md)).
 

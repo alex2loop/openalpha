@@ -1,7 +1,8 @@
 import type { TtlCache } from '@/core/utils/collections'
 import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
-import type { InstrumentRef, MarketRef, Ticker } from '@/trading/kernel/instrument'
+import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
 import type { DetectInstrumentOptions, MarketDetection } from '@/trading/markets/detection'
+import type { OperatorUse, ReadOperatorUse } from '@/trading/markets/operator-use'
 import type {
   Market,
   MarketManifest,
@@ -9,6 +10,7 @@ import type {
   ResolveMarketOptions,
 } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
+import { NOTHING_USED, unusedMarkets } from '@/trading/markets/operator-use'
 
 const INCONCLUSIVE_CODES: ReadonlySet<CaveatCode> = new Set([
   'market.detector-failed',
@@ -25,18 +27,10 @@ const EXPLAINED_MISS_CODES: ReadonlySet<CaveatCode> = new Set([
 const UNIVERSE_EMPTY = 'market-data.universe-empty'
 const BOARD_ONLY: Pick<DetectInstrumentOptions, 'boardOnly'> = Object.freeze({ boardOnly: true })
 
-export function nothingHeld(): Promise<readonly InstrumentRef[]> {
-  return Promise.resolve([])
-}
-
-/** The instruments the operator already holds or watches. A bare ticker one of them carries names
- *  that instrument's market, so a symbol two markets list resolves to the side the operator uses. */
-export type HeldInstruments = (signal: AbortSignal) => Promise<readonly InstrumentRef[]>
-
 interface ResolveCache {
   readonly markets: readonly Market[]
   readonly resolutions: TtlCache<string, MarketResolution>
-  readonly held: HeldInstruments
+  readonly use: ReadOperatorUse
 }
 
 // Only conclusive unqualified results are cached. An explicit market bypasses the cache, an
@@ -48,11 +42,14 @@ export async function resolveCached(
   options: ResolveMarketOptions
 ): Promise<MarketResolution> {
   const { markets, resolutions } = cache
+  const use = options.market === undefined ? await cache.use(options.signal) : NOTHING_USED
+  const skipped = unusedMarkets(markets, use)
+  const reachable = markets.filter((market) => !skipped.includes(market.manifest.id))
   const preferred =
     options.market === undefined && options.operatorRead === true
-      ? await preferredMarket(cache, options)
+      ? preferredMarket(reachable, use, options)
       : undefined
-  const key = buildResolutionKey(options, preferred)
+  const key = buildResolutionKey(options, { preferred, skipped })
   const cached = resolutions.get(key)
 
   if (cached !== undefined) {
@@ -61,7 +58,7 @@ export async function resolveCached(
 
   const resolution =
     options.market === undefined
-      ? await resolveUnqualified(markets, options, preferred)
+      ? await resolveUnqualified(reachable, options, preferred)
       : await resolveExplicit(markets, { ...options, market: options.market })
 
   if (isConclusive(resolution)) {
@@ -71,17 +68,23 @@ export async function resolveCached(
   return resolution
 }
 
+interface ResolutionScope {
+  readonly preferred: MarketRef | undefined
+  readonly skipped: readonly MarketRef[]
+}
+
 // Every field that changes the answer is part of the key, so the cache never serves a wider one.
-function buildResolutionKey(options: ResolveMarketOptions, preferred?: MarketRef): string {
-  const scope = [
+function buildResolutionKey(options: ResolveMarketOptions, scope: ResolutionScope): string {
+  const parts = [
     options.within === undefined ? '' : `in:${[...options.within].sort().join(',')}`,
     options.detection ?? '',
     options.operatorRead === true ? 'read' : '',
-    preferred === undefined ? '' : `held:${preferred}`,
-  ].join('|')
+    scope.preferred === undefined ? '' : `held:${scope.preferred}`,
+    scope.skipped.length === 0 ? '' : `off:${scope.skipped.join(',')}`,
+  ]
   const name = options.market === undefined ? options.ticker : `${options.market}/${options.ticker}`
 
-  return scope === '|||' ? name : `${scope}|${name}`
+  return parts.every((part) => part === '') ? name : `${parts.join('|')}|${name}`
 }
 
 /** A detector that threw and a market whose universe has not been refreshed both answer "not
@@ -155,12 +158,13 @@ function unresolved(candidate: Ticker, caveats: readonly Caveat[]): MarketResolu
 
 /** The one market a held or watched instrument with this ticker names, among the markets that
  *  could list it. Two held sides is still a choice only the operator can make, so it names none. */
-async function preferredMarket(
-  cache: ResolveCache,
+function preferredMarket(
+  markets: readonly Market[],
+  use: OperatorUse,
   options: ResolveMarketOptions
-): Promise<MarketRef | undefined> {
+): MarketRef | undefined {
   const candidates = new Set(
-    cache.markets
+    markets
       .filter(
         (market) =>
           (options.within === undefined || options.within.includes(market.manifest.id)) &&
@@ -170,7 +174,7 @@ async function preferredMarket(
       .map((market) => market.manifest.id)
   )
   const named = new Set(
-    (await cache.held(options.signal))
+    use.instruments
       .filter((ref) => ref.ticker === options.ticker && candidates.has(ref.market))
       .map((ref) => ref.market)
   )
