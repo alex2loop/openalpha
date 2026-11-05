@@ -19,6 +19,7 @@ import {
 import { isAnalysisOnly, offers } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
 import { findRun, hasChildren, type Run, runs } from '@/web/state/live'
+import { isLevelInstrument } from '@/web/state/market'
 import { canRemember, toAttributeName } from '@/web/state/memory'
 import { joinInline } from '@/web/text/glyphs'
 import { MS_PER_SECOND } from '@/web/text/time-units'
@@ -282,8 +283,8 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
 
 // The first name the answer reported on: analyze it, or, under an analysis that may have handed back
 // a stored call, run that same line again from scratch; or start an alert on it, which waits in the
-// box for its price. An edition that stores no call has nothing to run again, and one with no
-// scheduler no alert.
+// box for its price. An edition that stores no call has nothing to run again, a level such as an
+// index was never analyzed, and an edition with no scheduler has no alert.
 function NextSteps({ turn }: { readonly turn: Turn }) {
   const ticker = turn.tickers?.[0]
   const words = commandWordsOf(turn.text)
@@ -303,7 +304,7 @@ function NextSteps({ turn }: { readonly turn: Turn }) {
   return (
     <>
       {!isSuggest && <SuggestChip ticker={ticker} />}
-      {canForce && (
+      {canForce && !isLevelInstrument({ ticker }) && (
         <RunButton command={fresh} label={tr('ui.office.common.suggestFresh')} size="small" />
       )}
       {offers('schedules') && (
