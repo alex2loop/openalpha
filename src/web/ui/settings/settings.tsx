@@ -2,6 +2,7 @@ import type { JSX } from 'preact'
 import { signal } from '@preact/signals'
 import { useContext } from 'preact/hooks'
 
+import type { SectionProps } from '@/web/ui/settings/row'
 import { type MessageKey, pluralKey } from '@/i18n'
 import { DataPanel } from '@/web/edition/data-panel'
 import { ErrorLogPanel } from '@/web/edition/error-log-panel'
@@ -117,8 +118,15 @@ export function openSettings(section?: SettingsSection, drafts: DraftBag = {}): 
   })
 }
 
-function reopen(): void {
+function reopenFresh(): void {
   openSettings()
+}
+
+// Where a form that replaced Cài đặt leads back: the same Cài đặt, with what was typed in it.
+function useReopenKeepingDrafts(): () => void {
+  const drafts = useContext(DraftBagContext)
+
+  return () => openSettings(undefined, drafts)
 }
 
 function openSection(section: SettingsSection): void {
@@ -136,6 +144,7 @@ function titleOf(section: SettingsSection): MessageKey {
 }
 
 function SettingsBody() {
+  const back = useReopenKeepingDrafts()
   const shown = sectionsShown()
   const open = shown.includes(chosen.value) ? chosen.value : (shown[0] ?? chosen.value)
 
@@ -160,17 +169,17 @@ function SettingsBody() {
         ))}
       </nav>
       <div class="settings-form">
-        <UpdateStrip reopen={reopen} />
+        <UpdateStrip reopen={back} />
         <h3 class="settings-section">{tr(titleOf(open))}</h3>
-        <SectionView section={open} />
+        <SectionView section={open} reopen={back} />
       </div>
     </div>
   )
 }
 
-function SectionView({ section }: { readonly section: SettingsSection }) {
+function SectionView({ section, reopen }: SectionProps & { readonly section: SettingsSection }) {
   if (isAnalysisOnly.value) {
-    return <WebSectionView section={section} />
+    return <WebSectionView section={section} reopen={reopen} />
   }
 
   switch (section) {
@@ -199,19 +208,16 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
   }
 }
 
-function WebSectionView({ section }: { readonly section: SettingsSection }) {
-  const drafts = useContext(DraftBagContext)
-  const reopenKeepingDrafts = () => openSettings(undefined, drafts)
-
+function WebSectionView({ section, reopen }: SectionProps & { readonly section: SettingsSection }) {
   switch (section) {
     case 'providers':
-      return <KeysPanel reopen={reopenKeepingDrafts} />
+      return <KeysPanel reopen={reopen} />
     case 'agents':
-      return <ModelChains reopen={reopenKeepingDrafts} />
+      return <ModelChains reopen={reopen} />
     case 'exchanges':
-      return <VenuesPanel reopen={reopenKeepingDrafts} />
+      return <VenuesPanel reopen={reopen} />
     case 'data':
-      return <DataPanel reopen={reopenKeepingDrafts} />
+      return <DataPanel reopen={reopen} />
     case 'errorLog':
       return <ErrorLogPanel />
     case 'display':
@@ -237,7 +243,7 @@ function SettingsFooter() {
         <div class="dialog-foot-left">
           <span class="dialog-note">{tr('ui.office.settings.footNote')}</span>
         </div>
-        <Button onClick={() => openRestartDialog({ onBack: reopen })}>
+        <Button onClick={() => openRestartDialog({ onBack: reopenFresh })}>
           {tr('ui.office.restart.title')}
         </Button>
         <Button onClick={closeModal}>{tr('ui.office.common.close')}</Button>
@@ -263,7 +269,7 @@ function SettingsFooter() {
         </span>
       </div>
       <Button onClick={closeModal}>{tr('ui.office.settings.later')}</Button>
-      <Button onClick={() => openRestartDialog({ onBack: reopen })}>
+      <Button onClick={() => openRestartDialog({ onBack: reopenFresh })}>
         {tr('ui.office.settings.restartCta')}
       </Button>
     </>

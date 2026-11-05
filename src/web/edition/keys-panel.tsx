@@ -1,4 +1,4 @@
-import { type Signal, useSignal } from '@preact/signals'
+import { type Signal, signal } from '@preact/signals'
 
 import { openConsentDialog } from '@/web/edition/consent-dialog'
 import { InstallLine } from '@/web/edition/install-line'
@@ -18,6 +18,7 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { openModal } from '@/web/ui/kit/modal'
+import { type DraftSlot, useDraft } from '@/web/ui/settings/draft'
 import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
 interface SlotProps extends SectionProps {
@@ -115,12 +116,19 @@ interface KeyDraft {
   readonly isRemembered: Signal<boolean>
 }
 
+// One draft per form, held by the Cài đặt that shows it: a question it opens (agree, delete) leads
+// back to what was typed. The key text stays in memory only, and goes with the bag.
+const KEY_DRAFTS: Readonly<Record<KeySlot, DraftSlot<KeyDraft>>> = {
+  ai: new WeakMap(),
+  search: new WeakMap(),
+}
+
 function KeyForm({ slot, reopen }: SlotProps) {
-  const draft: KeyDraft = {
-    provider: useSignal<string>(SLOT_PROVIDERS[slot][0]),
-    text: useSignal(''),
-    isRemembered: useSignal(true),
-  }
+  const draft = useDraft(KEY_DRAFTS[slot], () => ({
+    provider: signal<string>(SLOT_PROVIDERS[slot][0]),
+    text: signal(''),
+    isRemembered: signal(true),
+  }))
 
   return (
     <div class="key-form">
