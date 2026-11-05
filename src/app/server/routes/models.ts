@@ -6,7 +6,7 @@ import type { App } from '@/core/container'
 import type { ProviderModelId } from '@/core/llm'
 import {
   findProviderById,
-  loadOpenRouterToolModels,
+  loadOpenRouterToolSupport,
   OPENROUTER_PROVIDER,
   type Pricing,
 } from '@/ai/api'
@@ -15,19 +15,20 @@ import { COST_ESTIMATE_SAMPLE } from '@/app/server/wire/system'
 
 const MAX_PRICED_MODELS = 50
 const MAX_NAME_CHARS = 200
-const NO_MODELS: ReadonlySet<string> = new Set()
+const NO_TOOL_SUPPORT: ReadonlyMap<string, boolean> = new Map()
 
 const PriceQuerySchema = z.object({
   provider: z.string().min(1).max(MAX_NAME_CHARS),
   models: z.array(z.string().min(1).max(MAX_NAME_CHARS)).min(1).max(MAX_PRICED_MODELS),
 })
 
-/** What the entries of one answer are read from. `toolModels` is the feed's list of OpenRouter
- *  models that take tools; empty when the feed did not answer. */
+/** What the entries of one answer are read from. `toolSupport` is the feed's word on whether each
+ *  OpenRouter model takes tools; it has no entry for a model the feed does not describe, and is
+ *  empty when the feed did not answer. */
 interface EntryContext {
   readonly pricing: Pricing
   readonly perRun: ReadonlyMap<string, number>
-  readonly toolModels: ReadonlySet<string>
+  readonly toolSupport: ReadonlyMap<string, boolean>
 }
 
 /** What the app shows of each configured model, in the order its tier tries them. The price is the
@@ -104,17 +105,17 @@ async function readEntryContext(app: App, ids: readonly ProviderModelId[]): Prom
   // A price read before the live feed answers would be the fallback for a model the feed lists.
   await pricing.ready()
 
-  const [costs, toolModels] = await Promise.all([
+  const [costs, toolSupport] = await Promise.all([
     app.resolve('llmAttemptStore').perRunCostByModel(models, COST_ESTIMATE_SAMPLE, Date.now()),
     ids.some(({ provider }) => provider === OPENROUTER_PROVIDER)
-      ? loadOpenRouterToolModels(app.resolve('logger'))
-      : NO_MODELS,
+      ? loadOpenRouterToolSupport(app.resolve('logger'))
+      : NO_TOOL_SUPPORT,
   ])
 
   return {
     pricing,
     perRun: new Map(costs.map((cost) => [`${cost.provider}|${cost.model}`, cost.perRunUsd])),
-    toolModels,
+    toolSupport,
   }
 }
 
@@ -125,23 +126,21 @@ function toModelEntry(id: ProviderModelId, context: EntryContext): ModelEntryWir
   return {
     provider: id.provider,
     model: id.model,
-    supportsTools: supportsTools(id, context.toolModels),
+    supportsTools: canCallTools(id, context.toolSupport),
     price: { ...price, source },
     ...(perRunUsd === undefined ? {} : { perRunUsd }),
   }
 }
 
-// OpenRouter says per model which endpoints take tools; any other provider (or a feed that did not
-// answer) is as its catalog entry declares.
-function supportsTools(
+// OpenRouter's feed says per model whether its endpoints take tools; a model the feed does not
+// describe, any other provider and a feed that did not answer read as the catalog entry declares.
+function canCallTools(
   { provider, model }: ProviderModelId,
-  toolModels: ReadonlySet<string>
+  toolSupport: ReadonlyMap<string, boolean>
 ): boolean {
-  if (provider === OPENROUTER_PROVIDER && toolModels.size > 0) {
-    return toolModels.has(model)
-  }
+  const listed = provider === OPENROUTER_PROVIDER ? toolSupport.get(model) : undefined
 
-  return findProviderById(provider)?.supportsTools === true
+  return listed ?? findProviderById(provider)?.supportsTools === true
 }
 
 export const MODEL_PRICES_ROUTE = {

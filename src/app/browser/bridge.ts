@@ -11,9 +11,8 @@ import type {
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
-import { findProviderById } from '@/ai/api'
 import { type DbFileVerdict, toDbFileVerdict } from '@/app/browser/db-file'
-import { hasAiKey, hasSearchKey, readModelProvider } from '@/app/browser/keys'
+import { hasAiKey, hasSearchKey, readModelProvider, renderProviderName } from '@/app/browser/keys'
 import { renderSearchKeyNeeded } from '@/app/browser/research-gate'
 import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
 import { handleHttp } from '@/app/server/http/dispatch'
@@ -418,7 +417,7 @@ function keyRefusalOf(
 
   if (callsModel(message) && !hasAiKey(env, provider)) {
     return bindLocale(ctx.state.locale).translate('errors.browserChatNeedsKey', {
-      provider: findProviderById(provider)?.displayName ?? provider,
+      provider: renderProviderName(ctx.state.locale, provider),
     })
   }
 

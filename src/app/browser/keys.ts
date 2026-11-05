@@ -149,9 +149,15 @@ export function hasSearchKey(env: KeyEnv): boolean {
 /** The names of the search providers a visitor may add a key for, in the order the page offers them;
  *  the page reads the same locale entries. */
 export function listSearchProviderNames(locale: Locale): readonly string[] {
-  return BROWSER_SEARCH_PROVIDERS.map((provider) =>
-    t(locale, `ui.office.edition.providerName.${provider}`)
-  )
+  return BROWSER_SEARCH_PROVIDERS.map((provider) => renderProviderName(locale, provider))
+}
+
+/** A provider's name as the page shows it: one catalog entry per provider, AI or search. */
+export function renderProviderName(
+  locale: Locale,
+  provider: BrowserAiProvider | BrowserSearchProvider
+): string {
+  return t(locale, `ui.office.edition.providerName.${provider}`)
 }
 
 function toEnv(keys: BrowserKeys): KeyEnv {

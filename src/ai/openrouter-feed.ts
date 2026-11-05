@@ -134,9 +134,11 @@ export function loadOpenRouterStructuredOutputs(logger: Logger): Promise<Readonl
   return loadRawRows(logger).then((rows) => toParameterSet(rows, STRUCTURED_OUTPUTS_PARAMETER))
 }
 
-/** Model ids whose routed endpoints accept tool calls; empty while the feed is unreachable. */
-export function loadOpenRouterToolModels(logger: Logger): Promise<ReadonlySet<string>> {
-  return loadRawRows(logger).then((rows) => toParameterSet(rows, TOOLS_PARAMETER))
+/** Whether each described model's routed endpoints accept tool calls. A model the feed does not
+ *  list, or lists without its parameters, has no entry: that is unknown, not "cannot". Empty while
+ *  the feed is unreachable. */
+export function loadOpenRouterToolSupport(logger: Logger): Promise<ReadonlyMap<string, boolean>> {
+  return loadRawRows(logger).then((rows) => toParameterSupport(rows, TOOLS_PARAMETER))
 }
 
 function toCapabilityMap(rows: readonly unknown[]): ReadonlyMap<string, ModelReasoningCapability> {
@@ -164,14 +166,24 @@ function toCapabilityMap(rows: readonly unknown[]): ReadonlyMap<string, ModelRea
 }
 
 function toParameterSet(rows: readonly unknown[], parameter: string): ReadonlySet<string> {
-  const ids = new Set<string>()
+  const supported = [...toParameterSupport(rows, parameter)].flatMap(([id, ok]) => (ok ? [id] : []))
+
+  return new Set(supported)
+}
+
+function toParameterSupport(
+  rows: readonly unknown[],
+  parameter: string
+): ReadonlyMap<string, boolean> {
+  const support = new Map<string, boolean>()
   for (const raw of rows) {
     const row = ParametersRowSchema.safeParse(raw)
-    if (row.success && row.data.supported_parameters?.includes(parameter)) {
-      ids.add(row.data.id)
+    const parameters = row.success ? row.data.supported_parameters : undefined
+    if (row.success && parameters !== undefined && parameters !== null) {
+      support.set(row.data.id, parameters.includes(parameter))
     }
   }
-  return ids
+  return support
 }
 
 function toPriceMap(rows: readonly unknown[]): ReadonlyMap<string, ModelPrice> {
