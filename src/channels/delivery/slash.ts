@@ -39,6 +39,8 @@ const CHANNEL_COMMAND_SURFACE: CommandSurface = 'channel'
 
 export interface SlashRunRequest {
   readonly text: string
+  /** The line the operator typed, when `text` is what the command handed the agent for it. */
+  readonly typedText?: string
   readonly agentId?: AgentId
 }
 
@@ -239,17 +241,14 @@ async function runQueuedSlash(
 }
 
 // The agent reads what the command handed it; the transcript keeps the line the operator typed.
-async function runHandedOffTurn(
-  options: ResolveSlashOptions,
-  request: SlashRunRequest
-): Promise<void> {
+async function runHandedOffTurn(options: ResolveSlashOptions, run: SlashRunRequest): Promise<void> {
   const { deps, msg, sessionId } = options
 
   await deps.runExchange({
-    combined: { ...msg, text: request.text },
-    typedText: msg.text,
+    combined: { ...msg, text: run.text },
+    ...(run.typedText === undefined ? {} : { typedText: run.typedText }),
     sessionId,
-    agentId: request.agentId ?? (await options.resolveAgentId(msg.chatId)),
+    agentId: run.agentId ?? (await options.resolveAgentId(msg.chatId)),
   })
 }
 
@@ -311,8 +310,7 @@ async function dispatchSlash(options: DispatchSlashOptions): Promise<SlashRunReq
     throw abortError(signal)
   }
 
-  const role = roleOf(deps, msg)
-  const ctx = buildSlashContext(options, role)
+  const ctx = buildSlashContext(options, roleOf(deps, msg))
 
   await openChatSession(options, ctx)
 
@@ -347,6 +345,7 @@ async function dispatchSlash(options: DispatchSlashOptions): Promise<SlashRunReq
     case 'agent':
       return {
         text: result.retryMessage,
+        typedText: msg.text,
         ...(result.agentId === undefined ? {} : { agentId: result.agentId }),
       }
     case 'handled':

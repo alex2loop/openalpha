@@ -18,7 +18,6 @@
     "src/channels/adapters/zalo/adapter.ts#createZaloAdapter": 42,
     "src/channels/delivery/active-runs.ts#createActiveSlashRuns": 57,
     "src/channels/delivery/gate.ts#createGate": 50,
-    "src/channels/delivery/inbound.ts#route": 43,
     "src/channels/delivery/orchestrator.ts#runExchange": 54,
     "src/channels/delivery/outbound/proactive.ts#subscribeProactive": 47,
     "src/channels/delivery/plan-review.ts#createChannelPlanReviewer": 44,
