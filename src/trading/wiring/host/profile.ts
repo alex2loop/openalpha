@@ -1,11 +1,16 @@
 import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import { ValidationError } from '@/core/errors'
+import { portfolioSegment } from '@/trading/kernel/instrument'
 import { parseTickers } from '@/trading/kernel/surface/surface'
 import { scoped } from '@/trading/wiring/host/scope'
 
-export type ProfileMethods = Pick<TradingHost, 'updateWatchlist' | 'getSetup' | 'profileFields'>
+export type ProfileMethods = Pick<
+  TradingHost,
+  'updateWatchlist' | 'updateSegment' | 'getSetup' | 'profileFields'
+>
 
-/** The profile's watchlist edit, the two facts a first run turns on and the settings on offer. */
+/** The profile's watchlist edit and segment switch, the two facts a first run turns on and the
+ *  settings on offer. */
 export function profileMethods(deps: TradingHostDeps): ProfileMethods {
   return {
     profileFields: () => deps.services.profileFields,
@@ -28,6 +33,15 @@ export function profileMethods(deps: TradingHostDeps): ProfileMethods {
           signal: scope.signal,
         })
       }),
+
+    updateSegment: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.profiles.updateSegment({
+          kind: request.kind,
+          segment: portfolioSegment(request.segment),
+          signal: scope.signal,
+        })
+      ),
 
     getSetup: (signal) =>
       scoped(deps, signal, async (scope) => {

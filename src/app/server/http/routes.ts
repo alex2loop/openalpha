@@ -11,6 +11,7 @@ import { MCP_ROUTES } from '@/app/server/routes/mcp'
 import { MODEL_ROUTES } from '@/app/server/routes/models'
 import { MONEY_ROUTES } from '@/app/server/routes/money'
 import { NOTICE_ROUTES } from '@/app/server/routes/notices'
+import { PROFILE_SEGMENT_ROUTES } from '@/app/server/routes/profile-segment'
 import { RUN_ROUTES } from '@/app/server/routes/runs'
 import { SYSTEM_CORE_ROUTES } from '@/app/server/routes/system'
 import { TASK_ROUTES } from '@/app/server/routes/tasks'
@@ -44,7 +45,13 @@ export const MARKET_GROUP: ApiRouteGroup = {
 // serves the other.
 export const TRADING_GROUP: ApiRouteGroup = {
   name: 'trading',
-  routes: [...TRADING_ROUTES, ...DEBATE_ROUTES, ...DIGEST_ROUTES, ...THEME_ROUTES],
+  routes: [
+    ...TRADING_ROUTES,
+    ...PROFILE_SEGMENT_ROUTES,
+    ...DEBATE_ROUTES,
+    ...DIGEST_ROUTES,
+    ...THEME_ROUTES,
+  ],
 }
 
 // The server owns the FINAL route table, composed as data rather than extended at runtime: an

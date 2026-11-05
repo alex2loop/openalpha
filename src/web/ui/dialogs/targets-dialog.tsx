@@ -2,7 +2,7 @@ import { type Signal, signal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
 import type { TradingProfileResponse } from '@/app/server/wire/trading'
-import { getJson } from '@/web/api/client'
+import { getJson, sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { editionKey } from '@/web/state/edition'
 import { findMarket } from '@/web/state/market'
@@ -13,11 +13,13 @@ import { toErrorText, tr } from '@/web/text/tr'
 import {
   buildTargetsPatch,
   CASH_SEGMENT,
+  type CapSet,
   createTargetRows,
   isWhole,
   lockUnheld,
   snapshotTargets,
   sumTargets,
+  switchedOnSegments,
   type TargetRow,
   toPercent,
 } from '@/web/ui/dialogs/targets-state'
@@ -25,8 +27,6 @@ import { Button } from '@/web/ui/kit/button'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
 
 import './dialogs.css'
-
-const ENABLE_COMMAND = '/profile enable'
 
 interface TargetsRequest {
   /** Leads back to where the dialog was opened from. */
@@ -91,7 +91,7 @@ function TargetsBody({ open }: { readonly open: OpenTargets }) {
 
 function TargetRowView({ row }: { readonly row: TargetRow }) {
   const isCash = row.segment === CASH_SEGMENT
-  const isFixed = isCash || row.isLocked || !row.wasOn
+  const isFixed = isCash || row.isLocked
 
   return (
     <div class="target-row">
@@ -172,19 +172,13 @@ function switchRow(row: TargetRow, isOn: boolean): void {
 }
 
 function describeRow(row: TargetRow): string {
-  if (row.isLocked) {
-    return tr('ui.office.targets.locked')
-  }
-
-  return row.wasOn || row.segment === CASH_SEGMENT
-    ? ''
-    : tr('ui.office.targets.offHint', { command: `${ENABLE_COMMAND} ${row.segment}` })
+  return row.isLocked ? tr('ui.office.targets.locked') : ''
 }
 
 function save(open: OpenTargets): void {
   open.isBusy.value = true
   open.failure.value = undefined
-  saveProfilePatch(buildTargetsPatch(open.profile, open.rows.value))
+  saveTargets(open)
     .then(() => {
       open.handle?.close()
       open.request.onBack?.()
@@ -218,4 +212,23 @@ function useHeldSegments(open: OpenTargets): void {
 
     return () => controller.abort()
   }, [])
+}
+
+// A segment switched on is enabled first, which re-seeds every cap; the patch then keeps the caps
+// the other segments had and the one the enable gave the new segment.
+async function saveTargets(open: OpenTargets): Promise<void> {
+  const enabledCaps: Record<string, CapSet> = {}
+
+  for (const segment of switchedOnSegments(open.rows.value)) {
+    const enabled = await sendJson('POST', ROUTES.profileSegment, {
+      body: { action: 'enable', segment },
+    })
+    const cap = enabled.caps[segment]
+
+    if (cap !== undefined) {
+      enabledCaps[segment] = cap
+    }
+  }
+
+  await saveProfilePatch(buildTargetsPatch(open.profile, open.rows.value, enabledCaps))
 }

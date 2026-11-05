@@ -19,7 +19,7 @@ import type { NavHistory, NavWindow } from '@/trading/features/portfolio/nav/typ
 import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
 import type { VenueChoice } from '@/trading/features/portfolio/venues'
 import type { ProfileSetField } from '@/trading/features/profile/patch'
-import type { WatchlistResult } from '@/trading/features/profile/types'
+import type { SegmentRequest, WatchlistResult } from '@/trading/features/profile/types'
 import type { AnalysisId, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { SuggestionCard } from '@/trading/features/suggestion/render/card'
 import type { AgentFocusRef } from '@/trading/features/suggestion/track-record/agent-record'
@@ -93,39 +93,34 @@ interface TradingNavRequest extends TradingSignalRequest {
 }
 
 /** One name over a day range: its bars or its corporate events. */
-interface TradingInstrumentRangeRequest {
+interface TradingInstrumentRangeRequest extends TradingSignalRequest {
   readonly instrument: InstrumentRef
   readonly fromDay: TradingDay
   readonly toDay: TradingDay
-  readonly signal: AbortSignal
 }
 
-interface TradingNewsRequest {
+interface TradingNewsRequest extends TradingSignalRequest {
   readonly region?: Region
   readonly limit: number
-  readonly signal: AbortSignal
 }
 
-interface TradingScreenRequest {
+interface TradingScreenRequest extends TradingSignalRequest {
   readonly market: MarketRef
   readonly instrumentKind?: InstrumentKind
   readonly limit: number
-  readonly signal: AbortSignal
 }
 
-interface TradingSearchRequest {
+interface TradingSearchRequest extends TradingSignalRequest {
   readonly query: string
   readonly limit: number
-  readonly signal: AbortSignal
 }
 
-interface TradingAlertsPageRequest {
+interface TradingAlertsPageRequest extends TradingSignalRequest {
   readonly cursor?: AlertId
   readonly limit: number
-  readonly signal: AbortSignal
 }
 
-interface TradingAlertCreateRequest {
+interface TradingAlertCreateRequest extends TradingSignalRequest {
   readonly instrument: TickerRequest
   readonly condition: AlertCondition
   readonly threshold: number
@@ -134,144 +129,128 @@ interface TradingAlertCreateRequest {
   readonly typedPrice?: TypedPrice
   /** Refuses a level a live alert already covers, rather than returning that alert. */
   readonly requireNew?: true
-  readonly signal: AbortSignal
 }
 
-interface TradingAlertDisableRequest {
+interface TradingAlertDisableRequest extends TradingSignalRequest {
   readonly alertId: AlertId
-  readonly signal: AbortSignal
 }
 
-interface TradingRegionRequest {
+interface TradingRegionRequest extends TradingSignalRequest {
   readonly region?: Region
-  readonly signal: AbortSignal
 }
 
-interface TradingMarketSessionRequest {
+interface TradingMarketSessionRequest extends TradingSignalRequest {
   readonly region?: Region
   readonly locale: Locale
-  readonly signal: AbortSignal
 }
 
-interface TradingThemesRequest {
+interface TradingThemesRequest extends TradingSignalRequest {
   readonly locale: Locale
-  readonly signal: AbortSignal
 }
 
-interface TradingThemeChangeRequest {
+interface TradingThemeChangeRequest extends TradingSignalRequest {
   readonly themeId: ThemeId
   readonly transition: ThemeTransition
-  readonly signal: AbortSignal
 }
 
-interface TradingWatchlistRequest {
+interface TradingWatchlistRequest extends TradingSignalRequest {
   readonly kind: 'add' | 'remove'
   /** As the operator types them: `fpt`, or `crypto:hdb` where the market must be named. */
   readonly names: readonly string[]
-  readonly signal: AbortSignal
 }
 
-interface TradingProfileUpdateRequest {
+interface TradingProfileUpdateRequest extends TradingSignalRequest {
   readonly patch: ProfilePatch
-  readonly signal: AbortSignal
 }
 
-interface TradingSuggestionsRequest {
+/** `segment` as the operator names it; one no market registers is refused. */
+interface TradingSegmentRequest extends Pick<SegmentRequest, 'kind'>, TradingSignalRequest {
+  readonly segment: string
+}
+
+interface TradingSuggestionsRequest extends TradingSignalRequest {
   readonly status: SuggestionListStatus
   /** The focus whose calls are listed: the operator's own when absent. */
   readonly focusKey?: string
   readonly instrument?: InstrumentRef
   readonly cursor?: SuggestionId
   readonly limit: number
-  readonly signal: AbortSignal
 }
 
-interface TradingAnalysesRequest {
+interface TradingAnalysesRequest extends TradingSignalRequest {
   readonly instrument?: InstrumentRef
   readonly cursor?: AnalysisId
   readonly limit: number
-  readonly signal: AbortSignal
 }
 
-interface TradingBriefRescheduleRequest {
+interface TradingBriefRescheduleRequest extends TradingSignalRequest {
   /** `HH:mm`, read in the market's own timezone. */
   readonly sendTime: string
-  readonly signal: AbortSignal
 }
 
-interface TradingAgentRecordsRequest {
+interface TradingAgentRecordsRequest extends TradingSignalRequest {
   /** Every agent to report, each with the focus its `[focus]` configures now. */
   readonly agents: readonly AgentFocusRef[]
   readonly locale: Locale
-  readonly signal: AbortSignal
 }
 
-interface TradingDayDigestRequest {
+interface TradingDayDigestRequest extends TradingSignalRequest {
   /** The operator's day, which dates the briefs. */
   readonly day: TradingDay
   /** The same day as instants, which date the calls. */
   readonly range: EpochRange
   /** How many of the day's largest closes to read. */
   readonly limit: number
-  readonly signal: AbortSignal
 }
 
-interface TradingSuggestionRequest {
+interface TradingSuggestionRequest extends TradingSignalRequest {
   readonly suggestionId: SuggestionId
-  readonly signal: AbortSignal
 }
 
-interface TradingTrackRecordRequest {
+interface TradingTrackRecordRequest extends TradingSignalRequest {
   readonly limit: number
-  readonly signal: AbortSignal
 }
 
-interface TradingRebalanceRequest {
+interface TradingRebalanceRequest extends TradingSignalRequest {
   /** Sized in place of the saved watchlist for this run only. */
   readonly tickers?: readonly TickerRequest[]
-  readonly signal: AbortSignal
 }
 
-interface TradingLedgerPageRequest {
+interface TradingLedgerPageRequest extends TradingSignalRequest {
   /** A full entry id, as `nextCursor` returns it; the short handle needs the store. */
   readonly cursor?: LedgerEntryId
   readonly range?: LedgerDayRange
   readonly instrument?: InstrumentRef
   readonly limit: number
-  readonly signal: AbortSignal
 }
 
 /** The draft arrives unparsed: the host owns the one schema that knows the registered markets,
  *  venues and the base currency, so a route never builds its own copy. */
-interface TradingLedgerRecordRequest {
+interface TradingLedgerRecordRequest extends TradingSignalRequest {
   readonly draft: unknown
   /** Stable per user action, so a retried request records one row, not two. */
   readonly idempotencyKey: string
   readonly typedPrice?: TypedPrice
-  readonly signal: AbortSignal
 }
 
-interface TradingLedgerUpdateRequest {
+interface TradingLedgerUpdateRequest extends TradingSignalRequest {
   readonly entryId: LedgerEntryId
   /** The whole row as it should stand; an edit replaces, it never merges. */
   readonly draft: unknown
   readonly typedPrice?: TypedPrice
-  readonly signal: AbortSignal
 }
 
-interface TradingLedgerDeleteRequest {
+interface TradingLedgerDeleteRequest extends TradingSignalRequest {
   readonly entryId: LedgerEntryId
-  readonly signal: AbortSignal
 }
 
 interface TradingLedgerSyncRequest {
   readonly venue: VenueRef
 }
 
-interface TradingOrderTokenRequest {
+interface TradingOrderTokenRequest extends TradingSignalRequest {
   /** The staged order's confirmation token, or an unmirrored row's. */
   readonly token: string
-  readonly signal: AbortSignal
 }
 
 interface TradingSetExitRequest {
@@ -290,9 +269,8 @@ interface TradingCancelExitRequest {
   readonly venue?: VenueRef
 }
 
-interface TradingHaltRequest {
+interface TradingHaltRequest extends TradingSignalRequest {
   readonly halted: boolean
-  readonly signal: AbortSignal
 }
 
 interface TradingNewsView {
@@ -344,6 +322,8 @@ export interface TradingHost {
   /** The profile settings this edition offers, which the profile wire is limited to. */
   profileFields(): readonly ProfileSetField[]
   updateProfile(request: TradingProfileUpdateRequest): Promise<UserProfile>
+  /** Switches a segment as `/profile enable|disable` does, re-seeding every target and cap. */
+  updateSegment(request: TradingSegmentRequest): Promise<UserProfile>
   /** Adds or removes names; an add that names one nothing resolves saves nothing. */
   updateWatchlist(request: TradingWatchlistRequest): Promise<WatchlistResult>
   /** What a first run still has to do on the trading side. */

@@ -66,10 +66,17 @@ a {
   padding: 0 var(--fieldPadX);
   border: 1px solid var(--border);
   border-radius: var(--controlRadius);
-  background-color: var(--canvas);
+  background-color: var(--surface);
   color: var(--ink);
   font-size: var(--fieldFont);
   font-weight: var(--weightRegular);
+}
+
+/* A field that takes no input reads as set aside: sunken and quiet. */
+:where(input, select, textarea):disabled {
+  background-color: var(--sunken);
+  color: var(--ink3);
+  cursor: not-allowed;
 }
 
 /* A small field sits beside small buttons inside a row. */

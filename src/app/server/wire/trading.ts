@@ -159,6 +159,12 @@ export interface TradingProfileResponse {
   readonly riskPerTradePctNav?: number
 }
 
+/** POST /v1/profile/segment: switches one segment as `/profile enable|disable` does. */
+export interface ProfileSegmentBody {
+  readonly action: 'enable' | 'disable'
+  readonly segment: string
+}
+
 export interface AbsolutePositionWire {
   readonly instrument: InstrumentRefWire
   readonly quantity: number

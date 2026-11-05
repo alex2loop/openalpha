@@ -262,6 +262,7 @@ export const ROUTES = Object.freeze({
   restart: route<RestartAcceptedWire>('/v1/restart'),
   venues: route<VenuesResponse>('/v1/venues', 'portfolio'),
   profile: route<TradingProfileResponse>('/v1/profile'),
+  profileSegment: route<TradingProfileResponse>('/v1/profile/segment'),
   watchlist: route<WatchlistUpdateResponse>('/v1/watchlist'),
   alerts: route<AlertsResponse>('/v1/alerts', undefined, { daemonOnly: true }),
   alertCreate: route<AlertWire>('/v1/alerts'),

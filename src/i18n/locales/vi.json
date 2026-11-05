@@ -2048,7 +2048,6 @@
     "office.common.edit": "Sửa",
     "office.alert.now": "Giá hiện tại: {price}",
     "office.trade.badFee": "Phí phải là số, hoặc để trống.",
-    "office.targets.offHint": "Đang tắt. Bật lại bằng câu lệnh {command}.",
     "office.settings.pairApprove": "Duyệt ghép nối",
     "office.settings.noAgents": "Chưa có agent riêng nào.",
     "office.advanced.notToml": "Mình chưa đọc được file này: {reason}",

@@ -2048,7 +2048,6 @@
     "office.common.edit": "Edit",
     "office.alert.now": "Current price: {price}",
     "office.trade.badFee": "The fee must be a number, or leave it empty.",
-    "office.targets.offHint": "Switched off. Turn it on again with {command}.",
     "office.settings.pairApprove": "Approve pairing",
     "office.settings.noAgents": "No agents of your own yet.",
     "office.advanced.notToml": "I could not read this file: {reason}",
