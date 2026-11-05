@@ -41,6 +41,9 @@ export interface MarketDeps {
   /** The web's first history load writes each fetch window before the next is fetched, so a page
    *  never holds a whole year of bars. Absent: one write at the end, whatever the market's size. */
   readonly pagedBackfill?: true
+  /** An overview that states readings and no placing: VN gold's premium carries no rank against its
+   *  own history. Absent ranks it. */
+  readonly overviewReadingsOnly?: true
   /** The data kinds a refresh leaves out because no source serves them: none is run, so none reads
    *  as a failed fetch. Absent refreshes every kind the market has. */
   readonly omitRefreshKinds?: ReadonlySet<RefreshDataKind>

@@ -1,6 +1,6 @@
 import type { MessageKey } from '@/i18n'
 import { Analyses } from '@/web/edition/analyses'
-import { ideasTabKey, isAnalysisOnly } from '@/web/state/edition'
+import { ideasTabKey, isAnalysisOnly, screenTabKey } from '@/web/state/edition'
 import { type IdeasTab, ideasTab } from '@/web/state/ideas'
 import { tr } from '@/web/text/tr'
 import { OpenIdeas } from '@/web/ui/ideas/open'
@@ -37,7 +37,7 @@ export function Ideas() {
         value={tab}
         options={IDEAS_TABS.filter((spec) => shown.has(spec.value)).map((spec) => ({
           value: spec.value,
-          label: tr(spec.label),
+          label: tr(spec.value === 'screen' ? screenTabKey() : spec.label),
         }))}
         onChange={(value) => {
           ideasTab.value = value

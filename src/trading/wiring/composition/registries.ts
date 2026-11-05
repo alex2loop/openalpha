@@ -117,9 +117,17 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
 /** What an edition changes in what every market is handed; absent is the installed version. */
 function editionMarketDeps(
   edition: TradingEdition | undefined
-): Pick<MarketDeps, 'pagedBackfill' | 'omitRefreshKinds' | 'omitBriefActions' | 'unservedMacro'> {
+): Pick<
+  MarketDeps,
+  | 'pagedBackfill'
+  | 'overviewReadingsOnly'
+  | 'omitRefreshKinds'
+  | 'omitBriefActions'
+  | 'unservedMacro'
+> {
   return {
     ...(edition?.pagedBackfill === true ? { pagedBackfill: true as const } : {}),
+    ...(edition?.overviewReadingsOnly === true ? { overviewReadingsOnly: true as const } : {}),
     ...(edition?.refreshOmits === undefined ? {} : { omitRefreshKinds: edition.refreshOmits }),
     ...(edition?.macroUnserved === undefined
       ? {}

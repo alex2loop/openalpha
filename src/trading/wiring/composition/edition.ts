@@ -9,6 +9,7 @@ import type { MarketRef } from '@/trading/kernel/instrument'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { RefreshDataKind } from '@/trading/kernel/market/refresh'
 import type { BriefActionCode, BriefSectionKind } from '@/trading/kernel/operator/brief-section'
+import type { StoryCode } from '@/trading/kernel/operator/brief-story'
 
 /** The reads of a book that holds no suggestion and plans no exit: each answers empty, which every
  *  reader takes as absent, never as zero. They are the verdict the book would close a name on, the
@@ -42,14 +43,18 @@ export interface TradingEdition {
   readonly suggest?: SuggestAnalysis
   /** How a rebalance plan is written: as orders, or as the gaps to the plan. */
   readonly rebalance?: RebalanceForm
-  /** An overview that states no deploy line, where the edition has no plan to deploy toward. */
-  readonly overviewOmitsDeployment?: true
+  /** An overview whose macro states its drivers' readings and no regime, score or deploy line, which
+   *  leaves out the index's support and resistance and VN gold's rank against its own history: an
+   *  edition that makes no call. */
+  readonly overviewReadingsOnly?: true
   /** How a screen answers: the best names ranked, or every priced name for the reader to sort. */
   readonly screen?: ScreenForm
   /** Brief sections left out: each reads as omitted, which every surface already hides. */
   readonly briefOmits?: ReadonlySet<BriefSectionKind>
   /** Next actions the brief never lists, whatever fired them: each reads as if it never fired. */
   readonly briefActionOmits?: ReadonlySet<BriefActionCode>
+  /** Market stories the brief never tells: each reads as if its detector never fired. */
+  readonly briefStoryOmits?: ReadonlySet<StoryCode>
   /** The `/profile` settings printed and accepted, where only some feed what the edition does. */
   readonly profile?: ProfileEdition
   /** What an edition that stores no suggestion and plans no exit answers itself. */

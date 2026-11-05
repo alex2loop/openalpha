@@ -16,7 +16,7 @@ import {
   sendFromInput,
   setInput,
 } from '@/web/state/command'
-import { offers } from '@/web/state/edition'
+import { editionKey, offers } from '@/web/state/edition'
 import { openTicker, openTickerOrElse } from '@/web/state/known-tickers'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
@@ -166,6 +166,11 @@ interface CommandInputProps {
 }
 
 function CommandInput({ inputRef, list, options }: CommandInputProps) {
+  const placeholder = tr(
+    editionKey('ui.office.command.placeholder', 'ui.office.command.placeholderWeb'),
+    { ticker: regionPack.value.exampleTicker }
+  )
+
   return (
     <input
       ref={inputRef}
@@ -175,8 +180,8 @@ function CommandInput({ inputRef, list, options }: CommandInputProps) {
       role="combobox"
       aria-expanded={list.isOpen.value}
       aria-controls={LIST_ID}
-      aria-label={tr('ui.office.command.placeholder', { ticker: regionPack.value.exampleTicker })}
-      placeholder={tr('ui.office.command.placeholder', { ticker: regionPack.value.exampleTicker })}
+      aria-label={placeholder}
+      placeholder={placeholder}
       value={inputText.value}
       onFocus={() => (list.isOpen.value = true)}
       onBlur={() => resetList(list, false)}

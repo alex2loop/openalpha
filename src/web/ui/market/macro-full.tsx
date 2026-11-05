@@ -161,9 +161,9 @@ function DriverTable({ drivers }: { readonly drivers: ReadyMacro['drivers'] }) {
           <tr>
             <th />
             <th class="num">{tr('ui.office.market.col.reading')}</th>
-            <th>{tr('ui.office.market.col.position')}</th>
             {!isAnalysisOnly.value && (
               <>
+                <th>{tr('ui.office.market.col.position')}</th>
                 <th class="num">{tr('ui.office.market.col.weight')}</th>
                 <th class="num">{tr('ui.office.market.col.contribution')}</th>
               </>
@@ -190,21 +190,21 @@ function DriverRow({ driver }: { readonly driver: MacroDriver }) {
         </span>
       </td>
       <td class="num">{formatDriverValue(driver)}</td>
-      <td>
-        <span class="macro-range">
-          <span class="num">
-            {formatDriverValue({ unit: driver.unit, value: driver.bearishAt })}
-          </span>
-          <span class="macro-track">
-            <span class="macro-dot" style={`left: ${positionOf(driver) * PERCENT}%`} />
-          </span>
-          <span class="num">
-            {formatDriverValue({ unit: driver.unit, value: driver.bullishAt })}
-          </span>
-        </span>
-      </td>
       {!isAnalysisOnly.value && (
         <>
+          <td>
+            <span class="macro-range">
+              <span class="num">
+                {formatDriverValue({ unit: driver.unit, value: driver.bearishAt })}
+              </span>
+              <span class="macro-track">
+                <span class="macro-dot" style={`left: ${positionOf(driver) * PERCENT}%`} />
+              </span>
+              <span class="num">
+                {formatDriverValue({ unit: driver.unit, value: driver.bullishAt })}
+              </span>
+            </span>
+          </td>
           <td class="num">{formatFixedFraction(driver.weight)}</td>
           <td class="num">{formatFixed(driver.contribution, SCORE_DIGITS)}</td>
         </>

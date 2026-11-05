@@ -87,7 +87,7 @@ interface DomainServiceDeps {
   readonly venues: VenueRegistry
   /** Built beside the market registry so the markets and the money read one conversion path. */
   readonly fx: FxRates
-  readonly edition?: Pick<TradingEdition, 'reads' | 'briefOmits' | 'rebalance'>
+  readonly edition?: Pick<TradingEdition, 'reads' | 'briefOmits' | 'briefStoryOmits' | 'rebalance'>
 }
 
 function buildProfiles(deps: DomainServiceDeps): ProfileService {
@@ -388,7 +388,7 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
     sender: deps.sender,
     config: deps.config,
     logger: deps.logger,
-    ...(deps.edition?.briefOmits === undefined ? {} : { omitSections: deps.edition.briefOmits }),
+    ...briefOmitsOf(deps.edition),
     createSuggestionBudget: () => deps.createSuggestionBudget(),
   })
 
@@ -416,5 +416,13 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
       exitPlans: delivery.exitPlans,
       ...(order === undefined ? {} : { restingStops: (options) => order.restingStops(options) }),
     }),
+  }
+}
+
+/** What the edition leaves out of every brief: whole sections, and the stories it never tells. */
+function briefOmitsOf(edition: Pick<TradingEdition, 'briefOmits' | 'briefStoryOmits'> | undefined) {
+  return {
+    ...(edition?.briefOmits === undefined ? {} : { omitSections: edition.briefOmits }),
+    ...(edition?.briefStoryOmits === undefined ? {} : { omitStories: edition.briefStoryOmits }),
   }
 }

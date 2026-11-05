@@ -181,9 +181,7 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       defaultRegion,
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
-      ...(deps.edition?.overviewOmitsDeployment === true
-        ? { statesDeployment: false as const }
-        : {}),
+      ...(deps.edition?.overviewReadingsOnly === true ? { statesComposite: false as const } : {}),
       marketsInUse: deps.marketsInUse,
       logger: deps.logger,
     }),

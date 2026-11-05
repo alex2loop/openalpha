@@ -48,13 +48,30 @@ export const BROWSER_MARKETS: ReadonlySet<ReturnType<typeof marketRef>> = new Se
 ])
 
 /** Brief sections that rank names by composite (the watchlist ordered by score, which names
- *  entered or left the top of the board) or state what the web has none of: the standing rules for
- *  stops, entries and tranches, and the cash posture a plan would leave. */
+ *  entered or left the top of the board), make a call on the market (the macro regime and its
+ *  score, a regime change, sectors to weigh up or down), state the index's support and resistance,
+ *  or state what the web has none of: the standing rules for stops, entries and tranches, and the
+ *  cash posture a plan would leave. */
 const BRIEF_OMITS: ReadonlySet<BriefSectionKind> = new Set([
   'watchlist-leading',
   'screen-delta',
   'discipline',
   'deposit-rate',
+  'macro',
+  'regime-shift',
+  'sector-rotation',
+  'range',
+])
+
+/** Market stories that read a level or a direction: the index near support or resistance, a sector
+ *  leading or lagging, and what the futures basis expects. */
+const BRIEF_STORY_OMITS: NonNullable<TradingEdition['briefStoryOmits']> = new Set([
+  'support-test',
+  'resistance-test',
+  'sector-leading',
+  'sector-lagging',
+  'basis-premium',
+  'basis-discount',
 ])
 
 /** The next action that tells the reader when to buy. The others name a record to make or a
@@ -119,10 +136,11 @@ export function createBrowserEdition(app: App, keyring: BrowserKeyring): Trading
       },
     },
     rebalance: 'gaps',
-    overviewOmitsDeployment: true,
+    overviewReadingsOnly: true,
     screen: 'board',
     briefOmits: BRIEF_OMITS,
     briefActionOmits: BRIEF_ACTION_OMITS,
+    briefStoryOmits: BRIEF_STORY_OMITS,
     profile: {
       fields: PROFILE_FIELDS,
       usage: 'slash.tradingProfileAnalysisUsage',

@@ -16,7 +16,7 @@ import type {
 } from '@/trading/kernel/instrument'
 import type { MarketBriefRequest } from '@/trading/kernel/market/market-capability'
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
+import type { MarketBrief, StoryCode, StoryRead } from '@/trading/kernel/operator/brief-story'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 import type { Market } from '@/trading/markets/types'
@@ -63,6 +63,8 @@ export interface BriefBuildDeps {
   readonly logger: Logger
   /** Sections this edition leaves out of every brief it builds; absent builds them all. */
   readonly omitSections?: ReadonlySet<BriefSectionKind>
+  /** Market stories this edition never tells; absent tells them all. */
+  readonly omitStories?: ReadonlySet<StoryCode>
   /** The brief's own budget; its two suggestion sections draw from this and never from a caller's
    *  parent run. */
   createSuggestionBudget(): Budget
@@ -240,7 +242,7 @@ function tryPlanStory(
     }
 
     return planStory({
-      read: stories,
+      read: withoutOmittedStories(stories, deps.omitStories),
       market: input.market.manifest.id,
       sections: brief.sections,
       previous: previous?.sections ?? null,
@@ -256,6 +258,18 @@ function tryPlanStory(
 
     return []
   }
+}
+
+/** The read with the stories an edition never tells left out, as if their detectors never fired. */
+function withoutOmittedStories(
+  read: StoryRead,
+  omit: ReadonlySet<StoryCode> | undefined
+): StoryRead {
+  if (omit === undefined || read.kind !== 'read') {
+    return read
+  }
+
+  return { ...read, candidates: read.candidates.filter((candidate) => !omit.has(candidate.code)) }
 }
 
 function logStoryFailed(deps: BriefBuildDeps, input: BriefBuildInput, err: unknown): void {

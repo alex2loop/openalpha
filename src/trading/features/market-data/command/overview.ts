@@ -31,9 +31,9 @@ interface OverviewCommandDeps {
    *  page narrowed to markets outside that region carries none. */
   readonly defaultRegion: Region
   readonly heldMarkets: ReadonlySet<MarketRef>
-  /** `false` where no plan states how much of a buy to put to work, so the macro states none;
-   *  absent states it. */
-  readonly statesDeployment?: false
+  /** `false` where the edition makes no call on the market, so the macro states readings only;
+   *  absent states the composite. */
+  readonly statesComposite?: false
   /** What a bare `/overview` covers: the markets a segment, holding or watched name keeps in use. */
   readonly marketsInUse: (signal: AbortSignal) => Promise<ReadonlySet<MarketRef>>
   readonly logger: Logger
@@ -106,7 +106,7 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
   }
 }
 
-type PageRead = Omit<Parameters<typeof renderOverviewText>[1], 'heldMarkets' | 'statesDeployment'>
+type PageRead = Omit<Parameters<typeof renderOverviewText>[1], 'heldMarkets' | 'statesComposite'>
 
 function renderPage(deps: OverviewCommandDeps, ctx: SlashContext, read: PageRead): string {
   return renderOverviewText(
@@ -114,7 +114,7 @@ function renderPage(deps: OverviewCommandDeps, ctx: SlashContext, read: PageRead
     {
       ...read,
       heldMarkets: deps.heldMarkets,
-      statesDeployment: deps.statesDeployment !== false,
+      statesComposite: deps.statesComposite !== false,
     },
     resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
   )

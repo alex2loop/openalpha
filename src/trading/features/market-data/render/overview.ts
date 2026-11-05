@@ -3,6 +3,7 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { MarketDataOverview } from '@/trading/kernel/market/market-overview'
+import type { BriefSectionKind } from '@/trading/kernel/operator/brief-section'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { RenderContext } from '@/trading/render/format'
 import { t } from '@/i18n'
@@ -27,6 +28,9 @@ import {
 import { renderBlockRule, renderBriefSection, renderSectionHeading } from '@/trading/render/section'
 import { type SectionFact, toSectionFacts } from '@/trading/render/section-facts'
 
+/** The index's support and resistance: levels, which an overview that makes no call leaves out. */
+const LEVEL_SECTION_KINDS: ReadonlySet<BriefSectionKind> = new Set(['range'])
+
 /** Everything the read carries, so the renderer never asks a service for a second one. The macro
  *  read is the region's, not any market's: its drivers price every asset in the message, which is
  *  why it heads them rather than sitting inside one block. */
@@ -34,9 +38,9 @@ interface MarketsView {
   readonly overviews: readonly MarketDataOverview[]
   readonly macro: SourceResult<MacroRiskView>
   readonly heldMarkets: ReadonlySet<MarketRef>
-  /** False where no plan states a buy size: the macro keeps its regime and drivers and leaves out
-   *  how much of a planned buy to put to work. */
-  readonly statesDeployment: boolean
+  /** False where the edition makes no call on the market: the macro states its drivers' readings
+   *  only (no regime, score, lean or deploy line) and the index's support and resistance leave. */
+  readonly statesComposite: boolean
   /** The one clock read the whole message is stamped with. */
   readonly now: number
 }
@@ -58,7 +62,7 @@ export function renderOverviewText(
 
   return joinSections([
     [renderSectionTitle(SECTION_ICONS.overview, title(locale, view, context.timezone))],
-    leanLine(locale, view.macro),
+    view.statesComposite ? leanLine(locale, view.macro) : [],
     ...macroBlock(locale, view, context),
     ...overviews.flatMap((overview, index) => {
       const sharedWith = overviews
@@ -72,8 +76,11 @@ export function renderOverviewText(
         ...(sharedWith === undefined ? {} : { sharedWith }),
       })
     }),
-    renderCaveatLines(locale, caveatsOf(view), { collapseInfo: true }),
-    view.statesDeployment ? [`${INDENT[1]}${t(locale, 'trading.render.macro.next')}`] : [],
+    renderCaveatLines(locale, caveatsOf(view), {
+      collapseInfo: true,
+      plain: !view.statesComposite,
+    }),
+    view.statesComposite ? [`${INDENT[1]}${t(locale, 'trading.render.macro.next')}`] : [],
   ])
 }
 
@@ -173,11 +180,24 @@ function macroBlock(
   }
 
   const macro = view.macro.value
-  const rule = `${renderBlockRule(SECTION_ICONS.macro, renderMacroHeading(locale, macro))}${renderAsOf(locale, macro.asOf)}`
+  const stamp = renderAsOf(locale, macro.asOf)
+
+  if (!view.statesComposite) {
+    const heading = t(locale, 'trading.render.macro.readingsTitle', {
+      region: renderDeclaredValue(locale, `trading.region.${macro.region}`),
+    })
+
+    return [
+      [`${renderBlockRule(SECTION_ICONS.macro, heading)}${stamp}`],
+      ...renderMacroSections(locale, { view: macro, context, held: false, readingsOnly: true }),
+    ]
+  }
+
+  const rule = `${renderBlockRule(SECTION_ICONS.macro, renderMacroHeading(locale, macro))}${stamp}`
   const [composite = [], ...rest] = renderMacroSections(locale, {
     view: macro,
     context,
-    held: view.statesDeployment,
+    held: true,
   })
 
   return [[rule, ...composite], ...rest]
@@ -198,21 +218,43 @@ function marketBlock(
 ): readonly (readonly string[])[] {
   const { overview, view, context } = block
   const name = renderDeclaredValue(locale, `trading.market.${overview.market}`)
-  const [macro = [], ...macroRest] = segmentMacroSections(locale, {
+  const segment: SegmentMacroInput = {
     overview,
     region: view.macro,
     context,
-    held: view.statesDeployment && view.heldMarkets.has(overview.market),
+    held: view.heldMarkets.has(overview.market),
     ...(block.sharedWith === undefined ? {} : { sharedWith: block.sharedWith }),
-  })
+  }
+  const [macro = [], ...macroRest] = view.statesComposite
+    ? segmentMacroSections(locale, segment)
+    : segmentReadings(locale, segment)
 
   return [
     [`${renderBlockRule(overview.icon, name)}${blockStamp(locale, overview)}`, ...macro],
     ...macroRest,
-    ...wholeMarketSections(overview).map((section) => [
-      renderBriefSection(locale, section, context),
-    ]),
+    ...wholeMarketSections(overview)
+      .filter((section) => view.statesComposite || !LEVEL_SECTION_KINDS.has(section.kind))
+      .map((section) => [renderBriefSection(locale, section, context)]),
     renderProvenanceLine(locale, overview.provenance, context.timezone),
+  ]
+}
+
+/** A segment's own drivers where they are not the region's already printed above, as readings. */
+function segmentReadings(locale: Locale, input: SegmentMacroInput): readonly (readonly string[])[] {
+  const { macro } = input.overview
+
+  if (macro === undefined || isRegionMacro(macro, input.region) || input.sharedWith !== undefined) {
+    return []
+  }
+
+  return [
+    [],
+    ...renderMacroSections(locale, {
+      view: macro,
+      context: input.context,
+      held: false,
+      readingsOnly: true,
+    }),
   ]
 }
 

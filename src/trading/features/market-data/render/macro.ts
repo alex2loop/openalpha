@@ -28,7 +28,7 @@ import {
   renderDeclaredValue,
   SECTION_ICONS,
 } from '@/trading/render/format'
-import { INDENT, renderProvenanceLine } from '@/trading/render/layout'
+import { INDENT, INLINE_SEPARATOR, renderProvenanceLine } from '@/trading/render/layout'
 import { apportion, SCORE_QUANTUM, WEIGHT_QUANTUM } from '@/trading/render/number'
 
 const FULL_COVERAGE = 1
@@ -53,6 +53,9 @@ interface MacroSectionsInput {
   readonly context: RenderContext
   /** False for a market no venue holds: its read sizes no buy, so the deployment line is left out. */
   readonly held: boolean
+  /** The drivers' own readings and nothing drawn from them (no regime, score, weight or anchor),
+   *  for an edition that makes no call on the market. */
+  readonly readingsOnly?: true
 }
 
 /** The composite and what produced it. The heading does not belong here: the surface decides how
@@ -62,6 +65,10 @@ export function renderMacroSections(
   input: MacroSectionsInput
 ): readonly (readonly string[])[] {
   const { view, context } = input
+
+  if (input.readingsOnly === true) {
+    return [readingLines(locale, view, context)]
+  }
 
   return [
     [
@@ -79,6 +86,28 @@ export function renderMacroSections(
       ...renderProvenanceLine(locale, view.provenance, context.timezone),
     ]),
   ]
+}
+
+function readingLines(
+  locale: Locale,
+  view: MacroRiskView,
+  context: RenderContext
+): readonly string[] {
+  const missing = view.missing.map((entry) =>
+    renderDeclaredValue(locale, `trading.macro.series.${entry.id}`)
+  )
+
+  return toFoldLines(`${SECTION_ICONS.factors} ${t(locale, 'trading.render.macro.readings')}`, [
+    ...view.drivers.map((driver) => driverLine(locale, driver)),
+    ...(missing.length === 0
+      ? []
+      : [
+          `${INDENT[1]}${t(locale, 'trading.render.macro.readingsMissing', {
+            series: missing.join(INLINE_SEPARATOR),
+          })}`,
+        ]),
+    ...renderProvenanceLine(locale, view.provenance, context.timezone),
+  ])
 }
 
 /** Partial data is the fact worth a line, judged on the printed figure: a full read states nothing
@@ -157,16 +186,15 @@ function renderDriver(
   driver: MacroRiskDriver,
   context: RenderContext
 ): readonly string[] {
-  const format = formatterFor(locale, driver.unit)
+  return [driverLine(locale, driver), `${INDENT[2]}${driverDetail(locale, driver, context)}`]
+}
 
-  return [
-    `${INDENT[1]}${t(locale, 'trading.render.macro.driver', {
-      series: renderDeclaredValue(locale, `trading.macro.series.${driver.id}`),
-      observedAt: formatDay(locale, driver.asOf),
-      value: format(driver.value),
-    })}`,
-    `${INDENT[2]}${driverDetail(locale, driver, context)}`,
-  ]
+function driverLine(locale: Locale, driver: MacroRiskDriver): string {
+  return `${INDENT[1]}${t(locale, 'trading.render.macro.driver', {
+    series: renderDeclaredValue(locale, `trading.macro.series.${driver.id}`),
+    observedAt: formatDay(locale, driver.asOf),
+    value: formatterFor(locale, driver.unit)(driver.value),
+  })}`
 }
 
 /** The anchors as a ladder where one can be drawn: the bearish end on the left even where it is the
