@@ -201,7 +201,7 @@
 }
 
 .market-section + .market-section {
-  padding-top: var(--s3);
+  padding-top: var(--s1);
 }
 
 .news-item {

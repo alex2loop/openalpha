@@ -33,16 +33,7 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
   return (
     <div class="flow market-section">
       <h3 class="sub-head">{market?.label ?? block.market}</h3>
-      <div class="row-list">
-        {block.rows.slice(0, ROWS_SHOWN).map((row) => (
-          <OverviewRow
-            key={row.instrument.ticker}
-            row={row}
-            currency={block.priceCurrency}
-            hasBoard={market?.hasBoard === true}
-          />
-        ))}
-      </div>
+      <MarketRows block={block} hasBoard={market?.hasBoard === true} />
       <Movers movers={block.movers} currency={block.currency} />
       {(block.breadth !== undefined || block.foreignNetValue !== undefined) && (
         <div class="stack meta">
@@ -64,6 +55,32 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
       )}
       <Readings block={block} />
       {block.sources !== undefined && <p class="market-source">{block.sources}</p>}
+    </div>
+  )
+}
+
+// The market's first rows; a market that read none says so rather than leaving its name alone.
+function MarketRows({
+  block,
+  hasBoard,
+}: {
+  readonly block: OverviewBlock
+  readonly hasBoard: boolean
+}) {
+  if (block.rows.length === 0) {
+    return <p class="empty-note">{tr('ui.office.today.empty')}</p>
+  }
+
+  return (
+    <div class="row-list">
+      {block.rows.slice(0, ROWS_SHOWN).map((row) => (
+        <OverviewRow
+          key={row.instrument.ticker}
+          row={row}
+          currency={block.priceCurrency}
+          hasBoard={hasBoard}
+        />
+      ))}
     </div>
   )
 }
