@@ -43,3 +43,12 @@
   left: var(--popoverGutter);
   width: auto;
 }
+
+/* Beside its anchor: script sets where, so the panel sits by the word it explains at any width. */
+.popover.popover-near,
+:root:not([data-layout="wide"]) .popover.popover-near {
+  top: var(--nearTop);
+  right: auto;
+  left: var(--nearLeft);
+  width: min(var(--nearPopW), calc(100vw - 2 * var(--popoverGutter)));
+}

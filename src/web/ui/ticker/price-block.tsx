@@ -2,7 +2,7 @@ import { useEffect } from 'preact/hooks'
 
 import type { DealerBoardWire, SessionRangeWire } from '@/app/server/wire/quote-detail'
 import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
-import { formatDay, translateDisplayText } from '@/i18n'
+import { formatDay, termOfTicker, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
@@ -35,6 +35,7 @@ import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
+import { Term } from '@/web/ui/kit/term'
 import { RefreshMarketsButton } from '@/web/ui/market/refresh-button'
 import { type ChartLevel, PriceChart } from '@/web/ui/ticker/chart'
 import { type LiveQuote, useLiveQuote } from '@/web/ui/ticker/live-quote'
@@ -104,10 +105,24 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
       {({ bars }) => (
         <>
           {live.failure !== undefined && <p class="failure-line">{live.failure}</p>}
+          <TickerTerm ticker={ticker} />
           <PriceBody ticker={ticker} market={market} bars={bars} levels={levels} quote={quote} />
         </>
       )}
     </BlockFrame>
+  )
+}
+
+// An index, a fund or world gold says what it is, in the glossary's words.
+function TickerTerm({ ticker }: { readonly ticker: string }) {
+  const term = termOfTicker(ticker)
+
+  return (
+    term !== undefined && (
+      <p class="meta">
+        <Term id={term}>{tr('ui.office.glossary.whatIs')}</Term>
+      </p>
+    )
   )
 }
 

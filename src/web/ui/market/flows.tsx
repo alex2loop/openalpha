@@ -1,11 +1,13 @@
 import type { OverviewLeadersWire, OverviewResponse } from '@/app/server/wire/overview'
-import { formatDay, type MessageKey } from '@/i18n'
+import { formatDay, type GlossaryTermId, type MessageKey } from '@/i18n'
 import { findMarket, overviewBlock, selectRegionOverview } from '@/web/state/market'
 import { locale } from '@/web/state/session'
 import { formatCompactAmount, formatSignedCompactAmount } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { CoinIcon } from '@/web/ui/kit/icons'
+import { Term } from '@/web/ui/kit/term'
+import { MarketName } from '@/web/ui/market/market-name'
 import { RankedList, RankedLists } from '@/web/ui/market/ranked-list'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { BlockHead, ReadLine } from '@/web/ui/today/block-frame'
@@ -16,22 +18,30 @@ type LeaderList = Exclude<keyof OverviewLeadersWire, 'window' | 'sessions' | 'pr
 
 // Reading order: who bought, who sold, then the money that changed hands. A net list is signed.
 const LEADER_LISTS = Object.freeze([
-  { list: 'foreignBuys', title: 'ui.office.market.foreignBuys', isNet: true },
-  { list: 'foreignSells', title: 'ui.office.market.foreignSells', isNet: true },
+  { list: 'foreignBuys', title: 'ui.office.market.foreignBuys', term: 'foreign-net', isNet: true },
+  {
+    list: 'foreignSells',
+    title: 'ui.office.market.foreignSells',
+    term: 'foreign-net',
+    isNet: true,
+  },
   {
     list: 'proprietaryBuys',
     title: 'ui.office.market.proprietaryBuys',
+    term: 'proprietary-flow',
     isNet: true,
   },
   {
     list: 'proprietarySells',
     title: 'ui.office.market.proprietarySells',
+    term: 'proprietary-flow',
     isNet: true,
   },
-  { list: 'mostTraded', title: 'ui.office.market.mostTraded', isNet: false },
+  { list: 'mostTraded', title: 'ui.office.market.mostTraded', term: 'turnover', isNet: false },
 ] as const satisfies readonly {
   readonly list: LeaderList
   readonly title: MessageKey
+  readonly term: GlossaryTermId
   readonly isNet: boolean
 }[])
 
@@ -83,12 +93,14 @@ function MarketFlows({ block }: { readonly block: OverviewBlock }) {
 
   return (
     <div class="flow">
-      <h3 class="sub-head">{findMarket(block.market)?.label ?? block.market}</h3>
+      <h3 class="sub-head">
+        <MarketName market={block.market} label={findMarket(block.market)?.label} />
+      </h3>
       <RankedLists>
-        {LEADER_LISTS.map(({ list, title, isNet }) => (
+        {LEADER_LISTS.map(({ list, title, term, isNet }) => (
           <RankedList
             key={list}
-            title={tr(title)}
+            title={<Term id={term}>{tr(title)}</Term>}
             note={PROPRIETARY_LISTS.has(list) ? proprietaryNote : note}
             rows={(leaders[list] ?? []).slice(0, LEADERS_SHOWN).map((leader) => ({
               key: leader.instrument.ticker,

@@ -41,6 +41,7 @@ import { suggestionReportDeps } from '@/trading/features/suggestion/report'
 import { createReflectCommand } from '@/trading/features/suggestion/track-record/command'
 import { createThemesCommand } from '@/trading/features/themes/command'
 import { SECTION_ICONS } from '@/trading/render/format'
+import { createGlossaryCommand } from '@/trading/wiring/catalog/glossary'
 import { createSetupCommand } from '@/trading/wiring/catalog/setup'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { resolveRefreshMarkets } from '@/trading/wiring/composition/refresh'
@@ -214,6 +215,7 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       timezone,
     }),
     createSourcesCommand({ marketData, timezone }),
+    createGlossaryCommand({ timezone }),
   ]
 }
 

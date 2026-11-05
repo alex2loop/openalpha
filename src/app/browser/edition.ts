@@ -17,8 +17,8 @@ import {
   type SuggestionRequest,
 } from '@/trading/api'
 
-/** The commands a visitor has: the ledger and the book, the market reads, `/suggest` as an
- *  analysis and the brief while the page is open. Nothing that places an order, reads a
+/** The commands a visitor has: the ledger and the book, the market reads, the glossary, `/suggest`
+ *  as an analysis and the brief while the page is open. Nothing that places an order, reads a
  *  venue, watches while the tab is closed or runs the full suggestion pipeline. */
 const COMMANDS: ReadonlySet<string> = new Set([
   'market',
@@ -36,6 +36,7 @@ const COMMANDS: ReadonlySet<string> = new Set([
   'refresh',
   'suggest',
   'brief',
+  'glossary',
 ])
 
 /** VN equities, crypto and gold read from sources a browser reaches; VN gold prices a premium over

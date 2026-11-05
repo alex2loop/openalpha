@@ -1,6 +1,28 @@
 import type { Locale } from '@/core/types/locale'
+import type {
+  GlossaryEntry,
+  GlossaryGroup,
+  GlossaryGroupEntry,
+  GlossaryTermId,
+} from '@/i18n/glossary'
 import en from '@/i18n/locales/en.json'
 import vi from '@/i18n/locales/vi.json'
+
+import { GLOSSARY_GROUPS, GLOSSARY_TERMS } from './glossary'
+
+export {
+  foldGlossaryText,
+  GLOSSARY_TERMS,
+  type GlossaryEntry,
+  type GlossaryGroup,
+  type GlossaryGroupEntry,
+  type GlossaryTermId,
+  groupOfHeading,
+  matchesGlossaryQuery,
+  termOfFact,
+  termOfMarket,
+  termOfTicker,
+} from './glossary'
 
 type Catalog = typeof en
 
@@ -104,6 +126,32 @@ export function runCompletionMessage(
  *  prompt or a stored row. */
 export function renderAiLabel(locale: Locale): string {
   return t(locale, 'aiLabel.line')
+}
+
+/** One term's name and definition in `locale`. */
+export function glossaryEntry(locale: Locale, id: GlossaryTermId): GlossaryEntry {
+  return {
+    id,
+    name: t(locale, `trading.glossary.term.${id}.name`),
+    definition: t(locale, `trading.glossary.term.${id}.definition`),
+  }
+}
+
+/** A group's title, what it covers and its terms, in `locale`. */
+export function glossaryGroup(locale: Locale, group: GlossaryGroup): GlossaryGroupEntry {
+  return {
+    group,
+    title: t(locale, `trading.glossary.group.${group}.title`),
+    about: t(locale, `trading.glossary.group.${group}.about`),
+    terms: GLOSSARY_TERMS.filter((term) => term.group === group).map((term) =>
+      glossaryEntry(locale, term.id)
+    ),
+  }
+}
+
+/** The whole glossary in `locale`, groups in listing order. */
+export function glossaryGroups(locale: Locale): readonly GlossaryGroupEntry[] {
+  return GLOSSARY_GROUPS.map((group) => glossaryGroup(locale, group))
 }
 
 // A dotless key names no namespace, so it can never resolve — splitting it anyway would yield a

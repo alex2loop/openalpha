@@ -689,7 +689,11 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     every required step is ticked, or at once with "Hide this guide"; both are remembered in this
     browser only. It shows only in a browser that opened the office before a profile was saved or a
     trade recorded. "Show the getting-started steps again" at the foot of the Today tab brings it
-    back until the page is reloaded.
+    back until the page is reloaded. The card also carries a Glossary button and a line saying that
+    words with a dotted underline explain themselves on hover or tap; the same button sits beside
+    "Show the getting-started steps again" once the card is gone. A term's card, a small "?" after a
+    heading and the Glossary page (every term by group, with a search box) are described in
+    [The web version](web.md); `/glossary` prints the same terms.
   - *Portfolio* holds overview (with the ex-dividend dates, meetings and listings coming up in the
     next 14 days for what you hold), performance (your book's value over 1 month, 3 months, 6 months,
     1 year or everything on record, the span you pick kept in this browser), history, rebalance and

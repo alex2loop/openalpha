@@ -440,7 +440,7 @@ Leaks are production incidents and review-blocking. For every acquired resource 
 ### Modules and exports
 
 - Minimize exports. No `export let`. An unused export is a bug: wire every export to a caller (`scripts/check-unused-exports.ts`), path helpers included.
-- Sanctioned barrels, the only barrel files: the SDK `src/index.ts`, each module's `api.ts` and `node-api.ts`, a market's `api.ts`. Everything else imports directly via `@/*`. `noBarrelFile` is waived for exactly those paths in `biome.json`; widen that list only alongside the rule it serves.
+- Sanctioned barrels, the only barrel files: the SDK `src/index.ts`, each module's `api.ts` and `node-api.ts`, a market's `api.ts`, and `i18n/index.ts` (the kernel leaf has no `api.ts`; its glossary registry lives in a second file the index re-exports). Everything else imports directly via `@/*`. `noBarrelFile` is waived for exactly those paths in `biome.json`; widen that list only alongside the rule it serves.
 
 ### Import paths
 

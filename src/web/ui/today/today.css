@@ -238,6 +238,10 @@ a.news-item:hover b {
   color: var(--caution);
 }
 
+.guide-hint {
+  margin-bottom: var(--s1);
+}
+
 .steps {
   display: flex;
   flex-direction: column;

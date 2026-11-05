@@ -681,6 +681,10 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     bước bắt buộc đã tích, hoặc ngay khi bạn bấm "Ẩn hướng dẫn"; cả hai chỉ được nhớ trên trình duyệt
     này. Thẻ chỉ hiện trên trình duyệt đã mở văn phòng trước khi có hồ sơ được lưu hay giao dịch được
     ghi. Nút "Xem lại các bước bắt đầu" ở cuối thẻ Hôm nay mở lại thẻ cho đến khi bạn tải lại trang.
+    Thẻ còn có nút Thuật ngữ và một dòng báo rằng chữ có gạch chân chấm tự giải thích khi rê chuột
+    hoặc chạm vào; khi thẻ đã mất, nút Thuật ngữ nằm cạnh "Xem lại các bước bắt đầu". Thẻ giải thích
+    của một thuật ngữ, dấu "?" sau tiêu đề và trang Thuật ngữ (mọi thuật ngữ theo mục, kèm ô tìm
+    kiếm) được mô tả ở [Bản web](ban-web.md); `/glossary` in cùng các thuật ngữ.
   - *Danh mục* gồm tổng quan (kèm ngày giao dịch không hưởng cổ tức, đại hội cổ đông và niêm yết
     trong 14 ngày tới của các mã bạn đang giữ), hiệu quả (giá trị danh mục trong 1 tháng, 3 tháng, 6 tháng, 1 năm hoặc
     toàn bộ lịch sử; khoảng bạn chọn được nhớ trên trình duyệt này), lịch sử, cân bằng lại và danh

@@ -17,6 +17,7 @@ import { isModelReady, loadSession, state } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
+import { openGlossary } from '@/web/ui/glossary/glossary-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
 import { openSettings } from '@/web/ui/settings/settings'
@@ -58,10 +59,14 @@ export function FirstRun() {
       <h2 class="block-head">
         {tr('ui.office.firstRun.title')}
         <span class="block-grow" />
+        <Button kind="ghost" size="small" onClick={() => openGlossary()}>
+          {tr('ui.office.glossary.title')}
+        </Button>
         <Button kind="ghost" size="small" onClick={hideGuide}>
           {tr('ui.office.firstRun.hide')}
         </Button>
       </h2>
+      <p class="meta guide-hint">{tr('ui.office.glossary.hint')}</p>
       <div class="steps">{steps.map((renderStep, position) => renderStep(position + 1))}</div>
     </section>
   )
@@ -73,6 +78,9 @@ export function GuideAgain() {
     <div class="step-actions">
       <Button kind="ghost" size="small" onClick={showGuideAgain}>
         {tr('ui.office.firstRun.show')}
+      </Button>
+      <Button kind="ghost" size="small" onClick={() => openGlossary()}>
+        {tr('ui.office.glossary.title')}
       </Button>
     </div>
   )

@@ -205,7 +205,7 @@ Hai thói quen của đầu ra nên biết:
   tính cả các phiên chạy con của lệnh gạch chéo lẫn các lời gọi của chính lượt chat.
 
 Phần giao dịch thêm `/setup`, `/record`, `/update`, `/delete`, `/transactions`, `/portfolio`,
-`/profile`, `/watchlist`, `/price`, `/market`, `/overview`, `/screen`, `/sources`, `/suggest`,
+`/profile`, `/watchlist`, `/price`, `/market`, `/overview`, `/screen`, `/sources`, `/glossary`, `/suggest`,
 `/themes`, `/rebalance`, `/reconcile`, `/reflect`, `/alert`, `/brief` và `/refresh`, cộng `/trade`,
 lệnh đặt được lệnh khi có sàn đã khai khóa giao dịch. Chúng nằm ở [Chat giao dịch](#chat-giao-dịch)
 bên dưới, và ở [Cẩm nang sử dụng](cam-nang.md) theo góc nhìn người dùng.
@@ -738,6 +738,7 @@ ghi sổ và `/trade`.
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Khi thị trường chính là Việt Nam, bản tin mở đầu bằng câu chuyện thị trường và phần nhìn lại các câu chuyện trước. Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) và [Bản tin khi chưa có sổ](#bản-tin-khi-chưa-có-sổ) |
 | `/refresh` | `/refresh [thị-trường] [force]`, thứ tự tùy ý. Không nêu thị trường thì chỉ làm mới các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn đang giữ mã, theo dõi mã hay còn gợi ý chờ chấm điểm. Thị trường còn lại được liệt kê là bỏ qua; gõ thẳng tên thì vẫn nạp. `force` tải lại bất kể dữ liệu nào đang mới. Vàng thế giới đọc giá trực tiếp nên không có gì để nạp, và lệnh nói rõ điều đó. Một loại dữ liệu trải ra nhiều công cụ sẽ báo đã tới đâu |
 | `/sources` | `/sources` - nhà cung cấp nào đã ngừng trả lời, hoặc một dòng duy nhất nếu không có. Trạng thái cầu dao là bộ nhớ của chính tiến trình này, nên một lần gọi CLI mới báo rằng chưa gọi nhà cung cấp nào, chứ không khẳng định mọi thứ khỏe |
+| `/glossary` | `/glossary` liệt kê các thuật ngữ thị trường mà ứng dụng dùng, theo mục; `/glossary <thuật ngữ>` giải thích một thuật ngữ bằng lời đơn giản. Gõ tên hoặc mã đều được (`/glossary P/E`, `/glossary foreign-room`), và nếu có vài kết quả khớp thì lệnh liệt kê để bạn chọn. Định nghĩa giống hệt những gì trang web hiện dưới chữ gạch chân chấm: chỉ nói thuật ngữ là gì, không nói nên làm gì |
 | `/reconcile` | `/reconcile` - đối chiếu sổ với những gì sàn báo; sàn chưa có khóa API thì được nêu tên kèm các biến còn thiếu |
 | `/trade` | Dàn, xác nhận và hủy lệnh thật. Xem [Đặt lệnh](#đặt-lệnh) |
 

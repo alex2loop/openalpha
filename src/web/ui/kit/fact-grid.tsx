@@ -1,6 +1,8 @@
 import type { ScreenFactWire } from '@/app/server/wire/market'
+import { termOfFact } from '@/i18n'
 import { tr } from '@/web/text/tr'
 import { SectionHeading } from '@/web/ui/kit/section-heading'
+import { GroupHelp, Term } from '@/web/ui/kit/term'
 
 import './fact-grid.css'
 
@@ -50,6 +52,7 @@ export function FactGrid({
       {groups.map(({ group, text }) => (
         <FactGroup
           key={group}
+          group={group}
           heading={text}
           facts={facts.filter((fact) => fact.group === group)}
         />
@@ -59,9 +62,11 @@ export function FactGrid({
 }
 
 function FactGroup({
+  group,
   heading,
   facts,
 }: {
+  readonly group: string
   readonly heading: string
   readonly facts: readonly Fact[]
 }) {
@@ -73,15 +78,25 @@ function FactGroup({
     <section class="fact-group">
       <h4 class="fact-heading">
         <SectionHeading text={heading} />
+        <GroupHelp heading={group} />
       </h4>
       <dl class="fact-list">
         {facts.map(({ id, label, value }) => (
           <div key={id + label} class="fact">
-            <dt>{label}</dt>
+            <dt>
+              <FactLabel id={id} label={label} />
+            </dt>
             <dd>{value}</dd>
           </div>
         ))}
       </dl>
     </section>
   )
+}
+
+// A label the glossary explains is a term; any other reads as it always did.
+function FactLabel({ id, label }: { readonly id: string; readonly label: string }) {
+  const term = termOfFact(id)
+
+  return term === undefined ? label : <Term id={term}>{label}</Term>
 }

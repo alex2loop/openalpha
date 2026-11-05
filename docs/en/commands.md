@@ -207,7 +207,7 @@ Two habits of the output are worth knowing:
   command's child runs as well as the chat turn's own calls.
 
 Trading adds `/setup`, `/record`, `/update`, `/delete`, `/transactions`, `/portfolio`, `/profile`,
-`/watchlist`, `/price`, `/market`, `/overview`, `/screen`, `/sources`, `/suggest`, `/themes`,
+`/watchlist`, `/price`, `/market`, `/overview`, `/screen`, `/sources`, `/glossary`, `/suggest`, `/themes`,
 `/rebalance`, `/reconcile`, `/reflect`, `/alert`, `/brief` and `/refresh`, plus `/trade`, which places
 orders once a venue has exchange keys. They are under [Trading chat](#trading-chat).
 
@@ -752,6 +752,7 @@ The rest fit in a line.
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. With a Vietnam home, the brief opens with the market story and a look back at earlier ones. See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
 | `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
+| `/glossary` | `/glossary` lists the market terms the app uses, by group; `/glossary <term>` explains one in plain words. A name or an id both work (`/glossary P/E`, `/glossary foreign-room`), and a few matches are listed to pick from. The definitions are the ones the web pages show under dotted-underlined words: they say what a term is, never what to do about it |
 | `/reconcile` | `/reconcile` - compare the book against what the venue reports; an exchange with no API key yet is named with the variables it is waiting for |
 | `/trade` | Stages, confirms and cancels real orders. See [Orders](#orders) |
 

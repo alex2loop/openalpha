@@ -1,12 +1,14 @@
 import type { ComponentChildren } from 'preact'
 
 import type { IndexValuationResponse } from '@/app/server/wire/index-reading'
+import type { GlossaryTermId } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { formatFixed, formatFixedFraction } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { PieIcon } from '@/web/ui/kit/icons'
+import { Term } from '@/web/ui/kit/term'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const MULTIPLE_DIGITS = 1
@@ -51,24 +53,27 @@ export function IndexValuation({ market, index }: IndexValuationProps) {
 }
 
 function Ratios({ valuation, index }: { readonly valuation: Valuation; readonly index: string }) {
-  const { aboveMa50Pct, aboveMa200Pct, dividendYieldPct } = valuation
+  const { dividendYieldPct } = valuation
 
   return (
     <>
       <div class="row-list">
         <Ratio
+          term="pe"
           label={tr('ui.office.market.valuation.pe')}
           value={formatFixed(valuation.pe, MULTIPLE_DIGITS)}
         >
           {standing(valuation.pe, valuation.peAvg5y, MULTIPLE_DIGITS)}
         </Ratio>
         <Ratio
+          term="pb"
           label={tr('ui.office.market.valuation.pb')}
           value={formatFixed(valuation.pb, BOOK_DIGITS)}
         >
           {standing(valuation.pb, valuation.pbAvg5y, BOOK_DIGITS)}
         </Ratio>
         <Ratio
+          term="roe"
           label={tr('ui.office.market.valuation.roe')}
           value={`${formatFixed(valuation.roePct, PERCENT_DIGITS)}%`}
         >
@@ -76,34 +81,54 @@ function Ratios({ valuation, index }: { readonly valuation: Valuation; readonly 
         </Ratio>
         {dividendYieldPct !== undefined && (
           <Ratio
+            term="dividend-yield"
             label={tr('ui.office.market.valuation.dividendYield')}
             value={`${formatFixed(dividendYieldPct, PERCENT_DIGITS + 1)}%`}
           />
         )}
       </div>
-      {aboveMa50Pct !== undefined && aboveMa200Pct !== undefined && (
-        <p class="meta">
-          {tr('ui.office.market.valuation.aboveMa', {
-            index,
-            ma50: formatFixedFraction(aboveMa50Pct / PERCENT),
-            ma200: formatFixedFraction(aboveMa200Pct / PERCENT),
-          })}
-        </p>
-      )}
+      <AboveAverages valuation={valuation} index={index} />
     </>
   )
 }
 
+function AboveAverages({
+  valuation,
+  index,
+}: {
+  readonly valuation: Valuation
+  readonly index: string
+}) {
+  const { aboveMa50Pct, aboveMa200Pct } = valuation
+
+  if (aboveMa50Pct === undefined || aboveMa200Pct === undefined) {
+    return null
+  }
+
+  return (
+    <p class="meta">
+      {tr('ui.office.market.valuation.aboveMa', {
+        index,
+        ma50: formatFixedFraction(aboveMa50Pct / PERCENT),
+        ma200: formatFixedFraction(aboveMa200Pct / PERCENT),
+      })}
+    </p>
+  )
+}
+
 interface RatioProps {
+  readonly term: GlossaryTermId
   readonly label: string
   readonly value: string
   readonly children?: ComponentChildren
 }
 
-function Ratio({ label, value, children }: RatioProps) {
+function Ratio({ term, label, value, children }: RatioProps) {
   return (
     <div class="ratio-row">
-      <b>{label}</b>
+      <b>
+        <Term id={term}>{label}</Term>
+      </b>
       <span class="row-price">{value}</span>
       <span class="row-note">{children}</span>
     </div>

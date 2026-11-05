@@ -51,6 +51,7 @@ export const SECTION_ICONS = Object.freeze({
   thesisReview: '⏪',
   session: '⏱️',
   settled: '📘',
+  glossary: '📖',
   refresh: '🔄',
   reconcile: '🧮',
   thesis: '📌',

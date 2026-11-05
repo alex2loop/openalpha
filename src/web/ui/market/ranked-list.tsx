@@ -17,7 +17,7 @@ export interface RankedRow {
 }
 
 interface RankedListProps {
-  readonly title: string
+  readonly title: ComponentChildren
   /** What the figures span, said beside the title; a window the title already says is left off. */
   readonly note?: string | undefined
   readonly rows: readonly RankedRow[]

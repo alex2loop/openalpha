@@ -9,6 +9,8 @@ import {
 } from '@/web/text/figures'
 import { formatDealerBoard } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
+import { Term } from '@/web/ui/kit/term'
+import { MarketName } from '@/web/ui/market/market-name'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { Movers } from '@/web/ui/today/blocks/movers'
 import { Readings } from '@/web/ui/today/blocks/readings'
@@ -32,14 +34,17 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
 
   return (
     <div class="flow market-section">
-      <h3 class="sub-head">{market?.label ?? block.market}</h3>
+      <h3 class="sub-head">
+        <MarketName market={block.market} label={market?.label} />
+      </h3>
       <MarketRows block={block} hasBoard={market?.hasBoard === true} />
       <Movers movers={block.movers} currency={block.currency} />
       {(block.breadth !== undefined || block.foreignNetValue !== undefined) && (
         <div class="stack meta">
           {block.breadth !== undefined && (
             <p>
-              {tr('ui.office.today.breadth', {
+              <Term id="breadth">{tr('ui.office.today.breadth')}</Term>:{' '}
+              {tr('ui.office.today.breadthCounts', {
                 up: block.breadth.advancers,
                 down: block.breadth.decliners,
               })}
@@ -47,8 +52,8 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
           )}
           {block.foreignNetValue !== undefined && (
             <p>
-              {tr('ui.office.today.foreign')}: {formatSignedCompactAmount(block.foreignNetValue)}{' '}
-              {block.currency}
+              <Term id="foreign-net">{tr('ui.office.today.foreign')}</Term>:{' '}
+              {formatSignedCompactAmount(block.foreignNetValue)} {block.currency}
             </p>
           )}
         </div>
