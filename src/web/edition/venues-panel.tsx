@@ -15,7 +15,7 @@ import { Button } from '@/web/ui/kit/button'
 import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
-import { ActionRow } from '@/web/ui/settings/row'
+import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
 // The page offers its button only for a form with a name, a fee within the worker's ceiling and a
 // name not already in the list. The worker checks again and refuses the rest (a built-in venue's
@@ -49,7 +49,7 @@ interface Loaded {
 
 /** Sàn khác: the hand-traded venues the visitor keeps beside the built-in ones. A save asks first
  *  and restarts the engine, which reads its venues once when it starts. */
-export function VenuesPanel() {
+export function VenuesPanel({ reopen }: SectionProps) {
   const loaded = useLoad(loadVenues).value
 
   if (loaded.status === 'loading') {
@@ -60,7 +60,7 @@ export function VenuesPanel() {
     return <p class="failure-line">{toFailureText(loaded.failure)}</p>
   }
 
-  return <VenueEditor {...loaded.value} />
+  return <VenueEditor {...loaded.value} reopen={reopen} />
 }
 
 async function loadVenues(abort: AbortSignal): Promise<Loaded> {
@@ -107,18 +107,18 @@ function toVenue(entry: Readonly<Record<string, unknown>>): readonly Venue[] {
     : [{ id, market, fee_percent: entry.fee_percent }]
 }
 
-function VenueEditor({ saved, limits }: Loaded) {
+function VenueEditor({ saved, limits, reopen }: Loaded & SectionProps) {
   return (
     <>
       <p class="meta">{tr('ui.office.edition.venues.intro')}</p>
       <ActionRow title={tr('ui.office.edition.venues.listTitle')}>
         {saved.length === 0 && <p class="meta">{tr('ui.office.edition.venues.empty')}</p>}
         {saved.map((venue) => (
-          <VenueLine key={venue.id} venue={venue} saved={saved} />
+          <VenueLine key={venue.id} venue={venue} saved={saved} reopen={reopen} />
         ))}
       </ActionRow>
       {saved.length < limits.maxVenues ? (
-        <AddForm saved={saved} limits={limits} />
+        <AddForm saved={saved} limits={limits} reopen={reopen} />
       ) : (
         <p class="meta">{tr('ui.office.edition.venues.full', { count: limits.maxVenues })}</p>
       )}
@@ -126,7 +126,12 @@ function VenueEditor({ saved, limits }: Loaded) {
   )
 }
 
-function VenueLine({ venue, saved }: { readonly venue: Venue; readonly saved: readonly Venue[] }) {
+interface VenueLineProps extends SectionProps {
+  readonly venue: Venue
+  readonly saved: readonly Venue[]
+}
+
+function VenueLine({ venue, saved, reopen }: VenueLineProps) {
   const name = toVenueName(venue.id)
 
   return (
@@ -142,11 +147,12 @@ function VenueLine({ venue, saved }: { readonly venue: Venue; readonly saved: re
         size="small"
         kind="destructive"
         onClick={() =>
-          askToSave(
-            tr('ui.office.edition.venues.removeConfirm'),
-            saved.filter(({ id }) => id !== venue.id),
-            true
-          )
+          askToSave({
+            confirmLabel: tr('ui.office.edition.venues.removeConfirm'),
+            venues: saved.filter(({ id }) => id !== venue.id),
+            onBack: reopen,
+            isDestructive: true,
+          })
         }
       >
         {tr('ui.office.edition.venues.remove')}
@@ -161,7 +167,12 @@ interface AddDraft {
   readonly fee: Signal<string>
 }
 
-function AddForm({ saved, limits }: { readonly saved: readonly Venue[]; readonly limits: Limits }) {
+interface AddFormProps extends SectionProps {
+  readonly saved: readonly Venue[]
+  readonly limits: Limits
+}
+
+function AddForm({ saved, limits, reopen }: AddFormProps) {
   const fields: AddDraft = {
     name: useSignal(''),
     market: useSignal(limits.markets[0] ?? ''),
@@ -188,7 +199,11 @@ function AddForm({ saved, limits }: { readonly saved: readonly Venue[]; readonly
             disabled={draft === undefined}
             onClick={() => {
               if (draft !== undefined) {
-                askToSave(tr('ui.office.edition.venues.confirm'), [...saved, draft])
+                askToSave({
+                  confirmLabel: tr('ui.office.edition.venues.confirm'),
+                  venues: [...saved, draft],
+                  onBack: reopen,
+                })
               }
             }}
           >
@@ -256,9 +271,16 @@ function AddFields({
   )
 }
 
+interface SaveAsk {
+  readonly confirmLabel: string
+  readonly venues: readonly Venue[]
+  readonly onBack: () => void
+  readonly isDestructive?: true
+}
+
 // An add and a removal are one flow: the venues are saved, then the engine restarts.
-function askToSave(confirmLabel: string, venues: readonly Venue[], isDestructive?: true): void {
-  askRestart({ confirmLabel, isDestructive, confirm: () => save(venues) })
+function askToSave({ confirmLabel, venues, onBack, isDestructive }: SaveAsk): void {
+  askRestart({ confirmLabel, isDestructive, onBack, confirm: () => save(venues) })
 }
 
 // The page waits for the engine to come back after the restart.

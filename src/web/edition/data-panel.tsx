@@ -6,13 +6,13 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { Credits } from '@/web/ui/settings/credits'
-import { ActionRow } from '@/web/ui/settings/row'
+import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
 /** Dữ liệu trên máy: where the visitor's data lives and the one way to delete all of it. */
-export function DataPanel() {
+export function DataPanel({ reopen }: SectionProps) {
   return (
     <>
-      <FilePanel />
+      <FilePanel reopen={reopen} />
       <ActionRow
         title={tr('ui.office.edition.data.where')}
         note={tr('ui.office.edition.data.whereBody')}
@@ -30,6 +30,7 @@ export function DataPanel() {
               confirmLabel: tr('ui.office.edition.data.wipe'),
               isDestructive: true,
               keepLabel: tr('ui.office.edition.common.keep'),
+              onBack: reopen,
               confirm: finishWipe,
             })
           }

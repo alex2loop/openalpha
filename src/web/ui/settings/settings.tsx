@@ -197,11 +197,11 @@ function WebSectionView({ section }: { readonly section: SettingsSection }) {
     case 'providers':
       return <KeysPanel reopen={reopen} />
     case 'agents':
-      return <ModelChains />
+      return <ModelChains reopen={reopen} />
     case 'exchanges':
-      return <VenuesPanel />
+      return <VenuesPanel reopen={reopen} />
     case 'data':
-      return <DataPanel />
+      return <DataPanel reopen={reopen} />
     case 'errorLog':
       return <ErrorLogPanel />
     case 'display':

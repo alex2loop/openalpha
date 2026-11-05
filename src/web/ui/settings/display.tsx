@@ -71,7 +71,7 @@ export function DisplaySection({ reopen }: SectionProps) {
   return (
     <>
       {!isWeb && <VersionRow reopen={reopen} />}
-      {isWeb ? <EditionLanguageRow /> : <LanguageRow />}
+      {isWeb ? <EditionLanguageRow reopen={reopen} /> : <LanguageRow />}
       {!isWeb && <HomeMarketRow />}
       {!isWeb && <TimeZoneRow />}
       <PreferenceRow

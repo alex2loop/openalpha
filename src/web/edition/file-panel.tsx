@@ -22,7 +22,7 @@ import { formatWhen } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
-import { ActionRow } from '@/web/ui/settings/row'
+import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
 const OPEN_REFUSAL: Readonly<Record<Exclude<DbOpenOutcome, 'opened'>, MessageKey>> = Object.freeze({
   invalid: 'ui.office.edition.file.open.invalid',
@@ -34,12 +34,12 @@ const OPEN_REFUSAL: Readonly<Record<Exclude<DbOpenOutcome, 'opened'>, MessageKey
 
 /** Lưu vào file, xuất, mở file and chuyển sang bản cài: the ways the visitor's data leaves the
  *  browser's private storage or comes back into it. */
-export function FilePanel() {
+export function FilePanel({ reopen }: SectionProps) {
   return (
     <>
       {canPickSaveFile() && <SaveRow />}
       <ExportRow />
-      <OpenRow />
+      <OpenRow reopen={reopen} />
       <MoveRow />
     </>
   )
@@ -167,7 +167,7 @@ async function downloadDatabase(): Promise<void> {
   await downloadBlob(new Blob([bytes], { type: SQLITE_MIME }), suggestedFileName())
 }
 
-function OpenRow() {
+function OpenRow({ reopen }: SectionProps) {
   const input = useRef<HTMLInputElement>(null)
 
   return (
@@ -185,7 +185,7 @@ function OpenRow() {
           event.currentTarget.value = ''
 
           if (file !== undefined) {
-            askOpen(file)
+            askOpen(file, reopen)
           }
         }}
       />
@@ -196,7 +196,7 @@ function OpenRow() {
   )
 }
 
-function askOpen(file: File): void {
+function askOpen(file: File, reopen: () => void): void {
   const isSaving = saveStatus.peek().kind !== 'none'
 
   askConfirm({
@@ -208,6 +208,7 @@ function askOpen(file: File): void {
     confirmLabel: tr('ui.office.edition.file.open.confirm'),
     keepLabel: tr('ui.office.edition.common.keep'),
     isDestructive: true,
+    onBack: reopen,
     confirm: () => openFile(file),
   })
 }

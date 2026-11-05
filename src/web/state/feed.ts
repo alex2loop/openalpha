@@ -289,14 +289,11 @@ function replayBuffered(feed: FeedState, isSnapshotApplied: boolean): void {
   }
 }
 
-// The snapshot is the daemon's view, except a thinking line it does not carry: the page keeps its own.
 function toRun(wire: LiveRunWire): Run {
   const held = findRun(wire.runId)
-  const thinking = wire.thinking ?? held?.thinking
 
   return {
     ...wire,
-    ...(thinking === undefined ? {} : { thinking }),
     seenAt: held?.seenAt ?? nextArrivalSeq(),
     heardAt: isSameLine(held, wire) ? held.heardAt : Date.now(),
     tickers: wire.tickers ?? [],
@@ -330,7 +327,6 @@ function applyRunEvent(feed: FeedState, event: RunEvent, isAfterSnapshot: boolea
       applyStart(feed, event)
       return
     case 'run_progress':
-    case 'run_thinking':
       applyUpdate(feed, event, isAfterSnapshot)
       return
     case 'run_finished':
@@ -402,11 +398,7 @@ function hasRunId(event: WireEvent): event is RunEvent {
 }
 
 function mergeUpdate(run: Run, event: WireEvent): Run {
-  const { progress, thinking } = event
-
-  if (thinking !== undefined) {
-    return { ...run, thinking, heardAt: Date.now() }
-  }
+  const { progress } = event
 
   // An older line replayed after a newer snapshot never takes its place.
   if (progress === undefined || (run.progress !== undefined && progress.at < run.progress.at)) {

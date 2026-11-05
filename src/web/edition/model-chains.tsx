@@ -16,7 +16,7 @@ import { Fold } from '@/web/ui/kit/fold'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
 import { ChoiceLine, defaultModelOf, type ModelChoice } from '@/web/ui/settings/model-chain'
-import { ActionRow } from '@/web/ui/settings/row'
+import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
 /** The tiers a visitor may give a model of their own, in the order the page lists them. The worker
  *  refuses any other. */
@@ -53,7 +53,7 @@ interface ModelsRead {
 
 /** Mô hình AI: the main model every AI work runs on, and the tiers a visitor gave one of their own.
  *  The worker's engine reads them once when it starts, so a save asks first and then restarts it. */
-export function ModelChains() {
+export function ModelChains({ reopen }: SectionProps) {
   const loaded = useLoad(loadModels).value
 
   if (loaded.status === 'loading') {
@@ -64,7 +64,7 @@ export function ModelChains() {
     return <p class="failure-line">{toFailureText(loaded.failure)}</p>
   }
 
-  return <ModelsEditor read={loaded.value} />
+  return <ModelsEditor read={loaded.value} reopen={reopen} />
 }
 
 async function loadModels(abort: AbortSignal): Promise<ModelsRead> {
@@ -95,7 +95,7 @@ function toChoices(entries: unknown): readonly ModelChoice[] {
     : []
 }
 
-function ModelsEditor({ read }: { readonly read: ModelsRead }) {
+function ModelsEditor({ read, reopen }: SectionProps & { readonly read: ModelsRead }) {
   const drafts = useMemo(() => toDrafts(read.saved), [])
   const savedBody = useMemo(() => JSON.stringify(toBody(toDrafts(read.saved))), [])
   const chains = [drafts.main, ...TIERS.map((tier) => drafts.tiers[tier])]
@@ -126,7 +126,7 @@ function ModelsEditor({ read }: { readonly read: ModelsRead }) {
           size="small"
           kind="commit"
           disabled={!(isChanged && isReady)}
-          onClick={() => askToSave(drafts)}
+          onClick={() => askToSave(drafts, reopen)}
         >
           {tr('ui.office.edition.tiers.save')}
         </Button>
@@ -253,9 +253,10 @@ function toBody(drafts: Drafts) {
 }
 
 // The page waits for the engine to come back after the restart.
-function askToSave(drafts: Drafts): void {
+function askToSave(drafts: Drafts, reopen: () => void): void {
   askRestart({
     confirmLabel: tr('ui.office.edition.tiers.confirm'),
+    onBack: reopen,
     confirm: async () => {
       await sendJson('POST', ROUTES.configWrite, { body: toBody(drafts) })
       restartEngine()
