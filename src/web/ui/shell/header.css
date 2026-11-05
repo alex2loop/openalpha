@@ -65,8 +65,12 @@
 }
 
 /* 260px is the room the short sentence needs beside its glyph; a container query cannot read a
-   token, so the number stays here. */
+   token, so the number stays here. Where even the shortest does not fit one line, it takes two. */
 @container (width < 260px) {
+  .header-ai-note {
+    white-space: normal;
+  }
+
   .header-ai-short {
     display: none;
   }
