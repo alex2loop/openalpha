@@ -948,7 +948,7 @@ spends LLM budget, so it is built to avoid spending it twice.
 
 An index (VN-Index, VN30, VN100...) or a futures contract (VN30F1M) cannot be bought or sold directly,
 so `/suggest` refuses it at once, before any AI call, and points to an ETF that tracks the index. The
-refusal reads the same in the terminal, in a chat app and on the web version.
+refusal reads the same in the terminal, in a chat app and on the web version, even before the web version has an AI key.
 
 A result that carries a thesis or a debate opens with one line saying it is AI-generated and
 is not investment advice. `/suggest stops` opens

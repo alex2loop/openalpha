@@ -931,7 +931,7 @@ sách LLM, nên được dựng để khỏi tiêu hai lần.
 
 Chỉ số (VN-Index, VN30, VN100...) và hợp đồng tương lai (VN30F1M) không mua bán trực tiếp được, nên
 `/suggest` từ chối ngay, trước khi gọi mô hình AI, và gợi ý phân tích một quỹ ETF bám theo chỉ số đó. Lệnh
-từ chối này giống nhau ở terminal, ứng dụng chat và bản web.
+từ chối này giống nhau ở terminal, ứng dụng chat và bản web, kể cả khi bản web chưa có key AI.
 
 Kết quả có luận điểm hoặc có phiên tranh luận đứng sau thì mở đầu bằng một dòng nói đây là nội dung do AI tạo
 và không phải khuyến nghị đầu tư.

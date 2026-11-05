@@ -158,20 +158,26 @@ interface AnalysisCall {
   readonly ctx: SlashContext
 }
 
-// Without a key nothing is sent: the answer is the line that says which key unlocks it.
+// Without a key nothing is sent: a name no key could analyse says why, as on the installed
+// version, and any other name gets the line that says which key unlocks it.
 async function analyse(
   app: App,
   keyring: BrowserKeyring,
   call: AnalysisCall
 ): Promise<SlashResult> {
   const { request, ctx } = call
+  const { analyses } = app.resolve('tradingServices')
 
   if (!hasAiKey(keyring.env(), readModelProvider(app.config))) {
-    return { kind: 'message', messages: [{ key: NEEDS_KEY }] }
+    const failure = await analyses.check(request, ctx.signal)
+
+    return failure === undefined
+      ? { kind: 'message', messages: [{ key: NEEDS_KEY }] }
+      : { kind: 'text', text: renderAnalysisFailure(ctx.locale, failure) }
   }
 
   try {
-    const record = await app.resolve('tradingServices').analyses.run(request, ctx.signal)
+    const record = await analyses.run(request, ctx.signal)
 
     return { kind: 'text', text: renderAnalysisText(ctx.locale, record) }
   } catch (err: unknown) {

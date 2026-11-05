@@ -3,6 +3,7 @@ import type { Budget } from '@/core/types/budget'
 import type { AttemptRecorder } from '@/engine/api'
 import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type {
+  AnalysisFailure,
   AnalysisId,
   AnalysisRecord,
   AnalysisRequest,
@@ -26,7 +27,7 @@ import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Page } from '@/trading/kernel/store/page'
-import type { Market, MarketRegistry, MarketResolution, NameContext } from '@/trading/markets/types'
+import type { Market, MarketRegistry, NameContext } from '@/trading/markets/types'
 import { abortError } from '@/core/errors'
 import { createBudgetSlicesWithin } from '@/engine/api'
 import { buildEnsureOptions } from '@/trading/features/market-data/market-data-run'
@@ -35,6 +36,10 @@ import {
   ANALYSIS_FACTORS_HEADING,
   analysisCasePrompt,
 } from '@/trading/features/suggestion/analysis/prompts'
+import {
+  type ResolvedSubject,
+  resolveSubject,
+} from '@/trading/features/suggestion/analysis/subject'
 import { AnalysisError, buildAnalysisId } from '@/trading/features/suggestion/analysis/types'
 import { runCasePair } from '@/trading/features/suggestion/debate/call'
 import { claimsOf } from '@/trading/features/suggestion/debate/claims'
@@ -55,7 +60,6 @@ import {
   MAXIMUM_REVIEWED_CLAIMS,
   toAnalysisCase,
 } from '@/trading/features/suggestion/pipeline/schemas'
-import { levelKindRefusal, unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
 import { ANALYSIS_ROLES, ANALYSIS_WAVES } from '@/trading/kernel/config'
 import { DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
 import { LEVEL_BARS_SESSIONS } from '@/trading/markets/levels'
@@ -92,14 +96,19 @@ export interface AnalysisService {
    *  cancelled run throws the abort; a run a role could not finish throws `AnalysisError` and
    *  leaves nothing behind. */
   run(request: AnalysisRequest, signal: AbortSignal): Promise<AnalysisRecord>
+  /** Why the name cannot be analysed at all, read before any key is needed; absent when it can. */
+  check(request: AnalysisRequest, signal: AbortSignal): Promise<AnalysisFailure | undefined>
   list(options: AnalysisPageOptions): Promise<Page<AnalysisRecord, AnalysisId>>
 }
-
-type ResolvedSubject = Extract<MarketResolution, { readonly kind: 'resolved' }>
 
 export function createAnalysisService(deps: AnalysisServiceDeps): AnalysisService {
   return {
     run: (request, signal) => runAnalysis(deps, { ...request, focus: DEFAULT_RUN_FOCUS, signal }),
+    check: (request, signal) =>
+      resolveSubject(deps.markets, { ...request, focus: DEFAULT_RUN_FOCUS, signal }).then(
+        () => undefined,
+        (err: unknown) => (err instanceof AnalysisError ? err.failure : Promise.reject(err))
+      ),
     list: (options) => deps.store.listPage(options),
   }
 }
@@ -111,7 +120,7 @@ async function runAnalysis(
   deps: AnalysisServiceDeps,
   request: SuggestionRequest
 ): Promise<AnalysisRecord> {
-  const subject = await resolveSubject(deps, request)
+  const subject = await resolveSubject(deps.markets, request)
   const { market } = subject
   const budget = deps.createAnalysisBudget()
   const budgets = createBudgetSlicesWithin(
@@ -201,32 +210,6 @@ function uncitedHeadlines(
   return [...sources.values()]
     .filter((item) => !cited.has(item.url))
     .map(({ url, title, publishedAt }) => ({ url, title, publishedAt }))
-}
-
-async function resolveSubject(
-  deps: AnalysisServiceDeps,
-  request: SuggestionRequest
-): Promise<ResolvedSubject> {
-  const resolution = await deps.markets.resolve({
-    ticker: request.ticker,
-    ...(request.market === undefined ? {} : { market: request.market }),
-    operatorRead: true,
-    signal: request.signal,
-  })
-
-  const message = `cannot analyse ${request.ticker}`
-
-  if (resolution.kind !== 'resolved') {
-    throw new AnalysisError({ kind: 'refused', refusal: unsupported(resolution) }, message)
-  }
-
-  const refusal = levelKindRefusal(resolution)
-
-  if (refusal !== undefined) {
-    throw new AnalysisError({ kind: 'refused', refusal }, message)
-  }
-
-  return resolution
 }
 
 interface EvidenceRead {
