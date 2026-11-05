@@ -142,17 +142,19 @@ const FIGURE_GROUP_OF = Object.freeze({
   'trailing-low': undefined,
 } as const satisfies Readonly<Record<FactorMetricId, MetricGroup | undefined>>)
 
-/** Both sides, what the evidence refuted, and what would make each wrong, in the reader's language.
- *  There is no verdict to print: none was produced, and nothing here weighs one side over the
- *  other. The AI label opens it and the install line closes it, both fixed and never conditional,
- *  so no view of an analysis can omit them. `last` is the name's price now, in the same units as
- *  the close the run stood on, for a view that has read one. */
+/** The analysis under the AI label, for a view with no chat around it: the Analyses list, stored text. */
 export function renderAnalysisText(locale: Locale, record: AnalysisRecord, last?: number): string {
+  return joinSections([[renderAiLabel(locale)], [renderAnalysisBody(locale, record, last)]])
+}
+
+/** Both sides, what the evidence refuted and what would make each wrong, in the reader's language,
+ *  with no verdict (none was produced) and no AI label: a chat shows its own. `last` is the name's
+ *  price now, in the same units as the close the run stood on, for a view that has read one. */
+export function renderAnalysisBody(locale: Locale, record: AnalysisRecord, last?: number): string {
   const { result } = record
   const cases = { 'bull-researcher': result.bull, 'bear-researcher': result.bear }
 
   return joinSections([
-    [renderAiLabel(locale)],
     renderPriceLines(locale, record, last),
     ...SIDE_ORDER.map((side) =>
       renderCaseLines(locale, { side, record, analysisCase: cases[side] })

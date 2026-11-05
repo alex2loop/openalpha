@@ -148,6 +148,9 @@ export interface SlashContext {
   /** A scheduled job's own line: its answer is delivered, and its session reopens every run and is
    *  never swept, so only model-context (`echo`) rows are kept for it. */
   readonly isScheduled?: true
+  /** The reader already has the AI-generated line where the answer shows (the REPL's banner, the
+   *  page's chat panel), so an answer carrying model-written text does not repeat it. */
+  readonly hasAiLabel?: true
   /** Sent by a page button that shows the result where it was pressed: the session keeps nothing of
    *  it, as the chat shows nothing. */
   readonly isQuiet?: true

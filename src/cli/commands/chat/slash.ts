@@ -34,21 +34,7 @@ export async function runSlash(session: ChatSession, line: string): Promise<Slas
   const controller = new AbortController()
   const spinner = startSlashProgress(session, resolved)
   const fallbacks = watchProviderFallbacks(app)
-  const ctx: SlashContext = {
-    channel: CLI_CHANNEL_ID,
-    requestId: crypto.randomUUID(),
-    surface: 'repl',
-    userId: LOCAL_USER_ID,
-    sessionId: state.sessionId,
-    chatId: CLI_CHAT_ID,
-    role: 'operator',
-    locale: app.config.locale.language,
-    signal: controller.signal,
-    args: [],
-    ...(spinner === undefined
-      ? {}
-      : { progress: createSlashProgressReporter(session, spinner, controller.signal) }),
-  }
+  const ctx = buildSlashContext(session, { controller, spinner })
 
   state.controller = controller
 
@@ -79,6 +65,34 @@ export async function runSlash(session: ChatSession, line: string): Promise<Slas
     if (state.controller === controller) {
       state.controller = null
     }
+  }
+}
+
+interface SlashRun {
+  readonly controller: AbortController
+  readonly spinner: Spinner | undefined
+}
+
+function buildSlashContext(session: ChatSession, run: SlashRun): SlashContext {
+  const { app, state, flags } = session
+  const { controller, spinner } = run
+
+  return {
+    channel: CLI_CHANNEL_ID,
+    requestId: crypto.randomUUID(),
+    surface: 'repl',
+    // The REPL's banner carries the label; a one-shot has no banner, so its answer carries its own.
+    ...(flags.message === undefined ? { hasAiLabel: true } : {}),
+    userId: LOCAL_USER_ID,
+    sessionId: state.sessionId,
+    chatId: CLI_CHAT_ID,
+    role: 'operator',
+    locale: app.config.locale.language,
+    signal: controller.signal,
+    args: [],
+    ...(spinner === undefined
+      ? {}
+      : { progress: createSlashProgressReporter(session, spinner, controller.signal) }),
   }
 }
 

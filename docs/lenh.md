@@ -935,7 +935,8 @@ từ chối này giống nhau ở terminal, ứng dụng chat và bản web, k�
 
 Kết quả có luận điểm hoặc có phiên tranh luận đứng sau thì mở đầu bằng một dòng nói đây là nội dung do AI tạo
 và không phải khuyến nghị đầu tư.
-`/suggest stops` cũng mở đầu bằng dòng này.
+`/suggest stops` cũng mở đầu bằng dòng này. Trong REPL, banner đã hiện dòng này nên câu trả lời không lặp
+lại; chạy một phát và ứng dụng chat thì vẫn giữ.
 
 Câu trả lời hôm nay được dùng lại miễn phí (ở thị trường chạy liên tục, là mọi câu trả lời trong 4 giờ
 gần nhất) cho tới khi có giá đóng cửa mới hơn phiên nó đã đọc. Nên đề xuất làm lúc phiên đang chạy sẽ

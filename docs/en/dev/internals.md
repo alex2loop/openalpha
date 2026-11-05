@@ -824,6 +824,8 @@ The page runs the terminal's commands but shows their answers in a proportional 
 column, so its slash context sets `readsAs: 'channel'`; commands shape their text through
 `answerSurfaceOf(ctx)`, while the dispatcher still checks the command's surfaces against `repl`.
 
+The AI-generated line is shown once per reader. A surface that already shows it for the whole session sets `hasAiLabel` on its slash context (the REPL, whose banner carries it, and the page's chat panel); a command whose answer holds model-written text adds the line only when it is absent (`/suggest`, and the web edition's analysis through `renderAnalysisBody`). A one-shot, a chat app and a scheduled job leave it unset, so their answer carries its own. A view with no chat around it (the Analyses list, a stored or exported analysis) renders through `renderAnalysisText`, label first.
+
 `toFactLines` joins as many facts onto a line as the budget holds and starts a new line instead of
 splitting a fact, because a cut inside one orphans a number from its label.
 

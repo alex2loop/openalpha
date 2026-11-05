@@ -12,6 +12,7 @@ import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
   marketRef,
+  renderAnalysisBody,
   renderAnalysisFailure,
   renderAnalysisText,
   type SuggestionRequest,
@@ -180,7 +181,13 @@ async function analyse(
   try {
     const record = await analyses.run(request, ctx.signal)
 
-    return { kind: 'text', text: renderAnalysisText(ctx.locale, record) }
+    return {
+      kind: 'text',
+      text:
+        ctx.hasAiLabel === true
+          ? renderAnalysisBody(ctx.locale, record)
+          : renderAnalysisText(ctx.locale, record),
+    }
   } catch (err: unknown) {
     if (err instanceof AnalysisError) {
       return { kind: 'text', text: renderAnalysisFailure(ctx.locale, err.failure) }

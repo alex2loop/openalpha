@@ -30,7 +30,6 @@
     "src/cli/command.ts#createCommand": 41,
     "src/cli/command.ts#createGroup": 51,
     "src/cli/commands/chat/approval.ts#resolve": 48,
-    "src/cli/commands/chat/slash.ts#runSlash": 42,
     "src/cli/commands/logs/reader.ts#printLogTail": 42,
     "src/cli/commands/logs/reader.ts#readLogSegment": 57,
     "src/cli/commands/skill.ts#writeLockedSkill": 46,

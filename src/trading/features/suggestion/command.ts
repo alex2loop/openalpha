@@ -4,7 +4,6 @@ import type {
   SlashContext,
   SlashResult,
 } from '@/core/types/command'
-import type { Locale } from '@/core/types/locale'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { RenderView } from '@/trading/features/suggestion/render/view'
 import type { SuggestionReportDeps } from '@/trading/features/suggestion/report'
@@ -256,12 +255,19 @@ async function runStops(
     return usage(STOPS_EMPTY)
   }
 
-  return { kind: 'text', text: joinSections([aiLabelLines(ctx.locale, batch.results), [text]]) }
+  return { kind: 'text', text: joinSections([aiLabelLines(ctx, batch.results), [text]]) }
 }
 
-/** The label for a read whose calls carry model-written text, naming the models that argued them.
- *  Empty when none does: a call with neither a debate nor a thesis has nothing a model wrote. */
-function aiLabelLines(locale: Locale, results: readonly SuggestionRunResult[]): readonly string[] {
+/** The label for a read whose calls carry model-written text. Empty when none does (a call with
+ *  neither a debate nor a thesis has nothing a model wrote) and where the surface already shows it. */
+function aiLabelLines(
+  ctx: Pick<SlashContext, 'locale' | 'hasAiLabel'>,
+  results: readonly SuggestionRunResult[]
+): readonly string[] {
+  if (ctx.hasAiLabel === true) {
+    return []
+  }
+
   const written = results
     .map(storedOf)
     .filter(
@@ -272,7 +278,7 @@ function aiLabelLines(locale: Locale, results: readonly SuggestionRunResult[]): 
     return []
   }
 
-  return [renderAiLabel(locale)]
+  return [renderAiLabel(ctx.locale)]
 }
 
 /** A typed depth stands. Otherwise coverage runs lean, except when forced: the pipeline reads an
@@ -307,7 +313,7 @@ async function renderRun(
   return {
     kind: 'text',
     text: joinSections([
-      aiLabelLines(ctx.locale, [result]),
+      aiLabelLines(ctx, [result]),
       [
         renderSuggestionText({
           ...view,

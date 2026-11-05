@@ -952,7 +952,8 @@ refusal reads the same in the terminal, in a chat app and on the web version, ev
 
 A result that carries a thesis or a debate opens with one line saying it is AI-generated and
 is not investment advice. `/suggest stops` opens
-with it too.
+with it too. In the REPL the banner already shows the line, so the answer does not repeat it; a one
+shot and a chat app keep it.
 
 Today's answer is reused for free (on a continuous market, any answer under 4 hours old) until a
 newer close is stored than the one it read. So a call made while the session traded runs again after

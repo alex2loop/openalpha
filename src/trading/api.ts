@@ -222,6 +222,7 @@ export { renderOverviewForSurface } from '@/trading/features/market-data/render/
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
 export { ORDER_TOOL_NAME, TRADE_COMMAND_NAME } from '@/trading/features/order/types'
 export {
+  renderAnalysisBody,
   renderAnalysisFailure,
   renderAnalysisText,
 } from '@/trading/features/suggestion/analysis/render'

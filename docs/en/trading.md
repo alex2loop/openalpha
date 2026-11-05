@@ -288,7 +288,7 @@ A run ends in one of four ways:
 
 An `error` is not a hold. A hold means "evaluated and rejected" and is a real answer with the reason codes that produced it. An error means the evaluation was never recorded.
 
-A suggestion that carries a thesis or a debate opens, wherever you read it (`/suggest`, a chat app, the office page's call card and its Why? dialog), with one line saying it is AI-generated and is not investment advice. The line is added when the answer is shown: it is never stored with the call, and no model reads it.
+A suggestion that carries a thesis or a debate opens, wherever you read it (`/suggest`, a chat app, the office page's call card and its Why? dialog), with one line saying it is AI-generated and is not investment advice. The line is added when the answer is shown: it is never stored with the call, and no model reads it. Where the screen already shows it for the whole session (the terminal chat's banner, the office page's chat panel), a `/suggest` answer does not repeat it.
 
 #### Debate depth
 

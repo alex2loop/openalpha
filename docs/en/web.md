@@ -116,6 +116,6 @@ A source may change or block browsers at any time; the feature that needs it the
 ## Limits to keep in mind
 
 - The web version analyses; each analysis ends with a line saying how it differs from the installed version, never with a conclusion about a name.
-- Every analysis and research report is AI-generated and labelled as such with the model's name. The label travels with the record when it is stored and when it is exported.
+- Every analysis and research report is AI-generated and labelled as such with the model's name. The label travels with the record when it is stored and when it is exported. In the chat the label is shown once, at the top of the panel, so an analysis answer there does not repeat it; the list of analyses carries it on each.
 - The web version runs while the page is open. A brief at a set time, price alerts and anything that must run while the tab is closed exist only in the installed version.
 - Analysis is not investment advice. Investing always carries risk, including losing capital.

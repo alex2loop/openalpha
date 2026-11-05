@@ -843,6 +843,8 @@ Trang chạy các lệnh của terminal nhưng hiện câu trả lời bằng fo
 cảnh lệnh của nó đặt `readsAs: 'channel'`; lệnh dựng chữ theo `answerSurfaceOf(ctx)`, còn bộ điều phối
 vẫn đối chiếu quyền chạy của lệnh với `repl`.
 
+Dòng nội dung do AI tạo chỉ hiện một lần cho mỗi người đọc. Bề mặt đã hiện dòng này cho cả phiên thì đặt `hasAiLabel` trên ngữ cảnh lệnh của nó (REPL, có banner mang dòng này, và khung chat của trang); lệnh có câu trả lời chứa chữ do mô hình viết chỉ thêm dòng khi nó vắng (`/suggest`, và phân tích của bản web qua `renderAnalysisBody`). Chạy một phát, ứng dụng chat và job theo lịch để trống nên câu trả lời tự mang dòng. Màn không có khung chat bao quanh (danh sách phân tích, bản phân tích đã lưu hoặc xuất) dựng qua `renderAnalysisText`, nhãn ở đầu.
+
 `toFactLines` ghép càng nhiều dữ kiện lên một dòng càng tốt trong hạn mức đó rồi xuống dòng mới, chứ không
 cắt đôi một dữ kiện, vì cắt giữa chừng sẽ tách con số khỏi nhãn gọi tên nó.
 

@@ -116,6 +116,6 @@ Nguồn có thể đổi hoặc chặn trình duyệt bất cứ lúc nào; khi 
 ## Giới hạn cần nhớ
 
 - Bản web chỉ phân tích; mỗi phân tích kết thúc bằng một dòng nói bản web khác bản cài thế nào, không bao giờ bằng kết luận về một mã.
-- Mọi phân tích và báo cáo nghiên cứu do AI tạo, có nhãn ghi rõ. Nhãn đi cùng bản ghi khi lưu và khi xuất.
+- Mọi phân tích và báo cáo nghiên cứu do AI tạo, có nhãn ghi rõ. Nhãn đi cùng bản ghi khi lưu và khi xuất. Trong khung chat, nhãn hiện một lần ở đầu khung nên câu trả lời phân tích ở đó không lặp lại; danh sách phân tích thì mang nhãn ở từng mục.
 - Bản web chạy khi trang đang mở. Bản tin đúng giờ, cảnh báo giá và những gì cần chạy lúc bạn đóng thẻ chỉ có ở bản cài.
 - Phân tích không phải khuyến nghị đầu tư. Đầu tư luôn có rủi ro, kể cả có thể mất vốn.
