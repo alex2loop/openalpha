@@ -6,7 +6,7 @@ import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 
 // The version and the day the legal texts took effect: both change only when their wording does.
-const POLICY_VERSION = '1.1'
+const POLICY_VERSION = '1.0'
 const EFFECTIVE_DAY = '2026-11-05'
 /** Working days within which the operator replies. */
 const RESPONSE_WORKDAYS = '15'
