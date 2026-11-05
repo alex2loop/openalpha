@@ -7,6 +7,7 @@ import type {
   AbsolutePositionWire,
   InstrumentRefWire,
   SuggestionWire,
+  TradingProfileResponse,
   TradingQuoteWire,
 } from '@/app/server/wire/trading'
 import type { SessionPhase } from '@/app/server/wire/vocab'
@@ -131,14 +132,31 @@ export function isTradingPhase(phase: SessionPhase): boolean {
   return TRADING_PHASES.has(phase)
 }
 
-/** The overview's markets in `region`, in the daemon's order. */
-export function selectRegionOverview(region: string): OverviewResponse['markets'] {
-  return (overviewBlock.view.value.data?.markets ?? []).filter(
-    (block) => findMarket(block.market)?.region === region
-  )
+/** A segment the operator has not switched off: some cap leaves it room. */
+export function isSegmentOn(profile: TradingProfileResponse, segment: string): boolean {
+  const cap = profile.caps[segment]
+
+  return cap === undefined || cap.maximumPositionPctNav > 0 || cap.maximumSegmentPctNav > 0
 }
 
-/** The overview's markets in the home region, or in every other region. */
+/** A market a page lists: its segment is on, or no venue can hold it (world gold, read for
+ *  reference). Every market counts before the profile is read. */
+export function isMarketShown(market: MarketWire): boolean {
+  const profile = profileBlock.view.value.data
+
+  return profile === undefined || !market.holdable || isSegmentOn(profile, market.segment)
+}
+
+/** The overview's markets in `region` that a page lists, in the daemon's order. */
+export function selectRegionOverview(region: string): OverviewResponse['markets'] {
+  return (overviewBlock.view.value.data?.markets ?? []).filter((block) => {
+    const market = findMarket(block.market)
+
+    return market?.region === region && isMarketShown(market)
+  })
+}
+
+/** The overview's markets a page lists in the home region, or in every other region. */
 export function selectOverview(scope: 'home' | 'other'): OverviewResponse['markets'] {
   const home = homeRegion()
   const blocks = overviewBlock.view.value.data?.markets ?? []
@@ -148,8 +166,12 @@ export function selectOverview(scope: 'home' | 'other'): OverviewResponse['marke
   }
 
   return blocks.filter((block) => {
-    const isHome = findMarket(block.market)?.region === home
+    const market = findMarket(block.market)
 
-    return scope === 'home' ? isHome : !isHome
+    if (market === undefined || !isMarketShown(market)) {
+      return false
+    }
+
+    return scope === 'home' ? market.region === home : market.region !== home
   })
 }

@@ -677,7 +677,8 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     their turnover; a dealer's rows, such as VN gold, state the dealer's buying and selling price and
     the spread between them, then how far VN gold sits above world gold; crypto states funding, open
     interest, the long/short ratio, the share of buyers crossing the spread and the fear and greed
-    index); upcoming events; top headlines; and what the agents did today, including work
+    index; a market your profile switches off is left out, except world gold, read for reference
+    and always shown); upcoming events; top headlines; and what the agents did today, including work
     that ran while the page was closed. The macro and news blocks carry "See the full reading", which
     opens the Market tab. Anything the daemon started without, such as a missing exchange key, closes
     the tab. Above all of it sits a "Getting started" card until you finish or hide it: connect an AI
@@ -764,7 +765,7 @@ The Market tab has three parts: *Market*, *News* and *Themes*.
 - The run shows in the running chip, the office's data store and the chat, like a typed `/refresh`.
   The button stays off while one runs, and the blocks below read again when it ends.
 
-Then, for the region you pick (the home one first, kept in this browser), the tab shows what follows. The picker lists only the regions with a market your profile leaves on, plus the home one; while a market is switched off, the tab ends with a reminder to turn it on in Settings › Profile.
+Then, for the region you pick (the home one first, kept in this browser), the tab shows what follows. The picker lists only the regions with a market your profile leaves on or with world gold (read for reference, so always shown), plus the home one, and each region shows only those markets; while a market is switched off, the tab ends with a reminder to turn it on in Settings › Profile.
 
 - **The macro reading in full**: the regime and lean; one line with the 12-month deposit rate and the
   USD/VND rate (a part with no reading is left out); the drivers left out because they have no

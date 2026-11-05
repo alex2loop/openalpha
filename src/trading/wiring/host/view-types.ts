@@ -73,6 +73,8 @@ export interface MarketView extends MarketDescription, QuoteConvention {
   readonly label: string
   readonly segmentLabel: string
   readonly regionLabel: string
+  /** Some venue can hold it; a reference read (world gold) cannot, so its segment never turns on. */
+  readonly holdable: boolean
   /** Its day at the instant asked; absent with `session`. */
   readonly day?: MarketDay
 }

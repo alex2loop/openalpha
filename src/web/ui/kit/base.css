@@ -132,6 +132,12 @@ strong {
   font-weight: inherit;
 }
 
+/* The qualifier after a section's name, such as when it was read: quieter than the name. */
+.heading-note {
+  color: var(--ink3);
+  font-weight: var(--weightRegular);
+}
+
 /* The rhythm inside a card: a flow is a column of groups, a stack the lines of one group closer
    together, a lead the line that heads a group. A sub-head takes its room from the flow's gap. */
 :is(.flow, .stack) {

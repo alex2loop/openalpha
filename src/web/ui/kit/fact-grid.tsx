@@ -1,5 +1,6 @@
 import type { ScreenFactWire } from '@/app/server/wire/market'
 import { tr } from '@/web/text/tr'
+import { SectionHeading } from '@/web/ui/kit/section-heading'
 
 import './fact-grid.css'
 
@@ -70,7 +71,9 @@ function FactGroup({
 
   return (
     <section class="fact-group">
-      <h4 class="fact-heading">{heading}</h4>
+      <h4 class="fact-heading">
+        <SectionHeading text={heading} />
+      </h4>
       <dl class="fact-list">
         {facts.map(({ id, label, value }) => (
           <div key={id + label} class="fact">

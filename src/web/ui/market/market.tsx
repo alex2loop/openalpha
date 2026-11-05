@@ -3,10 +3,10 @@ import { DataStatus } from '@/web/edition/data-status'
 import { readBlock, withCautions } from '@/web/state/block'
 import { isAnalysisOnly } from '@/web/state/edition'
 import {
+  isMarketShown,
   knownMarkets,
   marketsBlock,
   overviewBlock,
-  profileBlock,
   selectRegionOverview,
 } from '@/web/state/market'
 import {
@@ -16,7 +16,6 @@ import {
   marketSubTab,
   pickMarketRegion,
 } from '@/web/state/market-tab'
-import { isSegmentOn } from '@/web/state/profile'
 import { tr } from '@/web/text/tr'
 import { FailureStrip } from '@/web/ui/kit/failure-strip'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -143,10 +142,7 @@ function RegionPrices({ region }: { readonly region: string }) {
 // A market the profile leaves off, here or in a region the picker drops, reads nothing until it is
 // turned on.
 function MoreMarkets() {
-  const profile = profileBlock.view.value.data
-  const isAnyOff =
-    profile !== undefined &&
-    knownMarkets.value.some((market) => !isSegmentOn(profile, market.segment))
-
-  return isAnyOff ? <p class="meta">{tr('ui.office.market.moreMarkets')}</p> : null
+  return knownMarkets.value.some((market) => !isMarketShown(market)) ? (
+    <p class="meta">{tr('ui.office.market.moreMarkets')}</p>
+  ) : null
 }

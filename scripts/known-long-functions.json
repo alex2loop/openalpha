@@ -159,7 +159,6 @@
     "src/trading/wiring/composition/registration.ts#buildTrading": 45,
     "src/trading/wiring/composition/services.ts#createDomainServices": 47,
     "src/trading/wiring/composition/themes.ts#buildThemeService": 41,
-    "src/trading/wiring/host/market.ts#priceMethods": 45,
     "src/trading/wiring/host/order.ts#orderWrites": 41
   }
 }

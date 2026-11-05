@@ -1,7 +1,7 @@
 import { type Signal, signal } from '@preact/signals'
 
 import type { TradingProfileResponse } from '@/app/server/wire/trading'
-import { isSegmentOn } from '@/web/state/profile'
+import { isSegmentOn } from '@/web/state/market'
 import { toDecimal } from '@/web/text/decimal'
 
 /** The share of the whole book that is cash, which no market owns. */

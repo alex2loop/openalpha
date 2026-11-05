@@ -670,8 +670,8 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch; hàng của đại
     lý như vàng VN nêu giá mua vào, giá bán ra và chênh lệch giữa hai giá, rồi mức chênh lệch của vàng
     VN với vàng thế giới; crypto nêu phí funding, hợp đồng mở, tỷ lệ mua/bán, bên mua chủ động khớp
-    và chỉ số sợ hãi - tham lam); sự kiện sắp
-    tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
+    và chỉ số sợ hãi - tham lam; thị trường bạn tắt trong hồ sơ không hiện, trừ vàng thế giới, vốn
+    chỉ để tham chiếu nên luôn hiện); sự kiện sắp tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
     và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví
     dụ chưa có khóa API của sàn, nằm ở cuối thẻ. Trên cùng là thẻ "Bắt đầu với" cho tới khi bạn làm
     xong hoặc ẩn đi: kết nối mô hình AI (không bắt buộc ở bản web), hồ sơ đầu tư, danh mục hiện có,
@@ -757,7 +757,7 @@ Thẻ Thị trường có ba phần: *Thị trường*, *Tin tức* và *Chủ �
 - Phiên chạy hiện ở chip đang chạy, kho dữ liệu trong văn phòng và khung chat, như `/refresh` gõ tay.
   Nút tắt khi còn một lượt đang chạy, và các khối bên dưới đọc lại khi lượt xong.
 
-Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này), thẻ hiện những mục dưới đây. Bộ chọn chỉ liệt kê vùng còn thị trường bạn bật trong hồ sơ, cộng vùng nhà; khi có thị trường đang tắt, cuối thẻ nhắc bật thêm ở Cài đặt › Hồ sơ.
+Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này), thẻ hiện những mục dưới đây. Bộ chọn chỉ liệt kê vùng còn thị trường bạn bật trong hồ sơ hoặc có vàng thế giới (chỉ để tham chiếu nên luôn hiện), cộng vùng nhà, và mỗi vùng chỉ hiện các thị trường đó; khi có thị trường đang tắt, cuối thẻ nhắc bật thêm ở Cài đặt › Hồ sơ.
 
 - **Đầy đủ số đọc vĩ mô**: trạng thái và chiều nghiêng; một dòng lãi suất tiền gửi 12 tháng và tỷ giá
   USD/VND (phần nào chưa có số thì bỏ); những thành phần bị để ngoài vì chưa có số đọc; phần mô hình

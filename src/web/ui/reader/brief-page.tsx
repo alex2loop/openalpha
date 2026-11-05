@@ -8,6 +8,7 @@ import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
 import { AiLabel } from '@/web/ui/kit/ai-label'
 import { Fold } from '@/web/ui/kit/fold'
+import { SectionHeading } from '@/web/ui/kit/section-heading'
 import { InlineMarkdown } from '@/web/ui/markdown/markdown'
 import { NoteList } from '@/web/ui/markdown/report-notes'
 import {
@@ -144,7 +145,11 @@ function Story({ block }: { readonly block: StoryBlock }) {
           </p>
         ) : (
           <div key={index} class="stack reader-figures">
-            {part.heading !== undefined && <h4 class="reader-group-head">{part.heading}</h4>}
+            {part.heading !== undefined && (
+              <h4 class="reader-group-head">
+                <SectionHeading text={part.heading} />
+              </h4>
+            )}
             {part.lines.map((line, at) => (
               <StoryLineView key={at} line={line} />
             ))}
@@ -208,7 +213,7 @@ function Section({ section }: { readonly section: BriefTextWire['sections'][numb
   return (
     <>
       <h4 class="reader-group-head" id={sectionAnchor(section)} tabIndex={-1}>
-        {section.heading}
+        <SectionHeading text={section.heading} />
       </h4>
       <SectionRows section={section} />
     </>

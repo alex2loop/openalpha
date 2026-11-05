@@ -123,6 +123,7 @@ export function toMarketsWire(view: TradingMarketsView, off: ReadonlySet<string>
         ownsRegion: market.ownsRegion,
         segment: market.segment,
         enabled: !off.has(market.segment),
+        holdable: market.holdable,
         label: market.label,
         segmentLabel: market.segmentLabel,
         regionLabel: market.regionLabel,

@@ -264,6 +264,9 @@ export interface MarketWire {
   /** The operator has that segment switched on. A market that is registered but off still trades
    *  and is listed here; world gold, read for reference only, is always off. */
   readonly enabled: boolean
+  /** Some venue can hold it; world gold, a reference read, cannot, so a page lists it although it is
+   *  never enabled. */
+  readonly holdable: boolean
   readonly label: string
   readonly segmentLabel: string
   readonly regionLabel: string
