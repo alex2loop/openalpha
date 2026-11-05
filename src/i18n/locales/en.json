@@ -162,7 +162,7 @@
     "office.edition.data.whereBody": "Your ledger, portfolio, analyses and settings live in this browser's private storage, on your device. I keep no copy.",
     "office.edition.data.wipe": "Delete all data on this device",
     "office.edition.data.wipeAsk": "Delete all data on this device?",
-    "office.edition.data.wipeBody": "I delete your ledger, portfolio, analyses, keys, the agreements you gave to send data, and the settings on this device. A file you picked for a copy sits on your device and is not deleted. This cannot be undone.",
+    "office.edition.data.wipeBody": "I delete your ledger, portfolio, analyses, chat history, keys, the agreements you gave to send data, and the settings on this device. A file you picked for a copy sits on your device and is not deleted. This cannot be undone.",
     "office.edition.data.wipeExport": "If you want to keep them, export your data to a file first.",
     "office.edition.data.wipeFailed": "I could not delete everything. Reload the page and try again.",
     "office.edition.errorLog.title": "Error log",

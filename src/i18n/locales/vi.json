@@ -162,7 +162,7 @@
     "office.edition.data.whereBody": "Sổ giao dịch, danh mục, phân tích và cài đặt nằm trong kho riêng của trình duyệt này, trên máy bạn. Mình không giữ bản sao nào.",
     "office.edition.data.wipe": "Xóa toàn bộ dữ liệu trên máy",
     "office.edition.data.wipeAsk": "Xóa toàn bộ dữ liệu trên máy này?",
-    "office.edition.data.wipeBody": "Mình xóa sổ giao dịch, danh mục, phân tích, key, các lần bạn đã đồng ý gửi dữ liệu và cài đặt trên máy này. File bạn đã chọn để lưu bản sao nằm trên máy bạn và không bị xóa. Không khôi phục được.",
+    "office.edition.data.wipeBody": "Mình xóa sổ giao dịch, danh mục, phân tích, lịch sử trò chuyện, key, các lần bạn đã đồng ý gửi dữ liệu và cài đặt trên máy này. File bạn đã chọn để lưu bản sao nằm trên máy bạn và không bị xóa. Không khôi phục được.",
     "office.edition.data.wipeExport": "Nếu cần giữ lại, hãy xuất dữ liệu ra file trước.",
     "office.edition.data.wipeFailed": "Mình chưa xóa hết được. Bạn tải lại trang rồi thử lại.",
     "office.edition.errorLog.title": "Nhật ký lỗi",
