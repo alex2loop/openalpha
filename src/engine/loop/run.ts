@@ -279,7 +279,7 @@ function appendUserTurn(messages: MessageStore, input: RunInput, userMessage: st
     { role: 'user', content: userMessage },
     input.typedMessage === undefined
       ? undefined
-      : { role: 'user', content: clampUserMessage(input.typedMessage) }
+      : { role: 'user', content: scrubCredentials(clampUserMessage(input.typedMessage)) }
   )
 }
 
