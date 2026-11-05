@@ -96,8 +96,13 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
       icon={<TrendIcon />}
       reading={reading}
       showReadLine={false}
-      titleNote={
-        term === undefined ? undefined : <Term id={term}>{tr('ui.office.glossary.whatIs')}</Term>
+      titleView={
+        term === undefined ? undefined : (
+          <>
+            <Term id={term}>{ticker}</Term>
+            {label !== undefined && ` · ${label}`}
+          </>
+        )
       }
       action={
         state.value?.capabilities.quotes !== false && (
