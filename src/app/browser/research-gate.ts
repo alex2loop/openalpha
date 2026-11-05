@@ -12,7 +12,7 @@ const PROVIDER_SEPARATOR = ', '
  *  every search would come back empty after the model had already planned the run. */
 export function renderSearchKeyNeeded(locale: Locale): string {
   return bindLocale(locale).translate('errors.browserResearchNeedsSearchKey', {
-    providers: listSearchProviderNames().join(PROVIDER_SEPARATOR),
+    providers: listSearchProviderNames(locale).join(PROVIDER_SEPARATOR),
   })
 }
 

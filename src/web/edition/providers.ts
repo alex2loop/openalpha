@@ -1,4 +1,6 @@
+import type { MessageKey } from '@/i18n'
 import type { KeySlot, SLOT_PROVIDERS } from '@/web/edition/keys-store'
+import { tr } from '@/web/text/tr'
 
 interface ProviderInfo {
   readonly name: string
@@ -8,14 +10,18 @@ interface ProviderInfo {
   readonly policyUrl: string
 }
 
+interface ProviderEntry extends Omit<ProviderInfo, 'name'> {
+  readonly name: MessageKey
+}
+
 /** Every provider a slot offers has an entry, and none the slot does not. */
 type SlotTable = {
-  readonly [S in KeySlot]: Readonly<Record<(typeof SLOT_PROVIDERS)[S][number], ProviderInfo>>
+  readonly [S in KeySlot]: Readonly<Record<(typeof SLOT_PROVIDERS)[S][number], ProviderEntry>>
 }
 
 // DeepSeek serves both slots with the same name and links; each slot still holds its own key.
-const DEEPSEEK: ProviderInfo = {
-  name: 'DeepSeek',
+const DEEPSEEK: ProviderEntry = {
+  name: 'ui.office.edition.providerName.deepseek',
   keyUrl: 'https://platform.deepseek.com/api_keys',
   policyUrl: 'https://cdn.deepseek.com/policies/en-US/deepseek-privacy-policy.html',
 }
@@ -23,45 +29,45 @@ const DEEPSEEK: ProviderInfo = {
 const PROVIDERS = Object.freeze({
   ai: {
     openrouter: {
-      name: 'OpenRouter',
+      name: 'ui.office.edition.providerName.openrouter',
       keyUrl: 'https://openrouter.ai/keys',
       policyUrl: 'https://openrouter.ai/privacy',
     },
     openai: {
-      name: 'OpenAI',
+      name: 'ui.office.edition.providerName.openai',
       keyUrl: 'https://platform.openai.com/api-keys',
       policyUrl: 'https://openai.com/policies/privacy-policy/',
     },
     deepseek: DEEPSEEK,
     anthropic: {
-      name: 'Anthropic',
+      name: 'ui.office.edition.providerName.anthropic',
       keyUrl: 'https://platform.claude.com/settings/keys',
       policyUrl: 'https://www.anthropic.com/legal/privacy',
     },
     gemini: {
-      name: 'Google Gemini',
+      name: 'ui.office.edition.providerName.gemini',
       keyUrl: 'https://aistudio.google.com/apikey',
       policyUrl: 'https://policies.google.com/privacy',
     },
     xai: {
-      name: 'xAI',
+      name: 'ui.office.edition.providerName.xai',
       keyUrl: 'https://console.x.ai',
       policyUrl: 'https://x.ai/legal/privacy-policy',
     },
     mistral: {
-      name: 'Mistral',
+      name: 'ui.office.edition.providerName.mistral',
       keyUrl: 'https://console.mistral.ai/api-keys',
       policyUrl: 'https://legal.mistral.ai/terms/privacy-policy',
     },
   },
   search: {
     tavily: {
-      name: 'Tavily',
+      name: 'ui.office.edition.providerName.tavily',
       keyUrl: 'https://app.tavily.com/home',
       policyUrl: 'https://tavily.com/privacy',
     },
     serper: {
-      name: 'Serper',
+      name: 'ui.office.edition.providerName.serper',
       keyUrl: 'https://serper.dev/api-keys',
       policyUrl: 'https://serper.dev/privacy',
     },
@@ -71,7 +77,10 @@ const PROVIDERS = Object.freeze({
 
 /** A provider's name, links, by the slot it serves: DeepSeek AI and DeepSeek search are two entries. */
 export function providerInfo(slot: KeySlot, provider: string): ProviderInfo {
-  const offered: Readonly<Record<string, ProviderInfo>> = PROVIDERS[slot]
+  const offered: Readonly<Record<string, ProviderEntry>> = PROVIDERS[slot]
+  const entry = offered[provider]
 
-  return offered[provider] ?? { name: provider, keyUrl: '', policyUrl: '' }
+  return entry === undefined
+    ? { name: provider, keyUrl: '', policyUrl: '' }
+    : { ...entry, name: tr(entry.name) }
 }

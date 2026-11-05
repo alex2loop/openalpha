@@ -4,9 +4,11 @@ import type {
   BrowserSearchProvider,
 } from '@/app/server/wire/worker'
 import type { ResolvedConfig } from '@/core/config/resolve'
+import type { Locale } from '@/core/types/locale'
 import { type CredentialSource, findProviderById } from '@/ai/api'
 import { LLMError } from '@/core/errors'
 import { registerKnownSecret } from '@/core/security/credentials'
+import { t } from '@/i18n'
 
 /** The AI providers whose API answers a browser; a key for any other is ignored. Each has its own
  *  key variable, so a visitor can hold one key per provider. */
@@ -29,22 +31,19 @@ const DEFAULT_AI_PROVIDER = 'openrouter' satisfies (typeof BROWSER_AI_PROVIDERS)
 /** The search providers that passed the CORS check, with the variable each one's key is read from.
  *  DeepSeek search has a variable of its own, so a DeepSeek AI key is never taken for a search key
  *  and a search key is never taken for an AI key. */
-const SEARCH_KEY_VARIABLES: Readonly<Record<string, string>> = Object.freeze({
+const SEARCH_KEY_VARIABLES: Readonly<Record<BrowserSearchProvider, string>> = Object.freeze({
   tavily: 'TAVILY_API_KEY',
   serper: 'SERPER_API_KEY',
   deepseek: 'DEEPSEEK_SEARCH_API_KEY',
-} satisfies Record<BrowserSearchProvider, string>)
+})
 
-/** What the page calls each search provider when it asks for a key. */
-const SEARCH_DISPLAY_NAMES: Readonly<Record<string, string>> = Object.freeze({
-  tavily: 'Tavily',
-  serper: 'Serper',
-  deepseek: 'DeepSeek',
-} satisfies Record<BrowserSearchProvider, string>)
+function isSearchProvider(provider: string): provider is BrowserSearchProvider {
+  return Object.hasOwn(SEARCH_KEY_VARIABLES, provider)
+}
 
 /** The hosted search backends a page can use. */
-export const BROWSER_SEARCH_PROVIDERS: readonly string[] = Object.freeze(
-  Object.keys(SEARCH_KEY_VARIABLES)
+export const BROWSER_SEARCH_PROVIDERS: readonly BrowserSearchProvider[] = Object.freeze(
+  Object.keys(SEARCH_KEY_VARIABLES).filter(isSearchProvider)
 )
 
 type KeyEnv = Readonly<Record<string, string | undefined>>
@@ -147,9 +146,12 @@ export function hasSearchKey(env: KeyEnv): boolean {
   return readSearchSelection(env) !== undefined
 }
 
-/** The names of the search providers a visitor may add a key for, in the order the page offers them. */
-export function listSearchProviderNames(): readonly string[] {
-  return BROWSER_SEARCH_PROVIDERS.map((provider) => SEARCH_DISPLAY_NAMES[provider] ?? provider)
+/** The names of the search providers a visitor may add a key for, in the order the page offers them;
+ *  the page reads the same locale entries. */
+export function listSearchProviderNames(locale: Locale): readonly string[] {
+  return BROWSER_SEARCH_PROVIDERS.map((provider) =>
+    t(locale, `ui.office.edition.providerName.${provider}`)
+  )
 }
 
 function toEnv(keys: BrowserKeys): KeyEnv {
@@ -162,10 +164,8 @@ function toEnv(keys: BrowserKeys): KeyEnv {
     }
   }
 
-  const searchVariable = search === undefined ? undefined : SEARCH_KEY_VARIABLES[search.provider]
-
-  if (search !== undefined && searchVariable !== undefined) {
-    env[searchVariable] = search.key.trim() || undefined
+  if (search !== undefined && isSearchProvider(search.provider)) {
+    env[SEARCH_KEY_VARIABLES[search.provider]] = search.key.trim() || undefined
   }
 
   return Object.freeze(env)
