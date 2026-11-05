@@ -22,6 +22,7 @@ const FEED_RETRY_COOLDOWN_MS = 60_000
 // must not enforce them against a boot-time snapshot.
 const FEED_TTL_MS = 6 * MS_PER_HOUR
 const STRUCTURED_OUTPUTS_PARAMETER = 'structured_outputs'
+const TOOLS_PARAMETER = 'tools'
 
 const CapabilityRowSchema = z.object({
   id: z.string(),
@@ -33,7 +34,7 @@ const CapabilityRowSchema = z.object({
     .nullish(),
 })
 
-const StructuredOutputRowSchema = z.object({
+const ParametersRowSchema = z.object({
   id: z.string(),
   supported_parameters: z.array(z.string()).nullish(),
 })
@@ -130,7 +131,12 @@ export function loadOpenRouterPrices(logger: Logger): Promise<ReadonlyMap<string
 
 /** Model ids whose routed endpoints enforce a JSON schema server-side. */
 export function loadOpenRouterStructuredOutputs(logger: Logger): Promise<ReadonlySet<string>> {
-  return loadRawRows(logger).then(toStructuredOutputSet)
+  return loadRawRows(logger).then((rows) => toParameterSet(rows, STRUCTURED_OUTPUTS_PARAMETER))
+}
+
+/** Model ids whose routed endpoints accept tool calls; empty while the feed is unreachable. */
+export function loadOpenRouterToolModels(logger: Logger): Promise<ReadonlySet<string>> {
+  return loadRawRows(logger).then((rows) => toParameterSet(rows, TOOLS_PARAMETER))
 }
 
 function toCapabilityMap(rows: readonly unknown[]): ReadonlyMap<string, ModelReasoningCapability> {
@@ -157,11 +163,11 @@ function toCapabilityMap(rows: readonly unknown[]): ReadonlyMap<string, ModelRea
   return map
 }
 
-function toStructuredOutputSet(rows: readonly unknown[]): ReadonlySet<string> {
+function toParameterSet(rows: readonly unknown[], parameter: string): ReadonlySet<string> {
   const ids = new Set<string>()
   for (const raw of rows) {
-    const row = StructuredOutputRowSchema.safeParse(raw)
-    if (row.success && row.data.supported_parameters?.includes(STRUCTURED_OUTPUTS_PARAMETER)) {
+    const row = ParametersRowSchema.safeParse(raw)
+    if (row.success && row.data.supported_parameters?.includes(parameter)) {
       ids.add(row.data.id)
     }
   }

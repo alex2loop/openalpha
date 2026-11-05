@@ -11,6 +11,8 @@ interface ComboboxProps {
   readonly value: string
   /** What the list offers; the field still takes any text. */
   readonly options: readonly string[]
+  /** A line under an option, when there is one to say about it. */
+  readonly hintOf?: (option: string) => string | undefined
   readonly onInput: (value: string) => void
 }
 
@@ -34,7 +36,7 @@ type KeyAction =
 /** A text field with a list of suggestions the page draws itself, so no browser adds a marker.
  *  The list opens on focus and narrows as the operator types; Esc, Tab or a press elsewhere closes
  *  it. It holds no listener of its own: leaving the field is what closes it. */
-export function Combobox({ id, label, value, options, onInput }: ComboboxProps) {
+export function Combobox({ id, label, value, options, hintOf, onInput }: ComboboxProps) {
   const list = useSuggestions(value, options)
   const listId = `${id}-list`
 
@@ -66,7 +68,9 @@ export function Combobox({ id, label, value, options, onInput }: ComboboxProps) 
         }}
         onKeyDown={(event) => handleKey(event, { list, pick })}
       />
-      {list.isListed && <OptionList id={listId} label={label} list={list} onPick={pick} />}
+      {list.isListed && (
+        <OptionList id={listId} label={label} list={list} hintOf={hintOf} onPick={pick} />
+      )}
     </div>
   )
 }
@@ -152,11 +156,12 @@ interface OptionListProps {
   readonly id: string
   readonly label: string
   readonly list: Suggestions
+  readonly hintOf: ComboboxProps['hintOf']
   readonly onPick: (option: string) => void
 }
 
 // A press must not take focus from the field: it would close the list before the pick lands.
-function OptionList({ id, label, list, onPick }: OptionListProps) {
+function OptionList({ id, label, list, hintOf, onPick }: OptionListProps) {
   const box = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -186,8 +191,13 @@ function OptionList({ id, label, list, onPick }: OptionListProps) {
           onPointerDown={() => onPick(option)}
         >
           {option}
+          <HintLine text={hintOf?.(option)} />
         </div>
       ))}
     </div>
   )
+}
+
+function HintLine({ text }: { readonly text: string | undefined }) {
+  return text === undefined ? null : <span class="combobox-hint">{text}</span>
 }

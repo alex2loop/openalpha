@@ -133,6 +133,12 @@
   width: 100%;
 }
 
+/* The price spans both fields, so it reads under the pair, not beside it. */
+.model-price {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 :root[data-layout="phone"] .model-choice {
   grid-template-columns: minmax(0, 1fr);
 }

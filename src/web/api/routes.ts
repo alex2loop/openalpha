@@ -43,7 +43,7 @@ import type {
   MemoryResponse,
   MemoryWriteResult,
 } from '@/app/server/wire/memory'
-import type { ModelsResponse } from '@/app/server/wire/models'
+import type { ModelPricesResponse, ModelsResponse } from '@/app/server/wire/models'
 import type {
   LedgerPageResponse,
   LedgerPreviewResponse,
@@ -160,6 +160,7 @@ export const ROUTES = Object.freeze({
   agentResume: (agentId: string) =>
     route<OkAnswer>(`/v1/agents/${encodeURIComponent(agentId)}/resume`),
   models: route<ModelsResponse>('/v1/models'),
+  modelPrices: route<ModelPricesResponse>('/v1/models/prices'),
   jobs: route<ScheduleRow>('/v1/jobs'),
   jobAction: (jobId: string, action: 'pause' | 'resume') =>
     route<OkAnswer>(`/v1/jobs/${encodeURIComponent(jobId)}/${action}`),

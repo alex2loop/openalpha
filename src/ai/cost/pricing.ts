@@ -12,7 +12,7 @@ import { isLoopbackUrl } from '@/core/utils/url'
 
 // USD per million tokens. A vendor-qualified id resolves through its unqualified tail, so one feed
 // row serves both `gemini-2.5-pro` and `google/gemini-2.5-pro`.
-const OPENROUTER_PROVIDER = 'openrouter'
+export const OPENROUTER_PROVIDER = 'openrouter'
 const OPENROUTER_FREE_MODEL = 'openrouter/free'
 const OPENROUTER_FREE_SUFFIX = ':free'
 const FREE_PRICE: ModelPrice = Object.freeze({ inPerM: 0, outPerM: 0 })

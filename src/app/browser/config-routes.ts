@@ -25,6 +25,7 @@ import {
 } from '@/app/browser/custom-venues'
 import { BROWSER_AI_PROVIDERS } from '@/app/browser/keys'
 import { json } from '@/app/server/http/dispatch'
+import { MODEL_PRICES_ROUTE } from '@/app/server/routes/models'
 import { localeOf, readJsonBody, toBodyFieldLabel } from '@/app/server/routes/params'
 import { type OperatorMessage, operatorMessageOf, ValidationError } from '@/core/errors'
 import { toFieldValidationError } from '@/core/field-errors'
@@ -285,11 +286,12 @@ function handleProviders(): Promise<Response> {
 const CONFIG_ROUTES: readonly ApiRouteSpec[] = [
   { method: 'GET', path: '/v1/config', auth: true, handler: handleConfigGet },
   { method: 'GET', path: '/v1/providers', auth: true, handler: handleProviders },
+  MODEL_PRICES_ROUTE,
   { method: 'POST', path: '/v1/config/validate', auth: true, handler: handleConfigValidate },
   { method: 'POST', path: '/v1/config', auth: true, handler: handleConfigPut },
 ]
 
 /** The config routes the page edits the main model and its tier overrides with: the same paths and shapes as the
- *  daemon's, over the browser database instead of a file; and what the browser answered about
- *  keeping the data. */
+ *  daemon's, over the browser database instead of a file; and the price of a model before it is
+ *  picked. */
 export const BROWSER_CONFIG_GROUP: ApiRouteGroup = { name: 'config', routes: CONFIG_ROUTES }
