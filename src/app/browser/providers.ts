@@ -8,6 +8,7 @@ import type { OpenedPersistence } from '@/persistence/api'
 import type { ScopedJobStore } from '@/tools/api'
 import type { TradingConfig, TradingNoticeSender } from '@/trading/api'
 import { createAiProvider } from '@/ai/api'
+import { createChatAgentForRun } from '@/app/browser/chat-agent'
 import { createBrowserEdition } from '@/app/browser/edition'
 import { createBrowserSystemHost } from '@/app/browser/host'
 import { createKeyringCredentials } from '@/app/browser/keys'
@@ -226,7 +227,8 @@ function createBrowserAppProvider(): ServiceProvider {
         createConfigOverrideStore(app.resolve('storage'), app.resolve('dialect'))
       )
       bindRunReads(bind)
-      extend('hooks', extendHooks)
+      bind('agentForRun', createChatAgentForRun)
+      extend('hooks', (current, app) => extendHooks(current, app, { learnsPreferences: false }))
     },
   }
 }

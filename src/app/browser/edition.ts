@@ -40,6 +40,24 @@ const COMMANDS: ReadonlySet<string> = new Set([
   'glossary',
 ])
 
+/** The tools the web's chat may call: reads that state facts. Nothing that writes, schedules,
+ *  remembers, rates, ranks or names a level, a size or a call. */
+export const CHAT_TOOLS: ReadonlySet<string> = new Set([
+  'now',
+  'calc',
+  'market_price',
+  'market_bars',
+  'market_overview',
+  'market_events',
+  'market_news',
+  'market_sentiment',
+  'market_funding',
+  'vn_foreign_flow',
+  'vn_futures_basis',
+  'portfolio_view',
+  'research',
+])
+
 /** VN equities, crypto and gold read from sources a browser reaches; VN gold prices a premium over
  *  gold. US equities need sources it cannot. */
 export const BROWSER_MARKETS: ReadonlySet<ReturnType<typeof marketRef>> = new Set([

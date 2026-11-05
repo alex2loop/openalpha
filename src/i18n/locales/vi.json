@@ -109,6 +109,8 @@
     "office.edition.keys.connectNote": "Đăng nhập ở OpenRouter để mình nhận key, không cần dán; ô \"Ghi nhớ trên máy này\" ở trên áp dụng cho cả key này. Hoặc dán key ở dưới.",
     "office.edition.keys.connectFailed": "Mình chưa nhận được key từ OpenRouter. Bạn thử lại, hoặc dán key vào ô trong Cài đặt.",
     "office.edition.keys.chatgptTitle": "Gói ChatGPT",
+    "office.edition.chat.refusal": "Mua, bán hay giữ, mua bao nhiêu, vào ở giá nào hay cắt lỗ ở đâu là quyết định của riêng bạn, nên trên bản web mình không trả lời câu này. Gõ /suggest <mã> để xem bên tăng và bên giảm lập luận trên cùng một bộ số liệu.",
+    "office.edition.chat.offTopic": "Câu này nằm ngoài phần mình lo trên {brand}. Mình chỉ trò chuyện về thị trường, các thuật ngữ đầu tư, sổ giao dịch của bạn và cách dùng trang này.",
     "office.edition.tiers.title": "Mô hình AI",
     "office.edition.tiers.note": "Trò chuyện, phân tích và nghiên cứu đều chạy bằng mô hình chính, trừ khi bạn chọn mô hình riêng cho phân tích hoặc nghiên cứu ở phần Nâng cao. Bạn chọn OpenRouter, OpenAI, DeepSeek, Anthropic, Google Gemini, xAI hoặc Mistral cho từng mô hình.",
     "office.edition.tiers.main": "Mô hình chính",

@@ -109,6 +109,8 @@
     "office.edition.keys.connectNote": "Sign in at OpenRouter and I receive a key, no pasting; the \"Remember on this device\" box above applies to it too. Or paste a key below.",
     "office.edition.keys.connectFailed": "I did not receive a key from OpenRouter. Try again, or paste a key in Settings.",
     "office.edition.keys.chatgptTitle": "ChatGPT plan",
+    "office.edition.chat.refusal": "Whether to buy, sell or hold, how much, what price to get in at or where to cut a loss is your call, so on the web I won't answer that one. Type /suggest <ticker> to see the bull and the bear case argued on the same figures.",
+    "office.edition.chat.offTopic": "That one is outside what I cover on {brand}. I only talk about the markets, investing terms, your ledger and how to use this page.",
     "office.edition.tiers.title": "AI model",
     "office.edition.tiers.note": "Chat, analysis and research all use the main model, unless you pick a different one for analysis or research under Advanced. You choose OpenRouter, OpenAI, DeepSeek, Anthropic, Google Gemini, xAI or Mistral for each model.",
     "office.edition.tiers.main": "Main model",
