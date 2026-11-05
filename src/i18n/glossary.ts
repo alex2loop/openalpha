@@ -27,6 +27,7 @@ interface GlossaryTerm {
 export const GLOSSARY_TERMS = [
   { id: 'vn-index', group: 'index', tickers: ['VNINDEX'] },
   { id: 'vn30', group: 'index', tickers: ['VN30'] },
+  { id: 'vn100', group: 'index', tickers: ['VN100'] },
   { id: 'hnx-index', group: 'index', tickers: ['HNX'] },
   { id: 'spy', group: 'index', tickers: ['SPY'] },
   { id: 'ndx', group: 'index', tickers: ['NDX'] },

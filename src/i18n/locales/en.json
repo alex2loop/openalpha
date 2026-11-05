@@ -6404,6 +6404,8 @@
     "glossary.term.vn-index.definition": "A market-value-weighted index of all stocks listed on the Ho Chi Minh Stock Exchange (HOSE). It tracks the overall price level of that market against its starting point, not the price of any one stock.",
     "glossary.term.vn30.name": "VN30 (30 largest HOSE stocks)",
     "glossary.term.vn30.definition": "An index of the 30 HOSE stocks with the largest market value and highest trading volume, with members reviewed on a fixed schedule. VN30 futures are based on it.",
+    "glossary.term.vn100.name": "VN100 (100 largest HOSE stocks)",
+    "glossary.term.vn100.definition": "An index of the 100 HOSE stocks with the largest market value and highest trading volume: the 30 VN30 names plus 70 mid-sized ones, with members reviewed on a fixed schedule. Some ETFs track it.",
     "glossary.term.hnx-index.name": "HNX-Index (Hanoi exchange index)",
     "glossary.term.hnx-index.definition": "A price index of the stocks listed on the Hanoi Stock Exchange (HNX), a separate exchange from HOSE.",
     "glossary.term.spy.name": "SPY (S&P 500 fund)",

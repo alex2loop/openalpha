@@ -6404,6 +6404,8 @@
     "glossary.term.vn-index.definition": "Chỉ số giá của tất cả cổ phiếu niêm yết trên Sở Giao dịch Chứng khoán TP.HCM (HOSE), có trọng số theo giá trị vốn hóa. Nó theo dõi mặt bằng giá chung của sàn so với mốc gốc, không phải giá của một cổ phiếu.",
     "glossary.term.vn30.name": "VN30 (30 cổ phiếu lớn nhất HOSE)",
     "glossary.term.vn30.definition": "Chỉ số của 30 cổ phiếu trên HOSE có giá trị vốn hóa lớn và thanh khoản cao nhất, danh sách được rà soát theo lịch cố định. Hợp đồng tương lai VN30 dựa trên chỉ số này.",
+    "glossary.term.vn100.name": "VN100 (100 cổ phiếu lớn nhất HOSE)",
+    "glossary.term.vn100.definition": "Chỉ số của 100 cổ phiếu trên HOSE có giá trị vốn hóa lớn và thanh khoản cao nhất, gồm 30 mã của VN30 và 70 mã vốn hóa vừa, danh sách được rà soát theo lịch cố định. Một số quỹ ETF bám theo chỉ số này.",
     "glossary.term.hnx-index.name": "HNX-Index (chỉ số sàn Hà Nội)",
     "glossary.term.hnx-index.definition": "Chỉ số giá của các cổ phiếu niêm yết trên Sở Giao dịch Chứng khoán Hà Nội (HNX), một sàn riêng biệt với HOSE.",
     "glossary.term.spy.name": "SPY (quỹ theo S&P 500)",
