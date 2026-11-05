@@ -9,44 +9,36 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 ## [1.4.0] - 2026-11-05
 
-OpenAlpha now runs in the browser: the web edition at web.openalpha.link fetches market data in the
-tab, keeps your book on your own device, and argues a bull and a bear case on your own AI key, with no
-server of ours in between. Market terms explain themselves: a dotted word opens a plain definition,
-and `/glossary` lists them. The brief, `/overview` and the office page print derivatives, order flow,
-sentiment and the gold premium as the same labelled facts, and the screen board shows every name's
-readings in one grid. `/suggest` and `/record` refuse an index or a futures contract. The database
-gains two tables; the upgrade runs them for you.
-> OpenAlpha giờ chạy ngay trên trình duyệt: bản web tại web.openalpha.link tự lấy dữ liệu thị trường trong tab, giữ sổ của bạn trên chính thiết bị của bạn và phân tích hai chiều tăng, giảm bằng key AI của bạn, không qua máy chủ nào của chúng tôi. Thuật ngữ thị trường tự giải thích: chữ có gạch chân chấm mở một định nghĩa dễ hiểu, và `/glossary` liệt kê toàn bộ. Bản tin, `/overview` và trang văn phòng ghi phái sinh, dòng lệnh, tâm lý và chênh lệch giá vàng thành cùng một bộ số liệu có nhãn, còn bảng sàn lọc gom số đọc của mỗi mã vào một lưới. `/suggest` và `/record` từ chối chỉ số và hợp đồng tương lai. Cơ sở dữ liệu thêm hai bảng; lệnh nâng cấp tự chạy chúng.
+OpenAlpha now runs in the browser at web.openalpha.link: market data, your book and a two-sided
+analysis on your own AI key, all inside the tab. Market terms explain themselves, the brief and
+`/overview` share one set of labelled facts, and `/suggest` and `/record` refuse an index or a
+futures contract. The database gains two tables; the upgrade runs them for you.
+> OpenAlpha giờ chạy ngay trên trình duyệt tại web.openalpha.link: dữ liệu thị trường, sổ của bạn và phân tích hai chiều bằng key AI của bạn, tất cả trong tab. Thuật ngữ thị trường tự giải thích, bản tin và `/overview` dùng chung một bộ số liệu có nhãn, còn `/suggest` và `/record` từ chối chỉ số và hợp đồng tương lai. Cơ sở dữ liệu thêm hai bảng; lệnh nâng cấp tự chạy chúng.
 
 ### Added
 
-- The web edition (web.openalpha.link) with its homepage (openalpha.link): market reads, the screen board, the ledger, the portfolio, the brief and a two-sided analysis run in the browser tab. Keys stay on the device ("Remember on this device" is on by default; untick it and a key lives only in the tab), a daily AI spend cap of 5 USD, a getting-started card, an in-tab error log and a database file you can save and load.
-- A glossary of 39 market terms in Vietnamese and English (indices and ETFs, valuation, money flow, derivatives and sentiment, price and liquidity, banking). A dotted word opens its definition on hover, tap or Enter, a "?" after a heading explains the group, the Glossary page searches by name, ticker or definition, and `/glossary [term]` prints the same terms in the CLI and chat apps.
-- The morning brief, `/overview` and the office page state crypto funding, open interest, long/short ratio, taker buy share, fear and greed and the VN gold premium as labelled facts under each market's heading.
-- The screen board shows each name's readings in one fact grid (price and liquidity, valuation and quality, money flow), with value limits, a kind choice, a second sort order and the most traded names first.
-- The target weights dialog switches a segment on or off and has "Reset to defaults"; a share rounds to its tenth of a percent when you leave the field.
-- The ticker page shows session low, high and volume, the VN gold dealer board's buy and sell sides, and an analysis states the price it stood on beside the price now.
-- Settings > Other venues adds a venue you trade by hand.
-- On the web, the chat panel shows its earlier messages again after a reload, and the history button lists the older sessions and opens one read-only, as on the dashboard.
+- The web edition and its homepage (openalpha.link). Keys stay on your device, AI spend is capped at 5 USD a day, and the database saves to and loads from a file. Chat history comes back after a reload.
+- A glossary of 39 terms in Vietnamese and English: a dotted word opens its definition, and `/glossary [term]` prints it anywhere.
+- The brief, `/overview` and the office page state crypto funding, open interest, long/short ratio, taker buy share, fear and greed and the VN gold premium as labelled facts.
+- The screen board shows each name's readings in one grid, with value limits and a second sort.
+- The ticker page shows the session range and volume, and the VN gold dealer's buy and sell prices.
+- On the web, each analysis opens with what to watch: the conditions that would prove each side wrong.
 
 ### Changed
 
-- `/suggest` refuses an index or a futures contract (VN-Index, VN30, VN30F1M) before any AI call and points to an ETF that tracks the index; `/record` and `/update` refuse a row naming one. The ticker card of a level shows no "Analyze this name", "Record a trade", plan, holding or past-call blocks.
-- Quotes carry the name's own kind, so an index prints as a level, not as a price divided by the board scale.
-- The AI label reads "AI-generated content. I am giving you analysis to weigh yourself, not investment advice.", with no model name.
-- Where the label already shows (the REPL banner, the chat panel of the office page and the web version), `/suggest`, `/brief` and `/themes` answers no longer repeat it; a one shot, a chat app and a scheduled run keep it.
-- The Market tab and Today list only the markets you switched on; world gold stays as a reference. Each market's section opens on one green band.
-- The header's layout control reads "Office | Focus" instead of an icon.
-- The Rebalance page states each segment as above or below the level you set, largest gap first in one neutral colour, lists the names and segments over a ceiling you set (worded as your level in `/rebalance` too), and has an "Edit levels" button for the target weights.
-- On the web, each analysis opens with a "What to watch" box: the conditions each side named that would show it wrong, with the analysis date, "Watch this name" and "Analyse again". `/suggest` text lists those conditions straight after the two cases, and the web edition's closing line says that a buy or sell plan (entry, stop, take-profit, order size) needs the installed version.
+- `/suggest` refuses an index or a futures contract before any AI call and points to an ETF; `/record` and `/update` refuse a row naming one.
+- Rebalance reads each segment and capped name against the level you set, largest gap first, with a shortcut to edit the levels.
+- The target weights dialog switches a segment on or off and resets to defaults.
+- The Market tab and Today list only the markets you switched on; world gold stays as a reference.
+- The AI label no longer names the model, and an answer does not repeat it where the screen already shows it.
+- On the web, an analysis ends by saying a buy or sell plan needs the installed version.
 
 ### Fixes
 
-- The office page's header switches sit on one line, the market clock shows only when it differs from the scene's, and a ghost button's hover is a soft wash.
-- An empty market section says so instead of showing a bare band.
-- Each side of an analysis names at least one condition that would show it wrong; an answer naming none is asked again instead of printing an empty "wrong if" section.
-- Identical provider requests in flight share one round trip, funding and sentiment reads come from a short cache, and a market with a refresh on record is not refetched on every read.
-- A provider request never follows a redirect, and the web edition's command bar refuses a line holding a key-like token.
+- An analysis side that names nothing that could prove it wrong is asked again.
+- Identical provider requests share one round trip, and slow readings come from a short cache.
+- A provider request never follows a redirect, and the command bar refuses a line holding a key.
+- Office page layout: header switches on one line, an empty market says so.
 
 ## [1.3.0] - 2026-11-03
 
