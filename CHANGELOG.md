@@ -7,6 +7,42 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.4.0] - 2026-11-05
+
+OpenAlpha now runs in the browser: the web edition at web.openalpha.link fetches market data in the
+tab, keeps your book on your own device, and argues a bull and a bear case on your own AI key, with no
+server of ours in between. Market terms explain themselves: a dotted word opens a plain definition,
+and `/glossary` lists them. The brief, `/overview` and the office page print derivatives, order flow,
+sentiment and the gold premium as the same labelled facts, and the screen board shows every name's
+readings in one grid. `/suggest` and `/record` refuse an index or a futures contract. The database
+gains two tables; the upgrade runs them for you.
+> OpenAlpha giờ chạy ngay trên trình duyệt: bản web tại web.openalpha.link tự lấy dữ liệu thị trường trong tab, giữ sổ của bạn trên chính thiết bị của bạn và phân tích hai chiều tăng, giảm bằng key AI của bạn, không qua máy chủ nào của chúng tôi. Thuật ngữ thị trường tự giải thích: chữ có gạch chân chấm mở một định nghĩa dễ hiểu, và `/glossary` liệt kê toàn bộ. Bản tin, `/overview` và trang văn phòng ghi phái sinh, dòng lệnh, tâm lý và chênh lệch giá vàng thành cùng một bộ số liệu có nhãn, còn bảng sàn lọc gom số đọc của mỗi mã vào một lưới. `/suggest` và `/record` từ chối chỉ số và hợp đồng tương lai. Cơ sở dữ liệu thêm hai bảng; lệnh nâng cấp tự chạy chúng.
+
+### Added
+
+- The web edition (web.openalpha.link) with its homepage (openalpha.link): market reads, the screen board, the ledger, the portfolio, the brief and a two-sided analysis run in the browser tab. Keys stay on the device ("Remember on this device" is on by default; untick it and a key lives only in the tab), a daily AI spend cap of 5 USD, a getting-started card, an in-tab error log and a database file you can save and load.
+- A glossary of 39 market terms in Vietnamese and English (indices and ETFs, valuation, money flow, derivatives and sentiment, price and liquidity, banking). A dotted word opens its definition on hover, tap or Enter, a "?" after a heading explains the group, the Glossary page searches by name, ticker or definition, and `/glossary [term]` prints the same terms in the CLI and chat apps.
+- The morning brief, `/overview` and the office page state crypto funding, open interest, long/short ratio, taker buy share, fear and greed and the VN gold premium as labelled facts under each market's heading.
+- The screen board shows each name's readings in one fact grid (price and liquidity, valuation and quality, money flow), with value limits, a kind choice, a second sort order and the most traded names first.
+- The target weights dialog switches a segment on or off and has "Reset to defaults"; a share rounds to its tenth of a percent when you leave the field.
+- The ticker page shows session low, high and volume, the VN gold dealer board's buy and sell sides, and an analysis states the price it stood on beside the price now.
+- Settings > Other venues adds a venue you trade by hand.
+
+### Changed
+
+- `/suggest` refuses an index or a futures contract (VN-Index, VN30, VN30F1M) before any AI call and points to an ETF that tracks the index; `/record` and `/update` refuse a row naming one. The ticker card of a level shows no "Analyze this name", "Record a trade", plan, holding or past-call blocks.
+- Quotes carry the name's own kind, so an index prints as a level, not as a price divided by the board scale.
+- The AI label reads "AI-generated content. I am giving you analysis to weigh yourself, not investment advice.", with no model name.
+- The Market tab and Today list only the markets you switched on; world gold stays as a reference. Each market's section opens on one green band.
+- The header's layout control reads "Office | Focus" instead of an icon.
+
+### Fixes
+
+- The office page's header switches sit on one line, the market clock shows only when it differs from the scene's, and a ghost button's hover is a soft wash.
+- An empty market section says so instead of showing a bare band.
+- Identical provider requests in flight share one round trip, funding and sentiment reads come from a short cache, and a market with a refresh on record is not refetched on every read.
+- A provider request never follows a redirect, and the web edition's command bar refuses a line holding a key-like token.
+
 ## [1.3.0] - 2026-11-03
 
 US stocks and ETFs can now be your home market: the 500 largest US companies and a fund board,
@@ -660,6 +696,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.4.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.0
 [1.3.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.3.0
 [1.2.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.2
 [1.2.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.1
