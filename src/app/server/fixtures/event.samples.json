@@ -73,14 +73,6 @@
   },
   {
     "v": 1,
-    "kind": "run_thinking",
-    "weight": "quiet",
-    "source": { "channel": "cli", "agentId": "" },
-    "runId": "run_abc",
-    "thinking": "So sánh biên lợi nhuận với nhóm công nghệ"
-  },
-  {
-    "v": 1,
     "kind": "usage",
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },

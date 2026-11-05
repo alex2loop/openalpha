@@ -217,7 +217,7 @@ lần gọi mô hình kế tiếp. Engine kiểm tra trích nguồn, rút ra cá
 truyền tín hiệu hủy, và báo lý do kết thúc có kiểu. Cấu hình và các sổ đăng ký đóng băng lúc khởi động.
 
 **Luồng trực tiếp và làn câu lệnh.** Engine và bộ điều phối câu lệnh đưa vòng đời của phiên chạy lên bus
-(`run_started`, `run_progress`, `run_thinking`, `run_finished`, và `command_started`, `command_progress`,
+(`run_started`, `run_progress`, `run_finished`, và `command_started`, `command_progress`,
 `command_finished` cho câu lệnh gạch chéo chạy lâu); app thêm `order_filled`, `alerts_checked`, `role_output` (lời của từng vai trong cuộc tranh biện, qua một
 điểm nối của trading do `app` gắn vào) và `agent_added`, engine thêm `budget_exhausted`, `tool_started` và
 `tool_finished` (mỗi lời gọi có công cụ đã đăng ký báo kết thúc đúng một lần, và báo bắt đầu nếu nó tới được

@@ -34,7 +34,6 @@ import {
   SKILL_VIEW_RUN_BUDGET_BYTES,
   TOOL_RESULT_MAX_BYTES,
 } from '@/engine/constants'
-import { createThinkingState, type ThinkingState } from '@/engine/loop/thinking'
 import { createTodoSlot } from '@/engine/loop/todo'
 import { createToolExposure } from '@/engine/loop/tools/exposure'
 import { NO_DEADLINE } from '@/engine/run-registry'
@@ -51,7 +50,6 @@ export interface RunBookkeeping {
   compactionPasses: number
   turnRestarts: number
   estimator?: { readonly tokens: number }
-  thinking: ThinkingState
 }
 
 export interface RunDeps {
@@ -281,7 +279,7 @@ export function assembleRun(
       ...optionalEnvFields(options),
     },
     state: buildRunState({ deps, options, parent, tools, messages, budget }),
-    bookkeeping: { compactionPasses: 0, turnRestarts: 0, thinking: createThinkingState() },
+    bookkeeping: { compactionPasses: 0, turnRestarts: 0 },
   }
 }
 

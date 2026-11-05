@@ -53,7 +53,7 @@
     "src/core/ssrf/pinned-fetch.ts#sendPinnedRequest": 44,
     "src/engine/hooks/user-preferences.ts#extractAtoms": 51,
     "src/engine/loop/drive.ts#driveRun": 48,
-    "src/engine/loop/drive.ts#runOneTurn": 50,
+    "src/engine/loop/drive.ts#runOneTurn": 49,
     "src/engine/loop/run.ts#runOnce": 48,
     "src/engine/loop/tools/exposure.ts#searchTools": 42,
     "src/engine/loop/tools/observer.ts#createToolObserver": 46,
