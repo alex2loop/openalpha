@@ -185,17 +185,17 @@
   font: var(--typeCaption);
 }
 
-/* A market's name is a band in its block's colour that stays at the top while its section scrolls
-   by, so a row or reading far down still says which market it belongs to. It sticks at the panel's
-   edge, over its padding, on an opaque surface so nothing shows through. */
+/* A market's name is a band, one colour for every market, that stays at the top while its section
+   scrolls by, so a row or reading far down still says which market it belongs to. It sticks at the
+   panel's edge, over its padding, on an opaque surface so nothing shows through. */
 .market-section > .sub-head {
-  --bandTint: color-mix(in srgb, var(--c) 10%, transparent);
+  --bandTint: color-mix(in srgb, var(--tc-green) 10%, transparent);
 
   position: sticky;
   top: calc(var(--panelBodyPad, 0px) * -1);
   z-index: 1;
   padding: var(--s1) var(--s2);
-  border-left: 3px solid var(--c);
+  border-left: 3px solid var(--tc-green);
   border-radius: 0 var(--controlRadius) var(--controlRadius) 0;
   background: linear-gradient(var(--bandTint), var(--bandTint)), var(--surface);
 }
