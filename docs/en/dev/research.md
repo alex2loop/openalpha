@@ -113,6 +113,7 @@ A source or excerpt is dropped when:
 | Excerpt was cut to 4,000 characters | `truncation` |
 | Source exceeded 8 excerpts | `content_limit` |
 | Publication date outside a requested freshness window | `freshness_out_of_window` |
+| Source date, or a non-forecast numeric claim's day, after the run's day | `freshness_out_of_window` |
 | Publication date missing or low-confidence | `freshness_uncertain` |
 | Evidence trimmed to fit 128 KiB | `artifact_limit` |
 
@@ -125,6 +126,11 @@ is high-confidence. Dates come from two independent signals: the search provider
 estimate) and the page's own markup (JSON-LD, published-time metas, a dated `<time>` tag). If they
 agree, the date is high-confidence. If they disagree, the page's date is recorded at low confidence,
 which admits the source with a penalty. A page-only date is a medium-confidence extraction.
+
+A date after the run's day is a different case: it is a wrong date at any confidence, so admission sets
+the source aside (and a non-forecast numeric claim whose `effectiveOn` is after it) with no freshness
+window needed. The day is the run's clock read in `[locale] timezone`, taken once with `now`. A missing
+date stays missing.
 
 ### Coverage rules
 

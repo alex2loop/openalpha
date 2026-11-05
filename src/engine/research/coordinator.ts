@@ -4,6 +4,7 @@ import type { ExternalCharge } from '@/core/types/usage'
 import { RESEARCH_PROFILE_DEPTHS } from '@/core/config/resolve'
 import { RunHalted, ToolError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { dayInZone } from '@/core/utils/time'
 
 import type {
   FailedResearchResult,
@@ -48,7 +49,7 @@ async function runResearch(
   invocation: ResearchInvocation
 ): Promise<ResearchResult> {
   const depth = request.depth ?? RESEARCH_PROFILE_DEPTHS.standard
-  const now = Date.now()
+  const clock = createRunClock(deps.config.locale.timezone)
   const startedAt = performance.now()
   const retrievalAttempts: ResearchRetrievalAttempt[] = []
   const retrievalState = createResearchRetrievalState({
@@ -73,7 +74,7 @@ async function runResearch(
         request,
         invocation,
         depth,
-        now,
+        clock,
         retrievalState,
         retrievalAttempts,
         setBudgets: (value) => {
@@ -112,7 +113,7 @@ interface ExecuteResearchInput {
   readonly request: ResearchRequest
   readonly invocation: ResearchInvocation
   readonly depth: StageContext['depth']
-  readonly now: number
+  readonly clock: Pick<StageContext, 'now' | 'today'>
   readonly retrievalState: ReturnType<typeof createResearchRetrievalState>
   readonly retrievalAttempts: ResearchRetrievalAttempt[]
   readonly setBudgets: (budgets: ResearchBudgetPool) => void
@@ -131,6 +132,13 @@ interface InitialResearchProfile {
   readonly objective: ResearchObjective
   readonly effort: ResearchEffortProfile
   readonly maxBudgetedQuestions: number
+}
+
+// The clock is read once per run: the instant and the reader's calendar day move together.
+function createRunClock(timeZone: string): ExecuteResearchInput['clock'] {
+  const now = Date.now()
+
+  return { now, today: dayInZone(now, timeZone) }
 }
 
 async function executeResearch(input: ExecuteResearchInput): Promise<ResearchResult> {
@@ -154,7 +162,7 @@ async function executeResearch(input: ExecuteResearchInput): Promise<ResearchRes
     budgets.chargeExternalCost(charge.costUsd)
   }
   const stages = createResearchStages({
-    now: input.now,
+    now: input.clock.now,
     runner: deps.runner,
     invocation,
     quota,
@@ -179,7 +187,7 @@ async function executeResearch(input: ExecuteResearchInput): Promise<ResearchRes
     quota,
     budgets,
     config: deps.config.research,
-    now: input.now,
+    ...input.clock,
     objective: initial.objective,
     effort,
     maxQuestions: effort.questionLimit,

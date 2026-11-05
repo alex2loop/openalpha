@@ -2868,7 +2868,7 @@
   },
   "researchGaps": {
     "missingSupport": "Chưa tìm thấy đủ nguồn ủng hộ cho một nhận định.",
-    "freshnessOutOfWindow": "Bằng chứng nằm ngoài khoảng thời gian được yêu cầu.",
+    "freshnessOutOfWindow": "Bằng chứng có ngày nằm ngoài khoảng thời gian được yêu cầu, hoặc sau hôm nay, đã được gạt ra.",
     "freshnessUncertain": "Không thể xác minh ngày của bằng chứng với độ tin cậy cần thiết.",
     "numericMismatch": "Số liệu không khớp với nguồn: {reason}.",
     "unsafeContent": "Nội dung nguồn có khả năng không an toàn đã bị loại.",

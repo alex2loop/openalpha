@@ -29,6 +29,9 @@ import {
   buildResearchSource,
   candidateBranchScope,
   candidateReferenceKey,
+  dropFutureDated,
+  type EvidenceSet,
+  type FreshEvidenceSet,
   type ResolutionState,
   resolveClaims,
   resolveGaps,
@@ -46,6 +49,7 @@ interface EvidenceAdmissionInput {
   readonly freshness?: ResearchFreshness
   readonly bounds: ResearchEvidenceBounds
   readonly now: number
+  readonly today: string
   readonly signal: AbortSignal
 }
 
@@ -92,6 +96,7 @@ export async function admitEvidence(
   state.resolveClaims(input.candidates)
   state.resolveNumericLinks(input.candidates)
   state.resolveGaps(input.candidates)
+  state.applyRunDay(input.today)
   state.applyFreshness(input.freshness)
 
   if (!state.hasUsableExcerpt()) {
@@ -312,14 +317,23 @@ class EvidenceAdmissionState implements ResolutionState {
     if (freshness === undefined) {
       return
     }
-    const filtered = applySourceFreshness({
+    this.replaceEvidence(applySourceFreshness({ ...this.evidenceSet(), freshness }))
+  }
+
+  applyRunDay(today: string): void {
+    this.replaceEvidence(dropFutureDated({ ...this.evidenceSet(), today }))
+  }
+
+  private evidenceSet(): EvidenceSet {
+    return {
       sources: [...this.sources.values()],
       excerpts: this.excerpts,
       claims: this.claims,
       numericLinks: this.numericLinks,
-      freshness,
-    })
+    }
+  }
 
+  private replaceEvidence(filtered: FreshEvidenceSet): void {
     this.sources.clear()
     this.sourceIdByUrl.clear()
     for (const source of filtered.sources) {

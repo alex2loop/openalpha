@@ -127,13 +127,14 @@ Khi có gì bị loại hoặc còn thiếu, báo cáo nêu thành khoảng tr�
 | `content_limit` | Một giới hạn cỡ hay số lượng đã cắt tài liệu (quá 42 lần tìm, quá 3 trang tự đọc, quá 8 trích đoạn trên một nguồn) |
 | `missing_support` | Một luận điểm mất trích đoạn hậu thuẫn |
 | `unsafe_content` | Một nguồn hay câu trích trượt phép quét tiêm prompt |
-| `freshness_out_of_window` / `freshness_uncertain` | Ngày nằm ngoài cửa sổ bạn yêu cầu, hoặc thiếu hay độ tin cậy thấp |
+| `freshness_out_of_window` / `freshness_uncertain` | Ngày nằm ngoài cửa sổ bạn yêu cầu hoặc sau hôm nay (bị gạt ra), hoặc thiếu hay độ tin cậy thấp |
 | `truncation` | Một trích đoạn bị cắt cho vừa 4.000 ký tự |
 | `artifact_limit` | Bằng chứng phải cắt cho vừa 128 KiB |
 | `provider_unavailable` | Nhà cung cấp tìm kiếm hỏng và chưa cấu hình dự phòng |
 
 Độ mới không bao giờ lặng lẽ loại một nguồn chỉ vì tín hiệu yếu. Ngày chỉ bị từ chối khi chính nó có độ
-tin cậy cao; nếu không, nguồn vẫn ở lại và bị gắn cờ.
+tin cậy cao; nếu không, nguồn vẫn ở lại và bị gắn cờ. Ngoại lệ duy nhất là ngày sau hôm nay theo múi
+giờ của bạn: đó là ngày sai ở mọi độ tin cậy nên nguồn bị gạt ra. Nguồn không có ngày thì vẫn không có ngày.
 
 ## Đọc báo cáo
 

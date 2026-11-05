@@ -2868,7 +2868,7 @@
   },
   "researchGaps": {
     "missingSupport": "Not enough source support was found for a claim.",
-    "freshnessOutOfWindow": "Evidence fell outside the requested freshness window.",
+    "freshnessOutOfWindow": "Evidence dated outside the requested window, or after today, was set aside.",
     "freshnessUncertain": "The evidence date could not be verified with enough confidence.",
     "numericMismatch": "A number did not match its source: {reason}.",
     "unsafeContent": "Potentially unsafe source content was excluded.",

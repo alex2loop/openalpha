@@ -114,6 +114,7 @@ Một nguồn hoặc trích đoạn bị loại khi:
 | Trích đoạn bị cắt cho vừa 4.000 ký tự | `truncation` |
 | Nguồn vượt 8 trích đoạn | `content_limit` |
 | Ngày công bố nằm ngoài cửa sổ độ mới được yêu cầu | `freshness_out_of_window` |
+| Ngày của nguồn, hoặc ngày của luận điểm số không phải dự báo, sau ngày chạy của người đọc | `freshness_out_of_window` |
 | Ngày công bố thiếu hoặc độ tin cậy thấp | `freshness_uncertain` |
 | Bằng chứng phải cắt cho vừa 128 KiB | `artifact_limit` |
 
@@ -126,6 +127,11 @@ truy vấn.
 ước lượng) và chính markup của trang (JSON-LD, các meta published-time, thẻ `<time>` có ngày). Hai bên
 khớp thì ghi ngày ở độ tin cậy cao; lệch nhau thì ghi ngày của trang ở độ tin cậy thấp, tức là nhận
 nguồn nhưng bị trừ điểm. Chỉ có ngày từ trang thì tính là rút trích ở độ tin cậy trung bình.
+
+Ngày sau ngày chạy là trường hợp khác: đó là ngày sai ở mọi độ tin cậy, nên bước nhận bằng chứng gạt
+nguồn đó ra (cả luận điểm số không phải dự báo có `effectiveOn` sau ngày chạy), không cần cửa sổ độ mới.
+Ngày chạy là đồng hồ của lượt chạy đọc theo `[locale] timezone`, lấy một lần cùng `now`. Ngày thiếu thì
+vẫn thiếu.
 
 ### Quy tắc độ phủ
 
