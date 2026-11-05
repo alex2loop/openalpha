@@ -14,7 +14,6 @@ import {
   type BrowserOverrides,
   ModelChainSchema,
   SHIPPED_MODELS,
-  SHIPPED_TIERS,
   TierOverridesSchema,
 } from '@/app/browser/config'
 import {
@@ -79,7 +78,7 @@ const MODELS: OverrideSection<BrowserOverrides['models']> = {
 
 const TIERS: OverrideSection<BrowserOverrides['tiers']> = {
   name: TIERS_SECTION,
-  empty: SHIPPED_TIERS,
+  empty: {},
   accept: (value) => {
     const parsed = TierOverridesSchema.safeParse(value)
 

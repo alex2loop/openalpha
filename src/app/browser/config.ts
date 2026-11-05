@@ -21,20 +21,20 @@ const MAX_MODEL_CHARS = 200
  *  key builds its chain; the real key is read from the keyring on each request. */
 const KEY_PLACEHOLDER = 'browser-managed-key'
 
-/** The shipped starting point, on OpenRouter. The main model is the one `/suggest` argues on; the
- *  research tiers are kept in step with `config.minimal.toml` by hand. */
+/** The shipped starting point, on OpenRouter. The main model is the one `/suggest` argues on. */
 const SHIPPED_PROVIDER = 'openrouter'
 const SHIPPED_MAIN_MODEL = 'openai/gpt-6-luna'
-const SHIPPED_RESEARCH_MODEL = 'anthropic/claude-haiku-5.5'
+const HIDDEN_TIER_MODEL = 'anthropic/claude-haiku-5.5'
 /** The web's own cap, above the installed version's: a visitor's key pays for each run. */
 const DAILY_SPEND_CAP_USD = 5
 
 // The headline tier (`decisions`) is left out on purpose: its endpoint reads its key itself, which
 // the keyring cannot supply, and an absent tier turns the headline read off cleanly.
-// Extraction reads macro reports, which only the installed version's daemon does.
+// Extraction reads macro reports, which only the installed version's daemon does. Both are kept in
+// step with `config.minimal.toml` by hand.
 const HIDDEN_TIERS = {
-  themes: [{ model: SHIPPED_RESEARCH_MODEL }],
-  extraction: [{ model: SHIPPED_RESEARCH_MODEL }],
+  themes: [{ model: HIDDEN_TIER_MODEL }],
+  extraction: [{ model: HIDDEN_TIER_MODEL }],
 }
 
 const TierEntrySchema = z.strictObject({
@@ -67,13 +67,6 @@ export interface BrowserOverrides {
 export const SHIPPED_MODELS: ModelChain = freezeDeep([
   { provider: SHIPPED_PROVIDER, model: SHIPPED_MAIN_MODEL },
 ])
-
-/** The tiers that run on their own model until the visitor changes them; `debate` is absent, so it
- *  uses the main model. */
-export const SHIPPED_TIERS: TierOverrides = freezeDeep({
-  research: [{ provider: SHIPPED_PROVIDER, model: SHIPPED_RESEARCH_MODEL }],
-  'research-heavy': [{ provider: SHIPPED_PROVIDER, model: SHIPPED_RESEARCH_MODEL }],
-})
 
 export function resolveBrowserConfig(locale: Locale, overrides: BrowserOverrides): ResolvedConfig {
   const raw = parseRawConfig({
