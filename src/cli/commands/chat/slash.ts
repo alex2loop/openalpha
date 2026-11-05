@@ -68,12 +68,12 @@ export async function runSlash(session: ChatSession, line: string): Promise<Slas
   }
 }
 
-interface SlashRun {
+interface SlashProgress {
   readonly controller: AbortController
   readonly spinner: Spinner | undefined
 }
 
-function buildSlashContext(session: ChatSession, run: SlashRun): SlashContext {
+function buildSlashContext(session: ChatSession, run: SlashProgress): SlashContext {
   const { app, state, flags } = session
   const { controller, spinner } = run
 

@@ -27,6 +27,7 @@ gains two tables; the upgrade runs them for you.
 - The target weights dialog switches a segment on or off and has "Reset to defaults"; a share rounds to its tenth of a percent when you leave the field.
 - The ticker page shows session low, high and volume, the VN gold dealer board's buy and sell sides, and an analysis states the price it stood on beside the price now.
 - Settings > Other venues adds a venue you trade by hand.
+- On the web, the chat panel shows its earlier messages again after a reload, and the history button lists the older sessions and opens one read-only, as on the dashboard.
 
 ### Changed
 

@@ -17,15 +17,10 @@ export async function assertHoldable(
   }
 
   const { instrument } = transaction
-  const market = deps.markets.find(instrument.market)
-
-  if (market === null || market.manifest.detection !== 'stored') {
-    return
-  }
-
   const resolution = await deps.markets.resolve({
     ticker: instrument.ticker,
     market: instrument.market,
+    detection: 'stored',
     signal: check.signal,
   })
 

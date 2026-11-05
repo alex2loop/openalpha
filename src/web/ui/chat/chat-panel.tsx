@@ -1,7 +1,6 @@
 import { breakpoint } from '@/web/state/breakpoints'
 import { isChatOpen, setChatOpen, viewedSession } from '@/web/state/chat'
 import { startNewSession } from '@/web/state/chat-history'
-import { isAnalysisOnly } from '@/web/state/edition'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import { ChatResizer, chatWidthStyle } from '@/web/ui/chat/chat-resizer'
@@ -50,17 +49,15 @@ function ChatHead() {
   return (
     <div class="chat-head">
       <h2>{tr('ui.office.chat.title')}</h2>
-      {!isAnalysisOnly.value && (
-        <Button
-          kind="ghost"
-          size="small"
-          title={tr('ui.office.chat.oldSessions')}
-          onClick={openSessionsDialog}
-        >
-          <HistoryIcon />
-          <span class="chat-head-label">{tr('ui.office.chat.oldSessions')}</span>
-        </Button>
-      )}
+      <Button
+        kind="ghost"
+        size="small"
+        title={tr('ui.office.chat.oldSessions')}
+        onClick={openSessionsDialog}
+      >
+        <HistoryIcon />
+        <span class="chat-head-label">{tr('ui.office.chat.oldSessions')}</span>
+      </Button>
       <Button
         kind="ghost"
         size="small"

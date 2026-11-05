@@ -117,6 +117,10 @@ async function resolveExplicit(
     return unresolved(options.ticker, [notListed])
   }
 
+  if (!isAskable(market, options)) {
+    return unresolved(options.ticker, [])
+  }
+
   const entry = await detectSafely(market, options)
   const [matched] = matchedDetections([entry])
 
@@ -126,6 +130,11 @@ async function resolveExplicit(
 
   // A detector that could not answer is "not today"; only a clean miss is "not listed".
   return unresolved(options.ticker, entry.caveats.length === 0 ? [notListed] : entry.caveats)
+}
+
+/** A stored-only ask makes no network request, so a market that fetches is not asked. */
+function isAskable(market: Market, options: ResolveMarketOptions): boolean {
+  return options.detection !== 'stored' || market.manifest.detection === 'stored'
 }
 
 function unresolved(candidate: Ticker, caveats: readonly Caveat[]): MarketResolution {
@@ -156,8 +165,7 @@ async function preferredMarket(
         (market) =>
           (options.within === undefined || options.within.includes(market.manifest.id)) &&
           market.candidacy(options.ticker) === 'possible' &&
-          // A stored-only ask makes no network request, so a market that fetches is not asked.
-          (options.detection !== 'stored' || market.manifest.detection === 'stored')
+          isAskable(market, options)
       )
       .map((market) => market.manifest.id)
   )
@@ -272,11 +280,7 @@ async function otherListingCaveats(
   winner: Market,
   options: ResolveMarketOptions
 ): Promise<readonly Caveat[]> {
-  const others = possible.filter(
-    (market) =>
-      market !== winner &&
-      (options.detection !== 'stored' || market.manifest.detection === 'stored')
-  )
+  const others = possible.filter((market) => market !== winner && isAskable(market, options))
   // A courtesy note is never worth a per-symbol network lookup on every read.
   const detections = await Promise.all(
     others.map((market) => detectSafely(market, options, BOARD_ONLY))

@@ -14,7 +14,6 @@ import {
   marketRef,
   renderAnalysisBody,
   renderAnalysisFailure,
-  renderAnalysisText,
   type SuggestionRequest,
 } from '@/trading/api'
 
@@ -183,10 +182,8 @@ async function analyse(
 
     return {
       kind: 'text',
-      text:
-        ctx.hasAiLabel === true
-          ? renderAnalysisBody(ctx.locale, record)
-          : renderAnalysisText(ctx.locale, record),
+      // The chat panel, the only way in, shows the AI label once at its top.
+      text: renderAnalysisBody(ctx.locale, record),
     }
   } catch (err: unknown) {
     if (err instanceof AnalysisError) {

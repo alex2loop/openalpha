@@ -23,10 +23,11 @@ const QUOTES_POLL_MS = 60_000
 const MAX_READ_LEVELS = 200
 
 type StopRow = StopsResponse['stops'][number]
+type LevelRead = Pick<TradingQuoteWire, 'market' | 'ticker' | 'isLevel'>
 
 const TRADING_PHASES: ReadonlySet<SessionPhase> = new Set(['open', 'break'])
 
-const readLevels = signal<ReadonlyMap<string, boolean>>(new Map())
+const readLevels = signal<ReadonlyMap<string, LevelRead>>(new Map())
 
 export const marketsBlock = createRouteBlock(ROUTES.markets)
 export const overviewBlock = createRouteBlock(ROUTES.overview)
@@ -119,19 +120,24 @@ export function findQuote(ticker: string, market?: string): TradingQuoteWire | u
 export function noteQuoteLevel(quote: TradingQuoteWire): void {
   const key = keyOf(quote)
 
-  if (readLevels.value.get(key) === quote.isLevel) {
+  if (readLevels.value.get(key)?.isLevel === quote.isLevel) {
     return
   }
 
   const next = new Map(readLevels.value)
 
-  setCapped(next, [key, quote.isLevel], MAX_READ_LEVELS)
+  setCapped(
+    next,
+    [key, { market: quote.market, ticker: quote.ticker, isLevel: quote.isLevel }],
+    MAX_READ_LEVELS
+  )
   readLevels.value = next
 }
 
 /** Whether the name's quote says it publishes a level: an index or a futures contract is read,
  *  never bought or analysed. A name no quote has described is not: a slow quote never hides from a
- *  real stock what it can do. Without a market, any market's quote of the ticker says so. */
+ *  real stock what it can do. Without a market, the board's first quote of the ticker answers; a
+ *  name the board lacks is a level when any market's read of it said so. */
 export function isLevelInstrument(instrument: {
   readonly market?: string
   readonly ticker: string
@@ -144,8 +150,8 @@ export function isLevelInstrument(instrument: {
   }
 
   return market === undefined
-    ? [...readLevels.value].some(([key, isLevel]) => isLevel && key.endsWith(`:${ticker}`))
-    : (readLevels.value.get(keyOf({ market, ticker })) ?? false)
+    ? [...readLevels.value.values()].some((read) => read.isLevel && read.ticker === ticker)
+    : (readLevels.value.get(keyOf({ market, ticker }))?.isLevel ?? false)
 }
 
 /** How the market prints a price, off `/v1/markets`; absent for a market with no board scale. */

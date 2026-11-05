@@ -5,13 +5,15 @@ import { type MessageKey, t } from '@/i18n'
 import { renderUnsupportedReason } from '@/trading/features/suggestion/render/verdict'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 
-/** The ceilings a call is refused at before it is sent, when its estimated cost would cross one: a
- *  single call above the run's ceiling, which a cheaper model fixes, or a period already spent. */
-const SPEND_CAP_KEYS = new Map<unknown, MessageKey>([
+/** The causes with a wording of their own. The ceilings a call is refused at before it is sent, when
+ *  its estimated cost would cross one: a single call above the run's ceiling, which a cheaper model
+ *  fixes, or a period already spent. And an answer, repair included, the role's schema rejected. */
+const REASON_KEYS = new Map<unknown, MessageKey>([
   ['run_budget', 'trading.analysis.over-cap'],
   ['daily_cap', 'trading.analysis.cap-spent'],
   ['monthly_cap', 'trading.analysis.cap-spent'],
   ['agent_daily_cap', 'trading.analysis.cap-spent'],
+  ['invalid-output', 'trading.analysis.invalid-output'],
 ])
 
 /** Why a run stored nothing, in the reader's language: why the name cannot be analysed, or why a role
@@ -30,10 +32,10 @@ export function renderAnalysisFailure(locale: Locale, failure: AnalysisFailure):
 }
 
 function reasonKeyOf(cause: unknown): MessageKey {
-  const capKey = SPEND_CAP_KEYS.get(cause)
+  const ownKey = REASON_KEYS.get(cause)
 
-  if (capKey !== undefined) {
-    return capKey
+  if (ownKey !== undefined) {
+    return ownKey
   }
 
   const known = LLM_ERROR_CODES.find((code) => code === cause)

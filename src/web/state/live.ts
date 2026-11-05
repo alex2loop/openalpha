@@ -3,6 +3,7 @@ import { computed, type ReadonlySignal, signal } from '@preact/signals'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { PendingWire, ProgressWire, QuestionPendingWire } from '@/app/server/wire/live'
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
+import { setCapped } from '@/web/state/capped-map'
 
 /** The pending entry an approval is; the other kind is a question. */
 export const APPROVAL_KIND = 'approval'
@@ -43,7 +44,7 @@ const taskList = signal<readonly TaskStatusWire[] | undefined>(undefined)
 // The tickers each run the page watched end reported, oldest first, by `runId`.
 const finishedTickers = new Map<string, readonly string[]>()
 // The runs the page saw start a child run, which stays known after the child ends.
-const parentRuns = new Set<string>()
+const parentRuns = new Map<string, true>()
 let arrivalSeq = 0
 
 export const runs: ReadonlySignal<readonly Run[]> = runList
@@ -85,16 +86,7 @@ export function noteFinishedTickers(runId: string, tickers: readonly string[] | 
     return
   }
 
-  finishedTickers.delete(runId)
-  finishedTickers.set(runId, tickers)
-
-  for (const oldest of finishedTickers.keys()) {
-    if (finishedTickers.size <= MAX_FINISHED_TICKERS) {
-      break
-    }
-
-    finishedTickers.delete(oldest)
-  }
+  setCapped(finishedTickers, [runId, tickers], MAX_FINISHED_TICKERS)
 }
 
 /** What a run this page watched end reported on; empty for one it did not see end. */
@@ -146,15 +138,7 @@ function noteParent(runId: string | undefined): void {
     return
   }
 
-  parentRuns.add(runId)
-
-  for (const oldest of parentRuns) {
-    if (parentRuns.size <= MAX_PARENT_RUNS) {
-      break
-    }
-
-    parentRuns.delete(oldest)
-  }
+  setCapped(parentRuns, [runId, true], MAX_PARENT_RUNS)
 }
 
 export function updateRun(runId: string, update: (run: Run) => Run): void {

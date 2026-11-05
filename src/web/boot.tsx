@@ -108,7 +108,7 @@ function startLive({ chatTab }: OfficeOptions): () => void {
     ...(offers('schedules') ? [startNotices()] : []),
     startChat(),
     startQuietCommands(),
-    ...(isAnalysisOnly.value ? [] : [startChatHistory(chatTab)]),
+    startChatHistory(chatTab),
     startEstimates(),
     startAttention(),
     ...(chatTab === undefined ? startOffice() : []),

@@ -14,7 +14,7 @@ export function declareWebEdition(): void {
 }
 
 /** The edition serving this page gives analysis only (the browser edition): no verdict, level or
- *  order, and the parts of the daemon that need a host (restarts, updates, stored chats) are not
+ *  order, and the parts of the daemon that need a host (restarts, updates) are not
  *  there. It reads the session's capability, and the page's own word while there is no session. */
 export const isAnalysisOnly = computed(
   () => state.value?.capabilities.analysisOnly ?? isWebPage.value

@@ -2,8 +2,6 @@ import { useEffect, useRef } from 'preact/hooks'
 
 import { thread } from '@/web/state/chat'
 import { history, isOpenedGone, loadEarlier } from '@/web/state/chat-history'
-import { isAnalysisOnly } from '@/web/state/edition'
-import { openIdeas } from '@/web/state/ideas'
 import { toFailureText, tr } from '@/web/text/tr'
 import { ApprovalInline } from '@/web/ui/chat/approval-inline'
 import { HistoryMessages } from '@/web/ui/chat/history-message'
@@ -50,7 +48,6 @@ export function MessageList() {
     >
       {isOpenedGone.value && <p class="meta chat-start">{tr('ui.office.sessions.unknown')}</p>}
       <HistoryHead />
-      {isAnalysisOnly.value && turns.length === 0 && <WebChatStart />}
       <HistoryMessages messages={earlier} />
       {turns.map((turn) => (
         <TurnCard key={turn.localId} turn={turn} />
@@ -72,18 +69,6 @@ function useEarlierPages(list: { readonly current: HTMLElement | null }): () => 
       loadEarlier().catch(() => undefined)
     },
   })
-}
-
-// The web edition keeps no chat between visits; what a run made stays, under Analysis.
-function WebChatStart() {
-  return (
-    <p class="meta chat-start">
-      {tr('ui.office.chat.webStart')}{' '}
-      <Button kind="tertiary" size="small" onClick={() => openIdeas('analyses')}>
-        {tr('ui.office.chat.webStartOpen')}
-      </Button>
-    </p>
-  )
 }
 
 function HistoryHead() {
