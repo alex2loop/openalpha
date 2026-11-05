@@ -15,36 +15,13 @@
   background: var(--canvas);
 }
 
-.macro-drivers {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--sizeBody);
-}
-
-.macro-drivers th {
-  color: var(--ink2);
-  font-weight: var(--weightMedium);
-  text-align: start;
-}
-
-.macro-drivers th,
-.macro-drivers td {
-  padding: var(--s0) var(--s1) var(--s0) 0;
-  vertical-align: middle;
-}
-
-.macro-drivers th {
-  white-space: nowrap;
-}
-
-.macro-drivers td:first-child {
-  width: 100%;
-}
-
-.macro-drivers .num {
-  font-variant-numeric: tabular-nums;
-  text-align: end;
-  white-space: nowrap;
+/* A driver's band, weight and pull in Nâng cao, on one line under its reading that wraps on a phone. */
+.macro-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s0) var(--s2);
+  padding-bottom: var(--s0);
 }
 
 .macro-asof {
@@ -78,6 +55,10 @@
 
 .macro-range .macro-track {
   flex: 1;
+}
+
+.macro-detail .macro-range {
+  flex: 1 1 12rem;
 }
 
 .theme-row {

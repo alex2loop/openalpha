@@ -8,13 +8,10 @@ import { locale } from '@/web/state/session'
 import { formatSignedFraction, PERCENT } from '@/web/text/figures'
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
-import { Fold } from '@/web/ui/kit/fold'
 import { PieIcon } from '@/web/ui/kit/icons'
 import { RankedList, type RankedRow } from '@/web/ui/market/ranked-list'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
-// The strongest and the weakest sectors shown before the rest fold away.
-const SECTORS_PER_END = 5
 // The windows of the two excess returns the wire carries, in sessions.
 const EXCESS_SHORT_SESSIONS = 20
 const EXCESS_LONG_SESSIONS = 60
@@ -57,20 +54,7 @@ function SectorTable({ sectors }: { readonly sectors: SectorsResponse['sectors']
     return <SectorList rows={byName(sectors).map(excessRow)} />
   }
 
-  const rows = sectors.map(sectorRow)
-
-  if (rows.length <= 2 * SECTORS_PER_END) {
-    return <SectorList rows={rows} />
-  }
-
-  return (
-    <>
-      <SectorList rows={[...rows.slice(0, SECTORS_PER_END), ...rows.slice(-SECTORS_PER_END)]} />
-      <Fold title={tr('ui.office.market.sectorsShowAll')}>
-        <SectorList rows={rows} />
-      </Fold>
-    </>
-  )
+  return <SectorList rows={sectors.map(sectorRow)} />
 }
 
 function SectorList({ rows }: { readonly rows: readonly RankedRow[] }) {

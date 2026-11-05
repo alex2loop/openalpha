@@ -44,23 +44,26 @@ function MarketSection({ block }: { readonly block: OverviewBlock }) {
         ))}
       </div>
       <Movers movers={block.movers} currency={block.currency} />
+      {(block.breadth !== undefined || block.foreignNetValue !== undefined) && (
+        <div class="stack meta">
+          {block.breadth !== undefined && (
+            <p>
+              {tr('ui.office.today.breadth', {
+                up: block.breadth.advancers,
+                down: block.breadth.decliners,
+              })}
+            </p>
+          )}
+          {block.foreignNetValue !== undefined && (
+            <p>
+              {tr('ui.office.today.foreign')}: {formatSignedCompactAmount(block.foreignNetValue)}{' '}
+              {block.currency}
+            </p>
+          )}
+        </div>
+      )}
       <Readings block={block} />
-      <div class="stack meta">
-        {block.breadth !== undefined && (
-          <p>
-            {tr('ui.office.today.breadth', {
-              up: block.breadth.advancers,
-              down: block.breadth.decliners,
-            })}
-          </p>
-        )}
-        {block.foreignNetValue !== undefined && (
-          <p>
-            {tr('ui.office.today.foreign')}: {formatSignedCompactAmount(block.foreignNetValue)}{' '}
-            {block.currency}
-          </p>
-        )}
-      </div>
+      {block.sources !== undefined && <p class="market-source">{block.sources}</p>}
     </div>
   )
 }

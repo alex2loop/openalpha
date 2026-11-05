@@ -218,7 +218,9 @@
         {
           "kind": "sentiment",
           "heading": "Sentiment",
-          "facts": [{ "id": "sentimentScore", "label": "Market sentiment", "value": "Fear 25/100" }]
+          "facts": [
+            { "id": "sentimentScore", "label": "Fear and greed index", "value": "Fear 25/100" }
+          ]
         }
       ],
       "sources": "Data from binance-futures, alternative-me, updated 08/10/2026 16:30",

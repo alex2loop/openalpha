@@ -1,10 +1,14 @@
+import type { ComponentChildren } from 'preact'
+
 import type { MacroResponse } from '@/app/server/wire/market'
 import type { MessageKey } from '@/i18n'
+import { formatDay } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { isAnalysisOnly } from '@/web/state/edition'
 import { openMarketTab } from '@/web/state/market-tab'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
+import { locale } from '@/web/state/session'
 import { formatFixed, formatFixedFraction, PERCENT } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -24,8 +28,8 @@ const LEVEL_DIGITS = 2
 export type ReadyMacro = Extract<MacroResponse, { readonly status: 'ready' }>
 export type MacroDriver = ReadyMacro['drivers'][number]
 
-/** "Bối cảnh vĩ mô": the risk regime and the daemon's one-sentence lean; the web edition, which names
- *  no regime, lists each driver's own reading. */
+/** "Bối cảnh vĩ mô": each driver's own reading, under the risk regime and the daemon's one-sentence
+ *  lean where the edition names a regime (the web names none). */
 export function Macro() {
   const reading = useBlock(ROUTES.macro, { everyMs: MACRO_POLL_MS })
 
@@ -49,20 +53,34 @@ export function Macro() {
   )
 }
 
-/** The regime and the daemon's lean; an unavailable reading leaves its caveats to say why. */
-export function MacroReading({ macro }: { readonly macro: MacroResponse }) {
+interface DriverReadingsProps {
+  readonly drivers: ReadyMacro['drivers']
+  /** What a fuller view states under a driver's reading: its band, weight and pull. */
+  readonly detail?: ((driver: MacroDriver) => ComponentChildren) | undefined
+}
+
+/** The regime and the daemon's lean, then each driver's reading with the date it was read, and what
+ *  `detail` adds under it; an unavailable reading leaves its caveats to say why. */
+export function MacroReading({
+  macro,
+  detail,
+}: {
+  readonly macro: MacroResponse
+  readonly detail?: DriverReadingsProps['detail']
+}) {
   if (macro.status === 'unavailable') {
     return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
 
-  if (isAnalysisOnly.value) {
-    return <DriverReadings drivers={macro.drivers} />
-  }
-
   return (
     <div class="stack">
-      <span class={`regime-tag is-${macro.regime}`}>{tr(REGIME_KEYS[macro.regime])}</span>
-      {macro.lean !== undefined && <p class="lead">{macro.lean}</p>}
+      {!isAnalysisOnly.value && (
+        <>
+          <span class={`regime-tag is-${macro.regime}`}>{tr(REGIME_KEYS[macro.regime])}</span>
+          {macro.lean !== undefined && <p class="lead">{macro.lean}</p>}
+        </>
+      )}
+      <DriverReadings drivers={macro.drivers} detail={detail} />
     </div>
   )
 }
@@ -74,7 +92,7 @@ export function formatDriverValue(driver: Pick<MacroDriver, 'unit' | 'value'>): 
     : formatFixed(driver.value, LEVEL_DIGITS)
 }
 
-function DriverReadings({ drivers }: { readonly drivers: ReadyMacro['drivers'] }) {
+function DriverReadings({ drivers, detail }: DriverReadingsProps) {
   if (drivers.length === 0) {
     return <p class="empty-note">{tr('ui.office.today.empty')}</p>
   }
@@ -82,9 +100,17 @@ function DriverReadings({ drivers }: { readonly drivers: ReadyMacro['drivers'] }
   return (
     <div class="row-list">
       {drivers.map((driver) => (
-        <div key={driver.id} class="row">
-          <span>{driver.label}</span>
-          <b class="row-price">{formatDriverValue(driver)}</b>
+        <div key={driver.id} class="macro-driver">
+          <div class="row">
+            <span>
+              {driver.label}
+              <span class="meta macro-asof">
+                {tr('ui.office.market.driverAsOf', { day: formatDay(locale.value, driver.asOf) })}
+              </span>
+            </span>
+            <b class="row-price">{formatDriverValue(driver)}</b>
+          </div>
+          {detail?.(driver)}
         </div>
       ))}
     </div>

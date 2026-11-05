@@ -177,6 +177,14 @@
   color: var(--ink2);
 }
 
+/* Where the readings came from closes the market's section: below every figure it covers, and
+   quieter than them. */
+.market-source {
+  margin: 0;
+  color: var(--ink3);
+  font: var(--typeCaption);
+}
+
 .market-section + .market-section {
   padding-top: var(--s2);
   border-top: 1px solid var(--border);

@@ -1,11 +1,9 @@
 import type { MacroResponse } from '@/app/server/wire/market'
-import { formatDay } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { isAdvanced } from '@/web/state/prefs'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
-import { locale } from '@/web/state/session'
 import { toCaveatText } from '@/web/text/caveat-text'
 import {
   formatFixed,
@@ -53,7 +51,10 @@ export function MacroFull({ region }: { readonly region: string }) {
     >
       {(macro) => (
         <>
-          <MacroReading macro={macro} />
+          <MacroReading
+            macro={macro}
+            detail={isAdvanced.value && !isAnalysisOnly.value ? DriverDetail : undefined}
+          />
           {macro.status === 'ready' && <MacroDetail macro={macro} />}
           <InfoNotes caveats={macro.caveats} />
         </>
@@ -67,24 +68,21 @@ function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
   const reading = readingLines(macro)
 
   return (
-    <>
-      <div class="stack meta">
-        <RatesLine readings={macro.readings} />
-        {reading.length > 0 && <p>{joinInline(reading)}</p>}
-        {isAdvanced.value && !isAnalysisOnly.value && (
-          <p>
-            {tr('ui.office.market.scale', {
-              score: formatFixed(macro.score, SCORE_DIGITS),
-              min: formatFixed(range.min, SCORE_DIGITS),
-              max: formatFixed(range.max, SCORE_DIGITS),
-              on: formatFixed(range.riskOnAt, SCORE_DIGITS),
-              off: formatFixed(range.riskOffAt, SCORE_DIGITS),
-            })}
-          </p>
-        )}
-      </div>
-      {isAdvanced.value && <DriverTable drivers={macro.drivers} />}
-    </>
+    <div class="stack meta">
+      <RatesLine readings={macro.readings} />
+      {reading.length > 0 && <p>{joinInline(reading)}</p>}
+      {isAdvanced.value && !isAnalysisOnly.value && (
+        <p>
+          {tr('ui.office.market.scale', {
+            score: formatFixed(macro.score, SCORE_DIGITS),
+            min: formatFixed(range.min, SCORE_DIGITS),
+            max: formatFixed(range.max, SCORE_DIGITS),
+            on: formatFixed(range.riskOnAt, SCORE_DIGITS),
+            off: formatFixed(range.riskOffAt, SCORE_DIGITS),
+          })}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -141,75 +139,25 @@ function RatesLine({ readings }: { readonly readings: ReadyMacro['readings'] }) 
   return rates.length === 0 ? null : <p>{joinInline(rates)}</p>
 }
 
-// The daemon's table is ordered by pull on its composite; the web edition's has no composite, so
-// its rows stay in the order the read gives them.
-function DriverTable({ drivers }: { readonly drivers: ReadyMacro['drivers'] }) {
-  const rows = isAnalysisOnly.value
-    ? drivers
-    : [...drivers].sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
-
+/** Under a driver's reading in Nâng cao: where it sits between its bearish and bullish ends, and
+ *  its weight and pull on the composite. */
+function DriverDetail(driver: MacroDriver) {
   return (
-    <>
-      <h3 class="sub-head">
-        {tr(editionKey('ui.office.market.drivers', 'ui.office.market.driversWeb'))}
-      </h3>
-      <table
-        class="macro-drivers"
-        title={tr(editionKey('ui.office.market.driversNote', 'ui.office.market.driversWebNote'))}
-      >
-        <thead>
-          <tr>
-            <th />
-            <th class="num">{tr('ui.office.market.col.reading')}</th>
-            {!isAnalysisOnly.value && (
-              <>
-                <th>{tr('ui.office.market.col.position')}</th>
-                <th class="num">{tr('ui.office.market.col.weight')}</th>
-                <th class="num">{tr('ui.office.market.col.contribution')}</th>
-              </>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((driver) => (
-            <DriverRow key={driver.id} driver={driver} />
-          ))}
-        </tbody>
-      </table>
-    </>
-  )
-}
-
-function DriverRow({ driver }: { readonly driver: MacroDriver }) {
-  return (
-    <tr>
-      <td>
-        {driver.label}
-        <span class="meta macro-asof">
-          {tr('ui.office.market.driverAsOf', { day: formatDay(locale.value, driver.asOf) })}
+    <div class="meta macro-detail">
+      <span class="macro-range">
+        <span class="num">{formatDriverValue({ unit: driver.unit, value: driver.bearishAt })}</span>
+        <span class="macro-track">
+          <span class="macro-dot" style={`left: ${positionOf(driver) * PERCENT}%`} />
         </span>
-      </td>
-      <td class="num">{formatDriverValue(driver)}</td>
-      {!isAnalysisOnly.value && (
-        <>
-          <td>
-            <span class="macro-range">
-              <span class="num">
-                {formatDriverValue({ unit: driver.unit, value: driver.bearishAt })}
-              </span>
-              <span class="macro-track">
-                <span class="macro-dot" style={`left: ${positionOf(driver) * PERCENT}%`} />
-              </span>
-              <span class="num">
-                {formatDriverValue({ unit: driver.unit, value: driver.bullishAt })}
-              </span>
-            </span>
-          </td>
-          <td class="num">{formatFixedFraction(driver.weight)}</td>
-          <td class="num">{formatFixed(driver.contribution, SCORE_DIGITS)}</td>
-        </>
-      )}
-    </tr>
+        <span class="num">{formatDriverValue({ unit: driver.unit, value: driver.bullishAt })}</span>
+      </span>
+      <span>
+        {joinInline([
+          `${tr('ui.office.market.col.weight')} ${formatFixedFraction(driver.weight)}`,
+          `${tr('ui.office.market.col.contribution')} ${formatFixed(driver.contribution, SCORE_DIGITS)}`,
+        ])}
+      </span>
+    </div>
   )
 }
 
