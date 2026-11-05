@@ -6,6 +6,7 @@ import type { MessageKey } from '@/i18n'
 import { getJson, sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { COMMAND_PREFIX, sessionId, type Turn, USER_ROLE } from '@/web/state/chat'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { tr } from '@/web/text/tr'
 
 const KEY_SEPARATOR = '_'
@@ -175,8 +176,12 @@ export function toMemoryKey(text: string, maxLen: number): string {
 }
 
 /** Only what the operator asked in plain words: a command and its answer carry quantities, prices
- *  and amounts, which never go into what the model reads. */
+ *  and amounts, which never go into what the model reads. The web edition keeps no memory. */
 export function canRemember(source: Turn | ChatHistoryMessage): boolean {
+  if (isAnalysisOnly.value) {
+    return false
+  }
+
   if ('kind' in source) {
     return source.kind === 'ask' && source.isSystem === undefined
   }
