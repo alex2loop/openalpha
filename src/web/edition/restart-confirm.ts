@@ -19,7 +19,7 @@ export function askRestart({ confirmLabel, isDestructive, onBack, confirm }: Res
     lines: [tr('ui.office.edition.restart.body'), tr('ui.office.edition.restart.kept')],
     confirmLabel,
     ...(isDestructive === true ? { isDestructive } : {}),
-    keepLabel: tr('ui.office.edition.common.later'),
+    keepLabel: tr('ui.office.edition.restart.back'),
     onBack,
     confirm,
   })
