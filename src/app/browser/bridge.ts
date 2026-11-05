@@ -6,7 +6,9 @@ import type { DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/w
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
+import { findProviderById } from '@/ai/api'
 import { type DbFileVerdict, toDbFileVerdict } from '@/app/browser/db-file'
+import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
 import { handleHttp } from '@/app/server/http/dispatch'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
@@ -370,8 +372,6 @@ function errorReply(id: string, code: 'unavailable' | 'internal'): WorkerReply {
   }
 }
 
-// Chat with tools is not on the web: only a line that starts with `/` is a command. Anything else
-// would reach the chat agent, which holds every tool the engine has.
 async function serveFrame(ctx: BridgeContext, frame: ClientFrame): Promise<void> {
   const { root } = ctx.state
 
@@ -380,13 +380,21 @@ async function serveFrame(ctx: BridgeContext, frame: ClientFrame): Promise<void>
   }
 
   const sink = createSink(ctx)
+  const provider = readModelProvider(root.app.config)
 
-  if ((frame.type === 'chat' || frame.type === 'steer') && !frame.message.trim().startsWith('/')) {
+  // A line with no key would make no call and fail, so it is answered here.
+  if (
+    (frame.type === 'chat' || frame.type === 'steer') &&
+    !frame.message.trim().startsWith('/') &&
+    !hasAiKey(ctx.keyring.env(), provider)
+  ) {
     sink.send({
       type: 'chat',
       kind: 'error',
       code: 'unavailable',
-      message: bindLocale(ctx.state.locale).translate('errors.browserChatCommandsOnly'),
+      message: bindLocale(ctx.state.locale).translate('errors.browserChatNeedsKey', {
+        provider: findProviderById(provider)?.displayName ?? provider,
+      }),
       ...toLaneTag(frame.id),
     })
 

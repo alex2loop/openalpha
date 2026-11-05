@@ -13,8 +13,8 @@ import type { DatabaseFiles } from '@/persistence/api'
 import { resolveBrowserConfig } from '@/app/browser/config'
 import { readBrowserOverrides } from '@/app/browser/config-routes'
 import { authorizeVisitor } from '@/app/browser/host'
-import { createLabelledRunner } from '@/app/browser/labelled-runner'
 import { createBrowserApp } from '@/app/browser/providers'
+import { createBrowserRunner } from '@/app/browser/runner'
 import { startBrowserUpkeep } from '@/app/browser/upkeep'
 import { hydrateCostTracker } from '@/app/cost-hydration'
 import { createLiveFeed } from '@/app/server/feed/live'
@@ -263,7 +263,7 @@ function createWsServices(app: App): WsServices {
     locale: app.config.locale.language,
     logger: app.resolve('logger'),
     runControl: app.resolve('runRegistry'),
-    runner: createLabelledRunner(app.resolve('runner'), app.config.locale.language),
+    runner: createBrowserRunner(app.resolve('runner'), app.config.budget),
     sessionQueue: app.resolve('sessionQueue'),
     sessions: app.resolve('sessionStore'),
     slashDispatcher: app.resolve('slashDispatcher'),
