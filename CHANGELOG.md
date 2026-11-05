@@ -24,6 +24,8 @@ futures contract. On the web you can also chat with the assistant, which looks t
 - The screen board shows each name's readings in one grid, with value limits and a second sort.
 - The ticker page shows the session range and volume, and the VN gold dealer's buy and sell prices.
 - On the web, each analysis opens with what to watch: the conditions that would prove each side wrong.
+- On the web, the model picker shows each model's price and whether it can call tools, and the first-run guide has a "choose the AI model" step.
+- A Vietnamese link-preview image for the homepage and the web edition.
 
 ### Changed
 
@@ -33,6 +35,9 @@ futures contract. On the web you can also chat with the assistant, which looks t
 - The Market tab and Today list only the markets you switched on; world gold stays as a reference.
 - The AI label no longer names the model, and an answer does not repeat it where the screen already shows it.
 - On the web, an analysis ends by saying a buy or sell plan needs the installed version.
+- The default main model on the web ships with a fallback model.
+- The Zalo Personal library loads only when that channel is used.
+- The installed version presents a current browser when it reads data sources.
 
 ### Fixes
 
@@ -40,6 +45,11 @@ futures contract. On the web you can also chat with the assistant, which looks t
 - Identical provider requests share one round trip, and slow readings come from a short cache.
 - A provider request never follows a redirect, and the command bar refuses a line holding a key.
 - Office page layout: header switches on one line, an empty market says so.
+- On the web, chat answers at once when no AI key or search key is allowed, instead of starting a run.
+- `/research` drops sources dated in the future, stays on markets and investing on the web, and hands the agent a shorter list of gaps.
+- Chat history keeps what you typed for a command handed off to the assistant, and reads the same after a reload.
+- Office bubbles show the step line in your language, never the model's raw reasoning.
+- Esc, a click outside or the close button on a Settings question return to Settings with what you typed kept.
 
 ## [1.3.0] - 2026-11-03
 
