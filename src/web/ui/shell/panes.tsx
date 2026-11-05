@@ -22,11 +22,11 @@ export const isCommandBarFloating = computed(
 
 /** Where each part of the office mounts: the stage (the scene, with the floor row and the tape
  *  floating over its top and the command bar over its foot), the info panel and the chat docked
- *  right. On a wide screen the panel floats over the stage, above the command bar; in Info only the
+ *  right. On a wide screen the panel floats over the stage, above the command bar; in Focus the
  *  stage and the scene twin are not mounted at all and the panel takes the page at a reading width
  *  over a still picture of the office, the command bar floating under it; on a narrow screen the
  *  information pane is a bottom sheet over the stage.
- *  Below the narrow width the pane bar picks the one shown; Info only is a wide-screen choice. */
+ *  Below the narrow width the pane bar picks the one shown; Focus is a wide-screen choice. */
 export function Panes() {
   return (
     <main class={breakpoint.value === 'wide' ? 'panes is-overlay' : 'panes'} data-pane={pane.value}>

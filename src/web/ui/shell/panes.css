@@ -39,7 +39,7 @@
 
 /* The panel floats over the stage on a wide screen and on a narrow screen's information pane: both
    sit in the stage's cell, the chat docked beside, and so does the floating command bar, at its foot.
-   Info only keeps the cell without the stage. The cell names its end lines: an absolute item's auto
+   Focus keeps the cell without the stage. The cell names its end lines: an absolute item's auto
    end would run to the page's edge, under the chat. */
 .panes.is-overlay,
 :root:not([data-layout="wide"]) .panes[data-pane="info"] {

@@ -70,11 +70,6 @@
   }
 }
 
-.layout-toggle[aria-pressed="true"] {
-  background: var(--sunken);
-  color: var(--ink);
-}
-
 .header-keys {
   font-size: 14px;
   font-weight: 600;
@@ -91,7 +86,7 @@
   display: none;
 }
 
-/* The pane bar takes the Info only toggle's place, and the cost chip drops its "AI today". */
+/* The pane bar takes the Office | Focus switch's place, and the cost chip drops its "AI today". */
 :root:not([data-layout="wide"]) :is(.layout-toggle, .header-cost-label) {
   display: none;
 }

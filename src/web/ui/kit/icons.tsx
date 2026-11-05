@@ -137,16 +137,6 @@ export function CollapseIcon({ class: className }: IconProps) {
   )
 }
 
-// The page with the information alone: Info only.
-export function InfoOnlyIcon({ class: className }: IconProps) {
-  return (
-    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M7 9h10M7 13h10M7 17h6" />
-    </svg>
-  )
-}
-
 export function ListIcon({ class: className }: IconProps) {
   return (
     <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>

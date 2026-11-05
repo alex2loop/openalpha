@@ -10,7 +10,8 @@ import { cost, isCostCaution } from '@/web/state/cost'
 import { isAnalysisOnly } from '@/web/state/edition'
 import { isFirstRunOver } from '@/web/state/first-run'
 import { runningCount, workingTasks } from '@/web/state/live'
-import { isInfoOnly, toggleInfoOnly } from '@/web/state/pane'
+import { isInfoOnly } from '@/web/state/pane'
+import { setOfficeLayout } from '@/web/state/prefs'
 import { brand } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { BellButton } from '@/web/ui/bell/bell-button'
@@ -21,14 +22,15 @@ import { JobsPopover } from '@/web/ui/jobs/jobs-popover'
 import { LIST_KEY } from '@/web/ui/keys/keys'
 import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
 import { Chip } from '@/web/ui/kit/chip'
-import { CoinIcon, InfoOnlyIcon, WarningIcon } from '@/web/ui/kit/icons'
+import { CoinIcon, WarningIcon } from '@/web/ui/kit/icons'
 import { closePopover, JOBS_POPOVER_ID, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
+import { Segmented } from '@/web/ui/kit/segmented'
 import { GearButton } from '@/web/ui/settings/gear-button'
 
 import './header.css'
 
 /** The scene's own header controls (the view, the clock, the weather) have nothing to act on in
- *  Info only, where no scene is mounted. */
+ *  Focus, where no scene is mounted. */
 export function Header() {
   const hasScene = !isInfoOnly.value
   const jobsAnchor = useRef<HTMLButtonElement>(null)
@@ -48,7 +50,7 @@ export function Header() {
       <div class="header-grow">{isAnalysisOnly.value && <AiNote />}</div>
       {isFirstRunOver.value && <CostChip anchor={costAnchor} />}
       {hasScene && <ViewSwitch />}
-      <InfoOnlyToggle />
+      <LayoutSwitch />
       {hasScene && <ClockControl />}
       {hasScene && !isAnalysisOnly.value && <WeatherChip />}
       {!isAnalysisOnly.value && <BellButton anchor={bellAnchor} />}
@@ -121,18 +123,20 @@ function runningTextOf(count: number): string {
 }
 
 // Wide screens only: a narrow one picks its pane from the pane bar.
-function InfoOnlyToggle() {
+// The office scene or Focus, where the information fills the page and the scene is not mounted.
+function LayoutSwitch() {
   return (
-    <button
-      type="button"
-      class="icon-button layout-toggle"
-      title={tr(isInfoOnly.value ? 'ui.office.layout.officeTip' : 'ui.office.layout.infoTip')}
-      aria-label={tr('ui.office.layout.info')}
-      aria-pressed={isInfoOnly.value}
-      onClick={toggleInfoOnly}
-    >
-      <InfoOnlyIcon />
-    </button>
+    <Segmented
+      className="layout-toggle"
+      label={tr('ui.office.layout.mode')}
+      title={tr('ui.office.layout.tip')}
+      value={isInfoOnly.value ? 'info' : 'office'}
+      options={[
+        { value: 'office', label: tr('ui.office.layout.office') },
+        { value: 'info', label: tr('ui.office.layout.focus') },
+      ]}
+      onChange={setOfficeLayout}
+    />
   )
 }
 

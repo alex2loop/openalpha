@@ -4,7 +4,7 @@
   min-height: 0;
 }
 
-/* Info only: no stage, so the panel takes the main area, its content at a reading width and
+/* Focus: no stage, so the panel takes the main area, its content at a reading width and
    centred, the chat docked beside, ending above the command bar; its glass shows the still office
    behind it. */
 .panel.is-reading {

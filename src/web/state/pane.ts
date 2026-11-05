@@ -15,12 +15,12 @@ const chatOnly = signal(false)
 /** True on a tab opened for one chat: the chat pane alone, always open. */
 export const isChatOnly: ReadonlySignal<boolean> = chatOnly
 
-/** Info only as the page lays it out: a wide-screen choice. The scene is not mounted then. */
+/** Focus as the page lays it out: a wide-screen choice. The scene is not mounted then. */
 export const isInfoOnly: ReadonlySignal<boolean> = computed(
   () => officeLayout.value === 'info' && breakpoint.value === 'wide'
 )
 
-/** Switches between Info only and the office. */
+/** Switches between Focus and the office. */
 export function toggleInfoOnly(): void {
   setOfficeLayout(officeLayout.peek() === 'info' ? 'office' : 'info')
 }
@@ -38,7 +38,7 @@ export function setChatOnly(): void {
 }
 
 /** Brings `next` forward. On a wide screen the chat stays docked beside whatever is chosen, and
- *  the office, when asked for, leaves Info only. */
+ *  the office, when asked for, leaves Focus. */
 export function showPane(next: Pane): void {
   if (next === 'chat') {
     setChatOpen(true)
