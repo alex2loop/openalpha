@@ -133,7 +133,7 @@ Khi có gì bị loại hoặc còn thiếu, báo cáo nêu thành khoảng tr�
 | `provider_unavailable` | Nhà cung cấp tìm kiếm hỏng và chưa cấu hình dự phòng |
 
 Gói kết quả giữ mọi khoảng trống, nhưng trợ lý viết câu trả lời cho bạn chỉ nhận một danh sách ngắn:
-khoảng trống về bằng chứng cho câu hỏi của bạn đứng trước, vấn đề của quy trình đứng sau, và các luận
+khoảng trống về bằng chứng cho câu hỏi của bạn đứng trước, vấn đề của quy trình đứng sau nhưng luôn có chỗ cho nó (như một lần tìm kiếm hỏng), và các luận
 điểm đánh dấu chưa xác minh được thì luôn có. Trợ lý chỉ nêu những khoảng trống làm đổi mức độ tin được
 của câu trả lời.
 

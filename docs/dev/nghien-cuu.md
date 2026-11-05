@@ -203,7 +203,7 @@ sơ có thể thu hẹp một giới hạn, không bao giờ nâng.
 | Trích đoạn mỗi nguồn | 8 |
 | Gói bằng chứng | 128 KiB (UTF-8) |
 | Trang tự đọc mỗi câu hỏi | 3 |
-| Khoảng trống trao cho agent gọi | 6, khoảng trống về bằng chứng đứng trước; nhãn chưa xác minh được miễn |
+| Khoảng trống trao cho agent gọi | 6, khoảng trống về bằng chứng đứng trước nhưng chừa chỗ cho một vấn đề của quy trình; nhãn chưa xác minh được miễn |
 | Văn bản đầy đủ mỗi nguồn | 64 KiB, không bao giờ vào kết quả |
 
 Mức suy luận và trần đầu ra của từng giai đoạn cũng cố định và ghi đè những gì `agent.toml` của worker khai:
