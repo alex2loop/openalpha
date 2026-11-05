@@ -18,10 +18,7 @@ enabled = false
 name = "openalpha-site"
 workers_dev = false
 preview_urls = false
-routes = [
-  { pattern = "openalpha.link", custom_domain = true },
-  { pattern = "www.openalpha.link", custom_domain = true },
-]
+routes = [{ pattern = "openalpha.link", custom_domain = true }]
 
 [env.production.assets]
 directory = "../../dist/site"
