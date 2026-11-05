@@ -31,7 +31,7 @@ export function EditionFooter() {
       <Button kind="ghost" size="small" onClick={openGuide}>
         {tr('ui.office.edition.footer.guide')}
       </Button>
-      <Button kind="ghost" size="small" onClick={() => openGlossary()}>
+      <Button kind="ghost" size="small" onClick={openGlossary}>
         {tr('ui.office.glossary.title')}
       </Button>
       <Button kind="ghost" size="small" onClick={() => openCompare()}>

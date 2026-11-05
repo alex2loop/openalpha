@@ -198,7 +198,7 @@ A plain chat message still waits for the answer in front of it.
 Two habits of the output are worth knowing:
 
 - A command that waits on the network shows a progress line while it runs and a footer when it
-  finishes. A command that answers from local data (`/profile`, `/sources`)
+  finishes. A command that answers from local data (`/profile`, `/sources`, `/glossary`)
   has neither. When the output is not a terminal (piped, or a one-shot `chat -m "/refresh"`), the
   progress shows as plain lines on stderr. They appear only once the command has run a moment, and at
   most one every ten seconds. So stdout carries only the answer, and an instant reply prints nothing.
@@ -752,7 +752,7 @@ The rest fit in a line.
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. With a Vietnam home, the brief opens with the market story and a look back at earlier ones. See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
 | `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
-| `/glossary` | `/glossary` lists the market terms the app uses, by group; `/glossary <term>` explains one in plain words. A name or an id both work (`/glossary P/E`, `/glossary foreign-room`), and a few matches are listed to pick from. The definitions are the ones the web pages show under dotted-underlined words: they say what a term is, never what to do about it |
+| `/glossary` | `/glossary` lists the market terms the app uses, by group; `/glossary <term>` explains one in plain words. A name, an id or a ticker works (`/glossary P/E`, `/glossary foreign-room`, `/glossary VNINDEX`), and a few matches are listed to pick from. The definitions are the ones the web pages show under dotted-underlined words: they say what a term is, never what to do about it |
 | `/reconcile` | `/reconcile` - compare the book against what the venue reports; an exchange with no API key yet is named with the variables it is waiting for |
 | `/trade` | Stages, confirms and cancels real orders. See [Orders](#orders) |
 

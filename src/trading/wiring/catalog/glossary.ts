@@ -6,7 +6,6 @@ import {
   type GlossaryEntry,
   type GlossaryGroupEntry,
   glossaryGroups,
-  matchesGlossaryQuery,
   t,
 } from '@/i18n'
 import { usage } from '@/trading/kernel/surface/surface'
@@ -31,6 +30,12 @@ interface GlossaryCommandDeps {
   readonly timezone: string
 }
 
+/** A term and the title of the group it is listed under. */
+interface FoundTerm {
+  readonly entry: GlossaryEntry
+  readonly group: string
+}
+
 /** `/glossary` explains a market term in plain words from the one registry the web pages read,
  *  so every surface gives the same definition. It calls no service: the terms are catalog text. */
 export function createGlossaryCommand(deps: GlossaryCommandDeps): SlashCommand {
@@ -50,12 +55,13 @@ function run(ctx: SlashContext, context: RenderContext): SlashResult {
   const { locale } = ctx
   const groups = glossaryGroups(locale)
   const query = ctx.args.join(' ')
+  const needle = foldGlossaryText(query)
 
   if (ctx.args.length === 0) {
     return { kind: 'text', text: renderIndex(locale, { groups, context }) }
   }
 
-  const found = findTerms(groups, query)
+  const found = findTerms(groups, needle)
   const [only] = found
 
   if (only !== undefined && found.length === 1) {
@@ -66,7 +72,7 @@ function run(ctx: SlashContext, context: RenderContext): SlashResult {
     return { kind: 'text', text: renderMatches(locale, { query, found, context }) }
   }
 
-  if (foldGlossaryText(query) === '') {
+  if (needle === '') {
     return usage(USAGE)
   }
 
@@ -79,29 +85,23 @@ function run(ctx: SlashContext, context: RenderContext): SlashResult {
   }
 }
 
-/** A term and the title of the group it is listed under. */
-interface FoundTerm {
-  readonly entry: GlossaryEntry
-  readonly group: string
-}
-
-// The terms an exact id or name picks out, else those a name or id starts with, else those that
-// merely contain the query: the first tier that finds any decides, so `p/e` is P/E alone.
-function findTerms(groups: readonly GlossaryGroupEntry[], query: string): readonly FoundTerm[] {
-  const needle = foldGlossaryText(query)
-  const terms = groups.flatMap(({ title, terms: entries }) =>
-    entries.map((entry) => ({ entry, group: title }))
-  )
-  const forms = ({ entry }: FoundTerm) => [entry.id, entry.name].map(foldGlossaryText)
-  const tiers: readonly ((term: FoundTerm) => boolean)[] = [
-    (term) => forms(term).includes(needle),
-    (term) => forms(term).some((form) => form.startsWith(needle)),
-    ({ entry }) => matchesGlossaryQuery([entry.id, entry.name], needle),
-  ]
-
+// The terms an exact id, name or ticker picks out, else those starting with the folded `needle`,
+// else those that merely contain it: the first tier that finds any decides, so `p/e` is P/E alone.
+function findTerms(groups: readonly GlossaryGroupEntry[], needle: string): readonly FoundTerm[] {
   if (needle === '') {
     return []
   }
+
+  const terms = groups.flatMap(({ title, terms: entries }) =>
+    entries.map((entry) => ({ entry, group: title }))
+  )
+  const forms = ({ entry }: FoundTerm) =>
+    [entry.id, entry.name, ...entry.tickers].map(foldGlossaryText)
+  const tiers: readonly ((term: FoundTerm) => boolean)[] = [
+    (term) => forms(term).includes(needle),
+    (term) => forms(term).some((form) => form.startsWith(needle)),
+    (term) => forms(term).some((form) => form.includes(needle)),
+  ]
 
   return tiers.map((tier) => terms.filter(tier)).find((found) => found.length > 0) ?? []
 }

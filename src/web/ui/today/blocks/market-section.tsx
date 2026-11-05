@@ -9,7 +9,7 @@ import {
 } from '@/web/text/figures'
 import { formatDealerBoard } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
-import { Term } from '@/web/ui/kit/term'
+import { Term } from '@/web/ui/glossary/term'
 import { MarketName } from '@/web/ui/market/market-name'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 import { Movers } from '@/web/ui/today/blocks/movers'

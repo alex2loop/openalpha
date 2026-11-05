@@ -1,6 +1,6 @@
 import { useSignal } from '@preact/signals'
 
-import { glossaryGroups, matchesGlossaryQuery } from '@/i18n'
+import { foldGlossaryText, glossaryGroups, matchesGlossaryQuery } from '@/i18n'
 import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -8,7 +8,7 @@ import { closeModal, openModal } from '@/web/ui/kit/modal'
 
 import './glossary.css'
 
-/** The glossary page: every term in its group, with a box that narrows them by name or by what
+/** The glossary page: every term in its group, with a box that narrows them by name, ticker or what
  *  the definition says. Opened from a term's card, the guide and Hôm nay. */
 export function openGlossary(): void {
   openModal({
@@ -21,12 +21,12 @@ export function openGlossary(): void {
 
 function GlossaryBody() {
   const query = useSignal('')
-  const isSearching = query.value.trim() !== ''
+  const isSearching = foldGlossaryText(query.value) !== ''
   const groups = glossaryGroups(locale.value)
     .map((group) => ({
       ...group,
       terms: group.terms.filter((term) =>
-        matchesGlossaryQuery([term.name, term.definition], query.value)
+        matchesGlossaryQuery([term.name, term.definition, ...term.tickers], query.value)
       ),
     }))
     .filter((group) => group.terms.length > 0)

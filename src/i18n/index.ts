@@ -8,7 +8,7 @@ import type {
 import en from '@/i18n/locales/en.json'
 import vi from '@/i18n/locales/vi.json'
 
-import { GLOSSARY_GROUPS, GLOSSARY_TERMS } from './glossary'
+import { GLOSSARY_GROUPS, GLOSSARY_TERMS, tickersOfTerm } from './glossary'
 
 export {
   foldGlossaryText,
@@ -135,6 +135,7 @@ export function glossaryEntry(locale: Locale, id: GlossaryTermId): GlossaryEntry
     id,
     name: t(locale, `trading.glossary.term.${id}.name`),
     definition: t(locale, `trading.glossary.term.${id}.definition`),
+    tickers: tickersOfTerm(id),
   }
 }
 

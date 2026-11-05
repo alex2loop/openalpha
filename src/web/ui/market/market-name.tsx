@@ -1,5 +1,5 @@
 import { termOfMarket } from '@/i18n'
-import { Term } from '@/web/ui/kit/term'
+import { Term } from '@/web/ui/glossary/term'
 
 /** A market's name, explained when the glossary has it as a term (world gold). */
 export function MarketName({

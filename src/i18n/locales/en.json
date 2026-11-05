@@ -956,7 +956,7 @@
     "office.firstRun.title": "Getting started with {brand}",
     "office.firstRun.optional": "optional",
     "office.glossary.title": "Glossary",
-    "office.glossary.intro": "Short plain-language explanations of the market terms this page uses. They are definitions, not investment advice.",
+    "office.glossary.intro": "Short plain-language explanations of the market terms OpenAlpha uses. They are definitions, not investment advice.",
     "office.glossary.hint": "Words with a dotted underline: hover or tap to see what they mean.",
     "office.glossary.seeAll": "See all terms",
     "office.glossary.search": "Search terms or definitions",

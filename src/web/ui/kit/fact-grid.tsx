@@ -1,8 +1,8 @@
 import type { ScreenFactWire } from '@/app/server/wire/market'
 import { termOfFact } from '@/i18n'
 import { tr } from '@/web/text/tr'
+import { GroupHelp, Term } from '@/web/ui/glossary/term'
 import { SectionHeading } from '@/web/ui/kit/section-heading'
-import { GroupHelp, Term } from '@/web/ui/kit/term'
 
 import './fact-grid.css'
 

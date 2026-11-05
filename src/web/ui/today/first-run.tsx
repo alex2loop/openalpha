@@ -59,7 +59,7 @@ export function FirstRun() {
       <h2 class="block-head">
         {tr('ui.office.firstRun.title')}
         <span class="block-grow" />
-        <Button kind="ghost" size="small" onClick={() => openGlossary()}>
+        <Button kind="ghost" size="small" onClick={openGlossary}>
           {tr('ui.office.glossary.title')}
         </Button>
         <Button kind="ghost" size="small" onClick={hideGuide}>
@@ -79,7 +79,7 @@ export function GuideAgain() {
       <Button kind="ghost" size="small" onClick={showGuideAgain}>
         {tr('ui.office.firstRun.show')}
       </Button>
-      <Button kind="ghost" size="small" onClick={() => openGlossary()}>
+      <Button kind="ghost" size="small" onClick={openGlossary}>
         {tr('ui.office.glossary.title')}
       </Button>
     </div>

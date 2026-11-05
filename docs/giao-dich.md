@@ -1072,7 +1072,7 @@ Toàn bộ tập:
 
 `market_price` `market_bars` `market_overview` `market_events` `market_accounts` `market_news` `market_screen` `market_sector_strength` `market_sentiment` `market_funding` `macro_risk` `vn_foreign_flow` `vn_futures_basis` `portfolio_view` `portfolio_history` `portfolio_review` `portfolio_rebalance` `portfolio_record` `portfolio_update` `portfolio_remove` `watchlist_update` `profile_view` `profile_update` `profile_segment` `suggestion_run` `suggestion_batch` `suggestion_track_record` `alert_manage` `brief_build` `brief_manage` `themes_view`
 
-**Lệnh gạch chéo** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, cộng `/trade`. `/trade` đặt lệnh khi một sàn có khóa giao dịch, nếu không thì nêu tên các khóa nó cần. Cú pháp đầy đủ: [Lệnh](lenh.md).
+**Lệnh gạch chéo** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/glossary` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, cộng `/trade`. `/trade` đặt lệnh khi một sàn có khóa giao dịch, nếu không thì nêu tên các khóa nó cần. Cú pháp đầy đủ: [Lệnh](lenh.md).
 
 **Chat trong terminal** dùng cùng các lệnh gạch chéo như mọi kênh:
 

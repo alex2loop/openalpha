@@ -7,8 +7,8 @@ import { useBlock } from '@/web/state/block'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { formatFixed, formatFixedFraction } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
+import { Term } from '@/web/ui/glossary/term'
 import { PieIcon } from '@/web/ui/kit/icons'
-import { Term } from '@/web/ui/kit/term'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 const MULTIPLE_DIGITS = 1

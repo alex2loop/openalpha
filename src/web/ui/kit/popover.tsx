@@ -1,5 +1,5 @@
 import type { ComponentChildren, RefObject } from 'preact'
-import { type ReadonlySignal, signal } from '@preact/signals'
+import { type ReadonlySignal, signal, useComputed } from '@preact/signals'
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks'
 
 import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
@@ -78,7 +78,10 @@ export function Popover({
   near,
   children,
 }: PopoverProps) {
-  if (openId.value !== id) {
+  // A computed flips only for the popover that opens or closes, so the others do not render.
+  const isOpen = useComputed(() => openId.value === id)
+
+  if (!isOpen.value) {
     return null
   }
 
@@ -135,8 +138,9 @@ function PopoverPanel(props: PopoverPanelProps) {
 }
 
 // Puts the panel in the top layer, where no sticky heading, clipped panel or later card covers it,
-// then under its anchor, or over it where the page ends first, and inside the gutters. The offset
-// is read from where the panel lands at zero rather than assumed to be the page's corner.
+// then under its anchor, or over it where the page ends first, and inside the gutters. The top
+// layer is the viewport, so only the panel's own size is measured. A browser without the Popover
+// API places it the same way, in the page.
 function placeNear(
   panel: RefObject<HTMLElement | null>,
   anchor: RefObject<HTMLElement | null>
@@ -148,20 +152,20 @@ function placeNear(
     return () => undefined
   }
 
-  element.showPopover()
-  element.style.setProperty('--nearTop', '0px')
-  element.style.setProperty('--nearLeft', '0px')
+  if (typeof element.showPopover === 'function') {
+    element.showPopover()
+  }
 
-  const corner = element.getBoundingClientRect()
+  const { width, height } = element.getBoundingClientRect()
   const gutter = Number.parseFloat(getComputedStyle(element).getPropertyValue('--popoverGutter'))
-  const widest = document.documentElement.clientWidth - corner.width - gutter
+  const widest = document.documentElement.clientWidth - width - gutter
   const left = Math.max(gutter, Math.min(target.left, widest))
   const below = target.bottom + NEAR_GAP_PX
-  const above = target.top - NEAR_GAP_PX - corner.height
-  const top = below + corner.height > window.innerHeight - gutter && above >= gutter ? above : below
+  const above = target.top - NEAR_GAP_PX - height
+  const top = below + height > window.innerHeight - gutter && above >= gutter ? above : below
 
-  element.style.setProperty('--nearTop', `${top - corner.top}px`)
-  element.style.setProperty('--nearLeft', `${left - corner.left}px`)
+  element.style.setProperty('--nearTop', `${top}px`)
+  element.style.setProperty('--nearLeft', `${left}px`)
 
   const listeners = new AbortController()
   const { signal: listenerSignal } = listeners

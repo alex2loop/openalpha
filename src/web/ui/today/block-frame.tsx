@@ -1,4 +1,4 @@
-import type { ComponentChildren } from 'preact'
+import type { ComponentChildren, VNode } from 'preact'
 
 import type { BlockReading } from '@/web/state/block'
 import { formatDay, type MessageKey } from '@/i18n'
@@ -34,7 +34,7 @@ interface BlockFrameProps<T> {
   /** A link or button in the head, at the right. */
   readonly action?: ComponentChildren
   /** The title as the head shows it, where it is more than its words. */
-  readonly titleView?: ComponentChildren
+  readonly titleView?: VNode | undefined
   /** Said under the skeleton while the first read runs, for a read that takes seconds. */
   readonly loadingText?: string | undefined
   /** Said in place of the generic failure, where a failed read must not pass for an empty one. */

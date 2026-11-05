@@ -10,6 +10,7 @@ import { useBlockRead } from '@/web/state/block'
 import {
   findMarket,
   findQuote,
+  isLevelKind,
   keyOf,
   printDisplayOf,
   quotesBlock,
@@ -24,7 +25,7 @@ import {
   formatSignedPercent,
   toneOfPercent,
 } from '@/web/text/figures'
-import { joinInline } from '@/web/text/glyphs'
+import { INLINE_SEPARATOR, joinInline } from '@/web/text/glyphs'
 import {
   boardScaleNotes,
   formatDealerBoard,
@@ -34,9 +35,9 @@ import {
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
+import { Term } from '@/web/ui/glossary/term'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
-import { Term } from '@/web/ui/kit/term'
 import { RefreshMarketsButton } from '@/web/ui/market/refresh-button'
 import { type ChartLevel, PriceChart } from '@/web/ui/ticker/chart'
 import { type LiveQuote, useLiveQuote } from '@/web/ui/ticker/live-quote'
@@ -84,7 +85,7 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
 
   const board = findQuote(ticker, market)
   const quote = newerQuote(live.quote, board)
-  const label = board?.label
+  const labelTail = board?.label === undefined ? '' : ` ${INLINE_SEPARATOR} ${board.label}`
   // An index, a fund or world gold says what it is, in the glossary's words.
   const term = termOfTicker(ticker) ?? (quote === undefined ? undefined : termOfKind(quote.kind))
 
@@ -92,17 +93,17 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
 
   return (
     <BlockFrame
-      title={label === undefined ? ticker : `${ticker} · ${label}`}
+      title={`${ticker}${labelTail}`}
       colour="teal"
       icon={<TrendIcon />}
       reading={reading}
       showReadLine={false}
       titleView={
         term === undefined ? undefined : (
-          <>
+          <span>
             <Term id={term}>{ticker}</Term>
-            {label !== undefined && ` · ${label}`}
-          </>
+            {labelTail}
+          </span>
         )
       }
       action={
@@ -210,9 +211,8 @@ function PriceHead({ market, facts, range }: PriceHeadProps) {
     facts.readAt === undefined || timeZone === undefined
       ? ''
       : tr('ui.office.today.readAt', { time: formatWhen(facts.readAt, timeZone) })
-  const parts = [...boardScaleNotes([market]), facts.session, readText].filter(
-    (part) => part !== ''
-  )
+  const scale = isLevelKind(facts.kind) ? [] : boardScaleNotes([market])
+  const parts = [...scale, facts.session, readText].filter((part) => part !== '')
 
   return (
     <>

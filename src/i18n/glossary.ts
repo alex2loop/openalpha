@@ -1,3 +1,6 @@
+const MARKS = /\p{M}/gu
+const NON_WORD = /[^\p{L}\p{N}]+/gu
+
 /** The order the glossary lists its groups in. */
 export const GLOSSARY_GROUPS = Object.freeze([
   'index',
@@ -82,6 +85,8 @@ export interface GlossaryEntry {
   readonly id: GlossaryTermId
   readonly name: string
   readonly definition: string
+  /** The tickers that name it, so a search for `VNINDEX` finds the term. */
+  readonly tickers: readonly string[]
 }
 
 /** A group's heading and what it covers, over its terms in listing order. */
@@ -103,9 +108,6 @@ const HEADING_GROUPS: Readonly<Record<string, GlossaryGroup>> = Object.freeze({
   sentiment: 'derivatives',
 })
 
-const MARKS = /\p{M}/gu
-const NON_WORD = /[^\p{L}\p{N}]+/gu
-
 /** The term a market is the name of (world gold). */
 export function termOfMarket(marketId: string): GlossaryTermId | undefined {
   return termWhere((term) => term.markets, marketId)
@@ -124,6 +126,13 @@ export function termOfTicker(ticker: string): GlossaryTermId | undefined {
 /** The term an instrument kind is (a fund), for a name the glossary does not list by ticker. */
 export function termOfKind(kind: string): GlossaryTermId | undefined {
   return termWhere((term) => term.kinds, kind)
+}
+
+/** The tickers that name a term; none for a term no ticker names. */
+export function tickersOfTerm(id: GlossaryTermId): readonly string[] {
+  const term: GlossaryTerm | undefined = GLOSSARY_TERMS.find((candidate) => candidate.id === id)
+
+  return term?.tickers ?? []
 }
 
 /** The glossary group a heading explains, by the heading's id. */

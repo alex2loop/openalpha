@@ -1063,7 +1063,7 @@ The full set:
 
 `market_price` `market_bars` `market_overview` `market_events` `market_accounts` `market_news` `market_screen` `market_sector_strength` `market_sentiment` `market_funding` `macro_risk` `vn_foreign_flow` `vn_futures_basis` `portfolio_view` `portfolio_history` `portfolio_review` `portfolio_rebalance` `portfolio_record` `portfolio_update` `portfolio_remove` `watchlist_update` `profile_view` `profile_update` `profile_segment` `suggestion_run` `suggestion_batch` `suggestion_track_record` `alert_manage` `brief_build` `brief_manage` `themes_view`
 
-**Slash commands** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, plus `/trade`. `/trade` places orders once a venue has trading credentials and otherwise names the keys it needs. Full grammar: [Commands](commands.md).
+**Slash commands** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/glossary` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, plus `/trade`. `/trade` places orders once a venue has trading credentials and otherwise names the keys it needs. Full grammar: [Commands](commands.md).
 
 **Terminal chat** uses the same slash commands as every channel:
 

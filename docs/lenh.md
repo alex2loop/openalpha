@@ -199,7 +199,7 @@ Tin nhắn chat thường vẫn chờ câu trả lời đứng trước nó.
 Hai thói quen của đầu ra nên biết:
 
 - Lệnh nào phải chờ mạng thì hiện một dòng tiến độ khi chạy và một dòng cuối khi xong. Khi đầu ra không phải terminal (qua pipe, hoặc `chat -m "/refresh"` chạy một lần), tiến độ hiện thành các dòng thuần trên stderr. Các dòng này chỉ hiện khi lệnh đã chạy lâu hơn một chút, và tối đa mười giây một dòng. Nhờ vậy stdout chỉ chứa câu trả lời, và lệnh trả lời ngay thì không in gì. Lệnh trả lời từ
-  dữ liệu cục bộ (`/profile`, `/sources`) không có cả hai.
+  dữ liệu cục bộ (`/profile`, `/sources`, `/glossary`) không có cả hai.
 - Nếu phiên chạy phải đổi nhà cung cấp, một dòng ngay phía trên dòng cuối nói rõ chuyển từ đâu, sang
   đâu, vì sao - mỗi lần đổi một dòng. Dòng này giải thích vì sao dòng cuối không nêu tên mô hình. Nó
   tính cả các phiên chạy con của lệnh gạch chéo lẫn các lời gọi của chính lượt chat.
@@ -738,7 +738,7 @@ ghi sổ và `/trade`.
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Khi thị trường chính là Việt Nam, bản tin mở đầu bằng câu chuyện thị trường và phần nhìn lại các câu chuyện trước. Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) và [Bản tin khi chưa có sổ](#bản-tin-khi-chưa-có-sổ) |
 | `/refresh` | `/refresh [thị-trường] [force]`, thứ tự tùy ý. Không nêu thị trường thì chỉ làm mới các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn đang giữ mã, theo dõi mã hay còn gợi ý chờ chấm điểm. Thị trường còn lại được liệt kê là bỏ qua; gõ thẳng tên thì vẫn nạp. `force` tải lại bất kể dữ liệu nào đang mới. Vàng thế giới đọc giá trực tiếp nên không có gì để nạp, và lệnh nói rõ điều đó. Một loại dữ liệu trải ra nhiều công cụ sẽ báo đã tới đâu |
 | `/sources` | `/sources` - nhà cung cấp nào đã ngừng trả lời, hoặc một dòng duy nhất nếu không có. Trạng thái cầu dao là bộ nhớ của chính tiến trình này, nên một lần gọi CLI mới báo rằng chưa gọi nhà cung cấp nào, chứ không khẳng định mọi thứ khỏe |
-| `/glossary` | `/glossary` liệt kê các thuật ngữ thị trường mà ứng dụng dùng, theo mục; `/glossary <thuật ngữ>` giải thích một thuật ngữ bằng lời đơn giản. Gõ tên hoặc mã đều được (`/glossary P/E`, `/glossary foreign-room`), và nếu có vài kết quả khớp thì lệnh liệt kê để bạn chọn. Định nghĩa giống hệt những gì trang web hiện dưới chữ gạch chân chấm: chỉ nói thuật ngữ là gì, không nói nên làm gì |
+| `/glossary` | `/glossary` liệt kê các thuật ngữ thị trường mà ứng dụng dùng, theo mục; `/glossary <thuật ngữ>` giải thích một thuật ngữ bằng lời đơn giản. Gõ tên, mã thuật ngữ hoặc mã chứng khoán đều được (`/glossary P/E`, `/glossary foreign-room`, `/glossary VNINDEX`), và nếu có vài kết quả khớp thì lệnh liệt kê để bạn chọn. Định nghĩa giống hệt những gì trang web hiện dưới chữ gạch chân chấm: chỉ nói thuật ngữ là gì, không nói nên làm gì |
 | `/reconcile` | `/reconcile` - đối chiếu sổ với những gì sàn báo; sàn chưa có khóa API thì được nêu tên kèm các biến còn thiếu |
 | `/trade` | Dàn, xác nhận và hủy lệnh thật. Xem [Đặt lệnh](#đặt-lệnh) |
 
