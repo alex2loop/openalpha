@@ -65,6 +65,32 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* The conditions sit in a quiet panel of their own above the analysis: neither side's colour. */
+.watch-box {
+  display: grid;
+  gap: var(--s1);
+  padding: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--controlRadius);
+  background: var(--sunken);
+}
+
+.watch-box-head,
+.watch-side-head {
+  margin: 0;
+  font-size: var(--sizeBody);
+  font-weight: var(--weightSemibold);
+}
+
+.watch-side-head {
+  font-weight: var(--weightMedium);
+}
+
+.watch-list {
+  margin: 4px 0 0;
+  padding-left: 1.2em;
+}
+
 .sort-bar {
   display: flex;
   flex-wrap: wrap;

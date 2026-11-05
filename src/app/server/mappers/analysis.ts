@@ -15,6 +15,13 @@ export function toAnalysisWire(
     at: record.at,
     authoredLocale: record.authoredLocale,
     createdAt: record.createdAt,
-    text: renderAnalysisText(locale, record, record.last),
+    conditions: {
+      bull: [...record.result.bull.invalidators],
+      bear: [...record.result.bear.invalidators],
+    },
+    text: renderAnalysisText(locale, record, {
+      pageFrames: true,
+      ...(record.last === undefined ? {} : { last: record.last }),
+    }),
   }
 }

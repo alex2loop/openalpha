@@ -263,6 +263,7 @@ function toRebalanceTextWire(text: RebalanceText): RebalanceTextWire {
       line: order.line,
     })),
     segments: [...text.segments],
+    limits: [...text.limits],
     notes: [...text.notes],
   }
 }

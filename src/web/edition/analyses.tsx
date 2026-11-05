@@ -4,6 +4,7 @@ import type { AnalysesResponse } from '@/app/server/wire/analysis'
 import { formatDay } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { AnalysisWatch } from '@/web/edition/analysis-watch'
 import { CompareLink } from '@/web/edition/install-line'
 import { useBlockRead } from '@/web/state/block'
 import { onWireEvent } from '@/web/state/events'
@@ -20,8 +21,8 @@ interface AnalysesProps {
   readonly instrument?: { readonly market: string; readonly ticker: string }
 }
 
-/** The analyses stored on this device, newest first. Each is the text the chat answered with, laid
- *  out the same way, so nothing here closes on a side. */
+/** The analyses stored on this device, newest first. Each opens on the user's own watch list, then
+ *  the text the chat answered with, so nothing here closes on a side. */
 export function Analyses({ instrument }: AnalysesProps) {
   const reading = useBlockRead((abort) =>
     getJson(ROUTES.analyses, {
@@ -67,6 +68,7 @@ function AnalysisCard({ analysis }: { readonly analysis: Analysis }) {
           day: formatDay(locale.value, analysis.at),
         })}
       </h3>
+      <AnalysisWatch analysis={analysis} />
       <ReplyText text={analysis.text} isProse={false} />
     </article>
   )

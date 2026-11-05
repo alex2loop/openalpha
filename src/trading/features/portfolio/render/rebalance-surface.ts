@@ -1,5 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { AbsoluteRebalancePlan, RebalancePlanReady } from '@/trading/features/portfolio/types'
+import type { PortfolioFindingKind } from '@/trading/kernel/caveat'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import { t } from '@/i18n'
 import { renderProfileStamp } from '@/trading/features/profile/render'
@@ -21,6 +22,15 @@ import { emptyPlanLine, groupHeading, renderOrderRows } from './rebalance-orders
 
 type RebalanceGroup = 'first' | 'later'
 
+/** The ceilings the operator set that the book stands over. An app lays them out beside the
+ *  segments against the levels, so the notes leave them out. */
+const CEILING_FINDINGS: ReadonlySet<PortfolioFindingKind> = new Set([
+  'position-cap-breach',
+  'segment-cap-breach',
+  'etf-cap-breach',
+  'sector-cap-breach',
+])
+
 export interface RebalanceText {
   /** The answer first: the plan in one line, what leaving it undone costs, what it leaves behind. */
   readonly headline: readonly string[]
@@ -32,6 +42,9 @@ export interface RebalanceText {
     readonly line: string
   }[]
   readonly segments: readonly string[]
+  /** Where the book stands over a ceiling the operator set: one line each, apart from the notes so
+   *  an app can lay them beside the segments. */
+  readonly limits: readonly string[]
   readonly notes: readonly string[]
 }
 
@@ -54,13 +67,18 @@ export function renderRebalanceForSurface(
           later: groupHeading(locale, 'groupDrift'),
         }
 
+  const ceilings = advice.findings.filter((finding) => CEILING_FINDINGS.has(finding.kind))
+  const rest = advice.findings.filter((finding) => !CEILING_FINDINGS.has(finding.kind))
+  const limits = trimmed(renderNotes(locale, ceilings, []))
+
   if (advice.kind === 'unavailable') {
     return {
       headline: [renderDeclaredValue(locale, `trading.advice.unavailable.${advice.reason}`)],
       groups,
       orders: [],
       segments: [],
-      notes: trimmed(renderNotes(locale, advice.findings, advice.caveats)),
+      limits,
+      notes: trimmed(renderNotes(locale, rest, advice.caveats)),
     }
   }
 
@@ -71,9 +89,10 @@ export function renderRebalanceForSurface(
     groups,
     orders: orderEntries(locale, advice, sized),
     segments: trimmed(renderPlanTables(locale, advice, sized)),
+    limits,
     notes: trimmed([
       ...(sized.form === 'gaps' ? [] : orderNotes(locale, advice)),
-      ...renderPlanNotes(locale, advice, sized),
+      ...renderPlanNotes(locale, { ...advice, findings: rest }, sized),
     ]),
   }
 }

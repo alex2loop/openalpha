@@ -2,41 +2,18 @@
   "analyses": [
     {
       "id": "0197c3a8-5d10-7a4e-9b2f-3c6d1e8f4a07",
-      "instrument": { "market": "equity-vn", "ticker": "FPT" },
+      "instrument": {
+        "market": "equity-vn",
+        "ticker": "FPT"
+      },
       "at": "2026-11-03",
-      "evidenceThrough": "2026-11-03",
       "authoredLocale": "vi",
       "createdAt": 1793590800000,
-      "bull": {
-        "stance": "bullish",
-        "summary": "Lợi nhuận quý gần nhất tăng đều và dòng tiền ngoại đang quay lại.",
-        "claims": ["Lợi nhuận sau thuế quý 3 tăng so với cùng kỳ."],
-        "invalidators": ["Lợi nhuận quý tới giảm so với cùng kỳ."],
-        "citations": []
+      "conditions": {
+        "bull": ["Lợi nhuận quý tới giảm so với cùng kỳ."],
+        "bear": ["Hệ số P/E về dưới trung bình năm năm."]
       },
-      "bear": {
-        "stance": "bearish",
-        "summary": "Định giá đã cao hơn mức trung bình của chính cổ phiếu.",
-        "claims": ["Hệ số P/E cao hơn trung bình năm năm."],
-        "invalidators": ["Hệ số P/E về dưới trung bình năm năm."],
-        "citations": []
-      },
-      "claims": [
-        {
-          "id": "bull-1",
-          "text": "Lợi nhuận sau thuế quý 3 tăng so với cùng kỳ.",
-          "verdict": "supported"
-        },
-        {
-          "id": "bear-1",
-          "text": "Hệ số P/E cao hơn trung bình năm năm.",
-          "verdict": "insufficient"
-        }
-      ],
-      "citations": [],
-      "caveats": [],
-      "aiGenerated": true,
-      "models": ["openai/gpt-6-luna"]
+      "text": "🤖 Nội dung do AI tạo. Mình đưa phân tích để bạn tự cân nhắc, không phải lời khuyên đầu tư.\n\nGiá lúc phân tích 25,30 · Hiện 26,10 (▲ 3,16%)\n\nVì sao FPT có thể tăng\n  Lợi nhuận quý gần nhất tăng đều và dòng tiền ngoại đang quay lại.\n\nVì sao FPT có thể giảm\n  Định giá đã cao hơn mức trung bình của chính cổ phiếu.\n\nCác luận điểm bị bằng chứng phản bác\n  Chưa có luận điểm nào bị phản bác."
     }
   ],
   "nextCursor": "0197c3a8-5d10-7a4e-9b2f-3c6d1e8f4a06"

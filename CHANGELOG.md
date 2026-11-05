@@ -36,6 +36,8 @@ gains two tables; the upgrade runs them for you.
 - Where the label already shows (the REPL banner, the chat panel of the office page and the web version), `/suggest`, `/brief` and `/themes` answers no longer repeat it; a one shot, a chat app and a scheduled run keep it.
 - The Market tab and Today list only the markets you switched on; world gold stays as a reference. Each market's section opens on one green band.
 - The header's layout control reads "Office | Focus" instead of an icon.
+- The Rebalance page states each segment as above or below the level you set, largest gap first in one neutral colour, lists the names and segments over a ceiling you set (worded as your level in `/rebalance` too), and has an "Edit levels" button for the target weights.
+- On the web, each analysis opens with a "What to watch" box: the conditions each side named that would show it wrong, with the analysis date, "Watch this name" and "Analyse again". `/suggest` text lists those conditions straight after the two cases, and the web edition's closing line says that a buy or sell plan (entry, stop, take-profit, order size) needs the installed version.
 
 ### Fixes
 

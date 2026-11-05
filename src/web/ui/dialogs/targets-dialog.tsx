@@ -36,6 +36,8 @@ const SEGMENT_SEPARATOR = ','
 interface TargetsRequest {
   /** Leads back to where the dialog was opened from. */
   readonly onBack?: () => void
+  /** Runs once the targets are saved, for a page that shows them. */
+  readonly onSaved?: () => void
 }
 
 interface OpenTargets {
@@ -208,6 +210,7 @@ function save(open: OpenTargets): void {
   saveTargets(open)
     .then(() => {
       open.handle?.close()
+      open.request.onSaved?.()
       open.request.onBack?.()
     })
     .catch((error: unknown) => {

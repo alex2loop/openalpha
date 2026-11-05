@@ -1,5 +1,5 @@
 import type { PortfolioSharesWire } from '@/app/server/wire/portfolio-shares'
-import { formatFixedFraction, PERCENT } from '@/web/text/figures'
+import { formatFixed, formatFixedFraction, PERCENT } from '@/web/text/figures'
 import { segmentName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
 
@@ -17,14 +17,18 @@ const SEGMENT_HUES: Readonly<Record<string, string>> = {
   'gold-vn': 'peach',
 }
 const FALLBACK_HUE = 'gray'
+const GAP_DIGITS = 2
 
-/** Each segment's share of the book against its target: the bar is the share in the segment's
- *  hue, the tick the target, the gap beside the name. Over target reads in Caution. The daemon rounds the shares
- *  together, so the digits are the chat's. */
+/** Each segment's share of the book against the level the user set: the bar is the share in the
+ *  segment's hue, the tick their level, the distance from it beside the name in words, largest
+ *  first, in one neutral colour. The daemon rounds the shares together, so the digits are the
+ *  chat's. */
 export function SegmentBars({ shares }: { readonly shares: PortfolioSharesWire }) {
+  const byGap = [...shares.segments].sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))
+
   return (
     <div class="segment-bars">
-      {shares.segments.map((segment) => (
+      {byGap.map((segment) => (
         <SegmentBar key={segment.segment} segment={segment} />
       ))}
     </div>
@@ -32,13 +36,11 @@ export function SegmentBars({ shares }: { readonly shares: PortfolioSharesWire }
 }
 
 function SegmentBar({ segment }: { readonly segment: Segment }) {
-  const classes = segment.gap > 0 ? 'segment-bar is-over' : 'segment-bar'
-
   return (
-    <div class={classes}>
+    <div class="segment-bar">
       <div class="segment-bar-head">
         <b>{segmentName(segment.segment)}</b>
-        <span class="segment-bar-gap">{formatGap(segment.gap)}</span>
+        <span class="segment-bar-gap">{describeGap(segment.gap)}</span>
       </div>
       <div
         class="segment-bar-track"
@@ -57,9 +59,14 @@ function SegmentBar({ segment }: { readonly segment: Segment }) {
   )
 }
 
-// Over target reads with a plus, as the percent beside it reads with its own minus.
-function formatGap(gap: number): string {
-  return gap > 0 ? `+${formatFixedFraction(gap)}` : formatFixedFraction(gap)
+function describeGap(gap: number): string {
+  if (gap === 0) {
+    return tr('ui.office.book.gapNone')
+  }
+
+  return tr(gap > 0 ? 'ui.office.book.gapAbove' : 'ui.office.book.gapBelow', {
+    gap: formatFixed(Math.abs(gap) * PERCENT, GAP_DIGITS),
+  })
 }
 
 function toWidth(fraction: number): string {

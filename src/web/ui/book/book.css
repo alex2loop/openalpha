@@ -218,9 +218,3 @@
 .daemon-text {
   white-space: pre-line;
 }
-
-/* Over target reads in Caution, bar and gap alike. */
-.segment-bar.is-over .segment-bar-gap {
-  color: var(--caution);
-  font-weight: var(--weightSemibold);
-}

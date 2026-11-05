@@ -223,9 +223,9 @@ export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/
 export { ORDER_TOOL_NAME, TRADE_COMMAND_NAME } from '@/trading/features/order/types'
 export {
   renderAnalysisBody,
-  renderAnalysisFailure,
   renderAnalysisText,
 } from '@/trading/features/suggestion/analysis/render'
+export { renderAnalysisFailure } from '@/trading/features/suggestion/analysis/render-failure'
 export { createAnalysisService } from '@/trading/features/suggestion/analysis/run'
 export { AnalysisError, analysisId } from '@/trading/features/suggestion/analysis/types'
 export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'

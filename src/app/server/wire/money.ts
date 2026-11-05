@@ -167,6 +167,9 @@ export interface RebalanceTextWire {
     readonly line: string
   }[]
   readonly segments: readonly string[]
+  /** One line per ceiling the operator set that the book stands over (a name, a segment, the ETFs
+   *  or a sector), worded as the operator's own level; the notes leave these out. */
+  readonly limits: readonly string[]
   readonly notes: readonly string[]
 }
 

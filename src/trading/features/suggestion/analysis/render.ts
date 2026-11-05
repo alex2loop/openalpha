@@ -1,16 +1,14 @@
 import type { Locale } from '@/core/types/locale'
-import type { AnalysisFailure, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
+import type { AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { ArguingRole } from '@/trading/features/suggestion/debate/claims'
 import type { AnalysisCase } from '@/trading/features/suggestion/debate/types'
 import type { FactorMetricId, FactorMetricUnit } from '@/trading/kernel/factor-metric'
 import type { MacroUnit } from '@/trading/kernel/market/market-macro'
-import { LLM_ERROR_CODES } from '@/core/llm'
 import { formatDay, type MessageKey, renderAiLabel, t } from '@/i18n'
 import { isClaimBy, isUnsupportedRole } from '@/trading/features/suggestion/debate/claims'
 import { claimIdsWithVerdict } from '@/trading/features/suggestion/debate/types'
 import { stripStance } from '@/trading/features/suggestion/render/debate'
 import { renderCitationLines } from '@/trading/features/suggestion/render/sections'
-import { renderUnsupportedReason } from '@/trading/features/suggestion/render/verdict'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { describeEvent } from '@/trading/render/event'
 import {
@@ -43,15 +41,6 @@ const SIDES = {
 const SIDE_ORDER = Object.freeze(['bull-researcher', 'bear-researcher'] as const)
 
 const PERCENT_PER_UNIT = 100
-
-/** The ceilings a call is refused at before it is sent, when its estimated cost would cross one: a
- *  single call above the run's ceiling, which a cheaper model fixes, or a period already spent. */
-const SPEND_CAP_KEYS = new Map<unknown, MessageKey>([
-  ['run_budget', 'trading.analysis.over-cap'],
-  ['daily_cap', 'trading.analysis.cap-spent'],
-  ['monthly_cap', 'trading.analysis.cap-spent'],
-  ['agent_daily_cap', 'trading.analysis.cap-spent'],
-])
 
 type MetricGroup =
   | 'valuation'
@@ -142,25 +131,44 @@ const FIGURE_GROUP_OF = Object.freeze({
   'trailing-low': undefined,
 } as const satisfies Readonly<Record<FactorMetricId, MetricGroup | undefined>>)
 
-/** The analysis under the AI label, for a view with no chat around it: the Analyses list, stored text. */
-export function renderAnalysisText(locale: Locale, record: AnalysisRecord, last?: number): string {
-  return joinSections([[renderAiLabel(locale)], [renderAnalysisBody(locale, record, last)]])
+interface AnalysisTextOptions {
+  /** The name's price now, in the same units as the close the run stood on, for a view that has
+   *  read one. */
+  readonly last?: number
+  /** The page lays out the conditions and says what the web edition does not do itself, so the text
+   *  leaves out both. */
+  readonly pageFrames?: true
 }
 
-/** Both sides, what the evidence refuted and what would make each wrong, in the reader's language,
- *  with no verdict (none was produced) and no AI label: a chat shows its own. `last` is the name's
- *  price now, in the same units as the close the run stood on, for a view that has read one. */
-export function renderAnalysisBody(locale: Locale, record: AnalysisRecord, last?: number): string {
+/** The analysis under the AI label, for a view with no chat around it: the Analyses list, stored text. */
+export function renderAnalysisText(
+  locale: Locale,
+  record: AnalysisRecord,
+  options: AnalysisTextOptions = {}
+): string {
+  return joinSections([[renderAiLabel(locale)], [renderAnalysisBody(locale, record, options)]])
+}
+
+/** Both sides, what would make each wrong, what the evidence refuted and the figures, in the
+ *  reader's language, with no verdict (none was produced) and no AI label: a chat shows its own.
+ *  The conditions follow the two cases, ahead of the evidence audit, so the reader meets what to
+ *  watch for before the detail; the web card lists the same conditions first. */
+export function renderAnalysisBody(
+  locale: Locale,
+  record: AnalysisRecord,
+  options: AnalysisTextOptions = {}
+): string {
   const { result } = record
   const cases = { 'bull-researcher': result.bull, 'bear-researcher': result.bear }
+  const isFramed = options.pageFrames === true
 
   return joinSections([
-    renderPriceLines(locale, record, last),
+    renderPriceLines(locale, record, options.last),
     ...SIDE_ORDER.map((side) =>
       renderCaseLines(locale, { side, record, analysisCase: cases[side] })
     ),
+    ...(isFramed ? [] : SIDE_ORDER.map((side) => renderWrongLines(locale, side, cases[side]))),
     renderRefutedLines(locale, record),
-    ...SIDE_ORDER.map((side) => renderWrongLines(locale, side, cases[side])),
     renderFigureLines(locale, record),
     renderCitationLines(locale, {
       citations: [...record.citations, ...record.headlines],
@@ -168,7 +176,7 @@ export function renderAnalysisBody(locale: Locale, record: AnalysisRecord, last?
       detail: 'compact',
     }),
     renderCaveatLines(locale, record.caveats),
-    closingLines(locale, record),
+    closingLines(locale, record, options),
   ])
 }
 
@@ -411,7 +419,11 @@ function renderScaleNotes(locale: Locale, record: AnalysisRecord): readonly stri
       )
 }
 
-function closingLines(locale: Locale, record: AnalysisRecord): readonly string[] {
+function closingLines(
+  locale: Locale,
+  record: AnalysisRecord,
+  options: AnalysisTextOptions
+): readonly string[] {
   const { evidenceThrough } = record
 
   return [
@@ -422,33 +434,6 @@ function closingLines(locale: Locale, record: AnalysisRecord): readonly string[]
             day: formatDay(locale, evidenceThrough),
           }),
         ]),
-    t(locale, 'trading.analysis.web-scope'),
+    ...(options.pageFrames === true ? [] : [t(locale, 'trading.analysis.web-scope')]),
   ]
-}
-
-/** Why a run stored nothing, in the reader's language: why the name cannot be analysed, or why a role
- *  did not answer, with the provider's own words where it gave them. */
-export function renderAnalysisFailure(locale: Locale, failure: AnalysisFailure): string {
-  if (failure.kind === 'refused') {
-    return renderUnsupportedReason(locale, failure.refusal)
-  }
-
-  const { cause, reason } = failure.caveat.detail ?? {}
-  const wording = t(locale, reasonKeyOf(cause))
-
-  return t(locale, 'trading.analysis.not-finished', {
-    reason: typeof reason === 'string' ? `${wording}${INLINE_SEPARATOR}${reason}` : wording,
-  })
-}
-
-function reasonKeyOf(cause: unknown): MessageKey {
-  const capKey = SPEND_CAP_KEYS.get(cause)
-
-  if (capKey !== undefined) {
-    return capKey
-  }
-
-  const known = LLM_ERROR_CODES.find((code) => code === cause)
-
-  return known === undefined ? 'llmErrors.fatal' : `llmErrors.${known}`
 }
