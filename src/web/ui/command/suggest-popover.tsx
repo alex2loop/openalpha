@@ -3,6 +3,7 @@ import { agents, selectedAgentId } from '@/web/state/agents'
 import { ALERT_CREATE_COMMAND, SUGGEST_COMMAND, WATCHLIST_ADD_COMMAND } from '@/web/state/command'
 import { offers } from '@/web/state/edition'
 import { commands, estimateText } from '@/web/state/estimates'
+import { isLevelInstrument } from '@/web/state/market'
 import { panelView } from '@/web/state/panel'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -186,7 +187,7 @@ function buildContext(): readonly Starter[] {
   const view = panelView.value
 
   if ('ticker' in view) {
-    return buildTickerContext(view.ticker)
+    return buildTickerContext(view)
   }
 
   return 'agent' in view ? buildAgentContext(view.agent) : []
@@ -203,9 +204,17 @@ function buildAgentContext(agentId: string): readonly Starter[] {
 }
 
 // With a ticker card open, what the operator most likely does next with that name.
-function buildTickerContext(ticker: string): readonly Starter[] {
+function buildTickerContext(instrument: {
+  readonly ticker: string
+  readonly market: string
+}): readonly Starter[] {
+  const { ticker } = instrument
+  const suggest: readonly Starter[] = isLevelInstrument(instrument)
+    ? []
+    : [{ text: `${SUGGEST_COMMAND} ${ticker}`, label: 'ui.office.command.ctxSuggest' }]
+
   return [
-    { text: `${SUGGEST_COMMAND} ${ticker}`, label: 'ui.office.command.ctxSuggest' },
+    ...suggest,
     ...(offers('schedules')
       ? [
           {

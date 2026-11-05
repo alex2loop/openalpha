@@ -5,6 +5,7 @@ import type { TradingQuoteWire, TradingWireCaveat } from '@/app/server/wire/trad
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { createSingleFlight } from '@/web/api/single-flight'
+import { noteQuoteKind } from '@/web/state/market'
 import { toCaveatText } from '@/web/text/caveat-text'
 import { toErrorText, tr } from '@/web/text/tr'
 
@@ -41,6 +42,7 @@ export function useLiveQuote(ticker: string, market: string, onRead: () => void)
         }
 
         quote.value = found
+        noteQuoteKind(found)
         onRead()
       } catch (error: unknown) {
         if (!signal.aborted) {

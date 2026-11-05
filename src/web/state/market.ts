@@ -1,4 +1,4 @@
-import { computed, type ReadonlySignal } from '@preact/signals'
+import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { MarketWire } from '@/app/server/wire/market'
 import type { StopsResponse } from '@/app/server/wire/money'
@@ -10,18 +10,25 @@ import type {
   TradingProfileResponse,
   TradingQuoteWire,
 } from '@/app/server/wire/trading'
-import type { SessionPhase } from '@/app/server/wire/vocab'
+import type { InstrumentKind, SessionPhase } from '@/app/server/wire/vocab'
 import { ROUTES } from '@/web/api/routes'
 import { createRouteBlock } from '@/web/state/block'
+import { setCapped } from '@/web/state/capped-map'
 import { wholeUnitsDisplay } from '@/web/text/figures'
 
 const OVERVIEW_POLL_MS = 60_000
 // Each poll makes the daemon read live providers, so it stays slow.
 const QUOTES_POLL_MS = 60_000
+// The names whose kind a live read has told the page, past the board's own.
+const MAX_READ_KINDS = 200
+// The kinds that publish a level, not a price: nothing buys, sells or analyses one.
+const LEVEL_KINDS: readonly InstrumentKind[] = ['index', 'future']
 
 type StopRow = StopsResponse['stops'][number]
 
 const TRADING_PHASES: ReadonlySet<SessionPhase> = new Set(['open', 'break'])
+
+const readKinds = signal<ReadonlyMap<string, InstrumentKind>>(new Map())
 
 export const marketsBlock = createRouteBlock(ROUTES.markets)
 export const overviewBlock = createRouteBlock(ROUTES.overview)
@@ -107,6 +114,30 @@ export function findQuote(ticker: string, market?: string): TradingQuoteWire | u
   return (quotesBlock.view.value.data?.quotes ?? []).find(
     (quote) => quote.ticker === ticker && (market === undefined || quote.market === market)
   )
+}
+
+/** Keeps the kind a live read of `quote` gave its name, for a name the board does not carry. */
+export function noteQuoteKind(quote: TradingQuoteWire): void {
+  const next = new Map(readKinds.value)
+
+  setCapped(next, [keyOf(quote), quote.kind], MAX_READ_KINDS)
+  readKinds.value = next
+}
+
+/** An index or a futures contract publishes a level: it is read, never bought or analysed. */
+export function isLevelKind(kind: InstrumentKind | undefined): boolean {
+  return kind !== undefined && LEVEL_KINDS.includes(kind)
+}
+
+/** Whether the name's quote says it is a level. A name no quote has described is not: a slow quote
+ *  never hides from a real stock what it can do. */
+export function isLevelInstrument(instrument: {
+  readonly market: string
+  readonly ticker: string
+}): boolean {
+  const kind = findQuote(instrument.ticker, instrument.market)?.kind
+
+  return isLevelKind(kind ?? readKinds.value.get(keyOf(instrument)))
 }
 
 /** How the market prints a price, off `/v1/markets`; absent for a market with no board scale. */

@@ -46,7 +46,8 @@ export const ETF_KIND: InstrumentKind = 'etf'
 
 /** The kinds that publish a level rather than a price: no board scale to divide by and no currency
  *  to name. A futures contract on an index quotes the same points its underlying does, so leaving it
- *  out divided VN30F1M by the VN board scale and printed 1.937,60 as `1,94 VND`. */
+ *  out divided VN30F1M by the VN board scale and printed 1.937,60 as `1,94 VND`. They are also
+ *  readings, not assets: no spot venue buys one, so `/suggest` refuses them. */
 const LEVEL_KINDS = Object.freeze(['index', 'future'] as const satisfies readonly InstrumentKind[])
 /** Not exported: every consumer narrows through `isLevelKind` and none names the type. */
 type LevelKind = (typeof LEVEL_KINDS)[number]

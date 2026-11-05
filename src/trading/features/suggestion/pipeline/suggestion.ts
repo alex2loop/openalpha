@@ -45,7 +45,11 @@ import {
 } from '@/trading/features/suggestion/pipeline/market-reads'
 import { openRiskOf } from '@/trading/features/suggestion/pipeline/open-risk'
 import { runStages } from '@/trading/features/suggestion/pipeline/stages'
-import { outsideFocus, unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
+import {
+  levelKindRefusal,
+  outsideFocus,
+  unsupported,
+} from '@/trading/features/suggestion/pipeline/unsupported'
 import { isOutsideFocus, runHorizon } from '@/trading/kernel/operator/focus'
 import { regimeFor } from '@/trading/markets/macro-risk'
 
@@ -78,6 +82,12 @@ export async function runSuggestion(options: SuggestionRunOptions): Promise<Sugg
 
   if (resolution.kind !== 'resolved') {
     return unsupported(resolution)
+  }
+
+  const refusal = levelKindRefusal(resolution)
+
+  if (refusal !== undefined) {
+    return refusal
   }
 
   if (isOutsideFocus(request.focus, resolution.instrument.market, resolution.sector)) {

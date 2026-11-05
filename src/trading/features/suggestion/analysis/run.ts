@@ -55,6 +55,7 @@ import {
   MAXIMUM_REVIEWED_CLAIMS,
   toAnalysisCase,
 } from '@/trading/features/suggestion/pipeline/schemas'
+import { levelKindRefusal, unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
 import { ANALYSIS_ROLES, ANALYSIS_WAVES } from '@/trading/kernel/config'
 import { DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
 import { LEVEL_BARS_SESSIONS } from '@/trading/markets/levels'
@@ -213,8 +214,16 @@ async function resolveSubject(
     signal: request.signal,
   })
 
+  const message = `cannot analyse ${request.ticker}`
+
   if (resolution.kind !== 'resolved') {
-    throw new AnalysisError({ kind: 'unresolved', resolution }, `cannot analyse ${request.ticker}`)
+    throw new AnalysisError({ kind: 'refused', refusal: unsupported(resolution) }, message)
+  }
+
+  const refusal = levelKindRefusal(resolution)
+
+  if (refusal !== undefined) {
+    throw new AnalysisError({ kind: 'refused', refusal }, message)
   }
 
   return resolution

@@ -6,7 +6,7 @@ import type {
   ClaimVerification,
   StoredClaim,
 } from '@/trading/features/suggestion/debate/types'
-import type { SuggestionRequest } from '@/trading/features/suggestion/types'
+import type { SuggestionRequest, SuggestionRunResult } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type {
@@ -18,7 +18,7 @@ import type {
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { MacroUnit } from '@/trading/kernel/market/market-macro'
-import type { MarketResolution, NameContext } from '@/trading/markets/types'
+import type { NameContext } from '@/trading/markets/types'
 import { AppError } from '@/core/errors'
 import { buildUuidV7Id, parseUuidV7Id } from '@/trading/kernel/instrument'
 
@@ -99,9 +99,10 @@ export interface AnalysisRecord {
 }
 
 export type AnalysisFailure =
+  /** The name could not be analysed, for the reason `/suggest` would give. */
   | {
-      readonly kind: 'unresolved'
-      readonly resolution: Exclude<MarketResolution, { readonly kind: 'resolved' }>
+      readonly kind: 'refused'
+      readonly refusal: Extract<SuggestionRunResult, { readonly kind: 'unsupported' }>
     }
   /** A role did not answer, and `caveat.detail.cause` says why in the provider's own terms. */
   | { readonly kind: 'incomplete'; readonly caveat: Caveat }

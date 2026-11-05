@@ -1,10 +1,10 @@
 import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
-import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
+import type { InstrumentKind } from '@/app/server/wire/vocab'
+import { findMarket, isLevelKind, priceDisplayOf, printDisplayOf } from '@/web/state/market'
 import { formatFixedFraction, formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
 import { ABSENT_CELL, joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
-const INDEX_KIND = 'index'
 // Rounds away the binary noise of a product like 27.8 x 1000.
 const WHOLE_UNIT_PRECISION = 1_000_000
 const TICK_DIGITS_MAX = 8
@@ -15,7 +15,7 @@ const TICK_TOLERANCE = 1e-6
 export function formatMarketPrice(
   market: string,
   value: number | undefined,
-  kind?: string
+  kind?: InstrumentKind
 ): string {
   if (value === undefined) {
     return ABSENT_CELL
@@ -44,10 +44,10 @@ export function formatDealerBoard(
   }
 }
 
-function withCurrency(market: string, price: string, kind?: string): string {
+function withCurrency(market: string, price: string, kind?: InstrumentKind): string {
   const currency = findMarket(market)?.currency
 
-  return kind !== INDEX_KIND && priceDisplayOf(market) === undefined && currency !== undefined
+  return !isLevelKind(kind) && priceDisplayOf(market) === undefined && currency !== undefined
     ? `${price} ${currency}`
     : price
 }
@@ -56,7 +56,7 @@ function withCurrency(market: string, price: string, kind?: string): string {
  *  prints no `,00`. */
 export function toTickFormatter(
   market: string,
-  kind?: string
+  kind?: InstrumentKind
 ): (value: number, step: number) => string {
   const display = displayOf(market, kind)
   const divisor = display?.divisor ?? 1
@@ -78,12 +78,12 @@ function decimalsOf(step: number): number {
 }
 
 // The figure alone, in the market's board scale, for a place the currency is said once nearby.
-function formatBarePrice(market: string, value: number, kind?: string): string {
+function formatBarePrice(market: string, value: number, kind?: InstrumentKind): string {
   return formatPrice(value, displayOf(market, kind))
 }
 
-function displayOf(market: string, kind?: string): ReturnType<typeof printDisplayOf> {
-  return kind === INDEX_KIND ? undefined : printDisplayOf(market)
+function displayOf(market: string, kind?: InstrumentKind): ReturnType<typeof printDisplayOf> {
+  return isLevelKind(kind) ? undefined : printDisplayOf(market)
 }
 
 /** A price typed as the board prints it, in the whole currency units the daemon takes: a VN share

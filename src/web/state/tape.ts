@@ -3,6 +3,7 @@ import { computed, type ReadonlySignal } from '@preact/signals'
 import type { MarketWire } from '@/app/server/wire/market'
 import type { TradingQuoteWire } from '@/app/server/wire/trading'
 import {
+  isLevelKind,
   isSegmentOn,
   keyOf,
   knownMarkets,
@@ -69,7 +70,7 @@ function toBenchmarkRows(market: MarketWire): readonly TapeRow[] {
 }
 
 function toQuoteRow(quote: TradingQuoteWire): TapeRow {
-  const display = quote.kind === 'index' ? undefined : printDisplayOf(quote.market)
+  const display = isLevelKind(quote.kind) ? undefined : printDisplayOf(quote.market)
 
   return {
     key: keyOf(quote),

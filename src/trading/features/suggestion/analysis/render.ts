@@ -8,7 +8,6 @@ import { LLM_ERROR_CODES } from '@/core/llm'
 import { formatDay, type MessageKey, renderAiLabel, t } from '@/i18n'
 import { isClaimBy, isUnsupportedRole } from '@/trading/features/suggestion/debate/claims'
 import { claimIdsWithVerdict } from '@/trading/features/suggestion/debate/types'
-import { unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
 import { stripStance } from '@/trading/features/suggestion/render/debate'
 import { renderCitationLines } from '@/trading/features/suggestion/render/sections'
 import { renderUnsupportedReason } from '@/trading/features/suggestion/render/verdict'
@@ -425,11 +424,11 @@ function closingLines(locale: Locale, record: AnalysisRecord): readonly string[]
   ]
 }
 
-/** Why a run stored nothing, in the reader's language: the name it could not resolve, or why a role
+/** Why a run stored nothing, in the reader's language: why the name cannot be analysed, or why a role
  *  did not answer, with the provider's own words where it gave them. */
 export function renderAnalysisFailure(locale: Locale, failure: AnalysisFailure): string {
-  if (failure.kind === 'unresolved') {
-    return renderUnsupportedReason(locale, unsupported(failure.resolution))
+  if (failure.kind === 'refused') {
+    return renderUnsupportedReason(locale, failure.refusal)
   }
 
   const { cause, reason } = failure.caveat.detail ?? {}

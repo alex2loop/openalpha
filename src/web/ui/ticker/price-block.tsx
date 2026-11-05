@@ -2,6 +2,7 @@ import { useEffect } from 'preact/hooks'
 
 import type { DealerBoardWire, SessionRangeWire } from '@/app/server/wire/quote-detail'
 import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
+import type { InstrumentKind } from '@/app/server/wire/vocab'
 import { formatDay, termOfKind, termOfTicker, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
@@ -58,7 +59,7 @@ interface PriceBlockProps {
 interface PriceFacts {
   readonly value: number
   readonly changePct?: number
-  readonly kind?: string
+  readonly kind?: InstrumentKind
   /** Which session the price belongs to, when it is not the one trading now. */
   readonly session: string
   /** When the price was read (epoch ms); absent for a close the bars carry, which names its day. */

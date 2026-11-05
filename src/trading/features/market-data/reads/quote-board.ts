@@ -10,6 +10,7 @@ import { definedOnly } from '@/core/utils/collections'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { freshnessOf } from '@/trading/features/market-data/reads/freshness'
 import { settledCloseBefore } from '@/trading/features/market-data/reads/previous-close'
+import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { dedupeInstruments } from '@/trading/kernel/instrument'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -115,9 +116,7 @@ async function quoteBoardItemFor(
     observed,
     ...(settled ? { closedOn: observed.day } : {}),
     ...(previousClose === undefined ? {} : { previousClose }),
-    // The manifest's own asset class names the item; `fx` is excluded by construction because an
-    // FX pair has no owning market.
-    kind: market.manifest.assetClass,
+    kind: (await ownKindOf(deps.markets, instrument, clock.signal)) ?? market.manifest.assetClass,
     ticker: instrument.ticker,
     region: market.manifest.region,
     currency: market.manifest.currency,
@@ -130,4 +129,22 @@ async function quoteBoardItemFor(
     provenance: result.provenance,
     caveats: result.caveats,
   }
+}
+
+/** What the name is, not what its market is: the asset class files an index under equities, and a
+ *  surface tells a level from a price by this. Absent where the registry cannot place the name, and
+ *  for `fx`, which no market owns. */
+async function ownKindOf(
+  markets: MarketRegistry,
+  instrument: InstrumentRef,
+  signal: AbortSignal
+): Promise<QuoteBoardItem['kind'] | undefined> {
+  const resolved = await resolveInstrument(markets, {
+    ticker: instrument.ticker,
+    market: instrument.market,
+    signal,
+  })
+  const kind = resolved.kind === 'resolved' ? resolved.instrumentKind : undefined
+
+  return kind === 'fx' ? undefined : kind
 }
