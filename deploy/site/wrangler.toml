@@ -3,8 +3,7 @@
 name = "openalpha-site-staging"
 compatibility_date = "2026-11-03"
 
-# Staging answers on workers.dev. For the real domain: drop the next two lines, rename the Worker,
-# and add `routes = [{ pattern = "<domain>", custom_domain = true }, { pattern = "www.<domain>", custom_domain = true }]`.
+# Staging answers on workers.dev; production answers on its own domain (below).
 workers_dev = true
 preview_urls = false
 
@@ -14,14 +13,15 @@ directory = "../../dist/site"
 [observability]
 enabled = false
 
-# Production: deployed with `--env production`. No workers.dev address and no route yet, so the Worker
-# exists (a deploy token can be scoped to it) but nobody can reach it until the domain is attached:
-# add `routes = [{ pattern = "<domain>", custom_domain = true }, { pattern = "www.<domain>", custom_domain = true }]`
-# here and build without --noindex.
+# Production: deployed with `--env production`, built without --noindex, on the domain alone.
 [env.production]
 name = "openalpha-site"
 workers_dev = false
 preview_urls = false
+routes = [
+  { pattern = "openalpha.link", custom_domain = true },
+  { pattern = "www.openalpha.link", custom_domain = true },
+]
 
 [env.production.assets]
 directory = "../../dist/site"
