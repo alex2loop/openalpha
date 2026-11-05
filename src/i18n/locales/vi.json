@@ -242,8 +242,6 @@
     "office.edition.screen.filter.kind": "Loại công cụ",
     "office.edition.screen.rejections": "Mã bị loại khỏi bảng và lý do",
     "office.edition.screen.excluded": "Nằm trong danh sách loại trừ của bạn",
-    "office.facts.more": "Xem thêm",
-    "office.facts.less": "Thu gọn",
     "office.edition.screen.filter.clear": "Bỏ bộ lọc",
     "office.edition.screen.filter.count": "{shown} trên {total} mã",
     "office.edition.screen.filter.none": "Không có mã nào khớp các bộ lọc này. Bạn thử nới bớt một bộ lọc nhé.",

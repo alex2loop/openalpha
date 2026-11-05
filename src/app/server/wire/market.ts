@@ -46,8 +46,6 @@ export interface ScreenFactWire {
   readonly label: string
   readonly value: string
   readonly group: ScreenFactGroup
-  /** A reading a page may keep behind a "more" control. */
-  readonly secondary?: true
 }
 
 /** A name's identity and live price; on a ranked board what the board says about it is in `card`,

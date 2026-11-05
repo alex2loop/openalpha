@@ -1,5 +1,3 @@
-import { useSignal } from '@preact/signals'
-
 import type { ScreenFactWire } from '@/app/server/wire/market'
 import { tr } from '@/web/text/tr'
 
@@ -20,7 +18,6 @@ interface Fact {
   readonly label: string
   readonly value: string
   readonly group: string
-  readonly secondary?: true
 }
 
 /** A heading over the facts of one `group`. */
@@ -31,7 +28,7 @@ interface FactHeading {
 
 /** What the daemon read, laid out as it lists it: a heading per group, each fact a label on the
  *  left and its value on the right. A board's facts take the screen's group headings; another list
- *  names its own. The rarely needed readings wait behind a toggle. */
+ *  names its own. */
 export function FactGrid({
   facts,
   headings,
@@ -39,9 +36,6 @@ export function FactGrid({
   readonly facts: readonly Fact[]
   readonly headings?: readonly FactHeading[]
 }) {
-  const isMore = useSignal(false)
-  const hasMore = facts.some((fact) => fact.secondary === true)
-  const shown = isMore.value ? facts : facts.filter((fact) => fact.secondary !== true)
   const groups: readonly FactHeading[] =
     headings ??
     SCREEN_GROUPS.map((group) => ({ group, text: tr(`trading.render.screen.group.${group}`) }))
@@ -56,21 +50,9 @@ export function FactGrid({
         <FactGroup
           key={group}
           heading={text}
-          facts={shown.filter((fact) => fact.group === group)}
+          facts={facts.filter((fact) => fact.group === group)}
         />
       ))}
-      {hasMore && (
-        <button
-          type="button"
-          class="fact-more"
-          aria-expanded={isMore.value}
-          onClick={() => {
-            isMore.value = !isMore.value
-          }}
-        >
-          {tr(isMore.value ? 'ui.office.facts.less' : 'ui.office.facts.more')}
-        </button>
-      )}
     </div>
   )
 }

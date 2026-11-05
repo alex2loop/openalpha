@@ -69,34 +69,6 @@ const BOARD_GROUP_OF = Object.freeze({
   'ranked-peers': undefined,
 } as const satisfies Readonly<Record<FactorMetricId, BoardGroup | undefined>>)
 
-/** The readings a page keeps behind its "more" control: they back a factor's score but are rarely
- *  what a reader screens on. */
-const SECONDARY_READINGS: ReadonlySet<FactorMetricId> = new Set([
-  'average-profit-pe',
-  'value-percentile',
-  'quality-percentile',
-  'return-on-assets',
-  'debt-to-equity',
-  'gross-margin',
-  'return-on-invested-capital',
-  'interest-cover',
-  'net-debt-to-ebitda',
-  'watch-list-ratio',
-  'provision-cover',
-  'casa-share',
-  'cost-to-income',
-  'capital-adequacy',
-  'net-interest-to-assets',
-  'trend-average',
-  'year-high',
-  'distance-from-low',
-  'breakout-trigger',
-  'trailing-low',
-  'relative-volume',
-  'volume-to-market-cap',
-  'daily-volatility',
-])
-
 /** A factor with a place on the board but no reading of its own is listed under price. */
 const UNMEASURED_GROUP: BoardGroup = 'price'
 
@@ -109,8 +81,6 @@ export interface BoardFact {
   readonly label: string
   readonly value: string
   readonly group: BoardGroup
-  /** A reading a page may keep behind a "more" control. */
-  readonly secondary?: true
 }
 
 /** What a name reads on a board, each reading once, grouped and in a fixed order so two names line
@@ -205,7 +175,6 @@ function toFact({ metric, label, value }: MetricReading): BoardFact {
     label,
     value,
     group: group ?? UNMEASURED_GROUP,
-    ...(SECONDARY_READINGS.has(metric.id) ? { secondary: true as const } : {}),
   }
 }
 

@@ -242,8 +242,6 @@
     "office.edition.screen.filter.kind": "Instrument kind",
     "office.edition.screen.rejections": "Names left off the board, and why",
     "office.edition.screen.excluded": "On your exclusion list",
-    "office.facts.more": "Show more",
-    "office.facts.less": "Show less",
     "office.edition.screen.filter.clear": "Clear filters",
     "office.edition.screen.filter.count": "{shown} of {total} names",
     "office.edition.screen.filter.none": "No name matches these filters. Try loosening one.",
