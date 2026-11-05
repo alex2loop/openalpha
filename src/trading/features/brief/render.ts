@@ -100,7 +100,10 @@ export function renderBriefText(
   context: RenderContext & { readonly preface?: string }
 ): string {
   // The verdict quotes the market sections the blocks below fold away, so it reads them all.
-  const { readable, renderable, hasAiCalls } = readSections(snapshot)
+  const { readable, renderable, hasAiCalls, nextActions, stories, blocks } = readSections(
+    locale,
+    snapshot
+  )
 
   const preface = context.preface === undefined ? [] : [context.preface]
 
@@ -117,11 +120,6 @@ export function renderBriefText(
   }
 
   const footer = renderCostFooter(locale, snapshot.sections)
-  const [nextActions, afterActions] = partition(
-    renderable,
-    (section) => section.kind === NEXT_ACTIONS_KIND
-  )
-  const [stories, rest] = partition(afterActions, (section) => STORY_KINDS.has(section.kind))
 
   return joinSections([
     hasAiCalls ? [renderAiLabel(locale, [])] : [],
@@ -131,26 +129,39 @@ export function renderBriefText(
     renderVerdictBlock(locale, readable, context),
     // Right under the verdict that counts them, with no header of their own: what to do first.
     ...nextActions.map((section) => toBriefSectionText(locale, section, context).lines),
-    ...toBlocks(rest).flatMap((block) => renderBlock(locale, block, context)),
+    ...blocks.flatMap((block) => renderBlock(locale, block, context)),
     renderCaveatLines(locale, caveatsOf(snapshot, renderable), { collapseInfo: true }),
     footer === null ? [] : footer,
   ])
 }
 
-/** The sections a brief reads from (`readable`), the ones it prints (`renderable`), and whether any of
- *  those carries a call a model argued. */
-export function readSections(snapshot: BriefSnapshot): {
+/** The sections a brief reads from (`readable`), the ones it prints (`renderable`), whether any of
+ *  those carries a call a model argued, and the printed ones as every surface lays them out: the
+ *  story, the next steps that ride under the verdict, then the blocks in order. */
+export function readSections(
+  locale: Locale,
+  snapshot: BriefSnapshot
+): {
   readonly readable: readonly BriefSectionResult[]
   readonly renderable: readonly BriefSectionResult[]
   readonly hasAiCalls: boolean
+  readonly stories: readonly BriefSectionResult[]
+  readonly nextActions: readonly BriefSectionResult[]
+  readonly blocks: readonly (BriefBlock & { readonly title: string })[]
 } {
   const readable = snapshot.sections.filter(isRenderable)
   const renderable = readable.filter(isShown)
   const hasAiCalls = renderable.some(
     (section) => section.status === 'ready' && AI_SECTION_KINDS.has(section.kind)
   )
+  const [nextActions, afterActions] = partition(
+    renderable,
+    (section) => section.kind === NEXT_ACTIONS_KIND
+  )
+  const [stories, rest] = partition(afterActions, (section) => STORY_KINDS.has(section.kind))
+  const blocks = toBlocks(rest).map((block) => ({ ...block, title: blockTitle(locale, block) }))
 
-  return { readable, renderable, hasAiCalls }
+  return { readable, renderable, hasAiCalls, stories, nextActions, blocks }
 }
 
 function partition<T>(
@@ -258,18 +269,26 @@ function renderSectionLines(
  *  scrolling a long brief always knows whose numbers are under their eye and which day closed on
  *  them. A market block reads its name and glyph off its own sections. */
 function blockHeader(locale: Locale, block: BriefBlock): string {
+  const icon = block.market === undefined ? BLOCK_ICONS[block.name] : block.sections[0]?.icon
+
+  return `${renderBlockRule(icon, blockName(locale, block))}${blockStamp(locale, block)}`
+}
+
+/** A block's heading without its glyph: what it is about, then the session its numbers describe. */
+function blockTitle(locale: Locale, block: BriefBlock): string {
+  return `${blockName(locale, block)}${blockStamp(locale, block)}`
+}
+
+function blockName(locale: Locale, block: BriefBlock): string {
+  return block.market === undefined
+    ? t(locale, `trading.brief.block.${block.name}`)
+    : renderDeclaredValue(locale, `trading.market.${block.market}`)
+}
+
+function blockStamp(locale: Locale, block: BriefBlock): string {
   const stamp = block.sections.find((section) => section.asOf !== undefined)?.asOf
-  const dated = stamp === undefined ? '' : renderAsOf(locale, stamp)
 
-  if (block.market === undefined) {
-    const icon = BLOCK_ICONS[block.name]
-
-    return `${renderBlockRule(icon, t(locale, `trading.brief.block.${block.name}`))}${dated}`
-  }
-
-  const name = renderDeclaredValue(locale, `trading.market.${block.market}`)
-
-  return `${renderBlockRule(block.sections[0]?.icon, name)}${dated}`
+  return stamp === undefined ? '' : renderAsOf(locale, stamp)
 }
 
 /** Every caveat the brief carries, stated once. A section states its own only when it failed, so a

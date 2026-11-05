@@ -9,6 +9,8 @@ export type StoryLine = BriefTextWire['story'][number]
 export const CAUTIONS_ANCHOR = 'brief-cautions'
 const STORY_ANCHOR_PREFIX = 'brief-story-'
 const SECTION_ANCHOR_PREFIX = 'brief-section-'
+const BLOCK_ANCHOR_PREFIX = 'brief-block-'
+export const VERDICT_ANCHOR = 'brief-verdict'
 
 type StoryPart =
   | { readonly kind: 'lead'; readonly text: string }
@@ -82,11 +84,38 @@ export function sectionRows(section: BriefSection): readonly SectionRow[] {
   return rows
 }
 
+/** The sections under the block heading each sits in, as the CLI prints them; a daemon that sends
+ *  no block heading leaves each section its own untitled block. */
+export interface SectionBlock {
+  readonly title: string | undefined
+  readonly sections: readonly BriefSection[]
+}
+
+export function sectionBlocks(sections: readonly BriefSection[]): readonly SectionBlock[] {
+  const blocks: { readonly title: string | undefined; readonly sections: BriefSection[] }[] = []
+
+  for (const section of sections) {
+    const last = blocks.at(-1)
+
+    if (section.block !== undefined && last?.title === section.block) {
+      last.sections.push(section)
+    } else {
+      blocks.push({ title: section.block, sections: [section] })
+    }
+  }
+
+  return blocks
+}
+
 /** A section's name; one that belongs to a market says which, as the same heading repeats per market. */
 export function sectionTitle(section: BriefSection): string {
   return section.market === undefined
     ? section.heading
     : joinInline([section.heading, section.market])
+}
+
+export function blockAnchor(index: number): string {
+  return `${BLOCK_ANCHOR_PREFIX}${index}`
 }
 
 export function sectionAnchor(section: BriefSection): string {
@@ -125,11 +154,19 @@ export function briefOutline(text: BriefTextWire): readonly TocEntry[] {
     ...storyBlocks(text.story).flatMap((block) =>
       block.title === undefined ? [] : [{ id: block.id, text: block.title, depth: 0 }]
     ),
-    ...text.sections.map((section) => ({
-      id: sectionAnchor(section),
-      text: sectionTitle(section),
-      depth: 0,
-    })),
+    ...(text.verdictTitle === undefined
+      ? []
+      : [{ id: VERDICT_ANCHOR, text: text.verdictTitle, depth: 0 }]),
+    ...sectionBlocks(text.sections).flatMap((block, index) => [
+      ...(block.title === undefined
+        ? []
+        : [{ id: blockAnchor(index), text: block.title, depth: 0 }]),
+      ...block.sections.map((section) => ({
+        id: sectionAnchor(section),
+        text: block.title === undefined ? sectionTitle(section) : section.heading,
+        depth: block.title === undefined ? 0 : 1,
+      })),
+    ]),
     ...(text.caveats.length === 0
       ? []
       : [{ id: CAUTIONS_ANCHOR, text: tr('ui.office.reader.cautions'), depth: 0 }]),

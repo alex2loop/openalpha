@@ -79,11 +79,13 @@
   "text": {
     "title": "Bản tin sáng 08/10/2026 lúc 07:30",
     "aiGenerated": false,
+    "verdictTitle": "Chốt lại",
     "verdict": [
       "VN-Index đứng trên đường trung bình 50 phiên, thanh khoản ở mức bình thường.",
       "Độ rộng: 58% mã trên đường trung bình 50 phiên."
     ],
     "readingLines": 1,
+    "nextActions": ["ghi các giao dịch đã khớp để mình theo dõi danh mục cùng bạn · /record"],
     "story": [
       { "role": "title", "text": "Nhìn lại chuyện mình kể hôm trước" },
       {
@@ -132,14 +134,24 @@
       {
         "id": "book-summary",
         "kind": "book-summary",
+        "block": "Danh mục của bạn",
         "status": "ready",
         "heading": "Danh mục",
         "lines": ["Tổng tài sản 93.525.900 VND", "1 mã đang gần mức cắt lỗ."],
         "depths": [0, 0]
       },
       {
+        "id": "fired-alerts",
+        "kind": "fired-alerts",
+        "block": "Danh mục của bạn",
+        "status": "unavailable",
+        "heading": "Cảnh báo đã chạm",
+        "lines": ["Một phần dữ liệu đang thiếu hoặc trễ."]
+      },
+      {
         "id": "market-prices:equity-vn",
         "kind": "market-prices",
+        "block": "Thị trường chứng khoán Việt Nam · số liệu ngày 07/10/2026",
         "market": "Thị trường chứng khoán Việt Nam",
         "status": "ready",
         "heading": "Giá thị trường",
@@ -152,13 +164,6 @@
           "▼ 0,3%"
         ],
         "depths": [0, 1, 1, 0, 1, 1]
-      },
-      {
-        "id": "fired-alerts",
-        "kind": "fired-alerts",
-        "status": "unavailable",
-        "heading": "Cảnh báo đã chạm",
-        "lines": ["Một phần dữ liệu đang thiếu hoặc trễ."]
       }
     ],
     "caveats": ["ℹ Một phần dữ liệu đang thiếu hoặc trễ."]
