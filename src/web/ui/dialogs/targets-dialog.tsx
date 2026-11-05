@@ -18,6 +18,7 @@ import {
   fillTargets,
   isWhole,
   lockUnheld,
+  roundShare,
   snapshotTargets,
   sumTargets,
   switchedOnSegments,
@@ -120,6 +121,7 @@ function TargetRowView({ row }: { readonly row: TargetRow }) {
         onInput={(event) => {
           row.pct.value = event.currentTarget.value
         }}
+        onBlur={() => roundShare(row)}
       />
     </div>
   )

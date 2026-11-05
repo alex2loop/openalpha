@@ -128,6 +128,15 @@ export function fillTargets(
   }
 }
 
+/** Puts a row's share on the tenth it is summed and saved at; text that reads as no number stays. */
+export function roundShare(row: TargetRow): void {
+  const tenths = tenthsOf(row)
+
+  if (tenths !== undefined) {
+    row.pct.value = String(tenths / TENTHS)
+  }
+}
+
 /** The segments off at open that the rows now switch on. */
 export function switchedOnSegments(rows: readonly TargetRow[]): readonly string[] {
   return rows

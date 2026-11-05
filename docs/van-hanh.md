@@ -713,7 +713,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 - **Cài đặt.** Biểu tượng bánh răng mở ra: hồ sơ đầu tư, bộ nhớ, lịch và theo dõi, agent và AI, kênh
   nhắn tin, nhà cung cấp, sàn giao dịch, công cụ, dữ liệu và kết nối, hiển thị, và nâng cao, nơi có ô
   sửa `config.toml` thô.
-  - Trong hồ sơ, "Nhóm tài sản và tỷ trọng mục tiêu" bật hoặc tắt từng nhóm và đặt tỷ trọng. Đánh
+  - Trong hồ sơ, "Nhóm tài sản và tỷ trọng mục tiêu" bật hoặc tắt từng nhóm và đặt tỷ trọng, tới 0,1% (rời ô là số được làm tròn về mức đó). Đánh
     dấu một nhóm đang tắt là bật nó với trần mặc định, giữ trần của các nhóm khác, rồi lưu các tỷ
     trọng bạn nhập; vàng thế giới không sàn nào giữ nên luôn tắt. "Về mặc định" điền tỷ trọng mà
     khẩu vị rủi ro của bạn chia cho các nhóm đang đánh dấu (giữ tỷ trọng đã ghim); chỉ lưu khi bạn
