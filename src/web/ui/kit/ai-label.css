@@ -7,11 +7,3 @@
   color: var(--dangerText);
   font: var(--typeCaptionStrong);
 }
-
-/* Under the web edition's red header notice: the same words, as a caption. */
-.ai-label.ai-label-quiet {
-  padding: 0;
-  background: none;
-  color: var(--ink3);
-  font: var(--typeCaption);
-}

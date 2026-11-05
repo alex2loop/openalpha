@@ -10,7 +10,6 @@ import { definedOnly } from '@/core/utils/collections'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { freshnessOf } from '@/trading/features/market-data/reads/freshness'
 import { settledCloseBefore } from '@/trading/features/market-data/reads/previous-close'
-import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { dedupeInstruments } from '@/trading/kernel/instrument'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -131,16 +130,18 @@ async function quoteBoardItemFor(
 }
 
 /** What the name is, not what its market is: the asset class files an index under equities, and a
- *  surface tells a level from a price by this. Absent where the registry cannot place the name, and
- *  for `fx`, which no market owns. */
+ *  surface tells a level from a price by this. Only stored universes are asked, so a poll never
+ *  spends a provider lookup on it; absent where they cannot place the name, and for `fx`, which no
+ *  market owns. */
 async function ownKindOf(
   markets: MarketRegistry,
   instrument: InstrumentRef,
   signal: AbortSignal
 ): Promise<QuoteBoardItem['kind'] | undefined> {
-  const resolved = await resolveInstrument(markets, {
+  const resolved = await markets.resolve({
     ticker: instrument.ticker,
     market: instrument.market,
+    detection: 'stored',
     signal,
   })
   const kind = resolved.kind === 'resolved' ? resolved.instrumentKind : undefined
