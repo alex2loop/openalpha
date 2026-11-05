@@ -87,6 +87,11 @@ export interface ProfileService {
   /** Switches one segment off or back on. Off is a cap of zero, which every sizer already reads as
    *  no room, so nothing there is screened, sized, or bought. */
   updateSegment(options: UpdateSegmentOptions): Promise<UserProfile>
+  /** The targets a re-seed at the current risk level would set with only `on` switched on, pins
+   *  kept; nothing is saved. */
+  defaultTargets(
+    options: GetProfileOptions & { readonly on: readonly PortfolioSegment[] }
+  ): Promise<UserProfile['segmentTargets']>
   /** Sets one segment's target or either of its ceilings. A target is what the book is steered to
    *  and the other segments absorb the change; a ceiling is only room, so moving one moves no
    *  money. */

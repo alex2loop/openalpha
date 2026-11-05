@@ -1815,6 +1815,7 @@
     "office.targets.total": "Total {total}",
     "office.targets.mustBe100": "The total is {total}; it must be exactly 100% to save.",
     "office.targets.locked": "No exchange holds world gold",
+    "office.targets.defaults": "Reset to defaults",
     "office.targets.note": "Changing a target trades nothing; the next /rebalance steps toward it.",
     "office.settings.title": "Settings",
     "office.settings.toSettings": "Back to Settings",

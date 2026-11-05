@@ -1815,6 +1815,7 @@
     "office.targets.total": "Tổng {total}",
     "office.targets.mustBe100": "Tổng đang là {total}, cần đúng 100% mới lưu được.",
     "office.targets.locked": "Không sàn nào giữ vàng thế giới",
+    "office.targets.defaults": "Về mặc định",
     "office.targets.note": "Đổi mục tiêu không mua bán gì; lần /rebalance sau sẽ nhích dần về đó.",
     "office.settings.title": "Cài đặt",
     "office.settings.toSettings": "Về Cài đặt",

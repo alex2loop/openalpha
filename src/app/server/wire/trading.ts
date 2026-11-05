@@ -159,6 +159,11 @@ export interface TradingProfileResponse {
   readonly riskPerTradePctNav?: number
 }
 
+/** GET /v1/profile/default-targets: the targets a re-seed would set with only `on` switched on. */
+export interface DefaultTargetsResponse {
+  readonly segmentTargets: Readonly<Record<string, number>>
+}
+
 /** POST /v1/profile/segment: switches one segment as `/profile enable|disable` does. */
 export interface ProfileSegmentBody {
   readonly action: 'enable' | 'disable'

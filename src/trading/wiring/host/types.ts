@@ -164,6 +164,11 @@ interface TradingProfileUpdateRequest extends TradingSignalRequest {
 }
 
 /** `segment` as the operator names it; one no market registers is refused. */
+interface TradingDefaultTargetsRequest extends TradingSignalRequest {
+  /** The segments as the operator names them; one no market registers is refused. */
+  readonly on: readonly string[]
+}
+
 interface TradingSegmentRequest extends Pick<SegmentRequest, 'kind'>, TradingSignalRequest {
   readonly segment: string
 }
@@ -324,6 +329,8 @@ export interface TradingHost {
   updateProfile(request: TradingProfileUpdateRequest): Promise<UserProfile>
   /** Switches a segment as `/profile enable|disable` does, re-seeding every target and cap. */
   updateSegment(request: TradingSegmentRequest): Promise<UserProfile>
+  /** The targets a re-seed would set with only `on` switched on; nothing is saved. */
+  getDefaultTargets(request: TradingDefaultTargetsRequest): Promise<UserProfile['segmentTargets']>
   /** Adds or removes names; an add that names one nothing resolves saves nothing. */
   updateWatchlist(request: TradingWatchlistRequest): Promise<WatchlistResult>
   /** What a first run still has to do on the trading side. */

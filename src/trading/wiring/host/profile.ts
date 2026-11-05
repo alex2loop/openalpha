@@ -6,11 +6,11 @@ import { scoped } from '@/trading/wiring/host/scope'
 
 export type ProfileMethods = Pick<
   TradingHost,
-  'updateWatchlist' | 'updateSegment' | 'getSetup' | 'profileFields'
+  'updateWatchlist' | 'updateSegment' | 'getDefaultTargets' | 'getSetup' | 'profileFields'
 >
 
-/** The profile's watchlist edit and segment switch, the two facts a first run turns on and the
- *  settings on offer. */
+/** The profile's watchlist edit, segment switch and default targets, the two facts a first run
+ *  turns on and the settings on offer. */
 export function profileMethods(deps: TradingHostDeps): ProfileMethods {
   return {
     profileFields: () => deps.services.profileFields,
@@ -39,6 +39,14 @@ export function profileMethods(deps: TradingHostDeps): ProfileMethods {
         deps.services.profiles.updateSegment({
           kind: request.kind,
           segment: portfolioSegment(request.segment),
+          signal: scope.signal,
+        })
+      ),
+
+    getDefaultTargets: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.profiles.defaultTargets({
+          on: request.on.map(portfolioSegment),
           signal: scope.signal,
         })
       ),

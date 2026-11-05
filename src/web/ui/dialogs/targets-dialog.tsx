@@ -15,6 +15,7 @@ import {
   CASH_SEGMENT,
   type CapSet,
   createTargetRows,
+  fillTargets,
   isWhole,
   lockUnheld,
   snapshotTargets,
@@ -27,6 +28,9 @@ import { Button } from '@/web/ui/kit/button'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
 
 import './dialogs.css'
+
+// `/v1/profile/default-targets?on=` lists the segments comma-separated.
+const SEGMENT_SEPARATOR = ','
 
 interface TargetsRequest {
   /** Leads back to where the dialog was opened from. */
@@ -148,6 +152,9 @@ function TargetsFooter({ open }: { readonly open: OpenTargets }) {
         {onBack !== undefined && (
           <Button onClick={onBack}>{tr('ui.office.settings.toSettings')}</Button>
         )}
+        <Button disabled={open.isBusy.value} onClick={() => fillDefaults(open)}>
+          {tr('ui.office.targets.defaults')}
+        </Button>
       </div>
       <Button onClick={() => open.handle?.close()}>{tr('ui.office.common.cancel')}</Button>
       <Button
@@ -173,6 +180,24 @@ function switchRow(row: TargetRow, isOn: boolean): void {
 
 function describeRow(row: TargetRow): string {
   return row.isLocked ? tr('ui.office.targets.locked') : ''
+}
+
+// The split a re-seed would give the segments ticked now; it is saved only with Lưu.
+function fillDefaults(open: OpenTargets): void {
+  const on = open.rows.value
+    .filter((row) => row.on.value && row.segment !== CASH_SEGMENT)
+    .map((row) => row.segment)
+
+  open.isBusy.value = true
+  open.failure.value = undefined
+  getJson(ROUTES.defaultTargets, { query: { on: on.join(SEGMENT_SEPARATOR) } })
+    .then((answer) => fillTargets(open.rows.value, answer.segmentTargets))
+    .catch((error: unknown) => {
+      open.failure.value = toErrorText(error)
+    })
+    .finally(() => {
+      open.isBusy.value = false
+    })
 }
 
 function save(open: OpenTargets): void {

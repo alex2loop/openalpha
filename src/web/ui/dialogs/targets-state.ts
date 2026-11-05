@@ -116,6 +116,18 @@ export function buildTargetsPatch(
   return { segmentTargets, caps }
 }
 
+/** Puts `targets` (fractions) in the rows that are on, the cash included. */
+export function fillTargets(
+  rows: readonly TargetRow[],
+  targets: Readonly<Record<string, number>>
+): void {
+  for (const row of rows) {
+    if (row.on.value) {
+      row.pct.value = toPercentText(targets[row.segment] ?? 0)
+    }
+  }
+}
+
 /** The segments off at open that the rows now switch on. */
 export function switchedOnSegments(rows: readonly TargetRow[]): readonly string[] {
   return rows

@@ -723,7 +723,9 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
   holds a raw `config.toml` editor.
   - In the profile, "Segments and target weights" switches a segment on or off and sets each share.
     Ticking one that was off switches it on with its default cap, keeps the caps of the others, and
-    saves the shares you typed; world gold, which no exchange holds, stays off.
+    saves the shares you typed; world gold, which no exchange holds, stays off. "Reset to defaults"
+    fills in the split your risk level gives the segments ticked now (pinned targets kept); it is
+    saved only when you press Save.
   - The editor shows each secret (an MCP server's `env` values, any token, secret, password or API key
     written in the file) as `********`. Leave it as it is and the saved value stays.
   - Some fields change only from the CLI or in `config.toml` itself, because they decide what the
