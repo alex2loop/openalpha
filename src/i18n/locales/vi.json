@@ -838,6 +838,8 @@
     "office.chat.newer": "Có tin nhắn mới, xem ngay",
     "office.chat.older": "Tải tin nhắn cũ hơn",
     "office.chat.start": "Đây là đầu cuộc trò chuyện này.",
+    "office.chat.webStart": "Bản web không lưu trò chuyện giữa các lần mở trang. Các phân tích đã chạy nằm ở tab Phân tích.",
+    "office.chat.webStartOpen": "Mở tab Phân tích",
     "office.chat.working": "Đang chạy câu lệnh...",
     "office.chat.answering": "Đang trả lời...",
     "office.chat.waitTurn": "Chờ tới lượt - chạy sau câu trả lời đang chạy",

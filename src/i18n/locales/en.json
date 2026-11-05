@@ -838,6 +838,8 @@
     "office.chat.newer": "New messages, jump to them",
     "office.chat.older": "Load older messages",
     "office.chat.start": "This is the start of this chat.",
+    "office.chat.webStart": "The web version keeps no chat between visits. The analyses you ran are under the Analysis tab.",
+    "office.chat.webStartOpen": "Open Analysis",
     "office.chat.working": "Running the command...",
     "office.chat.answering": "Answering...",
     "office.chat.waitTurn": "Waiting for its turn - runs after the answer in progress",
