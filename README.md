@@ -36,11 +36,6 @@ It is an analysis aid, not investment advice. Suggestions can be wrong, and ever
 > US stocks and ETFs are in: the 500 largest US companies screened and scored, sectors ranked against SPY, and a morning brief at 08:15 New York time. Pick the United States in `onboard`, or add them to the book you already keep with `/profile enable equity-us` · [see what it covers](#markets-and-data).
 
 <p align="center">
-  <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-support%20group-0068FF?style=for-the-badge" alt="Zalo support group" /></a><br/>
-  <sub>Stuck on setup, or want release news? Ask in the <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">OpenAlpha Zalo group</a> (in Vietnamese).</sub>
-</p>
-
-<p align="center">
   <a href="#see-it-in-action">See it in action</a> · <a href="#why-openalpha">Why OpenAlpha</a> · <a href="#quick-start">Quick start</a> · <a href="#daily-use">Daily use</a> · <a href="#the-office-page">The office page</a> · <a href="#safety">Safety</a> · <a href="#faq">FAQ</a> · <a href="#documentation">Docs</a> · <a href="#contribute-to-openalpha">Contribute</a> · <a href="#stability-license-and-disclaimer">License</a>
 </p>
 
@@ -451,7 +446,7 @@ Every other safeguard: [safety.md](docs/en/safety.md) · [SECURITY.en.md](SECURI
 - **Do I need a powerful machine?** No. The AI runs on the provider's servers; your machine runs one light program. Only running a model locally (Ollama) needs real hardware.
 - **Can I use it without coding?** Yes. You paste a few commands into a terminal once, at install; after that you ask in plain language on the web page, in the terminal, or over Telegram or Zalo.
 - **Can I trust the suggestions?** They can be wrong, and it does not hide that: `/reflect` shows the real record of every past call.
-- **Something went wrong?** Run `openalpha doctor`: it names what is missing (a key, a channel, the daemon). `openalpha logs` shows the detail. Still stuck? Ask in the [Zalo group](https://zalo.me/g/yl7iqyfovvtyosujulea) or open an [issue](https://github.com/alex2loop/openalpha/issues/new/choose).
+- **Something went wrong?** Run `openalpha doctor`: it names what is missing (a key, a channel, the daemon). `openalpha logs` shows the detail. Still stuck? Open an [issue](https://github.com/alex2loop/openalpha/issues/new/choose).
 
 ## Documentation
 
@@ -548,9 +543,8 @@ Architecture: 16 modules with no cycles, every dependency pointing toward the ke
 
 ### Support and community
 
-- **Setup and usage questions, release news:** the [OpenAlpha Zalo group](https://zalo.me/g/yl7iqyfovvtyosujulea), in Vietnamese. It covers using the software, never which name to buy. Mask your API keys before pasting a config. Admins never message you privately for keys or money.
 - **Bugs and feature requests:** [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose). A bug is tracked only once it has an issue.
-- **Security vulnerabilities:** report privately per [SECURITY.en.md](SECURITY.en.md), never in the group or an issue.
+- **Security vulnerabilities:** report privately per [SECURITY.en.md](SECURITY.en.md), never in an issue.
 
 Find it useful? Give the repo a ⭐ so more people find it.
 
