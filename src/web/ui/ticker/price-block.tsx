@@ -2,7 +2,6 @@ import { useEffect } from 'preact/hooks'
 
 import type { DealerBoardWire, SessionRangeWire } from '@/app/server/wire/quote-detail'
 import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
-import type { InstrumentKind } from '@/app/server/wire/vocab'
 import { formatDay, termOfKind, termOfTicker, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
@@ -10,7 +9,6 @@ import { useBlockRead } from '@/web/state/block'
 import {
   findMarket,
   findQuote,
-  isLevelKind,
   keyOf,
   printDisplayOf,
   quotesBlock,
@@ -60,7 +58,8 @@ interface PriceBlockProps {
 interface PriceFacts {
   readonly value: number
   readonly changePct?: number
-  readonly kind?: InstrumentKind
+  /** The name publishes a level, not a price. */
+  readonly isLevel?: boolean
   /** Which session the price belongs to, when it is not the one trading now. */
   readonly session: string
   /** When the price was read (epoch ms); absent for a close the bars carry, which names its day. */
@@ -166,7 +165,7 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
           <PriceChart
             bars={bars}
             levels={levels}
-            formatPrice={toTickFormatter(market, facts.kind)}
+            formatPrice={toTickFormatter(market, facts)}
             formatDay={(day) => formatDay(locale.value, day)}
           />
           <p class="meta">
@@ -211,7 +210,7 @@ function PriceHead({ market, facts, range }: PriceHeadProps) {
     facts.readAt === undefined || timeZone === undefined
       ? ''
       : tr('ui.office.today.readAt', { time: formatWhen(facts.readAt, timeZone) })
-  const scale = isLevelKind(facts.kind) ? [] : boardScaleNotes([market])
+  const scale = facts.isLevel === true ? [] : boardScaleNotes([market])
   const parts = [...scale, facts.session, readText].filter((part) => part !== '')
 
   return (
@@ -223,7 +222,7 @@ function PriceHead({ market, facts, range }: PriceHeadProps) {
         </p>
       )}
       <p class="big-figure">
-        {formatMarketPrice(market, facts.value, facts.kind)}{' '}
+        {formatMarketPrice(market, facts.value, facts)}{' '}
         {facts.changePct !== undefined && (
           <span class={`pill is-${toneOfPercent(facts.changePct)}`}>
             {formatSignedPercent(facts.changePct)}
@@ -236,7 +235,7 @@ function PriceHead({ market, facts, range }: PriceHeadProps) {
         <p class="meta">
           {tr('ui.office.ticker.closeRow', {
             day: formatDay(locale.value, facts.close.day),
-            price: formatMarketPrice(market, facts.close.value, facts.kind),
+            price: formatMarketPrice(market, facts.close.value, facts),
           })}
         </p>
       )}
@@ -347,7 +346,7 @@ function resolvePrice(
     return {
       value: quote.last,
       ...(quote.changePct === undefined ? {} : { changePct: quote.changePct }),
-      kind: quote.kind,
+      isLevel: quote.isLevel,
       ...(quote.board === undefined ? {} : { board: quote.board }),
       session: describeSession(market, quote.closedOn),
       ...toQuoteTimes(quote),

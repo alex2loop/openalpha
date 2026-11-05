@@ -18,6 +18,9 @@ const HOVER_OPEN_MS = 250
 const HOVER_CLOSE_MS = 250
 const MOUSE_POINTER = 'mouse'
 
+// The word whose card a resting mouse opened and nothing pinned; another word's rest replaces it.
+let hoverOpenedId: string | undefined
+
 interface PointerHandlers {
   readonly onPointerEnter: (event: TargetedPointerEvent<HTMLElement>) => void
   readonly onPointerLeave: (event: TargetedPointerEvent<HTMLElement>) => void
@@ -172,11 +175,14 @@ interface HandlerState {
 
 function toHandlers({ id, timer, isPinned }: HandlerState): Pick<Disclosure, 'trigger' | 'hold'> {
   const isOpen = () => openPopoverId.peek() === id
-  const wait = (ms: number, action: () => void) => restart(timer, ms, action)
-  // A passive hover never replaces a popover someone opened: the bell, the jobs, another word.
+  // A passive hover never replaces a popover someone opened (the bell, the jobs, a pinned word),
+  // only another word's hover card, which the mouse has left or is about to.
   const openByHover = () => {
-    if (openPopoverId.peek() === undefined) {
+    const open = openPopoverId.peek()
+
+    if (open === undefined || open === hoverOpenedId) {
       isPinned.current = false
+      hoverOpenedId = id
       openPopover(id)
     }
   }
@@ -190,14 +196,14 @@ function toHandlers({ id, timer, isPinned }: HandlerState): Pick<Disclosure, 'tr
     clearTimeout(timer.current)
 
     if (event.pointerType === MOUSE_POINTER && !isOpen()) {
-      wait(HOVER_OPEN_MS, openByHover)
+      timer.current = setTimeout(openByHover, HOVER_OPEN_MS)
     }
   }
   const leave = (event: TargetedPointerEvent<HTMLElement>) => {
     clearTimeout(timer.current)
 
     if (event.pointerType === MOUSE_POINTER && isOpen() && !isPinned.current) {
-      wait(HOVER_CLOSE_MS, closeByHover)
+      timer.current = setTimeout(closeByHover, HOVER_CLOSE_MS)
     }
   }
   const toggle = () => {
@@ -210,6 +216,7 @@ function toHandlers({ id, timer, isPinned }: HandlerState): Pick<Disclosure, 'tr
     }
 
     isPinned.current = true
+    hoverOpenedId = undefined
     openPopover(id)
   }
 
@@ -217,9 +224,4 @@ function toHandlers({ id, timer, isPinned }: HandlerState): Pick<Disclosure, 'tr
     trigger: { onClick: toggle, onPointerEnter: enter, onPointerLeave: leave },
     hold: { onPointerEnter: enter, onPointerLeave: leave },
   }
-}
-
-function restart(timer: HandlerState['timer'], ms: number, action: () => void): void {
-  clearTimeout(timer.current)
-  timer.current = setTimeout(action, ms)
 }

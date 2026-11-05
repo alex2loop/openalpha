@@ -102,11 +102,10 @@ async function quoteBoardItemFor(
     observedAt,
     clock.now
   )
-  const previousClose = await settledCloseBefore(market, instrument, {
-    observed,
-    now: clock.now,
-    signal: clock.signal,
-  })
+  const [previousClose, ownKind] = await Promise.all([
+    settledCloseBefore(market, instrument, { observed, now: clock.now, signal: clock.signal }),
+    ownKindOf(deps.markets, instrument, clock.signal),
+  ])
 
   const settled =
     observed.kind === 'close' &&
@@ -116,7 +115,7 @@ async function quoteBoardItemFor(
     observed,
     ...(settled ? { closedOn: observed.day } : {}),
     ...(previousClose === undefined ? {} : { previousClose }),
-    kind: (await ownKindOf(deps.markets, instrument, clock.signal)) ?? market.manifest.assetClass,
+    kind: ownKind ?? market.manifest.assetClass,
     ticker: instrument.ticker,
     region: market.manifest.region,
     currency: market.manifest.currency,

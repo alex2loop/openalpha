@@ -10,6 +10,7 @@ const MAX_RUNS = 200
 const MAX_PERSISTENT_STEPS = 20
 const MAX_PENDING = 50
 const MAX_FINISHED_TICKERS = 100
+const MAX_PARENT_RUNS = 100
 /** How often the page takes a fresh `GET /v1/live`, on top of every reconnect. */
 export const LIVE_RESYNC_MS = 60_000
 
@@ -41,6 +42,8 @@ const checkedAt = signal<number | undefined>(undefined)
 const taskList = signal<readonly TaskStatusWire[] | undefined>(undefined)
 // The tickers each run the page watched end reported, oldest first, by `runId`.
 const finishedTickers = new Map<string, readonly string[]>()
+// The runs the page saw start a child run, which stays known after the child ends.
+const parentRuns = new Set<string>()
 let arrivalSeq = 0
 
 export const runs: ReadonlySignal<readonly Run[]> = runList
@@ -115,18 +118,43 @@ export function hasChildren(runId: string): boolean {
   return runList.value.some((run) => run.parentRunId === runId)
 }
 
+/** Whether the run `runId` ever started a child run the page saw: agents were handed work, which a
+ *  command refused or failed before its roles never does. */
+export function hasStartedChild(runId: string): boolean {
+  return parentRuns.has(runId)
+}
+
 export function findRun(runId: string): Run | undefined {
   return runList.value.find((run) => run.runId === runId)
 }
 
 /** Replaces the run in place by `runId`, else adds it last; past `MAX_RUNS` the oldest leaves. */
 export function upsertRun(run: Run): void {
+  noteParent(run.parentRunId)
+
   if (findRun(run.runId) !== undefined) {
     updateRun(run.runId, () => run)
     return
   }
 
   runList.value = [...runList.value, run].slice(-MAX_RUNS)
+}
+
+// Past `MAX_PARENT_RUNS` the oldest leaves.
+function noteParent(runId: string | undefined): void {
+  if (runId === undefined || parentRuns.has(runId)) {
+    return
+  }
+
+  parentRuns.add(runId)
+
+  for (const oldest of parentRuns) {
+    if (parentRuns.size <= MAX_PARENT_RUNS) {
+      break
+    }
+
+    parentRuns.delete(oldest)
+  }
 }
 
 export function updateRun(runId: string, update: (run: Run) => Run): void {

@@ -1,6 +1,6 @@
 import type { SuggestionRequest } from '@/trading/features/suggestion/types'
 import type { MarketRegistry, MarketResolution } from '@/trading/markets/types'
-import { AnalysisError } from '@/trading/features/suggestion/analysis/types'
+import { AnalysisError, type AnalysisFailure } from '@/trading/features/suggestion/analysis/types'
 import { levelKindRefusal, unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
 
 export type ResolvedSubject = Extract<MarketResolution, { readonly kind: 'resolved' }>
@@ -31,4 +31,22 @@ export async function resolveSubject(
   }
 
   return resolution
+}
+
+/** Why the name cannot be analysed at all, found as `resolveSubject` finds it; absent when it can. */
+export async function refusalOf(
+  markets: MarketRegistry,
+  request: SuggestionRequest
+): Promise<AnalysisFailure | undefined> {
+  try {
+    await resolveSubject(markets, request)
+
+    return undefined
+  } catch (err: unknown) {
+    if (err instanceof AnalysisError) {
+      return err.failure
+    }
+
+    throw err
+  }
 }

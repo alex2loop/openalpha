@@ -123,7 +123,7 @@ function DirectionLine({ form }: { readonly form: ScheduleForm }) {
     <p class="meta">
       {tr('ui.office.schedule.dirAuto', {
         dir: tr(`trading.alert.condition.${condition}`),
-        price: formatMarketPrice(quote.market, quote.last, quote.kind),
+        price: formatMarketPrice(quote.market, quote.last, quote),
       })}
     </p>
   )

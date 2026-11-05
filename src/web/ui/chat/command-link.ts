@@ -4,6 +4,7 @@ import { editionKey } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
 import { openIdeas } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
+import { hasStartedChild } from '@/web/state/live'
 import { COST_POPOVER_ID } from '@/web/ui/cost/cost-popover'
 import { openAlertDialog } from '@/web/ui/dialogs/alert-dialog'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
@@ -36,7 +37,7 @@ const COMMAND_LINKS: Readonly<Record<string, LinkBuilder>> = Object.freeze({
   '/alert': linkAlert,
   '/record': () => linkTo('ui.office.chat.link.record', () => openTradeDialog()),
   '/refresh': (_args, runId) => linkRun('ui.office.common.seeKeeper', runId),
-  '/suggest': (_args, runId) => linkRun('ui.office.chat.link.suggest', runId),
+  '/suggest': (_args, runId) => linkMeeting(runId),
 })
 
 /** The words of a line, the command first. */
@@ -64,6 +65,14 @@ function linkTo(label: MessageKey, open: () => void): CommandLink {
 // A command the office draws: the link brings its run's room into view; no run, no link.
 function linkRun(label: MessageKey, runId: string | undefined): CommandLink | undefined {
   return runId === undefined ? undefined : linkTo(label, () => focusRun(runId))
+}
+
+// The room where a suggestion was argued; a run refused, or failed before its roles started, held no
+// meeting and has none to show.
+function linkMeeting(runId: string | undefined): CommandLink | undefined {
+  return runId === undefined || !hasStartedChild(runId)
+    ? undefined
+    : linkRun('ui.office.chat.link.suggest', runId)
 }
 
 // `/screen crypto` lands on that market's board; a bare `/screen` on the one last open.

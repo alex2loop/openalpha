@@ -28,7 +28,7 @@ export function AlertRow({ alert, withTicker }: AlertRowProps) {
   const level = formatMarketPrice(
     alert.instrument.market,
     alert.threshold,
-    findQuote(alert.instrument.ticker, alert.instrument.market)?.kind
+    findQuote(alert.instrument.ticker, alert.instrument.market)
   )
 
   return (

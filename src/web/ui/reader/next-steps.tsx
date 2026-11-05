@@ -1,4 +1,5 @@
 import { knownTickers } from '@/web/state/known-tickers'
+import { isLevelInstrument } from '@/web/state/market'
 import { linkTickers } from '@/web/text/ticker-links'
 import { tr } from '@/web/text/tr'
 import { SuggestChip } from '@/web/ui/ticker/suggest-chip'
@@ -16,6 +17,7 @@ interface NextStepsProps {
 export function NextSteps({ text, onRun }: NextStepsProps) {
   const names = linkTickers(text, knownTickers.value)
     .flatMap((part) => ('ticker' in part ? [part.ticker] : []))
+    .filter((name) => !isLevelInstrument({ ticker: name }))
     .slice(0, NAMES_MAX)
 
   if (names.length === 0) {

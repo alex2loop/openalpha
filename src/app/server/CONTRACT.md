@@ -265,7 +265,7 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   no day change has no `changePct`. A client shows these as missing, never as 0.
 - **`/v1/quotes`** returns the **profile-resolved** pulse board; each quote names its own
   `market` and `ticker`, the pair `/v1/ohlcv` takes, and its `kind`, the name's own (an index is
-  `index`, a fund `etf`, never its market's class), which a page reads to tell a level from a price. `closedOn` is the session a settled close
+  `index`, a fund `etf`, never its market's class). `isLevel` is true for a name that publishes a level, not a price (an index, a futures contract); a page reads it, never the kind, to tell the two apart. `closedOn` is the session a settled close
   belongs to; a live reading has none. `staleAt` dates a price too old to be live from a session
   still trading, which is neither. A dealer's board (VN gold) adds `board: {buyPrice, sellPrice,
   spread?}`, where `last` is the sell price and `spread` is (sell - buy) / sell as a fraction; an

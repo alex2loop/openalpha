@@ -84,9 +84,7 @@ function WatchRow({ instrument, failure }: WatchRowProps) {
       <b>
         <TickerLink ticker={instrument.ticker} market={instrument.market} />
       </b>
-      <span class="row-price">
-        {formatMarketPrice(instrument.market, quote?.last, quote?.kind)}
-      </span>
+      <span class="row-price">{formatMarketPrice(instrument.market, quote?.last, quote)}</span>
       <span class="row-end">
         <span class={`pill is-${toneOfPercent(quote?.changePct)}`}>
           {formatSignedPercent(quote?.changePct)}

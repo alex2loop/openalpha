@@ -39,6 +39,7 @@ import {
   describeCaveat,
   describeEvent,
   isBelowMinimumSize,
+  isLevelKind,
   isRecordedPlan,
   isUndecidedHold,
   publisherOf,
@@ -129,6 +130,7 @@ function toQuoteWire(item: QuoteBoardItem, locale: Locale): TradingQuoteWire {
     provenance: toProvenanceWires(item.provenance),
     caveats: toCaveatWires(item.caveats, locale),
     kind: item.kind,
+    isLevel: isLevelKind(item.kind),
     market: item.market,
     assetClass: item.assetClass,
   }

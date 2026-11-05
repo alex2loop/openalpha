@@ -1,6 +1,5 @@
 import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
-import type { InstrumentKind } from '@/app/server/wire/vocab'
-import { findMarket, isLevelKind, priceDisplayOf, printDisplayOf } from '@/web/state/market'
+import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
 import { formatFixedFraction, formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
 import { ABSENT_CELL, joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -10,18 +9,23 @@ const WHOLE_UNIT_PRECISION = 1_000_000
 const TICK_DIGITS_MAX = 8
 const TICK_TOLERANCE = 1e-6
 
+/** What a price's reading says of its name: a quote, or the facts drawn from one. */
+interface LevelReading {
+  readonly isLevel?: boolean
+}
+
 /** A price as its market prints it: a board-scaled market without a currency, any other beside its
  *  currency. An index publishes a level, which has no board scale and no currency. */
 export function formatMarketPrice(
   market: string,
   value: number | undefined,
-  kind?: InstrumentKind
+  reading?: LevelReading
 ): string {
   if (value === undefined) {
     return ABSENT_CELL
   }
 
-  return withCurrency(market, formatBarePrice(market, value, kind), kind)
+  return withCurrency(market, formatBarePrice(market, value, reading), reading)
 }
 
 /** A dealer's two sides, each labelled, with the currency said once after them where the market has
@@ -44,10 +48,10 @@ export function formatDealerBoard(
   }
 }
 
-function withCurrency(market: string, price: string, kind?: InstrumentKind): string {
+function withCurrency(market: string, price: string, reading?: LevelReading): string {
   const currency = findMarket(market)?.currency
 
-  return !isLevelKind(kind) && priceDisplayOf(market) === undefined && currency !== undefined
+  return reading?.isLevel !== true && priceDisplayOf(market) === undefined && currency !== undefined
     ? `${price} ${currency}`
     : price
 }
@@ -56,9 +60,9 @@ function withCurrency(market: string, price: string, kind?: InstrumentKind): str
  *  prints no `,00`. */
 export function toTickFormatter(
   market: string,
-  kind?: InstrumentKind
+  reading?: LevelReading
 ): (value: number, step: number) => string {
-  const display = displayOf(market, kind)
+  const display = displayOf(market, reading)
   const divisor = display?.divisor ?? 1
 
   return (value, step) => formatPrice(value, { divisor, decimals: decimalsOf(step / divisor) })
@@ -78,12 +82,12 @@ function decimalsOf(step: number): number {
 }
 
 // The figure alone, in the market's board scale, for a place the currency is said once nearby.
-function formatBarePrice(market: string, value: number, kind?: InstrumentKind): string {
-  return formatPrice(value, displayOf(market, kind))
+function formatBarePrice(market: string, value: number, reading?: LevelReading): string {
+  return formatPrice(value, displayOf(market, reading))
 }
 
-function displayOf(market: string, kind?: InstrumentKind): ReturnType<typeof printDisplayOf> {
-  return isLevelKind(kind) ? undefined : printDisplayOf(market)
+function displayOf(market: string, reading?: LevelReading): ReturnType<typeof printDisplayOf> {
+  return reading?.isLevel === true ? undefined : printDisplayOf(market)
 }
 
 /** A price typed as the board prints it, in the whole currency units the daemon takes: a VN share

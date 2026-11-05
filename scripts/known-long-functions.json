@@ -99,7 +99,7 @@
     "src/trading/features/ledger/store/ledger-row.ts#toTxn": 46,
     "src/trading/features/ledger/sync.ts#resolveVenueSync": 46,
     "src/trading/features/ledger/write.ts#toMonetaryTxn": 43,
-    "src/trading/features/market-data/reads/quote-board.ts#quoteBoardItemFor": 47,
+    "src/trading/features/market-data/reads/quote-board.ts#quoteBoardItemFor": 46,
     "src/trading/features/market-data/reads/quotes.ts#runQuote": 41,
     "src/trading/features/market-data/tools/overview.ts#toPayload": 53,
     "src/trading/features/market-data/tools/screen.ts#createMarketScreenTool": 44,

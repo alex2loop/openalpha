@@ -78,7 +78,7 @@ function AlertBody({ open }: { readonly open: OpenAlert }) {
       {quote !== undefined && (
         <p class="meta">
           {tr('ui.office.alert.now', {
-            price: formatMarketPrice(quote.market, quote.last, quote.kind),
+            price: formatMarketPrice(quote.market, quote.last, quote),
           })}
         </p>
       )}

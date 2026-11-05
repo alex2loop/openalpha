@@ -38,6 +38,7 @@ import {
 } from '@/trading/features/suggestion/analysis/prompts'
 import {
   type ResolvedSubject,
+  refusalOf,
   resolveSubject,
 } from '@/trading/features/suggestion/analysis/subject'
 import { AnalysisError, buildAnalysisId } from '@/trading/features/suggestion/analysis/types'
@@ -97,20 +98,20 @@ export interface AnalysisService {
    *  leaves nothing behind. */
   run(request: AnalysisRequest, signal: AbortSignal): Promise<AnalysisRecord>
   /** Why the name cannot be analysed at all, read before any key is needed; absent when it can. */
-  check(request: AnalysisRequest, signal: AbortSignal): Promise<AnalysisFailure | undefined>
+  refusalOf(request: AnalysisRequest, signal: AbortSignal): Promise<AnalysisFailure | undefined>
   list(options: AnalysisPageOptions): Promise<Page<AnalysisRecord, AnalysisId>>
 }
 
 export function createAnalysisService(deps: AnalysisServiceDeps): AnalysisService {
   return {
-    run: (request, signal) => runAnalysis(deps, { ...request, focus: DEFAULT_RUN_FOCUS, signal }),
-    check: (request, signal) =>
-      resolveSubject(deps.markets, { ...request, focus: DEFAULT_RUN_FOCUS, signal }).then(
-        () => undefined,
-        (err: unknown) => (err instanceof AnalysisError ? err.failure : Promise.reject(err))
-      ),
+    run: (request, signal) => runAnalysis(deps, toRunRequest(request, signal)),
+    refusalOf: (request, signal) => refusalOf(deps.markets, toRunRequest(request, signal)),
     list: (options) => deps.store.listPage(options),
   }
+}
+
+function toRunRequest(request: AnalysisRequest, signal: AbortSignal): SuggestionRequest {
+  return { ...request, focus: DEFAULT_RUN_FOCUS, signal }
 }
 
 /** The same resolve, ensure, factors and events the suggestion pipeline reads, then only the two

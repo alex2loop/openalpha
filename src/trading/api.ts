@@ -240,6 +240,7 @@ export {
 export { THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 export {
   buildInstrumentKey,
+  isLevelKind,
   isVenueRefShape,
   marketRef,
   region,

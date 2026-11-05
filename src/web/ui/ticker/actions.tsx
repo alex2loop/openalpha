@@ -1,7 +1,6 @@
 import { useSignal } from '@preact/signals'
 
 import { isAnalysisOnly } from '@/web/state/edition'
-import { isLevelInstrument } from '@/web/state/market'
 import { qualifyName } from '@/web/state/watch'
 import { tr } from '@/web/text/tr'
 import { openAlertDialog } from '@/web/ui/dialogs/alert-dialog'
@@ -13,6 +12,8 @@ import { WatchButton } from '@/web/ui/ticker/watch-button'
 interface CardActionsProps {
   readonly ticker: string
   readonly market: string
+  /** The name publishes a level: nothing buys or analyses it. */
+  readonly isLevel: boolean
   /** A stored call stands: a plain `/suggest` would hand it back, so the analysis runs fresh. */
   readonly isAnalyzed: boolean
 }
@@ -20,9 +21,8 @@ interface CardActionsProps {
 /** What the operator can do with this name. The analysis runs at once, fresh where a call is
  *  stored; "Theo dõi" is free and changes the list at once; the alert and the trade open their
  *  forms. An index is only watched and alerted: nothing buys or analyses one. */
-export function CardActions({ ticker, market, isAnalyzed }: CardActionsProps) {
+export function CardActions({ ticker, market, isLevel, isAnalyzed }: CardActionsProps) {
   const failure = useSignal<string | undefined>(undefined)
-  const isLevel = isLevelInstrument({ market, ticker })
 
   return (
     <div class="card-actions">
@@ -34,9 +34,7 @@ export function CardActions({ ticker, market, isAnalyzed }: CardActionsProps) {
   )
 }
 
-interface FormButtonsProps extends Pick<CardActionsProps, 'ticker' | 'market'> {
-  readonly isLevel: boolean
-}
+type FormButtonsProps = Pick<CardActionsProps, 'ticker' | 'market' | 'isLevel'>
 
 function FormButtons({ ticker, market, isLevel }: FormButtonsProps) {
   return (

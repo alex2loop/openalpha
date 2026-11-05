@@ -38,7 +38,7 @@ function describeTicker(ticker: string, market: string | undefined): string | un
 
   return [
     ticker,
-    formatMarketPrice(quote.market, quote.last, quote.kind),
+    formatMarketPrice(quote.market, quote.last, quote),
     formatSignedPercent(quote.changePct),
   ].join(' ')
 }

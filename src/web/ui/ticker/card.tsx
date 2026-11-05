@@ -65,6 +65,7 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
       <CardActions
         ticker={ticker}
         market={market}
+        isLevel={isLevel}
         isAnalyzed={standing !== undefined && isStoredAnswer(standing)}
       />
     </>
@@ -74,6 +75,10 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
 // The default focus's standing verdict: the call that drives the operator's book.
 function readPlan(ticker: string, market: string): (abort: AbortSignal) => Promise<PlanRead> {
   return async (abort) => {
+    if (isLevelInstrument({ market, ticker })) {
+      return { plan: undefined }
+    }
+
     const answer = await getJson(ROUTES.suggestions, {
       query: { status: 'open', market, ticker },
       signal: abort,
