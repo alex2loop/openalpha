@@ -49,7 +49,7 @@ interface EvidenceAdmissionInput {
   readonly freshness?: ResearchFreshness
   readonly bounds: ResearchEvidenceBounds
   readonly now: number
-  readonly today: string
+  readonly latestDay: string
   readonly signal: AbortSignal
 }
 
@@ -96,7 +96,7 @@ export async function admitEvidence(
   state.resolveClaims(input.candidates)
   state.resolveNumericLinks(input.candidates)
   state.resolveGaps(input.candidates)
-  state.applyRunDay(input.today)
+  state.applyRunDay(input.latestDay)
   state.applyFreshness(input.freshness)
 
   if (!state.hasUsableExcerpt()) {
@@ -320,8 +320,8 @@ class EvidenceAdmissionState implements ResolutionState {
     this.replaceEvidence(applySourceFreshness({ ...this.evidenceSet(), freshness }))
   }
 
-  applyRunDay(today: string): void {
-    this.replaceEvidence(dropFutureDated({ ...this.evidenceSet(), today }))
+  applyRunDay(latestDay: string): void {
+    this.replaceEvidence(dropFutureDated({ ...this.evidenceSet(), latestDay }))
   }
 
   private evidenceSet(): EvidenceSet {

@@ -1,11 +1,9 @@
 import type { ResearchResult } from './contracts'
 import type { EvidenceGap } from './evidence/gaps'
 import type { EvidenceExcerpt, ResearchArtifact, ResearchClaim } from './evidence/model'
+import { AGENT_STAGE_GAP_RESERVE, MAX_AGENT_GAPS } from './contracts'
 import { toResearchIssueKind } from './display/issue-summary'
 import { independentSupportCounts } from './evidence/corroboration'
-
-const MAX_AGENT_GAPS = 6
-const AGENT_STAGE_GAP_RESERVE = 1
 
 type CompletedResult = Extract<ResearchResult, { readonly status: 'complete' }>
 

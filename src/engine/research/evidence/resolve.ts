@@ -66,7 +66,7 @@ interface ApplySourceFreshnessInput extends EvidenceSet {
 }
 
 interface DropFutureDatedInput extends EvidenceSet {
-  readonly today: string
+  readonly latestDay: string
 }
 
 interface ResolvedDateFields {
@@ -303,18 +303,18 @@ export function applySourceFreshness(input: ApplySourceFreshnessInput): FreshEvi
   return { ...withoutRejected(input, rejectedSources, new Set()), gaps }
 }
 
-// A date after the reader's day is a wrong date whatever its confidence: the source or the numeric
+// A date after the latest day anywhere on Earth is a wrong date whatever its confidence: the source or the numeric
 // claim it dates never counts as evidence. A forecast states a future day on purpose and stays.
 export function dropFutureDated(input: DropFutureDatedInput): FreshEvidenceSet {
-  const { today } = input
+  const { latestDay } = input
   const sources = input.sources.filter(
-    (source) => isAfterDay(source.publishedOn, today) || isAfterDay(source.updatedOn, today)
+    (source) => isAfterDay(source.publishedOn, latestDay) || isAfterDay(source.updatedOn, latestDay)
   )
   const claims = input.claims.filter(
     (claim) =>
       claim.kind === 'numeric' &&
       claim.forecast !== true &&
-      isAfterDay(claim.number.effectiveOn, today)
+      isAfterDay(claim.number.effectiveOn, latestDay)
   )
   const gaps = [
     ...sources.map((source) =>
@@ -338,8 +338,8 @@ export function dropFutureDated(input: DropFutureDatedInput): FreshEvidenceSet {
   return { ...withoutRejected(input, rejectedSources, rejectedClaims), gaps }
 }
 
-function isAfterDay(day: string | undefined, today: string): boolean {
-  return day !== undefined && day > today
+function isAfterDay(day: string | undefined, latestDay: string): boolean {
+  return day !== undefined && day > latestDay
 }
 
 function withoutRejected(

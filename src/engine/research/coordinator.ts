@@ -37,6 +37,9 @@ import {
 import { createResearchRetrievalState } from './retrieval/state'
 import { createResearchStages } from './stages/stages'
 
+// UTC+14: its calendar day is the latest anywhere, so an article dated tomorrow in a zone ahead of the reader still counts as a real date.
+const LATEST_DAY_ZONE = 'Pacific/Kiritimati'
+
 export function createResearchCoordinator(deps: ResearchCoordinatorDeps): ResearchCoordinator {
   return {
     run: (request, invocation) => runResearch(deps, request, invocation),
@@ -49,7 +52,7 @@ async function runResearch(
   invocation: ResearchInvocation
 ): Promise<ResearchResult> {
   const depth = request.depth ?? RESEARCH_PROFILE_DEPTHS.standard
-  const clock = createRunClock(deps.config.locale.timezone)
+  const clock = buildRunClock()
   const startedAt = performance.now()
   const retrievalAttempts: ResearchRetrievalAttempt[] = []
   const retrievalState = createResearchRetrievalState({
@@ -113,7 +116,7 @@ interface ExecuteResearchInput {
   readonly request: ResearchRequest
   readonly invocation: ResearchInvocation
   readonly depth: StageContext['depth']
-  readonly clock: Pick<StageContext, 'now' | 'today'>
+  readonly clock: Pick<StageContext, 'now' | 'latestDay'>
   readonly retrievalState: ReturnType<typeof createResearchRetrievalState>
   readonly retrievalAttempts: ResearchRetrievalAttempt[]
   readonly setBudgets: (budgets: ResearchBudgetPool) => void
@@ -134,11 +137,11 @@ interface InitialResearchProfile {
   readonly maxBudgetedQuestions: number
 }
 
-// The clock is read once per run: the instant and the reader's calendar day move together.
-function createRunClock(timeZone: string): ExecuteResearchInput['clock'] {
+// The clock is read once per run: the instant and its latest calendar day move together.
+function buildRunClock(): ExecuteResearchInput['clock'] {
   const now = Date.now()
 
-  return { now, today: dayInZone(now, timeZone) }
+  return { now, latestDay: dayInZone(now, LATEST_DAY_ZONE) }
 }
 
 async function executeResearch(input: ExecuteResearchInput): Promise<ResearchResult> {

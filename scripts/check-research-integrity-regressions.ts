@@ -17,7 +17,7 @@ import {
 import { SearchProviderError } from '@/tools/web/search/errors'
 
 const NOW_MS = 1_756_000_000_000
-const TODAY = utcDay(NOW_MS)
+const LATEST_DAY = utcDay(NOW_MS)
 const BOUNDS = {
   maxExcerptChars: 1_200,
   maxExcerptsPerSource: 4,
@@ -54,7 +54,7 @@ async function admit(candidate: ResearchEvidenceBranch) {
     candidates: [candidate],
     bounds: BOUNDS,
     now: NOW_MS,
-    today: TODAY,
+    latestDay: LATEST_DAY,
     signal: new AbortController().signal,
   })
 }
@@ -172,7 +172,7 @@ async function removesStaleEvidence(): Promise<void> {
     freshness: { field: 'publishedOn', fromOn: '2025-01-01' },
     bounds: BOUNDS,
     now: NOW_MS,
-    today: TODAY,
+    latestDay: LATEST_DAY,
     signal: new AbortController().signal,
   })
 

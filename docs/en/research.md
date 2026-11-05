@@ -125,7 +125,7 @@ When something is dropped or missing, the report names a gap instead of hiding i
 | `content_limit` | A size or count limit cut material (over 42 searches, over 3 pages read, over 8 excerpts on a source) |
 | `missing_support` | A claim lost its supporting excerpt |
 | `unsafe_content` | A source or quote tripped the prompt-injection scan |
-| `freshness_out_of_window` / `freshness_uncertain` | The date is outside the window you asked for or after today (set aside), or missing or low-confidence |
+| `freshness_out_of_window` / `freshness_uncertain` | The date is outside the window you asked for or later than any day on Earth has reached (set aside), or missing or low-confidence |
 | `truncation` | An excerpt was cut to 4,000 characters |
 | `artifact_limit` | Evidence had to be trimmed to fit 128 KiB |
 | `provider_unavailable` | The search provider failed and no fallback is configured |
@@ -135,8 +135,8 @@ about the evidence for your question first, always with room for a process probl
 search, and the claims marked unconfirmed always. It names only the ones that change how far the answer can be trusted.
 
 Freshness never silently deletes a source on a weak signal. A date is rejected only when it is
-high-confidence; otherwise the source stays and is flagged. The one exception is a date after today
-in your timezone: that is a wrong date at any confidence, so the source is set aside. A source with
+high-confidence; otherwise the source stays and is flagged. The one exception is a date later than
+any day on Earth has reached (an article dated tomorrow in a zone ahead of you is fine): that is a wrong date at any confidence, so the source is set aside. A source with
 no date stays undated.
 
 ## Read the report
