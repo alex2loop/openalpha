@@ -126,6 +126,7 @@ function PopoverPanel(props: PopoverPanelProps) {
       class={joinClasses('popover solid-pop', className)}
       role="dialog"
       aria-label={label}
+      popover={isNear ? 'manual' : undefined}
       tabIndex={takesFocus === true ? -1 : undefined}
     >
       {children}
@@ -133,9 +134,9 @@ function PopoverPanel(props: PopoverPanelProps) {
   )
 }
 
-// Puts the panel under its anchor, or over it where the page ends first, and inside the gutters.
-// A fixed panel inside a transformed ancestor is placed from that ancestor's corner, so the
-// offset is read from where the panel lands at zero rather than assumed to be the page's.
+// Puts the panel in the top layer, where no sticky heading, clipped panel or later card covers it,
+// then under its anchor, or over it where the page ends first, and inside the gutters. The offset
+// is read from where the panel lands at zero rather than assumed to be the page's corner.
 function placeNear(
   panel: RefObject<HTMLElement | null>,
   anchor: RefObject<HTMLElement | null>
@@ -147,6 +148,7 @@ function placeNear(
     return () => undefined
   }
 
+  element.showPopover()
   element.style.setProperty('--nearTop', '0px')
   element.style.setProperty('--nearLeft', '0px')
 

@@ -49,6 +49,9 @@
 :root:not([data-layout="wide"]) .popover.popover-near {
   top: var(--nearTop);
   right: auto;
+  bottom: auto;
   left: var(--nearLeft);
+  margin: 0;
+  padding: 0;
   width: min(var(--nearPopW), calc(100vw - 2 * var(--popoverGutter)));
 }

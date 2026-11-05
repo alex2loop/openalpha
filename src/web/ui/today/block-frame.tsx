@@ -33,6 +33,8 @@ interface BlockFrameProps<T> {
   readonly showReadLine?: boolean
   /** A link or button in the head, at the right. */
   readonly action?: ComponentChildren
+  /** Said right after the title, in a quieter voice. */
+  readonly titleNote?: ComponentChildren
   /** Said under the skeleton while the first read runs, for a read that takes seconds. */
   readonly loadingText?: string | undefined
   /** Said in place of the generic failure, where a failed read must not pass for an empty one. */
@@ -44,11 +46,11 @@ interface BlockFrameProps<T> {
 /** One Hôm nay block: its title tile, the daemon's cautions, a failed read with "Thử lại" over the
  *  last good figures, or the grey line of a part this daemon does not run. */
 export function BlockFrame<T>(props: BlockFrameProps<T>) {
-  const { title, colour, icon, reading, action, children } = props
+  const { title, colour, icon, reading, action, titleNote, children } = props
 
   return (
     <section class="block">
-      <BlockHead title={title} colour={colour} icon={icon}>
+      <BlockHead title={title} colour={colour} icon={icon} note={titleNote}>
         {reading.state !== 'absent' && action}
       </BlockHead>
       {reading.state === 'absent' ? (
@@ -64,18 +66,21 @@ interface BlockHeadProps {
   readonly title: string
   readonly colour: TileColour
   readonly icon: ComponentChildren
+  /** Said right after the title, in a quieter voice. */
+  readonly note?: ComponentChildren
   /** A link or button at the right. */
   readonly children?: ComponentChildren
 }
 
 /** A card's title on its colour tile, as every block in the panel heads itself. */
-export function BlockHead({ title, colour, icon, children }: BlockHeadProps) {
+export function BlockHead({ title, colour, icon, note, children }: BlockHeadProps) {
   return (
     <h2 class="block-head">
       <span class="tile" style={`--c: var(--tc-${colour})`}>
         {icon}
       </span>
       {title}
+      {note !== undefined && <span class="meta">{note}</span>}
       <span class="block-grow" />
       {children}
     </h2>

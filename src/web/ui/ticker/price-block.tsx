@@ -84,6 +84,8 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   const board = findQuote(ticker, market)
   const quote = newerQuote(live.quote, board)
   const label = board?.label
+  // An index, a fund or world gold says what it is, in the glossary's words.
+  const term = termOfTicker(ticker)
 
   useLiveWhileTrading({ ticker, market }, { quote, live })
 
@@ -94,6 +96,9 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
       icon={<TrendIcon />}
       reading={reading}
       showReadLine={false}
+      titleNote={
+        term === undefined ? undefined : <Term id={term}>{tr('ui.office.glossary.whatIs')}</Term>
+      }
       action={
         state.value?.capabilities.quotes !== false && (
           <Button size="small" disabled={live.isBusy} onClick={live.refresh}>
@@ -105,24 +110,10 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
       {({ bars }) => (
         <>
           {live.failure !== undefined && <p class="failure-line">{live.failure}</p>}
-          <TickerTerm ticker={ticker} />
           <PriceBody ticker={ticker} market={market} bars={bars} levels={levels} quote={quote} />
         </>
       )}
     </BlockFrame>
-  )
-}
-
-// An index, a fund or world gold says what it is, in the glossary's words.
-function TickerTerm({ ticker }: { readonly ticker: string }) {
-  const term = termOfTicker(ticker)
-
-  return (
-    term !== undefined && (
-      <p class="meta">
-        <Term id={term}>{tr('ui.office.glossary.whatIs')}</Term>
-      </p>
-    )
   )
 }
 
