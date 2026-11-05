@@ -1,6 +1,10 @@
 import type { ResearchResult } from './contracts'
+import type { EvidenceGap } from './evidence/gaps'
 import type { EvidenceExcerpt, ResearchArtifact, ResearchClaim } from './evidence/model'
+import { toResearchIssueKind } from './display/issue-summary'
 import { independentSupportCounts } from './evidence/corroboration'
+
+const MAX_AGENT_GAPS = 6
 
 type CompletedResult = Extract<ResearchResult, { readonly status: 'complete' }>
 
@@ -50,11 +54,27 @@ export function toAgentResearchResult(result: ResearchResult): AgentResearchResu
         independentSources: support.get(claim.id) ?? 0,
       })),
       numericLinks: result.artifact.numericLinks,
-      gaps: result.artifact.gaps,
+      gaps: toAgentGaps(result.artifact.gaps),
       conflicts: result.artifact.conflicts,
       report: result.artifact.report,
     },
   }
+}
+
+/**
+ * The agent writes what is missing from these, so a long list reads as noise. Gaps about the evidence
+ * come before stage problems and the list is bounded; an unverified label is the only record that a
+ * claim is unconfirmed, so every one of them travels whatever the bound.
+ */
+function toAgentGaps(gaps: readonly EvidenceGap[]): readonly EvidenceGap[] {
+  const labels = gaps.filter((gap) => gap.code === 'unverified_claim')
+  const others = gaps.filter((gap) => gap.code !== 'unverified_claim')
+  const evidenceFirst = [
+    ...others.filter((gap) => toResearchIssueKind(gap) === 'evidence'),
+    ...others.filter((gap) => toResearchIssueKind(gap) === 'run'),
+  ]
+
+  return [...evidenceFirst.slice(0, MAX_AGENT_GAPS), ...labels]
 }
 
 function toAgentExcerpt(excerpt: EvidenceExcerpt): AgentEvidenceExcerpt {

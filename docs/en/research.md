@@ -130,6 +130,10 @@ When something is dropped or missing, the report names a gap instead of hiding i
 | `artifact_limit` | Evidence had to be trimmed to fit 128 KiB |
 | `provider_unavailable` | The search provider failed and no fallback is configured |
 
+The artifact keeps every gap, but the assistant that writes your answer is handed a short list: gaps
+about the evidence for your question first, process problems after, and the claims marked unconfirmed
+always. It names only the ones that change how far the answer can be trusted.
+
 Freshness never silently deletes a source on a weak signal. A date is rejected only when it is
 high-confidence; otherwise the source stays and is flagged. The one exception is a date after today
 in your timezone: that is a wrong date at any confidence, so the source is set aside. A source with

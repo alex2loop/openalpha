@@ -132,6 +132,11 @@ Khi có gì bị loại hoặc còn thiếu, báo cáo nêu thành khoảng tr�
 | `artifact_limit` | Bằng chứng phải cắt cho vừa 128 KiB |
 | `provider_unavailable` | Nhà cung cấp tìm kiếm hỏng và chưa cấu hình dự phòng |
 
+Gói kết quả giữ mọi khoảng trống, nhưng trợ lý viết câu trả lời cho bạn chỉ nhận một danh sách ngắn:
+khoảng trống về bằng chứng cho câu hỏi của bạn đứng trước, vấn đề của quy trình đứng sau, và các luận
+điểm đánh dấu chưa xác minh được thì luôn có. Trợ lý chỉ nêu những khoảng trống làm đổi mức độ tin được
+của câu trả lời.
+
 Độ mới không bao giờ lặng lẽ loại một nguồn chỉ vì tín hiệu yếu. Ngày chỉ bị từ chối khi chính nó có độ
 tin cậy cao; nếu không, nguồn vẫn ở lại và bị gắn cờ. Ngoại lệ duy nhất là ngày sau hôm nay theo múi
 giờ của bạn: đó là ngày sai ở mọi độ tin cậy nên nguồn bị gạt ra. Nguồn không có ngày thì vẫn không có ngày.

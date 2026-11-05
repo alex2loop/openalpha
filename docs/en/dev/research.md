@@ -202,6 +202,7 @@ A profile may narrow a bound, never raise it.
 | Excerpts per source | 8 |
 | Artifact size | 128 KiB (UTF-8) |
 | Direct pages per question | 3 |
+| Gaps handed to the calling agent | 6, evidence gaps first; unverified-claim labels exempt |
 | Full text per source | 64 KiB, never enters the result |
 
 Each stage's reasoning effort and output ceiling are fixed and override the worker's `agent.toml`:
