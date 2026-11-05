@@ -165,6 +165,10 @@ export interface RunInput {
   readonly userId: UserId
   readonly channel: ChannelId
   readonly userMessage: string
+  /** What the operator typed, when `userMessage` is the text a slash command handed an agent for it:
+   *  the transcript stores this in its place, so a history surface shows the line, not the hand-off.
+   *  The model still reads `userMessage` for this run. */
+  readonly typedMessage?: string
   /** Read by the model just ahead of `userMessage`, for this run only; never stored, so a history
    *  surface shows only what the operator typed. */
   readonly lead?: string
@@ -241,7 +245,8 @@ export interface MessageStore {
   ): void
   flushPending(): void
   clearPending(): void
-  appendDirect(message: NonAssistantMessage): void
+  /** Enters the window as `message` and the durable transcript as `stored` (default `message`). */
+  appendDirect(message: NonAssistantMessage, stored?: NonAssistantMessage): void
   /** Prompt-only append: enters the model's window, never the durable transcript a human reads. */
   appendTransient(message: NonAssistantMessage): void
   loadHistory(messages: readonly LLMMessage[]): void

@@ -5,6 +5,7 @@ import type { RunBookkeeping, RunDeps } from '@/engine/loop/context'
 import type { SteeringInbox } from '@/engine/loop/drive'
 import type { AgentProfile } from '@/engine/types/agent'
 import type {
+  MessageStore,
   RunHandle,
   RunInput,
   RunOptions,
@@ -263,13 +264,23 @@ async function prepareRun(input: PrepareRunInput): Promise<PreparedRun> {
     )
   }
 
-  if (runInput.lead !== undefined) {
-    run.state.messages.appendTransient({ role: 'user', content: runInput.lead })
-  }
-
-  run.state.messages.appendDirect({ role: 'user', content: userMessage })
+  appendUserTurn(run.state.messages, runInput, userMessage)
 
   return { run, bookkeeping }
+}
+
+// The model reads the lead and `userMessage`; the transcript keeps only what the operator typed.
+function appendUserTurn(messages: MessageStore, input: RunInput, userMessage: string): void {
+  if (input.lead !== undefined) {
+    messages.appendTransient({ role: 'user', content: input.lead })
+  }
+
+  messages.appendDirect(
+    { role: 'user', content: userMessage },
+    input.typedMessage === undefined
+      ? undefined
+      : { role: 'user', content: clampUserMessage(input.typedMessage) }
+  )
 }
 
 function resultForPreRegistrationFailure(err: unknown): RunResult {

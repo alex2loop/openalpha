@@ -290,6 +290,7 @@ async function runTurn(session: ChatSession, turn: SlashTurn, prompt: PromptFn):
       agentId: turn.agentId ?? state.agentId,
       sessionId: state.sessionId,
       message: turn.message,
+      ...(turn.typedMessage === undefined ? {} : { typedMessage: turn.typedMessage }),
       flags,
       signal: state.controller.signal,
       // The REPL loop is enclosed by `openCliApprovals`, so its responder is always armed.
@@ -390,6 +391,7 @@ async function runOneShotTurn(
     agentId: turn.agentId ?? state.agentId,
     sessionId: state.sessionId,
     message: turn.message,
+    ...(turn.typedMessage === undefined ? {} : { typedMessage: turn.typedMessage }),
     flags: approvals === undefined ? withoutApprover(session.flags) : session.flags,
     signal: controller.signal,
     // The route is live only while the interactive approval responder is armed; a headless

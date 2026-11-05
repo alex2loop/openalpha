@@ -231,16 +231,26 @@ async function runQueuedSlash(
       throw new ToolError('unexpected', 'self-contained command asked for an agent turn')
     }
 
-    const selectedAgent = request.agentId ?? (await resolveAgentId(msg.chatId))
-    await deps.runExchange({
-      combined: { ...msg, text: request.text },
-      sessionId,
-      agentId: selectedAgent,
-    })
+    await runHandedOffTurn(options, request)
   } finally {
     stop.off()
     await notice?.stop()
   }
+}
+
+// The agent reads what the command handed it; the transcript keeps the line the operator typed.
+async function runHandedOffTurn(
+  options: ResolveSlashOptions,
+  request: SlashRunRequest
+): Promise<void> {
+  const { deps, msg, sessionId } = options
+
+  await deps.runExchange({
+    combined: { ...msg, text: request.text },
+    typedText: msg.text,
+    sessionId,
+    agentId: request.agentId ?? (await options.resolveAgentId(msg.chatId)),
+  })
 }
 
 interface StopWatch {

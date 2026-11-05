@@ -117,6 +117,7 @@ async function runTurn(input: TurnInput): Promise<TurnOutcome | null> {
         userId: LOCAL_USER_ID,
         channel: API_CHANNEL,
         userMessage: request.message,
+        ...(request.typedMessage === undefined ? {} : { typedMessage: request.typedMessage }),
         onChunk: (event) => sendChatFrames(link.sink, frames.map(event), tag),
       },
       { chatId: sessionId, parentSignal: controller.signal }

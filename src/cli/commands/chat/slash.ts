@@ -23,6 +23,8 @@ const CLI_CHANNEL_ID = LOCAL_CHANNEL_ID
 // A slash command either resolves to a normal agent turn or handles itself outright.
 export interface SlashTurn {
   readonly message: string
+  /** The line typed, when `message` is what the command handed the agent for it. */
+  readonly typedMessage?: string
   readonly agentId?: AgentId
 }
 
@@ -208,6 +210,7 @@ function toSlashTurn(
     case 'agent':
       return {
         message: result.retryMessage,
+        typedMessage: line,
         ...(result.agentId === undefined ? {} : { agentId: result.agentId }),
       }
     case 'handled':

@@ -53,6 +53,8 @@ interface SlashRun {
 export interface ChatRunRequest extends LaneTag {
   readonly sessionId: SessionId
   readonly message: string
+  /** The line the operator typed, when `message` is what the command handed the agent for it. */
+  readonly typedMessage?: string
   readonly agentId?: AgentId
 }
 
@@ -352,6 +354,7 @@ function handleSlashResult(run: SlashRun, result: SlashResult): ChatRunRequest |
       return {
         sessionId: run.sessionId,
         message: result.retryMessage,
+        typedMessage: run.line,
         ...(result.agentId === undefined ? {} : { agentId: result.agentId }),
         ...toLaneTag(run.clientId),
       }

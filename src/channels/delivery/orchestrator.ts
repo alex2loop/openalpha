@@ -8,7 +8,13 @@ import type { AgentId, SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { SessionActivity } from '@/core/types/session'
-import type { ResearchPlanDecision, ResearchPlanReview, Runner, RunResult } from '@/engine/api'
+import type {
+  ResearchPlanDecision,
+  ResearchPlanReview,
+  RunInput,
+  Runner,
+  RunResult,
+} from '@/engine/api'
 import { type AiLabeler, type PendingLabel, withAiLabel } from '@/channels/delivery/ai-label'
 import { AnswerUndelivered } from '@/channels/delivery/answer'
 import { buildAbortCallbackData } from '@/channels/delivery/callbacks'
@@ -18,18 +24,15 @@ import {
   formatPlanBlock,
   formatRunResultBody,
 } from '@/channels/delivery/format'
-import { resolveGapNote } from '@/channels/delivery/gap-note'
+import { composeLead } from '@/channels/delivery/lead'
 import { resolveOutboundMarkup, selectRenderer } from '@/channels/delivery/outbound/chunked-send'
 import { createReply } from '@/channels/delivery/reply'
-import { toReplyLead } from '@/channels/delivery/reply-context'
 import { type ChunkStream, createChunkStream } from '@/channels/delivery/stream'
 import { AppError, ChannelError, RunHalted } from '@/core/errors'
 import { observe } from '@/core/events'
 import { LOCAL_USER_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
-
-const LEAD_SEPARATOR = '\n\n'
 
 export interface OrchestratorDeps {
   readonly adapter: ChannelAdapter
@@ -57,6 +60,8 @@ interface ReplyTarget {
 
 export interface Exchange {
   readonly combined: InboundMessage
+  /** The line the operator typed, when `combined.text` is what a slash command handed the agent. */
+  readonly typedText?: string
   readonly sessionId: SessionId
   readonly agentId: AgentId
 }
@@ -94,7 +99,7 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
         sessionId,
         userId: LOCAL_USER_ID,
         channel: combined.channel,
-        userMessage: combined.text,
+        ...toTurnText(exchange),
         ...(lead === undefined ? {} : { lead }),
         onChunk: (event) => stream.onChunk(event),
       },
@@ -134,26 +139,13 @@ function beginExchange(deps: OrchestratorDeps, exchange: Exchange) {
   }
 }
 
-// Batched messages arrive here as one: one lead per run, and a burst keeps only its last reply.
-async function composeLead(
-  deps: OrchestratorDeps,
-  exchange: Exchange
-): Promise<string | undefined> {
-  const gapNote = await resolveGapNote({
-    sessionId: exchange.sessionId,
-    sessions: deps.sessions,
-    gapNoteMs: deps.settings.gapNoteMs,
-    locale: deps.locale,
-    logger: deps.logger,
-  })
-  const replyLead = toReplyLead({
-    message: exchange.combined,
-    sent: deps.sent,
-    locale: deps.locale,
-  })
-  const parts = [gapNote, replyLead].filter((part) => part !== undefined)
+// What the model reads, and what the transcript keeps when a command handed the agent its text.
+function toTurnText(exchange: Exchange): Pick<RunInput, 'userMessage' | 'typedMessage'> {
+  const userMessage = exchange.combined.text
 
-  return parts.length === 0 ? undefined : parts.join(LEAD_SEPARATOR)
+  return exchange.typedText === undefined
+    ? { userMessage }
+    : { userMessage, typedMessage: exchange.typedText }
 }
 
 interface ApprovalPromptWatch {

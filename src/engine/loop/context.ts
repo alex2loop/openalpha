@@ -101,7 +101,7 @@ function createMessageStore(sessionMessageCap: number, ownerRunId: RunId): Messa
     clearPending: () => {
       buffers.pending.length = 0
     },
-    appendDirect: (message) => appendDirect(buffers, message),
+    appendDirect: (message, stored) => appendDirect(buffers, message, stored),
     appendTransient: (message) => appendTransient(buffers, message),
     loadHistory: (messages) => loadHistory(buffers, messages),
     replaceLastAssistant: (previous, message) => replaceLastAssistant(buffers, previous, message),
@@ -133,9 +133,13 @@ function flushPending(buffers: MessageBuffers): void {
   enforceMessageCap(buffers.history, buffers.cap)
 }
 
-function appendDirect(buffers: MessageBuffers, message: NonAssistantMessage): void {
+function appendDirect(
+  buffers: MessageBuffers,
+  message: NonAssistantMessage,
+  stored: NonAssistantMessage = message
+): void {
   buffers.history.push(message)
-  buffers.unpersisted.push({ runId: buffers.ownerRunId, message })
+  buffers.unpersisted.push({ runId: buffers.ownerRunId, message: stored })
   enforceMessageCap(buffers.history, buffers.cap)
 }
 
