@@ -89,9 +89,10 @@ export const BEAR_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
 })
 
 /** The analysis has no manager and no later run to check it, so each side states for itself what
- *  would make its case wrong: the reader is the only one left to watch for it. */
+ *  would make its case wrong: the reader is the only one left to watch for it. An answer naming none
+ *  is rejected, so the repair re-ask asks for one instead of the reader getting an empty section. */
 const ANALYSIS_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
-  invalidators: z.array(claimText).max(MAXIMUM_INVALIDATORS),
+  invalidators: z.array(claimText).min(1).max(MAXIMUM_INVALIDATORS),
 })
 
 export const BULL_ANALYSIS_SCHEMA = ANALYSIS_CASE_SCHEMA.extend({

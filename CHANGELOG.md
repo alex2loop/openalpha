@@ -41,6 +41,7 @@ gains two tables; the upgrade runs them for you.
 
 - The office page's header switches sit on one line, the market clock shows only when it differs from the scene's, and a ghost button's hover is a soft wash.
 - An empty market section says so instead of showing a bare band.
+- Each side of an analysis names at least one condition that would show it wrong; an answer naming none is asked again instead of printing an empty "wrong if" section.
 - Identical provider requests in flight share one round trip, funding and sentiment reads come from a short cache, and a market with a refresh on record is not refetched on every read.
 - A provider request never follows a redirect, and the web edition's command bar refuses a line holding a key-like token.
 
