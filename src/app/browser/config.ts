@@ -24,6 +24,8 @@ const KEY_PLACEHOLDER = 'browser-managed-key'
 /** The shipped starting point, on OpenRouter. The main model is the one `/suggest` argues on. */
 const SHIPPED_PROVIDER = 'openrouter'
 const SHIPPED_MAIN_MODEL = 'openai/gpt-6-luna'
+/** Answers when the main model fails or the provider retires it, on the same key. */
+const SHIPPED_FALLBACK_MODEL = 'deepseek/deepseek-v4.1-flash'
 /** The web's own cap, above the installed version's: a visitor's key pays for each run. */
 const DAILY_SPEND_CAP_USD = 5
 
@@ -56,6 +58,7 @@ export interface BrowserOverrides {
 /** The main model until the visitor changes it. */
 export const SHIPPED_MODELS: ModelChain = freezeDeep([
   { provider: SHIPPED_PROVIDER, model: SHIPPED_MAIN_MODEL },
+  { provider: SHIPPED_PROVIDER, model: SHIPPED_FALLBACK_MODEL },
 ])
 
 export function resolveBrowserConfig(locale: Locale, overrides: BrowserOverrides): ResolvedConfig {
