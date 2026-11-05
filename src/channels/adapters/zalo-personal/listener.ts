@@ -1,5 +1,4 @@
-import type { API, GroupMessage, Message } from 'zca-js'
-import { CloseReason, ThreadType } from 'zca-js'
+import type { API, GroupMessage, Message, ThreadType } from 'zca-js'
 
 import type { AdapterHandlers, InboundInbox, InboundReply, InboxPayload } from '@/channels/types'
 import type { ChannelId } from '@/core/channels'
@@ -10,16 +9,18 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
 import { sleep } from '@/core/utils/time'
 
+import type { ZcaModule } from './zca'
+
 const ACCEPT_QUEUE_MAX = 256
 const ACCEPT_MAX_ATTEMPTS = 3
 const ACCEPT_RETRY_BASE_MS = 500
 const ACCEPT_OUTAGE_RETRY_MS = 30_000
 const ACCEPT_SETTLE_TIMEOUT_MS = 5_000
 const MENTION_ESCAPE_RE = /[.*+?^${}()|[\]\\]/g
-const ABORTED_CLOSE: ListenerClose = { code: CloseReason.ManualClosure, reason: 'aborted' }
 
 interface AttachListenerOptions {
   readonly api: API
+  readonly zca: ZcaModule
   readonly threadTypes: LruMap<string, ThreadType>
   readonly handlers: AdapterHandlers
   readonly inbox: InboundInbox
@@ -62,6 +63,10 @@ interface AcceptContext {
   readonly mention: MentionContext
 }
 
+function abortedClose(zca: ZcaModule): ListenerClose {
+  return { code: zca.CloseReason.ManualClosure, reason: 'aborted' }
+}
+
 export async function resolveBotName(api: API): Promise<string> {
   try {
     const info = await api.fetchAccountInfo()
@@ -77,7 +82,7 @@ export function attachZaloPersonalListener(options: AttachListenerOptions): Zalo
   const { api, handlers, logger, signal } = options
 
   if (signal.aborted) {
-    return { closed: Promise.resolve(ABORTED_CLOSE), dispose: () => Promise.resolve() }
+    return { closed: Promise.resolve(abortedClose(options.zca)), dispose: () => Promise.resolve() }
   }
 
   const accepts = createAcceptQueue(options)
@@ -93,7 +98,7 @@ export function attachZaloPersonalListener(options: AttachListenerOptions): Zalo
     logger.warn('zalo_personal.listener_error', { err: formatErrForLog(err) })
   }
   const onClosed = (code: number, reason: string): void => settleClosed({ code, reason })
-  const onAbort = (): void => settleClosed(ABORTED_CLOSE)
+  const onAbort = (): void => settleClosed(abortedClose(options.zca))
   let detached = false
   const detach = (): void => {
     if (detached) {
@@ -135,7 +140,7 @@ export function attachZaloPersonalListener(options: AttachListenerOptions): Zalo
 // hold back, so a persistence failure is absorbed by the bounded retry queue instead. A message no
 // admission rule could let in is dropped first, so a stranger cannot grow the inbox.
 function acceptPushedMessage(context: AcceptContext, message: Message): void {
-  const inbound = toInboundMessage(message, context.mention, context.listener.channelId)
+  const inbound = toInboundMessage(message, context)
 
   if (
     inbound === undefined ||
@@ -302,7 +307,9 @@ function clean(logger: Logger, cleanup: () => void): void {
   }
 }
 
-function toInboundMessage(message: Message, mention: MentionContext, channelId: ChannelId) {
+function toInboundMessage(message: Message, context: AcceptContext) {
+  const { mention, listener } = context
+
   if (message.isSelf) {
     return undefined
   }
@@ -313,12 +320,12 @@ function toInboundMessage(message: Message, mention: MentionContext, channelId: 
     return undefined
   }
 
-  const isGroup = message.type === ThreadType.Group
+  const isGroup = message.type === listener.zca.ThreadType.Group
   const receivedAtMs = Number.parseInt(message.data.ts, 10)
   const replyTo = isGroup ? undefined : toReplyTo(message, mention)
 
   return {
-    channel: channelId,
+    channel: listener.channelId,
     chatId: message.threadId,
     userId: message.data.uidFrom || message.threadId,
     text,

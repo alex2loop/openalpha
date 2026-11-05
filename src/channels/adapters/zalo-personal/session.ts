@@ -1,5 +1,4 @@
 import type { API, ThreadType } from 'zca-js'
-import { CloseReason, Zalo } from 'zca-js'
 
 import type { AdapterHandlers, InboundInbox } from '@/channels/types'
 import type { ChannelId } from '@/core/channels'
@@ -10,6 +9,7 @@ import { abortError, ChannelError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sleep } from '@/core/utils/time'
 
+import type { ZcaModule } from './zca'
 import {
   type ProfileLocation,
   readZaloPersonalCredentials,
@@ -37,6 +37,7 @@ interface SessionEnd {
 }
 
 interface ZaloPersonalSessionDeps {
+  readonly zca: ZcaModule
   readonly location: ProfileLocation
   readonly channelId: ChannelId
   readonly handlers: AdapterHandlers
@@ -93,7 +94,7 @@ async function runSessionOnce(deps: ZaloPersonalSessionDeps): Promise<SessionEnd
   let api: API
 
   try {
-    api = await new Zalo({
+    api = await new deps.zca.Zalo({
       logging: false,
       polyfill: createZaloPersonalFetch(deps.transportSignal),
     }).login(credentials)
@@ -112,6 +113,7 @@ async function listenUntilClosed(deps: ZaloPersonalSessionDeps, api: API): Promi
   const botName = await resolveBotName(api)
   const listener = attachZaloPersonalListener({
     api,
+    zca: deps.zca,
     threadTypes: deps.threadTypes,
     handlers: deps.handlers,
     inbox: deps.inbox,
@@ -125,7 +127,7 @@ async function listenUntilClosed(deps: ZaloPersonalSessionDeps, api: API): Promi
 
   try {
     const { code, reason } = await listener.closed
-    const displaced = code === CloseReason.DuplicateConnection
+    const displaced = code === deps.zca.CloseReason.DuplicateConnection
 
     return {
       reason: displaced ? 'duplicate_connection' : 'connection_closed',

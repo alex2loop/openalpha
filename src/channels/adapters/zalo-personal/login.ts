@@ -2,9 +2,7 @@ import { rm, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 import type { LoginQRCallbackEvent } from 'zca-js'
-import { LoginQRCallbackEventType, Zalo, ZaloApiLoginQRAborted } from 'zca-js'
 
-import { assertNotAborted } from '@/core/errors'
 import { ensurePrivateDirectory, PRIVATE_FILE_MODE } from '@/core/security/private-files'
 
 import {
@@ -13,6 +11,7 @@ import {
   writeZaloPersonalCredentials,
 } from './credentials'
 import { resolveBotName } from './listener'
+import { loadZca, type ZcaModule } from './zca'
 
 export type ZaloPersonalLoginProgress =
   | { readonly kind: 'qr-ready'; readonly path: string }
@@ -32,6 +31,7 @@ interface LoginZaloPersonalOptions {
 
 // zca-js hands each QR its own abort, so the latest one is kept to end the wait from outside.
 interface QrFlow {
+  readonly zca: ZcaModule
   readonly options: LoginZaloPersonalOptions
   readonly qrPath: string
   abort: (() => unknown) | undefined
@@ -43,9 +43,9 @@ interface QrFlow {
 export async function loginZaloPersonal(
   options: LoginZaloPersonalOptions
 ): Promise<ZaloPersonalLoginOutcome> {
-  assertNotAborted(options.signal)
-
+  const zca = await loadZca(options.signal)
   const flow: QrFlow = {
+    zca,
     options,
     qrPath: resolveQrCodePath(options.location),
     abort: undefined,
@@ -59,7 +59,7 @@ export async function loginZaloPersonal(
   options.signal.addEventListener('abort', onAbort, { once: true })
 
   try {
-    const api = await new Zalo({ logging: false }).loginQR(undefined, (event) =>
+    const api = await new zca.Zalo({ logging: false }).loginQR(undefined, (event) =>
       onQrEvent(flow, event)
     )
 
@@ -67,7 +67,7 @@ export async function loginZaloPersonal(
 
     return { kind: 'linked', name: await resolveBotName(api) }
   } catch (err: unknown) {
-    if (flow.failure !== undefined || !(err instanceof ZaloApiLoginQRAborted)) {
+    if (flow.failure !== undefined || !(err instanceof zca.ZaloApiLoginQRAborted)) {
       throw flow.failure ?? err
     }
 
@@ -87,6 +87,8 @@ function onQrEvent(flow: QrFlow, event: LoginQRCallbackEvent): void {
     flow.abort?.()
     return
   }
+
+  const { LoginQRCallbackEventType } = flow.zca
 
   switch (event.type) {
     case LoginQRCallbackEventType.QRCodeGenerated:

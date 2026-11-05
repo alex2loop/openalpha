@@ -2523,6 +2523,7 @@
     "channelTokenMissing": "{channel} đang bật nhưng chưa có bot token. Đặt token_env trong [{section}] rồi lưu token bằng `{brand} key set <tên>`, hoặc trỏ token_file tới tệp chứa token (trên app Mac thì nhập trong Settings), rồi chạy `{brand} restart --background` nhé.",
     "channelTokenMissingEnv": "{channel} đang bật nhưng chưa có bot token. Lưu bằng `{command}`, rồi chạy `{brand} restart --background` nhé.",
     "channelTokenRejected": "{channel} không nhận bot token này: có thể gõ sai, đã bị thu hồi hoặc đã tạo lại. Lấy token mới trong phần cài đặt bot, lưu lại bằng `{brand} key set` kèm tên trong token_env, rồi chạy `{brand} restart --background`.",
+    "channelLibraryUnavailable": "{channel} đã bật nhưng không nạp được thư viện của nó nên kênh vẫn tắt. Cài lại hoặc cập nhật {brand}, rồi chạy `{brand} restart --background`.",
     "configLocaleValue.currency": "locale.currency \"{value}\" không phải mã tiền tệ hợp lệ. Dùng mã ISO ba chữ cái như VND hay USD nhé.",
     "configLocaleValue.region": "locale.region \"{value}\" chưa viết đúng dạng mã vùng. Dùng mã chữ thường như vn hoặc global nhé.",
     "configIssue.custom": "chưa viết đúng dạng, xem ví dụ trong {sample}",
