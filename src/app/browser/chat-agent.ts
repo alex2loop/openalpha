@@ -5,19 +5,28 @@ import { CHAT_TOOLS } from '@/app/browser/edition'
 import { BRAND } from '@/core/brand'
 import { ConfigError } from '@/core/errors'
 import { type AgentId, agentId, DEFAULT_AGENT_ID } from '@/core/ids'
-import { DEEP_RESEARCHER_ID } from '@/engine/api'
+import { DEEP_RESEARCHER_ID, RESEARCH_CRAWLER_ID, RESEARCH_PLANNER_ID } from '@/engine/api'
 import { t } from '@/i18n'
 
 const SLOT_RE = /\{(\w+)\}/g
+const WEB_SCOPE = `markets, investing, the operator's book or ${BRAND.display}`
+// The stages that choose queries and claims are model calls of their own: the rule reaches only the
+// agent that relays them, so each is told the same scope.
+const WORKER_SCOPE = `WEB EDITION SCOPE\nStay within ${WEB_SCOPE}: plan no question or search term and return no claim outside it. A request that names no topic means current news on the markets and investing.`
+const SCOPED_WORKER_IDS = [RESEARCH_PLANNER_ID, RESEARCH_CRAWLER_ID]
 
 /** The agent a web run speaks as: the chat agent narrowed to `CHAT_TOOLS` and told the web's rule,
- *  the research agent (which writes what `/research` shows) told the same rule with its tools kept;
- *  every other agent as configured. */
+ *  the research agent (which writes what `/research` shows) told the same rule with its tools kept,
+ *  the research planner and crawler told its scope; every other agent as configured. */
 export function createChatAgentForRun(
   app: App
 ): (input: RunInput, fallback: AgentProfile) => AgentProfile {
   const rule = fillSlots(chatRule, slotsOf(app))
-  const narrowed = [buildChatAgent(app, rule), buildResearchAgent(app, rule)]
+  const narrowed = [
+    buildChatAgent(app, rule),
+    withPromptRule(app, DEEP_RESEARCHER_ID, rule),
+    ...SCOPED_WORKER_IDS.map((id) => withPromptRule(app, id, WORKER_SCOPE)),
+  ]
 
   return (_input, fallback) => narrowed.find(({ id }) => id === fallback.id) ?? fallback
 }
@@ -42,8 +51,8 @@ function buildChatAgent(app: App, rule: string): AgentProfile {
   }
 }
 
-function buildResearchAgent(app: App, rule: string): AgentProfile {
-  const configured = registeredAgent(app, agentId(DEEP_RESEARCHER_ID))
+function withPromptRule(app: App, id: string, rule: string): AgentProfile {
+  const configured = registeredAgent(app, agentId(id))
 
   return { ...configured, systemPrompt: `${configured.systemPrompt}\n\n${rule}` }
 }
@@ -63,6 +72,7 @@ function slotsOf(app: App): Readonly<Record<string, string>> {
 
   return {
     brand: BRAND.display,
+    scope: WEB_SCOPE,
     refusal: `${t(locale, 'ui.office.edition.chat.refusal')} ${t(locale, 'trading.analysis.web-scope')}`,
     offTopic: t(locale, 'ui.office.edition.chat.offTopic', { brand: BRAND.display }),
   }

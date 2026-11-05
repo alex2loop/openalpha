@@ -36,9 +36,10 @@ export const MAX_RESEARCH_ERROR_CHARS = 500
 export const RESEARCH_MODEL_TIER = 'research'
 export const RESEARCH_HEAVY_MODEL_TIER = 'research-heavy'
 export const RESEARCH_CRAWLER_ID = 'research-crawler'
+export const RESEARCH_PLANNER_ID = 'research-planner'
 export const RESEARCH_WORKER_IDS = [
   RESEARCH_CRAWLER_ID,
-  'research-planner',
+  RESEARCH_PLANNER_ID,
   'research-reviewer',
   'research-synthesizer',
 ] as const
