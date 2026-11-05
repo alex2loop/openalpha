@@ -35,6 +35,13 @@ const SEARCH_KEY_VARIABLES: Readonly<Record<string, string>> = Object.freeze({
   deepseek: 'DEEPSEEK_SEARCH_API_KEY',
 } satisfies Record<BrowserSearchProvider, string>)
 
+/** What the page calls each search provider when it asks for a key. */
+const SEARCH_DISPLAY_NAMES: Readonly<Record<string, string>> = Object.freeze({
+  tavily: 'Tavily',
+  serper: 'Serper',
+  deepseek: 'DeepSeek',
+} satisfies Record<BrowserSearchProvider, string>)
+
 /** The hosted search backends a page can use. */
 export const BROWSER_SEARCH_PROVIDERS: readonly string[] = Object.freeze(
   Object.keys(SEARCH_KEY_VARIABLES)
@@ -134,6 +141,15 @@ export function readSearchSelection(
   )
 
   return found === undefined ? undefined : { provider: found[0], variable: found[1] }
+}
+
+export function hasSearchKey(env: KeyEnv): boolean {
+  return readSearchSelection(env) !== undefined
+}
+
+/** The names of the search providers a visitor may add a key for, in the order the page offers them. */
+export function listSearchProviderNames(): readonly string[] {
+  return BROWSER_SEARCH_PROVIDERS.map((provider) => SEARCH_DISPLAY_NAMES[provider] ?? provider)
 }
 
 function toEnv(keys: BrowserKeys): KeyEnv {

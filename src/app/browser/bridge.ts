@@ -2,13 +2,19 @@ import type { BrowserKeyring } from '@/app/browser/keys'
 import type { BrowserRoot, OpenedRoot } from '@/app/browser/root'
 import type { ApiError } from '@/app/server/wire/errors'
 import type { ClientFrame } from '@/app/server/wire/socket'
-import type { DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/worker'
+import type {
+  BrowserAiProvider,
+  DbOpenOutcome,
+  WorkerCall,
+  WorkerReply,
+} from '@/app/server/wire/worker'
 import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import { findProviderById } from '@/ai/api'
 import { type DbFileVerdict, toDbFileVerdict } from '@/app/browser/db-file'
-import { hasAiKey, readModelProvider } from '@/app/browser/keys'
+import { hasAiKey, hasSearchKey, readModelProvider } from '@/app/browser/keys'
+import { renderSearchKeyNeeded } from '@/app/browser/research-gate'
 import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
 import { handleHttp } from '@/app/server/http/dispatch'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
@@ -381,35 +387,55 @@ async function serveFrame(ctx: BridgeContext, frame: ClientFrame): Promise<void>
   }
 
   const sink = createSink(ctx)
-  const provider = readModelProvider(root.app.config)
 
-  // A line that calls the model with no key would fail, so it is answered here.
-  if (
-    (frame.type === 'chat' || frame.type === 'steer') &&
-    callsModel(frame.message) &&
-    !hasAiKey(ctx.keyring.env(), provider)
-  ) {
-    sink.send({
-      type: 'chat',
-      kind: 'error',
-      code: 'unavailable',
-      message: bindLocale(ctx.state.locale).translate('errors.browserChatNeedsKey', {
-        provider: findProviderById(provider)?.displayName ?? provider,
-      }),
-      ...toLaneTag(frame.id),
-    })
+  if (frame.type === 'chat' || frame.type === 'steer') {
+    const refusal = keyRefusalOf(ctx, frame.message, readModelProvider(root.app.config))
 
-    return
+    if (refusal !== undefined) {
+      sink.send({
+        type: 'chat',
+        kind: 'error',
+        code: 'unavailable',
+        message: refusal,
+        ...toLaneTag(frame.id),
+      })
+
+      return
+    }
   }
 
   await handleChatFrame(frame, sink, root.chat)
+}
+
+// A line that calls the model with no key would fail, and `/research` with no search key would
+// plan a run whose every search comes back empty, so each is answered here, before any call.
+function keyRefusalOf(
+  ctx: BridgeContext,
+  message: string,
+  provider: BrowserAiProvider
+): string | undefined {
+  const env = ctx.keyring.env()
+
+  if (callsModel(message) && !hasAiKey(env, provider)) {
+    return bindLocale(ctx.state.locale).translate('errors.browserChatNeedsKey', {
+      provider: findProviderById(provider)?.displayName ?? provider,
+    })
+  }
+
+  return isResearchLine(message) && !hasSearchKey(env)
+    ? renderSearchKeyNeeded(ctx.state.locale)
+    : undefined
 }
 
 // Free text and `/research` call the model; every other command reads local data.
 function callsModel(message: string): boolean {
   const line = message.trim()
 
-  return !line.startsWith('/') || commandHeadOf(line) === RESEARCH_COMMAND
+  return !line.startsWith('/') || isResearchLine(line)
+}
+
+function isResearchLine(message: string): boolean {
+  return commandHeadOf(message.trim()) === RESEARCH_COMMAND
 }
 
 /** Where a run's frames go: to the page, until the worker no longer holds a database to run on. */

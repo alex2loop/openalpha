@@ -13,6 +13,7 @@ import { createBrowserEdition } from '@/app/browser/edition'
 import { createBrowserSystemHost } from '@/app/browser/host'
 import { createKeyringCredentials } from '@/app/browser/keys'
 import { BROWSER_FETCH_GUARD } from '@/app/browser/network'
+import { gateResearch } from '@/app/browser/research-gate'
 import { createBrowserRetrieval } from '@/app/browser/retrieval'
 import { BROWSER_ROUTE_GROUPS } from '@/app/browser/routes'
 import { commandKeyValidator } from '@/app/command-keys'
@@ -141,7 +142,7 @@ function buildBrowserProviders(input: BrowserProviderInput): readonly ServicePro
     createCommandsProvider(() => [createResearchCommand()], commandKeyValidator, bindLocale), // 8
     createCliCommandsProvider(), // 8b
     createBrowserTradingProvider(tradingConfig, keyring), // 9
-    createBrowserAppProvider(), // 13
+    createBrowserAppProvider(keyring), // 13
     createBrowserApiProvider(keyring), // 15
   ]
 }
@@ -213,7 +214,7 @@ function createMemorySpendLog(): {
 
 // Step 13: the bindings that exist because the composition root sees every module at once. No
 // scheduler means no job store: the scoped one refuses, and no tool that reads it is offered.
-function createBrowserAppProvider(): ServiceProvider {
+function createBrowserAppProvider(keyring: BrowserKeyring): ServiceProvider {
   return {
     name: 'app',
     register(bind, extend): void {
@@ -229,6 +230,7 @@ function createBrowserAppProvider(): ServiceProvider {
       bindRunReads(bind)
       bind('agentForRun', createChatAgentForRun)
       extend('hooks', (current, app) => extendHooks(current, app, { learnsPreferences: false }))
+      extend('researchCoordinator', (current) => gateResearch(current, keyring))
     },
   }
 }

@@ -2542,6 +2542,7 @@
     "apiBehindProxy": "Yêu cầu này đi qua proxy nhưng [api] public_url chưa đặt. Đặt public_url là địa chỉ https của proxy trong config trên máy chủ rồi khởi động lại dịch vụ nền.",
     "apiStarting": "Dịch vụ nền đang khởi động, bạn chờ một chút rồi thử lại nhé.",
     "browserChatNeedsKey": "Để trò chuyện hoặc chạy /research, mình cần key {provider}, nhà cung cấp của mô hình chính bạn chọn trong Cài đặt. Hãy thêm key, hoặc cho phép gửi tới {provider} nếu trước đó bạn chưa đồng ý, ở phần cài đặt key rồi hỏi lại. Trong lúc chờ, các lệnh bắt đầu bằng / như /price, /portfolio hay /glossary vẫn chạy mà không cần key.",
+    "browserResearchNeedsSearchKey": "Để nghiên cứu một câu hỏi có trích nguồn, mình cần một key tìm kiếm, vì mình phải tìm nguồn trên web rồi mới trả lời được. Bản web dùng được key của một trong các nhà cung cấp sau: {providers}. Bạn thêm một key trong Cài đặt, mục Key AI và tìm kiếm, rồi hỏi lại nhé. Trong lúc chờ, bạn vẫn trò chuyện bình thường, và các lệnh bắt đầu bằng / như /price, /portfolio hay /glossary vẫn chạy mà không cần key.",
     "browserDailyCap": "Hôm nay các lượt gọi AI đã chạm hạn mức {cap} USD mỗi ngày mà trang tự đặt, nên mình dừng ở đây. Sang ngày mai hạn mức tự mở lại. Các lệnh không cần AI như /price, /portfolio hay /brief vẫn chạy bình thường.",
     "apiOrdersOff": "Đặt lệnh qua ứng dụng đang tắt ([api] orders). Bật trong config trên máy chủ nếu bạn muốn.",
     "pairingApproveServerOnly": "Khi API mở ra ngoài, chỉ duyệt ghép nối được trên máy chủ: chạy {brand} pair approve {code} ở đó.",

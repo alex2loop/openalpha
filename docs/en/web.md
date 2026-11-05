@@ -40,7 +40,7 @@ Market terms explain themselves. A word with a dotted underline (P/E, foreign ro
 
 Why the short list: a provider can be used from a web page only if its API answers a browser (it has to allow the page to call it). The providers above do. Others do not, so they work in the installed version only. OpenRouter reaches most models with one key, so it is the place to start. DeepSeek's search key is a different key from its AI key.
 
-A feature that needs a key you have not added does not run until you paste that key in Settings. A chat message or `/research` sent with no usable AI key, whether you added none or have not yet allowed sending to its provider, is answered with a note to add or allow one; other commands still run. The web version accepts no exchange key of any kind, even read-only; you place orders at your broker or exchange.
+A feature that needs a key you have not added does not run until you paste that key in Settings. A chat message or `/research` sent with no usable AI key, whether you added none or have not yet allowed sending to its provider, is answered with a note to add or allow one; other commands still run. `/research` with an AI key but no search key is answered at once, before any AI call, with a note naming the search providers you can add a key for (Tavily, Serper or DeepSeek) and where to add it; chatting works without a search key, and a research question put to chat gets the same reason. The web version accepts no exchange key of any kind, even read-only; you place orders at your broker or exchange.
 
 ## Web against installed
 
