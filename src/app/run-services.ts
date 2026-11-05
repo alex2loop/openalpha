@@ -27,6 +27,8 @@ import {
   reminderModifier,
 } from '@/engine/api'
 
+const LEARNS_PREFERENCES: HookOptions = { learnsPreferences: true }
+
 declare module '@/core/container' {
   interface Services {
     /** Contributed CLI command definitions. The CLI entry adapts and validates them after boot;
@@ -72,6 +74,11 @@ export function createCliCommandsProvider(): ServiceProvider {
   }
 }
 
+interface HookOptions {
+  /** False for a host that keeps no memory: no `prefs:*` read, no extra model call per run. */
+  readonly learnsPreferences: boolean
+}
+
 /**
  * The hooks the engine cannot build for itself: each one needs a handle from persistence, memory or
  * ai, and `engine` has an edge to none of them. Layered onto the engine's base set (loop detector,
@@ -85,11 +92,15 @@ export function createCliCommandsProvider(): ServiceProvider {
  * The session hooks are `critical`: a failed claim would run a paid turn with no row behind it, and
  * a lost write would leave the next turn reasoning over history that was never persisted.
  */
-export function extendHooks(current: Hooks, app: App): Hooks {
+export function extendHooks(
+  current: Hooks,
+  app: App,
+  options: HookOptions = LEARNS_PREFERENCES
+): Hooks {
   const session = createSessionPersistenceHooks(app.resolve('sessionStore'), app.resolve('bus'))
-  const preferences = createUserPreferencesHooks({
-    memory: app.resolve('memory'),
-  })
+  const preferences = options.learnsPreferences
+    ? createUserPreferencesHooks({ memory: app.resolve('memory') })
+    : undefined
 
   return {
     ...current,
@@ -100,11 +111,14 @@ export function extendHooks(current: Hooks, app: App): Hooks {
       ...current.llmRequestModifiers,
       createAvailableDelegatesModifier(app.resolve('agents')),
       createAvailableSkillsModifier(app.resolve('skillCatalog')),
-      preferences.inject,
+      ...(preferences === undefined ? [] : [preferences.inject]),
       reminderModifier,
     ],
     afterTurn: [...current.afterTurn, critical(session.afterTurn)],
-    beforeFinalize: [...current.beforeFinalize, preferences.extract],
+    beforeFinalize: [
+      ...current.beforeFinalize,
+      ...(preferences === undefined ? [] : [preferences.extract]),
+    ],
     afterRun: [critical(session.afterRun), ...current.afterRun],
   }
 }
