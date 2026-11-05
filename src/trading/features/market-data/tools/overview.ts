@@ -43,16 +43,13 @@ export function createMarketOverviewTool(
       const overviews = await marketData.overview({ now: Date.now(), signal: ctx.signal })
 
       return toAgentJson(
-        overviews.map((overview) => {
-          const payload = toPayload(overview, {
-            locale: ctx.locale,
-            price: priceWriterOf(marketData, overview, ctx.locale),
-          })
-
-          return options.readingsOnly === true
-            ? withMacroReadings(payload, overview, ctx.locale)
-            : payload
-        })
+        overviews.map((overview) =>
+          toPayload(
+            overview,
+            { locale: ctx.locale, price: priceWriterOf(marketData, overview, ctx.locale) },
+            options
+          )
+        )
       )
     },
   })
@@ -79,7 +76,11 @@ function priceWriterOf(
 /** Every amount and price leaves as the string a reader would see, because a model handed
  *  196500000000 has to divide by a billion to say it and one that misplaces the decimal reports a
  *  flow ten times the market's. Every `Pct` is percent points, and scores leave as bands. */
-function toPayload(overview: MarketDataOverview, writer: AgentWriter): Record<string, unknown> {
+function toPayload(
+  overview: MarketDataOverview,
+  writer: AgentWriter,
+  macroOptions: MacroPayloadOptions
+): Record<string, unknown> {
   const { locale } = writer
   const { rows, marketCap, derivatives, etfFlows, range, macro, positioning } = overview
   const { narrowDeclineBelowPct } = overview
@@ -106,7 +107,7 @@ function toPayload(overview: MarketDataOverview, writer: AgentWriter): Record<st
     rows: rows.map((row) => toRow(row, writer)),
     settledSession: toSettledSession(overview, locale),
     ...(range === undefined ? {} : { range: toRange(range, writer.price) }),
-    ...(macro === undefined ? {} : { macro: agentMacro(macro, locale) }),
+    ...(macro === undefined ? {} : { macro: agentMacro(macro, locale, macroOptions) }),
     ...(positioning?.yearPercentile === undefined
       ? {}
       : {
@@ -137,19 +138,6 @@ function toPayload(overview: MarketDataOverview, writer: AgentWriter): Record<st
           },
         }),
   }
-}
-
-/** An edition that makes no call states the macro inputs, not the regime they were scored into. */
-function withMacroReadings(
-  payload: Record<string, unknown>,
-  overview: MarketDataOverview,
-  locale: Locale
-): Record<string, unknown> {
-  const { macro } = overview
-
-  return macro === undefined
-    ? payload
-    : { ...payload, macro: agentMacro(macro, locale, { readingsOnly: true }) }
 }
 
 /** Every roll-up the market computed from its settled tape, under one key that names the session

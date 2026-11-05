@@ -10,6 +10,8 @@ import { RESEARCH_PROFILE_DEPTHS } from '@/core/config/resolve'
 import { agentId } from '@/core/ids'
 import { DEEP_RESEARCHER_ID, RESEARCH_DEPTH_PREFIX, RESEARCH_QUERY_MAX_CHARS } from '@/engine/api'
 
+const RESEARCH_COMMAND_NAME = 'research'
+export const RESEARCH_COMMAND = `/${RESEARCH_COMMAND_NAME}`
 const USAGE: CommandMessage = { key: 'slash.researchUsage' }
 const MESSAGE_KEYS = [USAGE.key, 'slash.researchQueryTooLong'] as const
 const DESCRIPTION: CommandDescription = { kind: 'localized', key: 'slash.researchHelp' }
@@ -26,7 +28,7 @@ type ResearchProfile = keyof typeof RESEARCH_PROFILE_DEPTHS
 
 export function createResearchCommand(): SlashCommand {
   return {
-    name: 'research',
+    name: RESEARCH_COMMAND_NAME,
     description: DESCRIPTION,
     messageKeys: [...MESSAGE_KEYS],
     policy: POLICY,

@@ -15,6 +15,7 @@ import { API_ERROR_STATUS } from '@/app/server/wire/errors'
 import { closeChatClient, followChatBus } from '@/app/server/ws/chat-client'
 import { handleChatFrame } from '@/app/server/ws/frames'
 import { toLaneTag } from '@/app/server/ws/runs'
+import { commandHeadOf, RESEARCH_COMMAND } from '@/commands/api'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 import { StorageFullError } from '@/persistence/api'
@@ -382,10 +383,10 @@ async function serveFrame(ctx: BridgeContext, frame: ClientFrame): Promise<void>
   const sink = createSink(ctx)
   const provider = readModelProvider(root.app.config)
 
-  // A line with no key would make no call and fail, so it is answered here.
+  // A line that calls the model with no key would fail, so it is answered here.
   if (
     (frame.type === 'chat' || frame.type === 'steer') &&
-    !frame.message.trim().startsWith('/') &&
+    callsModel(frame.message) &&
     !hasAiKey(ctx.keyring.env(), provider)
   ) {
     sink.send({
@@ -402,6 +403,13 @@ async function serveFrame(ctx: BridgeContext, frame: ClientFrame): Promise<void>
   }
 
   await handleChatFrame(frame, sink, root.chat)
+}
+
+// Free text and `/research` call the model; every other command reads local data.
+function callsModel(message: string): boolean {
+  const line = message.trim()
+
+  return !line.startsWith('/') || commandHeadOf(line) === RESEARCH_COMMAND
 }
 
 /** Where a run's frames go: to the page, until the worker no longer holds a database to run on. */

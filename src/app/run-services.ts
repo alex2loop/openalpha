@@ -27,6 +27,11 @@ import {
   reminderModifier,
 } from '@/engine/api'
 
+interface HookOptions {
+  /** False for a host that keeps no memory: no `prefs:*` read, no extra model call per run. */
+  readonly learnsPreferences: boolean
+}
+
 const LEARNS_PREFERENCES: HookOptions = { learnsPreferences: true }
 
 declare module '@/core/container' {
@@ -72,11 +77,6 @@ export function createCliCommandsProvider(): ServiceProvider {
       bind('cliCommands', () => [])
     },
   }
-}
-
-interface HookOptions {
-  /** False for a host that keeps no memory: no `prefs:*` read, no extra model call per run. */
-  readonly learnsPreferences: boolean
 }
 
 /**
