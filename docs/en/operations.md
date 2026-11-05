@@ -764,7 +764,7 @@ The Market tab has three parts: *Market*, *News* and *Themes*.
 - The run shows in the running chip, the office's data store and the chat, like a typed `/refresh`.
   The button stays off while one runs, and the blocks below read again when it ends.
 
-Then, for the region you pick (the home one first, kept in this browser), the tab shows:
+Then, for the region you pick (the home one first, kept in this browser), the tab shows what follows. The picker lists only the regions with a market your profile leaves on, plus the home one; while a market is switched off, the tab ends with a reminder to turn it on in Settings › Profile.
 
 - **The macro reading in full**: the regime and lean; one line with the 12-month deposit rate and the
   USD/VND rate (a part with no reading is left out); the drivers left out because they have no

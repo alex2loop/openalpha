@@ -1,7 +1,8 @@
 import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
-import { homeRegion, knownMarkets } from '@/web/state/market'
+import { homeRegion, knownMarkets, profileBlock } from '@/web/state/market'
 import { openView } from '@/web/state/panel'
+import { isSegmentOn } from '@/web/state/profile'
 import { readStorage, writeStorage } from '@/web/state/storage'
 
 const REGION_STORAGE_KEY = 'office.marketRegion'
@@ -19,13 +20,18 @@ export const marketSubTab = signal<MarketSubTab>('market')
 // The last region picked in this browser, kept across visits.
 const pickedRegion = signal(readStorage('local', REGION_STORAGE_KEY))
 
-/** Every region the daemon trades, the home region first, then in the daemon's order. */
+/** Every region with a market the profile leaves on, the home region always, first, then in the
+ *  daemon's order. Before the profile is read every region counts. */
 export const marketRegions: ReadonlySignal<readonly RegionChoice[]> = computed(() => {
   const home = homeRegion()
+  const profile = profileBlock.view.value.data
   const regions = new Map<string, string>()
 
   for (const market of knownMarkets.value) {
-    if (!regions.has(market.region)) {
+    const isOn =
+      profile === undefined || market.region === home || isSegmentOn(profile, market.segment)
+
+    if (isOn && !regions.has(market.region)) {
       regions.set(market.region, market.regionLabel)
     }
   }

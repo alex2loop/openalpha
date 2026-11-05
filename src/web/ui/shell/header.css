@@ -27,6 +27,12 @@
   height: var(--headerControlH);
 }
 
+/* A switch in the header keeps one row on the header's centre line, without a form's gap below. */
+.header .seg {
+  flex-wrap: nowrap;
+  margin: 0;
+}
+
 /* The room between the running chip and the controls: the AI line takes the sentence that fits it. */
 .header-grow {
   flex: 1;

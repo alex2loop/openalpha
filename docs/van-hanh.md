@@ -757,7 +757,7 @@ Thẻ Thị trường có ba phần: *Thị trường*, *Tin tức* và *Chủ �
 - Phiên chạy hiện ở chip đang chạy, kho dữ liệu trong văn phòng và khung chat, như `/refresh` gõ tay.
   Nút tắt khi còn một lượt đang chạy, và các khối bên dưới đọc lại khi lượt xong.
 
-Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này), thẻ hiện:
+Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này), thẻ hiện những mục dưới đây. Bộ chọn chỉ liệt kê vùng còn thị trường bạn bật trong hồ sơ, cộng vùng nhà; khi có thị trường đang tắt, cuối thẻ nhắc bật thêm ở Cài đặt › Hồ sơ.
 
 - **Đầy đủ số đọc vĩ mô**: trạng thái và chiều nghiêng; một dòng lãi suất tiền gửi 12 tháng và tỷ giá
   USD/VND (phần nào chưa có số thì bỏ); những thành phần bị để ngoài vì chưa có số đọc; phần mô hình

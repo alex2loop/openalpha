@@ -117,7 +117,7 @@ function MarketView({ region }: { readonly region: string }) {
       <Sectors region={region} />
       <IndexReading region={region} />
       <Session region={region} />
-      <MoreMarkets region={region} />
+      <MoreMarkets />
     </>
   )
 }
@@ -140,14 +140,13 @@ function RegionPrices({ region }: { readonly region: string }) {
   )
 }
 
-// A market of the region the profile leaves off reads nothing here until it is turned on.
-function MoreMarkets({ region }: { readonly region: string }) {
+// A market the profile leaves off, here or in a region the picker drops, reads nothing until it is
+// turned on.
+function MoreMarkets() {
   const profile = profileBlock.view.value.data
   const isAnyOff =
     profile !== undefined &&
-    knownMarkets.value.some(
-      (market) => market.region === region && !isSegmentOn(profile, market.segment)
-    )
+    knownMarkets.value.some((market) => !isSegmentOn(profile, market.segment))
 
   return isAnyOff ? <p class="meta">{tr('ui.office.market.moreMarkets')}</p> : null
 }
