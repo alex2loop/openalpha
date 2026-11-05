@@ -54,6 +54,7 @@ export function openRememberDialog(start: RememberStart = {}): void {
     dirty: () =>
       open.saved.value === undefined &&
       (open.value.value !== (start.value ?? '') || open.typedKey.value !== undefined),
+    ...(start.onBack === undefined ? {} : { onDismiss: start.onBack }),
   })
 }
 

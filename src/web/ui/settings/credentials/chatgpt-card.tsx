@@ -92,6 +92,7 @@ export function openChatgptSignIn(request: SignInRequest): void {
     title: tr('ui.office.chatgpt.signIn'),
     body: <SignInBody view={view} providerName={request.providerName} />,
     footer: <SignInFooter view={view} onBack={request.onBack} />,
+    onDismiss: request.onBack,
   })
 }
 

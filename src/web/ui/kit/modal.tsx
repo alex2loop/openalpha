@@ -35,8 +35,8 @@ interface ModalSpec {
   readonly footer: ComponentChild
   /** True while closing would lose what the operator typed: Esc or an outside click then asks once. */
   readonly dirty?: () => boolean
-  /** Where Esc, an outside click and the close button go instead of closing: back to the dialog
-   *  that opened this question. */
+  /** Where Esc, an outside click and the close button go instead of closing: back to Cài đặt or
+   *  the dialog this one was opened from. */
   readonly onDismiss?: () => void
   readonly wide?: true
 }

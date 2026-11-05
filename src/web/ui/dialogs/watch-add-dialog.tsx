@@ -39,6 +39,7 @@ export function openWatchAddDialog(request: WatchRequest = {}): void {
     body: <WatchBody open={open} />,
     footer: <WatchFooter open={open} />,
     dirty: () => open.text.value.trim() !== '',
+    ...(request.onBack === undefined ? {} : { onDismiss: request.onBack }),
   })
 }
 

@@ -68,6 +68,7 @@ export function openTargetsDialog(profile: TradingProfileResponse, request: Targ
     body: <TargetsBody open={open} />,
     footer: <TargetsFooter open={open} />,
     dirty: () => snapshotTargets(open.rows.value) !== open.initial,
+    ...(request.onBack === undefined ? {} : { onDismiss: request.onBack }),
   })
 }
 

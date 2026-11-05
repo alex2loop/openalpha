@@ -17,6 +17,7 @@ export function openUpdateDialog({ onBack }: { readonly onBack: () => void }): v
     title: tr('ui.office.update.notes'),
     body: <UpdateBody />,
     footer: <Button onClick={onBack}>{tr('ui.office.common.close')}</Button>,
+    onDismiss: onBack,
   })
 }
 
