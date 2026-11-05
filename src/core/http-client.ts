@@ -17,7 +17,7 @@ const RUNTIME_AGENT = BUN_VERSION === undefined ? '' : ` Bun/${BUN_VERSION}`
 export const USER_AGENT = `${BRAND.name}/${BRAND.version}${RUNTIME_AGENT}`
 
 const BROWSER_USER_AGENT =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36'
 
 /** The default identity for an outbound request. A bot manager reads more than the agent string, so
  *  the language header travels with it: a browser that states neither is the shape those gates
