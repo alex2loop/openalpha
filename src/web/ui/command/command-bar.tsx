@@ -2,7 +2,6 @@ import type { RefObject, TargetedKeyboardEvent } from 'preact'
 import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import { regionPack } from '@/web/scene/data/home'
 import { selectAgent } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
 import { APP_CHANNEL, isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
@@ -167,8 +166,7 @@ interface CommandInputProps {
 
 function CommandInput({ inputRef, list, options }: CommandInputProps) {
   const placeholder = tr(
-    editionKey('ui.office.command.placeholder', 'ui.office.command.placeholderWeb'),
-    { ticker: regionPack.value.exampleTicker }
+    editionKey('ui.office.command.placeholder', 'ui.office.command.placeholderWeb')
   )
 
   return (
