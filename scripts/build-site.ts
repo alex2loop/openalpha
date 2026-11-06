@@ -73,7 +73,13 @@ console.log(`build-site: wrote ${OUT_DIR}`)
 // The page names the file it loads, version included; the package that supplies it must be that
 // version, so the pin in the page and the one in the lockfile cannot drift apart.
 async function vendorMotion(html: string): Promise<void> {
-  const { version } = await Bun.file(resolve(MOTION_DIR, 'package.json')).json()
+  const manifest = Bun.file(resolve(MOTION_DIR, 'package.json'))
+
+  if (!(await manifest.exists())) {
+    throw new Error('build-site: the motion package is not installed: run bun install')
+  }
+
+  const { version } = await manifest.json()
   const name = `motion-${version}.js`
 
   if (!html.includes(`"${VENDOR_DIR}/${name}"`)) {

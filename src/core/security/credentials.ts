@@ -30,11 +30,10 @@ const ASSIGNMENT_RE = new RegExp(
 )
 
 // A bare key has no shape of its own (Serper: 40 hex, Mistral: 32 letters and digits), so it is
-// redacted only straight after a key word. `0x` leaves a contract address alone and `public key` a
-// wallet address; a UUID or a run longer than the body is no key either.
-const BARE_KEY_WORD = '(?<![A-Za-z0-9])(?<!public\\s)(?:key|api|khóa|khoá)(?![A-Za-z0-9])'
+// redacted only straight after a key word. A run longer than the body is no key.
+const BARE_KEY_WORD = '(?<![A-Za-z0-9])(?:key|api|khóa|khoá)(?![A-Za-z0-9])'
 const BARE_KEY_GAP = '[\\s:=]{1,3}'
-const BARE_KEY_BODY = '(?!0x)[A-Za-z0-9]{32,128}(?![A-Za-z0-9_-])'
+const BARE_KEY_BODY = '[A-Za-z0-9]{32,128}(?![A-Za-z0-9_-])'
 const BARE_KEY_RE = new RegExp(`(?<=${BARE_KEY_WORD}${BARE_KEY_GAP})${BARE_KEY_BODY}`, 'gi')
 
 const KNOWN_SECRET_MIN_CHARS = 8

@@ -9,7 +9,7 @@ export interface ProviderInfo {
   /** The provider's own privacy policy, which the consent notice points to. */
   readonly policyUrl: string
   /** Passes a request on to the model's host, which the provider picks, instead of answering it. */
-  readonly isRouter?: boolean
+  readonly isRouter?: true
 }
 
 interface ProviderEntry extends Omit<ProviderInfo, 'name'> {
