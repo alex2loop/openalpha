@@ -17,6 +17,7 @@
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 
+import type { PublicScreen } from '@/trading/features/brief/public/types'
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import { boot } from '@/app/boot'
@@ -137,6 +138,7 @@ async function buildAndPrint(services: TradingServices, signal: AbortSignal): Pr
   }
 
   printSections(row.sections)
+  printScreens(row.screens ?? [])
 
   const render = services.publicBrief.render(row)
 
@@ -147,6 +149,20 @@ async function buildAndPrint(services: TradingServices, signal: AbortSignal): Pr
   console.log(`${render.day}: ${render.headline.vi}`)
 
   return 0
+}
+
+/** A list per line with the sources it cites: they must be in `PUBLIC_BRIEF_SOURCES` or the list
+ *  is left out. */
+function printScreens(screens: readonly PublicScreen[]): void {
+  for (const screen of screens) {
+    const cited = screen.provenance.map((entry) => entry.sourceId)
+
+    console.log(
+      ['screen', screen.market, `${screen.rows.en.length} names`, cited.join(',') || '-'].join(
+        COLUMN_GAP
+      )
+    )
+  }
 }
 
 function printSections(sections: readonly BriefSectionResult[]): void {

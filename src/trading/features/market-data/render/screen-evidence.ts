@@ -1,8 +1,12 @@
 import type { Locale } from '@/core/types/locale'
-import type { ScreenedCandidate } from '@/trading/features/market-data/types'
+import type {
+  ScreenedCandidate,
+  ScreenRowText,
+  ScreenView,
+} from '@/trading/features/market-data/types'
 import type { FactorId } from '@/trading/kernel/factor'
 import type { CurrencyCode, PriceDisplay, TradingDay } from '@/trading/kernel/instrument'
-import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
+import type { ScreenCandidate, ScreenResult } from '@/trading/kernel/market/market-capability'
 import type { RenderContext } from '@/trading/render/format'
 import { t } from '@/i18n'
 import {
@@ -10,16 +14,18 @@ import {
   missingFactorLabels,
   renderBoardFactLines,
 } from '@/trading/features/market-data/render/screen-facts'
-import { byDistinctiveness } from '@/trading/markets/factor-scoring'
+import { boardMedians, byDistinctiveness } from '@/trading/markets/factor-scoring'
 import { screenRating } from '@/trading/markets/screen-rating'
 import { toFoldLines } from '@/trading/render/fold'
 import {
   formatCount,
   formatScoreValue,
   formatSignedFixedPercent,
+  NOTICE_SURFACE,
   renderDeclaredValue,
   renderProvidedValue,
   renderTopFactorFacts,
+  resolveRenderContext,
   SEVERITY_MARKS,
 } from '@/trading/render/format'
 import { renderQuoteFreshness } from '@/trading/render/freshness'
@@ -27,23 +33,67 @@ import { INDENT, INLINE_SEPARATOR, toRowLines } from '@/trading/render/layout'
 import { formatFixedPrice, formatPrice } from '@/trading/render/money'
 import { quoteBoardMoveOf } from '@/trading/render/price-pair'
 
+/** Which parts of a name's row a reader gets. The installed screen keeps every part; a list for a
+ *  reader who holds no book drops the verdict and the operator's marks (`rated`) and the factor
+ *  readings and cautions (`factors`). */
+export interface ScreenRowForm {
+  readonly rated: boolean
+  readonly factors: boolean
+}
+
+export const FULL_ROW_FORM: ScreenRowForm = Object.freeze({ rated: true, factors: true })
+
 interface CandidateRow {
   readonly candidate: ScreenedCandidate
   readonly index: number
   readonly gated: boolean
+  readonly form: ScreenRowForm
 }
 
 const LIST_SEPARATOR = ', '
 
 /** What every row on one board shares: how it quotes, the clock its times are read on, and what
  *  each factor reads as across the whole board. */
-export interface ScreenBoard {
+interface ScreenBoard {
   readonly currency: CurrencyCode | undefined
   readonly display: PriceDisplay | undefined
   readonly context: RenderContext
   readonly medians: ReadonlyMap<FactorId, number>
   /** The session the board's evidence ends at: a price from any other session says so. */
   readonly day: TradingDay
+}
+
+export function boardOf(
+  request: { readonly context: RenderContext; readonly display?: PriceDisplay },
+  result: ScreenResult
+): ScreenBoard {
+  return {
+    currency: result.currency,
+    display: request.display,
+    context: request.context,
+    medians: boardMedians(result.candidates.map((candidate) => candidate.factors)),
+    day: result.dataThroughDay ?? result.asOf,
+  }
+}
+
+/** A ranked board as a list of names, one line each, for a reader who sees nothing else of the
+ *  screen. The caller names the clock a live price's time reads on. Prices read in the market's
+ *  currency, in full: no board scale, so no unit line is owed. */
+export function renderScreenRows(
+  locale: Locale,
+  view: ScreenView & { readonly timezone: string },
+  form: ScreenRowForm
+): readonly ScreenRowText[] {
+  const board = boardOf({ context: resolveRenderContext(view.timezone, NOTICE_SURFACE) }, view)
+
+  return view.candidates.map((candidate, index) => ({
+    ticker: candidate.instrument.ticker,
+    line: candidateFacts(
+      locale,
+      { candidate, index, gated: view.board === 'gate', form },
+      board
+    ).join(INLINE_SEPARATOR),
+  }))
 }
 
 /** One name as one row: its rank and verdict, the price it stands at, then the factors that most
@@ -54,20 +104,24 @@ export function renderCandidateBlock(
   row: CandidateRow,
   board: ScreenBoard
 ): readonly string[] {
-  const { candidate } = row
-  const distinctive = byDistinctiveness(candidate.factors, board.medians)
+  return [
+    ...toRowLines(candidateFacts(locale, row, board), board.context, 1),
+    ...(row.form.factors ? renderCautionLine(locale, row.candidate) : []),
+  ]
+}
+
+/** What one row says about its name, as facts the caller lays out: the rank (with the verdict where
+ *  the form keeps it), the score, the price and what it moved, then the factors that most explain
+ *  the rank. */
+function candidateFacts(locale: Locale, row: CandidateRow, board: ScreenBoard): readonly string[] {
+  const { candidate, form } = row
 
   return [
-    ...toRowLines(
-      [
-        ...rowFacts(locale, row),
-        ...renderPriceFacts(locale, candidate, board),
-        ...renderTopFactorFacts(locale, distinctive),
-      ],
-      board.context,
-      1
-    ),
-    ...renderCautionLine(locale, candidate),
+    ...rowFacts(locale, row),
+    ...renderPriceFacts(locale, candidate, board),
+    ...(form.factors
+      ? renderTopFactorFacts(locale, byDistinctiveness(candidate.factors, board.medians))
+      : []),
   ]
 }
 
@@ -110,23 +164,38 @@ export const BOARD_READING = Object.freeze({
  *  numbered list would read as the selection between them the composite cannot make - the same
  *  reason its heading is not "top N of M". */
 function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
-  const { candidate } = row
+  const { candidate, form } = row
 
   return [
-    t(locale, row.gated ? 'trading.render.screen.gateRow' : 'trading.render.screen.row', {
-      rank: formatCount(locale, row.index + 1),
-      ticker: renderNameHead(locale, candidate),
-      rating: renderDeclaredValue(locale, `trading.rating.${screenRating(candidate)}`),
-    }),
+    headFact(locale, row),
     t(locale, 'trading.render.screen.score', {
       score: formatScoreValue(locale, candidate.composite.score),
     }),
-    ...missingSegment(locale, candidate),
-    ...(candidate.excluded === true ? [t(locale, 'trading.render.screen.excluded')] : []),
-    ...(candidate.marginIneligible === true
+    ...(form.factors ? missingSegment(locale, candidate) : []),
+    ...(form.rated && candidate.excluded === true
+      ? [t(locale, 'trading.render.screen.excluded')]
+      : []),
+    ...(form.rated && candidate.marginIneligible === true
       ? [t(locale, 'trading.render.screen.margin-ineligible')]
       : []),
   ]
+}
+
+function headFact(locale: Locale, row: CandidateRow): string {
+  const { candidate } = row
+  const shared = {
+    rank: formatCount(locale, row.index + 1),
+    ticker: renderNameHead(locale, candidate),
+  }
+
+  if (!row.form.rated) {
+    return t(locale, 'trading.render.screen.rowUnrated', shared)
+  }
+
+  return t(locale, row.gated ? 'trading.render.screen.gateRow' : 'trading.render.screen.row', {
+    ...shared,
+    rating: renderDeclaredValue(locale, `trading.rating.${screenRating(candidate)}`),
+  })
 }
 
 /** The ticker, then the sector the market files it under where it files one: a ticker alone does

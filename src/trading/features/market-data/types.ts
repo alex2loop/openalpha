@@ -179,6 +179,12 @@ export interface ScreenedCandidate extends ScreenCandidate {
   readonly marginIneligible?: true
 }
 
+/** One name of a ranked board as a line of text, for a list that carries no more of the screen. */
+export interface ScreenRowText {
+  readonly ticker: string
+  readonly line: string
+}
+
 export interface ScreenView extends Omit<ScreenResult, 'candidates'> {
   readonly candidates: readonly ScreenedCandidate[]
   /** `board` when the candidates are the whole priced board in ticker order. Absent is `ranked`. */

@@ -1,5 +1,10 @@
 import type { Locale } from '@/core/types/locale'
-import type { BuiltPublicBriefRow, PublicBriefRender } from '@/trading/features/brief/public/types'
+import type {
+  BuiltPublicBriefRow,
+  PublicBriefRender,
+  PublicScreen,
+  PublicScreenText,
+} from '@/trading/features/brief/public/types'
 import type { BriefText } from '@/trading/features/brief/surface'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
@@ -10,7 +15,12 @@ import { PUBLIC_CORE_SECTIONS } from '@/trading/features/brief/public/scope'
 import { renderBriefForSurface } from '@/trading/features/brief/surface'
 import { buildBriefSnapshotId } from '@/trading/features/brief/types'
 import { toPlainText } from '@/trading/render/fold'
-import { NOTICE_SURFACE, resolveRenderContext } from '@/trading/render/format'
+import {
+  formatCount,
+  NOTICE_SURFACE,
+  renderDeclaredValue,
+  resolveRenderContext,
+} from '@/trading/render/format'
 import { toBriefSectionText } from '@/trading/render/section'
 
 const PUBLIC_HEADLINE_MAX_CHARS = 120
@@ -33,6 +43,9 @@ export function renderPublicBrief(
     day: row.day,
     builtAt: row.builtAt,
     texts,
+    screens: perLocale((locale) =>
+      (row.screens ?? []).map((screen) => toScreenText(locale, screen))
+    ),
     headline: perLocale((locale) => headlineOf(texts[locale], coreLineOf(locale, row, context))),
     disclaimer: perLocale((locale) => t(locale, 'trading.publicBrief.disclaimer')),
   }
@@ -48,6 +61,21 @@ export function toPublicSnapshot(row: BuiltPublicBriefRow, locale: Locale): Brie
     sections: row.sections,
     caveats: [],
     createdAt: row.builtAt,
+  }
+}
+
+function toScreenText(locale: Locale, screen: PublicScreen): PublicScreenText {
+  const rows = screen.rows[locale]
+
+  return {
+    market: screen.market,
+    title: t(locale, 'trading.publicBrief.screenTitle', {
+      market: renderDeclaredValue(locale, `trading.market.${screen.market}`),
+      count: formatCount(locale, rows.length),
+    }),
+    asOf: screen.asOf,
+    rows,
+    note: t(locale, 'trading.publicBrief.screenNote'),
   }
 }
 

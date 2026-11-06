@@ -1,7 +1,10 @@
 import type { Locale } from '@/core/types/locale'
-import type { BuiltPublicBriefRow, PublicBriefDeps } from '@/trading/features/brief/public/types'
+import type {
+  BuiltPublicBriefRow,
+  PublicBriefDeps,
+  PublicBriefInput,
+} from '@/trading/features/brief/public/types'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
-import type { TradingDay } from '@/trading/kernel/instrument'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { MarketBriefRun } from '@/trading/markets/deps'
@@ -13,47 +16,20 @@ import { PUBLIC_BRIEF_MARKETS } from '@/trading/features/brief/public/reads'
 import { toPublicSnapshot } from '@/trading/features/brief/public/render'
 import {
   carriedSections,
+  hasOnlyPublicSources,
   PUBLIC_CORE_SECTIONS,
   PUBLIC_SESSION_KIND,
   publicSectionKinds,
   publicStoryOmits,
 } from '@/trading/features/brief/public/scope'
+import { readPublicScreens } from '@/trading/features/brief/public/screen'
 import { runMarketBrief } from '@/trading/features/brief/run'
-import { sourceId } from '@/trading/kernel/source/source-id'
 import { isDeliverable } from '@/trading/markets/brief-deliverability'
 import { resolveSettledDay } from '@/trading/markets/calendar'
-
-/** What a section may cite and still be published. A section naming any other source is left out,
- *  whole. Taken from the provenance of a dry run on a copy of the data, news included. */
-const PUBLIC_BRIEF_SOURCES: ReadonlySet<SourceId> = new Set(
-  [
-    'alternative-me',
-    'binance',
-    'binance-futures',
-    'bls',
-    'cftc',
-    'coinmarketcap',
-    'coinpaprika',
-    'fred',
-    'giavang',
-    'pnj',
-    'rss',
-    'treasury',
-    'vndirect',
-    'vndirect-index',
-    'yahoo',
-  ].map(sourceId)
-)
 
 /** Sections carry no wording; the language only names what a suggestion run would be written in,
  *  and this build runs none. */
 const BUILD_LOCALE: Locale = 'en'
-
-interface PublicBriefInput {
-  readonly day: TradingDay
-  readonly now: number
-  readonly signal: AbortSignal
-}
 
 /** The day's public brief, saved: the market sections the toggles allow, read from an empty book.
  *  Null when what the build found is not worth publishing: no core section, or a tape that is not
@@ -81,7 +57,12 @@ export async function buildPublicBrief(
     return null
   }
 
-  return deps.store.saveBuilt({ day: input.day, sections: kept, builtAt: input.now }, signal)
+  const screens = await readPublicScreens(deps, input)
+
+  return deps.store.saveBuilt(
+    { day: input.day, sections: kept, screens, builtAt: input.now },
+    signal
+  )
 }
 
 function buildRequest(deps: PublicBriefDeps, input: PublicBriefInput): MarketBriefRun {
@@ -148,7 +129,7 @@ function keptSections(
 }
 
 function isPublishable(section: BriefSectionResult): boolean {
-  return sourcesOf(section).every((source) => PUBLIC_BRIEF_SOURCES.has(source))
+  return hasOnlyPublicSources(sourcesOf(section))
 }
 
 function sourcesOf(section: BriefSectionResult): readonly SourceId[] {
