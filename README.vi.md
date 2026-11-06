@@ -36,13 +36,14 @@ Bạn hỏi một mã, OpenAlpha trả về một kế hoạch: mua ở đâu, c
 > Đã có cổ phiếu và quỹ ETF Mỹ: sàng lọc và chấm điểm 500 công ty Mỹ lớn nhất, xếp hạng ngành so với SPY, và bản tin sáng lúc 08:15 giờ New York. Chọn Mỹ khi chạy `onboard`, hoặc thêm vào sổ đang dùng bằng `/profile enable equity-us` · [xem chi tiết](#thị-trường-và-dữ-liệu).
 
 <p align="center">
+  <a href="https://web.openalpha.link/?lang=vi"><img src="https://img.shields.io/badge/D%C3%B9ng%20tr%C3%AAn%20web-kh%C3%B4ng%20c%E1%BA%A7n%20c%C3%A0i-2ea44f?style=for-the-badge" alt="Dùng trên web, không cần cài" /></a>
   <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-nh%C3%B3m%20h%E1%BB%97%20tr%E1%BB%A3-0068FF?style=for-the-badge" alt="Nhóm Zalo hỗ trợ" /></a>
   <a href="https://buymeacoffee.com/alex2loop"><img src="https://img.shields.io/badge/%E2%98%95-M%E1%BB%9Di%20m%E1%BB%99t%20ly%20c%C3%A0%20ph%C3%AA-ffdd00?style=for-the-badge" alt="☕ Mời một ly cà phê" /></a><br/>
   <sub>Cài chưa được, hay muốn nhận tin bản mới? Hỏi trong <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">nhóm Zalo OpenAlpha</a>. Thấy hữu ích thì <a href="https://buymeacoffee.com/alex2loop">mời mình một ly cà phê</a> để dự án đi tiếp nhé.</sub>
 </p>
 
 <p align="center">
-  <a href="#xem-nó-làm-việc">Xem demo</a> · <a href="#vì-sao-dùng-openalpha">Vì sao dùng OpenAlpha</a> · <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> · <a href="#dùng-mỗi-ngày">Dùng mỗi ngày</a> · <a href="#trang-văn-phòng">Trang văn phòng</a> · <a href="#an-toàn">An toàn</a> · <a href="#câu-hỏi-thường-gặp">Hỏi đáp</a> · <a href="#tài-liệu">Tài liệu</a> · <a href="#góp-sức-cho-openalpha">Góp sức</a> · <a href="#độ-ổn-định-giấy-phép-và-miễn-trừ">Giấy phép</a>
+  <a href="https://openalpha.link/?lang=vi">Trang chủ</a> · <a href="#xem-nó-làm-việc">Xem demo</a> · <a href="#vì-sao-dùng-openalpha">Vì sao dùng OpenAlpha</a> · <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> · <a href="#dùng-mỗi-ngày">Dùng mỗi ngày</a> · <a href="#trang-văn-phòng">Trang văn phòng</a> · <a href="#an-toàn">An toàn</a> · <a href="#câu-hỏi-thường-gặp">Hỏi đáp</a> · <a href="#tài-liệu">Tài liệu</a> · <a href="#góp-sức-cho-openalpha">Góp sức</a> · <a href="#độ-ổn-định-giấy-phép-và-miễn-trừ">Giấy phép</a>
 </p>
 
 ## Xem nó làm việc
@@ -96,7 +97,7 @@ https://github.com/user-attachments/assets/bea5ab46-72bd-48f5-8a51-9260f09824d9
 
 ## Bắt đầu nhanh
 
-Muốn xem qua trước khi cài, bản web chạy ngay trong trình duyệt, không cần tài khoản: [nó làm được gì và khác bản cài ở đâu](docs/ban-web.md).
+Muốn xem qua trước khi cài, [bản web](https://web.openalpha.link/?lang=vi) chạy ngay trong trình duyệt, không cần tài khoản: [nó làm được gì và khác bản cài ở đâu](docs/ban-web.md).
 
 Bạn cần hai thứ:
 
