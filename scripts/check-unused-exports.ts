@@ -6,8 +6,9 @@ import { basename, dirname, relative, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..')
 const SOURCE_ROOTS = ['src']
-// Scanned for imports only: a gate script is a real consumer, but its own exports are not API.
-const CONSUMER_ROOTS = ['scripts']
+// Scanned for imports only: a gate script is a real consumer, but its own exports are not API. The
+// brief Worker is one too: it reads the public brief's wire types.
+const CONSUMER_ROOTS = ['scripts', 'deploy/brief/src']
 const ALIAS_ROOTS: readonly (readonly [string, string])[] = [
   ['@/', 'src'],
 ]

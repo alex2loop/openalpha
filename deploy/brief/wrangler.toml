@@ -1,0 +1,53 @@
+# The phone brief: the static app in `dist/brief` plus a Worker script for `/api/*` only. The daemon
+# posts one brief a day to /api/publish (bearer secret PUBLISH_TOKEN); the app reads /api/latest.
+# Build first: bun run build:brief --brief-url=<brief address> --app-url=<web app address> (add
+# --noindex for staging), then deploy with bun run deploy:brief (add --env production). That
+# applies the D1 migrations and refuses a build made for the other. Set the secret once per
+# environment with `wrangler secret put PUBLISH_TOKEN`; it is never written here.
+name = "openalpha-brief-staging"
+main = "src/worker.ts"
+compatibility_date = "2026-11-03"
+
+# Staging answers on workers.dev; production answers on its own domain (below).
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "../../dist/brief"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[observability]
+enabled = false
+
+# Placeholder: paste the id `wrangler d1 create openalpha-brief-staging` prints before the first
+# staging deploy.
+[[d1_databases]]
+binding = "DB"
+database_name = "openalpha-brief-staging"
+database_id = "REPLACE-WITH-STAGING-D1-ID"
+migrations_dir = "migrations"
+
+# Production: deployed with `--env production`, on the domain alone. The app builds noindex while
+# the trial is invite only (scripts/brief-invite.ts).
+[env.production]
+name = "openalpha-brief"
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "brief.openalpha.link", custom_domain = true }]
+
+[env.production.assets]
+directory = "../../dist/brief"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[env.production.observability]
+enabled = false
+
+# Placeholder: paste the id `wrangler d1 create openalpha-brief` prints before the first
+# production deploy.
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "openalpha-brief"
+database_id = "REPLACE-WITH-PRODUCTION-D1-ID"
+migrations_dir = "migrations"

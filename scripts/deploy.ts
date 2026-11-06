@@ -1,18 +1,22 @@
 #!/usr/bin/env bun
-// The one way to deploy a static site: `bun run deploy:web` or `bun run deploy:site`, with
+// The one way to deploy a site: `bun run deploy:web`, `deploy:site` or `deploy:brief`, with
 // `--env production` for the real domain and no `--env` for staging. It runs wrangler only when the
 // build stamp (`dist/<kind>.stamp.json`, written by the build) agrees with the target: production
 // takes a crawlable build addressed to the production domain, staging a noindex build addressed
-// elsewhere. The production domain is the route in `[env.production]` of the site's own
-// `wrangler.toml`, so no address is written here. `--dry-run` is passed on to wrangler.
+// elsewhere. The phone brief is the one exception: while `BRIEF_INVITE_ONLY` holds, production takes
+// a noindex build and refuses a crawlable one. The production domain is the route in
+// `[env.production]` of the site's own `wrangler.toml`, so no address is written here. The brief has
+// a database: its migrations are applied to the target before the deploy. `--dry-run` is passed on
+// to wrangler and applies nothing.
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
+import { BRIEF_INVITE_ONLY } from './brief-invite'
 import { type BuildStamp, readStamp, type SiteKind } from './web-files'
 
 const ROOT = resolve(import.meta.dir, '..')
 const PRODUCTION_ENV = 'production'
-const KINDS: readonly SiteKind[] = ['web', 'site']
+const KINDS: readonly SiteKind[] = ['web', 'site', 'brief']
 
 interface Address {
   readonly label: string
@@ -40,27 +44,48 @@ await refuseMismatch(kind, production)
 
 // An empty `--env` names wrangler's top level, which is staging.
 const args = ['deploy', '-c', configOf(kind), '--env', production ? PRODUCTION_ENV : '']
+const dryRun = values['dry-run'] === true
 
-if (values['dry-run'] === true) {
+if (dryRun) {
   args.push('--dry-run')
 }
 
-const wrangler = Bun.spawn([process.execPath, 'run', 'wrangler', ...args], {
-  cwd: ROOT,
-  stdio: ['inherit', 'inherit', 'inherit'],
-})
+const migrated = kind === 'brief' && !dryRun ? await applyMigrations(kind, production) : 0
 
-process.exitCode = await wrangler.exited
+process.exitCode = migrated === 0 ? await runWrangler(args) : migrated
+
+async function runWrangler(wranglerArgs: readonly string[]): Promise<number> {
+  const wrangler = Bun.spawn([process.execPath, 'run', 'wrangler', ...wranglerArgs], {
+    cwd: ROOT,
+    stdio: ['inherit', 'inherit', 'inherit'],
+  })
+
+  return await wrangler.exited
+}
+
+// The target's schema first: a new Worker never meets a database older than its code.
+async function applyMigrations(site: SiteKind, toProduction: boolean): Promise<number> {
+  return await runWrangler([
+    'd1',
+    'migrations',
+    'apply',
+    await databaseNameOf(site, toProduction),
+    '--remote',
+    '-c',
+    configOf(site),
+    '--env',
+    toProduction ? PRODUCTION_ENV : '',
+  ])
+}
 
 async function refuseMismatch(site: SiteKind, toProduction: boolean): Promise<void> {
   const stamp = await readStamp(site)
   const target = toProduction ? PRODUCTION_ENV : 'staging'
   const problems: string[] = []
+  const wantsNoindex = !toProduction || (site === 'brief' && BRIEF_INVITE_ONLY)
 
-  if (stamp.noindex === toProduction) {
-    problems.push(
-      toProduction ? 'it is a noindex (staging) build' : 'it is a crawlable (production) build'
-    )
+  if (stamp.noindex !== wantsNoindex) {
+    problems.push(stamp.noindex ? 'it is a noindex build' : 'it is a crawlable build')
   }
 
   for (const address of await addressesOf(site, stamp)) {
@@ -76,8 +101,8 @@ async function refuseMismatch(site: SiteKind, toProduction: boolean): Promise<vo
   }
 }
 
-// Each address a build stamped, with the production host its Worker is routed to. The homepage
-// also links to the app, so its app address is held to the same side as its own.
+// Each address a build stamped, with the production host its Worker is routed to. The homepage and
+// the phone app also link to the web app, so its app address is held to the same side as their own.
 async function addressesOf(
   site: SiteKind,
   stamp: BuildStamp
@@ -113,6 +138,23 @@ async function productionHostOf(site: SiteKind): Promise<string> {
   }
 
   return pattern
+}
+
+async function databaseNameOf(site: SiteKind, toProduction: boolean): Promise<string> {
+  const config = Bun.TOML.parse(await Bun.file(configOf(site)).text()) as {
+    d1_databases?: { database_name?: unknown }[]
+    env?: { production?: { d1_databases?: { database_name?: unknown }[] } }
+  }
+  const databases = toProduction ? config.env?.production?.d1_databases : config.d1_databases
+  const name = databases?.[0]?.database_name
+
+  if (typeof name !== 'string') {
+    const target = toProduction ? PRODUCTION_ENV : 'staging'
+
+    throw new Error(`deploy: ${configOf(site)} has no database for ${target}`)
+  }
+
+  return name
 }
 
 function configOf(site: SiteKind): string {
