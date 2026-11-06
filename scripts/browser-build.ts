@@ -4,6 +4,8 @@ export interface BrowserBuildOptions {
   readonly entry: string
   readonly outdir: string
   readonly minify: boolean
+  // Constants the bundler substitutes for a global the source names, each value already JSON.
+  readonly define?: Readonly<Record<string, string>>
   // Leaves every node and bun builtin as an import so the metafile names who asked for it, even
   // where the polyfill is missing and the real build cannot get that far.
   readonly externalBuiltins?: boolean
@@ -29,6 +31,7 @@ export async function buildBrowser(options: BrowserBuildOptions): Promise<Browse
     minify: options.minify,
     metafile: true,
     throw: false,
+    ...(options.define === undefined ? {} : { define: { ...options.define } }),
     ...(options.externalBuiltins === true ? { external: [...BUILTIN_SPECIFIERS] } : {}),
   })
 

@@ -19,7 +19,7 @@
   "include": [
     "../src/markdown.d.ts",
     "../src/app/browser/browser-globals.d.ts",
-    "./browser-build.ts",
+    "./browser-build.ts","./brief-strings.ts","./build-brief.ts",
     "./build-site.ts",
     "./build-web.ts",
     "./check-browser-bundle.ts",

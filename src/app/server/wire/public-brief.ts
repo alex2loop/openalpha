@@ -3,7 +3,7 @@ import type { BriefTextWire } from './brief'
 type PublicLocale = 'vi' | 'en'
 
 /** One market's screen board, ranked by score: a line per name, in the reader's language. */
-interface PublicScreenWire {
+export interface PublicScreenWire {
   readonly market: string
   readonly title: string
   readonly asOf: string

@@ -2132,7 +2132,22 @@
     "office.trade.fxPreviewFailed": "I couldn't read the day's rate, so I can't save this yet.",
     "office.trade.depositFirst": "Deposit {currency} at {venue}",
     "office.trade.badRate": "Enter the rate you paid, a number above 0.",
-    "office.trade.badDelta": "The share count must be a whole number other than 0."
+    "office.trade.badDelta": "The share count must be a whole number other than 0.",
+    "brief.heading.today": "Today's brief",
+    "brief.heading.latest": "Latest brief · {day}",
+    "brief.cautions": "Cautions",
+    "brief.loading": "Opening the brief...",
+    "brief.empty": "The first brief will be here on the morning of the next trading day.",
+    "brief.offline": "I couldn't get a newer brief. Please check your connection.",
+    "brief.failed": "I couldn't open the brief. Please try again.",
+    "brief.retry": "Try again",
+    "brief.share": "Share the brief",
+    "brief.shareFailed": "I couldn't make the share image. Please try again.",
+    "brief.languageLabel": "Language",
+    "brief.language.vi": "Tiếng Việt",
+    "brief.language.en": "English",
+    "brief.disclaimer": "This brief describes the market. It is not investment advice.",
+    "brief.openApp": "Open the web version"
   },
   "footer": {
     "cost": "{cost}",

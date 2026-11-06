@@ -44,6 +44,8 @@ jobs:
 
       - run: bun run build:site --app-url=https://app.example.com/ --site-url=https://example.com/ --noindex
 
+      - run: bun run build:brief --brief-url=https://brief.example.com/ --app-url=https://app.example.com/ --noindex
+
   # No gate here runs Windows code paths; this builds the Windows binary natively and drives the
   # lifecycle a Windows operator uses: install script syntax, version, background start, stop.
   # Its own job, not a leg of the ARM matrix: branch protection requires the check by this name.
