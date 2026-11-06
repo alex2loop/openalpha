@@ -6,7 +6,6 @@ import type {
 import type { MarketRef } from '@/trading/kernel/instrument'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { PUBLIC_BRIEF_MARKETS } from '@/trading/features/brief/public/reads'
 
 /** The top names of each public market that has a screen, as the day's lists. Empty, with no read
  *  at all, when the lists are off. */
@@ -18,9 +17,7 @@ export async function readPublicScreens(
     return []
   }
 
-  const read = await Promise.all(
-    PUBLIC_BRIEF_MARKETS.map((market) => readScreen(deps, input, market))
-  )
+  const read = await Promise.all(deps.markets.map((market) => readScreen(deps, input, market)))
 
   return read.filter((screen) => screen !== undefined)
 }

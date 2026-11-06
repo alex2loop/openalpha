@@ -7,21 +7,30 @@ import type {
 } from '@/trading/features/brief/public/types'
 import type { ScreenRowForm } from '@/trading/features/market-data/render/screen-evidence'
 import type { MarketDataService } from '@/trading/features/market-data/types'
+import type { ProfileService } from '@/trading/features/profile/types'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { TradingDay } from '@/trading/kernel/instrument'
+import type { MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type {
   RefreshAllMarketDataOptions,
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
+import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
-import { ValidationError } from '@/core/errors'
+import { isAbortError, ValidationError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 import { buildPublicBrief } from '@/trading/features/brief/public/build'
-import { createPublicBriefReads, PUBLIC_HOME_MARKET } from '@/trading/features/brief/public/reads'
+import {
+  createPublicBriefReads,
+  PUBLIC_HOME_MARKET,
+  PUBLIC_US_MARKET,
+  publicBriefMarkets,
+} from '@/trading/features/brief/public/reads'
 import { renderPublicBrief } from '@/trading/features/brief/public/render'
 import { runBookFreeScreen } from '@/trading/features/market-data/ops/book-free-screen'
 import { renderScreenRows } from '@/trading/features/market-data/render/screen-evidence'
 import { defaultProfile, toSegmentDescriptors } from '@/trading/features/profile/policy'
+import { disabledSegments } from '@/trading/kernel/operator/profile'
 
 /** A name's rank and score and its price: no verdict, no operator mark, no factor reading. */
 const PUBLIC_ROW_FORM: ScreenRowForm = Object.freeze({ rated: false, factors: false })
@@ -32,6 +41,8 @@ interface PublicBriefParts {
   readonly venues: VenueRegistry
   readonly marketData: MarketDataService
   readonly store: PublicBriefStore
+  /** Read for one fact: whether the operator's US segment is on. */
+  readonly profiles: Pick<ProfileService, 'get'>
   readonly logger: Logger
   refreshMarketData(
     options: RefreshAllMarketDataOptions
@@ -39,7 +50,8 @@ interface PublicBriefParts {
 }
 
 /** The public brief, built from reads that hold no book: the market data service, its own store and
- *  a seeded default profile. Nothing the operator holds, watches or has switched off reaches it. */
+ *  a seeded default profile. Nothing the operator holds or watches reaches it. The one bit of the
+ *  profile it takes is whether the US segment is on: US stocks are in the brief only while it is. */
 export interface PublicBrief {
   build(input: {
     readonly day: TradingDay
@@ -50,38 +62,70 @@ export interface PublicBrief {
 }
 
 export function createPublicBrief(parts: PublicBriefParts): PublicBrief {
-  const { config, markets, store } = parts
-  const reads = createPublicBriefReads({
-    marketData: parts.marketData,
-    store,
-    profile: defaultProfile({
-      baseCurrency: config.baseCurrency,
-      segments: toSegmentDescriptors(
-        markets.list().map(({ manifest }) => manifest),
-        { heldMarkets: parts.venues.heldMarkets(), homeRegion: config.defaultRegion }
-      ),
-    }),
+  const { config, markets } = parts
+  const profile = defaultProfile({
+    baseCurrency: config.baseCurrency,
+    segments: toSegmentDescriptors(
+      markets.list().map(({ manifest }) => manifest),
+      { heldMarkets: parts.venues.heldMarkets(), homeRegion: config.defaultRegion }
+    ),
   })
   const home = (): Market => homeMarket(markets)
 
   return {
-    build: (input) =>
+    build: async (input) =>
       buildPublicBrief(
-        {
-          market: home(),
-          reads,
-          store,
-          toggles: config.publicBrief,
-          limit: config.briefs.maximumItemsPerSection,
-          topScreen: config.publicBrief.topScreen,
-          logger: parts.logger,
-          refresh: (options) => parts.refreshMarketData(options),
-          screen: (request) => readScreen(parts, home().manifest.calendar.timezone, request),
-        },
+        briefDeps(parts, profile, publicBriefMarkets(await isUsSegmentOn(parts, input.signal))),
         input
       ),
     // The VPS is often on UTC: the brief is dated and timed on the Vietnam calendar.
     render: (row) => renderPublicBrief(row, { timezone: home().manifest.calendar.timezone }),
+  }
+}
+
+function briefDeps(
+  parts: PublicBriefParts,
+  profile: UserProfile,
+  markets: readonly MarketRef[]
+): PublicBriefDeps {
+  const { config, store } = parts
+  const home = homeMarket(parts.markets)
+
+  return {
+    market: home,
+    markets,
+    reads: createPublicBriefReads({ marketData: parts.marketData, store, profile, markets }),
+    store,
+    toggles: config.publicBrief,
+    limit: config.briefs.maximumItemsPerSection,
+    topScreen: config.publicBrief.topScreen,
+    logger: parts.logger,
+    refresh: (options) => parts.refreshMarketData(options),
+    screen: (request) => readScreen(parts, home.manifest.calendar.timezone, request),
+  }
+}
+
+/** Whether the operator's cap leaves the US segment room, as the daemon's refresh reads it. A
+ *  profile that cannot be read leaves the US out, which is the direction of fewer markets. */
+async function isUsSegmentOn(parts: PublicBriefParts, signal: AbortSignal): Promise<boolean> {
+  const us = parts.markets.find(PUBLIC_US_MARKET)
+
+  if (us === null) {
+    return false
+  }
+
+  try {
+    const { caps } = await parts.profiles.get({ signal })
+
+    return !disabledSegments(caps).has(us.manifest.segment)
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
+    parts.logger.warn('trading.public_brief_profile_unreadable', { err: formatErrForLog(err) })
+
+    return false
   }
 }
 
