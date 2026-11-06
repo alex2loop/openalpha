@@ -100,10 +100,9 @@
   display: flex;
   flex: none;
   flex-direction: column;
-  align-self: flex-start;
+  align-self: stretch;
   width: 200px;
-  max-height: 100%;
-  margin-top: var(--s3);
+  margin: var(--s3) 0;
   padding: var(--s2) var(--s2) var(--s1);
   overflow: auto;
   border-radius: 8px;
@@ -118,6 +117,7 @@
 
 .reader-toc-item {
   display: block;
+  flex: none;
   width: 100%;
   padding: 3px 0 3px calc(var(--s1) + var(--depth, 0) * var(--s2));
   overflow: hidden;
