@@ -3,6 +3,7 @@ import type { ReachabilityProbe } from '@/core/limits'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { createConfiguredRunBudget } from '@/engine/api'
+import type { PublicBriefPublisher } from '@/trading/features/brief/public/types'
 import type { IntradayReportDeps } from '@/trading/features/market-data/intraday/report'
 import type { HeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
@@ -17,10 +18,13 @@ import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import type { TradingEdition } from '@/trading/wiring/composition/edition'
+import type { PublicBrief } from '@/trading/wiring/composition/public-brief'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import type { createDomainServices } from '@/trading/wiring/composition/services'
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import type { WithThemes } from '@/trading/wiring/composition/themes'
+import type { OperationTick } from '@/trading/wiring/loop'
+import { createPublicBriefTick } from '@/trading/features/brief/public/tick'
 import { isVenueFillBooked } from '@/trading/features/ledger/sync'
 import { runVenueSync } from '@/trading/features/ledger/sync-run'
 import { renderMarketShow } from '@/trading/features/market-data/command/market'
@@ -33,7 +37,8 @@ import { buildAppViews } from '@/trading/wiring/composition/app-views'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { toFocusScope } from '@/trading/wiring/composition/focus-scope'
 import { toIntradayNext } from '@/trading/wiring/composition/intraday-next'
-import { createPublicBrief } from '@/trading/wiring/composition/public-brief'
+import { createPublicBrief, homeMarket } from '@/trading/wiring/composition/public-brief'
+import { createPublicBriefGuard } from '@/trading/wiring/composition/public-brief-guard'
 import { buildRebalanceViews } from '@/trading/wiring/composition/rebalance-views'
 import { resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
 import { buildSuggestionCards } from '@/trading/wiring/composition/suggestion-cards'
@@ -55,6 +60,8 @@ interface AggregateOptions {
   /** `[schedule] late_grace_ms`: the one lateness bound a timed send shares with the scheduler. */
   readonly lateGraceMs: number
   readonly edition?: Pick<TradingEdition, 'profile' | 'rebalance' | 'screen'>
+  /** Bound only where the public brief is switched on and can post. */
+  readonly publicBrief?: PublicBriefPublisher
   recipient(): DeliveryAddress | undefined
 }
 
@@ -83,6 +90,7 @@ export function toAggregate(
   // The one owner of "the boot sweep is done": the loops wait on its promise, and the boot refresh
   // settles it through `releaseFirstSweep`.
   const firstSweep = Promise.withResolvers<void>()
+  const publicBrief = createPublicBriefService(parts, options, registries)
 
   return Object.freeze({
     ...parts.services,
@@ -104,23 +112,35 @@ export function toAggregate(
     ),
     profileFields: offeredFields(options.edition?.profile?.fields),
     appViews: buildAppViews(parts.services, options.tradingConfig, options.edition),
-    publicBrief: createPublicBrief({
-      config: options.tradingConfig,
-      markets: registries.markets,
-      venues: registries.venues,
-      marketData: parts.services.marketData,
-      store: parts.stores.publicBrief,
-      logger: parts.logger,
-      refreshMarketData: parts.refreshMarketData,
-    }),
+    publicBrief,
     daemonTasks: buildDaemonTasks(
       parts,
-      { ...options, firstSweep: firstSweep.promise },
+      {
+        ...options,
+        firstSweep: firstSweep.promise,
+        publicBriefTick: createPublicBriefLoopTick(parts, options, { publicBrief, registries }),
+      },
       registries
     ),
     releaseFirstSweep: () => firstSweep.resolve(),
     syncVenue: buildVenueSync(parts, registries),
     marketSession: buildMarketSession(parts, options.tradingConfig, registries),
+  })
+}
+
+function createPublicBriefService(
+  parts: AggregateParts,
+  options: AggregateOptions,
+  registries: Registries
+): PublicBrief {
+  return createPublicBrief({
+    config: options.tradingConfig,
+    markets: registries.markets,
+    venues: registries.venues,
+    marketData: parts.services.marketData,
+    store: parts.stores.publicBrief,
+    logger: parts.logger,
+    refreshMarketData: parts.refreshMarketData,
   })
 }
 
@@ -159,7 +179,10 @@ function buildVenueSync(
 
 function buildDaemonTasks(
   parts: AggregateParts,
-  options: AggregateOptions & { readonly firstSweep: Promise<void> },
+  options: AggregateOptions & {
+    readonly firstSweep: Promise<void>
+    readonly publicBriefTick: OperationTick | undefined
+  },
   registries: Registries
 ): TradingServices['daemonTasks'] {
   return createTradingDaemonTasks({
@@ -195,6 +218,35 @@ function buildDaemonTasks(
     firstSweep: options.firstSweep,
     logger: parts.logger,
     reachability: options.reachability,
+    ...(options.publicBriefTick === undefined ? {} : { publicBrief: options.publicBriefTick }),
+  })
+}
+
+/** The public brief's tick, where the brief can post: it builds, renders, judges and posts. The
+ *  guard is the one reader of the book. */
+function createPublicBriefLoopTick(
+  parts: AggregateParts,
+  options: AggregateOptions,
+  built: { readonly publicBrief: PublicBrief; readonly registries: Registries }
+): OperationTick | undefined {
+  const { publicBrief: publisher, tradingConfig } = options
+
+  if (publisher === undefined) {
+    return undefined
+  }
+
+  const { publicBrief, registries } = built
+  const guard = createPublicBriefGuard(parts.services, parts.logger)
+
+  return createPublicBriefTick({
+    calendar: homeMarket(registries.markets).manifest.calendar,
+    publishTime: tradingConfig.publicBrief.publishTime,
+    store: parts.stores.publicBrief,
+    publisher,
+    logger: parts.logger,
+    build: (input) => publicBrief.build(input),
+    render: (row) => publicBrief.render(row),
+    judge: (row, render, signal) => guard.judge(row, render, signal),
   })
 }
 

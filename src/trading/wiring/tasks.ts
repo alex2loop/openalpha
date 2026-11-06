@@ -29,6 +29,7 @@ import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { PUBLIC_BRIEF_TICK_MS } from '@/trading/features/brief/public/tick'
 import { createBriefTick } from '@/trading/features/brief/tick'
 import { resolveIntradayPlan } from '@/trading/features/market-data/intraday/schedule'
 import {
@@ -62,6 +63,8 @@ interface TradingDaemonDeps {
   macroExtractTick(policy: OperationPolicy): OperationTick
   readonly themes: Pick<ThemeService, 'resolveOutcomes'>
   readonly briefs: BriefService
+  /** The public brief's tick; absent where the brief is off or cannot post, and then no loop runs. */
+  readonly publicBrief?: OperationTick
   readonly markets: MarketRegistry
   readonly portfolio: Pick<PortfolioService, 'positionsAt' | 'record'>
   readonly reportDeps: IntradayReportDeps
@@ -101,6 +104,7 @@ export function createTradingDaemonTasks(deps: TradingDaemonDeps): readonly Daem
   const tasks = [
     alertTask(deps),
     ...operationTasks(deps),
+    ...publicBriefTasks(deps),
     refreshTask(deps),
     intradayTask(deps),
     ...exitTasks(deps),
@@ -144,6 +148,26 @@ function operationTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
       name: 'trading.briefs',
       policy: operations.briefs,
       tickFor: (policy) => createBriefTick({ briefs: deps.briefs, batchSize: policy.batchSize }),
+    }),
+  ]
+}
+
+/** Fails alone: the owner's brief shares none of its state. */
+function publicBriefTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
+  if (deps.publicBrief === undefined) {
+    return []
+  }
+
+  return [
+    createLoopTask({
+      name: 'trading.public-brief',
+      everyMs: PUBLIC_BRIEF_TICK_MS,
+      nextDelayMs: () => PUBLIC_BRIEF_TICK_MS,
+      logger: deps.logger,
+      after: deps.firstSweep,
+      reachability: reachabilityOf(deps),
+      onTaskPass: deps.onTaskPass,
+      tick: deps.publicBrief,
     }),
   ]
 }

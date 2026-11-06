@@ -112,3 +112,25 @@ export interface PublicBriefRender {
   readonly headline: Record<Locale, string>
   readonly disclaimer: Record<Locale, string>
 }
+
+/** What the daemon posts with. Held in the composition's closure and handed to the publisher: it is
+ *  in no config, log or error. */
+export interface PublicBriefCredential {
+  readonly token: string
+}
+
+/** What the public side answered. A refusal carries its status only; nothing else of the answer is
+ *  kept. */
+export type PublishOutcome =
+  | {
+      readonly kind: 'stored' | 'unchanged'
+      readonly subscribers: number
+      readonly rejected: number
+    }
+  | { readonly kind: 'refused'; readonly status: number }
+  | { readonly kind: 'unreachable' }
+
+/** Posts one rendered day to the public side. Aborting the signal ends the post. */
+export interface PublicBriefPublisher {
+  publish(render: PublicBriefRender, signal: AbortSignal): Promise<PublishOutcome>
+}

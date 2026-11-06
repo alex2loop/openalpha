@@ -108,7 +108,7 @@ async function readScreen(
   }
 }
 
-function homeMarket(markets: MarketRegistry): Market {
+export function homeMarket(markets: MarketRegistry): Market {
   const market = markets.find(PUBLIC_HOME_MARKET)
 
   if (market === null) {

@@ -4,6 +4,13 @@
 
 // ── Host facade ──────────────────────────────────────────────────────────────
 
+export type {
+  PublicBriefCredential,
+  PublicBriefPublisher,
+  PublicBriefRender,
+  PublicScreenText,
+  PublishOutcome,
+} from '@/trading/features/brief/public/types'
 export type { BriefText } from '@/trading/features/brief/surface'
 export type { RebalanceText } from '@/trading/features/portfolio/render/rebalance-surface'
 export type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
@@ -37,6 +44,7 @@ export { publisherOf } from '@/trading/markets/news'
 export type { BookReads, TradingEdition } from '@/trading/wiring/composition/edition'
 export type { SourceHost } from '@/trading/wiring/composition/source-hosts'
 export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'
+export { PUBLIC_BRIEF_SCHEMA } from '@/trading/features/brief/public/store'
 export { PROFILE_CURRENCY_SQL } from '@/trading/features/profile/store'
 export { BROWSER_FEEDS, withReachableFeeds } from '@/trading/sources/adapters/rss'
 export { SOURCE_ROUTES, toBrowserRoutes } from '@/trading/sources/routes'

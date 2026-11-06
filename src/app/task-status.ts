@@ -21,6 +21,7 @@ const LABEL_KEYS: ReadonlyMap<string, MessageKey> = new Map([
   ['trading.exits', 'ui.task.trading.exits'],
   ['trading.refresh', 'ui.task.trading.refresh'],
   ['trading.briefs', 'ui.task.trading.briefs'],
+  ['trading.public-brief', 'ui.task.trading.public-brief'],
   ['trading.intraday', 'ui.task.trading.intraday'],
   ['trading.outcomes', 'ui.task.trading.outcomes'],
   ['trading.macro-extract', 'ui.task.trading.macro-extract'],
