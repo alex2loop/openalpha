@@ -1132,7 +1132,7 @@ Chạy trên máy: `bun install --cwd deploy --frozen-lockfile`, `bun run build:
 - `--data-dir=<bản sao>` dựng ngày trên bản sao đó với cấu hình của chính bản sao (hoặc `--config=<file>`). Nó làm mới các thị trường công khai như dịch vụ nền, lưu dòng của ngày trong bản sao, in từng mục kèm các nguồn nó trích, rồi nhờ lần kiểm tra cuối xét bản dựng hình so với sổ của bản sao. Nó không truyền biến môi trường nào, nên không dùng được khóa mô hình hay nguồn nào. Thoát 0 khi lần kiểm tra cuối sẽ cho đăng, 2 khi bản dựng không đáng đăng và 3 khi lần kiểm tra cuối từ chối.
 - `--out=<file>` ghi bản tin đã dựng hình ra JSON. `--now=<ISO>` dựng như tại thời điểm đó, nên chạy hai ngày liên tiếp nối nhau cho thấy cái gì đã đổi.
 
-<!-- Các cờ --post và --tick của dry run được mô tả ở đây khi chúng được gộp vào. -->
+- `--tick` chạy đúng một lượt tác vụ bản tin công khai của dịch vụ nền tại `--now`, với cùng khung giờ, số lần thử và khoảng chờ, còn `--post=<url>` trỏ phần đăng tới một Worker (chỉ `https://` hoặc `http://localhost:*`). Token lấy từ biến môi trường `PUBLIC_BRIEF_TOKEN`; hãy dùng một token tạm khi chạy với `wrangler dev --local`. Bản thân dịch vụ nền luôn đăng tới địa chỉ cố định; chỉ script này mới chọn được địa chỉ khác.
 
 ### Quy trình vận hành
 

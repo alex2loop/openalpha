@@ -1113,7 +1113,7 @@ To run it locally: `bun install --cwd deploy --frozen-lockfile`, `bun run build:
 - `--data-dir=<copy>` builds the day on that copy with the copy's own config (or `--config=<file>`). It refreshes the public markets as the daemon would, saves the day's row in the copy, prints each section with the sources it cites, then has the guard judge the render against the copy's book. It passes no environment, so no model or source key can be used. It exits 0 when the guard would publish, 2 when the build is not worth publishing and 3 when the guard refuses.
 - `--out=<file>` writes the rendered brief as JSON. `--now=<ISO>` builds as of that instant, so two consecutive days run one after the other show what changed.
 
-<!-- The dry run's --post and --tick flags are described here once they land. -->
+- `--tick` runs the daemon's own public-brief tick once at `--now`, with the same window, attempt and retry rules, and `--post=<url>` points its publisher at a Worker (only `https://` or `http://localhost:*`). The token comes from the `PUBLIC_BRIEF_TOKEN` environment variable; use a throwaway one against `wrangler dev --local`. The daemon itself always posts to the fixed address; only this script can choose another.
 
 ### Runbook
 
