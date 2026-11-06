@@ -60,7 +60,7 @@ export function Panel() {
         )}
         {backStack.value.length > 0 && <BackRow />}
       </div>
-      <div class="panel-body">
+      <div key={viewKey(panelView.value)} class="panel-body">
         <TickerNotice />
         <PanelPage />
       </div>
@@ -93,7 +93,8 @@ function SheetHandle() {
   )
 }
 
-/** The open view, which slides in when the tab, ticker or agent changes (not under reduced motion). */
+/** The open view, which slides in when the tab, ticker or agent changes (not under reduced motion).
+ *  The body that scrolls it is keyed by the same view, so each opens at its top. */
 function PanelPage() {
   const view = panelView.value
 
