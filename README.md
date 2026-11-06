@@ -545,6 +545,7 @@ Architecture: 16 modules with no cycles, every dependency pointing toward the ke
 
 - **Bugs and feature requests:** [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose). A bug is tracked only once it has an issue.
 - **Security vulnerabilities:** report privately per [SECURITY.en.md](SECURITY.en.md), never in an issue.
+- **Support the project:** [Buy Me a Coffee](https://buymeacoffee.com/alex2loop) keeps the data sources, testing and new markets going.
 
 Find it useful? Give the repo a ⭐ so more people find it.
 

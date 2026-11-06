@@ -551,6 +551,7 @@ Kiến trúc: 16 mô-đun, phụ thuộc một chiều về phía lõi, không v
 - **Hỏi cách cài, cách dùng, nhận tin bản mới:** [nhóm Zalo OpenAlpha](https://zalo.me/g/yl7iqyfovvtyosujulea). Nhóm chỉ hỗ trợ dùng phần mềm, không bàn mã nào nên mua. Che khóa API trước khi dán cấu hình. Admin không bao giờ nhắn riêng để xin khóa hay tiền.
 - **Báo lỗi, đề xuất tính năng:** [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose). Lỗi chỉ được theo dõi khi có issue.
 - **Lỗ hổng bảo mật:** báo riêng theo [SECURITY.md](SECURITY.md), không đăng lên nhóm hay issue.
+- **Ủng hộ dự án:** [Buy Me a Coffee](https://buymeacoffee.com/alex2loop), để duy trì nguồn dữ liệu, kiểm thử và mở thêm thị trường mới.
 
 Thấy hữu ích? Cho repo một ⭐ để nhiều người biết tới.
 
