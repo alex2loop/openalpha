@@ -11,6 +11,7 @@ export type OutboundPurpose =
   | 'web'
   | 'update'
   | 'social'
+  | 'brief'
   | 'reachability'
 
 /** One place the daemon can send something under this config, and what it sends there in the

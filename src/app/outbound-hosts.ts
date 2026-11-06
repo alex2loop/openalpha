@@ -3,6 +3,8 @@ import type { App } from '@/core/container'
 import type { MessageKey } from '@/i18n'
 import { listPricingHosts, resolveModelHost } from '@/ai/api'
 import { listAuthHosts } from '@/ai/node-api'
+import { resolveBootExtensions } from '@/app/config-tree'
+import { PUBLIC_BRIEF_HOSTNAME } from '@/app/public-brief-publisher'
 import { enabledChannels } from '@/app/views'
 import { UPDATE_CHECK_HOST } from '@/cli/api'
 import { REACHABILITY_HOST } from '@/core/limits'
@@ -17,6 +19,7 @@ const PURPOSES = [
   'exchange',
   'channel',
   'social',
+  'brief',
   'mcp',
   'plugin',
   'search',
@@ -43,6 +46,7 @@ const SENDS_KEYS = {
   web: 'ui.outbound.sends.web',
   update: 'ui.outbound.sends.update',
   social: 'ui.outbound.sends.social',
+  brief: 'ui.outbound.sends.brief',
   reachability: 'ui.outbound.sends.reachability',
 } as const satisfies Readonly<Record<OutboundPurpose, MessageKey>>
 
@@ -93,6 +97,9 @@ function configHosts(app: App): readonly FoundHost[] {
     { host: WEB_HOST, purpose: 'web' },
     ...app.resolve('sourceHosts').map(({ host, kind }) => ({ host, purpose: kind })),
     ...(config.update.check ? [{ host: UPDATE_CHECK_HOST, purpose: 'update' as const }] : []),
+    ...(resolveBootExtensions(config).trading.publicBrief.enabled
+      ? [{ host: PUBLIC_BRIEF_HOSTNAME, purpose: 'brief' as const }]
+      : []),
     { host: REACHABILITY_HOST, purpose: 'reachability' },
   ]
 }

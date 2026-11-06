@@ -90,7 +90,7 @@ export function toAggregate(
   // The one owner of "the boot sweep is done": the loops wait on its promise, and the boot refresh
   // settles it through `releaseFirstSweep`.
   const firstSweep = Promise.withResolvers<void>()
-  const publicBrief = toPublicBrief(parts, options, registries)
+  const publicBrief = createPublicBriefService(parts, options, registries)
 
   return Object.freeze({
     ...parts.services,
@@ -118,7 +118,7 @@ export function toAggregate(
       {
         ...options,
         firstSweep: firstSweep.promise,
-        publicBriefTick: toPublicBriefTick(parts, options, { publicBrief, registries }),
+        publicBriefTick: createPublicBriefLoopTick(parts, options, { publicBrief, registries }),
       },
       registries
     ),
@@ -128,7 +128,7 @@ export function toAggregate(
   })
 }
 
-function toPublicBrief(
+function createPublicBriefService(
   parts: AggregateParts,
   options: AggregateOptions,
   registries: Registries
@@ -224,7 +224,7 @@ function buildDaemonTasks(
 
 /** The public brief's tick, where the brief can post: it builds, renders, judges and posts. The
  *  guard is the one reader of the book. */
-function toPublicBriefTick(
+function createPublicBriefLoopTick(
   parts: AggregateParts,
   options: AggregateOptions,
   built: { readonly publicBrief: PublicBrief; readonly registries: Registries }

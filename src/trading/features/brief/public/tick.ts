@@ -78,7 +78,7 @@ export function createPublicBriefTick(
     }
 
     const attempt = { day, now, signal, row }
-    const result = await post(deps, attempt).catch((err: unknown) => failure(deps, day, err))
+    const result = await post(deps, attempt).catch((err: unknown) => logFailure(deps, day, err))
 
     await settle(deps, attempt, result)
   }
@@ -155,7 +155,7 @@ function isRetryable(status: number): boolean {
 
 /** A failure of the build, the guard's read or the store counts as an attempt, so a day that keeps
  *  failing stops at the bound instead of running once a minute. Shutdown is not a failure. */
-function failure(deps: PublicBriefTickDeps, day: TradingDay, err: unknown): AttemptResult {
+function logFailure(deps: PublicBriefTickDeps, day: TradingDay, err: unknown): AttemptResult {
   if (isAbortError(err)) {
     throw err
   }
@@ -178,8 +178,8 @@ async function settle(
   }
 
   if (result.kind === 'sent') {
-    await deps.store.recordAttempt({ day, at, publishedAt: at }, signal)
     logPublished(deps, day, result.outcome)
+    await deps.store.recordAttempt({ day, at, publishedAt: at }, signal)
 
     return
   }

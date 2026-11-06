@@ -3,11 +3,12 @@ import { z } from 'zod'
 import type { PublicBriefCredential, PublicBriefPublisher, PublishOutcome } from '@/trading/api'
 import { toPublicBriefDocument } from '@/app/server/mappers/public-brief'
 import { BRAND } from '@/core/brand'
-import { isAbortError } from '@/core/errors'
+import { ToolError } from '@/core/errors'
 import { HttpRequestError, httpRequest } from '@/core/http-client'
 
 /** The one address the brief is posted to: no config, flag or argument names another. */
-const PUBLIC_BRIEF_HOST = `https://brief.${BRAND.publicDomain}`
+export const PUBLIC_BRIEF_HOSTNAME = `brief.${BRAND.publicDomain}`
+const PUBLIC_BRIEF_HOST = `https://${PUBLIC_BRIEF_HOSTNAME}`
 const PUBLIC_BRIEF_PUBLISH_PATH = '/api/publish'
 const PUBLIC_BRIEF_PUBLISH_TIMEOUT_MS = 20_000
 const ANSWER_MAX_BYTES = 4_096
@@ -26,6 +27,8 @@ export function createPublicBriefPublisher(
 ): PublicBriefPublisher {
   return {
     async publish(render, signal) {
+      const body = JSON.stringify(toPublicBriefDocument(render))
+
       try {
         const res = await httpRequest({
           hosts: [PUBLIC_BRIEF_HOST],
@@ -35,7 +38,7 @@ export function createPublicBriefPublisher(
             authorization: `Bearer ${credential.token}`,
             'content-type': 'application/json',
           },
-          body: JSON.stringify(toPublicBriefDocument(render)),
+          body,
           maxBytes: ANSWER_MAX_BYTES,
           timeoutMs: PUBLIC_BRIEF_PUBLISH_TIMEOUT_MS,
           signal,
@@ -71,8 +74,10 @@ function parseJson(text: string): unknown {
   }
 }
 
+/** Only a request failure is the network's or the public side's. Anything else is this code being
+ *  wrong, and goes up to be logged. */
 function toFailure(err: unknown): PublishOutcome {
-  if (isAbortError(err)) {
+  if (!(err instanceof ToolError)) {
     throw err
   }
 

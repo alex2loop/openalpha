@@ -41,8 +41,6 @@ export { publisherOf } from '@/trading/markets/news'
 
 // ── Boot & composition ───────────────────────────────────────────────────────
 
-// ── Boot & composition ───────────────────────────────────────────────────────
-
 export type { BookReads, TradingEdition } from '@/trading/wiring/composition/edition'
 export type { SourceHost } from '@/trading/wiring/composition/source-hosts'
 export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'
