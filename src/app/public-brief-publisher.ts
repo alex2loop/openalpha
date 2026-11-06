@@ -6,9 +6,9 @@ import { BRAND } from '@/core/brand'
 import { ToolError } from '@/core/errors'
 import { HttpRequestError, httpRequest } from '@/core/http-client'
 
-/** The one address the brief is posted to: no config, flag or argument names another. */
+/** The one address the daemon posts the brief to: no config or flag names another. */
 export const PUBLIC_BRIEF_HOSTNAME = `brief.${BRAND.publicDomain}`
-const PUBLIC_BRIEF_HOST = `https://${PUBLIC_BRIEF_HOSTNAME}`
+const PUBLIC_BRIEF_ORIGIN = `https://${PUBLIC_BRIEF_HOSTNAME}`
 const PUBLIC_BRIEF_PUBLISH_PATH = '/api/publish'
 const PUBLIC_BRIEF_PUBLISH_TIMEOUT_MS = 20_000
 const ANSWER_MAX_BYTES = 4_096
@@ -21,9 +21,11 @@ const answerSchema = z.object({
 
 /** Posts with the daemon's request shape, which follows no redirect, under a deadline. Nothing of
  *  the answer is kept but its counts, and no error text leaves here: a failure is `unreachable` or
- *  the status the public side refused with. Aborting the signal is shutdown and propagates. */
+ *  the status the public side refused with. Aborting the signal is shutdown and propagates. Only the
+ *  dry-run script passes an origin of its own; the daemon binds the one-argument form. */
 export function createPublicBriefPublisher(
-  credential: PublicBriefCredential
+  credential: PublicBriefCredential,
+  origin: string = PUBLIC_BRIEF_ORIGIN
 ): PublicBriefPublisher {
   return {
     async publish(render, signal) {
@@ -31,7 +33,7 @@ export function createPublicBriefPublisher(
 
       try {
         const res = await httpRequest({
-          hosts: [PUBLIC_BRIEF_HOST],
+          hosts: [origin],
           path: PUBLIC_BRIEF_PUBLISH_PATH,
           method: 'POST',
           headers: {
