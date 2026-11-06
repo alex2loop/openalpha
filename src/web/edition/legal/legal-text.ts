@@ -1,6 +1,7 @@
 import { formatDay } from '@/i18n'
 import { productName, REPO_URL } from '@/web/edition/guide/product'
 import { type KeySlot, SLOT_PROVIDERS } from '@/web/edition/keys-store'
+import { CLOUDFLARE_POLICY_URL, maintainerOf } from '@/web/edition/legal/legal-links'
 import { providerInfo } from '@/web/edition/providers'
 import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
@@ -14,9 +15,7 @@ const RESPONSE_WORKDAYS = '15'
 const SUPPORT_GROUP_URL = 'https://zalo.me/g/yl7iqyfovvtyosujulea'
 const ISSUES_URL = `${REPO_URL}/issues`
 /** The repository owner, who maintains the project and runs the web version. */
-const MAINTAINER = new URL(REPO_URL).pathname.split('/')[1] ?? ''
-
-const CLOUDFLARE_POLICY_URL = 'https://www.cloudflare.com/privacypolicy/'
+const MAINTAINER = maintainerOf(REPO_URL)
 
 /** Every `{name}` the legal texts use. Read in the render, so it follows the language. */
 export function toLegalParams(): Readonly<Record<string, string>> {

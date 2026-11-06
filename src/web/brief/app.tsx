@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 
 import type { PublicBriefDocument } from '@/app/server/wire/public-brief'
+import { LanguageSwitch } from '@/web/brief/language-switch'
 import { type LatestState, loadLatest } from '@/web/brief/load'
+import { PRIVACY_HREF, PrivacyPage, usePrivacyRoute } from '@/web/brief/privacy'
 import { ScreenList } from '@/web/brief/screen-list'
 import { drawShareCard, shareBlob } from '@/web/brief/share-card'
 import {
@@ -14,7 +16,6 @@ import {
 } from '@/web/brief/strings'
 import { formatDay } from '@/web/brief/today'
 import { Button } from '@/web/ui/kit/button'
-import { Segmented } from '@/web/ui/kit/segmented'
 import { BriefBody } from '@/web/ui/reader/brief-body'
 
 // The address of the web app, which the build stamps in.
@@ -43,6 +44,7 @@ type ShareCard =
 export function App() {
   const [locale, setLocale] = useState(startLocale)
   const [attempt, setAttempt] = useState(0)
+  const isPrivacy = usePrivacyRoute()
   const latest = useLatest(attempt)
 
   useEffect(() => {
@@ -50,15 +52,21 @@ export function App() {
     publishLocale(locale)
   }, [locale])
 
+  const onLocale = (next: Locale) => {
+    rememberChoice(next)
+    setLocale(next)
+  }
+
+  if (isPrivacy) {
+    return <PrivacyPage t={toTranslate(locale)} locale={locale} onLocale={onLocale} />
+  }
+
   return (
     <Page
       t={toTranslate(locale)}
       locale={locale}
       latest={latest}
-      onLocale={(next) => {
-        rememberChoice(next)
-        setLocale(next)
-      }}
+      onLocale={onLocale}
       onRetry={() => setAttempt((count) => count + 1)}
     />
   )
@@ -101,15 +109,8 @@ function Page({ t, locale, latest, onLocale, onRetry }: PageProps) {
       </main>
       <footer class="flow app-foot">
         <p class="meta">{t('ui.brief.disclaimer')}</p>
-        <Segmented
-          label={t('ui.brief.languageLabel')}
-          value={locale}
-          options={[
-            { value: 'vi', label: t('ui.brief.language.vi') },
-            { value: 'en', label: t('ui.brief.language.en') },
-          ]}
-          onChange={onLocale}
-        />
+        <LanguageSwitch t={t} locale={locale} onLocale={onLocale} />
+        <a href={PRIVACY_HREF}>{t('ui.brief.privacy.title')}</a>
         <a href={APP_URL}>{t('ui.brief.openApp')}</a>
       </footer>
     </div>

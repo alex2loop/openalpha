@@ -2147,7 +2147,17 @@
     "brief.language.vi": "Tiếng Việt",
     "brief.language.en": "English",
     "brief.disclaimer": "This brief describes the market. It is not investment advice.",
-    "brief.openApp": "Open the web version"
+    "brief.openApp": "Open the web version",
+    "brief.privacy.title": "Privacy",
+    "brief.privacy.version": "Version 1.0",
+    "brief.privacy.kept.heading": "What I keep about you",
+    "brief.privacy.kept.body": "Nothing. There are no accounts or cookies, and my server stores nothing about you. The app never asks for your name, email or phone number. Your language choice and the last brief you read stay on your phone.",
+    "brief.privacy.host.heading": "Who serves the page",
+    "brief.privacy.host.body": "Cloudflare serves this app, so like any web host it sees each request: your IP address, device type, the page and the time. It keeps those under [its own policy]({cloudflarePolicyUrl}). I switched off its logging tools and I read none of it.",
+    "brief.privacy.advice.heading": "What the brief is",
+    "brief.privacy.owner.heading": "Who runs it",
+    "brief.privacy.owner.body": "{maintainer} runs it, the maintainer of the open-source {brand} project. The code is on [GitHub]({repoUrl}); questions go to its [issues page]({repoUrl}/issues).",
+    "brief.privacy.back": "Back to the brief"
   },
   "footer": {
     "cost": "{cost}",

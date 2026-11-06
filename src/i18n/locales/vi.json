@@ -2147,7 +2147,17 @@
     "brief.language.vi": "Tiếng Việt",
     "brief.language.en": "English",
     "brief.disclaimer": "Bản tin mô tả thị trường, không phải khuyến nghị đầu tư.",
-    "brief.openApp": "Mở bản web"
+    "brief.openApp": "Mở bản web",
+    "brief.privacy.title": "Quyền riêng tư",
+    "brief.privacy.version": "Phiên bản 1.0",
+    "brief.privacy.kept.heading": "Mình lưu gì về bạn",
+    "brief.privacy.kept.body": "Không gì cả. Ở đây không có tài khoản hay cookie, và máy chủ của mình không lưu gì về bạn. Ứng dụng không bao giờ hỏi tên, email hay số điện thoại. Ngôn ngữ bạn chọn và bản tin đọc gần nhất chỉ nằm trên điện thoại của bạn.",
+    "brief.privacy.host.heading": "Ai chạy trang này",
+    "brief.privacy.host.body": "Cloudflare chạy ứng dụng này, nên như mọi máy chủ web, họ thấy từng lượt tải: địa chỉ IP, loại thiết bị, trang và giờ truy cập. Họ giữ các thông tin ấy theo [chính sách của họ]({cloudflarePolicyUrl}). Mình đã tắt phần ghi nhật ký của họ và không đọc gì trong đó.",
+    "brief.privacy.advice.heading": "Bản tin là gì",
+    "brief.privacy.owner.heading": "Ai vận hành",
+    "brief.privacy.owner.body": "{maintainer} vận hành, người duy trì dự án mã nguồn mở {brand}. Mã nguồn nằm trên [GitHub]({repoUrl}); có câu hỏi thì bạn gửi ở [trang issues]({repoUrl}/issues) nhé.",
+    "brief.privacy.back": "Về bản tin"
   },
   "footer": {
     "cost": "{cost}",
