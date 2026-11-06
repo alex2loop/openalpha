@@ -21,6 +21,7 @@ import type {
 import type { FocusScope } from '@/trading/kernel/operator/focus'
 import type { AppViews } from '@/trading/wiring/composition/app-views'
 import type { IntradayNext } from '@/trading/wiring/composition/intraday-next'
+import type { PublicBrief } from '@/trading/wiring/composition/public-brief'
 import type { RebalanceViews } from '@/trading/wiring/composition/rebalance-views'
 import type { SuggestionCards } from '@/trading/wiring/composition/suggestion-cards'
 
@@ -47,6 +48,8 @@ export interface TradingServices {
   readonly nav: NavService
   readonly alerts: AlertService
   readonly briefs: BriefService
+  /** The brief the daemon posts to readers who hold no book here, built from reads that hold none. */
+  readonly publicBrief: PublicBrief
   /** Absent when the exchange credentials are not configured: the two order surfaces are not
    *  registered at all rather than registered and failing at first use. */
   readonly order?: OrderService

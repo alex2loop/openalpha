@@ -11,15 +11,15 @@ import type {
 } from '@/trading/features/profile/types'
 import type { CurrencyCode, MarketRef, PortfolioSegment, Region } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
-import type { MarketManifest, MarketRegistry } from '@/trading/markets/types'
+import type { MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
 import { resetProfile, seedRiskPolicy, updateProfile } from '@/trading/features/profile/merge'
 import {
   applyPinnedTargets,
-  DEFAULT_SEED_WEIGHT,
   defaultProfile,
   isBelowReserve,
   PROFILE_BOUNDS,
+  toSegmentDescriptors,
 } from '@/trading/features/profile/policy'
 import {
   updateSegment,
@@ -217,26 +217,14 @@ function homeSegmentOf(deps: ProfileServiceDeps): PortfolioSegment | undefined {
     : undefined
 }
 
-/** A national market seeds only at home; any other follows its own flag, seeded when absent. */
-function seedsAt(manifest: MarketManifest, homeRegion: Region): boolean {
-  const seeds = manifest.seedsDefaultTarget
-
-  return seeds === 'home' ? manifest.region === homeRegion : seeds !== false
-}
-
 /** The registered segments a profile is validated against, rebuilt per call: the registry is frozen
  *  at boot, so this is a projection rather than state. */
 function contextOf(deps: ProfileServiceDeps): ProfileContext {
   return {
-    segments: deps.markets.list().map(({ manifest }) => ({
-      id: manifest.segment,
-      category: manifest.segmentCategory,
-      held: deps.heldMarkets.has(manifest.id),
-      seedsDefaultTarget: deps.heldMarkets.has(manifest.id) && seedsAt(manifest, deps.homeRegion),
-      seedWeight: manifest.seedWeight ?? DEFAULT_SEED_WEIGHT,
-      holdsEtfs: manifest.screenableKinds?.includes('etf') === true,
-      horizon: manifest.horizon,
-    })),
+    segments: toSegmentDescriptors(
+      deps.markets.list().map(({ manifest }) => manifest),
+      deps
+    ),
     bounds: PROFILE_BOUNDS,
   }
 }

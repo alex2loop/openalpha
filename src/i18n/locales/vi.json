@@ -5758,6 +5758,7 @@
     "brief.fact.takerBuyPct": "Bên mua chủ động",
     "brief.fact.sentimentScore": "Chỉ số sợ hãi - tham lam",
     "brief.fact.premium": "Chênh lệch với thế giới",
+    "publicBrief.disclaimer": "Bản tin mô tả thị trường, không phải khuyến nghị đầu tư.",
     "render.macro.title": "Vĩ mô {region}: {regime}",
     "render.macro.marketTitle": "Vĩ mô: {regime}",
     "render.macro.sameDrivers": "Các yếu tố tác động giống hệt phần {market} ở trên.",

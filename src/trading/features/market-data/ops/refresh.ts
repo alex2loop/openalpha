@@ -217,7 +217,7 @@ async function sweepMarkets(
 
   logRefreshed(deps.logger, options.forced ?? false, results)
 
-  return deps.recordTradeSides(results, options.signal)
+  return options.withoutFollowed === true ? results : deps.recordTradeSides(results, options.signal)
 }
 
 /** Refreshing a market nobody reads costs only time; skipping one a holding reads leaves its stop
