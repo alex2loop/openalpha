@@ -113,6 +113,25 @@ The web version can only read sources that let a browser call them directly. Whe
 
 A source may change or block browsers at any time; the feature that needs it then pauses and the page says so. The installed version reads all of the above, with fallbacks when one fails.
 
+## The morning brief on your phone
+
+Apart from the web version there is a small phone app that does one thing: it shows the day's market brief. Each Vietnam trading morning, around 08:30, one brief is published, the same for everyone, in Vietnamese and English. It reads like the market part of the dashboard brief and carries nothing about any person's portfolio. There is no account to make and no key to add, and your phone runs no engine: it only reads the day's brief.
+
+It is a trial shared by invitation, and the address comes with the invitation, so this guide does not print it.
+
+- **Reading.** Open the invitation and the page shows today's brief, or a note that the first one is not out yet. A brief from an earlier day is headed "Latest brief" with its date. The page opens in your phone's language, and the language switch at the bottom changes it and remembers the choice. Every brief ends with a line saying it describes the market and is not investment advice.
+- **Sharing.** "Share brief" draws a card with the day, the brief's one-line headline, that disclaimer and the app's address, then hands it to your phone's share sheet, or saves it as a picture where the phone has no share sheet.
+- **Offline.** After the first visit the app keeps its own pages and the last brief it showed. With no connection it opens that brief under a note that it could not get a newer one.
+- **Privacy.** The app keeps nothing about you: no account, no cookie, no name, email or number. Only your language choice and the last brief stay on your phone. Cloudflare serves the page and sees each request, like any web host, under its own policy. The "Privacy" link at the foot of the app says all this in full.
+
+**Install it on iPhone.** Open the invitation in Safari. If it opened inside Zalo or Facebook, use that app's menu to open it in Safari first, because only Safari can add it to the Home Screen. Tap Share, choose "Add to Home Screen" and tap Add.
+
+**Install it on Android.** Open the invitation in Chrome, open the menu with the three dots and choose "Install app" (some phones say "Add to Home screen").
+
+Either way it then opens full screen from its own icon, like any app.
+
+**Use a normal tab, not a private one.** A private or incognito tab cannot keep the app's offline copy or your language choice, so it opens fresh each time. Open the link in a normal tab, and install from there.
+
 ## Limits to keep in mind
 
 - The web version analyses; each analysis carries a line saying that for a buy or sell plan (entry, stop, take-profit) you install the full version, and never a conclusion about a name.

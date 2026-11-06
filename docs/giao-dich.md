@@ -863,6 +863,57 @@ khác sẽ làm dịch vụ nền dừng ngay lúc khởi động, kèm danh sá
   - Nếu có mã không định giá được, nó nói bao nhiêu mã chưa kiểm được, và không bao giờ khẳng định là không có mã nào
     thủng.
 
+### Bản tin công khai
+
+Cạnh bản tin sáng của bạn, dịch vụ nền có thể đăng thêm một bản thứ hai để những người bạn chia sẻ đọc trên điện thoại. Đó là một bài đọc thị trường thuần túy, không có gì của bạn trong đó, dựng chỉ từ dữ liệu thị trường, cùng lời văn và bố cục với phần thị trường trong bản tin của bạn. Mặc định nó tắt cho tới khi bạn bật.
+
+**Nó mang gì.** Mọi mục toàn thị trường của bản tin mà bảng điều khiển hiển thị, bằng tiếng Việt và tiếng Anh, cho cổ phiếu Việt Nam, vàng trong nước, vàng thế giới và crypto. Cổ phiếu Mỹ không có trong đó. Gồm bảng giá, nhóm tăng giảm mạnh và nhóm dẫn đầu, sự kiện và hồ sơ công bố, nhìn vĩ mô, đổi chế độ thị trường, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai, câu chuyện thị trường kèm phần nhìn lại, tin thị trường, vĩ mô và kinh tế, và những mã vào hay ra khỏi bảng lọc. Mỗi mục đọc như trên bảng điều khiển.
+
+**Nó không bao giờ mang gì.** Không có gì của sổ bạn: không mã nắm giữ, không mã theo dõi, không số tiền, kế hoạch, đề xuất, cảnh báo hay chi phí. Nó không bao giờ nêu giá vào, mức cắt lỗ, mục tiêu, cỡ lệnh hay mức tin cậy cho một mã cụ thể, và không bao giờ gọi một mã là mua, bán hay giữ. Nó không gọi mô hình, nên không dòng nào do AI viết và chạy không tốn đồng nào: mọi dòng là lời của chính dịch vụ nền, và mỗi bản tin đều khép bằng một dòng miễn trừ ("Bản tin mô tả thị trường, không phải khuyến nghị đầu tư.").
+
+Mỗi mục thuộc về thị trường hoặc thuộc về sổ, quyết định một lần trong mã. Một loại mục mới không thể phát hành khi chưa ai nói nó thuộc bên nào, nên mặc định không có gì lọt ra. Các mục thuộc sổ gồm tóm tắt sổ, đề xuất đã chốt, cảnh báo đã nổ, các lệnh thoát, vị thế đang lỗ, không được theo dõi hoặc đã cũ, độ lệch, bảng điểm tháng, lãi suất tiền mặt, đề xuất và việc nên làm tiếp, kỷ luật, các mục danh sách theo dõi, nhịp liên thị trường, bên mua bán trên mã bạn nắm hoặc theo dõi, và chi phí. Ba lớp khóa giữ chúng ở ngoài:
+
+- bản tin được dựng từ những lần đọc không có sổ: hồ sơ trống, không mã nắm giữ, không danh sách theo dõi, không đề xuất, và luôn đúng bốn thị trường ấy dù bạn nắm gì hay đã tắt gì;
+- một cổng kiểm tra trong mã làm hỏng bản dựng nếu đường đó có thể chạm tới sổ;
+- một lần kiểm tra cuối trước mỗi lần đăng, ngay dưới đây.
+
+**Lần kiểm tra cuối, và một trường hợp cần biết.** Trước khi đăng, dịch vụ nền đọc mọi dòng mà người đọc sẽ thấy, ở cả hai ngôn ngữ. Nếu một mã bạn nắm giữ hoặc theo dõi đứng đó như một từ viết hoa nguyên vẹn, ngày đó bị từ chối và không gửi gì. Mã nằm trong chính các dòng của một mục thị trường thì không sao, vì thị trường in ra chúng: một mã tăng giảm mạnh, một mã dẫn đầu, các ký hiệu trong tiêu đề tin, và tên trên một danh sách bảng lọc. Vậy nếu bạn theo dõi một mã trùng với một từ bản tin vẫn in, như `VND` (đồng tiền) hay `VIX`, ngày đó bị từ chối trừ khi tên ấy nằm trong một trong các dòng kia hôm đó. Hãy bỏ theo dõi mã đó, hoặc chấp nhận bản tin bỏ qua những ngày này. Không đọc được sổ của bạn thì cũng từ chối: bỏ qua là hướng an toàn. Lần từ chối nằm trong nhật ký của bạn là `trading.public_brief_refused` kèm tên mã; tên không bao giờ nằm trong thứ được gửi đi.
+
+**Bật nó lên.**
+
+1. Đặt token đăng trong môi trường: `openalpha key set PUBLIC_BRIEF_TOKEN`. Token do người vận hành phía công khai cấp. Nó không bao giờ được ghi trong `config.toml`, nhật ký hay thông báo lỗi.
+2. Trong `config.toml`:
+
+   ```toml
+   [trading.public_brief]
+   enabled = true
+   ```
+
+3. Khởi động lại dịch vụ nền. Chưa có token thì nó vẫn chạy, báo một lần (`trading.public_brief_token_missing`) và không đăng gì.
+
+| Khóa | Mặc định | Tác dụng |
+|---|---|---|
+| `enabled` | `false` | Đăng bản tin. |
+| `publish_time` | `"08:30"` | Giờ Việt Nam. Phải sớm hơn giờ mở cửa 09:00, nếu không dịch vụ nền từ chối khởi động. |
+| `analysis` | `true` | `false` bỏ phần nhìn vĩ mô, đổi chế độ, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai, thay đổi của bảng lọc và các câu chuyện nhắc lại chúng. |
+| `headlines` | `true` | `false` bỏ tin thị trường, vĩ mô và kinh tế. |
+| `top_screen` | `0` | `0` là tắt. Một số nguyên đến 10 thêm chừng đó mã từ mỗi bảng lọc (cổ phiếu Việt Nam và crypto), xếp theo điểm tổng hợp: hạng, mã, điểm, giá đóng cửa gần nhất và mức dịch chuyển. Không có xếp loại, dòng yếu tố hay lưu ý, không dấu loại trừ hay ký quỹ, và khép bằng một ghi chú rằng đây là bảng lọc xếp hạng, không phải khuyến nghị mua bán. Crypto xếp mọi đồng được niêm yết, không chỉ các đồng ở sàn bạn dùng. Số lẻ hoặc lớn hơn 10 làm dịch vụ nền dừng ngay khi khởi động. |
+
+**Khi nào nó ra.** Một lần mỗi ngày giao dịch ở Việt Nam, từ `publish_time` tới lúc thị trường mở cửa, sau bản tin 08:15 của bạn; không bao giờ sau giờ mở cửa. Trước hết nó làm mới dữ liệu của cả bốn thị trường, nên nó cũng đọc cả những thị trường bạn đã tắt. Nó chỉ đăng khi bảng giá là của phiên đã chốt gần nhất. Bản dựng không có bảng giá, hoặc chỉ có bảng của phiên cũ hơn, thì hôm đó không đăng gì.
+
+**Khi có lỗi, ngày đó bị bỏ qua.** Bản tin của bạn không chia sẻ gì với nó và không bao giờ bị đụng tới. Một lần đăng lỗi (mất mạng, quá giờ, 429 hay lỗi máy chủ) được thử lại sau năm phút, tối đa bốn lần một ngày. Một câu trả lời mà phía công khai sẽ lặp lại, như token sai (401), đóng ngày đó. Một ngày đăng hai lần chỉ được lưu một lần, nên lặp lại vô hại. Dịch vụ nền ghi lại nó dừng ở đâu:
+
+| Khóa nhật ký | Nghĩa là |
+|---|---|
+| `trading.public_brief_published` | Ngày đó đã đăng. |
+| `trading.public_brief_publish_failed` | Dùng hết bốn lần thử; `reason` nói vì sao (`empty`, `guard`, `unreachable`, `http-<status>`, `error`). |
+| `trading.public_brief_publish_refused` | Phía công khai từ chối hẳn; `status` cho biết mã nào. Kiểm tra token trước. |
+| `trading.public_brief_refused` | Lần kiểm tra cuối thấy một mã của bạn. |
+| `trading.public_brief_guard_unread` | Không đọc được sổ, nên ngày đó bị từ chối. |
+| `trading.public_brief_attempt_failed` | Bản dựng, lần kiểm tra hay kho lưu bị lỗi. |
+
+**Nó đăng đi đâu.** Chỉ tới địa chỉ của phía công khai, cố định trong mã: không cài đặt, cờ hay tệp nào chuyển hướng nó, và không có gì lắng nghe trên máy bạn cho việc này. Khi nó bật, bảng việc chạy ngầm hiện "Bản tin sáng công khai" và Cài đặt, mục Dữ liệu và kết nối, liệt kê địa chỉ đó cùng thứ được gửi tới. Khi tắt thì địa chỉ không được liệt kê. Bản tin của ngày được giữ trên máy 30 ngày (`public_briefs`); lịch sử do phía công khai giữ.
+
 ### Chủ đề
 
 `/themes` là lần đọc từ trên xuống về cổ phiếu Việt Nam, và nó dừng ngay trước một giao dịch. Một phiên chạy:

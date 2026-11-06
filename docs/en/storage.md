@@ -62,7 +62,7 @@ Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,
 `funding_snapshots`, `fx_rates`, `macro_snapshots`, `series_points`, `series_provenance`,
 `macro_documents`, `news_items`, `market_refresh_attempts`, `ledger_entries`, `nav_snapshots`,
-`trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
+`trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`, `public_briefs`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
 `theme_reads`, `theme_outcomes` and `agent_focuses`.
 
@@ -127,6 +127,8 @@ The Vietnamese index ratios are written once a day per index by the refresh, one
 day. They are P/E, P/B, dividend yield, their five-year averages and the share of stocks above their
 50- and 200-session mean, for VN-Index, VN30 and HNX. So the daemon keeps its own valuation history.
 What each stock contributed to an index is never stored.
+
+**Public brief.** `public_briefs` holds one row per Vietnam trading day for the brief the daemon posts to the public page: the market sections and screen lists the day was built from, when it was built and posted, and how many times posting was tried. Nothing of your book is in it, since the brief is built from none. A day whose build came back empty has a row with no sections, so a failed build is throttled like a failed post. A row written under another schema, or one that no longer reads, counts as unbuilt and the day is rebuilt. It is not durable: market data rebuilds it, so the default `db export` leaves it out. The table keeps its own 30 days, trimmed each time a day is saved; `db cleanup` and the retention windows do not touch it.
 
 #### Agents and focus
 
@@ -210,6 +212,7 @@ The windows are set by [`[retention]`](configuration.md#retention): `days` is th
 | Pending pairings | Removed after `days`, from creation. |
 | Fired or disabled alerts | Removed after `days`, from the time they fired or were disabled. Live alerts are never pruned. |
 | `brief_snapshots` | Removed after `days`, except the newest snapshot per locale, which always survives. |
+| `public_briefs` | Not swept by `days`: the public brief trims its own table to the last 30 days each time it saves a day. |
 | Scheduler jobs | A one-shot job that ran and was switched off is removed after `days` from its run time, with its run history. A paused one-shot that never ran, and every recurring or event job, stays. |
 | Resting exits | Settled or closed rows are removed after `days` from when they were placed. Live ones are never pruned. |
 | Theme runs and their reads | Removed after `days`, except a run an outcome still cites, each theme's two newest runs, and the newest run and newest full run. |

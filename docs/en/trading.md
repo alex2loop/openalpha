@@ -856,6 +856,57 @@ name stops the daemon at start and lists the valid ones. Nothing else the daemon
     session, and whether any has broken its stop.
   - If some holdings could not be priced, it says how many it could not check, and never claims that none broke.
 
+### The public brief
+
+Next to your own morning brief, the daemon can publish a second one that anyone you share it with can read on a phone. It is a plain read of the market with nothing of yours in it, built from market data alone, in the same wording and layout as the market part of your own brief. It stays off until you turn it on.
+
+**What it carries.** Every market-wide section of the brief the dashboard shows, in Vietnamese and English, for VN stocks, VN gold, world gold and crypto. US stocks are not in it. That is the tape, movers and leaders, events and disclosures, the macro read, the regime shift, sector rotation, support and resistance, the futures basis, the market story with its look back, market, macro and economy headlines, and which names entered or left the screen board. Every section reads as it does on the dashboard.
+
+**What it never carries.** Nothing of your book. Not a holding, a watchlist name, an amount, a plan, a suggestion, an alert or a cost. It never states an entry, stop, target, size or conviction for a named instrument, and it never calls one buy, sell or hold. It makes no model call, so no line is written by an AI and it costs nothing to run: every line is the daemon's own wording, and a disclaimer closes every brief ("This brief describes the market. It is not investment advice.").
+
+Each section is either market or book, decided once in code. A new kind of section cannot ship until someone says which it is, so nothing leaks by default. The book sections are your book summary, resolved suggestions, fired alerts, exits, positions in loss, unwatched or stale, drift, the monthly scorecard, the cash rate, suggestions and next actions, discipline, the watchlist sections, the cross-asset pulse, each side's trades on names you hold or watch, and cost. Three locks keep them out:
+
+- the brief is built from reads that hold no book: an empty profile, no holdings, no watchlist, no suggestions, and the same four markets whatever you hold or have switched off;
+- a code gate that fails the build if that path could ever reach the book;
+- a last check before each post, below.
+
+**The last check, and one case to know about.** Before it posts, the daemon reads every line a reader would see, in both languages. If a ticker you hold or watch stands there as a whole uppercase word, the day is refused and nothing is sent. Tickers inside a market section's own rows are fine, because the market printed them: a mover, a leader, the symbols in a headline title, and the names on a screen list. So when you follow a ticker that is also a word the brief prints, such as `VND` (the currency) or `VIX`, the day is refused unless that name sits in one of those rows that day. Stop following it, or accept that the brief skips those days. If it cannot read your book at all, it refuses too: skipping is the safe direction. The refusal is in your log as `trading.public_brief_refused` with the names; they are never in anything that is sent.
+
+**Turn it on.**
+
+1. Set the publish token in the environment: `openalpha key set PUBLIC_BRIEF_TOKEN`. It comes from whoever runs the public side. It is never written in `config.toml`, a log or an error.
+2. In `config.toml`:
+
+   ```toml
+   [trading.public_brief]
+   enabled = true
+   ```
+
+3. Restart the daemon. With no token it starts, says so once (`trading.public_brief_token_missing`) and publishes nothing.
+
+| Key | Default | Does |
+|---|---|---|
+| `enabled` | `false` | Publishes the brief. |
+| `publish_time` | `"08:30"` | Vietnam time. It has to come before the 09:00 open, or the daemon refuses to start. |
+| `analysis` | `true` | `false` leaves out the macro read, regime shift, sector rotation, support and resistance, futures basis, screen-board changes and the stories that restate them. |
+| `headlines` | `true` | `false` leaves out the market, macro and economy headlines. |
+| `top_screen` | `0` | `0` is off. A whole number up to 10 adds that many names from each screen board (VN stocks and crypto), ranked by composite score: rank, name, score, last close and move. It carries no rating, no factor or caution line and no exclusion or margin mark, and closes with a note that it is a ranked screen, not a recommendation to buy or sell. Crypto ranks every listed coin, not only those at your venues. A fraction or a number over 10 stops the daemon at start. |
+
+**When it goes out.** Once on each Vietnam trading day, from `publish_time` until the market opens, after your own 08:15 brief; never after the open. First it refreshes market data for all four markets, so it reads markets you have switched off too. It publishes only when the tape is the last settled session's. A build with no tape, or an older one, publishes nothing that day.
+
+**When something fails, the day is skipped.** Your own brief shares nothing with it and is never touched. A post that fails (no network, a timeout, 429 or a server error) is tried again five minutes later, up to four times in a day. An answer the public side will repeat, such as a wrong token (401), closes the day. A day posted twice is stored once, so a repeat is harmless. The daemon logs where it ended:
+
+| Log key | Means |
+|---|---|
+| `trading.public_brief_published` | The day is posted. |
+| `trading.public_brief_publish_failed` | Four attempts used; `reason` says why (`empty`, `guard`, `unreachable`, `http-<status>`, `error`). |
+| `trading.public_brief_publish_refused` | The public side refused for good; `status` says which. Check the token first. |
+| `trading.public_brief_refused` | The last check found a name of yours. |
+| `trading.public_brief_guard_unread` | The book could not be read, so the day was refused. |
+| `trading.public_brief_attempt_failed` | The build, the check or the store failed. |
+
+**Where it posts.** Only to the public side's address, which is fixed in code: no setting, flag or file redirects it, and nothing listens on your machine for it. While it is on, the board of background work shows "Public morning brief" and Settings, under Data and connections, lists that address with what is sent there. While it is off the address is not listed. The day's brief is kept locally for 30 days (`public_briefs`); the public side keeps the history.
+
 ### Themes
 
 `/themes` is the top-down read of Vietnamese equities, and it stops short of a trade. One run:
