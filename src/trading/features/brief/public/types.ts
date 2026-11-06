@@ -74,6 +74,8 @@ export interface PublicBriefInput {
 export interface PublicBriefDeps {
   /** The market that composes the brief and owns the calendar it is dated on. */
   readonly market: Market
+  /** The markets this build refreshes, reads and screens. */
+  readonly markets: readonly MarketRef[]
   /** The reads its sections take: none of them is the operator's. */
   readonly reads: BriefServices
   readonly store: PublicBriefStore

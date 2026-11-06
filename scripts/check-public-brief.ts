@@ -3,14 +3,16 @@
 // that way: nothing under `features/brief/public/` reaches the operator's book by a value import,
 // `briefServices` stays with its four holders, only `market`-scoped section kinds are published, no
 // read asks which markets the operator uses, and the composition file and the screen it calls reach
-// nothing of the operator's, and every public read of the US board is `followedBlind` and the board
-// honours it. The walk follows value imports only; a type import erases.
+// nothing of the operator's but one bit: whether the US segment is on. US stocks are a public market
+// only while it is, and every public read of the US board is `followedBlind` and the board honours
+// it. The walk follows value imports only; a type import erases.
 import { Glob } from 'bun'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
 
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-scope'
+import { PUBLIC_BRIEF_MARKETS, PUBLIC_US_MARKET } from '@/trading/features/brief/public/reads'
 import {
   PUBLIC_ANALYSIS_KINDS,
   PUBLIC_CORE_SECTIONS,
@@ -43,6 +45,10 @@ const FOLLOWED_BLIND_SET_RE = /\bfollowedBlind:\s*true\b/
 const FOLLOWED_BLIND_HONOURED_RE = /\bfollowedBlind\s*===\s*true\s*\?\s*NO_FOLLOWED\s*:\s*followedTickersIn\b/
 const FOLLOWED_READER_RE = /\b(?:followedTickersIn|heldTickersIn)\b/
 const BOARD_GET_RE = /\.get\(([^)]*)\)/g
+const SEGMENT_SEAM_RE = /readonly profiles: Pick<ProfileService, 'get'>/g
+const SEGMENT_READ_RE = /const \{ caps \} = await parts\.profiles\.get\(\{ signal \}\)/g
+const SEGMENT_USE_RE = /return !disabledSegments\(caps\)\.has\(us\.manifest\.segment\)/g
+const PROFILE_WORD_RE = /\b(?:profiles|caps)\b/
 
 /** The kinds scoped `book` today. The guard exempts every `market` kind's rows, so a book kind
  *  moved to `market` would also widen the guard: the move takes this list and the scope record, and
@@ -177,6 +183,7 @@ violations.push(...marketsInUseCallers().map((file) => `(d) ${file} names market
 violations.push(...compositionImports().map((message) => `(e) ${message}`))
 violations.push(...screenReaches().map((offence) => `(e) ${offence}`))
 violations.push(...venueBlindGaps().map((message) => `(e) ${message}`))
+violations.push(...segmentBitGaps().map((message) => `(e) ${message}`))
 violations.push(...followedBlindGaps().map((message) => `(f) ${message}`))
 
 if (violations.length > 0) {
@@ -372,6 +379,36 @@ function compositionImports(): readonly string[] {
   }
 
   return messages
+}
+
+/** The composition file reads the profile once, for the caps, and uses them for one answer: whether
+ *  the US segment is on. Each piece is stated whole; with them removed, the file names neither the
+ *  profile service nor its caps again, so any other read of the profile fails here. */
+function segmentBitGaps(): readonly string[] {
+  const source = readFileSync(COMPOSITION_FILE, 'utf8')
+  const gaps: string[] = []
+
+  for (const [piece, found] of [
+    ['declare the profile seam as a get-only pick', source.match(SEGMENT_SEAM_RE)],
+    ['read only the caps of the profile', source.match(SEGMENT_READ_RE)],
+    ['answer with whether the US segment is disabled', source.match(SEGMENT_USE_RE)],
+  ] as const) {
+    if (found?.length !== 1) {
+      gaps.push(`${relative(REPO, COMPOSITION_FILE)} must ${piece}, once`)
+    }
+  }
+
+  const rest = source.replace(SEGMENT_SEAM_RE, '').replace(SEGMENT_READ_RE, '').replace(SEGMENT_USE_RE, '')
+
+  if (PROFILE_WORD_RE.test(rest)) {
+    gaps.push(`${relative(REPO, COMPOSITION_FILE)} reads the profile beyond the US segment bit`)
+  }
+
+  if (PUBLIC_BRIEF_MARKETS.includes(PUBLIC_US_MARKET)) {
+    gaps.push('PUBLIC_BRIEF_MARKETS holds the US market, which is public only while its segment is on')
+  }
+
+  return gaps
 }
 
 function screenReaches(): readonly string[] {

@@ -139,6 +139,7 @@ function createPublicBriefService(
     venues: registries.venues,
     marketData: parts.services.marketData,
     store: parts.stores.publicBrief,
+    profiles: parts.services.profiles,
     logger: parts.logger,
     refreshMarketData: parts.refreshMarketData,
   })

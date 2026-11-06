@@ -11,7 +11,6 @@ import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createBudget } from '@/engine/api'
-import { PUBLIC_BRIEF_MARKETS } from '@/trading/features/brief/public/reads'
 import { toPublicSnapshot } from '@/trading/features/brief/public/render'
 import {
   carriedSections,
@@ -38,7 +37,7 @@ export async function buildPublicBrief(
 ): Promise<BuiltPublicBriefRow | null> {
   const { signal } = input
 
-  await deps.refresh({ markets: PUBLIC_BRIEF_MARKETS, withoutFollowed: true, signal })
+  await deps.refresh({ markets: deps.markets, withoutFollowed: true, signal })
 
   const built = await runMarketBrief(
     { logger: deps.logger, limit: deps.limit, omitStories: publicStoryOmits(deps.toggles) },
