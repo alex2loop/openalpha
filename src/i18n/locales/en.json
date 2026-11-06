@@ -68,7 +68,7 @@
     "office.edition.storage.locked": "Your data is open in another tab. Choose \"Use in this tab\" and I will move the work here; the other tab stops.",
     "office.edition.storage.takeOver": "Use in this tab",
     "office.edition.storage.takenOver": "Another tab took over your data, so I stopped here. Nothing is lost; reload this tab if you want it back.",
-    "office.edition.storage.unsupported": "This browser cannot keep your data on this device (I need private file storage and tab locks). Try a recent Chrome, Edge, Firefox or Safari.",
+    "office.edition.storage.unsupported": "A private or incognito window cannot keep your data, so I cannot run here. Open this page in a normal tab and I will be ready. If you are already in one, your browser may be too old: try a recent Chrome, Edge, Firefox or Safari.",
     "office.edition.storage.full": "This device may be out of storage, so I stopped writing. Free some space on this device, then reload the page.",
     "office.edition.storage.workerFailed": "The part of the page that keeps your data stopped working. Reload the page to start it again.",
     "office.edition.storage.newerData": "Your data was saved by a newer version of the app, and this one cannot read it safely, so I have not touched it. Reload the page to get the latest version.",

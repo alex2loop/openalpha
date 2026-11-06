@@ -68,7 +68,7 @@
     "office.edition.storage.locked": "Dữ liệu của bạn đang mở ở một thẻ khác. Bấm \"Dùng ở thẻ này\" thì mình chuyển công việc sang đây, thẻ kia sẽ dừng lại.",
     "office.edition.storage.takeOver": "Dùng ở thẻ này",
     "office.edition.storage.takenOver": "Một thẻ khác vừa lấy dữ liệu của bạn, nên mình dừng ở đây. Không mất gì cả; bạn tải lại thẻ này nếu muốn lấy lại.",
-    "office.edition.storage.unsupported": "Trình duyệt này chưa lưu được dữ liệu của bạn trên máy (mình cần kho tệp riêng và khóa giữa các thẻ). Bạn thử Chrome, Edge, Firefox hoặc Safari bản mới nhé.",
+    "office.edition.storage.unsupported": "Cửa sổ riêng tư hoặc ẩn danh không giữ được dữ liệu của bạn nên mình chưa chạy được ở đây. Bạn mở trang này trong một thẻ thường là xong nhé. Nếu đang ở thẻ thường rồi thì có thể trình duyệt hơi cũ: bạn thử Chrome, Edge, Firefox hoặc Safari bản mới.",
     "office.edition.storage.full": "Có thể máy đã hết chỗ lưu, nên mình dừng ghi. Bạn giải phóng bớt dung lượng trên máy, rồi tải lại trang nhé.",
     "office.edition.storage.workerFailed": "Phần của trang giữ dữ liệu của bạn đã ngừng chạy. Bạn tải lại trang để chạy lại nhé.",
     "office.edition.storage.newerData": "Dữ liệu của bạn đã được một bản mới hơn của ứng dụng lưu, bản này không đọc an toàn được nên mình chưa đụng vào. Bạn tải lại trang để lấy bản mới nhất.",
