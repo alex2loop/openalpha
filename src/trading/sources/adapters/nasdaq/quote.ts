@@ -53,11 +53,12 @@ export function nasdaqQuoteSource(options: SourceAdapterOptions): RegisteredSour
 }
 
 /** An empty price (a halted name, a closed index) rejects the payload, so the quote capability falls
- *  back to the stored close instead of printing a zero. */
+ *  back to the stored close instead of printing a zero. An empty change (a NYSE name after hours)
+ *  only drops the change. */
 function toQuote(data: unknown, instrument: InstrumentRef): Quote {
   const { primaryData } = parseRow(INFO, data, 'nasdaq quote')
   const changePct =
-    primaryData.percentageChange === undefined
+    primaryData.percentageChange === undefined || primaryData.percentageChange === ''
       ? undefined
       : parsePercent(primaryData.percentageChange)
 
