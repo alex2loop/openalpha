@@ -36,6 +36,11 @@ It is an analysis aid, not investment advice. Suggestions can be wrong, and ever
 > US stocks and ETFs are in: the 500 largest US companies screened and scored, sectors ranked against SPY, and a morning brief at 08:15 New York time. Pick the United States in `onboard`, or add them to the book you already keep with `/profile enable equity-us` · [see what it covers](#markets-and-data).
 
 <p align="center">
+  <a href="https://buymeacoffee.com/alex2loop"><img src="https://img.shields.io/badge/%E2%98%95-Buy%20me%20a%20coffee-ffdd00?style=for-the-badge" alt="☕ Buy me a coffee" /></a><br/>
+  <sub>Find it useful? <a href="https://buymeacoffee.com/alex2loop">Buy me a coffee</a> to keep the project going.</sub>
+</p>
+
+<p align="center">
   <a href="#see-it-in-action">See it in action</a> · <a href="#why-openalpha">Why OpenAlpha</a> · <a href="#quick-start">Quick start</a> · <a href="#daily-use">Daily use</a> · <a href="#the-office-page">The office page</a> · <a href="#safety">Safety</a> · <a href="#faq">FAQ</a> · <a href="#documentation">Docs</a> · <a href="#contribute-to-openalpha">Contribute</a> · <a href="#stability-license-and-disclaimer">License</a>
 </p>
 
@@ -545,7 +550,6 @@ Architecture: 16 modules with no cycles, every dependency pointing toward the ke
 
 - **Bugs and feature requests:** [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose). A bug is tracked only once it has an issue.
 - **Security vulnerabilities:** report privately per [SECURITY.en.md](SECURITY.en.md), never in an issue.
-- **Support the project:** [Buy Me a Coffee](https://buymeacoffee.com/alex2loop) keeps the data sources, testing and new markets going.
 
 Find it useful? Give the repo a ⭐ so more people find it.
 
