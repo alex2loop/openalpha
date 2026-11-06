@@ -10,7 +10,7 @@ import type {
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { EventsRead, EventsReadInput } from '@/trading/markets/brief-events'
-import type { MarketBriefRun, MarketDeps } from '@/trading/markets/deps'
+import type { BriefDeps, MarketBriefRun } from '@/trading/markets/deps'
 import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
@@ -22,7 +22,7 @@ import { SURFACE_LIMITS } from '@/trading/surface-limits'
  *  universe read a dozen times and read the clock twenty-six times, producing a brief whose
  *  sections disagree about what day it is. */
 export interface BriefContext<Board = unknown> {
-  readonly deps: Omit<MarketDeps, 'briefServices'>
+  readonly deps: BriefDeps
   readonly services: BriefServices
   /** The plan the book would run today, read once. Three sections quote it, and three reads would
    *  price the same book three times and could disagree about what it holds. */
@@ -90,7 +90,7 @@ export interface BriefHome<Board> {
 }
 
 export interface LoadContextOptions<Board = unknown> {
-  readonly deps: Omit<MarketDeps, 'briefServices'>
+  readonly deps: BriefDeps
   readonly request: MarketBriefRun
   readonly calendar: TradingCalendar
   readonly home: BriefHome<Board>
@@ -153,7 +153,7 @@ interface MacroPair {
 /** Two consecutive snapshots under the same formula version. Comparing across versions would
  *  report a regime shift that was a formula edit, not a market move. */
 async function loadMacro(
-  deps: MarketDeps,
+  deps: BriefDeps,
   request: MarketBriefRequest,
   home: Pick<BriefHome<never>, 'region' | 'macroFormulaVersion' | 'macroDrivers'>
 ): Promise<MacroPair | null> {
@@ -179,7 +179,7 @@ async function loadMacro(
  *  back rather than recomputed; only the driver breakdown is re-derived, and it is a pure function
  *  of the persisted values. */
 function toBriefMacroRisk(
-  deps: MarketDeps,
+  deps: BriefDeps,
   snapshot: MacroRiskSnapshot,
   drivers: MacroDriverPolicy
 ): BriefMacroRisk {

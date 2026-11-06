@@ -44,6 +44,7 @@ import { createExitPlanner } from '@/trading/features/suggestion/exit-plan/recor
 import { createReduceVerdicts } from '@/trading/features/suggestion/reduce-verdicts'
 import { createSuggestionService } from '@/trading/features/suggestion/suggestion'
 import { createFactorLogService } from '@/trading/features/suggestion/track-record/factor-log-service'
+import { briefInputsOf } from '@/trading/wiring/composition/brief-services'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import {
   createPortfolioReader,
@@ -389,7 +390,7 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
     sender: deps.sender,
     config: deps.config,
     logger: deps.logger,
-    ...briefInputsOf(deps),
+    ...briefInputsOf(deps.briefReads, deps.edition),
     createSuggestionBudget: () => deps.createSuggestionBudget(),
   })
 
@@ -417,14 +418,5 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
       exitPlans: delivery.exitPlans,
       ...(order === undefined ? {} : { restingStops: (options) => order.restingStops(options) }),
     }),
-  }
-}
-
-/** The reads the brief's sections take, and what the edition leaves out of every brief. */
-function briefInputsOf({ briefReads, edition }: Pick<DomainServiceDeps, 'briefReads' | 'edition'>) {
-  return {
-    reads: briefReads,
-    ...(edition?.briefOmits === undefined ? {} : { omitSections: edition.briefOmits }),
-    ...(edition?.briefStoryOmits === undefined ? {} : { omitStories: edition.briefStoryOmits }),
   }
 }

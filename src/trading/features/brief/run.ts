@@ -10,11 +10,9 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { planStory } from '@/trading/features/brief/story/plan'
 import { withoutOmitted } from '@/trading/markets/brief-sections'
 
-interface MarketBriefDeps {
+export interface MarketBriefDeps {
   readonly logger: Logger
-  /** Sections this edition leaves out of every brief it builds; absent builds them all. */
   readonly omitSections?: ReadonlySet<BriefSectionKind>
-  /** Market stories this edition never tells; absent tells them all. */
   readonly omitStories?: ReadonlySet<StoryCode>
   /** The most rows a section or the story carries. */
   readonly limit: number

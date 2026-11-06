@@ -18,6 +18,10 @@ export interface MarketBriefRun extends MarketBriefRequest {
   readonly reads: BriefServices
 }
 
+/** What a brief builder is handed of the market's deps: never the book's reads, which arrive on the
+ *  request. */
+export type BriefDeps = Omit<MarketDeps, 'briefServices'>
+
 /** Everything a market factory is handed. `config` is the whole frozen `TradingConfig` for
  *  composition simplicity, but a market reads only its own `[trading.markets.<id>]` table and the
  *  brief policy it renders under; every other strategy parameter lives in its folder's `policy.ts`.

@@ -2,6 +2,7 @@ import type { RunId, SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { Budget } from '@/core/types/budget'
 import type { Locale } from '@/core/types/locale'
+import type { MarketBriefDeps } from '@/trading/features/brief/run'
 import type { BriefStore } from '@/trading/features/brief/store/brief'
 import type { BriefResult, BriefServices, BriefSnapshot } from '@/trading/features/brief/types'
 import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
@@ -185,10 +186,12 @@ export async function findOrBuildBrief(
   const request = buildRequest(deps, { ...input, profile, previous })
 
   input.progress?.('trading.progress.brief.sections')
-  const sections = await runMarketBrief(
-    { ...deps, limit: deps.config.briefs.maximumItemsPerSection },
-    { market: input.market, request, previous, asOf: input.asOf }
-  )
+  const sections = await runMarketBrief(toRunDeps(deps), {
+    market: input.market,
+    request,
+    previous,
+    asOf: input.asOf,
+  })
 
   input.progress?.('trading.progress.brief.persist')
 
@@ -198,6 +201,15 @@ export async function findOrBuildBrief(
     scorecardShownThisMonth: request.scorecardShownThisMonth,
     profileRevision: profileRevisionOf(profile),
   })
+}
+
+function toRunDeps(deps: BriefBuildDeps): MarketBriefDeps {
+  return {
+    logger: deps.logger,
+    limit: deps.config.briefs.maximumItemsPerSection,
+    ...(deps.omitSections === undefined ? {} : { omitSections: deps.omitSections }),
+    ...(deps.omitStories === undefined ? {} : { omitStories: deps.omitStories }),
+  }
 }
 
 /** What leaves the brief service: the edition's omitted sections read as omitted. The store keeps
