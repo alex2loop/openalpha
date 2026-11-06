@@ -5,6 +5,7 @@ import type {
 } from '@/trading/features/brief/public/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type { SourceId } from '@/trading/kernel/source/source-id'
+import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { PUBLIC_BRIEF_MARKETS } from '@/trading/features/brief/public/reads'
@@ -51,7 +52,9 @@ async function readScreen(
       signal: input.signal,
     })
 
-    return screen === undefined ? undefined : { market, ...screen }
+    return screen === undefined
+      ? undefined
+      : { market, ...screen, provenance: onePerSource(screen.provenance) }
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err
@@ -64,6 +67,12 @@ async function readScreen(
 
     return undefined
   }
+}
+
+/** A list is ranked from hundreds of reads of a few sources; the check and the stored row need each
+ *  source once. */
+function onePerSource(provenance: readonly SourceProvenance[]): readonly SourceProvenance[] {
+  return [...new Map(provenance.map((entry) => [entry.sourceId, entry])).values()]
 }
 
 function isPublishable(screen: PublicScreen): boolean {
