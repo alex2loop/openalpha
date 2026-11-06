@@ -9,7 +9,8 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { useUnstripped } from '@/web/ui/kit/cautions'
 import { ClockIcon } from '@/web/ui/kit/icons'
-import { NoteList } from '@/web/ui/markdown/report-notes'
+import { NoteList } from '@/web/ui/markdown/note-list'
+import { renderLinkedText } from '@/web/ui/ticker/linked-text'
 import { openWhy } from '@/web/ui/ticker/why-dialog'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
@@ -80,7 +81,7 @@ function Lines({ lines, isLead = false }: LinesProps) {
           ))}
         </div>
       )}
-      <NoteList lines={shown.filter(isNoteLine)} />
+      <NoteList lines={shown.filter(isNoteLine)} renderText={renderLinkedText} />
     </>
   )
 }

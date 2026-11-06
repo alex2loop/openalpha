@@ -1,13 +1,13 @@
 import { useMemo } from 'preact/hooks'
 
+import type { Inline } from '@/web/ui/markdown/inline'
 import type { Block, ReportDoc } from '@/web/ui/markdown/parse'
 import { reducedMotion } from '@/web/state/prefs'
-import { isNoteLine, withoutLeadingIcon } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
-import { type Inline, parseInline } from '@/web/ui/markdown/inline'
+import { InlineNodes, InlineText } from '@/web/ui/markdown/inline-view'
 import { parseReport, sourceAnchor } from '@/web/ui/markdown/parse'
 import { Sources } from '@/web/ui/reader/sources'
-import { LinkedText } from '@/web/ui/ticker/linked-text'
+import { renderLinkedText } from '@/web/ui/ticker/linked-text'
 
 import './markdown.css'
 
@@ -28,12 +28,6 @@ interface ReportViewProps {
   readonly scope?: string | undefined
 }
 
-const INLINE_CONTEXT: RenderContext = Object.freeze({
-  isLinked: true,
-  sourceNumbers: undefined,
-  scope: undefined,
-})
-
 interface MarkdownProps {
   readonly text: string
   readonly isLinked?: boolean
@@ -50,16 +44,7 @@ export function Markdown({ text, isLinked = true, scope }: MarkdownProps) {
 
 /** One line of daemon text with its bold, italic, code and links, and no block around it. */
 export function InlineMarkdown({ text }: { readonly text: string }) {
-  const words = isNoteLine(text) ? withoutLeadingIcon(text) : text
-  const mark = text.slice(0, text.length - words.length).trimEnd()
-  const nodes = useMemo(() => parseInline(words), [words])
-
-  return (
-    <>
-      {mark !== '' && <span class="note-mark">{mark}</span>}
-      <InlineList nodes={nodes} context={INLINE_CONTEXT} />
-    </>
-  )
+  return <InlineText text={text} renderText={renderLinkedText} />
 }
 
 /** A parsed report: its blocks, then the sources its footnotes name. */
@@ -188,44 +173,12 @@ function TableView({ table, context }: { table: TableBlock; context: RenderConte
 
 function InlineList({ nodes, context }: { nodes: readonly Inline[]; context: RenderContext }) {
   return (
-    <>
-      {nodes.map((node, index) => (
-        <InlineView key={index} node={node} context={context} />
-      ))}
-    </>
+    <InlineNodes
+      nodes={nodes}
+      renderText={context.isLinked ? renderLinkedText : undefined}
+      renderNote={(n) => <NoteView n={n} context={context} />}
+    />
   )
-}
-
-function InlineView({ node, context }: { node: Inline; context: RenderContext }) {
-  switch (node.kind) {
-    case 'text':
-      return context.isLinked ? <LinkedText text={node.text} /> : node.text
-    case 'bold':
-      return (
-        <strong>
-          <InlineList nodes={node.children} context={context} />
-        </strong>
-      )
-    case 'italic':
-      return (
-        <em>
-          <InlineList nodes={node.children} context={context} />
-        </em>
-      )
-    case 'code':
-      return <code class="md-code">{node.text}</code>
-    case 'note':
-      return <NoteView n={node.n} context={context} />
-    case 'link':
-      return (
-        <>
-          <a href={node.href} title={node.href} target="_blank" rel="noopener noreferrer">
-            {node.text}
-          </a>
-          {node.host !== undefined && <span class="md-link-host">{node.host}</span>}
-        </>
-      )
-  }
 }
 
 // A footnote jumps to its source when the page holds that source; else it is just text.

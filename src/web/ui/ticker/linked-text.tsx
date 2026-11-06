@@ -1,3 +1,4 @@
+import type { TextRenderer } from '@/web/ui/markdown/inline-view'
 import { knownTickers } from '@/web/state/known-tickers'
 import { linkTickers } from '@/web/text/ticker-links'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
@@ -18,3 +19,6 @@ export function LinkedText({ text }: { readonly text: string }) {
     </>
   )
 }
+
+/** `LinkedText` as the renderer the shared inline view takes. */
+export const renderLinkedText: TextRenderer = (text) => <LinkedText text={text} />
