@@ -113,6 +113,25 @@ Bản web chỉ đọc được những nguồn cho phép trình duyệt gọi t
 
 Nguồn có thể đổi hoặc chặn trình duyệt bất cứ lúc nào; khi đó tính năng cần nó tạm dừng và trang nói rõ. Bản cài đọc đủ các nguồn trên, có nguồn dự phòng khi một nguồn lỗi.
 
+## Bản tin sáng trên điện thoại
+
+Ngoài bản web còn có một ứng dụng điện thoại nhỏ chỉ làm một việc: cho bạn xem bản tin thị trường của ngày. Mỗi sáng giao dịch ở Việt Nam, khoảng 08:30, một bản tin được đăng, ai xem cũng như nhau, bằng tiếng Việt và tiếng Anh. Nó đọc giống phần thị trường của bản tin trên bảng điều khiển và không mang gì về danh mục của bất kỳ ai. Không phải lập tài khoản, không phải thêm khóa nào, và điện thoại của bạn không chạy engine: nó chỉ đọc bản tin của ngày.
+
+Đây là bản dùng thử chia sẻ theo lời mời, địa chỉ đi kèm lời mời, nên hướng dẫn này không in nó.
+
+- **Đọc.** Mở lời mời, trang hiện bản tin hôm nay, hoặc một dòng cho biết bản đầu tiên chưa ra. Bản tin của một ngày trước đó có tiêu đề "Bản tin gần nhất" kèm ngày. Trang mở bằng ngôn ngữ của điện thoại, và nút chuyển ngôn ngữ ở cuối trang đổi sang ngôn ngữ kia rồi nhớ lựa chọn. Mỗi bản tin khép bằng một dòng nói rằng nó mô tả thị trường, không phải khuyến nghị đầu tư.
+- **Chia sẻ.** "Chia sẻ bản tin" vẽ một tấm thẻ gồm ngày, dòng tiêu đề một câu của bản tin, dòng miễn trừ đó và địa chỉ của ứng dụng, rồi đưa nó cho bảng chia sẻ của điện thoại, hoặc lưu thành ảnh ở máy không có bảng chia sẻ.
+- **Ngoại tuyến.** Sau lần truy cập đầu, ứng dụng giữ các trang của mình và bản tin gần nhất nó đã hiện. Không có mạng, nó mở bản đó kèm một dòng nói rằng chưa lấy được bản mới hơn.
+- **Riêng tư.** Ứng dụng không giữ gì về bạn: không tài khoản, không cookie, không tên, email hay số điện thoại. Chỉ lựa chọn ngôn ngữ và bản tin gần nhất nằm lại trên điện thoại. Cloudflare phục vụ trang và thấy từng yêu cầu, như mọi máy chủ web, theo chính sách riêng của họ. Liên kết "Quyền riêng tư" ở cuối ứng dụng nói đầy đủ những điều này.
+
+**Cài trên iPhone.** Mở lời mời trong Safari. Nếu nó mở trong Zalo hoặc Facebook, hãy dùng menu của ứng dụng đó để mở bằng Safari trước, vì chỉ Safari mới thêm được vào Màn hình chính. Chạm Chia sẻ, chọn "Thêm vào MH chính" rồi chạm Thêm.
+
+**Cài trên Android.** Mở lời mời trong Chrome, mở menu ba chấm và chọn "Cài đặt ứng dụng" (một số máy ghi "Thêm vào màn hình chính").
+
+Cách nào thì sau đó nó cũng mở toàn màn hình từ biểu tượng riêng, như mọi ứng dụng.
+
+**Dùng thẻ thường, đừng dùng thẻ riêng tư.** Thẻ riêng tư hay ẩn danh không giữ được bản sao ngoại tuyến của ứng dụng hay lựa chọn ngôn ngữ của bạn, nên mỗi lần nó mở như mới. Hãy mở liên kết trong thẻ thường và cài từ đó.
+
 ## Giới hạn cần nhớ
 
 - Bản web chỉ phân tích; mỗi phân tích có một dòng nói rõ muốn có kế hoạch mua bán (điểm vào, cắt lỗ, chốt lời) thì cài bản đầy đủ, không bao giờ có kết luận về một mã.

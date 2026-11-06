@@ -791,7 +791,7 @@ send_time = "08:15"            # mặc định cho một bản gửi chưa tự 
 [trading.public_brief]
 enabled = false                # đăng một bản tin chỉ có thị trường vào mỗi sáng giao dịch ở Việt Nam
 publish_time = "08:30"         # HH:MM, giờ Việt Nam; sớm hơn 09:00 mở cửa
-analysis = true                # chế độ vĩ mô và điểm, đổi chế độ, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai
+analysis = true                # chế độ vĩ mô và điểm, đổi chế độ, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai, thay đổi của bảng lọc
 headlines = true               # tin thị trường, vĩ mô và kinh tế
 top_screen = 0                 # 0 = tắt; tối đa 10 mã mỗi thị trường từ bảng lọc, xếp theo điểm tổng hợp
 
@@ -956,7 +956,8 @@ cần token đăng trong biến môi trường `PUBLIC_BRIEF_TOKEN`, không bao 
 `openalpha key set PUBLIC_BRIEF_TOKEN`. Bật mà chưa có token thì dịch vụ nền vẫn chạy, báo một lần và không
 đăng gì. `publish_time` là giờ Việt Nam và phải sớm hơn giờ mở cửa, nếu không dịch vụ nền từ chối khởi
 động. `analysis` và `headlines` bỏ nhóm của mình đi khi đặt `false`; `top_screen` thêm số mã đó có điểm cao
-nhất mỗi thị trường từ bảng lọc (số nguyên, 0 đến 10; 0 là bỏ danh sách).
+nhất mỗi thị trường từ bảng lọc (số nguyên, 0 đến 10; 0 là bỏ danh sách; số lẻ hoặc lớn hơn thì dịch vụ nền
+dừng ngay khi khởi động). Nó mang gì và hỏng ra sao: [bản tin công khai](giao-dich.md#bản-tin-công-khai).
 
 Danh sách theo dõi trong hồ sơ là danh sách công cụ duy nhất được cấu hình. Bảng giá và các mục gợi ý
 trong bản tin đều suy ra từ nó và từ phần đang nắm trong sổ.

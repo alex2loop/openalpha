@@ -64,7 +64,7 @@ Phần giao dịch có các bảng riêng: `instruments`, `daily_bars`, `fundame
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,
 `funding_snapshots`, `fx_rates`, `macro_snapshots`, `series_points`, `series_provenance`,
 `macro_documents`, `news_items`, `market_refresh_attempts`, `ledger_entries`, `nav_snapshots`,
-`trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
+`trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`, `public_briefs`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
 `theme_reads`, `theme_outcomes` và `agent_focuses`.
 
@@ -131,6 +131,8 @@ gói bằng chứng, và không thể dựng lại.
   mỗi ngày. Đó là P/E, P/B, tỷ suất cổ tức, trung bình năm năm của chúng và tỷ lệ mã nằm trên đường trung
   bình 50 và 200 phiên, cho VN-Index, VN30 và HNX. Nhờ vậy dịch vụ nền giữ lịch sử định giá của riêng nó.
   Mỗi mã đóng góp bao nhiêu cho một chỉ số thì không bao giờ được lưu.
+
+**Bản tin công khai.** `public_briefs` giữ một dòng cho mỗi ngày giao dịch ở Việt Nam của bản tin mà dịch vụ nền đăng lên trang công khai: các mục thị trường và danh sách bảng lọc dùng dựng ngày đó, lúc dựng và lúc đăng, và số lần đã thử đăng. Không có gì của sổ bạn trong đó, vì bản tin được dựng từ không có sổ nào. Ngày mà bản dựng trả về rỗng vẫn có một dòng không kèm mục nào, nên một bản dựng hỏng bị làm chậm lại như một lần đăng hỏng. Dòng ghi theo schema khác, hoặc không còn đọc được, tính là chưa dựng và ngày đó được dựng lại. Bảng này không thuộc loại bền: dữ liệu thị trường dựng lại được nó, nên `db export` mặc định bỏ qua. Bảng tự giữ 30 ngày của riêng nó, cắt bớt mỗi lần lưu một ngày; `db cleanup` và các cửa sổ lưu giữ không đụng tới.
 
 #### Agent và phạm vi
 
@@ -217,6 +219,7 @@ Một mục inbox được nhận việc tối đa 3 lần trước khi bị đ�
 | Ghép nối đang chờ | Bị xóa sau `days`, tính từ lúc tạo. |
 | Cảnh báo đã nổ hoặc đã tắt | Bị xóa sau `days`, tính từ lúc nổ hoặc lúc bị tắt. Cảnh báo còn sống không bao giờ bị cắt. |
 | `brief_snapshots` | Bị xóa sau `days`, trừ ảnh chụp mới nhất của mỗi ngôn ngữ, cái đó luôn được giữ lại. |
+| `public_briefs` | `days` không quét: bản tin công khai tự cắt bảng của mình còn 30 ngày gần nhất mỗi lần lưu một ngày. |
 | Việc lập lịch | Việc chạy một lần đã chạy xong và đã tắt bị xóa sau `days` tính từ giờ chạy, cùng lịch sử chạy của nó. Việc chạy một lần bị tạm dừng khi chưa chạy, và mọi việc lặp lại hay theo sự kiện, được giữ. |
 | Lệnh thoát đang chờ | Dòng đã khớp hoặc đã đóng bị xóa sau `days` tính từ lúc đặt. Dòng còn sống không bao giờ bị cắt. |
 | Phiên chạy chủ đề và các nhận định | Bị xóa sau `days`, trừ lượt mà một kết quả còn dẫn tới, hai lượt mới nhất của mỗi chủ đề, lượt mới nhất và lượt đầy đủ mới nhất. |

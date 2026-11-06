@@ -796,7 +796,7 @@ send_time = "08:15"            # default for a delivery that has not set its own
 [trading.public_brief]
 enabled = false                # publish a market-only brief each Vietnam trading morning
 publish_time = "08:30"         # HH:MM, Vietnam time; before the 09:00 open
-analysis = true                # macro regime and score, regime shift, sector rotation, support and resistance, futures basis
+analysis = true                # macro regime and score, regime shift, sector rotation, support and resistance, futures basis, screen board changes
 headlines = true               # market, macro and economy headlines
 top_screen = 0                 # 0 = off; up to 10 names per market from the screen board, by composite score
 
@@ -963,7 +963,9 @@ environment variable `PUBLIC_BRIEF_TOKEN`, never in `config.toml`: set it with
 `openalpha key set PUBLIC_BRIEF_TOKEN`. Enabled without the token, the daemon starts, says so once and
 publishes nothing. `publish_time` is Vietnam time and has to come before the open, or the daemon refuses
 to start. `analysis` and `headlines` leave their groups out when `false`; `top_screen` adds that many
-top-scoring names per market from the screen board (a whole number, 0 to 10; 0 leaves the list out).
+top-scoring names per market from the screen board (a whole number, 0 to 10; 0 leaves the list out; a
+fraction or a larger number stops the daemon at start). What it carries and how it fails:
+[the public brief](trading.md#the-public-brief).
 
 The profile watchlist is the only configured instrument list. Quotes and the brief's suggestion
 sections derive from it and from what the book holds.

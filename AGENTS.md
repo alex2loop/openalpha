@@ -36,9 +36,9 @@ bun run check           # Biome + typecheck + contract gates, incl. check:browse
 bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin, host global or timer method
 bun run check:brief     # builds the phone app (src/web/brief/) and fails on a bundled file outside its allowlist or a gzip size over its ceiling; `build:brief` runs the same assertion
 bun run build:brief     # phone brief app into dist/brief; needs --brief-url=<https address of the app> and --app-url=<https address of the web edition> (add --noindex for staging)
-bun run build:web       # static web edition into dist/web; needs --app-url=<https address of the web edition> (add --noindex for staging); deploy/web/wrangler.toml serves it
+bun run build:web       # static web edition into dist/web; needs --app-url=<https address of the web edition> (add --noindex for staging), and --brief-url=<https address of the phone app> once BRIEF_INVITE_ONLY (scripts/brief-invite.ts) is false; deploy/web/wrangler.toml serves it
 bun run build:site      # homepage into dist/site; needs --app-url=<https address of the web edition> and --site-url=<https address of the homepage>
-bun run deploy:web      # deploy dist/web (add --env production); deploy:site likewise; both refuse a build made for the other env
+bun run deploy:web      # deploy dist/web (add --env production); deploy:site and deploy:brief likewise; all refuse a build made for the other env (deploy:brief also applies the D1 migrations first)
 bun run lint:arch       # depth, trading/registry/feature isolation, public brief, locale, report figures,
                         # caveats, vi terminology, pricing, agent skills, strategy version (CI)
 bun run gen             # regenerate the migration registry
@@ -52,7 +52,7 @@ bun scripts/check-strategy-version.ts --write   # re-record policy digests
 src/       # engine, cli, trading, channels, persistence, ai, memory, plugins, social, ...
 scripts/   # the gate suite (`bun run check`, `bun run lint:arch`)
 site/      # public homepage: static files stamped by `build:site` (link previews, app URL); its one script is copied at build from the locked `motion` package (no runtime CDN)
-deploy/    # wrangler.toml per static project (web edition, homepage); Cloudflare Workers Static Assets, no script
+deploy/    # wrangler.toml per Cloudflare project: web edition and homepage (Workers Static Assets, no script) and the phone brief (`deploy/brief/`: static assets plus one Worker script for `/api/*` and a D1 migration)
 ```
 
 A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src/app/server/CONTRACT.md`).

@@ -294,7 +294,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # [trading.public_brief]
 # enabled = false
 # publish_time = "08:30"   # HH:MM, Vietnam time (Asia/Ho_Chi_Minh); after your own brief, before the 09:00 open
-# analysis = true          # macro regime and score, regime shift, sector rotation, support and resistance, futures basis
+# analysis = true          # macro regime and score, regime shift, sector rotation, support and resistance, futures basis, screen board changes
 # headlines = true         # market, macro and economy headlines
 # top_screen = 0           # 0 = off; up to 10 names per market from the screen board, by composite score
 
