@@ -18,11 +18,12 @@ import {
   formatScoreValue,
   formatSignedFixedPercent,
   renderDeclaredValue,
+  renderProvidedValue,
   renderTopFactorFacts,
   SEVERITY_MARKS,
 } from '@/trading/render/format'
 import { renderQuoteFreshness } from '@/trading/render/freshness'
-import { INDENT, toRowLines } from '@/trading/render/layout'
+import { INDENT, INLINE_SEPARATOR, toRowLines } from '@/trading/render/layout'
 import { formatFixedPrice, formatPrice } from '@/trading/render/money'
 import { quoteBoardMoveOf } from '@/trading/render/price-pair'
 
@@ -81,7 +82,7 @@ export function renderBoardRow(
   return [
     ...toRowLines(
       [
-        candidate.instrument.ticker,
+        renderNameHead(locale, candidate),
         ...renderPriceFacts(locale, candidate, board),
         ...missingSegment(locale, candidate),
       ],
@@ -114,7 +115,7 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
   return [
     t(locale, row.gated ? 'trading.render.screen.gateRow' : 'trading.render.screen.row', {
       rank: formatCount(locale, row.index + 1),
-      ticker: candidate.instrument.ticker,
+      ticker: renderNameHead(locale, candidate),
       rating: renderDeclaredValue(locale, `trading.rating.${screenRating(candidate)}`),
     }),
     t(locale, 'trading.render.screen.score', {
@@ -126,6 +127,19 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
       ? [t(locale, 'trading.render.screen.margin-ineligible')]
       : []),
   ]
+}
+
+/** The ticker, then the sector the market files it under where it files one: a ticker alone does
+ *  not say what the company does. Names itself, so it takes no label. */
+function renderNameHead(locale: Locale, candidate: ScreenCandidate): string {
+  const { sector } = candidate
+
+  return sector === undefined
+    ? candidate.instrument.ticker
+    : [
+        candidate.instrument.ticker,
+        renderProvidedValue(locale, `trading.sector.${sector}`, sector),
+      ].join(INLINE_SEPARATOR)
 }
 
 function missingSegment(locale: Locale, candidate: ScreenCandidate): readonly string[] {

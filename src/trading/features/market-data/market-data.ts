@@ -51,12 +51,12 @@ import { indexReads } from '@/trading/features/market-data/reads/index-reading'
 import { runOverviews } from '@/trading/features/market-data/reads/overview'
 import { buildQuoteBoard } from '@/trading/features/market-data/reads/quote-board'
 import {
+  instrumentReads,
   runAccounts,
   runBars,
   runEvents,
   runFunding,
   runQuote,
-  runQuoteConvention,
   runRecommendations,
 } from '@/trading/features/market-data/reads/quotes'
 import { runSentiment } from '@/trading/features/market-data/reads/sentiment'
@@ -101,7 +101,7 @@ export function createMarketDataService(deps: MarketDataServiceDeps): MarketData
     quoteConvention: (market) => quoteConventionOf(deps.markets, market),
     describeMarkets: () => deps.markets.list().map(describeMarket),
     marketDay: (market, now) => marketDayOf(deps.markets, market, now),
-    instrumentQuoteConvention: (options) => runQuoteConvention(run, options),
+    ...instrumentReads(run),
     minimumRiskReward: (market) => deps.markets.find(market)?.manifest.minimumRiskReward,
     boardLot: (market) => deps.markets.find(market)?.manifest.boardLot,
     trailsStop: (market) => deps.markets.find(market)?.trail !== undefined,

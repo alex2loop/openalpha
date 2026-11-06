@@ -5,7 +5,7 @@ import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { RenderContext } from '@/trading/render/format'
 import { formatDay, t } from '@/i18n'
 import { renderCaveatLines } from '@/trading/render/caveat'
-import { renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
+import { renderDeclaredValue, renderProvidedValue, SECTION_ICONS } from '@/trading/render/format'
 import {
   INDENT,
   INLINE_SEPARATOR,
@@ -53,7 +53,11 @@ export function renderQuoteText(
     [
       renderSectionTitle(
         SECTION_ICONS.quote,
-        [quote.instrument.ticker, ...unitParts(locale, result.value)].join(INLINE_SEPARATOR)
+        [
+          quote.instrument.ticker,
+          ...sectorParts(locale, result.value.sector),
+          ...unitParts(locale, result.value),
+        ].join(INLINE_SEPARATOR)
       ),
       ...priceLines(locale, result.value, options),
       ...(range === undefined ? [] : [`${INDENT[1]}${range}`]),
@@ -105,6 +109,13 @@ function priceLines(
     },
     { context: options.context, depth: 1 }
   )
+}
+
+/** The sector names itself, so it takes no label; nothing where the market files none. */
+function sectorParts(locale: Locale, sector: string | undefined): readonly string[] {
+  return sector === undefined
+    ? []
+    : [renderProvidedValue(locale, `trading.sector.${sector}`, sector)]
 }
 
 /** Nothing for a level, which is a bare number. A board-scaled price is not in currency units, so

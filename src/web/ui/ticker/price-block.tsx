@@ -30,6 +30,7 @@ import {
   formatMarketPrice,
   toTickFormatter,
 } from '@/web/text/market-price'
+import { sectorName } from '@/web/text/segment'
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
@@ -47,6 +48,8 @@ const CHART_SESSIONS = 30
 
 interface BarsRead {
   readonly bars: readonly TradingCandleWire[]
+  /** The sector slug the market files the name under, where it files one. */
+  readonly sector?: string
 }
 
 interface PriceBlockProps {
@@ -84,7 +87,7 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
 
   const board = findQuote(ticker, market)
   const quote = newerQuote(live.quote, board)
-  const labelTail = board?.label === undefined ? '' : ` ${INLINE_SEPARATOR} ${board.label}`
+  const labelTail = toLabelTail(board?.label, reading.data?.sector)
   // An index, a fund or world gold says what it is, in the glossary's words.
   const term = termOfTicker(ticker) ?? (quote === undefined ? undefined : termOfKind(quote.kind))
 
@@ -123,6 +126,13 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   )
 }
 
+// What follows the ticker in the title: the board's label, then the sector, each where known.
+function toLabelTail(label: string | undefined, sector: string | undefined): string {
+  const names = [label, sector === undefined ? undefined : sectorName(sector)]
+
+  return names.map((name) => (name === undefined ? '' : ` ${INLINE_SEPARATOR} ${name}`)).join('')
+}
+
 // A market that is trading shows its live price, not the close the board fell back to: one read
 // when the page opens, the same one the Lấy giá mới button makes. A market with no session never
 // closes, so it is always trading.
@@ -132,9 +142,7 @@ function useLiveWhileTrading(
 ): void {
   const isBoardKnown = quotesBlock.view.value.data !== undefined
   const held = findMarket(market)
-  const isOpen =
-    held !== undefined &&
-    (held.hasBoard === true || held.session === undefined || held.session.phase === 'open')
+  const isOpen = held !== undefined && (held.session === undefined || held.session.phase === 'open')
   const canQuote = state.value?.capabilities.quotes !== false
   const isClose = quote === undefined || quote.closedOn !== undefined
 
@@ -300,7 +308,7 @@ function readBars(ticker: string, market: string): (abort: AbortSignal) => Promi
     const timeZone = state.value?.timeZone
 
     // A dealer's board has no series of its own: the bars held for it are world gold in USD.
-    if (timeZone === undefined || findMarket(market)?.hasBoard === true) {
+    if (timeZone === undefined || findMarket(market)?.hasBars === false) {
       return { bars: [] }
     }
 
@@ -312,7 +320,10 @@ function readBars(ticker: string, market: string): (abort: AbortSignal) => Promi
         signal: abort,
       })
 
-      return { bars: answer.bars.slice(-CHART_SESSIONS) }
+      return {
+        bars: answer.bars.slice(-CHART_SESSIONS),
+        ...(answer.sector === undefined ? {} : { sector: answer.sector }),
+      }
     } catch (error: unknown) {
       if (error instanceof ApiFailure && error.code === 'not_found') {
         return { bars: [] }

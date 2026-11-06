@@ -92,9 +92,12 @@ interface TradingNavRequest extends TradingSignalRequest {
   readonly window: NavWindow
 }
 
-/** One name over a day range: its bars or its corporate events. */
-interface TradingInstrumentRangeRequest extends TradingSignalRequest {
+interface TradingInstrumentRequest extends TradingSignalRequest {
   readonly instrument: InstrumentRef
+}
+
+/** One name over a day range: its bars or its corporate events. */
+interface TradingInstrumentRangeRequest extends TradingInstrumentRequest {
   readonly fromDay: TradingDay
   readonly toDay: TradingDay
 }
@@ -292,6 +295,9 @@ export interface TradingHost {
   /** The watchlist's board; with `instrument`, that one name's board row, read live. */
   getQuotes(signal: AbortSignal, instrument?: InstrumentRef): Promise<QuoteBoard>
   getOhlcv(request: TradingInstrumentRangeRequest): Promise<SourceResult<readonly Candle[]>>
+  /** The sector the market files the name under, from its stored listing; absent where it files
+   *  none. */
+  getInstrumentSector(request: TradingInstrumentRequest): Promise<string | undefined>
   /** Ex-dates, meetings, splits and listings; a market with no event source answers unavailable. */
   getEvents(request: TradingInstrumentRangeRequest): Promise<SourceResult<readonly MarketEvent[]>>
   getNews(request: TradingNewsRequest): Promise<TradingNewsView>

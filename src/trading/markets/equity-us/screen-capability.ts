@@ -10,7 +10,7 @@ import type { BarRecord } from '@/trading/kernel/market/market-data'
 import type { UsBoardCache } from '@/trading/markets/equity-us/board'
 import type { UsSubject } from '@/trading/markets/equity-us/factors'
 import { factorComposite } from '@/trading/kernel/factor'
-import { ETF_KIND } from '@/trading/kernel/instrument'
+import { ETF_KIND, exposureSectorOf } from '@/trading/kernel/instrument'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { countBands } from '@/trading/markets/conviction-calibration'
 import { scoreUsSubject } from '@/trading/markets/equity-us/factors'
@@ -93,7 +93,8 @@ function toCandidate(subject: UsSubject): ScreenCandidate {
   const closes = usAdjustedCloses(subject.bars)
   const previousClose = lastClose(subject.bars)
   const volatilityDaily = realizedVolatility(closes, US_VOLATILITY_SESSIONS)
-  const { name, sector } = subject.record
+  const { name, kind } = subject.record
+  const sector = exposureSectorOf(kind, subject.record.sector)
 
   return {
     instrument: subject.record.instrument,

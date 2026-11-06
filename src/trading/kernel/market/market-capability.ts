@@ -166,6 +166,9 @@ export interface QuoteView {
   /** The settled session behind this reading, from the market's own daily series. Absent where the
    *  market publishes no bars or the read failed — the quote stands without it. */
   readonly previousClose?: PreviousClose
+  /** The sector the market files the name under, where it files one: what a surface names beside
+   *  the ticker. Display only; no model is told it. */
+  readonly sector?: string
 }
 
 export interface ScreenCandidate {

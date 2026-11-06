@@ -695,7 +695,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     dưới).
   - *Đề xuất* gồm các kế hoạch đang mở, màn hình cơ hội, thành tích và kết quả nghiên cứu, kèm số đề
     xuất mới bạn chưa xem.
-  - Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng
+  - Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: mã kèm ngành bên cạnh khi thị trường có xếp ngành, giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng
     mã đó; bảng giá của đại lý như vàng VN thêm giá mua vào, giá bán ra và chênh lệch), mức thấp nhất,
     cao nhất và khối lượng của phiên (của phiên đang chạy khi giá là giá trực tiếp, nếu không thì của
     phiên đã chốt gần nhất, có ghi ngày), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng

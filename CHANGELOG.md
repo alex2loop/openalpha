@@ -7,6 +7,22 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.4.3] - 2026-11-06
+
+You can now see a stock's sector right beside its ticker, and the ticker card draws its chart again for Vietnamese and US stocks and for crypto.
+> Giờ bạn thấy ngay một mã thuộc ngành nào ngay cạnh mã, và thẻ mã đã vẽ lại biểu đồ cho cổ phiếu Việt Nam, Mỹ và tiền mã hóa.
+
+### Added
+
+- The sector sits beside the ticker on the Opportunities rows, `/screen`, `/price`, the web screen rows and every ticker card (for example "TCB · Banks"). Crypto, gold, indices and funds show none.
+
+### Fixes
+
+- The ticker card draws its chart again for Vietnamese stocks, US stocks and crypto. VN gold no longer shows a world-gold chart under its VND price.
+- A ticker card re-reads the live price only while its market is trading.
+- Opening a name from a long list starts its card at the top instead of where the list was scrolled.
+- Opportunities lists only the markets you have switched on, as the Market tab does, so a switched-off market no longer shows an outdated board.
+
 ## [1.4.2] - 2026-11-06
 
 The getting-started list folds a step away as soon as you finish it, including when you keep the default profile or skip the book.
@@ -731,6 +747,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.4.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.3
 [1.4.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.2
 [1.4.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.1
 [1.4.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.0

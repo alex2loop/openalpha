@@ -83,6 +83,9 @@ export interface TradingCandleWire {
 export interface TradingOhlcvResponse {
   readonly market: string
   readonly ticker: string
+  /** The sector slug the market files the name under, from its stored listing; absent where it
+   *  files none (a fund, an index, a coin, gold). */
+  readonly sector?: string
   readonly bars: readonly TradingCandleWire[]
   readonly provenance: readonly TradingWireProvenance[]
   readonly caveats: readonly TradingWireCaveat[]

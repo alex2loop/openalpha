@@ -90,12 +90,11 @@ async function handleTradingOhlcv(req: Request, ctx: ApiRouteContext): Promise<R
     return apiError('invalid_body')
   }
 
-  const result = await hostOf(ctx).getOhlcv({
-    instrument,
-    fromDay,
-    toDay,
-    signal: req.signal,
-  })
+  const host = hostOf(ctx)
+  const [result, sector] = await Promise.all([
+    host.getOhlcv({ instrument, fromDay, toDay, signal: req.signal }),
+    host.getInstrumentSector({ instrument, signal: req.signal }),
+  ])
 
   if (result.kind === 'unavailable') {
     return sourceError(ctx, result, instrument.ticker)
@@ -104,6 +103,7 @@ async function handleTradingOhlcv(req: Request, ctx: ApiRouteContext): Promise<R
   return json({
     market: instrument.market,
     ticker: instrument.ticker,
+    ...(sector === undefined ? {} : { sector }),
     bars: result.value.map(toCandleWire),
     provenance: toProvenanceWires(result.provenance),
     caveats: toCaveatWires(result.caveats, localeOf(ctx)),

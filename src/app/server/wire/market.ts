@@ -282,6 +282,9 @@ export interface MarketWire {
   readonly hasEvents: boolean
   /** It answers `/v1/index-contributors` and `/v1/index-valuation`. */
   readonly hasIndexes: boolean
+  /** It answers `/v1/ohlcv` with its own price history; VN gold's bars are world gold in USD, a
+   *  reference series, so it has none. */
+  readonly hasBars: boolean
 }
 
 /** `today` is the market's trading day on its own clock and `nextTradingDay` the next one it

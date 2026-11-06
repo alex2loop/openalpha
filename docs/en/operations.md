@@ -703,7 +703,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
   - *Market* holds the full macro reading, the market session, the news and your themes (below).
   - *Ideas* holds open plans, the opportunities screen, the track record and research results, with a
     count of new calls you have not seen.
-  - Click a ticker anywhere and its card opens: price (with "Refresh price", which reads that one name
+  - Click a ticker anywhere and its card opens: the ticker with its sector beside it where the market files one, price (with "Refresh price", which reads that one name
     live; a dealer's board, such as VN gold, adds its buying price, selling price and spread), the
     session's low, high and volume (the live session's when the price is live, else the last
     settled session's, dated), the last sessions charted on price and date axes with the plan levels, your holding, "Why?" for the

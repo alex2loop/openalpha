@@ -123,23 +123,6 @@
   width: min(17rem, 100%);
 }
 
-/* The sector reads as a small muted tag after the price and the move; a long name moves to the
-   next line whole rather than breaking inside the tag. */
-.screen-sector {
-  display: inline-block;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: bottom;
-  margin-inline-start: var(--s1);
-  padding: 1px var(--s1);
-  border-radius: 8px;
-  background: var(--sunken);
-  color: var(--ink3);
-  font-size: var(--sizeCaption);
-}
-
 /* The error log: one entry per line, long messages and stacks wrapping inside the dialog. */
 .error-log {
   display: grid;

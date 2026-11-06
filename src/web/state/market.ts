@@ -70,9 +70,9 @@ export const knownMarkets: ReadonlySignal<readonly MarketWire[]> = computed(
   () => marketsBlock.view.value.data?.markets ?? []
 )
 
-/** The markets that answer `/v1/screen`, in the daemon's order. */
+/** The markets that answer `/v1/screen` and a page lists, in the daemon's order. */
 export const boardMarkets: ReadonlySignal<readonly MarketWire[]> = computed(() =>
-  knownMarkets.value.filter((market) => market.hasBoard)
+  knownMarkets.value.filter((market) => market.hasBoard && isMarketShown(market))
 )
 
 /** Every standing buy call: a name's open verdict is replaced when the daemon calls it again. */
