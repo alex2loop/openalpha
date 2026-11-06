@@ -23,9 +23,8 @@ interface BriefPageProps {
   readonly onReload: () => void
 }
 
-/** The brief laid out by what each line is: the call and its figures first, then the story, each
- *  section, and the cautions. Its book sections hold amounts no model may see, so no passage of it
- *  can be quoted into a question. */
+/** The brief in the reader's frame. Its book sections hold amounts no model may see, so no passage
+ *  of it can be quoted into a question. */
 export function BriefPage({ content, onClose, onReload }: BriefPageProps) {
   const { title, meta, text } = content
 
