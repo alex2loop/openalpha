@@ -71,6 +71,7 @@ function buildRequest(deps: PublicBriefDeps, input: PublicBriefInput): MarketBri
     now: input.now,
     signal: input.signal,
     watchlist: [],
+    followedBlind: true,
     limit: deps.limit,
     // No book activity to report, and no scorecard to show.
     activitySince: input.now,

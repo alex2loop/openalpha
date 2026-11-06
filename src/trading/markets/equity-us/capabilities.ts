@@ -122,8 +122,8 @@ function briefCapability(
           request,
           calendar: manifest.calendar,
           home: US_BRIEF_HOME,
-          board: () => board.get(request.asOf, request.signal),
-          boardAt: (day) => board.get(day, request.signal),
+          board: () => board.get(request.asOf, request.signal, request),
+          boardAt: (day) => board.get(day, request.signal, request),
         }),
     },
   }

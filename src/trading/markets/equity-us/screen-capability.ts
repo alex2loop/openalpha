@@ -31,7 +31,7 @@ export async function runUsScreen(
   boards: UsBoardCache,
   request: ScreenRequest
 ): Promise<ScreenResult> {
-  const board = await boards.get(request.asOf, request.signal)
+  const board = await boards.get(request.asOf, request.signal, request)
   const kind = request.instrumentKind ?? DEFAULT_SCREEN_KIND
   const subjects: readonly UsSubject[] =
     kind === ETF_KIND

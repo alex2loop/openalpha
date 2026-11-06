@@ -42,6 +42,9 @@ export interface MarketRequest {
   readonly asOf: TradingDay
   readonly now: number
   readonly signal: AbortSignal
+  /** Reads the market without the names the operator holds or watches: a board is its largest
+   *  names alone, and nothing is ranked or kept because the operator follows it. */
+  readonly followedBlind?: true
 }
 
 export interface IndexRequest extends MarketRequest {

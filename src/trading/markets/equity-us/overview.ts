@@ -48,7 +48,7 @@ interface NameSession {
  *  board's session sits out the session's moves rather than lending them its own stale change. */
 export async function runUsOverview(load: OverviewLoad): Promise<MarketDataOverview> {
   const { request, manifest } = load
-  const board = await load.board.get(request.asOf, request.signal)
+  const board = await load.board.get(request.asOf, request.signal, request)
   const rows = await headlineRows(load)
   const day = latestSession(board)
   const sessions = board.names
