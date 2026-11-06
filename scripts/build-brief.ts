@@ -6,7 +6,8 @@
 // replaces it. The page's title is the brand's display name.
 // `--brief-url=<https url>` (this app's own address) and `--app-url=<https url>` (the web app the
 // footer links to) are required; `--noindex` is the staging flag, and while the trial is invite
-// only the build is noindex whatever the flag says. The last file written is the build stamp
+// only the build is noindex whatever the flag says. The page's bundle must pass
+// `check-brief-bundle` or the build stops. The last file written is the build stamp
 // (`dist/brief.stamp.json`, outside the served folder) that `scripts/deploy.ts` checks the deploy
 // target against.
 import { resolve } from 'node:path'
@@ -15,8 +16,9 @@ import { parseArgs } from 'node:util'
 import { BRAND } from '@/core/brand'
 
 import { BRIEF_INVITE_ONLY } from './brief-invite'
-import { buildBriefStrings } from './brief-strings'
+import { buildBriefPage } from './brief-page'
 import { buildOrThrow, stampBrand } from './browser-build'
+import { assertBriefBundle, gzipBytesOf } from './check-brief-bundle'
 import {
   HEADERS_FILE,
   outDirOf,
@@ -30,7 +32,6 @@ import { stampInstallTags, writeInstallFiles } from './web-manifest'
 
 const ROOT = resolve(import.meta.dir, '..')
 const OUT_DIR = outDirOf('brief')
-const PAGE_ENTRY = resolve(ROOT, 'src/web/brief/index.html')
 const SERVICE_WORKER_ENTRY = resolve(ROOT, 'src/web/brief/service-worker.ts')
 const APP_ROOT = '/'
 const DIGEST_LENGTH = 16
@@ -53,12 +54,14 @@ const appUrl = parseHttpsUrl(
 const noindex = BRIEF_INVITE_ONLY || values.noindex === true
 
 await resetOutput('brief')
-await buildOrThrow({
-  entry: PAGE_ENTRY,
-  outdir: OUT_DIR,
-  minify: true,
-  define: { APP_URL: JSON.stringify(appUrl), STRINGS: JSON.stringify(buildBriefStrings()) },
-})
+const page = await buildBriefPage(OUT_DIR, appUrl)
+
+if (page.metafile === undefined) {
+  throw new Error('build-brief: the page build wrote no metafile')
+}
+
+assertBriefBundle(page.metafile, await gzipBytesOf(page.outputs))
+
 await stampPage(resolve(OUT_DIR, PAGE_FILE))
 await writeInstallFiles(OUT_DIR, {
   id: APP_ROOT,

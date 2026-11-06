@@ -47,7 +47,7 @@ export async function buildBrowser(options: BrowserBuildOptions): Promise<Browse
 }
 
 /** `buildBrowser` for a static page's build: a failed bundle logs its messages and stops the build. */
-export async function buildOrThrow(options: BrowserBuildOptions): Promise<void> {
+export async function buildOrThrow(options: BrowserBuildOptions): Promise<BrowserBuild> {
   const build = await buildBrowser(options)
 
   if (!build.success) {
@@ -57,6 +57,8 @@ export async function buildOrThrow(options: BrowserBuildOptions): Promise<void> 
 
     throw new Error(`build failed: ${options.entry}`)
   }
+
+  return build
 }
 
 /** A built page's html with the brand's display name where the source left its placeholder. */
