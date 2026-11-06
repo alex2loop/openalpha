@@ -36,12 +36,13 @@ It is an analysis aid, not investment advice. Suggestions can be wrong, and ever
 > US stocks and ETFs are in: the 500 largest US companies screened and scored, sectors ranked against SPY, and a morning brief at 08:15 New York time. Pick the United States in `onboard`, or add them to the book you already keep with `/profile enable equity-us` · [see what it covers](#markets-and-data).
 
 <p align="center">
+  <a href="https://web.openalpha.link/?lang=en"><img src="https://img.shields.io/badge/Try%20on%20the%20web-no%20install-2ea44f?style=for-the-badge" alt="Try on the web, no install" /></a>
   <a href="https://buymeacoffee.com/alex2loop"><img src="https://img.shields.io/badge/%E2%98%95-Buy%20me%20a%20coffee-ffdd00?style=for-the-badge" alt="☕ Buy me a coffee" /></a><br/>
   <sub>Find it useful? <a href="https://buymeacoffee.com/alex2loop">Buy me a coffee</a> to keep the project going.</sub>
 </p>
 
 <p align="center">
-  <a href="#see-it-in-action">See it in action</a> · <a href="#why-openalpha">Why OpenAlpha</a> · <a href="#quick-start">Quick start</a> · <a href="#daily-use">Daily use</a> · <a href="#the-office-page">The office page</a> · <a href="#safety">Safety</a> · <a href="#faq">FAQ</a> · <a href="#documentation">Docs</a> · <a href="#contribute-to-openalpha">Contribute</a> · <a href="#stability-license-and-disclaimer">License</a>
+  <a href="https://openalpha.link/?lang=en">Website</a> · <a href="#see-it-in-action">See it in action</a> · <a href="#why-openalpha">Why OpenAlpha</a> · <a href="#quick-start">Quick start</a> · <a href="#daily-use">Daily use</a> · <a href="#the-office-page">The office page</a> · <a href="#safety">Safety</a> · <a href="#faq">FAQ</a> · <a href="#documentation">Docs</a> · <a href="#contribute-to-openalpha">Contribute</a> · <a href="#stability-license-and-disclaimer">License</a>
 </p>
 
 ## See it in action
@@ -95,7 +96,7 @@ https://github.com/user-attachments/assets/46ea9c20-cc72-4bfa-8bb6-272981615802
 
 ## Quick start
 
-To look around before installing, the web version runs in your browser with no account: [what it does and where it differs](docs/en/web.md).
+To look around before installing, [the web version](https://web.openalpha.link/?lang=en) runs in your browser with no account: [what it does and where it differs](docs/en/web.md).
 
 You need two things:
 
