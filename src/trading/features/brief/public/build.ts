@@ -6,6 +6,8 @@ import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { MarketBriefRun } from '@/trading/markets/deps'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
+import { isAbortError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 import { createBudget } from '@/engine/api'
 import { PUBLIC_BRIEF_MARKETS } from '@/trading/features/brief/public/reads'
 import { toPublicSnapshot } from '@/trading/features/brief/public/render'
@@ -62,7 +64,7 @@ export async function buildPublicBrief(
 ): Promise<BuiltPublicBriefRow | null> {
   const { signal } = input
 
-  await deps.refresh({ markets: PUBLIC_BRIEF_MARKETS, signal })
+  await deps.refresh({ markets: PUBLIC_BRIEF_MARKETS, withoutFollowed: true, signal })
 
   const built = await runMarketBrief(
     { logger: deps.logger, limit: deps.limit, omitStories: publicStoryOmits(deps.toggles) },
@@ -101,18 +103,29 @@ function buildRequest(deps: PublicBriefDeps, input: PublicBriefInput): MarketBri
   }
 }
 
+/** The previous brief is garnish: one that cannot be read is no previous, as for the owner's brief. */
 async function readPrevious(
   deps: PublicBriefDeps,
   input: PublicBriefInput
 ): Promise<BriefSnapshot | null> {
-  const row = await deps.store.findPrevious(input.day, input.signal)
+  try {
+    const row = await deps.store.findPrevious(input.day, input.signal)
 
-  return row === null
-    ? null
-    : toPublicSnapshot(
-        { ...row, sections: carriedSections(row.sections, deps.toggles) },
-        BUILD_LOCALE
-      )
+    return row === null
+      ? null
+      : toPublicSnapshot(
+          { ...row, sections: carriedSections(row.sections, deps.toggles) },
+          BUILD_LOCALE
+        )
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
+    deps.logger.warn('trading.public_brief_previous_unreadable', { err: formatErrForLog(err) })
+
+    return null
+  }
 }
 
 function keptSections(

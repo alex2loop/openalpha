@@ -116,6 +116,9 @@ export interface RefreshAllMarketDataOptions {
   /** Which registered markets to sweep. Absent is every market the operator still reads — what
    *  boot and the scheduled tick always mean, and what an unqualified command means too. */
   readonly markets?: readonly MarketRef[]
+  /** Leaves out the pass that records the sides of the names the operator holds or watches: a sweep
+   *  of the markets for a reader who has no book. Absent runs it. */
+  readonly withoutFollowed?: true
   readonly signal: AbortSignal
   readonly progress?: StageReporter
   /** Started by the daemon rather than typed: a pass with a market to sweep shows as the `/refresh`

@@ -63,8 +63,9 @@ async function findPrevious(
 
   const rows = await deps.db.query<PublicBriefDbRow>(
     'SELECT * FROM public_briefs ' +
-      `WHERE day < ${deps.dialect.param(1)} AND sections IS NOT NULL ORDER BY day DESC LIMIT 1`,
-    [before]
+      `WHERE day < ${deps.dialect.param(1)} AND sections IS NOT NULL ` +
+      `AND schema_version = ${deps.dialect.param(2)} ORDER BY day DESC LIMIT 1`,
+    [before, PUBLIC_BRIEF_SCHEMA]
   )
   const [row] = rows
   const previous = row === undefined ? null : toRow(row)
@@ -149,8 +150,8 @@ function readSections(row: PublicBriefDbRow): readonly BriefSectionResult[] | un
   }
 
   try {
-    return toBriefSections(
-      parseJson(row.sections, 'public brief', (value) => briefSectionsSchema.parse(value))
+    return parseJson(row.sections, 'public brief', (value) =>
+      toBriefSections(briefSectionsSchema.parse(value))
     )
   } catch (err: unknown) {
     if (err instanceof StorageError) {

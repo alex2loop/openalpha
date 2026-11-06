@@ -18,6 +18,7 @@ import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import { boot } from '@/app/boot'
 import { PUBLIC_HOME_MARKET } from '@/trading/features/brief/public/reads'
 import {
@@ -109,38 +110,43 @@ async function dryRun(dataDir: string): Promise<number> {
   })
 
   try {
-    const { publicBrief, marketData } = booted.app.resolve('tradingServices')
-    const now = values.now === undefined ? Date.now() : Date.parse(values.now)
-    const day = marketData.marketDay(PUBLIC_HOME_MARKET, now)?.today
-
-    if (Number.isNaN(now) || day === undefined) {
-      console.error(`no ${PUBLIC_HOME_MARKET} day at ${values.now}`)
-
-      return 1
-    }
-
-    const row = await publicBrief.build({ day, now, signal })
-
-    if (row === null) {
-      console.error(`${day}: nothing worth publishing`)
-
-      return EXIT_NO_BRIEF
-    }
-
-    printSections(row.sections)
-
-    const render = publicBrief.render(row)
-
-    if (values.out !== undefined) {
-      await Bun.write(values.out, JSON.stringify({ schema: PUBLIC_BRIEF_SCHEMA, ...render }, null, 2))
-    }
-
-    console.log(`${render.day}: ${render.headline.vi}`)
-
-    return 0
+    return await buildAndPrint(booted.app.resolve('tradingServices'), signal)
   } finally {
     await booted.dispose()
   }
+}
+
+async function buildAndPrint(services: TradingServices, signal: AbortSignal): Promise<number> {
+  const now = values.now === undefined ? Date.now() : Date.parse(values.now)
+  const day = Number.isNaN(now)
+    ? undefined
+    : services.marketData.marketDay(PUBLIC_HOME_MARKET, now)?.today
+
+  if (day === undefined) {
+    console.error(`no ${PUBLIC_HOME_MARKET} day at ${values.now ?? now}`)
+
+    return 1
+  }
+
+  const row = await services.publicBrief.build({ day, now, signal })
+
+  if (row === null) {
+    console.error(`${day}: nothing worth publishing`)
+
+    return EXIT_NO_BRIEF
+  }
+
+  printSections(row.sections)
+
+  const render = services.publicBrief.render(row)
+
+  if (values.out !== undefined) {
+    await Bun.write(values.out, JSON.stringify({ schema: PUBLIC_BRIEF_SCHEMA, ...render }, null, 2))
+  }
+
+  console.log(`${render.day}: ${render.headline.vi}`)
+
+  return 0
 }
 
 function printSections(sections: readonly BriefSectionResult[]): void {
