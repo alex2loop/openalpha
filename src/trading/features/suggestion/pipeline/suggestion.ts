@@ -369,11 +369,16 @@ function persist(
   return persistSuggestion(options, suggestion)
 }
 
-/** Tells the requesting surface which phase is running; a request without a reporter is a no-op. */
+/** Tells the requesting surface which phase is running; a request without a reporter is a no-op.
+ *  Until the name resolves it is only what was typed, so `resolve` does not report it as the run's
+ *  `ticker`: a refused name then leaves the surface no ticker to offer a re-run or an alert on. */
 function reportStage(options: SuggestionRunOptions, phase: RunPhase): void {
-  options.request.progress?.(`trading.progress.suggestion.${phase}`, {
-    ticker: options.request.ticker,
-  })
+  const { ticker } = options.request
+
+  options.request.progress?.(
+    `trading.progress.suggestion.${phase}`,
+    phase === 'resolve' ? { typed: ticker } : { ticker }
+  )
 }
 
 /** One debug line per phase, with its elapsed time and the identity it belongs to. Nine lines

@@ -6074,7 +6074,7 @@
     "debate.sizing.starter": "starter probe",
     "debate.sizing.partial": "part size",
     "debate.sizing.full-policy-size": "full policy size",
-    "progress.suggestion.resolve": "{ticker} · Resolving the instrument…",
+    "progress.suggestion.resolve": "{typed} · Resolving the instrument…",
     "progress.suggestion.cooldown": "{ticker} · Checking recent suggestions…",
     "progress.suggestion.portfolio": "{ticker} · Valuing the portfolio…",
     "progress.suggestion.factors": "{ticker} · Scoring factors…",

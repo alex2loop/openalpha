@@ -6074,7 +6074,7 @@
     "debate.sizing.starter": "vào thăm dò",
     "debate.sizing.partial": "vào một phần",
     "debate.sizing.full-policy-size": "đủ tỷ trọng theo chính sách",
-    "progress.suggestion.resolve": "{ticker} · Đang xác định mã…",
+    "progress.suggestion.resolve": "{typed} · Đang xác định mã…",
     "progress.suggestion.cooldown": "{ticker} · Đang kiểm tra đề xuất gần đây…",
     "progress.suggestion.portfolio": "{ticker} · Đang định giá danh mục…",
     "progress.suggestion.factors": "{ticker} · Đang chấm điểm yếu tố…",
