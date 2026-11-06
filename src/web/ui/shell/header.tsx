@@ -2,6 +2,7 @@ import type { RefObject } from 'preact'
 import { useLayoutEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
+import { InstallButton } from '@/web/edition/install-button'
 import { ClockControl } from '@/web/scene/overlay/clock-control'
 import { ViewSwitch } from '@/web/scene/overlay/view-switch'
 import { WeatherChip } from '@/web/scene/overlay/weather-chip'
@@ -48,6 +49,7 @@ export function Header() {
       </div>
       <RunningChip anchor={jobsAnchor} />
       <div class="header-grow">{isAnalysisOnly.value && <AiNote />}</div>
+      {isAnalysisOnly.value && <InstallButton />}
       {isFirstRunOver.value && <CostChip anchor={costAnchor} />}
       {hasScene && <ViewSwitch />}
       <LayoutSwitch />
