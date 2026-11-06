@@ -6,25 +6,41 @@ import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-sco
 import { sourceId } from '@/trading/kernel/source/source-id'
 
 /** What a section or a screen list may cite and still be published. One naming any other source is
- *  left out, whole. Taken from the provenance of a dry run on a copy of the data, news included. */
+ *  left out, whole. Every provider the VN stock and crypto screens and prices can reach, from the route tables, plus the
+ *  sources a dry run of the rest of the brief cited. */
 const PUBLIC_BRIEF_SOURCES: ReadonlySet<SourceId> = new Set(
   [
     'alternative-me',
     'binance',
     'binance-futures',
-    'bybit',
     'bls',
+    'bybit',
+    'cafef',
+    'cafef-statements',
     'cftc',
+    'coinbase',
+    'coingecko',
+    'coinlore',
     'coinmarketcap',
     'coinpaprika',
+    'entrade',
     'fred',
     'giavang',
+    'hsx',
     'mexc',
+    'okx',
     'pnj',
     'rss',
+    'ssi',
     'treasury',
+    'vietcap',
+    'vietcap-board',
+    'vietcap-chart',
+    'vietcap-statements',
     'vndirect',
     'vndirect-index',
+    'vps',
+    'vps-board',
     'yahoo',
   ].map(sourceId)
 )
