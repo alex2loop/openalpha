@@ -3,7 +3,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Budget } from '@/core/types/budget'
 import type { Locale } from '@/core/types/locale'
 import type { BriefStore } from '@/trading/features/brief/store/brief'
-import type { BriefResult, BriefSnapshot } from '@/trading/features/brief/types'
+import type { BriefResult, BriefServices, BriefSnapshot } from '@/trading/features/brief/types'
 import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type { ProfileStore } from '@/trading/features/profile/store'
 import type { Caveat } from '@/trading/kernel/caveat'
@@ -14,16 +14,16 @@ import type {
   Region,
   TradingDay,
 } from '@/trading/kernel/instrument'
-import type { MarketBriefRequest } from '@/trading/kernel/market/market-capability'
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { MarketBrief, StoryCode, StoryRead } from '@/trading/kernel/operator/brief-story'
+import type { StoryCode } from '@/trading/kernel/operator/brief-story'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
+import type { MarketBriefRun } from '@/trading/markets/deps'
 import type { Market } from '@/trading/markets/types'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { planStory } from '@/trading/features/brief/story/plan'
+import { runMarketBrief } from '@/trading/features/brief/run'
 import { buildBriefSnapshotId } from '@/trading/features/brief/types'
 import { buildEnsureOptions } from '@/trading/features/market-data/market-data-run'
 import { profileRevisionOf } from '@/trading/features/profile/store'
@@ -61,6 +61,8 @@ export interface BriefBuildDeps {
   readonly config: TradingConfig
   readonly ensure: EnsureMarketData
   readonly logger: Logger
+  /** What the sections read of the operator's book and the market; the market never holds them. */
+  readonly reads: BriefServices
   /** Sections this edition leaves out of every brief it builds; absent builds them all. */
   readonly omitSections?: ReadonlySet<BriefSectionKind>
   /** Market stories this edition never tells; absent tells them all. */
@@ -183,13 +185,15 @@ export async function findOrBuildBrief(
   const request = buildRequest(deps, { ...input, profile, previous })
 
   input.progress?.('trading.progress.brief.sections')
-  const built = await capability.run(request)
+  const sections = await runMarketBrief(
+    { ...deps, limit: deps.config.briefs.maximumItemsPerSection },
+    { market: input.market, request, previous, asOf: input.asOf }
+  )
 
-  logDegradedSections(deps, input, withoutOmitted(built.sections, deps.omitSections))
   input.progress?.('trading.progress.brief.persist')
 
   return persist(deps, input, {
-    sections: [...tryPlanStory(deps, input, { brief: built, previous }), ...built.sections],
+    sections,
     caveats,
     scorecardShownThisMonth: request.scorecardShownThisMonth,
     profileRevision: profileRevisionOf(profile),
@@ -218,62 +222,6 @@ async function homeOffCaveats(
   return disabledSegments(caps).has(segment)
     ? [{ code: 'brief.home-segment-off', detail: { segment } }]
     : []
-}
-
-interface StoryContext {
-  readonly brief: MarketBrief
-  readonly previous: BriefSnapshot | null
-}
-
-/** The story is garnish: a throw costs the brief its two sections, never the brief. An abort is the
- *  caller's. A failed detection and a failed step share one log line, so a reader sees one boundary. */
-function tryPlanStory(
-  deps: BriefBuildDeps,
-  input: BriefBuildInput,
-  { brief, previous }: StoryContext
-): readonly BriefSectionResult[] {
-  const { stories } = brief
-
-  try {
-    if (stories.kind === 'failed') {
-      logStoryFailed(deps, input, stories.err)
-
-      return []
-    }
-
-    return planStory({
-      read: withoutOmittedStories(stories, deps.omitStories),
-      market: input.market.manifest.id,
-      sections: brief.sections,
-      previous: previous?.sections ?? null,
-      calendar: input.market.manifest.calendar,
-      limit: deps.config.briefs.maximumItemsPerSection,
-    })
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      throw err
-    }
-
-    logStoryFailed(deps, input, err)
-
-    return []
-  }
-}
-
-/** The read with the stories an edition never tells left out, as if their detectors never fired. */
-function withoutOmittedStories(
-  read: StoryRead,
-  omit: ReadonlySet<StoryCode> | undefined
-): StoryRead {
-  if (omit === undefined || read.kind !== 'read') {
-    return read
-  }
-
-  return { ...read, candidates: read.candidates.filter((candidate) => !omit.has(candidate.code)) }
-}
-
-function logStoryFailed(deps: BriefBuildDeps, input: BriefBuildInput, err: unknown): void {
-  deps.logger.warn('trading.brief_story_failed', { asOf: input.asOf, err: formatErrForLog(err) })
 }
 
 /** Suppression is by named core sections, not a ready count: a brief where a core section failed
@@ -310,32 +258,6 @@ async function persist(
   return { kind: 'ready', snapshot: visibleSnapshot(deps, snapshot), reused: false }
 }
 
-/** One line per build, not per section: a builder that throws throws for every name it would have
- *  reported, and the snapshot already carries the caveat a reader sees. */
-function logDegradedSections(
-  deps: BriefBuildDeps,
-  input: BriefBuildInput,
-  sections: readonly BriefSectionResult[]
-): void {
-  const degraded = sections.filter(
-    (section) => section.status === 'unavailable' && section.caveats.length > 0
-  )
-
-  if (degraded.length > 0) {
-    // The codes travel with the section names: the brief runs unattended, and which sections were
-    // thin is only half the answer a reader needs the next morning.
-    deps.logger.warn('trading.brief_sections_degraded', {
-      asOf: input.asOf,
-      sections: degraded.map((section) => section.kind),
-      codes: [...new Set(degraded.flatMap((section) => section.caveats.map(codeOf)))],
-    })
-  }
-}
-
-function codeOf(caveat: BriefSectionResult['caveats'][number]): string {
-  return caveat.code
-}
-
 /** What the reader saw before this day, for the sections that report a change since: a same-day
  *  rebuild must not take its own earlier snapshot for the previous one. Unreadable is absent for
  *  the same reason a reused one is: this build rebuilding is the point, and a snapshot written in a
@@ -366,7 +288,7 @@ interface RequestInput extends BriefBuildInput {
   readonly previous: BriefSnapshot | null
 }
 
-function buildRequest(deps: BriefBuildDeps, input: RequestInput): MarketBriefRequest {
+function buildRequest(deps: BriefBuildDeps, input: RequestInput): MarketBriefRun {
   const { profile, previous } = input
   const policy = deps.config.briefs
   const eligible = previous === null ? undefined : eligibleNames(previous, input.market)
@@ -391,6 +313,7 @@ function buildRequest(deps: BriefBuildDeps, input: RequestInput): MarketBriefReq
     ...(input.parentRunId === undefined ? {} : { parentRunId: input.parentRunId }),
     budget: deps.createSuggestionBudget(),
     ...(input.progress === undefined ? {} : { progress: input.progress }),
+    reads: deps.reads,
   }
 }
 

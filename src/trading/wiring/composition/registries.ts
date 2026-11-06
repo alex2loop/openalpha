@@ -1,5 +1,6 @@
 import type { App } from '@/core/container'
 import type { RequestShape } from '@/core/http-client'
+import type { BriefServices } from '@/trading/features/brief/types'
 import type { CaveatCode } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
@@ -55,6 +56,9 @@ export interface Registries {
   /** Not a registry, but built here: the markets read rates through the same path the ledger and
    *  the portfolio do, so one outage cannot leave a book converted and a brief unconverted. */
   readonly fx: FxRates
+  /** What the markets' brief capability and the brief service both read the book and the market
+   *  through: one binding, so an edition's reads reach every build. */
+  readonly briefReads: BriefServices
 }
 
 const MARKET_FACTORIES = [
@@ -75,6 +79,14 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
   const markets = createMarketRegistry(lazyOperatorUse(app, logger))
   const { registry: venues, listings } = buildVenues(options, { logger, book: stores.ledger })
   const fx = createFxRates({ sources, store: stores.fxRate, logger })
+  const briefReads = lazyBriefServices(app, options.tradingConfig, {
+    venues,
+    // The book's `stopDistances` answers [] ("measured, none set"); the brief takes undefined
+    // for "no stop read at all", so a section states no stop instead of one per losing name.
+    ...(options.edition?.reads === undefined
+      ? {}
+      : { reads: { ...options.edition.reads.brief, stopDistances: async () => undefined } }),
+  })
   const deps: MarketDeps = {
     config: options.tradingConfig,
     sources,
@@ -84,14 +96,7 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
     stages,
     venueListings: listings,
     ...editionMarketDeps(options.edition),
-    briefServices: lazyBriefServices(app, options.tradingConfig, {
-      venues,
-      // The book's `stopDistances` answers [] ("measured, none set"); the brief takes undefined
-      // for "no stop read at all", so a section states no stop instead of one per losing name.
-      ...(options.edition?.reads === undefined
-        ? {}
-        : { reads: { ...options.edition.reads.brief, stopDistances: async () => undefined } }),
-    }),
+    briefServices: briefReads,
   }
 
   stages.register(createAdmissionStage())
@@ -111,7 +116,7 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
   markets.close()
   stages.close()
 
-  return { markets, sources, stages, venues, fx }
+  return { markets, sources, stages, venues, fx, briefReads }
 }
 
 /** What an edition changes in what every market is handed; absent is the installed version. */
