@@ -63,6 +63,7 @@ export function foldBook(
     cashBase: state.cashBase,
     availableCashBase: state.availableCashBase,
     netDepositsBase: state.netDepositsBase,
+    dividendsBase: state.dividendsBase,
     cashByVenue: new Map(state.byVenue),
     currencyCash: toCurrencyCash(state),
     pendingCash: state.pending,
@@ -301,6 +302,10 @@ function applyCashTxn(state: FoldState, entry: LedgerEntry, txn: CashTxn | Divid
   // A dividend and a fee move cash without changing what the operator put in or took out.
   if (txn.kind === 'deposit' || txn.kind === 'withdrawal') {
     state.netDepositsBase += delta
+  }
+
+  if (txn.kind === 'dividend') {
+    state.dividendsBase += delta
   }
 }
 

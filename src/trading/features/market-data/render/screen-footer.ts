@@ -2,8 +2,9 @@ import type { Locale } from '@/core/types/locale'
 import type { ScreenRejection } from '@/trading/kernel/market/market-capability'
 import type { MarketMovers } from '@/trading/kernel/market/market-overview'
 import type { ScreenGateCode } from '@/trading/kernel/screen-codes'
-import { pluralKey, t } from '@/i18n'
+import { hasMessage, pluralKey, t } from '@/i18n'
 import { MOVER_KIND } from '@/trading/kernel/market/market-overview'
+import { PLAIN_KEY_SUFFIX } from '@/trading/render/caveat'
 import { formatCount, formatSignedFixedPercent, renderDeclaredValue } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
 
@@ -15,7 +16,8 @@ const REJECTED_TICKER_SAMPLE = 12
  *  group, so the ticker list is a sample and says so when it is one. */
 export function renderRejectionLines(
   locale: Locale,
-  rejections: readonly ScreenRejection[]
+  rejections: readonly ScreenRejection[],
+  isPlain = false
 ): readonly string[] {
   const byCode = new Map<ScreenGateCode, string[]>()
 
@@ -37,7 +39,7 @@ export function renderRejectionLines(
         'trading.render.screen.rejected'
       ),
       {
-        reason: renderDeclaredValue(locale, `trading.screen.gate.${code}`),
+        reason: renderGateReason(locale, code, isPlain),
         count: formatCount(locale, tickers.length),
       }
     )}`,
@@ -64,6 +66,14 @@ export function renderMoverLines(
         `${INDENT[2]}${mover.instrument.ticker}${INLINE_SEPARATOR}${formatSignedFixedPercent(locale, mover.changePct)}`
     ),
   ]
+}
+
+/** A gate's reason; a board that offers no advice reads the fact alone where the catalog has it. */
+function renderGateReason(locale: Locale, code: ScreenGateCode, isPlain: boolean): string {
+  const key = `trading.screen.gate.${code}` as const
+  const plain = `${key}${PLAIN_KEY_SUFFIX}` as const
+
+  return renderDeclaredValue(locale, isPlain && hasMessage(locale, plain) ? plain : key)
 }
 
 function ceilingHint(locale: Locale, code: ScreenGateCode): readonly string[] {

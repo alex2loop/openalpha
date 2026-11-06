@@ -1,0 +1,78 @@
+.edition-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.edition-shell > :first-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.edition-shell .edition-refused {
+  min-height: 0;
+}
+
+.edition-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 var(--s2);
+  padding: 2px var(--s2);
+  border-top: 1px solid var(--border);
+}
+
+.guide,
+.compare,
+.legal-doc,
+.first-run-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s2);
+}
+
+.first-run-card h3,
+.first-run-card p {
+  margin: 0;
+}
+
+.first-run-card .btn {
+  justify-self: start;
+}
+
+/* Legal tables are prose: their cells wrap instead of widening the page. */
+.legal-doc .md-table td,
+.legal-doc .md-table th {
+  white-space: normal;
+}
+
+.legal-doc .md-table table {
+  width: 100%;
+}
+
+.compare-row {
+  display: grid;
+  gap: var(--s1);
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.compare-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1);
+}
+
+.compare-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--s2);
+}
+
+.compare-install {
+  display: grid;
+  gap: var(--s1);
+  justify-items: start;
+}

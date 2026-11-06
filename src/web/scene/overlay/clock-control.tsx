@@ -60,10 +60,10 @@ export function ClockControl() {
       >
         {formatClock(pageNow(), timeZone)}
         <ClockBadge mode={clockMode.value} />
-        {sceneZone.value !== timeZone && (
+        {isOtherClock(timeZone) && (
           <span class="clock-market">
             {tr('ui.office.clock.marketTime', {
-              place: regionPack.value.city,
+              place: tr(regionPack.value.city),
               time: formatClock(pageNow(), sceneZone.value),
             })}
           </span>
@@ -79,6 +79,14 @@ export function ClockControl() {
       </Popover>
     </>
   )
+}
+
+// Zones are compared by the time they read, not their names: "Asia/Saigon" and "Asia/Ho_Chi_Minh"
+// are one clock.
+function isOtherClock(timeZone: string): boolean {
+  const now = pageNow()
+
+  return formatClock(now, sceneZone.value) !== formatClock(now, timeZone)
 }
 
 function ClockBadge({ mode }: { readonly mode: ClockMode }) {
@@ -124,7 +132,9 @@ function ClockBody() {
 function ZoneNote() {
   const market = homeMarket.value
 
-  if (market === undefined || sceneZone.value === state.value?.timeZone) {
+  const timeZone = state.value?.timeZone
+
+  if (market === undefined || timeZone === undefined || !isOtherClock(timeZone)) {
     return null
   }
 

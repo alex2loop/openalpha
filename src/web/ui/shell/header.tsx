@@ -2,14 +2,18 @@ import type { RefObject } from 'preact'
 import { useLayoutEffect, useRef } from 'preact/hooks'
 
 import { pluralKey } from '@/i18n'
+import { InstallButton } from '@/web/edition/install-button'
 import { ClockControl } from '@/web/scene/overlay/clock-control'
 import { ViewSwitch } from '@/web/scene/overlay/view-switch'
 import { WeatherChip } from '@/web/scene/overlay/weather-chip'
 import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
+import { isAnalysisOnly } from '@/web/state/edition'
+import { isFirstRunOver } from '@/web/state/first-run'
 import { runningCount, workingTasks } from '@/web/state/live'
-import { isInfoOnly, toggleInfoOnly } from '@/web/state/pane'
-import { brand, isFirstRun } from '@/web/state/session'
+import { isInfoOnly } from '@/web/state/pane'
+import { setOfficeLayout } from '@/web/state/prefs'
+import { brand } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { BellButton } from '@/web/ui/bell/bell-button'
 import { BellPopover } from '@/web/ui/bell/bell-popover'
@@ -19,14 +23,15 @@ import { JobsPopover } from '@/web/ui/jobs/jobs-popover'
 import { LIST_KEY } from '@/web/ui/keys/keys'
 import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
 import { Chip } from '@/web/ui/kit/chip'
-import { CoinIcon, InfoOnlyIcon } from '@/web/ui/kit/icons'
+import { CoinIcon, WarningIcon } from '@/web/ui/kit/icons'
 import { closePopover, JOBS_POPOVER_ID, openPopoverId, togglePopover } from '@/web/ui/kit/popover'
+import { Segmented } from '@/web/ui/kit/segmented'
 import { GearButton } from '@/web/ui/settings/gear-button'
 
 import './header.css'
 
 /** The scene's own header controls (the view, the clock, the weather) have nothing to act on in
- *  Info only, where no scene is mounted. */
+ *  Focus, where no scene is mounted. */
 export function Header() {
   const hasScene = !isInfoOnly.value
   const jobsAnchor = useRef<HTMLButtonElement>(null)
@@ -43,18 +48,19 @@ export function Header() {
         {brand.value}
       </div>
       <RunningChip anchor={jobsAnchor} />
-      <span class="header-grow" />
-      {!isFirstRun.value && <CostChip anchor={costAnchor} />}
+      <div class="header-grow">{isAnalysisOnly.value && <AiNote />}</div>
+      {isAnalysisOnly.value && <InstallButton />}
+      {isFirstRunOver.value && <CostChip anchor={costAnchor} />}
       {hasScene && <ViewSwitch />}
-      <InfoOnlyToggle />
+      <LayoutSwitch />
       {hasScene && <ClockControl />}
-      {hasScene && <WeatherChip />}
-      <BellButton anchor={bellAnchor} />
+      {hasScene && !isAnalysisOnly.value && <WeatherChip />}
+      {!isAnalysisOnly.value && <BellButton anchor={bellAnchor} />}
       <KeysButton />
       <GearButton />
       <JobsPopover anchor={jobsAnchor} />
       <CostPopover anchor={costAnchor} />
-      <BellPopover anchor={bellAnchor} />
+      {!isAnalysisOnly.value && <BellPopover anchor={bellAnchor} />}
     </header>
   )
 }
@@ -87,6 +93,20 @@ function RunningChip({ anchor }: AnchorProps) {
   )
 }
 
+// A web visitor meets the analysis before any view's own label, so the web header says in red that
+// it is AI's and not advice, on one line in the room the controls leave: the short sentence where it
+// fits, else the shortest. The full sentence stays in the tip. Every AI-written view carries its own
+// label, so the installed version's header says nothing more.
+function AiNote() {
+  return (
+    <p class="header-ai-note" role="note" title={tr('ui.office.scene.aiNote')}>
+      <WarningIcon />
+      <span class="header-ai-short">{tr('ui.office.scene.aiNoteShort')}</span>
+      <span class="header-ai-shortest">{tr('ui.office.scene.aiNoteShortest')}</span>
+    </p>
+  )
+}
+
 // A phone shows the bare count and says it in two words to a screen reader, nothing running too.
 function runningTextOf(count: number): string {
   if (breakpoint.value === 'phone') {
@@ -105,18 +125,20 @@ function runningTextOf(count: number): string {
 }
 
 // Wide screens only: a narrow one picks its pane from the pane bar.
-function InfoOnlyToggle() {
+// The office scene or Focus, where the information fills the page and the scene is not mounted.
+function LayoutSwitch() {
   return (
-    <button
-      type="button"
-      class="icon-button layout-toggle"
-      title={tr(isInfoOnly.value ? 'ui.office.layout.officeTip' : 'ui.office.layout.infoTip')}
-      aria-label={tr('ui.office.layout.info')}
-      aria-pressed={isInfoOnly.value}
-      onClick={toggleInfoOnly}
-    >
-      <InfoOnlyIcon />
-    </button>
+    <Segmented
+      className="layout-toggle"
+      label={tr('ui.office.layout.mode')}
+      title={tr('ui.office.layout.tip')}
+      value={isInfoOnly.value ? 'info' : 'office'}
+      options={[
+        { value: 'office', label: tr('ui.office.layout.office') },
+        { value: 'info', label: tr('ui.office.layout.focus') },
+      ]}
+      onChange={setOfficeLayout}
+    />
   )
 }
 
@@ -127,7 +149,7 @@ function KeysButton() {
       class="icon-button header-keys"
       title={tr('ui.office.header.keys')}
       aria-label={tr('ui.office.header.keys')}
-      onClick={openKeysDialog}
+      onClick={() => openKeysDialog()}
     >
       {LIST_KEY}
     </button>

@@ -291,7 +291,7 @@ export interface BookSummary {
 }
 
 /** One holding's cost against what it is worth now, in the book's currency. */
-export interface BookPositionSummary {
+interface BookPositionSummary {
   readonly instrument: InstrumentRef
   readonly costBase: number
   readonly valueBase: number
@@ -332,7 +332,9 @@ export interface BriefServices {
   unwatchedPositions(options: PositionExitOptions): Promise<readonly InstrumentRef[]>
   /** Held names past the window their segment is scored over, with the price gone nowhere. */
   stalePositions(options: StopDistanceOptions): Promise<readonly InstrumentRef[]>
-  stopDistances(options: StopDistanceOptions): Promise<readonly StopDistance[]>
+  /** Undefined where the host holds no stop read at all: a section then states no stop, which is
+   *  not the same as stating that every holding is unmeasured. */
+  stopDistances(options: StopDistanceOptions): Promise<readonly StopDistance[] | undefined>
   /** The previous brief's sections, for the block that says what changed since. Null when no
    *  earlier snapshot reads in this build's vocabulary. */
   previousSections(options: PreviousSectionsOptions): Promise<readonly BriefSectionResult[] | null>

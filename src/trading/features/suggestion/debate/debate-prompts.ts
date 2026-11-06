@@ -40,7 +40,7 @@ const CASE_INSTRUCTIONS = [
  *  turns caution into a veto. Such reasoning belongs in the summary, which `CASE_INSTRUCTIONS`
  *  still bars from hedging. Both caps are stated in prose because the strict-subset conversion
  *  drops `maxLength` and `maxItems`, so the schema never carries them to the model. */
-const CLAIM_INSTRUCTIONS = [
+export const CLAIM_INSTRUCTIONS = [
   'Each entry in claims is ONE assertion about a number, an event, or a state that the evidence',
   'below can confirm or contradict, written to stand alone. No conditionals ("if X then Y"), no',
   `forecasts, no advice, no hedges. Keep each under ${MAXIMUM_CLAIM_CHARS} characters, and give at`,
@@ -65,7 +65,7 @@ const CONDITION_INSTRUCTIONS = [
 /** The document already prints every score and level; a role that repeats one rounds it, and the
  *  reader meets the same number twice with two values. A scored factor that reads against the case
  *  is a finding to argue with, not evidence that went missing. */
-const EVIDENCE_INSTRUCTIONS = [
+export const EVIDENCE_INSTRUCTIONS = [
   'Every factor below is scored, so it is evidence provided: never say evidence for it is missing',
   'or was not supplied. Do not restate a number the evidence shows; name the factor and let the',
   'number stand where it is printed.',
@@ -112,8 +112,13 @@ const OVER_CAP_SENTENCES: Partial<Record<CapReason, string>> = {
     'the names in its sector together have grown past the sector cap the operator set, measured on the whole book, and this is among the weakest of them; the sale only brings the sector back within that cap and is risk discipline, not a view on the name',
 }
 
-/** What every prompt needs: the run being argued about and the evidence it must argue from. */
-interface PromptContext {
+/** What every role reads: the evidence it must argue from. */
+export interface EvidenceContext {
+  readonly evidence: Pick<EvidenceBundle, 'text'>
+}
+
+/** What a debate prompt needs: the run being argued about and the whole evidence bundle. */
+interface PromptContext extends EvidenceContext {
   readonly input: DebateInput
   readonly evidence: EvidenceBundle
 }
@@ -325,7 +330,7 @@ function probabilityInstructions(context: PromptContext): string {
 }
 
 export function verifierPrompt(
-  context: PromptContext,
+  context: EvidenceContext,
   claims: readonly DebateClaim[],
   invalidators: readonly Invalidator[]
 ): RolePrompt {
@@ -402,7 +407,7 @@ function saleReasonSentence(reason: ReduceReasonCode, context: PromptContext): s
     : REDUCE_REASON_SENTENCES[reason]
 }
 
-function evidenceBlock(context: PromptContext): string {
+export function evidenceBlock(context: EvidenceContext): string {
   return `EVIDENCE:\n${context.evidence.text}`
 }
 

@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { z } from 'zod'
 
 import type { LLMResponse, ProviderAttempt, ProviderChain } from '@/core/llm'
@@ -88,7 +86,11 @@ async function recordSpend(
 
 export async function askExtraction(request: ExtractionRequest): Promise<ExtractionReply> {
   const spend: ExtractionSpend = {
-    identity: { runId: runId(randomUUID()), agentId: agentId(EXTRACTOR_AGENT), sessionId: null },
+    identity: {
+      runId: runId(crypto.randomUUID()),
+      agentId: agentId(EXTRACTOR_AGENT),
+      sessionId: null,
+    },
     usd: 0,
   }
   const prompt = `Series:\n${toSeriesList(request.series)}\n\nText:\n${request.text.slice(0, MAXIMUM_SOURCE_CHARS)}`

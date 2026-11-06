@@ -37,6 +37,21 @@ export const knownTickers: ReadonlySignal<ReadonlySet<string>> = computed(() => 
  *  fails or finds nothing leaves a line on the view the click came from, and its answer is dropped
  *  when the operator has gone elsewhere or clicked another name. */
 export function openTicker(ticker: string, market?: string): void {
+  lookUp(ticker, market, undefined)
+}
+
+/** As `openTicker`, for a word that may not be a ticker at all: a search that fails or finds
+ *  nothing calls `onMissing` instead of leaving a line, even when the operator has gone elsewhere;
+ *  only a later lookup drops it. */
+export function openTickerOrElse(ticker: string, onMissing: () => void): void {
+  lookUp(ticker, undefined, onMissing)
+}
+
+function lookUp(
+  ticker: string,
+  market: string | undefined,
+  onMissing: (() => void) | undefined
+): void {
   search?.abort()
   search = undefined
   notice.value = undefined
@@ -50,26 +65,26 @@ export function openTicker(ticker: string, market?: string): void {
 
   const controller = new AbortController()
   const origin = panelView.value
+  const miss = (text: string): void => {
+    if (onMissing !== undefined) {
+      if (!controller.signal.aborted) {
+        onMissing()
+      }
+    } else if (!isStale(controller, origin)) {
+      showNotice(text, origin)
+    }
+  }
 
   search = controller
   searchMarket(ticker, controller.signal).then(
     (found) => {
-      if (isStale(controller, origin)) {
-        return
-      }
-
       if (found === undefined) {
-        showNotice(tr('ui.office.ticker.notFound', { ticker }), origin)
-        return
+        miss(tr('ui.office.ticker.notFound', { ticker }))
+      } else if (!isStale(controller, origin)) {
+        openView({ ticker, market: found })
       }
-
-      openView({ ticker, market: found })
     },
-    (error: unknown) => {
-      if (!isStale(controller, origin)) {
-        showNotice(toErrorText(error), origin)
-      }
-    }
+    (error: unknown) => miss(toErrorText(error))
   )
 }
 

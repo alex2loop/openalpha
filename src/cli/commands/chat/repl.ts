@@ -16,7 +16,7 @@ import { takeUpdateNotice } from '@/cli/update/notice'
 import { HELP_COMMAND, parseHelpLine, renderCommandHelp } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import { formatErrForLog } from '@/core/security/credentials'
-import { bindLocale, t } from '@/i18n'
+import { bindLocale, renderAiLabel, t } from '@/i18n'
 
 const PROMPT = '›'
 const EXIT_COMMANDS: ReadonlySet<string> = new Set(['/exit', '/quit'])
@@ -137,7 +137,7 @@ function visibleCompletion(session: ChatSession): CompletionSource {
 }
 
 export async function repl(session: ChatSession): Promise<number> {
-  const { display, state } = session
+  const { state } = session
   const approvals = openCliApprovals(session)
   const promptedSession = { ...session, app: approvals.app }
   const { app } = promptedSession
@@ -160,21 +160,8 @@ export async function repl(session: ChatSession): Promise<number> {
 
   const offInterrupt = app.terminal.onInterrupt(onSigint)
   const offTerminate = app.terminal.onTerminate(onSigterm)
-  const shortSession = state.sessionId.slice(0, 8)
 
-  const locale = app.config.locale.language
-
-  app.out(style.title(t(locale, 'cli.chatTitle', { brand: BRAND.display })))
-  app.out(
-    style.muted(
-      t(locale, 'cli.chatBanner', {
-        agent: display.agentName,
-        model: display.model,
-        session: shortSession,
-      })
-    )
-  )
-  app.out(hint(t(locale, 'ui.replHelp')))
+  printBanner(promptedSession)
 
   for (const line of await takeUpdateNotice(app.config)) {
     app.out(line)
@@ -188,6 +175,28 @@ export async function repl(session: ChatSession): Promise<number> {
     approvals.close()
     await closeIdleSession(app, state.sessionId)
   }
+}
+
+function printBanner(session: ChatSession): void {
+  const { app, display, state } = session
+  const locale = app.config.locale.language
+
+  app.out(style.title(t(locale, 'cli.chatTitle', { brand: BRAND.display })))
+  app.out(
+    style.muted(
+      t(locale, 'cli.chatBanner', {
+        agent: display.agentName,
+        model: display.model,
+        session: state.sessionId.slice(0, 8),
+      })
+    )
+  )
+  app.out(aiLabelLine(session))
+  app.out(hint(t(locale, 'ui.replHelp')))
+}
+
+function aiLabelLine(session: ChatSession): string {
+  return style.muted(renderAiLabel(session.app.config.locale.language))
 }
 
 async function loop(session: ChatSession, prompt: PromptFn): Promise<number> {
@@ -281,6 +290,7 @@ async function runTurn(session: ChatSession, turn: SlashTurn, prompt: PromptFn):
       agentId: turn.agentId ?? state.agentId,
       sessionId: state.sessionId,
       message: turn.message,
+      ...(turn.typedMessage === undefined ? {} : { typedMessage: turn.typedMessage }),
       flags,
       signal: state.controller.signal,
       // The REPL loop is enclosed by `openCliApprovals`, so its responder is always armed.
@@ -300,7 +310,7 @@ async function runTurn(session: ChatSession, turn: SlashTurn, prompt: PromptFn):
 
 // One turn; the run's outcome becomes the process exit code.
 export async function singleShot(session: ChatSession, message: string): Promise<number> {
-  const { app, state } = session
+  const { state } = session
 
   // The dispatcher does not own `/help` — the REPL answers it directly — so without this the one
   // mode where it is unreachable is the one whose unknown-command reply says to try it.
@@ -313,8 +323,24 @@ export async function singleShot(session: ChatSession, message: string): Promise
   }
 
   const approvals = isInteractiveStdin() ? openCliApprovals(session) : undefined
-  const activeSession = approvals === undefined ? session : { ...session, app: approvals.app }
   const controller = new AbortController()
+  const disarm = armOneShotInterrupts(session, controller)
+
+  try {
+    return await runOneShotTurn(session, message, { controller, approvals })
+  } finally {
+    disarm()
+    approvals?.close()
+
+    if (state.controller === controller) {
+      state.controller = null
+    }
+  }
+}
+
+/** Ctrl-C and SIGTERM end the one turn; returns the call that stops listening. */
+function armOneShotInterrupts(session: ChatSession, controller: AbortController): () => void {
+  const { app, state } = session
 
   const onSignal = (): void => {
     controller.abort()
@@ -323,45 +349,60 @@ export async function singleShot(session: ChatSession, message: string): Promise
       state.controller?.abort()
     }
   }
+
   const offInterrupt = app.terminal.onInterrupt(onSignal)
   const offTerminate = app.terminal.onTerminate(onSignal)
 
-  try {
-    const turn = message.startsWith('/') ? await runSlash(activeSession, message) : { message }
-
-    if (turn === null) {
-      await closeIdleSession(app, state.sessionId)
-
-      return 0
-    }
-
-    state.controller = controller
-
-    const result = await executeTurn({
-      app: approvals?.app ?? app,
-      agentId: turn.agentId ?? state.agentId,
-      sessionId: state.sessionId,
-      message: turn.message,
-      flags: approvals === undefined ? withoutApprover(session.flags) : session.flags,
-      signal: controller.signal,
-      // The route is live only while the interactive approval responder is armed; a headless
-      // one-shot omits it so its dangerous delegated children fail approval-unavailable.
-      ...(approvals === undefined ? {} : { chatId: CLI_CHAT_ID, prompt: approvals.prompt }),
-      onPrinter: (printer) => {
-        state.printer = printer ?? null
-      },
-    })
-
-    return exitCodeForResult(result)
-  } finally {
+  return () => {
     offInterrupt()
     offTerminate()
-    approvals?.close()
-
-    if (state.controller === controller) {
-      state.controller = null
-    }
   }
+}
+
+interface OneShotRun {
+  readonly controller: AbortController
+  /** Armed only while stdin is a terminal, so there is someone to ask. */
+  readonly approvals: CliApprovals | undefined
+}
+
+async function runOneShotTurn(
+  session: ChatSession,
+  message: string,
+  run: OneShotRun
+): Promise<number> {
+  const { app, state } = session
+  const { controller, approvals } = run
+  const activeSession = approvals === undefined ? session : { ...session, app: approvals.app }
+  const turn = message.startsWith('/') ? await runSlash(activeSession, message) : { message }
+
+  if (turn === null) {
+    await closeIdleSession(app, state.sessionId)
+
+    return 0
+  }
+
+  state.controller = controller
+
+  // A one-shot has no banner, and stdout carries the answer alone, so the label goes to stderr.
+  app.err(aiLabelLine(session))
+
+  const result = await executeTurn({
+    app: approvals?.app ?? app,
+    agentId: turn.agentId ?? state.agentId,
+    sessionId: state.sessionId,
+    message: turn.message,
+    ...(turn.typedMessage === undefined ? {} : { typedMessage: turn.typedMessage }),
+    flags: approvals === undefined ? withoutApprover(session.flags) : session.flags,
+    signal: controller.signal,
+    // The route is live only while the interactive approval responder is armed; a headless
+    // one-shot omits it so its dangerous delegated children fail approval-unavailable.
+    ...(approvals === undefined ? {} : { chatId: CLI_CHAT_ID, prompt: approvals.prompt }),
+    onPrinter: (printer) => {
+      state.printer = printer ?? null
+    },
+  })
+
+  return exitCodeForResult(result)
 }
 
 // A command that answered itself ran no turn to finalize the session; left active once the chat ends,

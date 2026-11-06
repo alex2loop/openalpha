@@ -7,7 +7,7 @@ import type { CliApp } from '@/cli/types'
 import type { ChannelId } from '@/core/channels'
 import type { AgentId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
-import { findChannelDefinition } from '@/channels/api'
+import { findChannelDefinition } from '@/channels/node-api'
 import { createCommand, createGroup } from '@/cli/command'
 import { agentCmdPause, agentCmdResume } from '@/cli/commands/agent-pause'
 import { agentExtraLines } from '@/cli/commands/agent-record'
@@ -29,8 +29,8 @@ import {
   isEntryAgent,
   isValidAgentId,
   RESERVED_AGENT_IDS,
-  userAgentFile,
 } from '@/engine/api'
+import { userAgentFile } from '@/engine/node-api'
 import { t } from '@/i18n'
 import { pauseJobsOfAgent } from '@/scheduler/api'
 

@@ -1,0 +1,106 @@
+import type { ScreenResponse } from '@/app/server/wire/market'
+import type { ScreenAnswer, ScreenView } from '@/trading/api'
+import { toInstrumentWire } from '@/app/server/mappers/trading'
+
+type ScreenedCandidate = ScreenView['candidates'][number]
+type CandidateWire = ScreenResponse['candidates'][number]
+
+/** Every factor of the model had data. */
+const FULL_COVERAGE = 1
+
+export function toScreenWire(market: string, answer: ScreenAnswer): ScreenResponse {
+  const { view, card } = answer
+
+  return {
+    market,
+    asOf: view.asOf,
+    ...(view.dataThroughDay === undefined ? {} : { dataThroughDay: view.dataThroughDay }),
+    board: boardKindOf(view),
+    universeSize: view.universeSize,
+    candidates:
+      view.form === 'board'
+        ? view.candidates.map((candidate) => toListedWire(candidate, answer))
+        : view.candidates.map((candidate) => toCandidateWire(candidate, answer)),
+    ...(view.form === 'board'
+      ? { total: view.candidates.length, unpriced: view.unpriced ?? 0 }
+      : {}),
+    ...(answer.kinds === undefined ? {} : { kinds: answer.kinds }),
+    ...(answer.isLoading === true ? { isLoading: true as const } : {}),
+    card,
+  }
+}
+
+function boardKindOf(view: ScreenView): ScreenResponse['board'] {
+  return view.form === 'board' ? 'list' : (view.board ?? 'rank')
+}
+
+/** A name of the whole board: no composite, band, rating or score, only what each factor read and
+ *  where it sits among the board's names. Fixed factor order, so two names line up. */
+function toListedWire(candidate: ScreenedCandidate, answer: ScreenAnswer): CandidateWire {
+  const factors = candidate.factors
+    .filter((factor) => factor.weight !== undefined)
+    .toSorted((left, right) => left.id.localeCompare(right.id))
+    .map((factor) => {
+      const percentile = candidate.percentiles?.[factor.id]
+      const reading = answer.factorReadings?.[candidate.instrument.ticker]?.[factor.id]
+
+      return {
+        id: factor.id,
+        label: answer.factorLabels?.[factor.id] ?? factor.id,
+        ...(reading === undefined ? {} : { reading }),
+        ...(percentile === undefined ? {} : { percentile }),
+        ...(factor.metrics === undefined ? {} : { metrics: factor.metrics }),
+      }
+    })
+  const readings = answer.nameReadings?.[candidate.instrument.ticker]
+  const { coverage } = candidate.composite
+
+  return {
+    ...toCandidateWire(candidate, answer),
+    ...(candidate.sector === undefined ? {} : { sector: candidate.sector }),
+    ...(candidate.marketCap === undefined ? {} : { marketCap: candidate.marketCap }),
+    ...(candidate.turnover === undefined ? {} : { turnover: candidate.turnover }),
+    ...(candidate.monthChangePct === undefined ? {} : { monthChangePct: candidate.monthChangePct }),
+    ...(candidate.foreignNet === undefined ? {} : { foreignNet: candidate.foreignNet }),
+    ...(candidate.excluded === true ? { excluded: true as const } : {}),
+    ...(coverage < FULL_COVERAGE ? { coverage } : {}),
+    ...(readings === undefined ? {} : { readings }),
+    factors,
+  }
+}
+
+function toCandidateWire(candidate: ScreenedCandidate, answer: ScreenAnswer): CandidateWire {
+  const quote = candidate.price?.quote
+  const named = answer.nameFacts?.[candidate.instrument.ticker]
+
+  return {
+    instrument: toInstrumentWire(candidate.instrument),
+    ...(candidate.name === undefined ? {} : { name: candidate.name }),
+    ...(quote === undefined ? {} : { price: quote.price }),
+    ...(quote?.changePct === undefined ? {} : { changePct: quote.changePct }),
+    ...(named === undefined || named.facts.length === 0 ? {} : { facts: named.facts }),
+    ...(named === undefined || named.missing.length === 0 ? {} : { missing: named.missing }),
+  }
+}
+
+/** Where a page of a `list` board starts and how many names it holds. */
+interface ScreenPage {
+  readonly offset: number
+  readonly limit: number
+}
+
+/** One page of a `list` board, cut from the whole board the host read; any other board is one page.
+ *  `next` is the offset the following page starts at. */
+export function toScreenPage(board: ScreenResponse, page: ScreenPage): ScreenResponse {
+  if (board.board !== 'list') {
+    return board
+  }
+
+  const end = page.offset + page.limit
+
+  return {
+    ...board,
+    candidates: board.candidates.slice(page.offset, end),
+    ...(end < board.candidates.length ? { next: String(end) } : {}),
+  }
+}

@@ -6,7 +6,7 @@ import type {
   SlashInvocationPolicy,
   SlashResult,
 } from '@/core/types/command'
-import { formatErrForLog } from '@/core/security/credentials'
+import { formatErrForLog, scrubCredentials } from '@/core/security/credentials'
 
 import { renderMessages } from './render'
 import { commandHeadOf } from './resolve'
@@ -47,9 +47,12 @@ export async function appendExchange(input: ExchangeInput): Promise<void> {
   }
 }
 
-// A result handed to an agent turn is that turn's to record, and a handled one showed nothing.
+// A result handed to an agent turn is that turn's to record, and a handled one showed nothing. The
+// typed line is scrubbed before it is stored: a key pasted into the command bar must not outlive the
+// run in the history, an export or an autosave.
 function toExchange(input: ExchangeInput): CommandExchange | undefined {
-  const { result, context, invocation } = input
+  const { result, context } = input
+  const invocation = scrubCredentials(input.invocation)
   const run = context.runId === undefined ? {} : { runId: context.runId }
   const isEcho = result.kind === 'text' && input.policy?.transcript === 'echo'
 
@@ -64,7 +67,7 @@ function toExchange(input: ExchangeInput): CommandExchange | undefined {
   switch (result.kind) {
     case 'text':
       return isEcho
-        ? { invocation, output: result.text, ...run }
+        ? { invocation, output: result.echoText ?? result.text, ...run }
         : { invocation, output: result.text, ...run, displayOnly: true }
     case 'message':
       return {

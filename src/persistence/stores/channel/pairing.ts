@@ -1,5 +1,3 @@
-import { randomInt } from 'node:crypto'
-
 import type { ChannelId } from '@/core/channels'
 import type {
   PairingApproveArgs,
@@ -17,6 +15,7 @@ import { PAIRING_MAX_PENDING } from '@/persistence/pairing-policy'
 // Unambiguous alphabet: no O/0, I/1, L. Codes are read aloud and retyped.
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 const CODE_LEN = 6
+const UINT32_RANGE = 2 ** 32
 // A code an operator never got around to approving must not stay redeemable forever.
 const CODE_TTL_MS = 15 * 60_000
 // Bounded retry: if capacity exists but generated codes collide, re-mint a few times.
@@ -368,8 +367,23 @@ function buildBindingSql(
 function mintCode(): string {
   let out = ''
   for (let i = 0; i < CODE_LEN; i++) {
-    out += CODE_ALPHABET.charAt(randomInt(0, CODE_ALPHABET.length))
+    out += CODE_ALPHABET.charAt(randomIndex(CODE_ALPHABET.length))
   }
 
   return out
+}
+
+// Rejection sampling: a plain modulo would favour the low indexes of an alphabet that does not divide 2^32.
+function randomIndex(size: number): number {
+  const limit = UINT32_RANGE - (UINT32_RANGE % size)
+  const draw = new Uint32Array(1)
+
+  for (;;) {
+    crypto.getRandomValues(draw)
+    const value = draw[0] ?? limit
+
+    if (value < limit) {
+      return value % size
+    }
+  }
 }

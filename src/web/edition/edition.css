@@ -1,0 +1,157 @@
+.edition-refused {
+  display: grid;
+  gap: var(--s3);
+  justify-items: center;
+  align-content: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+  text-align: center;
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.install-line {
+  margin: 0;
+}
+
+/* A slot's held keys, then the form, across the row's whole width. */
+.key-slot {
+  display: grid;
+  flex-basis: 100%;
+  gap: var(--s3);
+  margin-top: var(--s1);
+}
+
+/* A held key reads as one framed line: which key, then what can be done with it. */
+.key-held {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1) var(--s2);
+  padding: var(--s1) var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.key-held > p {
+  margin: 0;
+}
+
+.key-held > .strip {
+  flex-basis: 100%;
+}
+
+.key-form {
+  display: grid;
+  gap: var(--s2);
+}
+
+/* The note under "remember" explains that box, so it sits close under it; the box leads the form so
+   it is chosen before Connect leaves the page. */
+.key-form > label + .meta {
+  margin-top: calc(var(--s1) * -1);
+}
+
+.key-form input[type="password"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.analysis-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* The conditions sit in a quiet panel of their own above the analysis: neither side's colour. */
+.watch-box {
+  display: grid;
+  gap: var(--s1);
+  padding: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--controlRadius);
+  background: var(--sunken);
+}
+
+.watch-box-head,
+.watch-side-head {
+  margin: 0;
+  font-size: var(--sizeBody);
+  font-weight: var(--weightSemibold);
+}
+
+.watch-side-head {
+  font-weight: var(--weightMedium);
+}
+
+.watch-list {
+  margin: 4px 0 0;
+  padding-left: 1.2em;
+}
+
+.sort-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* A sort reads as its name, the menu and the direction on one line; a long figure name is cut
+   inside the menu rather than pushing the line wider than the screen. */
+.sort-key {
+  display: flex;
+  flex: 1 1 14rem;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.sort-key select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Both sort names take one width, so the two menus start in one column. */
+.sort-key > span {
+  flex: none;
+  min-width: 4.5em;
+}
+
+.screen-size {
+  width: min(17rem, 100%);
+}
+
+/* The sector reads as a small muted tag after the price and the move; a long name moves to the
+   next line whole rather than breaking inside the tag. */
+.screen-sector {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  margin-inline-start: var(--s1);
+  padding: 1px var(--s1);
+  border-radius: 8px;
+  background: var(--sunken);
+  color: var(--ink3);
+  font-size: var(--sizeCaption);
+}
+
+/* The error log: one entry per line, long messages and stacks wrapping inside the dialog. */
+.error-log {
+  display: grid;
+  gap: var(--s1);
+  max-height: 24rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.error-log li {
+  overflow-wrap: anywhere;
+  font-size: var(--sizeBody);
+}

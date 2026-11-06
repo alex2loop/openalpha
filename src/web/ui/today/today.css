@@ -83,6 +83,23 @@
   border-top: 0;
 }
 
+/* A dealer's row: the name and the spread on one line, both sides of the quote on the next, so a
+   narrow panel never pushes the long quote over the name. */
+.row.dealer-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 2px;
+}
+
+.dealer-row .row-price {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.dealer-row .meta {
+  grid-column: 2;
+  grid-row: 1;
+}
+
 .row.is-breach {
   margin-inline: calc(var(--s1) * -1);
   padding-inline: var(--s1);
@@ -160,9 +177,31 @@
   color: var(--ink2);
 }
 
+/* Where the readings came from closes the market's section: below every figure it covers, and
+   quieter than them. */
+.market-source {
+  margin: 0;
+  color: var(--ink3);
+  font: var(--typeCaption);
+}
+
+/* A market's name is a band, one colour for every market, that stays at the top while its section
+   scrolls by, so a row or reading far down still says which market it belongs to. It sticks at the
+   panel's edge, over its padding, on an opaque surface so nothing shows through. */
+.market-section > .sub-head {
+  --bandTint: color-mix(in srgb, var(--tc-green) 10%, transparent);
+
+  position: sticky;
+  top: calc(var(--panelBodyPad, 0px) * -1);
+  z-index: 1;
+  padding: var(--s1) var(--s2);
+  border-left: 3px solid var(--tc-green);
+  border-radius: 0 var(--controlRadius) var(--controlRadius) 0;
+  background: linear-gradient(var(--bandTint), var(--bandTint)), var(--surface);
+}
+
 .market-section + .market-section {
-  padding-top: var(--s2);
-  border-top: 1px solid var(--border);
+  padding-top: var(--s1);
 }
 
 .news-item {
@@ -199,6 +238,10 @@ a.news-item:hover b {
   color: var(--caution);
 }
 
+.guide-hint {
+  margin-bottom: var(--s1);
+}
+
 .steps {
   display: flex;
   flex-direction: column;
@@ -228,8 +271,8 @@ a.news-item:hover b {
 }
 
 .step.is-done .step-num {
-  background: var(--ink);
-  color: var(--canvas);
+  background: color-mix(in srgb, var(--tc-green) var(--tile-mix), transparent);
+  color: var(--tc-green);
 }
 
 .step-num svg {

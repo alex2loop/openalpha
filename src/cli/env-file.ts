@@ -5,7 +5,7 @@ import { dirname } from 'node:path'
 import type { CliApp } from '@/cli/types'
 import { warn } from '@/cli/ui/colors'
 import { isControlEnvName } from '@/core/brand'
-import { isEnvName } from '@/core/config/resolve'
+import { isEnvName } from '@/core/config/operator-errors'
 import { isErrno } from '@/core/errors'
 import {
   ensurePrivateDirectory,

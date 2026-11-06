@@ -51,6 +51,7 @@ export const SECTION_ICONS = Object.freeze({
   thesisReview: '⏪',
   session: '⏱️',
   settled: '📘',
+  glossary: '📖',
   refresh: '🔄',
   reconcile: '🧮',
   thesis: '📌',
@@ -227,16 +228,6 @@ export function formatPercent(locale: Locale, percent: number): string {
 /** The column form of `formatPercent`, for a percent-valued field repeated down a list. */
 export function formatFixedPercent(locale: Locale, percent: number): string {
   return formatFixedFraction(locale, percent / PERCENT_PER_UNIT)
-}
-
-/** A rank over a few dozen peers, where every decimal is quantization rather than precision:
- *  84.78th of 46 names is the 85th, and printing the remainder claims a resolution it lacks. The
- *  standing is worded rather than written `p78`, a notation no message ever defined - it is still
- *  not a share, and what it says is how many of its peers this reading is above. */
-export function formatPercentRank(locale: Locale, percent: number): string {
-  return t(locale, 'trading.render.layout.percentRank', {
-    pct: formatCount(locale, Math.round(percent)),
-  })
 }
 
 /** A 0-1 index as whole percent. Coverage and agreement are folds over weights, not measured
@@ -427,10 +418,8 @@ const TOP_FACTOR_COUNT = 3
  *  - choosing on score alone would promote whichever factor merely holds the largest number. Once
  *  chosen, they read strongest support first and strongest objection last, as every other factor
  *  list does. Abstained factors score exactly zero and are skipped: an abstention is not weak
- *  evidence. One line each: a label runs from eleven to twenty-eight characters, so inline the
- *  bars land somewhere different on every row and cannot be read down the page. The bar already
- *  quantizes the band, so a word beside it would say the same thing a third time. */
-export function renderTopFactorLines(
+ *  evidence. The sign on each score carries its direction, so no glyph repeats it. */
+export function renderTopFactorFacts(
   locale: Locale,
   entries: readonly { readonly id: string; readonly score: number }[]
 ): readonly string[] {
@@ -440,6 +429,6 @@ export function renderTopFactorLines(
     .toSorted((left, right) => right.score - left.score)
     .map(
       (entry) =>
-        `${scoreBar(locale, entry.score)} ${renderDeclaredValue(locale, `trading.factor.${entry.id}`)} ${formatScoreValue(locale, entry.score)}`
+        `${renderDeclaredValue(locale, `trading.factor.${entry.id}`)} ${formatScoreValue(locale, entry.score)}`
     )
 }

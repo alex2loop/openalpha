@@ -27,13 +27,57 @@
   height: var(--headerControlH);
 }
 
-.header-grow {
-  flex: 1;
+/* A switch in the header keeps one row on the header's centre line, without a form's gap below. */
+.header .seg {
+  flex-wrap: nowrap;
+  margin: 0;
 }
 
-.layout-toggle[aria-pressed="true"] {
-  background: var(--sunken);
-  color: var(--ink);
+/* The room between the running chip and the controls: the AI line takes the sentence that fits it. */
+.header-grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+/* Red like a warning, and never the market red that says a price fell. */
+.header-ai-note {
+  /* The warning glyph reads at the caption's cap height; larger crowds the one-line sentence. */
+  --aiNoteIconSize: 12px;
+  display: flex;
+  align-items: center;
+  gap: var(--s0);
+  margin: 0;
+  color: var(--dangerText);
+  font: var(--typeCaptionStrong);
+  white-space: nowrap;
+}
+
+.header-ai-note svg {
+  flex: none;
+  width: var(--aiNoteIconSize);
+  height: var(--aiNoteIconSize);
+}
+
+.header-ai-shortest {
+  display: none;
+}
+
+/* 260px is the room the short sentence needs beside its glyph; a container query cannot read a
+   token, so the number stays here. Where even the shortest does not fit one line, it takes two. */
+@container (width < 260px) {
+  .header-ai-note {
+    white-space: normal;
+  }
+
+  .header-ai-short {
+    display: none;
+  }
+
+  .header-ai-shortest {
+    display: inline;
+  }
 }
 
 .header-keys {
@@ -41,20 +85,26 @@
   font-weight: 600;
 }
 
-/* The pane bar takes the Info only toggle's place, and the cost chip drops its "AI today". */
+/* Below the wide width the header keeps the logo without the word and the clock without its city,
+   so the AI line has room beside the chip. */
+:root:not([data-layout="wide"]) .header-brand {
+  gap: 0;
+  font-size: 0;
+}
+
+:root:not([data-layout="wide"]) .header .clock-market {
+  display: none;
+}
+
+/* The pane bar takes the Office | Focus switch's place, and the cost chip drops its "AI today". */
 :root:not([data-layout="wide"]) :is(.layout-toggle, .header-cost-label) {
   display: none;
 }
 
-/* A phone keeps the logo without the word, and its pills their short labels: none is clipped. */
+/* A phone keeps its pills their short labels: none is clipped. */
 :root[data-layout="phone"] .header {
   gap: 6px;
   padding: 0 var(--s1);
-}
-
-:root[data-layout="phone"] .header-brand {
-  gap: 0;
-  font-size: 0;
 }
 
 :root[data-layout="phone"] .header .chip {
@@ -62,8 +112,7 @@
   padding: 0 9px;
 }
 
-:root[data-layout="phone"] .header .chip svg,
-:root[data-layout="phone"] .header .clock-market {
+:root[data-layout="phone"] .header .chip svg {
   display: none;
 }
 

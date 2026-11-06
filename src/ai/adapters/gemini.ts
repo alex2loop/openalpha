@@ -4,14 +4,9 @@ import type { LLMMessage, LLMRequest, ReasoningReplayBlock } from '@/core/llm'
 import type { Logger } from '@/core/logging/logger'
 import type { FinishReason, StreamEvent, TokenUsage } from '@/core/stream-events'
 import type { ToolSchema } from '@/core/tool'
+import { resolveAuthHeaders } from '@/ai/adapters/auth-headers'
 import { classifyStreamFrame, truncatedStreamError } from '@/ai/adapters/errors'
-import {
-  keyedHeaders,
-  parseSseJson,
-  parseTokenCount,
-  resolveEndpointUrl,
-  runStream,
-} from '@/ai/adapters/runner'
+import { parseSseJson, parseTokenCount, resolveEndpointUrl, runStream } from '@/ai/adapters/runner'
 import { buildToolCallId } from '@/ai/adapters/tool-call-id'
 import { describeWithExamples } from '@/core/tool'
 import { contentBlocks, textOf, toolCallsOf } from '@/core/utils/message'
@@ -85,17 +80,17 @@ interface RouterState {
 }
 
 export const geminiTransport: Transport = {
-  stream(req, entry, onEvent) {
+  async stream(req, entry, onEvent) {
     const path = `models/${encodeURIComponent(entry.model)}:streamGenerateContent?alt=sse`
 
-    return runStream({
+    return await runStream({
       url: resolveEndpointUrl(entry.baseUrl, path),
       init: {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           accept: 'text/event-stream',
-          ...keyedHeaders(entry.apiKey, { 'x-goog-api-key': entry.apiKey }),
+          ...(await resolveAuthHeaders(req, entry, (apiKey) => ({ 'x-goog-api-key': apiKey }))),
         },
         body: JSON.stringify(buildBody(req, entry)),
         signal: req.signal,

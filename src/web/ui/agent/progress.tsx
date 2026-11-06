@@ -79,8 +79,9 @@ function listSources(run: Run): readonly string[] {
   const lines = run.progress === undefined ? run.persistent : [...run.persistent, run.progress]
   const urls = lines.flatMap((line) => {
     const url = line.params?.url
+    const href = typeof url === 'string' ? toSafeHref(url) : undefined
 
-    return typeof url === 'string' && toSafeHref(url) !== undefined ? [url] : []
+    return href === undefined ? [] : [href]
   })
 
   return [...new Set(urls)]

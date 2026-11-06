@@ -9,6 +9,7 @@ import {
   MAX_ZOOM_3D_PX,
   reportProjection,
   STREET_RECT,
+  topCover,
   view,
   ZOOM_STEP,
 } from '@/web/scene/view'
@@ -147,5 +148,5 @@ function minScaleOf(base: number, pane: Size): number {
 }
 
 function fitFloor(pane: Size): number {
-  return fittedFloorScale(pane, breakpoint.value)
+  return fittedFloorScale(pane, breakpoint.value, topCover.value)
 }

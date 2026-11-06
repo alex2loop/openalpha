@@ -16,6 +16,7 @@ import type { TradingConfig } from '@/trading/kernel/config'
 import type { MarketRef, Region } from '@/trading/kernel/instrument'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import { createAlertCommand } from '@/trading/features/alerts/command'
 import { createBriefCommand } from '@/trading/features/brief/command'
@@ -40,6 +41,7 @@ import { suggestionReportDeps } from '@/trading/features/suggestion/report'
 import { createReflectCommand } from '@/trading/features/suggestion/track-record/command'
 import { createThemesCommand } from '@/trading/features/themes/command'
 import { SECTION_ICONS } from '@/trading/render/format'
+import { createGlossaryCommand } from '@/trading/wiring/catalog/glossary'
 import { createSetupCommand } from '@/trading/wiring/catalog/setup'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { resolveRefreshMarkets } from '@/trading/wiring/composition/refresh'
@@ -116,9 +118,19 @@ interface TradingCommandDeps {
   readonly defaultRegion: Region
   /** Absent when no exchange key is configured: `/trade` then only names the keys it needs. */
   readonly order?: OrderService
+  /** What an edition that is not the installed version narrows; absent offers everything. */
+  readonly edition?: TradingEdition
 }
 
 export function createTradingCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
+  const offered = deps.edition?.commands
+
+  return offered === undefined
+    ? buildTradingCommands(deps)
+    : buildTradingCommands(deps).filter((command) => offered.has(command.name))
+}
+
+function buildTradingCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
   const { alerts, defaultRegion, marketData, portfolio, profiles } = deps
   const timezone = deps.config.displayTimezone
   const costs = deps.config.costs
@@ -148,15 +160,20 @@ export function createTradingCommands(deps: TradingCommandDeps): readonly SlashC
     ...inGroup(MARKET_GROUP, marketCommands(deps)),
     ...inGroup(ANALYSIS_GROUP, [
       ...suggestionCommands(deps),
-      createBriefCommand({ briefs: deps.briefs, defaultRegion, timezone }),
+      createBriefCommand({ briefs: deps.briefs, defaultRegion, timezone, ...plainCaveatsOf(deps) }),
       createThemesCommand({
         themes: deps.themes,
         timezone,
         ...homeMarketOf(deps),
       }),
-      createProfileCommand({ profiles, timezone }),
+      createProfileCommand({ profiles, timezone, edition: deps.edition?.profile }),
     ]),
   ]
+}
+
+/** The brief's caveats in their plain form where the edition makes no call. */
+function plainCaveatsOf(deps: TradingCommandDeps): { readonly plainCaveats?: true } {
+  return deps.edition?.readingsOnly === true ? { plainCaveats: true } : {}
 }
 
 function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
@@ -170,6 +187,7 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       defaultRegion,
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
+      ...(deps.edition?.readingsOnly === true ? { statesComposite: false as const } : {}),
       marketsInUse: deps.marketsInUse,
       logger: deps.logger,
     }),
@@ -184,7 +202,12 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       config: deps.config,
       settings: deps.intradaySettings,
     }),
-    createScreenCommand({ marketData, timezone, ...screenDefaultMarket(deps) }),
+    createScreenCommand({
+      marketData,
+      timezone,
+      ...screenDefaultMarket(deps),
+      ...(deps.edition?.screen === undefined ? {} : { form: deps.edition.screen }),
+    }),
     createRefreshCommand({
       refreshMarketData: deps.refreshMarketData,
       markets: resolveRefreshMarkets(deps.markets),
@@ -192,6 +215,7 @@ function marketCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       timezone,
     }),
     createSourcesCommand({ marketData, timezone }),
+    createGlossaryCommand({ timezone }),
   ]
 }
 
@@ -215,7 +239,7 @@ function bookCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       profiles,
       marketData,
       timezone,
-      alerts,
+      alerts: deps.edition?.reads?.stopDistances ?? alerts,
       venues,
       ...orders,
     }),
@@ -225,6 +249,7 @@ function bookCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       marketData,
       timezone,
       heldMarkets: deps.venues.heldMarkets(),
+      ...(deps.edition?.rebalance === undefined ? {} : { form: deps.edition.rebalance }),
     }),
     createReconcileCommand({ portfolio, timezone, baseCurrency: deps.config.baseCurrency }),
     createWatchlistCommand({ profiles, marketData, timezone }),
@@ -272,6 +297,7 @@ function suggestionCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
       ...suggestionReportDeps({ suggestions, marketData, profiles }, deps.config),
       coverage: alerts,
       venues: deps.venues,
+      ...(deps.edition?.suggest === undefined ? {} : { analysis: deps.edition.suggest }),
     }),
     createReflectCommand({ suggestions, factorLog: deps.factorLog }),
   ]

@@ -69,10 +69,12 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `binance` `binance-futures` `alternative-me` | giá và nến crypto; funding, open interest (kèm mức đổi) và tỷ lệ long/short; tâm lý | không |
 | `bybit` | nến crypto cho các mã mà spot `binance` không niêm yết | không |
 | `mexc` | nến và giá crypto cho các mã mà cả `binance` lẫn `bybit` đều không niêm yết | không |
-| `coingecko` | nguồn dự phòng cuối cho bảng crypto; nguồn duy nhất tra một ký hiệu nằm ngoài mọi bảng; tỷ giá mà một coin thanh toán giao dịch so với một tiền pháp định | `COINGECKO_API_KEY` |
+| `coingecko` | nguồn dự phòng cuối cho bảng crypto; nguồn duy nhất tra một ký hiệu nằm ngoài mọi bảng; tỷ giá mà một coin thanh toán giao dịch so với một tiền pháp định; lịch sử tỷ giá đồng bằng giá USDT tính theo đồng, đứng sau `yahoo` | `COINGECKO_API_KEY` (tùy chọn) |
 | `vndirect` | công cụ VN, nến, dữ liệu cơ bản, sự kiện, dòng tiền, room ngoại, khuyến nghị của giới môi giới, vĩ mô VN, giá hàng hóa hằng ngày, tin tức VN | không |
-| `entrade` | giá và nến VN; đứng sau `vietcap-chart` cho giá của một chỉ số, nhưng đứng trước nó ở phần nến (nó chỉ vẽ bốn chỉ số tiêu đề) | không |
+| `vndirect-index` | chỉ số mà daemon đọc: lịch sử ngày, đứng trước `entrade` và `vietcap-chart`; tách riêng khỏi `vndirect` để một lần hỏng của chỉ số không làm tạm dừng nến cổ phiếu | không |
+| `entrade` | giá và nến VN; đứng sau `vietcap-chart` cho giá của một chỉ số, đứng sau `vndirect-index` ở nến chỉ số (nó chỉ vẽ bốn chỉ số tiêu đề) | không |
 | `vietcap` | thành phần rổ chỉ số VN (`vn30`, `vn100`) và trade sides theo từng mã | không |
+| `vps-board` | thành phần rổ chỉ số VN, đứng sau `vietcap`; chỉ trả lời khi mọi mã VN30 của nó đều nằm trong danh sách VN100 | không |
 | `kbsec` | trade sides VN theo từng mã, trước `vietcap` | không |
 | `hsx` `ssi` | các mã đang bị giám sát, trộn giữa dịch vụ niêm yết HOSE và một bảng công ty chứng khoán cũng mang HNX | không |
 | `vietcap-board` | bảng giá VN trực tiếp trong một lần đọc: giá phiên và room ngoại, đứng sau `vndirect` cho cả hai | không |
@@ -92,13 +94,15 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `coinmarketcap` `coinlore` | bảng crypto xếp hạng mà khâu sàng lọc chọn tập công cụ từ đó, không khóa, trong một yêu cầu; `coinlore` đứng thứ ba | không |
 | `coinbase` | giá USD của một coin thanh toán, từ một sàn có giao dịch cặp đó; cũng báo giá và nến ngày của crypto đã quy đổi sang USDT, nguồn cuối cùng mà người dùng ở Mỹ luôn gọi được | không |
 | `er-api` | FX tiền pháp định, đứng sau `yahoo` | không |
+| `vietcombank` | lịch sử tỷ giá đồng, đứng sau `yahoo` và `coingecko`: trung điểm giữa giá mua chuyển khoản và giá bán của ngân hàng, mỗi ngày làm việc một lần đọc | không |
 | `cftc` | positioning hợp đồng tương lai vàng: báo cáo Commitments of Traders hằng tuần | không |
 
 Có một loại được khai nhưng **chưa định tuyến**: dòng tiền ròng của ETF spot crypto. Chưa nhà cung cấp nào được kiểm chứng trên phản hồi thật, nên mục `etf-flows` của bản tin báo `unavailable` chứ không hỏng.
 
 **Các nguồn scrape VN và các bảng vàng khá mong manh**, và việc chúng bật mặc định không thay đổi điều đó:
 
-- `vndirect`, `entrade` và `vietcap` đọc các endpoint nội bộ của công ty chứng khoán: không tài liệu, không SLA.
+- `vndirect`, `vndirect-index`, `entrade`, `vietcap` và `vps-board` đọc các endpoint nội bộ của công ty chứng khoán: không tài liệu, không SLA.
+- `vietcombank` đọc nguồn cấp trên website của chính ngân hàng.
 - `cafef` đọc chính AJAX handler của một trang tiêu dùng, và công bố các dòng mà giá trị với khối lượng tự mâu thuẫn nhau; các dòng đó bị bỏ chứ không được ghi.
 - `pnj` đọc endpoint của chính cửa hàng.
 - `giavang` là API cộng đồng do một người vận hành.
@@ -283,6 +287,8 @@ Một phiên chạy kết thúc theo một trong bốn cách:
 | `error` | Phiên chạy qua hết các cổng rồi không ghi được (nhiều khả năng do kho lưu). Chạy lại là an toàn. |
 
 `error` không phải giữ nguyên. Giữ nguyên nghĩa là "đã đánh giá và bác bỏ", và là một câu trả lời thật kèm các mã lý do dẫn tới nó. `error` nghĩa là việc đánh giá chưa bao giờ được ghi.
+
+Một đề xuất có luận điểm hoặc có phiên tranh luận đứng sau thì, ở bất cứ nơi nào bạn đọc nó (`/suggest`, ứng dụng chat, thẻ đề xuất và hộp Vì sao? trên trang văn phòng), mở đầu bằng một dòng nói đây là nội dung do AI tạo và không phải khuyến nghị đầu tư. Dòng này được thêm lúc hiển thị: nó không bao giờ được lưu cùng đề xuất và không mô hình nào đọc nó. Nơi màn hình đã hiện dòng này cho cả phiên (banner của chat trên terminal, khung chat trên trang văn phòng), câu trả lời `/suggest` không lặp lại nó.
 
 #### Độ sâu tranh luận
 
@@ -679,6 +685,8 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` ở mỗi
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
+Khối của mỗi thị trường in giá, độ rộng, tin của các mã bản tin theo dõi, và khi thị trường có số liệu: phái sinh, dòng tiền của bên mua chủ động, tâm lý và chênh lệch giá vàng trong nước với thế giới, mỗi số một dòng "Nhãn: giá trị" như `/overview`. Phần còn lại của thị trường xem bằng `/overview <thị trường>`. Bản tin trên CLI, Telegram và trang văn phòng có cùng các khối theo cùng thứ tự.
+
 Khi thị trường chính là Việt Nam, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
 cùng phần nhìn lại các câu chuyện trước.
 
@@ -804,6 +812,8 @@ Một mã đã được đề xuất trong ngày thì được phục vụ từ 
 
 Chi phí của bản tin nằm dưới một đường kẻ ở tận cuối, vì nó thuộc về cả bản tin. Việc tách theo thị trường giúp một con số không bị báo hai lần dưới hai tiêu đề: mức chênh vàng trong nước thuộc khối của `gold-vn`, còn vị thế hợp đồng tương lai thuộc khối của `gold`.
 
+Bản tin có một đề xuất do mô hình lập luận (mục đề xuất) thì mở đầu bằng cùng dòng nội dung do AI tạo, trong CLI, trong ứng dụng chat và trên trang văn phòng; bản tin không có đề xuất nào thì không.
+
 **Thời điểm.** Giờ gửi mặc định là 08:15 theo múi giờ **của thị trường**: 08:15 ở TP.HCM, không phải 08:15 UTC và không phải giờ ở nơi bạn đang ngồi.
 
 Bản tin chỉ được gửi trước giờ mở cửa. Thị trường giao dịch suốt ngày, hoặc ngày thị trường nghỉ, vẫn tính là trước giờ mở. Nên bản tin không bao giờ được dựng hay gửi giữa phiên hoặc sau giờ đóng. Trước khi tốn token nào, một phép kiểm nhanh xác nhận phiên trước đã tạo ra một cây nến.
@@ -870,6 +880,8 @@ Các lệnh:
 - `/themes show` hiện mọi chủ đề còn trong danh sách (đang theo dõi, đã kết thúc hoặc chờ duyệt) như lần đọc cuối, miễn phí. Chủ đề đã bỏ hoặc đã dừng theo dõi không hiện nữa.
 - `/themes approve|reject|retire <id>` chuyển trạng thái một chủ đề.
 - Qua MCP chỉ có công cụ chỉ-đọc `themes_view`.
+
+Báo cáo `/themes` mở đầu bằng cùng dòng nội dung do AI tạo; danh sách chủ đề trên trang văn phòng cũng mở đầu bằng dòng này. Mô hình được hỏi về báo cáo sau đó đọc nó mà không có dòng ấy.
 
 Chuyên viên phân tích chủ đề dùng `[[model_tiers.themes]]` khi được cấu hình, nếu không thì dùng `[[models]]`.
 
@@ -996,6 +1008,8 @@ Vì vậy các lưu ý của chính bảng cùng `market-data.universe-shallow` 
 
 **Một lưu ý refresh nêu tên loại dữ liệu của nó.** `/refresh` in mỗi loại dữ liệu thành một dòng. `/overview` và `/brief` gom mọi lưu ý vào một danh sách không trùng lặp, nơi một ghi chú như `1 of 23 pulls landed` sẽ khiến bạn hỏi "của cái gì?". Nên câu của mỗi lưu ý nêu tên loại dữ liệu dù nó hiện ở đâu, và màn hình refresh in các ghi chú dưới thị trường chứ không dưới một dòng sẽ lặp lại tên loại.
 
+**Lần làm mới thất bại được các lần đọc sau nêu tên.** Khi một lần làm mới theo lịch không lấy được một loại dữ liệu, hoặc không thay được nên giữ bản cũ, dữ liệu bạn đọc sau đó không mới hơn trước, nhưng chỉ nhìn ngày thì trông như còn hiện hành. Vì vậy mọi lần đọc sau đó của thị trường ấy mang một ghi chú nêu tên loại dữ liệu và phiên mà dữ liệu không mới hơn, ví dụ "Lần làm mới gần nhất của lịch sử giá không thành công; dữ liệu không mới hơn phiên 03/11/2026." Ghi chú biến mất khi một lần làm mới sau của loại đó thành công. Loại mang ghi chú này không còn bị tính vào ngày chung "đang dùng dữ liệu dừng ở phiên ...", nên chỉ được nêu một lần. Loại thất bại trước khi kịp ghi gì thì không để lại ghi chú.
+
 **Ai đã điều khiển một phiên được ghi một lần, hoặc không ghi.** Mỗi lần refresh ghi tỷ lệ bên mua/bên bán chủ động (bên nào đã chủ động khớp lệnh) cho mỗi mã bạn nắm hoặc theo dõi. Không nguồn nào đứng sau nó cho phép hỏi theo ngày. `kbsec` trả về phiên mà bảng của nó đang giữ lúc đó, còn `vietcap` lật trang ngược từ các lệnh khớp mới nhất. Nên tỷ lệ này chỉ đọc được trong khoảng từ lúc phiên chốt tới lần mở cửa kế tiếp.
 
 Lịch refresh đặt hai lượt trong khoảng đó (15:15 và 07:30 với bảng VN). Sau giờ mở cửa thì phiên đó mất hẳn. Vì vậy mã nào lượt quét không ghi được sẽ được nêu tên dưới thị trường của nó trong màn hình `/refresh`: một chỗ hụt mà không lượt nào sau lấp được là một lỗ hổng vĩnh viễn trong chuỗi. Lượt quét chỉ phủ các thị trường mà refresh phủ, nên `/refresh crypto` không tốn ngân sách của nguồn VN nào.
@@ -1058,7 +1072,7 @@ Toàn bộ tập:
 
 `market_price` `market_bars` `market_overview` `market_events` `market_accounts` `market_news` `market_screen` `market_sector_strength` `market_sentiment` `market_funding` `macro_risk` `vn_foreign_flow` `vn_futures_basis` `portfolio_view` `portfolio_history` `portfolio_review` `portfolio_rebalance` `portfolio_record` `portfolio_update` `portfolio_remove` `watchlist_update` `profile_view` `profile_update` `profile_segment` `suggestion_run` `suggestion_batch` `suggestion_track_record` `alert_manage` `brief_build` `brief_manage` `themes_view`
 
-**Lệnh gạch chéo** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, cộng `/trade`. `/trade` đặt lệnh khi một sàn có khóa giao dịch, nếu không thì nêu tên các khóa nó cần. Cú pháp đầy đủ: [Lệnh](lenh.md).
+**Lệnh gạch chéo** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/glossary` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, cộng `/trade`. `/trade` đặt lệnh khi một sàn có khóa giao dịch, nếu không thì nêu tên các khóa nó cần. Cú pháp đầy đủ: [Lệnh](lenh.md).
 
 **Chat trong terminal** dùng cùng các lệnh gạch chéo như mọi kênh:
 
@@ -1085,7 +1099,7 @@ Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background
 
 Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không phủ: nến, tin tuyển chọn, sức mạnh ngành, dòng tiền ngoại, rà soát danh mục, bảng thành tích. Agent gọi các công cụ giao dịch có kiểu.
 
-Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán.
+Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán. Thị trường mà nhóm bạn đã tắt, và bạn không nắm giữ hay theo dõi mã nào ở đó, sẽ không được tìm khi gõ mã trần: `BTC` được hiểu là đồng coin, còn quỹ Mỹ cùng tên phải gõ `equity-us:BTC`. Vàng thế giới không phải nhóm bạn tắt nên `XAUUSD` vẫn đọc được.
 
 **HTTP** (chỉ trên máy này, xác thực bằng bearer token). `openalpha start` mở một API cục bộ theo mặc định (`[api] enabled = false` để tắt) (xem [`[api]`](cau-hinh.md)).
 
@@ -1613,7 +1627,8 @@ Phân bổ không có bề mặt riêng: `portfolio_rebalance` và `/rebalance` 
 
 Thẻ Danh mục của [trang văn phòng](van-hanh.md#trang-văn-phòng) ghi đúng những dòng mà `/record`, `/update` và `/delete` ghi, qua cùng các bước kiểm tra, và không bao giờ gửi lệnh.
 
-- **Mọi loại dòng.** Biểu mẫu ghi mở sẵn Mua hoặc Bán; mục "Khác" có cổ tức tiền mặt (số tiền thực nhận, theo tiền tệ của thị trường), cổ tức bằng cổ phiếu hay cổ phiếu thưởng (số cổ phiếu nhận thêm), chia tách (số cổ phiếu thêm vào, số âm khi gộp cổ phiếu), mua cổ phiếu quyền (kèm giá mua; để trống phí thì ghi là 0), chuyển tiền (giữa hai sàn của bạn; chọn cùng một sàn ở hai đầu thì bị từ chối trước khi gửi), nạp tiền, rút tiền, phí và lỗ đã thực hiện (khoản lỗ từ trước khi bạn ghi sổ). Một thay đổi số cổ phiếu cho thấy sau khi ghi bạn sẽ nắm bao nhiêu. Lịch sử liệt kê mọi loại, có bộ lọc, và dòng nào cũng sửa hoặc xóa được, có hoàn tác.
+- **Mọi loại dòng.** Biểu mẫu ghi có ba nút Mua, Bán và Khác, mở sẵn Mua hoặc Bán; nút "Khác" mở danh sách gồm cổ tức tiền mặt (số tiền thực nhận, theo tiền tệ của thị trường), cổ tức bằng cổ phiếu hay cổ phiếu thưởng (số cổ phiếu nhận thêm), chia tách (số cổ phiếu thêm vào, số âm khi gộp cổ phiếu), mua cổ phiếu quyền (kèm giá mua; để trống phí thì ghi là 0), chuyển tiền (giữa hai sàn của bạn; chọn cùng một sàn ở hai đầu thì bị từ chối trước khi gửi), nạp tiền, rút tiền, phí và lỗ đã thực hiện (khoản lỗ từ trước khi bạn ghi sổ). Một thay đổi số cổ phiếu cho thấy sau khi ghi bạn sẽ nắm bao nhiêu. Lịch sử liệt kê mọi loại, có bộ lọc, và dòng nào cũng sửa hoặc xóa được, có hoàn tác.
+- **Danh mục đã làm ra bao nhiêu.** Danh mục > Hiệu quả liệt kê, theo tiền tệ của sổ, số tiền bạn đã nạp ròng sau khi trừ tiền rút, lãi hoặc lỗ đã chốt, phần cổ tức nằm trong đó, phí giao dịch còn trong phần bạn đang giữ, và tổng lãi lỗ so với số đã nạp kèm tỷ lệ phần trăm. Các số này là những số `/portfolio` in; riêng cổ tức thì `/portfolio` không in thành một dòng riêng. Lãi hoặc lỗ đã chốt vẫn hiện khi có một mã chưa có giá; phí và tổng thì phải chờ có tổng tài sản.
 - **Tỷ giá bạn đã trả.** Khi một dòng dùng tiền tệ khác với tiền của sổ và cần tỷ giá, như nạp USDT vào một sổ tính bằng VND hay mua ở một sàn không giữ USDT, ô Tỷ giá hiện ra, điền sẵn giá thị trường ngày đó; hãy sửa thành tỷ giá bạn thực trả. Ô này không được để trống, nên trang không bao giờ lưu một dòng như vậy ở mức giá bạn chưa thấy. Dòng trả bằng USDT mà sàn đã giữ (mua, chuyển tiền, phí) không có ô tỷ giá. Nếu không đọc được giá trong ngày, biểu mẫu nói rõ, cho nút Thử lại và chưa cho lưu. Sửa một dòng thì giữ tỷ giá đã ghi của nó.
 - **Đối chiếu với sàn.** Lịch sử > Đối chiếu với sàn đọc từng sàn đã có khóa, như `/reconcile`: khớp, hoặc sàn đang giữ nhiều hơn hay ít hơn sổ bao nhiêu, kèm một nút mở biểu mẫu ghi điền sẵn phần chênh (giá để bạn tự điền). Sàn chưa có khóa thì nêu tên biến của nó và dẫn tới Cài đặt > Sàn giao dịch; sàn không đọc được số dư, hoặc không trả lời, thì nói vậy. "Đồng bộ lệnh khớp từ <sàn>" làm đúng việc của `/record sync`: đọc các lệnh đã khớp, ghi những lệnh sổ còn thiếu, và không đặt lệnh nào. Nếu trả lời chậm, trang đọc lại sổ chứ không gửi đồng bộ lần hai.
 - **Lệnh.** Khi có sàn đặt lệnh được và `[api] orders` đang bật, Danh mục có thẻ *Lệnh*.

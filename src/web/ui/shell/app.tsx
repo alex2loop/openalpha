@@ -35,11 +35,11 @@ export function App() {
   }
 
   if (isStarting.value) {
-    return <StatusLine text={tr('ui.office.starting')} />
+    return <StatusLine text={tr('ui.office.starting')} isBusy />
   }
 
   if (brand.value === undefined) {
-    return <StatusLine text={tr('ui.office.loading')} />
+    return <StatusLine text={tr('ui.office.loading')} isBusy />
   }
 
   if (authState.value !== 'ok') {
@@ -47,11 +47,7 @@ export function App() {
   }
 
   if (state.value === undefined) {
-    const failure = sessionFailure.value
-
-    return (
-      <StatusLine text={failure === undefined ? tr('ui.office.loading') : toFailureText(failure)} />
-    )
+    return <SessionWait />
   }
 
   const { status } = connection.value
@@ -93,5 +89,17 @@ function PageBottom({ hasCommandBar }: { readonly hasCommandBar: boolean }) {
       <ReaderHost />
       <Announcer />
     </>
+  )
+}
+
+// Before the first state arrives: the office loading, or why the session could not start.
+function SessionWait() {
+  const failure = sessionFailure.value
+
+  return (
+    <StatusLine
+      text={failure === undefined ? tr('ui.office.loading') : toFailureText(failure)}
+      isBusy={failure === undefined}
+    />
   )
 }

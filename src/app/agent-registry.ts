@@ -2,17 +2,13 @@ import type { App, ServiceProvider, Services } from '@/core/container'
 import type { OperatorMessage } from '@/core/errors'
 import type { AgentId } from '@/core/ids'
 import type { LoggerResource } from '@/core/logging/logger'
-import type { AgentBuildContext, AgentProfile, UserAgentSource } from '@/engine/api'
+import type { AgentBuildContext, AgentProfile } from '@/engine/api'
+import type { UserAgentSource } from '@/engine/node-api'
 import { ConfigError } from '@/core/errors'
 import { agentId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
-import {
-  assertAgentTomlMatchesSourceId,
-  buildUserAgents,
-  loadAgentFromText,
-  readUserAgents,
-  userAgentsDir,
-} from '@/engine/api'
+import { assertAgentTomlMatchesSourceId, loadAgentFromText } from '@/engine/api'
+import { buildUserAgents, readUserAgents, userAgentsDir } from '@/engine/node-api'
 import { validateAgentFocus } from '@/trading/api'
 
 declare module '@/core/container' {

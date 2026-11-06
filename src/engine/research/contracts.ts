@@ -36,9 +36,10 @@ export const MAX_RESEARCH_ERROR_CHARS = 500
 export const RESEARCH_MODEL_TIER = 'research'
 export const RESEARCH_HEAVY_MODEL_TIER = 'research-heavy'
 export const RESEARCH_CRAWLER_ID = 'research-crawler'
+export const RESEARCH_PLANNER_ID = 'research-planner'
 export const RESEARCH_WORKER_IDS = [
   RESEARCH_CRAWLER_ID,
-  'research-planner',
+  RESEARCH_PLANNER_ID,
   'research-reviewer',
   'research-synthesizer',
 ] as const
@@ -88,6 +89,8 @@ export const MAX_GAPS = 12
 export const MAX_GAP_CHARS = 1_000
 export const MAX_GAP_VALUE_ITEMS = 12
 export const MAX_GAP_VALUE_ITEM_CHARS = 500
+export const MAX_AGENT_GAPS = 6
+export const AGENT_STAGE_GAP_RESERVE = 1
 export const MAX_REVIEW_ISSUES = 6
 export const MAX_KEY_EVIDENCE = MAX_CLAIMS_PER_BRANCH
 export const MAX_RISKS = MAX_CLAIMS_PER_BRANCH

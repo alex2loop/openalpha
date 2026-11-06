@@ -1,5 +1,5 @@
 import type { TradingConfig } from '@/trading/kernel/config'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { marketRef } from '@/trading/kernel/instrument'
 import { isWeekendDay } from '@/trading/markets/calendar'
 import { cryptoManifest } from '@/trading/markets/crypto/market'

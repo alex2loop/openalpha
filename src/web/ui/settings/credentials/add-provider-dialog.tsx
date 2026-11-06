@@ -25,6 +25,7 @@ export function openAddProviderDialog(request: AddProviderRequest): void {
     title: tr('ui.office.settings.providers'),
     body: <AddProviderBody request={request} />,
     footer: <Button onClick={request.onBack}>{tr('ui.office.settings.toSettings')}</Button>,
+    onDismiss: request.onBack,
   })
 }
 

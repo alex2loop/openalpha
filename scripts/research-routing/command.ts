@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { mkdtemp, open, realpath, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
 
 import type { Booted } from '@/app/types'
@@ -43,7 +43,9 @@ export async function runCommand(options: ReadonlyMap<string, string>): Promise<
   const outputPath = requiredPath(options, 'output')
   const configPath = options.get('config')
   const loadedConfig = await loadConfig(
-    configPath === undefined ? undefined : { configPath: resolve(expandHome(configPath)) }
+    configPath === undefined
+      ? undefined
+      : { configPath: resolve(expandHome(configPath, homedir())) }
   )
   assertEphemeralStorage(loadedConfig.raw.storage)
   const { taskSet, raw } = await loadRoutingTaskSet()
@@ -269,7 +271,7 @@ export function requiredPath(options: ReadonlyMap<string, string>, name: string)
   if (value === undefined || value.trim() === '') {
     throw new RoutingEvalError('explicit_output', `--${name} is required`)
   }
-  return resolve(expandHome(value))
+  return resolve(expandHome(value, homedir()))
 }
 
 function assertEphemeralStorage(
@@ -281,7 +283,7 @@ function assertEphemeralStorage(
   if (storage.engine === 'postgres') {
     throw new RoutingEvalError('live_storage', 'routing evaluation refuses PostgreSQL storage')
   }
-  if (storage.path !== undefined && isAbsolute(expandHome(storage.path))) {
+  if (storage.path !== undefined && isAbsolute(expandHome(storage.path, homedir()))) {
     throw new RoutingEvalError(
       'live_storage',
       'routing evaluation requires default or relative SQLite storage'

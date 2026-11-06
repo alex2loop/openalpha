@@ -10,7 +10,11 @@ import type {
 } from '@/trading/kernel/market/market-data'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { SourceId } from '@/trading/kernel/source/source-id'
-import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
+import type {
+  SourceKind,
+  SourceProvenance,
+  SourceResult,
+} from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
 import type { TradingCalendar } from '@/trading/markets/types'
@@ -21,7 +25,7 @@ import {
   provenanceOf,
   unavailable,
 } from '@/trading/kernel/source/source-result'
-import { reportedCaveats } from '@/trading/markets/equity-vn/caveats'
+import { unavailableCaveats } from '@/trading/markets/equity-vn/caveats'
 import {
   deriveVnMacroRisk,
   foreignFlowStress,
@@ -120,6 +124,7 @@ export async function resolveVnMacroRisk(
   }
 
   const evaluation = buildEvaluation({
+    deps,
     reads,
     globalValues,
     cross,
@@ -166,6 +171,7 @@ async function resolveTrailingFxRate(
 }
 
 interface BuildEvaluationInput {
+  readonly deps: MarketDeps
   readonly reads: MacroReads
   readonly globalValues: ReturnType<typeof mergeMacroValues>
   readonly cross: CrossSection
@@ -182,7 +188,7 @@ function buildEvaluation(input: BuildEvaluationInput): {
   readonly values: Readonly<Partial<Record<MacroSeriesId, number>>>
   readonly view: MacroRiskView
 } {
-  const { reads, globalValues, cross, news, trailingFxRate, asOf } = input
+  const { deps, reads, globalValues, cross, news, trailingFxRate, asOf } = input
   const local = reads.local
   const fxRate = reads.fx.kind === 'available' ? reads.fx.value.rate : undefined
 
@@ -201,6 +207,7 @@ function buildEvaluation(input: BuildEvaluationInput): {
     base: {
       values,
       observationDates: { ...globalValues.observationDates, ...observationDates },
+      ...(deps.unservedMacro === undefined ? {} : { missingReasons: deps.unservedMacro }),
       region: VN_MARKET_REGION,
       asOf,
       provenance: readProvenance(reads),
@@ -233,10 +240,10 @@ export async function runMacroRisk(
 
 function readCaveats(reads: MacroReads): readonly Caveat[] {
   return dedupeCaveats([
-    ...readCaveatsOf(reads.local),
+    ...readCaveatsOf(reads.local, 'macro'),
     ...globalCaveats(reads.global),
-    ...readCaveatsOf(reads.news),
-    ...readCaveatsOf(reads.fx),
+    ...readCaveatsOf(reads.news, 'news'),
+    ...readCaveatsOf(reads.fx, 'fx'),
   ])
 }
 
@@ -246,20 +253,20 @@ function readCaveats(reads: MacroReads): readonly Caveat[] {
  *  A provider that missed while another answered is not reported at all, the same way failover
  *  stays quiet about a primary it passed over. What the merge ended up without is the composite's
  *  coverage check to state, in the name of the driver that is absent rather than the vendor that
- *  refused — a reader cannot act on either, but only one of them is the fact. */
+ *  refused — a reader cannot act on either, but only one of them is the fact. When none answered,
+ *  a leg this edition does not serve is no failure (`unavailableCaveats`), and a missing key is
+ *  not one either: its provider is never registered, so it makes no leg, and boot and `doctor`
+ *  name the variable. */
 function globalCaveats(reads: readonly SourceResult<MacroSnapshot>[]): readonly Caveat[] {
   const served = reads.filter((read) => read.kind === 'available')
 
   return served.length > 0
     ? served.flatMap((read) => read.caveats)
-    : reportedCaveats(
-        reads.flatMap((read) => read.caveats),
-        'macro'
-      )
+    : reads.flatMap((read) => readCaveatsOf(read, 'macro'))
 }
 
-function readCaveatsOf(result: SourceResult<unknown>): readonly Caveat[] {
-  return result.kind === 'available' ? result.caveats : reportedCaveats(result.caveats, 'macro')
+function readCaveatsOf(result: SourceResult<unknown>, kind: SourceKind): readonly Caveat[] {
+  return result.kind === 'available' ? result.caveats : unavailableCaveats(result, kind)
 }
 
 function readProvenance(reads: MacroReads): readonly SourceProvenance[] {

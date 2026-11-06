@@ -1,4 +1,26 @@
+import { type Signal, signal } from '@preact/signals'
+
+const STORED_FLAG = '1'
+
 type StorageArea = 'session' | 'local'
+
+/** A yes this browser remembers: read once, and `set` turns it on and stores it. */
+interface StoredFlag {
+  readonly flag: Signal<boolean>
+  readonly set: () => void
+}
+
+export function createStoredFlag(key: string): StoredFlag {
+  const flag = signal(readStorage('local', key) === STORED_FLAG)
+
+  return {
+    flag,
+    set: () => {
+      flag.value = true
+      writeStorage('local', key, STORED_FLAG)
+    },
+  }
+}
 
 // Private windows, blocked site data and a full quota all throw here; each reads as absent.
 export function readStorage(area: StorageArea, key: string): string | undefined {

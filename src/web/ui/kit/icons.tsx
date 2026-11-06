@@ -94,6 +94,14 @@ export function ExternalIcon({ class: className }: IconProps) {
   )
 }
 
+export function DownloadIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+    </svg>
+  )
+}
+
 export function TrashIcon({ class: className }: IconProps) {
   return (
     <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
@@ -133,16 +141,6 @@ export function CollapseIcon({ class: className }: IconProps) {
   return (
     <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
       <path d="m13 17 5-5-5-5M6 17l5-5-5-5" />
-    </svg>
-  )
-}
-
-// The page with the information alone: Info only.
-export function InfoOnlyIcon({ class: className }: IconProps) {
-  return (
-    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path d="M7 9h10M7 13h10M7 17h6" />
     </svg>
   )
 }
@@ -357,6 +355,15 @@ export function InfoIcon({ class: className }: IconProps) {
     <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
       <circle cx="12" cy="12" r="10" />
       <path d="M12 16v-4M12 8h.01" />
+    </svg>
+  )
+}
+
+export function HelpIcon({ class: className }: IconProps) {
+  return (
+    <svg class={classOf(className)} aria-hidden="true" {...SVG_PROPS}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" />
     </svg>
   )
 }

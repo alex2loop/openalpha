@@ -62,6 +62,7 @@ import {
   foreignNetFlow,
   netFlowValue,
   proprietaryFlowRatio,
+  proprietaryNetFlow,
 } from '@/trading/markets/equity-vn/tape/flows'
 import { scoreFactors } from '@/trading/markets/factor-scoring'
 import { sectorStrength } from '@/trading/markets/sector-strength'
@@ -250,7 +251,7 @@ function stockFactorInputs(
     input('speculative-turnover', cross.speculativeTurnover.get(key), provenance),
     withMetrics(
       input('foreign-flow', foreignFlowRatio(evidence.flows, evidence.bars), provenance),
-      foreignFlowMetrics(evidence)
+      netFlowMetrics('foreign-net-flow', foreignNetFlow(evidence.flows, evidence.bars))
     ),
     proprietaryFlowInput(evidence, cross, provenance),
     withMetrics(
@@ -280,7 +281,10 @@ function proprietaryFlowInput(
     return { ...input('proprietary-flow', undefined, provenance), inapplicable: true }
   }
 
-  return input('proprietary-flow', proprietaryFlowRatio(evidence.flows, evidence.bars), provenance)
+  return withMetrics(
+    input('proprietary-flow', proprietaryFlowRatio(evidence.flows, evidence.bars), provenance),
+    netFlowMetrics('proprietary-net-flow', proprietaryNetFlow(evidence.flows, evidence.bars))
+  )
 }
 
 /** The moving average the trend statistic is measured against — the level a "wait for the trend to
@@ -293,10 +297,11 @@ function levelMetrics(evidence: NameEvidence): readonly FactorMetric[] {
   )
 }
 
-function foreignFlowMetrics(evidence: NameEvidence): readonly FactorMetric[] {
-  const net = foreignNetFlow(evidence.flows, evidence.bars)
-
-  return net === undefined ? [] : [{ id: 'foreign-net-flow', ...net }]
+function netFlowMetrics(
+  id: 'foreign-net-flow' | 'proprietary-net-flow',
+  net: ReturnType<typeof foreignNetFlow>
+): readonly FactorMetric[] {
+  return net === undefined ? [] : [{ id, ...net }]
 }
 
 function priceMetric(

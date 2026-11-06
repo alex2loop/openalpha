@@ -1,23 +1,44 @@
+import { useEffect } from 'preact/hooks'
+
+import type { DealerBoardWire, SessionRangeWire } from '@/app/server/wire/quote-detail'
 import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
-import { formatDay, translateDisplayText } from '@/i18n'
+import { formatDay, termOfKind, termOfTicker, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
-import { findMarket, findQuote, keyOf, stopsBlock } from '@/web/state/market'
+import {
+  findMarket,
+  findQuote,
+  keyOf,
+  printDisplayOf,
+  quotesBlock,
+  stopsBlock,
+} from '@/web/state/market'
 import { isRefreshable, useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
-import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
-import { joinInline } from '@/web/text/glyphs'
-import { boardScaleNotes, formatBarePrice, formatMarketPrice } from '@/web/text/market-price'
+import {
+  formatCompactAmount,
+  formatPrice,
+  formatSignedPercent,
+  toneOfPercent,
+} from '@/web/text/figures'
+import { INLINE_SEPARATOR, joinInline } from '@/web/text/glyphs'
+import {
+  boardScaleNotes,
+  formatDealerBoard,
+  formatMarketPrice,
+  toTickFormatter,
+} from '@/web/text/market-price'
 import { buildDayKey, formatWhen } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
+import { Term } from '@/web/ui/glossary/term'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { RefreshMarketsButton } from '@/web/ui/market/refresh-button'
 import { type ChartLevel, PriceChart } from '@/web/ui/ticker/chart'
-import { useLiveQuote } from '@/web/ui/ticker/live-quote'
+import { type LiveQuote, useLiveQuote } from '@/web/ui/ticker/live-quote'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
 // Calendar days read, enough to hold the sessions shown across weekends and holidays.
@@ -37,13 +58,18 @@ interface PriceBlockProps {
 interface PriceFacts {
   readonly value: number
   readonly changePct?: number
-  readonly kind?: string
+  /** The name publishes a level, not a price. */
+  readonly isLevel?: boolean
   /** Which session the price belongs to, when it is not the one trading now. */
   readonly session: string
   /** When the price was read (epoch ms); absent for a close the bars carry, which names its day. */
   readonly readAt?: number
   /** When a price too old to be live was read, in a session still trading. */
   readonly staleAt?: number
+  /** The last settled close, beside a live price so the two are not read as one. */
+  readonly close?: { readonly day: string; readonly value: number }
+  /** A dealer's two sides, where `value` is the sell price. */
+  readonly board?: DealerBoardWire
 }
 
 /** The name, its price with the session it belongs to, and the last 30 sessions with the plan's
@@ -58,15 +84,27 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
 
   const board = findQuote(ticker, market)
   const quote = newerQuote(live.quote, board)
-  const label = board?.label
+  const labelTail = board?.label === undefined ? '' : ` ${INLINE_SEPARATOR} ${board.label}`
+  // An index, a fund or world gold says what it is, in the glossary's words.
+  const term = termOfTicker(ticker) ?? (quote === undefined ? undefined : termOfKind(quote.kind))
+
+  useLiveWhileTrading({ ticker, market }, { quote, live })
 
   return (
     <BlockFrame
-      title={label === undefined ? ticker : `${ticker} · ${label}`}
+      title={`${ticker}${labelTail}`}
       colour="teal"
       icon={<TrendIcon />}
       reading={reading}
       showReadLine={false}
+      titleView={
+        term === undefined ? undefined : (
+          <span>
+            <Term id={term}>{ticker}</Term>
+            {labelTail}
+          </span>
+        )
+      }
       action={
         state.value?.capabilities.quotes !== false && (
           <Button size="small" disabled={live.isBusy} onClick={live.refresh}>
@@ -85,6 +123,28 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   )
 }
 
+// A market that is trading shows its live price, not the close the board fell back to: one read
+// when the page opens, the same one the Lấy giá mới button makes. A market with no session never
+// closes, so it is always trading.
+function useLiveWhileTrading(
+  { ticker, market }: { readonly ticker: string; readonly market: string },
+  { quote, live }: { readonly quote: TradingQuoteWire | undefined; readonly live: LiveQuote }
+): void {
+  const isBoardKnown = quotesBlock.view.value.data !== undefined
+  const held = findMarket(market)
+  const isOpen =
+    held !== undefined &&
+    (held.hasBoard === true || held.session === undefined || held.session.phase === 'open')
+  const canQuote = state.value?.capabilities.quotes !== false
+  const isClose = quote === undefined || quote.closedOn !== undefined
+
+  useEffect(() => {
+    if (isBoardKnown && isOpen && canQuote && isClose) {
+      live.refresh()
+    }
+  }, [ticker, market, isBoardKnown, isOpen])
+}
+
 interface PriceBodyProps extends PriceBlockProps {
   readonly bars: readonly TradingCandleWire[]
   readonly quote: TradingQuoteWire | undefined
@@ -99,13 +159,13 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
 
   return (
     <>
-      <PriceHead market={market} facts={facts} />
+      <PriceHead market={market} facts={facts} range={sessionRangeOf(quote, bars)} />
       {bars.length > 1 && (
         <>
           <PriceChart
             bars={bars}
             levels={levels}
-            formatPrice={(value) => formatBarePrice(market, value, facts.kind)}
+            formatPrice={toTickFormatter(market, facts)}
             formatDay={(day) => formatDay(locale.value, day)}
           />
           <p class="meta">
@@ -138,15 +198,20 @@ function NoPrice({ market }: { readonly market: string }) {
 }
 
 // The price with its move, a warning when it is stale, and where it comes from: scale, session, time.
-function PriceHead({ market, facts }: { readonly market: string; readonly facts: PriceFacts }) {
+interface PriceHeadProps {
+  readonly market: string
+  readonly facts: PriceFacts
+  readonly range: SessionRangeWire | undefined
+}
+
+function PriceHead({ market, facts, range }: PriceHeadProps) {
   const timeZone = state.value?.timeZone
   const readText =
     facts.readAt === undefined || timeZone === undefined
       ? ''
       : tr('ui.office.today.readAt', { time: formatWhen(facts.readAt, timeZone) })
-  const parts = [...boardScaleNotes([market]), facts.session, readText].filter(
-    (part) => part !== ''
-  )
+  const scale = facts.isLevel === true ? [] : boardScaleNotes([market])
+  const parts = [...scale, facts.session, readText].filter((part) => part !== '')
 
   return (
     <>
@@ -157,15 +222,76 @@ function PriceHead({ market, facts }: { readonly market: string; readonly facts:
         </p>
       )}
       <p class="big-figure">
-        {formatMarketPrice(market, facts.value, facts.kind)}{' '}
+        {formatMarketPrice(market, facts.value, facts)}{' '}
         {facts.changePct !== undefined && (
           <span class={`pill is-${toneOfPercent(facts.changePct)}`}>
             {formatSignedPercent(facts.changePct)}
           </span>
         )}
       </p>
+      {facts.board !== undefined && <DealerLine market={market} board={facts.board} />}
+      {range !== undefined && <p class="meta">{formatSessionRange(market, range)}</p>}
+      {facts.close !== undefined && (
+        <p class="meta">
+          {tr('ui.office.ticker.closeRow', {
+            day: formatDay(locale.value, facts.close.day),
+            price: formatMarketPrice(market, facts.close.value, facts),
+          })}
+        </p>
+      )}
     </>
   )
+}
+
+function DealerLine({
+  market,
+  board,
+}: {
+  readonly market: string
+  readonly board: DealerBoardWire
+}) {
+  const { sides, spread } = formatDealerBoard(market, board)
+
+  return <p class="meta">{joinInline([sides, ...(spread === undefined ? [] : [spread])])}</p>
+}
+
+// A live session's range when the quote carries one, else the last settled bar's, dated either way.
+function sessionRangeOf(
+  quote: TradingQuoteWire | undefined,
+  bars: readonly TradingCandleWire[]
+): SessionRangeWire | undefined {
+  if (quote?.session !== undefined) {
+    return quote.session
+  }
+
+  const last = bars.at(-1)
+
+  if (last === undefined) {
+    return undefined
+  }
+
+  return {
+    day: last.at,
+    low: last.low,
+    high: last.high,
+    ...(last.volume > 0 ? { volume: last.volume } : {}),
+  }
+}
+
+function formatSessionRange(market: string, range: SessionRangeWire): string {
+  const display = printDisplayOf(market)
+  const bounds = {
+    day: formatDay(locale.value, range.day),
+    low: formatPrice(range.low, display),
+    high: formatPrice(range.high, display),
+  }
+
+  return range.volume === undefined
+    ? tr('trading.render.quote.session', bounds)
+    : tr('trading.render.quote.sessionVolume', {
+        ...bounds,
+        volume: formatCompactAmount(range.volume),
+      })
 }
 
 // A name the daemon cannot find bars for has none to draw, which is an answer: the card says so.
@@ -173,7 +299,8 @@ function readBars(ticker: string, market: string): (abort: AbortSignal) => Promi
   return async (abort) => {
     const timeZone = state.value?.timeZone
 
-    if (timeZone === undefined) {
+    // A dealer's board has no series of its own: the bars held for it are world gold in USD.
+    if (timeZone === undefined || findMarket(market)?.hasBoard === true) {
       return { bars: [] }
     }
 
@@ -219,9 +346,11 @@ function resolvePrice(
     return {
       value: quote.last,
       ...(quote.changePct === undefined ? {} : { changePct: quote.changePct }),
-      kind: quote.kind,
+      isLevel: quote.isLevel,
+      ...(quote.board === undefined ? {} : { board: quote.board }),
       session: describeSession(market, quote.closedOn),
       ...toQuoteTimes(quote),
+      ...liveClose(quote, bars),
     }
   }
 
@@ -243,6 +372,18 @@ function resolvePrice(
   return last === undefined
     ? undefined
     : { value: last.close, session: describeSession(market, last.at) }
+}
+
+// A live price states the last settled close beside it, dated, never one in place of the other.
+function liveClose(
+  quote: TradingQuoteWire,
+  bars: readonly TradingCandleWire[]
+): Pick<PriceFacts, 'close'> {
+  const last = bars.at(-1)
+
+  return quote.closedOn !== undefined || quote.staleAt !== undefined || last === undefined
+    ? {}
+    : { close: { day: last.at, value: last.close } }
 }
 
 // When the quote was taken: the newest of its sources' own reading times.

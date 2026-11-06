@@ -1,5 +1,6 @@
 import { resolve as resolvePath } from 'node:path'
 
+import type { ConfigHost, DataLocation } from '@/core/config/paths'
 import type { LogLevel, ResolvedLog } from '@/core/config/resolvers/log'
 import type { ResolvedMcp } from '@/core/config/resolvers/mcp'
 import type { ResolvedModel, ResolveModelInput } from '@/core/config/resolvers/model'
@@ -54,17 +55,6 @@ export type {
   WebSearchProvider,
 } from '@/core/config/resolvers/web-search'
 // biome-ignore lint/performance/noBarrelFile: config/resolve is the sanctioned config facade.
-export {
-  combineInvalidConfigErrors,
-  InvalidConfigError,
-  isEnvName,
-  type KeyEffect,
-  MissingEnvError,
-  missingEnvOf,
-  OperatorConfigError,
-  setEnvCommand,
-  toInvalidConfigError,
-} from '@/core/config/operator-errors'
 export { expandHome, resolveEnvFile } from '@/core/config/paths'
 export { CLIENT_MODEL_PROVIDER } from '@/core/config/resolvers/model'
 export {
@@ -79,6 +69,7 @@ export { toMissingSearchKeyError } from '@/core/config/resolvers/web-search'
 export {
   EXA_SEARCH_TYPES,
   type ExaSearchType,
+  parseRawConfig,
   WEB_SEARCH_PROVIDERS,
 } from '@/core/config/schema'
 export { CURRENCY_CODE_PATTERN } from '@/core/config/schema-sections'
@@ -100,7 +91,7 @@ export function isClientModelSource(source: ModelSource): boolean {
   return source === 'client'
 }
 
-export interface ConfigResolveOptions {
+export interface ConfigResolveOptions extends ConfigHost {
   readonly dataDir?: string
   readonly logLevel?: LogLevel
   readonly modelSource?: ModelSource
@@ -176,15 +167,15 @@ export interface ResolvedConfig {
   readonly extensions: Readonly<Record<string, unknown>>
 }
 
-export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): ResolvedConfig {
-  const dataDirOverride = options?.dataDir
-  const dataDir = resolvePath(
-    dataDirOverride === undefined ? resolveDataDir(raw) : expandHome(dataDirOverride)
-  )
-  const modelSource = options?.modelSource ?? 'config'
+export function resolveConfig(raw: RawConfig, options: ConfigResolveOptions): ResolvedConfig {
+  const { env } = options
+  const location = resolveDataLocation(raw, options)
+  const { dataDir } = location
+  const modelSource = options.modelSource ?? 'config'
   const { models, modelTiers } = resolveModelSection(raw, {
     source: modelSource,
-    ...(options?.deferMissingKeys === undefined ? {} : { deferMissingKey: true }),
+    env,
+    ...(options.deferMissingKeys === undefined ? {} : { deferMissingKey: true }),
   })
 
   const resolved: ResolvedConfig = {
@@ -193,8 +184,8 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
     modelTiers,
     budget: resolveBudget(raw.budget),
     locale: resolveLocale(raw.locale),
-    paths: { dataDir, skillsDirs: resolveDirs(raw.paths?.skills_dirs, dataDir) },
-    log: resolveLog(raw.log, dataDir, options?.logLevel),
+    paths: { dataDir, skillsDirs: resolveDirs(raw.paths?.skills_dirs, location) },
+    log: resolveLog(raw.log, location, options.logLevel),
     channels: raw.channels ?? {},
     schedule: resolveSchedule(raw.schedule),
     loop: resolveLoop(raw.loop),
@@ -203,7 +194,7 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
       maxValueBytes: DEFAULT_MAX_VALUE_BYTES,
       ttlDays: raw.memory?.ttl_days ?? DEFAULT_MEMORY_TTL_DAYS,
     },
-    mcp: resolveMcp(raw.mcp, { deferMissingEnv: options?.deferMissingKeys === true }),
+    mcp: resolveMcp(raw.mcp, { deferMissingEnv: options.deferMissingKeys === true, env }),
     commands: { ratePerMinute: DEFAULT_COMMANDS_RATE_PER_MINUTE },
     api: resolveApi(raw.api),
     notices: resolveNotices(raw.notices),
@@ -213,11 +204,11 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
       check: raw.update?.check ?? DEFAULT_UPDATE_CHECK,
       auto: raw.update?.auto ?? DEFAULT_UPDATE_AUTO,
     },
-    storage: resolveStorageConfig(raw.storage, dataDir),
-    webSearch: resolveWebSearch(isClientModelSource(modelSource) ? undefined : raw.web_search),
+    storage: resolveStorageConfig(raw.storage, location, env),
+    webSearch: resolveWebSearch(isClientModelSource(modelSource) ? undefined : raw.web_search, env),
     research: RESEARCH_LIMITS,
     plugins: {
-      dirs: resolveDirs(raw.plugins?.dirs, dataDir),
+      dirs: resolveDirs(raw.plugins?.dirs, location),
       allowUntrusted: raw.plugins?.allow_untrusted ?? false,
       allowCode: raw.plugins?.allow_code ?? false,
     },
@@ -225,6 +216,13 @@ export function resolveConfig(raw: RawConfig, options?: ConfigResolveOptions): R
   }
 
   return freezeDeep(resolved)
+}
+
+function resolveDataLocation(raw: RawConfig, options: ConfigResolveOptions): DataLocation {
+  const { dataDir, homeDir } = options
+  const chosen = dataDir === undefined ? resolveDataDir(options, raw) : expandHome(dataDir, homeDir)
+
+  return { dataDir: resolvePath(chosen), homeDir }
 }
 
 function resolveRetention(raw: RawConfig['retention']): ResolvedRetention {
@@ -285,8 +283,11 @@ export function assertExtensionsClaimed(
   )
 }
 
-function resolveDirs(paths: readonly string[] | undefined, dataDir: string): readonly string[] {
-  return (paths ?? []).map((path) => resolveDataRelative(path, dataDir))
+function resolveDirs(
+  paths: readonly string[] | undefined,
+  location: DataLocation
+): readonly string[] {
+  return (paths ?? []).map((path) => resolveDataRelative(path, location))
 }
 
 function assertUniqueModelSelectors(
@@ -320,8 +321,13 @@ interface ResolvedModelSection {
  *  server without the operator's environment. */
 function resolveModelSection(
   raw: RawConfig,
-  options: { readonly source: ModelSource; readonly deferMissingKey?: true }
+  options: {
+    readonly source: ModelSource
+    readonly env: ConfigHost['env']
+    readonly deferMissingKey?: true
+  }
 ): ResolvedModelSection {
+  const { env } = options
   const defaults = raw.model_defaults === undefined ? {} : { defaults: raw.model_defaults }
   const defer: Pick<TierOptions, 'deferMissingKey'> =
     options.deferMissingKey === undefined ? {} : { deferMissingKey: true }
@@ -329,11 +335,11 @@ function resolveModelSection(
   if (isClientModelSource(options.source)) {
     return {
       models: [CLIENT_MODEL],
-      modelTiers: resolveModelTiers(raw.model_tiers, { ...defaults, apiKeyOptional: true }),
+      modelTiers: resolveModelTiers(raw.model_tiers, { ...defaults, env, apiKeyOptional: true }),
     }
   }
 
-  const models = resolveModelChain(raw.models, { ...defaults, ...defer, path: ['models'] })
+  const models = resolveModelChain(raw.models, { ...defaults, ...defer, env, path: ['models'] })
   const primary = models.at(0)
 
   return {
@@ -341,6 +347,7 @@ function resolveModelSection(
     modelTiers: resolveModelTiers(raw.model_tiers, {
       ...defaults,
       ...defer,
+      env,
       ...(primary === undefined ? {} : { primary }),
     }),
   }
@@ -351,6 +358,7 @@ function resolveModelChain(
   options: {
     readonly defaults?: RawModelDefaults
     readonly deferMissingKey?: true
+    readonly env: ConfigHost['env']
     readonly path: readonly string[]
   }
 ): readonly ResolvedModel[] {
@@ -359,6 +367,7 @@ function resolveModelChain(
     const input: ResolveModelInput = {
       entry,
       path: [...path, index],
+      env: options.env,
       ...(defaults === undefined ? {} : { defaults }),
       ...(options.deferMissingKey === undefined ? {} : { deferMissingKey: true }),
     }
@@ -371,6 +380,7 @@ function resolveModelChain(
 }
 
 interface TierOptions {
+  readonly env: ConfigHost['env']
   readonly defaults?: RawModelDefaults
   readonly primary?: ResolvedModel
   readonly apiKeyOptional?: true
@@ -403,6 +413,7 @@ function resolveTierChain(input: ResolveTierChainInput): readonly ResolvedModel[
     const entryInput: ResolveModelInput = {
       entry,
       path: [...path, index],
+      env: input.env,
       ...(defaults === undefined ? {} : { defaults }),
       ...(input.apiKeyOptional === undefined ? {} : { apiKeyOptional: input.apiKeyOptional }),
       ...(input.deferMissingKey === undefined ? {} : { deferMissingKey: input.deferMissingKey }),

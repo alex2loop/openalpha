@@ -100,8 +100,11 @@ export function toBriefScheduleWire(delivery: BriefDelivery): BriefScheduleWire 
 export function toBriefTextWire(text: BriefText): BriefTextWire {
   return {
     title: text.title,
+    aiGenerated: text.aiGenerated,
+    verdictTitle: text.verdictTitle,
     verdict: [...text.verdict],
     readingLines: text.readingLines,
+    nextActions: [...text.nextActions],
     story: text.story.map((line) => ({ ...line })),
     sections: text.sections.map((section) => ({
       ...section,

@@ -8,7 +8,7 @@ import type {
   ScreenResponse,
 } from '@/app/server/wire/market'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
-import type { InstrumentKind } from '@/trading/api'
+import type { InstrumentKind, TradingMarketsView } from '@/trading/api'
 import { API_CHANNEL, APP_CHAT_ID } from '@/app/server/channel'
 import { apiError, json } from '@/app/server/http/dispatch'
 import {
@@ -16,14 +16,15 @@ import {
   toMacroWire,
   toMarketsWire,
   toOverviewWire,
-  toScreenWire,
   toSearchWire,
 } from '@/app/server/mappers/market'
+import { toScreenPage, toScreenWire } from '@/app/server/mappers/screen'
 import {
   hostOf,
   localeOf,
   parseLimit,
   parseOptionalBranded,
+  parsePageOffset,
   parsePathId,
   parseTickerRequest,
   readJsonBody,
@@ -52,7 +53,8 @@ const ALERT_BODY: z.ZodType<AlertCreateBody> = z.object({
 })
 
 /** `market` is required: the default market is the one that owns the operator's region, and only
- *  the registry knows which that is. */
+ *  the registry knows which that is. `cursor` pages a `list` board (the previous page's `next`); the
+ *  board itself is read and cached whole. */
 async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const query = new URL(req.url).searchParams
   const market = parseOptionalBranded(query.get('market'), marketRef)
@@ -61,10 +63,11 @@ async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Respons
     query.get('limit') === null
       ? SURFACE_LIMITS.defaultScreenCandidates
       : parseLimit(query.get('limit'), SURFACE_LIMITS.maximumScreenCandidates)
+  const offset = parsePageOffset(query.get('cursor'))
   const kind = query.get('kind')
   const isFresh = query.get('fresh') === FRESH_FLAG
 
-  if (market === undefined || market === null || limit === null) {
+  if (market === undefined || market === null || limit === null || offset === null) {
     return apiError('invalid_body')
   }
 
@@ -86,7 +89,9 @@ async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Respons
     return toScreenWire(market, answer)
   }
 
-  return json(await cachedScreen(`${market}|${kind ?? ''}|${limit ?? ''}`, read, isFresh))
+  const board = await cachedScreen(`${market}|${kind ?? ''}|${limit}`, read, isFresh)
+
+  return json(toScreenPage(board, { offset, limit }))
 }
 
 async function handleInstrumentSearch(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -103,14 +108,13 @@ async function handleInstrumentSearch(req: Request, ctx: ApiRouteContext): Promi
   return json(toSearchWire(matches))
 }
 
-// World gold is read for reference only and never enabled.
-const WORLD_GOLD_SEGMENT = 'gold'
-
 // The segments the operator switched off. When the profile cannot be read the list still answers,
-// with every market on but world gold: the page then keeps the office open, never wrongly shut.
+// with every market on but those no venue can hold: the page then keeps the office open, never
+// wrongly shut.
 async function switchedOffSegments(
   req: Request,
-  ctx: ApiRouteContext
+  ctx: ApiRouteContext,
+  view: TradingMarketsView
 ): Promise<ReadonlySet<string>> {
   try {
     return disabledSegments((await hostOf(ctx).getProfile(req.signal)).caps)
@@ -121,14 +125,17 @@ async function switchedOffSegments(
 
     ctx.app.resolve('logger').warn('api.markets_profile_unreadable', { err: formatErrForLog(err) })
 
-    return new Set([WORLD_GOLD_SEGMENT])
+    return new Set(
+      view.markets.filter((market) => !market.holdable).map((market) => market.segment)
+    )
   }
 }
 
 async function handleMarkets(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const off = await switchedOffSegments(req, ctx)
+  const view = hostOf(ctx).describeMarkets(Date.now())
+  const off = await switchedOffSegments(req, ctx, view)
 
-  return json(toMarketsWire(hostOf(ctx).describeMarkets(Date.now()), off) satisfies MarketsResponse)
+  return json(toMarketsWire(view, off) satisfies MarketsResponse)
 }
 
 /** The home region's markets lead; the rest keep the daemon's order. */
@@ -142,7 +149,7 @@ async function handleOverview(req: Request, ctx: ApiRouteContext): Promise<Respo
     ...blocks.filter((block) => !home.has(block.market)),
   ]
 
-  return json(toOverviewWire(ordered, localeOf(ctx)))
+  return json(toOverviewWire(ordered, localeOf(ctx), ctx.app.config.locale.timezone))
 }
 
 async function handleMacro(req: Request, ctx: ApiRouteContext): Promise<Response> {

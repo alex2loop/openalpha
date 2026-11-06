@@ -22,6 +22,7 @@ export interface FoldState {
   cashBase: number
   availableCashBase: number
   netDepositsBase: number
+  dividendsBase: number
   byVenue: Map<VenueRef, VenueCash>
 }
 
@@ -35,6 +36,7 @@ export function createFoldState(baseCurrency: CurrencyCode): FoldState {
     cashBase: 0,
     availableCashBase: 0,
     netDepositsBase: 0,
+    dividendsBase: 0,
     byVenue: new Map(),
   }
 }

@@ -233,6 +233,9 @@
       "Cổ phiếu VN   17,41%  53,33%  thiếu 35,93%",
       "Tiền mặt   82,59%  26,67%  dư 55,93%"
     ],
+    "limits": [
+      "HPG chiếm 17,40% danh mục, trần bạn đặt cho một mã trong nhóm Cổ phiếu VN là 10,00%."
+    ],
     "notes": ["Đã về tài khoản 80% NAV; dự phòng 20% NAV."]
   }
 }

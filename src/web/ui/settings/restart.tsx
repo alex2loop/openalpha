@@ -44,6 +44,7 @@ export function openRestartDialog(request: RestartRequest): void {
     title: tr('ui.office.restart.title'),
     body: <RestartBody open={open} />,
     footer: <RestartFooter open={open} />,
+    ...(request.onBack === undefined ? {} : { onDismiss: request.onBack }),
   })
 }
 

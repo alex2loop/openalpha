@@ -1,6 +1,7 @@
 import type { RefreshKindResult, RefreshKindStatus } from '@/trading/kernel/market/refresh'
 import type { MarketDataRefreshRequest } from '@/trading/markets/types'
 import { reportRefreshStage } from '@/trading/kernel/market/refresh'
+import { resolveSettledDay } from '@/trading/markets/calendar'
 import { GOLD_VN_MARKET_REF } from '@/trading/markets/gold-vn/policy'
 import {
   backfillPremium,
@@ -17,7 +18,34 @@ export async function refreshPremium(
 ): Promise<readonly RefreshKindResult[]> {
   reportRefreshStage(request.progress, { market: GOLD_VN_MARKET_REF, kind: 'premium' })
 
-  return [buildPremiumResult(await backfillPremium(refreshDeps, request))]
+  const pass = await backfillPremium(refreshDeps, request)
+  const result = buildPremiumResult(pass)
+
+  // A pass with nothing wanted attempted nothing and leaves no row, as in every market.
+  if (pass.attempted > 0) {
+    await settleAttempt(refreshDeps, request, result)
+  }
+
+  return [result]
+}
+
+/** The row is what tells a read this market has been refreshed, so a pass that fetched leaves one
+ *  whatever it wrote: without it every read refetches the vendor history. Never from `finally`: a
+ *  throw or abort leaves no row, so the next pass repairs it. */
+async function settleAttempt(
+  refreshDeps: PremiumBackfillDeps,
+  request: MarketDataRefreshRequest,
+  result: RefreshKindResult
+): Promise<void> {
+  await refreshDeps.deps.marketDataStore.upsertRefreshAttempt(
+    {
+      market: GOLD_VN_MARKET_REF,
+      asOf: resolveSettledDay(refreshDeps.calendar, request.now),
+      attemptedAt: request.now,
+      result,
+    },
+    request.signal
+  )
 }
 
 /** One row for one series. A day the counter never published is not a target: counting it makes

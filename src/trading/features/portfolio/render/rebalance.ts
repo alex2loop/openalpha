@@ -2,6 +2,7 @@ import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
 import type {
   PortfolioFinding,
+  RebalanceForm,
   RebalancePlanReady,
   RebalancePlanResult,
   RebalanceSizing,
@@ -30,11 +31,11 @@ import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layou
 import { formatMoney } from '@/trading/render/money'
 import { renderSubject } from '@/trading/render/subject'
 
+import { keptCaveats, REGIME_CAVEAT, renderGapEntries } from './rebalance-gaps'
 import { renderOrders, splitBreaches } from './rebalance-orders'
 import { printedSegmentShares, renderCashLine, renderEtfCapLines, renderSegments } from './segments'
 
 const DRIFT_FINDING = 'segment-drift'
-const REGIME_CAVEAT = 'portfolio.regime-risk'
 
 interface PlanSums {
   readonly sold: number
@@ -45,6 +46,8 @@ interface PlanSums {
 
 export interface RebalanceRenderOptions {
   readonly context: RenderContext
+  /** Absent writes orders, as the installed version does. */
+  readonly form?: RebalanceForm
   readonly listedOnly: boolean
   /** Present on an operator surface only. Without it the orders print weights alone. */
   readonly sizing?: RebalanceSizing | null
@@ -75,27 +78,60 @@ export function renderRebalanceText(
   }
 
   const sizing = options.sizing ?? null
+  const gaps = options.form === 'gaps'
 
   return joinSections([
     [
       renderSectionTitle(SECTION_ICONS.advice, renderRebalanceTitle(locale, advice, options)),
-      ...renderOrders(locale, advice, options),
-      ...renderBreachLine(locale, advice),
-      ...renderAfterPlan(locale, advice, options),
+      ...(gaps ? renderGapLines(locale, advice, sizing) : renderOrders(locale, advice, options)),
+      ...(gaps ? [] : renderBreachLine(locale, advice)),
+      ...(gaps ? [] : renderAfterPlan(locale, advice, options)),
     ],
-    [
-      ...renderSegments(locale, advice.allocation, options.context),
-      ...renderEtfCapLines(locale, advice.allocation),
-      renderCashLine(locale, advice, sizing),
-    ],
-    renderStanceLines(locale, advice),
-    renderNotes(locale, advice.findings, [...advice.cashSegment.caveats, ...advice.caveats]),
+    renderPlanTables(locale, advice, options),
+    gaps ? [] : renderStanceLines(locale, advice),
+    renderPlanNotes(locale, advice, options),
     [
       ...renderNavLine(locale, sizing, options),
       `${INDENT[1]}${renderProfileStamp(locale, advice.policy.profile)}`,
     ].map((line) => line.trimStart()),
     ...(options.listedOnly ? [[t(locale, 'trading.render.rebalance.listedOnly')]] : []),
   ])
+}
+
+function renderGapLines(
+  locale: Locale,
+  advice: RebalancePlanReady,
+  sizing: RebalanceSizing | null
+): readonly string[] {
+  return renderGapEntries(locale, advice, sizing).map((entry) => `${INDENT[1]}${entry.text}`)
+}
+
+/** The segment table and what stands under it. A gaps plan leaves out the cash line, whose split
+ *  names a deposit to make, and the table drops "nothing to buy yet". */
+export function renderPlanTables(
+  locale: Locale,
+  advice: RebalancePlanReady,
+  options: RebalanceRenderOptions
+): readonly string[] {
+  const gaps = options.form === 'gaps'
+
+  return [
+    ...renderSegments(locale, advice.allocation, { context: options.context, gaps }),
+    ...renderEtfCapLines(locale, advice.allocation),
+    ...(gaps ? [] : [renderCashLine(locale, advice, options.sizing ?? null)]),
+  ]
+}
+
+/** What the plan's own caveats and findings say. A gaps plan keeps only the caveats that name no
+ *  action and no candidate. */
+export function renderPlanNotes(
+  locale: Locale,
+  advice: RebalancePlanReady,
+  options: RebalanceRenderOptions
+): readonly string[] {
+  const caveats = [...advice.cashSegment.caveats, ...advice.caveats]
+
+  return renderNotes(locale, advice.findings, keptCaveats(caveats, options.form))
 }
 
 /** The plan in one line, as the page's own title: how many orders on each side and what they move
@@ -107,6 +143,10 @@ export function renderRebalanceTitle(
 ): string {
   const sizing = options.sizing ?? null
   const sums = sizing === null ? undefined : planSums(advice, sizing)
+
+  if (options.form === 'gaps') {
+    return t(locale, 'trading.render.rebalance.gapsTitle')
+  }
 
   if (sizing === null || sums === undefined || sums.buys + sums.sells === 0) {
     return t(locale, 'trading.render.rebalance.title')
@@ -275,14 +315,15 @@ export function renderStanceLines(locale: Locale, advice: RebalancePlanReady): r
  *  ceiling binding on a calm day. */
 function renderDeploymentLines(locale: Locale, advice: RebalancePlanReady): readonly string[] {
   const statedByRegime = advice.caveats.some((caveat) => caveat.code === REGIME_CAVEAT)
+  const scale = advice.policy.deploymentScale
 
-  if (advice.policy.deploymentScale >= 1 || statedByRegime) {
+  if (scale === undefined || scale >= 1 || statedByRegime) {
     return []
   }
 
   return [
     `${INDENT[1]}${t(locale, 'trading.render.rebalance.deployment', {
-      deployment: formatFraction(locale, advice.policy.deploymentScale),
+      deployment: formatFraction(locale, scale),
     })}`,
   ]
 }

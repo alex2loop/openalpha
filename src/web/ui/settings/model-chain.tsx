@@ -23,6 +23,7 @@ import { Button } from '@/web/ui/kit/button'
 import { Combobox } from '@/web/ui/kit/combobox'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { useLoad } from '@/web/ui/kit/use-load'
+import { ModelPriceLine, useOptionHints } from '@/web/ui/settings/model-price'
 import { SettingRow, useDraft } from '@/web/ui/settings/row'
 
 // What a provider's own entry carries beyond its key variable; another provider leaves it behind.
@@ -52,7 +53,7 @@ interface ChainProps {
 }
 
 /** One entry of the chain as the operator edits it: who serves it and which model. */
-interface ModelChoice {
+export interface ModelChoice {
   readonly provider: string
   readonly model: string
 }
@@ -211,7 +212,7 @@ function usePreselected(
   }, [])
 }
 
-function defaultModelOf(catalog: ProviderCatalogResponse, provider: string): string {
+export function defaultModelOf(catalog: ProviderCatalogResponse, provider: string): string {
   return catalog.providers.find((entry) => entry.id === provider)?.defaultModel ?? ''
 }
 
@@ -222,7 +223,8 @@ interface ChoiceLineProps {
   readonly catalog: ProviderCatalogResponse
 }
 
-function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
+/** One entry of a chain: its provider and its model, edited into `draft` at `index`. */
+export function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
   const providers = catalog.providers.some((entry) => entry.id === choice.provider)
     ? catalog.providers
     : [...catalog.providers, { id: choice.provider, displayName: choice.provider }]
@@ -230,6 +232,7 @@ function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
   const models = catalog.catalogModels
     .filter((entry) => entry.provider === choice.provider)
     .map((entry) => entry.model)
+  const hintOf = useOptionHints(choice.provider, models)
 
   function edit(next: Partial<ModelChoice>): void {
     draft.value = draft.value.map((held, at) => (at === index ? { ...held, ...next } : held))
@@ -258,8 +261,10 @@ function ChoiceLine({ index, choice, draft, catalog }: ChoiceLineProps) {
         label={tr('ui.office.form.model')}
         value={choice.model}
         options={models}
+        hintOf={hintOf}
         onInput={(model) => edit({ model })}
       />
+      <ModelPriceLine provider={choice.provider} model={choice.model} />
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import type { ServerWebSocket } from 'bun'
 
 import type { ExecSocketData } from '@/app/server/ws/socket'
-import type { ApiRouteContext } from '@/app/types'
+import type { DaemonRequest } from '@/app/types'
+import type { App } from '@/core/container'
 import {
   isAuthLocked,
   isLoopback,
@@ -11,7 +12,8 @@ import {
   resolveBearerCredential,
   resolvePeerKey,
 } from '@/app/server/http/auth'
-import { apiError, toAuthRefusal } from '@/app/server/http/dispatch'
+import { toAuthRefusal } from '@/app/server/http/authorize'
+import { apiError } from '@/app/server/http/dispatch'
 
 // Separate from the page's socket cap: a terminal never takes a browser's seat.
 const MAX_EXEC_CONNECTIONS = 8
@@ -30,7 +32,7 @@ let admissionClosed = false
  */
 export function admitExec(
   req: Request,
-  ctx: Pick<ApiRouteContext, 'app' | 'token' | 'ip'>
+  ctx: Pick<DaemonRequest, 'token' | 'ip'> & { readonly app: App }
 ): Response | undefined {
   const { headers } = req
 

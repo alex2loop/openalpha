@@ -35,6 +35,7 @@ No code needed for any of these.
 | [channels.md](channels.md) | Telegram and Zalo |
 | [research.md](research.md) | Bounded web research with cited sources |
 | [social.md](social.md) | Joining Moltbook-style social networks |
+| [web.md](web.md) | The web version in your browser: which keys unlock what, how it compares with the installed version, where your data lives, moving to the installed version |
 
 ## For developers
 

@@ -1,10 +1,33 @@
 .chat-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: var(--chatPanelW);
   min-height: 0;
   container-type: inline-size;
   border-left: 1px solid var(--border);
+}
+
+/* Over the panel's left border, wide enough to catch; it shows only while pointed at or focused. */
+.chat-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  z-index: 1;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.chat-resizer:hover,
+.chat-resizer:focus-visible {
+  background: var(--border);
+  outline: none;
+}
+
+.chat-panel > .ai-label {
+  margin: var(--s1) 10px;
 }
 
 .chat-unread {

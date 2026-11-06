@@ -8,6 +8,7 @@ import { useBlockRead } from '@/web/state/block'
 import { locale } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
 import { tr } from '@/web/text/tr'
+import { AiLabel } from '@/web/ui/kit/ai-label'
 import { Button } from '@/web/ui/kit/button'
 import { BulbIcon } from '@/web/ui/kit/icons'
 import { openWhy } from '@/web/ui/ticker/why-dialog'
@@ -49,31 +50,36 @@ export function OpinionsBlock({ ticker, market, plan }: OpinionsProps) {
       reading={reading}
       action={opinions === undefined ? undefined : <Agreement opinions={opinions} plan={plan} />}
     >
-      {(read) => (
-        <>
-          {read.opinions.map(({ agent, call }) => (
-            <div key={agent.id} class="opinion">
-              <b>{agent.name}</b>
-              <span>
-                {tr(`trading.action.${call.action}`)}{' '}
-                <span class="meta">{formatDay(locale.value, call.at)}</span>
-              </span>
-              {call.thesis !== undefined && <span class="meta opinion-note">{call.thesis}</span>}
-              <span class="opinion-why">
-                <Button
-                  kind="tertiary"
-                  size="small"
-                  onClick={() => openWhy({ kind: 'opinion', agentId: agent.id, call })}
-                >
-                  {tr('ui.office.ticker.why')}
-                </Button>
-              </span>
-            </div>
-          ))}
-          <p class="meta">{tr('ui.office.ticker.opinionNote')}</p>
-        </>
-      )}
+      {(read) => <OpinionRows opinions={read.opinions} />}
     </BlockFrame>
+  )
+}
+
+function OpinionRows({ opinions }: { readonly opinions: readonly Opinion[] }) {
+  return (
+    <>
+      <AiLabel />
+      {opinions.map(({ agent, call }) => (
+        <div key={agent.id} class="opinion">
+          <b>{agent.name}</b>
+          <span>
+            {tr(`trading.action.${call.action}`)}{' '}
+            <span class="meta">{formatDay(locale.value, call.at)}</span>
+          </span>
+          {call.thesis !== undefined && <span class="meta opinion-note">{call.thesis}</span>}
+          <span class="opinion-why">
+            <Button
+              kind="tertiary"
+              size="small"
+              onClick={() => openWhy({ kind: 'opinion', agentId: agent.id, call })}
+            >
+              {tr('ui.office.ticker.why')}
+            </Button>
+          </span>
+        </div>
+      ))}
+      <p class="meta">{tr('ui.office.ticker.opinionNote')}</p>
+    </>
   )
 }
 

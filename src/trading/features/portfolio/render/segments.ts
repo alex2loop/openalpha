@@ -21,13 +21,23 @@ import { formatMoney } from '@/trading/render/money'
 import { apportion, FRACTION_QUANTUM } from '@/trading/render/number'
 import { renderSegmentBlock } from '@/trading/render/segment-block'
 
+const AFTER_PLAN_COLUMN: SegmentColumn = Object.freeze({
+  labelKey: 'trading.render.segment.columnAfterPlan',
+  align: 'right',
+})
+
 const REBALANCE_COLUMNS: readonly SegmentColumn[] = Object.freeze([
   { labelKey: 'trading.render.segment.columnCurrent', align: 'right' },
-  { labelKey: 'trading.render.segment.columnAfterPlan', align: 'right' },
+  AFTER_PLAN_COLUMN,
   { labelKey: 'trading.render.segment.columnTarget', align: 'right' },
   { labelKey: 'trading.render.segment.columnCap', align: 'right' },
   { labelKey: 'trading.render.segment.columnGap', align: 'left' },
 ])
+
+/** A plan written as gaps names no landing place, so it has no after-plan column. */
+const GAP_COLUMNS: readonly SegmentColumn[] = Object.freeze(
+  REBALANCE_COLUMNS.filter((column) => column !== AFTER_PLAN_COLUMN)
+)
 
 /** What the share columns read of a segment row: the portfolio view builds the same three from a
  *  book with no plan, and prints through the same function. */
@@ -43,19 +53,28 @@ interface SegmentShares {
   readonly targetPctNav: number
 }
 
+interface SegmentRenderOptions {
+  readonly context: RenderContext
+  /** A plan written as gaps names no order, so a shortfall is never "nothing to buy yet", and no
+   *  segment is measured from where orders would leave it. */
+  readonly gaps: boolean
+}
+
 export function renderSegments(
   locale: Locale,
   rows: readonly SegmentTarget[],
-  context: RenderContext
+  options: SegmentRenderOptions
 ): readonly string[] {
   const block: SegmentBlock = {
-    columns: REBALANCE_COLUMNS,
-    rows: printedSegmentShares(rows).map(([row, shares]) => toSegmentRow(locale, row, shares)),
+    columns: options.gaps ? GAP_COLUMNS : REBALANCE_COLUMNS,
+    rows: printedSegmentShares(rows).map(([row, shares]) =>
+      toSegmentRow(locale, row, { shares, gaps: options.gaps })
+    ),
     disabled: [],
     legend: 'trading.render.segment.legendRebalance',
   }
 
-  return renderSegmentBlock(locale, block, context)
+  return renderSegmentBlock(locale, block, options.context)
 }
 
 /** Each kept segment with the share columns as this message will print them — read by the table and
@@ -91,32 +110,43 @@ function apportionColumn(
 }
 
 /** Cash is a reserve segment bounded by a floor, not a cap, so its cap cell has nothing to print. */
-function toSegmentRow(locale: Locale, row: SegmentTarget, shares: SegmentShares): SegmentRow {
+interface SegmentRowShares {
+  readonly shares: SegmentShares
+  readonly gaps: boolean
+}
+
+function toSegmentRow(locale: Locale, row: SegmentTarget, printed: SegmentRowShares): SegmentRow {
+  const { shares } = printed
+
   return {
     name: renderDeclaredValue(locale, `trading.segment.${row.segment}`),
     cash: row.segment === CASH_SEGMENT,
     cells: [
       formatFixedFraction(locale, shares.currentPctNav),
-      formatFixedFraction(locale, shares.afterPlanPctNav),
+      ...(printed.gaps ? [] : [formatFixedFraction(locale, shares.afterPlanPctNav)]),
       formatFixedFraction(locale, shares.targetPctNav),
       row.capPctNav === undefined ? undefined : formatFixedFraction(locale, row.capPctNav),
-      renderGap(locale, row, shares),
+      renderGap(locale, row, printed),
     ],
     bar: { now: shares.currentPctNav, mark: shares.targetPctNav },
   }
 }
 
-/** The conclusion the other three numbers only imply: how far this segment sits from the policy the
+/** The conclusion the other numbers only imply: how far this segment sits from the policy the
  *  operator is being held to. Measured from where the plan leaves the segment, not from where it
- *  starts — the column beside this one already moved the reader past today's orders. A segment
+ *  starts — the column beside this one already moved the reader past today's orders. A plan written
+ *  as gaps leaves nothing anywhere, so it measures from the segment as it stands. A segment
  *  inside its band names the band and no magnitude: a figure there reads as an unfilled shortfall
  *  and sends the operator looking for a cause the planner never had.
  *
  *  The verdict reads the segment's own numbers, so no rounding unit can decide whether it is in
  *  band; the magnitude reads the apportioned ones, so subtracting the two printed columns gives
  *  the printed figure. */
-function renderGap(locale: Locale, row: SegmentTarget, shares: SegmentShares): string {
-  const gap = row.afterPlanPctNav - row.targetPctNav
+function renderGap(locale: Locale, row: SegmentTarget, printed: SegmentRowShares): string {
+  const { shares } = printed
+  const landed = printed.gaps ? row.currentPctNav : row.afterPlanPctNav
+  const landedShare = printed.gaps ? shares.currentPctNav : shares.afterPlanPctNav
+  const gap = landed - row.targetPctNav
   const direction = fractionDirection(gap)
 
   if (direction === 'flat') {
@@ -127,18 +157,16 @@ function renderGap(locale: Locale, row: SegmentTarget, shares: SegmentShares): s
     return t(locale, 'trading.render.rebalance.gapInBand')
   }
 
-  const printed = formatFixedFraction(
-    locale,
-    Math.abs(shares.afterPlanPctNav - shares.targetPctNav)
-  )
+  const magnitude = formatFixedFraction(locale, Math.abs(landedShare - shares.targetPctNav))
 
   if (direction === 'up') {
-    return t(locale, 'trading.render.rebalance.gapOver', { gap: printed })
+    return t(locale, 'trading.render.rebalance.gapOver', { gap: magnitude })
   }
 
-  const key = row.afterPlanPctNav > row.currentPctNav ? 'gapUnder' : 'gapUnreachable'
+  const placeable = printed.gaps || row.afterPlanPctNav > row.currentPctNav
+  const key = placeable ? 'gapUnder' : 'gapUnreachable'
 
-  return t(locale, `trading.render.rebalance.${key}`, { gap: printed })
+  return t(locale, `trading.render.rebalance.${key}`, { gap: magnitude })
 }
 
 /** One line per segment that bounds its ETFs, under the table rather than in it: the ceiling binds

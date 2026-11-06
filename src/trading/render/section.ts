@@ -19,6 +19,7 @@ import {
   withoutUnfilledWindow,
 } from '@/trading/render/layout'
 import { renderPricePair } from '@/trading/render/price-pair'
+import { renderFactLines, toSectionFacts } from '@/trading/render/section-facts'
 import { type PriceContext, toPricePair } from '@/trading/render/section-price'
 import { type RowUnit, renderValue } from '@/trading/render/section-values'
 
@@ -104,6 +105,12 @@ export function toBriefSectionText(
 
   if (section.status !== 'ready') {
     return { heading, lines: renderCaveatLines(locale, section.caveats) }
+  }
+
+  const facts = toSectionFacts(locale, section)
+
+  if (facts !== undefined) {
+    return { heading, lines: renderFactLines(locale, facts, context) }
   }
 
   const priceContext: PriceRowContext = {

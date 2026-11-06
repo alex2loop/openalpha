@@ -4,6 +4,7 @@ import type { ExternalCharge } from '@/core/types/usage'
 import { RESEARCH_PROFILE_DEPTHS } from '@/core/config/resolve'
 import { RunHalted, ToolError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { dayInZone } from '@/core/utils/time'
 
 import type {
   FailedResearchResult,
@@ -36,6 +37,9 @@ import {
 import { createResearchRetrievalState } from './retrieval/state'
 import { createResearchStages } from './stages/stages'
 
+// UTC+14: its calendar day is the latest anywhere, so an article dated tomorrow in a zone ahead of the reader still counts as a real date.
+const LATEST_DAY_ZONE = 'Pacific/Kiritimati'
+
 export function createResearchCoordinator(deps: ResearchCoordinatorDeps): ResearchCoordinator {
   return {
     run: (request, invocation) => runResearch(deps, request, invocation),
@@ -48,7 +52,7 @@ async function runResearch(
   invocation: ResearchInvocation
 ): Promise<ResearchResult> {
   const depth = request.depth ?? RESEARCH_PROFILE_DEPTHS.standard
-  const now = Date.now()
+  const clock = buildRunClock()
   const startedAt = performance.now()
   const retrievalAttempts: ResearchRetrievalAttempt[] = []
   const retrievalState = createResearchRetrievalState({
@@ -73,7 +77,7 @@ async function runResearch(
         request,
         invocation,
         depth,
-        now,
+        clock,
         retrievalState,
         retrievalAttempts,
         setBudgets: (value) => {
@@ -112,7 +116,7 @@ interface ExecuteResearchInput {
   readonly request: ResearchRequest
   readonly invocation: ResearchInvocation
   readonly depth: StageContext['depth']
-  readonly now: number
+  readonly clock: Pick<StageContext, 'now' | 'latestDay'>
   readonly retrievalState: ReturnType<typeof createResearchRetrievalState>
   readonly retrievalAttempts: ResearchRetrievalAttempt[]
   readonly setBudgets: (budgets: ResearchBudgetPool) => void
@@ -131,6 +135,13 @@ interface InitialResearchProfile {
   readonly objective: ResearchObjective
   readonly effort: ResearchEffortProfile
   readonly maxBudgetedQuestions: number
+}
+
+// The clock is read once per run: the instant and its latest calendar day move together.
+function buildRunClock(): ExecuteResearchInput['clock'] {
+  const now = Date.now()
+
+  return { now, latestDay: dayInZone(now, LATEST_DAY_ZONE) }
 }
 
 async function executeResearch(input: ExecuteResearchInput): Promise<ResearchResult> {
@@ -154,7 +165,7 @@ async function executeResearch(input: ExecuteResearchInput): Promise<ResearchRes
     budgets.chargeExternalCost(charge.costUsd)
   }
   const stages = createResearchStages({
-    now: input.now,
+    now: input.clock.now,
     runner: deps.runner,
     invocation,
     quota,
@@ -179,7 +190,7 @@ async function executeResearch(input: ExecuteResearchInput): Promise<ResearchRes
     quota,
     budgets,
     config: deps.config.research,
-    now: input.now,
+    ...input.clock,
     objective: initial.objective,
     effort,
     maxQuestions: effort.questionLimit,

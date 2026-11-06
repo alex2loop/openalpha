@@ -61,6 +61,8 @@ export interface StageContext {
   readonly objective: ResearchObjective
   readonly effort: ResearchEffortProfile
   readonly now: number
+  /** The latest calendar day anywhere on Earth at this run's instant: no evidence is dated after it. */
+  readonly latestDay: string
   readonly maxQuestions: number
   readonly maxBudgetedQuestions: number
   readonly maxParallelDelegations: number
@@ -89,6 +91,7 @@ export async function admitCrawlEvidence(
       maxArtifactBytes: ctx.config.maxArtifactBytes,
     },
     now: ctx.now,
+    latestDay: ctx.latestDay,
     signal: ctx.invocation.signal,
     ...(ctx.request.freshness === undefined ? {} : { freshness: ctx.request.freshness }),
   })

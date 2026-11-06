@@ -1,5 +1,5 @@
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { InstrumentKind, Ticker, TradingDay, VnIndexTier } from '@/trading/kernel/instrument'
+import type { InstrumentKind, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type {
   ForeignRoom,
   IndexMembership,
@@ -8,7 +8,7 @@ import type {
 import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
 import type { SourceProvenance, SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
-import { currencyCode, VN_INDEX_TIERS } from '@/trading/kernel/instrument'
+import { currencyCode } from '@/trading/kernel/instrument'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { reportedCaveats } from '@/trading/markets/equity-vn/caveats'
 import {
@@ -22,6 +22,11 @@ import {
   VN30_FRONT_MONTH_TICKER,
   VN30_INDEX_TICKER,
 } from '@/trading/markets/equity-vn/policy'
+import {
+  membershipCaveats,
+  resolveMemberships,
+  stampIndexTier,
+} from '@/trading/markets/equity-vn/refresh/index-membership'
 import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
 
 const VND = currencyCode('VND')
@@ -73,11 +78,7 @@ async function resolveUniverseSources(
       signal: options.signal,
     }),
     deps.marketDataStore.listSharesOutstanding({ market: VN_MARKET_REF, signal: options.signal }),
-    deps.sources.resolve({
-      kind: 'indexMembership',
-      context: { market: VN_MARKET_REF },
-      signal: options.signal,
-    }),
+    resolveMemberships(deps, options.signal),
   ])
 
   return { instruments, rooms, shares, memberships }
@@ -240,62 +241,6 @@ function assembleUniverse(options: AssembleUniverseOptions): readonly Instrument
     ...stampIndexTier(owned, options.memberships, options.stored).filter(isAdmissible),
     ...indexRecords(options.now),
   ]
-}
-
-type TierByTicker = ReadonlyMap<Ticker, VnIndexTier>
-
-/** Narrowest wins: `VN_INDEX_TIERS` is ordered narrowest first, and VN30 ⊂ VN100. On an
- *  unavailable source the prior scope's tiers carry forward — scope replacement rewrites every
- *  row, so unstamped records would silently wipe what the last refresh stored. */
-function stampIndexTier(
-  records: readonly InstrumentRecord[],
-  memberships: SourceResult<readonly IndexMembership[]>,
-  stored: readonly InstrumentRecord[]
-): readonly InstrumentRecord[] {
-  const tierByTicker =
-    memberships.kind === 'unavailable'
-      ? tierByTickerFromStored(stored)
-      : tierByTickerFromMemberships(memberships.value)
-
-  return records.map((record) => {
-    const tier = record.kind === 'equity' ? tierByTicker.get(record.instrument.ticker) : undefined
-
-    return tier === undefined ? record : { ...record, indexTier: tier }
-  })
-}
-
-function tierByTickerFromStored(stored: readonly InstrumentRecord[]): TierByTicker {
-  const map = new Map<Ticker, VnIndexTier>()
-
-  for (const record of stored) {
-    if (record.indexTier !== undefined) {
-      map.set(record.instrument.ticker, record.indexTier)
-    }
-  }
-
-  return map
-}
-
-function tierByTickerFromMemberships(memberships: readonly IndexMembership[]): TierByTicker {
-  const map = new Map<Ticker, VnIndexTier>()
-
-  for (const tier of VN_INDEX_TIERS) {
-    for (const row of memberships) {
-      if (row.tier === tier && !map.has(row.instrument.ticker)) {
-        map.set(row.instrument.ticker, tier)
-      }
-    }
-  }
-
-  return map
-}
-
-function membershipCaveats(
-  memberships: SourceResult<readonly IndexMembership[]>
-): readonly Caveat[] {
-  return memberships.kind === 'unavailable'
-    ? [...memberships.caveats, { code: 'source.index-membership-unavailable' }]
-    : memberships.caveats
 }
 
 /** The foreign-room policy keys its bank default on this sector, so a mapped taxonomy with no

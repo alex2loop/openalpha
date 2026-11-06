@@ -1,23 +1,26 @@
 import type { App, Bind, Extend, ServiceProvider, TaskPassListener } from '@/core/container'
+import type { RequestShape } from '@/core/http-client'
+import type { ReachabilityProbe } from '@/core/limits'
 import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
 import type { Hooks } from '@/engine/api'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { DebateDeps } from '@/trading/features/suggestion/debate/call'
 import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
 import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { FxRates } from '@/trading/kernel/market/fx-rates'
+import type { MarketRef } from '@/trading/kernel/instrument'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type {
   AlertFiredListener,
   OrderFilledListener,
   TradingNoticeSender,
 } from '@/trading/kernel/operator/notice'
-import type { MarketDeps } from '@/trading/markets/deps'
-import type { StageRegistry } from '@/trading/markets/stage'
-import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
-import type { VenueRegistry } from '@/trading/venues/types'
+import type { SourceRouteTable } from '@/trading/sources/routes'
+import type { HostSourceFacts } from '@/trading/sources/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
+import type { Registries } from '@/trading/wiring/composition/registries'
 import type {
   KeyValidator,
   TradingContributions,
@@ -27,39 +30,21 @@ import type { TradingStores } from '@/trading/wiring/composition/stores'
 import type { WithThemes } from '@/trading/wiring/composition/themes'
 import { ConfigError } from '@/core/errors'
 import { createConfiguredRunBudget } from '@/engine/api'
-import { createFxRates } from '@/trading/features/market-data/reads/fx'
+import { createEnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import { createRunDebate } from '@/trading/features/suggestion/debate/debate'
 import { toPlaybookLibrary } from '@/trading/features/suggestion/debate/playbook'
-import { createAdmissionStage } from '@/trading/features/suggestion/pipeline/admission'
-import { createAveragingDownStage } from '@/trading/features/suggestion/pipeline/averaging-down'
-import { createDeploymentStage } from '@/trading/features/suggestion/pipeline/deployment'
-import { createExclusionStage } from '@/trading/features/suggestion/pipeline/exclusion'
-import { createRoundTripStage } from '@/trading/features/suggestion/pipeline/round-trip'
-import { createStageRegistry } from '@/trading/features/suggestion/pipeline/stage-registry'
 import { DECISIONS_MODEL_TIER } from '@/trading/kernel/config'
-import { createCryptoMarket } from '@/trading/markets/crypto/market'
-import { createUsEquityMarket } from '@/trading/markets/equity-us/market'
-import { createVnEquityMarket } from '@/trading/markets/equity-vn/market'
-import { createGoldMarket } from '@/trading/markets/gold/market'
-import { createVnGoldMarket } from '@/trading/markets/gold-vn/market'
-import { macroCache } from '@/trading/markets/macro-cache'
-import { createMarketRegistry } from '@/trading/markets/registry'
 import { buildTradingAgents, personaVersions } from '@/trading/wiring/catalog/agents'
 import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
 import { toAggregate } from '@/trading/wiring/composition/aggregate'
-import { lazyBriefServices } from '@/trading/wiring/composition/brief-services'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
-import { lazyHeldInstruments } from '@/trading/wiring/composition/held-instruments'
 import { bindHostSeams } from '@/trading/wiring/composition/host-seams'
 import { buildMarketTicks } from '@/trading/wiring/composition/market-ticks'
-import { withNewsArchive } from '@/trading/wiring/composition/news-archive'
 import { buildRefreshCoordinator, resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
+import { buildRegistries } from '@/trading/wiring/composition/registries'
 import { assertRegistryConsistency } from '@/trading/wiring/composition/registry-checks'
 import { createDomainServices } from '@/trading/wiring/composition/services'
-import { createConfiguredSourceRegistry } from '@/trading/wiring/composition/source-registry'
-import { createTradingStores } from '@/trading/wiring/composition/stores'
 import { buildThemeService } from '@/trading/wiring/composition/themes'
-import { buildVenues } from '@/trading/wiring/composition/venues'
 import { createTradingHooks } from '@/trading/wiring/profile-context'
 
 /** Only what the container cannot supply. Everything else — the logger, the runner, the locale,
@@ -91,6 +76,17 @@ interface TradingRegistrationOptions {
   recipient(): DeliveryAddress | undefined
   readonly keys: KeyValidator
   readonly pluginModules: readonly LoadedSourceModule[]
+  /** How every source request presents itself: the daemon's or a page's. */
+  readonly requestShape: RequestShape
+  readonly routes?: SourceRouteTable
+  /** What this host states of how its source requests present; absent is the daemon's. A page
+   *  cannot set a user agent, reads only the feeds a browser can, and waits longer on a slow edge. */
+  readonly sourceFacts?: HostSourceFacts
+  /** What this edition narrows, bound with the app in hand like the sender; absent is the
+   *  installed version. */
+  edition?(app: App): TradingEdition
+  /** How the loops tell the network is up: the daemon resolves a name. */
+  readonly reachability: ReachabilityProbe
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider
@@ -105,6 +101,7 @@ type BoundOptions = Omit<
   | 'runScheduled'
   | 'onRoleOutput'
   | 'onFocusCallScored'
+  | 'edition'
 > & {
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
@@ -114,7 +111,26 @@ type BoundOptions = Omit<
   readonly runScheduled: ScheduledRunner
   readonly onRoleOutput: RoleOutputListener
   readonly onFocusCallScored: CallScoredNotices['onFocusScored']
+  readonly edition?: TradingEdition
   readonly lateGraceMs: number
+}
+
+function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptions {
+  const { edition, ...rest } = provided
+
+  return {
+    ...rest,
+    sender: provided.sender(app),
+    onFilled: provided.onFilled(app),
+    onAlertFired: provided.onAlertFired(app),
+    onAlertsChecked: provided.onAlertsChecked(app),
+    onTaskPass: provided.onTaskPass(app),
+    runScheduled: provided.runScheduled(app),
+    onRoleOutput: provided.onRoleOutput(app),
+    onFocusCallScored: provided.onFocusCallScored(app),
+    ...(edition === undefined ? {} : { edition: edition(app) }),
+    lateGraceMs: app.config.schedule.lateGraceMs,
+  }
 }
 
 declare module '@/core/container' {
@@ -127,33 +143,6 @@ declare module '@/core/container' {
 interface BuiltTrading {
   readonly services: TradingServices
   readonly contributions: TradingContributions
-}
-
-interface Registries {
-  readonly markets: MarketRegistry
-  readonly sources: SourceRegistry
-  readonly stages: StageRegistry
-  readonly venues: VenueRegistry
-  /** Not a registry, but built here: the markets read rates through the same path the ledger and
-   *  the portfolio do, so one outage cannot leave a book converted and a brief unconverted. */
-  readonly fx: FxRates
-}
-
-/** Provider step 2: the stores need storage and the dialect, and nothing else needs them yet. */
-export function createTradingStoresProvider(config: TradingConfig): ServiceProvider {
-  return {
-    name: 'trading-stores',
-    register(bind: Bind): void {
-      bind('tradingStores', (app) =>
-        createTradingStores({
-          db: app.resolve('storage'),
-          dialect: app.resolve('dialect'),
-          logger: app.resolve('logger'),
-          maximumEntries: config.maximumLedgerEntries,
-        })
-      )
-    },
-  }
 }
 
 /** Provider step 9: after the registries it extends, because `extend` before the matching `bind`
@@ -224,11 +213,11 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
   const registries = buildRegistries(app, options)
   const budget = (): ReturnType<typeof createConfiguredRunBudget> =>
     createConfiguredRunBudget(app.config)
-  const refresh = buildRefreshCoordinator(app, options, registries.markets)
+  const coordinator = buildRefreshCoordinator(app, options, registries.markets)
   const services = buildServices(app, options, {
     registries,
     stores,
-    refresh,
+    ...coordinator,
     logger,
     createSuggestionBudget: budget,
   })
@@ -236,7 +225,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     registries,
     stores,
     services,
-    refresh,
+    refresh: coordinator.refresh,
     scheduled: options,
     logger,
   })
@@ -253,7 +242,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     services: toAggregate(
       {
         services,
-        refresh,
+        refresh: coordinator.refresh,
         ...ticks,
         stores,
         logger,
@@ -264,21 +253,6 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
       registries
     ),
     contributions,
-  }
-}
-
-function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptions {
-  return {
-    ...provided,
-    sender: provided.sender(app),
-    onFilled: provided.onFilled(app),
-    onAlertFired: provided.onAlertFired(app),
-    onAlertsChecked: provided.onAlertsChecked(app),
-    onTaskPass: provided.onTaskPass(app),
-    runScheduled: provided.runScheduled(app),
-    onRoleOutput: provided.onRoleOutput(app),
-    onFocusCallScored: provided.onFocusCallScored(app),
-    lateGraceMs: app.config.schedule.lateGraceMs,
   }
 }
 
@@ -305,9 +279,11 @@ function buildSurfaces(options: BoundOptions, parts: SurfaceParts): TradingContr
     intradaySettings: stores.intradaySettings,
     ledger: stores.ledger,
     logger: parts.logger,
+    ...(options.edition === undefined ? {} : { edition: options.edition }),
   })
 
   assertRegistryConsistency(registries.markets, options.tradingConfig, {
+    edition: options.edition,
     keys: options.keys,
     contributions,
     venues: registries.venues,
@@ -320,6 +296,8 @@ interface ServiceParts {
   readonly registries: Registries
   readonly stores: TradingStores
   readonly refresh: RefreshMarketData
+  readonly firstLoading: ReadonlySet<MarketRef>
+  readonly firstLoadFailed: ReadonlySet<MarketRef>
   readonly logger: Logger
   createSuggestionBudget(): ReturnType<typeof createConfiguredRunBudget>
 }
@@ -330,10 +308,19 @@ function buildServices(
   parts: ServiceParts
 ): ReturnType<typeof createDomainServices> & WithThemes {
   const { logger, registries, stores } = parts
+  const debate = buildDebateDeps(app, options, parts)
   const domain = createDomainServices({
     ...registries,
     stores,
-    refresh: parts.refresh,
+    ensure: createEnsureMarketData({
+      markets: registries.markets,
+      marketDataStore: stores.marketData,
+      refresh: parts.refresh,
+      firstLoading: parts.firstLoading,
+      firstLoadFailed: parts.firstLoadFailed,
+      signal: app.signal,
+      logger,
+    }),
     logger,
     sender: options.sender,
     recipient: options.recipient,
@@ -343,22 +330,13 @@ function buildServices(
     config: options.tradingConfig,
     // Composed here rather than passed in: the debate reads the closed market registry, which does
     // not exist until this function has built it.
-    runDebate: createRunDebate({
-      runner: { run: (input, runOptions) => app.resolve('runner').run(input, runOptions) },
-      logger,
-      maximumTurnsPerRole: app.config.loop.maxTurns,
-      markets: registries.markets,
-      // An absent `decisions` tier turns the headline read off rather than binding a dead chain.
-      decisionsChain: app.resolve('llmChains').findTier(DECISIONS_MODEL_TIER),
-      recordAttempt: app.resolve('attemptRecorder'),
-      onRoleOutput: options.onRoleOutput,
-      store: stores.suggestion,
-      playbooks: toPlaybookLibrary(TRADING_SKILLS),
-    }),
+    runDebate: createRunDebate(debate),
+    debate,
     createSuggestionBudget: () => parts.createSuggestionBudget(),
     defaultLocale: app.config.locale.language,
     skillVersions: skillVersions(),
     personaVersions: personaVersions(),
+    ...(options.edition === undefined ? {} : { edition: options.edition }),
   })
 
   return {
@@ -372,51 +350,23 @@ function buildServices(
   }
 }
 
-/** Created and closed once, inside the lazy factory. Nothing above this function ever sees a
- *  registry, mutable or otherwise. */
-function buildRegistries(app: App, options: BoundOptions): Registries {
-  const logger = app.resolve('logger')
-  const stores = app.resolve('tradingStores')
-  const sources = withNewsArchive(
-    createConfiguredSourceRegistry({
-      env: options.env,
-      logger,
-      pluginModules: options.pluginModules,
-      credentialEnv: options.tradingConfig.sourceCredentialEnv,
-      defaultVenues: options.tradingConfig.defaultVenues,
-      macroReads: stores.marketData,
-    }),
-    { archive: stores.newsArchive, logger }
-  )
-  const stages = createStageRegistry()
-  const markets = createMarketRegistry(lazyHeldInstruments(app, logger))
-  const { registry: venues, listings } = buildVenues(options, { logger, book: stores.ledger })
-  const fx = createFxRates({ sources, store: stores.fxRate, logger })
-  const deps: MarketDeps = {
-    config: options.tradingConfig,
-    sources,
-    fx,
-    marketDataStore: stores.marketData,
-    macro: macroCache(sources),
-    stages,
-    venueListings: listings,
-    briefServices: lazyBriefServices(app, options.tradingConfig, venues),
+/** What the role runner and the analysis share: one set of deps, so the full debate and the analysis
+ *  read the same persona calls. */
+function buildDebateDeps(app: App, options: BoundOptions, parts: ServiceParts): DebateDeps {
+  const { logger, registries, stores } = parts
+
+  return {
+    runner: { run: (input, runOptions) => app.resolve('runner').run(input, runOptions) },
+    logger,
+    maximumTurnsPerRole: app.config.loop.maxTurns,
+    markets: registries.markets,
+    // An absent `decisions` tier turns the headline read off rather than binding a dead chain.
+    decisionsChain: app.resolve('llmChains').findTier(DECISIONS_MODEL_TIER),
+    recordAttempt: app.resolve('attemptRecorder'),
+    onRoleOutput: options.onRoleOutput,
+    store: stores.suggestion,
+    playbooks: toPlaybookLibrary(TRADING_SKILLS),
   }
-
-  stages.register(createAdmissionStage())
-  stages.register(createExclusionStage())
-  stages.register(createDeploymentStage())
-  stages.register(createAveragingDownStage())
-  stages.register(createRoundTripStage())
-  markets.register(createGoldMarket(deps))
-  markets.register(createVnGoldMarket(deps))
-  markets.register(createVnEquityMarket(deps))
-  markets.register(createUsEquityMarket(deps))
-  markets.register(createCryptoMarket(deps))
-  markets.close()
-  stages.close()
-
-  return { markets, sources, stages, venues, fx }
 }
 
 /** The profile reader is the store, not the portfolio service: injecting the service here would

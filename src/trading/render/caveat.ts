@@ -1,7 +1,11 @@
 import type { Locale } from '@/core/types/locale'
 import type { Caveat, CaveatDetail, CaveatSeverity } from '@/trading/kernel/caveat'
 import { hasMessage, type MessageKey, t } from '@/i18n'
-import { caveatSeverity, OPERATOR_DETAIL_CODES } from '@/trading/kernel/caveat'
+import {
+  caveatSeverity,
+  OPERATOR_DETAIL_CODES,
+  WITHOUT_SOURCES_DETAIL,
+} from '@/trading/kernel/caveat'
 import { isCurrencyCode } from '@/trading/kernel/instrument'
 import { toFoldLines } from '@/trading/render/fold'
 import {
@@ -15,6 +19,8 @@ import { renderSubject } from '@/trading/render/subject'
 
 const UNFILLED_PARAM_RE = /\{\w+\}/
 const WITHHELD_KEY_SUFFIX = 'Withheld'
+/** The catalog's sentence that states a fact with no ranking, rating or advice in it. */
+export const PLAIN_KEY_SUFFIX = 'Plain'
 
 /** A stored caveat carries the detail shape of the build that wrote it, so a message it can no
  *  longer fill is dropped rather than shown with a raw placeholder. Two caveats that reach the same
@@ -27,11 +33,26 @@ const WITHHELD_KEY_SUFFIX = 'Withheld'
 export function describeCaveat(
   locale: Locale,
   caveat: Caveat
-): { readonly severity: CaveatSeverity; readonly message: string } | undefined {
+):
+  | { readonly severity: CaveatSeverity; readonly message: string; readonly plain?: string }
+  | undefined {
   const rendered = toRendered(locale, caveat)
-  const message = t(locale, rendered.key, rendered.detail)
+  const message = filledMessage(locale, rendered)
 
-  return UNFILLED_PARAM_RE.test(message) ? undefined : { severity: rendered.severity, message }
+  if (message === undefined) {
+    return undefined
+  }
+
+  // The sentence for an edition that states no ranking, rating or advice, where the catalog has one.
+  const plainRendered = toRendered(locale, caveat, true)
+  const plain =
+    plainRendered.key === rendered.key ? undefined : filledMessage(locale, plainRendered)
+
+  return {
+    severity: rendered.severity,
+    message,
+    ...(plain === undefined ? {} : { plain }),
+  }
 }
 
 export function renderCaveatLines(
@@ -40,15 +61,15 @@ export function renderCaveatLines(
   options: CaveatRenderOptions = {}
 ): readonly string[] {
   const shown = caveats.flatMap((caveat) => {
-    const rendered = toRendered(locale, caveat)
+    const rendered = toRendered(locale, caveat, options.plain === true)
 
     return options.withholdOperatorFigures === true ? withheldOf(locale, rendered) : [rendered]
   })
   const lines = distinctLines(
     mergeSubjects(shown).flatMap((caveat) => {
-      const message = t(locale, caveat.key, caveat.detail)
+      const message = filledMessage(locale, caveat)
 
-      return UNFILLED_PARAM_RE.test(message) ? [] : [{ severity: caveat.severity, message }]
+      return message === undefined ? [] : [{ severity: caveat.severity, message }]
     })
   )
 
@@ -70,6 +91,9 @@ interface CaveatRenderOptions {
   /** For a text a model relays: a caveat built on the operator's own money reads from its
    *  `<code>Withheld` sentence, which states the fact without the figure, or is left out. */
   readonly withholdOperatorFigures?: boolean
+  /** For an edition that shows no ranking, rating or advice: a caveat reads from its `<code>Plain`
+   *  sentence, which states the fact alone, when the catalog carries one. */
+  readonly plain?: boolean
 }
 
 interface RenderedLine {
@@ -115,7 +139,14 @@ function collapsedLines(locale: Locale, lines: readonly RenderedLine[]): readonl
   ]
 }
 
-function toRendered(locale: Locale, caveat: Caveat): RenderedCaveat {
+/** The sentence with every placeholder filled, or undefined when the stored detail cannot fill it. */
+function filledMessage(locale: Locale, { key, detail }: RenderedCaveat): string | undefined {
+  const message = t(locale, key, detail)
+
+  return UNFILLED_PARAM_RE.test(message) ? undefined : message
+}
+
+function toRendered(locale: Locale, caveat: Caveat, isPlain = false): RenderedCaveat {
   const raw = caveat.detail ?? {}
   const detail = renderSubject(locale, raw)
 
@@ -125,7 +156,7 @@ function toRendered(locale: Locale, caveat: Caveat): RenderedCaveat {
 
   return {
     code: caveat.code,
-    key: messageKey(locale, caveat),
+    key: messageKey(locale, caveat, isPlain),
     severity: caveatSeverity(caveat),
     detail: {
       ...detail,
@@ -160,13 +191,20 @@ function withheldOf(locale: Locale, caveat: RenderedCaveat): readonly RenderedCa
   return hasMessage(locale, key) ? [{ ...caveat, key: key as MessageKey }] : []
 }
 
-/** A caveat whose `count` is 1 reads from its `<code>One` sentence when the catalog carries one. */
-function messageKey(locale: Locale, caveat: Caveat): MessageKey {
+/** A caveat whose `count` is 1 reads from its `<code>One` sentence when the catalog carries one,
+ *  and one stamped `withoutSources` from its `<code>WithoutSources` sentence. */
+function messageKey(locale: Locale, caveat: Caveat, isPlain: boolean): MessageKey {
   const key = `trading.caveat.${caveat.code}` as const
-  const one = `${key}One`
+  const variants = [
+    ...(isPlain ? [`${key}${PLAIN_KEY_SUFFIX}`] : []),
+    ...(caveat.detail?.withoutSources === WITHOUT_SOURCES_DETAIL.withoutSources
+      ? [`${key}WithoutSources`]
+      : []),
+    ...(caveat.detail?.count === 1 ? [`${key}One`] : []),
+  ]
 
-  // why-safe: `hasMessage` proves the singular resolves before the string is treated as a key.
-  return caveat.detail?.count === 1 && hasMessage(locale, one) ? (one as MessageKey) : key
+  // why-safe: `hasMessage` proves the variant resolves before the string is treated as a key.
+  return (variants.find((variant) => hasMessage(locale, variant)) ?? key) as MessageKey
 }
 
 /** `renderSubject` prints a number without a unit, which for money is a different figure in every

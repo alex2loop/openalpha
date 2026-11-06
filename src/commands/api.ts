@@ -52,5 +52,6 @@ export {
   scheduledCommandRefusal,
 } from '@/commands/dispatcher/scheduled'
 export { createSessionModelSelection } from '@/commands/model'
+export { createResearchCommand, RESEARCH_COMMAND } from '@/commands/research'
 export { createCommandsProvider, createCoreCommands } from '@/commands/services'
 export { UPGRADE_CHAT_COMMAND, UPGRADE_CONFIRM_COMMAND } from '@/commands/upgrade'

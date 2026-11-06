@@ -23,6 +23,8 @@ const CLI_CHANNEL_ID = LOCAL_CHANNEL_ID
 // A slash command either resolves to a normal agent turn or handles itself outright.
 export interface SlashTurn {
   readonly message: string
+  /** The line typed, when `message` is what the command handed the agent for it. */
+  readonly typedMessage?: string
   readonly agentId?: AgentId
 }
 
@@ -34,21 +36,7 @@ export async function runSlash(session: ChatSession, line: string): Promise<Slas
   const controller = new AbortController()
   const spinner = startSlashProgress(session, resolved)
   const fallbacks = watchProviderFallbacks(app)
-  const ctx: SlashContext = {
-    channel: CLI_CHANNEL_ID,
-    requestId: crypto.randomUUID(),
-    surface: 'repl',
-    userId: LOCAL_USER_ID,
-    sessionId: state.sessionId,
-    chatId: CLI_CHAT_ID,
-    role: 'operator',
-    locale: app.config.locale.language,
-    signal: controller.signal,
-    args: [],
-    ...(spinner === undefined
-      ? {}
-      : { progress: createSlashProgressReporter(session, spinner, controller.signal) }),
-  }
+  const ctx = buildSlashContext(session, { controller, spinner })
 
   state.controller = controller
 
@@ -79,6 +67,34 @@ export async function runSlash(session: ChatSession, line: string): Promise<Slas
     if (state.controller === controller) {
       state.controller = null
     }
+  }
+}
+
+interface SlashProgress {
+  readonly controller: AbortController
+  readonly spinner: Spinner | undefined
+}
+
+function buildSlashContext(session: ChatSession, run: SlashProgress): SlashContext {
+  const { app, state, flags } = session
+  const { controller, spinner } = run
+
+  return {
+    channel: CLI_CHANNEL_ID,
+    requestId: crypto.randomUUID(),
+    surface: 'repl',
+    // The REPL's banner carries the label; a one-shot has no banner, so its answer carries its own.
+    ...(flags.message === undefined ? { hasAiLabel: true } : {}),
+    userId: LOCAL_USER_ID,
+    sessionId: state.sessionId,
+    chatId: CLI_CHAT_ID,
+    role: 'operator',
+    locale: app.config.locale.language,
+    signal: controller.signal,
+    args: [],
+    ...(spinner === undefined
+      ? {}
+      : { progress: createSlashProgressReporter(session, spinner, controller.signal) }),
   }
 }
 
@@ -194,6 +210,7 @@ function toSlashTurn(
     case 'agent':
       return {
         message: result.retryMessage,
+        typedMessage: line,
         ...(result.agentId === undefined ? {} : { agentId: result.agentId }),
       }
     case 'handled':

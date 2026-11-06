@@ -220,6 +220,9 @@ Chi tiết của việc lọc:
 - Khóa đặt trong dấu nháy (`"password": "..."`, kể cả trong chuỗi JSON đã thoát) được đọc theo cùng
   cách.
 - Dòng tiêu đề `Cookie:` hoặc `Set-Cookie:` bị che tới hết dòng.
+- Key có dáng riêng của nhà cung cấp (`sk-`, `tvly-`, `xai-`, `gsk_`, `AIza` và tương tự) bị che ở bất kỳ
+  đâu. Một đoạn trơn 32 đến 128 chữ và số (key Serper hay Mistral) chỉ bị che khi đứng ngay sau chữ
+  `key`, `api` hoặc `khóa`.
 - Văn bản truyền theo luồng tới ứng dụng được lọc xuyên qua ranh giới giữa các đoạn, nên một bí mật bị
   cắt đôi giữa hai đoạn vẫn bị bắt. Luồng giữ lại từ đang dở, hoặc dòng tiêu đề hay khối khóa riêng
   đang dở, cho tới khi đủ để xét; quá 512 ký tự thì nhả những gì đang có.

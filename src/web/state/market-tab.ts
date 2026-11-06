@@ -1,6 +1,6 @@
 import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
-import { homeRegion, knownMarkets } from '@/web/state/market'
+import { homeRegion, isMarketShown, knownMarkets } from '@/web/state/market'
 import { openView } from '@/web/state/panel'
 import { readStorage, writeStorage } from '@/web/state/storage'
 
@@ -19,13 +19,16 @@ export const marketSubTab = signal<MarketSubTab>('market')
 // The last region picked in this browser, kept across visits.
 const pickedRegion = signal(readStorage('local', REGION_STORAGE_KEY))
 
-/** Every region the daemon trades, the home region first, then in the daemon's order. */
+/** Every region with a market a page lists, the home region always, first, then in the daemon's
+ *  order. */
 export const marketRegions: ReadonlySignal<readonly RegionChoice[]> = computed(() => {
   const home = homeRegion()
   const regions = new Map<string, string>()
 
   for (const market of knownMarkets.value) {
-    if (!regions.has(market.region)) {
+    const isListed = market.region === home || isMarketShown(market)
+
+    if (isListed && !regions.has(market.region)) {
       regions.set(market.region, market.regionLabel)
     }
   }

@@ -73,8 +73,6 @@ export interface LiveRunWire extends RunStartWire {
   readonly agentId?: string
   /** The latest line, transient or persistent. */
   readonly progress?: ProgressWire
-  /** A scrubbed tail of the model's reasoning. */
-  readonly thinking?: string
   /** The persistent steps so far, oldest first. */
   readonly persistent: readonly ProgressWire[]
   /** The tickers the run's progress lines named so far, in the order first seen; at most 20. */

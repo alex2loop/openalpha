@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { Logger } from '@/core/logging/logger'
 import type { Budget } from '@/core/types/budget'
 import type {
@@ -282,7 +280,7 @@ async function recordRun(deps: ThemeRunDeps, finished: FinishedRun): Promise<voi
     { bundle: context.bundle, mappedThemes: chain.mappedThemes }
   )
   const run: ThemeRun = {
-    id: randomUUID(),
+    id: crypto.randomUUID(),
     ...(request.themeId === undefined ? {} : { themeId: request.themeId }),
     startedAt: context.startedAt,
     finishedAt: Date.now(),

@@ -15,13 +15,19 @@ import type {
 } from '@/trading/kernel/market/market-overview'
 import type { AgentWriter, PriceWriter } from '@/trading/kernel/surface/agent-json'
 import { createTool } from '@/core/tool'
-import { agentMacro } from '@/trading/features/market-data/tools/macro-risk'
+import {
+  agentMacro,
+  type MacroPayloadOptions,
+} from '@/trading/features/market-data/tools/macro-risk'
 import { fractionToPct, toAgentJson } from '@/trading/kernel/surface/agent-json'
 import { noInput } from '@/trading/kernel/surface/surface'
 import { formatFlow, formatSignedFlow } from '@/trading/render/format'
 import { formatPrice, formatScaledPrice } from '@/trading/render/money'
 
-export function createMarketOverviewTool(marketData: MarketDataService): ToolDefinition {
+export function createMarketOverviewTool(
+  marketData: MarketDataService,
+  options: MacroPayloadOptions = {}
+): ToolDefinition {
   return createTool({
     name: 'market_overview',
     description:
@@ -38,10 +44,11 @@ export function createMarketOverviewTool(marketData: MarketDataService): ToolDef
 
       return toAgentJson(
         overviews.map((overview) =>
-          toPayload(overview, {
-            locale: ctx.locale,
-            price: priceWriterOf(marketData, overview, ctx.locale),
-          })
+          toPayload(
+            overview,
+            { locale: ctx.locale, price: priceWriterOf(marketData, overview, ctx.locale) },
+            options
+          )
         )
       )
     },
@@ -69,7 +76,11 @@ function priceWriterOf(
 /** Every amount and price leaves as the string a reader would see, because a model handed
  *  196500000000 has to divide by a billion to say it and one that misplaces the decimal reports a
  *  flow ten times the market's. Every `Pct` is percent points, and scores leave as bands. */
-function toPayload(overview: MarketDataOverview, writer: AgentWriter): Record<string, unknown> {
+function toPayload(
+  overview: MarketDataOverview,
+  writer: AgentWriter,
+  macroOptions: MacroPayloadOptions
+): Record<string, unknown> {
   const { locale } = writer
   const { rows, marketCap, derivatives, etfFlows, range, macro, positioning } = overview
   const { narrowDeclineBelowPct } = overview
@@ -96,7 +107,7 @@ function toPayload(overview: MarketDataOverview, writer: AgentWriter): Record<st
     rows: rows.map((row) => toRow(row, writer)),
     settledSession: toSettledSession(overview, locale),
     ...(range === undefined ? {} : { range: toRange(range, writer.price) }),
-    ...(macro === undefined ? {} : { macro: agentMacro(macro, locale) }),
+    ...(macro === undefined ? {} : { macro: agentMacro(macro, locale, macroOptions) }),
     ...(positioning?.yearPercentile === undefined
       ? {}
       : {

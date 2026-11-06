@@ -25,27 +25,34 @@ export type {
   TradingTrackRecordView,
 } from '@/trading/wiring/host/view-types'
 export { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
+export { keptCaveats } from '@/trading/features/portfolio/render/rebalance-gaps'
+export { DEBATE_MODEL_TIER } from '@/trading/kernel/config'
 export { isIndexCode } from '@/trading/kernel/market/index-reading'
 export { TYPED_PRICES } from '@/trading/kernel/surface/surface'
 export { MACRO_SCORE_RANGE } from '@/trading/markets/macro-risk'
+export { publisherOf } from '@/trading/markets/news'
 
 // ── Boot & composition ───────────────────────────────────────────────────────
 
-export type { LoadedSourceModule } from '@/trading/sources/plugin-module'
+export type { BookReads, TradingEdition } from '@/trading/wiring/composition/edition'
 export type { SourceHost } from '@/trading/wiring/composition/source-hosts'
 export type { VenueKeyAudit } from '@/trading/wiring/composition/venue-keys'
 export { PROFILE_CURRENCY_SQL } from '@/trading/features/profile/store'
-export { loadPluginSourceModules } from '@/trading/sources/plugin-module'
+export { BROWSER_FEEDS, withReachableFeeds } from '@/trading/sources/adapters/rss'
+export { SOURCE_ROUTES, toBrowserRoutes } from '@/trading/sources/routes'
 export { HOST_SLOW_REQUEST_TIMEOUT_MS } from '@/trading/wiring/composition/host-seams'
-export {
-  createTradingRegistrationProvider,
-  createTradingStoresProvider,
-} from '@/trading/wiring/composition/registration'
-export { listSourceHosts } from '@/trading/wiring/composition/source-hosts'
+export { createTradingRegistrationProvider } from '@/trading/wiring/composition/registration'
+export { BROWSER_REACHABLE_SOURCES } from '@/trading/wiring/composition/source-facts'
+export { listBrowserSourceHosts, listSourceHosts } from '@/trading/wiring/composition/source-hosts'
 export { unavailableSources } from '@/trading/wiring/composition/source-registry'
+export { createTradingStoresProvider } from '@/trading/wiring/composition/stores'
 export { auditVenueKeys } from '@/trading/wiring/composition/venue-keys'
 export { resolveTradingConfig, TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
-export { HISTORY_FLOOR_DAYS } from '@/trading/wiring/config-defaults'
+export {
+  BUILT_IN_VENUES,
+  HISTORY_FLOOR_DAYS,
+  VN_EQUITY_SELL_TAX,
+} from '@/trading/wiring/config-defaults'
 
 // ── Daemon support ───────────────────────────────────────────────────────────
 
@@ -53,7 +60,6 @@ export {
   logRefreshDegradations,
   refreshDegradations,
 } from '@/trading/features/market-data/ops/refresh'
-export { isBoundaryFailure } from '@/trading/wiring/loop'
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 
@@ -98,6 +104,14 @@ export type {
   ValuedPosition,
 } from '@/trading/features/portfolio/types'
 export type { VenueChoice } from '@/trading/features/portfolio/venues'
+export type { ProfileSetField } from '@/trading/features/profile/patch'
+export type { AnalysisService } from '@/trading/features/suggestion/analysis/run'
+export type {
+  AnalysisFailure,
+  AnalysisId,
+  AnalysisRecord,
+  AnalysisRequest,
+} from '@/trading/features/suggestion/analysis/types'
 export type {
   RoleOutput,
   RoleOutputListener,
@@ -117,6 +131,7 @@ export type {
   SuggestionId,
   SuggestionListStatus,
   SuggestionOutcome,
+  SuggestionRequest,
   SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
 export type { Caveat, CaveatCode, CaveatSeverity, HoldReasonCode } from '@/trading/kernel/caveat'
@@ -156,7 +171,11 @@ export type {
   StopDistance,
 } from '@/trading/kernel/operator/alert'
 export type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
-export type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+export type {
+  BriefActionCode,
+  BriefSectionKind,
+  BriefSectionResult,
+} from '@/trading/kernel/operator/brief-section'
 export type { FocusScope } from '@/trading/kernel/operator/focus'
 export type {
   AlertFired,
@@ -200,8 +219,16 @@ export {
   renderIndexDropNotice,
 } from '@/trading/features/market-data/ops/held-watch-notice'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
+export { renderOverviewForSurface } from '@/trading/features/market-data/render/overview'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
 export { ORDER_TOOL_NAME, TRADE_COMMAND_NAME } from '@/trading/features/order/types'
+export {
+  renderAnalysisBody,
+  renderAnalysisText,
+} from '@/trading/features/suggestion/analysis/render'
+export { renderAnalysisFailure } from '@/trading/features/suggestion/analysis/render-failure'
+export { createAnalysisService } from '@/trading/features/suggestion/analysis/run'
+export { AnalysisError, analysisId } from '@/trading/features/suggestion/analysis/types'
 export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
 export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/render/debate-view'
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
@@ -215,8 +242,11 @@ export {
 export { THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 export {
   buildInstrumentKey,
+  isLevelKind,
+  isVenueRefShape,
   marketRef,
   region,
+  SLUG_MAX_CHARS,
   ticker,
   tradingDay,
   venueRef,
@@ -243,3 +273,4 @@ export { renderRestatementNotice } from '@/trading/render/restatement'
 export { changeAgainstClose } from '@/trading/sources/rows/normalization'
 export { SURFACE_LIMITS } from '@/trading/surface-limits'
 export { TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
+export { isBoundaryFailure } from '@/trading/wiring/loop'

@@ -22,7 +22,6 @@ type WireTopic =
   | 'pairing_requested'
   | 'run_started'
   | 'run_finished'
-  | 'run_thinking'
   | 'tool_started'
   | 'tool_finished'
   | 'agent_added'
@@ -138,14 +137,6 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     source: { channel: wireChannel(e.channel), agentId: e.agentId },
     runId: e.runId,
     outcome: e.reason,
-  }),
-  run_thinking: (e) => ({
-    v: 1,
-    kind: 'run_thinking',
-    weight: 'quiet',
-    source: { channel: wireChannel(e.channel), agentId: '' },
-    runId: e.runId,
-    thinking: e.excerpt,
   }),
   tool_started: (e) => ({
     v: 1,

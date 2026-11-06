@@ -8,7 +8,13 @@ import type { MarketDeps } from '@/trading/markets/deps'
 import type { MarketDetection, TickerCandidacy } from '@/trading/markets/detection'
 import type { FactorInput } from '@/trading/markets/factor-scoring'
 import type { BoardCache, BoardSnapshot } from '@/trading/markets/gold-vn/board'
-import type { Market, MarketManifest, TradingCalendar } from '@/trading/markets/types'
+import type {
+  Market,
+  MarketCapabilities,
+  MarketManifest,
+  NameContext,
+  TradingCalendar,
+} from '@/trading/markets/types'
 import { sourcedCaveat } from '@/trading/kernel/caveat'
 import { VN_GOLD_FACTOR_IDS } from '@/trading/kernel/factor'
 import { currencyCode, portfolioSegment, quoteUnit, region } from '@/trading/kernel/instrument'
@@ -47,12 +53,13 @@ import {
   VN_GOLD_FACTOR_POLICY,
   VN_GOLD_TICK,
 } from '@/trading/markets/gold-vn/policy'
-import { rankPremium } from '@/trading/markets/gold-vn/premium'
+import { historyPremiumOf, rankPremium } from '@/trading/markets/gold-vn/premium'
 import { refreshPremium } from '@/trading/markets/gold-vn/refresh'
 import { resolveLevelPolicy, strategyVersionOf } from '@/trading/markets/level-settings'
 import { LEVEL_FORMULA_VERSION } from '@/trading/markets/levels'
 import { resolveMacroRisk } from '@/trading/markets/macro'
 import { spreadPct } from '@/trading/markets/overview'
+import { PERCENT_PER_UNIT } from '@/trading/sources/rows/normalization'
 
 /** `percentileRank` reports 0-100; factor readings live on [0, 1]. */
 const PERCENTILE_MAX = 100
@@ -74,19 +81,7 @@ export function createVnGoldMarket(deps: MarketDeps): Market {
         kind: 'quote',
         run: (request) => boardQuote(deps, manifest.calendar, request),
       },
-      // Every form the board publishes, because "how is VN gold" is a question about the board and
-      // no single form answers it; `quote` serves one form per call.
-      overview: {
-        kind: 'overview',
-        run: async (request) =>
-          runVnGoldOverview({
-            snapshot: await board.get(request),
-            manifest,
-            deps,
-            asOf: request.asOf,
-            signal: request.signal,
-          }),
-      },
+      ...boardCapabilities(deps, manifest, board),
       // World bars in USD/oz: this market has no candle series of its own, and these carry the
       // volatility its levels convert into percentage risk distances. `referenceBarsOnly` on the
       // manifest is what stops a close, a change % or an outcome being read off them.
@@ -162,6 +157,51 @@ function detect(candidate: Ticker): MarketDetection {
   return GOLD_VN_TICKERS.has(candidate)
     ? { kind: 'match', instrument: { market: GOLD_VN_MARKET_REF, ticker: candidate } }
     : { kind: 'no-match' }
+}
+
+/** Both reads of the board, which arrives with the world metal and the rate in one cached read.
+ *  The overview lists every form it publishes, because "how is VN gold" is a question about the
+ *  board and no single form answers it; `quote` serves one form per call. */
+function boardCapabilities(
+  deps: MarketDeps,
+  manifest: MarketManifest,
+  board: BoardCache
+): Pick<MarketCapabilities, 'overview' | 'context'> {
+  return {
+    overview: {
+      kind: 'overview',
+      run: async (request) =>
+        runVnGoldOverview({
+          snapshot: await board.get(request),
+          manifest,
+          deps,
+          asOf: request.asOf,
+          signal: request.signal,
+        }),
+    },
+    context: {
+      kind: 'context',
+      run: async (request) => vnGoldContext(await board.get(request)),
+    },
+  }
+}
+
+/** The premium of the board's own form over world gold at today's rate, the one gap a reader of
+ *  this market compares the local price against. Absent where the board or a world operand is. */
+function vnGoldContext(snapshot: SourceResult<BoardSnapshot>): SourceResult<NameContext> {
+  if (snapshot.kind === 'unavailable') {
+    return snapshot
+  }
+
+  const premium = historyPremiumOf(snapshot.value)
+
+  return premium === undefined
+    ? unavailable('empty', sourceIds(snapshot), snapshot.caveats)
+    : available(
+        { figures: [{ id: 'world-gold-premium', value: premium * PERCENT_PER_UNIT }] },
+        snapshot.provenance,
+        snapshot.caveats
+      )
 }
 
 /** A quote reads the board and nothing else: world bars and FX gate the premium *factor*, and

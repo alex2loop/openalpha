@@ -1,6 +1,7 @@
 import type { ClientModelRequest } from '@/ai/api'
 import type { ToolResult } from '@/core/tool'
 import type { McpJobCall, McpJobRefusal, McpJobReply } from '@/engine/mcp/jobs/types'
+import { unrefTimer } from '@/core/utils/time'
 
 type Timer = ReturnType<typeof setTimeout>
 
@@ -66,5 +67,5 @@ export function refused(refusal: McpJobRefusal): McpJobReply {
 }
 
 export function startTimer(fn: () => void, ms: number): Timer {
-  return setTimeout(fn, ms).unref()
+  return unrefTimer(setTimeout(fn, ms))
 }

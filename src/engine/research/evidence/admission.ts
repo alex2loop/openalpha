@@ -29,6 +29,9 @@ import {
   buildResearchSource,
   candidateBranchScope,
   candidateReferenceKey,
+  dropFutureDated,
+  type EvidenceSet,
+  type FreshEvidenceSet,
   type ResolutionState,
   resolveClaims,
   resolveGaps,
@@ -46,6 +49,7 @@ interface EvidenceAdmissionInput {
   readonly freshness?: ResearchFreshness
   readonly bounds: ResearchEvidenceBounds
   readonly now: number
+  readonly latestDay: string
   readonly signal: AbortSignal
 }
 
@@ -92,6 +96,7 @@ export async function admitEvidence(
   state.resolveClaims(input.candidates)
   state.resolveNumericLinks(input.candidates)
   state.resolveGaps(input.candidates)
+  state.applyRunDay(input.latestDay)
   state.applyFreshness(input.freshness)
 
   if (!state.hasUsableExcerpt()) {
@@ -188,6 +193,7 @@ class EvidenceAdmissionState implements ResolutionState {
     signal: AbortSignal
   ): Promise<void> {
     const referenceKey = candidateReferenceKey(scope, candidate.ref)
+
     if (this.excerptIdByRef.has(referenceKey)) {
       this.pushGap({
         code: 'duplicate_reference',
@@ -198,6 +204,7 @@ class EvidenceAdmissionState implements ResolutionState {
     }
 
     const sourceId = this.resolveExcerptSource(candidate)
+
     if (sourceId === undefined) {
       return
     }
@@ -208,7 +215,7 @@ class EvidenceAdmissionState implements ResolutionState {
     const derived: DerivedExcerpt = {
       sourceId,
       text,
-      textHash: await sha256Hex(normalizeExcerptText(text)),
+      textHash: sha256Hex(normalizeExcerptText(text)),
     }
 
     if (signal.aborted) {
@@ -310,14 +317,23 @@ class EvidenceAdmissionState implements ResolutionState {
     if (freshness === undefined) {
       return
     }
-    const filtered = applySourceFreshness({
+    this.replaceEvidence(applySourceFreshness({ ...this.evidenceSet(), freshness }))
+  }
+
+  applyRunDay(latestDay: string): void {
+    this.replaceEvidence(dropFutureDated({ ...this.evidenceSet(), latestDay }))
+  }
+
+  private evidenceSet(): EvidenceSet {
+    return {
       sources: [...this.sources.values()],
       excerpts: this.excerpts,
       claims: this.claims,
       numericLinks: this.numericLinks,
-      freshness,
-    })
+    }
+  }
 
+  private replaceEvidence(filtered: FreshEvidenceSet): void {
     this.sources.clear()
     this.sourceIdByUrl.clear()
     for (const source of filtered.sources) {

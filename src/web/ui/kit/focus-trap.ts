@@ -5,7 +5,7 @@ const FOCUSABLE =
 
 /** The focusable elements inside every element the selector list `within` names, in document
  *  order. */
-export function listFocusable(within: string): HTMLElement[] {
+function listFocusable(within: string): HTMLElement[] {
   return [...document.querySelectorAll(within)].flatMap((container) =>
     [...container.querySelectorAll(FOCUSABLE)].filter(
       (element): element is HTMLElement => element instanceof HTMLElement

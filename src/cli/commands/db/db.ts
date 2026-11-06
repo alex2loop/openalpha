@@ -1,4 +1,5 @@
 import { stat } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
@@ -19,25 +20,27 @@ import { fail, hint, style, success } from '@/cli/ui/colors'
 import { formatBytes } from '@/cli/ui/format'
 import { confirm, confirmDefaultYes, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { expandHome } from '@/core/config/resolve'
-import { silentLogger } from '@/core/logging/logger'
+import { silentLogger } from '@/core/logging/silent-logger'
 import { MS_PER_DAY } from '@/core/utils/time'
 import { type MessageKey, pluralKey, t } from '@/i18n'
 import {
   ALL_TABLES,
+  countRetention,
+  effectiveHistoryDays,
+  type RetentionConfig,
+  type RetentionCounts,
+  runRetention,
+  TABLE_NAME_WIDTH,
+} from '@/persistence/api'
+import {
   BACKUPS_SUBDIR,
   backupAndPrune,
   backupSqlite,
   backupTarget,
-  countRetention,
-  effectiveHistoryDays,
   openPersistence,
-  type RetentionConfig,
-  type RetentionCounts,
   resetPersistence,
   restoreSqlite,
-  runRetention,
-  TABLE_NAME_WIDTH,
-} from '@/persistence/api'
+} from '@/persistence/node-api'
 import { HISTORY_FLOOR_DAYS } from '@/trading/api'
 
 const dbIntegrityCommand = createCommand({
@@ -261,7 +264,7 @@ const dbBackupCommand = createCommand({
     }
 
     const explicitPath = flagString(args, 'path')
-    const explicit = explicitPath === undefined ? undefined : expandHome(explicitPath)
+    const explicit = explicitPath === undefined ? undefined : expandHome(explicitPath, homedir())
 
     if (explicit !== undefined && !flagBool(args, 'force') && (await Bun.file(explicit).exists())) {
       return usage(app, t(locale, 'cli.dbBackupTargetExists', { target: explicit }))
@@ -295,7 +298,7 @@ const dbRestoreCommand = createCommand({
     }
 
     const sourceFlag = flagString(args, 'source')
-    const source = sourceFlag === undefined ? undefined : expandHome(sourceFlag)
+    const source = sourceFlag === undefined ? undefined : expandHome(sourceFlag, homedir())
 
     if (source === undefined) {
       return usage(app, t(locale, 'cli.dbRestoreUsage'))

@@ -1,6 +1,29 @@
 import type { Locale } from '@/core/types/locale'
+import type {
+  GlossaryEntry,
+  GlossaryGroup,
+  GlossaryGroupEntry,
+  GlossaryTermId,
+} from '@/i18n/glossary'
 import en from '@/i18n/locales/en.json'
 import vi from '@/i18n/locales/vi.json'
+
+import { GLOSSARY_GROUPS, GLOSSARY_TERMS, tickersOfTerm } from './glossary'
+
+export {
+  foldGlossaryText,
+  GLOSSARY_TERMS,
+  type GlossaryEntry,
+  type GlossaryGroup,
+  type GlossaryGroupEntry,
+  type GlossaryTermId,
+  groupOfHeading,
+  matchesGlossaryQuery,
+  termOfFact,
+  termOfKind,
+  termOfMarket,
+  termOfTicker,
+} from './glossary'
 
 type Catalog = typeof en
 
@@ -99,6 +122,40 @@ export function runCompletionMessage(
   return t(locale, RUN_COMPLETION_KEYS[code], { model })
 }
 
+/** The one line every AI-written result carries, as a reader meets it: that an AI wrote it and
+ *  that it is analysis, not advice. The footer names the model. Render-only: it never enters a
+ *  prompt or a stored row. */
+export function renderAiLabel(locale: Locale): string {
+  return t(locale, 'aiLabel.line')
+}
+
+/** One term's name and definition in `locale`. */
+export function glossaryEntry(locale: Locale, id: GlossaryTermId): GlossaryEntry {
+  return {
+    id,
+    name: t(locale, `trading.glossary.term.${id}.name`),
+    definition: t(locale, `trading.glossary.term.${id}.definition`),
+    tickers: tickersOfTerm(id),
+  }
+}
+
+/** A group's title, what it covers and its terms, in `locale`. */
+export function glossaryGroup(locale: Locale, group: GlossaryGroup): GlossaryGroupEntry {
+  return {
+    group,
+    title: t(locale, `trading.glossary.group.${group}.title`),
+    about: t(locale, `trading.glossary.group.${group}.about`),
+    terms: GLOSSARY_TERMS.filter((term) => term.group === group).map((term) =>
+      glossaryEntry(locale, term.id)
+    ),
+  }
+}
+
+/** The whole glossary in `locale`, groups in listing order. */
+export function glossaryGroups(locale: Locale): readonly GlossaryGroupEntry[] {
+  return GLOSSARY_GROUPS.map((group) => glossaryGroup(locale, group))
+}
+
 // A dotless key names no namespace, so it can never resolve — splitting it anyway would yield a
 // truncated `ns` that silently matches the wrong section. Only the first dot separates; everything
 // after it is one opaque field name, which is what lets `trading` carry literal dotted keys.
@@ -134,6 +191,15 @@ function lookup(locale: Locale, ns: string, field: string): string | undefined {
 
 /** True when a message key resolves in the given locale (or the fallback). Key is a bare string so
  *  i18n stays a dependency-free localization leaf; callers pass their own typed keys. */
+/** `value` as a locale this build has a catalog for, else undefined. */
+export function toLocale(value: string | null | undefined): Locale | undefined {
+  return isLocale(value) ? value : undefined
+}
+
+function isLocale(value: string | null | undefined): value is Locale {
+  return typeof value === 'string' && Object.hasOwn(CATALOGS, value)
+}
+
 export function hasMessage(locale: Locale, key: string): boolean {
   return hasOwnMessage(locale, key) || hasOwnMessage(FALLBACK_LOCALE, key)
 }

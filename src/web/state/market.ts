@@ -1,25 +1,33 @@
-import { computed, type ReadonlySignal } from '@preact/signals'
+import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
-import type { MarketWire, OverviewResponse } from '@/app/server/wire/market'
+import type { MarketWire } from '@/app/server/wire/market'
 import type { StopsResponse } from '@/app/server/wire/money'
+import type { OverviewResponse } from '@/app/server/wire/overview'
 import type {
   AbsolutePositionWire,
   InstrumentRefWire,
   SuggestionWire,
+  TradingProfileResponse,
   TradingQuoteWire,
 } from '@/app/server/wire/trading'
 import type { SessionPhase } from '@/app/server/wire/vocab'
 import { ROUTES } from '@/web/api/routes'
 import { createRouteBlock } from '@/web/state/block'
+import { setCapped } from '@/web/state/capped-map'
 import { wholeUnitsDisplay } from '@/web/text/figures'
 
 const OVERVIEW_POLL_MS = 60_000
 // Each poll makes the daemon read live providers, so it stays slow.
 const QUOTES_POLL_MS = 60_000
+// The names a live read has told the page publish a level or not, past the board's own.
+const MAX_READ_LEVELS = 200
 
 type StopRow = StopsResponse['stops'][number]
+type LevelRead = Pick<TradingQuoteWire, 'market' | 'ticker' | 'isLevel'>
 
 const TRADING_PHASES: ReadonlySet<SessionPhase> = new Set(['open', 'break'])
+
+const readLevels = signal<ReadonlyMap<string, LevelRead>>(new Map())
 
 export const marketsBlock = createRouteBlock(ROUTES.markets)
 export const overviewBlock = createRouteBlock(ROUTES.overview)
@@ -107,6 +115,45 @@ export function findQuote(ticker: string, market?: string): TradingQuoteWire | u
   )
 }
 
+/** Keeps whether a live read of `quote` found its name a level, for a name the board does not
+ *  carry. A poll that finds the same answer leaves the store alone. */
+export function noteQuoteLevel(quote: TradingQuoteWire): void {
+  const key = keyOf(quote)
+
+  if (readLevels.value.get(key)?.isLevel === quote.isLevel) {
+    return
+  }
+
+  const next = new Map(readLevels.value)
+
+  setCapped(
+    next,
+    [key, { market: quote.market, ticker: quote.ticker, isLevel: quote.isLevel }],
+    MAX_READ_LEVELS
+  )
+  readLevels.value = next
+}
+
+/** Whether the name's quote says it publishes a level: an index or a futures contract is read,
+ *  never bought or analysed. A name no quote has described is not: a slow quote never hides from a
+ *  real stock what it can do. Without a market, the board's first quote of the ticker answers; a
+ *  name the board lacks is a level when any market's read of it said so. */
+export function isLevelInstrument(instrument: {
+  readonly market?: string
+  readonly ticker: string
+}): boolean {
+  const { market, ticker } = instrument
+  const found = findQuote(ticker, market)
+
+  if (found !== undefined) {
+    return found.isLevel
+  }
+
+  return market === undefined
+    ? [...readLevels.value.values()].some((read) => read.isLevel && read.ticker === ticker)
+    : (readLevels.value.get(keyOf({ market, ticker }))?.isLevel ?? false)
+}
+
 /** How the market prints a price, off `/v1/markets`; absent for a market with no board scale. */
 export function priceDisplayOf(market: string): MarketWire['priceDisplay'] {
   return findMarket(market)?.priceDisplay
@@ -130,14 +177,31 @@ export function isTradingPhase(phase: SessionPhase): boolean {
   return TRADING_PHASES.has(phase)
 }
 
-/** The overview's markets in `region`, in the daemon's order. */
-export function selectRegionOverview(region: string): OverviewResponse['markets'] {
-  return (overviewBlock.view.value.data?.markets ?? []).filter(
-    (block) => findMarket(block.market)?.region === region
-  )
+/** A segment the operator has not switched off: some cap leaves it room. */
+export function isSegmentOn(profile: TradingProfileResponse, segment: string): boolean {
+  const cap = profile.caps[segment]
+
+  return cap === undefined || cap.maximumPositionPctNav > 0 || cap.maximumSegmentPctNav > 0
 }
 
-/** The overview's markets in the home region, or in every other region. */
+/** A market a page lists: its segment is on, or no venue can hold it (world gold, read for
+ *  reference). Every market counts before the profile is read. */
+export function isMarketShown(market: MarketWire): boolean {
+  const profile = profileBlock.view.value.data
+
+  return profile === undefined || !market.holdable || isSegmentOn(profile, market.segment)
+}
+
+/** The overview's markets in `region` that a page lists, in the daemon's order. */
+export function selectRegionOverview(region: string): OverviewResponse['markets'] {
+  return (overviewBlock.view.value.data?.markets ?? []).filter((block) => {
+    const market = findMarket(block.market)
+
+    return market?.region === region && isMarketShown(market)
+  })
+}
+
+/** The overview's markets a page lists in the home region, or in every other region. */
 export function selectOverview(scope: 'home' | 'other'): OverviewResponse['markets'] {
   const home = homeRegion()
   const blocks = overviewBlock.view.value.data?.markets ?? []
@@ -147,8 +211,12 @@ export function selectOverview(scope: 'home' | 'other'): OverviewResponse['marke
   }
 
   return blocks.filter((block) => {
-    const isHome = findMarket(block.market)?.region === home
+    const market = findMarket(block.market)
 
-    return scope === 'home' ? isHome : !isHome
+    if (market === undefined || !isMarketShown(market)) {
+      return false
+    }
+
+    return scope === 'home' ? market.region === home : market.region !== home
   })
 }

@@ -3,9 +3,11 @@ import { isChatOpen, setChatOpen, viewedSession } from '@/web/state/chat'
 import { startNewSession } from '@/web/state/chat-history'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
+import { ChatResizer, chatWidthStyle } from '@/web/ui/chat/chat-resizer'
 import { MessageList } from '@/web/ui/chat/message-list'
 import { SessionView } from '@/web/ui/chat/session-view'
 import { openSessionsDialog } from '@/web/ui/chat/sessions-dialog'
+import { AiLabel } from '@/web/ui/kit/ai-label'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { CloseIcon, HistoryIcon, PlusIcon } from '@/web/ui/kit/icons'
@@ -23,8 +25,14 @@ export function ChatPanel() {
   const viewed = viewedSession.value
 
   return (
-    <aside class="chat-panel chrome-glass" aria-label={tr('ui.office.chat.title')}>
+    <aside
+      class="chat-panel chrome-glass"
+      aria-label={tr('ui.office.chat.title')}
+      style={breakpoint.value === 'wide' ? chatWidthStyle() : undefined}
+    >
+      {breakpoint.value === 'wide' && !isChatOnly.value && <ChatResizer />}
       <ChatHead />
+      <AiLabel />
       {viewed === undefined ? (
         <MessageList />
       ) : (

@@ -4,6 +4,7 @@ import type {
   CashSegmentTarget,
   PositionChange,
   RebalancePolicyView,
+  RebalanceSizing,
   RebalanceUnavailableReason,
   ValuedBook,
   ValuedPosition,
@@ -12,9 +13,11 @@ import type {
 import type { Caveat } from '@/trading/kernel/caveat'
 import { allocationRows, desiredWeights } from '@/trading/features/portfolio/folds/allocation'
 import { isWeakHolding } from '@/trading/features/portfolio/folds/policy'
-import { rebalanceRows } from '@/trading/features/portfolio/folds/rebalance'
+import { gapRows, rebalanceRows } from '@/trading/features/portfolio/folds/rebalance'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { toProfileStamp } from '@/trading/kernel/operator/profile'
+
+const EXCLUDED_FINDING = 'excluded-holding'
 
 /** The readiness guard lives here so allocation and rebalance cannot emit rows for an incomplete
  *  book. Both arms carry the assessment, so findings survive either way. */
@@ -45,20 +48,34 @@ export function buildRebalancePlan(input: AdviceInput): AbsoluteRebalancePlan {
     }
   }
 
-  const nav = basis.navBase
+  const { advice, sizing } =
+    input.form === 'gaps' ? gapsAdvice(input, basis.navBase) : ordersAdvice(input, basis.navBase)
+
+  return {
+    advice,
+    sizing,
+    regimes: input.regimes,
+    ...(freshness === undefined ? {} : { freshness }),
+  }
+}
+
+type PlanArm = Pick<AbsoluteRebalancePlan, 'advice' | 'sizing'>
+
+function ordersAdvice(input: AdviceInput, nav: number): PlanArm {
+  const { findings } = input.assessment
+  const caveats = planCaveats(input)
   // One distribution serves both arms: computing it twice would let allocation and rebalance
   // disagree about the same segment on the same run.
   const desired = desiredWeights(input, nav)
   const weak = weakHoldingRows(input)
   // Before the segment rows: each one reports where the plan leaves it, so the plan has to exist.
   const plan = rebalanceRows(input, nav, desired)
-  const allocation = allocationRows(input, plan.rows)
 
   return {
     advice: {
       kind: 'ready',
       policy: advicePolicy(input, plan.deploymentScale),
-      allocation,
+      allocation: allocationRows(input, plan.rows),
       rebalance: plan.rows,
       cashSegment: cashSegmentAdvice(input, nav, plan.rows),
       weakHoldings: weak.rows,
@@ -71,14 +88,37 @@ export function buildRebalancePlan(input: AdviceInput): AbsoluteRebalancePlan {
         ...plan.caveats,
       ],
     },
-    sizing: {
-      navBase: nav,
-      baseCurrency: input.valued.book.baseCurrency,
-      byInstrument: plan.sizes,
-    },
-    regimes: input.regimes,
-    ...(freshness === undefined ? {} : { freshness }),
+    sizing: sizingOf(input, nav, plan.sizes),
   }
+}
+
+/** The plan a page that states no order, size or score reads: the gaps to the visitor's own targets,
+ *  nothing that sizes a buy. The finding about an excluded name describes what the plan does with
+ *  it, so it stays out. */
+function gapsAdvice(input: AdviceInput, nav: number): PlanArm {
+  const plan = gapRows(input, nav)
+
+  return {
+    advice: {
+      kind: 'ready',
+      policy: advicePolicy(input),
+      allocation: allocationRows(input, plan.rows),
+      rebalance: plan.rows,
+      cashSegment: cashSegmentAdvice(input, nav, plan.rows),
+      weakHoldings: [],
+      findings: input.assessment.findings.filter((finding) => finding.kind !== EXCLUDED_FINDING),
+      caveats: planCaveats(input),
+    },
+    sizing: sizingOf(input, nav, plan.sizes),
+  }
+}
+
+function sizingOf(
+  input: AdviceInput,
+  nav: number,
+  byInstrument: RebalanceSizing['byInstrument']
+): RebalanceSizing {
+  return { navBase: nav, baseCurrency: input.valued.book.baseCurrency, byInstrument }
 }
 
 /** Every arm carries the same qualifications: an advice that hides why deployment was capped, or
@@ -95,10 +135,10 @@ function planCaveats(input: AdviceInput): readonly Caveat[] {
 
 /** Read from the same profile and regime the rows were built from, so the header can never describe
  *  a policy the numbers below it did not use. */
-function advicePolicy(input: AdviceInput, scale: number): RebalancePolicyView {
+function advicePolicy(input: AdviceInput, scale?: number): RebalancePolicyView {
   return {
     profile: toProfileStamp({ profile: input.profile, saved: input.profileSaved }),
-    deploymentScale: scale,
+    ...(scale === undefined ? {} : { deploymentScale: scale }),
   }
 }
 

@@ -135,6 +135,12 @@ openalpha chat [-m <nội dung>] [-a <agent>] [--mode manual|bypass]
 Bỏ `--message` thì vào REPL, tức một cuộc trò chuyện liên tục. Có `--message` thì chạy một phát: hỏi
 một câu, nhận một câu trả lời.
 
+Banner mở đầu của REPL có một dòng nói các câu trả lời do AI tạo và không phải khuyến nghị đầu
+tư. Chạy một phát thì in đúng dòng đó ra stderr trước lượt hỏi, nên câu trả lời qua pipe vẫn sạch.
+Ở nơi đã hiện sẵn dòng này (banner của REPL, khung trò chuyện trên trang văn phòng và bản web), không
+câu trả lời nào ở đó lặp lại nó: không `/suggest`, `/brief` hay `/themes`, và trên bản web cả câu trả
+lời trò chuyện; chạy một phát, ứng dụng chat và việc chạy theo lịch thì vẫn giữ.
+
 Chạy một phát chỉ hỏi bạn phê duyệt được khi stdin là terminal. Với stdin qua pipe hoặc rỗng thì không
 có ai để hỏi. Vì vậy ở chế độ thủ công, một lời gọi nguy hiểm bị chặn do không có ai phê duyệt. Nó
 không bao giờ được duyệt ngầm. `--mode bypass` luôn phải do chính bạn gõ.
@@ -196,13 +202,13 @@ Tin nhắn chat thường vẫn chờ câu trả lời đứng trước nó.
 Hai thói quen của đầu ra nên biết:
 
 - Lệnh nào phải chờ mạng thì hiện một dòng tiến độ khi chạy và một dòng cuối khi xong. Khi đầu ra không phải terminal (qua pipe, hoặc `chat -m "/refresh"` chạy một lần), tiến độ hiện thành các dòng thuần trên stderr. Các dòng này chỉ hiện khi lệnh đã chạy lâu hơn một chút, và tối đa mười giây một dòng. Nhờ vậy stdout chỉ chứa câu trả lời, và lệnh trả lời ngay thì không in gì. Lệnh trả lời từ
-  dữ liệu cục bộ (`/profile`, `/sources`) không có cả hai.
+  dữ liệu cục bộ (`/profile`, `/sources`, `/glossary`) không có cả hai.
 - Nếu phiên chạy phải đổi nhà cung cấp, một dòng ngay phía trên dòng cuối nói rõ chuyển từ đâu, sang
   đâu, vì sao - mỗi lần đổi một dòng. Dòng này giải thích vì sao dòng cuối không nêu tên mô hình. Nó
   tính cả các phiên chạy con của lệnh gạch chéo lẫn các lời gọi của chính lượt chat.
 
 Phần giao dịch thêm `/setup`, `/record`, `/update`, `/delete`, `/transactions`, `/portfolio`,
-`/profile`, `/watchlist`, `/price`, `/market`, `/overview`, `/screen`, `/sources`, `/suggest`,
+`/profile`, `/watchlist`, `/price`, `/market`, `/overview`, `/screen`, `/sources`, `/glossary`, `/suggest`,
 `/themes`, `/rebalance`, `/reconcile`, `/reflect`, `/alert`, `/brief` và `/refresh`, cộng `/trade`,
 lệnh đặt được lệnh khi có sàn đã khai khóa giao dịch. Chúng nằm ở [Chat giao dịch](#chat-giao-dịch)
 bên dưới, và ở [Cẩm nang sử dụng](cam-nang.md) theo góc nhìn người dùng.
@@ -213,14 +219,14 @@ bên dưới, và ở [Cẩm nang sử dụng](cam-nang.md) theo góc nhìn ngư
 
 Một chip bên trái cho biết ai nhận câu bạn gõ: trợ lý, hay một agent của bạn (agent đang tạm dừng được đánh dấu). Enter là gửi, trên điện thoại còn có nút Gửi. Danh sách mở trên ô có một dòng gửi ở cuối. Dòng đó đọc là "Gửi cho <agent>" khi đã chọn một agent, và "Chạy câu lệnh" khi chữ bắt đầu bằng `/`.
 
-- **Gõ.** Chữ thường là một câu hỏi. Một mã cổ phiếu thì được tra. Gõ `/`, hoặc nhấn Tab khi ô đang trống, để xem các câu lệnh; Tab khi đã có chữ thì hoàn tất mã hoặc câu lệnh khớp đầu tiên. Mũi tên lên xuống chọn một dòng (khi ô trống, mũi tên lên gọi lại những gì bạn đã gửi), Enter gửi, Esc đóng danh sách. Nếu mất kết nối, chữ vẫn nằm trong ô và một dòng báo là chưa gửi được.
+- **Gõ.** Chữ thường là một câu hỏi. Một từ đơn gọi đúng tên một mã thì nhấn Enter sẽ mở thẻ của mã đó; từ nào khác thì được gửi đi như một câu hỏi. Gõ `/`, hoặc nhấn Tab khi ô đang trống, để xem các câu lệnh; Tab khi đã có chữ thì hoàn tất mã hoặc câu lệnh khớp đầu tiên. Mũi tên lên xuống chọn một dòng (khi ô trống, mũi tên lên gọi lại những gì bạn đã gửi), Enter gửi, Esc đóng danh sách. Nếu mất kết nối, chữ vẫn nằm trong ô và một dòng báo là chưa gửi được.
 - **Lệnh con và đối số.** Sau tên một câu lệnh và một dấu cách, danh sách đưa ra những gì câu lệnh đó nhận tiếp theo, chính là các từ mà Tab hoàn tất trong terminal (ví dụ `add` và `remove` sau `/watchlist`, hoặc tên các agent sau `/agent`), thu hẹp dần khi bạn gõ; Tab, Enter hoặc bấm chuột sẽ điền từ đó kèm một dấu cách. Một dòng mờ ở đầu hiện cách dùng của câu lệnh, như `/alert create <mã> above|below <giá>`, kể cả khi không có từ nào để gợi ý. Một mã cũng nằm trong gợi ý chỉ được liệt kê một lần. Nếu không đọc được gợi ý, ô vẫn gửi đúng những gì bạn đã gõ.
-- **Nó gợi ý gì.** Ô trống đang được chọn gợi ý những khởi đầu quen thuộc: đọc bản tin sáng, xem danh mục, đề xuất cho một mã, nghiên cứu một chủ đề. Khi đang mở thẻ một mã, nó gợi ý phân tích lại, đặt cảnh báo giá hoặc thêm mã vào danh sách theo dõi; khi đang mở một agent của bạn, nó gợi ý gửi câu tiếp theo cho agent đó, hoặc xem các lịch của nó.
+- **Nó gợi ý gì.** Ô trống đang được chọn gợi ý những khởi đầu quen thuộc: đọc bản tin sáng, xem danh mục, đề xuất cho một mã, nghiên cứu một chủ đề. Khi đang mở thẻ một mã, nó gợi ý phân tích lại, đặt cảnh báo giá hoặc thêm mã vào danh sách theo dõi (thẻ của một chỉ số hay hợp đồng tương lai không gợi ý phân tích lại, vì `/suggest` không phân tích được chúng); khi đang mở một agent của bạn, nó gợi ý gửi câu tiếp theo cho agent đó, hoặc xem các lịch của nó.
 - **Ước tính chi phí.** Cạnh mỗi câu lệnh, và trên dòng "Chạy câu lệnh", trang cho biết nó thường tốn bao nhiêu (ví dụ "khoảng 0,05-0,20 USD"), hoặc "không tốn AI" với câu lệnh trả lời từ dữ liệu cục bộ, cùng với phần còn lại của mức trần hôm nay nếu bạn có đặt. Con số là nửa giữa của chi phí vài phiên chạy gần nhất của câu lệnh đó, nên chỉ hiện sau vài phiên chạy, và không bao giờ hiện với câu lệnh giao lượt cho một agent. Câu lệnh mà chi phí tùy theo thứ bạn gõ, như `/suggest` trên những mã khác nhau, được gộp mọi lần dùng làm một, nên hãy đọc nó như con số tham khảo. Xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng).
 - **Hàng chờ.** Các câu lệnh tự chạy được thì không đứng đợi nhau, trong giới hạn nêu ở trên. Trong khung chat, câu lệnh phải chờ sẽ nói nó đứng thứ mấy trong hàng và đang có mấy câu lệnh chạy cùng lúc, và bỏ khỏi hàng được. Câu lệnh chạy song song với câu lệnh khác thì nói nó chạy cùng câu lệnh nào.
 - **Dừng và bổ sung.** Câu trả lời hay câu lệnh đang chạy hiện "Xem trong văn phòng" và nút Dừng; nút Dừng hỏi xác nhận và giữ phần đã làm trong nhật ký. Khi một câu trả lời (không phải câu lệnh) đang chạy, bạn gõ thêm một ý rồi bấm "Bổ sung": câu trả lời đọc ý đó ở bước tiếp theo. Dòng bắt đầu bằng `/` là câu lệnh, không bao giờ là phần bổ sung.
 
-Nút nào ghi rõ một câu lệnh đầy đủ thì gửi luôn câu lệnh đó khi bạn bấm: "/suggest VPB", "Phân tích mã này" trên thẻ mã và ở mỗi dòng Cơ hội (khi `/suggest` sẽ trả lại đề xuất đã lưu, tức mã còn đề xuất đang mở trên thẻ mã, hoặc ở Cơ hội là mã đã được phân tích trong ngày hay còn lệnh mua đang mở, chính nút đó đổi thành "Phân tích lại từ đầu" và gửi `/suggest <mã> force`; một lần chạy bị lỗi hay kế hoạch tự ghi cho mã đang giữ lúc bạn mua không phải là đề xuất, nên khi đó nút vẫn là "Phân tích mã này"; "Phân tích lại từ đầu" cũng nằm dưới mọi câu trả lời `/suggest <mã>` chưa kèm `force` và chạy lại đúng câu lệnh đó với `force`), bản tin ở thẻ bắt đầu, "Chạy lại" của một việc đã lên lịch, "Hỏi sâu hơn". Khi lượt chạy do một nút gửi đi chưa xong, nút đó quay vòng và tạm khóa, nên bấm thêm lần nữa cũng không tốn thêm lượt nào.
+Nút nào ghi rõ một câu lệnh đầy đủ thì gửi luôn câu lệnh đó khi bạn bấm: "/suggest VPB", "Phân tích mã này" trên thẻ mã và ở mỗi dòng Cơ hội (khi `/suggest` sẽ trả lại đề xuất đã lưu, tức mã còn đề xuất đang mở trên thẻ mã, hoặc ở Cơ hội là mã đã được phân tích trong ngày hay còn lệnh mua đang mở, chính nút đó đổi thành "Phân tích lại từ đầu" và gửi `/suggest <mã> force`; một lần chạy bị lỗi hay kế hoạch tự ghi cho mã đang giữ lúc bạn mua không phải là đề xuất, nên khi đó nút vẫn là "Phân tích mã này"; "Phân tích lại từ đầu" cũng nằm dưới mọi câu trả lời `/suggest <mã>` chưa kèm `force` và chạy lại đúng câu lệnh đó với `force`), bản tin ở thẻ bắt đầu, "Chạy lại" của một việc đã lên lịch, "Hỏi sâu hơn". Khi lượt chạy do một nút gửi đi chưa xong, nút đó quay vòng và tạm khóa, nên bấm thêm lần nữa cũng không tốn thêm lượt nào. Thẻ của một chỉ số hay hợp đồng tương lai không có nút "Phân tích mã này" lẫn "Ghi giao dịch", vì không ai mua bán trực tiếp được chúng; nút Theo dõi và cảnh báo giá vẫn còn. Trang chỉ ẩn hai nút đó khi báo giá của mã đã cho biết nó là chỉ số, nên mã chưa có báo giá vẫn hiện đủ nút. Thẻ đó cũng ẩn các khối kế hoạch, vị thế đang giữ và lệnh gợi ý cũ cùng ghi chú thang giá bảng điện, và không câu trả lời hay báo cáo nào mời bấm "/suggest" cho một mã như vậy. Câu trả lời `/suggest` chỉ dẫn tới phòng họp khi các vai đã tranh luận; câu bị từ chối, hay dừng trước khi có vai nào bắt đầu, không có cuộc họp nào để xem.
 
 Nút nào cho thấy kết quả ngay tại chỗ thì chạy câu lệnh mà không ghi gì vào khung chat hay lịch sử cuộc trò chuyện: "Cập nhật dữ liệu" (`/refresh`, không bao giờ kèm `force`) ở thẻ Thị trường cho các thị trường của vùng đang xem, và ở thẻ mã chưa có giá cho riêng thị trường của mã đó (thị trường bạn đã tắt, và vàng thế giới, thì không có nút này); "Viết lại bản tin hôm nay" ở cuối bản tin sáng (`/brief force`), trang đọc vẫn mở và tự nạp bản tin mới khi viết xong; "Chạy lại" ở Chủ đề (`/themes`, hoặc `/themes run <id>` cho một chủ đề), cần một mô hình AI và khóa lại khi chưa có; "Lọc lại" ở Cơ hội xếp hạng lại bảng. Muốn xem tiến trình hay dừng thì mở "Việc đang chạy" ở đầu trang; câu lệnh bị từ chối trước khi chạy (ví dụ vượt hạn mức chi phí) thì lý do hiện ngay dưới nút, và "Chạy lại" ở Chủ đề cũng khóa khi một lượt chủ đề gửi từ kênh khác đang chạy. Nút nào còn cần bạn nhập thêm, như Đặt cảnh báo hay trích một bản báo cáo, thì chỉ điền vào ô (hoặc chọn người nhận) và để phần còn lại cho bạn.
 
@@ -590,7 +596,7 @@ sống. Tìm kiếm dùng chỉ mục toàn văn. `memory list --prefix <chữ>`
 `memory search <câu hỏi>` trả về 10 kết quả, thêm `--limit <n>` để đổi số này. `history list` hiện 20 cuộc
 trò chuyện gần nhất, thêm `--limit <n>` để đổi số này.
 
-`history clear` xóa mọi cuộc trò chuyện, hoặc mọi cuộc trò chuyện của một agent. Hãy đọc phần trợ giúp và câu hỏi
+`history show` mở đầu bằng dòng nội dung do AI tạo khi cuộc trò chuyện có câu trả lời do mô hình viết. `history clear` xóa mọi cuộc trò chuyện, hoặc mọi cuộc trò chuyện của một agent. Hãy đọc phần trợ giúp và câu hỏi
 xác nhận trước khi chạy.
 
 `cost` nhận `--period day|week|month` (`week` tính từ thứ Hai, như `/transactions week`), hoặc một
@@ -726,7 +732,7 @@ ghi sổ và `/trade`.
 | `/price` | `/price <mã>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ. Thị trường niêm yết bảng hai chiều của đại lý (vàng VN) in cả hai chiều và chênh lệch giữa chúng, chứ không in cặp đóng cửa/trực tiếp: một bảng không nêu giá khớp cuối, và không giữ chuỗi ngày nào để đối chiếu giá đóng |
 | `/market` | `/market` - một thị trường đang ở đâu ngay lúc này, đặt cạnh phiên gần nhất đã chốt; `/market enable\|disable` - bật hoặc tắt các lần gửi theo lịch (chúng đi tới chat mặc định, không nhất thiết là chat này) |
 | `/overview` | `/overview` - các thị trường bạn đang dùng thế nào (nhóm đang bật, cộng thị trường có mã bạn giữ hoặc theo dõi), kèm khối vĩ mô; `/overview <thị trường>...` - chỉ in các thị trường đó, ví dụ `/overview crypto` |
-| `/screen` | `/screen [thị-trường] [số dòng] [loại]`, thứ tự tùy ý. Thị trường mặc định là thị trường mà lịch của `[locale] region` nêu tên; `loại` thu hẹp về một loại công cụ mà thị trường đó niêm yết. Mã nằm trong danh sách loại trừ của bạn vẫn được xếp hạng và được đánh dấu, không bị ẩn |
+| `/screen` | `/screen [thị-trường] [số dòng] [loại]`, thứ tự tùy ý. Thị trường mặc định là thị trường mà lịch của `[locale] region` nêu tên; `loại` thu hẹp về một loại công cụ mà thị trường đó niêm yết. Mã nằm trong danh sách loại trừ của bạn vẫn được xếp hạng và được đánh dấu, không bị ẩn. Mỗi mã chiếm một dòng: thứ hạng, nhận định và điểm chung, giá cùng mức biến động, ba chỉ số nổi bật nhất, rồi các số liệu thô thị trường đó nêu thêm (cổ phiếu VN: khoảng cách tới đỉnh 240 phiên, mức đổi 63 phiên so với VN-Index, biên độ dao động trung bình mỗi phiên, room ngoại còn lại, và P/E đặt cạnh trung vị của ngành; coin: vốn hóa, giá trị giao dịch 24 giờ, mức đổi 7 và 30 ngày); khung chat hẹp thì xuống dòng giữa các số liệu chứ không cắt ngang một số liệu, còn số liệu gốc phía sau các điểm số (P/E, dòng tiền ròng khối ngoại và tự doanh, phí funding, hợp đồng mở, tỷ lệ long/short và các số tương tự) nằm trong phần gập bên dưới. Ở bản web, `/screen` liệt kê mọi mã có giá theo thứ tự mã, mỗi mã một dòng, kèm số liệu từng chỉ số đọc được và vị trí của mã so với cả bảng; lọc (kể cả theo loại công cụ), sắp xếp, thêm mã vào danh sách theo dõi và xuất CSV nằm ở bảng Màn lọc |
 | `/suggest` | Tiêu ngân sách LLM cho một mã. Xem [Đề xuất](#đề-xuất) |
 | `/themes` | `/themes` - tìm các chủ đề đầu tư đang hình thành ở Việt Nam và tiêu ngân sách LLM; `/themes run <id>` - soát lại một chủ đề đang theo dõi, không tìm chủ đề mới và chỉ báo cáo chủ đề đó, với một phần nhỏ chi phí; `/themes show` - đọc báo cáo đã lưu, không gọi mô hình; `/themes approve\|reject\|retire <id>` - chuyển trạng thái một chủ đề. Chỉ operator dùng được |
 | `/rebalance` | `/rebalance`; `/rebalance <mã>...` - tính khoảng cách tới mục tiêu, không cân nhắc bằng chứng và không gọi mô hình. Xem [`/rebalance` tính những gì](#rebalance-tính-những-gì) |
@@ -735,6 +741,7 @@ ghi sổ và `/trade`.
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Khi thị trường chính là Việt Nam, bản tin mở đầu bằng câu chuyện thị trường và phần nhìn lại các câu chuyện trước. Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) và [Bản tin khi chưa có sổ](#bản-tin-khi-chưa-có-sổ) |
 | `/refresh` | `/refresh [thị-trường] [force]`, thứ tự tùy ý. Không nêu thị trường thì chỉ làm mới các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn đang giữ mã, theo dõi mã hay còn gợi ý chờ chấm điểm. Thị trường còn lại được liệt kê là bỏ qua; gõ thẳng tên thì vẫn nạp. `force` tải lại bất kể dữ liệu nào đang mới. Vàng thế giới đọc giá trực tiếp nên không có gì để nạp, và lệnh nói rõ điều đó. Một loại dữ liệu trải ra nhiều công cụ sẽ báo đã tới đâu |
 | `/sources` | `/sources` - nhà cung cấp nào đã ngừng trả lời, hoặc một dòng duy nhất nếu không có. Trạng thái cầu dao là bộ nhớ của chính tiến trình này, nên một lần gọi CLI mới báo rằng chưa gọi nhà cung cấp nào, chứ không khẳng định mọi thứ khỏe |
+| `/glossary` | `/glossary` liệt kê các thuật ngữ thị trường mà ứng dụng dùng, theo mục; `/glossary <thuật ngữ>` giải thích một thuật ngữ bằng lời đơn giản. Gõ tên, mã thuật ngữ hoặc mã chứng khoán đều được (`/glossary P/E`, `/glossary foreign-room`, `/glossary VNINDEX`), và nếu có vài kết quả khớp thì lệnh liệt kê để bạn chọn. Định nghĩa giống hệt những gì trang web hiện dưới chữ gạch chân chấm: chỉ nói thuật ngữ là gì, không nói nên làm gì |
 | `/reconcile` | `/reconcile` - đối chiếu sổ với những gì sàn báo; sàn chưa có khóa API thì được nêu tên kèm các biến còn thiếu |
 | `/trade` | Dàn, xác nhận và hủy lệnh thật. Xem [Đặt lệnh](#đặt-lệnh) |
 
@@ -812,6 +819,9 @@ Dòng đó nêu thị trường ngay trong cùng token với mã (`equity-vn:FPT
 lưu chỉ có đúng một thị trường cho mã đó. Thị trường không bao giờ được đoán qua mạng, và lời xác nhận
 luôn ghi rõ nó. Điều này quan trọng vì một dòng sổ làm đổi mọi số đọc sau đó từ sổ.
 
+Sổ chỉ ghi thứ bạn nắm giữ được: một chỉ số hay hợp đồng tương lai (VN-Index, VN30F1M) không ai nắm giữ,
+nên `/record` và `/update` từ chối dòng nêu tên chúng, khi danh sách đã lưu của thị trường đó nhận ra tên. Một dòng cũ đã nêu tên một chỉ số hay hợp đồng như vậy chỉ có thể xóa hoặc đổi sang mã khác.
+
 ```text
 /record deposit|withdrawal|fee|loss <sàn> <số tiền> <tiền tệ> <ngày>
 /record buy|sell [sàn] <mã> <số lượng|all> <đơn giá> [tiền tệ] [phí] [ngày]
@@ -862,7 +872,10 @@ Một sàn mang khóa giao dịch thì lấy dòng từ lệnh khớp duy nhất
 
 Mã đứng một mình chỉ được tìm trong các danh sách đã lưu, trong các thị trường mà một sàn giữ (chỉ sàn
 được nêu, nếu có nêu). Không có yêu cầu mạng nào được gửi. Mã chỉ được nhận khi đúng một thị trường
-khớp; nếu không, câu trả lời nêu các dạng `thị-trường:mã` để gõ. Mọi xác nhận đều in thị trường cạnh mã.
+khớp; nếu không, câu trả lời nêu các dạng `thị-trường:mã` để gõ. Thị trường thuộc nhóm bạn đã tắt
+(`/profile`), mà bạn không nắm giữ hay theo dõi gì ở đó, thì không được tìm, nên một mã coin trùng tên
+quỹ Mỹ sẽ không bao giờ bị ghi thành quỹ: muốn quỹ thì gõ `equity-us:BTC`. Mọi xác nhận đều in thị
+trường cạnh mã.
 
 Dòng được mở rộng ra dạng đầy đủ trước khi đọc bất kỳ con số nào. Nên số có dấu nhóm như `58.400` bị từ
 chối y như dạng đầy đủ. Ví dụ: `/record buy FPT 100 58400`.
@@ -921,6 +934,15 @@ khớp.
 
 Tùy chọn đứng theo thứ tự bất kỳ sau mã; dùng `thị-trường:mã` khi một tên trần mơ hồ. Lệnh này tiêu ngân
 sách LLM, nên được dựng để khỏi tiêu hai lần.
+
+Chỉ số (VN-Index, VN30, VN100...) và hợp đồng tương lai (VN30F1M) không mua bán trực tiếp được, nên
+`/suggest` từ chối ngay, trước khi gọi mô hình AI, và gợi ý phân tích một quỹ ETF bám theo chỉ số đó. Lệnh
+từ chối này giống nhau ở terminal, ứng dụng chat và bản web, kể cả khi bản web chưa có key AI.
+
+Kết quả có luận điểm hoặc có phiên tranh luận đứng sau thì mở đầu bằng một dòng nói đây là nội dung do AI tạo
+và không phải khuyến nghị đầu tư.
+`/suggest stops` cũng mở đầu bằng dòng này. Trong REPL, banner đã hiện dòng này nên câu trả lời không lặp
+lại; chạy một phát và ứng dụng chat thì vẫn giữ.
 
 Câu trả lời hôm nay được dùng lại miễn phí (ở thị trường chạy liên tục, là mọi câu trả lời trong 4 giờ
 gần nhất) cho tới khi có giá đóng cửa mới hơn phiên nó đã đọc. Nên đề xuất làm lúc phiên đang chạy sẽ

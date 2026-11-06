@@ -33,13 +33,15 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
   },
   bars: {
     'equity-us': [sourceId('nasdaq')],
-    // vndirect declines an index outright and entrade charts only the four headline ones, so the
-    // ETF benchmarks reach `vietcap-chart` last rather than first — the two above it keep serving
-    // the series they already do, at the depth they already have. vps stands behind it for those
-    // six alone: with three providers the route still had one for them, and one 403 took all six
-    // out. It sits last because its turnover counts matched orders only.
+    // vndirect declines an index outright, so `vndirect-index` is the first provider an index
+    // reaches: its closes matched vps over 953 sessions and vietcap-chart and the stored entrade
+    // series over 120, on every index measured, from the deepest history and with no frozen bar.
+    // entrade charts only the four headline indices and freezes a newest bar, so it stands behind;
+    // the ETF benchmarks it declines reach vietcap-chart, then vps, last because its turnover counts
+    // matched orders only.
     'equity-vn': [
       sourceId('vndirect'),
+      sourceId('vndirect-index'),
       sourceId('entrade'),
       sourceId('vietcap-chart'),
       sourceId('vps'),
@@ -79,7 +81,10 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
   // free endpoint that also carries HNX, so the union is what covers the market. Each read states
   // the boards it covered, and a board no read covered leaves its names unknown rather than clear.
   supervision: { 'equity-vn': [sourceId('hsx'), sourceId('ssi')] },
-  indexMembership: { 'equity-vn': [sourceId('vietcap')] },
+  // Failed over: vietcap's baskets nest and its VN100 list is current. vps-board's VN30 list is the
+  // same, but its VN100 list ran behind (four of its own VN30 names missing, nine names apart), so it
+  // answers only a pair that nests and otherwise leaves the stored tiers standing.
+  indexMembership: { 'equity-vn': [sourceId('vietcap'), sourceId('vps-board')] },
   recommendations: { 'equity-vn': [sourceId('vndirect')] },
   // Merged, not failed over: no provider serves every series, and route order is precedence where
   // two publish the same one. The keyless pair leads so an unkeyed install still reads macro.
@@ -140,10 +145,16 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
       sourceId('er-api'),
     ],
   },
-  // Yahoo alone: the coin providers quote a pair's spot, not its dated history, and er-api
-  // publishes today's board only; Yahoo also dates a coin's dollar leg (`USDT-USD`). A pair nobody
+  // Yahoo leads: the coin providers quote a pair's spot, not its dated history, and er-api
+  // publishes today's board only; Yahoo also dates a coin's dollar leg (`USDT-USD`). coingecko backs
+  // it for USDVND alone, as USDT's price in dong, one request however long the window: a proxy, so
+  // below Yahoo, and the lead where Yahoo is unreachable (the web edition). vietcombank is last for
+  // the VND pairs: the bank's board is set once or twice a day, so a day's rate is not the market's
+  // close, and a window costs it a request a weekday, so it reaches only a short one. A pair nobody
   // carries history for leaves the confirmer silent.
-  fxHistory: { [ANY_SCOPE]: [sourceId('yahoo')] },
+  fxHistory: {
+    [ANY_SCOPE]: [sourceId('yahoo'), sourceId('coingecko'), sourceId('vietcombank')],
+  },
   // Per market, not ANY_SCOPE: rss serves only the markets RSS_FEEDS names a feed for. The
   // ANY_SCOPE arm is the macro tape, which is nobody's market. The two providers in a market that
   // has both partition the requests rather than failing over: one serves an instrument, the other
@@ -185,6 +196,32 @@ export function withVenueQuoteLead(
     ...routes,
     quote: Object.freeze({ ...routes.quote, [CRYPTO_MARKET]: led }),
   })
+}
+
+/** The table a page serves: only providers a browser can reach, in the same order. A scope left
+ *  with none is dropped, which reads as not served and never as failed. */
+export function toBrowserRoutes(
+  routes: SourceRouteTable,
+  reachable: ReadonlySet<SourceId>
+): SourceRouteTable {
+  const kinds = Object.entries(routes).map(([kind, scopes]) => [
+    kind,
+    reachableScopes(scopes, reachable),
+  ])
+
+  // why-safe: the entries are the table's own kinds, each mapped to a scope table.
+  return Object.freeze(Object.fromEntries(kinds)) as SourceRouteTable
+}
+
+function reachableScopes(
+  scopes: Readonly<Record<string, readonly SourceId[]>>,
+  reachable: ReadonlySet<SourceId>
+): Readonly<Record<string, readonly SourceId[]>> {
+  const kept = Object.entries(scopes)
+    .map(([scope, ids]) => [scope, ids.filter((id) => reachable.has(id))] as const)
+    .filter(([, ids]) => ids.length > 0)
+
+  return Object.freeze(Object.fromEntries(kept))
 }
 
 /** A plugin may open a scope no built-in serves, or stand behind one that exists. It can never be

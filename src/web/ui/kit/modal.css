@@ -56,6 +56,11 @@
   padding: 14px var(--s3);
 }
 
+/* Paragraphs set straight in a dialog keep a stack's gap between them. */
+.modal-body > p + p {
+  margin-top: var(--s1);
+}
+
 .modal-unsaved {
   padding: 0 var(--s3) var(--s1);
   color: var(--caution);

@@ -31,6 +31,9 @@ interface OverviewCommandDeps {
    *  page narrowed to markets outside that region carries none. */
   readonly defaultRegion: Region
   readonly heldMarkets: ReadonlySet<MarketRef>
+  /** `false` where the edition makes no call on the market, so the macro states readings only;
+   *  absent states the composite. */
+  readonly statesComposite?: false
   /** What a bare `/overview` covers: the markets a segment, holding or watched name keeps in use. */
   readonly marketsInUse: (signal: AbortSignal) => Promise<ReadonlySet<MarketRef>>
   readonly logger: Logger
@@ -99,12 +102,22 @@ async function run(deps: OverviewCommandDeps, ctx: SlashContext): Promise<SlashR
             overviews.map((overview) => overview.market)
           )
         : [],
-    text: renderOverviewText(
-      ctx.locale,
-      { overviews, macro, heldMarkets: deps.heldMarkets, now },
-      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
-    ),
+    text: renderPage(deps, ctx, { overviews, macro, now }),
   }
+}
+
+type PageRead = Omit<Parameters<typeof renderOverviewText>[1], 'heldMarkets' | 'statesComposite'>
+
+function renderPage(deps: OverviewCommandDeps, ctx: SlashContext, read: PageRead): string {
+  return renderOverviewText(
+    ctx.locale,
+    {
+      ...read,
+      heldMarkets: deps.heldMarkets,
+      statesComposite: deps.statesComposite !== false,
+    },
+    resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
+  )
 }
 
 /** A page with nothing to show is worse than a wide one, so a failed or empty read of what is in use

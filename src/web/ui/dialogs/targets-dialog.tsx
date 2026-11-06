@@ -2,8 +2,9 @@ import { type Signal, signal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
 import type { TradingProfileResponse } from '@/app/server/wire/trading'
-import { getJson } from '@/web/api/client'
+import { getJson, sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { editionKey } from '@/web/state/edition'
 import { findMarket } from '@/web/state/market'
 import { saveProfilePatch } from '@/web/state/profile'
 import { formatPercent } from '@/web/text/figures'
@@ -12,11 +13,15 @@ import { toErrorText, tr } from '@/web/text/tr'
 import {
   buildTargetsPatch,
   CASH_SEGMENT,
+  type CapSet,
   createTargetRows,
+  fillTargets,
   isWhole,
   lockUnheld,
+  roundShare,
   snapshotTargets,
   sumTargets,
+  switchedOnSegments,
   type TargetRow,
   toPercent,
 } from '@/web/ui/dialogs/targets-state'
@@ -25,11 +30,14 @@ import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
 
 import './dialogs.css'
 
-const ENABLE_COMMAND = '/profile enable'
+// `/v1/profile/default-targets?on=` lists the segments comma-separated.
+const SEGMENT_SEPARATOR = ','
 
 interface TargetsRequest {
   /** Leads back to where the dialog was opened from. */
   readonly onBack?: () => void
+  /** Runs once the targets are saved, for a page that shows them. */
+  readonly onSaved?: () => void
 }
 
 interface OpenTargets {
@@ -60,6 +68,7 @@ export function openTargetsDialog(profile: TradingProfileResponse, request: Targ
     body: <TargetsBody open={open} />,
     footer: <TargetsFooter open={open} />,
     dirty: () => snapshotTargets(open.rows.value) !== open.initial,
+    ...(request.onBack === undefined ? {} : { onDismiss: request.onBack }),
   })
 }
 
@@ -81,14 +90,16 @@ function TargetsBody({ open }: { readonly open: OpenTargets }) {
         ))}
       </div>
       <TotalLine total={total} />
-      <p class="meta">{tr('ui.office.targets.note')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.targets.note', 'ui.office.edition.targets.note'))}
+      </p>
     </div>
   )
 }
 
 function TargetRowView({ row }: { readonly row: TargetRow }) {
   const isCash = row.segment === CASH_SEGMENT
-  const isFixed = isCash || row.isLocked || !row.wasOn
+  const isFixed = isCash || row.isLocked
 
   return (
     <div class="target-row">
@@ -113,6 +124,7 @@ function TargetRowView({ row }: { readonly row: TargetRow }) {
         onInput={(event) => {
           row.pct.value = event.currentTarget.value
         }}
+        onBlur={() => roundShare(row)}
       />
     </div>
   )
@@ -145,6 +157,9 @@ function TargetsFooter({ open }: { readonly open: OpenTargets }) {
         {onBack !== undefined && (
           <Button onClick={onBack}>{tr('ui.office.settings.toSettings')}</Button>
         )}
+        <Button disabled={open.isBusy.value} onClick={() => fillDefaults(open)}>
+          {tr('ui.office.targets.defaults')}
+        </Button>
       </div>
       <Button onClick={() => open.handle?.close()}>{tr('ui.office.common.cancel')}</Button>
       <Button
@@ -169,21 +184,34 @@ function switchRow(row: TargetRow, isOn: boolean): void {
 }
 
 function describeRow(row: TargetRow): string {
-  if (row.isLocked) {
-    return tr('ui.office.targets.locked')
-  }
+  return row.isLocked ? tr('ui.office.targets.locked') : ''
+}
 
-  return row.wasOn || row.segment === CASH_SEGMENT
-    ? ''
-    : tr('ui.office.targets.offHint', { command: `${ENABLE_COMMAND} ${row.segment}` })
+// The split a re-seed would give the segments ticked now; it is saved only with Lưu.
+function fillDefaults(open: OpenTargets): void {
+  const on = open.rows.value
+    .filter((row) => row.on.value && row.segment !== CASH_SEGMENT)
+    .map((row) => row.segment)
+
+  open.isBusy.value = true
+  open.failure.value = undefined
+  getJson(ROUTES.defaultTargets, { query: { on: on.join(SEGMENT_SEPARATOR) } })
+    .then((answer) => fillTargets(open.rows.value, answer.segmentTargets))
+    .catch((error: unknown) => {
+      open.failure.value = toErrorText(error)
+    })
+    .finally(() => {
+      open.isBusy.value = false
+    })
 }
 
 function save(open: OpenTargets): void {
   open.isBusy.value = true
   open.failure.value = undefined
-  saveProfilePatch(buildTargetsPatch(open.profile, open.rows.value))
+  saveTargets(open)
     .then(() => {
       open.handle?.close()
+      open.request.onSaved?.()
       open.request.onBack?.()
     })
     .catch((error: unknown) => {
@@ -215,4 +243,23 @@ function useHeldSegments(open: OpenTargets): void {
 
     return () => controller.abort()
   }, [])
+}
+
+// A segment switched on is enabled first, which re-seeds every cap; the patch then keeps the caps
+// the other segments had and the one the enable gave the new segment.
+async function saveTargets(open: OpenTargets): Promise<void> {
+  const enabledCaps: Record<string, CapSet> = {}
+
+  for (const segment of switchedOnSegments(open.rows.value)) {
+    const enabled = await sendJson('POST', ROUTES.profileSegment, {
+      body: { action: 'enable', segment },
+    })
+    const cap = enabled.caps[segment]
+
+    if (cap !== undefined) {
+      enabledCaps[segment] = cap
+    }
+  }
+
+  await saveProfilePatch(buildTargetsPatch(open.profile, open.rows.value, enabledCaps))
 }

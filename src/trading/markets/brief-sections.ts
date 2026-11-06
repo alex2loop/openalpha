@@ -1,16 +1,10 @@
 import type { Exact } from '@/core/types/exact'
-import type {
-  BookPositionSummary,
-  BookSummary,
-  BriefAlertRow,
-  ListSinceOptions,
-} from '@/trading/features/brief/types'
+import type { BriefAlertRow, ListSinceOptions } from '@/trading/features/brief/types'
 import type { SegmentTarget } from '@/trading/features/portfolio/types'
 import type { StoredSuggestion, SuggestionRunResult } from '@/trading/features/suggestion/types'
 import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
 import type { DebateMode } from '@/trading/kernel/config'
 import type { CurrencyCode, InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
-import type { StopDistance } from '@/trading/kernel/operator/alert'
 import type {
   BriefSectionKind,
   BriefSectionResult,
@@ -20,8 +14,6 @@ import type {
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { BriefContext } from '@/trading/markets/brief-context'
 import { isInconclusive } from '@/trading/features/suggestion/types'
-import { buildInstrumentKey } from '@/trading/kernel/instrument'
-import { stopStandingOf } from '@/trading/kernel/operator/alert'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** The brief pays one debate per watchlist name, unattended, every morning. The full debate is what
@@ -75,6 +67,18 @@ export function ready<R extends BriefSectionRow>(
  *  identical to a user if both render as a missing section, and only the second is a problem. */
 export function omitted(kind: BriefSectionKind): BriefSectionResult {
   return { kind, status: 'omitted-by-policy', caveats: [] }
+}
+
+/** `sections` with every kind in `omit` read as omitted, the state every surface hides. */
+export function withoutOmitted(
+  sections: readonly BriefSectionResult[],
+  omit: ReadonlySet<BriefSectionKind> | undefined
+): readonly BriefSectionResult[] {
+  if (omit === undefined) {
+    return sections
+  }
+
+  return sections.map((section) => (omit.has(section.kind) ? omitted(section.kind) : section))
 }
 
 export function absent(
@@ -160,81 +164,6 @@ function toLevelRow(row: BriefAlertRow): BriefSectionRow {
     observedPrice: row.observedPrice,
     ...(row.currency === undefined || row.board !== undefined ? {} : { currency: row.currency }),
   }
-}
-
-/** How much of the book is under water and whether its plans still hold. A state report, never
- *  advice: it counts, it does not tell the operator to sell or to wait. Omitted when nothing is
- *  below cost — there is no reassuring arm worth printing daily. */
-export async function buildPositionsInLoss(context: BriefContext): Promise<BriefSectionResult> {
-  const book = await context.bookSummary()
-
-  if (book === null) {
-    return omitted('positions-in-loss')
-  }
-
-  const losing = losingPositions(book)
-
-  if (losing.length === 0) {
-    return omitted('positions-in-loss')
-  }
-
-  const distances = await context.services.stopDistances({
-    now: context.request.now,
-    signal: context.request.signal,
-    marks: book.marks,
-  })
-  const stops = stopTally(losing, distances)
-
-  // A stop tally of zero is a count with nothing behind it; the losing count already bounds them.
-  return ready('positions-in-loss', [
-    {
-      losingCount: losing.length,
-      losingReturnPct: aggregateReturnPct(losing),
-      ...(stops.clear === 0 ? {} : { stopClearCount: stops.clear }),
-      ...(stops.breached === 0 ? {} : { stopBreachedCount: stops.breached }),
-      ...(stops.unmeasured === 0 ? {} : { stopUnmeasuredCount: stops.unmeasured }),
-    },
-  ])
-}
-
-/** Holdings worth less than was paid for them. */
-function losingPositions(book: BookSummary): readonly BookPositionSummary[] {
-  return book.positions.filter((position) => position.valueBase < position.costBase)
-}
-
-interface StopTally {
-  readonly breached: number
-  readonly clear: number
-  readonly unmeasured: number
-}
-
-/** Losing holdings by where each stands against its own stop, looked up above the loop: one map for
- *  the book, never one per row. A holding the watch never measured counts as unmeasured — folded
- *  into `clear` it reported protection nobody compared, and a hold's stop is never a distance. */
-function stopTally(
-  losing: readonly BookPositionSummary[],
-  distances: readonly StopDistance[]
-): StopTally {
-  const byInstrument = new Map(
-    distances.map((distance) => [buildInstrumentKey(distance.instrument), distance])
-  )
-  const tally = { breached: 0, clear: 0, unmeasured: 0 }
-
-  for (const position of losing) {
-    const distance = byInstrument.get(buildInstrumentKey(position.instrument))
-
-    tally[distance === undefined ? 'unmeasured' : stopStandingOf(distance)] += 1
-  }
-
-  return tally
-}
-
-/** The losing leg's own return, cost-weighted: what the under-water part of the book did. */
-function aggregateReturnPct(losing: readonly BookPositionSummary[]): number {
-  const cost = losing.reduce((sum, position) => sum + position.costBase, 0)
-  const value = losing.reduce((sum, position) => sum + position.valueBase, 0)
-
-  return cost <= 0 ? 0 : value / cost - 1
 }
 
 /** The operator's own standing limits, restated each morning. Policy, not a market fact, which is
@@ -419,6 +348,10 @@ function summarizeRuns(
   kind: BriefSectionKind,
   results: readonly SuggestionRunResult[]
 ): BriefSectionResult {
+  if (results.length === 0) {
+    return omitted(kind)
+  }
+
   const completed = results.filter((result) => result.kind === 'completed')
 
   return completed.length === 0

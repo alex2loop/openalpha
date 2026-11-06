@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type {
   ClientModelAnswer,
   ClientModelBroker,
@@ -101,7 +99,7 @@ function park(
     )
   }
 
-  const request: ClientModelRequest = { ...draft, id: randomUUID() }
+  const request: ClientModelRequest = { ...draft, id: crypto.randomUUID() }
 
   return new Promise((resolve, reject) => {
     const onAbort = (): void => takeParked(slot, request.id)?.reject(abortError(signal))

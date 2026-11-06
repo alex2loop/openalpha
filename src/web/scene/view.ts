@@ -43,7 +43,9 @@ const MAX_ZOOM_OUT_STEPS = 4
 export const MAX_ZOOM_3D_PX = 9.1
 
 const INITIAL_FLOOR: FloorId = 'office'
-const FLOOR_CENTER: Point = Object.freeze({ x: WORLD.w / 2, y: WORLD.h / 2 })
+/** The world point at the floor's middle, where the home view looks before the pane and the bars
+ *  over it are known. */
+export const FLOOR_CENTER: Point = Object.freeze({ x: WORLD.w / 2, y: WORLD.h / 2 })
 // Under a world pixel of slack, an edge counts as reached.
 const EDGE_SLACK_PX = 1
 // A step that lands within this share of a step from the cap counts as reaching it.
@@ -92,13 +94,16 @@ interface ViewTarget {
 // The floor view the page opened at or the operator last chose; while the camera holds it, it keeps
 // the floor centred as the pane or the floating panel changes.
 let home: SceneView = { floor: INITIAL_FLOOR, zoomSteps: 0, center: FLOOR_CENTER }
-// How far right of the floor's centre the home view looks, in world px, so the floor shows centred
-// in the part of the pane the floating panel leaves clear.
-let homeShift = 0
+// The world point the home view looks at, so the floor shows centred in the part of the pane the
+// floating panel and the bars over its top leave clear.
+let homeCenter: Point = FLOOR_CENTER
 
 /** The floor on screen, the room zoomed into when one is, and the shared camera: zoom steps above
  *  the fitted floor and the world point at the pane's centre. */
 export const view = signal<SceneView>(home)
+/** CSS px of the pane's top the floating bars cover; the fitted floor leaves them clear of the
+ *  frontage's face. */
+export const topCover = signal(0)
 /** Written by the renderer after a draw that moved the picture; overlays place themselves by it. */
 export const projection = signal<Projection>({
   pane: { w: 0, h: 0 },
@@ -139,23 +144,23 @@ export function placeOnPane(renderer: Pick<SceneRenderer, 'toScreen'>, p: Point)
 
 export function setFloor(floor: FloorId): void {
   noteInteraction()
-  home = { floor, zoomSteps: 0, center: { x: FLOOR_CENTER.x + homeShift, y: FLOOR_CENTER.y } }
+  home = { floor, zoomSteps: 0, center: homeCenter }
   view.value = home
 }
 
-/** While the camera holds the home view, centres the floor in the part of `pane` left clear of
- *  `cover` CSS px on its right, at the fitted floor's `scale`. */
-export function showHome(pane: Size, scale: number, cover: number): void {
-  homeShift = cover / 2 / scale
+/** While the camera holds the home view, looks at `center`, the point that frames the floor in the
+ *  part of `pane` the panel and the bars leave clear, at the fitted floor's `scale`. */
+export function showHome(pane: Size, scale: number, center: Point): void {
+  homeCenter = center
 
   if (view.value !== home) {
     return
   }
 
-  const center = clampPan({ x: FLOOR_CENTER.x + homeShift, y: FLOOR_CENTER.y }, scale, pane)
+  const held = clampPan(center, scale, pane)
 
-  if (center.x !== home.center.x || center.y !== home.center.y) {
-    home = { ...home, center }
+  if (held.x !== home.center.x || held.y !== home.center.y) {
+    home = { ...home, center: held }
     view.value = home
   }
 }

@@ -2,6 +2,10 @@ import type { BriefServices } from '@/trading/features/brief/types'
 import type { MarketDataStore } from '@/trading/features/market-data/store/market-data'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
+import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
+import type { MacroMissingReason } from '@/trading/kernel/market/market-macro'
+import type { RefreshDataKind } from '@/trading/kernel/market/refresh'
+import type { BriefActionCode } from '@/trading/kernel/operator/brief-section'
 import type { VenueListings } from '@/trading/kernel/venue/catalog'
 import type { MacroCache } from '@/trading/markets/macro-cache'
 import type { StageRegistry } from '@/trading/markets/stage'
@@ -34,4 +38,19 @@ export interface MarketDeps {
    *  adapter whose methods resolve the owning service at call time, so the market registry does
    *  not have to exist before the services that depend on it. */
   readonly briefServices?: BriefServices
+  /** The web's first history load writes each fetch window before the next is fetched, so a page
+   *  never holds a whole year of bars. Absent: one write at the end, whatever the market's size. */
+  readonly pagedBackfill?: true
+  /** An edition that states readings and no placing: VN gold's premium carries no rank against its
+   *  own history, and an index overview carries no support or resistance range. Absent states both. */
+  readonly readingsOnly?: true
+  /** The data kinds a refresh leaves out because no source serves them: none is run, so none reads
+   *  as a failed fetch. Absent refreshes every kind the market has. */
+  readonly omitRefreshKinds?: ReadonlySet<RefreshDataKind>
+  /** The macro series no source serves here, each with the reason it reads missing for (`unserved`):
+   *  never as absent today, and the refresh does not count it missing. Absent states every series. */
+  readonly unservedMacro?: Readonly<Partial<Record<MacroSeriesId, MacroMissingReason>>>
+  /** What the brief never tells the reader to do next: each reads as if it never fired. Absent
+   *  states every action. */
+  readonly omitBriefActions?: ReadonlySet<BriefActionCode>
 }

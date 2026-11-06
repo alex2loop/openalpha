@@ -1,4 +1,5 @@
-// Public API of channels/. Other modules import from here — never from channels/ internals.
+// Portable public API of channels/: nothing here reaches a Bun or Node builtin, so the browser bundle
+// can import it. Other modules import from here — never from channels/ internals.
 
 export type { ChannelDeliveryConfig, ChannelSettings } from '@/channels/schema'
 export type { AcknowledgedRouter, StartChannelsDeps, StartChannelsResult } from '@/channels/start'
@@ -39,28 +40,5 @@ export type {
   SessionKey,
   SessionRouter,
 } from '@/core/types/session'
-export { TELEGRAM_API_BASE } from '@/channels/adapters/telegram/protocol'
-export { ZALO_API_BASE } from '@/channels/adapters/zalo/client'
-export {
-  parseZaloPersonalConfig,
-  type ZaloPersonalBlocker,
-  type ZaloPersonalChannelConfig,
-  zaloPersonalBlocker,
-} from '@/channels/adapters/zalo-personal/config'
-export { readZaloPersonalCredentials } from '@/channels/adapters/zalo-personal/credentials'
-export {
-  loginZaloPersonal,
-  type ZaloPersonalLoginOutcome,
-  type ZaloPersonalLoginProgress,
-} from '@/channels/adapters/zalo-personal/login'
 export { type ChannelDefinitionInput, createChannel } from '@/channels/define'
 export { formatRunResultBody, toResearchMilestone } from '@/channels/delivery/format'
-export { resolveDefaultRecipient } from '@/channels/recipient'
-export {
-  assertChannelConfigs,
-  channelsProvider,
-  findChannelDefinition,
-  resolveRegisteredChannelSettings,
-} from '@/channels/registry'
-export { resolveSecret } from '@/channels/schema'
-export { startChannels } from '@/channels/start'

@@ -1,7 +1,8 @@
-import type { ComponentChildren } from 'preact'
+import type { ComponentChildren, VNode } from 'preact'
 
 import type { BlockReading } from '@/web/state/block'
 import { formatDay, type MessageKey } from '@/i18n'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { locale, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatClock } from '@/web/text/time'
@@ -32,6 +33,8 @@ interface BlockFrameProps<T> {
   readonly showReadLine?: boolean
   /** A link or button in the head, at the right. */
   readonly action?: ComponentChildren
+  /** The title as the head shows it, where it is more than its words. */
+  readonly titleView?: VNode | undefined
   /** Said under the skeleton while the first read runs, for a read that takes seconds. */
   readonly loadingText?: string | undefined
   /** Said in place of the generic failure, where a failed read must not pass for an empty one. */
@@ -43,11 +46,11 @@ interface BlockFrameProps<T> {
 /** One Hôm nay block: its title tile, the daemon's cautions, a failed read with "Thử lại" over the
  *  last good figures, or the grey line of a part this daemon does not run. */
 export function BlockFrame<T>(props: BlockFrameProps<T>) {
-  const { title, colour, icon, reading, action, children } = props
+  const { title, colour, icon, reading, action, titleView, children } = props
 
   return (
     <section class="block">
-      <BlockHead title={title} colour={colour} icon={icon}>
+      <BlockHead title={titleView ?? title} colour={colour} icon={icon}>
         {reading.state !== 'absent' && action}
       </BlockHead>
       {reading.state === 'absent' ? (
@@ -60,7 +63,7 @@ export function BlockFrame<T>(props: BlockFrameProps<T>) {
 }
 
 interface BlockHeadProps {
-  readonly title: string
+  readonly title: ComponentChildren
   readonly colour: TileColour
   readonly icon: ComponentChildren
   /** A link or button at the right. */
@@ -122,9 +125,11 @@ function FailedStrip<T>({ title, reading, failedText }: FailedStripProps<T>) {
       <Button kind="tertiary" onClick={reading.retry}>
         {tr('ui.office.common.retry')}
       </Button>
-      <Button kind="tertiary" onClick={() => openSettings('data')}>
-        {tr('ui.office.today.doctor')}
-      </Button>
+      {!isAnalysisOnly.value && (
+        <Button kind="tertiary" onClick={() => openSettings('data')}>
+          {tr('ui.office.today.doctor')}
+        </Button>
+      )}
     </div>
   )
 }
@@ -162,5 +167,5 @@ export function ReadLine({ readAt, dataTo, readKey = 'ui.office.today.readAt' }:
     tr(readKey, { time: formatClock(readAt, timeZone) }),
   ]
 
-  return <p class="meta block-read">{joinInline(facts)}</p>
+  return facts.length === 0 ? null : <p class="meta block-read">{joinInline(facts)}</p>
 }

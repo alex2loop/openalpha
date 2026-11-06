@@ -1,5 +1,7 @@
 import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
+import type { AnalysisId, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
 import type { StopCover } from '@/trading/kernel/operator/alert'
+import type { Page } from '@/trading/kernel/store/page'
 import type { AgentMethods } from '@/trading/wiring/host/agents'
 import type { LedgerMethods } from '@/trading/wiring/host/ledger'
 import type { MarketMethods } from '@/trading/wiring/host/market'
@@ -10,6 +12,7 @@ import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import type { HeldStopView } from '@/trading/wiring/host/view-types'
 import { reconcileSentences } from '@/trading/features/portfolio/render/reconcile'
 import { toSegmentShares } from '@/trading/features/portfolio/render/segment-shares'
+import { assertOffered, settingsOf } from '@/trading/features/profile/patch'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { bounded, profileOf, resolveRegion, scoped, scopedSlow } from '@/trading/wiring/host/scope'
 
@@ -33,7 +36,7 @@ type BriefMethods = Pick<
   'getBrief' | 'rescheduleBrief' | 'getBriefDelivery' | 'nextIntraday'
 >
 
-type SuggestionMethods = Pick<AccountMethods, 'getSuggestion' | 'getDayDigest'>
+type SuggestionMethods = Pick<AccountMethods, 'getSuggestion' | 'getDayDigest' | 'listAnalyses'>
 
 type BookMethods = Pick<
   AccountMethods,
@@ -107,12 +110,54 @@ function bookMethods(deps: TradingHostDeps): BookMethods {
   }
 }
 
+/** Each analysis beside its name's price now, one quote board for the page; a name with no quote
+ *  keeps its record as stored. */
+async function withPricesNow(
+  deps: TradingHostDeps,
+  page: Page<AnalysisRecord, AnalysisId>,
+  signal: AbortSignal
+): Promise<Page<AnalysisRecord & { readonly last?: number }, AnalysisId>> {
+  const board = await deps.services.marketData.quoteBoard({
+    instruments: page.items.map((record) => record.instrument),
+    signal,
+  })
+  const last = new Map(
+    board.items.map((item) => [
+      buildInstrumentKey({ market: item.market, ticker: item.ticker }),
+      item.last,
+    ])
+  )
+
+  return {
+    ...page,
+    items: page.items.map((record) => {
+      const price = last.get(buildInstrumentKey(record.instrument))
+
+      return price === undefined ? record : { ...record, last: price }
+    }),
+  }
+}
+
 /** One stored suggestion, and what a day added to the book. */
 function suggestionMethods(deps: TradingHostDeps): SuggestionMethods {
   return {
     getSuggestion: (request) =>
       scoped(deps, request.signal, (scope) =>
         deps.services.suggestions.get(request.suggestionId, scope.signal)
+      ),
+
+    listAnalyses: (request) =>
+      scoped(deps, request.signal, async (scope) =>
+        withPricesNow(
+          deps,
+          await deps.services.analyses.list({
+            ...(request.instrument === undefined ? {} : { instrument: request.instrument }),
+            limit: bounded(request.limit, deps.limits.maximumTrackRecordItems),
+            ...(request.cursor === undefined ? {} : { cursor: request.cursor }),
+            signal: scope.signal,
+          }),
+          scope.signal
+        )
       ),
 
     getDayDigest: (request) =>
@@ -138,13 +183,16 @@ function recordMethods(
     // this host is closed over, and that profile is auto-provisioned at first boot.
     getProfile: (signal) => scoped(deps, signal, (scope) => profileOf(deps, scope)),
 
+    // The text command refuses the same settings through the same check.
     updateProfile: (request) =>
-      scoped(deps, request.signal, (scope) =>
-        deps.services.profiles.update({
+      scoped(deps, request.signal, (scope) => {
+        assertOffered(deps.services.profileFields, settingsOf(request.patch))
+
+        return deps.services.profiles.update({
           patch: request.patch,
           signal: scope.signal,
         })
-      ),
+      }),
 
     listSuggestions: (request) =>
       scoped(deps, request.signal, (scope) =>

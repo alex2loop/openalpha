@@ -85,6 +85,7 @@ export async function resolveMacroRisk(
       {
         values,
         observationDates,
+        ...(deps.unservedMacro === undefined ? {} : { missingReasons: deps.unservedMacro }),
         region: request.region,
         asOf: request.asOf,
         provenance,

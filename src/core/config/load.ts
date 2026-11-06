@@ -1,5 +1,8 @@
+import { homedir } from 'node:os'
+
 import { parse as parseToml, TomlError } from 'smol-toml'
 
+import type { ConfigFileBase, ConfigHost } from '@/core/config/paths'
 import { BRAND } from '@/core/brand'
 import { MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
 import { expandHome, resolveConfigFile, resolveDataDir } from '@/core/config/paths'
@@ -32,7 +35,7 @@ class MissingConfigError extends OperatorConfigError {
   }
 }
 
-type ConfigProbeOptions = ConfigLoadOptions & ConfigResolveOptions
+type ConfigProbeOptions = ConfigLoadOptions & Omit<ConfigResolveOptions, keyof ConfigHost>
 
 interface LoadedConfig {
   readonly raw: RawConfig
@@ -51,6 +54,7 @@ interface ProbedConfig {
 
 export async function probeConfig(options?: ConfigProbeOptions): Promise<ProbedConfig> {
   const configPath = resolveConfigPath(options)
+  const resolveOptions: ConfigResolveOptions = { ...options, ...readConfigHost() }
 
   let raw: RawConfig | undefined
 
@@ -58,7 +62,7 @@ export async function probeConfig(options?: ConfigProbeOptions): Promise<ProbedC
     raw = (await loadConfig(options)).raw
 
     return {
-      config: resolveConfig(raw, options),
+      config: resolveConfig(raw, resolveOptions),
       configPath,
       error: null,
       missing: false,
@@ -66,10 +70,13 @@ export async function probeConfig(options?: ConfigProbeOptions): Promise<ProbedC
     }
   } catch (err: unknown) {
     const keyless =
-      raw !== undefined && err instanceof MissingEnvError ? keylessConfig(raw, options) : undefined
+      raw !== undefined && err instanceof MissingEnvError
+        ? keylessConfig(raw, resolveOptions)
+        : undefined
 
     return {
-      config: keyless ?? fallbackConfig(raw?.locale ?? (await readLocale(configPath)), options),
+      config:
+        keyless ?? fallbackConfig(raw?.locale ?? (await readLocale(configPath)), resolveOptions),
       configPath,
       error: err instanceof Error ? err : new ConfigError(String(err)),
       missing: err instanceof MissingConfigError,
@@ -79,7 +86,7 @@ export async function probeConfig(options?: ConfigProbeOptions): Promise<ProbedC
 }
 
 /** The config with its unset keys deferred; undefined when another unset variable (storage) fails it. */
-function keylessConfig(raw: RawConfig, options?: ConfigProbeOptions): ResolvedConfig | undefined {
+function keylessConfig(raw: RawConfig, options: ConfigResolveOptions): ResolvedConfig | undefined {
   try {
     return resolveConfig(raw, { ...options, deferMissingKeys: true })
   } catch {
@@ -89,7 +96,7 @@ function keylessConfig(raw: RawConfig, options?: ConfigProbeOptions): ResolvedCo
 
 /** The defaults, keeping the operator's own `[locale]` where it is valid, so a config that failed
  *  elsewhere still reports that failure in their language. */
-function fallbackConfig(locale: unknown, options?: ConfigProbeOptions): ResolvedConfig {
+function fallbackConfig(locale: unknown, options: ConfigResolveOptions): ResolvedConfig {
   try {
     return resolveConfig(parseRawConfig({ locale }), options)
   } catch {
@@ -110,7 +117,7 @@ async function readLocale(path: string): Promise<unknown> {
 
 export async function loadConfig(options?: ConfigLoadOptions): Promise<LoadedConfig> {
   const dataDir = resolveLoadDataDir(options)
-  const configPath = resolveConfigFile(dataDir, process.cwd(), options?.configPath)
+  const configPath = resolveConfigFile(dataDir, options?.configPath, configFileBase())
 
   const toml = await readToml(configPath)
 
@@ -135,16 +142,26 @@ export function parseConfigToml(text: string): RawConfig {
 }
 
 function resolveConfigPath(options?: ConfigLoadOptions): string {
-  return resolveConfigFile(resolveLoadDataDir(options), process.cwd(), options?.configPath)
+  return resolveConfigFile(resolveLoadDataDir(options), options?.configPath, configFileBase())
+}
+
+/** The host this loader runs on: its variables, read live, and its home directory. Read here, at
+ *  the Bun/Node loader, so the resolve below it never reaches for a process. */
+export function readConfigHost(): ConfigHost {
+  return { env: process.env, homeDir: homedir() }
+}
+
+function configFileBase(): ConfigFileBase {
+  return { cwd: process.cwd(), homeDir: homedir() }
 }
 
 /** The data dir before any config loads: `--data-dir`, the brand's data-dir variable, then the default. */
 export function resolveLoadDataDir(options?: ConfigLoadOptions): string {
   if (options?.dataDir !== undefined) {
-    return expandHome(options.dataDir)
+    return expandHome(options.dataDir, homedir())
   }
 
-  return resolveDataDir()
+  return resolveDataDir(readConfigHost())
 }
 
 async function readToml(path: string): Promise<unknown> {
@@ -172,7 +189,7 @@ function parseTomlText(text: string): unknown {
 }
 
 function readEnvDataDir(): string | undefined {
-  const envValue = process.env[BRAND.controlEnv.dataDir]
+  const envValue = readConfigHost().env[BRAND.controlEnv.dataDir]
 
   return envValue !== undefined && envValue !== '' ? envValue : undefined
 }

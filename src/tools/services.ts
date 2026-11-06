@@ -1,7 +1,7 @@
-import type { ServiceProvider } from '@/core/container'
 import type { ToolDefinition } from '@/core/tool'
 import type { FileRevisionGuard } from '@/tools/fs/file-revision-guard'
-import { createFileRevisionGuard } from '@/tools/fs/file-revision-guard'
+import { NetworkPolicy } from '@/core/ssrf/network-policy'
+import { createToolsProvider } from '@/tools/portable-services'
 import { BUILT_IN_TOOLS } from '@/tools/registry'
 import { createWebRetrievalService } from '@/tools/web/retrieval-service'
 
@@ -12,11 +12,8 @@ declare module '@/core/container' {
   }
 }
 
-export const toolsProvider: ServiceProvider = {
-  name: 'tools',
-  register(bind): void {
-    bind('fileRevisionGuard', createFileRevisionGuard)
-    bind('webRetrieval', (app) => createWebRetrievalService(app.config, app.resolve('logger')))
-    bind('tools', () => new Map(BUILT_IN_TOOLS.map((tool) => [tool.name, tool])))
-  },
-}
+export const toolsProvider = createToolsProvider({
+  tools: BUILT_IN_TOOLS,
+  webRetrieval: (app) =>
+    createWebRetrievalService(app.config, app.resolve('logger'), NetworkPolicy),
+})

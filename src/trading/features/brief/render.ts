@@ -5,7 +5,7 @@ import type { MarketRef } from '@/trading/kernel/instrument'
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
 import { formatSpendUsd } from '@/core/utils/cost'
-import { formatDay, t } from '@/i18n'
+import { formatDay, renderAiLabel, t } from '@/i18n'
 import { renderStoryLines } from '@/trading/features/brief/story/render'
 import { renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -37,6 +37,12 @@ const REBALANCE_OWN_CAVEATS: ReadonlySet<string> = new Set([
   'portfolio.reduction-unsettled',
   'portfolio.reduction-illiquid',
 ])
+/** The sections that carry a call a model argued; everything else in the brief is code reading data,
+ *  and a label on it would claim a model wrote what none did. */
+const AI_SECTION_KINDS: ReadonlySet<BriefSectionKind> = new Set([
+  'suggestions',
+  'cross-asset-suggestions',
+])
 /** What an uncapped budget prints where a limit would go. */
 const UNLIMITED_MARK = '∞'
 
@@ -63,12 +69,18 @@ export const FOLDED_SECTION_KINDS = [
   'economy-headlines',
 ] as const satisfies readonly BriefSectionKind[]
 
-/** `recent` covers the names the brief covers (held, watched, else the most traded), a handful of
- *  lines: a filing on one of them is the decision-relevant reading a market block can carry. */
+/** What a market block prints. `recent` covers the names the brief covers (held, watched, else the
+ *  most traded), a handful of lines: a filing on one of them is the decision-relevant reading a
+ *  market block can carry. The derivatives, order flow, sentiment and premium readings are a few
+ *  labelled facts each, as `/overview` prints them. */
 const MARKET_HEADLINE_KINDS = [
   'market-prices',
   'breadth',
   'recent',
+  'derivatives',
+  'taker-flow',
+  'sentiment',
+  'premium',
 ] as const satisfies readonly BriefSectionKind[]
 
 /** The blocks that belong to no market, and the kinds each collects. Macro heads the markets
@@ -87,39 +99,83 @@ const BLOCK_ICONS = Object.freeze({
   actions: SECTION_ICONS.suggestion,
 } as const satisfies Record<BlockName, string>)
 
+/** `preface` is a line the delivery adds under the AI label and above the title; `hasAiLabel` is a
+ *  surface that already shows the label, so the brief does not repeat it. */
 export function renderBriefText(
   locale: Locale,
   snapshot: BriefSnapshot,
-  context: RenderContext
+  context: RenderContext & {
+    readonly preface?: string
+    readonly plain?: true
+    readonly hasAiLabel?: true
+  }
 ): string {
   // The verdict quotes the market sections the blocks below fold away, so it reads them all.
-  const readable = snapshot.sections.filter(isRenderable)
-  const renderable = readable.filter(isShown)
+  const { readable, renderable, hasAiCalls, nextActions, stories, blocks } = readSections(
+    locale,
+    snapshot
+  )
+
+  const preface = context.preface === undefined ? [] : [context.preface]
 
   if (renderable.length === 0) {
-    return renderEmptyLine(
-      SECTION_ICONS.brief,
-      t(locale, 'trading.brief.empty', { date: formatDay(locale, snapshot.asOf) })
-    )
+    return joinSections([
+      preface,
+      [
+        renderEmptyLine(
+          SECTION_ICONS.brief,
+          t(locale, 'trading.brief.empty', { date: formatDay(locale, snapshot.asOf) })
+        ),
+      ],
+    ])
   }
 
   const footer = renderCostFooter(locale, snapshot.sections)
-  const [nextActions, afterActions] = partition(
-    renderable,
-    (section) => section.kind === NEXT_ACTIONS_KIND
-  )
-  const [stories, rest] = partition(afterActions, (section) => STORY_KINDS.has(section.kind))
 
   return joinSections([
+    hasAiCalls && context.hasAiLabel !== true ? [renderAiLabel(locale)] : [],
+    preface,
     [title(locale, snapshot, context.timezone)],
     ...renderStoryLines(locale, stories, context).map((block) => block.map((entry) => entry.text)),
     renderVerdictBlock(locale, readable, context),
     // Right under the verdict that counts them, with no header of their own: what to do first.
     ...nextActions.map((section) => toBriefSectionText(locale, section, context).lines),
-    ...toBlocks(rest).flatMap((block) => renderBlock(locale, block, context)),
-    renderCaveatLines(locale, caveatsOf(snapshot, renderable), { collapseInfo: true }),
+    ...blocks.flatMap((block) => renderBlock(locale, block, context)),
+    renderCaveatLines(locale, caveatsOf(snapshot, renderable), {
+      collapseInfo: true,
+      plain: context.plain === true,
+    }),
     footer === null ? [] : footer,
   ])
+}
+
+/** The sections a brief reads from (`readable`), the ones it prints (`renderable`), whether any of
+ *  those carries a call a model argued, and the printed ones as every surface lays them out: the
+ *  story, the next steps that ride under the verdict, then the blocks in order. */
+export function readSections(
+  locale: Locale,
+  snapshot: BriefSnapshot
+): {
+  readonly readable: readonly BriefSectionResult[]
+  readonly renderable: readonly BriefSectionResult[]
+  readonly hasAiCalls: boolean
+  readonly stories: readonly BriefSectionResult[]
+  readonly nextActions: readonly BriefSectionResult[]
+  readonly blocks: readonly (BriefBlock & { readonly title: string })[]
+} {
+  const readable = snapshot.sections.filter(isRenderable)
+  const renderable = readable.filter(isShown)
+  const hasAiCalls = renderable.some(
+    (section) => section.status === 'ready' && AI_SECTION_KINDS.has(section.kind)
+  )
+  const [nextActions, afterActions] = partition(
+    renderable,
+    (section) => section.kind === NEXT_ACTIONS_KIND
+  )
+  const [stories, rest] = partition(afterActions, (section) => STORY_KINDS.has(section.kind))
+  const blocks = toBlocks(rest).map((block) => ({ ...block, title: blockTitle(locale, block) }))
+
+  return { readable, renderable, hasAiCalls, stories, nextActions, blocks }
 }
 
 function partition<T>(
@@ -176,7 +232,7 @@ function toBlocks(sections: readonly BriefSectionResult[]): readonly BriefBlock[
 
 /** A market keeps its headline reading; the rest of its sections are a tap away on
  *  `/overview <market>`, and a pushed message is read on a phone. */
-export function isShown(section: BriefSectionResult): boolean {
+function isShown(section: BriefSectionResult): boolean {
   return section.market === undefined || MARKET_HEADLINE_KINDS.some((kind) => kind === section.kind)
 }
 
@@ -227,18 +283,26 @@ function renderSectionLines(
  *  scrolling a long brief always knows whose numbers are under their eye and which day closed on
  *  them. A market block reads its name and glyph off its own sections. */
 function blockHeader(locale: Locale, block: BriefBlock): string {
+  const icon = block.market === undefined ? BLOCK_ICONS[block.name] : block.sections[0]?.icon
+
+  return `${renderBlockRule(icon, blockName(locale, block))}${blockStamp(locale, block)}`
+}
+
+/** A block's heading without its glyph: what it is about, then the session its numbers describe. */
+function blockTitle(locale: Locale, block: BriefBlock): string {
+  return `${blockName(locale, block)}${blockStamp(locale, block)}`
+}
+
+function blockName(locale: Locale, block: BriefBlock): string {
+  return block.market === undefined
+    ? t(locale, `trading.brief.block.${block.name}`)
+    : renderDeclaredValue(locale, `trading.market.${block.market}`)
+}
+
+function blockStamp(locale: Locale, block: BriefBlock): string {
   const stamp = block.sections.find((section) => section.asOf !== undefined)?.asOf
-  const dated = stamp === undefined ? '' : renderAsOf(locale, stamp)
 
-  if (block.market === undefined) {
-    const icon = BLOCK_ICONS[block.name]
-
-    return `${renderBlockRule(icon, t(locale, `trading.brief.block.${block.name}`))}${dated}`
-  }
-
-  const name = renderDeclaredValue(locale, `trading.market.${block.market}`)
-
-  return `${renderBlockRule(block.sections[0]?.icon, name)}${dated}`
+  return stamp === undefined ? '' : renderAsOf(locale, stamp)
 }
 
 /** Every caveat the brief carries, stated once. A section states its own only when it failed, so a
@@ -277,6 +341,6 @@ function renderCostFooter(
 
 /** A section that failed still renders, so its title and caveat say so: dropping it makes an
  *  outage look like a quiet morning. One that reported nothing carries no caveat and stays out. */
-export function isRenderable(section: BriefSectionResult): boolean {
+function isRenderable(section: BriefSectionResult): boolean {
   return section.status === 'ready' ? section.rows.length > 0 : section.caveats.length > 0
 }

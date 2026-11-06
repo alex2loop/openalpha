@@ -62,9 +62,22 @@ function macroDisplay(result: SourceResult<MacroRiskView>): DisplayText {
   }
 }
 
+export interface MacroPayloadOptions {
+  /** An edition that makes no call: the readings, none of the verdict or the arithmetic behind it. */
+  readonly readingsOnly?: true
+}
+
 /** The regime is the verdict; the composite score and each driver's contribution are the arithmetic
  *  behind it, so a model reads a driver's lean as its band and never quotes the raw number. */
-export function agentMacro(view: MacroRiskView, locale: Locale): unknown {
+export function agentMacro(
+  view: MacroRiskView,
+  locale: Locale,
+  options: MacroPayloadOptions = {}
+): unknown {
+  if (options.readingsOnly === true) {
+    return macroReadings(view)
+  }
+
   const { score: _score, drivers, ...rest } = view
 
   return {
@@ -73,5 +86,22 @@ export function agentMacro(view: MacroRiskView, locale: Locale): unknown {
       ...driver,
       ...(driver.weight > 0 ? { band: renderScoreBand(locale, contribution / driver.weight) } : {}),
     })),
+  }
+}
+
+function macroReadings(view: MacroRiskView): unknown {
+  const { region, asOf, drivers, missing, provenance } = view
+
+  return {
+    region,
+    asOf,
+    drivers: drivers.map(({ id, unit, value, asOf: observedOn }) => ({
+      id,
+      unit,
+      value,
+      asOf: observedOn,
+    })),
+    missing,
+    provenance,
   }
 }

@@ -33,3 +33,10 @@
 .combobox-option.is-active {
   background: var(--sunken);
 }
+
+.combobox-hint {
+  display: block;
+  white-space: normal;
+  color: var(--ink2);
+  font-size: var(--sizeCaption);
+}

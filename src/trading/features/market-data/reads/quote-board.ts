@@ -6,6 +6,7 @@ import type {
   QuoteBoardRequest,
 } from '@/trading/kernel/market/market-capability'
 import type { MarketRegistry } from '@/trading/markets/types'
+import { definedOnly } from '@/core/utils/collections'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { freshnessOf } from '@/trading/features/market-data/reads/freshness'
 import { settledCloseBefore } from '@/trading/features/market-data/reads/previous-close'
@@ -89,7 +90,7 @@ async function quoteBoardItemFor(
     return null
   }
 
-  const { price, changePct, observedAt, session } = result.value
+  const { price, changePct, observedAt, session, board } = result.value
 
   if (!Number.isFinite(price)) {
     return null
@@ -100,11 +101,10 @@ async function quoteBoardItemFor(
     observedAt,
     clock.now
   )
-  const previousClose = await settledCloseBefore(market, instrument, {
-    observed,
-    now: clock.now,
-    signal: clock.signal,
-  })
+  const [previousClose, ownKind] = await Promise.all([
+    settledCloseBefore(market, instrument, { observed, now: clock.now, signal: clock.signal }),
+    ownKindOf(deps.markets, instrument, clock.signal),
+  ])
 
   const settled =
     observed.kind === 'close' &&
@@ -114,19 +114,37 @@ async function quoteBoardItemFor(
     observed,
     ...(settled ? { closedOn: observed.day } : {}),
     ...(previousClose === undefined ? {} : { previousClose }),
-    // The manifest's own asset class names the item; `fx` is excluded by construction because an
-    // FX pair has no owning market.
-    kind: market.manifest.assetClass,
+    kind: ownKind ?? market.manifest.assetClass,
     ticker: instrument.ticker,
     region: market.manifest.region,
     currency: market.manifest.currency,
     market: market.manifest.id,
     assetClass: market.manifest.assetClass,
-    ...(session === undefined ? {} : { session }),
+    ...definedOnly({ session, board }),
     ...(session?.volume === undefined ? {} : { sessionVolume: session.volume }),
     last: price,
     ...(changePct === undefined || !Number.isFinite(changePct) ? {} : { changePct }),
     provenance: result.provenance,
     caveats: result.caveats,
   }
+}
+
+/** What the name is, not what its market is: the asset class files an index under equities, and a
+ *  surface tells a level from a price by this. Only stored universes are asked, so a poll never
+ *  spends a provider lookup on it; absent where they cannot place the name, and for `fx`, which no
+ *  market owns. */
+async function ownKindOf(
+  markets: MarketRegistry,
+  instrument: InstrumentRef,
+  signal: AbortSignal
+): Promise<QuoteBoardItem['kind'] | undefined> {
+  const resolved = await markets.resolve({
+    ticker: instrument.ticker,
+    market: instrument.market,
+    detection: 'stored',
+    signal,
+  })
+  const kind = resolved.kind === 'resolved' ? resolved.instrumentKind : undefined
+
+  return kind === 'fx' ? undefined : kind
 }

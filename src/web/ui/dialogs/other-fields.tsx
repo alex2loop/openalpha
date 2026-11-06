@@ -41,21 +41,19 @@ function DividendFields({ form }: { readonly form: TradeForm }) {
   const unit = market === undefined ? undefined : marketCurrency(market)
 
   return (
-    <>
+    <div class="form-row is-four">
       <TickerField form={form} />
-      <div class="form-row">
-        <HoldingVenue form={form} />
-        <DayField form={form} />
-        <TextField
-          form={form}
-          id="trade-amount"
-          label={tr('ui.office.trade.amountReceived')}
-          value={form.amount}
-          paths={['amount']}
-          {...(unit === undefined ? {} : { hint: unit })}
-        />
-      </div>
-    </>
+      <HoldingVenue form={form} />
+      <DayField form={form} />
+      <TextField
+        form={form}
+        id="trade-amount"
+        label={tr('ui.office.trade.amountReceived')}
+        value={form.amount}
+        paths={['amount']}
+        {...(unit === undefined ? {} : { hint: unit })}
+      />
+    </div>
   )
 }
 
@@ -65,8 +63,8 @@ function SharesFields({ form }: { readonly form: TradeForm }) {
 
   return (
     <>
-      <TickerField form={form} />
-      <div class="form-row">
+      <div class="form-row is-four">
+        <TickerField form={form} />
         <HoldingVenue form={form} />
         <DayField form={form} />
         <TextField
@@ -128,7 +126,7 @@ function TransferFields({ form }: { readonly form: TradeForm }) {
           path="venue"
         />
       </div>
-      <div class="form-row">
+      <div class="form-row is-four">
         <CurrencyField form={form} />
         <AmountField form={form} />
         <TextField

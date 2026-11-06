@@ -7,7 +7,16 @@ import { Button } from '@/web/ui/kit/button'
 const COPIED_MS = 2_000
 
 /** Puts `text` on the clipboard and says so for a moment. */
-export function CopyButton({ text, label }: { readonly text: string; readonly label: string }) {
+export function CopyButton({
+  text,
+  label,
+  onRefused,
+}: {
+  readonly text: string
+  readonly label: string
+  /** Told when the browser refuses; without it a refusal leaves the button as it was. */
+  readonly onRefused?: () => void
+}) {
   const isCopied = useSignal(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
@@ -22,8 +31,8 @@ export function CopyButton({ text, label }: { readonly text: string; readonly la
           isCopied.value = false
         }, COPIED_MS)
       },
-      // A browser that refuses the clipboard leaves the button as it was: nothing was copied.
-      () => undefined
+      // A browser that refuses the clipboard copied nothing, so the button stays as it was.
+      () => onRefused?.()
     )
   }
 

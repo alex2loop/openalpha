@@ -9,6 +9,12 @@
     "quotes": true,
     "portfolio": false,
     "suggestions": false,
-    "orders": false
+    "orders": false,
+    "analysisOnly": false,
+    "venues": true,
+    "channels": true,
+    "schedules": true,
+    "agents": true,
+    "chatgpt": true
   }
 }

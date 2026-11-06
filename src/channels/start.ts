@@ -32,7 +32,7 @@ import type { AgentRegistry, CostTracker, Runner, RunRegistry } from '@/engine/a
 import { createChannelRuntime } from '@/channels/lifecycle'
 import { createChannelRecipient, resolveFallbackChat } from '@/channels/recipient'
 import { resolveChannelSettings } from '@/channels/schema'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError, isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { isEntryAgent } from '@/engine/api'

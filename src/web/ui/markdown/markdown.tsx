@@ -2,6 +2,7 @@ import { useMemo } from 'preact/hooks'
 
 import type { Block, ReportDoc } from '@/web/ui/markdown/parse'
 import { reducedMotion } from '@/web/state/prefs'
+import { isNoteLine, withoutLeadingIcon } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { type Inline, parseInline } from '@/web/ui/markdown/inline'
 import { parseReport, sourceAnchor } from '@/web/ui/markdown/parse'
@@ -49,9 +50,16 @@ export function Markdown({ text, isLinked = true, scope }: MarkdownProps) {
 
 /** One line of daemon text with its bold, italic, code and links, and no block around it. */
 export function InlineMarkdown({ text }: { readonly text: string }) {
-  const nodes = useMemo(() => parseInline(text), [text])
+  const words = isNoteLine(text) ? withoutLeadingIcon(text) : text
+  const mark = text.slice(0, text.length - words.length).trimEnd()
+  const nodes = useMemo(() => parseInline(words), [words])
 
-  return <InlineList nodes={nodes} context={INLINE_CONTEXT} />
+  return (
+    <>
+      {mark !== '' && <span class="note-mark">{mark}</span>}
+      <InlineList nodes={nodes} context={INLINE_CONTEXT} />
+    </>
+  )
 }
 
 /** A parsed report: its blocks, then the sources its footnotes name. */
@@ -210,9 +218,12 @@ function InlineView({ node, context }: { node: Inline; context: RenderContext })
       return <NoteView n={node.n} context={context} />
     case 'link':
       return (
-        <a href={node.href} title={node.href} target="_blank" rel="noopener noreferrer">
-          {node.text}
-        </a>
+        <>
+          <a href={node.href} title={node.href} target="_blank" rel="noopener noreferrer">
+            {node.text}
+          </a>
+          {node.host !== undefined && <span class="md-link-host">{node.host}</span>}
+        </>
       )
   }
 }

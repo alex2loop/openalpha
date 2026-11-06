@@ -104,7 +104,11 @@ export async function recordTrade(
 /** The day's market rate the row would ask for, absent where no rate applies. An edit names the
  *  row it `replacing`, which the book is read without. */
 export async function previewLedger(
-  request: { readonly draft: LedgerDraft; readonly replacing?: string },
+  request: {
+    readonly draft: LedgerDraft
+    readonly replacing?: string
+    readonly typedPrice?: TypedPrice
+  },
   abort: AbortSignal
 ): Promise<LedgerPreviewResponse> {
   return sendJson('POST', ROUTES.ledgerPreview, { body: request, signal: abort })

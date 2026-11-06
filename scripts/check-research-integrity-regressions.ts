@@ -5,6 +5,7 @@ import type {
   ResearchSourceCandidate,
 } from '@/engine/research/evidence/schemas'
 import { resolveWebSearch } from '@/core/config/resolvers/web-search'
+import { utcDay } from '@/core/utils/time'
 import { admitEvidence } from '@/engine/research/evidence/admission'
 import { validateClaimCoverage } from '@/engine/research/evidence/coverage'
 import { normalizeExcerptText, truncateOnCodePoint } from '@/engine/research/evidence/normalize'
@@ -16,6 +17,7 @@ import {
 import { SearchProviderError } from '@/tools/web/search/errors'
 
 const NOW_MS = 1_756_000_000_000
+const LATEST_DAY = utcDay(NOW_MS)
 const BOUNDS = {
   maxExcerptChars: 1_200,
   maxExcerptsPerSource: 4,
@@ -52,6 +54,7 @@ async function admit(candidate: ResearchEvidenceBranch) {
     candidates: [candidate],
     bounds: BOUNDS,
     now: NOW_MS,
+    latestDay: LATEST_DAY,
     signal: new AbortController().signal,
   })
 }
@@ -169,12 +172,44 @@ async function removesStaleEvidence(): Promise<void> {
     freshness: { field: 'publishedOn', fromOn: '2025-01-01' },
     bounds: BOUNDS,
     now: NOW_MS,
+    latestDay: LATEST_DAY,
     signal: new AbortController().signal,
   })
 
   assert(
     result.kind === 'failed' && result.sources.length === 0,
     'stale source and evidence must be removed'
+  )
+}
+
+async function removesFutureDatedEvidence(): Promise<void> {
+  const futureUrl = 'https://future.example/source'
+  const undatedUrl = 'https://undated.example/source'
+  const text = 'A dated fact.'
+  const result = await admit(
+    branch({
+      sources: [
+        {
+          ...source(futureUrl),
+          publishedOn: '2999-01-01',
+          dateProvenance: 'provider_estimate',
+          dateConfidence: 'medium',
+        },
+        source(undatedUrl),
+      ],
+      excerpts: [
+        { ref: 'e1', sourceRef: futureUrl, text, locator: 'body', truncated: false },
+        { ref: 'e2', sourceRef: undatedUrl, text, locator: 'body', truncated: false },
+      ],
+    })
+  )
+
+  assert(
+    result.kind === 'admitted' &&
+      result.evidence.sources.length === 1 &&
+      result.evidence.sources[0]?.publishedOn === undefined &&
+      result.evidence.gaps.some((gap) => gap.code === 'freshness_out_of_window'),
+    'a source dated after the run day is removed and an undated one stays undated'
   )
 }
 
@@ -289,7 +324,7 @@ function preservesCodeAndBounds(): void {
 }
 
 function resolvesDefaultSearch(): void {
-  const resolved = resolveWebSearch(undefined)
+  const resolved = resolveWebSearch(undefined, process.env)
   assert(resolved.provider === 'duckduckgo', 'zero-config search must resolve DuckDuckGo')
 }
 
@@ -297,6 +332,7 @@ async function main(): Promise<void> {
   await rejectsInjection()
   await rejectsStructuredNumericMismatch()
   await removesStaleEvidence()
+  await removesFutureDatedEvidence()
   preservesUncertainSearchResults()
   rejectsUnsafeSearchResults()
   preservesProviderCostOnMalformedResponses()

@@ -4,11 +4,13 @@ import type {
   ClaimVerification,
   DebateClaim,
   DebateResult,
+  ResearchCase,
   ThesisBreak,
 } from '@/trading/features/suggestion/debate/types'
 import type { DebateOutcome } from '@/trading/features/suggestion/pipeline/types'
 import type { Suggestion } from '@/trading/features/suggestion/types'
 import type { Caveat, HoldReasonCode } from '@/trading/kernel/caveat'
+import type { NewsItem } from '@/trading/kernel/market/market-data'
 import { canHold, unverifiedCount } from '@/trading/features/suggestion/debate/claims'
 import { unmatchedFigureCount } from '@/trading/features/suggestion/debate/figures'
 import { debatePlaybook } from '@/trading/features/suggestion/debate/playbook'
@@ -161,24 +163,31 @@ function thesisOf(result: DebateResult): string {
   return result.mode === 'full' ? result.portfolioManager.rationale : result.analyst.summary
 }
 
-/** Resolved against the evidence the personas were handed: they retrieve nothing, so a URL outside
- *  the bundle is invented and is dropped. */
 function citationsOf(
   context: DebateContext,
   result: DebateResult,
   verification: ClaimVerification
 ): readonly SuggestionCitation[] {
-  const fromCases =
-    result.mode === 'full'
-      ? [...result.bull.citations, ...result.bear.citations]
-      : result.analyst.citations
+  const cases = result.mode === 'full' ? [result.bull, result.bear] : [result.analyst]
+
+  return citationsFrom(context.evidence.sources, cases, verification)
+}
+
+/** Resolved against the evidence the personas were handed: they retrieve nothing, so a URL outside
+ *  the bundle is invented and is dropped. */
+export function citationsFrom(
+  sources: ReadonlyMap<string, NewsItem>,
+  cases: readonly ResearchCase[],
+  verification: ClaimVerification
+): readonly SuggestionCitation[] {
+  const fromCases = cases.flatMap((entry) => entry.citations)
   const fromVerification = verification.verified.flatMap((entry) =>
     entry.citation === undefined ? [] : [entry.citation]
   )
   const cited = new Set([...fromCases, ...fromVerification].map((citation) => citation.url))
 
   return [...cited].flatMap((url) => {
-    const item = context.evidence.sources.get(url)
+    const item = sources.get(url)
 
     return item === undefined ? [] : [{ url, title: item.title, publishedAt: item.publishedAt }]
   })

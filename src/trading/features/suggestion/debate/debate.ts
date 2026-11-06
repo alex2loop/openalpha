@@ -1,12 +1,20 @@
 import type { HeadlinesRead } from '@/trading/features/suggestion/citation'
-import type { DebateContext, DebateDeps } from '@/trading/features/suggestion/debate/call'
+import type {
+  DebateContext,
+  DebateDeps,
+  RoleCallContext,
+} from '@/trading/features/suggestion/debate/call'
 import type { SelectedClaims, VerifiedClaims } from '@/trading/features/suggestion/debate/outcome'
 import type { RoleRunResult } from '@/trading/features/suggestion/debate/roles'
 import type {
+  ClaimVerification,
+  DebateClaim,
+  Invalidator,
   PortfolioManagerDecision,
   RiskDecision,
   TradePlan,
 } from '@/trading/features/suggestion/debate/types'
+import type { EvidenceBundle } from '@/trading/features/suggestion/pipeline/evidence'
 import type { DebateOutcome, RunDebate } from '@/trading/features/suggestion/pipeline/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { LeanDebateReason } from '@/trading/kernel/config'
@@ -45,6 +53,7 @@ import {
   toClaimVerification,
   toRiskDecision,
 } from '@/trading/features/suggestion/pipeline/schemas'
+import { DEBATE_MODE_WAVES } from '@/trading/kernel/config'
 
 /** The debate's share of the parent budget; the rest is headroom for the parent run's own turns. */
 export const AGENT_BUDGET_FRACTION = 0.8
@@ -72,6 +81,9 @@ export function createRunDebate(deps: DebateDeps): RunDebate {
       budgets,
       signal,
       market,
+      request: input.request,
+      instrumentKind: input.draft.instrumentKind,
+      waves: DEBATE_MODE_WAVES[input.depth.mode],
       models: new Set<string>(),
     }
 
@@ -242,29 +254,51 @@ async function verifyClaims(
     signal: context.signal,
   })
   const invalidators = prior === null ? [] : toInvalidators(prior)
-  const verification = await call(context, {
-    role: 'claim-verifier',
-    schema: CLAIM_VERIFICATION_SCHEMA,
-    prompt: () => verifierPrompt(context, material, invalidators),
+  const verification = await runClaimVerifier(context, {
+    evidence: context.evidence,
+    material,
+    invalidators,
   })
 
   if (verification.kind === 'failed') {
     return verification
   }
 
-  const verified = toClaimVerification(verification.value)
-  const fired = firedInvalidators(verified, invalidators)
+  const fired = firedInvalidators(verification.value, invalidators)
 
   return {
     kind: 'value',
     value: {
       material,
-      verification: verified,
+      verification: verification.value,
       ...(prior === null || fired.length === 0
         ? {}
         : { invalidatedPrior: { at: prior.at, fired } }),
     },
   }
+}
+
+interface ClaimVerifierInput {
+  readonly evidence: Pick<EvidenceBundle, 'text'>
+  readonly material: readonly DebateClaim[]
+  readonly invalidators: readonly Invalidator[]
+}
+
+/** The one verifier call, shared by the debate and the analysis: it reads only the evidence text and
+ *  the claims, so it needs no draft. */
+export async function runClaimVerifier(
+  context: RoleCallContext,
+  input: ClaimVerifierInput
+): Promise<RoleRunResult<ClaimVerification>> {
+  const verification = await call(context, {
+    role: 'claim-verifier',
+    schema: CLAIM_VERIFICATION_SCHEMA,
+    prompt: () => verifierPrompt(input, input.material, input.invalidators),
+  })
+
+  return verification.kind === 'failed'
+    ? verification
+    : { kind: 'value', value: toClaimVerification(verification.value) }
 }
 
 function degraded(context: DebateContext, caveat: Caveat): DebateOutcome {

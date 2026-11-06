@@ -1,13 +1,20 @@
 import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import { ValidationError } from '@/core/errors'
+import { portfolioSegment } from '@/trading/kernel/instrument'
 import { parseTickers } from '@/trading/kernel/surface/surface'
 import { scoped } from '@/trading/wiring/host/scope'
 
-export type ProfileMethods = Pick<TradingHost, 'updateWatchlist' | 'getSetup'>
+export type ProfileMethods = Pick<
+  TradingHost,
+  'updateWatchlist' | 'updateSegment' | 'getDefaultTargets' | 'getSetup' | 'profileFields'
+>
 
-/** The profile's watchlist edit and the two facts a first run turns on. */
+/** The profile's watchlist edit, segment switch and default targets, the two facts a first run
+ *  turns on and the settings on offer. */
 export function profileMethods(deps: TradingHostDeps): ProfileMethods {
   return {
+    profileFields: () => deps.services.profileFields,
+
     // Names arrive as an operator types them (`fpt`, `crypto:hdb`) and resolve as `/watchlist`
     // resolves them: a name nothing matches, or two markets claim, refuses the whole call.
     updateWatchlist: (request) =>
@@ -26,6 +33,23 @@ export function profileMethods(deps: TradingHostDeps): ProfileMethods {
           signal: scope.signal,
         })
       }),
+
+    updateSegment: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.profiles.updateSegment({
+          kind: request.kind,
+          segment: portfolioSegment(request.segment),
+          signal: scope.signal,
+        })
+      ),
+
+    getDefaultTargets: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.profiles.defaultTargets({
+          on: request.on.map(portfolioSegment),
+          signal: scope.signal,
+        })
+      ),
 
     getSetup: (signal) =>
       scoped(deps, signal, async (scope) => {

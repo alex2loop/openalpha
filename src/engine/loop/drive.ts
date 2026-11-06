@@ -241,7 +241,6 @@ async function runOneTurn(scope: TurnScope): Promise<TurnResult> {
   const settled = await callProvider({
     run,
     hooks: deps.hooks,
-    thinking: bookkeeping.thinking,
     onChunk: drive.onChunk,
     consumeTurnRestart: () => {
       if (bookkeeping.turnRestarts >= MAX_VISIBLE_OUTPUT_RESTARTS) {

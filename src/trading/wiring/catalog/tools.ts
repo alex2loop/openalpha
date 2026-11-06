@@ -71,6 +71,8 @@ interface TradingToolDeps {
   /** Absent when the exchange credentials are not configured, in which case the model is not
    *  offered a tool that can only fail. */
   readonly order?: OrderService
+  /** An edition that makes no call: the overview's macro carries readings only. */
+  readonly readingsOnly?: true
 }
 
 // The schema names only the regions whose market builds a brief; `findOrBuildBrief` refuses any other.
@@ -111,7 +113,7 @@ export function createTradingTools(deps: TradingToolDeps): readonly ToolDefiniti
   return [
     createMarketPriceTool(marketData, markets, deps.displayTimezone),
     createMarketBarsTool(marketData, markets),
-    createMarketOverviewTool(marketData),
+    createMarketOverviewTool(marketData, deps),
     createMarketEventsTool(marketData, markets),
     createMacroRiskTool(marketData, regions),
     createMarketScreenTool(marketData, markets),

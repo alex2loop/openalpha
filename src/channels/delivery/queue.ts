@@ -19,7 +19,7 @@ const MAX_BURST_BYTES = 16_384
 
 type NotifyFn = (chatId: string, text: string) => Promise<void>
 
-type RunCombined = (combined: InboundMessage) => Promise<void>
+type RunCombined = (combined: InboundMessage, typedText: string | undefined) => Promise<void>
 
 export interface BudgetCaps {
   readonly maxDailyUsd: number
@@ -50,6 +50,8 @@ interface Burst {
   textLen: number
   timer: ReturnType<typeof setTimeout> | null
   readonly run: RunCombined
+  /** Set on a burst of one handed-off command: the line the operator typed, which the transcript keeps. */
+  readonly typedText?: string
   readonly receipts: Deferred[]
   readonly routes: SessionRouteRegistration[]
 }
@@ -58,6 +60,7 @@ interface Turn {
   readonly sessionId: SessionId
   readonly combined: InboundMessage
   readonly run: RunCombined
+  readonly typedText?: string
   readonly receipts: readonly Deferred[]
   readonly routes: readonly SessionRouteRegistration[]
 }
@@ -81,6 +84,8 @@ interface InboundRequest {
   readonly sessionId: SessionId
   readonly msg: InboundMessage
   readonly run: RunCombined
+  /** Set when `msg.text` is what a slash command handed the agent: the line the operator typed. */
+  readonly typedText?: string
   readonly route: SessionRouteRegistration
 }
 
@@ -121,7 +126,7 @@ function enqueueInbound(ctx: QueueContext, request: InboundRequest): Promise<voi
       return receipt.promise
     }
 
-    if (isBurstLimitExceeded(existing, request.msg)) {
+    if (isBurstClosedTo(existing, request)) {
       clearBurstTimer(existing)
       fireBurst(ctx, request.sessionId, existing)
       startBurst(ctx, request, receipt)
@@ -151,6 +156,7 @@ function startBurst(ctx: QueueContext, request: InboundRequest, receipt: Deferre
     textLen: request.msg.text.length,
     timer: null,
     run: request.run,
+    ...(request.typedText === undefined ? {} : { typedText: request.typedText }),
     receipts: [receipt],
     routes: [request.route],
   }
@@ -165,6 +171,7 @@ function fireBurst(ctx: QueueContext, sessionId: SessionId, burst: Burst): void 
     sessionId,
     combined: combine(burst),
     run: burst.run,
+    ...(burst.typedText === undefined ? {} : { typedText: burst.typedText }),
     receipts: burst.receipts,
     routes: burst.routes,
   })
@@ -273,9 +280,14 @@ function combine(burst: Burst): InboundMessage {
   return { ...burst.last, text: burst.texts.join('\n') }
 }
 
-function isBurstLimitExceeded(burst: Burst, msg: InboundMessage): boolean {
+// A handed-off command is a burst of its own: merging it would join the typed line into text it
+// never was, so it neither takes a waiting message in nor lets a later one join it.
+function isBurstClosedTo(burst: Burst, request: InboundRequest): boolean {
   return (
-    burst.texts.length + 1 > MAX_BURST_MESSAGES || burst.textLen + msg.text.length > MAX_BURST_BYTES
+    burst.typedText !== undefined ||
+    request.typedText !== undefined ||
+    burst.texts.length + 1 > MAX_BURST_MESSAGES ||
+    burst.textLen + request.msg.text.length > MAX_BURST_BYTES
   )
 }
 
@@ -311,7 +323,7 @@ async function fire(
 
         assertIntakeOpen(deps)
 
-        await queued.run(queued.combined)
+        await queued.run(queued.combined, queued.typedText)
       },
       combineRegistrations(queued.routes)
     )

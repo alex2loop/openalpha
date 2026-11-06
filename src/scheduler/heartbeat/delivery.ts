@@ -9,6 +9,7 @@ import { parseChannelAddress } from '@/core/channels'
 import { formatErrForLog } from '@/core/security/credentials'
 import { lruMap } from '@/core/utils/collections'
 import { hashString } from '@/core/utils/hash'
+import { withLeadParagraph } from '@/core/utils/text'
 
 const DELIVERY_CACHE_MAX = 200
 
@@ -27,13 +28,15 @@ interface DeliverOptions {
   readonly agentId: AgentProfile['id']
   readonly task: HeartbeatTask
   readonly text: string
+  /** Shown above `text`; never part of the duplicate fingerprint. */
+  readonly label?: string
   readonly logger: Logger
   readonly notifier: DeliverySink
   readonly state: HeartbeatRuntimeState
 }
 
 export async function deliverHeartbeatResult(options: DeliverOptions): Promise<void> {
-  const { agentId, task, text, logger, notifier, state } = options
+  const { agentId, task, text, label, logger, notifier, state } = options
 
   if (task.deliver === undefined) {
     return
@@ -53,7 +56,7 @@ export async function deliverHeartbeatResult(options: DeliverOptions): Promise<v
       agentId,
       taskName: task.name,
       target,
-      text,
+      text: withLeadParagraph(label, text),
       fingerprint,
       logger,
       notifier,

@@ -63,6 +63,7 @@
 }
 
 .btn-ghost:not(:disabled):hover {
+  background: var(--hoverWash);
   color: var(--ink);
 }
 

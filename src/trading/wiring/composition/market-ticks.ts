@@ -1,6 +1,7 @@
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
+import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
@@ -8,11 +9,7 @@ import type { TradingStores } from '@/trading/wiring/composition/stores'
 import { marketRef } from '@/trading/kernel/instrument'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { buildMacroExtractTick } from '@/trading/wiring/composition/macro-extract'
-import {
-  type buildRefreshCoordinator,
-  buildRefreshTick,
-  resolveMarketsInUse,
-} from '@/trading/wiring/composition/refresh'
+import { buildRefreshTick, resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
 
 interface MarketTicks {
   readonly inUse: Parameters<typeof resolveMarketsInUse>[0]
@@ -31,7 +28,7 @@ interface MarketTickParts {
     readonly portfolio: Parameters<typeof createTradeableBook>[0]['portfolio']
     readonly profiles: Pick<ProfileService, 'get'>
   }
-  readonly refresh: ReturnType<typeof buildRefreshCoordinator>
+  readonly refresh: RefreshMarketData
   readonly scheduled: { readonly runScheduled: ScheduledRunner }
   readonly logger: Logger
 }

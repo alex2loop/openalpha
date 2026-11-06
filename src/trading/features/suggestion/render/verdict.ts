@@ -12,7 +12,7 @@ import type { FactorResult } from '@/trading/kernel/factor'
 import type { RunFocus } from '@/trading/kernel/operator/focus'
 import type { ProfileStamp } from '@/trading/kernel/operator/profile'
 import { BRAND } from '@/core/brand'
-import { setEnvCommand } from '@/core/config/resolve'
+import { setEnvCommand } from '@/core/config/operator-errors'
 import { t } from '@/i18n'
 import { renderProfileStamp } from '@/trading/features/profile/render'
 import { shownCall } from '@/trading/features/suggestion/render/second-opinion'
@@ -26,7 +26,7 @@ import { formatFraction, renderDeclaredValue } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
 
 /** One verdict per line, because a hold carries the reason that held it and those are sentences.
- *  The leading newline marks a block, which a surface renders under the tool line, not inline. */
+ *  A tool's display puts it under the tool line as a block; a command joins it as a section. */
 export function renderBatchVerdicts(
   locale: Locale,
   batch: SuggestionBatchResult
@@ -43,7 +43,7 @@ export function renderBatchVerdicts(
   ]
   const verdicts = lines.map((line) => `${INDENT[1]}${line}`).join('\n')
 
-  return `\n${verdicts}${renderCombinedBlock(locale, { breaches, overcommit })}`
+  return `${verdicts}${renderCombinedBlock(locale, { breaches, overcommit })}`
 }
 
 /** Under the verdicts, not among them: a ceiling crossed is a fact about the set, and a line inside

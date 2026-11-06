@@ -125,13 +125,19 @@ When something is dropped or missing, the report names a gap instead of hiding i
 | `content_limit` | A size or count limit cut material (over 42 searches, over 3 pages read, over 8 excerpts on a source) |
 | `missing_support` | A claim lost its supporting excerpt |
 | `unsafe_content` | A source or quote tripped the prompt-injection scan |
-| `freshness_out_of_window` / `freshness_uncertain` | The date is outside the window you asked for, or missing or low-confidence |
+| `freshness_out_of_window` / `freshness_uncertain` | The date is outside the window you asked for or later than any day on Earth has reached (set aside), or missing or low-confidence |
 | `truncation` | An excerpt was cut to 4,000 characters |
 | `artifact_limit` | Evidence had to be trimmed to fit 128 KiB |
 | `provider_unavailable` | The search provider failed and no fallback is configured |
 
+The artifact keeps every gap, but the assistant that writes your answer is handed a short list: gaps
+about the evidence for your question first, always with room for a process problem such as a failed
+search, and the claims marked unconfirmed always. It names only the ones that change how far the answer can be trusted.
+
 Freshness never silently deletes a source on a weak signal. A date is rejected only when it is
-high-confidence; otherwise the source stays and is flagged.
+high-confidence; otherwise the source stays and is flagged. The one exception is a date later than
+any day on Earth has reached (an article dated tomorrow in a zone ahead of you is fine): that is a wrong date at any confidence, so the source is set aside. A source with
+no date stays undated.
 
 ## Read the report
 
@@ -164,6 +170,9 @@ chat lists the run's steps as they happen.
   agents with it.
 - The finished answer is the report. Each footnote number jumps to the numbered sources under that
   answer, and two research answers in one chat keep their numbers apart.
+- A report opened in the reader starts with one line saying it is AI-generated and is not
+  investment advice. In the terminal and in a chat app the same line comes with the conversation (see
+  [Commands](commands.md#chat)).
 - Once the run is listed, "Open as a report" opens that run's answer in the reader, whatever was said
   in the chat afterwards. Ideas keeps it with the other research results.
 - A run that was stopped or failed shows the daemon's sentence where the steps were.

@@ -8,11 +8,16 @@ import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { RenderView } from '@/trading/features/suggestion/render/view'
 import type { SuggestionReportDeps } from '@/trading/features/suggestion/report'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
-import type { SuggestionRunResult } from '@/trading/features/suggestion/types'
+import type {
+  StoredSuggestion,
+  SuggestionRequest,
+  SuggestionRunResult,
+} from '@/trading/features/suggestion/types'
 import type { DebateMode } from '@/trading/kernel/config'
 import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { VenueRegistry } from '@/trading/venues/types'
+import { renderAiLabel } from '@/i18n'
 import { renderSuggestionText } from '@/trading/features/suggestion/render/suggestion'
 import { renderBatchVerdicts } from '@/trading/features/suggestion/render/verdict'
 import { resolveRenderView, storedOf } from '@/trading/features/suggestion/report'
@@ -21,6 +26,7 @@ import { dedupeInstruments } from '@/trading/kernel/instrument'
 import { DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
 import { parseMember, parseTickerRequest, usage } from '@/trading/kernel/surface/surface'
 import { answerSurfaceOf } from '@/trading/render/format'
+import { joinSections } from '@/trading/render/layout'
 
 const USAGE: 'slash.tradingSuggestUsage' = 'slash.tradingSuggestUsage'
 const STOPS_EMPTY: 'slash.tradingSuggestStopsEmpty' = 'slash.tradingSuggestStopsEmpty'
@@ -44,7 +50,29 @@ interface StopsCoverage {
   }): Promise<readonly InstrumentRef[]>
 }
 
+type SlashKey = `slash.${string}`
+
+/** What one parsed `/suggest <name>` does and says. */
+type SuggestRunner = (request: SuggestionRequest, ctx: SlashContext) => Promise<SlashResult>
+
+/** An edition that may only analyse binds this: the line is parsed the same way either side of it,
+ *  `run` answers the parsed name, and `/suggest stops` - which would run the full pipeline over the
+ *  whole book - answers `stopsRefusal`. The words are its own too, since the pipeline's describe a
+ *  verdict and levels the edition never produces. */
+export interface SuggestAnalysis {
+  readonly run: SuggestRunner
+  readonly keys: {
+    readonly help: SlashKey
+    readonly usage: SlashKey
+    readonly progress: SlashKey
+    readonly stopsRefusal: SlashKey
+    /** Everything else `run` may answer with. */
+    readonly answers: readonly SlashKey[]
+  }
+}
+
 interface SuggestCommandDeps extends SuggestionReportDeps {
+  readonly analysis?: SuggestAnalysis
   readonly suggestions: Pick<
     SuggestionService,
     'run' | 'runBatch' | 'summarize' | 'listResolved' | 'get'
@@ -63,20 +91,26 @@ interface SuggestOptions {
 }
 
 export function createSuggestCommand(deps: SuggestCommandDeps): SlashCommand {
+  const { analysis } = deps
+  const usageKey = analysis?.keys.usage ?? USAGE
+
   return {
     name: 'suggest',
-    description: { kind: 'localized', key: 'slash.tradingSuggestHelp' },
-    messageKeys: [USAGE, STOPS_EMPTY],
+    description: { kind: 'localized', key: analysis?.keys.help ?? 'slash.tradingSuggestHelp' },
+    messageKeys:
+      analysis === undefined
+        ? [USAGE, STOPS_EMPTY]
+        : [usageKey, analysis.keys.stopsRefusal, ...analysis.keys.answers],
     policy: {
       surfaces: ['channel', 'repl'],
       role: 'operator',
       action: 'costly',
-      execution: { progressKey: 'slash.tradingSuggestProgress' },
+      execution: { progressKey: analysis?.keys.progress ?? 'slash.tradingSuggestProgress' },
       selfContained: true,
     },
     // The subject is a ticker and `stops` is its exception, so only the options complete.
-    completeFor: (args) => (args.length === 1 ? [] : OPTIONS),
-    usage: () => ({ key: USAGE, values: buildUsageValues(deps) }),
+    completeFor: (args) => (args.length === 1 || analysis !== undefined ? [] : OPTIONS),
+    usage: () => ({ key: usageKey, values: buildUsageValues(deps) }),
     run: async (ctx): Promise<SlashResult> => run(deps, ctx),
   }
 }
@@ -89,12 +123,14 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
   const [subject, ...rest] = ctx.args.map((arg) => arg.toLowerCase())
   const options = parseSuggestOptions(rest)
 
-  if (subject === undefined || options === null) {
+  if (subject === undefined || options === null || isUnofferedOption(deps, options)) {
     return suggestUsage(deps)
   }
 
   if (subject === STOPS_ARG) {
-    return runStops(deps, ctx, options)
+    return deps.analysis === undefined
+      ? runStops(deps, ctx, options)
+      : usage(deps.analysis.keys.stopsRefusal)
   }
 
   const { mode, force } = options
@@ -104,7 +140,7 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
     return suggestUsage(deps)
   }
 
-  const result = await deps.suggestions.run({
+  const suggestion: SuggestionRequest = {
     locale: ctx.locale,
     channel: ctx.channel,
     billingSessionId: ctx.sessionId,
@@ -116,13 +152,23 @@ async function run(deps: SuggestCommandDeps, ctx: SlashContext): Promise<SlashRe
     now: Date.now(),
     signal: ctx.signal,
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),
-  })
+  }
 
-  return renderRun(deps, ctx, { result, mode })
+  if (deps.analysis !== undefined) {
+    return deps.analysis.run(suggestion, ctx)
+  }
+
+  return renderRun(deps, ctx, { result: await deps.suggestions.run(suggestion), mode })
+}
+
+/** An analysis has no depth to choose and no stored answer to run past, so the words that name them
+ *  are not options there. */
+function isUnofferedOption(deps: SuggestCommandDeps, options: SuggestOptions): boolean {
+  return deps.analysis !== undefined && (options.mode !== null || options.force)
 }
 
 function suggestUsage(deps: SuggestCommandDeps): SlashResult {
-  return usage(USAGE, buildUsageValues(deps))
+  return usage(deps.analysis?.keys.usage ?? USAGE, buildUsageValues(deps))
 }
 
 function buildUsageValues(deps: SuggestCommandDeps): CommandMessageValues {
@@ -205,7 +251,34 @@ async function runStops(
   })
   const text = renderBatchVerdicts(ctx.locale, batch)
 
-  return text === undefined ? usage(STOPS_EMPTY) : { kind: 'text', text }
+  if (text === undefined) {
+    return usage(STOPS_EMPTY)
+  }
+
+  return { kind: 'text', text: joinSections([aiLabelLines(ctx, batch.results), [text]]) }
+}
+
+/** The label for a read whose calls carry model-written text. Empty when none does (a call with
+ *  neither a debate nor a thesis has nothing a model wrote) and where the surface already shows it. */
+function aiLabelLines(
+  ctx: Pick<SlashContext, 'locale' | 'hasAiLabel'>,
+  results: readonly SuggestionRunResult[]
+): readonly string[] {
+  if (ctx.hasAiLabel === true) {
+    return []
+  }
+
+  const written = results
+    .map(storedOf)
+    .filter(
+      (call): call is StoredSuggestion => call?.debate !== undefined || call?.thesis !== undefined
+    )
+
+  if (written.length === 0) {
+    return []
+  }
+
+  return [renderAiLabel(ctx.locale)]
 }
 
 /** A typed depth stands. Otherwise coverage runs lean, except when forced: the pipeline reads an
@@ -239,12 +312,17 @@ async function renderRun(
 
   return {
     kind: 'text',
-    text: renderSuggestionText({
-      ...view,
-      result,
-      operatorFigures: 'shown',
-      ...(market === undefined ? {} : venueFields(deps.venues, market)),
-    }),
+    text: joinSections([
+      aiLabelLines(ctx, [result]),
+      [
+        renderSuggestionText({
+          ...view,
+          result,
+          operatorFigures: 'shown',
+          ...(market === undefined ? {} : venueFields(deps.venues, market)),
+        }),
+      ],
+    ]),
   }
 }
 

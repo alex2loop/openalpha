@@ -1,0 +1,29 @@
+# The homepage: the static `site/` folder, no Worker script, no logs kept on the operator's side.
+# Build first: bun run build:site --app-url=<web app address> --site-url=<homepage address> (add
+# --noindex for staging), then deploy with bun run deploy:site (add --env production), which refuses
+# a build made for the other.
+name = "openalpha-site-staging"
+compatibility_date = "2026-11-03"
+
+# Staging answers on workers.dev; production answers on its own domain (below).
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "../../dist/site"
+
+[observability]
+enabled = false
+
+# Production: deployed with `--env production`, built without --noindex, on the domain alone.
+[env.production]
+name = "openalpha-site"
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "openalpha.link", custom_domain = true }]
+
+[env.production.assets]
+directory = "../../dist/site"
+
+[env.production.observability]
+enabled = false

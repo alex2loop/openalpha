@@ -4,6 +4,7 @@ import type { ChatSessionsResponse } from '@/app/server/wire/chat'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { ClientFrame } from '@/app/server/wire/socket'
 import { stopRun } from '@/web/state/approvals'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { type ChatServerFrame, onChatFrame, sendFrame } from '@/web/state/feed'
 import { findFinishedTickers } from '@/web/state/live'
@@ -61,6 +62,8 @@ export interface Turn {
   /** The who-chip's `/agent`: its reply shows as a system line. */
   readonly isSystem?: true
   readonly steer?: SteerNote
+  /** An agent turn answers it: a plain message always, a command once it handed its turn to one. */
+  readonly byAgent?: true
   readonly tickers?: readonly string[]
   readonly preferences?: readonly SavedPreference[]
 }
@@ -140,10 +143,13 @@ export function sendMessage(text: string, opts: SendOptions = {}): boolean {
     doneCallbacks.set(localId, opts.onDone)
   }
 
+  const isCommand = message.startsWith(COMMAND_PREFIX)
+
   addTurn({
     localId,
     text: message,
-    kind: message.startsWith(COMMAND_PREFIX) ? 'slash' : 'ask',
+    kind: isCommand ? 'slash' : 'ask',
+    ...(isCommand ? {} : { byAgent: true }),
     status: 'sending',
     reply: '',
     steps: [],
@@ -186,22 +192,21 @@ export function dropWaiting(turn: Turn): void {
 
 /** True when "Dừng" can reach the turn: by its run, or by cancelling its own session. */
 export function canStop(turn: Turn): boolean {
-  return turn.runId !== undefined || turn.sessionId !== undefined
+  return turn.runId !== undefined || stopSessionOf(turn) !== undefined
 }
 
 /** A command stops by its run (throws `ApiFailure`); anything else cancels what runs in its
  *  session. A cancel the socket cannot send needs none: a dropped socket already stopped it. */
 export async function stopTurn(turn: Turn): Promise<void> {
+  const session = stopSessionOf(turn)
+
   if (turn.runId !== undefined) {
     await stopRun(turn.runId)
-  } else if (
-    turn.sessionId === undefined ||
-    !sendFrame({ type: 'cancel', sessionId: turn.sessionId })
-  ) {
+  } else if (session === undefined || !sendFrame({ type: 'cancel', sessionId: session })) {
     return
   }
 
-  finishTurn(turn.localId, 'stopped')
+  endAsStopped(turn.localId)
 }
 
 /** The next message opens a new session. Turns still running keep going and stay in view. */
@@ -222,6 +227,11 @@ export function startSession(): void {
 /** Forgets every pending `onDone`: what they would apply belongs to a choice already undone. */
 export function dropDoneCallbacks(): void {
   doneCallbacks.clear()
+}
+
+// The web edition's frames can name no session, which leaves the turn with the page's.
+function stopSessionOf(turn: Turn): string | undefined {
+  return isAnalysisOnly.value ? resolveSession(turn) : turn.sessionId
 }
 
 function resolveSession(turn: Turn): string | undefined {
@@ -251,6 +261,16 @@ function updateTurn(localId: string, update: (turn: Turn) => Turn): void {
 function finishTurn(localId: string, status: TurnStatus): void {
   updateTurn(localId, (turn) =>
     isFinished(turn) ? turn : { ...turn, status, doneAt: performance.now() }
+  )
+  doneCallbacks.delete(localId)
+}
+
+// A stop the run took ends its turn as stopped, also when the run's `done` came before the reply.
+function endAsStopped(localId: string): void {
+  updateTurn(localId, (turn) =>
+    isFinished(turn) && turn.status !== 'done'
+      ? turn
+      : { ...turn, status: 'stopped', doneAt: turn.doneAt ?? performance.now() }
   )
   doneCallbacks.delete(localId)
 }
@@ -356,7 +376,7 @@ function toStarted(turn: Turn, runId: string | undefined, session: string | unde
   return {
     ...turn,
     status: 'running',
-    ...(runId === undefined ? {} : { runId, isInLane: true }),
+    ...(runId === undefined ? { byAgent: true } : { runId, isInLane: true }),
     ...(session === undefined ? {} : { sessionId: session }),
   }
 }

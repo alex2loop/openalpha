@@ -200,7 +200,7 @@ Mục lục trong prompt được dựng ở [engine/hooks/available-skills.ts](
 hoặc `<dir>/<name>/SKILL.md` an toàn đầu tiên. Nó tính kích thước vào ngân sách của phiên chạy
 (`SKILL_VIEW_RUN_BUDGET_BYTES`, 262.144; phiên chạy con bắt đầu với ngân sách riêng). Tên không thấy, không tồn tại hoặc
 không an toàn cho `ToolError('file_not_found')`; hết ngân sách cho `payload_too_large`. Tệp quá `SKILL_MAX_BYTES` (1 MiB,
-[engine/skills/load.ts](../../src/engine/skills/load.ts)) không bao giờ được nạp.
+[engine/skills/skill-text.ts](../../src/engine/skills/skill-text.ts)) không bao giờ được nạp.
 
 Cài đặt đi qua CLI ([cli/commands/skill.ts](../../src/cli/commands/skill.ts)) và tệp khóa
 ([engine/skills/lockfile.ts](../../src/engine/skills/lockfile.ts)), không bao giờ qua công cụ của agent. Kết quả quét nặng nhẹ
@@ -287,7 +287,9 @@ Mặc định ([core/config/resolvers/runtime.ts](../../src/core/config/resolver
 Các bộ nối ([ai/adapters/runner.ts](../../src/ai/adapters/runner.ts)) phát ra văn bản, phần suy luận, lời gọi công cụ, lượng
 dùng và sự kiện hoàn tất đã chuẩn hóa. Một khung hỏng lẻ bị bỏ qua và ghi log; một luồng không dùng được hoặc dở dang làm
 hỏng cả lần thử. Tổng luồng bị chặn ở 4 MiB, hoặc 1 KiB cho mỗi token đầu ra khi con số đó lớn hơn, và bộ đọc phản hồi bị hủy
-trong khâu dọn dẹp dù thành công, hỏng, hết giờ hay bị hủy.
+trong khâu dọn dẹp dù thành công, hỏng, hết giờ hay bị hủy. Yêu cầu tới nhà cung cấp không bao giờ đi theo chuyển hướng
+(`redirect: 'error'` trong `openSseStream`, nên header chứa key không đi tiếp sang địa chỉ khác); gặp chuyển hướng thì lần
+thử hỏng như một lỗi mạng `transient`.
 
 Mức suy luận nhận `default`, `off`, `low`, `medium`, `high`, được dịch riêng cho từng nhà cung cấp. Token suy luận là tập
 con của token đầu ra: báo riêng, không bao giờ tính tiền hai lần.

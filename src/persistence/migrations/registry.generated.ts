@@ -18,6 +18,8 @@ import * as migrationAddRunsTickersQuestions from '@/persistence/migrations/2026
 import * as migrationAddSessionMessagesDisplayOnly from '@/persistence/migrations/2026_10_28_223300_add_session_messages_display_only'
 import * as migrationDropUnusedColumns from '@/persistence/migrations/2026_10_28_234503_drop_unused_columns'
 import * as migrationAddSessionsLastMessageAt from '@/persistence/migrations/2026_10_29_111645_add_sessions_last_message_at'
+import * as migrationAddSuggestionAnalyses from '@/persistence/migrations/2026_11_03_143222_add_suggestion_analyses'
+import * as migrationAddConfigOverrides from '@/persistence/migrations/2026_11_03_165810_add_config_overrides'
 
 export const MIGRATIONS = [
   { id: '2026_07_10_000001_initial_schema', reversibility: 'irreversible', up: migrationInitialSchema.up },
@@ -36,4 +38,6 @@ export const MIGRATIONS = [
   { id: '2026_10_28_223300_add_session_messages_display_only', reversibility: 'reversible', up: migrationAddSessionMessagesDisplayOnly.up, down: migrationAddSessionMessagesDisplayOnly.down },
   { id: '2026_10_28_234503_drop_unused_columns', reversibility: 'reversible', up: migrationDropUnusedColumns.up, down: migrationDropUnusedColumns.down },
   { id: '2026_10_29_111645_add_sessions_last_message_at', reversibility: 'reversible', up: migrationAddSessionsLastMessageAt.up, down: migrationAddSessionsLastMessageAt.down },
+  { id: '2026_11_03_143222_add_suggestion_analyses', reversibility: 'reversible', up: migrationAddSuggestionAnalyses.up, down: migrationAddSuggestionAnalyses.down },
+  { id: '2026_11_03_165810_add_config_overrides', reversibility: 'reversible', up: migrationAddConfigOverrides.up, down: migrationAddConfigOverrides.down },
 ] as const satisfies readonly Migration[]

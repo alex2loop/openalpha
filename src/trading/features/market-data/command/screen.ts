@@ -4,7 +4,7 @@ import type {
   SlashContext,
   SlashResult,
 } from '@/core/types/command'
-import type { MarketDataService } from '@/trading/features/market-data/types'
+import type { MarketDataService, ScreenForm } from '@/trading/features/market-data/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import { renderScreenText } from '@/trading/features/market-data/render/screen'
 import {
@@ -35,6 +35,8 @@ interface ScreenCommandDeps {
    *  which is what `[locale] region` already selects. Absent where that region owns no calendar, so
    *  the market stays required rather than being guessed. */
   readonly defaultMarket?: MarketRef
+  /** How the board answers; absent is the ranked board. */
+  readonly form?: ScreenForm
 }
 
 export function createScreenCommand(deps: ScreenCommandDeps): SlashCommand {
@@ -77,6 +79,7 @@ async function run(deps: ScreenCommandDeps, ctx: SlashContext): Promise<SlashRes
     limit,
     now: Date.now(),
     signal: ctx.signal,
+    ...(deps.form === undefined ? {} : { form: deps.form }),
     ...(ctx.progress === undefined ? {} : { progress: ctx.progress }),
     ...(instrumentKind === undefined ? {} : { instrumentKind }),
   })
@@ -90,6 +93,8 @@ async function run(deps: ScreenCommandDeps, ctx: SlashContext): Promise<SlashRes
       {
         market,
         context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
+        // A board lists every priced name; the argument says how many of them the chat prints.
+        shown: limit,
         ...(display === undefined ? {} : { display }),
         ...(instrumentKind === undefined ? {} : { instrumentKind }),
       },

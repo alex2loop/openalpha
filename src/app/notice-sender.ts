@@ -4,11 +4,11 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import type { PairingStore } from '@/core/types/session'
 import type { NoticeKind, TradingNotice, TradingNoticeSender } from '@/trading/api'
-import { resolveDefaultRecipient } from '@/channels/api'
+import { resolveDefaultRecipient } from '@/channels/node-api'
 import { readUpdateLine } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
-import { OperatorConfigError, setEnvCommand } from '@/core/config/resolve'
+import { OperatorConfigError, setEnvCommand } from '@/core/config/operator-errors'
 import { t } from '@/i18n'
 import {
   NOTICE_KINDS,
@@ -99,15 +99,14 @@ function renderBrief(
   payload: Extract<TradingNotice['payload'], { readonly kind: 'brief' }>,
   timezone: string
 ): string {
-  const body = renderBriefText(
-    locale,
-    payload.snapshot,
-    resolveRenderContext(timezone, UNATTENDED_SURFACE)
-  )
+  const context = resolveRenderContext(timezone, UNATTENDED_SURFACE)
 
-  return payload.sentAfterOpen === true
-    ? `${t(locale, 'trading.brief.sentAfterOpen')}\n\n${body}`
-    : body
+  return renderBriefText(locale, payload.snapshot, {
+    ...context,
+    ...(payload.sentAfterOpen === true
+      ? { preface: t(locale, 'trading.brief.sentAfterOpen') }
+      : {}),
+  })
 }
 
 /** The bell-only readings: a scored call, news on a holding, the index falling. */

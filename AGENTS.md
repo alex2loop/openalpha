@@ -32,7 +32,11 @@ In doubt: stop and ask. Never silently pick.
 ```bash
 bun run lint            # Biome lint + autofix
 bun run typecheck       # gen + tsc (Bun never type-checks; the only type gate)
-bun run check           # Biome + typecheck + contract gates (CI)
+bun run check           # Biome + typecheck + contract gates, incl. check:browser (CI)
+bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin, host global or timer method
+bun run build:web       # static web edition into dist/web; needs --app-url=<https address of the web edition> (add --noindex for staging); deploy/web/wrangler.toml serves it
+bun run build:site      # homepage into dist/site; needs --app-url=<https address of the web edition> and --site-url=<https address of the homepage>
+bun run deploy:web      # deploy dist/web (add --env production); deploy:site likewise; both refuse a build made for the other env
 bun run lint:arch       # depth, trading/registry/feature isolation, locale, report figures,
                         # caveats, vi terminology, pricing, agent skills, strategy version (CI)
 bun run gen             # regenerate the migration registry
@@ -45,6 +49,8 @@ bun scripts/check-strategy-version.ts --write   # re-record policy digests
 ```
 src/       # engine, cli, trading, channels, persistence, ai, memory, plugins, social, ...
 scripts/   # the gate suite (`bun run check`, `bun run lint:arch`)
+site/      # public homepage: static files stamped by `build:site` (link previews, app URL); its one script is copied at build from the locked `motion` package (no runtime CDN)
+deploy/    # wrangler.toml per static project (web edition, homepage); Cloudflare Workers Static Assets, no script
 ```
 
 A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src/app/server/CONTRACT.md`).
@@ -70,13 +76,13 @@ A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src
 | `social` | core, engine, i18n | Agent social networks joined by skill |
 | `trading` | core, engine, persistence, i18n | Self-contained bounded context |
 | `channels` | core, engine, commands, i18n | Channel definitions, delivery, adapters |
-| `web` | i18n; type-only app/server/wire | Office page: Preact UI and Canvas scene, served by the daemon |
+| `web` | i18n; type-only app/server/wire | Office page: Preact UI and Canvas scene, served by the daemon, or as static files by the web edition (`web/edition/`) |
 | `cli` | all except `app` | Terminal surface |
 | `app` | all | Entry and sole composition root |
 
 Boundary rules (hard):
 
-1. A module's public API is `@/<module>/api` and nothing deeper. No internal barrels, no `export *`.
+1. A module's public API is `@/<module>/api`, plus `@/<module>/node-api` for Bun/Node-only exports where the module has them; only `app` and `cli` import a `node-api`. Nothing deeper. No internal barrels, no `export *`.
 2. Kernel exception: `core` and `i18n` have no `api.ts` (it would close a cycle and force every consumer to load `zod`/`pino`/`undici`).
    - `core`'s public surface is enumerated in `CORE_PUBLIC` (`scripts/check-dag.ts`); consumers deep-import it (`@/core/errors`). A new `core/` file is internal until added there; that edit is the reviewable act of widening the kernel.
    - Internal: `core/ssrf/{ipv4,ipv6,dns,ssrf}` (facades `ssrf/network-policy`, `ssrf/pinned-fetch`), `core/security/prompt-injection` (facade `security/sanitize`), `core/config/{schema,paths}` (facades `config/load`, `config/resolve`). Import the facade.
@@ -86,7 +92,17 @@ Boundary rules (hard):
 4. `core` has no finance vocabulary. Nothing imports `trading` except `app`, `cli` (via its public API) and the SDK barrel.
 5. Domain modules never import surfaces (`cli`, `channels`, `server`). Surfaces never import `app`, except `web`, which takes type-only `app/server/wire`.
 6. No `RunContext` god-object: the Run owns its state; services are injected.
-7. Provider order in `app/providers.ts` is load-bearing (prologue + 15 steps, 9 constraints, incl. step 8b `cliCommands`). Read it before reordering.
+7. Provider order in `app/providers.ts` is load-bearing (prologue + 15 steps, 9 constraints, incl. step 8b `cliCommands`). Read it before reordering. The browser root (`app/browser/providers.ts`) lists the same providers in the same order and obeys the same constraints.
+
+### Browser entry
+
+`src/app/browser/` is the second composition root: the web edition's engine, running in a Web Worker (`worker.ts` is the entry; `bun run check:browser` bundles it and is the portability gate; `scripts/build-web.ts` ships it). It takes the daemon's provider list in the daemon's order and under its constraints (a provider extends only what an earlier one bound), leaves out what a page cannot have (channels, scheduler, plugins, MCP, user agents, social), and binds what differs: model keys read per request from a keyring, the page's own `fetch` as `FetchGuard`, SQLite WASM on OPFS under a tab lock, `PAGE_REQUEST_SHAPE`.
+
+- An edition narrows trading with one value, `TradingEdition` (`trading/wiring/composition/edition.ts`): markets, commands, `/suggest` as an analysis, rebalance as gaps, screen as a board, brief omissions, `BookReads`. A field absent is the installed version, so no consumer tests which edition runs. `Capabilities` is fixed per edition (what it offers, not live state).
+- The sources a page reads are a measured subset: `BROWSER_REACHABLE_SOURCES` (source-facts), applied with `toBrowserRoutes(SOURCE_ROUTES, ...)`, measured by `scripts/research-browser-cors.ts` on each adapter's real request path, never a host root. The page's CSP lists its hosts from the same tables.
+- Web chat is the chat agent narrowed through `agentForRun` (`app/browser/chat-agent.ts`): the read tools in `CHAT_TOOLS` (`app/browser/edition.ts`), the rule in `chat-rule.md`, on the main model; no memory, no preference learning. `deep-researcher`, which writes what `/research` shows, takes the same filled rule with its tools unchanged; the research planner and crawler, which choose the queries and the claims, take a one-line scope built from the rule's `{scope}`. The guard is tools plus prompt; there is no output check. A line that calls the model (free text, `/research`) with no usable key for `readModelProvider(config)` is answered by `serveFrame` and calls nothing; so is `/research` with no search key (`hasSearchKey`), and the `research` tool fails at once the same way through `gateResearch` (`app/browser/research-gate.ts`).
+- The web never computes or shows a verdict, size, entry, stop, target, conviction, rating or rank, and rebalance carries gaps only; a route that would is withheld in `app/browser/routes.ts`, a read that would answers empty.
+- Details and the deploy and incident runbook: [docs/en/dev/internals.md](docs/en/dev/internals.md#the-web-edition).
 
 ### Trading layout
 
@@ -107,7 +123,7 @@ Layout:
 
 Resolution and regions:
 - Resolution is local-first. `manifest.detection` is `'stored' | 'fetched'` (where `detect` reads from); declare `stored` only for a detector that does not fetch.
-- An unqualified ticker asks stored markets first; one match ends it. The operator names the other market to reach it (`/suggest crypto:HDB`). Ambiguity is reported only within one tier. On a read the operator typed (`operatorRead`: `/price`, `market_price`, `/suggest`) a held or watched instrument carrying the ticker settles which market it means (`HeldInstruments`, read in `wiring/composition/held-instruments.ts`), and the answer names every other market listing the symbol (`market.ticker-also-listed`), read from each market's stored listing or ranked board only (`DetectInstrumentOptions.boardOnly`), never a per-symbol lookup. A write never takes the held side: `/record` and `/update` keep the ambiguity report, since a row booked on the wrong market corrupts the book silently while a wrong read shows itself. A stored-only ask (`detection: 'stored'`) never consults a fetching market, held or not.
+- An unqualified ticker never reaches a market the operator switched off: its segment is off, a venue holds it, and nothing is held or watched there (`OperatorUse`, read in `wiring/composition/operator-use.ts`). A coin symbol a US fund also carries is never read as the fund; its prefix still reaches it. A segment no venue holds (world gold) is never switched off. It then asks stored markets first; one match ends it. The operator names the other market to reach it (`/suggest crypto:HDB`). Ambiguity is reported only within one tier. On a read the operator typed (`operatorRead`: `/price`, `market_price`, `/suggest`) a held or watched instrument carrying the ticker settles which market it means (`OperatorUse.instruments`), and the answer names every other market listing the symbol (`market.ticker-also-listed`), read from each market's stored listing or ranked board only (`DetectInstrumentOptions.boardOnly`), never a per-symbol lookup. A write never takes the held side: `/record` and `/update` keep the ambiguity report, since a row booked on the wrong market corrupts the book silently while a wrong read shows itself. A stored-only ask (`detection: 'stored'`) never consults a fetching market, held or not.
 - One market speaks for each region: `ownsRegion` elects it; boot rejects none or two. Its calendar is the region's trading day and its macro capability the region's composite. Never pick a market by registration order for a region-level read.
 - A non-owner market declaring `macroRisk` still gates its own segment and publishes the composite on its `/overview` block (`MarketDataOverview.macro`). A read that gates must be printed.
 - A region's regime reads its own market first: driver tables sit beside the policy (`VN_MACRO_DRIVERS`, `CRYPTO_MACRO_DRIVERS`); `US_MACRO_DRIVERS` is what US-priced segments read. A table weighing a US series takes its band from `US_DRIVER_BANDS`. VN stress confirmers only lower what its drivers produce.
@@ -138,7 +154,7 @@ Anything not listed is derived or gate-checked.
 
 1. `markets/<ref>/market.ts` exporting `create<Name>Market(deps: MarketDeps): Market` (manifest, capabilities, `candidacy`, `detect`, `factors`, `levels`). Calendar: `createTradingCalendar(policy, config.markets[<ref>])`; a market with exchange closures sets `CalendarPolicy.holidays` (and `earlyCloses` for half days) to year-to-days functions kept in `markets/<ref>/calendar/`.
 2. Factor id tuple and a `FactorId` union arm in `trading/kernel/factor.ts` (`manifest.factorIds` is typed against it). The central edit is deliberate: a market with new factor ids ships in-tree, never as a plugin.
-3. One `markets.register(...)` line in `trading/wiring/composition/registration.ts`.
+3. One entry in `MARKET_FACTORIES` in `trading/wiring/composition/registries.ts`. An edition that ships a subset (the browser) names its markets in `TradingEdition.markets`; `isMarketBuilt` filters registration, hand-traded venues and the `default_for` check, so nothing else lists markets.
 4. Providers under `sources/`, routed in `SOURCE_ROUTES`, registered in `trading/wiring/composition/source-registry.ts`.
 5. Locale keys in both `src/i18n/locales/en.json` and `vi.json`: `trading.market.<ref>`, `trading.region.<region>`, `trading.segment.<segment>`, `trading.factor.<id>` per factor. Composition throws listing what is missing.
 6. A venue that lists it. A market no venue holds is read for reference only (world gold): its segment stays off (`SegmentDescriptor.held`) and `/profile enable` refuses it.
@@ -178,7 +194,7 @@ A source feeds the evidence pipeline (stored, provenance-stamped, factor-scored,
 
 - Evidence-grade data is a first-party adapter (`sources/adapters/`) with parser, schema, rate limit and failover route. Data the agent reads but never derives from is an MCP tool the operator connects.
 - `SOURCE_ROUTES` owns which providers serve which scope, in order; `covers` answers only whether a request's shape is servable. A source may read `context.market` to stamp what it parsed; it never tests it to decide whether it serves and never constructs a `MarketRef` or `Region`.
-- Endpoints, rate limits and credential variable names are code-owned (`SourceFacts`): no config can redirect a request; credentials come only from the environment. News: `RSS_FEEDS` is the allowlist and the URL is the pinned target. Outbound requests use `BROWSER_HEADERS` (`core/http-client.ts`).
+- Endpoints, rate limits and credential variable names are code-owned (`SourceFacts`): no config can redirect a request; credentials come only from the environment. News: `RSS_FEEDS` is the allowlist and the URL is the pinned target. Daemon requests use `DAEMON_REQUEST_SHAPE` (`BROWSER_HEADERS`, no redirect followed; `core/http-client.ts`), handed to the transport in `SourceFacts.requestShape`; the browser root hands `PAGE_REQUEST_SHAPE` (no header, redirects followed) and the route table `toBrowserRoutes` leaves.
 - Route order ranks quality: a provider that answers wrongly without failing sits behind one that does not (`vietcap-chart` leads `entrade` for both VN level kinds). An adapter refuses a level series holding a frozen bar rather than serving it short, and the market ages every reading.
 - A transport code never reaches the operator raw: `SourceSummary.lastFailureCode` is a `CaveatCode`, rendered by `/sources` as `trading.source.failure.<code>` via `renderProvidedValue`.
 - A refresh pass counts what the store wrote, not what it handed over: without `force` a held day is kept (`ON CONFLICT DO NOTHING`); `upsertSeriesPoint` says whether the row landed.
@@ -421,12 +437,12 @@ Leaks are production incidents and review-blocking. For every acquired resource 
 
 - Guard-clause early returns. No boolean params for branching (options object or two functions).
 - Throw only typed `Error` subclasses from the hierarchy (`RunHalted`, domain `*Error` carrying a `code`; `src/core/errors.ts`). Never raw `throw new Error()`. An empty catch needs a comment.
-- A setup failure the operator can fix (a config value, a path, a key, a cron field) throws `OperatorConfigError` with a keyed `errors.*` message, so it reads in `[locale]`; a schema failure goes through `toInvalidConfigError` (both via `@/core/config/resolve`). A bare `ConfigError` is internal: surfaces print a generic localized line and keep its English for `--verbose`.
+- A setup failure the operator can fix (a config value, a path, a key, a cron field) throws `OperatorConfigError` with a keyed `errors.*` message, so it reads in `[locale]`; a schema failure goes through `toInvalidConfigError` (both from `@/core/config/operator-errors`). A bare `ConfigError` is internal: surfaces print a generic localized line and keep its English for `--verbose`.
 
 ### Modules and exports
 
 - Minimize exports. No `export let`. An unused export is a bug: wire every export to a caller (`scripts/check-unused-exports.ts`), path helpers included.
-- Sanctioned barrels, the only barrel files: the SDK `src/index.ts`, each module's `api.ts`, a market's `api.ts`. Everything else imports directly via `@/*`. `noBarrelFile` is waived for exactly those paths in `biome.json`; widen that list only alongside the rule it serves.
+- Sanctioned barrels, the only barrel files: the SDK `src/index.ts`, each module's `api.ts` and `node-api.ts`, a market's `api.ts`, and `i18n/index.ts` (the kernel leaf has no `api.ts`; its glossary registry lives in a second file the index re-exports). Everything else imports directly via `@/*`. `noBarrelFile` is waived for exactly those paths in `biome.json`; widen that list only alongside the rule it serves.
 
 ### Import paths
 
@@ -469,12 +485,12 @@ Cited by `scripts/check-imports.ts`.
 
 | File | Owns |
 |---|---|
-| `core/config/paths.ts` | Where configured data lives (pure sync string math): `expandHome`, `resolveDataDir`, `resolveConfigFile`, `resolveDataRelative`, `resolveSqliteDatabasePath`. Internal; use the `config/resolve` facade |
+| `core/config/paths.ts` | Where configured data lives (pure sync string math over a `ConfigHost`: `env` and `homeDir`, handed in by the entry, never read here): `expandHome`, `resolveDataDir`, `resolveConfigFile`, `resolveDataRelative`, `resolveSqliteDatabasePath`. Internal; use the `config/resolve` facade |
 | `core/logging/paths.ts` | Agent log locations and segment files: `isLogSegmentName`, `resolveAgentLogFile`, `resolveAgentLogsDir`; sole owner of `AGENT_LOG_SEGMENTS` / `AGENT_LOG_FILE_NAME`. Public |
 | `core/security/agent-directories.ts` | Creating private scratch/log dirs without a symlink race (`prepareAgentScratchDir`, `prepareAgentLogFile`; TOCTOU defense over `security/private-files` and `security/path-policy`). Public |
 
 - `expandHome` expands only `~` and `~/...`.
-- Configured paths use `resolveDataRelative(path, dataDir)` (`~/` to home, absolute as-is, relative joins `dataDir`); no bare `expandHome` in `resolve.ts` for `[log] file`.
+- Configured paths use `resolveDataRelative(path, { dataDir, homeDir })` (`~/` to home, absolute as-is, relative joins `dataDir`); no bare `expandHome` in `resolve.ts` for `[log] file`.
 - A path that may start with `~` (`--config ~/foo.toml`) runs `expandHome` before `isAbsolute` / `join(cwd, ...)`.
 
 ### File structure and declaration order

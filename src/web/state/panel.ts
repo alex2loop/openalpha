@@ -23,7 +23,7 @@ export const panelView = signal<PanelView>({ tab: 'today' })
 export const backStack = signal<readonly PanelView[]>([])
 /** The panel is folded into its icon strip. */
 export const collapsed = signal(false)
-/** The info panel floats over the office, which fills the page: a wide screen outside Info only. */
+/** The info panel floats over the office, which fills the page: a wide screen outside Focus. */
 export const isFloating: ReadonlySignal<boolean> = computed(
   () => breakpoint.value === 'wide' && !isInfoOnly.value
 )

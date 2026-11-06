@@ -1,0 +1,8 @@
+{
+  "name": "deploy-tools",
+  "private": true,
+  "description": "The tool the web workflow deploys with, pinned apart from the app so its dependency tree stays out of the app's licence check.",
+  "devDependencies": {
+    "wrangler": "4.157.0"
+  }
+}

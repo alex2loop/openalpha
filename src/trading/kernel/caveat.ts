@@ -10,6 +10,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'source.recovered', severity: 'info' },
   { code: 'source.futures-proxy', severity: 'info' },
   { code: 'source.token-proxy', severity: 'info' },
+  { code: 'source.token-fx-proxy', severity: 'info' },
   { code: 'source.stale-cache', severity: 'warn' },
   { code: 'source.truncated', severity: 'warn' },
   { code: 'source.market-read-truncated', severity: 'warn' },
@@ -83,6 +84,9 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'market-data.evidence-settled-only', severity: 'info' },
   { code: 'market-data.quote-not-live', severity: 'warn' },
   { code: 'market-data.evidence-stale', severity: 'warn' },
+  { code: 'market-data.refresh-failed', severity: 'warn' },
+  { code: 'market-data.first-load-pending', severity: 'warn' },
+  { code: 'market-data.first-load-incomplete', severity: 'warn' },
   { code: 'market-data.series-stale', severity: 'warn' },
   { code: 'market-data.funding-crowded', severity: 'warn' },
   { code: 'market-data.volatility-abstained-at-high', severity: 'info' },
@@ -224,6 +228,9 @@ const CAVEAT_CODE_SET: ReadonlySet<string> = new Set(CAVEAT_CODE_STRINGS)
 export const OPERATOR_DETAIL_CODES: ReadonlySet<string> = new Set(
   CAVEAT_CODES.flatMap((entry) => ('operatorDetail' in entry ? [entry.code] : []))
 )
+
+/** What an edition without `/sources` stamps on the notes that point to it. */
+export const WITHOUT_SOURCES_DETAIL = Object.freeze({ withoutSources: 1 })
 
 export function isCaveatCode(code: string): code is CaveatCode {
   return CAVEAT_CODE_SET.has(code)

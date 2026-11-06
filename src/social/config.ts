@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import type { DailyWindow } from '@/core/utils/time'
-import { OperatorConfigError, toInvalidConfigError } from '@/core/config/resolve'
+import { OperatorConfigError, toInvalidConfigError } from '@/core/config/operator-errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE, parseDailyWindow } from '@/core/utils/time'
 import { refusedToolNames } from '@/social/tool-rules'

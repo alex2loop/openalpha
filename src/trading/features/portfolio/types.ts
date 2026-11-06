@@ -225,8 +225,9 @@ export interface RebalancePlanReady extends PortfolioAssessment {
 export interface RebalancePolicyView {
   readonly profile: ProfileStamp
   /** What actually scaled today's buys: the tighter of the macro read and the profile ceiling. The
-   *  remaining caps are named by the caveat of whichever one bound, never listed up front. */
-  readonly deploymentScale: number
+   *  remaining caps are named by the caveat of whichever one bound, never listed up front. Absent
+   *  on a plan written as gaps, which sizes no buy. */
+  readonly deploymentScale?: number
 }
 
 /** Money for one order, kept beside the advice rather than inside it: `RebalancePlanResult` reaches an
@@ -424,3 +425,6 @@ export interface PortfolioService {
    *  no credentials, answers `unsupported`. */
   reconcile(options: PortfolioAtOptions): Promise<readonly VenueReconciliation[]>
 }
+
+/** What a rebalance plan is written as: the orders that bring the book to it, or only the gaps. */
+export type RebalanceForm = 'orders' | 'gaps'

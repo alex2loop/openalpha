@@ -1,9 +1,19 @@
 import type { SuggestionRunResult } from '@/trading/features/suggestion/types'
 import type { MarketResolution } from '@/trading/markets/types'
+import { isLevelKind } from '@/trading/kernel/instrument'
+
+type UnsupportedResult = Extract<SuggestionRunResult, { readonly kind: 'unsupported' }>
+type ResolvedMarket = Extract<MarketResolution, { readonly kind: 'resolved' }>
+
+/** Why each level kind is refused: the name resolves, but it is a reading and no asset. */
+const LEVEL_KIND_REASONS = {
+  index: 'index-untradeable',
+  future: 'future-untradeable',
+} as const satisfies Record<'index' | 'future', UnsupportedResult['reason']>
 
 export function unsupported(
   resolution: Exclude<MarketResolution, { readonly kind: 'resolved' }>
-): SuggestionRunResult {
+): UnsupportedResult {
   const base = { kind: 'unsupported', ticker: resolution.ticker } as const
 
   if (resolution.kind === 'ambiguous-market') {
@@ -26,19 +36,34 @@ export function unsupported(
 // reads as the provider's.
 function unavailableReasonOf(
   resolution: Extract<MarketResolution, { readonly kind: 'unavailable' }>
-): Extract<SuggestionRunResult, { readonly kind: 'unsupported' }>['reason'] {
+): UnsupportedResult['reason'] {
   return resolution.caveats.some((caveat) => caveat.code === 'market-data.universe-empty')
     ? 'market-data-not-loaded'
     : 'market-data-unavailable'
 }
 
-export function outsideFocus(
-  resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>
-): SuggestionRunResult {
+export function outsideFocus(resolution: ResolvedMarket): SuggestionRunResult {
   return {
     kind: 'unsupported',
     ticker: resolution.instrument.ticker,
     reason: 'outside-focus',
+    market: resolution.instrument.market,
+  }
+}
+
+/** An index or a futures contract resolves, but nothing buys it through a spot venue, so there is
+ *  no call to make on it. Absent for every kind that can be held. */
+export function levelKindRefusal(resolution: ResolvedMarket): UnsupportedResult | undefined {
+  const { instrumentKind } = resolution
+
+  if (!isLevelKind(instrumentKind)) {
+    return undefined
+  }
+
+  return {
+    kind: 'unsupported',
+    ticker: resolution.instrument.ticker,
+    reason: LEVEL_KIND_REASONS[instrumentKind],
     market: resolution.instrument.market,
   }
 }

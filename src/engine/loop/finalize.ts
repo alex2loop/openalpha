@@ -9,7 +9,7 @@ import type {
   RunState,
   RunView,
 } from '@/engine/types/run'
-import { missingEnvOf } from '@/core/config/resolve'
+import { missingEnvOf } from '@/core/config/operator-errors'
 import { operatorMessageOf, RunHalted } from '@/core/errors'
 import { formatErrForLog, scrubCredentials } from '@/core/security/credentials'
 import { textOf, toolCallIdsOf } from '@/core/utils/message'

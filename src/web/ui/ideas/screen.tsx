@@ -3,9 +3,12 @@ import { useEffect, useRef } from 'preact/hooks'
 
 import type { ScreenResponse } from '@/app/server/wire/market'
 import type { SuggestionWire } from '@/app/server/wire/trading'
+import type { Candidate } from '@/web/edition/screen-sort'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { ScreenBoard } from '@/web/edition/screen-board'
 import { type BlockReading, useBlock, useBlockRead } from '@/web/state/block'
+import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
@@ -15,6 +18,7 @@ import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
 import { isInfoLine, joinInline, splitInline, withoutLeadingIcon } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
+import { FactGrid } from '@/web/ui/kit/fact-grid'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { AnalyzeButton, isStoredAnswer } from '@/web/ui/ticker/analyze-button'
@@ -42,7 +46,7 @@ export function Opportunities() {
       {markets.length > 1 && (
         <Segmented
           isTabs
-          label={tr('ui.office.ideas.screen')}
+          label={tr(editionKey('ui.office.ideas.screen', 'ui.office.edition.screen.title'))}
           value={market.market}
           options={markets.map((held) => ({ value: held.market, label: held.segmentLabel }))}
           onChange={(value) => {
@@ -50,7 +54,11 @@ export function Opportunities() {
           }}
         />
       )}
-      <Board key={market.market} market={market.market} />
+      {isAnalysisOnly.value ? (
+        <ScreenBoard key={market.market} market={market.market} />
+      ) : (
+        <Board key={market.market} market={market.market} />
+      )}
     </>
   )
 }
@@ -185,7 +193,7 @@ function BoardBody({ board, analyzed }: BoardBodyProps) {
         })}
       </p>
       {card.rows.map((row) => (
-        <Opportunity key={row.key} row={row} analyzed={analyzed} />
+        <Opportunity key={row.key} row={row} facts={factsOf(board, row)} analyzed={analyzed} />
       ))}
       {card.caveats.map((caveat) => (
         <p key={caveat} class={isInfoLine(caveat) ? 'meta' : 'strip is-caution'}>
@@ -204,6 +212,13 @@ function BoardBody({ board, analyzed }: BoardBodyProps) {
 
 type Row = ScreenResponse['card']['rows'][number]
 
+// What the board read for the row's name, laid out as the Screen board lays it.
+function factsOf(board: ScreenResponse, row: Row): NonNullable<Candidate['facts']> {
+  const [, ticker] = row.key.split(MARKET_SEPARATOR)
+
+  return board.candidates.find((candidate) => candidate.instrument.ticker === ticker)?.facts ?? []
+}
+
 // The score is one segment of the daemon's row line; simple drops it and keeps every other.
 function lineOf(row: Row): string {
   if (isAdvanced.value) {
@@ -217,9 +232,11 @@ function lineOf(row: Row): string {
 
 function Opportunity({
   row,
+  facts,
   analyzed,
 }: {
   readonly row: Row
+  readonly facts: NonNullable<Candidate['facts']>
   readonly analyzed: ReadonlySet<string>
 }) {
   const [market, ticker] = row.key.split(MARKET_SEPARATOR)
@@ -247,6 +264,9 @@ function Opportunity({
           isAnalyzed={ticker !== undefined && analyzed.has(ticker)}
           size="small"
         />
+      </div>
+      <div class="opportunity-body">
+        <FactGrid facts={facts} />
       </div>
     </div>
   )

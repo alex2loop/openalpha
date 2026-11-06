@@ -55,6 +55,7 @@ export async function refreshUsMacro(input: MacroRefreshInput): Promise<RefreshK
   const view = deriveMacroRisk(
     {
       ...merged,
+      ...(deps.unservedMacro === undefined ? {} : { missingReasons: deps.unservedMacro }),
       region: US_MARKET_REGION,
       asOf,
       provenance,

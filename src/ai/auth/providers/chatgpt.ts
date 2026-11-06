@@ -13,12 +13,11 @@ import { readRecord, readString } from '@/ai/auth/json'
 import { parseChatgptClaims } from '@/ai/auth/providers/chatgpt-claims'
 import { pollDeviceCode } from '@/ai/auth/providers/device-code'
 import { TOKEN_MAX_BYTES, TOKEN_TIMEOUT_MS, toTokenRequestError } from '@/ai/auth/token-request'
+import { CHATGPT_PROVIDER_ID } from '@/ai/catalog'
 import { BRAND } from '@/core/brand'
 import { isAbortError, LLMError } from '@/core/errors'
 import { httpRequest } from '@/core/http-client'
 import { MS_PER_SECOND } from '@/core/utils/time'
-
-export const CHATGPT_PROVIDER_ID = 'openai-chatgpt'
 
 const LOGIN_NAME = 'chatgpt'
 export const CHATGPT_OAUTH_HOST = 'https://auth.openai.com'

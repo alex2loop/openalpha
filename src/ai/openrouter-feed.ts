@@ -22,6 +22,7 @@ const FEED_RETRY_COOLDOWN_MS = 60_000
 // must not enforce them against a boot-time snapshot.
 const FEED_TTL_MS = 6 * MS_PER_HOUR
 const STRUCTURED_OUTPUTS_PARAMETER = 'structured_outputs'
+const TOOLS_PARAMETER = 'tools'
 
 const CapabilityRowSchema = z.object({
   id: z.string(),
@@ -33,7 +34,7 @@ const CapabilityRowSchema = z.object({
     .nullish(),
 })
 
-const StructuredOutputRowSchema = z.object({
+const ParametersRowSchema = z.object({
   id: z.string(),
   supported_parameters: z.array(z.string()).nullish(),
 })
@@ -130,7 +131,14 @@ export function loadOpenRouterPrices(logger: Logger): Promise<ReadonlyMap<string
 
 /** Model ids whose routed endpoints enforce a JSON schema server-side. */
 export function loadOpenRouterStructuredOutputs(logger: Logger): Promise<ReadonlySet<string>> {
-  return loadRawRows(logger).then(toStructuredOutputSet)
+  return loadRawRows(logger).then((rows) => toParameterSet(rows, STRUCTURED_OUTPUTS_PARAMETER))
+}
+
+/** Whether each described model's routed endpoints accept tool calls. A model the feed does not
+ *  list, or lists without its parameters, has no entry: that is unknown, not "cannot". Empty while
+ *  the feed is unreachable. */
+export function loadOpenRouterToolSupport(logger: Logger): Promise<ReadonlyMap<string, boolean>> {
+  return loadRawRows(logger).then((rows) => toParameterSupport(rows, TOOLS_PARAMETER))
 }
 
 function toCapabilityMap(rows: readonly unknown[]): ReadonlyMap<string, ModelReasoningCapability> {
@@ -157,15 +165,25 @@ function toCapabilityMap(rows: readonly unknown[]): ReadonlyMap<string, ModelRea
   return map
 }
 
-function toStructuredOutputSet(rows: readonly unknown[]): ReadonlySet<string> {
-  const ids = new Set<string>()
+function toParameterSet(rows: readonly unknown[], parameter: string): ReadonlySet<string> {
+  const supported = [...toParameterSupport(rows, parameter)].flatMap(([id, ok]) => (ok ? [id] : []))
+
+  return new Set(supported)
+}
+
+function toParameterSupport(
+  rows: readonly unknown[],
+  parameter: string
+): ReadonlyMap<string, boolean> {
+  const support = new Map<string, boolean>()
   for (const raw of rows) {
-    const row = StructuredOutputRowSchema.safeParse(raw)
-    if (row.success && row.data.supported_parameters?.includes(STRUCTURED_OUTPUTS_PARAMETER)) {
-      ids.add(row.data.id)
+    const row = ParametersRowSchema.safeParse(raw)
+    const parameters = row.success ? row.data.supported_parameters : undefined
+    if (row.success && parameters !== undefined && parameters !== null) {
+      support.set(row.data.id, parameters.includes(parameter))
     }
   }
-  return ids
+  return support
 }
 
 function toPriceMap(rows: readonly unknown[]): ReadonlyMap<string, ModelPrice> {

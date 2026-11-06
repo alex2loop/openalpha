@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type {
   CommandLocales,
   CommandTranscript,
@@ -221,7 +219,7 @@ function withRunId(context: SlashContext, policy: SlashInvocationPolicy): SlashC
     return context
   }
 
-  return { ...context, runId: brandRunId(randomUUID()) }
+  return { ...context, runId: brandRunId(crypto.randomUUID()) }
 }
 
 // A refused command never ran, so the run id it was handed names nothing.

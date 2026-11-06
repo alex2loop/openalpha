@@ -2,19 +2,21 @@ import type { RefObject, TargetedKeyboardEvent } from 'preact'
 import { type Signal, useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import { regionPack } from '@/web/scene/data/home'
 import { selectAgent } from '@/web/state/agents'
 import { breakpoint } from '@/web/state/breakpoints'
 import { APP_CHANNEL, isChatOpen, setChatOpen, unread, viewedSession } from '@/web/state/chat'
 import {
   inputText,
-  isNotSent,
   isRecalling,
+  notSent,
   recall,
   registerInput,
+  runCommand,
   sendFromInput,
   setInput,
 } from '@/web/state/command'
+import { editionKey, offers } from '@/web/state/edition'
+import { openTicker, openTickerOrElse } from '@/web/state/known-tickers'
 import { isChatOnly } from '@/web/state/pane'
 import { tr } from '@/web/text/tr'
 import { ReadOnlyLine } from '@/web/ui/chat/session-view'
@@ -33,11 +35,17 @@ import './command.css'
 
 const LIST_ID = 'command-suggestions'
 const COMMAND_PREFIX = '/'
+// One word of letters, digits and the dots or dashes a symbol carries: it may be a ticker.
+const BARE_TICKER_RE = /^[A-Za-z0-9._-]{1,12}$/
 // The key code browsers give a key an input method takes.
 const IME_KEY_CODE = 229
 // A floating bar's islands: glass, the field denser since it carries the text.
 const ISLAND = 'command-island glass'
 const FIELD_ISLAND = `${ISLAND} is-strong`
+const NOT_SENT_KEY = {
+  offline: 'ui.office.command.notSent',
+  'key-like': 'ui.office.command.keyLike',
+} as const
 
 /** The popover's state: which row the arrows chose, whether Tab listed every command, and whether
  *  Esc closed it until the next keystroke. */
@@ -85,7 +93,9 @@ function Composer({ isFloating }: { readonly isFloating: boolean }) {
 
   return (
     <>
-      {!isChatOnly.value && <WhoChip island={isFloating ? ISLAND : undefined} />}
+      {!isChatOnly.value && offers('agents') && (
+        <WhoChip island={isFloating ? ISLAND : undefined} />
+      )}
       <div class="command-box">
         {list.isOpen.value && options.length > 0 && (
           <SuggestPopover
@@ -101,12 +111,12 @@ function Composer({ isFloating }: { readonly isFloating: boolean }) {
           <CommandInput inputRef={input} list={list} options={options} />
           <kbd class="command-key">{COMMAND_PREFIX}</kbd>
         </div>
-        {isNotSent.value && (
+        {notSent.value !== undefined && (
           <p
             class={isFloating ? 'command-not-sent glass is-strong' : 'command-not-sent'}
             role="alert"
           >
-            {tr('ui.office.command.notSent')}
+            {tr(NOT_SENT_KEY[notSent.value])}
           </p>
         )}
       </div>
@@ -134,7 +144,7 @@ function SendButton({ list, isFloating }: SendButtonProps) {
         aria-label={label}
         title={label}
         disabled={typed === ''}
-        onClick={() => send(list)}
+        onClick={() => submit(undefined, list)}
       >
         <SendIcon />
       </button>
@@ -142,7 +152,7 @@ function SendButton({ list, isFloating }: SendButtonProps) {
   }
 
   return (
-    <Button kind="commit" disabled={typed === ''} onClick={() => send(list)}>
+    <Button kind="commit" disabled={typed === ''} onClick={() => submit(undefined, list)}>
       {label}
     </Button>
   )
@@ -155,6 +165,10 @@ interface CommandInputProps {
 }
 
 function CommandInput({ inputRef, list, options }: CommandInputProps) {
+  const placeholder = tr(
+    editionKey('ui.office.command.placeholder', 'ui.office.command.placeholderWeb')
+  )
+
   return (
     <input
       ref={inputRef}
@@ -164,8 +178,8 @@ function CommandInput({ inputRef, list, options }: CommandInputProps) {
       role="combobox"
       aria-expanded={list.isOpen.value}
       aria-controls={LIST_ID}
-      aria-label={tr('ui.office.command.placeholder', { ticker: regionPack.value.exampleTicker })}
-      placeholder={tr('ui.office.command.placeholder', { ticker: regionPack.value.exampleTicker })}
+      aria-label={placeholder}
+      placeholder={placeholder}
       value={inputText.value}
       onFocus={() => (list.isOpen.value = true)}
       onBlur={() => resetList(list, false)}
@@ -206,18 +220,30 @@ function send(list: ListState): void {
   resetList(list, false)
 }
 
-// A fill row puts its text in the box; the send row sends what is typed.
+// A bare ticker row opens its card, a fill row puts its text in the box, the send row sends what is
+// typed.
 function pick(option: SuggestOption, list: ListState): void {
+  if (option.instrument !== undefined) {
+    openTicker(option.instrument.ticker, option.instrument.market)
+    setInput('')
+    resetList(list, false)
+    return
+  }
+
   if (option.fill === undefined) {
     send(list)
     return
   }
 
+  fill(option, option.fill, list)
+}
+
+function fill(option: SuggestOption, text: string, list: ListState): void {
   if (option.agentId !== undefined) {
     selectAgent(option.agentId)
   }
 
-  setInput(option.fill)
+  setInput(text)
   resetList(list, true)
 }
 
@@ -252,11 +278,7 @@ function handleKey(key: string, { list, options }: KeyContext): boolean {
     case 'Tab':
       return complete(chosen, { list, options })
     case 'Enter':
-      if (chosen !== undefined) {
-        pick(chosen, list)
-      } else {
-        send(list)
-      }
+      submit(chosen, list)
       return true
     case ESCAPE_KEY:
       resetList(list, false)
@@ -264,6 +286,26 @@ function handleKey(key: string, { list, options }: KeyContext): boolean {
     default:
       return false
   }
+}
+
+// A word alone is looked up as a ticker, as the placeholder says, and sent as chat only when it names
+// none; anything longer is a sentence. A chat tab has no card to open.
+function submit(chosen: SuggestOption | undefined, list: ListState): void {
+  const typed = inputText.value.trim()
+
+  if (chosen !== undefined) {
+    pick(chosen, list)
+    return
+  }
+
+  if (isChatOnly.value || !BARE_TICKER_RE.test(typed)) {
+    send(list)
+    return
+  }
+
+  setInput('')
+  resetList(list, false)
+  openTickerOrElse(typed.toUpperCase(), () => runCommand(typed))
 }
 
 // On an empty box, or one holding a recalled line, the arrows walk what was sent.
@@ -298,7 +340,7 @@ function complete(chosen: SuggestOption | undefined, { list, options }: KeyConte
     return false
   }
 
-  pick(target, list)
+  fill(target, target.fill, list)
 
   return true
 }

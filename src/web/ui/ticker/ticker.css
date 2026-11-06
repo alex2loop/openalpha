@@ -18,9 +18,12 @@
 }
 
 .price-chart {
-  display: block;
-  width: 100%;
   margin: var(--s1) 0;
+}
+
+.price-chart svg {
+  display: block;
+  max-width: 100%;
 }
 
 .price-chart text {

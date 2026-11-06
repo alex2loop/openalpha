@@ -115,7 +115,8 @@ interface RebalanceSegmentWire {
   readonly segment: string
   readonly currentPctNav: number
   readonly targetPctNav: number
-  readonly afterPlanPctNav: number
+  /** Absent on a plan written as gaps, which names no landing place. */
+  readonly afterPlanPctNav?: number
   readonly driftBandPctNav: number
   readonly capPctNav?: number
 }
@@ -128,13 +129,16 @@ interface RebalanceChangeWire {
   readonly currentPctNav: number
   readonly targetPctNav: number
   readonly changePctNav: number
-  readonly reason: 'fill-gap' | 'core-fill' | 'trim' | 'weak-signal' | 'off-policy' | 'over-cap'
-  /** The order this change works out to, lot-rounded. Absent when the plan could not be sized. */
+  /** Absent on a plan written as gaps: a reason is the plan's own, and a gaps plan has none. */
+  readonly reason?: 'fill-gap' | 'core-fill' | 'trim' | 'weak-signal' | 'off-policy' | 'over-cap'
+  /** What this change is worth in money, and the order it works out to, lot-rounded. Absent when
+   *  the plan could not be sized. A plan written as gaps (the web) carries the value and the
+   *  currency only: no quantity, lot or price. */
   readonly order?: {
     readonly valueBase: number
-    readonly quantity: number
-    readonly boardLot: number
-    readonly unitPrice: number
+    readonly quantity?: number
+    readonly boardLot?: number
+    readonly unitPrice?: number
     readonly currency: string
   }
   readonly caveats: readonly TradingWireCaveat[]
@@ -163,6 +167,9 @@ export interface RebalanceTextWire {
     readonly line: string
   }[]
   readonly segments: readonly string[]
+  /** One line per ceiling the operator set that the book stands over (a name, a segment, the ETFs
+   *  or a sector), worded as the operator's own level; the notes leave these out. */
+  readonly limits: readonly string[]
   readonly notes: readonly string[]
 }
 
@@ -172,11 +179,13 @@ export type RebalanceResponse =
       readonly status: 'ready'
       readonly baseCurrency?: string
       readonly navBase?: number
-      /** 0 to 1: how much of a full buy today's market read allows. */
-      readonly deploymentScale: number
+      /** 0 to 1: how much of a full buy today's market read allows. Absent on a plan written as
+       *  gaps, which sizes no buy. */
+      readonly deploymentScale?: number
       readonly segments: readonly RebalanceSegmentWire[]
       readonly changes: readonly RebalanceChangeWire[]
-      readonly cash: {
+      /** Absent on a plan written as gaps: the split names a deposit to make. */
+      readonly cash?: {
         readonly cashPctNav: number
         readonly liquidReservePctNav: number
         readonly termDepositEligiblePctNav: number

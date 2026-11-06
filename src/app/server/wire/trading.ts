@@ -5,7 +5,9 @@
 // Additive-only within v1. camelCase keys, no snake_case on the wire, no field renames.
 
 import type { BriefTextWire } from '@/app/server/wire/brief'
+import type { PortfolioPnlWire } from '@/app/server/wire/portfolio-pnl'
 import type { PortfolioSharesWire } from '@/app/server/wire/portfolio-shares'
+import type { QuoteDetailWire } from '@/app/server/wire/quote-detail'
 import type { ByModelWire } from '@/app/server/wire/track-record'
 import type {
   AssetClass,
@@ -28,6 +30,9 @@ export interface TradingWireCaveat {
   readonly data?: Readonly<Record<string, string | number>>
   readonly severity: CaveatSeverity
   readonly text: string
+  /** The same fact worded with no ranking, rating or advice, for the web edition; absent where the
+   *  catalog has no such sentence and `text` already reads that way. */
+  readonly plain?: string
 }
 
 /** Freshness lives on each row, never as one aggregate: a response assembled from four sources has
@@ -40,7 +45,7 @@ export interface TradingWireProvenance {
   readonly freshness: SourceFreshness
 }
 
-export interface TradingQuoteWire {
+export interface TradingQuoteWire extends QuoteDetailWire {
   readonly ticker: string
   readonly label: string
   readonly region: string
@@ -54,6 +59,9 @@ export interface TradingQuoteWire {
   readonly provenance: readonly TradingWireProvenance[]
   readonly caveats: readonly TradingWireCaveat[]
   readonly kind: Exclude<InstrumentKind, 'fx'>
+  /** The name publishes a level, not a price (an index, a futures contract): it is read, never
+   *  bought or analysed, and prints with no board scale or currency. */
+  readonly isLevel: boolean
   readonly market: string
   readonly assetClass: AssetClass
 }
@@ -109,7 +117,10 @@ export interface TradingEventsResponse {
 export interface TradingNewsItemWire {
   readonly title: string
   readonly url: string
+  /** The adapters that served it (`rss`), which are not names a reader knows. */
   readonly sourceIds: readonly string[]
+  /** The outlet's own domain, from the feed's publisher link or the article's: what to credit. */
+  readonly publisher?: string
   readonly publishedAt: number
   readonly summary?: string
 }
@@ -131,22 +142,35 @@ interface RiskCapWire {
   readonly maximumSegmentPctNav: number
 }
 
+/** A setting marked optional is absent where the edition does not offer it; a client shows an absent
+ *  one as missing, never as 0. */
 export interface TradingProfileResponse {
   readonly preferredLocale: Locale
   readonly baseCurrency: string
   readonly riskLevel: RiskLevel
-  readonly riskCapacity: RiskLevel
-  readonly riskWillingness: RiskLevel
+  readonly riskCapacity?: RiskLevel
+  readonly riskWillingness?: RiskLevel
   readonly horizons: Readonly<Record<string, InvestmentHorizon>>
   readonly goal: InvestmentGoal
   readonly watchlist: readonly InstrumentRefWire[]
   readonly exclusions: readonly InstrumentRefWire[]
   readonly segmentTargets: Readonly<Record<string, number>>
   readonly caps: Readonly<Record<string, RiskCapWire>>
-  readonly maximumSectorPctNav: number
-  readonly reservePctNav: number
-  readonly regimeScale: number
-  readonly riskPerTradePctNav: number
+  readonly maximumSectorPctNav?: number
+  readonly reservePctNav?: number
+  readonly regimeScale?: number
+  readonly riskPerTradePctNav?: number
+}
+
+/** GET /v1/profile/default-targets: the targets a re-seed would set with only `on` switched on. */
+export interface DefaultTargetsResponse {
+  readonly segmentTargets: Readonly<Record<string, number>>
+}
+
+/** POST /v1/profile/segment: switches one segment as `/profile enable|disable` does. */
+export interface ProfileSegmentBody {
+  readonly action: 'enable' | 'disable'
+  readonly segment: string
 }
 
 export interface AbsolutePositionWire {
@@ -171,36 +195,7 @@ export interface AbsolutePositionWire {
   readonly caveats: readonly TradingWireCaveat[]
 }
 
-interface NavPointWire {
-  readonly day: string
-  readonly nav: number
-  readonly index: number
-}
-
-export interface NavBenchmarkWire {
-  readonly legs: readonly {
-    readonly segment: string
-    readonly weight: number
-    readonly instrument?: InstrumentRefWire
-  }[]
-  readonly points: readonly { readonly day: string; readonly index: number }[]
-  readonly periodReturn: number
-}
-
-export interface TradingNavResponse {
-  readonly window: string
-  readonly baseCurrency: string
-  readonly firstDay?: string
-  readonly recordedCount: number
-  readonly points: readonly NavPointWire[]
-  readonly periodReturn?: number
-  readonly maximumDrawdown?: number
-  readonly currentDrawdown?: number
-  readonly benchmark?: NavBenchmarkWire
-  readonly benchmarkGap?: string
-}
-
-export interface TradingPortfolioResponse {
+export interface TradingPortfolioResponse extends PortfolioPnlWire {
   readonly asOf: string
   readonly baseCurrency: string
   readonly navBase?: number

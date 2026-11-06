@@ -1,4 +1,5 @@
 import type { TaskPassListener } from '@/core/container'
+import type { ReachabilityProbe } from '@/core/limits'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { createConfiguredRunBudget } from '@/engine/api'
@@ -15,6 +16,7 @@ import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import type { createDomainServices } from '@/trading/wiring/composition/services'
 import type { TradingStores } from '@/trading/wiring/composition/stores'
@@ -24,6 +26,7 @@ import { runVenueSync } from '@/trading/features/ledger/sync-run'
 import { renderMarketShow } from '@/trading/features/market-data/command/market'
 import { createHeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import { createNavSnapshotTick } from '@/trading/features/portfolio/nav/snapshot'
+import { offeredFields } from '@/trading/features/profile/patch'
 import { sessionPhase } from '@/trading/markets/calendar'
 import { NOTICE_SURFACE } from '@/trading/render/format'
 import { buildAppViews } from '@/trading/wiring/composition/app-views'
@@ -47,8 +50,10 @@ interface AggregateOptions {
   readonly onFilled: OrderFilledListener
   readonly onAlertsChecked: (at: number) => void
   readonly onTaskPass: TaskPassListener
+  readonly reachability: ReachabilityProbe
   /** `[schedule] late_grace_ms`: the one lateness bound a timed send shares with the scheduler. */
   readonly lateGraceMs: number
+  readonly edition?: Pick<TradingEdition, 'profile' | 'rebalance' | 'screen'>
   recipient(): DeliveryAddress | undefined
 }
 
@@ -91,8 +96,13 @@ export function toAggregate(
     defaultRegion: options.tradingConfig.defaultRegion,
     focusScope: toFocusScope(parts.services.marketData.markets(), registries.markets),
     suggestionCards: buildSuggestionCards(parts.services, options.tradingConfig, parts.stores),
-    rebalanceViews: buildRebalanceViews(parts.services, options.tradingConfig),
-    appViews: buildAppViews(parts.services, options.tradingConfig),
+    rebalanceViews: buildRebalanceViews(
+      parts.services,
+      options.tradingConfig,
+      options.edition?.rebalance
+    ),
+    profileFields: offeredFields(options.edition?.profile?.fields),
+    appViews: buildAppViews(parts.services, options.tradingConfig, options.edition),
     daemonTasks: buildDaemonTasks(
       parts,
       { ...options, firstSweep: firstSweep.promise },
@@ -174,6 +184,7 @@ function buildDaemonTasks(
     refreshMarketData: parts.refreshMarketData,
     firstSweep: options.firstSweep,
     logger: parts.logger,
+    reachability: options.reachability,
   })
 }
 

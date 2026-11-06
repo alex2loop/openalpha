@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { z } from 'zod'
 
 import type { ChannelId } from '@/core/channels'
@@ -67,7 +65,7 @@ async function attempt<T, R>(
   const result = await deps.runner.run(
     {
       agentId: agentId(THEME_ANALYST_AGENT_ID),
-      sessionId: sessionId(randomUUID()),
+      sessionId: sessionId(crypto.randomUUID()),
       userId: LOCAL_USER_ID,
       channel: call.session.channel,
       userMessage: call.message,

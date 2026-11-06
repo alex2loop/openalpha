@@ -40,8 +40,14 @@ export function LedgerRow({ entry, isFlashed }: LedgerRowProps) {
           <TickerLink ticker={cells.instrument.ticker} market={cells.instrument.market} />
         )}
       </b>
-      <span class="ledger-cell is-end">{cells.quantity}</span>
-      <span class="ledger-cell is-end">{cells.price}</span>
+      {cells.quantity === '' ? (
+        <span class="ledger-cell is-end is-wide">{cells.price}</span>
+      ) : (
+        <>
+          <span class="ledger-cell is-end">{cells.quantity}</span>
+          <span class="ledger-cell is-end">{cells.price}</span>
+        </>
+      )}
       <button type="button" class="ledger-edit" onClick={() => openTradeDialog({ entry })}>
         {tr('ui.office.common.edit')}
       </button>

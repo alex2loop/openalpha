@@ -7,6 +7,58 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.4.0] - 2026-11-05
+
+OpenAlpha now runs in the browser at web.openalpha.link: market data, your book and a two-sided
+analysis on your own AI key, all inside the tab. Market terms explain themselves, the brief and
+`/overview` share one set of labelled facts, and `/suggest` and `/record` refuse an index or a
+futures contract. On the web you can also chat with the assistant, which looks things up and explains but makes no buy or sell call. The database gains two tables; the upgrade runs them for you.
+> OpenAlpha giờ chạy ngay trên trình duyệt tại web.openalpha.link: dữ liệu thị trường, sổ của bạn và phân tích hai chiều bằng key AI của bạn, tất cả trong tab. Thuật ngữ thị trường tự giải thích, bản tin và `/overview` dùng chung một bộ số liệu có nhãn, còn `/suggest` và `/record` từ chối chỉ số và hợp đồng tương lai. Trên bản web bạn cũng trò chuyện được với trợ lý: tra cứu và giải thích, không đưa lời khuyên mua bán. Cơ sở dữ liệu thêm hai bảng; lệnh nâng cấp tự chạy chúng.
+
+### Added
+
+- The web edition and its homepage (openalpha.link). Keys stay on your device, AI spend is capped at 5 USD a day, and the database saves to and loads from a file. Chat history comes back after a reload.
+- On the web, chat with the assistant in plain words; it only reads and gives no buy, sell or hold call, size or price level. Settings has one main AI model, with optional models for analysis and research.
+- A glossary of 39 terms in Vietnamese and English: a dotted word opens its definition, and `/glossary [term]` prints it anywhere.
+- The brief, `/overview` and the office page state crypto funding, open interest, long/short ratio, taker buy share, fear and greed and the VN gold premium as labelled facts.
+- The screen board shows each name's readings in one grid, with value limits and a second sort.
+- The ticker page shows the session range and volume, and the VN gold dealer's buy and sell prices.
+- On the web, each analysis opens with what to watch: the conditions that would prove each side wrong.
+- On the web, the model picker shows each model's price and whether it can call tools, and the first-run guide has a "choose the AI model" step.
+- A Vietnamese link-preview image for the homepage and the web edition.
+- The web header has a "Get the full app" button that opens the install steps; the web and installed comparison starts with the same link.
+
+### Changed
+
+- `/suggest` refuses an index or a futures contract before any AI call and points to an ETF; `/record` and `/update` refuse a row naming one.
+- Rebalance reads each segment and capped name against the level you set, largest gap first, with a shortcut to edit the levels.
+- The target weights dialog switches a segment on or off and resets to defaults.
+- The Market tab and Today list only the markets you switched on; world gold stays as a reference.
+- The AI label no longer names the model, and an answer does not repeat it where the screen already shows it.
+- On the web, an analysis ends by saying a buy or sell plan needs the installed version.
+- The default main model on the web ships with a fallback model.
+- The Zalo Personal library loads only when that channel is used.
+- The installed version presents a current browser when it reads data sources.
+- Deploys go through `bun run deploy:web` and `bun run deploy:site`, which refuse a staging build for production and the reverse.
+- The web edition and homepage send cross-origin isolation headers and pin Trusted Types to the page's one policy.
+- The consent for a router such as OpenRouter says it passes the request on to the model's host, and the privacy policy names the groups of data sources.
+
+### Fixes
+
+- An analysis side that names nothing that could prove it wrong is asked again.
+- Identical provider requests share one round trip, and slow readings come from a short cache.
+- A provider request never follows a redirect, and the command bar refuses a line holding a key.
+- Office page layout: header switches on one line, an empty market says so.
+- On the web, chat answers at once when no AI key or search key is allowed, instead of starting a run.
+- `/research` drops sources dated in the future, stays on markets and investing on the web, and hands the agent a shorter list of gaps.
+- Chat history keeps what you typed for a command handed off to the assistant, and reads the same after a reload.
+- Office bubbles show the step line in your language, never the model's raw reasoning.
+- Esc, a click outside or the close button on a dialog opened from Settings return to Settings, with what you typed kept.
+- A bare ticker is no longer looked up in a market you switched off, so `BTC` stays the coin instead of booking as a US fund; `equity-us:BTC` still reaches the fund.
+- `/price` on a NYSE name after US hours shows the price when nasdaq leaves the day's change blank.
+- A refused `/suggest` no longer offers to run again or set an alert on the name it refused.
+- More provider keys are hidden when pasted into chat (Tavily, xAI, Groq, Brave and others, or any key written after "key" or "khóa"), and the web refuses to open a database file over 256 MB.
+
 ## [1.3.0] - 2026-11-03
 
 US stocks and ETFs can now be your home market: the 500 largest US companies and a fund board,
@@ -660,6 +712,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.4.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.0
 [1.3.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.3.0
 [1.2.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.2
 [1.2.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.1

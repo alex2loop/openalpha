@@ -5,8 +5,9 @@ import { join } from 'node:path'
 import type { Storage } from '@/core/types/storage'
 import type { Migration } from '@/persistence/types'
 import { StorageError } from '@/core/errors'
-import { silentLogger } from '@/core/logging/logger'
-import { openSqlite, sqliteDialect } from '@/persistence/engines/sqlite'
+import { silentLogger } from '@/core/logging/silent-logger'
+import { openSqlite } from '@/persistence/engines/sqlite'
+import { sqliteDialect } from '@/persistence/engines/sqlite-dialect'
 import { MIGRATIONS } from '@/persistence/migrations/registry.generated'
 import {
   migrate,
@@ -22,6 +23,11 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const OVERRIDES_MIGRATION_ID = '2026_11_03_165810_add_config_overrides'
+const OVERRIDES_TABLE = 'config_overrides'
+const ANALYSES_MIGRATION_ID = '2026_11_03_143222_add_suggestion_analyses'
+const ANALYSES_TABLE = 'suggestion_analyses'
+const ANALYSES_INDEX = 'idx_suggestion_analyses_instrument'
 const LAST_MESSAGE_MIGRATION_ID = '2026_10_29_111645_add_sessions_last_message_at'
 const SESSIONS_TABLE = 'sessions'
 const LAST_MESSAGE_INDEX = 'idx_sessions_last_message'
@@ -210,6 +216,34 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   )
 
   return new Set(rows.map((row) => row.name))
+}
+
+/** The overrides go with their one table; a host that reads a config file never wrote any. */
+async function assertOverridesRollback(db: Storage): Promise<void> {
+  assertState(await hasTable(db, OVERRIDES_TABLE), 'overrides migration did not add the table')
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: OVERRIDES_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'overrides rollback did not complete')
+  assertState(!(await hasTable(db, OVERRIDES_TABLE)), 'overrides rollback kept the table')
+}
+
+/** The analyses go with their table and its one index; no suggestion row reads them. */
+async function assertAnalysesRollback(db: Storage): Promise<void> {
+  assertState(await hasTable(db, ANALYSES_TABLE), 'analyses migration did not add the table')
+  assertState((await indexNames(db)).has(ANALYSES_INDEX), 'analyses migration did not add the index')
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: ANALYSES_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'analyses rollback did not complete')
+  assertState(!(await hasTable(db, ANALYSES_TABLE)), 'analyses rollback kept the table')
+  assertState(!(await indexNames(db)).has(ANALYSES_INDEX), 'analyses rollback kept the index')
 }
 
 /** The column and its index are all the migration adds; rolling back leaves the sessions table
@@ -484,6 +518,8 @@ async function main(): Promise<void> {
   await assertDownCoversUp(`${NOTICES_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${TRIGGERS_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${BROWSER_SESSIONS_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${ANALYSES_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${OVERRIDES_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -494,6 +530,8 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertOverridesRollback(db)
+    await assertAnalysesRollback(db)
     await assertLastMessageRollback(db)
     await assertDroppedColumnsRollback(db)
     await assertDisplayOnlyRollback(db)

@@ -10,6 +10,7 @@ import { citationsOf } from '@/web/text/card-sources'
 import { joinInline } from '@/web/text/glyphs'
 import { toFailureText, tr } from '@/web/text/tr'
 import { DebateFolds } from '@/web/ui/ideas/debate-folds'
+import { CallAiLabel } from '@/web/ui/kit/ai-label'
 import { Button } from '@/web/ui/kit/button'
 import { Fold } from '@/web/ui/kit/fold'
 import { Skeleton } from '@/web/ui/kit/skeleton'
@@ -93,6 +94,7 @@ function CardText({
 
   return (
     <div class="idea-body">
+      <CallAiLabel call={call} />
       <Markdown text={card.verdict} isLinked={false} />
       {call.thesis !== undefined && <p>{call.thesis}</p>}
       <Lines lines={card.reasons} />

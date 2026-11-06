@@ -130,6 +130,8 @@ export interface HeartbeatDeps {
   /** The task lease must outlast the run it protects, or recovery would steal live work. */
   readonly runMaxDurationMs: number
   readonly notifier: DeliverySink
+  /** Surface-owned AI label for a task whose result is a model's prose. */
+  readonly renderAiLabel: () => string
   readonly logger: Logger
   readonly workspaceDir: (agent: AgentProfile) => string
   readonly runInput: (input: HeartbeatRunInput) => RunInput

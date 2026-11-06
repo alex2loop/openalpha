@@ -17,7 +17,7 @@ import type {
 import type { SettledBarsPolicy } from '@/trading/markets/bars'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
-import type { MarketCapabilities, MarketManifest } from '@/trading/markets/types'
+import type { MarketCapabilities, MarketManifest, NameContext } from '@/trading/markets/types'
 import { available, dedupeProvenance, unavailable } from '@/trading/kernel/source/source-result'
 import { settledBars } from '@/trading/markets/bars'
 import { QUARTER_GAP_CODES } from '@/trading/markets/equity-vn/accounts/quarter-gaps'
@@ -26,6 +26,7 @@ import { VN_BRIEF_HOME } from '@/trading/markets/equity-vn/brief/vn-context'
 import { runMacroRisk } from '@/trading/markets/equity-vn/evidence/macro-evidence'
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
 import { toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
+import { nameContext } from '@/trading/markets/equity-vn/factors/name-context'
 import {
   BASIS_SESSIONS,
   LIQUIDITY_SESSIONS,
@@ -44,7 +45,7 @@ import {
   findIndexInstrument,
   loadUniverse,
 } from '@/trading/markets/equity-vn/refresh/universe'
-import { runScreen } from '@/trading/markets/equity-vn/screen-capability'
+import { runScreen, type ScreenOptions } from '@/trading/markets/equity-vn/screen-capability'
 import { buildFuturesBasis } from '@/trading/markets/equity-vn/tape/basis'
 import { createIndexContributors } from '@/trading/markets/equity-vn/tape/index-contributors'
 import { createIndexValuation } from '@/trading/markets/equity-vn/tape/index-valuation'
@@ -93,12 +94,9 @@ export function vnCapabilities(
     },
     screen: {
       kind: 'screen',
-      run: (request) =>
-        runScreen(crossSection, request, deps.config.defaultRegion !== VN_MARKET_REGION),
+      run: (request) => runScreen(crossSection, request, screenOptions(deps, manifest)),
     },
-    sectors: { kind: 'sectors', run: (request) => runSectors(crossSection, request) },
-    statistics: { kind: 'statistics', run: (request) => runStatistics(crossSection, request) },
-    accounts: { kind: 'accounts', run: (request) => runAccounts(crossSection, request) },
+    ...boardCapabilities(crossSection),
     macroRisk: {
       kind: 'macroRisk',
       run: (request) => runMacroRisk({ deps, crossSection, calendar: manifest.calendar, request }),
@@ -113,6 +111,24 @@ export function vnCapabilities(
     staleKinds: { kind: 'staleKinds', run: (r) => vnStaleKinds(manifest.calendar, r) },
     ...briefCapability(deps, manifest, crossSection),
   }
+}
+
+/** The reads that come off the board pass the screen already made, so none costs a provider read. */
+function boardCapabilities(
+  crossSection: CrossSectionCache
+): Pick<MarketCapabilities, 'sectors' | 'statistics' | 'accounts' | 'context'> {
+  return {
+    sectors: { kind: 'sectors', run: (request) => runSectors(crossSection, request) },
+    statistics: { kind: 'statistics', run: (request) => runStatistics(crossSection, request) },
+    accounts: { kind: 'accounts', run: (request) => runAccounts(crossSection, request) },
+    context: { kind: 'context', run: (request) => runContext(crossSection, request) },
+  }
+}
+
+/** A foreign account cannot buy a name with no room, so the board warns only an operator whose home
+ *  is not this region. */
+function screenOptions(deps: MarketDeps, manifest: MarketManifest): ScreenOptions {
+  return { foreignOperator: deps.config.defaultRegion !== VN_MARKET_REGION, manifest }
 }
 
 /** A market with no brief seam bound publishes no brief, rather than one that throws. */
@@ -195,6 +211,19 @@ async function runStatistics(
     },
     latestBarProvenance(evidence)
   )
+}
+
+/** A name outside the ranked universe has no pass to read: absent, never an empty context. */
+async function runContext(
+  cache: CrossSectionCache,
+  request: InstrumentRequest
+): Promise<SourceResult<NameContext>> {
+  const cross = await cache.get(request.asOf, request.signal)
+  const evidence = cross.byTicker.get(request.instrument.ticker)
+
+  return evidence === undefined
+    ? unavailable('unsupported', [])
+    : available(nameContext(cross, evidence), latestBarProvenance(evidence))
 }
 
 /** Read off the board pass, so asking costs no provider read. A name whose reports were never

@@ -1,12 +1,20 @@
-import type { BarRecord } from '@/trading/kernel/market/market-data'
+import type { BarRecord, Candle } from '@/trading/kernel/market/market-data'
 import { median } from '@/trading/markets/timeseries'
 
 /** Value matched in one session, from the provider's own figure where it has one and price times
  *  volume where it does not. Undefined rather than zero for a bar that states neither: a session
  *  nobody measured is not a session nobody traded. */
 export function barTurnover(bar: BarRecord): number | undefined {
-  const value = bar.turnover ?? bar.candle.close * bar.candle.volume
+  return usableTurnover(bar.turnover ?? bar.candle.close * bar.candle.volume)
+}
 
+/** The same figure for a session that arrives as a bare candle, which carries its own value where
+ *  the provider stated one. */
+export function candleTurnover(candle: Candle): number | undefined {
+  return usableTurnover(candle.turnover ?? candle.close * candle.volume)
+}
+
+function usableTurnover(value: number): number | undefined {
   return Number.isFinite(value) && value >= 0 ? value : undefined
 }
 

@@ -127,13 +127,19 @@ Khi có gì bị loại hoặc còn thiếu, báo cáo nêu thành khoảng tr�
 | `content_limit` | Một giới hạn cỡ hay số lượng đã cắt tài liệu (quá 42 lần tìm, quá 3 trang tự đọc, quá 8 trích đoạn trên một nguồn) |
 | `missing_support` | Một luận điểm mất trích đoạn hậu thuẫn |
 | `unsafe_content` | Một nguồn hay câu trích trượt phép quét tiêm prompt |
-| `freshness_out_of_window` / `freshness_uncertain` | Ngày nằm ngoài cửa sổ bạn yêu cầu, hoặc thiếu hay độ tin cậy thấp |
+| `freshness_out_of_window` / `freshness_uncertain` | Ngày nằm ngoài cửa sổ bạn yêu cầu hoặc muộn hơn ngày nào trên Trái Đất đã tới (bị gạt ra), hoặc thiếu hay độ tin cậy thấp |
 | `truncation` | Một trích đoạn bị cắt cho vừa 4.000 ký tự |
 | `artifact_limit` | Bằng chứng phải cắt cho vừa 128 KiB |
 | `provider_unavailable` | Nhà cung cấp tìm kiếm hỏng và chưa cấu hình dự phòng |
 
+Gói kết quả giữ mọi khoảng trống, nhưng trợ lý viết câu trả lời cho bạn chỉ nhận một danh sách ngắn:
+khoảng trống về bằng chứng cho câu hỏi của bạn đứng trước, vấn đề của quy trình đứng sau nhưng luôn có chỗ cho nó (như một lần tìm kiếm hỏng), và các luận
+điểm đánh dấu chưa xác minh được thì luôn có. Trợ lý chỉ nêu những khoảng trống làm đổi mức độ tin được
+của câu trả lời.
+
 Độ mới không bao giờ lặng lẽ loại một nguồn chỉ vì tín hiệu yếu. Ngày chỉ bị từ chối khi chính nó có độ
-tin cậy cao; nếu không, nguồn vẫn ở lại và bị gắn cờ.
+tin cậy cao; nếu không, nguồn vẫn ở lại và bị gắn cờ. Ngoại lệ duy nhất là ngày muộn hơn mọi ngày đã
+tới trên Trái Đất (bài đề ngày mai ở múi giờ đi trước bạn vẫn hợp lệ): đó là ngày sai ở mọi độ tin cậy nên nguồn bị gạt ra. Nguồn không có ngày thì vẫn không có ngày.
 
 ## Đọc báo cáo
 
@@ -166,6 +172,9 @@ liệt kê các bước của phiên chạy ngay khi chúng diễn ra.
   agent con của nó.
 - Câu trả lời cuối cùng chính là báo cáo. Mỗi số chú thích nhảy tới nguồn được đánh số ngay dưới câu
   trả lời đó, và hai câu trả lời nghiên cứu trong cùng một cuộc trò chuyện giữ số của riêng mình.
+- Báo cáo mở trong trình đọc bắt đầu bằng một dòng nói đây là nội dung do AI tạo và không phải
+  khuyến nghị đầu tư. Trong terminal và trong ứng dụng chat, dòng này đi cùng cuộc trò chuyện (xem
+  [Lệnh](lenh.md#chat)).
 - Khi phiên chạy đã có trong danh sách, "Mở dạng báo cáo" mở đúng câu trả lời của phiên chạy đó trong
   trình đọc, dù sau đó trong chat có nói gì thêm. Thẻ Đề xuất giữ nó cùng các kết quả nghiên cứu khác.
 - Phiên chạy bị dừng hoặc thất bại thì hiện câu của dịch vụ nền (daemon) ở chỗ các bước.

@@ -1,5 +1,5 @@
 import type { ComponentChildren, RefObject } from 'preact'
-import { type ReadonlySignal, signal } from '@preact/signals'
+import { type ReadonlySignal, signal, useComputed } from '@preact/signals'
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks'
 
 import { ESCAPE_KEY } from '@/web/ui/kit/focus-trap'
@@ -14,6 +14,9 @@ interface PopoverProps {
   readonly class?: string
   /** Focus moves into it as it opens, so its keys work whatever opened it. */
   readonly takesFocus?: true
+  /** Sits beside the anchor, under it or over it where the page ends, instead of hanging under the
+   *  header. A scroll or a resize closes it, since either would leave it behind. */
+  readonly near?: true
   readonly children: ComponentChildren
 }
 
@@ -26,6 +29,10 @@ interface OpenPanel {
 export const BELL_POPOVER_ID = 'bell'
 /** The running jobs' popover, which a notice row and the J key also open. */
 export const JOBS_POPOVER_ID = 'jobs'
+
+/** Between an anchor and the panel placed beside it. */
+const NEAR_GAP_PX = 4
+const NEAR_CLASS = 'popover-near'
 
 const openId = signal<string | undefined>(undefined)
 // The mounted panel and its anchor, so a dialog opened from inside it can return focus there.
@@ -68,17 +75,31 @@ export function Popover({
   label,
   class: className,
   takesFocus,
+  near,
   children,
 }: PopoverProps) {
-  if (openId.value !== id) {
+  // A computed flips only for the popover that opens or closes, so the others do not render.
+  const isOpen = useComputed(() => openId.value === id)
+
+  if (!isOpen.value) {
     return null
   }
 
   return (
-    <PopoverPanel anchor={anchor} label={label} className={className} takesFocus={takesFocus}>
+    <PopoverPanel
+      anchor={anchor}
+      label={label}
+      className={near === true ? joinClasses(NEAR_CLASS, className) : className}
+      takesFocus={takesFocus}
+      isNear={near === true}
+    >
       {children}
     </PopoverPanel>
   )
+}
+
+function joinClasses(first: string, second: string | undefined): string {
+  return second === undefined ? first : `${first} ${second}`
 }
 
 interface PopoverPanelProps {
@@ -86,13 +107,16 @@ interface PopoverPanelProps {
   readonly label: string
   readonly className: string | undefined
   readonly takesFocus: true | undefined
+  readonly isNear: boolean
   readonly children: ComponentChildren
 }
 
-function PopoverPanel({ anchor, label, className, takesFocus, children }: PopoverPanelProps) {
+function PopoverPanel(props: PopoverPanelProps) {
+  const { anchor, label, className, takesFocus, isNear, children } = props
   const panel = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => armPopover(panel, anchor), [anchor])
+  useLayoutEffect(() => (isNear ? placeNear(panel, anchor) : undefined), [anchor, isNear])
   useEffect(() => {
     if (takesFocus === true) {
       panel.current?.focus()
@@ -102,14 +126,62 @@ function PopoverPanel({ anchor, label, className, takesFocus, children }: Popove
   return (
     <div
       ref={panel}
-      class={className === undefined ? 'popover solid-pop' : `popover solid-pop ${className}`}
+      class={joinClasses('popover solid-pop', className)}
       role="dialog"
       aria-label={label}
+      popover={isNear ? 'manual' : undefined}
       tabIndex={takesFocus === true ? -1 : undefined}
     >
       {children}
     </div>
   )
+}
+
+// Puts the panel in the top layer, where no sticky heading, clipped panel or later card covers it,
+// then under its anchor, or over it where the page ends first, and inside the gutters. The top
+// layer is the viewport, so only the panel's own size is measured. A browser without the Popover
+// API places it the same way, in the page.
+function placeNear(
+  panel: RefObject<HTMLElement | null>,
+  anchor: RefObject<HTMLElement | null>
+): () => void {
+  const element = panel.current
+  const target = anchor.current?.getBoundingClientRect()
+
+  if (element === null || target === undefined) {
+    return () => undefined
+  }
+
+  if (typeof element.showPopover === 'function') {
+    element.showPopover()
+  }
+
+  const { width, height } = element.getBoundingClientRect()
+  const gutter = Number.parseFloat(getComputedStyle(element).getPropertyValue('--popoverGutter'))
+  const widest = document.documentElement.clientWidth - width - gutter
+  const left = Math.max(gutter, Math.min(target.left, widest))
+  const below = target.bottom + NEAR_GAP_PX
+  const above = target.top - NEAR_GAP_PX - height
+  const top = below + height > window.innerHeight - gutter && above >= gutter ? above : below
+
+  element.style.setProperty('--nearTop', `${top}px`)
+  element.style.setProperty('--nearLeft', `${left}px`)
+
+  const listeners = new AbortController()
+  const { signal: listenerSignal } = listeners
+
+  document.addEventListener(
+    'scroll',
+    (event) => {
+      if (!(event.target instanceof Node && isInside(panel, event.target))) {
+        closePopover()
+      }
+    },
+    { capture: true, signal: listenerSignal }
+  )
+  window.addEventListener('resize', closePopover, { signal: listenerSignal })
+
+  return () => listeners.abort()
 }
 
 // Esc returns focus to the anchor; the panel is the open one for exactly as long as it is mounted.

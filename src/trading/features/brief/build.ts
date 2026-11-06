@@ -4,7 +4,7 @@ import type { Budget } from '@/core/types/budget'
 import type { Locale } from '@/core/types/locale'
 import type { BriefStore } from '@/trading/features/brief/store/brief'
 import type { BriefResult, BriefSnapshot } from '@/trading/features/brief/types'
-import type { EnsureMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type { ProfileStore } from '@/trading/features/profile/store'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
@@ -15,8 +15,8 @@ import type {
   TradingDay,
 } from '@/trading/kernel/instrument'
 import type { MarketBriefRequest } from '@/trading/kernel/market/market-capability'
-import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
+import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type { MarketBrief, StoryCode, StoryRead } from '@/trading/kernel/operator/brief-story'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 import type { Market } from '@/trading/markets/types'
@@ -30,6 +30,7 @@ import { profileRevisionOf } from '@/trading/features/profile/store'
 import { ticker } from '@/trading/kernel/instrument'
 import { disabledSegments } from '@/trading/kernel/operator/profile'
 import { isDeliverable } from '@/trading/markets/brief-deliverability'
+import { withoutOmitted } from '@/trading/markets/brief-sections'
 
 const BRIEF_WATCHLIST_LIMIT_PER_SCOPE = 20
 /** The section whose rows record which names were eligible on the day it was built. */
@@ -60,6 +61,10 @@ export interface BriefBuildDeps {
   readonly config: TradingConfig
   readonly ensure: EnsureMarketData
   readonly logger: Logger
+  /** Sections this edition leaves out of every brief it builds; absent builds them all. */
+  readonly omitSections?: ReadonlySet<BriefSectionKind>
+  /** Market stories this edition never tells; absent tells them all. */
+  readonly omitStories?: ReadonlySet<StoryCode>
   /** The brief's own budget; its two suggestion sections draw from this and never from a caller's
    *  parent run. */
   createSuggestionBudget(): Budget
@@ -108,7 +113,7 @@ export async function findCurrentSnapshot(
     return { kind: 'absent' }
   }
 
-  const revision = await profileRevisionOf(input.profile)
+  const revision = profileRevisionOf(input.profile)
 
   return snapshot.profileRevision === revision ? { kind: 'current', snapshot } : { kind: 'stale' }
 }
@@ -161,7 +166,7 @@ export async function findOrBuildBrief(
     const existing = await findCurrentSnapshot(deps, { ...input, profile })
 
     if (existing.kind === 'current') {
-      return { kind: 'ready', snapshot: existing.snapshot, reused: true }
+      return { kind: 'ready', snapshot: visibleSnapshot(deps, existing.snapshot), reused: true }
     }
   }
 
@@ -178,17 +183,23 @@ export async function findOrBuildBrief(
   const request = buildRequest(deps, { ...input, profile, previous })
 
   input.progress?.('trading.progress.brief.sections')
-  const brief = await capability.run(request)
+  const built = await capability.run(request)
 
-  logDegradedSections(deps, input, brief.sections)
+  logDegradedSections(deps, input, withoutOmitted(built.sections, deps.omitSections))
   input.progress?.('trading.progress.brief.persist')
 
   return persist(deps, input, {
-    sections: [...tryPlanStory(deps, input, { brief, previous }), ...brief.sections],
+    sections: [...tryPlanStory(deps, input, { brief: built, previous }), ...built.sections],
     caveats,
     scorecardShownThisMonth: request.scorecardShownThisMonth,
-    profileRevision: await profileRevisionOf(profile),
+    profileRevision: profileRevisionOf(profile),
   })
+}
+
+/** What leaves the brief service: the edition's omitted sections read as omitted. The store keeps
+ *  them whole, because the next build recovers its eligible names from one. */
+function visibleSnapshot(deps: BriefBuildDeps, snapshot: BriefSnapshot): BriefSnapshot {
+  return { ...snapshot, sections: withoutOmitted(snapshot.sections, deps.omitSections) }
 }
 
 /** A profile saved before the home moved can keep the new home market switched off. */
@@ -231,7 +242,7 @@ function tryPlanStory(
     }
 
     return planStory({
-      read: stories,
+      read: withoutOmittedStories(stories, deps.omitStories),
       market: input.market.manifest.id,
       sections: brief.sections,
       previous: previous?.sections ?? null,
@@ -249,6 +260,18 @@ function tryPlanStory(
   }
 }
 
+/** The read with the stories an edition never tells left out, as if their detectors never fired. */
+function withoutOmittedStories(
+  read: StoryRead,
+  omit: ReadonlySet<StoryCode> | undefined
+): StoryRead {
+  if (omit === undefined || read.kind !== 'read') {
+    return read
+  }
+
+  return { ...read, candidates: read.candidates.filter((candidate) => !omit.has(candidate.code)) }
+}
+
 function logStoryFailed(deps: BriefBuildDeps, input: BriefBuildInput, err: unknown): void {
   deps.logger.warn('trading.brief_story_failed', { asOf: input.asOf, err: formatErrForLog(err) })
 }
@@ -263,7 +286,10 @@ async function persist(
 ): Promise<BriefResult> {
   const { sections } = composed
 
-  if (!isDeliverable(sections, deps.config.briefs.coreSections)) {
+  // Judged on what the edition shows: a section it hides cannot make a brief worth sending.
+  if (
+    !isDeliverable(withoutOmitted(sections, deps.omitSections), deps.config.briefs.coreSections)
+  ) {
     return { kind: 'suppressed', reason: 'no-deliverable-content' }
   }
 
@@ -281,7 +307,7 @@ async function persist(
 
   await deps.store.upsertSnapshot(snapshot, input.signal)
 
-  return { kind: 'ready', snapshot, reused: false }
+  return { kind: 'ready', snapshot: visibleSnapshot(deps, snapshot), reused: false }
 }
 
 /** One line per build, not per section: a builder that throws throws for every name it would have

@@ -16,8 +16,10 @@ import {
   SUGGEST_STOPS_ARG,
   setInput,
 } from '@/web/state/command'
+import { isAnalysisOnly, offers } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
 import { findRun, hasChildren, type Run, runs } from '@/web/state/live'
+import { isLevelInstrument } from '@/web/state/market'
 import { canRemember, toAttributeName } from '@/web/state/memory'
 import { joinInline } from '@/web/text/glyphs'
 import { MS_PER_SECOND } from '@/web/text/time-units'
@@ -74,7 +76,7 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
       {!isFinished(turn) && <RunningStep turn={turn} />}
       <ReplyText
         text={turn.reply}
-        isProse={turn.kind !== 'slash' || isResearchTurn(turn)}
+        isProse={turn.byAgent === true}
         scope={isResearchTurn(turn) ? turn.localId : undefined}
       />
       <SteerLine turn={turn} />
@@ -281,13 +283,18 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
 
 // The first name the answer reported on: analyze it, or, under an analysis that may have handed back
 // a stored call, run that same line again from scratch; or start an alert on it, which waits in the
-// box for its price.
+// box for its price. An edition that stores no call has nothing to run again, a level such as an
+// index was never analyzed, and an edition with no scheduler has no alert.
 function NextSteps({ turn }: { readonly turn: Turn }) {
   const ticker = turn.tickers?.[0]
   const words = commandWordsOf(turn.text)
   const [command, subject, ...options] = words
   const isSuggest = command === SUGGEST_COMMAND
-  const canForce = isSuggest && subject !== SUGGEST_STOPS_ARG && !options.includes(FORCE_ARG)
+  const canForce =
+    isSuggest &&
+    !isAnalysisOnly.value &&
+    subject !== SUGGEST_STOPS_ARG &&
+    !options.includes(FORCE_ARG)
   const fresh = [...words, FORCE_ARG].join(' ')
 
   if (ticker === undefined) {
@@ -297,12 +304,14 @@ function NextSteps({ turn }: { readonly turn: Turn }) {
   return (
     <>
       {!isSuggest && <SuggestChip ticker={ticker} />}
-      {canForce && (
+      {canForce && !isLevelInstrument({ ticker }) && (
         <RunButton command={fresh} label={tr('ui.office.common.suggestFresh')} size="small" />
       )}
-      <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
-        {tr('ui.office.common.setAlert')}
-      </Button>
+      {offers('schedules') && (
+        <Button size="small" onClick={() => fillInput(`${ALERT_CREATE_COMMAND} ${ticker} `)}>
+          {tr('ui.office.common.setAlert')}
+        </Button>
+      )}
     </>
   )
 }

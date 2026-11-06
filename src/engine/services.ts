@@ -28,6 +28,7 @@ import type {
   Runner,
   ToolExecutor,
 } from '@/engine/types/run'
+import type { PrepareWorkspace } from '@/engine/types/run-deps'
 import type { Workflow } from '@/engine/workflows/types'
 import { classifyModel } from '@/ai/api'
 import { ConfigError } from '@/core/errors'
@@ -36,7 +37,6 @@ import { toToolSchema } from '@/core/tool'
 import { buildBuiltInAgents } from '@/engine/agents/registry'
 import { settleCallerAttempt } from '@/engine/budget/attempt-settlement'
 import { createCostTracker } from '@/engine/budget/cost-tracker'
-import { createUnrecordedSpendLog } from '@/engine/budget/unrecorded-spend'
 import { createSummarizingCompactor } from '@/engine/compact/compactor'
 import { createSummarizer } from '@/engine/compact/summarizer'
 import { MCP_ANSWER_DEADLINE_SHARE, MCP_ANSWER_TIMEOUT_MS } from '@/engine/constants'
@@ -58,7 +58,7 @@ import { createMcpSurface } from '@/engine/mcp/surface'
 import { createRateLimiter } from '@/engine/rate-limiter'
 import { createResearchCoordinator } from '@/engine/research/coordinator'
 import { createRunRegistry } from '@/engine/run-registry'
-import { BUILT_IN_WORKFLOWS } from '@/engine/workflows/discover'
+import { BUILT_IN_WORKFLOWS } from '@/engine/workflows/built-in'
 
 // Consumer-side interface: the loop needs the session's prior transcript, but `engine` has no edge to
 // `persistence`. It names the shape; the composition root binds an implementation over the session
@@ -85,6 +85,7 @@ declare module '@/core/container' {
     costTracker: CostTracker
     llmAttemptSink: LLMAttemptSink
     unrecordedSpend: UnrecordedSpendLog
+    prepareWorkspace: PrepareWorkspace
     attemptRecorder: AttemptRecorder
     rateLimiter: RateLimiter
     runRegistry: RunTracker
@@ -124,9 +125,6 @@ export const engineProvider: ServiceProvider = {
         maxMonthlyUsd: app.config.budget.maxMonthlyUsd,
         timeZone: app.config.locale.timezone,
       })
-    )
-    bind('unrecordedSpend', (app) =>
-      createUnrecordedSpendLog(app.config.paths.dataDir, app.config.locale.timezone)
     )
     bind('attemptRecorder', (app) => {
       const ledger = {
@@ -213,6 +211,7 @@ function buildRunDeps(app: App) {
     llmAttemptSink: app.resolve('llmAttemptSink'),
     unrecordedSpend: app.resolve('unrecordedSpend'),
     pricing: app.resolve('pricing'),
+    prepareWorkspace: app.resolve('prepareWorkspace'),
     rateLimiter: app.resolve('rateLimiter'),
     logger: app.resolve('logger'),
     bus: app.resolve('bus'),

@@ -12,6 +12,7 @@
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/alex2loop/openalpha/check.yml?branch=main&style=flat-square&label=check" alt="check" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
+  <a href="https://buymeacoffee.com/alex2loop"><img src="https://img.shields.io/badge/%E2%98%95-%E1%BB%A6ng%20h%E1%BB%99-ffdd00?style=flat-square" alt="☕ Ủng hộ" /></a>
 </p>
 
 <p align="center">
@@ -93,6 +94,8 @@ https://github.com/user-attachments/assets/bea5ab46-72bd-48f5-8a51-9260f09824d9
 **Không hợp nếu** bạn tìm một con bot tự chạy lệnh, hoặc muốn có ai đó quyết định thay bạn. Cả hai đều không có ở đây, và đó là chủ ý.
 
 ## Bắt đầu nhanh
+
+Muốn xem qua trước khi cài, bản web chạy ngay trong trình duyệt, không cần tài khoản: [nó làm được gì và khác bản cài ở đâu](docs/ban-web.md).
 
 Bạn cần hai thứ:
 
@@ -422,7 +425,7 @@ Chỉ cần gõ mã (`/price FPT`). Khi hai thị trường có cùng một mã 
   <img src="assets/readme/sources.vi.png" alt="Nguồn dữ liệu chia theo từng thị trường: cổ phiếu Việt Nam, cổ phiếu Mỹ, tiền mã hóa, vàng trong nước, vàng thế giới, vĩ mô Việt Nam, vĩ mô Mỹ và liên thị trường" width="100%" />
 </p>
 
-OpenAlpha lấy dữ liệu từ 39 nguồn, chia theo từng thị trường; nguồn nào lỗi thì nguồn dự phòng tự thay vào ([nguồn dữ liệu](docs/nguon-du-lieu.md)). Vài nguồn nhận thêm khóa miễn phí; nếu bạn theo dõi vàng hay vĩ mô Mỹ, nên lấy khóa ở [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html) rồi lưu bằng `openalpha key set FRED_API_KEY` để có chỉ số đô la và VIX ([chi tiết](docs/nguon-du-lieu.md#bạn-cần-làm-gì)). Với cổ phiếu Mỹ, lưu một email bạn có đọc bằng `openalpha key set SEC_CONTACT_EMAIL`: SEC yêu cầu mọi bên gọi dữ liệu phải ghi email liên hệ, và có email này thì mình mới chấm được giá trị, chất lượng, cùng lịch công bố kết quả kinh doanh và giao dịch mua của người nội bộ. Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì phiên chạy tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo, Zalo cá nhân hoặc trang văn phòng.
+OpenAlpha lấy dữ liệu từ các nguồn công khai cho từng thị trường (sàn, công ty chứng khoán, tiệm vàng, sàn crypto, ngân hàng trung ương, tin tức); nguồn nào lỗi thì nguồn dự phòng tự thay vào ([nguồn dữ liệu](docs/nguon-du-lieu.md)). Vài nguồn nhận thêm khóa miễn phí; nếu bạn theo dõi vàng hay vĩ mô Mỹ, nên lấy khóa ở [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html) rồi lưu bằng `openalpha key set FRED_API_KEY` để có chỉ số đô la và VIX ([chi tiết](docs/nguon-du-lieu.md#bạn-cần-làm-gì)). Với cổ phiếu Mỹ, lưu một email bạn có đọc bằng `openalpha key set SEC_CONTACT_EMAIL`: SEC yêu cầu mọi bên gọi dữ liệu phải ghi email liên hệ, và có email này thì mình mới chấm được giá trị, chất lượng, cùng lịch công bố kết quả kinh doanh và giao dịch mua của người nội bộ. Dữ liệu lưu trong SQLite có sẵn trên máy, không cần cài thêm. Dùng được hơn 70 nhà cung cấp AI, nhà nào treo thì phiên chạy tự chuyển sang nhà kế tiếp. Nói chuyện với nó qua terminal, Telegram, Zalo, Zalo cá nhân hoặc trang văn phòng.
 
 ### Nghiên cứu có trích nguồn
 
@@ -541,7 +544,7 @@ bun run lint:arch   # các cổng kiến trúc
 
 Một thay đổi chỉ được nhận khi cả hai câu lệnh trên đều qua. Quy tắc nội bộ và bất biến nghiệp vụ: [AGENTS.md](AGENTS.md). Bản clone cập nhật bằng `git pull`.
 
-Kiến trúc: 16 mô-đun, phụ thuộc một chiều về phía lõi, không vòng lặp; 32 cổng chặn tự động làm build thất bại ngay khi một mô-đun vượt ranh giới. Góp mã: [CONTRIBUTING.md](CONTRIBUTING.md) · [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
+Kiến trúc: 16 mô-đun, phụ thuộc một chiều về phía lõi, không vòng lặp; 33 cổng chặn tự động làm build thất bại ngay khi một mô-đun vượt ranh giới. Góp mã: [CONTRIBUTING.md](CONTRIBUTING.md) · [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
 
 ### Hỗ trợ và cộng đồng
 

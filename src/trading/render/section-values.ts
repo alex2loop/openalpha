@@ -32,7 +32,6 @@ import {
   formatHeadline,
   formatMultiple,
   formatPercent,
-  formatPercentRank,
   formatRatio,
   formatScore,
   formatScoreValue,
@@ -46,6 +45,7 @@ import {
   scoreBar,
 } from '@/trading/render/format'
 import { formatFixedPrice } from '@/trading/render/money'
+import { formatPercentRank } from '@/trading/render/rank'
 
 const NUMERIC_FIELDS: ReadonlySet<string> = new Set(BRIEF_NUMERIC_FIELDS)
 
@@ -229,7 +229,7 @@ const VALUE_FORMATTERS = Object.freeze({
   openInterest: formatFlow,
   pendingCount: formatCount,
   premium: formatFraction,
-  premiumPercentile: formatPercentRank,
+  premiumPercentile: formatTimeRank,
   previousFlow: formatFlow,
   previousFraction: formatFixedFraction,
   previousMultiple: formatMultiple,
@@ -270,8 +270,12 @@ const VALUE_FORMATTERS = Object.freeze({
   volatilityDaily: formatFraction,
   weekChange: formatSignedFlow,
   winRate: formatFraction,
-  yearPercentile: formatPercentRank,
+  yearPercentile: formatTimeRank,
 } satisfies Record<BriefNumericField, (locale: Locale, value: number) => string>)
+
+function formatTimeRank(locale: Locale, percent: number): string {
+  return formatPercentRank(locale, percent, 'time')
+}
 
 /** The same bar and band `/suggest` prints, so one score reads identically on both surfaces. */
 function bandedScore(locale: Locale, score: number): string {

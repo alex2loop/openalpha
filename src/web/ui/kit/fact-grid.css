@@ -1,0 +1,53 @@
+/* Groups flow down columns, so a short group sits under the one above it, not under the longest. */
+.fact-grid {
+  column-width: 17rem;
+  column-gap: var(--s3);
+  margin-top: var(--s1);
+}
+
+.fact-group {
+  min-width: 0;
+  margin-bottom: var(--s1);
+  break-inside: avoid;
+}
+
+.fact-heading {
+  margin: 0 0 2px;
+  color: var(--ink);
+  font: var(--typeCaptionStrong);
+}
+
+.fact-list {
+  display: grid;
+  margin: 0;
+}
+
+/* The label takes what the value leaves and wraps itself; the value always holds the right edge. */
+.fact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0 var(--s2);
+  padding: 4px 0;
+  font: var(--typeBody);
+}
+
+/* A hairline between rows carries the eye from a label to its value at the far edge. */
+.fact + .fact {
+  border-top: 1px solid var(--border);
+}
+
+.fact > dt {
+  min-width: 0;
+  color: var(--ink2);
+}
+
+.fact > dd {
+  max-width: 60vw;
+  margin: 0;
+  color: var(--ink);
+  font-weight: var(--weightSemibold);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}

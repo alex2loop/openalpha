@@ -46,6 +46,8 @@
   --canvas: #f2f2f6;
   --surface: #ffffff;
   --sunken: #e7e7ee;
+  /* A see-through wash of the ink: a frameless control's hover on any surface, glass included. */
+  --hoverWash: color-mix(in srgb, var(--ink) 7%, transparent);
   --segHi: rgba(255, 255, 255, 0.9);
   --border: #dbdbe4;
   --ink: #1b1b29;
@@ -120,7 +122,6 @@
   --stageTopH: calc(var(--s1) * 2 + var(--controlH) + var(--tapeH));
   --stageBottomH: calc(var(--islandH) + var(--s2) * 2);
   /* The info panel floating over the scene and its bottom sheet on a narrow screen. */
-  --sheetH: 64%;
   --sheetMs: 280ms;
   --gripW: 38px;
   --gripH: 5px;
@@ -132,6 +133,8 @@
   --tc-teal: #0f766e;
   --tc-gray: #5f5f75;
   --tc-violet: #7c3aed;
+  /* A link in running text: a colour of its own, so it reads apart from the words around it. */
+  --link: var(--tc-blue);
   --tile-mix: 14%;
   --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
   --onAi: #ffffff;
@@ -147,6 +150,7 @@
   --tapeScrollMs: 70s;
   --flashMs: 0.6s;
   --popoverGutter: 8px;
+  --nearPopW: 20rem;
   --focusRing: var(--ink);
   /* The AI cost chart's bars: one calm colour, never a market move's. */
   --spend: var(--tc-violet);

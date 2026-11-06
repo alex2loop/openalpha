@@ -6,9 +6,9 @@ trong [AGENTS.md](../../AGENTS.md) và [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 | Trang | Nội dung |
 |---|---|
-| [ben-trong.md](ben-trong.md) | Quyết định kiến trúc, danh sách tính năng, hợp đồng hiển thị, MCP |
+| [ben-trong.md](ben-trong.md) | Quyết định kiến trúc, danh sách tính năng, hợp đồng hiển thị, MCP, bản web (gốc dựng trình duyệt, dựng, triển khai, xử lý sự cố) |
 | [mo-rong.md](mo-rong.md) | Bề mặt SDK, nhúng runtime, container ứng dụng, plugin |
-| [nguon-du-lieu.md](nguon-du-lieu.md) | Hợp đồng nguồn, adapter, đăng ký, định tuyến, lỗi, cache |
+| [nguon-du-lieu.md](nguon-du-lieu.md) | Hợp đồng nguồn, adapter, đăng ký, định tuyến (và bộ tuyến của trình duyệt), lỗi, cache |
 | [giao-dich.md](giao-dich.md) | Hợp đồng sau đề xuất, cảnh báo, sổ lệnh, sàn và API HTTP |
 | [tro-ly.md](tro-ly.md) | Bộ nạp agent, ủy quyền, kỹ năng, chuỗi mô hình, thử lại, cache |
 | [ngan-sach.md](ngan-sach.md) | Xét chi phí, quyết toán và cách chia ngân sách trên cây phiên chạy |

@@ -8,6 +8,7 @@ import {
   RESEARCH_CRAWLER_ID,
   RESEARCH_HEAVY_MODEL_TIER,
   RESEARCH_MODEL_TIER,
+  RESEARCH_PLANNER_ID,
   RESEARCH_WORKER_IDS,
 } from '@/engine/research/contracts'
 
@@ -43,7 +44,7 @@ interface BuiltInAgentSource {
 // Research stage reasoning/max_tokens is fixed research policy (`RESEARCH_LIMITS.stages`), applied
 // at build time: it overrides whatever the worker's agent.toml declares.
 const RESEARCH_STAGE_BY_AGENT_ID: Readonly<Partial<Record<BuiltInAgentId, ResearchStageId>>> = {
-  'research-planner': 'planner',
+  [RESEARCH_PLANNER_ID]: 'planner',
   [RESEARCH_CRAWLER_ID]: 'crawler',
   'research-synthesizer': 'synthesizer',
   'research-reviewer': 'reviewer',
@@ -61,7 +62,7 @@ const BUILT_IN_SOURCES: Readonly<Record<BuiltInAgentId, BuiltInAgentSource>> = {
     preferredModelTier: RESEARCH_HEAVY_MODEL_TIER,
     internal: true,
   },
-  'research-planner': {
+  [RESEARCH_PLANNER_ID]: {
     toml: researchPlannerToml,
     preferredModelTier: RESEARCH_MODEL_TIER,
     internal: true,

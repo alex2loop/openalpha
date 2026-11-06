@@ -17,6 +17,7 @@
       ],
       "caveats": [],
       "kind": "index",
+      "isLevel": true,
       "market": "vn-index",
       "assetClass": "equity"
     },
@@ -42,6 +43,7 @@
         }
       ],
       "kind": "crypto",
+      "isLevel": false,
       "market": "crypto",
       "assetClass": "crypto"
     }

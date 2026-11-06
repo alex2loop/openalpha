@@ -95,10 +95,12 @@ A migration is `{ id, reversibility, up, down? }` (`persistence/types.ts`). The 
   read-only `bun:sqlite` handle, so the SQL must stay shared.
 - **Status.** `migrationStatus` returns `applied | pending | orphan` per id. An orphan is in the
   ledger but not declared (a downgrade or deleted migration). `migrate` refuses a
-  database with any, before backing it up or applying anything, with `errors.dbSchemaAhead`: an
-  older release reading a newer schema misreads rows.
-- **Pre-migration backup.** SQLite only, when `backupDir` is set and anything may be pending:
-  `backupSqlite` into `pre-migration/`. A stale precheck can only cost an unneeded or skipped
+  database with any, before backing it up or applying anything, by throwing `SchemaAheadError`
+  (code `dbSchemaAhead`, no paths): an older release reading a newer schema misreads rows. The
+  daemon's `migrateWithBackup` words it as `errors.dbSchemaAhead` with the folder of the restorable
+  copies; the browser maps the code to its own line.
+- **Pre-migration backup.** SQLite only, when `MigrateOptions.backup` is set and anything may be
+  pending: `migrateWithBackup` passes `backupSqlite` into `pre-migration/`. A stale precheck can only cost an unneeded or skipped
   backup, never a missed migration, because the lock re-reads first. A failed backup logs
   `migration.backup_failed` and does not block.
 - **Rollback.** `resolveMigrationRollback` says what `db migrate down` would do:

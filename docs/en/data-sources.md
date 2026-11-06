@@ -11,7 +11,7 @@ You need nothing to get started. A few providers take a key that you can add lat
 | Provider | Variable | Without it |
 |---|---|---|
 | `bls` | `BLS_API_KEY` | Nothing is lost: US inflation reads either way. Without a key the provider allows 25 calls a day per IP address, shared by every program behind that address. With a key the limit is 500. |
-| `coingecko` | `COINGECKO_API_KEY` | You lose the last fallback for the crypto market-cap board, and the only way to look up a coin ranked below every board. It also drops out of the FX list for a settlement coin (such as USDT) against a fiat currency. |
+| `coingecko` | `COINGECKO_API_KEY` | Nothing is lost: it reads either way. Without a key the provider allows a small number of calls a minute per IP address, shared by every program behind that address. With a key you get a monthly allowance of your own. |
 | `fred` | `FRED_API_KEY` | You lose the two series only FRED publishes: the dollar index and VIX (the market's fear gauge). The macro score still rates, without these two drivers: the US macro score loses about 30% of its weight, the macro backdrop for VN stocks 20%, and gold 2 of its 7 factors (dollar, safe haven). So days when the dollar strengthens or the market panics are easy to miss. US yields, the real rate and inflation still read from `treasury` and `bls`, which need no key. The key is free: sign up on the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html). |
 | `sec-data` | `SEC_CONTACT_EMAIL` | Not a key: SEC asks every reader to say who is calling, so this is your contact email. Without it the SEC source stays off. US value and quality read as unavailable, and so do US earnings releases and insider purchases. |
 
@@ -56,7 +56,7 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 | Annual accounts, earnings releases, insider purchases | `sec-data` (reads the ticker map and Form 4 filings from SEC's other host, `sec`) |
 | **VN equities** | |
 | Live price | `vndirect`, `vietcap-chart`, `entrade` |
-| Daily history | `vndirect`, `entrade`, `vietcap-chart`, `vps` |
+| Daily history | `vndirect`, `vndirect-index`, `entrade`, `vietcap-chart`, `vps` |
 | Stock list; fundamentals, events, flows, analyst recommendations, valuation ratios | `vndirect` |
 | Live board and foreign room | `vndirect`, `vietcap-board` |
 | Financial statements (full years and quarters) | `vietcap-statements` |
@@ -64,7 +64,7 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 | A quarter's missing cash flow | `cafef-statements` |
 | Buy and sell sides of the day's trades | `kbsec`, `vietcap` |
 | Exchange supervision list (merged) | `hsx`, `ssi` |
-| Index membership (`vn30`, `vn100`) | `vietcap` |
+| Index membership (`vn30`, `vn100`) | `vietcap`, `vps-board` |
 | An index's valuation ratios (VN-Index, VN30, HNX) | `vndirect` |
 | What each stock added to an index this session | `vndirect-mkw` |
 | News | `vndirect`, `rss` |
@@ -90,15 +90,17 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 | **Not tied to one market** | |
 | US macro (merged) | `treasury`, `bls`, `fred` |
 | FX rates | `coinbase`, `okx`, `coingecko`, `yahoo`, `er-api` |
-| FX history | `yahoo` |
+| FX history | `yahoo`, `coingecko`, `vietcombank` |
 | Commodity prices | `vndirect`, `fred-csv` |
 | News for the macro picture | `rss` |
 
 What the less obvious ones do:
 
 - `vndirect` leads VN prices because its row is written while the market trades.
-  - It does not serve indices. An index price goes to `vietcap-chart`. Index history goes to `entrade`, then `vietcap-chart`.
-  - `vps` is last. It exists for the ETF benchmark indices (VNDIAMOND, VNX50 and the like) that neither `vndirect` nor `entrade` serves, so one refusal does not take them all out.
+  - It does not serve indices. An index price goes to `vietcap-chart`. Index history goes to `vndirect-index`, then `entrade`, then `vietcap-chart`.
+  - `vndirect-index` is the broker's index history, kept apart from `vndirect` so an outage in one does not pause the other. It carries every index the daemon reads, from years back, and its closes matched the other providers' on every index measured.
+  - `vps` is last. It exists for the ETF benchmark indices (VNDIAMOND, VNX50 and the like) that `entrade` does not serve, so one refusal does not take them all out.
+  - `vps-board` is VPS's price board, a second host from `vps`. It backs `vietcap` for the VN30 and VN100 membership lists, and answers only when its VN30 names all sit inside its VN100 list. Its VN100 list ran behind when measured, so it can answer nothing, and the tiers already stored then stand.
 - `vietcap-board` reads the whole VN board in one call. It backs `vndirect` for both the live board and foreign room (the shares foreigners may still buy).
 - `vndirect` also serves each index's own ratios from `/v4/ratios`.
   - The ratios are P/E (price against earnings), P/B (price against book value), dividend yield, the five-year averages of both multiples, and the share of stocks above their 50- and 200-session mean.
@@ -120,7 +122,7 @@ What the less obvious ones do:
 - Crypto prices lead with your crypto default venue (`default_for` under `[trading.venues.<id>]`, `binance` unless you set one), when that venue is also a data provider. A plan priced anywhere else would quote a number you could not get your order filled at.
 - `mexc` backs `binance` for prices and is third for history. It lists coins the big venues do not. But volume on the long tail of small coins is the least trustworthy, so it answers only for a name the majors decline.
 - `okx` does not list every coin. A coin it lacks is skipped, and the skip does not count as a failure.
-- `coingecko` serves the market-cap board and one FX rate, not the price path. The alert loop reads a price for every watched coin on every tick, and a provider metered by the month would burn its quota there.
+- `coingecko` serves the market-cap board, one FX rate and the dong's FX history, not the price path. The alert loop reads a price for every watched coin on every tick, and a provider metered by the month would burn its quota there.
 
 One kind is defined and has no provider: spot-ETF net flows for crypto. The brief's `etf-flows` section reports `unavailable`. That is expected, not an outage.
 
@@ -135,7 +137,9 @@ One kind is defined and has no provider: spot-ETF net flows for crypto. The brie
 
 The Vietnamese scraping sources (they read web pages and internal endpoints, not official feeds) and the gold boards are fragile. Being on by default does not change that:
 
-- `vndirect`, `vndirect-mkw`, `entrade` and `vietcap` read undocumented internal broker endpoints with no service guarantee.
+- `vndirect`, `vndirect-index`, `vndirect-mkw`, `entrade`, `vietcap` and `vps-board` read undocumented internal broker endpoints with no service guarantee.
+- `coingecko` gives the dong's FX history as the price of USDT in dong, one request for the whole window. It is a stand-in for the dollar rate, within a few tenths of a percent of Yahoo's over the last 108 sessions, and a note says so wherever it is used.
+- `vietcombank` reads the bank's own website feed. It is asked for FX history only when `yahoo` and `coingecko` have nothing, and only for a short window. The bank sets its rates once or twice a day, so it reports a day's rate (the midpoint of its transfer buy and sell rates), not a market close.
 - `cafef` reads a consumer site's own handler. It publishes rows whose value and volume contradict each other. Those rows are dropped.
 - `pnj` reads a storefront's own endpoint.
 - `giavang` is a community API run by one operator.
@@ -191,9 +195,9 @@ Every provider is paced to a requests-per-minute rate. That rate is either its p
 | 600 | `binance`, `binance-futures`, `bybit`, `okx`, `mexc` |
 | 300 | `cafef`, `vndirect` |
 | 200 | `sec`, `sec-data` |
-| 120 | `fred`, `nasdaq`, `vietcap-statements` |
-| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-mkw`, `yahoo` |
-| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps` |
+| 120 | `fred`, `nasdaq`, `vietcap-statements`, `vietcombank` |
+| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-index`, `vndirect-mkw`, `yahoo` |
+| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps`, `vps-board` |
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |
 

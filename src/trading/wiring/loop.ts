@@ -2,11 +2,11 @@ import type { DaemonTask, TaskPassListener } from '@/core/container'
 import type { OperatorMessage } from '@/core/errors'
 import type { Logger } from '@/core/logging/logger'
 import type { OperationsPolicy } from '@/trading/kernel/config'
-import { type MissingEnvError, missingEnvOf } from '@/core/config/resolve'
+import { type MissingEnvError, missingEnvOf } from '@/core/config/operator-errors'
 import { notifyPass, TASK_FAILED } from '@/core/container'
 import { ChannelError, isAbortError, LLMError, RunHalted, StorageError } from '@/core/errors'
+import { REACHABILITY_HOST, type ReachabilityProbe } from '@/core/limits'
 import { formatErrForLog } from '@/core/security/credentials'
-import { probeHost, REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/utils/reachability'
 import { sleep } from '@/core/utils/time'
 
 /** What a tick may say about its own pass without failing it. */
@@ -16,7 +16,10 @@ export interface PassNotes {
 }
 
 export type OperationTick = (signal: AbortSignal, notes: PassNotes) => Promise<void>
-type Reachability = Pick<OperationsPolicy, 'offlineRetryMs'>
+
+interface Reachability extends Pick<OperationsPolicy, 'offlineRetryMs'> {
+  readonly probe: ReachabilityProbe
+}
 
 /** One bounded background loop: what each tick does, when the next one fires, and the host it
  *  waits on while offline. */
@@ -174,7 +177,7 @@ async function waitUntilReachable(spec: LoopSpec, signal: AbortSignal): Promise<
   let warned = false
 
   for (;;) {
-    if (await probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS, signal)) {
+    if (await spec.reachability.probe(signal)) {
       return true
     }
 

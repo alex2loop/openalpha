@@ -5,9 +5,9 @@ import type { SkillCatalog } from '@/engine/skills/catalog'
 import type { SkillMeta } from '@/engine/skills/types'
 import type { LLMRequestModifier } from '@/engine/types/run'
 import { escapeXml } from '@/core/security/sanitize'
-import { truncate } from '@/core/utils/text'
+import { truncate, utf8ByteLength } from '@/core/utils/text'
 import { appendSystemBlock } from '@/engine/hooks/system-block'
-import { resolveSkillPlatform } from '@/engine/skills/availability'
+import { currentSkillPlatform } from '@/engine/skills/availability'
 
 /** Shared by every surface that prints the skills index, so the two catalogs cannot drift. */
 export const SKILL_CATALOG_GUIDANCE =
@@ -29,7 +29,7 @@ export function createAvailableSkillsModifier(catalog: SkillCatalog): LLMRequest
     }
 
     const skills = await catalog.list(
-      { allowed: run.env.agent.skills, tools, platform: resolveSkillPlatform(process.platform) },
+      { allowed: run.env.agent.skills, tools, platform: currentSkillPlatform() },
       run.state.abort.signal
     )
 
@@ -59,7 +59,7 @@ function formatSkillLines(skills: readonly SkillMeta[]): {
     const name = escapeXml(skill.name)
     const desc = escapeXml(truncate(skill.description, SKILL_INDEX_DESC_MAX))
     const full = `- ${name}: ${desc}\n`
-    const fullBytes = Buffer.byteLength(full, 'utf8')
+    const fullBytes = utf8ByteLength(full)
 
     if (bytes + fullBytes <= SKILL_INDEX_BLOCK_MAX) {
       body += full
@@ -69,7 +69,7 @@ function formatSkillLines(skills: readonly SkillMeta[]): {
 
     // The description did not fit; fall back to a name-only line so the model can still request it.
     const nameOnly = `- ${name}\n`
-    const nameOnlyBytes = Buffer.byteLength(nameOnly, 'utf8')
+    const nameOnlyBytes = utf8ByteLength(nameOnly)
 
     if (bytes + nameOnlyBytes <= SKILL_INDEX_BLOCK_MAX) {
       body += nameOnly

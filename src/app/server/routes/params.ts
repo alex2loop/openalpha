@@ -55,7 +55,9 @@ async function readCappedText(req: Request, maxBytes: number): Promise<string> {
   }
 
   const reader = req.body.getReader()
-  const chunks: Uint8Array[] = []
+  // A BOM is kept, as a Buffer would: it is the body's own byte, not this reader's to drop.
+  const decoder = new TextDecoder('utf-8', { ignoreBOM: true })
+  let text = ''
   let size = 0
 
   try {
@@ -71,13 +73,13 @@ async function readCappedText(req: Request, maxBytes: number): Promise<string> {
         })
       }
 
-      chunks.push(read.value)
+      text += decoder.decode(read.value, { stream: true })
     }
   } finally {
     reader.releaseLock()
   }
 
-  return Buffer.concat(chunks).toString('utf8')
+  return text + decoder.decode()
 }
 
 /** A body field's name as the operator reads it, keyed by where it sits in the body; a path the
@@ -172,6 +174,12 @@ export function parseLimit(raw: string | null, maximum: number): number | null {
   const value = DIGITS_RE.test(raw) ? Number(raw) : Number.NaN
 
   return Number.isInteger(value) && value > 0 && value <= maximum ? value : null
+}
+
+/** Where a page of a list starts, as the previous page's `next` said: whole, non-negative, safe.
+ *  Absent is the start; `null` when malformed (400). */
+export function parsePageOffset(raw: string | null): number | null {
+  return raw === null ? 0 : parseEpochMs(raw)
 }
 
 /** An epoch-ms cursor (`before`); `null` when it is not a safe non-negative integer (400). */

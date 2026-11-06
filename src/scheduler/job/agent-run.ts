@@ -42,7 +42,11 @@ export async function runAgent(
   const jobApproval = job.target === undefined ? undefined : createSchedulerApproval(job)
   const input = deps.runInput(asked)
   const result = await deps.runner.run(
-    job.target === undefined ? input : { ...input, channel: job.target.channel },
+    {
+      ...input,
+      ...(answer === undefined ? {} : { typedMessage: job.prompt }),
+      ...(job.target === undefined ? {} : { channel: job.target.channel }),
+    },
     {
       approvalMode: jobApproval === undefined ? 'unavailable' : 'manual',
       ...(jobApproval === undefined ? {} : { approval: jobApproval.approval }),

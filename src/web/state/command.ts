@@ -2,10 +2,21 @@ import { signal } from '@preact/signals'
 
 import { selectAgent } from '@/web/state/agents'
 import { COMMAND_PREFIX, isFinished, sendMessage, thread } from '@/web/state/chat'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { isCommandRun, runs } from '@/web/state/live'
 import { quietCommands } from '@/web/state/quiet-command'
 
 const HISTORY_MAX = 50
+// A key is a long run of letters and digits, so a typed line holding one is refused on the web
+// edition: it would go to the worker, the transcript and the model as plain text.
+const KEY_LIKE_MIN_LENGTH = 32
+const KEY_LIKE_RUN_RE = new RegExp(`[A-Za-z0-9_-]{${KEY_LIKE_MIN_LENGTH},}`, 'g')
+const LETTER_RE = /[A-Za-z]/
+const DIGIT_RE = /\d/
+// A ledger row's full id is a UUID, which a `/update` or `/delete` line may carry.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const URL_PREFIX_RE = /^https?:\/\//i
+const WHITESPACE_RE = /\s+/
 
 export const SUGGEST_COMMAND = '/suggest'
 // A command's run is named without the slash.
@@ -26,8 +37,9 @@ let inputElement: HTMLInputElement | undefined
 
 /** What the command box holds. */
 export const inputText = signal('')
-/** The last send found the socket down; cleared by typing or the next send. */
-export const isNotSent = signal(false)
+/** Why the last send did not go: the socket was down, or the line held a key. Cleared by typing or
+ *  the next send. */
+export const notSent = signal<'offline' | 'key-like' | undefined>(undefined)
 
 /** The command bar registers its input; the returned function releases it. */
 export function registerInput(element: HTMLInputElement): () => void {
@@ -52,7 +64,7 @@ export function fillInput(text: string, opts: { readonly agentId?: string } = {}
 
 /** Sends a button's own command, leaving what is typed in the box alone. A named agent is switched
  *  to first, and the command goes once the daemon confirmed the switch, so it is never asked of the
- *  agent before. Offline, `isNotSent` says so and an empty box takes the command. */
+ *  agent before. Offline, `notSent` says so and an empty box takes the command. */
 export function runCommand(text: string, opts: { readonly agentId?: string } = {}): void {
   const run = (): void => {
     if (!send(text)) {
@@ -66,7 +78,7 @@ export function runCommand(text: string, opts: { readonly agentId?: string } = {
   }
 
   if (!selectAgent(opts.agentId, run)) {
-    isNotSent.value = true
+    notSent.value = 'offline'
     holdUnsent(text)
   }
 }
@@ -89,15 +101,25 @@ export function focusInput(): void {
 /** The operator typed: any recall ends there. */
 export function setInput(text: string): void {
   inputText.value = text
-  isNotSent.value = false
+  notSent.value = undefined
   recallIndex = undefined
 }
 
-/** Sends the box; offline, the text stays and `isNotSent` says why. */
+/** Sends the box; offline, or with a key in the line on the web edition, the text stays and
+ *  `notSent` says why. */
 export function sendFromInput(): void {
   const text = inputText.value.trim()
 
-  if (text !== '' && send(text)) {
+  if (text === '') {
+    return
+  }
+
+  if (isAnalysisOnly.value && hasKeyLikeToken(text)) {
+    notSent.value = 'key-like'
+    return
+  }
+
+  if (send(text)) {
     setInput('')
   }
 }
@@ -128,7 +150,7 @@ export function recall(direction: 'older' | 'newer'): void {
 // What was sent joins the recall history; a refused send marks the box not sent.
 function send(text: string): boolean {
   if (!sendMessage(text)) {
-    isNotSent.value = true
+    notSent.value = 'offline'
     return false
   }
 
@@ -142,4 +164,17 @@ function holdUnsent(text: string): void {
   if (inputText.value.trim() === '') {
     inputText.value = text
   }
+}
+
+// A web address in a /research question is not a key, however long its path.
+function hasKeyLikeToken(text: string): boolean {
+  return text
+    .split(WHITESPACE_RE)
+    .filter((word) => !URL_PREFIX_RE.test(word))
+    .some((word) => (word.match(KEY_LIKE_RUN_RE) ?? []).some(isKeyLike))
+}
+
+// A key mixes letters and digits; a long word, a number or a UUID does not count.
+function isKeyLike(run: string): boolean {
+  return LETTER_RE.test(run) && DIGIT_RE.test(run) && !UUID_RE.test(run)
 }

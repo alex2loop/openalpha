@@ -6,14 +6,12 @@ import type { NewsArchiveStore } from '@/trading/features/market-data/store/news
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
-  MarketRefreshAttempt,
   RefreshAllMarketDataOptions,
   RefreshKindResult,
   RefreshKindStatus,
   RefreshMarketDataOptions,
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
-import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -49,74 +47,14 @@ interface RefreshCoordinatorDeps {
   readonly marketDataStore: MarketDataStore
   readonly newsArchive: Pick<NewsArchiveStore, 'deleteFetchedBefore'>
   readonly universeLimit: number
+  /** Markets whose refresh started on a store with no kind and has not settled, so a read finding
+   *  a half-filled store still knows it. Written only here; one entry per market at most. */
+  readonly firstLoading: Set<MarketRef>
+  /** Markets whose first refresh rejected and that no later refresh has completed since, so a read
+   *  finding the half-filled store does not call it complete. Written only here; one entry per
+   *  market at most. */
+  readonly firstLoadFailed: Set<MarketRef>
   readonly logger: Logger
-}
-
-export interface EnsureMarketDataOptions {
-  readonly market: MarketRef
-  readonly now: number
-  readonly signal: AbortSignal
-  readonly progress?: StageReporter
-}
-
-export type EnsureMarketData = (options: EnsureMarketDataOptions) => Promise<readonly Caveat[]>
-
-interface EnsureMarketDataDeps {
-  readonly markets: MarketRegistry
-  readonly marketDataStore: Pick<MarketDataStore, 'listRefreshAttempts'>
-  readonly refresh: RefreshMarketData
-}
-
-/** The one owner of "a read found no daemon", and only that: a market with nothing stored is warmed
- *  so a fresh install answers, and from then on `/refresh` and the scheduled tick own currency. A
- *  read that refetched whenever a kind aged made the first command after every rollover pay for the
- *  whole board, which is a fetch the operator did not ask for and cannot see coming. What the store
- *  does hold answers instead, carrying the session it stands for. */
-export function createEnsureMarketData(deps: EnsureMarketDataDeps): EnsureMarketData {
-  return async (options) => {
-    const attempts = await deps.marketDataStore.listRefreshAttempts({
-      market: options.market,
-      signal: options.signal,
-    })
-    const populated = attempts.filter((attempt) => attempt.result.recordCount > 0)
-
-    if (populated.length === 0) {
-      const result = await deps.refresh({
-        market: options.market,
-        now: options.now,
-        signal: options.signal,
-        ...(options.progress === undefined ? {} : { progress: options.progress }),
-      })
-
-      return result.caveats
-    }
-
-    return buildStaleCaveats(deps, options, populated)
-  }
-}
-
-/** The market names the kinds a refresh would refetch, because only it knows their cadences —
- *  holding every kind to the settled day warns about a listing set replaced weekly and names a
- *  command that will correctly decline to run. The oldest of those kinds dates the caveat: a board
- *  priced through Friday whose flows stop on Wednesday is two sessions behind. */
-async function buildStaleCaveats(
-  deps: EnsureMarketDataDeps,
-  options: EnsureMarketDataOptions,
-  populated: readonly MarketRefreshAttempt[]
-): Promise<readonly Caveat[]> {
-  const market = deps.markets.find(options.market)
-  const stale =
-    (await market?.capabilities.staleKinds?.run({
-      attempts: populated,
-      now: options.now,
-      signal: options.signal,
-    })) ?? []
-  const [asOf] = populated
-    .filter((attempt) => stale.includes(attempt.result.kind))
-    .map((attempt) => attempt.asOf)
-    .sort()
-
-  return asOf === undefined ? [] : [{ code: 'market-data.evidence-stale', detail: { asOf } }]
 }
 
 export type RefreshMarketData = (
@@ -183,7 +121,42 @@ async function runRefreshAfter(
     await preceding.catch(() => undefined)
   }
 
-  return runRefresh(deps, options)
+  return runTrackingFirstLoad(deps, options)
+}
+
+/** Same-market flights run one after another, so the mark is this flight's alone: set before the
+ *  first fetch and cleared once it settles, on success, failure or abort alike. A first load that
+ *  rejects, a cancelled read's included, leaves the store half-filled, so it is remembered until a
+ *  later flight completes. */
+async function runTrackingFirstLoad(
+  deps: RefreshCoordinatorDeps,
+  options: RefreshMarketDataOptions
+): Promise<RefreshMarketDataResult> {
+  const stored = await deps.marketDataStore.listRefreshAttempts({
+    market: options.market,
+    signal: options.signal,
+  })
+  const isFirstLoad = stored.length === 0
+
+  if (isFirstLoad) {
+    deps.firstLoading.add(options.market)
+  }
+
+  try {
+    const result = await runRefresh(deps, options)
+
+    deps.firstLoadFailed.delete(options.market)
+
+    return result
+  } catch (err: unknown) {
+    if (isFirstLoad) {
+      deps.firstLoadFailed.add(options.market)
+    }
+
+    throw err
+  } finally {
+    deps.firstLoading.delete(options.market)
+  }
 }
 
 interface RefreshOperationDeps {

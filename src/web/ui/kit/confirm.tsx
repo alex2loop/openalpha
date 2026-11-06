@@ -12,7 +12,7 @@ interface ConfirmSpec {
   /** A destructive confirm makes "keep" the main button, so Enter loses nothing. */
   readonly isDestructive?: true
   readonly keepLabel?: string
-  /** Where both buttons return once the dialog is done, Cài đặt when it opened the question. */
+  /** Where both buttons, Esc and the close button return, Cài đặt when it opened the question. */
   readonly onBack?: () => void
   /** Throws `ApiFailure` to keep the dialog open with the daemon's sentence. */
   readonly confirm: () => Promise<void> | void
@@ -33,6 +33,7 @@ export function askConfirm(spec: ConfirmSpec): void {
     title: spec.title,
     body: <ConfirmBody dialog={dialog} />,
     footer: <ConfirmFooter dialog={dialog} />,
+    ...(spec.onBack === undefined ? {} : { onDismiss: () => leave(dialog) }),
   })
 }
 

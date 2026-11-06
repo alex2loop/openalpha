@@ -1,4 +1,5 @@
 import type { PricedLevels } from '@/trading/features/suggestion/pipeline/levels'
+import type { DraftCalendar } from '@/trading/features/suggestion/pipeline/market-reads'
 import type { StageRunResult } from '@/trading/features/suggestion/pipeline/stages'
 import type {
   DraftDirection,
@@ -12,7 +13,7 @@ import type {
   SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
 import type { FactorScore } from '@/trading/kernel/factor'
-import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type { RegimeScale } from '@/trading/kernel/market/market-data'
 import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
@@ -29,12 +30,7 @@ import {
   levelDirectionFor,
 } from '@/trading/features/suggestion/pipeline/direction'
 import { buildDraft, finalize } from '@/trading/features/suggestion/pipeline/draft'
-import {
-  draftInputFor,
-  instrumentEvents,
-  recentEvents,
-  upcomingEvents,
-} from '@/trading/features/suggestion/pipeline/draft-input'
+import { draftInputFor } from '@/trading/features/suggestion/pipeline/draft-input'
 import { joinOrStartSuggestion } from '@/trading/features/suggestion/pipeline/flight'
 import { holdFrom } from '@/trading/features/suggestion/pipeline/hold'
 import {
@@ -43,14 +39,18 @@ import {
   reuseOrCooldown,
 } from '@/trading/features/suggestion/pipeline/identity'
 import { buildLevelsFor } from '@/trading/features/suggestion/pipeline/levels'
+import {
+  readInstrumentEvents,
+  toDraftCalendar,
+} from '@/trading/features/suggestion/pipeline/market-reads'
 import { openRiskOf } from '@/trading/features/suggestion/pipeline/open-risk'
-import { longestOutcomeWindowSessions } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { runStages } from '@/trading/features/suggestion/pipeline/stages'
-import { outsideFocus, unsupported } from '@/trading/features/suggestion/pipeline/unsupported'
-import { standingMarginEvent } from '@/trading/kernel/market/margin-status'
-import { eventsFromDay } from '@/trading/kernel/market/market-event'
+import {
+  levelKindRefusal,
+  outsideFocus,
+  unsupported,
+} from '@/trading/features/suggestion/pipeline/unsupported'
 import { isOutsideFocus, runHorizon } from '@/trading/kernel/operator/focus'
-import { isSourceFailed } from '@/trading/kernel/source/source-result'
 import { regimeFor } from '@/trading/markets/macro-risk'
 
 /** The one ordered runner: resolve, reuse and cooldown gates, prepare, deterministic gate stages,
@@ -82,6 +82,12 @@ export async function runSuggestion(options: SuggestionRunOptions): Promise<Sugg
 
   if (resolution.kind !== 'resolved') {
     return unsupported(resolution)
+  }
+
+  const refusal = levelKindRefusal(resolution)
+
+  if (refusal !== undefined) {
+    return refusal
   }
 
   if (isOutsideFocus(request.focus, resolution.instrument.market, resolution.sector)) {
@@ -333,46 +339,14 @@ function readRunInputs(
     timed(options, 'factors', () =>
       market.factors({ instrument, asOf, now: request.now, signal: request.signal })
     ),
-    market.capabilities.events?.run({
+    readInstrumentEvents({
+      market,
       instrument,
-      // The range end, not the run day: `runEvents` asks the capability as of it, so a forward
-      // reader sees nothing unless this reaches past today.
-      asOf: market.manifest.calendar.addTradingDays(
-        asOf,
-        longestOutcomeWindowSessions(market.manifest.defaultCalendar)
-      ),
+      asOf,
       now: request.now,
-      fromDay: eventsFromDay(market.manifest.calendar, asOf),
       signal: request.signal,
     }),
   ])
-}
-
-/** One read of this name's events answers both halves a draft needs. */
-interface DraftCalendar {
-  readonly events: readonly MarketEvent[]
-  /** Past rows too: an ex-date the stored series has not caught up to moves today's levels. */
-  readonly instrumentEvents: readonly MarketEvent[]
-  readonly recent: readonly MarketEvent[]
-  readonly standingMargin?: MarketEvent
-  readonly calendarFailed?: true
-}
-
-function toDraftCalendar(
-  events: SourceResult<readonly MarketEvent[]> | undefined,
-  instrument: InstrumentRef,
-  asOf: TradingDay
-): DraftCalendar {
-  const own = instrumentEvents(events, instrument)
-  const standing = standingMarginEvent(own, asOf)
-
-  return {
-    events: upcomingEvents(own, asOf),
-    instrumentEvents: own,
-    recent: recentEvents(own, asOf),
-    ...(standing === undefined ? {} : { standingMargin: standing }),
-    ...(isSourceFailed(events) ? { calendarFailed: true } : {}),
-  }
 }
 
 function calendarFieldsOf(
@@ -395,11 +369,16 @@ function persist(
   return persistSuggestion(options, suggestion)
 }
 
-/** Tells the requesting surface which phase is running; a request without a reporter is a no-op. */
+/** Tells the requesting surface which phase is running; a request without a reporter is a no-op.
+ *  Until the name resolves it is only what was typed, so `resolve` does not report it as the run's
+ *  `ticker`: a refused name then leaves the surface no ticker to offer a re-run or an alert on. */
 function reportStage(options: SuggestionRunOptions, phase: RunPhase): void {
-  options.request.progress?.(`trading.progress.suggestion.${phase}`, {
-    ticker: options.request.ticker,
-  })
+  const { ticker } = options.request
+
+  options.request.progress?.(
+    `trading.progress.suggestion.${phase}`,
+    phase === 'resolve' ? { typed: ticker } : { ticker }
+  )
 }
 
 /** One debug line per phase, with its elapsed time and the identity it belongs to. Nine lines

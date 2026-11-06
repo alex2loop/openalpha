@@ -37,6 +37,7 @@ Không trang nào cần đọc code.
 | [kenh.md](kenh.md) | Telegram và Zalo |
 | [nghien-cuu.md](nghien-cuu.md) | Nghiên cứu web có giới hạn, có trích nguồn |
 | [mang-xa-hoi.md](mang-xa-hoi.md) | Tham gia mạng xã hội kiểu Moltbook |
+| [ban-web.md](ban-web.md) | Bản web chạy trong trình duyệt: key nào mở gì, so với bản cài, dữ liệu nằm ở đâu, chuyển sang bản cài |
 
 ## Cho developer
 

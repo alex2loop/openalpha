@@ -11,16 +11,16 @@ import type {
   BrowserSignInCode,
   BrowserSignInResult,
 } from '@/app/server/wire/sign-in'
-import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
+import type { ApiRouteContext, ApiRouteSpec, DaemonRequest } from '@/app/types'
 import type { BrowserSessionRow } from '@/persistence/api'
 import { buildSecret, isAuthLocked, resolveAuthOutcome, toSecretHash } from '@/app/server/http/auth'
+import { daemonOf, toAuthRefusal } from '@/app/server/http/authorize'
 import {
   buildEndedSessionCookie,
   buildSessionCookie,
   SESSION_IDLE_MS,
-  SET_COOKIE,
 } from '@/app/server/http/caller'
-import { apiError, json, toAuthRefusal } from '@/app/server/http/dispatch'
+import { apiError, json, SET_COOKIE } from '@/app/server/http/dispatch'
 import { parsePathId, readJsonBody } from '@/app/server/routes/params'
 import { closeSocketsOf } from '@/app/server/ws/socket'
 
@@ -58,7 +58,9 @@ function handleCode(_req: Request, ctx: ApiRouteContext): Promise<Response> {
     return Promise.resolve(apiError('forbidden'))
   }
 
-  return Promise.resolve(json({ code: ctx.codes.issue(Date.now()) } satisfies BrowserSignInCode))
+  const { codes } = daemonOf(ctx)
+
+  return Promise.resolve(json({ code: codes.issue(Date.now()) } satisfies BrowserSignInCode))
 }
 
 /** A wrong or used code counts toward the lockout like a wrong token; a valid one clears it. While
@@ -70,9 +72,10 @@ async function handleSignIn(req: Request, ctx: ApiRouteContext): Promise<Respons
     return apiError('invalid_body')
   }
 
+  const daemon = daemonOf(ctx)
   const now = Date.now()
-  const credential = takeCodeCredential(ctx, parsed.data.code, now)
-  const refusal = toAuthRefusal(resolveAuthOutcome(ctx.peer, credential, now))
+  const credential = takeCodeCredential(daemon, parsed.data.code, now)
+  const refusal = toAuthRefusal(resolveAuthOutcome(daemon.peer, credential, now))
 
   if (refusal !== null) {
     return refusal
@@ -81,7 +84,7 @@ async function handleSignIn(req: Request, ctx: ApiRouteContext): Promise<Respons
   const secret = buildSecret()
   const row: BrowserSessionRow = {
     id: randomUUID(),
-    secretHash: toSecretHash(secret, ctx.token),
+    secretHash: toSecretHash(secret, daemon.token),
     label: toBrowserLabel(req.headers.get('user-agent')),
     createdAt: now,
     lastSeenAt: now,
@@ -93,25 +96,26 @@ async function handleSignIn(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   return withCookie(
     json({ ok: true } satisfies BrowserSignInResult),
-    buildSessionCookie(ctx.cookieName, secret, ctx.pageOrigin)
+    buildSessionCookie(daemon.cookieName, secret, daemon.pageOrigin)
   )
 }
 
-function takeCodeCredential(ctx: ApiRouteContext, code: string, now: number): Credential {
-  if (isAuthLocked(ctx.peer, now)) {
+function takeCodeCredential(daemon: DaemonRequest, code: string, now: number): Credential {
+  if (isAuthLocked(daemon.peer, now)) {
     return 'locked'
   }
 
-  return ctx.codes.take(code, now) ? 'valid' : 'wrong'
+  return daemon.codes.take(code, now) ? 'valid' : 'wrong'
 }
 
 async function handleLogout(_req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const { cookieName, pageOrigin } = daemonOf(ctx)
   const id = ctx.browserSessionId
   const ended = id !== undefined && (await endSession(ctx, id))
 
   return withCookie(
     json({ ended } satisfies BrowserSessionEndResult),
-    buildEndedSessionCookie(ctx.cookieName, ctx.pageOrigin)
+    buildEndedSessionCookie(cookieName, pageOrigin)
   )
 }
 

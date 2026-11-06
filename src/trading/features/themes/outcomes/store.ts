@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { z } from 'zod'
 
 import type { Transaction } from '@/core/types/storage'
@@ -118,7 +116,7 @@ function toPendingValues(runId: string, read: StockRead): readonly (readonly unk
   }
 
   return OUTCOME_HORIZONS_MONTHS.map((months) => [
-    randomUUID(),
+    crypto.randomUUID(),
     runId,
     read.themeId,
     read.ticker,

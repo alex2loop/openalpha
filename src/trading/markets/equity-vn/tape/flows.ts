@@ -42,16 +42,28 @@ export function foreignNetFlow(
   flows: readonly FlowSnapshot[],
   bars: readonly BarRecord[]
 ): WindowSum | undefined {
-  const recent = usableWindow(
-    align(flows, bars),
-    (flow) => flow.foreignNetValue,
-    FACTOR_FLOW_WINDOW
-  )
+  return netFlowOf(flows, bars, (flow) => flow.foreignNetValue)
+}
+
+/** The proprietary desk's, over the sessions its ratio averaged. */
+export function proprietaryNetFlow(
+  flows: readonly FlowSnapshot[],
+  bars: readonly BarRecord[]
+): WindowSum | undefined {
+  return netFlowOf(flows, bars, (flow) => flow.proprietaryNetValue)
+}
+
+function netFlowOf(
+  flows: readonly FlowSnapshot[],
+  bars: readonly BarRecord[],
+  selectValue: (flow: FlowSnapshot) => number | undefined
+): WindowSum | undefined {
+  const recent = usableWindow(align(flows, bars), selectValue, FACTOR_FLOW_WINDOW)
 
   return recent === undefined
     ? undefined
     : {
-        value: recent.reduce((sum, entry) => sum + (entry.flow.foreignNetValue ?? 0), 0),
+        value: recent.reduce((sum, entry) => sum + (selectValue(entry.flow) ?? 0), 0),
         sessions: recent.length,
       }
 }

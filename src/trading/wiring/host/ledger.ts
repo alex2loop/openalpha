@@ -115,12 +115,15 @@ function previewLedger(
   request: Parameters<TradingHost['previewLedger']>[0]
 ): ReturnType<TradingHost['previewLedger']> {
   return scoped(deps, request.signal, (scope) =>
-    deps.services.portfolio.previewRecord({
-      draft: parseDraft(schemas.record, request.draft),
-      ...(request.entryId === undefined ? {} : { replacing: request.entryId }),
-      now: scope.now,
-      signal: scope.signal,
-    })
+    withRefusalFields(
+      deps.services.portfolio.previewRecord({
+        draft: parseDraft(schemas.record, request.draft),
+        ...(request.entryId === undefined ? {} : { replacing: request.entryId }),
+        ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
+        now: scope.now,
+        signal: scope.signal,
+      })
+    )
   )
 }
 

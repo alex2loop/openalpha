@@ -1,0 +1,43 @@
+.glossary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s2);
+}
+
+.glossary-search {
+  width: 100%;
+}
+
+.glossary-group {
+  display: grid;
+  gap: var(--s1);
+}
+
+.glossary-title {
+  font: var(--typeCardTitle);
+}
+
+.glossary-terms {
+  display: grid;
+  margin: 0;
+}
+
+.glossary-term {
+  display: grid;
+  gap: 2px;
+  padding: var(--s1) 0;
+}
+
+.glossary-term + .glossary-term {
+  border-top: 1px solid var(--border);
+}
+
+.glossary-term > dt {
+  color: var(--ink);
+  font: var(--typeHeading);
+}
+
+.glossary-term > dd {
+  margin: 0;
+  color: var(--ink2);
+}

@@ -3,6 +3,7 @@ import { computed, type ReadonlySignal } from '@preact/signals'
 import type { MarketWire } from '@/app/server/wire/market'
 import type { TradingQuoteWire } from '@/app/server/wire/trading'
 import {
+  isSegmentOn,
   keyOf,
   knownMarkets,
   overviewBlock,
@@ -10,7 +11,6 @@ import {
   profileBlock,
   quotesBlock,
 } from '@/web/state/market'
-import { isSegmentOn } from '@/web/state/profile'
 
 /** One name on the price tape. */
 export interface TapeRow {
@@ -69,7 +69,7 @@ function toBenchmarkRows(market: MarketWire): readonly TapeRow[] {
 }
 
 function toQuoteRow(quote: TradingQuoteWire): TapeRow {
-  const display = quote.kind === 'index' ? undefined : printDisplayOf(quote.market)
+  const display = quote.isLevel ? undefined : printDisplayOf(quote.market)
 
   return {
     key: keyOf(quote),

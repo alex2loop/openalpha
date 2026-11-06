@@ -1,4 +1,5 @@
 import { createReadStream } from 'node:fs'
+import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
 
@@ -67,7 +68,7 @@ export const dbImportCommand: Command = createCommand({
       )
     }
 
-    const dir = resolve(expandHome(from))
+    const dir = resolve(expandHome(from, homedir()))
     const present = await presentTables(dir, tables)
 
     if (present.length === 0) {

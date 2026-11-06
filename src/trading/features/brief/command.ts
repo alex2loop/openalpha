@@ -33,6 +33,8 @@ interface BriefCommandDeps {
   readonly timezone: string
   readonly briefs: BriefService
   readonly defaultRegion: Region
+  /** The caveats in their plain form, for an edition that makes no call. */
+  readonly plainCaveats?: true
 }
 
 export function createBriefCommand(deps: BriefCommandDeps): SlashCommand {
@@ -104,11 +106,7 @@ async function runShow(
 
   if (latest !== null) {
     return withSchedule(deps, ctx, {
-      body: renderBriefText(
-        ctx.locale,
-        latest,
-        resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
-      ),
+      body: renderBriefText(ctx.locale, latest, briefContext(deps, ctx)),
       snapshot: latest,
     })
   }
@@ -123,11 +121,7 @@ async function runShow(
   }
 
   return withSchedule(deps, ctx, {
-    body: renderBriefText(
-      ctx.locale,
-      built.snapshot,
-      resolveRenderContext(deps.timezone, answerSurfaceOf(ctx))
-    ),
+    body: renderBriefText(ctx.locale, built.snapshot, briefContext(deps, ctx)),
     snapshot: built.snapshot,
   })
 }
@@ -277,5 +271,13 @@ async function runDisable(deps: BriefCommandDeps, ctx: SlashContext): Promise<Sl
         values: { result: { key: `trading.disable.brief.${result}` } },
       },
     ],
+  }
+}
+
+function briefContext(deps: BriefCommandDeps, ctx: SlashContext) {
+  return {
+    ...resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
+    ...(deps.plainCaveats === true ? { plain: true as const } : {}),
+    ...(ctx.hasAiLabel === true ? { hasAiLabel: true as const } : {}),
   }
 }

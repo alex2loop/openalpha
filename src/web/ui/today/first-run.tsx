@@ -1,15 +1,35 @@
 import type { ComponentChildren } from 'preact'
-import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
 import { BRIEF_COMMAND } from '@/web/state/command'
+import { editionKey, isAnalysisOnly } from '@/web/state/edition'
+import {
+  hideGuide,
+  isBookDone,
+  isBriefDone,
+  isGuideReviewed,
+  isModelChosen,
+  isProfileDone,
+  keepProfileDefaults,
+  markModelChosen,
+  showGuideAgain,
+  skipBook,
+} from '@/web/state/first-run'
 import { isModelReady, loadSession, state } from '@/web/state/session'
+import { isTree, readConfigTree } from '@/web/state/settings'
+import { readText } from '@/web/text/fields'
 import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
+import { openGlossary } from '@/web/ui/glossary/glossary-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { CheckIcon } from '@/web/ui/kit/icons'
+import { useLoad } from '@/web/ui/kit/use-load'
 import { openSettings } from '@/web/ui/settings/settings'
+
+interface NumberedStep {
+  readonly index: number
+}
 
 interface StepProps {
   readonly index: number
@@ -19,31 +39,76 @@ interface StepProps {
   readonly children: ComponentChildren
 }
 
-/** "Bắt đầu với {brand}": five steps for a daemon with no model, no profile and an empty book. */
+/** "Bắt đầu với {brand}": five steps (the web's are the key, the model, the profile, the book and
+ *  the brief) above the day's blocks, until every required one is done or the visitor hides it. */
 export function FirstRun() {
-  const firstRun = state.value?.firstRun
+  const steps: ((index: number) => ComponentChildren)[] = [
+    (index) => <ModelStep key="model" index={index} isDone={isModelReady.value} />,
+    ...(isAnalysisOnly.value
+      ? [(index: number) => <ChooseModelStep key="chooseModel" index={index} />]
+      : []),
+    (index) => <ProfileStep key="profile" index={index} />,
+    (index) => <BookStep key="book" index={index} />,
+    ...(isAnalysisOnly.value ? [] : [(index: number) => <ChatStep key="chat" index={index} />]),
+    (index) => <BriefStep key="brief" index={index} />,
+  ]
+
+  const section = useRef<HTMLElement>(null)
+
+  // Opened again from the foot of the tab: bring it into view, since it renders at the top.
+  useEffect(() => {
+    if (isGuideReviewed.peek()) {
+      section.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    }
+  }, [])
 
   return (
-    <section class="block">
-      <h2 class="block-head">{tr('ui.office.firstRun.title')}</h2>
-      <div class="steps">
-        <ModelStep isDone={isModelReady.value} />
-        <ProfileStep isDone={firstRun?.profileSaved === true} />
-        <BookStep isDone={firstRun?.bookEmpty === false} />
-        <ChatStep />
-        <BriefStep />
-      </div>
+    <section ref={section} class="block">
+      <h2 class="block-head">
+        {tr('ui.office.firstRun.title')}
+        <span class="block-grow" />
+        <Button kind="ghost" size="small" onClick={openGlossary}>
+          {tr('ui.office.glossary.title')}
+        </Button>
+        <Button kind="ghost" size="small" onClick={hideGuide}>
+          {tr('ui.office.firstRun.hide')}
+        </Button>
+      </h2>
+      <p class="meta guide-hint">{tr('ui.office.glossary.hint')}</p>
+      <div class="steps">{steps.map((renderStep, position) => renderStep(position + 1))}</div>
     </section>
   )
 }
 
-function ProfileStep({ isDone }: { readonly isDone: boolean }) {
+/** Past the first run, the foot of Hôm nay offers the checklist again. */
+export function GuideAgain() {
   return (
-    <Step index={2} title={tr('ui.office.common.profile')} isDone={isDone}>
-      <p class="meta">{tr('ui.office.firstRun.profileBody')}</p>
+    <div class="step-actions">
+      <Button kind="ghost" size="small" onClick={showGuideAgain}>
+        {tr('ui.office.firstRun.show')}
+      </Button>
+      <Button kind="ghost" size="small" onClick={openGlossary}>
+        {tr('ui.office.glossary.title')}
+      </Button>
+    </div>
+  )
+}
+
+// A daemon that never saved a profile runs on seeded defaults, so the step says so and lets the
+// visitor keep them.
+function ProfileStep({ index }: NumberedStep) {
+  return (
+    <Step index={index} title={tr('ui.office.common.profile')} isDone={isProfileDone.value}>
+      <p class="meta">
+        {tr(editionKey('ui.office.firstRun.profileBody', 'ui.office.edition.firstRun.profileBody'))}
+      </p>
+      <p class="meta">{tr('ui.office.firstRun.profileDefaults')}</p>
       <div class="step-actions">
         <Button size="small" onClick={() => openSettings('profile')}>
           {tr('ui.office.firstRun.profileCta')}
+        </Button>
+        <Button size="small" onClick={keepProfileDefaults}>
+          {tr('ui.office.firstRun.profileKeep')}
         </Button>
       </div>
     </Step>
@@ -51,22 +116,17 @@ function ProfileStep({ isDone }: { readonly isDone: boolean }) {
 }
 
 // The book can also be left empty on purpose: "Chưa có, bỏ qua" counts the step as done.
-function BookStep({ isDone }: { readonly isDone: boolean }) {
-  const isSkipped = useSignal(false)
-
+function BookStep({ index }: NumberedStep) {
   return (
-    <Step index={3} title={tr('ui.office.firstRun.bookTitle')} isDone={isDone || isSkipped.value}>
-      <p class="meta">{tr('ui.office.firstRun.bookBody')}</p>
+    <Step index={index} title={tr('ui.office.firstRun.bookTitle')} isDone={isBookDone.value}>
+      <p class="meta">
+        {tr(editionKey('ui.office.firstRun.bookBody', 'ui.office.edition.firstRun.bookBody'))}
+      </p>
       <div class="step-actions">
         <Button size="small" onClick={() => openTradeDialog()}>
           {tr('ui.office.common.recordTrade')}
         </Button>
-        <Button
-          size="small"
-          onClick={() => {
-            isSkipped.value = true
-          }}
-        >
+        <Button size="small" onClick={skipBook}>
           {tr('ui.office.firstRun.bookSkip')}
         </Button>
       </div>
@@ -74,9 +134,60 @@ function BookStep({ isDone }: { readonly isDone: boolean }) {
   )
 }
 
-function ChatStep() {
+// The web edition ships a model, so the step only shows it and where to change it; "Giữ mặc định"
+// and a saved model both count as done.
+function ChooseModelStep({ index }: NumberedStep) {
+  const isDone = isModelChosen.value
+
   return (
-    <Step index={4} title={tr('ui.office.firstRun.chatTitle')} isDone={false} isOptional>
+    <Step
+      index={index}
+      title={tr('ui.office.edition.firstRun.chooseModelTitle')}
+      isDone={isDone}
+      isOptional
+    >
+      {!isDone && <ChooseModelBody />}
+    </Step>
+  )
+}
+
+function ChooseModelBody() {
+  const model = useMainModel()
+
+  return (
+    <>
+      {model !== undefined && (
+        <p class="meta">{tr('ui.office.edition.firstRun.chooseModelCurrent', { model })}</p>
+      )}
+      <p class="meta">{tr('ui.office.edition.firstRun.chooseModelBody')}</p>
+      <div class="step-actions">
+        <Button size="small" onClick={() => openSettings('agents')}>
+          {tr('ui.office.edition.firstRun.chooseModelCta')}
+        </Button>
+        <Button size="small" onClick={markModelChosen}>
+          {tr('ui.office.edition.firstRun.chooseModelKeep')}
+        </Button>
+      </div>
+    </>
+  )
+}
+
+// The model the page runs on now, as the config the settings read holds it; absent until read.
+function useMainModel(): string | undefined {
+  const config = useLoad(readConfigTree).value
+
+  if (config.status !== 'ready') {
+    return undefined
+  }
+
+  const [main] = Array.isArray(config.value.models) ? config.value.models : []
+
+  return isTree(main) ? readText(main.model) : undefined
+}
+
+function ChatStep({ index }: NumberedStep) {
+  return (
+    <Step index={index} title={tr('ui.office.firstRun.chatTitle')} isDone={false} isOptional>
       <p class="meta">{tr('ui.office.firstRun.chatBody')}</p>
       <div class="step-actions">
         <Button size="small" onClick={() => openSettings('channels')}>
@@ -104,42 +215,70 @@ function Step({ index, title, isDone, isOptional, children }: StepProps) {
   )
 }
 
-// The key itself is never typed here: the page only names the variable the daemon reads.
-function ModelStep({ isDone }: { readonly isDone: boolean }) {
-  const recheck = useRecheck()
-  const envVar = state.value?.firstRun.modelKeyEnv
-
+function ModelStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
   return (
-    <Step index={1} title={tr('ui.office.firstRun.modelTitle')} isDone={isDone}>
-      {!isDone && (
-        <>
-          <p class="meta">
-            {envVar === undefined
-              ? tr('ui.office.firstRun.modelBodyNoKey')
-              : tr('ui.office.firstRun.modelBody', { envVar })}
-          </p>
-          <div class="step-actions">
-            <Button size="small" onClick={recheck}>
-              {tr('ui.office.common.recheck')}
-            </Button>
-          </div>
-        </>
-      )}
+    <Step index={index} title={modelTitle()} isDone={isDone} isOptional={isAnalysisOnly.value}>
+      {!isDone && <ModelSetup />}
     </Step>
   )
 }
 
-// The brief runs at once; it waits for a model to answer it.
-function BriefStep() {
+/** The model step's title: a key of the visitor's own on the web edition, a model the daemon can
+ *  reach on the installed version. */
+export function modelTitle(): string {
+  return tr(editionKey('ui.office.firstRun.modelTitle', 'ui.office.edition.firstRun.keyTitle'))
+}
+
+/** What to do while no model can answer: on the web edition, add a key of the visitor's own (the
+ *  market, the screen and the ledger run without one); on the installed version, the variable the
+ *  daemon reads, and a recheck. The key itself is never typed here on the installed version. */
+export function ModelSetup() {
+  const recheck = useRecheck()
+  const envVar = state.value?.firstRun.modelKeyEnv
+
+  if (isAnalysisOnly.value) {
+    return (
+      <>
+        <p class="meta">{tr('ui.office.edition.firstRun.keyBody')}</p>
+        <div class="step-actions">
+          <Button size="small" onClick={() => openSettings('providers')}>
+            {tr('ui.office.edition.firstRun.keyCta')}
+          </Button>
+        </div>
+      </>
+    )
+  }
+
   return (
-    <Step index={5} title={tr('ui.office.firstRun.briefTitle')} isDone={false}>
-      <p class="meta">{tr('ui.office.firstRun.briefBody')}</p>
+    <>
+      <p class="meta">
+        {envVar === undefined
+          ? tr('ui.office.firstRun.modelBodyNoKey')
+          : tr('ui.office.firstRun.modelBody', { envVar })}
+      </p>
+      <div class="step-actions">
+        <Button size="small" onClick={recheck}>
+          {tr('ui.office.common.recheck')}
+        </Button>
+      </div>
+    </>
+  )
+}
+
+// The daemon's brief waits for a model to answer it; the web edition's reads the market and needs
+// no key.
+function BriefStep({ index }: NumberedStep) {
+  return (
+    <Step index={index} title={tr('ui.office.firstRun.briefTitle')} isDone={isBriefDone.value}>
+      <p class="meta">
+        {tr(editionKey('ui.office.firstRun.briefBody', 'ui.office.edition.firstRun.briefBody'))}
+      </p>
       <div class="step-actions">
         <RunButton
           command={BRIEF_COMMAND}
           label={tr('ui.office.firstRun.briefCta')}
           size="small"
-          disabled={!isModelReady.value}
+          disabled={!(isAnalysisOnly.value || isModelReady.value)}
         />
       </div>
     </Step>

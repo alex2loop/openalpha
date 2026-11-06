@@ -7,6 +7,8 @@ const PLATFORM_NAMES: Readonly<Record<string, string>> = {
   android: 'android',
 }
 
+const BROWSER_PLATFORM = 'browser'
+
 export interface SkillVisibility {
   readonly allowed?: readonly string[] | undefined
   readonly tools: ReadonlySet<string>
@@ -15,6 +17,13 @@ export interface SkillVisibility {
 
 export function resolveSkillPlatform(platform: string): string {
   return PLATFORM_NAMES[platform] ?? platform
+}
+
+/** The platform skills are filtered by; a browser worker has no `process`. */
+export function currentSkillPlatform(): string {
+  const processRef: typeof process | undefined = globalThis.process
+
+  return resolveSkillPlatform(processRef?.platform ?? BROWSER_PLATFORM)
 }
 
 function isSkillAllowed(name: string, allowed: readonly string[] | undefined): boolean {

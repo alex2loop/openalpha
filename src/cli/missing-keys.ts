@@ -1,11 +1,8 @@
+import type { MissingEnvError } from '@/core/config/operator-errors'
 import type { DegradedItem } from '@/core/container'
 import { missingKeyErrors } from '@/ai/api'
 import { BRAND } from '@/core/brand'
-import {
-  type MissingEnvError,
-  type ResolvedConfig,
-  toMissingSearchKeyError,
-} from '@/core/config/resolve'
+import { type ResolvedConfig, toMissingSearchKeyError } from '@/core/config/resolve'
 import { missingCredentials } from '@/core/security/credentials'
 import { resolveTradingConfig, unavailableSources } from '@/trading/api'
 

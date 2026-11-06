@@ -32,7 +32,7 @@ export function renderPromptMetricLine(input: PromptMetricInput): string | undef
   const plain = metrics.filter((metric) => FACTOR_METRIC_UNITS[metric.id] !== 'price')
   const parts = [
     ...priced.map((metric) => priceGapLine({ locale, metric, display, referencePrice })),
-    renderMetricLine(locale, plain, display === undefined ? {} : { display }),
+    renderMetricLine(locale, plain, display === undefined ? {} : { quote: { display } }),
   ].filter((part): part is string => part !== undefined)
 
   return parts.length === 0 ? undefined : parts.join(INLINE_SEPARATOR)

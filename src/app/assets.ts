@@ -6,27 +6,27 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
 import type { ToolDefinition } from '@/core/tool'
 import type { AgentProfileSource, McpToolSource, Plugin, WorkflowSource } from '@/core/types/plugin'
-import type { UserAgentSource } from '@/engine/api'
+import type { UserAgentSource } from '@/engine/node-api'
 import { connectMcpServers } from '@/app/mcp-connections'
 import { createCommandLane } from '@/core/command-lane'
 import { ConfigError } from '@/core/errors'
 import { createEventBus } from '@/core/events'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createSessionQueue } from '@/core/session-queue'
+import { assertAgentTomlMatchesSourceId } from '@/engine/api'
 import {
-  assertAgentTomlMatchesSourceId,
   loadUserWorkflows,
   loadWorkflowToml,
   readUserAgents,
   userAgentsDir,
-} from '@/engine/api'
+} from '@/engine/node-api'
 import {
   loadInstalledPlugins,
   mcpToolName,
   mcpToolSourceKey,
   type PluginAssets,
 } from '@/plugins/api'
-import { loadPluginSourceModules } from '@/trading/api'
+import { loadPluginSourceModules } from '@/trading/node-api'
 
 const WORKFLOWS_DIR = 'workflows'
 

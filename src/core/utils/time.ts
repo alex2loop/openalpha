@@ -297,3 +297,13 @@ function minuteOfDay(raw: string): number | undefined {
 
   return match === null ? undefined : Number(match[1]) * MINUTES_PER_HOUR + Number(match[2])
 }
+
+/** Lets a process exit while the timer is pending. A browser timer is a plain number and has no
+ *  `unref`: it is returned as it is. */
+export function unrefTimer<T extends ReturnType<typeof setTimeout>>(timer: T): T {
+  if (typeof timer === 'object') {
+    timer.unref()
+  }
+
+  return timer
+}

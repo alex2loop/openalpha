@@ -1,5 +1,6 @@
 import { abortError, ToolError } from '@/core/errors'
 import { type DnsLookupFn, defaultDnsLookup } from '@/core/ssrf/dns'
+import { isHostGlobMatch } from '@/core/ssrf/host-allowlist'
 import { isBlockedIpv4 } from '@/core/ssrf/ipv4'
 import { isBlockedIpv6 } from '@/core/ssrf/ipv6'
 
@@ -69,9 +70,10 @@ export function parseHttpsUrl(endpoint: string): URL {
 function assertPreDnsSafe(hostname: string): void {
   const name = hostname.replace(TRAILING_DOT_RE, '')
 
-  if (BLOCKED_HOSTS.some((h) => isGlobMatch(h, name))) {
+  if (BLOCKED_HOSTS.some((h) => isHostGlobMatch(h, name))) {
     throw new ToolError('host_blocked', `host ${hostname} matches blocked-host pattern`)
   }
+
   if (!IP_LITERAL_RE.test(hostname)) {
     return
   }
@@ -109,19 +111,6 @@ async function resolveSafeIp(
   return address
 }
 
-// Enforce the agent-level allowlist. Empty list = allow all.
-export function assertHostAllowlisted(hosts: readonly string[], hostname: string): void {
-  if (hosts.length === 0) {
-    return
-  }
-
-  const allowed = hosts.some((h) => isGlobMatch(h, hostname))
-
-  if (!allowed) {
-    throw new ToolError('host_blocked', `host ${hostname} is not in the agent allowlist`)
-  }
-}
-
 // Bracketed-IPv6 or dotted-quad hostname as a bare literal; null when the host needs DNS.
 function asIpLiteral(hostname: string): string | null {
   if (hostname.includes(':')) {
@@ -139,18 +128,4 @@ function isBlockedIp(ip: string): boolean {
 
 function stripBrackets(hostname: string): string {
   return hostname.replace(IPV6_BRACKETS_RE, '')
-}
-
-function isGlobMatch(pattern: string, hostname: string): boolean {
-  if (pattern === '*') {
-    return true
-  }
-
-  if (pattern.startsWith('*.')) {
-    const suffix = pattern.slice(1) // '.example.com'
-
-    return hostname === pattern.slice(2) || hostname.endsWith(suffix)
-  }
-
-  return pattern === hostname
 }

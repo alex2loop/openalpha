@@ -3,6 +3,8 @@ import { useMemo } from 'preact/hooks'
 import type { MarketWire } from '@/app/server/wire/market'
 import type { StatePayload } from '@/app/server/wire/system'
 import type { MessageKey } from '@/i18n'
+import { LanguageRow as EditionLanguageRow } from '@/web/edition/language-row'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { homeRegion, knownMarkets } from '@/web/state/market'
 import {
   COLOUR_PAIRS,
@@ -64,12 +66,14 @@ const LANGUAGES = Object.keys(LANGUAGE_LABELS) as readonly Language[]
 /** Hiển thị: the daemon's version, the language and time zone it uses (read once at start), and
  *  how this page looks in this browser (applies at once). */
 export function DisplaySection({ reopen }: SectionProps) {
+  const isWeb = isAnalysisOnly.value
+
   return (
     <>
-      <VersionRow reopen={reopen} />
-      <LanguageRow />
-      <HomeMarketRow />
-      <TimeZoneRow />
+      {!isWeb && <VersionRow reopen={reopen} />}
+      {isWeb ? <EditionLanguageRow reopen={reopen} /> : <LanguageRow />}
+      {!isWeb && <HomeMarketRow />}
+      {!isWeb && <TimeZoneRow />}
       <PreferenceRow
         title={tr('ui.office.settings.colours')}
         note={tr('ui.office.settings.coloursNote')}
@@ -89,16 +93,10 @@ export function DisplaySection({ reopen }: SectionProps) {
         options={MOTIONS.map((value) => ({ value, label: tr(MOTION_LABELS[value]) }))}
         onChange={setMotion}
       />
-      <PreferenceRow
-        title={tr('ui.office.settings.detail')}
-        note={tr('ui.office.settings.detailNote')}
-        value={detailLevel.value}
-        options={DETAIL_LEVELS.map((value) => ({ value, label: tr(DETAIL_LABELS[value]) }))}
-        onChange={setDetailLevel}
-      />
+      <DetailRow />
       <LightByHourRow />
-      <AttentionRows />
-      <BrowserSessionsRow />
+      {!isWeb && <AttentionRows reopen={reopen} />}
+      {!isWeb && <BrowserSessionsRow />}
     </>
   )
 }
@@ -286,4 +284,21 @@ function listTimeZones(current: string): readonly string[] {
   const zones = Intl.supportedValuesOf('timeZone')
 
   return current === '' || zones.includes(current) ? zones : [current, ...zones]
+}
+
+// The web edition has no scores to tuck away, so its note does not name them.
+function DetailRow() {
+  const note = isAnalysisOnly.value
+    ? 'ui.office.settings.detailNotePlain'
+    : 'ui.office.settings.detailNote'
+
+  return (
+    <PreferenceRow
+      title={tr('ui.office.settings.detail')}
+      note={tr(note)}
+      value={detailLevel.value}
+      options={DETAIL_LEVELS.map((value) => ({ value, label: tr(DETAIL_LABELS[value]) }))}
+      onChange={setDetailLevel}
+    />
+  )
 }

@@ -1,6 +1,6 @@
 import type { StartChannelsDeps } from '@/channels/api'
 import type { App } from '@/core/container'
-import { toAgentRegistry } from '@/app/services'
+import { toAgentRegistry } from '@/app/run-services'
 
 export function resolveChannelDeps(
   app: App,

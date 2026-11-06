@@ -50,20 +50,23 @@ interface BuildResearchSourceInput {
   readonly now: number
 }
 
-interface ApplySourceFreshnessInput {
+export interface EvidenceSet {
   readonly sources: readonly ResearchSource[]
   readonly excerpts: readonly EvidenceExcerpt[]
   readonly claims: readonly ResearchClaim[]
   readonly numericLinks: readonly NumericEvidenceLink[]
+}
+
+export interface FreshEvidenceSet extends EvidenceSet {
+  readonly gaps: readonly EvidenceGap[]
+}
+
+interface ApplySourceFreshnessInput extends EvidenceSet {
   readonly freshness: ResearchFreshness
 }
 
-interface FreshEvidenceSet {
-  readonly sources: readonly ResearchSource[]
-  readonly excerpts: readonly EvidenceExcerpt[]
-  readonly claims: readonly ResearchClaim[]
-  readonly numericLinks: readonly NumericEvidenceLink[]
-  readonly gaps: readonly EvidenceGap[]
+interface DropFutureDatedInput extends EvidenceSet {
+  readonly latestDay: string
 }
 
 interface ResolvedDateFields {
@@ -297,6 +300,53 @@ export function applySourceFreshness(input: ApplySourceFreshnessInput): FreshEvi
     }
   }
 
+  return { ...withoutRejected(input, rejectedSources, new Set()), gaps }
+}
+
+// A date after the latest day anywhere on Earth is a wrong date whatever its confidence: the source or the numeric
+// claim it dates never counts as evidence. A forecast states a future day on purpose and stays.
+export function dropFutureDated(input: DropFutureDatedInput): FreshEvidenceSet {
+  const { latestDay } = input
+  const sources = input.sources.filter(
+    (source) => isAfterDay(source.publishedOn, latestDay) || isAfterDay(source.updatedOn, latestDay)
+  )
+  const claims = input.claims.filter(
+    (claim) =>
+      claim.kind === 'numeric' &&
+      claim.forecast !== true &&
+      isAfterDay(claim.number.effectiveOn, latestDay)
+  )
+  const gaps = [
+    ...sources.map((source) =>
+      createGap({
+        code: 'freshness_out_of_window',
+        message: 'source date is after the run day',
+        sourceIds: [source.id],
+      })
+    ),
+    ...claims.map((claim) =>
+      createGap({
+        code: 'freshness_out_of_window',
+        message: 'claim date is after the run day',
+        claimIds: [claim.id],
+      })
+    ),
+  ]
+  const rejectedSources = new Set(sources.map((source) => source.id))
+  const rejectedClaims = new Set(claims.map((claim) => claim.id))
+
+  return { ...withoutRejected(input, rejectedSources, rejectedClaims), gaps }
+}
+
+function isAfterDay(day: string | undefined, latestDay: string): boolean {
+  return day !== undefined && day > latestDay
+}
+
+function withoutRejected(
+  input: EvidenceSet,
+  rejectedSources: ReadonlySet<SourceId>,
+  rejectedClaims: ReadonlySet<ClaimId>
+): EvidenceSet {
   const sources = input.sources.filter((source) => !rejectedSources.has(source.id))
   const rejectedExcerpts = new Set(
     input.excerpts
@@ -304,12 +354,15 @@ export function applySourceFreshness(input: ApplySourceFreshnessInput): FreshEvi
       .map((excerpt) => excerpt.id)
   )
   const excerpts = input.excerpts.filter((excerpt) => !rejectedExcerpts.has(excerpt.id))
-  const claims = input.claims.flatMap((claim) => retainClaim(claim, rejectedExcerpts))
+  const claims = input.claims.flatMap((claim) =>
+    rejectedClaims.has(claim.id) ? [] : retainClaim(claim, rejectedExcerpts)
+  )
   const claimIds = new Set(claims.map((claim) => claim.id))
   const numericLinks = input.numericLinks.filter(
     (link) => claimIds.has(link.claimId) && !rejectedExcerpts.has(link.excerptId)
   )
-  return { sources, excerpts, claims, numericLinks, gaps }
+
+  return { sources, excerpts, claims, numericLinks }
 }
 
 // A source date is only usable with its provenance and confidence: freshness policy reads all

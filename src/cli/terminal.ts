@@ -1,8 +1,8 @@
 import type { Readable, Writable } from 'node:stream'
-import { AsyncLocalStorage } from 'node:async_hooks'
 import { spawn } from 'node:child_process'
 
 import { BRAND } from '@/core/brand'
+import { createScopedValue } from '@/core/scoped-value'
 
 const TERMINAL_ENV_NAMES = [
   'NO_COLOR',
@@ -24,7 +24,7 @@ const NO_FLAGS: TerminalFlags = { quiet: false, verbose: false, noColor: false }
 
 // Process-wide, one per process: the terminal the entry installed. A forwarded command runs inside
 // `withTerminal`, so the store scopes its terminal to that command's async context.
-const scopedTerminal = new AsyncLocalStorage<Terminal>()
+const scopedTerminal = createScopedValue<Terminal>()
 let processTerminal: Terminal | undefined
 
 export type TerminalEnv = Readonly<Partial<Record<TerminalEnvName, string>>>
@@ -72,7 +72,7 @@ export function installProcessTerminal(flags: TerminalFlags): Terminal {
 }
 
 export function currentTerminal(): Terminal {
-  const scoped = scopedTerminal.getStore()
+  const scoped = scopedTerminal.get()
 
   if (scoped !== undefined) {
     return scoped

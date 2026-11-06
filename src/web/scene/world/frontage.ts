@@ -16,6 +16,10 @@ const FRONT = Object.freeze({
   banner: { top: 8, inset: 11, h: 12 },
 })
 
+/** Where the frontage's face starts, in world px: the highest thing the bars floating over the
+ *  scene's top must leave clear. */
+export const FRONTAGE_FACE_TOP = NORTH.farTop - FRONT.rise + FRONT.banner.top
+
 /** One front of the shop row on the far pavement: its row, its place and its door. */
 export interface ShopSpan {
   readonly row: ShopRow

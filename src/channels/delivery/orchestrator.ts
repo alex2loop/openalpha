@@ -8,7 +8,14 @@ import type { AgentId, SessionId } from '@/core/ids'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { SessionActivity } from '@/core/types/session'
-import type { ResearchPlanDecision, ResearchPlanReview, Runner, RunResult } from '@/engine/api'
+import type {
+  ResearchPlanDecision,
+  ResearchPlanReview,
+  RunInput,
+  Runner,
+  RunResult,
+} from '@/engine/api'
+import { type AiLabeler, type PendingLabel, withAiLabel } from '@/channels/delivery/ai-label'
 import { AnswerUndelivered } from '@/channels/delivery/answer'
 import { buildAbortCallbackData } from '@/channels/delivery/callbacks'
 import {
@@ -17,18 +24,15 @@ import {
   formatPlanBlock,
   formatRunResultBody,
 } from '@/channels/delivery/format'
-import { resolveGapNote } from '@/channels/delivery/gap-note'
+import { composeLead } from '@/channels/delivery/lead'
 import { resolveOutboundMarkup, selectRenderer } from '@/channels/delivery/outbound/chunked-send'
 import { createReply } from '@/channels/delivery/reply'
-import { toReplyLead } from '@/channels/delivery/reply-context'
 import { type ChunkStream, createChunkStream } from '@/channels/delivery/stream'
 import { AppError, ChannelError, RunHalted } from '@/core/errors'
 import { observe } from '@/core/events'
 import { LOCAL_USER_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
-
-const LEAD_SEPARATOR = '\n\n'
 
 export interface OrchestratorDeps {
   readonly adapter: ChannelAdapter
@@ -43,6 +47,7 @@ export interface OrchestratorDeps {
   readonly intakeSignal: AbortSignal
   readonly sent: SentMessages
   readonly sessions: SessionActivity
+  readonly aiLabeler: AiLabeler
   /** Channel-owned deep-plan review; the prompted chat supplies the explicit start or cancel. */
   readonly reviewPlan: (chatId: string, input: ResearchPlanReview) => Promise<ResearchPlanDecision>
 }
@@ -55,6 +60,8 @@ interface ReplyTarget {
 
 export interface Exchange {
   readonly combined: InboundMessage
+  /** The line the operator typed, when `combined.text` is what a slash command handed the agent. */
+  readonly typedText?: string
   readonly sessionId: SessionId
   readonly agentId: AgentId
 }
@@ -74,8 +81,7 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
     locale,
     reviewPlan: (input) => deps.reviewPlan(combined.chatId, input),
   })
-  const startedAt = performance.now()
-  const prompts = watchApprovalPrompts(deps, combined)
+  const { startedAt, prompts, label } = beginExchange(deps, exchange)
   let result: RunResult
 
   // Inside the try: `typing` arms a repeating ping that only settleExchange clears.
@@ -93,7 +99,7 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
         sessionId,
         userId: LOCAL_USER_ID,
         channel: combined.channel,
-        userMessage: combined.text,
+        ...toTurnText(exchange),
         ...(lead === undefined ? {} : { lead }),
         onChunk: (event) => stream.onChunk(event),
       },
@@ -121,29 +127,25 @@ export async function runExchange(deps: OrchestratorDeps, exchange: Exchange): P
     useMarkup,
     afterApproval: prompts.prompted(),
     elapsedMs: performance.now() - startedAt,
+    label: result.completionCode === undefined && result.text.trim() !== '' ? label : undefined,
   })
 }
 
-// Batched messages arrive here as one: one lead per run, and a burst keeps only its last reply.
-async function composeLead(
-  deps: OrchestratorDeps,
-  exchange: Exchange
-): Promise<string | undefined> {
-  const gapNote = await resolveGapNote({
-    sessionId: exchange.sessionId,
-    sessions: deps.sessions,
-    gapNoteMs: deps.settings.gapNoteMs,
-    locale: deps.locale,
-    logger: deps.logger,
-  })
-  const replyLead = toReplyLead({
-    message: exchange.combined,
-    sent: deps.sent,
-    locale: deps.locale,
-  })
-  const parts = [gapNote, replyLead].filter((part) => part !== undefined)
+function beginExchange(deps: OrchestratorDeps, exchange: Exchange) {
+  return {
+    startedAt: performance.now(),
+    prompts: watchApprovalPrompts(deps, exchange.combined),
+    label: deps.aiLabeler(exchange.sessionId),
+  }
+}
 
-  return parts.length === 0 ? undefined : parts.join(LEAD_SEPARATOR)
+// What the model reads, and what the transcript keeps when a command handed the agent its text.
+function toTurnText(exchange: Exchange): Pick<RunInput, 'userMessage' | 'typedMessage'> {
+  const userMessage = exchange.combined.text
+
+  return exchange.typedText === undefined
+    ? { userMessage }
+    : { userMessage, typedMessage: exchange.typedText }
 }
 
 interface ApprovalPromptWatch {
@@ -309,6 +311,7 @@ interface Delivery {
   readonly afterApproval: boolean
   /** Wall time of the whole exchange, measured with performance.now(). */
   readonly elapsedMs: number
+  readonly label: PendingLabel | undefined
 }
 
 interface AnswerSend {
@@ -339,6 +342,7 @@ async function deliverResult(deps: OrchestratorDeps, delivery: Delivery): Promis
       useMarkup: delivery.useMarkup,
       afterApproval: delivery.afterApproval,
     })
+    delivery.label?.markDelivered()
   } catch (err: unknown) {
     throw new AnswerUndelivered(answer, err)
   }
@@ -371,10 +375,13 @@ function toFinalAnswer(locale: Locale, delivery: Delivery): FinalAnswer {
     anchorMessageId: combined.messageId,
     ...(combined.reactionRef === undefined ? {} : { reactionRef: combined.reactionRef }),
     body: plan === undefined ? body : `${formatPlanBlock(plan)}\n\n${body}`,
-    footer: formatChannelFooter(locale, result.totals, {
-      ...(metric === undefined ? {} : { contextPct: metric.contextPct }),
-      elapsedMs: delivery.elapsedMs,
-    }),
+    footer: withAiLabel(
+      delivery.label?.text,
+      formatChannelFooter(locale, result.totals, {
+        ...(metric === undefined ? {} : { contextPct: metric.contextPct }),
+        elapsedMs: delivery.elapsedMs,
+      })
+    ),
     completed: result.reason === 'completed',
   }
 }

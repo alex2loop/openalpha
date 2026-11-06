@@ -13,7 +13,7 @@ import type { CurrencyCode, MarketRef, PortfolioSegment, Region } from '@/tradin
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { MarketManifest, MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
-import { resetProfile, updateProfile } from '@/trading/features/profile/merge'
+import { resetProfile, seedRiskPolicy, updateProfile } from '@/trading/features/profile/merge'
 import {
   applyPinnedTargets,
   DEFAULT_SEED_WEIGHT,
@@ -73,6 +73,15 @@ export function createProfileService(deps: ProfileServiceDeps): ProfileService {
     homeSegment: () => homeSegmentOf(deps),
 
     updateSegment: (options) => saveSegment(deps, options),
+
+    async defaultTargets(options) {
+      const current = (await resolve(deps, options)).profile
+      const context = contextOf(deps)
+      const on = new Set(options.on)
+      const off = new Set(context.segments.map(({ id }) => id).filter((id) => !on.has(id)))
+
+      return seedRiskPolicy({ current, context, riskLevel: current.riskLevel, off }).segmentTargets
+    },
 
     updateSegmentPolicy: (options) => saveSegmentPolicy(deps, options),
 

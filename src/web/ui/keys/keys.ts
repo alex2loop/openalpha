@@ -52,6 +52,8 @@ interface KeyContext {
 interface ShortcutRow {
   readonly caps: readonly string[]
   readonly does: MessageKey
+  /** What the web edition says in its place, where the daemon's wording names something it lacks. */
+  readonly webDoes?: MessageKey
 }
 
 /** The key that opens the list, printed on the header's button. */
@@ -102,7 +104,11 @@ export const SHORTCUT_ROWS: readonly ShortcutRow[] = Object.freeze([
     ],
     does: 'ui.office.keys.focusInput',
   },
-  { caps: Object.keys(TAB_KEYS), does: 'ui.office.keys.tabs' },
+  {
+    caps: Object.keys(TAB_KEYS),
+    does: 'ui.office.keys.tabs',
+    webDoes: 'ui.office.edition.shortcuts.tabs',
+  },
   { caps: [BACK_KEY.toUpperCase()], does: 'ui.office.keys.back' },
   { caps: [BELL_KEY.toUpperCase()], does: 'ui.office.keys.bell' },
   { caps: [JOBS_KEY.toUpperCase()], does: 'ui.office.keys.jobs' },

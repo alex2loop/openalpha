@@ -39,8 +39,10 @@
   gap: var(--s1);
 }
 
+/* A grid cell does not stretch it: only the box and its words take the click. */
 .form-check {
   display: inline-flex;
+  justify-self: start;
   align-items: center;
   gap: 6px;
   color: var(--ink);

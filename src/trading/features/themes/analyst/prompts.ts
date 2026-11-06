@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto'
-
 import type { Locale } from '@/core/types/locale'
 import type { CompanyFacts } from '@/trading/features/themes/chain/company-facts'
 import type {
@@ -10,6 +8,7 @@ import type {
   ThemeBundle,
   ThemeRead,
 } from '@/trading/features/themes/types'
+import { sha256Hex } from '@/core/utils/hash'
 import { languageName } from '@/engine/api'
 import {
   MAXIMUM_CITATIONS,
@@ -114,22 +113,19 @@ const COMPANY_TASK = [
   'it is left to earn.',
 ].join('\n')
 
-export const THEME_PROMPT_VERSION = createHash('sha256')
-  .update(
-    [
-      THEME_INSTRUCTIONS,
-      UPDATE_TASK,
-      DISCOVERY_TASK,
-      SECTOR_TASK,
-      COMPANY_TASK,
-      THEME_UPDATE_REPLY.shape,
-      THEME_DISCOVERY_REPLY.shape,
-      THEME_SECTOR_REPLY.shape,
-      THEME_COMPANY_REPLY.shape,
-    ].join('\n')
-  )
-  .digest('hex')
-  .slice(0, PROMPT_VERSION_HEX)
+export const THEME_PROMPT_VERSION = sha256Hex(
+  [
+    THEME_INSTRUCTIONS,
+    UPDATE_TASK,
+    DISCOVERY_TASK,
+    SECTOR_TASK,
+    COMPANY_TASK,
+    THEME_UPDATE_REPLY.shape,
+    THEME_DISCOVERY_REPLY.shape,
+    THEME_SECTOR_REPLY.shape,
+    THEME_COMPANY_REPLY.shape,
+  ].join('\n')
+).slice(0, PROMPT_VERSION_HEX)
 
 function renderItems(items: readonly EvidenceItem[]): readonly string[] {
   return items.map((item) => `${item.id} [${item.day}] ${item.text}`)

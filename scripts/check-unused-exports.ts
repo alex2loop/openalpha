@@ -39,7 +39,7 @@ if (ENTRY_FILES.length === 0) {
 // cross-module consumer yet is the API being wider than today's callers, not dead code. A facade
 // that is not named `api.ts` declares itself by waiving Biome's barrel rule, so the waiver is read
 // rather than a second list of paths being kept in step with it.
-const BARREL_FILES: ReadonlySet<string> = new Set(['api.ts', 'index.ts'])
+const BARREL_FILES: ReadonlySet<string> = new Set(['api.ts', 'node-api.ts', 'index.ts'])
 const BARREL_WAIVER = 'lint/performance/noBarrelFile'
 
 // Public facades AGENTS.md keeps deliberately callerless. `path#name`.

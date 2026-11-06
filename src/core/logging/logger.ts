@@ -5,13 +5,9 @@ import type { ResolvedLog } from '@/core/config/resolve'
 import type { AgentId } from '@/core/ids'
 import { ConfigError } from '@/core/errors'
 import { isPathId, agentId as toAgentId } from '@/core/ids'
+import { silentLogger } from '@/core/logging/silent-logger'
 import { prepareAgentLogFile } from '@/core/security/agent-directories'
-import {
-  formatErrForLog,
-  isSensitiveKey,
-  REDACT_FIELD_PATHS,
-  scrubCredentials,
-} from '@/core/security/credentials'
+import { isSensitiveKey, REDACT_FIELD_PATHS, scrubCredentials } from '@/core/security/credentials'
 
 import type { AgentLogRouter, AgentLogSink } from './agent-router'
 import type { LogDestinationHooks } from './files'
@@ -19,8 +15,8 @@ import type { OwnedLogDestination } from './types'
 import { AGENT_LOG_DROP_POLICY, createAgentLogRouter } from './agent-router'
 import { currentCorrelation } from './correlation'
 import { createOwnedLogDestination, STDERR_LOG_STREAM } from './destination'
+import { scrubLogFields } from './scrub'
 
-const LOG_SCRUB_MAX_DEPTH = 8
 const LOGGER_SHUTDOWN_MS = 2_000
 
 // scrubLogValue has already turned every Error into a formatErrForLog payload, so pino's stock err
@@ -94,22 +90,6 @@ interface LifecyclePlan {
   readonly closeDestination?: boolean
   readonly onTerminal: () => void
   readonly onComplete?: () => void
-}
-
-export const silentLogger: Logger = {
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  info() {},
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  warn() {},
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  error() {},
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  fatal() {},
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: intentional no-op
-  debug() {},
-  child(): Logger {
-    return this
-  },
 }
 
 export async function createLoggerResource(
@@ -398,64 +378,4 @@ function writeIfAvailable(isAvailable: () => boolean, write: () => void): void {
   if (isAvailable()) {
     write()
   }
-}
-
-function scrubLogFields(fields?: Record<string, unknown>): Record<string, unknown> {
-  if (fields === undefined) {
-    return {}
-  }
-
-  const scrubbed = scrubLogValue(fields, new WeakSet(), 0)
-  return isLogRecord(scrubbed) ? scrubbed : {}
-}
-
-function scrubLogValue(value: unknown, seen: WeakSet<object>, depth: number): unknown {
-  if (typeof value === 'string') {
-    return scrubCredentials(value)
-  }
-
-  if (value instanceof Error) {
-    return scrubLogValue(formatErrForLog(value), seen, depth)
-  }
-
-  if (depth >= LOG_SCRUB_MAX_DEPTH) {
-    return '[Truncated]'
-  }
-
-  if (typeof value !== 'object' || value === null) {
-    return value
-  }
-
-  if (seen.has(value)) {
-    return '[Circular]'
-  }
-
-  if (!(Array.isArray(value) || isLogRecord(value))) {
-    return '[Unsupported]'
-  }
-
-  seen.add(value)
-  try {
-    if (Array.isArray(value)) {
-      return value.map((item) => scrubLogValue(item, seen, depth + 1))
-    }
-
-    const entries: [string, unknown][] = []
-    for (const [key, item] of Object.entries(value)) {
-      entries.push([key, isSensitiveKey(key) ? '[REDACTED]' : scrubLogValue(item, seen, depth + 1)])
-    }
-
-    return Object.fromEntries(entries)
-  } finally {
-    seen.delete(value)
-  }
-}
-
-function isLogRecord(value: unknown): value is Record<string, unknown> {
-  if (value === null || typeof value !== 'object') {
-    return false
-  }
-
-  const prototype = Object.getPrototypeOf(value)
-  return prototype === Object.prototype || prototype === null
 }

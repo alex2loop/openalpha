@@ -10,14 +10,12 @@ export type {
   AgentDefinition,
   AgentDefinitionContext,
 } from '@/engine/agents/define'
-export type { BuildUserAgentsDeps, UserAgentSource } from '@/engine/agents/user'
 export type { AttemptIdentity, AttemptRecorder } from '@/engine/budget/attempt-settlement'
 export type { RunProgressMessage } from '@/engine/events'
 export type { ApprovalManager } from '@/engine/hooks/approval'
 export type { SessionPersistenceHooks, SessionSink } from '@/engine/hooks/persistence'
 export type { UserPreferencesHooks } from '@/engine/hooks/user-preferences'
 export type { TodoStatus, TodoStep } from '@/engine/loop/todo'
-export type { McpConnection } from '@/engine/mcp/connect'
 export type { McpSessionLifecycle, McpToolInvokerDeps } from '@/engine/mcp/invoke'
 export type { McpJobs } from '@/engine/mcp/jobs/jobs'
 export type { McpJobRefusal, McpJobReply } from '@/engine/mcp/jobs/types'
@@ -128,7 +126,7 @@ export type {
   ToolPreparation,
 } from '@/engine/types/run'
 export type { RunOnceDeps, RunOnceOptions } from '@/engine/types/run-deps'
-export type { WorkflowInvocation, WorkflowRunDeps, WorkflowStop } from '@/engine/workflows/run'
+export type { WorkflowInvocation, WorkflowRunDeps } from '@/engine/workflows/run'
 export type { Workflow, WorkflowContext, WorkflowStep } from '@/engine/workflows/types'
 export type {
   WorkspaceCleanupAgentResult,
@@ -147,7 +145,6 @@ export {
 } from '@/engine/agents/builder'
 export { buildAgentDefinition, createAgent } from '@/engine/agents/define'
 export { DEEP_RESEARCHER_ID, entryAgentIds, isEntryAgent } from '@/engine/agents/registry'
-export { buildUserAgents, readUserAgents, userAgentFile, userAgentsDir } from '@/engine/agents/user'
 export { createDelegationQuota } from '@/engine/budget/delegation-quota'
 export { createBudget, createConfiguredRunBudget } from '@/engine/budget/run-budget'
 export { createBudgetSlicesWithin } from '@/engine/budget/slices'
@@ -177,6 +174,7 @@ export {
 } from '@/engine/hooks/user-preferences'
 export { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
 export { isSpendCapHalt, PAUSED_MESSAGE } from '@/engine/loop/preflight'
+export { providerReasonOf } from '@/engine/loop/provider-reason'
 export { withoutResearchDepth } from '@/engine/loop/run-text'
 export {
   formatTodoBlock,
@@ -186,7 +184,6 @@ export {
   toTodoSteps,
 } from '@/engine/loop/todo'
 export { isToolDetailComplete, TOOL_DETAIL_MAX_LENGTH } from '@/engine/loop/tools/presentation'
-export { connectServer } from '@/engine/mcp/connect'
 export {
   ANALYST_AGENT_NAME,
   ANSWERED_REPLY_KIND,
@@ -204,7 +201,11 @@ export {
 export { isClientApprovalWithheld, toAdvertisedTools } from '@/engine/mcp/serve-core'
 export { buildHostSkill } from '@/engine/mcp/skill'
 export { toAgentResearchResult } from '@/engine/research/agent-result'
-export { RESEARCH_QUERY_MAX_CHARS } from '@/engine/research/contracts'
+export {
+  RESEARCH_CRAWLER_ID,
+  RESEARCH_PLANNER_ID,
+  RESEARCH_QUERY_MAX_CHARS,
+} from '@/engine/research/contracts'
 export { toResearchIssueGroups } from '@/engine/research/display/issue-summary'
 export {
   RESEARCH_FRESHNESS_FIELD_KEYS,
@@ -219,20 +220,11 @@ export { isResearchProgress } from '@/engine/research/events'
 export { parseResearchJson, toResearchOutputContract } from '@/engine/research/evidence/parse'
 export { composeAbort, TIMEOUT_ABORT } from '@/engine/run-registry'
 export { engineProvider } from '@/engine/services'
-export { resolveSkillPlatform } from '@/engine/skills/availability'
-export { createSkillCatalog } from '@/engine/skills/catalog'
-export { ensureSkillsDirectory, resolveSkillsDir } from '@/engine/skills/dirs'
+export { currentSkillPlatform, resolveSkillPlatform } from '@/engine/skills/availability'
+export { createEmbeddedSkillCatalog } from '@/engine/skills/embedded-catalog'
 export { parseFrontmatter } from '@/engine/skills/frontmatter'
-export { readSkillMeta, readSkillName, toSkillBody } from '@/engine/skills/load'
-export { readLock, resolveLockPath, writeLock } from '@/engine/skills/lockfile'
+export { readSkillMeta, readSkillName, toSkillBody } from '@/engine/skills/skill-text'
 export { evaluateSkillContent, isAllowed } from '@/engine/skills/validate'
 export { APPROVAL_DECISIONS } from '@/engine/types/approval'
 export { critical, isRetryableHalt } from '@/engine/types/run'
-export { addWorkflow, loadUserWorkflows, loadWorkflowToml } from '@/engine/workflows/discover'
-export { runWorkflow, startScheduledWorkflows } from '@/engine/workflows/run'
-export {
-  applyWorkspaceScratchCleanup,
-  planWorkspaceScratchCleanup,
-  pruneExpiredRunCaches,
-  pruneExpiredWorkspaceTmp,
-} from '@/engine/workspace/cleanup'
+export { runWorkflow } from '@/engine/workflows/run'

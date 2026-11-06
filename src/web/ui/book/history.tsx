@@ -3,11 +3,12 @@ import { useEffect } from 'preact/hooks'
 
 import type { LedgerEntryWire } from '@/app/server/wire/money'
 import { ROUTES } from '@/web/api/routes'
+import { offers } from '@/web/state/edition'
 import { state } from '@/web/state/session'
 import { clearFlashedEntry, flashedEntry, type LedgerKind } from '@/web/state/trade'
 import { boardScaleNotes } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
-import { EmptyBookActions } from '@/web/ui/book/empty-actions'
+import { EmptyBookActions, emptyBookKey } from '@/web/ui/book/empty-actions'
 import { LedgerRow } from '@/web/ui/book/ledger-row'
 import { openReconcileDialog } from '@/web/ui/book/reconcile-dialog'
 import { useLedger } from '@/web/ui/book/use-ledger'
@@ -53,19 +54,13 @@ export function History() {
     (entry) => filter.value === 'all' || entry.kind === filter.value
   )
   const shown = kept.slice(page.value * LEDGER_PAGE, (page.value + 1) * LEDGER_PAGE)
+  const isBookEmpty =
+    ledger.rows.value.length === 0 && ledger.failure.value === undefined && !ledger.isLoading.value
 
   return (
     <section class="block">
       <BlockHead title={tr('ui.office.book.history')} colour="gray" icon={<HistoryIcon />} />
-      <div class="step-actions">
-        <Button size="small" onClick={() => openTradeDialog()}>
-          {tr('ui.office.common.recordTrade')}
-        </Button>
-        <Button size="small" onClick={openReconcileDialog}>
-          {tr('ui.office.reconcile.open')}
-        </Button>
-        <FilterMenu filter={filter} page={page} />
-      </div>
+      <LedgerTools filter={filter} page={page} isEmpty={isBookEmpty} />
       <LedgerBody
         ledger={ledger}
         shown={shown}
@@ -74,6 +69,36 @@ export function History() {
       />
       <LedgerPager ledger={ledger} total={kept.length} page={page} />
     </section>
+  )
+}
+
+interface LedgerToolsProps {
+  readonly filter: Signal<KindFilter>
+  readonly page: Signal<number>
+  readonly isEmpty: boolean
+}
+
+// A loaded, empty book has nothing to filter, and its own line already offers the first trade; a
+// venue's reconcile still stands, since it is how a connected exchange's trades come in.
+function LedgerTools({ filter, page, isEmpty }: LedgerToolsProps) {
+  if (isEmpty && !offers('venues')) {
+    return null
+  }
+
+  return (
+    <div class="step-actions">
+      {!isEmpty && (
+        <Button size="small" onClick={() => openTradeDialog()}>
+          {tr('ui.office.common.recordTrade')}
+        </Button>
+      )}
+      {offers('venues') && (
+        <Button size="small" onClick={openReconcileDialog}>
+          {tr('ui.office.reconcile.open')}
+        </Button>
+      )}
+      {!isEmpty && <FilterMenu filter={filter} page={page} />}
+    </div>
   )
 }
 
@@ -149,15 +174,12 @@ function EmptyLedger({
   }
 
   // Loaded rows with none of this kind say so; the book itself is empty only when nothing loaded.
-  const key =
-    isFiltered && ledger.rows.value.length > 0
-      ? 'ui.office.book.filterEmpty'
-      : 'ui.office.book.empty'
+  const isBookEmpty = !isFiltered || ledger.rows.value.length === 0
 
   return (
     <>
-      <p class="meta">{tr(key)}</p>
-      {key === 'ui.office.book.empty' && <EmptyBookActions />}
+      <p class="empty-note">{tr(isBookEmpty ? emptyBookKey() : 'ui.office.book.filterEmpty')}</p>
+      {isBookEmpty && <EmptyBookActions />}
     </>
   )
 }

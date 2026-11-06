@@ -1,4 +1,5 @@
-// Public API of persistence/. Other modules import from here — never from persistence/ internals.
+// Portable public API of persistence/: nothing here reaches a Bun or Node builtin, so the browser
+// bundle can import it. Other modules import from here — never from persistence/ internals.
 // Store factories are private except for consumer-owned interfaces bound by the composition root.
 export type {
   PairingApproveResult,
@@ -10,6 +11,9 @@ export type {
   SessionRouter,
 } from '@/core/types/session'
 export type { Dialect, DialectName, FtsSearch, Storage, Transaction } from '@/core/types/storage'
+export type { OpenedPersistence } from '@/persistence/connection'
+export type { DatabaseFiles } from '@/persistence/engines/sqlite-wasm-files'
+export type { ConfigOverrideStore } from '@/persistence/stores/config-override'
 export type {
   BrowserSessionRow,
   BrowserSessionStore,
@@ -34,19 +38,14 @@ export type {
   StoredSessionMessage,
   TranscriptMessage,
 } from '@/persistence/types'
+export { sqliteDialect } from '@/persistence/engines/sqlite-dialect'
 export {
-  BACKUPS_SUBDIR,
-  backupAndPrune,
-  backupSqlite,
-  backupTarget,
-  newestBackupAt,
-} from '@/persistence/backup'
-export {
-  type OpenedPersistence,
-  openPersistence,
-  resetPersistence,
-} from '@/persistence/connection'
-export { restoreSqlite } from '@/persistence/engines/sqlite'
+  DB_LOCK_NAME,
+  type OpenSqliteWasmResult,
+  openSqliteWasm,
+  type SqliteWasmOptions,
+} from '@/persistence/engines/sqlite-wasm'
+export { isUnreadableDatabase, SchemaAheadError, StorageFullError } from '@/persistence/errors'
 export { MIGRATIONS } from '@/persistence/migrations/registry.generated'
 export {
   hasTable,
@@ -70,6 +69,7 @@ export { drainPages, RETENTION_DELETE_LIMIT } from '@/persistence/retention-page
 export { createPersistenceProvider } from '@/persistence/services'
 export { bindChunkSize } from '@/persistence/sql/syntax'
 export { createChannelInbox } from '@/persistence/stores/channel/inbox'
+export { createConfigOverrideStore } from '@/persistence/stores/config-override'
 export { stampLastMessages } from '@/persistence/stores/session/shown-rows'
 export {
   ALL_TABLE_NAMES,

@@ -1,7 +1,15 @@
 import type { JSX } from 'preact'
 import { signal } from '@preact/signals'
+import { useContext } from 'preact/hooks'
 
-import { pluralKey } from '@/i18n'
+import type { SectionProps } from '@/web/ui/settings/row'
+import { type MessageKey, pluralKey } from '@/i18n'
+import { DataPanel } from '@/web/edition/data-panel'
+import { ErrorLogPanel } from '@/web/edition/error-log-panel'
+import { KeysPanel } from '@/web/edition/keys-panel'
+import { ModelChains } from '@/web/edition/model-chains'
+import { VenuesPanel } from '@/web/edition/venues-panel'
+import { isAnalysisOnly } from '@/web/state/edition'
 import {
   pendingRestart,
   SECTION_TITLES,
@@ -23,6 +31,7 @@ import {
   TargetIcon,
   TrendIcon,
   UserIcon,
+  WarningIcon,
 } from '@/web/ui/kit/icons'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { AdvancedSection } from '@/web/ui/settings/advanced'
@@ -33,6 +42,7 @@ import { ProvidersSection } from '@/web/ui/settings/credentials/providers'
 import { ToolsSection } from '@/web/ui/settings/credentials/tools'
 import { DataSection } from '@/web/ui/settings/data-section'
 import { DisplaySection } from '@/web/ui/settings/display'
+import { type DraftBag, DraftBagContext } from '@/web/ui/settings/draft'
 import { MemorySection } from '@/web/ui/settings/memory'
 import { ProfileSection } from '@/web/ui/settings/profile-forms'
 import { openRestartDialog } from '@/web/ui/settings/restart'
@@ -56,46 +66,97 @@ const SECTION_TILES: Readonly<
   exchanges: { colour: 'green', icon: <TrendIcon /> },
   tools: { colour: 'teal', icon: <TargetIcon /> },
   data: { colour: 'teal', icon: <PlugIcon /> },
+  errorLog: { colour: 'pink', icon: <WarningIcon /> },
   display: { colour: 'gray', icon: <EyeIcon /> },
   advanced: { colour: 'gray', icon: <LockIcon /> },
+})
+
+// What the web edition keeps of Cài đặt: the profile, the keys, the model tiers, the hand-traded
+// venues, the data on this device, its error log and the display. The rest (memory, schedules, agents, channels,
+// tools, the daemon's own health) needs a host the page does not have.
+const WEB_SECTIONS: ReadonlySet<SettingsSection> = new Set([
+  'profile',
+  'providers',
+  'agents',
+  'exchanges',
+  'data',
+  'errorLog',
+  'display',
+])
+// The web edition's worker is the only one that pushes its log to the page.
+const WEB_ONLY_SECTION: SettingsSection = 'errorLog'
+const WEB_SECTION_TITLES: Readonly<Partial<Record<SettingsSection, MessageKey>>> = Object.freeze({
+  providers: 'ui.office.edition.keys.title',
+  agents: 'ui.office.edition.tiers.title',
+  exchanges: 'ui.office.edition.venues.title',
+  data: 'ui.office.edition.data.title',
 })
 
 // The section last open, so the way back from a form lands where the operator left.
 const chosen = signal<SettingsSection>('profile')
 
-/** Opens Cài đặt on `section`, or on the one last open. */
-export function openSettings(section?: SettingsSection): void {
+/** Opens Cài đặt on `section`, or on the one last open. `drafts` is the bag of the Cài đặt a
+ *  question replaced, so what was typed there comes back. */
+export function openSettings(section?: SettingsSection, drafts: DraftBag = {}): void {
   if (section !== undefined) {
     chosen.value = section
   }
 
-  loadUpdate(new AbortController().signal).catch(() => undefined)
+  if (!isAnalysisOnly.value) {
+    loadUpdate(new AbortController().signal).catch(() => undefined)
+  }
+
   openModal({
     title: tr('ui.office.settings.title'),
-    body: <SettingsBody />,
+    body: (
+      <DraftBagContext.Provider value={drafts}>
+        <SettingsBody />
+      </DraftBagContext.Provider>
+    ),
     footer: <SettingsFooter />,
     wide: true,
   })
 }
 
-function reopen(): void {
+function reopenFresh(): void {
   openSettings()
+}
+
+// Where a form that replaced Cài đặt leads back: the same Cài đặt, with what was typed in it.
+function useReopenKeepingDrafts(): () => void {
+  const drafts = useContext(DraftBagContext)
+
+  return () => openSettings(undefined, drafts)
 }
 
 function openSection(section: SettingsSection): void {
   chosen.value = section
 }
 
+function sectionsShown(): readonly SettingsSection[] {
+  return SETTINGS_SECTIONS.filter((section) =>
+    isAnalysisOnly.value ? WEB_SECTIONS.has(section) : section !== WEB_ONLY_SECTION
+  )
+}
+
+function titleOf(section: SettingsSection): MessageKey {
+  return (isAnalysisOnly.value ? WEB_SECTION_TITLES[section] : undefined) ?? SECTION_TITLES[section]
+}
+
 function SettingsBody() {
+  const back = useReopenKeepingDrafts()
+  const shown = sectionsShown()
+  const open = shown.includes(chosen.value) ? chosen.value : (shown[0] ?? chosen.value)
+
   return (
     <div class="settings">
       <nav class="settings-nav" aria-label={tr('ui.office.settings.title')}>
-        {SETTINGS_SECTIONS.map((section) => (
+        {shown.map((section) => (
           <button
             key={section}
             type="button"
-            class={section === chosen.value ? 'is-on' : ''}
-            aria-current={section === chosen.value ? 'page' : undefined}
+            class={section === open ? 'is-on' : ''}
+            aria-current={section === open ? 'page' : undefined}
             onClick={() => {
               chosen.value = section
             }}
@@ -103,20 +164,24 @@ function SettingsBody() {
             <span class="tile" style={`--c: var(--tc-${SECTION_TILES[section].colour})`}>
               {SECTION_TILES[section].icon}
             </span>
-            {tr(SECTION_TITLES[section])}
+            {tr(titleOf(section))}
           </button>
         ))}
       </nav>
       <div class="settings-form">
-        <UpdateStrip reopen={reopen} />
-        <h3 class="settings-section">{tr(SECTION_TITLES[chosen.value])}</h3>
-        <SectionView section={chosen.value} />
+        <UpdateStrip reopen={back} />
+        <h3 class="settings-section">{tr(titleOf(open))}</h3>
+        <SectionView section={open} reopen={back} />
       </div>
     </div>
   )
 }
 
-function SectionView({ section }: { readonly section: SettingsSection }) {
+function SectionView({ section, reopen }: SectionProps & { readonly section: SettingsSection }) {
+  if (isAnalysisOnly.value) {
+    return <WebSectionView section={section} reopen={reopen} />
+  }
+
   switch (section) {
     case 'profile':
       return <ProfileSection reopen={reopen} />
@@ -143,10 +208,34 @@ function SectionView({ section }: { readonly section: SettingsSection }) {
   }
 }
 
+function WebSectionView({ section, reopen }: SectionProps & { readonly section: SettingsSection }) {
+  switch (section) {
+    case 'providers':
+      return <KeysPanel reopen={reopen} />
+    case 'agents':
+      return <ModelChains reopen={reopen} />
+    case 'exchanges':
+      return <VenuesPanel reopen={reopen} />
+    case 'data':
+      return <DataPanel reopen={reopen} />
+    case 'errorLog':
+      return <ErrorLogPanel />
+    case 'display':
+      return <DisplaySection reopen={reopen} />
+    default:
+      return <ProfileSection reopen={reopen} />
+  }
+}
+
 // What waits for a restart, with the way to do it; with nothing pending, how saving works and a
-// plain restart.
+// plain restart. The web edition has no daemon to restart: its own restarts are asked where they
+// are made.
 function SettingsFooter() {
   const rows = pendingRestart.value
+
+  if (isAnalysisOnly.value) {
+    return <Button onClick={closeModal}>{tr('ui.office.common.close')}</Button>
+  }
 
   if (rows.length === 0) {
     return (
@@ -154,7 +243,7 @@ function SettingsFooter() {
         <div class="dialog-foot-left">
           <span class="dialog-note">{tr('ui.office.settings.footNote')}</span>
         </div>
-        <Button onClick={() => openRestartDialog({ onBack: reopen })}>
+        <Button onClick={() => openRestartDialog({ onBack: reopenFresh })}>
           {tr('ui.office.restart.title')}
         </Button>
         <Button onClick={closeModal}>{tr('ui.office.common.close')}</Button>
@@ -180,7 +269,7 @@ function SettingsFooter() {
         </span>
       </div>
       <Button onClick={closeModal}>{tr('ui.office.settings.later')}</Button>
-      <Button onClick={() => openRestartDialog({ onBack: reopen })}>
+      <Button onClick={() => openRestartDialog({ onBack: reopenFresh })}>
         {tr('ui.office.settings.restartCta')}
       </Button>
     </>

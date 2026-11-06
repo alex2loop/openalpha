@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { z } from 'zod'
 
 import type { JsonOutputContract, ProviderModelId } from '@/core/llm'
@@ -104,7 +102,7 @@ async function attemptChild<T>(attempt: ChildAttempt<T>): Promise<RunResult> {
   const { input, observation, allowedTools } = attempt
   const runInput: RunInput = {
     agentId: agentId(input.role),
-    sessionId: sessionId(randomUUID()),
+    sessionId: sessionId(crypto.randomUUID()),
     userId: input.invocation.userId,
     channel: input.invocation.channel,
     userMessage: input.prompt,

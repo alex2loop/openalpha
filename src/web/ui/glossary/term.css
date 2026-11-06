@@ -1,0 +1,60 @@
+/* A word with a card behind it: a quiet dotted underline that darkens on hover. */
+.term {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted var(--ink3);
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.term:hover {
+  text-decoration-color: var(--ink);
+}
+
+/* The "?" after a heading that has a group definition. */
+.term-help {
+  display: inline-flex;
+  vertical-align: text-bottom;
+  margin-left: var(--s0);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink3);
+  cursor: help;
+}
+
+.term-help:hover {
+  color: var(--ink);
+}
+
+.term-help .icon {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.term-card {
+  display: grid;
+  justify-items: start;
+  gap: var(--s1);
+  padding: var(--s2);
+  color: var(--ink);
+  font: var(--typeBody);
+  font-weight: var(--weightRegular);
+  text-align: left;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.term-name,
+.term-text {
+  margin: 0;
+}
+
+.term-name {
+  font: var(--typeCardTitle);
+}

@@ -1,9 +1,12 @@
 import { useSignal } from '@preact/signals'
 
-import type { TradingNewsItemWire } from '@/app/server/wire/trading'
+import type { TradingNewsItemWire, TradingNewsResponse } from '@/app/server/wire/trading'
 import { formatDay } from '@/i18n'
+import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { useBlock } from '@/web/state/block'
+import { useBlockRead } from '@/web/state/block'
+import { isAnalysisOnly } from '@/web/state/edition'
+import { marketRegions } from '@/web/state/market-tab'
 import { locale, state } from '@/web/state/session'
 import { buildDayKey } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
@@ -18,10 +21,10 @@ interface DayGroup {
 }
 
 /** Tin tức: every headline the daemon serves for the region, read once on open, grouped by day on
- *  the daemon's calendar and filtered in place. */
+ *  the daemon's calendar and filtered in place. A region this edition does not serve says so. */
 export function NewsList({ region }: { readonly region: string }) {
-  const reading = useBlock(ROUTES.news, { query: { region } })
-  const query = useSignal('')
+  const reading = useBlockRead((abort) => loadNews(region, abort))
+  const label = marketRegions.value.find((choice) => choice.region === region)?.label ?? region
 
   return (
     <BlockFrame
@@ -31,24 +34,48 @@ export function NewsList({ region }: { readonly region: string }) {
       reading={reading}
       failedText={tr('ui.office.news.failed')}
     >
-      {(news) =>
-        news.items.length === 0 ? (
-          <p class="empty-note">{tr('ui.office.news.none')}</p>
-        ) : (
-          <>
-            <input
-              type="search"
-              class="market-filter"
-              placeholder={tr('ui.office.news.filter')}
-              aria-label={tr('ui.office.news.filter')}
-              value={query.value}
-              onInput={(event) => (query.value = event.currentTarget.value)}
-            />
-            <NewsGroups items={news.items} query={query.value.trim()} />
-          </>
-        )
-      }
+      {(news) => (news === null ? <Unserved region={label} /> : <NewsBody news={news} />)}
     </BlockFrame>
+  )
+}
+
+// The web edition's routes lose the feeds a page cannot read, so a region left with none answers
+// not found: not served, never a failed read. A daemon's not found stays a failure.
+async function loadNews(region: string, abort: AbortSignal): Promise<TradingNewsResponse | null> {
+  try {
+    return await getJson(ROUTES.news, { query: { region }, signal: abort })
+  } catch (error: unknown) {
+    if (isAnalysisOnly.value && error instanceof ApiFailure && error.code === 'not_found') {
+      return null
+    }
+
+    throw error
+  }
+}
+
+function Unserved({ region }: { readonly region: string }) {
+  return <p class="empty-note">{tr('ui.office.news.unserved', { region })}</p>
+}
+
+function NewsBody({ news }: { readonly news: TradingNewsResponse }) {
+  const query = useSignal('')
+
+  if (news.items.length === 0) {
+    return <p class="empty-note">{tr('ui.office.news.none')}</p>
+  }
+
+  return (
+    <>
+      <input
+        type="search"
+        class="market-filter"
+        placeholder={tr('ui.office.news.filter')}
+        aria-label={tr('ui.office.news.filter')}
+        value={query.value}
+        onInput={(event) => (query.value = event.currentTarget.value)}
+      />
+      <NewsGroups items={news.items} query={query.value.trim()} />
+    </>
   )
 }
 
@@ -79,18 +106,24 @@ function NewsGroups({
       {toDayGroups(shown, timeZone).map((group) => (
         <section key={group.day}>
           <h3 class="sub-head">{dayLabel(group.day, today)}</h3>
-          <NewsItems items={group.items} />
+          <NewsItems items={group.items} isDated />
         </section>
       ))}
     </>
   )
 }
 
-function NewsItems({ items }: { readonly items: readonly TradingNewsItemWire[] }) {
+function NewsItems({
+  items,
+  isDated = false,
+}: {
+  readonly items: readonly TradingNewsItemWire[]
+  readonly isDated?: boolean
+}) {
   return (
     <>
       {items.map((item) => (
-        <NewsItem key={item.url} item={item} />
+        <NewsItem key={item.url} item={item} isDated={isDated} />
       ))}
     </>
   )

@@ -23,6 +23,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { foldBook } from '@/trading/features/ledger/book'
 import { isResolvedDraft } from '@/trading/features/ledger/draft'
 import { assertFxRateUsed } from '@/trading/features/ledger/fx-used'
+import { assertHoldable } from '@/trading/features/ledger/holdable'
 import { resolveDraft } from '@/trading/features/ledger/resolve'
 import {
   assertLedgerValid,
@@ -128,6 +129,7 @@ export async function mutateLedger(
   const transaction = await finalizeTransaction(deps, { draft, signal: mutation.signal })
 
   assertVenuesKnown(transaction, venueManifestOf(deps))
+  await assertHoldable(deps, { transaction, signal: mutation.signal })
   await assertTradePrice(deps, {
     transaction,
     typedPrice: mutation.typedPrice,
@@ -262,8 +264,7 @@ async function findReplay(
 
   if (
     isResolvedDraft(draft) &&
-    existing.requestFingerprint !==
-      (await buildRequestFingerprint({ draft, signal: mutation.signal }))
+    existing.requestFingerprint !== buildRequestFingerprint({ draft, signal: mutation.signal })
   ) {
     throw new ConflictError(
       `idempotency key ${mutation.idempotencyKey} was reused with a different request`
@@ -278,7 +279,7 @@ async function recordEntry(
   mutation: ResolvedRecord,
   assertValid: AssertLedgerValid
 ): Promise<RecordedEntry> {
-  const requestFingerprint = await buildRequestFingerprint({
+  const requestFingerprint = buildRequestFingerprint({
     draft: mutation.draft,
     signal: mutation.signal,
   })
@@ -292,6 +293,7 @@ async function recordEntry(
   }
 
   assertVenuesKnown(entry.transaction, venueManifestOf(deps))
+  await assertHoldable(deps, { transaction: entry.transaction, signal: mutation.signal })
   await assertTradePrice(deps, {
     transaction: entry.transaction,
     typedPrice: mutation.typedPrice,

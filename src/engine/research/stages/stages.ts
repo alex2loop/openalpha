@@ -20,6 +20,7 @@ import {
   MAX_GAPS,
   MAX_RETRIEVAL_ATTEMPTS,
   RESEARCH_CRAWLER_ID,
+  RESEARCH_PLANNER_ID,
 } from '../contracts'
 import { logBranchEvidence, logRetrievalGaps } from '../diagnostics'
 import { gatherGapSignature } from '../evidence/gaps'
@@ -42,7 +43,7 @@ import { abortedResult } from './runs'
 const NO_SOURCES_BRANCH: FlatResearchBranch = Object.freeze({ claims: [], gaps: [] })
 
 const OUTPUT_CONTRACTS = Object.freeze({
-  'research-planner': toResearchOutputContract('research_plan', ResearchPlanSchema),
+  [RESEARCH_PLANNER_ID]: toResearchOutputContract('research_plan', ResearchPlanSchema),
   [RESEARCH_CRAWLER_ID]: toResearchOutputContract('research_branch', FlatResearchBranchSchema),
   'research-synthesizer': toResearchOutputContract(
     'research_report_candidate',
@@ -60,10 +61,10 @@ export function createResearchStages(deps: ResearchStageDeps): ResearchStages {
   return {
     plan: (input, budget, correctionIssues) =>
       runStage(deps, {
-        role: 'research-planner',
+        role: RESEARCH_PLANNER_ID,
         prompt: planPrompt(input, correctionIssues),
         schema: ResearchPlanSchema,
-        outputContract: OUTPUT_CONTRACTS['research-planner'],
+        outputContract: OUTPUT_CONTRACTS[RESEARCH_PLANNER_ID],
         budget,
       }),
     crawl: (question, options) =>

@@ -4,15 +4,16 @@ import type {
   MacroResponse,
   MarketSessionWire,
   MarketsResponse,
+  SectorsResponse,
+  SourcesResponse,
+} from '@/app/server/wire/market'
+import type {
   OverviewLeadersWire,
   OverviewLeaderWire,
   OverviewMoversWire,
   OverviewMoverWire,
   OverviewResponse,
-  ScreenResponse,
-  SectorsResponse,
-  SourcesResponse,
-} from '@/app/server/wire/market'
+} from '@/app/server/wire/overview'
 import type * as Vocab from '@/app/server/wire/vocab'
 import type { Locale } from '@/core/types/locale'
 import type {
@@ -29,9 +30,8 @@ import type {
   MarketDataOverview,
   MarketEventKind,
   MarketView,
+  NavWindow,
   RiskLevel,
-  ScreenAnswer,
-  ScreenView,
   SessionPhase,
   SourceFreshness,
   SourceStatus,
@@ -40,8 +40,13 @@ import type {
   TradingSectorsView,
   TypedPrice,
 } from '@/trading/api'
-import { toCaveatWires, toInstrumentWire } from '@/app/server/mappers/trading'
-import { changeAgainstClose, MACRO_SCORE_RANGE, parseExitLevel } from '@/trading/api'
+import { toCaveatWires, toDealerBoardWire, toInstrumentWire } from '@/app/server/mappers/trading'
+import {
+  changeAgainstClose,
+  MACRO_SCORE_RANGE,
+  parseExitLevel,
+  renderOverviewForSurface,
+} from '@/trading/api'
 
 // A closed vocabulary the wire copies in `wire/vocab.ts` must match its trading source both ways, so
 // a value added on either side fails typecheck here.
@@ -57,6 +62,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   investmentGoal: true,
   investmentHorizon: true,
   marketEventKind: true,
+  navWindow: true,
   riskLevel: true,
   sessionPhase: true,
   sourceFreshness: true,
@@ -70,39 +76,14 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   investmentGoal: Same<Vocab.InvestmentGoal, InvestmentGoal>
   investmentHorizon: Same<Vocab.InvestmentHorizon, InvestmentHorizon>
   marketEventKind: Same<Vocab.MarketEventKind, MarketEventKind>
+  navWindow: Same<Vocab.NavWindow, NavWindow>
   riskLevel: Same<Vocab.RiskLevel, RiskLevel>
   sessionPhase: Same<Vocab.SessionPhase, SessionPhase>
   sourceFreshness: Same<Vocab.SourceFreshness, SourceFreshness>
   typedPrice: Same<Vocab.TypedPrice, TypedPrice>
 }
 
-type ScreenedCandidate = ScreenView['candidates'][number]
 type OverviewRow = MarketDataOverview['rows'][number]
-
-function toCandidateWire(candidate: ScreenedCandidate): ScreenResponse['candidates'][number] {
-  const quote = candidate.price?.quote
-
-  return {
-    instrument: toInstrumentWire(candidate.instrument),
-    ...(candidate.name === undefined ? {} : { name: candidate.name }),
-    ...(quote === undefined ? {} : { price: quote.price }),
-    ...(quote?.changePct === undefined ? {} : { changePct: quote.changePct }),
-  }
-}
-
-export function toScreenWire(market: string, answer: ScreenAnswer): ScreenResponse {
-  const { view, card } = answer
-
-  return {
-    market,
-    asOf: view.asOf,
-    ...(view.dataThroughDay === undefined ? {} : { dataThroughDay: view.dataThroughDay }),
-    board: view.board ?? 'rank',
-    universeSize: view.universeSize,
-    candidates: view.candidates.map(toCandidateWire),
-    card,
-  }
-}
 
 /** Absent for a market that never closes: it has neither hours nor a day. */
 function toSessionWire({ session, day }: MarketView): MarketSessionWire | undefined {
@@ -142,6 +123,7 @@ export function toMarketsWire(view: TradingMarketsView, off: ReadonlySet<string>
         ownsRegion: market.ownsRegion,
         segment: market.segment,
         enabled: !off.has(market.segment),
+        holdable: market.holdable,
         label: market.label,
         segmentLabel: market.segmentLabel,
         regionLabel: market.regionLabel,
@@ -173,6 +155,7 @@ export function toSearchWire(matches: readonly InstrumentMatch[]): InstrumentSea
  *  every surface measures it; otherwise the settled close stands. */
 function toOverviewRowWire(row: OverviewRow): OverviewResponse['markets'][number]['rows'][number] {
   const instrument = toInstrumentWire(row.instrument)
+  const board = row.quote?.board
 
   if (row.live !== undefined) {
     const changePct = changeAgainstClose(row.live.price, row.quote?.price, row.live.changePct)
@@ -190,6 +173,7 @@ function toOverviewRowWire(row: OverviewRow): OverviewResponse['markets'][number
     ...(row.quote === undefined ? {} : { price: row.quote.price }),
     ...(row.changePct === undefined ? {} : { changePct: row.changePct }),
     ...(row.closedOn === undefined ? {} : { closedOn: row.closedOn }),
+    ...(board === undefined ? {} : { board: toDealerBoardWire(board) }),
   }
 }
 
@@ -201,13 +185,19 @@ type OverviewMover = OverviewMovers['gainers'][number]
 
 export function toOverviewWire(
   blocks: readonly MarketDataOverview[],
-  locale: Locale
+  locale: Locale,
+  timezone: string
 ): OverviewResponse {
-  return { markets: blocks.map((block) => toOverviewBlockWire(block, locale)) }
+  return { markets: blocks.map((block) => toOverviewBlockWire(block, locale, timezone)) }
 }
 
-function toOverviewBlockWire(block: MarketDataOverview, locale: Locale): OverviewBlockWire {
+function toOverviewBlockWire(
+  block: MarketDataOverview,
+  locale: Locale,
+  timezone: string
+): OverviewBlockWire {
   const { breadth, foreignNetValue, leaders, movers } = block
+  const { sections, sources } = renderOverviewForSurface(locale, block, timezone)
 
   return {
     market: block.market,
@@ -228,6 +218,8 @@ function toOverviewBlockWire(block: MarketDataOverview, locale: Locale): Overvie
     ...(foreignNetValue === undefined ? {} : { foreignNetValue }),
     ...(leaders === undefined ? {} : { leaders: toLeadersWire(leaders) }),
     ...(movers === undefined ? {} : { movers: toMoversWire(movers) }),
+    ...(sections.length === 0 ? {} : { sections }),
+    ...(sources === undefined ? {} : { sources }),
     caveats: toCaveatWires(block.caveats, locale),
   }
 }

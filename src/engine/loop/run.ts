@@ -5,6 +5,7 @@ import type { RunBookkeeping, RunDeps } from '@/engine/loop/context'
 import type { SteeringInbox } from '@/engine/loop/drive'
 import type { AgentProfile } from '@/engine/types/agent'
 import type {
+  MessageStore,
   RunHandle,
   RunInput,
   RunOptions,
@@ -14,7 +15,6 @@ import type {
 } from '@/engine/types/run'
 import type { RunOnceDeps } from '@/engine/types/run-deps'
 import { RunHalted, ValidationError } from '@/core/errors'
-import { prepareAgentScratchDir } from '@/core/security/agent-directories'
 import { scrubCredentials } from '@/core/security/credentials'
 import { EMPTY_LLM_USAGE_TOTALS } from '@/core/types/usage'
 import { agentCapRejection } from '@/engine/budget/agent-cap'
@@ -225,7 +225,7 @@ interface PrepareRunInput {
 
 async function prepareRun(input: PrepareRunInput): Promise<PreparedRun> {
   const { deps, input: runInput, options, agent, userMessage } = input
-  const workspace = await prepareAgentScratchDir(deps.config.paths.dataDir, agent.id)
+  const workspace = await deps.prepareWorkspace(agent.id)
   const runDeps: RunDeps = {
     tools: deps.tools,
     config: deps.config,
@@ -264,13 +264,23 @@ async function prepareRun(input: PrepareRunInput): Promise<PreparedRun> {
     )
   }
 
-  if (runInput.lead !== undefined) {
-    run.state.messages.appendTransient({ role: 'user', content: runInput.lead })
-  }
-
-  run.state.messages.appendDirect({ role: 'user', content: userMessage })
+  appendUserTurn(run.state.messages, runInput, userMessage)
 
   return { run, bookkeeping }
+}
+
+// The model reads the lead and `userMessage`; the transcript keeps only what the operator typed.
+function appendUserTurn(messages: MessageStore, input: RunInput, userMessage: string): void {
+  if (input.lead !== undefined) {
+    messages.appendTransient({ role: 'user', content: input.lead })
+  }
+
+  messages.appendDirect(
+    { role: 'user', content: userMessage },
+    input.typedMessage === undefined
+      ? undefined
+      : { role: 'user', content: scrubCredentials(clampUserMessage(input.typedMessage)) }
+  )
 }
 
 function resultForPreRegistrationFailure(err: unknown): RunResult {

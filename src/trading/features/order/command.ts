@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type {
   SlashCommand,
   SlashContext,
@@ -246,7 +244,7 @@ async function runStage(
     prepared,
     // A fresh token, not the request id: it is the confirm's idempotency key, and reusing the
     // staging call's would collide with the tuple that call already stamped.
-    token: randomUUID(),
+    token: crypto.randomUUID(),
     now,
     signal: ctx.signal,
   })

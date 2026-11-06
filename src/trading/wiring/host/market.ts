@@ -4,7 +4,7 @@ import type { SourceSummary } from '@/trading/kernel/source/source-result'
 import type { QuoteConvention } from '@/trading/render/money'
 import type { SourceStatus } from '@/trading/wiring/host/market-types'
 import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
-import type { MarketView } from '@/trading/wiring/host/view-types'
+import type { MarketView, TradingMarketsView } from '@/trading/wiring/host/view-types'
 import { renderDeclaredValue, renderProvidedValue } from '@/trading/render/format'
 import { renderMarketName, renderRegionName } from '@/trading/render/tool-detail'
 import { bounded, profileOf, resolveRegion, scoped, scopedSlow } from '@/trading/wiring/host/scope'
@@ -72,10 +72,35 @@ function seriesMethods(deps: TradingHostDeps): SeriesMethods {
   }
 }
 
+// How each market prints a price, so an app prints it the way the CLI does, and its names.
+function describedMarkets(deps: TradingHostDeps, now: number): TradingMarketsView {
+  const { marketData, profiles } = deps.services
+  const held = new Set<string>(profiles.heldSegments())
+
+  return {
+    homeRegion: deps.services.defaultRegion,
+    markets: marketData.describeMarkets().flatMap((market) => {
+      const convention = marketData.quoteConvention(market.market)
+
+      return convention === undefined
+        ? []
+        : [describedMarket(deps, market, { convention, now, held })]
+    }),
+  }
+}
+
 function describedMarket(
   deps: TradingHostDeps,
   market: MarketDescription,
-  { convention, now }: { readonly convention: QuoteConvention; readonly now: number }
+  {
+    convention,
+    now,
+    held,
+  }: {
+    readonly convention: QuoteConvention
+    readonly now: number
+    readonly held: ReadonlySet<string>
+  }
 ): MarketView {
   const locale = deps.defaultLocale
   const day = deps.services.marketData.marketDay(market.market, now)
@@ -87,6 +112,7 @@ function describedMarket(
     label: renderMarketName(locale, market.market),
     segmentLabel: renderDeclaredValue(locale, `trading.segment.${market.segment}`),
     regionLabel: renderRegionName(locale, market.region),
+    holdable: held.has(market.segment),
   }
 }
 
@@ -102,18 +128,8 @@ function toSourceStatus(locale: Locale, summary: SourceSummary): SourceStatus {
 }
 
 function priceMethods(deps: TradingHostDeps): PriceMethods {
-  const { marketData } = deps.services
-
   return {
-    // How each market prints a price, so an app prints it the way the CLI does, and its names.
-    describeMarkets: (now) => ({
-      homeRegion: deps.services.defaultRegion,
-      markets: marketData.describeMarkets().flatMap((market) => {
-        const convention = marketData.quoteConvention(market.market)
-
-        return convention === undefined ? [] : [describedMarket(deps, market, { convention, now })]
-      }),
-    }),
+    describeMarkets: (now) => describedMarkets(deps, now),
 
     getQuotes: (signal, instrument) =>
       scoped(deps, signal, async (scope) => {
@@ -248,25 +264,18 @@ function boardMethods(
   return {
     // An unregistered market is refused inside the service, the one holder of the registry.
     screen: (request) =>
-      scopedSlow(deps, request.signal, async (scope) => {
-        const kind =
-          request.instrumentKind === undefined ? {} : { instrumentKind: request.instrumentKind }
-        const view = await deps.services.marketData.screen({
+      scopedSlow(deps, request.signal, (scope) =>
+        deps.services.appViews.screen({
           market: request.market,
+          ...(request.instrumentKind === undefined
+            ? {}
+            : { instrumentKind: request.instrumentKind }),
           limit: bounded(request.limit, deps.limits.maximumScreenCandidates),
-          ...kind,
           now: scope.now,
           signal: scope.signal,
-        })
-        const card = deps.services.appViews.screen({
-          market: request.market,
-          ...kind,
-          view,
           locale: deps.defaultLocale,
         })
-
-        return { view, card }
-      }),
+      ),
 
     getOverview: (signal) =>
       scopedSlow(deps, signal, (scope) =>

@@ -179,10 +179,15 @@ function renderHeadline(
   return [
     `${renderSectionTitle(
       SECTION_ICONS.portfolio,
-      t(locale, 'trading.render.portfolio.nav', {
-        nav: formatMoney(locale, book.navBase, currency),
-        compact: formatFlow(locale, book.navBase),
-      })
+      // An empty book has no compact figure to add: `(~0)` repeats the zero before it.
+      t(
+        locale,
+        book.navBase === 0 ? 'trading.render.portfolio.navEmpty' : 'trading.render.portfolio.nav',
+        {
+          nav: formatMoney(locale, book.navBase, currency),
+          compact: formatFlow(locale, book.navBase),
+        }
+      )
     )}${renderFreshness(locale, book.freshness, options.context.timezone)}`,
     ...renderTotalPnl(locale, book, options.context),
     ...renderLatestMoveLine(locale, book),

@@ -114,7 +114,7 @@ export function createSuggestionBatchTool(
 function batchDisplay(verdicts: string | undefined): DisplayText {
   return verdicts === undefined
     ? { key: 'toolSummaries.suggestionUnsupported' }
-    : { key: 'toolSummaries.suggestionBatch', params: { verdicts } }
+    : { key: 'toolSummaries.suggestionBatch', params: { verdicts: `\n${verdicts}` } }
 }
 
 /** Only the service can expand a watchlist — a tool holds no profile store — so the scope names

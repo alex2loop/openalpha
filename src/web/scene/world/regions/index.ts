@@ -225,7 +225,7 @@ export interface AgentTemplate {
  *  `park` is the proper name only. */
 export interface RegionPack {
   readonly id: RegionPackId
-  readonly city: string
+  readonly city: MessageKey
   readonly geo: { readonly lat: number; readonly lon: number }
   readonly road: RoadLayout
   readonly street: string

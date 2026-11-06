@@ -12,7 +12,7 @@ const STILL_QUALITY = 0.8
 
 const still = signal<string | undefined>(undefined)
 
-/** The office as last seen, a data URL: what Info only shows behind its glass. */
+/** The office as last seen, a data URL: what Focus shows behind its glass. */
 export const officeStill: ReadonlySignal<string | undefined> = still
 
 /** Keeps a small copy of the scene's canvas, taken while its last frame is still on it. */
@@ -27,7 +27,7 @@ export function keepStill(source: HTMLCanvasElement): void {
   still.value = encode({ width, height }, (g) => g.drawImage(source, 0, 0, width, height))
 }
 
-/** With no frame kept (a page opened straight into Info only), the bare floor plan once. */
+/** With no frame kept (a page opened straight into Focus), the bare floor plan once. */
 export function keepFloorPlanUnlessKept(): void {
   if (still.peek() !== undefined) {
     return

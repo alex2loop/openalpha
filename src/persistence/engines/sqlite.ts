@@ -6,13 +6,13 @@ import { dirname } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import type { Logger } from '@/core/logging/logger'
-import type { Dialect, Storage, Transaction } from '@/core/types/storage'
+import type { Storage, Transaction } from '@/core/types/storage'
 import { StorageError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { PRIVATE_DIRECTORY_MODE, PRIVATE_FILE_MODE } from '@/core/security/private-files'
+import { sqliteDialect } from '@/persistence/engines/sqlite-dialect'
 import { toStorageError } from '@/persistence/errors'
 import { migrate } from '@/persistence/migrations/runner'
-import { buildInsert, buildUpsert, paramList } from '@/persistence/sql/syntax'
 
 const IN_MEMORY_PATH = ':memory:'
 const SQLITE_DELETE_JOURNAL_MODE = 'PRAGMA journal_mode = DELETE'
@@ -36,19 +36,6 @@ const PRAGMAS = [
   `PRAGMA mmap_size = ${SQLITE_MMAP_SIZE}`,
   'PRAGMA foreign_keys = ON',
 ] as const
-
-function sqliteParam(index: number): string {
-  return `?${index}`
-}
-
-export const sqliteDialect: Dialect = {
-  name: 'sqlite',
-  autoIncrementPk: 'INTEGER PRIMARY KEY AUTOINCREMENT',
-  param: sqliteParam,
-  paramList: (count, startAt) => paramList(sqliteParam, count, startAt),
-  upsert: (table, target) => buildUpsert(sqliteParam, table, target),
-  insert: (table, target) => buildInsert(sqliteParam, table, target),
-}
 
 interface RestoreSqliteOptions {
   readonly dbPath: string

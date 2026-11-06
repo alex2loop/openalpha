@@ -202,7 +202,7 @@ capped at `SKILL_INDEX_BLOCK_MAX` (8,192 bytes); the first 200 description chara
 may see, and returns the embedded text or the first safe `<dir>/<name>/SKILL.md`. It charges the size to the run's
 budget (`SKILL_VIEW_RUN_BUDGET_BYTES`, 262,144; a child starts its own). Unseen, missing or unsafe gives
 `ToolError('file_not_found')`; an exhausted budget gives `payload_too_large`. A file over `SKILL_MAX_BYTES`
-(1 MiB, [engine/skills/load.ts](../../../src/engine/skills/load.ts)) is never loaded.
+(1 MiB, [engine/skills/skill-text.ts](../../../src/engine/skills/skill-text.ts)) is never loaded.
 
 Installs go through the CLI ([cli/commands/skill.ts](../../../src/cli/commands/skill.ts)) and the lockfile
 ([engine/skills/lockfile.ts](../../../src/engine/skills/lockfile.ts)), never an agent tool. A scan verdict weighs
@@ -289,7 +289,9 @@ first attempt, 500 ms backoff, 60 s transient cooldown, 900 s credential cooldow
 Adapters ([ai/adapters/runner.ts](../../../src/ai/adapters/runner.ts)) emit normalized text, reasoning, tool calls,
 usage and completion events. One malformed frame is skipped and logged; an unusable or incomplete stream fails the
 attempt. The total stream is capped at 4 MiB, or 1 KiB per output token when larger, and the response reader is
-cancelled in cleanup on success, failure, timeout and abort.
+cancelled in cleanup on success, failure, timeout and abort. A provider request never follows a redirect
+(`redirect: 'error'` in `openSseStream`, so a key header never goes on to another address); one fails the attempt as a
+`transient` network error.
 
 Reasoning accepts `default`, `off`, `low`, `medium`, `high`, translated per provider. Reasoning tokens are a subset
 of output usage: reported separately, never charged twice.

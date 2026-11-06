@@ -1,3 +1,4 @@
+import type { Bind, ServiceProvider } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage } from '@/core/types/storage'
 import type { AlertStore } from '@/trading/features/alerts/store/alert'
@@ -15,9 +16,11 @@ import type { RestingExitStore } from '@/trading/features/order/store/resting-ex
 import type { NavSnapshotStore } from '@/trading/features/portfolio/nav/types'
 import type { ProfileStore } from '@/trading/features/profile/store'
 import type { AgentFocusStore } from '@/trading/features/suggestion/store/agent-focus'
+import type { AnalysisStore } from '@/trading/features/suggestion/store/analysis'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { FactorLogStore } from '@/trading/features/suggestion/track-record/factor-log-types'
 import type { ThemeStore } from '@/trading/features/themes/store'
+import type { TradingConfig } from '@/trading/kernel/config'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { createAlertStore } from '@/trading/features/alerts/store/alert'
 import { createBriefStore } from '@/trading/features/brief/store/brief'
@@ -34,6 +37,7 @@ import { createRestingExitStore } from '@/trading/features/order/store/resting-e
 import { createNavSnapshotStore } from '@/trading/features/portfolio/store/nav-snapshot'
 import { createProfileStore } from '@/trading/features/profile/store'
 import { createAgentFocusStore } from '@/trading/features/suggestion/store/agent-focus'
+import { createAnalysisStore } from '@/trading/features/suggestion/store/analysis'
 import { createSuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import { createFactorLogStore } from '@/trading/features/suggestion/track-record/factor-log-store'
 import { createThemeStore } from '@/trading/features/themes/store'
@@ -45,6 +49,7 @@ export interface TradingStores {
   readonly navSnapshot: NavSnapshotStore
   readonly profile: ProfileStore
   readonly suggestion: SuggestionStore
+  readonly analysis: AnalysisStore
   readonly agentFocuses: AgentFocusStore
   readonly factorLog: FactorLogStore
   readonly alert: AlertStore
@@ -61,6 +66,23 @@ export interface TradingStores {
   readonly themes: ThemeStore
 }
 
+/** Provider step 2: the stores need storage and the dialect, and nothing else needs them yet. */
+export function createTradingStoresProvider(config: TradingConfig): ServiceProvider {
+  return {
+    name: 'trading-stores',
+    register(bind: Bind): void {
+      bind('tradingStores', (app) =>
+        createTradingStores({
+          db: app.resolve('storage'),
+          dialect: app.resolve('dialect'),
+          logger: app.resolve('logger'),
+          maximumEntries: config.maximumLedgerEntries,
+        })
+      )
+    },
+  }
+}
+
 interface CreateTradingStoresOptions {
   readonly db: Storage
   readonly dialect: Dialect
@@ -68,7 +90,7 @@ interface CreateTradingStoresOptions {
   readonly maximumEntries: number
 }
 
-export const createTradingStores = (options: CreateTradingStoresOptions): TradingStores => {
+const createTradingStores = (options: CreateTradingStoresOptions): TradingStores => {
   const deps: StoreDeps = { db: options.db, dialect: options.dialect }
 
   return Object.freeze({
@@ -76,6 +98,7 @@ export const createTradingStores = (options: CreateTradingStoresOptions): Tradin
     navSnapshot: createNavSnapshotStore(deps),
     profile: createProfileStore(deps),
     suggestion: createSuggestionStore({ ...deps, logger: options.logger }),
+    analysis: createAnalysisStore({ ...deps, logger: options.logger }),
     agentFocuses: createAgentFocusStore(deps),
     factorLog: createFactorLogStore(deps),
     alert: createAlertStore(deps),

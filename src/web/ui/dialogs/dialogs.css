@@ -5,12 +5,16 @@
 }
 
 /* The trade form is one grid: every row's fields share three even columns, a field standing alone
-   takes the first, and a hint sits under its own field. */
+   takes the first, and a hint sits under its own field. A row of four fields takes four. */
 .trade-form .form-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   gap: var(--s2);
+}
+
+.trade-form .form-row.is-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .trade-form > .form-field:not(.is-wide) {

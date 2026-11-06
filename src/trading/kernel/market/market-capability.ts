@@ -5,6 +5,7 @@ import type { Locale } from '@/core/types/locale'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { BandCounts } from '@/trading/kernel/conviction'
 import type { FactorComposite, FactorResult } from '@/trading/kernel/factor'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type {
   AssetClass,
   CurrencyCode,
@@ -24,6 +25,7 @@ import type {
 } from '@/trading/kernel/market/index-reading'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type {
+  DealerBoard,
   MarketRegime,
   Quote,
   QuoteFreshness,
@@ -173,6 +175,17 @@ export interface ScreenCandidate {
   readonly name?: string
   /** The market's sector slug for the name, where it files one. */
   readonly sector?: string
+  /** What the browsing board filters and sorts on beside the factors: market value, the median
+   *  daily traded value, the move over about a month (percent) and the foreign desk's net over the
+   *  same month, each in the market's currency. Absent where the market holds no such figure. */
+  readonly marketCap?: number
+  readonly turnover?: number
+  readonly monthChangePct?: number
+  readonly foreignNet?: number
+  /** Plain values a board prints beside the factors, each in its own unit and none of them a score:
+   *  where the name stands in its year, how far it swings, what the market holds about it. Absent
+   *  where the market has none to state. */
+  readonly readings?: readonly FactorMetric[]
   /** The whole fold, not its parts: the rank, how much of the model stood behind it, whether the
    *  factors agreed, and the band that reads all three. Splitting them let a row show a score with
    *  no scale beside it. */
@@ -339,6 +352,8 @@ export interface QuoteBoardItem {
   /** Volume the session has accumulated, absent where the provider serves no intraday series. Zero
    *  separates a name that has not traded today from one that traded and closed unchanged. */
   readonly sessionVolume?: number
+  /** Both sides where the market quotes a dealer board; `last` is then its sell price. */
+  readonly board?: DealerBoard
   /** What the intraday series has recorded today. Absent on a close, and on a live read from a
    *  provider that serves no intraday series — the same condition `sessionVolume` answers for. */
   readonly session?: SessionSoFar

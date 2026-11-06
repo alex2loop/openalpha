@@ -56,12 +56,13 @@ mean `db stats` is hiding a failed migration.
 | `jobs`, `scheduler_runs`, `job_event_triggers`, `job_event_fires`, `heartbeat_task_completions`, `heartbeat_commitments` | Schedules, occurrence history, what starts an event job and when it last ran for each name, heartbeat progress and deferred commitments. |
 | `memory_kv` | Agent memory. SQLite adds FTS5 search; PostgreSQL uses its text-search facilities. |
 | `browser_sessions` | Office-page sign-ins: one row per signed-in browser, holding a hash of its secret, a label and when it was last seen. Not durable: losing it costs one more `web` sign-in. |
+| `config_overrides` | What a host with no config file keeps of its operator's settings: one JSON payload per section. The browser edition keeps the model tiers a visitor changed here; the installed daemon reads `config.toml` and writes none. Durable: the choice is written nowhere else. |
 
 Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots`,
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,
 `funding_snapshots`, `fx_rates`, `macro_snapshots`, `series_points`, `series_provenance`,
 `macro_documents`, `news_items`, `market_refresh_attempts`, `ledger_entries`, `nav_snapshots`,
-`trading_profiles`, `suggestions`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
+`trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
 `theme_reads`, `theme_outcomes` and `agent_focuses`.
 
@@ -96,6 +97,13 @@ impossible.
 
 `first_missed_at` is when the exchange started denying the order exists. It clears the moment the
 exchange answers again.
+
+**Analyses.** `suggestion_analyses` keeps what an analysis-only run read and argued: the bull and bear
+case with the claims the evidence checked, kept apart from `suggestions` because it names no verdict,
+size, entry, stop or target and so is never scored. It is durable, since a read is a model's answer
+on a bundle that cannot be rebuilt. It also keeps the settled close the run stood on, which the list sets beside the price now; a row stored before that has none and shows no price line. The installed daemon's own `/suggest` writes none; the rows
+arrive from a database restored from the web edition and are listed by `GET /v1/analyses`.
+Every view of one opens with a line saying it is AI-generated, and none ends by weighing one side over the other.
 
 **Themes.** These tables back `/themes`, and all are durable: a read is a model's answer on a bundle
 that cannot be rebuilt.

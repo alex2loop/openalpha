@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import type { AgentId, LLMAttemptId, RunId, SessionId } from '@/core/ids'
 import type { ProviderAttempt, ProviderAttemptObserver } from '@/core/llm'
 import type { TokenUsage } from '@/core/stream-events'
@@ -132,7 +130,7 @@ async function settleIncurredUsage(
 
   emitIfExhausted(deps.run.services, deps.run.identity.agentId, settledAt)
 
-  const id = llmAttemptId(randomUUID())
+  const id = llmAttemptId(crypto.randomUUID())
 
   // Awaited before the chain retries, falls back, or returns: continuing after a failed write
   // would knowingly make durable usage incomplete, so the storage error propagates.
@@ -174,7 +172,7 @@ export async function settleExternalCharge(
   emitIfExhausted(run.services, run.identity.agentId, settledAt)
 
   await recordDurably(run.services, {
-    id: llmAttemptId(randomUUID()),
+    id: llmAttemptId(crypto.randomUUID()),
     ...identityOf(run),
     billingAgentId: run.identity.billingAgentId,
     kind: 'external',
@@ -334,7 +332,7 @@ export async function settleCallerAttempt(
     kind: 'turn',
     charge,
     usage: normalizeUsage(attempt.usage),
-    id: llmAttemptId(randomUUID()),
+    id: llmAttemptId(crypto.randomUUID()),
     settledAt,
   }
 

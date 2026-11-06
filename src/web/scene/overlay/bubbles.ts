@@ -156,7 +156,7 @@ function hear(line: Omit<Said, 'heardAt' | 'untilMs'>, ms = SPEECH_MS): void {
 }
 
 /** Every bubble an event or a stored row stands behind, one per person: a wait over everything,
- *  else the newer of its spoken and its thinking line. */
+ *  else the newer of its spoken and its step line. */
 export function buildBubbles(input: BubbleInput): readonly Bubble[] {
   const chosen = new Map<ActorId, Candidate>()
   const candidates = [
@@ -198,8 +198,7 @@ function brightUntilOf(input: BubbleInput, actor: ActorId): number | undefined {
   return match?.untilMs
 }
 
-// One per run, on the first person its goals name: the run's step line, or its model's latest
-// reasoning when it streams one.
+// One per run, on the first person its goals name: the run's step line.
 function thinkLines(input: BubbleInput): Candidate[] {
   const byId = new Map(input.runs.map((run) => [run.runId, run]))
   const seen = new Set<string>()
@@ -207,7 +206,7 @@ function thinkLines(input: BubbleInput): Candidate[] {
 
   for (const [actor, goal] of input.goals) {
     const run = goal.runId === undefined ? undefined : byId.get(goal.runId)
-    const text = run?.thinking ?? run?.progress?.text
+    const text = run?.progress?.text
 
     if (run !== undefined && text !== undefined && text !== '' && !seen.has(run.runId)) {
       seen.add(run.runId)

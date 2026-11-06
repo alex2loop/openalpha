@@ -88,13 +88,6 @@ declare module '@/core/events' {
       readonly channel: ChannelId
       readonly message: RunProgressMessage
     }
-    // A scrubbed tail of the model's reasoning, throttled per run; `at` is epoch ms.
-    run_thinking: {
-      readonly runId: RunId
-      readonly channel: ChannelId
-      readonly excerpt: string
-      readonly at: number
-    }
     // A tool call reached its tool: it passed admission and approval and is about to execute.
     tool_started: {
       readonly runId: RunId

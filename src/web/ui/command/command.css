@@ -135,11 +135,6 @@
   border-radius: var(--popRadius);
 }
 
-/* Over the page's own text the list takes the dense tint, so nothing reads through it. */
-.command-bar:not(.is-floating) .suggest-popover {
-  --glassAlpha: var(--glassTagA);
-}
-
 /* The phone's field is narrow beside its chips: the list takes the whole bar. */
 :root[data-layout="phone"] .command-box {
   position: static;
@@ -150,11 +145,22 @@
   left: var(--s2);
 }
 
-/* The rim belongs to the popover, so only this part scrolls. */
+/* The rim belongs to the popover, so only this part scrolls. Its bar stays drawn, so a long list
+   shows there is more below. */
 .suggest-scroll {
-  max-height: 50vh;
+  max-height: min(50vh, 420px);
   overflow: auto;
   padding: 6px;
+}
+
+.suggest-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.suggest-scroll::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 6px;
+  background: var(--ink3) padding-box;
 }
 
 .suggest-hint {
@@ -188,8 +194,7 @@
 .suggest-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   padding: var(--s1) 10px;
   border-radius: var(--controlRadius);
   font-size: var(--sizeReading);
@@ -199,6 +204,16 @@
 .suggest-row:hover,
 .suggest-row.is-active {
   background: var(--sunken);
+}
+
+/* The name keeps a column the description starts at, so the two read as a pair. */
+.suggest-row b {
+  flex: none;
+  min-width: 8.5rem;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .suggest-row .meta {

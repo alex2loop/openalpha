@@ -6,6 +6,9 @@ node_modules/
 /build/
 *.tsbuildinfo
 
+# Local state wrangler dev writes
+.wrangler/
+
 # Environment and secrets
 .env
 .env.*

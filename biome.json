@@ -214,7 +214,12 @@
       }
     },
     {
-      "includes": ["src/*/api.ts", "src/trading/markets/*/api.ts"],
+      "includes": [
+        "src/*/api.ts",
+        "src/*/node-api.ts",
+        "src/i18n/index.ts",
+        "src/trading/markets/*/api.ts"
+      ],
       "linter": {
         "rules": {
           "performance": {

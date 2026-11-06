@@ -13,13 +13,32 @@ export const COST_ESTIMATE_SAMPLE = 10
 /** Sections whose backing store may not exist yet — the client greys the unbuilt tab instead of
  *  guessing from a 404. Only the sections that actually vary are listed (chat/approve/stream/health
  *  are always on). Echoed by GET /v1/health (unauth) and GET /v1/state. */
-export interface Capabilities {
+export interface Capabilities extends FeatureCapabilities {
   readonly ohlcv: boolean
   readonly quotes: boolean
   readonly portfolio: boolean
   readonly suggestions: boolean
   /** A venue can place orders and `[api] orders` is on: the /v1/trade routes answer. */
   readonly orders: boolean
+}
+
+/** Which features this edition offers, fixed by the edition that serves the api (the daemon, or
+ *  the browser worker) and never by live state: a channel that is down or a venue with no key still
+ *  reads true, and shows in `degraded` and the per-route capabilities. A client hides what is false
+ *  rather than offering it and failing. */
+export interface FeatureCapabilities {
+  /** Suggestions are analysis only: no entry, stop, size or target, and gaps, not orders. */
+  readonly analysisOnly: boolean
+  /** The edition has exchange venues: syncing the book and placing a trade at one. */
+  readonly venues: boolean
+  /** The edition has chat channels (Telegram, Zalo). */
+  readonly channels: boolean
+  /** The edition has the scheduler: the morning brief, alerts and the operator's own jobs. */
+  readonly schedules: boolean
+  /** The edition has the operator's own agents: list, edit and run. */
+  readonly agents: boolean
+  /** The edition has the ChatGPT subscription login. */
+  readonly chatgpt: boolean
 }
 
 /** One thing the daemon started without, worded in its language: a channel left down with the

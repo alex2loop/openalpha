@@ -190,7 +190,8 @@ the command itself needs one (`/suggest`, `/research`). So `--prompt "/health"` 
 
 - Only the first line is the command.
 - The result is delivered like any other answer. When no page is open it goes to the bell, so the
-  next page to open reads it.
+  next page to open reads it. A job whose prompt is not a slash command delivers the model's answer under
+  the AI-generated line, in the chat and in the bell.
 - Each such run leaves a row in the activity log.
 
 A command that changes your settings, orders or book (such as `/trade`, `/record sync` or `/refresh`)
@@ -362,6 +363,8 @@ override the task or its rules. The reply format and storage rules are in
 window. It is best-effort and lives in memory only, in a bounded list of 200 entries, so a restart or
 a full list forgets old entries and a duplicate may come back. A rejected notification is never
 remembered, so the next eligible run retries it.
+
+A task that asks the agent a question delivers the answer under the AI-generated line; the line is not part of what a repeat is compared on. A task that runs a command delivers its output as it is.
 
 ### Backoff
 
@@ -661,7 +664,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
 
 ### What is on the screen
 
-- **Header.** The running chip (what is running and what is next: stop a run, or run a scheduled job again), the 2D | 3D switch, the Info only toggle (not shown on narrow screens), the AI cost chip, the office clock, the bell, a "?" button that lists the keyboard shortcuts, and Settings.
+- **Header.** The running chip (what is running and what is next: stop a run, or run a scheduled job again), the 2D | 3D switch, the Office | Focus switch (not shown on narrow screens), the AI cost chip, the office clock, the bell, a "?" button that lists the keyboard shortcuts, and Settings.
 - **Tape.** Floating over the top of the office scene, under the floor switch, the benchmark (VN-Index, BTC) of each market you trade and your watchlist scroll past. A name past its stop and a fresh buy call are marked.
 - **The office.** The scene, filling the page with the information panel floating over its right side; described below.
 - **Information panel.** Four tabs, plus a card for whatever you click.
@@ -671,33 +674,62 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     your book with "See the portfolio" (its value, what it holds, names past their stop, and the
     take-profit orders waiting at the exchange); the Vietnamese and other markets (each with its top
     gainers and losers of the session, or of the last 24 hours for a market that never closes, with
-    their turnover); upcoming events; top headlines; and what the agents did today, including work
+    their turnover; a dealer's rows, such as VN gold, state the dealer's buying and selling price and
+    the spread between them, then how far VN gold sits above world gold; crypto states funding, open
+    interest, the long/short ratio, the share of buyers crossing the spread and the fear and greed
+    index; a market your profile switches off is left out, except world gold, read for reference
+    and always shown); upcoming events; top headlines; and what the agents did today, including work
     that ran while the page was closed. The macro and news blocks carry "See the full reading", which
     opens the Market tab. Anything the daemon started without, such as a missing exchange key, closes
-    the tab.
-  - *Portfolio* holds overview, performance, history, rebalance and the watchlist with its price
-    alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
+    the tab. Above all of it sits a "Getting started" card until you finish or hide it: connect an AI
+    model (optional on the web version), the investment profile, your current holdings, Telegram
+    (installed version, optional) and your first `/brief`. A step is ticked when it is done: a saved
+    profile or "Keep the defaults" (a profile you never saved runs on default levels), a recorded
+    trade or "Nothing yet, skip", a `/brief` that finished in this browser. The card goes away once
+    every required step is ticked, or at once with "Hide this guide"; both are remembered in this
+    browser only. It shows only in a browser that opened the office before a profile was saved or a
+    trade recorded. "Show the getting-started steps again" at the foot of the Today tab brings it
+    back until the page is reloaded. The card also carries a Glossary button and a line saying that
+    words with a dotted underline explain themselves on hover or tap; the same button sits beside
+    "Show the getting-started steps again" once the card is gone. A term's card, a small "?" after a
+    heading and the Glossary page (every term by group, with a search box) are described in
+    [The web version](web.md); `/glossary` prints the same terms.
+  - *Portfolio* holds overview (with the ex-dividend dates, meetings and listings coming up in the
+    next 14 days for what you hold), performance (your book's value over 1 month, 3 months, 6 months,
+    1 year or everything on record, the span you pick kept in this browser), history, rebalance and
+    the watchlist with its price alerts, plus *Orders* where a venue can place orders. Every kind of ledger row is recorded, edited
     and deleted here, with undo, and History checks the ledger against your venues (see
     [Trading](trading.md#on-the-office-page)).
-  - *Market* holds the full macro reading, the last closed session, the news and your themes (below).
+  - *Market* holds the full macro reading, the market session, the news and your themes (below).
   - *Ideas* holds open plans, the opportunities screen, the track record and research results, with a
     count of new calls you have not seen.
   - Click a ticker anywhere and its card opens: price (with "Refresh price", which reads that one name
-    live), the last sessions charted on price and date axes with the plan levels, your holding, "Why?"
-    for the reasoning behind a call, earlier calls and what your own agents think. Under the plan's
+    live; a dealer's board, such as VN gold, adds its buying price, selling price and spread), the
+    session's low, high and volume (the live session's when the price is live, else the last
+    settled session's, dated), the last sessions charted on price and date axes with the plan levels, your holding, "Why?" for the
+    reasoning behind a call, earlier calls and what your own agents think. Under the plan's
     levels sit "What it is waiting for" (what the trader still waits on before the entry, when it
     does) and "How each factor reads", the same lines `/suggest` prints. A call card under Ideas
     shows both too.
+  - A call card, the plan on a ticker's card, its "Why?" dialog, your agents' opinions, your themes, the
+    brief and a research report each open with one line saying it is AI-generated and is not investment
+    advice. A brief from a daemon that predates the
+    line is labelled too.
   - Click one of your agents in the office and its tab opens (see
     [Agents](agents.md#from-the-office-page)).
   - A back row returns to where you were, and the panel collapses to an icon strip.
-- **Chat.** The conversation with the assistant, docked on the right. Earlier sessions, Telegram's included, are searchable (a session nothing was said in is not listed), grouped into today, the last 7 days and older by their last message (by the daemon's day, not your browser's); each row gives the time of its last message and its number of exchanges, an exchange being a line you sent with its answer, and load older ones on demand; only chats the page started can be continued; while another channel's chat is open, the box at the bottom says so and offers to continue in a new session. Each row's menu opens the chat in a tab of its own, with nothing but the chat in it, and deletes a chat the page or the CLI started: the row goes at once and a bar at the bottom offers Undo for a few seconds (the clock pauses while the tab is hidden; closing the tab first deletes nothing). A chat whose answer is still running cannot be deleted, and a Telegram chat is never deleted here, since it is that app's history too. A CLI window still open on a deleted chat simply carries on as a fresh one, which the list shows again once it has said something new. A `/research` answer shows its steps while it runs and numbered sources under the answer (see [Deep research](research.md#on-the-office-page)). An earlier chat you open, and the current one after the page reloads, shows every turn the way it first appeared: the commands you typed with their answers, laid out as the chat showed them, and "AI calls" under an answer that ran, listing the model calls it made. Commands are kept from this version on, on every channel; `/help` is not kept, nor is a button that shows its result where it sits (such as Refresh data). These saved answers are for you to read: the assistant never reads them back. Scroll up near the top and older messages load by themselves, keeping your place; "Load older messages" is still there to click. While you read another channel's chat, such as Telegram or the CLI, new messages there appear at the end, as soon as an assistant answer finishes, and a command's answer within about 15 seconds; if you have scrolled up, the page does not jump down but shows "New messages, jump to them".
-- **Command bar.** Floating over the foot of the office scene, or over the office picture in Info only; on a narrow screen's Information and Chat panes it sits at the bottom of the page: who receives what you type, and the box (Enter sends; a phone also shows Send). While you type, the agent chip and the Chat button shrink to their icons; a phone always shows the chip and Send as icons. See [Commands](commands.md#the-command-bar-in-the-office-page).
+- **Chat.** The conversation with the assistant, docked on the right. On a wide screen, drag its left edge (or focus that edge and press the left or right arrow) to change its width; the browser remembers it, and a double-click on the edge goes back to the default. Earlier sessions, Telegram's included, are searchable (a session nothing was said in is not listed), grouped into today, the last 7 days and older by their last message (by the daemon's day, not your browser's); each row gives the time of its last message and its number of exchanges, an exchange being a line you sent with its answer, and load older ones on demand; only chats the page started can be continued; while another channel's chat is open, the box at the bottom says so and offers to continue in a new session. Each row's menu opens the chat in a tab of its own, with nothing but the chat in it, and deletes a chat the page or the CLI started: the row goes at once and a bar at the bottom offers Undo for a few seconds (the clock pauses while the tab is hidden; closing the tab first deletes nothing). A chat whose answer is still running cannot be deleted, and a Telegram chat is never deleted here, since it is that app's history too. A CLI window still open on a deleted chat simply carries on as a fresh one, which the list shows again once it has said something new. A `/research` answer shows its steps while it runs and numbered sources under the answer (see [Deep research](research.md#on-the-office-page)). An earlier chat you open, and the current one after the page reloads, shows every turn the way it first appeared: the commands you typed with their answers, laid out as the chat showed them, and "AI calls" under an answer that ran, listing the model calls it made. Commands are kept from this version on, on every channel; `/help` is not kept, nor is a button that shows its result where it sits (such as Refresh data). These saved answers are for you to read: the assistant never reads them back. Scroll up near the top and older messages load by themselves, keeping your place; "Load older messages" is still there to click. While you read another channel's chat, such as Telegram or the CLI, new messages there appear at the end, as soon as an assistant answer finishes, and a command's answer within about 15 seconds; if you have scrolled up, the page does not jump down but shows "New messages, jump to them". A line under its title says replies are AI-generated and are not investment advice.
+- **Command bar.** Floating over the foot of the office scene, or over the office picture in Focus; on a narrow screen's Information and Chat panes it sits at the bottom of the page: who receives what you type, and the box (Enter sends; a phone also shows Send). While you type, the agent chip and the Chat button shrink to their icons; a phone always shows the chip and Send as icons. See [Commands](commands.md#the-command-bar-in-the-office-page).
 - **Bell and jobs.** The bell lists notices and the requests waiting for you. An approval asked from this page is answered right in the bell: approve once, remember, or deny. A countdown shows when it times out, and a request that times out unanswered is refused. A request is answered once: if it shows in both the bell and the chat, only one answer is sent, and the other card shows that answer and says it was already answered if you chose differently there. One asked on Telegram or another channel is listed but answered where it was asked. The jobs list shows what is running (stop it, after a confirm), what is coming up, what is waiting for an event (checked on a timer at no AI cost) and the automatic automatic jobs, with a way to fix one that is failing; "Add a schedule" files a job for the assistant. Automatic jobs show live too: one at work (the market data load right after a start, a refresh, an alert pass) is counted by the running chip and listed under what is running the moment it starts, and leaves when it ends.
 - **Cost.** The chip shows today's spend against the daily cap; click for the month, the split by job and the budget row, and "See the full report" for today, the last 7 or 30 days, or this month. See [Budgets](budgets.md#in-the-office-page).
 - **Settings.** The gear opens: investor profile, memory, schedules and watching, agents and AI,
   messaging channels, providers, exchanges, tools, data and connections, display, and advanced, which
   holds a raw `config.toml` editor.
+  - In the profile, "Segments and target weights" switches a segment on or off and sets each share, to a tenth of a percent (a field rounds to it when you leave it).
+    Ticking one that was off switches it on with its default cap, keeps the caps of the others, and
+    saves the shares you typed; world gold, which no exchange holds, stays off. "Reset to defaults"
+    fills in the split your risk level gives the segments ticked now (pinned targets kept); it is
+    saved only when you press Save.
   - The editor shows each secret (an MCP server's `env` values, any token, secret, password or API key
     written in the file) as `********`. Leave it as it is and the saved value stays.
   - Some fields change only from the CLI or in `config.toml` itself, because they decide what the
@@ -742,14 +774,22 @@ The Market tab has three parts: *Market*, *News* and *Themes*.
 - The run shows in the running chip, the office's data store and the chat, like a typed `/refresh`.
   The button stays off while one runs, and the blocks below read again when it ends.
 
-Then, for the region you pick (the home one first, kept in this browser), the tab shows:
+Then, for the region you pick (the home one first, kept in this browser), the tab shows what follows. The picker lists only the regions with a market your profile leaves on or with world gold (read for reference, so always shown), plus the home one, and each region shows only those markets; while a market is switched off, the tab ends with a reminder to turn it on in Settings › Profile.
 
 - **The macro reading in full**: the regime and lean; one line with the 12-month deposit rate and the
   USD/VND rate (a part with no reading is left out); the drivers left out because they have no
   reading yet; how much of the model has data; and, in Advanced, the scale and a table of what makes
-  the number, strongest pull first.
+  the number, strongest pull first, each row dated by the day its reading was observed and with the
+  figures at the two ends of its bar. The web edition names no regime and gives no composite, scale
+  or weights: it lists each driver's own reading, in the order the read gives them.
 - **The region's prices**, with each market's top gainers and losers (the five strongest moves above
-  its liquidity floor, side by side on a wide panel).
+  its liquidity floor, side by side on a wide panel). Under each market come its own readings, each a
+  label and its value under a group heading, in the labels, figures and order `/overview` and `/brief` print them,
+  with the line naming the sources and when they were read:
+  VN gold states its premium over world gold as a plain figure, without saying where it sits against
+  its own history; crypto states funding, open interest and how it compares with recent sessions, the
+  long/short ratio, the share of buyers crossing the spread, and the fear and greed index with the
+  source that publishes it. A source the browser cannot read leaves its line out, with no error.
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the
   proprietary desks bought and sold most on net; and the five most traded. Amounts are compact (like
   76.5B), with the span measured when it is not one session. The provider publishes the
@@ -757,8 +797,9 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   has them, with its date beside the title.
 - **Sector strength** ranks the sectors from strongest to weakest with today's move. It shows the five
   strongest and the five weakest, with the rest behind "Show all" when a market files more than ten
-  (only for a market that files sectors). These blocks read again together with the rest, never on a
-  timer of their own.
+  (only for a market that files sectors). The web edition ranks nothing: it lists the sectors by name,
+  each with today's move and its gap to the index over 20 and 60 sessions. These blocks read again
+  together with the rest, never on a timer of their own.
 - **For Vietnam, an index picker** for VN-Index, VN30 or HNX:
   - the five names that lifted and the five that weighed on that index this session, each with its
     price and the points it added, signed, then a line with what the listed names added up to (not
@@ -771,7 +812,7 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   from its read, so a second ask inside it costs no provider read. The valuation is what the last
   refresh stored, and reads again when a refresh ends. Each of these blocks, and Money flow, says
   under its title which day its data is up to and when it was read.
-- **The last closed session** as `/market` writes it (the line about scheduled updates only for the
+- **The market session** as `/market` writes it (the line about scheduled updates only for the
   home region). It is read when you open it and on Refresh, never on a timer.
 
 A part with nothing to show is left out, and one that could not be read says why.
@@ -797,7 +838,7 @@ How to read it:
 - The cat sleeps while nothing needs you and wakes for an approval, a holding past its stop or at its take-profit, an order filled at the exchange, a price alert you set, or the day's AI budget running out. The corgi and the fish are scenery and signal nothing; the corgi only stands and wags for a few seconds when the page opens or a new agent joins.
 - Drag to pan and scroll or pinch to zoom. With the scene focused, the arrow keys Up and Down and Shift with Left or Right pan, and + and − zoom (Left and Right alone step through people, below). Esc or the ⟲ button ("See the whole floor") steps back. The + and − buttons at the bottom right zoom too, each greyed out at its limit; in 3D a thin bar beside them shows how far you are zoomed in. From the floor view, clicking a room zooms into it.
 
-**Office clock.** The clock in the header shows office time. Click it to see the office at another hour: real time, or a preset (early morning, morning, midday, afternoon, evening, night) at normal speed, x10 or x60. Only the scene changes; figures, notices and run times stay on real time. The preview is never saved, so a reload returns to real time. With reduced motion on, a preview runs at normal speed. When the office keeps a market's time rather than yours, the clock shows both.
+**Office clock.** The clock in the header shows office time. Click it to see the office at another hour: real time, or a preset (early morning, morning, midday, afternoon, evening, night) at normal speed, x10 or x60. Only the scene changes; figures, notices and run times stay on real time. The preview is never saved, so a reload returns to real time. With reduced motion on, a preview runs at normal speed. When the office keeps a market's time and it differs from yours, the clock shows both.
 
 **Performance readout.** Add `?perf=1` to the page address to show the scene's frame cost and render rate against their budgets, the 3D draw calls, and two street lines: the street step (one tick of the traffic and people outside) and the street repaint (the longest frame of the still layer's redraw, which runs at most once a minute and is spread over a few frames). It is for diagnosing a slow machine and changes nothing else.
 
@@ -830,7 +871,7 @@ Their answer sits right next to the ring without covering it: over its top item,
 
 ### Two views of the same office
 
-A "2D | 3D" switch in the header, before the Info only toggle, changes how the office is drawn. 2D is the default. 3D is loaded the first time you ask for it, and your choice is kept in this browser. It is the same office: positions, camera, selection, bubbles and everything above work in both, except that switching drops a follow and closes an open ring. 3D shows what 2D shows: the agenda screens, the results board and the news pins carry the same faces, a phone or a stamped sheet shows in hand, a back wall clears while it hides someone standing behind it, and the lamps of lit rooms cast a warm light. If the device cannot draw 3D the button is disabled and says why; if 3D fails to load or the graphics context is lost, the page returns to 2D and tells you.
+A "2D | 3D" switch in the header, before the Office | Focus switch, changes how the office is drawn. 2D is the default. 3D is loaded the first time you ask for it, and your choice is kept in this browser. It is the same office: positions, camera, selection, bubbles and everything above work in both, except that switching drops a follow and closes an open ring. 3D shows what 2D shows: the agenda screens, the results board and the news pins carry the same faces, a phone or a stamped sheet shows in hand, a back wall clears while it hides someone standing behind it, and the lamps of lit rooms cast a warm light. If the device cannot draw 3D the button is disabled and says why; if 3D fails to load or the graphics context is lost, the page returns to 2D and tells you.
 
 **Desks.** Each desk in the office carries its owner's things (reports, monitors, a checklist, a plant and photo, headphones, sticky notes, the alert desk's phone and lamp) and grows untidy with the day's real work: a sheet for every run of theirs that finished, a cup after each coffee or dessert break. A page opened late lays the sheets for today's finished runs at once; cups come only from breaks seen while it is open. The desks are tidied at 06:00 on the office clock. The bin beside a library desk, and beside each of your agents' desks, fills with a crumpled sheet for each run worked there today, up to three; on a trading day the cleaner empties every bin when her shift starts. The printer's tray stacks one sheet for each research report and morning brief delivered today, up to six, and is cleared when the day turns. A screen shows a screensaver while its owner is away from the desk, goes dark when the office is quiet, and turns grey at the lunch break and after the close; a desk whose owner works keeps its work screen. A scout sitting at its desk with nothing to read shows the home index's line under its browser tabs. Everyone at a desk sits with their back to you, facing their desk, its one kind of monitor standing at the far edge with its screen toward you so its text reads; the alert clerk's counter has one too. The alert desk's lamp glows amber while a fired alert is unread. While its owner sits idle at it, a screen reads real numbers instead: the trader's line monitor and the analyst's laptop turn through the names the page already polls for prices, one about every 20 seconds (held still under reduced motion), each with its last price, its move and a line from the previous close through the prices polled since the page opened; the risk desk's checklist shows a red box, and from the room zoom a count, for each holding within 3% of its stop; and the alert clerk's computer shows how many price alerts are active. None of this asks the daemon for anything more. Hover a screen to read it; click it to open the name's card, or the Portfolio tab for a count.
 
@@ -858,7 +899,7 @@ What is real and what is ambience:
 
 ### Keys, screen readers and attention
 
-Single keys work when the cursor is not in a text field, no dialog is open and no modifier is held: `/` or Cmd/Ctrl+K go to the command box (Cmd/Ctrl+K works from inside a field too, and `/` on an empty box starts a command with the `/` already typed); `1`, `2`, `3` and `4` open Today, Portfolio, Ideas and Market; `R` returns to the agent or ticker you were viewing; `B` the bell; `J` the jobs; `C` the chat; `I` Info only; `[` and `]` the previous and next agent; `?`, or the "?" button in the header, lists them all; Esc closes what is open or lets go of a follow. While the scene has the keyboard, the arrow keys, Tab, Enter, Space and Esc are the scene's own (above) and the letter keys still work. With the bell open, Up and Down choose a request, and `Y` approves it once or `N` denies it, only on the request that is outlined, and its buttons print the key. "Remember" has no key, the approval card inside the chat ignores these keys, and a stray key anywhere else approves nothing.
+Single keys work when the cursor is not in a text field, no dialog is open and no modifier is held: `/` or Cmd/Ctrl+K go to the command box (Cmd/Ctrl+K works from inside a field too, and `/` on an empty box starts a command with the `/` already typed); `1`, `2`, `3` and `4` open Today, Portfolio, Ideas and Market; `R` returns to the agent or ticker you were viewing; `B` the bell; `J` the jobs; `C` the chat; `I` Focus; `[` and `]` the previous and next agent; `?`, or the "?" button in the header, lists them all; Esc closes what is open or lets go of a follow. While the scene has the keyboard, the arrow keys, Tab, Enter, Space and Esc are the scene's own (above) and the letter keys still work. With the bell open, Up and Down choose a request, and `Y` approves it once or `N` denies it, only on the request that is outlined, and its buttons print the key. "Remember" has no key, the approval card inside the chat ignores these keys, and a stray key anywhere else approves nothing.
 
 The page is built to be used without a mouse: every control shows a focus ring, a skip link leads to the information panel, the scene is one keyboard application with a plain-text list of who is doing what (it appears when you tab into it, and each entry opens what that person is doing or what needs you), and following or stepping to someone is announced. A new approval or a broken stop is announced to screen readers too. Dialogs trap focus and give it back.
 
@@ -866,7 +907,7 @@ How loudly the page tells you something follows the weight the daemon gives the 
 
 ### Narrow screens and touch
 
-Below 900 px wide the page shows one pane at a time, switched with a bar under the header: Office, Information, Chat. A wider screen keeps the chat docked beside the rest. Opening a card (a ticker, an agent, a tab) brings Information forward; "See" on a run brings the Office forward, zoomed into that run's room; sending a message or choosing Chat brings the chat forward, and its close button goes back to the pane you came from. Nothing switches panes by itself, so a live event never pulls you away. Information opens as a glass bottom sheet over the office (tap its handle to hide it); Info only and its toggle are off at this width.
+Below 900 px wide the page shows one pane at a time, switched with a bar under the header: Office, Information, Chat. A wider screen keeps the chat docked beside the rest. Opening a card (a ticker, an agent, a tab) brings Information forward; "See" on a run brings the Office forward, zoomed into that run's room; sending a message or choosing Chat brings the chat forward, and its close button goes back to the pane you came from. Nothing switches panes by itself, so a live event never pulls you away. Information opens as a glass bottom sheet over the office (tap its handle to hide it); Focus and its toggle are off at this width.
 
 On a wider screen the office fills the page and the information panel floats over it as glass. The
 panel's blocks are glass too.
@@ -875,10 +916,10 @@ panel's blocks are glass too.
   centred while you resize the window or the panel changes, until you move the camera yourself.
 - The arrow at the panel's head folds it into a strip of icons at its corner, so the whole scene
   shows. The strip's own arrow opens it again.
-- The header's Info only toggle (`I`) hides the office entirely, so the information fills the page at
+- The header's Office | Focus switch (`I`): Focus hides the office entirely, so the information fills the page at
   a comfortable reading width, with the chat still docked beside it. The scene is not even loaded or
   running, which saves processor and graphics work on a small or slow machine. Behind the glass you see
-  a soft, blurred picture of the office as you left it; open the page straight into Info only and it
+  a soft, blurred picture of the office as you left it; open the page straight into Focus and it
   shows the bare floor plan instead. The picture never moves. The 2D | 3D switch, the
   clock and the weather leave the header with it. Your choice is kept in this browser. Pressing the
   key or the toggle again brings the office back; "See" on a run does the same and zooms into its
@@ -893,7 +934,7 @@ Touch works as a mouse does: drag with one finger to pan and pinch with two to z
 
 ### Display preferences
 
-Theme (light, dark or follow the system), the colours for up and down (green up or red up), motion (full, reduced or follow the system), the level of detail (above) and the office light are kept in this browser and apply at once. Reduced motion stills the characters and pets except for blinking, holds the office's dust, ribbons, LED strip, rack lights, approval light and bubbles still, stops the ticker scroll, pings and flashing prices, and runs the clock preview at normal speed; bubbles still update. Language, home market and time zone are the daemon's own settings (they change the brief and Telegram too) and need a restart. The home market picks the market that leads the brief and the default screen, and the city outside the office; the book keeps the currency it started in, and if the new home market is switched off in your profile, `/profile` and the brief remind you to turn it on. The browser also remembers the lamps you switched off, the 2D or 3D choice, the Info only layout, the Market tab's region, an update you put off, and the chime and notification choices; none of it goes to the daemon.
+Theme (light, dark or follow the system), the colours for up and down (green up or red up), motion (full, reduced or follow the system), the level of detail (above) and the office light are kept in this browser and apply at once. Reduced motion stills the characters and pets except for blinking, holds the office's dust, ribbons, LED strip, rack lights, approval light and bubbles still, stops the ticker scroll, pings and flashing prices, and runs the clock preview at normal speed; bubbles still update. Language, home market and time zone are the daemon's own settings (they change the brief and Telegram too) and need a restart. The home market picks the market that leads the brief and the default screen, and the city outside the office; the book keeps the currency it started in, and if the new home market is switched off in your profile, `/profile` and the brief remind you to turn it on. The browser also remembers the lamps you switched off, the 2D or 3D choice, the Focus layout, the Market tab's region, an update you put off, and the chime and notification choices; none of it goes to the daemon.
 
 Internals: [dev/operations.md](dev/operations.md).
 

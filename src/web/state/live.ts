@@ -3,6 +3,7 @@ import { computed, type ReadonlySignal, signal } from '@preact/signals'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { PendingWire, ProgressWire, QuestionPendingWire } from '@/app/server/wire/live'
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
+import { setCapped } from '@/web/state/capped-map'
 
 /** The pending entry an approval is; the other kind is a question. */
 export const APPROVAL_KIND = 'approval'
@@ -10,6 +11,7 @@ const MAX_RUNS = 200
 const MAX_PERSISTENT_STEPS = 20
 const MAX_PENDING = 50
 const MAX_FINISHED_TICKERS = 100
+const MAX_PARENT_RUNS = 100
 /** How often the page takes a fresh `GET /v1/live`, on top of every reconnect. */
 export const LIVE_RESYNC_MS = 60_000
 
@@ -26,11 +28,10 @@ export interface Run {
   readonly hidden?: true
   readonly startedAt: number
   readonly seenAt: number
-  /** Epoch ms by the page's clock when its latest line (start, step or thinking) arrived; lines
+  /** Epoch ms by the page's clock when its latest line (start or step) arrived; lines
    *  the page orders against its own speech read this, never the daemon's `progress.at`. */
   readonly heardAt: number
   readonly progress?: ProgressWire
-  readonly thinking?: string
   readonly persistent: readonly ProgressWire[]
   readonly tickers: readonly string[]
 }
@@ -41,6 +42,8 @@ const checkedAt = signal<number | undefined>(undefined)
 const taskList = signal<readonly TaskStatusWire[] | undefined>(undefined)
 // The tickers each run the page watched end reported, oldest first, by `runId`.
 const finishedTickers = new Map<string, readonly string[]>()
+// The runs the page saw start a child run, which stays known after the child ends.
+const parentRuns = new Map<string, true>()
 let arrivalSeq = 0
 
 export const runs: ReadonlySignal<readonly Run[]> = runList
@@ -82,16 +85,7 @@ export function noteFinishedTickers(runId: string, tickers: readonly string[] | 
     return
   }
 
-  finishedTickers.delete(runId)
-  finishedTickers.set(runId, tickers)
-
-  for (const oldest of finishedTickers.keys()) {
-    if (finishedTickers.size <= MAX_FINISHED_TICKERS) {
-      break
-    }
-
-    finishedTickers.delete(oldest)
-  }
+  setCapped(finishedTickers, [runId, tickers], MAX_FINISHED_TICKERS)
 }
 
 /** What a run this page watched end reported on; empty for one it did not see end. */
@@ -115,18 +109,35 @@ export function hasChildren(runId: string): boolean {
   return runList.value.some((run) => run.parentRunId === runId)
 }
 
+/** Whether the run `runId` ever started a child run the page saw: agents were handed work, which a
+ *  command refused or failed before its roles never does. */
+export function hasStartedChild(runId: string): boolean {
+  return parentRuns.has(runId)
+}
+
 export function findRun(runId: string): Run | undefined {
   return runList.value.find((run) => run.runId === runId)
 }
 
 /** Replaces the run in place by `runId`, else adds it last; past `MAX_RUNS` the oldest leaves. */
 export function upsertRun(run: Run): void {
+  noteParent(run.parentRunId)
+
   if (findRun(run.runId) !== undefined) {
     updateRun(run.runId, () => run)
     return
   }
 
   runList.value = [...runList.value, run].slice(-MAX_RUNS)
+}
+
+// Past `MAX_PARENT_RUNS` the oldest leaves.
+function noteParent(runId: string | undefined): void {
+  if (runId === undefined || parentRuns.has(runId)) {
+    return
+  }
+
+  setCapped(parentRuns, [runId, true], MAX_PARENT_RUNS)
 }
 
 export function updateRun(runId: string, update: (run: Run) => Run): void {

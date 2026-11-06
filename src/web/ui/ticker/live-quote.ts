@@ -1,13 +1,15 @@
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
-import type { TradingQuoteWire } from '@/app/server/wire/trading'
+import type { TradingQuoteWire, TradingWireCaveat } from '@/app/server/wire/trading'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { createSingleFlight } from '@/web/api/single-flight'
+import { noteQuoteLevel } from '@/web/state/market'
+import { toCaveatText } from '@/web/text/caveat-text'
 import { toErrorText, tr } from '@/web/text/tr'
 
-interface LiveQuote {
+export interface LiveQuote {
   /** The last price read on request; absent until the operator asks. */
   readonly quote: TradingQuoteWire | undefined
   readonly failure: string | undefined
@@ -35,11 +37,12 @@ export function useLiveQuote(ticker: string, market: string, onRead: () => void)
         const found = answer.quotes.find((row) => row.ticker === ticker && row.market === market)
 
         if (found === undefined) {
-          failure.value = answer.caveats[0]?.text ?? tr('ui.office.ticker.refreshNone')
+          failure.value = unquotedText(answer.caveats)
           return
         }
 
         quote.value = found
+        noteQuoteLevel(found)
         onRead()
       } catch (error: unknown) {
         if (!signal.aborted) {
@@ -64,4 +67,11 @@ export function useLiveQuote(ticker: string, market: string, onRead: () => void)
       flight.current?.().catch(() => undefined)
     },
   }
+}
+
+/** The daemon's reason for answering without the name's price, else the page's own line. */
+function unquotedText(caveats: readonly TradingWireCaveat[]): string {
+  const [first] = caveats
+
+  return first === undefined ? tr('ui.office.ticker.refreshNone') : toCaveatText(first)
 }

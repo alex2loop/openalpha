@@ -50,6 +50,11 @@ select {
   color: inherit;
 }
 
+a {
+  color: var(--link);
+  text-underline-offset: 2px;
+}
+
 /* Every text field and menu: one height, edge and type, so a row of them lines up with its
    buttons. `:where` keeps these at no specificity, so a class (the command box) still wins. */
 :where(
@@ -61,10 +66,17 @@ select {
   padding: 0 var(--fieldPadX);
   border: 1px solid var(--border);
   border-radius: var(--controlRadius);
-  background-color: var(--canvas);
+  background-color: var(--surface);
   color: var(--ink);
   font-size: var(--fieldFont);
   font-weight: var(--weightRegular);
+}
+
+/* A field that takes no input reads as set aside: sunken and quiet. */
+:where(input, select, textarea):disabled {
+  background-color: var(--sunken);
+  color: var(--ink3);
+  cursor: not-allowed;
 }
 
 /* A small field sits beside small buttons inside a row. */
@@ -127,6 +139,12 @@ strong {
   font-weight: inherit;
 }
 
+/* The qualifier after a section's name, such as when it was read: quieter than the name. */
+.heading-note {
+  color: var(--ink3);
+  font-weight: var(--weightRegular);
+}
+
 /* The rhythm inside a card: a flow is a column of groups, a stack the lines of one group closer
    together, a lead the line that heads a group. A sub-head takes its room from the flow's gap. */
 :is(.flow, .stack) {
@@ -154,6 +172,11 @@ strong {
 .big-figure {
   font: var(--typeHero);
   font-variant-numeric: tabular-nums;
+}
+
+/* A move pill beside a big figure sits on the figure's centre line, not its baseline. */
+.big-figure .pill {
+  vertical-align: middle;
 }
 
 .lead {

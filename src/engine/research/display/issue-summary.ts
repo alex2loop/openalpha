@@ -107,7 +107,7 @@ export function toResearchIssueGroups(
   })
 }
 
-function toResearchIssueKind(gap: EvidenceGap): ResearchIssueKind {
+export function toResearchIssueKind(gap: EvidenceGap): ResearchIssueKind {
   if (gap.code === 'validation') {
     const parsed = ValidationGapReasonSchema.safeParse(gap.params?.reason)
     if (parsed.success) {

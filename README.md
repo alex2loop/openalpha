@@ -12,6 +12,7 @@
 <p align="center">
   <img src="https://img.shields.io/github/actions/workflow/status/alex2loop/openalpha/check.yml?branch=main&style=flat-square&label=check" alt="check" />
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT" />
+  <a href="https://buymeacoffee.com/alex2loop"><img src="https://img.shields.io/badge/%E2%98%95-Support-ffdd00?style=flat-square" alt="☕ Support" /></a>
 </p>
 
 <p align="center">
@@ -33,11 +34,6 @@ It is an analysis aid, not investment advice. Suggestions can be wrong, and ever
 > Your whole AI team works in a pixel office right in your browser. See who is doing what, click a person to hand them work, and glance at the market panel beside it. Open it with `openalpha web` · [see how](#the-office-page).
 >
 > US stocks and ETFs are in: the 500 largest US companies screened and scored, sectors ranked against SPY, and a morning brief at 08:15 New York time. Pick the United States in `onboard`, or add them to the book you already keep with `/profile enable equity-us` · [see what it covers](#markets-and-data).
-
-<p align="center">
-  <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-support%20group-0068FF?style=for-the-badge" alt="Zalo support group" /></a><br/>
-  <sub>Stuck on setup, or want release news? Ask in the <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">OpenAlpha Zalo group</a> (in Vietnamese).</sub>
-</p>
 
 <p align="center">
   <a href="#see-it-in-action">See it in action</a> · <a href="#why-openalpha">Why OpenAlpha</a> · <a href="#quick-start">Quick start</a> · <a href="#daily-use">Daily use</a> · <a href="#the-office-page">The office page</a> · <a href="#safety">Safety</a> · <a href="#faq">FAQ</a> · <a href="#documentation">Docs</a> · <a href="#contribute-to-openalpha">Contribute</a> · <a href="#stability-license-and-disclaimer">License</a>
@@ -93,6 +89,8 @@ https://github.com/user-attachments/assets/46ea9c20-cc72-4bfa-8bb6-272981615802
 **A bad fit if** you want a bot that trades by itself, or someone to decide for you. Neither exists here, and that is deliberate.
 
 ## Quick start
+
+To look around before installing, the web version runs in your browser with no account: [what it does and where it differs](docs/en/web.md).
 
 You need two things:
 
@@ -422,7 +420,7 @@ A bare ticker is usually enough (`/price FPT`). Qualify it only where two market
   <img src="assets/readme/sources.en.png" alt="Data sources routed per market: VN equities, US equities, crypto, VN gold, world gold, VN macro, US macro and cross-market" width="100%" />
 </p>
 
-OpenAlpha routes 39 data sources per market; when one fails, a backup takes over by itself ([data sources](docs/en/data-sources.md)). A few sources take an extra free key; if you follow gold or US macro, get a key from the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html) and save it with `openalpha key set FRED_API_KEY` to get the dollar index and VIX ([details](docs/en/data-sources.md#what-you-need-to-do)). For US stocks, save any email you read with `openalpha key set SEC_CONTACT_EMAIL`: SEC asks every caller to name a contact, and it unlocks value and quality scores, earnings releases and insider buys. Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo, Zalo Personal or the office page.
+OpenAlpha reads public data sources for each market (exchanges, brokers, gold shops, crypto exchanges, central banks, news); when one fails, a backup takes over by itself ([data sources](docs/en/data-sources.md)). A few sources take an extra free key; if you follow gold or US macro, get a key from the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html) and save it with `openalpha key set FRED_API_KEY` to get the dollar index and VIX ([details](docs/en/data-sources.md#what-you-need-to-do)). For US stocks, save any email you read with `openalpha key set SEC_CONTACT_EMAIL`: SEC asks every caller to name a contact, and it unlocks value and quality scores, earnings releases and insider buys. Data lives in SQLite, already on your machine. Over 70 AI providers work, and when one stalls the run moves to the next. Talk to it from the terminal, Telegram, Zalo, Zalo Personal or the office page.
 
 ### Research with receipts
 
@@ -448,7 +446,7 @@ Every other safeguard: [safety.md](docs/en/safety.md) · [SECURITY.en.md](SECURI
 - **Do I need a powerful machine?** No. The AI runs on the provider's servers; your machine runs one light program. Only running a model locally (Ollama) needs real hardware.
 - **Can I use it without coding?** Yes. You paste a few commands into a terminal once, at install; after that you ask in plain language on the web page, in the terminal, or over Telegram or Zalo.
 - **Can I trust the suggestions?** They can be wrong, and it does not hide that: `/reflect` shows the real record of every past call.
-- **Something went wrong?** Run `openalpha doctor`: it names what is missing (a key, a channel, the daemon). `openalpha logs` shows the detail. Still stuck? Ask in the [Zalo group](https://zalo.me/g/yl7iqyfovvtyosujulea) or open an [issue](https://github.com/alex2loop/openalpha/issues/new/choose).
+- **Something went wrong?** Run `openalpha doctor`: it names what is missing (a key, a channel, the daemon). `openalpha logs` shows the detail. Still stuck? Open an [issue](https://github.com/alex2loop/openalpha/issues/new/choose).
 
 ## Documentation
 
@@ -541,13 +539,12 @@ bun run lint:arch   # the architecture gates
 
 Both commands must pass before anything lands. House rules and the business invariants: [AGENTS.md](AGENTS.md). A clone updates with `git pull`.
 
-Architecture: 16 modules with no cycles, every dependency pointing toward the kernel; 32 gates break the build the moment a boundary does. Contributing: [CONTRIBUTING.en.md](CONTRIBUTING.en.md) · [Code of conduct](CODE_OF_CONDUCT.en.md).
+Architecture: 16 modules with no cycles, every dependency pointing toward the kernel; 33 gates break the build the moment a boundary does. Contributing: [CONTRIBUTING.en.md](CONTRIBUTING.en.md) · [Code of conduct](CODE_OF_CONDUCT.en.md).
 
 ### Support and community
 
-- **Setup and usage questions, release news:** the [OpenAlpha Zalo group](https://zalo.me/g/yl7iqyfovvtyosujulea), in Vietnamese. It covers using the software, never which name to buy. Mask your API keys before pasting a config. Admins never message you privately for keys or money.
 - **Bugs and feature requests:** [GitHub Issues](https://github.com/alex2loop/openalpha/issues/new/choose). A bug is tracked only once it has an issue.
-- **Security vulnerabilities:** report privately per [SECURITY.en.md](SECURITY.en.md), never in the group or an issue.
+- **Security vulnerabilities:** report privately per [SECURITY.en.md](SECURITY.en.md), never in an issue.
 
 Find it useful? Give the repo a ⭐ so more people find it.
 

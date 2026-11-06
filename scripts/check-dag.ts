@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path'
 
 import { lineAt, scanImports } from './import-scan'
 
-const SRC = `${import.meta.dir}/../src`
+const SRC = resolve(import.meta.dir, '../src')
 
 const ALLOWED: Readonly<Record<string, readonly string[]>> = {
   core: [],
@@ -72,11 +72,14 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'limits',
   'llm',
   'logging/correlation',
+  'logging/entry-log',
   'logging/logger',
   'logging/paths',
   'logging/retention',
+  'logging/silent-logger',
   'logging/inspection',
   'memory-key',
+  'periodic-pass',
   'stream-events',
   'tool',
   'types/agent-pause',
@@ -88,6 +91,7 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'types/event-job',
   'types/exact',
   'types/locale',
+  'types/log-entry',
   'types/memory',
   'types/plugin',
   'types/run',
@@ -95,11 +99,13 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'types/storage',
   'types/usage',
   'config/load',
+  'config/operator-errors',
   'config/resolve',
   'config/validate',
   'http-client',
   'security/agent-directories',
   'security/binary',
+  'scoped-value',
   'session-queue',
   'security/credentials',
   'security/output-pipeline',
@@ -107,6 +113,8 @@ const CORE_PUBLIC: ReadonlySet<string> = new Set([
   'security/path-policy',
   'security/private-files',
   'security/sanitize',
+  'ssrf/fetch-guard',
+  'ssrf/host-allowlist',
   'ssrf/network-policy',
   'ssrf/pinned-fetch',
   'utils/collections',
@@ -155,6 +163,11 @@ const WEB_DIR = `${SRC}/web/`
 // index.ts sits above every module, like `app`, and is checked, not skipped.
 const BARREL_DEPS: readonly string[] = [...(ALLOWED.app ?? []), 'app']
 const NO_DEEP_ALLOW: ReadonlySet<string> = new Set()
+// `@/<module>/node-api` carries a module's Bun/Node-only exports. The browser bundle never reaches
+// one, so only the surfaces that run on the host import it: `app`, `cli` and the SDK barrel.
+const NODE_API_SUBPATH = 'node-api'
+const API_SUBPATH = 'api'
+const NODE_API_IMPORTERS: ReadonlySet<string> = new Set(['app', 'cli', 'index.ts'])
 // i18n is a single-file leaf; only the bare specifier is importable.
 const KERNEL_MODULES = new Set(['core', 'i18n'])
 const MODULE_NAME_RE = /^[a-z0-9-]+$/
@@ -273,6 +286,24 @@ const wireIssue = (file: string, specifier: string): string | null => {
   return `wire/ may import only wire/ and core/types, not '${specifier}'`
 }
 
+// A module's two doors stay disjoint: the portable one never reaches the Node half, and nothing
+// inside the module but its own node-api leans on that half.
+const doorCrossingIssue = (file: string, moduleName: string, specifier: string): string | null => {
+  const door = (name: string): string => `${SRC}/${moduleName}/${name}.ts`
+  const alias = new RegExp(`^@/${moduleName}/(${API_SUBPATH}|${NODE_API_SUBPATH})$`).exec(specifier)
+  const target = alias?.[1] === undefined ? resolveRelative(file, specifier) : door(alias[1])
+
+  if (target === door(NODE_API_SUBPATH) && file !== door(NODE_API_SUBPATH)) {
+    return `'${moduleName}/node-api' is the Node-only door; only app and cli import it, never its own module`
+  }
+
+  if (target === door(API_SUBPATH) && file === door(NODE_API_SUBPATH)) {
+    return `'${moduleName}/node-api' never re-exports '${moduleName}/api'`
+  }
+
+  return null
+}
+
 const checkFile = (file: string, importer: Importer, source: string): void => {
   for (const found of scanImports(source)) {
     const wire = wireIssue(file, found.specifier)
@@ -298,6 +329,13 @@ const checkFile = (file: string, importer: Importer, source: string): void => {
       const target = resolveRelative(file, found.specifier)
       const targetModule = target ? moduleOf(target) : null
       if (targetModule && targetModule !== importer.name) depModule = targetModule
+    }
+
+    const doorIssue = doorCrossingIssue(file, importer.name, found.specifier)
+
+    if (doorIssue !== null) {
+      violations.push({ file, line: lineAt(source, found.index), message: doorIssue })
+      continue
     }
 
     if (!depModule || depModule === importer.name) continue
@@ -331,7 +369,18 @@ const checkFile = (file: string, importer: Importer, source: string): void => {
       continue
     }
 
-    if (subpath !== 'api' && !importer.deepAllow.has(found.specifier)) {
+    if (subpath === NODE_API_SUBPATH) {
+      if (!NODE_API_IMPORTERS.has(importer.name)) {
+        violations.push({
+          file,
+          line,
+          message: `'@/${depModule}/node-api' is imported only by app and cli`,
+        })
+      }
+      continue
+    }
+
+    if (subpath !== API_SUBPATH && !importer.deepAllow.has(found.specifier)) {
       violations.push({
         file,
         line,

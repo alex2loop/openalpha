@@ -1,6 +1,6 @@
 import type { VenueConfigs } from '@/trading/kernel/config'
 import type { VenueKeyRestrictions } from '@/trading/venues/types'
-import { silentLogger } from '@/core/logging/logger'
+import { silentLogger } from '@/core/logging/silent-logger'
 import { OrderError } from '@/trading/features/order/types'
 import { venueRef } from '@/trading/kernel/instrument'
 import { fetchBinanceKeyAudit } from '@/trading/venues/binance/venue'

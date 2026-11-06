@@ -189,7 +189,8 @@ Prompt bắt đầu bằng `/` là một lệnh. Nó chạy như khi bạn gõ, 
 
 - Chỉ dòng đầu là lệnh.
 - Kết quả được gửi như mọi câu trả lời khác. Khi không có trang nào đang mở, nó vào chuông để trang
-  mở sau đó đọc được.
+  mở sau đó đọc được. Job mà lời nhắc không phải lệnh gạch chéo gửi câu trả lời của mô hình dưới dòng nội dung do
+  AI tạo, cả trong chat lẫn trong chuông.
 - Mỗi phiên chạy như vậy để lại một dòng trong nhật ký hoạt động.
 
 Lệnh thay đổi cài đặt, lệnh đặt hoặc sổ của bạn (như `/trade`, `/record sync` hay `/refresh`) cần
@@ -359,6 +360,8 @@ lại mỗi 30 giây. Nội dung cam kết quay lại agent dưới dạng ngữ
 hết sức và chỉ nằm trong bộ nhớ, trong một danh sách giới hạn 200 mục, nên khởi động lại hay danh sách
 đầy đều làm nó quên mục cũ, và một thông báo trùng có thể quay lại. Thông báo bị từ chối không bao giờ
 được nhớ, nên phiên chạy đủ điều kiện kế tiếp sẽ thử lại.
+
+Tác vụ nhờ agent trả lời thì gửi câu trả lời dưới dòng nội dung do AI tạo; dòng này không nằm trong phần dùng để so sánh sự lặp lại. Tác vụ chạy một lệnh thì gửi kết quả nguyên trạng.
 
 ### Khoảng chờ tăng dần
 
@@ -655,7 +658,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 
 ### Trên màn hình có gì
 
-- **Đầu trang.** Chip việc đang chạy (cái gì đang chạy và cái gì tiếp theo: dừng một phiên chạy, hoặc chạy lại một việc theo lịch), công tắc 2D | 3D, nút Chỉ thông tin (không hiện trên màn hình hẹp), chip chi phí AI, đồng hồ văn phòng, chuông thông báo, nút "?" liệt kê các phím tắt và Cài đặt.
+- **Đầu trang.** Chip việc đang chạy (cái gì đang chạy và cái gì tiếp theo: dừng một phiên chạy, hoặc chạy lại một việc theo lịch), công tắc 2D | 3D, công tắc Văn phòng | Tập trung (không hiện trên màn hình hẹp), chip chi phí AI, đồng hồ văn phòng, chuông thông báo, nút "?" liệt kê các phím tắt và Cài đặt.
 - **Dải giá.** Nổi trên phần đầu khung cảnh văn phòng, ngay dưới nút chuyển tầng, chỉ số chuẩn (VN-Index, BTC) của từng thị trường bạn giao dịch và danh sách theo dõi chạy ngang qua. Mã thủng cắt lỗ và đề xuất mua mới được đánh dấu.
 - **Văn phòng.** Khung cảnh, chiếm cả trang với bảng thông tin nổi phía bên phải; mô tả ở dưới.
 - **Bảng thông tin.** Bốn thẻ, cộng một thẻ riêng cho thứ bạn bấm vào.
@@ -664,34 +667,61 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     duyệt, mã thủng cắt lỗ; bấm "Mở" để xem trong chuông); những gì đáng xem; danh mục của bạn với nút
     "Xem danh mục" (giá trị, đang giữ gì, mã thủng cắt lỗ và các lệnh chốt lời đang chờ ở sàn); thị
     trường Việt Nam và các thị trường khác (mỗi thị trường kèm các mã tăng mạnh nhất và giảm mạnh nhất
-    của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch); sự kiện sắp
-    tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
+    của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch; hàng của đại
+    lý như vàng VN nêu giá mua vào, giá bán ra và chênh lệch giữa hai giá, rồi mức chênh lệch của vàng
+    VN với vàng thế giới; crypto nêu phí funding, hợp đồng mở, tỷ lệ mua/bán, bên mua chủ động khớp
+    và chỉ số sợ hãi - tham lam; thị trường bạn tắt trong hồ sơ không hiện, trừ vàng thế giới, vốn
+    chỉ để tham chiếu nên luôn hiện); sự kiện sắp tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
     và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví
-    dụ chưa có khóa API của sàn, nằm ở cuối thẻ.
-  - *Danh mục* gồm tổng quan, hiệu quả, lịch sử, cân bằng lại và danh sách theo dõi cùng cảnh báo giá,
-    thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
+    dụ chưa có khóa API của sàn, nằm ở cuối thẻ. Trên cùng là thẻ "Bắt đầu với" cho tới khi bạn làm
+    xong hoặc ẩn đi: kết nối mô hình AI (không bắt buộc ở bản web), hồ sơ đầu tư, danh mục hiện có,
+    Telegram (bản cài, không bắt buộc) và bản tin `/brief` đầu tiên. Mỗi bước được tích khi xong: hồ
+    sơ đã lưu hoặc "Giữ mặc định" (hồ sơ chưa từng lưu chạy bằng mức mặc định), một giao dịch đã ghi
+    hoặc "Chưa có, bỏ qua", một lần `/brief` đã chạy xong trên trình duyệt này. Thẻ tự mất khi mọi
+    bước bắt buộc đã tích, hoặc ngay khi bạn bấm "Ẩn hướng dẫn"; cả hai chỉ được nhớ trên trình duyệt
+    này. Thẻ chỉ hiện trên trình duyệt đã mở văn phòng trước khi có hồ sơ được lưu hay giao dịch được
+    ghi. Nút "Xem lại các bước bắt đầu" ở cuối thẻ Hôm nay mở lại thẻ cho đến khi bạn tải lại trang.
+    Thẻ còn có nút Thuật ngữ và một dòng báo rằng chữ có gạch chân chấm tự giải thích khi rê chuột
+    hoặc chạm vào; khi thẻ đã mất, nút Thuật ngữ nằm cạnh "Xem lại các bước bắt đầu". Thẻ giải thích
+    của một thuật ngữ, dấu "?" sau tiêu đề và trang Thuật ngữ (mọi thuật ngữ theo mục, kèm ô tìm
+    kiếm) được mô tả ở [Bản web](ban-web.md); `/glossary` in cùng các thuật ngữ.
+  - *Danh mục* gồm tổng quan (kèm ngày giao dịch không hưởng cổ tức, đại hội cổ đông và niêm yết
+    trong 14 ngày tới của các mã bạn đang giữ), hiệu quả (giá trị danh mục trong 1 tháng, 3 tháng, 6 tháng, 1 năm hoặc
+    toàn bộ lịch sử; khoảng bạn chọn được nhớ trên trình duyệt này), lịch sử, cân bằng lại và danh
+    sách theo dõi cùng cảnh báo giá, thêm thẻ *Lệnh* khi có sàn đặt lệnh được. Mọi loại dòng sổ đều được ghi, sửa, xóa ngay tại đây và
     có hoàn tác, còn Lịch sử đối chiếu sổ với các sàn của bạn (xem
     [Giao dịch](giao-dich.md#trên-trang-văn-phòng)).
-  - *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên gần nhất đã chốt, tin tức và các chủ đề của bạn (ở
+  - *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên thị trường, tin tức và các chủ đề của bạn (ở
     dưới).
   - *Đề xuất* gồm các kế hoạch đang mở, màn hình cơ hội, thành tích và kết quả nghiên cứu, kèm số đề
     xuất mới bạn chưa xem.
   - Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng
-    mã đó), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng các mức của kế hoạch, mã bạn đang
-    giữ, "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
+    mã đó; bảng giá của đại lý như vàng VN thêm giá mua vào, giá bán ra và chênh lệch), mức thấp nhất,
+    cao nhất và khối lượng của phiên (của phiên đang chạy khi giá là giá trực tiếp, nếu không thì của
+    phiên đã chốt gần nhất, có ghi ngày), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng
+    các mức của kế hoạch, mã bạn đang giữ, "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
     Dưới các mức của kế hoạch là "Đang chờ điều gì" (điều kiện người giao dịch còn chờ trước khi vào
     lệnh, nếu có) và "Từng yếu tố chấm ra sao", đúng những dòng `/suggest` in ra. Thẻ đề xuất ở mục
     Đề xuất cũng có hai phần này.
+  - Thẻ đề xuất, kế hoạch trên thẻ của một mã, hộp "Vì sao?", ý kiến của các agent bạn, các chủ đề, bản tin
+    và báo cáo nghiên cứu đều mở đầu bằng một dòng nói đây là nội dung do AI tạo và không phải khuyến
+    nghị đầu tư. Bản tin từ một dịch vụ nền cũ chưa có
+    dòng này cũng được gắn nhãn.
   - Bấm một agent của bạn trong văn phòng thì thẻ của nó mở ra (xem
     [Agent](tro-ly.md#từ-trang-văn-phòng)).
   - Hàng quay lại đưa bạn về chỗ vừa xem, và bảng thu gọn được thành một dải biểu tượng.
-- **Trò chuyện.** Cuộc trò chuyện với trợ lý, nằm bên phải. Các cuộc trò chuyện trước, kể cả của Telegram, tìm được (cuộc trò chuyện chưa có lời nào thì không được liệt kê), chia thành hôm nay, 7 ngày qua và cũ hơn theo tin nhắn cuối cùng (theo ngày của dịch vụ nền, không theo trình duyệt); mỗi dòng ghi giờ của tin nhắn cuối và số lượt trao đổi, một lượt là một câu bạn gửi cùng câu trả lời của nó, và tải thêm cuộc trò chuyện cũ khi bạn cần; chỉ những cuộc chat do trang mở mới nói tiếp được; khi đang mở cuộc trò chuyện của kênh khác, ô gõ ở cuối trang báo điều đó và cho bạn tiếp tục trong cuộc trò chuyện mới. Menu của mỗi dòng mở cuộc trò chuyện đó ở một thẻ riêng, trong thẻ chỉ có khung chat, và xóa được cuộc trò chuyện do trang hoặc CLI mở: dòng biến mất ngay và một thanh ở cuối trang cho bạn Hoàn tác trong vài giây (đồng hồ dừng khi thẻ bị ẩn; đóng thẻ trước thì không xóa gì). Cuộc trò chuyện còn câu trả lời đang chạy thì không xóa được, và cuộc trò chuyện Telegram không bao giờ bị xóa ở đây, vì đó cũng là lịch sử bên Telegram. Cửa sổ CLI còn mở trên cuộc trò chuyện vừa xóa thì cứ thế chat tiếp như một cuộc trò chuyện mới, và danh sách sẽ hiện lại cuộc đó khi nó có tin nhắn mới. Câu trả lời `/research` hiện các bước khi đang chạy và nguồn đánh số dưới câu trả lời (xem [Nghiên cứu sâu](nghien-cuu.md#trên-trang-văn-phòng)). Cuộc trò chuyện cũ bạn mở, và cuộc trò chuyện hiện tại sau khi tải lại trang, hiện mọi lượt như lúc đầu: các câu lệnh bạn gõ cùng câu trả lời, trình bày như khung chat đã hiện, và "Lệnh gọi AI" dưới câu trả lời có phiên chạy, liệt kê các lần gọi mô hình của nó. Câu lệnh được lưu từ phiên bản này trở đi, trên mọi kênh; `/help` thì không lưu, và những nút cho thấy kết quả ngay tại chỗ (như Cập nhật dữ liệu) cũng không. Những câu trả lời đã lưu này chỉ để bạn đọc: trợ lý không bao giờ đọc lại chúng. Cuộn lên gần đầu thì tin nhắn cũ hơn tự tải thêm mà không làm mất chỗ bạn đang đọc; nút "Tải tin nhắn cũ hơn" vẫn còn để bấm. Khi đang xem cuộc trò chuyện của kênh khác, như Telegram hay CLI, tin nhắn mới ở đó tự hiện ở cuối, ngay khi trợ lý trả lời xong, còn câu trả lời của câu lệnh thì chậm nhất khoảng 15 giây; nếu bạn đang kéo lên đọc tin cũ thì trang không tự nhảy xuống mà hiện nút "Có tin nhắn mới, xem ngay".
-- **Ô câu lệnh.** Nổi trên phần chân khung cảnh văn phòng, hoặc trên ảnh văn phòng ở chế độ Chỉ thông tin; trên màn hình hẹp, ở khung Thông tin và Trò chuyện, nó nằm ở cuối trang: ai nhận câu bạn gõ và ô nhập (Enter là gửi; trên điện thoại còn có nút Gửi). Khi bạn gõ, chip agent và nút Trò chuyện thu lại chỉ còn biểu tượng; trên điện thoại chip agent và nút Gửi luôn chỉ là biểu tượng. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng).
+- **Trò chuyện.** Cuộc trò chuyện với trợ lý, nằm bên phải. Trên màn hình rộng, kéo mép trái của khung (hoặc chọn mép đó rồi bấm phím mũi tên trái/phải) để đổi độ rộng; trình duyệt nhớ độ rộng này, và bấm đúp vào mép đưa khung về độ rộng mặc định. Các cuộc trò chuyện trước, kể cả của Telegram, tìm được (cuộc trò chuyện chưa có lời nào thì không được liệt kê), chia thành hôm nay, 7 ngày qua và cũ hơn theo tin nhắn cuối cùng (theo ngày của dịch vụ nền, không theo trình duyệt); mỗi dòng ghi giờ của tin nhắn cuối và số lượt trao đổi, một lượt là một câu bạn gửi cùng câu trả lời của nó, và tải thêm cuộc trò chuyện cũ khi bạn cần; chỉ những cuộc chat do trang mở mới nói tiếp được; khi đang mở cuộc trò chuyện của kênh khác, ô gõ ở cuối trang báo điều đó và cho bạn tiếp tục trong cuộc trò chuyện mới. Menu của mỗi dòng mở cuộc trò chuyện đó ở một thẻ riêng, trong thẻ chỉ có khung chat, và xóa được cuộc trò chuyện do trang hoặc CLI mở: dòng biến mất ngay và một thanh ở cuối trang cho bạn Hoàn tác trong vài giây (đồng hồ dừng khi thẻ bị ẩn; đóng thẻ trước thì không xóa gì). Cuộc trò chuyện còn câu trả lời đang chạy thì không xóa được, và cuộc trò chuyện Telegram không bao giờ bị xóa ở đây, vì đó cũng là lịch sử bên Telegram. Cửa sổ CLI còn mở trên cuộc trò chuyện vừa xóa thì cứ thế chat tiếp như một cuộc trò chuyện mới, và danh sách sẽ hiện lại cuộc đó khi nó có tin nhắn mới. Câu trả lời `/research` hiện các bước khi đang chạy và nguồn đánh số dưới câu trả lời (xem [Nghiên cứu sâu](nghien-cuu.md#trên-trang-văn-phòng)). Cuộc trò chuyện cũ bạn mở, và cuộc trò chuyện hiện tại sau khi tải lại trang, hiện mọi lượt như lúc đầu: các câu lệnh bạn gõ cùng câu trả lời, trình bày như khung chat đã hiện, và "Lệnh gọi AI" dưới câu trả lời có phiên chạy, liệt kê các lần gọi mô hình của nó. Câu lệnh được lưu từ phiên bản này trở đi, trên mọi kênh; `/help` thì không lưu, và những nút cho thấy kết quả ngay tại chỗ (như Cập nhật dữ liệu) cũng không. Những câu trả lời đã lưu này chỉ để bạn đọc: trợ lý không bao giờ đọc lại chúng. Cuộn lên gần đầu thì tin nhắn cũ hơn tự tải thêm mà không làm mất chỗ bạn đang đọc; nút "Tải tin nhắn cũ hơn" vẫn còn để bấm. Khi đang xem cuộc trò chuyện của kênh khác, như Telegram hay CLI, tin nhắn mới ở đó tự hiện ở cuối, ngay khi trợ lý trả lời xong, còn câu trả lời của câu lệnh thì chậm nhất khoảng 15 giây; nếu bạn đang kéo lên đọc tin cũ thì trang không tự nhảy xuống mà hiện nút "Có tin nhắn mới, xem ngay". Một dòng dưới tiêu đề cho biết các câu trả lời do AI tạo và không phải khuyến nghị đầu tư.
+- **Ô câu lệnh.** Nổi trên phần chân khung cảnh văn phòng, hoặc trên ảnh văn phòng ở chế độ Tập trung; trên màn hình hẹp, ở khung Thông tin và Trò chuyện, nó nằm ở cuối trang: ai nhận câu bạn gõ và ô nhập (Enter là gửi; trên điện thoại còn có nút Gửi). Khi bạn gõ, chip agent và nút Trò chuyện thu lại chỉ còn biểu tượng; trên điện thoại chip agent và nút Gửi luôn chỉ là biểu tượng. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng).
 - **Chuông và việc đang chạy.** Chuông liệt kê thông báo và các yêu cầu đang chờ bạn. Yêu cầu duyệt hỏi từ trang này được trả lời ngay trong chuông: duyệt một lần, ghi nhớ hoặc từ chối. Đồng hồ đếm lùi cho biết khi nào hết hạn, và yêu cầu hết giờ mà chưa trả lời thì bị từ chối. Mỗi yêu cầu chỉ được trả lời một lần: nếu nó hiện ở cả chuông lẫn khung chat thì chỉ một câu trả lời được gửi đi, và thẻ còn lại hiện đúng câu trả lời đó, kèm dòng "đã được trả lời" nếu bạn chọn khác ở thẻ này. Yêu cầu hỏi trên Telegram hay kênh khác vẫn được liệt kê nhưng trả lời ở nơi nó được hỏi. Danh sách việc cho thấy cái đang chạy (dừng được, sau một bước xác nhận), cái sắp chạy, cái đang chờ một sự kiện (kiểm tra theo chu kỳ, không tốn AI) và các việc tự chạy, kèm cách sửa việc nào đang lỗi; nút "Thêm lịch" đặt một việc cho trợ lý. Việc tự chạy cũng hiện tức thời: việc nào vừa bắt đầu làm (nạp dữ liệu thị trường ngay sau khi khởi động, làm mới dữ liệu, một lượt quét cảnh báo) được chip việc đang chạy đếm và hiện ngay trong mục đang chạy, xong thì tự biến mất.
 - **Chi phí.** Chip cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày; bấm để xem cả tháng, chi phí theo từng việc và dòng ngân sách, còn "Xem đủ báo cáo" mở báo cáo cho hôm nay, 7 hoặc 30 ngày qua, hay tháng này. Xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng).
 - **Cài đặt.** Biểu tượng bánh răng mở ra: hồ sơ đầu tư, bộ nhớ, lịch và theo dõi, agent và AI, kênh
   nhắn tin, nhà cung cấp, sàn giao dịch, công cụ, dữ liệu và kết nối, hiển thị, và nâng cao, nơi có ô
   sửa `config.toml` thô.
+  - Trong hồ sơ, "Nhóm tài sản và tỷ trọng mục tiêu" bật hoặc tắt từng nhóm và đặt tỷ trọng, tới 0,1% (rời ô là số được làm tròn về mức đó). Đánh
+    dấu một nhóm đang tắt là bật nó với trần mặc định, giữ trần của các nhóm khác, rồi lưu các tỷ
+    trọng bạn nhập; vàng thế giới không sàn nào giữ nên luôn tắt. "Về mặc định" điền tỷ trọng mà
+    khẩu vị rủi ro của bạn chia cho các nhóm đang đánh dấu (giữ tỷ trọng đã ghim); chỉ lưu khi bạn
+    bấm Lưu.
   - Ô sửa hiện mọi giá trị bí mật (giá trị `env` của máy chủ MCP, mọi token, secret, mật khẩu hay khóa
     API ghi thẳng trong file) là `********`. Cứ để nguyên thì giá trị đã lưu được giữ.
   - Một số mục chỉ đổi được bằng câu lệnh hoặc sửa thẳng trong `config.toml`, vì chúng quyết định
@@ -736,22 +766,30 @@ Thẻ Thị trường có ba phần: *Thị trường*, *Tin tức* và *Chủ �
 - Phiên chạy hiện ở chip đang chạy, kho dữ liệu trong văn phòng và khung chat, như `/refresh` gõ tay.
   Nút tắt khi còn một lượt đang chạy, và các khối bên dưới đọc lại khi lượt xong.
 
-Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này), thẻ hiện:
+Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn giữ trong trình duyệt này), thẻ hiện những mục dưới đây. Bộ chọn chỉ liệt kê vùng còn thị trường bạn bật trong hồ sơ hoặc có vàng thế giới (chỉ để tham chiếu nên luôn hiện), cộng vùng nhà, và mỗi vùng chỉ hiện các thị trường đó; khi có thị trường đang tắt, cuối thẻ nhắc bật thêm ở Cài đặt › Hồ sơ.
 
 - **Đầy đủ số đọc vĩ mô**: trạng thái và chiều nghiêng; một dòng lãi suất tiền gửi 12 tháng và tỷ giá
   USD/VND (phần nào chưa có số thì bỏ); những thành phần bị để ngoài vì chưa có số đọc; phần mô hình
   đã có dữ liệu; và ở mức Nâng cao thì thêm thang đo cùng bảng các thành phần tạo nên con số, lực kéo
-  mạnh nhất đứng đầu.
+  mạnh nhất đứng đầu, mỗi dòng ghi ngày số liệu được ghi nhận và hai số ở hai đầu thanh của nó. Bản
+  web không nêu trạng thái và không có điểm tổng hợp, thang đo hay trọng số: chỉ liệt kê số đọc riêng
+  của từng thành phần, theo thứ tự nguồn trả về.
 - **Giá của vùng đó**, kèm các mã tăng mạnh nhất và giảm mạnh nhất của từng thị trường (năm biến động
-  mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng).
+  mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng). Dưới mỗi thị
+  trường là các số đọc riêng của nó, mỗi số một nhãn và một giá trị dưới tiêu đề của nhóm, đúng nhãn,
+  số và thứ tự `/overview` và `/brief` in ra, kèm dòng nguồn và giờ đọc: vàng VN nêu chênh lệch với vàng thế giới, một con số thuần, không nói nó nằm ở đâu so với lịch sử;
+  crypto nêu phí funding, hợp đồng mở và so với các phiên gần đây, tỷ lệ mua/bán, phần bên mua chủ động
+  khớp lệnh, và chỉ số sợ hãi - tham lam kèm nguồn công bố nó. Nguồn nào trình duyệt không đọc được thì
+  dòng đó không hiện, không báo lỗi.
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
   và bán ròng nhiều nhất; và năm mã giao dịch nhiều nhất. Giá trị rút gọn (như 76,5 tỷ), và ghi rõ
   khoảng thời gian đo khi không phải một phiên. Nhà cung cấp công bố số tự doanh trễ khoảng một phiên,
   nên khi chưa có thì danh sách lấy từ phiên gần nhất đã có số liệu, kèm ngày bên cạnh tiêu đề.
 - **Sức mạnh ngành** xếp các ngành từ mạnh đến yếu, kèm biến động hôm nay. Khối hiện năm ngành mạnh
   nhất và năm ngành yếu nhất, phần còn lại nằm sau "Xem tất cả" khi thị trường có hơn mười ngành (chỉ
-  có cho thị trường có phân ngành). Các khối này đọc lại cùng lúc với phần còn lại, không theo chu kỳ
-  riêng.
+  có cho thị trường có phân ngành). Bản web không xếp hạng gì: các ngành xếp theo tên, mỗi ngành kèm
+  biến động hôm nay và mức chênh so với chỉ số sau 20 và 60 phiên. Các khối này đọc lại cùng lúc với
+  phần còn lại, không theo chu kỳ riêng.
 - **Với Việt Nam, một ô chọn chỉ số** VN-Index, VN30 hoặc HNX:
   - năm mã kéo lên và năm mã kéo xuống chỉ số đó trong phiên, mỗi mã kèm giá và số điểm nó góp, có
     dấu, rồi một dòng cộng tổng phần các mã trong danh sách góp (không phải toàn bộ biến động của chỉ
@@ -764,7 +802,7 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   đọc, nên hỏi lại trong phút đó không tốn lượt đọc nguồn. Còn định giá là số lượt làm mới gần nhất đã
   lưu, và được đọc lại khi một lượt làm mới xong. Các khối này và Dòng tiền theo mã ghi dưới tiêu đề
   dữ liệu đến ngày nào và đọc lúc nào.
-- **Phiên gần nhất đã chốt** đúng như `/market` viết (dòng về bản cập nhật định kỳ chỉ có ở vùng nhà).
+- **Phiên thị trường** đúng như `/market` viết (dòng về bản cập nhật định kỳ chỉ có ở vùng nhà).
   Phần này được đọc khi bạn mở và khi bấm Làm mới, không bao giờ theo chu kỳ.
 
 Phần nào không có gì để hiện thì bị bỏ, và phần nào không đọc được thì nói rõ vì sao.
@@ -790,7 +828,7 @@ Cách đọc khung cảnh:
 - Mèo ngủ khi không có gì cần bạn, và thức dậy khi có việc cần duyệt, mã bạn giữ thủng cắt lỗ hoặc chạm chốt lời, lệnh khớp ở sàn, cảnh báo giá bạn đặt, hoặc hết ngân sách AI trong ngày. Corgi và bể cá chỉ là cảnh, không báo gì cả; corgi chỉ đứng dậy và vẫy đuôi vài giây khi mở trang hoặc khi có agent mới vào.
 - Kéo để di chuyển, cuộn hoặc chụm hai ngón để zoom. Khi khung cảnh đang được chọn, phím mũi tên lên xuống và Shift cùng mũi tên trái phải để di chuyển, + và − để zoom (mũi tên trái phải không kèm Shift đi qua từng người, ở dưới). Esc hoặc nút ⟲ ("Xem cả tầng") để lùi lại. Nút + và − ở góc dưới bên phải cũng để zoom, mỗi nút mờ đi khi đã tới giới hạn; ở chế độ 3D còn có một thanh mảnh bên cạnh cho biết bạn đang zoom gần tới đâu. Từ góc nhìn cả tầng, bấm vào một phòng thì zoom vào phòng đó.
 
-**Đồng hồ văn phòng.** Đồng hồ trên đầu trang cho biết giờ trong văn phòng. Bấm vào để xem văn phòng ở một giờ khác: giờ thật, hoặc một mốc có sẵn (sáng sớm, sáng, trưa, chiều, tối, đêm) ở tốc độ thường, x10 hoặc x60. Chỉ cảnh văn phòng đổi; số liệu, thông báo và giờ chạy việc vẫn theo giờ thật. Giờ thử không được lưu, nên tải lại trang là về giờ thật. Khi bạn đang giảm chuyển động, giờ thử chạy ở tốc độ thường. Khi văn phòng chạy theo giờ của một thị trường chứ không phải giờ của bạn, đồng hồ hiện cả hai.
+**Đồng hồ văn phòng.** Đồng hồ trên đầu trang cho biết giờ trong văn phòng. Bấm vào để xem văn phòng ở một giờ khác: giờ thật, hoặc một mốc có sẵn (sáng sớm, sáng, trưa, chiều, tối, đêm) ở tốc độ thường, x10 hoặc x60. Chỉ cảnh văn phòng đổi; số liệu, thông báo và giờ chạy việc vẫn theo giờ thật. Giờ thử không được lưu, nên tải lại trang là về giờ thật. Khi bạn đang giảm chuyển động, giờ thử chạy ở tốc độ thường. Khi văn phòng chạy theo giờ của một thị trường và giờ đó khác giờ của bạn, đồng hồ hiện cả hai.
 
 **Bảng hiệu năng.** Thêm `?perf=1` vào địa chỉ trang để xem chi phí mỗi khung hình và tốc độ vẽ của khung cảnh so với mức cho phép, số lần gọi vẽ của 3D, và hai dòng về phố: bước mô phỏng phố (một nhịp của xe cộ và người bên ngoài) và lần vẽ lại phố (khung dài nhất của lần vẽ lại lớp tĩnh, chạy tối đa mỗi phút một lần và trải ra vài khung). Dùng để tìm hiểu một máy chậm, không đổi gì khác.
 
@@ -823,7 +861,7 @@ Câu trả lời của họ nằm sát vòng tròn mà không che nó: trên m�
 
 ### Hai cách xem cùng một văn phòng
 
-Một công tắc "2D | 3D" trên đầu trang, đứng trước nút Chỉ thông tin, đổi cách vẽ văn phòng. Mặc định là 2D. 3D được tải lần đầu bạn chọn, và lựa chọn của bạn được giữ trong trình duyệt này. Vẫn là một văn phòng: vị trí, camera, lựa chọn, bong bóng và mọi thứ ở trên đều dùng được ở cả hai, chỉ khác là chuyển chế độ thì dừng việc đi theo một người và đóng vòng hành động đang mở. 3D thể hiện như 2D: màn hình lịch, bảng kết quả và bảng tin ghim mang cùng nội dung, điện thoại hay tờ giấy đã đóng dấu hiện trên tay, bức tường phía sau trở nên trong suốt khi che khuất người đứng sau nó, và đèn của các phòng đang bật tỏa ánh sáng ấm. Nếu thiết bị không vẽ được 3D thì nút bị khóa và nói rõ lý do; nếu 3D tải không được hoặc mất ngữ cảnh đồ họa, trang quay về 2D và báo cho bạn.
+Một công tắc "2D | 3D" trên đầu trang, đứng trước công tắc Văn phòng | Tập trung, đổi cách vẽ văn phòng. Mặc định là 2D. 3D được tải lần đầu bạn chọn, và lựa chọn của bạn được giữ trong trình duyệt này. Vẫn là một văn phòng: vị trí, camera, lựa chọn, bong bóng và mọi thứ ở trên đều dùng được ở cả hai, chỉ khác là chuyển chế độ thì dừng việc đi theo một người và đóng vòng hành động đang mở. 3D thể hiện như 2D: màn hình lịch, bảng kết quả và bảng tin ghim mang cùng nội dung, điện thoại hay tờ giấy đã đóng dấu hiện trên tay, bức tường phía sau trở nên trong suốt khi che khuất người đứng sau nó, và đèn của các phòng đang bật tỏa ánh sáng ấm. Nếu thiết bị không vẽ được 3D thì nút bị khóa và nói rõ lý do; nếu 3D tải không được hoặc mất ngữ cảnh đồ họa, trang quay về 2D và báo cho bạn.
 
 **Bàn làm việc.** Mỗi bàn trong văn phòng có đồ của người ngồi đó (báo cáo, màn hình, bảng kiểm tra, chậu cây và ảnh, tai nghe, giấy ghi chú, điện thoại và đèn của bàn cảnh báo) và bừa dần theo việc thật trong ngày: một tờ giấy cho mỗi phiên chạy của họ đã xong, một cốc sau mỗi lần nghỉ uống cà phê hay ăn tráng miệng. Mở trang muộn thì giấy của các phiên đã xong hôm nay hiện ngay; cốc chỉ đến từ những lần nghỉ diễn ra khi trang đang mở. Bàn được dọn lúc 06:00 theo đồng hồ văn phòng. Thùng rác cạnh mỗi bàn ở thư viện, và cạnh bàn của mỗi agent của bạn, có thêm một tờ giấy vo tròn cho mỗi phiên chạy làm ở bàn đó trong ngày, tối đa ba tờ; vào ngày giao dịch, nhân viên vệ sinh đổ hết các thùng khi bắt đầu ca. Khay máy in xếp một tờ cho mỗi báo cáo nghiên cứu và bản tin sáng đã giao trong ngày, tối đa sáu tờ, và được dọn khi sang ngày mới. Màn hình hiện trình bảo vệ khi người ngồi rời bàn, tắt khi văn phòng yên lặng, và chuyển xám lúc nghỉ trưa và sau giờ đóng cửa; bàn có người đang làm việc giữ màn hình công việc. Người tìm tin ngồi ở bàn mà chưa có gì để đọc thì màn hình hiện đường chỉ số của thị trường nhà dưới các thẻ trình duyệt. Ai ngồi bàn cũng quay lưng về phía bạn, nhìn vào bàn, cùng một kiểu màn hình đứng ở mép xa, mặt màn hình hướng về bạn nên đọc được chữ; quầy cảnh báo cũng có một chiếc. Đèn bàn cảnh báo sáng màu hổ phách khi còn cảnh báo giá chưa đọc. Khi người ngồi bàn đang rảnh ở đó, màn hình đọc số liệu thật thay vào: màn hình đường giá của trader và laptop của nhà phân tích lần lượt hiện từng mã trong những mã trang vốn đã lấy giá, khoảng 20 giây đổi một mã (đứng yên khi giảm chuyển động), kèm giá gần nhất, mức thay đổi và đường giá từ giá đóng cửa hôm trước qua các lần trang lấy giá từ khi mở; bảng kiểm tra của bàn rủi ro tô đỏ một ô, và khi zoom vào phòng thì ghi số, cho mỗi mã đang nắm giữ cách mức cắt lỗ trong vòng 3%; còn máy tính của người trực cảnh báo hiện số cảnh báo giá đang bật. Không có gì trong đó hỏi thêm dịch vụ nền. Trỏ vào màn hình để đọc; bấm vào thì mở thẻ của mã, hoặc thẻ Danh mục với một con số.
 
@@ -859,7 +897,7 @@ Trang báo to hay nhỏ tùy trọng lượng dịch vụ nền gán cho sự ki
 
 ### Màn hình hẹp và cảm ứng
 
-Dưới 900 px chiều ngang, trang chỉ hiện một khung mỗi lần, chuyển bằng một thanh dưới đầu trang: Văn phòng, Thông tin, Trò chuyện. Màn hình rộng hơn thì khung chat vẫn nằm cạnh các khung còn lại. Mở một thẻ (một mã, một agent, một thẻ tab) thì đưa khung thông tin lên trước; "Xem" một phiên chạy thì đưa văn phòng lên trước và zoom vào phòng của phiên chạy đó; gửi tin nhắn hoặc chọn Trò chuyện thì đưa khung chat lên trước, và nút đóng của nó quay về khung bạn vừa ở. Không có gì tự chuyển khung, nên một sự kiện trực tiếp không bao giờ kéo bạn đi chỗ khác. Thông tin mở thành một tấm kính kéo từ dưới lên trên văn phòng (chạm tay cầm để ẩn); Chỉ thông tin và nút của nó tắt ở độ rộng này.
+Dưới 900 px chiều ngang, trang chỉ hiện một khung mỗi lần, chuyển bằng một thanh dưới đầu trang: Văn phòng, Thông tin, Trò chuyện. Màn hình rộng hơn thì khung chat vẫn nằm cạnh các khung còn lại. Mở một thẻ (một mã, một agent, một thẻ tab) thì đưa khung thông tin lên trước; "Xem" một phiên chạy thì đưa văn phòng lên trước và zoom vào phòng của phiên chạy đó; gửi tin nhắn hoặc chọn Trò chuyện thì đưa khung chat lên trước, và nút đóng của nó quay về khung bạn vừa ở. Không có gì tự chuyển khung, nên một sự kiện trực tiếp không bao giờ kéo bạn đi chỗ khác. Thông tin mở thành một tấm kính kéo từ dưới lên trên văn phòng (chạm tay cầm để ẩn); Tập trung và nút của nó tắt ở độ rộng này.
 
 Trên màn hình rộng, văn phòng chiếm cả trang và bảng thông tin nổi phía trên như một tấm kính. Các khối
 trong bảng cũng là kính.
@@ -868,10 +906,10 @@ trong bảng cũng là kính.
   bạn đổi cỡ cửa sổ hay bảng thay đổi, cho tới khi bạn tự di chuyển góc nhìn.
 - Mũi tên ở đầu bảng thu nó thành một dải biểu tượng ở góc, để thấy trọn khung cảnh. Mũi tên của dải mở
   lại bảng.
-- Nút Chỉ thông tin (`I`) trên đầu trang ẩn hẳn văn phòng, để thông tin chiếm cả trang ở độ rộng dễ
+- Công tắc Văn phòng | Tập trung (`I`) trên đầu trang: Tập trung ẩn hẳn văn phòng, để thông tin chiếm cả trang ở độ rộng dễ
   đọc, khung chat vẫn nằm cạnh. Khung cảnh không được tải hay chạy, nên đỡ tốn bộ xử lý và đồ họa trên
   máy nhỏ hoặc chậm. Sau lớp kính là ảnh văn phòng mờ nhẹ, đúng như lúc bạn rời đi; nếu mở trang thẳng
-  vào Chỉ thông tin thì đó là sơ đồ mặt sàn trống. Ảnh này đứng yên. Công tắc 2D | 3D, đồng hồ và thời
+  vào Tập trung thì đó là sơ đồ mặt sàn trống. Ảnh này đứng yên. Công tắc 2D | 3D, đồng hồ và thời
   tiết cũng rời đầu trang. Lựa chọn được giữ trong
   trình duyệt này. Bấm lại phím hoặc nút thì văn phòng quay lại; "Xem" một phiên chạy cũng làm vậy rồi
   zoom vào phòng của nó.
@@ -886,7 +924,7 @@ Cảm ứng dùng như chuột: một ngón kéo để di chuyển, hai ngón ch
 
 ### Tùy chọn hiển thị
 
-Giao diện (sáng, tối hoặc theo hệ thống), cặp màu tăng giảm (xanh tăng hay đỏ tăng), chuyển động (đầy đủ, giảm hoặc theo hệ thống), mức chi tiết (ở trên) và ánh sáng văn phòng được lưu trong trình duyệt này và có hiệu lực ngay. Giảm chuyển động làm nhân vật và thú cưng đứng yên, trừ chớp mắt, giữ yên bụi nắng, ruy băng máy lạnh, dải LED, đèn tủ máy chủ, đèn chờ duyệt và bọt bể cá, dừng dải giá chạy, các hiệu ứng báo và nhấp nháy giá, và cho giờ thử của đồng hồ chạy ở tốc độ thường; bong bóng vẫn cập nhật. Ngôn ngữ, thị trường chính và múi giờ là thiết lập của chính dịch vụ nền (chúng cũng đổi bản tin và Telegram) và cần khởi động lại. Thị trường chính quyết định thị trường dẫn đầu bản tin và bảng sàng lọc mặc định, cùng thành phố ngoài văn phòng; sổ vẫn giữ đồng tiền lúc mở, và nếu thị trường chính mới đang tắt trong hồ sơ thì `/profile` và bản tin sẽ nhắc bạn bật. Trình duyệt còn nhớ những đèn bạn đã tắt, lựa chọn 2D hay 3D, chế độ Chỉ thông tin, vùng đã chọn ở thẻ Thị trường, bản cập nhật bạn đã để sau, lựa chọn tiếng chuông và thông báo; không thứ nào được gửi cho dịch vụ nền.
+Giao diện (sáng, tối hoặc theo hệ thống), cặp màu tăng giảm (xanh tăng hay đỏ tăng), chuyển động (đầy đủ, giảm hoặc theo hệ thống), mức chi tiết (ở trên) và ánh sáng văn phòng được lưu trong trình duyệt này và có hiệu lực ngay. Giảm chuyển động làm nhân vật và thú cưng đứng yên, trừ chớp mắt, giữ yên bụi nắng, ruy băng máy lạnh, dải LED, đèn tủ máy chủ, đèn chờ duyệt và bọt bể cá, dừng dải giá chạy, các hiệu ứng báo và nhấp nháy giá, và cho giờ thử của đồng hồ chạy ở tốc độ thường; bong bóng vẫn cập nhật. Ngôn ngữ, thị trường chính và múi giờ là thiết lập của chính dịch vụ nền (chúng cũng đổi bản tin và Telegram) và cần khởi động lại. Thị trường chính quyết định thị trường dẫn đầu bản tin và bảng sàng lọc mặc định, cùng thành phố ngoài văn phòng; sổ vẫn giữ đồng tiền lúc mở, và nếu thị trường chính mới đang tắt trong hồ sơ thì `/profile` và bản tin sẽ nhắc bạn bật. Trình duyệt còn nhớ những đèn bạn đã tắt, lựa chọn 2D hay 3D, chế độ Tập trung, vùng đã chọn ở thẻ Thị trường, bản cập nhật bạn đã để sau, lựa chọn tiếng chuông và thông báo; không thứ nào được gửi cho dịch vụ nền.
 
 Bên trong: [dev/van-hanh.md](dev/van-hanh.md).
 

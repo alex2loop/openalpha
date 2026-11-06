@@ -118,7 +118,8 @@ function parseIndex(value: string | null): number | undefined {
 }
 
 // An assistant turn is a block array; only its text blocks are display content (a tool call is not).
-// An answer names the run that wrote it, so its model calls can be read.
+// An answer names the run that wrote it, so its model calls can be read. A command's answer is the
+// text it printed, so a block array is what tells an agent's answer from it.
 function toHistoryMessage(row: TranscriptMessage): readonly ChatHistoryMessage[] {
   const { idx, message, runId } = row
   const content =
@@ -139,6 +140,9 @@ function toHistoryMessage(row: TranscriptMessage): readonly ChatHistoryMessage[]
       role: message.role,
       content: scrubCredentials(content),
       ...(message.role === 'assistant' && runId !== undefined ? { runId } : {}),
+      ...(message.role === 'assistant' && typeof message.content !== 'string'
+        ? { byAgent: true as const }
+        : {}),
     },
   ]
 }

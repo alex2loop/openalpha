@@ -1,12 +1,12 @@
-import { AsyncLocalStorage } from 'node:async_hooks'
+import { createScopedValue } from '@/core/scoped-value'
 
 /** Which MCP job a model call belongs to, without threading the id through the pipeline. */
-const storage = new AsyncLocalStorage<string>()
+const storage = createScopedValue<string>()
 
 export function withClientModelJob<T>(jobId: string, fn: () => T): T {
   return storage.run(jobId, fn)
 }
 
 export function currentClientModelJob(): string | undefined {
-  return storage.getStore()
+  return storage.get()
 }

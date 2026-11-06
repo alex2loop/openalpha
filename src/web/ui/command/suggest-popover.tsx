@@ -1,7 +1,9 @@
 import type { MessageKey } from '@/i18n'
 import { agents, selectedAgentId } from '@/web/state/agents'
 import { ALERT_CREATE_COMMAND, SUGGEST_COMMAND, WATCHLIST_ADD_COMMAND } from '@/web/state/command'
+import { offers } from '@/web/state/edition'
 import { commands, estimateText } from '@/web/state/estimates'
+import { isLevelInstrument } from '@/web/state/market'
 import { panelView } from '@/web/state/panel'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -36,6 +38,8 @@ export interface SuggestOption {
   readonly label: string
   readonly detail?: string
   readonly fill?: string
+  /** A ticker typed alone: picking the row opens its card instead of filling the box. */
+  readonly instrument?: { readonly ticker: string; readonly market: string }
   /** Picking the row also hands what is typed next to this agent. */
   readonly agentId?: string
 }
@@ -86,7 +90,7 @@ export function SuggestPopover({ id, options, usage, activeIndex, onPick }: Sugg
   return (
     <div
       id={id}
-      class="suggest-popover glass is-strong"
+      class="suggest-popover solid-pop"
       role="listbox"
       aria-label={tr('ui.office.command.suggestions')}
     >
@@ -183,7 +187,7 @@ function buildContext(): readonly Starter[] {
   const view = panelView.value
 
   if ('ticker' in view) {
-    return buildTickerContext(view.ticker)
+    return buildTickerContext(view)
   }
 
   return 'agent' in view ? buildAgentContext(view.agent) : []
@@ -200,10 +204,25 @@ function buildAgentContext(agentId: string): readonly Starter[] {
 }
 
 // With a ticker card open, what the operator most likely does next with that name.
-function buildTickerContext(ticker: string): readonly Starter[] {
+function buildTickerContext(instrument: {
+  readonly ticker: string
+  readonly market: string
+}): readonly Starter[] {
+  const { ticker } = instrument
+  const suggest: readonly Starter[] = isLevelInstrument(instrument)
+    ? []
+    : [{ text: `${SUGGEST_COMMAND} ${ticker}`, label: 'ui.office.command.ctxSuggest' }]
+
   return [
-    { text: `${SUGGEST_COMMAND} ${ticker}`, label: 'ui.office.command.ctxSuggest' },
-    { text: `${ALERT_CREATE_COMMAND} ${ticker} `, label: 'ui.office.command.ctxAlert' },
+    ...suggest,
+    ...(offers('schedules')
+      ? [
+          {
+            text: `${ALERT_CREATE_COMMAND} ${ticker} `,
+            label: 'ui.office.command.ctxAlert' as const,
+          },
+        ]
+      : []),
     { text: `${WATCHLIST_ADD_COMMAND} ${ticker}`, label: 'ui.office.command.ctxWatch' },
   ]
 }
@@ -223,12 +242,15 @@ function listArgs(text: string, candidates: readonly string[]): readonly Suggest
 function listTickers(text: string, matches: readonly Match[]): readonly SuggestOption[] {
   const head = text.trimStart().split(WORD_BREAK).slice(0, -1).join(' ')
 
-  return matches.map((match) => ({
-    key: `ticker:${match.instrument.market}:${match.instrument.ticker}`,
+  return matches.map(({ instrument, name }) => ({
+    key: `ticker:${instrument.market}:${instrument.ticker}`,
     section: 'ticker',
-    label: match.instrument.ticker,
-    ...(match.name === undefined ? {} : { detail: match.name }),
-    fill: head === '' ? match.instrument.ticker : `${head} ${match.instrument.ticker}`,
+    label: instrument.ticker,
+    ...(name === undefined || name === instrument.ticker ? {} : { detail: name }),
+    fill: head === '' ? instrument.ticker : `${head} ${instrument.ticker}`,
+    ...(head === ''
+      ? { instrument: { ticker: instrument.ticker, market: instrument.market } }
+      : {}),
   }))
 }
 

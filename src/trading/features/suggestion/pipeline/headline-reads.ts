@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { z } from 'zod'
 
 import type {
@@ -183,7 +181,7 @@ async function recordSpend(
 /** The read is not a run, so its attempts take an id of their own under the suggestion's run. */
 function readerIdentity(request: HeadlineReadInput['request']): AttemptIdentity {
   return {
-    runId: runId(randomUUID()),
+    runId: runId(crypto.randomUUID()),
     ...(request.parentRunId === undefined ? {} : { parentRunId: request.parentRunId }),
     agentId: agentId(HEADLINE_READER_AGENT),
     // Attributed to the asking agent, never refused: a read is an attempt inside a run already admitted.

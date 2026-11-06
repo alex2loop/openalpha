@@ -115,7 +115,7 @@ export async function runOverview(load: OverviewLoad): Promise<MarketDataOvervie
     ...(turnoverReference === undefined ? {} : { turnoverReference }),
     ...(foreignNetValue === undefined ? {} : { foreignNetValue }),
     ...(proprietaryNetValue === undefined ? {} : { proprietaryNetValue }),
-    ...(range === undefined ? {} : { range }),
+    ...(range === undefined || load.deps.readingsOnly === true ? {} : { range }),
     ...(ratios === undefined ? {} : { ratios }),
     ...(leaders === undefined ? {} : { leaders }),
     ...(movers === undefined ? {} : { movers }),

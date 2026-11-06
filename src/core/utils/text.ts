@@ -11,7 +11,15 @@ const SUGGESTION_DISTANCE_DIVISOR = 3
 const NAME_WORD_SEPARATOR_RE = /[-_]/
 const MIN_RUN = 2
 const MIDDLE_ELISION = '\n\n[...]\n\n'
-const MIDDLE_ELISION_BYTES = Buffer.byteLength(MIDDLE_ELISION, 'utf8')
+const UTF8_ONE_BYTE_MAX = 0x80
+const UTF8_TWO_BYTE_MAX = 0x800
+const UTF8_THREE_BYTE_MAX = 0x10000
+const SURROGATE_MIN = 0xd800
+const SURROGATE_MAX = 0xdfff
+const UTF8_ENCODER = new TextEncoder()
+// A byte-order mark is content here, not a header: kept, as a Node buffer keeps it.
+const UTF8_DECODER = new TextDecoder('utf-8', { ignoreBOM: true })
+const MIDDLE_ELISION_BYTES = utf8ByteLength(MIDDLE_ELISION)
 const TAIL_BUDGET_DIVISOR = 5
 const UTF8_CONT_MASK = 0xc0
 const UTF8_CONT_BYTE = 0x80
@@ -36,6 +44,45 @@ const ACTIVE_CLOSE_RES: ReadonlyMap<string, RegExp> = new Map(
 )
 const HTML_TAG_RE = /<[^<>]+>/g
 const MARKDOWN_LINK_RE = /!?\[([^[\]]*)\]\([^[)]*\)/g
+
+/** The size of `text` once encoded as UTF-8: the unit every byte budget is written in. */
+export function utf8ByteLength(text: string): number {
+  let bytes = 0
+
+  for (const char of text) {
+    const code = char.codePointAt(0) ?? 0
+
+    if (code < UTF8_ONE_BYTE_MAX) {
+      bytes += 1
+    } else if (code < UTF8_TWO_BYTE_MAX) {
+      bytes += 2
+    } else if (code < UTF8_THREE_BYTE_MAX || isSurrogate(code)) {
+      bytes += 3
+    } else {
+      bytes += 4
+    }
+  }
+
+  return bytes
+}
+
+// A lone surrogate encodes as U+FFFD, three bytes, like Buffer.byteLength.
+function isSurrogate(code: number): boolean {
+  return code >= SURROGATE_MIN && code <= SURROGATE_MAX
+}
+
+export function encodeUtf8(text: string): Uint8Array {
+  return UTF8_ENCODER.encode(text)
+}
+
+export function decodeUtf8(bytes: Uint8Array): string {
+  return UTF8_DECODER.decode(bytes)
+}
+
+/** `lead` as the first paragraph of `text`; no lead leaves the text as it is. */
+export function withLeadParagraph(lead: string | undefined, text: string): string {
+  return lead === undefined ? text : `${lead}\n\n${text}`
+}
 
 export function stripAnsi(text: string): string {
   return text.replace(ANSI_ESCAPE_RE, '')
@@ -163,7 +210,7 @@ export function hasElidedMiddle(text: string): boolean {
 }
 
 export function truncateUtf8HeadTail(text: string, maxBytes: number): string {
-  const buf = Buffer.from(text, 'utf8')
+  const buf = encodeUtf8(text)
 
   if (buf.byteLength <= maxBytes) {
     return text
@@ -184,27 +231,29 @@ export function truncateUtf8HeadTail(text: string, maxBytes: number): string {
 // Byte window over one encode of the whole string, with both edges pulled inward to a character
 // boundary so a multi-byte character is never split into replacement characters. Shrinking rather
 // than growing keeps the window within budget.
-function utf8Window(buf: Buffer, start: number, end: number): string {
-  return buf.subarray(alignForward(buf, start), alignBack(buf, end)).toString('utf8')
+function utf8Window(buf: Uint8Array, start: number, end: number): string {
+  return decodeUtf8(buf.subarray(alignForward(buf, start), alignBack(buf, end)))
 }
 
-function alignBack(buf: Buffer, offset: number): number {
+function alignBack(buf: Uint8Array, offset: number): number {
   let i = clampOffset(buf, offset)
   while (i > 0 && i < buf.byteLength && isContinuationByte(buf[i])) {
     i -= 1
   }
+
   return i
 }
 
-function alignForward(buf: Buffer, offset: number): number {
+function alignForward(buf: Uint8Array, offset: number): number {
   let i = clampOffset(buf, offset)
   while (i < buf.byteLength && isContinuationByte(buf[i])) {
     i += 1
   }
+
   return i
 }
 
-function clampOffset(buf: Buffer, offset: number): number {
+function clampOffset(buf: Uint8Array, offset: number): number {
   return Math.max(0, Math.min(offset, buf.byteLength))
 }
 

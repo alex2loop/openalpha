@@ -24,7 +24,8 @@ import {
   writeEnvFileValue,
 } from '@/cli/api'
 import { BRAND, isControlEnvName } from '@/core/brand'
-import { isEnvName, WEB_SEARCH_PROVIDERS } from '@/core/config/resolve'
+import { isEnvName } from '@/core/config/operator-errors'
+import { WEB_SEARCH_PROVIDERS } from '@/core/config/resolve'
 import { FieldValidationError } from '@/core/field-errors'
 import { formatErrForLog } from '@/core/security/credentials'
 

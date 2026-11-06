@@ -5,7 +5,7 @@ import { toErrorText, tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 
 /** A value being edited and the one last saved, so a row knows it has something to save. */
-interface Draft<T> {
+export interface Draft<T> {
   readonly draft: Signal<T>
   readonly isChanged: boolean
   /** The draft is now what is saved. */
@@ -41,9 +41,10 @@ interface SettingRowProps {
 }
 
 export function useDraft<T>(initial: T): Draft<T> {
-  const draft = useSignal(initial)
-  const saved = useSignal(initial)
+  return toDraft(useSignal(initial), useSignal(initial))
+}
 
+export function toDraft<T>(draft: Signal<T>, saved: Signal<T>): Draft<T> {
   return {
     draft,
     isChanged: JSON.stringify(draft.value) !== JSON.stringify(saved.value),

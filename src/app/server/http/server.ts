@@ -2,7 +2,8 @@ import type { Server, ServerWebSocket, WebSocketHandler } from 'bun'
 
 import type { LiveFeed } from '@/app/server/feed/live'
 import type { SignInCodes } from '@/app/server/http/sign-in-codes'
-import type { ExecSocketData, SocketData, WsData, WsServices } from '@/app/server/ws/socket'
+import type { WsServices } from '@/app/server/ws/services'
+import type { ExecSocketData, SocketData, WsData } from '@/app/server/ws/socket'
 import type { ApiHandle, ApiRouteContext } from '@/app/types'
 import type { App } from '@/core/container'
 import { SHUTDOWN_DRAIN_MS } from '@/app/daemon'
@@ -10,19 +11,16 @@ import { admitExec, closeExecAdmission } from '@/app/server/exec/admission'
 import { closeAllExecs, execHandlers } from '@/app/server/exec/connection'
 import { ApiPortInUseError } from '@/app/server/http/api-port-error'
 import {
+  isLoopback,
   isOriginAllowed,
   LOOPBACK_HOST,
   PROXY_HEADERS,
   resolvePageOrigin,
   resolvePeerKey,
 } from '@/app/server/http/auth'
-import { SET_COOKIE, toSessionCookieName } from '@/app/server/http/caller'
-import {
-  apiError,
-  apiStarting,
-  handleHttp,
-  resolveAuthorizedCaller,
-} from '@/app/server/http/dispatch'
+import { authorizeDaemonRequest, daemonOf } from '@/app/server/http/authorize'
+import { toSessionCookieName } from '@/app/server/http/caller'
+import { apiError, apiStarting, handleHttp, SET_COOKIE } from '@/app/server/http/dispatch'
 import { PAGE_ROUTES, toPageResponse } from '@/app/server/http/page'
 import { EXEC_PATH } from '@/app/server/wire/exec'
 import { SOCKET_IDLE_TIMEOUT_SECONDS } from '@/app/server/wire/socket'
@@ -171,18 +169,29 @@ function routeRequest(
   }
 
   const ip = srv.requestIP(req)?.address ?? null
+  const { token, codes, ...shared } = surface
   const ctx: ApiRouteContext = {
     app,
-    ...surface,
-    ip,
-    peer: resolvePeerKey(req.headers, ip, pageOrigin === publicUrl),
-    pageOrigin,
-    cookieName: toSessionCookieName(pageOrigin, publicUrl),
+    ...shared,
+    authorize: authorizeDaemonRequest,
+    daemon: {
+      token,
+      codes,
+      ip,
+      peer: resolvePeerKey(req.headers, ip, pageOrigin === publicUrl),
+      pageOrigin,
+      cookieName: toSessionCookieName(pageOrigin, publicUrl),
+    },
   }
 
   return url.pathname === WS_PATH
     ? wsUpgradeResponse(req, srv, { ctx, wsServices })
-    : handleHttp(req, ctx)
+    : handleLoopbackHttp(req, ctx)
+}
+
+// Defence in depth: Bun.serve already binds 127.0.0.1, so a non-loopback peer should be impossible.
+function handleLoopbackHttp(req: Request, ctx: ApiRouteContext): Promise<Response> | Response {
+  return isLoopback(ctx.daemon?.ip ?? null) ? handleHttp(req, ctx) : apiError('forbidden')
 }
 
 /** Native clients send no `Sec-Fetch-Site` and pass. */
@@ -221,11 +230,11 @@ async function wsUpgradeResponse(
     return apiStarting(ctx.app)
   }
 
-  if (!isOriginAllowed(req.headers.get('origin'), ctx.pageOrigin)) {
+  if (!isOriginAllowed(req.headers.get('origin'), daemonOf(ctx).pageOrigin)) {
     return apiError('forbidden')
   }
 
-  const caller = await resolveAuthorizedCaller(req, ctx)
+  const caller = await ctx.authorize(req, ctx)
 
   if (caller instanceof Response) {
     return caller

@@ -2,15 +2,17 @@ import type { TradingProfileResponse } from '@/app/server/wire/trading'
 import type { InvestmentGoal, InvestmentHorizon, RiskLevel } from '@/app/server/wire/vocab'
 import { pluralKey } from '@/i18n'
 import { readBlock } from '@/web/state/block'
-import { profileBlock } from '@/web/state/market'
-import { isSegmentOn, saveProfilePatch } from '@/web/state/profile'
+import { editionKey, isAnalysisOnly } from '@/web/state/edition'
+import { isSegmentOn, profileBlock } from '@/web/state/market'
+import { saveProfilePatch } from '@/web/state/profile'
 import { segmentName } from '@/web/text/segment'
 import { toFailureText, tr } from '@/web/text/tr'
 import { openTargetsDialog } from '@/web/ui/dialogs/targets-dialog'
 import { Button } from '@/web/ui/kit/button'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
-import { ActionRow, type SectionProps, SettingRow, useDraft } from '@/web/ui/settings/row'
+import { type DraftSlot, type HeldValue, useHeldDraft } from '@/web/ui/settings/draft'
+import { ActionRow, type SectionProps, SettingRow } from '@/web/ui/settings/row'
 
 // Exhaustive by `satisfies`, in the order the page offers them.
 // why-safe: the object's keys are exactly the union, checked by `satisfies`.
@@ -31,6 +33,11 @@ const HORIZONS = Object.keys({
   long: true,
 } satisfies Record<InvestmentHorizon, true>) as readonly InvestmentHorizon[]
 
+// What each row's visitor chose and has not saved survives the targets dialog, which replaces Cài đặt.
+const RISK_DRAFT: DraftSlot<HeldValue<RiskLevel>> = new WeakMap()
+const GOAL_DRAFT: DraftSlot<HeldValue<InvestmentGoal>> = new WeakMap()
+const HORIZONS_DRAFT: DraftSlot<HeldValue<TradingProfileResponse['horizons']>> = new WeakMap()
+
 /** Hồ sơ đầu tư: what the profile chooses sizes and stops from. Every row acts on the running
  *  daemon at once. */
 export function ProfileSection({ reopen }: SectionProps) {
@@ -47,8 +54,10 @@ export function ProfileSection({ reopen }: SectionProps) {
 
   return (
     <>
-      <p class="meta">{tr('ui.office.settings.profileNote')}</p>
-      <p class="meta">{tr('ui.office.memory.learned')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.settings.profileNote', 'ui.office.edition.profile.note'))}
+      </p>
+      {!isAnalysisOnly.value && <p class="meta">{tr('ui.office.memory.learned')}</p>}
       <RiskRow profile={data} />
       <GoalRow profile={data} />
       <HorizonRow profile={data} />
@@ -58,12 +67,12 @@ export function ProfileSection({ reopen }: SectionProps) {
 }
 
 function RiskRow({ profile }: { readonly profile: TradingProfileResponse }) {
-  const { draft, isChanged, markSaved } = useDraft(profile.riskLevel)
+  const { draft, isChanged, markSaved } = useHeldDraft(RISK_DRAFT, profile.riskLevel)
 
   return (
     <SettingRow
       title={tr('ui.office.settings.risk')}
-      note={tr('ui.office.settings.riskNote')}
+      note={tr(editionKey('ui.office.settings.riskNote', 'ui.office.edition.profile.riskNote'))}
       timing="now"
       isChanged={isChanged}
       onSave={async () => {
@@ -84,13 +93,13 @@ function RiskRow({ profile }: { readonly profile: TradingProfileResponse }) {
 }
 
 function GoalRow({ profile }: { readonly profile: TradingProfileResponse }) {
-  const { draft, isChanged, markSaved } = useDraft(profile.goal)
+  const { draft, isChanged, markSaved } = useHeldDraft(GOAL_DRAFT, profile.goal)
   const title = tr('trading.render.profile.field.goal')
 
   return (
     <SettingRow
       title={title}
-      note={tr('ui.office.settings.goalNote')}
+      note={tr(editionKey('ui.office.settings.goalNote', 'ui.office.edition.profile.goalNote'))}
       timing="now"
       isChanged={isChanged}
       onSave={async () => {
@@ -112,17 +121,21 @@ function GoalRow({ profile }: { readonly profile: TradingProfileResponse }) {
 
 // A segment switched off has no horizon to choose.
 function HorizonRow({ profile }: { readonly profile: TradingProfileResponse }) {
-  const { draft, isChanged, markSaved } = useDraft(profile.horizons)
-  const segments = Object.entries(draft.value).filter(([segment]) => isSegmentOn(profile, segment))
+  const { draft, isChanged, markSaved } = useHeldDraft(HORIZONS_DRAFT, profile.horizons)
+  // A segment the targets dialog switched on after the draft began has no edit yet.
+  const horizons = { ...profile.horizons, ...draft.value }
+  const segments = Object.entries(horizons).filter(([segment]) => isSegmentOn(profile, segment))
 
   return (
     <SettingRow
       title={tr('ui.office.common.horizon')}
-      note={tr('ui.office.settings.horizonNote')}
+      note={tr(
+        editionKey('ui.office.settings.horizonNote', 'ui.office.edition.profile.horizonNote')
+      )}
       timing="now"
       isChanged={isChanged}
       onSave={async () => {
-        await saveProfilePatch({ horizons: draft.value })
+        await saveProfilePatch({ horizons })
         markSaved()
       }}
     >
@@ -134,7 +147,7 @@ function HorizonRow({ profile }: { readonly profile: TradingProfileResponse }) {
             value={horizon}
             options={HORIZONS.map((value) => ({ value, label: tr(`trading.horizon.${value}`) }))}
             onChange={(value) => {
-              draft.value = { ...draft.value, [segment]: value }
+              draft.value = { ...horizons, [segment]: value }
             }}
           />
         </div>

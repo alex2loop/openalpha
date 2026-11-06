@@ -3,8 +3,11 @@ import { useEffect } from 'preact/hooks'
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { Analyses } from '@/web/edition/analyses'
 import { useBlockRead } from '@/web/state/block'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
+import { isLevelInstrument } from '@/web/state/market'
 import { CardActions } from '@/web/ui/ticker/actions'
 import { CardAlerts } from '@/web/ui/ticker/alerts'
 import { isStoredAnswer } from '@/web/ui/ticker/analyze-button'
@@ -28,6 +31,8 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
     capability: ROUTES.suggestions.capability,
   })
   const standing: SuggestionWire | undefined = plan.data?.plan
+  // An index or a futures contract is only read: it has no plan, holding or call.
+  const isLevel = isLevelInstrument({ market, ticker })
 
   // A run that reported on this name may have stored or closed its plan.
   useEffect(
@@ -43,15 +48,24 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
   return (
     <>
       <PriceBlock ticker={ticker} market={market} levels={planLevels(standing)} />
-      <PlanBlock reading={plan} ticker={ticker} market={market} />
-      <HoldingBlock ticker={ticker} market={market} />
-      <OpinionsBlock ticker={ticker} market={market} plan={standing} />
-      <PastCalls ticker={ticker} market={market} />
-      <CardAlerts ticker={ticker} market={market} />
+      {!(isAnalysisOnly.value || isLevel) && (
+        <PlanBlock reading={plan} ticker={ticker} market={market} />
+      )}
+      {!isLevel && <HoldingBlock ticker={ticker} market={market} />}
+      {isAnalysisOnly.value ? (
+        <Analyses instrument={{ market, ticker }} />
+      ) : (
+        <>
+          <OpinionsBlock ticker={ticker} market={market} plan={standing} />
+          {!isLevel && <PastCalls ticker={ticker} market={market} />}
+          <CardAlerts ticker={ticker} market={market} />
+        </>
+      )}
       <EventsBlock ticker={ticker} market={market} />
       <CardActions
         ticker={ticker}
         market={market}
+        isLevel={isLevel}
         isAnalyzed={standing !== undefined && isStoredAnswer(standing)}
       />
     </>
@@ -61,6 +75,10 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
 // The default focus's standing verdict: the call that drives the operator's book.
 function readPlan(ticker: string, market: string): (abort: AbortSignal) => Promise<PlanRead> {
   return async (abort) => {
+    if (isLevelInstrument({ market, ticker })) {
+      return { plan: undefined }
+    }
+
     const answer = await getJson(ROUTES.suggestions, {
       query: { status: 'open', market, ticker },
       signal: abort,

@@ -176,6 +176,8 @@ Kênh mất kết nối và không có lại sẽ được báo trên một kên
    "đang gõ" và cảm xúc chỉ hiện ở nơi kênh và cấu hình của bạn cùng cho phép.
 5. **Câu trả lời đến**, được cắt khúc và thoát ký tự cho vừa ứng dụng chat, kèm dòng chi phí, và một
    ghi chú đã bản địa hóa nếu phiên chạy dừng sớm.
+   Câu trả lời đầu tiên của một phiên chat còn mang trong dòng chân của nó một dòng nói các câu trả lời do AI
+   tạo và không phải khuyến nghị đầu tư; các câu sau trong phiên đó thì không, cho tới khi dịch vụ nền khởi động lại. Một job theo lịch mà lời nhắc không phải lệnh gạch chéo thì mang dòng này phía trên câu trả lời.
 
 Nếu dịch vụ nền chết giữa chừng, tin được thử lại sau, tối đa 3 lần, rồi bỏ và ghi log. Nếu việc gửi thất bại (mạng chập chờn chẳng hạn), mỗi lần thử lại chờ lâu hơn lần trước, khoảng 10 giây rồi 20 giây. Nếu phiên chạy đã xong
 nhưng gửi câu trả lời thất bại, chỉ tin cuối được gửi lại; agent không chạy lần hai. Điều này đúng với

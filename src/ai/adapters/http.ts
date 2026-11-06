@@ -23,7 +23,10 @@ interface OpenSseStreamOptions {
 // base_url`), never a URL an agent or a document can steer. They are the same trust class as
 // core/net/http-client's fixed hosts, so they intentionally skip NetworkPolicy.guardedFetch: that
 // guard exists for untrusted URLs and would reject the API-key header as an outbound secret leak
-// and refuse the http://localhost endpoints that ollama, lmstudio and vllm serve on.
+// and refuse the http://localhost endpoints that ollama, lmstudio and vllm serve on. A provider
+// API does not redirect a POST, so a redirect is never followed: a fetch drops only `Authorization`
+// across origins, so `x-api-key` and `x-goog-api-key` would go on to wherever it points. It fails
+// as a network error.
 export async function openSseStream(
   url: string,
   init: RequestInit,
@@ -61,7 +64,7 @@ export async function openSseStream(
 
 async function fetchOrThrow(url: string, init: RequestInit): Promise<Response> {
   try {
-    return await globalThis.fetch(url, init)
+    return await globalThis.fetch(url, { ...init, redirect: 'error' })
   } catch (err: unknown) {
     // The caller's abort is their own signal coming back — it is not a provider failure.
     if (isAbortError(err)) {
@@ -99,5 +102,5 @@ async function readErrorBody(response: Response): Promise<string> {
     await reader.cancel().catch(() => undefined)
   }
 
-  return new TextDecoder().decode(Buffer.concat(chunks))
+  return new Blob(chunks).text()
 }

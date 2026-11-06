@@ -69,10 +69,12 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `binance` `binance-futures` `alternative-me` | crypto quotes and bars; funding, open interest (with its change) and long/short ratio; sentiment | no |
 | `bybit` | crypto bars for names `binance` spot does not list | no |
 | `mexc` | crypto bars and quotes for names neither `binance` nor `bybit` list | no |
-| `coingecko` | last fallback for the crypto board; the only source that looks up one symbol past every board; the rate a settlement coin trades at against a fiat | `COINGECKO_API_KEY` |
+| `coingecko` | last fallback for the crypto board; the only source that looks up one symbol past every board; the rate a settlement coin trades at against a fiat; the dong's FX history as USDT's price in dong, behind `yahoo` | `COINGECKO_API_KEY` (optional) |
 | `vndirect` | VN instruments, bars, fundamentals, events, flows, foreign room, street recommendations, VN macro, daily commodity prices, VN news | no |
-| `entrade` | VN quotes and bars; behind `vietcap-chart` for a quote on a level, ahead of it for bars (it charts only the four headline indices) | no |
+| `vndirect-index` | levels for the indices the daemon reads: the daily history, ahead of `entrade` and `vietcap-chart`; kept apart from `vndirect` so an index outage does not pause the share bars | no |
+| `entrade` | VN quotes and bars; behind `vietcap-chart` for a quote on a level, behind `vndirect-index` for index bars (it charts only the four headline indices) | no |
 | `vietcap` | VN index basket membership (`vn30`, `vn100`) and per-name trade sides | no |
+| `vps-board` | VN index basket membership, behind `vietcap`; it answers only when its VN30 names all sit inside its VN100 list | no |
 | `kbsec` | VN per-name trade sides, ahead of `vietcap` | no |
 | `hsx` `ssi` | names under exchange supervision, merged across the HOSE listing service and a broker board that also carries HNX | no |
 | `vietcap-board` | the live VN board in one read: session quotes and foreign room, behind `vndirect` for both | no |
@@ -92,13 +94,15 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `coinmarketcap` `coinlore` | the ranked crypto board the screen picks its universe from, keyless, one request; `coinlore` sits third | no |
 | `coinbase` | the USD price of a settlement coin, from a venue that trades the pair; also crypto prices and daily bars converted to USDT, the last provider a US operator can always reach | no |
 | `er-api` | fiat FX, behind `yahoo` | no |
+| `vietcombank` | the dong's FX history, behind `yahoo` and `coingecko`: the midpoint of the bank's transfer buy and sell rates, a weekday at a time | no |
 | `cftc` | gold futures positioning: the weekly Commitments of Traders report | no |
 
 One kind is defined but **unrouted**: crypto spot-ETF net flows. No provider has been verified against a live response, so the brief's `etf-flows` section reports `unavailable` instead of failing.
 
 **The VN scraping sources and the gold boards are fragile**, and being on by default does not change that:
 
-- `vndirect`, `entrade` and `vietcap` read undocumented internal broker endpoints with no SLA.
+- `vndirect`, `vndirect-index`, `entrade`, `vietcap` and `vps-board` read undocumented internal broker endpoints with no SLA.
+- `vietcombank` reads the bank's own website feed.
 - `cafef` reads a consumer site's own AJAX handler and publishes rows whose value and volume contradict each other; those rows are dropped, not filed.
 - `pnj` reads a storefront's own endpoint.
 - `giavang` is a community API run by one operator.
@@ -283,6 +287,8 @@ A run ends in one of four ways:
 | `error` | The run passed every stage guard, then failed to record (most likely storage). Rerunning is safe. |
 
 An `error` is not a hold. A hold means "evaluated and rejected" and is a real answer with the reason codes that produced it. An error means the evaluation was never recorded.
+
+A suggestion that carries a thesis or a debate opens, wherever you read it (`/suggest`, a chat app, the office page's call card and its Why? dialog), with one line saying it is AI-generated and is not investment advice. The line is added when the answer is shown: it is never stored with the call, and no model reads it. Where the screen already shows it for the whole session (the terminal chat's banner, the office page's chat panel), a `/suggest` answer does not repeat it.
 
 #### Debate depth
 
@@ -675,6 +681,8 @@ The screener band is `average daily range x breakout_range` on either side of th
 
 The two are kept apart because only one of them is a problem.
 
+Each market's block prints its prices, breadth, news on the names the brief covers and, where the market has them, derivatives, buyers crossing the spread, sentiment and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. The rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
+
 With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.
 
@@ -798,6 +806,8 @@ A name already suggested today is served from its row at no cost.
 
 What the brief cost sits below a rule at the very end, since it belongs to the whole brief. Splitting by market keeps a figure from being reported twice under two headings: the domestic gold premium belongs to `gold-vn`'s block, and futures positioning to `gold`'s.
 
+A brief that holds a call a model argued (a suggestions section) opens with the same AI-generated line, in the CLI, in a chat app and on the office page; a brief with none does not.
+
 **Timing.** The default send time is 08:15 in the **market's** timezone: 08:15 in Ho Chi Minh City, not 08:15 UTC and not wherever you happen to be.
 
 A brief is only sent before the open. A market that trades round the clock, or a day the market is shut, counts as before the open. So a brief is never built or sent mid-session or after the close. Before any tokens are spent, a quick check confirms the previous session produced a bar.
@@ -863,6 +873,8 @@ Commands:
 - `/themes show` shows every theme still on the list (tracked, invalidated or waiting for approval) as it was last read, for free. Rejected and retired themes drop off.
 - `/themes approve|reject|retire <id>` moves a theme.
 - Over MCP only the read-only `themes_view` tool is exposed.
+
+A `/themes` report opens with the same AI-generated line; the themes list on the office page opens with it too. A model asked about the report afterwards reads it without that line.
 
 The theme analyst uses `[[model_tiers.themes]]` when configured and `[[models]]` otherwise.
 
@@ -987,6 +999,8 @@ So the board's own caveats and `market-data.universe-shallow` reach the result, 
 
 **A refresh caveat names its own kind.** `/refresh` prints each data kind as a row. `/overview` and `/brief` gather every caveat into one list without duplicates, where a note like `1 of 23 pulls landed` would leave you asking "of what?". So each caveat's sentence names its kind wherever it shows up, and the refresh view prints the notes under the market, not under a row that would repeat the kind.
 
+**A failed refresh is named by the reads that follow it.** When a scheduled refresh could not fetch a kind, or could not replace it and kept the older copy, the data you read afterwards is no newer than before, but its date alone would look current. So every later read of that market carries a note naming the kind and the session its data is no newer than, such as "The last refresh of price history failed; the data is no newer than the 03/11/2026 session." The note goes away once a later refresh of that kind succeeds. A kind that carries this note is left out of the general "working from data that stands at ..." date, so it is stated once. A kind that failed before it could record anything leaves no note.
+
 **Who was in charge of a session is recorded once, or not at all.** Every refresh records the buy/sell aggressor split (whether buyers or sellers drove the trades) for each name you hold or watch. Neither source behind it lets you ask for a date. `kbsec` answers with whatever session its board holds right now, and `vietcap` pages backwards from the newest trades. So the split can only be read between the moment the session settles and the next open.
 
 The refresh schedule puts two passes inside that window (15:15 and 07:30 for a VN board). After the open, that session is gone for good. So a name the sweep could not record is named under its market in the `/refresh` view: a miss that no later pass can fill is a permanent hole in the series. The sweep covers only the markets that refresh covered, so `/refresh crypto` spends none of a VN source's budget.
@@ -1049,7 +1063,7 @@ The full set:
 
 `market_price` `market_bars` `market_overview` `market_events` `market_accounts` `market_news` `market_screen` `market_sector_strength` `market_sentiment` `market_funding` `macro_risk` `vn_foreign_flow` `vn_futures_basis` `portfolio_view` `portfolio_history` `portfolio_review` `portfolio_rebalance` `portfolio_record` `portfolio_update` `portfolio_remove` `watchlist_update` `profile_view` `profile_update` `profile_segment` `suggestion_run` `suggestion_batch` `suggestion_track_record` `alert_manage` `brief_build` `brief_manage` `themes_view`
 
-**Slash commands** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, plus `/trade`. `/trade` places orders once a venue has trading credentials and otherwise names the keys it needs. Full grammar: [Commands](commands.md).
+**Slash commands** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/glossary` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, plus `/trade`. `/trade` places orders once a venue has trading credentials and otherwise names the keys it needs. Full grammar: [Commands](commands.md).
 
 **Terminal chat** uses the same slash commands as every channel:
 
@@ -1076,7 +1090,7 @@ They arrive only while OpenAlpha runs in the background (`openalpha start --back
 
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.
 
-You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing.
+You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing. A market whose segment you switched off, and where you hold or watch nothing, is not searched for a bare ticker: `BTC` reads as the coin, and the US fund of that name needs `equity-us:BTC`. World gold is never switched off by you, so `XAUUSD` stays readable.
 
 **HTTP** (on this machine only, with a bearer token). `openalpha start` serves a local API by default (`[api] enabled = false` turns it off) (see [`[api]`](configuration.md)).
 
@@ -1625,7 +1639,8 @@ Allocation has no surface of its own: `portfolio_rebalance` and `/rebalance` rep
 
 The Portfolio tab of the [office page](operations.md#the-office-page) writes the same rows as `/record`, `/update` and `/delete`, through the same checks, and never sends an order.
 
-- **Every kind of row.** The record form opens on Buy or Sell; "Other" holds dividend (the amount received, in the market's currency), distribution (the shares received), split (shares added, negative for a reverse split), rights (with the purchase price; an empty fee is recorded as 0), transfer (between two of your venues; the same venue on both sides is refused before anything is sent), deposit, withdrawal, fee and loss (money lost before you kept the ledger). A share change shows what the holding will be once recorded. History lists every kind, with a filter, and every row can be edited or deleted, with undo.
+- **Every kind of row.** The record form has three buttons, Buy, Sell and Other, and opens on Buy or Sell; "Other" opens a menu of dividend (the amount received, in the market's currency), distribution (the shares received), split (shares added, negative for a reverse split), rights (with the purchase price; an empty fee is recorded as 0), transfer (between two of your venues; the same venue on both sides is refused before anything is sent), deposit, withdrawal, fee and loss (money lost before you kept the ledger). A share change shows what the holding will be once recorded. History lists every kind, with a filter, and every row can be edited or deleted, with undo.
+- **What the book has made.** Portfolio > Performance lists, in the book's currency, what you put in net of withdrawals, the realised profit or loss, the dividends inside it, the trading fees still in what you hold, and the total against what you put in, with its percent. The figures are the ones `/portfolio` prints; it does not print the dividends as a line of their own. Realised profit or loss shows even while a holding has no price, and the fees and the total wait for the total assets.
 - **The rate you paid.** When a row is in a currency other than the book's and a rate applies, such as a USDT deposit on a VND book or a buy at a venue holding no USDT, a Rate field appears, filled with that day's market rate; change it to the rate you actually paid. It cannot be left empty, so the page never saves such a row at a rate you did not see. A row paid from USDT the venue already holds (a buy, a transfer, a fee) shows no rate field. If the day's rate cannot be read, the form says so, offers Retry and does not save yet. Editing a row keeps its booked rate.
 - **Check against venues.** History > Check against venues reads each venue that has a key, as `/reconcile` does: a match, or how much more or less the venue holds than the ledger, with a button that opens the record form filled with the difference (the price is left for you). A venue with no key names its variables and links to Settings > Exchanges; one that cannot read balances, or does not answer, says so. "Sync fills from <venue>" does what `/record sync` does: it reads the filled orders and books the ones the ledger lacks, and places no order. If the answer is slow, the page reads the ledger again rather than sending the sync twice.
 - **Orders.** Where a venue can place orders and `[api] orders` is on, Portfolio has an *Orders* tab.

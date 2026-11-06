@@ -21,7 +21,7 @@ export const liveQuotes: ReadonlySignal<readonly DeskQuote[]> = computed(() =>
 
     const close = quote.last / (1 + changePct / PERCENT)
     const polled = trails.value.get(keyOf(quote)) ?? [quote.last]
-    const display = quote.kind === 'index' ? undefined : printDisplayOf(quote.market)
+    const display = quote.isLevel ? undefined : printDisplayOf(quote.market)
 
     return [
       {

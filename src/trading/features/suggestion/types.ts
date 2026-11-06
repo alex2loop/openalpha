@@ -42,6 +42,8 @@ export const SUGGESTION_UNSUPPORTED_REASONS = Object.freeze([
   'ticker-not-supported',
   'ambiguous-market',
   'outside-focus',
+  'index-untradeable',
+  'future-untradeable',
 ] as const)
 type SuggestionUnsupportedReason = (typeof SUGGESTION_UNSUPPORTED_REASONS)[number]
 

@@ -6,6 +6,7 @@
 import type { NewsItem } from '@/trading/kernel/market/market-data'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/define'
+import type { SourceRouteTable } from '@/trading/sources/routes'
 import type { SourceFetchOutcome } from '@/trading/sources/types'
 import { type Caveat, type CaveatCode, sourcedCaveat } from '@/trading/kernel/caveat'
 import { sourceId } from '@/trading/kernel/source/source-id'
@@ -35,6 +36,14 @@ export const RSS_FEEDS: Readonly<Record<string, string>> = Object.freeze({
   'economy-global': 'https://www.cnbc.com/id/20910258/device/rss/rss.html',
 })
 
+/** The feeds a page can read: `scripts/research-browser-cors.ts` measures each one with an `Origin`
+ *  header, and only CNBC's answers. A feed that tightens CORS later leaves by editing this line. */
+const BROWSER_FEED_IDS: readonly string[] = Object.freeze(['equity-us', 'economy-global'])
+
+export const BROWSER_FEEDS: Readonly<Record<string, string>> = Object.freeze(
+  Object.fromEntries(Object.entries(RSS_FEEDS).filter(([id]) => BROWSER_FEED_IDS.includes(id)))
+)
+
 const SCOPE_FEEDS: Readonly<Record<string, readonly string[]>> = Object.freeze({
   crypto: ['crypto', 'economy-global'],
   gold: ['gold'],
@@ -46,6 +55,31 @@ const SCOPE_FEEDS: Readonly<Record<string, readonly string[]>> = Object.freeze({
 })
 
 const RSS_ID = sourceId('rss')
+
+/** The routes a page serves for `news`: a scope whose feeds a page cannot read loses `rss`, so it
+ *  reads as not served rather than failing on every call. An emptied scope stays in the table, so a
+ *  lookup for it never falls through to the `*` scope's feed. */
+export function withReachableFeeds(
+  routes: SourceRouteTable,
+  feeds: Readonly<Record<string, string>>
+): SourceRouteTable {
+  const news = Object.entries(routes.news).map(([scope, ids]) => [
+    scope,
+    hasReachableFeed(scope, feeds) ? ids : ids.filter((id) => id !== RSS_ID),
+  ])
+
+  // why-safe: the entries are the table's own `news` scopes, each mapped to a provider list.
+  return Object.freeze({
+    ...routes,
+    news: Object.freeze(Object.fromEntries(news)),
+  }) as SourceRouteTable
+}
+
+function hasReachableFeed(scope: string, feeds: Readonly<Record<string, string>>): boolean {
+  const ids = SCOPE_FEEDS[scope]
+
+  return ids === undefined || ids.some((id) => Object.hasOwn(feeds, id))
+}
 
 // One scope per fetch; a scope may read several feeds, merged below.
 export function createRssSources(options: SourceAdapterOptions): readonly RegisteredSource[] {
@@ -64,14 +98,16 @@ function newsSource(options: SourceAdapterOptions): RegisteredSource {
     covers: (context) =>
       context.instrument === undefined &&
       (context.market !== undefined || context.region === undefined),
-    load: (context, signal) => loadFeeds(options, feedsFor(context), signal),
+    load: (context, signal) => loadFeeds(options, feedsFor(options, context), signal),
   })
 }
 
-function feedsFor(context: SourceContext): readonly string[] {
+// A scope reads the feeds this build reaches: one a browser cannot read is not asked for, so it
+// never shows as a failure beside the ones that answered.
+function feedsFor(options: SourceAdapterOptions, context: SourceContext): readonly string[] {
   const scope = context.feedScope ?? context.market ?? MACRO_FEED_KEY
 
-  return SCOPE_FEEDS[scope] ?? [scope]
+  return (SCOPE_FEEDS[scope] ?? [scope]).filter((id) => Object.hasOwn(options.feeds, id))
 }
 
 async function loadFeeds(

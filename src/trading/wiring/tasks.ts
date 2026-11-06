@@ -1,4 +1,5 @@
 import type { DaemonTask, TaskPassListener } from '@/core/container'
+import type { ReachabilityProbe } from '@/core/limits'
 import type { Logger } from '@/core/logging/logger'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
@@ -88,6 +89,8 @@ interface TradingDaemonDeps {
    *  the exit and intent loops read the venue and the stored plans, so none of the three waits. */
   readonly firstSweep: Promise<void>
   readonly logger: Logger
+  /** Asked before each tick: an offline stretch is waited out, not run into. */
+  readonly reachability: ReachabilityProbe
 }
 
 /** The bounded loops behind one factory, plus the exit reconciler when some venue accepts orders
@@ -221,7 +224,7 @@ function intentTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
       everyMs: policy.intervalMs,
       nextDelayMs: () => policy.intervalMs,
       logger,
-      reachability: deps.config.operations,
+      reachability: reachabilityOf(deps),
       onTaskPass: deps.onTaskPass,
       tick: async (signal) => {
         const review = await order.reconcileUnmirrored(signal)
@@ -251,7 +254,7 @@ function alertTask(deps: TradingDaemonDeps): DaemonTask {
     nextDelayMs: () => policy.intervalMs,
     logger,
     after: deps.firstSweep,
-    reachability: deps.config.operations,
+    reachability: reachabilityOf(deps),
     onTaskPass: deps.onTaskPass,
     tick: async (signal, notes) => {
       const options = { now: Date.now(), batchSize: policy.batchSize, signal }
@@ -303,7 +306,7 @@ function operationTask(deps: TradingDaemonDeps, spec: OperationTaskSpec): Daemon
     nextDelayMs: () => spec.policy.intervalMs,
     logger: deps.logger,
     ...(spec.waitsForSweep === false ? {} : { after: deps.firstSweep }),
-    reachability: deps.config.operations,
+    reachability: reachabilityOf(deps),
     onTaskPass: deps.onTaskPass,
     tick: spec.tickFor(spec.policy),
   })
@@ -332,7 +335,7 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
       return Math.min(anchorMs, nextAttemptAt(now, failedPasses, refreshRetry) - now)
     },
     logger: deps.logger,
-    reachability: deps.config.operations,
+    reachability: reachabilityOf(deps),
     onTaskPass: deps.onTaskPass,
     tick: async (signal) => {
       const results = await deps.refreshMarketData({ signal, scheduled: true })
@@ -369,7 +372,7 @@ function intradayTask(deps: TradingDaemonDeps): DaemonTask {
     nextDelayMs: timing.nextDelayMs,
     logger: deps.logger,
     after: deps.firstSweep,
-    reachability: deps.config.operations,
+    reachability: reachabilityOf(deps),
     onTaskPass: deps.onTaskPass,
     tick: createIntradayTick({
       ...deps.reportDeps,
@@ -382,4 +385,8 @@ function intradayTask(deps: TradingDaemonDeps): DaemonTask {
       logger: deps.logger,
     }),
   })
+}
+
+function reachabilityOf(deps: TradingDaemonDeps) {
+  return { offlineRetryMs: deps.config.operations.offlineRetryMs, probe: deps.reachability }
 }

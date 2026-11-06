@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { z } from 'zod'
 
 import type { HaltBody, SetExitBody, TradeActionResponse } from '@/app/server/wire/orders'
@@ -65,7 +63,7 @@ function exitRequestId(req: Request): string | null {
   const header = req.headers.get('idempotency-key')?.trim()
 
   if (header === undefined) {
-    return randomUUID()
+    return crypto.randomUUID()
   }
 
   return header === '' || header.length > MAX_IDEMPOTENCY_KEY_LENGTH ? null : header

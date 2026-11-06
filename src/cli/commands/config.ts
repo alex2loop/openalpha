@@ -14,7 +14,7 @@ import { flagString } from '@/cli/parsing/args'
 import { resolveConfigPath } from '@/cli/services'
 import { fail, success, warn } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
-import { loadConfig } from '@/core/config/load'
+import { loadConfig, readConfigHost } from '@/core/config/load'
 import { resolveConfig } from '@/core/config/resolve'
 import { withExtensionRefusals } from '@/core/config/validate'
 import { isSensitiveKey, redact } from '@/core/security/credentials'
@@ -177,7 +177,7 @@ async function configReport(app: CliApp): Promise<ConfigReport> {
 
   try {
     const { raw } = await loadConfig({ configPath: app.configPath })
-    const config = resolveConfig(raw, { deferMissingKeys: true })
+    const config = resolveConfig(raw, { ...readConfigHost(), deferMissingKeys: true })
     const missingKeys = toMissingKeyErrors(config).map((err) => ({
       fallback: err.effect === 'fallback',
       message: terminalErrorMessage(err, locale),

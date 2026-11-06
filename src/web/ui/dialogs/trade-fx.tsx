@@ -10,62 +10,76 @@ import { previewLedger } from '@/web/state/trade'
 import { formatFieldFigure } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { TextField } from '@/web/ui/dialogs/trade-fields'
-import { currencyOf } from '@/web/ui/dialogs/trade-kinds'
+import { currencyOf, shapeOf } from '@/web/ui/dialogs/trade-kinds'
+import { toPreviewRefusal } from '@/web/ui/dialogs/trade-refusal'
 import { buildPreviewDraft, type TradeForm } from '@/web/ui/dialogs/trade-state'
 import { Button } from '@/web/ui/kit/button'
 
 // The ask waits for typing to pause, so a figure typed digit by digit asks once.
 const PREVIEW_DELAY_MS = 400
 const INCOMPLETE = 'incomplete'
-// A row in the book's currency, or one that moves no money, takes no rate.
-const NO_RATE = 'no-rate'
 
-/** Asks the daemon whether the row takes a rate whenever the draft settles in a currency other than
- *  the book's; the rate field shows only when it answers one. A newer draft cancels the ask before
- *  it, and closing the dialog cancels the last. */
-export function useFxPreview(form: TradeForm): void {
+/** Asks the daemon about every complete draft: whether the book would refuse it, and, when the draft
+ *  settles in a currency other than the book's, whether the row takes a rate. The refusal and the
+ *  rate describe only the draft in the form: an edit drops both until the new answer. The rate field
+ *  shows only when it answers one, and only a row that may take one waits on the answer to save. A
+ *  newer draft cancels the ask before it, and closing the dialog cancels the last. */
+export function usePreview(form: TradeForm): void {
   const draft = buildPreviewDraft(form)
-  const print = previewKeyOf(draft, holdingsBlock.view.value.data?.baseCurrency)
+  const print = draft === undefined ? INCOMPLETE : JSON.stringify(draft)
+  const isRated = draft !== undefined && isRateCurrency(draft)
   const retry = form.fxRetry.value
 
   useEffect(() => {
-    // An incomplete draft keeps the last answer and is refused on save as it stands.
+    form.refusal.value = undefined
+    form.farPrice.value = undefined
+
+    // An incomplete draft keeps the last rate answer and is refused on save as it stands.
     if (draft === undefined) {
       form.fxStatus.value = 'idle'
       return undefined
     }
 
-    if (print === NO_RATE) {
+    // A row that takes no rate drops the last one now, not after the ask: nothing may state it.
+    if (isRated) {
+      form.fxStatus.value = 'pending'
+    } else {
       applyRate(form, undefined)
-      return undefined
     }
 
     const controller = new AbortController()
-    const timer = setTimeout(() => askRate(form, draft, controller.signal), PREVIEW_DELAY_MS)
-
-    form.fxStatus.value = 'pending'
+    const timer = setTimeout(
+      () => askPreview(form, { draft, isRated, signal: controller.signal }),
+      PREVIEW_DELAY_MS
+    )
 
     return () => {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [print, retry])
+  }, [print, isRated, retry])
 }
 
-function previewKeyOf(draft: LedgerDraft | undefined, base: string | undefined): string {
-  if (draft === undefined) {
-    return INCOMPLETE
-  }
-
+// A row in the book's currency, or one that moves no money, takes no rate.
+function isRateCurrency(draft: LedgerDraft): boolean {
   const currency = currencyOf(draft)
 
-  return currency === undefined || currency === base ? NO_RATE : JSON.stringify(draft)
+  return currency !== undefined && currency !== holdingsBlock.view.value.data?.baseCurrency
 }
 
-function askRate(form: TradeForm, draft: LedgerDraft, signal: AbortSignal): void {
+function askPreview(
+  form: TradeForm,
+  ask: { readonly draft: LedgerDraft; readonly isRated: boolean; readonly signal: AbortSignal }
+): void {
+  const { draft, isRated, signal } = ask
   const replacing = form.start.entry?.id
+  const request = { draft, ...(replacing === undefined ? {} : { replacing }) }
 
-  previewLedger({ draft, ...(replacing === undefined ? {} : { replacing }) }, signal).then(
+  if (shapeOf(draft.kind) === 'priced') {
+    askPriceCheck(form, request, signal)
+  }
+
+  previewLedger(request, signal).then(
     (answer) => {
       if (!signal.aborted) {
         applyRate(form, answer.fxRate)
@@ -76,15 +90,37 @@ function askRate(form: TradeForm, draft: LedgerDraft, signal: AbortSignal): void
         return
       }
 
-      // A draft the book refuses takes no rate; the save shows the daemon's own sentence.
+      // A draft the book refuses takes no rate; the refusal shows under the preview, and the save
+      // asks the daemon again.
       if (error instanceof ApiFailure && error.code === 'invalid_body') {
+        form.refusal.value = toPreviewRefusal(draft, error)
         applyRate(form, undefined)
         return
       }
 
-      form.fxStatus.value = 'failed'
+      // A rated row cannot save without its answer; any other row never needed one.
+      if (isRated) {
+        form.fxStatus.value = 'failed'
+        return
+      }
+
+      applyRate(form, undefined)
     }
   )
+}
+
+// The save's price check, asked apart from the book's: it answers before the cash check does, so one
+// ask would show only the price. Any answer but a price too far from the market is the other ask's.
+function askPriceCheck(
+  form: TradeForm,
+  request: { readonly draft: LedgerDraft; readonly replacing?: string },
+  signal: AbortSignal
+): void {
+  previewLedger({ ...request, typedPrice: 'unconfirmed' }, signal).catch((error: unknown) => {
+    if (!signal.aborted && error instanceof ApiFailure && error.code === 'price_unconfirmed') {
+      form.farPrice.value = error.unconfirmedPrice
+    }
+  })
 }
 
 // The field keeps a rate the operator typed; one still showing the last market rate follows the

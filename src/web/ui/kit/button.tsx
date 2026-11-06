@@ -4,7 +4,8 @@ import { NEXT_GLYPH } from '@/web/text/glyphs'
 
 import './button.css'
 
-/** commit: Ink fill, one per dialog. ai: brand gradient, for a button that runs a model.
+/** commit: Ink fill, one per dialog. ai: brand gradient, for a button that runs a model or leads to
+ *  the installed version.
  *  ghost: no frame until hovered. tertiary: a text link with its arrow.
  *  destructive: Problem text, confirmed first when it loses work. */
 export type ButtonKind = 'commit' | 'ai' | 'secondary' | 'ghost' | 'tertiary' | 'destructive'

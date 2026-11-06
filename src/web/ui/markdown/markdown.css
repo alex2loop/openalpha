@@ -54,9 +54,18 @@
 }
 
 .md a {
-  color: inherit;
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.md-link-host {
+  margin-left: 4px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--sunken);
+  color: var(--ink2);
+  font: var(--typeCode);
 }
 
 .md sup a {
@@ -84,6 +93,10 @@
 .md-table th {
   color: var(--ink2);
   font-weight: var(--weightSemibold);
+}
+
+.note-mark {
+  margin-inline-end: 0.4em;
 }
 
 .note-list {

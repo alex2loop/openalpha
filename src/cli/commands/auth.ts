@@ -8,7 +8,7 @@ import {
   awaitLoopbackCode,
   createTokenFile,
   loginNames,
-} from '@/ai/api'
+} from '@/ai/node-api'
 import { createCommand, createGroup, type Group } from '@/cli/command'
 import { terminalErrorMessage, usage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
@@ -16,7 +16,7 @@ import { flagBool, flagString } from '@/cli/parsing/args'
 import { fail, success } from '@/cli/ui/colors'
 import { defaultPrompt } from '@/cli/ui/prompt'
 import { BRAND } from '@/core/brand'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 

@@ -12,15 +12,17 @@ import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { formatErrForLog } from '@/core/security/credentials'
 import { pluralKey, t } from '@/i18n'
 import {
-  BACKUPS_SUBDIR,
-  backupAndPrune,
-  backupTarget,
   MIGRATIONS,
-  migrate,
   migrationStatus,
   resolveMigrationRollback,
   rollbackMigration,
 } from '@/persistence/api'
+import {
+  BACKUPS_SUBDIR,
+  backupAndPrune,
+  backupTarget,
+  migrateWithBackup,
+} from '@/persistence/node-api'
 import { formatInstant } from '@/trading/api'
 
 const EXIT_ERROR = 1
@@ -46,8 +48,8 @@ const dbMigrateUpCommand = createCommand({
       return printMigrationStatus(app, locale)
     }
 
-    const applied = await migrate(app.resolve('storage'), app.resolve('dialect'), {
-      backupDir: join(app.config.paths.dataDir, BACKUPS_SUBDIR),
+    const applied = await migrateWithBackup(app.resolve('storage'), app.resolve('dialect'), {
+      dataDir: app.config.paths.dataDir,
       logger: app.resolve('logger'),
     })
 

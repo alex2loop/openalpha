@@ -1,0 +1,214 @@
+import type { BrowserKeyring } from '@/app/browser/keys'
+import type { App } from '@/core/container'
+import type { SlashContext, SlashResult } from '@/core/types/command'
+import type {
+  BookReads,
+  BriefActionCode,
+  BriefSectionKind,
+  ProfileSetField,
+  TradingEdition,
+} from '@/trading/api'
+import { hasAiKey, readModelProvider } from '@/app/browser/keys'
+import {
+  AnalysisError,
+  DEBATE_MODEL_TIER,
+  marketRef,
+  renderAnalysisBody,
+  renderAnalysisFailure,
+  type SuggestionRequest,
+} from '@/trading/api'
+
+/** The commands a visitor has: the ledger and the book, the market reads, the glossary, `/suggest`
+ *  as an analysis and the brief while the page is open. Nothing that places an order, reads a
+ *  venue, watches while the tab is closed or runs the full suggestion pipeline. */
+const COMMANDS: ReadonlySet<string> = new Set([
+  'market',
+  'overview',
+  'price',
+  'screen',
+  'watchlist',
+  'record',
+  'update',
+  'delete',
+  'transactions',
+  'portfolio',
+  'profile',
+  'rebalance',
+  'refresh',
+  'suggest',
+  'brief',
+  'glossary',
+])
+
+/** The tools the web's chat may call: reads that state facts. Nothing that writes, schedules,
+ *  remembers, rates, ranks or names a level, a size or a call. */
+export const CHAT_TOOLS: ReadonlySet<string> = new Set([
+  'now',
+  'calc',
+  'market_price',
+  'market_bars',
+  'market_overview',
+  'market_events',
+  'market_news',
+  'market_sentiment',
+  'market_funding',
+  'vn_foreign_flow',
+  'vn_futures_basis',
+  'portfolio_view',
+  'research',
+])
+
+/** VN equities, crypto and gold read from sources a browser reaches; VN gold prices a premium over
+ *  gold. US equities need sources it cannot. */
+export const BROWSER_MARKETS: ReadonlySet<ReturnType<typeof marketRef>> = new Set([
+  marketRef('equity-vn'),
+  marketRef('crypto'),
+  marketRef('gold'),
+  marketRef('gold-vn'),
+])
+
+/** Brief sections that rank names by composite (the watchlist ordered by score, which names
+ *  entered or left the top of the board), make a call on the market (the macro regime and its
+ *  score, a regime change, sectors to weigh up or down), state the index's support and resistance,
+ *  or state what the web has none of: the standing rules for stops, entries and tranches, and the
+ *  cash posture a plan would leave. */
+const BRIEF_OMITS: ReadonlySet<BriefSectionKind> = new Set([
+  'watchlist-leading',
+  'screen-delta',
+  'discipline',
+  'deposit-rate',
+  'macro',
+  'regime-shift',
+  'sector-rotation',
+  'range',
+])
+
+/** Market stories that read a level or a direction: the index near support or resistance, a sector
+ *  leading or lagging, and what the futures basis expects. */
+const BRIEF_STORY_OMITS: NonNullable<TradingEdition['briefStoryOmits']> = new Set([
+  'support-test',
+  'resistance-test',
+  'sector-leading',
+  'sector-lagging',
+  'basis-premium',
+  'basis-discount',
+])
+
+/** The next action that tells the reader when to buy. The others name a record to make or a
+ *  command to read. */
+const BRIEF_ACTION_OMITS: ReadonlySet<BriefActionCode> = new Set(['avoid-chasing'])
+
+/** Statements come from a source no browser reaches, so a refresh does not ask for them. */
+const REFRESH_OMITS: NonNullable<TradingEdition['refreshOmits']> = new Set(['accounts'])
+
+/** The two US macro series only FRED publishes, and a browser cannot read FRED: the broad dollar
+ *  index and the VIX read as not served on the web. */
+const MACRO_UNSERVED: NonNullable<TradingEdition['macroUnserved']> = new Set([
+  'usd-index',
+  'us-volatility',
+])
+
+/** The settings the page reads: the risk level, goal and horizon it states, the cash reserve and
+ *  the sector cap its findings measure against, and the targets and caps the gaps are measured
+ *  against. */
+const PROFILE_FIELDS: ReadonlySet<ProfileSetField> = new Set([
+  'risk-level',
+  'goal',
+  'horizon',
+  'reserve-pct-nav',
+  'maximum-sector-pct-nav',
+  'segment-target',
+  'segment-cap',
+  'position-cap',
+])
+
+const NEEDS_KEY = 'slash.tradingSuggestAnalysisNeedsKey'
+
+/** Nothing here stores a suggestion or plans an exit, so every read of one answers empty: no
+ *  verdict closes a name, no plan is written when a trade is recorded, no stop distance is listed,
+ *  and the brief's sweep, resolved calls, fired alerts and exit watch have nothing to say. */
+const EMPTY_READS: BookReads = {
+  reduceVerdicts: { standing: async () => new Map() },
+  exitPlans: { plan: async () => ({ kind: 'unplanned', reason: 'no-levels' }) },
+  stopDistances: { stopDistances: async () => [] },
+  brief: {
+    runSuggestions: async () => [],
+    listResolvedSuggestions: async () => [],
+    listFiredAlerts: async () => [],
+    positionExits: async () => [],
+    unwatchedPositions: async () => [],
+    stalePositions: async () => [],
+  },
+}
+
+export function createBrowserEdition(app: App, keyring: BrowserKeyring): TradingEdition {
+  return {
+    markets: BROWSER_MARKETS,
+    commands: COMMANDS,
+    suggest: {
+      run: (request, ctx) => analyse(app, keyring, { request, ctx }),
+      keys: {
+        help: 'slash.tradingSuggestAnalysisHelp',
+        usage: 'slash.tradingSuggestAnalysisUsage',
+        progress: 'slash.tradingSuggestAnalysisProgress',
+        stopsRefusal: 'slash.tradingSuggestAnalysisStopsRefused',
+        answers: [NEEDS_KEY],
+      },
+    },
+    rebalance: 'gaps',
+    readingsOnly: true,
+    screen: 'board',
+    briefOmits: BRIEF_OMITS,
+    briefActionOmits: BRIEF_ACTION_OMITS,
+    briefStoryOmits: BRIEF_STORY_OMITS,
+    profile: {
+      fields: PROFILE_FIELDS,
+      usage: 'slash.tradingProfileAnalysisUsage',
+    },
+    reads: EMPTY_READS,
+    pagedBackfill: true,
+    refreshOmits: REFRESH_OMITS,
+    macroUnserved: MACRO_UNSERVED,
+  }
+}
+
+interface AnalysisCall {
+  readonly request: SuggestionRequest
+  readonly ctx: SlashContext
+}
+
+// Without a key no model call is made: a name no key could analyse says why, as on the installed
+// version, and any other name gets the line that says which key unlocks it. Saying why reads the
+// name, which may ask a data provider.
+async function analyse(
+  app: App,
+  keyring: BrowserKeyring,
+  call: AnalysisCall
+): Promise<SlashResult> {
+  const { request, ctx } = call
+  const { analyses } = app.resolve('tradingServices')
+
+  if (!hasAiKey(keyring.env(), readModelProvider(app.config, DEBATE_MODEL_TIER))) {
+    const failure = await analyses.refusalOf(request, ctx.signal)
+
+    return failure === undefined
+      ? { kind: 'message', messages: [{ key: NEEDS_KEY }] }
+      : { kind: 'text', text: renderAnalysisFailure(ctx.locale, failure) }
+  }
+
+  try {
+    const record = await analyses.run(request, ctx.signal)
+
+    return {
+      kind: 'text',
+      // The chat panel, the only way in, shows the AI label once at its top.
+      text: renderAnalysisBody(ctx.locale, record),
+    }
+  } catch (err: unknown) {
+    if (err instanceof AnalysisError) {
+      return { kind: 'text', text: renderAnalysisFailure(ctx.locale, err.failure) }
+    }
+
+    throw err
+  }
+}

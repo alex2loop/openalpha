@@ -1,8 +1,8 @@
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { RuntimeAssets } from '@/app/providers'
 import type { BootExtensionOptions, Booted, BootGate, BootOptions } from '@/app/types'
-import type { KeyValidator } from '@/commands/api'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { App } from '@/core/container'
 import type { Logger, LoggerResource } from '@/core/logging/logger'
@@ -11,12 +11,14 @@ import type { OpenedPersistence } from '@/persistence/api'
 import type { SocialConfig } from '@/social/api'
 import type { TradingConfig } from '@/trading/api'
 import '@/app/events'
+
 import type { NoticeLog } from '@/app/activity/notice-log'
 import type { RunLog } from '@/app/activity/run-log'
 import { startNoticeLog } from '@/app/activity/notice-log'
 import { startRunLog } from '@/app/activity/run-log'
 import { createAgentLogsProvider } from '@/app/agent-registry'
 import { loadAssets } from '@/app/assets'
+import { commandKeyValidator } from '@/app/command-keys'
 import { resolveBootExtensions } from '@/app/config-tree'
 import { createDeliveryHub, type DeliveryHub } from '@/app/delivery'
 import { createAlertFiredListener } from '@/app/event-jobs'
@@ -26,15 +28,18 @@ import { assertSocialToolRules, createSocialProvider } from '@/app/social'
 import { hydrateStartupState, migrateStartupSchema } from '@/app/startup-state'
 import { BRAND } from '@/core/brand'
 import { loadConfig } from '@/core/config/load'
-import { OperatorConfigError, resolveConfig } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
+import { resolveConfig } from '@/core/config/resolve'
 import { createApp } from '@/core/container'
 import { ConfigError } from '@/core/errors'
+import { DAEMON_REQUEST_SHAPE } from '@/core/http-client'
+import { REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/limits'
 import { createLoggerResource } from '@/core/logging/logger'
 import { formatErrForLog } from '@/core/security/credentials'
 import { ensurePrivateDirectory } from '@/core/security/private-files'
+import { probeHost } from '@/core/utils/reachability'
 import { WORKSPACES_DIR_NAME } from '@/engine/api'
-import { hasOwnMessage } from '@/i18n'
-import { openPersistence } from '@/persistence/api'
+import { openPersistence } from '@/persistence/node-api'
 import { assertSpawnToolsRegistered } from '@/tools/api'
 import { createTradingRegistrationProvider, createTradingStoresProvider } from '@/trading/api'
 
@@ -51,13 +56,6 @@ const CHILD_ENV_ALLOW: ReadonlySet<string> = new Set([
   'TEMP',
   'TMP',
 ])
-
-/** The operator reads what a loop does, never its task id. A loop with no entry here is described
- *  by `trading.loop.unknown` rather than by its raw name. */
-/** The one locale gate: every contributed command key must resolve in both catalogs. */
-const commandKeyValidator: KeyValidator = {
-  resolvesEverywhere: (key) => hasOwnMessage('en', key) && hasOwnMessage('vi', key),
-}
 
 export const passThroughBootGate: BootGate = async () => ({ verdict: 'ok' })
 
@@ -228,6 +226,8 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
       recipient: () => input.delivery.defaultRecipient(),
       keys: commandKeyValidator,
       pluginModules: input.assets.pluginSourceModules,
+      requestShape: DAEMON_REQUEST_SHAPE,
+      reachability: (signal) => probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS, signal),
     }),
   })
 }
@@ -280,6 +280,8 @@ async function resolveBootConfig(options: BootOptions): Promise<ResolvedBootConf
     ...(options.dataDir === undefined ? {} : { dataDir: options.dataDir }),
   })
   const config = resolveConfig(raw, {
+    env: options.env,
+    homeDir: homedir(),
     ...(options.dataDir === undefined ? {} : { dataDir: options.dataDir }),
     ...(options.logLevel === undefined ? {} : { logLevel: options.logLevel }),
     ...(options.modelSource === undefined ? {} : { modelSource: options.modelSource }),

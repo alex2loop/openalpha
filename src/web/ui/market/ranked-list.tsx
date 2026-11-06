@@ -17,7 +17,7 @@ export interface RankedRow {
 }
 
 interface RankedListProps {
-  readonly title: string
+  readonly title: ComponentChildren
   /** What the figures span, said beside the title; a window the title already says is left off. */
   readonly note?: string | undefined
   readonly rows: readonly RankedRow[]
@@ -42,8 +42,8 @@ export function RankedList({ title, note, rows }: RankedListProps) {
       </h4>
       <div class="row-list">
         {rows.map((row) => (
-          <div key={row.key} class="row">
-            <b>{row.label}</b>
+          <div key={row.key} class="row ranked-row">
+            <b class="ranked-label">{row.label}</b>
             <span class="meta">{row.figure}</span>
             <RowMove row={row} />
           </div>

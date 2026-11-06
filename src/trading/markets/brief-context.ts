@@ -170,19 +170,24 @@ async function loadMacro(
   }
 
   return {
-    current: toBriefMacroRisk(current, home.macroDrivers),
-    previous: previous === undefined ? null : toBriefMacroRisk(previous, home.macroDrivers),
+    current: toBriefMacroRisk(deps, current, home.macroDrivers),
+    previous: previous === undefined ? null : toBriefMacroRisk(deps, previous, home.macroDrivers),
   }
 }
 
 /** The stored regime, formula version, and caveats are the market's own derived answer and are read
  *  back rather than recomputed; only the driver breakdown is re-derived, and it is a pure function
  *  of the persisted values. */
-function toBriefMacroRisk(snapshot: MacroRiskSnapshot, drivers: MacroDriverPolicy): BriefMacroRisk {
+function toBriefMacroRisk(
+  deps: MarketDeps,
+  snapshot: MacroRiskSnapshot,
+  drivers: MacroDriverPolicy
+): BriefMacroRisk {
   const base = deriveMacroRisk(
     {
       values: snapshot.values,
       observationDates: snapshot.observationDates,
+      ...(deps.unservedMacro === undefined ? {} : { missingReasons: deps.unservedMacro }),
       region: snapshot.region,
       asOf: snapshot.asOf,
       provenance: snapshot.provenance,

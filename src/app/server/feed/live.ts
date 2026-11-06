@@ -204,13 +204,6 @@ function followProgress({ bus, broadcast, locale }: LiveFeedDeps, book: RunBook)
         broadcast(PROGRESS_NORMALIZERS.command_progress(e, progress))
       }
     }),
-    bus.on('run_thinking', (e) => {
-      book.think(e.runId, e.excerpt)
-
-      const frame = WIRE_NORMALIZERS.run_thinking(e)
-
-      broadcast({ ...frame, source: { ...frame.source, agentId: book.agentIdOf(e.runId) ?? '' } })
-    }),
   ]
 }
 
@@ -220,9 +213,6 @@ interface RunBook {
    *  one when LIVE_PROGRESS_MIN_INTERVAL_MS has passed since the run's last broadcast (a run the book
    *  does not hold always). A suppressed line is superseded by the next; no timer flushes it. */
   report(runId: RunId, progress: ProgressWire): boolean
-  think(runId: RunId, excerpt: string): void
-  /** The agent a held run belongs to, or undefined for a command or a run the book does not hold. */
-  agentIdOf(runId: RunId): string | undefined
   /** Forgets the run and returns what the book held of it. */
   finish(runId: RunId): LiveRunWire | undefined
   /** The runs still running, oldest first. */
@@ -239,14 +229,6 @@ interface BookEntry {
 function createRunBook(liveRunIds: () => ReadonlySet<RunId>): RunBook {
   // Insertion order is start order, so the first key is the oldest run.
   const runs = new Map<RunId, BookEntry>()
-  // A run that predates the feed is not in the map: its events are still broadcast.
-  const update = (runId: RunId, change: (entry: LiveRunWire) => LiveRunWire): void => {
-    const entry = runs.get(runId)
-
-    if (entry !== undefined) {
-      runs.set(runId, { ...entry, wire: change(entry.wire) })
-    }
-  }
 
   return {
     start(runId, wire) {
@@ -254,8 +236,6 @@ function createRunBook(liveRunIds: () => ReadonlySet<RunId>): RunBook {
       trimToSize(runs, MAX_LIVE_RUNS)
     },
     report: (runId, progress) => reportTo(runs, runId, progress),
-    think: (runId, excerpt) => update(runId, (entry) => ({ ...entry, thinking: excerpt })),
-    agentIdOf: (runId) => runs.get(runId)?.wire.agentId,
     finish(runId) {
       const entry = runs.get(runId)
 

@@ -1,10 +1,10 @@
 import TurndownService from 'turndown'
 
+import type { FetchGuard } from '@/core/ssrf/fetch-guard'
 import type { ResearchDirectFetchOutcome, ResearchProviderFailureCode } from '@/engine/api'
 import { abortError, ToolError } from '@/core/errors'
 import { readTruncatedText } from '@/core/http-client'
 import { scanOutput } from '@/core/security/sanitize'
-import { NetworkPolicy } from '@/core/ssrf/network-policy'
 import { stripControls, stripMarkup, truncateUtf8HeadTail } from '@/core/utils/text'
 
 import type { GeneralFetchInput, GeneralFetchOutcome, WebExtractMode } from './retrieval-service'
@@ -50,15 +50,21 @@ interface ConsumePageInput {
   readonly publishedDayOf?: (markup: string) => string | undefined
 }
 
+interface PageFetchLimits {
+  readonly maxBytes: number
+  readonly guard: FetchGuard
+}
+
 export async function fetchGeneralPage(
   input: GeneralFetchInput,
-  maxBytes: number
+  limits: PageFetchLimits
 ): Promise<GeneralFetchOutcome> {
   assertPageFetchActive(input.signal)
-  return await fetchPage(input, maxBytes)
+  return await fetchPage(input, limits)
 }
 
 export async function fetchDirectPage(input: {
+  readonly guard: FetchGuard
   readonly url: string
   readonly timeoutMs: number
   readonly maxReadBytes: number
@@ -83,7 +89,7 @@ export async function fetchDirectPage(input: {
       signal: input.signal,
       ...(input.allowedHosts === undefined ? {} : { allowedHosts: input.allowedHosts }),
     },
-    input.maxReadBytes
+    { maxBytes: input.maxReadBytes, guard: input.guard }
   )
 
   return {
@@ -188,7 +194,10 @@ export function directFetchFailureCode(error: unknown): ResearchProviderFailureC
   return 'transport'
 }
 
-async function fetchPage(input: GeneralFetchInput, maxBytes: number): Promise<GeneralFetchOutcome> {
+async function fetchPage(
+  input: GeneralFetchInput,
+  limits: PageFetchLimits
+): Promise<GeneralFetchOutcome> {
   assertPageFetchActive(input.signal)
   const canonicalUrl = canonicalHttpsUrl(input.url)
   const timeoutController = new AbortController()
@@ -199,7 +208,7 @@ async function fetchPage(input: GeneralFetchInput, maxBytes: number): Promise<Ge
   const signal = AbortSignal.any([input.signal, timeoutController.signal])
 
   try {
-    const guarded = await NetworkPolicy.guardedFetch(
+    const guarded = await limits.guard.guardedFetch(
       canonicalUrl,
       {
         method: input.method,
@@ -214,7 +223,7 @@ async function fetchPage(input: GeneralFetchInput, maxBytes: number): Promise<Ge
       mode: input.extractMode,
       method: input.method,
       finalUrl: guarded.finalUrl,
-      maxBytes,
+      maxBytes: limits.maxBytes,
       ...(input.publishedDayOf === undefined ? {} : { publishedDayOf: input.publishedDayOf }),
     })
   } catch (error: unknown) {

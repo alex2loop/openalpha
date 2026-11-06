@@ -1,92 +1,28 @@
-import type { ApiHandle, ApiRouteSpec } from '@/app/types'
+import type { ApiHandle } from '@/app/types'
 import type { App, ServiceProvider } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import { withApiRunLimits } from '@/app/server/exposure'
 import { createLiveFeed, type LiveFeed } from '@/app/server/feed/live'
 import { ensureApiToken } from '@/app/server/http/auth'
+import { DAEMON_ROUTE_GROUPS } from '@/app/server/http/daemon-routes'
+import { buildApiRoutes } from '@/app/server/http/routes'
 import { startApi } from '@/app/server/http/server'
 import { createSignInCodes } from '@/app/server/http/sign-in-codes'
 import { startIdeaWatch } from '@/app/server/push/ideas'
 import { attachAppSurface } from '@/app/server/push/notices'
-import { ACTIVITY_ROUTES } from '@/app/server/routes/activity'
-import { AGENT_EDIT_ROUTES } from '@/app/server/routes/agent-edit'
-import { AGENT_ROUTES } from '@/app/server/routes/agents'
-import { CHAT_ROUTES } from '@/app/server/routes/chat'
-import { CONFIG_ROUTES } from '@/app/server/routes/config'
-import { CREDENTIAL_ROUTES } from '@/app/server/routes/credentials'
-import { DEBATE_ROUTES } from '@/app/server/routes/debate'
-import { DIGEST_ROUTES } from '@/app/server/routes/digest'
-import { INDEX_ROUTES } from '@/app/server/routes/index-reading'
-import { JOB_ROUTES } from '@/app/server/routes/jobs'
-import { MARKET_ROUTES } from '@/app/server/routes/market'
-import { MARKET_EXTRA_ROUTES } from '@/app/server/routes/market-extra'
-import { MCP_ROUTES } from '@/app/server/routes/mcp'
-import { MEMORY_ROUTES } from '@/app/server/routes/memory'
-import { MODEL_ROUTES } from '@/app/server/routes/models'
-import { MONEY_ROUTES } from '@/app/server/routes/money'
-import { NOTICE_ROUTES } from '@/app/server/routes/notices'
-import { ORDER_ROUTES } from '@/app/server/routes/orders'
-import { OUTBOUND_ROUTES } from '@/app/server/routes/outbound'
-import { RESTART_ROUTES } from '@/app/server/routes/restart'
-import { RUN_ROUTES } from '@/app/server/routes/runs'
-import { SESSION_ROUTES } from '@/app/server/routes/session'
-import { SIGN_IN_ROUTES } from '@/app/server/routes/sign-in'
-import { SYSTEM_ROUTES } from '@/app/server/routes/system'
-import { TASK_ROUTES } from '@/app/server/routes/tasks'
-import { THEME_ROUTES } from '@/app/server/routes/themes'
-import { TRADING_ROUTES } from '@/app/server/routes/trading'
-import { WATCHLIST_ROUTES } from '@/app/server/routes/watchlist'
+import { createDaemonSystemHost } from '@/app/server/routes/system-daemon'
 import { broadcast } from '@/app/server/ws/socket'
 import { describeCommand } from '@/commands/api'
-import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
-
-// The server owns the FINAL route table, composed as data rather than extended at runtime: an
-// `extend('apiRoutes', ...)` step would either reorder the provider list or leave the table mutable
-// after boot. `assertRouteList` validates the whole composition once, here, not per route module.
-const ROUTES = [
-  ...SYSTEM_ROUTES,
-  ...RESTART_ROUTES,
-  ...ACTIVITY_ROUTES,
-  ...RUN_ROUTES,
-  ...AGENT_ROUTES,
-  ...AGENT_EDIT_ROUTES,
-  ...CHAT_ROUTES,
-  ...CONFIG_ROUTES,
-  ...CREDENTIAL_ROUTES,
-  ...SIGN_IN_ROUTES,
-  ...MCP_ROUTES,
-  ...TRADING_ROUTES,
-  ...WATCHLIST_ROUTES,
-  ...DEBATE_ROUTES,
-  ...DIGEST_ROUTES,
-  ...MARKET_ROUTES,
-  ...MARKET_EXTRA_ROUTES,
-  ...INDEX_ROUTES,
-  ...THEME_ROUTES,
-  ...MODEL_ROUTES,
-  ...MONEY_ROUTES,
-  ...NOTICE_ROUTES,
-  ...ORDER_ROUTES,
-  ...OUTBOUND_ROUTES,
-  ...TASK_ROUTES,
-  ...JOB_ROUTES,
-  ...SESSION_ROUTES,
-  ...MEMORY_ROUTES,
-] as const
 
 // The HTTP/WS API: the last canonical provider (src/app/providers.ts); the daemon starts it only
 // with [api] enabled.
 export const apiServiceProvider: ServiceProvider = {
   name: 'api',
   register(bind, extend): void {
-    bind('apiRoutes', () => {
-      assertRouteList(ROUTES)
-
-      return ROUTES
-    })
-
+    bind('apiRoutes', () => buildApiRoutes(DAEMON_ROUTE_GROUPS))
+    bind('systemHost', (app) => createDaemonSystemHost(app))
     bind('apiStarter', () => startApiSurface)
     extend('runner', (runner, app) => withApiRunLimits(runner, app))
   },
@@ -168,21 +104,5 @@ async function runStopSteps(logger: Logger, steps: readonly StopStep[]): Promise
     } catch (err: unknown) {
       logger.warn('api.stop_step_failed', { step, err: formatErrForLog(err) })
     }
-  }
-}
-
-// Dispatch is first-match-wins, so a duplicate (method, path) silently shadows a route. Fail at
-// boot instead: an unreachable route is a bug the operator cannot see from the outside.
-function assertRouteList(routes: readonly ApiRouteSpec[]): void {
-  const seen = new Set<string>()
-
-  for (const route of routes) {
-    const key = `${route.method} ${route.path}`
-
-    if (seen.has(key)) {
-      throw new ConfigError(`duplicate route: ${key}`)
-    }
-
-    seen.add(key)
   }
 }

@@ -25,7 +25,7 @@ import { parseJson } from '@/trading/kernel/store/store-row'
 // The stored shape of a suggestion's aggregate, apart from the row mapper that reads and writes it:
 // the schema is what a stored row is validated against, the mapping is what the domain does with it.
 
-const citationSchema = z.strictObject({
+export const citationSchema = z.strictObject({
   url: z.string(),
   title: z.string().optional(),
   publishedAt: z.number().finite().optional(),
@@ -49,7 +49,7 @@ const factorMetricSchema = z.strictObject({
 // printed and nothing more: the factor's score, weight and provenance are still what was stored.
 // Rejecting the array instead would make one renamed metric id unread every suggestion written
 // before the rename.
-const factorMetricsSchema = z
+export const factorMetricsSchema = z
   .array(z.unknown())
   .transform((entries) => readableMembers(entries, factorMetricSchema))
 

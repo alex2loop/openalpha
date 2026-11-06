@@ -1,58 +1,68 @@
-import type { TradingNavResponse } from '@/app/server/wire/trading'
+import type { TradingNavResponse } from '@/app/server/wire/nav'
+import type { NavWindow } from '@/app/server/wire/vocab'
 import { formatDay } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
-import { locale, state } from '@/web/state/session'
-import { formatFixedFraction, formatSignedPercent, PERCENT } from '@/web/text/figures'
+import { NAV_WINDOWS, navWindow, pickNavWindow } from '@/web/state/book'
+import { locale } from '@/web/state/session'
+import { formatFixedFraction, formatSignedFraction } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
-import { buildDayKey } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { NavChart } from '@/web/ui/book/nav-chart'
 import { PnlBlock } from '@/web/ui/book/pnl-block'
-import { toYearView, type YearView } from '@/web/ui/book/year-view'
 import { TrendIcon } from '@/web/ui/kit/icons'
+import { Segmented } from '@/web/ui/kit/segmented'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
-// The wire's windows end at a year, so the whole record is read and cut to this year on the page.
-const NAV_WINDOW = 'all'
 const NAV_REFRESH_MS = 600_000
 
-/** Hiệu quả: how the book has done against the operator's target mix, as the daemon measures it,
- *  then what each holding has made. */
+/** Hiệu quả: how the book has done over the window picked, against the operator's target mix, as
+ *  the daemon measures it, then what each holding has made. */
 export function Performance() {
-  const reading = useBlock(ROUTES.portfolioNav, {
-    query: { window: NAV_WINDOW },
-    everyMs: NAV_REFRESH_MS,
-  })
+  const picked = navWindow.value
 
   return (
     <>
-      <BlockFrame
-        title={tr('ui.office.book.sinceStart')}
-        colour="blue"
-        icon={<TrendIcon />}
-        reading={reading}
-        dataTo={reading.data?.points.at(-1)?.day}
-      >
-        {(nav) => <NavBody nav={nav} />}
-      </BlockFrame>
+      <Segmented
+        label={tr('ui.office.book.windowPick')}
+        value={picked}
+        options={NAV_WINDOWS.map((choice) => ({
+          value: choice,
+          label: tr(`ui.office.book.window.${choice}`),
+        }))}
+        onChange={pickNavWindow}
+      />
+      <NavBlock key={picked} span={picked} />
       <PnlBlock />
     </>
   )
 }
 
-function NavBody({ nav }: { readonly nav: TradingNavResponse }) {
-  const timeZone = state.value?.timeZone
+// The read is fixed for the block's life, so each window is its own block.
+function NavBlock({ span }: { readonly span: NavWindow }) {
+  const reading = useBlock(ROUTES.portfolioNav, {
+    query: { window: span },
+    everyMs: NAV_REFRESH_MS,
+  })
 
-  if (timeZone === undefined) {
-    return null
-  }
+  return (
+    <BlockFrame
+      title={tr('ui.office.book.navTitle')}
+      colour="blue"
+      icon={<TrendIcon />}
+      reading={reading}
+      dataTo={reading.data?.points.at(-1)?.day}
+    >
+      {(nav) => <NavBody nav={nav} span={span} />}
+    </BlockFrame>
+  )
+}
 
-  const year = toYearView(nav, buildDayKey(Date.now(), timeZone))
-  const first = year.points[0]
-  const last = year.points.at(-1)
+function NavBody({ nav, span }: { readonly nav: TradingNavResponse; readonly span: NavWindow }) {
+  const first = nav.points[0]
+  const last = nav.points.at(-1)
 
-  if (first === undefined || last === undefined) {
+  if (first === undefined || last === undefined || nav.points.length < 2) {
     return <p class="meta">{describeThinHistory(nav)}</p>
   }
 
@@ -60,21 +70,21 @@ function NavBody({ nav }: { readonly nav: TradingNavResponse }) {
     <>
       <p>
         {tr('trading.render.nav.return', {
-          window: tr('ui.office.book.yearWindow'),
-          change: formatSignedPercent(toPercent(year.periodReturn)),
+          window: tr(`trading.render.nav.window.${span}`),
+          change: formatSignedFraction(nav.periodReturn),
         })}
       </p>
-      <BenchmarkLine nav={nav} year={year} />
+      <BenchmarkLine nav={nav} />
       <p class="meta">
         {tr('trading.render.nav.drawdown', {
-          deepest: formatFixedFraction(year.maximumDrawdown),
-          current: formatFixedFraction(year.currentDrawdown),
+          deepest: formatFixedFraction(nav.maximumDrawdown),
+          current: formatFixedFraction(nav.currentDrawdown),
         })}
       </p>
-      <NavChart year={year} />
+      <NavChart nav={nav} />
       <p class="meta">
         {tr('trading.render.nav.points', {
-          count: year.points.length,
+          count: nav.points.length,
           from: formatDay(locale.value, first.day),
           to: formatDay(locale.value, last.day),
         })}
@@ -83,20 +93,18 @@ function NavBody({ nav }: { readonly nav: TradingNavResponse }) {
   )
 }
 
-// No point this year: the record is empty, or has not been added to since last year.
+// Fewer than two snapshots in the window: none kept at all, one so far, or older than the window.
 function describeThinHistory(nav: TradingNavResponse): string {
-  return nav.firstDay === undefined
-    ? tr('trading.render.nav.none')
-    : tr('trading.render.nav.thin', { from: formatDay(locale.value, nav.firstDay) })
+  if (nav.firstDay === undefined) {
+    return tr('trading.render.nav.none')
+  }
+
+  return tr(nav.recordedCount < 2 ? 'trading.render.nav.thin' : 'trading.render.nav.sparse', {
+    from: formatDay(locale.value, nav.firstDay),
+  })
 }
 
-function BenchmarkLine({
-  nav,
-  year,
-}: {
-  readonly nav: TradingNavResponse
-  readonly year: YearView
-}) {
+function BenchmarkLine({ nav }: { readonly nav: TradingNavResponse }) {
   const { benchmark, benchmarkGap } = nav
 
   if (benchmark === undefined) {
@@ -114,12 +122,8 @@ function BenchmarkLine({
     <p>
       {tr('trading.render.nav.benchmark', {
         legs: joinInline(legs),
-        change: formatSignedPercent(toPercent(year.benchmarkReturn)),
+        change: formatSignedFraction(benchmark.periodReturn),
       })}
     </p>
   )
-}
-
-function toPercent(fraction: number | undefined): number | undefined {
-  return fraction === undefined ? undefined : fraction * PERCENT
 }

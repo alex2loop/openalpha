@@ -134,6 +134,12 @@ openalpha chat [-m <text>] [-a <agent>] [--mode manual|bypass]
 Without `--message` you get the REPL, an ongoing conversation. With it you get one shot: one question,
 one answer.
 
+The REPL's start banner carries a line saying replies are AI-generated and are not investment
+advice. A one shot prints the same line on stderr before its turn, so a piped answer stays clean.
+Where a surface already shows that line (the REPL banner, the chat panel on the office page and the
+web version), no answer there repeats it: not `/suggest`, `/brief` or `/themes`, and on the web not a
+chat reply either; a one shot, a chat app and a scheduled run keep it.
+
 A one shot can ask you to approve something only while stdin is a terminal. With piped or empty stdin
 there is nobody to ask. So in manual mode a dangerous call is blocked as approval-unavailable. It is
 never approved quietly. `--mode bypass` always has to be typed by you.
@@ -195,7 +201,7 @@ A plain chat message still waits for the answer in front of it.
 Two habits of the output are worth knowing:
 
 - A command that waits on the network shows a progress line while it runs and a footer when it
-  finishes. A command that answers from local data (`/profile`, `/sources`)
+  finishes. A command that answers from local data (`/profile`, `/sources`, `/glossary`)
   has neither. When the output is not a terminal (piped, or a one-shot `chat -m "/refresh"`), the
   progress shows as plain lines on stderr. They appear only once the command has run a moment, and at
   most one every ten seconds. So stdout carries only the answer, and an instant reply prints nothing.
@@ -204,7 +210,7 @@ Two habits of the output are worth knowing:
   command's child runs as well as the chat turn's own calls.
 
 Trading adds `/setup`, `/record`, `/update`, `/delete`, `/transactions`, `/portfolio`, `/profile`,
-`/watchlist`, `/price`, `/market`, `/overview`, `/screen`, `/sources`, `/suggest`, `/themes`,
+`/watchlist`, `/price`, `/market`, `/overview`, `/screen`, `/sources`, `/glossary`, `/suggest`, `/themes`,
 `/rebalance`, `/reconcile`, `/reflect`, `/alert`, `/brief` and `/refresh`, plus `/trade`, which places
 orders once a venue has exchange keys. They are under [Trading chat](#trading-chat).
 
@@ -214,14 +220,14 @@ The box at the bottom of the [office page](operations.md#the-office-page) takes 
 
 A chip on its left says who receives what you type: the assistant, or one of your own agents (a paused agent is marked). Enter sends it, and a phone also shows a Send button. The list that opens over the box ends with a send row. It reads "Send to <agent>" when an agent is picked, and "Run the command" once the text starts with `/`.
 
-- **Typing.** Plain words ask a question. A ticker looks it up. Type `/`, or press Tab on an empty box, to see the commands; Tab on text completes the first ticker or command that matches. Up and Down choose a row (on an empty box, Up recalls what you sent before), Enter sends, Esc closes the list. If the connection is down the text stays in the box and a line says it was not sent.
+- **Typing.** Plain words ask a question. A single word that names an instrument opens its card when you press Enter, and any other word is sent as a question. Type `/`, or press Tab on an empty box, to see the commands; Tab on text completes the first ticker or command that matches. Up and Down choose a row (on an empty box, Up recalls what you sent before), Enter sends, Esc closes the list. If the connection is down the text stays in the box and a line says it was not sent.
 - **Sub-commands and arguments.** After a command name and a space, the list offers what that command accepts next, the same words Tab completes in the terminal (for example `add` and `remove` after `/watchlist`, or the agent names after `/agent`), narrowed as you type; Tab, Enter or a click fills the word and a space. A faint line at the top shows the command's usage, such as `/alert create <ticker> above|below <price>`, even when it has no words to offer. A ticker that is also on offer is listed once. If the suggestions cannot be read, the box still sends what you typed.
-- **What it suggests.** A focused empty box offers the usual starts: read the brief, see the portfolio, suggest for one name, research a topic. With a ticker card open it offers to suggest again, set a price alert or add the name to the watchlist; with one of your agents open it offers to send your next line to that agent, or to look at its schedules.
+- **What it suggests.** A focused empty box offers the usual starts: read the brief, see the portfolio, suggest for one name, research a topic. With a ticker card open it offers to suggest again, set a price alert or add the name to the watchlist (the card of an index or a futures contract leaves out the suggestion, since `/suggest` cannot analyse them); with one of your agents open it offers to send your next line to that agent, or to look at its schedules.
 - **Estimates.** Beside each command, and on the "Run the command" row, the page shows what it usually costs (for example "about 0.05-0.20 USD"), or "no AI cost" for a command that answers from local data, together with what is left of today's cap when you have one. The figure is the middle half of what the command's last few runs cost, so it appears only after a few runs and never for a command that hands the turn to an agent. A command whose cost depends on what you type, such as `/suggest` on different names, pools every use, so read it as a rough guide. See [Budgets](budgets.md#in-the-office-page).
 - **The queue.** Commands that run on their own do not wait behind each other, within the limits above. In the chat column a command that has to wait says its place in line and how many are running at once, and can be dropped from the line. A command that runs beside others says what it runs alongside.
 - **Stopping and adding.** A running answer or command shows "See it in the office" and Stop, which asks you to confirm and keeps the work already done in the log. While an answer (not a command) is in progress you can type a further thought and press "Add to it": the answer reads it at its next step. A line that starts with `/` is a command, never an addition.
 
-A button that names a whole command sends it when you click it: "/suggest VPB", "Analyze this name" on a ticker card and on each Opportunities row (where `/suggest` would hand back a stored call, meaning an open call on the ticker card, or on Opportunities a call made that day or a buy still open, the same button reads "Analyze again from scratch" and sends `/suggest <ticker> force`; a failed run or the plan written for a holding when you bought it is not a call, so the button stays "Analyze this name" there; "Analyze again from scratch" also sits under every `/suggest <ticker>` answer that was not already forced and runs that same line again with `force`), the brief on the first-run card, a scheduled job's "Run again", "Dig deeper". While the run a button started is still going, that button spins and stays locked, so a second press never costs a second run.
+A button that names a whole command sends it when you click it: "/suggest VPB", "Analyze this name" on a ticker card and on each Opportunities row (where `/suggest` would hand back a stored call, meaning an open call on the ticker card, or on Opportunities a call made that day or a buy still open, the same button reads "Analyze again from scratch" and sends `/suggest <ticker> force`; a failed run or the plan written for a holding when you bought it is not a call, so the button stays "Analyze this name" there; "Analyze again from scratch" also sits under every `/suggest <ticker>` answer that was not already forced and runs that same line again with `force`), the brief on the first-run card, a scheduled job's "Run again", "Dig deeper". While the run a button started is still going, that button spins and stays locked, so a second press never costs a second run. The card of an index or a futures contract has neither "Analyze this name" nor "Record a trade", since nobody buys or sells one directly; its Watch and price alert buttons stay. The page hides those two only once the name's quote says it is an index, so a name with no quote yet shows every button. That card also hides the plan, holding and past-call blocks and the board-scale note, and no answer or report offers a `/suggest` chip for such a name. A `/suggest` answer links to the meeting room only when roles argued it; one refused, or ended before any role started, has no meeting to show.
 
 A button whose result shows where it sits runs its command without writing anything to the chat or the chat's history: "Refresh data" (`/refresh`, never with `force`) on Market for the markets of the region in view, and on a ticker card with no price for that name's market alone (a market you switched off, and world gold, gets no button); "Write today's brief again" at the foot of the morning brief (`/brief force`), where the reader stays open and loads the new brief once it is written; "Run again" on Themes (`/themes`, or `/themes run <id>` for one theme), which needs an AI model and stays locked until one is set up; "Screen again" on Opportunities, which ranks the board again. To follow or stop one, open "Running" at the top of the page; a command refused before it starts (over a spending cap, say) says why right under its button, and "Run again" on Themes also stays locked while a themes run asked from another channel is going. A button that needs more from you, such as Set alert or quoting a report, only fills the box (or picks the receiver) and leaves the rest to you.
 
@@ -604,7 +610,7 @@ full-text index. `memory list --prefix <text>` keeps only the keys that start wi
 `memory search <query>` returns 10 results unless you pass `--limit <n>`. `history list` shows the 20
 most recent sessions unless you pass `--limit <n>`.
 
-`history clear` deletes every session, or every session of one agent. Read its help and confirmation
+`history show` opens with the AI-generated line when the session holds a reply a model wrote. `history clear` deletes every session, or every session of one agent. Read its help and confirmation
 prompt before you run it.
 
 `cost` takes `--period day|week|month` (`week` starts on Monday, like `/transactions week`) or an
@@ -740,7 +746,7 @@ The rest fit in a line.
 | `/price` | `/price <ticker>`, or `market:ticker` where a bare name is ambiguous. A market that quotes a two-sided dealer board (VN gold) prints both sides and the spread instead of a settled/live pair: a board states no last trade and keeps no daily series to close against |
 | `/market` | `/market` - where one market is right now, beside the last session that settled; `/market enable\|disable` - turn the scheduled sends on or off (they go to the default chat, not necessarily this one) |
 | `/overview` | `/overview` - how the markets you use are doing (segments switched on, plus any market you hold or watch), macro block included; `/overview <market>...` - only those markets, e.g. `/overview crypto` |
-| `/screen` | `/screen [market] [count] [kind]`, in any order. The market defaults to the one whose calendar `[locale] region` names; `kind` narrows to one instrument kind the market lists. A name on your exclusion list still ranks and is marked, never hidden |
+| `/screen` | `/screen [market] [count] [kind]`, in any order. The market defaults to the one whose calendar `[locale] region` names; `kind` narrows to one instrument kind the market lists. A name on your exclusion list still ranks and is marked, never hidden. Each name takes one row: its rank, verdict and composite, its price and move, the three factors that stand out, then the plain values its market states beside them (a VN stock: distance from its 240-session high, its 63-session move against the VN-Index, average daily range, room left to foreigners, and its P/E beside the sector's median; a coin: market cap, 24-hour traded value, 7- and 30-day change); a narrow chat wraps between facts, never inside one, and the readings behind the scores (P/E, foreign and proprietary net flow, funding, open interest, long-short ratio and the like) sit in a fold below. On the web edition `/screen` lists every priced name in ticker order, one row each, with what each factor read and where it sits on the board; filters (including the instrument kind), sorting, adding a name to your watchlist and CSV export are on the Screen board |
 | `/suggest` | Spends LLM budget on one name. See [Suggestions](#suggestions) |
 | `/themes` | `/themes` - looks for investment themes forming in Vietnam and spends LLM budget; `/themes run <id>` - re-checks one tracked theme, looks for no new ones and reports on it alone, for a fraction of the cost; `/themes show` - reads the stored report, no model call; `/themes approve\|reject\|retire <id>` - moves one theme. Operator only |
 | `/rebalance` | `/rebalance`; `/rebalance <ticker>...` - sizes the gap to target, weighing no evidence and calling no model. See [What /rebalance sizes](#what-rebalance-sizes) |
@@ -749,6 +755,7 @@ The rest fit in a line.
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. With a Vietnam home, the brief opens with the market story and a look back at earlier ones. See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
 | `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
+| `/glossary` | `/glossary` lists the market terms the app uses, by group; `/glossary <term>` explains one in plain words. A name, an id or a ticker works (`/glossary P/E`, `/glossary foreign-room`, `/glossary VNINDEX`), and a few matches are listed to pick from. The definitions are the ones the web pages show under dotted-underlined words: they say what a term is, never what to do about it |
 | `/reconcile` | `/reconcile` - compare the book against what the venue reports; an exchange with no API key yet is named with the variables it is waiting for |
 | `/trade` | Stages, confirms and cancels real orders. See [Orders](#orders) |
 
@@ -827,6 +834,10 @@ lists already stored name exactly one market for that ticker. The market is neve
 network, and the confirmation names it. That matters because a ledger row changes every later reading
 of the book.
 
+The ledger only books what you can hold: nobody holds an index or a futures contract (VN-Index,
+VN30F1M), so `/record` and `/update` refuse a row that names one when the market's stored list
+recognises the name. A legacy row that already names a level can only be deleted or given another ticker.
+
 ```text
 /record deposit|withdrawal|fee|loss <venue> <amount> <currency> <day>
 /record buy|sell [venue] <ticker> <quantity|all> <unit-price> [currency] [fee] [day]
@@ -879,8 +890,10 @@ fill is matched, is in [Trading](trading.md).
 
 A bare ticker is looked up only in the lists already stored, among the markets a venue holds (only the
 named venue's, when one is named). No network request is made. It is accepted only when exactly one
-market matches; otherwise the reply names the `market:ticker` forms to type. Every confirmation prints
-the market beside the ticker.
+market matches; otherwise the reply names the `market:ticker` forms to type. A market you switched off
+(`/profile`) and hold or watch nothing in is not searched, so a coin symbol that is also a US fund
+never books as the fund: write `equity-us:BTC` for that one. Every confirmation prints the market
+beside the ticker.
 
 The line expands to the full form before any number is read. So a grouped number such as `58.400` is
 refused exactly as in the full form. Example: `/record buy FPT 100 58400`.
@@ -937,6 +950,15 @@ it is synced for the part that filled.
 
 Options go in any order after the ticker; use `market:ticker` where a bare name is ambiguous. This
 spends LLM budget, so it is built to avoid spending it twice.
+
+An index (VN-Index, VN30, VN100...) or a futures contract (VN30F1M) cannot be bought or sold directly,
+so `/suggest` refuses it at once, before any AI call, and points to an ETF that tracks the index. The
+refusal reads the same in the terminal, in a chat app and on the web version, even before the web version has an AI key.
+
+A result that carries a thesis or a debate opens with one line saying it is AI-generated and
+is not investment advice. `/suggest stops` opens
+with it too. In the REPL the banner already shows the line, so the answer does not repeat it; a one
+shot and a chat app keep it.
 
 Today's answer is reused for free (on a continuous market, any answer under 4 hours old) until a
 newer close is stored than the one it read. So a call made while the session traded runs again after

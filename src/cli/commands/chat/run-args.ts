@@ -13,6 +13,7 @@ interface TurnInput {
   readonly agentId: AgentId
   readonly sessionId: SessionId
   readonly message: string
+  readonly typedMessage?: string
   readonly onChunk: OnStreamEvent
 }
 
@@ -30,6 +31,7 @@ export function buildRunInput(input: TurnInput): RunInput {
     userId: LOCAL_USER_ID,
     channel: CLI_CHANNEL_ID,
     userMessage: input.message,
+    ...(input.typedMessage === undefined ? {} : { typedMessage: input.typedMessage }),
     onChunk: input.onChunk,
   }
 }

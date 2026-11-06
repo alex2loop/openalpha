@@ -184,9 +184,10 @@ timezone, candle construction, text sanitizing, tracking-parameter stripping) an
 | `feeds` | `RSS_FEEDS` in `adapters/rss.ts` | a feed outside the allowlist is never fetched |
 | `credentials` | resolved from the environment at composition | the raw secret never enters a config object |
 | `plainUserAgentSources` | `PLAIN_USER_AGENT_SOURCES` in `composition/source-facts.ts` | which providers refuse a browser user agent - measured, not guessed |
+| `requestShape` | `DAEMON_REQUEST_SHAPE` in `core/http-client.ts`, passed at boot; the browser root passes `PAGE_REQUEST_SHAPE` | the headers every request adds, and whether it follows a redirect |
 
-Every request goes out with `BROWSER_HEADERS` from `core/http-client.ts` (also the default in `buildInit`, so venues, tools and
-channels inherit it): a common browser user agent plus its language header, because a client sending neither is what
+Every daemon request goes out with `BROWSER_HEADERS` from `core/http-client.ts`, the headers of `DAEMON_REQUEST_SHAPE` (also the
+default in `buildInit`, so venues, tools and channels inherit it), and fails on a redirect rather than following it: a common browser user agent plus its language header, because a client sending neither is what
 bot-detection fingerprints. The product name is never volunteered to a provider.
 
 `PLAIN_USER_AGENT_SOURCES` is the opt-out list: `fred` and its keyless sibling `fred-csv`. FRED's edge resets the connection on a
@@ -218,6 +219,11 @@ sources are outside it: their credential facts arrive with the module, which onl
 Registration is phased: `createSourceRegistry` opens a phase, every built-in and plugin source registers, then `close()`. A
 source whose `(kind, id)` has no position in the route table is rejected with `source <kind>:<id> has no failover position`: a
 provider that cannot be reached is a composition bug, not a silent no-op.
+
+`resolve` keeps a slow kind's last available answer per registry (`sources/freshness.ts`): `funding` 15 minutes, `sentiment` 3 hours,
+`positioning` 6 hours, keyed by kind and the whole context, bounded per kind. A failure is never kept, nor an answer whose caller
+aborted. A quote is not cached: the page's poll is what renews it. The answer keeps its original provenance stamp, so it never reads
+fresher than it is.
 
 ## Routing
 
@@ -253,19 +259,48 @@ board responses, and put a 4 MiB board read in the same token bucket as the per-
 every HOSE index, so a board sweep's failures must not black out the series the ETF factors score against; it serves `bars` and
 `quote` under one id because they share host and path, so a fourth id would buy no isolation.
 
-**VN `bars` order.** `vndirect` publishes no index rows (it declines them in `covers`, so an index costs it no request) and
-`entrade` already charts some at the depths this tree reads, so `vietcap-chart` is third. Which indices `entrade` carries varies;
-it answers `invalid symbol` for the rest and the route falls through. `vietcap-chart`'s `to` bound includes a bar stamped at
-exactly that second and rounds up otherwise, and its daily series carries today's still-forming bar, so the adapter drops
-anything past the settled day instead of trusting the bound.
+**VN `bars` order.** `vndirect` publishes no index rows (it declines them in `covers`, so an index costs it no request), so
+`vndirect-index` is the first provider an index reaches. Measured 2026-11-03: its closes were identical to `vps` over 953 sessions
+(VNINDEX, VN30) and to `vietcap-chart` and `vps` over the whole 280-session window on all ten indices read (VNINDEX, VN30, VN100,
+VNMIDCAP, VNDIAMOND, VNX50, VNFINLEAD, VNFINSELECT, VNSHINE, VNMITECH), so a provider switch fires no `isRestated`. VNINDEX runs
+back to 2017-08 (2,294 sessions). `entrade` is behind it because it answers wrongly without failing: its stored closes for VN100
+and VNMITECH disagreed with all three others on 22 sessions each (2026-04-01 to 2026-06-09), and its stored VNINDEX and VN30 volumes sat 8% from
+`vndirect-index`'s on average (up to 84%). It still charts some indices at the depths this tree
+reads, and answers `invalid symbol` for the rest, so the route falls through. `vietcap-chart` is fourth. Its `to` bound includes a
+bar stamped at exactly that second and rounds up otherwise, and its daily series carries today's still-forming bar, so the adapter
+drops anything past the settled day instead of trusting the bound.
 
-`vps` is last. With three providers six indices still had one source: the ETF benchmarks VNDIAMOND, VNFINLEAD, VNFINSELECT,
-VNMIDCAP, VNSHINE and VNX50 are declined by `vndirect` and answered `invalid symbol` by `entrade`, so one `vietcap-chart` refusal
-took all six out. VPS Securities' feed carries them 707 sessions deep against vietcap's 673, every close identical over 125
-sessions measured. Provider facts the adapter owns: the feed spells VNMIDCAP `VNMID`, and its `to` bound rounds **up** to the
-day, so the settled day is applied to the parsed candles rather than trusted to the query. Its turnover is matched orders only,
-17% under vietcap's (which adds the put-through leg after the session), so it may only back a provider whose volume no factor
-reads. The ETF factor reads closes and `isRestated` weighs the close, so nothing downstream sees the difference.
+**`vndirect-index` registers under its own id**, so an index outage cannot open the breaker the share kinds' bars share, nor a
+share sweep's failures the one an index needs. Same host, separate breaker. Provider facts the adapter owns:
+
+- `/v4/vnmarket_prices?q=code:<ticker>~date:gte:<from>~date:lte:<to>&sort=date`, one request an index (a page per 500 sessions).
+  The code is the exchange's spelling except for VNMIDCAP, which is `VNMID` here as at `vps`. The HNX index is `HNX`; `HNXINDEX`
+  answers an empty page.
+- The reply is newest first whatever `sort` asks, and carries today's still-forming row, dated `2026:11:03` in some replies and
+  `2026-11-03` in others. A final row is stamped 15:01 or later. The adapter drops a row whose day does not parse and anything past the
+  settled day, then sorts oldest first.
+- Volume is `accumulatedVol` (matched plus put-through, the figure `vietcap-chart` publishes); `nmVolume` alone is 17% under it.
+  No turnover is stored, as for every other level provider.
+- `covers` takes an `index` and no `future`: the endpoint carries no futures contract (`VN30F1M` answers an empty page), so a
+  future asked of it would spend a request to say nothing. An empty page is a settled miss and the route moves on.
+- The last page of a long window carries no `totalElements`; `getJsonPages` stops on a short page. Two replies came back truncated while
+  measuring, which the transport's retry covers.
+- Stored index volume keeps the `entrade` basis on held days until `/refresh equity-vn force` re-bases the window, so `market_bars` can show both bases meanwhile.
+
+`vps` is last. With `entrade` declining them, the ETF benchmarks VNDIAMOND, VNFINLEAD, VNFINSELECT, VNMIDCAP, VNSHINE and VNX50
+still had `vietcap-chart` and `vps` behind `vndirect-index`, so no single refusal takes them out. VPS Securities' feed carries them 707 sessions deep against vietcap's 673, every
+close identical over 125 sessions measured. Provider facts the adapter owns: the feed spells VNMIDCAP `VNMID`, and its `to` bound
+rounds **up** to the day, so the settled day is applied to the parsed candles rather than trusted to the query. Its turnover is
+matched orders only, 17% under vietcap's (which adds the put-through leg after the session), so it may only back a provider whose
+volume no factor reads. The ETF factor reads closes and `isRestated` weighs the close, so nothing downstream sees the difference.
+
+**`indexMembership` order.** `vietcap` leads and `vps-board` (`bgapidatafeed.vps.com.vn/getlistckindex/<index>`, a JSON array of
+tickers) backs it. Both read the pair of baskets through one loader (`rows/index-baskets.ts`), every basket or none. Measured
+2026-11-03, the two VN30 lists were identical (30 of 30), but VPS's VN100 list ran behind: nine names on each side differed, and
+four of its own VN30 names (BSR, MCH, TCX, VPL) were missing from it, where vietcap's lists nest. A basket pair that does not nest
+would stamp a large cap as mid cap, a wrong tier rather than a missing one, so `vps-board` refuses a pair whose VN30 is not inside
+its VN100 (`source.payload-rejected`); on that day it answered nothing and the stored tiers stood. It registers apart from `vps`
+because it is another host. An unknown index answers 200 with an empty body, which this tree never asks for.
 
 **`sbv`** reads the State Bank's policy rates and interbank averages off its rate page. A page whose wording changes fails the
 parse and writes nothing; no value is guessed. The page shows today only, so history is what `refreshPolicyRates` (the VN `macro`
@@ -322,7 +357,7 @@ is also a provider: a plan priced anywhere else quotes a number the operator can
 name; one it lacks answers code `51001`, which the adapter maps to a business miss so failover moves on without counting a
 provider failure. The three quote providers are keyless and not metered by the month, which matters because the alert loop reads a
 quote per watched coin every tick; a metered primary would burn its quota on a background loop. That is why CoinGecko serves the
-market-cap board and one rate read, not the quote path.
+market-cap board, one rate read and the dong's FX history, not the quote path.
 
 Binance asks for `symbolStatus=TRADING`: a pair it has halted keeps answering with its last trade forever, and the filter turns it
 into the 400 that failover already understands. Unfiltered, a halted LITUSDT would quote 0.743 while OKX, Bybit and MEXC trade it
@@ -339,7 +374,23 @@ split), which `Candle` models as absent rather than zero.
   `er-api` split a pair into two ISO codes, so a seven-character `USDTVND` fails their `covers`.
 - `coinbase` leads the pair it trades because the crypto book is valued through that rate; `okx` backs it because coinbase's
   book is the deeper one.
-- `fxHistory` is `yahoo` alone: the coin providers quote spot, not dated history, and `er-api` publishes today's board only.
+- `fxHistory` is `yahoo`, then `coingecko` for `USDVND`, then `vietcombank` for the VND pairs: the coin providers quote spot, not dated history, and `er-api`
+  publishes today's board only. Measured 2026-11-03 over the 60 sessions 2026-08-10 to 2026-10-30, with every day present and a
+  request taking 0.5 s: the bank's transfer buy rate sat 194 VND (0.75%) below Yahoo's on average (range 120 to 264), where the
+  midpoint of its transfer buy and sell rates sat 4 VND away (range -70 to +74), so the adapter publishes the midpoint. The bank
+  sets its board once or twice a day, so a day's rate is not the market's close: its daily moves correlate 0.23 with Yahoo's, and its
+  5-session moves differ by 0.12% on average (at most 0.41%). It therefore only backs `yahoo`, and a window it answers is whole or
+  refused.
+- `coingecko` answers `USDVND` only, as USDT's price in dong from `/coins/tether/market_chart/range` with a daily interval: one request
+  a window, up to 365 days, where the bank costs one a weekday. A proxy, so it sits below `yahoo` and carries `source.token-fx-proxy`;
+  it leads where `yahoo` is unreachable (the web edition), ahead of the bank. Measured 2026-11-04 over the 108 sessions of the gold
+  premium's window against Yahoo's `USDVND=X`: 0.06% apart on average, 0.24% at the most, and 0.09% / 0.23% against ten bank midpoints. A
+  point is stamped 00:00 UTC, 07:00 in Vietnam, and read as that UTC day's rate, which the premium's lag rule then lets price that day or
+  a later one, never an earlier one. A reading of the day in progress appended after the midnight point is dropped.
+- `vietcombank` asks `api/exchangerates?date=<day>` a weekday at a time: the board repeats Friday's rates on a weekend, which is no
+  new reading, and a day it has no board for answers `Count` 0. The window is capped at 63 calendar days, about a month of sessions
+  and 45 requests; the gold premium's 108-session backfill is declined and belongs to `coingecko`, or `yahoo`. A failed day fails the
+  window, so a hole is never stored as a day the bank did not publish.
 - A fiat pair reaches `yahoo` untouched. A coin's dollar leg (`USDTUSD`, the bridge leg of a `USDTVND` rate) reads Yahoo's
   `USDT-USD` listing, refused unless it answers as a cryptocurrency. Without it, a past day's rate carried today's peg and moved
   on every call while naming that day.
@@ -395,6 +446,22 @@ unpaced primary was routed first for.
   failure, and here that answer is the useful fact: a desk that traded nothing still closes the gap.
 
 Both check the caller's signal before doing work and throw on abort.
+
+### The browser route set
+
+A page can read only the providers whose server lets a web page call it (CORS), so the web edition serves a subset of `SOURCE_ROUTES`. Three pieces make it:
+
+- **`BROWSER_REACHABLE_SOURCES`** in `composition/source-facts.ts`: the provider ids that passed the measurement below, alphabetical. A provider that tightens CORS later leaves the set by deleting its line, and the feature it served reads as off in the page.
+- **`toBrowserRoutes(routes, reachable)`** in `sources/routes.ts`: keeps the table's order, drops every id not in the set and drops a scope left with no provider. An emptied scope is then *not served*, never failed. The browser root passes the result as the registry's `routes` option; absent, the registry takes `SOURCE_ROUTES` (the daemon). A built-in provider the table leaves out has no failover position, so it is not registered at all.
+- **`BROWSER_FEEDS`** in `adapters/rss.ts` and `withReachableFeeds`: `rss` stays in the set because one feed (CNBC) answers a browser, but each feed is a separate origin. The browser root passes only the readable feeds as the `feeds` fact, and a news scope whose feeds are all unreadable loses `rss` yet keeps its key, so a lookup never falls through to the `*` scope.
+
+Host-stated facts travel with it (`HostSourceFacts`: `plainUserAgentSources`, `feeds`, `attemptTimeoutMs`). A page cannot set `user-agent`, so the browser passes an empty `plainUserAgentSources`, and a longer attempt deadline than the daemon's (`SOURCE_ATTEMPT_TIMEOUT_MS`, 15 s), because a slow edge (`treasury` was measured at about nine seconds) would otherwise clear the default by under a second.
+
+**The request shape differs too.** `DAEMON_REQUEST_SHAPE` sends `BROWSER_HEADERS` and treats a redirect as a failure. `PAGE_REQUEST_SHAPE` sends no header of its own and follows redirects: any header outside the CORS-safelisted few forces a preflight the provider may not answer, and a page reads a manual redirect as an opaque response. `NetworkPolicy` takes no shape (its manual redirect is the SSRF per-hop check, not presentation); the page's `fetch` is bound as a `FetchGuard` instead (https only, no credentials, no IP literal or local name, no secret in the URL, the caller's allowlist, a deadline).
+
+**Measuring.** `scripts/research-browser-cors.ts` is the authority for the set. It runs every routed adapter against a recording `fetch` under `PAGE_REQUEST_SHAPE`, so the request it measures is the one the real adapter and transport build (path, parameters and headers), never a host root, which misreports: cafef's root has no CORS header while its `GDTuDoanh.ashx` sends `*`. It then sends each recorded request once with an `Origin` header, follows redirects by hand because a browser checks every hop (after a hop to another origin it sends `Origin: null`, as a browser does), and sends an `OPTIONS` preflight first when the request is not simple. It is read-only (GET and OPTIONS to public endpoints, one request per provider origin), reads a credential only from the environment and lists a keyed provider as not measured without one. It prints each result, the ids that pass, the two diffs against `BROWSER_REACHABLE_SOURCES` (in the set but failing; passing but not in it) and the browser route table with each cell `full`, `reduced` or `off`. It stands outside the runtime on purpose, because it fires real requests the runtime never sends this way.
+
+A bare client is not a page: a provider whose WAF or CORS depends on headers a page sends can pass the script and fail in a real browser (`vietcap-statements` did: 45 of 45 requests failed from a page, so it left the set), and one that blocks a headless user agent (`vndirect`) needs a headful browser to check. Re-measure from a real page before adding an id, and let the script's diff drive every edit of the set. The page's content security policy derives its `connect-src` hosts from the same tables, so an id added here reaches the policy at the next `build:web` and nothing else lists hosts.
 
 ## Transport
 
@@ -484,9 +551,13 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
   `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per sweep; `rss`
   is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo` serves gold `quote`/`bars`
   plus the fiat `fx` leg; `coinbase` is one pair per conversion.
+- `vietcombank` 120: publishes none; a window is one request a weekday, at most 45, read only where `yahoo` and `coingecko` answered nothing. A 33-day window took 18 s through the pacer at 60 a
+  minute and 2.7 s at 120. `vndirect-index` 60: one request an
+  index (a page per 500 sessions) when the market refreshes its level bars.
 - 30: `giavang` serves `goldBoard` and `goldBoardHistory` (history is the SJC bar only); `pnj` is the PNJ ring and the SJC bar when
   `giavang` does not answer; `vietcap-board` one board read is four requests; `vietcap-chart` per-name, the first provider that
-  charts every HOSE index; `vps` per-name, the `bars` failover for the indices only it and `vietcap-chart` carry; `fred-csv`
+  charts every HOSE index; `vps` per-name, the `bars` failover for the indices only it and `vietcap-chart` carry; `vps-board` two requests a
+  universe refresh; `fred-csv`
   monthly commodity series; `alternative-me` one `sentiment` read per run.
 - `cftc` 20: one weekly file. `sbv` 10, `nso` 10: publish none; one page / one monthly report.
 
@@ -504,9 +575,9 @@ Three figures limit a burst rather than the quota that binds them, because a tok
   the breaker and a human to react.
 - `coinmarketcap` (30) publishes no ceiling for its keyless subset and answers `1022` once an anonymous caller has used it up
   (measured recovering within a minute of going idle). The figure stops the burst, and the next provider covers a refusal.
-- `coingecko` (10) is keyed (`COINGECKO_API_KEY`; the adapter targets a Demo plan of 10,000 calls a month), so without the key it is
-  not registered. It sits last on the market-cap route, reached only when its key is set and the keyless boards have failed or a
-  coin is past every window.
+- `coingecko` (10) takes an optional key (`COINGECKO_API_KEY`; the adapter targets a Demo plan of 10,000 calls a month) and has a keyless
+  tier: a band shared per IP address, so it registers either way and the key only buys a steadier allowance. It sits last on the
+  market-cap route, reached when the other boards have failed or a coin is past every window, and second on `fxHistory`.
 
 The pacer treats an absent limit as unpaced, not zero. No built-in reaches that path but a plugin can, so a manifest omitting
 `rateLimitPerMinute` gets `PLUGIN_DEFAULT_RATE_LIMIT_PER_MINUTE` (30). A limit of zero is a `ConfigError` (the manifest schema
@@ -668,9 +739,11 @@ same window, while the provider serves a whole market per query, so the first ca
 its slice. The single slot slides forward on each hit (60 seconds idle) and cannot outlive five minutes. A failed read is each
 caller's own failure rather than a fallback per ticker, which would turn one provider failure into one request per name.
 
-Beside the caches, `resolve` shares one in-flight read between identical requests made under the same signal
-(`sources/coalesce.ts`). The entry is dropped the moment it settles, so nothing is answered from an earlier read; it only stops
-candidates scored together from each downloading the same market-wide board.
+Beside the caches, `resolve` and the HTTP transport (`sources/transport/wire.ts`, identical GETs only) share one in-flight read
+between identical requests (`sources/coalesce.ts`), whatever signal each caller holds. The shared read runs under its own signal,
+which aborts only once every caller waiting on it has aborted; a caller that aborts is rejected alone. The entry is dropped the
+moment it settles, so nothing is answered from an earlier read; it only stops candidates scored together from each downloading the
+same market-wide board, and two markets reading one macro series at once from each spending a call of its quota.
 
 ## How trading features use sources
 
@@ -713,7 +786,7 @@ None of the rules is registration order:
 
 | The caller gave | Resolution | Owner |
 |---|---|---|
-| a bare ticker | `resolveInstrument` qualifies it through the registry; an unknown or ambiguous name becomes `market.ticker-unknown` / `market.ticker-ambiguous`, never a fallback market. One exception: on a read the operator typed (`/price`, `/suggest`, `market_price`), a symbol two markets list settles on the side they hold or watch, and the answer names the other market (`market.ticker-also-listed`), asked from each market's stored listing or ranked board only (`boardOnly`), never a per-symbol lookup; `/record` and `/update` never take it | `features/market-data/resolve.ts` |
+| a bare ticker | `resolveInstrument` qualifies it through the registry; an unknown or ambiguous name becomes `market.ticker-unknown` / `market.ticker-ambiguous`, never a fallback market. One exception: on a read the operator typed (`/price`, `/suggest`, `market_price`), a symbol two markets list settles on the side they hold or watch, and the answer names the other market (`market.ticker-also-listed`), asked from each market's stored listing or ranked board only (`boardOnly`), never a per-symbol lookup; `/record` and `/update` never take it. Before any of that the registry drops a market whose segment the operator switched off (a venue holds it) and where nothing is held or watched (`OperatorUse`, `wiring/composition/operator-use.ts`), so a bare ticker never reaches it; an explicit `market:ticker` still does | `features/market-data/resolve.ts` |
 | a market ref | `requireMarket`, which throws naming every registered id | `features/market-data/market-data-run.ts` |
 | nothing, on a market-scoped command | the owner of `[locale] region`: `markets.regionOwner(config.defaultRegion)` | `markets/registry.ts` |
 | a region, for a regional read | `markets.regionOwner(region)`, whose macro capability publishes the region's composite | `markets/registry.ts` |
@@ -735,6 +808,9 @@ the whole scope and writes it to `MarketDataStore`; features read the store. The
 (`kernel/market/refresh.ts`): `instruments`, `bars`, `fundamentals`, `flows`, `macro`, `accounts`, `premium`, `index-ratios`.
 `foreignRoom` and `indexMembership` resolve inside the universe refresh, because they only mean something attached to the listing
 set being replaced. A screen cannot issue one live request per name, and evidence must be stable across a session.
+The membership read runs under its own short budget (`MEMBERSHIP_BUDGET_MS`, 5 s) and is cancelled past it, because a basket label is
+never worth holding the universe for; the universe then settles without it, keeps the stored tiers (none on a first load) and carries
+`source.index-membership-unavailable`. Daemon and browser alike.
 
 - **Provenance is persisted with the row.** A `BarRecord` carries the `sourceId` and `fetchedAt` of its fetch, so a suggestion
   names the provider that published its latest bar, not the one routed today. One stamp per factor, not per bar.
@@ -747,6 +823,7 @@ set being replaced. A screen cannot issue one live request per name, and evidenc
 - **`staleKinds` decides what a refresh refetches**, because only the market knows each kind's cadence (a listing weekly,
   fundamentals every few sessions). A stored attempt must first pass one test: the day it claims must have settled by the time
   it was written, or a pass inside the settle gap pins the kind to a tape still forming.
+- **A failed attempt is judged by status, not by `staleKinds`.** The stamps (`attemptedAt`, `asOf`, `coveredFrom`) of a pass that settled `unavailable`, `partial` or `retained` read as current, since it is the newest pass. `buildStaleCaveats` (`features/market-data/ops/ensure.ts`) therefore reads the status from the same attempt rows the stale check loads (one query, no second table) and states `market-data.refresh-failed` with `{ kind, asOf }` for every kind whose latest attempt settled `unavailable` or `retained` (`FAILED_STATUSES`; `partial` is left out, since a wide board where a few names are never served settles partial on every pass); that kind is left out of the `market-data.evidence-stale` date, so it is reported once. `asOf` is the session the failed attempt stood for, not the day of what is stored, so the caveat says the data is no newer than it. A later attempt that succeeds replaces the row and ends the caveat. A kind that throws, or is refused before any target exists, writes no row and so no caveat.
 - **Kinds run in stages.** `equity-vn` runs `bars`, `fundamentals` and `flows` together, then `macro`, then `accounts`: the
   last two read the cross-section the first three rewrite. A stage settles every kind before the next starts, so a kind that
   throws never leaves a sibling writing after the refresh failed. Each kind result carries `elapsedMs`, logged on
@@ -877,6 +954,7 @@ export function createSources(kit) {
 - Transport: [sources/transport/http.ts](../../../src/trading/sources/transport/http.ts), [pacer.ts](../../../src/trading/sources/transport/pacer.ts), [health.ts](../../../src/trading/sources/transport/health.ts), [http-failure.ts](../../../src/trading/sources/transport/http-failure.ts)
 - Caches: [sources/settled-bars.ts](../../../src/trading/sources/settled-bars.ts), [sources/coalesce.ts](../../../src/trading/sources/coalesce.ts), [markets/macro-cache.ts](../../../src/trading/markets/macro-cache.ts)
 - Composition and facts: [wiring/composition/source-facts.ts](../../../src/trading/wiring/composition/source-facts.ts), [wiring/composition/source-registry.ts](../../../src/trading/wiring/composition/source-registry.ts)
+- Browser route set: `toBrowserRoutes` in [sources/routes.ts](../../../src/trading/sources/routes.ts), `BROWSER_REACHABLE_SOURCES` in [source-facts.ts](../../../src/trading/wiring/composition/source-facts.ts), [scripts/research-browser-cors.ts](../../../scripts/research-browser-cors.ts), hosts for the policy in [wiring/composition/source-hosts.ts](../../../src/trading/wiring/composition/source-hosts.ts)
 - Plugin sources: [sources/plugin-module.ts](../../../src/trading/sources/plugin-module.ts)
 - Freshness rule: [markets/calendar.ts](../../../src/trading/markets/calendar.ts), [markets/live-reading.ts](../../../src/trading/markets/live-reading.ts), [markets/stored-quote.ts](../../../src/trading/markets/stored-quote.ts)
 - Macro extraction: [features/market-data/macro-extract/](../../../src/trading/features/market-data/macro-extract/)

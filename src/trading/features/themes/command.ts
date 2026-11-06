@@ -15,10 +15,11 @@ import type {
   ThemeTransitionOutcome,
 } from '@/trading/features/themes/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
-import { t } from '@/i18n'
+import { renderAiLabel, t } from '@/i18n'
 import { firstProposedTheme, renderThemeReportText } from '@/trading/features/themes/render/report'
 import { THEME_MARKET, THEME_TRANSITIONS, themeId } from '@/trading/features/themes/types'
 import { parseBranded, parseMember, usage } from '@/trading/kernel/surface/surface'
+import { joinSections } from '@/trading/render/layout'
 
 const SHOW_ACTION = 'show'
 const RUN_ACTION = 'run'
@@ -62,16 +63,22 @@ interface ThemesCommandDeps {
 }
 
 function render(deps: ThemesCommandDeps, ctx: SlashContext, report: ThemeReport): SlashResult {
-  const text = renderThemeReportText(report, { locale: ctx.locale, timezone: deps.timezone })
+  const body = renderThemeReportText(report, { locale: ctx.locale, timezone: deps.timezone })
+  // The label is for the reader, where the surface does not already show it; the model that is asked
+  // about the report next reads the body alone.
+  const label =
+    report.run === undefined || ctx.hasAiLabel === true ? [] : [renderAiLabel(ctx.locale)]
+  const text = joinSections([label, [body]])
   const proposed = firstProposedTheme(report)
 
   if (proposed === undefined) {
-    return { kind: 'text', text }
+    return { kind: 'text', text, echoText: body }
   }
 
   return {
     kind: 'text',
     text,
+    echoText: body,
     affordances: [
       {
         label: t(ctx.locale, 'trading.render.affordance.approveTheme'),
@@ -183,9 +190,12 @@ function withHomeNote(
     return result
   }
 
+  const note = t(ctx.locale, 'trading.themes.homeNotCovered')
+
   return {
     ...result,
-    text: `${t(ctx.locale, 'trading.themes.homeNotCovered')}\n\n${result.text}`,
+    text: `${note}\n\n${result.text}`,
+    ...(result.echoText === undefined ? {} : { echoText: `${note}\n\n${result.echoText}` }),
   }
 }
 

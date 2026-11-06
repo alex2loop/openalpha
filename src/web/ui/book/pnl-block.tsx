@@ -3,7 +3,8 @@ import { readBlock } from '@/web/state/block'
 import { heldPositions, holdingsBlock } from '@/web/state/market'
 import { formatPrice, formatSignedPercent, toneOfPercent, WHOLE_DISPLAY } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
-import { EmptyBookActions } from '@/web/ui/book/empty-actions'
+import { EmptyBookActions, emptyBookKey } from '@/web/ui/book/empty-actions'
+import { PnlTotals } from '@/web/ui/book/pnl-totals'
 import { toMovePercent, Unrealized } from '@/web/ui/book/unrealized'
 import { CoinIcon } from '@/web/ui/kit/icons'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
@@ -26,10 +27,11 @@ export function PnlBlock() {
 function PnlRows({ book }: { readonly book: TradingPortfolioResponse }) {
   const held = heldPositions.value
 
-  if (held.length === 0) {
+  // A book that sold everything still has what it made to show.
+  if (held.length === 0 && !hasLedgerFigures(book)) {
     return (
       <>
-        <p class="empty-note">{tr('ui.office.book.empty')}</p>
+        <p class="empty-note">{tr(emptyBookKey())}</p>
         <EmptyBookActions />
       </>
     )
@@ -38,6 +40,8 @@ function PnlRows({ book }: { readonly book: TradingPortfolioResponse }) {
   return (
     <>
       <Unrealized book={book} />
+      <PnlTotals book={book} />
+      {held.length > 0 && <h3 class="sub-head">{tr('ui.office.book.holding')}</h3>}
       <div class="row-list">
         {held.map((position) => (
           <PnlRow
@@ -49,6 +53,10 @@ function PnlRows({ book }: { readonly book: TradingPortfolioResponse }) {
       </div>
     </>
   )
+}
+
+function hasLedgerFigures(book: TradingPortfolioResponse): boolean {
+  return (book.netDepositsBase ?? 0) !== 0 || (book.realizedPnlBase ?? 0) !== 0
 }
 
 function PnlRow({

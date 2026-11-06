@@ -122,8 +122,11 @@
   gap: var(--s1);
 }
 
-/* Provider and model share the row: the model id is the longer text, so it takes twice the room. */
+/* Provider and model share the row: the model id is the longer text, so it takes twice the room.
+   Each entry takes the whole line of its row, so the chain's buttons sit below the last one rather
+   than centred beside an entry and its price. */
 .model-choice {
+  flex: 1 1 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   gap: var(--s1);
@@ -131,6 +134,12 @@
 
 .model-choice select {
   width: 100%;
+}
+
+/* The price spans both fields, so it reads under the pair, not beside it. */
+.model-price {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 :root[data-layout="phone"] .model-choice {

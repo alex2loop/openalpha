@@ -3,7 +3,7 @@ import type { TargetedEvent } from 'preact'
 import { ASSISTANT } from '@/web/scene/sim/actors/roster'
 import { lookOf } from '@/web/scene/sprites/parts'
 import { agents, selectAgent, selectedAgentId } from '@/web/state/agents'
-import { isNotSent } from '@/web/state/command'
+import { notSent } from '@/web/state/command'
 import { tr } from '@/web/text/tr'
 import { Portrait } from '@/web/ui/kit/portrait'
 
@@ -49,6 +49,6 @@ function onPick(event: TargetedEvent<HTMLSelectElement>): void {
   element.value = selectedAgentId.value ?? ASSISTANT_VALUE
 
   if (!selectAgent(value === ASSISTANT_VALUE ? undefined : value)) {
-    isNotSent.value = true
+    notSent.value = 'offline'
   }
 }

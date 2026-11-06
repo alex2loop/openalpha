@@ -1,3 +1,4 @@
+import type { RequestShape } from '@/core/http-client'
 import type { CaveatCode } from '@/trading/kernel/caveat'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { SourceSummary } from '@/trading/kernel/source/source-result'
@@ -87,4 +88,14 @@ export interface SourceFacts {
   readonly credentials: Readonly<Partial<Record<SourceId, string>>>
   /** Providers served the plain agent string because they refuse a browser one. */
   readonly plainUserAgentSources: ReadonlySet<SourceId>
+  /** How every request presents itself: the headers it adds and whether it follows a redirect. */
+  readonly requestShape: RequestShape
+  /** The deadline of one attempt where the request names none; absent is the transport's own. */
+  readonly attemptTimeoutMs?: number
 }
+
+/** The facts a host may state for itself rather than take from the daemon's: which providers are
+ *  sent a plain user agent, which news feeds may be read, and how long one attempt may take. */
+export type HostSourceFacts = Partial<
+  Pick<SourceFacts, 'plainUserAgentSources' | 'feeds' | 'attemptTimeoutMs'>
+>

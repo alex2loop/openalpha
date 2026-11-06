@@ -1,5 +1,6 @@
 import { type Signal, signal } from '@preact/signals'
 
+import type { UnconfirmedPriceWire } from '@/app/server/wire/errors'
 import type { LedgerEntryWire, LedgerPreviewResponse } from '@/app/server/wire/money'
 import type { LedgerDraft, LedgerKind } from '@/web/state/trade'
 import type { FormFailure } from '@/web/ui/dialogs/field-errors'
@@ -7,17 +8,18 @@ import { formatDay } from '@/i18n'
 import {
   heldPositions,
   holdingsBlock,
+  homeRegion,
+  knownMarkets,
   printDisplayOf,
   quotesBlock,
   watchedNames,
 } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { isAmbiguousGrouping } from '@/web/text/decimal'
-import { formatFieldFigure, formatPrice, formatQuantity } from '@/web/text/figures'
-import { formatMarketPrice, toWholeUnits } from '@/web/text/market-price'
+import { formatFieldFigure, formatPrice } from '@/web/text/figures'
+import { toWholeUnits } from '@/web/text/market-price'
 import { buildDayKey } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
-import { toVenueName } from '@/web/text/venue'
 import {
   bookedRate,
   marketCurrency,
@@ -31,6 +33,8 @@ import {
   withStatedRate,
 } from '@/web/ui/dialogs/trade-kinds'
 
+/** The kind a fresh form opens on. */
+const DEFAULT_KIND: LedgerKind = 'buy'
 // The daemon's zone is always known once the page is up; this only types the lookup.
 const FALLBACK_ZONE = 'UTC'
 const KEY_BYTES = 16
@@ -43,6 +47,13 @@ interface VenueChoice {
 }
 
 type FxRate = NonNullable<LedgerPreviewResponse['fxRate']>
+
+/** Why the book would refuse the draft as it stands, asked before the save. `deposit` is the cash a
+ *  shortfall asks for first: the venue and currency a Nạp tiền row would fill. */
+export interface PreviewRefusal {
+  readonly message: string
+  readonly deposit?: { readonly venue: string; readonly currency: string }
+}
 
 /** The row being edited, or what a new one starts from. */
 export interface TradeStart {
@@ -72,12 +83,17 @@ export interface TradeForm {
   readonly currency: Signal<string>
   readonly rate: Signal<string>
   readonly note: Signal<string>
-  /** The day's market rate the daemon asked for; absent where no rate applies. */
+  /** The day's market rate the preview answered; absent where no rate applies. */
   readonly fxRate: Signal<FxRate | undefined>
-  /** Whether that ask is settled, under way, or failed: only a settled one lets the row save. */
+  /** Whether the preview ask for a rated row is settled, under way, or failed: only a settled one
+   *  lets the row save. */
   readonly fxStatus: Signal<'idle' | 'pending' | 'failed'>
-  /** Bumped by Thử lại to ask again. */
+  /** Bumped by Thử lại to ask the preview again. */
   readonly fxRetry: Signal<number>
+  /** The preview's refusal of the draft; it holds nothing back, the save asks the daemon again. */
+  readonly refusal: Signal<PreviewRefusal | undefined>
+  /** The market price the daemon measured the typed one against, when it is too far from it. */
+  readonly farPrice: Signal<UnconfirmedPriceWire | undefined>
   readonly venues: Signal<readonly VenueChoice[]>
   readonly question: Signal<string | undefined>
   readonly failure: Signal<FormFailure | undefined>
@@ -99,7 +115,7 @@ export function createTradeForm(start: TradeStart): TradeForm {
 
   return {
     start,
-    kind: signal(entry?.kind ?? start.kind ?? 'buy'),
+    kind: signal(entry?.kind ?? start.kind ?? DEFAULT_KIND),
     ticker: signal(
       entry !== undefined && 'instrument' in entry ? entry.instrument.ticker : (start.ticker ?? '')
     ),
@@ -111,6 +127,8 @@ export function createTradeForm(start: TradeStart): TradeForm {
     fxRate: signal(undefined),
     fxStatus: signal('idle'),
     fxRetry: signal(0),
+    refusal: signal(undefined),
+    farPrice: signal(undefined),
     venues: signal([]),
     question: signal(undefined),
     failure: signal(undefined),
@@ -173,12 +191,22 @@ export function offerVenues(form: TradeForm): readonly VenueChoice[] {
   const market = namesInstrument(form.kind.value) ? resolveKnownMarket(form) : undefined
 
   if (market === undefined) {
-    return form.venues.value
+    return homeVenuesFirst(form.venues.value)
   }
 
   const holding = form.venues.value.filter((choice) => choice.markets.includes(market))
 
   return holding.length === 0 ? form.venues.value : holding
+}
+
+// Those holding the home region's market lead, so a form with no name yet opens at the venue there.
+function homeVenuesFirst(venues: readonly VenueChoice[]): readonly VenueChoice[] {
+  const region = homeRegion()
+  const home = knownMarkets.value.find((market) => market.region === region && market.ownsRegion)
+  const holdsHome = (choice: VenueChoice): boolean =>
+    home !== undefined && choice.markets.includes(home.market)
+
+  return [...venues].sort((left, right) => Number(holdsHome(right)) - Number(holdsHome(left)))
 }
 
 /** Picks the first venue and currency on offer where none is chosen. */
@@ -239,26 +267,6 @@ export function buildPreviewDraft(form: TradeForm): LedgerDraft | undefined {
 /** The market the typed name is booked in; absent while it is unknown. */
 export function marketOf(form: TradeForm): string | undefined {
   return resolveMarket(form, readTicker(form))
-}
-
-/** "Sẽ ghi: mua 100 FPT giá 125,00 tại VPS, ngày 22/10/2026."; absent until a trade is complete. */
-export function describeTrade(form: TradeForm): string | undefined {
-  const build = buildTradeDraft(form)
-
-  if (build.kind === 'invalid' || !('unitPrice' in build.draft)) {
-    return undefined
-  }
-
-  const { draft } = build
-
-  return tr('ui.office.trade.preview', {
-    side: tr(`trading.ledger.kind.${draft.kind}`),
-    quantity: formatQuantity(draft.quantity),
-    ticker: draft.instrument.ticker,
-    price: formatMarketPrice(draft.instrument.market, draft.unitPrice),
-    venue: toVenueName(draft.venue),
-    day: formatDay(locale.value, draft.at),
-  })
 }
 
 /** The key to send the draft under: a new one whenever the body changed since the last attempt,

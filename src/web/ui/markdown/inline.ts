@@ -10,7 +10,8 @@ export type Inline =
   | { readonly kind: 'bold' | 'italic'; readonly children: readonly Inline[] }
   | { readonly kind: 'code'; readonly text: string }
   | { readonly kind: 'note'; readonly n: number }
-  | { readonly kind: 'link'; readonly href: string; readonly text: string }
+  /** `host` is where a labelled link really goes; absent for an address that is its own label. */
+  | { readonly kind: 'link'; readonly href: string; readonly text: string; readonly host?: string }
 
 /** The inline marks of one run of text. */
 export function parseInline(source: string): readonly Inline[] {
@@ -77,11 +78,14 @@ function toInline(match: RegExpMatchArray): { node: Inline; length: number } | u
   }
 
   if (label !== undefined && target !== undefined) {
-    const href = toSafeHref(target)
+    const url = toSafeUrl(target)
 
-    return href === undefined
+    return url === undefined
       ? undefined
-      : { node: { kind: 'link', href, text: label }, length: whole.length }
+      : {
+          node: { kind: 'link', href: url.href, text: label, host: url.host },
+          length: whole.length,
+        }
   }
 
   return bare === undefined ? undefined : toBareLink(bare)
@@ -109,10 +113,14 @@ function trimAddressTail(address: string): string {
 
 /** The address as a link the page follows: http and https only, else absent. */
 export function toSafeHref(address: string): string | undefined {
+  return toSafeUrl(address)?.href
+}
+
+function toSafeUrl(address: string): URL | undefined {
   try {
     const url = new URL(address)
 
-    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : undefined
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url : undefined
   } catch {
     // Not an address at all: it stays text.
     return undefined

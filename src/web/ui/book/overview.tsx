@@ -4,25 +4,30 @@ import { heldPositions, holdingsBlock } from '@/web/state/market'
 import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
 import { segmentName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
-import { EmptyBookActions } from '@/web/ui/book/empty-actions'
+import { EmptyBookActions, emptyBookKey } from '@/web/ui/book/empty-actions'
 import { HoldingsList } from '@/web/ui/book/holdings-list'
 import { SegmentBars } from '@/web/ui/book/segment-bars'
 import { Unrealized } from '@/web/ui/book/unrealized'
 import { PieIcon } from '@/web/ui/kit/icons'
 import { BlockFrame } from '@/web/ui/today/block-frame'
+import { Events } from '@/web/ui/today/blocks/events'
 
-/** Tổng quan: the total, what is held and how the segments stand against their targets. */
+/** Tổng quan: the total, what is held and how the segments stand against their targets, then the
+ *  dates coming up for what is held. */
 export function Overview() {
   return (
-    <BlockFrame
-      title={tr('ui.office.book.total')}
-      colour="green"
-      icon={<PieIcon />}
-      reading={readBlock(holdingsBlock)}
-      readKey="ui.office.book.pricedAt"
-    >
-      {(book) => <OverviewBody book={book} />}
-    </BlockFrame>
+    <>
+      <BlockFrame
+        title={tr('ui.office.book.total')}
+        colour="green"
+        icon={<PieIcon />}
+        reading={readBlock(holdingsBlock)}
+        readKey="ui.office.book.pricedAt"
+      >
+        {(book) => <OverviewBody book={book} />}
+      </BlockFrame>
+      {heldPositions.value.length > 0 && <Events />}
+    </>
   )
 }
 
@@ -30,7 +35,7 @@ function OverviewBody({ book }: { readonly book: TradingPortfolioResponse }) {
   if (heldPositions.value.length === 0) {
     return (
       <>
-        <p class="empty-note">{tr('ui.office.book.empty')}</p>
+        <p class="empty-note">{tr(emptyBookKey())}</p>
         <EmptyBookActions />
       </>
     )

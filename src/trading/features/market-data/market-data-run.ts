@@ -2,7 +2,7 @@ import type { Logger } from '@/core/logging/logger'
 import type {
   EnsureMarketData,
   EnsureMarketDataOptions,
-} from '@/trading/features/market-data/ops/refresh'
+} from '@/trading/features/market-data/ops/ensure'
 import type {
   MarketDataPerMarketRequest,
   MarketDataRequest,
@@ -25,13 +25,15 @@ export interface MarketDataRunDeps {
  *  gave it so a first warm is visible rather than a silent wait. */
 export function buildEnsureOptions(
   market: MarketRef,
-  request: MarketDataRequest
+  request: MarketDataRequest,
+  answer?: Pick<EnsureMarketDataOptions, 'partialAnswer'>
 ): EnsureMarketDataOptions {
   return {
     market,
     now: request.now,
     signal: request.signal,
     ...(request.progress === undefined ? {} : { progress: request.progress }),
+    ...answer,
   }
 }
 

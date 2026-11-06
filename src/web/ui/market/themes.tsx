@@ -10,6 +10,7 @@ import { homeRegion } from '@/web/state/market'
 import { isModelReady } from '@/web/state/session'
 import { toErrorText, tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
+import { AiLabel } from '@/web/ui/kit/ai-label'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { BulbIcon } from '@/web/ui/kit/icons'
@@ -111,6 +112,7 @@ function ThemeLists({
 
   return (
     <>
+      {data.themes.length > 0 && <AiLabel />}
       <ThemeGroup title={tr('ui.office.themes.proposed')} themes={proposed} context={context} />
       <ThemeGroup title={tr('ui.office.themes.tracked')} themes={tracked} context={context} />
       <Outline lines={data.text} />

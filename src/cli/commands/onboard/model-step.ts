@@ -10,7 +10,7 @@ import {
 } from '@/ai/api'
 import { getEnv } from '@/cli/env'
 import { hint, warn } from '@/cli/ui/colors'
-import { isEnvName } from '@/core/config/resolve'
+import { isEnvName } from '@/core/config/operator-errors'
 import { closestName } from '@/core/utils/text'
 import { t } from '@/i18n'
 

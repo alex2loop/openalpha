@@ -1,7 +1,7 @@
 import { type Signal, signal } from '@preact/signals'
 
 import type { TradingProfileResponse } from '@/app/server/wire/trading'
-import { isSegmentOn } from '@/web/state/profile'
+import { isSegmentOn } from '@/web/state/market'
 import { toDecimal } from '@/web/text/decimal'
 
 /** The share of the whole book that is cash, which no market owns. */
@@ -12,8 +12,8 @@ const PERCENT = 100
 const TENTHS = 10
 const WHOLE_TENTHS = PERCENT * TENTHS
 
-/** One segment as the dialog edits it. A segment switched off at open stays off here: turning one
- *  on re-seeds every cap, which only the daemon's own command does. */
+/** One segment as the dialog edits it. A segment switched on here is switched on by the daemon
+ *  first, which re-seeds every cap as `/profile enable` does, and the typed targets are saved after. */
 export interface TargetRow {
   readonly segment: string
   readonly wasOn: boolean
@@ -23,7 +23,7 @@ export interface TargetRow {
   readonly pct: Signal<string>
 }
 
-interface CapSet {
+export interface CapSet {
   readonly maximumPositionPctNav: number
   readonly maximumSegmentPctNav: number
 }
@@ -89,29 +89,59 @@ export function toPercent(totalTenths: number): number {
   return totalTenths / TENTHS
 }
 
-/** The targets as fractions, and the caps when a segment was switched off here. */
+/** The targets as fractions, and the caps when a segment was switched here: one switched off has
+ *  none, one switched on takes the cap its enable seeded (`enabledCaps`), and the rest keep the caps
+ *  they had at open, which the enable re-seeded. */
 export function buildTargetsPatch(
   profile: TradingProfileResponse,
-  rows: readonly TargetRow[]
+  rows: readonly TargetRow[],
+  enabledCaps: Readonly<Record<string, CapSet>>
 ): ProfilePatch {
   const segmentTargets = Object.fromEntries(
     rows.map((row) => [row.segment, row.on.value ? (tenthsOf(row) ?? 0) / WHOLE_TENTHS : 0])
   )
-  const switchedOff = rows.filter((row) => row.wasOn && !row.on.value)
+  const off = new Set(rows.filter((row) => row.wasOn && !row.on.value).map((row) => row.segment))
 
-  if (switchedOff.length === 0) {
+  if (off.size === 0 && Object.keys(enabledCaps).length === 0) {
     return { segmentTargets }
   }
 
-  const off = new Set(switchedOff.map((row) => row.segment))
   const caps = Object.fromEntries(
     Object.entries(profile.caps).map(([segment, cap]) => [
       segment,
-      off.has(segment) ? SWITCHED_OFF : cap,
+      off.has(segment) ? SWITCHED_OFF : (enabledCaps[segment] ?? cap),
     ])
   )
 
   return { segmentTargets, caps }
+}
+
+/** Puts `targets` (fractions) in the rows that are on, the cash included. */
+export function fillTargets(
+  rows: readonly TargetRow[],
+  targets: Readonly<Record<string, number>>
+): void {
+  for (const row of rows) {
+    if (row.on.value) {
+      row.pct.value = toPercentText(targets[row.segment] ?? 0)
+    }
+  }
+}
+
+/** Puts a row's share on the tenth it is summed and saved at; text that reads as no number stays. */
+export function roundShare(row: TargetRow): void {
+  const tenths = tenthsOf(row)
+
+  if (tenths !== undefined) {
+    row.pct.value = String(tenths / TENTHS)
+  }
+}
+
+/** The segments off at open that the rows now switch on. */
+export function switchedOnSegments(rows: readonly TargetRow[]): readonly string[] {
+  return rows
+    .filter((row) => !row.wasOn && row.on.value && row.segment !== CASH_SEGMENT)
+    .map((row) => row.segment)
 }
 
 /** The text the rows hold, to tell an edited dialog from an untouched one. */

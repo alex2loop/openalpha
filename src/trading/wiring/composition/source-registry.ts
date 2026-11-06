@@ -1,3 +1,4 @@
+import type { RequestShape } from '@/core/http-client'
 import type { Logger } from '@/core/logging/logger'
 import type { MessageKey } from '@/i18n'
 import type { DefaultVenues } from '@/trading/kernel/config'
@@ -8,8 +9,9 @@ import type { SourceAdapterOptions } from '@/trading/sources/define'
 import type { MacroGateOptions, MacroReadStore } from '@/trading/sources/macro-gate'
 import type { LoadedSourceModule } from '@/trading/sources/plugin-module'
 import type { SourceRoutes } from '@/trading/sources/registry'
-import type { SourceFacts } from '@/trading/sources/types'
-import { OperatorConfigError } from '@/core/config/resolve'
+import type { SourceRouteTable } from '@/trading/sources/routes'
+import type { HostSourceFacts, SourceFacts } from '@/trading/sources/types'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog, resolveCredential } from '@/core/security/credentials'
 import { sourceId } from '@/trading/kernel/source/source-id'
@@ -49,6 +51,12 @@ interface SourceRegistryOptions {
   readonly defaultVenues: DefaultVenues
   /** Where a macro source's last good read is kept, so a boot or refresh need not ask again. */
   readonly macroReads: MacroReadStore
+  readonly requestShape: RequestShape
+  /** Which providers serve each scope, in order; absent is every built-in route, the daemon's. A
+   *  built-in provider the table leaves out is not registered. */
+  readonly routes?: SourceRouteTable | undefined
+  /** What a host that is not the daemon states for itself of how its requests present. */
+  readonly facts?: HostSourceFacts | undefined
 }
 
 /** Built and closed in one call. Adding a provider is one import plus one spread here — the
@@ -57,7 +65,7 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
   const usable = usablePluginModules(options)
   const plugin = toPluginFacts(usable)
   const mergedRoutes = mergeSourceRoutes(
-    withVenueQuoteLead(SOURCE_ROUTES, options.defaultVenues),
+    withVenueQuoteLead(options.routes ?? SOURCE_ROUTES, options.defaultVenues),
     usable
   )
   const declaredEnv = { ...SOURCE_CREDENTIAL_ENV, ...plugin.credentialEnv }
@@ -67,24 +75,23 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
   const credentialEnv = withCredentialAliases({ ...declaredEnv, ...options.credentialEnv })
   const credentials = resolveCredentials(options.env, credentialEnv)
   const registry = createSourceRegistry(mergedRoutes, options.logger)
-  const facts = toSourceFacts(plugin, credentials)
+  const facts = toSourceFacts(plugin, credentials, options)
 
   assertEveryRoutedSourcePaced(facts.rateLimits)
 
-  const adapters = { http: createSourceHttp(facts, Date.now, options.logger) }
+  const adapters = { http: createSourceHttp(facts, Date.now, options.logger), feeds: facts.feeds }
   const skipped = new Set<SourceId>()
   const registeredKeys = new Set<string>()
 
-  const macroGate = toMacroGate(options)
-
-  for (const source of createBuiltInSources(adapters)) {
-    if (isProviderAvailable(credentials, credentialEnv, source.id)) {
-      registry.register(gateMacroSource(source, macroGate))
-      registeredKeys.add(sourceRegistrationKey(source))
-    } else {
-      skipped.add(source.id)
-    }
-  }
+  registerBuiltInSources(createBuiltInSources(adapters), {
+    registry,
+    routes: mergedRoutes,
+    macroGate: toMacroGate(options),
+    credentials,
+    credentialEnv,
+    skipped,
+    registeredKeys,
+  })
 
   registerPluginSources({
     registry,
@@ -104,7 +111,40 @@ export function createConfiguredSourceRegistry(options: SourceRegistryOptions): 
   return registry
 }
 
-function toSourceFacts(plugin: PluginFacts, credentials: SourceFacts['credentials']): SourceFacts {
+interface RegisterBuiltInSourcesOptions {
+  readonly registry: SourceRegistry
+  readonly routes: SourceRoutes
+  readonly macroGate: MacroGateOptions
+  readonly credentials: Readonly<Partial<Record<SourceId, string>>>
+  readonly credentialEnv: Readonly<Partial<Record<SourceId, string>>>
+  readonly skipped: Set<SourceId>
+  readonly registeredKeys: Set<string>
+}
+
+/** A provider the route table leaves out has no failover position, so it is never registered. */
+function registerBuiltInSources(
+  sources: readonly RegisteredSource[],
+  options: RegisterBuiltInSourcesOptions
+): void {
+  for (const source of sources) {
+    if (!isRoutedSource(options.routes, source.kind, source.id)) {
+      continue
+    }
+
+    if (isProviderAvailable(options.credentials, options.credentialEnv, source.id)) {
+      options.registry.register(gateMacroSource(source, options.macroGate))
+      options.registeredKeys.add(sourceRegistrationKey(source))
+    } else {
+      options.skipped.add(source.id)
+    }
+  }
+}
+
+function toSourceFacts(
+  plugin: PluginFacts,
+  credentials: SourceFacts['credentials'],
+  options: Pick<SourceRegistryOptions, 'requestShape' | 'facts'>
+): SourceFacts {
   return {
     endpoints: { ...SOURCE_ENDPOINTS, ...plugin.endpoints },
     rateLimits: { ...SOURCE_RATE_LIMITS, ...plugin.rateLimits },
@@ -112,6 +152,8 @@ function toSourceFacts(plugin: PluginFacts, credentials: SourceFacts['credential
     feeds: RSS_FEEDS,
     credentials,
     plainUserAgentSources: PLAIN_USER_AGENT_SOURCES,
+    requestShape: options.requestShape,
+    ...options.facts,
   }
 }
 

@@ -1,7 +1,11 @@
 import type { ProducingSectionKind } from '@/trading/markets/brief-compose'
 import type { SectionBuilder } from '@/trading/markets/brief-sections'
 import { buildCrossAssetPulse } from '@/trading/markets/brief-cross-asset'
-import { buildStalePositions, buildUnwatchedPositions } from '@/trading/markets/brief-holdings'
+import {
+  buildPositionsInLoss,
+  buildStalePositions,
+  buildUnwatchedPositions,
+} from '@/trading/markets/brief-holdings'
 import { buildMacro, buildRegimeShift } from '@/trading/markets/brief-macro'
 import {
   buildBookSummary,
@@ -12,7 +16,6 @@ import {
   buildFiredAlerts,
   buildMonthlyScorecard,
   buildPositionExits,
-  buildPositionsInLoss,
   buildResolvedSuggestions,
   buildSuggestions,
 } from '@/trading/markets/brief-sections'

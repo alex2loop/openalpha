@@ -44,7 +44,7 @@ export function WeatherChip() {
   const title = [
     label,
     tr('ui.office.weather.tip', {
-      city: regionPack.value.city,
+      city: tr(regionPack.value.city),
       time: formatClock(readAt, sceneZone.value),
     }),
     tr('ui.office.weather.attribution'),

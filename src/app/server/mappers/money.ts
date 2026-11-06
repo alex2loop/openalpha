@@ -26,11 +26,13 @@ import {
   toInstrumentWire,
   toSuggestionWire,
 } from '@/app/server/mappers/trading'
-import { buildInstrumentKey } from '@/trading/api'
+import { buildInstrumentKey, keptCaveats } from '@/trading/api'
 
 type ReadyAdvice = Extract<AbsoluteRebalancePlan['advice'], { readonly kind: 'ready' }>
 type PositionChange = ReadyAdvice['rebalance'][number]
 type Finding = AbsoluteRebalancePlan['advice']['findings'][number]
+type ReadyWire = Extract<RebalanceResponse, { readonly status: 'ready' }>
+type SegmentWire = ReadyWire['segments'][number]
 
 function toConversionWire(conversion: {
   readonly fromCurrency: string
@@ -163,10 +165,10 @@ function toFindingWire(finding: Finding): RebalanceResponse['findings'][number] 
 
 function toChangeWire(
   change: PositionChange,
-  sizing: AbsoluteRebalancePlan['sizing'],
+  view: Pick<RebalanceView, 'form'> & { readonly sizing: AbsoluteRebalancePlan['sizing'] },
   locale: Locale
-): Extract<RebalanceResponse, { readonly status: 'ready' }>['changes'][number] {
-  const order = sizing?.byInstrument.get(buildInstrumentKey(change.instrument))
+): ReadyWire['changes'][number] {
+  const order = view.sizing?.byInstrument.get(buildInstrumentKey(change.instrument))
 
   return {
     instrument: toInstrumentWire(change.instrument),
@@ -176,19 +178,22 @@ function toChangeWire(
     currentPctNav: percent(change.currentPctNav),
     targetPctNav: percent(change.targetPctNav),
     changePctNav: percent(change.changePctNav),
-    reason: change.reason.kind,
+    ...(view.form === 'gaps' ? {} : { reason: change.reason.kind }),
     ...(order === undefined
       ? {}
       : {
-          order: {
-            valueBase: order.valueBase,
-            quantity: order.quantity,
-            boardLot: order.boardLot,
-            unitPrice: order.unitPrice,
-            currency: order.currency,
-          },
+          order:
+            view.form === 'gaps'
+              ? { valueBase: order.valueBase, currency: order.currency }
+              : {
+                  valueBase: order.valueBase,
+                  quantity: order.quantity,
+                  boardLot: order.boardLot,
+                  unitPrice: order.unitPrice,
+                  currency: order.currency,
+                },
         }),
-    caveats: toCaveatWires(change.caveats, locale),
+    caveats: toCaveatWires(keptCaveats(change.caveats, view.form), locale),
   }
 }
 
@@ -207,28 +212,44 @@ export function toRebalanceWire(view: RebalanceView, locale: Locale): RebalanceR
     }
   }
 
+  const gaps = view.form === 'gaps'
+  const { deploymentScale } = advice.policy
+
   return {
     status: 'ready',
     ...(sizing === null ? {} : { baseCurrency: sizing.baseCurrency, navBase: sizing.navBase }),
-    deploymentScale: advice.policy.deploymentScale,
-    segments: advice.allocation.map((segment) => ({
-      segment: segment.segment,
-      currentPctNav: percent(segment.currentPctNav),
-      targetPctNav: percent(segment.targetPctNav),
-      afterPlanPctNav: percent(segment.afterPlanPctNav),
-      driftBandPctNav: percent(segment.driftBandPctNav),
-      ...(segment.capPctNav === undefined ? {} : { capPctNav: percent(segment.capPctNav) }),
-    })),
-    changes: advice.rebalance.map((change) => toChangeWire(change, sizing, locale)),
-    cash: {
-      cashPctNav: percent(advice.cashSegment.cashPctNav),
-      liquidReservePctNav: percent(advice.cashSegment.liquidReservePctNav),
-      termDepositEligiblePctNav: percent(advice.cashSegment.termDepositEligiblePctNav),
-      posture: advice.cashSegment.posture,
-    },
+    ...(gaps || deploymentScale === undefined ? {} : { deploymentScale }),
+    segments: advice.allocation.map((segment) => toSegmentWire(segment, view.form)),
+    changes: advice.rebalance.map((change) =>
+      toChangeWire(change, { form: view.form, sizing }, locale)
+    ),
+    ...(gaps ? {} : { cash: toCashWire(advice.cashSegment) }),
     findings,
-    caveats: toCaveatWires(advice.caveats, locale),
+    caveats: toCaveatWires(keptCaveats(advice.caveats, view.form), locale),
     text,
+  }
+}
+
+function toSegmentWire(
+  segment: ReadyAdvice['allocation'][number],
+  form: RebalanceView['form']
+): SegmentWire {
+  return {
+    segment: segment.segment,
+    currentPctNav: percent(segment.currentPctNav),
+    targetPctNav: percent(segment.targetPctNav),
+    ...(form === 'gaps' ? {} : { afterPlanPctNav: percent(segment.afterPlanPctNav) }),
+    driftBandPctNav: percent(segment.driftBandPctNav),
+    ...(segment.capPctNav === undefined ? {} : { capPctNav: percent(segment.capPctNav) }),
+  }
+}
+
+function toCashWire(cash: ReadyAdvice['cashSegment']): NonNullable<ReadyWire['cash']> {
+  return {
+    cashPctNav: percent(cash.cashPctNav),
+    liquidReservePctNav: percent(cash.liquidReservePctNav),
+    termDepositEligiblePctNav: percent(cash.termDepositEligiblePctNav),
+    posture: cash.posture,
   }
 }
 
@@ -242,6 +263,7 @@ function toRebalanceTextWire(text: RebalanceText): RebalanceTextWire {
       line: order.line,
     })),
     segments: [...text.segments],
+    limits: [...text.limits],
     notes: [...text.notes],
   }
 }

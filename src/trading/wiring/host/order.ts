@@ -1,7 +1,7 @@
 import type { OrderService } from '@/trading/features/order/types'
 import type { TradingHost, TradingHostDeps } from '@/trading/wiring/host/types'
 import { BRAND } from '@/core/brand'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ValidationError } from '@/core/errors'
 import { translateToolError } from '@/i18n'
 import { OrderError } from '@/trading/features/order/types'

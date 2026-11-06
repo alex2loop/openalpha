@@ -116,6 +116,7 @@ core/brand
 core/channels
 core/command-lane
 core/config/load
+core/config/operator-errors
 core/config/resolve
 core/config/validate
 core/container
@@ -128,11 +129,15 @@ core/ids
 core/limits
 core/llm
 core/logging/correlation
+core/logging/entry-log
 core/logging/inspection
 core/logging/logger
 core/logging/paths
 core/logging/retention
+core/logging/silent-logger
 core/memory-key
+core/periodic-pass
+core/scoped-value
 core/security/agent-directories
 core/security/binary
 core/security/credentials
@@ -142,6 +147,8 @@ core/security/path-policy
 core/security/private-files
 core/security/sanitize
 core/session-queue
+core/ssrf/fetch-guard
+core/ssrf/host-allowlist
 core/ssrf/network-policy
 core/ssrf/pinned-fetch
 core/stream-events
@@ -154,6 +161,7 @@ core/types/doctor
 core/types/event-job
 core/types/exact
 core/types/locale
+core/types/log-entry
 core/types/memory
 core/types/plugin
 core/types/run

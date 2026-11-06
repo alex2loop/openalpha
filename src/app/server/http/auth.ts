@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import type { ResolvedConfig } from '@/core/config/resolve'
 import { BRAND } from '@/core/brand'
-import { OperatorConfigError } from '@/core/config/resolve'
+import { OperatorConfigError } from '@/core/config/operator-errors'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 
 const MIN_TOKEN_LEN = 32

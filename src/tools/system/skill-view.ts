@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { ToolInvocationContext } from '@/core/tool'
 import { ToolError } from '@/core/errors'
 import { createTool } from '@/core/tool'
-import { resolveSkillPlatform } from '@/engine/api'
+import { currentSkillPlatform } from '@/engine/api'
 
 export const skillViewTool = createTool({
   name: 'skill_view',
@@ -24,7 +24,7 @@ export const skillViewTool = createTool({
       {
         allowed: allowedSkills(ctx),
         tools: new Set(ctx.services.agents.get(ctx.agentId)?.tools ?? []),
-        platform: resolveSkillPlatform(process.platform),
+        platform: currentSkillPlatform(),
       },
       ctx.signal
     )

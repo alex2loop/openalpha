@@ -77,7 +77,7 @@ function StopLine({
   readonly fired: readonly NoticeWire[]
 }) {
   const { market, ticker } = stop.instrument
-  const kind = findQuote(ticker, market)?.kind
+  const quote = findQuote(ticker, market)
   const isBreached = stop.distanceToStopPct !== undefined && stop.distanceToStopPct <= 0
 
   return (
@@ -85,11 +85,11 @@ function StopLine({
       <span class={isBreached ? 'is-breached' : undefined}>
         {tr('ui.office.agent.watchStop', {
           ticker,
-          stop: formatMarketPrice(market, stop.stop, kind),
+          stop: formatMarketPrice(market, stop.stop, quote),
           distance: isBreached
             ? tr('ui.office.agent.watchBreached', { time: breachTime(ticker, fired) })
             : joinInline([
-                formatMarketPrice(market, stop.price, kind),
+                formatMarketPrice(market, stop.price, quote),
                 tr('ui.office.agent.watchDistance', {
                   distance: formatPercent(stop.distanceToStopPct),
                 }),

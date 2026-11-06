@@ -80,6 +80,7 @@ const resolved = resolveModel({
     reasoning: 'off',
   },
   path: ['models', 0],
+  env: process.env,
 })
 
 check(

@@ -1,7 +1,8 @@
 import type { FinalAnswer } from '@/channels/delivery/answer'
 import type { InboundHandlerDeps } from '@/channels/delivery/types'
 import type { ChannelCallbackQuery, InboundMessage } from '@/channels/types'
-import type { AgentId } from '@/core/ids'
+import type { AgentId, SessionId } from '@/core/ids'
+import type { SessionRouteLease } from '@/core/types/session'
 import { COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
 import {
   handleControlCallback,
@@ -140,19 +141,38 @@ async function route(deps: InboundHandlerDeps, msg: InboundMessage): Promise<voi
       return
     }
 
-    const selectedAgent = request.agentId ?? (await resolveAgentId(deps, msg.chatId))
-    const receipt = deps.queue.enqueueInbound({
-      sessionId,
-      msg: { ...msg, text: request.text },
-      run: (combined) => deps.runExchange({ combined, sessionId, agentId: selectedAgent }),
-      route: routeLease.register(),
-    })
-
-    routeLease.release()
-    await receipt
+    await enqueueRequest(deps, { msg, sessionId, request, routeLease })
   } finally {
     routeLease.release()
   }
+}
+
+interface EnqueueInput {
+  readonly msg: InboundMessage
+  readonly sessionId: SessionId
+  readonly request: SlashRunRequest
+  readonly routeLease: SessionRouteLease
+}
+
+async function enqueueRequest(deps: InboundHandlerDeps, input: EnqueueInput): Promise<void> {
+  const { msg, sessionId, request, routeLease } = input
+  const agentId = request.agentId ?? (await resolveAgentId(deps, msg.chatId))
+  const receipt = deps.queue.enqueueInbound({
+    sessionId,
+    msg: { ...msg, text: request.text },
+    ...(request.typedText === undefined ? {} : { typedText: request.typedText }),
+    run: (combined, typedText) =>
+      deps.runExchange({
+        combined,
+        sessionId,
+        agentId,
+        ...(typedText === undefined ? {} : { typedText }),
+      }),
+    route: routeLease.register(),
+  })
+
+  routeLease.release()
+  await receipt
 }
 
 /** A reminder never blocks an answer, so a failure to produce or send one is logged and dropped. */

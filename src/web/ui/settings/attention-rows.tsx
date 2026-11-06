@@ -6,17 +6,17 @@ import { chime, notify, setChime, setNotify } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
 import { Button } from '@/web/ui/kit/button'
-import { ActionRow } from '@/web/ui/settings/row'
+import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
 /** Hiển thị's rows for how the page calls the operator, and where its shortcuts are listed. Each is
  *  kept in this browser and applies the moment it changes. */
-export function AttentionRows() {
+export function AttentionRows({ reopen }: SectionProps) {
   return (
     <>
       <ChimeRow />
       {'Notification' in window && <NotifyRow />}
       <ActionRow title={tr('ui.office.keys.title')}>
-        <Button size="small" onClick={openKeysDialog}>
+        <Button size="small" onClick={() => openKeysDialog({ onBack: reopen })}>
           {tr('ui.office.header.keys')}
         </Button>
       </ActionRow>

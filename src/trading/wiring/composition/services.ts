@@ -3,15 +3,14 @@ import type { Budget } from '@/core/types/budget'
 import type { Locale } from '@/core/types/locale'
 import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
-import type {
-  EnsureMarketData,
-  RefreshMarketData,
-} from '@/trading/features/market-data/ops/refresh'
+import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type { ExclusionReader, MarketDataService } from '@/trading/features/market-data/types'
 import type { OrderService } from '@/trading/features/order/types'
 import type { NavService } from '@/trading/features/portfolio/nav/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { ProfileService } from '@/trading/features/profile/types'
+import type { AnalysisService } from '@/trading/features/suggestion/analysis/run'
+import type { DebateDeps } from '@/trading/features/suggestion/debate/call'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
 import type { RunDebate } from '@/trading/features/suggestion/pipeline/types'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
@@ -29,17 +28,18 @@ import type {
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import { createAlertService } from '@/trading/features/alerts/alerts'
 import { createBriefService } from '@/trading/features/brief/brief'
 import { buildVenueFillKey } from '@/trading/features/ledger/sync'
 import { createMarketDataService } from '@/trading/features/market-data/market-data'
-import { createEnsureMarketData } from '@/trading/features/market-data/ops/refresh'
 import { createOrderService } from '@/trading/features/order/execute'
 import { OrderError } from '@/trading/features/order/types'
 import { createNavService } from '@/trading/features/portfolio/nav/history'
 import { createPortfolioService } from '@/trading/features/portfolio/portfolio'
 import { createProfileService } from '@/trading/features/profile/profile'
+import { createAnalysisService } from '@/trading/features/suggestion/analysis/run'
 import { createExitPlanner } from '@/trading/features/suggestion/exit-plan/recorded'
 import { createReduceVerdicts } from '@/trading/features/suggestion/reduce-verdicts'
 import { createSuggestionService } from '@/trading/features/suggestion/suggestion'
@@ -56,6 +56,7 @@ interface DomainServices {
   readonly profiles: ProfileService
   readonly exitPlans: ExitPlanner
   readonly suggestions: SuggestionService
+  readonly analyses: AnalysisService
   readonly factorLog: FactorLogService
   readonly nav: NavService
   readonly alerts: AlertService
@@ -68,7 +69,7 @@ interface DomainServiceDeps {
   readonly markets: MarketRegistry
   readonly sources: SourceRegistry
   readonly stages: StageRegistry
-  readonly refresh: RefreshMarketData
+  readonly ensure: EnsureMarketData
   readonly sender: TradingNoticeSender
   recipient(): DeliveryAddress | undefined
   readonly onFilled: OrderFilledListener
@@ -77,6 +78,8 @@ interface DomainServiceDeps {
   readonly config: TradingConfig
   readonly logger: Logger
   readonly runDebate: RunDebate
+  /** What `runDebate` was built from, for the analysis path that runs two of its waves. */
+  readonly debate: DebateDeps
   createSuggestionBudget(): Budget
   readonly defaultLocale: Locale
   readonly skillVersions: readonly string[]
@@ -84,6 +87,7 @@ interface DomainServiceDeps {
   readonly venues: VenueRegistry
   /** Built beside the market registry so the markets and the money read one conversion path. */
   readonly fx: FxRates
+  readonly edition?: Pick<TradingEdition, 'reads' | 'briefOmits' | 'briefStoryOmits' | 'rebalance'>
 }
 
 function buildProfiles(deps: DomainServiceDeps): ProfileService {
@@ -106,12 +110,13 @@ interface BookParts {
 
 function buildPortfolio(parts: BookParts): PortfolioService {
   const { deps, marketData, fx, profile, exitPlans } = parts
+  const { edition } = deps
 
   return createPortfolioService({
     ledger: deps.stores.ledger,
     profile,
     exitPlans,
-    reduceVerdicts: createReduceVerdicts(deps.stores.suggestion),
+    reduceVerdicts: edition?.reads?.reduceVerdicts ?? createReduceVerdicts(deps.stores.suggestion),
     markets: deps.markets,
     venues: deps.venues,
     logger: deps.logger,
@@ -123,6 +128,7 @@ function buildPortfolio(parts: BookParts): PortfolioService {
     defaultRegion: deps.config.defaultRegion,
     costs: deps.config.costs,
     defaultLocale: deps.defaultLocale,
+    ...(edition?.rebalance === undefined ? {} : { rebalanceForm: edition.rebalance }),
   })
 }
 
@@ -142,12 +148,7 @@ function buildNav(deps: DomainServiceDeps, profiles: ProfileService): NavService
  *  through it, and the portfolio seam the suggestion pipeline needs is the portfolio service's own
  *  read path rather than a second one that could value a book differently. */
 export function createDomainServices(deps: DomainServiceDeps): DomainServices {
-  const { fx } = deps
-  const ensure = createEnsureMarketData({
-    markets: deps.markets,
-    marketDataStore: deps.stores.marketData,
-    refresh: deps.refresh,
-  })
+  const { fx, ensure } = deps
   // The store's own read, not the service's: `find` never seeds, and a screen must not be what
   // creates a profile row for an operator who has never set one.
   const exclusions: ExclusionReader = {
@@ -178,7 +179,7 @@ export function createDomainServices(deps: DomainServiceDeps): DomainServices {
     exitPlans,
     ...(order === undefined ? {} : { order }),
   })
-  const suggestions = buildSuggestions({ deps, fx, portfolio, profiles, ensure })
+  const suggestion = buildSuggestionServices({ deps, fx, portfolio, profiles, ensure })
   const factorLog = createFactorLogService({
     markets: deps.markets,
     store: deps.stores.factorLog,
@@ -192,7 +193,7 @@ export function createDomainServices(deps: DomainServiceDeps): DomainServices {
     profiles,
     exitPlans,
     ...(order === undefined ? {} : { order }),
-    suggestions,
+    ...suggestion,
     factorLog,
     nav: buildNav(deps, profiles),
     ...delivery,
@@ -205,6 +206,25 @@ interface SuggestionParts {
   readonly portfolio: PortfolioService
   readonly profiles: ProfileService
   readonly ensure: EnsureMarketData
+}
+
+/** The call the book acts on and the analysis that decides nothing share one set of reads and one
+ *  debate's deps, and nothing else. */
+function buildSuggestionServices(
+  parts: SuggestionParts
+): Pick<DomainServices, 'suggestions' | 'analyses'> {
+  const { deps, ensure } = parts
+
+  return {
+    suggestions: buildSuggestions(parts),
+    analyses: createAnalysisService({
+      markets: deps.markets,
+      store: deps.stores.analysis,
+      ensure,
+      debate: deps.debate,
+      createAnalysisBudget: () => deps.createSuggestionBudget(),
+    }),
+  }
 }
 
 function buildSuggestions(parts: SuggestionParts): SuggestionService {
@@ -248,7 +268,9 @@ function buildBookWithPlans(parts: Omit<BookParts, 'exitPlans'>): {
 } {
   const lazyExitPlans: ExitPlanner = { plan: (options) => exitPlans.plan(options) }
   const portfolio = buildPortfolio({ ...parts, exitPlans: lazyExitPlans })
-  const exitPlans = buildExitPlanner(parts.deps, { portfolio, profiles: parts.profile })
+  const exitPlans =
+    parts.deps.edition?.reads?.exitPlans ??
+    buildExitPlanner(parts.deps, { portfolio, profiles: parts.profile })
 
   return { portfolio, exitPlans }
 }
@@ -366,6 +388,7 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
     sender: deps.sender,
     config: deps.config,
     logger: deps.logger,
+    ...briefOmitsOf(deps.edition),
     createSuggestionBudget: () => deps.createSuggestionBudget(),
   })
 
@@ -393,5 +416,13 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
       exitPlans: delivery.exitPlans,
       ...(order === undefined ? {} : { restingStops: (options) => order.restingStops(options) }),
     }),
+  }
+}
+
+/** What the edition leaves out of every brief: whole sections, and the stories it never tells. */
+function briefOmitsOf(edition: Pick<TradingEdition, 'briefOmits' | 'briefStoryOmits'> | undefined) {
+  return {
+    ...(edition?.briefOmits === undefined ? {} : { omitSections: edition.briefOmits }),
+    ...(edition?.briefStoryOmits === undefined ? {} : { omitStories: edition.briefStoryOmits }),
   }
 }

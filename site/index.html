@@ -1,0 +1,1216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenAlpha: an AI council that argues before you read the analysis</title>
+<meta name="description" content="OpenAlpha is an open-source AI market analyst for Vietnamese and US stocks, gold and crypto. Install it on your machine, or try it on the web (no US stocks yet) with your own AI key." />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" type="image/svg+xml" href="logo.svg" />
+<script>
+/* Runs before paint: the saved theme and language, and the hidden start state of the reveals. */
+(function () {
+  var root = document.documentElement;
+
+  try {
+    var savedTheme = localStorage.getItem("office.theme");
+
+    if (savedTheme === "light" || savedTheme === "dark") {
+      root.setAttribute("data-theme", savedTheme);
+    }
+
+    var savedLang = localStorage.getItem("oa.lang");
+
+    if (savedLang === "vi") {
+      root.setAttribute("lang", "vi");
+    }
+  } catch (e) { /* storage blocked: the page still renders */ }
+
+  var askedLang = new URLSearchParams(location.search).get("lang");
+
+  if (askedLang === "vi" || askedLang === "en") {
+    root.setAttribute("lang", askedLang);
+  }
+
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    root.classList.add("rv");
+  }
+})();
+</script>
+<style>
+/* ---- Tokens: copied from the dashboard (src/web/ui/kit/tokens.css), light then dark. Same
+   names, same values, same theme switch: data-theme="light|dark" on <html>, else the system. ---- */
+:root {
+  --s0: 4px; --s1: 8px; --s2: 12px; --s3: 16px; --s4: 24px;
+  --controlH: 30px; --controlSmH: 26px; --controlRadius: 8px; --controlSmRadius: 7px;
+  --controlPadX: 12px; --controlSmPadX: 9px; --controlFont: 12.5px; --controlSmFont: 12px;
+  --fontSans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fontMono: ui-monospace, "SF Mono", Menlo, monospace;
+  --weightRegular: 400; --weightMedium: 500; --weightSemibold: 600;
+  --canvas: #f2f2f6; --surface: #ffffff; --sunken: #e7e7ee; --segHi: rgba(255, 255, 255, 0.9);
+  --border: #dbdbe4; --ink: #1b1b29; --ink2: #4e4e62; --ink3: #5f5f75; --title: #2a2d4a;
+  --up: #0b7532; --upTint: #e6f2ea; --down: #c1231a; --downTint: #fbe9e7;
+  --caution: #8a4b00; --cautionBg: #fbf3db; --dangerTint: #fdebec; --dangerText: #9f2f2d;
+  --lift: 0 1px 2px rgba(27, 27, 41, 0.07);
+  --pop: 0 8px 28px rgba(27, 27, 41, 0.16);
+  --stage: #e4e4ec; --glass: rgba(242, 242, 246, 0.86);
+  --pageWall:
+    radial-gradient(1200px 800px at 8% 0%, #b9cffb 0, transparent 60%),
+    radial-gradient(1000px 900px at 96% 30%, #f4c9e1 0, transparent 60%),
+    radial-gradient(1200px 900px at 40% 100%, #fbddb8 0, transparent 60%), #dce3f3;
+  --glassBg: var(--glass);
+  --glassBlur: blur(18px) saturate(1.4);
+  --glassTint: 255 255 255; --glassA: 0.2; --glassStrongA: 0.5; --glassTagA: 0.78;
+  --glassFilter: blur(8px) saturate(1.9) brightness(1.06);
+  --glassRim: rgba(255, 255, 255, 0.95); --glassHi: rgba(255, 255, 255, 0.9);
+  --glassLo: rgba(27, 27, 41, 0.08); --glassDrop: rgba(20, 20, 40, 0.2);
+  --glassShadow: inset 0 1px 1px var(--glassHi), inset 0 -8px 16px -10px var(--glassLo), 0 10px 26px -8px var(--glassDrop);
+  --islandRadius: 10px;
+  --tc-yellow: #a16207; --tc-green: #1f8a4c; --tc-blue: #2563eb; --tc-pink: #c0365f;
+  --tc-peach: #c2410c; --tc-teal: #0f766e; --tc-gray: #5f5f75; --tc-violet: #7c3aed;
+  --tile-mix: 14%;
+  --ai: linear-gradient(135deg, #2563eb, #4f46e5 50%, #9333ea);
+  --onAi: #ffffff;
+  --focusRing: var(--ink);
+  --scrollW: 8px; --scrollThumb: #b8b8c8; --scrollTrack: transparent;
+  /* Page-only additions (not in the dashboard): marketing type sizes and the gradient headline. */
+  --aiText: linear-gradient(120deg, #2563eb, #7c3aed 60%, #c026d3);
+  --wrapMax: 1160px;
+  --gutter: 16px;
+  /* Page-only additions: one accent, hairlines and the dot field derive from the dashboard ink so both themes follow. */
+  --accent: var(--tc-violet);
+  --hair: color-mix(in srgb, var(--ink) 10%, transparent);
+  --dot: color-mix(in srgb, var(--ink) 15%, transparent);
+  --glowMix: 22%;
+  --secY: 72px;
+  --railC: calc(var(--gutter) / -2);
+  --nodeD: 11px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #1c1c28; --surface: #262637; --sunken: #303044; --segHi: rgba(255, 255, 255, 0.2);
+    --border: #3a3a50; --scrollThumb: #4a4a62;
+    --ink: #eeeef6; --ink2: #b6b7c9; --ink3: #9c9db2; --title: #dcdef2;
+    --up: #32d74b; --down: #ff6259;
+    --caution: #ffb340; --cautionBg: rgba(255, 179, 64, 0.14);
+    --dangerTint: rgba(255, 98, 89, 0.16); --dangerText: #ff8a80;
+    --lift: none; --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --stage: #13151f; --glass: rgba(28, 28, 40, 0.86);
+    --pageWall:
+      radial-gradient(1200px 800px at 8% 0%, #1f2b5c 0, transparent 60%),
+      radial-gradient(1000px 900px at 96% 30%, #3a1c40 0, transparent 60%),
+      radial-gradient(1200px 900px at 40% 100%, #3a220d 0, transparent 60%), #10142a;
+    --tc-yellow: #f9e2af; --tc-green: #a6e3a1; --tc-blue: #89b4fa; --tc-pink: #f38ba8;
+    --tc-peach: #fab387; --tc-teal: #94e2d5; --tc-gray: #a6adc8; --tc-violet: #cba6f7;
+    --tile-mix: 22%; --glowMix: 24%;
+    --glassTint: 24 24 36; --glassA: 0.36; --glassStrongA: 0.66; --glassTagA: 0.86;
+    --glassRim: rgba(255, 255, 255, 0.45); --glassHi: rgba(255, 255, 255, 0.22);
+    --glassLo: rgba(0, 0, 0, 0.35); --glassDrop: rgba(0, 0, 0, 0.45);
+    --aiText: linear-gradient(120deg, #8fb0ff, #b9a2ff 60%, #e9a6f5);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --canvas: #1c1c28; --surface: #262637; --sunken: #303044; --segHi: rgba(255, 255, 255, 0.2);
+  --border: #3a3a50; --scrollThumb: #4a4a62;
+  --ink: #eeeef6; --ink2: #b6b7c9; --ink3: #9c9db2; --title: #dcdef2;
+  --up: #32d74b; --down: #ff6259;
+  --caution: #ffb340; --cautionBg: rgba(255, 179, 64, 0.14);
+  --dangerTint: rgba(255, 98, 89, 0.16); --dangerText: #ff8a80;
+  --lift: none; --pop: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --stage: #13151f; --glass: rgba(28, 28, 40, 0.86);
+  --pageWall:
+    radial-gradient(1200px 800px at 8% 0%, #1f2b5c 0, transparent 60%),
+    radial-gradient(1000px 900px at 96% 30%, #3a1c40 0, transparent 60%),
+    radial-gradient(1200px 900px at 40% 100%, #3a220d 0, transparent 60%), #10142a;
+  --tc-yellow: #f9e2af; --tc-green: #a6e3a1; --tc-blue: #89b4fa; --tc-pink: #f38ba8;
+  --tc-peach: #fab387; --tc-teal: #94e2d5; --tc-gray: #a6adc8; --tc-violet: #cba6f7;
+  --tile-mix: 22%; --glowMix: 24%;
+  --glassTint: 24 24 36; --glassA: 0.36; --glassStrongA: 0.66; --glassTagA: 0.86;
+  --glassRim: rgba(255, 255, 255, 0.45); --glassHi: rgba(255, 255, 255, 0.22);
+  --glassLo: rgba(0, 0, 0, 0.35); --glassDrop: rgba(0, 0, 0, 0.45);
+  --aiText: linear-gradient(120deg, #8fb0ff, #b9a2ff 60%, #e9a6f5);
+  color-scheme: dark;
+}
+
+/* ---- Base (the dashboard's base.css rules that apply to a page) ---- */
+*, *::before, *::after { box-sizing: border-box; }
+* { scrollbar-width: thin; scrollbar-color: var(--scrollThumb) var(--scrollTrack); }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; -webkit-text-size-adjust: 100%; background: var(--canvas); }
+body {
+  margin: 0;
+  position: relative;
+  isolation: isolate;
+  color: var(--ink);
+  font: 400 16px / 1.6 var(--fontSans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+img { display: block; max-width: 100%; height: auto; }
+strong, b { font-weight: var(--weightSemibold); }
+code { font: 400 0.92em / 1 var(--fontMono); padding: 2px 6px; border-radius: 5px; background: var(--sunken); }
+:focus-visible { outline: 2px solid var(--focusRing); outline-offset: 3px; border-radius: 4px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip { position: absolute; left: 12px; top: -48px; z-index: 50; padding: 8px 14px; border-radius: var(--controlRadius); background: var(--ink); color: var(--canvas); text-decoration: none; }
+.skip:focus { top: 10px; }
+
+/* Language: every string is a vi + en pair; the root lang picks one. */
+html[lang="en"] .vi { display: none; }
+html:not([lang="en"]) .en { display: none; }
+
+.icon { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.wrap { width: 100%; max-width: var(--wrapMax); margin-inline: auto; padding-inline: var(--gutter); }
+.narrow { max-width: 820px; }
+
+/* ---- Buttons (button.css) ---- */
+.btn {
+  display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  font-weight: var(--weightMedium); white-space: nowrap; text-decoration: none; cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease, background-color 0.18s ease;
+}
+.btn-regular { height: var(--controlH); padding: 0 var(--controlPadX); border-radius: var(--controlRadius); font-size: var(--controlFont); }
+.btn-small { height: var(--controlSmH); padding: 0 var(--controlSmPadX); border-radius: var(--controlSmRadius); font-size: var(--controlSmFont); }
+.btn-large { height: 44px; padding: 0 20px; border-radius: 10px; font-size: 15px; }
+.btn:hover { background: var(--sunken); }
+.btn-large:hover { transform: translateY(-1px); }
+.btn-commit { border-color: var(--ink); background: var(--ink); color: var(--canvas); }
+.btn-commit:hover { background: var(--ink); opacity: 0.88; }
+.btn-ai { border-color: transparent; background: var(--ai); color: var(--onAi); }
+.btn-ai:hover { background: var(--ai); filter: brightness(1.08); }
+.btn-ghost { border-color: transparent; background: transparent; color: var(--ink2); }
+.btn-ghost:hover { color: var(--ink); }
+.btn-tertiary { gap: 4px; height: auto; padding: 0; border: 0; background: none; color: var(--ink2); font-size: 14px; }
+.btn-tertiary:hover { background: none; color: var(--ink); }
+.btn-tertiary .icon { width: 14px; height: 14px; }
+.btn .icon { width: 15px; height: 15px; }
+.btn-white { border-color: transparent; background: #ffffff; color: #1b1b29; }
+.btn-white:hover { background: #ffffff; opacity: 0.92; }
+.btn-ghost-white { border-color: rgba(255, 255, 255, 0.55); background: transparent; color: #ffffff; }
+.btn-ghost-white:hover { background: rgba(255, 255, 255, 0.14); }
+
+/* ---- Segmented control (segmented.css) ---- */
+.seg { display: inline-flex; padding: 2px; border-radius: var(--controlRadius); background: var(--sunken); }
+.seg button {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 26px; padding: 0 10px;
+  border: 0; border-radius: 6px; background: none; color: var(--ink2); font-size: var(--controlSmFont);
+  font-weight: var(--weightMedium); white-space: nowrap; cursor: pointer;
+}
+.seg button[aria-pressed="true"], .seg button.is-on { background: color-mix(in srgb, var(--surface) 80%, transparent); box-shadow: inset 0 1px 0 var(--segHi), var(--lift); color: var(--ink); }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 16px; background: var(--sunken); color: var(--ink2); font-size: 12.5px; white-space: nowrap; }
+.chip .icon { width: 14px; height: 14px; }
+
+/* ---- Glass (the liquid glass the office scene uses) ---- */
+.glass {
+  background: rgb(var(--glassTint) / var(--glassTagA));
+  -webkit-backdrop-filter: var(--glassFilter); backdrop-filter: var(--glassFilter);
+  box-shadow: var(--glassShadow);
+}
+
+/* ---- Page background: ONE system under every section. A dot field plus two soft accent glows that
+   alternate sides down the page (a 2200px tile repeating on the body-tall layer), faded at both edges. ---- */
+.page-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.page-bg::before {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse min(780px, 95vw) 560px at 82% 440px, color-mix(in srgb, var(--tc-blue) var(--glowMix), transparent), transparent 70%),
+    radial-gradient(ellipse min(720px, 95vw) 520px at 12% 1560px, color-mix(in srgb, var(--tc-violet) var(--glowMix), transparent), transparent 70%),
+    radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 1.6px);
+  background-size: 100% 2200px, 100% 2200px, 26px 26px;
+  background-repeat: repeat-y, repeat-y, repeat;
+}
+.page-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--canvas) 0, transparent 10%, transparent 90%, var(--canvas) 100%); }
+.sentinel { position: absolute; top: 0; left: 0; width: 1px; height: 24px; pointer-events: none; }
+
+/* ---- Header: transparent over the hero; a blur, tint and hairline arrive once the page scrolls
+   (Linear, Vercel). Logo left, nav centred, language + theme + CTA grouped right. ---- */
+.top { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid transparent; -webkit-backdrop-filter: blur(14px) saturate(1.5); backdrop-filter: blur(14px) saturate(1.5); transition: background-color 0.25s ease, border-color 0.25s ease; }
+html[data-scrolled] .top { background: color-mix(in srgb, var(--canvas) 72%, transparent); border-bottom-color: var(--hair); }
+.top.menu-open { background: var(--canvas); border-bottom-color: var(--hair); }
+.top-in { display: flex; align-items: center; gap: var(--s3); height: 56px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-weight: var(--weightSemibold); font-size: 17px; text-decoration: none; letter-spacing: -0.01em; color: var(--title); }
+.brand img { border-radius: 8px; }
+.nav { display: none; gap: 2px; }
+.nav a { padding: 6px 11px; border-radius: 8px; color: var(--ink2); text-decoration: none; font-size: 14px; font-weight: var(--weightMedium); white-space: nowrap; transition: background-color 0.18s, color 0.18s; }
+.nav a:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); color: var(--ink); }
+.nav a[aria-current="true"] { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.top-tools { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.tools-sep { width: 1px; height: 18px; margin-inline: 4px; background: var(--hair); }
+.top-cta { display: none; margin-left: 4px; }
+/* The support link stays in reach at every width, worded short so it fits beside the menu. */
+.top-coffee { margin-left: 4px; padding-inline: 10px; }
+@media (max-width: 599px) { .tools-sep { display: none; } }
+/* Phones under 360px have no room for it beside the brand; the open-source section still offers it. */
+@media (max-width: 359px) { .top-coffee { display: none; } }
+/* Narrow phones keep the cup; the word still reads to a screen reader. */
+@media (max-width: 439px) { .top-tools { gap: 2px; } .top-coffee { margin-left: 0; } .top-coffee-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
+.iconbtn { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--ink2); cursor: pointer; transition: background-color 0.18s, color 0.18s; }
+.iconbtn:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
+.iconbtn .icon { width: 17px; height: 17px; }
+.burger .i-x, .burger[aria-expanded="true"] .i-menu { display: none; }
+.burger[aria-expanded="true"] .i-x { display: block; }
+.menu { position: absolute; top: 100%; left: 0; right: 0; background: var(--canvas); border-bottom: 1px solid var(--hair); box-shadow: var(--pop); visibility: hidden; opacity: 0; transform: translateY(-8px); transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s; }
+.menu-open .menu { visibility: visible; opacity: 1; transform: none; transition-delay: 0s; }
+.menu ol { padding: 4px 0; }
+.menu li + li { border-top: 1px solid var(--hair); }
+.menu .ml { display: flex; align-items: center; gap: 14px; min-height: 52px; color: var(--ink); text-decoration: none; font-size: 16px; font-weight: var(--weightMedium); }
+.menu .mn { width: 22px; font: 600 12px / 1 var(--fontMono); color: var(--accent); }
+.menu .btn { width: 100%; margin: 10px 0 20px; }
+
+/* ---- Journey: sections 01-06 and the closing card hang on one vertical rail. Each section owns its
+   segment (hairline + accent fill) and a pin; the fill is scroll-linked, the pins light as it passes. ---- */
+.sec { position: relative; padding-block: var(--secY) 0; }
+.rail { position: absolute; left: var(--railC); top: 0; bottom: 0; width: 1px; background: var(--hair); }
+.rail b { position: absolute; inset: 0; background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 70%, var(--tc-blue))); transform-origin: top; }
+.journey > .sec:first-child .rail { top: calc(var(--secY) + 6px); }
+.journey > .sec:last-child .rail { bottom: auto; height: calc(var(--secY) + 6px); }
+.pin { position: absolute; z-index: 1; left: calc(var(--railC) - var(--nodeD) / 2 + 0.5px); top: calc(var(--secY) + 6px - var(--nodeD) / 2); display: grid; place-items: center; width: var(--nodeD); height: var(--nodeD); border: 1.5px solid color-mix(in srgb, var(--ink) 30%, transparent); border-radius: 50%; background: var(--canvas); color: transparent; font: 600 11px / 1 var(--fontMono); font-style: normal; transition: background-color 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.3s; }
+.pin .icon { display: none; width: 14px; height: 14px; stroke-width: 2.4; }
+.pin.on { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+
+/* ---- Section header: the same three parts everywhere (eyebrow with its number, title, lead). ---- */
+.sec-head { max-width: 680px; margin-bottom: 32px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 14px; font: 600 12px / 1 var(--fontMono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.eyebrow .no { padding-right: 10px; border-right: 1px solid var(--hair); color: var(--ink3); }
+h2 { font-size: clamp(26px, 3.4vw, 38px); line-height: 1.18; letter-spacing: -0.02em; font-weight: 650; color: var(--title); text-wrap: balance; }
+.sec-head > p:not(.eyebrow) { margin-top: 12px; color: var(--ink2); font-size: 17px; text-wrap: pretty; }
+.sec-head a { color: var(--tc-blue); text-underline-offset: 3px; }
+h3 { font-size: 17px; line-height: 1.35; font-weight: var(--weightSemibold); color: var(--title); }
+.fine { font-size: 12.5px; color: var(--ink3); }
+.center { text-align: center; }
+
+/* ---- Cards, tiles ---- */
+.card { position: relative; isolation: isolate; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--lift); padding: 22px; transition: transform 0.25s ease; }
+.card::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; box-shadow: var(--pop); opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
+.card:hover { transform: translateY(-2px); }
+.card:hover::after { opacity: 1; }
+.tile { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: color-mix(in srgb, var(--c) var(--tile-mix), var(--surface)); color: var(--c); }
+.tile .icon { width: 19px; height: 19px; }
+.card > .tile { margin-bottom: 14px; }
+.card p { color: var(--ink2); font-size: 15px; }
+.card h3 + p { margin-top: 6px; }
+
+/* ---- Hero ---- */
+.hero { display: grid; gap: 40px; padding-block: 28px 56px; align-items: center; overflow-x: clip; }
+.dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--tc-green); }
+.dot::after, .live b::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: ping 2s ease-out infinite; }
+@keyframes ping { 0% { transform: scale(1); opacity: 0.6; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+h1 { margin-top: 18px; font-size: clamp(34px, 7.2vw, 58px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700; color: var(--title); text-wrap: balance; }
+.grad { background: var(--aiText); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 26px; }
+.cta-row.center { justify-content: center; }
+.cta-row + .fine { margin-top: 12px; }
+/* Buy Me a Coffee's own button colours, drawn here so the page loads no script of theirs. */
+.btn-coffee { --coffee: #ffdd00; gap: 8px; border-color: #000000; background: var(--coffee); color: #000000; }
+.btn-coffee:hover { background: var(--coffee); opacity: 0.88; }
+
+.hero-art { position: relative; margin: 0; }
+.hero-art::before { content: ""; position: absolute; inset: -10% -8%; z-index: -1; background: radial-gradient(closest-side, color-mix(in srgb, var(--tc-violet) calc(var(--glowMix) + 8%), transparent), transparent); }
+.win { position: relative; }
+.win img { cursor: zoom-in; }
+.win::after { content: ""; position: absolute; inset: 0; background: rgba(10, 10, 18, 0.28); opacity: 0; transition: opacity 0.2s ease; pointer-events: none; }
+.win:hover::after { opacity: 1; }
+.zoom-btn { position: absolute; z-index: 1; left: 50%; top: 50%; display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 999px; background: rgba(27, 27, 41, 0.78); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: #fff; font-size: 15px; font-weight: 600; line-height: 1; cursor: zoom-in; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); opacity: 0; transform: translate(-50%, -50%) scale(0.92); transition: opacity 0.2s ease, transform 0.2s ease; }
+.zoom-btn .icon { width: 20px; height: 20px; }
+.win:hover .zoom-btn, .zoom-btn:focus-visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+@media (hover: none) { .zoom-btn { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.zoom { width: min(96vw, 1340px); max-width: none; max-height: 94vh; padding: 0; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 14px; background: #1b1b29; box-shadow: var(--pop); overflow: auto; }
+.zoom::backdrop { background: rgba(10, 10, 18, 0.72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.zoom img { display: block; width: 100%; height: auto; cursor: zoom-out; }
+.zoom-close { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 999px; background: rgba(27, 27, 41, 0.8); color: #fff; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .zoom-btn { transition: none; } }
+.win { overflow: hidden; border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent); border-radius: 14px; background: #1b1b29; box-shadow: 0 0 0 5px color-mix(in srgb, var(--ink) 4%, transparent), var(--pop); }
+.win-bar { display: flex; align-items: center; gap: 7px; height: 34px; padding-inline: 14px; background: #1b1b29; color: #b6b7c9; font: 500 12px / 1 var(--fontMono); }
+.win-bar i { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57; }
+.win-bar i:nth-child(2) { background: #febc2e; }
+.win-bar i:nth-child(3) { background: #28c840; }
+.win-bar span { margin-left: 8px; }
+.live { position: relative; display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-style: normal; color: #a6e3a1; }
+.live b { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #a6e3a1; }
+.win img { display: block; width: 100%; height: auto; aspect-ratio: 1340 / 719; image-rendering: auto; }
+:root[data-theme="dark"] .win img { filter: brightness(0.9) saturate(0.95); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .win img { filter: brightness(0.9) saturate(0.95); } }
+.float-tag { position: absolute; left: 18px; bottom: -34px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px 8px 8px; border-radius: 999px; color: var(--ink); font-size: 13px; font-weight: var(--weightMedium); border: 1px solid var(--glassRim); animation: bob 6s ease-in-out infinite; }
+.tag-ic { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ai); color: #fff; }
+.tag-ic .icon { width: 14px; height: 14px; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+
+/* ---- How it works ---- */
+.steps { display: grid; gap: 14px; counter-reset: s; }
+.step { position: relative; padding: 18px 18px 20px; border: 1px solid var(--border); border-top: 3px solid var(--c); border-radius: 16px; background: var(--surface); box-shadow: var(--lift); }
+.step-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.num { font: 600 13px / 1 var(--fontMono); color: var(--c); }
+.step h3 { font-size: 16px; }
+.step p { margin-top: 6px; font-size: 14px; color: var(--ink2); line-height: 1.55; }
+
+.sources { margin: 14px 0 0; }
+.sources img { display: block; width: 100%; height: auto; aspect-ratio: 1600 / 837; border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--lift); }
+.sources figcaption { margin-top: 10px; text-align: center; }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.sides { display: grid; gap: 12px; }
+.side { padding: 14px 16px; border-radius: 12px; background: color-mix(in srgb, var(--c) 9%, var(--surface)); border-left: 3px solid var(--c); }
+.side-title { font-size: 13px !important; font-weight: var(--weightSemibold); color: var(--c) !important; margin-bottom: 8px; }
+.quote { font-size: 14.5px !important; color: var(--ink) !important; line-height: 1.5; }
+.quote + .quote { margin-top: 8px; }
+.quote b { font: 600 12px / 1 var(--fontMono); color: var(--ink3); white-space: nowrap; }
+.claims { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.claim { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: var(--weightMedium); }
+.claim .icon { width: 14px; height: 14px; }
+.claim.ok { background: color-mix(in srgb, var(--tc-green) 14%, var(--surface)); color: var(--tc-green); }
+.claim.no { background: var(--cautionBg); color: var(--caution); }
+.debate .fine { margin-top: 12px; }
+
+/* ---- Bento ---- */
+.bento { display: grid; gap: 14px; }
+.card > .fine { margin-top: 14px; }
+.ticks { display: grid; gap: 8px; margin-top: 14px; }
+.ticks li { display: flex; align-items: flex-start; gap: 8px; font-size: 14.5px; color: var(--ink2); }
+.ticks .icon { width: 16px; height: 16px; margin-top: 4px; color: var(--tc-green); stroke-width: 2.2; }
+.cite-text { font-size: 13px; color: var(--ink3); margin-left: 4px; }
+.markets-label { margin-right: 4px; font-size: 14px; color: var(--ink3); }
+
+/* ---- Compare ---- */
+.pick-head { display: flex; align-items: center; gap: 12px; }
+.center { text-align: center; }
+
+.install { display: grid; gap: 22px; margin-top: 32px; padding: 22px; }
+.install:hover { transform: none; }
+.install:hover::after { opacity: 0; }
+.term { min-width: 0; align-self: start; border-radius: 12px; background: #171722; color: #eeeef6; overflow: hidden; }
+.term-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 10px 10px 12px; background: #1f2030; }
+.term .seg { background: #2b2d42; }
+.term .seg button { color: #b6b7c9; }
+.term .seg button.is-on { background: #3a3c58; color: #fff; box-shadow: none; }
+.term .btn-ghost { color: #b6b7c9; }
+.term .btn-ghost:hover { color: #fff; background: #2b2d42; }
+.term pre { margin: 0; padding: 16px; overflow-x: auto; font: 400 13px / 1.7 var(--fontMono); white-space: pre; }
+.term pre code { padding: 0; background: none; font: inherit; }
+.term .c { color: #8a8ca6; }
+.term .p { color: #a6e3a1; margin-right: 6px; }
+.term-note { padding: 0 16px 14px; font-size: 12.5px; color: #9c9db2; }
+
+/* ---- Privacy ---- */
+.trio { display: grid; gap: 14px; }
+.diagram-title { font-weight: var(--weightSemibold); color: var(--title) !important; margin-bottom: 16px; }
+.node-h { display: flex; align-items: center; gap: 8px; font-weight: var(--weightSemibold); color: var(--ink); font-size: 14.5px; }
+.node-h .icon { width: 17px; height: 17px; }
+
+/* ---- Open source ---- */
+
+/* ---- FAQ ---- */
+.faq { display: grid; gap: 10px; max-width: 820px; }
+.qa { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--lift); }
+.qa summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; cursor: pointer; list-style: none; font-size: 16px; font-weight: var(--weightSemibold); color: var(--title); border-radius: 14px; }
+.qa summary::-webkit-details-marker { display: none; }
+.qa summary:focus-visible { outline-offset: -2px; }
+.qa summary .icon { width: 18px; height: 18px; color: var(--ink3); transition: transform 0.25s ease; }
+.qa[open] summary .icon { transform: rotate(45deg); }
+.qa-body { padding: 0 18px 18px; }
+.qa-body p { color: var(--ink2); font-size: 15.5px; max-width: 42em; }
+
+/* ---- Final CTA and footer ---- */
+.final { position: relative; overflow: hidden; isolation: isolate; padding: 40px 22px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.12); background: color-mix(in srgb, #1b1b29 88%, var(--tc-violet)); color: #fff; text-align: center; box-shadow: 0 0 0 5px color-mix(in srgb, var(--ink) 4%, transparent), var(--pop); }
+.final::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1.3px) 0 0 / 22px 22px; -webkit-mask-image: radial-gradient(75% 95% at 50% 0%, #000 25%, transparent 75%); mask-image: radial-gradient(75% 95% at 50% 0%, #000 25%, transparent 75%); }
+.final::after { content: ""; position: absolute; z-index: -2; left: 50%; top: -55%; width: min(900px, 140%); height: 120%; transform: translateX(-50%); background: radial-gradient(38% 50% at 38% 50%, rgba(37, 99, 235, 0.5), transparent 70%), radial-gradient(38% 50% at 62% 50%, rgba(147, 51, 234, 0.45), transparent 70%); filter: blur(12px); pointer-events: none; }
+.final .eyebrow { margin-bottom: 14px; color: rgba(255, 255, 255, 0.85); }
+.final h2 { color: #fff; max-width: 18em; margin-inline: auto; }
+.final p:not(.eyebrow) { margin: 12px auto 0; max-width: 32em; color: rgba(255, 255, 255, 0.9); font-size: 17px; }
+.foot { margin-top: 96px; padding-block: 36px 40px; border-top: 1px solid var(--hair); }
+.foot-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 28px; }
+.foot-nav { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px; }
+.foot-nav a { color: var(--ink2); text-decoration: none; }
+.foot-nav a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.notice { display: grid; gap: 10px; margin-top: 24px; padding: 16px 18px; border-radius: 14px; background: var(--sunken); }
+.notice p { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; line-height: 1.55; color: var(--ink2); }
+.notice .icon { margin-top: 3px; width: 16px; height: 16px; color: var(--caution); }
+.notice strong { color: var(--ink); }
+.copy-line { margin-top: 18px; font-size: 13px; color: var(--ink3); }
+
+/* ---- Motion: only transform and opacity move. The hidden start state exists only while the
+   motion library is loading or running, and never under reduced motion (the head script adds
+   .rv only when the user has not asked for less motion). ---- */
+.rv .rail b { transform: scaleY(0); }
+.rv [data-reveal]:not([data-shown]), .rv [data-hero]:not([data-shown]), .rv [data-hero-art]:not([data-shown]) { opacity: 0; transform: translateY(18px); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .dot::after, .live b::after, .float-tag { animation: none; }
+  .menu { transform: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
+
+/* ---- Wider screens ---- */
+@media (min-width: 600px) {
+  :root { --secY: 88px; }
+  .steps { grid-template-columns: repeat(2, 1fr); }
+  .sides { grid-template-columns: 1fr 1fr; }
+  .trio { grid-template-columns: repeat(3, 1fr); }
+  .final { padding: 56px 40px; }
+}
+@media (min-width: 900px) {
+  :root { --gutter: 24px; --secY: 104px; }
+  .hero { grid-template-columns: minmax(0, 9fr) minmax(0, 14fr); gap: 40px; padding-block: 48px 56px; }
+  .steps { grid-template-columns: repeat(5, 1fr); }
+  .bento { grid-template-columns: repeat(6, 1fr); }
+  .b-wide { grid-column: span 3; }
+  .b-third { grid-column: span 2; }
+  .install { grid-template-columns: 1fr 1.1fr; gap: 36px; padding: 32px; }
+  .final { padding: 72px 40px; }
+}
+@media (min-width: 1024px) {
+  .top-in { display: grid; grid-template-columns: 1fr auto 1fr; height: 60px; }
+  .nav { display: flex; }
+  .top-tools { justify-self: end; }
+  .burger { display: none; }
+}
+@media (min-width: 1160px) {
+  .top-cta { display: inline-flex; }
+}
+@media (min-width: 1200px) {
+  h1 { font-size: 54px; }
+}
+@media (min-width: 1280px) {
+  :root { --railC: -44px; --nodeD: 28px; }
+  .pin { color: var(--ink3); }
+  .pin.on { color: var(--canvas); }
+  .pin.end .icon { display: block; }
+}
+
+.b-wide { display: flex; flex-direction: column; }
+.b-wide > .fine { margin-top: auto; padding-top: 14px; }
+.term pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.final p { text-wrap: balance; }
+@media (min-width: 900px) {
+}
+
+.term .term-note { color: #9c9db2; }
+@media (max-width: 599px) {
+  .step { display: grid; grid-template-columns: 44px 1fr; column-gap: 14px; padding: 16px; }
+  .step-top { grid-row: 1 / span 2; flex-direction: column-reverse; align-items: flex-start; justify-content: flex-end; gap: 10px; margin: 0; }
+  .step p { margin-top: 4px; }
+}
+@media (min-width: 600px) and (max-width: 899px) {
+  .step:last-child { grid-column: 1 / -1; }
+}
+code, pre { font-variant-ligatures: none; }
+
+
+/* ---- v3 content cut: new and reshaped components ---- */
+.ext { width: 0.85em; height: 0.85em; margin-left: 3px; vertical-align: -0.08em; opacity: 0.7; }
+.btn .ext { margin-left: 0; width: 15px; height: 15px; vertical-align: 0; opacity: 1; }
+.lead { margin-top: 18px; font-size: 18px; color: var(--ink2); max-width: 30em; }
+.riskline { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; color: var(--ink3); }
+.sec-head { margin-bottom: 28px; }
+.sec-head > p:not(.eyebrow) { max-width: 34em; }
+.debate { margin-top: 14px; }
+.debate:hover { transform: none; }
+.debate:hover::after { opacity: 0; }
+.debate .claims { margin-top: 14px; }
+.bento > .card h3 { font-size: 16px; }
+.bento > .card p { font-size: 14.5px; }
+.cmp { display: grid; gap: 14px; }
+.col { display: grid; align-content: start; padding: 22px; }
+.col:hover { transform: none; }
+.col:hover::after { opacity: 0; }
+.col ul { display: contents; }
+.col h3 { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.col h3 .tile { width: 34px; height: 34px; }
+.col li { display: flex; align-items: flex-start; gap: 8px; padding-block: 10px; border-top: 1px solid var(--hair); font-size: 14.5px; line-height: 1.45; color: var(--ink2); }
+.col li .icon { width: 16px; height: 16px; margin-top: 3px; color: var(--tc-green); stroke-width: 2.2; }
+.col .btn { align-self: end; justify-self: start; margin-top: 16px; }
+.install { margin-top: 14px; align-items: center; }
+.install p { margin-top: 6px; font-size: 14.5px; }
+.term pre { font-size: 12.5px; }
+.trio .card p { font-size: 14.5px; }
+.oss-line { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+.final { padding: 44px 22px; }
+.foot-nav a { display: inline-flex; align-items: center; }
+.notice p { font-size: 13px; }
+@media (max-width: 599px) {
+  .bento > .card, .trio > .card { display: grid; grid-template-columns: 38px 1fr; column-gap: 14px; align-content: start; padding: 16px; }
+  .bento > .card > .tile, .trio > .card > .tile { grid-row: 1 / span 2; margin: 0; }
+  .bento > .card h3 + p, .trio > .card h3 + p { margin-top: 4px; }
+}
+@media (min-width: 600px) {
+  .cmp { grid-template-columns: 1fr 1fr; grid-template-rows: auto repeat(5, auto) auto; }
+  .col { grid-row: span 7; grid-template-rows: subgrid; row-gap: 0; }
+  .bento { grid-template-columns: repeat(2, 1fr); }
+  .bento > :last-child { grid-column: 1 / -1; }
+}
+@media (min-width: 900px) {
+  .bento { grid-template-columns: repeat(6, 1fr); }
+  .bento > .card { grid-column: span 2; }
+  .bento > .card:nth-child(n+4) { grid-column: span 3; }
+  .bento > :last-child { grid-column: span 3; }
+  .debate .sides { gap: 16px; }
+  .install { grid-template-columns: 1fr 2.2fr; gap: 28px; }
+  .final { padding: 64px 40px; }
+}
+</style>
+</head>
+<body>
+<div class="page-bg" aria-hidden="true"></div>
+<i class="sentinel" aria-hidden="true"></i>
+<a class="skip" href="#how"><span class="vi" lang="vi">Bỏ qua tới nội dung</span><span class="en" lang="en">Skip to content</span></a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol><symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol><symbol id="i-list" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/></symbol><symbol id="i-pie" viewBox="0 0 24 24"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M12 3a9 9 0 0 1 9 9h-9z"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></symbol><symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></symbol><symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></symbol><symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol><symbol id="i-news" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5"/></symbol><symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol><symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol><symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol><symbol id="i-warning" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol><symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></symbol><symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3H15"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol><symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol><symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6M11 8v6M8 11h6"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol></svg>
+
+<header class="top" id="bar">
+  <div class="wrap top-in">
+    <a class="brand" href="#top" aria-label="OpenAlpha"><img src="logo.svg" width="30" height="30" alt="" /><span>OpenAlpha</span></a>
+    <nav class="nav" data-aria-vi="Mục trang" data-aria-en="Page sections" aria-label="Mục trang">
+      <a href="#how"><span class="vi" lang="vi">Cách hoạt động</span><span class="en" lang="en">How it works</span></a>
+      <a href="#get"><span class="vi" lang="vi">Bạn nhận được gì</span><span class="en" lang="en">What you get</span></a>
+      <a href="#compare"><span class="vi" lang="vi">Web và bản cài</span><span class="en" lang="en">Web vs installed</span></a>
+      <a href="#privacy"><span class="vi" lang="vi">Riêng tư</span><span class="en" lang="en">Privacy</span></a>
+      <a href="#faq"><span class="vi" lang="vi">Hỏi đáp</span><span class="en" lang="en">FAQ</span></a>
+    </nav>
+    <div class="top-tools">
+      <div class="seg" role="group" data-aria-vi="Ngôn ngữ" data-aria-en="Language" aria-label="Ngôn ngữ">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="vi" aria-pressed="false">VI</button>
+      </div>
+      <button type="button" class="iconbtn" id="theme" aria-label="Giao diện"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg><span class="sr" id="theme-label"></span></button>
+      <i class="tools-sep" aria-hidden="true"></i>
+      <a class="btn btn-coffee btn-regular top-coffee" href="https://buymeacoffee.com/alex2loop" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">☕</span><span class="top-coffee-word"><span class="vi" lang="vi">Ủng hộ</span><span class="en" lang="en">Support</span></span><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      <a class="btn btn-commit btn-regular top-cta" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng trên web</span><span class="en" lang="en">Use it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      <button type="button" class="iconbtn burger" id="burger" aria-expanded="false" aria-controls="menu" data-aria-vi="Menu" data-aria-en="Menu" aria-label="Menu"><svg class="icon i-menu" aria-hidden="true"><use href="#i-menu"/></svg><svg class="icon i-x" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+  </div>
+  <div class="menu" id="menu">
+    <div class="wrap">
+      <ol>
+        <li><a class="ml" href="#how"><span class="mn">01</span><span class="vi" lang="vi">Cách hoạt động</span><span class="en" lang="en">How it works</span></a></li>
+        <li><a class="ml" href="#get"><span class="mn">02</span><span class="vi" lang="vi">Bạn nhận được gì</span><span class="en" lang="en">What you get</span></a></li>
+        <li><a class="ml" href="#compare"><span class="mn">03</span><span class="vi" lang="vi">Web và bản cài</span><span class="en" lang="en">Web vs installed</span></a></li>
+        <li><a class="ml" href="#privacy"><span class="mn">04</span><span class="vi" lang="vi">Riêng tư</span><span class="en" lang="en">Privacy</span></a></li>
+        <li><a class="ml" href="#oss"><span class="mn">05</span><span class="vi" lang="vi">Mã nguồn mở</span><span class="en" lang="en">Open source</span></a></li>
+        <li><a class="ml" href="#faq"><span class="mn">06</span><span class="vi" lang="vi">Hỏi đáp</span><span class="en" lang="en">FAQ</span></a></li>
+      </ol>
+      <a class="btn btn-commit btn-large" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng trên web</span><span class="en" lang="en">Use it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section class="hero wrap" id="top">
+  <div class="hero-text">
+    <h1 data-hero><span class="vi" lang="vi">Một hội đồng AI <span class="grad">cãi nhau</span> trước khi bạn đọc phân tích</span><span class="en" lang="en">A council of AI analysts <span class="grad">argues</span> before you read the analysis</span></h1>
+    <p class="lead" data-hero><span class="vi" lang="vi">Trợ lý AI mã nguồn mở cho chứng khoán Việt Nam và Mỹ, vàng và crypto: lập luận hai phía, bằng chứng, rủi ro. Quyết định là của bạn.</span><span class="en" lang="en">An open-source AI assistant for Vietnamese and US stocks, gold and crypto: both sides, the evidence, the risks. The decision is yours.</span></p>
+    <div class="cta-row" data-hero>
+      <a class="btn btn-ai btn-large" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng trên web</span><span class="en" lang="en">Use it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      <a class="btn btn-large" href="#install"><span class="vi" lang="vi">Cài trên máy</span><span class="en" lang="en">Install on your machine</span></a>
+    </div>
+    <p class="riskline" data-hero><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span><span class="vi" lang="vi">Dùng key AI của bạn. Công cụ phân tích, không phải lời khuyên đầu tư.</span><span class="en" lang="en">Uses your own AI key. An analysis tool, not investment advice.</span></span></p>
+  </div>
+  <figure class="hero-art" data-hero-art>
+    <div class="win">
+      <div class="win-bar"><i></i><i></i><i></i><span>openalpha</span><em class="live"><b aria-hidden="true"></b><span class="vi" lang="vi">đang làm việc</span><span class="en" lang="en">at work</span></em></div>
+      <img class="vi" lang="vi" src="office-app-vi.png" width="1340" height="719" alt="Văn phòng pixel của OpenAlpha: kho dữ liệu, thư viện, phòng họp nơi các AI tranh luận, quầy cảnh báo và bàn của bạn" loading="lazy" />
+      <img class="en" lang="en" src="office-app-en.png" width="1340" height="719" alt="OpenAlpha's pixel office: data store, library, the meeting room where the AIs debate, alert desk and your desk" loading="lazy" />
+      <button class="zoom-btn" type="button" data-zoom-open aria-haspopup="dialog"><svg class="icon" aria-hidden="true"><use href="#i-zoom"/></svg><span class="vi" lang="vi">Phóng to</span><span class="en" lang="en">Zoom in</span></button>
+    </div>
+    <div class="float-tag glass"><span class="tag-ic"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg></span><span><span class="vi" lang="vi">Phòng họp: hai phe đang cãi nhau</span><span class="en" lang="en">Meeting room: two sides arguing</span></span></div>
+  </figure>
+</section>
+
+<div class="journey wrap">
+
+<section class="sec" id="how">
+  <i class="rail" aria-hidden="true"><b></b></i><i class="pin" aria-hidden="true">01</i>
+  <div class="sec-head" data-reveal data-delay="0.00">
+    <p class="eyebrow"><span class="no">01</span><span class="vi" lang="vi">Cách hoạt động</span><span class="en" lang="en">How it works</span></p>
+    <h2><span class="vi" lang="vi">Mỗi phân tích đi qua năm chặng</span><span class="en" lang="en">Every analysis goes through five steps</span></h2>
+    <p><span class="vi" lang="vi">Số liệu do chương trình tính. AI chỉ lo phần &ldquo;vì sao&rdquo;, và mỗi lập luận phải có nguồn.</span><span class="en" lang="en">The program computes the numbers. The AI only handles the &ldquo;why&rdquo;, and every argument needs a source.</span></p>
+  </div>
+  <ol class="steps">
+      <li class="step" style="--c: var(--tc-blue)" data-reveal data-delay="0.00">
+        <span class="step-top"><span class="num">01</span><span class="tile"><svg class="icon" aria-hidden="true"><use href="#i-database"/></svg></span></span>
+        <h3><span class="vi" lang="vi">Dữ liệu công khai</span><span class="en" lang="en">Public data</span></h3>
+        <p><span class="vi" lang="vi">Giá, báo cáo, vĩ mô, kèm nơi lấy.</span><span class="en" lang="en">Prices, statements, macro, with where each came from.</span></p>
+      </li>
+      <li class="step" style="--c: var(--tc-green)" data-reveal data-delay="0.08">
+        <span class="step-top"><span class="num">02</span><span class="tile"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></span></span>
+        <h3><span class="vi" lang="vi">Số liệu tính sẵn</span><span class="en" lang="en">Numbers worked out first</span></h3>
+        <p><span class="vi" lang="vi">Định giá, xu hướng, dòng tiền do chương trình tính. AI chỉ trích lại, không tự đặt ra số.</span><span class="en" lang="en">Valuation, trend and money flow are computed by the program. The AI only quotes them and never makes up a number.</span></p>
+      </li>
+      <li class="step" style="--c: var(--tc-pink)" data-reveal data-delay="0.16">
+        <span class="step-top"><span class="num">03</span><span class="tile"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg></span></span>
+        <h3><span class="vi" lang="vi">Hai phía lập luận</span><span class="en" lang="en">Two sides make their case</span></h3>
+        <p><span class="vi" lang="vi">Phe tăng và phe giảm, mỗi bên một lập luận có nguồn; từng luận điểm được kiểm lại.</span><span class="en" lang="en">A bull and a bear, each arguing from sources; every claim is checked.</span></p>
+      </li>
+      <li class="step" style="--c: var(--tc-violet)" data-reveal data-delay="0.00">
+        <span class="step-top"><span class="num">04</span><span class="tile"><svg class="icon" aria-hidden="true"><use href="#i-target"/></svg></span></span>
+        <h3><span class="vi" lang="vi">Soát từng khẳng định</span><span class="en" lang="en">Every claim checked</span></h3>
+        <p><span class="vi" lang="vi">Dữ liệu phản bác thì bị gạch; chưa kiểm được thì ghi rõ.</span><span class="en" lang="en">Claims the data refutes are struck; unchecked ones are flagged.</span></p>
+      </li>
+      <li class="step" style="--c: var(--tc-yellow)" data-reveal data-delay="0.08">
+        <span class="step-top"><span class="num">05</span><span class="tile"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg></span></span>
+        <h3><span class="vi" lang="vi">Bạn đọc và tự quyết</span><span class="en" lang="en">You read and decide</span></h3>
+        <p><span class="vi" lang="vi">Mọi quyết định, và lệnh nếu có, đều do bạn.</span><span class="en" lang="en">Every decision, and any order, is yours.</span></p>
+      </li>
+  </ol>
+
+  <figure class="sources" data-reveal data-delay="0.00">
+    <img class="vi" lang="vi" src="sources-vi.png" width="1600" height="837" loading="lazy" decoding="async" alt="Danh sách nguồn dữ liệu công khai chia theo thị trường: cổ phiếu Việt Nam, cổ phiếu Mỹ, tiền mã hóa, vàng trong nước và thế giới, vĩ mô Việt Nam và Mỹ, và các nguồn dùng chung" />
+    <img class="en" lang="en" src="sources-en.png" width="1600" height="837" loading="lazy" decoding="async" alt="The list of public data sources grouped by market: Vietnamese stocks, US stocks, crypto, domestic and world gold, Vietnam and US macro, and sources shared by every market" />
+    <figcaption class="fine"><span class="vi" lang="vi">Danh sách nguồn của bản cài trên máy. Bản web đọc phần nhỏ hơn mà trình duyệt truy cập được.</span><span class="en" lang="en">The installed version's source list. The web edition reads the subset a browser can reach.</span></figcaption>
+  </figure>
+
+  <article class="card debate" data-reveal data-delay="0.00">
+    <header class="card-head">
+      <h3><span class="vi" lang="vi">Một phân tích minh họa</span><span class="en" lang="en">A sample analysis</span></h3>
+      <span class="chip"><span class="vi" lang="vi">Minh họa · mã XXX</span><span class="en" lang="en">Illustration · ticker XXX</span></span>
+    </header>
+    <div class="sides">
+      <div class="side for" style="--c: var(--tc-green)">
+        <p class="side-title"><span class="vi" lang="vi">Vì sao XXX có thể tăng</span><span class="en" lang="en">Why XXX could rise</span></p>
+        <p class="quote"><span class="vi" lang="vi">&ldquo;Định giá thấp hơn mức bình quân của chính nó.&rdquo;</span><span class="en" lang="en">&ldquo;Valued below its own historical average.&rdquo;</span> <b>[1]</b></p>
+      </div>
+      <div class="side against" style="--c: var(--tc-pink)">
+        <p class="side-title"><span class="vi" lang="vi">Vì sao XXX có thể giảm</span><span class="en" lang="en">Why XXX could fall</span></p>
+        <p class="quote"><span class="vi" lang="vi">&ldquo;Bốn quý gần nhất chưa kiểm toán.&rdquo;</span><span class="en" lang="en">&ldquo;The latest four quarters are unaudited.&rdquo;</span> <b>[2]</b></p>
+        <p class="quote"><span class="vi" lang="vi">&ldquo;Khối lượng giao dịch mỏng.&rdquo;</span><span class="en" lang="en">&ldquo;Trading volume is thin.&rdquo;</span> <b>[3]</b></p>
+      </div>
+    </div>
+    <div class="claims" aria-label="Kết quả soát nguồn" data-aria-vi="Kết quả soát nguồn" data-aria-en="Source check results">
+      <span class="claim ok"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span class="vi" lang="vi">[1] khớp dữ liệu</span><span class="en" lang="en">[1] matches the data</span></span>
+      <span class="claim ok"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span class="vi" lang="vi">[2] khớp dữ liệu</span><span class="en" lang="en">[2] matches the data</span></span>
+      <span class="claim no"><svg class="icon" aria-hidden="true"><use href="#i-warning"/></svg><span class="vi" lang="vi">[3] dữ liệu phản bác: bị gạch</span><span class="en" lang="en">[3] refuted by the data: struck</span></span>
+    </div>
+  </article>
+</section>
+
+
+<section class="sec" id="get">
+  <i class="rail" aria-hidden="true"><b></b></i><i class="pin" aria-hidden="true">02</i>
+  <div class="sec-head" data-reveal data-delay="0.00">
+    <p class="eyebrow"><span class="no">02</span><span class="vi" lang="vi">Bạn nhận được gì</span><span class="en" lang="en">What you get</span></p>
+    <h2><span class="vi" lang="vi">Năm việc mình làm cho bạn</span><span class="en" lang="en">Five jobs it does for you</span></h2>
+    <p><span class="vi" lang="vi">Cho chứng khoán Việt Nam và Mỹ, vàng và crypto. Bản web chưa có cổ phiếu Mỹ.</span><span class="en" lang="en">For Vietnamese and US stocks, gold and crypto. The web edition does not cover US stocks yet.</span></p>
+  </div>
+  <div class="bento">
+    <article class="card" data-reveal data-delay="0.00">
+      <span class="tile" style="--c: var(--tc-pink)"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg></span>
+      <h3><span class="vi" lang="vi">Phân tích một mã</span><span class="en" lang="en">Analysis of one ticker</span></h3>
+      <p><span class="vi" lang="vi">Lập luận hai phía, bằng chứng, rủi ro, và điều gì sẽ chứng minh nó sai.</span><span class="en" lang="en">Both sides, evidence, risks, and what would prove it wrong.</span></p>
+    </article>
+    <article class="card" data-reveal data-delay="0.08">
+      <span class="tile" style="--c: var(--tc-violet)"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></span>
+      <h3><span class="vi" lang="vi">Bảng yếu tố</span><span class="en" lang="en">Factor screen</span></h3>
+      <p><span class="vi" lang="vi">Xem một mã đứng ở đâu so với cả sàn.</span><span class="en" lang="en">See where a ticker stands against the whole board.</span></p>
+    </article>
+    <article class="card" data-reveal data-delay="0.16">
+      <span class="tile" style="--c: var(--tc-blue)"><svg class="icon" aria-hidden="true"><use href="#i-pie"/></svg></span>
+      <h3><span class="vi" lang="vi">Sổ lệnh và danh mục</span><span class="en" lang="en">Ledger and portfolio</span></h3>
+      <p><span class="vi" lang="vi">Ghi giao dịch, xem tỷ trọng. Chỉ là sổ ghi chép.</span><span class="en" lang="en">Record trades, see weights. A notebook only.</span></p>
+    </article>
+    <article class="card" data-reveal data-delay="0.00">
+      <span class="tile" style="--c: var(--tc-yellow)"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg></span>
+      <h3><span class="vi" lang="vi">Bản tin sáng</span><span class="en" lang="en">Morning brief</span></h3>
+      <p><span class="vi" lang="vi">Tóm tắt thị trường trước giờ mở cửa.</span><span class="en" lang="en">A market summary before the open.</span></p>
+    </article>
+    <article class="card" data-reveal data-delay="0.08">
+      <span class="tile" style="--c: var(--tc-teal)"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span>
+      <h3><span class="vi" lang="vi">Nghiên cứu có trích nguồn</span><span class="en" lang="en">Research with citations</span></h3>
+      <p><span class="vi" lang="vi">Câu trả lời kèm liên kết nguồn để bạn tự kiểm tra.</span><span class="en" lang="en">Answers come with source links you can check.</span></p>
+    </article>
+  </div>
+</section>
+
+
+<section class="sec" id="compare">
+  <i class="rail" aria-hidden="true"><b></b></i><i class="pin" aria-hidden="true">03</i>
+  <div class="sec-head" data-reveal data-delay="0.00">
+    <p class="eyebrow"><span class="no">03</span><span class="vi" lang="vi">Web và bản cài</span><span class="en" lang="en">Web vs installed</span></p>
+    <h2><span class="vi" lang="vi">Xem thử trên web, dùng đầy đủ trên máy bạn</span><span class="en" lang="en">Try it on the web, use it fully on your machine</span></h2>
+    <p><span class="vi" lang="vi">Web để xem OpenAlpha làm việc; bản cài là bản đầy đủ.</span><span class="en" lang="en">The web edition shows how it works; the installed version is the full one.</span></p>
+  </div>
+  <div class="cmp">
+    <article class="card col" data-reveal data-delay="0.00">
+      <h3><span class="tile" style="--c: var(--tc-blue)"><svg class="icon" aria-hidden="true"><use href="#i-globe"/></svg></span><span class="vi" lang="vi">Bản web</span><span class="en" lang="en">Web edition</span></h3>
+      <ul role="list">
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Mở là dùng, không cần tài khoản</span><span class="en" lang="en">Open and use, no account</span></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Chỉ phân tích: hai phía viết riêng, kiểm từng luận điểm</span><span class="en" lang="en">Analysis only: two sides written apart, every claim checked</span></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Sổ và key nằm trong trình duyệt</span><span class="en" lang="en">Ledger and key stay in the browser</span></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Bản tin sáng khi trang đang mở</span><span class="en" lang="en">Morning brief while the page is open</span></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Không có cảnh báo, không nối sàn</span><span class="en" lang="en">No alerts, no exchange link</span></span></li>
+      </ul>
+      <a class="btn btn-ai btn-large" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng trên web</span><span class="en" lang="en">Use it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+    </article>
+    <article class="card col" data-reveal data-delay="0.00">
+      <h3><span class="tile" style="--c: var(--tc-violet)"><svg class="icon" aria-hidden="true"><use href="#i-cpu"/></svg></span><span class="vi" lang="vi">Bản cài trên máy</span><span class="en" lang="en">Installed version</span></h3>
+      <ul role="list">
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Cài một lần, chạy thường trực</span><span class="en" lang="en">Install once, runs all the time</span></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Phân tích đầy đủ: hai phía tranh luận, tổng hợp, trader và quản trị rủi ro</span><span class="en" lang="en">The full analysis: debate, synthesis, trader and risk review</span></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Sổ và key nằm trên máy bạn</span><span class="en" lang="en">Ledger and key stay on your machine</span></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Bản tin đúng giờ qua Telegram, Zalo</span><span class="en" lang="en">On-time brief over Telegram or Zalo</span></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span><span class="vi" lang="vi">Cảnh báo, tùy chọn nối sàn; mỗi lệnh chờ bạn xác nhận</span><span class="en" lang="en">Alerts, optional exchange link; each order waits for you</span></span></li>
+      </ul>
+      <a class="btn btn-commit btn-large" href="#install"><span class="vi" lang="vi">Cài trên máy</span><span class="en" lang="en">Install on your machine</span></a>
+    </article>
+  </div>
+
+  <div class="install card" id="install" data-reveal data-delay="0.00">
+    <div class="install-copy">
+      <h3><span class="vi" lang="vi">Cài bằng một dòng lệnh</span><span class="en" lang="en">Install with one command</span></h3>
+      <p><span class="vi" lang="vi">Trình cài hỏi vài câu rồi tự thử mô hình.</span><span class="en" lang="en">The installer asks a few questions, then tests the model.</span></p>
+    </div>
+    <div class="term" data-tabs>
+      <div class="term-bar">
+        <div class="seg" role="tablist" aria-label="Hệ điều hành" data-aria-vi="Hệ điều hành" data-aria-en="Operating system">
+          <button type="button" role="tab" id="tab-unix" aria-selected="true" aria-controls="pane-unix" class="is-on">macOS · Linux</button>
+          <button type="button" role="tab" id="tab-win" aria-selected="false" aria-controls="pane-win" tabindex="-1">Windows</button>
+        </div>
+        <button type="button" class="btn btn-small btn-ghost copy" data-copy><span class="vi" lang="vi">Sao chép</span><span class="en" lang="en">Copy</span></button>
+      </div>
+      <pre id="pane-unix" role="tabpanel" tabindex="0" aria-labelledby="tab-unix"><code><span class="c"># macOS, Linux</span>
+<span class="p">$</span> curl -fsSL https://raw.githubusercontent.com/alex2loop/openalpha/main/install.sh | sh</code></pre>
+      <pre id="pane-win" role="tabpanel" tabindex="0" aria-labelledby="tab-win" hidden><code><span class="c"># Windows (PowerShell)</span>
+<span class="p">&gt;</span> irm https://raw.githubusercontent.com/alex2loop/openalpha/main/install.ps1 | iex</code></pre>
+    </div>
+  </div>
+</section>
+
+
+<section class="sec" id="privacy">
+  <i class="rail" aria-hidden="true"><b></b></i><i class="pin" aria-hidden="true">04</i>
+  <div class="sec-head" data-reveal data-delay="0.00">
+    <p class="eyebrow"><span class="no">04</span><span class="vi" lang="vi">Riêng tư</span><span class="en" lang="en">Privacy</span></p>
+    <h2><span class="vi" lang="vi">Dữ liệu của bạn ở lại trên thiết bị của bạn</span><span class="en" lang="en">Your data stays on your device</span></h2>
+    <p><span class="vi" lang="vi">Không cần tài khoản. Sổ, key và kết quả không bao giờ được gửi về máy chủ OpenAlpha.</span><span class="en" lang="en">No account. Your ledger, keys and results are never sent to an OpenAlpha server.</span></p>
+  </div>
+  <div class="trio">
+    <article class="card" data-reveal data-delay="0.00">
+      <span class="tile" style="--c: var(--tc-blue)"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></span>
+      <h3><span class="vi" lang="vi">Sổ và kết quả</span><span class="en" lang="en">Ledger and results</span></h3>
+      <p><span class="vi" lang="vi">Nằm trong trình duyệt hoặc trên máy bạn; OpenAlpha không giữ bản sao nào.</span><span class="en" lang="en">They live in your browser or on your machine; OpenAlpha keeps no copy.</span></p>
+    </article>
+    <article class="card" data-reveal data-delay="0.08">
+      <span class="tile" style="--c: var(--tc-violet)"><svg class="icon" aria-hidden="true"><use href="#i-plug"/></svg></span>
+      <h3><span class="vi" lang="vi">Key AI</span><span class="en" lang="en">AI key</span></h3>
+      <p><span class="vi" lang="vi">Chỉ được gửi tới nhà cung cấp AI bạn chọn.</span><span class="en" lang="en">Sent only to the AI provider you choose.</span></p>
+    </article>
+    <article class="card" data-reveal data-delay="0.16">
+      <span class="tile" style="--c: var(--tc-green)"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></span>
+      <h3><span class="vi" lang="vi">AI không thấy tiền của bạn</span><span class="en" lang="en">The AI never sees your money</span></h3>
+      <p><span class="vi" lang="vi">Không bao giờ thấy số dư hay giá bạn đã mua.</span><span class="en" lang="en">It never sees a balance or a price you paid.</span></p>
+    </article>
+  </div>
+</section>
+
+
+<section class="sec" id="oss">
+  <i class="rail" aria-hidden="true"><b></b></i><i class="pin" aria-hidden="true">05</i>
+  <div class="sec-head" data-reveal data-delay="0.00">
+    <p class="eyebrow"><span class="no">05</span><span class="vi" lang="vi">Mã nguồn mở</span><span class="en" lang="en">Open source</span></p>
+    <h2><span class="vi" lang="vi">Đọc được từng dòng</span><span class="en" lang="en">Readable line by line</span></h2>
+    <p><span class="vi" lang="vi">Giấy phép MIT. Thấy sai thì báo, thấy thiếu thì góp.</span><span class="en" lang="en">MIT licence. Report what is wrong, contribute what is missing.</span></p>
+  </div>
+  <div class="cta-row" data-reveal data-delay="0.00" style="margin-top:0">
+    <a class="btn btn-commit btn-large vi" lang="vi" href="https://github.com/alex2loop/openalpha/blob/main/README.vi.md" target="_blank" rel="noopener noreferrer">Xem trên GitHub<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(mở tab mới)</span></a><a class="btn btn-commit btn-large en" lang="en" href="https://github.com/alex2loop/openalpha/blob/main/README.md" target="_blank" rel="noopener noreferrer">View on GitHub<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(opens in a new tab)</span></a>
+    <a class="btn btn-large btn-coffee" href="https://buymeacoffee.com/alex2loop" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">☕</span><span class="vi" lang="vi">Mời một ly cà phê</span><span class="en" lang="en">Buy me a coffee</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+  </div>
+  <p class="fine"><span class="vi" lang="vi">Ủng hộ là tự nguyện, không mở thêm tính năng hay hỗ trợ riêng.</span><span class="en" lang="en">Support is voluntary and unlocks no feature or private support.</span></p>
+</section>
+
+
+<section class="sec" id="faq">
+  <i class="rail" aria-hidden="true"><b></b></i><i class="pin" aria-hidden="true">06</i>
+  <div class="sec-head" data-reveal data-delay="0.00">
+    <p class="eyebrow"><span class="no">06</span><span class="vi" lang="vi">Hỏi đáp</span><span class="en" lang="en">FAQ</span></p>
+    <h2><span class="vi" lang="vi">Những câu mình hay được hỏi</span><span class="en" lang="en">Questions people ask most</span></h2>
+    <p><span class="vi" lang="vi">Cần thêm? Hỏi trong <a href="https://zalo.me/g/yl7iqyfovvtyosujulea" target="_blank" rel="noopener noreferrer">nhóm Zalo<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(mở tab mới)</span></a>.</span><span class="en" lang="en">Need more? Ask in the <a href="https://zalo.me/g/yl7iqyfovvtyosujulea" target="_blank" rel="noopener noreferrer">Zalo group<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(opens in a new tab)</span></a>.</span></p>
+  </div>
+  <div class="faq">
+    <details class="qa" data-reveal data-delay="0.00">
+      <summary><span><span class="vi" lang="vi">Đây có phải lời khuyên đầu tư không?</span><span class="en" lang="en">Is this investment advice?</span></span><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+      <div class="qa-body"><p><span class="vi" lang="vi">Không. OpenAlpha là công cụ phân tích; phân tích có thể sai, quyết định và rủi ro là của bạn.</span><span class="en" lang="en">No. OpenAlpha is an analysis tool; the analysis can be wrong, and the decision and risk are yours.</span></p></div>
+    </details>
+    <details class="qa" data-reveal data-delay="0.08">
+      <summary><span><span class="vi" lang="vi">Cần gì để dùng bản web?</span><span class="en" lang="en">What does the web edition need?</span></span><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+      <div class="qa-body"><p><span class="vi" lang="vi">Một trình duyệt mới (Chrome, Edge, Firefox hoặc Safari). Sổ và bảng yếu tố dùng ngay, không cần key (lần đầu mở, bảng yếu tố cần vài phút tải lịch sử giá); phân tích cần key AI của bạn (OpenRouter, OpenAI, DeepSeek, Anthropic, Google Gemini, xAI hoặc Mistral).</span><span class="en" lang="en">A recent browser (Chrome, Edge, Firefox or Safari). The ledger and factor screen need no key (on the first visit the factor screen needs a few minutes to load price history); analysis needs your own AI key (OpenRouter, OpenAI, DeepSeek, Anthropic, Google Gemini, xAI or Mistral).</span></p></div>
+    </details>
+    <details class="qa" data-reveal data-delay="0.16">
+      <summary><span><span class="vi" lang="vi">Key AI được gửi đi đâu?</span><span class="en" lang="en">Where does the AI key go?</span></span><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+      <div class="qa-body"><p><span class="vi" lang="vi">Chỉ tới nhà cung cấp AI bạn chọn, không qua máy chủ của OpenAlpha.</span><span class="en" lang="en">Only to the AI provider you choose, never through OpenAlpha's server.</span></p></div>
+    </details>
+    <details class="qa" data-reveal data-delay="0.00">
+      <summary><span><span class="vi" lang="vi">Dùng OpenAlpha tốn bao nhiêu?</span><span class="en" lang="en">What does it cost to use?</span></span><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+      <div class="qa-body"><p><span class="vi" lang="vi">OpenAlpha là mã nguồn mở (MIT). Bạn chỉ trả nhà cung cấp AI bạn chọn, cộng dịch vụ tìm kiếm nếu bạn dùng loại tính phí; nên tạo một key riêng có hạn mức chi.</span><span class="en" lang="en">OpenAlpha is open source (MIT). You only pay the AI provider you choose, plus a search service if you use a paid one; create a separate key with a spending limit.</span></p></div>
+    </details>
+    <details class="qa" data-reveal data-delay="0.08">
+      <summary><span><span class="vi" lang="vi">Có nối vào tài khoản chứng khoán không?</span><span class="en" lang="en">Does it connect to my brokerage account?</span></span><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+      <div class="qa-body"><p><span class="vi" lang="vi">Không. Với cổ phiếu, sổ là sổ ghi chép bạn tự nhập. Bản cài chỉ nối được sàn crypto khi bạn tự khai key, và mỗi lệnh chờ bạn xác nhận.</span><span class="en" lang="en">No. For stocks the ledger is a notebook you fill in yourself. The installed version links only to crypto exchanges, and only with a key you add; every order waits for your confirmation.</span></p></div>
+    </details>
+  </div>
+</section>
+
+
+<section class="sec final-sec" id="start">
+  <i class="rail" aria-hidden="true"><b></b></i><i class="pin end" aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></i>
+  <div class="final" data-reveal data-delay="0.00">
+    <p class="eyebrow"><span class="vi" lang="vi">Bắt đầu</span><span class="en" lang="en">Get started</span></p>
+    <h2><span class="vi" lang="vi">Xem hội đồng AI làm việc trên mã bạn quan tâm</span><span class="en" lang="en">Watch the AI council work on a ticker you care about</span></h2>
+    <div class="cta-row center">
+      <a class="btn btn-white btn-large" href="https://example.com/" data-app-link target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Dùng trên web</span><span class="en" lang="en">Use it on the web</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      <a class="btn btn-ghost-white btn-large" href="#install"><span class="vi" lang="vi">Cài trên máy</span><span class="en" lang="en">Install on your machine</span></a>
+    </div>
+  </div>
+</section>
+</div>
+</main>
+<dialog class="zoom" id="zoom" aria-label="Văn phòng OpenAlpha" data-aria-vi="Văn phòng OpenAlpha" data-aria-en="OpenAlpha office">
+  <button class="zoom-close" type="button" data-zoom-close><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg><span class="sr"><span class="vi" lang="vi">Đóng</span><span class="en" lang="en">Close</span></span></button>
+  <img class="vi" lang="vi" src="office-app-vi.png" width="1340" height="719" alt="Văn phòng pixel của OpenAlpha, cỡ lớn" loading="lazy" />
+  <img class="en" lang="en" src="office-app-en.png" width="1340" height="719" alt="OpenAlpha's pixel office, large" loading="lazy" />
+</dialog>
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-top">
+      <a class="brand" href="#top" aria-label="OpenAlpha"><img src="logo.svg" width="28" height="28" alt="" /><span>OpenAlpha</span></a>
+      <nav class="foot-nav" aria-label="Liên kết" data-aria-vi="Liên kết" data-aria-en="Links">
+        <a class="vi" lang="vi" href="https://github.com/alex2loop/openalpha/blob/main/README.vi.md" target="_blank" rel="noopener noreferrer">GitHub<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(mở tab mới)</span></a><a class="en" lang="en" href="https://github.com/alex2loop/openalpha/blob/main/README.md" target="_blank" rel="noopener noreferrer">GitHub<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(opens in a new tab)</span></a>
+        <a class="vi" lang="vi" href="https://github.com/alex2loop/openalpha/tree/main/docs" target="_blank" rel="noopener noreferrer">Tài liệu<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(mở tab mới)</span></a><a class="en" lang="en" href="https://github.com/alex2loop/openalpha/tree/main/docs/en" target="_blank" rel="noopener noreferrer">Docs<svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr">(opens in a new tab)</span></a>
+        <a class="" href="https://github.com/alex2loop/openalpha/releases" target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Bản phát hành</span><span class="en" lang="en">Releases</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+        <a class="" href="https://zalo.me/g/yl7iqyfovvtyosujulea" target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Nhóm Zalo</span><span class="en" lang="en">Zalo group</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+        <a class="" href="https://github.com/alex2loop/openalpha/blob/main/LICENSE" target="_blank" rel="noopener noreferrer"><span class="vi" lang="vi">Giấy phép MIT</span><span class="en" lang="en">MIT licence</span><svg class="icon ext" aria-hidden="true"><use href="#i-ext"/></svg><span class="sr"><span class="vi" lang="vi">(mở tab mới)</span><span class="en" lang="en">(opens in a new tab)</span></span></a>
+      </nav>
+    </div>
+    <div class="notice" role="note">
+      <p><svg class="icon" aria-hidden="true"><use href="#i-warning"/></svg><span><span class="vi" lang="vi"><strong>Không phải khuyến nghị đầu tư.</strong> Đầu tư luôn có rủi ro, kể cả mất vốn; mọi quyết định là của bạn.</span><span class="en" lang="en"><strong>Not investment advice.</strong> Investing always carries risk, including losing capital; every decision is yours.</span></span></p>
+      <p><svg class="icon" aria-hidden="true"><use href="#i-cpu"/></svg><span><span class="vi" lang="vi">Phân tích trong OpenAlpha do AI tạo ra, có thể sai hoặc lỗi thời; hãy đối chiếu với nguồn đi kèm. Ví dụ trên trang này là minh họa.</span><span class="en" lang="en">Analyses in OpenAlpha are AI-generated and can be wrong or out of date; check them against the attached sources. Examples on this page are illustrations.</span></span></p>
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+const MOTION_URL = "vendor/motion-13.5.1.js";
+const MOTION_BAIL_MS = 5000;
+const COPY_RESET_MS = 1600;
+const LANG_STORAGE_KEY = "oa.lang";
+const THEME_STORAGE_KEY = "office.theme";
+const THEMES = ["system", "light", "dark"];
+const THEME_LABEL_KEYS = { system: "themeAuto", light: "themeLight", dark: "themeDark" };
+const EASE = [0.22, 1, 0.36, 1];
+const RISE_SECONDS = 0.75;
+const HERO_STAGGER_SECONDS = 0.06;
+const HERO_RISE_PX = 16;
+const HERO_ART_DELAY_SECONDS = 0.25;
+const HERO_ART_RISE_PX = 28;
+const REVEAL_RISE_PX = 18;
+const TITLES = {
+  vi: 'OpenAlpha: hội đồng AI tranh luận trước khi bạn đọc phân tích',
+  en: document.title,
+};
+const TEXT = {
+  vi: {
+    themeAuto: "Giao diện: theo hệ thống",
+    themeLight: "Giao diện: sáng",
+    themeDark: "Giao diện: tối",
+    copy: "Sao chép",
+    copied: "Đã chép",
+  },
+  en: {
+    themeAuto: "Theme: system",
+    themeLight: "Theme: light",
+    themeDark: "Theme: dark",
+    copy: "Copy",
+    copied: "Copied",
+  },
+};
+
+const root = document.documentElement;
+const query = (selector, scope = document) => scope.querySelector(selector);
+const queryAll = (selector, scope = document) => [...scope.querySelectorAll(selector)];
+const store = {
+  get(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* storage blocked: the choice lasts this visit only */
+    }
+  },
+};
+
+/* Language: ?lang=vi|en in the link wins, then the saved choice, else English. */
+const lang = () => (root.lang === "vi" ? "vi" : "en");
+
+function setLang(next) {
+  root.lang = next;
+  document.title = TITLES[next];
+
+  for (const button of queryAll("[data-lang]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.lang === next));
+  }
+
+  for (const element of queryAll("[data-aria-vi]")) {
+    element.setAttribute("aria-label", element.dataset[next === "en" ? "ariaEn" : "ariaVi"]);
+  }
+
+  for (const link of queryAll("[data-app-link]")) {
+    const url = new URL(link.getAttribute("href"), location.href);
+
+    url.searchParams.set("lang", next);
+    link.setAttribute("href", url.toString());
+  }
+
+  renderTheme();
+  store.set(LANG_STORAGE_KEY, next);
+}
+
+for (const button of queryAll("[data-lang]")) {
+  button.addEventListener("click", () => setLang(button.dataset.lang));
+}
+
+/* Theme: system -> light -> dark, the dashboard's data-theme switch. */
+let theme = THEMES.includes(store.get(THEME_STORAGE_KEY)) ? store.get(THEME_STORAGE_KEY) : "system";
+
+function renderTheme() {
+  if (theme === "system") {
+    root.removeAttribute("data-theme");
+  } else {
+    root.setAttribute("data-theme", theme);
+  }
+
+  const label = TEXT[lang()][THEME_LABEL_KEYS[theme]];
+  const toggle = query("#theme");
+
+  toggle.setAttribute("aria-label", label);
+  toggle.title = label;
+  query("#theme-label").textContent = label;
+}
+
+query("#theme").addEventListener("click", () => {
+  theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+  store.set(THEME_STORAGE_KEY, theme);
+  renderTheme();
+});
+
+setLang(lang());
+
+/* Install tabs and copy. */
+const terminal = query("[data-tabs]");
+const tabs = queryAll('[role="tab"]', terminal);
+let copiedTimer;
+
+function selectTab(selected) {
+  for (const tab of tabs) {
+    const isOn = tab === selected;
+
+    tab.setAttribute("aria-selected", String(isOn));
+    tab.classList.toggle("is-on", isOn);
+    tab.tabIndex = isOn ? 0 : -1;
+    query("#" + tab.getAttribute("aria-controls")).hidden = !isOn;
+  }
+}
+
+for (const tab of tabs) {
+  tab.addEventListener("click", () => selectTab(tab));
+  tab.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+      return;
+    }
+
+    const step = event.key === "ArrowRight" ? 1 : tabs.length - 1;
+    const next = tabs[(tabs.indexOf(tab) + step) % tabs.length];
+
+    selectTab(next);
+    next.focus();
+  });
+}
+
+query("[data-copy]").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const pane = query('[role="tabpanel"]:not([hidden])', terminal);
+  const command = pane.textContent
+    .split("\n")
+    .filter((text) => !text.startsWith("#"))
+    .join("")
+    .replace(/^[$>]\s*/, "")
+    .trim();
+
+  try {
+    await navigator.clipboard.writeText(command);
+  } catch {
+    return;
+  }
+
+  const label = query(`.${lang()}`, button);
+
+  label.textContent = TEXT[lang()].copied;
+  clearTimeout(copiedTimer);
+  copiedTimer = setTimeout(() => {
+    label.textContent = TEXT[lang()].copy;
+  }, COPY_RESET_MS);
+});
+
+/* Header: one sentinel at the top flips data-scrolled (hairline + blur), no scroll handler. */
+const bar = query("#bar");
+const scrollObserver = new IntersectionObserver(([entry]) => {
+  root.toggleAttribute("data-scrolled", !entry.isIntersecting);
+});
+
+scrollObserver.observe(query(".sentinel"));
+
+/* Mobile menu: closes on a link, Escape or when the desktop nav takes over. */
+const burger = query("#burger");
+const isMenuOpen = () => burger.getAttribute("aria-expanded") === "true";
+
+function setMenu(open) {
+  burger.setAttribute("aria-expanded", String(open));
+  bar.classList.toggle("menu-open", open);
+}
+
+burger.addEventListener("click", () => setMenu(!isMenuOpen()));
+
+for (const link of queryAll("#menu a")) {
+  link.addEventListener("click", () => setMenu(false));
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && isMenuOpen()) {
+    setMenu(false);
+    burger.focus();
+  }
+});
+matchMedia("(min-width: 1024px)").addEventListener("change", (event) => {
+  if (event.matches) {
+    setMenu(false);
+  }
+});
+
+/* Journey: the nav marks the section being read; a pin lights once the reading line (60% of the
+   viewport) has passed it, including nodes already above the fold after an anchor jump. */
+const navLinks = queryAll(".nav a");
+const spy = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (!entry.isIntersecting) {
+      continue;
+    }
+
+    for (const link of navLinks) {
+      link.setAttribute("aria-current", String(link.getAttribute("href") === "#" + entry.target.id));
+    }
+  }
+}, { rootMargin: "-35% 0px -60% 0px" });
+const lit = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting || entry.boundingClientRect.top < 0) {
+      entry.target.classList.add("on");
+      lit.unobserve(entry.target);
+    }
+  }
+}, { rootMargin: "0px 0px -40% 0px" });
+
+for (const section of queryAll(".journey > .sec[id]")) {
+  spy.observe(section);
+}
+
+for (const pin of queryAll(".pin")) {
+  lit.observe(pin);
+}
+
+/* Motion (https://motion.dev, pinned in MOTION_URL). The reveals are hidden by CSS only while
+   .rv is on; if the library does not load, .rv comes off and the page simply shows. */
+/* The UMD build sets globalThis.Motion; served from this site so the page loads nothing from a CDN. */
+function loadMotion() {
+  return new Promise((resolve, reject) => {
+    const tag = document.createElement("script");
+
+    tag.src = MOTION_URL;
+    tag.onload = () => (window.Motion ? resolve(window.Motion) : reject(new Error("motion missing")));
+    tag.onerror = reject;
+    document.head.append(tag);
+  });
+}
+
+function settle(element) {
+  element.style.removeProperty("opacity");
+  element.style.removeProperty("transform");
+  element.setAttribute("data-shown", "");
+}
+
+async function startMotion() {
+  if (!root.classList.contains("rv")) {
+    return;
+  }
+
+  const bail = setTimeout(() => root.classList.remove("rv"), MOTION_BAIL_MS);
+  let motion;
+
+  try {
+    motion = await loadMotion();
+  } catch {
+    clearTimeout(bail);
+    root.classList.remove("rv");
+
+    return;
+  }
+
+  clearTimeout(bail);
+
+  const { animate, inView, scroll } = motion;
+  const rise = (element, delay, offsetY) =>
+    animate(
+      element,
+      { opacity: [0, 1], transform: [`translateY(${offsetY}px)`, "translateY(0px)"] },
+      { duration: RISE_SECONDS, delay, ease: EASE },
+    ).then(() => settle(element));
+
+  queryAll("[data-hero], [data-hero-art]").forEach((element, index) => {
+    if (element.hasAttribute("data-hero-art")) {
+      rise(element, HERO_ART_DELAY_SECONDS, HERO_ART_RISE_PX);
+    } else {
+      rise(element, HERO_STAGGER_SECONDS * index, HERO_RISE_PX);
+    }
+  });
+
+  /* The one scroll-linked effect: each rail segment fills as the reading line passes its section. */
+  for (const rail of queryAll(".rail")) {
+    const fill = animate(rail.firstElementChild, { transform: ["scaleY(0)", "scaleY(1)"] }, { ease: "linear" });
+
+    scroll(fill, { target: rail.parentElement, offset: ["start 60%", "end 60%"] });
+  }
+
+  for (const element of queryAll("[data-reveal]")) {
+    inView(element, () => {
+      rise(element, Number(element.dataset.delay || 0), REVEAL_RISE_PX);
+    }, { margin: "0px 0px -60px 0px" });
+  }
+}
+
+startMotion();
+</script>
+<script>
+(() => {
+  const dialog = document.getElementById('zoom');
+
+  if (!dialog || typeof dialog.showModal !== 'function') {
+    return;
+  }
+
+  const open = () => dialog.showModal();
+
+  document.querySelector('[data-zoom-open]').addEventListener('click', open);
+  document.querySelectorAll('.win img').forEach((image) => image.addEventListener('click', open));
+  dialog.addEventListener('click', () => dialog.close());
+})();
+</script>
+</body>
+</html>

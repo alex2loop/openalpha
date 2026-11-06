@@ -50,6 +50,14 @@
           "price": 143000000
         }
       ],
+      "sections": [
+        {
+          "kind": "premium",
+          "heading": "Domestic price",
+          "facts": [{ "id": "premium", "label": "Premium over world", "value": "3.12%" }]
+        }
+      ],
+      "sources": "Data from giavang, updated 08/10/2026 16:30",
       "caveats": [
         {
           "code": "source.futures-proxy",
@@ -189,6 +197,33 @@
         "decliners": 80,
         "measured": 148
       },
+      "sections": [
+        {
+          "kind": "derivatives",
+          "heading": "Derivatives (at 08/10/2026 16:30)",
+          "facts": [
+            { "id": "funding", "label": "Funding rate", "value": "▲ 0.01%" },
+            { "id": "openInterest", "label": "Open interest", "value": "12 billion USD" },
+            { "id": "oiRatio", "label": "Contracts vs 30-session", "value": "1.12×" },
+            { "id": "longShortRatio", "label": "Long/short ratio", "value": "1.80" }
+          ]
+        },
+        {
+          "kind": "taker-flow",
+          "heading": "Order flow (07/10/2026 session)",
+          "facts": [
+            { "id": "takerBuyPct", "label": "Buyers crossing the spread", "value": "51.2%" }
+          ]
+        },
+        {
+          "kind": "sentiment",
+          "heading": "Sentiment",
+          "facts": [
+            { "id": "sentimentScore", "label": "Fear and greed index", "value": "Fear 25/100" }
+          ]
+        }
+      ],
+      "sources": "Data from binance-futures, alternative-me, updated 08/10/2026 16:30",
       "caveats": [
         {
           "code": "market-data.evidence-settled-only",

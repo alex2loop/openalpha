@@ -6,20 +6,26 @@ import { BRIEF_COMMAND, BRIEF_NAME, FORCE_ARG } from '@/web/state/command'
 import { onCommandFinished } from '@/web/state/events'
 import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
+import { AiLabel } from '@/web/ui/kit/ai-label'
 import { Fold } from '@/web/ui/kit/fold'
+import { SectionHeading } from '@/web/ui/kit/section-heading'
 import { InlineMarkdown } from '@/web/ui/markdown/markdown'
 import { NoteList } from '@/web/ui/markdown/report-notes'
 import {
+  blockAnchor,
   briefOutline,
   CAUTIONS_ANCHOR,
   groupCautions,
+  type SectionBlock,
   type SectionRow,
   type StoryBlock,
   type StoryLine,
   sectionAnchor,
+  sectionBlocks,
   sectionRows,
   sectionTitle,
   storyBlocks,
+  VERDICT_ANCHOR,
 } from '@/web/ui/reader/brief-model'
 import { ReaderPage } from '@/web/ui/reader/page'
 
@@ -52,12 +58,13 @@ export function BriefPage({ content, onClose, onReload }: BriefPageProps) {
       onClose={onClose}
     >
       <div class="flow reader-brief">
-        <Verdict text={text} />
+        {text.aiGenerated !== false && <AiLabel />}
         {blocks.map((block) => (
           <Story key={block.id} block={block} />
         ))}
-        {text.sections.map((section) => (
-          <Section key={section.id} section={section} />
+        <Verdict text={text} />
+        {sectionBlocks(text.sections).map((block, index) => (
+          <Block key={blockAnchor(index)} id={blockAnchor(index)} block={block} />
         ))}
         <Cautions caveats={text.caveats} />
         <div class="reader-next">
@@ -90,8 +97,9 @@ function useReloadOnRewrite(onReload: () => void): void {
 
 function briefPlainText(text: BriefTextWire): string {
   return [
-    ...text.verdict,
     ...text.story.map((line) => line.text),
+    ...text.verdict,
+    ...(text.nextActions ?? []),
     ...text.sections.flatMap((section) => section.lines),
   ].join('\n')
 }
@@ -102,12 +110,14 @@ function Verdict({ text }: { readonly text: BriefTextWire }) {
 
   return (
     <>
+      {text.verdictTitle !== undefined && <SubHead id={VERDICT_ANCHOR} text={text.verdictTitle} />}
       {reading.map((line) => (
         <p key={line} class="lead">
           <InlineMarkdown text={line} />
         </p>
       ))}
       <Figures lines={figures} />
+      {(text.nextActions?.length ?? 0) > 0 && <Figures lines={text.nextActions ?? []} />}
     </>
   )
 }
@@ -135,7 +145,11 @@ function Story({ block }: { readonly block: StoryBlock }) {
           </p>
         ) : (
           <div key={index} class="stack reader-figures">
-            {part.heading !== undefined && <h4 class="reader-group-head">{part.heading}</h4>}
+            {part.heading !== undefined && (
+              <h4 class="reader-group-head">
+                <SectionHeading text={part.heading} />
+              </h4>
+            )}
             {part.lines.map((line, at) => (
               <StoryLineView key={at} line={line} />
             ))}
@@ -159,16 +173,60 @@ function StoryLineView({ line }: { readonly line: StoryLine }) {
   )
 }
 
-function Section({ section }: { readonly section: BriefTextWire['sections'][number] }) {
+/** A block as the CLI prints it: its heading, then each section under its own smaller heading. A
+ *  block from a daemon that names none is a lone section under its full title. */
+function Block({ id, block }: { readonly id: string; readonly block: SectionBlock }) {
+  if (block.title === undefined) {
+    return (
+      <>
+        {block.sections.map((section) => (
+          <div key={section.id}>
+            <SubHead id={sectionAnchor(section)} text={sectionTitle(section)} />
+            <SectionRows section={section} />
+          </div>
+        ))}
+      </>
+    )
+  }
+
   return (
     <>
-      <SubHead id={sectionAnchor(section)} text={sectionTitle(section)} />
-      <div class="stack reader-figures">
-        {sectionRows(section).map((row, index) => (
-          <SectionRowView key={index} row={row} />
-        ))}
-      </div>
+      <SubHead id={id} text={block.title} />
+      {block.sections.map((section) => (
+        <Section key={section.id} section={section} />
+      ))}
     </>
+  )
+}
+
+function Section({ section }: { readonly section: BriefTextWire['sections'][number] }) {
+  if (section.folded === true) {
+    return (
+      <div id={sectionAnchor(section)} tabIndex={-1}>
+        <Fold title={section.heading}>
+          <SectionRows section={section} />
+        </Fold>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <h4 class="reader-group-head" id={sectionAnchor(section)} tabIndex={-1}>
+        <SectionHeading text={section.heading} />
+      </h4>
+      <SectionRows section={section} />
+    </>
+  )
+}
+
+function SectionRows({ section }: { readonly section: BriefTextWire['sections'][number] }) {
+  return (
+    <div class="stack reader-figures">
+      {sectionRows(section).map((row, index) => (
+        <SectionRowView key={index} row={row} />
+      ))}
+    </div>
   )
 }
 

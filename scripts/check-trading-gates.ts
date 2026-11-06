@@ -6,6 +6,8 @@ import { dirname, resolve } from 'node:path'
 const RUNTIME_SRC = resolve(import.meta.dir, '../src')
 const TRADING_SRC = `${RUNTIME_SRC}/trading`
 const TRADING_API = `${TRADING_SRC}/api.ts`
+// The portable door and the Bun/Node-only one; scripts/check-dag.ts restricts who may use the second.
+const TRADING_DOORS: ReadonlySet<string> = new Set(['@/trading/api', '@/trading/node-api'])
 const INTERNAL_BARRELS = [`${TRADING_SRC}/config/index.ts`, `${TRADING_SRC}/types/index.ts`]
 const FORBIDDEN_FOLDERS = ['classify', 'data', 'storage', 'utils', 'common', 'helpers']
 const FORBIDDEN_API_EXPORTS = [
@@ -131,11 +133,11 @@ function scanRuntimeBoundary(files: readonly string[]): readonly Violation[] {
       const importsTrading = target !== null && target.startsWith(`${TRADING_SRC}/`)
 
       if (!insideTrading && (tradingAlias || importsTrading)) {
-        if (imported.specifier !== '@/trading/api') {
+        if (!TRADING_DOORS.has(imported.specifier)) {
           violations.push({
             file,
             line: lineAt(source, imported.index),
-            message: `deep trading import '${imported.specifier}' — use '@/trading/api'`,
+            message: `deep trading import '${imported.specifier}' — use '@/trading/api' or '@/trading/node-api'`,
           })
         }
       }

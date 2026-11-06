@@ -1,0 +1,168 @@
+name: web
+
+# Deploys the web edition and the homepage to Cloudflare as static assets, from the tag the release
+# workflow just published and only while that tag is the latest release. It is separate from the
+# release workflow and never bumps a version or writes to the repository.
+#
+# It stays idle until the operator has added what a deploy needs: the repository variables
+# WEB_APP_URL (the address of the web app, which the homepage links to) and SITE_URL (the
+# homepage's address); each build writes its page's own address into its link preview tags. In the
+# GitHub Environment `production` it also needs the secrets CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID. With any of them missing the run ends green and deploys nothing. Run it by
+# hand to deploy the latest release again. Each deploy goes through scripts/deploy.ts, which refuses
+# a build that was not made for production; after a deploy, scripts/deploy-drift.ts compares what
+# both addresses serve with the build.
+#
+# The build job runs the repository's code and its dependencies and holds no secret. The deploy job
+# holds the secrets, only downloads what the build job made, and runs the wrangler pinned in
+# deploy/package.json and deploy/bun.lock. The Environment carries the required reviewers and lets
+# only main (where a run after a release starts) and v* tags (a run by hand on a tag) deploy.
+on:
+  workflow_run:
+    workflows: [release]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never cancelled: a half-finished deploy would leave the app and the homepage on different tags.
+concurrency:
+  group: web
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.plan.outputs.deploy }}
+      tag: ${{ steps.plan.outputs.tag }}
+    env:
+      WEB_APP_URL: ${{ vars.WEB_APP_URL }}
+      SITE_URL: ${{ vars.SITE_URL }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Decide
+        id: plan
+        run: |
+          if [ -z "$WEB_APP_URL" ]; then
+            echo "WEB_APP_URL is not set: nothing to deploy"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$SITE_URL" ]; then
+            echo "SITE_URL is not set: nothing to deploy"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tag="v$(jq -r .version package.json)"
+          if ! latest="$(gh release view --json tagName --jq .tagName 2>&1)"; then
+            case "$latest" in
+              *"release not found"*)
+                echo "There is no release yet: nothing to deploy"
+                echo "deploy=false" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+              *)
+                echo "$latest"
+                exit 1
+                ;;
+            esac
+          fi
+          if [ "$tag" != "$latest" ]; then
+            echo "$tag is not the latest release ($latest): nothing to deploy"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WEB_APP_URL: ${{ vars.WEB_APP_URL }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/tags/${{ needs.plan.outputs.tag }}
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+
+      - run: bun install --frozen-lockfile
+
+      # The production domain is crawlable: no --noindex, which only staging builds pass.
+      - run: bun run build:web --app-url="$WEB_APP_URL"
+
+      - run: bun run build:site --app-url="$WEB_APP_URL" --site-url="$SITE_URL"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-dist
+          path: |
+            dist/web
+            dist/site
+            dist/web.stamp.json
+            dist/site.stamp.json
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    needs: [plan, build]
+    if: needs.plan.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/tags/${{ needs.plan.outputs.tag }}
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.2
+
+      # Only the deploy tool, from its own lockfile: nothing of the app is installed here.
+      - run: bun install --cwd deploy --frozen-lockfile
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-dist
+          path: dist
+
+      # The app first, since the homepage links to it.
+      - name: Deploy
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "Cloudflare secrets are not set in the production environment: nothing to deploy"
+            exit 0
+          fi
+          bun run deploy:web --env production
+          bun run deploy:site --env production
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+
+      # What visitors now get must be byte for byte what the build job made, headers included.
+      - name: Compare with the build
+        if: steps.deploy.outputs.deployed == 'true'
+        env:
+          WEB_APP_URL: ${{ vars.WEB_APP_URL }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          bun scripts/deploy-drift.ts --dist=dist/web --url="$WEB_APP_URL"
+          bun scripts/deploy-drift.ts --dist=dist/site --url="$SITE_URL"

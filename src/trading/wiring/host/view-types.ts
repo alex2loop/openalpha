@@ -1,6 +1,7 @@
 import type { BriefText } from '@/trading/features/brief/surface'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { ScreenCard } from '@/trading/features/market-data/render/screen'
+import type { BoardFact } from '@/trading/features/market-data/render/screen-facts'
 import type { MarketDescription, ScreenView } from '@/trading/features/market-data/types'
 import type { VenueReconciliation } from '@/trading/features/portfolio/folds/reconcile'
 import type { ReconcileSentences } from '@/trading/features/portfolio/render/reconcile'
@@ -8,7 +9,8 @@ import type { TrackRecordReflection } from '@/trading/features/suggestion/sugges
 import type { AgentRecordView } from '@/trading/features/suggestion/track-record/agent-record'
 import type { ModelRecord } from '@/trading/features/suggestion/track-record/model-record'
 import type { ReflectText } from '@/trading/features/suggestion/track-record/surface'
-import type { Region } from '@/trading/kernel/instrument'
+import type { FactorMetricId } from '@/trading/kernel/factor-metric'
+import type { InstrumentKind, Region } from '@/trading/kernel/instrument'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
 import type { StopCover, StopDistance } from '@/trading/kernel/operator/alert'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
@@ -25,10 +27,37 @@ export interface AgentRecordSummary extends AgentRecordView {
   readonly lines: readonly string[]
 }
 
-/** A screen read with the CLI's own lines for it. */
+/** One plain value a market states beside a name's factors: what it is, its value in the unit the
+ *  market publishes it in, and the words the CLI's board rows write for it. */
+interface ScreenReading {
+  readonly id: FactorMetricId
+  readonly sessions?: number
+  readonly value: number
+  readonly text: string
+}
+
+/** What a name reads on a board, grouped and each reading once as the CLI's board lists them, and
+ *  the factors that had nothing to read for it, in the operator's language. */
+interface ScreenNameFacts {
+  readonly facts: readonly BoardFact[]
+  readonly missing: readonly string[]
+}
+
+/** A screen read with the CLI's own lines for it. A `board` view also names the factors it reads, in
+ *  the operator's language, keyed by factor id, and writes what each name's factors read, keyed by
+ *  ticker and then factor id, and the plain values its market states for each name, keyed by ticker.
+ *  `kinds` names, in the operator's language, the kinds a market with more than one can be narrowed
+ *  to. Every form names the facts of each name, keyed by ticker. */
 export interface ScreenAnswer {
   readonly view: ScreenView
   readonly card: ScreenCard
+  readonly factorLabels?: Readonly<Record<string, string>>
+  readonly factorReadings?: Readonly<Record<string, Readonly<Record<string, string>>>>
+  readonly nameReadings?: Readonly<Record<string, readonly ScreenReading[]>>
+  readonly nameFacts?: Readonly<Record<string, ScreenNameFacts>>
+  readonly kinds?: readonly { readonly kind: InstrumentKind; readonly label: string }[]
+  /** The market's first load is still running: the board is what is stored so far. */
+  readonly isLoading?: true
 }
 
 /** A holding's planned stop, and who stands behind it at the exchange. `cover` is absent where
@@ -44,6 +73,8 @@ export interface MarketView extends MarketDescription, QuoteConvention {
   readonly label: string
   readonly segmentLabel: string
   readonly regionLabel: string
+  /** Some venue can hold it; a reference read (world gold) cannot, so its segment never turns on. */
+  readonly holdable: boolean
   /** Its day at the instant asked; absent with `session`. */
   readonly day?: MarketDay
 }

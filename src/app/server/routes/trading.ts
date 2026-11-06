@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import type { AnalysesResponse } from '@/app/server/wire/analysis'
 import type { ApiErrorCode } from '@/app/server/wire/errors'
 import type { BriefScheduleWire } from '@/app/server/wire/system'
 import type {
@@ -13,17 +14,18 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { SourceResult } from '@/trading/api'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { toAnalysisWire } from '@/app/server/mappers/analysis'
 import {
   toBriefScheduleWire,
   toBriefSnapshotWire,
   toBriefTextWire,
 } from '@/app/server/mappers/brief'
+import { toNavWire } from '@/app/server/mappers/nav'
 import { toTrackRecordWire } from '@/app/server/mappers/track-record'
 import {
   toCandleWire,
   toCaveatWires,
   toMarketEventWire,
-  toNavWire,
   toNewsItemWire,
   toPortfolioWire,
   toProfileWire,
@@ -45,6 +47,7 @@ import {
 } from '@/app/server/routes/params'
 import { bindLocale } from '@/i18n'
 import {
+  analysisId,
   DEFAULT_NAV_WINDOW,
   NAV_WINDOWS,
   region,
@@ -198,9 +201,10 @@ function sourceErrorCode(result: UnavailableResult): ApiErrorCode {
 }
 
 async function handleTradingProfileGet(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const profile = await hostOf(ctx).getProfile(req.signal)
+  const host = hostOf(ctx)
+  const profile = await host.getProfile(req.signal)
 
-  return json(toProfileWire(profile, localeOf(ctx)))
+  return json(toProfileWire(profile, localeOf(ctx), host.profileFields()))
 }
 
 async function handleTradingProfileUpdate(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -211,12 +215,13 @@ async function handleTradingProfileUpdate(req: Request, ctx: ApiRouteContext): P
     return apiError('invalid_body')
   }
 
-  const profile = await hostOf(ctx).updateProfile({
+  const host = hostOf(ctx)
+  const profile = await host.updateProfile({
     ...request,
     signal: req.signal,
   })
 
-  return json(toProfileWire(profile, localeOf(ctx)))
+  return json(toProfileWire(profile, localeOf(ctx), host.profileFields()))
 }
 
 async function handleTradingPortfolio(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -261,6 +266,29 @@ async function handleTradingSuggestions(req: Request, ctx: ApiRouteContext): Pro
     suggestions: page.items.map((suggestion) => toSuggestionWire(suggestion, localeOf(ctx))),
     ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
   } satisfies TradingSuggestionsResponse)
+}
+
+async function handleTradingAnalyses(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const query = new URL(req.url).searchParams
+  const limit = parseLimit(query.get('limit'), SURFACE_LIMITS.maximumTrackRecordItems)
+  const cursor = parseOptionalBranded(query.get('cursor'), analysisId)
+  const instrument = parseOptionalInstrument(query)
+
+  if (limit === null || cursor === null || instrument === null) {
+    return apiError('invalid_body')
+  }
+
+  const page = await hostOf(ctx).listAnalyses({
+    ...(instrument === undefined ? {} : { instrument }),
+    ...(cursor === undefined ? {} : { cursor }),
+    limit,
+    signal: req.signal,
+  })
+
+  return json({
+    analyses: page.items.map((record) => toAnalysisWire(record, localeOf(ctx))),
+    ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
+  } satisfies AnalysesResponse)
 }
 
 async function handleSuggestionCard(req: Request, ctx: ApiRouteContext): Promise<Response> {
@@ -403,6 +431,12 @@ export const TRADING_ROUTES = [
     auth: true,
     capability: 'suggestions',
     handler: handleTradingSuggestions,
+  },
+  {
+    method: 'GET',
+    path: '/v1/analyses',
+    auth: true,
+    handler: handleTradingAnalyses,
   },
   {
     method: 'GET',

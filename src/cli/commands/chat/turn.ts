@@ -19,6 +19,7 @@ interface TurnRequest {
   readonly agentId: AgentId
   readonly sessionId: SessionId
   readonly message: string
+  readonly typedMessage?: string
   readonly flags: ChatFlags
   readonly signal?: AbortSignal
   readonly chatId?: string
@@ -49,6 +50,7 @@ export async function executeTurn(req: TurnRequest): Promise<RunResult> {
         agentId: req.agentId,
         sessionId: req.sessionId,
         message: req.message,
+        ...(req.typedMessage === undefined ? {} : { typedMessage: req.typedMessage }),
         onChunk: printer.onChunk,
       }),
       buildRunOptions({

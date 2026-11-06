@@ -1,14 +1,14 @@
 import type { ResolvedStorageConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import type { Migration } from '@/persistence/api'
-import { silentLogger } from '@/core/logging/logger'
+import { silentLogger } from '@/core/logging/silent-logger'
 import { t } from '@/i18n'
 import {
   MIGRATION_IDS_SQL,
   MIGRATIONS_TABLE,
-  openPersistence,
   POSTGRES_MIGRATIONS_TABLE_SQL,
 } from '@/persistence/api'
+import { openPersistence } from '@/persistence/node-api'
 
 import type { DoctorFinding, DoctorStatus } from './types'
 import { migrationFinding } from './local-probes'

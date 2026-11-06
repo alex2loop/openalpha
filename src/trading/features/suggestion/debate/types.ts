@@ -34,6 +34,11 @@ export interface ResearchCase {
   readonly citations: readonly SuggestionCitation[]
 }
 
+/** One side of an analysis: a case plus what the side itself says would make it wrong. */
+export interface AnalysisCase extends ResearchCase {
+  readonly invalidators: readonly string[]
+}
+
 /** The lean analyst argues *and* synthesizes — in full mode those are two roles, and the portfolio
  *  manager's `acceptedClaims` names what the synthesis leaned on. Lean has no such second role, so
  *  the analyst names it here, by position in its own `claims`: it authors both in one answer, so
@@ -132,7 +137,7 @@ interface VerifiedClaim {
 
 /** A material claim as a stored call keeps it: the id a fact check cites, and its words. The stance
  *  stays internal to the debate. */
-interface StoredClaim {
+export interface StoredClaim {
   readonly id: string
   readonly text: string
 }

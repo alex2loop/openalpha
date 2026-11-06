@@ -273,7 +273,9 @@ function foldMetricLines(input: FactorSectionInput, fold: FoldInput): readonly s
       seen.add(metricKey(metric))
     }
 
-    return detailRow(renderMetricLine(input.locale, fresh, input.quote))
+    return detailRow(
+      renderMetricLine(input.locale, fresh, input.quote === undefined ? {} : { quote: input.quote })
+    )
   })
 }
 

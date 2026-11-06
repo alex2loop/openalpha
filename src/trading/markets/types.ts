@@ -8,6 +8,7 @@ import type {
   LevelResult,
   MarketLevelRequest,
 } from '@/trading/kernel/factor'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type {
   AssetClass,
   BoardLotPolicy,
@@ -188,6 +189,16 @@ export interface MarketManifest {
   readonly admission?: AdmissionPolicy
 }
 
+/** What a market holds about one name that no shared read carries: readings it alone can state, the
+ *  medians of the sector the name sits in, and how the board moved on the session. Every field is
+ *  absent when the market could not measure it, never zero. */
+export interface NameContext {
+  readonly figures: readonly FactorMetric[]
+  /** The sector's own medians of the name's readings, each on the unit the name's own reading has. */
+  readonly sector?: { readonly code: string; readonly medians: readonly FactorMetric[] }
+  readonly breadth?: { readonly advancers: number; readonly decliners: number }
+}
+
 interface MarketCapabilityMap extends IndexCapabilities {
   readonly quote: { readonly request: QuoteRequest; readonly result: SourceResult<Quote> }
   readonly bars: {
@@ -232,6 +243,10 @@ interface MarketCapabilityMap extends IndexCapabilities {
   readonly statistics: {
     readonly request: InstrumentRequest
     readonly result: SourceResult<InstrumentStatistics>
+  }
+  readonly context: {
+    readonly request: InstrumentRequest
+    readonly result: SourceResult<NameContext>
   }
   readonly macroRisk: {
     readonly request: RegionRequest

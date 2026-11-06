@@ -2,6 +2,7 @@ import type { OperatorMessage } from '@/core/errors'
 import { ConfigError, operatorMessageOf } from '@/core/errors'
 import { hasBlockingThreat, scanOutput } from '@/core/security/sanitize'
 import { advanceCron } from '@/core/utils/cron'
+import { utf8ByteLength } from '@/core/utils/text'
 import { MS_PER_MINUTE, toCanonicalTimeZone } from '@/core/utils/time'
 import { JobInputError } from '@/tools/schedule/job-input-error'
 import { toEpochMs } from '@/tools/schedule/time'
@@ -27,7 +28,7 @@ interface PromptIssue {
 
 /** What is wrong with a prompt, first problem only; empty when it may run. */
 export function validateJobPrompt(prompt: string): readonly PromptIssue[] {
-  const promptBytes = Buffer.byteLength(prompt, 'utf8')
+  const promptBytes = utf8ByteLength(prompt)
 
   if (promptBytes > SCHEDULER_PROMPT_MAX_BYTES) {
     return [

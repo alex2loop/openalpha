@@ -1,0 +1,9 @@
+/* The header's AI notice red, so the line under every answer reads as the same warning. */
+.ai-label {
+  margin: 0 0 var(--s2);
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--dangerTint);
+  color: var(--dangerText);
+  font: var(--typeCaptionStrong);
+}

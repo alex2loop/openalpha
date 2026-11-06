@@ -1,10 +1,9 @@
 import type { App, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
+import { refreshMarketsInUse } from '@/app/market-sweep'
 import { notifyPass } from '@/core/container'
-import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { settleWithin } from '@/core/utils/concurrency'
-import { isBoundaryFailure, logRefreshDegradations, refreshDegradations } from '@/trading/api'
 
 const BOOT_REFRESH_BUDGET_MS = 60_000
 
@@ -50,25 +49,8 @@ export async function runBootRefresh(options: BootRefreshOptions): Promise<void>
   }
 }
 
-async function sweepMarketData(app: App, logger: Logger, signal: AbortSignal): Promise<void> {
-  try {
-    const results = await app
-      .resolve('tradingServices')
-      .refreshMarketData({ signal, scheduled: true })
-    const degradations = refreshDegradations(results)
-
-    if (degradations.length > 0) {
-      logRefreshDegradations({ logger, forced: false, degradations })
-    }
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      return
-    }
-
-    if (!isBoundaryFailure(err)) {
-      throw err
-    }
-
+function sweepMarketData(app: App, logger: Logger, signal: AbortSignal): Promise<void> {
+  return refreshMarketsInUse({ app, logger, signal }, (err) => {
     logger.warn('daemon.boot_refresh_failed', { err: formatErrForLog(err) })
-  }
+  })
 }

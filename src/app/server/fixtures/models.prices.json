@@ -1,0 +1,17 @@
+{
+  "models": [
+    {
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4-flash",
+      "supportsTools": true,
+      "price": { "inPerM": 0.14, "outPerM": 0.28, "cacheReadPerM": 0.014, "source": "openrouter" },
+      "perRunUsd": 0.021
+    },
+    {
+      "provider": "openrouter",
+      "model": "vendor/unlisted-model",
+      "supportsTools": false,
+      "price": { "inPerM": 15, "outPerM": 75, "source": "fallback" }
+    }
+  ]
+}

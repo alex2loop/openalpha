@@ -1,10 +1,12 @@
 import type { MessageKey } from '@/i18n'
+import { DataStatus } from '@/web/edition/data-status'
 import { readBlock, withCautions } from '@/web/state/block'
+import { isAnalysisOnly } from '@/web/state/edition'
 import {
+  isMarketShown,
   knownMarkets,
   marketsBlock,
   overviewBlock,
-  profileBlock,
   selectRegionOverview,
 } from '@/web/state/market'
 import {
@@ -14,7 +16,6 @@ import {
   marketSubTab,
   pickMarketRegion,
 } from '@/web/state/market-tab'
-import { isSegmentOn } from '@/web/state/profile'
 import { tr } from '@/web/text/tr'
 import { FailureStrip } from '@/web/ui/kit/failure-strip'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -52,7 +53,9 @@ export function Market() {
           isTabs
           label={tr('ui.office.panel.market')}
           value={subTab}
-          options={SUB_TABS.map((value) => ({ value, label: tr(SUB_TAB_KEYS[value]) }))}
+          options={SUB_TABS.filter((value) => value !== 'themes' || !isAnalysisOnly.value).map(
+            (value) => ({ value, label: tr(SUB_TAB_KEYS[value]) })
+          )}
           onChange={(value) => {
             marketSubTab.value = value
           }}
@@ -106,13 +109,14 @@ function SubTabBody({ subTab }: { readonly subTab: MarketSubTab }) {
 function MarketView({ region }: { readonly region: string }) {
   return (
     <>
+      <DataStatus />
       <MacroFull region={region} />
       <RegionPrices region={region} />
       <Flows region={region} />
       <Sectors region={region} />
       <IndexReading region={region} />
       <Session region={region} />
-      <MoreMarkets region={region} />
+      <MoreMarkets />
     </>
   )
 }
@@ -135,14 +139,10 @@ function RegionPrices({ region }: { readonly region: string }) {
   )
 }
 
-// A market of the region the profile leaves off reads nothing here until it is turned on.
-function MoreMarkets({ region }: { readonly region: string }) {
-  const profile = profileBlock.view.value.data
-  const isAnyOff =
-    profile !== undefined &&
-    knownMarkets.value.some(
-      (market) => market.region === region && !isSegmentOn(profile, market.segment)
-    )
-
-  return isAnyOff ? <p class="meta">{tr('ui.office.market.moreMarkets')}</p> : null
+// A market the profile leaves off, here or in a region the picker drops, reads nothing until it is
+// turned on.
+function MoreMarkets() {
+  return knownMarkets.value.some((market) => !isMarketShown(market)) ? (
+    <p class="meta">{tr('ui.office.market.moreMarkets')}</p>
+  ) : null
 }

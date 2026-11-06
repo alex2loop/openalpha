@@ -18,13 +18,8 @@ import { fail, hint, style, success } from '@/cli/ui/colors'
 import { formatBytes } from '@/cli/ui/format'
 import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { agentId as brandAgentId } from '@/core/ids'
-import {
-  applyWorkspaceScratchCleanup,
-  isValidAgentId,
-  planWorkspaceScratchCleanup,
-  RESERVED_AGENT_IDS,
-  WORKSPACES_DIR_NAME,
-} from '@/engine/api'
+import { isValidAgentId, RESERVED_AGENT_IDS, WORKSPACES_DIR_NAME } from '@/engine/api'
+import { applyWorkspaceScratchCleanup, planWorkspaceScratchCleanup } from '@/engine/node-api'
 import { pluralKey, t } from '@/i18n'
 
 const DELETE_GUARD = 'DELETE'

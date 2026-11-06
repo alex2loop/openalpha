@@ -11,7 +11,7 @@ import {
   buildSkillsCatalog,
   exposedToolNames,
 } from '@/engine/mcp/serve-core'
-import { resolveSkillPlatform } from '@/engine/skills/availability'
+import { currentSkillPlatform } from '@/engine/skills/availability'
 
 export interface McpSurface {
   tools(): readonly ToolDefinition[]
@@ -90,6 +90,6 @@ function skillVisibility(deps: McpSurfaceDeps, agent: AgentProfile): SkillVisibi
   return {
     allowed: agent.skills,
     tools: new Set(exposedTools(deps).map((tool) => tool.name)),
-    platform: resolveSkillPlatform(process.platform),
+    platform: currentSkillPlatform(),
   }
 }

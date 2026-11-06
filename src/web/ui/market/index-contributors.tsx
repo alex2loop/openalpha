@@ -2,6 +2,7 @@ import type { IndexContributorsResponse } from '@/app/server/wire/index-reading'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { printDisplayOf } from '@/web/state/market'
+import { toCaveatText } from '@/web/text/caveat-text'
 import { formatFixed, formatPrice } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -96,9 +97,7 @@ function withoutListText(title: string, caveats: IndexContributorsResponse['cave
   return tr('ui.office.today.failedNone', {
     what: title,
     reason:
-      caveats.length === 0
-        ? tr('ui.office.error.generic')
-        : joinInline(caveats.map((caveat) => caveat.text)),
+      caveats.length === 0 ? tr('ui.office.error.generic') : joinInline(caveats.map(toCaveatText)),
   })
 }
 

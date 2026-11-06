@@ -2,8 +2,6 @@ import { SCENE_VIEWS, type SceneView, sceneView, setSceneView } from '@/web/stat
 import { tr } from '@/web/text/tr'
 import { Segmented } from '@/web/ui/kit/segmented'
 
-import './view-switch.css'
-
 const VIEW_LABELS = Object.freeze({
   '2d': 'ui.office.scene.mode2d',
   '3d': 'ui.office.scene.mode3d',

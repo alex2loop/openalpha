@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 
 import type { ResolvedConfig } from '@/core/config/resolve'
@@ -35,7 +34,6 @@ import {
   SKILL_VIEW_RUN_BUDGET_BYTES,
   TOOL_RESULT_MAX_BYTES,
 } from '@/engine/constants'
-import { createThinkingState, type ThinkingState } from '@/engine/loop/thinking'
 import { createTodoSlot } from '@/engine/loop/todo'
 import { createToolExposure } from '@/engine/loop/tools/exposure'
 import { NO_DEADLINE } from '@/engine/run-registry'
@@ -52,7 +50,6 @@ export interface RunBookkeeping {
   compactionPasses: number
   turnRestarts: number
   estimator?: { readonly tokens: number }
-  thinking: ThinkingState
 }
 
 export interface RunDeps {
@@ -104,7 +101,7 @@ function createMessageStore(sessionMessageCap: number, ownerRunId: RunId): Messa
     clearPending: () => {
       buffers.pending.length = 0
     },
-    appendDirect: (message) => appendDirect(buffers, message),
+    appendDirect: (message, stored) => appendDirect(buffers, message, stored),
     appendTransient: (message) => appendTransient(buffers, message),
     loadHistory: (messages) => loadHistory(buffers, messages),
     replaceLastAssistant: (previous, message) => replaceLastAssistant(buffers, previous, message),
@@ -136,9 +133,13 @@ function flushPending(buffers: MessageBuffers): void {
   enforceMessageCap(buffers.history, buffers.cap)
 }
 
-function appendDirect(buffers: MessageBuffers, message: NonAssistantMessage): void {
+function appendDirect(
+  buffers: MessageBuffers,
+  message: NonAssistantMessage,
+  stored: NonAssistantMessage = message
+): void {
   buffers.history.push(message)
-  buffers.unpersisted.push({ runId: buffers.ownerRunId, message })
+  buffers.unpersisted.push({ runId: buffers.ownerRunId, message: stored })
   enforceMessageCap(buffers.history, buffers.cap)
 }
 
@@ -282,7 +283,7 @@ export function assembleRun(
       ...optionalEnvFields(options),
     },
     state: buildRunState({ deps, options, parent, tools, messages, budget }),
-    bookkeeping: { compactionPasses: 0, turnRestarts: 0, thinking: createThinkingState() },
+    bookkeeping: { compactionPasses: 0, turnRestarts: 0 },
   }
 }
 
@@ -346,7 +347,7 @@ function optionalEnvFields(
 
 function buildIdentity(input: RunInput, options: RunOptions): RunIdentity {
   const identity: RunIdentity = {
-    runId: runId(randomUUID()),
+    runId: runId(crypto.randomUUID()),
     sessionId: input.sessionId,
     billingSessionId:
       options.billingSessionId === undefined ? input.sessionId : options.billingSessionId,

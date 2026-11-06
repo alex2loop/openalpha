@@ -1,5 +1,6 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorId, FactorScore } from '@/trading/kernel/factor'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type {
   ScreenCandidate,
@@ -11,26 +12,34 @@ import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cro
 import type { CrossSection, NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
 import type { VnExchange } from '@/trading/markets/equity-vn/policy'
 import type { RankedEvidence, RankedFactors } from '@/trading/markets/equity-vn/screen'
+import type { MarketManifest } from '@/trading/markets/types'
 import { factorComposite } from '@/trading/kernel/factor'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { countBands } from '@/trading/markets/conviction-calibration'
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
 import { supervisionCaveats } from '@/trading/markets/equity-vn/evidence/supervision'
 import { scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
+import { boardReadings } from '@/trading/markets/equity-vn/factors/name-context'
 import { DEFAULT_SCREEN_KIND } from '@/trading/markets/equity-vn/policy'
 import { rankSurvivors, screenCandidate, toScreenInput } from '@/trading/markets/equity-vn/screen'
+import { foreignNetFlow } from '@/trading/markets/equity-vn/tape/flows'
 import { tapeReadings } from '@/trading/markets/equity-vn/tape/signals'
 import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
 import { partitionByGate } from '@/trading/markets/screen-partition'
 
 const HISTORY_EMPTY: Caveat = { code: 'market-data.history-empty' }
 
+export interface ScreenOptions {
+  readonly foreignOperator: boolean
+  readonly manifest: MarketManifest
+}
+
 /** Gates first, ranking second, truncation last. Truncating before ranking would let a candidate
  *  that happened to be validated early crowd out a higher-scoring one. */
 export async function runScreen(
   cache: CrossSectionCache,
   request: ScreenRequest,
-  foreignOperator: boolean
+  options: ScreenOptions
 ): Promise<ScreenResult> {
   const cross = await cache.get(request.asOf, request.signal)
 
@@ -58,7 +67,7 @@ export async function runScreen(
     screenCandidate
   )
   const dataThroughDay = latestSessionOf(eligible)
-  const ranked = rankSurvivors(survivors, rankedEvidence(survivors, cross), { foreignOperator })
+  const ranked = rankSurvivors(survivors, rankedEvidence(survivors, cross, options), options)
   const candidates = ranked.slice(0, request.limit)
 
   return {
@@ -107,10 +116,13 @@ function screenCaveats(
 /** The scored reads the rank walks, in one pass over the survivors. */
 function rankedEvidence(
   survivors: readonly { readonly instrument: InstrumentRef }[],
-  cross: CrossSection
+  cross: CrossSection,
+  options: ScreenOptions
 ): RankedEvidence {
   const factorsByTicker = new Map<Ticker, RankedFactors>()
   const signalsByTicker = new Map<Ticker, readonly TapeReading[]>()
+  const foreignNetByTicker = new Map<Ticker, number>()
+  const readingsByTicker = new Map<Ticker, readonly FactorMetric[]>()
 
   for (const candidate of survivors) {
     const evidence = cross.byTicker.get(candidate.instrument.ticker)
@@ -125,9 +137,23 @@ function rankedEvidence(
       candidate.instrument.ticker,
       evidence === undefined ? [] : tapeReadings(evidence)
     )
+
+    if (evidence !== undefined) {
+      readingsByTicker.set(
+        candidate.instrument.ticker,
+        boardReadings(cross, evidence, options.manifest)
+      )
+    }
+
+    const foreignNet =
+      evidence === undefined ? undefined : foreignNetFlow(evidence.flows, evidence.bars)
+
+    if (foreignNet !== undefined) {
+      foreignNetByTicker.set(candidate.instrument.ticker, foreignNet.value)
+    }
   }
 
-  return { factorsByTicker, signalsByTicker }
+  return { factorsByTicker, signalsByTicker, foreignNetByTicker, readingsByTicker }
 }
 
 function toRankedFactors(scored: FactorScore): RankedFactors {

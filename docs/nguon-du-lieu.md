@@ -11,7 +11,7 @@ Tóm tắt: mọi nhà cung cấp đều bật sẵn. Bạn không cần bật g
 | Nhà cung cấp | Biến | Nếu không có |
 |---|---|---|
 | `bls` | `BLS_API_KEY` | Không mất gì: lạm phát Mỹ vẫn đọc được. Không có khóa thì nhà cung cấp cho 25 lượt gọi mỗi ngày trên mỗi địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì giới hạn là 500. |
-| `coingecko` | `COINGECKO_API_KEY` | Bạn mất bên dự phòng cuối cho bảng vốn hóa crypto, và mất luôn cách duy nhất để tra một coin nằm ngoài mọi bảng. Nó cũng không còn trong danh sách FX cho một coin thanh toán (như USDT) so với tiền pháp định. |
+| `coingecko` | `COINGECKO_API_KEY` | Không mất gì: nó đọc được cả hai cách. Không có khóa, nhà cung cấp cho một số ít lần gọi mỗi phút theo địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì bạn có hạn mức riêng mỗi tháng. |
 | `fred` | `FRED_API_KEY` | Bạn mất hai chuỗi chỉ FRED công bố: chỉ số đô la và VIX (mức lo sợ của thị trường). Điểm vĩ mô vẫn chấm được nhưng thiếu hai yếu tố này: điểm vĩ mô Mỹ mất khoảng 30% trọng số, bối cảnh vĩ mô cho cổ phiếu VN mất 20%, vàng mất 2 trong 7 yếu tố (đô la, trú ẩn an toàn). Vì vậy những ngày đô la mạnh lên hay thị trường hoảng loạn dễ bị bỏ sót. Lợi suất, lãi suất thực và lạm phát Mỹ vẫn đọc từ `treasury` và `bls`, hai bên không cần khóa. Khóa miễn phí, đăng ký tại [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html). |
 | `sec-data` | `SEC_CONTACT_EMAIL` | Không phải khóa: SEC yêu cầu mọi người đọc cho biết ai đang gọi, nên đây là email liên hệ của bạn. Không có thì nguồn SEC tắt. Giá trị và chất lượng của cổ phiếu Mỹ đọc thành không có số liệu, công bố kết quả kinh doanh và giao dịch mua của người nội bộ cũng vậy. |
 
@@ -56,7 +56,7 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 | Báo cáo năm, công bố kết quả kinh doanh, giao dịch mua của người nội bộ | `sec-data` (đọc bảng mã và hồ sơ Form 4 từ máy chủ thứ hai của SEC, `sec`) |
 | **Cổ phiếu VN** | |
 | Giá trực tiếp | `vndirect`, `vietcap-chart`, `entrade` |
-| Lịch sử theo ngày | `vndirect`, `entrade`, `vietcap-chart`, `vps` |
+| Lịch sử theo ngày | `vndirect`, `vndirect-index`, `entrade`, `vietcap-chart`, `vps` |
 | Danh sách mã; dữ liệu cơ bản, sự kiện, dòng tiền, khuyến nghị của giới môi giới, tỷ lệ định giá | `vndirect` |
 | Bảng giá trực tiếp và room ngoại | `vndirect`, `vietcap-board` |
 | Báo cáo tài chính (năm đầy đủ và các quý) | `vietcap-statements` |
@@ -64,7 +64,7 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 | Lưu chuyển tiền tệ còn thiếu của một quý | `cafef-statements` |
 | Phía mua và bán của các giao dịch trong ngày | `kbsec`, `vietcap` |
 | Danh sách giám sát của sàn (trộn) | `hsx`, `ssi` |
-| Thành phần rổ chỉ số (`vn30`, `vn100`) | `vietcap` |
+| Thành phần rổ chỉ số (`vn30`, `vn100`) | `vietcap`, `vps-board` |
 | Tỷ lệ định giá của một chỉ số (VN-Index, VN30, HNX) | `vndirect` |
 | Số điểm mỗi mã đóng góp cho một chỉ số trong phiên | `vndirect-mkw` |
 | Tin tức | `vndirect`, `rss` |
@@ -90,15 +90,17 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 | **Không gắn với một thị trường** | |
 | Vĩ mô Mỹ (trộn) | `treasury`, `bls`, `fred` |
 | Tỷ giá FX | `coinbase`, `okx`, `coingecko`, `yahoo`, `er-api` |
-| Lịch sử FX | `yahoo` |
+| Lịch sử FX | `yahoo`, `coingecko`, `vietcombank` |
 | Giá hàng hóa | `vndirect`, `fred-csv` |
 | Tin tức cho dòng tin vĩ mô | `rss` |
 
 Vài nguồn ít hiển nhiên làm gì:
 
 - `vndirect` đứng đầu giá VN vì dòng giá của nó được ghi ngay khi thị trường đang giao dịch.
-  - Nó không phục vụ chỉ số. Giá chỉ số đi tới `vietcap-chart`. Lịch sử chỉ số đi tới `entrade`, rồi `vietcap-chart`.
-  - `vps` đứng cuối. Nó có mặt cho các chỉ số chuẩn ETF (VNDIAMOND, VNX50...) mà cả `vndirect` lẫn `entrade` đều không phục vụ, để một lần bị từ chối không làm mất tất cả.
+  - Nó không phục vụ chỉ số. Giá chỉ số đi tới `vietcap-chart`. Lịch sử chỉ số đi tới `vndirect-index`, rồi `entrade`, rồi `vietcap-chart`.
+  - `vndirect-index` là lịch sử chỉ số của công ty chứng khoán, tách riêng khỏi `vndirect` để một bên hỏng không làm bên kia bị tạm dừng. Nó có mọi chỉ số mà daemon đọc, lùi sâu nhiều năm, và giá đóng cửa của nó trùng với các nhà cung cấp khác trên mọi chỉ số đã đo.
+  - `vps` đứng cuối. Nó có mặt cho các chỉ số chuẩn ETF (VNDIAMOND, VNX50...) mà `entrade` không phục vụ, để một lần bị từ chối không làm mất tất cả.
+  - `vps-board` là bảng giá của VPS, máy chủ thứ hai khác với `vps`. Nó dự phòng cho `vietcap` ở hai danh sách VN30 và VN100, và chỉ trả lời khi mọi mã VN30 của nó đều nằm trong danh sách VN100 của chính nó. Danh sách VN100 của nó đã cũ khi đo, nên nó có thể không trả lời gì, khi đó các nhóm đã lưu được giữ nguyên.
 - `vietcap-board` đọc cả bảng giá VN trong một lần gọi. Nó dự phòng cho `vndirect` ở cả bảng giá trực tiếp lẫn room ngoại (số cổ phiếu nhà đầu tư nước ngoài còn được mua).
 - `vndirect` còn phục vụ các tỷ lệ riêng của từng chỉ số từ `/v4/ratios`.
   - Các tỷ lệ gồm P/E (giá so với lợi nhuận), P/B (giá so với giá trị sổ sách), tỷ suất cổ tức, trung bình năm năm của hai hệ số, và tỷ lệ mã nằm trên đường trung bình 50 và 200 phiên.
@@ -120,7 +122,7 @@ Vài nguồn ít hiển nhiên làm gì:
 - Giá crypto đặt sàn mặc định của `crypto` lên đầu (`default_for` trong `[trading.venues.<id>]`, mặc định `binance`), khi sàn đó cũng là nhà cung cấp dữ liệu. Một kế hoạch định giá ở nơi khác sẽ báo một con số mà lệnh của bạn không khớp được.
 - `mexc` dự phòng cho `binance` ở giá và đứng thứ ba ở lịch sử. Nó niêm yết những coin các sàn lớn không có. Nhưng khối lượng ở đuôi dài các coin nhỏ là kém đáng tin nhất, nên nó chỉ trả lời cho mã mà các sàn lớn từ chối.
 - `okx` không niêm yết mọi coin. Coin nó thiếu bị bỏ qua, và lần bỏ qua đó không tính là một lần hỏng.
-- `coingecko` phục vụ bảng vốn hóa và một tỷ giá FX, không phục vụ đường giá. Vòng cảnh báo đọc giá của mọi coin đang theo dõi ở mỗi nhịp, và một nhà cung cấp tính hạn mức theo tháng sẽ tiêu hết hạn mức vào đó.
+- `coingecko` phục vụ bảng vốn hóa, một tỷ giá FX và lịch sử tỷ giá đồng, không phục vụ đường giá. Vòng cảnh báo đọc giá của mọi coin đang theo dõi ở mỗi nhịp, và một nhà cung cấp tính hạn mức theo tháng sẽ tiêu hết hạn mức vào đó.
 
 Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền ròng của ETF spot crypto. Mục `etf-flows` của bản tin báo `unavailable`. Đó là điều bình thường, không phải sự cố.
 
@@ -135,7 +137,9 @@ Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền r�
 
 Các nguồn scrape Việt Nam (chúng đọc trang web và endpoint nội bộ, không phải feed chính thức) và các bảng vàng khá mong manh. Việc chúng bật mặc định không thay đổi điều đó:
 
-- `vndirect`, `vndirect-mkw`, `entrade` và `vietcap` đọc các endpoint nội bộ của công ty chứng khoán, không tài liệu, không cam kết dịch vụ.
+- `vndirect`, `vndirect-index`, `vndirect-mkw`, `entrade`, `vietcap` và `vps-board` đọc các endpoint nội bộ của công ty chứng khoán, không tài liệu, không cam kết dịch vụ.
+- `coingecko` cho lịch sử tỷ giá đồng bằng giá USDT tính theo đồng, một yêu cầu cho cả cửa sổ. Đây là đồ thế chỗ cho tỷ giá đô la, lệch Yahoo vài phần mười phần trăm trong 108 phiên gần nhất, và một ghi chú nói rõ điều đó ở mọi nơi nó được dùng.
+- `vietcombank` đọc nguồn cấp trên website của chính ngân hàng. Nó chỉ được hỏi lịch sử FX khi `yahoo` và `coingecko` không có gì, và chỉ cho cửa sổ ngắn. Ngân hàng đặt tỷ giá một hay hai lần mỗi ngày, nên nó cho tỷ giá của ngày (trung điểm giữa giá mua chuyển khoản và giá bán), không phải giá đóng cửa của thị trường.
 - `cafef` đọc chính handler của một trang tiêu dùng. Nó công bố các dòng mà giá trị với khối lượng tự mâu thuẫn nhau. Những dòng đó bị bỏ.
 - `pnj` đọc endpoint của chính cửa hàng.
 - `giavang` là API cộng đồng do một người vận hành.
@@ -191,9 +195,9 @@ Mỗi nhà cung cấp được điều nhịp theo một tốc độ yêu cầu 
 | 600 | `binance`, `binance-futures`, `bybit`, `okx`, `mexc` |
 | 300 | `cafef`, `vndirect` |
 | 200 | `sec`, `sec-data` |
-| 120 | `fred`, `nasdaq`, `vietcap-statements` |
-| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-mkw`, `yahoo` |
-| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps` |
+| 120 | `fred`, `nasdaq`, `vietcap-statements`, `vietcombank` |
+| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-index`, `vndirect-mkw`, `yahoo` |
+| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps`, `vps-board` |
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |
 

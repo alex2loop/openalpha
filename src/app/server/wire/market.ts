@@ -1,15 +1,83 @@
-// The /v1 market contract: the screen board, instrument search, the market overview and the macro
-// regime. Same rules as `wire/trading.ts`. `changePct` is a percent, as on `/v1/quotes`.
+// The /v1 market contract: the screen board, instrument search and the macro regime. Same rules as
+// `wire/trading.ts`. `changePct` is a percent, as on `/v1/quotes`.
 
 import type { InstrumentRefWire, TradingWireCaveat } from '@/app/server/wire/trading'
 import type { SessionPhase, TypedPrice } from '@/app/server/wire/vocab'
 
-/** A ranked name's identity and live price; what the board says about it is in `card`. */
+/** One measured quantity of a name: what it is, over how many sessions where it is a window, and
+ *  its value in the unit the market publishes it in (a percent as a percent, an amount in the
+ *  market's currency), so a page can order and filter on it. */
+interface ScreenFigureWire {
+  readonly id: string
+  readonly sessions?: number
+  readonly value: number
+}
+
+/** A plain value a market states beside a name's factors, with the words the CLI writes for it. */
+interface ScreenReadingWire extends ScreenFigureWire {
+  readonly text: string
+}
+
+/** What one factor read for a name of a `list` board. */
+interface ScreenFactorWire {
+  readonly id: string
+  /** The factor's name in the operator's language. */
+  readonly label: string
+  /** What the factor read for this name, in the quantities it was scored on, as the CLI writes
+   *  them (`P/E 12,3`); absent where the factor states none. Never its score. */
+  readonly reading?: string
+  /** Percent-valued, 0-100: the share of the board's names this reading is above. Absent where
+   *  fewer than two names carry the factor, which leaves nothing to place it against. */
+  readonly percentile?: number
+  /** The quantities behind `reading`, as numbers. Absent where the factor states none. */
+  readonly metrics?: readonly ScreenFigureWire[]
+}
+
+/** Where a fact of a name is listed: price and liquidity, valuation and quality, money flow, and
+ *  derivatives, in that order. */
+type ScreenFactGroup = 'price' | 'valuation' | 'flow' | 'derivatives'
+
+/** One thing a board reads for a name, written as the CLI lists it: the label capitalised, the
+ *  value with its unit. A factor's place among the board's names joins the reading of the same name,
+ *  else it is a fact of its own, labelled with the factor and valued in plain words. Each reading
+ *  once, in a fixed order. */
+export interface ScreenFactWire {
+  readonly id: string
+  readonly label: string
+  readonly value: string
+  readonly group: ScreenFactGroup
+}
+
+/** A name's identity and live price; on a ranked board what the board says about it is in `card`,
+ *  on a `list` board its factors are here. */
 interface ScreenCandidateWire {
   readonly instrument: InstrumentRefWire
   readonly name?: string
   readonly price?: number
   readonly changePct?: number
+  /** `list` boards only, each absent where the market holds no such figure: the market's sector
+   *  slug, the market value, the median daily traded value (both in the market's currency), the
+   *  move over about a month (a percent) and the foreign desk's net over that month (currency). */
+  readonly sector?: string
+  readonly marketCap?: number
+  readonly turnover?: number
+  readonly monthChangePct?: number
+  readonly foreignNet?: number
+  /** What the board reads for the name, grouped and each reading once, as the CLI lists them. */
+  readonly facts?: readonly ScreenFactWire[]
+  /** The factors that had nothing to read for the name, in the operator's language. */
+  readonly missing?: readonly string[]
+  /** `list` boards only: the factors that fired for the name, in a fixed order. */
+  readonly factors?: readonly ScreenFactorWire[]
+  /** `list` boards only: the plain values the market states beside the factors (where the name
+   *  stands in its year, how far it swings, its size, its move over a week), in a fixed order.
+   *  Never a score. */
+  readonly readings?: readonly ScreenReadingWire[]
+  /** `list` boards only: the name is on the operator's exclusion list. */
+  readonly excluded?: true
+  /** `list` boards only: the share (0-1) of the model's factors that had data for the name; absent
+   *  when every one did. */
+  readonly coverage?: number
 }
 
 /** One ranked name as `/screen` prints it: its row, then the caution, prices and top factors. */
@@ -30,15 +98,29 @@ interface ScreenCardWire {
   readonly caveats: readonly string[]
 }
 
-/** GET /v1/screen?market&kind&limit — ranked best first; no limit is the board `/screen` prints.
- *  `board: 'gate'` states per name whether it cleared, with no rank. */
+/** GET /v1/screen?market&kind&limit&cursor — ranked best first; no limit is the board `/screen`
+ *  prints. `board: 'gate'` states per name whether it cleared, with no rank. `board: 'list'` is an
+ *  edition that ranks nothing: every priced name in ticker order, a page of `limit` names from
+ *  `cursor` with `next` for the one after, each with its factors' readings and percentiles, and no
+ *  composite, rating or rank anywhere, `card` included. */
 export interface ScreenResponse {
   readonly market: string
   readonly asOf: string
   readonly dataThroughDay?: string
-  readonly board: 'rank' | 'gate'
+  readonly board: 'rank' | 'gate' | 'list'
   readonly universeSize: number
   readonly candidates: readonly ScreenCandidateWire[]
+  /** `list` boards only: the names on the whole board, not just this page. */
+  readonly total?: number
+  /** `list` boards only: the cursor of the next page; absent on the last. */
+  readonly next?: string
+  /** `list` boards only: names that cleared the gates but had no price, so are not listed. */
+  readonly unpriced?: number
+  /** The kinds the market's screen can be narrowed to, named in the operator's language, where it
+   *  has more than one; the first is the board served when `kind` is not asked. */
+  readonly kinds?: readonly { readonly kind: string; readonly label: string }[]
+  /** The market's first load still runs: the board is what is stored so far (see CONTRACT.md). */
+  readonly isLoading?: true
   /** The lines `/screen` prints for this board, in the operator's language; the app shows them as
    *  is, so the board reads the same in the app, the CLI and Telegram. */
   readonly card: ScreenCardWire
@@ -51,83 +133,6 @@ export interface InstrumentSearchResponse {
     readonly instrument: InstrumentRefWire
     readonly name?: string
     readonly kind?: string
-  }[]
-}
-
-interface OverviewRowWire {
-  readonly instrument: InstrumentRefWire
-  /** The live reading while the market trades, else the settled close. */
-  readonly price?: number
-  readonly changePct?: number
-  /** The session `price` closed in; absent on a live reading. */
-  readonly closedOn?: string
-  /** When the live reading was taken. */
-  readonly observedAt?: number
-}
-
-/** A ranked name and the session figure it is ranked by, in the market's currency. */
-export interface OverviewLeaderWire {
-  readonly instrument: InstrumentRefWire
-  readonly value: number
-  /** Its share of the list's total, as a percent. */
-  readonly sharePct?: number
-  /** Its own move this session, as a percent. */
-  readonly changePct?: number
-}
-
-/** Where the session's money went, each list strongest first. A list the market does not measure is
- *  absent, never empty. */
-export interface OverviewLeadersWire {
-  /** The window every list was measured over: a closed board reports its session, a market that
-   *  never closes its provider's rolling day. */
-  readonly window: 'session' | 'rolling-24h'
-  /** How many sessions the lists sum over; absent on a rolling window. */
-  readonly sessions?: number
-  readonly foreignBuys?: readonly OverviewLeaderWire[]
-  readonly foreignSells?: readonly OverviewLeaderWire[]
-  readonly proprietaryBuys?: readonly OverviewLeaderWire[]
-  readonly proprietarySells?: readonly OverviewLeaderWire[]
-  /** The session (`YYYY-MM-DD`) the proprietary lists were ranked over; present only when it is an
-   *  earlier one than the block's own, because that session's figures are not out yet. */
-  readonly proprietaryDay?: string
-  readonly mostTraded?: readonly OverviewLeaderWire[]
-}
-
-/** The session's biggest movers above the market's liquidity floor, each strongest first. */
-export interface OverviewMoversWire {
-  readonly window: 'session' | 'rolling-24h'
-  readonly gainers: readonly OverviewMoverWire[]
-  readonly losers: readonly OverviewMoverWire[]
-}
-
-export interface OverviewMoverWire {
-  readonly instrument: InstrumentRefWire
-  /** Percent. */
-  readonly changePct: number
-  /** Traded value in the market's currency. */
-  readonly turnover: number
-}
-
-/** GET /v1/overview — one block per registered market. */
-export interface OverviewResponse {
-  readonly markets: readonly {
-    readonly market: string
-    readonly asOf: string
-    readonly sessionState?: string
-    readonly currency: string
-    /** What the rows' prices are quoted in; absent where they are index levels, which print bare. */
-    readonly priceCurrency?: string
-    readonly rows: readonly OverviewRowWire[]
-    readonly breadth?: {
-      readonly advancers: number
-      readonly decliners: number
-      readonly measured: number
-    }
-    /** Foreign investors' net buying in the market's currency; negative is net selling. */
-    readonly foreignNetValue?: number
-    readonly leaders?: OverviewLeadersWire
-    readonly movers?: OverviewMoversWire
-    readonly caveats: readonly TradingWireCaveat[]
   }[]
 }
 
@@ -174,7 +179,7 @@ export type MacroResponse =
       readonly missing: readonly {
         readonly id: string
         readonly label: string
-        readonly reason: 'no-observation' | 'observation-only' | 'fetch-error'
+        readonly reason: 'no-observation' | 'observation-only' | 'fetch-error' | 'unserved'
       }[]
       readonly caveats: readonly TradingWireCaveat[]
     }
@@ -259,6 +264,9 @@ export interface MarketWire {
   /** The operator has that segment switched on. A market that is registered but off still trades
    *  and is listed here; world gold, read for reference only, is always off. */
   readonly enabled: boolean
+  /** Some venue can hold it; world gold, a reference read, cannot, so a page lists it although it is
+   *  never enabled. */
+  readonly holdable: boolean
   readonly label: string
   readonly segmentLabel: string
   readonly regionLabel: string

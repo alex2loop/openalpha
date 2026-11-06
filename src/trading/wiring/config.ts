@@ -16,7 +16,7 @@ import type {
 } from '@/trading/kernel/config'
 import type { MarketRef, VenueRef } from '@/trading/kernel/instrument'
 import type { SourceId } from '@/trading/kernel/source/source-id'
-import { OperatorConfigError, toInvalidConfigError } from '@/core/config/resolve'
+import { OperatorConfigError, toInvalidConfigError } from '@/core/config/operator-errors'
 import { ValidationError } from '@/core/errors'
 import { freezeDeep } from '@/core/utils/freeze'
 import { currencyCode, marketRef, region, tradingDay, venueRef } from '@/trading/kernel/instrument'
