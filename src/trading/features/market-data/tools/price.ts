@@ -58,7 +58,7 @@ export function createMarketPriceTool(
 function agentQuoteView(view: QuoteView, writer: QuoteWriter): unknown {
   const { locale, timezone } = writer
   const price: PriceWriter = (value) => formatScaledPrice(locale, value, view)
-  const { display: _display, quote, previousClose, observed, ...rest } = view
+  const { display: _display, sector: _sector, quote, previousClose, observed, ...rest } = view
   const { observedAt: _observedAt, ...pricedQuote } = quote
 
   return {

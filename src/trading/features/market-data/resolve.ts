@@ -30,6 +30,7 @@ type InstrumentResolution =
       readonly market: Market
       readonly instrument: InstrumentRef
       readonly instrumentKind?: InstrumentKind
+      readonly sector?: string
       /** What resolving the name had to say, for a read to carry beside its own: a second market
        *  listing the same symbol, when the caller asked. */
       readonly caveats: readonly Caveat[]
@@ -125,6 +126,7 @@ export async function resolveInstrument(
       ...(resolution.instrumentKind === undefined
         ? {}
         : { instrumentKind: resolution.instrumentKind }),
+      ...(resolution.sector === undefined ? {} : { sector: resolution.sector }),
     }
   }
 

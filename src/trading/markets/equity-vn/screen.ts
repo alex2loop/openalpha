@@ -14,7 +14,9 @@ import type { TapeReading } from '@/trading/kernel/market/tape'
 import type { ScreenGateCode } from '@/trading/kernel/screen-codes'
 import type { VnExchange } from '@/trading/markets/equity-vn/policy'
 import type { ScreenGateVerdict } from '@/trading/markets/screen-partition'
+import { definedOnly } from '@/core/utils/collections'
 import { factorComposite } from '@/trading/kernel/factor'
+import { exposureSectorOf } from '@/trading/kernel/instrument'
 import { SUPERVISION_LEVELS } from '@/trading/kernel/market/supervision'
 import {
   DAILY_BAND_BY_EXCHANGE,
@@ -59,7 +61,7 @@ const DISCLOSURE_SUPERVISION: ReadonlySet<SupervisionLevel> = new Set(
 export interface ScreenInput {
   readonly instrument: InstrumentRef
   readonly name?: string
-  /** The market's own sector slug, for a caller that narrows the board to some sectors. */
+  /** The market's own sector slug, absent for a fund: its listed sector names the vehicle. */
   readonly sector?: string
   readonly status: InstrumentStatus
   readonly kind: InstrumentKind
@@ -144,7 +146,7 @@ export function toScreenInput(source: ScreenInputSource, asOf: TradingDay): Scre
     kind: record.kind,
     exchange: toVnExchange(record.exchange) ?? PRIMARY_EXCHANGE,
     bars,
-    ...(record.sector === undefined ? {} : { sector: record.sector }),
+    ...definedOnly({ sector: exposureSectorOf(record.kind, record.sector) }),
     ...(marketCap === undefined ? {} : { marketCap }),
     ...(source.supervision === undefined ? {} : { supervision: source.supervision }),
     ...(freeFloatPct === undefined ? {} : { freeFloatPct }),

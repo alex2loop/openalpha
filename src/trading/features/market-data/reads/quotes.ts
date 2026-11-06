@@ -17,6 +17,7 @@ import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Market, MarketManifest } from '@/trading/markets/types'
 import type { QuoteConvention } from '@/trading/render/money'
+import { definedOnly } from '@/core/utils/collections'
 import { withinRange } from '@/trading/features/market-data/market-data-run'
 import { freshnessOf } from '@/trading/features/market-data/reads/freshness'
 import { settledCloseBefore } from '@/trading/features/market-data/reads/previous-close'
@@ -75,7 +76,7 @@ export async function runQuote(
       quote: result.value,
       observed,
       ...quotedFieldsOf(market.manifest, resolved.instrumentKind),
-      ...(previousClose === undefined ? {} : { previousClose }),
+      ...definedOnly({ previousClose, sector: resolved.sector }),
     },
     result.provenance,
     [...result.caveats, ...resolved.caveats]

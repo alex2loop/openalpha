@@ -64,6 +64,9 @@ export interface TradingQuoteWire extends QuoteDetailWire {
   readonly isLevel: boolean
   readonly market: string
   readonly assetClass: AssetClass
+  /** The sector slug the market files the name under, from its stored listing; absent where it
+   *  files none (a fund, an index, a coin, gold). */
+  readonly sector?: string
 }
 
 export interface TradingQuotesResponse {

@@ -101,9 +101,9 @@ async function quoteBoardItemFor(
     observedAt,
     clock.now
   )
-  const [previousClose, ownKind] = await Promise.all([
+  const [previousClose, own] = await Promise.all([
     settledCloseBefore(market, instrument, { observed, now: clock.now, signal: clock.signal }),
-    ownKindOf(deps.markets, instrument, clock.signal),
+    ownIdentityOf(deps.markets, instrument, clock.signal),
   ])
 
   const settled =
@@ -114,13 +114,13 @@ async function quoteBoardItemFor(
     observed,
     ...(settled ? { closedOn: observed.day } : {}),
     ...(previousClose === undefined ? {} : { previousClose }),
-    kind: ownKind ?? market.manifest.assetClass,
+    kind: own.kind ?? market.manifest.assetClass,
     ticker: instrument.ticker,
     region: market.manifest.region,
     currency: market.manifest.currency,
     market: market.manifest.id,
     assetClass: market.manifest.assetClass,
-    ...definedOnly({ session, board }),
+    ...definedOnly({ session, board, sector: own.sector }),
     ...(session?.volume === undefined ? {} : { sessionVolume: session.volume }),
     last: price,
     ...(changePct === undefined || !Number.isFinite(changePct) ? {} : { changePct }),
@@ -129,22 +129,35 @@ async function quoteBoardItemFor(
   }
 }
 
+interface OwnIdentity {
+  readonly kind?: QuoteBoardItem['kind']
+  readonly sector?: string
+}
+
 /** What the name is, not what its market is: the asset class files an index under equities, and a
- *  surface tells a level from a price by this. Only stored universes are asked, so a poll never
- *  spends a provider lookup on it; absent where they cannot place the name, and for `fx`, which no
- *  market owns. */
-async function ownKindOf(
+ *  surface tells a level from a price by its kind. Its sector is the market's filing of it. Only
+ *  stored universes are asked, so a poll never spends a provider lookup on it; absent where they
+ *  cannot place the name, and the kind for `fx`, which no market owns. */
+async function ownIdentityOf(
   markets: MarketRegistry,
   instrument: InstrumentRef,
   signal: AbortSignal
-): Promise<QuoteBoardItem['kind'] | undefined> {
+): Promise<OwnIdentity> {
   const resolved = await markets.resolve({
     ticker: instrument.ticker,
     market: instrument.market,
     detection: 'stored',
     signal,
   })
-  const kind = resolved.kind === 'resolved' ? resolved.instrumentKind : undefined
 
-  return kind === 'fx' ? undefined : kind
+  if (resolved.kind !== 'resolved') {
+    return {}
+  }
+
+  const { instrumentKind, sector } = resolved
+
+  return {
+    ...(instrumentKind === undefined || instrumentKind === 'fx' ? {} : { kind: instrumentKind }),
+    ...(sector === undefined ? {} : { sector }),
+  }
 }
