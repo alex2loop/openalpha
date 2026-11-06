@@ -96,6 +96,10 @@ function leakedTickers(
   return [...new Set(text.flatMap((line) => line.match(word) ?? []))]
 }
 
+function escapeRegExp(literal: string): string {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 /** Every line a reader sees, in both languages: the brief, the headline, the screen lists and the
  *  closing line. */
 function textOf(render: PublicBriefRender): readonly string[] {
@@ -126,8 +130,4 @@ function briefLines(text: BriefText): readonly string[] {
 
 function screenLines(screen: PublicScreenText): readonly string[] {
   return [screen.title, screen.note, ...screen.rows.flatMap((row) => [row.ticker, row.line])]
-}
-
-function escapeRegExp(literal: string): string {
-  return literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

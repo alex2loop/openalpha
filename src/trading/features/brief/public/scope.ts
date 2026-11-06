@@ -41,9 +41,11 @@ export const PUBLIC_CORE_SECTIONS = Object.freeze([
  *  has no date of its own. */
 export const PUBLIC_SESSION_KIND = 'market-prices' as const satisfies BriefSectionKind
 
-/** An uppercase symbol inside a headline: letters and digits, joined by `.`, `_` or `-`, with no
+/** An uppercase symbol inside a headline: capitals and digits, joined by `.`, `_` or `-`, with no
  *  letter or digit beside it. */
 const HEADLINE_TOKEN_RE = /(?<![A-Za-z0-9])[A-Z0-9]+(?:[._-][A-Z0-9]+)*(?![A-Za-z0-9])/g
+const HEADLINE_JOINER_RE = /[._-]/
+const LETTER_RE = /[A-Z]/
 
 /** The sections whose rows carry a story's code, which a later brief reviews. */
 const CARRIED_STORY_KINDS: ReadonlySet<BriefSectionKind> = new Set(['story', 'thesis-review'])
@@ -111,6 +113,14 @@ function rowTickers(row: BriefSectionRow, isHeadline: boolean): readonly string[
   const named = typeof row.ticker === 'string' ? [row.ticker] : []
 
   return isHeadline && typeof row.title === 'string'
-    ? [...named, ...(row.title.match(HEADLINE_TOKEN_RE) ?? [])]
+    ? [...named, ...headlineSymbols(row.title)]
     : named
+}
+
+/** Each symbol of a title and its parts, so the base of `BTC-USD` is named too. A part with no
+ *  letter is a number, not a name. */
+function headlineSymbols(title: string): readonly string[] {
+  return (title.match(HEADLINE_TOKEN_RE) ?? [])
+    .flatMap((token) => [token, ...token.split(HEADLINE_JOINER_RE)])
+    .filter((part) => LETTER_RE.test(part))
 }

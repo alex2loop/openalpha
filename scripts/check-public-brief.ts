@@ -39,6 +39,31 @@ const VENUE_BLIND_READ_RE = /\bvenueBlind\b/
 const MARKETS_IN_USE_RE = /\bmarketsInUse\b/
 const BRIEF_SERVICES_RE = /\bbriefServices\b/
 
+/** The kinds scoped `book` today. The guard exempts every `market` kind's rows, so a book kind
+ *  moved to `market` would also widen the guard: the move takes this list and the scope record, and
+ *  a record that differs from the list in either direction fails. */
+const BOOK_KINDS: readonly string[] = Object.freeze([
+  'book-summary',
+  'resolved-suggestions',
+  'fired-alerts',
+  'position-exits',
+  'unwatched-positions',
+  'stale-positions',
+  'positions-in-loss',
+  'cross-asset-pulse',
+  'trade-sides',
+  'drift-nudge',
+  'monthly-scorecard',
+  'deposit-rate',
+  'watchlist-leading',
+  'watchlist-dropped',
+  'cost',
+  'suggestions',
+  'cross-asset-suggestions',
+  'next-actions',
+  'discipline',
+])
+
 /** Reached from `public/`, any of these is the operator's book or the code that reads it. Paths are
  *  under `src/trading/`, without extension: a prefix matches the file or the folder. */
 const PUBLIC_BRIEF_FORBIDDEN: readonly string[] = [
@@ -115,6 +140,7 @@ violations.push(...walked.offences.map((offence) => `(a) ${offence}`))
 violations.push(...staleExceptions(walked.usedEdges).map((edge) => `(a) stale exception, no longer reached: ${edge}`))
 violations.push(...briefServicesOutsideHolders().map((file) => `(b) ${file} names briefServices and is no holder`))
 violations.push(...unscopedKinds().map((message) => `(c) ${message}`))
+violations.push(...bookKindDrift().map((message) => `(c) ${message}`))
 violations.push(...kindLiteralsOutsideScope().map((message) => `(c) ${message}`))
 violations.push(...marketsInUseCallers().map((file) => `(d) ${file} names marketsInUse`))
 violations.push(...compositionImports().map((message) => `(e) ${message}`))
@@ -259,6 +285,19 @@ function unscopedKinds(): readonly string[] {
   }
 
   return messages
+}
+
+/** The scope record's `book` kinds against `BOOK_KINDS`, in both directions. */
+function bookKindDrift(): readonly string[] {
+  const listed: ReadonlySet<string> = new Set(BOOK_KINDS)
+  const recorded: ReadonlySet<string> = new Set(
+    BRIEF_SECTION_ORDER.filter((kind) => BRIEF_SECTION_SCOPE[kind] === 'book')
+  )
+
+  return [
+    ...[...recorded].filter((kind) => !listed.has(kind)).map((kind) => `${kind} is scoped book and is not in BOOK_KINDS`),
+    ...BOOK_KINDS.filter((kind) => !recorded.has(kind)).map((kind) => `${kind} is in BOOK_KINDS and is no longer scoped book`),
+  ]
 }
 
 /** Only `scope.ts` writes a section kind out; any other file under `public/` takes it from there. */
