@@ -27,6 +27,7 @@
     "./check-trading-locale.ts",
     "./check-vi-terminology.ts",
     "./evaluate-research-routing.ts",
+    "./public-brief-dry-run.ts",
     "./research-*.ts",
     "./research-*/**/*.ts",
     "./sdk-embedder-smoke.ts",

@@ -1,0 +1,73 @@
+import type { Logger } from '@/core/logging/logger'
+import type { Locale } from '@/core/types/locale'
+import type { PublicToggles } from '@/trading/features/brief/public/scope'
+import type { BriefText } from '@/trading/features/brief/surface'
+import type { BriefServices } from '@/trading/features/brief/types'
+import type { TradingDay } from '@/trading/kernel/instrument'
+import type {
+  RefreshAllMarketDataOptions,
+  RefreshMarketDataResult,
+} from '@/trading/kernel/market/refresh'
+import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type { Market } from '@/trading/markets/types'
+
+/** One day of the brief the daemon posts to the public side, and how many times it tried. A day
+ *  whose build came back empty has no `sections`: the attempt is on record all the same. */
+export interface PublicBriefRow {
+  readonly day: TradingDay
+  readonly sections?: readonly BriefSectionResult[]
+  readonly builtAt?: number
+  readonly publishedAt?: number
+  readonly attempts: number
+  readonly lastAttemptAt?: number
+}
+
+/** A row with a build behind it: what the renderer and the story step read. */
+export type BuiltPublicBriefRow = PublicBriefRow & {
+  readonly sections: readonly BriefSectionResult[]
+  readonly builtAt: number
+}
+
+interface PublicBriefAttempt {
+  readonly day: TradingDay
+  readonly at: number
+  readonly publishedAt?: number
+  /** No attempt remains for the day: a post the public side refused for good. */
+  readonly closed?: true
+}
+
+/** Everything the public brief keeps, in its own table: nothing here is read from or written to
+ *  the owner's brief. A row that cannot be read reads as unbuilt. */
+export interface PublicBriefStore {
+  find(day: TradingDay, signal: AbortSignal): Promise<PublicBriefRow | null>
+  /** The newest earlier row that has sections. */
+  findPrevious(before: TradingDay, signal: AbortSignal): Promise<BuiltPublicBriefRow | null>
+  /** Keeps the row's attempts and publish stamp, and drops the days past the retention window. */
+  saveBuilt(
+    built: Pick<BuiltPublicBriefRow, 'day' | 'sections' | 'builtAt'>,
+    signal: AbortSignal
+  ): Promise<BuiltPublicBriefRow>
+  /** Counts the attempt, and creates the row when there is none, so an empty build counts. */
+  recordAttempt(attempt: PublicBriefAttempt, signal: AbortSignal): Promise<void>
+}
+
+export interface PublicBriefDeps {
+  /** The market that composes the brief and owns the calendar it is dated on. */
+  readonly market: Market
+  /** The reads its sections take: none of them is the operator's. */
+  readonly reads: BriefServices
+  readonly store: PublicBriefStore
+  readonly toggles: PublicToggles
+  /** The most rows a section or the story carries. */
+  readonly limit: number
+  readonly logger: Logger
+  refresh(options: RefreshAllMarketDataOptions): Promise<readonly RefreshMarketDataResult[]>
+}
+
+export interface PublicBriefRender {
+  readonly day: TradingDay
+  readonly builtAt: number
+  readonly texts: Record<Locale, BriefText>
+  readonly headline: Record<Locale, string>
+  readonly disclaimer: Record<Locale, string>
+}

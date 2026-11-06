@@ -3,59 +3,23 @@ import { z } from 'zod'
 import type { Locale } from '@/core/types/locale'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { TradingDay } from '@/trading/kernel/instrument'
-import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
 import { LOCALES } from '@/core/types/locale'
 import { briefSnapshotId } from '@/trading/features/brief/types'
-import { currencyCode, marketRef, tradingDay } from '@/trading/kernel/instrument'
-import {
-  BRIEF_FIELDS,
-  BRIEF_RENDER_VERSION,
-  BRIEF_SECTION_ORDER,
-} from '@/trading/kernel/operator/brief-section'
-import {
-  caveatsSchema,
-  provenanceSchema,
-  toMember,
-  toProvenance,
-} from '@/trading/kernel/store/store-payload'
+import { tradingDay } from '@/trading/kernel/instrument'
+import { BRIEF_RENDER_VERSION } from '@/trading/kernel/operator/brief-section'
+import { briefSectionsSchema, toBriefSections } from '@/trading/kernel/store/brief-section-payload'
+import { caveatsSchema, toMember } from '@/trading/kernel/store/store-payload'
 import { parseJson } from '@/trading/kernel/store/store-row'
 
 const INSERT_SQL =
   'INSERT INTO brief_snapshots (id, day, authored_locale, created_at, payload) ' + 'VALUES '
 
-const readySectionSchema = z.strictObject({
-  kind: z.enum(BRIEF_SECTION_ORDER),
-  status: z.literal('ready'),
-  market: z.string().optional(),
-  icon: z.string().optional(),
-  asOf: z.string().optional(),
-  // `partialRecord`, not `record`: a row carries whichever fields its section fills, and Zod v4's
-  // `record` with an enum key requires every one of them. The enum is the point — a row naming a
-  // field this build no longer has is a snapshot from an older vocabulary, and rejecting it here is
-  // what sends the service back to rebuild instead of rendering a field the catalog cannot name.
-  rows: z.array(z.partialRecord(z.enum(BRIEF_FIELDS), z.union([z.string(), z.number()]))),
-  currency: z.string().optional(),
-  titleParams: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
-  provenance: z.array(provenanceSchema),
-  caveats: caveatsSchema,
-})
-
-const absentSectionSchema = z.strictObject({
-  kind: z.enum(BRIEF_SECTION_ORDER),
-  status: z.enum(['unavailable', 'omitted-by-policy']),
-  market: z.string().optional(),
-  icon: z.string().optional(),
-  asOf: z.string().optional(),
-  caveats: caveatsSchema,
-})
-
-// Section order is the stored order: the composer decides it once and a reader never re-sorts.
 const payloadSchema = z.strictObject({
   renderVersion: z.number().optional(),
   profileRevision: z.string().optional(),
-  sections: z.array(z.union([readySectionSchema, absentSectionSchema])),
+  sections: briefSectionsSchema,
   caveats: caveatsSchema,
   scorecardMonth: z.string().optional(),
 })
@@ -220,35 +184,9 @@ function toBriefSnapshot(row: BriefSnapshotRow): BriefSnapshot | null {
     asOf: tradingDay(row.day),
     authoredLocale: toMember(row.authored_locale, LOCALES, 'brief locale'),
     profileRevision: payload.profileRevision,
-    sections: payload.sections.map(toSection),
+    sections: toBriefSections(payload.sections),
     caveats: payload.caveats,
     ...(payload.scorecardMonth === undefined ? {} : { scorecardMonth: payload.scorecardMonth }),
     createdAt: row.created_at,
-  }
-}
-
-function toSection(raw: z.infer<typeof payloadSchema>['sections'][number]): BriefSectionResult {
-  if (raw.status === 'ready') {
-    return {
-      kind: raw.kind,
-      status: raw.status,
-      ...(raw.market === undefined ? {} : { market: marketRef(raw.market) }),
-      ...(raw.icon === undefined ? {} : { icon: raw.icon }),
-      ...(raw.asOf === undefined ? {} : { asOf: tradingDay(raw.asOf) }),
-      rows: raw.rows,
-      ...(raw.currency === undefined ? {} : { currency: currencyCode(raw.currency) }),
-      ...(raw.titleParams === undefined ? {} : { titleParams: raw.titleParams }),
-      provenance: raw.provenance.map(toProvenance),
-      caveats: raw.caveats,
-    }
-  }
-
-  return {
-    kind: raw.kind,
-    status: raw.status,
-    ...(raw.market === undefined ? {} : { market: marketRef(raw.market) }),
-    ...(raw.icon === undefined ? {} : { icon: raw.icon }),
-    ...(raw.asOf === undefined ? {} : { asOf: tradingDay(raw.asOf) }),
-    caveats: raw.caveats,
   }
 }

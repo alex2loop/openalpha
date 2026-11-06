@@ -5732,6 +5732,7 @@
     "brief.fact.takerBuyPct": "Buyers crossing the spread",
     "brief.fact.sentimentScore": "Fear and greed index",
     "brief.fact.premium": "Premium over world",
+    "publicBrief.disclaimer": "This brief describes the market. It is not investment advice.",
     "render.macro.title": "{region} macro: {regime}",
     "render.macro.marketTitle": "Macro: {regime}",
     "render.macro.sameDrivers": "Driven by exactly the same readings as {market} above.",

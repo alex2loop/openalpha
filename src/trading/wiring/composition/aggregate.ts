@@ -33,6 +33,7 @@ import { buildAppViews } from '@/trading/wiring/composition/app-views'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { toFocusScope } from '@/trading/wiring/composition/focus-scope'
 import { toIntradayNext } from '@/trading/wiring/composition/intraday-next'
+import { createPublicBrief } from '@/trading/wiring/composition/public-brief'
 import { buildRebalanceViews } from '@/trading/wiring/composition/rebalance-views'
 import { resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
 import { buildSuggestionCards } from '@/trading/wiring/composition/suggestion-cards'
@@ -103,6 +104,15 @@ export function toAggregate(
     ),
     profileFields: offeredFields(options.edition?.profile?.fields),
     appViews: buildAppViews(parts.services, options.tradingConfig, options.edition),
+    publicBrief: createPublicBrief({
+      config: options.tradingConfig,
+      markets: registries.markets,
+      venues: registries.venues,
+      marketData: parts.services.marketData,
+      store: parts.stores.publicBrief,
+      logger: parts.logger,
+      refreshMarketData: parts.refreshMarketData,
+    }),
     daemonTasks: buildDaemonTasks(
       parts,
       { ...options, firstSweep: firstSweep.promise },

@@ -2,6 +2,7 @@ import type { Bind, ServiceProvider } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Dialect, Storage } from '@/core/types/storage'
 import type { AlertStore } from '@/trading/features/alerts/store/alert'
+import type { PublicBriefStore } from '@/trading/features/brief/public/types'
 import type { BriefStore } from '@/trading/features/brief/store/brief'
 import type { BriefDeliveryStore } from '@/trading/features/brief/store/delivery'
 import type { LedgerStore } from '@/trading/features/ledger/store/ledger'
@@ -23,6 +24,7 @@ import type { ThemeStore } from '@/trading/features/themes/store'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { createAlertStore } from '@/trading/features/alerts/store/alert'
+import { createPublicBriefStore } from '@/trading/features/brief/public/store'
 import { createBriefStore } from '@/trading/features/brief/store/brief'
 import { createBriefDeliveryStore } from '@/trading/features/brief/store/delivery'
 import { createLedgerStore } from '@/trading/features/ledger/store/ledger'
@@ -55,6 +57,7 @@ export interface TradingStores {
   readonly alert: AlertStore
   readonly brief: BriefStore
   readonly briefDelivery: BriefDeliveryStore
+  readonly publicBrief: PublicBriefStore
   readonly marketData: MarketDataStore
   readonly newsArchive: NewsArchiveStore
   readonly macroExtract: MacroExtractStore
@@ -104,6 +107,7 @@ const createTradingStores = (options: CreateTradingStoresOptions): TradingStores
     alert: createAlertStore(deps),
     brief: createBriefStore(deps),
     briefDelivery: createBriefDeliveryStore(deps),
+    publicBrief: createPublicBriefStore(deps),
     marketData: createMarketDataStore(deps),
     newsArchive: createNewsArchiveStore(deps),
     macroExtract: createMacroExtractStore(deps),

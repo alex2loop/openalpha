@@ -1,4 +1,10 @@
-import type { CurrencyCode, PortfolioSegment, PositionCategory } from '@/trading/kernel/instrument'
+import type {
+  CurrencyCode,
+  MarketRef,
+  PortfolioSegment,
+  PositionCategory,
+  Region,
+} from '@/trading/kernel/instrument'
 import type {
   InvestmentHorizon,
   ProfilePolicyNumbers,
@@ -6,6 +12,7 @@ import type {
   RiskLevel,
   UserProfile,
 } from '@/trading/kernel/operator/profile'
+import type { MarketManifest } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
 import { CASH_SEGMENT, POSITION_CATEGORIES, portfolioSegment } from '@/trading/kernel/instrument'
 import { DISABLED_CAPS } from '@/trading/kernel/operator/profile'
@@ -34,7 +41,7 @@ const SEGMENT_CEILING_FLOOR_PCT_POINTS = 0.05
 const SEGMENT_CEILING_RELATIVE_FRACTION = 0.25
 
 /** A segment that declares no weight takes an even share of its category. */
-export const DEFAULT_SEED_WEIGHT = 1
+const DEFAULT_SEED_WEIGHT = 1
 
 const DEFAULT_RISK_LEVEL: RiskLevel = 'balanced'
 const DEFAULT_GOAL = 'grow'
@@ -174,6 +181,36 @@ interface DefaultProfileOptions {
   readonly baseCurrency: CurrencyCode
   readonly segments: readonly SegmentDescriptor[]
   readonly riskLevel?: RiskLevel
+}
+
+interface SegmentBasis {
+  /** The markets some venue holds; the rest are read for reference and never sized. */
+  readonly heldMarkets: ReadonlySet<MarketRef>
+  /** The operator's home region: a national market seeds a target only there. */
+  readonly homeRegion: Region
+}
+
+/** The registered segments, as a profile is seeded and validated against them. */
+export function toSegmentDescriptors(
+  manifests: readonly MarketManifest[],
+  basis: SegmentBasis
+): readonly SegmentDescriptor[] {
+  return manifests.map((manifest) => ({
+    id: manifest.segment,
+    category: manifest.segmentCategory,
+    held: basis.heldMarkets.has(manifest.id),
+    seedsDefaultTarget: basis.heldMarkets.has(manifest.id) && seedsAt(manifest, basis.homeRegion),
+    seedWeight: manifest.seedWeight ?? DEFAULT_SEED_WEIGHT,
+    holdsEtfs: manifest.screenableKinds?.includes('etf') === true,
+    horizon: manifest.horizon,
+  }))
+}
+
+/** A national market seeds only at home; any other follows its own flag, seeded when absent. */
+function seedsAt(manifest: MarketManifest, homeRegion: Region): boolean {
+  const seeds = manifest.seedsDefaultTarget
+
+  return seeds === 'home' ? manifest.region === homeRegion : seeds !== false
 }
 
 /** The only builder of an absent or reset profile. Capacity and willingness both start at the seed
