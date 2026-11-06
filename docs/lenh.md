@@ -872,9 +872,10 @@ Một sàn mang khóa giao dịch thì lấy dòng từ lệnh khớp duy nhất
 
 Mã đứng một mình chỉ được tìm trong các danh sách đã lưu, trong các thị trường mà một sàn giữ (chỉ sàn
 được nêu, nếu có nêu). Không có yêu cầu mạng nào được gửi. Mã chỉ được nhận khi đúng một thị trường
-khớp; nếu không, câu trả lời nêu các dạng `thị-trường:mã` để gõ. Thị trường bạn đã tắt (`/profile`) không
-được tìm, nên một mã coin trùng tên quỹ Mỹ sẽ không bao giờ bị ghi thành quỹ: muốn quỹ thì gõ
-`equity-us:BTC`. Mọi xác nhận đều in thị trường cạnh mã.
+khớp; nếu không, câu trả lời nêu các dạng `thị-trường:mã` để gõ. Thị trường thuộc nhóm bạn đã tắt
+(`/profile`), mà bạn không nắm giữ hay theo dõi gì ở đó, thì không được tìm, nên một mã coin trùng tên
+quỹ Mỹ sẽ không bao giờ bị ghi thành quỹ: muốn quỹ thì gõ `equity-us:BTC`. Mọi xác nhận đều in thị
+trường cạnh mã.
 
 Dòng được mở rộng ra dạng đầy đủ trước khi đọc bất kỳ con số nào. Nên số có dấu nhóm như `58.400` bị từ
 chối y như dạng đầy đủ. Ví dụ: `/record buy FPT 100 58400`.
