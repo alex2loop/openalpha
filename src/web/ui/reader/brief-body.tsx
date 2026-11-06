@@ -21,6 +21,8 @@ import {
 
 import './brief-body.css'
 
+const LINE_CLASSES = { note: 'reader-note', source: 'meta' } as const
+
 interface BriefBodyProps {
   readonly text: BriefTextWire
   readonly labels: { readonly cautions: string }
@@ -110,8 +112,6 @@ function Story({ block, renderText }: Rendering & { readonly block: StoryBlock }
     </>
   )
 }
-
-const LINE_CLASSES = { note: 'reader-note', source: 'meta' } as const
 
 function StoryLineView({ line, renderText }: Rendering & { readonly line: StoryLine }) {
   const className =
