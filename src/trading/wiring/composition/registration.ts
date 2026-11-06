@@ -29,11 +29,12 @@ import type { TradingServices } from '@/trading/wiring/composition/service-aggre
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import type { WithThemes } from '@/trading/wiring/composition/themes'
 import { ConfigError } from '@/core/errors'
+import { registerKnownSecret, resolveCredential } from '@/core/security/credentials'
 import { createConfiguredRunBudget } from '@/engine/api'
 import { createEnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import { createRunDebate } from '@/trading/features/suggestion/debate/debate'
 import { toPlaybookLibrary } from '@/trading/features/suggestion/debate/playbook'
-import { DECISIONS_MODEL_TIER } from '@/trading/kernel/config'
+import { DECISIONS_MODEL_TIER, PUBLIC_BRIEF_TOKEN_VARIABLE } from '@/trading/kernel/config'
 import { buildTradingAgents, personaVersions } from '@/trading/wiring/catalog/agents'
 import { skillVersions, TRADING_SKILLS } from '@/trading/wiring/catalog/skills'
 import { toAggregate } from '@/trading/wiring/composition/aggregate'
@@ -168,6 +169,7 @@ export function createTradingRegistrationProvider(
     name: 'trading-registration',
     register(bind: Bind, extend: Extend): void {
       bind('tradingServices', (app) => {
+        registerPublicBriefToken(options, app.resolve('logger'))
         built = buildTrading(app, options)
 
         return built.services
@@ -253,6 +255,23 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
       registries
     ),
     contributions,
+  }
+}
+
+/** Read once, here: the value reaches the scrubber and nothing else, so it cannot land in a log, an
+ *  error or the config. Setting it without turning the feature on is harmless; turning the feature
+ *  on without it leaves the publisher idle, which the start says once. */
+function registerPublicBriefToken(options: TradingRegistrationOptions, logger: Logger): void {
+  const token = resolveCredential(options.env, PUBLIC_BRIEF_TOKEN_VARIABLE)
+
+  if (token !== undefined) {
+    registerKnownSecret(token)
+
+    return
+  }
+
+  if (options.tradingConfig.publicBrief.enabled) {
+    logger.warn('trading.public_brief_token_missing', { variable: PUBLIC_BRIEF_TOKEN_VARIABLE })
   }
 }
 

@@ -12,6 +12,8 @@ interface BrandControlEnv {
 interface Brand {
   readonly name: string
   readonly display: string
+  /** The domain the public pages live under. */
+  readonly publicDomain: string
   readonly dataDirName: string
   readonly envPrefix: string
   readonly controlEnv: BrandControlEnv
@@ -45,6 +47,7 @@ const repository = pkg.repository.url.replace(GIT_URL_PREFIX_RE, '').replace(GIT
 export const BRAND: Brand = Object.freeze({
   name,
   display,
+  publicDomain: pkg.publicDomain,
   dataDirName: `.${name}`,
   envPrefix,
   controlEnv: Object.freeze({

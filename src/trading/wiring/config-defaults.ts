@@ -77,6 +77,16 @@ const DEFAULT_BRIEF_POLICY: BriefPolicy = Object.freeze({
   activityLookbackMs: BRIEF_ACTIVITY_LOOKBACK_MS,
 })
 
+const DEFAULT_PUBLIC_BRIEF_PUBLISH_TIME = '08:30'
+
+const DEFAULT_PUBLIC_BRIEF_POLICY: TradingConfig['publicBrief'] = Object.freeze({
+  enabled: false,
+  publishTime: DEFAULT_PUBLIC_BRIEF_PUBLISH_TIME,
+  analysis: true,
+  headlines: true,
+  topScreen: 0,
+})
+
 /** Off until the operator names their own times. The morning brief is the one scheduled delivery;
  *  an intraday push is a second and third message a fresh install never asked for. */
 const DEFAULT_INTRADAY_POLICY: IntradayPolicy = Object.freeze({
@@ -217,6 +227,7 @@ export const DEFAULT_TRADING_CONFIG: TradingConfig = Object.freeze({
   suggestions: DEFAULT_SUGGESTION_POLICY,
   operations: DEFAULT_OPERATIONS_POLICY,
   briefs: DEFAULT_BRIEF_POLICY,
+  publicBrief: DEFAULT_PUBLIC_BRIEF_POLICY,
   intraday: DEFAULT_INTRADAY_POLICY,
   alerts: DEFAULT_ALERT_POLICY,
   typedPrices: DEFAULT_TYPED_PRICE_POLICY,

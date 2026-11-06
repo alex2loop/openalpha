@@ -717,6 +717,7 @@ The per-agent ceiling (`tools`, `delegates`, `hosts`, `skills`) lives in `agent.
 | `OPENALPHA_LOG_LEVEL` | Sets the log level unless `--log-level` is given (see [`[log]`](#log)). One of `debug`, `info`, `warn`, `error`, `fatal`. |
 | Any variable named in config | Read through `api_key_env`, a channel `token_env`, the API `token_env`, or the web-search `api_key_env`. |
 | Variable named by `storage.url_env` | Supplies the PostgreSQL connection URL at boot. |
+| `PUBLIC_BRIEF_TOKEN` | The token the public brief is published with. Read only for `[trading.public_brief]`; the same name under the `OPENALPHA_` prefix works too. |
 
 Each model reads exactly the variable its `api_key_env` names, with no fallback list. Common choices:
 `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GOOGLE_API_KEY`.
@@ -791,6 +792,13 @@ reward_risk = 3                # target as a multiple of the risk (1-5)
 
 [trading.briefs]
 send_time = "08:15"            # default for a delivery that has not set its own in chat
+
+[trading.public_brief]
+enabled = false                # publish a market-only brief each Vietnam trading morning
+publish_time = "08:30"         # HH:MM, Vietnam time; before the 09:00 open
+analysis = true                # macro regime and score, regime shift, sector rotation, support and resistance, futures basis
+headlines = true               # market, macro and economy headlines
+top_screen = 0                 # 0 = off; up to 10 names per market from the screen board, by composite score
 
 [trading.intraday]
 send_times = []                # HH:MM pushes in the market's timezone; empty = off (the default)
@@ -947,6 +955,15 @@ timezone, taken from the calendar that owns `[locale] region`, never from `[loca
 (where you are). An operator in London does not get a brief at 15:15 Hanoi time.
 The brief is a pre-open read, so `send_time` has to come before your home market opens; the daemon
 refuses to start with a later one rather than skip the brief every morning.
+
+`[trading.public_brief]` publishes a second brief, built from market data alone, to the public page once
+each Vietnam trading morning. Nothing of your book enters it (no holding, watchlist name, plan or size)
+and it calls no model. It stays off until `enabled = true`, and it needs its publish token in the
+environment variable `PUBLIC_BRIEF_TOKEN`, never in `config.toml`: set it with
+`openalpha key set PUBLIC_BRIEF_TOKEN`. Enabled without the token, the daemon starts, says so once and
+publishes nothing. `publish_time` is Vietnam time and has to come before the open, or the daemon refuses
+to start. `analysis` and `headlines` leave their groups out when `false`; `top_screen` adds that many
+top-scoring names per market from the screen board (a whole number, 0 to 10; 0 leaves the list out).
 
 The profile watchlist is the only configured instrument list. Quotes and the brief's suggestion
 sections derive from it and from what the book holds.

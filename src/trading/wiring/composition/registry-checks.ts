@@ -8,12 +8,15 @@ import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
 import { isValidSendTime } from '@/trading/features/brief/schedule'
+import { PUBLIC_SCREEN_MAX } from '@/trading/kernel/config'
 import { marketRef } from '@/trading/kernel/instrument'
 import { tradingLocaleKeys } from '@/trading/locale-manifest'
 import { isMarketBuilt } from '@/trading/wiring/composition/edition'
 import { TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
 import { BUILT_IN_VENUES } from '@/trading/wiring/config-defaults'
 import { MARKETS_CONFIG_KEY, VENUES_CONFIG_KEY } from '@/trading/wiring/config-schema'
+
+const PUBLIC_BRIEF_MARKET = marketRef('equity-vn')
 
 /** Consumer-side, and deliberately the same shape and name the commands provider already uses:
  *  one key-coverage contract, threaded by both callers rather than restated as a synonym. */
@@ -115,6 +118,8 @@ function assertConfiguredReferencesExist(
   }
 
   assertBriefSendTimeBeforeOpen(homeOwners, config.briefs.sendTime, Date.now())
+  assertPublicBriefPublishTimeBeforeOpen(markets, config.publicBrief.publishTime, Date.now())
+  assertPublicScreenWithinCap(config.publicBrief.topScreen)
   assertConfiguredMarketsExist(markets, config)
   assertDefaultVenuesHold(config, { venues, edition })
 }
@@ -138,6 +143,43 @@ function assertBriefSendTimeBeforeOpen(
       { key: 'errors.configBriefSendTimeAfterOpen', params: { time: sendTime, markets: late } }
     )
   }
+}
+
+/** The public brief goes out before the Vietnam open or not at all: the tick that would publish it
+ *  stops once the session has opened, so a later time would never fire. A build without that market
+ *  publishes nothing, so there is no open to compare against. */
+function assertPublicBriefPublishTimeBeforeOpen(
+  markets: MarketRegistry,
+  publishTime: string,
+  now: number
+): void {
+  const market = markets.find(PUBLIC_BRIEF_MARKET)
+
+  if (market === null || isValidSendTime({ market, sendTime: publishTime }, now)) {
+    return
+  }
+
+  throw new OperatorConfigError(
+    `[${TRADING_CONFIG_SECTION}.public_brief] publish_time ${publishTime} is not before the open`,
+    {
+      key: 'errors.publicBriefTimeAfterOpen',
+      params: {
+        time: publishTime,
+        open: market.manifest.defaultCalendar.sessionOpenLocalTime,
+      },
+    }
+  )
+}
+
+function assertPublicScreenWithinCap(topScreen: number): void {
+  if (Number.isInteger(topScreen) && topScreen >= 0 && topScreen <= PUBLIC_SCREEN_MAX) {
+    return
+  }
+
+  throw new OperatorConfigError(
+    `[${TRADING_CONFIG_SECTION}.public_brief] top_screen ${topScreen} is outside 0 to ${PUBLIC_SCREEN_MAX}`,
+    { key: 'errors.publicBriefTopScreen', params: { value: topScreen, max: PUBLIC_SCREEN_MAX } }
+  )
 }
 
 /** A candidate list under a market nobody built is a segment that silently never runs. Whether each

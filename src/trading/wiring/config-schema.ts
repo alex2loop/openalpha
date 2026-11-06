@@ -60,6 +60,16 @@ export const tradingConfigPatchSchema = z.strictObject({
     )
     .optional(),
   briefs: z.strictObject({ send_time: localTime.optional() }).optional(),
+  public_brief: z
+    .strictObject({
+      enabled: z.boolean().optional(),
+      publish_time: localTime.optional(),
+      analysis: z.boolean().optional(),
+      headlines: z.boolean().optional(),
+      // Any number: composition refuses a fraction or a count past the cap in the operator's words.
+      top_screen: z.number().optional(),
+    })
+    .optional(),
   intraday: z.strictObject({ send_times: z.array(localTime).optional() }).optional(),
   alerts: z
     .strictObject({

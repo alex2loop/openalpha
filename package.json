@@ -4,6 +4,7 @@
   "license": "MIT",
   "private": true,
   "productName": "OpenAlpha",
+  "publicDomain": "openalpha.link",
   "description": "Self-hosted AI trading research analyst. Screens, scores, debates and sizes trade ideas across VN equities, gold and crypto - and never places an order you did not approve.",
   "repository": {
     "type": "git",
