@@ -36,8 +36,9 @@ Bạn hỏi một mã, OpenAlpha trả về một kế hoạch: mua ở đâu, c
 > Đã có cổ phiếu và quỹ ETF Mỹ: sàng lọc và chấm điểm 500 công ty Mỹ lớn nhất, xếp hạng ngành so với SPY, và bản tin sáng lúc 08:15 giờ New York. Chọn Mỹ khi chạy `onboard`, hoặc thêm vào sổ đang dùng bằng `/profile enable equity-us` · [xem chi tiết](#thị-trường-và-dữ-liệu).
 
 <p align="center">
-  <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-nh%C3%B3m%20h%E1%BB%97%20tr%E1%BB%A3-0068FF?style=for-the-badge" alt="Nhóm Zalo hỗ trợ" /></a><br/>
-  <sub>Cài chưa được, hay muốn nhận tin bản mới? Hỏi trong <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">nhóm Zalo OpenAlpha</a>.</sub>
+  <a href="https://zalo.me/g/yl7iqyfovvtyosujulea"><img src="https://img.shields.io/badge/Zalo-nh%C3%B3m%20h%E1%BB%97%20tr%E1%BB%A3-0068FF?style=for-the-badge" alt="Nhóm Zalo hỗ trợ" /></a>
+  <a href="https://buymeacoffee.com/alex2loop"><img src="https://img.shields.io/badge/%E2%98%95-M%E1%BB%9Di%20m%E1%BB%99t%20ly%20c%C3%A0%20ph%C3%AA-ffdd00?style=for-the-badge" alt="☕ Mời một ly cà phê" /></a><br/>
+  <sub>Cài chưa được, hay muốn nhận tin bản mới? Hỏi trong <a href="https://zalo.me/g/yl7iqyfovvtyosujulea">nhóm Zalo OpenAlpha</a>. Thấy hữu ích thì <a href="https://buymeacoffee.com/alex2loop">mời mình một ly cà phê</a> để dự án đi tiếp nhé.</sub>
 </p>
 
 <p align="center">
