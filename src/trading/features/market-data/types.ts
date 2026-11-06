@@ -102,6 +102,9 @@ export interface MarketDescription {
   readonly hasBrief: boolean
   readonly hasEvents: boolean
   readonly hasIndexes: boolean
+  /** Whether its bars are its own price history: a market whose bars are another instrument's
+   *  reference series (VN gold, priced by world gold in USD) has none to draw. */
+  readonly hasBars: boolean
 }
 
 export interface MarketDataEventsRequest extends MarketDataDayRangeRequest {
