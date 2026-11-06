@@ -81,6 +81,7 @@ const TRADING_TABLES = [
   { name: 'trading_profiles', pk: ['id'], durable: true },
   { name: 'alerts', pk: ['id'], durable: true },
   { name: 'brief_snapshots', pk: ['id'] },
+  { name: 'public_briefs', pk: ['day'] },
   { name: 'brief_delivery', pk: ['id'], durable: true },
   { name: 'intraday_settings', pk: ['id'], durable: true },
   // Durable because neither a placed-but-unmirrored order nor a resting exit at the exchange can

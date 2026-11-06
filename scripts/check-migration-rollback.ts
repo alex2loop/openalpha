@@ -23,6 +23,8 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const PUBLIC_BRIEFS_MIGRATION_ID = '2026_11_06_185835_add_public_briefs'
+const PUBLIC_BRIEFS_TABLE = 'public_briefs'
 const OVERRIDES_MIGRATION_ID = '2026_11_03_165810_add_config_overrides'
 const OVERRIDES_TABLE = 'config_overrides'
 const ANALYSES_MIGRATION_ID = '2026_11_03_143222_add_suggestion_analyses'
@@ -216,6 +218,22 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   )
 
   return new Set(rows.map((row) => row.name))
+}
+
+/** The public briefs go with their one table; the next run rebuilds the day from market data. */
+async function assertPublicBriefsRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasTable(db, PUBLIC_BRIEFS_TABLE),
+    'public briefs migration did not add the table'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: PUBLIC_BRIEFS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'public briefs rollback did not complete')
+  assertState(!(await hasTable(db, PUBLIC_BRIEFS_TABLE)), 'public briefs rollback kept the table')
 }
 
 /** The overrides go with their one table; a host that reads a config file never wrote any. */
@@ -520,6 +538,7 @@ async function main(): Promise<void> {
   await assertDownCoversUp(`${BROWSER_SESSIONS_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${ANALYSES_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${OVERRIDES_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${PUBLIC_BRIEFS_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -530,6 +549,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertPublicBriefsRollback(db)
     await assertOverridesRollback(db)
     await assertAnalysesRollback(db)
     await assertLastMessageRollback(db)
