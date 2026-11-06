@@ -1,13 +1,15 @@
+import { z } from 'zod'
+
 import type {
   BuiltPublicBriefRow,
   PublicBriefRow,
   PublicBriefStore,
+  PublicScreen,
 } from '@/trading/features/brief/public/types'
 import type { TradingDay } from '@/trading/kernel/instrument'
-import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, StorageError } from '@/core/errors'
-import { tradingDay } from '@/trading/kernel/instrument'
+import { marketRef, tradingDay } from '@/trading/kernel/instrument'
 import { briefSectionsSchema, toBriefSections } from '@/trading/kernel/store/brief-section-payload'
 import { parseJson } from '@/trading/kernel/store/store-row'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
@@ -19,10 +21,20 @@ const PUBLIC_BRIEF_KEEP_DAYS = 30
 /** Attempts a day is allowed. A closed day is counted as having used them all. */
 const PUBLIC_BRIEF_MAX_ATTEMPTS = 4
 
+const screenRowsSchema = z.array(z.strictObject({ ticker: z.string(), line: z.string() }))
+const screensSchema = z.array(
+  z.strictObject({
+    market: z.string(),
+    asOf: z.string(),
+    rows: z.strictObject({ en: screenRowsSchema, vi: screenRowsSchema }),
+  })
+)
+
 interface PublicBriefDbRow {
   readonly day: string
   readonly schema_version: number
   readonly sections: string | null
+  readonly screens: string | null
   readonly built_at: number | null
   readonly published_at: number | null
   readonly attempts: number
@@ -76,7 +88,7 @@ async function findPrevious(
 /** Only the build's own columns change: a day rebuilt after a failed post keeps its attempts. */
 async function saveBuilt(
   deps: StoreDeps,
-  built: Pick<BuiltPublicBriefRow, 'day' | 'sections' | 'builtAt'>,
+  built: Pick<BuiltPublicBriefRow, 'day' | 'sections' | 'screens' | 'builtAt'>,
   signal: AbortSignal
 ): Promise<BuiltPublicBriefRow> {
   assertNotAborted(signal)
@@ -85,11 +97,17 @@ async function saveBuilt(
 
   await deps.db.transaction(async (tx) => {
     await tx.execute(
-      'INSERT INTO public_briefs (day, schema_version, sections, built_at, attempts) ' +
-        `VALUES (${deps.dialect.paramList(4)}, 0) ` +
+      'INSERT INTO public_briefs (day, schema_version, sections, screens, built_at, attempts) ' +
+        `VALUES (${deps.dialect.paramList(5)}, 0) ` +
         'ON CONFLICT (day) DO UPDATE SET schema_version = excluded.schema_version, ' +
-        'sections = excluded.sections, built_at = excluded.built_at',
-      [built.day, PUBLIC_BRIEF_SCHEMA, JSON.stringify(built.sections), built.builtAt]
+        'sections = excluded.sections, screens = excluded.screens, built_at = excluded.built_at',
+      [
+        built.day,
+        PUBLIC_BRIEF_SCHEMA,
+        JSON.stringify(built.sections),
+        JSON.stringify(built.screens ?? []),
+        built.builtAt,
+      ]
     )
     await tx.execute(`DELETE FROM public_briefs WHERE day < ${p(1)}`, [
       shiftCalendarDay(built.day, -PUBLIC_BRIEF_KEEP_DAYS),
@@ -131,11 +149,11 @@ function isBuilt(row: PublicBriefRow): row is BuiltPublicBriefRow {
 }
 
 function toRow(row: PublicBriefDbRow): PublicBriefRow {
-  const sections = readSections(row)
+  const built = readBuilt(row)
 
   return {
     day: tradingDay(row.day),
-    ...(sections === undefined || row.built_at === null ? {} : { sections, builtAt: row.built_at }),
+    ...(built === undefined || row.built_at === null ? {} : { ...built, builtAt: row.built_at }),
     ...(row.published_at === null ? {} : { publishedAt: row.published_at }),
     attempts: row.attempts,
     ...(row.last_attempt_at === null ? {} : { lastAttemptAt: row.last_attempt_at }),
@@ -144,15 +162,22 @@ function toRow(row: PublicBriefDbRow): PublicBriefRow {
 
 /** A row written under another schema, or one that no longer parses, reads as unbuilt: the day is
  *  rebuilt rather than served from a vocabulary this build cannot name. */
-function readSections(row: PublicBriefDbRow): readonly BriefSectionResult[] | undefined {
+function readBuilt(
+  row: PublicBriefDbRow
+): Pick<PublicBriefRow, 'sections' | 'screens'> | undefined {
   if (row.sections === null || row.schema_version !== PUBLIC_BRIEF_SCHEMA) {
     return undefined
   }
 
   try {
-    return parseJson(row.sections, 'public brief', (value) =>
-      toBriefSections(briefSectionsSchema.parse(value))
-    )
+    return {
+      sections: parseJson(row.sections, 'public brief', (value) =>
+        toBriefSections(briefSectionsSchema.parse(value))
+      ),
+      ...(row.screens === null
+        ? {}
+        : { screens: parseJson(row.screens, 'public brief screens', toScreens) }),
+    }
   } catch (err: unknown) {
     if (err instanceof StorageError) {
       return undefined
@@ -160,4 +185,12 @@ function readSections(row: PublicBriefDbRow): readonly BriefSectionResult[] | un
 
     throw err
   }
+}
+
+function toScreens(value: unknown): readonly PublicScreen[] {
+  return screensSchema.parse(value).map((screen) => ({
+    market: marketRef(screen.market),
+    asOf: tradingDay(screen.asOf),
+    rows: screen.rows,
+  }))
 }

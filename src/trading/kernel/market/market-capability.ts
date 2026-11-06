@@ -111,6 +111,9 @@ export interface ScreenRequest extends MarketRequest {
   /** Narrows the board to these sectors, as the market files them. Applied before the rank and the
    *  cut, so the board is the sector's best and its header counts the sector. */
   readonly sectors?: readonly string[]
+  /** Ranks every name the market lists, whichever venue holds it, and reads nothing of where the
+   *  operator trades. Absent gates the board on the venues in use. */
+  readonly venueBlind?: true
 }
 
 /** The brief is the one market capability that is user-scoped: four of its sections answer "what

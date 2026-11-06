@@ -1,5 +1,4 @@
 import type { Locale } from '@/core/types/locale'
-import type { ScreenBoard } from '@/trading/features/market-data/render/screen-evidence'
 import type { ScreenedCandidate, ScreenView } from '@/trading/features/market-data/types'
 import type { InstrumentKind, MarketRef, PriceDisplay } from '@/trading/kernel/instrument'
 import type { ScreenResult } from '@/trading/kernel/market/market-capability'
@@ -7,6 +6,8 @@ import type { ScreenRating } from '@/trading/markets/screen-rating'
 import type { RenderContext } from '@/trading/render/format'
 import { pluralKey, t } from '@/i18n'
 import {
+  boardOf,
+  FULL_ROW_FORM,
   metricsFold,
   renderBoardRow,
   renderCandidateBlock,
@@ -17,7 +18,6 @@ import {
 } from '@/trading/features/market-data/render/screen-footer'
 import { EXTREME_SCORE_AT, MILD_SCORE_AT } from '@/trading/kernel/conviction'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
-import { boardMedians } from '@/trading/markets/factor-scoring'
 import { screenRating } from '@/trading/markets/screen-rating'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import {
@@ -81,7 +81,11 @@ export function renderScreenText(
       ...renderBoardUnitLine(locale, request, result),
       ...toFactLines(rankedNoteFacts(locale, result.candidates), request.context, 1),
       ...result.candidates.flatMap((candidate, index) =>
-        renderCandidateBlock(locale, { candidate, index, gated: result.board === 'gate' }, board)
+        renderCandidateBlock(
+          locale,
+          { candidate, index, gated: result.board === 'gate', form: FULL_ROW_FORM },
+          board
+        )
       ),
       ...metricsFold(locale, result.candidates, board),
       ...renderProvenanceLine(locale, result.provenance, request.context.timezone),
@@ -137,7 +141,7 @@ export function renderScreenCard(
     rows: result.candidates.map((candidate, index) => {
       const [line = '', ...evidence] = renderCandidateBlock(
         locale,
-        { candidate, index, gated: result.board === 'gate' },
+        { candidate, index, gated: result.board === 'gate', form: FULL_ROW_FORM },
         board
       )
 
@@ -365,16 +369,6 @@ function renderPriceUnitLine(
       currency: result.currency,
     })}`,
   ]
-}
-
-function boardOf(request: ScreenRenderRequest, result: ScreenResult): ScreenBoard {
-  return {
-    currency: result.currency,
-    display: request.display,
-    context: request.context,
-    medians: boardMedians(result.candidates.map((candidate) => candidate.factors)),
-    day: result.dataThroughDay ?? result.asOf,
-  }
 }
 
 /** What a ranked board's numbers mean and, when nothing on it clears the bar, that this is the

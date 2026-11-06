@@ -12,27 +12,14 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type {
   InstrumentKind,
-  InstrumentRef,
   MarketRef,
   ScreenableKinds,
   TradingDay,
 } from '@/trading/kernel/instrument'
-import type {
-  ScreenCandidate,
-  ScreenResult,
-  SectorStrengthResult,
-} from '@/trading/kernel/market/market-capability'
-import type { Quote } from '@/trading/kernel/market/market-data'
+import type { ScreenResult, SectorStrengthResult } from '@/trading/kernel/market/market-capability'
 import type { MarketDay } from '@/trading/markets/calendar'
-import type {
-  Market,
-  MarketRegistry,
-  SourceRegistry,
-  TradingCalendar,
-} from '@/trading/markets/types'
+import type { Market, MarketRegistry, SourceRegistry } from '@/trading/markets/types'
 import type { QuoteConvention } from '@/trading/render/money'
-import { isAbortError } from '@/core/errors'
-import { mapWithConcurrency } from '@/core/utils/concurrency'
 import {
   runBasis,
   runCuratedNews,
@@ -45,8 +32,10 @@ import {
 import { buildEnsureOptions, requireMarket } from '@/trading/features/market-data/market-data-run'
 import { markExcluded } from '@/trading/features/market-data/ops/exclusions'
 import { markMarginIneligible } from '@/trading/features/market-data/ops/margin'
+import { logScreen } from '@/trading/features/market-data/ops/screen-log'
+import { isBoardForm, withPrices } from '@/trading/features/market-data/ops/screen-prices'
 import { describeMarket } from '@/trading/features/market-data/reads/describe'
-import { freshnessOf, settledEvidenceCaveats } from '@/trading/features/market-data/reads/freshness'
+import { settledEvidenceCaveats } from '@/trading/features/market-data/reads/freshness'
 import { indexReads } from '@/trading/features/market-data/reads/index-reading'
 import { runOverviews } from '@/trading/features/market-data/reads/overview'
 import { buildQuoteBoard } from '@/trading/features/market-data/reads/quote-board'
@@ -62,21 +51,14 @@ import {
 import { runSentiment } from '@/trading/features/market-data/reads/sentiment'
 import { resolveDay, searchInstruments } from '@/trading/features/market-data/resolve'
 import { toBoardView } from '@/trading/features/market-data/screen-board'
-import { closedCandidate, pricedCandidate } from '@/trading/features/market-data/screen-caution'
 import { unsupportedScreen, unsupportedSectors } from '@/trading/features/market-data/unsupported'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { ECONOMY_FEED_SCOPE } from '@/trading/kernel/source/source-result'
 import { resolveMarketDay } from '@/trading/markets/calendar'
 import { convictionDriftCaveats } from '@/trading/markets/conviction-calibration'
-import { countByGate } from '@/trading/markets/screen-partition'
-import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
-const SCREEN_QUOTE_CONCURRENCY = 4
 /** A limit no board reaches: the market cuts to it after ranking, so it cuts nothing. */
 const WHOLE_BOARD = Number.POSITIVE_INFINITY
-/** Enough to carry every name a crypto screen examines, so its board is always fully explained.
- *  A VN screen gates its whole universe and truncates; the counts still cover all of it. */
-const SCREEN_LOG_REJECTIONS = 40
 
 interface MarketDataServiceDeps {
   readonly logger: Logger
@@ -255,116 +237,6 @@ async function decorateScreen(
       ...(isBoardForm(options) ? [] : convictionDriftCaveats(result.bandCounts)),
       ...marked.caveats,
     ]),
-  }
-}
-
-/** Which names cleared the gates and which gate stopped each of the rest. Two runs minutes apart
- *  can return different boards, and without the per-name verdict there is no telling a market that
- *  moved from a screen that changed. */
-function logScreen(logger: Logger, options: MarketDataScreenRequest, result: ScreenResult): void {
-  const omitted = result.rejections.length - SCREEN_LOG_REJECTIONS
-
-  logger.debug('trading.screen_completed', {
-    market: options.market,
-    // The board is truncated to this before anyone sees it, so a shorter board than the survivor
-    // count explains itself only when the cap that cut it is on the same line.
-    limit: options.limit,
-    asOf: result.asOf,
-    universeSize: result.universeSize,
-    ...(result.bandCounts === undefined ? {} : { bandCounts: result.bandCounts }),
-    candidates: result.candidates.map((candidate) => candidate.instrument.ticker),
-    rejectedByGate: countByGate(result.rejections),
-    rejected: result.rejections
-      .slice(0, SCREEN_LOG_REJECTIONS)
-      .map((rejection) => `${rejection.instrument.ticker}:${rejection.code}`),
-    ...(omitted > 0 ? { rejectedOmitted: omitted } : {}),
-  })
-}
-
-/** The board's rank is settled by design, and the price says what the name costs now. A market
- *  still trading answers with a live quote; one that has closed answers with the close the rank
- *  was built on, labelled as such — dropping it there left a board with no price for every hour
- *  outside the session, which for a VN board is most of the day. Best-effort per name: a name
- *  whose quote fails keeps its rank-only row, and so carries no caution either. A market that swept
- *  the universe already answered; where it did not, the per-name fetch is bounded by the board a
- *  surface can show, past which the request is a bulk score read rather than a board. A whole
- *  board (`form: 'board'`) never asks per name: a page that browses every name would spend one
- *  live request each against a rate limit, so a name the sweep did not price reads at the settled
- *  close the market carried. */
-async function withPrices(
-  market: Market,
-  candidates: readonly ScreenCandidate[],
-  options: MarketDataScreenRequest
-): Promise<readonly ScreenCandidate[]> {
-  if (candidates.length === 0) {
-    return candidates
-  }
-
-  const calendar = market.manifest.calendar
-  const scope: QuoteScope = {
-    quote: market.capabilities.quote,
-    calendar,
-    timezone: calendar.timezone,
-    asOf: resolveDay(market, options.now),
-    now: options.now,
-    signal: options.signal,
-  }
-  const isBoard = isBoardForm(options)
-  const fetchMissing = !isBoard && candidates.length <= SURFACE_LIMITS.maximumScreenCandidates
-
-  return mapWithConcurrency(candidates, SCREEN_QUOTE_CONCURRENCY, async (candidate) => {
-    const quote =
-      candidate.liveQuote ??
-      (fetchMissing ? await quotedValue(scope, candidate.instrument) : undefined)
-
-    if (quote !== undefined) {
-      return pricedCandidate(candidate, quote, freshnessOf(scope, quote.observedAt, options.now))
-    }
-
-    return isBoard ? closedCandidate(candidate, scope.calendar) : candidate
-  })
-}
-
-function isBoardForm(options: MarketDataScreenRequest): boolean {
-  return options.form === 'board'
-}
-
-interface QuoteScope {
-  readonly quote: Market['capabilities']['quote']
-  readonly calendar: TradingCalendar
-  readonly timezone: string
-  readonly asOf: TradingDay
-  readonly now: number
-  readonly signal: AbortSignal
-}
-
-/** Decorative: a market that cannot answer, or throws answering, leaves the ranked board standing
- *  with the settled close it was built on. */
-async function quotedValue(
-  scope: QuoteScope,
-  instrument: InstrumentRef
-): Promise<Quote | undefined> {
-  if (scope.quote === undefined) {
-    return undefined
-  }
-
-  try {
-    const result = await scope.quote.run({
-      instrument,
-      asOf: scope.asOf,
-      now: scope.now,
-      signal: scope.signal,
-    })
-
-    return result.kind === 'available' ? result.value : undefined
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      throw err
-    }
-
-    // The overlay must not take the board down with it. A cancel still unwinds: swallowing one
-    // would fan through every remaining candidate and hand back a board nobody asked for.
-    return undefined
   }
 }
 

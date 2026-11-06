@@ -49,6 +49,9 @@ import {
 import { scoreFactors } from '@/trading/markets/factor-scoring'
 import { partitionByGate, partitionByVenueListing } from '@/trading/markets/screen-partition'
 
+/** No catalog published: nothing is gated and nothing is missing. */
+const NO_VENUE_GATE: VenueListing = { kind: 'none' }
+
 interface ScoredUniverse {
   readonly survivors: readonly CryptoScreenInput[]
   readonly rejections: readonly ScreenRejection[]
@@ -118,7 +121,9 @@ export async function runScreen(
 
   const window = evidenceWindow(manifest.calendar, request)
   const [listing, context] = await Promise.all([
-    deps.venueListings.readListing(CRYPTO_MARKET_REF, request.signal),
+    request.venueBlind === true
+      ? NO_VENUE_GATE
+      : deps.venueListings.readListing(CRYPTO_MARKET_REF, request.signal),
     loadCryptoContext(deps, window),
   ])
   const eligible = universe.value.filter(isEligibleUniverseRow)
