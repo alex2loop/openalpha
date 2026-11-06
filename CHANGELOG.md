@@ -7,6 +7,15 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.4.2] - 2026-11-06
+
+The getting-started list folds a step away as soon as you finish it, including when you keep the default profile or skip the book.
+> Danh sách bắt đầu giờ thu gọn ngay bước bạn vừa xong, kể cả khi bạn giữ hồ sơ mặc định hay bỏ qua bước ghi sổ.
+
+### Fixes
+
+- "Keep the defaults" and "Nothing yet, skip" in the getting-started list now fold their step to its check and title, as the other steps do.
+
 ## [1.4.1] - 2026-11-06
 
 The web edition and the homepage now count visits with Cloudflare Web Analytics: no cookies, no fingerprinting, only page views and page load speed, and never your keys, ledger or chats. The privacy policy is now version 1.1.
@@ -722,6 +731,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.4.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.2
 [1.4.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.1
 [1.4.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.0
 [1.3.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.3.0

@@ -137,16 +137,14 @@ function BookStep({ index }: NumberedStep) {
 // The web edition ships a model, so the step only shows it and where to change it; "Giữ mặc định"
 // and a saved model both count as done.
 function ChooseModelStep({ index }: NumberedStep) {
-  const isDone = isModelChosen.value
-
   return (
     <Step
       index={index}
       title={tr('ui.office.edition.firstRun.chooseModelTitle')}
-      isDone={isDone}
+      isDone={isModelChosen.value}
       isOptional
     >
-      {!isDone && <ChooseModelBody />}
+      <ChooseModelBody />
     </Step>
   )
 }
@@ -198,6 +196,7 @@ function ChatStep({ index }: NumberedStep) {
   )
 }
 
+// A done step folds to its check and title, so only what is left to do keeps its buttons.
 function Step({ index, title, isDone, isOptional, children }: StepProps) {
   return (
     <div class={isDone ? 'step is-done' : 'step'}>
@@ -209,7 +208,7 @@ function Step({ index, title, isDone, isOptional, children }: StepProps) {
             <span class="step-optional">{tr('ui.office.firstRun.optional')}</span>
           )}
         </b>
-        {children}
+        {!isDone && children}
       </div>
     </div>
   )
@@ -218,7 +217,7 @@ function Step({ index, title, isDone, isOptional, children }: StepProps) {
 function ModelStep({ index, isDone }: NumberedStep & { readonly isDone: boolean }) {
   return (
     <Step index={index} title={modelTitle()} isDone={isDone} isOptional={isAnalysisOnly.value}>
-      {!isDone && <ModelSetup />}
+      <ModelSetup />
     </Step>
   )
 }
