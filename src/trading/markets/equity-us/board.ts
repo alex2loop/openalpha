@@ -27,6 +27,9 @@ import { usAdjustedCloses } from '@/trading/markets/equity-us/screen'
 import { followedTickersIn } from '@/trading/markets/held-tickers'
 
 const BOARD_CACHE_DAYS = 2
+const BOARD_CACHE_SLOTS = BOARD_CACHE_DAYS * 2
+const FOLLOWED_BLIND_KEY = 'followed-blind'
+const NO_FOLLOWED = Object.freeze({ held: new Set<Ticker>(), followed: new Set<Ticker>() })
 
 export interface UsBoardName {
   readonly record: InstrumentRecord
@@ -74,19 +77,30 @@ interface UsCoverage {
 }
 
 export interface UsBoardCache {
-  get(asOf: TradingDay, signal: AbortSignal): Promise<UsBoard>
+  /** A `followedBlind` read is a board of its own: the operator's names never reach it, and its
+   *  pass is never the operator's. */
+  get(
+    asOf: TradingDay,
+    signal: AbortSignal,
+    read?: { readonly followedBlind?: true }
+  ): Promise<UsBoard>
   /** Refresh calls this after writing evidence; nothing else invalidates. */
   invalidate(): void
 }
 
-/** One pass per day, shared by the screen, the factors and the overview. Two slots, so yesterday's
- *  brief pass and today's screen pass coexist. */
+/** One pass per day, shared by the screen, the factors and the overview. Two slots a kind of board,
+ *  so yesterday's brief pass and today's screen pass coexist. */
 export function createUsBoardCache(deps: MarketDeps, manifest: MarketManifest): UsBoardCache {
-  const passes = flightCache<UsBoard>(BOARD_CACHE_DAYS)
+  const passes = flightCache<UsBoard>(BOARD_CACHE_SLOTS)
 
   return {
-    get: (asOf, signal) =>
-      passes.share(asOf, signal, () => loadUsBoard(deps, manifest, { asOf, signal })),
+    get: (asOf, signal, read) => {
+      const followedBlind = read?.followedBlind === true
+
+      return passes.share(followedBlind ? `${asOf}:${FOLLOWED_BLIND_KEY}` : asOf, signal, () =>
+        loadUsBoard(deps, manifest, { asOf, signal, followedBlind })
+      )
+    },
     invalidate: passes.clear,
   }
 }
@@ -94,14 +108,18 @@ export function createUsBoardCache(deps: MarketDeps, manifest: MarketManifest): 
 async function loadUsBoard(
   deps: MarketDeps,
   manifest: MarketManifest,
-  request: { readonly asOf: TradingDay; readonly signal: AbortSignal }
+  request: {
+    readonly asOf: TradingDay
+    readonly signal: AbortSignal
+    readonly followedBlind?: boolean
+  }
 ): Promise<UsBoard> {
   const { asOf, signal } = request
   const [records, accounts] = await Promise.all([
     deps.marketDataStore.listInstruments({ market: US_MARKET_REF, status: 'active', signal }),
     deps.marketDataStore.listAnnualAccounts({ market: US_MARKET_REF, signal }),
   ])
-  const coverage = await loadUsCoverage(deps, manifest, { records, asOf, now: Date.now(), signal })
+  const coverage = await loadUsCoverage(deps, manifest, { records, now: Date.now(), ...request })
   const { members } = coverage
   const fundRecords = fundsOf(records)
   const fromDay = manifest.calendar.addTradingDays(asOf, -US_EVIDENCE_SESSIONS)
@@ -192,6 +210,8 @@ export async function loadUsCoverage(
     readonly asOf: TradingDay
     readonly now: number
     readonly signal: AbortSignal
+    /** The operator's names are not read: the board is its largest names alone. */
+    readonly followedBlind?: boolean
   }
 ): Promise<UsCoverage> {
   const [snapshots, tickers] = await Promise.all([
@@ -200,7 +220,9 @@ export async function loadUsCoverage(
       fromDay: manifest.calendar.addTradingDays(read.asOf, -US_BOARD_SNAPSHOT_SESSIONS),
       signal: read.signal,
     }),
-    followedTickersIn(deps, US_MARKET_REF, { now: read.now, signal: read.signal }),
+    read.followedBlind === true
+      ? NO_FOLLOWED
+      : followedTickersIn(deps, US_MARKET_REF, { now: read.now, signal: read.signal }),
   ])
   const byRecord = new Map(read.records.map((record) => [record.instrument.ticker, record]))
   const members = rankUsMembers(snapshots, byRecord, tickers.held)

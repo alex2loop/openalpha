@@ -8,13 +8,14 @@ import { marketRef } from '@/trading/kernel/instrument'
 /** The market that composes the public brief and dates it. */
 export const PUBLIC_HOME_MARKET = marketRef('equity-vn')
 
-/** The markets the public brief reads, whatever the operator holds or has switched off. Never the
- *  US board: it ranks the names the operator follows. */
+/** The markets the public brief reads, whatever the operator holds or has switched off. The US board
+ *  ranks the names the operator follows, so every public read of it is `followedBlind`. */
 export const PUBLIC_BRIEF_MARKETS = Object.freeze([
   PUBLIC_HOME_MARKET,
   marketRef('gold-vn'),
   marketRef('gold'),
   marketRef('crypto'),
+  marketRef('equity-us'),
 ])
 
 /** No call has resolved on a book that holds nothing. */
@@ -72,7 +73,8 @@ export function createPublicBriefReads(input: PublicBriefReadsInput): BriefServi
       Promise.resolve({ kind: 'unavailable', reason: 'zero-nav', findings: [], caveats: [] }),
     profile: () => Promise.resolve(profile),
     summarize: () => Promise.resolve(EMPTY_REPORT),
-    overview: (options) => marketData.overview({ ...options, markets: PUBLIC_BRIEF_MARKETS }),
+    overview: (options) =>
+      marketData.overview({ ...options, markets: PUBLIC_BRIEF_MARKETS, followedBlind: true }),
     marketNews: (options) =>
       marketData.newsPerMarket({ ...options, markets: PUBLIC_BRIEF_MARKETS }),
     quoteBoard: (options) => marketData.quoteBoard(options),

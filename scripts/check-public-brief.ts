@@ -3,7 +3,8 @@
 // that way: nothing under `features/brief/public/` reaches the operator's book by a value import,
 // `briefServices` stays with its four holders, only `market`-scoped section kinds are published, no
 // read asks which markets the operator uses, and the composition file and the screen it calls reach
-// nothing of the operator's. The walk follows value imports only; a type import erases.
+// nothing of the operator's, and every public read of the US board is `followedBlind` and the board
+// honours it. The walk follows value imports only; a type import erases.
 import { Glob } from 'bun'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
@@ -17,7 +18,6 @@ import {
   PUBLIC_SESSION_KIND,
   publicSectionKinds,
 } from '@/trading/features/brief/public/scope'
-import { PUBLIC_BRIEF_MARKETS } from '@/trading/features/brief/public/reads'
 
 import { lineAt, scanImports } from './import-scan'
 
@@ -33,11 +33,16 @@ const BOOK_FREE_SCREEN_FILE = `${TRADING}/features/market-data/ops/book-free-scr
 const SCREEN_EVIDENCE_FILE = `${TRADING}/features/market-data/render/screen-evidence.ts`
 const CRYPTO_SCREEN_FILE = `${TRADING}/markets/crypto/screen-run.ts`
 const MARKETS_DIR = `${TRADING}/markets`
-const UNSCOPED_MARKET = 'equity-us'
+const US_DIR = `${MARKETS_DIR}/equity-us`
+const US_BOARD_FILE = `${US_DIR}/board.ts`
 const VENUE_BLIND_SET_RE = /\bvenueBlind:\s*true\b/
 const VENUE_BLIND_READ_RE = /\bvenueBlind\b/
 const MARKETS_IN_USE_RE = /\bmarketsInUse\b/
 const BRIEF_SERVICES_RE = /\bbriefServices\b/
+const FOLLOWED_BLIND_SET_RE = /\bfollowedBlind:\s*true\b/
+const FOLLOWED_BLIND_HONOURED_RE = /\bfollowedBlind\s*===\s*true\s*\?\s*NO_FOLLOWED\s*:\s*followedTickersIn\b/
+const FOLLOWED_READER_RE = /\b(?:followedTickersIn|heldTickersIn)\b/
+const BOARD_GET_RE = /\.get\(([^)]*)\)/g
 
 /** The kinds scoped `book` today. The guard exempts every `market` kind's rows, so a book kind
  *  moved to `market` would also widen the guard: the move takes this list and the scope record, and
@@ -105,6 +110,32 @@ const BRIEF_SERVICES_HOLDERS: ReadonlySet<string> = new Set([
   `${MARKETS_DIR}/equity-vn/capabilities.ts`,
 ])
 
+/** The places a public read of a market is made: the brief request, the overview read and the screen.
+ *  Each states `followedBlind: true`. */
+const FOLLOWED_BLIND_SETTERS: readonly string[] = [
+  `${PUBLIC_DIR}/build.ts`,
+  `${PUBLIC_DIR}/reads.ts`,
+  BOOK_FREE_SCREEN_FILE,
+]
+
+/** The US files that read the board for a brief, an overview or a screen, and so hand the request on
+ *  to the board cache, which keeps the operator's names out of a `followedBlind` one. */
+const US_BOARD_READERS: readonly string[] = [
+  `${US_DIR}/capabilities.ts`,
+  `${US_DIR}/overview.ts`,
+  `${US_DIR}/screen-capability.ts`,
+]
+
+/** The files in `markets/` that read the operator's held or watched names: the helper, the US board
+ *  (guarded by `followedBlind`) and the refreshes, which only choose what to prefetch. A new reader
+ *  fails until it is named here. */
+const FOLLOWED_READERS: ReadonlySet<string> = new Set([
+  `${MARKETS_DIR}/held-tickers.ts`,
+  US_BOARD_FILE,
+  `${US_DIR}/refresh/fundamentals.ts`,
+  `${MARKETS_DIR}/equity-vn/refresh/accounts.ts`,
+])
+
 /** What the screen the public brief calls may never reach, nor the file that renders its rows. */
 const SCREEN_FORBIDDEN: readonly string[] = [
   'features/market-data/ops/exclusions',
@@ -146,7 +177,7 @@ violations.push(...marketsInUseCallers().map((file) => `(d) ${file} names market
 violations.push(...compositionImports().map((message) => `(e) ${message}`))
 violations.push(...screenReaches().map((offence) => `(e) ${offence}`))
 violations.push(...venueBlindGaps().map((message) => `(e) ${message}`))
-violations.push(...unscopedMarkets().map((market) => `(f) PUBLIC_BRIEF_MARKETS holds ${market}, whose board reads the operator's followed names`))
+violations.push(...followedBlindGaps().map((message) => `(f) ${message}`))
 
 if (violations.length > 0) {
   process.stderr.write(`FAIL: ${violations.length} public-brief violation(s):\n${violations.map((line) => `  ${line}`).join('\n')}\n`)
@@ -363,6 +394,29 @@ function venueBlindGaps(): readonly string[] {
   return gaps
 }
 
-function unscopedMarkets(): readonly string[] {
-  return PUBLIC_BRIEF_MARKETS.filter((market) => market === UNSCOPED_MARKET)
+/** The US board ranks the names the operator follows, so the public path proves it never asks: each
+ *  public read states `followedBlind`, each US read of the board passes its request on, the board
+ *  skips the followed read for one, and no other file under `markets/` reads the followed names. */
+function followedBlindGaps(): readonly string[] {
+  const gaps = FOLLOWED_BLIND_SETTERS.filter((file) => !FOLLOWED_BLIND_SET_RE.test(readFileSync(file, 'utf8'))).map(
+    (file) => `${relative(REPO, file)} does not state followedBlind: true`
+  )
+
+  for (const file of US_BOARD_READERS) {
+    const calls = [...readFileSync(file, 'utf8').matchAll(BOARD_GET_RE)].map((match) => match[1] ?? '')
+
+    if (calls.length === 0 || calls.some((args) => !args.trimEnd().endsWith(', request'))) {
+      gaps.push(`${relative(REPO, file)} reads the board without passing its request`)
+    }
+  }
+
+  if (!FOLLOWED_BLIND_HONOURED_RE.test(readFileSync(US_BOARD_FILE, 'utf8'))) {
+    gaps.push(`${relative(REPO, US_BOARD_FILE)} reads the followed names for a followedBlind board`)
+  }
+
+  const readers = [...new Glob('**/*.ts').scanSync(MARKETS_DIR)]
+    .map((file) => `${MARKETS_DIR}/${file}`)
+    .filter((file) => !FOLLOWED_READERS.has(file) && FOLLOWED_READER_RE.test(readFileSync(file, 'utf8')))
+
+  return [...gaps, ...readers.map((file) => `${relative(REPO, file)} reads the followed names and is no known reader`)]
 }

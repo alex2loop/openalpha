@@ -56,6 +56,8 @@ export interface MarketDataRequest {
   /** Present when a surface is waiting on this read; the evidence warm it triggers reports its
    *  stages through it. */
   readonly progress?: StageReporter
+  /** The market's read without the names the operator holds or watches, as `MarketRequest`. */
+  readonly followedBlind?: true
 }
 
 /** A read that answers once per market. Absent `markets` is every registered one. */

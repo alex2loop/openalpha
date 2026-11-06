@@ -73,6 +73,7 @@ async function runOverview(
     asOf,
     now: options.now,
     signal: options.signal,
+    ...(options.followedBlind === true ? { followedBlind: true } : {}),
   })
   const overview =
     result === undefined
