@@ -24,6 +24,7 @@ import { createDeliveryHub, type DeliveryHub } from '@/app/delivery'
 import { createAlertFiredListener } from '@/app/event-jobs'
 import { createTradingNoticeSender } from '@/app/notice-sender'
 import { buildProviders } from '@/app/providers'
+import { createPublicBriefPublisher } from '@/app/public-brief-publisher'
 import { assertSocialToolRules, createSocialProvider } from '@/app/social'
 import { hydrateStartupState, migrateStartupSchema } from '@/app/startup-state'
 import { BRAND } from '@/core/brand'
@@ -228,6 +229,7 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
       pluginModules: input.assets.pluginSourceModules,
       requestShape: DAEMON_REQUEST_SHAPE,
       reachability: (signal) => probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS, signal),
+      publicBriefPublisher: createPublicBriefPublisher,
     }),
   })
 }

@@ -12,6 +12,8 @@ import { exemptTickers } from '@/trading/features/brief/public/scope'
 
 const LOCALES: readonly Locale[] = ['en', 'vi']
 
+type GuardServices = Pick<TradingServices, 'portfolio' | 'profiles'>
+
 type GuardVerdict =
   | { readonly kind: 'publish' }
   | { readonly kind: 'refuse'; readonly leaked: readonly string[] }
@@ -24,10 +26,7 @@ interface PublicBriefGuard {
  *  book. It refuses the day when a held or watched ticker stands in the text outside the rows of
  *  the brief's own market sections. A failed read of the book refuses too: the day is skipped,
  *  which is the safe direction. A name leaves only the owner's log, never the verdict's wording. */
-export function createPublicBriefGuard(
-  services: TradingServices,
-  logger: Logger
-): PublicBriefGuard {
+export function createPublicBriefGuard(services: GuardServices, logger: Logger): PublicBriefGuard {
   return {
     async judge(row, render, signal) {
       const followed = await readFollowed(services, signal).catch((err: unknown) => {
@@ -58,7 +57,7 @@ export function createPublicBriefGuard(
 
 /** The held tickers with residue included, and the watchlist. */
 async function readFollowed(
-  services: TradingServices,
+  services: GuardServices,
   signal: AbortSignal
 ): Promise<ReadonlySet<string>> {
   const now = Date.now()

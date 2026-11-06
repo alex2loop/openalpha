@@ -4,6 +4,10 @@ import type { ReachabilityProbe } from '@/core/limits'
 import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
 import type { Hooks } from '@/engine/api'
+import type {
+  PublicBriefCredential,
+  PublicBriefPublisher,
+} from '@/trading/features/brief/public/types'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { DebateDeps } from '@/trading/features/suggestion/debate/call'
 import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
@@ -88,6 +92,9 @@ interface TradingRegistrationOptions {
   edition?(app: App): TradingEdition
   /** How the loops tell the network is up: the daemon resolves a name. */
   readonly reachability: ReachabilityProbe
+  /** Posts the public brief; absent on a host that never publishes. Built with the credential, so
+   *  the token reaches it and nothing else. */
+  publicBriefPublisher?(credential: PublicBriefCredential): PublicBriefPublisher
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider
@@ -114,10 +121,15 @@ type BoundOptions = Omit<
   readonly onFocusCallScored: CallScoredNotices['onFocusScored']
   readonly edition?: TradingEdition
   readonly lateGraceMs: number
+  readonly publicBrief?: PublicBriefPublisher
 }
 
 function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptions {
   const { edition, ...rest } = provided
+  const publicBrief = publisherOf(
+    provided,
+    resolvePublicBriefToken(provided, app.resolve('logger'))
+  )
 
   return {
     ...rest,
@@ -131,6 +143,7 @@ function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptio
     onFocusCallScored: provided.onFocusCallScored(app),
     ...(edition === undefined ? {} : { edition: edition(app) }),
     lateGraceMs: app.config.schedule.lateGraceMs,
+    ...(publicBrief === undefined ? {} : { publicBrief }),
   }
 }
 
@@ -169,7 +182,6 @@ export function createTradingRegistrationProvider(
     name: 'trading-registration',
     register(bind: Bind, extend: Extend): void {
       bind('tradingServices', (app) => {
-        registerPublicBriefToken(options, app.resolve('logger'))
         built = buildTrading(app, options)
 
         return built.services
@@ -258,21 +270,36 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
   }
 }
 
-/** Read once, here: the value reaches the scrubber and nothing else, so it cannot land in a log, an
- *  error or the config. Setting it without turning the feature on is harmless; turning the feature
- *  on without it leaves the publisher idle, which the start says once. */
-function registerPublicBriefToken(options: TradingRegistrationOptions, logger: Logger): void {
+/** Read once, here: the value reaches the scrubber and the credential below, so it cannot land in a
+ *  log, an error or the config. Setting it without turning the feature on is harmless; turning the
+ *  feature on without it leaves the publisher idle, which the start says once. */
+function resolvePublicBriefToken(
+  options: TradingRegistrationOptions,
+  logger: Logger
+): PublicBriefCredential | undefined {
   const token = resolveCredential(options.env, PUBLIC_BRIEF_TOKEN_VARIABLE)
 
   if (token !== undefined) {
     registerKnownSecret(token)
 
-    return
+    return { token }
   }
 
   if (options.tradingConfig.publicBrief.enabled) {
     logger.warn('trading.public_brief_token_missing', { variable: PUBLIC_BRIEF_TOKEN_VARIABLE })
   }
+
+  return undefined
+}
+
+/** The publisher exists only when the feature is on, a token is set and the host binds one. */
+function publisherOf(
+  options: TradingRegistrationOptions,
+  credential: PublicBriefCredential | undefined
+): PublicBriefPublisher | undefined {
+  return options.tradingConfig.publicBrief.enabled && credential !== undefined
+    ? options.publicBriefPublisher?.(credential)
+    : undefined
 }
 
 interface SurfaceParts {

@@ -19,7 +19,7 @@ export const PUBLIC_BRIEF_SCHEMA = 1
 /** Days kept in the table; the public side keeps the history. */
 const PUBLIC_BRIEF_KEEP_DAYS = 30
 /** Attempts a day is allowed. A closed day is counted as having used them all. */
-const PUBLIC_BRIEF_MAX_ATTEMPTS = 4
+export const PUBLIC_BRIEF_MAX_ATTEMPTS = 4
 
 const screenRowsSchema = z.array(z.strictObject({ ticker: z.string(), line: z.string() }))
 const screensSchema = z.array(
@@ -144,7 +144,7 @@ async function recordAttempt(
   )
 }
 
-function isBuilt(row: PublicBriefRow): row is BuiltPublicBriefRow {
+export function isBuilt(row: PublicBriefRow): row is BuiltPublicBriefRow {
   return row.sections !== undefined && row.builtAt !== undefined
 }
 
