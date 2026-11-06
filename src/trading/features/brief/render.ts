@@ -69,18 +69,27 @@ export const FOLDED_SECTION_KINDS = [
   'economy-headlines',
 ] as const satisfies readonly BriefSectionKind[]
 
-/** What a market block prints. `recent` covers the names the brief covers (held, watched, else the
- *  most traded), a handful of lines: a filing on one of them is the decision-relevant reading a
- *  market block can carry. The derivatives, order flow, sentiment and premium readings are a few
- *  labelled facts each, as `/overview` prints them. */
-const MARKET_HEADLINE_KINDS = [
+/** What a market block prints, in `BRIEF_SECTION_ORDER`: its prices, breadth, the names it covers,
+ *  the derivatives, order flow, sentiment and premium readings, the movers and leaders, the support
+ *  and resistance range, sector rotation, fx, basis and the market's own headlines. A kind left out
+ *  (the quote board, the tape, the turnover and flow tables) is a tap away on `/overview <market>`. */
+const MARKET_SHOWN_KINDS = [
   'market-prices',
   'breadth',
-  'recent',
+  'range',
+  'sector-rotation',
   'derivatives',
   'taker-flow',
-  'sentiment',
   'premium',
+  'leaders',
+  'leaders-24h',
+  'movers-session',
+  'movers-24h',
+  'sentiment',
+  'basis',
+  'fx',
+  'recent',
+  'headlines',
 ] as const satisfies readonly BriefSectionKind[]
 
 /** The blocks that belong to no market, and the kinds each collects. Macro heads the markets
@@ -230,10 +239,10 @@ function toBlocks(sections: readonly BriefSectionResult[]): readonly BriefBlock[
   return blocks
 }
 
-/** A market keeps its headline reading; the rest of its sections are a tap away on
- *  `/overview <market>`, and a pushed message is read on a phone. */
+/** A market prints the kinds it shows; the rest of its sections are a tap away on
+ *  `/overview <market>`. */
 function isShown(section: BriefSectionResult): boolean {
-  return section.market === undefined || MARKET_HEADLINE_KINDS.some((kind) => kind === section.kind)
+  return section.market === undefined || MARKET_SHOWN_KINDS.some((kind) => kind === section.kind)
 }
 
 function holds(block: BriefBlock, section: BriefSectionResult): boolean {

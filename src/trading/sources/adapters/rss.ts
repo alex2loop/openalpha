@@ -50,7 +50,7 @@ const SCOPE_FEEDS: Readonly<Record<string, readonly string[]>> = Object.freeze({
   'equity-us': ['equity-us', 'economy-global'],
   'equity-vn': ['equity-vn', 'economy-vn', 'politics-vn'],
   'gold-vn': ['gold-vn'],
-  [MACRO_FEED_KEY]: [MACRO_FEED_KEY],
+  [MACRO_FEED_KEY]: [MACRO_FEED_KEY, 'economy-vn'],
   [ECONOMY_FEED_SCOPE]: ['economy-global'],
 })
 

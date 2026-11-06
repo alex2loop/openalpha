@@ -685,7 +685,7 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` ở mỗi
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
-Khối của mỗi thị trường in giá, độ rộng, tin của các mã bản tin theo dõi, và khi thị trường có số liệu: phái sinh, dòng tiền của bên mua chủ động, tâm lý và chênh lệch giá vàng trong nước với thế giới, mỗi số một dòng "Nhãn: giá trị" như `/overview`. Phần còn lại của thị trường xem bằng `/overview <thị trường>`. Bản tin trên CLI, Telegram và trang văn phòng có cùng các khối theo cùng thứ tự.
+Khối của mỗi thị trường in giá và độ rộng, hỗ trợ và kháng cự, xoay vòng ngành, các mã bản tin theo dõi, tin của chính thị trường đó, và khi thị trường có số liệu: phái sinh, dòng tiền của bên mua chủ động, tâm lý, nhóm tăng giảm mạnh và nhóm dẫn đầu, tỷ giá, basis hợp đồng tương lai và chênh lệch giá vàng trong nước với thế giới, mỗi số một dòng "Nhãn: giá trị" như `/overview`. Phần còn lại của thị trường xem bằng `/overview <thị trường>`. Bản tin trên CLI, Telegram và trang văn phòng có cùng các khối theo cùng thứ tự.
 
 Khi thị trường chính là Việt Nam, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
 cùng phần nhìn lại các câu chuyện trước.
@@ -717,9 +717,9 @@ Một bản tin đọc theo thứ tự này:
 | Câu chuyện, trên mọi khối | `thesis-review` `story` |
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
 | Bối cảnh vĩ mô | `regime-shift` `macro` `deposit-rate` `macro-headlines` `economy-headlines` |
-| Mỗi thị trường | `reading` `market-prices` `market-quotes` `market-board` `tape` `breadth` `turnover` `range` `market-cap` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `taker-flow` `etf-flows` `positioning` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` |
+| Mỗi thị trường | `market-prices` `breadth` `range` `sector-rotation` `derivatives` `taker-flow` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `recent` `headlines` |
+| Mỗi thị trường, chỉ có trên `/overview <thị trường>` | `reading` `market-quotes` `market-board` `tape` `turnover` `market-cap` `foreign-desk-flow` `proprietary-flow` `etf-flows` `positioning` `disclosures` `index-review` `events` |
 | Danh sách theo dõi | `watchlist-leading` `watchlist-dropped` `screen-delta` |
-| Tin tức | `disclosures` `index-review` `events` `headlines` |
 | Hành động | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
 Hai mục mức giá, `fired-alerts` và `position-exits`, in mức giá cổ phiếu VN theo giá bảng điện như `/portfolio` và `/alert`; thang giá được ghi một lần ở cuối bản tin.
@@ -867,7 +867,7 @@ khác sẽ làm dịch vụ nền dừng ngay lúc khởi động, kèm danh sá
 
 Cạnh bản tin sáng của bạn, dịch vụ nền có thể đăng thêm một bản thứ hai để những người bạn chia sẻ đọc trên điện thoại. Đó là một bài đọc thị trường thuần túy, không có gì của bạn trong đó, dựng chỉ từ dữ liệu thị trường, cùng lời văn và bố cục với phần thị trường trong bản tin của bạn. Mặc định nó tắt cho tới khi bạn bật.
 
-**Nó mang gì.** Mọi mục toàn thị trường của bản tin mà bảng điều khiển hiển thị, bằng tiếng Việt và tiếng Anh, cho cổ phiếu Việt Nam, vàng trong nước, vàng thế giới và crypto. Cổ phiếu Mỹ không có trong đó. Gồm bảng giá, nhóm tăng giảm mạnh và nhóm dẫn đầu, sự kiện và hồ sơ công bố, nhìn vĩ mô, đổi chế độ thị trường, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai, câu chuyện thị trường kèm phần nhìn lại, tin thị trường, vĩ mô và kinh tế, và những mã vào hay ra khỏi bảng lọc. Mỗi mục đọc như trên bảng điều khiển.
+**Nó mang gì.** Mọi mục toàn thị trường của bản tin mà bảng điều khiển hiển thị, bằng tiếng Việt và tiếng Anh, cho cổ phiếu Việt Nam, vàng trong nước, vàng thế giới và crypto. Cổ phiếu Mỹ không có trong đó. Gồm bảng giá và độ rộng, nhóm tăng giảm mạnh và nhóm dẫn đầu, phái sinh, tâm lý và tỷ giá ở thị trường nào có, nhìn vĩ mô, đổi chế độ thị trường, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai, câu chuyện thị trường kèm phần nhìn lại, và tin thị trường, vĩ mô và kinh tế. Mỗi mục đọc như trên bảng điều khiển.
 
 **Nó không bao giờ mang gì.** Không có gì của sổ bạn: không mã nắm giữ, không mã theo dõi, không số tiền, kế hoạch, đề xuất, cảnh báo hay chi phí. Nó không bao giờ nêu giá vào, mức cắt lỗ, mục tiêu, cỡ lệnh hay mức tin cậy cho một mã cụ thể, và không bao giờ gọi một mã là mua, bán hay giữ. Nó không gọi mô hình, nên không dòng nào do AI viết và chạy không tốn đồng nào: mọi dòng là lời của chính dịch vụ nền, và mỗi bản tin đều khép bằng một dòng miễn trừ ("Bản tin mô tả thị trường, không phải khuyến nghị đầu tư.").
 
