@@ -9,6 +9,7 @@ import { openConnectFailed } from '@/web/edition/keys-panel'
 import { holdKey, OPENROUTER, watchKeyStorage, workerKeys } from '@/web/edition/keys-store'
 import { type ConnectResult, finishOpenRouterConnect } from '@/web/edition/openrouter-oauth'
 import { askToKeepData } from '@/web/edition/persistence'
+import { PhoneBriefLine } from '@/web/edition/phone-brief-line'
 import { Refused } from '@/web/edition/refused'
 import { type EditionPhase, editionPhase, startEdition } from '@/web/edition/worker-link'
 import { declareWebEdition } from '@/web/state/edition'
@@ -80,6 +81,7 @@ function EditionShell() {
     <div class="edition-shell">
       <EditionApp phase={phase} />
       {!isOfficeLoaded && <ModalHost />}
+      <PhoneBriefLine />
       <EditionFooter />
     </div>
   )

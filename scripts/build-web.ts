@@ -4,6 +4,9 @@
 // nothing here runs on a server. The page's title is the brand's display name, written here so the
 // name has one source, and the link preview tags are added from it and the page's description.
 // `--app-url=<https url>` (this page's own address) is required; `--noindex` is the staging flag.
+// `--brief-url=<https url>` (the phone brief app) is stamped into a `brief-url` meta only once the
+// app is no longer invite only (`BRIEF_INVITE_ONLY`); until then the build carries no address and
+// the flag is ignored, but it is required the moment the trial lifts.
 // The last file written is the build stamp (`dist/web.stamp.json`, outside the served folder) that
 // `scripts/deploy.ts` checks the deploy target against.
 import { cp } from 'node:fs/promises'
@@ -12,6 +15,7 @@ import { parseArgs } from 'node:util'
 
 import { listBrowserHosts } from '@/app/browser/hosts'
 
+import { BRIEF_INVITE_ONLY } from './brief-invite'
 import { buildOrThrow, stampBrand } from './browser-build'
 import { PREVIEW_IMAGE_FILE, PREVIEW_IMAGE_SOURCE, stampLinkPreview } from './link-preview'
 import {
@@ -30,20 +34,30 @@ const PAGE_ENTRY = resolve(ROOT, 'src/web/edition/index.html')
 const WORKER_ENTRY = resolve(ROOT, 'src/app/browser/worker.ts')
 const WASM_SOURCE = resolve(ROOT, 'node_modules/@sqlite.org/sqlite-wasm/dist/sqlite3.wasm')
 const WASM_FILE = 'sqlite3.wasm'
+const HEAD_END = '</head>'
 
 const { values } = parseArgs({
-  options: { 'app-url': { type: 'string' }, noindex: { type: 'boolean' } },
+  options: {
+    'app-url': { type: 'string' },
+    'brief-url': { type: 'string' },
+    noindex: { type: 'boolean' },
+  },
 })
 const appUrl = parseHttpsUrl(
   values['app-url'],
   'build-web: pass --app-url=<https address of the web app>'
 )
-
+const briefUrl = BRIEF_INVITE_ONLY
+  ? undefined
+  : parseHttpsUrl(
+      values['brief-url'],
+      'build-web: pass --brief-url=<https address of the brief app>'
+    )
 const noindex = values.noindex === true
 
 await resetOutput('web')
 await buildOrThrow({ entry: PAGE_ENTRY, outdir: OUT_DIR, minify: true })
-await stampPage(resolve(OUT_DIR, PAGE_FILE), appUrl)
+await stampPage(resolve(OUT_DIR, PAGE_FILE), appUrl, briefUrl)
 await buildOrThrow({ entry: WORKER_ENTRY, outdir: OUT_DIR, minify: true })
 await cp(WASM_SOURCE, resolve(OUT_DIR, WASM_FILE))
 await cp(PREVIEW_IMAGE_SOURCE, resolve(OUT_DIR, PREVIEW_IMAGE_FILE))
@@ -72,8 +86,12 @@ function pageDirectives(hosts: readonly string[]): readonly string[] {
   ]
 }
 
-async function stampPage(file: string, pageUrl: string): Promise<void> {
-  const html = await Bun.file(file).text()
+async function stampPage(file: string, pageUrl: string, briefUrl: string | undefined): Promise<void> {
+  const html = stampLinkPreview(stampBrand(await Bun.file(file).text(), file), pageUrl)
 
-  await Bun.write(file, stampLinkPreview(stampBrand(html, file), pageUrl))
+  await Bun.write(file, briefUrl === undefined ? html : stampBriefUrl(html, briefUrl))
+}
+
+function stampBriefUrl(html: string, briefUrl: string): string {
+  return html.replace(HEAD_END, () => `<meta name="brief-url" content="${briefUrl}" />\n${HEAD_END}`)
 }

@@ -14,6 +14,12 @@
   margin: 0;
 }
 
+.phone-brief-line {
+  margin: 0;
+  padding: var(--s1) var(--s2);
+  text-align: center;
+}
+
 /* A slot's held keys, then the form, across the row's whole width. */
 .key-slot {
   display: grid;
