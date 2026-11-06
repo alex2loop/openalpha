@@ -9,8 +9,9 @@ name: web
 # homepage's address); each build writes its page's own address into its link preview tags. In the
 # GitHub Environment `production` it also needs the secrets CLOUDFLARE_API_TOKEN and
 # CLOUDFLARE_ACCOUNT_ID. With any of them missing the run ends green and deploys nothing. Run it by
-# hand to deploy the latest release again. After a deploy it compares what both addresses serve with
-# the build (scripts/deploy-drift.ts).
+# hand to deploy the latest release again. Each deploy goes through scripts/deploy.ts, which refuses
+# a build that was not made for production; after a deploy, scripts/deploy-drift.ts compares what
+# both addresses serve with the build.
 #
 # The build job runs the repository's code and its dependencies and holds no secret. The deploy job
 # holds the secrets, only downloads what the build job made, and runs the wrangler pinned in
@@ -113,6 +114,8 @@ jobs:
           path: |
             dist/web
             dist/site
+            dist/web.stamp.json
+            dist/site.stamp.json
           if-no-files-found: error
           retention-days: 1
 
@@ -150,8 +153,8 @@ jobs:
             echo "Cloudflare secrets are not set in the production environment: nothing to deploy"
             exit 0
           fi
-          bun run wrangler deploy -c deploy/web/wrangler.toml --env production
-          bun run wrangler deploy -c deploy/site/wrangler.toml --env production
+          bun run deploy:web --env production
+          bun run deploy:site --env production
           echo "deployed=true" >> "$GITHUB_OUTPUT"
 
       # What visitors now get must be byte for byte what the build job made, headers included.

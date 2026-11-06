@@ -1,19 +1,33 @@
 #!/usr/bin/env bun
 // Homepage: dist/site is the static `site/` folder with the link to the web app filled in, the link
-// preview tags and a `_headers` file. `--app-url=<https url>` (the web app) and `--site-url=<https
-// url>` (this page, for the link preview) are required, so the placeholder never ships; `--noindex`
-// is the staging flag.
-import { cp, mkdir, rm } from 'node:fs/promises'
+// preview tags, the one vendored script (copied from the locked `motion` package, so its integrity
+// is the lockfile's) and a `_headers` file. `--app-url=<https url>` (the web app) and
+// `--site-url=<https url>` (this page, for the link preview) are required, so the placeholder never
+// ships; `--noindex` is the staging flag. The last file written is the build stamp
+// (`dist/site.stamp.json`, outside the served folder) that `scripts/deploy.ts` checks the deploy
+// target against.
+import { cp, mkdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
 import { stampLinkPreview } from './link-preview'
 import { buildHeadersFile, LOCKED_DIRECTIVES } from './web-headers'
-import { HEADERS_FILE, PAGE_FILE, parseHttpsUrl } from './web-files'
+import {
+  HEADERS_FILE,
+  outDirOf,
+  PAGE_FILE,
+  parseHttpsUrl,
+  resetOutput,
+  writeStamp,
+} from './web-files'
 
 const ROOT = resolve(import.meta.dir, '..')
 const SOURCE_DIR = resolve(ROOT, 'site')
-const OUT_DIR = resolve(ROOT, 'dist/site')
+const OUT_DIR = outDirOf('site')
+const MOTION_DIR = resolve(ROOT, 'node_modules/motion')
+const MOTION_SCRIPT = 'dist/motion.js'
+const MOTION_LICENSE = 'LICENSE.md'
+const VENDOR_DIR = 'vendor'
 const APP_PLACEHOLDER = 'https://example.com/'
 // An inline script or style block, matched the way the HTML parser ends it: at the first closing
 // tag.
@@ -36,8 +50,9 @@ const siteUrl = parseHttpsUrl(
   'build-site: pass --site-url=<https address of this homepage>'
 )
 
-await rm(OUT_DIR, { recursive: true, force: true })
-await mkdir(OUT_DIR, { recursive: true })
+const noindex = values.noindex === true
+
+await resetOutput('site')
 await cp(SOURCE_DIR, OUT_DIR, { recursive: true })
 
 const page = stampLinkPreview(
@@ -45,13 +60,30 @@ const page = stampLinkPreview(
   siteUrl
 )
 
+await vendorMotion(page)
 await Bun.write(resolve(OUT_DIR, PAGE_FILE), page)
 await Bun.write(
   resolve(OUT_DIR, HEADERS_FILE),
-  buildHeadersFile(siteDirectives(page), { noindex: values.noindex === true })
+  buildHeadersFile(siteDirectives(page), { noindex })
 )
+await writeStamp('site', { url: siteUrl, appUrl, noindex })
 
 console.log(`build-site: wrote ${OUT_DIR}`)
+
+// The page names the file it loads, version included; the package that supplies it must be that
+// version, so the pin in the page and the one in the lockfile cannot drift apart.
+async function vendorMotion(html: string): Promise<void> {
+  const { version } = await Bun.file(resolve(MOTION_DIR, 'package.json')).json()
+  const name = `motion-${version}.js`
+
+  if (!html.includes(`"${VENDOR_DIR}/${name}"`)) {
+    throw new Error(`build-site: the page does not load the installed ${VENDOR_DIR}/${name}`)
+  }
+
+  await mkdir(resolve(OUT_DIR, VENDOR_DIR), { recursive: true })
+  await cp(resolve(MOTION_DIR, MOTION_SCRIPT), resolve(OUT_DIR, VENDOR_DIR, name))
+  await cp(resolve(MOTION_DIR, MOTION_LICENSE), resolve(OUT_DIR, VENDOR_DIR, 'motion-LICENSE.md'))
+}
 
 // The page carries its own scripts and styles inline, so each block is allowed by its hash and the
 // policy stays closed to any other inline code. Style attributes cannot be hashed without

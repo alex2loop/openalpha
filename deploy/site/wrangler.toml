@@ -1,5 +1,7 @@
 # The homepage: the static `site/` folder, no Worker script, no logs kept on the operator's side.
-# Build first: bun run build:site --app-url=<web app address> --site-url=<homepage address> (add --noindex for staging).
+# Build first: bun run build:site --app-url=<web app address> --site-url=<homepage address> (add
+# --noindex for staging), then deploy with bun run deploy:site (add --env production), which refuses
+# a build made for the other.
 name = "openalpha-site-staging"
 compatibility_date = "2026-11-03"
 

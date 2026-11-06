@@ -36,6 +36,7 @@ bun run check           # Biome + typecheck + contract gates, incl. check:browse
 bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin, host global or timer method
 bun run build:web       # static web edition into dist/web; needs --app-url=<https address of the web edition> (add --noindex for staging); deploy/web/wrangler.toml serves it
 bun run build:site      # homepage into dist/site; needs --app-url=<https address of the web edition> and --site-url=<https address of the homepage>
+bun run deploy:web      # deploy dist/web (add --env production); deploy:site likewise; both refuse a build made for the other env
 bun run lint:arch       # depth, trading/registry/feature isolation, locale, report figures,
                         # caveats, vi terminology, pricing, agent skills, strategy version (CI)
 bun run gen             # regenerate the migration registry
@@ -48,7 +49,7 @@ bun scripts/check-strategy-version.ts --write   # re-record policy digests
 ```
 src/       # engine, cli, trading, channels, persistence, ai, memory, plugins, social, ...
 scripts/   # the gate suite (`bun run check`, `bun run lint:arch`)
-site/      # public homepage: static files stamped by `build:site` (link previews, app URL); vendors its one script (no runtime CDN)
+site/      # public homepage: static files stamped by `build:site` (link previews, app URL); its one script is copied at build from the locked `motion` package (no runtime CDN)
 deploy/    # wrangler.toml per static project (web edition, homepage); Cloudflare Workers Static Assets, no script
 ```
 

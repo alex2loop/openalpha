@@ -9,6 +9,8 @@ const HARDENING_HEADERS: readonly string[] = [
   'Strict-Transport-Security: max-age=31536000; includeSubDomains',
   'Referrer-Policy: no-referrer',
   'X-Content-Type-Options: nosniff',
+  'Cross-Origin-Opener-Policy: same-origin',
+  'Cross-Origin-Resource-Policy: same-origin',
   'Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()',
 ]
 
