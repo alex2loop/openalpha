@@ -5,6 +5,7 @@ import type { TradingConfig } from '@/trading/kernel/config'
 import type { CurrencyCode, InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
 import type { AlertCondition } from '@/trading/kernel/operator/alert'
 import type { VenueRegistry } from '@/trading/venues/types'
+import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
 import { marksByInstrument } from '@/trading/features/portfolio/view'
@@ -75,6 +76,19 @@ export function lazyBriefServices(
   }
 
   return { ...base, ...parts.reads }
+}
+
+/** What the brief service is handed beside its stores: the reads its sections take, and what the
+ *  edition leaves out of every brief (whole sections, and the stories it never tells). */
+export function briefInputsOf(
+  reads: BriefServices,
+  edition: Pick<TradingEdition, 'briefOmits' | 'briefStoryOmits'> | undefined
+) {
+  return {
+    reads,
+    ...(edition?.briefOmits === undefined ? {} : { omitSections: edition.briefOmits }),
+    ...(edition?.briefStoryOmits === undefined ? {} : { omitStories: edition.briefStoryOmits }),
+  }
 }
 
 /** The brief describes only markets the operator still reads: a switched-off segment would otherwise

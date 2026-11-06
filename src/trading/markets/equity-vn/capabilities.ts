@@ -5,7 +5,6 @@ import type {
   FuturesBasis,
   InstrumentRequest,
   InstrumentStatistics,
-  MarketBriefRequest,
   MarketRequest,
   SectorStrengthResult,
 } from '@/trading/kernel/market/market-capability'
@@ -15,7 +14,7 @@ import type {
   SourceResult,
 } from '@/trading/kernel/source/source-result'
 import type { SettledBarsPolicy } from '@/trading/markets/bars'
-import type { MarketDeps } from '@/trading/markets/deps'
+import type { MarketBriefRun, MarketDeps } from '@/trading/markets/deps'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
 import type { MarketCapabilities, MarketManifest, NameContext } from '@/trading/markets/types'
 import { available, dedupeProvenance, unavailable } from '@/trading/kernel/source/source-result'
@@ -137,19 +136,18 @@ function briefCapability(
   manifest: MarketManifest,
   crossSection: CrossSectionCache
 ): Pick<MarketCapabilities, 'brief'> {
-  const services = deps.briefServices
+  const { briefServices, ...briefDeps } = deps
 
-  if (services === undefined) {
+  if (briefServices === undefined) {
     return {}
   }
 
   return {
     brief: {
       kind: 'brief',
-      run: (request: MarketBriefRequest) =>
+      run: (request: MarketBriefRun) =>
         buildVnBrief({
-          deps,
-          services,
+          deps: briefDeps,
           request,
           calendar: manifest.calendar,
           home: VN_BRIEF_HOME,

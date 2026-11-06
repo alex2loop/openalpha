@@ -3,6 +3,7 @@ import type { MarketDataStore } from '@/trading/features/market-data/store/marke
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
+import type { MarketBriefRequest } from '@/trading/kernel/market/market-capability'
 import type { MacroMissingReason } from '@/trading/kernel/market/market-macro'
 import type { RefreshDataKind } from '@/trading/kernel/market/refresh'
 import type { BriefActionCode } from '@/trading/kernel/operator/brief-section'
@@ -10,6 +11,16 @@ import type { VenueListings } from '@/trading/kernel/venue/catalog'
 import type { MacroCache } from '@/trading/markets/macro-cache'
 import type { StageRegistry } from '@/trading/markets/stage'
 import type { SourceRegistry } from '@/trading/markets/types'
+
+/** A brief request with the reads it is built from. The build step hands them in, so the same
+ *  capability serves a build whose reads are the operator's own and one whose reads are not. */
+export interface MarketBriefRun extends MarketBriefRequest {
+  readonly reads: BriefServices
+}
+
+/** What a brief builder is handed of the market's deps: never the book's reads, which arrive on the
+ *  request. */
+export type BriefDeps = Omit<MarketDeps, 'briefServices'>
 
 /** Everything a market factory is handed. `config` is the whole frozen `TradingConfig` for
  *  composition simplicity, but a market reads only its own `[trading.markets.<id>]` table and the

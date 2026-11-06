@@ -2,7 +2,7 @@ import type { Logger } from '@/core/logging/logger'
 import type { Budget } from '@/core/types/budget'
 import type { Locale } from '@/core/types/locale'
 import type { AlertService } from '@/trading/features/alerts/types'
-import type { BriefService } from '@/trading/features/brief/types'
+import type { BriefService, BriefServices } from '@/trading/features/brief/types'
 import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type { ExclusionReader, MarketDataService } from '@/trading/features/market-data/types'
 import type { OrderService } from '@/trading/features/order/types'
@@ -44,6 +44,7 @@ import { createExitPlanner } from '@/trading/features/suggestion/exit-plan/recor
 import { createReduceVerdicts } from '@/trading/features/suggestion/reduce-verdicts'
 import { createSuggestionService } from '@/trading/features/suggestion/suggestion'
 import { createFactorLogService } from '@/trading/features/suggestion/track-record/factor-log-service'
+import { briefInputsOf } from '@/trading/wiring/composition/brief-services'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import {
   createPortfolioReader,
@@ -87,6 +88,7 @@ interface DomainServiceDeps {
   readonly venues: VenueRegistry
   /** Built beside the market registry so the markets and the money read one conversion path. */
   readonly fx: FxRates
+  readonly briefReads: BriefServices
   readonly edition?: Pick<TradingEdition, 'reads' | 'briefOmits' | 'briefStoryOmits' | 'rebalance'>
 }
 
@@ -388,7 +390,7 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
     sender: deps.sender,
     config: deps.config,
     logger: deps.logger,
-    ...briefOmitsOf(deps.edition),
+    ...briefInputsOf(deps.briefReads, deps.edition),
     createSuggestionBudget: () => deps.createSuggestionBudget(),
   })
 
@@ -416,13 +418,5 @@ function createDeliveryServices(delivery: DeliveryDeps): Pick<DomainServices, 'a
       exitPlans: delivery.exitPlans,
       ...(order === undefined ? {} : { restingStops: (options) => order.restingStops(options) }),
     }),
-  }
-}
-
-/** What the edition leaves out of every brief: whole sections, and the stories it never tells. */
-function briefOmitsOf(edition: Pick<TradingEdition, 'briefOmits' | 'briefStoryOmits'> | undefined) {
-  return {
-    ...(edition?.briefOmits === undefined ? {} : { omitSections: edition.briefOmits }),
-    ...(edition?.briefStoryOmits === undefined ? {} : { omitStories: edition.briefStoryOmits }),
   }
 }

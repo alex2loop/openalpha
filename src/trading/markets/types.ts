@@ -254,7 +254,8 @@ interface MarketCapabilityMap extends IndexCapabilities {
   }
   readonly basis: { readonly request: MarketRequest; readonly result: SourceResult<FuturesBasis> }
   readonly brief: {
-    readonly request: MarketBriefRequest
+    /** The reads are what the brief's sections take of the book; `MarketBriefRun` types them. */
+    readonly request: MarketBriefRequest & { readonly reads: object }
     readonly result: MarketBrief
   }
   /** How this market replaces its own tradeable universe. A market that has no universe to

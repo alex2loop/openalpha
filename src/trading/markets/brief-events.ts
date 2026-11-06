@@ -3,7 +3,7 @@ import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { MarketBriefRequest } from '@/trading/kernel/market/market-capability'
 import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
-import type { MarketDeps } from '@/trading/markets/deps'
+import type { BriefDeps } from '@/trading/markets/deps'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -39,7 +39,7 @@ export interface EventsRead {
 }
 
 export interface EventsReadInput {
-  readonly deps: MarketDeps
+  readonly deps: BriefDeps
   readonly request: MarketBriefRequest
   readonly calendar: TradingCalendar
   /** The names whose calendar is read, and what capping them left unsaid. */
