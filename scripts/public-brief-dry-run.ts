@@ -97,8 +97,7 @@ function listOf(members: ReadonlySet<string>): string {
   return members.size === 0 ? 'none' : [...members].join(', ')
 }
 
-/** A kept section per line, with the sources it cites; the sources the whole brief cites come last,
- *  which is what `PUBLIC_BRIEF_SOURCES` is taken from. */
+/** A kept section per line with the sources it cites, then the sources the whole brief cites. */
 async function dryRun(dataDir: string): Promise<number> {
   const signal = AbortSignal.timeout(DRY_RUN_TIMEOUT_MS)
   // Nothing from the shell reaches the run: no model key, no source key.
@@ -151,17 +150,9 @@ async function buildAndPrint(services: TradingServices, signal: AbortSignal): Pr
   return 0
 }
 
-/** A list per line with the sources it cites: they must be in `PUBLIC_BRIEF_SOURCES` or the list
- *  is left out. */
 function printScreens(screens: readonly PublicScreen[]): void {
   for (const screen of screens) {
-    const cited = screen.provenance.map((entry) => entry.sourceId)
-
-    console.log(
-      ['screen', screen.market, `${screen.rows.en.length} names`, cited.join(',') || '-'].join(
-        COLUMN_GAP
-      )
-    )
+    console.log(['screen', screen.market, `${screen.rows.en.length} names`].join(COLUMN_GAP))
   }
 }
 

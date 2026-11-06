@@ -6,7 +6,6 @@ import type {
 } from '@/trading/features/brief/public/types'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { SourceId } from '@/trading/kernel/source/source-id'
 import type { MarketBriefRun } from '@/trading/markets/deps'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { isAbortError } from '@/core/errors'
@@ -16,7 +15,6 @@ import { PUBLIC_BRIEF_MARKETS } from '@/trading/features/brief/public/reads'
 import { toPublicSnapshot } from '@/trading/features/brief/public/render'
 import {
   carriedSections,
-  hasOnlyPublicSources,
   PUBLIC_CORE_SECTIONS,
   PUBLIC_SESSION_KIND,
   publicSectionKinds,
@@ -114,26 +112,8 @@ function keptSections(
   sections: readonly BriefSectionResult[]
 ): readonly BriefSectionResult[] {
   const kinds = publicSectionKinds(deps.toggles)
-  const allowed = sections.filter((section) => kinds.has(section.kind))
-  const kept = allowed.filter(isPublishable)
-  const dropped = allowed.filter((section) => !isPublishable(section))
 
-  if (dropped.length > 0) {
-    deps.logger.warn('trading.public_brief_sources_dropped', {
-      sections: dropped.map((section) => section.kind),
-      sources: [...new Set(dropped.flatMap(sourcesOf))],
-    })
-  }
-
-  return kept
-}
-
-function isPublishable(section: BriefSectionResult): boolean {
-  return hasOnlyPublicSources(sourcesOf(section))
-}
-
-function sourcesOf(section: BriefSectionResult): readonly SourceId[] {
-  return section.status === 'ready' ? section.provenance.map((entry) => entry.sourceId) : []
+  return sections.filter((section) => kinds.has(section.kind))
 }
 
 /** The tape has no date of its own; the section that states the session its market's roll-ups were

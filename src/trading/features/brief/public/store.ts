@@ -11,7 +11,6 @@ import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, StorageError } from '@/core/errors'
 import { marketRef, tradingDay } from '@/trading/kernel/instrument'
 import { briefSectionsSchema, toBriefSections } from '@/trading/kernel/store/brief-section-payload'
-import { provenanceSchema, toProvenance } from '@/trading/kernel/store/store-payload'
 import { parseJson } from '@/trading/kernel/store/store-row'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 
@@ -28,7 +27,6 @@ const screensSchema = z.array(
     market: z.string(),
     asOf: z.string(),
     rows: z.strictObject({ en: screenRowsSchema, vi: screenRowsSchema }),
-    provenance: z.array(provenanceSchema),
   })
 )
 
@@ -194,6 +192,5 @@ function toScreens(value: unknown): readonly PublicScreen[] {
     market: marketRef(screen.market),
     asOf: tradingDay(screen.asOf),
     rows: screen.rows,
-    provenance: screen.provenance.map(toProvenance),
   }))
 }

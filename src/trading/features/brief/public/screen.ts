@@ -4,16 +4,12 @@ import type {
   PublicScreen,
 } from '@/trading/features/brief/public/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
-import type { SourceId } from '@/trading/kernel/source/source-id'
-import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { PUBLIC_BRIEF_MARKETS } from '@/trading/features/brief/public/reads'
-import { hasOnlyPublicSources } from '@/trading/features/brief/public/scope'
 
 /** The top names of each public market that has a screen, as the day's lists. Empty, with no read
- *  at all, when the lists are off. A list that cites a source the public side may not name is left
- *  out, whole. */
+ *  at all, when the lists are off. */
 export async function readPublicScreens(
   deps: PublicBriefDeps,
   input: PublicBriefInput
@@ -25,17 +21,8 @@ export async function readPublicScreens(
   const read = await Promise.all(
     PUBLIC_BRIEF_MARKETS.map((market) => readScreen(deps, input, market))
   )
-  const screens = read.filter((screen) => screen !== undefined)
-  const dropped = screens.filter((screen) => !isPublishable(screen))
 
-  if (dropped.length > 0) {
-    deps.logger.warn('trading.public_brief_screens_dropped', {
-      markets: dropped.map((screen) => screen.market),
-      sources: [...new Set(dropped.flatMap(sourcesOf))],
-    })
-  }
-
-  return screens.filter(isPublishable)
+  return read.filter((screen) => screen !== undefined)
 }
 
 /** A list is garnish: one that cannot be read leaves that market out and the brief stands. */
@@ -52,9 +39,7 @@ async function readScreen(
       signal: input.signal,
     })
 
-    return screen === undefined
-      ? undefined
-      : { market, ...screen, provenance: onePerSource(screen.provenance) }
+    return screen === undefined ? undefined : { market, ...screen }
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err
@@ -67,18 +52,4 @@ async function readScreen(
 
     return undefined
   }
-}
-
-/** A list is ranked from hundreds of reads of a few sources; the check and the stored row need each
- *  source once. */
-function onePerSource(provenance: readonly SourceProvenance[]): readonly SourceProvenance[] {
-  return [...new Map(provenance.map((entry) => [entry.sourceId, entry])).values()]
-}
-
-function isPublishable(screen: PublicScreen): boolean {
-  return hasOnlyPublicSources(sourcesOf(screen))
-}
-
-function sourcesOf(screen: PublicScreen): readonly SourceId[] {
-  return screen.provenance.map((entry) => entry.sourceId)
 }

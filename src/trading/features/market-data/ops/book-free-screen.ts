@@ -19,8 +19,8 @@ interface BookFreeScreenRequest {
 }
 
 /** A market's ranked board with live prices and nothing of the operator's: no exclusion mark, no
- *  margin mark, and no refresh, because the caller refreshed the market first. Undefined for a
- *  market that has no screen. */
+ *  margin mark, no read of the venues the operator trades on, and no refresh, because the caller
+ *  refreshed the market first. Undefined for a market that has no screen. */
 export async function runBookFreeScreen(
   deps: BookFreeScreenDeps,
   request: BookFreeScreenRequest
@@ -38,6 +38,7 @@ export async function runBookFreeScreen(
     asOf: resolveDay(market, now),
     now,
     signal,
+    venueBlind: true,
   })
 
   logScreen(deps.logger, request, result)

@@ -105,7 +105,6 @@ async function readScreen(
       en: renderScreenRows('en', clocked, PUBLIC_ROW_FORM),
       vi: renderScreenRows('vi', clocked, PUBLIC_ROW_FORM),
     },
-    provenance: view.provenance,
   }
 }
 

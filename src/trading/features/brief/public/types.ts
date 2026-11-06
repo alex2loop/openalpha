@@ -10,7 +10,6 @@ import type {
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { Market } from '@/trading/markets/types'
 
 /** One market's top names by composite score, read from no book. A line is written once per
@@ -19,7 +18,6 @@ export interface PublicScreen {
   readonly market: MarketRef
   readonly asOf: TradingDay
   readonly rows: Record<Locale, readonly ScreenRowText[]>
-  readonly provenance: readonly SourceProvenance[]
 }
 
 /** One day of the brief the daemon posts to the public side, and how many times it tried. A day

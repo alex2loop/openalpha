@@ -1,49 +1,7 @@
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { StoryCode } from '@/trading/kernel/operator/brief-story'
-import type { SourceId } from '@/trading/kernel/source/source-id'
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-scope'
-import { sourceId } from '@/trading/kernel/source/source-id'
-
-/** What a section or a screen list may cite and still be published. One naming any other source is
- *  left out, whole. Every provider the VN stock and crypto screens and prices can reach, from the route tables, plus the
- *  sources a dry run of the rest of the brief cited. */
-const PUBLIC_BRIEF_SOURCES: ReadonlySet<SourceId> = new Set(
-  [
-    'alternative-me',
-    'binance',
-    'binance-futures',
-    'bls',
-    'bybit',
-    'cafef',
-    'cafef-statements',
-    'cftc',
-    'coinbase',
-    'coingecko',
-    'coinlore',
-    'coinmarketcap',
-    'coinpaprika',
-    'entrade',
-    'fred',
-    'giavang',
-    'hsx',
-    'mexc',
-    'okx',
-    'pnj',
-    'rss',
-    'ssi',
-    'treasury',
-    'vietcap',
-    'vietcap-board',
-    'vietcap-chart',
-    'vietcap-statements',
-    'vndirect',
-    'vndirect-index',
-    'vps',
-    'vps-board',
-    'yahoo',
-  ].map(sourceId)
-)
 
 export const PUBLIC_ANALYSIS_KINDS = Object.freeze([
   'macro',
@@ -121,9 +79,4 @@ export function carriedSections(
 
     return ![...omitted].some((code) => code === section.rows[0]?.story)
   })
-}
-
-/** Whether everything cited is a source the public side may name. */
-export function hasOnlyPublicSources(sources: readonly SourceId[]): boolean {
-  return sources.every((source) => PUBLIC_BRIEF_SOURCES.has(source))
 }
