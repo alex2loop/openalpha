@@ -50,6 +50,7 @@ interface NewsItemProps {
 /** One headline with its publisher and time; it opens the article in a new tab. */
 export function NewsItem({ item, isDated }: NewsItemProps) {
   const timeZone = state.value?.timeZone
+  const href = toSafeHref(item.url)
   const when =
     timeZone === undefined
       ? []
@@ -66,8 +67,8 @@ export function NewsItem({ item, isDated }: NewsItemProps) {
     </>
   )
 
-  return toSafeHref(item.url) !== undefined ? (
-    <a class="news-item" href={item.url} target="_blank" rel="noopener noreferrer">
+  return href !== undefined ? (
+    <a class="news-item" href={href} target="_blank" rel="noopener noreferrer">
       {body}
     </a>
   ) : (

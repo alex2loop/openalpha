@@ -29,6 +29,14 @@ const ASSIGNMENT_RE = new RegExp(
   'gi'
 )
 
+// A bare key has no shape of its own (Serper: 40 hex, Mistral: 32 letters and digits), so it is
+// redacted only straight after a key word. `0x` leaves a contract address alone and `public key` a
+// wallet address; a UUID or a run longer than the body is no key either.
+const BARE_KEY_WORD = '(?<![A-Za-z0-9])(?<!public\\s)(?:key|api|khóa|khoá)(?![A-Za-z0-9])'
+const BARE_KEY_GAP = '[\\s:=]{1,3}'
+const BARE_KEY_BODY = '(?!0x)[A-Za-z0-9]{32,128}(?![A-Za-z0-9_-])'
+const BARE_KEY_RE = new RegExp(`(?<=${BARE_KEY_WORD}${BARE_KEY_GAP})${BARE_KEY_BODY}`, 'gi')
+
 const KNOWN_SECRET_MIN_CHARS = 8
 const KNOWN_SECRET_LIMIT = 16
 const KNOWN_SECRETS = new Set<string>()
@@ -59,12 +67,21 @@ const SECRET_PATTERNS: readonly RegExp[] = [
   // `sk-` keys (OpenAI, Anthropic, OpenRouter) hold a 16+ character hyphen-free run; a slug such as
   // `sk-hynix-earnings-preview` is short hyphen-separated words and never does.
   /(?<![A-Za-z0-9_-])sk-[A-Za-z0-9_-]{0,96}?[A-Za-z0-9_]{16,}[A-Za-z0-9_-]*/g,
+  // Tavily, xAI, Perplexity, NVIDIA and Cerebras keys: a fixed prefix then a 24+ character
+  // hyphen-free run, so a slug such as `xai-announces-grok-launch` is never read as a key.
+  /(?<![A-Za-z0-9_-])(?:tvly|xai|pplx|nvapi|csk)-[A-Za-z0-9_-]{0,96}?[A-Za-z0-9]{24,}[A-Za-z0-9_-]*/g,
+  // Groq, Hugging Face, Fireworks and Replicate: the prefix then an unbroken run of 20+ letters
+  // and digits, which snake_case identifiers never hold.
+  /(?<![A-Za-z0-9_])(?:gsk|hf|fw|r8)_[A-Za-z0-9]{20,}/g,
+  // Brave Search keys open with `BSA`.
+  /(?<![A-Za-z0-9])BSA[A-Za-z0-9]{28,}/g,
   /(?<![A-Za-z0-9_])(?:github_pat_[A-Za-z0-9_]{22,}|gh[pousr]_[A-Za-z0-9]{36,})/g,
   /(?<![A-Za-z0-9])(?:AKIA|ASIA)[A-Z0-9]{16}(?![A-Za-z0-9])/g,
   /(?<![A-Za-z0-9])AIza[A-Za-z0-9_-]{35}/g,
   /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
   /(https?|ftp|smtp|postgres|postgresql|mysql|mongodb|mongodb\+srv|redis|rediss|amqp|amqps):\/\/[^:\s]{1,1024}:[^@\s]{1,1024}@/gi,
   /(s|r)k_(live|test)_[0-9a-zA-Z]{24}/gi,
+  BARE_KEY_RE,
 ]
 
 const SECRET_PATTERNS_NONGLOBAL: readonly RegExp[] = SECRET_PATTERNS.map(
@@ -115,6 +132,9 @@ const WHITESPACE_RE = /\s/
 const HOLD_KEYWORD_OPEN = `(?:(?:${ASSIGNMENT_KEYWORD}|authorization|x-api-key|x-anthropic-api-key|(?:set-)?cookie)${ASSIGNMENT_KEY_CLOSE}\\s*(?:[=:]|$)|bearer)`
 const HOLD_KEYWORD_OPEN_RE = new RegExp(HOLD_KEYWORD_OPEN, 'gi')
 const HOLD_KEYWORD_SETTLED_RE = new RegExp(`^${HOLD_KEYWORD_OPEN}\\s*\\S[^\\r\\n]*[\\r\\n]`, 'i')
+// A bare key is settled once the word after the key word is complete, key or not.
+const HOLD_BARE_KEY_OPEN_RE = new RegExp(BARE_KEY_WORD, 'gi')
+const HOLD_BARE_KEY_SETTLED_RE = new RegExp(`^${BARE_KEY_WORD}[\\s:=]*[^\\s:=]`, 'i')
 const HOLD_PRIVATE_KEY_OPEN_RE = /-----BEGIN/g
 // A certificate marker is the whole secret once its header closes; a private key's body follows it.
 const HOLD_PRIVATE_KEY_SETTLED_RE = new RegExp(
@@ -129,6 +149,7 @@ interface HoldRule {
 
 const HOLD_RULES: readonly HoldRule[] = [
   { open: HOLD_KEYWORD_OPEN_RE, settled: HOLD_KEYWORD_SETTLED_RE, span: MAX_HELD_CHARS },
+  { open: HOLD_BARE_KEY_OPEN_RE, settled: HOLD_BARE_KEY_SETTLED_RE, span: MAX_HELD_CHARS },
   {
     open: HOLD_PRIVATE_KEY_OPEN_RE,
     settled: HOLD_PRIVATE_KEY_SETTLED_RE,

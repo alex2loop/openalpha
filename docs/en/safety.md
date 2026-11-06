@@ -215,6 +215,9 @@ Details of the scrub:
   characters, so `pass: 12` and `token: ETH` pass through.
 - A quoted key (`"password": "..."`, also inside an escaped JSON string) is read the same way.
 - A `Cookie:` or `Set-Cookie:` header is redacted to the end of its line.
+- Keys with a vendor look (`sk-`, `tvly-`, `xai-`, `gsk_`, `AIza`, and similar) are redacted wherever they
+  appear. A bare run of 32 to 128 letters and digits (a Serper or Mistral key) is redacted only right
+  after the word `key`, `api` or `khóa`, never after `public key`, and never when it starts with `0x`.
 - Text streamed to the app is scrubbed across chunk boundaries, so a secret split between two
   chunks is still caught. The stream holds back an unfinished word, header line or private-key block
   until it can judge it; past 512 characters it releases what it has.

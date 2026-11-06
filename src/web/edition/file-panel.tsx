@@ -24,6 +24,11 @@ import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { ActionRow, type SectionProps } from '@/web/ui/settings/row'
 
+/** The largest file "Open a file" reads: it is held whole in the tab, copied for the check and
+ *  again into storage, so a larger one could exhaust the tab's memory. */
+const MAX_OPEN_FILE_MB = 256
+const MAX_OPEN_FILE_BYTES = MAX_OPEN_FILE_MB * 1024 * 1024
+
 const OPEN_REFUSAL: Readonly<Record<Exclude<DbOpenOutcome, 'opened'>, MessageKey>> = Object.freeze({
   invalid: 'ui.office.edition.file.open.invalid',
   'newer-schema': 'ui.office.edition.file.open.newer',
@@ -169,11 +174,12 @@ async function downloadDatabase(): Promise<void> {
 
 function OpenRow({ reopen }: SectionProps) {
   const input = useRef<HTMLInputElement>(null)
+  const failure = useSignal<string | undefined>(undefined)
 
   return (
     <ActionRow
       title={tr('ui.office.edition.file.open.title')}
-      note={tr('ui.office.edition.file.open.note')}
+      note={failure.value ?? tr('ui.office.edition.file.open.note')}
     >
       <input
         ref={input}
@@ -183,10 +189,18 @@ function OpenRow({ reopen }: SectionProps) {
           const file = event.currentTarget.files?.[0]
 
           event.currentTarget.value = ''
+          failure.value = undefined
 
-          if (file !== undefined) {
-            askOpen(file, reopen)
+          if (file === undefined) {
+            return
           }
+
+          if (file.size > MAX_OPEN_FILE_BYTES) {
+            failure.value = tr('ui.office.edition.file.open.tooBig', { limit: MAX_OPEN_FILE_MB })
+            return
+          }
+
+          askOpen(file, reopen)
         }}
       />
       <Button size="small" onClick={() => input.current?.click()}>

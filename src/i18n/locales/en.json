@@ -201,6 +201,7 @@
     "office.edition.file.open.installed": "This file is from the installed version; the web edition cannot open an installed version's file yet",
     "office.edition.file.open.full": "There is not enough room to open this file, or I could not write it. Free some space and try again; your old data is still there.",
     "office.edition.file.open.failed": "I could not open the file. The data on this computer is unchanged.",
+    "office.edition.file.open.tooBig": "This file is bigger than {limit} MB, more than this tab can open safely. The data on this computer is unchanged.",
     "office.edition.file.move.title": "Move to the installed version",
     "office.edition.file.move.note": "Export your data to a file, then run the command below on the machine with the installed version. Stop the installed version's background service first: the command only runs while it is stopped.",
     "office.edition.file.move.command": "{cliName} db restore <file>",

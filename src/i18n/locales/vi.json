@@ -201,6 +201,7 @@
     "office.edition.file.open.installed": "Tệp này từ bản cài; bản web chưa mở được tệp của bản cài",
     "office.edition.file.open.full": "Máy chưa đủ chỗ để mở file này, hoặc mình chưa ghi được. Bạn giải phóng bớt dung lượng rồi thử lại; dữ liệu cũ vẫn còn.",
     "office.edition.file.open.failed": "Mình chưa mở được file. Dữ liệu trên máy vẫn như cũ.",
+    "office.edition.file.open.tooBig": "File này lớn hơn {limit} MB, quá sức để tab này mở an toàn. Dữ liệu trên máy vẫn như cũ.",
     "office.edition.file.move.title": "Chuyển sang bản cài",
     "office.edition.file.move.note": "Xuất dữ liệu ra file, rồi chạy lệnh dưới đây trên máy cài bản cài. Bạn dừng dịch vụ nền của bản cài trước, vì lệnh chỉ chạy khi nó đã dừng.",
     "office.edition.file.move.command": "{cliName} db restore <tệp>",
