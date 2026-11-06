@@ -18,6 +18,8 @@ const ELLIPSIS = '...'
 const IMAGE_TYPE = 'image/png'
 const FILE_NAME = 'brief.png'
 const WORD_BREAK = /\s+/
+// The download starts after the click returns in some engines, so the address outlives it a little.
+const REVOKE_DELAY_MS = 1_000
 
 interface Style {
   readonly font: string
@@ -114,7 +116,7 @@ function downloadBlob(blob: Blob): void {
     link.download = FILE_NAME
     link.click()
   } finally {
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY_MS)
   }
 }
 

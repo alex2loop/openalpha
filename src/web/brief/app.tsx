@@ -6,12 +6,13 @@ import { ScreenList } from '@/web/brief/screen-list'
 import { drawShareCard, shareBlob } from '@/web/brief/share-card'
 import {
   type Locale,
-  loadStrings,
-  rememberLocale,
-  resolveLocale,
+  publishLocale,
+  rememberChoice,
+  startLocale,
   type Translate,
   toTranslate,
 } from '@/web/brief/strings'
+import { formatDay } from '@/web/brief/today'
 import { Button } from '@/web/ui/kit/button'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { BriefBody } from '@/web/ui/reader/brief-body'
@@ -19,13 +20,11 @@ import { BriefBody } from '@/web/ui/reader/brief-body'
 // The address of the web app, which the build stamps in.
 declare const APP_URL: string
 
-const RETRY_MARK = '↻'
-
-interface Loaded<T> {
-  readonly value: T
+interface DocumentProps {
+  readonly doc: PublicBriefDocument
+  readonly locale: Locale
+  readonly t: Translate
 }
-
-type SharePhase = 'idle' | 'working' | 'failed'
 
 interface PageProps {
   readonly t: Translate
@@ -35,71 +34,57 @@ interface PageProps {
   readonly onRetry: () => void
 }
 
+type ShareCard =
+  | { readonly kind: 'drawing' }
+  | { readonly kind: 'ready'; readonly blob: Blob }
+  | { readonly kind: 'failed' }
+
 /** The brief on a phone: the newest document the Worker holds, in the reader's language. */
 export function App() {
-  const [locale, setLocale] = useState(resolveLocale)
+  const [locale, setLocale] = useState(startLocale)
   const [attempt, setAttempt] = useState(0)
-  const catalogs = useLoaded(loadStrings, attempt)
-  const latest = useLoaded(loadLatest, attempt)
-  const retry = () => setAttempt((count) => count + 1)
+  const latest = useLatest(attempt)
 
   useEffect(() => {
     document.documentElement.lang = locale
-    rememberLocale(locale)
+    publishLocale(locale)
   }, [locale])
-
-  if (catalogs === undefined) {
-    return <div class="app" aria-busy="true" />
-  }
-
-  if (catalogs.value === undefined) {
-    return <WordsFailed onRetry={retry} />
-  }
 
   return (
     <Page
-      t={toTranslate(catalogs.value, locale)}
+      t={toTranslate(locale)}
       locale={locale}
-      latest={latest?.value}
-      onLocale={setLocale}
-      onRetry={retry}
+      latest={latest}
+      onLocale={(next) => {
+        rememberChoice(next)
+        setLocale(next)
+      }}
+      onRetry={() => setAttempt((count) => count + 1)}
     />
   )
 }
 
 // A read per attempt; a new attempt, or leaving the page, abandons the one in flight.
-function useLoaded<T>(
-  load: (signal: AbortSignal) => Promise<T>,
-  attempt: number
-): Loaded<T> | undefined {
-  const [loaded, setLoaded] = useState<Loaded<T> | undefined>(undefined)
+function useLatest(attempt: number): LatestState | undefined {
+  const [latest, setLatest] = useState<LatestState | undefined>(undefined)
 
   useEffect(() => {
     const controller = new AbortController()
 
-    setLoaded(undefined)
-    load(controller.signal)
-      .then((value) => {
+    setLatest(undefined)
+    loadLatest(controller.signal)
+      .then((state) => {
         if (!controller.signal.aborted) {
-          setLoaded({ value })
+          setLatest(state)
         }
       })
-      // A read answers its failure as a value; a rejection is only its own abort.
+      // A read answers its failure as a state; a rejection is only its own abort.
       .catch(() => undefined)
 
     return () => controller.abort()
   }, [attempt])
 
-  return loaded
-}
-
-// Without the words there is nothing to say it in: only a mark to try again.
-function WordsFailed({ onRetry }: { readonly onRetry: () => void }) {
-  return (
-    <div class="app">
-      <Button onClick={onRetry}>{RETRY_MARK}</Button>
-    </div>
-  )
+  return latest
 }
 
 function Page({ t, locale, latest, onLocale, onRetry }: PageProps) {
@@ -108,7 +93,7 @@ function Page({ t, locale, latest, onLocale, onRetry }: PageProps) {
   return (
     <div class="app">
       <header class="app-head">
-        <h1 class="app-title">{headingOf(t, locale, latest)}</h1>
+        <h1 class="app-title">{headingOf(t, latest)}</h1>
         {doc !== undefined && <ShareButton doc={doc} locale={locale} t={t} />}
       </header>
       <main class="flow app-main">
@@ -133,9 +118,9 @@ function Page({ t, locale, latest, onLocale, onRetry }: PageProps) {
 
 // The day sits in the heading only when the brief is not today's: the newest one, or the copy kept
 // for when there is no network.
-function headingOf(t: Translate, locale: Locale, latest: LatestState | undefined): string {
+function headingOf(t: Translate, latest: LatestState | undefined): string {
   if (latest?.kind === 'offline' || (latest?.kind === 'ready' && !latest.isToday)) {
-    return t('ui.brief.heading.latest', { day: latest.doc.briefs[locale].title })
+    return t('ui.brief.heading.latest', { day: formatDay(latest.doc.day) })
   }
 
   return t('ui.brief.heading.today')
@@ -170,15 +155,7 @@ function Body({ t, locale, latest, onRetry }: Omit<PageProps, 'onLocale'>) {
 
 // The body, then the screen lists; the disclaimer closes the page in its footer. A brief carries no
 // AI label: none of its sections is written by a model.
-function Brief({
-  doc,
-  locale,
-  t,
-}: {
-  readonly doc: PublicBriefDocument
-  readonly locale: Locale
-  readonly t: Translate
-}) {
+function Brief({ doc, locale, t }: DocumentProps) {
   return (
     <>
       <BriefBody text={doc.briefs[locale]} labels={{ cautions: t('ui.brief.cautions') }} />
@@ -189,45 +166,47 @@ function Brief({
   )
 }
 
-function ShareButton({
-  doc,
-  locale,
-  t,
-}: {
-  readonly doc: PublicBriefDocument
-  readonly locale: Locale
-  readonly t: Translate
-}) {
-  const [phase, setPhase] = useState<SharePhase>('idle')
-  const pending = useRef<AbortController | undefined>(undefined)
+// The card is drawn as soon as the brief shows, so a tap hands it to the share sheet at once: a
+// phone only shares inside the tap that asked.
+function ShareButton({ doc, locale, t }: DocumentProps) {
+  const [card, setCard] = useState<ShareCard>({ kind: 'drawing' })
+  const [attempt, setAttempt] = useState(0)
+  const translate = useRef(t)
 
-  useEffect(() => () => pending.current?.abort(), [])
+  translate.current = t
 
-  const share = () => {
+  useEffect(() => {
     const controller = new AbortController()
 
-    pending.current = controller
-    setPhase('working')
+    setCard({ kind: 'drawing' })
     drawShareCard({
-      day: doc.briefs[locale].title,
+      day: formatDay(doc.day),
       headline: doc.headline[locale],
-      disclaimer: t('ui.brief.disclaimer'),
+      disclaimer: translate.current('ui.brief.disclaimer'),
       address: location.host,
       signal: controller.signal,
-    })
-      .then(shareBlob)
-      .then(
-        () => setPhase('idle'),
-        () => setPhase(controller.signal.aborted ? 'idle' : 'failed')
-      )
+    }).then(
+      (blob) => !controller.signal.aborted && setCard({ kind: 'ready', blob }),
+      () => !controller.signal.aborted && setCard({ kind: 'failed' })
+    )
+
+    return () => controller.abort()
+  }, [doc, locale, attempt])
+
+  const share = () => {
+    if (card.kind === 'ready') {
+      shareBlob(card.blob).catch(() => setCard({ kind: 'failed' }))
+    } else {
+      setAttempt((count) => count + 1)
+    }
   }
 
   return (
     <div class="app-share">
-      <Button size="small" disabled={phase === 'working'} onClick={share}>
+      <Button size="small" disabled={card.kind === 'drawing'} onClick={share}>
         {t('ui.brief.share')}
       </Button>
-      {phase === 'failed' && (
+      {card.kind === 'failed' && (
         <p class="meta" role="alert">
           {t('ui.brief.shareFailed')}
         </p>

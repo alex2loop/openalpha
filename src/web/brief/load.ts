@@ -12,6 +12,7 @@ export const OFFLINE_HEADER = 'X-Brief-Offline'
 const FETCH_TIMEOUT_MS = 8_000
 const NOT_FOUND = 404
 const SCHEMA = 1
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 
 export type LatestState =
   | { readonly kind: 'ready'; readonly doc: PublicBriefDocument; readonly isToday: boolean }
@@ -79,6 +80,7 @@ function isDocument(value: unknown): value is PublicBriefDocument {
     isRecord(value) &&
     value.schema === SCHEMA &&
     typeof value.day === 'string' &&
+    DAY_RE.test(value.day) &&
     hasBothLocales(value.briefs, isBrief) &&
     hasBothLocales(value.screens, Array.isArray) &&
     hasBothLocales(value.headline, isText)
@@ -105,6 +107,6 @@ function isText(value: unknown): boolean {
   return typeof value === 'string'
 }
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }

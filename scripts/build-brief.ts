@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-// The phone brief app: dist/brief holds the page, its hashed assets, the words (`strings.json`),
-// the manifest and icons, the service worker at the root and the `_headers` file. Cloudflare serves
-// it as static assets beside the Worker that answers `/api/*`. The service worker is built last,
+// The phone brief app: dist/brief holds the page with its words built in, its hashed assets, the
+// manifest and icons, the service worker at the root and the `_headers` file. Cloudflare serves it
+// as static assets beside the Worker that answers `/api/*`. The service worker is built last,
 // because it lists every file the others wrote and a digest of them, so a change to any file
 // replaces it. The page's title is the brand's display name.
 // `--brief-url=<https url>` (this app's own address) and `--app-url=<https url>` (the web app the
@@ -15,8 +15,8 @@ import { parseArgs } from 'node:util'
 import { BRAND } from '@/core/brand'
 
 import { BRIEF_INVITE_ONLY } from './brief-invite'
-import { writeBriefStrings } from './brief-strings'
-import { buildBrowser } from './browser-build'
+import { buildBriefStrings } from './brief-strings'
+import { buildOrThrow, stampBrand } from './browser-build'
 import {
   HEADERS_FILE,
   outDirOf,
@@ -32,7 +32,6 @@ const ROOT = resolve(import.meta.dir, '..')
 const OUT_DIR = outDirOf('brief')
 const PAGE_ENTRY = resolve(ROOT, 'src/web/brief/index.html')
 const SERVICE_WORKER_ENTRY = resolve(ROOT, 'src/web/brief/service-worker.ts')
-const BRAND_PLACEHOLDER = '{{brand}}'
 const APP_ROOT = '/'
 const DIGEST_LENGTH = 16
 
@@ -54,9 +53,13 @@ const appUrl = parseHttpsUrl(
 const noindex = BRIEF_INVITE_ONLY || values.noindex === true
 
 await resetOutput('brief')
-await buildEntry(PAGE_ENTRY, { APP_URL: JSON.stringify(appUrl) })
+await buildOrThrow({
+  entry: PAGE_ENTRY,
+  outdir: OUT_DIR,
+  minify: true,
+  define: { APP_URL: JSON.stringify(appUrl), STRINGS: JSON.stringify(buildBriefStrings()) },
+})
 await stampPage(resolve(OUT_DIR, PAGE_FILE))
-await writeBriefStrings(OUT_DIR)
 await writeInstallFiles(OUT_DIR, {
   id: APP_ROOT,
   startUrl: APP_ROOT,
@@ -66,9 +69,11 @@ await writeInstallFiles(OUT_DIR, {
 
 const precache = await listPrecache()
 
-await buildEntry(SERVICE_WORKER_ENTRY, {
-  PRECACHE_URLS: JSON.stringify(precache.urls),
-  BUILD_ID: JSON.stringify(precache.digest),
+await buildOrThrow({
+  entry: SERVICE_WORKER_ENTRY,
+  outdir: OUT_DIR,
+  minify: true,
+  define: { PRECACHE_URLS: JSON.stringify(precache.urls), BUILD_ID: JSON.stringify(precache.digest) },
 })
 await Bun.write(resolve(OUT_DIR, HEADERS_FILE), buildHeadersFile(pageDirectives(), { noindex }))
 await writeStamp('brief', { url: briefUrl, appUrl, noindex })
@@ -93,26 +98,10 @@ function pageDirectives(): readonly string[] {
   ]
 }
 
-async function buildEntry(entry: string, define: Record<string, string>): Promise<void> {
-  const build = await buildBrowser({ entry, outdir: OUT_DIR, minify: true, define })
-
-  if (!build.success) {
-    for (const log of build.logs) {
-      console.error(String(log))
-    }
-
-    throw new Error(`build failed: ${entry}`)
-  }
-}
-
 async function stampPage(file: string): Promise<void> {
   const html = await Bun.file(file).text()
 
-  if (!html.includes(BRAND_PLACEHOLDER)) {
-    throw new Error(`build-brief: ${file} has no ${BRAND_PLACEHOLDER} to stamp`)
-  }
-
-  await Bun.write(file, stampInstallTags(html.replaceAll(BRAND_PLACEHOLDER, BRAND.display)))
+  await Bun.write(file, stampInstallTags(stampBrand(html, file)))
 }
 
 interface Precache {

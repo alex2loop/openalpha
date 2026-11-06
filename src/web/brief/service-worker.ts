@@ -1,6 +1,5 @@
-// The app's service worker: the shell and `strings.json` are cached when it installs, so the page
-// opens with no network, and the latest brief is asked of the network first with the last copy as
-// the fallback. The DOM library has no service worker scope, so the little this file uses is
+// The app's service worker: the shell is cached when it installs, so the page opens with no
+// network, and the latest brief is asked of the network first with the last copy as the fallback. The DOM library has no service worker scope, so the little this file uses is
 // declared here, with the two constants the build fills in.
 import { CACHE_NAME, LATEST_PATH, LOCALE_PATH, OFFLINE_HEADER } from '@/web/brief/load'
 
@@ -10,6 +9,7 @@ declare const BUILD_ID: string
 // Shorter than the page's own wait, so a slow network answers from the cache before the page gives up.
 const LATEST_TIMEOUT_MS = 6_000
 const PRECACHE_TIMEOUT_MS = 30_000
+const SHELL_TIMEOUT_MS = 10_000
 const NOT_FOUND = 404
 const SHELL_URLS: ReadonlySet<string> = new Set(PRECACHE_URLS)
 const KEPT_URLS: ReadonlySet<string> = new Set([...PRECACHE_URLS, LATEST_PATH, LOCALE_PATH])
@@ -94,7 +94,10 @@ async function prune(): Promise<void> {
 async function answerShell(request: Request): Promise<Response> {
   const cache = await caches.open(CACHE_NAME)
 
-  return (await cache.match(request, LOOKUP)) ?? (await fetch(request))
+  return (
+    (await cache.match(request, LOOKUP)) ??
+    (await fetch(request, { signal: AbortSignal.timeout(SHELL_TIMEOUT_MS) }))
+  )
 }
 
 // The network first, so a new brief shows at once. A brief the network could not give is the last

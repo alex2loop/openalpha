@@ -11,9 +11,8 @@ import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
 import { listBrowserHosts } from '@/app/browser/hosts'
-import { BRAND } from '@/core/brand'
 
-import { buildBrowser } from './browser-build'
+import { buildOrThrow, stampBrand } from './browser-build'
 import { PREVIEW_IMAGE_FILE, PREVIEW_IMAGE_SOURCE, stampLinkPreview } from './link-preview'
 import {
   HEADERS_FILE,
@@ -31,7 +30,6 @@ const PAGE_ENTRY = resolve(ROOT, 'src/web/edition/index.html')
 const WORKER_ENTRY = resolve(ROOT, 'src/app/browser/worker.ts')
 const WASM_SOURCE = resolve(ROOT, 'node_modules/@sqlite.org/sqlite-wasm/dist/sqlite3.wasm')
 const WASM_FILE = 'sqlite3.wasm'
-const BRAND_PLACEHOLDER = '{{brand}}'
 
 const { values } = parseArgs({
   options: { 'app-url': { type: 'string' }, noindex: { type: 'boolean' } },
@@ -44,9 +42,9 @@ const appUrl = parseHttpsUrl(
 const noindex = values.noindex === true
 
 await resetOutput('web')
-await buildEntry(PAGE_ENTRY)
+await buildOrThrow({ entry: PAGE_ENTRY, outdir: OUT_DIR, minify: true })
 await stampPage(resolve(OUT_DIR, PAGE_FILE), appUrl)
-await buildEntry(WORKER_ENTRY)
+await buildOrThrow({ entry: WORKER_ENTRY, outdir: OUT_DIR, minify: true })
 await cp(WASM_SOURCE, resolve(OUT_DIR, WASM_FILE))
 await cp(PREVIEW_IMAGE_SOURCE, resolve(OUT_DIR, PREVIEW_IMAGE_FILE))
 await Bun.write(
@@ -74,26 +72,8 @@ function pageDirectives(hosts: readonly string[]): readonly string[] {
   ]
 }
 
-async function buildEntry(entry: string): Promise<void> {
-  const build = await buildBrowser({ entry, outdir: OUT_DIR, minify: true })
-
-  if (!build.success) {
-    for (const log of build.logs) {
-      console.error(String(log))
-    }
-
-    throw new Error(`build failed: ${entry}`)
-  }
-}
-
 async function stampPage(file: string, pageUrl: string): Promise<void> {
   const html = await Bun.file(file).text()
 
-  if (!html.includes(BRAND_PLACEHOLDER)) {
-    throw new Error(`build-web: ${file} has no ${BRAND_PLACEHOLDER} to stamp`)
-  }
-
-  const branded = html.replaceAll(BRAND_PLACEHOLDER, BRAND.display)
-
-  await Bun.write(file, stampLinkPreview(branded, pageUrl))
+  await Bun.write(file, stampLinkPreview(stampBrand(html, file), pageUrl))
 }

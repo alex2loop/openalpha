@@ -1,12 +1,8 @@
-// The phone app's words: every `ui.brief.*` key of both catalogs, written as one `strings.json` the
-// app fetches, so it never bundles the catalogs. A key missing from either language, or a plural
+// The phone app's words: every `ui.brief.*` key of both catalogs, handed to the page build as one
+// constant, so the app never bundles the catalogs. A key missing from either language, or a plural
 // form (the app counts nothing), fails the build.
-import { resolve } from 'node:path'
-
 import en from '@/i18n/locales/en.json'
 import vi from '@/i18n/locales/vi.json'
-
-export const STRINGS_FILE = 'strings.json'
 
 const KEY_PREFIX = 'brief.'
 const WIRE_PREFIX = 'ui.'
@@ -15,8 +11,8 @@ const PLURAL_SUFFIX = 'One'
 
 type Strings = Record<string, string>
 
-/** Writes `{ vi, en }` into `outDir`: each key under its full catalog name. */
-export async function writeBriefStrings(outDir: string): Promise<void> {
+/** `{ vi, en }`, each key under its full catalog name. */
+export function buildBriefStrings(): Record<'vi' | 'en', Strings> {
   const strings = { vi: briefStringsOf(vi.ui), en: briefStringsOf(en.ui) }
   const problems = [
     ...missingKeys('vi', strings.vi, strings.en),
@@ -28,7 +24,7 @@ export async function writeBriefStrings(outDir: string): Promise<void> {
     throw new Error(`brief-strings: ${problems.join('; ')}`)
   }
 
-  await Bun.write(resolve(outDir, STRINGS_FILE), `${JSON.stringify(strings)}\n`)
+  return strings
 }
 
 function briefStringsOf(ui: Strings): Strings {
