@@ -681,7 +681,7 @@ The screener band is `average daily range x breakout_range` on either side of th
 
 The two are kept apart because only one of them is a problem.
 
-Each market's block prints its prices, breadth, news on the names the brief covers and, where the market has them, derivatives, buyers crossing the spread, sentiment and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. The rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
+Each market's block prints its prices and breadth, support and resistance, sector rotation, the names the brief covers, the market's own headlines and, where the market has them, derivatives, buyers crossing the spread, sentiment, the movers and leaders, fx, the futures basis and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. The rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
 
 With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.
@@ -712,9 +712,9 @@ A brief reads in this order:
 | Story, above every block | `thesis-review` `story` |
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
 | Macro backdrop | `regime-shift` `macro` `deposit-rate` `macro-headlines` `economy-headlines` |
-| Per market | `reading` `market-prices` `market-quotes` `market-board` `tape` `breadth` `turnover` `range` `market-cap` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `taker-flow` `etf-flows` `positioning` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` |
+| Per market | `market-prices` `breadth` `range` `sector-rotation` `derivatives` `taker-flow` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `recent` `headlines` |
+| Per market, `/overview <market>` only | `reading` `market-quotes` `market-board` `tape` `turnover` `market-cap` `foreign-desk-flow` `proprietary-flow` `etf-flows` `positioning` `disclosures` `index-review` `events` |
 | Watchlist | `watchlist-leading` `watchlist-dropped` `screen-delta` |
-| News | `disclosures` `index-review` `events` `headlines` |
 | Actions | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
 The two level sections, `fired-alerts` and `position-exits`, print a VN stock's levels in board points, as `/portfolio` and `/alert` do; the scale is stated once at the foot of the brief.
@@ -860,7 +860,7 @@ name stops the daemon at start and lists the valid ones. Nothing else the daemon
 
 Next to your own morning brief, the daemon can publish a second one that anyone you share it with can read on a phone. It is a plain read of the market with nothing of yours in it, built from market data alone, in the same wording and layout as the market part of your own brief. It stays off until you turn it on.
 
-**What it carries.** Every market-wide section of the brief the dashboard shows, in Vietnamese and English, for VN stocks, VN gold, world gold and crypto. US stocks are not in it. That is the tape, movers and leaders, events and disclosures, the macro read, the regime shift, sector rotation, support and resistance, the futures basis, the market story with its look back, market, macro and economy headlines, and which names entered or left the screen board. Every section reads as it does on the dashboard.
+**What it carries.** Every market-wide section of the brief the dashboard shows, in Vietnamese and English, for VN stocks, VN gold, world gold and crypto. US stocks are not in it. That is prices and breadth, movers and leaders, derivatives, sentiment and fx where a market has them, the macro read, the regime shift, sector rotation, support and resistance, the futures basis, the market story with its look back, and market, macro and economy headlines. Every section reads as it does on the dashboard.
 
 **What it never carries.** Nothing of your book. Not a holding, a watchlist name, an amount, a plan, a suggestion, an alert or a cost. It never states an entry, stop, target, size or conviction for a named instrument, and it never calls one buy, sell or hold. It makes no model call, so no line is written by an AI and it costs nothing to run: every line is the daemon's own wording, and a disclaimer closes every brief ("This brief describes the market. It is not investment advice.").
 
