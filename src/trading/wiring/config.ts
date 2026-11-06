@@ -124,6 +124,7 @@ function merge(patch: TradingConfigPatch, base: TradingConfig): TradingConfig {
       debateMode: patch.suggestions?.debate_mode ?? base.suggestions.debateMode,
     },
     briefs: mergeBriefs(patch.briefs, base.briefs),
+    publicBrief: mergePublicBrief(patch.public_brief, base.publicBrief),
     intraday: mergeIntraday(patch.intraday, base.intraday),
     operations: mergeOperations(patch, base.operations),
     alerts: {
@@ -150,6 +151,23 @@ function mergeBriefs(patch: TradingConfigPatch['briefs'], base: BriefPolicy): Br
   }
 
   return { ...base, sendTime: patch.send_time ?? base.sendTime }
+}
+
+function mergePublicBrief(
+  patch: TradingConfigPatch['public_brief'],
+  base: TradingConfig['publicBrief']
+): TradingConfig['publicBrief'] {
+  if (!patch) {
+    return base
+  }
+
+  return {
+    enabled: patch.enabled ?? base.enabled,
+    publishTime: patch.publish_time ?? base.publishTime,
+    analysis: patch.analysis ?? base.analysis,
+    headlines: patch.headlines ?? base.headlines,
+    topScreen: patch.top_screen ?? base.topScreen,
+  }
 }
 
 function mergeIntraday(

@@ -712,6 +712,7 @@ Trần theo từng agent (`tools`, `delegates`, `hosts`, `skills`) nằm trong `
 | `OPENALPHA_LOG_LEVEL` | Đặt mức log trừ khi có `--log-level` (xem [`[log]`](#log)). Một trong `debug`, `info`, `warn`, `error`, `fatal`. |
 | Biến nào được nêu tên trong cấu hình | Đọc qua `api_key_env`, `token_env` của kênh, `token_env` của API, hoặc `api_key_env` của web-search. |
 | Biến mà `storage.url_env` nêu tên | Cung cấp URL kết nối PostgreSQL lúc khởi động. |
+| `PUBLIC_BRIEF_TOKEN` | Token đăng bản tin công khai. Chỉ đọc cho `[trading.public_brief]`; tên này kèm tiền tố `OPENALPHA_` cũng dùng được. |
 
 Mỗi mô hình đọc đúng biến mà `api_key_env` nêu tên, không có danh sách dự phòng. Các lựa chọn thường
 gặp: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GOOGLE_API_KEY`.
@@ -786,6 +787,13 @@ reward_risk = 3                # mục tiêu bằng bao nhiêu lần khoảng r�
 
 [trading.briefs]
 send_time = "08:15"            # mặc định cho một bản gửi chưa tự đặt giờ trong chat
+
+[trading.public_brief]
+enabled = false                # đăng một bản tin chỉ có thị trường vào mỗi sáng giao dịch ở Việt Nam
+publish_time = "08:30"         # HH:MM, giờ Việt Nam; sớm hơn 09:00 mở cửa
+analysis = true                # chế độ vĩ mô và điểm, đổi chế độ, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai
+headlines = true               # tin thị trường, vĩ mô và kinh tế
+top_screen = 0                 # 0 = tắt; tối đa 10 mã mỗi thị trường từ bảng lọc, xếp theo điểm tổng hợp
 
 [trading.intraday]
 send_times = []                # các mốc HH:MM theo múi giờ thị trường; rỗng = tắt (mặc định)
@@ -940,6 +948,15 @@ lịch của khu vực `[locale] region`, không bao giờ từ `[locale] timezo
 ở London không nhận bản tin vào 15:15 giờ Hà Nội.
 Bản tin là bức tranh trước giờ mở cửa, nên `send_time` phải sớm hơn giờ mở cửa của thị trường chính.
 Đặt muộn hơn thì dịch vụ nền từ chối khởi động, thay vì lặng lẽ bỏ bản tin mỗi sáng.
+
+`[trading.public_brief]` đăng một bản tin thứ hai lên trang công khai, dựng chỉ từ dữ liệu thị trường, vào
+mỗi sáng giao dịch ở Việt Nam. Không có gì trong sổ của bạn lọt vào đó (không mã đang nắm, không mã theo
+dõi, không kế hoạch hay khối lượng) và nó không gọi mô hình. Mặc định tắt cho tới khi `enabled = true`, và
+cần token đăng trong biến môi trường `PUBLIC_BRIEF_TOKEN`, không bao giờ để trong `config.toml`: đặt bằng
+`openalpha key set PUBLIC_BRIEF_TOKEN`. Bật mà chưa có token thì dịch vụ nền vẫn chạy, báo một lần và không
+đăng gì. `publish_time` là giờ Việt Nam và phải sớm hơn giờ mở cửa, nếu không dịch vụ nền từ chối khởi
+động. `analysis` và `headlines` bỏ nhóm của mình đi khi đặt `false`; `top_screen` thêm số mã đó có điểm cao
+nhất mỗi thị trường từ bảng lọc (số nguyên, 0 đến 10; 0 là bỏ danh sách).
 
 Danh sách theo dõi trong hồ sơ là danh sách công cụ duy nhất được cấu hình. Bảng giá và các mục gợi ý
 trong bản tin đều suy ra từ nó và từ phần đang nắm trong sổ.

@@ -9,6 +9,11 @@ import type {
 import type { BriefSectionKind } from '@/trading/kernel/operator/brief-section'
 import type { SourceId } from '@/trading/kernel/source/source-id'
 
+/** Most names per market the public brief's screen list may carry. */
+export const PUBLIC_SCREEN_MAX = 10
+/** The variable holding the token the public brief is published with. */
+export const PUBLIC_BRIEF_TOKEN_VARIABLE = 'PUBLIC_BRIEF_TOKEN'
+
 export const DEBATE_MODES = Object.freeze(['full', 'lean'] as const)
 export type DebateMode = (typeof DEBATE_MODES)[number]
 
@@ -305,6 +310,18 @@ export interface TradingConfig {
   readonly suggestions: SuggestionPolicy
   readonly operations: OperationsPolicy
   readonly briefs: BriefPolicy
+  /** The market brief published for readers who hold no book here. The token it is posted with
+   *  is never part of the config: it is read from the environment at composition. */
+  readonly publicBrief: {
+    readonly enabled: boolean
+    /** Local `HH:mm` in Vietnam, before the VN open. */
+    readonly publishTime: string
+    /** Macro regime and score, regime shift, sector rotation, support and resistance, basis. */
+    readonly analysis: boolean
+    readonly headlines: boolean
+    /** Names per market from the screen board; 0 is off, at most `PUBLIC_SCREEN_MAX`. */
+    readonly topScreen: number
+  }
   readonly intraday: IntradayPolicy
   readonly alerts: AlertPolicy
   readonly typedPrices: TypedPricePolicy

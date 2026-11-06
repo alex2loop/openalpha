@@ -4,10 +4,15 @@ import { missingKeyErrors } from '@/ai/api'
 import { BRAND } from '@/core/brand'
 import { type ResolvedConfig, toMissingSearchKeyError } from '@/core/config/resolve'
 import { missingCredentials } from '@/core/security/credentials'
-import { resolveTradingConfig, unavailableSources } from '@/trading/api'
+import {
+  PUBLIC_BRIEF_TOKEN_VARIABLE,
+  resolveTradingConfig,
+  unavailableSources,
+} from '@/trading/api'
 
 const API_TOKEN_SUBJECT = 'api'
 const MCP_SUBJECT = 'mcp'
+const PUBLIC_BRIEF_SUBJECT = 'public-brief'
 // With nothing set, every source that takes a key reads as unavailable: each one and its variable.
 const NO_ENV: Readonly<Record<string, string | undefined>> = Object.freeze({})
 
@@ -92,8 +97,8 @@ function toKeylessVenues(
 }
 
 /** Every variable the config reads a key from, set or not, by what it opens: the model chain and
- *  its tiers, web search, venue credentials, source keys, the API token, MCP placeholders and
- *  channel tokens. A name may appear in more than one group. */
+ *  its tiers, web search, venue credentials, source keys, the API token and the public brief's
+ *  publish token, MCP placeholders and channel tokens. A name may appear in more than one group. */
 export function keyEnvGroups(
   config: ResolvedConfig
 ): Readonly<Record<KeyEnvGroup, readonly KeyEnvName[]>> {
@@ -113,7 +118,12 @@ export function keyEnvGroups(
     source: unavailableSources({ env: NO_ENV, credentialEnv: trading.sourceCredentialEnv }).map(
       ({ source, variable }) => ({ name: variable, subject: source })
     ),
-    token: named(config.api.tokenEnv, API_TOKEN_SUBJECT),
+    token: [
+      ...named(config.api.tokenEnv, API_TOKEN_SUBJECT),
+      ...(trading.publicBrief.enabled
+        ? named(PUBLIC_BRIEF_TOKEN_VARIABLE, PUBLIC_BRIEF_SUBJECT)
+        : []),
+    ],
     mcp: config.mcp.envNames.map((name) => ({ name, subject: MCP_SUBJECT })),
     channel: Object.entries(config.channels).flatMap(([channel, settings]) =>
       named(channelTokenEnv(settings), channel)
