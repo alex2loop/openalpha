@@ -1,5 +1,5 @@
 import { grantConsent, type KeySlot } from '@/web/edition/keys-store'
-import { providerInfo } from '@/web/edition/providers'
+import { type ProviderInfo, providerInfo } from '@/web/edition/providers'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { openModal } from '@/web/ui/kit/modal'
@@ -18,25 +18,7 @@ export function openConsentDialog(
   const leave = () => (onBack === undefined ? handle.close() : onBack())
   const handle = openModal({
     title: tr('ui.office.edition.consent.title', params),
-    body: (
-      <>
-        <p>
-          {tr(
-            slot === 'ai'
-              ? 'ui.office.edition.consent.whatAi'
-              : 'ui.office.edition.consent.whatSearch',
-            params
-          )}
-        </p>
-        <p class="meta">{tr('ui.office.edition.consent.where', params)}</p>
-        <p class="meta">
-          <a href={info.policyUrl} target="_blank" rel="noopener noreferrer">
-            {tr('ui.office.edition.consent.policy', params)}
-          </a>
-        </p>
-        <p class="meta">{tr('ui.office.edition.consent.withdraw')}</p>
-      </>
-    ),
+    body: <ConsentBody slot={slot} info={info} params={params} />,
     footer: (
       <>
         <Button
@@ -53,4 +35,37 @@ export function openConsentDialog(
     ),
     ...(onBack === undefined ? {} : { onDismiss: leave }),
   })
+}
+
+function ConsentBody({
+  slot,
+  info,
+  params,
+}: {
+  readonly slot: KeySlot
+  readonly info: ProviderInfo
+  readonly params: Readonly<Record<string, string>>
+}) {
+  return (
+    <>
+      <p>
+        {tr(
+          slot === 'ai'
+            ? 'ui.office.edition.consent.whatAi'
+            : 'ui.office.edition.consent.whatSearch',
+          params
+        )}
+      </p>
+      <p class="meta">{tr('ui.office.edition.consent.where', params)}</p>
+      {info.isRouter === true && (
+        <p class="meta">{tr('ui.office.edition.consent.forwards', params)}</p>
+      )}
+      <p class="meta">
+        <a href={info.policyUrl} target="_blank" rel="noopener noreferrer">
+          {tr('ui.office.edition.consent.policy', params)}
+        </a>
+      </p>
+      <p class="meta">{tr('ui.office.edition.consent.withdraw')}</p>
+    </>
+  )
 }

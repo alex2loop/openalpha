@@ -2,12 +2,14 @@ import type { MessageKey } from '@/i18n'
 import type { KeySlot, SLOT_PROVIDERS } from '@/web/edition/keys-store'
 import { tr } from '@/web/text/tr'
 
-interface ProviderInfo {
+export interface ProviderInfo {
   readonly name: string
   /** Where the visitor makes a key of their own. */
   readonly keyUrl: string
   /** The provider's own privacy policy, which the consent notice points to. */
   readonly policyUrl: string
+  /** Passes a request on to the model's host, which the provider picks, instead of answering it. */
+  readonly isRouter?: boolean
 }
 
 interface ProviderEntry extends Omit<ProviderInfo, 'name'> {
@@ -32,6 +34,7 @@ const PROVIDERS = Object.freeze({
       name: 'ui.office.edition.providerName.openrouter',
       keyUrl: 'https://openrouter.ai/keys',
       policyUrl: 'https://openrouter.ai/privacy',
+      isRouter: true,
     },
     openai: {
       name: 'ui.office.edition.providerName.openai',

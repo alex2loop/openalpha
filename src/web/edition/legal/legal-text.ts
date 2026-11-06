@@ -31,6 +31,7 @@ export function toLegalParams(): Readonly<Record<string, string>> {
     repoUrl: REPO_URL,
     cloudflarePolicyUrl: CLOUDFLARE_POLICY_URL,
     aiPolicies: toPolicyLinks('ai'),
+    routerProviders: toRouterNames(),
     searchPolicies: toPolicyLinks('search'),
     sceneNote: tr('ui.office.scene.aiNote'),
   }
@@ -45,5 +46,15 @@ function toPolicyLinks(slot: KeySlot): string {
 
       return `[${name}](${policyUrl})`
     })
+    .join(', ')
+}
+
+// The AI providers that pass a request on to another host, read from the table the consent notice
+// reads, so a router added there is named here.
+function toRouterNames(): string {
+  return SLOT_PROVIDERS.ai
+    .map((provider) => providerInfo('ai', provider))
+    .filter((info) => info.isRouter === true)
+    .map((info) => info.name)
     .join(', ')
 }
