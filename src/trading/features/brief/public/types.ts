@@ -1,6 +1,5 @@
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
-import type { PublicToggles } from '@/trading/features/brief/public/scope'
 import type { BriefText } from '@/trading/features/brief/surface'
 import type { BriefServices } from '@/trading/features/brief/types'
 import type { ScreenRowText } from '@/trading/features/market-data/types'
@@ -11,6 +10,11 @@ import type {
 } from '@/trading/kernel/market/refresh'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { Market } from '@/trading/markets/types'
+
+export interface PublicToggles {
+  readonly analysis: boolean
+  readonly headlines: boolean
+}
 
 /** One market's top names by composite score, read from no book. A line is written once per
  *  language when the list is built, so a stored list renders without the market data feature. */

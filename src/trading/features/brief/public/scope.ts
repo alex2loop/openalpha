@@ -1,4 +1,9 @@
-import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type { PublicBriefRow, PublicToggles } from '@/trading/features/brief/public/types'
+import type {
+  BriefSectionKind,
+  BriefSectionResult,
+  BriefSectionRow,
+} from '@/trading/kernel/operator/brief-section'
 import type { StoryCode } from '@/trading/kernel/operator/brief-story'
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-scope'
@@ -36,13 +41,14 @@ export const PUBLIC_CORE_SECTIONS = Object.freeze([
  *  has no date of its own. */
 export const PUBLIC_SESSION_KIND = 'market-prices' as const satisfies BriefSectionKind
 
+/** An uppercase symbol inside a headline: capitals and digits, joined by `.`, `_` or `-`, with no
+ *  letter or digit beside it. */
+const HEADLINE_TOKEN_RE = /(?<![A-Za-z0-9])[A-Z0-9]+(?:[._-][A-Z0-9]+)*(?![A-Za-z0-9])/g
+const HEADLINE_JOINER_RE = /[._-]/
+const LETTER_RE = /[A-Z]/
+
 /** The sections whose rows carry a story's code, which a later brief reviews. */
 const CARRIED_STORY_KINDS: ReadonlySet<BriefSectionKind> = new Set(['story', 'thesis-review'])
-
-export interface PublicToggles {
-  readonly analysis: boolean
-  readonly headlines: boolean
-}
 
 /** Every `market` kind the toggles leave on. The one classification read is `BRIEF_SECTION_SCOPE`:
  *  a kind it scopes `book` is never published, whatever a group says. */
@@ -79,4 +85,42 @@ export function carriedSections(
 
     return ![...omitted].some((code) => code === section.rows[0]?.story)
   })
+}
+
+/** The tickers this brief may name: the `ticker` of every row of a `market` section, the uppercase
+ *  symbols of a headline row's own title, and the names on its screen lists. Read from structured
+ *  rows alone, never from rendered text, and from `market` kinds alone: a book kind adds nothing. */
+export function exemptTickers(row: PublicBriefRow): ReadonlySet<string> {
+  return new Set([
+    ...(row.sections ?? []).flatMap(sectionTickers),
+    ...(row.screens ?? []).flatMap((screen) =>
+      Object.values(screen.rows).flatMap((rows) => rows.map((screenRow) => screenRow.ticker))
+    ),
+  ])
+}
+
+function sectionTickers(section: BriefSectionResult): readonly string[] {
+  if (section.status !== 'ready' || BRIEF_SECTION_SCOPE[section.kind] !== 'market') {
+    return []
+  }
+
+  const isHeadline = PUBLIC_HEADLINE_KINDS.some((kind) => kind === section.kind)
+
+  return section.rows.flatMap((row) => rowTickers(row, isHeadline))
+}
+
+function rowTickers(row: BriefSectionRow, isHeadline: boolean): readonly string[] {
+  const named = typeof row.ticker === 'string' ? [row.ticker] : []
+
+  return isHeadline && typeof row.title === 'string'
+    ? [...named, ...headlineSymbols(row.title)]
+    : named
+}
+
+/** Each symbol of a title and its parts, so the base of `BTC-USD` is named too. A part with no
+ *  letter is a number, not a name. */
+function headlineSymbols(title: string): readonly string[] {
+  return (title.match(HEADLINE_TOKEN_RE) ?? [])
+    .flatMap((token) => [token, ...token.split(HEADLINE_JOINER_RE)])
+    .filter((part) => LETTER_RE.test(part))
 }

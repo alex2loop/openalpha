@@ -12,15 +12,18 @@
 // live directory) with the copy's own config: it refreshes the public markets as the daemon would,
 // saves the day's row in the copy and prints each section with the sources it cites. The config is
 // read from the copy unless --config names one. No model key is passed, so no model can be called.
+// The guard then judges the render against the copy's book and exits 3 when it refuses.
 // --out writes the rendered brief as JSON. --now builds as of that instant, so two consecutive days
 // run one after the other show what changed from the first to the second.
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 
+import type { Logger } from '@/core/logging/logger'
 import type { PublicScreen } from '@/trading/features/brief/public/types'
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import { boot } from '@/app/boot'
+import { createPublicBriefGuard } from '@/trading/api'
 import { PUBLIC_HOME_MARKET } from '@/trading/features/brief/public/reads'
 import {
   PUBLIC_ANALYSIS_KINDS,
@@ -42,6 +45,7 @@ const ANALYSIS_OFF = Object.freeze({ analysis: false, headlines: true })
 const DRY_RUN_TIMEOUT_MS = 300_000
 const CONFIG_FILE = 'config.toml'
 const EXIT_NO_BRIEF = 2
+const EXIT_REFUSED = 3
 
 const { values } = parseArgs({
   options: {
@@ -110,13 +114,19 @@ async function dryRun(dataDir: string): Promise<number> {
   })
 
   try {
-    return await buildAndPrint(booted.app.resolve('tradingServices'), signal)
+    return await buildAndPrint(
+      { services: booted.app.resolve('tradingServices'), logger: booted.app.resolve('logger') },
+      signal
+    )
   } finally {
     await booted.dispose()
   }
 }
 
-async function buildAndPrint(services: TradingServices, signal: AbortSignal): Promise<number> {
+async function buildAndPrint(
+  { services, logger }: { readonly services: TradingServices; readonly logger: Logger },
+  signal: AbortSignal
+): Promise<number> {
   const now = values.now === undefined ? Date.now() : Date.parse(values.now)
   const day = Number.isNaN(now)
     ? undefined
@@ -146,6 +156,16 @@ async function buildAndPrint(services: TradingServices, signal: AbortSignal): Pr
   }
 
   console.log(`${render.day}: ${render.headline.vi}`)
+
+  const verdict = await createPublicBriefGuard(services, logger).judge(row, render, signal)
+
+  if (verdict.kind === 'refuse') {
+    console.error(`guard refused: ${verdict.leaked.join(', ') || 'book unread'}`)
+
+    return EXIT_REFUSED
+  }
+
+  console.log('guard: publish')
 
   return 0
 }
