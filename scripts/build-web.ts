@@ -23,7 +23,7 @@ import {
   resetOutput,
   writeStamp,
 } from './web-files'
-import { buildHeadersFile, LOCKED_DIRECTIVES } from './web-headers'
+import { ANALYTICS_HOSTS, buildHeadersFile, LOCKED_DIRECTIVES } from './web-headers'
 
 const ROOT = resolve(import.meta.dir, '..')
 const OUT_DIR = outDirOf('web')
@@ -58,15 +58,16 @@ await writeStamp('web', { url: appUrl, appUrl, noindex })
 console.log(`build-web: wrote ${OUT_DIR}`)
 
 // Style stays same-origin only: the page sets styles through the style object, which the policy
-// allows. `data:` and `blob:` images are the inline icons and the tab icon the page draws.
+// allows. `data:` and `blob:` images are the inline icons and the tab icon the page draws. The
+// analytics beacon is a parser-inserted script, which Trusted Types leaves alone.
 function pageDirectives(hosts: readonly string[]): readonly string[] {
   return [
     "default-src 'self'",
-    "script-src 'self' 'wasm-unsafe-eval'",
+    `script-src 'self' 'wasm-unsafe-eval' ${ANALYTICS_HOSTS.script}`,
     "require-trusted-types-for 'script'",
     'trusted-types default',
     "worker-src 'self'",
-    `connect-src 'self' ${hosts.map((host) => `https://${host}`).join(' ')}`,
+    `connect-src 'self' ${ANALYTICS_HOSTS.connect} ${hosts.map((host) => `https://${host}`).join(' ')}`,
     "img-src 'self' data: blob:",
     "style-src 'self'",
     ...LOCKED_DIRECTIVES,

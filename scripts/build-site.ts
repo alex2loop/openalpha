@@ -11,7 +11,7 @@ import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
 import { stampLinkPreview } from './link-preview'
-import { buildHeadersFile, LOCKED_DIRECTIVES } from './web-headers'
+import { ANALYTICS_HOSTS, buildHeadersFile, LOCKED_DIRECTIVES } from './web-headers'
 import {
   HEADERS_FILE,
   outDirOf,
@@ -100,10 +100,10 @@ function siteDirectives(html: string): readonly string[] {
 
   return [
     "default-src 'self'",
-    `script-src 'self' ${scripts.join(' ')}`,
+    `script-src 'self' ${ANALYTICS_HOSTS.script} ${scripts.join(' ')}`,
     `style-src 'self' ${styles.join(' ')}`,
     "style-src-attr 'unsafe-inline'",
-    "connect-src 'self'",
+    `connect-src 'self' ${ANALYTICS_HOSTS.connect}`,
     "img-src 'self' data:",
     ...LOCKED_DIRECTIVES,
   ]
