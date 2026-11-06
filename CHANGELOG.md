@@ -49,7 +49,10 @@ futures contract. On the web you can also chat with the assistant, which looks t
 - `/research` drops sources dated in the future, stays on markets and investing on the web, and hands the agent a shorter list of gaps.
 - Chat history keeps what you typed for a command handed off to the assistant, and reads the same after a reload.
 - Office bubbles show the step line in your language, never the model's raw reasoning.
-- Esc, a click outside or the close button on a Settings question return to Settings with what you typed kept.
+- Esc, a click outside or the close button on a dialog opened from Settings return to Settings, with what you typed kept.
+- A bare ticker is no longer looked up in a market you switched off, so `BTC` stays the coin instead of booking as a US fund; `equity-us:BTC` still reaches the fund.
+- `/price` on a NYSE name after US hours shows the price when nasdaq leaves the day's change blank.
+- A refused `/suggest` no longer offers to run again or set an alert on the name it refused.
 
 ## [1.3.0] - 2026-11-03
 
