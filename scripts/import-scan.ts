@@ -13,7 +13,7 @@ export interface FoundImport {
   isTypeOnly: boolean
   isDynamic: boolean
   statementKind: 'import' | 'export'
-  clause?: string
+  clause?: string | undefined
 }
 
 export const lineAt = (source: string, index: number): number =>
