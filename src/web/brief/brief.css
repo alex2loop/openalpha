@@ -1,0 +1,113 @@
+@import "../ui/kit/tokens.css";
+@import "../ui/kit/base.css";
+
+/* The phone page scrolls as a document, on the kit's plain canvas: the office's wallpaper and its
+   fixed-height shell stay with the office. */
+html,
+body {
+  height: auto;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--canvas);
+  overflow: auto;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  height: auto;
+}
+
+/* One column, as wide as a phone reads comfortably; the notch, the home bar and the rounded
+   corners keep their own room. */
+.app {
+  display: grid;
+  gap: var(--s4);
+  box-sizing: border-box;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: max(var(--s3), env(safe-area-inset-top)) max(var(--s3), env(safe-area-inset-right))
+    max(var(--s4), env(safe-area-inset-bottom)) max(var(--s3), env(safe-area-inset-left));
+  font: var(--typeReading);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.app-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.app-title {
+  flex: 1 1 12rem;
+  color: var(--title);
+  font: var(--typeTitle);
+  font-size: var(--sizeHero);
+  line-height: 1.3;
+}
+
+.app-share {
+  display: grid;
+  justify-items: end;
+  gap: var(--s1);
+}
+
+/* The sub-heads and leads of the brief take their sizes here: the office's own rules for them are
+   scoped to its reader. */
+.app-main .sub-head {
+  font: var(--typeTitle);
+}
+
+.app-main .lead {
+  font: var(--typeReading);
+  font-weight: var(--weightMedium);
+}
+
+.app-main > .lead:first-child {
+  font-size: var(--sizeTitle);
+}
+
+.app-main .sub-head:focus {
+  outline: none;
+}
+
+.screen-list {
+  padding: var(--s3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.app-message {
+  color: var(--ink2);
+}
+
+.app-notice {
+  padding: var(--s2);
+  border-radius: 8px;
+  background: var(--cautionBg);
+  color: var(--caution);
+  font-size: var(--sizeBody);
+}
+
+.app-foot {
+  padding-top: var(--s3);
+  border-top: 1px solid var(--border);
+  justify-items: start;
+}
+
+.app-foot .meta {
+  max-width: 60ch;
+}
+
+.app-foot > .seg {
+  margin: 0;
+}
+
+.app-message .btn {
+  justify-self: start;
+}

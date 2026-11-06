@@ -48,6 +48,9 @@ const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([
 const BROWSER_ENTRY = 'src/app/browser/worker.ts'
 // The web edition's page, built beside the worker: its `<script src>` reaches the page's entry.
 const WEB_EDITION_ENTRY = 'src/web/edition/index.html'
+// The phone brief app's page, and the service worker the same build writes beside it.
+const BRIEF_APP_ENTRY = 'src/web/brief/index.html'
+const BRIEF_SERVICE_WORKER_ENTRY = 'src/web/brief/service-worker.ts'
 // Read by the static build for the page's content security policy, imported by no daemon entry.
 const WEB_HOSTS_ENTRY = 'src/app/browser/hosts.ts'
 // The brief Worker, bundled by wrangler and imported by nothing: it reads the public brief's wire.
@@ -166,6 +169,11 @@ function collectEntries(manifest: Record<string, unknown>): readonly Entry[] {
 
   found.push({ file: BROWSER_ENTRY, why: 'the browser build (scripts/browser-build.ts)' })
   found.push({ file: WEB_EDITION_ENTRY, why: 'the web edition page (scripts/browser-build.ts)' })
+  found.push({ file: BRIEF_APP_ENTRY, why: 'the brief app page (scripts/build-brief.ts)' })
+  found.push({
+    file: BRIEF_SERVICE_WORKER_ENTRY,
+    why: 'the brief app service worker (scripts/build-brief.ts)',
+  })
   found.push({ file: WEB_HOSTS_ENTRY, why: 'the web build policy (scripts/build-web.ts)' })
   found.push({ file: BRIEF_WORKER_ENTRY, why: 'the brief Worker (deploy/brief/wrangler.toml)' })
 

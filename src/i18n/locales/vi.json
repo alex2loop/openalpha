@@ -2132,7 +2132,22 @@
     "office.trade.fxPreviewFailed": "Mình chưa đọc được tỷ giá ngày đó nên chưa ghi được.",
     "office.trade.depositFirst": "Nạp {currency} vào {venue}",
     "office.trade.badRate": "Tỷ giá bạn đã trả phải là số lớn hơn 0.",
-    "office.trade.badDelta": "Số cổ phiếu phải là số nguyên khác 0."
+    "office.trade.badDelta": "Số cổ phiếu phải là số nguyên khác 0.",
+    "brief.heading.today": "Bản tin hôm nay",
+    "brief.heading.latest": "Bản tin gần nhất · {day}",
+    "brief.cautions": "Lưu ý",
+    "brief.loading": "Đang mở bản tin...",
+    "brief.empty": "Bản tin đầu tiên sẽ có vào sáng ngày giao dịch tới.",
+    "brief.offline": "Mình chưa lấy được bản mới hơn, bạn kiểm tra kết nối nhé.",
+    "brief.failed": "Mình chưa mở được bản tin, bạn thử lại nhé.",
+    "brief.retry": "Thử lại",
+    "brief.share": "Chia sẻ bản tin",
+    "brief.shareFailed": "Mình chưa tạo được ảnh chia sẻ, bạn thử lại nhé.",
+    "brief.languageLabel": "Ngôn ngữ",
+    "brief.language.vi": "Tiếng Việt",
+    "brief.language.en": "English",
+    "brief.disclaimer": "Bản tin mô tả thị trường, không phải khuyến nghị đầu tư.",
+    "brief.openApp": "Mở bản web"
   },
   "footer": {
     "cost": "{cost}",
