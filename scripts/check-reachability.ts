@@ -36,9 +36,13 @@ const CANDIDATE_SUFFIXES: readonly string[] = [
   '/api.ts',
 ]
 
-// A file outside the import graph on purpose, with the reason it stays. `path`. Empty today; the
-// gate's machinery for a file that must stay.
-const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([])
+// A file outside the import graph on purpose, with the reason it stays. `path`.
+// The public brief's section scope waits for the build that reads it; `scripts/public-brief-dry-run.ts`
+// reads it now, and a script is no entry point. Both entries leave with that build.
+const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([
+  'src/trading/features/brief/public/scope.ts',
+  'src/trading/kernel/operator/brief-section-scope.ts',
+])
 
 // Bundled by the browser build, imported by no daemon entry: its imports are as live as a bin's.
 const BROWSER_ENTRY = 'src/app/browser/worker.ts'
