@@ -6,6 +6,8 @@
 //
 // --list-kinds prints every brief section kind with its book/market scope, the toggle group that
 // can pull it, and whether it publishes with every toggle on.
+import { parseArgs } from 'node:util'
+
 import {
   PUBLIC_ANALYSIS_KINDS,
   PUBLIC_ANALYSIS_STORIES,
@@ -17,11 +19,14 @@ import type { BriefSectionKind } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-scope'
 
+const COLUMN_GAP = '  '
 const USAGE = 'usage: bun scripts/public-brief-dry-run.ts --list-kinds'
 const ALL_ON = Object.freeze({ analysis: true, headlines: true })
 const ANALYSIS_OFF = Object.freeze({ analysis: false, headlines: true })
 
-if (process.argv.includes('--list-kinds')) {
+const { values } = parseArgs({ options: { 'list-kinds': { type: 'boolean' } } })
+
+if (values['list-kinds'] === true) {
   listKinds()
 } else {
   console.error(USAGE)
@@ -30,14 +35,18 @@ if (process.argv.includes('--list-kinds')) {
 
 function listKinds(): void {
   const published = publicSectionKinds(ALL_ON)
-  const width = Math.max(...BRIEF_SECTION_ORDER.map((kind) => kind.length))
+  const rows = BRIEF_SECTION_ORDER.map((kind) => [
+    kind,
+    BRIEF_SECTION_SCOPE[kind],
+    groupOf(kind),
+    published.has(kind) ? 'published' : '-',
+  ])
+  const widths = [0, 1, 2].map((column) => Math.max(...rows.map((row) => row[column]?.length ?? 0)))
 
-  for (const kind of BRIEF_SECTION_ORDER) {
-    const scope = BRIEF_SECTION_SCOPE[kind]
-    const group = groupOf(kind)
-    const state = published.has(kind) ? 'published' : '-'
-
-    console.log(`${kind.padEnd(width)}  ${scope.padEnd(6)}  ${group.padEnd(9)}  ${state}`)
+  for (const row of rows) {
+    console.log(
+      row.map((cell, column) => (column === 3 ? cell : cell.padEnd(widths[column] ?? 0))).join(COLUMN_GAP)
+    )
   }
 
   console.log(`analysis stories: ${PUBLIC_ANALYSIS_STORIES.join(', ')}`)
