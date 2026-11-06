@@ -9,6 +9,7 @@
     "ignoreUnknown": false,
     "includes": [
       "src/**",
+      "deploy/brief/src/**",
       "package.json",
       "tsconfig.json",
       "tsconfig.base.json",
@@ -137,6 +138,16 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["deploy/brief/src/worker.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["**/*.d.ts"],
       "linter": {

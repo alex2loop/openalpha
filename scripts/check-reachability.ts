@@ -50,6 +50,8 @@ const BROWSER_ENTRY = 'src/app/browser/worker.ts'
 const WEB_EDITION_ENTRY = 'src/web/edition/index.html'
 // Read by the static build for the page's content security policy, imported by no daemon entry.
 const WEB_HOSTS_ENTRY = 'src/app/browser/hosts.ts'
+// The brief Worker, bundled by wrangler and imported by nothing: it reads the public brief's wire.
+const BRIEF_WORKER_ENTRY = 'deploy/brief/src/worker.ts'
 
 const FROM_RE = /\bfrom\s*['"]([^'"]+)['"]/g
 const DYNAMIC_RE = /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g
@@ -165,6 +167,7 @@ function collectEntries(manifest: Record<string, unknown>): readonly Entry[] {
   found.push({ file: BROWSER_ENTRY, why: 'the browser build (scripts/browser-build.ts)' })
   found.push({ file: WEB_EDITION_ENTRY, why: 'the web edition page (scripts/browser-build.ts)' })
   found.push({ file: WEB_HOSTS_ENTRY, why: 'the web build policy (scripts/build-web.ts)' })
+  found.push({ file: BRIEF_WORKER_ENTRY, why: 'the brief Worker (deploy/brief/wrangler.toml)' })
 
   return found
 }

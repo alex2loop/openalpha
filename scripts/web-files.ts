@@ -11,7 +11,7 @@ const ROOT = resolve(import.meta.dir, '..')
 const DIST_DIR = resolve(ROOT, 'dist')
 const HTTPS_PROTOCOL = 'https:'
 
-export type SiteKind = 'web' | 'site'
+export type SiteKind = 'web' | 'site' | 'brief'
 
 /** What a build was made for. The deploy guard refuses a target that disagrees with it. */
 export interface BuildStamp {
