@@ -1,18 +1,13 @@
 import type { PublicBriefDocument, PublishAnswer } from '../../../src/app/server/wire/public-brief'
 import { findLatestBody, saveBrief } from './store'
 
-export interface Env {
-  readonly DB: D1Database
-  readonly PUBLISH_TOKEN: string
-  readonly ASSETS: Fetcher
-}
-
 const PUBLISH_PATH = '/api/publish'
 const LATEST_PATH = '/api/latest'
 const API_PREFIX = '/api/'
 const MAX_PUBLISH_BYTES = 262_144
 const LATEST_MAX_AGE_SECONDS = 60
-const DAY_RE = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
+const MS_PER_DAY = 86_400_000
 const BEARER_RE = /^Bearer (.+)$/i
 const SCHEMA_VERSION = 1
 const LOCALES: readonly (keyof PublicBriefDocument['briefs'])[] = ['vi', 'en']
@@ -23,7 +18,23 @@ const SECURITY_HEADERS = {
   'Referrer-Policy': 'no-referrer',
 }
 
+export interface Env {
+  readonly DB: D1Database
+  readonly PUBLISH_TOKEN: string
+  readonly ASSETS: Fetcher
+}
+
+// The one boundary for a store or stream failure: the caller gets a keyed answer to retry on, never
+// the platform's page, and nothing of the body or the token is kept.
 export async function handleRequest(request: Request, env: Env): Promise<Response> {
+  try {
+    return await route(request, env)
+  } catch {
+    return replyJson(503, { error: 'unavailable' })
+  }
+}
+
+async function route(request: Request, env: Env): Promise<Response> {
   const { pathname } = new URL(request.url)
 
   if (pathname === PUBLISH_PATH) {
@@ -31,7 +42,7 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
   }
 
   if (pathname === LATEST_PATH) {
-    return request.method === 'GET' ? latest(env) : replyNotAllowed('GET')
+    return request.method === 'GET' ? serveLatest(env) : replyNotAllowed('GET')
   }
 
   if (pathname.startsWith(API_PREFIX)) {
@@ -56,7 +67,8 @@ async function publish(request: Request, env: Env): Promise<Response> {
     return replyJson(413, { error: 'too-large' })
   }
 
-  const day = readPublishedDay(body)
+  const now = Date.now()
+  const day = parsePublishedDay(body, now)
 
   if (day === undefined) {
     return replyJson(400, { error: 'invalid' })
@@ -66,7 +78,7 @@ async function publish(request: Request, env: Env): Promise<Response> {
     day,
     schema: SCHEMA_VERSION,
     body,
-    publishedAt: Date.now(),
+    publishedAt: now,
   })
 
   if (saved === 'conflict') {
@@ -79,14 +91,14 @@ async function publish(request: Request, env: Env): Promise<Response> {
   return replyJson(stored ? 201 : 200, answer)
 }
 
-async function latest(env: Env): Promise<Response> {
+async function serveLatest(env: Env): Promise<Response> {
   const body = await findLatestBody(env.DB)
 
   if (body === undefined) {
     return replyJson(404, { error: 'empty' })
   }
 
-  return respond(200, body, { 'Cache-Control': `public, max-age=${LATEST_MAX_AGE_SECONDS}` })
+  return replyBody(200, body, { 'Cache-Control': `public, max-age=${LATEST_MAX_AGE_SECONDS}` })
 }
 
 // Both sides are hashed first, so the comparison is over equal-length digests whatever the
@@ -138,7 +150,7 @@ async function readCapped(
   }
 }
 
-function readPublishedDay(body: string): PublicBriefDocument['day'] | undefined {
+function parsePublishedDay(body: string, now: number): PublicBriefDocument['day'] | undefined {
   const document = parseJson(body)
 
   if (!isRecord(document) || document.schema !== SCHEMA_VERSION) {
@@ -147,13 +159,30 @@ function readPublishedDay(body: string): PublicBriefDocument['day'] | undefined 
 
   const { day, briefs, screens } = document
 
-  if (typeof day !== 'string' || !DAY_RE.test(day) || !isRecord(briefs) || !isRecord(screens)) {
+  if (
+    typeof day !== 'string' ||
+    !isPlausibleDay(day, now) ||
+    !isRecord(briefs) ||
+    !isRecord(screens)
+  ) {
     return undefined
   }
 
   return LOCALES.every((locale) => isRecord(briefs[locale]) && Array.isArray(screens[locale]))
     ? day
     : undefined
+}
+
+// A real calendar date, at most a day ahead of the Worker's UTC today (a Vietnam morning is
+// already tomorrow in UTC): a far-future day would pin `latest` for good.
+function isPlausibleDay(day: string, now: number): boolean {
+  const start = Date.parse(`${day}T00:00:00Z`)
+
+  if (!DAY_RE.test(day) || Number.isNaN(start) || !new Date(start).toISOString().startsWith(day)) {
+    return false
+  }
+
+  return start - Math.floor(now / MS_PER_DAY) * MS_PER_DAY <= MS_PER_DAY
 }
 
 function parseJson(text: string): unknown {
@@ -174,12 +203,12 @@ function replyNotAllowed(allowed: string): Response {
 }
 
 function replyJson(status: number, value: unknown, headers: Record<string, string> = {}): Response {
-  return respond(status, JSON.stringify(value), headers)
+  return replyBody(status, JSON.stringify(value), headers)
 }
 
 // Every answer is JSON, hardened and uncached unless its own headers say otherwise. There is no
 // CORS header anywhere: only the app's own origin reads the API.
-function respond(status: number, body: string, headers: Record<string, string> = {}): Response {
+function replyBody(status: number, body: string, headers: Record<string, string> = {}): Response {
   return new Response(body, {
     status,
     headers: {

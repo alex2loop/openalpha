@@ -18,6 +18,20 @@ const ROOT = resolve(import.meta.dir, '..')
 const PRODUCTION_ENV = 'production'
 const KINDS: readonly SiteKind[] = ['web', 'site', 'brief']
 
+interface Database {
+  readonly database_name?: unknown
+}
+
+interface WranglerConfig {
+  readonly d1_databases?: readonly Database[]
+  readonly env?: {
+    readonly production?: {
+      readonly routes?: readonly { readonly pattern?: unknown }[]
+      readonly d1_databases?: readonly Database[]
+    }
+  }
+}
+
 interface Address {
   readonly label: string
   readonly host: string
@@ -50,9 +64,9 @@ if (dryRun) {
   args.push('--dry-run')
 }
 
-const migrated = kind === 'brief' && !dryRun ? await applyMigrations(kind, production) : 0
+const migrationExit = kind === 'brief' && !dryRun ? await applyMigrations(kind, production) : 0
 
-process.exitCode = migrated === 0 ? await runWrangler(args) : migrated
+process.exitCode = migrationExit === 0 ? await runWrangler(args) : migrationExit
 
 async function runWrangler(wranglerArgs: readonly string[]): Promise<number> {
   const wrangler = Bun.spawn([process.execPath, 'run', 'wrangler', ...wranglerArgs], {
@@ -85,7 +99,7 @@ async function refuseMismatch(site: SiteKind, toProduction: boolean): Promise<vo
   const wantsNoindex = !toProduction || (site === 'brief' && BRIEF_INVITE_ONLY)
 
   if (stamp.noindex !== wantsNoindex) {
-    problems.push(stamp.noindex ? 'it is a noindex build' : 'it is a crawlable build')
+    problems.push(noindexProblem(site, toProduction, stamp.noindex))
   }
 
   for (const address of await addressesOf(site, stamp)) {
@@ -99,6 +113,16 @@ async function refuseMismatch(site: SiteKind, toProduction: boolean): Promise<vo
   if (problems.length > 0) {
     throw new Error(`deploy: refusing to deploy ${site} to ${target}: ${problems.join('; ')}`)
   }
+}
+
+function noindexProblem(site: SiteKind, toProduction: boolean, noindex: boolean): string {
+  if (noindex) {
+    return 'it is a noindex build'
+  }
+
+  return toProduction && site === 'brief' && BRIEF_INVITE_ONLY
+    ? 'it is a crawlable build, and the app is invite only (BRIEF_INVITE_ONLY)'
+    : 'it is a crawlable build'
 }
 
 // Each address a build stamped, with the production host its Worker is routed to. The homepage and
@@ -128,10 +152,7 @@ async function addressesOf(
 }
 
 async function productionHostOf(site: SiteKind): Promise<string> {
-  const config = Bun.TOML.parse(await Bun.file(configOf(site)).text()) as {
-    env?: { production?: { routes?: { pattern?: unknown }[] } }
-  }
-  const pattern = config.env?.production?.routes?.[0]?.pattern
+  const pattern = (await readConfig(site)).env?.production?.routes?.[0]?.pattern
 
   if (typeof pattern !== 'string') {
     throw new Error(`deploy: ${configOf(site)} has no production route`)
@@ -141,10 +162,7 @@ async function productionHostOf(site: SiteKind): Promise<string> {
 }
 
 async function databaseNameOf(site: SiteKind, toProduction: boolean): Promise<string> {
-  const config = Bun.TOML.parse(await Bun.file(configOf(site)).text()) as {
-    d1_databases?: { database_name?: unknown }[]
-    env?: { production?: { d1_databases?: { database_name?: unknown }[] } }
-  }
+  const config = await readConfig(site)
   const databases = toProduction ? config.env?.production?.d1_databases : config.d1_databases
   const name = databases?.[0]?.database_name
 
@@ -155,6 +173,11 @@ async function databaseNameOf(site: SiteKind, toProduction: boolean): Promise<st
   }
 
   return name
+}
+
+// Only the keys deploy reads, each checked by its caller before use.
+async function readConfig(site: SiteKind): Promise<WranglerConfig> {
+  return Bun.TOML.parse(await Bun.file(configOf(site)).text()) as WranglerConfig
 }
 
 function configOf(site: SiteKind): string {
