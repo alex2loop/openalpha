@@ -22,6 +22,14 @@ export const LOCKED_DIRECTIVES: readonly string[] = [
   "object-src 'none'",
 ]
 
+/** Cloudflare Web Analytics, which the zone adds to every page it serves: the host its beacon script
+ *  loads from and the host the beacon reports to. Not a data source, so it is not in the browser
+ *  host registry. */
+export const ANALYTICS_HOSTS = {
+  script: 'https://static.cloudflareinsights.com',
+  connect: 'https://cloudflareinsights.com',
+} as const
+
 export interface HeadersOptions {
   /** A staging deploy asks crawlers to stay away; the real domain leaves it out. */
   readonly noindex: boolean
