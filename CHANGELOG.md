@@ -7,7 +7,7 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
-## [Unreleased]
+## [1.4.1] - 2026-11-06
 
 The web edition and the homepage now count visits with Cloudflare Web Analytics: no cookies, no fingerprinting, only page views and page load speed, and never your keys, ledger or chats. The privacy policy is now version 1.1.
 > Bản web và trang chủ giờ đếm lượt truy cập bằng Cloudflare Web Analytics: không cookie, không lấy dấu vân tay, chỉ đếm lượt xem trang và tốc độ tải trang, và không bao giờ thấy key, sổ hay cuộc trò chuyện của bạn. Chính sách quyền riêng tư lên phiên bản 1.1.
@@ -15,6 +15,7 @@ The web edition and the homepage now count visits with Cloudflare Web Analytics:
 ### Changed
 
 - The web edition's and homepage's content security policy allows Cloudflare's analytics script and its reporting host, and the privacy policy, web guide and homepage say so.
+- The README shows a support link near the top, beside the Zalo group.
 
 ## [1.4.0] - 2026-11-05
 
@@ -721,6 +722,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.4.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.1
 [1.4.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.0
 [1.3.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.3.0
 [1.2.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.2
