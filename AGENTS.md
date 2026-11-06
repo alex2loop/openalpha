@@ -39,7 +39,7 @@ bun run build:brief     # phone brief app into dist/brief; needs --brief-url=<ht
 bun run build:web       # static web edition into dist/web; needs --app-url=<https address of the web edition> (add --noindex for staging); deploy/web/wrangler.toml serves it
 bun run build:site      # homepage into dist/site; needs --app-url=<https address of the web edition> and --site-url=<https address of the homepage>
 bun run deploy:web      # deploy dist/web (add --env production); deploy:site likewise; both refuse a build made for the other env
-bun run lint:arch       # depth, trading/registry/feature isolation, locale, report figures,
+bun run lint:arch       # depth, trading/registry/feature isolation, public brief, locale, report figures,
                         # caveats, vi terminology, pricing, agent skills, strategy version (CI)
 bun run gen             # regenerate the migration registry
 bun run migration:new   # scaffold a migration
