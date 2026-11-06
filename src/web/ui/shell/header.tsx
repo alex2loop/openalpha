@@ -147,7 +147,7 @@ function KeysButton() {
       class="icon-button header-keys"
       title={tr('ui.office.header.keys')}
       aria-label={tr('ui.office.header.keys')}
-      onClick={openKeysDialog}
+      onClick={() => openKeysDialog()}
     >
       {LIST_KEY}
     </button>

@@ -95,7 +95,7 @@ export function DisplaySection({ reopen }: SectionProps) {
       />
       <DetailRow />
       <LightByHourRow />
-      {!isWeb && <AttentionRows />}
+      {!isWeb && <AttentionRows reopen={reopen} />}
       {!isWeb && <BrowserSessionsRow />}
     </>
   )

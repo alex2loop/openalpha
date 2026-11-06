@@ -11,15 +11,21 @@ import './guide.css'
 
 type Feature = (typeof WEB_FEATURES)[number]
 
+interface CompareRequest {
+  readonly row?: FeatureId
+  readonly onBack?: () => void
+}
+
 /** "Bản web và bản cài": every job in `WEB_FEATURES` with what the web edition does, what the
  *  installed version does and, where the web stops short, the one plain reason. `row` scrolls to the
- *  job an install line came from. */
-export function openCompare(row?: FeatureId): void {
+ *  job an install line came from; `onBack` leads back to Cài đặt when it opened the page. */
+export function openCompare({ row, onBack }: CompareRequest = {}): void {
   openModal({
     title: tr('ui.office.edition.compare.title'),
     wide: true,
     body: <CompareBody row={row} />,
-    footer: <Button onClick={closeModal}>{tr('ui.office.common.close')}</Button>,
+    footer: <Button onClick={onBack ?? closeModal}>{tr('ui.office.common.close')}</Button>,
+    ...(onBack === undefined ? {} : { onDismiss: onBack }),
   })
 }
 

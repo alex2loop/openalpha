@@ -6,16 +6,18 @@ import { openModal } from '@/web/ui/kit/modal'
 
 import './keys.css'
 
-/** The list of shortcuts, from the header's "?" button, the "?" key or Cài đặt › Hiển thị. */
-export function openKeysDialog(): void {
+/** The list of shortcuts, from the header's "?" button, the "?" key or Cài đặt › Hiển thị. `onBack`
+ *  leads back to Cài đặt when it opened the list. */
+export function openKeysDialog({ onBack }: { readonly onBack?: () => void } = {}): void {
   const handle = openModal({
     title: tr('ui.office.keys.title'),
     body: <KeyList />,
     footer: (
-      <Button kind="commit" onClick={() => handle.close()}>
+      <Button kind="commit" onClick={() => (onBack === undefined ? handle.close() : onBack())}>
         {tr('ui.office.common.close')}
       </Button>
     ),
+    ...(onBack === undefined ? {} : { onDismiss: onBack }),
   })
 }
 

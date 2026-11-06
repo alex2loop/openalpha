@@ -45,7 +45,7 @@ export function KeysPanel({ reopen }: SectionProps) {
         <SlotRow key={slot} slot={slot} reopen={reopen} />
       ))}
       <ActionRow title={tr('ui.office.edition.keys.chatgptTitle')}>
-        <InstallLine row="chatgpt-plan" />
+        <InstallLine row="chatgpt-plan" onBack={reopen} />
       </ActionRow>
     </>
   )
