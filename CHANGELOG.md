@@ -26,6 +26,7 @@ futures contract. On the web you can also chat with the assistant, which looks t
 - On the web, each analysis opens with what to watch: the conditions that would prove each side wrong.
 - On the web, the model picker shows each model's price and whether it can call tools, and the first-run guide has a "choose the AI model" step.
 - A Vietnamese link-preview image for the homepage and the web edition.
+- The web header has a "Get the full app" button that opens the install steps; the web and installed comparison starts with the same link.
 
 ### Changed
 
@@ -38,6 +39,9 @@ futures contract. On the web you can also chat with the assistant, which looks t
 - The default main model on the web ships with a fallback model.
 - The Zalo Personal library loads only when that channel is used.
 - The installed version presents a current browser when it reads data sources.
+- Deploys go through `bun run deploy:web` and `bun run deploy:site`, which refuse a staging build for production and the reverse.
+- The web edition and homepage send cross-origin isolation headers and pin Trusted Types to the page's one policy.
+- The consent for a router such as OpenRouter says it passes the request on to the model's host, and the privacy policy names the groups of data sources.
 
 ### Fixes
 
@@ -53,6 +57,7 @@ futures contract. On the web you can also chat with the assistant, which looks t
 - A bare ticker is no longer looked up in a market you switched off, so `BTC` stays the coin instead of booking as a US fund; `equity-us:BTC` still reaches the fund.
 - `/price` on a NYSE name after US hours shows the price when nasdaq leaves the day's change blank.
 - A refused `/suggest` no longer offers to run again or set an alert on the name it refused.
+- More provider keys are hidden when pasted into chat (Tavily, xAI, Groq, Brave and others, or any key written after "key" or "khóa"), and the web refuses to open a database file over 256 MB.
 
 ## [1.3.0] - 2026-11-03
 
