@@ -685,7 +685,7 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` ở mỗi
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
-Khối của mỗi thị trường in giá, độ rộng, tin của các mã bản tin theo dõi, và khi thị trường có số liệu: phái sinh, dòng tiền của bên mua chủ động, tâm lý và chênh lệch giá vàng trong nước với thế giới, mỗi số một dòng "Nhãn: giá trị" như `/overview`. Phần còn lại của thị trường xem bằng `/overview <thị trường>`. Bản tin trên CLI, Telegram và trang văn phòng có cùng các khối theo cùng thứ tự.
+Khối của mỗi thị trường in giá và độ rộng, hỗ trợ và kháng cự, xoay vòng ngành, các mã bản tin theo dõi, tin của chính thị trường đó, và khi thị trường có số liệu: phái sinh, dòng tiền của bên mua chủ động, tâm lý, nhóm tăng giảm mạnh và nhóm dẫn đầu, tỷ giá, basis hợp đồng tương lai và chênh lệch giá vàng trong nước với thế giới, mỗi số một dòng "Nhãn: giá trị" như `/overview`. Phần còn lại của thị trường xem bằng `/overview <thị trường>`. Bản tin trên CLI, Telegram và trang văn phòng có cùng các khối theo cùng thứ tự.
 
 Khi thị trường chính là Việt Nam, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
 cùng phần nhìn lại các câu chuyện trước.
@@ -717,9 +717,9 @@ Một bản tin đọc theo thứ tự này:
 | Câu chuyện, trên mọi khối | `thesis-review` `story` |
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
 | Bối cảnh vĩ mô | `regime-shift` `macro` `deposit-rate` `macro-headlines` `economy-headlines` |
-| Mỗi thị trường | `reading` `market-prices` `market-quotes` `market-board` `tape` `breadth` `turnover` `range` `market-cap` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `taker-flow` `etf-flows` `positioning` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` |
+| Mỗi thị trường | `market-prices` `breadth` `range` `sector-rotation` `derivatives` `taker-flow` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `recent` `headlines` |
+| Mỗi thị trường, chỉ có trên `/overview <thị trường>` | `reading` `market-quotes` `market-board` `tape` `turnover` `market-cap` `foreign-desk-flow` `proprietary-flow` `etf-flows` `positioning` `disclosures` `index-review` `events` |
 | Danh sách theo dõi | `watchlist-leading` `watchlist-dropped` `screen-delta` |
-| Tin tức | `disclosures` `index-review` `events` `headlines` |
 | Hành động | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
 Hai mục mức giá, `fired-alerts` và `position-exits`, in mức giá cổ phiếu VN theo giá bảng điện như `/portfolio` và `/alert`; thang giá được ghi một lần ở cuối bản tin.

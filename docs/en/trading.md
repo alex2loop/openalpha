@@ -681,7 +681,7 @@ The screener band is `average daily range x breakout_range` on either side of th
 
 The two are kept apart because only one of them is a problem.
 
-Each market's block prints its prices, breadth, news on the names the brief covers and, where the market has them, derivatives, buyers crossing the spread, sentiment and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. The rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
+Each market's block prints its prices and breadth, support and resistance, sector rotation, the names the brief covers, the market's own headlines and, where the market has them, derivatives, buyers crossing the spread, sentiment, the movers and leaders, fx, the futures basis and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. The rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
 
 With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.
@@ -712,9 +712,9 @@ A brief reads in this order:
 | Story, above every block | `thesis-review` `story` |
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
 | Macro backdrop | `regime-shift` `macro` `deposit-rate` `macro-headlines` `economy-headlines` |
-| Per market | `reading` `market-prices` `market-quotes` `market-board` `tape` `breadth` `turnover` `range` `market-cap` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `taker-flow` `etf-flows` `positioning` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` |
+| Per market | `market-prices` `breadth` `range` `sector-rotation` `derivatives` `taker-flow` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `recent` `headlines` |
+| Per market, `/overview <market>` only | `reading` `market-quotes` `market-board` `tape` `turnover` `market-cap` `foreign-desk-flow` `proprietary-flow` `etf-flows` `positioning` `disclosures` `index-review` `events` |
 | Watchlist | `watchlist-leading` `watchlist-dropped` `screen-delta` |
-| News | `disclosures` `index-review` `events` `headlines` |
 | Actions | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
 The two level sections, `fired-alerts` and `position-exits`, print a VN stock's levels in board points, as `/portfolio` and `/alert` do; the scale is stated once at the foot of the brief.
