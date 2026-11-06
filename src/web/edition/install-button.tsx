@@ -11,7 +11,7 @@ export function InstallButton() {
 
   return (
     <a
-      class="btn btn-commit btn-regular"
+      class="btn btn-ai btn-regular"
       href={installUrl()}
       target="_blank"
       rel="noopener noreferrer"
