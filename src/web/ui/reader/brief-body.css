@@ -1,0 +1,35 @@
+.stack.reader-figures {
+  gap: var(--s0);
+}
+
+.reader-figure {
+  color: var(--ink2);
+  font-size: var(--sizeBody);
+  font-variant-numeric: tabular-nums;
+}
+
+.reader-details {
+  padding-left: var(--s2);
+}
+
+.reader-group-head {
+  margin-top: var(--s1);
+  color: var(--ink2);
+  font: var(--typeHeading);
+}
+
+.reader-note {
+  padding-left: var(--s2);
+  border-left: 2px solid var(--border);
+  color: var(--ink2);
+}
+
+.reader-cautions {
+  margin: 0;
+  padding: var(--s2);
+  border-radius: 8px;
+  background: var(--cautionBg);
+  color: var(--caution);
+  font-size: var(--sizeBody);
+  list-style: none;
+}
