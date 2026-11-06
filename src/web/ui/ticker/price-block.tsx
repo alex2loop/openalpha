@@ -48,6 +48,8 @@ const CHART_SESSIONS = 30
 
 interface BarsRead {
   readonly bars: readonly TradingCandleWire[]
+  /** The sector slug the market files the name under, where it files one. */
+  readonly sector?: string
 }
 
 interface PriceBlockProps {
@@ -85,7 +87,7 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
 
   const board = findQuote(ticker, market)
   const quote = newerQuote(live.quote, board)
-  const labelTail = toLabelTail(board?.label, quote?.sector)
+  const labelTail = toLabelTail(board?.label, reading.data?.sector)
   // An index, a fund or world gold says what it is, in the glossary's words.
   const term = termOfTicker(ticker) ?? (quote === undefined ? undefined : termOfKind(quote.kind))
 
@@ -318,7 +320,10 @@ function readBars(ticker: string, market: string): (abort: AbortSignal) => Promi
         signal: abort,
       })
 
-      return { bars: answer.bars.slice(-CHART_SESSIONS) }
+      return {
+        bars: answer.bars.slice(-CHART_SESSIONS),
+        ...(answer.sector === undefined ? {} : { sector: answer.sector }),
+      }
     } catch (error: unknown) {
       if (error instanceof ApiFailure && error.code === 'not_found') {
         return { bars: [] }

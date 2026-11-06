@@ -287,17 +287,13 @@ function NameRow({
     <div class="opportunity">
       <div class="opportunity-main">
         <button type="button" class="opportunity-line" onClick={() => openTicker(ticker, market)}>
-          {ticker}
-          {candidate.name === undefined ? '' : ` · ${candidate.name.trim()}`}
+          {joinInline(nameHead(candidate))}
         </button>
         <p class="opportunity-evidence">
           {formatPrice(candidate.price, printDisplayOf(market))}
           {candidate.changePct === undefined
             ? ''
             : ` · ${formatSignedPercent(candidate.changePct)}`}
-          {candidate.sector !== undefined && (
-            <span class="screen-sector">{sectorName(candidate.sector)}</span>
-          )}
         </p>
       </div>
       <div class="opportunity-ask">
@@ -311,6 +307,15 @@ function NameRow({
       </div>
     </div>
   )
+}
+
+// The ticker, the sector its market files it under and its company name, each where known.
+function nameHead({ instrument, sector, name }: Candidate): readonly string[] {
+  return [
+    instrument.ticker,
+    ...(sector === undefined ? [] : [sectorName(sector)]),
+    ...(name === undefined ? [] : [name.trim()]),
+  ]
 }
 
 // What the page says about the name's place on the board rather than about the name: that the

@@ -270,9 +270,11 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   belongs to; a live reading has none. `staleAt` dates a price too old to be live from a session
   still trading, which is neither. A dealer's board (VN gold) adds `board: {buyPrice, sellPrice,
   spread?}`, where `last` is the sell price and `spread` is (sell - buy) / sell as a fraction; an
-  `/v1/overview` row carries the same `board`. `sector` is the slug the market files the name under,
-  read from its stored listing (the catalog's `trading.sector.<slug>` names it); a fund, an index, a
-  coin and gold have none, and a page names none rather than a placeholder.
+  `/v1/overview` row carries the same `board`.
+- **`/v1/ohlcv`** answers one name's bars, and `sector` beside them: the slug the market files the
+  name under, read from its stored listing and never a provider (the catalog's `trading.sector.<slug>`
+  names it). A fund, an index, a coin and gold have none, and a page names none rather than a
+  placeholder.
 - **`/v1/respond`** answers one approval: `{ requestId, decision }`, where `requestId` is the
   `WireEvent.requestId` the client received (= the gate's `callId`). A clarification is not
   answered here: its answer is the next chat message in its session (see §4). An approval asked on another channel answers `409 conflict` with `error.message` naming that channel; it is answered there. An id that no longer waits (answered, timed out, its run gone, or never asked) answers `404 not_found`; the daemon keeps every approval still waiting, none dropped for count.

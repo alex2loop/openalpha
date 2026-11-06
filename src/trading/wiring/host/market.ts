@@ -15,6 +15,7 @@ export type MarketMethods = Pick<
   TradingHost,
   | 'getQuotes'
   | 'getOhlcv'
+  | 'getInstrumentSector'
   | 'getEvents'
   | 'getNews'
   | 'searchInstruments'
@@ -30,7 +31,7 @@ export type MarketMethods = Pick<
   | 'listSources'
 >
 
-type SeriesMethods = Pick<MarketMethods, 'getOhlcv' | 'getEvents'>
+type SeriesMethods = Pick<MarketMethods, 'getOhlcv' | 'getInstrumentSector' | 'getEvents'>
 
 type ListingMethods = Pick<MarketMethods, 'getSectors' | 'listSources'>
 
@@ -54,6 +55,15 @@ function seriesMethods(deps: TradingHostDeps): SeriesMethods {
           fromDay: request.fromDay,
           toDay: request.toDay,
           now: scope.now,
+          signal: scope.signal,
+        })
+      ),
+
+    getInstrumentSector: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.marketData.instrumentSector({
+          ticker: request.instrument.ticker,
+          market: request.instrument.market,
           signal: scope.signal,
         })
       ),

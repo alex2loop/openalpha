@@ -210,6 +210,10 @@ export interface MarketDataService {
   instrumentQuoteConvention(
     options: Pick<MarketDataInstrumentRequest, 'ticker' | 'market' | 'signal'>
   ): Promise<QuoteConvention | undefined>
+  /** The sector a market files the name under, from its stored listing: no provider is asked. */
+  instrumentSector(
+    options: Pick<MarketDataInstrumentRequest, 'ticker' | 'market' | 'signal'>
+  ): Promise<string | undefined>
   /** The reward-to-risk a market requires of a setup before it is worth taking, where it states
    *  one. Every surface that names the price a plan stops paying it reads the floor from here, so
    *  no renderer fixes a multiple of its own. */

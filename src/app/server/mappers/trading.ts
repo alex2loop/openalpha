@@ -133,7 +133,6 @@ function toQuoteWire(item: QuoteBoardItem, locale: Locale): TradingQuoteWire {
     isLevel: isLevelKind(item.kind),
     market: item.market,
     assetClass: item.assetClass,
-    ...(item.sector === undefined ? {} : { sector: item.sector }),
   }
 }
 

@@ -4,6 +4,7 @@ import type {
   MarketDataEventsRequest,
   MarketDataInstrumentRequest,
   MarketDataQuoteRequest,
+  MarketDataService,
 } from '@/trading/features/market-data/types'
 import type { InstrumentKind } from '@/trading/kernel/instrument'
 import type { AccountsHistory } from '@/trading/kernel/market/annual-accounts'
@@ -83,9 +84,19 @@ export async function runQuote(
   )
 }
 
+/** What the registry says of one name without a price read: its convention and its sector. */
+export function instrumentReads(
+  deps: MarketDataRunDeps
+): Pick<MarketDataService, 'instrumentQuoteConvention' | 'instrumentSector'> {
+  return {
+    instrumentQuoteConvention: (options) => runQuoteConvention(deps, options),
+    instrumentSector: (options) => runInstrumentSector(deps, options),
+  }
+}
+
 /** The convention `runQuote` would stamp, without fetching a price. Absent for a level, which prints
  *  as a bare number, and for a name the registry cannot resolve. */
-export async function runQuoteConvention(
+async function runQuoteConvention(
   deps: MarketDataRunDeps,
   options: Pick<MarketDataInstrumentRequest, 'ticker' | 'market' | 'signal'>
 ): Promise<QuoteConvention | undefined> {
@@ -105,6 +116,23 @@ export async function runQuoteConvention(
   }
 
   return { unit, currency, ...(display === undefined ? {} : { display }) }
+}
+
+/** The sector the market files the name under, read from stored listings only, so a card can name
+ *  it on every open without a provider call. Absent where the market files none (a fund, an index,
+ *  a coin, gold) or the name is not stored. */
+async function runInstrumentSector(
+  deps: MarketDataRunDeps,
+  options: Pick<MarketDataInstrumentRequest, 'ticker' | 'market' | 'signal'>
+): Promise<string | undefined> {
+  const resolved = await deps.markets.resolve({
+    ticker: options.ticker,
+    ...(options.market === undefined ? {} : { market: options.market }),
+    detection: 'stored',
+    signal: options.signal,
+  })
+
+  return resolved.kind === 'resolved' ? resolved.sector : undefined
 }
 
 /** Absent for a level: labelling it in đồng and dividing it by the board scale is exactly the

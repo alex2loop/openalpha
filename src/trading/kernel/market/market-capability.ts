@@ -344,8 +344,6 @@ export interface QuoteBoardItem {
   readonly kind: Exclude<InstrumentKind, 'fx'>
   readonly market: MarketRef
   readonly assetClass: AssetClass
-  /** The sector the market files the name under, where it files one. */
-  readonly sector?: string
   readonly last: number
   readonly changePct?: number
   readonly observed: QuoteFreshness
