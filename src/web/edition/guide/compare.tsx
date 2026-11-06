@@ -39,15 +39,11 @@ function CompareBody({ row }: { readonly row: FeatureId | undefined }) {
   return (
     <div class="compare">
       <p>{tr('ui.office.edition.compare.intro')}</p>
-      {WEB_FEATURES.map((feature) => (
-        <FeatureRow key={feature.id} feature={feature} />
-      ))}
-      <p class="meta">{tr('ui.office.edition.compare.risk')}</p>
       <section class="compare-install">
         <h3>{tr('ui.office.edition.compare.install.title')}</h3>
         <p>{tr('ui.office.edition.compare.install.body')}</p>
         <a
-          class="btn btn-commit btn-regular"
+          class="btn btn-ai btn-regular"
           href={installUrl()}
           target="_blank"
           rel="noopener noreferrer"
@@ -55,6 +51,10 @@ function CompareBody({ row }: { readonly row: FeatureId | undefined }) {
           {tr('ui.office.edition.compare.install.cta')}
         </a>
       </section>
+      {WEB_FEATURES.map((feature) => (
+        <FeatureRow key={feature.id} feature={feature} />
+      ))}
+      <p class="meta">{tr('ui.office.edition.compare.risk')}</p>
     </div>
   )
 }

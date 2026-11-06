@@ -4,7 +4,7 @@ Bản web là OpenAlpha chạy ngay trong một thẻ trình duyệt của bạn
 
 > Bản web đang chạy thử và chưa có địa chỉ công khai. Trang này mô tả cách nó hoạt động khi mở cho mọi người.
 
-Bản web là công cụ phân tích để bạn tự dùng. Mỗi phân tích đặt hai bên cạnh nhau và không kết thúc bằng kết luận nào; không mã nào bị xếp hạng hay gắn nhãn tốt, xấu. Quyết định luôn là của bạn. Nó cũng là cách xem OpenAlpha làm gì trên chính các mã của bạn trước khi cài bản đầy đủ; [bản web và bản cài](#bản-web-và-bản-cài) nói hai bên khác nhau ở đâu và vì sao. Thanh trên cùng của bản web luôn có nút "Cài bản đầy đủ" (trên điện thoại chỉ còn biểu tượng tải xuống); bấm vào sẽ mở "Bản web và bản cài", và cuối trang đó có đường dẫn để cài.
+Bản web là công cụ phân tích để bạn tự dùng. Mỗi phân tích đặt hai bên cạnh nhau và không kết thúc bằng kết luận nào; không mã nào bị xếp hạng hay gắn nhãn tốt, xấu. Quyết định luôn là của bạn. Nó cũng là cách xem OpenAlpha làm gì trên chính các mã của bạn trước khi cài bản đầy đủ; [bản web và bản cài](#bản-web-và-bản-cài) nói hai bên khác nhau ở đâu và vì sao. Thanh trên cùng của bản web luôn có nút "Cài bản đầy đủ" kèm biểu tượng tải xuống (trên điện thoại chỉ còn biểu tượng); bấm vào sẽ mở các bước cài trong README ở tab mới. Trang "Bản web và bản cài" cũng có nút "Xem cách cài" ngay trên đầu.
 
 ## Bắt đầu
 
