@@ -323,6 +323,15 @@ vốn. Mọi trường số tuyệt đối bị cắt khỏi các gói dữ li�
 hỏi một con người ở từng lần và không bao giờ nhớ câu trả lời đó. Trần chi tiêu giới hạn mỗi phiên
 chạy được tiêu bao nhiêu; xem [ngân sách](ngan-sach.md).
 
+### Bản tin công khai gửi đi
+
+Khi `[trading.public_brief] enabled = true`, mỗi ngày dịch vụ nền có thêm một lần gửi ra ngoài không phải để đọc dữ liệu: nó gửi bản tin sáng công khai tới địa chỉ bản tin của chính dự án.
+
+- **Gửi đi đâu.** Chỉ một địa chỉ, cố định trong mã: máy chủ `brief.` trên tên miền công khai của dự án. Không cài đặt, cờ hay tệp nào đổi được nó, và máy bạn không mở cổng nghe cho việc này. Cài đặt > Dữ liệu và kết nối chỉ liệt kê địa chỉ, kèm thứ được gửi tới đó, khi tính năng đang bật.
+- **Trong đó có gì.** Bản tin chỉ về thị trường, bằng cả hai ngôn ngữ, cùng các danh sách bảng lọc: dữ liệu thị trường do chính dịch vụ nền viết lời, không gọi mô hình. Không có gì của sổ bạn: không mã nắm giữ, không mã theo dõi, không số tiền, kế hoạch hay chi phí. Trước mỗi lần gửi, một bước kiểm tra cuối đọc từng dòng và bỏ cả ngày đó nếu có một mã bạn đang nắm hoặc theo dõi nằm trong đó. Chi tiết ở [bản tin công khai](giao-dich.md#bản-tin-công-khai).
+- **Token.** Lần gửi mang `PUBLIC_BRIEF_TOKEN` làm token bearer. Token lấy từ biến môi trường (`openalpha key set PUBLIC_BRIEF_TOKEN`), không bao giờ nằm trong `config.toml`, được lọc khỏi nhật ký và thông báo lỗi, và chỉ đi tới địa chỉ đó. Token sai thì ngày đó bị đóng.
+- **Mặc định tắt.** Tính năng tắt, hoặc bật mà chưa có token, thì không gửi gì cả. Chưa có token thì dịch vụ nền vẫn chạy và báo một lần.
+
 ### Mạng xã hội
 
 Agent trên một [mạng xã hội](mang-xa-hoi.md) đọc văn bản của người lạ trong khi đang giữ công cụ, nên

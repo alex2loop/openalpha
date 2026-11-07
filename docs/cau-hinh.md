@@ -949,15 +949,17 @@ lịch của khu vực `[locale] region`, không bao giờ từ `[locale] timezo
 Bản tin là bức tranh trước giờ mở cửa, nên `send_time` phải sớm hơn giờ mở cửa của thị trường chính.
 Đặt muộn hơn thì dịch vụ nền từ chối khởi động, thay vì lặng lẽ bỏ bản tin mỗi sáng.
 
-`[trading.public_brief]` đăng một bản tin thứ hai lên trang công khai, dựng chỉ từ dữ liệu thị trường, vào
-mỗi sáng giao dịch ở Việt Nam. Không có gì trong sổ của bạn lọt vào đó (không mã đang nắm, không mã theo
-dõi, không kế hoạch hay khối lượng) và nó không gọi mô hình. Mặc định tắt cho tới khi `enabled = true`, và
-cần token đăng trong biến môi trường `PUBLIC_BRIEF_TOKEN`, không bao giờ để trong `config.toml`: đặt bằng
-`openalpha key set PUBLIC_BRIEF_TOKEN`. Bật mà chưa có token thì dịch vụ nền vẫn chạy, báo một lần và không
-đăng gì. `publish_time` là giờ Việt Nam và phải chừa ít nhất 15 phút trước giờ mở cửa 09:00, nếu không dịch vụ nền từ chối khởi
-động: lượt làm mới dữ liệu buổi sáng cần khoảng trống đó, và một ngày lỡ giờ mở cửa sẽ bị bỏ qua. `analysis` và `headlines` bỏ nhóm của mình đi khi đặt `false`; `top_screen` thêm số mã đó có điểm cao
-nhất mỗi thị trường từ bảng lọc (số nguyên, 0 đến 10; 0 là bỏ danh sách; số lẻ hoặc lớn hơn thì dịch vụ nền
-dừng ngay khi khởi động). Nó mang gì và hỏng ra sao: [bản tin công khai](giao-dich.md#bản-tin-công-khai).
+`[trading.public_brief]` đăng một bản tin thứ hai lên trang công khai vào mỗi sáng giao dịch ở Việt Nam, chỉ
+dựng từ dữ liệu thị trường. Không có gì trong sổ của bạn lọt vào đó (không mã đang nắm, không mã theo dõi,
+không kế hoạch hay khối lượng) và nó không gọi mô hình. Mặc định nó tắt cho tới khi bạn đặt `enabled = true`,
+và cần token đăng bản tin trong biến môi trường `PUBLIC_BRIEF_TOKEN`, không bao giờ để trong `config.toml`:
+đặt bằng `openalpha key set PUBLIC_BRIEF_TOKEN`. Bật mà chưa có token thì dịch vụ nền vẫn chạy, báo một lần và
+không đăng gì. `publish_time` là giờ Việt Nam và phải cách giờ mở cửa 09:00 ít nhất 15 phút, nếu không dịch vụ
+nền từ chối khởi động: lượt làm mới dữ liệu buổi sáng cần khoảng trống đó, và một ngày lỡ giờ mở cửa sẽ bị bỏ
+qua. `analysis` và `headlines` bỏ nhóm của mình đi khi đặt `false`; `top_screen` thêm chừng đó mã điểm cao
+nhất của mỗi thị trường từ bảng lọc (số nguyên từ 0 đến 10; 0 là bỏ danh sách; số lẻ hoặc lớn hơn 10 thì dịch
+vụ nền dừng ngay khi khởi động). Bản tin có gì và hỏng thì ra sao: xem
+[bản tin công khai](giao-dich.md#bản-tin-công-khai).
 
 Danh sách theo dõi trong hồ sơ là danh sách công cụ duy nhất được cấu hình. Bảng giá và các mục gợi ý
 trong bản tin đều suy ra từ nó và từ phần đang nắm trong sổ.
