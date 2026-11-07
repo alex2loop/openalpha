@@ -19,6 +19,7 @@ const SHIPPED_FILE_RE = /\.(?:js|css)$/
 
 const BRIEF_BUNDLE_INPUTS: readonly Bun.Glob[] = [
   'src/web/brief/**',
+  'src/app/server/wire/public-brief.ts',
   'src/web/ui/reader/{brief-body,brief-model}.*',
   'src/web/ui/markdown/{inline,inline-view,note-list}.*',
   'src/web/ui/markdown/markdown.css',

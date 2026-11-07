@@ -99,13 +99,11 @@ function escapeRegExp(literal: string): string {
   return literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/** Every line a reader sees, in both languages: the brief, the headline, the screen lists and the
- *  closing line. */
+/** Every line a reader sees, in both languages: the brief, the headline, the screen lists. */
 function textOf(render: PublicBriefRender): readonly string[] {
   return LOCALES.flatMap((locale) => [
     ...briefLines(render.texts[locale]),
     render.headline[locale],
-    render.disclaimer[locale],
     ...render.screens[locale].flatMap(screenLines),
   ])
 }

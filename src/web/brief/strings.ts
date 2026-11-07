@@ -1,5 +1,4 @@
 import type { MessageKey } from '@/i18n'
-import { CACHE_NAME, LOCALE_PATH } from '@/web/brief/load'
 
 const LANGUAGE_PARAM = 'lang'
 const STORAGE_KEY = 'lang'
@@ -50,20 +49,6 @@ export function rememberChoice(locale: Locale): void {
   } catch {
     // A private window or blocked site data keeps nothing; the choice lasts until the page closes.
   }
-}
-
-/** Leaves the language in the service worker's cache, where the push handler reads it. */
-export function publishLocale(locale: Locale): void {
-  // A page outside a secure context has no cache storage, so no push to answer in the language.
-  if (typeof caches === 'undefined') {
-    return
-  }
-
-  caches
-    .open(CACHE_NAME)
-    .then((cache) => cache.put(LOCALE_PATH, new Response(locale)))
-    // A refused cache costs only that push.
-    .catch(() => undefined)
 }
 
 function readChoice(): string | null {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useErrorBoundary, useRef, useState } from 'preact/hooks'
 
 import type { PublicBriefDocument } from '@/app/server/wire/public-brief'
 import { LanguageSwitch } from '@/web/brief/language-switch'
@@ -8,7 +8,6 @@ import { ScreenList } from '@/web/brief/screen-list'
 import { drawShareCard, shareBlob } from '@/web/brief/share-card'
 import {
   type Locale,
-  publishLocale,
   rememberChoice,
   startLocale,
   type Translate,
@@ -49,7 +48,6 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.lang = locale
-    publishLocale(locale)
   }, [locale])
 
   const onLocale = (next: Locale) => {
@@ -136,22 +134,46 @@ function Body({ t, locale, latest, onRetry }: Omit<PageProps, 'onLocale'>) {
     case 'empty':
       return <p class="app-message">{t('ui.brief.empty')}</p>
     case 'failed':
-      return (
-        <div class="flow app-message">
-          <p>{t('ui.brief.failed')}</p>
-          <Button onClick={onRetry}>{t('ui.brief.retry')}</Button>
-        </div>
-      )
+      return <Failed t={t} onRetry={onRetry} />
     case 'offline':
       return (
         <>
           <p class="app-notice">{t('ui.brief.offline')}</p>
-          <Brief doc={latest.doc} locale={locale} t={t} />
+          <GuardedBrief doc={latest.doc} locale={locale} t={t} onRetry={onRetry} />
         </>
       )
     case 'ready':
-      return <Brief doc={latest.doc} locale={locale} t={t} />
+      return <GuardedBrief doc={latest.doc} locale={locale} t={t} onRetry={onRetry} />
   }
+}
+
+function Failed({ t, onRetry }: Pick<PageProps, 't' | 'onRetry'>) {
+  return (
+    <div class="flow app-message">
+      <p>{t('ui.brief.failed')}</p>
+      <Button onClick={onRetry}>{t('ui.brief.retry')}</Button>
+    </div>
+  )
+}
+
+// A document that passed the read can still fail to lay out; the page then says it failed, as it
+// does for a read that failed, and a retry starts from a clean boundary.
+function GuardedBrief({ doc, locale, t, onRetry }: DocumentProps & Pick<PageProps, 'onRetry'>) {
+  const [error, reset] = useErrorBoundary()
+
+  if (error !== undefined) {
+    return (
+      <Failed
+        t={t}
+        onRetry={() => {
+          reset()
+          onRetry()
+        }}
+      />
+    )
+  }
+
+  return <Brief doc={doc} locale={locale} t={t} />
 }
 
 // The body, then the screen lists; the disclaimer closes the page in its footer. A brief carries no

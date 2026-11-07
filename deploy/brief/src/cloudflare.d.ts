@@ -17,6 +17,10 @@ interface Fetcher {
   fetch(request: Request): Promise<Response>
 }
 
+interface CacheStorage {
+  readonly default: Cache
+}
+
 interface SubtleCrypto {
   timingSafeEqual(a: ArrayBuffer, b: ArrayBuffer): boolean
 }

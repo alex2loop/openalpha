@@ -27,7 +27,7 @@ import {
   resetOutput,
   writeStamp,
 } from './web-files'
-import { ANALYTICS_HOSTS, buildHeadersFile, LOCKED_DIRECTIVES } from './web-headers'
+import { buildHeadersFile, LOCKED_DIRECTIVES } from './web-headers'
 import { stampInstallTags, writeInstallFiles } from './web-manifest'
 
 const ROOT = resolve(import.meta.dir, '..')
@@ -85,16 +85,16 @@ console.log(`build-brief: wrote ${OUT_DIR}${noindex ? ' (noindex)' : ''}`)
 
 // Style stays same-origin only; the page draws its share card on a canvas and downloads it from a
 // `blob:` address. The one script address Trusted Types lets through is the service worker's. The
-// analytics beacon is a parser-inserted script, which Trusted Types leaves alone.
+// page loads no analytics, as its privacy page says.
 function pageDirectives(): readonly string[] {
   return [
     "default-src 'self'",
-    `script-src 'self' ${ANALYTICS_HOSTS.script}`,
+    "script-src 'self'",
     "require-trusted-types-for 'script'",
     'trusted-types default',
     "manifest-src 'self'",
     "worker-src 'self'",
-    `connect-src 'self' ${ANALYTICS_HOSTS.connect}`,
+    "connect-src 'self'",
     "img-src 'self' data: blob:",
     "style-src 'self'",
     ...LOCKED_DIRECTIVES,
