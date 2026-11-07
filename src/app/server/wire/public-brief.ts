@@ -30,6 +30,4 @@ export interface PublicBriefDocument {
 export interface PublishAnswer {
   /** False when the same brief was already held for the day. */
   readonly stored: boolean
-  readonly subscribers: number
-  readonly rejected: number
 }

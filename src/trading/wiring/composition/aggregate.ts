@@ -37,7 +37,7 @@ import { buildAppViews } from '@/trading/wiring/composition/app-views'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { toFocusScope } from '@/trading/wiring/composition/focus-scope'
 import { toIntradayNext } from '@/trading/wiring/composition/intraday-next'
-import { createPublicBrief, homeMarket } from '@/trading/wiring/composition/public-brief'
+import { createPublicBrief } from '@/trading/wiring/composition/public-brief'
 import { createPublicBriefGuard } from '@/trading/wiring/composition/public-brief-guard'
 import { buildRebalanceViews } from '@/trading/wiring/composition/rebalance-views'
 import { resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
@@ -90,7 +90,7 @@ export function toAggregate(
   // The one owner of "the boot sweep is done": the loops wait on its promise, and the boot refresh
   // settles it through `releaseFirstSweep`.
   const firstSweep = Promise.withResolvers<void>()
-  const publicBrief = toPublicBrief(parts, options, registries)
+  const publicBrief = createAggregatePublicBrief(parts, options, registries)
 
   return Object.freeze({
     ...parts.services,
@@ -118,7 +118,7 @@ export function toAggregate(
       {
         ...options,
         firstSweep: firstSweep.promise,
-        publicBriefTick: resolvePublicBriefTick(parts, options, { publicBrief, registries }),
+        publicBriefTick: createPublicBriefDaemonTick(parts, options, publicBrief),
       },
       registries
     ),
@@ -128,7 +128,7 @@ export function toAggregate(
   })
 }
 
-function toPublicBrief(
+function createAggregatePublicBrief(
   parts: AggregateParts,
   options: AggregateOptions,
   registries: Registries
@@ -225,10 +225,10 @@ function buildDaemonTasks(
 
 /** The public brief's tick, where the brief can post: it builds, renders, judges and posts. The
  *  guard is the one reader of the book. */
-function resolvePublicBriefTick(
+function createPublicBriefDaemonTick(
   parts: AggregateParts,
   options: AggregateOptions,
-  built: { readonly publicBrief: PublicBrief; readonly registries: Registries }
+  publicBrief: PublicBrief
 ): OperationTick | undefined {
   const { publicBriefPublisher: publisher, tradingConfig } = options
 
@@ -236,11 +236,10 @@ function resolvePublicBriefTick(
     return undefined
   }
 
-  const { publicBrief, registries } = built
   const guard = createPublicBriefGuard(parts.services, parts.logger)
 
   return createPublicBriefTick({
-    calendar: homeMarket(registries.markets).manifest.calendar,
+    calendar: publicBrief.calendar,
     publishTime: tradingConfig.publicBrief.publishTime,
     store: parts.stores.publicBrief,
     publisher,
@@ -277,7 +276,8 @@ function buildHeldWatch(
   })
 }
 
-/** The intraday report names only what can still be traded: a sliver left by a full exit is no row. */
+/** The intraday report names only what can still be traded: a sliver left by a full exit is no
+ *  row. */
 function toReportDeps(
   parts: {
     readonly services: ReturnType<typeof createDomainServices>

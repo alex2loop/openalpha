@@ -60,7 +60,8 @@ interface TradingRegistrationOptions {
   /** Injected, never read from `process`: source credentials resolve from named variables the
    *  code owns, so the value reaches the transport without passing through a config object. */
   readonly env: Readonly<Record<string, string | undefined>>
-  /** Built where it binds, with the app in hand: the sender reads services the container supplies. */
+  /** Built where it binds, with the app in hand: the sender reads services the container
+   *  supplies. */
   sender(app: App): TradingNoticeSender
   /** Bound with the app in hand, like the sender: showing a fill needs the bus. */
   onFilled(app: App): OrderFilledListener
@@ -85,7 +86,8 @@ interface TradingRegistrationOptions {
   readonly requestShape: RequestShape
   readonly routes?: SourceRouteTable
   /** What this host states of how its source requests present; absent is the daemon's. A page
-   *  cannot set a user agent, reads only the feeds a browser can, and waits longer on a slow edge. */
+   *  cannot set a user agent, reads only the feeds a browser can, and waits longer on a slow
+   *  edge. */
   readonly sourceFacts?: HostSourceFacts
   /** What this edition narrows, bound with the app in hand like the sender; absent is the
    *  installed version. */
@@ -94,7 +96,10 @@ interface TradingRegistrationOptions {
   readonly reachability: ReachabilityProbe
   /** Posts the public brief; absent on a host that never publishes. Built with the credential, so
    *  the token reaches it and nothing else. */
-  publicBriefPublisher?(credential: PublicBriefCredential, logger: Logger): PublicBriefPublisher
+  createPublicBriefPublisher?(
+    credential: PublicBriefCredential,
+    logger: Logger
+  ): PublicBriefPublisher
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider
@@ -110,7 +115,6 @@ type BoundOptions = Omit<
   | 'onRoleOutput'
   | 'onFocusCallScored'
   | 'edition'
-  | 'publicBriefPublisher'
 > & {
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
@@ -126,8 +130,7 @@ type BoundOptions = Omit<
 }
 
 function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptions {
-  // The factory is replaced by the publisher it builds, under the same name.
-  const { edition, publicBriefPublisher: _factory, ...rest } = provided
+  const { edition, ...rest } = provided
   const logger = app.resolve('logger')
   const publicBriefPublisher = publisherOf(
     provided,
@@ -303,7 +306,7 @@ function publisherOf(
   logger: Logger
 ): PublicBriefPublisher | undefined {
   return options.tradingConfig.publicBrief.enabled && credential !== undefined
-    ? options.publicBriefPublisher?.(credential, logger)
+    ? options.createPublicBriefPublisher?.(credential, logger)
     : undefined
 }
 
@@ -401,8 +404,8 @@ function buildServices(
   }
 }
 
-/** What the role runner and the analysis share: one set of deps, so the full debate and the analysis
- *  read the same persona calls. */
+/** What the role runner and the analysis share: one set of deps, so the full debate and the
+ *  analysis read the same persona calls. */
 function buildDebateDeps(app: App, options: BoundOptions, parts: ServiceParts): DebateDeps {
   const { logger, registries, stores } = parts
 

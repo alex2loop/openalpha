@@ -6,20 +6,21 @@ import type {
 } from '@/trading/features/brief/public/types'
 import type { BriefText } from '@/trading/features/brief/surface'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
+import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { LOCALES } from '@/core/types/locale'
 import { exemptTickers } from '@/trading/features/brief/public/scope'
 
-/** A ticker this long or longer is read in any case: a short one (`T`, `VN`) is an ordinary word or
- *  letter pair in any other. */
-const CASE_BLIND_MIN_LENGTH = 3
+/** A ticker this long or longer may stand glued to a word of the other case: a short one (`T`,
+ *  `VN`) is the start of an ordinary capitalised word. */
+const GLUED_MIN_LENGTH = 3
 const SEPARATOR_RE = /[._-]/
 const SEPARATOR_CLASS = '[._-]'
 /** A glued word ends where its case turns: `HPGvà`, `fooHPG`. */
-const WORD_START = '(?:(?<![A-Za-z0-9])|(?<=[a-z])(?=[A-Z]))'
-const WORD_END = '(?:(?![A-Za-z0-9])|(?<=[A-Z])(?=[a-z])|(?<=[a-z])(?=[A-Z]))'
-const STRICT_START = '(?<![A-Za-z0-9])'
-const STRICT_END = '(?![A-Za-z0-9])'
+const GLUED_START = '(?:(?<![A-Za-z0-9])|(?<=[a-z])(?=[A-Z]))'
+const GLUED_END = '(?:(?![A-Za-z0-9])|(?<=[A-Z])(?=[a-z])|(?<=[a-z])(?=[A-Z]))'
+const WORD_START = '(?<![A-Za-z0-9])'
+const WORD_END = '(?![A-Za-z0-9])'
 
 type GuardServices = Pick<TradingServices, 'portfolio' | 'profiles'>
 
@@ -35,12 +36,17 @@ interface PublicBriefGuard {
 /** The last lock before a brief leaves the daemon, and the one public-brief file that reads the
  *  book. It refuses the day when a held or watched ticker stands in the text outside the rows the
  *  brief prints for its own markets. A failed read of the book publishes nothing either, and says
- *  so apart from a refusal, because a later attempt may read it. A name leaves only the owner's log,
- *  never the verdict's wording. */
+ *  so apart from a refusal, because a later attempt may read it. An abort is not a failed read: it
+ *  goes up to the tick, which tells its deadline from a shutdown. A name leaves only the owner's
+ *  log, never the verdict's wording. */
 export function createPublicBriefGuard(services: GuardServices, logger: Logger): PublicBriefGuard {
   return {
     async judge(row, render, signal) {
       const followed = await readFollowed(services, signal).catch((err: unknown) => {
+        if (isAbortError(err)) {
+          throw err
+        }
+
         logger.error('trading.public_brief_guard_unread', {
           day: row.day,
           err: formatErrForLog(err),
@@ -85,8 +91,8 @@ async function readFollowed(
 }
 
 /** The followed tickers that stand in the text as a whole word and are not exempt, in the order
- *  followed. A ticker of three characters or more is read in any case, with `.`, `-` and `_` as one
- *  separator (`BRK.B` is `brk-b`); a shorter one only in capitals. */
+ *  followed. A ticker is read in capitals only, with `.`, `-` and `_` as one separator (`BRK.B` is
+ *  `BRK-B`): `GAS` is a ticker and `gas` is a word. */
 function leakedTickers(
   text: readonly string[],
   followed: ReadonlySet<string>,
@@ -102,24 +108,11 @@ function leakedTickers(
 }
 
 function toWordPattern(ticker: string): RegExp {
-  const isCaseBlind = ticker.length >= CASE_BLIND_MIN_LENGTH
-  const body = ticker
-    .split(SEPARATOR_RE)
-    .map((part) => [...part].map((char) => toCharPattern(char, isCaseBlind)).join(''))
-    .join(SEPARATOR_CLASS)
+  const body = ticker.split(SEPARATOR_RE).map(escapeRegExp).join(SEPARATOR_CLASS)
 
-  return isCaseBlind
-    ? new RegExp(`${WORD_START}${body}${WORD_END}`)
-    : new RegExp(`${STRICT_START}${body}${STRICT_END}`)
-}
-
-/** One character, in both cases when the ticker is read in any. Not the `i` flag: the word bounds
- *  tell upper from lower case. */
-function toCharPattern(char: string, isCaseBlind: boolean): string {
-  const lower = char.toLowerCase()
-  const upper = char.toUpperCase()
-
-  return isCaseBlind && lower !== upper ? `[${upper}${lower}]` : escapeRegExp(char)
+  return ticker.length >= GLUED_MIN_LENGTH
+    ? new RegExp(`${GLUED_START}${body}${GLUED_END}`)
+    : new RegExp(`${WORD_START}${body}${WORD_END}`)
 }
 
 function escapeRegExp(literal: string): string {

@@ -82,7 +82,8 @@ function buildRequest(deps: PublicBriefDeps, input: PublicBriefInput): MarketBri
   }
 }
 
-/** The previous brief is garnish: one that cannot be read is no previous, as for the owner's brief. */
+/** The previous brief is garnish: one that cannot be read is no previous, as for the owner's
+ *  brief. */
 async function readPrevious(
   deps: PublicBriefDeps,
   input: PublicBriefInput

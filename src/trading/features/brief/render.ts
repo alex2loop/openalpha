@@ -37,8 +37,8 @@ const REBALANCE_OWN_CAVEATS: ReadonlySet<string> = new Set([
   'portfolio.reduction-unsettled',
   'portfolio.reduction-illiquid',
 ])
-/** The sections that carry a call a model argued; everything else in the brief is code reading data,
- *  and a label on it would claim a model wrote what none did. */
+/** The sections that carry a call a model argued; everything else in the brief is code reading
+ *  data, and a label on it would claim a model wrote what none did. */
 const AI_SECTION_KINDS: ReadonlySet<BriefSectionKind> = new Set([
   'suggestions',
   'cross-asset-suggestions',
@@ -70,9 +70,10 @@ export const FOLDED_SECTION_KINDS = [
 ] as const satisfies readonly BriefSectionKind[]
 
 /** What a market block prints, in `BRIEF_SECTION_ORDER`: its prices, breadth, the names it covers,
- *  the derivatives, order flow, sentiment and premium readings, the movers and leaders, the support
- *  and resistance range, sector rotation, fx, basis and the market's own headlines. A kind left out
- *  (the quote board, the tape, the turnover and flow tables) is a tap away on `/overview <market>`. */
+ *  the derivatives, order flow, sentiment and premium readings, the movers and leaders, the
+ *  support and resistance range, sector rotation, fx, basis and the market's own headlines. A kind
+ *  left out (the quote board, the tape, the turnover and flow tables) is a tap away on `/overview
+ *  <market>`. */
 const MARKET_SHOWN_KINDS = [
   'market-prices',
   'breadth',
@@ -173,7 +174,7 @@ export function readSections(
   readonly blocks: readonly (BriefBlock & { readonly title: string })[]
 } {
   const readable = snapshot.sections.filter(isRenderable)
-  const renderable = readable.filter(isShown)
+  const renderable = readable.filter(isSectionShown)
   const hasAiCalls = renderable.some(
     (section) => section.status === 'ready' && AI_SECTION_KINDS.has(section.kind)
   )
@@ -241,7 +242,7 @@ function toBlocks(sections: readonly BriefSectionResult[]): readonly BriefBlock[
 
 /** A market prints the kinds it shows; the rest of its sections are a tap away on
  *  `/overview <market>`. */
-export function isShown(section: BriefSectionResult): boolean {
+export function isSectionShown(section: BriefSectionResult): boolean {
   return section.market === undefined || MARKET_SHOWN_KINDS.some((kind) => kind === section.kind)
 }
 

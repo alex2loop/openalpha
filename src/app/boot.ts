@@ -65,7 +65,8 @@ interface BootResource {
   close(): Promise<void>
 }
 
-/** What boot has opened so far, filled in as each step succeeds so a failed boot closes only that. */
+/** What boot has opened so far, filled in as each step succeeds so a failed boot closes only
+ *  that. */
 interface HeldBootResources {
   readonly loggerResource: LoggerResource
   disposeAssets?: () => Promise<void>
@@ -215,7 +216,8 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
           channels: () => app.resolve('channels'),
           pairingStore: () => app.resolve('pairingStore'),
         }),
-      // The bus isolates a handler that throws, so a page that cannot take the event never fails a booking.
+      // The bus isolates a handler that throws, so a page that cannot take the event never fails a
+      // booking.
       onFilled: (app) => (fill) => app.resolve('bus').emit('order_filled', fill),
       onAlertFired: createAlertFiredListener,
       onAlertsChecked: (app) => (at) => app.resolve('bus').emit('alerts_checked', { at }),
@@ -229,7 +231,7 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
       pluginModules: input.assets.pluginSourceModules,
       requestShape: DAEMON_REQUEST_SHAPE,
       reachability: (signal) => probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS, signal),
-      publicBriefPublisher: createPublicBriefPublisher,
+      createPublicBriefPublisher,
     }),
   })
 }

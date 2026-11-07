@@ -2629,7 +2629,7 @@
     "configMarketDayOnWeekend": "Days listed under holidays or open_days in [trading.markets] fall on a day the market is already closed: {days}. Remove those dates.",
     "configMarketDayContradicted": "The same date is listed under both holidays and open_days in [trading.markets]: {days}. Keep it in one list only, so the calendar knows whether the market trades that day.",
     "configBriefSendTimeAfterOpen": "The morning brief's send_time {time} is not before the open ({markets}), so it would never go out. Pick an earlier time under [trading.briefs].",
-    "publicBriefTimeAfterOpen": "The public brief's publish_time {time} must be at least {lead} minutes before the Vietnam market open ({open}), so the brief has time to build and go out. Pick an earlier time under [trading.public_brief].",
+    "publicBriefTimeAfterOpen": "The public brief's publish_time ({time}) is too close to the Vietnam open ({open}). Set it at least {lead} minutes earlier so the brief has time to build and go out. You'll find it under [trading.public_brief].",
     "publicBriefTopScreen": "top_screen under [trading.public_brief] is {value}, but it takes a whole number from 0 to {max} (0 leaves the screen list out). Change it to one of those.",
     "configVenueNotHolding": "default_for under [trading.venues] names venues that do not hold that market: {venues}. Move default_for to a venue that holds it.",
     "configSourceNoCredential": "[trading.sources] names sources that take no key: {sources}. Only {known} take one.",

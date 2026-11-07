@@ -28,14 +28,15 @@ const PUBLIC_HEADLINE_MAX_CHARS = 120
 const PUBLIC_PROFILE_REVISION = 'public'
 
 /** Both languages of one build, drawn by the renderer the owner's brief uses, in the daemon's own
- *  wording. The snapshot carries no brief-level caveats: those describe the owner's refresh and
- *  profile, and a section's own caveats travel with the section. */
+ *  wording. A caveat reads in its plain form: the public brief shows readings and makes no call.
+ *  The snapshot carries no brief-level caveats: those describe the owner's refresh and profile,
+ *  and a section's own caveats travel with the section. */
 export function renderPublicBrief(
   row: BuiltPublicBriefRow,
   options: { readonly timezone: string }
 ): PublicBriefRender {
   const texts = perLocale((locale) =>
-    renderBriefForSurface(locale, toPublicSnapshot(row, locale), options)
+    renderBriefForSurface(locale, toPublicSnapshot(row, locale), { ...options, plain: true })
   )
   const context = resolveRenderContext(options.timezone, NOTICE_SURFACE)
 

@@ -59,7 +59,8 @@ interface PublicBriefReadsInput {
   /** The markets the market reads name, as `publicBriefMarkets` resolved them for this build. */
   readonly markets: readonly MarketRef[]
   readonly store: PublicBriefStore
-  /** The seeded default profile with an empty watchlist: the reads state no limit of the operator's. */
+  /** The seeded default profile with an empty watchlist: the reads state no limit of the
+   *  operator's. */
   readonly profile: UserProfile
 }
 
