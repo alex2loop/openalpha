@@ -241,7 +241,7 @@ function toBlocks(sections: readonly BriefSectionResult[]): readonly BriefBlock[
 
 /** A market prints the kinds it shows; the rest of its sections are a tap away on
  *  `/overview <market>`. */
-function isShown(section: BriefSectionResult): boolean {
+export function isShown(section: BriefSectionResult): boolean {
   return section.market === undefined || MARKET_SHOWN_KINDS.some((kind) => kind === section.kind)
 }
 

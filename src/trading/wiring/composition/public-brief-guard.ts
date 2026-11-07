@@ -1,5 +1,4 @@
 import type { Logger } from '@/core/logging/logger'
-import type { Locale } from '@/core/types/locale'
 import type {
   PublicBriefRender,
   PublicBriefRow,
@@ -8,24 +7,36 @@ import type {
 import type { BriefText } from '@/trading/features/brief/surface'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import { formatErrForLog } from '@/core/security/credentials'
+import { LOCALES } from '@/core/types/locale'
 import { exemptTickers } from '@/trading/features/brief/public/scope'
 
-const LOCALES: readonly Locale[] = ['en', 'vi']
+/** A ticker this long or longer is read in any case: a short one (`T`, `VN`) is an ordinary word or
+ *  letter pair in any other. */
+const CASE_BLIND_MIN_LENGTH = 3
+const SEPARATOR_RE = /[._-]/
+const SEPARATOR_CLASS = '[._-]'
+/** A glued word ends where its case turns: `HPGvà`, `fooHPG`. */
+const WORD_START = '(?:(?<![A-Za-z0-9])|(?<=[a-z])(?=[A-Z]))'
+const WORD_END = '(?:(?![A-Za-z0-9])|(?<=[A-Z])(?=[a-z])|(?<=[a-z])(?=[A-Z]))'
+const STRICT_START = '(?<![A-Za-z0-9])'
+const STRICT_END = '(?![A-Za-z0-9])'
 
 type GuardServices = Pick<TradingServices, 'portfolio' | 'profiles'>
 
 type GuardVerdict =
   | { readonly kind: 'publish' }
   | { readonly kind: 'refuse'; readonly leaked: readonly string[] }
+  | { readonly kind: 'unread' }
 
 interface PublicBriefGuard {
   judge(row: PublicBriefRow, render: PublicBriefRender, signal: AbortSignal): Promise<GuardVerdict>
 }
 
 /** The last lock before a brief leaves the daemon, and the one public-brief file that reads the
- *  book. It refuses the day when a held or watched ticker stands in the text outside the rows of
- *  the brief's own market sections. A failed read of the book refuses too: the day is skipped,
- *  which is the safe direction. A name leaves only the owner's log, never the verdict's wording. */
+ *  book. It refuses the day when a held or watched ticker stands in the text outside the rows the
+ *  brief prints for its own markets. A failed read of the book publishes nothing either, and says
+ *  so apart from a refusal, because a later attempt may read it. A name leaves only the owner's log,
+ *  never the verdict's wording. */
 export function createPublicBriefGuard(services: GuardServices, logger: Logger): PublicBriefGuard {
   return {
     async judge(row, render, signal) {
@@ -39,7 +50,7 @@ export function createPublicBriefGuard(services: GuardServices, logger: Logger):
       })
 
       if (followed === undefined) {
-        return { kind: 'refuse', leaked: [] }
+        return { kind: 'unread' }
       }
 
       const leaked = leakedTickers(textOf(render), followed, exemptTickers(row))
@@ -73,26 +84,42 @@ async function readFollowed(
   )
 }
 
-/** The followed tickers that stand in the text as an uppercase whole word and are not exempt, in
- *  the order first seen. */
+/** The followed tickers that stand in the text as a whole word and are not exempt, in the order
+ *  followed. A ticker of three characters or more is read in any case, with `.`, `-` and `_` as one
+ *  separator (`BRK.B` is `brk-b`); a shorter one only in capitals. */
 function leakedTickers(
   text: readonly string[],
   followed: ReadonlySet<string>,
   exempt: ReadonlySet<string>
 ): readonly string[] {
-  const watched = [...followed].filter((ticker) => !exempt.has(ticker))
+  return [...followed]
+    .filter((ticker) => !exempt.has(ticker))
+    .filter((ticker) => {
+      const word = toWordPattern(ticker)
 
-  if (watched.length === 0) {
-    return []
-  }
+      return text.some((line) => word.test(line))
+    })
+}
 
-  // Longest first, so `BRK.B` is read whole before `BRK`.
-  const alternatives = watched
-    .toSorted((left, right) => right.length - left.length)
-    .map(escapeRegExp)
-  const word = new RegExp(`(?<![A-Za-z0-9])(?:${alternatives.join('|')})(?![A-Za-z0-9])`, 'g')
+function toWordPattern(ticker: string): RegExp {
+  const isCaseBlind = ticker.length >= CASE_BLIND_MIN_LENGTH
+  const body = ticker
+    .split(SEPARATOR_RE)
+    .map((part) => [...part].map((char) => toCharPattern(char, isCaseBlind)).join(''))
+    .join(SEPARATOR_CLASS)
 
-  return [...new Set(text.flatMap((line) => line.match(word) ?? []))]
+  return isCaseBlind
+    ? new RegExp(`${WORD_START}${body}${WORD_END}`)
+    : new RegExp(`${STRICT_START}${body}${STRICT_END}`)
+}
+
+/** One character, in both cases when the ticker is read in any. Not the `i` flag: the word bounds
+ *  tell upper from lower case. */
+function toCharPattern(char: string, isCaseBlind: boolean): string {
+  const lower = char.toLowerCase()
+  const upper = char.toUpperCase()
+
+  return isCaseBlind && lower !== upper ? `[${upper}${lower}]` : escapeRegExp(char)
 }
 
 function escapeRegExp(literal: string): string {

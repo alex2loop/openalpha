@@ -5,8 +5,10 @@ import type {
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
 import type { StoryCode } from '@/trading/kernel/operator/brief-story'
+import { isShown } from '@/trading/features/brief/render'
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-scope'
+import { DIRECTIONAL_STORY_CODES } from '@/trading/kernel/operator/brief-story'
 
 export const PUBLIC_ANALYSIS_KINDS = Object.freeze([
   'macro',
@@ -16,15 +18,6 @@ export const PUBLIC_ANALYSIS_KINDS = Object.freeze([
   'basis',
   'screen-delta',
 ] as const satisfies readonly BriefSectionKind[])
-
-export const PUBLIC_ANALYSIS_STORIES = Object.freeze([
-  'support-test',
-  'resistance-test',
-  'sector-leading',
-  'sector-lagging',
-  'basis-premium',
-  'basis-discount',
-] as const satisfies readonly StoryCode[])
 
 export const PUBLIC_HEADLINE_KINDS = Object.freeze([
   'headlines',
@@ -65,9 +58,10 @@ export function publicSectionKinds(toggles: PublicToggles): ReadonlySet<BriefSec
   )
 }
 
-/** The stories passed as `omitStories`: none, or the analysis stories when that group is off. */
+/** The stories passed as `omitStories`: none, or the directional stories when the analysis group is
+ *  off. */
 export function publicStoryOmits(toggles: PublicToggles): ReadonlySet<StoryCode> {
-  return new Set(toggles.analysis ? [] : PUBLIC_ANALYSIS_STORIES)
+  return new Set(toggles.analysis ? [] : DIRECTIONAL_STORY_CODES)
 }
 
 /** What an earlier public brief hands the story step: its stories, less any the toggles now omit.
@@ -87,9 +81,10 @@ export function carriedSections(
   })
 }
 
-/** The tickers this brief may name: the `ticker` of every row of a `market` section, the uppercase
- *  symbols of a headline row's own title, and the names on its screen lists. Read from structured
- *  rows alone, never from rendered text, and from `market` kinds alone: a book kind adds nothing. */
+/** The tickers this brief may name: the `ticker` of every row of a `market` section the renderer
+ *  prints, the uppercase symbols of a headline row's own title, and the names on its screen lists.
+ *  Read from structured rows alone, never from rendered text, and from printed `market` kinds alone:
+ *  a book kind, or a stored kind the renderer leaves out, adds nothing. */
 export function exemptTickers(row: PublicBriefRow): ReadonlySet<string> {
   return new Set([
     ...(row.sections ?? []).flatMap(sectionTickers),
@@ -100,7 +95,11 @@ export function exemptTickers(row: PublicBriefRow): ReadonlySet<string> {
 }
 
 function sectionTickers(section: BriefSectionResult): readonly string[] {
-  if (section.status !== 'ready' || BRIEF_SECTION_SCOPE[section.kind] !== 'market') {
+  if (
+    section.status !== 'ready' ||
+    BRIEF_SECTION_SCOPE[section.kind] !== 'market' ||
+    !isShown(section)
+  ) {
     return []
   }
 

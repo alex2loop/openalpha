@@ -12,6 +12,7 @@ import { hasAiKey, readModelProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
   DEBATE_MODEL_TIER,
+  DIRECTIONAL_STORY_CODES,
   marketRef,
   renderAnalysisBody,
   renderAnalysisFailure,
@@ -83,16 +84,9 @@ const BRIEF_OMITS: ReadonlySet<BriefSectionKind> = new Set([
   'range',
 ])
 
-/** Market stories that read a level or a direction: the index near support or resistance, a sector
- *  leading or lagging, and what the futures basis expects. */
-const BRIEF_STORY_OMITS: NonNullable<TradingEdition['briefStoryOmits']> = new Set([
-  'support-test',
-  'resistance-test',
-  'sector-leading',
-  'sector-lagging',
-  'basis-premium',
-  'basis-discount',
-])
+const BRIEF_STORY_OMITS: NonNullable<TradingEdition['briefStoryOmits']> = new Set(
+  DIRECTIONAL_STORY_CODES
+)
 
 /** The next action that tells the reader when to buy. The others name a record to make or a
  *  command to read. */

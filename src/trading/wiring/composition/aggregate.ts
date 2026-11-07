@@ -61,7 +61,7 @@ interface AggregateOptions {
   readonly lateGraceMs: number
   readonly edition?: Pick<TradingEdition, 'profile' | 'rebalance' | 'screen'>
   /** Bound only where the public brief is switched on and can post. */
-  readonly publicBrief?: PublicBriefPublisher
+  readonly publicBriefPublisher?: PublicBriefPublisher
   recipient(): DeliveryAddress | undefined
 }
 
@@ -90,7 +90,7 @@ export function toAggregate(
   // The one owner of "the boot sweep is done": the loops wait on its promise, and the boot refresh
   // settles it through `releaseFirstSweep`.
   const firstSweep = Promise.withResolvers<void>()
-  const publicBrief = createPublicBriefService(parts, options, registries)
+  const publicBrief = toPublicBrief(parts, options, registries)
 
   return Object.freeze({
     ...parts.services,
@@ -118,7 +118,7 @@ export function toAggregate(
       {
         ...options,
         firstSweep: firstSweep.promise,
-        publicBriefTick: createPublicBriefLoopTick(parts, options, { publicBrief, registries }),
+        publicBriefTick: resolvePublicBriefTick(parts, options, { publicBrief, registries }),
       },
       registries
     ),
@@ -128,7 +128,7 @@ export function toAggregate(
   })
 }
 
-function createPublicBriefService(
+function toPublicBrief(
   parts: AggregateParts,
   options: AggregateOptions,
   registries: Registries
@@ -219,18 +219,18 @@ function buildDaemonTasks(
     firstSweep: options.firstSweep,
     logger: parts.logger,
     reachability: options.reachability,
-    ...(options.publicBriefTick === undefined ? {} : { publicBrief: options.publicBriefTick }),
+    ...(options.publicBriefTick === undefined ? {} : { publicBriefTick: options.publicBriefTick }),
   })
 }
 
 /** The public brief's tick, where the brief can post: it builds, renders, judges and posts. The
  *  guard is the one reader of the book. */
-function createPublicBriefLoopTick(
+function resolvePublicBriefTick(
   parts: AggregateParts,
   options: AggregateOptions,
   built: { readonly publicBrief: PublicBrief; readonly registries: Registries }
 ): OperationTick | undefined {
-  const { publicBrief: publisher, tradingConfig } = options
+  const { publicBriefPublisher: publisher, tradingConfig } = options
 
   if (publisher === undefined) {
     return undefined

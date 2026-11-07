@@ -79,7 +79,7 @@ function toScreenText(locale: Locale, screen: PublicScreen): PublicScreenText {
   }
 }
 
-function perLocale<T>(make: (locale: Locale) => T): Record<Locale, T> {
+export function perLocale<T>(make: (locale: Locale) => T): Record<Locale, T> {
   return { en: make('en'), vi: make('vi') }
 }
 

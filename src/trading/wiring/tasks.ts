@@ -64,7 +64,7 @@ interface TradingDaemonDeps {
   readonly themes: Pick<ThemeService, 'resolveOutcomes'>
   readonly briefs: BriefService
   /** The public brief's tick; absent where the brief is off or cannot post, and then no loop runs. */
-  readonly publicBrief?: OperationTick
+  readonly publicBriefTick?: OperationTick
   readonly markets: MarketRegistry
   readonly portfolio: Pick<PortfolioService, 'positionsAt' | 'record'>
   readonly reportDeps: IntradayReportDeps
@@ -154,7 +154,7 @@ function operationTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
 
 /** Fails alone: the owner's brief shares none of its state. */
 function publicBriefTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
-  if (deps.publicBrief === undefined) {
+  if (deps.publicBriefTick === undefined) {
     return []
   }
 
@@ -167,7 +167,7 @@ function publicBriefTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
       after: deps.firstSweep,
       reachability: reachabilityOf(deps),
       onTaskPass: deps.onTaskPass,
-      tick: deps.publicBrief,
+      tick: deps.publicBriefTick,
     }),
   ]
 }

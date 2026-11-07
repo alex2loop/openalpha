@@ -74,6 +74,10 @@ export {
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
 export type {
   Alert,
   AlertListPage,
@@ -215,6 +219,7 @@ export type {
 export type { Page } from '@/trading/kernel/store/page'
 export type { AgentRecordSummary } from '@/trading/wiring/host/view-types'
 export { DEFAULT_NAV_WINDOW, NAV_WINDOWS } from '@/trading/features/portfolio/nav/types'
+export { DIRECTIONAL_STORY_CODES } from '@/trading/kernel/operator/brief-story'
 export { NOTICE_KINDS } from '@/trading/kernel/operator/notice'
 export { disabledSegments } from '@/trading/kernel/operator/profile'
 

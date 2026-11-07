@@ -42,7 +42,6 @@ import { createPublicBriefGuard, PUBLIC_BRIEF_TOKEN_VARIABLE } from '@/trading/a
 import { PUBLIC_HOME_MARKET } from '@/trading/features/brief/public/reads'
 import {
   PUBLIC_ANALYSIS_KINDS,
-  PUBLIC_ANALYSIS_STORIES,
   PUBLIC_HEADLINE_KINDS,
   publicSectionKinds,
   publicStoryOmits,
@@ -51,6 +50,7 @@ import { PUBLIC_BRIEF_SCHEMA } from '@/trading/features/brief/public/store'
 import { createPublicBriefTick } from '@/trading/features/brief/public/tick'
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-scope'
+import { DIRECTIONAL_STORY_CODES } from '@/trading/kernel/operator/brief-story'
 import { vnManifest } from '@/trading/markets/equity-vn/market'
 
 const COLUMN_GAP = '  '
@@ -104,7 +104,7 @@ function listKinds(): void {
     )
   }
 
-  console.log(`analysis stories: ${PUBLIC_ANALYSIS_STORIES.join(', ')}`)
+  console.log(`analysis stories: ${DIRECTIONAL_STORY_CODES.join(', ')}`)
   console.log(`stories omitted, analysis on: ${listOf(publicStoryOmits(ALL_ON))}`)
   console.log(`stories omitted, analysis off: ${listOf(publicStoryOmits(ANALYSIS_OFF))}`)
 }
@@ -229,12 +229,12 @@ async function tickOnce(
     calendar,
     publishTime: trading.publicBrief.publishTime,
     store,
-    publisher: createPublicBriefPublisher(target.credential, target.origin),
+    publisher: createPublicBriefPublisher(target.credential, logger, target.origin),
     logger,
     build: (input) => services.publicBrief.build(input),
     render: (row) => services.publicBrief.render(row),
     judge: (row, render, judged) => guard.judge(row, render, judged),
-  })(signal)
+  })(signal, { fail: () => undefined })
 
   const day = calendar.dayAt(now)
   const row = await store.find(day, signal)
