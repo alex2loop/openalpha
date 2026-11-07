@@ -1,8 +1,8 @@
 import {
   PUBLIC_BRIEF_WIRE_SCHEMA,
-  type PublicBriefDocument,
   type PublishAnswer,
 } from '../../../src/app/server/wire/public-brief'
+import { isDocument } from '../../../src/app/server/wire/public-brief-document'
 import { findLatestBody, MS_PER_DAY, saveBrief } from './store'
 
 const PUBLISH_PATH = '/api/publish'
@@ -10,13 +10,9 @@ const LATEST_PATH = '/api/latest'
 const API_PREFIX = '/api/'
 const MAX_PUBLISH_BYTES = 262_144
 const LATEST_MAX_AGE_SECONDS = 60
-const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 const MAX_DAYS_BACK = 7
 const MAX_DAYS_AHEAD = 1
 const BEARER_RE = /^Bearer (.+)$/i
-const LOCALES: readonly (keyof PublicBriefDocument['briefs'])[] = ['vi', 'en']
-const NO_SUBSCRIBERS = 0
-const NO_REJECTED = 0
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
@@ -73,14 +69,14 @@ async function publish(request: Request, env: Env): Promise<Response> {
   }
 
   const now = Date.now()
-  const day = parsePublishedDay(body, now)
+  const document = jsonOrUndefined(body)
 
-  if (day === undefined) {
+  if (!(isDocument(document) && isPlausibleDay(document.day, now))) {
     return replyJson(400, { error: 'invalid' })
   }
 
   const saved = await saveBrief(env.DB, {
-    day,
+    day: document.day,
     schema: PUBLIC_BRIEF_WIRE_SCHEMA,
     body,
     publishedAt: now,
@@ -93,24 +89,25 @@ async function publish(request: Request, env: Env): Promise<Response> {
   const stored = saved === 'inserted'
 
   if (stored) {
-    await caches.default.delete(latestKeyOf(request))
+    await bestEffort(caches.default.delete(latestKeyOf(request)))
   }
 
-  const answer: PublishAnswer = { stored, subscribers: NO_SUBSCRIBERS, rejected: NO_REJECTED }
+  const answer: Pick<PublishAnswer, 'stored'> = { stored }
 
   return replyJson(stored ? 201 : 200, answer)
 }
 
 // The edge cache answers first, so a flood of reads costs no store read. An empty store is not kept.
+// The cache only saves reads: a failure of it falls through to the store and never fails an answer.
 async function serveLatest(request: Request, env: Env): Promise<Response> {
   const key = latestKeyOf(request)
-  const kept = await caches.default.match(key)
+  const kept = await bestEffort(caches.default.match(key))
 
   if (kept !== undefined) {
     return kept
   }
 
-  const body = await findLatestBody(env.DB)
+  const body = await findLatestBody(env.DB, PUBLIC_BRIEF_WIRE_SCHEMA)
 
   if (body === undefined) {
     return replyJson(404, { error: 'empty' })
@@ -120,9 +117,19 @@ async function serveLatest(request: Request, env: Env): Promise<Response> {
     'Cache-Control': `public, max-age=${LATEST_MAX_AGE_SECONDS}`,
   })
 
-  await caches.default.put(key, response.clone())
+  await bestEffort(caches.default.put(key, response.clone()))
 
   return response
+}
+
+// A failed cache call answers undefined: a purge that failed leaves the old answer for at most its
+// max-age, and the stored publish or the good read stands.
+async function bestEffort<T>(work: Promise<T>): Promise<T | undefined> {
+  try {
+    return await work
+  } catch {
+    return undefined
+  }
 }
 
 // One entry whatever the query string, so a changing `?x=` cannot walk around the cache.
@@ -179,36 +186,13 @@ async function readCapped(
   }
 }
 
-function parsePublishedDay(body: string, now: number): PublicBriefDocument['day'] | undefined {
-  const document = parseJson(body)
-
-  if (!isRecord(document) || document.schema !== PUBLIC_BRIEF_WIRE_SCHEMA) {
-    return undefined
-  }
-
-  const { day, briefs, screens } = document
-
-  if (
-    typeof day !== 'string' ||
-    !isPlausibleDay(day, now) ||
-    !isRecord(briefs) ||
-    !isRecord(screens)
-  ) {
-    return undefined
-  }
-
-  return LOCALES.every((locale) => isRecord(briefs[locale]) && Array.isArray(screens[locale]))
-    ? day
-    : undefined
-}
-
-// A real calendar date from a week back to a day ahead of the Worker's UTC today (a Vietnam
-// morning is already tomorrow in UTC): a far-future day would pin `latest` for good, and a far-past
-// one only fills the store.
+// A real calendar date (`isDocument` holds the format) from a week back to a day ahead of the
+// Worker's UTC today (a Vietnam morning is already tomorrow in UTC): a far-future day would pin
+// `latest` for good, and a far-past one only fills the store.
 function isPlausibleDay(day: string, now: number): boolean {
   const start = Date.parse(`${day}T00:00:00Z`)
 
-  if (!DAY_RE.test(day) || Number.isNaN(start) || !new Date(start).toISOString().startsWith(day)) {
+  if (Number.isNaN(start) || !new Date(start).toISOString().startsWith(day)) {
     return false
   }
 
@@ -217,17 +201,13 @@ function isPlausibleDay(day: string, now: number): boolean {
   return daysFromToday >= -MAX_DAYS_BACK && daysFromToday <= MAX_DAYS_AHEAD
 }
 
-function parseJson(text: string): unknown {
+function jsonOrUndefined(text: string): unknown {
   try {
     return JSON.parse(text)
   } catch {
     // Not JSON is a 400 for the caller to read, not a failure of the Worker.
     return undefined
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function replyNotAllowed(allowed: string): Response {

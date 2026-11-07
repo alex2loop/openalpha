@@ -21,6 +21,7 @@ export interface BrowserBuild {
 }
 
 const BRAND_PLACEHOLDER = '{{brand}}'
+const HEAD_END = '</head>'
 const BUILTIN_SPECIFIERS: readonly string[] = ['bun', 'bun:*', 'node:*', ...builtinModules]
 
 // Bun's browser polyfills stay on, so a builtin ships as the polyfill it would get, or fails the
@@ -68,4 +69,13 @@ export function stampBrand(html: string, file: string): string {
   }
 
   return html.replaceAll(BRAND_PLACEHOLDER, BRAND.display)
+}
+
+/** A built page's html with `tags` (one per line) just before its `</head>`. */
+export function insertInHead(html: string, tags: readonly string[]): string {
+  if (!html.includes(HEAD_END)) {
+    throw new Error(`the page has no ${HEAD_END} to stamp`)
+  }
+
+  return html.replace(HEAD_END, () => `${tags.join('\n')}\n${HEAD_END}`)
 }

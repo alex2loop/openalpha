@@ -1,15 +1,16 @@
-import { withDeadline } from '@/web/brief/load'
+import { APP_ROOT, CANVAS_DARK, TAB_ICON_FILE } from '@/web/brief/install-look'
+import { withFetchDeadline } from '@/web/brief/load'
 
 const WIDTH = 1080
 const HEIGHT = 1920
 const MARGIN = 96
 const TEXT_WIDTH = WIDTH - MARGIN * 2
-const LOGO_URL = '/icon-192.png'
+const LOGO_URL = `${APP_ROOT}${TAB_ICON_FILE}`
 const LOGO_SIZE = 168
 const LOGO_TOP = 150
 const FONT_FAMILY =
   '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif'
-const BACKGROUND = '#1c1c28'
+const BACKGROUND = CANVAS_DARK
 const DAY_TOP = 420
 const HEADLINE_TOP = 520
 const DISCLAIMER_BOTTOM = HEIGHT - 260
@@ -59,7 +60,7 @@ interface Placement {
 }
 
 interface ShareCardInput {
-  /** The brief's own title, which names its day. */
+  /** The day the brief is for, as the reader writes it. */
   readonly day: string
   readonly headline: string
   readonly disclaimer: string
@@ -121,7 +122,7 @@ function downloadBlob(blob: Blob): void {
 }
 
 async function readLogo(signal: AbortSignal): Promise<ImageBitmap> {
-  return await withDeadline(signal, async (bounded) => {
+  return await withFetchDeadline(signal, async (bounded) => {
     const response = await fetch(LOGO_URL, { signal: bounded })
 
     if (!response.ok) {

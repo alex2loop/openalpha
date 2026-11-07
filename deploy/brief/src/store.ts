@@ -3,7 +3,7 @@ const INSERT_SQL =
   'ON CONFLICT (day) DO NOTHING'
 const PRUNE_SQL = 'DELETE FROM briefs WHERE day < ?1'
 const BODY_OF_DAY_SQL = 'SELECT body FROM briefs WHERE day = ?1'
-const LATEST_BODY_SQL = 'SELECT body FROM briefs ORDER BY day DESC LIMIT 1'
+const LATEST_BODY_SQL = 'SELECT body FROM briefs WHERE schema = ?1 ORDER BY day DESC LIMIT 1'
 
 export const MS_PER_DAY = 86_400_000
 const RETENTION_DAYS = 30
@@ -18,8 +18,8 @@ export interface StoredBrief {
   readonly publishedAt: number
 }
 
-/** A day is written once, and a new day drops the days past the retention. Racing publishes of one day cannot both insert; the loser finds the
- *  winner's body and is answered by comparing it. */
+/** A day is written once, and a new day drops the days past the retention. Racing publishes of one
+ *  day cannot both insert; the loser finds the winner's body and is answered by comparing it. */
 export async function saveBrief(db: D1Database, brief: StoredBrief): Promise<SaveResult> {
   const insert = await db
     .prepare(INSERT_SQL)
@@ -42,8 +42,9 @@ function oldestKeptDay(now: number): string {
   return new Date(now - RETENTION_DAYS * MS_PER_DAY).toISOString().slice(0, DAY_LENGTH)
 }
 
-export async function findLatestBody(db: D1Database): Promise<string | undefined> {
-  const latest = await db.prepare(LATEST_BODY_SQL).first<{ body: string }>()
+/** The newest body written in `schema`, the one version the app reads. */
+export async function findLatestBody(db: D1Database, schema: number): Promise<string | undefined> {
+  const latest = await db.prepare(LATEST_BODY_SQL).bind(schema).first<{ body: string }>()
 
   return latest?.body
 }

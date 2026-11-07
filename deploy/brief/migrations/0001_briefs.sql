@@ -1,4 +1,4 @@
--- One row per published day, kept for good: the history is the Worker's, not the daemon's.
+-- One row per published day; every insert prunes the rows past 30 days.
 CREATE TABLE briefs (
   day TEXT PRIMARY KEY,
   schema INTEGER NOT NULL,

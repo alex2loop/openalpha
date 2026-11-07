@@ -1,15 +1,13 @@
 import type { PublicBriefDocument } from '@/app/server/wire/public-brief'
-import { isDocument } from '@/web/brief/document'
+import { isDocument } from '@/app/server/wire/public-brief-document'
 import { vnToday } from '@/web/brief/today'
 
 export const LATEST_PATH = '/api/latest'
-/** What the service worker keeps: the app shell and the last brief. */
-export const CACHE_NAME = 'brief-v1'
+export const NOT_FOUND = 404
 /** Set by the service worker on a brief it answered from its cache because the network failed. */
 export const OFFLINE_HEADER = 'X-Brief-Offline'
 
 const FETCH_TIMEOUT_MS = 8_000
-const NOT_FOUND = 404
 
 export type LatestState =
   | { readonly kind: 'ready'; readonly doc: PublicBriefDocument; readonly isToday: boolean }
@@ -23,7 +21,7 @@ export async function loadLatest(signal: AbortSignal): Promise<LatestState> {
   const now = Date.now()
 
   try {
-    return await withDeadline(signal, async (bounded) => {
+    return await withFetchDeadline(signal, async (bounded) => {
       const response = await fetch(LATEST_PATH, { cache: 'no-store', signal: bounded })
 
       if (response.status === NOT_FOUND) {
@@ -50,7 +48,7 @@ export async function loadLatest(signal: AbortSignal): Promise<LatestState> {
 
 /** Runs `work` with a signal that aborts when `signal` does or after the fetch timeout, and lets go
  *  of both on every way out. */
-export async function withDeadline<T>(
+export async function withFetchDeadline<T>(
   signal: AbortSignal,
   work: (bounded: AbortSignal) => Promise<T>
 ): Promise<T> {

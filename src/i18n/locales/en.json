@@ -2141,7 +2141,7 @@
     "brief.cautions": "Cautions",
     "brief.loading": "Opening the brief...",
     "brief.empty": "The first brief will be here on the morning of the next trading day.",
-    "brief.offline": "I couldn't get a newer brief. Please check your connection.",
+    "brief.offline": "Showing the last brief I have. I couldn't reach a newer one, so please check your connection.",
     "brief.failed": "I couldn't open the brief. Please try again.",
     "brief.retry": "Try again",
     "brief.share": "Share the brief",
@@ -2159,7 +2159,7 @@
     "brief.privacy.host.body": "Cloudflare serves this app, so like any web host it sees each request: your IP address, device type, the page and the time. It keeps those under [its own policy]({cloudflarePolicyUrl}). I switched off its logging tools and I read none of it.",
     "brief.privacy.advice.heading": "What the brief is",
     "brief.privacy.owner.heading": "Who runs it",
-    "brief.privacy.owner.body": "{maintainer} runs it, the maintainer of the open-source {brand} project. The code is on [GitHub]({repoUrl}); questions go to its [issues page]({repoUrl}/issues).",
+    "brief.privacy.owner.body": "{maintainer}, the maintainer of the open-source {brand} project, runs it. The code is on [GitHub]({repoUrl}); questions go to its [issues page]({repoUrl}/issues).",
     "brief.privacy.back": "Back to the brief"
   },
   "footer": {

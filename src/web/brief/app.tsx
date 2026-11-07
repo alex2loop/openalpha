@@ -7,11 +7,11 @@ import { PRIVACY_HREF, PrivacyPage, usePrivacyRoute } from '@/web/brief/privacy'
 import { ScreenList } from '@/web/brief/screen-list'
 import { drawShareCard, shareBlob } from '@/web/brief/share-card'
 import {
+  createTranslate,
   type Locale,
   rememberChoice,
   startLocale,
   type Translate,
-  toTranslate,
 } from '@/web/brief/strings'
 import { formatDay } from '@/web/brief/today'
 import { Button } from '@/web/ui/kit/button'
@@ -29,8 +29,13 @@ interface DocumentProps {
 interface PageProps {
   readonly t: Translate
   readonly locale: Locale
-  readonly latest: LatestState | undefined
   readonly onLocale: (locale: Locale) => void
+}
+
+interface BodyProps {
+  readonly t: Translate
+  readonly locale: Locale
+  readonly latest: LatestState | undefined
   readonly onRetry: () => void
 }
 
@@ -42,9 +47,7 @@ type ShareCard =
 /** The brief on a phone: the newest document the Worker holds, in the reader's language. */
 export function App() {
   const [locale, setLocale] = useState(startLocale)
-  const [attempt, setAttempt] = useState(0)
   const isPrivacy = usePrivacyRoute()
-  const latest = useLatest(attempt)
 
   useEffect(() => {
     document.documentElement.lang = locale
@@ -56,18 +59,10 @@ export function App() {
   }
 
   if (isPrivacy) {
-    return <PrivacyPage t={toTranslate(locale)} locale={locale} onLocale={onLocale} />
+    return <PrivacyPage t={createTranslate(locale)} locale={locale} onLocale={onLocale} />
   }
 
-  return (
-    <Page
-      t={toTranslate(locale)}
-      locale={locale}
-      latest={latest}
-      onLocale={onLocale}
-      onRetry={() => setAttempt((count) => count + 1)}
-    />
-  )
+  return <Page t={createTranslate(locale)} locale={locale} onLocale={onLocale} />
 }
 
 // A read per attempt; a new attempt, or leaving the page, abandons the one in flight.
@@ -93,7 +88,11 @@ function useLatest(attempt: number): LatestState | undefined {
   return latest
 }
 
-function Page({ t, locale, latest, onLocale, onRetry }: PageProps) {
+// The read lives here, so the privacy page asks the Worker for nothing.
+function Page({ t, locale, onLocale }: PageProps) {
+  const [attempt, setAttempt] = useState(0)
+  const latest = useLatest(attempt)
+  const onRetry = () => setAttempt((count) => count + 1)
   const doc = latest !== undefined && 'doc' in latest ? latest.doc : undefined
 
   return (
@@ -125,7 +124,7 @@ function headingOf(t: Translate, latest: LatestState | undefined): string {
   return t('ui.brief.heading.today')
 }
 
-function Body({ t, locale, latest, onRetry }: Omit<PageProps, 'onLocale'>) {
+function Body({ t, locale, latest, onRetry }: BodyProps) {
   if (latest === undefined) {
     return <p class="meta">{t('ui.brief.loading')}</p>
   }
@@ -147,7 +146,7 @@ function Body({ t, locale, latest, onRetry }: Omit<PageProps, 'onLocale'>) {
   }
 }
 
-function Failed({ t, onRetry }: Pick<PageProps, 't' | 'onRetry'>) {
+function Failed({ t, onRetry }: Pick<BodyProps, 't' | 'onRetry'>) {
   return (
     <div class="flow app-message">
       <p>{t('ui.brief.failed')}</p>
@@ -158,7 +157,7 @@ function Failed({ t, onRetry }: Pick<PageProps, 't' | 'onRetry'>) {
 
 // A document that passed the read can still fail to lay out; the page then says it failed, as it
 // does for a read that failed, and a retry starts from a clean boundary.
-function GuardedBrief({ doc, locale, t, onRetry }: DocumentProps & Pick<PageProps, 'onRetry'>) {
+function GuardedBrief({ doc, locale, t, onRetry }: DocumentProps & Pick<BodyProps, 'onRetry'>) {
   const [error, reset] = useErrorBoundary()
 
   if (error !== undefined) {

@@ -1,16 +1,19 @@
 #!/usr/bin/env bun
-// Phone app bundle gate. The app ships to a phone as a few kilobytes, so its bundle holds only the
-// files below: nothing of the engine, the catalogs, persistence, the scene or the web app's state.
-// Run alone it builds the page into a temporary folder; `build-brief` runs the same assertion on
-// the build it ships. A type-only import is erased before the bundle, so it never counts.
+// Phone app bundle gate. The app ships to a phone as a few kilobytes, so its bundles (the page and
+// the service worker) hold only the files below: nothing of the engine, the catalogs, persistence,
+// the scene or the web app's state. Run alone it builds both into a temporary folder; `build-brief`
+// runs the same assertion on the builds it ships. A type-only import is erased before the bundle,
+// so it never counts.
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 
-import { buildBriefPage } from './brief-page'
+import { buildBriefPage, buildBriefWorker } from './brief-page'
+import type { BrowserBuild } from './browser-build'
 
 const ROOT = resolve(import.meta.dir, '..')
 const CHECK_APP_URL = 'https://app.invalid/'
+const CHECK_PRECACHE = { urls: [], digest: 'check' }
 const BYTES_PER_KB = 1024
 // The first measure (21.1 KB) rounded up to the next 5 KB; it only goes down.
 const BRIEF_BUNDLE_MAX_GZIP_BYTES = 25 * BYTES_PER_KB
@@ -19,7 +22,7 @@ const SHIPPED_FILE_RE = /\.(?:js|css)$/
 
 const BRIEF_BUNDLE_INPUTS: readonly Bun.Glob[] = [
   'src/web/brief/**',
-  'src/app/server/wire/public-brief.ts',
+  'src/app/server/wire/public-brief{,-document}.ts',
   'src/web/ui/reader/{brief-body,brief-model}.*',
   'src/web/ui/markdown/{inline,inline-view,note-list}.*',
   'src/web/ui/markdown/markdown.css',
@@ -34,15 +37,15 @@ if (import.meta.main) {
   const outdir = await mkdtemp(join(tmpdir(), 'brief-bundle-'))
 
   try {
-    const build = await buildBriefPage(outdir, CHECK_APP_URL)
+    const builds = [
+      await buildBriefPage(outdir, CHECK_APP_URL),
+      await buildBriefWorker(outdir, CHECK_PRECACHE),
+    ]
 
-    if (build.metafile === undefined) {
-      throw new Error('brief bundle: the build wrote no metafile')
-    }
+    await Promise.all(builds.map(assertBriefBuild))
 
-    const gzipBytes = await gzipBytesOf(build.outputs)
+    const gzipBytes = await gzipBytesOf(builds.flatMap((build) => build.outputs))
 
-    assertBriefBundle(build.metafile, gzipBytes)
     console.log(`check-brief-bundle: PASS (${(gzipBytes / BYTES_PER_KB).toFixed(1)} KB gzip)`)
   } catch (error) {
     console.error(`check-brief-bundle: FAIL\n${error instanceof Error ? error.message : error}`)
@@ -52,9 +55,19 @@ if (import.meta.main) {
   }
 }
 
-/** Throws a message naming every bundled file outside the allowlist with the files that import it,
- *  and the size when the shipped code outgrows its ceiling. */
-export function assertBriefBundle(metafile: Bun.BuildMetafile, gzipBytes: number): void {
+/** Throws when a finished build (the page or the service worker) bundles a file outside the
+ *  allowlist or outgrows its ceiling. */
+export async function assertBriefBuild(build: BrowserBuild): Promise<void> {
+  if (build.metafile === undefined) {
+    throw new Error('brief bundle: the build wrote no metafile')
+  }
+
+  assertBriefBundle(build.metafile, await gzipBytesOf(build.outputs))
+}
+
+// Names every bundled file outside the allowlist with the files that import it, and the size when
+// the shipped code outgrows its ceiling.
+function assertBriefBundle(metafile: Bun.BuildMetafile, gzipBytes: number): void {
   const problems = [...strayInputs(metafile)]
 
   if (gzipBytes > BRIEF_BUNDLE_MAX_GZIP_BYTES) {
@@ -66,8 +79,8 @@ export function assertBriefBundle(metafile: Bun.BuildMetafile, gzipBytes: number
   }
 }
 
-/** The gzip size of the script and style files a build wrote. */
-export async function gzipBytesOf(outputs: readonly Bun.BuildArtifact[]): Promise<number> {
+// The gzip size of the script and style files a build wrote.
+async function gzipBytesOf(outputs: readonly Bun.BuildArtifact[]): Promise<number> {
   const sizes = await Promise.all(
     outputs
       .filter((output) => SHIPPED_FILE_RE.test(output.path))
