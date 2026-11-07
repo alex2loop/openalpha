@@ -94,10 +94,12 @@ function newsSource(options: SourceAdapterOptions): RegisteredSource {
     // A feed serves a market or the macro tape, so answering an instrument-scoped request would
     // attribute a whole feed's headlines to one name. A region-only request falls through to
     // `MACRO_FEED_KEY` below, so it must not be covered either — a VN-only ask would otherwise get
-    // the Fed's press releases stamped as VN news.
+    // the Fed's press releases stamped as VN news. A scope with no feed this build reaches is not
+    // covered either, so a page reads the macro tape as not served, with no failure line.
     covers: (context) =>
       context.instrument === undefined &&
-      (context.market !== undefined || context.region === undefined),
+      (context.market !== undefined || context.region === undefined) &&
+      feedsFor(options, context).length > 0,
     load: (context, signal) => loadFeeds(options, feedsFor(options, context), signal),
   })
 }
