@@ -795,8 +795,8 @@ send_time = "08:15"            # default for a delivery that has not set its own
 
 [trading.public_brief]
 enabled = false                # publish a market-only brief each Vietnam trading morning
-publish_time = "08:30"         # HH:MM, Vietnam time; before the 09:00 open
-analysis = true                # macro regime and score, regime shift, sector rotation, support and resistance, futures basis, screen board changes
+publish_time = "08:30"         # HH:MM, Vietnam time; at least 15 minutes before the 09:00 open
+analysis = true                # macro regime and score, regime shift, sector rotation, support and resistance, futures basis
 headlines = true               # market, macro and economy headlines
 top_screen = 0                 # 0 = off; up to 10 names per market from the screen board, by composite score
 
@@ -961,8 +961,8 @@ each Vietnam trading morning. Nothing of your book enters it (no holding, watchl
 and it calls no model. It stays off until `enabled = true`, and it needs its publish token in the
 environment variable `PUBLIC_BRIEF_TOKEN`, never in `config.toml`: set it with
 `openalpha key set PUBLIC_BRIEF_TOKEN`. Enabled without the token, the daemon starts, says so once and
-publishes nothing. `publish_time` is Vietnam time and has to come before the open, or the daemon refuses
-to start. `analysis` and `headlines` leave their groups out when `false`; `top_screen` adds that many
+publishes nothing. `publish_time` is Vietnam time and has to leave at least 15 minutes before the 09:00 open, or the daemon refuses
+to start: the morning's market refresh needs that room, and a day that misses the open is skipped. `analysis` and `headlines` leave their groups out when `false`; `top_screen` adds that many
 top-scoring names per market from the screen board (a whole number, 0 to 10; 0 leaves the list out; a
 fraction or a larger number stops the daemon at start). What it carries and how it fails:
 [the public brief](trading.md#the-public-brief).

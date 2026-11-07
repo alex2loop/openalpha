@@ -4,7 +4,7 @@
 // Usage:
 //   bun scripts/public-brief-dry-run.ts --list-kinds
 //   bun scripts/public-brief-dry-run.ts --data-dir=<copy> [--config=<file>] [--out=<file>] [--now=<ISO>]
-//   PUBLIC_BRIEF_TOKEN=<token> bun scripts/public-brief-dry-run.ts --data-dir=<copy> --tick \
+//   PUBLIC_BRIEF_DRY_RUN_TOKEN=<token> bun scripts/public-brief-dry-run.ts --data-dir=<copy> --tick \
 //     --post=<url> [--now=<ISO>]
 //
 // --list-kinds prints every brief section kind with its book/market scope, the toggle group that
@@ -21,7 +21,8 @@
 // --tick runs the daemon's own public brief tick once, as if it were --now, on the copy: the same
 // build, render, guard and publisher, posting to --post, which is only an https:// address or
 // http://localhost:<port>. It prints the day's row afterwards. The token is read from the
-// environment, so use a throwaway one against a local Worker, never the real one.
+// PUBLIC_BRIEF_DRY_RUN_TOKEN variable, never the production PUBLIC_BRIEF_TOKEN, so the real token
+// cannot reach a wrong --post address by accident. Use a throwaway one against a local Worker.
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -38,7 +39,7 @@ import { boot } from '@/app/boot'
 import { resolveBootExtensions } from '@/app/config-tree'
 import { createPublicBriefPublisher } from '@/app/public-brief-publisher'
 import { registerKnownSecret, resolveCredential } from '@/core/security/credentials'
-import { createPublicBriefGuard, PUBLIC_BRIEF_TOKEN_VARIABLE } from '@/trading/api'
+import { createPublicBriefGuard } from '@/trading/api'
 import { PUBLIC_HOME_MARKET } from '@/trading/features/brief/public/reads'
 import {
   PUBLIC_ANALYSIS_KINDS,
@@ -54,6 +55,7 @@ import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-sco
 import { vnManifest } from '@/trading/markets/equity-vn/market'
 
 const COLUMN_GAP = '  '
+const DRY_RUN_TOKEN_VARIABLE = 'PUBLIC_BRIEF_DRY_RUN_TOKEN'
 const USAGE =
   'usage: bun scripts/public-brief-dry-run.ts --list-kinds | ' +
   '--data-dir=<copy> [--config=<file>] [--out=<file>] [--now=<ISO>] [--tick --post=<url>]'
@@ -171,7 +173,7 @@ async function dryRun(dataDir: string): Promise<number> {
  *  anything is built. */
 function tickTarget(): TickTarget | undefined {
   const origin = originOf(values.post ?? '')
-  const token = resolveCredential(process.env, PUBLIC_BRIEF_TOKEN_VARIABLE)
+  const token = resolveCredential(process.env, DRY_RUN_TOKEN_VARIABLE)
 
   if (origin === undefined) {
     console.error('--post takes https://<host> or http://localhost:<port>')
@@ -180,7 +182,7 @@ function tickTarget(): TickTarget | undefined {
   }
 
   if (token === undefined) {
-    console.error(`${PUBLIC_BRIEF_TOKEN_VARIABLE} is not set`)
+    console.error(`${DRY_RUN_TOKEN_VARIABLE} is not set`)
 
     return undefined
   }

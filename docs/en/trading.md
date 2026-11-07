@@ -887,12 +887,12 @@ Each section is either market or book, decided once in code. A new kind of secti
 | Key | Default | Does |
 |---|---|---|
 | `enabled` | `false` | Publishes the brief. |
-| `publish_time` | `"08:30"` | Vietnam time. It has to come before the 09:00 open, or the daemon refuses to start. |
-| `analysis` | `true` | `false` leaves out the macro read, regime shift, sector rotation, support and resistance, futures basis, screen-board changes and the stories that restate them. |
+| `publish_time` | `"08:30"` | Vietnam time. It has to leave at least 15 minutes before the 09:00 open, or the daemon refuses to start. |
+| `analysis` | `true` | `false` leaves out the macro read, regime shift, sector rotation, support and resistance, futures basis and the stories that restate them. |
 | `headlines` | `true` | `false` leaves out the market, macro and economy headlines. |
-| `top_screen` | `0` | `0` is off. A whole number up to 10 adds that many names from each screen board (VN stocks and crypto), ranked by composite score: rank, name, score, last close and move. It carries no rating, no factor or caution line and no exclusion or margin mark, and closes with a note that it is a ranked screen, not a recommendation to buy or sell. Crypto ranks every listed coin, not only those at your venues. A fraction or a number over 10 stops the daemon at start. |
+| `top_screen` | `0` | `0` is off. A whole number up to 10 adds that many names from each screen board (VN stocks and crypto, and US stocks while your US segment is on), ranked by composite score: rank, name, score, last close and move. It carries no rating, no factor or caution line and no exclusion or margin mark, and closes with a note that it is a ranked screen, not a recommendation to buy or sell. Crypto ranks every listed coin, not only those at your venues. A fraction or a number over 10 stops the daemon at start. |
 
-**When it goes out.** Once on each Vietnam trading day, from `publish_time` until the market opens, after your own 08:15 brief; never after the open. First it refreshes market data for the four markets it always carries, so it reads markets you have switched off too, plus US stocks only while your US segment is on. With that segment off, nothing US is refreshed, built or shown, so the morning run never spends the long first US refresh. If your profile cannot be read, US stocks are left out for that day and the log says so (`trading.public_brief_profile_unreadable`). It publishes only when the tape is the last settled session's. A build with no tape, or an older one, publishes nothing that day.
+**When it goes out.** Once on each Vietnam trading day, from `publish_time` until the market opens, after your own 08:15 brief; never after the open. Keep `publish_time` at least 15 minutes clear of the open: the refresh can take several minutes, and if the open comes before the day can post, the day is skipped. First it refreshes market data for the four markets it always carries, so it reads markets you have switched off too, plus US stocks only while your US segment is on. With that segment off, nothing US is refreshed, built or shown, so the morning run never spends the long first US refresh. If your profile cannot be read, US stocks are left out for that day and the log says so (`trading.public_brief_profile_unreadable`). It publishes only when the tape is the last settled session's. A build with no tape, or an older one, publishes nothing that day.
 
 **When something fails, the day is skipped.** Your own brief shares nothing with it and is never touched. A post that fails (no network, a timeout, 429 or a server error) is tried again five minutes later, up to four times in a day. An answer the public side will repeat, such as a wrong token (401), closes the day. A day posted twice is stored once, so a repeat is harmless. The daemon logs where it ended:
 
@@ -904,6 +904,11 @@ Each section is either market or book, decided once in code. A new kind of secti
 | `trading.public_brief_refused` | The last check found a name of yours. |
 | `trading.public_brief_guard_unread` | The book could not be read, so the day was refused. |
 | `trading.public_brief_attempt_failed` | The build, the check or the store failed. |
+| `trading.public_brief_late` | The open came before the day could post. Closes the day. |
+| `trading.public_brief_large` | The brief is over about 200 KB, close to the 256 KB the public side accepts. It still posts. |
+| `trading.public_brief_previous_unreadable` | Yesterday's stored brief could not be read, so today's has no look back. It still posts. |
+| `trading.public_brief_screen_unreadable` | One market's screen list could not be read and is left out; `market` says which. The rest posts. |
+| `trading.public_brief_push_near_limit`, `trading.public_brief_push_full` | Reserved for phone reminders, which are not live yet, so they do not appear today. |
 
 **Where it posts.** Only to the public side's address, which is fixed in code: no setting, flag or file redirects it, and nothing listens on your machine for it. While it is on, the board of background work shows "Public morning brief" and Settings, under Data and connections, lists that address with what is sent there. While it is off the address is not listed. The day's brief is kept locally for 30 days (`public_briefs`); the public side keeps the history.
 
