@@ -1,18 +1,24 @@
 #!/usr/bin/env bun
-// Public-brief gate. The public brief is built from reads that hold no book, and this holds the code
-// that way: nothing under `features/brief/public/` reaches the operator's book by a value import,
-// `briefServices` stays with its four holders, only `market`-scoped section kinds are published, no
-// read asks which markets the operator uses, and the composition file and the screen it calls reach
-// nothing of the operator's but one bit: whether the US segment is on. US stocks are a public market
-// only while it is, and every public read of the US board is `followedBlind` and the board honours
-// it. The walk follows value imports only; a type import erases.
+// Public-brief gate. The public brief is built from reads that hold no book, and this holds the
+// code that way: nothing under `features/brief/public/` reaches the operator's book by a value
+// import, `briefServices` stays with its four holders, only `market`-scoped section kinds are
+// published, no read asks which markets the operator uses, and the composition file and the screen
+// it calls reach nothing of the operator's but one bit: whether the US segment is on. US stocks are
+// a public market only while it is, and every public read of the US board is `followedBlind` and
+// the board honours it. The walk follows value imports only; a type import erases.
+// A violation is printed under the letter of the check that found it:
+//   (a) a value import from `public/` reaches the book, or an exception no longer applies
+//   (b) a file names `briefServices` and is no holder
+//   (c) the section kinds and their scope record disagree, or a kind is written outside `scope.ts`
+//   (d) a file names `marketsInUse`
+//   (e) the composition file or the screen reaches more than the US segment bit
+//   (f) a public read of the US board can see the operator's followed names
 import { Glob } from 'bun'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
 
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-scope'
-import { PUBLIC_BRIEF_MARKETS, PUBLIC_US_MARKET } from '@/trading/features/brief/public/reads'
 import {
   PUBLIC_ANALYSIS_KINDS,
   PUBLIC_CORE_SECTIONS,
@@ -21,6 +27,14 @@ import {
   publicSectionKinds,
 } from '@/trading/features/brief/public/scope'
 
+import {
+  BOOK_FREE_SCREEN_FILE,
+  COMPOSITION_FILE,
+  followedBlindGaps,
+  MARKETS_DIR,
+  segmentBitGaps,
+  venueBlindGaps,
+} from './check-public-brief-markets'
 import { lineAt, scanImports } from './import-scan'
 
 const REPO = resolve(import.meta.dir, '..')
@@ -30,29 +44,13 @@ const PUBLIC_DIR = `${TRADING}/features/brief/public`
 const ALIAS_PREFIX = '@/'
 const SOURCE_SUFFIXES = ['.ts', '/index.ts'] as const
 const SCOPE_FILE = `${PUBLIC_DIR}/scope.ts`
-const COMPOSITION_FILE = `${TRADING}/wiring/composition/public-brief.ts`
-const BOOK_FREE_SCREEN_FILE = `${TRADING}/features/market-data/ops/book-free-screen.ts`
 const SCREEN_EVIDENCE_FILE = `${TRADING}/features/market-data/render/screen-evidence.ts`
-const CRYPTO_SCREEN_FILE = `${TRADING}/markets/crypto/screen-run.ts`
-const MARKETS_DIR = `${TRADING}/markets`
-const US_DIR = `${MARKETS_DIR}/equity-us`
-const US_BOARD_FILE = `${US_DIR}/board.ts`
-const VENUE_BLIND_SET_RE = /\bvenueBlind:\s*true\b/
-const VENUE_BLIND_READ_RE = /\bvenueBlind\b/
 const MARKETS_IN_USE_RE = /\bmarketsInUse\b/
 const BRIEF_SERVICES_RE = /\bbriefServices\b/
-const FOLLOWED_BLIND_SET_RE = /\bfollowedBlind:\s*true\b/
-const FOLLOWED_BLIND_HONOURED_RE = /\bfollowedBlind\s*===\s*true\s*\?\s*NO_FOLLOWED\s*:\s*followedTickersIn\b/
-const FOLLOWED_READER_RE = /\b(?:followedTickersIn|heldTickersIn)\b/
-const BOARD_GET_RE = /\.get\(([^)]*)\)/g
-const SEGMENT_SEAM_RE = /readonly profiles: Pick<ProfileService, 'get'>/g
-const SEGMENT_READ_RE = /const \{ caps \} = await parts\.profiles\.get\(\{ signal \}\)/g
-const SEGMENT_USE_RE = /return !disabledSegments\(caps\)\.has\(us\.manifest\.segment\)/g
-const PROFILE_WORD_RE = /\b(?:profiles|caps)\b/
 
 /** The kinds scoped `book` today. The guard exempts every `market` kind's rows, so a book kind
- *  moved to `market` would also widen the guard: the move takes this list and the scope record, and
- *  a record that differs from the list in either direction fails. */
+ *  moved to `market` would also widen the guard: the move takes this list and the scope record,
+ *  and a record that differs from the list in either direction fails. */
 const BOOK_KINDS: readonly string[] = Object.freeze([
   'book-summary',
   'resolved-suggestions',
@@ -75,8 +73,8 @@ const BOOK_KINDS: readonly string[] = Object.freeze([
   'discipline',
 ])
 
-/** Reached from `public/`, any of these is the operator's book or the code that reads it. Paths are
- *  under `src/trading/`, without extension: a prefix matches the file or the folder. */
+/** Reached from `public/`, any of these is the operator's book or the code that reads it. Paths
+ *  are under `src/trading/`, without extension: a prefix matches the file or the folder. */
 const PUBLIC_BRIEF_FORBIDDEN: readonly string[] = [
   'features/portfolio',
   'features/ledger',
@@ -96,19 +94,20 @@ const PUBLIC_BRIEF_FORBIDDEN: readonly string[] = [
 /** A forbidden folder's one file that holds no book: the seeded default profile. */
 const PUBLIC_BRIEF_PERMITTED: readonly string[] = ['features/profile/policy']
 
-/** Forbidden edges the walk lets through, and keeps walking past. It only shrinks, and a stale entry
- *  fails, so no edge survives quietly. */
+/** Forbidden edges the walk lets through, and keeps walking past. It only shrinks, and a stale
+ *  entry fails, so no edge survives quietly. */
 const PUBLIC_BRIEF_EXCEPTIONS: readonly { readonly edge: string; readonly reason: string }[] = [
   {
     edge: 'src/trading/markets/brief-sections.ts -> src/trading/features/suggestion/types.ts',
     reason:
-      '`isInconclusive` is a pure predicate on a suggestion value; it reads no store, and the public reads hand it none',
+      '`isInconclusive` is a pure predicate on a suggestion value; it reads no store, and the ' +
+      'public reads hand it none',
   },
 ]
 
-/** The files in `markets/` that name `briefServices`: `deps.ts` declares the seam and the alias that
- *  drops it, `held-tickers.ts` is the one reader of the held and watched names through it, and each
- *  market that composes a brief splits it off before handing its builders `BriefDeps`. */
+/** The files in `markets/` that name `briefServices`: `deps.ts` declares the seam and the alias
+ *  that drops it, `held-tickers.ts` is the one reader of the held and watched names through it, and
+ *  each market that composes a brief splits it off before handing its builders `BriefDeps`. */
 const BRIEF_SERVICES_HOLDERS: ReadonlySet<string> = new Set([
   `${MARKETS_DIR}/deps.ts`,
   `${MARKETS_DIR}/held-tickers.ts`,
@@ -116,31 +115,13 @@ const BRIEF_SERVICES_HOLDERS: ReadonlySet<string> = new Set([
   `${MARKETS_DIR}/equity-vn/capabilities.ts`,
 ])
 
-/** The places a public read of a market is made: the brief request, the overview read and the screen.
- *  Each states `followedBlind: true`. */
+/** The places a public read of a market is made: the brief request, the overview read and the
+ *  screen. Each states `followedBlind: true`. */
 const FOLLOWED_BLIND_SETTERS: readonly string[] = [
   `${PUBLIC_DIR}/build.ts`,
   `${PUBLIC_DIR}/reads.ts`,
   BOOK_FREE_SCREEN_FILE,
 ]
-
-/** The US files that read the board for a brief, an overview or a screen, and so hand the request on
- *  to the board cache, which keeps the operator's names out of a `followedBlind` one. */
-const US_BOARD_READERS: readonly string[] = [
-  `${US_DIR}/capabilities.ts`,
-  `${US_DIR}/overview.ts`,
-  `${US_DIR}/screen-capability.ts`,
-]
-
-/** The files in `markets/` that read the operator's held or watched names: the helper, the US board
- *  (guarded by `followedBlind`) and the refreshes, which only choose what to prefetch. A new reader
- *  fails until it is named here. */
-const FOLLOWED_READERS: ReadonlySet<string> = new Set([
-  `${MARKETS_DIR}/held-tickers.ts`,
-  US_BOARD_FILE,
-  `${US_DIR}/refresh/fundamentals.ts`,
-  `${MARKETS_DIR}/equity-vn/refresh/accounts.ts`,
-])
 
 /** What the screen the public brief calls may never reach, nor the file that renders its rows. */
 const SCREEN_FORBIDDEN: readonly string[] = [
@@ -175,8 +156,9 @@ interface Walked {
   readonly usedEdges: ReadonlySet<string>
 }
 
-const violations: string[] = []
-const publicFiles = [...new Glob('**/*.ts').scanSync(PUBLIC_DIR)].map((file) => `${PUBLIC_DIR}/${file}`)
+const publicFiles = [...new Glob('**/*.ts').scanSync(PUBLIC_DIR)].map(
+  (file) => `${PUBLIC_DIR}/${file}`
+)
 
 const walked = walkValueImports({
   roots: publicFiles,
@@ -185,25 +167,39 @@ const walked = walkValueImports({
   exceptions: exceptionEdges(),
 })
 
-violations.push(...walked.offences.map((offence) => `(a) ${offence}`))
-violations.push(...staleExceptions(walked.usedEdges).map((edge) => `(a) stale exception, no longer reached: ${edge}`))
-violations.push(...briefServicesOutsideHolders().map((file) => `(b) ${file} names briefServices and is no holder`))
-violations.push(...unscopedKinds().map((message) => `(c) ${message}`))
-violations.push(...bookKindDrift().map((message) => `(c) ${message}`))
-violations.push(...kindLiteralsOutsideScope().map((message) => `(c) ${message}`))
-violations.push(...marketsInUseCallers().map((file) => `(d) ${file} names marketsInUse`))
-violations.push(...compositionImports().map((message) => `(e) ${message}`))
-violations.push(...screenReaches().map((offence) => `(e) ${offence}`))
-violations.push(...venueBlindGaps().map((message) => `(e) ${message}`))
-violations.push(...segmentBitGaps().map((message) => `(e) ${message}`))
-violations.push(...followedBlindGaps().map((message) => `(f) ${message}`))
+const violations = [
+  ...tagged('a', walked.offences),
+  ...tagged(
+    'a',
+    staleExceptions(walked.usedEdges).map((edge) => `stale exception, no longer reached: ${edge}`)
+  ),
+  ...tagged(
+    'b',
+    briefServicesOutsideHolders().map((file) => `${file} names briefServices and is no holder`)
+  ),
+  ...tagged('c', unscopedKinds()),
+  ...tagged('c', bookKindDrift()),
+  ...tagged('c', kindLiteralsOutsideScope()),
+  ...tagged('d', marketsInUseCallers().map((file) => `${file} names marketsInUse`)),
+  ...tagged('e', compositionImports()),
+  ...tagged('e', screenReaches()),
+  ...tagged('e', venueBlindGaps()),
+  ...tagged('e', segmentBitGaps()),
+  ...tagged('f', followedBlindGaps(FOLLOWED_BLIND_SETTERS)),
+]
 
 if (violations.length > 0) {
-  process.stderr.write(`FAIL: ${violations.length} public-brief violation(s):\n${violations.map((line) => `  ${line}`).join('\n')}\n`)
+  const lines = violations.map((line) => `  ${line}`).join('\n')
+
+  process.stderr.write(`FAIL: ${violations.length} public-brief violation(s):\n${lines}\n`)
   process.exit(1)
 }
 
 process.stdout.write('check-public-brief: PASS\n')
+
+function tagged(check: string, messages: readonly string[]): readonly string[] {
+  return messages.map((message) => `(${check}) ${message}`)
+}
 
 function exceptionEdges(): ReadonlyMap<string, string> {
   return new Map(PUBLIC_BRIEF_EXCEPTIONS.map(({ edge, reason }) => [edge, reason]))
@@ -285,10 +281,16 @@ function resolveSource(importer: string, specifier: string): string | undefined 
     return undefined
   }
 
-  return SOURCE_SUFFIXES.map((suffix) => `${base}${suffix}`).find((candidate) => existsSync(candidate))
+  return SOURCE_SUFFIXES.map((suffix) => `${base}${suffix}`).find((candidate) =>
+    existsSync(candidate)
+  )
 }
 
-function isForbidden(target: string, forbidden: readonly string[], permitted: readonly string[]): boolean {
+function isForbidden(
+  target: string,
+  forbidden: readonly string[],
+  permitted: readonly string[]
+): boolean {
   const path = relative(TRADING, target).replace(/\.ts$/, '')
 
   if (permitted.some((prefix) => isUnder(path, prefix))) {
@@ -305,7 +307,10 @@ function isUnder(path: string, prefix: string): boolean {
 function briefServicesOutsideHolders(): readonly string[] {
   return [...new Glob('**/*.ts').scanSync(MARKETS_DIR)]
     .map((file) => `${MARKETS_DIR}/${file}`)
-    .filter((file) => !BRIEF_SERVICES_HOLDERS.has(file) && BRIEF_SERVICES_RE.test(readFileSync(file, 'utf8')))
+    .filter(
+      (file) =>
+        !BRIEF_SERVICES_HOLDERS.has(file) && BRIEF_SERVICES_RE.test(readFileSync(file, 'utf8'))
+    )
     .map((file) => relative(REPO, file))
 }
 
@@ -317,13 +322,18 @@ function unscopedKinds(): readonly string[] {
     ...PUBLIC_CORE_SECTIONS,
     PUBLIC_SESSION_KIND,
   ].filter((kind) => BRIEF_SECTION_SCOPE[kind] !== 'market')
-  const messages = named.map((kind) => `${kind} is named by scope.ts and is scoped ${BRIEF_SECTION_SCOPE[kind]}`)
+  const messages = named.map(
+    (kind) => `${kind} is named by scope.ts and is scoped ${BRIEF_SECTION_SCOPE[kind]}`
+  )
 
   for (const analysis of [true, false]) {
     for (const headlines of [true, false]) {
       for (const kind of publicSectionKinds({ analysis, headlines })) {
         if (BRIEF_SECTION_SCOPE[kind] !== 'market') {
-          messages.push(`publicSectionKinds({ analysis: ${analysis}, headlines: ${headlines} }) returns ${kind}, scoped ${BRIEF_SECTION_SCOPE[kind]}`)
+          messages.push(
+            `publicSectionKinds({ analysis: ${analysis}, headlines: ${headlines} }) returns ` +
+              `${kind}, scoped ${BRIEF_SECTION_SCOPE[kind]}`
+          )
         }
       }
     }
@@ -340,12 +350,17 @@ function bookKindDrift(): readonly string[] {
   )
 
   return [
-    ...[...recorded].filter((kind) => !listed.has(kind)).map((kind) => `${kind} is scoped book and is not in BOOK_KINDS`),
-    ...BOOK_KINDS.filter((kind) => !recorded.has(kind)).map((kind) => `${kind} is in BOOK_KINDS and is no longer scoped book`),
+    ...[...recorded]
+      .filter((kind) => !listed.has(kind))
+      .map((kind) => `${kind} is scoped book and is not in BOOK_KINDS`),
+    ...BOOK_KINDS.filter((kind) => !recorded.has(kind)).map(
+      (kind) => `${kind} is in BOOK_KINDS and is no longer scoped book`
+    ),
   ]
 }
 
-/** Only `scope.ts` writes a section kind out; any other file under `public/` takes it from there. */
+/** Only `scope.ts` writes a section kind out; any other file under `public/` takes it from
+ *  there. */
 function kindLiteralsOutsideScope(): readonly string[] {
   const literal = new RegExp(`'(${BRIEF_SECTION_ORDER.join('|')})'`, 'g')
   const messages: string[] = []
@@ -354,7 +369,10 @@ function kindLiteralsOutsideScope(): readonly string[] {
     const source = readFileSync(file, 'utf8')
 
     for (const match of source.matchAll(literal)) {
-      messages.push(`${relative(REPO, file)}:${lineAt(source, match.index)} writes the section kind ${match[0]}; only scope.ts does`)
+      messages.push(
+        `${relative(REPO, file)}:${lineAt(source, match.index)} writes the section kind ` +
+          `${match[0]}; only scope.ts does`
+      )
     }
   }
 
@@ -381,41 +399,13 @@ function compositionImports(): readonly string[] {
     const path = relative(TRADING, target).replace(/\.ts$/, '')
 
     if (!COMPOSITION_ALLOWED.some((prefix) => isUnder(path, prefix))) {
-      messages.push(`${relative(REPO, COMPOSITION_FILE)}:${lineAt(source, found.index)} value-imports ${path}`)
+      messages.push(
+        `${relative(REPO, COMPOSITION_FILE)}:${lineAt(source, found.index)} value-imports ${path}`
+      )
     }
   }
 
   return messages
-}
-
-/** The composition file reads the profile once, for the caps, and uses them for one answer: whether
- *  the US segment is on. Each piece is stated whole; with them removed, the file names neither the
- *  profile service nor its caps again, so any other read of the profile fails here. */
-function segmentBitGaps(): readonly string[] {
-  const source = readFileSync(COMPOSITION_FILE, 'utf8')
-  const gaps: string[] = []
-
-  for (const [piece, found] of [
-    ['declare the profile seam as a get-only pick', source.match(SEGMENT_SEAM_RE)],
-    ['read only the caps of the profile', source.match(SEGMENT_READ_RE)],
-    ['answer with whether the US segment is disabled', source.match(SEGMENT_USE_RE)],
-  ] as const) {
-    if (found?.length !== 1) {
-      gaps.push(`${relative(REPO, COMPOSITION_FILE)} must ${piece}, once`)
-    }
-  }
-
-  const rest = source.replace(SEGMENT_SEAM_RE, '').replace(SEGMENT_READ_RE, '').replace(SEGMENT_USE_RE, '')
-
-  if (PROFILE_WORD_RE.test(rest)) {
-    gaps.push(`${relative(REPO, COMPOSITION_FILE)} reads the profile beyond the US segment bit`)
-  }
-
-  if (PUBLIC_BRIEF_MARKETS.includes(PUBLIC_US_MARKET)) {
-    gaps.push('PUBLIC_BRIEF_MARKETS holds the US market, which is public only while its segment is on')
-  }
-
-  return gaps
 }
 
 function screenReaches(): readonly string[] {
@@ -425,47 +415,4 @@ function screenReaches(): readonly string[] {
     permitted: [],
     exceptions: new Map(),
   }).offences
-}
-
-/** The screen is run through the market's capability, which an import walk cannot follow: the call
- *  states `venueBlind`, and the one screen that reads the venues' listings honours it. */
-function venueBlindGaps(): readonly string[] {
-  const gaps: string[] = []
-
-  if (!VENUE_BLIND_SET_RE.test(readFileSync(BOOK_FREE_SCREEN_FILE, 'utf8'))) {
-    gaps.push(`${relative(REPO, BOOK_FREE_SCREEN_FILE)} does not run the screen with venueBlind: true`)
-  }
-
-  if (!VENUE_BLIND_READ_RE.test(readFileSync(CRYPTO_SCREEN_FILE, 'utf8'))) {
-    gaps.push(`${relative(REPO, CRYPTO_SCREEN_FILE)} no longer reads venueBlind`)
-  }
-
-  return gaps
-}
-
-/** The US board ranks the names the operator follows, so the public path proves it never asks: each
- *  public read states `followedBlind`, each US read of the board passes its request on, the board
- *  skips the followed read for one, and no other file under `markets/` reads the followed names. */
-function followedBlindGaps(): readonly string[] {
-  const gaps = FOLLOWED_BLIND_SETTERS.filter((file) => !FOLLOWED_BLIND_SET_RE.test(readFileSync(file, 'utf8'))).map(
-    (file) => `${relative(REPO, file)} does not state followedBlind: true`
-  )
-
-  for (const file of US_BOARD_READERS) {
-    const calls = [...readFileSync(file, 'utf8').matchAll(BOARD_GET_RE)].map((match) => match[1] ?? '')
-
-    if (calls.length === 0 || calls.some((args) => !args.trimEnd().endsWith(', request'))) {
-      gaps.push(`${relative(REPO, file)} reads the board without passing its request`)
-    }
-  }
-
-  if (!FOLLOWED_BLIND_HONOURED_RE.test(readFileSync(US_BOARD_FILE, 'utf8'))) {
-    gaps.push(`${relative(REPO, US_BOARD_FILE)} reads the followed names for a followedBlind board`)
-  }
-
-  const readers = [...new Glob('**/*.ts').scanSync(MARKETS_DIR)]
-    .map((file) => `${MARKETS_DIR}/${file}`)
-    .filter((file) => !FOLLOWED_READERS.has(file) && FOLLOWED_READER_RE.test(readFileSync(file, 'utf8')))
-
-  return [...gaps, ...readers.map((file) => `${relative(REPO, file)} reads the followed names and is no known reader`)]
 }

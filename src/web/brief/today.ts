@@ -7,7 +7,8 @@ export function vnToday(now: number): string {
   return new Date(now + VN_UTC_OFFSET_MS).toISOString().slice(0, DAY_LENGTH)
 }
 
-/** A `YYYY-MM-DD` day as both languages read it, day first: `06/11/2026`. */
+/** A `YYYY-MM-DD` day as both languages read it, day first: `06/11/2026`. A copy of `formatDay` in
+ *  `@/i18n`, which the bundle gate keeps out of the app. */
 export function formatDay(day: string): string {
   return day.split('-').reverse().join('/')
 }

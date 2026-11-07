@@ -15,10 +15,8 @@ export type Translate = (key: BriefKey, params?: Readonly<Record<string, string>
 // Every `ui.brief.*` word of both languages, which the build substitutes here.
 declare const STRINGS: Readonly<Record<Locale, Readonly<Record<string, string>>>>
 
-const WORDS = STRINGS
-
-export function toTranslate(locale: Locale): Translate {
-  const words = WORDS[locale]
+export function createTranslate(locale: Locale): Translate {
+  const words = STRINGS[locale]
 
   return (key, params) =>
     (words[key] ?? key).replace(PARAM_RE, (whole, name: string) => params?.[name] ?? whole)

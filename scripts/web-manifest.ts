@@ -8,18 +8,20 @@ import { cp } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 import { BRAND } from '@/core/brand'
+import {
+  APP_ROOT,
+  CANVAS_DARK,
+  CANVAS_LIGHT,
+  TAB_ICON_FILE,
+} from '@/web/brief/install-look'
+
+import { insertInHead } from './browser-build'
 
 const ROOT = resolve(import.meta.dir, '..')
 const ICON_DIR = resolve(ROOT, 'assets/brand/pwa')
 const MANIFEST_FILE = 'manifest.webmanifest'
 const TOUCH_ICON_FILE = 'apple-touch-icon.png'
-const TAB_ICON_FILE = 'icon-192.png'
-const APP_ROOT = '/'
 const DISPLAY_MODE = 'standalone'
-// The page's `--canvas` token in each scheme (`src/web/ui/kit/tokens.css`).
-const CANVAS_LIGHT = '#f2f2f6'
-const CANVAS_DARK = '#1c1c28'
-const HEAD_END = '</head>'
 const ICONS = [
   { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
   { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
@@ -58,11 +60,7 @@ export async function writeInstallFiles(outDir: string, options: ManifestOptions
 /** Adds the manifest link, the tab icon, the theme colours and the iOS Home Screen tags before the
  *  page's `</head>`. The standalone status bar keeps the system's default style. */
 export function stampInstallTags(html: string): string {
-  if (!html.includes(HEAD_END)) {
-    throw new Error(`web-manifest: the page has no ${HEAD_END}`)
-  }
-
-  const tags = [
+  return insertInHead(html, [
     `<link rel="manifest" href="${APP_ROOT}${MANIFEST_FILE}" />`,
     `<link rel="icon" type="image/png" href="${APP_ROOT}${TAB_ICON_FILE}" />`,
     `<meta name="theme-color" content="${CANVAS_LIGHT}" media="(prefers-color-scheme: light)" />`,
@@ -72,9 +70,7 @@ export function stampInstallTags(html: string): string {
     '<meta name="apple-mobile-web-app-capable" content="yes" />',
     `<meta name="apple-mobile-web-app-title" content="${BRAND.display}" />`,
     '<meta name="apple-mobile-web-app-status-bar-style" content="default" />',
-  ]
-
-  return html.replace(HEAD_END, () => `${tags.join('\n')}\n${HEAD_END}`)
+  ])
 }
 
 export function buildManifest(options: ManifestOptions): WebManifest {

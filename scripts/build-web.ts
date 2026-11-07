@@ -16,7 +16,7 @@ import { parseArgs } from 'node:util'
 import { listBrowserHosts } from '@/app/browser/hosts'
 
 import { BRIEF_INVITE_ONLY } from './brief-invite'
-import { buildOrThrow, stampBrand } from './browser-build'
+import { buildOrThrow, insertInHead, stampBrand } from './browser-build'
 import { PREVIEW_IMAGE_FILE, PREVIEW_IMAGE_SOURCE, stampLinkPreview } from './link-preview'
 import {
   HEADERS_FILE,
@@ -34,7 +34,6 @@ const PAGE_ENTRY = resolve(ROOT, 'src/web/edition/index.html')
 const WORKER_ENTRY = resolve(ROOT, 'src/app/browser/worker.ts')
 const WASM_SOURCE = resolve(ROOT, 'node_modules/@sqlite.org/sqlite-wasm/dist/sqlite3.wasm')
 const WASM_FILE = 'sqlite3.wasm'
-const HEAD_END = '</head>'
 
 const { values } = parseArgs({
   options: {
@@ -86,12 +85,17 @@ function pageDirectives(hosts: readonly string[]): readonly string[] {
   ]
 }
 
-async function stampPage(file: string, pageUrl: string, briefUrl: string | undefined): Promise<void> {
+async function stampPage(
+  file: string,
+  pageUrl: string,
+  briefUrl: string | undefined
+): Promise<void> {
   const html = stampLinkPreview(stampBrand(await Bun.file(file).text(), file), pageUrl)
 
-  await Bun.write(file, briefUrl === undefined ? html : stampBriefUrl(html, briefUrl))
-}
-
-function stampBriefUrl(html: string, briefUrl: string): string {
-  return html.replace(HEAD_END, () => `<meta name="brief-url" content="${briefUrl}" />\n${HEAD_END}`)
+  await Bun.write(
+    file,
+    briefUrl === undefined
+      ? html
+      : insertInHead(html, [`<meta name="brief-url" content="${briefUrl}" />`])
+  )
 }
