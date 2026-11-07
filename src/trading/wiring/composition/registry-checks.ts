@@ -7,16 +7,21 @@ import type { VenueRegistry } from '@/trading/venues/types'
 import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
+import { MS_PER_MINUTE } from '@/core/utils/time'
+import { PUBLIC_HOME_MARKET } from '@/trading/features/brief/public/reads'
 import { isValidSendTime } from '@/trading/features/brief/schedule'
 import { PUBLIC_SCREEN_MAX } from '@/trading/kernel/config'
 import { marketRef } from '@/trading/kernel/instrument'
 import { tradingLocaleKeys } from '@/trading/locale-manifest'
+import { resolveLocalTimeAt } from '@/trading/markets/calendar'
 import { isMarketBuilt } from '@/trading/wiring/composition/edition'
 import { TRADING_CONFIG_SECTION } from '@/trading/wiring/config'
 import { BUILT_IN_VENUES } from '@/trading/wiring/config-defaults'
 import { MARKETS_CONFIG_KEY, VENUES_CONFIG_KEY } from '@/trading/wiring/config-schema'
 
-const PUBLIC_BRIEF_MARKET = marketRef('equity-vn')
+/** The room the public brief needs between its publish time and the open: a cold build with every
+ *  market refreshed takes minutes, and a day that misses the open is dropped. */
+const PUBLIC_BRIEF_MIN_LEAD_MINUTES = 15
 
 /** Consumer-side, and deliberately the same shape and name the commands provider already uses:
  *  one key-coverage contract, threaded by both callers rather than restated as a synonym. */
@@ -118,7 +123,7 @@ function assertConfiguredReferencesExist(
   }
 
   assertBriefSendTimeBeforeOpen(homeOwners, config.briefs.sendTime, Date.now())
-  assertPublicBriefPublishTimeBeforeOpen(markets, config.publicBrief.publishTime, Date.now())
+  assertPublicBriefPublishTimeClearOfOpen(markets, config.publicBrief.publishTime, Date.now())
   assertPublicScreenWithinCap(config.publicBrief.topScreen)
   assertConfiguredMarketsExist(markets, config)
   assertDefaultVenuesHold(config, { venues, edition })
@@ -146,28 +151,47 @@ function assertBriefSendTimeBeforeOpen(
 }
 
 /** The public brief goes out before the Vietnam open or not at all: the tick that would publish it
- *  stops once the session has opened, so a later time would never fire. A build without that market
- *  publishes nothing, so there is no open to compare against. */
-function assertPublicBriefPublishTimeBeforeOpen(
+ *  stops once the session has opened, so a later time would never fire, and one closer than the lead
+ *  would lose a slow build to the open. A build without that market publishes nothing, so there is
+ *  no open to compare against. */
+function assertPublicBriefPublishTimeClearOfOpen(
   markets: MarketRegistry,
   publishTime: string,
   now: number
 ): void {
-  const market = markets.find(PUBLIC_BRIEF_MARKET)
+  const market = markets.find(PUBLIC_HOME_MARKET)
 
-  if (market === null || isValidSendTime({ market, sendTime: publishTime }, now)) {
+  if (market === null || isPublishTimeClearOfOpen(market, publishTime, now)) {
     return
   }
 
   throw new OperatorConfigError(
-    `[${TRADING_CONFIG_SECTION}.public_brief] publish_time ${publishTime} is not before the open`,
+    `[${TRADING_CONFIG_SECTION}.public_brief] publish_time ${publishTime} is less than ${PUBLIC_BRIEF_MIN_LEAD_MINUTES} minutes before the open`,
     {
       key: 'errors.publicBriefTimeAfterOpen',
       params: {
         time: publishTime,
+        lead: PUBLIC_BRIEF_MIN_LEAD_MINUTES,
         open: market.manifest.defaultCalendar.sessionOpenLocalTime,
       },
     }
+  )
+}
+
+/** The next session's open, as `isValidSendTime` finds it, less the lead. */
+function isPublishTimeClearOfOpen(market: Market, publishTime: string, now: number): boolean {
+  const { calendar } = market.manifest
+
+  if (calendar.continuous) {
+    return true
+  }
+
+  const today = calendar.dayAt(now)
+  const session = calendar.isTradingDay(today) ? today : calendar.addTradingDays(today, 1)
+  const publishAt = resolveLocalTimeAt(session, publishTime, calendar.timezone)
+
+  return (
+    publishAt + PUBLIC_BRIEF_MIN_LEAD_MINUTES * MS_PER_MINUTE <= calendar.sessionOpenAt(session)
   )
 }
 

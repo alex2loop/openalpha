@@ -34,12 +34,19 @@ interface PublicBriefTickDeps {
   readonly logger: Logger
   build(input: PublicBriefInput): Promise<BuiltPublicBriefRow | null>
   render(row: BuiltPublicBriefRow): PublicBriefRender
-  /** Only the kind is read: what the guard found never leaves the guard. */
+  /** Only the kind is read: what the guard found never leaves the guard. `refuse` is the guard's
+   *  finding on this render and stands for the day; `unread` is the guard failing to look, which a
+   *  later attempt may cure. */
   judge(
     row: BuiltPublicBriefRow,
     render: PublicBriefRender,
     signal: AbortSignal
-  ): Promise<{ readonly kind: 'publish' | 'refuse' }>
+  ): Promise<{ readonly kind: 'publish' | 'refuse' | 'unread' }>
+}
+
+/** What a tick may say about its own pass: the loop reports a failed day as the pass's error. */
+interface TickNotes {
+  fail(): void
 }
 
 interface Attempt {
@@ -47,23 +54,27 @@ interface Attempt {
   readonly now: number
   readonly signal: AbortSignal
   readonly row: PublicBriefRow | null
+  readonly notes: TickNotes
 }
 
 type Settled = Extract<PublishOutcome, { readonly kind: 'stored' | 'unchanged' }>
 
 type AttemptResult =
   | { readonly kind: 'late' }
+  | { readonly kind: 'refused' }
   | { readonly kind: 'failed'; readonly reason: string }
   | { readonly kind: 'closed'; readonly status: number }
   | { readonly kind: 'sent'; readonly outcome: Settled }
 
 /** One pass per minute, so it never overlaps itself: it posts today's brief once, before the open.
- *  A post that fails is retried a few minutes later up to a bound, and a refusal the public side
- *  will repeat closes the day. Nothing here touches the owner's brief. */
+ *  A post that fails is retried a few minutes later up to a bound. A refusal the guard or the public
+ *  side will repeat closes the day, and so does the session opening first: an attempt runs under a
+ *  deadline at the open, and a day it misses is dropped and logged. Nothing here touches the
+ *  owner's brief. */
 export function createPublicBriefTick(
   deps: PublicBriefTickDeps
-): (signal: AbortSignal) => Promise<void> {
-  return async (signal) => {
+): (signal: AbortSignal, notes: TickNotes) => Promise<void> {
+  return async (signal, notes) => {
     const now = Date.now()
     const day = deps.calendar.dayAt(now)
 
@@ -77,10 +88,9 @@ export function createPublicBriefTick(
       return
     }
 
-    const attempt = { day, now, signal, row }
-    const result = await post(deps, attempt).catch((err: unknown) => logFailure(deps, day, err))
+    const attempt = { day, now, signal, row, notes }
 
-    await settle(deps, attempt, result)
+    await settle(deps, attempt, await runAttempt(deps, attempt))
   }
 }
 
@@ -107,6 +117,26 @@ function isDue(row: PublicBriefRow | null, now: number): boolean {
   )
 }
 
+/** One attempt under a deadline at the session open, so a slow build stops there instead of running
+ *  past it. The deadline's abort is a late day; the loop's own abort is shutdown and propagates. */
+async function runAttempt(deps: PublicBriefTickDeps, attempt: Attempt): Promise<AttemptResult> {
+  const { day, now, signal } = attempt
+  const deadline = new AbortController()
+  const timer = setTimeout(() => deadline.abort(), deps.calendar.sessionOpenAt(day) - now)
+
+  try {
+    return await post(deps, { ...attempt, signal: AbortSignal.any([signal, deadline.signal]) })
+  } catch (err: unknown) {
+    if (deadline.signal.aborted && !signal.aborted) {
+      return { kind: 'late' }
+    }
+
+    return logFailure(deps, day, err)
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /** Posts exactly the render the guard judged. The session is checked again after the judging, which
  *  can take a while. */
 async function post(deps: PublicBriefTickDeps, attempt: Attempt): Promise<AttemptResult> {
@@ -121,7 +151,11 @@ async function post(deps: PublicBriefTickDeps, attempt: Attempt): Promise<Attemp
   const verdict = await deps.judge(built, render, signal)
 
   if (verdict.kind === 'refuse') {
-    return { kind: 'failed', reason: 'guard' }
+    return { kind: 'refused' }
+  }
+
+  if (verdict.kind === 'unread') {
+    return { kind: 'failed', reason: 'guard-unread' }
   }
 
   if (Date.now() >= deps.calendar.sessionOpenAt(day)) {
@@ -153,8 +187,10 @@ function isRetryable(status: number): boolean {
   )
 }
 
-/** A failure of the build, the guard's read or the store counts as an attempt, so a day that keeps
- *  failing stops at the bound instead of running once a minute. Shutdown is not a failure. */
+/** A failure of the build (its refresh, reads and saved row), of the guard or of the post counts as
+ *  an attempt, so a day that keeps failing stops at the bound instead of running once a minute. A
+ *  failure of the store reading or recording the attempt itself is not caught here: the pass fails
+ *  and the next minute tries again. Shutdown is not a failure. */
 function logFailure(deps: PublicBriefTickDeps, day: TradingDay, err: unknown): AttemptResult {
   if (isAbortError(err)) {
     throw err
@@ -170,12 +206,8 @@ async function settle(
   attempt: Attempt,
   result: AttemptResult
 ): Promise<void> {
-  const { day, signal } = attempt
+  const { day, signal, notes } = attempt
   const at = Date.now()
-
-  if (result.kind === 'late') {
-    return
-  }
 
   if (result.kind === 'sent') {
     logPublished(deps, day, result.outcome)
@@ -184,23 +216,46 @@ async function settle(
     return
   }
 
-  if (result.kind === 'closed') {
-    await deps.store.recordAttempt({ day, at, closed: true }, signal)
-    deps.logger.error('trading.public_brief_publish_refused', { day, status: result.status })
+  notes.fail()
+
+  if (result.kind === 'failed') {
+    await recordFailure(deps, attempt, result.reason)
 
     return
   }
 
-  await deps.store.recordAttempt({ day, at }, signal)
+  logClosed(deps, day, result)
+  await deps.store.recordAttempt({ day, at, closed: true }, signal)
+}
+
+/** A day with no attempt left to spend. A guard refusal logged itself where the names are known. */
+function logClosed(
+  deps: PublicBriefTickDeps,
+  day: TradingDay,
+  result: Extract<AttemptResult, { readonly kind: 'late' | 'refused' | 'closed' }>
+): void {
+  if (result.kind === 'late') {
+    deps.logger.warn('trading.public_brief_late', { day })
+  }
+
+  if (result.kind === 'closed') {
+    deps.logger.error('trading.public_brief_publish_refused', { day, status: result.status })
+  }
+}
+
+async function recordFailure(
+  deps: PublicBriefTickDeps,
+  attempt: Attempt,
+  reason: string
+): Promise<void> {
+  const { day, signal } = attempt
+
+  await deps.store.recordAttempt({ day, at: Date.now() }, signal)
 
   const attempts = (attempt.row?.attempts ?? 0) + 1
 
   if (attempts >= PUBLIC_BRIEF_MAX_ATTEMPTS) {
-    deps.logger.warn('trading.public_brief_publish_failed', {
-      day,
-      attempts,
-      reason: result.reason,
-    })
+    deps.logger.warn('trading.public_brief_publish_failed', { day, attempts, reason })
   }
 }
 

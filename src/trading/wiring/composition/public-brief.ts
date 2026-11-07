@@ -2,6 +2,7 @@ import type { Logger } from '@/core/logging/logger'
 import type {
   BuiltPublicBriefRow,
   PublicBriefDeps,
+  PublicBriefInput,
   PublicBriefRender,
   PublicBriefStore,
 } from '@/trading/features/brief/public/types'
@@ -9,7 +10,7 @@ import type { ScreenRowForm } from '@/trading/features/market-data/render/screen
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { MarketRef, TradingDay } from '@/trading/kernel/instrument'
+import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
   RefreshAllMarketDataOptions,
   RefreshMarketDataResult,
@@ -26,7 +27,7 @@ import {
   PUBLIC_US_MARKET,
   publicBriefMarkets,
 } from '@/trading/features/brief/public/reads'
-import { renderPublicBrief } from '@/trading/features/brief/public/render'
+import { perLocale, renderPublicBrief } from '@/trading/features/brief/public/render'
 import { runBookFreeScreen } from '@/trading/features/market-data/ops/book-free-screen'
 import { renderScreenRows } from '@/trading/features/market-data/render/screen-evidence'
 import { defaultProfile, toSegmentDescriptors } from '@/trading/features/profile/policy'
@@ -53,11 +54,7 @@ interface PublicBriefParts {
  *  a seeded default profile. Nothing the operator holds or watches reaches it. The one bit of the
  *  profile it takes is whether the US segment is on: US stocks are in the brief only while it is. */
 export interface PublicBrief {
-  build(input: {
-    readonly day: TradingDay
-    readonly now: number
-    readonly signal: AbortSignal
-  }): Promise<BuiltPublicBriefRow | null>
+  build(input: PublicBriefInput): Promise<BuiltPublicBriefRow | null>
   render(row: BuiltPublicBriefRow): PublicBriefRender
 }
 
@@ -145,10 +142,7 @@ async function readScreen(
 
   return {
     asOf: view.dataThroughDay ?? view.asOf,
-    rows: {
-      en: renderScreenRows('en', clocked, PUBLIC_ROW_FORM),
-      vi: renderScreenRows('vi', clocked, PUBLIC_ROW_FORM),
-    },
+    rows: perLocale((locale) => renderScreenRows(locale, clocked, PUBLIC_ROW_FORM)),
   }
 }
 

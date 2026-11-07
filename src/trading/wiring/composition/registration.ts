@@ -94,7 +94,7 @@ interface TradingRegistrationOptions {
   readonly reachability: ReachabilityProbe
   /** Posts the public brief; absent on a host that never publishes. Built with the credential, so
    *  the token reaches it and nothing else. */
-  publicBriefPublisher?(credential: PublicBriefCredential): PublicBriefPublisher
+  publicBriefPublisher?(credential: PublicBriefCredential, logger: Logger): PublicBriefPublisher
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider
@@ -110,6 +110,7 @@ type BoundOptions = Omit<
   | 'onRoleOutput'
   | 'onFocusCallScored'
   | 'edition'
+  | 'publicBriefPublisher'
 > & {
   readonly sender: TradingNoticeSender
   readonly onFilled: OrderFilledListener
@@ -121,14 +122,17 @@ type BoundOptions = Omit<
   readonly onFocusCallScored: CallScoredNotices['onFocusScored']
   readonly edition?: TradingEdition
   readonly lateGraceMs: number
-  readonly publicBrief?: PublicBriefPublisher
+  readonly publicBriefPublisher?: PublicBriefPublisher
 }
 
 function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptions {
-  const { edition, ...rest } = provided
-  const publicBrief = publisherOf(
+  // The factory is replaced by the publisher it builds, under the same name.
+  const { edition, publicBriefPublisher: _factory, ...rest } = provided
+  const logger = app.resolve('logger')
+  const publicBriefPublisher = publisherOf(
     provided,
-    resolvePublicBriefToken(provided, app.resolve('logger'))
+    resolvePublicBriefToken(provided, logger),
+    logger
   )
 
   return {
@@ -143,7 +147,7 @@ function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptio
     onFocusCallScored: provided.onFocusCallScored(app),
     ...(edition === undefined ? {} : { edition: edition(app) }),
     lateGraceMs: app.config.schedule.lateGraceMs,
-    ...(publicBrief === undefined ? {} : { publicBrief }),
+    ...(publicBriefPublisher === undefined ? {} : { publicBriefPublisher }),
   }
 }
 
@@ -295,10 +299,11 @@ function resolvePublicBriefToken(
 /** The publisher exists only when the feature is on, a token is set and the host binds one. */
 function publisherOf(
   options: TradingRegistrationOptions,
-  credential: PublicBriefCredential | undefined
+  credential: PublicBriefCredential | undefined,
+  logger: Logger
 ): PublicBriefPublisher | undefined {
   return options.tradingConfig.publicBrief.enabled && credential !== undefined
-    ? options.publicBriefPublisher?.(credential)
+    ? options.publicBriefPublisher?.(credential, logger)
     : undefined
 }
 

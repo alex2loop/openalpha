@@ -27,6 +27,18 @@ export const STORY_CODES = Object.freeze([
 ] as const)
 export type StoryCode = (typeof STORY_CODES)[number]
 
+/** Stories that read a level or a direction: the index near support or resistance, a sector
+ *  leading or lagging, and what the futures basis expects. A surface that shows no direction omits
+ *  exactly these. */
+export const DIRECTIONAL_STORY_CODES = Object.freeze([
+  'support-test',
+  'resistance-test',
+  'sector-leading',
+  'sector-lagging',
+  'basis-premium',
+  'basis-discount',
+] as const satisfies readonly StoryCode[])
+
 export const STORY_ROLES = Object.freeze(['supports', 'contradicts'] as const)
 export type StoryRole = (typeof STORY_ROLES)[number]
 

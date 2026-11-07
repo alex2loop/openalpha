@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import type { Logger } from '@/core/logging/logger'
 import type { PublicBriefCredential, PublicBriefPublisher, PublishOutcome } from '@/trading/api'
 import { toPublicBriefDocument } from '@/app/server/mappers/public-brief'
 import { BRAND } from '@/core/brand'
@@ -12,6 +13,9 @@ const PUBLIC_BRIEF_ORIGIN = `https://${PUBLIC_BRIEF_HOSTNAME}`
 const PUBLIC_BRIEF_PUBLISH_PATH = '/api/publish'
 const PUBLIC_BRIEF_PUBLISH_TIMEOUT_MS = 20_000
 const ANSWER_MAX_BYTES = 4_096
+/** The public side refuses a body past 256 KiB for good, so the day would be lost: warn well
+ *  before that. */
+const PUBLIC_BRIEF_WARN_BYTES = 204_800
 
 const answerSchema = z.object({
   stored: z.boolean(),
@@ -22,14 +26,20 @@ const answerSchema = z.object({
 /** Posts with the daemon's request shape, which follows no redirect, under a deadline. Nothing of
  *  the answer is kept but its counts, and no error text leaves here: a failure is `unreachable` or
  *  the status the public side refused with. Aborting the signal is shutdown and propagates. Only the
- *  dry-run script passes an origin of its own; the daemon binds the one-argument form. */
+ *  dry-run script passes an origin of its own; the daemon binds the two-argument form. */
 export function createPublicBriefPublisher(
   credential: PublicBriefCredential,
+  logger: Logger,
   origin: string = PUBLIC_BRIEF_ORIGIN
 ): PublicBriefPublisher {
   return {
     async publish(render, signal) {
       const body = JSON.stringify(toPublicBriefDocument(render))
+      const bytes = Buffer.byteLength(body)
+
+      if (bytes > PUBLIC_BRIEF_WARN_BYTES) {
+        logger.warn('trading.public_brief_large', { day: render.day, bytes })
+      }
 
       try {
         const res = await httpRequest({
