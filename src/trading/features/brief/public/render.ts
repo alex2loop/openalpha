@@ -47,7 +47,6 @@ export function renderPublicBrief(
       (row.screens ?? []).map((screen) => toScreenText(locale, screen))
     ),
     headline: perLocale((locale) => headlineOf(texts[locale], coreLineOf(locale, row, context))),
-    disclaimer: perLocale((locale) => t(locale, 'trading.publicBrief.disclaimer')),
   }
 }
 

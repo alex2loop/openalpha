@@ -5761,7 +5761,6 @@
     "brief.fact.takerBuyPct": "Bên mua chủ động",
     "brief.fact.sentimentScore": "Chỉ số sợ hãi - tham lam",
     "brief.fact.premium": "Chênh lệch với thế giới",
-    "publicBrief.disclaimer": "Bản tin mô tả thị trường, không phải khuyến nghị đầu tư.",
     "publicBrief.screenNote": "Đây là bảng lọc xếp theo điểm tổng hợp, không phải khuyến nghị mua bán. Quyết định là của bạn.",
     "publicBrief.screenTitle": "Bảng lọc {market}: {count} mã điểm cao nhất",
     "render.macro.title": "Vĩ mô {region}: {regime}",

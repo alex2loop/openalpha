@@ -1,5 +1,9 @@
-import type { PublicBriefDocument, PublishAnswer } from '../../../src/app/server/wire/public-brief'
-import { findLatestBody, saveBrief } from './store'
+import {
+  PUBLIC_BRIEF_WIRE_SCHEMA,
+  type PublicBriefDocument,
+  type PublishAnswer,
+} from '../../../src/app/server/wire/public-brief'
+import { findLatestBody, MS_PER_DAY, saveBrief } from './store'
 
 const PUBLISH_PATH = '/api/publish'
 const LATEST_PATH = '/api/latest'
@@ -7,15 +11,16 @@ const API_PREFIX = '/api/'
 const MAX_PUBLISH_BYTES = 262_144
 const LATEST_MAX_AGE_SECONDS = 60
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
-const MS_PER_DAY = 86_400_000
+const MAX_DAYS_BACK = 7
+const MAX_DAYS_AHEAD = 1
 const BEARER_RE = /^Bearer (.+)$/i
-const SCHEMA_VERSION = 1
 const LOCALES: readonly (keyof PublicBriefDocument['briefs'])[] = ['vi', 'en']
 const NO_SUBSCRIBERS = 0
 const NO_REJECTED = 0
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
+  'X-Robots-Tag': 'noindex',
 }
 
 export interface Env {
@@ -42,7 +47,7 @@ async function route(request: Request, env: Env): Promise<Response> {
   }
 
   if (pathname === LATEST_PATH) {
-    return request.method === 'GET' ? serveLatest(env) : replyNotAllowed('GET')
+    return request.method === 'GET' ? serveLatest(request, env) : replyNotAllowed('GET')
   }
 
   if (pathname.startsWith(API_PREFIX)) {
@@ -76,7 +81,7 @@ async function publish(request: Request, env: Env): Promise<Response> {
 
   const saved = await saveBrief(env.DB, {
     day,
-    schema: SCHEMA_VERSION,
+    schema: PUBLIC_BRIEF_WIRE_SCHEMA,
     body,
     publishedAt: now,
   })
@@ -86,19 +91,43 @@ async function publish(request: Request, env: Env): Promise<Response> {
   }
 
   const stored = saved === 'inserted'
+
+  if (stored) {
+    await caches.default.delete(latestKeyOf(request))
+  }
+
   const answer: PublishAnswer = { stored, subscribers: NO_SUBSCRIBERS, rejected: NO_REJECTED }
 
   return replyJson(stored ? 201 : 200, answer)
 }
 
-async function serveLatest(env: Env): Promise<Response> {
+// The edge cache answers first, so a flood of reads costs no store read. An empty store is not kept.
+async function serveLatest(request: Request, env: Env): Promise<Response> {
+  const key = latestKeyOf(request)
+  const kept = await caches.default.match(key)
+
+  if (kept !== undefined) {
+    return kept
+  }
+
   const body = await findLatestBody(env.DB)
 
   if (body === undefined) {
     return replyJson(404, { error: 'empty' })
   }
 
-  return replyBody(200, body, { 'Cache-Control': `public, max-age=${LATEST_MAX_AGE_SECONDS}` })
+  const response = replyBody(200, body, {
+    'Cache-Control': `public, max-age=${LATEST_MAX_AGE_SECONDS}`,
+  })
+
+  await caches.default.put(key, response.clone())
+
+  return response
+}
+
+// One entry whatever the query string, so a changing `?x=` cannot walk around the cache.
+function latestKeyOf(request: Request): Request {
+  return new Request(new URL(LATEST_PATH, request.url))
 }
 
 // Both sides are hashed first, so the comparison is over equal-length digests whatever the
@@ -153,7 +182,7 @@ async function readCapped(
 function parsePublishedDay(body: string, now: number): PublicBriefDocument['day'] | undefined {
   const document = parseJson(body)
 
-  if (!isRecord(document) || document.schema !== SCHEMA_VERSION) {
+  if (!isRecord(document) || document.schema !== PUBLIC_BRIEF_WIRE_SCHEMA) {
     return undefined
   }
 
@@ -173,8 +202,9 @@ function parsePublishedDay(body: string, now: number): PublicBriefDocument['day'
     : undefined
 }
 
-// A real calendar date, at most a day ahead of the Worker's UTC today (a Vietnam morning is
-// already tomorrow in UTC): a far-future day would pin `latest` for good.
+// A real calendar date from a week back to a day ahead of the Worker's UTC today (a Vietnam
+// morning is already tomorrow in UTC): a far-future day would pin `latest` for good, and a far-past
+// one only fills the store.
 function isPlausibleDay(day: string, now: number): boolean {
   const start = Date.parse(`${day}T00:00:00Z`)
 
@@ -182,7 +212,9 @@ function isPlausibleDay(day: string, now: number): boolean {
     return false
   }
 
-  return start - Math.floor(now / MS_PER_DAY) * MS_PER_DAY <= MS_PER_DAY
+  const daysFromToday = (start - Math.floor(now / MS_PER_DAY) * MS_PER_DAY) / MS_PER_DAY
+
+  return daysFromToday >= -MAX_DAYS_BACK && daysFromToday <= MAX_DAYS_AHEAD
 }
 
 function parseJson(text: string): unknown {

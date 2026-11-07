@@ -158,7 +158,8 @@ const I18N_INDEX = `${SRC}/i18n/index.ts`
 const WIRE_DIR = `${SRC}/app/server/wire/`
 const WIRE_ALIAS_PREFIX = '@/app/server/wire/'
 const WIRE_CORE_PREFIX = '@/core/types/'
-// The page reads the daemon's wire shapes as types only; nothing else crosses from web into app.
+// The page reads the daemon's wire shapes and their version numbers; nothing else crosses from web
+// into app. The wire folder itself may import only its own files and core types (above).
 const WEB_DIR = `${SRC}/web/`
 // index.ts sits above every module, like `app`, and is checked, not skipped.
 const BARREL_DEPS: readonly string[] = [...(ALLOWED.app ?? []), 'app']
@@ -349,13 +350,12 @@ const checkFile = (file: string, importer: Importer, source: string): void => {
 
     if (isI18nLocaleTypeImport) continue
 
-    const isWebWireTypeImport =
+    const isWebWireImport =
       file.startsWith(WEB_DIR) &&
       found.statementKind === 'import' &&
-      found.isTypeOnly &&
       found.specifier.startsWith(WIRE_ALIAS_PREFIX)
 
-    if (isWebWireTypeImport) continue
+    if (isWebWireImport) continue
 
     const line = lineAt(source, found.index)
     if (!importer.allowed.includes(depModule)) {

@@ -112,7 +112,6 @@ export interface PublicBriefRender {
   readonly texts: Record<Locale, BriefText>
   readonly screens: Record<Locale, readonly PublicScreenText[]>
   readonly headline: Record<Locale, string>
-  readonly disclaimer: Record<Locale, string>
 }
 
 /** What the daemon posts with. Held in the composition's closure and handed to the publisher: it is

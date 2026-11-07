@@ -1,7 +1,9 @@
 // The app's service worker: the shell is cached when it installs, so the page opens with no
-// network, and the latest brief is asked of the network first with the last copy as the fallback. The DOM library has no service worker scope, so the little this file uses is
-// declared here, with the two constants the build fills in.
-import { CACHE_NAME, LATEST_PATH, LOCALE_PATH, OFFLINE_HEADER } from '@/web/brief/load'
+// network, and the latest brief is asked of the network first with the last copy as the fallback.
+// The DOM library has no service worker scope, so the little this file uses is declared here, with
+// the two constants the build fills in.
+import { isDocument } from '@/web/brief/document'
+import { CACHE_NAME, LATEST_PATH, OFFLINE_HEADER } from '@/web/brief/load'
 
 declare const PRECACHE_URLS: readonly string[]
 declare const BUILD_ID: string
@@ -12,7 +14,7 @@ const PRECACHE_TIMEOUT_MS = 30_000
 const SHELL_TIMEOUT_MS = 10_000
 const NOT_FOUND = 404
 const SHELL_URLS: ReadonlySet<string> = new Set(PRECACHE_URLS)
-const KEPT_URLS: ReadonlySet<string> = new Set([...PRECACHE_URLS, LATEST_PATH, LOCALE_PATH])
+const KEPT_URLS: ReadonlySet<string> = new Set([...PRECACHE_URLS, LATEST_PATH])
 const LOOKUP = { ignoreSearch: true, ignoreVary: true } as const
 
 interface LifecycleEvent extends Event {
@@ -126,11 +128,16 @@ async function answerLatest(request: Request): Promise<Response> {
   }
 }
 
+// Only a brief the page can show is kept: a copy it cannot would also fail offline, and would
+// replace the last good one.
 async function keepLatest(response: Response): Promise<void> {
   try {
-    await (await caches.open(CACHE_NAME)).put(LATEST_PATH, response)
+    if (isDocument(await response.clone().json())) {
+      await (await caches.open(CACHE_NAME)).put(LATEST_PATH, response)
+    }
   } catch {
-    // A full cache only costs the offline copy; the reader still gets the brief.
+    // A body that is not JSON or a full cache only costs the offline copy; the reader still gets
+    // the answer.
   }
 }
 

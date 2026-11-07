@@ -1,11 +1,11 @@
 import type { PublicBriefDocument, PublicScreenWire } from '@/app/server/wire/public-brief'
 import type { PublicBriefRender, PublicScreenText } from '@/trading/api'
 import { toBriefTextWire } from '@/app/server/mappers/brief'
-import { PUBLIC_BRIEF_SCHEMA } from '@/trading/api'
+import { PUBLIC_BRIEF_WIRE_SCHEMA } from '@/app/server/wire/public-brief'
 
 export function toPublicBriefDocument(render: PublicBriefRender): PublicBriefDocument {
   return {
-    schema: PUBLIC_BRIEF_SCHEMA,
+    schema: PUBLIC_BRIEF_WIRE_SCHEMA,
     day: render.day,
     builtAt: render.builtAt,
     briefs: { vi: toBriefTextWire(render.texts.vi), en: toBriefTextWire(render.texts.en) },
@@ -14,7 +14,6 @@ export function toPublicBriefDocument(render: PublicBriefRender): PublicBriefDoc
       en: render.screens.en.map(toPublicScreenWire),
     },
     headline: render.headline,
-    disclaimer: render.disclaimer,
   }
 }
 
