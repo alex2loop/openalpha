@@ -92,7 +92,7 @@ async function publish(request: Request, env: Env): Promise<Response> {
     await bestEffort(caches.default.delete(latestKeyOf(request)))
   }
 
-  const answer: Pick<PublishAnswer, 'stored'> = { stored }
+  const answer: PublishAnswer = { stored }
 
   return replyJson(stored ? 201 : 200, answer)
 }
