@@ -78,7 +78,7 @@ A client app talks to the `/v1` HTTP/WS API in `src/app/server/` (contract: `src
 | `social` | core, engine, i18n | Agent social networks joined by skill |
 | `trading` | core, engine, persistence, i18n | Self-contained bounded context |
 | `channels` | core, engine, commands, i18n | Channel definitions, delivery, adapters |
-| `web` | i18n; type-only app/server/wire | Office page: Preact UI and Canvas scene, served by the daemon, or as static files by the web edition (`web/edition/`) |
+| `web` | i18n; app/server/wire | Office page: Preact UI and Canvas scene, served by the daemon, or as static files by the web edition (`web/edition/`) |
 | `cli` | all except `app` | Terminal surface |
 | `app` | all | Entry and sole composition root |
 
@@ -92,7 +92,7 @@ Boundary rules (hard):
    - `i18n` exposes only bare `@/i18n`; it may `import type` only `Locale` from `@/core/types/locale`.
 3. Consumer-side interfaces at every seam: consumer defines, provider `implements`, `app` binds. Direct dependencies only between always-coexisting modules.
 4. `core` has no finance vocabulary. Nothing imports `trading` except `app`, `cli` (via its public API) and the SDK barrel.
-5. Domain modules never import surfaces (`cli`, `channels`, `server`). Surfaces never import `app`, except `web`, which takes type-only `app/server/wire`.
+5. Domain modules never import surfaces (`cli`, `channels`, `server`). Surfaces never import `app`, except `web`, which may import `app/server/wire` (values included): the wire shapes, the pure version constants and the public-brief document validator. That folder imports only itself and `core/types` (`check-dag.ts`).
 6. No `RunContext` god-object: the Run owns its state; services are injected.
 7. Provider order in `app/providers.ts` is load-bearing (prologue + 15 steps, 9 constraints, incl. step 8b `cliCommands`). Read it before reordering. The browser root (`app/browser/providers.ts`) lists the same providers in the same order and obeys the same constraints.
 

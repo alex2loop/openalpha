@@ -862,7 +862,7 @@ Next to your own morning brief, the daemon can publish a second one that anyone 
 
 **What it carries.** Every market-wide section of the brief the dashboard shows, in Vietnamese and English, for VN stocks, VN gold, world gold and crypto, and for US stocks only while your US segment is on. That reveals only whether you follow US stocks, never a name. The US board is the largest names alone, never the ones you hold or watch. That is prices and breadth, movers and leaders, derivatives, sentiment and fx where a market has them, the macro read, the regime shift, sector rotation, support and resistance, the futures basis, the market story with its look back, and market, macro and economy headlines. Every section reads as it does on the dashboard.
 
-**What it never carries.** Nothing of your book. Not a holding, a watchlist name, an amount, a plan, a suggestion, an alert or a cost. It never states an entry, stop, target, size or conviction for a named instrument, and it never calls one buy, sell or hold. It makes no model call, so no line is written by an AI and it costs nothing to run: every line is the daemon's own wording, and a disclaimer closes every brief ("This brief describes the market. It is not investment advice.").
+**What it never carries.** Nothing of your book. Not a holding, a watchlist name, an amount, a plan, a suggestion, an alert or a cost. It never states an entry, stop, target, size or conviction for a named instrument, and it never calls one buy, sell or hold. It makes no model call, so no line is written by an AI and it costs nothing to run: every line is the daemon's own wording. The posted document carries no disclaimer; the phone app closes every brief with its own line ("This brief describes the market. It is not investment advice.").
 
 Each section is either market or book, decided once in code. A new kind of section cannot ship until someone says which it is, so nothing leaks by default. The book sections are your book summary, resolved suggestions, fired alerts, exits, positions in loss, unwatched or stale, drift, the monthly scorecard, the cash rate, suggestions and next actions, discipline, the watchlist sections, the cross-asset pulse, each side's trades on names you hold or watch, and cost. Three locks keep them out:
 
@@ -870,7 +870,7 @@ Each section is either market or book, decided once in code. A new kind of secti
 - a code gate that fails the build if that path could ever reach the book;
 - a last check before each post, below.
 
-**The last check, and one case to know about.** Before it posts, the daemon reads every line a reader would see, in both languages. If a ticker you hold or watch stands there as a whole uppercase word, the day is refused and nothing is sent. Tickers inside a market section's own rows are fine, because the market printed them: a mover, a leader, the symbols in a headline title, and the names on a screen list. So when you follow a ticker that is also a word the brief prints, such as `VND` (the currency) or `VIX`, the day is refused unless that name sits in one of those rows that day. Stop following it, or accept that the brief skips those days. If it cannot read your book at all, it refuses too: skipping is the safe direction. The refusal is in your log as `trading.public_brief_refused` with the names; they are never in anything that is sent.
+**The last check, and one case to know about.** Before it posts, the daemon reads every line a reader would see, in both languages. If a ticker you hold or watch stands there as a whole uppercase word, the day is refused: nothing is sent and the day stays closed. Matching is case-sensitive, so a lowercase `gas` in a headline never trips a held `GAS`. A `.`, `-` or `_` inside a ticker counts as one separator, so `BRK.B` and `BRK-B` are the same name, and a ticker glued to lowercase letters, such as `HPGvà`, is still caught. Tickers inside a market section's own rows are fine, because the market printed them: a mover, a leader, the symbols in a headline title, and the names on a screen list. So when you follow a ticker that is also a word the brief prints in capitals, such as `VND` (the currency) or `VIX`, the day is refused unless that name sits in one of those rows that day. Stop following it, or accept that the brief skips those days. If the check cannot read your book, it posts nothing for that attempt and the day is tried again, like a failed post; an unreadable book is not a refusal. A refusal is in your log as `trading.public_brief_refused` with the names; they are never in anything that is sent.
 
 **Turn it on.**
 
@@ -894,23 +894,22 @@ Each section is either market or book, decided once in code. A new kind of secti
 
 **When it goes out.** Once on each Vietnam trading day, from `publish_time` until the market opens, after your own 08:15 brief; never after the open. Keep `publish_time` at least 15 minutes clear of the open: the refresh can take several minutes, and if the open comes before the day can post, the day is skipped. First it refreshes market data for the four markets it always carries, so it reads markets you have switched off too, plus US stocks only while your US segment is on. With that segment off, nothing US is refreshed, built or shown, so the morning run never spends the long first US refresh. If your profile cannot be read, US stocks are left out for that day and the log says so (`trading.public_brief_profile_unreadable`). It publishes only when the tape is the last settled session's. A build with no tape, or an older one, publishes nothing that day.
 
-**When something fails, the day is skipped.** Your own brief shares nothing with it and is never touched. A post that fails (no network, a timeout, 429 or a server error) is tried again five minutes later, up to four times in a day. An answer the public side will repeat, such as a wrong token (401), closes the day. A day posted twice is stored once, so a repeat is harmless. The daemon logs where it ended:
+**When something fails, the day is skipped.** Your own brief shares nothing with it and is never touched. A post that fails (no network, a timeout, 429 or a server error) is tried again five minutes later, up to four times in a day, and so is a day on which the last check could not read your book. Two things close the day at once: an answer the public side will repeat, such as a wrong token (401), and the last check refusing a name of yours. A day posted twice is stored once, so a repeat is harmless. The daemon logs where it ended:
 
 | Log key | Means |
 |---|---|
 | `trading.public_brief_published` | The day is posted. |
-| `trading.public_brief_publish_failed` | Four attempts used; `reason` says why (`empty`, `guard`, `unreachable`, `http-<status>`, `error`). |
-| `trading.public_brief_publish_refused` | The public side refused for good; `status` says which. Check the token first. |
-| `trading.public_brief_refused` | The last check found a name of yours. |
-| `trading.public_brief_guard_unread` | The book could not be read, so the day was refused. |
-| `trading.public_brief_attempt_failed` | The build, the check or the store failed. |
+| `trading.public_brief_publish_failed` | Four attempts used; `reason` says why (`empty`, `guard-unread`, `unreachable`, `http-<status>`, `error`). |
+| `trading.public_brief_publish_refused` | The public side refused the post and would refuse it again; `status` says which. Check the token first. Closes the day. |
+| `trading.public_brief_refused` | The last check found a name of yours. Closes the day. |
+| `trading.public_brief_guard_unread` | The last check could not read your book, so nothing was posted for that attempt. It is tried again. |
+| `trading.public_brief_attempt_failed` | The build, the check or the post threw an error. It counts as an attempt. |
 | `trading.public_brief_late` | The open came before the day could post. Closes the day. |
 | `trading.public_brief_large` | The brief is over about 200 KB, close to the 256 KB the public side accepts. It still posts. |
 | `trading.public_brief_previous_unreadable` | Yesterday's stored brief could not be read, so today's has no look back. It still posts. |
 | `trading.public_brief_screen_unreadable` | One market's screen list could not be read and is left out; `market` says which. The rest posts. |
-| `trading.public_brief_push_near_limit`, `trading.public_brief_push_full` | Reserved for phone reminders, which are not live yet, so they do not appear today. |
 
-**Where it posts.** Only to the public side's address, which is fixed in code: no setting, flag or file redirects it, and nothing listens on your machine for it. While it is on, the board of background work shows "Public morning brief" and Settings, under Data and connections, lists that address with what is sent there. While it is off the address is not listed. The day's brief is kept locally for 30 days (`public_briefs`); the public side keeps the history.
+**Where it posts.** Only to the public side's address, which is fixed in code: no setting, flag or file redirects it, and nothing listens on your machine for it. While it is on, the board of background work shows "Public morning brief" and Settings, under Data and connections, lists that address with what is sent there. While it is off the address is not listed. The day's brief is kept locally for 30 days (`public_briefs`); the public side keeps the last 30 days.
 
 ### Themes
 

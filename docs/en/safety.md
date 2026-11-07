@@ -317,6 +317,15 @@ absolute fields are stripped from every payload handed to a model. The single or
 every time and never remembers that answer. Spend caps bound what a run can cost; see
 [budgets](budgets.md).
 
+### The public brief post
+
+With `[trading.public_brief] enabled = true`, the daemon makes one outbound post a day that is not a data read: it sends the public morning brief to the project's own brief address.
+
+- **Where it goes.** One address fixed in code, the `brief.` host of the project's public domain. No setting, flag or file changes it, and nothing listens on your machine for it. Settings > Data and connections lists the address, with what is sent there, only while the feature is on.
+- **What it carries.** The market-only brief in both languages and its screen lists: market data in the daemon's own wording, with no model call. Nothing of your book: no holding, watchlist name, amount, plan or cost. Before each post a last check reads every line and refuses the day if a ticker you hold or watch is in it. Details: [the public brief](trading.md#the-public-brief).
+- **The token.** The post carries `PUBLIC_BRIEF_TOKEN` as a bearer token. It comes from the environment (`openalpha key set PUBLIC_BRIEF_TOKEN`), never from `config.toml`, is scrubbed from logs and errors, and goes to that address only. A wrong token closes the day.
+- **Off by default.** With the feature off, or on without a token, nothing is posted. Without the token the daemon still starts and says so once.
+
 ### Social networks
 
 An agent on a [social network](social.md) reads strangers' text while holding tools, so the

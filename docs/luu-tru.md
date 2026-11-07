@@ -132,7 +132,7 @@ gói bằng chứng, và không thể dựng lại.
   bình 50 và 200 phiên, cho VN-Index, VN30 và HNX. Nhờ vậy dịch vụ nền giữ lịch sử định giá của riêng nó.
   Mỗi mã đóng góp bao nhiêu cho một chỉ số thì không bao giờ được lưu.
 
-**Bản tin công khai.** `public_briefs` giữ một dòng cho mỗi ngày giao dịch ở Việt Nam của bản tin mà dịch vụ nền đăng lên trang công khai: các mục thị trường và danh sách bảng lọc dùng dựng ngày đó, lúc dựng và lúc đăng, và số lần đã thử đăng. Không có gì của sổ bạn trong đó, vì bản tin được dựng từ không có sổ nào. Ngày mà bản dựng trả về rỗng vẫn có một dòng không kèm mục nào, nên một bản dựng hỏng bị làm chậm lại như một lần đăng hỏng. Dòng ghi theo schema khác, hoặc không còn đọc được, tính là chưa dựng và ngày đó được dựng lại. Bảng này không thuộc loại bền: dữ liệu thị trường dựng lại được nó, nên `db export` mặc định bỏ qua. Bảng tự giữ 30 ngày của riêng nó, cắt bớt mỗi lần lưu một ngày; `db cleanup` và các cửa sổ lưu giữ không đụng tới.
+**Bản tin công khai.** `public_briefs` giữ một dòng cho mỗi ngày giao dịch ở Việt Nam của bản tin mà dịch vụ nền đăng lên trang công khai: các mục thị trường và danh sách bảng lọc dùng để dựng ngày đó, lúc dựng và lúc đăng, và số lần đã thử đăng. Không có gì của sổ bạn trong đó, vì bản tin được dựng mà không đọc sổ. Ngày mà bản dựng ra rỗng vẫn có một dòng không kèm mục nào, nên một bản dựng hỏng cũng bị giới hạn số lần thử như một lần đăng hỏng. Dòng ghi theo schema khác, hoặc không còn đọc được, tính là chưa dựng và ngày đó được dựng lại. Bảng này không thuộc loại bền: dữ liệu thị trường dựng lại được nó, nên `db export` mặc định bỏ qua. Bảng tự giữ 30 ngày của riêng nó, cắt bớt mỗi lần lưu một ngày; `db cleanup` và các cửa sổ lưu giữ không đụng tới.
 
 #### Agent và phạm vi
 
