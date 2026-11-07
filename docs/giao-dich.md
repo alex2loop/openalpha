@@ -894,12 +894,12 @@ Mỗi mục thuộc về thị trường hoặc thuộc về sổ, quyết đị
 | Khóa | Mặc định | Tác dụng |
 |---|---|---|
 | `enabled` | `false` | Đăng bản tin. |
-| `publish_time` | `"08:30"` | Giờ Việt Nam. Phải sớm hơn giờ mở cửa 09:00, nếu không dịch vụ nền từ chối khởi động. |
-| `analysis` | `true` | `false` bỏ phần nhìn vĩ mô, đổi chế độ, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai, thay đổi của bảng lọc và các câu chuyện nhắc lại chúng. |
+| `publish_time` | `"08:30"` | Giờ Việt Nam. Phải chừa ít nhất 15 phút trước giờ mở cửa 09:00, nếu không dịch vụ nền từ chối khởi động. |
+| `analysis` | `true` | `false` bỏ phần nhìn vĩ mô, đổi chế độ, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai và các câu chuyện nhắc lại chúng. |
 | `headlines` | `true` | `false` bỏ tin thị trường, vĩ mô và kinh tế. |
-| `top_screen` | `0` | `0` là tắt. Một số nguyên đến 10 thêm chừng đó mã từ mỗi bảng lọc (cổ phiếu Việt Nam và crypto), xếp theo điểm tổng hợp: hạng, mã, điểm, giá đóng cửa gần nhất và mức dịch chuyển. Không có xếp loại, dòng yếu tố hay lưu ý, không dấu loại trừ hay ký quỹ, và khép bằng một ghi chú rằng đây là bảng lọc xếp hạng, không phải khuyến nghị mua bán. Crypto xếp mọi đồng được niêm yết, không chỉ các đồng ở sàn bạn dùng. Số lẻ hoặc lớn hơn 10 làm dịch vụ nền dừng ngay khi khởi động. |
+| `top_screen` | `0` | `0` là tắt. Một số nguyên đến 10 thêm chừng đó mã từ mỗi bảng lọc (cổ phiếu Việt Nam và crypto, cùng cổ phiếu Mỹ khi nhóm Mỹ của bạn đang bật), xếp theo điểm tổng hợp: hạng, mã, điểm, giá đóng cửa gần nhất và mức dịch chuyển. Không có xếp loại, dòng yếu tố hay lưu ý, không dấu loại trừ hay ký quỹ, và khép bằng một ghi chú rằng đây là bảng lọc xếp hạng, không phải khuyến nghị mua bán. Crypto xếp mọi đồng được niêm yết, không chỉ các đồng ở sàn bạn dùng. Số lẻ hoặc lớn hơn 10 làm dịch vụ nền dừng ngay khi khởi động. |
 
-**Khi nào nó ra.** Một lần mỗi ngày giao dịch ở Việt Nam, từ `publish_time` tới lúc thị trường mở cửa, sau bản tin 08:15 của bạn; không bao giờ sau giờ mở cửa. Trước hết nó làm mới dữ liệu của bốn thị trường nó luôn mang, nên nó cũng đọc cả những thị trường bạn đã tắt, cộng cổ phiếu Mỹ chỉ khi nhóm Mỹ của bạn đang bật. Nhóm Mỹ tắt thì không có gì của Mỹ được làm mới, dựng hay hiển thị, nên lượt chạy buổi sáng không mất lần làm mới Mỹ đầu tiên vốn rất lâu. Hồ sơ không đọc được thì hôm đó bỏ cổ phiếu Mỹ ra và nhật ký ghi `trading.public_brief_profile_unreadable`. Nó chỉ đăng khi bảng giá là của phiên đã chốt gần nhất. Bản dựng không có bảng giá, hoặc chỉ có bảng của phiên cũ hơn, thì hôm đó không đăng gì.
+**Khi nào nó ra.** Một lần mỗi ngày giao dịch ở Việt Nam, từ `publish_time` tới lúc thị trường mở cửa, sau bản tin 08:15 của bạn; không bao giờ sau giờ mở cửa. Hãy để `publish_time` cách giờ mở cửa ít nhất 15 phút: lượt làm mới có thể mất vài phút, và nếu giờ mở cửa tới trước khi ngày đó đăng kịp thì ngày đó bị bỏ qua. Trước hết nó làm mới dữ liệu của bốn thị trường nó luôn mang, nên nó cũng đọc cả những thị trường bạn đã tắt, cộng cổ phiếu Mỹ chỉ khi nhóm Mỹ của bạn đang bật. Nhóm Mỹ tắt thì không có gì của Mỹ được làm mới, dựng hay hiển thị, nên lượt chạy buổi sáng không mất lần làm mới Mỹ đầu tiên vốn rất lâu. Hồ sơ không đọc được thì hôm đó bỏ cổ phiếu Mỹ ra và nhật ký ghi `trading.public_brief_profile_unreadable`. Nó chỉ đăng khi bảng giá là của phiên đã chốt gần nhất. Bản dựng không có bảng giá, hoặc chỉ có bảng của phiên cũ hơn, thì hôm đó không đăng gì.
 
 **Khi có lỗi, ngày đó bị bỏ qua.** Bản tin của bạn không chia sẻ gì với nó và không bao giờ bị đụng tới. Một lần đăng lỗi (mất mạng, quá giờ, 429 hay lỗi máy chủ) được thử lại sau năm phút, tối đa bốn lần một ngày. Một câu trả lời mà phía công khai sẽ lặp lại, như token sai (401), đóng ngày đó. Một ngày đăng hai lần chỉ được lưu một lần, nên lặp lại vô hại. Dịch vụ nền ghi lại nó dừng ở đâu:
 
@@ -911,6 +911,11 @@ Mỗi mục thuộc về thị trường hoặc thuộc về sổ, quyết đị
 | `trading.public_brief_refused` | Lần kiểm tra cuối thấy một mã của bạn. |
 | `trading.public_brief_guard_unread` | Không đọc được sổ, nên ngày đó bị từ chối. |
 | `trading.public_brief_attempt_failed` | Bản dựng, lần kiểm tra hay kho lưu bị lỗi. |
+| `trading.public_brief_late` | Giờ mở cửa tới trước khi ngày đó đăng kịp. Đóng ngày đó. |
+| `trading.public_brief_large` | Bản tin lớn hơn khoảng 200 KB, gần mức 256 KB mà phía công khai nhận. Vẫn đăng. |
+| `trading.public_brief_previous_unreadable` | Không đọc được bản tin đã lưu của hôm qua, nên bản hôm nay không có phần nhìn lại. Vẫn đăng. |
+| `trading.public_brief_screen_unreadable` | Danh sách bảng lọc của một thị trường không đọc được và bị bỏ ra; `market` cho biết thị trường nào. Phần còn lại vẫn đăng. |
+| `trading.public_brief_push_near_limit`, `trading.public_brief_push_full` | Dành riêng cho nhắc nhở trên điện thoại, chưa chạy, nên hiện chưa xuất hiện. |
 
 **Nó đăng đi đâu.** Chỉ tới địa chỉ của phía công khai, cố định trong mã: không cài đặt, cờ hay tệp nào chuyển hướng nó, và không có gì lắng nghe trên máy bạn cho việc này. Khi nó bật, bảng việc chạy ngầm hiện "Bản tin sáng công khai" và Cài đặt, mục Dữ liệu và kết nối, liệt kê địa chỉ đó cùng thứ được gửi tới. Khi tắt thì địa chỉ không được liệt kê. Bản tin của ngày được giữ trên máy 30 ngày (`public_briefs`); lịch sử do phía công khai giữ.
 

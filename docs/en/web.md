@@ -120,7 +120,7 @@ Apart from the web version there is a small phone app that does one thing: it sh
 It is a trial shared by invitation, and the address comes with the invitation, so this guide does not print it.
 
 - **Reading.** Open the invitation and the page shows today's brief, or a note that the first one is not out yet. A brief from an earlier day is headed "Latest brief" with its date. The page opens in your phone's language, and the language switch at the bottom changes it and remembers the choice. Every brief ends with a line saying it describes the market and is not investment advice.
-- **Sharing.** "Share brief" draws a card with the day, the brief's one-line headline, that disclaimer and the app's address, then hands it to your phone's share sheet, or saves it as a picture where the phone has no share sheet.
+- **Sharing.** "Share the brief" draws a card with the day, the brief's one-line headline, that disclaimer and the app's address, then hands it to your phone's share sheet, or saves it as a picture where the phone has no share sheet.
 - **Offline.** After the first visit the app keeps its own pages and the last brief it showed. With no connection it opens that brief under a note that it could not get a newer one.
 - **Privacy.** The app keeps nothing about you: no account, no cookie, no name, email or number. Only your language choice and the last brief stay on your phone. Cloudflare serves the page and sees each request, like any web host, under its own policy. The "Privacy" link at the foot of the app says all this in full.
 

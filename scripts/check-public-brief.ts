@@ -163,6 +163,13 @@ const COMPOSITION_ALLOWED: readonly string[] = [
   'render/',
 ]
 
+interface WalkOptions {
+  readonly roots: readonly string[]
+  readonly forbidden: readonly string[]
+  readonly permitted: readonly string[]
+  readonly exceptions: ReadonlyMap<string, string>
+}
+
 interface Walked {
   readonly offences: readonly string[]
   readonly usedEdges: ReadonlySet<string>
@@ -171,7 +178,12 @@ interface Walked {
 const violations: string[] = []
 const publicFiles = [...new Glob('**/*.ts').scanSync(PUBLIC_DIR)].map((file) => `${PUBLIC_DIR}/${file}`)
 
-const walked = walkValueImports(publicFiles, PUBLIC_BRIEF_FORBIDDEN, PUBLIC_BRIEF_PERMITTED, exceptionEdges())
+const walked = walkValueImports({
+  roots: publicFiles,
+  forbidden: PUBLIC_BRIEF_FORBIDDEN,
+  permitted: PUBLIC_BRIEF_PERMITTED,
+  exceptions: exceptionEdges(),
+})
 
 violations.push(...walked.offences.map((offence) => `(a) ${offence}`))
 violations.push(...staleExceptions(walked.usedEdges).map((edge) => `(a) stale exception, no longer reached: ${edge}`))
@@ -204,12 +216,7 @@ function staleExceptions(used: ReadonlySet<string>): readonly string[] {
 /** Breadth-first over value imports under `src/trading/`, naming the chain of every forbidden edge
  *  it meets. An excepted edge is let through and walked on; any other forbidden target is reported
  *  and not entered, so one leak is one line. */
-function walkValueImports(
-  roots: readonly string[],
-  forbidden: readonly string[],
-  permitted: readonly string[],
-  exceptions: ReadonlyMap<string, string>
-): Walked {
+function walkValueImports({ roots, forbidden, permitted, exceptions }: WalkOptions): Walked {
   const parent = new Map<string, string | undefined>(roots.map((root) => [root, undefined]))
   const queue = [...roots]
   const offences: string[] = []
@@ -412,7 +419,12 @@ function segmentBitGaps(): readonly string[] {
 }
 
 function screenReaches(): readonly string[] {
-  return walkValueImports([BOOK_FREE_SCREEN_FILE, SCREEN_EVIDENCE_FILE], SCREEN_FORBIDDEN, [], new Map()).offences
+  return walkValueImports({
+    roots: [BOOK_FREE_SCREEN_FILE, SCREEN_EVIDENCE_FILE],
+    forbidden: SCREEN_FORBIDDEN,
+    permitted: [],
+    exceptions: new Map(),
+  }).offences
 }
 
 /** The screen is run through the market's capability, which an import walk cannot follow: the call

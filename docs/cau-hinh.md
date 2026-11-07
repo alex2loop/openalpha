@@ -790,8 +790,8 @@ send_time = "08:15"            # mặc định cho một bản gửi chưa tự 
 
 [trading.public_brief]
 enabled = false                # đăng một bản tin chỉ có thị trường vào mỗi sáng giao dịch ở Việt Nam
-publish_time = "08:30"         # HH:MM, giờ Việt Nam; sớm hơn 09:00 mở cửa
-analysis = true                # chế độ vĩ mô và điểm, đổi chế độ, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai, thay đổi của bảng lọc
+publish_time = "08:30"         # HH:MM, giờ Việt Nam; sớm hơn giờ mở cửa 09:00 ít nhất 15 phút
+analysis = true                # chế độ vĩ mô và điểm, đổi chế độ, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai
 headlines = true               # tin thị trường, vĩ mô và kinh tế
 top_screen = 0                 # 0 = tắt; tối đa 10 mã mỗi thị trường từ bảng lọc, xếp theo điểm tổng hợp
 
@@ -954,8 +954,8 @@ mỗi sáng giao dịch ở Việt Nam. Không có gì trong sổ của bạn l�
 dõi, không kế hoạch hay khối lượng) và nó không gọi mô hình. Mặc định tắt cho tới khi `enabled = true`, và
 cần token đăng trong biến môi trường `PUBLIC_BRIEF_TOKEN`, không bao giờ để trong `config.toml`: đặt bằng
 `openalpha key set PUBLIC_BRIEF_TOKEN`. Bật mà chưa có token thì dịch vụ nền vẫn chạy, báo một lần và không
-đăng gì. `publish_time` là giờ Việt Nam và phải sớm hơn giờ mở cửa, nếu không dịch vụ nền từ chối khởi
-động. `analysis` và `headlines` bỏ nhóm của mình đi khi đặt `false`; `top_screen` thêm số mã đó có điểm cao
+đăng gì. `publish_time` là giờ Việt Nam và phải chừa ít nhất 15 phút trước giờ mở cửa 09:00, nếu không dịch vụ nền từ chối khởi
+động: lượt làm mới dữ liệu buổi sáng cần khoảng trống đó, và một ngày lỡ giờ mở cửa sẽ bị bỏ qua. `analysis` và `headlines` bỏ nhóm của mình đi khi đặt `false`; `top_screen` thêm số mã đó có điểm cao
 nhất mỗi thị trường từ bảng lọc (số nguyên, 0 đến 10; 0 là bỏ danh sách; số lẻ hoặc lớn hơn thì dịch vụ nền
 dừng ngay khi khởi động). Nó mang gì và hỏng ra sao: [bản tin công khai](giao-dich.md#bản-tin-công-khai).
 

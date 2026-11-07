@@ -293,10 +293,10 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # environment variable PUBLIC_BRIEF_TOKEN (openalpha key set PUBLIC_BRIEF_TOKEN), never in this file.
 # [trading.public_brief]
 # enabled = false
-# publish_time = "08:30"   # HH:MM, Vietnam time (Asia/Ho_Chi_Minh); after your own brief, before the 09:00 open
-# analysis = true          # macro regime and score, regime shift, sector rotation, support and resistance, futures basis, screen board changes
+# publish_time = "08:30"   # HH:MM, Vietnam time (Asia/Ho_Chi_Minh); after your own brief, at least 15 minutes before the 09:00 open
+# analysis = true          # macro regime and score, regime shift, sector rotation, support and resistance, futures basis
 # headlines = true         # market, macro and economy headlines
-# top_screen = 0           # 0 = off; up to 10 names per market from the screen board, by composite score
+# top_screen = 0           # 0 = off; up to 10 names per market from the screen board, by composite score (US stocks too while that segment is on)
 
 # Mid-session report for the market of your [locale] region (VN stocks by
 # default), on that market's hours and trading days. Off by default; name the
