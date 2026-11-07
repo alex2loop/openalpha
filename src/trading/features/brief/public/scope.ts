@@ -5,7 +5,7 @@ import type {
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
 import type { StoryCode } from '@/trading/kernel/operator/brief-story'
-import { isShown } from '@/trading/features/brief/render'
+import { isSectionShown } from '@/trading/features/brief/render'
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-scope'
 import { DIRECTIONAL_STORY_CODES } from '@/trading/kernel/operator/brief-story'
@@ -83,8 +83,8 @@ export function carriedSections(
 
 /** The tickers this brief may name: the `ticker` of every row of a `market` section the renderer
  *  prints, the uppercase symbols of a headline row's own title, and the names on its screen lists.
- *  Read from structured rows alone, never from rendered text, and from printed `market` kinds alone:
- *  a book kind, or a stored kind the renderer leaves out, adds nothing. */
+ *  Read from structured rows alone, never from rendered text, and from printed `market` kinds
+ *  alone: a book kind, or a stored kind the renderer leaves out, adds nothing. */
 export function exemptTickers(row: PublicBriefRow): ReadonlySet<string> {
   return new Set([
     ...(row.sections ?? []).flatMap(sectionTickers),
@@ -98,7 +98,7 @@ function sectionTickers(section: BriefSectionResult): readonly string[] {
   if (
     section.status !== 'ready' ||
     BRIEF_SECTION_SCOPE[section.kind] !== 'market' ||
-    !isShown(section)
+    !isSectionShown(section)
   ) {
     return []
   }

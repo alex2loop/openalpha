@@ -10,13 +10,11 @@ import type { ScreenRowForm } from '@/trading/features/market-data/render/screen
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
   RefreshAllMarketDataOptions,
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
-import type { UserProfile } from '@/trading/kernel/operator/profile'
-import type { Market, MarketRegistry } from '@/trading/markets/types'
+import type { Market, MarketRegistry, TradingCalendar } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -50,16 +48,21 @@ interface PublicBriefParts {
   ): Promise<readonly RefreshMarketDataResult[]>
 }
 
-/** The public brief, built from reads that hold no book: the market data service, its own store and
- *  a seeded default profile. Nothing the operator holds or watches reaches it. The one bit of the
- *  profile it takes is whether the US segment is on: US stocks are in the brief only while it is. */
+/** The public brief, built from reads that hold no book: the market data service, its own store
+ *  and a seeded default profile. Nothing the operator holds or watches reaches it. The one bit of
+ *  the profile it takes is whether the US segment is on: US stocks are in the brief only while it
+ *  is. */
 export interface PublicBrief {
+  /** The calendar the brief is dated and timed on: the home market's. */
+  readonly calendar: TradingCalendar
   build(input: PublicBriefInput): Promise<BuiltPublicBriefRow | null>
   render(row: BuiltPublicBriefRow): PublicBriefRender
 }
 
 export function createPublicBrief(parts: PublicBriefParts): PublicBrief {
-  const { config, markets } = parts
+  const { config, markets, store } = parts
+  const home = homeMarket(markets)
+  const { calendar } = home.manifest
   const profile = defaultProfile({
     baseCurrency: config.baseCurrency,
     segments: toSegmentDescriptors(
@@ -67,31 +70,35 @@ export function createPublicBrief(parts: PublicBriefParts): PublicBrief {
       { heldMarkets: parts.venues.heldMarkets(), homeRegion: config.defaultRegion }
     ),
   })
-  const home = (): Market => homeMarket(markets)
 
   return {
-    build: async (input) =>
-      buildPublicBrief(
-        briefDeps(parts, profile, publicBriefMarkets(await isUsSegmentOn(parts, input.signal))),
-        input
-      ),
+    calendar,
+    build: async (input) => {
+      const scope = publicBriefMarkets(await isUsSegmentOn(parts, input.signal))
+      const reads = createPublicBriefReads({
+        marketData: parts.marketData,
+        store,
+        profile,
+        markets: scope,
+      })
+
+      return buildPublicBrief(briefDeps(parts, home, { markets: scope, reads }), input)
+    },
     // The VPS is often on UTC: the brief is dated and timed on the Vietnam calendar.
-    render: (row) => renderPublicBrief(row, { timezone: home().manifest.calendar.timezone }),
+    render: (row) => renderPublicBrief(row, { timezone: calendar.timezone }),
   }
 }
 
 function briefDeps(
   parts: PublicBriefParts,
-  profile: UserProfile,
-  markets: readonly MarketRef[]
+  home: Market,
+  scope: Pick<PublicBriefDeps, 'markets' | 'reads'>
 ): PublicBriefDeps {
   const { config, store } = parts
-  const home = homeMarket(parts.markets)
 
   return {
     market: home,
-    markets,
-    reads: createPublicBriefReads({ marketData: parts.marketData, store, profile, markets }),
+    ...scope,
     store,
     toggles: config.publicBrief,
     limit: config.briefs.maximumItemsPerSection,
@@ -146,7 +153,7 @@ async function readScreen(
   }
 }
 
-export function homeMarket(markets: MarketRegistry): Market {
+function homeMarket(markets: MarketRegistry): Market {
   const market = markets.find(PUBLIC_HOME_MARKET)
 
   if (market === null) {

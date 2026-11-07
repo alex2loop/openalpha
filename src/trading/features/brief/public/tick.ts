@@ -18,8 +18,6 @@ import { resolveLocalTimeAt } from '@/trading/markets/calendar'
 
 export const PUBLIC_BRIEF_TICK_MS = MS_PER_MINUTE
 const PUBLIC_BRIEF_RETRY_MS = 5 * MS_PER_MINUTE
-/** Subscribers from which each publish says the push list is nearing its cap. */
-const PUBLIC_BRIEF_PUSH_WARN_AT = 40
 const STATUS_REQUEST_TIMEOUT = 408
 const STATUS_TOO_MANY_REQUESTS = 429
 const STATUS_SERVER_ERROR = 500
@@ -67,10 +65,10 @@ type AttemptResult =
   | { readonly kind: 'sent'; readonly outcome: Settled }
 
 /** One pass per minute, so it never overlaps itself: it posts today's brief once, before the open.
- *  A post that fails is retried a few minutes later up to a bound. A refusal the guard or the public
- *  side will repeat closes the day, and so does the session opening first: an attempt runs under a
- *  deadline at the open, and a day it misses is dropped and logged. Nothing here touches the
- *  owner's brief. */
+ *  A post that fails is retried a few minutes later up to a bound. A refusal the guard or the
+ *  public side will repeat closes the day, and so does the session opening first: an attempt runs
+ *  under a deadline at the open, and a day it misses is dropped and logged. Nothing here touches
+ *  the owner's brief. */
 export function createPublicBriefTick(
   deps: PublicBriefTickDeps
 ): (signal: AbortSignal, notes: TickNotes) => Promise<void> {
@@ -118,11 +116,15 @@ function isDue(row: PublicBriefRow | null, now: number): boolean {
 }
 
 /** One attempt under a deadline at the session open, so a slow build stops there instead of running
- *  past it. The deadline's abort is a late day; the loop's own abort is shutdown and propagates. */
+ *  past it. The deadline's abort is a late day; the loop's own abort is shutdown and propagates.
+ *  A failure of the build (its refresh, reads and saved row), of the guard or of the post counts as
+ *  an attempt, so a day that keeps failing stops at the bound instead of running once a minute. A
+ *  failure of the store reading or recording the attempt itself is not caught here: the pass fails
+ *  and the next minute tries again. */
 async function runAttempt(deps: PublicBriefTickDeps, attempt: Attempt): Promise<AttemptResult> {
-  const { day, now, signal } = attempt
+  const { day, signal } = attempt
   const deadline = new AbortController()
-  const timer = setTimeout(() => deadline.abort(), deps.calendar.sessionOpenAt(day) - now)
+  const timer = setTimeout(() => deadline.abort(), deps.calendar.sessionOpenAt(day) - Date.now())
 
   try {
     return await post(deps, { ...attempt, signal: AbortSignal.any([signal, deadline.signal]) })
@@ -131,7 +133,13 @@ async function runAttempt(deps: PublicBriefTickDeps, attempt: Attempt): Promise<
       return { kind: 'late' }
     }
 
-    return logFailure(deps, day, err)
+    if (isAbortError(err)) {
+      throw err
+    }
+
+    deps.logger.error('trading.public_brief_attempt_failed', { day, err: formatErrForLog(err) })
+
+    return { kind: 'failed', reason: 'error' }
   } finally {
     clearTimeout(timer)
   }
@@ -185,20 +193,6 @@ function isRetryable(status: number): boolean {
     status === STATUS_TOO_MANY_REQUESTS ||
     status >= STATUS_SERVER_ERROR
   )
-}
-
-/** A failure of the build (its refresh, reads and saved row), of the guard or of the post counts as
- *  an attempt, so a day that keeps failing stops at the bound instead of running once a minute. A
- *  failure of the store reading or recording the attempt itself is not caught here: the pass fails
- *  and the next minute tries again. Shutdown is not a failure. */
-function logFailure(deps: PublicBriefTickDeps, day: TradingDay, err: unknown): AttemptResult {
-  if (isAbortError(err)) {
-    throw err
-  }
-
-  deps.logger.error('trading.public_brief_attempt_failed', { day, err: formatErrForLog(err) })
-
-  return { kind: 'failed', reason: 'error' }
 }
 
 async function settle(
@@ -260,19 +254,5 @@ async function recordFailure(
 }
 
 function logPublished(deps: PublicBriefTickDeps, day: TradingDay, outcome: Settled): void {
-  const { subscribers, rejected } = outcome
-
-  deps.logger.info('trading.public_brief_published', { day, subscribers })
-
-  if (subscribers >= PUBLIC_BRIEF_PUSH_WARN_AT) {
-    deps.logger.warn('trading.public_brief_push_near_limit', {
-      day,
-      subscribers,
-      warnAt: PUBLIC_BRIEF_PUSH_WARN_AT,
-    })
-  }
-
-  if (rejected > 0) {
-    deps.logger.error('trading.public_brief_push_full', { day, rejected })
-  }
+  deps.logger.info('trading.public_brief_published', { day, outcome: outcome.kind })
 }

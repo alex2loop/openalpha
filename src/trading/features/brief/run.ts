@@ -46,8 +46,9 @@ export async function runMarketBrief(
   return [...tryPlanStory(deps, input, built), ...built.sections]
 }
 
-/** The story is garnish: a throw costs the brief its two sections, never the brief. An abort is the
- *  caller's. A failed detection and a failed step share one log line, so a reader sees one boundary. */
+/** The story is garnish: a throw costs the brief its two sections, never the brief. An abort is
+ *  the caller's. A failed detection and a failed step share one log line, so a reader sees one
+ *  boundary. */
 function tryPlanStory(
   deps: MarketBriefDeps,
   input: MarketBriefInput,

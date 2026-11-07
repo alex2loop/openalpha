@@ -123,11 +123,7 @@ export interface PublicBriefCredential {
 /** What the public side answered. A refusal carries its status only; nothing else of the answer is
  *  kept. */
 export type PublishOutcome =
-  | {
-      readonly kind: 'stored' | 'unchanged'
-      readonly subscribers: number
-      readonly rejected: number
-    }
+  | { readonly kind: 'stored' | 'unchanged' }
   | { readonly kind: 'refused'; readonly status: number }
   | { readonly kind: 'unreachable' }
 

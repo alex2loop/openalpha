@@ -1,7 +1,7 @@
 import type { BriefDelivery } from '@/trading/features/brief/types'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { Region, TradingDay } from '@/trading/kernel/instrument'
-import type { Market, MarketRegistry } from '@/trading/markets/types'
+import type { Market, MarketRegistry, TradingCalendar } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
 import { resolveLocalTimeAt, shiftCalendarDay } from '@/trading/markets/calendar'
 
@@ -62,6 +62,13 @@ export function initialScheduled(plan: BriefSchedulePlan, now: number): Schedule
   return scheduled.dueAt > now ? scheduled : nextScheduled(plan, today)
 }
 
+/** Today when it trades, else the next trading day: the session a time set now falls before. */
+export function nextSessionDay(calendar: TradingCalendar, now: number): TradingDay {
+  const today = calendar.dayAt(now)
+
+  return calendar.isTradingDay(today) ? today : calendar.addTradingDays(today, 1)
+}
+
 /** Whether the send time lands before the calendar owner's next open. Checked when the operator
  *  subscribes: a brief goes out on days that market is shut, and the only time worth refusing is
  *  one that would never be pre-open on a day it does trade. Delivery asks `isPreOpen` again. */
@@ -72,8 +79,7 @@ export function isValidSendTime(plan: BriefSchedulePlan, now: number): boolean {
     return true
   }
 
-  const today = calendar.dayAt(now)
-  const session = calendar.isTradingDay(today) ? today : calendar.addTradingDays(today, 1)
+  const session = nextSessionDay(calendar, now)
 
   return calendar.sessionState(dueAtFor(plan, session)) === 'pre-open'
 }

@@ -17,16 +17,13 @@ const ANSWER_MAX_BYTES = 4_096
  *  before that. */
 const PUBLIC_BRIEF_WARN_BYTES = 204_800
 
-const answerSchema = z.object({
-  stored: z.boolean(),
-  subscribers: z.number().int().nonnegative(),
-  rejected: z.number().int().nonnegative(),
-})
+const answerSchema = z.object({ stored: z.boolean() })
 
 /** Posts with the daemon's request shape, which follows no redirect, under a deadline. Nothing of
- *  the answer is kept but its counts, and no error text leaves here: a failure is `unreachable` or
- *  the status the public side refused with. Aborting the signal is shutdown and propagates. Only the
- *  dry-run script passes an origin of its own; the daemon binds the two-argument form. */
+ *  the answer is kept but whether it stored, and no error text leaves here: a failure is
+ *  `unreachable` or the status the public side refused with. Aborting the signal is shutdown and
+ *  propagates. Only the dry-run script passes an origin of its own; the daemon binds the
+ *  two-argument form. */
 export function createPublicBriefPublisher(
   credential: PublicBriefCredential,
   logger: Logger,
@@ -67,18 +64,16 @@ export function createPublicBriefPublisher(
 /** A 2xx the daemon cannot read is retried: the publish is idempotent, so the second answer says
  *  the day is already held. */
 function toOutcome(text: string): PublishOutcome {
-  const answer = answerSchema.safeParse(parseJson(text))
+  const answer = answerSchema.safeParse(readJsonOrUndefined(text))
 
   if (!answer.success) {
     return { kind: 'unreachable' }
   }
 
-  const { stored, subscribers, rejected } = answer.data
-
-  return { kind: stored ? 'stored' : 'unchanged', subscribers, rejected }
+  return { kind: answer.data.stored ? 'stored' : 'unchanged' }
 }
 
-function parseJson(text: string): unknown {
+function readJsonOrUndefined(text: string): unknown {
   try {
     return JSON.parse(text)
   } catch {

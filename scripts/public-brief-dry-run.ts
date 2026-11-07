@@ -3,9 +3,10 @@
 //
 // Usage:
 //   bun scripts/public-brief-dry-run.ts --list-kinds
-//   bun scripts/public-brief-dry-run.ts --data-dir=<copy> [--config=<file>] [--out=<file>] [--now=<ISO>]
-//   PUBLIC_BRIEF_DRY_RUN_TOKEN=<token> bun scripts/public-brief-dry-run.ts --data-dir=<copy> --tick \
-//     --post=<url> [--now=<ISO>]
+//   bun scripts/public-brief-dry-run.ts --data-dir=<copy> [--config=<file>] [--out=<file>] \
+//     [--now=<ISO>]
+//   PUBLIC_BRIEF_DRY_RUN_TOKEN=<token> bun scripts/public-brief-dry-run.ts --data-dir=<copy> \
+//     --tick --post=<url> [--now=<ISO>]
 //
 // --list-kinds prints every brief section kind with its book/market scope, the toggle group that
 // can pull it, and whether it publishes with every toggle on.
@@ -47,7 +48,7 @@ import {
   publicSectionKinds,
   publicStoryOmits,
 } from '@/trading/features/brief/public/scope'
-import { PUBLIC_BRIEF_SCHEMA } from '@/trading/features/brief/public/store'
+import { PUBLIC_BRIEF_STORE_SCHEMA } from '@/trading/features/brief/public/store'
 import { createPublicBriefTick } from '@/trading/features/brief/public/tick'
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
 import { BRIEF_SECTION_SCOPE } from '@/trading/kernel/operator/brief-section-scope'
@@ -207,8 +208,9 @@ function originOf(address: string): string | undefined {
   }
 }
 
-/** The daemon's own tick, once, with the clock held at --now: an attempt is stamped at that instant,
- *  so a run at --now plus five minutes finds the retry due however long the first one took. */
+/** The daemon's own tick, once, with the clock held at --now: an attempt is stamped at that
+ *  instant, so a run at --now plus five minutes finds the retry due however long the first one
+ *  took. */
 async function tickOnce(
   parts: DryRunParts,
   target: TickTarget,
@@ -279,7 +281,7 @@ async function buildAndPrint(
   const render = services.publicBrief.render(row)
 
   if (values.out !== undefined) {
-    await Bun.write(values.out, JSON.stringify({ schema: PUBLIC_BRIEF_SCHEMA, ...render }, null, 2))
+    await Bun.write(values.out, JSON.stringify({ schema: PUBLIC_BRIEF_STORE_SCHEMA, ...render }, null, 2))
   }
 
   console.log(`${render.day}: ${render.headline.vi}`)

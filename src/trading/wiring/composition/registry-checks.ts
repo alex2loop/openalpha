@@ -9,7 +9,7 @@ import { OperatorConfigError } from '@/core/config/operator-errors'
 import { ConfigError } from '@/core/errors'
 import { MS_PER_MINUTE } from '@/core/utils/time'
 import { PUBLIC_HOME_MARKET } from '@/trading/features/brief/public/reads'
-import { isValidSendTime } from '@/trading/features/brief/schedule'
+import { isValidSendTime, nextSessionDay } from '@/trading/features/brief/schedule'
 import { PUBLIC_SCREEN_MAX } from '@/trading/kernel/config'
 import { marketRef } from '@/trading/kernel/instrument'
 import { tradingLocaleKeys } from '@/trading/locale-manifest'
@@ -122,8 +122,10 @@ function assertConfiguredReferencesExist(
     })
   }
 
-  assertBriefSendTimeBeforeOpen(homeOwners, config.briefs.sendTime, Date.now())
-  assertPublicBriefPublishTimeClearOfOpen(markets, config.publicBrief.publishTime, Date.now())
+  const now = Date.now()
+
+  assertBriefSendTimeBeforeOpen(homeOwners, config.briefs.sendTime, now)
+  assertPublicBriefPublishTimeClearOfOpen(markets, config.publicBrief.publishTime, now)
   assertPublicScreenWithinCap(config.publicBrief.topScreen)
   assertConfiguredMarketsExist(markets, config)
   assertDefaultVenuesHold(config, { venues, edition })
@@ -151,9 +153,9 @@ function assertBriefSendTimeBeforeOpen(
 }
 
 /** The public brief goes out before the Vietnam open or not at all: the tick that would publish it
- *  stops once the session has opened, so a later time would never fire, and one closer than the lead
- *  would lose a slow build to the open. A build without that market publishes nothing, so there is
- *  no open to compare against. */
+ *  stops once the session has opened, so a later time would never fire, and one closer than the
+ *  lead would lose a slow build to the open. A build without that market is not checked here:
+ *  composing the public brief refuses it. */
 function assertPublicBriefPublishTimeClearOfOpen(
   markets: MarketRegistry,
   publishTime: string,
@@ -186,8 +188,7 @@ function isPublishTimeClearOfOpen(market: Market, publishTime: string, now: numb
     return true
   }
 
-  const today = calendar.dayAt(now)
-  const session = calendar.isTradingDay(today) ? today : calendar.addTradingDays(today, 1)
+  const session = nextSessionDay(calendar, now)
   const publishAt = resolveLocalTimeAt(session, publishTime, calendar.timezone)
 
   return (

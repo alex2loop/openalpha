@@ -14,7 +14,7 @@ import { briefSectionsSchema, toBriefSections } from '@/trading/kernel/store/bri
 import { parseJson } from '@/trading/kernel/store/store-row'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 
-export const PUBLIC_BRIEF_SCHEMA = 1
+export const PUBLIC_BRIEF_STORE_SCHEMA = 1
 
 /** Days kept in the table; the public side keeps the history. */
 const PUBLIC_BRIEF_KEEP_DAYS = 30
@@ -77,7 +77,7 @@ async function findPrevious(
     'SELECT * FROM public_briefs ' +
       `WHERE day < ${deps.dialect.param(1)} AND sections IS NOT NULL ` +
       `AND schema_version = ${deps.dialect.param(2)} ORDER BY day DESC LIMIT 1`,
-    [before, PUBLIC_BRIEF_SCHEMA]
+    [before, PUBLIC_BRIEF_STORE_SCHEMA]
   )
   const [row] = rows
   const previous = row === undefined ? null : toRow(row)
@@ -103,7 +103,7 @@ async function saveBuilt(
         'sections = excluded.sections, screens = excluded.screens, built_at = excluded.built_at',
       [
         built.day,
-        PUBLIC_BRIEF_SCHEMA,
+        PUBLIC_BRIEF_STORE_SCHEMA,
         JSON.stringify(built.sections),
         JSON.stringify(built.screens ?? []),
         built.builtAt,
@@ -140,7 +140,7 @@ async function recordAttempt(
       `attempts = ${closed ? 'excluded.attempts' : 'public_briefs.attempts + 1'}, ` +
       'last_attempt_at = excluded.last_attempt_at, ' +
       'published_at = COALESCE(excluded.published_at, public_briefs.published_at)',
-    [attempt.day, PUBLIC_BRIEF_SCHEMA, attempts, attempt.at, attempt.publishedAt ?? null]
+    [attempt.day, PUBLIC_BRIEF_STORE_SCHEMA, attempts, attempt.at, attempt.publishedAt ?? null]
   )
 }
 
@@ -165,7 +165,7 @@ function toRow(row: PublicBriefDbRow): PublicBriefRow {
 function readBuilt(
   row: PublicBriefDbRow
 ): Pick<PublicBriefRow, 'sections' | 'screens'> | undefined {
-  if (row.sections === null || row.schema_version !== PUBLIC_BRIEF_SCHEMA) {
+  if (row.sections === null || row.schema_version !== PUBLIC_BRIEF_STORE_SCHEMA) {
     return undefined
   }
 
