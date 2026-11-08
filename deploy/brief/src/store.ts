@@ -4,6 +4,9 @@ const INSERT_SQL =
 const PRUNE_SQL = 'DELETE FROM briefs WHERE day < ?1'
 const BODY_OF_DAY_SQL = 'SELECT body FROM briefs WHERE day = ?1'
 const LATEST_BODY_SQL = 'SELECT body FROM briefs WHERE schema = ?1 ORDER BY day DESC LIMIT 1'
+const CLAIM_PUSH_SQL =
+  'UPDATE briefs SET pushed_at = ?1 WHERE day = ?2 AND pushed_at IS NULL ' +
+  'AND day = (SELECT MAX(day) FROM briefs)'
 
 export const MS_PER_DAY = 86_400_000
 const RETENTION_DAYS = 30
@@ -47,4 +50,12 @@ export async function findLatestBody(db: D1Database, schema: number): Promise<st
   const latest = await db.prepare(LATEST_BODY_SQL).bind(schema).first<{ body: string }>()
 
   return latest?.body
+}
+
+/** True for the one caller that stamps the day's push: only the newest day, and only once, so a
+ *  repeated publish or a late older day never pushes again. */
+export async function claimPush(db: D1Database, day: string, now: number): Promise<boolean> {
+  const claim = await db.prepare(CLAIM_PUSH_SQL).bind(now, day).run()
+
+  return claim.meta.changes === 1
 }

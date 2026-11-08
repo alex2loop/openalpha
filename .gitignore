@@ -66,3 +66,6 @@ bun.lockb
 .worktrees/
 *.tmp
 .gstack/
+
+# Worker secrets for a local run
+.dev.vars

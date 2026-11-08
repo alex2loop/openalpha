@@ -17,7 +17,7 @@ const ANSWER_MAX_BYTES = 4_096
  *  before that. */
 const PUBLIC_BRIEF_WARN_BYTES = 204_800
 
-const answerSchema = z.object({ stored: z.boolean() })
+const answerSchema = z.object({ stored: z.boolean(), full: z.boolean().optional() })
 
 /** Posts with the daemon's request shape, which follows no redirect, under a deadline. Nothing of
  *  the answer is kept but whether it stored, and no error text leaves here: a failure is
@@ -53,7 +53,7 @@ export function createPublicBriefPublisher(
           signal,
         })
 
-        return toOutcome(res.text)
+        return toOutcome(res.text, { logger, day: render.day })
       } catch (err: unknown) {
         return toFailure(err)
       }
@@ -63,11 +63,15 @@ export function createPublicBriefPublisher(
 
 /** A 2xx the daemon cannot read is retried: the publish is idempotent, so the second answer says
  *  the day is already held. */
-function toOutcome(text: string): PublishOutcome {
+function toOutcome(text: string, context: { logger: Logger; day: string }): PublishOutcome {
   const answer = answerSchema.safeParse(readJsonOrUndefined(text))
 
   if (!answer.success) {
     return { kind: 'unreachable' }
+  }
+
+  if (answer.data.full) {
+    context.logger.warn('trading.public_brief_reminders_full', { day: context.day })
   }
 
   return { kind: answer.data.stored ? 'stored' : 'unchanged' }

@@ -36,6 +36,7 @@
     "./research-*.ts",
     "./research-*/**/*.ts",
     "./sdk-embedder-smoke.ts",
+    "./vapid-keys.ts",
     "./web-headers.ts"
   ]
 }

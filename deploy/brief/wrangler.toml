@@ -2,8 +2,10 @@
 # posts one brief a day to /api/publish (bearer secret PUBLISH_TOKEN); the app reads /api/latest.
 # Build first: bun run build:brief --brief-url=<brief address> --app-url=<web app address> (add
 # --noindex for staging), then deploy with bun run deploy:brief (add --env production). That
-# applies the D1 migrations and refuses a build made for the other. Set the secret once per
-# environment with `wrangler secret put PUBLISH_TOKEN`; it is never written here.
+# applies the D1 migrations and refuses a build made for the other. Set the two secrets once per
+# environment, never written here: `wrangler secret put PUBLISH_TOKEN`, and the push key pair
+# from `bun scripts/vapid-keys.ts | wrangler secret put VAPID_PRIVATE_KEY` (its stderr prints the
+# public key the app builds with, `--vapid-public-key`).
 name = "openalpha-brief-staging"
 main = "src/worker.ts"
 compatibility_date = "2026-11-03"

@@ -30,4 +30,6 @@ export interface PublicBriefDocument {
 export interface PublishAnswer {
   /** False when the same brief was already held for the day. */
   readonly stored: boolean
+  /** Sent only as `true`: the reminder subscriptions are at their cap, so a new phone is refused. */
+  readonly full?: boolean
 }
