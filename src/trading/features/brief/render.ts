@@ -1,7 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { MarketRef } from '@/trading/kernel/instrument'
+import type { MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type {
   BriefField,
   BriefSectionKind,
@@ -12,6 +12,7 @@ import type { RenderContext } from '@/trading/render/format'
 import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, renderAiLabel, t } from '@/i18n'
 import { renderStoryLines } from '@/trading/features/brief/story/render'
+import { renderBriefStrip } from '@/trading/features/brief/strip'
 import { renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { BRIEF_STRUCTURAL_FIELDS } from '@/trading/kernel/operator/brief-section'
@@ -24,6 +25,7 @@ import {
   renderAsOf,
   renderEmptyLine,
   renderSectionTitle,
+  toFactLines,
 } from '@/trading/render/layout'
 import { renderBlockRule, toBriefSectionText } from '@/trading/render/section'
 
@@ -161,7 +163,10 @@ export function renderBriefText(
   return joinSections([
     hasAiCalls && context.hasAiLabel !== true ? [renderAiLabel(locale)] : [],
     preface,
-    [title(locale, snapshot, context.timezone)],
+    [
+      title(locale, snapshot, context.timezone),
+      ...toFactLines(renderBriefStrip(locale, readable, context), context, 0),
+    ],
     ...renderStoryLines(locale, stories, context).map((block) => block.map((entry) => entry.text)),
     renderVerdictBlock(locale, readable, context),
     // Right under the verdict that counts them, with no header of their own: what to do first.
@@ -242,12 +247,27 @@ function title(locale: Locale, snapshot: BriefSnapshot, timezone: string): strin
   return renderSectionTitle(SECTION_ICONS.brief, briefTitle(locale, snapshot, timezone))
 }
 
-/** The title's words alone, for a surface that draws its own heading. */
+/** The title's words alone, for a surface that draws its own heading. It names the session the
+ *  numbers describe when that is not the day the brief is read: a Monday morning reads Friday's. */
 export function briefTitle(locale: Locale, snapshot: BriefSnapshot, timezone: string): string {
-  return t(locale, 'trading.brief.title', {
+  const session = briefSessionOf(snapshot)
+  const params = {
     date: formatDay(locale, snapshot.asOf),
     time: formatClock(locale, snapshot.createdAt, timezone),
-  })
+  }
+
+  return session === undefined || session === snapshot.asOf
+    ? t(locale, 'trading.brief.title', params)
+    : t(locale, 'trading.brief.titleSession', { ...params, session: formatDay(locale, session) })
+}
+
+/** The session the prices describe: the day the first market's price section is stated for. */
+function briefSessionOf(snapshot: BriefSnapshot): TradingDay | undefined {
+  const prices = snapshot.sections.find(
+    (section) => section.status === 'ready' && section.kind === 'market-prices'
+  )
+
+  return prices?.asOf
 }
 
 interface BriefBlock {
