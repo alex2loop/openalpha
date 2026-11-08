@@ -35,7 +35,7 @@ bun run typecheck       # gen + tsc (Bun never type-checks; the only type gate)
 bun run check           # Biome + typecheck + contract gates, incl. check:browser and check:brief (CI)
 bun run check:browser   # bundles src/app/browser/worker.ts for the browser; fails on a Bun/Node builtin, host global or timer method
 bun run check:brief     # builds the phone app (src/web/brief/) and fails on a bundled file outside its allowlist or a gzip size over its ceiling; `build:brief` runs the same assertion
-bun run build:brief     # phone brief app into dist/brief; needs --brief-url=<https address of the app> and --app-url=<https address of the web edition> (add --noindex for staging)
+bun run build:brief     # phone brief app into dist/brief; needs --brief-url=<https address of the app> and --app-url=<https address of the web edition> (add --noindex for staging), and [--vapid-public-key=<key>] to ship the reminder
 bun run build:web       # static web edition into dist/web; needs --app-url=<https address of the web edition> (add --noindex for staging), and --brief-url=<https address of the phone app> once BRIEF_INVITE_ONLY (scripts/brief-invite.ts) is false; deploy/web/wrangler.toml serves it
 bun run build:site      # homepage into dist/site; needs --app-url=<https address of the web edition> and --site-url=<https address of the homepage>
 bun run deploy:web      # deploy dist/web (add --env production); deploy:site and deploy:brief likewise; all refuse a build made for the other env (deploy:brief also applies the D1 migrations first)

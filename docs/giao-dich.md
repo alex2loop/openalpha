@@ -913,6 +913,7 @@ Mỗi mục thuộc về thị trường hoặc thuộc về sổ, và mã quy�
 | `trading.public_brief_attempt_failed` | Bản dựng, bước kiểm tra hoặc lần đăng gặp lỗi. Tính là một lần thử. |
 | `trading.public_brief_late` | Giờ mở cửa tới trước khi ngày đó đăng kịp. Đóng ngày đó. |
 | `trading.public_brief_large` | Bản tin lớn hơn khoảng 200 KB, gần mức 256 KB mà phía công khai nhận. Vẫn đăng. |
+| `trading.public_brief_reminders_full` | Phía công khai báo danh sách nhận lời nhắc trên điện thoại đã đầy (45 máy), nên máy mới chưa đăng ký nhận lời nhắc được. Bản tin vẫn đăng; `day` cho biết ngày nào. |
 | `trading.public_brief_previous_unreadable` | Không đọc được bản tin đã lưu của hôm qua, nên bản hôm nay không có phần nhìn lại. Vẫn đăng. |
 | `trading.public_brief_screen_unreadable` | Danh sách bảng lọc của một thị trường không đọc được và bị bỏ ra; `market` cho biết thị trường nào. Phần còn lại vẫn đăng. |
 
