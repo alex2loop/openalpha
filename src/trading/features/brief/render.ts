@@ -115,7 +115,17 @@ const BRIEF_FIELD_SUBSETS: Readonly<Partial<Record<BriefSectionKind, readonly Br
  *  own book. */
 const NON_MARKET_BLOCKS = Object.freeze([
   ['summary', BRIEF_SUMMARY_KINDS],
-  ['macro', ['regime-shift', 'macro', 'deposit-rate', 'macro-headlines', 'economy-headlines']],
+  [
+    'macro',
+    [
+      'regime-shift',
+      'macro',
+      'world-markets',
+      'deposit-rate',
+      'macro-headlines',
+      'economy-headlines',
+    ],
+  ],
   ['actions', ['suggestions', 'cross-asset-suggestions', 'discipline']],
 ] as const satisfies readonly (readonly [BlockName, readonly BriefSectionKind[]])[])
 

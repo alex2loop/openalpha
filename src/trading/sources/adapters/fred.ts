@@ -34,6 +34,8 @@ const US_INFLATION_SERIES = 'CPIAUCNS'
  *  level the cycle can pin at one end of its band: it mean-reverts, so it reads risk appetite
  *  rather than the stance of policy. */
 const US_VOLATILITY_SERIES = 'VIXCLS'
+/** The S&P 500 index level, quoted in the brief's world markets and weighed by no driver. */
+const US_EQUITY_INDEX_SERIES = 'SP500'
 /** FRED's year-over-year transform, so the level series arrives on its band's scale. */
 const YEAR_OVER_YEAR_UNITS = 'pc1'
 const MISSING_OBSERVATION = '.'
@@ -44,7 +46,14 @@ const OPTIONAL_DEGRADE_AFTER = 3
 
 /** Every series it can publish, asked together: the gate keeps one stored reading per series. */
 export const FRED_MACRO_PROFILE: MacroSourceProfile = {
-  series: ['us-10y-yield', 'us-real-rate', 'usd-index', 'us-inflation-yoy', 'us-volatility'],
+  series: [
+    'us-10y-yield',
+    'us-real-rate',
+    'usd-index',
+    'us-inflation-yoy',
+    'us-volatility',
+    'us-equity-index',
+  ],
   cadence: { kind: 'daily' },
   staleAfterDays: DAILY_STALE_AFTER_DAYS,
 }
@@ -68,6 +77,7 @@ const OPTIONAL_SERIES: Readonly<Partial<Record<MacroSeriesId, OptionalSpec>>> = 
   'usd-index': { seriesId: US_DOLLAR_INDEX_SERIES },
   'us-inflation-yoy': { seriesId: US_INFLATION_SERIES, units: YEAR_OVER_YEAR_UNITS },
   'us-volatility': { seriesId: US_VOLATILITY_SERIES },
+  'us-equity-index': { seriesId: US_EQUITY_INDEX_SERIES },
 })
 
 interface OptionalPresent {
