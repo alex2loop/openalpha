@@ -63,7 +63,7 @@ function driverRows(
     driver: driver.id,
     at: driver.asOf,
     ...toDriverValue(driver.id, driver.value),
-    ...(isStale(driver, asOf) ? { freshness: 'stale' } : {}),
+    ...(isStaleReading(driver.id, driver.asOf, asOf) ? { freshness: 'stale' } : {}),
     contribution: contributions[index] ?? driver.contribution,
   }))
 }
@@ -116,8 +116,14 @@ function toDriverValue(id: MacroSeriesId, value: number): BriefSectionRow {
   return field === 'valuePct' ? { valuePct: value / PERCENT_PER_UNIT } : { [field]: value }
 }
 
-function isStale(driver: MacroRiskDriver, asOf: TradingDay): boolean {
-  const lagDays = (utcDayStartEpochMs(asOf) - utcDayStartEpochMs(driver.asOf)) / MS_PER_DAY
+/** Whether a reading observed on `at` is older, against the macro block's day, than its series
+ *  allows. */
+export function isStaleReading(
+  id: keyof typeof MACRO_SERIES_STALE_AFTER_DAYS,
+  at: TradingDay,
+  asOf: TradingDay
+): boolean {
+  const lagDays = (utcDayStartEpochMs(asOf) - utcDayStartEpochMs(at)) / MS_PER_DAY
 
-  return lagDays > MACRO_SERIES_STALE_AFTER_DAYS[driver.id]
+  return lagDays > MACRO_SERIES_STALE_AFTER_DAYS[id]
 }

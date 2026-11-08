@@ -53,8 +53,6 @@ const IDENTICAL_ALLOWED: ReadonlySet<string> = new Set([
   // A currency pair is written the same way on every desk; translating the symbol invents a name
   // no quote screen shows.
   'trading.macro.series.usd-vnd',
-  // The index is quoted under its English name on every Vietnamese broker screen.
-  'trading.brief.reference.sp500',
   // Read as the international symbols in Vietnamese filings and broker research alike.
   'trading.metric.pe',
   'trading.metric.pb',
