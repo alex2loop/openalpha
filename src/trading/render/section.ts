@@ -15,7 +15,6 @@ import { formatInstant, isTradingDayText } from '@/trading/render/datetime'
 import {
   INDENT,
   INLINE_SEPARATOR,
-  toFactLines,
   toRowLines,
   withoutUnfilledWindow,
 } from '@/trading/render/layout'
@@ -263,7 +262,7 @@ function renderPriceRow(
     return [`${INDENT[1]}${renderRow(locale, row)}`]
   }
 
-  return toFactLines([String(row.ticker ?? ''), ...cells], price.context, 1)
+  return toRowLines([String(row.ticker ?? ''), ...cells], price.context, 1)
 }
 
 /** The clock and the unit a pair is read in, taken from the destination the row renders for. */
