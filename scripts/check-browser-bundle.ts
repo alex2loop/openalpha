@@ -16,6 +16,8 @@ const NODE_PREFIX = 'node:'
 const BUN_PREFIX = 'bun:'
 const BUN_MODULE = 'bun'
 const PACKAGES_DIR = 'node_modules/'
+// The address the build writes into the worker; any https address stands in for it here.
+const DEFINE = { APP_URL: JSON.stringify('https://app.invalid/') }
 
 // No browser equivalent: filesystem, process, sockets and Node streams all need the host.
 const DENIED_MODULES: ReadonlySet<string> = new Set([
@@ -65,8 +67,14 @@ const outdir = await mkdtemp(join(tmpdir(), 'browser-bundle-'))
 process.chdir(ROOT)
 
 try {
-  const real = await buildBrowser({ entry: ENTRY, outdir, minify: false })
-  const scan = await buildBrowser({ entry: ENTRY, outdir, minify: false, externalBuiltins: true })
+  const real = await buildBrowser({ entry: ENTRY, outdir, minify: false, define: DEFINE })
+  const scan = await buildBrowser({
+    entry: ENTRY,
+    outdir,
+    minify: false,
+    externalBuiltins: true,
+    define: DEFINE,
+  })
   const parents = scan.metafile === undefined ? new Map() : parentsOf(scan.metafile)
   const leaks = scan.metafile === undefined ? [] : await leaksOf(scan.metafile, parents)
 

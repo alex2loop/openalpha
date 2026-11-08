@@ -27,6 +27,9 @@ declare global {
 
   const FileSystemFileHandle: { readonly prototype: object } | undefined
 
+  /** The web app's public address, written into the worker by the build (`--app-url`). */
+  const APP_URL: string
+
   /** The worker's own address: the wasm file sits beside the script. */
   const location: { readonly href: string }
 }
