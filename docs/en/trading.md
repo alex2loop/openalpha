@@ -906,6 +906,7 @@ Each section is either market or book, decided once in code. A new kind of secti
 | `trading.public_brief_attempt_failed` | The build, the check or the post threw an error. It counts as an attempt. |
 | `trading.public_brief_late` | The open came before the day could post. Closes the day. |
 | `trading.public_brief_large` | The brief is over about 200 KB, close to the 256 KB the public side accepts. It still posts. |
+| `trading.public_brief_reminders_full` | The public side says its phone reminder list is full (45 phones), so a new phone cannot sign up for reminders. The brief itself still posts; `day` says which. |
 | `trading.public_brief_previous_unreadable` | Yesterday's stored brief could not be read, so today's has no look back. It still posts. |
 | `trading.public_brief_screen_unreadable` | One market's screen list could not be read and is left out; `market` says which. The rest posts. |
 
