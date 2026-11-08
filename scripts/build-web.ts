@@ -57,7 +57,12 @@ const noindex = values.noindex === true
 await resetOutput('web')
 await buildOrThrow({ entry: PAGE_ENTRY, outdir: OUT_DIR, minify: true })
 await stampPage(resolve(OUT_DIR, PAGE_FILE), appUrl, briefUrl)
-await buildOrThrow({ entry: WORKER_ENTRY, outdir: OUT_DIR, minify: true })
+await buildOrThrow({
+  entry: WORKER_ENTRY,
+  outdir: OUT_DIR,
+  minify: true,
+  define: { APP_URL: JSON.stringify(appUrl) },
+})
 await cp(WASM_SOURCE, resolve(OUT_DIR, WASM_FILE))
 await cp(PREVIEW_IMAGE_SOURCE, resolve(OUT_DIR, PREVIEW_IMAGE_FILE))
 await Bun.write(
