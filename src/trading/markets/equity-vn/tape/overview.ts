@@ -290,8 +290,8 @@ function toMover(name: NameEvidence, session: TradingDay): MarketMover | undefin
 async function headlineEntries(load: OverviewLoad): Promise<readonly OverviewEntry[]> {
   const { signal } = load.request
   const indices = await loadUniverse(load.deps, { kind: 'index', signal })
-  const headline = indices.filter((record) =>
-    VN_HEADLINE_INDEX_TICKERS.includes(record.instrument.ticker)
+  const headline = VN_HEADLINE_INDEX_TICKERS.flatMap((symbol) =>
+    indices.filter((record) => record.instrument.ticker === symbol)
   )
   const loaded = await Promise.all(headline.map((record) => overviewRow(load, record)))
 

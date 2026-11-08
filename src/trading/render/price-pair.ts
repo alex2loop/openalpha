@@ -4,7 +4,7 @@ import type { PreviousClose, QuoteBoardItem } from '@/trading/kernel/market/mark
 import type { QuoteFreshness, SessionSoFar } from '@/trading/kernel/market/market-data'
 import type { RenderContext } from '@/trading/render/format'
 import { formatDay, t } from '@/i18n'
-import { formatInstant } from '@/trading/render/datetime'
+import { formatClock, formatInstant } from '@/trading/render/datetime'
 import { formatFlow, formatSignedFixedPercent } from '@/trading/render/format'
 import { INDENT, toFactLines } from '@/trading/render/layout'
 import { formatPrice, formatQuotedPrice } from '@/trading/render/money'
@@ -90,6 +90,59 @@ export function renderPricePair(
         .join(COLUMN_GAP)
         .trimEnd()}`
   )
+}
+
+/** The cells of a price printed on one line: the reading with its move, then the stamp that says
+ *  which reading it is. A live reading always carries its clock; a settled close carries its day
+ *  only where the section does not already state that day, so one session is never dated twice.
+ *  Empty where the pair states no reading, and for a dealer's board, whose one price is not a
+ *  session's. */
+export function renderHeadlineCells(
+  locale: Locale,
+  pair: PricePair,
+  placement: { readonly statedDay?: TradingDay }
+): readonly string[] {
+  if (pair.dealerBuy === true) {
+    return []
+  }
+
+  if (isLiveShown(pair)) {
+    const stamp = formatClock(locale, pair.live.observed.observedAt, pair.timezone)
+
+    return [
+      headlineReading(locale, pair, { price: pair.live.price, changePct: liveMoveOf(pair) }),
+      `${t(locale, 'trading.render.price.liveLabel')} ${stamp}`,
+    ]
+  }
+
+  const settled = settledCloseOf(pair)
+
+  if (settled === undefined) {
+    return []
+  }
+
+  const reading = headlineReading(locale, pair, settled)
+
+  return settled.at === placement.statedDay
+    ? [reading]
+    : [
+        reading,
+        `${t(locale, 'trading.render.price.settledLabel')} ${formatDay(locale, settled.at)}`,
+      ]
+}
+
+/** The amount and its move as one fact, so a line break never parts a sign from its number. A
+ *  reading with no move states the amount alone, never a flat `0%`. */
+function headlineReading(
+  locale: Locale,
+  pair: PricePair,
+  reading: { readonly price: number; readonly changePct?: number | undefined }
+): string {
+  const amount = amountOf(locale, reading.price, pair)
+
+  return reading.changePct === undefined
+    ? amount
+    : `${amount} ${formatSignedFixedPercent(locale, reading.changePct)}`
 }
 
 function cellsOf(row: PriceRow): readonly string[] {
@@ -188,6 +241,11 @@ function settledCloseOf(pair: PriceReadings): PreviousClose | undefined {
   }
 }
 
+/** Whether a live row would render: a live reading that is not the settled close restated. */
+function isLiveShown<P extends PriceReadings>(pair: P): pair is P & { readonly live: LiveReading } {
+  return pair.live?.observed.kind === 'live' && !isSameSession(pair)
+}
+
 /** Whether the live reading is the settled close — true once the session's own bar is stored. */
 function isSameSession(pair: PriceReadings): boolean {
   return pair.previousClose !== undefined && pair.live?.observed.day === pair.previousClose.at
@@ -197,13 +255,11 @@ function isSameSession(pair: PriceReadings): boolean {
  *  counts what the rows show: the provider's own figure is a rolling window, and a count taken from
  *  it reports names as falling on a session they spent up. */
 export function liveMoveOf(pair: PriceReadings): number | undefined {
-  const { live } = pair
-
-  if (live === undefined || live.observed.kind !== 'live' || isSameSession(pair)) {
+  if (!isLiveShown(pair)) {
     return undefined
   }
 
-  return changeAgainstClose(live.price, pair.previousClose?.price, live.changePct)
+  return changeAgainstClose(pair.live.price, pair.previousClose?.price, pair.live.changePct)
 }
 
 /** The move for the one reading a board row states, where a surface prints a single line instead of
@@ -234,12 +290,11 @@ export function quoteBoardMoveOf(
  *  one basis' day with the other's clock and print a stamp that never happened. The settled row
  *  above it is what names the session. */
 function liveRow(locale: Locale, pair: PricePair): readonly PriceRow[] {
-  const { live } = pair
-
-  if (live === undefined || live.observed.kind !== 'live' || isSameSession(pair)) {
+  if (!isLiveShown(pair)) {
     return []
   }
 
+  const { live } = pair
   const amount = amountOf(locale, live.price, pair)
   const changePct = liveMoveOf(pair)
 
