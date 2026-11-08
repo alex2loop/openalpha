@@ -285,16 +285,18 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # A morning brief that still cannot be delivered after a few tries is skipped for
 # that day, with a notice; tomorrow's goes out as usual. Only /brief disable stops it.
 # The brief opens with a market story (Vietnam home only) and a check of earlier ones; it calls no model and needs no key.
+# A strip of six headline figures sits under its title.
 # [trading.briefs]
 # send_time = "08:15"                # morning brief delivery (HH:MM, home market's time zone, before the open)
 
 # A second, market-only brief for the public page: the same market sections, built from market data
-# alone, with nothing of your book in it and no model call. Off by default. Needs the token in the
+# alone, with nothing of your book in it and no model call. Off by default. It carries the same strip and
+# world markets block as yours, without the S&P 500 line. Needs the token in the
 # environment variable PUBLIC_BRIEF_TOKEN (openalpha key set PUBLIC_BRIEF_TOKEN), never in this file.
 # [trading.public_brief]
 # enabled = false
 # publish_time = "08:30"   # HH:MM, Vietnam time (Asia/Ho_Chi_Minh); after your own brief, at least 15 minutes before the 09:00 open
-# analysis = true          # macro regime and score, regime shift, sector rotation, support and resistance, futures basis
+# analysis = true          # macro regime and score, regime shift, sector rotation (strength only, never an over/underweight lean), support and resistance, futures basis
 # headlines = true         # market, macro and economy headlines
 # top_screen = 0           # 0 = off; up to 10 names per market from the screen board, by composite score (US stocks too while that segment is on)
 
@@ -378,7 +380,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # [trading.sources]
 # bls = "MY_BLS_KEY"                   # default: BLS_API_KEY; optional, 500 calls a day instead of 25
 # coingecko = "MY_COINGECKO_KEY"     # default: COINGECKO_API_KEY
-# fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only VIX source
+# fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only source of VIX and of the brief's S&P 500 line
 # sec-data = "MY_SEC_EMAIL"          # default: SEC_CONTACT_EMAIL; a contact address SEC asks for, not a key
 
 # [trading.themes]

@@ -347,6 +347,12 @@ the monthly series no free daily feed has.
   averages. A `fred-csv` body without the CSV header fails the parse rather than reading as empty. A loss-making year has no
   P/E, and missing is no reading; a non-trading session answers empty, so the reader steps back one session.
 
+**News topic filter.** `FEED_TOPIC_TERMS` (`adapters/rss.ts`) maps a feed id to terms, and `loadFeeds` passes each feed's items through `onTopic`: an item stays only when its lower-cased title (Vietnamese casing) holds one of them. Only the two general-news feeds (`economy-vn`, `politics-vn`) have an entry, both `VN_ECONOMY_TERMS`; a feed with no entry keeps every item. `SCOPE_FEEDS.crypto` is `['crypto']` alone, so crypto no longer reads `economy-global` (CNBC), the one feed a browser can read: the web edition has no crypto headlines, and its docs say so.
+
+**`fred` S&P 500.** `us-equity-index` (field `index`) reads FRED `SP500` as an optional series (`OPTIONAL_SERIES`) and is listed in `FRED_MACRO_PROFILE.series`. No driver policy weighs it, and `driversFrom` iterates only weighted ids, so it is never reported missing. The brief's `world-markets` section quotes it from the keyed read; FRED republishes S&P Dow Jones Indices' notice on it, so the public build drops that row (`PUBLIC_DROPPED_ROWS`).
+
+**`giavang` history fallback.** When the board snapshot is unavailable (the dealers have not revised yet), the `gold-vn` overview reads `goldBoardHistory` `SJC_FALLBACK_SESSIONS` sessions back and keeps the newest SJC-bar point before today on a day the counters were open (`createSettledBarFilter`: the vendor carries a Sunday entry that repeats Saturday, and `calendar.isTradingDay` rejects it). The row is dated by `closedOn`, carries `changePct` only when an earlier point exists, and no premium. A failed read leaves no row; the caveats are the snapshot's, then the history's.
+
 **`proprietaryFlows` is not a failover for `flows`.** `cafef` publishes the proprietary desk alone, with no foreign figures. It
 leads that desk by two sessions, while `vndirect` drops whole sessions of it (four of 68 trading days, measured over four
 months). The flows reader asks for it only over the sessions still missing that leg, never the newest: the desk publishes after

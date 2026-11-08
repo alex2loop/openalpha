@@ -791,7 +791,7 @@ send_time = "08:15"            # mặc định cho một bản gửi chưa tự 
 [trading.public_brief]
 enabled = false                # đăng một bản tin chỉ có thị trường vào mỗi sáng giao dịch ở Việt Nam
 publish_time = "08:30"         # HH:MM, giờ Việt Nam; sớm hơn giờ mở cửa 09:00 ít nhất 15 phút
-analysis = true                # chế độ vĩ mô và điểm, đổi chế độ, xoay vòng ngành, hỗ trợ và kháng cự, basis hợp đồng tương lai
+analysis = true                # chế độ vĩ mô và điểm, đổi chế độ, xoay vòng ngành (chỉ sức mạnh, không bao giờ nêu hướng nên tăng hay giảm tỷ trọng), hỗ trợ và kháng cự, basis hợp đồng tương lai
 headlines = true               # tin thị trường, vĩ mô và kinh tế
 top_screen = 0                 # 0 = tắt; tối đa 10 mã mỗi thị trường từ bảng lọc, xếp theo điểm tổng hợp
 

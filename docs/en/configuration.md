@@ -796,7 +796,7 @@ send_time = "08:15"            # default for a delivery that has not set its own
 [trading.public_brief]
 enabled = false                # publish a market-only brief each Vietnam trading morning
 publish_time = "08:30"         # HH:MM, Vietnam time; at least 15 minutes before the 09:00 open
-analysis = true                # macro regime and score, regime shift, sector rotation, support and resistance, futures basis
+analysis = true                # macro regime and score, regime shift, sector rotation (strength only, never an over/underweight lean), support and resistance, futures basis
 headlines = true               # market, macro and economy headlines
 top_screen = 0                 # 0 = off; up to 10 names per market from the screen board, by composite score
 
