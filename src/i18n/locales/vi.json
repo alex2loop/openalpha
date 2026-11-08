@@ -5766,7 +5766,7 @@
     "brief.fact.funding": "Phí giữ vị thế phái sinh (dương: bên mua trả)",
     "brief.fact.openInterest": "Giá trị hợp đồng phái sinh đang mở",
     "brief.fact.oiRatio": "Số hợp đồng so với {sessions} phiên",
-    "brief.fact.longShortRatio": "Tài khoản đặt cửa lên trên mỗi tài khoản đặt cửa xuống",
+    "brief.fact.longShortRatio": "Tài khoản nghiêng về tăng giá trên mỗi tài khoản nghiêng về giảm giá",
     "brief.fact.takerBuyPct": "Phần mua khớp ngay ở giá chào bán",
     "brief.fact.sentimentScore": "Chỉ số sợ hãi - tham lam",
     "brief.fact.premium": "Chênh lệch với thế giới",

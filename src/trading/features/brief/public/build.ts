@@ -21,6 +21,7 @@ import {
   publicStoryOmits,
 } from '@/trading/features/brief/public/scope'
 import { readPublicScreens } from '@/trading/features/brief/public/screen'
+import { pickRowFields } from '@/trading/features/brief/render'
 import { runMarketBrief } from '@/trading/features/brief/run'
 import { isDeliverable } from '@/trading/markets/brief-deliverability'
 import { resolveSettledDay } from '@/trading/markets/calendar'
@@ -126,9 +127,7 @@ function withoutDroppedFields(section: BriefSectionResult): BriefSectionResult {
   }
 
   const rows = section.rows.map((row) =>
-    Object.fromEntries(
-      Object.entries(row).filter(([field]) => !dropped.some((name) => name === field))
-    )
+    pickRowFields(row, (field) => !dropped.some((name) => name === field))
   )
 
   return { ...section, rows }

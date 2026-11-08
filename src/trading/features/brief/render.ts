@@ -6,6 +6,7 @@ import type {
   BriefField,
   BriefSectionKind,
   BriefSectionResult,
+  BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
 import { formatSpendUsd } from '@/core/utils/cost'
@@ -214,10 +215,18 @@ function toBriefShape(section: BriefSectionResult): BriefSectionResult {
 
   const kept: ReadonlySet<string> = new Set([...subset, ...BRIEF_STRUCTURAL_FIELDS])
   const rows = section.rows
-    .map((row) => Object.fromEntries(Object.entries(row).filter(([field]) => kept.has(field))))
+    .map((row) => pickRowFields(row, (field) => kept.has(field)))
     .filter((row) => subset.some((field) => row[field] !== undefined))
 
   return { ...section, rows }
+}
+
+/** The row with only the fields `isKept` accepts. */
+export function pickRowFields(
+  row: BriefSectionRow,
+  isKept: (field: string) => boolean
+): BriefSectionRow {
+  return Object.fromEntries(Object.entries(row).filter(([field]) => isKept(field)))
 }
 
 function partition<T>(
