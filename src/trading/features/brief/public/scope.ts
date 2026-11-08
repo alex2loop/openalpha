@@ -32,6 +32,15 @@ export const PUBLIC_DROPPED_FIELDS: Readonly<
   Partial<Record<BriefSectionKind, readonly BriefField[]>>
 > = Object.freeze({ 'sector-rotation': ['direction'] })
 
+/** Rows the public brief never carries, named by the value one of their fields holds. FRED
+ *  republishes S&P Dow Jones Indices' copyright notice on the S&P 500 series, which restricts
+ *  reproducing it on a page served to the public. */
+export const PUBLIC_DROPPED_ROWS: Readonly<
+  Partial<
+    Record<BriefSectionKind, { readonly field: BriefField; readonly values: readonly string[] }>
+  >
+> = Object.freeze({ 'world-markets': { field: 'reference', values: ['sp500'] } })
+
 /** The sections a brief must carry to be worth publishing. */
 export const PUBLIC_CORE_SECTIONS = Object.freeze([
   'tape',

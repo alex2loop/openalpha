@@ -41,7 +41,8 @@ export const MACRO_SERIES_FIELDS = Object.freeze({
 
 /** Calendar days a series may lag the macro block's day before its row says the reading is old,
  *  sized to how often each one publishes: daily series cover a long weekend, crypto trends only a
- *  day or two, the deposit rate a week and the monthly inflation print a month and a half. */
+ *  day or two, the deposit rate a week and the monthly inflation print a month and a half. Brent
+ *  is no macro series but the world markets row quotes it beside them, so it shares the table. */
 export const MACRO_SERIES_STALE_AFTER_DAYS = Object.freeze({
   'us-real-rate': 4,
   'us-inflation-yoy': 45,
@@ -57,6 +58,7 @@ export const MACRO_SERIES_STALE_AFTER_DAYS = Object.freeze({
   'btc-trend': 2,
   'eth-btc-trend': 2,
   'alt-breadth': 2,
-} as const satisfies Record<MacroSeriesId, number>)
+  brent: 4,
+} as const satisfies Record<MacroSeriesId | 'brent', number>)
 
 export const MACRO_FORMULA_VERSION = '1.0.0'
