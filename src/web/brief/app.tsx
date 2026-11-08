@@ -99,7 +99,7 @@ function Page({ t, locale, onLocale }: PageProps) {
   return (
     <div class="app">
       <header class="app-head">
-        <h1 class="app-title">{headingOf(t, latest)}</h1>
+        <h1 class="app-title">{headingOf(t, latest, locale)}</h1>
         {doc !== undefined && <ShareButton doc={doc} locale={locale} t={t} />}
       </header>
       <main class="flow app-main">
@@ -116,11 +116,11 @@ function Page({ t, locale, onLocale }: PageProps) {
   )
 }
 
-// The day sits in the heading only when the brief is not today's: the newest one, or the copy kept
-// for when there is no network.
-function headingOf(t: Translate, latest: LatestState | undefined): string {
-  if (latest?.kind === 'offline' || (latest?.kind === 'ready' && !latest.isToday)) {
-    return t('ui.brief.heading.latest', { day: formatDay(latest.doc.day) })
+// The heading is the session title the daemon wrote, which names both days; with no document yet
+// there is no title, so it reads as today's brief.
+function headingOf(t: Translate, latest: LatestState | undefined, locale: Locale): string {
+  if (latest?.kind === 'offline' || latest?.kind === 'ready') {
+    return latest.doc.briefs[locale].title
   }
 
   return t('ui.brief.heading.today')
