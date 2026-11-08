@@ -9,8 +9,8 @@ import type { RenderContext } from '@/trading/render/format'
 import { pluralKey, t } from '@/i18n'
 import { sectionNumber, sectionSessions } from '@/trading/kernel/operator/brief-section'
 import { formatCount, formatFraction, SECTION_ICONS } from '@/trading/render/format'
-import { INDENT } from '@/trading/render/layout'
-import { renderBlockRule, renderBriefSection, renderLabelledRow } from '@/trading/render/section'
+import { INDENT, toFactLines } from '@/trading/render/layout'
+import { labelledRowFacts, renderBlockRule, renderBriefSection } from '@/trading/render/section'
 
 /** The one section quoted whole, because its single row is already the sentence. */
 const QUOTED_SECTION: BriefSectionKind = 'reading'
@@ -33,7 +33,9 @@ export function renderVerdictBlock(
 ): readonly string[] {
   const quoted = [
     ...renderQuotedReading(locale, sections, context),
-    ...QUOTED_FIELDS.flatMap((quote) => renderQuotedFields(locale, sections, quote)),
+    ...QUOTED_FIELDS.flatMap((quote) =>
+      toFactLines(renderQuotedFacts(locale, sections, quote), context, 1)
+    ),
   ]
 
   return quoted.length === 0
@@ -63,9 +65,9 @@ export function renderQuotedReading(
   return lines
 }
 
-/** One line per section, carrying only the fields named for it and each under the label its own
- *  rows already print. Absent when the section carried none of them. */
-function renderQuotedFields(
+/** One fact per field named for the section, each under the label its own rows already print, for
+ *  the caller to join as the width allows. Absent when the section carried none of them. */
+function renderQuotedFacts(
   locale: Locale,
   sections: readonly BriefSectionResult[],
   quote: { readonly kind: BriefSectionKind; readonly fields: readonly BriefField[] }
@@ -88,9 +90,7 @@ function renderQuotedFields(
 
   const currency = currencyOf(sections, quote.kind)
 
-  return [
-    `${INDENT[1]}${renderLabelledRow(locale, quoted, currency === undefined ? {} : { currency })}`,
-  ]
+  return labelledRowFacts(locale, quoted, currency === undefined ? {} : { currency })
 }
 
 function currencyOf(
