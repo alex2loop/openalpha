@@ -10,7 +10,7 @@ import type {
 } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
 import { formatSpendUsd } from '@/core/utils/cost'
-import { formatDay, renderAiLabel, t } from '@/i18n'
+import { formatDay, formatShortDay, renderAiLabel, t } from '@/i18n'
 import { renderStoryLines } from '@/trading/features/brief/story/render'
 import { briefSessionOf, renderBriefStrip } from '@/trading/features/brief/strip'
 import { renderVerdictBlock } from '@/trading/features/brief/verdict'
@@ -205,7 +205,7 @@ export function readSections(
   readonly blocks: readonly (BriefBlock & { readonly title: string })[]
 } {
   const readable = snapshot.sections.filter(isRenderable)
-  const renderable = readable.filter(isSectionShown).map(toBriefShape)
+  const renderable = readable.filter(isSectionShown).map(toBriefShape).filter(isRenderable)
   const hasAiCalls = renderable.some(
     (section) => section.status === 'ready' && AI_SECTION_KINDS.has(section.kind)
   )
@@ -261,14 +261,15 @@ function title(locale: Locale, snapshot: BriefSnapshot, timezone: string): strin
  *  numbers describe when that is not the day the brief is read: a Monday morning reads Friday's. */
 export function briefTitle(locale: Locale, snapshot: BriefSnapshot, timezone: string): string {
   const session = briefSessionOf(snapshot.sections)
-  const params = {
-    date: formatDay(locale, snapshot.asOf),
-    time: formatClock(locale, snapshot.createdAt, timezone),
-  }
+  const time = formatClock(locale, snapshot.createdAt, timezone)
 
   return session === undefined || session === snapshot.asOf
-    ? t(locale, 'trading.brief.title', params)
-    : t(locale, 'trading.brief.titleSession', { ...params, session: formatDay(locale, session) })
+    ? t(locale, 'trading.brief.title', { date: formatDay(locale, snapshot.asOf), time })
+    : t(locale, 'trading.brief.titleSession', {
+        session: formatShortDay(locale, session),
+        date: formatShortDay(locale, snapshot.asOf),
+        time,
+      })
 }
 
 interface BriefBlock {
