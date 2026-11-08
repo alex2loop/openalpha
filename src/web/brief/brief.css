@@ -50,6 +50,12 @@ body {
   line-height: 1.3;
 }
 
+@media (max-width: 480px) {
+  .app-title {
+    font-size: var(--sizeTitle);
+  }
+}
+
 .app-share {
   display: grid;
   justify-items: end;
