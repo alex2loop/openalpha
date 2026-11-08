@@ -12,7 +12,7 @@ import { buildBriefPage, buildBriefWorker } from './brief-page'
 import type { BrowserBuild } from './browser-build'
 
 const ROOT = resolve(import.meta.dir, '..')
-const CHECK_APP_URL = 'https://app.invalid/'
+const CHECK_STAMPS = { appUrl: 'https://app.invalid/', vapidPublicKey: 'A'.repeat(87) }
 const CHECK_PRECACHE = { urls: [], digest: 'check' }
 const BYTES_PER_KB = 1024
 // The first measure (21.1 KB) rounded up to the next 5 KB; it only goes down.
@@ -38,7 +38,7 @@ if (import.meta.main) {
 
   try {
     const builds = [
-      await buildBriefPage(outdir, CHECK_APP_URL),
+      await buildBriefPage(outdir, CHECK_STAMPS),
       await buildBriefWorker(outdir, CHECK_PRECACHE),
     ]
 

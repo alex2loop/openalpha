@@ -33,11 +33,12 @@ export function startLocale(): Locale {
     return asked
   }
 
-  return (
-    toLocale(readChoice()) ??
-    toLocale(navigator.language.split('-')[0]?.toLowerCase()) ??
-    FALLBACK_LOCALE
-  )
+  return toLocale(readChoice()) ?? phoneLocale()
+}
+
+/** The phone's own language, English when it is neither of the app's. */
+export function phoneLocale(): Locale {
+  return toLocale(navigator.language.split('-')[0]?.toLowerCase()) ?? FALLBACK_LOCALE
 }
 
 /** Keeps the reader's choice for the next visit. */
@@ -58,6 +59,7 @@ function readChoice(): string | null {
   }
 }
 
-function toLocale(tag: string | null | undefined): Locale | undefined {
+/** The app's language a tag names, if it names one. */
+export function toLocale(tag: string | null | undefined): Locale | undefined {
   return tag === 'vi' || tag === 'en' ? tag : undefined
 }

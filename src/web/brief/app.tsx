@@ -4,6 +4,7 @@ import type { PublicBriefDocument } from '@/app/server/wire/public-brief'
 import { LanguageSwitch } from '@/web/brief/language-switch'
 import { type LatestState, loadLatest } from '@/web/brief/load'
 import { PRIVACY_HREF, PrivacyPage, usePrivacyRoute } from '@/web/brief/privacy'
+import { Reminder } from '@/web/brief/reminder'
 import { ScreenList } from '@/web/brief/screen-list'
 import { drawShareCard, shareBlob } from '@/web/brief/share-card'
 import {
@@ -106,6 +107,7 @@ function Page({ t, locale, onLocale }: PageProps) {
       </main>
       <footer class="flow app-foot">
         <p class="meta">{t('ui.brief.disclaimer')}</p>
+        <Reminder t={t} locale={locale} />
         <LanguageSwitch t={t} locale={locale} onLocale={onLocale} />
         <a href={PRIVACY_HREF}>{t('ui.brief.privacy.title')}</a>
         <a href={APP_URL}>{t('ui.brief.openApp')}</a>

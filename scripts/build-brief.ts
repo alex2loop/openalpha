@@ -6,10 +6,11 @@
 // replaces it. The page's title is the brand's display name.
 // `--brief-url=<https url>` (this app's own address) and `--app-url=<https url>` (the web app the
 // footer links to) are required; `--noindex` is the staging flag, and while the trial is invite
-// only the build is noindex whatever the flag says. The page's bundle and the service worker's must
-// pass `check-brief-bundle` or the build stops. The last file written is the build stamp
-// (`dist/brief.stamp.json`, outside the served folder) that `scripts/deploy.ts` checks the deploy
-// target against.
+// only the build is noindex whatever the flag says. `--vapid-public-key=<key>` (the Worker's public
+// push key) switches the reminder on; without it the app ships none. The page's bundle and the
+// service worker's must pass `check-brief-bundle` or the build stops. The last file written is the
+// build stamp (`dist/brief.stamp.json`, outside the served folder) that `scripts/deploy.ts` checks
+// the deploy target against.
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 
@@ -33,11 +34,13 @@ import { stampInstallTags, writeInstallFiles } from './web-manifest'
 
 const OUT_DIR = outDirOf('brief')
 const DIGEST_LENGTH = 16
+const VAPID_PUBLIC_KEY_RE = /^[A-Za-z0-9_-]{87}$/
 
 const { values } = parseArgs({
   options: {
     'brief-url': { type: 'string' },
     'app-url': { type: 'string' },
+    'vapid-public-key': { type: 'string' },
     noindex: { type: 'boolean' },
   },
 })
@@ -49,11 +52,12 @@ const appUrl = parseHttpsUrl(
   values['app-url'],
   'build-brief: pass --app-url=<https address of the web app>'
 )
+const vapidPublicKey = parseVapidPublicKey(values['vapid-public-key'])
 const noindex = BRIEF_INVITE_ONLY || values.noindex === true
 
 await resetOutput('brief')
 
-await assertBriefBuild(await buildBriefPage(OUT_DIR, appUrl))
+await assertBriefBuild(await buildBriefPage(OUT_DIR, { appUrl, vapidPublicKey }))
 
 await stampPage(resolve(OUT_DIR, PAGE_FILE))
 await writeInstallFiles(OUT_DIR, {
@@ -69,7 +73,24 @@ await assertBriefBuild(await buildBriefWorker(OUT_DIR, precache))
 await Bun.write(resolve(OUT_DIR, HEADERS_FILE), buildHeadersFile(pageDirectives(), { noindex }))
 await writeStamp('brief', { url: briefUrl, appUrl, noindex })
 
-console.log(`build-brief: wrote ${OUT_DIR}${noindex ? ' (noindex)' : ''}`)
+const noindexNote = noindex ? ' (noindex)' : ''
+const reminderNote = vapidPublicKey === '' ? ' (no reminders)' : ''
+
+console.log(`build-brief: wrote ${OUT_DIR}${noindexNote}${reminderNote}`)
+
+// No key builds the app without a reminder; a key that is not 87 base64url characters, the 65-byte
+// point the Worker derives, stops the build.
+function parseVapidPublicKey(raw: string | undefined): string {
+  if (raw === undefined) {
+    return ''
+  }
+
+  if (!VAPID_PUBLIC_KEY_RE.test(raw)) {
+    throw new Error('build-brief: --vapid-public-key is not an 87-character base64url key')
+  }
+
+  return raw
+}
 
 // Style stays same-origin only; the page draws its share card on a canvas and downloads it from a
 // `blob:` address. The one script address Trusted Types lets through is the service worker's. The
