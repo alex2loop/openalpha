@@ -98,8 +98,9 @@ function movingRows(records: readonly MarketCapRecord[]): readonly Moving[] {
     .filter((record): record is Moving => record.changePct !== undefined)
 }
 
-/** Advancers and decliners over the provider's rolling day, across the same liquid board the movers
- *  read. `measured` is every name with a change, so an unchanged name counts in the denominator. */
+/** Advancers and decliners over the provider's rolling day, across the liquid board; the movers list
+ *  narrows it with the market-cap floor. `measured` is every name with a change, so an unchanged
+ *  name counts in the denominator. */
 export function boardBreadth(records: readonly MarketCapRecord[]): MarketBreadth | undefined {
   const moving = movingRows(records)
 

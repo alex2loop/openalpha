@@ -110,7 +110,9 @@ async function readSettledBar(load: VnGoldOverviewLoad): Promise<SettledBar> {
     signal: load.signal,
   })
   const bars =
-    history.kind === 'available' ? history.value.filter(isSettledBar(load.asOf, calendar)) : []
+    history.kind === 'available'
+      ? history.value.filter(createSettledBarFilter(load.asOf, calendar))
+      : []
   const settled = bars.at(-1)
 
   return {
@@ -123,7 +125,7 @@ async function readSettledBar(load: VnGoldOverviewLoad): Promise<SettledBar> {
 /** The SJC bar on a day the counters were open, before today: today's board is still forming, the
  *  other forms are not the one the premium and the headline read against, and a shut day's carried
  *  price would date the bar to a session that never traded and show a flat move. */
-function isSettledBar(
+function createSettledBarFilter(
   asOf: TradingDay,
   calendar: TradingCalendar
 ): (point: GoldBoardPoint) => boolean {
