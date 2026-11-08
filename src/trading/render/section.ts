@@ -1,5 +1,5 @@
 import type { Locale } from '@/core/types/locale'
-import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { CurrencyCode, TradingDay } from '@/trading/kernel/instrument'
 import type {
   BriefField,
   BriefSectionResult,
@@ -18,7 +18,7 @@ import {
   toRowLines,
   withoutUnfilledWindow,
 } from '@/trading/render/layout'
-import { renderPricePair } from '@/trading/render/price-pair'
+import { renderHeadlineCells } from '@/trading/render/price-pair'
 import { renderFactLines, toSectionFacts } from '@/trading/render/section-facts'
 import { type PriceContext, toPricePair } from '@/trading/render/section-price'
 import { type RowUnit, renderValue } from '@/trading/render/section-values'
@@ -115,6 +115,7 @@ export function toBriefSectionText(
 
   const priceContext: PriceRowContext = {
     context,
+    ...(section.asOf === undefined ? {} : { statedDay: section.asOf }),
     ...(section.currency === undefined ? {} : { currency: section.currency }),
   }
 
@@ -236,26 +237,32 @@ function titleParam(
 interface PriceRowContext {
   readonly context: RenderContext
   readonly currency?: CurrencyCode
+  /** The session the section's block already states, so a close of that day is not dated again. */
+  readonly statedDay?: TradingDay
 }
 
-/** The one section whose rows are a price pair rather than a field list, so it renders as the block
- *  every other price surface uses. A row carrying neither reading falls back to the field list,
- *  which states what it does have rather than a half-drawn pair. */
+/** The one section whose rows are a price rather than a field list, so each prints as one line:
+ *  the ticker, the reading with its move, and a stamp only where the reading is not the section's
+ *  own day. A row carrying no reading falls back to the field list, which states what it does have
+ *  rather than a half-drawn line. */
 function renderPriceRow(
   locale: Locale,
   row: BriefSectionRow,
   price: PriceRowContext
 ): readonly string[] {
   const pair = toPricePair(row, priceContextOf(price))
+  const cells =
+    pair === undefined
+      ? []
+      : renderHeadlineCells(locale, pair, {
+          ...(price.statedDay === undefined ? {} : { statedDay: price.statedDay }),
+        })
 
-  if (pair === undefined) {
+  if (cells.length === 0) {
     return [`${INDENT[1]}${renderRow(locale, row)}`]
   }
 
-  return [
-    `${INDENT[1]}${String(row.ticker ?? '')}`,
-    ...renderPricePair(locale, pair, { context: price.context, depth: 2 }),
-  ]
+  return toRowLines([String(row.ticker ?? ''), ...cells], price.context, 1)
 }
 
 /** The clock and the unit a pair is read in, taken from the destination the row renders for. */
