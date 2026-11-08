@@ -2,13 +2,18 @@ import type { Locale } from '@/core/types/locale'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { MarketRef } from '@/trading/kernel/instrument'
-import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type {
+  BriefField,
+  BriefSectionKind,
+  BriefSectionResult,
+} from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
 import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, renderAiLabel, t } from '@/i18n'
 import { renderStoryLines } from '@/trading/features/brief/story/render'
 import { renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
+import { BRIEF_STRUCTURAL_FIELDS } from '@/trading/kernel/operator/brief-section'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { formatClock } from '@/trading/render/datetime'
 import { toFoldLines } from '@/trading/render/fold'
@@ -69,18 +74,21 @@ export const FOLDED_SECTION_KINDS = [
   'economy-headlines',
 ] as const satisfies readonly BriefSectionKind[]
 
-/** What a market block prints, in `BRIEF_SECTION_ORDER`: its prices, breadth, the names it covers,
- *  the derivatives, order flow, sentiment and premium readings, the movers and leaders, the
- *  support and resistance range, sector rotation, fx, basis and the market's own headlines. A kind
- *  left out (the quote board, the tape, the turnover and flow tables) is a tap away on `/overview
- *  <market>`. */
+/** What a market block prints, in `BRIEF_SECTION_ORDER`: its prices and quotes, the dealer board,
+ *  breadth, the support and resistance range, sector rotation, the foreign and proprietary flow,
+ *  the derivatives, premium, leaders and movers, sentiment, basis, fx, the index review, the
+ *  events and the market's own headlines. A kind left out is a tap away on `/overview <market>`:
+ *  the tape, turnover, market cap, taker flow, ETF flows, positioning and the report calendar. */
 const MARKET_SHOWN_KINDS = [
   'market-prices',
+  'market-quotes',
+  'market-board',
   'breadth',
   'range',
   'sector-rotation',
+  'foreign-desk-flow',
+  'proprietary-flow',
   'derivatives',
-  'taker-flow',
   'premium',
   'leaders',
   'leaders-24h',
@@ -89,9 +97,16 @@ const MARKET_SHOWN_KINDS = [
   'sentiment',
   'basis',
   'fx',
+  'index-review',
+  'events',
   'recent',
   'headlines',
 ] as const satisfies readonly BriefSectionKind[]
+
+/** The fields a kind keeps in the brief, where the market's own overview keeps more: the brief
+ *  reads funding and the long/short ratio, and `/overview crypto` the rest. */
+const BRIEF_FIELD_SUBSETS: Readonly<Partial<Record<BriefSectionKind, readonly BriefField[]>>> =
+  Object.freeze({ derivatives: ['funding', 'longShortRatio'] })
 
 /** The blocks that belong to no market, and the kinds each collects. Macro heads the markets
  *  because its drivers price all of them. Anything else carrying no market describes the operator's
@@ -174,7 +189,7 @@ export function readSections(
   readonly blocks: readonly (BriefBlock & { readonly title: string })[]
 } {
   const readable = snapshot.sections.filter(isRenderable)
-  const renderable = readable.filter(isSectionShown)
+  const renderable = readable.filter(isSectionShown).map(toBriefShape)
   const hasAiCalls = renderable.some(
     (section) => section.status === 'ready' && AI_SECTION_KINDS.has(section.kind)
   )
@@ -186,6 +201,23 @@ export function readSections(
   const blocks = toBlocks(rest).map((block) => ({ ...block, title: blockTitle(locale, block) }))
 
   return { readable, renderable, hasAiCalls, stories, nextActions, blocks }
+}
+
+/** A ready section of a kind with a field subset keeps those fields and the structural ones on
+ *  each row, and drops a row left with none of the subset. Any other section is as it was read. */
+function toBriefShape(section: BriefSectionResult): BriefSectionResult {
+  const subset = BRIEF_FIELD_SUBSETS[section.kind]
+
+  if (section.status !== 'ready' || subset === undefined) {
+    return section
+  }
+
+  const kept: ReadonlySet<string> = new Set([...subset, ...BRIEF_STRUCTURAL_FIELDS])
+  const rows = section.rows
+    .map((row) => Object.fromEntries(Object.entries(row).filter(([field]) => kept.has(field))))
+    .filter((row) => subset.some((field) => row[field] !== undefined))
+
+  return { ...section, rows }
 }
 
 function partition<T>(
