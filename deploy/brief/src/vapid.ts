@@ -19,7 +19,10 @@ export interface VapidKey {
   readonly publicKey: string
 }
 
-interface VapidJwk extends JsonWebKey {
+interface VapidJwk {
+  readonly kty?: string
+  readonly crv?: string
+  readonly d?: string
   readonly x: string
   readonly y: string
 }
