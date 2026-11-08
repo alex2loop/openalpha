@@ -18,6 +18,8 @@ import { GOLD_MARKET_REF, GOLD_REGION, RANGE_SESSIONS } from '@/trading/markets/
 import { type ReadingClock, toLiveReading } from '@/trading/markets/live-reading'
 import { MACRO_COMPOSITE_REGION, mergeMacroValues } from '@/trading/markets/macro'
 import { rangeFromCloses } from '@/trading/markets/overview'
+import { sessionChange } from '@/trading/markets/timeseries'
+import { PERCENT_PER_UNIT } from '@/trading/sources/rows/normalization'
 
 interface GoldOverviewLoad {
   readonly deps: MarketDeps
@@ -98,16 +100,16 @@ function worldRows(
   session: { readonly calendar: TradingCalendar; readonly clock: ReadingClock }
 ): readonly MarketDataOverviewRow[] {
   const { calendar, clock } = session
-  const settled =
-    bars.kind === 'available'
-      ? bars.value.findLast((candle) => candle.at <= clock.settledDay)
-      : undefined
+  const settledBars =
+    bars.kind === 'available' ? bars.value.filter((candle) => candle.at <= clock.settledDay) : []
+  const settled = settledBars.at(-1)
 
   if (settled === undefined) {
     return []
   }
 
   const live = toLiveReading(quote, calendar, clock)
+  const change = sessionChange(closes(settledBars))
 
   return [
     {
@@ -119,6 +121,7 @@ function worldRows(
         observedAt: calendar.sessionCloseAt(settled.at),
       },
       closedOn: settled.at,
+      ...(change === undefined ? {} : { changePct: change * PERCENT_PER_UNIT }),
       ...(live === undefined ? {} : { live }),
     },
   ]

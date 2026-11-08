@@ -88,8 +88,7 @@ function cryptoCapabilities(deps: MarketDeps, manifest: MarketManifest): MarketC
     },
     overview: {
       kind: 'overview',
-      run: (request) =>
-        runCryptoOverview({ deps, manifest, asOf: request.asOf, signal: request.signal }),
+      run: (request) => runCryptoOverview({ deps, manifest, ...request }),
     },
     bars: {
       kind: 'bars',
