@@ -1,13 +1,10 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
-import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
+import type { MacroSeriesId, StaleReadingId } from '@/trading/kernel/market/macro-series'
 import type { MacroRiskDriver } from '@/trading/kernel/market/market-macro'
 import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import type { BriefContext } from '@/trading/markets/brief-context'
 import { MS_PER_DAY } from '@/core/utils/time'
-import {
-  MACRO_SERIES_FIELDS,
-  MACRO_SERIES_STALE_AFTER_DAYS,
-} from '@/trading/kernel/market/macro-series'
+import { MACRO_SERIES_FIELDS, STALE_AFTER_DAYS } from '@/trading/kernel/market/macro-series'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 import { apportion, SCORE_QUANTUM } from '@/trading/render/number'
@@ -118,12 +115,8 @@ function toDriverValue(id: MacroSeriesId, value: number): BriefSectionRow {
 
 /** Whether a reading observed on `at` is older, against the macro block's day, than its series
  *  allows. */
-export function isStaleReading(
-  id: keyof typeof MACRO_SERIES_STALE_AFTER_DAYS,
-  at: TradingDay,
-  asOf: TradingDay
-): boolean {
+export function isStaleReading(id: StaleReadingId, at: TradingDay, asOf: TradingDay): boolean {
   const lagDays = (utcDayStartEpochMs(asOf) - utcDayStartEpochMs(at)) / MS_PER_DAY
 
-  return lagDays > MACRO_SERIES_STALE_AFTER_DAYS[id]
+  return lagDays > STALE_AFTER_DAYS[id]
 }

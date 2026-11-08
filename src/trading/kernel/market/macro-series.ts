@@ -43,7 +43,7 @@ export const MACRO_SERIES_FIELDS = Object.freeze({
  *  sized to how often each one publishes: daily series cover a long weekend, crypto trends only a
  *  day or two, the deposit rate a week and the monthly inflation print a month and a half. Brent
  *  is no macro series but the world markets row quotes it beside them, so it shares the table. */
-export const MACRO_SERIES_STALE_AFTER_DAYS = Object.freeze({
+export const STALE_AFTER_DAYS = Object.freeze({
   'us-real-rate': 4,
   'us-inflation-yoy': 45,
   'usd-index': 4,
@@ -60,5 +60,8 @@ export const MACRO_SERIES_STALE_AFTER_DAYS = Object.freeze({
   'alt-breadth': 2,
   brent: 4,
 } as const satisfies Record<MacroSeriesId | 'brent', number>)
+
+/** A series the stale table ages: a macro series or the world row's Brent. */
+export type StaleReadingId = keyof typeof STALE_AFTER_DAYS
 
 export const MACRO_FORMULA_VERSION = '1.0.0'

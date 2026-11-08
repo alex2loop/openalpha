@@ -1,9 +1,6 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { CommodityHistory } from '@/trading/kernel/market/commodity'
-import type {
-  MACRO_SERIES_STALE_AFTER_DAYS,
-  MacroSeriesId,
-} from '@/trading/kernel/market/macro-series'
+import type { MacroSeriesId, StaleReadingId } from '@/trading/kernel/market/macro-series'
 import type { MacroSnapshot } from '@/trading/kernel/market/market-data'
 import type {
   BriefReference,
@@ -41,10 +38,25 @@ interface MacroReading {
  *  observed, with the cells that state it. */
 interface WorldFigure {
   readonly reference: BriefReference
-  readonly series: keyof typeof MACRO_SERIES_STALE_AFTER_DAYS
+  readonly series: StaleReadingId
   readonly at: TradingDay
   readonly cells: BriefSectionRow
 }
+
+/** The figures the macro read supplies: the row's label, the series it reads and the cells that
+ *  state its value. */
+const MACRO_FIGURES: readonly {
+  readonly reference: BriefReference
+  readonly series: MacroSeriesId
+  readonly cells: (value: number) => BriefSectionRow
+}[] = [
+  { reference: 'sp500', series: 'us-equity-index', cells: (value) => ({ level: value }) },
+  {
+    reference: 'us-10y',
+    series: 'us-10y-yield',
+    cells: (value) => ({ valuePct: value / PERCENT_PER_UNIT }),
+  },
+]
 
 /** The world figures a Vietnamese reader checks beside the macro block: the S&P 500, the US
  *  ten-year yield and Brent crude, each dated by its own observation and flagged once it is older
@@ -89,37 +101,14 @@ function macroRows(
   asOf: TradingDay
 ): readonly BriefSectionRow[] {
   const merged = mergeMacroValues(reads)
-  const sp500 = readingOf(merged, 'us-equity-index')
-  const yield10 = readingOf(merged, 'us-10y-yield')
 
-  return [
-    ...(sp500 === undefined
+  return MACRO_FIGURES.flatMap(({ reference, series, cells }) => {
+    const reading = readingOf(merged, series)
+
+    return reading === undefined
       ? []
-      : [
-          toWorldRow(
-            {
-              reference: 'sp500',
-              series: 'us-equity-index',
-              at: sp500.at,
-              cells: { level: sp500.value },
-            },
-            asOf
-          ),
-        ]),
-    ...(yield10 === undefined
-      ? []
-      : [
-          toWorldRow(
-            {
-              reference: 'us-10y',
-              series: 'us-10y-yield',
-              at: yield10.at,
-              cells: { valuePct: yield10.value / PERCENT_PER_UNIT },
-            },
-            asOf
-          ),
-        ]),
-  ]
+      : [toWorldRow({ reference, series, at: reading.at, cells: cells(reading.value) }, asOf)]
+  })
 }
 
 /** A value the provider did not date cannot be quoted as a world figure. */
