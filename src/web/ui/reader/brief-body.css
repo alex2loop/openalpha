@@ -3,7 +3,7 @@
 }
 
 .reader-figure {
-  color: var(--ink2);
+  color: var(--ink);
   font-size: var(--sizeBody);
   font-variant-numeric: tabular-nums;
 }
@@ -12,8 +12,16 @@
   padding-left: var(--s2);
 }
 
+.reader-details .reader-figure {
+  color: var(--ink2);
+}
+
+.reader-figures .md-link-host {
+  display: none;
+}
+
 .reader-group-head {
-  margin-top: var(--s1);
+  margin-top: var(--s3);
   color: var(--ink2);
   font: var(--typeHeading);
 }
