@@ -89,9 +89,12 @@ async function sendPush(target: PushTarget): Promise<SendResult> {
       signal: AbortSignal.timeout(PUSH_TIMEOUT_MS),
     })
 
-    await response.body?.cancel()
+    const outcome = toSendOutcome(response.status)
 
-    return { endpoint: target.endpoint, outcome: toSendOutcome(response.status) }
+    // The push is already answered: a body that will not close changes nothing.
+    await response.body?.cancel().catch(() => undefined)
+
+    return { endpoint: target.endpoint, outcome }
   } catch {
     // A network error or the deadline: the phone is not at fault yet, so it counts as a failure.
     return { endpoint: target.endpoint, outcome: 'failed' }

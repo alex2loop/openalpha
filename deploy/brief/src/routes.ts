@@ -114,8 +114,10 @@ async function publish(request: Request, env: Env, ctx: ExecutionContext): Promi
 
   await pushDay(env, ctx, { day: document.day, now })
 
+  // The hint is best effort: a failed count answers without `full` and never fails a stored day.
+  const held = await bestEffort(countSubscriptions(env.DB))
   const answer: PublishAnswer =
-    (await countSubscriptions(env.DB)) >= SUBSCRIPTION_CAP ? { stored, full: true } : { stored }
+    held !== undefined && held >= SUBSCRIPTION_CAP ? { stored, full: true } : { stored }
 
   return replyJson(stored ? 201 : 200, answer)
 }

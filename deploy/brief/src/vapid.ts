@@ -2,7 +2,7 @@ import { BRAND } from '../../../src/core/brand'
 
 const VAPID_SUBJECT = `https://${BRAND.publicDomain}`
 const VAPID_JWT_SECONDS = 3_600
-const CURVE = { name: 'ECDSA', namedCurve: 'P-256' } as const
+export const VAPID_CURVE = { name: 'ECDSA', namedCurve: 'P-256' } as const
 const SIGNATURE = { name: 'ECDSA', hash: 'SHA-256' } as const
 const JWT_HEADER = { typ: 'JWT', alg: 'ES256' }
 const UNCOMPRESSED_POINT = 0x04
@@ -36,7 +36,7 @@ export async function importVapidKey(secret: string): Promise<VapidKey> {
     throw new TypeError('the VAPID secret is not an EC private key')
   }
 
-  const privateKey = await crypto.subtle.importKey('jwk', jwk, CURVE, false, ['sign'])
+  const privateKey = await crypto.subtle.importKey('jwk', jwk, VAPID_CURVE, false, ['sign'])
   const point = new Uint8Array([
     UNCOMPRESSED_POINT,
     ...fromBase64Url(jwk.x),
