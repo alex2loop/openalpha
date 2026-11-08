@@ -1,5 +1,5 @@
 import type { Locale } from '@/core/types/locale'
-import type { TradingDay } from '@/trading/kernel/instrument'
+import type { MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type {
   BriefField,
   BriefSectionKind,
@@ -7,16 +7,16 @@ import type {
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
-import { t } from '@/i18n'
+import { formatShortDay, t } from '@/i18n'
+import { marketRef } from '@/trading/kernel/instrument'
+import { INLINE_SEPARATOR } from '@/trading/render/layout'
 import { ABSENT_CELL } from '@/trading/render/number'
 import { renderHeadlineCells } from '@/trading/render/price-pair'
 import { toPricePair } from '@/trading/render/section-price'
 import { renderValue } from '@/trading/render/section-values'
 
-const SETTLED_LABEL_KEY = 'trading.render.price.settledLabel'
-const SESSION_MARKET = 'equity-vn'
-const YEAR_SUFFIX_RE = /\/\d{4}$/
-const STAMP_SEPARATOR = ' · '
+/** The market whose prices date the session the brief describes. */
+const SESSION_MARKET = marketRef('equity-vn')
 
 type ReadySection = Extract<BriefSectionResult, { readonly status: 'ready' }>
 
@@ -32,12 +32,12 @@ type StripId = 'vn-index' | 'vn30' | 'sjc' | 'world-gold' | 'btc' | 'usd-vnd'
 /** What a figure reads, and the day it settled on when that is not the brief's session. */
 interface StripReading {
   readonly amount: string
-  readonly settledOn?: string
+  readonly settledOn?: TradingDay
 }
 
 interface StripFigure {
   readonly id: StripId
-  readonly market: string
+  readonly market: MarketRef
   readonly ticker: string
   readonly sources: readonly StripSource[]
 }
@@ -48,19 +48,19 @@ const MARKET_PRICES: StripSource = Object.freeze({ kind: 'market-prices' })
  *  Vietnamese buyers pay for and the world's, the coin, and the dollar. The SJC bar reads off the
  *  dealer board when it is live and off the last settled bar when the dealers have not revised. */
 const STRIP_FIGURES: readonly StripFigure[] = Object.freeze([
-  { id: 'vn-index', market: 'equity-vn', ticker: 'VNINDEX', sources: [MARKET_PRICES] },
-  { id: 'vn30', market: 'equity-vn', ticker: 'VN30', sources: [MARKET_PRICES] },
+  { id: 'vn-index', market: SESSION_MARKET, ticker: 'VNINDEX', sources: [MARKET_PRICES] },
+  { id: 'vn30', market: SESSION_MARKET, ticker: 'VN30', sources: [MARKET_PRICES] },
   {
     id: 'sjc',
-    market: 'gold-vn',
+    market: marketRef('gold-vn'),
     ticker: 'SJC-BAR',
     sources: [{ kind: 'market-board', field: 'sellPrice' }, MARKET_PRICES],
   },
-  { id: 'world-gold', market: 'gold', ticker: 'XAUUSD', sources: [MARKET_PRICES] },
-  { id: 'btc', market: 'crypto', ticker: 'BTC', sources: [MARKET_PRICES] },
+  { id: 'world-gold', market: marketRef('gold'), ticker: 'XAUUSD', sources: [MARKET_PRICES] },
+  { id: 'btc', market: marketRef('crypto'), ticker: 'BTC', sources: [MARKET_PRICES] },
   {
     id: 'usd-vnd',
-    market: 'equity-vn',
+    market: SESSION_MARKET,
     ticker: 'USD/VND',
     sources: [{ kind: 'fx', field: 'rate' }],
   },
@@ -83,7 +83,7 @@ export function renderBriefStrip(
     const label = t(locale, `trading.brief.strip.${figure.id}`)
     const reading = readingOf(locale, sections, { figure, session, context })
 
-    return reading === undefined ? `${label} ${ABSENT_CELL}` : toCell(label, reading, context.width)
+    return reading === undefined ? `${label} ${ABSENT_CELL}` : toCell(locale, label, reading)
   })
 }
 
@@ -95,23 +95,6 @@ export function briefSessionOf(sections: readonly BriefSectionResult[]): Trading
   )
 
   return (prices.find((section) => section.market === SESSION_MARKET) ?? prices[0])?.asOf
-}
-
-/** The label, the amount and, for a close of another day, its date: in full where the line has the
- *  room, without the year where it does not. */
-function toCell(label: string, reading: StripReading, width: number): string {
-  const { amount, settledOn } = reading
-  const full = `${label} ${amount}`
-
-  if (settledOn === undefined) {
-    return full
-  }
-
-  const dated = `${full}${STAMP_SEPARATOR}${settledOn}`
-
-  return [...dated].length <= width
-    ? dated
-    : `${full}${STAMP_SEPARATOR}${settledOn.replace(YEAR_SUFFIX_RE, '')}`
 }
 
 /** The first source that reads. A section that did not come back counts as no reading. */
@@ -172,18 +155,26 @@ function readRow(
   }
 
   const pair = toPricePair(row, { timezone: context.timezone, ...currency })
-  const [amount, stamp] =
+  const { cells, settledOn } =
     pair === undefined
-      ? []
+      ? { cells: [] }
       : renderHeadlineCells(locale, pair, session === undefined ? {} : { statedDay: session })
+  const [amount] = cells
 
   if (amount === undefined) {
     return undefined
   }
 
-  const label = `${t(locale, SETTLED_LABEL_KEY)} `
+  return session !== undefined && settledOn !== undefined ? { amount, settledOn } : { amount }
+}
 
-  return session !== undefined && stamp?.startsWith(label)
-    ? { amount, settledOn: stamp.slice(label.length) }
-    : { amount }
+/** The label, the amount and, for a close of another day, its date without the year: the session
+ *  the brief names is this year's, and a cell that fits one line never needs a width branch. */
+function toCell(locale: Locale, label: string, reading: StripReading): string {
+  const { amount, settledOn } = reading
+  const cell = `${label} ${amount}`
+
+  return settledOn === undefined
+    ? cell
+    : `${cell}${INLINE_SEPARATOR}${formatShortDay(locale, settledOn)}`
 }

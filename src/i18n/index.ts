@@ -295,6 +295,23 @@ const amountFormatters = new Map<string, Intl.NumberFormat>()
 /** A `YYYY-MM-DD` calendar day in the reader's date order: `2026-08-24` reads as `24/08/2026`. It
  *  names a date, not an instant, so it is pinned to UTC to survive any host timezone. */
 export function formatDay(locale: Locale, day: string): string {
+  return dayFormatterOf(locale).format(new Date(day))
+}
+
+/** The same day without its year: `2026-08-24` reads as `24/08`. For a title or a cell whose line
+ *  is short, where the session it names is always the current one. Cut from the full form rather
+ *  than formatted without a year, because `Intl` joins a year-less `vi` date with hyphens. */
+export function formatShortDay(locale: Locale, day: string): string {
+  const parts = dayFormatterOf(locale).formatToParts(new Date(day))
+  const yearAt = parts.findIndex((part) => part.type === 'year')
+
+  return parts
+    .slice(0, yearAt - 1)
+    .map((part) => part.value)
+    .join('')
+}
+
+function dayFormatterOf(locale: Locale): Intl.DateTimeFormat {
   let formatter = dayFormatters.get(locale)
 
   if (formatter === undefined) {
@@ -302,7 +319,7 @@ export function formatDay(locale: Locale, day: string): string {
     dayFormatters.set(locale, formatter)
   }
 
-  return formatter.format(new Date(day))
+  return formatter
 }
 
 /** A value a message interpolates. A keyed one is localized, and prints `fallback` where the catalog

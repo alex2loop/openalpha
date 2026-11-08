@@ -92,6 +92,13 @@ export function renderPricePair(
   )
 }
 
+/** What a price printed on one line says: its cells, and the settled day when the close is the
+ *  stamp, so a caller that dates it differently never parses the stamp it was given. */
+interface HeadlineCells {
+  readonly cells: readonly string[]
+  readonly settledOn?: TradingDay
+}
+
 /** The cells of a price printed on one line: the reading with its move, then the stamp that says
  *  which reading it is. A live reading always carries its clock; a settled close carries its day
  *  only where the section does not already state that day, so one session is never dated twice.
@@ -101,34 +108,39 @@ export function renderHeadlineCells(
   locale: Locale,
   pair: PricePair,
   placement: { readonly statedDay?: TradingDay }
-): readonly string[] {
+): HeadlineCells {
   if (pair.dealerBuy === true) {
-    return []
+    return { cells: [] }
   }
 
   if (isLiveShown(pair)) {
     const stamp = formatClock(locale, pair.live.observed.observedAt, pair.timezone)
 
-    return [
-      headlineReading(locale, pair, { price: pair.live.price, changePct: liveMoveOf(pair) }),
-      `${t(locale, 'trading.render.price.liveLabel')} ${stamp}`,
-    ]
+    return {
+      cells: [
+        headlineReading(locale, pair, { price: pair.live.price, changePct: liveMoveOf(pair) }),
+        `${t(locale, 'trading.render.price.liveLabel')} ${stamp}`,
+      ],
+    }
   }
 
   const settled = settledCloseOf(pair)
 
   if (settled === undefined) {
-    return []
+    return { cells: [] }
   }
 
   const reading = headlineReading(locale, pair, settled)
 
   return settled.at === placement.statedDay
-    ? [reading]
-    : [
-        reading,
-        `${t(locale, 'trading.render.price.settledLabel')} ${formatDay(locale, settled.at)}`,
-      ]
+    ? { cells: [reading] }
+    : {
+        cells: [
+          reading,
+          `${t(locale, 'trading.render.price.settledLabel')} ${formatDay(locale, settled.at)}`,
+        ],
+        settledOn: settled.at,
+      }
 }
 
 /** The amount and its move as one fact, so a line break never parts a sign from its number. A
@@ -335,6 +347,7 @@ function amountOf(locale: Locale, value: number, pair: PricePair): string {
     currency: pair.currency,
     ...(pair.unit === undefined ? {} : { unit: pair.unit }),
     ...(pair.display === undefined ? {} : { display: pair.display }),
+    bindCurrency: true,
   })
 }
 

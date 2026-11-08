@@ -97,7 +97,6 @@ export function toBriefSectionText(
   }
 
   const heading = renderSectionHeading(locale, section, context.timezone)
-
   const facts = toSectionFacts(locale, section)
 
   if (facts !== undefined) {
@@ -195,9 +194,9 @@ function renderPriceRow(
   price: PriceRowContext
 ): readonly string[] {
   const pair = toPricePair(row, priceContextOf(price))
-  const cells =
+  const { cells } =
     pair === undefined
-      ? []
+      ? { cells: [] }
       : renderHeadlineCells(locale, pair, {
           ...(price.statedDay === undefined ? {} : { statedDay: price.statedDay }),
         })

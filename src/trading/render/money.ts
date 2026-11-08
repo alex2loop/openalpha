@@ -112,6 +112,8 @@ export interface QuotedIn {
   readonly currency: CurrencyCode
   readonly unit?: QuoteUnit
   readonly display?: PriceDisplay
+  /** Joins the currency to its number with a no-break space, for a cell a narrow screen may wrap. */
+  readonly bindCurrency?: boolean
 }
 
 /** The convention's optional halves, ready to spread into a `QuotedIn` — or nothing at all when
@@ -134,6 +136,8 @@ export function quotedInOf(convention?: QuoteConvention): Pick<QuotedIn, 'unit' 
  *  out beside the price. Listing what is implied rather than what is spelled means a market
  *  quoting a new measure is labelled without an edit here. */
 const IMPLIED_UNITS: ReadonlySet<string> = new Set(['currency-per-share', 'currency-per-coin'])
+
+const NO_BREAK_SPACE = '\u00A0'
 
 /** What one unit costs, in the convention its own venue quotes. The currency is taken separately
  *  from the unit because a holding is quoted in the currency it was bought in, which the market's
@@ -201,7 +205,7 @@ export function formatRecordedMoney(locale: Locale, value: number, currency: Cur
 function labelled(locale: Locale, price: string, quote: QuotedIn): string {
   return isBoardScaled(quote.display)
     ? price
-    : `${price} ${quotedIn(locale, quote.currency, quote.unit)}`
+    : `${price}${quote.bindCurrency === true ? NO_BREAK_SPACE : ' '}${quotedIn(locale, quote.currency, quote.unit)}`
 }
 
 /** A compact magnitude with the money it is in — a market cap or a turnover, where the digits are
