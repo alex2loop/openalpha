@@ -1,12 +1,17 @@
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
 import type { MacroRiskDriver } from '@/trading/kernel/market/market-macro'
 import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import type { BriefContext } from '@/trading/markets/brief-context'
-import { MACRO_SERIES_FIELDS } from '@/trading/kernel/market/macro-series'
+import { MS_PER_DAY } from '@/core/utils/time'
+import {
+  MACRO_SERIES_FIELDS,
+  MACRO_SERIES_STALE_AFTER_DAYS,
+} from '@/trading/kernel/market/macro-series'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 import { apportion, SCORE_QUANTUM } from '@/trading/render/number'
-import { PERCENT_PER_UNIT } from '@/trading/sources/rows/normalization'
+import { PERCENT_PER_UNIT, utcDayStartEpochMs } from '@/trading/sources/rows/normalization'
 
 /** Below half a whole percent, coverage prints as 100%. */
 const PRINTED_COVERAGE_GAP = 0.005
@@ -43,8 +48,12 @@ export function buildRegimeShift(context: BriefContext): Promise<BriefSectionRes
 }
 
 /** Contributions rounded across the set rather than one row at a time, so the column adds up to the
- *  composite printed above it. */
-function driverRows(drivers: readonly MacroRiskDriver[]): readonly BriefSectionRow[] {
+ *  composite printed above it. A driver whose source has printed nothing newer for longer than its
+ *  series allows is flagged, and still counts: the flag states the age, the score is unchanged. */
+function driverRows(
+  drivers: readonly MacroRiskDriver[],
+  asOf: TradingDay
+): readonly BriefSectionRow[] {
   const contributions = apportion(
     drivers.map((driver) => driver.contribution),
     SCORE_QUANTUM
@@ -54,6 +63,7 @@ function driverRows(drivers: readonly MacroRiskDriver[]): readonly BriefSectionR
     driver: driver.id,
     at: driver.asOf,
     ...toDriverValue(driver.id, driver.value),
+    ...(isStale(driver, asOf) ? { freshness: 'stale' } : {}),
     contribution: contributions[index] ?? driver.contribution,
   }))
 }
@@ -79,7 +89,7 @@ export async function buildMacro(context: BriefContext): Promise<BriefSectionRes
     [
       { regime: macro.view.regime },
       { compositeScore: macro.view.score },
-      ...driverRows(macro.view.drivers),
+      ...driverRows(macro.view.drivers, macro.view.asOf),
       ...macro.view.missing.map((entry) => ({ driverMissing: entry.id })),
       // Partial data is the fact worth a row; a read that prints as whole states nothing new.
       ...(1 - macro.view.coverage < PRINTED_COVERAGE_GAP
@@ -104,4 +114,10 @@ function toDriverValue(id: MacroSeriesId, value: number): BriefSectionRow {
   const field = MACRO_SERIES_FIELDS[id]
 
   return field === 'valuePct' ? { valuePct: value / PERCENT_PER_UNIT } : { [field]: value }
+}
+
+function isStale(driver: MacroRiskDriver, asOf: TradingDay): boolean {
+  const lagDays = (utcDayStartEpochMs(asOf) - utcDayStartEpochMs(driver.asOf)) / MS_PER_DAY
+
+  return lagDays > MACRO_SERIES_STALE_AFTER_DAYS[driver.id]
 }

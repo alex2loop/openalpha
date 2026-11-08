@@ -10,8 +10,10 @@ import type {
   BriefAggressorSide,
   BriefDirection,
   BriefField,
+  BriefFreshness,
   BriefNumericField,
   BriefReading,
+  BriefReference,
   BriefSectionValue,
   BriefStopBasis,
 } from '@/trading/kernel/operator/brief-section'
@@ -65,6 +67,16 @@ const DIRECTION_KEYS = Object.freeze({
   entered: 'trading.brief.direction.entered',
   left: 'trading.brief.direction.left',
 } as const satisfies Record<BriefDirection, MessageKey>)
+
+const REFERENCE_KEYS = Object.freeze({
+  sp500: 'trading.brief.reference.sp500',
+  'us-10y': 'trading.brief.reference.us-10y',
+  brent: 'trading.brief.reference.brent',
+} as const satisfies Record<BriefReference, MessageKey>)
+
+const FRESHNESS_KEYS = Object.freeze({
+  stale: 'trading.brief.freshness.stale',
+} as const satisfies Record<BriefFreshness, MessageKey>)
 
 const AGGRESSOR_SIDE_KEYS = Object.freeze({
   balanced: 'trading.brief.aggressor.balanced',
@@ -135,6 +147,7 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
     currentRegime: REGIME_KEYS,
     direction: DIRECTION_KEYS,
     eventKind: { ...EVENT_KEYS, ...DISCLOSURE_KEYS, ...INDEX_REVIEW_KEYS },
+    freshness: FRESHNESS_KEYS,
     posture: {
       'fully-liquid': 'trading.posture.fully-liquid',
       'term-deposit-eligible': 'trading.posture.term-deposit-eligible',
@@ -146,6 +159,7 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
       'rise-unconfirmed': 'trading.brief.reading.rise-unconfirmed',
       'rise-confirmed': 'trading.brief.reading.rise-confirmed',
     } satisfies Record<BriefReading, MessageKey>,
+    reference: REFERENCE_KEYS,
     regime: REGIME_KEYS,
     status: {
       expired: 'trading.outcome.expired',

@@ -62,6 +62,7 @@ export type BriefSectionKind =
   | 'monthly-scorecard'
   | 'regime-shift'
   | 'macro'
+  | 'world-markets'
   | 'deposit-rate'
   | 'macro-headlines'
   | 'economy-headlines'
