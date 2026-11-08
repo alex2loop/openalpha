@@ -177,16 +177,15 @@ function GuardedBrief({ doc, locale, t, onRetry }: DocumentProps & Pick<BodyProp
   return <Brief doc={doc} locale={locale} t={t} />
 }
 
-// The body, then the screen lists; the disclaimer closes the page in its footer. A brief carries no
-// AI label: none of its sections is written by a model.
+// The body with the screen lists before its cautions; the disclaimer closes the page in its footer.
+// A brief carries no AI label: none of its sections is written by a model.
 function Brief({ doc, locale, t }: DocumentProps) {
   return (
-    <>
-      <BriefBody text={doc.briefs[locale]} labels={{ cautions: t('ui.brief.cautions') }} />
+    <BriefBody text={doc.briefs[locale]} labels={{ cautions: t('ui.brief.cautions') }}>
       {doc.screens[locale].map((screen) => (
         <ScreenList key={screen.market} screen={screen} />
       ))}
-    </>
+    </BriefBody>
   )
 }
 

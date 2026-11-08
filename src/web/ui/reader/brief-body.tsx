@@ -1,3 +1,5 @@
+import type { ComponentChildren } from 'preact'
+
 import type { BriefTextWire } from '@/app/server/wire/brief'
 import { Fold } from '@/web/ui/kit/fold'
 import { SectionHeading } from '@/web/ui/kit/section-heading'
@@ -27,6 +29,8 @@ interface BriefBodyProps {
   readonly text: BriefTextWire
   readonly labels: { readonly cautions: string }
   readonly renderText?: TextRenderer | undefined
+  /** Laid out after the sections and before the cautions. */
+  readonly children?: ComponentChildren
 }
 
 interface Rendering {
@@ -34,8 +38,8 @@ interface Rendering {
 }
 
 /** The brief laid out by what each line is: the call and its figures first, then the story, each
- *  section, and the cautions. */
-export function BriefBody({ text, labels, renderText }: BriefBodyProps) {
+ *  section, whatever the caller adds, and the cautions. */
+export function BriefBody({ text, labels, renderText, children }: BriefBodyProps) {
   return (
     <>
       {storyBlocks(text.story).map((block) => (
@@ -50,6 +54,7 @@ export function BriefBody({ text, labels, renderText }: BriefBodyProps) {
           renderText={renderText}
         />
       ))}
+      {children}
       <Cautions caveats={text.caveats} title={labels.cautions} renderText={renderText} />
     </>
   )

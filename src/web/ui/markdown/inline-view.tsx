@@ -72,6 +72,8 @@ function InlineView({ node, renderText, renderNote }: InlineViewProps) {
       return <code class="md-code">{node.text}</code>
     case 'note':
       return renderNote === undefined ? `[${node.n}]` : renderNote(node.n)
+    case 'move':
+      return <span class={`move move-${node.tone}`}>{node.text}</span>
     case 'link':
       return (
         <>
