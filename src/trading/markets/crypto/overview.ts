@@ -1,5 +1,6 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
+import type { MarketRequest } from '@/trading/kernel/market/market-capability'
 import type { Candle, FundingSnapshot, MarketCapRecord } from '@/trading/kernel/market/market-data'
 import type {
   MarketDataOverview,
@@ -14,7 +15,7 @@ import type { MarketDeps } from '@/trading/markets/deps'
 import type { MarketManifest, TradingCalendar } from '@/trading/markets/types'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { dedupeProvenance, provenanceOf } from '@/trading/kernel/source/source-result'
-import { formatZonedTime } from '@/trading/markets/calendar'
+import { formatZonedTime, resolveSettledDay } from '@/trading/markets/calendar'
 import {
   BTC_TICKER,
   CRYPTO_MARKET_REF,
@@ -32,11 +33,9 @@ import {
 
 const PERCENT_PER_UNIT = 100
 
-interface CryptoOverviewLoad {
+interface CryptoOverviewLoad extends MarketRequest {
   readonly deps: MarketDeps
   readonly manifest: MarketManifest
-  readonly asOf: TradingDay
-  readonly signal: AbortSignal
 }
 
 /** One ranked universe read carries the headline names, the whole market's capitalisation and its
@@ -60,7 +59,7 @@ export async function runCryptoOverview(load: CryptoOverviewLoad): Promise<Marke
     currency: load.manifest.currency,
     priceCurrency: load.manifest.currency,
     icon: load.manifest.icon,
-    rows: headlineRows(load.manifest.calendar, records, headlineBars.byTicker),
+    rows: headlineRows(load, records, headlineBars.byTicker),
     ...(marketCap === undefined ? {} : { marketCap }),
     ...optionalTurnover(records),
     ...optionalLargestShare(records, marketCap),
@@ -202,21 +201,30 @@ function toDerivatives(snapshot: FundingSnapshot): MarketDerivatives {
 /** The named reference assets, in the order policy lists them — not the top of the ranking, which
  *  would rotate the headline row whenever a new coin out-capitalised one of them. */
 function headlineRows(
-  calendar: TradingCalendar,
+  load: CryptoOverviewLoad,
   records: readonly MarketCapRecord[],
   bars: ReadonlyMap<Ticker, readonly Candle[]>
 ): readonly MarketDataOverviewRow[] {
+  const { calendar } = load.manifest
+  const settledDay = resolveSettledDay(calendar, load.now)
+
   return CRYPTO_OVERVIEW_NAMES.flatMap((name) => {
     const record = records.find((candidate) => candidate.instrument.ticker === name)
 
-    return record === undefined ? [] : [toRow(calendar, record, settledBar(bars.get(name)))]
+    return record === undefined
+      ? []
+      : [toRow(calendar, record, settledBar(bars.get(name), settledDay))]
   })
 }
 
-/** The last bar the series carries, which on a market dated by its settled UTC day is that day's
- *  close. Absent where the bar read failed, and the row then prints the live reading alone. */
-function settledBar(candles: readonly Candle[] | undefined): Candle | undefined {
-  return candles === undefined ? undefined : candles.at(-1)
+/** The newest bar that has closed. The series runs to today, whose bar is still forming, and pricing
+ *  the close off it would date the close to the session the live reading belongs to. Absent where
+ *  the bar read failed, and the row then prints the live reading alone. */
+function settledBar(
+  candles: readonly Candle[] | undefined,
+  settledDay: TradingDay
+): Candle | undefined {
+  return candles?.findLast((candle) => candle.at <= settledDay)
 }
 
 /** A live reading, not a quote: this market never stops, so the provider's price is what it trades
