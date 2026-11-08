@@ -20,12 +20,10 @@ run_worker_first = ["/api/*"]
 [observability]
 enabled = false
 
-# Placeholder: paste the id `wrangler d1 create openalpha-brief-staging` prints before the first
-# staging deploy.
 [[d1_databases]]
 binding = "DB"
 database_name = "openalpha-brief-staging"
-database_id = "REPLACE-WITH-STAGING-D1-ID"
+database_id = "1a192ff8-e0c2-41ad-89c4-16c488ed03c9"
 migrations_dir = "migrations"
 
 # Production: deployed with `--env production`, on the domain alone. The app builds noindex while
