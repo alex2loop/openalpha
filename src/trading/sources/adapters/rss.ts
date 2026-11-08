@@ -205,9 +205,11 @@ function onTopic(feedId: string, items: readonly NewsItem[]): readonly NewsItem[
     return items
   }
 
-  return items.filter((item) => {
-    const title = item.title.toLocaleLowerCase('vi')
+  const nfcTerms = terms.map((term) => term.normalize('NFC'))
 
-    return terms.some((term) => title.includes(term))
+  return items.filter((item) => {
+    const title = item.title.normalize('NFC').toLocaleLowerCase('vi')
+
+    return nfcTerms.some((term) => title.includes(term))
   })
 }
