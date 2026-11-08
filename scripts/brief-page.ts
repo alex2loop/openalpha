@@ -10,6 +10,8 @@ const ROOT = resolve(import.meta.dir, '..')
 const PAGE_ENTRY = resolve(ROOT, 'src/web/brief/index.html')
 const SERVICE_WORKER_ENTRY = resolve(ROOT, 'src/web/brief/service-worker.ts')
 
+const PUSH_KEY_PREFIX = 'brief.push.'
+
 const PRIVACY_PARAMS = {
   brand: BRAND.display,
   maintainer: maintainerOf(BRAND.repository),
@@ -25,22 +27,31 @@ export interface Precache {
   readonly digest: string
 }
 
-/** The phone app's page, minified with its words, its privacy names and the web app's address
- *  built in. */
-export function buildBriefPage(outdir: string, appUrl: string): Promise<BrowserBuild> {
+export interface PageStamps {
+  /** The address of the web app the footer links to. */
+  readonly appUrl: string
+  /** The Worker's public VAPID key; empty builds the app without a reminder. */
+  readonly vapidPublicKey: string
+}
+
+/** The phone app's page, minified with its words, its privacy names, the web app's address and the
+ *  reminder's key built in. */
+export function buildBriefPage(outdir: string, stamps: PageStamps): Promise<BrowserBuild> {
   return buildOrThrow({
     entry: PAGE_ENTRY,
     outdir,
     minify: true,
     define: {
-      APP_URL: JSON.stringify(appUrl),
+      APP_URL: JSON.stringify(stamps.appUrl),
+      VAPID_PUBLIC_KEY: JSON.stringify(stamps.vapidPublicKey),
       STRINGS: JSON.stringify(buildBriefStrings()),
       PRIVACY_PARAMS: JSON.stringify(PRIVACY_PARAMS),
     },
   })
 }
 
-/** The phone app's service worker, minified, with the shell it keeps and the build's digest. */
+/** The phone app's service worker, minified, with the shell it keeps, the build's digest and the
+ *  words of its notification. */
 export function buildBriefWorker(outdir: string, precache: Precache): Promise<BrowserBuild> {
   return buildOrThrow({
     entry: SERVICE_WORKER_ENTRY,
@@ -49,6 +60,7 @@ export function buildBriefWorker(outdir: string, precache: Precache): Promise<Br
     define: {
       PRECACHE_URLS: JSON.stringify(precache.urls),
       BUILD_ID: JSON.stringify(precache.digest),
+      PUSH_STRINGS: JSON.stringify(buildBriefStrings(PUSH_KEY_PREFIX)),
     },
   })
 }

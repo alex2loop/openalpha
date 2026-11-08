@@ -1,6 +1,7 @@
 // The phone app's words: every `ui.brief.*` key of both catalogs, handed to the page build as one
-// constant, so the app never bundles the catalogs. A key missing from either language, or a plural
-// form (the app counts nothing), fails the build.
+// constant, so the app never bundles the catalogs. The service worker takes the `ui.brief.push.*`
+// keys alone. A key missing from either language, or a plural form (the app counts nothing), fails
+// the build.
 import en from '@/i18n/locales/en.json'
 import vi from '@/i18n/locales/vi.json'
 
@@ -11,9 +12,9 @@ const PLURAL_SUFFIX = 'One'
 
 type Strings = Record<string, string>
 
-/** `{ vi, en }`, each key under its full catalog name. */
-export function buildBriefStrings(): Record<'vi' | 'en', Strings> {
-  const strings = { vi: briefStringsOf(vi.ui), en: briefStringsOf(en.ui) }
+/** `{ vi, en }`, each key of the scope under its full catalog name. */
+export function buildBriefStrings(scope: string = KEY_PREFIX): Record<'vi' | 'en', Strings> {
+  const strings = { vi: briefStringsOf(vi.ui, scope), en: briefStringsOf(en.ui, scope) }
   const problems = [
     ...missingKeys('vi', strings.vi, strings.en),
     ...missingKeys('en', strings.en, strings.vi),
@@ -27,11 +28,11 @@ export function buildBriefStrings(): Record<'vi' | 'en', Strings> {
   return strings
 }
 
-function briefStringsOf(ui: Strings): Strings {
+function briefStringsOf(ui: Strings, scope: string): Strings {
   const found: Strings = {}
 
   for (const [key, text] of Object.entries(ui)) {
-    if (key.startsWith(KEY_PREFIX)) {
+    if (key.startsWith(scope)) {
       found[`${WIRE_PREFIX}${key}`] = text
     }
   }
