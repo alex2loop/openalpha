@@ -19,6 +19,7 @@ export const BRIEF_SECTION_ORDER = Object.freeze([
   'monthly-scorecard',
   'regime-shift',
   'macro',
+  'world-markets',
   'deposit-rate',
   'macro-headlines',
   'economy-headlines',
@@ -143,6 +144,15 @@ const BRIEF_READINGS = Object.freeze([
   'rise-confirmed',
 ] as const)
 export type BriefReading = (typeof BRIEF_READINGS)[number]
+
+/** The overseas figures the brief quotes beside the macro block, closed because each is a catalog
+ *  label rather than text a builder composes. */
+const BRIEF_REFERENCES = Object.freeze(['sp500', 'us-10y', 'brent'] as const)
+export type BriefReference = (typeof BRIEF_REFERENCES)[number]
+
+/** What a row says about its own reading when the value alone would pass for a current one. */
+const BRIEF_FRESHNESSES = Object.freeze(['stale'] as const)
+export type BriefFreshness = (typeof BRIEF_FRESHNESSES)[number]
 
 /** How a stop is arrived at. One arm today; the tuple exists so the rendered sentence is a catalog
  *  key rather than a string a builder composes. */
@@ -269,6 +279,7 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'effect',
   'eventKind',
   'formulaVersion',
+  'freshness',
   /** Which market this row's instrument trades on, for a section whose rows span several. A section
    *  covering one market names it in its own header instead. */
   'market',
@@ -279,6 +290,7 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'reason',
   'reading',
   'reduceReason',
+  'reference',
   'regime',
   'sector',
   'segment',

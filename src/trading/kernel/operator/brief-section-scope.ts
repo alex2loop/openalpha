@@ -33,6 +33,7 @@ export const BRIEF_SECTION_SCOPE = Object.freeze({
   'monthly-scorecard': 'book',
   'regime-shift': 'market',
   macro: 'market',
+  'world-markets': 'market',
   // Reads the rebalance plan's cash posture.
   'deposit-rate': 'book',
   'macro-headlines': 'market',

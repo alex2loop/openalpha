@@ -5,7 +5,11 @@ import type {
   PublicBriefInput,
 } from '@/trading/features/brief/public/types'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
-import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type {
+  BriefField,
+  BriefSectionResult,
+  BriefSectionRow,
+} from '@/trading/kernel/operator/brief-section'
 import type { MarketBriefRun } from '@/trading/markets/deps'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { isAbortError } from '@/core/errors'
@@ -16,6 +20,7 @@ import {
   carriedSections,
   PUBLIC_CORE_SECTIONS,
   PUBLIC_DROPPED_FIELDS,
+  PUBLIC_DROPPED_ROWS,
   PUBLIC_SESSION_KIND,
   publicSectionKinds,
   publicStoryOmits,
@@ -24,6 +29,7 @@ import { readPublicScreens } from '@/trading/features/brief/public/screen'
 import { pickRowFields } from '@/trading/features/brief/render'
 import { runMarketBrief } from '@/trading/features/brief/run'
 import { isDeliverable } from '@/trading/markets/brief-deliverability'
+import { omitted } from '@/trading/markets/brief-sections'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 
 /** Sections carry no wording; the language only names what a suggestion run would be written in,
@@ -116,21 +122,31 @@ function keptSections(
 ): readonly BriefSectionResult[] {
   const kinds = publicSectionKinds(deps.toggles)
 
-  return sections.filter((section) => kinds.has(section.kind)).map(withoutDroppedFields)
+  return sections.filter((section) => kinds.has(section.kind)).map(withoutDropped)
 }
 
-function withoutDroppedFields(section: BriefSectionResult): BriefSectionResult {
-  const dropped = PUBLIC_DROPPED_FIELDS[section.kind]
+/** A kind's dropped fields come off every row and its dropped rows go; a section left with no row
+ *  reads as omitted rather than as a heading over nothing. */
+function withoutDropped(section: BriefSectionResult): BriefSectionResult {
+  const fields = PUBLIC_DROPPED_FIELDS[section.kind]
+  const rowRule = PUBLIC_DROPPED_ROWS[section.kind]
 
-  if (section.status !== 'ready' || dropped === undefined) {
+  if (section.status !== 'ready' || (fields === undefined && rowRule === undefined)) {
     return section
   }
 
-  const rows = section.rows.map((row) =>
-    pickRowFields(row, (field) => !dropped.some((name) => name === field))
-  )
+  const rows = section.rows
+    .filter((row) => !isDroppedRow(row, rowRule))
+    .map((row) => pickRowFields(row, (field) => !fields?.some((name) => name === field)))
 
-  return { ...section, rows }
+  return rows.length === 0 ? omitted(section.kind) : { ...section, rows }
+}
+
+function isDroppedRow(
+  row: BriefSectionRow,
+  rule: { readonly field: BriefField; readonly values: readonly string[] } | undefined
+): boolean {
+  return rule?.values.some((value) => value === row[rule.field]) === true
 }
 
 /** The tape has no date of its own; the section that states the session its market's roll-ups were
