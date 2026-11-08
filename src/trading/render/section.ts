@@ -41,6 +41,10 @@ import { type RowUnit, renderValue } from '@/trading/render/section-values'
 const STRUCTURAL_FIELDS: ReadonlySet<string> = new Set(BRIEF_STRUCTURAL_FIELDS)
 const TITLE_FIELD = 'title'
 const URL_FIELD = 'url'
+/** The one section whose heading changes when it fails, and the caveat that would then claim a kept
+ *  number the section does not show. */
+const QUOTES_KIND = 'market-quotes'
+const STALE_CACHE_CODE = 'source.stale-cache'
 
 const SELF_EVIDENT_FIELDS: ReadonlySet<BriefField> = new Set([
   'action',
@@ -101,11 +105,11 @@ export function toBriefSectionText(
   section: BriefSectionResult,
   context: RenderContext
 ): BriefSectionText {
-  const heading = renderSectionHeading(locale, section, context.timezone)
-
   if (section.status !== 'ready') {
-    return { heading, lines: renderCaveatLines(locale, section.caveats) }
+    return toUnavailableText(locale, section, context.timezone)
   }
+
+  const heading = renderSectionHeading(locale, section, context.timezone)
 
   const facts = toSectionFacts(locale, section)
 
@@ -125,6 +129,27 @@ export function toBriefSectionText(
       section.kind === 'market-prices'
         ? section.rows.flatMap((row) => renderPriceRow(locale, row, priceContext))
         : fieldRows(locale, section, context),
+  }
+}
+
+/** A market whose prices did not come back says so in its heading, so no reader mistakes the
+ *  missing block for a quiet one; its lines drop the sentence about a number held from before,
+ *  because the section shows none. */
+function toUnavailableText(
+  locale: Locale,
+  section: Exclude<BriefSectionResult, { readonly status: 'ready' }>,
+  timezone: string
+): BriefSectionText {
+  const isQuotes = section.kind === QUOTES_KIND
+  const caveats = isQuotes
+    ? section.caveats.filter((caveat) => caveat.code !== STALE_CACHE_CODE)
+    : section.caveats
+
+  return {
+    heading: isQuotes
+      ? t(locale, 'trading.brief.quotesUnavailable')
+      : renderSectionHeading(locale, section, timezone),
+    lines: renderCaveatLines(locale, caveats),
   }
 }
 
