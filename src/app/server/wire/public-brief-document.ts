@@ -27,6 +27,7 @@ const isSection = shapeGuard({
 })
 const isBrief = shapeGuard({
   title: isText,
+  strip: optionalGuard(arrayGuard(isText)),
   verdictTitle: optionalGuard(isText),
   verdict: arrayGuard(isText),
   readingLines: isNumber,

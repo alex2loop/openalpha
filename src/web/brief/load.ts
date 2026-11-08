@@ -1,6 +1,5 @@
 import type { PublicBriefDocument } from '@/app/server/wire/public-brief'
 import { isDocument } from '@/app/server/wire/public-brief-document'
-import { vnToday } from '@/web/brief/today'
 
 export const LATEST_PATH = '/api/latest'
 export const NOT_FOUND = 404
@@ -14,7 +13,7 @@ export const PUSH_LOCALE_KEY = '/push-locale'
 const FETCH_TIMEOUT_MS = 8_000
 
 export type LatestState =
-  | { readonly kind: 'ready'; readonly doc: PublicBriefDocument; readonly isToday: boolean }
+  | { readonly kind: 'ready'; readonly doc: PublicBriefDocument }
   | { readonly kind: 'offline'; readonly doc: PublicBriefDocument }
   | { readonly kind: 'empty' }
   | { readonly kind: 'failed' }
@@ -22,8 +21,6 @@ export type LatestState =
 /** The newest brief, or why there is none. Never rejects: a read that was aborted, ran out of time
  *  or got an answer it cannot show is `failed`, and the caller drops the answer it no longer wants. */
 export async function loadLatest(signal: AbortSignal): Promise<LatestState> {
-  const now = Date.now()
-
   try {
     return await withFetchDeadline(signal, async (bounded) => {
       const response = await fetch(LATEST_PATH, { cache: 'no-store', signal: bounded })
@@ -42,7 +39,7 @@ export async function loadLatest(signal: AbortSignal): Promise<LatestState> {
         return { kind: 'offline', doc }
       }
 
-      return { kind: 'ready', doc, isToday: doc.day === vnToday(now) }
+      return { kind: 'ready', doc }
     })
   } catch {
     // A network error, a timeout, the caller's abort or a body that is not JSON: no brief to show.
