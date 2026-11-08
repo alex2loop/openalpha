@@ -26,10 +26,13 @@ export const BROWSER_AI_PROVIDERS = Object.freeze([
 /** Anthropic answers a browser only to a request that declares the visitor chose to call it. */
 const ANTHROPIC_BROWSER_HEADER = 'anthropic-dangerous-direct-browser-access'
 
-/** OpenRouter's app attribution headers (its CORS list allows both): the request names this app, so
- *  OpenRouter counts how often it is used. */
+/** OpenRouter's app attribution headers (its CORS list allows all three): the request names this
+ *  app, so OpenRouter counts how often it is used. The app stays out of OpenRouter's public rankings;
+ *  that choice only takes when the app is first seen, so it ships with the first call. */
 const OPENROUTER_REFERER_HEADER = 'HTTP-Referer'
 const OPENROUTER_TITLE_HEADER = 'X-OpenRouter-Title'
+const OPENROUTER_VISIBILITY_HEADER = 'X-OpenRouter-App-Visibility'
+const OPENROUTER_VISIBILITY = 'hidden'
 
 /** The provider the page offers first, and the one a missing key is asked for. */
 const DEFAULT_AI_PROVIDER = 'openrouter' satisfies (typeof BROWSER_AI_PROVIDERS)[number]
@@ -107,7 +110,11 @@ export function createKeyringCredentials(keyring: BrowserKeyring): readonly Cred
  *  Authorization and Content-Type) refuses any other, so no other provider gets the second. */
 function toBrowserHeaders(provider: BrowserAiProvider): Readonly<Record<string, string>> {
   if (provider === 'openrouter') {
-    return { [OPENROUTER_REFERER_HEADER]: APP_URL, [OPENROUTER_TITLE_HEADER]: BRAND.display }
+    return {
+      [OPENROUTER_REFERER_HEADER]: APP_URL,
+      [OPENROUTER_TITLE_HEADER]: BRAND.display,
+      [OPENROUTER_VISIBILITY_HEADER]: OPENROUTER_VISIBILITY,
+    }
   }
 
   return findProviderById(provider)?.transport === 'anthropic_messages'
