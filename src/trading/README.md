@@ -64,7 +64,7 @@ Each row is a rule with exactly one enforcement path. If you find a second, that
 | Which source answers a kind | `SOURCE_ROUTES` in `sources/routes.ts` — adapters never choose |
 | A day, a session, a holiday | The market's own calendar (`markets/calendar.ts`). Never `Date` arithmetic. |
 | What a reading is old against | The region's last settled session (`resolveRegionSettledDay`), read by `features/portfolio/folds/staleness.ts`. Never the book's `asOf`, which is the calendar day. |
-| What one session moved | `render/price-pair.ts` — `renderPricePair` for the stacked pair, `quoteBoardMoveOf` for a one-line board row. A surface never measures `last` against `previousClose.price` itself. |
+| What one session moved | `render/price-pair.ts` — `renderPricePair` for the stacked pair of a quote, `renderHeadlineCells` for the one-line price rows of a section and the brief strip (the reading with its move, then a stamp), `quoteBoardMoveOf` for a one-line board row. A surface never measures `last` against `previousClose.price` itself. |
 | A *region's* trading day, and its macro composite | The one market whose manifest sets `ownsRegion`. Boot rejects a region with none or two; `regionOwner()` is the only way to reach it. |
 | What session a macro composite is dated to | The owner's last settled session — `resolveSettledDay` on its calendar, at the refresh that stores it and at the region read that derives it. The calendar day dates a weekend composite to no session. |
 | A factor's share of the composite | `markets/factor-scoring.ts` — published as `weight / firedWeight`, so contributions sum to the score |
