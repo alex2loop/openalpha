@@ -84,8 +84,8 @@ Ba nguyên tắc:
 | **Danh sách theo dõi** (watchlist) | Mã bạn đang cân nhắc mua, dù chưa nắm. Nuôi `/market`, `/rebalance` và bản tin sáng. |
 | **Sổ lệnh** (ledger) | Các bút toán đã ghi (nạp tiền, mua, bán, cổ tức...). Sửa hay xóa từng bút toán bằng `/update`, `/delete`. Vị thế hiện tại được **tính lại** từ sổ mỗi lần cần. |
 | **Tổng tài sản** (NAV) | Giá trị ròng của danh mục, gồm cả tiền mặt. Mọi trần tỷ trọng tính theo % tổng tài sản. |
-| **Điểm chung** (composite) | Điểm gộp từ nhiều chỉ số của chính thị trường đó, thang -1 tới +1, in ở `/screen` và `/suggest`. Trên 0 là nghiêng về mua, dưới 0 là nghiêng về tránh. |
-| **Điểm chủ đề** (theme score) | Điểm 0-100 của `/themes`: chủ đề, ngành hay mã hưởng lợi rõ đến đâu. Khác thang với điểm chung, nên điểm chủ đề cao chưa có nghĩa là đến lúc mua. |
+| **Điểm tổng hợp** (composite) | Điểm gộp từ nhiều chỉ số của chính thị trường đó, thang -1 tới +1, in ở `/screen` và `/suggest`. Trên 0 là nghiêng về mua, dưới 0 là nghiêng về tránh. |
+| **Điểm chủ đề** (theme score) | Điểm 0-100 của `/themes`: chủ đề, ngành hay mã hưởng lợi rõ đến đâu. Khác thang với điểm tổng hợp, nên điểm chủ đề cao chưa có nghĩa là đến lúc mua. |
 | **Trạng thái thị trường** (regime) | Phông nền vĩ mô: `risk-on` (thuận lợi cho tài sản rủi ro), `neutral` (trung lập) hay `risk-off` (phòng thủ). Chỉ dùng để **co** cỡ vị thế, không bao giờ phóng to. |
 
 ---
@@ -1003,7 +1003,7 @@ Chỉ áp dụng cho cổ phiếu VN.
   phân tích sau khi bạn duyệt. Phần nào không đọc được thì bỏ khỏi trọng số, không tính là 0. Mỗi điểm
   hiện thay đổi so với phiên trước và thành phần kéo nó nhiều nhất, ví dụ "Điểm chủ đề 80/100 (trước
   đó 82), chủ yếu do định giá". Một dòng ở đầu báo cáo nói điểm của một mã gộp từ những phần nào, và
-  nhắc rằng đây không phải điểm chung -1 tới +1 của `/screen` và `/suggest`.
+  nhắc rằng đây không phải điểm tổng hợp -1 tới +1 của `/screen` và `/suggest`.
 - **Mỗi ngành hưởng lợi liệt kê các mã đã soát** kèm điểm chủ đề, ví dụ "Mã đã soát: DPR 63, PHR 56".
   Mục "Cơ hội cổ phiếu" chỉ in 5 mã điểm cao nhất trên mọi chủ đề, nên một chủ đề có mã xếp dưới vẫn
   thấy được mã của mình ở đây.

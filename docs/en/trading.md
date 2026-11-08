@@ -171,7 +171,7 @@ A settled read has no range, and neither does a source without an intraday serie
 
 Crypto headline rows are measured against the settled close from their own daily series. That close is printed beside the row. They are not measured against a rolling 24-hour window you never see on screen.
 
-The summaries beside those rows come from the market-cap board, and every source publishes that board over a rolling 24 hours. So the mover list and the traded-value ranking are titled by that window, not by a session. The taker-buy share is the exception: it belongs to a settled session, and it names that session.
+The summaries beside those rows come from the market-cap board, and every source publishes that board over a rolling 24 hours. So the mover list and the traded-value ranking are titled by that window, not by a session. The taker-buy share is the exception: it belongs to a settled session, and it names that session. The mover list leaves out coins under a market-cap floor of 250 million USD, because a small coin can top a thin day's list without saying anything about the market; the count of names that rose and fell below keeps every liquid name.
 
 The market-size line also counts how many liquid names rose and fell over that same rolling day. For a market with no sessions, that is the only breadth reading there is. So a morning brief at 07:00 in Vietnam shows you whether the Asian hours moved the whole board, not only the two headline names.
 
@@ -681,7 +681,13 @@ The screener band is `average daily range x breakout_range` on either side of th
 
 The two are kept apart because only one of them is a problem.
 
-Each market's block prints its prices and breadth, support and resistance, sector rotation, the names the brief covers, the market's own headlines and, where the market has them, derivatives, buyers crossing the spread, sentiment, the movers and leaders, fx, the futures basis and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. The rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
+Each market's block prints its prices (one line per index, VN-Index first) and breadth, the dealer board where the market has one, support and resistance, sector rotation, foreign and proprietary desk flow, the index review and upcoming events, the names the brief covers, the market's own headlines and, where the market has them, derivatives, sentiment, the movers and leaders, fx, the futures basis and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. Derivatives keep the funding rate and the long/short ratio; the rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
+
+The title block ends with a one-line **strip** of the six figures a reader checks first: VN-Index, VN30, SJC gold, world gold, bitcoin and the dollar against the dong. A market the brief has no block for prints no cell; a market with a block but no reading prints a dash, because a missing price is not a zero. A close from a day other than the brief's session carries its date, so an older bar never reads as this morning's. When the figures belong to an earlier session than the day the brief was read, the title names that session.
+
+VN gold shows the dealers' board when they have revised it. Most mornings they have not yet, so the block shows the last settled SJC bar instead, dated by its day and with its move when a day before it exists. It carries no premium then, because the premium needs the live board. A block with no fresh prices says so in its heading ("No fresh prices") instead of repeating a cache warning.
+
+The macro backdrop adds a **World markets** block after the macro read: the S&P 500, the US 10-year yield and Brent crude, each dated by its own observation. A figure with no value adds no row. Brent states its level only, because the feed names no contract and a move across a roll would read as a day's move. The S&P 500 comes from FRED and needs its key; the row names its source beside it (S&P Dow Jones Indices, via FRED). A macro input or world figure older than its source normally lags is marked as stale beside its date, with no change to the score.
 
 With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.
@@ -711,9 +717,9 @@ A brief reads in this order:
 |---|---|
 | Story, above every block | `thesis-review` `story` |
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
-| Macro backdrop | `regime-shift` `macro` `deposit-rate` `macro-headlines` `economy-headlines` |
-| Per market | `market-prices` `breadth` `range` `sector-rotation` `derivatives` `taker-flow` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `recent` `headlines` |
-| Per market, `/overview <market>` only | `reading` `market-quotes` `market-board` `tape` `turnover` `market-cap` `foreign-desk-flow` `proprietary-flow` `etf-flows` `positioning` `disclosures` `index-review` `events` |
+| Macro backdrop | `regime-shift` `macro` `world-markets` `deposit-rate` `macro-headlines` `economy-headlines` |
+| Per market | `market-prices` `market-quotes` `market-board` `breadth` `range` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `index-review` `events` `recent` `headlines` |
+| Per market, `/overview <market>` only | `reading` `tape` `turnover` `market-cap` `taker-flow` `etf-flows` `positioning` `disclosures` |
 | Watchlist | `watchlist-leading` `watchlist-dropped` `screen-delta` |
 | Actions | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 

@@ -171,7 +171,7 @@ Số đọc đã chốt không có biên độ, nguồn không có dữ liệu t
 
 Các dòng tiêu đề crypto được so với giá đóng đã chốt trong chuỗi ngày của chính chúng. Giá đóng đó in ngay bên cạnh dòng. Chúng không được so với một cửa sổ 24 giờ trôi mà bạn không thấy ở đâu trên màn hình.
 
-Các bảng tổng hợp cạnh những dòng đó lấy từ bảng vốn hóa thị trường, và mọi nguồn đều công bố bảng này theo cửa sổ 24 giờ trôi. Nên danh sách mã biến động mạnh và bảng xếp hạng giá trị giao dịch đặt tiêu đề theo cửa sổ đó chứ không theo phiên. Tỷ phần taker mua là ngoại lệ: nó thuộc về một phiên đã chốt, và nêu tên phiên đó.
+Các bảng tổng hợp cạnh những dòng đó lấy từ bảng vốn hóa thị trường, và mọi nguồn đều công bố bảng này theo cửa sổ 24 giờ trôi. Nên danh sách mã biến động mạnh và bảng xếp hạng giá trị giao dịch đặt tiêu đề theo cửa sổ đó chứ không theo phiên. Tỷ phần taker mua là ngoại lệ: nó thuộc về một phiên đã chốt, và nêu tên phiên đó. Danh sách mã biến động mạnh bỏ các coin có vốn hóa dưới 250 triệu USD, vì một coin nhỏ có thể đứng đầu danh sách trong một ngày giao dịch mỏng mà không nói lên điều gì về thị trường; số mã tăng và giảm bên dưới vẫn tính mọi mã thanh khoản.
 
 Dòng quy mô thị trường cũng đếm số mã thanh khoản tăng và giảm trong cùng ngày trôi đó. Với một thị trường không có phiên, đây là số đo độ rộng duy nhất có được. Nhờ vậy bản tin sáng lúc 07:00 ở Việt Nam cho bạn thấy giờ châu Á có làm cả bảng giá dịch chuyển không, chứ không chỉ hai mã dẫn đầu.
 
@@ -340,7 +340,7 @@ Phần này không làm đổi mức tin cậy, các mức giá hay cỡ lệnh.
 
 #### Bán một mã đang nắm
 
-`reduce` mang theo một lý do. Ba lý do đến từ kế hoạch: `over-target` cắt bớt tỷ trọng về mức mục tiêu, `weak-signal` bán ra một mã có điểm chung đã xuống dưới ngưỡng giữ (không áp cho quỹ, vì quỹ bám theo chỉ số chứ không theo một công ty), còn `over-cap` đưa một mã đã vượt trần về đúng mức trần, nên `/suggest` nêu đúng lý do mà `/rebalance` in ra. Lệnh bán khỏi một nhóm bạn đặt 0% được ghi là `over-target`, vì mục tiêu của nhóm đó là không. Các lý do còn lại là bằng chứng đang quay sang chống lại một mã bạn nắm, mỗi lý do bán một phần tỷ lệ riêng của vị thế:
+`reduce` mang theo một lý do. Ba lý do đến từ kế hoạch: `over-target` cắt bớt tỷ trọng về mức mục tiêu, `weak-signal` bán ra một mã có điểm tổng hợp đã xuống dưới ngưỡng giữ (không áp cho quỹ, vì quỹ bám theo chỉ số chứ không theo một công ty), còn `over-cap` đưa một mã đã vượt trần về đúng mức trần, nên `/suggest` nêu đúng lý do mà `/rebalance` in ra. Lệnh bán khỏi một nhóm bạn đặt 0% được ghi là `over-target`, vì mục tiêu của nhóm đó là không. Các lý do còn lại là bằng chứng đang quay sang chống lại một mã bạn nắm, mỗi lý do bán một phần tỷ lệ riêng của vị thế:
 
 - `structure-broken` - một giá đóng dưới mức thấp của các phiên trước nó, từ chính số đọc của thị trường.
 - `regime-risk-off` - trạng thái thị trường của nhóm chuyển sang phòng thủ.
@@ -685,7 +685,13 @@ Dải sàng lọc là `biên độ ngày trung bình x breakout_range` ở mỗi
 
 Hai thứ này được tách riêng vì chỉ một trong hai là vấn đề.
 
-Khối của mỗi thị trường in giá và độ rộng, hỗ trợ và kháng cự, xoay vòng ngành, các mã bản tin theo dõi, tin của chính thị trường đó, và khi thị trường có số liệu: phái sinh, dòng tiền của bên mua chủ động, tâm lý, nhóm tăng giảm mạnh và nhóm dẫn đầu, tỷ giá, basis hợp đồng tương lai và chênh lệch giá vàng trong nước với thế giới, mỗi số một dòng "Nhãn: giá trị" như `/overview`. Phần còn lại của thị trường xem bằng `/overview <thị trường>`. Bản tin trên CLI, Telegram và trang văn phòng có cùng các khối theo cùng thứ tự.
+Khối của mỗi thị trường in giá (mỗi chỉ số một dòng, VN-Index đứng đầu) và độ rộng, bảng giá của các đại lý khi thị trường có, hỗ trợ và kháng cự, xoay vòng ngành, dòng tiền khối ngoại và tự doanh, kỳ cơ cấu chỉ số và các sự kiện doanh nghiệp sắp tới, các mã bản tin theo dõi, tin của chính thị trường đó, và khi thị trường có số liệu: phái sinh, tâm lý, nhóm tăng giảm mạnh và nhóm dẫn đầu, tỷ giá, basis hợp đồng tương lai và chênh lệch giá vàng trong nước với thế giới, mỗi số một dòng "Nhãn: giá trị" như `/overview`. Phái sinh chỉ giữ phí giữ vị thế và tỷ lệ tài khoản nghiêng về tăng so với nghiêng về giảm; phần còn lại của thị trường xem bằng `/overview <thị trường>`. Bản tin trên CLI, Telegram và trang văn phòng có cùng các khối theo cùng thứ tự.
+
+Khối tiêu đề kết thúc bằng một **dải số liệu** một dòng gồm sáu số người đọc thường xem trước: VN-Index, VN30, vàng SJC, vàng thế giới, bitcoin và tỷ giá USD/VND. Thị trường mà bản tin không có khối thì không in ô nào; thị trường có khối nhưng chưa có số thì in một dấu gạch, vì thiếu giá không phải là giá bằng không. Giá đóng của một ngày khác phiên của bản tin thì kèm ngày của nó, để một mức cũ không bị đọc như mức sáng nay. Khi các số thuộc một phiên sớm hơn ngày đọc bản tin, tiêu đề nêu tên phiên đó.
+
+Vàng trong nước hiện bảng giá khi các đại lý đã điều chỉnh. Phần lớn các buổi sáng họ chưa điều chỉnh, nên khối này hiện thanh SJC đã chốt gần nhất, kèm ngày của nó và mức thay đổi khi có ngày trước đó. Lúc ấy không có chênh lệch giá, vì chênh lệch cần bảng giá đang chạy. Khối chưa có giá mới thì nói điều đó ngay ở tiêu đề ("Chưa có giá mới") thay vì nhắc lại một cảnh báo về bộ nhớ đệm.
+
+Bối cảnh vĩ mô có thêm khối **Thị trường thế giới** sau phần nhìn vĩ mô: S&P 500, lợi suất trái phiếu Mỹ kỳ hạn 10 năm và dầu Brent, mỗi số mang ngày quan sát của chính nó. Số nào không có giá trị thì không thêm dòng. Brent chỉ nêu mức giá, vì nguồn không nói hợp đồng nào, và mức chênh giữa hai hợp đồng sẽ bị đọc thành biến động trong ngày. S&P 500 lấy từ FRED và cần khóa của FRED; dòng đó ghi nguồn bên cạnh (S&P Dow Jones Indices, qua FRED). Dữ liệu vĩ mô hoặc số liệu thế giới cũ hơn mức nguồn thường chậm sẽ được đánh dấu là số liệu cũ bên cạnh ngày, điểm số không đổi.
 
 Khi thị trường chính là Việt Nam, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
 cùng phần nhìn lại các câu chuyện trước.
@@ -716,9 +722,9 @@ Một bản tin đọc theo thứ tự này:
 |---|---|
 | Câu chuyện, trên mọi khối | `thesis-review` `story` |
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
-| Bối cảnh vĩ mô | `regime-shift` `macro` `deposit-rate` `macro-headlines` `economy-headlines` |
-| Mỗi thị trường | `market-prices` `breadth` `range` `sector-rotation` `derivatives` `taker-flow` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `recent` `headlines` |
-| Mỗi thị trường, chỉ có trên `/overview <thị trường>` | `reading` `market-quotes` `market-board` `tape` `turnover` `market-cap` `foreign-desk-flow` `proprietary-flow` `etf-flows` `positioning` `disclosures` `index-review` `events` |
+| Bối cảnh vĩ mô | `regime-shift` `macro` `world-markets` `deposit-rate` `macro-headlines` `economy-headlines` |
+| Mỗi thị trường | `market-prices` `market-quotes` `market-board` `breadth` `range` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `index-review` `events` `recent` `headlines` |
+| Mỗi thị trường, chỉ có trên `/overview <thị trường>` | `reading` `tape` `turnover` `market-cap` `taker-flow` `etf-flows` `positioning` `disclosures` |
 | Danh sách theo dõi | `watchlist-leading` `watchlist-dropped` `screen-delta` |
 | Hành động | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
@@ -951,7 +957,7 @@ Code, không phải mô hình, tính độ chen chúc và mức bất ngờ lợ
 - Một chủ đề đã bị vô hiệu, và một ngành mà nó gây hại, không bao giờ được chấm.
 - Độ tin cậy đến từ trọng số được đọc và từ các con số mà lập luận của chính lần đọc trích, không bao giờ từ việc các phần chênh nhau bao nhiêu.
 - Các phần được lưu cùng lần đọc, nên điểm tính lại được.
-- Báo cáo gọi nó là điểm chủ đề và in trên thang 100. Một dòng phía trên chủ đề đầu tiên kể các phần của điểm một mã theo trọng số, nặng nhất trước, và nói đây không phải điểm chung -1 tới +1 mà `/screen` và `/suggest` in.
+- Báo cáo gọi nó là điểm chủ đề và in trên thang 100. Một dòng phía trên chủ đề đầu tiên kể các phần của điểm một mã theo trọng số, nặng nhất trước, và nói đây không phải điểm tổng hợp -1 tới +1 mà `/screen` và `/suggest` in.
 - Mỗi ngành trong danh sách ngành hưởng lợi kể mọi mã đã đọc dưới nó kèm điểm chủ đề, nên một chủ đề có mã xếp dưới năm mã đầu vẫn hiện mã của mình.
 
 ### Các tác vụ nền
