@@ -2,6 +2,22 @@
   gap: var(--s0);
 }
 
+.reader-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s1) var(--s3);
+}
+
+@media (min-width: 600px) {
+  .reader-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.reader-strip-cell {
+  font-variant-numeric: tabular-nums;
+}
+
 .reader-figure {
   color: var(--ink);
   font-size: var(--sizeBody);

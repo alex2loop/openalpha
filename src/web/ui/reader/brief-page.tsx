@@ -75,6 +75,7 @@ function useReloadOnRewrite(onReload: () => void): void {
 
 function briefPlainText(text: BriefTextWire): string {
   return [
+    ...(text.strip ?? []),
     ...text.story.map((line) => line.text),
     ...text.verdict,
     ...(text.nextActions ?? []),

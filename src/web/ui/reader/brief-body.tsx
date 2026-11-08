@@ -33,11 +33,12 @@ interface Rendering {
   readonly renderText?: TextRenderer | undefined
 }
 
-/** The brief laid out by what each line is: the call and its figures first, then the story, each
- *  section, and the cautions. */
+/** The brief laid out by what each line is: the day's headline figures, the call and its figures,
+ *  then the story, each section, and the cautions. */
 export function BriefBody({ text, labels, renderText }: BriefBodyProps) {
   return (
     <>
+      <Strip cells={text.strip ?? []} renderText={renderText} />
       {storyBlocks(text.story).map((block) => (
         <Story key={block.id} block={block} renderText={renderText} />
       ))}
@@ -52,6 +53,22 @@ export function BriefBody({ text, labels, renderText }: BriefBodyProps) {
       ))}
       <Cautions caveats={text.caveats} title={labels.cautions} renderText={renderText} />
     </>
+  )
+}
+
+function Strip({ cells, renderText }: Rendering & { readonly cells: readonly string[] }) {
+  if (cells.length === 0) {
+    return null
+  }
+
+  return (
+    <div class="reader-strip">
+      {cells.map((cell) => (
+        <p key={cell} class="reader-strip-cell">
+          <InlineText text={cell} renderText={renderText} />
+        </p>
+      ))}
+    </div>
   )
 }
 
