@@ -6,6 +6,7 @@ import type {
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
 import { type CredentialSource, findProviderById } from '@/ai/api'
+import { BRAND } from '@/core/brand'
 import { LLMError } from '@/core/errors'
 import { registerKnownSecret } from '@/core/security/credentials'
 import { t } from '@/i18n'
@@ -24,6 +25,11 @@ export const BROWSER_AI_PROVIDERS = Object.freeze([
 
 /** Anthropic answers a browser only to a request that declares the visitor chose to call it. */
 const ANTHROPIC_BROWSER_HEADER = 'anthropic-dangerous-direct-browser-access'
+
+/** OpenRouter's app attribution headers (its CORS list allows both): the request names this app, so
+ *  OpenRouter counts how often it is used. */
+const OPENROUTER_REFERER_HEADER = 'HTTP-Referer'
+const OPENROUTER_TITLE_HEADER = 'X-OpenRouter-Title'
 
 /** The provider the page offers first, and the one a missing key is asked for. */
 const DEFAULT_AI_PROVIDER = 'openrouter' satisfies (typeof BROWSER_AI_PROVIDERS)[number]
@@ -96,9 +102,14 @@ export function createKeyringCredentials(keyring: BrowserKeyring): readonly Cred
 }
 
 /** What a page's call adds to the transport's own headers: only what a provider insists on for a
- *  browser origin. A browser call is preflighted, and a provider that lists the headers it allows
- *  (Mistral: Authorization and Content-Type) refuses any other. */
+ *  browser origin, and OpenRouter's naming of this app, which carries nothing about the visitor. A
+ *  browser call is preflighted, and a provider that lists the headers it allows (Mistral:
+ *  Authorization and Content-Type) refuses any other, so no other provider gets the second. */
 function toBrowserHeaders(provider: BrowserAiProvider): Readonly<Record<string, string>> {
+  if (provider === 'openrouter') {
+    return { [OPENROUTER_REFERER_HEADER]: APP_URL, [OPENROUTER_TITLE_HEADER]: BRAND.display }
+  }
+
   return findProviderById(provider)?.transport === 'anthropic_messages'
     ? { [ANTHROPIC_BROWSER_HEADER]: 'true' }
     : {}

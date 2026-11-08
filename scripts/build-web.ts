@@ -46,7 +46,7 @@ const noindex = values.noindex === true
 await resetOutput('web')
 await buildEntry(PAGE_ENTRY)
 await stampPage(resolve(OUT_DIR, PAGE_FILE), appUrl)
-await buildEntry(WORKER_ENTRY)
+await buildEntry(WORKER_ENTRY, { APP_URL: JSON.stringify(appUrl) })
 await cp(WASM_SOURCE, resolve(OUT_DIR, WASM_FILE))
 await cp(PREVIEW_IMAGE_SOURCE, resolve(OUT_DIR, PREVIEW_IMAGE_FILE))
 await Bun.write(
@@ -74,8 +74,11 @@ function pageDirectives(hosts: readonly string[]): readonly string[] {
   ]
 }
 
-async function buildEntry(entry: string): Promise<void> {
-  const build = await buildBrowser({ entry, outdir: OUT_DIR, minify: true })
+async function buildEntry(
+  entry: string,
+  define: Readonly<Record<string, string>> = {}
+): Promise<void> {
+  const build = await buildBrowser({ entry, outdir: OUT_DIR, minify: true, define })
 
   if (!build.success) {
     for (const log of build.logs) {
