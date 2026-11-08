@@ -64,7 +64,7 @@ function Strip({ cells, renderText }: Rendering & { readonly cells: readonly str
   return (
     <div class="reader-strip">
       {cells.map((cell) => (
-        <p key={cell} class="reader-strip-cell">
+        <p key={cell}>
           <InlineText text={cell} renderText={renderText} />
         </p>
       ))}
