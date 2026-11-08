@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useState } from 'preact/hooks'
 
 import type { Locale, Translate } from '@/web/brief/strings'
 import {
@@ -62,18 +62,15 @@ function PushReminder({ t, locale }: ReminderProps) {
 // Reads the phone once when the page opens; a tap turns the reminder on or off.
 function useReminder(locale: Locale): ReminderControl {
   const [state, setState] = useState<ReminderState>('checking')
-  const openLocale = useRef(locale)
 
   useEffect(() => {
-    const controller = new AbortController()
+    let live = true
 
-    openReminder(openLocale.current).then((opened) => {
-      if (!controller.signal.aborted) {
-        setState(opened)
-      }
-    })
+    openReminder((opened) => live && setState(opened))
 
-    return () => controller.abort()
+    return () => {
+      live = false
+    }
   }, [])
 
   // The reminder follows the reader's language while it is on.
@@ -85,7 +82,7 @@ function useReminder(locale: Locale): ReminderControl {
 
   const turnOn = () => {
     setState('turning-on')
-    subscribePush(locale).then(setState, () => setState('failed'))
+    subscribePush().then(setState, () => setState('failed'))
   }
 
   const turnOff = () => {
@@ -99,20 +96,21 @@ function useReminder(locale: Locale): ReminderControl {
   return { state, turnOn, turnOff }
 }
 
-// A phone that already has reminders on is told to the Worker again, which restores a dropped row
-// and resets its failures; the reader sees the line only when the Worker has no room for it.
-async function openReminder(locale: Locale): Promise<ReminderState> {
+// A phone that has reminders on shows them on at once, then tells the Worker again, which restores
+// a dropped row and resets its failures. Only a Worker with no room turns the reminder off; a
+// failed attempt (no signal, an error) leaves it on for the next open.
+async function openReminder(show: (state: ReminderState) => void): Promise<void> {
   try {
-    if (!(await readReminder())) {
-      return 'off'
-    }
-
-    const answer = await subscribePush(locale)
-
-    return answer === 'on' || answer === 'full' ? answer : 'off'
+    show((await readReminder()) ? 'on' : 'off')
   } catch {
     // A phone that cannot say reads as off; the button turns it on.
-    return 'off'
+    show('off')
+
+    return
+  }
+
+  if ((await subscribePush().catch(() => 'failed')) === 'full') {
+    show('full')
   }
 }
 

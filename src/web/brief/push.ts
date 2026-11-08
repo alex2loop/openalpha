@@ -52,13 +52,16 @@ export async function readReminder(): Promise<boolean> {
 }
 
 /** Asks the phone's permission (first, so a tap's gesture still counts), subscribes, and hands the
- *  push address to the Worker. Anything but `on` leaves the phone with no subscription. */
-export async function subscribePush(locale: Locale): Promise<ReminderAnswer> {
+ *  push address to the Worker. A subscription this call made is dropped again unless the Worker
+ *  took it; one the phone already held is dropped only when the Worker has no room for it, so a
+ *  bad connection never ends a working reminder. */
+export async function subscribePush(): Promise<ReminderAnswer> {
   if ((await Notification.requestPermission()) !== 'granted') {
     return 'denied'
   }
 
-  const subscription = await openSubscription().catch(() => undefined)
+  const held = await currentSubscription().catch(() => undefined)
+  const subscription = held ?? (await createSubscription().catch(() => undefined))
 
   if (subscription === undefined) {
     return 'failed'
@@ -66,13 +69,9 @@ export async function subscribePush(locale: Locale): Promise<ReminderAnswer> {
 
   const answer = await sendSubscription(subscription.endpoint).catch(() => 'failed' as const)
 
-  if (answer === 'on') {
-    await keepPushLocale(locale)
-
-    return 'on'
+  if (answer === 'full' || (answer !== 'on' && held === undefined)) {
+    await subscription.unsubscribe().catch(() => false)
   }
-
-  await subscription.unsubscribe().catch(() => false)
 
   return answer
 }
@@ -105,27 +104,19 @@ export async function keepPushLocale(locale: Locale): Promise<void> {
   }
 }
 
-async function currentSubscription(): Promise<PushSubscription | undefined> {
-  const registration = await navigator.serviceWorker.getRegistration()
-
-  return (await registration?.pushManager.getSubscription()) ?? undefined
+function registrationOf(): Promise<ServiceWorkerRegistration | undefined> {
+  return navigator.serviceWorker.getRegistration()
 }
 
-// The subscription the phone already holds, or a new one.
-async function openSubscription(): Promise<PushSubscription | undefined> {
-  const registration = await navigator.serviceWorker.getRegistration()
+async function currentSubscription(): Promise<PushSubscription | undefined> {
+  return (await (await registrationOf())?.pushManager.getSubscription()) ?? undefined
+}
 
-  if (registration === undefined) {
-    return undefined
-  }
-
-  return (
-    (await registration.pushManager.getSubscription()) ??
-    (await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: keyBytes(),
-    }))
-  )
+async function createSubscription(): Promise<PushSubscription | undefined> {
+  return await (await registrationOf())?.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: keyBytes(),
+  })
 }
 
 async function sendSubscription(endpoint: string): Promise<ReminderAnswer> {

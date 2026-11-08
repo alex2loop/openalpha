@@ -2163,7 +2163,7 @@
     "brief.privacy.title": "Privacy",
     "brief.privacy.version": "Version 1.1",
     "brief.privacy.kept.heading": "What I keep about you",
-    "brief.privacy.kept.body": "Nothing, unless you turn on reminders. There are no accounts or cookies, and the app never asks for your name, email or phone number. Your language choice and the last brief you read stay on your phone. With reminders on, my server keeps one thing: the push address your phone's notification service gave the app, so it can send the morning nudge. It is deleted when you turn reminders off, or when that service says the address no longer works. No name, email or IP is kept with it.",
+    "brief.privacy.kept.body": "Nothing, unless you turn on reminders. There are no accounts or cookies, and the app never asks for your name, email or phone number. Your language choice and the last brief you read stay on your phone. With reminders on, my server keeps three things: the push address your phone's notification service gave the app, so it can send the morning nudge; when that address was added; and how many sends to it have failed. They are deleted when you turn reminders off, or when that service says the address no longer works. No name, email, IP or language is kept with them.",
     "brief.privacy.host.heading": "Who serves the page",
     "brief.privacy.host.body": "Cloudflare serves this app, so like any web host it sees each request: your IP address, device type, the page and the time. It keeps those under [its own policy]({cloudflarePolicyUrl}). I switched off its logging tools and I read none of it.",
     "brief.privacy.advice.heading": "What the brief is",

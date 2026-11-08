@@ -262,7 +262,8 @@ async function openApp(): Promise<void> {
     return
   }
 
-  await open.focus()
-  // A window the worker does not control refuses to navigate; it stays focused where it was.
+  // A refused focus must not skip the navigation; a window the worker does not control refuses to
+  // navigate and stays where it was.
+  await open.focus().catch(() => undefined)
   await open.navigate(APP_ROOT).catch(() => undefined)
 }
