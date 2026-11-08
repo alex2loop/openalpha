@@ -29,7 +29,8 @@ import {
 } from '@/trading/render/layout'
 import { renderBoardScaleNotes } from '@/trading/render/money'
 import { liveMoveOf, renderPricePair, renderSessionRange } from '@/trading/render/price-pair'
-import { headRowFacts, labelledRowFacts, renderSectionHeading } from '@/trading/render/section'
+import { headRowFacts, labelledRowFacts } from '@/trading/render/section'
+import { renderSectionHeading } from '@/trading/render/section-heading'
 
 const MOVER_FIELDS: ReadonlySet<IntradayField> = new Set(Object.values(MOVER_KIND))
 
