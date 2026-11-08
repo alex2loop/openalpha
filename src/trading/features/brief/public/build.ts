@@ -15,11 +15,13 @@ import { toPublicSnapshot } from '@/trading/features/brief/public/render'
 import {
   carriedSections,
   PUBLIC_CORE_SECTIONS,
+  PUBLIC_DROPPED_FIELDS,
   PUBLIC_SESSION_KIND,
   publicSectionKinds,
   publicStoryOmits,
 } from '@/trading/features/brief/public/scope'
 import { readPublicScreens } from '@/trading/features/brief/public/screen'
+import { pickRowFields } from '@/trading/features/brief/render'
 import { runMarketBrief } from '@/trading/features/brief/run'
 import { isDeliverable } from '@/trading/markets/brief-deliverability'
 import { resolveSettledDay } from '@/trading/markets/calendar'
@@ -114,7 +116,21 @@ function keptSections(
 ): readonly BriefSectionResult[] {
   const kinds = publicSectionKinds(deps.toggles)
 
-  return sections.filter((section) => kinds.has(section.kind))
+  return sections.filter((section) => kinds.has(section.kind)).map(withoutDroppedFields)
+}
+
+function withoutDroppedFields(section: BriefSectionResult): BriefSectionResult {
+  const dropped = PUBLIC_DROPPED_FIELDS[section.kind]
+
+  if (section.status !== 'ready' || dropped === undefined) {
+    return section
+  }
+
+  const rows = section.rows.map((row) =>
+    pickRowFields(row, (field) => !dropped.some((name) => name === field))
+  )
+
+  return { ...section, rows }
 }
 
 /** The tape has no date of its own; the section that states the session its market's roll-ups were

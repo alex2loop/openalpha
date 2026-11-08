@@ -1,5 +1,6 @@
 import type { PublicBriefRow, PublicToggles } from '@/trading/features/brief/public/types'
 import type {
+  BriefField,
   BriefSectionKind,
   BriefSectionResult,
   BriefSectionRow,
@@ -24,6 +25,12 @@ export const PUBLIC_HEADLINE_KINDS = Object.freeze([
   'macro-headlines',
   'economy-headlines',
 ] as const satisfies readonly BriefSectionKind[])
+
+/** Fields the public brief never carries: a sector's over/underweight reads as advice, and the
+ *  strength beside it already says which way it leans. */
+export const PUBLIC_DROPPED_FIELDS: Readonly<
+  Partial<Record<BriefSectionKind, readonly BriefField[]>>
+> = Object.freeze({ 'sector-rotation': ['direction'] })
 
 /** The sections a brief must carry to be worth publishing. */
 export const PUBLIC_CORE_SECTIONS = Object.freeze([
