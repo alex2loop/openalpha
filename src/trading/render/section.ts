@@ -7,19 +7,14 @@ import type {
   BriefSectionValue,
 } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
-import { formatDay, t } from '@/i18n'
+import type { BriefSectionText } from '@/trading/render/section-heading'
+import { t } from '@/i18n'
 import { isCurrencyCode } from '@/trading/kernel/instrument'
 import { BRIEF_STRUCTURAL_FIELDS } from '@/trading/kernel/operator/brief-section'
-import { renderCaveatLines } from '@/trading/render/caveat'
-import { formatInstant, isTradingDayText } from '@/trading/render/datetime'
-import {
-  INDENT,
-  INLINE_SEPARATOR,
-  toRowLines,
-  withoutUnfilledWindow,
-} from '@/trading/render/layout'
+import { INDENT, INLINE_SEPARATOR, toRowLines } from '@/trading/render/layout'
 import { renderHeadlineCells } from '@/trading/render/price-pair'
 import { renderFactLines, toSectionFacts } from '@/trading/render/section-facts'
+import { renderSectionHeading, toUnavailableText } from '@/trading/render/section-heading'
 import { type PriceContext, toPricePair } from '@/trading/render/section-price'
 import { type RowUnit, renderValue } from '@/trading/render/section-values'
 
@@ -90,22 +85,16 @@ export function renderBlockRule(icon: string | undefined, name: string): string 
  *  outage look like a quiet morning. A section that succeeded renders neither — its caveats qualify
  *  the read rather than the section, and four blocks quoting one source repeat that sentence four
  *  times, so the surface states them once. */
-/** A section's heading apart from its rows, for a surface that folds the rows away. */
-interface BriefSectionText {
-  readonly heading: string
-  readonly lines: readonly string[]
-}
-
 export function toBriefSectionText(
   locale: Locale,
   section: BriefSectionResult,
   context: RenderContext
 ): BriefSectionText {
-  const heading = renderSectionHeading(locale, section, context.timezone)
-
   if (section.status !== 'ready') {
-    return { heading, lines: renderCaveatLines(locale, section.caveats) }
+    return toUnavailableText(locale, section, context.timezone)
   }
+
+  const heading = renderSectionHeading(locale, section, context.timezone)
 
   const facts = toSectionFacts(locale, section)
 
@@ -185,53 +174,6 @@ export function headRowFacts(
   }
 
   return labelledRowFacts(locale, row, unit)
-}
-
-/** One owner for what a section is called, so a surface that renders a section's rows its own way
- *  still names it the way every other surface does. */
-export function renderSectionHeading(
-  locale: Locale,
-  section: BriefSectionResult,
-  timezone: string
-): string {
-  return withoutUnfilledWindow(
-    t(
-      locale,
-      `trading.brief.section.${section.kind}` as const,
-      titleParamsOf(section, locale, timezone)
-    )
-  )
-}
-
-/** The title params a builder cannot resolve: an instant reads in the operator's locale and clock,
- *  and a trading day reads day-first in both — only this renderer holds either. Every day-valued
- *  param is converted, not a named few, or the next title to carry one prints its ISO form. */
-function titleParamsOf(
-  section: BriefSectionResult,
-  locale: Locale,
-  timezone: string
-): Readonly<Record<string, string | number>> | undefined {
-  const params = section.status === 'ready' ? section.titleParams : undefined
-
-  if (params === undefined) {
-    return undefined
-  }
-
-  return Object.fromEntries(
-    Object.entries(params).map((entry) => [entry[0], titleParam(locale, entry, timezone)])
-  )
-}
-
-function titleParam(
-  locale: Locale,
-  [name, value]: readonly [string, string | number],
-  timezone: string
-): string | number {
-  if (name === 'observedAt' && typeof value === 'number') {
-    return formatInstant(locale, value, timezone)
-  }
-
-  return typeof value === 'string' && isTradingDayText(value) ? formatDay(locale, value) : value
 }
 
 interface PriceRowContext {

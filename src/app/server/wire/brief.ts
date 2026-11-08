@@ -1,6 +1,9 @@
 /** The brief as the CLI prints it, without its icons and indents. */
 export interface BriefTextWire {
   readonly title: string
+  /** The headline figures, one cell each, as the CLI prints them under the title. Absent from an
+   *  older daemon. */
+  readonly strip?: readonly string[]
   /** True when a section carries a call a model argued: the page opens with the AI label. A page
    *  labels unless this is false, so a daemon that predates the field is labelled too. */
   readonly aiGenerated: boolean

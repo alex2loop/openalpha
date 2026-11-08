@@ -46,6 +46,11 @@ const IDENTICAL_ALLOWED: ReadonlySet<string> = new Set([
   'trading.render.ledger.transferRow',
   'trading.index-tier.vn30',
   'trading.index-tier.vn100',
+  // The same index, coin and currency pair names the strip prints on every desk.
+  'trading.brief.strip.vn-index',
+  'trading.brief.strip.vn30',
+  'trading.brief.strip.btc',
+  'trading.brief.strip.usd-vnd',
   // A currency pair is written the same way on every desk; translating the symbol invents a name
   // no quote screen shows.
   'trading.macro.series.usd-vnd',

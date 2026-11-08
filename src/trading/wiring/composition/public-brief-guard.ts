@@ -131,6 +131,7 @@ function textOf(render: PublicBriefRender): readonly string[] {
 function briefLines(text: BriefText): readonly string[] {
   return [
     text.title,
+    ...text.strip,
     text.verdictTitle,
     ...text.verdict,
     ...text.nextActions,
