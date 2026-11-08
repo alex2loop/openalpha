@@ -3,9 +3,20 @@ import {
   type PublishAnswer,
 } from '../../../src/app/server/wire/public-brief'
 import { isDocument } from '../../../src/app/server/wire/public-brief-document'
-import { findLatestBody, MS_PER_DAY, saveBrief } from './store'
+import { sendDayPushes } from './push'
+import { claimPush, findLatestBody, MS_PER_DAY, saveBrief } from './store'
+import {
+  countSubscriptions,
+  deleteSubscription,
+  MAX_SUBSCRIBE_BYTES,
+  SUBSCRIPTION_CAP,
+  saveSubscription,
+  toPushEndpoint,
+} from './subscriptions'
 
 const PUBLISH_PATH = '/api/publish'
+const SUBSCRIBE_PATH = '/api/subscribe'
+const UNSUBSCRIBE_PATH = '/api/unsubscribe'
 const LATEST_PATH = '/api/latest'
 const API_PREFIX = '/api/'
 const MAX_PUBLISH_BYTES = 262_144
@@ -22,24 +33,37 @@ const SECURITY_HEADERS = {
 export interface Env {
   readonly DB: D1Database
   readonly PUBLISH_TOKEN: string
+  readonly VAPID_PRIVATE_KEY: string
   readonly ASSETS: Fetcher
 }
 
 // The one boundary for a store or stream failure: the caller gets a keyed answer to retry on, never
 // the platform's page, and nothing of the body or the token is kept.
-export async function handleRequest(request: Request, env: Env): Promise<Response> {
+export async function handleRequest(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response> {
   try {
-    return await route(request, env)
+    return await route(request, env, ctx)
   } catch {
     return replyJson(503, { error: 'unavailable' })
   }
 }
 
-async function route(request: Request, env: Env): Promise<Response> {
+async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const { pathname } = new URL(request.url)
 
   if (pathname === PUBLISH_PATH) {
-    return request.method === 'POST' ? publish(request, env) : replyNotAllowed('POST')
+    return request.method === 'POST' ? publish(request, env, ctx) : replyNotAllowed('POST')
+  }
+
+  if (pathname === SUBSCRIBE_PATH) {
+    return request.method === 'POST' ? subscribe(request, env) : replyNotAllowed('POST')
+  }
+
+  if (pathname === UNSUBSCRIBE_PATH) {
+    return request.method === 'POST' ? unsubscribe(request, env) : replyNotAllowed('POST')
   }
 
   if (pathname === LATEST_PATH) {
@@ -53,16 +77,12 @@ async function route(request: Request, env: Env): Promise<Response> {
   return env.ASSETS.fetch(request)
 }
 
-async function publish(request: Request, env: Env): Promise<Response> {
+async function publish(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (!(await isAuthorized(request, env.PUBLISH_TOKEN))) {
     return replyJson(401, { error: 'unauthorized' })
   }
 
-  if (Number(request.headers.get('Content-Length')) > MAX_PUBLISH_BYTES) {
-    return replyJson(413, { error: 'too-large' })
-  }
-
-  const body = await readCapped(request.body)
+  const body = await readBody(request, MAX_PUBLISH_BYTES)
 
   if (body === undefined) {
     return replyJson(413, { error: 'too-large' })
@@ -92,9 +112,75 @@ async function publish(request: Request, env: Env): Promise<Response> {
     await bestEffort(caches.default.delete(latestKeyOf(request)))
   }
 
-  const answer: PublishAnswer = { stored }
+  await pushDay(env, ctx, { day: document.day, now })
+
+  const answer: PublishAnswer =
+    (await countSubscriptions(env.DB)) >= SUBSCRIPTION_CAP ? { stored, full: true } : { stored }
 
   return replyJson(stored ? 201 : 200, answer)
+}
+
+// A day that is held, new or repeated, is pushed once: the claim goes to the first caller, so a
+// publish whose first run died after its insert still pushes, and a late older day never does. The
+// sends run after the answer. Without the key nothing is claimed, so the day waits for one.
+async function pushDay(
+  env: Env,
+  ctx: ExecutionContext,
+  brief: { day: string; now: number }
+): Promise<void> {
+  if (!(env.VAPID_PRIVATE_KEY && (await claimPush(env.DB, brief.day, brief.now)))) {
+    return
+  }
+
+  ctx.waitUntil(sendDayPushes(env.DB, env.VAPID_PRIVATE_KEY, brief.now))
+}
+
+async function subscribe(request: Request, env: Env): Promise<Response> {
+  const endpoint = await readEndpoint(request)
+
+  if (endpoint instanceof Response) {
+    return endpoint
+  }
+
+  const saved = await saveSubscription(env.DB, endpoint, Date.now())
+
+  return saved === 'saved'
+    ? replyJson(200, { subscribed: true })
+    : replyJson(503, { error: 'full' })
+}
+
+async function unsubscribe(request: Request, env: Env): Promise<Response> {
+  const endpoint = await readEndpoint(request)
+
+  if (endpoint instanceof Response) {
+    return endpoint
+  }
+
+  await deleteSubscription(env.DB, endpoint)
+
+  return replyJson(200, { subscribed: false })
+}
+
+// The guards both subscription calls share, in order: the app's own origin, the size, then the
+// push address. The answer is the refusal when there is one.
+async function readEndpoint(request: Request): Promise<string | Response> {
+  if (!isSameOrigin(request)) {
+    return replyJson(403, { error: 'forbidden' })
+  }
+
+  const body = await readBody(request, MAX_SUBSCRIBE_BYTES)
+
+  if (body === undefined) {
+    return replyJson(413, { error: 'too-large' })
+  }
+
+  return toPushEndpoint(jsonOrUndefined(body)) ?? replyJson(400, { error: 'invalid' })
+}
+
+// Only the app's own page may subscribe: a browser sends its `Origin` on a cross-site post, so a
+// missing or foreign one is refused.
+function isSameOrigin(request: Request): boolean {
+  return request.headers.get('Origin') === new URL(request.url).origin
 }
 
 // The edge cache answers first, so a flood of reads costs no store read. An empty store is not kept.
@@ -154,10 +240,19 @@ function digestOf(text: string): Promise<ArrayBuffer> {
   return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
 }
 
-// The body as text, or undefined once it runs past the limit: a chunked upload carries no
-// Content-Length, so the limit is also held while reading.
+// The body as text, or undefined once it runs past the limit: declared, or counted while reading.
+async function readBody(request: Request, maxBytes: number): Promise<string | undefined> {
+  if (Number(request.headers.get('Content-Length')) > maxBytes) {
+    return undefined
+  }
+
+  return readCapped(request.body, maxBytes)
+}
+
+// A chunked upload carries no Content-Length, so the limit is also held while reading.
 async function readCapped(
-  stream: ReadableStream<Uint8Array<ArrayBuffer>> | null
+  stream: ReadableStream<Uint8Array<ArrayBuffer>> | null,
+  maxBytes: number
 ): Promise<string | undefined> {
   if (stream === null) {
     return ''
@@ -176,7 +271,7 @@ async function readCapped(
 
     size += value.byteLength
 
-    if (size > MAX_PUBLISH_BYTES) {
+    if (size > maxBytes) {
       await reader.cancel()
 
       return undefined
