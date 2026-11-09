@@ -13,14 +13,12 @@ import type {
 } from '@/trading/kernel/market/market-data'
 import type { SupervisionLevel } from '@/trading/kernel/market/supervision'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
-import type { MarketDeps } from '@/trading/markets/deps'
 import type { NameAccounts } from '@/trading/markets/equity-vn/accounts/board'
 import type { SupervisionCoverage } from '@/trading/markets/equity-vn/evidence/supervision'
 import type { IndexReviewProximity } from '@/trading/markets/equity-vn/index-review'
 import type { FactorInput } from '@/trading/markets/factor-scoring'
 import type { SectorMember } from '@/trading/markets/sector-strength'
 import type { TradingCalendar } from '@/trading/markets/types'
-import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { ticker } from '@/trading/kernel/instrument'
 import {
   accountsAverageProfit,
@@ -54,6 +52,7 @@ import {
   TREND_SLOPE_SESSIONS,
   VN_INDEX_TICKER,
   VN_MARKET_REF,
+  VN_MAX_EVIDENCE_LAG_SESSIONS,
   VN_SECTOR_POLICY,
 } from '@/trading/markets/equity-vn/policy'
 import { adjustedCloses, screenCandidate, toScreenInput } from '@/trading/markets/equity-vn/screen'
@@ -73,8 +72,6 @@ import {
   yearHighProximity,
 } from '@/trading/markets/timeseries'
 import { averageTurnover, medianTurnover } from '@/trading/markets/turnover'
-
-const EVIDENCE_CONCURRENCY = 8
 
 export interface NameEvidence {
   readonly record: InstrumentRecord
@@ -127,6 +124,8 @@ export function latestNameSession(names: readonly NameEvidence[]): TradingDay | 
 export interface CrossSection {
   readonly asOf: TradingDay
   readonly freshFrom: TradingDay
+  /** What the pass read that does not move with the day, kept so an earlier day can be cut from it. */
+  readonly stable: StableInputs
   readonly names: readonly NameEvidence[]
   readonly byTicker: ReadonlyMap<Ticker, NameEvidence>
   readonly quality: ReadonlyMap<Ticker, number>
@@ -161,66 +160,113 @@ export interface CrossSection {
   readonly indexReview?: IndexReviewProximity
 }
 
-interface CrossSectionOptions {
+/** What a pass reads that does not move with the day it is built for. The pass keeps it, so an
+ *  earlier day is cut from the pass without another read. */
+export interface StableInputs {
   readonly universe: readonly InstrumentRecord[]
-  readonly index: readonly Candle[]
-  readonly benchmarks: ReadonlyMap<Ticker, readonly BarRecord[]>
-  readonly asOf: TradingDay
-  readonly freshFrom: TradingDay
-  readonly fromDay: TradingDay
   readonly supervision: ReadonlyMap<Ticker, SupervisionLevel>
   readonly supervisionCoverage: SupervisionCoverage
   readonly caveats: readonly Caveat[]
   readonly calendar: TradingCalendar
   readonly annualAccounts: ReadonlyMap<Ticker, readonly AnnualAccounts[]>
   readonly quarterlyAccounts: ReadonlyMap<Ticker, readonly QuarterlyAccounts[]>
-  readonly signal: AbortSignal
 }
 
-export async function buildCrossSection(
-  deps: MarketDeps,
-  options: CrossSectionOptions
-): Promise<CrossSection> {
-  const tradeable = options.universe.filter(
-    (record) => record.kind === 'equity' || record.kind === 'etf'
-  )
-  const names = await mapWithConcurrency(tradeable, EVIDENCE_CONCURRENCY, (record) =>
-    loadNameEvidence(deps, record, options)
-  )
-  const session = latestNameSession(names) ?? options.asOf
-  const indexReview = indexReviewProximity(session, options.calendar)
+export interface NameReads {
+  readonly record: InstrumentRecord
+  readonly bars: readonly BarRecord[]
+  readonly flows: readonly FlowSnapshot[]
+  readonly fundamental: FundamentalSnapshot | null
+}
+
+/** Everything a pass reads that moves with the day, and the only thing `assembleCrossSection` takes
+ *  of it. The store read and the cut of a later pass (`evidence/cross-section-cache.ts`) each fill
+ *  `NameReads` and end in `evidenceOf` and `buildDayInputs`, so an input added to either shape is a
+ *  type error in whichever does not supply it. */
+interface DayInputs {
+  readonly asOf: TradingDay
+  readonly freshFrom: TradingDay
+  readonly index: readonly Candle[]
+  readonly benchmarks: ReadonlyMap<Ticker, readonly BarRecord[]>
+  readonly names: readonly NameEvidence[]
+}
+
+export function assembleCrossSection(stable: StableInputs, day: DayInputs): CrossSection {
+  const { names } = day
+  const session = latestNameSession(names) ?? day.asOf
+  const indexReview = indexReviewProximity(session, stable.calendar)
 
   return {
-    asOf: options.asOf,
-    freshFrom: options.freshFrom,
+    asOf: day.asOf,
+    freshFrom: day.freshFrom,
+    stable,
     names,
     byTicker: new Map(names.map((name) => [name.record.instrument.ticker, name])),
     quality: qualityPercentiles(names),
     value: valuePercentiles(names),
     accounts: readBoardAccounts({
-      universe: options.universe,
-      reports: options.annualAccounts,
-      quarters: options.quarterlyAccounts,
-      asOf: options.asOf,
+      universe: stable.universe,
+      reports: stable.annualAccounts,
+      quarters: stable.quarterlyAccounts,
+      asOf: day.asOf,
     }),
     rankedPeers: rankedPeerCount(names),
     speculativeTurnover: speculativeTurnoverPercentiles(names),
     etfTrackingErrors: etfTrackingErrors(
       names.filter((name) => name.record.kind === 'etf'),
-      options.benchmarks
+      day.benchmarks
     ),
     sectors: sectorStrength({
       members: names.map(toSectorMember),
-      benchmark: options.index,
+      benchmark: day.index,
       session,
       policy: VN_SECTOR_POLICY,
     }),
-    indexBars: options.index,
-    benchmarks: options.benchmarks,
-    supervisionCoverage: options.supervisionCoverage,
-    caveats: options.caveats,
+    indexBars: day.index,
+    benchmarks: day.benchmarks,
+    supervisionCoverage: stable.supervisionCoverage,
+    caveats: stable.caveats,
     ...(indexReview === undefined ? {} : { indexReview }),
   }
+}
+
+export function evidenceOf(reads: NameReads, stable: StableInputs, asOf: TradingDay): NameEvidence {
+  const { record, bars, flows, fundamental } = reads
+  const supervision = stable.supervision.get(record.instrument.ticker)
+  const turnover = medianTurnover(bars, LIQUIDITY_SESSIONS)
+  const annualTurnover = averageTurnover(bars, SPECULATIVE_TURNOVER_SESSIONS)
+  const source = {
+    record,
+    bars,
+    fundamental,
+    closes: adjustedCloses(bars),
+    ...(supervision === undefined ? {} : { supervision }),
+  }
+
+  return {
+    ...source,
+    flows,
+    screened: screenCandidate(toScreenInput(source, asOf)).kind === 'accepted',
+    ...(turnover === undefined ? {} : { turnover }),
+    ...(annualTurnover === undefined ? {} : { annualTurnover }),
+  }
+}
+
+export function buildDayInputs(
+  calendar: TradingCalendar,
+  asOf: TradingDay,
+  series: Omit<DayInputs, 'asOf' | 'freshFrom'>
+): DayInputs {
+  return {
+    ...series,
+    asOf,
+    freshFrom: calendar.addTradingDays(asOf, -VN_MAX_EVIDENCE_LAG_SESSIONS),
+    benchmarks: new Map([...series.benchmarks].filter(([, bars]) => bars.length > 0)),
+  }
+}
+
+export function tradeableNames(universe: readonly InstrumentRecord[]): readonly InstrumentRecord[] {
+  return universe.filter((record) => record.kind === 'equity' || record.kind === 'etf')
 }
 
 /** The VN factor id wiring, not new math: every raw value below comes from a shared owner —
@@ -362,46 +408,6 @@ export const VN_INDEX_INSTRUMENT: InstrumentRef = Object.freeze({
   market: VN_MARKET_REF,
   ticker: ticker(VN_INDEX_TICKER),
 })
-
-async function loadNameEvidence(
-  deps: MarketDeps,
-  record: InstrumentRecord,
-  options: CrossSectionOptions
-): Promise<NameEvidence> {
-  const window = {
-    instrument: record.instrument,
-    fromDay: options.fromDay,
-    toDay: options.asOf,
-    signal: options.signal,
-  }
-  const [bars, flows, fundamental] = await Promise.all([
-    deps.marketDataStore.listBars(window),
-    deps.marketDataStore.listFlows(window),
-    deps.marketDataStore.findLatestFundamental({
-      instrument: record.instrument,
-      asOf: options.asOf,
-      signal: options.signal,
-    }),
-  ])
-  const supervision = options.supervision.get(record.instrument.ticker)
-  const turnover = medianTurnover(bars, LIQUIDITY_SESSIONS)
-  const annualTurnover = averageTurnover(bars, SPECULATIVE_TURNOVER_SESSIONS)
-  const source = {
-    record,
-    bars,
-    fundamental,
-    closes: adjustedCloses(bars),
-    ...(supervision === undefined ? {} : { supervision }),
-  }
-
-  return {
-    ...source,
-    flows,
-    screened: screenCandidate(toScreenInput(source, options.asOf)).kind === 'accepted',
-    ...(turnover === undefined ? {} : { turnover }),
-    ...(annualTurnover === undefined ? {} : { annualTurnover }),
-  }
-}
 
 function input(
   id: VnEquityFactorId,
