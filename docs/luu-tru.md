@@ -228,6 +228,7 @@ Một mục inbox được nhận việc tối đa 3 lần trước khi bị đ�
 | `series_points`, `series_provenance` | Bị xóa sau `history_days`, tính từ lúc tải hoặc trích xuất, nhưng được giữ ít nhất bằng khoảng nhìn lại của phép so sánh vĩ mô cùng kỳ (khoảng 500 ngày). |
 | `macro_documents` | Bị xóa sau `history_days`, nhưng được giữ ít nhất bằng khoảng đọc bù báo cáo (khoảng 25 tháng). |
 | Sổ cái, ý định đặt lệnh, lệnh thoát còn sống | Không bao giờ bị cắt theo tuổi: sổ cái là sổ gốc. Ý định đặt lệnh rời đi khi hết hạn hoặc đã xong, hoặc khi bạn xóa một ý định lỗi. |
+| `screened_names` | `days` không quét: mỗi thị trường chỉ một dòng, bị ghi đè mỗi lần bước báo cáo tài chính đọc lại cả sàn, nên bảng không phình ra. Mất dòng thì lượt làm mới sau dựng lại. |
 | Dữ liệu thị trường | `db cleanup` không đụng tới. Mỗi lần refresh của một thị trường tự cắt các dòng cũ của nó theo thời điểm tải, sau một lượt đã ghi dữ liệu. Tin tức cũng vậy, theo cửa sổ riêng. |
 
 Dịch vụ nền tự dọn một lần lúc khởi động, rồi dọn theo chu kỳ.
