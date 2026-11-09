@@ -154,7 +154,7 @@ function briefCapability(
           calendar: manifest.calendar,
           home: VN_BRIEF_HOME,
           board: () => crossSection.get(request.asOf, request.signal),
-          boardAt: (day) => crossSection.get(day, request.signal),
+          boardAt: (day) => crossSection.getBefore(request.asOf, day, request.signal),
         }),
     },
   }
