@@ -676,7 +676,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     gainers and losers of the session, or of the last 24 hours for a market that never closes, with
     their turnover; a dealer's rows, such as VN gold, state the dealer's buying and selling price and
     the spread between them, then how far VN gold sits above world gold; crypto states funding, open
-    interest, the long/short ratio, the share of buyers crossing the spread and the fear and greed
+    interest, the accounts leaning up against those leaning down, the share bought at the asking price and the fear and greed
     index; a market your profile switches off is left out, except world gold, read for reference
     and always shown); upcoming events; top headlines; and what the agents did today, including work
     that ran while the page was closed. The macro and news blocks carry "See the full reading", which
@@ -788,7 +788,7 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   with the line naming the sources and when they were read:
   VN gold states its premium over world gold as a plain figure, without saying where it sits against
   its own history; crypto states funding, open interest and how it compares with recent sessions, the
-  long/short ratio, the share of buyers crossing the spread, and the fear and greed index with the
+  accounts leaning up against those leaning down, the share bought at the asking price, and the fear and greed index with the
   source that publishes it. A source the browser cannot read leaves its line out, with no error.
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the
   proprietary desks bought and sold most on net; and the five most traded. Amounts are compact (like
