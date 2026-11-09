@@ -203,9 +203,13 @@ export function formatRecordedMoney(locale: Locale, value: number, currency: Cur
 /** A board-scaled price carries no currency code: labelling board points as đồng is exactly the
  *  misreading the convention prevents, and `isBoardScaled` is where that rule already lives. */
 function labelled(locale: Locale, price: string, quote: QuotedIn): string {
-  return isBoardScaled(quote.display)
-    ? price
-    : `${price}${quote.bindCurrency === true ? NO_BREAK_SPACE : ' '}${quotedIn(locale, quote.currency, quote.unit)}`
+  if (isBoardScaled(quote.display)) {
+    return price
+  }
+
+  const gap = quote.bindCurrency === true ? NO_BREAK_SPACE : ' '
+
+  return `${price}${gap}${quotedIn(locale, quote.currency, quote.unit)}`
 }
 
 /** A compact magnitude with the money it is in — a market cap or a turnover, where the digits are
