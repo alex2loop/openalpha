@@ -71,6 +71,7 @@ const TRADING_TABLES = [
   { name: 'series_provenance', pk: ['series_id', 'day'], durable: true },
   { name: 'macro_documents', pk: ['url'], durable: true },
   { name: 'market_refresh_attempts', pk: ['market', 'kind'] },
+  { name: 'screened_names', pk: ['market'] },
   { name: 'suggestions', pk: ['id'], durable: true },
   // Durable: an analysis is a model's answer on a bundle that cannot be rebuilt.
   { name: 'suggestion_analyses', pk: ['id'], durable: true },

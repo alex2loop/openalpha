@@ -21,6 +21,7 @@ import * as migrationAddSessionsLastMessageAt from '@/persistence/migrations/202
 import * as migrationAddSuggestionAnalyses from '@/persistence/migrations/2026_11_03_143222_add_suggestion_analyses'
 import * as migrationAddConfigOverrides from '@/persistence/migrations/2026_11_03_165810_add_config_overrides'
 import * as migrationAddPublicBriefs from '@/persistence/migrations/2026_11_06_185835_add_public_briefs'
+import * as migrationAddScreenedNames from '@/persistence/migrations/2026_11_09_182105_add_screened_names'
 
 export const MIGRATIONS = [
   { id: '2026_07_10_000001_initial_schema', reversibility: 'irreversible', up: migrationInitialSchema.up },
@@ -42,4 +43,5 @@ export const MIGRATIONS = [
   { id: '2026_11_03_143222_add_suggestion_analyses', reversibility: 'reversible', up: migrationAddSuggestionAnalyses.up, down: migrationAddSuggestionAnalyses.down },
   { id: '2026_11_03_165810_add_config_overrides', reversibility: 'reversible', up: migrationAddConfigOverrides.up, down: migrationAddConfigOverrides.down },
   { id: '2026_11_06_185835_add_public_briefs', reversibility: 'reversible', up: migrationAddPublicBriefs.up, down: migrationAddPublicBriefs.down },
+  { id: '2026_11_09_182105_add_screened_names', reversibility: 'reversible', up: migrationAddScreenedNames.up, down: migrationAddScreenedNames.down },
 ] as const satisfies readonly Migration[]

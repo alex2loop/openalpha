@@ -834,6 +834,14 @@ never worth holding the universe for; the universe then settles without it, keep
   last two read the cross-section the first three rewrite. A stage settles every kind before the next starts, so a kind that
   throws never leaves a sibling writing after the refresh failed. Each kind result carries `elapsedMs`, logged on
   `trading.market_data_refreshed`.
+- **`accounts` keeps the names it screened.** Which names a report can act on comes from the screened board, and reading
+  the board is a whole-population pass. The names are stored per market in `screened_names` with the session they were read
+  for and a stamp of what the screen reads: the stored evidence (newest fetch and row count of bars and instruments, newest
+  fundamental; flows and accounts feed no gate), a digest of the exchange's supervision lists, read live as the board build
+  reads them, and a digest of the gate policy (`SCREEN_POLICY_DIGEST`, derived from the gates and thresholds themselves). A
+  pass reuses the names only while the session and the stamp all match, so a restart that replays every earlier kind skips
+  the pass, while a write by any earlier kind, a change to a supervision list or to the gates, a new session or a forced run
+  reads the board again. The held names are always added fresh.
 
 Crypto is the exception: `markets/crypto/screen-run.ts` ranks straight off `marketCap` and `bars` reads with no store, because its
 universe is one ranked request rather than a swept board.
