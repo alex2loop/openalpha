@@ -64,8 +64,7 @@ Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots
 `macro_documents`, `news_items`, `market_refresh_attempts`, `ledger_entries`, `nav_snapshots`,
 `trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`, `public_briefs`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
-`theme_reads`, `theme_outcomes` and `agent_focuses`. `public_briefs` is reserved for a later
-version; this version never writes to it.
+`theme_reads`, `theme_outcomes` and `agent_focuses`.
 
 **Durable tables.** A table is `durable` when you or the runtime wrote its rows and nothing
 OpenAlpha can fetch would rebuild them. Only durable tables go into the default `db export`. Most

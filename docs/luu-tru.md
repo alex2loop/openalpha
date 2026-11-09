@@ -66,8 +66,7 @@ Phần giao dịch có các bảng riêng: `instruments`, `daily_bars`, `fundame
 `macro_documents`, `news_items`, `market_refresh_attempts`, `ledger_entries`, `nav_snapshots`,
 `trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`, `public_briefs`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
-`theme_reads`, `theme_outcomes` và `agent_focuses`. `public_briefs` để dành cho phiên bản sau; phiên
-bản này không ghi gì vào đó.
+`theme_reads`, `theme_outcomes` và `agent_focuses`.
 
 **Bảng bền (`durable`).** Một bảng là `durable` khi các dòng của nó do bạn hoặc chính phần mềm ghi, và
 không gì OpenAlpha tải về được có thể dựng lại chúng. Chỉ bảng bền vào `db export` mặc định.
