@@ -223,6 +223,7 @@ The windows are set by [`[retention]`](configuration.md#retention): `days` is th
 | `series_points`, `series_provenance` | Removed after `history_days`, from when they were fetched or extracted, but kept at least as long as the macro year-on-year read looks back (about 500 days). |
 | `macro_documents` | Removed after `history_days`, but kept at least as long as the report backfill reaches (about 25 months). |
 | Ledger, order intents, live resting exits | Never pruned by age: the ledger is the book of record. An order intent leaves when it expires or settles, or when you clear a failed one. |
+| `screened_names` | Not swept by `days`: one row per market, overwritten by each accounts pass that reads the board, so it never grows. A missing row is rebuilt by the next pass. |
 | Market data | Not touched by `db cleanup`. Each market's refresh trims its own old rows by fetch time after a pass that wrote. News ages out the same way, on its own window. |
 
 The daemon applies retention once at startup and then on a schedule. `db cleanup --older-than
