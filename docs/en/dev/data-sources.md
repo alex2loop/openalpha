@@ -347,7 +347,7 @@ the monthly series no free daily feed has.
   averages. A `fred-csv` body without the CSV header fails the parse rather than reading as empty. A loss-making year has no
   P/E, and missing is no reading; a non-trading session answers empty, so the reader steps back one session.
 
-**News topic filter.** `FEED_TOPIC_TERMS` (`adapters/rss.ts`) maps a feed id to terms, and `loadFeeds` passes each feed's items through `onTopic`: an item stays only when its lower-cased title (Vietnamese casing) holds one of them. Only the two general-news feeds (`economy-vn`, `politics-vn`) have an entry, both `VN_ECONOMY_TERMS`; a feed with no entry keeps every item. `SCOPE_FEEDS.crypto` is `['crypto']` alone, so crypto no longer reads `economy-global` (CNBC), the one feed a browser can read: the web edition has no crypto headlines, and its docs say so.
+**News topic filter.** `FEED_TOPIC_TERMS` (`adapters/rss.ts`) maps a feed id to terms, and `loadFeeds` passes each feed's items through `withOnTopicItems`: an item stays only when its lower-cased title (Vietnamese casing) holds one of them. Only the two general-news feeds (`economy-vn`, `politics-vn`) have an entry, both `VN_ECONOMY_TERMS`, so the filter also reaches the macro tape and `equity-vn` stock news, not only the brief; a feed with no entry keeps every item. `SCOPE_FEEDS.crypto` is `['crypto']` alone, so crypto no longer reads `economy-global` (CNBC), the one feed a browser can read: the web edition has no crypto headlines, and its docs say so.
 
 **`fred` S&P 500.** `us-equity-index` (field `index`) reads FRED `SP500` as an optional series (`OPTIONAL_SERIES`) and is listed in `FRED_MACRO_PROFILE.series`. No driver policy weighs it, and `driversFrom` iterates only weighted ids, so it is never reported missing. The brief's `world-markets` section quotes it from the keyed read; FRED republishes S&P Dow Jones Indices' notice on it, so the public build drops that row (`PUBLIC_DROPPED_ROWS`).
 
@@ -864,7 +864,7 @@ concurrent suggestion of the same provider's tokens.
 
 Features never turn a `SourceResult` into an exception.
 
-- **`unavailable` renders as an absent section** naming the reason and the ids attempted. The brief's `etf-flows` reporting
+- **`unavailable` renders as an absent section** naming the reason and the ids attempted. The `etf-flows` section of `/overview crypto` reporting
   `unavailable` is the designed behavior of an unrouted kind.
 - **Caveats accumulate upward** and dedupe once per message: ready sections hoist theirs to one list, a *failed* section states
   its own.

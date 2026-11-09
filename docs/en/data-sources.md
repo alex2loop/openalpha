@@ -118,14 +118,14 @@ What the less obvious ones do:
   - `vietcap-statements` replaces them the day it serves the cash flow.
 - `cafef` is not a fallback for `vndirect`'s flows. It publishes only the proprietary desk (brokers trading their own money), two sessions sooner. It is asked only for the sessions still missing that part.
 - `fred-csv` carries the monthly commodity series that no daily feed has (coal, rice, pork, steel). `vndirect` carries the daily ones. They never compete for one commodity.
-- Two Vietnamese general-news feeds (CafeF's macro and investment feed and VnExpress's current-affairs feed) run every story the publisher has, so a headline reaches the brief only when it names an economy or policy term such as interest rates, the exchange rate, inflation, credit or a new decree. Crypto reads only its own news feed, not the global economy wire.
+- Two Vietnamese general-news feeds (CafeF's macro and investment feed and VnExpress's current-affairs feed) run every story the publisher has, so a headline is kept only when it names an economy or policy term such as interest rates, the exchange rate, inflation, tariffs, credit or a new decree. The filter applies wherever those feeds are read: the brief, the macro tape and Vietnamese stock news. Crypto reads only its own news feed, not the global economy wire.
 - `coinbase` and `okx` price a settlement coin (such as USDT) against a fiat currency. There is no fallback from `USDTVND` to `USDVND`: USDT is a different instrument, and a missing rate is reported, not guessed.
 - Crypto prices lead with your crypto default venue (`default_for` under `[trading.venues.<id>]`, `binance` unless you set one), when that venue is also a data provider. A plan priced anywhere else would quote a number you could not get your order filled at.
 - `mexc` backs `binance` for prices and is third for history. It lists coins the big venues do not. But volume on the long tail of small coins is the least trustworthy, so it answers only for a name the majors decline.
 - `okx` does not list every coin. A coin it lacks is skipped, and the skip does not count as a failure.
 - `coingecko` serves the market-cap board, one FX rate and the dong's FX history, not the price path. The alert loop reads a price for every watched coin on every tick, and a provider metered by the month would burn its quota there.
 
-One kind is defined and has no provider: spot-ETF net flows for crypto. The brief's `etf-flows` section reports `unavailable`. That is expected, not an outage.
+One kind is defined and has no provider: spot-ETF net flows for crypto. The `etf-flows` section of `/overview crypto` reports `unavailable`. That is expected, not an outage.
 
 ### US sources
 

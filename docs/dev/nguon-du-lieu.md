@@ -222,7 +222,7 @@ Thứ tự là một quyết định có chủ ý, không phải ngẫu nhiên.
 - Dòng nào nhà cung cấp ngừng điền thì phát `factor.accounts-lines-dropped` và được đọc là vắng mặt.
 - `commodityPrices` và `valuationRatios` được đọc lúc phân tích và không bao giờ lưu. `vndirect` phục vụ chúng từ `/v4/commodities` và `/v4/ratios`, theo từng mã từ `fromDay` hoặc cho mọi mã ở một phiên `toDay` kèm trung bình năm năm. Thân `fred-csv` thiếu dòng tiêu đề CSV thì phân tích hỏng chứ không đọc thành rỗng. Một năm lỗ không có P/E, và thiếu là không có số đọc; một phiên không giao dịch trả về rỗng, nên bên đọc lùi lại một phiên.
 
-**Bộ lọc chủ đề của tin.** `FEED_TOPIC_TERMS` (`adapters/rss.ts`) ánh xạ một id feed sang các thuật ngữ, và `loadFeeds` cho mọi mục của từng feed đi qua `onTopic`: một mục chỉ ở lại khi tiêu đề viết thường (theo cách viết hoa thường tiếng Việt) chứa một trong số đó. Chỉ hai feed tin tổng hợp (`economy-vn`, `politics-vn`) có mục, cả hai là `VN_ECONOMY_TERMS`; feed không có mục nào giữ mọi bài. `SCOPE_FEEDS.crypto` chỉ là `['crypto']`, nên crypto không còn đọc `economy-global` (CNBC), feed duy nhất trình duyệt đọc được: bản web không có tin crypto, và tài liệu của nó nói vậy.
+**Bộ lọc chủ đề của tin.** `FEED_TOPIC_TERMS` (`adapters/rss.ts`) ánh xạ một id feed sang các thuật ngữ, và `loadFeeds` cho mọi mục của từng feed đi qua `withOnTopicItems`: một mục chỉ ở lại khi tiêu đề viết thường (theo cách viết hoa thường tiếng Việt) chứa một trong số đó. Chỉ hai feed tin tổng hợp (`economy-vn`, `politics-vn`) có mục, cả hai là `VN_ECONOMY_TERMS`, nên bộ lọc cũng chạm tới dải tin vĩ mô và tin cổ phiếu `equity-vn`, không chỉ bản tin; feed không có mục nào giữ mọi bài. `SCOPE_FEEDS.crypto` chỉ là `['crypto']`, nên crypto không còn đọc `economy-global` (CNBC), feed duy nhất trình duyệt đọc được: bản web không có tin crypto, và tài liệu của nó nói vậy.
 
 **`fred` S&P 500.** `us-equity-index` (trường `index`) đọc chuỗi `SP500` của FRED như một chuỗi tùy chọn (`OPTIONAL_SERIES`) và nằm trong `FRED_MACRO_PROFILE.series`. Không chính sách driver nào gán trọng số cho nó, và `driversFrom` chỉ duyệt các id có trọng số, nên nó không bao giờ bị báo thiếu. Mục `world-markets` của bản tin trích nó từ lần đọc có khóa; FRED đăng lại thông báo của S&P Dow Jones Indices trên chuỗi này, nên bản dựng công khai bỏ dòng đó (`PUBLIC_DROPPED_ROWS`).
 
@@ -539,7 +539,7 @@ Bộ điều nhịp chặn số yêu cầu mỗi nhà cung cấp mỗi phút, kh
 
 Tính năng không bao giờ biến một `SourceResult` thành ngoại lệ.
 
-- **`unavailable` hiển thị thành một phần vắng mặt** nêu lý do và các mã đã thử. Mục `etf-flows` của bản tin báo `unavailable` là hành vi được thiết kế cho một loại chưa định tuyến.
+- **`unavailable` hiển thị thành một phần vắng mặt** nêu lý do và các mã đã thử. Mục `etf-flows` của `/overview crypto` báo `unavailable` là hành vi được thiết kế cho một loại chưa định tuyến.
 - **Caveat tích lũy lên trên** và khử trùng một lần cho mỗi thông điệp: các phần sẵn sàng gom caveat vào một danh sách, một phần *hỏng* thì tự nêu caveat của mình.
 - **Một lần đọc cố-gắng-hết-sức truyền caveat đi thay vì sụp thành vắng mặt**, để sự cố không bị đọc thành phiên đóng cửa. Khối độ rộng trong phiên của VN trả `{ breadth?, caveats }` và overview nối các caveat đó.
 - **Một giá trị không hữu hạn hoặc thiếu thành caveat, không bao giờ thành dòng số 0.**
