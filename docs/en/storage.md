@@ -61,7 +61,7 @@ mean `db stats` is hiding a failed migration.
 Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots`,
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,
 `funding_snapshots`, `fx_rates`, `macro_snapshots`, `series_points`, `series_provenance`,
-`macro_documents`, `news_items`, `market_refresh_attempts`, `ledger_entries`, `nav_snapshots`,
+`macro_documents`, `news_items`, `market_refresh_attempts`, `screened_names`, `ledger_entries`, `nav_snapshots`,
 `trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`, `public_briefs`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
 `theme_reads`, `theme_outcomes` and `agent_focuses`.
