@@ -110,3 +110,26 @@ export async function listDeskDays(
 
   return byTicker
 }
+
+export interface SessionDaysOptions {
+  readonly market: MarketRef
+  readonly fromDay: TradingDay
+  readonly toDay: TradingDay
+  readonly signal: AbortSignal
+}
+
+export async function listSessionDays(
+  deps: StoreDeps,
+  options: SessionDaysOptions
+): Promise<readonly TradingDay[]> {
+  assertNotAborted(options.signal)
+
+  const p = deps.dialect.param
+  const rows = await deps.db.query<{ readonly day: string }>(
+    `SELECT DISTINCT day FROM daily_bars WHERE market = ${p(1)} ` +
+      `AND day >= ${p(2)} AND day <= ${p(3)} ORDER BY day`,
+    [options.market, options.fromDay, options.toDay]
+  )
+
+  return rows.map((row) => tradingDay(row.day))
+}

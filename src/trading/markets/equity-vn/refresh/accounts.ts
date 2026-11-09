@@ -43,8 +43,9 @@ interface TargetInput {
 /** The names a report can act on: the screened board, where every buy comes from, and the book,
  *  whose long-horizon sale reads the score. A watched name off the board fails admission before
  *  any gate reads it. Where an edition names the names the visitor looked at (`wantedNames`), only
- *  the book, the watchlist and those are fetched. Runs after macro, so the cross-section it reads
- *  is the one macro just built; a write drops it for the next reader. */
+ *  the book, the watchlist and those are fetched. Runs after macro, so a cross-section it reads is
+ *  the one macro just built; a write drops it for the next reader. The screened names are read
+ *  from the board only when the stored copy no longer matches the evidence. */
 export async function refreshAccounts(
   scope: EvidenceScope,
   crossSection: VnMacroCrossSection
@@ -100,15 +101,43 @@ async function wantedNames(
 ): Promise<ReadonlySet<string>> {
   const { request, deps } = scope
   const read = { now: request.now, signal: request.signal }
-  const [cross, held] = await Promise.all([
-    crossSection.get(resolveSettledDay(scope.calendar, request.now), request.signal),
+  const [screened, held] = await Promise.all([
+    screenedNames(scope, crossSection),
     heldTickersIn(deps, VN_MARKET_REF, read),
   ])
 
-  return new Set([
-    ...cross.names.filter((name) => name.screened).map((name) => name.record.instrument.ticker),
-    ...held,
+  return new Set([...screened, ...held])
+}
+
+/** Reading the board costs a whole-population pass, so the names it screened are kept with the
+ *  session and the evidence stamp they came from. They stand only while both still match, which a
+ *  pass whose earlier kinds wrote nothing keeps true; anything else reads the board again, and a
+ *  forced run always does. */
+async function screenedNames(
+  scope: EvidenceScope,
+  crossSection: VnMacroCrossSection
+): Promise<readonly string[]> {
+  const { request, deps } = scope
+  const options = { market: VN_MARKET_REF, signal: request.signal }
+  const asOf = resolveSettledDay(scope.calendar, request.now)
+  // Read before the board, so a write landing during the read leaves the stored stamp behind.
+  const [stamp, stored] = await Promise.all([
+    deps.marketDataStore.readScreenStamp(options),
+    deps.marketDataStore.findScreenedNames(options),
   ])
+
+  if (!request.forced && stored?.asOf === asOf && stored.stamp === stamp) {
+    return stored.tickers
+  }
+
+  const cross = await crossSection.get(asOf, request.signal)
+  const tickers = cross.names
+    .filter((name) => name.screened)
+    .map((name) => name.record.instrument.ticker)
+
+  await deps.marketDataStore.saveScreenedNames({ ...options, names: { asOf, stamp, tickers } })
+
+  return tickers
 }
 
 /** A forced refresh asks again for every covered name, due or not. */

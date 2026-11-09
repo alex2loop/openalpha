@@ -23,6 +23,8 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const SCREENED_NAMES_MIGRATION_ID = '2026_11_09_182105_add_screened_names'
+const SCREENED_NAMES_TABLE = 'screened_names'
 const PUBLIC_BRIEFS_MIGRATION_ID = '2026_11_06_185835_add_public_briefs'
 const PUBLIC_BRIEFS_TABLE = 'public_briefs'
 const OVERRIDES_MIGRATION_ID = '2026_11_03_165810_add_config_overrides'
@@ -218,6 +220,26 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   )
 
   return new Set(rows.map((row) => row.name))
+}
+
+/** The stored names go with their one table; the next accounts pass reads the board and stores
+ *  them again. */
+async function assertScreenedNamesRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasTable(db, SCREENED_NAMES_TABLE),
+    'screened names migration did not add the table'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: SCREENED_NAMES_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'screened names rollback did not complete')
+  assertState(
+    !(await hasTable(db, SCREENED_NAMES_TABLE)),
+    'screened names rollback kept the table'
+  )
 }
 
 /** The public briefs go with their one table; the next run rebuilds the day from market data. */
@@ -539,6 +561,7 @@ async function main(): Promise<void> {
   await assertDownCoversUp(`${ANALYSES_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${OVERRIDES_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${PUBLIC_BRIEFS_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${SCREENED_NAMES_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -549,6 +572,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertScreenedNamesRollback(db)
     await assertPublicBriefsRollback(db)
     await assertOverridesRollback(db)
     await assertAnalysesRollback(db)

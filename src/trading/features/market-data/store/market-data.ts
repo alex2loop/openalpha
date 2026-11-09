@@ -5,6 +5,7 @@ import type {
   DaysFromOptions,
   LatestDay,
   LatestDaysOptions,
+  SessionDaysOptions,
 } from '@/trading/features/market-data/store/coverage'
 import type { LatestFundamentalsRead } from '@/trading/features/market-data/store/fundamentals'
 import type { FindFundingOptions } from '@/trading/features/market-data/store/funding'
@@ -23,6 +24,7 @@ import type {
   TradeSidesDayOptions,
 } from '@/trading/features/market-data/store/market-snapshot'
 import type { ListRefreshAttemptsOptions } from '@/trading/features/market-data/store/refresh-attempt'
+import type { ScreenedNamesStore } from '@/trading/features/market-data/store/screened-names'
 import type {
   FindLatestSeriesPointOptions,
   StoredSeriesPoint,
@@ -59,6 +61,7 @@ import {
   listDeskDays,
   listLatestBars,
   listLatestFlowDays,
+  listSessionDays,
 } from '@/trading/features/market-data/store/coverage'
 import { listLatestFundamentals } from '@/trading/features/market-data/store/fundamentals'
 import { findFunding, upsertFunding } from '@/trading/features/market-data/store/funding'
@@ -89,6 +92,7 @@ import {
   listRefreshAttempts,
   upsertRefreshAttempt,
 } from '@/trading/features/market-data/store/refresh-attempt'
+import { createScreenedNamesStore } from '@/trading/features/market-data/store/screened-names'
 import { findLatestSeriesPoint } from '@/trading/features/market-data/store/series-point'
 import { ticker as brandTicker, marketRef, tradingDay } from '@/trading/kernel/instrument'
 import { BAR_ADJUSTMENTS } from '@/trading/kernel/market/market-data'
@@ -163,13 +167,6 @@ interface BarRow {
   readonly fetched_at: number
 }
 
-interface SessionDaysOptions {
-  readonly market: MarketRef
-  readonly fromDay: TradingDay
-  readonly toDay: TradingDay
-  readonly signal: AbortSignal
-}
-
 interface DeleteExpiredOptions {
   readonly scope: RetentionScope
   readonly market: MarketRef
@@ -203,7 +200,7 @@ interface ListSeriesPointsOptions {
   readonly signal: AbortSignal
 }
 
-export interface MarketDataStore extends LatestFundamentalsRead {
+export interface MarketDataStore extends LatestFundamentalsRead, ScreenedNamesStore {
   replaceInstruments(options: ReplaceInstrumentsOptions): Promise<void>
   listInstruments(options: ListInstrumentsOptions): Promise<readonly InstrumentRecord[]>
   findInstrument(options: {
@@ -290,6 +287,7 @@ export interface MarketDataStore extends LatestFundamentalsRead {
 
 export function createMarketDataStore(deps: StoreDeps): MarketDataStore {
   return {
+    ...createScreenedNamesStore(deps),
     replaceInstruments: (options) => replaceInstruments(deps, options),
     listInstruments: (options) => listInstruments(deps, options),
     findInstrument: (options) => findInstrument(deps, options),
@@ -327,22 +325,6 @@ export function createMarketDataStore(deps: StoreDeps): MarketDataStore {
     listSeriesPoints: (options) => listSeriesPoints(deps, options),
     findLatestSeriesPoint: (options) => findLatestSeriesPoint(deps, options),
   }
-}
-
-async function listSessionDays(
-  deps: StoreDeps,
-  options: SessionDaysOptions
-): Promise<readonly TradingDay[]> {
-  assertNotAborted(options.signal)
-
-  const p = deps.dialect.param
-  const rows = await deps.db.query<{ readonly day: string }>(
-    `SELECT DISTINCT day FROM daily_bars WHERE market = ${p(1)} ` +
-      `AND day >= ${p(2)} AND day <= ${p(3)} ORDER BY day`,
-    [options.market, options.fromDay, options.toDay]
-  )
-
-  return rows.map((row) => tradingDay(row.day))
 }
 
 async function listBars(deps: StoreDeps, options: DayWindowOptions): Promise<readonly BarRecord[]> {
