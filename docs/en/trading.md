@@ -97,7 +97,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `vietcombank` | the dong's FX history, behind `yahoo` and `coingecko`: the midpoint of the bank's transfer buy and sell rates, a weekday at a time | no |
 | `cftc` | gold futures positioning: the weekly Commitments of Traders report | no |
 
-One kind is defined but **unrouted**: crypto spot-ETF net flows. No provider has been verified against a live response, so the brief's `etf-flows` section reports `unavailable` instead of failing.
+One kind is defined but **unrouted**: crypto spot-ETF net flows. No provider has been verified against a live response, so the `etf-flows` section of `/overview crypto` reports `unavailable` instead of failing.
 
 **The VN scraping sources and the gold boards are fragile**, and being on by default does not change that:
 
@@ -681,13 +681,15 @@ The screener band is `average daily range x breakout_range` on either side of th
 
 The two are kept apart because only one of them is a problem.
 
-Each market's block prints its prices (one line per index, VN-Index first) and breadth, the dealer board where the market has one, support and resistance, sector rotation, foreign and proprietary desk flow, the index review and upcoming events, the names the brief covers, the market's own headlines and, where the market has them, derivatives, sentiment, the movers and leaders, fx, the futures basis and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. Derivatives keep the funding rate and the long/short ratio; the rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
+Each market's block prints its prices (one line per index, VN-Index first) and breadth, the dealer board where the market has one, support and resistance, sector rotation, foreign and proprietary desk flow, the index review and upcoming events, the names the brief covers, the market's own headlines and, where the market has them, derivatives, sentiment, the movers and leaders, fx, the futures basis and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. Derivatives keep the funding rate and the share of accounts leaning up against those leaning down; the rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
 
 The title block ends with a one-line **strip** of the figures a reader checks first: VN-Index, VN30, SJC gold, world gold, bitcoin and the dollar against the dong. A market the brief has no block for prints no cell; a market with a block but no reading prints a dash, because a missing price is not a zero. A close from a day other than the brief's session carries its date, so an older bar never reads as this morning's. When the figures belong to an earlier session than the day the brief was read, the title names that session.
 
-VN gold shows the dealers' board when they have revised it. Most mornings they have not yet, so the block shows the last settled SJC bar instead, dated by its day and with its move when a day before it exists. It carries no premium then, because the premium needs the live board. A block with no fresh prices says so in its heading ("No fresh prices") instead of repeating a cache warning.
+VN gold shows the dealers' board when they have revised it. Most mornings they have not yet, so the block shows the last settled SJC bar instead, dated by its day and with its move when a day before it exists. It carries no premium then, because the premium needs the live board.
 
-The macro backdrop adds a **World markets** block after the macro read: the S&P 500, the US 10-year yield and Brent crude, each dated by its own observation. A figure with no value adds no row. Brent states its level only, because the feed names no contract and a move across a roll would read as a day's move. The S&P 500 comes from FRED and needs its key; your own brief names its source beside it (S&P Dow Jones Indices, via FRED), and the public brief leaves the row out. A macro input or world figure older than its source normally lags is marked as stale beside its date, with no change to the score.
+Any market whose prices did not come back says so in its heading ("No fresh prices") instead of repeating a cache warning.
+
+With a Vietnam home, the macro backdrop adds a **World markets** block after the macro read: the S&P 500, the US 10-year yield and Brent crude, each dated by its own observation. A figure with no value adds no row. Brent states its level only, because the feed names no contract and a move across a roll would read as a day's move. The S&P 500 comes from FRED and needs its key; your own brief names its source beside it (S&P Dow Jones Indices, via FRED), and the public brief leaves the row out. A macro input or world figure older than its source normally lags is marked as stale beside its date, with no change to the score.
 
 With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.

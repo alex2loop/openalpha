@@ -670,7 +670,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     trường Việt Nam và các thị trường khác (mỗi thị trường kèm các mã tăng mạnh nhất và giảm mạnh nhất
     của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch; hàng của đại
     lý như vàng VN nêu giá mua vào, giá bán ra và chênh lệch giữa hai giá, rồi mức chênh lệch của vàng
-    VN với vàng thế giới; crypto nêu phí funding, hợp đồng mở, tỷ lệ mua/bán, bên mua chủ động khớp
+    VN với vàng thế giới; crypto nêu phí funding, hợp đồng mở, tài khoản nghiêng tăng so với giảm, phần mua chủ động
     và chỉ số sợ hãi - tham lam; thị trường bạn tắt trong hồ sơ không hiện, trừ vàng thế giới, vốn
     chỉ để tham chiếu nên luôn hiện); sự kiện sắp tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
     và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví
@@ -779,8 +779,8 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng). Dưới mỗi thị
   trường là các số đọc riêng của nó, mỗi số một nhãn và một giá trị dưới tiêu đề của nhóm, đúng nhãn,
   số và thứ tự `/overview` và `/brief` in ra, kèm dòng nguồn và giờ đọc: vàng VN nêu chênh lệch với vàng thế giới, một con số thuần, không nói nó nằm ở đâu so với lịch sử;
-  crypto nêu phí funding, hợp đồng mở và so với các phiên gần đây, tỷ lệ mua/bán, phần bên mua chủ động
-  khớp lệnh, và chỉ số sợ hãi - tham lam kèm nguồn công bố nó. Nguồn nào trình duyệt không đọc được thì
+  crypto nêu phí funding, hợp đồng mở và so với các phiên gần đây, tài khoản nghiêng tăng so với giảm, phần mua chủ động,
+  và chỉ số sợ hãi - tham lam kèm nguồn công bố nó. Nguồn nào trình duyệt không đọc được thì
   dòng đó không hiện, không báo lỗi.
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
   và bán ròng nhiều nhất; và năm mã giao dịch nhiều nhất. Giá trị rút gọn (như 76,5 tỷ), và ghi rõ

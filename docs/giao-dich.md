@@ -66,7 +66,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `rss` | các feed tin tức, theo khu vực hoặc làm nguồn dự phòng cho mọi phạm vi | không |
 | `google-news` | tiêu đề crypto, trước `rss` | không |
 | `okx` | giá crypto khi `okx` là sàn mặc định của `crypto` | không |
-| `binance` `binance-futures` `alternative-me` | giá và nến crypto; funding, open interest (kèm mức đổi) và tỷ lệ long/short; tâm lý | không |
+| `binance` `binance-futures` `alternative-me` | giá và nến crypto; funding, hợp đồng mở (kèm mức đổi) và tỷ lệ long/short; tâm lý | không |
 | `bybit` | nến crypto cho các mã mà spot `binance` không niêm yết | không |
 | `mexc` | nến và giá crypto cho các mã mà cả `binance` lẫn `bybit` đều không niêm yết | không |
 | `coingecko` | nguồn dự phòng cuối cho bảng crypto; nguồn duy nhất tra một ký hiệu nằm ngoài mọi bảng; tỷ giá mà một coin thanh toán giao dịch so với một tiền pháp định; lịch sử tỷ giá đồng bằng giá USDT tính theo đồng, đứng sau `yahoo` | `COINGECKO_API_KEY` (tùy chọn) |
@@ -97,7 +97,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `vietcombank` | lịch sử tỷ giá đồng, đứng sau `yahoo` và `coingecko`: trung điểm giữa giá mua chuyển khoản và giá bán của ngân hàng, mỗi ngày làm việc một lần đọc | không |
 | `cftc` | positioning hợp đồng tương lai vàng: báo cáo Commitments of Traders hằng tuần | không |
 
-Có một loại được khai nhưng **chưa định tuyến**: dòng tiền ròng của ETF spot crypto. Chưa nhà cung cấp nào được kiểm chứng trên phản hồi thật, nên mục `etf-flows` của bản tin báo `unavailable` chứ không hỏng.
+Có một loại được khai nhưng **chưa định tuyến**: dòng tiền ròng của ETF spot crypto. Chưa nhà cung cấp nào được kiểm chứng trên phản hồi thật, nên mục `etf-flows` của `/overview crypto` báo `unavailable` chứ không hỏng.
 
 **Các nguồn scrape VN và các bảng vàng khá mong manh**, và việc chúng bật mặc định không thay đổi điều đó:
 
@@ -689,9 +689,11 @@ Khối của mỗi thị trường in giá (mỗi chỉ số một dòng, VN-Ind
 
 Khối tiêu đề kết thúc bằng một **dải số liệu** một dòng gồm các số người đọc thường xem trước: VN-Index, VN30, vàng SJC, vàng thế giới, bitcoin và tỷ giá USD/VND. Thị trường mà bản tin không có khối thì không in ô nào; thị trường có khối nhưng chưa có số thì in một dấu gạch, vì thiếu giá không phải là giá bằng không. Giá đóng của một ngày khác phiên của bản tin thì kèm ngày của nó, để một mức cũ không bị đọc như mức sáng nay. Khi các số thuộc một phiên sớm hơn ngày đọc bản tin, tiêu đề nêu tên phiên đó.
 
-Vàng trong nước hiện bảng giá khi các đại lý đã điều chỉnh. Phần lớn các buổi sáng họ chưa điều chỉnh, nên khối này hiện thanh SJC đã chốt gần nhất, kèm ngày của nó và mức thay đổi khi có ngày trước đó. Lúc ấy không có chênh lệch giá, vì chênh lệch cần bảng giá đang chạy. Khối chưa có giá mới thì nói điều đó ngay ở tiêu đề ("Chưa có giá mới") thay vì nhắc lại một cảnh báo về bộ nhớ đệm.
+Vàng trong nước hiện bảng giá khi các đại lý đã điều chỉnh. Phần lớn các buổi sáng họ chưa điều chỉnh, nên khối này hiện thanh SJC đã chốt gần nhất, kèm ngày của nó và mức thay đổi khi có ngày trước đó. Lúc ấy không có chênh lệch giá, vì chênh lệch cần bảng giá đang chạy.
 
-Bối cảnh vĩ mô có thêm khối **Thị trường thế giới** sau phần nhìn vĩ mô: S&P 500, lợi suất trái phiếu Mỹ kỳ hạn 10 năm và dầu Brent, mỗi số mang ngày quan sát của chính nó. Số nào không có giá trị thì không thêm dòng. Brent chỉ nêu mức giá, vì nguồn không nói hợp đồng nào, và mức chênh giữa hai hợp đồng sẽ bị đọc thành biến động trong ngày. S&P 500 lấy từ FRED và cần khóa của FRED; bản tin của bạn ghi nguồn bên cạnh (S&P Dow Jones Indices, qua FRED), còn bản tin công khai bỏ dòng này. Dữ liệu vĩ mô hoặc số liệu thế giới cũ hơn mức nguồn thường chậm sẽ được đánh dấu là số liệu cũ bên cạnh ngày, điểm số không đổi.
+Thị trường nào chưa lấy được giá thì nói điều đó ngay ở tiêu đề ("Chưa có giá mới") thay vì nhắc lại một cảnh báo về bộ nhớ đệm.
+
+Khi thị trường chính là Việt Nam, bối cảnh vĩ mô có thêm khối **Thị trường thế giới** sau phần nhìn vĩ mô: S&P 500, lợi suất trái phiếu Mỹ kỳ hạn 10 năm và dầu Brent, mỗi số mang ngày quan sát của chính nó. Số nào không có giá trị thì không thêm dòng. Brent chỉ nêu mức giá, vì nguồn không nói hợp đồng nào, và mức chênh giữa hai hợp đồng sẽ bị đọc thành biến động trong ngày. S&P 500 lấy từ FRED và cần khóa của FRED; bản tin của bạn ghi nguồn bên cạnh (S&P Dow Jones Indices, qua FRED), còn bản tin công khai bỏ dòng này. Dữ liệu vĩ mô hoặc số liệu thế giới cũ hơn mức nguồn thường chậm sẽ được đánh dấu là số liệu cũ bên cạnh ngày, điểm số không đổi.
 
 Khi thị trường chính là Việt Nam, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
 cùng phần nhìn lại các câu chuyện trước.
@@ -1085,7 +1087,7 @@ Nó không đổi điểm nào. Một đề xuất trên mã đang có tín hi�
 **Crypto đọc băng giá của riêng nó.** Hai tín hiệu đi theo mọi dòng sàng lọc crypto và được ghi cùng điểm yếu tố:
 
 - Một *cú rũ bỏ giữ được*: một phiên giảm ít nhất 5% qua bốn phiên, trên khối lượng tương đối từ 1,5 trở lên, đóng trong một phần năm thấp nhất của biên độ, mà đáy của nó mọi phiên sau đều giữ được, đọc trong hai tới bốn phiên sau đó.
-- Một *đợt tăng do đòn bẩy dẫn*: số hợp đồng open interest tăng ít nhất gấp đôi mức tăng của giá qua cùng ba phiên, trên một đợt tăng 5% hoặc hơn.
+- Một *đợt tăng do đòn bẩy dẫn*: số hợp đồng mở tăng ít nhất gấp đôi mức tăng của giá qua cùng ba phiên, trên một đợt tăng 5% hoặc hơn.
 
 Không tín hiệu nào đổi điểm. Một đề xuất trên mã đang có một trong hai tín hiệu mang một lưu ý. Tín hiệu đầu nói rằng bán ở đây là bán đúng đáy; tín hiệu sau nói rằng đợt tăng đang được đòn bẩy gánh chứ không phải lực mua spot. Không có cài đặt: các ngưỡng là chính sách chiến lược, được đánh phiên bản cùng chiến lược crypto.
 
