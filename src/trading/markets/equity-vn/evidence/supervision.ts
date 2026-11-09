@@ -3,6 +3,7 @@ import type { Ticker } from '@/trading/kernel/instrument'
 import type { SupervisionLevel, SupervisionSnapshot } from '@/trading/kernel/market/supervision'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { VnExchange } from '@/trading/markets/equity-vn/policy'
+import { canonicalJson, hashString } from '@/core/utils/hash'
 import { severest } from '@/trading/kernel/market/supervision'
 import { ADMITTED_EXCHANGES, VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
@@ -46,6 +47,24 @@ export async function loadSupervision(
   const caveats = results.flatMap((result) => (result.kind === 'available' ? result.caveats : []))
 
   return { levels: foldLevels(snapshots), coverage: coverageOf(snapshots), caveats }
+}
+
+/** What the gates read of the exchange's lists, as one string that moves when a name enters or
+ *  leaves one, changes level, or a board stops being covered. The cross-section reads the same
+ *  lists, so a screen kept under one stamp is the screen a fresh read would give. */
+export async function readSupervisionStamp(
+  deps: MarketDeps,
+  options: { readonly signal: AbortSignal }
+): Promise<string> {
+  const { levels, coverage } = await loadSupervision(deps, options)
+
+  return hashString(
+    canonicalJson({
+      levels: [...levels].sort(([left], [right]) => (left < right ? -1 : 1)),
+      covered: [...coverage.covered].sort(),
+      published: [...coverage.published].sort(),
+    })
+  )
 }
 
 /** What the read missed over the boards the caller's population actually occupies. Derived per
