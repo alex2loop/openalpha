@@ -62,20 +62,17 @@ const VN_ECONOMY_TERMS: readonly string[] = Object.freeze([
   'nhnn',
   'trái phiếu',
   'ngân sách',
-  'thuế',
+  'thuế quan',
+  'nền kinh tế',
   'nợ công',
   'đầu tư công',
   'giải ngân',
-  'thương mại',
-  'kinh tế',
   'vĩ mô',
   'chứng khoán',
   'giá vàng',
   'giá xăng',
   'giá dầu',
-  'usd',
   'fed',
-  'quốc hội',
   'chính phủ',
   'thủ tướng',
   'nghị định',
@@ -83,9 +80,13 @@ const VN_ECONOMY_TERMS: readonly string[] = Object.freeze([
   'bộ tài chính',
 ])
 
+const VN_ECONOMY_TERMS_NFC: readonly string[] = VN_ECONOMY_TERMS.map((term) =>
+  term.normalize('NFC')
+)
+
 const FEED_TOPIC_TERMS: Readonly<Partial<Record<string, readonly string[]>>> = Object.freeze({
-  'economy-vn': VN_ECONOMY_TERMS,
-  'politics-vn': VN_ECONOMY_TERMS,
+  'economy-vn': VN_ECONOMY_TERMS_NFC,
+  'politics-vn': VN_ECONOMY_TERMS_NFC,
 })
 
 const SCOPE_FEEDS: Readonly<Record<string, readonly string[]>> = Object.freeze({
@@ -186,7 +187,7 @@ async function loadFeeds(
 
     const parsed = toFeedItems(outcome.value, RSS_ID, outcome.fetchedAt)
 
-    items.push(...onTopic(feedId, parsed.value))
+    items.push(...withOnTopicItems(feedId, parsed.value))
     caveats.push(...parsed.caveats)
     fetchedAt = Math.max(fetchedAt, outcome.fetchedAt)
   }
@@ -198,18 +199,16 @@ async function loadFeeds(
   return { kind: 'ok', value: parsedSource(items, caveats), fetchedAt }
 }
 
-function onTopic(feedId: string, items: readonly NewsItem[]): readonly NewsItem[] {
+function withOnTopicItems(feedId: string, items: readonly NewsItem[]): readonly NewsItem[] {
   const terms = FEED_TOPIC_TERMS[feedId]
 
   if (terms === undefined) {
     return items
   }
 
-  const nfcTerms = terms.map((term) => term.normalize('NFC'))
-
   return items.filter((item) => {
     const title = item.title.normalize('NFC').toLocaleLowerCase('vi')
 
-    return nfcTerms.some((term) => title.includes(term))
+    return terms.some((term) => title.includes(term))
   })
 }

@@ -118,14 +118,14 @@ Vài nguồn ít hiển nhiên làm gì:
   - `vietcap-statements` thay chúng ngay ngày nó có lưu chuyển tiền tệ.
 - `cafef` không phải bên dự phòng cho dòng tiền của `vndirect`. Nó chỉ công bố khối tự doanh (công ty chứng khoán giao dịch bằng tiền của chính mình), sớm hơn hai phiên. Nó chỉ được hỏi cho những phiên còn thiếu phần đó.
 - `fred-csv` mang các chuỗi hàng hóa hằng tháng mà không feed hằng ngày nào có (than, gạo, thịt lợn, thép). `vndirect` mang các chuỗi hằng ngày. Hai bên không bao giờ tranh nhau một mặt hàng.
-- Hai feed tin tổng hợp của Việt Nam (mục vĩ mô và đầu tư của CafeF, mục thời sự của VnExpress) đăng mọi bài nhà xuất bản có, nên một tiêu đề chỉ vào bản tin khi nó nêu một thuật ngữ kinh tế hoặc chính sách như lãi suất, tỷ giá, lạm phát, tín dụng hay một nghị định mới. Crypto chỉ đọc feed tin riêng của nó, không đọc luồng tin kinh tế toàn cầu.
+- Hai feed tin tổng hợp của Việt Nam (mục vĩ mô và đầu tư của CafeF, mục thời sự của VnExpress) đăng mọi bài nhà xuất bản có, nên một tiêu đề chỉ được giữ lại khi nó nêu một thuật ngữ kinh tế hoặc chính sách như lãi suất, tỷ giá, lạm phát, thuế quan, tín dụng hay một nghị định mới. Bộ lọc áp dụng ở mọi nơi đọc hai feed này: bản tin, dải tin vĩ mô và tin cổ phiếu Việt Nam. Crypto chỉ đọc feed tin riêng của nó, không đọc luồng tin kinh tế toàn cầu.
 - `coinbase` và `okx` định giá một coin thanh toán (như USDT) so với tiền pháp định. Không có đường dự phòng từ `USDTVND` sang `USDVND`: USDT là một công cụ khác, và tỷ giá thiếu được báo chứ không đoán.
 - Giá crypto đặt sàn mặc định của `crypto` lên đầu (`default_for` trong `[trading.venues.<id>]`, mặc định `binance`), khi sàn đó cũng là nhà cung cấp dữ liệu. Một kế hoạch định giá ở nơi khác sẽ báo một con số mà lệnh của bạn không khớp được.
 - `mexc` dự phòng cho `binance` ở giá và đứng thứ ba ở lịch sử. Nó niêm yết những coin các sàn lớn không có. Nhưng khối lượng ở đuôi dài các coin nhỏ là kém đáng tin nhất, nên nó chỉ trả lời cho mã mà các sàn lớn từ chối.
 - `okx` không niêm yết mọi coin. Coin nó thiếu bị bỏ qua, và lần bỏ qua đó không tính là một lần hỏng.
 - `coingecko` phục vụ bảng vốn hóa, một tỷ giá FX và lịch sử tỷ giá đồng, không phục vụ đường giá. Vòng cảnh báo đọc giá của mọi coin đang theo dõi ở mỗi nhịp, và một nhà cung cấp tính hạn mức theo tháng sẽ tiêu hết hạn mức vào đó.
 
-Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền ròng của ETF spot crypto. Mục `etf-flows` của bản tin báo `unavailable`. Đó là điều bình thường, không phải sự cố.
+Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền ròng của ETF spot crypto. Mục `etf-flows` của `/overview crypto` báo `unavailable`. Đó là điều bình thường, không phải sự cố.
 
 ### Nguồn dữ liệu Mỹ
 
