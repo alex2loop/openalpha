@@ -10,6 +10,7 @@ import type { EvidenceScope } from '@/trading/markets/equity-vn/evidence/evidenc
 import type { VnMacroCrossSection } from '@/trading/markets/equity-vn/evidence/macro-evidence'
 import type { TargetOutcome } from '@/trading/markets/refresh-result'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
+import { canonicalJson } from '@/core/utils/hash'
 import { hasCashFlow, isBankLines } from '@/trading/kernel/market/annual-accounts'
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
 import { periodIndexOf } from '@/trading/markets/accounts-trailing'
@@ -18,6 +19,7 @@ import { watchedQuarter } from '@/trading/markets/equity-vn/accounts/quarter-wat
 import { isAccountsFetched, isFetchedBeforeFinal } from '@/trading/markets/equity-vn/accounts/score'
 import { buildPayloadRejectedCaveat, reportedCaveats } from '@/trading/markets/equity-vn/caveats'
 import { invalidateWhenWritten } from '@/trading/markets/equity-vn/evidence/evidence'
+import { readSupervisionStamp } from '@/trading/markets/equity-vn/evidence/supervision'
 import {
   ACCOUNTS_REFETCH_MS,
   QUARTER_WATCH_REFETCH_MS,
@@ -25,6 +27,7 @@ import {
   VN_SOURCE_CONCURRENCY,
 } from '@/trading/markets/equity-vn/policy'
 import { fillCashFlow } from '@/trading/markets/equity-vn/refresh/cash-flow-fill'
+import { SCREEN_POLICY_DIGEST } from '@/trading/markets/equity-vn/screen-policy'
 import { heldTickersIn } from '@/trading/markets/held-tickers'
 import {
   buildRejectedOutcome,
@@ -110,9 +113,10 @@ async function wantedNames(
 }
 
 /** Reading the board costs a whole-population pass, so the names it screened are kept with the
- *  session and the evidence stamp they came from. They stand only while both still match, which a
- *  pass whose earlier kinds wrote nothing keeps true; anything else reads the board again, and a
- *  forced run always does. */
+ *  session and a stamp of what the screen read: the stored evidence, the exchange's supervision
+ *  lists and the gate policy. They stand only while both still match, which a pass whose earlier
+ *  kinds wrote nothing keeps true; anything else reads the board again, and a forced run always
+ *  does. */
 async function screenedNames(
   scope: EvidenceScope,
   crossSection: VnMacroCrossSection
@@ -121,10 +125,12 @@ async function screenedNames(
   const options = { market: VN_MARKET_REF, signal: request.signal }
   const asOf = resolveSettledDay(scope.calendar, request.now)
   // Read before the board, so a write landing during the read leaves the stored stamp behind.
-  const [stamp, stored] = await Promise.all([
-    deps.marketDataStore.readScreenStamp(options),
+  const [stored, evidence, supervision] = await Promise.all([
     deps.marketDataStore.findScreenedNames(options),
+    deps.marketDataStore.readScreenStamp(options),
+    readSupervisionStamp(deps, options),
   ])
+  const stamp = canonicalJson([evidence, supervision, SCREEN_POLICY_DIGEST])
 
   if (!request.forced && stored?.asOf === asOf && stored.stamp === stamp) {
     return stored.tickers

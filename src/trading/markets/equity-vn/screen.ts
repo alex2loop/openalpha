@@ -126,6 +126,14 @@ const GATES: readonly ScreenGate[] = Object.freeze([
   { code: 'volatility-above-maximum', test: isWithinVolatilityLimit },
 ])
 
+/** What the gates decide by that no policy constant names: which gates, in which order, and which
+ *  supervision levels each one refuses. */
+export const SCREEN_GATE_BASIS = Object.freeze({
+  gates: GATES.map((gate) => gate.code),
+  restricted: [...RESTRICTED_SUPERVISION],
+  disclosure: [...DISCLOSURE_SUPERVISION],
+})
+
 /** A name failing three gates records the first. Recording all three would make the reason unstable
  *  across days as unrelated conditions changed, and the user-visible answer to "why not this stock"
  *  should not move for reasons that were already true. */
