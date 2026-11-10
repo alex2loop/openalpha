@@ -48,8 +48,17 @@ export async function connectServer(
     return undefined
   }
 
-  // Loaded on the first configured server, so a process with none never loads the MCP client.
-  const session = new (await import('@/engine/mcp/session')).McpSession(server, logger)
+  let session: McpSession
+
+  try {
+    // Loaded on the first configured server, so a process with none never loads the MCP client.
+    session = new (await import('@/engine/mcp/session')).McpSession(server, logger)
+  } catch (err: unknown) {
+    logger.error('mcp.client_load_failed', { server: server.name, err: formatErrForLog(err) })
+
+    return undefined
+  }
+
   const close = (): Promise<void> => session.close()
 
   const discovery = discover(session, server, logger)
