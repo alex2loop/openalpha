@@ -111,7 +111,7 @@ function withAwaiting(
   }
 }
 
-/** The calls as attribution reads them, each priced with its own market's round-trip fee. */
+/** The calls as attribution reads them, gross of fees: each market's round-trip rate is added back. */
 export function toScoredRows(
   calls: readonly ResolvedActionableSuggestion[],
   costs: MarketCosts

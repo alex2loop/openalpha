@@ -59,9 +59,9 @@ const LINEAR = (bearishAt: number, bullishAt: number): FactorNormalization =>
  *  composite divides by the fired total.
  *
  *  `quality` and `trend` are read at weight 0. On the 75 boards above, each quarter dated from its
- *  first filing, `quality` ranked -0.04 and the composite rose from 0.07 to 0.11 without it. It stays for the accounts read: the profit and health lines, the Piotroski
- *  and Beneish flags, the theme shortlist, and a long holding's thesis sale where no annual report
- *  scores.
+ *  first filing, `quality` ranked -0.04 and the composite rose from 0.07 to 0.11 without it. It
+ *  stays for the accounts read: the profit and health lines, the Piotroski and Beneish flags, the
+ *  theme shortlist, and a long holding's thesis sale where no annual report scores.
  *
  *  `trend` was measured on 79 weekly boards from 2025-01 to 2026-07: it ranked -0.014 (NW t -0.31,
  *  both halves negative), and the composite rose from 0.129 (t 4.19) to 0.151 (t 4.68) without it.
