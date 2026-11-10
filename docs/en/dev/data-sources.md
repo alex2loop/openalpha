@@ -705,7 +705,7 @@ day's first pass runs before the US series publish, and only a complete read is 
 - `series_points` is swept after `history_days` (1095 by default) and never below `HISTORY_FLOOR_DAYS.macroSeries` (about 500), so the default covers a one- and three-year comparison against its own history, and a five-year one needs `history_days` raised (the five-year averages shown today are the provider's, with no backfill).
 - `createIndexValuation` reads the latest stored point of each ratio and builds the reading; a failed refresh leaves the last one, and one older than ten days carries `source.stale-cache`.
 - ROE is `P/B / P/E`, derived.
-- The provider files no above-mean shares for VN30, so the same pass counts the stored VN30 constituents (`indexTier`) above their own 50- and 200-session means on the ratios' day (`aboveMeanRatios`, from the cross-section's bars) and stores them under the same series ids.
+- The provider files no above-mean shares for VN30, so the same pass counts the stored VN30 constituents (`indexTier`) above their own 50- and 200-session means on the ratios' day (`aboveMeanRatios`, from each name's stored closes and day columns) and stores them under the same series ids.
 
 *Contributors* are never stored: `createIndexContributors` (`markets/equity-vn/tape/index-contributors.ts`) keeps one slot per index (three in all).
 
@@ -834,6 +834,7 @@ never worth holding the universe for; the universe then settles without it, keep
   last two read the cross-section the first three rewrite. A stage settles every kind before the next starts, so a kind that
   throws never leaves a sibling writing after the refresh failed. Each kind result carries `elapsedMs`, logged on
   `trading.market_data_refreshed`.
+- **The VN board is read one name at a time.** `loadCrossSection` (`markets/equity-vn/evidence/cross-section-cache.ts`) reads a name's bars and flows, reduces them to a compact `NameEvidence` (the gates it fails, the figures every factor reads, the close and day columns the breadth readers count by day) and folds them into the market's per-day totals before it reads the next, so no name's raw bars or flows outlive its turn. A reader that needs a figure the evidence does not hold adds a field to the builder in `factors/name-evidence.ts`; it never asks for the bars back.
 - **`accounts` keeps the names it screened.** Which names a report can act on comes from the screened board, and reading
   the board is a whole-population pass. The names are stored per market in `screened_names` with the session they were read
   for and a stamp of what the screen reads: the stored evidence (newest fetch and row count of bars and instruments, newest
