@@ -8,11 +8,7 @@ import type { TradingStores } from '@/trading/wiring/composition/stores'
 import { marketRef } from '@/trading/kernel/instrument'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { buildMacroExtractTick } from '@/trading/wiring/composition/macro-extract'
-import {
-  buildRefreshTick,
-  type RefreshHost,
-  resolveMarketsInUse,
-} from '@/trading/wiring/composition/refresh'
+import { buildRefreshTick, resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
 
 interface MarketTicks {
   readonly inUse: Parameters<typeof resolveMarketsInUse>[0]
@@ -32,7 +28,7 @@ interface MarketTickParts {
     readonly profiles: Pick<ProfileService, 'get'>
   }
   readonly refresh: RefreshMarketData
-  readonly host: RefreshHost
+  readonly host: Parameters<typeof buildRefreshTick>[0]
   readonly logger: Logger
 }
 

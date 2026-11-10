@@ -64,7 +64,6 @@ export {
 
 // ── Daemon support ───────────────────────────────────────────────────────────
 
-export type { ProcessMemory } from '@/trading/features/market-data/ops/refresh'
 export {
   logRefreshDegradations,
   refreshDegradations,
