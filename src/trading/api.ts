@@ -211,6 +211,8 @@ export { disabledSegments } from '@/trading/kernel/operator/profile'
 
 // ── Values ───────────────────────────────────────────────────────────────────
 
+// ── Values ───────────────────────────────────────────────────────────────────
+
 export { renderAlertNotice } from '@/trading/features/alerts/render'
 export { parseExitLevel } from '@/trading/features/alerts/types'
 export { renderBriefText } from '@/trading/features/brief/render'
@@ -259,6 +261,7 @@ export {
   toAgentFocus,
   validateAgentFocus,
 } from '@/trading/kernel/operator/focus'
+export { outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
 export { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
 export { feeChargeOf } from '@/trading/kernel/venue/fee'
 export { describeCaveat } from '@/trading/render/caveat'

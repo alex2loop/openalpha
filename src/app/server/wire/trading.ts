@@ -216,6 +216,9 @@ interface CalculationVersionWire {
 
 interface SuggestionOutcomeWire {
   readonly status: 'target' | 'stop' | 'expired'
+  /** What the result is named: `status` and `returnPct` together, so a `target` that netted nothing
+   *  is `target-gave-back` and a `stop` that kept a gain is `stop-in-profit`. */
+  readonly verdict: 'target' | 'target-gave-back' | 'stop' | 'stop-in-profit' | 'expired'
   readonly resolvedAt: number
   readonly exitDay: string
   readonly returnPct: number

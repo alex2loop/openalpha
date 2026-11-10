@@ -295,13 +295,13 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'sector',
   'segment',
   'sentiment',
-  'status',
   'stopBasis',
   'story',
   'thesisStatus',
   'ticker',
   'title',
   'url',
+  'verdict',
   'watch',
 ] as const)
 

@@ -10,14 +10,16 @@ import type {
   TrackRecordVersionCount,
 } from '@/trading/features/suggestion/track-record/types'
 import type { ResolvedActionableSuggestion } from '@/trading/features/suggestion/types'
-import type { ConvictionBand, OutcomeStatus } from '@/trading/kernel/conviction'
+import type { ConvictionBand } from '@/trading/kernel/conviction'
 import type { FactorAttribution } from '@/trading/kernel/factor'
+import type { OutcomeVerdict } from '@/trading/kernel/outcome-verdict'
 import { formatDay, type MessageKey, t } from '@/i18n'
 import { renderRateRange } from '@/trading/features/suggestion/track-record/rate-range'
 import { renderActedLines } from '@/trading/features/suggestion/track-record/render-acted'
 import { renderCoverageLine } from '@/trading/features/suggestion/track-record/render-coverage'
 import { renderFocusLines } from '@/trading/features/suggestion/track-record/render-focus'
 import { renderShadowSection } from '@/trading/features/suggestion/track-record/render-shadow'
+import { outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
 import { renderAttributionSections } from '@/trading/render/attribution'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import {
@@ -44,15 +46,19 @@ const CONVICTION_KEYS = Object.freeze({
 
 const OUTCOME_KEYS = Object.freeze({
   target: 'trading.render.reflect.alertTarget',
+  'target-gave-back': 'trading.render.reflect.alertTargetGaveBack',
   stop: 'trading.render.reflect.alertStop',
+  'stop-in-profit': 'trading.render.reflect.alertStopInProfit',
   expired: 'trading.render.reflect.alertExpired',
-} as const satisfies Record<OutcomeStatus, MessageKey>)
+} as const satisfies Record<OutcomeVerdict, MessageKey>)
 
 const BENCHMARKED_OUTCOME_KEYS = Object.freeze({
   target: 'trading.render.reflect.alertTargetFull',
+  'target-gave-back': 'trading.render.reflect.alertTargetGaveBackFull',
   stop: 'trading.render.reflect.alertStopFull',
+  'stop-in-profit': 'trading.render.reflect.alertStopInProfitFull',
   expired: 'trading.render.reflect.alertExpiredFull',
-} as const satisfies Record<OutcomeStatus, MessageKey>)
+} as const satisfies Record<OutcomeVerdict, MessageKey>)
 
 /** A bucket whose sample cleared the reporting minimum; below it the rate is withheld upstream. */
 interface RatedBucket extends CalibrationBucket {
@@ -435,6 +441,7 @@ function renderOutcomeLines(
  *  not print a gap where a comparison belongs. */
 export function renderOutcomeLine(locale: Locale, row: ResolvedActionableSuggestion): string {
   const { outcome } = row
+  const verdict = outcomeVerdictOf(outcome)
   const shared = {
     ticker: row.instrument.ticker,
     at: formatDay(locale, row.at),
@@ -443,10 +450,10 @@ export function renderOutcomeLine(locale: Locale, row: ResolvedActionableSuggest
   }
 
   if (outcome.benchmarkReturnPct === undefined) {
-    return t(locale, OUTCOME_KEYS[outcome.status], shared)
+    return t(locale, OUTCOME_KEYS[verdict], shared)
   }
 
-  return t(locale, BENCHMARKED_OUTCOME_KEYS[outcome.status], {
+  return t(locale, BENCHMARKED_OUTCOME_KEYS[verdict], {
     ...shared,
     bench: formatSignedFraction(locale, outcome.benchmarkReturnPct),
   })

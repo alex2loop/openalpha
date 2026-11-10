@@ -21,7 +21,7 @@ export interface PastCall {
   readonly action: 'buy' | 'reduce'
   readonly ticker: string
   readonly day: string
-  readonly outcome: 'target' | 'stop' | 'expired'
+  readonly outcome: NonNullable<SuggestionWire['outcome']>['verdict']
 }
 
 /** A run's recalled calls, newest close first, and when they arrived (`performance.now()`). */
@@ -126,7 +126,7 @@ function toPastCall(call: SuggestionWire): PastCall[] {
       action: call.action,
       ticker: call.instrument.ticker,
       day: call.at,
-      outcome: call.outcome.status,
+      outcome: call.outcome.verdict,
     },
   ]
 }

@@ -188,6 +188,7 @@ export interface WireEvent {
     readonly market: string
     readonly action: string
     readonly status: 'target' | 'stop' | 'expired'
+    readonly verdict: 'target' | 'target-gave-back' | 'stop' | 'stop-in-profit' | 'expired'
     readonly returnPct: number
     readonly benchmark?: { readonly ticker: string; readonly returnPct: number }
     readonly focusKey: string

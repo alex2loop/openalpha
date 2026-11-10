@@ -18,6 +18,7 @@ import type { FocusKey } from '@/trading/kernel/operator/focus'
 import { isMarked, REVIEW_MARK_IDS } from '@/trading/features/suggestion/pipeline/review-marks'
 import { CONVICTION_BANDS } from '@/trading/kernel/conviction'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
+import { isWinningReturn, outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
 
 /** Below this many independent calls a win rate is noise, so it is reported as absent with a
  *  caveat rather than as a number a reader would trust. */
@@ -265,7 +266,7 @@ function groupByFocus(
       focusKey,
       resolvedCount: group.length,
       winCount: winCount(group),
-      targetCount: group.filter((row) => row.outcome.status === 'target').length,
+      targetCount: group.filter((row) => outcomeVerdictOf(row.outcome) === 'target').length,
       ...(rate === undefined ? {} : { winRate: rate }),
     }
   })
@@ -407,11 +408,6 @@ function brierOf(rows: readonly StatedRow[]): {
 
 function returnsOf(rows: readonly ResolvedActionableSuggestion[]): readonly number[] {
   return rows.map((row) => row.outcome.returnPct)
-}
-
-/** One definition of a win, so the record and every measure built on it count alike. */
-export function isWinningReturn(returnPct: number): boolean {
-  return returnPct > 0
 }
 
 function isWin(row: ResolvedActionableSuggestion): boolean {

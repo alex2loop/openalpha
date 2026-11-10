@@ -517,6 +517,11 @@ Một đề xuất theo phạm vi riêng được đọc như ý kiến thứ ha
 
 Mỗi đề xuất sau đó được đối chiếu với các cây nến tiếp theo. Nó kết thúc là `target`, `stop` hoặc `expired`, kèm lợi suất và, nếu thị trường có chuẩn so sánh, lợi suất của chuẩn trong cùng cửa sổ.
 
+Thông báo, `/reflect`, bản tin sáng và văn phòng đều gọi tên một kết quả theo cả trạng thái lẫn lợi suất của nó:
+
+- Mục tiêu mà phần còn lại đã trả lại lãi, nên cả lệnh về 0 hoặc lỗ, được tính là trượt.
+- Mức dừng đã được nâng lên trên giá vào, nên cả lệnh vẫn có lãi, được tính là trúng.
+
 Nếu chuẩn lấy từ bộ đệm cũ, hoặc dừng sớm hơn phiên thoát quá một phiên, thì bạn không nhận phép so sánh nào, thay vì một phép so trên quãng ngắn hơn.
 
 **Cửa sổ.** Một đề xuất được đọc ở cuối cửa sổ nắm giữ của chính nó.

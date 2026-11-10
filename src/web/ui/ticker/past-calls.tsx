@@ -88,7 +88,7 @@ function PastRow({ call }: { readonly call: Call }) {
         <b>{tr(`trading.action.${call.action}`)}</b>{' '}
         {outcome === undefined
           ? tr('ui.office.ticker.outcome.open')
-          : tr(`trading.outcome.${outcome.status}`)}
+          : tr(`trading.outcome.${outcome.verdict}`)}
       </span>
       <span class="meta">{formatDay(locale.value, call.at)}</span>
       {move === undefined ? (
@@ -103,7 +103,7 @@ function PastRow({ call }: { readonly call: Call }) {
 // The daemon's own minimum says when a rate starts to mean something.
 function PastSummary({ calls }: { readonly calls: readonly Call[] }) {
   const scored = calls.filter((call) => call.outcome !== undefined)
-  const hit = scored.filter((call) => call.outcome?.status === 'target').length
+  const hit = scored.filter((call) => call.outcome?.verdict === 'target').length
   const minimum = state.value?.trackRecordMinSample
 
   if (scored.length === 0) {

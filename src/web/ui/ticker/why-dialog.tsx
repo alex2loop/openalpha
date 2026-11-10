@@ -158,7 +158,9 @@ function PastResult({ call }: { readonly call: SuggestionWire }) {
           <p class={`lead is-${toneOfFraction(outcome.returnPct)}-text`}>
             {formatSignedFraction(outcome.returnPct)}
           </p>
-          <p>{tr('ui.office.why.outcome', { outcome: tr(`trading.outcome.${outcome.status}`) })}</p>
+          <p>
+            {tr('ui.office.why.outcome', { outcome: tr(`trading.outcome.${outcome.verdict}`) })}
+          </p>
         </div>
       )}
     </>

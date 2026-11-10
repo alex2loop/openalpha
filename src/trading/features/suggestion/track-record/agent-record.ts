@@ -15,7 +15,6 @@ import { dayInZone, MS_PER_DAY } from '@/core/utils/time'
 import { MAXIMUM_OUTCOME_LOOKBACK_DAYS } from '@/trading/features/suggestion/pipeline/outcome-window'
 import {
   independentCalls,
-  isWinningReturn,
   MINIMUM_TRACK_RECORD_SAMPLE,
 } from '@/trading/features/suggestion/pipeline/reporting'
 import {
@@ -25,6 +24,7 @@ import {
 } from '@/trading/features/suggestion/track-record/agreement'
 import { tradingDay } from '@/trading/kernel/instrument'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
+import { isWinningReturn, outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
 
 interface AgentRecordDeps {
   readonly store: Pick<SuggestionStore, 'listFocusCalls' | 'listCallActions'>
@@ -111,13 +111,14 @@ function countByFocus(calls: readonly FocusCall[]): ReadonlyMap<FocusKey, Record
   return new Map(
     [...byFocus].map(([focusKey, group]) => {
       const independent = independentCalls(group)
+      const hits = independent.filter((call) => outcomeVerdictOf(call.outcome) === 'target')
 
       return [
         focusKey,
         {
           resolvedCount: independent.length,
           winCount: independent.filter((call) => isWinningReturn(call.outcome.returnPct)).length,
-          targetCount: independent.filter((call) => call.outcome.status === 'target').length,
+          targetCount: hits.length,
         },
       ]
     })

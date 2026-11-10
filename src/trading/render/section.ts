@@ -59,10 +59,10 @@ const SELF_EVIDENT_FIELDS: ReadonlySet<BriefField> = new Set([
   'reference',
   'sector',
   'segment',
-  'status',
   'ticker',
   'title',
   'valuePct',
+  'verdict',
 ])
 
 const NOTE_SEPARATOR = ', '

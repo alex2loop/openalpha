@@ -514,6 +514,11 @@ A focus call reads as a second opinion, and opens by saying so. It carries level
 
 Each suggestion is later checked against the bars that followed it. It ends as `target`, `stop` or `expired`, with its return and, where the market has a benchmark, the benchmark's return over the same window.
 
+Notices, `/reflect`, the brief and the office name a result from its status and its return together:
+
+- A target whose runner gave the gain back, so the trade as a whole netted zero or less, counts as a miss.
+- A stop the trail had raised above entry, so the trade kept a gain, counts as a win.
+
 If the benchmark comes from a stale cache, or ends more than a session before the exit, you get no comparison at all rather than one over a shorter span.
 
 **Window.** A call is read at the end of its own holding window.
