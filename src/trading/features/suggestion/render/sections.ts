@@ -32,8 +32,8 @@ const SOURCE_PREVIEW_LIMIT = 5
 const INVALIDATOR_LINES = 5
 const WITHHELD_KEY_SUFFIX = 'Withheld'
 
-/** The conditions always break the idea the levels were framed on. On a hold that idea was not
- *  taken, so "I am wrong if" would read as the wait being wrong: the title names the idea instead. */
+/** The conditions always break the idea the levels were framed on. On a hold that idea is still
+ *  waiting, so "I am wrong if" would read as the wait being wrong: the title says to drop the idea. */
 const IDEA_TITLE_KEYS = Object.freeze({
   buy: 'trading.render.suggestion.invalidatorsBuyIdea',
   reduce: 'trading.render.suggestion.invalidatorsReduceIdea',
