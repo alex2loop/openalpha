@@ -229,7 +229,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 
 # [log]
 # level = "info"            # debug | info | warn | error | fatal
-# file = "logs/daemon.log"  # relative paths join data_dir
+# file = "logs/daemon.log"  # relative paths join data_dir; written as daemon.log.1, .2... (highest = newest)
 # max_file_mb = 50          # rotate before the current segment exceeds this
 # max_files = 7             # rotated segments retained, plus the current one
 

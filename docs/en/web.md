@@ -102,7 +102,7 @@ The web version can only read sources that let a browser call them directly. Whe
 
 | Missing | Effect |
 |---|---|
-| The exchanges' warning and control list | A name's warning flag does not show |
+| The exchanges' warning and control list | A name's warning flag does not show, and `/screen` does not leave out names under warning or control. `/screen`, and the brief when it drops a watchlist name, say the list was not checked |
 | State Bank of Vietnam policy rates | The VN macro block lacks this item |
 | FRED series (dollar index, VIX, S&P 500) | The US macro block lacks the first two, and the World markets block has no S&P 500 row |
 | US stocks | No price, screen or ledger for US stocks |

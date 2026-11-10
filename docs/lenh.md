@@ -774,6 +774,13 @@ Các khối dẫn đầu và bị loại bao quát danh sách theo dõi của b�
 sự kiện doanh nghiệp và tiêu đề tin vẫn bao quát các mã giao dịch nhiều nhất của thị trường, nên một bản
 tin không có danh sách theo dõi chỉ ngắn hơn chứ không trống hơn.
 
+#### Khi chưa đọc được danh sách của sở
+
+Khối mã bị loại và khối thay đổi trên bảng lọc đối chiếu mã với danh sách cảnh báo, kiểm soát của sở,
+như `/screen`. Khi một trong hai khối đó hiện mà chưa đọc được danh sách, hoặc phải dùng danh sách của
+một ngày trước, ghi chú ở cuối bản tin nói rõ. Ngày nào cả hai khối đều không hiện thì bản tin không có
+ghi chú này, vì không có gì trong đó được xếp hạng theo các danh sách ấy.
+
 #### Bản tin khi chưa có sổ
 
 Trước khi bạn ghi giao dịch đầu tiên, bản tin bỏ những phần chỉ sổ mới điền được: khối tiền mặt dự

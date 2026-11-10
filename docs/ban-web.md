@@ -102,7 +102,7 @@ Bản web chỉ đọc được những nguồn cho phép trình duyệt gọi t
 
 | Thiếu | Ảnh hưởng |
 |---|---|
-| Danh sách cảnh báo và kiểm soát của sở giao dịch | Cờ cảnh báo của một mã không hiện |
+| Danh sách cảnh báo và kiểm soát của sở giao dịch | Cờ cảnh báo của một mã không hiện, và màn lọc không loại mã thuộc diện cảnh báo hay kiểm soát. Màn lọc, và bản tin khi có mã bị loại khỏi danh sách theo dõi, nói rõ danh sách chưa được đối chiếu |
 | Lãi suất chính sách của Ngân hàng Nhà nước | Phần vĩ mô VN thiếu mục này |
 | Chuỗi FRED (chỉ số đô la, VIX, S&P 500) | Phần vĩ mô Mỹ thiếu hai mục đầu, và khối Thị trường thế giới không có dòng S&P 500 |
 | Cổ phiếu Mỹ | Không có giá, màn lọc hay sổ cho cổ phiếu Mỹ |

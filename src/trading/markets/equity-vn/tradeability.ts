@@ -225,6 +225,11 @@ export function toVnExchange(raw: string | undefined): VnExchange | undefined {
   return VN_EXCHANGES.find((exchange) => exchange === named)
 }
 
+/** The listing exchange, resolved the same way `resolveTradeability` does. */
+export function exchangeOf(record: InstrumentRecord): VnExchange {
+  return toVnExchange(record.exchange) ?? PRIMARY_EXCHANGE
+}
+
 /** The grid a name trades on, read off its stored record: a name the universe does not hold prices
  *  on the primary exchange's table, as `resolveTradeability` does for an unknown exchange. */
 export async function resolveVnTickSize(

@@ -8,8 +8,7 @@ import { flightCache } from '@/core/utils/concurrency'
 import { canonicalJson, hashString } from '@/core/utils/hash'
 import { severest } from '@/trading/kernel/market/supervision'
 import { ADMITTED_EXCHANGES, VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
-import { exchangeOf } from '@/trading/markets/equity-vn/screen'
-import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
+import { exchangeOf, toVnExchange } from '@/trading/markets/equity-vn/tradeability'
 import { CAVEAT_SUBJECT_SEPARATOR } from '@/trading/render/format'
 
 /** Which boards this pass actually read, kept as coverage rather than as caveats: what the gap
@@ -120,12 +119,16 @@ export function toSupervisionStamp(read: SupervisionRead): string {
 /** What a surface owes the reader for the names it judged: the read's own caveats, then what it
  *  missed on the boards those names sit on. */
 export function judgedSupervisionCaveats(
-  read: { readonly caveats: readonly Caveat[]; readonly supervisionCoverage: SupervisionCoverage },
+  board: { readonly caveats: readonly Caveat[]; readonly supervisionCoverage: SupervisionCoverage },
   judged: readonly { readonly record: InstrumentRecord }[]
 ): readonly Caveat[] {
   const boards = new Set(judged.map((name) => exchangeOf(name.record)))
 
-  return [...read.caveats, ...supervisionCaveats(read.supervisionCoverage, boards)]
+  if (!ADMITTED_EXCHANGES.some((exchange) => boards.has(exchange))) {
+    return []
+  }
+
+  return [...board.caveats, ...supervisionCaveats(board.supervisionCoverage, boards)]
 }
 
 /** What the read missed over the boards the caller's population actually occupies. Derived per
