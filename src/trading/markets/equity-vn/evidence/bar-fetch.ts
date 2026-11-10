@@ -96,9 +96,9 @@ export function fetchAllBars(
   })
 }
 
-/** One line for a pass over `total` names fetched in `windows` windows. Every window advances it
- *  once per name, and it moves a name on only when the last window has counted it, so the line
- *  climbs from 0 to `total` once and never goes back. */
+/** One line for a pass over `total` names fetched in `windows` windows. Each window advances it once
+ *  per name and the line shows one name per `windows` advances, so it climbs from 0 to `total` once
+ *  across the windows. Names refetched whole afterwards count on their own line. */
 export function createWindowedProgress(
   scope: EvidenceScope,
   total: number,

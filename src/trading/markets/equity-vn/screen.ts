@@ -22,16 +22,15 @@ import {
   MINIMUM_MARKET_CAP_VND,
   MINIMUM_MEDIAN_TURNOVER_VND,
   MINIMUM_TRADING_FREQUENCY_FRACTION,
-  PRIMARY_EXCHANGE,
   TRADING_FREQUENCY_SESSIONS,
   VOLATILITY_SESSIONS,
 } from '@/trading/markets/equity-vn/policy'
 import {
+  exchangeOf,
   hasForeignRoom,
   isLimitMove,
   resolveBandReference,
   resolveTradeability,
-  toVnExchange,
 } from '@/trading/markets/equity-vn/tradeability'
 import { realizedVolatility } from '@/trading/markets/timeseries'
 import { medianTurnover } from '@/trading/markets/turnover'
@@ -167,11 +166,6 @@ export function toScreenInput(source: ScreenInputSource, asOf: TradingDay): Scre
  *  only spends conviction on others. */
 export function failedGates(candidate: ScreenInput): readonly ScreenGateCode[] {
   return GATES.filter((gate) => !gate.test(candidate)).map((gate) => gate.code)
-}
-
-/** The listing exchange, resolved the same way `resolveTradeability` does. */
-export function exchangeOf(record: InstrumentRecord): VnExchange {
-  return toVnExchange(record.exchange) ?? PRIMARY_EXCHANGE
 }
 
 export function adjustedCloses(bars: readonly BarRecord[]): readonly number[] {

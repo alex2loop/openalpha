@@ -788,6 +788,13 @@ The leading and dropped blocks cover your own watchlist and are absent when it i
 calendar, corporate-event and headline blocks still cover the market's most-traded names, so a brief
 without a watchlist is shorter, not emptier.
 
+#### When the exchange lists could not be read
+
+The dropped-names and board-change blocks judge names against the exchanges' warning and control
+lists, as `/screen` does. When one of those blocks shows and a list could not be read, or an earlier
+day's list stood in for it, a note at the foot of the brief says so. On a day when neither block
+shows, the brief has no such note, because nothing in it was ranked by those lists.
+
 #### A brief with no book
 
 Before your first recorded trade, the brief leaves out what only a book can fill: the cash-reserve
