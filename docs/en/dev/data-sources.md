@@ -449,10 +449,10 @@ unpaced primary was routed first for.
     not clear. `supervisionCache` (`evidence/supervision.ts`) holds the merged read per board day, in as many slots as the
     cross-section cache, so the board, the screened-names stamp and the brief's previous-session board share one read per day.
     `refreshMarketData` clears the held reads as every pass starts, scheduled or forced, so a pass reads the lists as they
-    stand then. A read is kept only when it covers every admitted board (HOSE and HNX). An incomplete one is not kept: the
-    caller gets the last good read instead, with `source.supervision-carried` naming that read's day, or the incomplete read
-    itself while there is none. The last good read survives the clear. The web edition reaches neither provider, so no read is
-    complete, nothing is kept and the page behaves as before.
+    stand then. A read that misses an admitted board (HOSE or HNX) is held too, so a provider that keeps refusing is asked once
+    per pass, not once per board; the caller gets the last good read instead, with `source.supervision-carried` naming that
+    read's day, or the incomplete read itself while there is none. The last good read is the newest complete one and survives
+    the clear. The web edition reaches neither provider, so its held read names no list and the page behaves as before.
 
   `proprietaryFlows` merges for the other reason. It has one provider, but failover would treat an answer of no rows as a
   failure, and here that answer is the useful fact: a desk that traded nothing still closes the gap.
