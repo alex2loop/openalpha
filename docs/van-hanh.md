@@ -414,9 +414,9 @@ vụ viết tay bên dưới, vốn vẫn là cách chạy một máy chủ API.
 
 Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụng khách nối vào.
 
-Nên cấp 1 GB bộ nhớ. Lúc rảnh, dịch vụ nền giữ khoảng 120 MB. Mỗi lần làm mới dữ liệu thị trường,
-nó đọc cả bảng cổ phiếu Việt Nam, nên sau lần đầu sẽ đứng quanh 350 MB, và lên tới khoảng 550 MB
-trong lúc dựng lại bảng. Máy chủ 512 MB sẽ thiếu vào những ngày đó.
+Nên cấp 512 MB bộ nhớ. Lúc rảnh, dịch vụ nền giữ khoảng 100 MB. Bảng cổ phiếu Việt Nam được đọc
+từng mã một và chỉ giữ lại bản tóm tắt ngắn của mỗi mã, nên sau lần đọc đầu dịch vụ đứng quanh
+150 MB và lên tới khoảng 300 MB trong lúc dựng lại bảng. Máy chủ dưới 512 MB chưa được thử.
 
 1. **Cài đặt.** Trên Linux hoặc macOS, chạy script cài đặt trong
    [README](../README.vi.md#bắt-đầu-nhanh) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường

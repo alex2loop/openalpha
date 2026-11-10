@@ -52,9 +52,7 @@ import { averageTurnover, barTurnover, medianTurnover } from '@/trading/markets/
 
 export interface NameEvidence {
   readonly record: InstrumentRecord
-  readonly bars: readonly BarRecord[]
   readonly closes: readonly number[]
-  readonly flows: readonly FlowSnapshot[]
   readonly fundamental: FundamentalSnapshot | null
   /** Absent means the exchange has declared nothing about this name, or nothing could be read. */
   readonly supervision?: SupervisionLevel
@@ -187,25 +185,24 @@ export async function readNameReads(
 export function toNameEvidence(reads: NameReads, context: NameEvidenceContext): NameEvidence {
   const { record, bars, flows, fundamental } = reads
   const supervision = context.supervision.get(record.instrument.ticker)
-  const source = {
-    record,
-    bars,
-    history: toBarHistory(bars),
-    fundamental,
-    closes: adjustedCloses(bars),
-    ...(supervision === undefined ? {} : { supervision }),
-  }
-  const screen = toScreenInput(source, context.asOf)
+  const closes = adjustedCloses(bars)
+  const screen = toScreenInput(
+    { record, bars, closes, fundamental, ...(supervision === undefined ? {} : { supervision }) },
+    context.asOf
+  )
   const failed = failedGates(screen)
   const candles = adjustedCandles(bars)
 
   return {
-    ...source,
-    flows,
+    record,
+    closes,
+    fundamental,
+    history: toBarHistory(bars),
+    ...(supervision === undefined ? {} : { supervision }),
     screened: failed.length === 0,
     failedGates: failed,
     flowReads: toFlowReads(flows, bars),
-    tapeReadings: tapeReadings({ closes: source.closes, flows, bars }),
+    tapeReadings: tapeReadings({ closes, flows, bars }),
     staleFactors: toStaleFactors(reads, context),
     ...definedOnly({
       turnover: medianTurnover(bars, LIQUIDITY_SESSIONS),
