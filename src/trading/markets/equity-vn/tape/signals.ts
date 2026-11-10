@@ -1,5 +1,5 @@
-import type { BarRecord, FlowSnapshot } from '@/trading/kernel/market/market-data'
 import type { TapeReading } from '@/trading/kernel/market/tape'
+import type { AlignedFlow } from '@/trading/markets/equity-vn/tape/flows'
 import {
   FLOW_PERSISTENCE_MINIMUM_SESSIONS,
   FLOW_PERSISTENCE_SESSIONS,
@@ -10,32 +10,27 @@ import {
 import { foreignFlowShares } from '@/trading/markets/equity-vn/tape/flows'
 import { nSessionReturn } from '@/trading/markets/timeseries'
 
-/** The three series a tape signal reads, for the one pass that builds a name's evidence. */
+/** The two series a tape signal reads, for the one pass that builds a name's evidence. */
 interface TapeEvidence {
   readonly closes: readonly number[]
-  readonly flows: readonly FlowSnapshot[]
-  readonly bars: readonly BarRecord[]
+  readonly aligned: readonly AlignedFlow[]
 }
 
 /** The flip fires only after a run: a desk stepping away from a name that has gone nowhere is a
  *  session, not a tell. */
 export function tapeReadings(name: TapeEvidence): readonly TapeReading[] {
-  const { closes, flows, bars } = name
+  const { closes, aligned } = name
   const run = nSessionReturn(closes, TAPE_RUN_SESSIONS)
 
   if (run === undefined || run < TAPE_RUN_MINIMUM_FRACTION) {
     return []
   }
 
-  return foreignFlip(flows, bars, run)
+  return foreignFlip(aligned, run)
 }
 
-function foreignFlip(
-  flows: readonly FlowSnapshot[],
-  bars: readonly BarRecord[],
-  run: number
-): readonly TapeReading[] {
-  const shares = foreignFlowShares(flows, bars)
+function foreignFlip(aligned: readonly AlignedFlow[], run: number): readonly TapeReading[] {
+  const shares = foreignFlowShares(aligned)
   const latest = shares.at(-1)
   const trailing = shares.slice(-FLOW_PERSISTENCE_SESSIONS - 1, -1)
 

@@ -156,18 +156,12 @@ function addReadsTo(totals: PassTotals, reads: NameReads): void {
   }
 }
 
-interface SeriesWindow {
-  readonly fromDay: TradingDay
-  readonly toDay: TradingDay
-  readonly signal: AbortSignal
-}
-
 /** One read per distinct index, keyed by the index rather than the fund: several funds share VN30,
  *  and an index with no stored bars yet is simply absent, which the ETF factors read as abstain.
  *  Bars rather than candles, so a fund's factors cite the source of the series they read. */
 async function loadBenchmarks(
   deps: MarketDeps,
-  window: SeriesWindow
+  window: NameWindow
 ): Promise<ReadonlyMap<Ticker, readonly BarRecord[]>> {
   const indices = [...new Set(ETF_BENCHMARK_BY_TICKER.values())]
   const series = await Promise.all(

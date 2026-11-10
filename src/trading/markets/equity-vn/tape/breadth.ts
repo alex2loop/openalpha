@@ -142,6 +142,8 @@ export function aboveMeanRatios(
   )
 }
 
+/** Cuts only `closes` and `history`: `lastBar` and the other figures still describe the uncut day,
+ *  and nothing that reads a truncated name uses them. */
 function truncatedAt(name: NameEvidence, day: TradingDay): NameEvidence {
   const { days, closes, traded, inCloses } = name.history
   const kept = days.filter((at) => at <= day).length
