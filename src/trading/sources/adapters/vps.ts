@@ -57,7 +57,7 @@ export function createVpsSources(options: SourceAdapterOptions): readonly Regist
  *  into vndirect's adjusted set would restate a split as a crash. Its volume is matched orders
  *  alone — measured 17% under vietcap's, which adds the put-through leg after the session — so it
  *  may never stand behind a provider whose turnover a factor reads. The ETF benchmark closes it is
- *  here for are identical to vietcap's over 707 sessions, and `isRestated` weighs the close. */
+ *  here for are identical to vietcap's over 707 sessions, and `restatementOf` weighs the close. */
 function barsSource(options: SourceAdapterOptions): RegisteredSource {
   return createSource({
     id: VPS_ID,

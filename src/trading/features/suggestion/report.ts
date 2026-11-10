@@ -26,7 +26,6 @@ import {
   MINIMUM_TRACK_RECORD_SAMPLE,
 } from '@/trading/features/suggestion/pipeline/reporting'
 import { renderSuggestionText } from '@/trading/features/suggestion/render/suggestion'
-import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
 import { marketRoundTripRate, marketTradeCost } from '@/trading/markets/cost'
 import { toMarkdownText, withoutFolds } from '@/trading/render/fold'
 import { resolveRenderContext, TOOL_SURFACE } from '@/trading/render/format'
@@ -188,23 +187,20 @@ async function resolveCalibration(
 
 /** The per-factor half of the calibration question, read only for the full report: it costs a
  *  query and prints one row per factor. Unscoped by strategy version - a factor's own reading is
- *  the same measurement across versions, and `/factors` reads the identical window. */
+ *  the same measurement across versions. It reads the population `/reflect` does (folded, then cut,
+ *  matured calls only), so `/factors` and `/reflect` print one breakdown. */
 async function resolveFactorRecord(
   deps: SuggestionReportDeps,
   signal: AbortSignal
 ): Promise<readonly FactorAttribution[] | undefined> {
-  const rows = await bestEffort(() =>
-    deps.suggestions.listResolved({
-      focusKeys: [DEFAULT_FOCUS_KEY],
-      limit: SURFACE_LIMITS.maximumTrackRecordItems,
-      signal,
-    })
+  const report = await bestEffort(() =>
+    deps.suggestions.summarize({ limit: SURFACE_LIMITS.maximumTrackRecordItems, signal })
   )
 
-  return rows === undefined
+  return report === undefined
     ? undefined
     : summarizeFactorAttribution(
-        independentCalls(rows).map((row) =>
+        independentCalls(report.recent).map((row) =>
           suggestionScoredRow(row, marketRoundTripRate(deps, row.instrument.market))
         ),
         MINIMUM_TRACK_RECORD_SAMPLE

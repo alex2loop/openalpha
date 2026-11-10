@@ -94,6 +94,14 @@ interface FoldableCall {
   readonly outcome: { readonly exitDay: TradingDay }
 }
 
+/** What a scored call states of the versions it was made under, which `LeanCall` and
+ *  `ResolvedActionableSuggestion` both carry. */
+interface VersionedCall {
+  readonly strategyVersion: string
+  readonly calculationVersions: readonly CalculationVersion[]
+  readonly outcome: { readonly formulaVersion?: string }
+}
+
 /** A call repeating one still open on the same name and side rides the same move, so only the
  *  first counts: the brief re-issues a held idea every session, and each row would otherwise
  *  stand as another independent outcome. */
@@ -172,14 +180,6 @@ function groupByVersion(lean: readonly LeanCall[]): readonly TrackRecordVersionC
     calculationVersions: group.versions,
     resolvedCount: independentCalls(group.calls).length,
   }))
-}
-
-/** What a scored call states of the versions it was made under, which `LeanCall` and
- *  `ResolvedActionableSuggestion` both carry. */
-interface VersionedCall {
-  readonly strategyVersion: string
-  readonly calculationVersions: readonly CalculationVersion[]
-  readonly outcome: { readonly formulaVersion?: string }
 }
 
 /** The crossing rule joins the tuple the population groups by: it decides what counts as a win, so

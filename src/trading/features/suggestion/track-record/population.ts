@@ -42,7 +42,8 @@ export async function readScoredPopulation(
     signal: options.signal,
   })
 
-  // Fold every call: an early repeat of a mature call is part of that move, not a separate wait.
+  // Folded over every call, so within one horizon an early repeat of a mature call is part of that
+  // move, not a separate wait. Across horizons a chain is counted by its first call, an undercount.
   const earlyCount = independentCalls(included).length - independentCalls(lean).length
 
   return { calls, lean, earlyCount }

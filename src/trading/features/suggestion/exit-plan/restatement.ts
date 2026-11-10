@@ -25,18 +25,6 @@ interface RestatedName {
 
 type Settled = 'closed' | 'rebased'
 
-/** The names a refresh pass rebuilt, as instruments. A kind reports its subjects as plain strings so
- *  the kernel result stays free of a market's own types, and each one came from a `Ticker`, so the
- *  re-brand is a widening back to what the market already held. */
-function restatedNames(result: RefreshMarketDataResult): readonly RestatedName[] {
-  return result.results.flatMap((kind) =>
-    (kind.restatedTargets ?? []).map(({ target, rebase }) => ({
-      instrument: { market: result.market, ticker: ticker(target) },
-      ...(rebase === undefined ? {} : { rebase }),
-    }))
-  )
-}
-
 /** A rebuilt series leaves every plan priced on the old basis describing a trade that no longer
  *  exists. A clean re-basing (one factor, a dividend or a split) converts them to the new scale and
  *  they keep counting; any other restatement clears them, which is what lets the next exit tick
@@ -74,6 +62,18 @@ export async function settleRestatedPlans(
   if (closed.length > 0 || rebased.length > 0) {
     await announce(deps, { closed, rebased }, signal)
   }
+}
+
+/** The names a refresh pass rebuilt, as instruments. A kind reports its subjects as plain strings so
+ *  the kernel result stays free of a market's own types, and each one came from a `Ticker`, so the
+ *  re-brand is a widening back to what the market already held. */
+function restatedNames(result: RefreshMarketDataResult): readonly RestatedName[] {
+  return result.results.flatMap((kind) =>
+    (kind.restatedTargets ?? []).map(({ target, rebase }) => ({
+      instrument: { market: result.market, ticker: ticker(target) },
+      ...(rebase === undefined ? {} : { rebase }),
+    }))
+  )
 }
 
 /** A clean re-basing converts the name's plans; when that fails, or the restatement has no factor,

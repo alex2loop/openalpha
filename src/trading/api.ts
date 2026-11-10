@@ -209,8 +209,6 @@ export { disabledSegments } from '@/trading/kernel/operator/profile'
 
 // ── Values ───────────────────────────────────────────────────────────────────
 
-// ── Values ───────────────────────────────────────────────────────────────────
-
 export { renderAlertNotice } from '@/trading/features/alerts/render'
 export { parseExitLevel } from '@/trading/features/alerts/types'
 export { renderBriefText } from '@/trading/features/brief/render'

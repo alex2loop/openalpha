@@ -32,7 +32,8 @@ export interface ListResolvedSuggestionsOptions {
 export interface ScoredPopulation {
   readonly calls: readonly ResolvedActionableSuggestion[]
   readonly lean: readonly LeanCall[]
-  /** Calls left out because their outcome window had not elapsed. */
+  /** Independent calls (repeats folded, not rows) left out because their outcome window had not
+   *  elapsed. */
   readonly earlyCount: number
 }
 

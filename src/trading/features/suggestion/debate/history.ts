@@ -2,7 +2,9 @@ import type { DebateDeps } from '@/trading/features/suggestion/debate/call'
 import type { DebateInput } from '@/trading/features/suggestion/pipeline/types'
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type { ResolvedActionableSuggestion } from '@/trading/features/suggestion/types'
+import type { OutcomeVerdict } from '@/trading/kernel/outcome-verdict'
 import { independentCalls } from '@/trading/features/suggestion/pipeline/reporting'
+import { outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
 import { promptRatio, promptSignedPercent, promptWholePercent } from '@/trading/prompt-text'
 
 const CALIBRATION_HEADER =
@@ -12,6 +14,13 @@ const MAXIMUM_RECENT_OUTCOMES = 3
 /** Enough rows that a run of daily re-issues folded away still leaves three distinct calls. */
 const RECENT_OUTCOMES_READ = 20
 const BLOCK_SEPARATOR = '\n\n'
+const VERDICT_WORDING = {
+  target: 'hit target',
+  'target-gave-back': 'reached target but the trade netted a loss',
+  stop: 'stopped out',
+  'stop-in-profit': 'stopped out in profit',
+  expired: 'window ended',
+} as const satisfies Record<OutcomeVerdict, string>
 
 /** A band that cleared the reporting minimum on resolved rows. The beat rate rides the same line
  *  when its own sample cleared it too. Named for the band rather than the bucket: `RatedBucket` in
@@ -79,10 +88,11 @@ function recentParagraph(rows: readonly ResolvedActionableSuggestion[]): string 
 }
 
 function toRecentLine(row: ResolvedActionableSuggestion): string {
-  const { benchmarkReturnPct, returnPct, status } = row.outcome
+  const { benchmarkReturnPct, returnPct } = row.outcome
   const against =
     benchmarkReturnPct === undefined ? '' : ` (index ${promptSignedPercent(benchmarkReturnPct)})`
-  const settled = `${status} ${promptSignedPercent(returnPct)}${against}`
+  const verdict = VERDICT_WORDING[outcomeVerdictOf(row.outcome)]
+  const settled = `${verdict} ${promptSignedPercent(returnPct)}${against}`
 
   return `${row.at}: ${row.conviction} ${row.action} · ${settled}`
 }

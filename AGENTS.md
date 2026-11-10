@@ -301,6 +301,8 @@ Scoring a call:
 - Exit ladder: a buy stamps the profile's `takeProfitTranchePct`; the scorer banks that share at `takeProfit` and the rest rides the trail (row pending until the rest closes or the window ends). A review level, a no-trail market, a reduce and a row stamped before the tranche exit whole at the target.
 - `takeProfit` is where `takeProfitRiskMultiplier` banks the share (one risk unit out on VN shares, long crypto, long gold); it is the target where the policy names none (`VN_FUND_LEVEL_POLICY` names none).
 - `TradeLevels.reviewOnly` marks a level with nothing armed; the row carries `reviewOnly`; `armsExit` reads only that. A VN fund is reviewed, never stopped or trailed (its level policy declares no trail, which would only clamp the fresh review level): closed at the target or the window's last close.
+- A call counts in any rate only once its outcome window has passed (`splitByMaturity`, `resolveMaturedCutoff`); the calls still waiting are said once as the `reporting.awaiting-window` caveat, never counted.
+- `outcomeVerdictOf` names a scored result on every surface (CLI, channels, brief, office page, debate history): a target given back is a miss, a stop kept in profit is a win; the name follows the return, never the status alone.
 
 Gates and ratios:
 - R:R and reward gates read the target, except the break-even probability floor, which reads the first exit over entry-relative risk net of the round trip the scorer charges and the cost line prints (`marketTradeCost` at the market's default venue). The void line (don't-chase price, `levels-void`) follows the same rule but never sits past the take-profit.

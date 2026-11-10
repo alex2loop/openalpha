@@ -11,7 +11,7 @@ import type { OutcomeStatus, SuggestionAction } from '@/trading/kernel/convictio
 import type { InstrumentRef, MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
-import { assertNotAborted } from '@/core/errors'
+import { assertNotAborted, StorageError } from '@/core/errors'
 import { readableRow } from '@/trading/features/suggestion/store/readable-row'
 import { buildResolvedWhere } from '@/trading/features/suggestion/store/suggestion-outcome'
 import {
@@ -118,6 +118,13 @@ export function leanCallColumns(dialect: Dialect): string {
 
 export function toLeanCall(row: LeanCallRow): LeanCall {
   const formulaVersion = row.formula_version
+  const horizon = readableHorizonSchema.safeParse(
+    requireColumn(row.horizon, `suggestion ${row.id} has no horizon`)
+  )
+
+  if (!horizon.success) {
+    throw new StorageError(`suggestion ${row.id} has an unreadable horizon`, horizon.error)
+  }
 
   return {
     id: suggestionId(row.id),
@@ -126,9 +133,7 @@ export function toLeanCall(row: LeanCallRow): LeanCall {
     instrument: { market: marketRef(row.market), ticker: brandTicker(row.ticker) },
     at: tradingDay(row.day),
     action: toMember<SuggestionAction>(row.action, SUGGESTION_ACTIONS, 'suggestion action'),
-    horizon: readableHorizonSchema.parse(
-      requireColumn(row.horizon, `suggestion ${row.id} has no horizon`)
-    ),
+    horizon: horizon.data,
     strategyVersion: row.strategy_version,
     calculationVersions: parseJson(
       requireColumn(row.calculation_versions, `suggestion ${row.id} has no calculation versions`),
