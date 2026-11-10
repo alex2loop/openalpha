@@ -28,7 +28,7 @@ export async function readScoredPopulation(
   const { isIncluded, limit, markets, now, ...options } = query
   const all = await deps.store.listLeanCalls(options)
   const included = isIncluded === undefined ? all : all.filter(isIncluded)
-  const { mature: lean } = splitByMaturity(included, { markets, now })
+  const { mature: lean, early } = splitByMaturity(included, { markets, now })
   const ids = [...independentCalls(lean)]
     .sort(compareNewestFirst)
     .slice(0, limit)
@@ -42,9 +42,10 @@ export async function readScoredPopulation(
     signal: options.signal,
   })
 
-  // Folded over every call, so within one horizon an early repeat of a mature call is part of that
-  // move, not a separate wait. Across horizons a chain is counted by its first call, an undercount.
-  const earlyCount = independentCalls(included).length - independentCalls(lean).length
+  // Folded over every call, so an early repeat of a mature call is part of that move, not a
+  // separate wait: only a chain that starts on an early call is still waiting.
+  const waiting = new Set<LeanCall>(early)
+  const earlyCount = independentCalls(included).filter((call) => waiting.has(call)).length
 
   return { calls, lean, earlyCount }
 }

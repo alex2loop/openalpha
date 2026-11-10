@@ -25,7 +25,7 @@ import { marketRoundTripRate } from '@/trading/markets/cost'
 
 // The operator's record unless a focus is named: a focus call is a second opinion the operator
 // never acted on. Every read placed beside the track record counts the same population.
-export const BOOK_FOCUS_KEYS = [DEFAULT_FOCUS_KEY]
+export const BOOK_FOCUS_KEYS = Object.freeze([DEFAULT_FOCUS_KEY])
 
 interface ReflectDeps {
   readonly store: Pick<SuggestionStore, 'listLeanCalls' | 'listResolved' | 'coverage'>

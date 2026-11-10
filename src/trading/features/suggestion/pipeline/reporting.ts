@@ -29,7 +29,8 @@ export const MINIMUM_TRACK_RECORD_SAMPLE = 20
 /** The type signature does the enforcing: `ResolvedActionableSuggestion` excludes holds and
  *  unresolved rows, so mixing them into performance is impossible rather than discouraged.
  *  Metrics read the population's newest independent calls; the repeat count and the version
- *  breakdown read every call it holds. Coverage is left out: it counts the whole book. */
+ *  breakdown read every matured call it holds, while the mixed-versions caveat speaks only of the
+ *  calls the metrics count. Coverage is left out: it counts the whole book. */
 export function summarizeTrackRecord(
   population: ScoredPopulation,
   minimumSampleSize: number
@@ -49,21 +50,23 @@ export function summarizeTrackRecord(
     })
   }
 
-  const versions = groupByVersion(population.lean)
+  const countedVersions = new Set(
+    rows.map((row) => versionKey(row.strategyVersion, versionsOf(row)))
+  )
 
   // A lean population and a full population cost different amounts and must never blend silently;
   // the debate mode is one of the grouped calculation versions, so this catches that too.
-  if (versions.length > 1) {
+  if (countedVersions.size > 1) {
     caveats.push({
       code: 'reporting.mixed-strategy-versions',
-      detail: { versions: versions.length },
+      detail: { versions: countedVersions.size },
     })
   }
 
   return {
     ...metrics(rows),
     resolvedNameCount: nameCount(rows),
-    versions,
+    versions: groupByVersion(population.lean),
     debateModels: groupByDebateModel(rows, minimumSampleSize),
     focuses: groupByFocus(rows, minimumSampleSize),
     calibration: calibrationByBand(rows, minimumSampleSize),

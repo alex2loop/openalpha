@@ -27,13 +27,14 @@ export interface ListResolvedSuggestionsOptions {
   readonly signal: AbortSignal
 }
 
-/** The scored calls a track record reads: every one in `lean`, so repeats and versions are counted
- *  over the whole book, and the newest independent ones in `calls`, with their payloads. */
+/** The scored calls a track record reads: every matured one in `lean`, so repeats and versions are
+ *  counted over the whole matured book, and the newest independent ones in `calls`, with their
+ *  payloads. Calls whose window has not passed are not held, only counted in `earlyCount`. */
 export interface ScoredPopulation {
   readonly calls: readonly ResolvedActionableSuggestion[]
   readonly lean: readonly LeanCall[]
-  /** Independent calls (repeats folded, not rows) left out because their outcome window had not
-   *  elapsed. */
+  /** Independent calls (repeats folded, not rows) left out of `lean` because their outcome window
+   *  had not elapsed. */
   readonly earlyCount: number
 }
 

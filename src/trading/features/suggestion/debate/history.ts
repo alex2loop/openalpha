@@ -16,7 +16,7 @@ const RECENT_OUTCOMES_READ = 20
 const BLOCK_SEPARATOR = '\n\n'
 const VERDICT_WORDING = {
   target: 'hit target',
-  'target-gave-back': 'reached target but the trade netted a loss',
+  'target-gave-back': 'reached target but the trade ended flat or at a loss',
   stop: 'stopped out',
   'stop-in-profit': 'stopped out in profit',
   expired: 'window ended',

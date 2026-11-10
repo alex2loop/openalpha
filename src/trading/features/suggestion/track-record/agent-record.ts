@@ -2,6 +2,7 @@ import type {
   AgentFocusRecord,
   AgentFocusStore,
 } from '@/trading/features/suggestion/store/agent-focus'
+import type { CallAction } from '@/trading/features/suggestion/store/call-actions'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { LeanCall } from '@/trading/features/suggestion/store/suggestion-lean'
 import type {
@@ -166,6 +167,25 @@ interface RecordInputs {
   readonly overlapping: readonly FocusOverlap[]
 }
 
+/** A call whose window has not passed is unscored here too, so agreement wins count only matured
+ *  calls, as the record does. */
+function withoutEarlyReturns(
+  calls: readonly CallAction[],
+  mature: readonly LeanCall[]
+): readonly CallAction[] {
+  const matureIds = new Set<string>(mature.map((call) => call.id))
+
+  return calls.map((call) => {
+    if (call.returnPct === undefined || matureIds.has(call.id)) {
+      return call
+    }
+
+    const { returnPct: _early, ...unscored } = call
+
+    return unscored
+  })
+}
+
 /** Three reads, once per listing: the focuses agents have used, the scored calls, and the lean call
  *  actions. Never one read per agent. */
 async function readRecordInputs(
@@ -181,13 +201,12 @@ async function readRecordInputs(
     deps.store.listLeanCalls({ signal }),
     deps.store.listCallActions({ sinceDay, signal }),
   ])
-  const comparisons = { calls, siblings: siblingsOf(focuses) }
+  const { mature } = splitByMaturity(scored, { markets: deps.markets, now: options.now })
+  const comparisons = { calls: withoutEarlyReturns(calls, mature), siblings: siblingsOf(focuses) }
 
   return {
     focuses,
-    counts: countByFocus(
-      splitByMaturity(scored, { markets: deps.markets, now: options.now }).mature
-    ),
+    counts: countByFocus(mature),
     agreements: new Map(summarizeAgreement(comparisons).map((row) => [row.focusKey, row])),
     overlapping: summarizeOverlaps(comparisons).filter(isOverlapping),
   }
