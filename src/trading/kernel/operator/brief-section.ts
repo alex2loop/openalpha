@@ -69,7 +69,7 @@ export type BriefSectionKind = (typeof BRIEF_SECTION_ORDER)[number]
  *  already gated by their own enums, but a title that gains a placeholder is not, and an older
  *  payload renders it as the literal `{sessions}`. Bump whenever a section title, its params, a
  *  section-level key, or which block a kind is grouped into changes. */
-export const BRIEF_RENDER_VERSION = 20
+export const BRIEF_RENDER_VERSION = 21
 
 /** Kinds a market's overview converter emits, so no brief builder produces them. Compose's builder
  *  record excludes them, which is what keeps that record exhaustive. A kind only the whole-market

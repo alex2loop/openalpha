@@ -897,8 +897,9 @@ Một mục hỏng **không bao giờ** làm mất các mục còn lại: bản 
 ### 6.6 Bảng điểm tháng
 
 Đây là một **mục trong bản tin sáng**, không phải lệnh riêng. Mỗi tháng dương lịch nó xuất hiện đúng
-một lần, in: bao nhiêu đề xuất đã chốt kết quả, bao nhiêu vẫn đang mở, và tỷ lệ thắng. Nó để bạn nhìn
-lại thành tích thật ít nhất mỗi tháng một lần, kể cả khi bạn không tự gõ `/reflect`.
+một lần, in: bao nhiêu đề xuất đã chốt kết quả và đã hết thời hạn theo dõi, bao nhiêu vẫn đang mở,
+và tỷ lệ thắng. Nó để bạn nhìn lại thành tích thật ít nhất mỗi tháng một lần, kể cả khi bạn không tự
+gõ `/reflect`.
 
 - **Đếm theo lần giao, không theo bản tin.** Bản tin đầu tháng chưa có đề xuất nào chốt thì mục này
   bị bỏ qua và sẽ hiện ở một bản tin muộn hơn trong tháng - không mất tháng đó.
