@@ -126,6 +126,30 @@ export function resolveBandReference(
   return undefined
 }
 
+/** A name's bars as columns: every bar's day and raw close, oldest first. */
+interface BandHistory {
+  readonly days: readonly TradingDay[]
+  readonly closes: readonly number[]
+}
+
+/** `resolveBandReference` read off a name's columns instead of its candles: the same rule, for the
+ *  readers that no longer hold the bars. */
+export function resolveHistoryBandReference(
+  history: BandHistory,
+  asOf: TradingDay
+): number | undefined {
+  for (let index = history.days.length - 1; index >= 0; index -= 1) {
+    const day = history.days[index]
+    const close = history.closes[index]
+
+    if (day !== undefined && day < asOf && close !== undefined && close > 0) {
+      return close
+    }
+  }
+
+  return undefined
+}
+
 type DirectionBlock =
   | { readonly kind: 'allowed' }
   | { readonly kind: 'blocked'; readonly caveat: Caveat }

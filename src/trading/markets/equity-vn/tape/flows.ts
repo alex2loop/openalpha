@@ -103,19 +103,14 @@ export function proprietaryFlowValue(
     : null
 }
 
-/** One snapshot per session, summed across every name that reported one and carried under the
- *  instrument the caller names for the market. Proprietary net is present only where some name
- *  reported it: a desk no source covers must not read as one that traded nothing. */
+/** The market's per-session totals, folded by `addFlowTo`, as snapshots oldest first, each carried
+ *  under the instrument the caller names for the market rather than the first name's. Proprietary
+ *  net is present only where some name reported it: a desk no source covers must not read as one
+ *  that traded nothing. */
 export function marketFlowSnapshots(
-  flows: readonly FlowSnapshot[],
+  byDay: ReadonlyMap<TradingDay, FlowSnapshot>,
   instrument: InstrumentRef
 ): readonly FlowSnapshot[] {
-  const byDay = new Map<TradingDay, FlowSnapshot>()
-
-  for (const flow of flows) {
-    addFlowTo(byDay, flow)
-  }
-
   return [...byDay.values()]
     .sort((left, right) => left.at.localeCompare(right.at))
     .map((total) => ({ ...total, instrument }))

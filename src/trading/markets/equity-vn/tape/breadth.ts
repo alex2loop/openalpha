@@ -7,7 +7,7 @@ import type {
   MarketBreadthComponents,
 } from '@/trading/kernel/market/market-overview'
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
-import { sessionBar } from '@/trading/markets/equity-vn/factors/factors'
+import { isTradedOn } from '@/trading/markets/equity-vn/factors/factors'
 import {
   LONG_TREND_SESSIONS,
   TREND_SESSIONS,
@@ -16,7 +16,10 @@ import {
   VN_MA_SESSIONS,
   VN_TURNOVER_REFERENCE_SESSIONS,
 } from '@/trading/markets/equity-vn/policy'
-import { resolveBandReference, resolveTradeability } from '@/trading/markets/equity-vn/tradeability'
+import {
+  resolveHistoryBandReference,
+  resolveTradeability,
+} from '@/trading/markets/equity-vn/tradeability'
 import { averageSlope, sessionChange, trendDistance } from '@/trading/markets/timeseries'
 
 /** The index ratios a basket's names answer for, each with the mean its names are measured against. */
@@ -105,9 +108,8 @@ export function toBreadth(
   }
 }
 
-/** `toBreadth` as the market stood at `day`: every name cut to the bars dated on or before it. The
- *  cut keeps `bars` and `closes` the same length, which they are index-aligned to be. Absent when no
- *  name settled that day. */
+/** `toBreadth` as the market stood at `day`: every name cut to the bars dated on or before it, its
+ *  `closes` cut to the same bars. Absent when no name settled that day. */
 export function breadthAt(
   names: readonly NameEvidence[],
   day: TradingDay,
@@ -129,7 +131,7 @@ export function aboveMeanRatios(
 ): Partial<Record<IndexRatioId, number>> {
   const settled = names
     .map((name) => truncatedAt(name, day))
-    .filter((name) => sessionBar(name, day) !== undefined)
+    .filter((name) => isTradedOn(name, day))
 
   return Object.fromEntries(
     MEAN_RATIO_WINDOWS.flatMap(([id, window]) => {
@@ -141,9 +143,19 @@ export function aboveMeanRatios(
 }
 
 function truncatedAt(name: NameEvidence, day: TradingDay): NameEvidence {
-  const kept = name.bars.filter((bar) => bar.candle.at <= day).length
+  const { days, closes, traded, inCloses } = name.history
+  const kept = days.filter((at) => at <= day).length
 
-  return { ...name, bars: name.bars.slice(0, kept), closes: name.closes.slice(0, kept) }
+  return {
+    ...name,
+    closes: name.closes.slice(0, inCloses.slice(0, kept).filter(Boolean).length),
+    history: {
+      days: days.slice(0, kept),
+      closes: closes.slice(0, kept),
+      traded: traded.slice(0, kept),
+      inCloses: inCloses.slice(0, kept),
+    },
+  }
 }
 
 /** The index series as it stood at `asOf`, or nothing when it does not reach that session. Every
@@ -227,16 +239,13 @@ function toComponents(tally: Tally): MarketBreadthComponents {
  *  and the tick rounding an exchange quotes them on — recomputing them from a percentage here would
  *  miss every name by a tick. */
 function count(tally: Tally, name: NameEvidence, asOf: TradingDay): void {
-  if (sessionBar(name, asOf) === undefined) {
+  if (!isTradedOn(name, asOf)) {
     return
   }
 
   const change = sessionChange(name.closes)
   const close = name.closes[name.closes.length - 1]
-  const reference = resolveBandReference(
-    name.bars.map((bar) => bar.candle),
-    asOf
-  )
+  const reference = resolveHistoryBandReference(name.history, asOf)
 
   if (change === undefined || close === undefined || reference === undefined) {
     return

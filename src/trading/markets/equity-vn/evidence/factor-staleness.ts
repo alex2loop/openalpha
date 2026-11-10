@@ -46,11 +46,8 @@ export type StaleFactors = 'all' | readonly FactorId[]
  *  what lets conviction fall without the factor abstaining outright. */
 export function withStaleCaveats<K extends FactorId>(
   inputs: readonly FactorInput<K>[],
-  evidence: DatedEvidence,
-  freshFrom: TradingDay
+  stale: StaleFactors
 ): readonly FactorInput<K>[] {
-  const stale = staleFactorsOf(evidence, freshFrom)
-
   if (stale !== 'all' && stale.length === 0) {
     return inputs
   }
@@ -67,32 +64,30 @@ export function withStaleCaveats<K extends FactorId>(
  *  whose own source lags that tape, each by its own publication calendar: measuring against
  *  `freshFrom` instead would let a leg ending a session before it go unreported. */
 export function staleFactorsOf(evidence: DatedEvidence, freshFrom: TradingDay): StaleFactors {
-  const tape = evidence.bars[evidence.bars.length - 1]?.candle.at
+  const { bars, flows, fundamental, benchmarkAt } = evidence
+  const tape = bars[bars.length - 1]?.candle.at
 
   if (tape === undefined) {
     return []
   }
 
-  if (
-    tape < freshFrom ||
-    isLagging(evidence.benchmarkAt, evidence.bars, BENCHMARK_LAG_TOLERANCE_SESSIONS)
-  ) {
+  if (tape < freshFrom || isLagging(benchmarkAt, bars, BENCHMARK_LAG_TOLERANCE_SESSIONS)) {
     return 'all'
   }
 
   const stale: FactorId[] = []
-  const foreignAt = newestFlowDay(evidence.flows, (flow) => flow.foreignNetValue)
-  const proprietaryAt = newestFlowDay(evidence.flows, (flow) => flow.proprietaryNetValue)
+  const foreignAt = newestFlowDay(flows, (flow) => flow.foreignNetValue)
+  const proprietaryAt = newestFlowDay(flows, (flow) => flow.proprietaryNetValue)
 
-  if (isLagging(foreignAt, evidence.bars, FOREIGN_LAG_TOLERANCE_SESSIONS)) {
+  if (isLagging(foreignAt, bars, FOREIGN_LAG_TOLERANCE_SESSIONS)) {
     stale.push('foreign-flow')
   }
 
-  if (isLagging(proprietaryAt, evidence.bars, PROPRIETARY_LAG_TOLERANCE_SESSIONS)) {
+  if (isLagging(proprietaryAt, bars, PROPRIETARY_LAG_TOLERANCE_SESSIONS)) {
     stale.push('proprietary-flow')
   }
 
-  if (isLagging(evidence.fundamental?.asOf, evidence.bars, FUNDAMENTAL_LAG_TOLERANCE_SESSIONS)) {
+  if (isLagging(fundamental?.asOf, bars, FUNDAMENTAL_LAG_TOLERANCE_SESSIONS)) {
     stale.push(...FUNDAMENTAL_FACTOR_IDS)
   }
 

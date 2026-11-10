@@ -10,7 +10,6 @@ import {
 } from '@/trading/markets/equity-vn/factors/fundamental-ranks'
 import { SECTOR_RANK_MINIMUM_MEMBERS } from '@/trading/markets/equity-vn/policy'
 import { toBreadth } from '@/trading/markets/equity-vn/tape/breadth'
-import { type BarsManifest, boardBarReadings } from '@/trading/markets/name-readings'
 import { median } from '@/trading/markets/timeseries'
 
 /** The readings a sector median is taken of: the multiples, the return on equity and the earnings
@@ -50,18 +49,13 @@ export function nameContext(cross: CrossSection, evidence: NameEvidence): NameCo
  *  of it comes off the pass the screen already made. */
 export function boardReadings(
   cross: CrossSection,
-  evidence: NameEvidence,
-  manifest: BarsManifest
+  evidence: NameEvidence
 ): readonly FactorMetric[] {
   const room = foreignRoomLeft(evidence.record)
   const sectorPe = sectorMedians(cross, evidence)?.medians.find(({ id }) => id === 'pe')
 
   return [
-    ...boardBarReadings({
-      manifest,
-      candles: evidence.bars.map(({ candle }) => candle),
-      benchmark: cross.indexBars,
-    }),
+    ...(evidence.boardMetrics ?? []),
     ...(room === undefined ? [] : [room]),
     ...(sectorPe === undefined ? [] : [{ id: 'sector-pe' as const, value: sectorPe.value }]),
   ]

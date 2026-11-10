@@ -1,8 +1,7 @@
 import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
-import { latestNameSession, sessionBar } from '@/trading/markets/equity-vn/factors/factors'
+import { isTradedOn, latestNameSession } from '@/trading/markets/equity-vn/factors/factors'
 import { TREND_SESSIONS } from '@/trading/markets/equity-vn/policy'
-import { foreignFlowRatio } from '@/trading/markets/equity-vn/tape/flows'
 import { trendDistance } from '@/trading/markets/timeseries'
 
 /** The names a market-wide reading is a fact about, the same population breadth counts: shares that
@@ -13,9 +12,7 @@ export function sessionShares(cross: CrossSection): readonly NameEvidence[] {
 
   return session === undefined
     ? []
-    : cross.names.filter(
-        (name) => name.record.kind === 'equity' && sessionBar(name, session) !== undefined
-      )
+    : cross.names.filter((name) => name.record.kind === 'equity' && isTradedOn(name, session))
 }
 
 /** The market-wide foreign-flow deviation: the mean of the per-name ratios that could be computed
@@ -25,7 +22,7 @@ export function sessionShares(cross: CrossSection): readonly NameEvidence[] {
  *  evidence coverage instead of reading as calm. */
 export function marketForeignFlowRatio(cross: CrossSection): number | undefined {
   const ratios = sessionShares(cross)
-    .map((name) => foreignFlowRatio(name.flows, name.bars))
+    .map((name) => name.flowReads.foreignRatio)
     .filter((ratio): ratio is number => ratio !== undefined)
 
   return ratios.length === 0

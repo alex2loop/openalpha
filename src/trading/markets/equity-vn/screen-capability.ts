@@ -1,38 +1,33 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { FactorId, FactorScore } from '@/trading/kernel/factor'
 import type { FactorMetric } from '@/trading/kernel/factor-metric'
-import type { InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
+import type { Ticker } from '@/trading/kernel/instrument'
 import type {
   ScreenCandidate,
   ScreenRequest,
   ScreenResult,
 } from '@/trading/kernel/market/market-capability'
-import type { TapeReading } from '@/trading/kernel/market/tape'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
 import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
-import type { VnExchange } from '@/trading/markets/equity-vn/policy'
-import type { RankedEvidence, RankedFactors } from '@/trading/markets/equity-vn/screen'
-import type { MarketManifest } from '@/trading/markets/types'
+import type { RankedEvidence, RankedFactors } from '@/trading/markets/equity-vn/screen-rank'
+import type { ScreenGateVerdict } from '@/trading/markets/screen-partition'
 import { factorComposite } from '@/trading/kernel/factor'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { countBands } from '@/trading/markets/conviction-calibration'
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
 import { supervisionCaveats } from '@/trading/markets/equity-vn/evidence/supervision'
-import { scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
+import { latestNameSession, scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
 import { boardReadings } from '@/trading/markets/equity-vn/factors/name-context'
 import { DEFAULT_SCREEN_KIND } from '@/trading/markets/equity-vn/policy'
-import { rankSurvivors, screenCandidate, toScreenInput } from '@/trading/markets/equity-vn/screen'
-import { foreignNetFlow } from '@/trading/markets/equity-vn/tape/flows'
-import { tapeReadings } from '@/trading/markets/equity-vn/tape/signals'
-import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
+import { exchangeOf } from '@/trading/markets/equity-vn/screen'
+import { rankSurvivors } from '@/trading/markets/equity-vn/screen-rank'
 import { partitionByGate } from '@/trading/markets/screen-partition'
 
 const HISTORY_EMPTY: Caveat = { code: 'market-data.history-empty' }
 
 export interface ScreenOptions {
   readonly foreignOperator: boolean
-  readonly manifest: MarketManifest
 }
 
 /** Gates first, ranking second, truncation last. Truncating before ranking would let a candidate
@@ -61,14 +56,13 @@ export async function runScreen(
   const eligible = cross.names.filter(
     (name) => name.record.kind === instrumentKind && isInSectors(name, request.sectors)
   )
-  const inputs = eligible.map((name) => toScreenInput(name, request.asOf))
   const { survivors, rejections } = partitionByGate(
-    inputs,
-    (candidate) => candidate.instrument,
-    screenCandidate
+    eligible,
+    (name) => name.record.instrument,
+    gateVerdictOf
   )
-  const dataThroughDay = latestSessionOf(eligible)
-  const ranked = rankSurvivors(survivors, rankedEvidence(survivors, cross, options), options)
+  const dataThroughDay = latestNameSession(eligible)
+  const ranked = rankSurvivors(survivors, rankedEvidence(survivors, cross), options)
   const candidates = ranked.slice(0, request.limit)
 
   return {
@@ -85,10 +79,19 @@ export async function runScreen(
     ]),
     // Names without a single bar is an unrefreshed data dir, not a market where nothing qualifies.
     caveats: [
-      ...screenCaveats(cross, inputs, candidates),
+      ...screenCaveats(cross, eligible, candidates),
       ...(dataThroughDay === undefined && eligible.length > 0 ? [HISTORY_EMPTY] : []),
     ],
   }
+}
+
+/** A name failing three gates records the first. Recording all three would make the reason unstable
+ *  across days as unrelated conditions changed, and the user-visible answer to "why not this stock"
+ *  should not move for reasons that were already true. */
+function gateVerdictOf(name: NameEvidence): ScreenGateVerdict {
+  const [code] = name.failedGates
+
+  return code === undefined ? { kind: 'accepted' } : { kind: 'rejected', code }
 }
 
 function isInSectors(name: NameEvidence, sectors: readonly string[] | undefined): boolean {
@@ -102,10 +105,10 @@ function isInSectors(name: NameEvidence, sectors: readonly string[] | undefined)
  *  none of these names is a gap for nobody. */
 function screenCaveats(
   cross: CrossSection,
-  inputs: readonly { readonly exchange: VnExchange }[],
+  eligible: readonly NameEvidence[],
   candidates: readonly ScreenCandidate[]
 ): readonly Caveat[] {
-  const boards = new Set(inputs.map((input) => input.exchange))
+  const boards = new Set(eligible.map((name) => exchangeOf(name.record)))
 
   return [
     ...cross.caveats,
@@ -115,46 +118,18 @@ function screenCaveats(
 }
 
 /** The scored reads the rank walks, in one pass over the survivors. */
-function rankedEvidence(
-  survivors: readonly { readonly instrument: InstrumentRef }[],
-  cross: CrossSection,
-  options: ScreenOptions
-): RankedEvidence {
+function rankedEvidence(survivors: readonly NameEvidence[], cross: CrossSection): RankedEvidence {
   const factorsByTicker = new Map<Ticker, RankedFactors>()
-  const signalsByTicker = new Map<Ticker, readonly TapeReading[]>()
-  const foreignNetByTicker = new Map<Ticker, number>()
   const readingsByTicker = new Map<Ticker, readonly FactorMetric[]>()
 
-  for (const candidate of survivors) {
-    const evidence = cross.byTicker.get(candidate.instrument.ticker)
+  for (const name of survivors) {
+    const { ticker } = name.record.instrument
 
-    factorsByTicker.set(
-      candidate.instrument.ticker,
-      evidence === undefined
-        ? { ...UNSCORED_COMPOSITE, factors: [] }
-        : toRankedFactors(scoreNameFactors(evidence, cross))
-    )
-    signalsByTicker.set(
-      candidate.instrument.ticker,
-      evidence === undefined ? [] : tapeReadings(evidence)
-    )
-
-    if (evidence !== undefined) {
-      readingsByTicker.set(
-        candidate.instrument.ticker,
-        boardReadings(cross, evidence, options.manifest)
-      )
-    }
-
-    const foreignNet =
-      evidence === undefined ? undefined : foreignNetFlow(evidence.flows, evidence.bars)
-
-    if (foreignNet !== undefined) {
-      foreignNetByTicker.set(candidate.instrument.ticker, foreignNet.value)
-    }
+    factorsByTicker.set(ticker, toRankedFactors(scoreNameFactors(name, cross)))
+    readingsByTicker.set(ticker, boardReadings(cross, name))
   }
 
-  return { factorsByTicker, signalsByTicker, foreignNetByTicker, readingsByTicker }
+  return { factorsByTicker, readingsByTicker }
 }
 
 function toRankedFactors(scored: FactorScore): RankedFactors {
@@ -178,20 +153,4 @@ function staleFactorCaveats(candidates: readonly ScreenCandidate[]): readonly Ca
   return [...stale]
     .sort((left, right) => left.localeCompare(right))
     .map((factor) => ({ code: 'factor.input-stale', detail: { factor } }))
-}
-
-/** The newest settled bar across the population — the session the whole board's evidence ends at.
- *  Per-name maxima would let one stale name misdate the board, so the population answers. */
-function latestSessionOf(names: readonly NameEvidence[]): TradingDay | undefined {
-  let latest: TradingDay | undefined
-
-  for (const name of names) {
-    const day = name.bars[name.bars.length - 1]?.candle.at
-
-    if (day !== undefined && (latest === undefined || day > latest)) {
-      latest = day
-    }
-  }
-
-  return latest
 }

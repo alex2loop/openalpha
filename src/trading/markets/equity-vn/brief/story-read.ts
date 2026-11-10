@@ -230,7 +230,7 @@ function storyProvenance(
 }
 
 function flowStamp(name: NameEvidence, inputs: StoryInputs): readonly SourceProvenance[] {
-  const last: FlowSnapshot | undefined = name.flows[name.flows.length - 1]
+  const last: FlowSnapshot | undefined = name.flowReads.flowTail.at(-1)
 
   if (last === undefined || last.at !== inputs.session) {
     return []

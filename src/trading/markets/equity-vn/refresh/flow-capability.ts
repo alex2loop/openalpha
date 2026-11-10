@@ -1,5 +1,4 @@
 import type { FlowsRequest, InstrumentRequest } from '@/trading/kernel/market/market-capability'
-import type { FlowSnapshot } from '@/trading/kernel/market/market-data'
 import type { SourceKindMap, SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
@@ -31,11 +30,7 @@ async function runMarketFlows(
   request: FlowsRequest
 ): Promise<SourceResult<SourceKindMap['flows']>> {
   const cross = await cache.get(request.asOf, request.signal)
-  const flows = cross.names.flatMap((name) => name.flows)
-  const newest = flows.reduce<FlowSnapshot | undefined>(
-    (latest, flow) => (latest === undefined || flow.fetchedAt > latest.fetchedAt ? flow : latest),
-    undefined
-  )
+  const { flows, newestFlow: newest } = cross.dayTotals
   const provenance =
     newest === undefined
       ? []

@@ -72,7 +72,7 @@ async function loadCrossSection(
   const indexCandles = index.map((bar) => bar.candle)
   const { names, dayTotals } = await streamNames(deps, {
     universe,
-    window: { fromDay, toDay: request.asOf, signal: request.signal },
+    window,
     context: {
       asOf: request.asOf,
       freshFrom,
@@ -143,9 +143,11 @@ async function streamNames(
 }
 
 function addReadsTo(totals: PassTotals, reads: NameReads): void {
-  addTurnoverTo(totals.turnover, reads.bars)
+  const { bars, flows } = reads
 
-  for (const flow of reads.flows) {
+  addTurnoverTo(totals.turnover, bars)
+
+  for (const flow of flows) {
     addFlowTo(totals.flows, flow)
 
     if (totals.newestFlow === undefined || flow.fetchedAt > totals.newestFlow.fetchedAt) {

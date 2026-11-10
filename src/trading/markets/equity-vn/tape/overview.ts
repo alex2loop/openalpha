@@ -17,8 +17,8 @@ import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evid
 import type { MarketManifest } from '@/trading/markets/types'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import {
+  isTradedOn,
   latestNameSession,
-  sessionBar,
   VN_INDEX_INSTRUMENT,
 } from '@/trading/markets/equity-vn/factors/factors'
 import {
@@ -47,7 +47,6 @@ import {
 import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
 import { rangeFromCloses } from '@/trading/markets/overview'
 import { median, sessionChange } from '@/trading/markets/timeseries'
-import { barTurnover } from '@/trading/markets/turnover'
 
 const PERCENT_PER_UNIT = 100
 const BOARD_SEPARATOR = ' + '
@@ -269,14 +268,12 @@ function toMovers(names: readonly NameEvidence[], session: TradingDay): MarketMo
 /** Today's move and only today's, and only when a listed share moved real money on it. A basket
  *  restates the index rather than naming a mover, as in the breadth tally. */
 function toMover(name: NameEvidence, session: TradingDay): MarketMover | undefined {
-  const last = sessionBar(name, session)
-
-  if (last === undefined || name.record.kind !== 'equity') {
+  if (!isTradedOn(name, session) || name.record.kind !== 'equity') {
     return undefined
   }
 
   const changePct = sessionChangePct(name, session)
-  const turnover = barTurnover(last)
+  const turnover = name.lastBar?.turnover
 
   if (changePct === undefined || turnover === undefined || turnover < MINIMUM_MOVER_TURNOVER_VND) {
     return undefined

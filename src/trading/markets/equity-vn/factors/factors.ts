@@ -13,6 +13,7 @@ import type {
   NameEvidence,
 } from '@/trading/markets/equity-vn/factors/name-evidence'
 import type { IndexReviewProximity } from '@/trading/markets/equity-vn/index-review'
+import type { WindowSum } from '@/trading/markets/equity-vn/tape/flows'
 import type { FactorInput } from '@/trading/markets/factor-scoring'
 import type { SectorMember } from '@/trading/markets/sector-strength'
 import type { TradingCalendar } from '@/trading/markets/types'
@@ -35,10 +36,8 @@ import {
   valuationMetrics,
   valuePercentiles,
 } from '@/trading/markets/equity-vn/factors/fundamental-ranks'
-import { isTradedBar } from '@/trading/markets/equity-vn/factors/name-evidence'
 import { indexReviewProximity } from '@/trading/markets/equity-vn/index-review'
 import {
-  FLOW_DEVIATION_SESSIONS,
   HIGH_PROXIMITY_SESSIONS,
   TREND_SESSIONS,
   TREND_SLOPE_SESSIONS,
@@ -46,13 +45,6 @@ import {
   VN_MARKET_REF,
   VN_SECTOR_POLICY,
 } from '@/trading/markets/equity-vn/policy'
-import {
-  foreignFlowRatio,
-  foreignNetFlow,
-  netFlowValue,
-  proprietaryFlowRatio,
-  proprietaryNetFlow,
-} from '@/trading/markets/equity-vn/tape/flows'
 import { scoreFactors } from '@/trading/markets/factor-scoring'
 import { sectorStrength } from '@/trading/markets/sector-strength'
 import {
@@ -62,13 +54,11 @@ import {
   yearHighProximity,
 } from '@/trading/markets/timeseries'
 
-/** This name's bar for the session being reported, if it traded and the bar can be compared. A
- *  name with no bar for the session did not trade, and an unadjusted bar prices a split as a crash:
- *  either way it belongs in no session statistic, as absent rather than as an unchanged name. */
-export function sessionBar(name: NameEvidence, session: TradingDay): BarRecord | undefined {
-  const last = name.bars[name.bars.length - 1]
-
-  return isTradedBar(last) && last.candle.at === session ? last : undefined
+/** Whether this name traded the session being reported, on a bar that can be compared. A name with
+ *  no bar for the session did not trade, and an unadjusted bar prices a split as a crash: either
+ *  way it belongs in no session statistic, as absent rather than as an unchanged name. */
+export function isTradedOn(name: NameEvidence, day: TradingDay): boolean {
+  return tradedDayOf(name) === day
 }
 
 /** The population's own newest session. Every market-wide statistic is a fact about the names, and
@@ -79,7 +69,7 @@ export function latestNameSession(names: readonly NameEvidence[]): TradingDay | 
   let latest: TradingDay | undefined
 
   for (const name of names) {
-    const at = name.bars[name.bars.length - 1]?.candle.at
+    const at = name.lastBar?.at
 
     if (at !== undefined && (latest === undefined || at > latest)) {
       latest = at
@@ -222,8 +212,8 @@ function stockFactorInputs(
     ]),
     input('speculative-turnover', cross.speculativeTurnover.get(key), provenance),
     withMetrics(
-      input('foreign-flow', foreignFlowRatio(evidence.flows, evidence.bars), provenance),
-      netFlowMetrics('foreign-net-flow', foreignNetFlow(evidence.flows, evidence.bars))
+      input('foreign-flow', evidence.flowReads.foreignRatio, provenance),
+      netFlowMetrics('foreign-net-flow', evidence.flowReads.foreignNet)
     ),
     proprietaryFlowInput(evidence, cross, provenance),
     withMetrics(
@@ -254,8 +244,8 @@ function proprietaryFlowInput(
   }
 
   return withMetrics(
-    input('proprietary-flow', proprietaryFlowRatio(evidence.flows, evidence.bars), provenance),
-    netFlowMetrics('proprietary-net-flow', proprietaryNetFlow(evidence.flows, evidence.bars))
+    input('proprietary-flow', evidence.flowReads.proprietaryRatio, provenance),
+    netFlowMetrics('proprietary-net-flow', evidence.flowReads.proprietaryNet)
   )
 }
 
@@ -271,7 +261,7 @@ function levelMetrics(evidence: NameEvidence): readonly FactorMetric[] {
 
 function netFlowMetrics(
   id: 'foreign-net-flow' | 'proprietary-net-flow',
-  net: ReturnType<typeof foreignNetFlow>
+  net: WindowSum | undefined
 ): readonly FactorMetric[] {
   return net === undefined ? [] : [{ id, ...net }]
 }
@@ -289,12 +279,12 @@ export function scoreNameFactors(evidence: NameEvidence, cross: CrossSection): F
   if (evidence.record.kind !== 'etf') {
     const inputs = stockFactorInputs(evidence, cross)
 
-    return scoreFactors(withStaleCaveats(inputs, evidence, cross.freshFrom), VN_FACTOR_POLICY)
+    return scoreFactors(withStaleCaveats(inputs, evidence.staleFactors), VN_FACTOR_POLICY)
   }
 
   const key = evidence.record.instrument.ticker
   const benchmark = benchmarkBars(key, cross.benchmarks)
-  const benchmarkAt = benchmark?.at(-1)?.candle.at
+  const newestBenchmark = benchmark?.at(-1)
   const trackingError = cross.etfTrackingErrors.get(key)
   // Both factors read the index, so they cite its series rather than the fund's own tape.
   const inputs = etfFactorInputs({
@@ -302,11 +292,12 @@ export function scoreNameFactors(evidence: NameEvidence, cross: CrossSection): F
       ? {}
       : { benchmarkCloses: benchmark.map((bar) => bar.candle.close) }),
     ...(trackingError === undefined ? {} : { trackingError }),
-    provenance: latestBarProvenance(benchmark === undefined ? evidence : { bars: benchmark }),
+    provenance: latestBarProvenance(
+      newestBenchmark === undefined ? evidence : { lastBar: newestBenchmark }
+    ),
   })
-  const dated = benchmarkAt === undefined ? evidence : { ...evidence, benchmarkAt }
 
-  return scoreFactors(withStaleCaveats(inputs, dated, cross.freshFrom), ETF_FACTOR_POLICY)
+  return scoreFactors(withStaleCaveats(inputs, evidence.staleFactors), ETF_FACTOR_POLICY)
 }
 
 /** Moving-average distance and slope, averaged: price above a rising average is the only
@@ -316,17 +307,24 @@ function trendScore(closes: readonly number[]): number | undefined {
 }
 
 export function toSectorMember(evidence: NameEvidence): SectorMember {
-  const newest = evidence.bars[evidence.bars.length - 1]
+  const at = tradedDayOf(evidence)
   const marketCap = evidence.fundamental?.marketCap
 
   return {
     ticker: evidence.record.instrument.ticker,
     ...(evidence.record.sector === undefined ? {} : { sector: evidence.record.sector }),
     closes: evidence.closes,
-    foreignNetBase: netFlowValue(evidence.flows, FLOW_DEVIATION_SESSIONS),
+    foreignNetBase: evidence.flowReads.foreignNet20,
     ...(marketCap === undefined ? {} : { marketCap }),
-    ...(isTradedBar(newest) ? { at: newest.candle.at } : {}),
+    ...(at === undefined ? {} : { at }),
   }
+}
+
+/** The day of the name's newest bar, when that bar can carry a session statistic. */
+function tradedDayOf(name: NameEvidence): TradingDay | undefined {
+  const { days, traded } = name.history
+
+  return traded.at(-1) === true ? days.at(-1) : undefined
 }
 
 /** The index instrument, used as the sector benchmark and the ETF trend input. */
