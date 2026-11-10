@@ -6,7 +6,7 @@ import type {
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
 import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
-import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import { toHeadlineSection } from '@/trading/markets/brief-headlines'
 import { REGIME_SCALE_CAVEAT } from '@/trading/markets/brief-macro'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
@@ -100,15 +100,16 @@ export async function buildMacroHeadlines(context: VnBriefContext): Promise<Brie
  *  move: the price block above states both, and the regime line at the top of the brief states the
  *  regime — repeating either here prints one fact three times. */
 export function buildTape(context: VnBriefContext): Promise<BriefSectionResult> {
-  const names = context.board?.names ?? []
+  const board = context.board
+  const names = board?.names ?? []
   const session = latestNameSession(names) ?? context.request.asOf
   const turnover = sessionTurnoverTotal(names, session)
 
-  if (turnover === undefined) {
+  if (board === null || turnover === undefined) {
     return Promise.resolve(absent('tape', [{ code: 'market-data.no-coverage' }]))
   }
 
-  const reference = toTurnoverReference(names, session)
+  const reference = toTurnoverReference(board.dayTotals, session)
   const turnoverRatio = toTurnoverRatio(turnover, reference)
 
   return Promise.resolve(

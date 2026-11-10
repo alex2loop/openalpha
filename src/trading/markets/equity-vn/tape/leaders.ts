@@ -1,6 +1,6 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { MarketLeader, MarketLeaders } from '@/trading/kernel/market/market-overview'
-import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import {
   VN_OVERVIEW_LEADERS,
   VN_PROPRIETARY_LOOKBACK_SESSIONS,

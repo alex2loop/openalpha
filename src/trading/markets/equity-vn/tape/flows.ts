@@ -22,7 +22,7 @@ interface FlowWindow {
   readonly minimumSessions: number
 }
 
-interface WindowSum {
+export interface WindowSum {
   readonly value: number
   readonly sessions: number
 }
@@ -113,12 +113,20 @@ export function marketFlowSnapshots(
   const byDay = new Map<TradingDay, FlowSnapshot>()
 
   for (const flow of flows) {
-    const total = byDay.get(flow.at)
-
-    byDay.set(flow.at, total === undefined ? { ...flow, instrument } : addFlow(total, flow))
+    addFlowTo(byDay, flow)
   }
 
-  return [...byDay.values()].sort((left, right) => left.at.localeCompare(right.at))
+  return [...byDay.values()]
+    .sort((left, right) => left.at.localeCompare(right.at))
+    .map((total) => ({ ...total, instrument }))
+}
+
+/** The one fold behind a market's per-session flow: the first flow of a day seeds its provenance,
+ *  every later one adds to it, so the order flows arrive in is part of the answer. */
+export function addFlowTo(byDay: Map<TradingDay, FlowSnapshot>, flow: FlowSnapshot): void {
+  const total = byDay.get(flow.at)
+
+  byDay.set(flow.at, total === undefined ? flow : addFlow(total, flow))
 }
 
 function addFlow(total: FlowSnapshot, flow: FlowSnapshot): FlowSnapshot {
