@@ -4,6 +4,7 @@ import type { WatchlistDropReason } from '@/trading/kernel/screen-codes'
 import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
 import { factorComposite } from '@/trading/kernel/factor'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
+import { judgedSupervisionCaveats } from '@/trading/markets/equity-vn/evidence/supervision'
 import { type CrossSection, scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
 import {
   DEFAULT_SCREEN_KIND,
@@ -69,13 +70,17 @@ export function buildWatchlistDropped(context: VnBriefContext): Promise<BriefSec
   const dropped = previous
     .map((ref) => ({ ref, code: currentGateCode(ref.ticker, cross) }))
     .filter((entry) => entry.code !== undefined)
+  const judged = previous
+    .map((ref) => cross.byTicker.get(ref.ticker))
+    .filter((name) => name !== undefined)
 
   return Promise.resolve(
     dropped.length === 0
       ? omitted('watchlist-dropped')
       : ready(
           'watchlist-dropped',
-          dropped.map((entry) => ({ ticker: entry.ref.ticker, reason: entry.code ?? 'unknown' }))
+          dropped.map((entry) => ({ ticker: entry.ref.ticker, reason: entry.code ?? 'unknown' })),
+          { caveats: judgedSupervisionCaveats(cross, judged) }
         )
   )
 }
@@ -116,19 +121,21 @@ export async function buildScreenDelta(context: VnBriefContext): Promise<BriefSe
     return omitted('screen-delta')
   }
 
-  return ready('screen-delta', [
-    ...entered.map((entry) => ({ ticker: entry, direction: 'entered' as const })),
-    ...left.map((entry) => ({ ticker: entry, direction: 'left' as const })),
-  ])
+  return ready(
+    'screen-delta',
+    [
+      ...entered.map((entry) => ({ ticker: entry, direction: 'entered' as const })),
+      ...left.map((entry) => ({ ticker: entry, direction: 'left' as const })),
+    ],
+    { caveats: judgedSupervisionCaveats(today, boardNames(today)) }
+  )
 }
 
 /** The screen's own board, rebuilt: same kind filter, same gates, same ranking. The kind is what
  *  makes the two agree — the cross-section also carries ETFs, indices and futures, no gate tests
  *  for them, and one taking a slot here reports the tenth stock as having left a board it is on. */
 function boardTickers(cross: CrossSection): ReadonlySet<Ticker> {
-  const survivors = cross.names.filter(
-    (name) => name.record.kind === DEFAULT_SCREEN_KIND && name.screened
-  )
+  const survivors = boardNames(cross).filter((name) => name.screened)
   const factorsByTicker = new Map(
     survivors.map(
       (survivor) =>
@@ -146,4 +153,8 @@ function boardTickers(cross: CrossSection): ReadonlySet<Ticker> {
       .slice(0, DELTA_BOARD_SIZE)
       .map((candidate) => candidate.instrument.ticker)
   )
+}
+
+function boardNames(cross: CrossSection): CrossSection['names'] {
+  return cross.names.filter((name) => name.record.kind === DEFAULT_SCREEN_KIND)
 }
