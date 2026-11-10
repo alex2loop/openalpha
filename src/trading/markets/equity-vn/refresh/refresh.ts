@@ -10,7 +10,7 @@ import type {
   CrossSectionInvalidator,
   EvidenceScope,
 } from '@/trading/markets/equity-vn/evidence/evidence'
-import type { VnMacroCrossSection } from '@/trading/markets/equity-vn/evidence/macro-evidence'
+import type { AccountsCrossSection } from '@/trading/markets/equity-vn/refresh/accounts'
 import type { UniverseRefreshOutcome } from '@/trading/markets/equity-vn/refresh/universe'
 import type {
   MarketDataRefreshRequest,
@@ -79,9 +79,12 @@ interface EvidencePass extends RefreshMarketDataInput {
   readonly attempts: readonly MarketRefreshAttempt[]
 }
 
-/** Both halves of the cross-section cache: read through for the macro confirmers, dropped once
+/** The cross-section cache as a pass uses it: read through for the macro confirmers and the
+ *  screened-names stamp, the supervision lists forgotten as a pass starts, the boards dropped once
  *  evidence has been rewritten. */
-interface RefreshCrossSection extends CrossSectionInvalidator, VnMacroCrossSection {}
+interface RefreshCrossSection extends CrossSectionInvalidator, AccountsCrossSection {
+  clearSupervision(): void
+}
 
 interface RefreshMarketDataInput {
   readonly deps: MarketDeps
@@ -97,6 +100,11 @@ export async function refreshMarketData(
   options: RefreshMarketDataInput
 ): Promise<readonly RefreshKindResult[]> {
   const { deps, request } = options
+
+  // Every pass, scheduled or forced, judges the lists as they stand now: between passes a board
+  // reuses the read of its day.
+  options.crossSection.clearSupervision()
+
   const [stored, attempts] = await Promise.all([
     loadUniverse(deps, { signal: request.signal }),
     deps.marketDataStore.listRefreshAttempts({ market: VN_MARKET_REF, signal: request.signal }),

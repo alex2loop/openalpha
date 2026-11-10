@@ -1,8 +1,9 @@
 import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
-import type { Ticker } from '@/trading/kernel/instrument'
+import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { SupervisionLevel, SupervisionSnapshot } from '@/trading/kernel/market/supervision'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { VnExchange } from '@/trading/markets/equity-vn/policy'
+import { flightCache } from '@/core/utils/concurrency'
 import { canonicalJson, hashString } from '@/core/utils/hash'
 import { severest } from '@/trading/kernel/market/supervision'
 import { ADMITTED_EXCHANGES, VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
@@ -18,7 +19,7 @@ export interface SupervisionCoverage {
   readonly published: ReadonlySet<VnExchange>
 }
 
-interface SupervisionRead {
+export interface SupervisionRead {
   /** Only the supervised names. A ticker absent from it is unsupervised as far as this read can
    *  tell, which is why an unavailable read carries a caveat rather than an empty map alone. */
   readonly levels: ReadonlyMap<Ticker, SupervisionLevel>
@@ -26,11 +27,47 @@ interface SupervisionRead {
   readonly caveats: readonly Caveat[]
 }
 
-/** One board read per population pass, shared by every consumer of the cross-section. The providers
- *  are merged rather than failed over: they overlap on HOSE and only one carries HNX. Degradation,
- *  not a block: a provider that cannot answer leaves its board's gates open and says so, because
- *  emptying the board on an outage is a worse answer than ranking a supervised name. */
-export async function loadSupervision(
+export interface SupervisionCache {
+  get(asOf: TradingDay, signal: AbortSignal): Promise<SupervisionRead>
+  /** Forgets every held read, not the last good one a failed read falls back to. */
+  clear(): void
+}
+
+interface LastGoodRead {
+  readonly asOf: TradingDay
+  readonly read: SupervisionRead
+}
+
+/** One live read per board day: the lists change by announcement, and a whole-board pass reads them
+ *  on every sweep for no new answer. `days` is the cross-section cache's own slot count, so both
+ *  hold the same board days. A read that missed a board is not kept, so the next call asks again,
+ *  and the caller gets the last good read in its place, marked as carried; with none yet it gets
+ *  the incomplete read itself. The last good read is never older than a newer day's. */
+export function supervisionCache(deps: MarketDeps, days: number): SupervisionCache {
+  const reads = flightCache<SupervisionRead>(days, isCompleteRead)
+  let last: LastGoodRead | undefined
+
+  return {
+    async get(asOf, signal) {
+      const read = await reads.share(asOf, signal, () => loadSupervision(deps, { signal }))
+
+      if (isCompleteRead(read)) {
+        last = last === undefined || asOf >= last.asOf ? { asOf, read } : last
+
+        return read
+      }
+
+      return last === undefined ? read : carriedRead(last)
+    },
+    clear: reads.clear,
+  }
+}
+
+/** The providers are merged rather than failed over: they overlap on HOSE and only one carries
+ *  HNX. Degradation, not a block: a provider that cannot answer leaves its board's gates open and
+ *  says so, because emptying the board on an outage is a worse answer than ranking a supervised
+ *  name. */
+async function loadSupervision(
   deps: MarketDeps,
   options: { readonly signal: AbortSignal }
 ): Promise<SupervisionRead> {
@@ -49,20 +86,30 @@ export async function loadSupervision(
   return { levels: foldLevels(snapshots), coverage: coverageOf(snapshots), caveats }
 }
 
+function isCompleteRead(read: SupervisionRead): boolean {
+  return ADMITTED_EXCHANGES.every((exchange) => read.coverage.covered.has(exchange))
+}
+
+/** Complete coverage, so no unchecked-board caveat repeats what the one added line already says. */
+function carriedRead(last: LastGoodRead): SupervisionRead {
+  return {
+    ...last.read,
+    caveats: [
+      ...last.read.caveats,
+      { code: 'source.supervision-carried', detail: { asOf: last.asOf } },
+    ],
+  }
+}
+
 /** What the gates read of the exchange's lists, as one string that moves when a name enters or
  *  leaves one, changes level, or a board stops being covered. The cross-section reads the same
  *  lists, so a screen kept under one stamp is the screen a fresh read would give. */
-export async function readSupervisionStamp(
-  deps: MarketDeps,
-  options: { readonly signal: AbortSignal }
-): Promise<string> {
-  const { levels, coverage } = await loadSupervision(deps, options)
-
+export function toSupervisionStamp(read: SupervisionRead): string {
   return hashString(
     canonicalJson({
-      levels: [...levels].sort(([left], [right]) => (left < right ? -1 : 1)),
-      covered: [...coverage.covered].sort(),
-      published: [...coverage.published].sort(),
+      levels: [...read.levels].sort(([left], [right]) => (left < right ? -1 : 1)),
+      covered: [...read.coverage.covered].sort(),
+      published: [...read.coverage.published].sort(),
     })
   )
 }

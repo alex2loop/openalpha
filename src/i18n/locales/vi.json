@@ -4858,6 +4858,7 @@
     "caveat.source.supervision-unavailable": "Không đọc được danh sách chứng khoán thuộc diện giám sát của sở, nên chưa mã nào ở đây được đối chiếu với danh sách đó.",
     "caveat.source.supervision-partial": "Không đọc được danh sách giám sát của {exchanges}, nên các mã niêm yết ở đó chưa được đối chiếu.",
     "caveat.source.supervision-unofficial": "Danh sách giám sát của {exchanges} lấy từ bảng công ty chứng khoán, nên mã bảng đó bỏ sót đọc thành không bị giám sát.",
+    "caveat.source.supervision-carried": "Lúc này chưa đọc được danh sách giám sát của sở, nên các mã được đối chiếu với danh sách phiên {asOf}.",
     "caveat.source.index-membership-unavailable": "Chưa đọc được thành phần chỉ số, nên rổ vẫn là của lần cập nhật trước, nếu có.",
     "caveat.market-data.bar-basis-conflict": "{count} mã giữ giá cũ lần này ({tickers}): nguồn mới chưa điều chỉnh. Chạy /refresh equity-vn force để dựng lại.",
     "caveat.market-data.bar-basis-conflictOne": "{count} mã giữ giá cũ lần này ({tickers}): nguồn mới chưa điều chỉnh. Chạy /refresh equity-vn force để dựng lại.",

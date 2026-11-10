@@ -8,6 +8,7 @@ import type { InstrumentRecord } from '@/trading/kernel/market/market-data'
 import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
 import type { EvidenceScope } from '@/trading/markets/equity-vn/evidence/evidence'
 import type { VnMacroCrossSection } from '@/trading/markets/equity-vn/evidence/macro-evidence'
+import type { SupervisionRead } from '@/trading/markets/equity-vn/evidence/supervision'
 import type { TargetOutcome } from '@/trading/markets/refresh-result'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { canonicalJson } from '@/core/utils/hash'
@@ -19,7 +20,7 @@ import { watchedQuarter } from '@/trading/markets/equity-vn/accounts/quarter-wat
 import { isAccountsFetched, isFetchedBeforeFinal } from '@/trading/markets/equity-vn/accounts/score'
 import { buildPayloadRejectedCaveat, reportedCaveats } from '@/trading/markets/equity-vn/caveats'
 import { invalidateWhenWritten } from '@/trading/markets/equity-vn/evidence/evidence'
-import { readSupervisionStamp } from '@/trading/markets/equity-vn/evidence/supervision'
+import { toSupervisionStamp } from '@/trading/markets/equity-vn/evidence/supervision'
 import {
   ACCOUNTS_REFETCH_MS,
   QUARTER_WATCH_REFETCH_MS,
@@ -34,6 +35,11 @@ import {
   buildSkippedResult,
   toKindResult,
 } from '@/trading/markets/refresh-result'
+
+export interface AccountsCrossSection extends VnMacroCrossSection {
+  /** The lists the board of `asOf` screens against. */
+  supervision(asOf: TradingDay, signal: AbortSignal): Promise<SupervisionRead>
+}
 
 interface TargetInput {
   readonly scope: EvidenceScope
@@ -51,7 +57,7 @@ interface TargetInput {
  *  from the board only when the stored copy no longer matches the evidence. */
 export async function refreshAccounts(
   scope: EvidenceScope,
-  crossSection: VnMacroCrossSection
+  crossSection: AccountsCrossSection
 ): Promise<RefreshKindResult> {
   const { request } = scope
   const storeOptions = { market: VN_MARKET_REF, signal: request.signal }
@@ -100,7 +106,7 @@ export async function refreshAccounts(
  *  score. */
 async function wantedNames(
   scope: EvidenceScope,
-  crossSection: VnMacroCrossSection
+  crossSection: AccountsCrossSection
 ): Promise<ReadonlySet<string>> {
   const { request, deps } = scope
   const read = { now: request.now, signal: request.signal }
@@ -114,12 +120,12 @@ async function wantedNames(
 
 /** Reading the board costs a whole-population pass, so the names it screened are kept with the
  *  session and a stamp of what the screen read: the stored evidence, the exchange's supervision
- *  lists and the gate policy. They stand only while both still match, which a pass whose earlier
+ *  lists (the read the board itself takes) and the gate policy. They stand only while both still match, which a pass whose earlier
  *  kinds wrote nothing keeps true; anything else reads the board again, and a forced run always
  *  does. */
 async function screenedNames(
   scope: EvidenceScope,
-  crossSection: VnMacroCrossSection
+  crossSection: AccountsCrossSection
 ): Promise<readonly string[]> {
   const { request, deps } = scope
   const options = { market: VN_MARKET_REF, signal: request.signal }
@@ -128,9 +134,9 @@ async function screenedNames(
   const [stored, evidence, supervision] = await Promise.all([
     deps.marketDataStore.findScreenedNames(options),
     deps.marketDataStore.readScreenStamp(options),
-    readSupervisionStamp(deps, options),
+    crossSection.supervision(asOf, request.signal),
   ])
-  const stamp = canonicalJson([evidence, supervision, SCREEN_POLICY_DIGEST])
+  const stamp = canonicalJson([evidence, toSupervisionStamp(supervision), SCREEN_POLICY_DIGEST])
 
   if (!request.forced && stored?.asOf === asOf && stored.stamp === stamp) {
     return stored.tickers
