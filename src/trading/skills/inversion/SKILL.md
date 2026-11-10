@@ -18,9 +18,10 @@ Use when the question is "how is this wrong" rather than "is this right". Start 
 
 ## What an invalidator is
 
-The observable from step 3, written so a run six months from now can answer yes or no from evidence:
+The observable from step 3, written so a later run inside the window the call is scored over can answer yes or no from evidence:
 
 - A state or a number crossing a stated level, dated where the date is known.
+- A filing due inside that window: the next quarterly report, not an annual audit published after it. Name the periods compared, such as the last four quarters against the last audited year.
 - Never a price move. The stop already covers price, and "the price falls to the stop" is the stop restated as a condition - it says nothing the plan did not.
 - Never a hedge. "May weaken" cannot be checked; "falls below" can.
 - Standing alone, under the length the schema allows, in one sentence.
