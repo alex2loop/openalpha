@@ -2,7 +2,7 @@ import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
 import type { BriefDelivery } from '@/trading/features/brief/types'
-import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { ProcessMemory, RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { RestatementDeps } from '@/trading/features/suggestion/exit-plan/restatement'
 import type { MarketRef } from '@/trading/kernel/instrument'
@@ -103,13 +103,14 @@ interface RefreshTickParts {
   readonly logger: Logger
 }
 
-interface ScheduledRuns {
+export interface RefreshHost {
   readonly runScheduled: ScheduledRunner
+  readonly processMemory?: () => ProcessMemory
 }
 
 /** Built after the services: the trade-sides sweep it carries reads the book. */
 export function buildRefreshTick(
-  scheduled: ScheduledRuns,
+  host: RefreshHost,
   parts: RefreshTickParts
 ): (options: RefreshAllMarketDataOptions) => Promise<readonly RefreshMarketDataResult[]> {
   const { markets, stores, logger } = parts
@@ -125,7 +126,8 @@ export function buildRefreshTick(
       marketDataStore: stores.marketData,
       logger,
     }),
-    runScheduled: scheduled.runScheduled,
+    runScheduled: host.runScheduled,
+    ...(host.processMemory === undefined ? {} : { processMemory: host.processMemory }),
     logger,
   })
 }

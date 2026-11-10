@@ -9,7 +9,7 @@ import type { Logger, LoggerResource } from '@/core/logging/logger'
 import type { Storage } from '@/core/types/storage'
 import type { OpenedPersistence } from '@/persistence/api'
 import type { SocialConfig } from '@/social/api'
-import type { TradingConfig } from '@/trading/api'
+import type { ProcessMemory, TradingConfig } from '@/trading/api'
 import '@/app/events'
 
 import type { NoticeLog } from '@/app/activity/notice-log'
@@ -43,6 +43,8 @@ import { WORKSPACES_DIR_NAME } from '@/engine/api'
 import { openPersistence } from '@/persistence/node-api'
 import { assertSpawnToolsRegistered } from '@/tools/api'
 import { createTradingRegistrationProvider, createTradingStoresProvider } from '@/trading/api'
+
+const BYTES_PER_KIB = 1024
 
 // Allow-list, not a deny-list: an interpreter-hijack variable (NODE_OPTIONS, LD_PRELOAD,
 // PYTHONSTARTUP, …) is excluded by not being here, and so is every provider key.
@@ -232,8 +234,20 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
       requestShape: DAEMON_REQUEST_SHAPE,
       reachability: (signal) => probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS, signal),
       createPublicBriefPublisher,
+      processMemory: readProcessMemory,
     }),
   })
+}
+
+// `maxRSS` is the process high-water mark in KiB, so a peak between two refresh lines shows as a rise.
+function readProcessMemory(): ProcessMemory {
+  const usage = process.memoryUsage()
+
+  return {
+    rssBytes: usage.rss,
+    peakRssBytes: process.resourceUsage().maxRSS * BYTES_PER_KIB,
+    heapUsedBytes: usage.heapUsed,
+  }
 }
 
 interface PrepareBootAppOptions {
