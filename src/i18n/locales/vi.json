@@ -3755,7 +3755,7 @@
     "daemonNoChannels": "chưa có, nên gợi ý chỉ hiện trong `{brand} chat`",
     "daemonApi": "API: cổng {port}",
     "daemonPage": "Trang văn phòng: chạy {command} để mở.",
-    "daemonLogFile": "Nhật ký: {path} (xem bằng `{brand} logs`)",
+    "daemonLogFile": "Nhật ký: {path}.1 trở đi, số lớn nhất là tệp mới nhất (xem bằng `{brand} logs`)",
     "daemonWorking": "Việc tự chạy đang làm: {tasks}",
     "daemonIdle": "Các việc tự chạy đang rảnh.",
     "daemonTaskDone": "Xong: {task}",
