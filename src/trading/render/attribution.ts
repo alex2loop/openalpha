@@ -153,6 +153,7 @@ function renderFactorLines(
   const name = renderDeclaredValue(locale, `trading.factor.${row.factorId}`)
 
   const shared = { factor: name, n: formatCount(locale, row.firedCount) }
+  const buckets = row.buckets.flatMap((bucket) => renderBucketLine(locale, bucket, readingKey))
 
   return [
     `${INDENT[2]}${
@@ -163,7 +164,9 @@ function renderFactorLines(
             weight: formatWholeFraction(locale, row.weight),
           })
     }`,
-    ...row.buckets.flatMap((bucket) => renderBucketLine(locale, bucket, readingKey)),
+    ...(buckets.length === 0
+      ? [`${INDENT[3]}${t(locale, 'trading.attribution.factorThin')}`]
+      : buckets),
   ]
 }
 

@@ -4,10 +4,8 @@ import type { ActedSummary } from '@/trading/features/suggestion/track-record/ac
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type {
   ReviewSplit,
-  TrackRecordModelCount,
   TrackRecordReport,
   TrackRecordSummary,
-  TrackRecordVersionCount,
 } from '@/trading/features/suggestion/track-record/types'
 import type { ResolvedActionableSuggestion } from '@/trading/features/suggestion/types'
 import type { ConvictionBand } from '@/trading/kernel/conviction'
@@ -16,6 +14,10 @@ import type { OutcomeVerdict } from '@/trading/kernel/outcome-verdict'
 import { formatDay, type MessageKey, t } from '@/i18n'
 import { renderRateRange } from '@/trading/features/suggestion/track-record/rate-range'
 import { renderActedLines } from '@/trading/features/suggestion/track-record/render-acted'
+import {
+  renderDebateModelLines,
+  renderVersionLines,
+} from '@/trading/features/suggestion/track-record/render-breakdown'
 import { renderCoverageLine } from '@/trading/features/suggestion/track-record/render-coverage'
 import { renderFocusLines } from '@/trading/features/suggestion/track-record/render-focus'
 import { renderShadowSection } from '@/trading/features/suggestion/track-record/render-shadow'
@@ -31,9 +33,6 @@ import {
   SECTION_ICONS,
 } from '@/trading/render/format'
 import { INDENT, joinSections, renderSectionTitle } from '@/trading/render/layout'
-
-/** Versions sort as numbers in every host locale. */
-const VERSION_COLLATION_LOCALE = 'en'
 
 /** Only the listing is trimmed; the summary above it still scores every row the caller asked for. */
 const LISTED_OUTCOME_COUNT = 5
@@ -216,7 +215,6 @@ function renderBenchmarkLine(locale: Locale, summary: TrackRecordSummary): reado
   return [`${INDENT[1]}${t(locale, key, shared)}`]
 }
 
-/** One version is not a split, so the section stays out until there are two. */
 const REVIEW_MARK_KEYS = Object.freeze({
   'risk-lowered': 'trading.render.reflect.mark.riskLowered',
   'distribution-session': 'trading.render.reflect.mark.distributionSession',
@@ -257,76 +255,6 @@ function renderReviewLines(locale: Locale, splits: readonly ReviewSplit[]): read
         })}`
     ),
   ]
-}
-
-function renderVersionLines(
-  locale: Locale,
-  versions: readonly TrackRecordVersionCount[]
-): readonly string[] {
-  const counts = countsByVersion(versions)
-
-  if (counts.length < 2) {
-    return []
-  }
-
-  return [
-    renderSectionTitle(SECTION_ICONS.breakdown, t(locale, 'trading.render.reflect.byVersion')),
-    ...counts.map(
-      ([version, count]) =>
-        `${INDENT[1]}${t(locale, 'trading.render.reflect.versionLine', {
-          version,
-          n: formatCount(locale, count),
-        })}`
-    ),
-  ]
-}
-
-/** One line per strategy version, newest first. Rows that differ only in a calculation version read
- *  as the same version twice to the operator, so their counts sum. */
-function countsByVersion(
-  versions: readonly TrackRecordVersionCount[]
-): readonly (readonly [string, number])[] {
-  const counts = new Map<string, number>()
-
-  for (const entry of versions) {
-    counts.set(
-      entry.strategyVersion,
-      (counts.get(entry.strategyVersion) ?? 0) + entry.resolvedCount
-    )
-  }
-
-  return [...counts].sort(([left], [right]) =>
-    right.localeCompare(left, VERSION_COLLATION_LOCALE, { numeric: true })
-  )
-}
-
-function renderDebateModelLines(
-  locale: Locale,
-  models: readonly TrackRecordModelCount[]
-): readonly string[] {
-  if (models.length < 2) {
-    return []
-  }
-
-  return [
-    renderSectionTitle(SECTION_ICONS.breakdown, t(locale, 'trading.render.reflect.byDebateModel')),
-    ...models.map((entry) => `${INDENT[1]}${renderDebateModelLine(locale, entry)}`),
-  ]
-}
-
-function renderDebateModelLine(locale: Locale, entry: TrackRecordModelCount): string {
-  const params = {
-    models: entry.models.join(', '),
-    n: formatCount(locale, entry.resolvedCount),
-  }
-
-  return entry.winRate === undefined
-    ? t(locale, 'trading.render.reflect.debateModelLine', params)
-    : t(locale, 'trading.render.reflect.debateModelRatedLine', {
-        ...params,
-        rate: formatWholeFraction(locale, entry.winRate),
-        range: renderRateRange(locale, entry, formatWholeFraction),
-      })
 }
 
 export function renderCalibrationLines(
