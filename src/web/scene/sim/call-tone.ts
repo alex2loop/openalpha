@@ -1,4 +1,5 @@
 import type { OutcomeVerdict } from '@/app/server/wire/vocab'
+import type { ScoredOutcome } from '@/web/text/outcome'
 import { outcomeNameOf } from '@/web/text/outcome'
 
 /** How a scored call lands at its maker's desk: a win (a target kept, or a raised stop that kept a
@@ -11,10 +12,7 @@ const CALL_TONES = Object.freeze({
   stop: 'stop',
 } as const satisfies Partial<Record<OutcomeVerdict, 'target' | 'stop'>>)
 
-export function callToneOf(call: {
-  readonly status: OutcomeVerdict
-  readonly verdict?: OutcomeVerdict
-}): 'target' | 'stop' | undefined {
+export function callToneOf(call: ScoredOutcome): 'target' | 'stop' | undefined {
   const name = outcomeNameOf(call)
 
   return name === 'expired' ? undefined : CALL_TONES[name]

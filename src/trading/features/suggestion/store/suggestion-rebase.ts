@@ -3,7 +3,8 @@ import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
 import type { SeriesRebase } from '@/trading/kernel/market/refresh'
 import { assertNotAborted } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { lockRowSql, RAW_PAYLOAD } from '@/trading/features/suggestion/store/suggestion-outcome'
+import { buildRowLockSql } from '@/trading/features/suggestion/store/readable-row'
+import { RAW_PAYLOAD } from '@/trading/features/suggestion/store/suggestion-outcome'
 import { floorToLot } from '@/trading/kernel/instrument'
 
 const REBASED_PRICE_FIELDS = [
@@ -67,7 +68,7 @@ export async function rebaseOpenCalls(
     const rows = await tx.query<OpenCallRow>(
       'SELECT id, action, payload FROM suggestions ' +
         `WHERE market = ${p(1)} AND ticker = ${p(2)} AND outcome_status IS NULL AND day <= ${p(3)}` +
-        lockRowSql(deps.dialect),
+        buildRowLockSql(deps.dialect),
       [options.market, options.ticker, options.rebase.through]
     )
     let rebased = 0

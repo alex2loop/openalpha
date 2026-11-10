@@ -15,7 +15,7 @@ import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
-import { readableRow } from '@/trading/features/suggestion/store/readable-row'
+import { buildRowLockSql, readableRow } from '@/trading/features/suggestion/store/readable-row'
 import { toResolved } from '@/trading/features/suggestion/store/suggestion-row'
 import { framedDirectionOf, planStopOf } from '@/trading/features/suggestion/types'
 import { UNFILLED_STATUS } from '@/trading/kernel/conviction'
@@ -25,12 +25,6 @@ import { parseJson } from '@/trading/kernel/store/store-row'
 /** The stored object as written, merged into rather than parsed: the read-time degradations of a
  *  stale enum must not be persisted back over the row. */
 export const RAW_PAYLOAD = z.record(z.string(), z.unknown())
-
-/** Appended to a read whose result is written back: another loop committing between the two would
- *  otherwise be overwritten. SQLite serialises every operation, so it needs no lock. */
-export function lockRowSql(dialect: Dialect): string {
-  return dialect.name === 'postgres' ? ' FOR UPDATE' : ''
-}
 
 /** A same-day re-run after a version bump stores the call again under the new version, so a read
  *  pooled across versions keeps only the newest row of each call. */
@@ -210,7 +204,7 @@ export async function resolveOutcome(
 
     const rows = await tx.query<{ readonly payload: string }>(
       `SELECT payload FROM suggestions WHERE id = ${p(1)} AND outcome_status IS NULL` +
-        lockRowSql(deps.dialect),
+        buildRowLockSql(deps.dialect),
       [id]
     )
     const row = rows[0]

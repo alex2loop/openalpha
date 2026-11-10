@@ -36,3 +36,9 @@ export function buildPayloadFieldSql(dialect: Dialect, path: string): string {
     ? `payload::jsonb ->> '${path}'`
     : `json_extract(payload, '$.${path}')`
 }
+
+/** Appended to a read whose result is written back: another loop committing between the two would
+ *  otherwise be overwritten. SQLite serialises every operation, so it needs no lock. */
+export function buildRowLockSql(dialect: Dialect): string {
+  return dialect.name === 'postgres' ? ' FOR UPDATE' : ''
+}
