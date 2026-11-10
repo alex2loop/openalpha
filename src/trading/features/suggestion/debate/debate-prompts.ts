@@ -15,6 +15,7 @@ import type { DebateRole } from '@/trading/kernel/config'
 import type { Market } from '@/trading/markets/types'
 import { OUTCOME_WINDOW_DAYS } from '@/trading/features/suggestion/pipeline/outcome-window'
 import {
+  INVALIDATOR_FALLBACK,
   MAXIMUM_CLAIM_CHARS,
   MAXIMUM_CLAIMS,
   MAXIMUM_INVALIDATORS,
@@ -329,8 +330,8 @@ function invalidatorInstructions(context: PromptContext): string {
     'the next quarterly report rather than an annual audit published after it, and name the periods',
     'compared (for example the last four quarters against the last audited year). Not a price move;',
     'the stop covers that. Each is about this instrument, the market it trades in, or a driver the',
-    'evidence below names. When no filing falls due inside the window, use a rate, a flow or a',
-    'state the evidence tracks. Each stands alone under the claim length, no conditionals and no',
+    `evidence below names. When no filing falls due inside the window, ${INVALIDATOR_FALLBACK}.`,
+    'Each stands alone under the claim length, no conditionals and no',
     'hedges. Never vague: a condition nobody can check reads as unbroken forever. A call that goes',
     'ahead rests on at least one claim, so it names at least one condition.',
   ].join(' ')

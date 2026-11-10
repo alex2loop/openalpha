@@ -31,6 +31,9 @@ export const MAXIMUM_CLAIMS = 12
 /** Fewer than the claim cap on purpose: an invalidator is what the operator is asked to watch for,
  *  and a list longer than this is not watched. */
 export const MAXIMUM_INVALIDATORS = 4
+/** Where a condition comes from when no filing falls due inside the window; the prompt and the
+ *  repair re-ask say it the same way. */
+export const INVALIDATOR_FALLBACK = 'use a rate, a flow or a state the evidence tracks'
 /** A reviewing role is handed every researcher's list at once, so its selection is bounded by the
  *  sum, not by one role's cap. The verifier must return a verdict per claim, so a tighter bound
  *  would make obeying its own instruction a schema violation. */
@@ -217,8 +220,7 @@ function requireInvalidatorWhen<T extends { readonly invalidators: readonly stri
       context.addIssue({
         code: 'custom',
         path: ['invalidators'],
-        message:
-          'a call that goes ahead names at least one condition; with no filing due inside the window, use a rate, a flow or a state the evidence tracks',
+        message: `a call that goes ahead names at least one condition; with no filing due inside the window, ${INVALIDATOR_FALLBACK}`,
       })
     }
   }
