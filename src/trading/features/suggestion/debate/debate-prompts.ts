@@ -315,9 +315,6 @@ export function riskPrompt(
   }
 }
 
-/** A proper score: the role's best answer is its true belief, because a probability stated to
- *  persuade scores worse than one stated to be right. Built per call rather than once, because the
- *  window it names is the one this segment's horizon is scored over. */
 /** Checkable inside the window the call is scored over: a condition that only a later filing can
  *  answer reads as unbroken for the whole window, and the next run's check finds nothing either. */
 function invalidatorInstructions(context: PromptContext): string {
@@ -332,11 +329,16 @@ function invalidatorInstructions(context: PromptContext): string {
     'the next quarterly report rather than an annual audit published after it, and name the periods',
     'compared (for example the last four quarters against the last audited year). Not a price move;',
     'the stop covers that. Each is about this instrument, the market it trades in, or a driver the',
-    'evidence below names. Each stands alone under the claim length, no conditionals and no hedges.',
-    'An empty list is better than a vague one: a condition nobody can check reads as unbroken forever.',
+    'evidence below names. When no filing falls due inside the window, use a rate, a flow or a',
+    'state the evidence tracks. Each stands alone under the claim length, no conditionals and no',
+    'hedges. Never vague: a condition nobody can check reads as unbroken forever. A call that goes',
+    'ahead rests on at least one claim, so it names at least one condition.',
   ].join(' ')
 }
 
+/** A proper score: the role's best answer is its true belief, because a probability stated to
+ *  persuade scores worse than one stated to be right. Built per call rather than once, because the
+ *  window it names is the one this segment's horizon is scored over. */
 function probabilityInstructions(context: PromptContext): string {
   return [
     'probability is your own estimate, 0 to 1, that this call closes with a positive return within',
