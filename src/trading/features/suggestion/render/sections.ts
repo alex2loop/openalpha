@@ -2,11 +2,12 @@ import type { Locale } from '@/core/types/locale'
 import type { MessageKey } from '@/i18n'
 import type { SuggestionCitation } from '@/trading/features/suggestion/citation'
 import type { SuggestionDetail } from '@/trading/features/suggestion/render/debate'
-import type { StoredSuggestion } from '@/trading/features/suggestion/types'
+import type { StoredSuggestion, SuggestionDirection } from '@/trading/features/suggestion/types'
 import type { PriceDisplay } from '@/trading/kernel/instrument'
 import type { QuotedIn } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
 import { tradedWeightPctNav } from '@/trading/features/suggestion/pipeline/concentration'
+import { framedDirectionOf } from '@/trading/features/suggestion/types'
 import { ETF_KIND } from '@/trading/kernel/instrument'
 import { formatPublishedDay } from '@/trading/render/datetime'
 import {
@@ -30,6 +31,13 @@ const SOURCE_PREVIEW_LIMIT = 5
  *  a dozen conditions has no edge to state. */
 const INVALIDATOR_LINES = 5
 const WITHHELD_KEY_SUFFIX = 'Withheld'
+
+/** The conditions always break the idea the levels were framed on. On a hold that idea is still
+ *  waiting, so "I am wrong if" would read as the wait being wrong: the title says to drop the idea. */
+const IDEA_TITLE_KEYS = Object.freeze({
+  buy: 'trading.render.suggestion.invalidatorsBuyIdea',
+  reduce: 'trading.render.suggestion.invalidatorsReduceIdea',
+} as const satisfies Record<SuggestionDirection, MessageKey>)
 
 /** `withheld` writes the holding as its weight, never its size or its cost: a model relays that
  *  report, and the operator's own figures stay on their screen. */
@@ -71,13 +79,16 @@ export function renderInvalidatorLines(
   const hiddenCount = invalidators.length - shown.length
 
   return [
-    renderSectionTitle(
-      SECTION_ICONS.invalidators,
-      t(locale, 'trading.render.suggestion.invalidators')
-    ),
+    renderSectionTitle(SECTION_ICONS.invalidators, t(locale, invalidatorTitleKey(suggestion))),
     ...shown.map((invalidator) => `${INDENT[1]}${invalidator}`),
     ...(hiddenCount > 0 ? [renderOverflowLine(locale, hiddenCount)] : []),
   ]
+}
+
+function invalidatorTitleKey(suggestion: StoredSuggestion): MessageKey {
+  return suggestion.action === 'hold'
+    ? IDEA_TITLE_KEYS[framedDirectionOf(suggestion)]
+    : 'trading.render.suggestion.invalidators'
 }
 
 /** The benchmark basket the name sits in — index-fund demand tracks it, and it is the shorthand a

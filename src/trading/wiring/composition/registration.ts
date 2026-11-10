@@ -40,7 +40,11 @@ import { toAggregate } from '@/trading/wiring/composition/aggregate'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
 import { bindHostSeams } from '@/trading/wiring/composition/host-seams'
 import { buildMarketTicks } from '@/trading/wiring/composition/market-ticks'
-import { buildRefreshCoordinator, resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
+import {
+  buildRefreshCoordinator,
+  type buildRefreshTick,
+  resolveMarketsInUse,
+} from '@/trading/wiring/composition/refresh'
 import { buildRegistries } from '@/trading/wiring/composition/registries'
 import { assertRegistryConsistency } from '@/trading/wiring/composition/registry-checks'
 import { createDomainServices } from '@/trading/wiring/composition/services'
@@ -87,6 +91,8 @@ interface TradingRegistrationOptions {
   edition?(app: App): TradingEdition
   /** How the loops tell the network is up: the daemon resolves a name. */
   readonly reachability: ReachabilityProbe
+  /** The daemon reads its own process; the page leaves it out. */
+  readonly processMemory?: NonNullable<Parameters<typeof buildRefreshTick>[0]['processMemory']>
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider
@@ -226,7 +232,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     stores,
     services,
     refresh: coordinator.refresh,
-    scheduled: options,
+    host: options,
     logger,
   })
 

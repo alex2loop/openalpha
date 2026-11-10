@@ -229,7 +229,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 
 # [log]
 # level = "info"            # debug | info | warn | error | fatal
-# file = "logs/daemon.log"  # relative paths join data_dir
+# file = "logs/daemon.log"  # relative paths join data_dir; written as daemon.log.1, .2... (highest = newest)
 # max_file_mb = 50          # rotate before the current segment exceeds this
 # max_files = 7             # rotated segments retained, plus the current one
 
@@ -261,6 +261,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # you; the other loops keep running.
 
 # [trading.suggestions]
+# The track record counts a call only once its window (4 weeks short, a quarter long) has passed.
 # cooldown_sessions = 0              # repeat a suggestion after this many sessions; 0 = no wait.
 #                                    # The track record folds a repeat of a still-open call into it.
 # debate_mode = "full"               # full: bull and bear argue, a manager decides, a trader plans.
@@ -285,6 +286,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # A morning brief that still cannot be delivered after a few tries is skipped for
 # that day, with a notice; tomorrow's goes out as usual. Only /brief disable stops it.
 # The brief opens with a market story (Vietnam home only) and a check of earlier ones; it calls no model and needs no key.
+# Under its title sits a strip of headline figures: VN-Index, VN30, SJC gold, world gold, BTC and USD/VND.
 # [trading.briefs]
 # send_time = "08:15"                # morning brief delivery (HH:MM, home market's time zone, before the open)
 
@@ -368,7 +370,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # [trading.sources]
 # bls = "MY_BLS_KEY"                   # default: BLS_API_KEY; optional, 500 calls a day instead of 25
 # coingecko = "MY_COINGECKO_KEY"     # default: COINGECKO_API_KEY
-# fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only VIX source
+# fred = "MY_FRED_KEY"               # default: FRED_API_KEY; the only source of VIX and of the brief's S&P 500 line
 # sec-data = "MY_SEC_EMAIL"          # default: SEC_CONTACT_EMAIL; a contact address SEC asks for, not a key
 
 # [trading.themes]

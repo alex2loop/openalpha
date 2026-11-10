@@ -35,7 +35,9 @@ const ACTION_KEYS = Object.freeze({
 } satisfies Record<CoolerCall['action'], MessageKey>)
 const OUTCOME_KEYS = Object.freeze({
   target: 'trading.outcome.target',
+  'target-gave-back': 'trading.outcome.target-gave-back',
   stop: 'trading.outcome.stop',
+  'stop-in-profit': 'trading.outcome.stop-in-profit',
   expired: 'trading.outcome.expired',
 } satisfies Record<PastCall['outcome'], MessageKey>)
 

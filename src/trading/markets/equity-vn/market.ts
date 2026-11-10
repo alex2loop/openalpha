@@ -35,6 +35,7 @@ import { resolveVnTickSize, VN_PRICE_LIMIT } from '@/trading/markets/equity-vn/t
 import { FACTOR_SCORING_VERSION } from '@/trading/markets/factor-scoring'
 import { strategyVersionOf } from '@/trading/markets/level-settings'
 import { LEVEL_FORMULA_VERSION, trailOf } from '@/trading/markets/levels'
+import { policyVersionOf } from '@/trading/markets/policy-version'
 
 /** VN stocks, VN ETFs, and VN30 futures-basis research are one market with several capabilities,
  *  not three markets: they share an exchange, a currency, a calendar, a board lot, and one sizing
@@ -98,6 +99,7 @@ export function vnManifest(config: TradingConfig): MarketManifest {
       { name: 'factor-scoring', version: FACTOR_SCORING_VERSION },
       { name: 'levels', version: LEVEL_FORMULA_VERSION },
       { name: 'macro', version: VN_MACRO_FORMULA_VERSION },
+      policyVersionOf('equity-vn'),
     ],
     // The union of both sets: stock and ETF factors are both user-visible.
     factorIds: [...new Set([...VN_EQUITY_FACTOR_IDS, ...VN_ETF_FACTOR_IDS])],

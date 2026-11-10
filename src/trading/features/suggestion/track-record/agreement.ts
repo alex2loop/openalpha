@@ -1,10 +1,8 @@
 import type { CallAction } from '@/trading/features/suggestion/store/call-actions'
 import type { SuggestionAction } from '@/trading/kernel/conviction'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
-import {
-  isWinningReturn,
-  MINIMUM_TRACK_RECORD_SAMPLE,
-} from '@/trading/features/suggestion/pipeline/reporting'
+import { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
+import { isWinningReturn } from '@/trading/kernel/outcome-verdict'
 
 /** Two focuses that agree this often on the names they both called are almost the same view. */
 const OVERLAP_HINT_FRACTION = 0.95

@@ -750,9 +750,9 @@ The rest fit in a line.
 | `/suggest` | Spends LLM budget on one name. See [Suggestions](#suggestions) |
 | `/themes` | `/themes` - looks for investment themes forming in Vietnam and spends LLM budget; `/themes run <id>` - re-checks one tracked theme, looks for no new ones and reports on it alone, for a fraction of the cost; `/themes show` - reads the stored report, no model call; `/themes approve\|reject\|retire <id>` - moves one theme. Operator only |
 | `/rebalance` | `/rebalance`; `/rebalance <ticker>...` - sizes the gap to target, weighing no evidence and calling no model. See [What /rebalance sizes](#what-rebalance-sizes) |
-| `/reflect` | `/reflect` - how past suggestions actually performed |
+| `/reflect` | `/reflect` - how past suggestions actually performed. Only calls whose window has passed are counted; a closing line says how many more already hit a level and are waiting for theirs |
 | `/alert` | `/alert` or `/alert list [count]` lists them; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous; `/alert disable <id>` (the short id the list and the notice print; if it matches several, the reply lists their full ids). The list includes system-armed exit and screener rows beside your own |
-| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. With a Vietnam home, the brief opens with the market story and a look back at earlier ones. See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
+| `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. With a Vietnam home, the brief opens with the market story and a look back at earlier ones. Under the title sits a strip of headline figures (VN-Index, VN30, SJC gold, world gold, bitcoin, USD/VND). See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
 | `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
 | `/glossary` | `/glossary` lists the market terms the app uses, by group; `/glossary <term>` explains one in plain words. A name, an id or a ticker works (`/glossary P/E`, `/glossary foreign-room`, `/glossary VNINDEX`), and a few matches are listed to pick from. The definitions are the ones the web pages show under dotted-underlined words: they say what a term is, never what to do about it |
@@ -787,6 +787,13 @@ A holding past its per-name or sector cap by more than the 5/25 band is sold bac
 The leading and dropped blocks cover your own watchlist and are absent when it is empty. The
 calendar, corporate-event and headline blocks still cover the market's most-traded names, so a brief
 without a watchlist is shorter, not emptier.
+
+#### When the exchange lists could not be read
+
+The dropped-names and board-change blocks judge names against the exchanges' warning and control
+lists, as `/screen` does. When one of those blocks shows and a list could not be read, or an earlier
+day's list stood in for it, a note at the foot of the brief says so. On a day when neither block
+shows, the brief has no such note, because nothing in it was ranked by those lists.
 
 #### A brief with no book
 

@@ -9,6 +9,7 @@ import {
   readSections,
 } from '@/trading/features/brief/render'
 import { renderStoryLines, type StoryLine } from '@/trading/features/brief/story/render'
+import { renderBriefStrip } from '@/trading/features/brief/strip'
 import { renderQuotedReading, renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { toPlainText } from '@/trading/render/fold'
@@ -18,6 +19,8 @@ import { toBriefSectionText } from '@/trading/render/section'
 
 export interface BriefText {
   readonly title: string
+  /** The headline figures, one cell each: the indices, gold, the coin and the dollar. */
+  readonly strip: readonly string[]
   /** True when a section carries a call a model argued, so the page opens with the AI label. */
   readonly aiGenerated: boolean
   /** The verdict block's heading, as the CLI prints it. */
@@ -76,6 +79,7 @@ export function renderBriefForSurface(
 
   return {
     title: briefTitle(locale, snapshot, timezone),
+    strip: renderBriefStrip(locale, readable, context),
     aiGenerated: hasAiCalls,
     verdictTitle: toHeading(verdictHead),
     verdict: verdict.map(trim),

@@ -8,7 +8,6 @@ import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-contex
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 import { RELATIVE_VOLUME_SESSIONS, VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 import { aggressorBalance } from '@/trading/markets/equity-vn/tape/trade-sides'
-import { relativeVolume } from '@/trading/markets/timeseries'
 
 const PERCENT_PER_UNIT = 100
 const EVEN_SPLIT = 0.5
@@ -105,14 +104,5 @@ function sideOf(balance: number): BriefAggressorSide {
  *  quiet tape and on a distribution day are different events, and no other row in the brief carries
  *  this name's own volume. Absent for a name the cross-section did not cover. */
 function sessionRelativeVolume(context: VnBriefContext, ticker: Ticker): number | undefined {
-  const name = context.board?.byTicker.get(ticker)
-
-  if (name === undefined) {
-    return undefined
-  }
-
-  return relativeVolume(
-    name.bars.map((bar) => bar.candle.volume),
-    RELATIVE_VOLUME_SESSIONS
-  )
+  return context.board?.byTicker.get(ticker)?.relativeVolume
 }

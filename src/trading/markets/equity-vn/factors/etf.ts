@@ -13,7 +13,6 @@ import {
   VOLATILITY_SESSIONS,
   WIDE_TRACKING_ERROR,
 } from '@/trading/markets/equity-vn/policy'
-import { adjustedCandles } from '@/trading/markets/equity-vn/screen'
 import { alignedCloses, nSessionReturn, trendWithSlope } from '@/trading/markets/timeseries'
 
 interface EtfEvidence {
@@ -25,14 +24,6 @@ interface EtfEvidence {
    *  the wrapper rather than the basket — but stated as a cost once it runs wide. */
   readonly trackingError?: number
   readonly provenance: readonly SourceProvenance[]
-}
-
-/** The funds a tracking-error pass measures. Declared here rather than imported: the cross-section
- *  that supplies them already imports this module, and importing its type back would close a
- *  cycle. */
-interface BenchmarkedFund {
-  readonly record: { readonly instrument: { readonly ticker: Ticker } }
-  readonly bars: readonly BarRecord[]
 }
 
 /** ETFs declare their own factors. Running one through the stock policy would leave `quality` and
@@ -63,31 +54,22 @@ function trackingCaveats(dispersion: number | undefined): readonly Caveat[] {
     : [{ code: 'suggestion.tracking-error-wide', detail: { drift: dispersion } }]
 }
 
-/** Every fund's dispersion against the index it declares, keyed by ticker. A fund with no declared
- *  benchmark, no stored index series, or too short an overlap is absent rather than zero. */
-export function etfTrackingErrors(
-  funds: readonly BenchmarkedFund[],
+/** One fund's dispersion against the index it declares, from the fund's adjusted candles. A fund
+ *  with no declared benchmark, no stored index series, or too short an overlap is absent rather
+ *  than zero. */
+export function etfTrackingError(
+  fund: Ticker,
+  fundCandles: readonly Candle[],
   benchmarks: ReadonlyMap<Ticker, readonly BarRecord[]>
-): ReadonlyMap<Ticker, number> {
-  const errors = new Map<Ticker, number>()
+): number | undefined {
+  const benchmark = benchmarkBars(fund, benchmarks)
 
-  for (const fund of funds) {
-    const key = fund.record.instrument.ticker
-    const benchmark = benchmarkBars(key, benchmarks)
-    const error =
-      benchmark === undefined
-        ? undefined
-        : trackingError(
-            adjustedCandles(fund.bars),
-            benchmark.map((bar) => bar.candle)
-          )
-
-    if (error !== undefined) {
-      errors.set(key, error)
-    }
-  }
-
-  return errors
+  return benchmark === undefined
+    ? undefined
+    : trackingError(
+        fundCandles,
+        benchmark.map((bar) => bar.candle)
+      )
 }
 
 /** The stored series a fund is measured against, or nothing: a fund with no declared benchmark, or

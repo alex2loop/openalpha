@@ -12,7 +12,7 @@ Tóm tắt: mọi nhà cung cấp đều bật sẵn. Bạn không cần bật g
 |---|---|---|
 | `bls` | `BLS_API_KEY` | Không mất gì: lạm phát Mỹ vẫn đọc được. Không có khóa thì nhà cung cấp cho 25 lượt gọi mỗi ngày trên mỗi địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì giới hạn là 500. |
 | `coingecko` | `COINGECKO_API_KEY` | Không mất gì: nó đọc được cả hai cách. Không có khóa, nhà cung cấp cho một số ít lần gọi mỗi phút theo địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì bạn có hạn mức riêng mỗi tháng. |
-| `fred` | `FRED_API_KEY` | Bạn mất hai chuỗi chỉ FRED công bố: chỉ số đô la và VIX (mức lo sợ của thị trường). Điểm vĩ mô vẫn chấm được nhưng thiếu hai yếu tố này: điểm vĩ mô Mỹ mất khoảng 30% trọng số, bối cảnh vĩ mô cho cổ phiếu VN mất 20%, vàng mất 2 trong 7 yếu tố (đô la, trú ẩn an toàn). Vì vậy những ngày đô la mạnh lên hay thị trường hoảng loạn dễ bị bỏ sót. Lợi suất, lãi suất thực và lạm phát Mỹ vẫn đọc từ `treasury` và `bls`, hai bên không cần khóa. Khóa miễn phí, đăng ký tại [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html). |
+| `fred` | `FRED_API_KEY` | Bạn mất hai chuỗi chỉ FRED công bố: chỉ số đô la và VIX (mức lo sợ của thị trường), cùng dòng S&P 500 trong khối Thị trường thế giới của bản tin. Điểm vĩ mô vẫn chấm được nhưng thiếu hai yếu tố này: điểm vĩ mô Mỹ mất khoảng 30% trọng số, bối cảnh vĩ mô cho cổ phiếu VN mất 20%, vàng mất 2 trong 7 yếu tố (đô la, trú ẩn an toàn). Vì vậy những ngày đô la mạnh lên hay thị trường hoảng loạn dễ bị bỏ sót. Lợi suất, lãi suất thực và lạm phát Mỹ vẫn đọc từ `treasury` và `bls`, hai bên không cần khóa. Bạn nhận khóa bằng cách đăng ký tại [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html). |
 | `sec-data` | `SEC_CONTACT_EMAIL` | Không phải khóa: SEC yêu cầu mọi người đọc cho biết ai đang gọi, nên đây là email liên hệ của bạn. Không có thì nguồn SEC tắt. Giá trị và chất lượng của cổ phiếu Mỹ đọc thành không có số liệu, công bố kết quả kinh doanh và giao dịch mua của người nội bộ cũng vậy. |
 
 Lưu khóa bằng `openalpha key set <TÊN>` (hoặc ở Cài đặt > Công cụ trên trang văn phòng), rồi khởi động lại dịch vụ nền (daemon). Hoặc đặt biến trong shell hay môi trường. Đừng bao giờ ghi khóa vào tệp cấu hình. `openalpha key list` cho thấy các biến này và biến nào đã đặt.
@@ -42,7 +42,7 @@ Mỗi loại dữ liệu, ở mỗi thị trường, có một danh sách nhà c
 
 Có hai ngoại lệ:
 
-- **Đọc trộn.** Vĩ mô Mỹ (các con số của cả nền kinh tế như lãi suất và lạm phát), các bảng vàng Việt Nam và danh sách giám sát của sàn (các mã mà sàn đưa vào diện theo dõi thêm) hỏi mọi nhà cung cấp rồi gộp câu trả lời, vì không bên nào có đủ hết. Khi hai bên cùng công bố một mục, thứ tự trong danh sách quyết định bên nào thắng. Vĩ mô Mỹ xếp `treasury` và `bls` lên đầu, nên bản cài không có khóa vẫn đọc được vĩ mô.
+- **Đọc trộn.** Vĩ mô Mỹ (các con số của cả nền kinh tế như lãi suất và lạm phát), các bảng vàng Việt Nam và danh sách giám sát của sàn (các mã mà sàn đưa vào diện theo dõi thêm) hỏi mọi nhà cung cấp rồi gộp câu trả lời, vì không bên nào có đủ hết. Khi hai bên cùng công bố một mục, thứ tự trong danh sách quyết định bên nào thắng. Vĩ mô Mỹ xếp `treasury` và `bls` lên đầu, nên bản cài không có khóa vẫn đọc được vĩ mô. Danh sách giám sát được đọc một lần mỗi lượt refresh và một lần mỗi phiên giữa hai lượt; khi một lần đọc lỗi, danh sách đầy đủ gần nhất được dùng lại và câu trả lời nói rõ đó là danh sách của phiên nào.
 - **Đọc chia việc.** Với tin tức, một nhà cung cấp lo tin riêng của một mã, một nhà khác lo lần đọc toàn thị trường. Hai bên chia việc. Không bên nào là dự phòng của bên kia.
 
 Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm dừng (xem [Khi một nhà cung cấp hỏng](#khi-một-nhà-cung-cấp-hỏng)), bị đẩy xuống sau các bên khỏe. Không bên nào được đẩy lên chỉ vì mới trả lời gần đây.
@@ -118,13 +118,14 @@ Vài nguồn ít hiển nhiên làm gì:
   - `vietcap-statements` thay chúng ngay ngày nó có lưu chuyển tiền tệ.
 - `cafef` không phải bên dự phòng cho dòng tiền của `vndirect`. Nó chỉ công bố khối tự doanh (công ty chứng khoán giao dịch bằng tiền của chính mình), sớm hơn hai phiên. Nó chỉ được hỏi cho những phiên còn thiếu phần đó.
 - `fred-csv` mang các chuỗi hàng hóa hằng tháng mà không feed hằng ngày nào có (than, gạo, thịt lợn, thép). `vndirect` mang các chuỗi hằng ngày. Hai bên không bao giờ tranh nhau một mặt hàng.
+- Hai feed tin tổng hợp của Việt Nam (mục vĩ mô và đầu tư của CafeF, mục thời sự của VnExpress) đăng mọi bài nhà xuất bản có, nên một tiêu đề chỉ được giữ lại khi nó nêu một thuật ngữ kinh tế hoặc chính sách như lãi suất, tỷ giá, lạm phát, thuế quan, tín dụng hay một nghị định mới. Bộ lọc áp dụng ở mọi nơi đọc hai feed này: bản tin, dải tin vĩ mô và tin cổ phiếu Việt Nam. Crypto chỉ đọc feed tin riêng của nó, không đọc luồng tin kinh tế toàn cầu.
 - `coinbase` và `okx` định giá một coin thanh toán (như USDT) so với tiền pháp định. Không có đường dự phòng từ `USDTVND` sang `USDVND`: USDT là một công cụ khác, và tỷ giá thiếu được báo chứ không đoán.
 - Giá crypto đặt sàn mặc định của `crypto` lên đầu (`default_for` trong `[trading.venues.<id>]`, mặc định `binance`), khi sàn đó cũng là nhà cung cấp dữ liệu. Một kế hoạch định giá ở nơi khác sẽ báo một con số mà lệnh của bạn không khớp được.
 - `mexc` dự phòng cho `binance` ở giá và đứng thứ ba ở lịch sử. Nó niêm yết những coin các sàn lớn không có. Nhưng khối lượng ở đuôi dài các coin nhỏ là kém đáng tin nhất, nên nó chỉ trả lời cho mã mà các sàn lớn từ chối.
 - `okx` không niêm yết mọi coin. Coin nó thiếu bị bỏ qua, và lần bỏ qua đó không tính là một lần hỏng.
 - `coingecko` phục vụ bảng vốn hóa, một tỷ giá FX và lịch sử tỷ giá đồng, không phục vụ đường giá. Vòng cảnh báo đọc giá của mọi coin đang theo dõi ở mỗi nhịp, và một nhà cung cấp tính hạn mức theo tháng sẽ tiêu hết hạn mức vào đó.
 
-Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền ròng của ETF spot crypto. Mục `etf-flows` của bản tin báo `unavailable`. Đó là điều bình thường, không phải sự cố.
+Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền ròng của ETF spot crypto. Mục `etf-flows` của `/overview crypto` báo `unavailable`. Đó là điều bình thường, không phải sự cố.
 
 ### Nguồn dữ liệu Mỹ
 

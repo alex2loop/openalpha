@@ -262,7 +262,7 @@ every HOSE index, so a board sweep's failures must not black out the series the 
 **VN `bars` order.** `vndirect` publishes no index rows (it declines them in `covers`, so an index costs it no request), so
 `vndirect-index` is the first provider an index reaches. Measured 2026-11-03: its closes were identical to `vps` over 953 sessions
 (VNINDEX, VN30) and to `vietcap-chart` and `vps` over the whole 280-session window on all ten indices read (VNINDEX, VN30, VN100,
-VNMIDCAP, VNDIAMOND, VNX50, VNFINLEAD, VNFINSELECT, VNSHINE, VNMITECH), so a provider switch fires no `isRestated`. VNINDEX runs
+VNMIDCAP, VNDIAMOND, VNX50, VNFINLEAD, VNFINSELECT, VNSHINE, VNMITECH), so a provider switch fires no `restatementOf`. VNINDEX runs
 back to 2017-08 (2,294 sessions). `entrade` is behind it because it answers wrongly without failing: its stored closes for VN100
 and VNMITECH disagreed with all three others on 22 sessions each (2026-04-01 to 2026-06-09), and its stored VNINDEX and VN30 volumes sat 8% from
 `vndirect-index`'s on average (up to 84%). It still charts some indices at the depths this tree
@@ -292,7 +292,14 @@ still had `vietcap-chart` and `vps` behind `vndirect-index`, so no single refusa
 close identical over 125 sessions measured. Provider facts the adapter owns: the feed spells VNMIDCAP `VNMID`, and its `to` bound
 rounds **up** to the day, so the settled day is applied to the parsed candles rather than trusted to the query. Its turnover is
 matched orders only, 17% under vietcap's (which adds the put-through leg after the session), so it may only back a provider whose
-volume no factor reads. The ETF factor reads closes and `isRestated` weighs the close, so nothing downstream sees the difference.
+volume no factor reads. The ETF factor reads closes and `restatementOf` weighs the close, so nothing downstream sees the difference.
+
+**A re-basing is converted, not closed.** `restatementOf` (`markets/bar-restatement.ts`) compares every overlapping session's new
+close with its stored one. When the changed sessions share one factor and every session after them is unchanged (a dividend or a split moves the
+sessions before the ex-date together), the result carries a `rebase` (`factor`, `through`), and `rebaseOpenCalls` rescales the open calls and plans
+on the name dated on or before `through`, so they keep counting. Any other restatement (a data fix, a changed session after an unchanged one, factors
+that disagree) closes open plans, deletes holds and leaves `return_pct` null, as before. The scorer's `isRestatedSince` stays the fallback for a
+market with no stored series.
 
 **`indexMembership` order.** `vietcap` leads and `vps-board` (`bgapidatafeed.vps.com.vn/getlistckindex/<index>`, a JSON array of
 tickers) backs it. Both read the pair of baskets through one loader (`rows/index-baskets.ts`), every basket or none. Measured
@@ -346,6 +353,12 @@ the monthly series no free daily feed has.
   `/v4/commodities` and `/v4/ratios`, per name since `fromDay` or for all names on one `toDay` session with their five-year
   averages. A `fred-csv` body without the CSV header fails the parse rather than reading as empty. A loss-making year has no
   P/E, and missing is no reading; a non-trading session answers empty, so the reader steps back one session.
+
+**News topic filter.** `FEED_TOPIC_TERMS` (`adapters/rss.ts`) maps a feed id to terms, and `loadFeeds` passes each feed's items through `withOnTopicItems`: an item stays only when its lower-cased title (Vietnamese casing) holds one of them. Only the two general-news feeds (`economy-vn`, `politics-vn`) have an entry, both `VN_ECONOMY_TERMS`, so the filter also reaches the macro tape and `equity-vn` stock news, not only the brief; a feed with no entry keeps every item. `SCOPE_FEEDS.crypto` is `['crypto']` alone, so crypto no longer reads `economy-global` (CNBC), the one feed a browser can read: the web edition has no crypto headlines, and its docs say so.
+
+**`fred` S&P 500.** `us-equity-index` (field `index`) reads FRED `SP500` as an optional series (`OPTIONAL_SERIES`) and is listed in `FRED_MACRO_PROFILE.series`. No driver policy weighs it, and `driversFrom` iterates only weighted ids, so it is never reported missing. The brief's `world-markets` section quotes it from the keyed read; FRED republishes S&P Dow Jones Indices' notice on it, so the row names its source.
+
+**`giavang` history fallback.** When the board snapshot is unavailable (the dealers have not revised yet), the `gold-vn` overview reads `goldBoardHistory` `SJC_FALLBACK_SESSIONS` sessions back and keeps the newest SJC-bar point before today on a day the counters were open (`createSettledBarFilter`: the vendor carries a Sunday entry that repeats Saturday, and `calendar.isTradingDay` rejects it). The row is dated by `closedOn`, carries `changePct` only when an earlier point exists, and no premium. A failed read leaves no row; the caveats are the snapshot's, then the history's.
 
 **`proprietaryFlows` is not a failover for `flows`.** `cafef` publishes the proprietary desk alone, with no foreign figures. It
 leads that desk by two sessions, while `vndirect` drops whole sessions of it (four of 68 trading days, measured over four
@@ -440,7 +453,16 @@ unpaced primary was routed first for.
     answer.
   - `supervision` - `hsx` is HOSE's own listing service and `ssi`'s broker board is the only free endpoint that also carries HNX,
     so the union covers the market. Each read states the boards it covered; a board no read covered leaves its names unknown,
-    not clear.
+    not clear. `supervisionCache` (`evidence/supervision.ts`) holds the merged read per board day, in as many slots as the
+    cross-section cache, so the board, the screened-names stamp and the brief's previous-session board share one read per day.
+    `refreshMarketData` clears the held reads as every pass starts, scheduled or forced, so a pass reads the lists as they
+    stand then. A read that misses an admitted board (HOSE or HNX) is held too, so a provider that keeps refusing is asked
+    once per board day in each pass, not once per board build; the caller gets the last good read instead, with
+    `source.supervision-carried` naming that read's day, or the incomplete read itself while there is none. The last good
+    read is the newest complete one and survives the clear. Surfaces state the gap over the names they judged through
+    `judgedSupervisionCaveats`: `/screen`, and the brief's `watchlist-dropped` and `screen-delta` (both boards). The web
+    edition reaches neither provider, so its held read covers no board: every list gate stays open and those surfaces carry
+    `source.supervision-unavailable`.
 
   `proprietaryFlows` merges for the other reason. It has one provider, but failover would treat an answer of no rows as a
   failure, and here that answer is the useful fact: a desk that traded nothing still closes the gap.
@@ -453,7 +475,7 @@ A page can read only the providers whose server lets a web page call it (CORS), 
 
 - **`BROWSER_REACHABLE_SOURCES`** in `composition/source-facts.ts`: the provider ids that passed the measurement below, alphabetical. A provider that tightens CORS later leaves the set by deleting its line, and the feature it served reads as off in the page.
 - **`toBrowserRoutes(routes, reachable)`** in `sources/routes.ts`: keeps the table's order, drops every id not in the set and drops a scope left with no provider. An emptied scope is then *not served*, never failed. The browser root passes the result as the registry's `routes` option; absent, the registry takes `SOURCE_ROUTES` (the daemon). A built-in provider the table leaves out has no failover position, so it is not registered at all.
-- **`BROWSER_FEEDS`** in `adapters/rss.ts` and `withReachableFeeds`: `rss` stays in the set because one feed (CNBC) answers a browser, but each feed is a separate origin. The browser root passes only the readable feeds as the `feeds` fact, and a news scope whose feeds are all unreadable loses `rss` yet keeps its key, so a lookup never falls through to the `*` scope.
+- **`BROWSER_FEEDS`** in `adapters/rss.ts` and `withReachableFeeds`: `rss` stays in the set because one feed (CNBC) answers a browser, but each feed is a separate origin. The browser root passes only the readable feeds as the `feeds` fact, and a news scope whose feeds are all unreadable loses `rss` yet keeps its key, so a lookup never falls through to the `*` scope. The `*` route also carries the macro tape (the Fed and cafef feeds) beside the economy wire (CNBC), so `rss` cannot leave it; instead `rss` does not cover a request whose scope has no readable feed, and the macro tape reads as not served, with no caveat. Nothing replaces it: NSO's posts are one monthly report body, and VNDIRECT's `macro_news` group is a single trade magazine's ministry and provincial press releases.
 
 Host-stated facts travel with it (`HostSourceFacts`: `plainUserAgentSources`, `feeds`, `attemptTimeoutMs`). A page cannot set `user-agent`, so the browser passes an empty `plainUserAgentSources`, and a longer attempt deadline than the daemon's (`SOURCE_ATTEMPT_TIMEOUT_MS`, 15 s), because a slow edge (`treasury` was measured at about nine seconds) would otherwise clear the default by under a second.
 
@@ -548,9 +570,9 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
   only when their reports are due.
 - `nasdaq` 120: publishes none; a full sweep of the US board ran at about that rate without a refusal. `sec` and `sec-data` 200: SEC allows 10 requests a second per address across both hosts and blocks the address for ten minutes past it. Each bucket holds one token (`SOURCE_BURST_LIMITS`, instead of the default quarter-minute burst), so any one second asks at most 1 + 200/60 of each host, under 9 together.
 - 60: `coinpaprika` publishes 10/s and 20,000/month; `coinlore` and `treasury` publish none (sweep-safe rate); `entrade`, `kbsec`,
-  `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per sweep; `rss`
-  is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo` serves gold `quote`/`bars`
-  plus the fiat `fx` leg; `coinbase` is one pair per conversion.
+  `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per refresh
+  and board day; `rss` is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo`
+  serves gold `quote`/`bars` plus the fiat `fx` leg; `coinbase` is one pair per conversion.
 - `vietcombank` 120: publishes none; a window is one request a weekday, at most 45, read only where `yahoo` and `coingecko` answered nothing. A 33-day window took 18 s through the pacer at 60 a
   minute and 2.7 s at 120. `vndirect-index` 60: one request an
   index (a page per 500 sessions) when the market refreshes its level bars.
@@ -699,7 +721,7 @@ day's first pass runs before the US series publish, and only a complete read is 
 - `series_points` is swept after `history_days` (1095 by default) and never below `HISTORY_FLOOR_DAYS.macroSeries` (about 500), so the default covers a one- and three-year comparison against its own history, and a five-year one needs `history_days` raised (the five-year averages shown today are the provider's, with no backfill).
 - `createIndexValuation` reads the latest stored point of each ratio and builds the reading; a failed refresh leaves the last one, and one older than ten days carries `source.stale-cache`.
 - ROE is `P/B / P/E`, derived.
-- The provider files no above-mean shares for VN30, so the same pass counts the stored VN30 constituents (`indexTier`) above their own 50- and 200-session means on the ratios' day (`aboveMeanRatios`, from the cross-section's bars) and stores them under the same series ids.
+- The provider files no above-mean shares for VN30, so the same pass counts the stored VN30 constituents (`indexTier`) above their own 50- and 200-session means on the ratios' day (`aboveMeanRatios`, from each name's stored closes and day columns) and stores them under the same series ids.
 
 *Contributors* are never stored: `createIndexContributors` (`markets/equity-vn/tape/index-contributors.ts`) keeps one slot per index (three in all).
 
@@ -828,6 +850,15 @@ never worth holding the universe for; the universe then settles without it, keep
   last two read the cross-section the first three rewrite. A stage settles every kind before the next starts, so a kind that
   throws never leaves a sibling writing after the refresh failed. Each kind result carries `elapsedMs`, logged on
   `trading.market_data_refreshed`.
+- **The VN board is read one name at a time.** `loadCrossSection` (`markets/equity-vn/evidence/cross-section-cache.ts`) reads a name's bars and flows, reduces them to a compact `NameEvidence` (the gates it fails, the figures every factor reads, the close and day columns the breadth readers count by day) and folds them into the market's per-day totals before it reads the next, so no name's raw bars outlive its turn, and of its flows only the newest few sessions stay, which the session's flow totals read. A reader that needs a figure the evidence does not hold adds a field to the builder in `factors/name-evidence.ts`; it never asks for the bars back.
+- **`accounts` keeps the names it screened.** Which names a report can act on comes from the screened board, and reading
+  the board is a whole-population pass. The names are stored per market in `screened_names` with the session they were read
+  for and a stamp of what the screen reads: the stored evidence (newest fetch and row count of bars and instruments, newest
+  fundamental; flows and accounts feed no gate), a digest of the exchange's supervision lists, the read the board takes
+  when it is rebuilt (one per refresh and board day), and a digest of the gate policy (`SCREEN_POLICY_DIGEST`, derived
+  from the gates and thresholds themselves). A pass reuses the names only while the session and the stamp all match, so a
+  restart that replays every earlier kind skips the pass, while a write by any earlier kind, a change to a supervision
+  list or to the gates, a new session or a forced run reads the board again. The held names are always added fresh.
 
 Crypto is the exception: `markets/crypto/screen-run.ts` ranks straight off `marketCap` and `bars` reads with no store, because its
 universe is one ranked request rather than a swept board.
@@ -858,7 +889,7 @@ concurrent suggestion of the same provider's tokens.
 
 Features never turn a `SourceResult` into an exception.
 
-- **`unavailable` renders as an absent section** naming the reason and the ids attempted. The brief's `etf-flows` reporting
+- **`unavailable` renders as an absent section** naming the reason and the ids attempted. The `etf-flows` section of `/overview crypto` reporting
   `unavailable` is the designed behavior of an unrouted kind.
 - **Caveats accumulate upward** and dedupe once per message: ready sections hoist theirs to one list, a *failed* section states
   its own.

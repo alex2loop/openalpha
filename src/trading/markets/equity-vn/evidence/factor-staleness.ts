@@ -38,22 +38,22 @@ interface DatedEvidence {
   readonly benchmarkAt?: TradingDay
 }
 
+/** Which of a name's factors read a source that is behind its tape: all of them, or the named ones. */
+export type StaleFactors = 'all' | readonly FactorId[]
+
 /** Every factor input, with a caveat added to each one whose own source is behind the tape. The
  *  input keeps its raw value: a lagging leg is still the best reading there is, and saying so is
  *  what lets conviction fall without the factor abstaining outright. */
 export function withStaleCaveats<K extends FactorId>(
   inputs: readonly FactorInput<K>[],
-  evidence: DatedEvidence,
-  freshFrom: TradingDay
+  stale: StaleFactors
 ): readonly FactorInput<K>[] {
-  const stale = staleFactorIds(inputs, evidence, freshFrom)
-
-  if (stale.size === 0) {
+  if (stale !== 'all' && stale.length === 0) {
     return inputs
   }
 
   return inputs.map((entry) =>
-    stale.has(entry.id)
+    stale === 'all' || stale.includes(entry.id)
       ? { ...entry, caveats: [...entry.caveats, staleInputCaveat(entry.id)] }
       : entry
   )
@@ -63,44 +63,32 @@ export function withStaleCaveats<K extends FactorId>(
  *  the bars are not — or when a fund's index is behind the fund's own tape. Otherwise the factors
  *  whose own source lags that tape, each by its own publication calendar: measuring against
  *  `freshFrom` instead would let a leg ending a session before it go unreported. */
-function staleFactorIds<K extends FactorId>(
-  inputs: readonly FactorInput<K>[],
-  evidence: DatedEvidence,
-  freshFrom: TradingDay
-): ReadonlySet<FactorId> {
-  const tape = evidence.bars[evidence.bars.length - 1]?.candle.at
-  const stale = new Set<FactorId>()
+export function staleFactorsOf(evidence: DatedEvidence, freshFrom: TradingDay): StaleFactors {
+  const { bars, flows, fundamental, benchmarkAt } = evidence
+  const tape = bars[bars.length - 1]?.candle.at
 
   if (tape === undefined) {
-    return stale
+    return []
   }
 
-  if (
-    tape < freshFrom ||
-    isLagging(evidence.benchmarkAt, evidence.bars, BENCHMARK_LAG_TOLERANCE_SESSIONS)
-  ) {
-    for (const entry of inputs) {
-      stale.add(entry.id)
-    }
-
-    return stale
+  if (tape < freshFrom || isLagging(benchmarkAt, bars, BENCHMARK_LAG_TOLERANCE_SESSIONS)) {
+    return 'all'
   }
 
-  const foreignAt = newestFlowDay(evidence.flows, (flow) => flow.foreignNetValue)
-  const proprietaryAt = newestFlowDay(evidence.flows, (flow) => flow.proprietaryNetValue)
+  const stale: FactorId[] = []
+  const foreignAt = newestFlowDay(flows, (flow) => flow.foreignNetValue)
+  const proprietaryAt = newestFlowDay(flows, (flow) => flow.proprietaryNetValue)
 
-  if (isLagging(foreignAt, evidence.bars, FOREIGN_LAG_TOLERANCE_SESSIONS)) {
-    stale.add('foreign-flow')
+  if (isLagging(foreignAt, bars, FOREIGN_LAG_TOLERANCE_SESSIONS)) {
+    stale.push('foreign-flow')
   }
 
-  if (isLagging(proprietaryAt, evidence.bars, PROPRIETARY_LAG_TOLERANCE_SESSIONS)) {
-    stale.add('proprietary-flow')
+  if (isLagging(proprietaryAt, bars, PROPRIETARY_LAG_TOLERANCE_SESSIONS)) {
+    stale.push('proprietary-flow')
   }
 
-  if (isLagging(evidence.fundamental?.asOf, evidence.bars, FUNDAMENTAL_LAG_TOLERANCE_SESSIONS)) {
-    for (const id of FUNDAMENTAL_FACTOR_IDS) {
-      stale.add(id)
-    }
+  if (isLagging(fundamental?.asOf, bars, FUNDAMENTAL_LAG_TOLERANCE_SESSIONS)) {
+    stale.push(...FUNDAMENTAL_FACTOR_IDS)
   }
 
   return stale

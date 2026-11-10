@@ -20,7 +20,7 @@ import {
   createRefreshTick,
 } from '@/trading/features/market-data/ops/refresh'
 import { createTradeSidesTick } from '@/trading/features/market-data/ops/trade-sides'
-import { clearRestatedPlans } from '@/trading/features/suggestion/exit-plan/restatement'
+import { settleRestatedPlans } from '@/trading/features/suggestion/exit-plan/restatement'
 import { disabledSegments } from '@/trading/kernel/operator/profile'
 
 /** How many names a scheduled universe refresh replaces per market. Bounded here rather than in
@@ -65,6 +65,7 @@ export function buildRefreshCoordinator(
   const stores = app.resolve('tradingStores')
   const restatement: RestatementDeps = {
     suggestions: stores.suggestion,
+    markets,
     sender: notice.sender,
     recipient: () => notice.recipient(),
     logger: app.resolve('logger'),
@@ -88,7 +89,7 @@ export function buildRefreshCoordinator(
     refresh: async (options) => {
       const result = await coordinator(options)
 
-      await clearRestatedPlans(restatement, result, options.signal)
+      await settleRestatedPlans(restatement, result, options.signal)
 
       return result
     },
@@ -103,13 +104,14 @@ interface RefreshTickParts {
   readonly logger: Logger
 }
 
-interface ScheduledRuns {
+interface RefreshHost {
   readonly runScheduled: ScheduledRunner
+  readonly processMemory?: NonNullable<Parameters<typeof createRefreshTick>[0]['processMemory']>
 }
 
 /** Built after the services: the trade-sides sweep it carries reads the book. */
 export function buildRefreshTick(
-  scheduled: ScheduledRuns,
+  host: RefreshHost,
   parts: RefreshTickParts
 ): (options: RefreshAllMarketDataOptions) => Promise<readonly RefreshMarketDataResult[]> {
   const { markets, stores, logger } = parts
@@ -125,7 +127,8 @@ export function buildRefreshTick(
       marketDataStore: stores.marketData,
       logger,
     }),
-    runScheduled: scheduled.runScheduled,
+    runScheduled: host.runScheduled,
+    ...(host.processMemory === undefined ? {} : { processMemory: host.processMemory }),
     logger,
   })
 }

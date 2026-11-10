@@ -63,6 +63,8 @@ findings in memory, and produce a concise summary. Do not write to disk.
 # goal = "income"             # preserve | income | grow: what it hunts for, in your profile's
 #                             # words (income = dividends); only marks the agent, never
 #                             # changes or splits its calls
+#
+# A call joins its record once its window has passed; a target it gave back counts as a miss.
 
 # ---- Look (how this agent's character appears on the office page) -----------
 # Up to 8 parts, each a lowercase slug of at most 24 characters. The daemon only keeps what you

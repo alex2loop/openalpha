@@ -1,4 +1,5 @@
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js'
+import type { z } from 'zod'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import {
   getDefaultEnvironment,
@@ -21,6 +22,7 @@ import { BRAND } from '@/core/brand'
 import { ConfigError, ToolError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { NetworkPolicy } from '@/core/ssrf/network-policy'
+import { withDeadline } from '@/core/utils/concurrency'
 import {
   MCP_CALL_TIMEOUT_MS,
   MCP_DISCOVERY_TIMEOUT_MS,
@@ -31,6 +33,8 @@ import {
 
 const CLIENT_INFO = { name: BRAND.name, version: BRAND.version }
 const TOOL_NAME_SEPARATOR = '\n'
+
+export type McpCallResult = z.infer<typeof CallToolResultSchema>
 
 interface McpCallParams {
   readonly name: string
@@ -65,11 +69,13 @@ export class McpSession {
   }
 
   /** Throws ToolError('server_unavailable') while the server is down and cannot be redialed. */
-  async call(params: McpCallParams, signal: AbortSignal): Promise<unknown> {
+  async call(params: McpCallParams, signal: AbortSignal): Promise<McpCallResult> {
     const client = await this.ensureUp()
 
+    let raw: unknown
+
     try {
-      return await client.callTool(params, CallToolResultSchema, {
+      raw = await client.callTool(params, CallToolResultSchema, {
         signal,
         timeout: MCP_CALL_TIMEOUT_MS,
       })
@@ -80,6 +86,16 @@ export class McpSession {
 
       throw err
     }
+
+    // The SDK's return type also admits a legacy `{ toolResult }` shape whose `content` is
+    // untyped; re-parsing narrows to the modern result without an assertion.
+    const parsed = CallToolResultSchema.safeParse(raw)
+
+    if (!parsed.success) {
+      throw new ToolError('unexpected', `MCP tool ${params.name} returned an unusable result`)
+    }
+
+    return parsed.data
   }
 
   // Closes whichever clients exist, so a reconnect in flight cannot strand a child process.
@@ -262,19 +278,4 @@ function createTransport(server: ResolvedMcpServer): Transport {
     // itself is not pinned to the validated address. Loopback and private LAN stay reachable.
     fetch: NetworkPolicy.guardedServerFetch,
   }) as Transport
-}
-
-// Resolves to undefined on timeout. The timer is always cleared, so it never pins the event loop.
-export async function withDeadline<T>(work: Promise<T>, timeoutMs: number): Promise<T | undefined> {
-  let timer: ReturnType<typeof setTimeout> | undefined
-
-  const deadline = new Promise<undefined>((resolve) => {
-    timer = setTimeout(() => resolve(undefined), timeoutMs)
-  })
-
-  try {
-    return await Promise.race([work, deadline])
-  } finally {
-    clearTimeout(timer)
-  }
 }

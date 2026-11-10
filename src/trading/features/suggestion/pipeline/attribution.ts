@@ -22,12 +22,14 @@ const VERSION_SUFFIX_SEPARATOR = '+'
 
 interface ScoredOutcome {
   readonly score: number
-  readonly longReturnPct: number
+  /** What holding the name long returned beyond the baseline. */
+  readonly excessReturnPct: number
 }
 
 /** What an attribution row is scored from: the factors as they read, and what holding the name long
- *  returned after. A factor reads the price, not the call, so a reduce is scored from the long side
- *  too. A fraction despite the name, like every return in the tree. */
+ *  returned after, against a baseline over the same span. A factor reads the price, not the call, so
+ *  a reduce is scored from the long side too. Fractions despite the name, like every return in the
+ *  tree. */
 export interface ScoredRow {
   readonly market: MarketRef
   readonly strategyVersion: string
@@ -36,7 +38,12 @@ export interface ScoredRow {
     readonly score: number
     readonly weight?: number
   }[]
+  /** The long side's price move, before fees: a factor predicts the price, and the baseline is gross. */
   readonly longReturnPct: number
+  /** What the market returned over the same span, long side: a falling tape makes every bearish
+   *  reading look right against zero, so a factor is judged by what it beat. Absent when none was
+   *  measured, and an absent baseline is not zero: the row is left out of the record. */
+  readonly baselineReturnPct?: number
 }
 
 interface FactorGroup {
@@ -54,9 +61,28 @@ export function summarizeFactorAttribution(
   rows: readonly ScoredRow[],
   minimumSampleSize: number
 ): readonly FactorAttribution[] {
+  const grouped = groupByFactor(rows)
+  const firstSeen = new Map<string, number>()
+
+  return [...grouped.values()]
+    .map((group) => ({
+      attribution: toAttribution(group, minimumSampleSize),
+      recency: recencyOf(firstSeen, group),
+    }))
+    .toSorted(byVersionRecency)
+    .map((entry) => entry.attribution)
+}
+
+function groupByFactor(rows: readonly ScoredRow[]): ReadonlyMap<string, FactorGroup> {
   const grouped = new Map<string, FactorGroup>()
 
   for (const row of rows) {
+    if (row.baselineReturnPct === undefined) {
+      continue
+    }
+
+    const excessReturnPct = row.longReturnPct - row.baselineReturnPct
+
     for (const factor of row.factorScores) {
       const { market } = row
       const key = [market, row.strategyVersion, factor.id].join(KEY_SEPARATOR)
@@ -67,7 +93,7 @@ export function summarizeFactorAttribution(
         scored: [],
       }
 
-      group.scored.push({ score: factor.score, longReturnPct: row.longReturnPct })
+      group.scored.push({ score: factor.score, excessReturnPct })
 
       if (group.weight === undefined && factor.weight !== undefined) {
         group.weight = factor.weight
@@ -77,15 +103,7 @@ export function summarizeFactorAttribution(
     }
   }
 
-  const firstSeen = new Map<string, number>()
-
-  return [...grouped.values()]
-    .map((group) => ({
-      attribution: toAttribution(group, minimumSampleSize),
-      recency: recencyOf(firstSeen, group),
-    }))
-    .toSorted(byVersionRecency)
-    .map((entry) => entry.attribution)
+  return grouped
 }
 
 /** Position of a group's version among its market's versions, newest first. A level-key suffix is a
@@ -124,27 +142,43 @@ function baseVersionOf(version: string): string {
   return version.split(VERSION_SUFFIX_SEPARATOR)[0] ?? version
 }
 
-/** A resolved call as an attribution row. Its return is the call's own, net of the round trip, so a
- *  reduce's is turned back to the long side's before its factors are judged against it. The row
- *  does not store its fee, so the caller passes the market's round-trip rate. */
+/** A resolved call as an attribution row. Its return is stored net of the round trip, so the fee is
+ *  added back and a reduce turned to the long side: a factor predicts the price, not the fee, and the
+ *  board's rows are gross as well. The row does not store its fee, so the caller passes the market's
+ *  round-trip rate. A call has too few same-day peers for a session mean, so its baseline is the index
+ *  it was scored against. */
 export function suggestionScoredRow(
   suggestion: ResolvedActionableSuggestion,
   roundTripFee: number
 ): ScoredRow {
+  const baseline = longSideBenchmark(suggestion)
+
   return {
     market: suggestion.instrument.market,
     strategyVersion: suggestion.strategyVersion,
     factorScores: suggestion.factorScores,
     longReturnPct: longSideReturn(suggestion, roundTripFee),
+    ...(baseline === undefined ? {} : { baselineReturnPct: baseline }),
   }
 }
 
-/** A reduce is stored as `-move - fee`, and negating that would turn the fee into a gain, so the
- *  fee comes off twice to leave `move - fee`, the same net a buy carries. */
+/** The long side's move before fees. A buy is stored as `move - fee` and a reduce as `-move - fee`,
+ *  so the fee goes back on a buy and comes off a reduce once more than its negation. */
 function longSideReturn(suggestion: ResolvedActionableSuggestion, roundTripFee: number): number {
   const { returnPct } = suggestion.outcome
 
-  return suggestion.action === 'buy' ? returnPct : -returnPct - 2 * roundTripFee
+  return suggestion.action === 'buy' ? returnPct + roundTripFee : -returnPct - roundTripFee
+}
+
+/** The index move is stored on the call's own side, so a reduce's is negated back to the long side. */
+function longSideBenchmark(suggestion: ResolvedActionableSuggestion): number | undefined {
+  const { benchmarkReturnPct } = suggestion.outcome
+
+  if (benchmarkReturnPct === undefined) {
+    return undefined
+  }
+
+  return suggestion.action === 'buy' ? benchmarkReturnPct : -benchmarkReturnPct
 }
 
 function toAttribution(group: FactorGroup, minimumSampleSize: number): FactorAttribution {
@@ -179,14 +213,14 @@ function toBucket(
   minimumSampleSize: number
 ): FactorAttributionBucket {
   const members = scored.filter((entry) => readingOf(entry.score) === reading)
-  const hits = members.filter((entry) => isHit(reading, entry.longReturnPct))
+  const hits = members.filter((entry) => isHit(reading, entry.excessReturnPct))
   const counts = { reading, resolvedCount: members.length, hitCount: hits.length }
 
   if (members.length < minimumSampleSize) {
     return counts
   }
 
-  const total = members.reduce((sum, entry) => sum + entry.longReturnPct, 0)
+  const total = members.reduce((sum, entry) => sum + entry.excessReturnPct, 0)
 
   return {
     ...counts,
@@ -195,8 +229,10 @@ function toBucket(
   }
 }
 
-function isHit(reading: FactorReading, longReturnPct: number): boolean {
-  return reading === 'bullish' ? longReturnPct > 0 : longReturnPct < 0
+/** A reading is right when the name beat its baseline on a bullish read and trailed it on a bearish
+ *  one; a name that matched the baseline is neither. */
+function isHit(reading: FactorReading, excessReturnPct: number): boolean {
+  return reading === 'bullish' ? excessReturnPct > 0 : excessReturnPct < 0
 }
 
 function readingOf(score: number): FactorReading | undefined {

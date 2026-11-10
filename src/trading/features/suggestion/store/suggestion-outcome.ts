@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { Transaction } from '@/core/types/storage'
+import type { Dialect, Transaction } from '@/core/types/storage'
 import type { SuggestionStoreDeps } from '@/trading/features/suggestion/store/readable-row'
 import type { SuggestionRow } from '@/trading/features/suggestion/store/suggestion-row'
 import type {
@@ -10,22 +10,21 @@ import type {
   SuggestionId,
   SuggestionOutcome,
 } from '@/trading/features/suggestion/types'
-import type { OutcomeStatus, SuggestionAction, UnscoredStatus } from '@/trading/kernel/conviction'
-import type { InstrumentRef, MarketRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
+import type { UnscoredStatus } from '@/trading/kernel/conviction'
+import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
-import { readableRow } from '@/trading/features/suggestion/store/readable-row'
+import { buildRowLockSql, readableRow } from '@/trading/features/suggestion/store/readable-row'
 import { toResolved } from '@/trading/features/suggestion/store/suggestion-row'
 import { framedDirectionOf, planStopOf } from '@/trading/features/suggestion/types'
-import { OUTCOME_STATUSES, SUGGESTION_ACTIONS, UNFILLED_STATUS } from '@/trading/kernel/conviction'
-import { ticker as brandTicker, marketRef, tradingDay } from '@/trading/kernel/instrument'
-import { toMember } from '@/trading/kernel/store/store-payload'
+import { UNFILLED_STATUS } from '@/trading/kernel/conviction'
+import { marketRef } from '@/trading/kernel/instrument'
 import { parseJson } from '@/trading/kernel/store/store-row'
 
 /** The stored object as written, merged into rather than parsed: the read-time degradations of a
  *  stale enum must not be persisted back over the row. */
-const RAW_PAYLOAD = z.record(z.string(), z.unknown())
+export const RAW_PAYLOAD = z.record(z.string(), z.unknown())
 
 /** A same-day re-run after a version bump stores the call again under the new version, so a read
  *  pooled across versions keeps only the newest row of each call. */
@@ -40,18 +39,22 @@ export const LATEST_OF_SAME_CALL_SQL =
 /** A restated close is resolved with no return: it has no verdict to count. */
 export const SCORED_SQL = 'resolved_at IS NOT NULL AND return_pct IS NOT NULL'
 // A scoring pass resolves a batch at one instant: the later exit, then the newer call, breaks ties.
-const RESOLVED_ORDER_SQL = 'resolved_at DESC, exit_day DESC, id DESC'
+export const RESOLVED_ORDER_SQL = 'resolved_at DESC, exit_day DESC, id DESC'
 
-export interface ListResolvedOptions {
+/** The filters the full and the lean scored reads share, so both cut the same population. */
+interface ResolvedFilter {
   readonly resolvedAfter?: number
-  /** Only calls made on or before this day: the ones whose outcome window has elapsed. */
-  readonly calledOnOrBefore?: TradingDay
   readonly strategyVersion?: string
   /** Only these focuses' calls. Omitted, every focus is read. */
   readonly focusKeys?: readonly FocusKey[]
   readonly market?: MarketRef
   readonly ticker?: Ticker
   readonly action?: SuggestionDirection
+  /** Only these calls, the ones a lean read picked. */
+  readonly ids?: readonly SuggestionId[]
+}
+
+export interface ListResolvedOptions extends ResolvedFilter {
   readonly limit: number
   readonly signal: AbortSignal
 }
@@ -200,7 +203,8 @@ export async function resolveOutcome(
     assertNotAborted(signal)
 
     const rows = await tx.query<{ readonly payload: string }>(
-      `SELECT payload FROM suggestions WHERE id = ${p(1)} AND outcome_status IS NULL`,
+      `SELECT payload FROM suggestions WHERE id = ${p(1)} AND outcome_status IS NULL` +
+        buildRowLockSql(deps.dialect),
       [id]
     )
     const row = rows[0]
@@ -232,25 +236,54 @@ export async function resolveOutcome(
   })
 }
 
-/** The optional day bounds, pushed into the query so the limit counts only rows that pass them. */
-function dayClauses(
-  options: ListResolvedOptions,
-  params: unknown[],
-  p: (index: number) => string
+/** The WHERE both scored reads run on, binding into `params` in the order the clauses appear. A
+ *  pinned version reads every row it wrote; otherwise only the newest row of each call. */
+export function buildResolvedWhere(
+  dialect: Dialect,
+  filter: ResolvedFilter,
+  params: unknown[]
 ): string {
-  let clauses = ''
+  const p = dialect.param
+  let where = SCORED_SQL
 
-  if (options.resolvedAfter !== undefined) {
-    params.push(options.resolvedAfter)
-    clauses += ` AND resolved_at > ${p(params.length)}`
+  if (filter.resolvedAfter !== undefined) {
+    params.push(filter.resolvedAfter)
+    where += ` AND resolved_at > ${p(params.length)}`
   }
 
-  if (options.calledOnOrBefore !== undefined) {
-    params.push(options.calledOnOrBefore)
-    clauses += ` AND day <= ${p(params.length)}`
+  if (filter.strategyVersion === undefined) {
+    where += ` AND ${LATEST_OF_SAME_CALL_SQL}`
+  } else {
+    params.push(filter.strategyVersion)
+    where += ` AND strategy_version = ${p(params.length)}`
   }
 
-  return clauses
+  if (filter.focusKeys !== undefined) {
+    where += ` AND focus_key IN (${dialect.paramList(filter.focusKeys.length, params.length + 1)})`
+    params.push(...filter.focusKeys)
+  }
+
+  if (filter.market !== undefined) {
+    params.push(filter.market)
+    where += ` AND market = ${p(params.length)}`
+  }
+
+  if (filter.ticker !== undefined) {
+    params.push(filter.ticker)
+    where += ` AND ticker = ${p(params.length)}`
+  }
+
+  if (filter.action !== undefined) {
+    params.push(filter.action)
+    where += ` AND action = ${p(params.length)}`
+  }
+
+  if (filter.ids !== undefined) {
+    where += ` AND id IN (${dialect.paramList(filter.ids.length, params.length + 1)})`
+    params.push(...filter.ids)
+  }
+
+  return where
 }
 
 export async function listResolved(
@@ -259,113 +292,22 @@ export async function listResolved(
 ): Promise<readonly ResolvedActionableSuggestion[]> {
   assertNotAborted(options.signal)
 
-  const p = deps.dialect.param
+  if (options.ids?.length === 0) {
+    return []
+  }
+
   const params: unknown[] = []
-  let where = SCORED_SQL + dayClauses(options, params, p)
-
-  if (options.strategyVersion === undefined) {
-    where += ` AND ${LATEST_OF_SAME_CALL_SQL}`
-  } else {
-    params.push(options.strategyVersion)
-    where += ` AND strategy_version = ${p(params.length)}`
-  }
-
-  if (options.focusKeys !== undefined) {
-    const startAt = params.length + 1
-
-    params.push(...options.focusKeys)
-    where += ` AND focus_key IN (${deps.dialect.paramList(options.focusKeys.length, startAt)})`
-  }
-
-  if (options.market !== undefined) {
-    params.push(options.market)
-    where += ` AND market = ${p(params.length)}`
-  }
-
-  if (options.ticker !== undefined) {
-    params.push(options.ticker)
-    where += ` AND ticker = ${p(params.length)}`
-  }
-
-  if (options.action !== undefined) {
-    params.push(options.action)
-    where += ` AND action = ${p(params.length)}`
-  }
+  const where = buildResolvedWhere(deps.dialect, options, params)
 
   params.push(options.limit)
 
   const rows = await deps.db.query<SuggestionRow>(
     `SELECT * FROM suggestions WHERE ${where} ` +
-      `ORDER BY ${RESOLVED_ORDER_SQL} LIMIT ${p(params.length)}`,
+      `ORDER BY ${RESOLVED_ORDER_SQL} LIMIT ${deps.dialect.param(params.length)}`,
     params
   )
 
   return rows.flatMap((row) => readableRow(row, toResolved, deps.logger))
-}
-
-export const FOCUS_CALL_COLUMNS =
-  'focus_key, market, ticker, day, action, outcome_status, exit_day, return_pct, resolved_at'
-
-/** One scored call as the focus record reads it: no payload, only what the fold and the win
- *  count need. */
-export interface FocusCall {
-  readonly focusKey: FocusKey
-  readonly instrument: InstrumentRef
-  readonly at: TradingDay
-  readonly action: SuggestionAction
-  readonly outcome: {
-    readonly exitDay: TradingDay
-    readonly returnPct: number
-    readonly status: OutcomeStatus
-    readonly resolvedAt: number
-  }
-}
-
-export interface FocusCallRow {
-  readonly focus_key: string
-  readonly market: string
-  readonly ticker: string
-  readonly day: string
-  readonly action: string
-  readonly outcome_status: string
-  readonly exit_day: string
-  readonly return_pct: number
-  readonly resolved_at: number
-}
-
-/** The scored calls `listResolved` reads, pooled across versions, with no row limit so a busy book
- *  is never cut short. Only the columns the fold reads leave the table; the caller folds repeats
- *  with `independentCalls`, the one owner of that rule. */
-export async function listFocusCalls(
-  deps: StoreDeps,
-  signal: AbortSignal
-): Promise<readonly FocusCall[]> {
-  assertNotAborted(signal)
-
-  const rows = await deps.db.query<FocusCallRow>(
-    `SELECT ${FOCUS_CALL_COLUMNS} ` +
-      `FROM suggestions WHERE ${SCORED_SQL} AND exit_day IS NOT NULL ` +
-      `AND ${LATEST_OF_SAME_CALL_SQL}`,
-    []
-  )
-
-  return rows.map(toFocusCall)
-}
-
-export function toFocusCall(row: FocusCallRow): FocusCall {
-  return {
-    // why-safe: the column only ever holds `focusKey()` output.
-    focusKey: row.focus_key as FocusKey,
-    instrument: { market: marketRef(row.market), ticker: brandTicker(row.ticker) },
-    at: tradingDay(row.day),
-    action: toMember<SuggestionAction>(row.action, SUGGESTION_ACTIONS, 'suggestion action'),
-    outcome: {
-      exitDay: tradingDay(row.exit_day),
-      returnPct: row.return_pct,
-      status: toMember<OutcomeStatus>(row.outcome_status, OUTCOME_STATUSES, 'outcome status'),
-      resolvedAt: row.resolved_at,
-    },
-  }
 }
 
 /** One market's rows at one resolution state: grouped, not filtered, so both sides of the

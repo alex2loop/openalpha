@@ -115,3 +115,16 @@
   padding-left: calc(var(--depth, 0) * var(--s2));
   white-space: pre-wrap;
 }
+
+.move {
+  font-weight: var(--weightMedium);
+  white-space: nowrap;
+}
+
+.move-up {
+  color: var(--up);
+}
+
+.move-down {
+  color: var(--down);
+}

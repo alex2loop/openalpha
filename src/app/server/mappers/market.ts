@@ -31,6 +31,7 @@ import type {
   MarketEventKind,
   MarketView,
   NavWindow,
+  outcomeVerdictOf,
   RiskLevel,
   SessionPhase,
   SourceFreshness,
@@ -48,6 +49,8 @@ import {
   renderOverviewForSurface,
 } from '@/trading/api'
 
+type OutcomeVerdict = ReturnType<typeof outcomeVerdictOf>
+
 // A closed vocabulary the wire copies in `wire/vocab.ts` must match its trading source both ways, so
 // a value added on either side fails typecheck here.
 type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? true : false) : false
@@ -63,6 +66,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   investmentHorizon: true,
   marketEventKind: true,
   navWindow: true,
+  outcomeVerdict: true,
   riskLevel: true,
   sessionPhase: true,
   sourceFreshness: true,
@@ -77,6 +81,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   investmentHorizon: Same<Vocab.InvestmentHorizon, InvestmentHorizon>
   marketEventKind: Same<Vocab.MarketEventKind, MarketEventKind>
   navWindow: Same<Vocab.NavWindow, NavWindow>
+  outcomeVerdict: Same<Vocab.OutcomeVerdict, OutcomeVerdict>
   riskLevel: Same<Vocab.RiskLevel, RiskLevel>
   sessionPhase: Same<Vocab.SessionPhase, SessionPhase>
   sourceFreshness: Same<Vocab.SourceFreshness, SourceFreshness>

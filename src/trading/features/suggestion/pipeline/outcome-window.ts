@@ -1,6 +1,9 @@
 import type { CalendarPolicy } from '@/trading/kernel/config'
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
+import type { Market } from '@/trading/markets/types'
 import { INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
+import { resolveSettledDay } from '@/trading/markets/calendar'
 
 /** How long a suggestion is given to reach a level before it expires at the last close, counted in
  *  calendar days rather than sessions. A wait is what the operator lives through, and one session
@@ -34,6 +37,20 @@ export function outcomeWindowSessions(
   horizon: InvestmentHorizon
 ): number {
   return toSessions(calendar, OUTCOME_WINDOW_DAYS[horizon])
+}
+
+/** A call on or before this day has a full holding window of settled sessions behind it, the same
+ *  window the scorer measures, so a quick stop-out never counts before its peers could have won. The
+ *  settled day rather than today's date keeps a session still trading from counting as elapsed. */
+export function resolveMaturedCutoff(
+  market: Market,
+  horizon: InvestmentHorizon,
+  now: number
+): TradingDay {
+  const { calendar, defaultCalendar } = market.manifest
+  const settled = resolveSettledDay(calendar, now)
+
+  return calendar.addTradingDays(settled, -outcomeWindowSessions(defaultCalendar, horizon))
 }
 
 /** The widest window any segment can declare, for a read that must span the horizon before the

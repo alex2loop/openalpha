@@ -1,20 +1,21 @@
-import { CallToolResultSchema, type Tool as McpTool } from '@modelcontextprotocol/sdk/types.js'
+import type { Tool as McpTool } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 
 import type { ResolvedMcpServer } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
 import type { ToolDefinition } from '@/core/tool'
+import type { McpCallResult, McpSession } from '@/engine/mcp/session'
 import { ConfigError, ToolError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { scanSkill } from '@/core/security/sanitize'
 import { createTool } from '@/core/tool'
+import { withDeadline } from '@/core/utils/concurrency'
 import { hashString } from '@/core/utils/hash'
 import {
   MCP_DISCOVERY_TIMEOUT_MS,
   MCP_MAX_TOOL_DESCRIPTION_BYTES,
   MCP_MAX_TOOL_SCHEMA_BYTES,
 } from '@/engine/constants'
-import { McpSession, withDeadline } from '@/engine/mcp/session'
 
 const ENCODER = new TextEncoder()
 // Providers accept tool names matching `^[a-zA-Z0-9_-]{1,64}$`.
@@ -25,7 +26,6 @@ const TOOL_NAME_UNSAFE_RE = /[^A-Za-z0-9_-]/g
 // smuggling a shell invocation through the command field. (StdioClientTransport spawns no shell.)
 const SHELL_METACHARS_RE = /[;&|`$<>\n\r]/
 
-type McpCallResult = z.infer<typeof CallToolResultSchema>
 type McpContentBlock = McpCallResult['content'][number]
 
 export interface McpConnection {
@@ -48,7 +48,17 @@ export async function connectServer(
     return undefined
   }
 
-  const session = new McpSession(server, logger)
+  let session: McpSession
+
+  try {
+    // Loaded on the first configured server, so a process with none never loads the MCP client.
+    session = new (await import('@/engine/mcp/session')).McpSession(server, logger)
+  } catch (err: unknown) {
+    logger.error('mcp.client_load_failed', { server: server.name, err: formatErrForLog(err) })
+
+    return undefined
+  }
+
   const close = (): Promise<void> => session.close()
 
   const discovery = discover(session, server, logger)
@@ -167,21 +177,13 @@ function wrapMcpTool(options: WrapMcpToolOptions): ToolDefinition {
     // External code always reaches the active run's approval policy after admission.
     isExternal: true,
     execute: async (input, ctx): Promise<string> => {
-      const raw = await session.call(
+      const result = await session.call(
         { name: remote.name, arguments: asArguments(input) },
         ctx.signal
       )
-      // The SDK's return type also admits a legacy `{ toolResult }` shape whose `content` is
-      // untyped; re-parsing narrows to the modern result without an assertion.
-      const parsed = CallToolResultSchema.safeParse(raw)
+      const text = flattenContent(result.content)
 
-      if (!parsed.success) {
-        throw new ToolError('unexpected', `MCP tool ${remote.name} returned an unusable result`)
-      }
-
-      const text = flattenContent(parsed.data.content)
-
-      if (parsed.data.isError === true) {
+      if (result.isError === true) {
         throw new ToolError('unexpected', text === '' ? `MCP tool ${remote.name} failed` : text)
       }
 

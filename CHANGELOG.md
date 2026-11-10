@@ -7,6 +7,37 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.5.0] - 2026-11-10
+
+The morning brief reads more easily, with a headline strip and every market in plain words, and the track record now counts only calls whose window has passed, names each result for what it was, and keeps open plans through a dividend or split. The Vietnamese board uses far less memory. The database gains two tables; the upgrade runs them for you.
+> Bản tin sáng giờ dễ đọc hơn, có dải số liệu chính ở đầu và mọi thị trường được viết bằng lời dễ hiểu. Thành tích đề xuất giờ chỉ tính những đề xuất đã hết thời hạn theo dõi, gọi đúng tên từng kết quả, và giữ kế hoạch đang mở qua đợt chia cổ tức hay chia tách. Bảng cổ phiếu Việt Nam tốn ít bộ nhớ hơn nhiều. Cơ sở dữ liệu thêm hai bảng; lệnh nâng cấp tự chạy chúng.
+
+### Added
+
+- The brief opens with a strip of headline figures (VN-Index, VN30, SJC gold, world gold, bitcoin, USD/VND) and a session title, and lists one line per index with VN-Index first.
+- The brief quotes the S&P 500, the US ten-year yield and Brent, and says when a macro figure has gone stale.
+- Every market section prints in the brief: money flow, the index review, events, the gold dealer board and Vietnamese economy headlines.
+- Two new results in the track record: a target that banked part and gave the rest back counts as a miss, and a stop the trail had raised above entry counts as a win.
+- `/reflect` ends with how many calls already hit a level but are still inside their window, and breaks the record down by strategy version and by debate model.
+- Each factor line in `/reflect` says how often the factor was right against the market's benchmark, or against that session's board average.
+
+### Changed
+
+- The track record counts a call only once its window has passed (4 weeks short, a quarter long), so a quick stop-out no longer drags the rates down before the winners finish.
+- Repeat calls on the same name fold into one before the newest calls are picked, so a long hold no longer fills the record with copies of one move.
+- A dividend or split no longer closes open plans: their levels move to the new price scale, a buy's quantity is rescaled to the board lot, and they keep counting. Your ledger is not touched.
+- The Vietnamese composite no longer weighs trend, which had not separated winners on the history measured.
+- A suggestion's "I am wrong if" conditions are checkable inside the call's window, such as the next quarterly report, and a call that goes ahead always names at least one. A call that waits titles them "Drop the buy idea if".
+- The Vietnamese board reads one name at a time and keeps no raw bars, reads the supervision lists once a day, and reuses screened names while nothing they read has changed. The daemon logs its memory on each refresh.
+- Binaries start faster: they ship as bytecode, and the MCP client and the HTML converter load on first use.
+
+### Fixes
+
+- The watchlist dialog in Settings stays open after adding a name, so you can add the next one straight away.
+- A stored brief from before this release is rebuilt instead of losing its result words.
+- An MCP server that fails to load is skipped instead of stopping the rest.
+- A web page talking to an older daemon falls back to the plain result instead of showing a raw label.
+
 ## [1.4.3] - 2026-11-06
 
 You can now see a stock's sector right beside its ticker, and the ticker card draws its chart again for Vietnamese and US stocks and for crypto.

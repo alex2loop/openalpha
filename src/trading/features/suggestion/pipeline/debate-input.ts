@@ -8,11 +8,9 @@ import type {
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type { Suggestion } from '@/trading/features/suggestion/types'
 import type { DebateMode, LeanDebateReason } from '@/trading/kernel/config'
-import type { TradingDay } from '@/trading/kernel/instrument'
 import { exposureOf } from '@/trading/features/suggestion/pipeline/concentration'
 import { bookHoldOf } from '@/trading/features/suggestion/pipeline/direction'
 import { calculationVersionsFor } from '@/trading/features/suggestion/pipeline/draft'
-import { outcomeWindowSessions } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { OUTCOME_FORMULA_VERSION } from '@/trading/features/suggestion/pipeline/outcomes'
 import {
   MINIMUM_TRACK_RECORD_SAMPLE,
@@ -20,14 +18,15 @@ import {
   versionKey,
 } from '@/trading/features/suggestion/pipeline/reporting'
 import { roundTripWindowStart } from '@/trading/features/suggestion/pipeline/round-trip'
+import { readScoredPopulation } from '@/trading/features/suggestion/track-record/population'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
-import { resolveSettledDay } from '@/trading/markets/calendar'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** Scoped to this market, strategy version, side and horizon, to the calculation versions this run
  *  will be stamped with, and to the outcome rule running now: a hit rate blended across any of them
  *  describes no population that ever traded, and it sizes buys and informs the debate alike. Side
- *  is a column; the rest live in the payload, so they are read off the bounded page. */
+ *  is a column; the rest live in the payload, so they narrow the lean rows before repeats fold and the
+ *  cut falls. */
 export async function loadCalibration(
   options: SuggestionRunOptions,
   prepared: Prepared,
@@ -42,34 +41,23 @@ export async function loadCalibration(
       debateDepthFor(options, gated.draft).mode
     )
   )
-  const rows = await options.deps.store.listResolved({
+  const population = await readScoredPopulation(options.deps, {
     market: prepared.draft.instrument.market,
     strategyVersion: prepared.draft.strategyVersion,
     // A focus sizes its buys from its own record: a horizon-only focus must not blend into the book's.
     focusKeys: [options.request.focus.key],
     action: framedDirectionOf(prepared.draft),
-    calledOnOrBefore: maturedCutoffOf(options, prepared),
     limit: SURFACE_LIMITS.maximumTrackRecordItems,
+    markets: options.deps.markets,
+    now: options.request.now,
     signal: options.request.signal,
+    isIncluded: (call) =>
+      call.horizon === prepared.horizon &&
+      call.outcome.formulaVersion === OUTCOME_FORMULA_VERSION &&
+      versionKey(call.strategyVersion, call.calculationVersions) === versions,
   })
-  const population = rows.filter(
-    (row) =>
-      row.horizon === prepared.horizon &&
-      row.outcome.formulaVersion === OUTCOME_FORMULA_VERSION &&
-      versionKey(row.strategyVersion, row.calculationVersions) === versions
-  )
 
   return summarizeTrackRecord(population, MINIMUM_TRACK_RECORD_SAMPLE).calibration
-}
-
-/** A call on or before this day has a full holding window of settled sessions behind it, the same
- *  window the scorer measures, so a quick stop-out never counts before its peers could have won. The
- *  settled day rather than today's date keeps a session still trading from counting as elapsed. */
-function maturedCutoffOf(options: SuggestionRunOptions, prepared: Prepared): TradingDay {
-  const { calendar, defaultCalendar } = prepared.market.manifest
-  const settled = resolveSettledDay(calendar, options.request.now)
-
-  return calendar.addTradingDays(settled, -outcomeWindowSessions(defaultCalendar, prepared.horizon))
 }
 
 interface DebatePlanInput {

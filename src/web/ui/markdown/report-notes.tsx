@@ -1,7 +1,8 @@
 import { isNoteLine, withoutLeadingIcon } from '@/web/text/glyphs'
 import { useUnstripped } from '@/web/ui/kit/cautions'
 import { Fold } from '@/web/ui/kit/fold'
-import { InlineMarkdown } from '@/web/ui/markdown/markdown'
+import { NoteList } from '@/web/ui/markdown/note-list'
+import { renderLinkedText } from '@/web/ui/ticker/linked-text'
 
 // The daemon marks a fold as a bold title line followed by quoted lines.
 const FOLD_TITLE = /^\*\*(.+)\*\*$/
@@ -22,7 +23,7 @@ export function ReportNotes({ lines }: { readonly lines: readonly string[] }) {
       {segmentsOf(shown).map((segment, index) =>
         segment.kind === 'fold' ? (
           <Fold key={index} title={withoutLeadingIcon(segment.title)}>
-            <NoteList lines={segment.lines} />
+            <NoteList lines={segment.lines} renderText={renderLinkedText} />
           </Fold>
         ) : (
           <SplitNotes key={index} lines={segment.lines} />
@@ -35,26 +36,9 @@ export function ReportNotes({ lines }: { readonly lines: readonly string[] }) {
 function SplitNotes({ lines }: { readonly lines: readonly string[] }) {
   return (
     <>
-      <NoteList lines={lines.filter((line) => !isNoteLine(line))} />
-      <NoteList lines={lines.filter(isNoteLine)} />
+      <NoteList lines={lines.filter((line) => !isNoteLine(line))} renderText={renderLinkedText} />
+      <NoteList lines={lines.filter(isNoteLine)} renderText={renderLinkedText} />
     </>
-  )
-}
-
-/** Short daemon lines as one compact list. */
-export function NoteList({ lines }: { readonly lines: readonly string[] }) {
-  if (lines.length === 0) {
-    return null
-  }
-
-  return (
-    <ul class="stack meta note-list">
-      {lines.map((line) => (
-        <li key={line}>
-          <InlineMarkdown text={line} />
-        </li>
-      ))}
-    </ul>
   )
 }
 

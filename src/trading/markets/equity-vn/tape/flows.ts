@@ -12,7 +12,7 @@ const FACTOR_FLOW_WINDOW: FlowWindow = Object.freeze({
   minimumSessions: FLOW_PERSISTENCE_MINIMUM_SESSIONS,
 })
 
-interface AlignedFlow {
+export interface AlignedFlow {
   readonly flow: FlowSnapshot
   readonly turnover: number
 }
@@ -22,43 +22,33 @@ interface FlowWindow {
   readonly minimumSessions: number
 }
 
-interface WindowSum {
+export interface WindowSum {
   readonly value: number
   readonly sessions: number
 }
 
 /** Foreign and proprietary flow are the two factors most likely to be quietly wrong, because each
  *  divides one series by another with different coverage. Both ratios come from here. */
-export function foreignFlowRatio(
-  flows: readonly FlowSnapshot[],
-  bars: readonly BarRecord[]
-): number | undefined {
-  return averageRatio(align(flows, bars), (flow) => flow.foreignNetValue, FACTOR_FLOW_WINDOW)
+export function foreignFlowRatio(aligned: readonly AlignedFlow[]): number | undefined {
+  return averageRatio(aligned, (flow) => flow.foreignNetValue, FACTOR_FLOW_WINDOW)
 }
 
 /** The foreign desk's net over the sessions the ratio averaged, in the flows' own currency: the
  *  number behind the ratio, absent wherever the ratio is. */
-export function foreignNetFlow(
-  flows: readonly FlowSnapshot[],
-  bars: readonly BarRecord[]
-): WindowSum | undefined {
-  return netFlowOf(flows, bars, (flow) => flow.foreignNetValue)
+export function foreignNetFlow(aligned: readonly AlignedFlow[]): WindowSum | undefined {
+  return netFlowOf(aligned, (flow) => flow.foreignNetValue)
 }
 
 /** The proprietary desk's, over the sessions its ratio averaged. */
-export function proprietaryNetFlow(
-  flows: readonly FlowSnapshot[],
-  bars: readonly BarRecord[]
-): WindowSum | undefined {
-  return netFlowOf(flows, bars, (flow) => flow.proprietaryNetValue)
+export function proprietaryNetFlow(aligned: readonly AlignedFlow[]): WindowSum | undefined {
+  return netFlowOf(aligned, (flow) => flow.proprietaryNetValue)
 }
 
 function netFlowOf(
-  flows: readonly FlowSnapshot[],
-  bars: readonly BarRecord[],
+  aligned: readonly AlignedFlow[],
   selectValue: (flow: FlowSnapshot) => number | undefined
 ): WindowSum | undefined {
-  const recent = usableWindow(align(flows, bars), selectValue, FACTOR_FLOW_WINDOW)
+  const recent = usableWindow(aligned, selectValue, FACTOR_FLOW_WINDOW)
 
   return recent === undefined
     ? undefined
@@ -68,11 +58,8 @@ function netFlowOf(
       }
 }
 
-export function proprietaryFlowRatio(
-  flows: readonly FlowSnapshot[],
-  bars: readonly BarRecord[]
-): number | undefined {
-  return averageRatio(align(flows, bars), (flow) => flow.proprietaryNetValue, FACTOR_FLOW_WINDOW)
+export function proprietaryFlowRatio(aligned: readonly AlignedFlow[]): number | undefined {
+  return averageRatio(aligned, (flow) => flow.proprietaryNetValue, FACTOR_FLOW_WINDOW)
 }
 
 /** The newest session this leg reported, which need not be the newest the name traded: vndirect
@@ -103,22 +90,25 @@ export function proprietaryFlowValue(
     : null
 }
 
-/** One snapshot per session, summed across every name that reported one and carried under the
- *  instrument the caller names for the market. Proprietary net is present only where some name
- *  reported it: a desk no source covers must not read as one that traded nothing. */
+/** The market's per-session totals, folded by `addFlowTo`, as snapshots oldest first, each carried
+ *  under the instrument the caller names for the market rather than the first name's. Proprietary
+ *  net is present only where some name reported it: a desk no source covers must not read as one
+ *  that traded nothing. */
 export function marketFlowSnapshots(
-  flows: readonly FlowSnapshot[],
+  byDay: ReadonlyMap<TradingDay, FlowSnapshot>,
   instrument: InstrumentRef
 ): readonly FlowSnapshot[] {
-  const byDay = new Map<TradingDay, FlowSnapshot>()
+  return [...byDay.values()]
+    .sort((left, right) => left.at.localeCompare(right.at))
+    .map((total) => ({ ...total, instrument }))
+}
 
-  for (const flow of flows) {
-    const total = byDay.get(flow.at)
+/** The one fold behind a market's per-session flow: the first flow of a day seeds its provenance,
+ *  every later one adds to it, so the order flows arrive in is part of the answer. */
+export function addFlowTo(byDay: Map<TradingDay, FlowSnapshot>, flow: FlowSnapshot): void {
+  const total = byDay.get(flow.at)
 
-    byDay.set(flow.at, total === undefined ? { ...flow, instrument } : addFlow(total, flow))
-  }
-
-  return [...byDay.values()].sort((left, right) => left.at.localeCompare(right.at))
+  byDay.set(flow.at, total === undefined ? flow : addFlow(total, flow))
 }
 
 function addFlow(total: FlowSnapshot, flow: FlowSnapshot): FlowSnapshot {
@@ -162,11 +152,8 @@ interface FlowShare {
 
 /** One share per aligned session, oldest first: the series the factor averages, exposed so a
  *  reader can ask about the newest session against the rest. */
-export function foreignFlowShares(
-  flows: readonly FlowSnapshot[],
-  bars: readonly BarRecord[]
-): readonly FlowShare[] {
-  return align(flows, bars)
+export function foreignFlowShares(aligned: readonly AlignedFlow[]): readonly FlowShare[] {
+  return aligned
     .filter((entry) => isMeasurable(entry, entry.flow.foreignNetValue))
     .map((entry) => ({ day: entry.flow.at, share: entry.flow.foreignNetValue / entry.turnover }))
 }
@@ -175,7 +162,10 @@ export function foreignFlowShares(
  *  later pairing by one day, and the resulting ratio is plausible, stable, and wrong. A day with
  *  no turnover is dropped rather than treated as zero: dividing by zero is undefined, and calling
  *  it zero flow understates the signal. */
-function align(flows: readonly FlowSnapshot[], bars: readonly BarRecord[]): readonly AlignedFlow[] {
+export function alignFlows(
+  flows: readonly FlowSnapshot[],
+  bars: readonly BarRecord[]
+): readonly AlignedFlow[] {
   const turnoverByDay = new Map<TradingDay, number>()
 
   for (const bar of bars) {

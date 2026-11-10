@@ -43,6 +43,8 @@ import { openPersistence } from '@/persistence/node-api'
 import { assertSpawnToolsRegistered } from '@/tools/api'
 import { createTradingRegistrationProvider, createTradingStoresProvider } from '@/trading/api'
 
+const BYTES_PER_KIB = 1024
+
 // Allow-list, not a deny-list: an interpreter-hijack variable (NODE_OPTIONS, LD_PRELOAD,
 // PYTHONSTARTUP, …) is excluded by not being here, and so is every provider key.
 const CHILD_ENV_ALLOW: ReadonlySet<string> = new Set([
@@ -228,8 +230,20 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
       pluginModules: input.assets.pluginSourceModules,
       requestShape: DAEMON_REQUEST_SHAPE,
       reachability: (signal) => probeHost(REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS, signal),
+      processMemory: readProcessMemory,
     }),
   })
+}
+
+// `maxRSS` is the process high-water mark in KiB, so a peak between two refresh lines shows as a rise.
+function readProcessMemory() {
+  const usage = process.memoryUsage()
+
+  return {
+    rssBytes: usage.rss,
+    peakRssBytes: process.resourceUsage().maxRSS * BYTES_PER_KIB,
+    heapUsedBytes: usage.heapUsed,
+  }
 }
 
 interface PrepareBootAppOptions {

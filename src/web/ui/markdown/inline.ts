@@ -3,13 +3,15 @@
 const INLINE_MAX_CHARS = 10_000
 const ADDRESS_CLOSERS = '.,;:!?)]\'"'
 const INLINE =
-  /\*\*(?=\S)(.+?)(?<=\S)\*\*|\*(?=\S)(.+?)(?<=\S)\*|`([^`\n]+)`|\[(\d{1,3})\](?!\()|\[([^\]\n]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s<>]+)/gu
+  /\*\*(?=\S)(.+?)(?<=\S)\*\*|\*(?=\S)(.+?)(?<=\S)\*|`([^`\n]+)`|\[(\d{1,3})\](?!\()|\[([^\]\n]+)\]\(([^)\s]+)\)|([▲▼]) (-?\d+(?:[.,]\d+)*%?)|(https?:\/\/[^\s<>]+)/gu
 
 export type Inline =
   | { readonly kind: 'text'; readonly text: string }
   | { readonly kind: 'bold' | 'italic'; readonly children: readonly Inline[] }
   | { readonly kind: 'code'; readonly text: string }
   | { readonly kind: 'note'; readonly n: number }
+  /** A figure's move, arrow and number as one unit that never wraps and carries its direction. */
+  | { readonly kind: 'move'; readonly tone: 'up' | 'down'; readonly text: string }
   /** `host` is where a labelled link really goes; absent for an address that is its own label. */
   | { readonly kind: 'link'; readonly href: string; readonly text: string; readonly host?: string }
 
@@ -49,6 +51,7 @@ function nodePlain(node: Inline): string {
     case 'text':
     case 'code':
     case 'link':
+    case 'move':
       return node.text
     case 'note':
       return `[${node.n}]`
@@ -59,7 +62,7 @@ function nodePlain(node: Inline): string {
 }
 
 function toInline(match: RegExpMatchArray): { node: Inline; length: number } | undefined {
-  const [whole, bold, italic, code, note, label, target, bare] = match
+  const [whole, bold, italic, code, note, label, target, arrow, figure, bare] = match
 
   if (bold !== undefined) {
     return { node: { kind: 'bold', children: parseInline(bold) }, length: whole.length }
@@ -86,6 +89,13 @@ function toInline(match: RegExpMatchArray): { node: Inline; length: number } | u
           node: { kind: 'link', href: url.href, text: label, host: url.host },
           length: whole.length,
         }
+  }
+
+  if (arrow !== undefined && figure !== undefined) {
+    return {
+      node: { kind: 'move', tone: arrow === '▲' ? 'up' : 'down', text: whole },
+      length: whole.length,
+    }
   }
 
   return bare === undefined ? undefined : toBareLink(bare)

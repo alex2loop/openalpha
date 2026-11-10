@@ -18,6 +18,7 @@ import type {
   InvestmentGoal,
   InvestmentHorizon,
   MarketEventKind,
+  OutcomeVerdict,
   RiskLevel,
   SourceFreshness,
 } from '@/app/server/wire/vocab'
@@ -216,6 +217,10 @@ interface CalculationVersionWire {
 
 interface SuggestionOutcomeWire {
   readonly status: 'target' | 'stop' | 'expired'
+  /** What the result is named: `status` and `returnPct` together, so a `target` that netted nothing
+   *  is `target-gave-back` and a `stop` that kept a gain is `stop-in-profit`. Absent from an older
+   *  daemon, which names the result by `status`. */
+  readonly verdict?: OutcomeVerdict
   readonly resolvedAt: number
   readonly exitDay: string
   readonly returnPct: number

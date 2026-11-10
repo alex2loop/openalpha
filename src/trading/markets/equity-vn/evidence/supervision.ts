@@ -1,11 +1,14 @@
 import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
-import type { Ticker } from '@/trading/kernel/instrument'
+import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
+import type { InstrumentRecord } from '@/trading/kernel/market/market-data'
 import type { SupervisionLevel, SupervisionSnapshot } from '@/trading/kernel/market/supervision'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { VnExchange } from '@/trading/markets/equity-vn/policy'
+import { flightCache } from '@/core/utils/concurrency'
+import { canonicalJson, hashString } from '@/core/utils/hash'
 import { severest } from '@/trading/kernel/market/supervision'
 import { ADMITTED_EXCHANGES, VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
-import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
+import { exchangeOf, toVnExchange } from '@/trading/markets/equity-vn/tradeability'
 import { CAVEAT_SUBJECT_SEPARATOR } from '@/trading/render/format'
 
 /** Which boards this pass actually read, kept as coverage rather than as caveats: what the gap
@@ -17,7 +20,7 @@ export interface SupervisionCoverage {
   readonly published: ReadonlySet<VnExchange>
 }
 
-interface SupervisionRead {
+export interface SupervisionRead {
   /** Only the supervised names. A ticker absent from it is unsupervised as far as this read can
    *  tell, which is why an unavailable read carries a caveat rather than an empty map alone. */
   readonly levels: ReadonlyMap<Ticker, SupervisionLevel>
@@ -25,11 +28,48 @@ interface SupervisionRead {
   readonly caveats: readonly Caveat[]
 }
 
-/** One board read per population pass, shared by every consumer of the cross-section. The providers
- *  are merged rather than failed over: they overlap on HOSE and only one carries HNX. Degradation,
- *  not a block: a provider that cannot answer leaves its board's gates open and says so, because
- *  emptying the board on an outage is a worse answer than ranking a supervised name. */
-export async function loadSupervision(
+interface LastGoodRead {
+  readonly asOf: TradingDay
+  readonly read: SupervisionRead
+}
+
+export interface SupervisionCache {
+  get(asOf: TradingDay, signal: AbortSignal): Promise<SupervisionRead>
+  /** Forgets every held read, not the last good one a failed read falls back to. */
+  clear(): void
+}
+
+/** One live read per board day and per refresh pass: the lists change by announcement, and a
+ *  whole-board pass reads them on every sweep for no new answer. `days` is the cross-section
+ *  cache's own slot count, so both hold the same board days. A read that missed a board is held
+ *  too, so a provider that keeps refusing is asked once per pass, not once per board; the caller
+ *  gets the last good read in its place, marked as carried, or the incomplete read itself while
+ *  there is none. The last good read is never older than a newer day's. */
+export function supervisionCache(deps: MarketDeps, days: number): SupervisionCache {
+  const reads = flightCache<SupervisionRead>(days)
+  let last: LastGoodRead | undefined
+
+  return {
+    async get(asOf, signal) {
+      const read = await reads.share(asOf, signal, () => loadSupervision(deps, { signal }))
+
+      if (isCompleteRead(read)) {
+        last = last === undefined || asOf >= last.asOf ? { asOf, read } : last
+
+        return read
+      }
+
+      return last === undefined ? read : carriedRead(last)
+    },
+    clear: reads.clear,
+  }
+}
+
+/** The providers are merged rather than failed over: they overlap on HOSE and only one carries
+ *  HNX. Degradation, not a block: a provider that cannot answer leaves its board's gates open and
+ *  says so, because emptying the board on an outage is a worse answer than ranking a supervised
+ *  name. */
+async function loadSupervision(
   deps: MarketDeps,
   options: { readonly signal: AbortSignal }
 ): Promise<SupervisionRead> {
@@ -48,10 +88,53 @@ export async function loadSupervision(
   return { levels: foldLevels(snapshots), coverage: coverageOf(snapshots), caveats }
 }
 
+function isCompleteRead(read: SupervisionRead): boolean {
+  return ADMITTED_EXCHANGES.every((exchange) => read.coverage.covered.has(exchange))
+}
+
+/** Complete coverage, so no unchecked-board caveat repeats what the one added line already says. */
+function carriedRead(last: LastGoodRead): SupervisionRead {
+  return {
+    ...last.read,
+    caveats: [
+      ...last.read.caveats,
+      { code: 'source.supervision-carried', detail: { asOf: last.asOf } },
+    ],
+  }
+}
+
+/** What the gates read of the exchange's lists, as one string that moves when a name enters or
+ *  leaves one, changes level, or a board stops being covered. A board rebuilt for the day reads
+ *  the same held lists, so a screen kept under one stamp is the screen a fresh read would give. */
+export function toSupervisionStamp(read: SupervisionRead): string {
+  return hashString(
+    canonicalJson({
+      levels: [...read.levels].sort(([left], [right]) => (left < right ? -1 : 1)),
+      covered: [...read.coverage.covered].sort(),
+      published: [...read.coverage.published].sort(),
+    })
+  )
+}
+
+/** What a surface owes the reader for the names it judged: the read's own caveats, then what it
+ *  missed on the boards those names sit on. */
+export function judgedSupervisionCaveats(
+  board: { readonly caveats: readonly Caveat[]; readonly supervisionCoverage: SupervisionCoverage },
+  judged: readonly { readonly record: InstrumentRecord }[]
+): readonly Caveat[] {
+  const boards = new Set(judged.map((name) => exchangeOf(name.record)))
+
+  if (!ADMITTED_EXCHANGES.some((exchange) => boards.has(exchange))) {
+    return []
+  }
+
+  return [...board.caveats, ...supervisionCaveats(board.supervisionCoverage, boards)]
+}
+
 /** What the read missed over the boards the caller's population actually occupies. Derived per
  *  caller rather than once per pass: an ETF board is HOSE-only, and an HNX outage that touched no
  *  name it ranked is a gap in nothing. */
-export function supervisionCaveats(
+function supervisionCaveats(
   coverage: SupervisionCoverage,
   population: ReadonlySet<VnExchange>
 ): readonly Caveat[] {

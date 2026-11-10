@@ -7,27 +7,10 @@ import { onCommandFinished } from '@/web/state/events'
 import { tr } from '@/web/text/tr'
 import { RunButton } from '@/web/ui/command/run-button'
 import { AiLabel } from '@/web/ui/kit/ai-label'
-import { Fold } from '@/web/ui/kit/fold'
-import { SectionHeading } from '@/web/ui/kit/section-heading'
-import { InlineMarkdown } from '@/web/ui/markdown/markdown'
-import { NoteList } from '@/web/ui/markdown/report-notes'
-import {
-  blockAnchor,
-  briefOutline,
-  CAUTIONS_ANCHOR,
-  groupCautions,
-  type SectionBlock,
-  type SectionRow,
-  type StoryBlock,
-  type StoryLine,
-  sectionAnchor,
-  sectionBlocks,
-  sectionRows,
-  sectionTitle,
-  storyBlocks,
-  VERDICT_ANCHOR,
-} from '@/web/ui/reader/brief-model'
+import { BriefBody } from '@/web/ui/reader/brief-body'
+import { briefOutline } from '@/web/ui/reader/brief-outline'
 import { ReaderPage } from '@/web/ui/reader/page'
+import { renderLinkedText } from '@/web/ui/ticker/linked-text'
 
 const REWRITE_COMMAND = `${BRIEF_COMMAND} ${FORCE_ARG}`
 // How a command run that threw ends.
@@ -40,12 +23,10 @@ interface BriefPageProps {
   readonly onReload: () => void
 }
 
-/** The brief laid out by what each line is: the call and its figures first, then the story, each
- *  section, and the cautions. Its book sections hold amounts no model may see, so no passage of it
- *  can be quoted into a question. */
+/** The brief in the reader's frame. Its book sections hold amounts no model may see, so no passage
+ *  of it can be quoted into a question. */
 export function BriefPage({ content, onClose, onReload }: BriefPageProps) {
   const { title, meta, text } = content
-  const blocks = storyBlocks(text.story)
 
   useReloadOnRewrite(onReload)
 
@@ -59,14 +40,11 @@ export function BriefPage({ content, onClose, onReload }: BriefPageProps) {
     >
       <div class="flow reader-brief">
         {text.aiGenerated !== false && <AiLabel />}
-        {blocks.map((block) => (
-          <Story key={block.id} block={block} />
-        ))}
-        <Verdict text={text} />
-        {sectionBlocks(text.sections).map((block, index) => (
-          <Block key={blockAnchor(index)} id={blockAnchor(index)} block={block} />
-        ))}
-        <Cautions caveats={text.caveats} />
+        <BriefBody
+          text={text}
+          labels={{ cautions: tr('ui.office.reader.cautions') }}
+          renderText={renderLinkedText}
+        />
         <div class="reader-next">
           <RunButton
             command={REWRITE_COMMAND}
@@ -97,190 +75,10 @@ function useReloadOnRewrite(onReload: () => void): void {
 
 function briefPlainText(text: BriefTextWire): string {
   return [
+    ...(text.strip ?? []),
     ...text.story.map((line) => line.text),
     ...text.verdict,
     ...(text.nextActions ?? []),
     ...text.sections.flatMap((section) => section.lines),
   ].join('\n')
-}
-
-function Verdict({ text }: { readonly text: BriefTextWire }) {
-  const reading = text.verdict.slice(0, text.readingLines)
-  const figures = text.verdict.slice(text.readingLines)
-
-  return (
-    <>
-      {text.verdictTitle !== undefined && <SubHead id={VERDICT_ANCHOR} text={text.verdictTitle} />}
-      {reading.map((line) => (
-        <p key={line} class="lead">
-          <InlineMarkdown text={line} />
-        </p>
-      ))}
-      <Figures lines={figures} />
-      {(text.nextActions?.length ?? 0) > 0 && <Figures lines={text.nextActions ?? []} />}
-    </>
-  )
-}
-
-function Figures({ lines }: { readonly lines: readonly string[] }) {
-  return (
-    <div class="stack reader-figures">
-      {lines.map((line, index) => (
-        <p key={index} class="reader-figure">
-          <InlineMarkdown text={line} />
-        </p>
-      ))}
-    </div>
-  )
-}
-
-function Story({ block }: { readonly block: StoryBlock }) {
-  return (
-    <>
-      {block.title !== undefined && <SubHead id={block.id} text={block.title} />}
-      {block.parts.map((part, index) =>
-        part.kind === 'lead' ? (
-          <p key={index} class="lead">
-            <InlineMarkdown text={part.text} />
-          </p>
-        ) : (
-          <div key={index} class="stack reader-figures">
-            {part.heading !== undefined && (
-              <h4 class="reader-group-head">
-                <SectionHeading text={part.heading} />
-              </h4>
-            )}
-            {part.lines.map((line, at) => (
-              <StoryLineView key={at} line={line} />
-            ))}
-          </div>
-        )
-      )}
-    </>
-  )
-}
-
-const LINE_CLASSES = { note: 'reader-note', source: 'meta' } as const
-
-function StoryLineView({ line }: { readonly line: StoryLine }) {
-  const className =
-    line.role === 'note' || line.role === 'source' ? LINE_CLASSES[line.role] : 'reader-figure'
-
-  return (
-    <p class={className}>
-      <InlineMarkdown text={line.text} />
-    </p>
-  )
-}
-
-/** A block as the CLI prints it: its heading, then each section under its own smaller heading. A
- *  block from a daemon that names none is a lone section under its full title. */
-function Block({ id, block }: { readonly id: string; readonly block: SectionBlock }) {
-  if (block.title === undefined) {
-    return (
-      <>
-        {block.sections.map((section) => (
-          <div key={section.id}>
-            <SubHead id={sectionAnchor(section)} text={sectionTitle(section)} />
-            <SectionRows section={section} />
-          </div>
-        ))}
-      </>
-    )
-  }
-
-  return (
-    <>
-      <SubHead id={id} text={block.title} />
-      {block.sections.map((section) => (
-        <Section key={section.id} section={section} />
-      ))}
-    </>
-  )
-}
-
-function Section({ section }: { readonly section: BriefTextWire['sections'][number] }) {
-  if (section.folded === true) {
-    return (
-      <div id={sectionAnchor(section)} tabIndex={-1}>
-        <Fold title={section.heading}>
-          <SectionRows section={section} />
-        </Fold>
-      </div>
-    )
-  }
-
-  return (
-    <>
-      <h4 class="reader-group-head" id={sectionAnchor(section)} tabIndex={-1}>
-        <SectionHeading text={section.heading} />
-      </h4>
-      <SectionRows section={section} />
-    </>
-  )
-}
-
-function SectionRows({ section }: { readonly section: BriefTextWire['sections'][number] }) {
-  return (
-    <div class="stack reader-figures">
-      {sectionRows(section).map((row, index) => (
-        <SectionRowView key={index} row={row} />
-      ))}
-    </div>
-  )
-}
-
-function SectionRowView({ row }: { readonly row: SectionRow }) {
-  return (
-    <>
-      <p class="reader-figure">
-        <InlineMarkdown text={row.text} />
-      </p>
-      {row.details.length > 0 && (
-        <div class="stack reader-figures reader-details">
-          {row.details.map((detail, index) => (
-            <p key={index} class="reader-figure">
-              <InlineMarkdown text={detail} />
-            </p>
-          ))}
-        </div>
-      )}
-    </>
-  )
-}
-
-function Cautions({ caveats }: { readonly caveats: readonly string[] }) {
-  const { warnings, methodology } = groupCautions(caveats)
-
-  if (caveats.length === 0) {
-    return null
-  }
-
-  return (
-    <>
-      <SubHead id={CAUTIONS_ANCHOR} text={tr('ui.office.reader.cautions')} />
-      {warnings.length > 0 && (
-        <ul class="stack reader-cautions">
-          {warnings.map((warning) => (
-            <li key={warning}>
-              <InlineMarkdown text={warning} />
-            </li>
-          ))}
-        </ul>
-      )}
-      {methodology !== undefined && (
-        <Fold title={methodology.title}>
-          <NoteList lines={methodology.lines} />
-        </Fold>
-      )}
-    </>
-  )
-}
-
-function SubHead({ id, text }: { readonly id: string; readonly text: string }) {
-  return (
-    <h3 class="sub-head" id={id} tabIndex={-1}>
-      {text}
-    </h3>
-  )
 }

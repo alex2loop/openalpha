@@ -7,12 +7,10 @@ import type {
   ScreenForm,
   ScreenView,
 } from '@/trading/features/market-data/types'
-import type { FocusCall } from '@/trading/features/suggestion/store/suggestion-outcome'
-import type {
-  SuggestionService,
-  TrackRecordReflection,
-} from '@/trading/features/suggestion/suggestion'
+import type { LeanCall } from '@/trading/features/suggestion/store/suggestion-lean'
+import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
 import type { ModelRecord } from '@/trading/features/suggestion/track-record/model-record'
+import type { TrackRecordReflection } from '@/trading/features/suggestion/track-record/reflect'
 import type {
   Theme,
   ThemeId,
@@ -90,7 +88,7 @@ export interface DayDigestView {
   readonly suggestionCount: number
   readonly hasBrief: boolean
   /** The scored calls that closed that day with the largest move. */
-  readonly closed: readonly FocusCall[]
+  readonly closed: readonly LeanCall[]
 }
 
 export interface AppViews {

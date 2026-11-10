@@ -1,6 +1,5 @@
 import type { App } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
-import type { ScheduledRunner } from '@/core/types/command'
 import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { ProfileService } from '@/trading/features/profile/types'
 import type { MarketRegistry, SourceRegistry } from '@/trading/markets/types'
@@ -29,7 +28,7 @@ interface MarketTickParts {
     readonly profiles: Pick<ProfileService, 'get'>
   }
   readonly refresh: RefreshMarketData
-  readonly scheduled: { readonly runScheduled: ScheduledRunner }
+  readonly host: Parameters<typeof buildRefreshTick>[0]
   readonly logger: Logger
 }
 
@@ -47,7 +46,7 @@ export function buildMarketTicks(app: App, parts: MarketTickParts): MarketTicks 
 
   return {
     inUse,
-    refreshMarketData: buildRefreshTick(parts.scheduled, {
+    refreshMarketData: buildRefreshTick(parts.host, {
       markets: registries.markets,
       stores,
       inUse,

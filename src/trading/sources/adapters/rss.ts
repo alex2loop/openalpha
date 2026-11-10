@@ -44,13 +44,58 @@ export const BROWSER_FEEDS: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(Object.entries(RSS_FEEDS).filter(([id]) => BROWSER_FEED_IDS.includes(id)))
 )
 
+/** The two general-news feeds carry every story the publisher runs, so each headline must name an
+ *  economy or policy term to reach the brief; a feed with no entry keeps all of its items. */
+const VN_ECONOMY_TERMS: readonly string[] = Object.freeze([
+  'lãi suất',
+  'tỷ giá',
+  'lạm phát',
+  'cpi',
+  'gdp',
+  'tăng trưởng',
+  'xuất khẩu',
+  'nhập khẩu',
+  'fdi',
+  'vốn ngoại',
+  'tín dụng',
+  'ngân hàng nhà nước',
+  'nhnn',
+  'trái phiếu',
+  'ngân sách',
+  'thuế quan',
+  'nền kinh tế',
+  'nợ công',
+  'đầu tư công',
+  'giải ngân',
+  'vĩ mô',
+  'chứng khoán',
+  'giá vàng',
+  'giá xăng',
+  'giá dầu',
+  'fed',
+  'chính phủ',
+  'thủ tướng',
+  'nghị định',
+  'nghị quyết',
+  'bộ tài chính',
+])
+
+const VN_ECONOMY_TERMS_NFC: readonly string[] = VN_ECONOMY_TERMS.map((term) =>
+  term.normalize('NFC')
+)
+
+const FEED_TOPIC_TERMS: Readonly<Partial<Record<string, readonly string[]>>> = Object.freeze({
+  'economy-vn': VN_ECONOMY_TERMS_NFC,
+  'politics-vn': VN_ECONOMY_TERMS_NFC,
+})
+
 const SCOPE_FEEDS: Readonly<Record<string, readonly string[]>> = Object.freeze({
-  crypto: ['crypto', 'economy-global'],
+  crypto: ['crypto'],
   gold: ['gold'],
   'equity-us': ['equity-us', 'economy-global'],
   'equity-vn': ['equity-vn', 'economy-vn', 'politics-vn'],
   'gold-vn': ['gold-vn'],
-  [MACRO_FEED_KEY]: [MACRO_FEED_KEY],
+  [MACRO_FEED_KEY]: [MACRO_FEED_KEY, 'economy-vn'],
   [ECONOMY_FEED_SCOPE]: ['economy-global'],
 })
 
@@ -94,10 +139,12 @@ function newsSource(options: SourceAdapterOptions): RegisteredSource {
     // A feed serves a market or the macro tape, so answering an instrument-scoped request would
     // attribute a whole feed's headlines to one name. A region-only request falls through to
     // `MACRO_FEED_KEY` below, so it must not be covered either — a VN-only ask would otherwise get
-    // the Fed's press releases stamped as VN news.
+    // the Fed's press releases stamped as VN news. A scope with no feed this build reaches is not
+    // covered either, so a page reads the macro tape as not served, with no failure line.
     covers: (context) =>
       context.instrument === undefined &&
-      (context.market !== undefined || context.region === undefined),
+      (context.market !== undefined || context.region === undefined) &&
+      feedsFor(options, context).length > 0,
     load: (context, signal) => loadFeeds(options, feedsFor(options, context), signal),
   })
 }
@@ -140,7 +187,7 @@ async function loadFeeds(
 
     const parsed = toFeedItems(outcome.value, RSS_ID, outcome.fetchedAt)
 
-    items.push(...parsed.value)
+    items.push(...withOnTopicItems(feedId, parsed.value))
     caveats.push(...parsed.caveats)
     fetchedAt = Math.max(fetchedAt, outcome.fetchedAt)
   }
@@ -150,4 +197,18 @@ async function loadFeeds(
   }
 
   return { kind: 'ok', value: parsedSource(items, caveats), fetchedAt }
+}
+
+function withOnTopicItems(feedId: string, items: readonly NewsItem[]): readonly NewsItem[] {
+  const terms = FEED_TOPIC_TERMS[feedId]
+
+  if (terms === undefined) {
+    return items
+  }
+
+  return items.filter((item) => {
+    const title = item.title.normalize('NFC').toLocaleLowerCase('vi')
+
+    return terms.some((term) => title.includes(term))
+  })
 }

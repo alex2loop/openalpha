@@ -19,6 +19,7 @@ export const BRIEF_SECTION_ORDER = Object.freeze([
   'monthly-scorecard',
   'regime-shift',
   'macro',
+  'world-markets',
   'deposit-rate',
   'macro-headlines',
   'economy-headlines',
@@ -68,7 +69,7 @@ export type BriefSectionKind = (typeof BRIEF_SECTION_ORDER)[number]
  *  already gated by their own enums, but a title that gains a placeholder is not, and an older
  *  payload renders it as the literal `{sessions}`. Bump whenever a section title, its params, a
  *  section-level key, or which block a kind is grouped into changes. */
-export const BRIEF_RENDER_VERSION = 20
+export const BRIEF_RENDER_VERSION = 21
 
 /** Kinds a market's overview converter emits, so no brief builder produces them. Compose's builder
  *  record excludes them, which is what keeps that record exhaustive. A kind only the whole-market
@@ -143,6 +144,15 @@ const BRIEF_READINGS = Object.freeze([
   'rise-confirmed',
 ] as const)
 export type BriefReading = (typeof BRIEF_READINGS)[number]
+
+/** The overseas figures the brief quotes beside the macro block, closed because each is a catalog
+ *  label rather than text a builder composes. */
+const BRIEF_REFERENCES = Object.freeze(['sp500', 'us-10y', 'brent'] as const)
+export type BriefReference = (typeof BRIEF_REFERENCES)[number]
+
+/** What a row says about its own reading when the value alone would pass for a current one. */
+const BRIEF_FRESHNESSES = Object.freeze(['stale'] as const)
+export type BriefFreshness = (typeof BRIEF_FRESHNESSES)[number]
 
 /** How a stop is arrived at. One arm today; the tuple exists so the rendered sentence is a catalog
  *  key rather than a string a builder composes. */
@@ -269,6 +279,7 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'effect',
   'eventKind',
   'formulaVersion',
+  'freshness',
   /** Which market this row's instrument trades on, for a section whose rows span several. A section
    *  covering one market names it in its own header instead. */
   'market',
@@ -279,28 +290,31 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'reason',
   'reading',
   'reduceReason',
+  'reference',
   'regime',
   'sector',
   'segment',
   'sentiment',
-  'status',
   'stopBasis',
   'story',
   'thesisStatus',
   'ticker',
   'title',
   'url',
+  'verdict',
   'watch',
 ] as const)
 
 /** Fields a row carries for another field's sake, never as a datum of their own: `currency` is the
  *  unit appended to the values it denominates, `observedAt` is the instant a price block reads its
- *  clock from, and `sessions` is the window the row's own labels name. Printed as fields they would
- *  state a unit twice, an epoch once, and a window nothing measured. */
+ *  clock from, `sessions` is the window the row's own labels name, and `status` is the plain result
+ *  an older client still reads beside `verdict`. Printed as fields they would state a unit twice, an
+ *  epoch once, a window nothing measured, and a result twice. */
 export const BRIEF_STRUCTURAL_FIELDS = Object.freeze([
   'currency',
   'observedAt',
   'sessions',
+  'status',
   'storyRole',
   'runKey',
 ] as const)

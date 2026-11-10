@@ -7,6 +7,7 @@ import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
 import { SHARED_SECTION_BUILDERS } from '@/trading/markets/brief-builders'
 import { composeBrief } from '@/trading/markets/brief-compose'
 import { loadBriefContext } from '@/trading/markets/brief-context'
+import { buildWorldMarkets } from '@/trading/markets/brief-world'
 import { buildDisclosures } from '@/trading/markets/equity-vn/brief/disclosure-section'
 import { buildEvents } from '@/trading/markets/equity-vn/brief/events'
 import { buildIndexReview } from '@/trading/markets/equity-vn/brief/index-review-section'
@@ -38,6 +39,7 @@ import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 const SECTION_BUILDERS = Object.freeze({
   ...SHARED_SECTION_BUILDERS,
   'trade-sides': buildTradeSides,
+  'world-markets': buildWorldMarkets,
   'deposit-rate': buildDepositRate,
   'macro-headlines': buildMacroHeadlines,
   tape: buildTape,

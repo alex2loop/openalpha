@@ -1,5 +1,5 @@
 import type { Locale } from '@/core/types/locale'
-import type { ConvictionBand, OutcomeStatus, SuggestionAction } from '@/trading/kernel/conviction'
+import type { ConvictionBand, SuggestionAction } from '@/trading/kernel/conviction'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
 import type { IndexReviewKind, MarketRegime } from '@/trading/kernel/market/market-data'
 import type { MarketEventKind } from '@/trading/kernel/market/market-event'
@@ -10,11 +10,14 @@ import type {
   BriefAggressorSide,
   BriefDirection,
   BriefField,
+  BriefFreshness,
   BriefNumericField,
   BriefReading,
+  BriefReference,
   BriefSectionValue,
   BriefStopBasis,
 } from '@/trading/kernel/operator/brief-section'
+import type { OutcomeVerdict } from '@/trading/kernel/outcome-verdict'
 import type { DisclosureKind } from '@/trading/markets/disclosure-calendar'
 import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, type MessageKey, t } from '@/i18n'
@@ -65,6 +68,16 @@ const DIRECTION_KEYS = Object.freeze({
   entered: 'trading.brief.direction.entered',
   left: 'trading.brief.direction.left',
 } as const satisfies Record<BriefDirection, MessageKey>)
+
+const REFERENCE_KEYS = Object.freeze({
+  sp500: 'trading.brief.reference.sp500',
+  'us-10y': 'trading.brief.reference.us-10y',
+  brent: 'trading.brief.reference.brent',
+} as const satisfies Record<BriefReference, MessageKey>)
+
+const FRESHNESS_KEYS = Object.freeze({
+  stale: 'trading.brief.freshness.stale',
+} as const satisfies Record<BriefFreshness, MessageKey>)
 
 const AGGRESSOR_SIDE_KEYS = Object.freeze({
   balanced: 'trading.brief.aggressor.balanced',
@@ -135,6 +148,7 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
     currentRegime: REGIME_KEYS,
     direction: DIRECTION_KEYS,
     eventKind: { ...EVENT_KEYS, ...DISCLOSURE_KEYS, ...INDEX_REVIEW_KEYS },
+    freshness: FRESHNESS_KEYS,
     posture: {
       'fully-liquid': 'trading.posture.fully-liquid',
       'term-deposit-eligible': 'trading.posture.term-deposit-eligible',
@@ -146,15 +160,18 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
       'rise-unconfirmed': 'trading.brief.reading.rise-unconfirmed',
       'rise-confirmed': 'trading.brief.reading.rise-confirmed',
     } satisfies Record<BriefReading, MessageKey>,
+    reference: REFERENCE_KEYS,
     regime: REGIME_KEYS,
-    status: {
-      expired: 'trading.outcome.expired',
-      stop: 'trading.outcome.stop',
-      target: 'trading.outcome.target',
-    } satisfies Record<OutcomeStatus, MessageKey>,
     stopBasis: {
       'volatility-resting': 'trading.brief.stop-basis.volatility-resting',
     } satisfies Record<BriefStopBasis, MessageKey>,
+    verdict: {
+      expired: 'trading.outcome.expired',
+      stop: 'trading.outcome.stop',
+      'stop-in-profit': 'trading.outcome.stop-in-profit',
+      target: 'trading.outcome.target',
+      'target-gave-back': 'trading.outcome.target-gave-back',
+    } satisfies Record<OutcomeVerdict, MessageKey>,
   })
 
 /** Fields whose value is a code only the market registry can enumerate, so no closed map can list

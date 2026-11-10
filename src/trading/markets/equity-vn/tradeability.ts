@@ -115,11 +115,54 @@ export function resolveBandReference(
   candles: readonly Candle[],
   asOf: TradingDay
 ): number | undefined {
-  for (let index = candles.length - 1; index >= 0; index -= 1) {
-    const candle = candles[index]
+  return lastCloseBefore(
+    {
+      length: candles.length,
+      dayAt: (index) => candles[index]?.at,
+      closeAt: (index) => candles[index]?.close,
+    },
+    asOf
+  )
+}
 
-    if (candle !== undefined && candle.at < asOf && candle.close > 0) {
-      return candle.close
+/** A name's bars as columns: every bar's day and raw close, oldest first. */
+interface BandHistory {
+  readonly days: readonly TradingDay[]
+  readonly closes: readonly number[]
+}
+
+/** `resolveBandReference` read off a name's columns instead of its candles, for the readers that
+ *  no longer hold the bars. */
+export function resolveHistoryBandReference(
+  history: BandHistory,
+  asOf: TradingDay
+): number | undefined {
+  return lastCloseBefore(
+    {
+      length: history.days.length,
+      dayAt: (index) => history.days[index],
+      closeAt: (index) => history.closes[index],
+    },
+    asOf
+  )
+}
+
+/** The one rule both forms share: the newest bar strictly before `asOf` that has a positive close.
+ *  Accessors rather than a series, so neither form copies its bars. */
+function lastCloseBefore(
+  series: {
+    readonly length: number
+    readonly dayAt: (index: number) => TradingDay | undefined
+    readonly closeAt: (index: number) => number | undefined
+  },
+  asOf: TradingDay
+): number | undefined {
+  for (let index = series.length - 1; index >= 0; index -= 1) {
+    const day = series.dayAt(index)
+    const close = series.closeAt(index)
+
+    if (day !== undefined && day < asOf && close !== undefined && close > 0) {
+      return close
     }
   }
 
@@ -180,6 +223,11 @@ export function toVnExchange(raw: string | undefined): VnExchange | undefined {
   const named = raw?.toUpperCase()
 
   return VN_EXCHANGES.find((exchange) => exchange === named)
+}
+
+/** The listing exchange, resolved the same way `resolveTradeability` does. */
+export function exchangeOf(record: InstrumentRecord): VnExchange {
+  return toVnExchange(record.exchange) ?? PRIMARY_EXCHANGE
 }
 
 /** The grid a name trades on, read off its stored record: a name the universe does not hold prices

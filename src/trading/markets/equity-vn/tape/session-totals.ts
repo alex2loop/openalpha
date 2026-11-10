@@ -1,8 +1,11 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
-import type { FlowSnapshot } from '@/trading/kernel/market/market-data'
+import type { BarRecord, FlowSnapshot } from '@/trading/kernel/market/market-data'
 import type { MarketTurnoverReference } from '@/trading/kernel/market/market-overview'
-import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
-import { sessionBar } from '@/trading/markets/equity-vn/factors/factors'
+import type {
+  MarketDayTotals,
+  NameEvidence,
+} from '@/trading/markets/equity-vn/factors/name-evidence'
+import { isTradedOn } from '@/trading/markets/equity-vn/factors/factors'
 import { VN_TURNOVER_REFERENCE_SESSIONS } from '@/trading/markets/equity-vn/policy'
 import { sessionChange } from '@/trading/markets/timeseries'
 import { barTurnover } from '@/trading/markets/turnover'
@@ -16,7 +19,7 @@ export type SessionValue = (name: NameEvidence, asOf: TradingDay) => number | un
 /** Only where the name settled this session: a flow row can name a day its own tape never reached,
  *  and the change off its closes there is an earlier day's move dated to today. */
 export function sessionChangePct(name: NameEvidence, session: TradingDay): number | undefined {
-  if (sessionBar(name, session) === undefined) {
+  if (!isTradedOn(name, session)) {
     return undefined
   }
 
@@ -53,30 +56,33 @@ export function sessionTotal(
 /** Days with no reported turnover are absent from the mean, not zeros in it, so `sessions` reports
  *  what was averaged rather than what was asked for. */
 export function toTurnoverReference(
-  names: readonly NameEvidence[],
+  totals: MarketDayTotals,
   session: TradingDay
 ): MarketTurnoverReference | undefined {
-  const byDay = new Map<TradingDay, number>()
-
-  for (const name of names) {
-    for (const bar of name.bars) {
-      const value = bar.candle.at >= session ? undefined : barTurnover(bar)
-
-      if (value !== undefined) {
-        byDay.set(bar.candle.at, (byDay.get(bar.candle.at) ?? 0) + value)
-      }
-    }
-  }
-
-  const days = [...byDay.keys()].sort().slice(-VN_TURNOVER_REFERENCE_SESSIONS)
+  const days = [...totals.turnover.keys()]
+    .filter((day) => day < session)
+    .sort()
+    .slice(-VN_TURNOVER_REFERENCE_SESSIONS)
 
   if (days.length === 0) {
     return undefined
   }
 
-  const value = days.reduce((sum, day) => sum + (byDay.get(day) ?? 0), 0) / days.length
+  const value = days.reduce((sum, day) => sum + (totals.turnover.get(day) ?? 0), 0) / days.length
 
   return value <= 0 ? undefined : { sessions: days.length, value }
+}
+
+/** Adds one name's bars to the market's per-day traded value. A bar stating no usable figure
+ *  adds nothing, so its day is absent rather than zero. */
+export function addTurnoverTo(byDay: Map<TradingDay, number>, bars: readonly BarRecord[]): void {
+  for (const bar of bars) {
+    const value = barTurnover(bar)
+
+    if (value !== undefined) {
+      byDay.set(bar.candle.at, (byDay.get(bar.candle.at) ?? 0) + value)
+    }
+  }
 }
 
 /** How busy today was against a normal session. Shared with the brief's tape, which reports the
@@ -91,9 +97,9 @@ export function toTurnoverRatio(
 /** A name counts only when its newest record is the session being reported: an older one belongs to
  *  a name that did not trade, and adding it would date the total. */
 export function sessionTurnover(name: NameEvidence, asOf: TradingDay): number | undefined {
-  const last = name.bars[name.bars.length - 1]
+  const { lastBar } = name
 
-  return last === undefined || last.candle.at !== asOf ? undefined : barTurnover(last)
+  return lastBar === undefined || lastBar.at !== asOf ? undefined : lastBar.turnover
 }
 
 export function sessionForeignNet(name: NameEvidence, asOf: TradingDay): number | undefined {
@@ -105,5 +111,5 @@ export function sessionProprietaryNet(name: NameEvidence, asOf: TradingDay): num
 }
 
 function sessionFlow(name: NameEvidence, asOf: TradingDay): FlowSnapshot | undefined {
-  return name.flows.find((flow) => flow.at === asOf)
+  return name.flowReads.flowTail.find((flow) => flow.at === asOf)
 }

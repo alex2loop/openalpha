@@ -10,9 +10,9 @@ import type { CaveatDetail } from '@/trading/kernel/caveat'
 import type { InstrumentKind, InstrumentRef, PortfolioSegment } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { segmentEntries } from '@/trading/features/portfolio/folds/allocation'
-import { PORTFOLIO_FINDING_KINDS } from '@/trading/kernel/caveat'
 import { buildInstrumentKey, CASH_SEGMENT } from '@/trading/kernel/instrument'
 import { isCappedAsFund } from '@/trading/kernel/operator/profile'
+import { PORTFOLIO_FINDING_KINDS } from '@/trading/kernel/portfolio-finding'
 
 const CONCENTRATION_PCT_NAV = 0.2
 const DRIFT_REPORT_PCT_POINTS = 0.05

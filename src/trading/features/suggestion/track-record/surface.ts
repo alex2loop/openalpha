@@ -1,5 +1,5 @@
 import type { Locale } from '@/core/types/locale'
-import type { TrackRecordReflection } from '@/trading/features/suggestion/suggestion'
+import type { TrackRecordReflection } from '@/trading/features/suggestion/track-record/reflect'
 import {
   reflectHeader,
   renderCalibrationLines,

@@ -90,6 +90,9 @@ vá lại theo thời gian chờ riêng.
 
 Mỗi lượt ghi một dòng log `trading.market_data_refreshed` cho biết từng thị trường mất bao lâu. Thị
 trường tải nhiều loại dữ liệu còn ghi thời gian của từng loại, nên một lượt chậm tự chỉ ra chỗ chậm.
+Dòng đó còn có `memory`, là bộ nhớ tiến trình đang giữ, tính bằng byte: `rssBytes` là phần đang chiếm
+trong RAM của máy lúc này (resident), `peakRssBytes` là mức cao nhất từ khi khởi động, và
+`heapUsedBytes` là phần dữ liệu đang dùng (heap).
 
 ### Bạn chỉnh được gì
 
@@ -414,6 +417,13 @@ vụ viết tay bên dưới, vốn vẫn là cách chạy một máy chủ API.
 
 Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụng khách nối vào.
 
+Nên cấp 512 MB bộ nhớ. Lúc rảnh, dịch vụ nền giữ khoảng 100 MB. Bảng cổ phiếu Việt Nam được đọc
+từng mã một và chỉ giữ lại bản tóm tắt ngắn của mỗi mã, nên sau lần đọc đầu dịch vụ đứng quanh
+150 đến 200 MB và lên tới khoảng 300 MB trong lúc dựng lại bảng. Máy chủ dưới 512 MB chưa được thử.
+Muốn biết máy chủ của bạn đang giữ bao nhiêu, đọc `memory` ở dòng `trading.market_data_refreshed`
+mới nhất có `mode` là `daemon`. Lệnh `/refresh` gõ trong terminal cũng ghi dòng này, nhưng cho tiến
+trình ngắn hạn của riêng nó.
+
 1. **Cài đặt.** Trên Linux hoặc macOS, chạy script cài đặt trong
    [README](../README.vi.md#bắt-đầu-nhanh) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường
    dẫn mà `command -v openalpha` in ra (mặc định `~/.local/bin/openalpha`); unit bên dưới phải dùng
@@ -669,7 +679,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     trường Việt Nam và các thị trường khác (mỗi thị trường kèm các mã tăng mạnh nhất và giảm mạnh nhất
     của phiên, hoặc của 24 giờ qua với thị trường không đóng cửa, cùng giá trị giao dịch; hàng của đại
     lý như vàng VN nêu giá mua vào, giá bán ra và chênh lệch giữa hai giá, rồi mức chênh lệch của vàng
-    VN với vàng thế giới; crypto nêu phí funding, hợp đồng mở, tỷ lệ mua/bán, bên mua chủ động khớp
+    VN với vàng thế giới; crypto nêu phí funding, hợp đồng mở, tài khoản nghiêng tăng so với giảm, phần mua chủ động
     và chỉ số sợ hãi - tham lam; thị trường bạn tắt trong hồ sơ không hiện, trừ vàng thế giới, vốn
     chỉ để tham chiếu nên luôn hiện); sự kiện sắp tới; tin nổi bật; và hôm nay agent đã làm gì, gồm cả việc chạy khi bạn không mở trang. Khối vĩ mô
     và khối tin có nút "Xem đầy đủ" mở thẻ Thị trường. Những gì dịch vụ nền khởi động mà còn thiếu, ví
@@ -778,8 +788,8 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   mạnh nhất trên ngưỡng thanh khoản của thị trường đó, đứng cạnh nhau khi bảng rộng). Dưới mỗi thị
   trường là các số đọc riêng của nó, mỗi số một nhãn và một giá trị dưới tiêu đề của nhóm, đúng nhãn,
   số và thứ tự `/overview` và `/brief` in ra, kèm dòng nguồn và giờ đọc: vàng VN nêu chênh lệch với vàng thế giới, một con số thuần, không nói nó nằm ở đâu so với lịch sử;
-  crypto nêu phí funding, hợp đồng mở và so với các phiên gần đây, tỷ lệ mua/bán, phần bên mua chủ động
-  khớp lệnh, và chỉ số sợ hãi - tham lam kèm nguồn công bố nó. Nguồn nào trình duyệt không đọc được thì
+  crypto nêu phí funding, hợp đồng mở và so với các phiên gần đây, tài khoản nghiêng tăng so với giảm, phần mua chủ động,
+  và chỉ số sợ hãi - tham lam kèm nguồn công bố nó. Nguồn nào trình duyệt không đọc được thì
   dòng đó không hiện, không báo lỗi.
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
   và bán ròng nhiều nhất; và năm mã giao dịch nhiều nhất. Giá trị rút gọn (như 76,5 tỷ), và ghi rõ
@@ -824,7 +834,7 @@ Cách đọc khung cảnh:
 - Bong bóng thoại mang những câu có thật: việc nào cần bạn duyệt, một vai trong cuộc tranh luận vừa nói gì, một đề xuất cũ mà ai đó còn nhớ. Màn hình sáng cho thấy người tìm tin đang đọc trang nào hay giá đóng cửa mà nhà phân tích đang xem; bấm vào để xem lớn hơn. Ai đang làm việc khác, kể cả ở tầng đội, thì máy tính họ ngồi trước sáng lên và gõ dần phiên chạy của chính họ như một cửa sổ terminal: lệnh, từng bước đã xong và bước đang làm, không phải của cả phòng. Nhìn từ xa, màn hình hiện các dòng đó thành những vạch màu; khi bật giảm chuyển động thì mọi dòng hiện sẵn một lúc. Máy tính hai người dùng chung chỉ sáng cho người đang ngồi trước nó. Bấm vào màn hình để mở phiên đó.
 - Các bảng cho thấy tiến độ (vòng tranh luận, câu hỏi nghiên cứu, số giá đã làm mới): bảng trắng ở phòng họp và thư viện viết bằng bút dạ, nhìn từ xa thì chỉ còn số thứ tự, còn màn hình trên tường kho dữ liệu chạy một thanh tiến độ. Bảng đề xuất đếm các đề xuất mới. Trên quầy cảnh báo, bảng giá hiện bốn mã đầu tiên của dải giá (nhìn từ xa thì chỉ còn số mã tăng và giảm) và dải đèn LED chạy các thông báo chưa đọc, không có thì giữ yên thông báo mới nhất. Khi bạn bấm vào một phòng, dưới bảng thấp ở sảnh có một tờ giấy vàng ghi tóm tắt trong ngày; bấm vào để xem chi tiết. Góc nhìn cả tầng không hiện tờ giấy này. Ba đồng hồ ở sảnh chạy giờ HOSE, NYSE và UTC, trỏ chuột vào thì hiện tên và giờ. Tủ máy chủ trong kho có một đèn cho mỗi nguồn dữ liệu, xanh khi nguồn còn trả lời và vàng khi nguồn hỏng. Hết giờ làm việc, phòng nào không có phiên chạy thì thẻ phòng ghi đang nghỉ. Máy in, kệ nguồn, đồng hồ và quầy cảnh báo hiện một chú thích khi bạn trỏ vào, kèm liên kết tới nơi liên quan. Bảng trắng không có phiên nào đang đếm bước sẽ ghi kết quả cuối cùng của ngày, vào bất kỳ giờ nào: mã của phiên tranh luận xong gần nhất cùng giờ xong, và số câu hỏi mà phiên nghiên cứu xong gần nhất đã trả lời ("Câu hỏi 5/5 · xong"); nhìn từ xa thì chỉ còn số "5" hoặc hai chữ cái đầu của mã. Các nút một dòng phía trên những bảng ấy, hiện khi bạn phóng vào một phòng, nói giống hệt, và chỉ dòng đang đếm bước của một phiên đang chạy mới mở phiên đó. Tải lại trang vẫn còn vì dữ liệu lấy từ danh sách hoạt động trong ngày.
 - Bấm vào một chiếc đèn để bật hoặc tắt đèn phòng đó, hoặc bấm công tắc trên tường (hay nút bóng đèn ở góc dưới bên phải khung cảnh) để bật tắt tất cả. Ban ngày mỗi đèn theo công tắc riêng của nó, được giữ trong trình duyệt này. Khi mặt trời đã lặn hẳn, và cả ngày nghỉ của thị trường, đèn chỉ sáng ở phòng có chính người của phòng đó đang làm việc (trong ca, đang có phiên chạy thật, hoặc nhân viên trực ngày nghỉ) trừ khi bạn bật tắt nó; người chỉ đi ngang qua, hay ở lại muộn mà không có việc gì, thì phòng vẫn tối, và những lần bật tắt ban đêm ấy được quên vào lúc bình minh hay hoàng hôn kế tiếp. Mặc định ánh sáng văn phòng đi theo đồng hồ văn phòng; Cài đặt > Hiển thị tắt được việc này.
-- Khi một đề xuất của bạn được chấm điểm, nhà phân tích phản ứng ngay tại chỗ: giơ hai tay khi chạm mục tiêu, gãi đầu khi chạm cắt lỗ (đề xuất hết hạn thì không có gì); người trong văn phòng đứng cho các đề xuất của danh mục bạn, còn đề xuất của agent riêng hiện ở bàn của agent đó. Sau một phiên chạy dài hơn 2 phút, những người làm phiên đó vươn vai một lần sau cái gật đầu. Người rảnh ngồi ở bàn thỉnh thoảng nhấp một ngụm nước hoặc xem điện thoại. Vươn vai, nhấp nước và xem điện thoại đều dừng khi bật giảm chuyển động.
+- Khi một đề xuất của bạn được chấm điểm, nhà phân tích phản ứng ngay tại chỗ: giơ hai tay khi trúng (chạm mục tiêu và giữ được lãi, hoặc chạm mức dừng đã nâng mà vẫn có lãi), gãi đầu khi trượt (chạm cắt lỗ, hoặc mục tiêu mà phần còn lại trả lại lãi; đề xuất hết hạn thì không có gì). Phản ứng theo kết quả, không theo trạng thái lúc đóng; người trong văn phòng đứng cho các đề xuất của danh mục bạn, còn đề xuất của agent riêng hiện ở bàn của agent đó. Sau một phiên chạy dài hơn 2 phút, những người làm phiên đó vươn vai một lần sau cái gật đầu. Người rảnh ngồi ở bàn thỉnh thoảng nhấp một ngụm nước hoặc xem điện thoại. Vươn vai, nhấp nước và xem điện thoại đều dừng khi bật giảm chuyển động.
 - Mèo ngủ khi không có gì cần bạn, và thức dậy khi có việc cần duyệt, mã bạn giữ thủng cắt lỗ hoặc chạm chốt lời, lệnh khớp ở sàn, cảnh báo giá bạn đặt, hoặc hết ngân sách AI trong ngày. Corgi và bể cá chỉ là cảnh, không báo gì cả; corgi chỉ đứng dậy và vẫy đuôi vài giây khi mở trang hoặc khi có agent mới vào.
 - Kéo để di chuyển, cuộn hoặc chụm hai ngón để zoom. Khi khung cảnh đang được chọn, phím mũi tên lên xuống và Shift cùng mũi tên trái phải để di chuyển, + và − để zoom (mũi tên trái phải không kèm Shift đi qua từng người, ở dưới). Esc hoặc nút ⟲ ("Xem cả tầng") để lùi lại. Nút + và − ở góc dưới bên phải cũng để zoom, mỗi nút mờ đi khi đã tới giới hạn; ở chế độ 3D còn có một thanh mảnh bên cạnh cho biết bạn đang zoom gần tới đâu. Từ góc nhìn cả tầng, bấm vào một phòng thì zoom vào phòng đó.
 

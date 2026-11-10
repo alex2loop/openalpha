@@ -12,7 +12,7 @@ You need nothing to get started. A few providers take a key that you can add lat
 |---|---|---|
 | `bls` | `BLS_API_KEY` | Nothing is lost: US inflation reads either way. Without a key the provider allows 25 calls a day per IP address, shared by every program behind that address. With a key the limit is 500. |
 | `coingecko` | `COINGECKO_API_KEY` | Nothing is lost: it reads either way. Without a key the provider allows a small number of calls a minute per IP address, shared by every program behind that address. With a key you get a monthly allowance of your own. |
-| `fred` | `FRED_API_KEY` | You lose the two series only FRED publishes: the dollar index and VIX (the market's fear gauge). The macro score still rates, without these two drivers: the US macro score loses about 30% of its weight, the macro backdrop for VN stocks 20%, and gold 2 of its 7 factors (dollar, safe haven). So days when the dollar strengthens or the market panics are easy to miss. US yields, the real rate and inflation still read from `treasury` and `bls`, which need no key. The key is free: sign up on the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html). |
+| `fred` | `FRED_API_KEY` | You lose the two series only FRED publishes: the dollar index and VIX (the market's fear gauge), plus the S&P 500 line in the brief's World markets block. The macro score still rates, without these two drivers: the US macro score loses about 30% of its weight, the macro backdrop for VN stocks 20%, and gold 2 of its 7 factors (dollar, safe haven). So days when the dollar strengthens or the market panics are easy to miss. US yields, the real rate and inflation still read from `treasury` and `bls`, which need no key. You get a key by signing up on the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html). |
 | `sec-data` | `SEC_CONTACT_EMAIL` | Not a key: SEC asks every reader to say who is calling, so this is your contact email. Without it the SEC source stays off. US value and quality read as unavailable, and so do US earnings releases and insider purchases. |
 
 Save the key with `openalpha key set <NAME>` (or under Settings > Tools on the office page), then restart the daemon. Or set the variable in your shell or environment. Never write the key in a config file. `openalpha key list` shows these variables and whether each is set.
@@ -42,7 +42,7 @@ Each kind of data, in each market, has an ordered list of providers. OpenAlpha a
 
 Two exceptions:
 
-- **Merged reads.** US macro (economy-wide figures such as rates and inflation), the Vietnamese gold boards and the exchange supervision list (stocks the exchange puts under extra watch) ask every provider and combine the answers, because no single provider has everything. Where two providers publish the same item, list order decides which wins. US macro lists `treasury` and `bls` first, so an install with no keys still reads macro.
+- **Merged reads.** US macro (economy-wide figures such as rates and inflation), the Vietnamese gold boards and the exchange supervision list (stocks the exchange puts under extra watch) ask every provider and combine the answers, because no single provider has everything. Where two providers publish the same item, list order decides which wins. US macro lists `treasury` and `bls` first, so an install with no keys still reads macro. The supervision list is read once at each refresh and once per session in between; when a read fails, the last full list is used and the reply says which session it is from.
 - **Split reads.** For news, one provider serves a name's own headlines and another serves the market-wide read. They share the work. Neither is the other's fallback.
 
 A provider that failed on its most recent call, or is paused (see [When a provider fails](#when-a-provider-fails)), moves behind the healthy ones. Nothing moves up for having answered recently.
@@ -118,13 +118,14 @@ What the less obvious ones do:
   - `vietcap-statements` replaces them the day it serves the cash flow.
 - `cafef` is not a fallback for `vndirect`'s flows. It publishes only the proprietary desk (brokers trading their own money), two sessions sooner. It is asked only for the sessions still missing that part.
 - `fred-csv` carries the monthly commodity series that no daily feed has (coal, rice, pork, steel). `vndirect` carries the daily ones. They never compete for one commodity.
+- Two Vietnamese general-news feeds (CafeF's macro and investment feed and VnExpress's current-affairs feed) run every story the publisher has, so a headline is kept only when it names an economy or policy term such as interest rates, the exchange rate, inflation, tariffs, credit or a new decree. The filter applies wherever those feeds are read: the brief, the macro tape and Vietnamese stock news. Crypto reads only its own news feed, not the global economy wire.
 - `coinbase` and `okx` price a settlement coin (such as USDT) against a fiat currency. There is no fallback from `USDTVND` to `USDVND`: USDT is a different instrument, and a missing rate is reported, not guessed.
 - Crypto prices lead with your crypto default venue (`default_for` under `[trading.venues.<id>]`, `binance` unless you set one), when that venue is also a data provider. A plan priced anywhere else would quote a number you could not get your order filled at.
 - `mexc` backs `binance` for prices and is third for history. It lists coins the big venues do not. But volume on the long tail of small coins is the least trustworthy, so it answers only for a name the majors decline.
 - `okx` does not list every coin. A coin it lacks is skipped, and the skip does not count as a failure.
 - `coingecko` serves the market-cap board, one FX rate and the dong's FX history, not the price path. The alert loop reads a price for every watched coin on every tick, and a provider metered by the month would burn its quota there.
 
-One kind is defined and has no provider: spot-ETF net flows for crypto. The brief's `etf-flows` section reports `unavailable`. That is expected, not an outage.
+One kind is defined and has no provider: spot-ETF net flows for crypto. The `etf-flows` section of `/overview crypto` reports `unavailable`. That is expected, not an outage.
 
 ### US sources
 

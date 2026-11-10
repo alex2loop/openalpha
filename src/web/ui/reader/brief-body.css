@@ -1,0 +1,56 @@
+.stack.reader-figures {
+  gap: var(--s0);
+}
+
+.reader-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s1) var(--s3);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 600px) {
+  .reader-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.reader-figure {
+  color: var(--ink);
+  font-size: var(--sizeBody);
+  font-variant-numeric: tabular-nums;
+}
+
+.reader-details {
+  padding-left: var(--s2);
+}
+
+.reader-details .reader-figure {
+  color: var(--ink2);
+}
+
+.reader-figures .md-link-host {
+  display: none;
+}
+
+.reader-group-head {
+  margin-top: var(--s3);
+  color: var(--ink2);
+  font: var(--typeHeading);
+}
+
+.reader-note {
+  padding-left: var(--s2);
+  border-left: 2px solid var(--border);
+  color: var(--ink2);
+}
+
+.reader-cautions {
+  margin: 0;
+  padding: var(--s2);
+  border-radius: 8px;
+  background: var(--cautionBg);
+  color: var(--caution);
+  font-size: var(--sizeBody);
+  list-style: none;
+}

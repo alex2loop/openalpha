@@ -33,6 +33,8 @@ export const BACKFILL_MINIMUM_TARGETS = 50
 
 export type BarOutcome = TargetOutcome<readonly BarRecord[]>
 
+type BarProgress = ReturnType<typeof createRefreshProgress>
+
 /** Oldest first, so the merged series is already in the order every reader expects. */
 export function chunkWindows(calendar: TradingCalendar, window: DayWindow): readonly DayWindow[] {
   const chunks: DayWindow[] = []
@@ -74,17 +76,17 @@ export function joinOutcomes(
   return { instrument: held.instrument, value: join(held.value, next.value), provenance, caveats }
 }
 
+interface BarPass {
+  readonly window: DayWindow
+  /** The line to advance; absent, the call counts its own names. */
+  readonly progress?: BarProgress
+}
+
 export function fetchAllBars(
   scope: EvidenceScope,
   targets: readonly InstrumentRef[],
-  window: DayWindow
+  { window, progress = createBarProgress(scope, targets.length) }: BarPass
 ): Promise<readonly BarOutcome[]> {
-  const progress = createRefreshProgress(
-    scope.request.progress,
-    { market: VN_MARKET_REF, kind: 'bars' },
-    targets.length
-  )
-
   return mapWithConcurrency(targets, VN_SOURCE_CONCURRENCY, async (instrument) => {
     const outcome = await fetchBars(scope, instrument, window)
 
@@ -92,6 +94,40 @@ export function fetchAllBars(
 
     return outcome
   })
+}
+
+/** One line for a pass over `total` names fetched in `windows` windows. Each window advances it once
+ *  per name and the line shows one name per `windows` advances, so it climbs from 0 to `total` once
+ *  across the windows. Names refetched whole afterwards count on their own line. */
+export function createWindowedProgress(
+  scope: EvidenceScope,
+  total: number,
+  windows: number
+): BarProgress {
+  const progress = createBarProgress(scope, total)
+  let steps = 0
+  let shown = 0
+
+  return {
+    advance(completed): void {
+      steps += completed
+
+      const gained = Math.floor(steps / windows) - shown
+
+      if (gained > 0) {
+        progress.advance(gained)
+        shown += gained
+      }
+    },
+  }
+}
+
+function createBarProgress(scope: EvidenceScope, total: number): BarProgress {
+  return createRefreshProgress(
+    scope.request.progress,
+    { market: VN_MARKET_REF, kind: 'bars' },
+    total
+  )
 }
 
 async function fetchBars(

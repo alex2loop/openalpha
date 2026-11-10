@@ -90,6 +90,9 @@ repaired on their own cooldown.
 
 Every run logs one `trading.market_data_refreshed` line with how long each market took. A market
 that loads several kinds also gives the time of each kind, so a slow refresh points at its own cause.
+The same line carries `memory`, what the process holds in bytes: `rssBytes` is the memory it holds
+in the machine's RAM right now (resident), `peakRssBytes` is the most it has held since it started,
+and `heapUsedBytes` is the part used by live data (heap).
 
 ### What you can tune
 
@@ -418,6 +421,14 @@ from the hand-written service below, which stays the way to run an API server.
 
 Run the daemon on a server you own and point a client app at it.
 
+Give it 512 MB of memory. An idle daemon holds about 100 MB. The Vietnamese board is read one stock
+at a time and only a short summary of each stock is kept, so after the first read the daemon settles
+near 150 to 200 MB and peaks around 300 MB while the board is rebuilt. Servers smaller than 512 MB are
+untested.
+To see what your own server holds, read `memory` on the latest `trading.market_data_refreshed` line
+whose `mode` is `daemon`. A `/refresh` typed in the terminal writes the same line for its own
+short-lived process.
+
 1. **Install.** On Linux or macOS, run the install script from the
    [README](../../README.md#quick-start) with `OPENALPHA_NO_ONBOARD=1` set. The
    command it installs is the path `command -v openalpha` prints (by default
@@ -676,7 +687,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     gainers and losers of the session, or of the last 24 hours for a market that never closes, with
     their turnover; a dealer's rows, such as VN gold, state the dealer's buying and selling price and
     the spread between them, then how far VN gold sits above world gold; crypto states funding, open
-    interest, the long/short ratio, the share of buyers crossing the spread and the fear and greed
+    interest, the accounts leaning up against those leaning down, the share bought at the asking price and the fear and greed
     index; a market your profile switches off is left out, except world gold, read for reference
     and always shown); upcoming events; top headlines; and what the agents did today, including work
     that ran while the page was closed. The macro and news blocks carry "See the full reading", which
@@ -788,7 +799,7 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   with the line naming the sources and when they were read:
   VN gold states its premium over world gold as a plain figure, without saying where it sits against
   its own history; crypto states funding, open interest and how it compares with recent sessions, the
-  long/short ratio, the share of buyers crossing the spread, and the fear and greed index with the
+  accounts leaning up against those leaning down, the share bought at the asking price, and the fear and greed index with the
   source that publishes it. A source the browser cannot read leaves its line out, with no error.
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the
   proprietary desks bought and sold most on net; and the five most traded. Amounts are compact (like
@@ -834,7 +845,7 @@ How to read it:
 - Speech bubbles carry real lines: what needs your approval, what a debate role said, a past call a person remembers. A lit screen shows what a scout is reading or the closes the analyst is looking at; click it for a larger view. Anyone else at work, on the team floor too, lights the screen of the computer they sit at and types their own run into it as a terminal: the command, each step done and the step under way, never the room's. Far off the screen shows the same lines as coloured bars; with reduced motion the lines are all there at once. A computer two people share lights only for the one sitting at it. Click a screen to open that run.
 - The boards show progress (debate round, research question, prices refreshed so far): the meeting room's and the library's whiteboards write it in marker, only the step's number when far off, and the store's wall monitor fills a bar. The results board counts new calls. Over the alert desk the price board shows the first four names on the tape (from far off, how many rose and fell) and the LED strip carries the unread notices, else the newest one held still. Once you click into a room, a yellow note under the lobby's lower board gives the day's digest; click it for the details. The floor view leaves it out. The lobby's three clocks keep HOSE, NYSE and UTC time and name themselves when you point at them. The store's rack has a light per data source, green while it answers and amber once it fails. After office hours a room with no run in it says it is resting. The printer, shelf, clock and alert desk show a tip when you point at them, with a link to the matching view. A whiteboard with no run counting steps writes the day's last result instead, at any hour: the ticker of the last debate that finished and when, and how many questions the last research answered ("Question 5/5 · done"); far off, only "5" or the ticker's first two letters show. The one-line buttons over those boards, shown once a room is zoomed, say the same, and only a line counting a live run's steps opens that run. A reload keeps them, since they come from the day's activity list.
 - Click a lamp to turn a room's light on or off, or the wall switch (or the bulb at the bottom right of the scene) for all of them. By day every lamp follows its own switch, kept in this browser. Once the sun is well below the horizon, and all of a market rest day, a lamp is lit only in a room where its own person is at work (on shift, on a real run, or the rest-day staff) unless you switch it; someone just passing through, or staying late with nothing to do, leaves it dark, and those night switches are forgotten at the next dawn or dusk. By default the office light follows the office clock; Settings > Display turns that off.
-- When one of your calls is scored, the analyst reacts at their seat: both hands up for a target hit, a scratch of the head for a stop (an expired call passes quietly); the office's people stand for calls the operator's book makes, an own agent's are shown at its desk. After a run of more than 2 minutes, its people stretch once after their nod. A free person sitting at their desk now and then sips from a cup or checks their phone. The stretch, the sips and the phone checks stop under reduced motion.
+- When one of your calls is scored, the analyst reacts at their seat: both hands up for a win (a target that kept its gain, or a stop the trail had raised that still kept a gain), a scratch of the head for a miss (a stop, or a target whose rest was given back; an expired call passes quietly). The reaction follows the result, not the status the call closed on; the office's people stand for calls the operator's book makes, an own agent's are shown at its desk. After a run of more than 2 minutes, its people stretch once after their nod. A free person sitting at their desk now and then sips from a cup or checks their phone. The stretch, the sips and the phone checks stop under reduced motion.
 - The cat sleeps while nothing needs you and wakes for an approval, a holding past its stop or at its take-profit, an order filled at the exchange, a price alert you set, or the day's AI budget running out. The corgi and the fish are scenery and signal nothing; the corgi only stands and wags for a few seconds when the page opens or a new agent joins.
 - Drag to pan and scroll or pinch to zoom. With the scene focused, the arrow keys Up and Down and Shift with Left or Right pan, and + and − zoom (Left and Right alone step through people, below). Esc or the ⟲ button ("See the whole floor") steps back. The + and − buttons at the bottom right zoom too, each greyed out at its limit; in 3D a thin bar beside them shows how far you are zoomed in. From the floor view, clicking a room zooms into it.
 

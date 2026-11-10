@@ -71,6 +71,7 @@ const TRADING_TABLES = [
   { name: 'series_provenance', pk: ['series_id', 'day'], durable: true },
   { name: 'macro_documents', pk: ['url'], durable: true },
   { name: 'market_refresh_attempts', pk: ['market', 'kind'] },
+  { name: 'screened_names', pk: ['market'] },
   { name: 'suggestions', pk: ['id'], durable: true },
   // Durable: an analysis is a model's answer on a bundle that cannot be rebuilt.
   { name: 'suggestion_analyses', pk: ['id'], durable: true },
@@ -81,6 +82,7 @@ const TRADING_TABLES = [
   { name: 'trading_profiles', pk: ['id'], durable: true },
   { name: 'alerts', pk: ['id'], durable: true },
   { name: 'brief_snapshots', pk: ['id'] },
+  { name: 'public_briefs', pk: ['day'] },
   { name: 'brief_delivery', pk: ['id'], durable: true },
   { name: 'intraday_settings', pk: ['id'], durable: true },
   // Durable because neither a placed-but-unmirrored order nor a resting exit at the exchange can

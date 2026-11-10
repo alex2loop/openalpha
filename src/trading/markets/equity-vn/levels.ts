@@ -8,7 +8,8 @@ import type {
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Candle, InstrumentRecord } from '@/trading/kernel/market/market-data'
 import type { MarketDeps } from '@/trading/markets/deps'
-import type { CrossSection, NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import type { Tradeability } from '@/trading/markets/equity-vn/tradeability'
 import { ETF_KIND } from '@/trading/kernel/instrument'
 import {

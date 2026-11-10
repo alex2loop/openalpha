@@ -206,7 +206,7 @@ the identical focus share one key, and so one record.
 **Agreement.** `agent list` and `agent show` print, under each agent of yours: its focus, today's spend against
 its cap when it has one, what its calls have earned across every focus it has used, and how often it takes the
 action the *other* agents take on the same name and day. The rules, and the sample sizes below which only a
-count is shown, are in [trading](trading.md).
+count is shown, are in [trading](trading.md). The record's hit count counts a call only when it closed on its target and kept a gain: a target whose rest was given back is a miss. A call joins the record once its window has passed.
 
 **`max_daily_usd` - its share of the day.** Under `[budget] max_daily_usd`, an agent may carry its own ceiling.
 See [per-agent cap](budgets.md#per-agent-cap).

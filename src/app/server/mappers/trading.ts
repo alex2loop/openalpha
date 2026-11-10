@@ -42,6 +42,7 @@ import {
   isLevelKind,
   isRecordedPlan,
   isUndecidedHold,
+  outcomeVerdictOf,
   publisherOf,
   shownCall,
 } from '@/trading/api'
@@ -378,6 +379,7 @@ function toOutcomeWire(
 ): NonNullable<SuggestionWire['outcome']> {
   return {
     status: outcome.status,
+    verdict: outcomeVerdictOf(outcome),
     resolvedAt: outcome.resolvedAt,
     exitDay: outcome.exitDay,
     returnPct: outcome.returnPct,

@@ -9,9 +9,13 @@ import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { useUnstripped } from '@/web/ui/kit/cautions'
 import { ClockIcon } from '@/web/ui/kit/icons'
-import { NoteList } from '@/web/ui/markdown/report-notes'
+import { NoteList } from '@/web/ui/markdown/note-list'
+import { renderLinkedText } from '@/web/ui/ticker/linked-text'
 import { openWhy } from '@/web/ui/ticker/why-dialog'
 import { BlockFrame } from '@/web/ui/today/block-frame'
+
+// The caveat a record carries while calls it holds are still inside their outcome window.
+const AWAITING_WINDOW_CODE = 'reporting.awaiting-window'
 
 /** Thành tích: how the calls the daemon scored turned out, in `/reflect`'s own lines. */
 export function TrackRecord() {
@@ -33,7 +37,12 @@ function RecordBody({ record }: { readonly record: TradingTrackRecordResponse })
   const { summary, text } = record
 
   if (summary.resolvedCount === 0) {
-    return <p class="empty-note">{tr('ui.office.record.empty')}</p>
+    // Calls still waiting for their window are a record in the making: the daemon's lines say so.
+    return summary.caveats.some((caveat) => caveat.code === AWAITING_WINDOW_CODE) ? (
+      <Lines lines={text.summary} isLead />
+    ) : (
+      <p class="empty-note">{tr('ui.office.record.empty')}</p>
+    )
   }
 
   return (
@@ -80,7 +89,7 @@ function Lines({ lines, isLead = false }: LinesProps) {
           ))}
         </div>
       )}
-      <NoteList lines={shown.filter(isNoteLine)} />
+      <NoteList lines={shown.filter(isNoteLine)} renderText={renderLinkedText} />
     </>
   )
 }

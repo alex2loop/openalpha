@@ -13,12 +13,12 @@ import type {
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
-import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import type { MarketManifest } from '@/trading/markets/types'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import {
+  isTradedOn,
   latestNameSession,
-  sessionBar,
   VN_INDEX_INSTRUMENT,
 } from '@/trading/markets/equity-vn/factors/factors'
 import {
@@ -47,7 +47,6 @@ import {
 import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
 import { rangeFromCloses } from '@/trading/markets/overview'
 import { median, sessionChange } from '@/trading/markets/timeseries'
-import { barTurnover } from '@/trading/markets/turnover'
 
 const PERCENT_PER_UNIT = 100
 const BOARD_SEPARATOR = ' + '
@@ -84,7 +83,7 @@ export async function runOverview(load: OverviewLoad): Promise<MarketDataOvervie
   const rows = entries.map((entry) => entry.row)
   const breadth = toBreadth(cross.names, session, indexBars)
   const turnover = sessionTotal(cross.names, session, sessionTurnover)
-  const turnoverReference = toTurnoverReference(cross.names, session)
+  const turnoverReference = toTurnoverReference(cross.dayTotals, session)
   const turnoverRatio = toTurnoverRatio(turnover, turnoverReference)
   const foreignNetValue = sessionTotal(cross.names, session, sessionForeignNet)
   const proprietaryNetValue = sessionTotal(cross.names, session, sessionProprietaryNet)
@@ -269,14 +268,12 @@ function toMovers(names: readonly NameEvidence[], session: TradingDay): MarketMo
 /** Today's move and only today's, and only when a listed share moved real money on it. A basket
  *  restates the index rather than naming a mover, as in the breadth tally. */
 function toMover(name: NameEvidence, session: TradingDay): MarketMover | undefined {
-  const last = sessionBar(name, session)
-
-  if (last === undefined || name.record.kind !== 'equity') {
+  if (!isTradedOn(name, session) || name.record.kind !== 'equity') {
     return undefined
   }
 
   const changePct = sessionChangePct(name, session)
-  const turnover = barTurnover(last)
+  const turnover = name.lastBar?.turnover
 
   if (changePct === undefined || turnover === undefined || turnover < MINIMUM_MOVER_TURNOVER_VND) {
     return undefined
@@ -290,8 +287,8 @@ function toMover(name: NameEvidence, session: TradingDay): MarketMover | undefin
 async function headlineEntries(load: OverviewLoad): Promise<readonly OverviewEntry[]> {
   const { signal } = load.request
   const indices = await loadUniverse(load.deps, { kind: 'index', signal })
-  const headline = indices.filter((record) =>
-    VN_HEADLINE_INDEX_TICKERS.includes(record.instrument.ticker)
+  const headline = VN_HEADLINE_INDEX_TICKERS.flatMap((symbol) =>
+    indices.filter((record) => record.instrument.ticker === symbol)
   )
   const loaded = await Promise.all(headline.map((record) => overviewRow(load, record)))
 

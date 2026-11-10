@@ -98,8 +98,9 @@ function movingRows(records: readonly MarketCapRecord[]): readonly Moving[] {
     .filter((record): record is Moving => record.changePct !== undefined)
 }
 
-/** Advancers and decliners over the provider's rolling day, across the same liquid board the movers
- *  read. `measured` is every name with a change, so an unchanged name counts in the denominator. */
+/** Advancers and decliners over the provider's rolling day, across the liquid board; the movers list
+ *  narrows it with the market-cap floor. `measured` is every name with a change, so an unchanged
+ *  name counts in the denominator. */
 export function boardBreadth(records: readonly MarketCapRecord[]): MarketBreadth | undefined {
   const moving = movingRows(records)
 
@@ -120,13 +121,15 @@ export function boardBreadth(records: readonly MarketCapRecord[]): MarketBreadth
   }
 }
 
-/** What moved, over the whole liquid universe rather than the part the screen can trade. Ungated on
- *  purpose: a name here is not a candidate, and several will have failed a gate the board applied.
+/** What moved among the liquid names large enough to size: a coin under the market-cap floor can
+ *  clear the volume floor on a thin day and top the list, which says nothing about the market. Not
+ *  the screen's other gates: a name here is not a candidate, and several will have failed one the
+ *  board applied. Breadth keeps the whole liquid board.
  *  Absent where nothing qualified — a market where nobody moved reports no movers, not empty lists.
  *  The board read carries no daily bar per coin, so the move is the provider's rolling day and the
  *  window says so rather than borrowing the session's name. */
 export function cryptoMovers(records: readonly MarketCapRecord[]): MarketMovers | undefined {
-  const moving = movingRows(records)
+  const moving = movingRows(records).filter(hasMinimumMarketCap)
   const gainers = moving
     .filter((record) => record.changePct > 0)
     .toSorted((left, right) => right.changePct - left.changePct)
@@ -165,9 +168,8 @@ function toMover(record: Moving): MarketMover {
 }
 
 /** Tradeable enough to be worth reporting at all: it turns over real money and is neither a peg, a
- *  mirror of an asset priced elsewhere, nor a share wearing a crypto listing. Deliberately says
- *  nothing about size — a small coin the whole market is trading is exactly what the movers list
- *  exists to surface. */
+ *  mirror of an asset priced elsewhere, nor a share wearing a crypto listing. Says nothing about
+ *  size: breadth counts every such name, and the movers list adds the market-cap floor itself. */
 function isLiquidUniverseRow(record: MarketCapRecord): boolean {
   const { ticker } = record.instrument
 

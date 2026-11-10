@@ -6,7 +6,8 @@ import type { StoryRead } from '@/trading/kernel/operator/brief-story'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { StoryInputs } from '@/trading/markets/equity-vn/brief/story-facts'
 import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
-import type { CrossSection, NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import { isAbortError } from '@/core/errors'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { VN_STORY_DETECTORS } from '@/trading/markets/equity-vn/brief/story-detectors'
@@ -121,7 +122,7 @@ function buildInputs(source: StorySource): StoryInputs | undefined {
     ...moveInputs(vn, session),
     breadth: { ...breadth, aboveMa50Ratio },
     ...(breadthBefore === undefined ? {} : { breadthBefore }),
-    ...turnoverInputs(cross.names, session),
+    ...turnoverInputs(cross, session),
     ...flowInputs(sections, cross.names, session),
     ...(range === undefined ? {} : { range }),
     ...(basis === undefined ? {} : { basis }),
@@ -175,11 +176,11 @@ function moveOfIndex(
 /** `windowTurnover` is the reference mean times the window the foreign desks are summed over, so a
  *  net flow is compared with the turnover of the same span. */
 function turnoverInputs(
-  names: readonly NameEvidence[],
+  cross: CrossSection,
   session: TradingDay
 ): Pick<StoryInputs, 'turnoverRatio' | 'turnoverSessions' | 'windowTurnover'> {
-  const reference = toTurnoverReference(names, session)
-  const turnoverRatio = toTurnoverRatio(sessionTurnoverTotal(names, session), reference)
+  const reference = toTurnoverReference(cross.dayTotals, session)
+  const turnoverRatio = toTurnoverRatio(sessionTurnoverTotal(cross.names, session), reference)
 
   return {
     ...(turnoverRatio === undefined ? {} : { turnoverRatio }),
@@ -229,7 +230,7 @@ function storyProvenance(
 }
 
 function flowStamp(name: NameEvidence, inputs: StoryInputs): readonly SourceProvenance[] {
-  const last: FlowSnapshot | undefined = name.flows[name.flows.length - 1]
+  const last: FlowSnapshot | undefined = name.flowReads.flowTail.at(-1)
 
   if (last === undefined || last.at !== inputs.session) {
     return []

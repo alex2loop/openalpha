@@ -50,6 +50,10 @@ export interface FactorLogOutcome {
 
 export interface ResolvedFactorLogEntry extends FactorLogEntry {
   readonly outcome: FactorLogOutcome
+  /** The mean `returnPct` of every resolved row of the same market, day, strategy version and
+   *  instrument kind: what that board returned that session, so a name is judged by what it beat. A
+   *  fraction. */
+  readonly sessionMeanReturnPct?: number
 }
 
 export interface PendingFactorLogEntry extends FactorLogEntry {

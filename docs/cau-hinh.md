@@ -300,8 +300,8 @@ Bố cục dưới `data_dir`:
   restart.json                      ghi ngay trước khi dịch vụ nền chạy lại, xóa khi dịch vụ nền mới báo chuyện đó
   restart.stdout.log                chỉ trên Windows: đầu ra lạc của một lần khởi động lại từ API, nơi cần xem khi nó thất bại
   restart.stderr.log                chỉ trên Windows: cảnh báo và lỗi của lần khởi động lại đó
-  logs/daemon.log                   log chung mặc định (`[log] file`)
-  logs/agents/<agentId>/agent.log   log chạy riêng theo agent, được giữ lại
+  logs/daemon.log.N                 log chung mặc định (`[log] file`), N lớn nhất là tệp đang ghi
+  logs/agents/<agentId>/agent.log.N log chạy riêng theo agent, được giữ lại
   backups/                          bản sao lưu `db backup`, cùng ảnh chụp pre-migration/ và pre-rollback/
     daily/                          bản sao hằng ngày của dịch vụ nền, giữ `[retention] daily_backups` bản mới nhất
   plugins/                          plugin đã cài
@@ -387,7 +387,7 @@ Tin về mã đang giữ chỉ gồm những mã dịch vụ nền đã đọc. 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `level` | chuỗi | `info` | `debug`, `info`, `warn`, `error`, `fatal`. |
-| `file` | chuỗi | `logs/daemon.log` | Đường dẫn tương đối nối vào `data_dir`; đường dẫn tuyệt đối và `~/...` giữ nguyên nghĩa. Thư mục chưa có sẽ được tạo ở chế độ riêng tư; thư mục đã có được giữ nguyên, nhưng phải là của bạn và người khác không ghi vào được. |
+| `file` | chuỗi | `logs/daemon.log` | Được ghi thành các tệp đánh số (`daemon.log.1`, `daemon.log.2`...); số lớn nhất là tệp đang ghi. Đường dẫn tương đối nối vào `data_dir`; đường dẫn tuyệt đối và `~/...` giữ nguyên nghĩa. Thư mục chưa có sẽ được tạo ở chế độ riêng tư; thư mục đã có được giữ nguyên, nhưng phải là của bạn và người khác không ghi vào được. |
 | `max_file_mb` | số thực | `50` | Kích thước tệp đang ghi trước khi xoay vòng. |
 | `max_files` | số nguyên | `7` | Số tệp đã xoay vòng được giữ, ngoài tệp đang ghi. |
 

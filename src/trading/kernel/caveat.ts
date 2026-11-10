@@ -1,6 +1,5 @@
-// Each code declares its own severity at the point of definition, so adding a code forces the
-// decision: `info` is an expected, by-design note (ℹ️); `warn` is a degradation (⚠️). The default
-// direction is warn — a code forgotten here shows as a warning, never silently hidden.
+// Each code declares its severity at its definition, so adding one forces the decision: `info` is an
+// expected, by-design note (ℹ️), `warn` a degradation (⚠️); a code forgotten here reads as a warning.
 const CAVEAT_CODES = Object.freeze([
   { code: 'source.unavailable', severity: 'warn' },
   { code: 'source.timeout', severity: 'warn' },
@@ -28,6 +27,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'source.supervision-unavailable', severity: 'warn' },
   { code: 'source.supervision-partial', severity: 'info' },
   { code: 'source.supervision-unofficial', severity: 'info' },
+  { code: 'source.supervision-carried', severity: 'info' },
   { code: 'source.index-membership-unavailable', severity: 'warn' },
   { code: 'market.detector-failed', severity: 'warn' },
   { code: 'market.detection-partial', severity: 'warn' },
@@ -200,6 +200,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'reporting.sample-below-minimum', severity: 'warn' },
   { code: 'reporting.mixed-strategy-versions', severity: 'warn' },
   { code: 'reporting.repeats-folded', severity: 'info' },
+  { code: 'reporting.awaiting-window', severity: 'info' },
   { code: 'reporting.shadow-approximation', severity: 'warn' },
   { code: 'alert.price-unavailable', severity: 'warn' },
   { code: 'brief.book-unpriced', severity: 'warn' },
@@ -404,25 +405,3 @@ export const INSTRUMENT_STATUSES = Object.freeze([
   'unknown',
 ] as const)
 export type InstrumentStatus = (typeof INSTRUMENT_STATUSES)[number]
-
-export const PORTFOLIO_FINDING_KINDS = Object.freeze([
-  'position-cap-breach',
-  'segment-cap-breach',
-  'etf-cap-breach',
-  'sector-cap-breach',
-  'reserve-below-target',
-  'segment-drift',
-  'concentration',
-  'illiquid-position',
-  'excluded-holding',
-] as const)
-export type PortfolioFindingKind = (typeof PORTFOLIO_FINDING_KINDS)[number]
-
-export const PORTFOLIO_EVIDENCE_KINDS = Object.freeze([
-  'segment-weight',
-  'position-weight',
-  'sector-weight',
-  'cash-weight',
-  'days-to-liquidate',
-] as const)
-export type PortfolioEvidenceKind = (typeof PORTFOLIO_EVIDENCE_KINDS)[number]

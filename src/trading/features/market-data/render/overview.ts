@@ -25,8 +25,9 @@ import {
   renderProvenanceLine,
   renderSectionTitle,
 } from '@/trading/render/layout'
-import { renderBlockRule, renderBriefSection, renderSectionHeading } from '@/trading/render/section'
+import { renderBlockRule, renderBriefSection } from '@/trading/render/section'
 import { type SectionFact, toSectionFacts } from '@/trading/render/section-facts'
+import { renderSectionHeading } from '@/trading/render/section-heading'
 
 /** The index's support and resistance: levels, which an overview that makes no call leaves out. */
 const LEVEL_SECTION_KINDS: ReadonlySet<BriefSectionKind> = new Set(['range'])

@@ -1,12 +1,11 @@
 import type { SectorStrength } from '@/trading/kernel/market/market-capability'
-import type { FlowSnapshot } from '@/trading/kernel/market/market-data'
 import type {
   BriefDirection,
   BriefSectionResult,
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
 import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
-import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import { toHeadlineSection } from '@/trading/markets/brief-headlines'
 import { REGIME_SCALE_CAVEAT } from '@/trading/markets/brief-macro'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
@@ -18,7 +17,6 @@ import {
   VN_SECTOR_POLICY,
 } from '@/trading/markets/equity-vn/policy'
 import { staleIndexCaveats, toBreadth } from '@/trading/markets/equity-vn/tape/breadth'
-import { netFlowValue, proprietaryFlowValue } from '@/trading/markets/equity-vn/tape/flows'
 import { groupByBoard, toBoards } from '@/trading/markets/equity-vn/tape/overview'
 import {
   sessionTurnoverTotal,
@@ -100,15 +98,16 @@ export async function buildMacroHeadlines(context: VnBriefContext): Promise<Brie
  *  move: the price block above states both, and the regime line at the top of the brief states the
  *  regime — repeating either here prints one fact three times. */
 export function buildTape(context: VnBriefContext): Promise<BriefSectionResult> {
-  const names = context.board?.names ?? []
+  const board = context.board
+  const names = board?.names ?? []
   const session = latestNameSession(names) ?? context.request.asOf
   const turnover = sessionTurnoverTotal(names, session)
 
-  if (turnover === undefined) {
+  if (board === null || turnover === undefined) {
     return Promise.resolve(absent('tape', [{ code: 'market-data.no-coverage' }]))
   }
 
-  const reference = toTurnoverReference(names, session)
+  const reference = toTurnoverReference(board.dayTotals, session)
   const turnoverRatio = toTurnoverRatio(turnover, reference)
 
   return Promise.resolve(
@@ -230,7 +229,7 @@ function foreignNameRows(names: readonly NameEvidence[]): readonly BriefSectionR
   const flows = names
     .map((name) => ({
       ticker: name.record.instrument.ticker,
-      net: netFlowValue(name.flows, FLOW_DEVIATION_SESSIONS),
+      net: name.flowReads.foreignNet20,
     }))
     .filter((row) => row.net !== 0)
   const sorted = [...flows].sort((left, right) => right.net - left.net)
@@ -314,10 +313,8 @@ function sectorCoverage(context: VnBriefContext): number {
 }
 
 const DESK_FLOWS = Object.freeze({
-  'foreign-desk-flow': (flows: readonly FlowSnapshot[]) =>
-    netFlowValue(flows, FLOW_DEVIATION_SESSIONS),
-  'proprietary-flow': (flows: readonly FlowSnapshot[]) =>
-    proprietaryFlowValue(flows, FLOW_DEVIATION_SESSIONS),
+  'foreign-desk-flow': (name: NameEvidence) => name.flowReads.foreignNet20,
+  'proprietary-flow': (name: NameEvidence) => name.flowReads.proprietaryFlow20,
 })
 
 type DeskFlowKind = keyof typeof DESK_FLOWS
@@ -325,7 +322,7 @@ type DeskFlowKind = keyof typeof DESK_FLOWS
 /** Empty where no name reported to this desk: a desk that filed nothing did not trade nothing. */
 function totalRow(names: readonly NameEvidence[], kind: DeskFlowKind): readonly BriefSectionRow[] {
   const desk = DESK_FLOWS[kind]
-  const reported = names.map((name) => desk(name.flows)).filter((value) => value !== null)
+  const reported = names.map(desk).filter((value) => value !== null)
 
   return reported.length === 0 ? [] : [{ net: reported.reduce((sum, value) => sum + value, 0) }]
 }

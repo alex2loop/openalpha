@@ -37,7 +37,7 @@ const headlinesReadSchema = z.strictObject({
   costUsd: z.number().nonnegative().optional(),
 })
 
-const calculationVersionSchema = z.strictObject({ name: z.string(), version: z.string() })
+export const calculationVersionSchema = z.strictObject({ name: z.string(), version: z.string() })
 
 const factorMetricSchema = z.strictObject({
   id: z.enum(FACTOR_METRIC_IDS),
@@ -65,7 +65,7 @@ const instrumentKindSchema = z.enum(INSTRUMENT_KINDS)
 // row with it. The string arm is what makes this a rename and not a gap: the field must still hold
 // a string, so a missing or non-string one is still the storage failure it always was.
 const readableBandSchema = readableEnum(convictionBandSchema, 'low')
-const readableHorizonSchema = readableEnum(horizonSchema, 'short')
+export const readableHorizonSchema = readableEnum(horizonSchema, 'short')
 const readableRiskLevelSchema = readableEnum(riskLevelSchema, 'conservative')
 const readableGoalSchema = readableEnum(investmentGoalSchema, 'preserve')
 

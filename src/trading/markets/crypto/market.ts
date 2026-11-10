@@ -53,6 +53,7 @@ import { hasMinimumMarketCap, hasMinimumVolume } from '@/trading/markets/crypto/
 import { FACTOR_SCORING_VERSION, scoreFactors } from '@/trading/markets/factor-scoring'
 import { resolveLevelPolicy, strategyVersionOf } from '@/trading/markets/level-settings'
 import { buildLevels, LEVEL_FORMULA_VERSION, trailOf } from '@/trading/markets/levels'
+import { policyVersionOf } from '@/trading/markets/policy-version'
 import { statisticsFromCandles, statisticsSessions } from '@/trading/markets/statistics'
 import { liveOrStoredQuote } from '@/trading/markets/stored-quote'
 
@@ -88,8 +89,7 @@ function cryptoCapabilities(deps: MarketDeps, manifest: MarketManifest): MarketC
     },
     overview: {
       kind: 'overview',
-      run: (request) =>
-        runCryptoOverview({ deps, manifest, asOf: request.asOf, signal: request.signal }),
+      run: (request) => runCryptoOverview({ deps, manifest, ...request }),
     },
     bars: {
       kind: 'bars',
@@ -171,6 +171,7 @@ export function cryptoManifest(config: TradingConfig): MarketManifest {
       { name: 'factor-scoring', version: FACTOR_SCORING_VERSION },
       { name: 'levels', version: LEVEL_FORMULA_VERSION },
       { name: 'macro', version: MACRO_FORMULA_VERSION },
+      policyVersionOf('crypto'),
     ],
     factorIds: CRYPTO_FACTOR_IDS,
     playbook: {

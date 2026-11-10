@@ -97,7 +97,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `vietcombank` | the dong's FX history, behind `yahoo` and `coingecko`: the midpoint of the bank's transfer buy and sell rates, a weekday at a time | no |
 | `cftc` | gold futures positioning: the weekly Commitments of Traders report | no |
 
-One kind is defined but **unrouted**: crypto spot-ETF net flows. No provider has been verified against a live response, so the brief's `etf-flows` section reports `unavailable` instead of failing.
+One kind is defined but **unrouted**: crypto spot-ETF net flows. No provider has been verified against a live response, so the `etf-flows` section of `/overview crypto` reports `unavailable` instead of failing.
 
 **The VN scraping sources and the gold boards are fragile**, and being on by default does not change that:
 
@@ -171,7 +171,7 @@ A settled read has no range, and neither does a source without an intraday serie
 
 Crypto headline rows are measured against the settled close from their own daily series. That close is printed beside the row. They are not measured against a rolling 24-hour window you never see on screen.
 
-The summaries beside those rows come from the market-cap board, and every source publishes that board over a rolling 24 hours. So the mover list and the traded-value ranking are titled by that window, not by a session. The taker-buy share is the exception: it belongs to a settled session, and it names that session.
+The summaries beside those rows come from the market-cap board, and every source publishes that board over a rolling 24 hours. So the mover list and the traded-value ranking are titled by that window, not by a session. The taker-buy share is the exception: it belongs to a settled session, and it names that session. The mover list leaves out coins under a market-cap floor of 250 million USD, because a small coin can top a thin day's list without saying anything about the market; the count of names that rose and fell below keeps every liquid name.
 
 The market-size line also counts how many liquid names rose and fell over that same rolling day. For a market with no sessions, that is the only breadth reading there is. So a morning brief at 07:00 in Vietnam shows you whether the Asian hours moved the whole board, not only the two headline names.
 
@@ -276,6 +276,7 @@ Five stages, in order: **detect, factors, debate, stages, persist**.
 - **Confidence only moves down.** The debate may lower it; nothing raises it.
 - Every suggestion records its strategy version and calculation versions, including the skill versions. Editing a skill splits the recorded populations exactly as editing a strategy does.
 - Every stored debate lists the chat models that answered its roles, so a model swap splits the track record too.
+- A change to a market's strategy policy also starts a separate record.
 
 A run ends in one of four ways:
 
@@ -502,9 +503,9 @@ Everything that looks up "the previous call" does it per focus: the cooldown and
 
 - The exit plan, the verdict `/rebalance` reads and the trail that raises stops read only `default`: one book, one plan.
 - Every focus is scored.
-- A restated price history voids every focus's open calls on that name.
+- A price history re-based by one factor (a dividend or a share issue) rescales every focus's open calls and plans on that name to the new price scale, and they keep counting. Any other restated price history voids them.
 
-The calibration that tempers conviction and sizes a buy reads only calls whose window has finished, so quick stop-outs cannot make the record look worse than it is.
+Every rate on every surface reads only calls whose window has finished: the calibration that tempers conviction and sizes a buy, `/reflect`, and the office and model records. A quick stop-out therefore cannot make the record look worse than it is before the winners have had their time.
 
 A name outside the calling agent's focus is refused before any model call, and the refusal names the focus. The agent's screen is narrowed to its markets and sectors before ranking, so its board and header count the sector, not the whole market. `/suggest`, the brief, `/suggest stops` and recorded plans always use your own focus.
 
@@ -514,12 +515,18 @@ A focus call reads as a second opinion, and opens by saying so. It carries level
 
 Each suggestion is later checked against the bars that followed it. It ends as `target`, `stop` or `expired`, with its return and, where the market has a benchmark, the benchmark's return over the same window.
 
+Notices, `/reflect`, the brief and the office name a result from its status and its return together:
+
+- A target whose runner gave the gain back, so the trade as a whole netted zero or less, counts as a miss.
+- A stop the trail had raised above entry, so the trade kept a gain, counts as a win.
+
 If the benchmark comes from a stale cache, or ends more than a session before the exit, you get no comparison at all rather than one over a shorter span.
 
 **Window.** A call is read at the end of its own holding window.
 
+- A call joins the record only once its window has passed: 4 weeks for a short horizon, a quarter for a long one. `/reflect` ends with how many calls already hit a level but are still inside their window; they are counted when it closes.
 - A call left pending while the daemon was off, even past the one-year lookback, is still scored as it would have been at the time.
-- If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it together with the rows closed by a restated price history.
+- If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it together with the rows closed because the data provider rewrote the price history in a way the plan could not be carried across.
 
 A quote always prints inside its own session's range. So if a call's session bar no longer covers the quote it was priced on, a dividend or split has adjusted the series since. The call then closes the same way, instead of scoring levels on a price scale the series no longer uses.
 
@@ -582,7 +589,8 @@ the daemon logs each market's whole board, one per kind it ranks. VN funds are l
 with the composite, factor scores, close and the providers the board was read from.
 
 - Each row is scored on its close-to-close return over the market's own horizon window, against the
-  benchmark where the market names one.
+  benchmark where the market names one. The attribution block does not read that benchmark: the board
+  is judged against the session mean.
 - Both closes come off the series as it stands when the row is scored, so a later dividend or split
   moves neither.
 - No stop, no target, no fees: this measures the evidence, not a trade.
@@ -592,19 +600,24 @@ with the composite, factor scores, close and the providers the board was read fr
 
 `/reflect` prints it as a second attribution block. As it grows, it becomes the sample the factor weights and confidence bands are fitted to. Each factor is scored per strategy version, the newest two per market, because a new version can change what the factor measures.
 
+A factor is judged against the market, never against zero. In a falling tape every bearish reading would look right and every bullish one wrong, and that measures the market's move, not the factor. So on the board block a reading counts as right when the name beat the average of that session's board of the same kind, shares or funds, after a positive read and trailed it after a negative one, and the average shown is how far it landed from that session average. The suggestions block does the same against the benchmark of the call's market (VN-Index for VN, BTC for crypto), and judges a call on its trade return (clipped by its stop and target, from its entry, long side, before fees) over the same span as the benchmark, because a factor predicts the price, not the fee. Gold and VN gold declare no benchmark, so their calls drop out of that block. A name that matches its baseline exactly is neither right nor wrong but still counts in the total, and a row with no baseline is left out. On the names suggested, crypto calls are measured against BTC, and bought alts usually move more than BTC, so a bearish reading can look right there simply because alts fell harder; read crypto's per-factor record alongside the board section, which compares each name with that session's board average.
+
 A research script measures the VN factors on history ([developer page](dev/trading.md)). Measured over
-2025-01 to 2026-07, it explains three choices:
+2025-01 to 2026-07, it explains four choices:
 
 - why the VN stock composite carries no `size` or `sector-strength`;
 - why `quality` is read but carries no weight in the score;
-- why the confidence cut points are fitted on its 75 weekly boards.
+- why `trend` is read but carries no weight in the score;
+- why the confidence cut points are fitted on its 79 weekly boards.
 
 Over that stretch, a sector that had already run picked weaker names, and the best-run businesses did
 not beat the board. Both pulled medium-confidence buys back to where low ones sat. The population is
 today's listings, so read it as a shape, not a precise figure.
 
 Quality still prints on the profit and health lines, still shortlists theme names, and still decides a
-long holding's thesis sale where no annual report scores.
+long holding's thesis sale where no annual report scores. Trend still prints in the factor table and on
+the checklist's trend row; it did not rank the board in either half, and the composite ranked better
+without it.
 
 Sometimes a name stops trading while its market's benchmark keeps printing. Once the benchmark has printed ten sessions without it and reached the window end, the call resolves at the name's last close, marked as stopped. `/reflect` says how many. Nothing is filled in by guesswork.
 
@@ -681,7 +694,15 @@ The screener band is `average daily range x breakout_range` on either side of th
 
 The two are kept apart because only one of them is a problem.
 
-Each market's block prints its prices, breadth, news on the names the brief covers and, where the market has them, derivatives, buyers crossing the spread, sentiment and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. The rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
+Each market's block prints its prices (one line per index, VN-Index first) and breadth, the dealer board where the market has one, support and resistance, sector rotation, foreign and proprietary desk flow, the index review and upcoming events, the names the brief covers, the market's own headlines and, where the market has them, derivatives, sentiment, the movers and leaders, fx, the futures basis and the VN gold premium over world gold, one "Label: value" line per figure as `/overview` prints them. Derivatives keep the funding rate and the share of accounts leaning up against those leaning down; the rest of the market is on `/overview <market>`. The brief in the CLI, on Telegram and on the office page has the same blocks in the same order.
+
+The title block ends with a one-line **strip** of the figures a reader checks first: VN-Index, VN30, SJC gold, world gold, bitcoin and the dollar against the dong. A market the brief has no block for prints no cell; a market with a block but no reading prints a dash, because a missing price is not a zero. A close from a day other than the brief's session carries its date, so an older bar never reads as this morning's. When the figures belong to an earlier session than the day the brief was read, the title names that session.
+
+VN gold shows the dealers' board when they have revised it. Most mornings they have not yet, so the block shows the last settled SJC bar instead, dated by its day and with its move when a day before it exists. It carries no premium then, because the premium needs the live board.
+
+Any market whose prices did not come back says so in its heading ("No fresh prices") instead of repeating a cache warning.
+
+With a Vietnam home, the macro backdrop adds a **World markets** block after the macro read: the S&P 500, the US 10-year yield and Brent crude, each dated by its own observation. A figure with no value adds no row. Brent states its level only, because the feed names no contract and a move across a roll would read as a day's move. The S&P 500 comes from FRED and needs its key; the row names its source beside it (S&P Dow Jones Indices, via FRED). A macro input or world figure older than its source normally lags is marked as stale beside its date, with no change to the score.
 
 With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.
@@ -711,10 +732,10 @@ A brief reads in this order:
 |---|---|
 | Story, above every block | `thesis-review` `story` |
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
-| Macro backdrop | `regime-shift` `macro` `deposit-rate` `macro-headlines` `economy-headlines` |
-| Per market | `reading` `market-prices` `market-quotes` `market-board` `tape` `breadth` `turnover` `range` `market-cap` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `taker-flow` `etf-flows` `positioning` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` |
+| Macro backdrop | `regime-shift` `macro` `world-markets` `deposit-rate` `macro-headlines` `economy-headlines` |
+| Per market | `market-prices` `market-quotes` `market-board` `breadth` `range` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `index-review` `events` `recent` `headlines` |
+| Per market, `/overview <market>` only | `reading` `tape` `turnover` `market-cap` `taker-flow` `etf-flows` `positioning` `disclosures` |
 | Watchlist | `watchlist-leading` `watchlist-dropped` `screen-delta` |
-| News | `disclosures` `index-review` `events` `headlines` |
 | Actions | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
 The two level sections, `fired-alerts` and `position-exits`, print a VN stock's levels in board points, as `/portfolio` and `/alert` do; the scale is stated once at the foot of the brief.

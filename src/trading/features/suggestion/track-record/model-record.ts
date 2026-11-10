@@ -1,9 +1,9 @@
 import type { ModelCall } from '@/trading/features/suggestion/store/suggestion-model'
 import {
   independentCalls,
-  isWinningReturn,
   MINIMUM_TRACK_RECORD_SAMPLE,
 } from '@/trading/features/suggestion/pipeline/reporting'
+import { isWinningReturn } from '@/trading/kernel/outcome-verdict'
 
 /** One model and how the calls it argued alone resolved. A call argued by several models counts for
  *  none of them, so a win rate here is never shared credit. */
