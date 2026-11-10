@@ -85,6 +85,13 @@ export async function runScreen(
   }
 }
 
+function isInSectors(name: NameEvidence, sectors: readonly string[] | undefined): boolean {
+  return (
+    sectors === undefined ||
+    (name.record.sector !== undefined && sectors.includes(name.record.sector))
+  )
+}
+
 /** A name failing three gates records the first. Recording all three would make the reason unstable
  *  across days as unrelated conditions changed, and the user-visible answer to "why not this stock"
  *  should not move for reasons that were already true. */
@@ -92,13 +99,6 @@ function gateVerdictOf(name: NameEvidence): ScreenGateVerdict {
   const [code] = name.failedGates
 
   return code === undefined ? { kind: 'accepted' } : { kind: 'rejected', code }
-}
-
-function isInSectors(name: NameEvidence, sectors: readonly string[] | undefined): boolean {
-  return (
-    sectors === undefined ||
-    (name.record.sector !== undefined && sectors.includes(name.record.sector))
-  )
 }
 
 /** Read against the boards this screen actually judged, so a supervision gap on a board holding

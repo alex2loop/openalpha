@@ -115,15 +115,14 @@ export function resolveBandReference(
   candles: readonly Candle[],
   asOf: TradingDay
 ): number | undefined {
-  for (let index = candles.length - 1; index >= 0; index -= 1) {
-    const candle = candles[index]
-
-    if (candle !== undefined && candle.at < asOf && candle.close > 0) {
-      return candle.close
-    }
-  }
-
-  return undefined
+  return lastCloseBefore(
+    {
+      length: candles.length,
+      dayAt: (index) => candles[index]?.at,
+      closeAt: (index) => candles[index]?.close,
+    },
+    asOf
+  )
 }
 
 /** A name's bars as columns: every bar's day and raw close, oldest first. */
@@ -132,15 +131,35 @@ interface BandHistory {
   readonly closes: readonly number[]
 }
 
-/** `resolveBandReference` read off a name's columns instead of its candles: the same rule, for the
- *  readers that no longer hold the bars. */
+/** `resolveBandReference` read off a name's columns instead of its candles, for the readers that
+ *  no longer hold the bars. */
 export function resolveHistoryBandReference(
   history: BandHistory,
   asOf: TradingDay
 ): number | undefined {
-  for (let index = history.days.length - 1; index >= 0; index -= 1) {
-    const day = history.days[index]
-    const close = history.closes[index]
+  return lastCloseBefore(
+    {
+      length: history.days.length,
+      dayAt: (index) => history.days[index],
+      closeAt: (index) => history.closes[index],
+    },
+    asOf
+  )
+}
+
+/** The one rule both forms share: the newest bar strictly before `asOf` that has a positive close.
+ *  Accessors rather than a series, so neither form copies its bars. */
+function lastCloseBefore(
+  series: {
+    readonly length: number
+    readonly dayAt: (index: number) => TradingDay | undefined
+    readonly closeAt: (index: number) => number | undefined
+  },
+  asOf: TradingDay
+): number | undefined {
+  for (let index = series.length - 1; index >= 0; index -= 1) {
+    const day = series.dayAt(index)
+    const close = series.closeAt(index)
 
     if (day !== undefined && day < asOf && close !== undefined && close > 0) {
       return close
