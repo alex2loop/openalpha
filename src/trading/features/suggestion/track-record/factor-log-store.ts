@@ -13,7 +13,7 @@ import type { TapeSignal } from '@/trading/kernel/market/tape'
 import type { OperationTickOptions, Page } from '@/trading/kernel/store/page'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, StorageError, ValidationError } from '@/core/errors'
-import { payloadFieldSql } from '@/trading/features/suggestion/store/suggestion-lean'
+import { buildPayloadFieldSql } from '@/trading/features/suggestion/store/readable-row'
 import { FACTOR_LOG_EXIT_REASONS } from '@/trading/features/suggestion/track-record/factor-log-types'
 import { CONVICTION_BANDS } from '@/trading/kernel/conviction'
 import { factorComposite, isFactorId } from '@/trading/kernel/factor'
@@ -264,19 +264,19 @@ async function listResolved(
   const p = deps.dialect.param
   // An empty kind groups the rows written before the payload named one; funds and shares are
   // different boards, so each session's mean is taken within its own kind.
-  const kind = `COALESCE(${payloadFieldSql(deps.dialect, 'instrumentKind')}, '')`
+  const kind = `COALESCE(${buildPayloadFieldSql(deps.dialect, 'instrumentKind')}, '')`
   // The mean runs over every resolved row, not the page, so a session the limit cuts in half still
   // carries its full mean; the page itself is the only part that carries payloads.
   const rows = await deps.db.query<FactorLogRow>(
     `WITH page AS (SELECT *, ${kind} AS board_kind FROM ${TABLE} WHERE resolved_at IS NOT NULL ` +
-      `ORDER BY resolved_at DESC LIMIT ${p(1)}), ` +
+      `ORDER BY resolved_at DESC, id DESC LIMIT ${p(1)}), ` +
       `means AS (SELECT market, day, strategy_version, ${kind} AS board_kind, ` +
       `AVG(return_pct) AS session_mean_return_pct FROM ${TABLE} WHERE resolved_at IS NOT NULL ` +
       `GROUP BY market, day, strategy_version, ${kind}) ` +
       `SELECT page.*, means.session_mean_return_pct FROM page JOIN means ` +
       `ON means.market = page.market AND means.day = page.day ` +
       `AND means.strategy_version = page.strategy_version AND means.board_kind = page.board_kind ` +
-      `ORDER BY page.resolved_at DESC`,
+      `ORDER BY page.resolved_at DESC, page.id DESC`,
     [options.limit]
   )
 

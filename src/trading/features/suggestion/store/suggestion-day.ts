@@ -4,7 +4,10 @@ import type { LeanCall, LeanCallRow } from '@/trading/features/suggestion/store/
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import { assertNotAborted } from '@/core/errors'
 import { readableRow } from '@/trading/features/suggestion/store/readable-row'
-import { leanCallColumns, toLeanCall } from '@/trading/features/suggestion/store/suggestion-lean'
+import {
+  buildLeanCallColumns,
+  toLeanCall,
+} from '@/trading/features/suggestion/store/suggestion-lean'
 import {
   LATEST_OF_SAME_CALL_SQL,
   SCORED_SQL,
@@ -45,7 +48,7 @@ export async function readSuggestionDay(
       [fromMs, toMs, ...options.focusKeys]
     ),
     db.query<LeanCallRow>(
-      `SELECT ${leanCallColumns(dialect)} FROM suggestions WHERE ${SCORED_SQL} ` +
+      `SELECT ${buildLeanCallColumns(dialect)} FROM suggestions WHERE ${SCORED_SQL} ` +
         `AND exit_day IS NOT NULL AND resolved_at >= ${p(1)} AND resolved_at < ${p(2)} ` +
         `AND ${focusFilter} AND ${LATEST_OF_SAME_CALL_SQL} ` +
         `ORDER BY ABS(return_pct) DESC, id DESC LIMIT ${p(3 + options.focusKeys.length)}`,

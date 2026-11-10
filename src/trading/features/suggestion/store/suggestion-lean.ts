@@ -12,8 +12,11 @@ import type { InstrumentRef, MarketRef, TradingDay } from '@/trading/kernel/inst
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
 import { assertNotAborted, StorageError } from '@/core/errors'
-import { readableRow } from '@/trading/features/suggestion/store/readable-row'
-import { buildResolvedWhere } from '@/trading/features/suggestion/store/suggestion-outcome'
+import { buildPayloadFieldSql, readableRow } from '@/trading/features/suggestion/store/readable-row'
+import {
+  buildResolvedWhere,
+  RESOLVED_ORDER_SQL,
+} from '@/trading/features/suggestion/store/suggestion-outcome'
 import {
   calculationVersionSchema,
   readableHorizonSchema,
@@ -88,7 +91,8 @@ export interface LeanCallOptions {
 
 /** Every scored call `listResolved` reads for the same filters, with no row limit so a busy book is
  *  never cut short. The caller folds repeats with `independentCalls`, the one owner of that rule.
- *  A row whose payload names no readable horizon or versions leaves the read, logged once. */
+ *  A row whose payload names no readable horizon or versions leaves the read, with a warning on
+ *  every read that meets it. */
 export async function listLeanCalls(
   deps: SuggestionStoreDeps,
   options: LeanCallOptions
@@ -98,28 +102,20 @@ export async function listLeanCalls(
   const params: unknown[] = []
   const where = buildResolvedWhere(deps.dialect, options, params)
   const rows = await deps.db.query<LeanCallRow>(
-    `SELECT ${leanCallColumns(deps.dialect)} FROM suggestions WHERE ${where} ` +
-      'AND exit_day IS NOT NULL',
+    `SELECT ${buildLeanCallColumns(deps.dialect)} FROM suggestions WHERE ${where} ` +
+      `AND exit_day IS NOT NULL ORDER BY ${RESOLVED_ORDER_SQL}`,
     params
   )
 
   return rows.flatMap((row) => readableRow(row, toLeanCall, deps.logger))
 }
 
-export function leanCallColumns(dialect: Dialect): string {
+export function buildLeanCallColumns(dialect: Dialect): string {
   const fields = PAYLOAD_FIELDS.map(
-    (field) => `${payloadFieldSql(dialect, field.path)} AS ${field.column}`
+    (field) => `${buildPayloadFieldSql(dialect, field.path)} AS ${field.column}`
   )
 
   return [LEAN_COLUMNS, ...fields].join(', ')
-}
-
-/** One top-level payload field as text, extracted in SQL; shared with the factor log, whose rows
- *  keep their payload the same way. */
-export function payloadFieldSql(dialect: Dialect, path: string): string {
-  return dialect.name === 'postgres'
-    ? `payload::jsonb ->> '${path}'`
-    : `json_extract(payload, '$.${path}')`
 }
 
 export function toLeanCall(row: LeanCallRow): LeanCall {

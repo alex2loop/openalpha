@@ -65,6 +65,7 @@ export function buildRefreshCoordinator(
   const stores = app.resolve('tradingStores')
   const restatement: RestatementDeps = {
     suggestions: stores.suggestion,
+    markets,
     sender: notice.sender,
     recipient: () => notice.recipient(),
     logger: app.resolve('logger'),

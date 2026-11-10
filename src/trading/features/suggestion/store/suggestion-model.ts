@@ -3,9 +3,13 @@ import type { LeanCall, LeanCallRow } from '@/trading/features/suggestion/store/
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import { assertNotAborted } from '@/core/errors'
 import { readableRow } from '@/trading/features/suggestion/store/readable-row'
-import { leanCallColumns, toLeanCall } from '@/trading/features/suggestion/store/suggestion-lean'
+import {
+  buildLeanCallColumns,
+  toLeanCall,
+} from '@/trading/features/suggestion/store/suggestion-lean'
 import {
   LATEST_OF_SAME_CALL_SQL,
+  RESOLVED_ORDER_SQL,
   SCORED_SQL,
 } from '@/trading/features/suggestion/store/suggestion-outcome'
 
@@ -43,11 +47,11 @@ export async function listScoredByModel(
 
   const { dialect } = deps
   const rows = await deps.db.query<ModelCallRow>(
-    `SELECT ${leanCallColumns(dialect)}, debate_models FROM suggestions WHERE ${SCORED_SQL} ` +
+    `SELECT ${buildLeanCallColumns(dialect)}, debate_models FROM suggestions WHERE ${SCORED_SQL} ` +
       `AND exit_day IS NOT NULL AND debate_models IS NOT NULL ` +
       `AND debate_models NOT LIKE ${dialect.param(1)} ` +
       `AND focus_key IN (${dialect.paramList(options.focusKeys.length, 2)}) ` +
-      `AND ${LATEST_OF_SAME_CALL_SQL}`,
+      `AND ${LATEST_OF_SAME_CALL_SQL} ORDER BY ${RESOLVED_ORDER_SQL}`,
     [`%${MODEL_SEPARATOR}%`, ...options.focusKeys]
   )
 

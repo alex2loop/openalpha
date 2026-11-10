@@ -5,6 +5,7 @@ import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { RefreshMarketDataResult, SeriesRebase } from '@/trading/kernel/market/refresh'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type { MarketRegistry } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { ticker } from '@/trading/kernel/instrument'
@@ -12,6 +13,8 @@ import { sendCaught } from '@/trading/kernel/operator/delivery-retry'
 
 export interface RestatementDeps {
   readonly suggestions: SuggestionStore
+  /** Read for the board lot a rebased buy's quantity is floored to. */
+  readonly markets: Pick<MarketRegistry, 'find'>
   readonly sender: TradingNoticeSender
   recipient(): DeliveryAddress | undefined
   readonly logger: Logger
@@ -105,10 +108,13 @@ async function rebaseName(
   signal: AbortSignal
 ): Promise<number | undefined> {
   try {
+    const lotSize = deps.markets.find(name.instrument.market)?.manifest.boardLot.size
+
     return await deps.suggestions.rebaseOpenCalls({
       market: name.instrument.market,
       ticker: name.instrument.ticker,
       rebase: name.rebase,
+      ...(lotSize === undefined ? {} : { lotSize }),
       signal,
     })
   } catch (err: unknown) {

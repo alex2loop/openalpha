@@ -24,7 +24,13 @@ import { parseJson } from '@/trading/kernel/store/store-row'
 
 /** The stored object as written, merged into rather than parsed: the read-time degradations of a
  *  stale enum must not be persisted back over the row. */
-const RAW_PAYLOAD = z.record(z.string(), z.unknown())
+export const RAW_PAYLOAD = z.record(z.string(), z.unknown())
+
+/** Appended to a read whose result is written back: another loop committing between the two would
+ *  otherwise be overwritten. SQLite serialises every operation, so it needs no lock. */
+export function lockRowSql(dialect: Dialect): string {
+  return dialect.name === 'postgres' ? ' FOR UPDATE' : ''
+}
 
 /** A same-day re-run after a version bump stores the call again under the new version, so a read
  *  pooled across versions keeps only the newest row of each call. */
@@ -39,7 +45,7 @@ export const LATEST_OF_SAME_CALL_SQL =
 /** A restated close is resolved with no return: it has no verdict to count. */
 export const SCORED_SQL = 'resolved_at IS NOT NULL AND return_pct IS NOT NULL'
 // A scoring pass resolves a batch at one instant: the later exit, then the newer call, breaks ties.
-const RESOLVED_ORDER_SQL = 'resolved_at DESC, exit_day DESC, id DESC'
+export const RESOLVED_ORDER_SQL = 'resolved_at DESC, exit_day DESC, id DESC'
 
 /** The filters the full and the lean scored reads share, so both cut the same population. */
 interface ResolvedFilter {
@@ -203,7 +209,8 @@ export async function resolveOutcome(
     assertNotAborted(signal)
 
     const rows = await tx.query<{ readonly payload: string }>(
-      `SELECT payload FROM suggestions WHERE id = ${p(1)} AND outcome_status IS NULL`,
+      `SELECT payload FROM suggestions WHERE id = ${p(1)} AND outcome_status IS NULL` +
+        lockRowSql(deps.dialect),
       [id]
     )
     const row = rows[0]
