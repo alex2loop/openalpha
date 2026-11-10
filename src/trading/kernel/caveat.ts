@@ -1,6 +1,5 @@
-// Each code declares its own severity at the point of definition, so adding a code forces the
-// decision: `info` is an expected, by-design note (ℹ️); `warn` is a degradation (⚠️). The default
-// direction is warn — a code forgotten here shows as a warning, never silently hidden.
+// Each code declares its severity at its definition, so adding one forces the decision: `info` is an
+// expected, by-design note (ℹ️), `warn` a degradation (⚠️); a code forgotten here reads as a warning.
 const CAVEAT_CODES = Object.freeze([
   { code: 'source.unavailable', severity: 'warn' },
   { code: 'source.timeout', severity: 'warn' },
@@ -28,6 +27,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'source.supervision-unavailable', severity: 'warn' },
   { code: 'source.supervision-partial', severity: 'info' },
   { code: 'source.supervision-unofficial', severity: 'info' },
+  { code: 'source.supervision-carried', severity: 'info' },
   { code: 'source.index-membership-unavailable', severity: 'warn' },
   { code: 'market.detector-failed', severity: 'warn' },
   { code: 'market.detection-partial', severity: 'warn' },

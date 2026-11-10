@@ -4896,6 +4896,7 @@
     "caveat.source.supervision-unavailable": "I could not read which names the exchange has under supervision, so nothing here was checked against that list.",
     "caveat.source.supervision-partial": "I could not read the supervision list for {exchanges}, so names listed there were not checked against one.",
     "caveat.source.supervision-unofficial": "The supervision list for {exchanges} came from a broker board, so a name it dropped reads as unsupervised.",
+    "caveat.source.supervision-carried": "I could not read the exchange's supervision list now, so names were checked against the {asOf} list.",
     "caveat.source.index-membership-unavailable": "I couldn't read index membership, so the basket tiers are the previous refresh's, if any.",
     "caveat.market-data.bar-basis-conflict": "{count} names kept their old prices ({tickers}): the new bars are unadjusted. Run /refresh equity-vn force to rebuild.",
     "caveat.market-data.bar-basis-conflictOne": "{count} name kept its old prices ({tickers}): the new bars are unadjusted. Run /refresh equity-vn force to rebuild.",
