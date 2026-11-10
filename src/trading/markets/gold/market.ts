@@ -37,6 +37,7 @@ import {
 import { resolveLevelPolicy, strategyVersionOf } from '@/trading/markets/level-settings'
 import { buildLevels, LEVEL_FORMULA_VERSION, trailOf } from '@/trading/markets/levels'
 import { resolveMacroRisk } from '@/trading/markets/macro'
+import { policyVersionOf } from '@/trading/markets/policy-version'
 import { statisticsFromCandles, statisticsSessions } from '@/trading/markets/statistics'
 
 const GOLD_ALIASES: ReadonlySet<string> = new Set(['XAU', 'XAUUSD', 'GOLD'])
@@ -128,6 +129,7 @@ export function goldManifest(config: TradingConfig): MarketManifest {
       { name: 'factor-scoring', version: FACTOR_SCORING_VERSION },
       { name: 'levels', version: LEVEL_FORMULA_VERSION },
       { name: 'macro', version: MACRO_FORMULA_VERSION },
+      policyVersionOf('gold'),
     ],
     factorIds: GOLD_FACTOR_IDS,
     playbook: { analysis: ['gold-analysis', 'macro-liquidity-analysis'] },

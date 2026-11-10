@@ -28,6 +28,7 @@ import { createUsLeveragedFundStage } from '@/trading/markets/equity-us/stages/l
 import { FACTOR_SCORING_VERSION } from '@/trading/markets/factor-scoring'
 import { strategyVersionOf } from '@/trading/markets/level-settings'
 import { LEVEL_FORMULA_VERSION, trailOf } from '@/trading/markets/levels'
+import { policyVersionOf } from '@/trading/markets/policy-version'
 
 /** US stocks and ETFs are one market with several capabilities, not two: they share an exchange
  *  family, a currency, a calendar and one sizing formula. */
@@ -76,6 +77,7 @@ export function usManifest(config: TradingConfig): MarketManifest {
       { name: 'factor-scoring', version: FACTOR_SCORING_VERSION },
       { name: 'levels', version: LEVEL_FORMULA_VERSION },
       { name: 'macro', version: MACRO_FORMULA_VERSION },
+      policyVersionOf('equity-us'),
     ],
     // The union of both sets: stock and ETF factors are both user-visible.
     factorIds: [...new Set([...US_EQUITY_FACTOR_IDS, ...US_ETF_FACTOR_IDS])],

@@ -142,6 +142,7 @@ Data semantics:
 
 Strategy versions:
 - `check-strategy-version` digests each market's `<MARKET>_LEVEL_POLICY`, `*_FACTOR_POLICY`, `*_ACCOUNTS_POLICY` literals and the `*_RANGE`, `*_CAP`, `*_PCT`, `*_FALLBACK` bounds beside them, grouped by `<MARKET>_STRATEGY_VERSION`.
+- The digests live in `src/trading/markets/strategy-versions.json`. Each market stamps its own as the `policy` calculation version (`policyVersionOf`, `markets/policy-version.ts`), so a policy change re-recorded under the same version still separates the population calibration reads.
 - Changing a multiplier, factor weight, normalization bound or conviction cut point bumps that market's version in the same commit; then re-record with `--write`. `gold-vn` shares `GOLD_STRATEGY_VERSION`.
 - Declaring a `trail` is such a change (it raises a held stop and clamps a fresh entry's stop, moving the printed R:R).
 - Operator level keys (`[trading.markets.<id>] maximum_stop_loss`, `stop_loss_atr`, `reward_risk`) are the one runtime exception: `resolveLevelPolicy` lays them over the code policy and `strategyVersionOf` suffixes the version with their fingerprint.
