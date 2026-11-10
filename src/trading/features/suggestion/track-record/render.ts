@@ -101,8 +101,8 @@ export function renderReflectText(
     renderFocusLines(locale, sections.focuses),
     renderReviewLines(locale, summary.reviewSplits),
     renderActedLines(locale, sections.acted),
-    ...renderAttributionSections(locale, attribution, 'trading.attribution.heading'),
-    ...renderAttributionSections(locale, boardAttribution, 'trading.attribution.boardHeading'),
+    ...renderAttributionSections(locale, attribution, 'index'),
+    ...renderAttributionSections(locale, boardAttribution, 'session'),
     renderStoppedLines(locale, sections),
     renderOutcomeLines(locale, report.recent),
     renderCaveatLines(locale, [

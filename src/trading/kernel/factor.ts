@@ -356,13 +356,16 @@ export type FactorReading = (typeof FACTOR_READINGS)[number]
 export interface FactorAttributionBucket {
   readonly reading: FactorReading
   readonly resolvedCount: number
-  /** Readings the price then agreed with: a bullish one it rose after, a bearish one it fell after. */
+  /** Readings the name then went the way of against its baseline: a bullish one it beat the baseline
+   *  after, a bearish one it trailed it after. The baseline is the index on a suggestion's record and
+   *  the same session's board mean on the board's. */
   readonly hitCount: number
   /** A fraction, not a percent: `0.62` is 62% of resolved readings. */
   readonly hitRate?: number
-  /** What holding the name long returned on average, so a bearish reading that was right averages
-   *  below zero. A fraction despite the name, so it renders through the fraction family like every
-   *  other return in the tree. Reading it as a percent is wrong by 100×, and both render plausibly. */
+  /** What the name returned beyond its baseline on average, so a bearish reading that was right
+   *  averages below zero. A fraction despite the name, so it renders through the fraction family like
+   *  every other return in the tree. Reading it as a percent is wrong by 100x, and both render
+   *  plausibly. */
   readonly meanReturnPct?: number
 }
 

@@ -25,6 +25,21 @@ const READING_KEYS = Object.freeze({
 const VERSIONS_PER_MARKET = 2
 const GROUP_SEPARATOR = ' '
 
+/** What a section's hit rate and average are measured against, so its heading and reading line word
+ *  it: a suggestion against the index it was scored on, a board row against its session's mean. */
+type AttributionBaseline = 'index' | 'session'
+
+const BASELINE_KEYS = Object.freeze({
+  index: {
+    heading: 'trading.attribution.heading',
+    reading: 'trading.attribution.readingLine',
+  },
+  session: {
+    heading: 'trading.attribution.boardHeading',
+    reading: 'trading.attribution.boardReadingLine',
+  },
+} as const satisfies Record<AttributionBaseline, { heading: MessageKey; reading: MessageKey }>)
+
 /** Rows arrive sorted by market, then strategy version, then factor, so a heading on each market and
  *  version boundary keeps a reader from comparing VN trend against crypto trend, or one
  *  version's trend against another's, as if they were one measurement. Weights round within a
@@ -34,14 +49,14 @@ const GROUP_SEPARATOR = ' '
 export function renderAttributionSections(
   locale: Locale,
   rows: readonly FactorAttribution[],
-  headingKey: MessageKey
+  baseline: AttributionBaseline
 ): readonly (readonly string[])[] {
   if (rows.length === 0) {
     return []
   }
 
   const sections: (readonly string[])[] = [
-    [renderSectionTitle(SECTION_ICONS.factors, t(locale, headingKey))],
+    [renderSectionTitle(SECTION_ICONS.factors, t(locale, BASELINE_KEYS[baseline].heading))],
   ]
 
   for (const group of byStrategy(rows)) {
@@ -56,7 +71,7 @@ export function renderAttributionSections(
         market: renderDeclaredValue(locale, `trading.market.${first.market}`),
         version: first.strategyVersion,
       })}`,
-      ...groupLines(locale, group),
+      ...groupLines(locale, group, BASELINE_KEYS[baseline].reading),
     ])
   }
 
@@ -65,7 +80,11 @@ export function renderAttributionSections(
 
 /** A group none of whose factors has a rate yet is one line: a factor name with only its fire count
  *  answers nothing the reader asked. */
-function groupLines(locale: Locale, group: readonly FactorAttribution[]): readonly string[] {
+function groupLines(
+  locale: Locale,
+  group: readonly FactorAttribution[],
+  readingKey: MessageKey
+): readonly string[] {
   const rated = group.some((row) => row.buckets.some((bucket) => bucket.hitRate !== undefined))
 
   if (!rated) {
@@ -76,7 +95,7 @@ function groupLines(locale: Locale, group: readonly FactorAttribution[]): readon
     ]
   }
 
-  return roundedWeights(group).flatMap((row) => renderFactorLines(locale, row))
+  return roundedWeights(group).flatMap((row) => renderFactorLines(locale, row, readingKey))
 }
 
 /** Rows arrive sorted by market, then newest version first, so the first versions seen per market
@@ -126,7 +145,11 @@ function roundedWeights(rows: readonly FactorAttribution[]): readonly FactorAttr
 
 /** No caveat line here: every thin factor raises the same subject-less sentence, so the report
  *  hoists them into the one deduped list it closes with. */
-function renderFactorLines(locale: Locale, row: FactorAttribution): readonly string[] {
+function renderFactorLines(
+  locale: Locale,
+  row: FactorAttribution,
+  readingKey: MessageKey
+): readonly string[] {
   const name = renderDeclaredValue(locale, `trading.factor.${row.factorId}`)
 
   const shared = { factor: name, n: formatCount(locale, row.firedCount) }
@@ -140,13 +163,17 @@ function renderFactorLines(locale: Locale, row: FactorAttribution): readonly str
             weight: formatWholeFraction(locale, row.weight),
           })
     }`,
-    ...row.buckets.flatMap((bucket) => renderBucketLine(locale, bucket)),
+    ...row.buckets.flatMap((bucket) => renderBucketLine(locale, bucket, readingKey)),
   ]
 }
 
 /** A bucket below the sample minimum reports no rate upstream, so an absent one prints nothing
  *  rather than a number nobody should trust. */
-function renderBucketLine(locale: Locale, bucket: FactorAttributionBucket): readonly string[] {
+function renderBucketLine(
+  locale: Locale,
+  bucket: FactorAttributionBucket,
+  readingKey: MessageKey
+): readonly string[] {
   const { hitRate, meanReturnPct } = bucket
 
   if (hitRate === undefined || meanReturnPct === undefined) {
@@ -154,7 +181,7 @@ function renderBucketLine(locale: Locale, bucket: FactorAttributionBucket): read
   }
 
   return [
-    `${INDENT[3]}${t(locale, 'trading.attribution.readingLine', {
+    `${INDENT[3]}${t(locale, readingKey, {
       reading: t(locale, READING_KEYS[bucket.reading]),
       hits: formatCount(locale, bucket.hitCount),
       n: formatCount(locale, bucket.resolvedCount),

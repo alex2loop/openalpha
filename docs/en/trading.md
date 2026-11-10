@@ -599,6 +599,8 @@ with the composite, factor scores, close and the providers the board was read fr
 
 `/reflect` prints it as a second attribution block. As it grows, it becomes the sample the factor weights and confidence bands are fitted to. Each factor is scored per strategy version, the newest two per market, because a new version can change what the factor measures.
 
+A factor is judged against the market, never against zero. In a falling tape every bearish reading would look right and every bullish one wrong, and that measures the market's move, not the factor. So on the board block a reading counts as right when the name beat the board's average for that session after a positive read and trailed it after a negative one, and the average shown is how far it landed from that session average. The suggestions block does the same against the index each call was scored on. A name that matches its baseline exactly is neither right nor wrong but still counts in the total, and a row with no baseline is left out.
+
 A research script measures the VN factors on history ([developer page](dev/trading.md)). Measured over
 2025-01 to 2026-07, it explains three choices:
 

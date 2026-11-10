@@ -98,6 +98,8 @@ interface FactorLogRow {
   readonly return_pct: number | null
   readonly benchmark_return_pct: number | null
   readonly exit_reason: string | null
+  /** Only `listResolved` selects it. */
+  readonly session_mean_return_pct?: number | null
 }
 
 function factorLogId(raw: string): FactorLogId {
@@ -259,8 +261,12 @@ async function listResolved(
   assertNotAborted(options.signal)
 
   const p = deps.dialect.param
+  // The window runs over the WHERE set before LIMIT, so a session the limit cuts in half still
+  // carries its full mean.
   const rows = await deps.db.query<FactorLogRow>(
-    `SELECT * FROM ${TABLE} WHERE resolved_at IS NOT NULL ORDER BY resolved_at DESC LIMIT ${p(1)}`,
+    `SELECT *, AVG(return_pct) OVER (PARTITION BY market, day, strategy_version) ` +
+      `AS session_mean_return_pct FROM ${TABLE} WHERE resolved_at IS NOT NULL ` +
+      `ORDER BY resolved_at DESC LIMIT ${p(1)}`,
     [options.limit]
   )
 
@@ -335,5 +341,8 @@ function toResolved(row: FactorLogRow): ResolvedFactorLogEntry {
         ? {}
         : { benchmarkReturnPct: row.benchmark_return_pct }),
     },
+    ...(typeof row.session_mean_return_pct === 'number'
+      ? { sessionMeanReturnPct: row.session_mean_return_pct }
+      : {}),
   }
 }
