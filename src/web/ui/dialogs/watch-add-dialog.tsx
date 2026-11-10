@@ -20,17 +20,22 @@ interface OpenWatch {
   readonly text: Signal<string>
   readonly picked: Signal<Match | undefined>
   readonly message: Signal<string | undefined>
+  /** The name just added: the dialog stays open for the next one. */
+  readonly added: Signal<string | undefined>
   readonly isBusy: Signal<boolean>
   handle?: ModalHandle
+  input?: HTMLInputElement | null
 }
 
-/** "Thêm mã vào danh sách theo dõi": type a ticker and pick it from what the daemon finds. */
+/** "Thêm mã vào danh sách theo dõi": type a ticker and pick it from what the daemon finds. It stays
+ *  open after each add, so several names go in one after another. */
 export function openWatchAddDialog(request: WatchRequest = {}): void {
   const open: OpenWatch = {
     request,
     text: signal(''),
     picked: signal(undefined),
     message: signal(undefined),
+    added: signal(undefined),
     isBusy: signal(false),
   }
 
@@ -44,28 +49,20 @@ export function openWatchAddDialog(request: WatchRequest = {}): void {
 }
 
 function WatchBody({ open }: { readonly open: OpenWatch }) {
-  const { text, picked, message } = open
+  const { text, picked, message, added } = open
   const typed = text.value.trim()
   // A name already picked from the list needs no further search.
   const matches = useTickerMatches(typed === '' || picked.value !== undefined ? undefined : typed)
 
   return (
     <div class="dialog-form">
-      <label class="form-field form-label">
-        {tr('ui.office.common.ticker')}
-        <input
-          type="text"
-          class="mono"
-          value={text.value}
-          placeholder={tr('ui.office.watch.placeholder')}
-          onInput={(event) => {
-            text.value = event.currentTarget.value
-            picked.value = undefined
-            message.value = undefined
-          }}
-        />
-      </label>
+      <WatchField open={open} />
       <FieldNote message={message.value} />
+      {added.value !== undefined && (
+        <p class="strip is-grey" role="status">
+          {tr('ui.office.watch.added', { ticker: added.value })}
+        </p>
+      )}
       {matches.length > 0 && (
         <div class="dialog-suggest">
           {matches.map((match) => (
@@ -80,6 +77,38 @@ function WatchBody({ open }: { readonly open: OpenWatch }) {
   )
 }
 
+/** Enter adds, so names go in one after another without reaching for the button. */
+function WatchField({ open }: { readonly open: OpenWatch }) {
+  const { text, picked, message, added } = open
+
+  return (
+    <label class="form-field form-label">
+      {tr('ui.office.common.ticker')}
+      <input
+        ref={(element) => {
+          open.input = element
+        }}
+        type="text"
+        class="mono"
+        value={text.value}
+        placeholder={tr('ui.office.watch.placeholder')}
+        onInput={(event) => {
+          text.value = event.currentTarget.value
+          picked.value = undefined
+          message.value = undefined
+          added.value = undefined
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            submit(open)
+          }
+        }}
+      />
+    </label>
+  )
+}
+
 function WatchFooter({ open }: { readonly open: OpenWatch }) {
   const { onBack } = open.request
 
@@ -90,7 +119,9 @@ function WatchFooter({ open }: { readonly open: OpenWatch }) {
           <Button onClick={onBack}>{tr('ui.office.settings.toSettings')}</Button>
         </div>
       )}
-      <Button onClick={() => open.handle?.close()}>{tr('ui.office.common.cancel')}</Button>
+      <Button onClick={() => open.handle?.close()}>
+        {tr(open.added.value === undefined ? 'ui.office.common.cancel' : 'ui.office.common.close')}
+      </Button>
       <Button kind="commit" disabled={open.isBusy.value} onClick={() => submit(open)}>
         {tr('ui.office.watch.add')}
       </Button>
@@ -124,11 +155,15 @@ function submit(open: OpenWatch): void {
     return
   }
 
+  if (open.isBusy.value) {
+    return
+  }
+
   open.isBusy.value = true
   addWatch(picked.value === undefined ? typed : qualifyName(picked.value.instrument))
     .then((refusal) => {
       if (refusal === undefined) {
-        open.handle?.close()
+        resetForNext(open, typed)
       } else {
         open.message.value = refusal
       }
@@ -139,4 +174,11 @@ function submit(open: OpenWatch): void {
     .finally(() => {
       open.isBusy.value = false
     })
+}
+
+function resetForNext(open: OpenWatch, ticker: string): void {
+  open.text.value = ''
+  open.picked.value = undefined
+  open.added.value = ticker
+  open.input?.focus()
 }

@@ -1855,6 +1855,7 @@
     "office.watch.add": "Add",
     "office.watch.already": "{ticker} is already on the list.",
     "office.watch.unknown": "I could not find {ticker} in the markets you follow. Check the ticker.",
+    "office.watch.added": "Added {ticker}. Type the next one, or close when you are done.",
     "office.targets.title": "Target weights",
     "office.targets.total": "Total {total}",
     "office.targets.mustBe100": "The total is {total}; it must be exactly 100% to save.",

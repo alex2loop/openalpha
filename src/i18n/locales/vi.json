@@ -1855,6 +1855,7 @@
     "office.watch.add": "Thêm",
     "office.watch.already": "{ticker} đã có trong danh sách.",
     "office.watch.unknown": "Chưa tìm thấy {ticker} trong các thị trường bạn theo. Kiểm tra lại mã.",
+    "office.watch.added": "Đã thêm {ticker}. Gõ mã tiếp theo, hoặc đóng khi xong.",
     "office.targets.title": "Tỷ trọng mục tiêu",
     "office.targets.total": "Tổng {total}",
     "office.targets.mustBe100": "Tổng đang là {total}, cần đúng 100% mới lưu được.",
