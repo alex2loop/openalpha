@@ -1,10 +1,10 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
-import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
+import type { RefreshKindResult, RestatedTarget } from '@/trading/kernel/market/refresh'
 import type { DayWindow } from '@/trading/markets/admissibility'
 import type { BarWrite } from '@/trading/markets/bars'
 import type { EvidenceScope } from '@/trading/markets/equity-vn/evidence/evidence'
-import { isRestated, RESTATEMENT_TAIL_SESSIONS } from '@/trading/markets/bar-restatement'
+import { RESTATEMENT_TAIL_SESSIONS, restatedTargetsOf } from '@/trading/markets/bar-restatement'
 import { hasRebuiltWindow, writeBarWindows } from '@/trading/markets/bars'
 import {
   BACKFILL_MINIMUM_TARGETS,
@@ -38,7 +38,7 @@ interface BackfillInput {
 /** What a pass tells the write beside its windows: the names the provider re-adjusted, and the rows
  *  the paged windows already wrote. */
 interface BarTally {
-  readonly restated: readonly string[]
+  readonly restated: readonly RestatedTarget[]
   readonly writtenCount: number
 }
 
@@ -76,11 +76,7 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
     targets.filter((target) => !rebuilding.has(target.ticker)),
     { window: { fromDay: window.tailFromDay, toDay: scope.request.asOf } }
   )
-  const restated = new Set(
-    tail
-      .filter((outcome) => isRestated(closes.get(outcome.instrument.ticker), outcome.value))
-      .map((outcome) => outcome.instrument.ticker)
-  )
+  const restated = new Set(restatedTargetsOf(closes, tail).map(({ target }) => target))
 
   const back = await backfillHistory(scope, {
     rebuild: window.rebuild,
@@ -111,9 +107,7 @@ async function backfillHistory(
   // Judged on the deep window too, not only the tail: a forced pass rebuilds every name without a
   // tail, and naming none of them left old-basis plans behind history that now matched its source.
   // A window that did not come back keeps the basis it had, so its plans still describe the series.
-  const restated = full
-    .filter((outcome) => isRestated(input.closes.get(outcome.instrument.ticker), outcome.value))
-    .map((outcome) => outcome.instrument.ticker)
+  const restated = restatedTargetsOf(input.closes, full)
 
   return {
     writes: [...full, ...paged.outcomes].map((outcome) => ({ outcome, fromDay: scope.fromDay })),
@@ -211,7 +205,7 @@ async function writeBars(
     recordCount,
     coveredFrom: resolveCoveredFrom(scope.storedFrom, scope.fromDay),
     // A refused write leaves the old bars standing, so the name is not one this pass rebuilt.
-    restatedTargets: tally.restated.filter((name) => !refused.has(name)),
+    restatedTargets: tally.restated.filter((restated) => !refused.has(restated.target)),
     caveats: basisConflictCaveats(conflicted),
   })
 }

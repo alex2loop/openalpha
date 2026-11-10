@@ -12,6 +12,7 @@ import { locale, state } from '@/web/state/session'
 import { citationsOf } from '@/web/text/card-sources'
 import { formatSignedFraction, toneOfFraction } from '@/web/text/figures'
 import { ABSENT_CELL } from '@/web/text/glyphs'
+import { outcomeNameOf } from '@/web/text/outcome'
 import { formatWhen } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
 import { buildDebateParts, readDebate } from '@/web/ui/ideas/debate-folds'
@@ -158,7 +159,11 @@ function PastResult({ call }: { readonly call: SuggestionWire }) {
           <p class={`lead is-${toneOfFraction(outcome.returnPct)}-text`}>
             {formatSignedFraction(outcome.returnPct)}
           </p>
-          <p>{tr('ui.office.why.outcome', { outcome: tr(`trading.outcome.${outcome.status}`) })}</p>
+          <p>
+            {tr('ui.office.why.outcome', {
+              outcome: tr(`trading.outcome.${outcomeNameOf(outcome)}`),
+            })}
+          </p>
         </div>
       )}
     </>

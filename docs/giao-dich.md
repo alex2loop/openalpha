@@ -276,6 +276,7 @@ Năm giai đoạn, đúng thứ tự: **nhận diện, yếu tố, tranh luận,
 - **Mức tin cậy chỉ đi xuống.** Cuộc tranh luận có thể hạ nó; không gì nâng nó lên.
 - Mọi đề xuất ghi lại phiên bản chiến lược và các phiên bản tính toán, kể cả phiên bản skill. Sửa một skill tách quần thể đã ghi đúng như sửa một chiến lược.
 - Mọi cuộc tranh luận đã lưu liệt kê các mô hình chat đã trả lời các vai của nó, nên đổi mô hình cũng tách bảng thành tích.
+- Đổi chính sách chiến lược của một thị trường cũng mở một hồ sơ riêng.
 
 Một phiên chạy kết thúc theo một trong bốn cách:
 
@@ -505,9 +506,9 @@ Mọi thứ cần tra "đề xuất trước" đều tra theo phạm vi: các c�
 
 - Kế hoạch thoát, kết luận mà `/rebalance` đọc và việc kéo cắt lỗ lên theo giá chỉ đọc `default`: một cuốn sổ, một kế hoạch.
 - Mọi phạm vi đều được chấm điểm.
-- Lịch sử giá bị viết lại sẽ vô hiệu các đề xuất đang mở của mọi phạm vi trên mã đó.
+- Lịch sử giá được điều chỉnh theo một hệ số duy nhất (chia cổ tức hoặc phát hành thêm cổ phiếu) thì các đề xuất và kế hoạch đang mở của mọi phạm vi trên mã đó được quy đổi sang thang giá mới và vẫn được tính. Lịch sử giá bị viết lại theo cách khác sẽ vô hiệu chúng.
 
-Phép hiệu chỉnh làm hạ độ tin cậy và định cỡ lệnh mua chỉ đọc những đề xuất đã hết cửa sổ theo dõi, nên các lệnh bị cắt lỗ sớm không làm bảng thành tích trông tệ hơn thực tế.
+Mọi tỷ lệ trên mọi bề mặt chỉ đọc những đề xuất đã hết cửa sổ theo dõi: phép hiệu chỉnh làm hạ độ tin cậy và định cỡ lệnh mua, `/reflect`, và hồ sơ của văn phòng cùng của từng mô hình. Nên một lệnh bị cắt lỗ sớm không làm bảng thành tích trông tệ hơn thực tế trước khi các lệnh thắng kịp chạy.
 
 Một mã nằm ngoài phạm vi của agent đang gọi thì bị từ chối trước khi gọi mô hình, và lời từ chối nêu tên phạm vi. Bảng sàng lọc của agent được thu hẹp về các thị trường và ngành của nó trước khi xếp hạng, nên bảng và tiêu đề đếm theo ngành, không theo cả thị trường. `/suggest`, bản tin, `/suggest stops` và kế hoạch đã ghi luôn dùng phạm vi của chính bạn.
 
@@ -517,12 +518,18 @@ Một đề xuất theo phạm vi riêng được đọc như ý kiến thứ ha
 
 Mỗi đề xuất sau đó được đối chiếu với các cây nến tiếp theo. Nó kết thúc là `target`, `stop` hoặc `expired`, kèm lợi suất và, nếu thị trường có chuẩn so sánh, lợi suất của chuẩn trong cùng cửa sổ.
 
+Thông báo, `/reflect`, bản tin sáng và văn phòng đều gọi tên một kết quả theo cả trạng thái lẫn lợi suất của nó:
+
+- Mục tiêu mà phần còn lại đã trả lại lãi, nên cả lệnh về 0 hoặc lỗ, được tính là trượt.
+- Mức dừng đã được nâng lên trên giá vào, nên cả lệnh vẫn có lãi, được tính là trúng.
+
 Nếu chuẩn lấy từ bộ đệm cũ, hoặc dừng sớm hơn phiên thoát quá một phiên, thì bạn không nhận phép so sánh nào, thay vì một phép so trên quãng ngắn hơn.
 
 **Cửa sổ.** Một đề xuất được đọc ở cuối cửa sổ nắm giữ của chính nó.
 
+- Một đề xuất chỉ vào hồ sơ khi cửa sổ của nó đã hết: 4 tuần với tầm nhìn ngắn, một quý với tầm nhìn dài. `/reflect` kết bằng số đề xuất đã chạm mức nhưng còn trong cửa sổ; chúng được tính khi cửa sổ đóng.
 - Đề xuất nằm chờ trong lúc dịch vụ nền tắt, kể cả quá mốc nhìn lại một năm, vẫn được chấm như lẽ ra được chấm lúc đó.
-- Nếu không còn nến của cửa sổ ấy, đề xuất đóng mà không có kết quả (không phải `expired` phẳng) và nằm ngoài mọi phép đếm có chấm điểm. `/reflect` đếm nó chung với các dòng đóng vì lịch sử giá bị viết lại.
+- Nếu không còn nến của cửa sổ ấy, đề xuất đóng mà không có kết quả (không phải `expired` phẳng) và nằm ngoài mọi phép đếm có chấm điểm. `/reflect` đếm nó chung với các dòng đóng vì nguồn dữ liệu viết lại lịch sử giá theo cách không thể chuyển kế hoạch sang giá mới.
 
 Một mức giá luôn nằm trong biên độ của chính phiên nó. Nên nếu nến phiên của một đề xuất không còn bao được mức giá lúc nó được định giá, thì một đợt cổ tức hay chia tách đã điều chỉnh chuỗi từ đó. Khi đó đề xuất đóng theo cùng cách, thay vì chấm các mức giá trên một thang giá mà chuỗi không còn dùng.
 
@@ -585,7 +592,8 @@ nền ghi lại toàn bộ bảng của từng thị trường, mỗi loại mã
 phiếu, kèm chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng.
 
 - Mỗi dòng được chấm theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn
-  nếu thị trường có nêu chuẩn.
+  nếu thị trường có nêu chuẩn. Khối quy kết không đọc chuẩn đó: bảng được chấm so với trung bình cùng
+  phiên.
 - Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách
   sau đó không làm dịch cái nào.
 - Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch.
@@ -595,12 +603,15 @@ phiếu, kèm chỉ số tổng hợp, điểm yếu tố, giá đóng và các 
 
 `/reflect` in nó thành khối quy kết thứ hai. Khi lớn dần, đây sẽ là mẫu để khớp các trọng số yếu tố và dải mức tin cậy. Mỗi yếu tố được chấm theo phiên bản chiến lược, hai bản mới nhất mỗi thị trường, vì một phiên bản mới có thể đổi thứ mà yếu tố đo.
 
+Một yếu tố được chấm so với thị trường, không so với mức 0. Khi thị trường đi xuống, mọi tín hiệu tiêu cực đều trông như đúng và mọi tín hiệu tích cực đều trông như sai, và đó là đo nhịp của thị trường, không phải đo yếu tố. Nên ở khối của bảng, một tín hiệu được tính là đúng khi mã mạnh hơn trung bình cùng phiên của bảng cùng loại (cổ phiếu hoặc quỹ) sau tín hiệu tích cực, hoặc yếu hơn sau tín hiệu tiêu cực; con số bình quân là mức chênh so với trung bình cùng phiên ấy. Khối đề xuất làm tương tự, so với mốc tham chiếu của thị trường mỗi đề xuất (VN-Index cho VN, BTC cho crypto), và chấm một đề xuất theo lợi suất giao dịch của nó (bị cắt bởi mức cắt lỗ và mục tiêu, tính từ giá vào, chiều mua, trước phí) trong cùng khoảng thời gian với mốc tham chiếu, vì yếu tố dự báo giá chứ không dự báo phí. Vàng và vàng VN không có mốc tham chiếu, nên các đề xuất của chúng không nằm trong khối này. Mã đi đúng bằng mốc tham chiếu thì không đúng cũng không sai nhưng vẫn nằm trong tổng, còn dòng không có mốc tham chiếu thì bị loại. Với các mã được đề xuất, lệnh crypto được đo so với BTC, mà altcoin được mua thường biến động mạnh hơn BTC, nên một tín hiệu tiêu cực có thể trông đúng ở đó chỉ vì altcoin giảm mạnh hơn; hãy đọc kết quả từng yếu tố của crypto cùng với phần bảng, nơi mỗi mã được so với trung bình bảng của phiên đó.
+
 Một script nghiên cứu đo các yếu tố VN trên lịch sử ([trang dành cho lập trình viên](dev/giao-dich.md)).
-Đo trên 2025-01 tới 2026-07, nó giải thích ba lựa chọn:
+Đo trên 2025-01 tới 2026-07, nó giải thích bốn lựa chọn:
 
 - lý do chỉ số tổng hợp cổ phiếu VN không mang `size` hay `sector-strength`;
 - lý do `quality` được đọc nhưng không có trọng số trong điểm;
-- lý do các điểm cắt mức tin cậy được khớp trên 75 bảng hằng tuần.
+- lý do `trend` được đọc nhưng không có trọng số trong điểm;
+- lý do các điểm cắt mức tin cậy được khớp trên 79 bảng hằng tuần.
 
 Trong giai đoạn đó, một ngành đã chạy trước chọn ra các mã yếu hơn, và các doanh nghiệp chạy tốt nhất
 không thắng bảng. Cả hai kéo các lệnh mua tin cậy trung bình về chỗ lệnh tin cậy thấp đứng. Tập mẫu là
@@ -608,7 +619,8 @@ các mã niêm yết hôm nay, nên hãy đọc nó như một hình dạng, kh�
 
 Chất lượng vẫn in trên các dòng lợi nhuận và sức khỏe, vẫn lập danh sách ngắn cho các mã theo chủ đề,
 và vẫn quyết định lệnh bán theo luận điểm của một khoản nắm dài hạn khi không có báo cáo năm nào để
-chấm.
+chấm. Xu hướng vẫn in trong bảng yếu tố và trên dòng xu hướng của danh sách kiểm; nó không xếp được bảng ở nửa nào,
+và chỉ số tổng hợp xếp tốt hơn khi không có nó.
 
 Đôi khi một mã ngừng giao dịch trong khi chuẩn của thị trường vẫn chạy. Khi chuẩn đã có mười phiên mà không có mã đó và đã tới cuối cửa sổ, đề xuất được chốt ở giá đóng cuối của mã, đánh dấu là đã dừng. `/reflect` báo bao nhiêu mã. Không gì được điền bằng phỏng đoán.
 

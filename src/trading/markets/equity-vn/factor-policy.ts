@@ -37,9 +37,7 @@ const LINEAR = (bearishAt: number, bullishAt: number): FactorNormalization =>
  *  across a year — so re-measure over the whole series before changing one.
  *
  *  A benchmark-relative return is deliberately absent: subtracting one index figure from every
- *  name's own return shifts the whole board by a constant and cannot change its order, which is
- *  what `trend` already measures — the only price-path factor here read against a name's own
- *  history.
+ *  name's own return shifts the whole board by a constant and cannot change its order.
  *
  *  Four legs were removed rather than retuned, so do not re-add any. `momentum` went because the
  *  published VN four-factor model builds on size, earnings-to-price and twelve-month turnover in
@@ -60,13 +58,17 @@ const LINEAR = (bearishAt: number, bullishAt: number): FactorNormalization =>
  *  large caps led, so it is dropped rather than flipped. A removed weight goes nowhere: the
  *  composite divides by the fired total.
  *
- *  `quality` is read at weight 0. On the same boards, each quarter dated from its first filing, it
- *  ranked -0.04 and the composite rose from 0.07 to 0.11 without it. It stays for the accounts read:
- *  the profit and health lines, the Piotroski and Beneish flags, the theme shortlist, and a long
- *  holding's thesis sale where no annual report scores. */
+ *  `quality` and `trend` are read at weight 0. On the 75 boards above, each quarter dated from its
+ *  first filing, `quality` ranked -0.04 and the composite rose from 0.07 to 0.11 without it. It
+ *  stays for the accounts read: the profit and health lines, the Piotroski and Beneish flags, the
+ *  theme shortlist, and a long holding's thesis sale where no annual report scores.
+ *
+ *  `trend` was measured on 79 weekly boards from 2025-01 to 2026-07: it ranked -0.014 (NW t -0.31,
+ *  both halves negative), and the composite rose from 0.129 (t 4.19) to 0.151 (t 4.68) without it.
+ *  It stays for the checklist and the factor table. */
 export const VN_FACTOR_POLICY: FactorPolicy<VnEquityFactorId> = Object.freeze({
   weights: Object.freeze({
-    trend: 0.15,
+    trend: 0,
     quality: 0,
     value: 0.15,
     // The fourth leg of the measured VN model, and the one that explained most of its anomalies.
@@ -97,10 +99,10 @@ export const VN_FACTOR_POLICY: FactorPolicy<VnEquityFactorId> = Object.freeze({
   minimumCoverageFraction: DEFAULT_MINIMUM_COVERAGE_FRACTION,
   // Fitted with the cut points below, for a fifth of the board contested.
   minimumAgreement: 0.58,
-  // Pooled p75 / p95 of |composite| over the same 75 weekly boards. Refit after touching weights or
+  // Pooled p75 / p95 of |composite| over the 79 weekly boards. Refit after touching weights or
   // gates.
-  mediumConvictionAt: 0.26,
-  highConvictionAt: 0.44,
+  mediumConvictionAt: 0.29,
+  highConvictionAt: 0.5,
 })
 
 /** ETFs declare their own factors. Scoring one through the stock policy would leave quality and

@@ -98,5 +98,8 @@ function toScoredRow(entry: ResolvedFactorLogEntry): ScoredRow {
     strategyVersion: entry.strategyVersion,
     factorScores: entry.factors,
     longReturnPct: entry.outcome.returnPct,
+    ...(entry.sessionMeanReturnPct === undefined
+      ? {}
+      : { baselineReturnPct: entry.sessionMeanReturnPct }),
   }
 }

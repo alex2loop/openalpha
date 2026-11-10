@@ -14,6 +14,7 @@ import type {
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { BriefContext } from '@/trading/markets/brief-context'
 import { isInconclusive } from '@/trading/features/suggestion/types'
+import { outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** The brief pays one debate per watchlist name, unattended, every morning. The full debate is what
@@ -114,6 +115,7 @@ export async function buildResolvedSuggestions(context: BriefContext): Promise<B
           ticker: row.instrument.ticker,
           at: row.at,
           status: row.outcome.status,
+          verdict: outcomeVerdictOf(row.outcome),
           returnPct: row.outcome.returnPct,
         })),
         { provenance: rows.flatMap((row) => row.provenance) }

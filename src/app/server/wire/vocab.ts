@@ -17,6 +17,9 @@ export type InvestmentHorizon = 'short' | 'long'
 /** The spans the book's value record is read over. */
 export type NavWindow = '1m' | '3m' | '6m' | '1y' | 'all'
 
+/** What a scored call is named: its status, refined by the return it earned. */
+export type OutcomeVerdict = 'target' | 'target-gave-back' | 'stop' | 'stop-in-profit' | 'expired'
+
 /** `idle` waits for the daemon to go quiet before it restarts; `now` restarts at once. */
 export type RestartWhen = 'idle' | 'now'
 

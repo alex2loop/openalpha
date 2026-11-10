@@ -15,6 +15,7 @@ import type { DebateRole } from '@/trading/kernel/config'
 import type { Market } from '@/trading/markets/types'
 import { OUTCOME_WINDOW_DAYS } from '@/trading/features/suggestion/pipeline/outcome-window'
 import {
+  INVALIDATOR_FALLBACK,
   MAXIMUM_CLAIM_CHARS,
   MAXIMUM_CLAIMS,
   MAXIMUM_INVALIDATORS,
@@ -47,14 +48,12 @@ export const CLAIM_INSTRUCTIONS = [
   `most ${MAXIMUM_CLAIMS} claims, most important first: only the first ${MAXIMUM_CLAIMS} are read.`,
 ].join(' ')
 
-const INVALIDATOR_INSTRUCTIONS = [
-  `In invalidators give at most ${MAXIMUM_INVALIDATORS} conditions that would make this call wrong`,
-  'later — each checkable against future evidence the way a claim is checkable against this one:',
-  'a number crossing a level, a filing, a rate, a state changing. Not a price move; the stop covers',
-  'that. Each is about this instrument, the market it trades in, or a driver the evidence below',
-  'names. Each stands alone under the claim length, no conditionals and no hedges. An empty list is',
-  'better than a vague one — a condition nobody can check reads as unbroken forever.',
-].join(' ')
+/** The idea each condition breaks: the one the levels were framed on, whether or not the run takes
+ *  it, so a waiting call's list still reads as the buy idea failing rather than the wait. */
+const IDEA_NAMES = Object.freeze({
+  buy: 'buying',
+  reduce: 'selling down',
+} as const satisfies Record<SuggestionDirection, string>)
 
 const CONDITION_INSTRUCTIONS = [
   'The conditions come from an earlier call on this name and are written as things that may',
@@ -165,7 +164,7 @@ export function analystPrompt(context: PromptContext, history: string): RoleProm
       'In materialClaims give the 1-based positions of the claims your summary actually rests on —',
       'the ones that, if contradicted, would change your case. Those are independently verified.',
       'Leave it empty and every claim you made is treated as load-bearing, so answer it.',
-      INVALIDATOR_INSTRUCTIONS,
+      invalidatorInstructions(context),
       probabilityInstructions(context),
       EVIDENCE_INSTRUCTIONS,
     ].join('\n'),
@@ -204,7 +203,7 @@ export function managerPrompt(input: ManagerPrompt): RolePrompt {
       'Your verdict and the conviction band are both rendered on their own lines above your',
       'rationale, so never name either in it: a rationale that repeats them reads as a second',
       'opinion, and naming them in your own words invents a term the operator has not been shown.',
-      INVALIDATOR_INSTRUCTIONS,
+      invalidatorInstructions(context),
     ].join('\n'),
     message: [
       orderedCases(context, input.cases),
@@ -315,6 +314,27 @@ export function riskPrompt(
       context.evidence.adjudication,
     ].join('\n'),
   }
+}
+
+/** Checkable inside the window the call is scored over: a condition that only a later filing can
+ *  answer reads as unbroken for the whole window, and the next run's check finds nothing either. */
+function invalidatorInstructions(context: PromptContext): string {
+  const { draft } = context.input
+
+  return [
+    `In invalidators give at most ${MAXIMUM_INVALIDATORS} conditions that would show the idea of`,
+    `${IDEA_NAMES[framedDirectionOf(draft)]} wrong within ${OUTCOME_WINDOW_DAYS[draft.horizon]}`,
+    'calendar days, the window this call is scored over. Each is checkable against evidence that',
+    'can appear in that window the way a claim is checkable against this one: a number crossing a',
+    'level, a filing, a rate, a state changing. A filing must be one due inside the window, so name',
+    'the next quarterly report rather than an annual audit published after it, and name the periods',
+    'compared (for example the last four quarters against the last audited year). Not a price move;',
+    'the stop covers that. Each is about this instrument, the market it trades in, or a driver the',
+    `evidence below names. When no filing falls due inside the window, ${INVALIDATOR_FALLBACK}.`,
+    'Each stands alone under the claim length, no conditionals and no',
+    'hedges. Never vague: a condition nobody can check reads as unbroken forever. A call that goes',
+    'ahead rests on at least one claim, so it names at least one condition.',
+  ].join(' ')
 }
 
 /** A proper score: the role's best answer is its true belief, because a probability stated to

@@ -8,13 +8,13 @@ import type {
   SuggestionDayOptions,
   SuggestionDayRead,
 } from '@/trading/features/suggestion/store/suggestion-day'
+import type { LeanCall, LeanCallOptions } from '@/trading/features/suggestion/store/suggestion-lean'
 import type { SuggestionPageOptions } from '@/trading/features/suggestion/store/suggestion-list'
 import type { ModelCall } from '@/trading/features/suggestion/store/suggestion-model'
 import type {
   ClearRestatedOptions,
   CloseUnscorableOptions,
   CoverageOptions,
-  FocusCall,
   ListResolvedOptions,
   RaiseTrailingStopOptions,
   SuggestionCoverageRow,
@@ -38,6 +38,7 @@ import { listCallActions } from '@/trading/features/suggestion/store/call-action
 import { findLatestExitPlan } from '@/trading/features/suggestion/store/exit-plan'
 import { readableRow } from '@/trading/features/suggestion/store/readable-row'
 import { readSuggestionDay } from '@/trading/features/suggestion/store/suggestion-day'
+import { listLeanCalls } from '@/trading/features/suggestion/store/suggestion-lean'
 import { listSuggestionPage } from '@/trading/features/suggestion/store/suggestion-list'
 import {
   listScoredByModel,
@@ -47,13 +48,13 @@ import {
   clearRestated,
   closeUnscorable,
   coverage,
-  listFocusCalls,
   listResolved,
   raiseTrailingStop,
   resolveOutcome,
   trailedStopToCarry,
 } from '@/trading/features/suggestion/store/suggestion-outcome'
 import { parseSuggestionPayload } from '@/trading/features/suggestion/store/suggestion-payload'
+import { rebaseOpenCalls } from '@/trading/features/suggestion/store/suggestion-rebase'
 import {
   toActionable,
   toPayload,
@@ -141,13 +142,17 @@ export interface SuggestionStore {
   raiseTrailingStop(options: RaiseTrailingStopOptions): Promise<boolean>
   /** Closes every open row on a name whose price history was re-adjusted. Returns the row count. */
   clearRestated(options: ClearRestatedOptions): Promise<number>
+  /** Converts the open calls and plans on a name to the new price scale after a clean re-basing,
+   *  those dated on or before the rebase's `through`. Returns the row count. */
+  rebaseOpenCalls(options: Parameters<typeof rebaseOpenCalls>[1]): Promise<number>
   /** Closes one open call that cannot be scored - its bars are gone, or its order never filled -
    *  with no result. `false` when it was no longer open. */
   closeUnscorable(options: CloseUnscorableOptions): Promise<boolean>
   resolve(id: SuggestionId, outcome: SuggestionOutcome, signal: AbortSignal): Promise<boolean>
   listResolved(options: ListResolvedOptions): Promise<readonly ResolvedActionableSuggestion[]>
-  /** Every scored call, pooled across versions, whatever the row count; the caller folds repeats. */
-  listFocusCalls(signal: AbortSignal): Promise<readonly FocusCall[]>
+  /** Every scored call that passes the filters, pooled across versions unless one is pinned,
+   *  whatever the row count; the caller folds repeats. */
+  listLeanCalls(options: LeanCallOptions): Promise<readonly LeanCall[]>
   /** The scored calls of the given focuses that a single model argued, pooled across versions; the
    *  caller folds repeats. */
   listScoredByModel(options: Parameters<typeof listScoredByModel>[1]): Promise<readonly ModelCall[]>
@@ -172,10 +177,11 @@ export function createSuggestionStore(deps: SuggestionStoreDeps): SuggestionStor
     listPage: (options) => listSuggestionPage(deps, options),
     raiseTrailingStop: (options) => raiseTrailingStop(deps, options),
     clearRestated: (options) => clearRestated(deps, options),
+    rebaseOpenCalls: (options) => rebaseOpenCalls(deps, options),
     closeUnscorable: (options) => closeUnscorable(deps, options),
     resolve: (id, outcome, signal) => resolveOutcome(deps, { id, outcome, signal }),
     listResolved: (options) => listResolved(deps, options),
-    listFocusCalls: (signal) => listFocusCalls(deps, signal),
+    listLeanCalls: (options) => listLeanCalls(deps, options),
     listScoredByModel: (options) => listScoredByModel(deps, options),
     readDay: (options) => readSuggestionDay(deps, options),
     listCallActions: (options) => listCallActions(deps, options),

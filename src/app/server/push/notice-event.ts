@@ -2,7 +2,7 @@ import type { WireEvent } from '@/app/server/wire/events'
 import type { TradingNotice } from '@/trading/api'
 import { APP_SOURCE } from '@/app/server/channel'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
-import { parseExitLevel } from '@/trading/api'
+import { outcomeVerdictOf, parseExitLevel } from '@/trading/api'
 
 type Payload = TradingNotice['payload']
 type AlertPayload = Extract<Payload, { readonly kind: 'price-alert' | 'exit-alert' }>
@@ -72,6 +72,7 @@ export function toCallScoredEvent(
       market: payload.instrument.market,
       action: payload.action,
       status: payload.status,
+      verdict: outcomeVerdictOf(payload),
       returnPct: payload.returnPct,
       ...(benchmark === undefined
         ? {}

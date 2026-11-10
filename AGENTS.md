@@ -144,6 +144,7 @@ Data semantics:
 
 Strategy versions:
 - `check-strategy-version` digests each market's `<MARKET>_LEVEL_POLICY`, `*_FACTOR_POLICY`, `*_ACCOUNTS_POLICY` literals and the `*_RANGE`, `*_CAP`, `*_PCT`, `*_FALLBACK` bounds beside them, grouped by `<MARKET>_STRATEGY_VERSION`.
+- The digests live in `src/trading/markets/strategy-versions.json`. Each market stamps its own as the `policy` calculation version (`policyVersionOf`, `markets/policy-version.ts`), so a policy change re-recorded under the same version still separates the population calibration reads.
 - Changing a multiplier, factor weight, normalization bound or conviction cut point bumps that market's version in the same commit; then re-record with `--write`. `gold-vn` shares `GOLD_STRATEGY_VERSION`.
 - Declaring a `trail` is such a change (it raises a held stop and clamps a fresh entry's stop, moving the printed R:R).
 - Operator level keys (`[trading.markets.<id>] maximum_stop_loss`, `stop_loss_atr`, `reward_risk`) are the one runtime exception: `resolveLevelPolicy` lays them over the code policy and `strategyVersionOf` suffixes the version with their fingerprint.
@@ -201,8 +202,9 @@ A source feeds the evidence pipeline (stored, provenance-stamped, factor-scored,
 - A transport code never reaches the operator raw: `SourceSummary.lastFailureCode` is a `CaveatCode`, rendered by `/sources` as `trading.source.failure.<code>` via `renderProvidedValue`.
 - A refresh pass counts what the store wrote, not what it handed over: without `force` a held day is kept (`ON CONFLICT DO NOTHING`); `upsertSeriesPoint` says whether the row landed.
 - A refresh re-asks an overlapping tail; a changed close on a held day is a restatement:
-  - `isRestated` / `RESTATEMENT_TAIL_SESSIONS` live in `markets/bar-restatement.ts`; `isRestated` compares against every stored close the tail overlaps (`listBarCloses`), never the newest alone.
-  - The window is refetched on the new basis and named in `restatedTargets`. Open plans on the old basis close; every hold on the name is deleted; a restated call is never the floor a new stop ratchets to.
+  - `restatementOf` / `RESTATEMENT_TAIL_SESSIONS` live in `markets/bar-restatement.ts`; `restatementOf` compares against every stored close the tail overlaps (`listBarCloses`), never the newest alone.
+  - The window is refetched on the new basis and named in `restatedTargets`. A uniform re-basing (`restatementOf` returns a `rebase`: one factor over every changed overlapping session, unchanged after them) rescales the open calls and plans on the name dated on or before `through` (`rebaseOpenCalls`), and they keep counting; a buy's `units`/`policyUnits` are divided by the factor and floored to the board lot (`held` mirrors the ledger and stays).
+  - Any other restatement closes open plans, deletes holds, and leaves `return_pct` null as before; a restated call is never the floor a new stop ratchets to.
   - A closed call keeps `return_pct` null (reads as `restatedAt`): out of every scored population, counted apart by `/reflect`, and `isStandingAnswer` refuses its old-basis levels. The scorer closes calls the same way via `isRestatedSince`. Crypto is excluded.
 - Every `news` result passes through `withNewsArchive` (`wiring/composition/news-archive.ts`) into `news_items` (one row per canonical URL, title and summary only), kept `NEWS_RETENTION_MS` by `fetched_at`, pruned by one global delete in `features/market-data/ops/retention.ts`. A failed archive write is logged, never fails the read.
 
@@ -301,6 +303,8 @@ Scoring a call:
 - Exit ladder: a buy stamps the profile's `takeProfitTranchePct`; the scorer banks that share at `takeProfit` and the rest rides the trail (row pending until the rest closes or the window ends). A review level, a no-trail market, a reduce and a row stamped before the tranche exit whole at the target.
 - `takeProfit` is where `takeProfitRiskMultiplier` banks the share (one risk unit out on VN shares, long crypto, long gold); it is the target where the policy names none (`VN_FUND_LEVEL_POLICY` names none).
 - `TradeLevels.reviewOnly` marks a level with nothing armed; the row carries `reviewOnly`; `armsExit` reads only that. A VN fund is reviewed, never stopped or trailed (its level policy declares no trail, which would only clamp the fresh review level): closed at the target or the window's last close.
+- A call counts in any rate only once its outcome window has passed (`splitByMaturity`, `resolveMaturedCutoff`); the calls still waiting are said once as the `reporting.awaiting-window` caveat, never counted.
+- `outcomeVerdictOf` names a scored result on every surface (CLI, channels, brief, office page, debate history): a target given back is a miss, a stop kept in profit is a win; the name follows the return, never the status alone.
 
 Gates and ratios:
 - R:R and reward gates read the target, except the break-even probability floor, which reads the first exit over entry-relative risk net of the round trip the scorer charges and the cost line prints (`marketTradeCost` at the market's default venue). The void line (don't-chase price, `levels-void`) follows the same rule but never sits past the take-profit.

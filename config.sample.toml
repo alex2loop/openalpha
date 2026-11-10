@@ -261,6 +261,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # you; the other loops keep running.
 
 # [trading.suggestions]
+# The track record counts a call only once its window (4 weeks short, a quarter long) has passed.
 # cooldown_sessions = 0              # repeat a suggestion after this many sessions; 0 = no wait.
 #                                    # The track record folds a repeat of a still-open call into it.
 # debate_mode = "full"               # full: bull and bear argue, a manager decides, a trader plans.

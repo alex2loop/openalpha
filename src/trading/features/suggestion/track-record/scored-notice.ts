@@ -15,6 +15,7 @@ import { MS_PER_DAY } from '@/core/utils/time'
 import { formatDay, t } from '@/i18n'
 import { sendCaught } from '@/trading/kernel/operator/delivery-retry'
 import { isBookCall } from '@/trading/kernel/operator/focus'
+import { outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
 import { formatSignedFraction, renderDeclaredValue } from '@/trading/render/format'
 
 /** The first pass after this ships scores calls that waited a long time; a call whose window ended
@@ -133,7 +134,7 @@ function toPayload({ suggestion, market, outcome }: ScoredCall): CallScoredPaylo
  *  the market names one. Both returns are fractions. */
 export function renderCallScoredNotice(locale: Locale, payload: CallScoredPayload): string {
   const { benchmark } = payload
-  const verdict = t(locale, `trading.scored.${payload.status}`, {
+  const verdict = t(locale, `trading.scored.${outcomeVerdictOf(payload)}`, {
     action: renderDeclaredValue(locale, `trading.action.${payload.action}`),
     ticker: payload.instrument.ticker,
     day: formatDay(locale, payload.day),
@@ -144,7 +145,7 @@ export function renderCallScoredNotice(locale: Locale, payload: CallScoredPayloa
     return verdict
   }
 
-  const comparison = t(locale, 'trading.scored.benchmark', {
+  const comparison = t(locale, 'trading.scored-benchmark', {
     benchmark: benchmark.instrument.ticker,
     benchmarkReturn: formatSignedFraction(locale, benchmark.returnPct),
   })

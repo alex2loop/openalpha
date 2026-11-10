@@ -162,6 +162,21 @@ export const REFRESH_KIND_STATUSES = Object.freeze([
 ] as const)
 export type RefreshKindStatus = (typeof REFRESH_KIND_STATUSES)[number]
 
+/** One factor the provider re-based a series by, covering every session up to and including
+ *  `through`: a call dated on or before it rescales by `factor`, one after it is already on the new
+ *  scale. */
+export interface SeriesRebase {
+  readonly factor: number
+  readonly through: TradingDay
+}
+
+/** A subject the provider re-adjusted, by name because a kind reports plain strings. `rebase` is
+ *  present only for a clean re-basing; any other restatement leaves it absent. */
+export interface RestatedTarget {
+  readonly target: string
+  readonly rebase?: SeriesRebase
+}
+
 /** `targetCount` counts the required provider subjects attempted, never returned rows;
  *  `recordCount` is the durable population the result stands for. A policy skip is `fresh` with
  *  zero targets, while `retained` is an attempted replacement that failed and kept the old scope.
@@ -178,7 +193,7 @@ export interface RefreshKindResult {
   readonly missingTargets: readonly string[]
   /** The subjects whose stored history the provider re-adjusted, so a later reader knows the levels
    *  priced against the old basis no longer describe this series. */
-  readonly restatedTargets?: readonly string[]
+  readonly restatedTargets?: readonly RestatedTarget[]
   readonly recordCount: number
   /** The earliest session the stored population now reaches. It is what tells a later pass whether
    *  a deepened window has been fetched, which the newest stored day cannot. */

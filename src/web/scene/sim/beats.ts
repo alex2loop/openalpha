@@ -2,6 +2,7 @@ import type { WireEvent } from '@/app/server/wire/events'
 import type { ActorId, HeldItem, PoseId, SheetView } from '@/web/scene/types'
 import type { PropKind } from '@/web/scene/world/props'
 import type { onWireEvent } from '@/web/state/events'
+import { callToneOf } from '@/web/scene/sim/call-tone'
 import { SHARED_FOCUS } from '@/web/state/agents'
 import { reducedMotion } from '@/web/state/prefs'
 
@@ -203,18 +204,19 @@ function onToolStarted(event: WireEvent, target: BeatTarget): void {
   }
 }
 
-// A call the track record scored: a target hit pleases its maker, a stop leaves them scratching
-// their head; an expired one passes without a word.
+// A call the track record scored: a win pleases its maker, a miss leaves them scratching their
+// head (the result decides, see `callToneOf`); an expired one passes without a word.
 function onCallScored(event: WireEvent, target: BeatTarget): void {
   const call = event.call
+  const tone = call === undefined ? undefined : callToneOf(call)
 
-  if (call?.focusKey !== SHARED_FOCUS || call.status === 'expired') {
+  if (call?.focusKey !== SHARED_FOCUS || tone === undefined) {
     return
   }
 
   target.play(
     CALL_MAKER,
-    call.status === 'target'
+    tone === 'target'
       ? { kind: 'pleased', pose: 'hands-up', ms: CALL_REACTION_MS }
       : { kind: 'scratch', pose: 'scratch', ms: CALL_REACTION_MS }
   )

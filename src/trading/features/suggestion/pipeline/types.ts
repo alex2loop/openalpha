@@ -4,13 +4,14 @@ import type { CapReason, RebalancePlanResult, ValuedBook } from '@/trading/featu
 import type { HeadlinesRead, SuggestionCitation } from '@/trading/features/suggestion/citation'
 import type { DebateResult, ThesisBreak } from '@/trading/features/suggestion/debate/types'
 import type { BookExposure } from '@/trading/features/suggestion/exposure'
+import type { LeanCall, LeanCallOptions } from '@/trading/features/suggestion/store/suggestion-lean'
+import type { ListResolvedOptions } from '@/trading/features/suggestion/store/suggestion-outcome'
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type {
   PriorThesis,
   ResolvedActionableSuggestion,
   StoredSuggestion,
   Suggestion,
-  SuggestionDirection,
   SuggestionId,
   SuggestionIdentity,
   SuggestionRequest,
@@ -83,17 +84,8 @@ export interface SuggestionSink {
     readonly suggestion: StoredSuggestion
     readonly signal: AbortSignal
   }): Promise<boolean>
-  listResolved(options: {
-    readonly resolvedAfter?: number
-    readonly calledOnOrBefore?: TradingDay
-    readonly strategyVersion?: string
-    readonly focusKeys?: readonly FocusKey[]
-    readonly market?: MarketRef
-    readonly ticker?: Ticker
-    readonly action?: SuggestionDirection
-    readonly limit: number
-    readonly signal: AbortSignal
-  }): Promise<readonly ResolvedActionableSuggestion[]>
+  listResolved(options: ListResolvedOptions): Promise<readonly ResolvedActionableSuggestion[]>
+  listLeanCalls(options: LeanCallOptions): Promise<readonly LeanCall[]>
 }
 
 /** How deep this run argues, and — when that is the shallow depth — which rule picked it. One

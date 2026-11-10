@@ -1,7 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type { AbsoluteRebalancePlan, RebalancePlanReady } from '@/trading/features/portfolio/types'
-import type { PortfolioFindingKind } from '@/trading/kernel/caveat'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
+import type { PortfolioFindingKind } from '@/trading/kernel/portfolio-finding'
 import { t } from '@/i18n'
 import { renderProfileStamp } from '@/trading/features/profile/render'
 import { fractionDirection, renderDeclaredValue } from '@/trading/render/format'

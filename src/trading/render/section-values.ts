@@ -1,5 +1,5 @@
 import type { Locale } from '@/core/types/locale'
-import type { ConvictionBand, OutcomeStatus, SuggestionAction } from '@/trading/kernel/conviction'
+import type { ConvictionBand, SuggestionAction } from '@/trading/kernel/conviction'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
 import type { IndexReviewKind, MarketRegime } from '@/trading/kernel/market/market-data'
 import type { MarketEventKind } from '@/trading/kernel/market/market-event'
@@ -17,6 +17,7 @@ import type {
   BriefSectionValue,
   BriefStopBasis,
 } from '@/trading/kernel/operator/brief-section'
+import type { OutcomeVerdict } from '@/trading/kernel/outcome-verdict'
 import type { DisclosureKind } from '@/trading/markets/disclosure-calendar'
 import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, type MessageKey, t } from '@/i18n'
@@ -161,14 +162,16 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
     } satisfies Record<BriefReading, MessageKey>,
     reference: REFERENCE_KEYS,
     regime: REGIME_KEYS,
-    status: {
-      expired: 'trading.outcome.expired',
-      stop: 'trading.outcome.stop',
-      target: 'trading.outcome.target',
-    } satisfies Record<OutcomeStatus, MessageKey>,
     stopBasis: {
       'volatility-resting': 'trading.brief.stop-basis.volatility-resting',
     } satisfies Record<BriefStopBasis, MessageKey>,
+    verdict: {
+      expired: 'trading.outcome.expired',
+      stop: 'trading.outcome.stop',
+      'stop-in-profit': 'trading.outcome.stop-in-profit',
+      target: 'trading.outcome.target',
+      'target-gave-back': 'trading.outcome.target-gave-back',
+    } satisfies Record<OutcomeVerdict, MessageKey>,
   })
 
 /** Fields whose value is a code only the market registry can enumerate, so no closed map can list

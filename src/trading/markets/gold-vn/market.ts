@@ -59,6 +59,7 @@ import { resolveLevelPolicy, strategyVersionOf } from '@/trading/markets/level-s
 import { LEVEL_FORMULA_VERSION } from '@/trading/markets/levels'
 import { resolveMacroRisk } from '@/trading/markets/macro'
 import { spreadPct } from '@/trading/markets/overview'
+import { policyVersionOf } from '@/trading/markets/policy-version'
 import { PERCENT_PER_UNIT } from '@/trading/sources/rows/normalization'
 
 /** `percentileRank` reports 0-100; factor readings live on [0, 1]. */
@@ -140,6 +141,7 @@ export function goldVnManifest(config: TradingConfig): MarketManifest {
       { name: 'levels', version: LEVEL_FORMULA_VERSION },
       { name: 'macro', version: MACRO_FORMULA_VERSION },
       { name: 'vn-gold-premium', version: GOLD_STRATEGY_VERSION },
+      policyVersionOf('gold'),
     ],
     factorIds: VN_GOLD_FACTOR_IDS,
     // The premium is the position here, so the same analysis skill carries both legs; a dealer

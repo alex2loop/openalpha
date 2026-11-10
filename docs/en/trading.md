@@ -276,6 +276,7 @@ Five stages, in order: **detect, factors, debate, stages, persist**.
 - **Confidence only moves down.** The debate may lower it; nothing raises it.
 - Every suggestion records its strategy version and calculation versions, including the skill versions. Editing a skill splits the recorded populations exactly as editing a strategy does.
 - Every stored debate lists the chat models that answered its roles, so a model swap splits the track record too.
+- A change to a market's strategy policy also starts a separate record.
 
 A run ends in one of four ways:
 
@@ -502,9 +503,9 @@ Everything that looks up "the previous call" does it per focus: the cooldown and
 
 - The exit plan, the verdict `/rebalance` reads and the trail that raises stops read only `default`: one book, one plan.
 - Every focus is scored.
-- A restated price history voids every focus's open calls on that name.
+- A price history re-based by one factor (a dividend or a share issue) rescales every focus's open calls and plans on that name to the new price scale, and they keep counting. Any other restated price history voids them.
 
-The calibration that tempers conviction and sizes a buy reads only calls whose window has finished, so quick stop-outs cannot make the record look worse than it is.
+Every rate on every surface reads only calls whose window has finished: the calibration that tempers conviction and sizes a buy, `/reflect`, and the office and model records. A quick stop-out therefore cannot make the record look worse than it is before the winners have had their time.
 
 A name outside the calling agent's focus is refused before any model call, and the refusal names the focus. The agent's screen is narrowed to its markets and sectors before ranking, so its board and header count the sector, not the whole market. `/suggest`, the brief, `/suggest stops` and recorded plans always use your own focus.
 
@@ -514,12 +515,18 @@ A focus call reads as a second opinion, and opens by saying so. It carries level
 
 Each suggestion is later checked against the bars that followed it. It ends as `target`, `stop` or `expired`, with its return and, where the market has a benchmark, the benchmark's return over the same window.
 
+Notices, `/reflect`, the brief and the office name a result from its status and its return together:
+
+- A target whose runner gave the gain back, so the trade as a whole netted zero or less, counts as a miss.
+- A stop the trail had raised above entry, so the trade kept a gain, counts as a win.
+
 If the benchmark comes from a stale cache, or ends more than a session before the exit, you get no comparison at all rather than one over a shorter span.
 
 **Window.** A call is read at the end of its own holding window.
 
+- A call joins the record only once its window has passed: 4 weeks for a short horizon, a quarter for a long one. `/reflect` ends with how many calls already hit a level but are still inside their window; they are counted when it closes.
 - A call left pending while the daemon was off, even past the one-year lookback, is still scored as it would have been at the time.
-- If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it together with the rows closed by a restated price history.
+- If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it together with the rows closed because the data provider rewrote the price history in a way the plan could not be carried across.
 
 A quote always prints inside its own session's range. So if a call's session bar no longer covers the quote it was priced on, a dividend or split has adjusted the series since. The call then closes the same way, instead of scoring levels on a price scale the series no longer uses.
 
@@ -582,7 +589,8 @@ the daemon logs each market's whole board, one per kind it ranks. VN funds are l
 with the composite, factor scores, close and the providers the board was read from.
 
 - Each row is scored on its close-to-close return over the market's own horizon window, against the
-  benchmark where the market names one.
+  benchmark where the market names one. The attribution block does not read that benchmark: the board
+  is judged against the session mean.
 - Both closes come off the series as it stands when the row is scored, so a later dividend or split
   moves neither.
 - No stop, no target, no fees: this measures the evidence, not a trade.
@@ -592,19 +600,24 @@ with the composite, factor scores, close and the providers the board was read fr
 
 `/reflect` prints it as a second attribution block. As it grows, it becomes the sample the factor weights and confidence bands are fitted to. Each factor is scored per strategy version, the newest two per market, because a new version can change what the factor measures.
 
+A factor is judged against the market, never against zero. In a falling tape every bearish reading would look right and every bullish one wrong, and that measures the market's move, not the factor. So on the board block a reading counts as right when the name beat the average of that session's board of the same kind, shares or funds, after a positive read and trailed it after a negative one, and the average shown is how far it landed from that session average. The suggestions block does the same against the benchmark of the call's market (VN-Index for VN, BTC for crypto), and judges a call on its trade return (clipped by its stop and target, from its entry, long side, before fees) over the same span as the benchmark, because a factor predicts the price, not the fee. Gold and VN gold declare no benchmark, so their calls drop out of that block. A name that matches its baseline exactly is neither right nor wrong but still counts in the total, and a row with no baseline is left out. On the names suggested, crypto calls are measured against BTC, and bought alts usually move more than BTC, so a bearish reading can look right there simply because alts fell harder; read crypto's per-factor record alongside the board section, which compares each name with that session's board average.
+
 A research script measures the VN factors on history ([developer page](dev/trading.md)). Measured over
-2025-01 to 2026-07, it explains three choices:
+2025-01 to 2026-07, it explains four choices:
 
 - why the VN stock composite carries no `size` or `sector-strength`;
 - why `quality` is read but carries no weight in the score;
-- why the confidence cut points are fitted on its 75 weekly boards.
+- why `trend` is read but carries no weight in the score;
+- why the confidence cut points are fitted on its 79 weekly boards.
 
 Over that stretch, a sector that had already run picked weaker names, and the best-run businesses did
 not beat the board. Both pulled medium-confidence buys back to where low ones sat. The population is
 today's listings, so read it as a shape, not a precise figure.
 
 Quality still prints on the profit and health lines, still shortlists theme names, and still decides a
-long holding's thesis sale where no annual report scores.
+long holding's thesis sale where no annual report scores. Trend still prints in the factor table and on
+the checklist's trend row; it did not rank the board in either half, and the composite ranked better
+without it.
 
 Sometimes a name stops trading while its market's benchmark keeps printing. Once the benchmark has printed ten sessions without it and reached the window end, the call resolves at the name's last close, marked as stopped. `/reflect` says how many. Nothing is filled in by guesswork.
 

@@ -31,6 +31,9 @@ export const MAXIMUM_CLAIMS = 12
 /** Fewer than the claim cap on purpose: an invalidator is what the operator is asked to watch for,
  *  and a list longer than this is not watched. */
 export const MAXIMUM_INVALIDATORS = 4
+/** Where a condition comes from when no filing falls due inside the window; the prompt and the
+ *  repair re-ask say it the same way. */
+export const INVALIDATOR_FALLBACK = 'use a rate, a flow or a state the evidence tracks'
 /** A reviewing role is handed every researcher's list at once, so its selection is bounded by the
  *  sum, not by one role's cap. The verifier must return a verdict per claim, so a tighter bound
  *  would make obeying its own instruction a schema violation. */
@@ -114,15 +117,17 @@ export const ANALYST_CASE_SCHEMA = RESEARCH_CASE_SCHEMA.extend({
     .pipe(z.array(z.int().positive())),
   invalidators: z.array(claimText).max(MAXIMUM_INVALIDATORS),
   probability,
-})
+}).superRefine(requireInvalidatorWhen((value) => value.stance !== 'neutral'))
 
-export const PORTFOLIO_MANAGER_SCHEMA = z.strictObject({
-  verdict: z.enum(MANAGER_VERDICTS),
-  rationale: text,
-  acceptedClaims: z.array(claimId).max(MAXIMUM_REVIEWED_CLAIMS),
-  rejectedClaims: z.array(claimId).max(MAXIMUM_REVIEWED_CLAIMS),
-  invalidators: z.array(claimText).max(MAXIMUM_INVALIDATORS),
-})
+export const PORTFOLIO_MANAGER_SCHEMA = z
+  .strictObject({
+    verdict: z.enum(MANAGER_VERDICTS),
+    rationale: text,
+    acceptedClaims: z.array(claimId).max(MAXIMUM_REVIEWED_CLAIMS),
+    rejectedClaims: z.array(claimId).max(MAXIMUM_REVIEWED_CLAIMS),
+    invalidators: z.array(claimText).max(MAXIMUM_INVALIDATORS),
+  })
+  .superRefine(requireInvalidatorWhen((value) => value.verdict === 'proceed'))
 
 /** A price crossing carries its level as the board quotes it, so the pipeline can check it against
  *  the price already trading rather than trust the role's reading of the tape. */
@@ -201,5 +206,22 @@ export function toClaimVerification(
       verdict: entry.verdict,
       ...(entry.citation === undefined ? {} : { citation: toCitation(entry.citation) }),
     })),
+  }
+}
+
+/** A case that goes ahead rests on at least one claim, so it can name what would break it: an
+ *  empty list is rejected, and the repair re-ask asks for one rather than the reader losing the
+ *  section and the next run having nothing to check. */
+function requireInvalidatorWhen<T extends { readonly invalidators: readonly string[] }>(
+  goesAhead: (value: T) => boolean
+): (value: T, context: z.RefinementCtx) => void {
+  return (value, context) => {
+    if (goesAhead(value) && value.invalidators.length === 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['invalidators'],
+        message: `a call that goes ahead names at least one condition; with no filing due inside the window, ${INVALIDATOR_FALLBACK}`,
+      })
+    }
   }
 }

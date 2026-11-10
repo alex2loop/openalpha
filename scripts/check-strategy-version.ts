@@ -8,7 +8,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..')
-const RECORD_FILE = 'scripts/strategy-versions.json'
+const RECORD_FILE = 'src/trading/markets/strategy-versions.json'
 /** Every file whose policy literals decide what a market suggests. The first declares the version;
  *  `gold-vn` has none of its own and shares gold's, so its factors bump gold's. */
 const POLICY_SOURCES: Readonly<Record<string, readonly string[]>> = {

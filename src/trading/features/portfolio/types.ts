@@ -15,13 +15,7 @@ import type {
 } from '@/trading/features/portfolio/options'
 import type { RelativePortfolioView } from '@/trading/features/portfolio/relative-view'
 import type { VenueChoice } from '@/trading/features/portfolio/venues'
-import type {
-  Caveat,
-  CaveatDetail,
-  EvidenceReduceReasonCode,
-  PortfolioEvidenceKind,
-  PortfolioFindingKind,
-} from '@/trading/kernel/caveat'
+import type { Caveat, CaveatDetail, EvidenceReduceReasonCode } from '@/trading/kernel/caveat'
 import type {
   CurrencyCode,
   InstrumentKind,
@@ -42,6 +36,10 @@ import type {
   PriceFreshness,
 } from '@/trading/kernel/operator/book'
 import type { ProfileStamp } from '@/trading/kernel/operator/profile'
+import type {
+  PortfolioEvidenceKind,
+  PortfolioFindingKind,
+} from '@/trading/kernel/portfolio-finding'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { Page } from '@/trading/kernel/store/page'
 
