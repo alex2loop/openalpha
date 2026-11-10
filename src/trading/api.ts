@@ -118,13 +118,11 @@ export type {
 } from '@/trading/features/suggestion/debate/types'
 export type { SuggestionCard } from '@/trading/features/suggestion/render/card'
 export type { DebateView } from '@/trading/features/suggestion/render/debate-view'
-export type {
-  SuggestionService,
-  TrackRecordReflection,
-} from '@/trading/features/suggestion/suggestion'
+export type { SuggestionService } from '@/trading/features/suggestion/suggestion'
 export type { ActedSummary } from '@/trading/features/suggestion/track-record/acted'
 export type { AgentFocusRef } from '@/trading/features/suggestion/track-record/agent-record'
 export type { ModelRecord } from '@/trading/features/suggestion/track-record/model-record'
+export type { TrackRecordReflection } from '@/trading/features/suggestion/track-record/reflect'
 export type { TrackRecordReport } from '@/trading/features/suggestion/track-record/types'
 export type {
   StoredSuggestion,

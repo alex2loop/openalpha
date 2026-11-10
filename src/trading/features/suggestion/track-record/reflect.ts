@@ -1,0 +1,88 @@
+import type { ScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
+import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
+import type { ActedSummary, RecordedFill } from '@/trading/features/suggestion/track-record/acted'
+import type {
+  TrackRecordOptions,
+  TrackRecordReport,
+} from '@/trading/features/suggestion/track-record/types'
+import type { TradingConfig } from '@/trading/kernel/config'
+import type { TradingDay } from '@/trading/kernel/instrument'
+import type { MarketRegistry } from '@/trading/markets/types'
+import { suggestionScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
+import {
+  independentCalls,
+  MINIMUM_TRACK_RECORD_SAMPLE,
+  summarizeTrackRecord,
+} from '@/trading/features/suggestion/pipeline/reporting'
+import { summarizeActed } from '@/trading/features/suggestion/track-record/acted'
+import { coverageOf } from '@/trading/features/suggestion/track-record/coverage'
+import { readScoredPopulation } from '@/trading/features/suggestion/track-record/population'
+import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
+import { marketRoundTripRate } from '@/trading/markets/cost'
+
+// The operator's record unless a focus is named: a focus call is a second opinion the operator
+// never acted on. Every read placed beside the track record counts the same population.
+export const BOOK_FOCUS_KEYS = [DEFAULT_FOCUS_KEY]
+
+interface ReflectDeps {
+  readonly store: Pick<SuggestionStore, 'listLeanCalls' | 'listResolved' | 'coverage'>
+  readonly markets: MarketRegistry
+  readonly config: TradingConfig
+  /** The operator's own buys and sells since a day, read from the ledger. */
+  fills(options: {
+    readonly fromDay: TradingDay
+    readonly signal: AbortSignal
+  }): Promise<readonly RecordedFill[]>
+}
+
+export interface TrackRecordReflection {
+  readonly report: TrackRecordReport
+  /** The report's rows as attribution reads them, each on the long side net of its market's fee. */
+  readonly factorRows: readonly ScoredRow[]
+  readonly acted?: ActedSummary
+}
+
+export async function summarize(
+  deps: ReflectDeps,
+  options: TrackRecordOptions
+): Promise<TrackRecordReport> {
+  const focusKeys = options.focusKey === undefined ? BOOK_FOCUS_KEYS : [options.focusKey]
+  const version =
+    options.strategyVersion === undefined ? {} : { strategyVersion: options.strategyVersion }
+  const population = await readScoredPopulation(deps, {
+    focusKeys,
+    limit: options.limit,
+    signal: options.signal,
+    ...version,
+  })
+  const summary = summarizeTrackRecord(population, MINIMUM_TRACK_RECORD_SAMPLE)
+  const coverage = coverageOf(
+    await deps.store.coverage({ focusKeys, signal: options.signal, ...version }),
+    deps.markets
+  )
+
+  return { summary: { ...summary, coverage }, recent: population.calls }
+}
+
+export async function reflect(
+  deps: ReflectDeps,
+  options: TrackRecordOptions
+): Promise<TrackRecordReflection> {
+  const report = await summarize(deps, options)
+  const oldest = report.recent.reduce<TradingDay | undefined>(
+    (day, call) => (day === undefined || call.at < day ? call.at : day),
+    undefined
+  )
+  const calls = independentCalls(report.recent)
+  const factorRows = calls.map((row) =>
+    suggestionScoredRow(row, marketRoundTripRate(deps.config, row.instrument.market))
+  )
+
+  if (oldest === undefined) {
+    return { report, factorRows }
+  }
+
+  const fills = await deps.fills({ fromDay: oldest, signal: options.signal })
+
+  return { report, factorRows, acted: summarizeActed(calls, fills) }
+}

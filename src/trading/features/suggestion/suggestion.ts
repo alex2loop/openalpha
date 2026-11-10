@@ -9,7 +9,6 @@ import type {
   SuggestionBatchRequest,
   SuggestionBatchResult,
 } from '@/trading/features/suggestion/batch-types'
-import type { ScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
 import type { SuggestionBatchInput } from '@/trading/features/suggestion/pipeline/batch'
 import type {
   RunDebate,
@@ -23,13 +22,14 @@ import type {
   SuggestionDayRead,
 } from '@/trading/features/suggestion/store/suggestion-day'
 import type { SuggestionPageOptions } from '@/trading/features/suggestion/store/suggestion-list'
-import type { ActedSummary, RecordedFill } from '@/trading/features/suggestion/track-record/acted'
+import type { RecordedFill } from '@/trading/features/suggestion/track-record/acted'
 import type {
   AgentFocusRef,
   AgentRecordView,
   FocusRecordView,
 } from '@/trading/features/suggestion/track-record/agent-record'
 import type { OutcomeResolutionDeps } from '@/trading/features/suggestion/track-record/outcome'
+import type { TrackRecordReflection } from '@/trading/features/suggestion/track-record/reflect'
 import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type {
   ListResolvedSuggestionsOptions,
@@ -56,26 +56,22 @@ import { buildEnsureOptions } from '@/trading/features/market-data/market-data-r
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { uniqueItems, watchlistItems } from '@/trading/features/suggestion/batch-items'
 import { buyCashMultipleOf } from '@/trading/features/suggestion/buy-cash'
-import { suggestionScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
 import { runSuggestionBatch } from '@/trading/features/suggestion/pipeline/batch'
-import {
-  independentCalls,
-  MINIMUM_TRACK_RECORD_SAMPLE,
-  summarizeTrackRecord,
-} from '@/trading/features/suggestion/pipeline/reporting'
-import { summarizeActed } from '@/trading/features/suggestion/track-record/acted'
 import {
   buildAgentRecords,
   buildFocusRecords,
   parseListedFocus,
 } from '@/trading/features/suggestion/track-record/agent-record'
-import { coverageOf } from '@/trading/features/suggestion/track-record/coverage'
 import {
   buildModelRecords,
   type ModelRecord,
 } from '@/trading/features/suggestion/track-record/model-record'
 import { resolvePendingOutcomes } from '@/trading/features/suggestion/track-record/outcome'
-import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
+import {
+  BOOK_FOCUS_KEYS,
+  reflect,
+  summarize,
+} from '@/trading/features/suggestion/track-record/reflect'
 import { marketRoundTripRate } from '@/trading/markets/cost'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
@@ -139,17 +135,6 @@ interface AgentRecordsOptions {
   readonly agents: readonly AgentFocusRef[]
   readonly signal: AbortSignal
 }
-
-export interface TrackRecordReflection {
-  readonly report: TrackRecordReport
-  /** The report's rows as attribution reads them, each on the long side net of its market's fee. */
-  readonly factorRows: readonly ScoredRow[]
-  readonly acted?: ActedSummary
-}
-
-// The operator's record unless a focus is named: a focus call is a second opinion the operator
-// never acted on. Every read placed beside the track record counts the same population.
-const BOOK_FOCUS_KEYS = [DEFAULT_FOCUS_KEY]
 
 export function createSuggestionService(deps: SuggestionServiceDeps): SuggestionService {
   const batchDeps = toBatchDeps(deps, new Map())
@@ -396,53 +381,4 @@ async function ensureSuggestionMarkets(
   for (const market of markets) {
     await deps.ensure(buildEnsureOptions(market.manifest.id, request))
   }
-}
-
-async function summarize(
-  deps: SuggestionServiceDeps,
-  options: TrackRecordOptions
-): Promise<TrackRecordReport> {
-  const focusKeys = options.focusKey === undefined ? BOOK_FOCUS_KEYS : [options.focusKey]
-  const rows = await deps.store.listResolved({
-    limit: options.limit,
-    focusKeys,
-    ...(options.strategyVersion === undefined ? {} : { strategyVersion: options.strategyVersion }),
-    signal: options.signal,
-  })
-  const summary = summarizeTrackRecord(rows, MINIMUM_TRACK_RECORD_SAMPLE)
-  const coverage = coverageOf(
-    await deps.store.coverage({
-      focusKeys,
-      ...(options.strategyVersion === undefined
-        ? {}
-        : { strategyVersion: options.strategyVersion }),
-      signal: options.signal,
-    }),
-    deps.markets
-  )
-
-  return { summary: { ...summary, coverage }, recent: rows }
-}
-
-async function reflect(
-  deps: SuggestionServiceDeps,
-  options: TrackRecordOptions
-): Promise<TrackRecordReflection> {
-  const report = await summarize(deps, options)
-  const oldest = report.recent.reduce<TradingDay | undefined>(
-    (day, call) => (day === undefined || call.at < day ? call.at : day),
-    undefined
-  )
-  const calls = independentCalls(report.recent)
-  const factorRows = calls.map((row) =>
-    suggestionScoredRow(row, marketRoundTripRate(deps.config, row.instrument.market))
-  )
-
-  if (oldest === undefined) {
-    return { report, factorRows }
-  }
-
-  const fills = await deps.fills({ fromDay: oldest, signal: options.signal })
-
-  return { report, factorRows, acted: summarizeActed(calls, fills) }
 }

@@ -1,4 +1,5 @@
 import type { ReviewMarkId } from '@/trading/features/suggestion/pipeline/review-marks'
+import type { LeanCall } from '@/trading/features/suggestion/store/suggestion-lean'
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type {
   CalculationVersion,
@@ -24,6 +25,15 @@ export interface ListResolvedSuggestionsOptions {
   readonly ticker?: Ticker
   readonly limit: number
   readonly signal: AbortSignal
+}
+
+/** The scored calls a track record reads: every one in `lean`, so repeats and versions are counted
+ *  over the whole book, and the newest independent ones in `calls`, with their payloads. */
+export interface ScoredPopulation {
+  readonly calls: readonly ResolvedActionableSuggestion[]
+  readonly lean: readonly LeanCall[]
+  /** Calls left out because their outcome window had not elapsed. */
+  readonly earlyCount: number
 }
 
 export interface TrackRecordOptions {

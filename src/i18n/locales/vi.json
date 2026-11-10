@@ -6161,7 +6161,7 @@
     "render.reflect.benchmarkMajority": "So với chỉ số: chỉ số trung bình {benchAvg} - thắng chỉ số {beat} trên {vsIndexN} lần, tức đa số",
     "render.reflect.benchmarkMinority": "So với chỉ số: chỉ số trung bình {benchAvg} - chỉ thắng chỉ số {beat} trên {vsIndexN} lần",
     "render.reflect.shadow": "Trên {n} đề xuất này, nếu vào đúng tỷ trọng đã đề xuất, tổng cộng thêm {total} vào danh mục và đoạn tệ nhất mất {drawdown} ({sized} đề xuất có tỷ trọng để tính).",
-    "render.reflect.byVersion": "Theo phiên bản chiến lược",
+    "render.reflect.byVersion": "Theo phiên bản chiến lược (mỗi phiên bản chỉ gộp lệnh lặp của chính nó, nên cộng lại có thể nhiều hơn tổng ở trên)",
     "render.reflect.versionLine": "{version}: {n} đề xuất",
     "render.reflect.byDebateModel": "Theo mô hình tranh luận",
     "render.reflect.debateModelLine": "{models}: {n} đề xuất",

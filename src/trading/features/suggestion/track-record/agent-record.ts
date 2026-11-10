@@ -3,7 +3,7 @@ import type {
   AgentFocusStore,
 } from '@/trading/features/suggestion/store/agent-focus'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
-import type { FocusCall } from '@/trading/features/suggestion/store/suggestion-outcome'
+import type { LeanCall } from '@/trading/features/suggestion/store/suggestion-lean'
 import type {
   FocusAgreement,
   FocusOverlap,
@@ -27,7 +27,7 @@ import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
 import { isWinningReturn, outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
 
 interface AgentRecordDeps {
-  readonly store: Pick<SuggestionStore, 'listFocusCalls' | 'listCallActions'>
+  readonly store: Pick<SuggestionStore, 'listLeanCalls' | 'listCallActions'>
   readonly agentFocuses: Pick<AgentFocusStore, 'listAll'>
 }
 
@@ -98,8 +98,8 @@ function toCounts(rows: readonly RecordCounts[]): RecordCounts {
 
 /** Each focus's own calls, repeats folded as `/reflect` folds them, so the two never disagree on a
  *  focus's sample. */
-function countByFocus(calls: readonly FocusCall[]): ReadonlyMap<FocusKey, RecordCounts> {
-  const byFocus = new Map<FocusKey, FocusCall[]>()
+function countByFocus(calls: readonly LeanCall[]): ReadonlyMap<FocusKey, RecordCounts> {
+  const byFocus = new Map<FocusKey, LeanCall[]>()
 
   for (const call of calls) {
     const group = byFocus.get(call.focusKey) ?? []
@@ -175,7 +175,7 @@ async function readRecordInputs(
   )
   const [focuses, scored, calls] = await Promise.all([
     deps.agentFocuses.listAll(signal),
-    deps.store.listFocusCalls(signal),
+    deps.store.listLeanCalls({ signal }),
     deps.store.listCallActions({ sinceDay, signal }),
   ])
   const comparisons = { calls, siblings: siblingsOf(focuses) }

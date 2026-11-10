@@ -6161,7 +6161,7 @@
     "render.reflect.benchmarkMajority": "Against the index: it averaged {benchAvg} - beaten on {beat} of {vsIndexN}, so most of the time",
     "render.reflect.benchmarkMinority": "Against the index: it averaged {benchAvg} - beaten on only {beat} of {vsIndexN}",
     "render.reflect.shadow": "Across these {n} calls, taken at the sizes suggested, the record added {total} to a book and its worst stretch cost {drawdown} ({sized} of them carried a size).",
-    "render.reflect.byVersion": "By strategy version",
+    "render.reflect.byVersion": "By strategy version (each folds only its own repeats, so these can add up to more than the total above)",
     "render.reflect.versionLine": "{version}: {n} calls",
     "render.reflect.byDebateModel": "By debate model",
     "render.reflect.debateModelLine": "{models}: {n} calls",

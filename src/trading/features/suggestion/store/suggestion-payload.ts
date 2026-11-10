@@ -37,7 +37,7 @@ const headlinesReadSchema = z.strictObject({
   costUsd: z.number().nonnegative().optional(),
 })
 
-const calculationVersionSchema = z.strictObject({ name: z.string(), version: z.string() })
+export const calculationVersionSchema = z.strictObject({ name: z.string(), version: z.string() })
 
 const factorMetricSchema = z.strictObject({
   id: z.enum(FACTOR_METRIC_IDS),

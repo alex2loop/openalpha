@@ -1,6 +1,8 @@
+import type { LeanCall } from '@/trading/features/suggestion/store/suggestion-lean'
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type {
   ReviewSplit,
+  ScoredPopulation,
   ShadowSummary,
   TrackRecordFocusCount,
   TrackRecordModelCount,
@@ -26,14 +28,15 @@ export const MINIMUM_TRACK_RECORD_SAMPLE = 20
 
 /** The type signature does the enforcing: `ResolvedActionableSuggestion` excludes holds and
  *  unresolved rows, so mixing them into performance is impossible rather than discouraged.
- *  Coverage is left out: these rows are one bounded window, and it counts the whole book. */
+ *  Metrics read the population's newest independent calls; the repeat count and the version
+ *  breakdown read every call it holds. Coverage is left out: it counts the whole book. */
 export function summarizeTrackRecord(
-  scored: readonly ResolvedActionableSuggestion[],
+  population: ScoredPopulation,
   minimumSampleSize: number
 ): Omit<TrackRecordSummary, 'coverage'> {
-  const rows = independentCalls(scored)
+  const rows = independentCalls(population.calls)
   const caveats: Caveat[] = []
-  const folded = scored.length - rows.length
+  const folded = population.lean.length - independentCalls(population.lean).length
 
   if (folded > 0) {
     caveats.push({ code: 'reporting.repeats-folded', detail: { count: folded } })
@@ -46,7 +49,7 @@ export function summarizeTrackRecord(
     })
   }
 
-  const versions = groupByVersion(rows)
+  const versions = groupByVersion(population.lean)
 
   // A lean population and a full population cost different amounts and must never blend silently;
   // the debate mode is one of the grouped calculation versions, so this catches that too.
@@ -139,47 +142,54 @@ function metrics(rows: readonly ResolvedActionableSuggestion[]): Metrics {
   }
 }
 
+interface Group {
+  readonly strategyVersion: string
+  readonly versions: readonly CalculationVersion[]
+  readonly calls: LeanCall[]
+}
+
 /** Grouped by the strategy/calculation-version tuple, so an all-version view reports per-version
- *  counts rather than one blended number. */
-function groupByVersion(
-  rows: readonly ResolvedActionableSuggestion[]
-): readonly TrackRecordVersionCount[] {
+ *  counts rather than one blended number. Each group folds only its own repeats: the same move
+ *  repeated under two versions counts once in each. */
+function groupByVersion(lean: readonly LeanCall[]): readonly TrackRecordVersionCount[] {
   const groups = new Map<string, Group>()
 
-  for (const row of rows) {
-    const versions = versionsOf(row)
-    const key = versionKey(row.strategyVersion, versions)
+  for (const call of lean) {
+    const versions = versionsOf(call)
+    const key = versionKey(call.strategyVersion, versions)
     const existing = groups.get(key)
 
     if (existing) {
-      existing.count += 1
+      existing.calls.push(call)
       continue
     }
 
-    groups.set(key, { strategyVersion: row.strategyVersion, versions, count: 1 })
+    groups.set(key, { strategyVersion: call.strategyVersion, versions, calls: [call] })
   }
 
   return [...groups.values()].map((group) => ({
     strategyVersion: group.strategyVersion,
     calculationVersions: group.versions,
-    resolvedCount: group.count,
+    resolvedCount: independentCalls(group.calls).length,
   }))
 }
 
-interface Group {
+/** What a scored call states of the versions it was made under, which `LeanCall` and
+ *  `ResolvedActionableSuggestion` both carry. */
+interface VersionedCall {
   readonly strategyVersion: string
-  readonly versions: readonly CalculationVersion[]
-  count: number
+  readonly calculationVersions: readonly CalculationVersion[]
+  readonly outcome: { readonly formulaVersion?: string }
 }
 
 /** The crossing rule joins the tuple the population groups by: it decides what counts as a win, so
  *  two rules blended into one win rate would describe no population that ever existed. */
-function versionsOf(row: ResolvedActionableSuggestion): readonly CalculationVersion[] {
-  const { formulaVersion } = row.outcome
+function versionsOf(call: VersionedCall): readonly CalculationVersion[] {
+  const { formulaVersion } = call.outcome
 
   return formulaVersion === undefined
-    ? row.calculationVersions
-    : [...row.calculationVersions, { name: 'outcome', version: formulaVersion }]
+    ? call.calculationVersions
+    : [...call.calculationVersions, { name: 'outcome', version: formulaVersion }]
 }
 
 export function versionKey(
