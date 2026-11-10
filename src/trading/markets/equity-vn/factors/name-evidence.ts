@@ -14,7 +14,7 @@ import type { ScreenGateCode } from '@/trading/kernel/screen-codes'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { StaleFactors } from '@/trading/markets/equity-vn/evidence/factor-staleness'
 import type { ScreenInput } from '@/trading/markets/equity-vn/screen'
-import type { WindowSum } from '@/trading/markets/equity-vn/tape/flows'
+import type { AlignedFlow, WindowSum } from '@/trading/markets/equity-vn/tape/flows'
 import type { BarsManifest } from '@/trading/markets/name-readings'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { definedOnly } from '@/core/utils/collections'
@@ -36,10 +36,10 @@ import {
   toScreenInput,
 } from '@/trading/markets/equity-vn/screen'
 import {
+  alignFlows,
   foreignFlowRatio,
   foreignNetFlow,
   netFlowValue,
-  newestFlowDay,
   proprietaryFlowRatio,
   proprietaryFlowValue,
   proprietaryNetFlow,
@@ -54,8 +54,6 @@ export interface NameEvidence {
   readonly record: InstrumentRecord
   readonly closes: readonly number[]
   readonly fundamental: FundamentalSnapshot | null
-  /** Absent means the exchange has declared nothing about this name, or nothing could be read. */
-  readonly supervision?: SupervisionLevel
   /** What an ordinary session trades, in đồng. Absent where the window held no usable session. */
   readonly turnover?: number
   /** A year of average daily traded value, in đồng. Absent where the window held no usable session. */
@@ -136,8 +134,6 @@ interface NameFlowReads {
   /** The net over the aligned sessions the ratio averaged. */
   readonly foreignNet?: WindowSum
   readonly proprietaryNet?: WindowSum
-  readonly foreignAt?: TradingDay
-  readonly proprietaryAt?: TradingDay
   /** The net over the newest flow sessions, aligned to a bar or not. */
   readonly foreignNet20: number
   /** `null` where no session carries the figure, so an unreported desk never reads as a quiet one. */
@@ -192,17 +188,17 @@ export function toNameEvidence(reads: NameReads, context: NameEvidenceContext): 
   )
   const failed = failedGates(screen)
   const candles = adjustedCandles(bars)
+  const aligned = alignFlows(flows, bars)
 
   return {
     record,
     closes,
     fundamental,
     history: toBarHistory(bars),
-    ...(supervision === undefined ? {} : { supervision }),
     screened: failed.length === 0,
     failedGates: failed,
-    flowReads: toFlowReads(flows, bars),
-    tapeReadings: tapeReadings({ closes, flows, bars }),
+    flowReads: toFlowReads(reads, aligned),
+    tapeReadings: tapeReadings({ closes, aligned }),
     staleFactors: toStaleFactors(reads, context),
     ...definedOnly({
       turnover: medianTurnover(bars, LIQUIDITY_SESSIONS),
@@ -237,8 +233,8 @@ function toBarHistory(bars: readonly BarRecord[]): BarHistory {
 /** Whether a bar can carry a session statistic. Zero volume carries the previous close forward, so
  *  counting it reads as a name that held its price. An unadjusted bar prices a split as a crash,
  *  and `closes` has already dropped it, so its day would date a move the series does not hold. */
-function isTradedBar(bar: BarRecord | undefined): bar is BarRecord {
-  return bar !== undefined && bar.candle.adjustment === 'adjusted' && bar.candle.volume > 0
+function isTradedBar(bar: BarRecord): boolean {
+  return bar.candle.adjustment === 'adjusted' && bar.candle.volume > 0
 }
 
 function toLastBar(bars: readonly BarRecord[]): LastBar | undefined {
@@ -258,15 +254,15 @@ function toLastBar(bars: readonly BarRecord[]): LastBar | undefined {
   }
 }
 
-function toFlowReads(flows: readonly FlowSnapshot[], bars: readonly BarRecord[]): NameFlowReads {
+function toFlowReads(reads: NameReads, aligned: readonly AlignedFlow[]): NameFlowReads {
+  const { bars, flows } = reads
+
   return {
     ...definedOnly({
-      foreignRatio: foreignFlowRatio(flows, bars),
-      proprietaryRatio: proprietaryFlowRatio(flows, bars),
-      foreignNet: foreignNetFlow(flows, bars),
-      proprietaryNet: proprietaryNetFlow(flows, bars),
-      foreignAt: newestFlowDay(flows, (flow) => flow.foreignNetValue),
-      proprietaryAt: newestFlowDay(flows, (flow) => flow.proprietaryNetValue),
+      foreignRatio: foreignFlowRatio(aligned),
+      proprietaryRatio: proprietaryFlowRatio(aligned),
+      foreignNet: foreignNetFlow(aligned),
+      proprietaryNet: proprietaryNetFlow(aligned),
     }),
     foreignNet20: netFlowValue(flows, FLOW_DEVIATION_SESSIONS),
     proprietaryFlow20: proprietaryFlowValue(flows, FLOW_DEVIATION_SESSIONS),

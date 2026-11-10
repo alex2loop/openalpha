@@ -416,7 +416,7 @@ Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụ
 
 Nên cấp 512 MB bộ nhớ. Lúc rảnh, dịch vụ nền giữ khoảng 100 MB. Bảng cổ phiếu Việt Nam được đọc
 từng mã một và chỉ giữ lại bản tóm tắt ngắn của mỗi mã, nên sau lần đọc đầu dịch vụ đứng quanh
-150 MB và lên tới khoảng 300 MB trong lúc dựng lại bảng. Máy chủ dưới 512 MB chưa được thử.
+150 đến 200 MB và lên tới khoảng 300 MB trong lúc dựng lại bảng. Máy chủ dưới 512 MB chưa được thử.
 
 1. **Cài đặt.** Trên Linux hoặc macOS, chạy script cài đặt trong
    [README](../README.vi.md#bắt-đầu-nhanh) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường

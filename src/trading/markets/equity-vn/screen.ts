@@ -193,8 +193,6 @@ export function isAdjustedBar(bar: BarRecord): boolean {
   return bar.candle.adjustment === 'adjusted' && bar.candle.close > 0
 }
 
-/** Traded value as the provider published it, or price times volume when it did not. Absent when
- *  neither is a usable number, so a malformed bar drops out instead of skewing a total. */
 /** No series at all is a gap in our coverage, not a young listing: "too little history" said of a
  *  name that has years of it sends the reader to the wrong conclusion. */
 function hasAnyHistory(candidate: ScreenInput): boolean {

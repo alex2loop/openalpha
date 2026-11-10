@@ -420,7 +420,7 @@ Run the daemon on a server you own and point a client app at it.
 
 Give it 512 MB of memory. An idle daemon holds about 100 MB. The Vietnamese board is read one stock
 at a time and only a short summary of each stock is kept, so after the first read the daemon settles
-near 150 MB and peaks around 300 MB while the board is rebuilt. Servers smaller than 512 MB are
+near 150 to 200 MB and peaks around 300 MB while the board is rebuilt. Servers smaller than 512 MB are
 untested.
 
 1. **Install.** On Linux or macOS, run the install script from the
