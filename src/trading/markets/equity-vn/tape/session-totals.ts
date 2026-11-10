@@ -1,7 +1,10 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
-import type { FlowSnapshot } from '@/trading/kernel/market/market-data'
+import type { BarRecord, FlowSnapshot } from '@/trading/kernel/market/market-data'
 import type { MarketTurnoverReference } from '@/trading/kernel/market/market-overview'
-import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type {
+  MarketDayTotals,
+  NameEvidence,
+} from '@/trading/markets/equity-vn/factors/name-evidence'
 import { sessionBar } from '@/trading/markets/equity-vn/factors/factors'
 import { VN_TURNOVER_REFERENCE_SESSIONS } from '@/trading/markets/equity-vn/policy'
 import { sessionChange } from '@/trading/markets/timeseries'
@@ -53,30 +56,33 @@ export function sessionTotal(
 /** Days with no reported turnover are absent from the mean, not zeros in it, so `sessions` reports
  *  what was averaged rather than what was asked for. */
 export function toTurnoverReference(
-  names: readonly NameEvidence[],
+  totals: MarketDayTotals,
   session: TradingDay
 ): MarketTurnoverReference | undefined {
-  const byDay = new Map<TradingDay, number>()
-
-  for (const name of names) {
-    for (const bar of name.bars) {
-      const value = bar.candle.at >= session ? undefined : barTurnover(bar)
-
-      if (value !== undefined) {
-        byDay.set(bar.candle.at, (byDay.get(bar.candle.at) ?? 0) + value)
-      }
-    }
-  }
-
-  const days = [...byDay.keys()].sort().slice(-VN_TURNOVER_REFERENCE_SESSIONS)
+  const days = [...totals.turnover.keys()]
+    .filter((day) => day < session)
+    .sort()
+    .slice(-VN_TURNOVER_REFERENCE_SESSIONS)
 
   if (days.length === 0) {
     return undefined
   }
 
-  const value = days.reduce((sum, day) => sum + (byDay.get(day) ?? 0), 0) / days.length
+  const value = days.reduce((sum, day) => sum + (totals.turnover.get(day) ?? 0), 0) / days.length
 
   return value <= 0 ? undefined : { sessions: days.length, value }
+}
+
+/** Adds one name's bars to the market's per-day traded value. A bar stating no usable figure
+ *  adds nothing, so its day is absent rather than zero. */
+export function addTurnoverTo(byDay: Map<TradingDay, number>, bars: readonly BarRecord[]): void {
+  for (const bar of bars) {
+    const value = barTurnover(bar)
+
+    if (value !== undefined) {
+      byDay.set(bar.candle.at, (byDay.get(bar.candle.at) ?? 0) + value)
+    }
+  }
 }
 
 /** How busy today was against a normal session. Shared with the brief's tape, which reports the

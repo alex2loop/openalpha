@@ -1,4 +1,5 @@
-import type { CrossSection, NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import { latestNameSession, sessionBar } from '@/trading/markets/equity-vn/factors/factors'
 import { TREND_SESSIONS } from '@/trading/markets/equity-vn/policy'
 import { foreignFlowRatio } from '@/trading/markets/equity-vn/tape/flows'

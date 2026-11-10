@@ -4,23 +4,18 @@ import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metri
 import type { InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { AnnualAccounts, QuarterlyAccounts } from '@/trading/kernel/market/annual-accounts'
 import type { SectorStrength } from '@/trading/kernel/market/market-capability'
-import type {
-  BarRecord,
-  Candle,
-  FlowSnapshot,
-  FundamentalSnapshot,
-  InstrumentRecord,
-} from '@/trading/kernel/market/market-data'
-import type { SupervisionLevel } from '@/trading/kernel/market/supervision'
+import type { BarRecord, Candle, InstrumentRecord } from '@/trading/kernel/market/market-data'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
-import type { MarketDeps } from '@/trading/markets/deps'
 import type { NameAccounts } from '@/trading/markets/equity-vn/accounts/board'
 import type { SupervisionCoverage } from '@/trading/markets/equity-vn/evidence/supervision'
+import type {
+  MarketDayTotals,
+  NameEvidence,
+} from '@/trading/markets/equity-vn/factors/name-evidence'
 import type { IndexReviewProximity } from '@/trading/markets/equity-vn/index-review'
 import type { FactorInput } from '@/trading/markets/factor-scoring'
 import type { SectorMember } from '@/trading/markets/sector-strength'
 import type { TradingCalendar } from '@/trading/markets/types'
-import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { ticker } from '@/trading/kernel/instrument'
 import {
   accountsAverageProfit,
@@ -30,11 +25,7 @@ import {
 import { withStaleCaveats } from '@/trading/markets/equity-vn/evidence/factor-staleness'
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
 import { ETF_FACTOR_POLICY, VN_FACTOR_POLICY } from '@/trading/markets/equity-vn/factor-policy'
-import {
-  benchmarkBars,
-  etfFactorInputs,
-  etfTrackingErrors,
-} from '@/trading/markets/equity-vn/factors/etf'
+import { benchmarkBars, etfFactorInputs } from '@/trading/markets/equity-vn/factors/etf'
 import {
   averageProfitMetrics,
   qualityMetrics,
@@ -44,19 +35,17 @@ import {
   valuationMetrics,
   valuePercentiles,
 } from '@/trading/markets/equity-vn/factors/fundamental-ranks'
+import { isTradedBar } from '@/trading/markets/equity-vn/factors/name-evidence'
 import { indexReviewProximity } from '@/trading/markets/equity-vn/index-review'
 import {
   FLOW_DEVIATION_SESSIONS,
   HIGH_PROXIMITY_SESSIONS,
-  LIQUIDITY_SESSIONS,
-  SPECULATIVE_TURNOVER_SESSIONS,
   TREND_SESSIONS,
   TREND_SLOPE_SESSIONS,
   VN_INDEX_TICKER,
   VN_MARKET_REF,
   VN_SECTOR_POLICY,
 } from '@/trading/markets/equity-vn/policy'
-import { adjustedCloses, screenCandidate, toScreenInput } from '@/trading/markets/equity-vn/screen'
 import {
   foreignFlowRatio,
   foreignNetFlow,
@@ -72,26 +61,6 @@ import {
   trendWithSlope,
   yearHighProximity,
 } from '@/trading/markets/timeseries'
-import { averageTurnover, medianTurnover } from '@/trading/markets/turnover'
-
-const EVIDENCE_CONCURRENCY = 8
-
-export interface NameEvidence {
-  readonly record: InstrumentRecord
-  readonly bars: readonly BarRecord[]
-  readonly closes: readonly number[]
-  readonly flows: readonly FlowSnapshot[]
-  readonly fundamental: FundamentalSnapshot | null
-  /** Absent means the exchange has declared nothing about this name, or nothing could be read. */
-  readonly supervision?: SupervisionLevel
-  /** What an ordinary session trades, in đồng. Absent where the window held no usable session. */
-  readonly turnover?: number
-  /** A year of average daily traded value, in đồng. Absent where the window held no usable session. */
-  readonly annualTurnover?: number
-  /** Clears every screen gate. Decides both who reaches the board and the population the ranked
-   *  factors normalize over, so it is resolved once here rather than by each caller. */
-  readonly screened: boolean
-}
 
 /** This name's bar for the session being reported, if it traded and the bar can be compared. A
  *  name with no bar for the session did not trade, and an unadjusted bar prices a split as a crash:
@@ -140,6 +109,8 @@ export interface CrossSection {
   /** Each fund's dispersion against the index it tracks. Not a rank: the fund factors score
    *  against absolute bounds, so the population supplies no scale. */
   readonly etfTrackingErrors: ReadonlyMap<Ticker, number>
+  /** What was summed across every name's bars and flows, once per pass. */
+  readonly dayTotals: MarketDayTotals
   readonly sectors: readonly SectorStrength[]
   /** The index's own candles, dated: a fund/index pairing (tracking error) aligns by trading day
    *  rather than array position, and a reader dated to one session can tell a series that stops
@@ -163,30 +134,21 @@ export interface CrossSection {
 
 interface CrossSectionOptions {
   readonly universe: readonly InstrumentRecord[]
+  readonly names: readonly NameEvidence[]
+  readonly dayTotals: MarketDayTotals
   readonly index: readonly Candle[]
   readonly benchmarks: ReadonlyMap<Ticker, readonly BarRecord[]>
   readonly asOf: TradingDay
   readonly freshFrom: TradingDay
-  readonly fromDay: TradingDay
-  readonly supervision: ReadonlyMap<Ticker, SupervisionLevel>
   readonly supervisionCoverage: SupervisionCoverage
   readonly caveats: readonly Caveat[]
   readonly calendar: TradingCalendar
   readonly annualAccounts: ReadonlyMap<Ticker, readonly AnnualAccounts[]>
   readonly quarterlyAccounts: ReadonlyMap<Ticker, readonly QuarterlyAccounts[]>
-  readonly signal: AbortSignal
 }
 
-export async function buildCrossSection(
-  deps: MarketDeps,
-  options: CrossSectionOptions
-): Promise<CrossSection> {
-  const tradeable = options.universe.filter(
-    (record) => record.kind === 'equity' || record.kind === 'etf'
-  )
-  const names = await mapWithConcurrency(tradeable, EVIDENCE_CONCURRENCY, (record) =>
-    loadNameEvidence(deps, record, options)
-  )
+export function buildCrossSection(options: CrossSectionOptions): CrossSection {
+  const { names } = options
   const session = latestNameSession(names) ?? options.asOf
   const indexReview = indexReviewProximity(session, options.calendar)
 
@@ -205,10 +167,8 @@ export async function buildCrossSection(
     }),
     rankedPeers: rankedPeerCount(names),
     speculativeTurnover: speculativeTurnoverPercentiles(names),
-    etfTrackingErrors: etfTrackingErrors(
-      names.filter((name) => name.record.kind === 'etf'),
-      options.benchmarks
-    ),
+    etfTrackingErrors: toTrackingErrors(names),
+    dayTotals: options.dayTotals,
     sectors: sectorStrength({
       members: names.map(toSectorMember),
       benchmark: options.index,
@@ -221,6 +181,18 @@ export async function buildCrossSection(
     caveats: options.caveats,
     ...(indexReview === undefined ? {} : { indexReview }),
   }
+}
+
+/** The funds' own readings gathered into the board's map: a fund the pass could not measure is
+ *  absent from it. */
+function toTrackingErrors(names: readonly NameEvidence[]): ReadonlyMap<Ticker, number> {
+  return new Map(
+    names.flatMap((name) =>
+      name.trackingError === undefined
+        ? []
+        : [[name.record.instrument.ticker, name.trackingError] as const]
+    )
+  )
 }
 
 /** The VN factor id wiring, not new math: every raw value below comes from a shared owner —
@@ -363,46 +335,6 @@ export const VN_INDEX_INSTRUMENT: InstrumentRef = Object.freeze({
   ticker: ticker(VN_INDEX_TICKER),
 })
 
-async function loadNameEvidence(
-  deps: MarketDeps,
-  record: InstrumentRecord,
-  options: CrossSectionOptions
-): Promise<NameEvidence> {
-  const window = {
-    instrument: record.instrument,
-    fromDay: options.fromDay,
-    toDay: options.asOf,
-    signal: options.signal,
-  }
-  const [bars, flows, fundamental] = await Promise.all([
-    deps.marketDataStore.listBars(window),
-    deps.marketDataStore.listFlows(window),
-    deps.marketDataStore.findLatestFundamental({
-      instrument: record.instrument,
-      asOf: options.asOf,
-      signal: options.signal,
-    }),
-  ])
-  const supervision = options.supervision.get(record.instrument.ticker)
-  const turnover = medianTurnover(bars, LIQUIDITY_SESSIONS)
-  const annualTurnover = averageTurnover(bars, SPECULATIVE_TURNOVER_SESSIONS)
-  const source = {
-    record,
-    bars,
-    fundamental,
-    closes: adjustedCloses(bars),
-    ...(supervision === undefined ? {} : { supervision }),
-  }
-
-  return {
-    ...source,
-    flows,
-    screened: screenCandidate(toScreenInput(source, options.asOf)).kind === 'accepted',
-    ...(turnover === undefined ? {} : { turnover }),
-    ...(annualTurnover === undefined ? {} : { annualTurnover }),
-  }
-}
-
 function input(
   id: VnEquityFactorId,
   raw: number | undefined,
@@ -416,11 +348,4 @@ function withMetrics(
   metrics: readonly FactorMetric[]
 ): FactorInput<VnEquityFactorId> {
   return metrics.length === 0 ? entry : { ...entry, metrics }
-}
-
-/** Whether a bar can carry a session statistic. Zero volume carries the previous close forward, so
- *  counting it reads as a name that held its price. An unadjusted bar prices a split as a crash,
- *  and `closes` has already dropped it, so its day would date a move the series does not hold. */
-function isTradedBar(bar: BarRecord | undefined): bar is BarRecord {
-  return bar !== undefined && bar.candle.adjustment === 'adjusted' && bar.candle.volume > 0
 }

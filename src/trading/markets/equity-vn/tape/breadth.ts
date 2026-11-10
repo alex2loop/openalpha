@@ -6,7 +6,7 @@ import type {
   MarketBreadth,
   MarketBreadthComponents,
 } from '@/trading/kernel/market/market-overview'
-import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import { sessionBar } from '@/trading/markets/equity-vn/factors/factors'
 import {
   LONG_TREND_SESSIONS,

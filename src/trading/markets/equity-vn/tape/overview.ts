@@ -13,7 +13,7 @@ import type {
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
-import type { NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import type { MarketManifest } from '@/trading/markets/types'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import {
@@ -84,7 +84,7 @@ export async function runOverview(load: OverviewLoad): Promise<MarketDataOvervie
   const rows = entries.map((entry) => entry.row)
   const breadth = toBreadth(cross.names, session, indexBars)
   const turnover = sessionTotal(cross.names, session, sessionTurnover)
-  const turnoverReference = toTurnoverReference(cross.names, session)
+  const turnoverReference = toTurnoverReference(cross.dayTotals, session)
   const turnoverRatio = toTurnoverRatio(turnover, turnoverReference)
   const foreignNetValue = sessionTotal(cross.names, session, sessionForeignNet)
   const proprietaryNetValue = sessionTotal(cross.names, session, sessionProprietaryNet)

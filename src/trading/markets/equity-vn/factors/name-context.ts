@@ -1,6 +1,7 @@
 import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import type { InstrumentRecord } from '@/trading/kernel/market/market-data'
-import type { CrossSection, NameEvidence } from '@/trading/markets/equity-vn/factors/factors'
+import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import type { NameContext } from '@/trading/markets/types'
 import { latestNameSession } from '@/trading/markets/equity-vn/factors/factors'
 import {
