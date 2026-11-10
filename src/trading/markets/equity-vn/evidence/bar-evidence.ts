@@ -11,6 +11,7 @@ import {
   type BarOutcome,
   boardTickers,
   chunkWindows,
+  createWindowedProgress,
   fetchAllBars,
   fullWindow,
   joinOutcomes,
@@ -73,7 +74,7 @@ export async function refreshBars(scope: EvidenceScope): Promise<RefreshKindResu
   const tail = await fetchAllBars(
     scope,
     targets.filter((target) => !rebuilding.has(target.ticker)),
-    { fromDay: window.tailFromDay, toDay: scope.request.asOf }
+    { window: { fromDay: window.tailFromDay, toDay: scope.request.asOf } }
   )
   const restated = new Set(
     tail
@@ -136,7 +137,7 @@ async function fetchBackfill(
   const shared = targets.filter((target) => board.has(target.ticker))
 
   if (shared.length < BACKFILL_MINIMUM_TARGETS) {
-    return fetchAllBars(scope, targets, window)
+    return fetchAllBars(scope, targets, { window })
   }
 
   const chunked = await fetchChunkedBars(scope, shared, window)
@@ -149,7 +150,7 @@ async function fetchBackfill(
 
   return [
     ...chunked.filter((outcome) => outcome.value !== undefined),
-    ...(await fetchAllBars(scope, single, window)),
+    ...(await fetchAllBars(scope, single, { window })),
   ]
 }
 
@@ -164,9 +165,11 @@ async function fetchChunkedBars(
   window: DayWindow
 ): Promise<readonly BarOutcome[]> {
   const merged = new Map<Ticker, BarOutcome>()
+  const chunks = chunkWindows(scope.calendar, window)
+  const progress = createWindowedProgress(scope, targets.length, chunks.length)
 
-  for (const chunk of chunkWindows(scope.calendar, window)) {
-    for (const outcome of await fetchAllBars(scope, targets, chunk)) {
+  for (const chunk of chunks) {
+    for (const outcome of await fetchAllBars(scope, targets, { window: chunk, progress })) {
       const held = merged.get(outcome.instrument.ticker)
 
       merged.set(

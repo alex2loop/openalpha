@@ -8,6 +8,7 @@ import {
   type BarOutcome,
   boardTickers,
   chunkWindows,
+  createWindowedProgress,
   fetchAllBars,
   fullWindow,
   joinOutcomes,
@@ -75,9 +76,10 @@ export async function fetchPagedHistory(
   const merged = new Map<Ticker, BarOutcome>()
   const counts = new Map<Ticker, number>()
   const chunks = chunkWindows(scope.calendar, fullWindow(scope))
+  const progress = createWindowedProgress(scope, targets.length, chunks.length)
 
   for (const [index, chunk] of chunks.entries()) {
-    const fetched = await fetchAllBars(scope, targets, chunk)
+    const fetched = await fetchAllBars(scope, targets, { window: chunk, progress })
     const refused = await writeWindow(scope, {
       fetched,
       chunk,
@@ -101,14 +103,7 @@ export async function fetchPagedHistory(
   const lost = [...merged.values()].filter((outcome) => outcome.value === undefined)
 
   return {
-    outcomes: [
-      ...answered,
-      ...(await fetchAllBars(
-        scope,
-        lost.map((outcome) => outcome.instrument),
-        fullWindow(scope)
-      )),
-    ],
+    outcomes: [...answered, ...(await fetchWhole(scope, lost))],
     // Only names every window answered for: a lost name's earlier windows are counted by its own
     // whole refetch, not twice.
     recordCount: answered.reduce(
@@ -116,6 +111,15 @@ export async function fetchPagedHistory(
       0
     ),
   }
+}
+
+function fetchWhole(
+  scope: EvidenceScope,
+  lost: readonly BarOutcome[]
+): Promise<readonly BarOutcome[]> {
+  const targets = lost.map((outcome) => outcome.instrument)
+
+  return fetchAllBars(scope, targets, { window: fullWindow(scope) })
 }
 
 /** The names the store refused for joining a different adjustment basis. */
