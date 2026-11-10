@@ -200,8 +200,9 @@ A source feeds the evidence pipeline (stored, provenance-stamped, factor-scored,
 - A transport code never reaches the operator raw: `SourceSummary.lastFailureCode` is a `CaveatCode`, rendered by `/sources` as `trading.source.failure.<code>` via `renderProvidedValue`.
 - A refresh pass counts what the store wrote, not what it handed over: without `force` a held day is kept (`ON CONFLICT DO NOTHING`); `upsertSeriesPoint` says whether the row landed.
 - A refresh re-asks an overlapping tail; a changed close on a held day is a restatement:
-  - `isRestated` / `RESTATEMENT_TAIL_SESSIONS` live in `markets/bar-restatement.ts`; `isRestated` compares against every stored close the tail overlaps (`listBarCloses`), never the newest alone.
-  - The window is refetched on the new basis and named in `restatedTargets`. Open plans on the old basis close; every hold on the name is deleted; a restated call is never the floor a new stop ratchets to.
+  - `restatementOf` / `RESTATEMENT_TAIL_SESSIONS` live in `markets/bar-restatement.ts`; `restatementOf` compares against every stored close the tail overlaps (`listBarCloses`), never the newest alone.
+  - The window is refetched on the new basis and named in `restatedTargets`. A uniform re-basing (`restatementOf` returns a `rebase`: one factor over every changed overlapping session, unchanged after them) rescales the open calls and plans on the name dated on or before `through` (`rebaseOpenCalls`), and they keep counting.
+  - Any other restatement closes open plans, deletes holds, and leaves `return_pct` null as before; a restated call is never the floor a new stop ratchets to.
   - A closed call keeps `return_pct` null (reads as `restatedAt`): out of every scored population, counted apart by `/reflect`, and `isStandingAnswer` refuses its old-basis levels. The scorer closes calls the same way via `isRestatedSince`. Crypto is excluded.
 - Every `news` result passes through `withNewsArchive` (`wiring/composition/news-archive.ts`) into `news_items` (one row per canonical URL, title and summary only), kept `NEWS_RETENTION_MS` by `fetched_at`, pruned by one global delete in `features/market-data/ops/retention.ts`. A failed archive write is logged, never fails the read.
 

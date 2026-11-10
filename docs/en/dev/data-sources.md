@@ -262,7 +262,7 @@ every HOSE index, so a board sweep's failures must not black out the series the 
 **VN `bars` order.** `vndirect` publishes no index rows (it declines them in `covers`, so an index costs it no request), so
 `vndirect-index` is the first provider an index reaches. Measured 2026-11-03: its closes were identical to `vps` over 953 sessions
 (VNINDEX, VN30) and to `vietcap-chart` and `vps` over the whole 280-session window on all ten indices read (VNINDEX, VN30, VN100,
-VNMIDCAP, VNDIAMOND, VNX50, VNFINLEAD, VNFINSELECT, VNSHINE, VNMITECH), so a provider switch fires no `isRestated`. VNINDEX runs
+VNMIDCAP, VNDIAMOND, VNX50, VNFINLEAD, VNFINSELECT, VNSHINE, VNMITECH), so a provider switch fires no `restatementOf`. VNINDEX runs
 back to 2017-08 (2,294 sessions). `entrade` is behind it because it answers wrongly without failing: its stored closes for VN100
 and VNMITECH disagreed with all three others on 22 sessions each (2026-04-01 to 2026-06-09), and its stored VNINDEX and VN30 volumes sat 8% from
 `vndirect-index`'s on average (up to 84%). It still charts some indices at the depths this tree
@@ -292,7 +292,14 @@ still had `vietcap-chart` and `vps` behind `vndirect-index`, so no single refusa
 close identical over 125 sessions measured. Provider facts the adapter owns: the feed spells VNMIDCAP `VNMID`, and its `to` bound
 rounds **up** to the day, so the settled day is applied to the parsed candles rather than trusted to the query. Its turnover is
 matched orders only, 17% under vietcap's (which adds the put-through leg after the session), so it may only back a provider whose
-volume no factor reads. The ETF factor reads closes and `isRestated` weighs the close, so nothing downstream sees the difference.
+volume no factor reads. The ETF factor reads closes and `restatementOf` weighs the close, so nothing downstream sees the difference.
+
+**A re-basing is converted, not closed.** `restatementOf` (`markets/bar-restatement.ts`) compares every overlapping session's new
+close with its stored one. When the changed sessions share one factor and every session after them is unchanged (a dividend or a split moves the
+sessions before the ex-date together), the result carries a `rebase` (`factor`, `through`), and `rebaseOpenCalls` rescales the open calls and plans
+on the name dated on or before `through`, so they keep counting. Any other restatement (a data fix, a changed session after an unchanged one, factors
+that disagree) closes open plans, deletes holds and leaves `return_pct` null, as before. The scorer's `isRestatedSince` stays the fallback for a
+market with no stored series.
 
 **`indexMembership` order.** `vietcap` leads and `vps-board` (`bgapidatafeed.vps.com.vn/getlistckindex/<index>`, a JSON array of
 tickers) backs it. Both read the pair of baskets through one loader (`rows/index-baskets.ts`), every basket or none. Measured

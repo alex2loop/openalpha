@@ -147,7 +147,7 @@ type OperationalPayload = Exclude<
 
 function renderOperationalNotice(locale: Locale, payload: OperationalPayload): string {
   if (payload.kind === 'series-restated') {
-    return renderRestatementNotice(locale, payload.tickers)
+    return renderRestatementNotice(locale, payload)
   }
 
   if (payload.kind === 'loop-quarantined') {

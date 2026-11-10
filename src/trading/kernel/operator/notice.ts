@@ -69,9 +69,15 @@ export type TradingNoticePayload =
    *  into a feature's own row to print one. */
   | { readonly kind: 'exit-plan'; readonly lines: readonly string[] }
   | { readonly kind: 'stop-raised'; readonly lines: readonly string[] }
-  /** A name whose price history the provider re-adjusted, usually an ex-date. The plans priced on
-   *  the old basis are closed, and the next tick writes new ones. */
-  | { readonly kind: 'series-restated'; readonly tickers: readonly string[] }
+  /** A name whose price history the provider re-adjusted, usually an ex-date. `tickers` are the
+   *  names whose plans on the old basis were closed, so the next tick writes new ones; `rebased`
+   *  are those a clean re-basing converted to the new scale, which keep counting. Absent on a
+   *  notice stored before names could be converted. */
+  | {
+      readonly kind: 'series-restated'
+      readonly tickers: readonly string[]
+      readonly rebased?: readonly string[]
+    }
   /** A resting stop or take-profit filled at the exchange and is in the ledger. `closeReason` is
    *  typed inline because the kernel may not reach into the ledger feature for its own type. */
   | {

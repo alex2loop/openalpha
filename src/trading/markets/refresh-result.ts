@@ -4,6 +4,7 @@ import type {
   RefreshDataKind,
   RefreshKindResult,
   RefreshKindStatus,
+  RestatedTarget,
 } from '@/trading/kernel/market/refresh'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -23,7 +24,7 @@ interface KindResultInput<T> {
   readonly recordCount: number
   readonly coveredFrom?: TradingDay
   /** Names the provider re-adjusted in this pass. Absent for a kind that cannot tell. */
-  readonly restatedTargets?: readonly string[]
+  readonly restatedTargets?: readonly RestatedTarget[]
   /** Earned by the pass rather than by any one target — what reading the scope cost, which no
    *  outcome carries because no outcome is the scope. */
   readonly caveats?: readonly Caveat[]

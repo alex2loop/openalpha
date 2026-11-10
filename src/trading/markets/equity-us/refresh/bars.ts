@@ -1,7 +1,7 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { BarRecord, Candle, InstrumentRecord } from '@/trading/kernel/market/market-data'
-import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
+import type { RefreshKindResult, RestatedTarget } from '@/trading/kernel/market/refresh'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { DayWindow } from '@/trading/markets/admissibility'
 import type { BarWrite } from '@/trading/markets/bars'
@@ -13,7 +13,7 @@ import { sourcedCaveat } from '@/trading/kernel/caveat'
 import { dedupeInstruments, ETF_KIND } from '@/trading/kernel/instrument'
 import { createRefreshProgress } from '@/trading/kernel/market/refresh'
 import { admissibleCandles } from '@/trading/markets/admissibility'
-import { isRestated, RESTATEMENT_TAIL_SESSIONS } from '@/trading/markets/bar-restatement'
+import { RESTATEMENT_TAIL_SESSIONS, restatedTargetsOf } from '@/trading/markets/bar-restatement'
 import { hasRebuiltWindow, writeBarWindows } from '@/trading/markets/bars'
 import { isSettled } from '@/trading/markets/calendar'
 import { loadUsCoverage } from '@/trading/markets/equity-us/board'
@@ -84,7 +84,7 @@ interface FetchedWindows {
   readonly tail: Fetched
   readonly full: Fetched
   /** Names the provider now publishes under different closes than the ones stored. */
-  readonly rebuilt: readonly string[]
+  readonly rebuilt: readonly RestatedTarget[]
 }
 
 /** Names with current history re-ask a short tail, which also proves their stored closes still
@@ -114,14 +114,14 @@ async function fetchWindows(
     fromDay: window.tailFromDay,
     signal: request.signal,
   })
-  const isChanged = (outcome: TargetOutcome<readonly BarRecord[]>): boolean =>
-    isRestated(closes.get(outcome.instrument.ticker), outcome.value, US_RESTATEMENT_TOLERANCE)
   const tail = await fetchAll(
     pass,
     targets.filter((target) => !rebuilding.has(target.ticker)),
     { fromDay: window.tailFromDay, toDay: request.asOf }
   )
-  const changed = new Set<Ticker>(tail.filter(isChanged).map((o) => o.instrument.ticker))
+  const changed = new Set<string>(
+    restatedTargetsOf(closes, tail, US_RESTATEMENT_TOLERANCE).map(({ target }) => target)
+  )
   const full = await fetchAll(
     pass,
     [...window.rebuild, ...targets.filter((target) => changed.has(target.ticker))],
@@ -133,7 +133,7 @@ async function fetchWindows(
     tail,
     full,
     // Judged on the deep window too: a forced pass rebuilds every name without a tail read.
-    rebuilt: full.filter(isChanged).map((outcome) => outcome.instrument.ticker),
+    rebuilt: restatedTargetsOf(closes, full, US_RESTATEMENT_TOLERANCE),
   }
 }
 
@@ -256,7 +256,7 @@ function settledRecords(
 async function writeBars(
   pass: BarsPass,
   writes: readonly BarWrite[],
-  restatedTargets: readonly string[]
+  restatedTargets: readonly RestatedTarget[]
 ): Promise<RefreshKindResult> {
   const { recordCount, conflicted } = await writeBarWindows({
     deps: pass.deps,
@@ -274,7 +274,7 @@ async function writeBars(
     recordCount,
     coveredFrom: resolveCoveredFrom(pass.storedFrom, pass.historyFromDay),
     // A refused write leaves the old bars standing, so the name is not one this pass rebuilt.
-    restatedTargets: restatedTargets.filter((name) => !refused.has(name)),
+    restatedTargets: restatedTargets.filter((restated) => !refused.has(restated.target)),
     caveats: basisConflictCaveats(conflicted),
   })
 }

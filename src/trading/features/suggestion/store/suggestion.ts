@@ -54,6 +54,7 @@ import {
   trailedStopToCarry,
 } from '@/trading/features/suggestion/store/suggestion-outcome'
 import { parseSuggestionPayload } from '@/trading/features/suggestion/store/suggestion-payload'
+import { rebaseOpenCalls } from '@/trading/features/suggestion/store/suggestion-rebase'
 import {
   toActionable,
   toPayload,
@@ -141,6 +142,9 @@ export interface SuggestionStore {
   raiseTrailingStop(options: RaiseTrailingStopOptions): Promise<boolean>
   /** Closes every open row on a name whose price history was re-adjusted. Returns the row count. */
   clearRestated(options: ClearRestatedOptions): Promise<number>
+  /** Converts the open calls and plans on a name to the new price scale after a clean re-basing,
+   *  those dated on or before the rebase's `through`. Returns the row count. */
+  rebaseOpenCalls(options: Parameters<typeof rebaseOpenCalls>[1]): Promise<number>
   /** Closes one open call that cannot be scored - its bars are gone, or its order never filled -
    *  with no result. `false` when it was no longer open. */
   closeUnscorable(options: CloseUnscorableOptions): Promise<boolean>
@@ -173,6 +177,7 @@ export function createSuggestionStore(deps: SuggestionStoreDeps): SuggestionStor
     listPage: (options) => listSuggestionPage(deps, options),
     raiseTrailingStop: (options) => raiseTrailingStop(deps, options),
     clearRestated: (options) => clearRestated(deps, options),
+    rebaseOpenCalls: (options) => rebaseOpenCalls(deps, options),
     closeUnscorable: (options) => closeUnscorable(deps, options),
     resolve: (id, outcome, signal) => resolveOutcome(deps, { id, outcome, signal }),
     listResolved: (options) => listResolved(deps, options),

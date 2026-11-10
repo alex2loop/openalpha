@@ -506,7 +506,7 @@ Mọi thứ cần tra "đề xuất trước" đều tra theo phạm vi: các c�
 
 - Kế hoạch thoát, kết luận mà `/rebalance` đọc và việc kéo cắt lỗ lên theo giá chỉ đọc `default`: một cuốn sổ, một kế hoạch.
 - Mọi phạm vi đều được chấm điểm.
-- Lịch sử giá bị viết lại sẽ vô hiệu các đề xuất đang mở của mọi phạm vi trên mã đó.
+- Lịch sử giá được điều chỉnh theo một hệ số duy nhất (chia cổ tức hoặc phát hành thêm cổ phiếu) thì các đề xuất và kế hoạch đang mở của mọi phạm vi trên mã đó được quy đổi sang thang giá mới và vẫn được tính. Lịch sử giá bị viết lại theo cách khác sẽ vô hiệu chúng.
 
 Mọi tỷ lệ trên mọi bề mặt chỉ đọc những đề xuất đã hết cửa sổ theo dõi: phép hiệu chỉnh làm hạ độ tin cậy và định cỡ lệnh mua, `/reflect`, và hồ sơ của văn phòng cùng của từng mô hình. Nên một lệnh bị cắt lỗ sớm không làm bảng thành tích trông tệ hơn thực tế trước khi các lệnh thắng kịp chạy.
 
@@ -529,7 +529,7 @@ Nếu chuẩn lấy từ bộ đệm cũ, hoặc dừng sớm hơn phiên thoát
 
 - Một đề xuất chỉ vào hồ sơ khi cửa sổ của nó đã hết: 4 tuần với tầm nhìn ngắn, một quý với tầm nhìn dài. `/reflect` kết bằng số đề xuất đã chạm mức nhưng còn trong cửa sổ; chúng được tính khi cửa sổ đóng.
 - Đề xuất nằm chờ trong lúc dịch vụ nền tắt, kể cả quá mốc nhìn lại một năm, vẫn được chấm như lẽ ra được chấm lúc đó.
-- Nếu không còn nến của cửa sổ ấy, đề xuất đóng mà không có kết quả (không phải `expired` phẳng) và nằm ngoài mọi phép đếm có chấm điểm. `/reflect` đếm nó chung với các dòng đóng vì lịch sử giá bị viết lại.
+- Nếu không còn nến của cửa sổ ấy, đề xuất đóng mà không có kết quả (không phải `expired` phẳng) và nằm ngoài mọi phép đếm có chấm điểm. `/reflect` đếm nó chung với các dòng đóng vì lịch sử giá được dựng lại theo cách mình không quy đổi được.
 
 Một mức giá luôn nằm trong biên độ của chính phiên nó. Nên nếu nến phiên của một đề xuất không còn bao được mức giá lúc nó được định giá, thì một đợt cổ tức hay chia tách đã điều chỉnh chuỗi từ đó. Khi đó đề xuất đóng theo cùng cách, thay vì chấm các mức giá trên một thang giá mà chuỗi không còn dùng.
 

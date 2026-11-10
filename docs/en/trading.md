@@ -503,7 +503,7 @@ Everything that looks up "the previous call" does it per focus: the cooldown and
 
 - The exit plan, the verdict `/rebalance` reads and the trail that raises stops read only `default`: one book, one plan.
 - Every focus is scored.
-- A restated price history voids every focus's open calls on that name.
+- A price history re-based by one factor (a dividend or a share issue) rescales every focus's open calls and plans on that name to the new price scale, and they keep counting. Any other restated price history voids them.
 
 Every rate on every surface reads only calls whose window has finished: the calibration that tempers conviction and sizes a buy, `/reflect`, and the office and model records. A quick stop-out therefore cannot make the record look worse than it is before the winners have had their time.
 
@@ -526,7 +526,7 @@ If the benchmark comes from a stale cache, or ends more than a session before th
 
 - A call joins the record only once its window has passed: 4 weeks for a short horizon, a quarter for a long one. `/reflect` ends with how many calls already hit a level but are still inside their window; they are counted when it closes.
 - A call left pending while the daemon was off, even past the one-year lookback, is still scored as it would have been at the time.
-- If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it together with the rows closed by a restated price history.
+- If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it together with the rows closed by a price history I couldn't convert.
 
 A quote always prints inside its own session's range. So if a call's session bar no longer covers the quote it was priced on, a dividend or split has adjusted the series since. The call then closes the same way, instead of scoring levels on a price scale the series no longer uses.
 
