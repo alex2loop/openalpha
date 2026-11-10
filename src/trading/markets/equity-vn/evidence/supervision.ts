@@ -40,12 +40,12 @@ export interface SupervisionCache {
 
 /** One live read per board day and per refresh pass: the lists change by announcement, and a
  *  whole-board pass reads them on every sweep for no new answer. `days` is the cross-section
- *  cache's own slot count, so both hold the same board days. A read that missed a board is not
- *  kept, so the next call asks again, and the caller gets the last good read in its place, marked
- *  as carried; with none yet it gets the incomplete read itself. The last good read is never older
- *  than a newer day's. */
+ *  cache's own slot count, so both hold the same board days. A read that missed a board is held
+ *  too, so a provider that keeps refusing is asked once per pass, not once per board; the caller
+ *  gets the last good read in its place, marked as carried, or the incomplete read itself while
+ *  there is none. The last good read is never older than a newer day's. */
 export function supervisionCache(deps: MarketDeps, days: number): SupervisionCache {
-  const reads = flightCache<SupervisionRead>(days, isCompleteRead)
+  const reads = flightCache<SupervisionRead>(days)
   let last: LastGoodRead | undefined
 
   return {
