@@ -276,6 +276,7 @@ Năm giai đoạn, đúng thứ tự: **nhận diện, yếu tố, tranh luận,
 - **Mức tin cậy chỉ đi xuống.** Cuộc tranh luận có thể hạ nó; không gì nâng nó lên.
 - Mọi đề xuất ghi lại phiên bản chiến lược và các phiên bản tính toán, kể cả phiên bản skill. Sửa một skill tách quần thể đã ghi đúng như sửa một chiến lược.
 - Mọi cuộc tranh luận đã lưu liệt kê các mô hình chat đã trả lời các vai của nó, nên đổi mô hình cũng tách bảng thành tích.
+- Đổi chính sách chiến lược của một thị trường cũng mở một hồ sơ riêng.
 
 Một phiên chạy kết thúc theo một trong bốn cách:
 
@@ -507,7 +508,7 @@ Mọi thứ cần tra "đề xuất trước" đều tra theo phạm vi: các c�
 - Mọi phạm vi đều được chấm điểm.
 - Lịch sử giá bị viết lại sẽ vô hiệu các đề xuất đang mở của mọi phạm vi trên mã đó.
 
-Phép hiệu chỉnh làm hạ độ tin cậy và định cỡ lệnh mua chỉ đọc những đề xuất đã hết cửa sổ theo dõi, nên các lệnh bị cắt lỗ sớm không làm bảng thành tích trông tệ hơn thực tế.
+Mọi tỷ lệ trên mọi bề mặt chỉ đọc những đề xuất đã hết cửa sổ theo dõi: phép hiệu chỉnh làm hạ độ tin cậy và định cỡ lệnh mua, `/reflect`, và hồ sơ của văn phòng cùng của từng mô hình. Nên một lệnh bị cắt lỗ sớm không làm bảng thành tích trông tệ hơn thực tế trước khi các lệnh thắng kịp chạy.
 
 Một mã nằm ngoài phạm vi của agent đang gọi thì bị từ chối trước khi gọi mô hình, và lời từ chối nêu tên phạm vi. Bảng sàng lọc của agent được thu hẹp về các thị trường và ngành của nó trước khi xếp hạng, nên bảng và tiêu đề đếm theo ngành, không theo cả thị trường. `/suggest`, bản tin, `/suggest stops` và kế hoạch đã ghi luôn dùng phạm vi của chính bạn.
 
@@ -526,6 +527,7 @@ Nếu chuẩn lấy từ bộ đệm cũ, hoặc dừng sớm hơn phiên thoát
 
 **Cửa sổ.** Một đề xuất được đọc ở cuối cửa sổ nắm giữ của chính nó.
 
+- Một đề xuất chỉ vào hồ sơ khi cửa sổ của nó đã hết: 4 tuần với tầm nhìn ngắn, một quý với tầm nhìn dài. `/reflect` kết bằng số đề xuất đã chạm mức nhưng còn trong cửa sổ; chúng được tính khi cửa sổ đóng.
 - Đề xuất nằm chờ trong lúc dịch vụ nền tắt, kể cả quá mốc nhìn lại một năm, vẫn được chấm như lẽ ra được chấm lúc đó.
 - Nếu không còn nến của cửa sổ ấy, đề xuất đóng mà không có kết quả (không phải `expired` phẳng) và nằm ngoài mọi phép đếm có chấm điểm. `/reflect` đếm nó chung với các dòng đóng vì lịch sử giá bị viết lại.
 

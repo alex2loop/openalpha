@@ -4,6 +4,7 @@ import type { ActedSummary, RecordedFill } from '@/trading/features/suggestion/t
 import type {
   TrackRecordOptions,
   TrackRecordReport,
+  TrackRecordSummary,
 } from '@/trading/features/suggestion/track-record/types'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { TradingDay } from '@/trading/kernel/instrument'
@@ -42,28 +43,6 @@ export interface TrackRecordReflection {
   readonly acted?: ActedSummary
 }
 
-export async function summarize(
-  deps: ReflectDeps,
-  options: TrackRecordOptions
-): Promise<TrackRecordReport> {
-  const focusKeys = options.focusKey === undefined ? BOOK_FOCUS_KEYS : [options.focusKey]
-  const version =
-    options.strategyVersion === undefined ? {} : { strategyVersion: options.strategyVersion }
-  const population = await readScoredPopulation(deps, {
-    focusKeys,
-    limit: options.limit,
-    signal: options.signal,
-    ...version,
-  })
-  const summary = summarizeTrackRecord(population, MINIMUM_TRACK_RECORD_SAMPLE)
-  const coverage = coverageOf(
-    await deps.store.coverage({ focusKeys, signal: options.signal, ...version }),
-    deps.markets
-  )
-
-  return { summary: { ...summary, coverage }, recent: population.calls }
-}
-
 export async function reflect(
   deps: ReflectDeps,
   options: TrackRecordOptions
@@ -85,4 +64,49 @@ export async function reflect(
   const fills = await deps.fills({ fromDay: oldest, signal: options.signal })
 
   return { report, factorRows, acted: summarizeActed(calls, fills) }
+}
+
+export async function summarize(
+  deps: ReflectDeps,
+  options: TrackRecordOptions
+): Promise<TrackRecordReport> {
+  const focusKeys = options.focusKey === undefined ? BOOK_FOCUS_KEYS : [options.focusKey]
+  const version =
+    options.strategyVersion === undefined ? {} : { strategyVersion: options.strategyVersion }
+  const population = await readScoredPopulation(deps, {
+    focusKeys,
+    limit: options.limit,
+    markets: deps.markets,
+    now: Date.now(),
+    signal: options.signal,
+    ...version,
+  })
+  const summary = withAwaiting(
+    summarizeTrackRecord(population, MINIMUM_TRACK_RECORD_SAMPLE),
+    population.earlyCount
+  )
+  const coverage = coverageOf(
+    await deps.store.coverage({ focusKeys, signal: options.signal, ...version }),
+    deps.markets
+  )
+
+  return { summary: { ...summary, coverage }, recent: population.calls }
+}
+
+/** Said once the rates are drawn, so a record of matured calls never reads as the whole book. */
+function withAwaiting(
+  summary: Omit<TrackRecordSummary, 'coverage'>,
+  earlyCount: number
+): Omit<TrackRecordSummary, 'coverage'> {
+  if (earlyCount === 0) {
+    return summary
+  }
+
+  return {
+    ...summary,
+    caveats: [
+      ...summary.caveats,
+      { code: 'reporting.awaiting-window', detail: { count: earlyCount } },
+    ],
+  }
 }

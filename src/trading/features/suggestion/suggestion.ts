@@ -62,6 +62,7 @@ import {
   buildFocusRecords,
   parseListedFocus,
 } from '@/trading/features/suggestion/track-record/agent-record'
+import { splitByMaturity } from '@/trading/features/suggestion/track-record/maturity'
 import {
   buildModelRecords,
   type ModelRecord,
@@ -151,10 +152,19 @@ export function createSuggestionService(deps: SuggestionServiceDeps): Suggestion
     reflect: (options) => reflect(deps, options),
     agentRecords: (options) => buildAgentRecords(deps, { ...options, ...recordClock(deps) }),
     focusRecords: (options) => buildFocusRecords(deps, { ...options, ...recordClock(deps) }),
-    modelRecords: async (signal) =>
-      buildModelRecords(await deps.store.listScoredByModel({ focusKeys: BOOK_FOCUS_KEYS, signal })),
+    modelRecords: (signal) => modelRecords(deps, signal),
     dayDigest: (options) => deps.store.readDay({ ...options, focusKeys: BOOK_FOCUS_KEYS }),
   }
+}
+
+async function modelRecords(
+  deps: SuggestionServiceDeps,
+  signal: AbortSignal
+): Promise<readonly ModelRecord[]> {
+  const scored = await deps.store.listScoredByModel({ focusKeys: BOOK_FOCUS_KEYS, signal })
+  const { mature } = splitByMaturity(scored, { markets: deps.markets, now: Date.now() })
+
+  return buildModelRecords(mature)
 }
 
 function recordClock(deps: SuggestionServiceDeps): { now: number; timezone: string } {

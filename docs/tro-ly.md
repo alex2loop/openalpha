@@ -208,7 +208,7 @@ giống hệt dùng chung một khóa, nên chung một hồ sơ.
 
 **Độ trùng.** `agent list` và `agent show` in dưới mỗi agent của bạn: phạm vi, chi phí hôm nay so với mức trần khi nó
 có mức trần, thành tích đề xuất của nó trên mọi phạm vi từng dùng, và tần suất nó chọn hành động mà các agent *khác*
-chọn trên cùng mã, cùng ngày. Quy tắc, cùng cỡ mẫu tối thiểu để có tỉ lệ, nằm ở [giao dịch](giao-dich.md). Số lệnh trúng trong thành tích chỉ đếm đề xuất đóng ở mục tiêu và còn giữ được lãi: mục tiêu mà phần còn lại trả lại lãi thì tính là trượt.
+chọn trên cùng mã, cùng ngày. Quy tắc, cùng cỡ mẫu tối thiểu để có tỉ lệ, nằm ở [giao dịch](giao-dich.md). Số lệnh trúng trong thành tích chỉ đếm đề xuất đóng ở mục tiêu và còn giữ được lãi: mục tiêu mà phần còn lại trả lại lãi thì tính là trượt. Một đề xuất vào thành tích khi cửa sổ theo dõi của nó đã hết.
 
 **`max_daily_usd` - phần của hôm nay.** Dưới `[budget] max_daily_usd`, mỗi agent có thể có mức trần riêng. Xem
 [mức trần theo agent](ngan-sach.md#mức-trần-theo-agent).

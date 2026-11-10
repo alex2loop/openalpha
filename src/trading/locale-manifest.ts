@@ -42,8 +42,6 @@ import {
   DELIVERY_ERROR_CODES,
   HOLD_REASON_CODES,
   INSTRUMENT_STATUSES,
-  PORTFOLIO_EVIDENCE_KINDS,
-  PORTFOLIO_FINDING_KINDS,
   REDUCE_REASON_CODES,
 } from '@/trading/kernel/caveat'
 import { DEBATE_WAVES, LEAN_DEBATE_REASONS } from '@/trading/kernel/config'
@@ -99,6 +97,10 @@ import {
   RISK_LEVELS,
 } from '@/trading/kernel/operator/profile'
 import { OUTCOME_VERDICTS } from '@/trading/kernel/outcome-verdict'
+import {
+  PORTFOLIO_EVIDENCE_KINDS,
+  PORTFOLIO_FINDING_KINDS,
+} from '@/trading/kernel/portfolio-finding'
 import { SCREEN_CAUTION_CODES, WATCHLIST_DROP_REASONS } from '@/trading/kernel/screen-codes'
 import {
   SOURCE_FRESHNESS,

@@ -10,6 +10,7 @@ import type {
 } from '@/trading/features/suggestion/track-record/agreement'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { AgentFocus, FocusKey } from '@/trading/kernel/operator/focus'
+import type { MarketRegistry } from '@/trading/markets/types'
 import { ValidationError } from '@/core/errors'
 import { dayInZone, MS_PER_DAY } from '@/core/utils/time'
 import { MAXIMUM_OUTCOME_LOOKBACK_DAYS } from '@/trading/features/suggestion/pipeline/outcome-window'
@@ -22,6 +23,7 @@ import {
   summarizeAgreement,
   summarizeOverlaps,
 } from '@/trading/features/suggestion/track-record/agreement'
+import { splitByMaturity } from '@/trading/features/suggestion/track-record/maturity'
 import { tradingDay } from '@/trading/kernel/instrument'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
 import { isWinningReturn, outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
@@ -29,6 +31,7 @@ import { isWinningReturn, outcomeVerdictOf } from '@/trading/kernel/outcome-verd
 interface AgentRecordDeps {
   readonly store: Pick<SuggestionStore, 'listLeanCalls' | 'listCallActions'>
   readonly agentFocuses: Pick<AgentFocusStore, 'listAll'>
+  readonly markets: MarketRegistry
 }
 
 interface ReadOptions {
@@ -97,7 +100,7 @@ function toCounts(rows: readonly RecordCounts[]): RecordCounts {
 }
 
 /** Each focus's own calls, repeats folded as `/reflect` folds them, so the two never disagree on a
- *  focus's sample. */
+ *  focus's sample. A call whose window is still open is not counted yet. */
 function countByFocus(calls: readonly LeanCall[]): ReadonlyMap<FocusKey, RecordCounts> {
   const byFocus = new Map<FocusKey, LeanCall[]>()
 
@@ -182,7 +185,9 @@ async function readRecordInputs(
 
   return {
     focuses,
-    counts: countByFocus(scored),
+    counts: countByFocus(
+      splitByMaturity(scored, { markets: deps.markets, now: options.now }).mature
+    ),
     agreements: new Map(summarizeAgreement(comparisons).map((row) => [row.focusKey, row])),
     overlapping: summarizeOverlaps(comparisons).filter(isOverlapping),
   }

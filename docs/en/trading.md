@@ -276,6 +276,7 @@ Five stages, in order: **detect, factors, debate, stages, persist**.
 - **Confidence only moves down.** The debate may lower it; nothing raises it.
 - Every suggestion records its strategy version and calculation versions, including the skill versions. Editing a skill splits the recorded populations exactly as editing a strategy does.
 - Every stored debate lists the chat models that answered its roles, so a model swap splits the track record too.
+- A change to a market's strategy policy also starts a separate record.
 
 A run ends in one of four ways:
 
@@ -504,7 +505,7 @@ Everything that looks up "the previous call" does it per focus: the cooldown and
 - Every focus is scored.
 - A restated price history voids every focus's open calls on that name.
 
-The calibration that tempers conviction and sizes a buy reads only calls whose window has finished, so quick stop-outs cannot make the record look worse than it is.
+Every rate on every surface reads only calls whose window has finished: the calibration that tempers conviction and sizes a buy, `/reflect`, and the office and model records. A quick stop-out therefore cannot make the record look worse than it is before the winners have had their time.
 
 A name outside the calling agent's focus is refused before any model call, and the refusal names the focus. The agent's screen is narrowed to its markets and sectors before ranking, so its board and header count the sector, not the whole market. `/suggest`, the brief, `/suggest stops` and recorded plans always use your own focus.
 
@@ -523,6 +524,7 @@ If the benchmark comes from a stale cache, or ends more than a session before th
 
 **Window.** A call is read at the end of its own holding window.
 
+- A call joins the record only once its window has passed: 4 weeks for a short horizon, a quarter for a long one. `/reflect` ends with how many calls already hit a level but are still inside their window; they are counted when it closes.
 - A call left pending while the daemon was off, even past the one-year lookback, is still scored as it would have been at the time.
 - If the bars for that window no longer exist, the call closes with no result (not a flat `expired`) and stays out of every scored count. `/reflect` counts it together with the rows closed by a restated price history.
 

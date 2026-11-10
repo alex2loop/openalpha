@@ -5030,6 +5030,8 @@
     "caveat.reporting.mixed-strategy-versions": "Kết quả này đến từ nhiều phiên bản chiến lược khác nhau, nên đừng đọc tổng số quá chặt.",
     "caveat.reporting.repeats-folded": "Có {count} đề xuất chỉ lặp lại đề xuất còn mở trên cùng mã, nên mình gộp vào đề xuất đầu: mỗi nhịp giá tính một lần.",
     "caveat.reporting.repeats-foldedOne": "Có {count} đề xuất chỉ lặp lại đề xuất còn mở trên cùng mã, nên mình gộp vào đề xuất đầu: mỗi nhịp giá tính một lần.",
+    "caveat.reporting.awaiting-window": "Còn {count} đề xuất đã chạm mức nhưng chưa hết thời hạn theo dõi; mình tính khi hết hạn.",
+    "caveat.reporting.awaiting-windowOne": "Còn {count} đề xuất đã chạm mức nhưng chưa hết thời hạn theo dõi; mình tính khi hết hạn.",
     "caveat.reporting.shadow-approximation": "Mức đóng góp mô phỏng là xấp xỉ tuần tự: chưa mô hình hóa các vị thế chồng lấn và phần tiền mặt nhàn rỗi.",
     "hold.stage-blocked": "Một bước kiểm tra bắt buộc đã chặn ý tưởng này - không giao dịch còn hơn giao dịch chưa được kiểm chứng.",
     "hold.insufficient-data": "Chưa đủ dữ liệu để đánh giá công bằng hôm nay: mã còn mới, hoặc máy chưa nạp đủ lịch sử giá. Nếu chưa chạy /refresh thì chạy trước rồi hỏi lại; còn không, đợi lần cập nhật tới.",

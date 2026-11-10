@@ -14,11 +14,13 @@ import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
 import { assertNotAborted } from '@/core/errors'
 import { readableRow } from '@/trading/features/suggestion/store/readable-row'
 import { buildResolvedWhere } from '@/trading/features/suggestion/store/suggestion-outcome'
-import { calculationVersionSchema } from '@/trading/features/suggestion/store/suggestion-payload'
+import {
+  calculationVersionSchema,
+  readableHorizonSchema,
+} from '@/trading/features/suggestion/store/suggestion-payload'
 import { suggestionId } from '@/trading/features/suggestion/types'
 import { OUTCOME_STATUSES, SUGGESTION_ACTIONS } from '@/trading/kernel/conviction'
 import { ticker as brandTicker, marketRef, tradingDay } from '@/trading/kernel/instrument'
-import { INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
 import { toMember } from '@/trading/kernel/store/store-payload'
 import { parseJson, requireColumn } from '@/trading/kernel/store/store-row'
 
@@ -84,16 +86,6 @@ export interface LeanCallOptions {
   readonly signal: AbortSignal
 }
 
-export function leanCallColumns(dialect: Dialect): string {
-  const fields = PAYLOAD_FIELDS.map((field) =>
-    dialect.name === 'postgres'
-      ? `payload::jsonb ->> '${field.path}' AS ${field.column}`
-      : `json_extract(payload, '$.${field.path}') AS ${field.column}`
-  )
-
-  return [LEAN_COLUMNS, ...fields].join(', ')
-}
-
 /** Every scored call `listResolved` reads for the same filters, with no row limit so a busy book is
  *  never cut short. The caller folds repeats with `independentCalls`, the one owner of that rule.
  *  A row whose payload names no readable horizon or versions leaves the read, logged once. */
@@ -114,6 +106,16 @@ export async function listLeanCalls(
   return rows.flatMap((row) => readableRow(row, toLeanCall, deps.logger))
 }
 
+export function leanCallColumns(dialect: Dialect): string {
+  const fields = PAYLOAD_FIELDS.map((field) =>
+    dialect.name === 'postgres'
+      ? `payload::jsonb ->> '${field.path}' AS ${field.column}`
+      : `json_extract(payload, '$.${field.path}') AS ${field.column}`
+  )
+
+  return [LEAN_COLUMNS, ...fields].join(', ')
+}
+
 export function toLeanCall(row: LeanCallRow): LeanCall {
   const formulaVersion = row.formula_version
 
@@ -124,10 +126,8 @@ export function toLeanCall(row: LeanCallRow): LeanCall {
     instrument: { market: marketRef(row.market), ticker: brandTicker(row.ticker) },
     at: tradingDay(row.day),
     action: toMember<SuggestionAction>(row.action, SUGGESTION_ACTIONS, 'suggestion action'),
-    horizon: toMember<InvestmentHorizon>(
-      requireColumn(row.horizon, `suggestion ${row.id} has no horizon`),
-      INVESTMENT_HORIZONS,
-      'horizon'
+    horizon: readableHorizonSchema.parse(
+      requireColumn(row.horizon, `suggestion ${row.id} has no horizon`)
     ),
     strategyVersion: row.strategy_version,
     calculationVersions: parseJson(

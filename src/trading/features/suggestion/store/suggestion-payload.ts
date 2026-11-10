@@ -65,7 +65,7 @@ const instrumentKindSchema = z.enum(INSTRUMENT_KINDS)
 // row with it. The string arm is what makes this a rename and not a gap: the field must still hold
 // a string, so a missing or non-string one is still the storage failure it always was.
 const readableBandSchema = readableEnum(convictionBandSchema, 'low')
-const readableHorizonSchema = readableEnum(horizonSchema, 'short')
+export const readableHorizonSchema = readableEnum(horizonSchema, 'short')
 const readableRiskLevelSchema = readableEnum(riskLevelSchema, 'conservative')
 const readableGoalSchema = readableEnum(investmentGoalSchema, 'preserve')
 

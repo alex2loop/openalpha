@@ -8,11 +8,9 @@ import type {
 import type { CalibrationBucket } from '@/trading/features/suggestion/track-record/calibration'
 import type { Suggestion } from '@/trading/features/suggestion/types'
 import type { DebateMode, LeanDebateReason } from '@/trading/kernel/config'
-import type { TradingDay } from '@/trading/kernel/instrument'
 import { exposureOf } from '@/trading/features/suggestion/pipeline/concentration'
 import { bookHoldOf } from '@/trading/features/suggestion/pipeline/direction'
 import { calculationVersionsFor } from '@/trading/features/suggestion/pipeline/draft'
-import { outcomeWindowSessions } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { OUTCOME_FORMULA_VERSION } from '@/trading/features/suggestion/pipeline/outcomes'
 import {
   MINIMUM_TRACK_RECORD_SAMPLE,
@@ -22,7 +20,6 @@ import {
 import { roundTripWindowStart } from '@/trading/features/suggestion/pipeline/round-trip'
 import { readScoredPopulation } from '@/trading/features/suggestion/track-record/population'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
-import { resolveSettledDay } from '@/trading/markets/calendar'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** Scoped to this market, strategy version, side and horizon, to the calculation versions this run
@@ -44,7 +41,6 @@ export async function loadCalibration(
       debateDepthFor(options, gated.draft).mode
     )
   )
-  const cutoff = maturedCutoffOf(options, prepared)
   const population = await readScoredPopulation(options.deps, {
     market: prepared.draft.instrument.market,
     strategyVersion: prepared.draft.strategyVersion,
@@ -52,25 +48,16 @@ export async function loadCalibration(
     focusKeys: [options.request.focus.key],
     action: framedDirectionOf(prepared.draft),
     limit: SURFACE_LIMITS.maximumTrackRecordItems,
+    markets: options.deps.markets,
+    now: options.request.now,
     signal: options.request.signal,
     isIncluded: (call) =>
-      call.at <= cutoff &&
       call.horizon === prepared.horizon &&
       call.outcome.formulaVersion === OUTCOME_FORMULA_VERSION &&
       versionKey(call.strategyVersion, call.calculationVersions) === versions,
   })
 
   return summarizeTrackRecord(population, MINIMUM_TRACK_RECORD_SAMPLE).calibration
-}
-
-/** A call on or before this day has a full holding window of settled sessions behind it, the same
- *  window the scorer measures, so a quick stop-out never counts before its peers could have won. The
- *  settled day rather than today's date keeps a session still trading from counting as elapsed. */
-function maturedCutoffOf(options: SuggestionRunOptions, prepared: Prepared): TradingDay {
-  const { calendar, defaultCalendar } = prepared.market.manifest
-  const settled = resolveSettledDay(calendar, options.request.now)
-
-  return calendar.addTradingDays(settled, -outcomeWindowSessions(defaultCalendar, prepared.horizon))
 }
 
 interface DebatePlanInput {
