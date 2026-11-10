@@ -418,6 +418,10 @@ from the hand-written service below, which stays the way to run an API server.
 
 Run the daemon on a server you own and point a client app at it.
 
+Give it 1 GB of memory. An idle daemon holds about 120 MB. Each market-data refresh reads the whole
+Vietnamese board, so after the first one it settles near 350 MB, and it peaks around 550 MB while
+the board is rebuilt. A 512 MB server runs out on those days.
+
 1. **Install.** On Linux or macOS, run the install script from the
    [README](../../README.md#quick-start) with `OPENALPHA_NO_ONBOARD=1` set. The
    command it installs is the path `command -v openalpha` prints (by default
