@@ -602,18 +602,21 @@ with the composite, factor scores, close and the providers the board was read fr
 A factor is judged against the market, never against zero. In a falling tape every bearish reading would look right and every bullish one wrong, and that measures the market's move, not the factor. So on the board block a reading counts as right when the name beat the board's average for that session after a positive read and trailed it after a negative one, and the average shown is how far it landed from that session average. The suggestions block does the same against the index each call was scored on. A name that matches its baseline exactly is neither right nor wrong but still counts in the total, and a row with no baseline is left out. On the names suggested, crypto calls are measured against BTC, and bought alts usually move more than BTC, so a bearish reading can look right there simply because alts fell harder; read crypto's per-factor record alongside the board section, which compares each name with that session's board average.
 
 A research script measures the VN factors on history ([developer page](dev/trading.md)). Measured over
-2025-01 to 2026-07, it explains three choices:
+2025-01 to 2026-07, it explains four choices:
 
 - why the VN stock composite carries no `size` or `sector-strength`;
 - why `quality` is read but carries no weight in the score;
-- why the confidence cut points are fitted on its 75 weekly boards.
+- why `trend` is read but carries no weight in the score;
+- why the confidence cut points are fitted on its 79 weekly boards.
 
 Over that stretch, a sector that had already run picked weaker names, and the best-run businesses did
 not beat the board. Both pulled medium-confidence buys back to where low ones sat. The population is
 today's listings, so read it as a shape, not a precise figure.
 
 Quality still prints on the profit and health lines, still shortlists theme names, and still decides a
-long holding's thesis sale where no annual report scores.
+long holding's thesis sale where no annual report scores. Trend still prints in the factor table and on
+the checklist's trend row; it did not rank the board in either half, and the composite ranked better
+without it.
 
 Sometimes a name stops trading while its market's benchmark keeps printing. Once the benchmark has printed ten sessions without it and reached the window end, the call resolves at the name's last close, marked as stopped. `/reflect` says how many. Nothing is filled in by guesswork.
 

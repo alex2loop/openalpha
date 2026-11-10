@@ -605,11 +605,12 @@ phiếu, kèm chỉ số tổng hợp, điểm yếu tố, giá đóng và các 
 Một yếu tố được chấm so với thị trường, không so với mức 0. Khi thị trường đi xuống, mọi tín hiệu tiêu cực đều trông như đúng và mọi tín hiệu tích cực đều trông như sai, và đó là đo nhịp của thị trường, không phải đo yếu tố. Nên ở khối của bảng, một tín hiệu được tính là đúng khi mã mạnh hơn trung bình bảng cùng phiên sau tín hiệu tích cực, hoặc yếu hơn sau tín hiệu tiêu cực; con số bình quân là mức chênh so với trung bình cùng phiên ấy. Khối đề xuất làm tương tự, so với chỉ số mà mỗi đề xuất được chấm. Mã đi đúng bằng mốc so sánh thì không đúng cũng không sai nhưng vẫn nằm trong tổng, còn dòng không có mốc so sánh thì bị loại. Với các mã được đề xuất, lệnh crypto được đo so với BTC, mà altcoin được mua thường biến động mạnh hơn BTC, nên một tín hiệu tiêu cực có thể trông đúng ở đó chỉ vì altcoin giảm mạnh hơn; hãy đọc kết quả từng yếu tố của crypto cùng với phần bảng, nơi mỗi mã được so với trung bình bảng của phiên đó.
 
 Một script nghiên cứu đo các yếu tố VN trên lịch sử ([trang dành cho lập trình viên](dev/giao-dich.md)).
-Đo trên 2025-01 tới 2026-07, nó giải thích ba lựa chọn:
+Đo trên 2025-01 tới 2026-07, nó giải thích bốn lựa chọn:
 
 - lý do chỉ số tổng hợp cổ phiếu VN không mang `size` hay `sector-strength`;
 - lý do `quality` được đọc nhưng không có trọng số trong điểm;
-- lý do các điểm cắt mức tin cậy được khớp trên 75 bảng hằng tuần.
+- lý do `trend` được đọc nhưng không có trọng số trong điểm;
+- lý do các điểm cắt mức tin cậy được khớp trên 79 bảng hằng tuần.
 
 Trong giai đoạn đó, một ngành đã chạy trước chọn ra các mã yếu hơn, và các doanh nghiệp chạy tốt nhất
 không thắng bảng. Cả hai kéo các lệnh mua tin cậy trung bình về chỗ lệnh tin cậy thấp đứng. Tập mẫu là
@@ -617,7 +618,8 @@ các mã niêm yết hôm nay, nên hãy đọc nó như một hình dạng, kh�
 
 Chất lượng vẫn in trên các dòng lợi nhuận và sức khỏe, vẫn lập danh sách ngắn cho các mã theo chủ đề,
 và vẫn quyết định lệnh bán theo luận điểm của một khoản nắm dài hạn khi không có báo cáo năm nào để
-chấm.
+chấm. Xu hướng vẫn in trong bảng yếu tố và trên dòng xu hướng của danh sách kiểm; nó không xếp được bảng ở nửa nào,
+và chỉ số tổng hợp xếp tốt hơn khi không có nó.
 
 Đôi khi một mã ngừng giao dịch trong khi chuẩn của thị trường vẫn chạy. Khi chuẩn đã có mười phiên mà không có mã đó và đã tới cuối cửa sổ, đề xuất được chốt ở giá đóng cuối của mã, đánh dấu là đã dừng. `/reflect` báo bao nhiêu mã. Không gì được điền bằng phỏng đoán.
 
