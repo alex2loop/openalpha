@@ -45,11 +45,7 @@ import { toAggregate } from '@/trading/wiring/composition/aggregate'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
 import { bindHostSeams } from '@/trading/wiring/composition/host-seams'
 import { buildMarketTicks } from '@/trading/wiring/composition/market-ticks'
-import {
-  buildRefreshCoordinator,
-  type buildRefreshTick,
-  resolveMarketsInUse,
-} from '@/trading/wiring/composition/refresh'
+import { buildRefreshCoordinator, resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
 import { buildRegistries } from '@/trading/wiring/composition/registries'
 import { assertRegistryConsistency } from '@/trading/wiring/composition/registry-checks'
 import { createDomainServices } from '@/trading/wiring/composition/services'
@@ -59,7 +55,8 @@ import { createTradingHooks } from '@/trading/wiring/profile-context'
 /** Only what the container cannot supply. Everything else — the logger, the runner, the locale,
  *  the budget policy — is resolved from `App` inside the lazy factory, so nothing here duplicates
  *  a value the container already owns. */
-interface TradingRegistrationOptions {
+interface TradingRegistrationOptions
+  extends Pick<Parameters<typeof buildMarketTicks>[1]['host'], 'processMemory'> {
   readonly tradingConfig: TradingConfig
   /** Injected, never read from `process`: source credentials resolve from named variables the
    *  code owns, so the value reaches the transport without passing through a config object. */
@@ -104,8 +101,6 @@ interface TradingRegistrationOptions {
     credential: PublicBriefCredential,
     logger: Logger
   ): PublicBriefPublisher
-  /** The daemon reads its own process; the page leaves it out. */
-  readonly processMemory?: NonNullable<Parameters<typeof buildRefreshTick>[0]['processMemory']>
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider
