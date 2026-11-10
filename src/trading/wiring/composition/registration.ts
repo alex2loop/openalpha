@@ -4,7 +4,7 @@ import type { ReachabilityProbe } from '@/core/limits'
 import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
 import type { Hooks } from '@/engine/api'
-import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { ProcessMemory, RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { DebateDeps } from '@/trading/features/suggestion/debate/call'
 import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
 import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
@@ -87,6 +87,8 @@ interface TradingRegistrationOptions {
   edition?(app: App): TradingEdition
   /** How the loops tell the network is up: the daemon resolves a name. */
   readonly reachability: ReachabilityProbe
+  /** The daemon reads its own process; the page leaves it out. */
+  readonly processMemory?: () => ProcessMemory
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider
@@ -226,7 +228,7 @@ function buildTrading(app: App, provided: TradingRegistrationOptions): BuiltTrad
     stores,
     services,
     refresh: coordinator.refresh,
-    scheduled: options,
+    host: options,
     logger,
   })
 

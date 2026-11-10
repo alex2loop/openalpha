@@ -61,6 +61,13 @@ export type RefreshMarketData = (
   options: RefreshMarketDataOptions
 ) => Promise<RefreshMarketDataResult>
 
+/** What the process holds, read by a host that has one; the page has none. */
+export interface ProcessMemory {
+  readonly rssBytes: number
+  readonly peakRssBytes: number
+  readonly heapUsedBytes: number
+}
+
 interface InFlightRefresh {
   readonly forced: boolean
   readonly flight: SharedFlight<RefreshMarketDataResult>
@@ -169,6 +176,8 @@ interface RefreshOperationDeps {
   readonly recordTradeSides: TradeSidesSweep
   /** Shows a scheduled pass as the `/refresh` run, so the page sees the daemon's own sweeps. */
   readonly runScheduled: ScheduledRunner
+  /** Absent in the browser, which has no process to read. */
+  readonly processMemory?: () => ProcessMemory
   readonly logger: Logger
 }
 
@@ -215,7 +224,7 @@ async function sweepMarkets(
     )
   )
 
-  logRefreshed(deps.logger, options.forced ?? false, results)
+  logRefreshed(deps, options.forced ?? false, results)
 
   return deps.recordTradeSides(results, options.signal)
 }
@@ -242,17 +251,20 @@ async function marketsInUse(
 /** Every refresh leaves one line, degraded or not: what a kind decided — replaced, skipped as
  *  fresh, or fell short — is only answerable after the fact from a trace of the runs themselves. */
 function logRefreshed(
-  logger: Logger,
+  deps: Pick<RefreshOperationDeps, 'logger' | 'processMemory'>,
   forced: boolean,
   results: readonly RefreshMarketDataResult[]
 ): void {
-  logger.info('trading.market_data_refreshed', {
+  const memory = deps.processMemory?.()
+
+  deps.logger.info('trading.market_data_refreshed', {
     forced,
     markets: results.map((result) => ({
       market: result.market,
       elapsedMs: Math.round(result.elapsedMs),
       kinds: result.results.map(kindFields),
     })),
+    ...(memory === undefined ? {} : { memory }),
   })
 }
 

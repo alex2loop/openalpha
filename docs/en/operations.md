@@ -90,6 +90,9 @@ repaired on their own cooldown.
 
 Every run logs one `trading.market_data_refreshed` line with how long each market took. A market
 that loads several kinds also gives the time of each kind, so a slow refresh points at its own cause.
+The same line carries `memory`, what the process holds in bytes: `rssBytes` is the memory it holds
+in the machine's RAM right now (resident), `peakRssBytes` is the most it has held since it started,
+and `heapUsedBytes` is the part used by live data (heap).
 
 ### What you can tune
 
@@ -422,6 +425,7 @@ Give it 512 MB of memory. An idle daemon holds about 100 MB. The Vietnamese boar
 at a time and only a short summary of each stock is kept, so after the first read the daemon settles
 near 150 to 200 MB and peaks around 300 MB while the board is rebuilt. Servers smaller than 512 MB are
 untested.
+To see what your own server holds, read `memory` on the latest `trading.market_data_refreshed` line.
 
 1. **Install.** On Linux or macOS, run the install script from the
    [README](../../README.md#quick-start) with `OPENALPHA_NO_ONBOARD=1` set. The
