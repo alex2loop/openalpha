@@ -16,11 +16,10 @@ import { factorComposite } from '@/trading/kernel/factor'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { countBands } from '@/trading/markets/conviction-calibration'
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
-import { supervisionCaveats } from '@/trading/markets/equity-vn/evidence/supervision'
+import { judgedSupervisionCaveats } from '@/trading/markets/equity-vn/evidence/supervision'
 import { latestNameSession, scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
 import { boardReadings } from '@/trading/markets/equity-vn/factors/name-context'
 import { DEFAULT_SCREEN_KIND } from '@/trading/markets/equity-vn/policy'
-import { exchangeOf } from '@/trading/markets/equity-vn/screen'
 import { rankSurvivors } from '@/trading/markets/equity-vn/screen-rank'
 import { partitionByGate } from '@/trading/markets/screen-partition'
 
@@ -108,13 +107,7 @@ function screenCaveats(
   eligible: readonly NameEvidence[],
   candidates: readonly ScreenCandidate[]
 ): readonly Caveat[] {
-  const boards = new Set(eligible.map((name) => exchangeOf(name.record)))
-
-  return [
-    ...cross.caveats,
-    ...supervisionCaveats(cross.supervisionCoverage, boards),
-    ...staleFactorCaveats(candidates),
-  ]
+  return [...judgedSupervisionCaveats(cross, eligible), ...staleFactorCaveats(candidates)]
 }
 
 /** The scored reads the rank walks, in one pass over the survivors. */

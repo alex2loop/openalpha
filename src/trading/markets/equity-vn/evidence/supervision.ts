@@ -1,5 +1,6 @@
 import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
+import type { InstrumentRecord } from '@/trading/kernel/market/market-data'
 import type { SupervisionLevel, SupervisionSnapshot } from '@/trading/kernel/market/supervision'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { VnExchange } from '@/trading/markets/equity-vn/policy'
@@ -7,6 +8,7 @@ import { flightCache } from '@/core/utils/concurrency'
 import { canonicalJson, hashString } from '@/core/utils/hash'
 import { severest } from '@/trading/kernel/market/supervision'
 import { ADMITTED_EXCHANGES, VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
+import { exchangeOf } from '@/trading/markets/equity-vn/screen'
 import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
 import { CAVEAT_SUBJECT_SEPARATOR } from '@/trading/render/format'
 
@@ -115,10 +117,21 @@ export function toSupervisionStamp(read: SupervisionRead): string {
   )
 }
 
+/** What a surface owes the reader for the names it judged: the read's own caveats, then what it
+ *  missed on the boards those names sit on. */
+export function judgedSupervisionCaveats(
+  read: { readonly caveats: readonly Caveat[]; readonly supervisionCoverage: SupervisionCoverage },
+  judged: readonly { readonly record: InstrumentRecord }[]
+): readonly Caveat[] {
+  const boards = new Set(judged.map((name) => exchangeOf(name.record)))
+
+  return [...read.caveats, ...supervisionCaveats(read.supervisionCoverage, boards)]
+}
+
 /** What the read missed over the boards the caller's population actually occupies. Derived per
  *  caller rather than once per pass: an ETF board is HOSE-only, and an HNX outage that touched no
  *  name it ranked is a gap in nothing. */
-export function supervisionCaveats(
+function supervisionCaveats(
   coverage: SupervisionCoverage,
   population: ReadonlySet<VnExchange>
 ): readonly Caveat[] {
