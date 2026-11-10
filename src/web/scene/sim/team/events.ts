@@ -3,6 +3,7 @@ import type { Member } from '@/web/scene/sim/team/members'
 import type { Point } from '@/web/scene/types'
 import { childActorIdOf } from '@/web/scene/sim/actors/roster'
 import { placeWalker } from '@/web/scene/sim/actors/walk'
+import { callToneOf } from '@/web/scene/sim/call-tone'
 import { handOverOf } from '@/web/scene/sim/team/children'
 import { sendTo } from '@/web/scene/sim/team/members'
 import {
@@ -77,10 +78,10 @@ function onAgentAdded(state: TeamState, event: WireEvent): void {
 
 // Only an own agent's focus call is scored at its desk; an expired one shows nothing.
 function onCallScored(state: TeamState, event: WireEvent): void {
-  const status = event.call?.status
+  const tone = event.call === undefined ? undefined : callToneOf(event.call.verdict)
   const member = agentMemberOf(state, event.source.agentId)
 
-  if (member === undefined || (status !== 'target' && status !== 'stop')) {
+  if (member === undefined || tone === undefined) {
     return
   }
 
@@ -89,7 +90,7 @@ function onCallScored(state: TeamState, event: WireEvent): void {
 
   setCapped(
     state.bursts,
-    [member.id, { at, tone: status, since: nowMs, untilMs: nowMs + BURST_MS }],
+    [member.id, { at, tone, since: nowMs, untilMs: nowMs + BURST_MS }],
     MAX_BURSTS
   )
 }
