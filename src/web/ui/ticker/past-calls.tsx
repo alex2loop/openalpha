@@ -5,6 +5,7 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
 import { locale, state } from '@/web/state/session'
 import { formatSignedPercent, PERCENT, toneOfPercent } from '@/web/text/figures'
+import { outcomeNameOf } from '@/web/text/outcome'
 import { tr } from '@/web/text/tr'
 import { ClockIcon } from '@/web/ui/kit/icons'
 import { openWhy } from '@/web/ui/ticker/why-dialog'
@@ -88,7 +89,7 @@ function PastRow({ call }: { readonly call: Call }) {
         <b>{tr(`trading.action.${call.action}`)}</b>{' '}
         {outcome === undefined
           ? tr('ui.office.ticker.outcome.open')
-          : tr(`trading.outcome.${outcome.verdict}`)}
+          : tr(`trading.outcome.${outcomeNameOf(outcome)}`)}
       </span>
       <span class="meta">{formatDay(locale.value, call.at)}</span>
       {move === undefined ? (
@@ -103,7 +104,9 @@ function PastRow({ call }: { readonly call: Call }) {
 // The daemon's own minimum says when a rate starts to mean something.
 function PastSummary({ calls }: { readonly calls: readonly Call[] }) {
   const scored = calls.filter((call) => call.outcome !== undefined)
-  const hit = scored.filter((call) => call.outcome?.verdict === 'target').length
+  const hit = scored.filter(
+    (call) => call.outcome !== undefined && outcomeNameOf(call.outcome) === 'target'
+  ).length
   const minimum = state.value?.trackRecordMinSample
 
   if (scored.length === 0) {

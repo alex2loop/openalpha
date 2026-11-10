@@ -400,6 +400,44 @@
   },
   {
     "v": 1,
+    "kind": "call_scored",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "The buy call on MWG from 14/09/2026 hit its stop after it had risen: +1.2% net of fees. It counts as a win. VNINDEX over the same span: -0.8%.",
+    "call": {
+      "suggestionId": "01a1199a-e001-7a00-9c00-000000000004",
+      "ticker": "MWG",
+      "market": "equity-vn",
+      "action": "buy",
+      "status": "stop",
+      "verdict": "stop-in-profit",
+      "returnPct": 0.012,
+      "benchmark": { "ticker": "VNINDEX", "returnPct": -0.008 },
+      "focusKey": "default",
+      "day": "2026-09-14"
+    }
+  },
+  {
+    "v": 1,
+    "kind": "call_scored",
+    "weight": "nudge",
+    "source": { "channel": "api", "agentId": "" },
+    "note": "The buy call on FPT from 15/09/2026 reached its target but gave the gain back: -0.4% net of fees. It counts as a miss. VNINDEX over the same span: +0.6%.",
+    "call": {
+      "suggestionId": "01a1199a-e001-7a00-9c00-000000000005",
+      "ticker": "FPT",
+      "market": "equity-vn",
+      "action": "buy",
+      "status": "target",
+      "verdict": "target-gave-back",
+      "returnPct": -0.004,
+      "benchmark": { "ticker": "VNINDEX", "returnPct": 0.006 },
+      "focusKey": "default",
+      "day": "2026-09-15"
+    }
+  },
+  {
+    "v": 1,
     "kind": "schedule_result",
     "weight": "sneak",
     "source": { "channel": "api", "agentId": "" },

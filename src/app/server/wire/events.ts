@@ -6,6 +6,7 @@
 import type { Decision } from '@/app/server/wire/chat'
 import type { ProgressWire, RunStartWire } from '@/app/server/wire/live'
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
+import type { OutcomeVerdict } from '@/app/server/wire/vocab'
 
 export type Channel = 'cli' | 'telegram' | 'cron' | 'api'
 
@@ -188,7 +189,8 @@ export interface WireEvent {
     readonly market: string
     readonly action: string
     readonly status: 'target' | 'stop' | 'expired'
-    readonly verdict: 'target' | 'target-gave-back' | 'stop' | 'stop-in-profit' | 'expired'
+    /** The result's name, `status` refined by `returnPct`. Absent from an older daemon. */
+    readonly verdict?: OutcomeVerdict
     readonly returnPct: number
     readonly benchmark?: { readonly ticker: string; readonly returnPct: number }
     readonly focusKey: string

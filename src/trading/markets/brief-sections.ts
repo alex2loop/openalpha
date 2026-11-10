@@ -114,6 +114,7 @@ export async function buildResolvedSuggestions(context: BriefContext): Promise<B
         rows.map((row) => ({
           ticker: row.instrument.ticker,
           at: row.at,
+          status: row.outcome.status,
           verdict: outcomeVerdictOf(row.outcome),
           returnPct: row.outcome.returnPct,
         })),

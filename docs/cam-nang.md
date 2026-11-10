@@ -914,7 +914,7 @@ Ngắn gọn: bảng điểm tháng là lời nhắc tự động, `/reflect` l�
 
 `/reflect` trả lời câu hỏi khó chịu nhưng cần thiết: **các gợi ý cũ có đúng không?**
 
-Chỉ đề xuất **có hành động** (mua hoặc giảm) và **đã chốt kết quả** được tính. Kết quả "giữ nguyên"
+Chỉ đề xuất **có hành động** (mua hoặc giảm), **đã chốt kết quả** và **đã hết cửa sổ theo dõi** được tính. Kết quả "giữ nguyên"
 không bao giờ vào bảng thành tích - hệ thống chặn cứng, không dựa vào quy ước.
 
 #### Một đề xuất chốt kết quả như thế nào
@@ -926,9 +926,24 @@ Tác vụ nền chạy mười hai tiếng một lần, đối chiếu từng đ
   ra đề xuất.
 - Trong mỗi phiên, **cắt lỗ được kiểm trước chốt lời**. Một cây nến ngày không cho biết đỉnh hay đáy
   đến trước, nên hệ thống chọn cách đọc bất lợi hơn - không tô hồng thành tích.
-- Ba kết cục: **chạm mục tiêu**, **chạm cắt lỗ**, hoặc **hết hạn** (thoát ở giá đóng cửa phiên cuối).
+- Năm kết quả, gọi tên theo cả cách đề xuất đóng lẫn con số lãi lỗ cuối cùng:
+  - **Chốt lời**: chạm mục tiêu và giữ được lãi - tính là trúng.
+  - **Chốt một phần, phần còn lại trả lại lãi**: lệnh đã chốt một phần ở mục tiêu, nhưng phần giữ lại
+    trượt xuống, nên cả lệnh về 0 hoặc lỗ - tính là trượt dù giá từng chạm mục tiêu.
+  - **Đi ngược kế hoạch**: chạm mức cắt lỗ - tính là trượt.
+  - **Thoát ở mức dừng đã nâng, vẫn có lãi**: mức dừng được kéo lên cao hơn giá vào rồi mới bị chạm, nên
+    cả lệnh vẫn có lãi - tính là trúng.
+  - **Hết thời gian**: hết cửa sổ mà chưa chạm mức nào, thoát ở giá đóng cửa phiên cuối; trúng hay trượt
+    theo con số lãi lỗ.
   Nguồn có lỗ hổng và không bao giờ đủ nến thì một mốc theo số phiên đã trôi qua vẫn cho đề xuất hết
   hạn - dòng đó không chờ mãi.
+- **Chỉ tính sau khi hết cửa sổ**: một đề xuất đã chạm mức vẫn phải chờ hết cửa sổ của nó (28 ngày với
+  lệnh ngắn hạn, 91 ngày với lệnh dài hạn) mới vào bảng thành tích. Nhờ vậy một lệnh cắt lỗ sớm không làm
+  bảng trông tệ hơn thực tế trước khi các lệnh thắng kịp chạy. Cuối `/reflect` có một dòng nói còn bao
+  nhiêu đề xuất đã chạm mức nhưng đang chờ hết cửa sổ; chúng được tính khi cửa sổ khép lại.
+- Giá lịch sử bị nguồn điều chỉnh vì chia cổ tức hay phát hành thêm cổ phiếu thì đề xuất đang mở được quy
+  đổi sang thang giá mới và vẫn được tính. Nguồn viết lại lịch sử theo cách không thể chuyển kế hoạch
+  sang giá mới thì đề xuất đóng mà không có kết quả, và `/reflect` đếm riêng chúng.
 - Đề xuất **giảm tỷ trọng** tính ngược dấu: giảm đúng lúc để tránh một nhịp rơi là một lần **thắng**.
 - **Chỉ số chuẩn** neo **bên trong** khoảng nắm giữ: mở ở phiên đầu tiên từ ngày đề xuất, đóng ở phiên
   cuối cùng tính tới ngày thoát. Chỉ khi không phiên nào lọt vào khoảng đó mới báo "không có so
@@ -938,13 +953,14 @@ Tác vụ nền chạy mười hai tiếng một lần, đối chiếu từng đ
 
 | Dòng | Nội dung |
 |---|---|
-| Tổng số đề xuất | Đã đưa ra bao nhiêu, bao nhiêu đã có kết quả, bao nhiêu **vẫn đang mở** - và bao nhiêu nằm ở thị trường không có chuỗi giá nên không bao giờ được chấm. Đây là mẫu số của mọi con số bên dưới |
+| Tổng số đề xuất | Đã đưa ra bao nhiêu, bao nhiêu đã có kết quả, bao nhiêu **vẫn đang mở** - và bao nhiêu nằm ở thị trường không có chuỗi giá nên không bao giờ được chấm. Nếu có, thêm các dòng nói bao nhiêu đề xuất đã đóng mà không có kết quả (lịch sử giá bị viết lại theo cách không chuyển được, hoặc hết dữ liệu) và bao nhiêu chưa từng khớp. Đây là mẫu số của mọi con số bên dưới |
 | Tổng quan | Lợi nhuận trung bình và trung vị mỗi lệnh, tỷ lệ có lãi (kể cả lệnh đóng vì hết hạn hay dừng lỗ kéo theo mà vẫn dương), so với chỉ số chuẩn |
-| Thắng / thua | Đếm đầu: bao nhiêu lần dương, bao nhiêu lần âm |
+| Thắng / thua | Đếm đầu: bao nhiêu lần dương, bao nhiêu lần âm. Phiên nào chạm cả cắt lỗ lẫn mục tiêu đều tính là lỗ, nên tỷ lệ thật chỉ có thể cao hơn |
 | Theo mức tin cậy | Tỷ lệ thắng và lợi nhuận trung bình của từng nhóm `thấp` / `trung bình` / `cao` |
 | Cảnh báo lệch chuẩn | Hiện khi nhóm "tin cậy cao" **không** thắng nhiều hơn nhóm "trung bình" - tức mức tin cậy đang không mang thông tin |
-| 5 kết quả gần nhất | Từng mã kèm kết cục và lợi nhuận |
-| Lưu ý | Mẫu quá nhỏ, hoặc trộn nhiều phiên bản chiến lược |
+| Theo phiên bản chiến lược | Chỉ hiện khi có từ hai phiên bản: mỗi phiên bản đã chấm bao nhiêu đề xuất. Đề xuất lặp lại chỉ được gộp trong cùng phiên bản, và danh sách tính mọi đề xuất đã qua cửa sổ nên cộng lại có thể nhiều hơn tổng ở trên |
+| 5 kết quả gần nhất | Từng mã kèm tên kết quả (một trong năm loại ở trên), lợi nhuận, ngày đóng và, nếu có, chỉ số cùng kỳ |
+| Lưu ý | Mẫu quá nhỏ, trộn nhiều phiên bản chiến lược, đề xuất lặp lại đã được gộp, và số đề xuất còn chờ hết cửa sổ |
 
 `/reflect` in cả **số đếm thắng/thua** lẫn tỷ lệ có lãi chung ("có lãi X số lần");
 bảng điểm tháng ([6.6](#66-bảng-điểm-tháng)) chỉ rút lại thành một dòng.

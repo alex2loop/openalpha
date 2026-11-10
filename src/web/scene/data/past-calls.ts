@@ -1,6 +1,7 @@
 import { effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 
 import type { SuggestionWire } from '@/app/server/wire/trading'
+import type { OutcomeVerdict } from '@/app/server/wire/vocab'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { homeMarket } from '@/web/scene/data/home'
@@ -8,6 +9,7 @@ import { toParamText } from '@/web/scene/data/room-status'
 import { setCapped } from '@/web/state/capped-map'
 import { onWireEvent } from '@/web/state/events'
 import { type Run, runs } from '@/web/state/live'
+import { outcomeNameOf } from '@/web/text/outcome'
 
 const MAX_MEMORY_READS = 20
 // The last call and the one before it.
@@ -21,7 +23,7 @@ export interface PastCall {
   readonly action: 'buy' | 'reduce'
   readonly ticker: string
   readonly day: string
-  readonly outcome: NonNullable<SuggestionWire['outcome']>['verdict']
+  readonly outcome: OutcomeVerdict
 }
 
 /** A run's recalled calls, newest close first, and when they arrived (`performance.now()`). */
@@ -126,7 +128,7 @@ function toPastCall(call: SuggestionWire): PastCall[] {
       action: call.action,
       ticker: call.instrument.ticker,
       day: call.at,
-      outcome: call.outcome.verdict,
+      outcome: outcomeNameOf(call.outcome),
     },
   ]
 }

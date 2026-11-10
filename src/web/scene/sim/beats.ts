@@ -208,7 +208,7 @@ function onToolStarted(event: WireEvent, target: BeatTarget): void {
 // head (the result decides, see `callToneOf`); an expired one passes without a word.
 function onCallScored(event: WireEvent, target: BeatTarget): void {
   const call = event.call
-  const tone = call === undefined ? undefined : callToneOf(call.verdict)
+  const tone = call === undefined ? undefined : callToneOf(call)
 
   if (call?.focusKey !== SHARED_FOCUS || tone === undefined) {
     return

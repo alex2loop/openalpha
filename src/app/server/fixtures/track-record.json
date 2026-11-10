@@ -55,6 +55,14 @@
         },
         "severity": "warn",
         "text": "Too few resolved suggestions for a reliable figure."
+      },
+      {
+        "code": "reporting.awaiting-window",
+        "data": {
+          "count": 3
+        },
+        "severity": "info",
+        "text": "3 more calls already hit a level but their window is still open; I count them when it closes."
       }
     ]
   },

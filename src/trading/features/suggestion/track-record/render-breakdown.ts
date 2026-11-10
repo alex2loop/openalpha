@@ -38,6 +38,7 @@ export function renderVersionLines(
 
   return [
     renderSectionTitle(SECTION_ICONS.breakdown, t(locale, 'trading.render.reflect.byVersion')),
+    `${INDENT[1]}${t(locale, 'trading.render.reflect.byVersionNote')}`,
     ...counts.map(
       ([version, count]) =>
         `${INDENT[1]}${t(locale, pluralKey(count, ...VERSION_LINE_KEYS), {

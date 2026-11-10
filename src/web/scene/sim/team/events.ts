@@ -78,7 +78,7 @@ function onAgentAdded(state: TeamState, event: WireEvent): void {
 
 // Only an own agent's focus call is scored at its desk; an expired one shows nothing.
 function onCallScored(state: TeamState, event: WireEvent): void {
-  const tone = event.call === undefined ? undefined : callToneOf(event.call.verdict)
+  const tone = event.call === undefined ? undefined : callToneOf(event.call)
   const member = agentMemberOf(state, event.source.agentId)
 
   if (member === undefined || tone === undefined) {

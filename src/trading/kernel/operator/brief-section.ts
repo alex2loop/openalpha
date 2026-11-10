@@ -307,12 +307,14 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
 
 /** Fields a row carries for another field's sake, never as a datum of their own: `currency` is the
  *  unit appended to the values it denominates, `observedAt` is the instant a price block reads its
- *  clock from, and `sessions` is the window the row's own labels name. Printed as fields they would
- *  state a unit twice, an epoch once, and a window nothing measured. */
+ *  clock from, `sessions` is the window the row's own labels name, and `status` is the plain result
+ *  an older client still reads beside `verdict`. Printed as fields they would state a unit twice, an
+ *  epoch once, a window nothing measured, and a result twice. */
 export const BRIEF_STRUCTURAL_FIELDS = Object.freeze([
   'currency',
   'observedAt',
   'sessions',
+  'status',
   'storyRole',
   'runKey',
 ] as const)
