@@ -415,6 +415,10 @@ vụ viết tay bên dưới, vốn vẫn là cách chạy một máy chủ API.
 
 Chạy dịch vụ nền trên máy chủ của bạn rồi cho một ứng dụng khách nối vào.
 
+Nên cấp 1 GB bộ nhớ. Lúc rảnh, dịch vụ nền giữ khoảng 120 MB. Mỗi lần làm mới dữ liệu thị trường,
+nó đọc cả bảng cổ phiếu Việt Nam, nên sau lần đầu sẽ đứng quanh 350 MB, và lên tới khoảng 550 MB
+trong lúc dựng lại bảng. Máy chủ 512 MB sẽ thiếu vào những ngày đó.
+
 1. **Cài đặt.** Trên Linux hoặc macOS, chạy script cài đặt trong
    [README](../README.vi.md#bắt-đầu-nhanh) với `OPENALPHA_NO_ONBOARD=1`. Lệnh được cài nằm ở đường
    dẫn mà `command -v openalpha` in ra (mặc định `~/.local/bin/openalpha`); unit bên dưới phải dùng
