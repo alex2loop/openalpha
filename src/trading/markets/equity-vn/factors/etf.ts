@@ -54,8 +54,9 @@ function trackingCaveats(dispersion: number | undefined): readonly Caveat[] {
     : [{ code: 'suggestion.tracking-error-wide', detail: { drift: dispersion } }]
 }
 
-/** One fund's dispersion against the index it declares, from the fund's adjusted candles. A fund with no declared benchmark, no
- *  stored index series, or too short an overlap is absent rather than zero. */
+/** One fund's dispersion against the index it declares, from the fund's adjusted candles. A fund
+ *  with no declared benchmark, no stored index series, or too short an overlap is absent rather
+ *  than zero. */
 export function etfTrackingError(
   fund: Ticker,
   fundCandles: readonly Candle[],

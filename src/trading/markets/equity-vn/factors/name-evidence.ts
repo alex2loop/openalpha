@@ -146,7 +146,8 @@ interface NameFlowReads {
   readonly proprietaryFlow20: number | null
   /** Every flow after the name's newest bar day, plus the last few at or before it: the market's
    *  newest flow days read per name, which flows running ahead of the bars would displace. Exact
-   *  only at `latestNameSession`, the only day any reader asks. */
+   *  at `latestNameSession` and the `VN_PROPRIETARY_LOOKBACK_SESSIONS` flow days before it, which
+   *  is all `proprietaryLeaders` reads. */
   readonly flowTail: readonly FlowSnapshot[]
 }
 
