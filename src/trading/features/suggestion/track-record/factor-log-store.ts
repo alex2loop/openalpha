@@ -13,6 +13,7 @@ import type { TapeSignal } from '@/trading/kernel/market/tape'
 import type { OperationTickOptions, Page } from '@/trading/kernel/store/page'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, StorageError, ValidationError } from '@/core/errors'
+import { payloadFieldSql } from '@/trading/features/suggestion/store/suggestion-lean'
 import { FACTOR_LOG_EXIT_REASONS } from '@/trading/features/suggestion/track-record/factor-log-types'
 import { CONVICTION_BANDS } from '@/trading/kernel/conviction'
 import { factorComposite, isFactorId } from '@/trading/kernel/factor'
@@ -98,8 +99,8 @@ interface FactorLogRow {
   readonly return_pct: number | null
   readonly benchmark_return_pct: number | null
   readonly exit_reason: string | null
-  /** Only `listResolved` selects it. */
-  readonly session_mean_return_pct?: number | null
+  /** Only `listResolved` selects it; a driver may hand an aggregate back as text. */
+  readonly session_mean_return_pct?: number | string | null
 }
 
 function factorLogId(raw: string): FactorLogId {
@@ -261,12 +262,21 @@ async function listResolved(
   assertNotAborted(options.signal)
 
   const p = deps.dialect.param
-  // The window runs over the WHERE set before LIMIT, so a session the limit cuts in half still
-  // carries its full mean.
+  // An empty kind groups the rows written before the payload named one; funds and shares are
+  // different boards, so each session's mean is taken within its own kind.
+  const kind = `COALESCE(${payloadFieldSql(deps.dialect, 'instrumentKind')}, '')`
+  // The mean runs over every resolved row, not the page, so a session the limit cuts in half still
+  // carries its full mean; the page itself is the only part that carries payloads.
   const rows = await deps.db.query<FactorLogRow>(
-    `SELECT *, AVG(return_pct) OVER (PARTITION BY market, day, strategy_version) ` +
-      `AS session_mean_return_pct FROM ${TABLE} WHERE resolved_at IS NOT NULL ` +
-      `ORDER BY resolved_at DESC LIMIT ${p(1)}`,
+    `WITH page AS (SELECT *, ${kind} AS board_kind FROM ${TABLE} WHERE resolved_at IS NOT NULL ` +
+      `ORDER BY resolved_at DESC LIMIT ${p(1)}), ` +
+      `means AS (SELECT market, day, strategy_version, ${kind} AS board_kind, ` +
+      `AVG(return_pct) AS session_mean_return_pct FROM ${TABLE} WHERE resolved_at IS NOT NULL ` +
+      `GROUP BY market, day, strategy_version, ${kind}) ` +
+      `SELECT page.*, means.session_mean_return_pct FROM page JOIN means ` +
+      `ON means.market = page.market AND means.day = page.day ` +
+      `AND means.strategy_version = page.strategy_version AND means.board_kind = page.board_kind ` +
+      `ORDER BY page.resolved_at DESC`,
     [options.limit]
   )
 
@@ -341,8 +351,18 @@ function toResolved(row: FactorLogRow): ResolvedFactorLogEntry {
         ? {}
         : { benchmarkReturnPct: row.benchmark_return_pct }),
     },
-    ...(typeof row.session_mean_return_pct === 'number'
-      ? { sessionMeanReturnPct: row.session_mean_return_pct }
-      : {}),
+    ...toSessionMean(row.session_mean_return_pct),
   }
+}
+
+function toSessionMean(
+  raw: number | string | null | undefined
+): { readonly sessionMeanReturnPct: number } | undefined {
+  if (raw === null || raw === undefined) {
+    return undefined
+  }
+
+  const mean = Number(raw)
+
+  return Number.isFinite(mean) ? { sessionMeanReturnPct: mean } : undefined
 }

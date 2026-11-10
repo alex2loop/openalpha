@@ -107,13 +107,19 @@ export async function listLeanCalls(
 }
 
 export function leanCallColumns(dialect: Dialect): string {
-  const fields = PAYLOAD_FIELDS.map((field) =>
-    dialect.name === 'postgres'
-      ? `payload::jsonb ->> '${field.path}' AS ${field.column}`
-      : `json_extract(payload, '$.${field.path}') AS ${field.column}`
+  const fields = PAYLOAD_FIELDS.map(
+    (field) => `${payloadFieldSql(dialect, field.path)} AS ${field.column}`
   )
 
   return [LEAN_COLUMNS, ...fields].join(', ')
+}
+
+/** One top-level payload field as text, extracted in SQL; shared with the factor log, whose rows
+ *  keep their payload the same way. */
+export function payloadFieldSql(dialect: Dialect, path: string): string {
+  return dialect.name === 'postgres'
+    ? `payload::jsonb ->> '${path}'`
+    : `json_extract(payload, '$.${path}')`
 }
 
 export function toLeanCall(row: LeanCallRow): LeanCall {

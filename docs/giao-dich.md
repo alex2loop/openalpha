@@ -592,7 +592,8 @@ nền ghi lại toàn bộ bảng của từng thị trường, mỗi loại mã
 phiếu, kèm chỉ số tổng hợp, điểm yếu tố, giá đóng và các nguồn đã cung cấp bảng.
 
 - Mỗi dòng được chấm theo lợi suất đóng-tới-đóng trong cửa sổ kỳ hạn của chính thị trường, so với chuẩn
-  nếu thị trường có nêu chuẩn.
+  nếu thị trường có nêu chuẩn. Khối quy kết không đọc chuẩn đó: bảng được chấm so với trung bình cùng
+  phiên.
 - Cả hai giá đóng lấy từ chuỗi như nó đang đứng lúc dòng được chấm, nên một đợt cổ tức hay chia tách
   sau đó không làm dịch cái nào.
 - Không cắt lỗ, không mục tiêu, không phí: nó đo bằng chứng, không đo một giao dịch.
@@ -602,7 +603,7 @@ phiếu, kèm chỉ số tổng hợp, điểm yếu tố, giá đóng và các 
 
 `/reflect` in nó thành khối quy kết thứ hai. Khi lớn dần, đây sẽ là mẫu để khớp các trọng số yếu tố và dải mức tin cậy. Mỗi yếu tố được chấm theo phiên bản chiến lược, hai bản mới nhất mỗi thị trường, vì một phiên bản mới có thể đổi thứ mà yếu tố đo.
 
-Một yếu tố được chấm so với thị trường, không so với mức 0. Khi thị trường đi xuống, mọi tín hiệu tiêu cực đều trông như đúng và mọi tín hiệu tích cực đều trông như sai, và đó là đo nhịp của thị trường, không phải đo yếu tố. Nên ở khối của bảng, một tín hiệu được tính là đúng khi mã mạnh hơn trung bình bảng cùng phiên sau tín hiệu tích cực, hoặc yếu hơn sau tín hiệu tiêu cực; con số bình quân là mức chênh so với trung bình cùng phiên ấy. Khối đề xuất làm tương tự, so với chỉ số mà mỗi đề xuất được chấm. Mã đi đúng bằng mốc so sánh thì không đúng cũng không sai nhưng vẫn nằm trong tổng, còn dòng không có mốc so sánh thì bị loại. Với các mã được đề xuất, lệnh crypto được đo so với BTC, mà altcoin được mua thường biến động mạnh hơn BTC, nên một tín hiệu tiêu cực có thể trông đúng ở đó chỉ vì altcoin giảm mạnh hơn; hãy đọc kết quả từng yếu tố của crypto cùng với phần bảng, nơi mỗi mã được so với trung bình bảng của phiên đó.
+Một yếu tố được chấm so với thị trường, không so với mức 0. Khi thị trường đi xuống, mọi tín hiệu tiêu cực đều trông như đúng và mọi tín hiệu tích cực đều trông như sai, và đó là đo nhịp của thị trường, không phải đo yếu tố. Nên ở khối của bảng, một tín hiệu được tính là đúng khi mã mạnh hơn trung bình cùng phiên của bảng cùng loại (cổ phiếu hoặc quỹ) sau tín hiệu tích cực, hoặc yếu hơn sau tín hiệu tiêu cực; con số bình quân là mức chênh so với trung bình cùng phiên ấy. Khối đề xuất làm tương tự, so với mốc tham chiếu của thị trường mỗi đề xuất (VN-Index cho VN, BTC cho crypto), và chấm một đề xuất theo biến động giá trước phí, vì yếu tố dự báo giá chứ không dự báo phí. Vàng và vàng VN không có mốc tham chiếu, nên các đề xuất của chúng không nằm trong khối này. Mã đi đúng bằng mốc so sánh thì không đúng cũng không sai nhưng vẫn nằm trong tổng, còn dòng không có mốc so sánh thì bị loại. Với các mã được đề xuất, lệnh crypto được đo so với BTC, mà altcoin được mua thường biến động mạnh hơn BTC, nên một tín hiệu tiêu cực có thể trông đúng ở đó chỉ vì altcoin giảm mạnh hơn; hãy đọc kết quả từng yếu tố của crypto cùng với phần bảng, nơi mỗi mã được so với trung bình bảng của phiên đó.
 
 Một script nghiên cứu đo các yếu tố VN trên lịch sử ([trang dành cho lập trình viên](dev/giao-dich.md)).
 Đo trên 2025-01 tới 2026-07, nó giải thích bốn lựa chọn:

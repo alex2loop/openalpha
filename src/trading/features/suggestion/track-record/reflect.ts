@@ -6,8 +6,10 @@ import type {
   TrackRecordReport,
   TrackRecordSummary,
 } from '@/trading/features/suggestion/track-record/types'
+import type { ResolvedActionableSuggestion } from '@/trading/features/suggestion/types'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { TradingDay } from '@/trading/kernel/instrument'
+import type { MarketCosts } from '@/trading/markets/cost'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { suggestionScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
 import {
@@ -38,7 +40,7 @@ interface ReflectDeps {
 
 export interface TrackRecordReflection {
   readonly report: TrackRecordReport
-  /** The report's rows as attribution reads them, each on the long side net of its market's fee. */
+  /** The report's rows as attribution reads them, each on the long side, gross of fees. */
   readonly factorRows: readonly ScoredRow[]
   readonly acted?: ActedSummary
 }
@@ -53,9 +55,7 @@ export async function reflect(
     undefined
   )
   const calls = independentCalls(report.recent)
-  const factorRows = calls.map((row) =>
-    suggestionScoredRow(row, marketRoundTripRate(deps.config, row.instrument.market))
-  )
+  const factorRows = toScoredRows(calls, deps.config)
 
   if (oldest === undefined) {
     return { report, factorRows }
@@ -109,4 +109,14 @@ function withAwaiting(
       { code: 'reporting.awaiting-window', detail: { count: earlyCount } },
     ],
   }
+}
+
+/** The calls as attribution reads them, each priced with its own market's round-trip fee. */
+export function toScoredRows(
+  calls: readonly ResolvedActionableSuggestion[],
+  costs: MarketCosts
+): readonly ScoredRow[] {
+  return calls.map((row) =>
+    suggestionScoredRow(row, marketRoundTripRate(costs, row.instrument.market))
+  )
 }

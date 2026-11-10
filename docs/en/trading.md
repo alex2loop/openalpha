@@ -589,7 +589,8 @@ the daemon logs each market's whole board, one per kind it ranks. VN funds are l
 with the composite, factor scores, close and the providers the board was read from.
 
 - Each row is scored on its close-to-close return over the market's own horizon window, against the
-  benchmark where the market names one.
+  benchmark where the market names one. The attribution block does not read that benchmark: the board
+  is judged against the session mean.
 - Both closes come off the series as it stands when the row is scored, so a later dividend or split
   moves neither.
 - No stop, no target, no fees: this measures the evidence, not a trade.
@@ -599,7 +600,7 @@ with the composite, factor scores, close and the providers the board was read fr
 
 `/reflect` prints it as a second attribution block. As it grows, it becomes the sample the factor weights and confidence bands are fitted to. Each factor is scored per strategy version, the newest two per market, because a new version can change what the factor measures.
 
-A factor is judged against the market, never against zero. In a falling tape every bearish reading would look right and every bullish one wrong, and that measures the market's move, not the factor. So on the board block a reading counts as right when the name beat the board's average for that session after a positive read and trailed it after a negative one, and the average shown is how far it landed from that session average. The suggestions block does the same against the index each call was scored on. A name that matches its baseline exactly is neither right nor wrong but still counts in the total, and a row with no baseline is left out. On the names suggested, crypto calls are measured against BTC, and bought alts usually move more than BTC, so a bearish reading can look right there simply because alts fell harder; read crypto's per-factor record alongside the board section, which compares each name with that session's board average.
+A factor is judged against the market, never against zero. In a falling tape every bearish reading would look right and every bullish one wrong, and that measures the market's move, not the factor. So on the board block a reading counts as right when the name beat the average of that session's board of the same kind, shares or funds, after a positive read and trailed it after a negative one, and the average shown is how far it landed from that session average. The suggestions block does the same against the benchmark of the call's market (VN-Index for VN, BTC for crypto), and judges a call on its price move before fees, because a factor predicts the price, not the fee. Gold and VN gold declare no benchmark, so their calls drop out of that block. A name that matches its baseline exactly is neither right nor wrong but still counts in the total, and a row with no baseline is left out. On the names suggested, crypto calls are measured against BTC, and bought alts usually move more than BTC, so a bearish reading can look right there simply because alts fell harder; read crypto's per-factor record alongside the board section, which compares each name with that session's board average.
 
 A research script measures the VN factors on history ([developer page](dev/trading.md)). Measured over
 2025-01 to 2026-07, it explains four choices:

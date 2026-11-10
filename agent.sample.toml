@@ -51,7 +51,6 @@ findings in memory, and produce a concise summary. Do not write to disk.
 # Leave it out and the agent shares your own focus, and its calls drive your book.
 # Set it and the agent becomes a second opinion: its calls are stored and scored
 # separately, and never move a stop, fire an alert or change the morning brief or its market story.
-# A call joins its record once its window has passed; a target it gave back counts as a miss.
 # Focus only narrows: markets must be ones your book trades; sectors need a
 # market that keeps sector data (today: equity-vn; US names carry their sector, no sector board yet). The tables below go above
 # `[capabilities]`: written after it they would land inside it.
@@ -64,6 +63,8 @@ findings in memory, and produce a concise summary. Do not write to disk.
 # goal = "income"             # preserve | income | grow: what it hunts for, in your profile's
 #                             # words (income = dividends); only marks the agent, never
 #                             # changes or splits its calls
+#
+# A call joins its record once its window has passed; a target it gave back counts as a miss.
 
 # ---- Look (how this agent's character appears on the office page) -----------
 # Up to 8 parts, each a lowercase slug of at most 24 characters. The daemon only keeps what you

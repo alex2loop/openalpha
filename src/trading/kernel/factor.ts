@@ -356,9 +356,9 @@ export type FactorReading = (typeof FACTOR_READINGS)[number]
 export interface FactorAttributionBucket {
   readonly reading: FactorReading
   readonly resolvedCount: number
-  /** Readings the name then went the way of against its baseline: a bullish one it beat the baseline
-   *  after, a bearish one it trailed it after. The baseline is the index on a suggestion's record and
-   *  the same session's board mean on the board's. */
+  /** Readings the name then confirmed against its baseline: a bullish one it beat, a bearish one it
+   *  trailed. The baseline is the index on a suggestion's record and the same session's board mean
+   *  on the board's. */
   readonly hitCount: number
   /** A fraction, not a percent: `0.62` is 62% of resolved readings. */
   readonly hitRate?: number

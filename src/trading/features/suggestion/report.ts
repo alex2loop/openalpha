@@ -17,16 +17,14 @@ import type { MarketRef } from '@/trading/kernel/instrument'
 import type { MarketCosts } from '@/trading/markets/cost'
 import { isAbortError } from '@/core/errors'
 import { toReportResult } from '@/trading/features/suggestion/agent-view'
-import {
-  suggestionScoredRow,
-  summarizeFactorAttribution,
-} from '@/trading/features/suggestion/pipeline/attribution'
+import { summarizeFactorAttribution } from '@/trading/features/suggestion/pipeline/attribution'
 import {
   independentCalls,
   MINIMUM_TRACK_RECORD_SAMPLE,
 } from '@/trading/features/suggestion/pipeline/reporting'
 import { renderSuggestionText } from '@/trading/features/suggestion/render/suggestion'
-import { marketRoundTripRate, marketTradeCost } from '@/trading/markets/cost'
+import { toScoredRows } from '@/trading/features/suggestion/track-record/reflect'
+import { marketTradeCost } from '@/trading/markets/cost'
 import { toMarkdownText, withoutFolds } from '@/trading/render/fold'
 import { resolveRenderContext, TOOL_SURFACE } from '@/trading/render/format'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -200,9 +198,7 @@ async function resolveFactorRecord(
   return report === undefined
     ? undefined
     : summarizeFactorAttribution(
-        independentCalls(report.recent).map((row) =>
-          suggestionScoredRow(row, marketRoundTripRate(deps, row.instrument.market))
-        ),
+        toScoredRows(independentCalls(report.recent), deps),
         MINIMUM_TRACK_RECORD_SAMPLE
       )
 }
