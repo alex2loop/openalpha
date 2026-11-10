@@ -45,11 +45,15 @@ Import giữa các module dùng `@/<module>/api`, cộng với `@/<module>/node-
 được trên Bun/Node của module nào có chúng (engine sqlite, tệp token, client MCP stdio, tệp plugin đọc
 từ đĩa). Chỉ `app`, `cli` và barrel SDK import một `node-api`, và hai cửa không re-export lẫn nhau:
 `api` không chạm tới builtin nào của Bun hay Node nên bundle trình duyệt import được nó, và
-`bun run check:browser` dựng bundle đó rồi chỉ ra mọi import, biến toàn cục của host hay phương thức timer phá lời hứa này. Một factory di động cần khả năng chỉ có ở máy chủ thì nhận nó dưới dạng
-hàm phía người dùng và `app` gắn vào: thư mục nháp của lượt chạy (`RunOnceDeps.prepareWorkspace`), nhật
+`bun run check:browser` dựng bundle đó rồi chỉ ra mọi import, biến toàn cục của host hay phương thức
+timer phá lời hứa này. Một factory di động cần khả năng chỉ có ở máy chủ thì nhận nó dưới dạng hàm
+phía người dùng và `app` gắn vào: thư mục nháp của lượt chạy (`RunOnceDeps.prepareWorkspace`), nhật
 ký chi phí chưa ghi (`Services.unrecordedSpend`), phép thăm dò mạng sau các vòng trading
-(`ReachabilityProbe`), bản chụp trước migration (`MigrateOptions.backup`), nguồn thông tin xác thực
-mô hình (`createAiProvider`) và cách tải một trang văn bản (`FetchGuard`: dịch vụ nền kiểm tra và ghim từng bước nhảy, trình duyệt chỉ có `fetch` của chính nó). Có ba ngoại lệ:
+(`ReachabilityProbe`), bộ nhớ tiến trình mà dòng log refresh mang theo
+(`TradingRegistrationOptions.processMemory`, không có trong trình duyệt), bản chụp trước migration
+(`MigrateOptions.backup`), nguồn thông tin xác thực mô hình (`createAiProvider`) và cách tải một
+trang văn bản (`FetchGuard`: dịch vụ nền kiểm tra và ghim từng bước nhảy, trình duyệt chỉ có `fetch`
+của chính nó). Có ba ngoại lệ:
 
 - `core` không có barrel. Các tệp công khai của nó được liệt kê trong `CORE_PUBLIC` ở
   `scripts/check-dag.ts` và được import trực tiếp. Thêm một tệp vào đó là thao tác review được để mở rộng

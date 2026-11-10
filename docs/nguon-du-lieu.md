@@ -42,7 +42,7 @@ Mỗi loại dữ liệu, ở mỗi thị trường, có một danh sách nhà c
 
 Có hai ngoại lệ:
 
-- **Đọc trộn.** Vĩ mô Mỹ (các con số của cả nền kinh tế như lãi suất và lạm phát), các bảng vàng Việt Nam và danh sách giám sát của sàn (các mã mà sàn đưa vào diện theo dõi thêm) hỏi mọi nhà cung cấp rồi gộp câu trả lời, vì không bên nào có đủ hết. Khi hai bên cùng công bố một mục, thứ tự trong danh sách quyết định bên nào thắng. Vĩ mô Mỹ xếp `treasury` và `bls` lên đầu, nên bản cài không có khóa vẫn đọc được vĩ mô. Danh sách giám sát được đọc một lần mỗi lượt refresh và mỗi ngày của bảng; khi một lần đọc lỗi, danh sách gần nhất được dùng lại và màn hình nói rõ đó là danh sách của phiên nào.
+- **Đọc trộn.** Vĩ mô Mỹ (các con số của cả nền kinh tế như lãi suất và lạm phát), các bảng vàng Việt Nam và danh sách giám sát của sàn (các mã mà sàn đưa vào diện theo dõi thêm) hỏi mọi nhà cung cấp rồi gộp câu trả lời, vì không bên nào có đủ hết. Khi hai bên cùng công bố một mục, thứ tự trong danh sách quyết định bên nào thắng. Vĩ mô Mỹ xếp `treasury` và `bls` lên đầu, nên bản cài không có khóa vẫn đọc được vĩ mô. Danh sách giám sát được đọc một lần mỗi lượt refresh và một lần mỗi phiên giữa hai lượt; khi một lần đọc lỗi, danh sách đầy đủ gần nhất được dùng lại và câu trả lời nói rõ đó là danh sách của phiên nào.
 - **Đọc chia việc.** Với tin tức, một nhà cung cấp lo tin riêng của một mã, một nhà khác lo lần đọc toàn thị trường. Hai bên chia việc. Không bên nào là dự phòng của bên kia.
 
 Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm dừng (xem [Khi một nhà cung cấp hỏng](#khi-một-nhà-cung-cấp-hỏng)), bị đẩy xuống sau các bên khỏe. Không bên nào được đẩy lên chỉ vì mới trả lời gần đây.

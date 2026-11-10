@@ -42,7 +42,7 @@ Each kind of data, in each market, has an ordered list of providers. OpenAlpha a
 
 Two exceptions:
 
-- **Merged reads.** US macro (economy-wide figures such as rates and inflation), the Vietnamese gold boards and the exchange supervision list (stocks the exchange puts under extra watch) ask every provider and combine the answers, because no single provider has everything. Where two providers publish the same item, list order decides which wins. US macro lists `treasury` and `bls` first, so an install with no keys still reads macro. The supervision list is read once per refresh tick and per board day; when a read fails, the last list is used and the screen says which session it is from.
+- **Merged reads.** US macro (economy-wide figures such as rates and inflation), the Vietnamese gold boards and the exchange supervision list (stocks the exchange puts under extra watch) ask every provider and combine the answers, because no single provider has everything. Where two providers publish the same item, list order decides which wins. US macro lists `treasury` and `bls` first, so an install with no keys still reads macro. The supervision list is read once at each refresh and once per session in between; when a read fails, the last full list is used and the reply says which session it is from.
 - **Split reads.** For news, one provider serves a name's own headlines and another serves the market-wide read. They share the work. Neither is the other's fallback.
 
 A provider that failed on its most recent call, or is paused (see [When a provider fails](#when-a-provider-fails)), moves behind the healthy ones. Nothing moves up for having answered recently.

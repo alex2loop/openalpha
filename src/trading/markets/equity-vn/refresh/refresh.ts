@@ -101,8 +101,6 @@ export async function refreshMarketData(
 ): Promise<readonly RefreshKindResult[]> {
   const { deps, request } = options
 
-  // Every pass, scheduled or forced, judges the lists as they stand now: between passes a board
-  // reuses the read of its day.
   options.crossSection.clearSupervision()
 
   const [stored, attempts] = await Promise.all([

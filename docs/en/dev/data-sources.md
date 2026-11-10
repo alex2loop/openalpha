@@ -560,9 +560,9 @@ ceiling or, where none is published, a rate a universe-wide sweep sustains witho
   only when their reports are due.
 - `nasdaq` 120: publishes none; a full sweep of the US board ran at about that rate without a refusal. `sec` and `sec-data` 200: SEC allows 10 requests a second per address across both hosts and blocks the address for ten minutes past it. Each bucket holds one token (`SOURCE_BURST_LIMITS`, instead of the default quarter-minute burst), so any one second asks at most 1 + 200/60 of each host, under 9 together.
 - 60: `coinpaprika` publishes 10/s and 20,000/month; `coinlore` and `treasury` publish none (sweep-safe rate); `entrade`, `kbsec`,
-  `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per refresh tick and board day; `rss`
-  is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo` serves gold `quote`/`bars`
-  plus the fiat `fx` leg; `coinbase` is one pair per conversion.
+  `vietcap` are broker endpoints; `google-news` is one search per instrument read; `hsx` one `supervision` read per refresh
+  and board day; `rss` is shared across every feed the id serves; `ssi` is the `supervision` leg that carries HNX; `yahoo`
+  serves gold `quote`/`bars` plus the fiat `fx` leg; `coinbase` is one pair per conversion.
 - `vietcombank` 120: publishes none; a window is one request a weekday, at most 45, read only where `yahoo` and `coingecko` answered nothing. A 33-day window took 18 s through the pacer at 60 a
   minute and 2.7 s at 120. `vndirect-index` 60: one request an
   index (a page per 500 sessions) when the market refreshes its level bars.
@@ -844,11 +844,11 @@ never worth holding the universe for; the universe then settles without it, keep
 - **`accounts` keeps the names it screened.** Which names a report can act on comes from the screened board, and reading
   the board is a whole-population pass. The names are stored per market in `screened_names` with the session they were read
   for and a stamp of what the screen reads: the stored evidence (newest fetch and row count of bars and instruments, newest
-  fundamental; flows and accounts feed no gate), a digest of the exchange's supervision lists, the read the board build takes
-  (one per refresh tick and board day), and a digest of the gate policy (`SCREEN_POLICY_DIGEST`, derived from the gates and thresholds themselves). A
-  pass reuses the names only while the session and the stamp all match, so a restart that replays every earlier kind skips
-  the pass, while a write by any earlier kind, a change to a supervision list or to the gates, a new session or a forced run
-  reads the board again. The held names are always added fresh.
+  fundamental; flows and accounts feed no gate), a digest of the exchange's supervision lists, the read the board takes
+  when it is rebuilt (one per refresh and board day), and a digest of the gate policy (`SCREEN_POLICY_DIGEST`, derived
+  from the gates and thresholds themselves). A pass reuses the names only while the session and the stamp all match, so a
+  restart that replays every earlier kind skips the pass, while a write by any earlier kind, a change to a supervision
+  list or to the gates, a new session or a forced run reads the board again. The held names are always added fresh.
 
 Crypto is the exception: `markets/crypto/screen-run.ts` ranks straight off `marketCap` and `bars` reads with no store, because its
 universe is one ranked request rather than a swept board.
