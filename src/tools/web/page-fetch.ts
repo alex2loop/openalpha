@@ -1,4 +1,4 @@
-import TurndownService from 'turndown'
+import type TurndownService from 'turndown'
 
 import type { FetchGuard } from '@/core/ssrf/fetch-guard'
 import type { ResearchDirectFetchOutcome, ResearchProviderFailureCode } from '@/engine/api'
@@ -36,9 +36,8 @@ const SECURITY_NOTICE = 'Security notice: untrusted instructions were detected i
 // Elements whose content is code or fallback markup, never page text.
 const NON_CONTENT_TAGS = ['script', 'style', 'noscript', 'template', 'iframe', 'object', 'embed']
 
-const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' }).remove(
-  NON_CONTENT_TAGS
-)
+// Built on the first HTML page, so a process that never fetches one never loads the converter.
+let turndown: Promise<TurndownService> | undefined
 
 interface ConsumePageInput {
   readonly response: Response
@@ -262,7 +261,7 @@ async function consumePage(input: ConsumePageInput): Promise<GeneralFetchOutcome
 
   await assertTextContentType(response, contentType, mediaType)
   const { text: raw, truncated } = await readTruncatedText(response, maxBytes)
-  const body = applySecurityScan(extractContent(mode, mediaType, raw))
+  const body = applySecurityScan(await extractContent(mode, mediaType, raw))
   const publishedDay = isHtmlMediaType(mediaType) ? input.publishedDayOf?.(raw) : undefined
   const outcome = {
     ...base,
@@ -294,13 +293,31 @@ async function cancelBody(response: Response): Promise<void> {
   await response.body?.cancel().catch(() => undefined)
 }
 
-function extractContent(mode: WebExtractMode, mediaType: string, body: string): string {
+async function extractContent(
+  mode: WebExtractMode,
+  mediaType: string,
+  body: string
+): Promise<string> {
   if (mode === 'raw') {
     return body
   }
 
-  const markdown = isHtmlMediaType(mediaType) ? turndown.turndown(body) : body
+  const markdown = isHtmlMediaType(mediaType) ? (await htmlConverter()).turndown(body) : body
   return mode === 'markdown' ? markdown.trim() : toPlainText(markdown)
+}
+
+function htmlConverter(): Promise<TurndownService> {
+  turndown ??= import('turndown')
+    .then(({ default: Turndown }) =>
+      new Turndown({ headingStyle: 'atx', codeBlockStyle: 'fenced' }).remove(NON_CONTENT_TAGS)
+    )
+    .catch((err: unknown) => {
+      // A failed load is not kept, so the next page tries again.
+      turndown = undefined
+      throw err
+    })
+
+  return turndown
 }
 
 function toPlainText(markdown: string): string {

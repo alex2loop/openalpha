@@ -155,6 +155,21 @@ export async function mapWithConcurrency<T, R>(
   return results
 }
 
+// Resolves to undefined on timeout. The timer is always cleared, so it never pins the event loop.
+export async function withDeadline<T>(work: Promise<T>, timeoutMs: number): Promise<T | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  const deadline = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), timeoutMs)
+  })
+
+  try {
+    return await Promise.race([work, deadline])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 // True when `work` settled inside the budget, resolved or rejected: a rejection is an answer. It
 // must never throw, since callers read it to decide whether cleanup still has to run.
 export async function settleWithin(work: Promise<unknown>, timeoutMs: number): Promise<boolean> {
