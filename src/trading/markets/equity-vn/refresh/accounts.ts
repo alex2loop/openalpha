@@ -120,9 +120,9 @@ async function wantedNames(
 
 /** Reading the board costs a whole-population pass, so the names it screened are kept with the
  *  session and a stamp of what the screen read: the stored evidence, the exchange's supervision
- *  lists (the read the board itself takes) and the gate policy. They stand only while both still match, which a pass whose earlier
- *  kinds wrote nothing keeps true; anything else reads the board again, and a forced run always
- *  does. */
+ *  lists (the read the board takes when it is rebuilt) and the gate policy. They stand only while
+ *  both still match, which a pass whose earlier kinds wrote nothing keeps true; anything else reads
+ *  the board again, and a forced run always does. */
 async function screenedNames(
   scope: EvidenceScope,
   crossSection: AccountsCrossSection

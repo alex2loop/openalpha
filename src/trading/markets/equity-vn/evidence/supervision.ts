@@ -27,22 +27,23 @@ export interface SupervisionRead {
   readonly caveats: readonly Caveat[]
 }
 
+interface LastGoodRead {
+  readonly asOf: TradingDay
+  readonly read: SupervisionRead
+}
+
 export interface SupervisionCache {
   get(asOf: TradingDay, signal: AbortSignal): Promise<SupervisionRead>
   /** Forgets every held read, not the last good one a failed read falls back to. */
   clear(): void
 }
 
-interface LastGoodRead {
-  readonly asOf: TradingDay
-  readonly read: SupervisionRead
-}
-
-/** One live read per board day: the lists change by announcement, and a whole-board pass reads them
- *  on every sweep for no new answer. `days` is the cross-section cache's own slot count, so both
- *  hold the same board days. A read that missed a board is not kept, so the next call asks again,
- *  and the caller gets the last good read in its place, marked as carried; with none yet it gets
- *  the incomplete read itself. The last good read is never older than a newer day's. */
+/** One live read per board day and per refresh pass: the lists change by announcement, and a
+ *  whole-board pass reads them on every sweep for no new answer. `days` is the cross-section
+ *  cache's own slot count, so both hold the same board days. A read that missed a board is not
+ *  kept, so the next call asks again, and the caller gets the last good read in its place, marked
+ *  as carried; with none yet it gets the incomplete read itself. The last good read is never older
+ *  than a newer day's. */
 export function supervisionCache(deps: MarketDeps, days: number): SupervisionCache {
   const reads = flightCache<SupervisionRead>(days, isCompleteRead)
   let last: LastGoodRead | undefined
@@ -102,8 +103,8 @@ function carriedRead(last: LastGoodRead): SupervisionRead {
 }
 
 /** What the gates read of the exchange's lists, as one string that moves when a name enters or
- *  leaves one, changes level, or a board stops being covered. The cross-section reads the same
- *  lists, so a screen kept under one stamp is the screen a fresh read would give. */
+ *  leaves one, changes level, or a board stops being covered. A board rebuilt for the day reads
+ *  the same held lists, so a screen kept under one stamp is the screen a fresh read would give. */
 export function toSupervisionStamp(read: SupervisionRead): string {
   return hashString(
     canonicalJson({
