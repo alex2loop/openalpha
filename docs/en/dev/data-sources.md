@@ -842,15 +842,6 @@ never worth holding the universe for; the universe then settles without it, keep
   pass reuses the names only while the session and the stamp all match, so a restart that replays every earlier kind skips
   the pass, while a write by any earlier kind, a change to a supervision list or to the gates, a new session or a forced run
   reads the board again. The held names are always added fresh.
-- **The brief's previous-session board is cut from today's pass.** The screen-delta section needs the board of the session
-  before the brief's day. Rather than a second whole-board pass, the cross-section cache cuts it from the pass it already
-  holds for the brief's day (`getBefore`): every name's bars and flows stop at that session, the gates run again, the ranks
-  are worked again over the names that still clear them, a fundamental newer than that session is asked again as of it, and
-  the accounts are read again over the stored lists. Everything a pass reads that moves with the day is one shape
-  (`DayInputs`), filled by both the store read and the cut, so an input added to it fails the type check in whichever does
-  not supply it. When the brief's day is not held, or the day asked for is not the session right before it, the full pass is
-  built instead: that costs memory, never a different board. The cut differs from a fresh pass only by the one oldest
-  session its window no longer holds, which moves a few scores by floating-point noise.
 
 Crypto is the exception: `markets/crypto/screen-run.ts` ranks straight off `marketCap` and `bars` reads with no store, because its
 universe is one ranked request rather than a swept board.

@@ -48,8 +48,6 @@ interface Flight<T> {
 
 interface FlightCache<T> {
   share(key: string, signal: AbortSignal, run: () => Promise<T>): Promise<T>
-  /** The settled value held for `key`; never starts a pass or joins one still in flight. */
-  peek(key: string): Promise<T> | undefined
   clear(): void
 }
 
@@ -104,7 +102,6 @@ export function flightCache<T>(slots: number, keep?: (value: T) => boolean): Fli
 
       return flight.pass
     },
-    peek: (key) => flights.find((entry) => entry.key === key && entry.settled)?.pass,
     clear(): void {
       flights = []
     },
